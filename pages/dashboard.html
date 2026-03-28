@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIMA · Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono&family=Fraunces:wght@700&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.res-card{
+  background:var(--branco);border:1px solid var(--borda);
+  border-radius:var(--raio-lg);padding:16px 18px;
+  border-left:4px solid var(--verde-c);
+}
+.res-card.r2{border-left-color:var(--azul-medio);}
+.res-card.r3{border-left-color:var(--ouro);}
+.res-card.r4{border-left-color:var(--cinza-3);}
+.res-codigo{font-family:var(--font-mono);font-size:11px;color:var(--cinza-5);margin-bottom:4px;}
+.res-nome{font-size:13px;font-weight:600;color:var(--cinza-9);margin-bottom:10px;line-height:1.3;}
+.res-stats{display:flex;gap:16px;margin-bottom:8px;}
+.res-stat{text-align:center;}
+.res-stat-val{font-size:16px;font-weight:600;color:var(--cinza-9);}
+.res-stat-lbl{font-size:10px;color:var(--cinza-5);}
+
+.tdr-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda);}
+.tdr-row:last-child{border-bottom:none;}
+.tdr-codigo{font-family:var(--font-mono);font-size:11px;color:var(--cinza-7);min-width:100px;}
+.tdr-obj{font-size:12px;color:var(--cinza-7);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.cotacao-box{
+  background:linear-gradient(135deg,var(--verde) 0%,var(--verde-m) 100%);
+  border-radius:var(--raio-lg);padding:20px 22px;color:#fff;
+}
+.cot-titulo{font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.7;margin-bottom:6px;}
+.cot-valor{font-size:32px;font-weight:600;font-family:var(--font-mono);letter-spacing:-.02em;}
+.cot-data{font-size:11px;opacity:.6;margin-top:4px;}
+
+.alert-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--borda);
+}
+.alert-item:last-child{border-bottom:none;}
+.alert-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;
+}
+.alert-dot.vermelho{background:var(--erro);}
+.alert-dot.amarelo{background:var(--aviso);}
+.alert-dot.verde{background:var(--sucesso);}
+.alert-texto{font-size:12px;color:var(--cinza-7);line-height:1.4;}
+.alert-subtexto{font-size:11px;color:var(--cinza-5);margin-top:2px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280;">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando...
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+
+  const tit = t('dashboard','bem_vindo') + ', ' + (usuario.nome_completo?.split(' ')[0] || '') + '!';
+
+  document.getElementById('app').innerHTML = gerarLayout(tit, 'dashboard') + `
+    <div id="dash-content" class="fade-in">
+      <div id="kpis" class="kpi-grid"></div>
+      <div class="grid-60-40" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Resultados — Orçamento (U$)</span>
+          </div>
+          <div class="card-body" id="resultados-cards" style="display:flex;flex-direction:column;gap:10px;padding:14px 16px"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div id="cotacao-box"></div>
+          <div class="card" style="flex:1">
+            <div class="card-header"><span class="card-title">Alertas</span></div>
+            <div class="card-body" id="alertas-lista" style="padding:8px 16px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">TDRs recentes</span>
+            <a href="tdrs.html" class="btn btn-sm btn-secondary">Ver todos</a>
+          </div>
+          <div class="card-body" id="tdrs-recentes" style="padding:4px 16px"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Indicadores da Matriz</span>
+            <a href="matriz.html" class="btn btn-sm btn-secondary">Ver Matriz</a>
+          </div>
+          <div class="card-body" id="indicadores-resumo" style="padding:4px 16px"></div>
+        </div>
+      </div>
+    </div>
+  ` + fecharLayout();
+
+  await carregarDashboard();
+})();
+
+async function carregarDashboard() {
+  try {
+    // KPIs
+    const { data: kpis } = await db.from('vw_dashboard_kpis').select('*').single();
+    const { data: resultados } = await db.from('resultados').select('*').order('codigo');
+    const { data: saldos } = await db.from('vw_saldo_atividade').select('*');
+    const { data: tdrs } = await db.from('tdrs').select('numero,objeto_pt,status,criado_em').order('criado_em', {ascending:false}).limit(6);
+    const { data: indicadores } = await db.from('vw_matriz_progresso').select('*').limit(6);
+
+    // Renderizar KPIs
+    const kEl = document.getElementById('kpis');
+    if (kpis) {
+      const cotBRL = kpis.cotacao_atual_usd ? parseFloat(kpis.cotacao_atual_usd) : 5.87;
+      const orcBRL = (parseFloat(kpis.orcamento_total_usd||0) * cotBRL);
+      kEl.innerHTML = `
+        <div class="kpi-card">
+          <div class="kpi-label">${t('dashboard','orcamento')}</div>
+          <div class="kpi-valor">${fmtUSD(kpis.orcamento_total_usd)}</div>
+          <div class="kpi-sub">≈ ${fmtBRL(orcBRL)}</div>
+        </div>
+        <div class="kpi-card ouro">
+          <div class="kpi-label">${t('dashboard','executado')}</div>
+          <div class="kpi-valor">${fmtBRL(kpis.total_pago_brl)}</div>
+          <div class="kpi-sub">${kpis.contratos_ativos} contratos ativos</div>
+        </div>
+        <div class="kpi-card azul">
+          <div class="kpi-label">${t('dashboard','a_pagar')}</div>
+          <div class="kpi-valor">${fmtBRL(kpis.total_a_pagar_brl)}</div>
+          <div class="kpi-sub">lançamentos pendentes</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">${t('dashboard','tdrs_andamento')}</div>
+          <div class="kpi-valor">${kpis.tdrs_em_andamento || 0}</div>
+          <div class="kpi-sub">${kpis.tdrs_aprovados||0} aprovados</div>
+        </div>
+        <div class="kpi-card ${(kpis.indicadores_em_risco||0)>0?'erro':''}">
+          <div class="kpi-label">${t('dashboard','indicadores_risco')}</div>
+          <div class="kpi-valor">${kpis.indicadores_em_risco||0}</div>
+          <div class="kpi-sub">de 26 indicadores</div>
+        </div>
+      `;
+
+      // Cotação
+      document.getElementById('cotacao-box').innerHTML = `
+        <div class="cotacao-box">
+          <div class="cot-titulo">${t('dashboard','cotacao')}</div>
+          <div class="cot-valor">R$ ${parseFloat(kpis.cotacao_atual_usd||5.87).toFixed(2)}</div>
+          <div class="cot-data">Referência: ${fmtData(kpis.cotacao_data)}</div>
+        </div>
+      `;
+    }
+
+    // Resultados
+    const rEl = document.getElementById('resultados-cards');
+    const classes = ['','r2','r3','r4'];
+    if (resultados) {
+      const saldoMap = {};
+      saldos?.forEach(s => {
+        const r = s.resultado_id;
+        if (!saldoMap[r]) saldoMap[r] = { comprometido: 0, executado: 0 };
+        saldoMap[r].comprometido += parseFloat(s.comprometido_usd||0);
+        saldoMap[r].executado += parseFloat(s.executado_usd||0);
+      });
+
+      rEl.innerHTML = resultados.map((r, i) => {
+        const s = saldoMap[r.id] || {};
+        const pct = r.orcamento_usd > 0 ? Math.round((s.comprometido||0)/r.orcamento_usd*100) : 0;
+        const nome = campo(r, 'nome');
+        return `
+          <div class="res-card ${classes[i]}">
+            <div class="res-codigo">${r.codigo}</div>
+            <div class="res-nome">${nome.substring(0,70)}${nome.length>70?'…':''}</div>
+            <div style="margin-bottom:6px">
+              <div class="prog-wrap">
+                <div class="prog-bar">
+                  <div class="prog-fill ${pct>90?'vermelho':pct>70?'amarelo':''}" style="width:${pct}%"></div>
+                </div>
+                <span class="prog-pct">${pct}%</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:20px">
+              <div><span style="font-size:10px;color:var(--cinza-5)">Orçamento</span><br><span style="font-size:13px;font-weight:600;font-family:var(--font-mono)">${fmtUSD(r.orcamento_usd)}</span></div>
+              <div><span style="font-size:10px;color:var(--cinza-5)">Comprometido</span><br><span style="font-size:13px;font-weight:600;font-family:var(--font-mono);color:var(--aviso)">${fmtUSD(s.comprometido||0)}</span></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Alertas automáticos
+    const alertas = [];
+    if (saldos) {
+      saldos.filter(s => s.status_saldo === 'extrapolado').slice(0,2).forEach(s => {
+        alertas.push({ cor:'vermelho', texto:`Saldo extrapolado: ${s.codigo}`, sub:`Orçamento ultrapassado — solicite remanejamento` });
+      });
+      saldos.filter(s => s.status_saldo === 'critico').slice(0,2).forEach(s => {
+        alertas.push({ cor:'amarelo', texto:`Saldo crítico (<5%): ${s.codigo}`, sub:`Novo TDR pode extrapolar o orçamento` });
+      });
+    }
+    if (tdrs) {
+      const atrasados = tdrs.filter(t => t.status === 'rascunho').length;
+      if (atrasados > 0) alertas.push({ cor:'amarelo', texto:`${atrasados} TDR(s) em rascunho`, sub:'Aguardando revisão interna' });
+    }
+    if (alertas.length === 0) alertas.push({ cor:'verde', texto:'Nenhum alerta crítico no momento', sub:'Sistema operando normalmente' });
+
+    document.getElementById('alertas-lista').innerHTML = alertas.map(a => `
+      <div class="alert-item">
+        <div class="alert-dot ${a.cor}"></div>
+        <div>
+          <div class="alert-texto">${a.texto}</div>
+          <div class="alert-subtexto">${a.sub}</div>
+        </div>
+      </div>
+    `).join('');
+
+    // TDRs recentes
+    const tEl = document.getElementById('tdrs-recentes');
+    if (tdrs?.length) {
+      tEl.innerHTML = tdrs.map(t => `
+        <div class="tdr-row">
+          <span class="tdr-codigo mono">${t.numero}</span>
+          <span class="tdr-obj">${t.objeto_pt?.substring(0,60)||'—'}${(t.objeto_pt?.length||0)>60?'…':''}</span>
+          ${badgeStatusTDR(t.status)}
+        </div>
+      `).join('');
+    } else {
+      tEl.innerHTML = `<div class="empty-state"><div class="empty-state-msg">Nenhum TDR cadastrado ainda.</div></div>`;
+    }
+
+    // Indicadores
+    const iEl = document.getElementById('indicadores-resumo');
+    if (indicadores?.length) {
+      iEl.innerHTML = indicadores.map(i => {
+        const pct = parseFloat(i.pct_atingido||0);
+        const cor = pct >= 40 ? '' : pct > 0 ? 'amarelo' : 'vermelho';
+        return `
+          <div style="padding:8px 0;border-bottom:1px solid var(--borda)">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:11px;color:var(--cinza-7);flex:1;padding-right:8px;line-height:1.3">${(i.nome_pt||'').substring(0,50)}${(i.nome_pt?.length||0)>50?'…':''}</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--cinza-5);white-space:nowrap">${i.valor_atingido||0} / ${i.meta_numerica||0}</span>
+            </div>
+            <div class="prog-wrap">
+              <div class="prog-bar"><div class="prog-fill ${cor}" style="width:${Math.min(pct,100)}%"></div></div>
+              <span class="prog-pct">${Math.round(pct)}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      iEl.innerHTML = `<div class="empty-state"><div class="empty-state-msg">Sem dados de indicadores.</div></div>`;
+    }
+
+  } catch(e) {
+    console.error('Erro dashboard:', e);
+    toast('Erro ao carregar dados do dashboard.', 'error');
+  }
+}
+</script>
+</body>
+</html>
