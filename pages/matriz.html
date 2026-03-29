@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Matriz de Resultados</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
+.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
+
+.visao-tabs{display:flex;gap:0;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:4px;width:fit-content;}
+.visao-tab{padding:7px 16px;border-radius:var(--raio);font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;transition:all .15s;border:none;background:none;font-family:var(--font-sans);}
+.visao-tab.ativo{background:var(--branco);color:var(--verde-medio);box-shadow:0 1px 4px rgba(0,0,0,.08);font-weight:600;}
+
+.resultado-bloco{margin-bottom:16px;}
+.resultado-titulo{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg) var(--raio-lg) 0 0;border-bottom:none;cursor:pointer;}
+.resultado-codigo{font-family:var(--font-mono);font-size:12px;font-weight:700;padding:2px 10px;border-radius:4px;color:#fff;}
+.rc-r1{background:#1D9E75}.rc-r2{background:#2563EB}.rc-r3{background:#7F77DD}.rc-r4{background:#BA7517}
+.resultado-nome-txt{font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;}
+
+.ind-card{background:var(--branco);border:1px solid var(--borda);border-left:4px solid var(--borda);padding:14px 16px;transition:all .15s;cursor:pointer;border-top:none;}
+.ind-card:hover{background:var(--cinza-50);}
+.ind-card:last-child{border-radius:0 0 var(--raio-lg) var(--raio-lg);}
+.ind-card.risco-alto{border-left-color:var(--erro);}
+.ind-card.risco-medio{border-left-color:var(--aviso);}
+.ind-card.risco-ok{border-left-color:var(--verde-claro);}
+.ind-card.risco-sem{border-left-color:var(--cinza-300);}
+
+.ind-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.ind-num{font-family:var(--font-mono);font-size:11px;font-weight:700;background:var(--cinza-100);padding:2px 8px;border-radius:3px;color:var(--cinza-700);flex-shrink:0;margin-top:2px;}
+.ind-nome{font-size:13px;font-weight:500;color:var(--cinza-900);flex:1;line-height:1.4;}
+.ind-nome-en{font-size:11px;color:var(--cinza-500);margin-top:2px;font-style:italic;}
+.ind-badges{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;align-items:flex-start;}
+
+.ind-progresso{display:grid;grid-template-columns:1fr 150px;gap:16px;align-items:center;}
+.ind-barra{height:8px;background:var(--cinza-100);border-radius:4px;overflow:hidden;margin-bottom:4px;}
+.ind-fill{height:100%;border-radius:4px;transition:width .5s ease;}
+.ind-fill-ok{background:var(--verde-claro);}
+.ind-fill-warn{background:var(--aviso);}
+.ind-fill-crit{background:var(--erro);}
+.ind-fill-zero{background:var(--cinza-300);}
+.ind-nums{display:flex;justify-content:space-between;font-size:10px;color:var(--cinza-500);}
+
+.ind-vals{display:flex;flex-direction:column;gap:2px;text-align:right;}
+.ind-val-atingido{font-size:22px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono);line-height:1;}
+.ind-val-meta{font-size:11px;color:var(--cinza-500);}
+.ind-val-pct{font-size:13px;font-weight:700;}
+
+.risco-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
+.rb-alto{background:#FEE2E2;color:#991B1B}
+.rb-medio{background:#FEF3C7;color:#92400E}
+.rb-ok{background:#D1FAE5;color:#065F46}
+.rb-sem{background:#F3F4F6;color:#6B7280}
+
+.ods-chip{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:#E6F1FB;color:#1E40AF;margin:1px;}
+.km-chip{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:#EDE9FE;color:#4C1D95;margin:1px;}
+
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:16px;overflow-x:auto;}
+.tab-btn{padding:8px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
+.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.tab-content{display:none;}
+.tab-content.ativo{display:block;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+.hist-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda);}
+.hist-row:last-child{border-bottom:none;}
+.hist-trim{font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--cinza-100);padding:2px 8px;border-radius:3px;min-width:60px;}
+.hist-barra{flex:1;height:6px;background:var(--cinza-100);border-radius:3px;overflow:hidden;}
+.hist-fill{height:100%;background:var(--verde-claro);border-radius:3px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando Matriz de Resultados...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INDICADOR -->
+<div class="modal-overlay" id="modal-ind">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="mi-titulo">Indicador</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="mi-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mi-body" style="padding:16px 24px"></div>
+    <div class="modal-footer" id="mi-footer"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+let indicadores=[], resultados=[], historicos=[];
+let indAtual=null, visaoAtual='resultado';
+
+(async()=>{
+  const usuario=await carregarUsuario();
+  if(!usuario){window.location.href='../index.html';return;}
+
+  document.getElementById('app').innerHTML=
+    gerarLayout('Matriz de Resultados','matriz')+`
+    <div class="fade-in">
+      <div class="stat-row" id="stats"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div class="visao-tabs">
+          <button class="visao-tab ativo" onclick="mudarVisao('resultado',this)">◎ Por Resultado</button>
+          <button class="visao-tab" onclick="mudarVisao('tabela',this)">☰ Tabela</button>
+          <button class="visao-tab" onclick="mudarVisao('risco',this)">⚠ Em risco</button>
+        </div>
+        <input class="form-control" type="text" id="busca-ind" style="width:220px"
+          placeholder="Buscar indicador..." oninput="renderVisao()">
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportarPDF()">📄 PDF UNESCO</button>
+        </div>
+      </div>
+      <div id="conteudo-matriz"></div>
+    </div>`+`</div></div></div>`;
+
+  await carregar();
+})();
+
+async function carregar(){
+  try{
+    const [{data:inds},{data:ress},{data:hists}]=await Promise.all([
+      db.from('indicadores').select('*').eq('ativo',true).order('ordem').order('codigo'),
+      db.from('resultados').select('*').order('codigo'),
+      db.from('historico_indicadores').select('*').order('trimestre',{ascending:false})
+    ]);
+    indicadores=inds||[];
+    resultados=ress||[];
+    historicos=hists||[];
+    renderStats();
+    renderVisao();
+  }catch(e){
+    console.error(e);
+    toast('Erro ao carregar Matriz de Resultados.','error');
+  }
+}
+
+function calcPct(ind){
+  const meta=parseFloat(ind.meta_numerica||0);
+  const ating=parseFloat(ind.valor_atingido||0);
+  if(!meta)return 0;
+  return Math.round(ating/meta*100);
+}
+
+function classeRisco(pct,temMeta){
+  if(!temMeta)return 'risco-sem';
+  if(pct>=100)return 'risco-ok';
+  if(pct>=40)return 'risco-medio';
+  return 'risco-alto';
+}
+
+function badgeRisco(pct,temMeta){
+  if(!temMeta)return`<span class="risco-badge rb-sem">Sem meta</span>`;
+  if(pct>=100)return`<span class="risco-badge rb-ok">✓ Meta atingida</span>`;
+  if(pct>=70)return`<span class="risco-badge rb-ok">Em dia</span>`;
+  if(pct>=40)return`<span class="risco-badge rb-medio">⚠ Atenção</span>`;
+  return`<span class="risco-badge rb-alto">🔴 Em risco</span>`;
+}
+
+function classeBarra(pct){
+  if(pct===0)return'ind-fill-zero';
+  if(pct>=70)return'ind-fill-ok';
+  if(pct>=40)return'ind-fill-warn';
+  return'ind-fill-crit';
+}
+
+function corResultado(codigo){
+  const cores={R1:'#1D9E75',R2:'#2563EB',R3:'#7F77DD',R4:'#BA7517'};
+  return cores[codigo]||'#6B7280';
+}
+
+// Unidade no idioma atual
+function unidade(ind){
+  const lang=appState.idioma;
+  return ind[`unidade_${lang}`]||ind.unidade_pt||'';
+}
+
+// Meios de verificação no idioma atual
+function meiosVerif(ind){
+  const lang=appState.idioma;
+  return ind[`meios_verificacao_${lang}`]||ind.meios_verificacao_pt||'';
+}
+
+function renderStats(){
+  const total=indicadores.length;
+  const comMeta=indicadores.filter(i=>parseFloat(i.meta_numerica||0)>0);
+  const atingidos=comMeta.filter(i=>calcPct(i)>=100).length;
+  const emRisco=comMeta.filter(i=>{const p=calcPct(i);return p>0&&p<40;}).length;
+  const zerados=comMeta.filter(i=>calcPct(i)===0).length;
+  const media=comMeta.length?Math.round(comMeta.reduce((s,i)=>s+Math.min(calcPct(i),100),0)/comMeta.length):0;
+
+  document.getElementById('stats').innerHTML=`
+    <div class="stat-card sc-b">
+      <div class="stat-lbl">Total Indicadores</div>
+      <div class="stat-val">${total}</div>
+      <div class="stat-sub">em 4 Resultados</div>
+    </div>
+    <div class="stat-card sc-g">
+      <div class="stat-lbl">Meta Atingida</div>
+      <div class="stat-val">${atingidos}</div>
+      <div class="stat-sub">100% ou mais</div>
+    </div>
+    <div class="stat-card sc-t">
+      <div class="stat-lbl">Progresso Médio</div>
+      <div class="stat-val">${media}%</div>
+      <div class="stat-sub">todos os indicadores</div>
+    </div>
+    <div class="stat-card sc-a">
+      <div class="stat-lbl">Em Risco</div>
+      <div class="stat-val" style="color:${emRisco>0?'var(--aviso)':'var(--sucesso)'}">${emRisco}</div>
+      <div class="stat-sub">abaixo de 40%</div>
+    </div>
+    <div class="stat-card sc-r">
+      <div class="stat-lbl">Sem Progresso</div>
+      <div class="stat-val" style="color:${zerados>0?'var(--erro)':'var(--sucesso)'}">${zerados}</div>
+      <div class="stat-sub">nenhum valor ainda</div>
+    </div>`;
+}
+
+function mudarVisao(v,btn){
+  visaoAtual=v;
+  document.querySelectorAll('.visao-tab').forEach(b=>b.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  renderVisao();
+}
+
+function renderVisao(){
+  const busca=document.getElementById('busca-ind')?.value.toLowerCase()||'';
+  let inds=indicadores.filter(i=>
+    !busca||(i.nome_pt||'').toLowerCase().includes(busca)||
+    (i.nome_en||'').toLowerCase().includes(busca)||
+    (i.codigo||'').toLowerCase().includes(busca)
+  );
+  if(visaoAtual==='risco')inds=inds.filter(i=>{
+    const p=calcPct(i);
+    return parseFloat(i.meta_numerica||0)>0&&p<40;
+  });
+  if(visaoAtual==='tabela')renderTabela(inds);
+  else renderPorResultado(inds);
+}
+
+function renderPorResultado(inds){
+  const el=document.getElementById('conteudo-matriz');
+  if(!resultados.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-msg">Nenhum resultado encontrado.</div></div>`;return;}
+
+  el.innerHTML=resultados.map(r=>{
+    const indsR=inds.filter(i=>i.resultado_id===r.id);
+    if(!indsR.length&&visaoAtual==='risco')return'';
+    const pcts=indsR.filter(i=>parseFloat(i.meta_numerica||0)>0).map(i=>Math.min(calcPct(i),100));
+    const mediaR=pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):0;
+    const corR=corResultado(r.codigo);
+    const nomeR=campo(r,'nome');
+
+    return`<div class="resultado-bloco">
+      <div class="resultado-titulo" onclick="toggleBloco('bloco-${r.id}')">
+        <span class="resultado-codigo rc-${r.codigo.toLowerCase()}">${r.codigo}</span>
+        <span class="resultado-nome-txt">${nomeR.substring(0,70)}${nomeR.length>70?'…':''}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px;height:6px;background:var(--cinza-200,#E5E7EB);border-radius:3px;overflow:hidden">
+            <div style="height:100%;background:${corR};width:${mediaR}%;border-radius:3px;transition:width .5s"></div>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:${corR}">${mediaR}%</span>
+          <span style="font-size:11px;color:var(--cinza-500)">${indsR.length} indicadores</span>
+          <span style="font-size:12px;color:var(--cinza-400,#9CA3AF)">▾</span>
+        </div>
+      </div>
+      <div id="bloco-${r.id}">
+        ${indsR.length?indsR.map(i=>renderIndCard(i,r)).join(''):
+          `<div style="padding:20px;text-align:center;font-size:12px;color:var(--cinza-500);border:1px solid var(--borda);background:var(--branco)">
+            Nenhum indicador ${visaoAtual==='risco'?'em risco ':''} neste resultado.
+          </div>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderIndCard(i,res){
+  const pct=calcPct(i);
+  const temMeta=parseFloat(i.meta_numerica||0)>0;
+  const risco=classeRisco(pct,temMeta);
+  const nomePT=i.nome_pt||'—';
+  const nomeEN=i.nome_en||'';
+  const und=unidade(i);
+  const ods=i.ods_codigos||[];
+  const km=i.km_metas||[];
+
+  return`<div class="ind-card ${risco}" onclick="abrirIndicador('${i.id}')">
+    <div class="ind-header">
+      <span class="ind-num">${i.codigo||'—'}</span>
+      <div style="flex:1;min-width:0">
+        <div class="ind-nome">${nomePT.substring(0,100)}${nomePT.length>100?'…':''}</div>
+        ${nomeEN?`<div class="ind-nome-en">${nomeEN.substring(0,80)}${nomeEN.length>80?'…':''}</div>`:''}
+      </div>
+      <div class="ind-badges">
+        ${badgeRisco(pct,temMeta)}
+        ${ods.slice(0,3).map(o=>`<span class="ods-chip">ODS ${o}</span>`).join('')}
+        ${km.slice(0,2).map(k=>`<span class="km-chip">KM ${k}</span>`).join('')}
+      </div>
+    </div>
+    <div class="ind-progresso">
+      <div>
+        <div class="ind-barra">
+          <div class="ind-fill ${classeBarra(pct)}" style="width:${Math.min(pct,100)}%"></div>
+        </div>
+        <div class="ind-nums">
+          <span>Baseline: ${i.linha_de_base||'—'}</span>
+          <span>Meta: ${i.meta_numerica||'—'} ${und}</span>
+        </div>
+        ${i.meta_2_anos?`<div style="font-size:10px;color:var(--cinza-400,#9CA3AF);margin-top:2px">Meta 2 anos: ${i.meta_2_anos}</div>`:''}
+      </div>
+      <div class="ind-vals">
+        <div class="ind-val-atingido">${i.valor_atingido||0}<span style="font-size:12px;font-weight:400;color:var(--cinza-500);margin-left:3px">${und}</span></div>
+        <div class="ind-val-meta">de ${i.meta_numerica||'—'} (meta)</div>
+        <div class="ind-val-pct" style="color:${pct>=100?'var(--sucesso)':pct>=40?'var(--aviso)':'var(--erro)'}">${pct}%</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTabela(inds){
+  document.getElementById('conteudo-matriz').innerHTML=`
+    <div class="card">
+      <div class="table-wrap"><div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th style="width:70px">Código</th>
+            <th>Indicador</th>
+            <th style="width:50px">Result.</th>
+            <th style="width:80px;text-align:right">Baseline</th>
+            <th style="width:90px;text-align:right">Meta</th>
+            <th style="width:80px;text-align:right">Atingido</th>
+            <th style="width:110px">Progresso</th>
+            <th style="width:85px">Status</th>
+            <th style="width:80px">ODS/KM</th>
+          </tr></thead>
+          <tbody>
+            ${inds.map(i=>{
+              const pct=calcPct(i);
+              const temMeta=parseFloat(i.meta_numerica||0)>0;
+              const res=resultados.find(r=>r.id===i.resultado_id);
+              const und=unidade(i);
+              const ods=i.ods_codigos||[];
+              const km=i.km_metas||[];
+              return`<tr>
+                <td><span class="ind-num">${i.codigo||'—'}</span></td>
+                <td>
+                  <div style="font-size:12px;font-weight:500;color:var(--cinza-900);line-height:1.3">${(i.nome_pt||'—').substring(0,65)}${(i.nome_pt||'').length>65?'…':''}</div>
+                  ${i.nome_en?`<div style="font-size:10px;color:var(--cinza-500);font-style:italic">${i.nome_en.substring(0,55)}</div>`:''}
+                </td>
+                <td><span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corResultado(res?.codigo)}">${res?.codigo||'—'}</span></td>
+                <td style="text-align:right;font-family:var(--font-mono);font-size:11px">${i.linha_de_base||'—'}</td>
+                <td style="text-align:right;font-family:var(--font-mono);font-size:11px;font-weight:600">${i.meta_numerica||'—'} <span style="font-size:9px;color:var(--cinza-500)">${und}</span></td>
+                <td style="text-align:right;font-family:var(--font-mono);font-size:12px;font-weight:600;color:${pct>=100?'var(--sucesso)':pct>=40?'var(--aviso)':'var(--erro)'}">${i.valor_atingido||0}</td>
+                <td>
+                  <div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;margin-bottom:2px">
+                    <div class="ind-fill ${classeBarra(pct)}" style="width:${Math.min(pct,100)}%"></div>
+                  </div>
+                  <div style="font-size:10px;text-align:right;color:var(--cinza-500)">${pct}%</div>
+                </td>
+                <td>${badgeRisco(pct,temMeta)}</td>
+                <td>
+                  ${ods.slice(0,2).map(o=>`<span class="ods-chip">${o}</span>`).join('')}
+                  ${km.slice(0,1).map(k=>`<span class="km-chip">${k}</span>`).join('')}
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div></div>
+    </div>`;
+}
+
+function toggleBloco(id){
+  const el=document.getElementById(id);
+  if(el)el.style.display=el.style.display==='none'?'':'none';
+}
+
+// ── MODAL ─────────────────────────────────────────────────────
+async function abrirIndicador(id){
+  indAtual=indicadores.find(i=>i.id===id);
+  if(!indAtual)return;
+  const i=indAtual;
+  const pct=calcPct(i);
+  const temMeta=parseFloat(i.meta_numerica||0)>0;
+  const res=resultados.find(r=>r.id===i.resultado_id);
+  const und=unidade(i);
+  const meios=meiosVerif(i);
+  const ods=i.ods_codigos||[];
+  const km=i.km_metas||[];
+  const hists=historicos.filter(h=>h.indicador_id===id).sort((a,b)=>b.trimestre.localeCompare(a.trimestre));
+  const maxHist=hists.length?Math.max(...hists.map(h=>parseFloat(h.valor||0))):parseFloat(i.meta_numerica||1)||1;
+
+  document.getElementById('mi-titulo').textContent=i.codigo||'Indicador';
+  document.getElementById('mi-sub').textContent=`${res?.codigo||''} · ${und} · ${i.nome_pt?.substring(0,50)||''}`;
+
+  document.getElementById('mi-body').innerHTML=`
+    <!-- Progresso -->
+    <div style="background:var(--cinza-50);border-radius:var(--raio-lg);padding:16px;border:1px solid var(--borda);margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;gap:16px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:3px;line-height:1.4">${i.nome_pt||'—'}</div>
+          ${i.nome_en?`<div style="font-size:11px;color:var(--cinza-500);font-style:italic;margin-bottom:8px">${i.nome_en}</div>`:''}
+          <div class="ind-barra" style="height:10px;margin-bottom:6px">
+            <div class="ind-fill ${classeBarra(pct)}" style="width:${Math.min(pct,100)}%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--cinza-500)">
+            <span>Baseline: <strong>${i.linha_de_base||'0'} ${und}</strong></span>
+            ${i.meta_2_anos?`<span>Meta 2 anos: <strong>${i.meta_2_anos}</strong></span>`:''}
+            <span>Meta: <strong>${i.meta_numerica||'—'} ${und}</strong></span>
+          </div>
+        </div>
+        <div style="text-align:center;min-width:80px">
+          <div style="font-size:34px;font-weight:700;font-family:var(--font-mono);color:${pct>=100?'var(--sucesso)':pct>=40?'var(--aviso)':'var(--erro)'};line-height:1">${pct}%</div>
+          <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">${i.valor_atingido||0} / ${i.meta_numerica||'—'}</div>
+          <div style="margin-top:6px">${badgeRisco(pct,temMeta)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn ativo" onclick="aba('detalhes',this)">Detalhes</button>
+      <button class="tab-btn" onclick="aba('historico',this)">Histórico (${hists.length})</button>
+      ${PODE.editarAtividade()||PODE.aprovarProduto()?`<button class="tab-btn" onclick="aba('atualizar',this)">✏️ Atualizar</button>`:''}
+    </div>
+
+    <!-- DETALHES -->
+    <div class="tab-content ativo" id="tab-detalhes">
+      <div class="grid-2" style="gap:14px">
+        <div>
+          ${[
+            ['Código',i.codigo],
+            ['Resultado',res?`${res.codigo} — ${campo(res,'nome')?.substring(0,40)}`:'—'],
+            ['Unidade de medida',und],
+            ['Linha de base',i.linha_de_base],
+            ['Meta (final)',`${i.meta_numerica||'—'} ${und}`],
+            ['Meta 2 anos',i.meta_2_anos],
+            ['Valor atingido',`${i.valor_atingido||0} ${und}`],
+          ].map(([l,v])=>v?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--borda)">
+            <span style="color:var(--cinza-500)">${l}</span>
+            <span style="font-weight:500;color:var(--cinza-900)">${v}</span>
+          </div>`:''). join('')}
+        </div>
+        <div>
+          ${[
+            ['ODS Vinculado(s)',ods.length?ods.map(o=>`<span class="ods-chip">ODS ${o}</span>`).join(' '):null],
+            ['Kunming-Montreal',km.length?km.map(k=>`<span class="km-chip">KM ${k}</span>`).join(' '):null],
+            ['Responsável',i.responsavel],
+            ['Última atualização',i.ultima_atualizacao?fmtData(i.ultima_atualizacao):null],
+            ['Status',i.status_execucao],
+          ].map(([l,v])=>v?`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--borda)">
+            <span style="color:var(--cinza-500)">${l}</span>
+            <span style="font-weight:500;color:var(--cinza-900)">${v}</span>
+          </div>`:''). join('')}
+        </div>
+      </div>
+      ${meios?`<div style="margin-top:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Meios de Verificação</div>
+        <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${meios}</div>
+      </div>`:''}
+      ${i.hipoteses_pt?`<div style="margin-top:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hipóteses</div>
+        <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${i.hipoteses_pt}</div>
+      </div>`:''}
+      ${i.observacoes?`<div style="margin-top:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Observações</div>
+        <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${i.observacoes}</div>
+      </div>`:''}
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="tab-content" id="tab-historico">
+      ${hists.length?hists.map(h=>{
+        const pctH=maxHist>0?Math.min(parseFloat(h.valor||0)/maxHist*100,100):0;
+        return`<div class="hist-row">
+          <span class="hist-trim">${h.trimestre}</span>
+          <div class="hist-barra"><div class="hist-fill" style="width:${pctH}%"></div></div>
+          <span style="font-family:var(--font-mono);font-size:12px;font-weight:500;min-width:60px;text-align:right">${h.valor} ${und}</span>
+          <span style="font-size:11px;color:var(--cinza-500);min-width:40px;text-align:right">${i.meta_numerica>0?Math.round(parseFloat(h.valor||0)/parseFloat(i.meta_numerica)*100)+'%':'—'}</span>
+          ${h.observacao?`<span style="font-size:10px;color:var(--cinza-500);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.observacao}</span>`:''}
+        </div>`;
+      }).join(''):
+        `<div class="empty-state"><div class="empty-state-msg">Nenhum histórico trimestral ainda.</div></div>`}
+      ${PODE.editarAtividade()||PODE.aprovarProduto()?`
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--borda)">
+          <div style="font-size:12px;font-weight:600;color:var(--cinza-700);margin-bottom:10px">Adicionar registro trimestral</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Trimestre</label>
+              <select class="form-control" id="hist-trim" style="height:36px;font-size:12px">
+                ${gerarTrimestres().map(t=>`<option value="${t}">${t}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor atingido</label>
+              <input class="form-control" id="hist-val" type="number" step="0.01" placeholder="0" style="height:36px;font-size:12px">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Observação</label>
+            <input class="form-control" id="hist-obs" type="text" placeholder="Comentário sobre este período..." style="height:36px;font-size:12px">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="salvarHistorico()">Registrar</button>
+        </div>`:''}
+    </div>
+
+    <!-- ATUALIZAR -->
+    ${PODE.editarAtividade()||PODE.aprovarProduto()?`
+    <div class="tab-content" id="tab-atualizar">
+      <div class="alert alert-info" style="margin-bottom:14px;font-size:12px">
+        ℹ Use este formulário para atualizar manualmente o valor atingido e informações do indicador.
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Valor atingido atual</label>
+          <input class="form-control" id="upd-valor" type="number" step="0.01" value="${i.valor_atingido||0}">
+          <div class="form-hint">Unidade: ${und} · Meta: ${i.meta_numerica||'—'}</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responsável</label>
+          <input class="form-control" id="upd-resp" type="text" value="${i.responsavel||''}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Meios de verificação</label>
+        <textarea class="form-control" id="upd-meios" rows="2">${i.meios_verificacao_pt||''}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" id="upd-obs" rows="3">${i.observacoes||''}</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="atualizarIndicador()">💾 Salvar atualização</button>
+    </div>`:''}
+  `;
+
+  document.getElementById('mi-footer').innerHTML=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
+  document.getElementById('modal-ind').classList.add('aberto');
+}
+
+function gerarTrimestres(){
+  const ts=[];const ano=new Date().getFullYear();
+  for(let a=ano;a>=ano-2;a--)for(let q=4;q>=1;q--)ts.push(`${a}T${q}`);
+  return ts;
+}
+
+function aba(id,btn){
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('ativo'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('ativo'));
+  document.getElementById('tab-'+id)?.classList.add('ativo');
+  btn.classList.add('ativo');
+}
+
+async function salvarHistorico(){
+  if(!indAtual)return;
+  const trim=document.getElementById('hist-trim')?.value;
+  const val=parseFloat(document.getElementById('hist-val')?.value);
+  if(!trim||isNaN(val)){toast('Preencha trimestre e valor.','error');return;}
+  try{
+    const{error}=await db.from('historico_indicadores').upsert({
+      indicador_id:indAtual.id,trimestre:trim,valor:val,
+      observacao:document.getElementById('hist-obs')?.value.trim()||null,
+      registrado_por:appState.usuario.id
+    },{onConflict:'indicador_id,trimestre'});
+    if(error)throw error;
+    const idx=historicos.findIndex(h=>h.indicador_id===indAtual.id&&h.trimestre===trim);
+    if(idx>=0)historicos[idx].valor=val;
+    else historicos.push({indicador_id:indAtual.id,trimestre:trim,valor:val});
+    toast('Registro trimestral salvo!','success');
+    setTimeout(()=>abrirIndicador(indAtual.id),300);
+  }catch(e){toast('Erro: '+(e.message||''),'error');}
+}
+
+async function atualizarIndicador(){
+  if(!indAtual)return;
+  const valor=parseFloat(document.getElementById('upd-valor')?.value)||0;
+  try{
+    const updates={
+      valor_atingido:valor,
+      responsavel:document.getElementById('upd-resp')?.value.trim()||null,
+      meios_verificacao_pt:document.getElementById('upd-meios')?.value.trim()||null,
+      observacoes:document.getElementById('upd-obs')?.value.trim()||null,
+      ultima_atualizacao:new Date().toISOString().split('T')[0],
+      atualizado_por:appState.usuario.id,
+    };
+    const{error}=await db.from('indicadores').update(updates).eq('id',indAtual.id);
+    if(error)throw error;
+    Object.assign(indAtual,updates);
+    const idx=indicadores.findIndex(i=>i.id===indAtual.id);
+    if(idx>=0)Object.assign(indicadores[idx],updates);
+    fecharModal();renderStats();renderVisao();
+    toast('Indicador atualizado!','success');
+  }catch(e){toast('Erro: '+(e.message||''),'error');}
+}
+
+function exportarCSV(){
+  const headers=['Código','Indicador PT','Indicador EN','Resultado','Baseline','Meta 2 anos','Meta Final','Atingido','%','Unidade','ODS','KM','Responsável','Meios Verificação','Status'];
+  const rows=indicadores.map(i=>{
+    const pct=calcPct(i);
+    const res=resultados.find(r=>r.id===i.resultado_id);
+    const st=pct>=100?'Meta atingida':pct>=70?'Em dia':pct>=40?'Atenção':'Em risco';
+    return[
+      i.codigo||'',
+      `"${(i.nome_pt||'').replace(/"/g,'""')}"`,
+      `"${(i.nome_en||'').replace(/"/g,'""')}"`,
+      res?.codigo||'',
+      i.linha_de_base||'',
+      i.meta_2_anos||'',
+      i.meta_numerica||'',
+      i.valor_atingido||0,
+      pct+'%',
+      unidade(i),
+      (i.ods_codigos||[]).join('|'),
+      (i.km_metas||[]).join('|'),
+      `"${(i.responsavel||'').replace(/"/g,'""')}"`,
+      `"${(i.meios_verificacao_pt||'').replace(/"/g,'""')}"`,
+      st
+    ];
+  });
+  const csv=[headers.join(';'),...rows.map(r=>r.join(';'))].join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`matriz-resultados-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();URL.revokeObjectURL(url);
+  toast('CSV exportado!','success');
+}
+
+function exportarPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const W=297,M=14;let y=M;
+  doc.setFillColor(31,78,44);doc.rect(0,0,W,20,'F');
+  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  doc.text('MATRIZ DE RESULTADOS — PROJETO 218BRA2001',M,9);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.text(`SEMA/AC · UNESCO · MPTF · Gerado em ${new Date().toLocaleDateString('pt-BR')}`,M,16);
+  y=28;
+  resultados.forEach(r=>{
+    const indsR=indicadores.filter(i=>i.resultado_id===r.id);
+    if(!indsR.length)return;
+    if(y>170){doc.addPage();y=M;}
+    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(31,78,44);
+    doc.text(`${r.codigo} — ${campo(r,'nome')?.substring(0,80)||''}`,M,y);y+=7;
+    const cols=[12,88,18,18,18,18,14,28,18];
+    const hdrs=['Cód.','Indicador','Unid.','Baseline','Meta 2a','Meta','%','Verificação','Status'];
+    let x=M;
+    doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);
+    hdrs.forEach((h,ci)=>{doc.text(h,x+1,y);x+=cols[ci];});
+    y+=1;doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3;
+    indsR.forEach(i=>{
+      if(y>185){doc.addPage();y=M;}
+      const pct=calcPct(i);
+      const st=pct>=100?'Atingida':pct>=40?'Parcial':'Em risco';
+      const vals=[
+        i.codigo||'',
+        (i.nome_pt||'').substring(0,52),
+        unidade(i).substring(0,8),
+        String(i.linha_de_base||'—'),
+        String(i.meta_2_anos||'—'),
+        String(i.meta_numerica||'—'),
+        pct+'%',
+        (i.meios_verificacao_pt||'—').substring(0,20),
+        st
+      ];
+      x=M;
+      doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);
+      vals.forEach((v,ci)=>{doc.text(String(v),x+1,y);x+=cols[ci];});
+      y+=5;
+    });
+    y+=4;
+  });
+  const pgs=doc.getNumberOfPages();
+  for(let p=1;p<=pgs;p++){
+    doc.setPage(p);doc.setFontSize(7);doc.setTextColor(150,150,150);
+    doc.text(`SEMA/AC · UNESCO · 218BRA2001 · Página ${p}/${pgs}`,M,205);
+  }
+  doc.save(`MatrizResultados-218BRA2001-${new Date().toISOString().split('T')[0]}.pdf`);
+  toast('PDF UNESCO gerado!','success');
+}
+
+function fecharModal(){
+  document.getElementById('modal-ind').classList.remove('aberto');
+  indAtual=null;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal();});
+</script>
+</body>
+</html>
