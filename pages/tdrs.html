@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — TDRs</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.tdr-numero{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-700);background:var(--cinza-100);padding:2px 8px;border-radius:4px;}
+.tipo-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em;}
+.tb-pf{background:#E1F5EE;color:#085041}
+.tb-pj{background:#E6F1FB;color:#0C447C}
+
+/* Linha do tempo de fases */
+.fase-timeline{display:flex;align-items:center;gap:0;margin:16px 0;}
+.fase-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;}
+.fase-step:not(:last-child)::after{content:'';position:absolute;top:12px;left:50%;right:-50%;height:2px;background:var(--borda);z-index:0;}
+.fase-step.ativo::after{background:var(--verde-claro);}
+.fase-dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--borda);background:var(--branco);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;position:relative;z-index:1;transition:all .2s;}
+.fase-step.ativo .fase-dot{background:var(--verde-claro);border-color:var(--verde-claro);color:#fff;}
+.fase-step.concluido .fase-dot{background:var(--verde-medio);border-color:var(--verde-medio);color:#fff;}
+.fase-step.concluido::after{background:var(--verde-medio);}
+.fase-step.pendente .fase-dot{background:var(--cinza-100);color:var(--cinza-400,#9CA3AF);}
+.fase-lbl{font-size:9px;color:var(--cinza-500);margin-top:4px;text-align:center;line-height:1.2;max-width:60px;}
+
+/* Cards de TDR na listagem */
+.tdr-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 18px;margin-bottom:10px;transition:all .15s;cursor:pointer;position:relative;overflow:hidden;}
+.tdr-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 12px rgba(45,106,79,.1);}
+.tdr-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--borda);}
+.tdr-card.st-rascunho::before{background:var(--cinza-300);}
+.tdr-card.st-revisao_interna::before{background:var(--azul-medio);}
+.tdr-card.st-ajustes::before{background:var(--aviso);}
+.tdr-card.st-enviado_unesco::before{background:#0D9488;}
+.tdr-card.st-retorno_unesco::before{background:var(--erro);}
+.tdr-card.st-aprovado::before{background:var(--sucesso);}
+.tdr-card.st-cancelado::before{background:var(--cinza-300);}
+
+.tdr-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.tdr-info{flex:1;min-width:0;}
+.tdr-obj{font-size:13px;font-weight:500;color:var(--cinza-900);line-height:1.3;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tdr-meta{font-size:11px;color:var(--cinza-500);display:flex;gap:12px;flex-wrap:wrap;}
+.tdr-badges{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.tdr-vals{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding-top:10px;border-top:1px solid var(--borda);}
+.tdr-val-item{text-align:center;}
+.tdr-val-lbl{font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.tdr-val-num{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-900);}
+
+/* Modal TDR — abas */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:20px;}
+.tab-btn{padding:8px 16px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);}
+.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.tab-content{display:none;}
+.tab-content.ativo{display:block;}
+
+/* Histórico de versões */
+.versao-item{padding:10px 0;border-bottom:1px solid var(--borda);}
+.versao-item:last-child{border-bottom:none;}
+.versao-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.versao-num{font-family:var(--font-mono);font-size:10px;font-weight:600;background:var(--cinza-100);padding:1px 6px;border-radius:3px;color:var(--cinza-700);}
+.versao-quem{font-size:11px;color:var(--cinza-700);font-weight:500;}
+.versao-quando{font-size:10px;color:var(--cinza-400,#9CA3AF);margin-left:auto;}
+.versao-fase{font-size:10px;}
+
+/* Diff campos */
+.diff-campo{background:var(--cinza-50);border-radius:var(--raio);padding:8px 10px;margin-bottom:6px;}
+.diff-lbl{font-size:10px;color:var(--cinza-500);margin-bottom:4px;}
+.diff-antes{font-size:11px;color:var(--erro);text-decoration:line-through;}
+.diff-depois{font-size:11px;color:var(--sucesso);}
+
+/* Alertas saldo */
+.alerta-saldo{border-radius:var(--raio);padding:10px 14px;font-size:12px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start;}
+.as-warn{background:var(--aviso-bg);color:#92400E;border:1px solid #FDE68A;}
+.as-danger{background:var(--erro-bg);color:#991B1B;border:1px solid #FECACA;}
+.as-ok{background:var(--sucesso-bg);color:#065F46;border:1px solid #A7F3D0;}
+
+/* Stats */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:2px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando TDRs...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TDR -->
+<div class="modal-overlay" id="modal-tdr">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-tdr-titulo">TDR</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="modal-tdr-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-tdr-body"></div>
+    <div class="modal-footer" id="modal-tdr-footer"></div>
+  </div>
+</div>
+
+<!-- MODAL NOVO TDR -->
+<div class="modal-overlay" id="modal-novo">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <span class="modal-title">Novo TDR</span>
+      <button class="modal-close" onclick="document.getElementById('modal-novo').classList.remove('aberto')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-novo-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-novo').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="criarTDR()">Criar TDR</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+let todosTDRs = [];
+let tdrsFiltrados = [];
+let atividades = [];
+let tdrAtual = null;
+let versoesCache = {};
+
+const FASES_TDR = ['rascunho','revisao_interna','ajustes','enviado_unesco','retorno_unesco','aprovado'];
+const FASES_LABELS = {
+  rascunho:'Rascunho', revisao_interna:'Revisão', ajustes:'Ajustes',
+  enviado_unesco:'UNESCO', retorno_unesco:'Retorno', aprovado:'Aprovado'
+};
+
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+
+  document.getElementById('app').innerHTML =
+    gerarLayout('TDRs — Termos de Referência', 'tdrs') + `
+    <div class="fade-in">
+      <!-- Stats -->
+      <div class="stat-row" id="stats-tdr"></div>
+
+      <!-- Filtros -->
+      <div class="filter-bar">
+        <input class="form-control search-input" type="text" id="busca-tdr"
+          placeholder="Buscar por número ou objeto..." oninput="filtrarTDRs()" style="width:260px">
+        <select class="form-control" id="fil-status" onchange="filtrarTDRs()" style="width:160px">
+          <option value="">Todos os status</option>
+          <option value="rascunho">Rascunho</option>
+          <option value="revisao_interna">Revisão Interna</option>
+          <option value="ajustes">Ajustes</option>
+          <option value="enviado_unesco">Enviado UNESCO</option>
+          <option value="retorno_unesco">Retorno UNESCO</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <select class="form-control" id="fil-tipo" onchange="filtrarTDRs()" style="width:120px">
+          <option value="">PF + PJ</option>
+          <option value="PF">Pessoa Física</option>
+          <option value="PJ">Pessoa Jurídica</option>
+        </select>
+        <span id="contador-tdr" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
+        ${PODE.editarTDR() ? `<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo TDR</button>` : ''}
+      </div>
+
+      <!-- Lista de cards -->
+      <div id="lista-tdrs"></div>
+    </div>
+    ` + `</div></div></div>`;
+
+  await carregarDados();
+})();
+
+async function carregarDados() {
+  try {
+    const [{ data: tdrs }, { data: ativs }, { data: forn }] = await Promise.all([
+      db.from('tdrs').select(`
+        *,
+        atividades(codigo, nome_pt, nome_en, nome_es, resultado_id),
+        fornecedores(nome, tipo)
+      `).order('criado_em', { ascending: false }),
+      db.from('atividades').select('id, codigo, nome_pt, resultado_id').order('codigo'),
+      db.from('fornecedores').select('id, nome, tipo').order('nome')
+    ]);
+
+    atividades = ativs || [];
+    todosTDRs = tdrs || [];
+
+    renderStats();
+    filtrarTDRs();
+  } catch(e) {
+    console.error(e);
+    toast('Erro ao carregar TDRs.', 'error');
+  }
+}
+
+function renderStats() {
+  const total = todosTDRs.length;
+  const stats = {
+    rascunho: todosTDRs.filter(t=>t.status==='rascunho').length,
+    emAndamento: todosTDRs.filter(t=>['revisao_interna','ajustes','enviado_unesco','retorno_unesco'].includes(t.status)).length,
+    aprovado: todosTDRs.filter(t=>t.status==='aprovado').length,
+    atrasados: todosTDRs.filter(t=>t.prazo_limite && new Date(t.prazo_limite) < new Date() && t.status!=='aprovado').length,
+    valorTotal: todosTDRs.filter(t=>t.status!=='cancelado').reduce((s,t)=>s+parseFloat(t.valor_brl||0),0)
+  };
+
+  document.getElementById('stats-tdr').innerHTML = `
+    <div class="stat-card sc-g"><div class="stat-lbl">Total TDRs</div><div class="stat-val">${total}</div><div class="stat-sub">${stats.aprovado} aprovados</div></div>
+    <div class="stat-card sc-b"><div class="stat-lbl">Rascunho</div><div class="stat-val">${stats.rascunho}</div><div class="stat-sub">aguardando revisão</div></div>
+    <div class="stat-card sc-t"><div class="stat-lbl">Em andamento</div><div class="stat-val">${stats.emAndamento}</div><div class="stat-sub">em fluxo de aprovação</div></div>
+    <div class="stat-card sc-r"><div class="stat-lbl">Atrasados</div><div class="stat-val">${stats.atrasados}</div><div class="stat-sub">prazo vencido</div></div>
+    <div class="stat-card sc-a"><div class="stat-lbl">Valor Total R$</div><div class="stat-val" style="font-size:14px">${fmtBRL(stats.valorTotal)}</div><div class="stat-sub">TDRs ativos</div></div>
+  `;
+}
+
+function filtrarTDRs() {
+  const busca = document.getElementById('busca-tdr').value.toLowerCase();
+  const status = document.getElementById('fil-status').value;
+  const tipo = document.getElementById('fil-tipo').value;
+
+  tdrsFiltrados = todosTDRs.filter(t => {
+    const obj = (t.objeto_pt||'').toLowerCase();
+    if (busca && !t.numero.toLowerCase().includes(busca) && !obj.includes(busca)) return false;
+    if (status && t.status !== status) return false;
+    if (tipo && t.tipo !== tipo) return false;
+    return true;
+  });
+
+  document.getElementById('contador-tdr').textContent =
+    `${tdrsFiltrados.length} de ${todosTDRs.length} TDRs`;
+
+  renderLista();
+}
+
+function renderLista() {
+  const el = document.getElementById('lista-tdrs');
+  if (!tdrsFiltrados.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">◧</div><div class="empty-state-msg">Nenhum TDR encontrado.</div></div>`;
+    return;
+  }
+
+  el.innerHTML = tdrsFiltrados.map(t => {
+    const atv = t.atividades;
+    const forn = t.fornecedores;
+    const atrasado = t.prazo_limite && new Date(t.prazo_limite) < new Date() && t.status !== 'aprovado';
+
+    // Progresso da fase
+    const faseIdx = FASES_TDR.indexOf(t.status);
+    const fasePct = faseIdx >= 0 ? Math.round((faseIdx+1)/FASES_TDR.length*100) : 0;
+
+    return `
+    <div class="tdr-card st-${t.status}" onclick="abrirTDR('${t.id}')">
+      <div class="tdr-header">
+        <div class="tdr-info">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span class="tdr-numero">${t.numero}</span>
+            <span class="tipo-badge ${t.tipo==='PF'?'tb-pf':'tb-pj'}">${t.tipo}</span>
+            ${badgeStatusTDR(t.status)}
+            ${atrasado ? `<span class="badge" style="background:var(--erro)">⚠ Atrasado</span>` : ''}
+          </div>
+          <div class="tdr-obj">${t.objeto_pt || '— objeto não preenchido —'}</div>
+          <div class="tdr-meta">
+            ${atv ? `<span>📋 ${atv.codigo}</span>` : ''}
+            ${forn ? `<span>👤 ${forn.nome}</span>` : ''}
+            ${t.prazo_limite ? `<span>📅 Prazo: ${fmtData(t.prazo_limite)}</span>` : ''}
+            ${t.dt_contratacao ? `<span>✅ Contratado: ${fmtData(t.dt_contratacao)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <!-- Mini timeline -->
+      <div style="margin:10px 0 8px">
+        <div class="fase-timeline">
+          ${FASES_TDR.map((f, i) => {
+            let cls = 'pendente';
+            if (i < faseIdx) cls = 'concluido';
+            else if (i === faseIdx) cls = 'ativo';
+            return `<div class="fase-step ${cls}">
+              <div class="fase-dot">${i < faseIdx ? '✓' : i+1}</div>
+              <div class="fase-lbl">${FASES_LABELS[f]}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="tdr-vals">
+        <div class="tdr-val-item">
+          <div class="tdr-val-lbl">Valor R$</div>
+          <div class="tdr-val-num">${fmtBRL(t.valor_brl)}</div>
+        </div>
+        <div class="tdr-val-item">
+          <div class="tdr-val-lbl">Valor U$</div>
+          <div class="tdr-val-num">${fmtUSD(t.valor_usd)}</div>
+        </div>
+        <div class="tdr-val-item">
+          <div class="tdr-val-lbl">Cotação</div>
+          <div class="tdr-val-num">${t.cotacao_registro ? 'R$ '+parseFloat(t.cotacao_registro).toFixed(2) : '—'}</div>
+        </div>
+        <div class="tdr-val-item">
+          <div class="tdr-val-lbl">Versão</div>
+          <div class="tdr-val-num">v${t.versao_atual || 1}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function abrirTDR(id) {
+  tdrAtual = todosTDRs.find(t => t.id === id);
+  if (!tdrAtual) return;
+  const t = tdrAtual;
+
+  document.getElementById('modal-tdr-titulo').textContent = t.numero;
+  document.getElementById('modal-tdr-sub').textContent =
+    `${t.tipo} · v${t.versao_atual||1} · ${t.atividades?.codigo||''}`;
+
+  // Buscar versões
+  const { data: versoes } = await db.from('tdr_versoes')
+    .select('*').eq('tdr_id', id).order('numero_versao', { ascending: false });
+  versoesCache[id] = versoes || [];
+
+  // Buscar cotação atual
+  const cotacao = await obterCotacao();
+  const taxaAtual = cotacao?.cotacao || 5.87;
+
+  const faseIdx = FASES_TDR.indexOf(t.status);
+  const atrasado = t.prazo_limite && new Date(t.prazo_limite) < new Date() && t.status !== 'aprovado';
+
+  document.getElementById('modal-tdr-body').innerHTML = `
+    <!-- Timeline de fases -->
+    <div class="fase-timeline" style="margin-bottom:20px">
+      ${FASES_TDR.map((f,i) => {
+        let cls = i < faseIdx ? 'concluido' : i === faseIdx ? 'ativo' : 'pendente';
+        return `<div class="fase-step ${cls}">
+          <div class="fase-dot">${i < faseIdx ? '✓' : i+1}</div>
+          <div class="fase-lbl">${FASES_LABELS[f]}</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    ${atrasado ? `<div class="alerta-saldo as-danger">⚠ TDR com prazo vencido em ${fmtData(t.prazo_limite)}. Atualize o status ou revise o prazo.</div>` : ''}
+
+    <!-- Abas -->
+    <div class="tab-bar">
+      <button class="tab-btn ativo" onclick="mudarAba('dados',this)">Dados</button>
+      <button class="tab-btn" onclick="mudarAba('financeiro',this)">Financeiro</button>
+      <button class="tab-btn" onclick="mudarAba('versoes',this)">Histórico (${versoesCache[id]?.length||0})</button>
+      ${PODE.editarTDR() ? `<button class="tab-btn" onclick="mudarAba('editar',this)">Editar</button>` : ''}
+    </div>
+
+    <!-- ABA DADOS -->
+    <div class="tab-content ativo" id="tab-dados">
+      <div class="grid-2" style="gap:10px;margin-bottom:14px">
+        <div>
+          <div class="form-label" style="margin-bottom:2px">Objeto / Escopo</div>
+          <div style="font-size:13px;color:var(--cinza-700);line-height:1.5">${t.objeto_pt || '—'}</div>
+        </div>
+        <div>
+          <div class="form-label" style="margin-bottom:6px">Informações</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="font-size:12px"><span style="color:var(--cinza-500)">Tipo:</span> <strong>${t.tipo}</strong></div>
+            <div style="font-size:12px"><span style="color:var(--cinza-500)">Atividade:</span> <strong>${t.atividades?.codigo||'—'}</strong></div>
+            <div style="font-size:12px"><span style="color:var(--cinza-500)">Status:</span> ${badgeStatusTDR(t.status)}</div>
+            <div style="font-size:12px"><span style="color:var(--cinza-500)">Criado em:</span> ${fmtData(t.criado_em)}</div>
+            <div style="font-size:12px"><span style="color:var(--cinza-500)">Prazo:</span> ${t.prazo_limite ? fmtData(t.prazo_limite) : '—'}</div>
+            <div style="font-size:12px"><span style="color:var(--cinza-500)">Contratação:</span> ${t.dt_contratacao ? fmtData(t.dt_contratacao) : '—'}</div>
+          </div>
+        </div>
+      </div>
+      ${t.arquivo_url ? `
+        <a href="${t.arquivo_url}" target="_blank" class="btn btn-secondary btn-sm" style="margin-bottom:10px">
+          📎 Ver arquivo original
+        </a>` : ''}
+      ${t.observacao ? `<div class="alert alert-info">${t.observacao}</div>` : ''}
+      ${t.motivo_recusa ? `<div class="alert alert-danger"><strong>Motivo de recusa:</strong> ${t.motivo_recusa}</div>` : ''}
+    </div>
+
+    <!-- ABA FINANCEIRO -->
+    <div class="tab-content" id="tab-financeiro">
+      <div class="grid-2" style="gap:12px;margin-bottom:16px">
+        <div style="background:var(--cinza-50);border-radius:var(--raio);padding:14px 16px;border:1px solid var(--borda)">
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Valor do TDR</div>
+          <div style="font-size:22px;font-weight:600;color:var(--cinza-900)">${fmtBRL(t.valor_brl)}</div>
+          <div style="font-size:12px;color:var(--cinza-500);margin-top:3px">≈ ${fmtUSD(t.valor_usd)}</div>
+        </div>
+        <div style="background:var(--cinza-50);border-radius:var(--raio);padding:14px 16px;border:1px solid var(--borda)">
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Cotações USD/BRL</div>
+          <div style="font-size:13px;font-weight:500">Na data do registro: <span style="font-family:var(--font-mono)">R$ ${t.cotacao_registro ? parseFloat(t.cotacao_registro).toFixed(2) : '—'}</span></div>
+          <div style="font-size:13px;font-weight:500;color:${taxaAtual > parseFloat(t.cotacao_registro||0) ? 'var(--erro)' : 'var(--sucesso)'}">
+            Cotação atual: <span style="font-family:var(--font-mono)">R$ ${taxaAtual.toFixed(2)}</span>
+            ${t.cotacao_registro ? `<span style="font-size:10px">(${taxaAtual > parseFloat(t.cotacao_registro) ? '▲' : '▼'} ${Math.abs(taxaAtual - parseFloat(t.cotacao_registro)).toFixed(2)})</span>` : ''}
+          </div>
+          <div style="font-size:11px;color:var(--cinza-500);margin-top:4px">Data ref: ${fmtData(t.cotacao_data)}</div>
+        </div>
+      </div>
+      ${t.valor_brl && taxaAtual && t.cotacao_registro ? `
+        <div class="alert alert-info">
+          <strong>Equivalência pelo câmbio atual:</strong> ${fmtBRL(t.valor_brl)} ÷ R$ ${taxaAtual.toFixed(2)} = <strong>${fmtUSD(parseFloat(t.valor_brl)/taxaAtual)}</strong>
+          (na data do registro era ${fmtUSD(t.valor_usd)})
+        </div>` : ''}
+    </div>
+
+    <!-- ABA VERSÕES/HISTÓRICO -->
+    <div class="tab-content" id="tab-versoes">
+      ${versoesCache[id]?.length ? versoesCache[id].map(v => `
+        <div class="versao-item">
+          <div class="versao-header">
+            <span class="versao-num">v${v.numero_versao}</span>
+            <span class="versao-fase">${badgeStatusTDR(v.fase)}</span>
+            <span class="versao-quando">${fmtData(v.criado_em)}</span>
+          </div>
+          ${v.comentario ? `<div style="font-size:11px;color:var(--cinza-600,#4B5563);margin-bottom:6px">${v.comentario}</div>` : ''}
+          ${v.campos_alterados ? Object.entries(v.campos_alterados).slice(0,4).map(([campo, vals]) => `
+            <div class="diff-campo">
+              <div class="diff-lbl">${campo}</div>
+              ${vals.antes ? `<div class="diff-antes">− ${vals.antes}</div>` : ''}
+              ${vals.depois ? `<div class="diff-depois">+ ${vals.depois}</div>` : ''}
+            </div>`).join('') : '<div style="font-size:11px;color:var(--cinza-500)">Versão inicial — sem alterações registradas.</div>'}
+        </div>`).join('') :
+        `<div class="empty-state"><div class="empty-state-msg">Nenhuma versão registrada ainda.</div></div>`}
+    </div>
+
+    <!-- ABA EDITAR -->
+    ${PODE.editarTDR() ? `
+    <div class="tab-content" id="tab-editar">
+      <div class="form-group">
+        <label class="form-label">Status / Fase <span class="obrig">*</span></label>
+        <select class="form-control" id="ed-status">
+          ${FASES_TDR.concat(['cancelado']).map(f =>
+            `<option value="${f}" ${t.status===f?'selected':''}>${FASES_LABELS[f]||f}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Objeto do TDR (PT)</label>
+        <textarea class="form-control" id="ed-objeto" rows="3">${t.objeto_pt||''}</textarea>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Valor R$</label>
+          <input class="form-control" id="ed-valor-brl" type="number" step="0.01" value="${t.valor_brl||''}"
+            oninput="calcularUSD()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor U$ (calculado)</label>
+          <input class="form-control" id="ed-valor-usd" type="number" step="0.01" value="${t.valor_usd||''}" readonly style="background:var(--cinza-50)">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:-10px;margin-bottom:12px">
+        Cotação atual: R$ ${taxaAtual.toFixed(2)} · O valor U$ é calculado automaticamente
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Prazo limite</label>
+          <input class="form-control" id="ed-prazo" type="date" value="${t.prazo_limite||''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de contratação</label>
+          <input class="form-control" id="ed-contratacao" type="date" value="${t.dt_contratacao||''}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observação / Comentário desta versão</label>
+        <textarea class="form-control" id="ed-obs" rows="2" placeholder="Descreva o que foi alterado nesta versão...">${t.observacao||''}</textarea>
+      </div>
+      ${t.status === 'retorno_unesco' ? `
+      <div class="form-group">
+        <label class="form-label">Motivo de recusa / Correções da UNESCO</label>
+        <textarea class="form-control" id="ed-motivo" rows="3" placeholder="Descreva as correções solicitadas...">${t.motivo_recusa||''}</textarea>
+      </div>` : ''}
+      <button class="btn btn-primary" onclick="salvarTDR(${taxaAtual})">Salvar alterações</button>
+    </div>` : ''}
+  `;
+
+  document.getElementById('modal-tdr-footer').innerHTML = `
+    <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
+    ${PODE.editarTDR() && t.status !== 'aprovado' ? avancarBotao(t.status) : ''}
+  `;
+
+  document.getElementById('modal-tdr').classList.add('aberto');
+}
+
+function avancarBotao(statusAtual) {
+  const prox = {
+    rascunho: { status: 'revisao_interna', label: '→ Enviar para revisão' },
+    revisao_interna: { status: 'ajustes', label: '→ Solicitar ajustes' },
+    ajustes: { status: 'enviado_unesco', label: '→ Enviado à UNESCO' },
+    enviado_unesco: { status: 'retorno_unesco', label: '→ Registrar retorno UNESCO' },
+    retorno_unesco: { status: 'aprovado', label: '✓ Marcar como aprovado' },
+  };
+  const p = prox[statusAtual];
+  if (!p) return '';
+  const cls = statusAtual === 'retorno_unesco' ? 'btn-ouro' : 'btn-primary';
+  return `<button class="btn ${cls}" onclick="avancarFase('${p.status}')">${p.label}</button>`;
+}
+
+async function avancarFase(novoStatus) {
+  if (!tdrAtual) return;
+  try {
+    const { error } = await db.from('tdrs').update({ status: novoStatus }).eq('id', tdrAtual.id);
+    if (error) throw error;
+    tdrAtual.status = novoStatus;
+    // Atualizar lista local
+    const idx = todosTDRs.findIndex(t => t.id === tdrAtual.id);
+    if (idx >= 0) todosTDRs[idx].status = novoStatus;
+    fecharModal();
+    renderStats();
+    filtrarTDRs();
+    toast(`Status atualizado para "${FASES_LABELS[novoStatus]||novoStatus}"`, 'success');
+  } catch(e) {
+    toast('Erro ao avançar fase.', 'error');
+  }
+}
+
+function calcularUSD() {
+  const brl = parseFloat(document.getElementById('ed-valor-brl')?.value) || 0;
+  const taxaAtual = parseFloat(document.getElementById('ed-valor-usd')?.dataset?.taxa) || 5.87;
+  if (document.getElementById('ed-valor-usd')) {
+    document.getElementById('ed-valor-usd').value = brl > 0 ? (brl / taxaAtual).toFixed(2) : '';
+  }
+}
+
+async function salvarTDR(taxa) {
+  if (!tdrAtual) return;
+  try {
+    const brl = parseFloat(document.getElementById('ed-valor-brl').value) || null;
+    const updates = {
+      status: document.getElementById('ed-status').value,
+      objeto_pt: document.getElementById('ed-objeto').value.trim() || null,
+      valor_brl: brl,
+      valor_usd: brl ? parseFloat((brl / taxa).toFixed(2)) : null,
+      cotacao_registro: brl ? taxa : tdrAtual.cotacao_registro,
+      cotacao_data: brl ? new Date().toISOString().split('T')[0] : tdrAtual.cotacao_data,
+      prazo_limite: document.getElementById('ed-prazo').value || null,
+      dt_contratacao: document.getElementById('ed-contratacao').value || null,
+      observacao: document.getElementById('ed-obs').value.trim() || null,
+      motivo_recusa: document.getElementById('ed-motivo')?.value.trim() || tdrAtual.motivo_recusa,
+    };
+    const { error } = await db.from('tdrs').update(updates).eq('id', tdrAtual.id);
+    if (error) throw error;
+    Object.assign(tdrAtual, updates);
+    const idx = todosTDRs.findIndex(t => t.id === tdrAtual.id);
+    if (idx >= 0) Object.assign(todosTDRs[idx], updates);
+    fecharModal();
+    renderStats();
+    filtrarTDRs();
+    toast('TDR salvo com sucesso!', 'success');
+  } catch(e) {
+    toast('Erro ao salvar: ' + (e.message||''), 'error');
+  }
+}
+
+function mudarAba(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('ativo'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('ativo'));
+  document.getElementById('tab-' + id)?.classList.add('ativo');
+  btn.classList.add('ativo');
+}
+
+function fecharModal() {
+  document.getElementById('modal-tdr').classList.remove('aberto');
+  document.getElementById('modal-novo').classList.remove('aberto');
+  tdrAtual = null;
+}
+
+async function abrirNovo() {
+  const cotacao = await obterCotacao();
+  const taxa = cotacao?.cotacao || 5.87;
+
+  document.getElementById('modal-novo-body').innerHTML = `
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Atividade vinculada <span class="obrig">*</span></label>
+        <select class="form-control" id="novo-atividade">
+          <option value="">Selecione...</option>
+          ${atividades.map(a => `<option value="${a.id}">${a.codigo} — ${a.nome_pt?.substring(0,50)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo <span class="obrig">*</span></label>
+        <select class="form-control" id="novo-tipo">
+          <option value="PF">Pessoa Física (PF)</option>
+          <option value="PJ">Pessoa Jurídica (PJ)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Objeto / Escopo <span class="obrig">*</span></label>
+      <textarea class="form-control" id="novo-objeto" rows="3" placeholder="Descreva o objeto da contratação..."></textarea>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Valor R$</label>
+        <input class="form-control" id="novo-brl" type="number" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prazo limite</label>
+        <input class="form-control" id="novo-prazo" type="date">
+      </div>
+    </div>
+    <div class="alert alert-info" style="font-size:12px">
+      Cotação atual: <strong>R$ ${taxa.toFixed(2)}</strong> — o número do TDR será gerado automaticamente ao salvar.
+    </div>
+  `;
+  document.getElementById('modal-novo').classList.add('aberto');
+}
+
+async function criarTDR() {
+  const ativId = document.getElementById('novo-atividade').value;
+  const objeto = document.getElementById('novo-objeto').value.trim();
+  if (!ativId || !objeto) { toast('Preencha atividade e objeto.', 'error'); return; }
+
+  const cotacao = await obterCotacao();
+  const taxa = cotacao?.cotacao || 5.87;
+  const brl = parseFloat(document.getElementById('novo-brl').value) || null;
+
+  try {
+    const { data, error } = await db.from('tdrs').insert({
+      atividade_id: ativId,
+      tipo: document.getElementById('novo-tipo').value,
+      objeto_pt: objeto,
+      status: 'rascunho',
+      valor_brl: brl,
+      valor_usd: brl ? parseFloat((brl/taxa).toFixed(2)) : null,
+      cotacao_registro: taxa,
+      cotacao_data: new Date().toISOString().split('T')[0],
+      prazo_limite: document.getElementById('novo-prazo').value || null,
+      criado_por: appState.usuario.id,
+      elaborador_id: appState.usuario.id,
+    }).select().single();
+
+    if (error) throw error;
+    fecharModal();
+    todosTDRs.unshift(data);
+    renderStats();
+    filtrarTDRs();
+    toast(`TDR ${data.numero} criado com sucesso!`, 'success');
+  } catch(e) {
+    toast('Erro ao criar TDR: ' + (e.message||''), 'error');
+  }
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') fecharModal(); });
+</script>
+</body>
+</html>
