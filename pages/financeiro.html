@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Financeiro</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
+.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:18px;font-weight:600;color:var(--cinza-900);letter-spacing:-.01em;}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
+
+/* Abas de visão */
+.visao-tabs{display:flex;gap:0;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:4px;margin-bottom:16px;width:fit-content;}
+.visao-tab{padding:7px 18px;border-radius:var(--raio);font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;transition:all .15s;border:none;background:none;font-family:var(--font-sans);}
+.visao-tab.ativo{background:var(--branco);color:var(--verde-medio);box-shadow:0 1px 4px rgba(0,0,0,.08);font-weight:600;}
+
+/* Visão por resultado */
+.resultado-bloco{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;margin-bottom:12px;}
+.resultado-header{padding:14px 18px;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:12px;background:var(--cinza-50);}
+.resultado-codigo{font-family:var(--font-mono);font-size:12px;font-weight:700;background:var(--verde-medio);color:#fff;padding:2px 10px;border-radius:4px;}
+.resultado-nome{font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;}
+.resultado-body{padding:14px 18px;}
+
+/* Visão por atividade */
+.ativ-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--borda);}
+.ativ-row:last-child{border-bottom:none;}
+.ativ-cod{font-family:var(--font-mono);font-size:11px;font-weight:500;background:var(--cinza-100);padding:2px 7px;border-radius:3px;color:var(--cinza-700);min-width:70px;}
+.ativ-nome{font-size:12px;color:var(--cinza-700);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ativ-barra{flex:1;max-width:160px;}
+.ativ-barra-bg{height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;}
+.ativ-barra-fill{height:100%;border-radius:3px;background:var(--verde-claro);transition:width .4s;}
+.ativ-barra-fill.warn{background:var(--aviso);}
+.ativ-barra-fill.crit{background:var(--erro);}
+.ativ-valor{font-family:var(--font-mono);font-size:11px;color:var(--cinza-700);text-align:right;min-width:90px;}
+.ativ-pct{font-family:var(--font-mono);font-size:11px;font-weight:600;min-width:36px;text-align:right;}
+
+/* Tabela de lançamentos */
+.nf-num{font-family:var(--font-mono);font-size:11px;background:var(--cinza-100);padding:1px 6px;border-radius:3px;}
+.sit-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;}
+.sit-pago{background:#ECFDF5;color:#065F46}
+.sit-a_pagar{background:#FFFBEB;color:#92400E}
+.sit-cancelado{background:#F3F4F6;color:#6B7280}
+
+/* Upload comprovante */
+.upload-mini{border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:10px;text-align:center;cursor:pointer;font-size:11px;color:var(--cinza-500);transition:all .15s;}
+.upload-mini:hover{border-color:var(--verde-claro);color:var(--verde-medio);}
+.upload-mini.tem{border-color:var(--verde-claro);background:var(--sucesso-bg);color:var(--sucesso);}
+
+.cotacao-chip{display:inline-flex;align-items:center;gap:5px;background:var(--verde-bg);color:var(--verde-medio);font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando financeiro...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LANÇAMENTO -->
+<div class="modal-overlay" id="modal-lanc">
+  <div class="modal" style="max-width:660px">
+    <div class="modal-header">
+      <span class="modal-title" id="ml-titulo">Novo Lançamento</span>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body" id="ml-body"></div>
+    <div class="modal-footer" id="ml-footer"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+let todosLanc = [];
+let atividades = [], contratos = [], fornecedores = [], resultados = [];
+let lancEditando = null, arquivoComp = null;
+let taxaAtual = 5.87;
+let visaoAtual = 'lancamentos';
+
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+  if (!PODE.verFinanceiro()) {
+    document.getElementById('app').innerHTML =
+      gerarLayout('Financeiro','financeiro') +
+      `<div class="alert alert-danger" style="max-width:500px">🔒 Acesso restrito ao perfil financeiro.</div>` +
+      `</div></div></div>`;
+    return;
+  }
+
+  document.getElementById('app').innerHTML =
+    gerarLayout('Execução Financeira','financeiro') + `
+    <div class="fade-in">
+      <!-- KPIs -->
+      <div class="stat-row" id="stats"></div>
+
+      <!-- Cotação + Controles -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <div id="cotacao-chip"></div>
+        <div class="visao-tabs">
+          <button class="visao-tab ativo" onclick="mudarVisao('lancamentos',this)">📋 Lançamentos</button>
+          <button class="visao-tab" onclick="mudarVisao('atividades',this)">◈ Por Atividade</button>
+          <button class="visao-tab" onclick="mudarVisao('resultados',this)">◎ Por Resultado</button>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ Exportar CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo lançamento</button>
+        </div>
+      </div>
+
+      <!-- Filtros (visão lançamentos) -->
+      <div id="filtros-lanc" class="filter-bar" style="margin-bottom:14px">
+        <input class="form-control" type="text" id="busca" style="width:220px"
+          placeholder="Buscar descrição ou NF..." oninput="renderLancamentos()">
+        <select class="form-control" id="fil-sit" onchange="renderLancamentos()" style="width:140px">
+          <option value="">Todas situações</option>
+          <option value="pago">Pago</option>
+          <option value="a_pagar">A Pagar</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <select class="form-control" id="fil-ativ" onchange="renderLancamentos()" style="width:180px">
+          <option value="">Todas as atividades</option>
+        </select>
+        <select class="form-control" id="fil-mes" onchange="renderLancamentos()" style="width:140px">
+          <option value="">Todos os meses</option>
+        </select>
+        <span id="cont-lanc" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
+      </div>
+
+      <!-- Conteúdo dinâmico -->
+      <div id="conteudo-financeiro"></div>
+    </div>` + `</div></div></div>`;
+
+  await carregar();
+})();
+
+async function carregar() {
+  try {
+    const [
+      {data:lancs}, {data:ativs}, {data:conts},
+      {data:forns}, {data:ress}, cotacao
+    ] = await Promise.all([
+      db.from('execucao_financeira').select(`
+        *,
+        atividades(id,codigo,nome_pt,resultado_id),
+        contratos(id,numero,objeto_pt),
+        fornecedores(id,nome,tipo)
+      `).order('dt_vencimento',{ascending:false}),
+      db.from('atividades').select('id,codigo,nome_pt,orcamento_usd,resultado_id').order('codigo'),
+      db.from('contratos').select('id,numero,objeto_pt,fornecedor_id').order('numero'),
+      db.from('fornecedores').select('id,nome,tipo').order('nome'),
+      db.from('resultados').select('*').order('codigo'),
+      obterCotacao()
+    ]);
+
+    todosLanc = lancs || [];
+    atividades = ativs || [];
+    contratos = conts || [];
+    fornecedores = forns || [];
+    resultados = ress || [];
+    taxaAtual = cotacao?.cotacao || 5.87;
+
+    // Preencher filtro de atividades
+    const filAtiv = document.getElementById('fil-ativ');
+    if (filAtiv) {
+      atividades.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.id; opt.textContent = `${a.codigo} — ${a.nome_pt?.substring(0,40)}`;
+        filAtiv.appendChild(opt);
+      });
+    }
+
+    // Preencher filtro de meses
+    const meses = [...new Set(todosLanc.map(l => l.dt_vencimento?.substring(0,7)).filter(Boolean))].sort().reverse();
+    const filMes = document.getElementById('fil-mes');
+    if (filMes) {
+      meses.forEach(m => {
+        const opt = document.createElement('option');
+        const [ano,mes] = m.split('-');
+        const nomes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        opt.value = m; opt.textContent = `${nomes[parseInt(mes)]}/${ano}`;
+        filMes.appendChild(opt);
+      });
+    }
+
+    // Cotação chip
+    document.getElementById('cotacao-chip').innerHTML =
+      `<span class="cotacao-chip">💱 R$ ${taxaAtual.toFixed(2)}/USD · hoje</span>`;
+
+    renderStats();
+    renderConteudo();
+  } catch(e) {
+    console.error(e);
+    toast('Erro ao carregar dados financeiros.','error');
+  }
+}
+
+function renderStats() {
+  const ativos = todosLanc.filter(l=>l.situacao!=='cancelado');
+  const pagos = ativos.filter(l=>l.situacao==='pago');
+  const aPagar = ativos.filter(l=>l.situacao==='a_pagar');
+  const totalPago = pagos.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
+  const totalAPagar = aPagar.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
+  const totalGeral = ativos.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
+  const vencidos = aPagar.filter(l=>l.dt_vencimento&&new Date(l.dt_vencimento)<new Date()).length;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card sc-g">
+      <div class="stat-lbl">Total Executado</div>
+      <div class="stat-val">${fmtBRL(totalPago)}</div>
+      <div class="stat-sub">${pagos.length} pagamentos</div>
+    </div>
+    <div class="stat-card sc-a">
+      <div class="stat-lbl">A Pagar</div>
+      <div class="stat-val">${fmtBRL(totalAPagar)}</div>
+      <div class="stat-sub">${aPagar.length} lançamentos</div>
+    </div>
+    <div class="stat-card sc-b">
+      <div class="stat-lbl">Total Comprometido</div>
+      <div class="stat-val">${fmtBRL(totalGeral)}</div>
+      <div class="stat-sub">pago + a pagar</div>
+    </div>
+    <div class="stat-card sc-t">
+      <div class="stat-lbl">Em USD (cotação atual)</div>
+      <div class="stat-val" style="font-size:14px">${fmtUSD(totalGeral/taxaAtual)}</div>
+      <div class="stat-sub">R$ ${taxaAtual.toFixed(2)}/USD</div>
+    </div>
+    <div class="stat-card ${vencidos>0?'sc-r':'sc-g'}">
+      <div class="stat-lbl">Vencidos</div>
+      <div class="stat-val" style="color:${vencidos>0?'var(--erro)':'var(--sucesso)'}">${vencidos}</div>
+      <div class="stat-sub">aguardando pagamento</div>
+    </div>`;
+}
+
+function mudarVisao(v, btn) {
+  visaoAtual = v;
+  document.querySelectorAll('.visao-tab').forEach(b=>b.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  const filtros = document.getElementById('filtros-lanc');
+  if (filtros) filtros.style.display = v==='lancamentos'?'flex':'none';
+  renderConteudo();
+}
+
+function renderConteudo() {
+  if (visaoAtual==='lancamentos') renderLancamentos();
+  else if (visaoAtual==='atividades') renderPorAtividade();
+  else if (visaoAtual==='resultados') renderPorResultado();
+}
+
+// ── VISÃO LANÇAMENTOS ─────────────────────────────────────────
+function renderLancamentos() {
+  const busca = document.getElementById('busca')?.value.toLowerCase()||'';
+  const sit = document.getElementById('fil-sit')?.value||'';
+  const ativId = document.getElementById('fil-ativ')?.value||'';
+  const mes = document.getElementById('fil-mes')?.value||'';
+
+  const fil = todosLanc.filter(l => {
+    const desc = (l.descricao||'').toLowerCase();
+    const nf = (l.numero_nf||'').toLowerCase();
+    if (busca && !desc.includes(busca) && !nf.includes(busca)) return false;
+    if (sit && l.situacao !== sit) return false;
+    if (ativId && l.atividade_id !== ativId) return false;
+    if (mes && !(l.dt_vencimento||'').startsWith(mes)) return false;
+    return true;
+  });
+
+  document.getElementById('cont-lanc').textContent = `${fil.length} de ${todosLanc.length} lançamentos`;
+
+  if (!fil.length) {
+    document.getElementById('conteudo-financeiro').innerHTML =
+      `<div class="empty-state"><div class="empty-state-icon">◉</div><div class="empty-state-msg">Nenhum lançamento encontrado.</div></div>`;
+    return;
+  }
+
+  document.getElementById('conteudo-financeiro').innerHTML = `
+    <div class="card">
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>Descrição</th>
+              <th style="width:80px">NF</th>
+              <th style="width:90px">Atividade</th>
+              <th style="width:150px">Fornecedor</th>
+              <th style="width:90px">Vencimento</th>
+              <th style="width:90px">Pagamento</th>
+              <th style="width:110px;text-align:right">Valor R$</th>
+              <th style="width:90px;text-align:right">Valor U$</th>
+              <th style="width:90px">Situação</th>
+              <th style="width:60px">Comp.</th>
+              <th style="width:60px"></th>
+            </tr></thead>
+            <tbody>
+              ${fil.map(l => {
+                const vencido = l.situacao==='a_pagar'&&l.dt_vencimento&&new Date(l.dt_vencimento)<new Date();
+                const usd = parseFloat(l.valor_brl||0)/taxaAtual;
+                return `<tr style="${vencido?'background:var(--erro-bg)':''}">
+                  <td>
+                    <div style="font-size:12px;font-weight:500;color:var(--cinza-900);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.descricao||'—'}</div>
+                    ${l.elemento_despesa?`<div style="font-size:10px;color:var(--cinza-500)">${l.elemento_despesa}</div>`:''}
+                    ${vencido?`<div style="font-size:10px;color:var(--erro);font-weight:600">⚠ Vencido</div>`:''}
+                  </td>
+                  <td><span class="nf-num">${l.numero_nf||'—'}</span></td>
+                  <td><span style="font-family:var(--font-mono);font-size:11px">${l.atividades?.codigo||'—'}</span></td>
+                  <td style="font-size:12px">${l.fornecedores?.nome?.substring(0,22)||l.contratos?.numero||'—'}</td>
+                  <td style="font-size:12px">${fmtData(l.dt_vencimento)}</td>
+                  <td style="font-size:12px;color:${l.dt_pagamento?'var(--sucesso)':'var(--cinza-400,#9CA3AF)'}">${l.dt_pagamento?fmtData(l.dt_pagamento):'—'}</td>
+                  <td style="text-align:right;font-family:var(--font-mono);font-size:12px;font-weight:500">${fmtBRL(l.valor_brl)}</td>
+                  <td style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--cinza-500)">${fmtUSD(usd)}</td>
+                  <td><span class="sit-badge sit-${l.situacao}">${t('situacao',l.situacao)}</span></td>
+                  <td style="text-align:center">
+                    ${l.comprovante_url
+                      ?`<button class="btn btn-sm btn-secondary" style="padding:3px 6px;font-size:10px" onclick="abrirComp('${l.id}','${l.comprovante_url}')">📎</button>`
+                      :`<span style="font-size:11px;color:var(--cinza-300)">—</span>`}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-secondary btn-icon" onclick="abrirEditar('${l.id}')" title="Editar">✏️</button>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer" style="display:flex;justify-content:flex-end;gap:16px;font-size:12px">
+        <span>Total filtrado: <strong>${fmtBRL(fil.filter(l=>l.situacao!=='cancelado').reduce((s,l)=>s+parseFloat(l.valor_brl||0),0))}</strong></span>
+        <span style="color:var(--sucesso)">Pago: <strong>${fmtBRL(fil.filter(l=>l.situacao==='pago').reduce((s,l)=>s+parseFloat(l.valor_brl||0),0))}</strong></span>
+        <span style="color:var(--aviso)">A pagar: <strong>${fmtBRL(fil.filter(l=>l.situacao==='a_pagar').reduce((s,l)=>s+parseFloat(l.valor_brl||0),0))}</strong></span>
+      </div>
+    </div>`;
+}
+
+// ── VISÃO POR ATIVIDADE ───────────────────────────────────────
+function renderPorAtividade() {
+  // Agrupar lançamentos por atividade
+  const porAtiv = {};
+  todosLanc.filter(l=>l.situacao!=='cancelado').forEach(l => {
+    const id = l.atividade_id || '__sem__';
+    if (!porAtiv[id]) porAtiv[id] = { lancs:[], total:0, pago:0 };
+    porAtiv[id].lancs.push(l);
+    porAtiv[id].total += parseFloat(l.valor_brl||0);
+    if (l.situacao==='pago') porAtiv[id].pago += parseFloat(l.valor_brl||0);
+  });
+
+  const linhas = atividades.map(a => {
+    const dados = porAtiv[a.id] || { total:0, pago:0, lancs:[] };
+    const orc = parseFloat(a.orcamento_usd||0) * taxaAtual;
+    const pct = orc > 0 ? Math.min(dados.total/orc*100,100) : 0;
+    const corBarra = pct>90?'crit':pct>70?'warn':'';
+    return { a, dados, orc, pct, corBarra };
+  }).filter(x => x.dados.total > 0 || x.orc > 0);
+
+  document.getElementById('conteudo-financeiro').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Execução por Atividade</span>
+        <span style="font-size:11px;color:var(--cinza-500)">Cotação: R$ ${taxaAtual.toFixed(2)}/USD</span>
+      </div>
+      <div class="card-body" style="padding:8px 16px">
+        ${linhas.length ? linhas.map(({a,dados,orc,pct,corBarra}) => `
+          <div class="ativ-row">
+            <span class="ativ-cod">${a.codigo}</span>
+            <span class="ativ-nome" title="${a.nome_pt||''}">${(a.nome_pt||'').substring(0,50)}</span>
+            <div class="ativ-barra">
+              <div class="ativ-barra-bg">
+                <div class="ativ-barra-fill ${corBarra}" style="width:${pct}%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cinza-500);margin-top:2px">
+                <span>Orç: ${fmtBRL(orc)}</span>
+                <span>${Math.round(pct)}%</span>
+              </div>
+            </div>
+            <div class="ativ-valor">${fmtBRL(dados.total)}</div>
+            <div class="ativ-pct" style="color:${pct>90?'var(--erro)':pct>70?'var(--aviso)':'var(--cinza-700)'}">
+              ${Math.round(pct)}%
+            </div>
+            <button class="btn btn-sm btn-secondary" style="font-size:10px;padding:3px 8px"
+              onclick="filtrarPorAtiv('${a.id}')">Ver</button>
+          </div>`).join('') :
+          `<div class="empty-state"><div class="empty-state-msg">Nenhum lançamento registrado.</div></div>`}
+      </div>
+    </div>`;
+}
+
+// ── VISÃO POR RESULTADO ───────────────────────────────────────
+function renderPorResultado() {
+  const resMap = {};
+  resultados.forEach(r => { resMap[r.id] = { res:r, total:0, pago:0, aPagar:0 }; });
+
+  todosLanc.filter(l=>l.situacao!=='cancelado').forEach(l => {
+    const ativ = atividades.find(a=>a.id===l.atividade_id);
+    const rId = ativ?.resultado_id;
+    if (rId && resMap[rId]) {
+      resMap[rId].total += parseFloat(l.valor_brl||0);
+      if (l.situacao==='pago') resMap[rId].pago += parseFloat(l.valor_brl||0);
+      else resMap[rId].aPagar += parseFloat(l.valor_brl||0);
+    }
+  });
+
+  const cores = ['#1D9E75','#2563EB','#7F77DD','#BA7517'];
+
+  document.getElementById('conteudo-financeiro').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      ${resultados.map((r,i) => {
+        const d = resMap[r.id] || {total:0,pago:0,aPagar:0};
+        const orc = parseFloat(r.orcamento_usd||0)*taxaAtual;
+        const pct = orc>0?Math.min(d.total/orc*100,100):0;
+        const nome = campo(r,'nome');
+        return `
+        <div class="resultado-bloco">
+          <div class="resultado-header" style="border-left:4px solid ${cores[i%4]}">
+            <span class="resultado-codigo">${r.codigo}</span>
+            <span class="resultado-nome">${nome.substring(0,55)}${nome.length>55?'…':''}</span>
+          </div>
+          <div class="resultado-body">
+            <div style="margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cinza-500);margin-bottom:4px">
+                <span>Executado: ${fmtBRL(d.total)}</span>
+                <span>Orçamento: ${fmtBRL(orc)}</span>
+              </div>
+              <div style="height:8px;background:var(--cinza-100);border-radius:4px;overflow:hidden">
+                <div style="height:100%;background:${cores[i%4]};width:${pct}%;border-radius:4px;transition:width .4s"></div>
+              </div>
+              <div style="text-align:right;font-size:10px;color:var(--cinza-500);margin-top:2px">${Math.round(pct)}% executado</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              ${[
+                ['Pago',fmtBRL(d.pago),'var(--sucesso)'],
+                ['A Pagar',fmtBRL(d.aPagar),'var(--aviso)'],
+                ['Em USD',fmtUSD(d.total/taxaAtual),'var(--cinza-700)'],
+              ].map(([l,v,c])=>`
+                <div style="text-align:center;background:var(--cinza-50);border-radius:var(--raio);padding:8px">
+                  <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">${l}</div>
+                  <div style="font-size:12px;font-weight:600;font-family:var(--font-mono);color:${c}">${v}</div>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function filtrarPorAtiv(id) {
+  mudarVisao('lancamentos', document.querySelector('.visao-tab'));
+  document.getElementById('fil-ativ').value = id;
+  renderLancamentos();
+}
+
+// ── NOVO / EDITAR LANÇAMENTO ──────────────────────────────────
+function abrirNovo() {
+  lancEditando = null; arquivoComp = null;
+  document.getElementById('ml-titulo').textContent = 'Novo Lançamento';
+  renderFormLanc(null);
+  document.getElementById('ml-footer').innerHTML = `
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarLanc()">Registrar lançamento</button>`;
+  document.getElementById('modal-lanc').classList.add('aberto');
+}
+
+function abrirEditar(id) {
+  lancEditando = todosLanc.find(l=>l.id===id);
+  if (!lancEditando) return;
+  arquivoComp = null;
+  document.getElementById('ml-titulo').textContent = 'Editar Lançamento';
+  renderFormLanc(lancEditando);
+  document.getElementById('ml-footer').innerHTML = `
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-danger btn-sm" onclick="cancelarLanc('${id}')">Cancelar lançamento</button>
+    <button class="btn btn-primary" onclick="salvarLanc()">Salvar alterações</button>`;
+  document.getElementById('modal-lanc').classList.add('aberto');
+}
+
+function renderFormLanc(l) {
+  document.getElementById('ml-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Descrição <span class="obrig">*</span></label>
+      <input class="form-control" id="f-desc" type="text" value="${l?.descricao||''}"
+        placeholder="Ex: Pagamento consultoria — Produto 1">
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Atividade <span class="obrig">*</span></label>
+        <select class="form-control" id="f-ativ">
+          <option value="">Selecione...</option>
+          ${atividades.map(a=>`<option value="${a.id}" ${l?.atividade_id===a.id?'selected':''}>${a.codigo} — ${a.nome_pt?.substring(0,40)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contrato</label>
+        <select class="form-control" id="f-cont">
+          <option value="">Sem contrato</option>
+          ${contratos.map(c=>`<option value="${c.id}" ${l?.contrato_id===c.id?'selected':''}>${c.numero}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fornecedor</label>
+      <select class="form-control" id="f-forn">
+        <option value="">Selecione o fornecedor...</option>
+        ${fornecedores.map(f=>`<option value="${f.id}" ${l?.fornecedor_id===f.id?'selected':''}>${f.nome} (${f.tipo})</option>`).join('')}
+      </select>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Valor R$ <span class="obrig">*</span></label>
+        <input class="form-control" id="f-brl" type="number" step="0.01"
+          value="${l?.valor_brl||''}" placeholder="0,00"
+          oninput="calcUSD(this.value)">
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:4px">
+          ≈ <span id="usd-preview" style="font-family:var(--font-mono);font-weight:600">${l?.valor_brl?fmtUSD(parseFloat(l.valor_brl)/taxaAtual):'—'}</span>
+          <span style="color:var(--cinza-400,#9CA3AF)">(cotação R$ ${taxaAtual.toFixed(2)}/USD)</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Número da Nota Fiscal</label>
+        <input class="form-control" id="f-nf" type="text"
+          value="${l?.numero_nf||''}" placeholder="Ex: NF-12345"
+          style="font-family:var(--font-mono)">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Data de vencimento</label>
+        <input class="form-control" id="f-venc" type="date" value="${l?.dt_vencimento||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data de pagamento</label>
+        <input class="form-control" id="f-pgto" type="date" value="${l?.dt_pagamento||''}">
+        <div class="form-hint">Preencha apenas quando efetivamente pago.</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Situação <span class="obrig">*</span></label>
+        <select class="form-control" id="f-sit">
+          <option value="a_pagar" ${(l?.situacao||'a_pagar')==='a_pagar'?'selected':''}>A Pagar</option>
+          <option value="pago" ${l?.situacao==='pago'?'selected':''}>Pago</option>
+          <option value="cancelado" ${l?.situacao==='cancelado'?'selected':''}>Cancelado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Elemento de despesa</label>
+        <input class="form-control" id="f-elem" type="text"
+          value="${l?.elemento_despesa||''}" placeholder="Ex: 33903900">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observações</label>
+      <textarea class="form-control" id="f-obs" rows="2">${l?.observacoes||''}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Comprovante de pagamento</label>
+      ${l?.comprovante_url?`<div class="alert alert-info" style="margin-bottom:8px;font-size:12px">
+        📎 Comprovante já carregado.
+        <button class="btn btn-sm btn-secondary" style="margin-left:8px" onclick="abrirComp('${l.id}','${l.comprovante_url}')">Abrir</button>
+      </div>`:''}
+      <div class="upload-mini ${l?.comprovante_url?'tem':''}" id="upload-comp"
+        onclick="document.getElementById('inp-comp').click()">
+        ${l?.comprovante_url?'✓ Substituir comprovante':'📎 Clique para anexar comprovante (.pdf, .jpg, .png)'}
+        <input type="file" id="inp-comp" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+          onchange="selecionarComp(this.files[0])">
+      </div>
+    </div>`;
+}
+
+function calcUSD(val) {
+  const brl = parseFloat(val)||0;
+  const el = document.getElementById('usd-preview');
+  if (el) el.textContent = brl > 0 ? fmtUSD(brl/taxaAtual) : '—';
+}
+
+function selecionarComp(file) {
+  if (!file) return;
+  arquivoComp = file;
+  const el = document.getElementById('upload-comp');
+  if (el) { el.classList.add('tem'); el.querySelector('input').style.display='none';
+    el.textContent = `✓ ${file.name} selecionado`; }
+}
+
+async function salvarLanc() {
+  const desc = document.getElementById('f-desc').value.trim();
+  const ativId = document.getElementById('f-ativ').value;
+  const brl = parseFloat(document.getElementById('f-brl').value)||0;
+
+  if (!desc || !ativId || !brl) {
+    toast('Preencha descrição, atividade e valor.','error'); return;
+  }
+
+  const dados = {
+    descricao: desc,
+    atividade_id: ativId,
+    contrato_id: document.getElementById('f-cont').value||null,
+    fornecedor_id: document.getElementById('f-forn').value||null,
+    valor_brl: brl,
+    valor_usd: parseFloat((brl/taxaAtual).toFixed(2)),
+    cotacao_uso: taxaAtual,
+    numero_nf: document.getElementById('f-nf').value.trim()||null,
+    dt_vencimento: document.getElementById('f-venc').value||null,
+    dt_pagamento: document.getElementById('f-pgto').value||null,
+    situacao: document.getElementById('f-sit').value,
+    elemento_despesa: document.getElementById('f-elem').value.trim()||null,
+    observacoes: document.getElementById('f-obs').value.trim()||null,
+  };
+
+  try {
+    let id = lancEditando?.id;
+    if (!lancEditando) {
+      const {data,error} = await db.from('execucao_financeira')
+        .insert({...dados, criado_por:appState.usuario.id})
+        .select(`*,atividades(id,codigo,nome_pt,resultado_id),contratos(id,numero),fornecedores(id,nome,tipo)`)
+        .single();
+      if (error) throw error;
+      id = data.id;
+      todosLanc.unshift(data);
+      toast('Lançamento registrado!','success');
+    } else {
+      const {error} = await db.from('execucao_financeira').update(dados).eq('id',lancEditando.id);
+      if (error) throw error;
+      Object.assign(lancEditando, dados);
+      toast('Lançamento atualizado!','success');
+    }
+
+    // Upload comprovante
+    if (arquivoComp && id) {
+      const ext = arquivoComp.name.split('.').pop();
+      const path = `comprovante-${id}.${ext}`;
+      const {error:upErr} = await db.storage.from('tdrs-arquivos').upload(path,arquivoComp,{upsert:true});
+      if (!upErr) {
+        const {data:urlData} = db.storage.from('tdrs-arquivos').getPublicUrl(path);
+        await db.from('execucao_financeira').update({
+          comprovante_url: urlData.publicUrl, comprovante_nome: arquivoComp.name
+        }).eq('id',id);
+        const lanc = todosLanc.find(l=>l.id===id);
+        if (lanc) { lanc.comprovante_url=urlData.publicUrl; lanc.comprovante_nome=arquivoComp.name; }
+      }
+    }
+
+    fecharModal();
+    renderStats();
+    renderConteudo();
+  } catch(e) {
+    toast('Erro ao salvar: '+(e.message||''),'error');
+  }
+}
+
+async function cancelarLanc(id) {
+  if (!confirm('Cancelar este lançamento?')) return;
+  await db.from('execucao_financeira').update({situacao:'cancelado'}).eq('id',id);
+  const l = todosLanc.find(x=>x.id===id);
+  if (l) l.situacao = 'cancelado';
+  fecharModal();
+  renderStats(); renderConteudo();
+  toast('Lançamento cancelado.','info');
+}
+
+async function abrirComp(lancId, url) {
+  try {
+    const urlObj = new URL(url);
+    const match = urlObj.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
+    if (match) {
+      const {data,error} = await db.storage.from('tdrs-arquivos').createSignedUrl(match[1],3600);
+      if (!error && data?.signedUrl) { window.open(data.signedUrl,'_blank'); return; }
+    }
+    window.open(url,'_blank');
+  } catch(e) { window.open(url,'_blank'); }
+}
+
+// ── EXPORTAR CSV ──────────────────────────────────────────────
+function exportarCSV() {
+  const headers = ['Descrição','NF','Atividade','Fornecedor','Contrato','Vencimento','Pagamento','Valor R$','Valor U$','Situação','Elemento Despesa'];
+  const rows = todosLanc.map(l => [
+    `"${(l.descricao||'').replace(/"/g,'""')}"`,
+    l.numero_nf||'',
+    l.atividades?.codigo||'',
+    `"${(l.fornecedores?.nome||l.contratos?.numero||'').replace(/"/g,'""')}"`,
+    l.contratos?.numero||'',
+    l.dt_vencimento||'',
+    l.dt_pagamento||'',
+    (l.valor_brl||0).toString().replace('.',','),
+    ((parseFloat(l.valor_brl||0)/taxaAtual).toFixed(2)).replace('.',','),
+    l.situacao||'',
+    l.elemento_despesa||''
+  ]);
+
+  const csv = [headers.join(';'), ...rows.map(r=>r.join(';'))].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `financeiro-dima-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('CSV exportado com sucesso!','success');
+}
+
+function fecharModal() {
+  document.getElementById('modal-lanc').classList.remove('aberto');
+  lancEditando = null; arquivoComp = null;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal();});
+</script>
+</body>
+</html>
