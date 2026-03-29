@@ -3,318 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DIMA — Plataforma de Gestão UNESCO</title>
+<title>SEMA/AC — Plataforma de Gestão UNESCO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:wght@700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --verde:#1F4E2C;--verde-m:#2D6A4F;--verde-c:#52B788;
   --ouro:#B5860D;--ouro-c:#F4D35E;
   --cinza-9:#111827;--cinza-7:#374151;--cinza-5:#6B7280;
-  --cinza-3:#D1D5DB;--cinza-1:#F3F4F6;
-  --borda:#E5E7EB;--erro:#DC2626;--branco:#fff;
+  --cinza-3:#D1D5DB;--borda:#E5E7EB;--branco:#fff;
   --font-sans:'DM Sans',system-ui,sans-serif;
   --font-display:'Fraunces',Georgia,serif;
 }
-body{
-  font-family:var(--font-sans);
-  min-height:100vh;
-  display:flex;
-  background:var(--verde);
-  position:relative;
-  overflow:hidden;
-}
-/* Padrão geométrico de fundo */
-body::before{
-  content:'';position:absolute;inset:0;
-  background-image:
-    repeating-linear-gradient(45deg,rgba(255,255,255,.03) 0,rgba(255,255,255,.03) 1px,transparent 1px,transparent 60px),
-    repeating-linear-gradient(-45deg,rgba(255,255,255,.03) 0,rgba(255,255,255,.03) 1px,transparent 1px,transparent 60px);
-}
-/* Painel esquerdo */
-.painel-esq{
-  flex:1;display:flex;flex-direction:column;justify-content:center;
-  padding:60px 80px;position:relative;z-index:1;
-}
-.logotipo{
-  font-family:var(--font-display);
-  font-size:48px;font-weight:700;color:#fff;
-  letter-spacing:-.03em;line-height:1;
-  margin-bottom:8px;
-}
-.logotipo span{color:var(--ouro-c);}
-.tagline{
-  font-size:15px;color:rgba(255,255,255,.65);
-  font-weight:300;margin-bottom:48px;
-  max-width:360px;line-height:1.6;
-}
-.projeto-info{
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:12px;padding:20px 22px;
-  max-width:380px;
-}
-.proj-badge{
-  font-size:10px;font-weight:700;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--ouro-c);
-  margin-bottom:8px;
-}
-.proj-nome{
-  font-size:14px;font-weight:600;color:#fff;
-  margin-bottom:4px;line-height:1.4;
-}
-.proj-sub{font-size:12px;color:rgba(255,255,255,.55);}
-.proj-dots{
-  display:flex;gap:8px;margin-top:14px;
-}
-.proj-dot{
-  width:6px;height:6px;border-radius:50%;
-  background:rgba(255,255,255,.25);
-}
-.proj-dot.ativo{background:var(--ouro-c);}
-
-/* Painel direito - formulário */
-.painel-dir{
-  width:440px;flex-shrink:0;
-  background:var(--branco);
-  display:flex;align-items:center;justify-content:center;
-  padding:40px;
-  position:relative;z-index:1;
-}
-.login-box{width:100%;max-width:360px;}
-.login-titulo{
-  font-size:22px;font-weight:600;color:var(--cinza-9);
-  margin-bottom:6px;
-}
-.login-sub{
-  font-size:13px;color:var(--cinza-5);
-  margin-bottom:32px;
-}
-
-.lang-row{
-  display:flex;gap:6px;margin-bottom:24px;
-}
-.lang-opt{
-  flex:1;padding:7px;border-radius:6px;
-  border:1px solid var(--borda);
-  background:transparent;cursor:pointer;
-  font-family:var(--font-sans);font-size:12px;font-weight:500;
-  color:var(--cinza-5);transition:all .15s;
-}
+body{font-family:var(--font-sans);min-height:100vh;display:flex;overflow:hidden;}
+.painel-esq{flex:1;position:relative;overflow:hidden;}
+.slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 1.4s ease-in-out;}
+.slide.ativo{opacity:1;}
+.slide-overlay{position:absolute;inset:0;background:linear-gradient(160deg,rgba(20,60,30,.88) 0%,rgba(25,70,38,.65) 50%,rgba(15,45,25,.45) 100%);}
+.painel-conteudo{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:48px 52px;}
+.logotipo-wrap{display:flex;flex-direction:column;gap:4px;}
+.logotipo{font-family:var(--font-display);font-size:54px;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1;}
+.logotipo .ac{color:var(--ouro-c);font-size:38px;vertical-align:middle;}
+.logotipo-sub{font-size:12px;font-weight:500;color:rgba(255,255,255,.65);letter-spacing:.12em;text-transform:uppercase;padding-left:3px;}
+.tagline{font-size:14px;color:rgba(255,255,255,.7);font-weight:300;margin-top:14px;max-width:380px;line-height:1.65;}
+.projeto-info{background:rgba(0,0,0,.32);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:22px 26px;max-width:440px;}
+.proj-badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ouro-c);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.proj-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--ouro-c);flex-shrink:0;animation:pulso 2s ease-in-out infinite;}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.4}}
+.proj-nome{font-size:14px;font-weight:600;color:#fff;margin-bottom:5px;line-height:1.45;}
+.proj-sub{font-size:12px;color:rgba(255,255,255,.55);margin-bottom:14px;}
+.slide-dots{display:flex;gap:6px;align-items:center;}
+.slide-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .35s;cursor:pointer;border:none;padding:0;}
+.slide-dot.ativo{background:var(--ouro-c);width:22px;border-radius:4px;}
+.foto-legenda{position:absolute;bottom:18px;right:20px;z-index:3;font-size:10px;color:rgba(255,255,255,.42);letter-spacing:.04em;}
+.painel-dir{width:430px;flex-shrink:0;background:var(--branco);display:flex;align-items:center;justify-content:center;padding:40px 36px;}
+.login-box{width:100%;max-width:340px;}
+.login-titulo{font-size:21px;font-weight:600;color:var(--cinza-9);margin-bottom:5px;}
+.login-sub{font-size:13px;color:var(--cinza-5);margin-bottom:28px;}
+.lang-row{display:flex;gap:5px;margin-bottom:22px;}
+.lang-opt{flex:1;padding:6px;border-radius:6px;border:1px solid var(--borda);background:transparent;cursor:pointer;font-family:var(--font-sans);font-size:11px;font-weight:500;color:var(--cinza-5);transition:all .15s;}
 .lang-opt:hover{border-color:var(--verde-c);color:var(--verde-m);}
 .lang-opt.ativo{background:var(--verde-m);border-color:var(--verde-m);color:#fff;}
-
-.form-group{margin-bottom:16px;}
-.form-label{
-  display:block;font-size:12px;font-weight:600;
-  color:var(--cinza-7);margin-bottom:5px;
-}
-.form-input{
-  width:100%;height:42px;
-  border:1px solid var(--borda);border-radius:8px;
-  padding:0 14px;
-  font-family:var(--font-sans);font-size:14px;color:var(--cinza-9);
-  transition:border-color .15s,box-shadow .15s;
-  background:var(--branco);
-}
-.form-input:focus{
-  outline:none;
-  border-color:var(--verde-c);
-  box-shadow:0 0 0 3px rgba(82,183,136,.18);
-}
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--cinza-7);margin-bottom:5px;}
+.form-input{width:100%;height:42px;border:1px solid var(--borda);border-radius:8px;padding:0 14px;font-family:var(--font-sans);font-size:14px;color:var(--cinza-9);transition:border-color .15s,box-shadow .15s;background:var(--branco);}
+.form-input:focus{outline:none;border-color:var(--verde-c);box-shadow:0 0 0 3px rgba(82,183,136,.18);}
 .form-input::placeholder{color:var(--cinza-3);}
-
-.btn-login{
-  width:100%;height:44px;margin-top:8px;
-  background:var(--verde-m);color:#fff;border:none;
-  border-radius:8px;font-family:var(--font-sans);
-  font-size:14px;font-weight:600;cursor:pointer;
-  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;
-}
+.btn-login{width:100%;height:44px;margin-top:8px;background:var(--verde-m);color:#fff;border:none;border-radius:8px;font-family:var(--font-sans);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
 .btn-login:hover{background:var(--verde);}
 .btn-login:active{transform:scale(.99);}
 .btn-login:disabled{opacity:.6;cursor:not-allowed;}
-
-.erro-msg{
-  background:#FEF2F2;border:1px solid #FECACA;
-  color:#991B1B;border-radius:6px;
-  padding:10px 14px;font-size:12px;
-  margin-bottom:14px;display:none;
-}
-
-.login-footer{
-  margin-top:28px;padding-top:20px;
-  border-top:1px solid var(--borda);
-  font-size:11px;color:var(--cinza-5);
-  text-align:center;line-height:1.6;
-}
-
+.erro-msg{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:14px;display:none;line-height:1.4;}
+.parceiros{margin-top:28px;padding-top:20px;border-top:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.parceiro-label{font-size:10px;color:var(--cinza-5);text-transform:uppercase;letter-spacing:.06em;}
+.parceiro-badges{display:flex;gap:8px;align-items:center;}
+.parceiro-badge{font-size:10px;font-weight:700;padding:4px 9px;border-radius:5px;letter-spacing:.05em;}
+.pb-verde{background:#E8F5EC;color:#1F4E2C;}
+.pb-azul{background:#E8F0FE;color:#1A3A5C;}
+.pb-dourado{background:#FFF8E1;color:#7B5800;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.spinner-sm{
-  width:16px;height:16px;
-  border:2px solid rgba(255,255,255,.3);
-  border-top-color:#fff;border-radius:50%;
-  animation:spin .6s linear infinite;
-  display:none;
-}
-@media(max-width:768px){
-  body{flex-direction:column}
-  .painel-esq{padding:40px 24px 30px}
-  .logotipo{font-size:36px}
-  .painel-dir{width:100%;padding:32px 24px 40px}
-}
+.spinner-sm{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none;}
+@media(max-width:768px){body{flex-direction:column;}.painel-esq{min-height:280px;flex:none;}.painel-conteudo{padding:28px 24px;}.logotipo{font-size:40px;}.painel-dir{width:100%;padding:28px 24px 36px;}}
 </style>
 </head>
 <body>
-
 <div class="painel-esq">
-  <div class="logotipo">DIMA<span>.</span></div>
-  <div class="tagline" id="tagline">Plataforma de Gestão e Monitoramento do Programa de Resiliência Socioambiental — APAs Acre</div>
-
-  <div class="projeto-info">
-    <div class="proj-badge">UNESCO · SEMA/AC</div>
-    <div class="proj-nome">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
-    <div class="proj-sub">Projeto 218BRA2001 · Rio Branco, Acre</div>
-    <div class="proj-dots">
-      <div class="proj-dot ativo"></div>
-      <div class="proj-dot ativo"></div>
-      <div class="proj-dot ativo"></div>
-      <div class="proj-dot"></div>
+  <div class="slide ativo" id="slide-0" style="background-image:url('https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1400&q=80')"></div>
+  <div class="slide" id="slide-1" style="background-image:url('https://images.unsplash.com/photo-1518182170546-07661fd94144?w=1400&q=80')"></div>
+  <div class="slide" id="slide-2" style="background-image:url('https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1400&q=80')"></div>
+  <div class="slide" id="slide-3" style="background-image:url('https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=1400&q=80')"></div>
+  <div class="slide-overlay"></div>
+  <div class="painel-conteudo">
+    <div>
+      <div class="logotipo-wrap">
+        <div class="logotipo">SEMA<span class="ac">/AC</span></div>
+        <div class="logotipo-sub">Secretaria de Estado de Meio Ambiente</div>
+      </div>
+      <div class="tagline" id="tagline">Plataforma de Gestão e Monitoramento do Programa de Resiliência Socioambiental — APAs Acre</div>
+    </div>
+    <div>
+      <div class="projeto-info">
+        <div class="proj-badge"><div class="proj-badge-dot"></div>UNESCO · SEMA/AC · Projeto 218BRA2001</div>
+        <div class="proj-nome">Programa de Resiliência Socioambiental nas APAs<br>Igarapé São Francisco e Lago do Amapá</div>
+        <div class="proj-sub">Rio Branco, Acre — Fundo Multipartes das Nações Unidas (MPTF)</div>
+        <div class="slide-dots" id="slide-dots"></div>
+      </div>
     </div>
   </div>
+  <div class="foto-legenda" id="foto-legenda">Floresta Amazônica · Acre, Brasil</div>
 </div>
-
 <div class="painel-dir">
   <div class="login-box">
-
     <div class="lang-row">
       <button class="lang-opt ativo" onclick="setLang('pt',this)">🇧🇷 PT</button>
       <button class="lang-opt" onclick="setLang('en',this)">🇺🇸 EN</button>
       <button class="lang-opt" onclick="setLang('es',this)">🇪🇸 ES</button>
     </div>
-
     <div class="login-titulo" id="lbl-titulo">Entrar na plataforma</div>
     <div class="login-sub" id="lbl-sub">Acesse com suas credenciais institucionais</div>
-
     <div class="erro-msg" id="erro-msg"></div>
-
     <div class="form-group">
       <label class="form-label" id="lbl-email">E-mail</label>
       <input class="form-input" type="email" id="inp-email" autocomplete="email" placeholder="seu@email.gov.br">
     </div>
-
     <div class="form-group">
       <label class="form-label" id="lbl-senha">Senha</label>
       <input class="form-input" type="password" id="inp-senha" autocomplete="current-password">
     </div>
-
     <button class="btn-login" id="btn-login" onclick="fazerLogin()">
       <span id="btn-texto">Entrar</span>
       <div class="spinner-sm" id="spinner"></div>
     </button>
-
-    <div class="login-footer">
-      DIMA · Projeto 218BRA2001<br>
-      SEMA/AC — UNESCO/MPTF<br>
-      <span style="color:#B5860D;font-weight:600;">v1.0 · 2026</span>
+    <div class="parceiros">
+      <span class="parceiro-label">Parceiros</span>
+      <div class="parceiro-badges">
+        <span class="parceiro-badge pb-verde">SEMA/AC</span>
+        <span class="parceiro-badge pb-azul">UNESCO</span>
+        <span class="parceiro-badge pb-dourado">MPTF</span>
+      </div>
     </div>
   </div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = 'https://wfymnmlinonvdqfucjya.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let lang = localStorage.getItem('dima_idioma') || 'pt';
-
-const textos = {
-  pt:{titulo:'Entrar na plataforma',sub:'Acesse com suas credenciais institucionais',email:'E-mail',senha:'Senha',btn:'Entrar',erro_cred:'E-mail ou senha incorretos.',erro_gen:'Erro ao conectar. Tente novamente.',tagline:'Plataforma de Gestão e Monitoramento do Programa de Resiliência Socioambiental — APAs Acre'},
-  en:{titulo:'Sign in',sub:'Access with your institutional credentials',email:'Email',senha:'Password',btn:'Sign in',erro_cred:'Incorrect email or password.',erro_gen:'Connection error. Please try again.',tagline:'Management and Monitoring Platform for the Socio-environmental Resilience Program — Acre EPAs'},
-  es:{titulo:'Iniciar sesión',sub:'Acceda con sus credenciales institucionales',email:'Correo electrónico',senha:'Contraseña',btn:'Entrar',erro_cred:'Correo o contraseña incorrectos.',erro_gen:'Error de conexión. Inténtelo de nuevo.',tagline:'Plataforma de Gestión y Monitoreo del Programa de Resiliencia Socioambiental — APAs Acre'}
-};
-
-function setLang(l, el) {
-  lang = l;
-  localStorage.setItem('dima_idioma', l);
-  document.querySelectorAll('.lang-opt').forEach(b => b.classList.remove('ativo'));
-  el.classList.add('ativo');
-  aplicarTextos();
-}
-
-function aplicarTextos() {
-  const t = textos[lang] || textos.pt;
-  document.getElementById('lbl-titulo').textContent = t.titulo;
-  document.getElementById('lbl-sub').textContent = t.sub;
-  document.getElementById('lbl-email').textContent = t.email;
-  document.getElementById('lbl-senha').textContent = t.senha;
-  document.getElementById('btn-texto').textContent = t.btn;
-  document.getElementById('tagline').textContent = t.tagline;
-  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
-}
-
-async function fazerLogin() {
-  const email = document.getElementById('inp-email').value.trim();
-  const senha = document.getElementById('inp-senha').value;
-  const erroEl = document.getElementById('erro-msg');
-  const btn = document.getElementById('btn-login');
-  const spinner = document.getElementById('spinner');
-  const btnTexto = document.getElementById('btn-texto');
-  const t = textos[lang] || textos.pt;
-
-  if (!email || !senha) return;
-
-  erroEl.style.display = 'none';
-  btn.disabled = true;
-  spinner.style.display = 'inline-block';
-  btnTexto.style.opacity = '0.6';
-
-  try {
-    const { data, error } = await db.auth.signInWithPassword({ email, password: senha });
-
-    if (error) {
-      erroEl.textContent = error.message.includes('Invalid') ? t.erro_cred : t.erro_gen;
-      erroEl.style.display = 'block';
-      return;
-    }
-
-    // Buscar perfil do usuário
-    const { data: usuario } = await db.from('usuarios').select('perfil,idioma_pref').eq('id', data.user.id).single();
-
-    if (usuario?.idioma_pref) {
-      localStorage.setItem('dima_idioma', usuario.idioma_pref);
-    }
-
-    // Redirecionar para o dashboard
-    window.location.href = 'pages/dashboard.html';
-
-  } catch(e) {
-    erroEl.textContent = t.erro_gen;
-    erroEl.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    spinner.style.display = 'none';
-    btnTexto.style.opacity = '1';
-  }
-}
-
-// Enter para login
-document.getElementById('inp-senha').addEventListener('keydown', e => {
-  if (e.key === 'Enter') fazerLogin();
-});
-document.getElementById('inp-email').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('inp-senha').focus();
-});
-
-// Verificar se já está logado
-(async () => {
-  const { data: { session } } = await db.auth.getSession();
-  if (session) window.location.href = 'pages/dashboard.html';
-  aplicarTextos();
-})();
+const SUPABASE_URL='https://wfymnmlinonvdqfucjya.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
+const{createClient}=supabase;
+const db=createClient(SUPABASE_URL,SUPABASE_KEY);
+const legendas=['Floresta Amazônica · Biodiversidade','Rio na Amazônia · Recursos Hídricos','Floresta Tropical · Conservação','Amazônia · Resiliência Socioambiental'];
+let slideAtual=0;
+const dotsEl=document.getElementById('slide-dots');
+legendas.forEach((_,i)=>{const btn=document.createElement('button');btn.className='slide-dot'+(i===0?' ativo':'');btn.onclick=()=>irParaSlide(i);dotsEl.appendChild(btn);});
+function irParaSlide(n){document.getElementById('slide-'+slideAtual).classList.remove('ativo');document.querySelectorAll('.slide-dot')[slideAtual].classList.remove('ativo');slideAtual=(n+legendas.length)%legendas.length;document.getElementById('slide-'+slideAtual).classList.add('ativo');document.querySelectorAll('.slide-dot')[slideAtual].classList.add('ativo');document.getElementById('foto-legenda').textContent=legendas[slideAtual];}
+setInterval(()=>irParaSlide(slideAtual+1),5500);
+let lang=localStorage.getItem('dima_idioma')||'pt';
+const textos={pt:{titulo:'Entrar na plataforma',sub:'Acesse com suas credenciais institucionais',email:'E-mail',senha:'Senha',btn:'Entrar',erro_cred:'E-mail ou senha incorretos.',erro_gen:'Erro ao conectar. Tente novamente.',tagline:'Plataforma de Gestão e Monitoramento do Programa de Resiliência Socioambiental — APAs Acre'},en:{titulo:'Sign in',sub:'Access with your institutional credentials',email:'Email',senha:'Password',btn:'Sign in',erro_cred:'Incorrect email or password.',erro_gen:'Connection error. Please try again.',tagline:'Management and Monitoring Platform — Socio-environmental Resilience Program, Acre EPAs'},es:{titulo:'Iniciar sesión',sub:'Acceda con sus credenciales institucionales',email:'Correo electrónico',senha:'Contraseña',btn:'Entrar',erro_cred:'Correo o contraseña incorrectos.',erro_gen:'Error de conexión. Inténtelo de nuevo.',tagline:'Plataforma de Gestión y Monitoreo — Programa de Resiliencia Socioambiental, APAs Acre'}};
+function setLang(l,el){lang=l;localStorage.setItem('dima_idioma',l);document.querySelectorAll('.lang-opt').forEach(b=>b.classList.remove('ativo'));el.classList.add('ativo');aplicarTextos();}
+function aplicarTextos(){const t=textos[lang]||textos.pt;document.getElementById('lbl-titulo').textContent=t.titulo;document.getElementById('lbl-sub').textContent=t.sub;document.getElementById('lbl-email').textContent=t.email;document.getElementById('lbl-senha').textContent=t.senha;document.getElementById('btn-texto').textContent=t.btn;document.getElementById('tagline').textContent=t.tagline;document.documentElement.lang=lang==='pt'?'pt-BR':lang;}
+async function fazerLogin(){const email=document.getElementById('inp-email').value.trim();const senha=document.getElementById('inp-senha').value;const erroEl=document.getElementById('erro-msg');const btn=document.getElementById('btn-login');const spinner=document.getElementById('spinner');const btnTexto=document.getElementById('btn-texto');const t=textos[lang]||textos.pt;if(!email||!senha)return;erroEl.style.display='none';btn.disabled=true;spinner.style.display='inline-block';btnTexto.style.opacity='0.6';try{const{data,error}=await db.auth.signInWithPassword({email,password:senha});if(error){erroEl.textContent=error.message.includes('Invalid')?t.erro_cred:t.erro_gen;erroEl.style.display='block';return;}const{data:usuario}=await db.from('usuarios').select('idioma_pref').eq('id',data.user.id).single();if(usuario?.idioma_pref)localStorage.setItem('dima_idioma',usuario.idioma_pref);window.location.href='pages/dashboard.html';}catch(e){erroEl.textContent=t.erro_gen;erroEl.style.display='block';}finally{btn.disabled=false;spinner.style.display='none';btnTexto.style.opacity='1';}}
+document.getElementById('inp-senha').addEventListener('keydown',e=>{if(e.key==='Enter')fazerLogin();});
+document.getElementById('inp-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('inp-senha').focus();});
+(async()=>{const{data:{session}}=await db.auth.getSession();if(session)window.location.href='pages/dashboard.html';aplicarTextos();})();
 </script>
 </body>
 </html>
