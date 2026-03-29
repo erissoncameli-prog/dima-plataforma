@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — TDRs</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.tdr-numero{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-700);background:var(--cinza-100);padding:2px 8px;border-radius:4px;}
+.tipo-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;}
+.tb-pf{background:#E1F5EE;color:#085041}.tb-pj{background:#E6F1FB;color:#0C447C}
+
+/* Timeline */
+.fase-timeline{display:flex;align-items:flex-start;gap:0;margin:8px 0;max-width:100%;overflow:hidden;}
+.fase-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;min-width:0;}
+.fase-step:not(:last-child)::after{content:'';position:absolute;top:10px;left:50%;right:-50%;height:2px;background:var(--borda);z-index:0;}
+.fase-step.concluido::after{background:var(--verde-medio);}
+.fase-step.ativo::after{background:var(--verde-claro);}
+.fase-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--borda);background:var(--branco);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;position:relative;z-index:1;flex-shrink:0;}
+.fase-step.concluido .fase-dot{background:var(--verde-medio);border-color:var(--verde-medio);color:#fff;}
+.fase-step.ativo .fase-dot{background:var(--verde-claro);border-color:var(--verde-claro);color:#fff;}
+.fase-step.pendente .fase-dot{background:var(--cinza-100);color:var(--cinza-400,#9CA3AF);}
+.fase-lbl{font-size:8px;color:var(--cinza-500);margin-top:3px;text-align:center;line-height:1.1;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* TDR Cards */
+.tdr-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 18px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden;transition:all .15s;}
+.tdr-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 12px rgba(45,106,79,.1);}
+.tdr-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.tdr-card.st-rascunho::before{background:var(--cinza-300);}
+.tdr-card.st-revisao_interna::before{background:var(--azul-medio);}
+.tdr-card.st-ajustes::before{background:var(--aviso);}
+.tdr-card.st-enviado_unesco::before{background:#0D9488;}
+.tdr-card.st-retorno_unesco::before{background:var(--erro);}
+.tdr-card.st-aprovado::before{background:var(--sucesso);}
+.tdr-card.st-cancelado::before{background:var(--cinza-300);}
+.tdr-obj{font-size:13px;font-weight:500;color:var(--cinza-900);line-height:1.3;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tdr-meta{font-size:11px;color:var(--cinza-500);display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;}
+.tdr-vals{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding-top:10px;border-top:1px solid var(--borda);margin-top:8px;}
+.tdr-val-lbl{font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.tdr-val-num{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-900);}
+
+/* Abas */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:20px;overflow-x:auto;}
+.tab-btn{padding:8px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
+.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.tab-content{display:none;}
+.tab-content.ativo{display:block;animation:fadeIn .2s ease;}
+
+/* Versões e diff */
+.versao-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;margin-bottom:10px;}
+.versao-header{padding:12px 14px;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;background:var(--cinza-50);}
+.versao-badge{font-family:var(--font-mono);font-size:12px;font-weight:700;background:var(--verde-medio);color:#fff;padding:2px 10px;border-radius:4px;}
+.versao-body{padding:12px 14px;}
+.diff-campo{margin-bottom:10px;}
+.diff-campo-nome{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+.diff-linha{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.diff-antes{background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--raio);padding:8px 10px;font-size:11px;color:var(--erro);line-height:1.5;position:relative;}
+.diff-depois{background:#ECFDF5;border:1px solid #A7F3D0;border-radius:var(--raio);padding:8px 10px;font-size:11px;color:var(--sucesso);line-height:1.5;position:relative;}
+.diff-label{font-size:9px;font-weight:700;position:absolute;top:4px;right:6px;opacity:.7;}
+.diff-igual{font-size:11px;color:var(--cinza-500);font-style:italic;padding:6px 0;}
+.versao-autor{display:flex;align-items:center;gap:8px;}
+.versao-avatar{width:26px;height:26px;border-radius:50%;background:var(--azul-bg);color:var(--azul-medio);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* Permissão por fase */
+.fase-permissao{background:var(--aviso-bg);border:1px solid #FDE68A;border-radius:var(--raio);padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:14px;display:flex;gap:8px;align-items:center;}
+
+/* Campos editáveis */
+.campo-edit{position:relative;}
+.campo-edit-label{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+.campo-alterado{border-color:var(--aviso)!important;background:var(--aviso-bg)!important;}
+.campo-tag-novo{font-size:9px;font-weight:700;color:var(--aviso);background:var(--aviso-bg);padding:1px 5px;border-radius:3px;}
+
+/* Stats */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:2px;}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--borda-forte);border-radius:var(--raio-lg);padding:28px 20px;text-align:center;transition:all .2s;cursor:pointer;background:var(--cinza-50);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--verde-claro);background:var(--sucesso-bg);}
+.upload-zone.tem-arquivo{border-color:var(--verde-claro);background:var(--sucesso-bg);}
+
+/* Notificação badge */
+.notif-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;background:var(--erro);color:#fff;border-radius:99px;font-size:9px;font-weight:700;padding:0 4px;margin-left:5px;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.5}}
+.extracting{animation:pulso 1s ease-in-out infinite;color:var(--azul-medio);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando TDRs...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRINCIPAL -->
+<div class="modal-overlay" id="modal-tdr">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="m-titulo">TDR</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="m-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-tdr')">✕</button>
+    </div>
+    <div class="modal-body" id="m-body" style="padding:16px 24px"></div>
+    <div class="modal-footer" id="m-footer"></div>
+  </div>
+</div>
+
+<!-- MODAL NOVO TDR -->
+<div class="modal-overlay" id="modal-novo">
+  <div class="modal" style="max-width:660px">
+    <div class="modal-header">
+      <span class="modal-title">Novo TDR</span>
+      <button class="modal-close" onclick="fecharModal('modal-novo')">✕</button>
+    </div>
+    <div class="modal-body" id="novo-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-novo')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-criar" onclick="criarTDR()">Criar TDR</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SALVAR EDIÇÃO -->
+<div class="modal-overlay" id="modal-salvar">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Salvar nova versão</span>
+      <button class="modal-close" onclick="fecharModal('modal-salvar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:14px">
+        Você alterou campos neste TDR. Descreva o que foi modificado — isso ficará registrado no histórico de versões para todos os usuários.
+      </div>
+      <div id="resumo-alteracoes" style="margin-bottom:14px"></div>
+      <div class="form-group">
+        <label class="form-label">Comentário sobre as alterações <span class="obrig">*</span></label>
+        <textarea class="form-control" id="inp-comentario-salvar" rows="3"
+          placeholder="Ex: Ajustei o valor total e corrigi a qualificação exigida conforme solicitação da coordenação..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-salvar')">Voltar</button>
+      <button class="btn btn-primary" onclick="confirmarSalvar()">💾 Confirmar e salvar v<span id="prox-versao"></span></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+let todosTDRs=[], atividades=[], tdrAtual=null;
+let dadosOriginais={}, dadosEditados={}, arquivoSelecionado=null;
+
+const FASES=['rascunho','revisao_interna','ajustes','enviado_unesco','retorno_unesco','aprovado'];
+const FASES_LABELS={rascunho:'Rascunho',revisao_interna:'Revisão Interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado'};
+
+// Quem pode editar em cada fase
+const PERM_FASE={
+  rascunho:['super_admin','coordenacao','tecnico'],
+  revisao_interna:['super_admin','coordenacao'],
+  ajustes:['super_admin','coordenacao','tecnico'],
+  enviado_unesco:[], // bloqueado
+  retorno_unesco:['super_admin','coordenacao','tecnico'],
+  aprovado:[], // bloqueado
+  cancelado:[]
+};
+
+function podeEditarFase(status){
+  return (PERM_FASE[status]||[]).includes(appState.perfil);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+(async()=>{
+  const u=await carregarUsuario();
+  if(!u){window.location.href='../index.html';return;}
+  document.getElementById('app').innerHTML=
+    gerarLayout('TDRs — Termos de Referência','tdrs')+`
+    <div class="fade-in">
+      <div class="stat-row" id="stats"></div>
+      <div class="filter-bar">
+        <input class="form-control" type="text" id="busca" style="width:260px"
+          placeholder="Buscar número ou objeto..." oninput="filtrar()">
+        <select class="form-control" id="fil-st" onchange="filtrar()" style="width:155px">
+          <option value="">Todos os status</option>
+          ${FASES.map(f=>`<option value="${f}">${FASES_LABELS[f]}</option>`).join('')}
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <select class="form-control" id="fil-tp" onchange="filtrar()" style="width:120px">
+          <option value="">PF + PJ</option>
+          <option value="PF">Pessoa Física</option>
+          <option value="PJ">Pessoa Jurídica</option>
+        </select>
+        <span id="cont" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
+        ${PODE.editarTDR()?`<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo TDR</button>`:''}
+      </div>
+      <div id="lista"></div>
+    </div>`+`</div></div></div>`;
+  await carregar();
+})();
+
+async function carregar(){
+  try{
+    const [{data:tdrs},{data:ativs}]=await Promise.all([
+      db.from('tdrs').select(`*,atividades(codigo,nome_pt),fornecedores(nome,tipo)`)
+        .order('criado_em',{ascending:false}),
+      db.from('atividades').select('id,codigo,nome_pt').order('codigo')
+    ]);
+    atividades=ativs||[];todosTDRs=tdrs||[];
+    renderStats();filtrar();
+  }catch(e){toast('Erro ao carregar TDRs.','error');}
+}
+
+function renderStats(){
+  const t=todosTDRs;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat-card sc-g"><div class="stat-lbl">Total</div><div class="stat-val">${t.length}</div><div class="stat-sub">${t.filter(x=>x.status==='aprovado').length} aprovados</div></div>
+    <div class="stat-card sc-b"><div class="stat-lbl">Rascunho</div><div class="stat-val">${t.filter(x=>x.status==='rascunho').length}</div><div class="stat-sub">aguardando revisão</div></div>
+    <div class="stat-card sc-t"><div class="stat-lbl">Em andamento</div><div class="stat-val">${t.filter(x=>['revisao_interna','ajustes','enviado_unesco','retorno_unesco'].includes(x.status)).length}</div><div class="stat-sub">em fluxo</div></div>
+    <div class="stat-card sc-r"><div class="stat-lbl">Atrasados</div><div class="stat-val">${t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&x.status!=='aprovado').length}</div><div class="stat-sub">prazo vencido</div></div>
+    <div class="stat-card sc-a"><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:14px">${fmtBRL(t.filter(x=>x.status!=='cancelado').reduce((s,x)=>s+parseFloat(x.valor_brl||0),0))}</div><div class="stat-sub">TDRs ativos</div></div>`;
+}
+
+function filtrar(){
+  const b=document.getElementById('busca').value.toLowerCase();
+  const s=document.getElementById('fil-st').value;
+  const tp=document.getElementById('fil-tp').value;
+  const f=todosTDRs.filter(t=>{
+    if(b&&!t.numero.toLowerCase().includes(b)&&!(t.objeto_pt||'').toLowerCase().includes(b))return false;
+    if(s&&t.status!==s)return false;
+    if(tp&&t.tipo!==tp)return false;
+    return true;
+  });
+  document.getElementById('cont').textContent=`${f.length} de ${todosTDRs.length} TDRs`;
+  const el=document.getElementById('lista');
+  if(!f.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">◧</div><div class="empty-state-msg">Nenhum TDR encontrado.</div></div>`;return;}
+  el.innerHTML=f.map(t=>{
+    const fi=FASES.indexOf(t.status);
+    const atr=t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado';
+    const podeEd=podeEditarFase(t.status);
+    return `<div class="tdr-card st-${t.status}" onclick="abrirTDR('${t.id}')">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap">
+            <span class="tdr-numero">${t.numero}</span>
+            <span class="tipo-badge ${t.tipo==='PF'?'tb-pf':'tb-pj'}">${t.tipo}</span>
+            ${badgeStatusTDR(t.status)}
+            <span class="badge" style="background:var(--cinza-500)">v${t.versao_atual||1}</span>
+            ${atr?`<span class="badge" style="background:var(--erro)">⚠ Atrasado</span>`:''}
+            ${podeEd?`<span class="badge" style="background:var(--verde-medio)">✏ Você pode editar</span>`:''}
+          </div>
+          <div class="tdr-obj">${t.objeto_pt||'— objeto não preenchido —'}</div>
+          <div class="tdr-meta">
+            ${t.atividades?`<span>📋 ${t.atividades.codigo}</span>`:''}
+            ${t.fornecedores?`<span>👤 ${t.fornecedores.nome}</span>`:''}
+            ${t.prazo_limite?`<span>📅 ${fmtData(t.prazo_limite)}</span>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="fase-timeline">
+        ${FASES.map((f,i)=>{
+          let cls=i<fi?'concluido':i===fi?'ativo':'pendente';
+          return `<div class="fase-step ${cls}"><div class="fase-dot">${i<fi?'✓':i+1}</div><div class="fase-lbl">${FASES_LABELS[f]}</div></div>`;
+        }).join('')}
+      </div>
+      <div class="tdr-vals">
+        <div><div class="tdr-val-lbl">Valor R$</div><div class="tdr-val-num">${fmtBRL(t.valor_brl)}</div></div>
+        <div><div class="tdr-val-lbl">Valor U$</div><div class="tdr-val-num">${fmtUSD(t.valor_usd)}</div></div>
+        <div><div class="tdr-val-lbl">Cotação reg.</div><div class="tdr-val-num">${t.cotacao_registro?'R$ '+parseFloat(t.cotacao_registro).toFixed(2):'—'}</div></div>
+        <div><div class="tdr-val-lbl">Versão</div><div class="tdr-val-num">v${t.versao_atual||1}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ABRIR TDR ─────────────────────────────────────────────────
+async function abrirTDR(id){
+  tdrAtual=todosTDRs.find(t=>t.id===id);
+  if(!tdrAtual)return;
+  const t=tdrAtual;
+  const fi=FASES.indexOf(t.status);
+  const podeEd=podeEditarFase(t.status);
+  const bloqueado=['enviado_unesco','aprovado'].includes(t.status);
+  const cotacao=await obterCotacao();
+  const taxaAtual=cotacao?.cotacao||5.87;
+
+  const [{data:versoes},{data:comentarios}]=await Promise.all([
+    db.from('tdr_versoes').select('*').eq('tdr_id',id).order('numero_versao',{ascending:false}),
+    db.from('tdr_comentarios').select('*,usuarios(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:false})
+  ]);
+
+  // Inicializar dados para edição
+  dadosOriginais={
+    objeto_pt:t.objeto_pt||'',
+    escopo_pt:t.escopo_pt||'',
+    formacao_minima_pt:t.formacao_minima_pt||'',
+    experiencia_requerida_pt:t.experiencia_requerida_pt||'',
+    valor_brl:t.valor_brl||'',
+    prazo_limite:t.prazo_limite||'',
+    dt_contratacao:t.dt_contratacao||'',
+    motivo_recusa:t.motivo_recusa||'',
+    observacao:t.observacao||''
+  };
+  dadosEditados={...dadosOriginais};
+
+  const comsAbertos=(comentarios||[]).filter(c=>!c.resolvido).length;
+  document.getElementById('m-titulo').textContent=t.numero;
+  document.getElementById('m-sub').textContent=`${t.tipo} · v${t.versao_atual||1} · ${t.atividades?.codigo||''} · ${podeEd?'✏ Você pode editar':'🔒 Somente leitura nesta fase'}`;
+
+  // Mensagem de permissão por fase
+  const msgPerm=()=>{
+    if(bloqueado)return`<div class="fase-permissao">🔒 TDR em status "${FASES_LABELS[t.status]}" — campos bloqueados para edição. Avance para uma fase editável para fazer alterações.</div>`;
+    if(!podeEd)return`<div class="fase-permissao">ℹ Seu perfil (${t('perfis',appState.perfil)}) não tem permissão para editar na fase "${FASES_LABELS[t.status]}". Aguarde o responsável desta fase.</div>`;
+    return'';
+  };
+
+  document.getElementById('m-body').innerHTML=`
+    <!-- Timeline -->
+    <div class="fase-timeline" style="margin-bottom:16px">
+      ${FASES.map((f,i)=>{let cls=i<fi?'concluido':i===fi?'ativo':'pendente';return`<div class="fase-step ${cls}"><div class="fase-dot">${i<fi?'✓':i+1}</div><div class="fase-lbl">${FASES_LABELS[f]}</div></div>`;}).join('')}
+    </div>
+    ${msgPerm()}
+    ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado'?`<div class="alert alert-danger" style="margin-bottom:10px">⚠ Prazo vencido em ${fmtData(t.prazo_limite)}</div>`:''}
+
+    <!-- Abas -->
+    <div class="tab-bar">
+      <button class="tab-btn ativo" onclick="aba('campos',this)">📝 ${podeEd?'Editar campos':'Ver campos'}</button>
+      <button class="tab-btn" onclick="aba('financeiro',this)">💰 Financeiro</button>
+      <button class="tab-btn" onclick="aba('versoes',this)">🕐 Versões (${(versoes||[]).length})</button>
+      <button class="tab-btn" onclick="aba('comentarios',this)">💬 Revisão${comsAbertos>0?`<span class="notif-badge">${comsAbertos}</span>`:` (${(comentarios||[]).length})`}</button>
+      ${t.arquivo_url?`<button class="tab-btn" onclick="abrirArquivo()">📎 Arquivo</button>`:''}
+    </div>
+
+    <!-- ABA CAMPOS (EDIÇÃO RASTREADA) -->
+    <div class="tab-content ativo" id="tab-campos">
+      <div id="alerta-mudancas" style="display:none" class="alert alert-warning" style="margin-bottom:14px">
+        ⚠ Você tem alterações não salvas. Clique em "Salvar nova versão" quando terminar.
+      </div>
+
+      ${campoEditavel('objeto_pt','Objeto / Escopo','textarea',t.objeto_pt,podeEd,3)}
+      ${campoEditavel('escopo_pt','Descrição detalhada','textarea',t.escopo_pt,podeEd,2)}
+      ${campoEditavel('formacao_minima_pt','Formação / Qualificação exigida','textarea',t.formacao_minima_pt,podeEd,2)}
+      ${campoEditavel('experiencia_requerida_pt','Experiência requerida','textarea',t.experiencia_requerida_pt,podeEd,2)}
+
+      <div class="grid-2">
+        ${campoEditavel('prazo_limite','Prazo limite','date',t.prazo_limite,podeEd)}
+        ${campoEditavel('dt_contratacao','Data de contratação','date',t.dt_contratacao,podeEd)}
+      </div>
+
+      ${t.status==='retorno_unesco'||t.motivo_recusa?campoEditavel('motivo_recusa','Correções solicitadas pela UNESCO','textarea',t.motivo_recusa,podeEd,3):''}
+      ${campoEditavel('observacao','Observações gerais','textarea',t.observacao,podeEd,2)}
+
+      ${podeEd?`
+      <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+        <button class="btn btn-primary" id="btn-salvar-ed" onclick="abrirSalvar(${taxaAtual})" disabled>
+          💾 Salvar nova versão
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="descartarAlteracoes()">↩ Descartar alterações</button>
+        <span id="txt-mudancas" style="font-size:11px;color:var(--cinza-500)"></span>
+      </div>`:''}
+    </div>
+
+    <!-- ABA FINANCEIRO -->
+    <div class="tab-content" id="tab-financeiro">
+      <div class="grid-2" style="gap:12px;margin-bottom:14px">
+        <div style="background:var(--cinza-50);border-radius:var(--raio);padding:16px;border:1px solid var(--borda);text-align:center">
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Valor R$ (no registro)</div>
+          <div style="font-size:24px;font-weight:600;color:var(--cinza-900)">${fmtBRL(t.valor_brl)}</div>
+          <div style="font-size:12px;color:var(--cinza-500);margin-top:4px">≈ ${fmtUSD(t.valor_usd)}</div>
+          ${podeEd?`
+          <div style="margin-top:10px">
+            <label style="font-size:11px;color:var(--cinza-500);display:block;margin-bottom:4px">Atualizar valor R$</label>
+            <input class="form-control" id="ed-brl" type="number" step="0.01" value="${t.valor_brl||''}"
+              style="height:34px;font-size:12px;text-align:right" oninput="atualizarBRL(${taxaAtual},this.value)">
+            <div style="font-size:10px;color:var(--cinza-500);margin-top:3px">U$ calculado: <span id="usd-calc">—</span></div>
+          </div>`:''}
+        </div>
+        <div style="background:var(--cinza-50);border-radius:var(--raio);padding:16px;border:1px solid var(--borda)">
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Cotação USD/BRL</div>
+          <div style="font-size:13px;margin-bottom:5px">Registro: <strong style="font-family:var(--font-mono)">R$ ${t.cotacao_registro?parseFloat(t.cotacao_registro).toFixed(2):'—'}</strong></div>
+          <div style="font-size:13px;margin-bottom:5px;color:${taxaAtual>parseFloat(t.cotacao_registro||0)?'var(--erro)':'var(--sucesso)'}">
+            Atual: <strong style="font-family:var(--font-mono)">R$ ${taxaAtual.toFixed(2)}</strong>
+            ${t.cotacao_registro?`<span style="font-size:10px">(${taxaAtual>parseFloat(t.cotacao_registro)?'▲':'▼'} ${Math.abs(taxaAtual-parseFloat(t.cotacao_registro)).toFixed(2)})</span>`:''}
+          </div>
+          ${t.valor_brl&&t.cotacao_registro?`<div style="font-size:11px;color:var(--cinza-500)">Pelo câmbio atual: <strong>${fmtUSD(parseFloat(t.valor_brl)/taxaAtual)}</strong></div>`:''}
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA VERSÕES COM DIFF VISUAL -->
+    <div class="tab-content" id="tab-versoes">
+      ${(versoes||[]).length?versoes.map((v,idx)=>{
+        const campos=v.campos_alterados?Object.entries(v.campos_alterados):[];
+        const isUltima=idx===0;
+        return`<div class="versao-card">
+          <div class="versao-header">
+            <span class="versao-badge">v${v.numero_versao}</span>
+            ${badgeStatusTDR(v.fase)}
+            ${isUltima?`<span class="badge" style="background:var(--verde-medio)">Versão atual</span>`:''}
+            <div class="versao-autor" style="margin-left:auto">
+              <div class="versao-avatar">${(v.autor_nome||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</div>
+              <span style="font-size:11px;color:var(--cinza-700)">${v.autor_nome||'Sistema'}</span>
+              <span style="font-size:10px;color:var(--cinza-400,#9CA3AF)">${fmtData(v.criado_em)}</span>
+            </div>
+          </div>
+          <div class="versao-body">
+            ${v.comentario?`<div style="font-size:12px;color:var(--cinza-700);margin-bottom:10px;padding:8px 10px;background:var(--azul-bg);border-radius:var(--raio);border-left:3px solid var(--azul-medio)">
+              💬 "${v.comentario}"
+            </div>`:''}
+            ${campos.length?campos.map(([campo,vals])=>`
+              <div class="diff-campo">
+                <div class="diff-campo-nome">
+                  <span style="background:var(--cinza-100);padding:1px 6px;border-radius:3px">${nomeCampo(campo)}</span>
+                  <span style="font-size:9px;color:var(--cinza-400,#9CA3AF)">campo alterado</span>
+                </div>
+                <div class="diff-linha">
+                  <div class="diff-antes">
+                    <span class="diff-label">ANTES</span>
+                    ${String(vals.antes||'—').substring(0,200)}
+                  </div>
+                  <div class="diff-depois">
+                    <span class="diff-label">DEPOIS</span>
+                    ${String(vals.depois||'—').substring(0,200)}
+                  </div>
+                </div>
+              </div>`).join('') :
+              `<div class="diff-igual">Versão inicial — sem alterações de campos registradas.</div>`}
+          </div>
+        </div>`;
+      }).join('') :`<div class="empty-state"><div class="empty-state-msg">Nenhuma versão registrada ainda.</div></div>`}
+    </div>
+
+    <!-- ABA COMENTÁRIOS -->
+    <div class="tab-content" id="tab-comentarios">
+      ${podeEd?`<button class="btn btn-secondary btn-sm" style="margin-bottom:14px" onclick="abrirComentario()">+ Adicionar comentário de revisão</button>`:''}
+      ${(comentarios||[]).length?(comentarios||[]).map(c=>`
+        <div style="padding:12px;background:${c.resolvido?'var(--cinza-50)':'var(--branco)'};border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:8px;opacity:${c.resolvido?.6:1}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="versao-avatar">${(c.usuarios?.nome_completo||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</div>
+            <span style="font-size:11px;font-weight:500;color:var(--cinza-700)">${c.usuarios?.nome_completo||'Usuário'}</span>
+            ${c.campo?`<span style="font-size:10px;font-weight:600;color:var(--azul-medio);background:var(--azul-bg);padding:1px 6px;border-radius:3px">${c.campo}</span>`:''}
+            <span style="font-size:10px;color:var(--cinza-400,#9CA3AF);margin-left:auto">${fmtData(c.criado_em)}</span>
+            ${c.resolvido?`<span class="badge" style="background:var(--sucesso)">✓ Resolvido</span>`:
+              podeEd?`<button class="btn btn-sm btn-secondary" style="padding:2px 8px;font-size:10px" onclick="resolverComent('${c.id}')">✓ Resolver</button>`:''}
+          </div>
+          <div style="font-size:12px;color:var(--cinza-700);line-height:1.5">${c.comentario}</div>
+        </div>`).join('') :
+        `<div class="empty-state"><div class="empty-state-msg">Nenhum comentário ainda.</div></div>`}
+    </div>
+  `;
+
+  // Botão de avanço de fase
+  const proxMap={
+    rascunho:{status:'revisao_interna',label:'→ Enviar para revisão interna'},
+    revisao_interna:{status:'ajustes',label:'→ Solicitar ajustes ao responsável'},
+    ajustes:{status:'enviado_unesco',label:'→ Marcar como enviado à UNESCO'},
+    enviado_unesco:{status:'retorno_unesco',label:'→ Registrar retorno da UNESCO'},
+    retorno_unesco:{status:'aprovado',label:'✓ Aprovar TDR — versão final'},
+  };
+  const prox=proxMap[t.status];
+  document.getElementById('m-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="fecharModal('modal-tdr')">Fechar</button>
+    ${prox&&PODE.editarTDR()?`<button class="btn ${t.status==='retorno_unesco'?'btn-ouro':'btn-primary'}" onclick="avancarFase('${prox.status}')">${prox.label}</button>`:''}
+    ${(t.status==='aprovado'||t.status==='enviado_unesco')&&PODE.editarTDR()?`<button class="btn btn-secondary" onclick="gerarPDF()">📄 Gerar PDF</button>`:''}`;
+
+  document.getElementById('modal-tdr').classList.add('aberto');
+
+  // Listeners para detectar mudanças nos campos editáveis
+  if(podeEd){
+    setTimeout(()=>{
+      document.querySelectorAll('[data-campo]').forEach(el=>{
+        el.addEventListener('input',()=>detectarMudancas(el));
+        el.addEventListener('change',()=>detectarMudancas(el));
+      });
+    },100);
+  }
+}
+
+function campoEditavel(id,label,tipo,valor,podeEd,rows=1){
+  const val=valor||'';
+  const isTextarea=tipo==='textarea';
+  if(podeEd){
+    return`<div class="form-group campo-edit">
+      <label class="form-label">${label}</label>
+      ${isTextarea
+        ?`<textarea class="form-control" data-campo="${id}" id="campo-${id}" rows="${rows}">${val}</textarea>`
+        :`<input class="form-control" type="${tipo}" data-campo="${id}" id="campo-${id}" value="${val}">`}
+    </div>`;
+  } else {
+    return`<div class="form-group">
+      <label class="form-label" style="color:var(--cinza-400,#9CA3AF)">${label}</label>
+      <div style="font-size:13px;color:${val?'var(--cinza-700)':'var(--cinza-400,#9CA3AF)'};background:var(--cinza-50);padding:8px 12px;border-radius:var(--raio);border:1px solid var(--borda);line-height:1.5;min-height:36px">
+        ${val||'—'}
+      </div>
+    </div>`;
+  }
+}
+
+function nomeCampo(campo){
+  const nomes={objeto_pt:'Objeto',escopo_pt:'Escopo',formacao_minima_pt:'Qualificação',
+    experiencia_requerida_pt:'Experiência',valor_brl:'Valor R$',prazo_limite:'Prazo',
+    dt_contratacao:'Contratação',motivo_recusa:'Correções UNESCO',observacao:'Observações'};
+  return nomes[campo]||campo;
+}
+
+function detectarMudancas(el){
+  const campo=el.dataset.campo;
+  const novoValor=el.value;
+  dadosEditados[campo]=novoValor;
+  const temMudancas=Object.keys(dadosOriginais).some(k=>String(dadosEditados[k]||'')!==String(dadosOriginais[k]||''));
+
+  el.classList.toggle('campo-alterado',String(novoValor)!==String(dadosOriginais[campo]||''));
+
+  const btn=document.getElementById('btn-salvar-ed');
+  const alerta=document.getElementById('alerta-mudancas');
+  const txt=document.getElementById('txt-mudancas');
+  if(btn)btn.disabled=!temMudancas;
+  if(alerta)alerta.style.display=temMudancas?'flex':'none';
+  const qtd=Object.keys(dadosOriginais).filter(k=>String(dadosEditados[k]||'')!==String(dadosOriginais[k]||'')).length;
+  if(txt)txt.textContent=temMudancas?`${qtd} campo(s) alterado(s)`:'';
+}
+
+function descartarAlteracoes(){
+  dadosEditados={...dadosOriginais};
+  document.querySelectorAll('[data-campo]').forEach(el=>{
+    el.value=dadosOriginais[el.dataset.campo]||'';
+    el.classList.remove('campo-alterado');
+  });
+  const btn=document.getElementById('btn-salvar-ed');
+  const alerta=document.getElementById('alerta-mudancas');
+  if(btn)btn.disabled=true;
+  if(alerta)alerta.style.display='none';
+  toast('Alterações descartadas.','info');
+}
+
+let taxaSalvar=5.87, brlSalvar=null;
+function abrirSalvar(taxa){
+  taxaSalvar=taxa;
+  brlSalvar=document.getElementById('ed-brl')?.value||null;
+  const diff={};
+  Object.keys(dadosOriginais).forEach(k=>{
+    if(String(dadosEditados[k]||'')!==String(dadosOriginais[k]||'')){
+      diff[k]={antes:dadosOriginais[k],depois:dadosEditados[k]};
+    }
+  });
+  if(!Object.keys(diff).length){toast('Nenhuma alteração detectada.','info');return;}
+
+  const proxV=(parseFloat(tdrAtual.versao_atual||1)+0.1).toFixed(1);
+  document.getElementById('prox-versao').textContent=proxV;
+  document.getElementById('resumo-alteracoes').innerHTML=`
+    <div style="font-size:11px;font-weight:600;color:var(--cinza-700);margin-bottom:8px">Campos alterados:</div>
+    ${Object.entries(diff).map(([k,v])=>`
+      <div style="display:flex;gap:8px;font-size:11px;margin-bottom:5px;padding:6px 8px;background:var(--cinza-50);border-radius:var(--raio)">
+        <span style="font-weight:600;color:var(--cinza-700);min-width:100px">${nomeCampo(k)}</span>
+        <span style="color:var(--erro);text-decoration:line-through;flex:1">${String(v.antes||'vazio').substring(0,60)}</span>
+        <span style="color:var(--sucesso);flex:1">→ ${String(v.depois||'vazio').substring(0,60)}</span>
+      </div>`).join('')}`;
+  document.getElementById('inp-comentario-salvar').value='';
+  document.getElementById('modal-salvar').classList.add('aberto');
+}
+
+async function confirmarSalvar(){
+  const comentario=document.getElementById('inp-comentario-salvar').value.trim();
+  if(!comentario){toast('Comentário obrigatório.','error');return;}
+  if(!tdrAtual)return;
+
+  const diff={};
+  Object.keys(dadosOriginais).forEach(k=>{
+    if(String(dadosEditados[k]||'')!==String(dadosOriginais[k]||'')){
+      diff[k]={antes:dadosOriginais[k],depois:dadosEditados[k]};
+    }
+  });
+
+  try{
+    const brl=brlSalvar?parseFloat(brlSalvar):null;
+    const updates={
+      objeto_pt:dadosEditados.objeto_pt||null,
+      escopo_pt:dadosEditados.escopo_pt||null,
+      formacao_minima_pt:dadosEditados.formacao_minima_pt||null,
+      experiencia_requerida_pt:dadosEditados.experiencia_requerida_pt||null,
+      prazo_limite:dadosEditados.prazo_limite||null,
+      dt_contratacao:dadosEditados.dt_contratacao||null,
+      motivo_recusa:dadosEditados.motivo_recusa||null,
+      observacao:dadosEditados.observacao||null,
+      ...(brl?{valor_brl:brl,valor_usd:parseFloat((brl/taxaSalvar).toFixed(2)),cotacao_registro:taxaSalvar,cotacao_data:new Date().toISOString().split('T')[0]}:{})
+    };
+
+    const {error}=await db.from('tdrs').update(updates).eq('id',tdrAtual.id);
+    if(error)throw error;
+
+    // Registrar versão manualmente com diff e comentário
+    await db.from('tdr_versoes').insert({
+      tdr_id:tdrAtual.id,
+      numero_versao:(tdrAtual.versao_atual||1)+1,
+      fase:tdrAtual.status,
+      snapshot_dados:{...tdrAtual,...updates},
+      campos_alterados:diff,
+      comentario,
+      autor_nome:appState.usuario.nome_completo,
+    });
+
+    // Atualizar versão no TDR
+    await db.from('tdrs').update({versao_atual:(tdrAtual.versao_atual||1)+1}).eq('id',tdrAtual.id);
+
+    Object.assign(tdrAtual,updates,{versao_atual:(tdrAtual.versao_atual||1)+1});
+    const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+    if(idx>=0)Object.assign(todosTDRs[idx],updates,{versao_atual:tdrAtual.versao_atual});
+
+    fecharModal('modal-salvar');
+    fecharModal('modal-tdr');
+    renderStats();filtrar();
+    toast(`v${tdrAtual.versao_atual} salva! Alterações rastreadas no histórico.`,'success');
+  }catch(e){toast('Erro ao salvar: '+(e.message||''),'error');}
+}
+
+function atualizarBRL(taxa,val){
+  const brl=parseFloat(val)||0;
+  const el=document.getElementById('usd-calc');
+  if(el)el.textContent=brl>0?fmtUSD(brl/taxa):'—';
+}
+
+// ── COMENTÁRIOS ───────────────────────────────────────────────
+function abrirComentario(){
+  const modal=document.createElement('div');
+  modal.className='modal-overlay aberto';modal.id='modal-coment-tmp';
+  modal.innerHTML=`<div class="modal" style="max-width:460px">
+    <div class="modal-header"><span class="modal-title">Adicionar comentário de revisão</span>
+      <button class="modal-close" onclick="document.getElementById('modal-coment-tmp').remove()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Campo / Seção</label>
+        <input class="form-control" id="coment-campo" placeholder="Ex: Objeto, Qualificação, Valor..."></div>
+      <div class="form-group"><label class="form-label">Comentário <span class="obrig">*</span></label>
+        <textarea class="form-control" id="coment-texto" rows="4" placeholder="Descreva o ajuste necessário..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-coment-tmp').remove()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarComent()">Salvar comentário</button>
+    </div></div>`;
+  document.body.appendChild(modal);
+}
+
+async function salvarComent(){
+  const texto=document.getElementById('coment-texto').value.trim();
+  if(!texto||!tdrAtual){toast('Preencha o comentário.','error');return;}
+  await db.from('tdr_comentarios').insert({
+    tdr_id:tdrAtual.id,usuario_id:appState.usuario.id,
+    campo:document.getElementById('coment-campo').value.trim()||null,
+    comentario:texto,resolvido:false
+  });
+  document.getElementById('modal-coment-tmp')?.remove();
+  toast('Comentário adicionado!','success');
+  setTimeout(()=>abrirTDR(tdrAtual.id),400);
+}
+
+async function resolverComent(id){
+  await db.from('tdr_comentarios').update({resolvido:true}).eq('id',id);
+  toast('Comentário resolvido.','success');
+  setTimeout(()=>abrirTDR(tdrAtual.id),300);
+}
+
+async function avancarFase(novoStatus){
+  if(!tdrAtual)return;
+  const {error}=await db.from('tdrs').update({status:novoStatus}).eq('id',tdrAtual.id);
+  if(error){toast('Erro ao avançar fase.','error');return;}
+  tdrAtual.status=novoStatus;
+  const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+  if(idx>=0)todosTDRs[idx].status=novoStatus;
+  fecharModal('modal-tdr');
+  renderStats();filtrar();
+  toast(`Fase avançada para "${FASES_LABELS[novoStatus]}"!`,'success');
+}
+
+// ── ABRIR ARQUIVO (link temporário 1h) ───────────────────────
+async function abrirArquivo(){
+  if(!tdrAtual?.arquivo_url)return;
+  try{
+    // Extrair path do arquivo da URL
+    const url=new URL(tdrAtual.arquivo_url);
+    const pathMatch=url.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
+    if(!pathMatch){window.open(tdrAtual.arquivo_url,'_blank');return;}
+    const filePath=pathMatch[1];
+    const {data,error}=await db.storage.from('tdrs-arquivos').createSignedUrl(filePath,3600);
+    if(error||!data?.signedUrl){toast('Erro ao gerar link. Tente novamente.','error');return;}
+    window.open(data.signedUrl,'_blank');
+    toast('Link gerado — válido por 1 hora.','success');
+  }catch(e){
+    // Fallback: tentar abrir direto
+    window.open(tdrAtual.arquivo_url,'_blank');
+  }
+}
+
+// ── NOVO TDR ─────────────────────────────────────────────────
+function abrirNovo(){
+  arquivoSelecionado=null;
+  document.getElementById('btn-criar').disabled=false;
+  document.getElementById('novo-body').innerHTML=`
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Atividade <span class="obrig">*</span></label>
+        <select class="form-control" id="n-ativ">
+          <option value="">Selecione...</option>
+          ${atividades.map(a=>`<option value="${a.id}">${a.codigo} — ${a.nome_pt?.substring(0,50)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo <span class="obrig">*</span></label>
+        <div style="display:flex;gap:12px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="radio" name="n-tipo" value="PF" checked> Pessoa Física (PF)</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="radio" name="n-tipo" value="PJ"> Pessoa Jurídica (PJ)</label>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Objeto / Escopo <span class="obrig">*</span></label>
+      <textarea class="form-control" id="n-objeto" rows="3" placeholder="Descreva o objeto da contratação..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Qualificação exigida</label>
+      <textarea class="form-control" id="n-qual" rows="2" placeholder="Formação mínima e experiência..."></textarea>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Valor R$</label>
+        <input class="form-control" id="n-brl" type="number" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Prazo limite</label>
+        <input class="form-control" id="n-prazo" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Arquivo do TDR (.docx / .pdf) — opcional</label>
+      <input type="file" class="form-control" id="n-arquivo" accept=".docx,.doc,.pdf" style="height:auto;padding:6px">
+      <div class="form-hint">O arquivo será armazenado e poderá ser acessado com link temporário de 1 hora.</div>
+    </div>`;
+  document.getElementById('modal-novo').classList.add('aberto');
+}
+
+async function criarTDR(){
+  const ativId=document.getElementById('n-ativ').value;
+  const objeto=document.getElementById('n-objeto').value.trim();
+  if(!ativId||!objeto){toast('Preencha atividade e objeto.','error');return;}
+  document.getElementById('btn-criar').disabled=true;
+  document.getElementById('btn-criar').textContent='Criando...';
+  const cotacao=await obterCotacao();
+  const taxa=cotacao?.cotacao||5.87;
+  const tipo=document.querySelector('input[name="n-tipo"]:checked')?.value||'PF';
+  const brl=parseFloat(document.getElementById('n-brl').value)||null;
+  const arquivo=document.getElementById('n-arquivo').files[0];
+  try{
+    const {data:novo,error}=await db.from('tdrs').insert({
+      atividade_id:ativId,tipo,status:'rascunho',
+      objeto_pt:objeto,
+      formacao_minima_pt:document.getElementById('n-qual').value.trim()||null,
+      valor_brl:brl,valor_usd:brl?parseFloat((brl/taxa).toFixed(2)):null,
+      cotacao_registro:taxa,cotacao_data:new Date().toISOString().split('T')[0],
+      prazo_limite:document.getElementById('n-prazo').value||null,
+      criado_por:appState.usuario.id,elaborador_id:appState.usuario.id,
+      versao_atual:1,
+    }).select().single();
+    if(error)throw error;
+    if(arquivo){
+      const ext=arquivo.name.split('.').pop();
+      const path=`tdr-${novo.id}/v1-original.${ext}`;
+      const {error:upErr}=await db.storage.from('tdrs-arquivos').upload(path,arquivo,{upsert:true});
+      if(!upErr){
+        const {data:urlData}=db.storage.from('tdrs-arquivos').getPublicUrl(path);
+        await db.from('tdrs').update({arquivo_url:urlData.publicUrl,arquivo_nome:arquivo.name}).eq('id',novo.id);
+        novo.arquivo_url=urlData.publicUrl;novo.arquivo_nome=arquivo.name;
+      }
+    }
+    fecharModal('modal-novo');
+    todosTDRs.unshift(novo);
+    renderStats();filtrar();
+    toast(`TDR ${novo.numero} criado com sucesso!`,'success');
+  }catch(e){
+    toast('Erro: '+(e.message||e),'error');
+    document.getElementById('btn-criar').disabled=false;
+    document.getElementById('btn-criar').textContent='Criar TDR';
+  }
+}
+
+// ── PDF ───────────────────────────────────────────────────────
+function gerarPDF(){
+  if(!tdrAtual)return;
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const t=tdrAtual;
+  const W=210,M=20,CW=W-2*M;let y=M;
+  const add=(txt,sz=10,bold=false,cor=[60,60,60])=>{
+    doc.setFontSize(sz);doc.setFont('helvetica',bold?'bold':'normal');doc.setTextColor(...cor);
+    doc.splitTextToSize(String(txt||''),CW).forEach(l=>{if(y>280){doc.addPage();y=M;}doc.text(l,M,y);y+=sz*0.45;});y+=2;
+  };
+  const sep=()=>{y+=2;doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;};
+  doc.setFillColor(31,78,44);doc.rect(0,0,W,22,'F');
+  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  doc.text('SECRETARIA DE ESTADO DE MEIO AMBIENTE — SEMA/AC',M,9);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text('UNESCO · MPTF · Projeto 218BRA2001',M,16);y=30;
+  add('TERMO DE REFERÊNCIA',16,true,[31,78,44]);
+  add(t.tipo==='PF'?'CONSULTOR INDIVIDUAL — PESSOA FÍSICA':'CONTRATAÇÃO DE PESSOA JURÍDICA',10,false,[80,80,80]);
+  sep();
+  add('IDENTIFICAÇÃO',10,true,[31,78,44]);
+  add(`Número: ${t.numero}  |  Versão: v${t.versao_atual||1}  |  Tipo: ${t.tipo}`);
+  add(`Atividade: ${t.atividades?.codigo||'—'}  |  Status: ${FASES_LABELS[t.status]||t.status}`);
+  add(`Emissão: ${fmtData(t.criado_em)}  |  Prazo: ${t.prazo_limite?fmtData(t.prazo_limite):'—'}`);
+  sep();
+  add('1. OBJETO DA CONSULTORIA',10,true,[31,78,44]);add(t.objeto_pt||'—');
+  if(t.escopo_pt){add('Escopo detalhado:',9,true);add(t.escopo_pt);}
+  sep();
+  add('2. QUALIFICAÇÃO EXIGIDA',10,true,[31,78,44]);add(t.formacao_minima_pt||'—');
+  if(t.experiencia_requerida_pt){add('Experiência requerida:',9,true);add(t.experiencia_requerida_pt);}
+  sep();
+  add('3. VALOR E PAGAMENTO',10,true,[31,78,44]);
+  add(`Valor total: ${fmtBRL(t.valor_brl)} (≈ ${fmtUSD(t.valor_usd)})`);
+  add(`Cotação USD/BRL (data do registro): R$ ${parseFloat(t.cotacao_registro||0).toFixed(2)}`);
+  if(t.observacao){sep();add('OBSERVAÇÕES',10,true,[31,78,44]);add(t.observacao);}
+  const pgs=doc.getNumberOfPages();
+  for(let i=1;i<=pgs;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(150,150,150);
+    doc.text(`SEMA/AC · UNESCO · ${t.numero} · v${t.versao_atual||1} · Página ${i}/${pgs}`,M,290);}
+  doc.save(`TDR-${t.numero}-v${t.versao_atual||1}.pdf`);
+  toast('PDF gerado e baixado!','success');
+}
+
+function aba(id,btn){
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('ativo'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('ativo'));
+  document.getElementById('tab-'+id)?.classList.add('ativo');btn.classList.add('ativo');
+}
+
+function fecharModal(id){
+  document.getElementById(id)?.classList.remove('aberto');
+  if(id==='modal-tdr'){tdrAtual=null;dadosOriginais={};dadosEditados={};}
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')['modal-tdr','modal-novo','modal-salvar'].forEach(fecharModal);
+});
+</script>
+</body>
+</html>
