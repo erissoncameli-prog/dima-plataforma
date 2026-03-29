@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — TDRs</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.tdr-numero{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-700);background:var(--cinza-100);padding:2px 8px;border-radius:4px;}
+.tipo-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;}
+.tb-pf{background:#E1F5EE;color:#085041}.tb-pj{background:#E6F1FB;color:#0C447C}
+
+/* Timeline */
+.fase-timeline{display:flex;align-items:flex-start;gap:0;margin:12px 0;}
+.fase-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;}
+.fase-step:not(:last-child)::after{content:'';position:absolute;top:12px;left:50%;right:-50%;height:2px;background:var(--borda);z-index:0;}
+.fase-step.concluido::after{background:var(--verde-medio);}
+.fase-step.ativo::after{background:var(--verde-claro);}
+.fase-dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--borda);background:var(--branco);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;position:relative;z-index:1;}
+.fase-step.concluido .fase-dot{background:var(--verde-medio);border-color:var(--verde-medio);color:#fff;}
+.fase-step.ativo .fase-dot{background:var(--verde-claro);border-color:var(--verde-claro);color:#fff;}
+.fase-step.pendente .fase-dot{background:var(--cinza-100);color:var(--cinza-400,#9CA3AF);}
+.fase-lbl{font-size:9px;color:var(--cinza-500);margin-top:4px;text-align:center;line-height:1.2;max-width:56px;}
+
+/* TDR Cards */
+.tdr-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 18px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden;transition:all .15s;}
+.tdr-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 12px rgba(45,106,79,.1);}
+.tdr-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.tdr-card.st-rascunho::before{background:var(--cinza-300);}
+.tdr-card.st-revisao_interna::before{background:var(--azul-medio);}
+.tdr-card.st-ajustes::before{background:var(--aviso);}
+.tdr-card.st-enviado_unesco::before{background:#0D9488;}
+.tdr-card.st-retorno_unesco::before{background:var(--erro);}
+.tdr-card.st-aprovado::before{background:var(--sucesso);}
+.tdr-card.st-cancelado::before{background:var(--cinza-300);}
+.tdr-obj{font-size:13px;font-weight:500;color:var(--cinza-900);line-height:1.3;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tdr-meta{font-size:11px;color:var(--cinza-500);display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;}
+.tdr-vals{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding-top:10px;border-top:1px solid var(--borda);margin-top:8px;}
+.tdr-val-lbl{font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.tdr-val-num{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-900);}
+
+/* Abas modal */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:20px;overflow-x:auto;}
+.tab-btn{padding:8px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
+.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.tab-content{display:none;}
+.tab-content.ativo{display:block;animation:fadeIn .2s ease;}
+
+/* Versões */
+.versao-item{padding:12px 0;border-bottom:1px solid var(--borda);}
+.versao-item:last-child{border-bottom:none;}
+.versao-badge{font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--cinza-100);padding:2px 8px;border-radius:4px;color:var(--cinza-700);}
+.diff-bloco{background:var(--cinza-50);border-radius:var(--raio);padding:8px 12px;margin-top:8px;border:1px solid var(--borda);}
+.diff-campo-nome{font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.diff-antes{font-size:11px;color:var(--erro);text-decoration:line-through;margin-bottom:2px;}
+.diff-depois{font-size:11px;color:var(--sucesso);}
+
+/* Comentários */
+.coment-item{padding:10px 12px;background:var(--cinza-50);border-radius:var(--raio);border:1px solid var(--borda);margin-bottom:8px;}
+.coment-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.coment-avatar{width:24px;height:24px;border-radius:50%;background:var(--azul-bg);color:var(--azul-medio);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.coment-autor{font-size:11px;font-weight:500;color:var(--cinza-700);}
+.coment-data{font-size:10px;color:var(--cinza-400,#9CA3AF);margin-left:auto;}
+.coment-campo{font-size:10px;font-weight:600;color:var(--azul-medio);background:var(--azul-bg);padding:1px 6px;border-radius:3px;}
+.coment-texto{font-size:12px;color:var(--cinza-700);line-height:1.5;}
+.coment-resolvido{opacity:.5;}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--borda-forte);border-radius:var(--raio-lg);padding:28px 20px;text-align:center;transition:all .2s;cursor:pointer;background:var(--cinza-50);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--verde-claro);background:var(--sucesso-bg);}
+.upload-zone.tem-arquivo{border-color:var(--verde-claro);background:var(--sucesso-bg);}
+
+/* Extração */
+.campo-extraido{border:1px solid var(--verde-claro);background:var(--sucesso-bg);}
+.campo-extraido-badge{font-size:9px;font-weight:700;color:var(--sucesso);background:#fff;padding:1px 5px;border-radius:3px;margin-left:6px;}
+
+/* Stats */
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:2px;}
+
+/* Produtos previstos */
+.produto-item{padding:10px 12px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:8px;background:var(--branco);}
+.produto-num{font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--branco);background:var(--verde-medio);padding:1px 6px;border-radius:3px;margin-right:6px;}
+
+/* PDF preview */
+.pdf-section{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px;margin-bottom:12px;}
+.pdf-section h4{font-size:12px;font-weight:600;color:var(--cinza-700);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.5}}
+.extracting{animation:pulso 1s ease-in-out infinite;color:var(--azul-medio);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando TDRs...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRINCIPAL DO TDR -->
+<div class="modal-overlay" id="modal-tdr">
+  <div class="modal" style="max-width:740px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-tdr-titulo">TDR</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="modal-tdr-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-tdr')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-tdr-body" style="padding:16px 24px"></div>
+    <div class="modal-footer" id="modal-tdr-footer"></div>
+  </div>
+</div>
+
+<!-- MODAL NOVO TDR -->
+<div class="modal-overlay" id="modal-novo">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <span class="modal-title">Novo TDR — Upload do documento</span>
+      <button class="modal-close" onclick="fecharModal('modal-novo')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-novo-body"></div>
+    <div class="modal-footer" id="modal-novo-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-novo')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-criar-tdr" onclick="criarTDR()" disabled>Criar TDR</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMENTÁRIO -->
+<div class="modal-overlay" id="modal-coment">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Adicionar comentário</span>
+      <button class="modal-close" onclick="fecharModal('modal-coment')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Campo / Seção</label>
+        <input class="form-control" id="coment-campo" placeholder="Ex: Objeto, Valor, Produto 1...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Comentário <span class="obrig">*</span></label>
+        <textarea class="form-control" id="coment-texto" rows="4" placeholder="Descreva o ajuste necessário..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-coment')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarComentario()">Salvar comentário</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PDF PREVIEW -->
+<div class="modal-overlay" id="modal-pdf">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <span class="modal-title">Gerar PDF do TDR</span>
+      <button class="modal-close" onclick="fecharModal('modal-pdf')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-pdf-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-pdf')">Fechar</button>
+      <button class="btn btn-primary" onclick="gerarPDF()">⬇ Baixar PDF</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+let todosTDRs = [];
+let atividades = [];
+let tdrAtual = null;
+let arquivoSelecionado = null;
+let dadosExtraidos = {};
+
+const FASES = ['rascunho','revisao_interna','ajustes','enviado_unesco','retorno_unesco','aprovado'];
+const FASES_LABELS = {rascunho:'Rascunho',revisao_interna:'Revisão',ajustes:'Ajustes',enviado_unesco:'UNESCO',retorno_unesco:'Retorno',aprovado:'Aprovado'};
+const FASES_BLOQUEADAS = ['enviado_unesco','aprovado'];
+
+// ── INIT ──────────────────────────────────────────────────────
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+
+  document.getElementById('app').innerHTML =
+    gerarLayout('TDRs — Termos de Referência', 'tdrs') + `
+    <div class="fade-in">
+      <div class="stat-row" id="stats-tdr"></div>
+      <div class="filter-bar">
+        <input class="form-control" type="text" id="busca-tdr" style="width:260px"
+          placeholder="Buscar número ou objeto..." oninput="filtrar()">
+        <select class="form-control" id="fil-status" onchange="filtrar()" style="width:155px">
+          <option value="">Todos os status</option>
+          ${FASES.map(f=>`<option value="${f}">${FASES_LABELS[f]}</option>`).join('')}
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <select class="form-control" id="fil-tipo" onchange="filtrar()" style="width:120px">
+          <option value="">PF + PJ</option>
+          <option value="PF">Pessoa Física</option>
+          <option value="PJ">Pessoa Jurídica</option>
+        </select>
+        <span id="contador-tdr" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
+        ${PODE.editarTDR()?`<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo TDR</button>`:''}
+      </div>
+      <div id="lista-tdrs"></div>
+    </div>` + `</div></div></div>`;
+
+  await carregarDados();
+})();
+
+async function carregarDados() {
+  try {
+    const [{data:tdrs},{data:ativs}] = await Promise.all([
+      db.from('tdrs').select(`*,atividades(codigo,nome_pt,nome_en),fornecedores(nome,tipo)`)
+        .order('criado_em',{ascending:false}),
+      db.from('atividades').select('id,codigo,nome_pt,resultado_id').order('codigo')
+    ]);
+    atividades = ativs||[];
+    todosTDRs = tdrs||[];
+    renderStats();
+    filtrar();
+  } catch(e) { toast('Erro ao carregar TDRs.','error'); }
+}
+
+function renderStats() {
+  const total = todosTDRs.length;
+  const aprov = todosTDRs.filter(t=>t.status==='aprovado').length;
+  const rasc = todosTDRs.filter(t=>t.status==='rascunho').length;
+  const and = todosTDRs.filter(t=>['revisao_interna','ajustes','enviado_unesco','retorno_unesco'].includes(t.status)).length;
+  const atr = todosTDRs.filter(t=>t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado').length;
+  const val = todosTDRs.filter(t=>t.status!=='cancelado').reduce((s,t)=>s+parseFloat(t.valor_brl||0),0);
+  document.getElementById('stats-tdr').innerHTML=`
+    <div class="stat-card sc-g"><div class="stat-lbl">Total</div><div class="stat-val">${total}</div><div class="stat-sub">${aprov} aprovados</div></div>
+    <div class="stat-card sc-b"><div class="stat-lbl">Rascunho</div><div class="stat-val">${rasc}</div><div class="stat-sub">aguardando revisão</div></div>
+    <div class="stat-card sc-t"><div class="stat-lbl">Em andamento</div><div class="stat-val">${and}</div><div class="stat-sub">em fluxo</div></div>
+    <div class="stat-card sc-r"><div class="stat-lbl">Atrasados</div><div class="stat-val">${atr}</div><div class="stat-sub">prazo vencido</div></div>
+    <div class="stat-card sc-a"><div class="stat-lbl">Valor total R$</div><div class="stat-val" style="font-size:14px">${fmtBRL(val)}</div><div class="stat-sub">TDRs ativos</div></div>`;
+}
+
+function filtrar() {
+  const busca = document.getElementById('busca-tdr').value.toLowerCase();
+  const st = document.getElementById('fil-status').value;
+  const tp = document.getElementById('fil-tipo').value;
+  const fil = todosTDRs.filter(t=>{
+    if(busca&&!t.numero.toLowerCase().includes(busca)&&!(t.objeto_pt||'').toLowerCase().includes(busca))return false;
+    if(st&&t.status!==st)return false;
+    if(tp&&t.tipo!==tp)return false;
+    return true;
+  });
+  document.getElementById('contador-tdr').textContent=`${fil.length} de ${todosTDRs.length} TDRs`;
+  const el=document.getElementById('lista-tdrs');
+  if(!fil.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">◧</div><div class="empty-state-msg">Nenhum TDR encontrado.</div></div>`;return;}
+  el.innerHTML=fil.map(t=>{
+    const fi=FASES.indexOf(t.status);
+    const atr=t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado';
+    return `<div class="tdr-card st-${t.status}" onclick="abrirTDR('${t.id}')">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap">
+            <span class="tdr-numero">${t.numero}</span>
+            <span class="tipo-badge ${t.tipo==='PF'?'tb-pf':'tb-pj'}">${t.tipo}</span>
+            ${badgeStatusTDR(t.status)}
+            <span class="badge" style="background:var(--cinza-500)">v${t.versao_atual||1}</span>
+            ${atr?`<span class="badge" style="background:var(--erro)">⚠ Atrasado</span>`:''}
+            ${t.arquivo_url?`<span class="badge" style="background:var(--azul-medio)">📎 Arquivo</span>`:''}
+          </div>
+          <div class="tdr-obj">${t.objeto_pt||'— objeto não preenchido —'}</div>
+          <div class="tdr-meta">
+            ${t.atividades?`<span>📋 ${t.atividades.codigo}</span>`:''}
+            ${t.fornecedores?`<span>👤 ${t.fornecedores.nome}</span>`:''}
+            ${t.prazo_limite?`<span>📅 ${fmtData(t.prazo_limite)}</span>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="fase-timeline">
+        ${FASES.map((f,i)=>{
+          let cls=i<fi?'concluido':i===fi?'ativo':'pendente';
+          return `<div class="fase-step ${cls}">
+            <div class="fase-dot">${i<fi?'✓':i+1}</div>
+            <div class="fase-lbl">${FASES_LABELS[f]}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="tdr-vals">
+        <div><div class="tdr-val-lbl">Valor R$</div><div class="tdr-val-num">${fmtBRL(t.valor_brl)}</div></div>
+        <div><div class="tdr-val-lbl">Valor U$</div><div class="tdr-val-num">${fmtUSD(t.valor_usd)}</div></div>
+        <div><div class="tdr-val-lbl">Cotação reg.</div><div class="tdr-val-num">${t.cotacao_registro?'R$ '+parseFloat(t.cotacao_registro).toFixed(2):'—'}</div></div>
+        <div><div class="tdr-val-lbl">Versão</div><div class="tdr-val-num">v${t.versao_atual||1}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ABRIR TDR ─────────────────────────────────────────────────
+async function abrirTDR(id) {
+  tdrAtual = todosTDRs.find(t=>t.id===id);
+  if(!tdrAtual)return;
+  const t = tdrAtual;
+  const fi = FASES.indexOf(t.status);
+  const bloqueado = FASES_BLOQUEADAS.includes(t.status);
+  const cotacao = await obterCotacao();
+  const taxaAtual = cotacao?.cotacao||5.87;
+
+  const [{data:versoes},{data:comentarios},{data:produtos}] = await Promise.all([
+    db.from('tdr_versoes').select('*').eq('tdr_id',id).order('numero_versao',{ascending:false}),
+    db.from('tdr_comentarios').select('*,usuarios(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:false}),
+    db.from('tdr_produtos_previstos').select('*').eq('tdr_id',id).order('numero_produto')
+  ]);
+
+  const comsAbertos = (comentarios||[]).filter(c=>!c.resolvido).length;
+  document.getElementById('modal-tdr-titulo').textContent = t.numero;
+  document.getElementById('modal-tdr-sub').textContent = `${t.tipo} · v${t.versao_atual||1} · ${t.atividades?.codigo||''} ${bloqueado?'· 🔒 Bloqueado para edição':''}`;
+
+  document.getElementById('modal-tdr-body').innerHTML = `
+    <!-- Timeline -->
+    <div class="fase-timeline" style="margin-bottom:18px">
+      ${FASES.map((f,i)=>{
+        let cls=i<fi?'concluido':i===fi?'ativo':'pendente';
+        return `<div class="fase-step ${cls}"><div class="fase-dot">${i<fi?'✓':i+1}</div><div class="fase-lbl">${FASES_LABELS[f]}</div></div>`;
+      }).join('')}
+    </div>
+    ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado'?
+      `<div class="alert alert-danger" style="margin-bottom:12px">⚠ Prazo vencido em ${fmtData(t.prazo_limite)}</div>`:''}
+    ${bloqueado?`<div class="alert alert-info" style="margin-bottom:12px">🔒 TDR em status "${FASES_LABELS[t.status]}" — campos bloqueados para edição.</div>`:''}
+
+    <!-- Abas -->
+    <div class="tab-bar">
+      <button class="tab-btn ativo" onclick="aba('dados',this)">Dados</button>
+      <button class="tab-btn" onclick="aba('financeiro',this)">Financeiro</button>
+      <button class="tab-btn" onclick="aba('produtos',this)">Produtos (${(produtos||[]).length})</button>
+      <button class="tab-btn" onclick="aba('comentarios',this)">Revisão ${comsAbertos>0?`<span style="background:var(--erro);color:#fff;border-radius:99px;padding:1px 6px;font-size:9px;margin-left:4px">${comsAbertos}</span>`:'('+((comentarios||[]).length)+')'}</button>
+      <button class="tab-btn" onclick="aba('versoes',this)">Versões (${(versoes||[]).length})</button>
+      ${!bloqueado&&PODE.editarTDR()?`<button class="tab-btn" onclick="aba('editar',this)">✏️ Editar</button>`:''}
+      ${t.status==='aprovado'||t.status==='enviado_unesco'?`<button class="tab-btn" onclick="abrirPDF()">📄 PDF</button>`:''}
+    </div>
+
+    <!-- ABA DADOS -->
+    <div class="tab-content ativo" id="tab-dados">
+      <div class="grid-2" style="gap:14px">
+        <div>
+          <div class="form-label" style="margin-bottom:4px">Objeto / Escopo</div>
+          <div style="font-size:13px;color:var(--cinza-700);line-height:1.6;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${t.objeto_pt||'—'}</div>
+          ${t.escopo_pt?`<div style="margin-top:8px;font-size:12px;color:var(--cinza-600,#4B5563);line-height:1.5">${t.escopo_pt}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${[
+            ['Tipo',t.tipo],['Atividade',t.atividades?.codigo||'—'],
+            ['Status',badgeStatusTDR(t.status)],['Versão',`v${t.versao_atual||1}`],
+            ['Criado em',fmtData(t.criado_em)],['Prazo',t.prazo_limite?fmtData(t.prazo_limite):'—'],
+            ['Contratação',t.dt_contratacao?fmtData(t.dt_contratacao):'—'],
+            ['Fornecedor',t.fornecedores?.nome||'—'],
+          ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--borda)">
+            <span style="color:var(--cinza-500)">${l}</span><span style="font-weight:500;color:var(--cinza-900)">${v}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+      ${t.formacao_minima_pt?`<div style="margin-top:12px"><div class="form-label" style="margin-bottom:4px">Qualificação exigida</div><div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${t.formacao_minima_pt}</div></div>`:''}
+      ${t.arquivo_url?`<div style="margin-top:14px"><a href="${t.arquivo_url}" target="_blank" class="btn btn-secondary btn-sm">📎 Baixar arquivo original</a></div>`:''}
+      ${t.motivo_recusa?`<div class="alert alert-danger" style="margin-top:12px"><strong>Correções UNESCO:</strong> ${t.motivo_recusa}</div>`:''}
+    </div>
+
+    <!-- ABA FINANCEIRO -->
+    <div class="tab-content" id="tab-financeiro">
+      <div class="grid-2" style="gap:12px;margin-bottom:14px">
+        <div style="background:var(--cinza-50);border-radius:var(--raio);padding:16px;border:1px solid var(--borda);text-align:center">
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Valor registrado R$</div>
+          <div style="font-size:24px;font-weight:600;color:var(--cinza-900)">${fmtBRL(t.valor_brl)}</div>
+          <div style="font-size:12px;color:var(--cinza-500);margin-top:4px">≈ ${fmtUSD(t.valor_usd)} (cotação do registro)</div>
+        </div>
+        <div style="background:var(--cinza-50);border-radius:var(--raio);padding:16px;border:1px solid var(--borda)">
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Cotação USD/BRL</div>
+          <div style="font-size:13px;margin-bottom:4px">No registro: <strong style="font-family:var(--font-mono)">R$ ${t.cotacao_registro?parseFloat(t.cotacao_registro).toFixed(2):'—'}</strong></div>
+          <div style="font-size:13px;margin-bottom:4px;color:${taxaAtual>parseFloat(t.cotacao_registro||0)?'var(--erro)':'var(--sucesso)'}">
+            Atual: <strong style="font-family:var(--font-mono)">R$ ${taxaAtual.toFixed(2)}</strong>
+            ${t.cotacao_registro?`<span style="font-size:10px">(${taxaAtual>parseFloat(t.cotacao_registro)?'▲':'▼'}${Math.abs(taxaAtual-parseFloat(t.cotacao_registro)).toFixed(2)})</span>`:''}
+          </div>
+          ${t.valor_brl&&t.cotacao_registro?`<div style="font-size:11px;color:var(--cinza-500)">Pelo câmbio atual: <strong>${fmtUSD(parseFloat(t.valor_brl)/taxaAtual)}</strong></div>`:''}
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA PRODUTOS -->
+    <div class="tab-content" id="tab-produtos">
+      ${(produtos||[]).length?produtos.map(p=>`
+        <div class="produto-item">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="produto-num">Produto ${p.numero_produto}</span>
+            ${p.tipo_produto?`<span class="badge" style="background:var(--azul-medio)">${p.tipo_produto}</span>`:''}
+          </div>
+          <div style="font-size:12px;color:var(--cinza-700);margin-bottom:4px">${p.descricao_pt||'—'}</div>
+          <div style="display:flex;gap:16px;font-size:11px;color:var(--cinza-500)">
+            ${p.prazo_dias?`<span>⏱ ${p.prazo_dias} dias</span>`:''}
+            ${p.valor_brl?`<span>💰 ${fmtBRL(p.valor_brl)}</span>`:''}
+          </div>
+        </div>`).join('') :
+        `<div class="empty-state"><div class="empty-state-msg">Nenhum produto previsto cadastrado.</div>
+        ${!bloqueado&&PODE.editarTDR()?`<button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="aba('editar',document.querySelector('.tab-btn:last-child'))">Adicionar produtos na aba Editar</button>`:''}
+        </div>`}
+    </div>
+
+    <!-- ABA COMENTÁRIOS/REVISÃO -->
+    <div class="tab-content" id="tab-comentarios">
+      ${PODE.editarTDR()&&!bloqueado?`
+      <button class="btn btn-secondary btn-sm" style="margin-bottom:14px" onclick="abrirComentario()">
+        + Adicionar comentário de revisão
+      </button>`:''}
+      ${(comentarios||[]).length?(comentarios||[]).map(c=>`
+        <div class="coment-item ${c.resolvido?'coment-resolvido':''}">
+          <div class="coment-header">
+            <div class="coment-avatar">${(c.usuarios?.nome_completo||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</div>
+            <span class="coment-autor">${c.usuarios?.nome_completo||'Usuário'}</span>
+            ${c.campo?`<span class="coment-campo">${c.campo}</span>`:''}
+            <span class="coment-data">${fmtData(c.criado_em)}</span>
+            ${!c.resolvido&&PODE.editarTDR()?`<button class="btn btn-sm btn-secondary" style="padding:2px 8px;font-size:10px" onclick="resolverComentario('${c.id}')">✓ Resolver</button>`:''}
+          </div>
+          <div class="coment-texto">${c.comentario}</div>
+          ${c.resolvido?`<div style="font-size:10px;color:var(--cinza-400,#9CA3AF);margin-top:4px">✓ Resolvido</div>`:''}
+        </div>`).join('') :
+        `<div class="empty-state"><div class="empty-state-msg">Nenhum comentário de revisão ainda.</div></div>`}
+    </div>
+
+    <!-- ABA VERSÕES -->
+    <div class="tab-content" id="tab-versoes">
+      ${(versoes||[]).length?(versoes||[]).map(v=>`
+        <div class="versao-item">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="versao-badge">v${v.numero_versao}</span>
+            ${badgeStatusTDR(v.fase)}
+            <span style="font-size:11px;color:var(--cinza-500);margin-left:auto">${fmtData(v.criado_em)}</span>
+          </div>
+          ${v.comentario?`<div style="font-size:12px;color:var(--cinza-600,#4B5563);margin-bottom:6px;line-height:1.4">"${v.comentario}"</div>`:''}
+          ${v.campos_alterados&&Object.keys(v.campos_alterados).length?
+            Object.entries(v.campos_alterados).slice(0,3).map(([campo,vals])=>`
+              <div class="diff-bloco">
+                <div class="diff-campo-nome">${campo}</div>
+                ${vals.antes?`<div class="diff-antes">− ${String(vals.antes).substring(0,120)}</div>`:''}
+                ${vals.depois?`<div class="diff-depois">+ ${String(vals.depois).substring(0,120)}</div>`:''}
+              </div>`).join('') :
+            `<div style="font-size:11px;color:var(--cinza-500)">Versão inicial — documento carregado.</div>`}
+        </div>`).join('') :
+        `<div class="empty-state"><div class="empty-state-msg">Histórico de versões vazio.</div></div>`}
+    </div>
+
+    <!-- ABA EDITAR -->
+    ${!bloqueado&&PODE.editarTDR()?`
+    <div class="tab-content" id="tab-editar">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Status / Fase</label>
+          <select class="form-control" id="ed-status">
+            ${FASES.concat(['cancelado']).map(f=>`<option value="${f}" ${t.status===f?'selected':''}>${FASES_LABELS[f]||'Cancelado'}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Upload nova versão (.docx/.pdf)</label>
+          <input type="file" class="form-control" id="ed-arquivo" accept=".docx,.doc,.pdf" style="height:auto;padding:6px">
+          <div class="form-hint">Salva nova versão automaticamente</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Objeto do TDR (PT)</label>
+        <textarea class="form-control" id="ed-objeto" rows="3">${t.objeto_pt||''}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Qualificação exigida (PT)</label>
+        <textarea class="form-control" id="ed-qualificacao" rows="2">${t.formacao_minima_pt||''}</textarea>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Valor R$</label>
+          <input class="form-control" id="ed-brl" type="number" step="0.01" value="${t.valor_brl||''}" oninput="calcUSD(${taxaAtual})">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor U$ (automático)</label>
+          <input class="form-control" id="ed-usd" type="number" value="${t.valor_usd||''}" readonly style="background:var(--cinza-50)">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Prazo limite</label>
+          <input class="form-control" id="ed-prazo" type="date" value="${t.prazo_limite||''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de contratação</label>
+          <input class="form-control" id="ed-contrat" type="date" value="${t.dt_contratacao||''}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Comentário desta versão</label>
+        <textarea class="form-control" id="ed-comentario" rows="2" placeholder="Descreva o que foi alterado..."></textarea>
+      </div>
+      ${t.status==='retorno_unesco'?`
+      <div class="form-group">
+        <label class="form-label" style="color:var(--erro)">Correções solicitadas pela UNESCO</label>
+        <textarea class="form-control" id="ed-motivo" rows="3">${t.motivo_recusa||''}</textarea>
+      </div>`:''}
+      <button class="btn btn-primary" onclick="salvarEdicao(${taxaAtual})">💾 Salvar e criar nova versão</button>
+    </div>`:''}
+  `;
+
+  // Botão avançar fase
+  const proxMap = {
+    rascunho:{status:'revisao_interna',label:'→ Enviar para revisão interna'},
+    revisao_interna:{status:'ajustes',label:'→ Solicitar ajustes'},
+    ajustes:{status:'enviado_unesco',label:'→ Marcar como enviado à UNESCO'},
+    enviado_unesco:{status:'retorno_unesco',label:'→ Registrar retorno UNESCO'},
+    retorno_unesco:{status:'aprovado',label:'✓ Aprovar TDR'},
+  };
+  const prox = proxMap[t.status];
+  document.getElementById('modal-tdr-footer').innerHTML = `
+    <button class="btn btn-secondary" onclick="fecharModal('modal-tdr')">Fechar</button>
+    ${prox&&PODE.editarTDR()?`<button class="btn ${t.status==='retorno_unesco'?'btn-ouro':'btn-primary'}" onclick="avancarFase('${prox.status}')">${prox.label}</button>`:''}
+  `;
+  document.getElementById('modal-tdr').classList.add('aberto');
+}
+
+function aba(id,btn){
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('ativo'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('ativo'));
+  document.getElementById('tab-'+id)?.classList.add('ativo');
+  btn.classList.add('ativo');
+}
+
+function calcUSD(taxa){
+  const brl=parseFloat(document.getElementById('ed-brl')?.value)||0;
+  if(document.getElementById('ed-usd'))document.getElementById('ed-usd').value=brl>0?(brl/taxa).toFixed(2):'';
+}
+
+async function salvarEdicao(taxa) {
+  if(!tdrAtual)return;
+  try {
+    const arquivoEl = document.getElementById('ed-arquivo');
+    let arquivoUrl = tdrAtual.arquivo_url;
+    let arquivoNome = tdrAtual.arquivo_nome;
+
+    // Upload de nova versão se houver arquivo
+    if(arquivoEl?.files?.length){
+      const arquivo = arquivoEl.files[0];
+      const path = `tdr-${tdrAtual.id}/v${(tdrAtual.versao_atual||1)+1}-${arquivo.name}`;
+      const {data:up,error:upErr} = await db.storage.from('tdrs-arquivos').upload(path,arquivo,{upsert:true});
+      if(!upErr){
+        const {data:url} = db.storage.from('tdrs-arquivos').getPublicUrl(path);
+        arquivoUrl = url.publicUrl;
+        arquivoNome = arquivo.name;
+      }
+    }
+
+    const brl=parseFloat(document.getElementById('ed-brl').value)||null;
+    const dadosAntes = {
+      objeto_pt:tdrAtual.objeto_pt,valor_brl:tdrAtual.valor_brl,
+      status:tdrAtual.status,formacao_minima_pt:tdrAtual.formacao_minima_pt
+    };
+    const updates={
+      status:document.getElementById('ed-status').value,
+      objeto_pt:document.getElementById('ed-objeto').value.trim()||null,
+      formacao_minima_pt:document.getElementById('ed-qualificacao').value.trim()||null,
+      valor_brl:brl,
+      valor_usd:brl?parseFloat((brl/taxa).toFixed(2)):null,
+      cotacao_registro:brl?taxa:tdrAtual.cotacao_registro,
+      cotacao_data:brl?new Date().toISOString().split('T')[0]:tdrAtual.cotacao_data,
+      prazo_limite:document.getElementById('ed-prazo').value||null,
+      dt_contratacao:document.getElementById('ed-contrat').value||null,
+      arquivo_url:arquivoUrl,arquivo_nome:arquivoNome,
+      motivo_recusa:document.getElementById('ed-motivo')?.value.trim()||tdrAtual.motivo_recusa,
+    };
+    const {error}=await db.from('tdrs').update(updates).eq('id',tdrAtual.id);
+    if(error)throw error;
+
+    // Registrar diff de campos alterados
+    const diff={};
+    Object.keys(dadosAntes).forEach(k=>{
+      if(updates[k]!==undefined&&String(dadosAntes[k])!==String(updates[k])){
+        diff[k]={antes:dadosAntes[k],depois:updates[k]};
+      }
+    });
+    if(arquivoEl?.files?.length) diff['arquivo']={antes:'versão anterior',depois:arquivoNome};
+
+    // Versão criada automaticamente pelo trigger no banco
+    Object.assign(tdrAtual,updates);
+    const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+    if(idx>=0)Object.assign(todosTDRs[idx],updates);
+
+    fecharModal('modal-tdr');
+    renderStats();filtrar();
+    toast('TDR salvo! Nova versão registrada automaticamente.','success');
+  } catch(e){toast('Erro ao salvar: '+(e.message||''),'error');}
+}
+
+async function avancarFase(novoStatus){
+  if(!tdrAtual)return;
+  const {error}=await db.from('tdrs').update({status:novoStatus}).eq('id',tdrAtual.id);
+  if(error){toast('Erro ao avançar fase.','error');return;}
+  tdrAtual.status=novoStatus;
+  const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+  if(idx>=0)todosTDRs[idx].status=novoStatus;
+  fecharModal('modal-tdr');
+  renderStats();filtrar();
+  toast(`Fase avançada para "${FASES_LABELS[novoStatus]||novoStatus}"!`,'success');
+}
+
+// ── COMENTÁRIOS ───────────────────────────────────────────────
+let tdrIdComent=null;
+function abrirComentario(){
+  tdrIdComent=tdrAtual?.id;
+  document.getElementById('coment-campo').value='';
+  document.getElementById('coment-texto').value='';
+  document.getElementById('modal-coment').classList.add('aberto');
+}
+async function salvarComentario(){
+  const texto=document.getElementById('coment-texto').value.trim();
+  if(!texto||!tdrIdComent){toast('Preencha o comentário.','error');return;}
+  const {error}=await db.from('tdr_comentarios').insert({
+    tdr_id:tdrIdComent,
+    usuario_id:appState.usuario.id,
+    campo:document.getElementById('coment-campo').value.trim()||null,
+    comentario:texto,resolvido:false
+  });
+  if(error){toast('Erro ao salvar comentário.','error');return;}
+  fecharModal('modal-coment');
+  toast('Comentário adicionado!','success');
+  // Reabrir TDR para atualizar
+  setTimeout(()=>abrirTDR(tdrIdComent),400);
+}
+async function resolverComentario(id){
+  await db.from('tdr_comentarios').update({resolvido:true}).eq('id',id);
+  toast('Comentário marcado como resolvido.','success');
+  setTimeout(()=>abrirTDR(tdrAtual.id),400);
+}
+
+// ── NOVO TDR COM UPLOAD ───────────────────────────────────────
+function abrirNovo(){
+  arquivoSelecionado=null;dadosExtraidos={};
+  document.getElementById('btn-criar-tdr').disabled=true;
+  document.getElementById('modal-novo-body').innerHTML=`
+    <div class="form-group">
+      <label class="form-label">Atividade vinculada <span class="obrig">*</span></label>
+      <select class="form-control" id="novo-ativ">
+        <option value="">Selecione a atividade...</option>
+        ${atividades.map(a=>`<option value="${a.id}">${a.codigo} — ${a.nome_pt?.substring(0,55)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo de contratação <span class="obrig">*</span></label>
+      <div style="display:flex;gap:10px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+          <input type="radio" name="novo-tipo" value="PF" checked> Pessoa Física (PF)
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+          <input type="radio" name="novo-tipo" value="PJ"> Pessoa Jurídica (PJ)
+        </label>
+      </div>
+    </div>
+
+    <!-- Upload Zone -->
+    <div class="form-group">
+      <label class="form-label">Documento do TDR (.docx ou .pdf)</label>
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('inp-arquivo').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="onDrop(event)">
+        <div style="font-size:32px;margin-bottom:8px">📄</div>
+        <div style="font-size:14px;font-weight:500;color:var(--cinza-700);margin-bottom:4px">
+          Arraste o arquivo ou clique para selecionar
+        </div>
+        <div style="font-size:12px;color:var(--cinza-500)">.docx · .doc · .pdf — máximo 10MB</div>
+        <input type="file" id="inp-arquivo" accept=".docx,.doc,.pdf" style="display:none" onchange="processarArquivo(this.files[0])">
+      </div>
+    </div>
+
+    <!-- Resultado da extração -->
+    <div id="extracao-resultado" style="display:none">
+      <div class="divider"></div>
+      <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:12px">
+        ✅ Campos extraídos — confirme ou edite antes de salvar:
+      </div>
+      <div class="form-group">
+        <label class="form-label">Objeto / Escopo <span class="campo-extraido-badge" id="badge-objeto"></span></label>
+        <textarea class="form-control" id="novo-objeto" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Qualificação exigida <span class="campo-extraido-badge" id="badge-qual"></span></label>
+        <textarea class="form-control" id="novo-qual" rows="2"></textarea>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Valor R$ <span class="campo-extraido-badge" id="badge-valor"></span></label>
+          <input class="form-control" id="novo-brl" type="number" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prazo limite</label>
+          <input class="form-control" id="novo-prazo" type="date">
+        </div>
+      </div>
+      <div id="novo-produtos-area"></div>
+    </div>
+  `;
+  document.getElementById('modal-novo').classList.add('aberto');
+}
+
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f)processarArquivo(f);
+}
+
+async function processarArquivo(arquivo){
+  if(!arquivo)return;
+  arquivoSelecionado=arquivo;
+  const zone=document.getElementById('upload-zone');
+  zone.classList.add('tem-arquivo');
+  zone.innerHTML=`
+    <div style="font-size:28px;margin-bottom:6px">📄</div>
+    <div style="font-size:13px;font-weight:600;color:var(--verde-medio)">${arquivo.name}</div>
+    <div style="font-size:11px;color:var(--cinza-500)">${(arquivo.size/1024/1024).toFixed(2)} MB</div>
+    <div class="extracting" style="font-size:12px;margin-top:8px">⚙ Extraindo campos do documento...</div>`;
+
+  try {
+    let textoCompleto='';
+    if(arquivo.name.toLowerCase().endsWith('.pdf')){
+      // PDF: extração básica por nome
+      textoCompleto='';
+    } else {
+      // DOCX: extração com mammoth
+      const buf=await arquivo.arrayBuffer();
+      const result=await mammoth.extractRawText({arrayBuffer:buf});
+      textoCompleto=result.value||'';
+    }
+    dadosExtraidos=extrairCamposDoTexto(textoCompleto);
+    preencherCamposExtraidos(dadosExtraidos);
+  } catch(e){
+    console.error('Extração:',e);
+    preencherCamposExtraidos({});
+    toast('Arquivo carregado. Preencha os campos manualmente.','info');
+  }
+  document.getElementById('btn-criar-tdr').disabled=false;
+}
+
+function extrairCamposDoTexto(texto){
+  const result={};
+  const linhas=texto.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  // Objeto: após "Objeto" ou "objeto da consultoria"
+  for(let i=0;i<linhas.length;i++){
+    if(/objeto/i.test(linhas[i])&&linhas[i+1]&&linhas[i+1].length>20&&!result.objeto){
+      result.objeto=linhas[i+1];result.objeto_extraido=true;break;
+    }
+  }
+  // Valor: buscar padrão R$ ou "valor total"
+  const valorMatch=texto.match(/R\$\s*([\d.,]+(?:\.\d{2})?)/);
+  if(valorMatch){
+    const num=valorMatch[1].replace(/\./g,'').replace(',','.');
+    result.valor=parseFloat(num)||null;
+    result.valor_extraido=!!result.valor;
+  }
+  // Qualificação
+  for(let i=0;i<linhas.length;i++){
+    if(/qualifica|forma[çc]|requisito|gradua/i.test(linhas[i])&&linhas[i+1]&&linhas[i+1].length>10){
+      result.qualificacao=linhas[i+1];result.qual_extraido=true;break;
+    }
+  }
+  // Produtos: buscar "Produto 1", "Produto 2"...
+  result.produtos=[];
+  linhas.forEach((l,i)=>{
+    const pm=l.match(/Produto\s+(\d+)\s*[–\-—:]\s*(.+)/i);
+    if(pm){
+      result.produtos.push({numero:parseInt(pm[1]),descricao:pm[2]});
+    }
+  });
+  return result;
+}
+
+function preencherCamposExtraidos(d){
+  document.getElementById('extracao-resultado').style.display='block';
+  const ob=document.getElementById('novo-objeto');
+  const ql=document.getElementById('novo-qual');
+  const vl=document.getElementById('novo-brl');
+  if(ob){ob.value=d.objeto||'';if(d.objeto_extraido)document.getElementById('badge-objeto').textContent='extraído ✓';}
+  if(ql){ql.value=d.qualificacao||'';if(d.qual_extraido)document.getElementById('badge-qual').textContent='extraído ✓';}
+  if(vl){vl.value=d.valor||'';if(d.valor_extraido)document.getElementById('badge-valor').textContent='extraído ✓';}
+
+  // Produtos extraídos
+  const pArea=document.getElementById('novo-produtos-area');
+  if(d.produtos?.length&&pArea){
+    pArea.innerHTML=`<div class="form-label" style="margin-bottom:8px">Produtos extraídos (${d.produtos.length})</div>`+
+      d.produtos.map(p=>`<div class="produto-item" style="margin-bottom:6px">
+        <span class="produto-num">Produto ${p.numero}</span>
+        <span style="font-size:12px;color:var(--cinza-700)">${p.descricao}</span>
+      </div>`).join('');
+  }
+}
+
+async function criarTDR(){
+  const ativId=document.getElementById('novo-ativ').value;
+  if(!ativId){toast('Selecione a atividade.','error');return;}
+  if(!arquivoSelecionado){toast('Selecione o arquivo do TDR.','error');return;}
+
+  const cotacao=await obterCotacao();
+  const taxa=cotacao?.cotacao||5.87;
+  const tipo=document.querySelector('input[name="novo-tipo"]:checked')?.value||'PF';
+  const objeto=document.getElementById('novo-objeto')?.value.trim()||null;
+  const qual=document.getElementById('novo-qual')?.value.trim()||null;
+  const brl=parseFloat(document.getElementById('novo-brl')?.value)||null;
+  const prazo=document.getElementById('novo-prazo')?.value||null;
+
+  document.getElementById('btn-criar-tdr').disabled=true;
+  document.getElementById('btn-criar-tdr').textContent='Criando...';
+
+  try {
+    // 1. Criar TDR no banco primeiro para obter o ID e número
+    const {data:tdrCriado,error:errCriacao}=await db.from('tdrs').insert({
+      atividade_id:ativId,tipo,status:'rascunho',
+      objeto_pt:objeto,formacao_minima_pt:qual,
+      valor_brl:brl,valor_usd:brl?parseFloat((brl/taxa).toFixed(2)):null,
+      cotacao_registro:taxa,cotacao_data:new Date().toISOString().split('T')[0],
+      prazo_limite:prazo,criado_por:appState.usuario.id,
+      elaborador_id:appState.usuario.id,
+    }).select().single();
+    if(errCriacao)throw errCriacao;
+
+    // 2. Upload do arquivo com o número do TDR no path
+    const ext=arquivoSelecionado.name.split('.').pop();
+    const path=`tdr-${tdrCriado.id}/v1-original.${ext}`;
+    const {error:upErr}=await db.storage.from('tdrs-arquivos')
+      .upload(path,arquivoSelecionado,{upsert:true});
+
+    if(!upErr){
+      const {data:urlData}=db.storage.from('tdrs-arquivos').getPublicUrl(path);
+      await db.from('tdrs').update({
+        arquivo_url:urlData.publicUrl,
+        arquivo_nome:arquivoSelecionado.name
+      }).eq('id',tdrCriado.id);
+      tdrCriado.arquivo_url=urlData.publicUrl;
+      tdrCriado.arquivo_nome=arquivoSelecionado.name;
+    }
+
+    // 3. Salvar produtos extraídos
+    if(dadosExtraidos.produtos?.length){
+      await db.from('tdr_produtos_previstos').insert(
+        dadosExtraidos.produtos.map(p=>({
+          tdr_id:tdrCriado.id,numero_produto:p.numero,
+          descricao_pt:p.descricao
+        }))
+      );
+    }
+
+    fecharModal('modal-novo');
+    todosTDRs.unshift(tdrCriado);
+    renderStats();filtrar();
+    toast(`TDR ${tdrCriado.numero} criado! Arquivo armazenado com sucesso.`,'success');
+  } catch(e){
+    toast('Erro ao criar TDR: '+(e.message||e),'error');
+    document.getElementById('btn-criar-tdr').disabled=false;
+    document.getElementById('btn-criar-tdr').textContent='Criar TDR';
+  }
+}
+
+// ── PDF ───────────────────────────────────────────────────────
+function abrirPDF(){
+  if(!tdrAtual)return;
+  const t=tdrAtual;
+  document.getElementById('modal-pdf-body').innerHTML=`
+    <div class="pdf-section">
+      <h4>Cabeçalho</h4>
+      <div style="font-size:12px;color:var(--cinza-700)">
+        SECRETARIA DE ESTADO DE MEIO AMBIENTE — SEMA/AC<br>
+        UNESCO · MPTF · Projeto 218BRA2001<br>
+        <strong>TERMO DE REFERÊNCIA — ${t.tipo==='PF'?'CONSULTOR INDIVIDUAL':'PESSOA JURÍDICA'}</strong>
+      </div>
+    </div>
+    <div class="pdf-section">
+      <h4>Dados do TDR</h4>
+      <div style="font-size:12px;color:var(--cinza-700);line-height:1.8">
+        <strong>Número:</strong> ${t.numero}<br>
+        <strong>Versão:</strong> v${t.versao_atual||1}<br>
+        <strong>Atividade:</strong> ${t.atividades?.codigo||'—'}<br>
+        <strong>Objeto:</strong> ${t.objeto_pt||'—'}<br>
+        <strong>Valor:</strong> ${fmtBRL(t.valor_brl)} (≈ ${fmtUSD(t.valor_usd)})<br>
+        <strong>Prazo:</strong> ${t.prazo_limite?fmtData(t.prazo_limite):'—'}<br>
+        <strong>Qualificação:</strong> ${t.formacao_minima_pt||'—'}
+      </div>
+    </div>
+    <div class="alert alert-info">
+      O PDF será gerado com os dados atuais do sistema no padrão UNESCO. 
+      Verifique os campos antes de baixar.
+    </div>`;
+  fecharModal('modal-tdr');
+  document.getElementById('modal-pdf').classList.add('aberto');
+}
+
+function gerarPDF(){
+  if(!tdrAtual)return;
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const t=tdrAtual;
+  const W=210,M=20,CW=W-2*M;
+  let y=M;
+
+  const addLine=(txt,sz=10,bold=false,cor=[40,40,40])=>{
+    doc.setFontSize(sz);doc.setFont('helvetica',bold?'bold':'normal');
+    doc.setTextColor(...cor);
+    const lines=doc.splitTextToSize(String(txt||''),CW);
+    lines.forEach(l=>{
+      if(y>280){doc.addPage();y=M;}
+      doc.text(l,M,y);y+=sz*0.45;
+    });
+    y+=2;
+  };
+  const addSep=()=>{y+=2;doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=4;};
+
+  // Cabeçalho
+  doc.setFillColor(31,78,44);doc.rect(0,0,W,22,'F');
+  doc.setFontSize(13);doc.setFont('helvetica','bold');
+  doc.setTextColor(255,255,255);
+  doc.text('SECRETARIA DE ESTADO DE MEIO AMBIENTE — SEMA/AC',M,9);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');
+  doc.text(`UNESCO · MPTF · Projeto 218BRA2001 · Rio Branco, Acre`,M,16);
+  y=32;
+
+  addLine('TERMO DE REFERÊNCIA',16,true,[31,78,44]);
+  addLine(t.tipo==='PF'?'CONSULTOR INDIVIDUAL — PESSOA FÍSICA':'CONTRATAÇÃO DE PESSOA JURÍDICA',11,false,[80,80,80]);
+  y+=4;addSep();
+
+  addLine('IDENTIFICAÇÃO',10,true,[31,78,44]);
+  addLine(`Número: ${t.numero}    Versão: v${t.versao_atual||1}    Tipo: ${t.tipo}`);
+  addLine(`Atividade: ${t.atividades?.codigo||'—'}    Status: ${FASES_LABELS[t.status]||t.status}`);
+  addLine(`Data: ${fmtData(t.criado_em)}    Prazo: ${t.prazo_limite?fmtData(t.prazo_limite):'—'}`);
+  addSep();
+
+  addLine('1. OBJETO DA CONSULTORIA',10,true,[31,78,44]);
+  addLine(t.objeto_pt||'—');
+  if(t.escopo_pt){addLine('Escopo:',9,true);addLine(t.escopo_pt);}
+  addSep();
+
+  addLine('2. QUALIFICAÇÃO EXIGIDA',10,true,[31,78,44]);
+  addLine(t.formacao_minima_pt||'Conforme especificado no TDR.');
+  addSep();
+
+  addLine('3. VALOR E FORMA DE PAGAMENTO',10,true,[31,78,44]);
+  addLine(`Valor total: ${fmtBRL(t.valor_brl)} (${fmtUSD(t.valor_usd)})`);
+  addLine(`Cotação USD/BRL na data do registro: R$ ${parseFloat(t.cotacao_registro||0).toFixed(2)}`);
+  addSep();
+
+  // Rodapé
+  const pgs=doc.getNumberOfPages();
+  for(let i=1;i<=pgs;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);doc.setTextColor(150,150,150);
+    doc.text(`SEMA/AC · UNESCO · Projeto 218BRA2001 · ${t.numero} · Página ${i}/${pgs}`,M,290);
+  }
+
+  doc.save(`TDR-${t.numero}-v${t.versao_atual||1}.pdf`);
+  toast('PDF gerado e baixado com sucesso!','success');
+  fecharModal('modal-pdf');
+}
+
+function fecharModal(id){
+  document.getElementById(id).classList.remove('aberto');
+  if(id==='modal-tdr')tdrAtual=null;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){
+  ['modal-tdr','modal-novo','modal-coment','modal-pdf'].forEach(fecharModal);
+}});
+</script>
+</body>
+</html>
