@@ -68,7 +68,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
           <span>${tituloPagina}</span>
         </div>
       </div>
-      <div class="page-body" id="page-body">
+      <div class="page-body" id="page-body" style="overflow-x:hidden;min-width:0;width:100%">
   `;
 }
 
