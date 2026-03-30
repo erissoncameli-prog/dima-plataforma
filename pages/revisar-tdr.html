@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Revisar TDR</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<!-- Quill Editor -->
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<style>
+/* Layout editor */
+.editor-layout{display:grid;grid-template-columns:1fr 320px;gap:0;height:calc(100vh - 60px);overflow:hidden;}
+.editor-main{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--borda);}
+.editor-sidebar{display:flex;flex-direction:column;overflow:hidden;background:var(--cinza-50);}
+
+/* Toolbar customizada */
+.editor-topbar{padding:10px 16px;border-bottom:1px solid var(--borda);background:var(--branco);display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;}
+.editor-info{flex:1;min-width:0;}
+.editor-titulo{font-size:13px;font-weight:600;color:var(--cinza-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.editor-sub{font-size:11px;color:var(--cinza-500);margin-top:1px;}
+.editor-badges{display:flex;gap:6px;align-items:center;}
+
+/* Quill customizações */
+.editor-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+#editor-quill{flex:1;overflow-y:auto;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.7;padding:24px 32px;}
+.ql-toolbar.ql-snow{border:none;border-bottom:1px solid var(--borda);background:var(--cinza-50);padding:8px 12px;flex-shrink:0;}
+.ql-container.ql-snow{border:none;flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.ql-editor{flex:1;overflow-y:auto;padding:24px 32px;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.8;max-width:800px;margin:0 auto;width:100%;}
+.ql-editor p{margin-bottom:10px;}
+
+/* Comentários âncora */
+.comentario-anchor{background:#FEF9C3;border-bottom:2px solid #F59E0B;cursor:pointer;border-radius:2px;}
+.comentario-anchor:hover{background:#FDE68A;}
+.comentario-anchor.ia{background:#EDE9FE;border-bottom-color:#7C3AED;}
+.comentario-anchor.ia:hover{background:#DDD6FE;}
+.comentario-anchor.resolvido{background:transparent;border-bottom:2px solid #10B981;opacity:.5;}
+
+/* Sidebar comentários */
+.sidebar-header{padding:12px 14px;border-bottom:1px solid var(--borda);background:var(--branco);flex-shrink:0;}
+.sidebar-titulo{font-size:12px;font-weight:600;color:var(--cinza-900);}
+.sidebar-tabs{display:flex;gap:0;margin-top:8px;}
+.stab{flex:1;padding:5px;text-align:center;font-size:11px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);}
+.stab.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.sidebar-body{flex:1;overflow-y:auto;padding:10px;}
+
+/* Card de comentário */
+.com-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:8px;overflow:hidden;transition:all .15s;cursor:pointer;}
+.com-card:hover{border-color:var(--verde-claro);box-shadow:0 1px 6px rgba(45,106,79,.1);}
+.com-card.ativo{border-color:var(--azul-medio);box-shadow:0 0 0 2px rgba(37,99,235,.12);}
+.com-card.ia-card{border-left:3px solid #7C3AED;}
+.com-card.resolvido{opacity:.5;}
+.com-header{padding:8px 10px;display:flex;align-items:center;gap:6px;}
+.com-avatar{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
+.ca-humano{background:var(--verde-medio);}
+.ca-ia{background:#7C3AED;}
+.com-autor{font-size:11px;font-weight:600;color:var(--cinza-900);flex:1;}
+.com-data{font-size:10px;color:var(--cinza-400,#9CA3AF);}
+.com-trecho{font-size:10px;color:var(--cinza-500);padding:4px 10px;background:var(--cinza-50);border-top:1px solid var(--borda);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.com-texto{font-size:12px;color:var(--cinza-700);padding:8px 10px;line-height:1.5;}
+.com-acoes{padding:6px 10px;border-top:1px solid var(--borda);display:flex;gap:6px;}
+.btn-resolver{font-size:10px;font-weight:500;padding:2px 8px;border-radius:99px;border:1px solid var(--verde-claro);color:var(--verde-medio);background:none;cursor:pointer;font-family:var(--font-sans);}
+.btn-resolver:hover{background:var(--sucesso-bg);}
+.btn-excluir{font-size:10px;color:var(--cinza-400,#9CA3AF);background:none;border:none;cursor:pointer;font-family:var(--font-sans);padding:2px 6px;}
+
+/* Painel novo comentário */
+.novo-com{background:var(--branco);border-top:1px solid var(--borda);padding:12px 14px;flex-shrink:0;}
+.novo-com-titulo{font-size:11px;font-weight:600;color:var(--cinza-700);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.trecho-selecionado{font-size:10px;color:var(--cinza-500);background:var(--cinza-50);padding:4px 8px;border-radius:var(--raio);margin-bottom:8px;border-left:3px solid var(--aviso);font-style:italic;max-height:40px;overflow:hidden;text-overflow:ellipsis;display:none;}
+.trecho-selecionado.visivel{display:block;}
+
+/* IA panel */
+.ia-panel{background:linear-gradient(135deg,#EDE9FE,#F3F0FF);border:1px solid #C4B5FD;border-radius:var(--raio-lg);margin-bottom:12px;overflow:hidden;}
+.ia-header{padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;}
+.ia-icone{width:24px;height:24px;background:#7C3AED;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0;}
+.ia-titulo{font-size:12px;font-weight:600;color:#3C3489;flex:1;}
+.ia-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:#7C3AED;color:#fff;}
+.ia-body{padding:0 12px 12px;display:none;}
+.ia-body.aberto{display:block;}
+.ia-btn{width:100%;padding:8px;background:#7C3AED;color:#fff;border:none;border-radius:var(--raio);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;}
+.ia-btn:hover{background:#6D28D9;}
+.ia-btn:disabled{opacity:.6;cursor:not-allowed;}
+.ia-loading{display:flex;align-items:center;gap:8px;font-size:12px;color:#3C3489;padding:8px 0;}
+.ia-spinner{width:16px;height:16px;border:2px solid #C4B5FD;border-top-color:#7C3AED;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ia-score{text-align:center;padding:10px;background:var(--branco);border-radius:var(--raio);border:1px solid #C4B5FD;margin-bottom:8px;}
+.ia-score-num{font-size:28px;font-weight:700;font-family:var(--font-mono);}
+.ia-score-label{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;}
+
+/* Versões */
+.versao-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--borda);font-size:12px;cursor:pointer;transition:background .1s;}
+.versao-item:hover{background:var(--cinza-50);}
+.versao-item.atual{background:var(--sucesso-bg);}
+.versao-num{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--verde-medio);}
+.versao-info{flex:1;min-width:0;}
+.versao-autor{font-weight:500;color:var(--cinza-900);}
+.versao-data{font-size:10px;color:var(--cinza-500);}
+
+/* Modal senha */
+.senha-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);align-items:center;justify-content:center;}
+.senha-overlay.aberto{display:flex;}
+.senha-box{background:var(--branco);border-radius:var(--raio-xl);box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:380px;margin:20px;}
+
+/* Diff view */
+.diff-add{background:#DCFCE7;color:#166534;}
+.diff-del{background:#FEE2E2;color:#991B1B;text-decoration:line-through;}
+</style>
+</head>
+<body style="overflow:hidden">
+
+<!-- TOPBAR GLOBAL -->
+<div style="height:60px;background:var(--branco);border-bottom:1px solid var(--borda);display:flex;align-items:center;padding:0 16px;gap:12px;position:sticky;top:0;z-index:100">
+  <a href="tdrs.html" style="font-size:12px;color:var(--cinza-500);text-decoration:none;display:flex;align-items:center;gap:4px">← Voltar aos TDRs</a>
+  <div style="width:1px;height:16px;background:var(--borda)"></div>
+  <div id="topbar-info" style="flex:1"></div>
+  <div style="display:flex;gap:8px" id="topbar-acoes"></div>
+</div>
+
+<!-- EDITOR LAYOUT -->
+<div class="editor-layout">
+
+  <!-- MAIN: Editor -->
+  <div class="editor-main">
+    <div class="editor-topbar">
+      <div class="editor-info">
+        <div class="editor-titulo" id="editor-titulo">Carregando TDR...</div>
+        <div class="editor-sub" id="editor-sub"></div>
+      </div>
+      <div class="editor-badges" id="editor-badges"></div>
+      <button class="btn btn-secondary btn-sm" onclick="verDiff()" id="btn-diff" style="display:none">↕ Ver diff</button>
+      <button class="btn btn-secondary btn-sm" onclick="gerarPDFLimpo()" id="btn-pdf" style="display:none">📄 PDF final</button>
+    </div>
+    <div class="editor-wrap" id="editor-container">
+      <div id="editor-quill"></div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR: Comentários + IA -->
+  <div class="editor-sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-titulo">Painel de revisão</div>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button class="stab ativo" onclick="sidebarAba('comentarios',this)" id="stab-com">Comentários (<span id="cnt-com">0</span>)</button>
+        <button class="stab" onclick="sidebarAba('versoes',this)" id="stab-ver">Versões (<span id="cnt-ver">0</span>)</button>
+      </div>
+    </div>
+
+    <!-- Painel IA -->
+    <div style="padding:10px;border-bottom:1px solid var(--borda);flex-shrink:0">
+      <div class="ia-panel">
+        <div class="ia-header" onclick="toggleIA()">
+          <div class="ia-icone">✦</div>
+          <div class="ia-titulo">Revisão por IA</div>
+          <span class="ia-badge" id="ia-badge">Pronto</span>
+        </div>
+        <div class="ia-body" id="ia-body">
+          <div style="font-size:11px;color:#534AB7;line-height:1.5;margin-bottom:8px">
+            A IA analisa o TDR e compara com o objeto da atividade, identificando inconsistências, campos incompletos e sugerindo melhorias.
+          </div>
+          <div id="ia-score-wrap" style="display:none">
+            <div class="ia-score">
+              <div class="ia-score-num" id="ia-score-num" style="color:#7C3AED">—</div>
+              <div class="ia-score-label">Score de conformidade</div>
+            </div>
+          </div>
+          <div id="ia-status"></div>
+          <button class="ia-btn" id="ia-btn" onclick="analisarIA()">✦ Analisar com IA</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-body" id="sidebar-body">
+      <div id="lista-comentarios"></div>
+      <div id="lista-versoes" style="display:none"></div>
+    </div>
+
+    <!-- Novo comentário -->
+    <div class="novo-com" id="painel-novo-com">
+      <div class="novo-com-titulo">
+        <span style="width:8px;height:8px;border-radius:50%;background:var(--aviso);display:inline-block"></span>
+        Selecione um trecho no editor para comentar
+      </div>
+      <div class="trecho-selecionado" id="trecho-preview"></div>
+      <textarea class="form-control" id="novo-com-texto" rows="3"
+        placeholder="Digite seu comentário sobre o trecho selecionado..."
+        style="font-size:12px;resize:none"></textarea>
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px" onclick="adicionarComentario()" id="btn-add-com" disabled>
+        + Adicionar comentário
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SENHA -->
+<div class="senha-overlay" id="modal-senha-rev">
+  <div class="senha-box">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--borda)">
+      <div style="font-size:14px;font-weight:600;color:var(--cinza-900)" id="senha-rev-titulo">Confirmar ação</div>
+      <div style="font-size:12px;color:var(--cinza-500);margin-top:3px" id="senha-rev-sub"></div>
+    </div>
+    <div style="padding:16px 20px">
+      <div class="form-group">
+        <label class="form-label">Sua senha <span class="obrig">*</span></label>
+        <input class="form-control" id="senha-rev-input" type="password"
+          placeholder="Digite sua senha"
+          onkeydown="if(event.key==='Enter')confirmarSenhaRev()">
+      </div>
+      <div id="senha-rev-erro" style="font-size:12px;color:var(--erro);display:none;margin-top:4px">
+        ✗ Senha incorreta. Tente novamente.
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="fecharSenhaRev()">Cancelar</button>
+      <button class="btn btn-primary" id="senha-rev-btn" onclick="confirmarSenhaRev()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="../js/config.js"></script>
+<script>
+// ── Estado global ─────────────────────────────────────────
+let tdrId = null, tdrDados = null;
+let quill = null;
+let comentarios = [];
+let versoes = [];
+let trechoSelecionado = '';
+let trechoRange = null;
+let senhaRevCallback = null;
+let iaAberto = false;
+
+// ── Init ──────────────────────────────────────────────────
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+
+  // Obter ID do TDR da URL
+  const params = new URLSearchParams(window.location.search);
+  tdrId = params.get('id');
+  if (!tdrId) { alert('TDR não especificado.'); window.location.href = 'tdrs.html'; return; }
+
+  // Inicializar Quill
+  quill = new Quill('#editor-quill', {
+    theme: 'snow',
+    modules: {
+      toolbar: [
+        ['bold','italic','underline'],
+        [{'header':[1,2,3,false]}],
+        [{'list':'ordered'},{'list':'bullet'}],
+        ['clean']
+      ]
+    }
+  });
+
+  // Detectar seleção de texto para comentário
+  quill.on('selection-change', (range) => {
+    if (range && range.length > 0) {
+      trechoSelecionado = quill.getText(range.index, range.length).trim();
+      trechoRange = range;
+      const preview = document.getElementById('trecho-preview');
+      const btnAdd = document.getElementById('btn-add-com');
+      const tituloNovo = document.querySelector('.novo-com-titulo');
+      if (trechoSelecionado.length > 0) {
+        preview.textContent = `"${trechoSelecionado.substring(0,80)}${trechoSelecionado.length>80?'…':''}"`;
+        preview.classList.add('visivel');
+        btnAdd.disabled = false;
+        tituloNovo.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:var(--aviso);display:inline-block"></span> Comentar trecho selecionado`;
+      } else {
+        preview.classList.remove('visivel');
+        btnAdd.disabled = true;
+        tituloNovo.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:var(--cinza-300);display:inline-block"></span> Selecione um trecho no editor para comentar`;
+      }
+    } else {
+      trechoSelecionado = '';
+      trechoRange = null;
+      document.getElementById('trecho-preview').classList.remove('visivel');
+      document.getElementById('btn-add-com').disabled = true;
+    }
+  });
+
+  await carregarTDR();
+})();
+
+async function carregarTDR() {
+  try {
+    const [{data:tdr},{data:coms},{data:vers}] = await Promise.all([
+      db.from('tdrs').select('*,atividades(id,codigo,nome_pt,objeto_pt),fornecedores(id,nome)').eq('id',tdrId).single(),
+      db.from('tdr_comentarios').select('*,usuarios(id,nome_completo,perfil)').eq('tdr_id',tdrId).order('criado_em'),
+      db.from('tdr_versoes_editor').select('*,usuarios(id,nome_completo)').eq('tdr_id',tdrId).order('versao',{ascending:false}),
+    ]);
+
+    tdrDados = tdr;
+    comentarios = coms || [];
+    versoes = vers || [];
+
+    // Topbar
+    document.getElementById('editor-titulo').textContent = `${tdr.numero} — ${tdr.objeto_pt?.substring(0,60)||'—'}`;
+    document.getElementById('editor-sub').textContent = `Atividade ${tdr.atividades?.codigo||'—'} · ${tdr.tipo}`;
+    document.getElementById('editor-badges').innerHTML = badgeStatusTDR(tdr.status);
+
+    // Botões de ação no topbar
+    const eCoordenador = ['super_admin','coordenacao'].includes(appState.perfil);
+    document.getElementById('topbar-acoes').innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="salvarVersao()">💾 Salvar versão</button>
+      ${tdr.status==='revisao_interna'&&eCoordenador?`
+        <button class="btn-devolver" style="font-size:12px;padding:6px 12px;border-radius:var(--raio);border:1px solid var(--erro);color:var(--erro);background:var(--erro-bg);cursor:pointer;font-family:var(--font-sans)" onclick="devolverAjustes()">↩ Devolver</button>
+        <button class="btn btn-primary btn-sm" onclick="aprovarEnviarUNESCO()">✓ Aprovar → UNESCO</button>
+      `:''}
+      ${tdr.status==='ajustes'&&['super_admin','coordenacao','tecnico'].includes(appState.perfil)?`
+        <button class="btn btn-primary btn-sm" onclick="reenviarRevisao()">→ Reenviar para revisão</button>
+      `:''}
+    `;
+
+    document.getElementById('btn-pdf').style.display = 'block';
+    if (versoes.length > 0) document.getElementById('btn-diff').style.display = 'block';
+
+    // Carregar conteúdo mais recente
+    if (versoes.length > 0) {
+      quill.setContents(JSON.parse(versoes[0].conteudo_delta));
+      aplicarMarcacoesComentarios();
+    } else if (tdr.arquivo_url) {
+      await carregarArquivoOriginal(tdr.arquivo_url);
+    } else {
+      // Preencher com campos do TDR como texto
+      carregarCamposTDR(tdr);
+    }
+
+    renderComentarios();
+    renderVersoes();
+  } catch(e) {
+    console.error(e);
+    toast('Erro ao carregar TDR: '+e.message,'error');
+  }
+}
+
+async function carregarArquivoOriginal(url) {
+  try {
+    toast('Carregando arquivo original...','info');
+    // Tentar via signed URL se for do storage
+    let fetchUrl = url;
+    try {
+      const urlObj = new URL(url);
+      const match = urlObj.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
+      if (match) {
+        const {data} = await db.storage.from('tdrs-arquivos').createSignedUrl(match[1],3600);
+        if (data?.signedUrl) fetchUrl = data.signedUrl;
+      }
+    } catch(e) {}
+
+    const resp = await fetch(fetchUrl);
+    const blob = await resp.blob();
+
+    if (url.toLowerCase().includes('.docx') || blob.type.includes('wordprocessingml')) {
+      const arrayBuffer = await blob.arrayBuffer();
+      const result = await mammoth.convertToHtml({arrayBuffer});
+      quill.clipboard.dangerouslyPasteHTML(result.value);
+    } else {
+      // PDF ou outro — mostrar aviso e preencher com campos
+      toast('Arquivo PDF — carregando campos do TDR como texto editável.','info');
+      carregarCamposTDR(tdrDados);
+    }
+    toast('Conteúdo carregado! Selecione trechos para comentar.','success');
+  } catch(e) {
+    console.error(e);
+    carregarCamposTDR(tdrDados);
+  }
+}
+
+function carregarCamposTDR(tdr) {
+  const campos = [
+    ['OBJETO', tdr.objeto_pt],
+    ['ESCOPO', tdr.escopo_pt],
+    ['FORMAÇÃO MÍNIMA', tdr.formacao_minima_pt],
+    ['EXPERIÊNCIA REQUERIDA', tdr.experiencia_requerida_pt],
+    ['EQUIPE MÍNIMA', tdr.equipe_minima_pt],
+    ['ATESTADOS', tdr.atestados_pt],
+    ['OBSERVAÇÕES', tdr.observacao],
+  ].filter(([,v])=>v);
+
+  let html = `<h2>${tdr.numero}</h2>`;
+  campos.forEach(([label,valor]) => {
+    html += `<h3>${label}</h3><p>${valor}</p>`;
+  });
+  quill.clipboard.dangerouslyPasteHTML(html);
+}
+
+// ── COMENTÁRIOS ───────────────────────────────────────────
+function adicionarComentario() {
+  const texto = document.getElementById('novo-com-texto').value.trim();
+  if (!texto) { toast('Digite o comentário.','error'); return; }
+  if (!trechoSelecionado) { toast('Selecione um trecho no editor.','error'); return; }
+
+  const novoId = 'com-' + Date.now();
+  const com = {
+    id: novoId,
+    tdr_id: tdrId,
+    usuario_id: appState.usuario.id,
+    texto,
+    trecho: trechoSelecionado,
+    range_index: trechoRange?.index,
+    range_length: trechoRange?.length,
+    tipo: 'humano',
+    resolvido: false,
+    criado_em: new Date().toISOString(),
+    usuarios: { nome_completo: appState.usuario.nome_completo },
+  };
+
+  // Aplicar marcação visual no editor
+  if (trechoRange) {
+    quill.formatText(trechoRange.index, trechoRange.length, 'background', '#FEF9C3');
+    quill.formatText(trechoRange.index, trechoRange.length, 'color', '#92400E');
+  }
+
+  comentarios.push(com);
+  document.getElementById('novo-com-texto').value = '';
+  trechoSelecionado = '';
+  trechoRange = null;
+  document.getElementById('trecho-preview').classList.remove('visivel');
+  document.getElementById('btn-add-com').disabled = true;
+
+  // Salvar no banco
+  db.from('tdr_comentarios').insert({
+    tdr_id: tdrId,
+    usuario_id: appState.usuario.id,
+    texto,
+    trecho: com.trecho,
+    range_index: com.range_index,
+    range_length: com.range_length,
+    tipo: 'humano',
+    resolvido: false,
+  }).then(({error}) => {
+    if (error) toast('Erro ao salvar comentário.','error');
+  });
+
+  renderComentarios();
+  toast('Comentário adicionado!','success');
+}
+
+function renderComentarios() {
+  const lista = document.getElementById('lista-comentarios');
+  document.getElementById('cnt-com').textContent = comentarios.filter(c=>!c.resolvido).length;
+
+  if (!comentarios.length) {
+    lista.innerHTML = `<div style="text-align:center;padding:24px;font-size:12px;color:var(--cinza-500)">Selecione um trecho no editor e adicione comentários de revisão.</div>`;
+    return;
+  }
+
+  lista.innerHTML = comentarios.map(c => {
+    const iniciais=(c.usuarios?.nome_completo||'IA').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
+    const isIA = c.tipo === 'ia';
+    return `<div class="com-card ${isIA?'ia-card':''} ${c.resolvido?'resolvido':''}" id="card-${c.id}">
+      <div class="com-header">
+        <div class="com-avatar ${isIA?'ca-ia':'ca-humano'}">${isIA?'✦':iniciais}</div>
+        <div class="com-autor">${isIA?'IA — Revisão automática':c.usuarios?.nome_completo||'—'}</div>
+        <div class="com-data">${new Date(c.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      ${c.trecho?`<div class="com-trecho">"${c.trecho.substring(0,60)}"</div>`:''}
+      <div class="com-texto">${c.texto}</div>
+      ${!c.resolvido?`<div class="com-acoes">
+        <button class="btn-resolver" onclick="resolverComentario('${c.id}')">✓ Resolver</button>
+        ${!isIA?`<button class="btn-excluir" onclick="excluirComentario('${c.id}')">✕</button>`:''}
+      </div>`:`<div style="padding:5px 10px;font-size:10px;color:var(--sucesso)">✓ Resolvido</div>`}
+    </div>`;
+  }).join('');
+}
+
+async function resolverComentario(id) {
+  const com = comentarios.find(c=>c.id===id);
+  if (!com) return;
+  com.resolvido = true;
+  await db.from('tdr_comentarios').update({resolvido:true,resolvido_em:new Date().toISOString(),resolvido_por:appState.usuario.id}).eq('id',id).eq('tdr_id',tdrId);
+  renderComentarios();
+  toast('Comentário marcado como resolvido.','success');
+}
+
+async function excluirComentario(id) {
+  comentarios = comentarios.filter(c=>c.id!==id);
+  await db.from('tdr_comentarios').delete().eq('id',id);
+  renderComentarios();
+}
+
+function aplicarMarcacoesComentarios() {
+  comentarios.filter(c=>!c.resolvido&&c.range_index!=null).forEach(c=>{
+    try {
+      const cor = c.tipo==='ia'?'#EDE9FE':'#FEF9C3';
+      quill.formatText(c.range_index,c.range_length,'background',cor);
+    }catch(e){}
+  });
+}
+
+// ── VERSÕES ───────────────────────────────────────────────
+function renderVersoes() {
+  document.getElementById('cnt-ver').textContent = versoes.length;
+  const lista = document.getElementById('lista-versoes');
+  if (!versoes.length) {
+    lista.innerHTML = `<div style="text-align:center;padding:24px;font-size:12px;color:var(--cinza-500)">Nenhuma versão salva. Clique em "Salvar versão" para criar a primeira.</div>`;
+    return;
+  }
+  lista.innerHTML = versoes.map((v,i) => `
+    <div class="versao-item ${i===0?'atual':''}" onclick="carregarVersao(${i})">
+      <div class="versao-num">v${v.versao}</div>
+      <div class="versao-info">
+        <div class="versao-autor">${v.usuarios?.nome_completo||'—'}</div>
+        <div class="versao-data">${new Date(v.criado_em).toLocaleString('pt-BR')}</div>
+        ${v.comentario_versao?`<div style="font-size:10px;color:var(--cinza-500);font-style:italic">${v.comentario_versao}</div>`:''}
+      </div>
+      ${i===0?`<span style="font-size:10px;font-weight:600;color:var(--verde-medio);background:var(--sucesso-bg);padding:2px 6px;border-radius:99px">Atual</span>`:''}
+    </div>`).join('');
+}
+
+function carregarVersao(idx) {
+  const v = versoes[idx];
+  if (!v) return;
+  try {
+    quill.setContents(JSON.parse(v.conteudo_delta));
+    toast(`Versão ${v.versao} carregada.`,'info');
+  } catch(e) { toast('Erro ao carregar versão.','error'); }
+}
+
+async function salvarVersao() {
+  const delta = JSON.stringify(quill.getContents());
+  const comsAbertos = comentarios.filter(c=>!c.resolvido).length;
+
+  pedirSenhaRev('Salvar nova versão',
+    `${comsAbertos>0?'⚠ Há '+comsAbertos+' comentário(s) aberto(s). ':''} A versão será assinada digitalmente.`,
+    async () => {
+      const proxVersao = (versoes[0]?.versao||0) + 1;
+      const comentarioVersao = prompt('Descrição desta versão (opcional):','');
+
+      const {data,error} = await db.from('tdr_versoes_editor').insert({
+        tdr_id: tdrId,
+        usuario_id: appState.usuario.id,
+        versao: proxVersao,
+        conteudo_delta: delta,
+        comentario_versao: comentarioVersao||null,
+        comentarios_abertos: comsAbertos,
+      }).select('*,usuarios(id,nome_completo)').single();
+
+      if (error) { toast('Erro ao salvar versão: '+error.message,'error'); return; }
+      versoes.unshift(data);
+      renderVersoes();
+      document.getElementById('btn-diff').style.display = 'block';
+      toast(`Versão ${proxVersao} salva com sucesso!`,'success');
+    }
+  );
+}
+
+function verDiff() {
+  if (versoes.length < 2) { toast('Precisa de pelo menos 2 versões para comparar.','info'); return; }
+  sidebarAba('versoes', document.getElementById('stab-ver'));
+  toast('Selecione uma versão anterior para ver as diferenças.','info');
+}
+
+// ── IA REVISÃO ────────────────────────────────────────────
+function toggleIA() {
+  iaAberto = !iaAberto;
+  document.getElementById('ia-body').classList.toggle('aberto', iaAberto);
+}
+
+async function analisarIA() {
+  const btn = document.getElementById('ia-btn');
+  const status = document.getElementById('ia-status');
+  btn.disabled = true;
+  document.getElementById('ia-badge').textContent = 'Analisando...';
+  status.innerHTML = `<div class="ia-loading"><div class="ia-spinner"></div> A IA está analisando o TDR...</div>`;
+
+  try {
+    const textoTDR = quill.getText();
+    const objetoAtividade = tdrDados.atividades?.nome_pt||'';
+    const objetoTDR = tdrDados.objeto_pt||'';
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: `Você é um revisor técnico especializado em TDRs (Termos de Referência) para projetos UNESCO de conservação ambiental. Analise o TDR fornecido e retorne APENAS um JSON válido com a estrutura exigida.`,
+        messages: [{
+          role: 'user',
+          content: `Analise este TDR e retorne SOMENTE JSON, sem texto antes ou depois:
+
+OBJETO DA ATIVIDADE: ${objetoAtividade}
+OBJETO DO TDR: ${objetoTDR}
+TEXTO COMPLETO DO TDR:
+${textoTDR.substring(0,4000)}
+
+Retorne exatamente este JSON:
+{
+  "score": <número de 0 a 100>,
+  "resumo": "<2 frases sobre a qualidade geral>",
+  "pontos_atencao": [
+    {"trecho": "<trecho exato do texto>", "comentario": "<o que precisa ser ajustado>", "severidade": "alta|media|baixa"}
+  ],
+  "sugestoes": ["<sugestão 1>", "<sugestão 2>"],
+  "conformidade_objeto": "<como o TDR se relaciona com o objeto da atividade>"
+}`
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    let texto = data.content?.[0]?.text || '{}';
+    texto = texto.replace(/```json|```/g,'').trim();
+    const analise = JSON.parse(texto);
+
+    // Mostrar score
+    const score = analise.score || 0;
+    document.getElementById('ia-score-wrap').style.display = 'block';
+    const scoreEl = document.getElementById('ia-score-num');
+    scoreEl.textContent = score + '%';
+    scoreEl.style.color = score>=70?'var(--sucesso)':score>=40?'var(--aviso)':'var(--erro)';
+
+    // Mostrar resumo e sugestões
+    status.innerHTML = `
+      <div style="font-size:12px;color:#3C3489;line-height:1.5;margin-bottom:8px;padding:8px;background:var(--branco);border-radius:var(--raio);border:1px solid #C4B5FD">
+        ${analise.resumo||''}
+      </div>
+      ${analise.conformidade_objeto?`<div style="font-size:11px;color:#534AB7;margin-bottom:6px"><strong>Conformidade:</strong> ${analise.conformidade_objeto}</div>`:''}
+      ${analise.sugestoes?.length?`<div style="font-size:11px;color:#534AB7;margin-bottom:6px"><strong>Sugestões:</strong></div>
+        ${analise.sugestoes.map(s=>`<div style="font-size:11px;color:#534AB7;padding:3px 0;padding-left:10px;border-left:2px solid #C4B5FD;margin-bottom:3px">${s}</div>`).join('')}`:''}
+    `;
+
+    // Adicionar comentários da IA como âncoras no editor
+    if (analise.pontos_atencao?.length) {
+      const textoCompleto = quill.getText();
+      analise.pontos_atencao.forEach(p => {
+        const idx = textoCompleto.indexOf(p.trecho);
+        if (idx >= 0) {
+          quill.formatText(idx, p.trecho.length, 'background', '#EDE9FE');
+          comentarios.push({
+            id: 'ia-'+Date.now()+Math.random(),
+            tdr_id: tdrId,
+            texto: p.comentario + (p.severidade==='alta'?' ⚠ ALTA PRIORIDADE':''),
+            trecho: p.trecho,
+            range_index: idx,
+            range_length: p.trecho.length,
+            tipo: 'ia',
+            resolvido: false,
+            criado_em: new Date().toISOString(),
+            usuarios: {nome_completo:'IA'},
+          });
+          // Salvar no banco
+          db.from('tdr_comentarios').insert({
+            tdr_id:tdrId,
+            usuario_id:appState.usuario.id,
+            texto:p.comentario+(p.severidade==='alta'?' ⚠ ALTA PRIORIDADE':''),
+            trecho:p.trecho,
+            range_index:idx,
+            range_length:p.trecho.length,
+            tipo:'ia',
+            resolvido:false,
+          });
+        }
+      });
+      renderComentarios();
+      sidebarAba('comentarios', document.getElementById('stab-com'));
+    }
+
+    document.getElementById('ia-badge').textContent = `${analise.pontos_atencao?.length||0} pontos`;
+    btn.disabled = false;
+    btn.textContent = '✦ Reanalisar';
+    toast(`IA identificou ${analise.pontos_atencao?.length||0} pontos de atenção. Score: ${score}%`,'success');
+  } catch(e) {
+    console.error(e);
+    status.innerHTML = `<div style="font-size:11px;color:var(--erro)">Erro na análise: ${e.message}</div>`;
+    document.getElementById('ia-badge').textContent = 'Erro';
+    btn.disabled = false;
+  }
+}
+
+// ── AÇÕES DE FLUXO ────────────────────────────────────────
+async function aprovarEnviarUNESCO() {
+  const comsAbertos = comentarios.filter(c=>!c.resolvido).length;
+  if (comsAbertos > 0) {
+    if (!confirm(`Há ${comsAbertos} comentário(s) não resolvido(s). Deseja aprovar mesmo assim?`)) return;
+  }
+  pedirSenhaRev('Aprovar e enviar à UNESCO', 'Ação registrada no log de auditoria', async () => {
+    const {error} = await db.rpc('fn_registrar_acao_tdr',{
+      p_tdr_id:tdrId, p_usuario_id:appState.usuario.id,
+      p_acao:'aprovado_revisao', p_comentario:'Aprovado via editor de revisão.', p_ip:null
+    });
+    if (error) { toast('Erro: '+error.message,'error'); return; }
+    toast('TDR aprovado e encaminhado à UNESCO!','success');
+    setTimeout(()=>window.location.href='tdrs.html',1500);
+  });
+}
+
+async function devolverAjustes() {
+  const motivo = prompt('Motivo da devolução (obrigatório):','');
+  if (!motivo?.trim()) return;
+  pedirSenhaRev('Confirmar devolução', motivo, async () => {
+    const {error} = await db.rpc('fn_registrar_acao_tdr',{
+      p_tdr_id:tdrId, p_usuario_id:appState.usuario.id,
+      p_acao:'devolvido_ajuste', p_comentario:motivo, p_ip:null
+    });
+    if (error) { toast('Erro: '+error.message,'error'); return; }
+    toast('TDR devolvido para ajustes.','success');
+    setTimeout(()=>window.location.href='tdrs.html',1500);
+  });
+}
+
+async function reenviarRevisao() {
+  pedirSenhaRev('Reenviar para revisão interna', `TDR ${tdrDados?.numero}`, async () => {
+    const {error} = await db.rpc('fn_registrar_acao_tdr',{
+      p_tdr_id:tdrId, p_usuario_id:appState.usuario.id,
+      p_acao:'enviado_revisao', p_comentario:'Reenvio após ajustes.', p_ip:null
+    });
+    if (error) { toast('Erro: '+error.message,'error'); return; }
+    toast('TDR reenviado para revisão!','success');
+    setTimeout(()=>window.location.href='tdrs.html',1500);
+  });
+}
+
+// ── PDF LIMPO ─────────────────────────────────────────────
+async function gerarPDFLimpo() {
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({unit:'mm',format:'a4'});
+  const M=20, W=170; let y=M;
+
+  // Cabeçalho
+  doc.setFillColor(31,78,44);doc.rect(0,0,210,18,'F');
+  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  doc.text(`TDR ${tdrDados?.numero||'—'}`,M,12);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.text(`SEMA/AC · UNESCO · Projeto 218BRA2001 · Gerado em ${new Date().toLocaleDateString('pt-BR')}`,M,16);
+  y=26;
+
+  // Texto limpo sem comentários (remover formatações de marcação)
+  const texto = quill.getText();
+  const linhas = texto.split('\n').filter(l=>l.trim());
+  doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(40,40,40);
+
+  linhas.forEach(linha=>{
+    if(y>270){doc.addPage();y=M;}
+    const wrapped = doc.splitTextToSize(linha.trim(),W);
+    doc.text(wrapped,M,y);
+    y += wrapped.length*6+2;
+  });
+
+  // Rodapé em todas as páginas
+  const pgs=doc.getNumberOfPages();
+  for(let p=1;p<=pgs;p++){
+    doc.setPage(p);doc.setFontSize(7);doc.setTextColor(150,150,150);
+    doc.text(`SEMA/AC · UNESCO · 218BRA2001 · Página ${p}/${pgs} · Versão limpa sem comentários`,M,290);
+  }
+
+  doc.save(`TDR-${tdrDados?.numero||'draft'}-versao-final.pdf`);
+  toast('PDF final gerado — sem comentários!','success');
+}
+
+// ── UTILITÁRIOS ───────────────────────────────────────────
+function sidebarAba(aba, btn) {
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  document.getElementById('lista-comentarios').style.display = aba==='comentarios'?'block':'none';
+  document.getElementById('lista-versoes').style.display = aba==='versoes'?'block':'none';
+  document.getElementById('painel-novo-com').style.display = aba==='comentarios'?'':'none';
+}
+
+function pedirSenhaRev(titulo, sub, callback) {
+  document.getElementById('senha-rev-titulo').textContent = titulo;
+  document.getElementById('senha-rev-sub').textContent = sub;
+  document.getElementById('senha-rev-input').value = '';
+  document.getElementById('senha-rev-erro').style.display = 'none';
+  senhaRevCallback = callback;
+  document.getElementById('modal-senha-rev').classList.add('aberto');
+  setTimeout(()=>document.getElementById('senha-rev-input').focus(),100);
+}
+
+async function confirmarSenhaRev() {
+  const senha = document.getElementById('senha-rev-input').value;
+  if (!senha) { toast('Digite sua senha.','error'); return; }
+  const btn = document.getElementById('senha-rev-btn');
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+  try {
+    const {error} = await db.auth.signInWithPassword({email:appState.usuario.email,password:senha});
+    if (error) {
+      document.getElementById('senha-rev-erro').style.display = 'block';
+      document.getElementById('senha-rev-input').value = '';
+      document.getElementById('senha-rev-input').focus();
+      btn.textContent='Confirmar';btn.disabled=false; return;
+    }
+    fecharSenhaRev();
+    if (senhaRevCallback) await senhaRevCallback();
+  } catch(e) {
+    toast('Erro na verificação.','error');
+    btn.textContent='Confirmar';btn.disabled=false;
+  }
+}
+
+function fecharSenhaRev() {
+  document.getElementById('modal-senha-rev').classList.remove('aberto');
+  senhaRevCallback = null;
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharSenhaRev();});
+</script>
+</body>
+</html>
