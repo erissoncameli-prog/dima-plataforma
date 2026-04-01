@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Definir nova senha</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#F3F4F6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:#fff;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.12);width:100%;max-width:440px;overflow:hidden;}
+.card-top{background:#1F4E2C;padding:28px 32px 24px;}
+.logo{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.01em;}
+.logo span{color:#D4A017;}
+.logo-sub{font-size:11px;color:rgba(255,255,255,.6);margin-top:3px;}
+.card-body{padding:28px 32px;}
+.titulo{font-size:18px;font-weight:600;color:#111827;margin-bottom:6px;}
+.sub{font-size:13px;color:#6B7280;margin-bottom:24px;line-height:1.5;}
+.alert-box{background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:12px;color:#92400E;display:flex;gap:8px;align-items:flex-start;}
+.form-group{margin-bottom:16px;}
+.form-label{font-size:12px;font-weight:500;color:#374151;margin-bottom:6px;display:block;}
+.form-control{width:100%;padding:10px 12px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border .15s;}
+.form-control:focus{border-color:#1F4E2C;box-shadow:0 0 0 3px rgba(31,78,44,.1);}
+.input-wrap{position:relative;}
+.toggle-pw{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#9CA3AF;}
+
+/* Regras de senha */
+.regras{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:12px 14px;margin-bottom:20px;}
+.regras-titulo{font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.regra{display:flex;align-items:center;gap:8px;font-size:12px;color:#6B7280;padding:3px 0;transition:color .15s;}
+.regra.ok{color:#059669;}
+.regra.fail{color:#EF4444;}
+.regra-dot{width:6px;height:6px;border-radius:50%;background:#D1D5DB;flex-shrink:0;transition:background .15s;}
+.regra.ok .regra-dot{background:#059669;}
+.regra.fail .regra-dot{background:#EF4444;}
+
+/* Barra de força */
+.forca-wrap{margin-bottom:16px;}
+.forca-label{display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:5px;}
+.forca-bar{height:4px;background:#E5E7EB;border-radius:2px;overflow:hidden;}
+.forca-fill{height:100%;border-radius:2px;transition:all .3s;}
+
+.btn{width:100%;padding:12px;background:#1F4E2C;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn:hover{background:#17402A;}
+.btn:disabled{opacity:.6;cursor:not-allowed;}
+.erro{font-size:12px;color:#EF4444;margin-top:5px;display:none;}
+.sucesso-box{display:none;text-align:center;padding:20px 0;}
+.sucesso-icone{font-size:48px;margin-bottom:12px;}
+.sucesso-titulo{font-size:18px;font-weight:600;color:#111827;margin-bottom:6px;}
+.sucesso-sub{font-size:13px;color:#6B7280;margin-bottom:20px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-top">
+    <div class="logo">SEMA<span>/AC</span></div>
+    <div class="logo-sub">UNESCO · DIMA · 218BRA2001</div>
+  </div>
+  <div class="card-body">
+
+    <!-- Estado: formulário -->
+    <div id="form-wrap">
+      <div class="titulo">Defina sua nova senha</div>
+      <p class="sub">Este é seu primeiro acesso. Por segurança, você precisa escolher uma senha pessoal antes de continuar.</p>
+
+      <div class="alert-box">
+        <span>🔒</span>
+        <span>Sua senha temporária foi fornecida pelo administrador. Esta tela não pode ser ignorada.</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Nova senha <span style="color:#EF4444">*</span></label>
+        <div class="input-wrap">
+          <input class="form-control" id="nova-senha" type="password"
+            placeholder="Escolha uma senha segura"
+            oninput="verificarRegras()">
+          <button class="toggle-pw" type="button" onclick="toggleSenha('nova-senha',this)">👁</button>
+        </div>
+        <div class="erro" id="erro-nova"></div>
+      </div>
+
+      <!-- Força da senha -->
+      <div class="forca-wrap">
+        <div class="forca-label">
+          <span>Força da senha</span>
+          <span id="forca-txt" style="font-weight:500">—</span>
+        </div>
+        <div class="forca-bar">
+          <div class="forca-fill" id="forca-fill" style="width:0%;background:#E5E7EB"></div>
+        </div>
+      </div>
+
+      <!-- Regras -->
+      <div class="regras">
+        <div class="regras-titulo">A senha precisa ter</div>
+        <div class="regra" id="r-min"><div class="regra-dot"></div>Mínimo 8 caracteres</div>
+        <div class="regra" id="r-num"><div class="regra-dot"></div>Ao menos 1 número</div>
+        <div class="regra" id="r-mai"><div class="regra-dot"></div>Ao menos 1 letra maiúscula</div>
+        <div class="regra" id="r-min2"><div class="regra-dot"></div>Ao menos 1 letra minúscula</div>
+        <div class="regra" id="r-dif"><div class="regra-dot"></div>Diferente da senha temporária (Sema@2025)</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Confirmar nova senha <span style="color:#EF4444">*</span></label>
+        <div class="input-wrap">
+          <input class="form-control" id="conf-senha" type="password"
+            placeholder="Digite a senha novamente"
+            oninput="verificarConfirmacao()">
+          <button class="toggle-pw" type="button" onclick="toggleSenha('conf-senha',this)">👁</button>
+        </div>
+        <div class="erro" id="erro-conf"></div>
+      </div>
+
+      <button class="btn" id="btn-salvar" onclick="salvarSenha()" disabled>
+        <span>🔑</span> Definir minha senha e entrar
+      </button>
+    </div>
+
+    <!-- Estado: sucesso -->
+    <div class="sucesso-box" id="sucesso-wrap">
+      <div class="sucesso-icone">✅</div>
+      <div class="sucesso-titulo">Senha definida com sucesso!</div>
+      <p class="sucesso-sub">Sua conta está pronta. Você será redirecionado para o sistema em instantes.</p>
+      <button class="btn" onclick="irDashboard()">Entrar no sistema →</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script>
+const SENHA_TEMP = 'Sema@2025';
+
+// Verificar se usuário está logado e precisa trocar senha
+(async () => {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { window.location.href = '../index.html'; return; }
+
+  const { data: usuario } = await db.from('usuarios')
+    .select('deve_trocar_senha,nome_completo')
+    .eq('id', session.user.id).single();
+
+  if (!usuario?.deve_trocar_senha) {
+    // Não precisa trocar — redirecionar para dashboard
+    window.location.href = 'dashboard.html'; return;
+  }
+
+  // Mostrar nome no alerta
+  document.querySelector('.sub').textContent =
+    `Olá, ${usuario.nome_completo?.split(' ')[0]||''}! Este é seu primeiro acesso. Por segurança, você precisa escolher uma senha pessoal antes de continuar.`;
+})();
+
+function toggleSenha(id, btn) {
+  const inp = document.getElementById(id);
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+function verificarRegras() {
+  const senha = document.getElementById('nova-senha').value;
+
+  const regras = {
+    'r-min':  senha.length >= 8,
+    'r-num':  /\d/.test(senha),
+    'r-mai':  /[A-Z]/.test(senha),
+    'r-min2': /[a-z]/.test(senha),
+    'r-dif':  senha !== SENHA_TEMP && senha.length > 0,
+  };
+
+  let pontos = 0;
+  Object.entries(regras).forEach(([id, ok]) => {
+    const el = document.getElementById(id);
+    el.classList.toggle('ok', ok);
+    el.classList.toggle('fail', !ok && senha.length > 0);
+    if (ok) pontos++;
+  });
+
+  // Barra de força
+  const pct = (pontos / 5) * 100;
+  const fill = document.getElementById('forca-fill');
+  const txt = document.getElementById('forca-txt');
+  fill.style.width = pct + '%';
+  if (pontos <= 1) { fill.style.background='#EF4444'; txt.textContent='Fraca'; txt.style.color='#EF4444'; }
+  else if (pontos <= 3) { fill.style.background='#F59E0B'; txt.textContent='Média'; txt.style.color='#F59E0B'; }
+  else if (pontos === 4) { fill.style.background='#3B82F6'; txt.textContent='Boa'; txt.style.color='#3B82F6'; }
+  else { fill.style.background='#059669'; txt.textContent='Forte'; txt.style.color='#059669'; }
+
+  const todasOk = Object.values(regras).every(Boolean);
+  const conf = document.getElementById('conf-senha').value;
+  document.getElementById('btn-salvar').disabled = !(todasOk && conf === senha && conf.length > 0);
+
+  verificarConfirmacao();
+  return todasOk;
+}
+
+function verificarConfirmacao() {
+  const nova = document.getElementById('nova-senha').value;
+  const conf = document.getElementById('conf-senha').value;
+  const erroEl = document.getElementById('erro-conf');
+
+  if (conf.length > 0 && nova !== conf) {
+    erroEl.textContent = 'As senhas não coincidem.';
+    erroEl.style.display = 'block';
+  } else {
+    erroEl.style.display = 'none';
+  }
+
+  const todasOk = verificarRegrasSilencioso();
+  document.getElementById('btn-salvar').disabled = !(todasOk && nova === conf && conf.length > 0);
+}
+
+function verificarRegrasSilencioso() {
+  const senha = document.getElementById('nova-senha').value;
+  return senha.length >= 8 && /\d/.test(senha) &&
+    /[A-Z]/.test(senha) && /[a-z]/.test(senha) && senha !== SENHA_TEMP;
+}
+
+async function salvarSenha() {
+  const nova = document.getElementById('nova-senha').value;
+  if (!verificarRegrasSilencioso()) { return; }
+
+  const btn = document.getElementById('btn-salvar');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳</span> Salvando...';
+
+  try {
+    // Atualizar senha no Supabase Auth
+    const { error } = await db.auth.updateUser({ password: nova });
+    if (error) throw error;
+
+    // Marcar flag como false + registrar primeiro acesso
+    const { data: { session } } = await db.auth.getSession();
+    await db.from('usuarios').update({
+      deve_trocar_senha: false,
+      senha_temporaria_usada: true,
+      primeiro_acesso_em: new Date().toISOString(),
+    }).eq('id', session.user.id);
+
+    // Mostrar sucesso
+    document.getElementById('form-wrap').style.display = 'none';
+    document.getElementById('sucesso-wrap').style.display = 'block';
+
+    // Redirecionar automaticamente após 3s
+    setTimeout(() => irDashboard(), 3000);
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔑</span> Definir minha senha e entrar';
+    const erroEl = document.getElementById('erro-nova');
+    erroEl.textContent = 'Erro ao salvar: ' + (e.message || 'Tente novamente.');
+    erroEl.style.display = 'block';
+  }
+}
+
+function irDashboard() {
+  window.location.href = 'dashboard.html';
+}
+</script>
+</body>
+</html>
