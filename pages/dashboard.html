@@ -9,11 +9,11 @@
 <link href="../css/sidebar.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-.dash-tabs{display:flex;gap:0;border-bottom:1px solid var(--borda);background:var(--branco);position:sticky;top:58px;z-index:40;overflow-x:auto;margin:-24px -28px 0;padding:0 28px;}
+.dash-tabs{display:flex;gap:0;border-bottom:1px solid var(--borda);background:var(--branco);padding:0 28px;}
 .dash-tab{padding:10px 20px;font-size:12px;font-weight:500;color:var(--cinza-500);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;transition:all .15s;}
 .dash-tab:hover{color:var(--cinza-700);}
 .dash-tab.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);font-weight:600;}
-.dash-pane{display:none;padding:20px 0 24px;}
+.dash-pane{display:none;padding:24px 28px;}
 .dash-pane.ativo{display:block;}
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
 .kpi-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:20px;position:relative;overflow:hidden;}
@@ -104,16 +104,10 @@ var CHARTS = {};
   var u = await carregarUsuario();
   if(!u){ window.location.href='../index.html'; return; }
 
+  // Render layout normal
   document.getElementById('app').innerHTML = gerarLayout(
-    'Bem-vindo(a), '+u.nome_completo.split(' ')[0]+'!','dashboard'
+    'Bem-vindo(a), '+u.nome_completo.split(' ')[0]+'!', 'dashboard'
   ) + `
-    <div class="dash-tabs">
-      <button class="dash-tab ativo" onclick="mudarAba('financiadores',this)">Financiadores</button>
-      <button class="dash-tab" onclick="mudarAba('operacional',this)">Gestão operacional</button>
-      <button class="dash-tab" onclick="mudarAba('resultados',this)">Resultados × Financeiro</button>
-      <button class="dash-tab" onclick="mudarAba('execucao',this)">Execução financeira</button>
-      <button class="dash-tab" onclick="mudarAba('alertas',this)">Alertas</button>
-    </div>
     <div id="pane-financiadores" class="dash-pane ativo"><div class="empty-state"><div class="spinner"></div></div></div>
     <div id="pane-operacional" class="dash-pane"></div>
     <div id="pane-resultados" class="dash-pane"></div>
@@ -121,7 +115,41 @@ var CHARTS = {};
     <div id="pane-alertas" class="dash-pane"></div>
   ` + fecharLayout();
 
-  await loadData();
+  // Integrar guias no topbar via DOM — sem espaço em branco
+  var _topbar = document.querySelector('.topbar');
+  if(_topbar) {
+    _topbar.style.padding = '0';
+    _topbar.style.flexDirection = 'column';
+    _topbar.style.height = 'auto';
+    _topbar.style.alignItems = 'stretch';
+    _topbar.style.gap = '0';
+    _topbar.style.borderBottom = 'none';
+    // Envolver conteúdo existente em topRow
+    var _topRow = document.createElement('div');
+    _topRow.style.cssText = 'display:flex;align-items:center;padding:0 28px;height:58px;gap:12px;border-bottom:1px solid var(--borda);flex-shrink:0;';
+    while(_topbar.firstChild) _topRow.appendChild(_topbar.firstChild);
+    _topbar.appendChild(_topRow);
+    // Criar as guias
+    var _tabs = document.createElement('div');
+    _tabs.className = 'dash-tabs';
+    var _tabDefs = [
+      ['financiadores','Financiadores'],
+      ['operacional','Gestão operacional'],
+      ['resultados','Resultados × Financeiro'],
+      ['execucao','Execução financeira'],
+      ['alertas','Alertas']
+    ];
+    _tabDefs.forEach(function(td, i) {
+      var btn = document.createElement('button');
+      btn.className = 'dash-tab' + (i===0?' ativo':'');
+      btn.textContent = td[1];
+      btn.setAttribute('onclick', "mudarAba('"+td[0]+"',this)");
+      _tabs.appendChild(btn);
+    });
+    _topbar.appendChild(_tabs);
+  }
+
+    await loadData();
 })();
 
 window.mudarAba = function(id,btn){
