@@ -188,6 +188,31 @@
   </div>
 </div>
 
+<!-- MODAL SENHA TDR -->
+<div class="senha-overlay" id="modal-senha-tdr">
+  <div class="senha-box">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--borda)">
+      <div style="font-size:14px;font-weight:600;color:var(--cinza-900)" id="senha-tdr-titulo">Confirmar ação</div>
+      <div style="font-size:12px;color:var(--cinza-500);margin-top:3px" id="senha-tdr-sub">Digite sua senha para confirmar</div>
+    </div>
+    <div style="padding:16px 20px">
+      <div class="form-group">
+        <label class="form-label">Sua senha <span class="obrig">*</span></label>
+        <input class="form-control" id="senha-tdr-input" type="password"
+          placeholder="Digite sua senha"
+          onkeydown="if(event.key==='Enter')confirmarSenhaTDR()">
+      </div>
+      <div id="senha-tdr-erro" style="font-size:12px;color:var(--erro);display:none;margin-top:4px">
+        ✗ Senha incorreta. Tente novamente.
+      </div>
+    </div>
+    <div style="padding:12px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="fecharSenhaTDR()">Cancelar</button>
+      <button class="btn btn-primary" id="senha-tdr-btn" onclick="confirmarSenhaTDR()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
