@@ -16,7 +16,7 @@ const i18n = {
     nav: {
       dashboard: 'Visão Geral', atividades: 'Atividades', tdrs: 'TDRs',
       financeiro: 'Financeiro', contratos: 'Contratos', fornecedores: 'Fornecedores',
-      viagens: 'Viagens', matriz: 'Matriz de Resultados', usuarios: 'Usuários', sair: 'Sair'
+      viagens: 'Viagens', produtos: 'Produtos Entregues', matriz: 'Matriz de Resultados', usuarios: 'Usuários', sair: 'Sair'
     },
     comum: {
       salvar: 'Salvar', cancelar: 'Cancelar', editar: 'Editar', excluir: 'Excluir',
@@ -53,7 +53,7 @@ const i18n = {
     nav: {
       dashboard: 'Overview', atividades: 'Activities', tdrs: 'TORs',
       financeiro: 'Financial', contratos: 'Contracts', fornecedores: 'Suppliers',
-      viagens: 'Travel', matriz: 'Results Matrix', usuarios: 'Users', sair: 'Sign out'
+      viagens: 'Travel', produtos: 'Delivered Products', matriz: 'Results Matrix', usuarios: 'Users', sair: 'Sign out'
     },
     comum: {
       salvar: 'Save', cancelar: 'Cancel', editar: 'Edit', excluir: 'Delete',
@@ -90,7 +90,7 @@ const i18n = {
     nav: {
       dashboard: 'Resumen', atividades: 'Actividades', tdrs: 'TDRs',
       financeiro: 'Financiero', contratos: 'Contratos', fornecedores: 'Proveedores',
-      viagens: 'Viajes', matriz: 'Matriz de Resultados', usuarios: 'Usuarios', sair: 'Salir'
+      viagens: 'Viajes', produtos: 'Productos Entregados', matriz: 'Matriz de Resultados', usuarios: 'Usuarios', sair: 'Salir'
     },
     comum: {
       salvar: 'Guardar', cancelar: 'Cancelar', editar: 'Editar', excluir: 'Eliminar',
