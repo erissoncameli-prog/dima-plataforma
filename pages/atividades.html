@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Atividades</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.atv-codigo{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-700);background:var(--cinza-100);padding:2px 7px;border-radius:4px;}
+.resultado-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;}
+.r1{background:#E1F5EE;color:#085041}.r2{background:#E6F1FB;color:#0C447C}
+.r3{background:#EEEDFE;color:#3C3489}.r4{background:#F1EFE8;color:#444441}
+.fase-select{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;border:none;cursor:pointer;font-family:var(--font-sans);appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B7280'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;padding-right:20px;}
+.fs-A_INICIAR{background:#F3F4F6;color:#374151}.fs-ELABORACAO{background:#EFF6FF;color:#1E40AF}
+.fs-LICITACAO{background:#FFFBEB;color:#92400E}.fs-ELABORADO{background:#F0FDF4;color:#065F46}
+.fs-CONTRATADO{background:#ECFDF5;color:#065F46}.fs-CONCLUIDO{background:#1F2937;color:#F9FAFB}
+.saldo-bar{height:5px;background:var(--cinza-100);border-radius:2px;overflow:hidden;min-width:70px;position:relative;}
+.saldo-fill{height:100%;border-radius:2px;transition:width .4s;position:absolute;left:0;top:0;}
+.saldo-fill-pago{height:100%;border-radius:2px;position:absolute;left:0;top:0;background:var(--sucesso);z-index:2;}
+.saldo-fill-comp{height:100%;border-radius:2px;position:absolute;left:0;top:0;z-index:1;}
+.sf-ok{background:var(--verde-claro)}.sf-warn{background:var(--aviso)}.sf-red{background:var(--erro)}
+
+/* TDR count badge */
+.tdr-count{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;background:#E6F1FB;color:#0C447C;font-family:var(--font-mono);cursor:pointer;transition:all .15s;}
+
+/* Forçar tabela a respeitar largura do container */
+.card{overflow-x:auto;}
+.table-wrap{overflow-x:auto;width:100%;}
+.table-scroll{overflow-x:auto;}
+table{table-layout:fixed;width:100%;min-width:700px;}
+td,th{overflow:hidden;text-overflow:ellipsis;}
+.tdr-count:hover{background:#BFDBFE;}.tdr-count.zero{background:#FEF2F2;color:#991B1B;}
+.tdr-count.ok{background:#ECFDF5;color:#065F46;}
+.tdr-count.alerta{background:#FEF3C7;color:#92400E;animation:pulso .8s ease-in-out infinite;}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* Painel TDRs da atividade (linha expansível) */
+.tdr-painel{display:none;background:var(--cinza-50);border-top:1px solid var(--borda);}
+.tdr-painel.aberto{display:table-row;}
+.tdr-painel-inner{padding:12px 16px;}
+
+/* Card TDR inline */
+.tdr-inline-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;transition:all .15s;}
+.tdr-inline-card:hover{border-color:var(--verde-claro);box-shadow:0 1px 6px rgba(45,106,79,.08);}
+.tdr-inline-card:last-child{margin-bottom:0;}
+.tdr-inline-card.sem-arquivo{border-left:3px solid var(--aviso);}
+.alerta-sem-arquivo{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--aviso);background:var(--aviso-bg);padding:2px 7px;border-radius:99px;}
+
+/* Responsáveis */
+.resp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--cinza-100);border:1px solid var(--borda);border-radius:99px;padding:3px 8px;font-size:11px;color:var(--cinza-700);margin:2px;}
+.resp-chip.principal{background:#E1F5EE;border-color:#9FE1CB;color:#085041;}
+.resp-chip.substituto{background:#FEF3C7;border-color:#FDE68A;color:#92400E;}
+.resp-avatar{width:20px;height:20px;border-radius:50%;background:var(--verde-medio);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.sem-resp{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--erro);background:var(--erro-bg);padding:2px 7px;border-radius:99px;animation:pulso .8s infinite;}
+
+/* Modal senha */
+.senha-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);align-items:center;justify-content:center;}
+.senha-overlay.aberto{display:flex;}
+.senha-box{background:var(--branco);border-radius:var(--raio-xl);box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:380px;margin:20px;overflow:hidden;}
+.senha-header{padding:18px 20px 14px;border-bottom:1px solid var(--borda);}
+.senha-title{font-size:14px;font-weight:600;color:var(--cinza-900);}
+.senha-sub{font-size:12px;color:var(--cinza-500);margin-top:3px;}
+.senha-body{padding:16px 20px;}
+.senha-footer{padding:12px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);align-items:center;justify-content:center;}
+.modal-overlay.aberto{display:flex;}
+.modal{background:var(--branco);border-radius:var(--raio-xl);box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:640px;max-height:90vh;overflow-y:auto;margin:20px;}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:16px;font-weight:600;color:var(--cinza-900)}
+.modal-close{width:28px;height:28px;border-radius:var(--raio);border:none;background:var(--cinza-100);color:var(--cinza-500);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.modal-close:hover{background:var(--cinza-300);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;}
+
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:18px 20px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-card.verde::after{background:var(--verde-claro)}.stat-card.ouro::after{background:var(--ouro)}
+.stat-card.azul::after{background:var(--azul-medio)}.stat-card.roxo::after{background:#7F77DD}
+.stat-lbl{font-size:11px;color:var(--cinza-500);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.stat-val{font-size:24px;font-weight:600;color:var(--cinza-900);letter-spacing:-.02em;line-height:1;}
+.stat-sub{font-size:11px;color:var(--cinza-500);margin-top:5px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando atividades...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO DE SENHA -->
+<div class="senha-overlay" id="modal-senha">
+  <div class="senha-box">
+    <div class="senha-header">
+      <div class="senha-title" id="senha-titulo">Confirmar ação</div>
+      <div class="senha-sub" id="senha-sub">Digite sua senha para confirmar</div>
+    </div>
+    <div class="senha-body">
+      <div class="form-group">
+        <label class="form-label">Sua senha <span class="obrig">*</span></label>
+        <input class="form-control" id="senha-input" type="password"
+          placeholder="Digite sua senha"
+          onkeydown="if(event.key==='Enter')confirmarSenha()">
+      </div>
+      <div id="senha-erro" style="font-size:12px;color:var(--erro);display:none;margin-top:4px">
+        ✗ Senha incorreta. Tente novamente.
+      </div>
+    </div>
+    <div class="senha-footer">
+      <button class="btn btn-secondary" onclick="fecharSenha()">Cancelar</button>
+      <button class="btn btn-primary" id="senha-btn-ok" onclick="confirmarSenha()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR ATIVIDADE -->
+<div class="modal-overlay" id="modal-atividade">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-titulo">Editar Atividade</span>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAtividade()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+let todasAtividades = [];
+let ativFiltradas = [];
+let ativEditando = null;
+let resultadosMap = {};
+let tdrsPorAtividade = {};
+let tdrsAbertos = {}; // cache de URLs por tdr_id
+let painelAberto = {};
+let todosUsuarios = [];
+let respPorAtividade = {}; // responsáveis por atividade
+let senhaCallback = null; // função a executar após confirmação de senha
+
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+
+  document.getElementById('app').innerHTML =
+    gerarLayout('Atividades', 'atividades') +
+    `<div class="fade-in">
+      <div class="stat-row" id="stats-row"></div>
+
+      <div class="filter-bar" style="margin-bottom:14px">
+        <input class="form-control search-input" type="text" id="busca"
+          placeholder="Buscar por código ou nome..." oninput="filtrar()">
+        <select class="form-control" id="fil-resultado" onchange="filtrar()" style="width:160px">
+          <option value="">Todos os Resultados</option>
+          <option value="R1">Resultado 1</option>
+          <option value="R2">Resultado 2</option>
+          <option value="R3">Resultado 3</option>
+          <option value="R4">Resultado 4</option>
+        </select>
+        <select class="form-control" id="fil-fase" onchange="filtrar()" style="width:160px">
+          <option value="">Todas as Fases</option>
+          <option value="A_INICIAR">A Iniciar</option>
+          <option value="ELABORACAO">Elaboração</option>
+          <option value="LICITACAO">Licitação</option>
+          <option value="ELABORADO">Elaborado</option>
+          <option value="CONTRATADO">Contratado</option>
+          <option value="CONCLUIDO">Concluído</option>
+        </select>
+        <select class="form-control" id="fil-tdr-sit" onchange="filtrar()" style="width:150px">
+          <option value="">TDRs: Todos</option>
+          <option value="com">Com TDR cadastrado</option>
+          <option value="sem">Sem TDR</option>
+          <option value="alerta">⚠ Sem arquivo</option>
+        </select>
+        <span id="contador" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
+        ${PODE.editarAtividade() ? `<button class="btn btn-primary btn-sm" onclick="novaAtividade()">+ Nova atividade</button>` : ''}
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:90px">Código</th>
+                  <th>Nome da Atividade</th>
+                  <th style="width:60px">Result.</th>
+                  <th style="width:130px">Fase</th>
+                  <th style="width:110px">Orçamento U$</th>
+                  <th style="width:120px">Comprometido U$<div style="font-size:9px;font-weight:400;color:var(--cinza-400,#9CA3AF)">(TDRs ativos)</div></th>
+                  <th style="width:110px">Pago U$<div style="font-size:9px;font-weight:400;color:var(--cinza-400,#9CA3AF)">(financeiro)</div></th>
+                  <th style="width:140px">Responsável(is)</th>
+                  <th style="width:120px">TDRs</th>
+                  ${PODE.editarAtividade() ? `<th style="width:60px">Ações</th>` : ''}
+                </tr>
+              </thead>
+              <tbody id="tbody-atividades">
+                <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--cinza-500)">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>` +
+    `</div></div></div>`;
+
+  await carregarDados();
+})();
+
+async function carregarDados() {
+  try {
+    const [
+      { data: atividades },
+      { data: resultados },
+      { data: saldos },
+      { data: tdrsData },
+      { data: usuarios },
+      { data: respData }
+    ] = await Promise.all([
+      db.from('atividades').select('*').order('codigo'),
+      db.from('resultados').select('*').order('codigo'),
+      db.from('vw_saldo_atividade').select('*'),
+      db.from('tdrs').select('id,numero,atividade_id,tipo,objeto_pt,valor_brl,valor_usd,status,arquivo_url,arquivo_nome,prioridade,elaborador_id'),
+      db.from('usuarios').select('id,nome_completo,perfil,email').eq('ativo',true).order('nome_completo'),
+      db.from('atividade_responsaveis').select('*').eq('ativo',true)
+    ]);
+    todosUsuarios = usuarios || [];
+
+    // Mapear resultados
+    resultados?.forEach(r => { resultadosMap[r.id] = r; });
+
+    // Mapear saldos
+    const saldoMap = {};
+    (saldos||[]).forEach(s => { saldoMap[s.id] = s; });
+
+    // Mapear TDRs por atividade
+    tdrsPorAtividade = {};
+    // Filtrar cancelados no JS e mapear por atividade
+    (tdrsData||[]).filter(t=>t.status!=='cancelado').forEach(t => {
+      if (!tdrsPorAtividade[t.atividade_id]) tdrsPorAtividade[t.atividade_id] = [];
+      tdrsPorAtividade[t.atividade_id].push(t);
+      if (t.arquivo_url) tdrsAbertos[t.id] = t.arquivo_url;
+    });
+
+    // Mapear responsáveis por atividade
+    respPorAtividade = {};
+    (respData||[]).forEach(r => {
+      if (!respPorAtividade[r.atividade_id]) respPorAtividade[r.atividade_id] = [];
+      const u = todosUsuarios.find(u=>u.id===r.usuario_id);
+      respPorAtividade[r.atividade_id].push({...r, usuario: u});
+    });
+
+    // Enriquecer atividades
+    todasAtividades = (atividades||[]).map(a => {
+      const tdrs = tdrsPorAtividade[a.id] || [];
+      const semArquivo = tdrs.filter(t => !t.arquivo_url).length;
+      return {
+        ...a,
+        saldo: saldoMap[a.id] || null,
+        resultado_codigo: resultadosMap[a.resultado_id]?.codigo || '',
+        tdrs_count: tdrs.length,
+        tdrs_valor_usd: tdrs.reduce((s,t)=>s+parseFloat(t.valor_usd||0),0),
+        tdrs_sem_arquivo: semArquivo,
+        responsaveis: respPorAtividade[a.id] || [],
+        tem_responsavel: (respPorAtividade[a.id]||[]).length > 0,
+      };
+    });
+
+    renderStats();
+    filtrar();
+  } catch(e) {
+    console.error(e);
+    toast('Erro ao carregar atividades.', 'error');
+  }
+}
+
+function renderStats() {
+  const total = todasAtividades.length;
+  const contratadas = todasAtividades.filter(a => a.fase === 'CONTRATADO').length;
+  const comTdr = todasAtividades.filter(a => a.tdrs_count > 0).length;
+  const orcTotal = todasAtividades.reduce((s,a)=>s+parseFloat(a.orcamento_usd||0),0);
+  const emExecucao = todasAtividades.filter(a=>['ELABORADO','CONTRATADO'].includes(a.fase)).length;
+  const semResp = todasAtividades.filter(a => !a.tem_responsavel).length;
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-card verde">
+      <div class="stat-lbl">Total de Atividades</div>
+      <div class="stat-val">${total}</div>
+      <div class="stat-sub">${contratadas} contratadas</div>
+    </div>
+    <div class="stat-card ouro">
+      <div class="stat-lbl">Orçamento Total</div>
+      <div class="stat-val" style="font-size:18px">${fmtUSD(orcTotal)}</div>
+      <div class="stat-sub">4 Resultados</div>
+    </div>
+    <div class="stat-card azul">
+      <div class="stat-lbl">Ativ. com TDR</div>
+      <div class="stat-val">${comTdr}</div>
+      <div class="stat-sub">de ${total} atividades</div>
+    </div>
+    <div class="stat-card roxo">
+      <div class="stat-lbl">Em Execução</div>
+      <div class="stat-val">${emExecucao}</div>
+      <div class="stat-sub">elaborado + contratado</div>
+    </div>
+    ${semResp>0?`<div class="stat-card" style="grid-column:span 4;background:var(--erro-bg);border-color:var(--erro)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">⚠</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--erro)">${semResp} atividade(s) sem responsável cadastrado</div>
+          <div style="font-size:11px;color:var(--erro);opacity:.8">Atividades sem responsável não podem ter TDRs cadastrados</div>
+        </div>
+        <button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="document.getElementById('fil-tdr-sit').value='';document.getElementById('busca').value='';filtrar()">Ver todas</button>
+      </div>
+    </div>`:''}`;
+}
+
+function filtrar() {
+  const busca = document.getElementById('busca').value.toLowerCase();
+  const res = document.getElementById('fil-resultado').value;
+  const fase = document.getElementById('fil-fase').value;
+  const tdrSit = document.getElementById('fil-tdr-sit').value;
+
+  ativFiltradas = todasAtividades.filter(a => {
+    const nome = campo(a,'nome').toLowerCase();
+    if (busca && !a.codigo.toLowerCase().includes(busca) && !nome.includes(busca)) return false;
+    if (res && a.resultado_codigo !== res) return false;
+    if (fase && a.fase !== fase) return false;
+    if (tdrSit === 'com' && a.tdrs_count === 0) return false;
+    if (tdrSit === 'sem' && a.tdrs_count > 0) return false;
+    if (tdrSit === 'alerta' && a.tdrs_sem_arquivo === 0) return false;
+    return true;
+  });
+
+  document.getElementById('contador').textContent =
+    `${ativFiltradas.length} de ${todasAtividades.length} atividades`;
+
+  renderTabela();
+}
+
+function renderTabela() {
+  const tbody = document.getElementById('tbody-atividades');
+  if (!ativFiltradas.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state"><div class="empty-state-icon">◈</div>
+      <div class="empty-state-msg">Nenhuma atividade encontrada.</div></div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = ativFiltradas.map(a => {
+    const s = a.saldo;
+    const pct = s ? parseFloat(s.pct_comprometido||0) : 0;
+    const pctPago = s ? parseFloat(s.pct_pago||0) : 0;
+    const corBarra = pct>100?'sf-red':pct>80?'sf-warn':'sf-ok';
+    const corCompBg = pct>100?'var(--erro)':pct>80?'var(--aviso)':'var(--azul-medio)';
+    const rCod = a.resultado_codigo||'';
+    const nomeAtv = campo(a,'nome');
+    const faseClasse = `fs-${a.fase}`;
+    const podEditar = PODE.editarAtividade();
+    const tdrsAtiv = tdrsPorAtividade[a.id]||[];
+    const temAlerta = a.tdrs_sem_arquivo > 0;
+    const painelId = `painel-${a.id}`;
+
+    const faseOptions = ['A_INICIAR','ELABORACAO','LICITACAO','ELABORADO','CONTRATADO','CONCLUIDO']
+      .map(f=>`<option value="${f}" ${a.fase===f?'selected':''}>${t('fases',f)}</option>`)
+      .join('');
+
+    // Badge TDR
+    let tdrClass = a.tdrs_count===0?'zero':temAlerta?'alerta':'ok';
+    let tdrTxt = a.tdrs_count===0
+      ? '0 TDRs'
+      : `${a.tdrs_count} TDR${a.tdrs_count!==1?'s':''}${temAlerta?' ⚠':''}`;
+
+    const linhaAtiv = `<tr id="row-${a.id}">
+      <td><span class="atv-codigo">${a.codigo}</span></td>
+      <td>
+        <div style="font-size:12px;font-weight:500;color:var(--cinza-900);line-height:1.3;max-width:340px">
+          ${nomeAtv.substring(0,80)}${nomeAtv.length>80?'…':''}
+        </div>
+        ${a.wbs_unesco?`<div style="font-size:10px;color:var(--cinza-500);font-family:var(--font-mono);margin-top:2px">${a.wbs_unesco}</div>`:''}
+      </td>
+      <td><span class="resultado-tag ${rCod.toLowerCase()}">${rCod}</span></td>
+      <td>
+        ${podEditar
+          ?`<select class="fase-select ${faseClasse}" onchange="alterarFase('${a.id}',this)">${faseOptions}</select>`
+          :`<span class="badge" style="background:var(--badge-gray)">${t('fases',a.fase)}</span>`}
+      </td>
+      <td><div style="font-family:var(--font-mono);font-size:12px;font-weight:500">${fmtUSD(a.orcamento_usd)}</div></td>
+      <td>
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:${pct>100?'var(--erro)':pct>80?'var(--aviso)':'var(--cinza-900)'}">
+          ${s?.comprometido_usd>0 ? fmtUSD(s.comprometido_usd) : '—'}
+        </div>
+        <div class="saldo-bar" style="margin-top:4px;margin-bottom:3px">
+          <div class="saldo-fill-comp" style="width:${Math.min(pct,100)}%;background:${corCompBg}"></div>
+          <div class="saldo-fill-pago" style="width:${Math.min(parseFloat(s?.pct_pago||0),100)}%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px">
+          ${(()=>{
+            const saldoVal = s?.saldo_livre_usd ?? a.orcamento_usd;
+            const isNeg = saldoVal < 0;
+            const corSaldo = isNeg ? 'var(--erro)' : 'var(--cinza-500)';
+            const labelSaldo = isNeg ? 'extrapolado' : 'livre';
+            const valorAbs = Math.abs(saldoVal);
+            return `<span style="color:${corSaldo};font-weight:${isNeg?'600':'400'}">
+              ${isNeg ? '⚠ ' : ''}${fmtUSD(valorAbs)} ${labelSaldo}
+            </span>`;
+          })()}
+          <span style="color:${pct>100?'var(--erro)':pct>80?'var(--aviso)':'var(--cinza-500)'}">${Math.round(pct)}%</span>
+        </div>
+      </td>
+      <td>
+        <div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:${s?.pago_usd>0?'var(--sucesso)':'var(--cinza-400,#9CA3AF)'}">
+          ${s?.pago_usd>0 ? fmtUSD(s.pago_usd) : '—'}
+        </div>
+        ${s?.pago_usd>0 ? `<div style="font-size:10px;color:var(--cinza-500);margin-top:2px">${Math.round(s?.pct_pago||0)}% do orçamento</div>` : ''}
+      </td>
+      <td>
+        ${a.responsaveis.length>0
+          ? a.responsaveis.slice(0,2).map(r=>{
+              const iniciais=(r.usuario?.nome_completo||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
+              return`<span class="resp-chip ${r.papel==='substituto'?'substituto':'principal'}" title="${r.usuario?.nome_completo||''}">
+                <span class="resp-avatar">${iniciais}</span>
+                ${(r.usuario?.nome_completo||'').split(' ')[0]}
+                ${r.papel==='substituto'?'<span style="font-size:9px">(sub.)</span>':''}
+              </span>`;
+            }).join('')+(a.responsaveis.length>2?`<span class="resp-chip" style="cursor:pointer" onclick="abrirModal('${a.id}')">+${a.responsaveis.length-2}</span>`:'')
+          : `<span class="sem-resp">⚠ Sem responsável</span>`}
+      </td>
+      <td>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span class="tdr-count ${tdrClass}" onclick="togglePainel('${a.id}')" title="Clique para ver os TDRs">
+            ${tdrTxt} ▾
+          </span>
+          ${a.tdrs_valor_usd>0?`<span style="font-family:var(--font-mono);font-size:10px;color:var(--cinza-500)">${fmtUSD(a.tdrs_valor_usd)}</span>`:''}
+        </div>
+      </td>
+      ${podEditar?`<td>
+        <button class="btn btn-sm btn-secondary btn-icon" title="Editar" onclick="abrirModal('${a.id}')">✏️</button>
+      </td>`:''}
+    </tr>`;
+
+    // Painel expansível com TDRs
+    const painelTdrs = `<tr class="tdr-painel" id="${painelId}">
+      <td colspan="${podEditar?10:9}" style="padding:0">
+        <div class="tdr-painel-inner">
+          <div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+            TDRs vinculados à atividade ${a.codigo}
+            ${temAlerta?`<span style="font-size:10px;font-weight:600;color:var(--aviso);background:var(--aviso-bg);padding:2px 8px;border-radius:99px">⚠ ${a.tdrs_sem_arquivo} sem arquivo carregado</span>`:''}
+            <a href="tdrs.html" class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:11px">Ver todos os TDRs →</a>
+          </div>
+          ${tdrsAtiv.length ? tdrsAtiv.map(tdr => {
+            const semArq = !tdr.arquivo_url;
+            return `<div class="tdr-inline-card ${semArq?'sem-arquivo':''}">
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
+                  <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--cinza-100);padding:2px 8px;border-radius:3px">${tdr.numero}</span>
+                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:${tdr.tipo==='PF'?'#E1F5EE':'#E6F1FB'};color:${tdr.tipo==='PF'?'#085041':'#0C447C'}">${tdr.tipo}</span>
+                  ${badgeStatusTDR(tdr.status)}
+                  ${semArq?`<span class="alerta-sem-arquivo">⚠ Sem arquivo no sistema</span>`:''}
+                </div>
+                <div style="font-size:12px;color:var(--cinza-700);line-height:1.4;margin-bottom:6px">
+                  ${(tdr.objeto_pt||'—').substring(0,120)}${(tdr.objeto_pt||'').length>120?'…':''}
+                </div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap">
+                  <div>
+                    <span style="font-size:10px;color:var(--cinza-500)">Valor R$</span>
+                    <div style="font-family:var(--font-mono);font-size:12px;font-weight:600">${fmtBRL(tdr.valor_brl)}</div>
+                  </div>
+                  <div>
+                    <span style="font-size:10px;color:var(--cinza-500)">Valor U$</span>
+                    <div style="font-family:var(--font-mono);font-size:12px;font-weight:600">${fmtUSD(tdr.valor_usd)}</div>
+                  </div>
+                  ${tdr.prioridade?`<div>
+                    <span style="font-size:10px;color:var(--cinza-500)">Prioridade</span>
+                    <div style="font-size:12px;font-weight:500">${tdr.prioridade}</div>
+                  </div>`:''}
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end">
+                ${tdr.arquivo_url
+                  ?`<button class="btn btn-sm btn-primary" onclick="abrirArquivoTDR('${tdr.id}',tdrsAbertos['${tdr.id}'])">📎 Abrir TDR</button>`
+                  :`<button class="btn btn-sm btn-secondary" style="opacity:.5;cursor:not-allowed" disabled>📎 Sem arquivo</button>`}
+                <a href="tdrs.html" class="btn btn-sm btn-secondary" style="font-size:11px">Ver detalhes</a>
+              </div>
+            </div>`;
+          }).join('') :
+          `<div style="text-align:center;padding:20px;color:var(--cinza-500);font-size:13px">
+            Nenhum TDR cadastrado para esta atividade.
+            ${PODE.editarTDR()?`<a href="tdrs.html" class="btn btn-sm btn-primary" style="margin-left:10px">+ Criar TDR</a>`:''}
+          </div>`}
+        </div>
+      </td>
+    </tr>`;
+
+    return linhaAtiv + painelTdrs;
+  }).join('');
+}
+
+function togglePainel(ativId) {
+  const el = document.getElementById(`painel-${ativId}`);
+  if (!el) return;
+  const aberto = el.classList.toggle('aberto');
+  painelAberto[ativId] = aberto;
+  // Atualizar ícone do badge
+  const badge = document.querySelector(`#row-${ativId} .tdr-count`);
+  if (badge) {
+    const txt = badge.textContent.replace('▾','').replace('▴','').trim();
+    badge.textContent = txt + (aberto?' ▴':' ▾');
+  }
+}
+
+async function abrirArquivoTDR(tdrId, url) {
+  if (!url) { toast('Este TDR não tem arquivo vinculado.','warning'); return; }
+  try {
+    // Verificar se é arquivo do Storage interno (não é link do Drive)
+    const isDrive = url.includes('drive.google.com') || url.includes('docs.google.com');
+    if (!isDrive) {
+      // Tentar gerar URL assinada do Storage
+      try {
+        const urlObj = new URL(url);
+        const match = urlObj.pathname.match(/\/object\/(?:public|sign)\/tdrs-arquivos\/(.+)/);
+        if (match) {
+          const filePath = decodeURIComponent(match[1]);
+          const {data, error} = await db.storage.from('tdrs-arquivos').createSignedUrl(filePath, 3600);
+          if (!error && data?.signedUrl) {
+            window.open(data.signedUrl, '_blank');
+            toast('Link gerado — válido por 1 hora.','success');
+            return;
+          }
+        }
+      } catch(e) {}
+      // Fallback: abrir URL direta
+      window.open(url, '_blank');
+    } else {
+      // É Drive — abrir direto e orientar o usuário
+      window.open(url, '_blank');
+      toast('Arquivo no Google Drive — para editar no sistema, abra o editor e faça o upload do .docx.','info');
+    }
+  } catch(e) { window.open(url,'_blank'); }
+}
+
+async function alterarFase(id, sel) {
+  const novaFase = sel.value;
+  sel.className = `fase-select fs-${novaFase}`;
+  try {
+    const { error } = await db.from('atividades').update({ fase: novaFase }).eq('id', id);
+    if (error) throw error;
+    const atv = todasAtividades.find(a => a.id === id);
+    if (atv) atv.fase = novaFase;
+    toast('Fase atualizada!', 'success');
+  } catch(e) { toast('Erro ao atualizar fase.', 'error'); }
+}
+
+function abrirModal(id) {
+  ativEditando = todasAtividades.find(a => a.id === id);
+  if (!ativEditando) return;
+  const a = ativEditando;
+  const nome = campo(a,'nome');
+
+  document.getElementById('modal-titulo').textContent = `Editar — ${a.codigo}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div style="margin-bottom:14px;padding:10px 14px;background:var(--cinza-50);border-radius:var(--raio);border:1px solid var(--borda)">
+      <div style="font-size:11px;color:var(--cinza-500);margin-bottom:2px">${a.wbs_unesco||a.codigo}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--cinza-900)">${nome}</div>
+    </div>
+
+    <!-- Responsáveis — campo obrigatório -->
+    <div style="background:${a.responsaveis.length===0?'var(--erro-bg)':'var(--cinza-50)'};border:1px solid ${a.responsaveis.length===0?'var(--erro)':'var(--borda)'};border-radius:var(--raio-lg);padding:14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">Responsáveis <span class="obrig">*</span></div>
+          <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">Campo obrigatório — ao menos 1 responsável</div>
+        </div>
+      </div>
+      <!-- Lista de responsáveis atuais -->
+      <div id="resp-lista" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        ${a.responsaveis.length>0
+          ? a.responsaveis.map(r=>`
+              <div style="display:flex;align-items:center;gap:6px;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:6px 10px">
+                <span class="resp-avatar" style="width:24px;height:24px;font-size:10px">${(r.usuario?.nome_completo||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</span>
+                <div>
+                  <div style="font-size:12px;font-weight:500">${r.usuario?.nome_completo||'—'}</div>
+                  <div style="font-size:10px;color:var(--cinza-500)">${r.papel==='substituto'?'Substituto':'Responsável'}</div>
+                </div>
+                ${PODE.gerirUsuarios()?`<button onclick="removerResponsavel('${r.id}','${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--cinza-400,#9CA3AF);font-size:14px;padding:0 2px;margin-left:4px">✕</button>`:''}
+              </div>`).join('')
+          : `<div style="font-size:12px;color:var(--erro);font-weight:500">⚠ Nenhum responsável cadastrado</div>`}
+      </div>
+      <!-- Adicionar responsável -->
+      <div style="display:flex;gap:8px;align-items:center">
+        <select class="form-control" id="novo-resp-usuario" style="flex:1;height:34px;font-size:12px">
+          <option value="">Selecionar usuário...</option>
+          ${todosUsuarios.map(u=>`<option value="${u.id}">${u.nome_completo} (${t('perfis',u.perfil)})</option>`).join('')}
+        </select>
+        <select class="form-control" id="novo-resp-papel" style="width:130px;height:34px;font-size:12px">
+          <option value="responsavel">Responsável</option>
+          <option value="substituto">Substituto</option>
+        </select>
+        <button class="btn btn-sm btn-primary" onclick="adicionarResponsavel('${a.id}')">+ Adicionar</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Fase</label>
+        <select class="form-control" id="ed-fase">
+          ${['A_INICIAR','ELABORACAO','LICITACAO','ELABORADO','CONTRATADO','CONCLUIDO']
+            .map(f=>`<option value="${f}" ${a.fase===f?'selected':''}>${t('fases',f)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Orçamento U$</label>
+        <input class="form-control" id="ed-orc" type="number" step="0.01" value="${a.orcamento_usd||0}">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Ano 1 U$</label>
+        <input class="form-control" id="ed-ano1" type="number" step="0.01" value="${a.ano1_usd||0}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ano 2 U$</label>
+        <input class="form-control" id="ed-ano2" type="number" step="0.01" value="${a.ano2_usd||0}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome (PT)</label>
+      <input class="form-control" id="ed-nome-pt" type="text" value="${a.nome_pt||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Eixo</label>
+      <input class="form-control" id="ed-eixo" type="text" value="${a.eixo||''}" placeholder="Ex: Governança">
+    </div>`;
+
+  document.getElementById('modal-atividade').classList.add('aberto');
+}
+
+async function adicionarResponsavel(ativId) {
+  const usuarioId = document.getElementById('novo-resp-usuario').value;
+  const papel = document.getElementById('novo-resp-papel').value;
+  if (!usuarioId) { toast('Selecione um usuário.','error'); return; }
+
+  // Verificar se já existe
+  const jaExiste = (respPorAtividade[ativId]||[]).find(r=>r.usuario_id===usuarioId&&r.ativo);
+  if (jaExiste) { toast('Este usuário já é responsável por esta atividade.','warning'); return; }
+
+  try {
+    const { data, error } = await db.from('atividade_responsaveis').insert({
+      atividade_id: ativId,
+      usuario_id: usuarioId,
+      papel: papel,
+      designado_por: appState.usuario.id,
+    }).select().single();
+    if (error) throw error;
+
+    const u = todosUsuarios.find(u=>u.id===usuarioId);
+    if (!respPorAtividade[ativId]) respPorAtividade[ativId]=[];
+    respPorAtividade[ativId].push({...data, usuario:u});
+
+    const atv = todasAtividades.find(a=>a.id===ativId);
+    if (atv) { atv.responsaveis = respPorAtividade[ativId]; atv.tem_responsavel=true; }
+
+    toast('Responsável adicionado!','success');
+    abrirModal(ativId); // Reabrir modal atualizado
+  } catch(e) { toast('Erro ao adicionar: '+(e.message||''),'error'); }
+}
+
+async function removerResponsavel(respId, ativId) {
+  if (!PODE.gerirUsuarios()) return;
+  try {
+    await db.from('atividade_responsaveis').update({ativo:false,dt_fim:new Date().toISOString().split('T')[0]}).eq('id',respId);
+    if (respPorAtividade[ativId]) {
+      respPorAtividade[ativId] = respPorAtividade[ativId].filter(r=>r.id!==respId);
+    }
+    const atv = todasAtividades.find(a=>a.id===ativId);
+    if (atv) { atv.responsaveis=respPorAtividade[ativId]||[]; atv.tem_responsavel=atv.responsaveis.length>0; }
+    toast('Responsável removido.','info');
+    abrirModal(ativId);
+  } catch(e) { toast('Erro ao remover.','error'); }
+}
+
+function fecharModal() {
+  document.getElementById('modal-atividade').classList.remove('aberto');
+  ativEditando = null;
+}
+
+async function salvarAtividade() {
+  if (!ativEditando) return;
+
+  // Validar responsável obrigatório
+  const resps = respPorAtividade[ativEditando.id]||[];
+  if (resps.length === 0) {
+    toast('⚠ Adicione ao menos um responsável antes de salvar.','error');
+    return;
+  }
+
+  // Capturar valores ANTES de pedir senha (evita perda de referência DOM)
+  const updates = {
+    fase: document.getElementById('ed-fase')?.value,
+    orcamento_usd: parseFloat(document.getElementById('ed-orc')?.value)||0,
+    ano1_usd: parseFloat(document.getElementById('ed-ano1')?.value)||0,
+    ano2_usd: parseFloat(document.getElementById('ed-ano2')?.value)||0,
+    nome_pt: document.getElementById('ed-nome-pt')?.value.trim(),
+    eixo: document.getElementById('ed-eixo')?.value.trim()||null,
+  };
+  const ativId = ativEditando.id;
+
+  pedirSenha('Confirmar alterações na atividade', `Atividade ${ativEditando.codigo}`, async () => {
+    try {
+      const { error } = await db.from('atividades').update(updates).eq('id', ativId);
+      if (error) throw error;
+      const atv = todasAtividades.find(a=>a.id===ativId);
+      if (atv) Object.assign(atv, updates);
+      fecharModal();
+      filtrar();
+      toast('Atividade atualizada com sucesso!', 'success');
+    } catch(e) { toast('Erro ao salvar: '+(e.message||''), 'error'); }
+  });
+}
+
+// ── SISTEMA DE CONFIRMAÇÃO POR SENHA ──────────────────────────
+function pedirSenha(titulo, subtitulo, callback) {
+  document.getElementById('senha-titulo').textContent = titulo;
+  document.getElementById('senha-sub').textContent = subtitulo;
+  document.getElementById('senha-input').value = '';
+  document.getElementById('senha-erro').style.display = 'none';
+  senhaCallback = callback;
+  document.getElementById('modal-senha').classList.add('aberto');
+  setTimeout(()=>document.getElementById('senha-input').focus(), 100);
+}
+
+async function confirmarSenha() {
+  const senha = document.getElementById('senha-input').value;
+  if (!senha) { toast('Digite sua senha.','error'); return; }
+
+  const btn = document.getElementById('senha-btn-ok');
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
+
+  try {
+    // Verificar senha via Supabase reautenticação
+    const { error } = await db.auth.signInWithPassword({
+      email: appState.usuario.email,
+      password: senha
+    });
+
+    if (error) {
+      document.getElementById('senha-erro').style.display = 'block';
+      document.getElementById('senha-input').value = '';
+      document.getElementById('senha-input').focus();
+      btn.textContent = 'Confirmar';
+      btn.disabled = false;
+      return;
+    }
+
+    // Senha correta — fechar modal de senha e executar callback
+    const cb = senhaCallback;
+    fecharSenha();
+    if (cb) await cb();
+  } catch(e) {
+    toast('Erro na verificação. Tente novamente.','error');
+    btn.textContent = 'Confirmar';
+    btn.disabled = false;
+  }
+}
+
+function fecharSenha() {
+  document.getElementById('modal-senha').classList.remove('aberto');
+  document.getElementById('senha-input').value = '';
+  senhaCallback = null;
+}
+
+function novaAtividade() { toast('Cadastro de nova atividade — em breve!','info'); }
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') fecharModal(); });
+</script>
+</body>
+</html>
