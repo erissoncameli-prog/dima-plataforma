@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Contratos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<link href="../css/sidebar.css" rel="stylesheet">
+<style>
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:11px;color:var(--cinza-500);margin-top:3px;}
+.tbl-wrap{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{padding:9px 10px;font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--borda);background:var(--cinza-50);text-align:left;white-space:nowrap;}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--borda);color:var(--cinza-700);vertical-align:middle;}
+.tbl tbody tr.main-row:hover td{background:var(--cinza-50);cursor:pointer;}
+.tbl tbody tr.main-row.aberto td{background:#F0FDF4;}
+.tbl tbody tr.detail-row td{padding:0;border-bottom:1px solid var(--borda);}
+.xbtn{width:22px;height:22px;border-radius:4px;border:1px solid var(--borda);background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--cinza-400,#9CA3AF);transition:all .15s;}
+.xbtn:hover{background:var(--verde-bg);border-color:var(--verde-medio);color:var(--verde-medio);}
+.xbtn.aberto{background:var(--verde-bg);border-color:var(--verde-medio);color:var(--verde-medio);}
+.badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;}
+.b-vigente{background:#ECFDF5;color:#065F46}.b-encerrado{background:#F3F4F6;color:#374151}.b-suspenso{background:#FEF2F2;color:#991B1B}
+.mono{font-family:var(--font-mono);font-size:11px;}
+.pdf-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.detail-inner{padding:14px 16px;background:var(--cinza-50);}
+.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.detail-item{display:flex;flex-direction:column;gap:2px;}
+.detail-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;}
+.detail-val{font-size:12px;color:var(--cinza-900);font-weight:500;}
+.pdf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.pdf-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;display:flex;align-items:center;gap:10px;}
+.pdf-card-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.pdf-card-info{flex:1;min-width:0;}
+.pdf-card-nome{font-size:12px;font-weight:500;color:var(--cinza-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pdf-card-meta{font-size:10px;color:var(--cinza-500);margin-top:1px;}
+.pdf-card-btns{display:flex;gap:4px;flex-shrink:0;}
+.btn-xs{height:26px;padding:0 8px;font-size:10px;border-radius:4px;border:1px solid var(--borda);background:none;cursor:pointer;color:var(--cinza-600,#4B5563);white-space:nowrap;font-family:var(--font-sans);text-decoration:none;display:inline-flex;align-items:center;}
+.btn-xs:hover{background:var(--cinza-50);}
+.btn-xs-prim{background:var(--verde-bg);color:var(--verde-escuro);border-color:#9FE1CB;}
+.btn-xs-prim:hover{background:#9FE1CB;}
+.saldo-bar{height:4px;background:var(--cinza-100);border-radius:2px;overflow:hidden;margin-top:3px;}
+.saldo-fill{height:100%;border-radius:2px;}
+.modal-lg{max-width:700px;}
+.upload-zone{border:1.5px dashed var(--borda-forte);border-radius:var(--raio);padding:18px;text-align:center;cursor:pointer;transition:all .15s;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--verde-medio);background:var(--verde-bg);}
+.upload-zone input{display:none;}
+.traduz-info{background:var(--azul-bg);border:1px solid #B5D4F4;border-radius:var(--raio);padding:10px 12px;font-size:11px;color:var(--azul-medio);display:flex;align-items:flex-start;gap:8px;margin-top:8px;line-height:1.5;}
+.sec-label{font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--borda);}
+.prog-bar{height:3px;background:var(--cinza-100);border-radius:2px;overflow:hidden;margin-top:6px;display:none;}
+.prog-fill{height:100%;background:var(--verde-medio);border-radius:2px;transition:width .3s;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="modal-overlay" id="modal-contrato">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="m-titulo">Contrato</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="m-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+    <div class="modal-footer" id="m-footer"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+(function(){
+var todosContratos=[],atividades=[],fornecedores=[],tdrs=[];
+var contratoEditando=null,filePDF=null;
+var expandidos={};
+var SL={vigente:'Vigente',encerrado:'Encerrado',suspenso:'Suspenso'};
+var TIPOS=['Servico','Consultoria','Consumo','Diaria','Passagens','Obra'];
+
+(async function(){
+  var u=await carregarUsuario();
+  if(!u){window.location.href='../index.html';return;}
+  document.getElementById('app').innerHTML=gerarLayout('Contratos','contratos')+
+  '<div class="fade-in">'+
+  '<div class="stat-row" id="stats"></div>'+
+  '<div class="filter-bar" style="margin-bottom:14px">'+
+  '<input class="form-control" type="text" id="busca" style="width:240px" placeholder="Buscar numero, objeto ou fornecedor..." oninput="filtrar()">'+
+  '<select class="form-control" id="fil-status" onchange="filtrar()" style="width:140px">'+
+  '<option value="">Todos os status</option>'+
+  '<option value="vigente">Vigente</option>'+
+  '<option value="encerrado">Encerrado</option>'+
+  '<option value="suspenso">Suspenso</option>'+
+  '</select>'+
+  '<select class="form-control" id="fil-pdf" onchange="filtrar()" style="width:150px">'+
+  '<option value="">Todos</option>'+
+  '<option value="com">Com PDF</option>'+
+  '<option value="sem">Sem PDF</option>'+
+  '</select>'+
+  '<span id="cont" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>'+
+  (PODE.verFinanceiro()?'<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo contrato</button>':'')+
+  '</div>'+
+  '<div class="tbl-wrap">'+
+  '<table class="tbl">'+
+  '<thead><tr>'+
+  '<th style="width:32px"></th>'+
+  '<th>Numero</th><th>Objeto</th><th>Fornecedor</th>'+
+  '<th>Valor total</th><th>Vigencia</th><th>Status</th>'+
+  '<th style="width:50px" title="PDF: verde=presente, vermelho=ausente, azul=traducao PT">PDF</th>'+
+  '<th style="width:60px">Acoes</th>'+
+  '</tr></thead>'+
+  '<tbody id="tbody"></tbody>'+
+  '</table>'+
+  '<div id="tbl-empty"></div>'+
+  '</div></div>'+fecharLayout();
+  await carregar();
+})();
+
+async function carregar(){
+  var rs=await Promise.all([
+    db.from('contratos').select('*,fornecedores(id,nome,tipo),atividades(id,codigo,nome_pt),tdrs(id,numero)').order('criado_em',{ascending:false}),
+    db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
+    db.from('fornecedores').select('id,nome,tipo').order('nome'),
+    db.from('tdrs').select('id,numero,objeto_pt,atividade_id').neq('status','cancelado').order('numero')
+  ]);
+  todosContratos=rs[0].data||[];
+  atividades=rs[1].data||[];
+  fornecedores=rs[2].data||[];
+  tdrs=rs[3].data||[];
+  renderStats();filtrar();
+}
+
+function renderStats(){
+  var vig=todosContratos.filter(function(c){return c.status==='vigente';});
+  var totC=vig.reduce(function(s,c){return s+parseFloat(c.valor_total_brl||0);},0);
+  var totU=vig.reduce(function(s,c){return s+parseFloat(c.valor_utilizado_brl||0);},0);
+  var semPDF=todosContratos.filter(function(c){return !c.contrato_assinado_url;}).length;
+  document.getElementById('stats').innerHTML=
+    '<div class="stat-card sc-g"><div class="stat-lbl">Vigentes</div><div class="stat-val">'+vig.length+'</div><div class="stat-sub">de '+todosContratos.length+' totais</div></div>'+
+    '<div class="stat-card sc-b"><div class="stat-lbl">Total contratado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totC)+'</div></div>'+
+    '<div class="stat-card sc-a"><div class="stat-lbl">Total utilizado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totU)+'</div><div class="stat-sub">'+(totC>0?Math.round(totU/totC*100):0)+'% do contratado</div></div>'+
+    '<div class="stat-card '+(semPDF>0?'sc-r':'sc-g')+'"><div class="stat-lbl">Sem PDF</div><div class="stat-val" style="color:'+(semPDF>0?'var(--erro)':'var(--sucesso)')+'">'+semPDF+'</div><div class="stat-sub">contratos sem documento</div></div>';
+}
+
+function filtrar(){
+  var b=(document.getElementById('busca').value||'').toLowerCase();
+  var s=document.getElementById('fil-status').value;
+  var fp=document.getElementById('fil-pdf').value;
+  var fil=todosContratos.filter(function(c){
+    if(s&&c.status!==s)return false;
+    if(fp==='com'&&!c.contrato_assinado_url)return false;
+    if(fp==='sem'&&c.contrato_assinado_url)return false;
+    if(b&&!((c.numero+' '+(c.objeto_pt||'')+' '+(c.fornecedores?c.fornecedores.nome:'')).toLowerCase()).includes(b))return false;
+    return true;
+  });
+  document.getElementById('cont').textContent=fil.length+' de '+todosContratos.length+' contratos';
+  var tbody=document.getElementById('tbody');
+  var empty=document.getElementById('tbl-empty');
+  if(!fil.length){
+    tbody.innerHTML='';
+    empty.innerHTML='<div class="empty-state"><div class="empty-state-icon">&#x25EA;</div><div class="empty-state-msg">Nenhum contrato encontrado.</div></div>';
+    return;
+  }
+  empty.innerHTML='';
+  tbody.innerHTML=fil.map(function(c){return renderLinha(c);}).join('');
+}
+window.filtrar=filtrar;
+
+function renderLinha(c){
+  var total=parseFloat(c.valor_total_brl||0);
+  var usado=parseFloat(c.valor_utilizado_brl||0);
+  var pct=total>0?Math.min(usado/total*100,100):0;
+  var critico=pct>90;
+  var vencido=c.dt_fim&&new Date(c.dt_fim)<new Date()&&c.status==='vigente';
+  var temPDF=!!c.contrato_assinado_url;
+  var temTrad=!!c.contrato_pt_url;
+  var aberto=!!expandidos[c.id];
+  var obj=(c.objeto_pt||'').substring(0,55)+(c.objeto_pt&&c.objeto_pt.length>55?'...':'');
+
+  var main='<tr class="main-row '+(aberto?'aberto':'')+'" onclick="toggleDet(\''+c.id+'\')">'
+    +'<td><button class="xbtn '+(aberto?'aberto':'')+'" id="xb-'+c.id+'" onclick="event.stopPropagation();toggleDet(\''+c.id+'\')">'+(aberto?'&#9660;':'&#9658;')+'</button></td>'
+    +'<td><span class="mono" style="font-weight:600">'+c.numero+'</span></td>'
+    +'<td style="max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(c.objeto_pt||'')+'" >'+obj+'</div>'
+      +(vencido?'<span style="font-size:9px;background:var(--erro-bg);color:var(--erro);padding:1px 5px;border-radius:3px;font-weight:600">Vencido</span>':critico?'<span style="font-size:9px;background:var(--aviso-bg);color:var(--aviso);padding:1px 5px;border-radius:3px;font-weight:600">Critico</span>':'')
+    +'</td>'
+    +'<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(c.fornecedores?c.fornecedores.nome:'--')+'</td>'
+    +'<td><div class="mono" style="font-weight:600">'+fmtBRL(total)+'</div>'
+      +'<div class="saldo-bar"><div class="saldo-fill" style="width:'+pct+'%;background:'+(critico?'var(--erro)':'var(--verde-claro)')+'"></div></div></td>'
+    +'<td style="white-space:nowrap;font-size:11px">'+(c.dt_inicio?fmtData(c.dt_inicio):'--')+' &#x2192; '+(c.dt_fim?fmtData(c.dt_fim):'--')+'</td>'
+    +'<td><span class="badge b-'+c.status+'">'+(SL[c.status]||c.status)+'</span></td>'
+    +'<td style="text-align:center">'
+      +'<span class="pdf-dot" style="background:'+(temPDF?'#059669':'#EF4444')+'" title="'+(temPDF?'PDF EN presente':'PDF ausente')+'"></span>'
+      +(temTrad?'<span class="pdf-dot" style="background:#2563EB;margin-left:3px" title="Traducao PT disponivel"></span>':'')
+    +'</td>'
+    +'<td>'+(PODE.verFinanceiro()?'<button class="btn-xs" onclick="event.stopPropagation();abrirEditar(\''+c.id+'\')" title="Editar">&#x270F;</button>':'')+'</td>'
+    +'</tr>';
+
+  var det='<tr class="detail-row" id="det-'+c.id+'" style="display:'+(aberto?'table-row':'none')+'">'
+    +'<td colspan="9"><div class="detail-inner" id="inner-'+c.id+'">'+(aberto?buildDet(c):'')+'</div></td>'
+    +'</tr>';
+
+  return main+det;
+}
+
+function buildDet(c){
+  var total=parseFloat(c.valor_total_brl||0);
+  var usado=parseFloat(c.valor_utilizado_brl||0);
+  var saldo=parseFloat(c.saldo_brl||total-usado);
+  var h='<div class="detail-grid">';
+  h+='<div class="detail-item"><span class="detail-lbl">TDR vinculado</span><span class="detail-val">'+(c.tdrs?c.tdrs.numero:'--')+'</span></div>';
+  h+='<div class="detail-item"><span class="detail-lbl">Atividade</span><span class="detail-val">'+(c.atividades?c.atividades.codigo:'--')+'</span></div>';
+  h+='<div class="detail-item"><span class="detail-lbl">Tipo</span><span class="detail-val">'+(c.tipo||'--')+'</span></div>';
+  h+='<div class="detail-item"><span class="detail-lbl">Utilizado</span><span class="detail-val" style="color:var(--aviso)">'+fmtBRL(usado)+'</span></div>';
+  h+='<div class="detail-item"><span class="detail-lbl">Saldo</span><span class="detail-val" style="color:'+(saldo<0?'var(--erro)':'var(--sucesso)')+'">'+fmtBRL(saldo)+'</span></div>';
+  h+='<div class="detail-item"><span class="detail-lbl">Elemento despesa</span><span class="detail-val">'+(c.elemento_despesa||'--')+'</span></div>';
+  h+='</div>';
+  h+='<div style="font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Documentos</div>';
+  h+='<div class="pdf-row">';
+  if(c.contrato_assinado_url){
+    h+='<div class="pdf-card"><div class="pdf-card-icon" style="background:#FEF2F2">&#x1F4C4;</div>'
+      +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_assinado_nome||'Contrato EN')+'</div>'
+      +'<div class="pdf-card-meta">Original EN'+(c.contrato_assinado_data?' &middot; '+fmtData(c.contrato_assinado_data):'')+'</div></div>'
+      +'<div class="pdf-card-btns">'
+      +'<button class="btn-xs" onclick="window.open(\''+c.contrato_assinado_url+'\',\'_blank\')">&#x1F441;</button>'
+      +'<a href="'+c.contrato_assinado_url+'" download class="btn-xs">&#x2B07;</a>'
+      +'</div></div>';
+  } else {
+    h+='<div class="pdf-card" style="border-style:dashed">'
+      +'<div class="pdf-card-icon" style="background:var(--cinza-50)">&#x1F4C4;</div>'
+      +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">PDF original (EN) ausente</div>'
+      +'<div class="pdf-card-meta">Contrato assinado pela UNESCO</div></div>'
+      +'<label class="btn-xs btn-xs-prim" style="cursor:pointer">&#x2B06; Upload<input type="file" accept=".pdf" style="display:none" onchange="uploadDireto(\''+c.id+'\',this.files[0],\'en\')"></label>'
+      +'</div>';
+  }
+  if(c.contrato_pt_url){
+    h+='<div class="pdf-card"><div class="pdf-card-icon" style="background:#E1F5EE">&#x1F4C4;</div>'
+      +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_pt_nome||'Contrato PT')+'</div>'
+      +'<div class="pdf-card-meta">Traducao automatica PT'+(c.contrato_pt_data?' &middot; '+new Date(c.contrato_pt_data).toLocaleDateString('pt-BR'):'')+'</div></div>'
+      +'<div class="pdf-card-btns">'
+      +'<button class="btn-xs" onclick="window.open(\''+c.contrato_pt_url+'\',\'_blank\')">&#x1F441;</button>'
+      +'<a href="'+c.contrato_pt_url+'" download class="btn-xs">&#x2B07;</a>'
+      +'</div></div>';
+  } else if(c.contrato_assinado_url){
+    h+='<div class="pdf-card" style="border-style:dashed">'
+      +'<div class="pdf-card-icon" style="background:var(--azul-bg)">&#x1F310;</div>'
+      +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">Traducao PT nao gerada</div>'
+      +'<div class="pdf-card-meta">IA traduz o contrato EN para portugues</div></div>'
+      +'<button class="btn-xs btn-xs-prim" id="btn-tr-'+c.id+'" onclick="traduzir(\''+c.id+'\')">&#x1F310; Traduzir</button>'
+      +'</div>';
+  } else {
+    h+='<div class="pdf-card" style="border-style:dashed;opacity:.5">'
+      +'<div class="pdf-card-icon" style="background:var(--azul-bg)">&#x1F310;</div>'
+      +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">Traducao PT</div>'
+      +'<div class="pdf-card-meta">Disponivel apos upload do PDF EN</div></div>'
+      +'</div>';
+  }
+  h+='</div>';
+  if(c.objeto_pt)h+='<div style="font-size:11px;color:var(--cinza-700);background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;line-height:1.5"><strong>Objeto:</strong> '+c.objeto_pt+'</div>';
+  return h;
+}
+
+window.toggleDet=function(id){
+  expandidos[id]=!expandidos[id];
+  var det=document.getElementById('det-'+id);
+  var inner=document.getElementById('inner-'+id);
+  var xb=document.getElementById('xb-'+id);
+  var mainRow=det?det.previousElementSibling:null;
+  if(!det)return;
+  if(expandidos[id]){
+    det.style.display='table-row';
+    var c=todosContratos.find(function(x){return x.id===id;});
+    if(inner&&c)inner.innerHTML=buildDet(c);
+    if(xb){xb.className='xbtn aberto';xb.innerHTML='&#9660;';}
+    if(mainRow)mainRow.classList.add('aberto');
+  } else {
+    det.style.display='none';
+    if(xb){xb.className='xbtn';xb.innerHTML='&#9658;';}
+    if(mainRow)mainRow.classList.remove('aberto');
+  }
+};
+
+window.uploadDireto=async function(id,file,lang){
+  if(!file)return;
+  toast('Enviando PDF...','info');
+  var path='contratos/'+id+'/'+(lang==='en'?'original':'traduzido')+'_'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  var up=await db.storage.from('contratos-docs').upload(path,file,{upsert:true});
+  if(up.error){toast('Erro upload: '+up.error.message,'error');return;}
+  var url=db.storage.from('contratos-docs').getPublicUrl(path).data.publicUrl;
+  var upd=lang==='en'
+    ?{contrato_assinado_url:url,contrato_assinado_nome:file.name,contrato_assinado_data:new Date().toISOString().split('T')[0]}
+    :{contrato_pt_url:url,contrato_pt_nome:file.name,contrato_pt_data:new Date().toISOString()};
+  await db.from('contratos').update(upd).eq('id',id);
+  var c=todosContratos.find(function(x){return x.id===id;});
+  if(c)Object.assign(c,upd);
+  toast('PDF enviado!','success');
+  expandidos[id]=false;toggleDet(id);
+};
+
+window.traduzir=async function(id){
+  var c=todosContratos.find(function(x){return x.id===id;});
+  if(!c||!c.contrato_assinado_url){toast('PDF original nao encontrado.','error');return;}
+  var btn=document.getElementById('btn-tr-'+id);
+  if(btn){btn.textContent='Traduzindo...';btn.disabled=true;}
+  toast('Traduzindo contrato com IA — aguarde...','info',10000);
+  try{
+    var resp=await fetch(c.contrato_assinado_url);
+    if(!resp.ok)throw new Error('Nao foi possivel ler o PDF ('+resp.status+')');
+    var blob=await resp.blob();
+    var b64=await new Promise(function(res,rej){
+      var r=new FileReader();r.onload=function(){res(r.result.split(',')[1]);};r.onerror=rej;r.readAsDataURL(blob);
+    });
+    var ai=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:4000,
+        messages:[{role:'user',content:[
+          {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+          {type:'text',text:'Traduza este contrato do ingles para o portugues brasileiro de forma fiel e completa. Mantenha a estrutura, numeracao de clausulas e formatacao original. Retorne APENAS o texto traduzido.'}
+        ]}]
+      })
+    });
+    if(!ai.ok){var e=await ai.json();throw new Error(e.error&&e.error.message||'Erro API');}
+    var aiData=await ai.json();
+    var txt=aiData.content&&aiData.content[0]&&aiData.content[0].text||'';
+    if(txt.length<100)throw new Error('Traducao muito curta ou vazia.');
+    var nome=(c.contrato_assinado_nome||'contrato').replace(/\.pdf$/i,'')+'_PT_traduzido.txt';
+    var tblob=new Blob([txt],{type:'text/plain;charset=utf-8'});
+    var path='contratos/'+id+'/'+nome;
+    var up=await db.storage.from('contratos-docs').upload(path,tblob,{upsert:true,contentType:'text/plain'});
+    if(up.error)throw new Error('Erro upload traducao: '+up.error.message);
+    var url=db.storage.from('contratos-docs').getPublicUrl(path).data.publicUrl;
+    await db.from('contratos').update({contrato_pt_url:url,contrato_pt_nome:nome,contrato_pt_data:new Date().toISOString()}).eq('id',id);
+    Object.assign(c,{contrato_pt_url:url,contrato_pt_nome:nome,contrato_pt_data:new Date().toISOString()});
+    toast('Contrato traduzido e salvo!','success');
+    expandidos[id]=false;toggleDet(id);
+  }catch(e){
+    toast('Erro: '+e.message,'error',7000);
+    if(btn){btn.textContent='Traduzir';btn.disabled=false;}
+  }
+};
+
+window.abrirNovo=function(){
+  contratoEditando=null;filePDF=null;
+  document.getElementById('m-titulo').textContent='Novo contrato';
+  document.getElementById('m-sub').textContent='';
+  renderForm(null);
+  document.getElementById('m-footer').innerHTML=
+    '<button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>'+
+    '<button class="btn btn-primary" onclick="salvar()">Criar contrato</button>';
+  document.getElementById('modal-contrato').classList.add('aberto');
+};
+
+window.abrirEditar=function(id){
+  contratoEditando=todosContratos.find(function(c){return c.id===id;})||null;
+  if(!contratoEditando)return;
+  filePDF=null;
+  document.getElementById('m-titulo').textContent='Editar -- '+contratoEditando.numero;
+  document.getElementById('m-sub').textContent=contratoEditando.fornecedores?contratoEditando.fornecedores.nome:'';
+  renderForm(contratoEditando);
+  document.getElementById('m-footer').innerHTML=
+    '<button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>'+
+    '<button class="btn btn-primary" onclick="salvar()">Salvar alteracoes</button>';
+  document.getElementById('modal-contrato').classList.add('aberto');
+};
+
+function renderForm(c){
+  var fOpts=fornecedores.map(function(f){return '<option value="'+f.id+'" '+(c&&c.fornecedor_id===f.id?'selected':'')+'>'+f.nome+' ('+f.tipo+')</option>';}).join('');
+  var aOpts=atividades.map(function(a){return '<option value="'+a.id+'" '+(c&&c.atividade_id===a.id?'selected':'')+'>'+a.codigo+' -- '+a.nome_pt.substring(0,50)+'</option>';}).join('');
+  var tOpts=tdrs.map(function(t){return '<option value="'+t.id+'" '+(c&&c.tdr_id===t.id?'selected':'')+'>'+t.numero+' -- '+(t.objeto_pt||'').substring(0,45)+'</option>';}).join('');
+  document.getElementById('m-body').innerHTML=
+    '<div class="grid-2"><div class="form-group"><label class="form-label">Numero do contrato <span class="obrig">*</span></label>'+
+    '<input class="form-control" id="f-num" type="text" value="'+(c&&c.numero||'')+'" placeholder="Ex: CTR-2025-001" style="font-family:var(--font-mono)"></div>'+
+    '<div class="form-group"><label class="form-label">Tipo</label>'+
+    '<select class="form-control" id="f-tipo"><option value="">Selecione...</option>'+
+    TIPOS.map(function(t){return '<option value="'+t+'" '+(c&&c.tipo===t?'selected':'')+'>'+t+'</option>';}).join('')+
+    '</select></div></div>'+
+    '<div class="form-group"><label class="form-label">Fornecedor <span class="obrig">*</span></label>'+
+    '<select class="form-control" id="f-forn"><option value="">Selecione o fornecedor...</option>'+fOpts+'</select></div>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label">TDR vinculado</label>'+
+    '<select class="form-control" id="f-tdr" onchange="preencherAtiv()"><option value="">Selecionar TDR...</option>'+tOpts+'</select></div>'+
+    '<div class="form-group"><label class="form-label">Atividade</label>'+
+    '<select class="form-control" id="f-ativ"><option value="">Selecione...</option>'+aOpts+'</select></div></div>'+
+    '<div class="form-group"><label class="form-label">Objeto do contrato</label>'+
+    '<textarea class="form-control" id="f-objeto" rows="2">'+(c&&c.objeto_pt||'')+'</textarea></div>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label">Valor total R$ <span class="obrig">*</span></label>'+
+    '<input class="form-control" id="f-total" type="number" step="0.01" value="'+(c&&c.valor_total_brl||'')+'" placeholder="0,00"></div>'+
+    '<div class="form-group"><label class="form-label">Valor utilizado R$</label>'+
+    '<input class="form-control" id="f-usado" type="number" step="0.01" value="'+(c&&c.valor_utilizado_brl||0)+'">'+
+    '<div class="form-hint">Atualizado pelos lancamentos financeiros.</div></div></div>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label">Data de inicio</label>'+
+    '<input class="form-control" id="f-inicio" type="date" value="'+(c&&c.dt_inicio||'')+'"></div>'+
+    '<div class="form-group"><label class="form-label">Data de termino</label>'+
+    '<input class="form-control" id="f-fim" type="date" value="'+(c&&c.dt_fim||'')+'"></div></div>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label">Elemento de despesa</label>'+
+    '<input class="form-control" id="f-elem" value="'+(c&&c.elemento_despesa||'')+'" placeholder="Ex: 33903900"></div>'+
+    '<div class="form-group"><label class="form-label">Status</label>'+
+    '<select class="form-control" id="f-status">'+
+    ['vigente','encerrado','suspenso'].map(function(s){return '<option value="'+s+'" '+((c?c.status:'vigente')===s?'selected':'')+'>'+SL[s]+'</option>';}).join('')+
+    '</select></div></div>'+
+    '<div class="sec-label">Documento do contrato (PDF assinado)</div>'+
+    '<div class="upload-zone" id="zone-pdf" onclick="document.getElementById(\'inp-pdf\').click()" '+
+    'ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" '+
+    'ondrop="event.preventDefault();this.classList.remove(\'drag\');dropPDF(event)">'+
+    '<input type="file" id="inp-pdf" accept=".pdf" onchange="selPDF(this.files)">'+
+    '<div style="font-size:24px;margin-bottom:6px">&#x1F4C4;</div>'+
+    '<div style="font-size:13px;font-weight:500;color:var(--cinza-700)">'+(c&&c.contrato_assinado_nome?'&#x1F4CE; '+c.contrato_assinado_nome+' (substituir)':'Arraste o PDF ou clique para selecionar')+'</div>'+
+    '<div style="font-size:11px;color:var(--cinza-500);margin-top:3px">PDF do contrato assinado pela UNESCO -- ate 20MB</div>'+
+    '<div id="pdf-prev" style="margin-top:8px"></div></div>'+
+    '<div class="traduz-info">'+
+    '<span style="font-size:16px;flex-shrink:0">&#x1F310;</span>'+
+    '<div>Apos salvar, clique em "Traduzir" na linha do contrato -- a IA traduz o PDF do ingles para o portugues e salva as duas versoes no sistema.</div>'+
+    '</div>'+
+    '<div class="prog-bar" id="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>';
+}
+
+window.preencherAtiv=function(){
+  var tId=document.getElementById('f-tdr').value;
+  if(!tId)return;
+  var t=tdrs.find(function(x){return x.id===tId;});
+  if(!t||!t.atividade_id)return;
+  document.getElementById('f-ativ').value=t.atividade_id;
+};
+window.selPDF=function(files){
+  if(!files||!files[0])return;
+  filePDF=files[0];
+  document.getElementById('pdf-prev').innerHTML=
+    '<div style="background:var(--verde-bg);border:1px solid #9FE1CB;border-radius:var(--raio);padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px">'+
+    '<span style="font-size:16px">&#x1F4C4;</span><span style="font-weight:500">'+filePDF.name+'</span>'+
+    '<span style="color:var(--cinza-500)">('+Math.round(filePDF.size/1024)+'KB)</span></div>';
+};
+window.dropPDF=function(e){selPDF(e.dataTransfer.files);};
+
+window.salvar=async function(){
+  var num=(document.getElementById('f-num').value||'').trim();
+  var fornId=document.getElementById('f-forn').value;
+  var total=parseFloat(document.getElementById('f-total').value)||0;
+  if(!num||!fornId||!total){toast('Preencha numero, fornecedor e valor total.','error');return;}
+  var dados={
+    numero:num,fornecedor_id:fornId,
+    tdr_id:document.getElementById('f-tdr').value||null,
+    atividade_id:document.getElementById('f-ativ').value||null,
+    objeto_pt:document.getElementById('f-objeto').value.trim()||null,
+    tipo:document.getElementById('f-tipo').value||null,
+    valor_total_brl:total,
+    valor_utilizado_brl:parseFloat(document.getElementById('f-usado').value)||0,
+    dt_inicio:document.getElementById('f-inicio').value||null,
+    dt_fim:document.getElementById('f-fim').value||null,
+    elemento_despesa:document.getElementById('f-elem').value.trim()||null,
+    status:document.getElementById('f-status').value,
+  };
+  dados.saldo_brl=dados.valor_total_brl-dados.valor_utilizado_brl;
+  var prog=document.getElementById('prog-bar');
+  var fill=document.getElementById('prog-fill');
+  if(prog)prog.style.display='block';
+  if(fill)fill.style.width='20%';
+  try{
+    var cId;
+    if(!contratoEditando){
+      var ins=await db.from('contratos').insert(Object.assign({},dados,{criado_por:appState.usuario.id})).select('*,fornecedores(id,nome,tipo),atividades(id,codigo,nome_pt),tdrs(id,numero)').single();
+      if(ins.error)throw ins.error;
+      todosContratos.unshift(ins.data);cId=ins.data.id;
+      toast('Contrato '+ins.data.numero+' criado!','success');
+    } else {
+      var upd2=await db.from('contratos').update(dados).eq('id',contratoEditando.id);
+      if(upd2.error)throw upd2.error;
+      cId=contratoEditando.id;
+      var f2=fornecedores.find(function(f){return f.id===dados.fornecedor_id;});
+      var a2=atividades.find(function(a){return a.id===dados.atividade_id;});
+      Object.assign(contratoEditando,dados,{fornecedores:f2||null,atividades:a2||null});
+      toast('Contrato atualizado!','success');
+    }
+    if(fill)fill.style.width='60%';
+    if(filePDF&&cId){
+      var path='contratos/'+cId+'/original_'+Date.now()+'_'+filePDF.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      var up=await db.storage.from('contratos-docs').upload(path,filePDF,{upsert:true});
+      if(!up.error){
+        var url=db.storage.from('contratos-docs').getPublicUrl(path).data.publicUrl;
+        await db.from('contratos').update({contrato_assinado_url:url,contrato_assinado_nome:filePDF.name,contrato_assinado_data:new Date().toISOString().split('T')[0]}).eq('id',cId);
+        var c2=todosContratos.find(function(x){return x.id===cId;});
+        if(c2){c2.contrato_assinado_url=url;c2.contrato_assinado_nome=filePDF.name;}
+      } else toast('Aviso: erro no upload do PDF -- '+up.error.message,'error');
+    }
+    if(fill)fill.style.width='100%';
+    fecharModal();renderStats();filtrar();
+  }catch(e){
+    if(e.code==='23505')toast('Numero de contrato ja cadastrado.','error');
+    else toast('Erro: '+(e.message||''),'error');
+    if(prog)prog.style.display='none';
+  }
+};
+
+window.fecharModal=function(){
+  document.getElementById('modal-contrato').classList.remove('aberto');
+  contratoEditando=null;filePDF=null;
+};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')fecharModal();});
+})();
+</script>
+</body>
+</html>
