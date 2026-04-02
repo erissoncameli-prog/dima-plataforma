@@ -74,7 +74,7 @@ body {
   position: fixed;
   top: 0; left: 0; bottom: 0;
   z-index: 100;
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
   box-shadow: 4px 0 20px rgba(0,0,0,.2);
 }
@@ -95,18 +95,22 @@ body {
 .sidebar-brand-logo-wrap {
   background: #ffffff;
   border-radius: 10px;
-  padding: 10px 16px;
+  padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 16px rgba(0,0,0,.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,.35);
   margin-bottom: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .sidebar-logo-img {
-  height: 52px;
-  width: auto;
+  height: 58px;
+  width: 100%;
+  max-width: 180px;
   display: block;
   object-fit: contain;
+  object-position: center;
 }
 .sidebar-brand-logo {
   font-family: var(--font-display);
@@ -171,7 +175,15 @@ body {
 .lang-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
 .lang-btn.ativo { background: var(--ouro); border-color: var(--ouro); color: var(--verde); }
 
-.sidebar-nav { padding: 10px 0; flex: 1; }
+.sidebar-nav { 
+  padding: 10px 0; 
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE */
+}
+.sidebar-nav::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 .nav-section {
   font-size: 10px; font-weight: 600; color: rgba(255,255,255,.4);
   text-transform: uppercase; letter-spacing: .08em;
