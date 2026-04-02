@@ -39,13 +39,10 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   <div class="app-layout">
     <aside class="sidebar" id="sidebar" style="background:linear-gradient(175deg,#2a7a50 0%,#1F4E2C 40%,#143520 75%,#0a1f12 100%);">
       <div class="sidebar-brand">
-        <div style="background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;box-shadow:0 3px 16px rgba(0,0,0,.25);">
-          <div style="font-family:'DM Sans',sans-serif;">
-            <div style="font-size:22px;font-weight:700;color:#1F7A3E;letter-spacing:-.5px;line-height:1;">SEMA</div>
-            <div style="font-size:8px;color:#888;text-transform:uppercase;letter-spacing:.04em;line-height:1.3;">Secretaria de Estado<br>do Meio Ambiente</div>
-          </div>
+        <div style="background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;box-shadow:0 3px 16px rgba(0,0,0,.25);">
+          <div style="font-size:26px;font-weight:700;color:#1F7A3E;letter-spacing:-.5px;line-height:1;font-family:'DM Sans',sans-serif;">SEMA</div>
           <div style="width:3px;height:36px;background:#D4A017;border-radius:2px;flex-shrink:0;"></div>
-          <div style="font-size:11px;font-weight:700;color:#555;letter-spacing:.02em;line-height:1.3;">AC</div>
+          <div style="font-size:8.5px;color:#666;line-height:1.4;font-family:'DM Sans',sans-serif;">Secretaria<br>de Estado do<br>Meio Ambiente</div>
         </div>
         <div class="sidebar-brand-sub">UNESCO · DIMA · 218BRA2001</div>
       </div>
