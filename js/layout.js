@@ -12,14 +12,18 @@
 
 function gerarLayout(tituloPagina, paginaAtiva) {
   const navItems = [
+    // ── Visão geral ──────────────────────────────────────────
     { id: 'dashboard',    icone: '⊞', href: 'dashboard.html',    perfis: null },
+    // ── Planejamento ─────────────────────────────────────────
     { id: 'atividades',   icone: '◈', href: 'atividades.html',   perfis: null },
     { id: 'tdrs',         icone: '◧', href: 'tdrs.html',         perfis: null },
     { id: 'matriz',       icone: '◎', href: 'matriz.html',       perfis: null },
-    { id: 'financeiro',   icone: '◉', href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
-    { id: 'contratos',    icone: '◪', href: 'contratos.html',    perfis: ['super_admin','coordenacao','financeiro'] },
+    // ── Execução ─────────────────────────────────────────────
     { id: 'fornecedores', icone: '◫', href: 'fornecedores.html', perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
-    { id: 'produtos',     icone: '◈', href: 'produtos.html',     perfis: ['super_admin','coordenacao','tecnico'] },
+    { id: 'contratos',    icone: '◪', href: 'contratos.html',    perfis: ['super_admin','coordenacao','financeiro'] },
+    { id: 'produtos',     icone: '◉', href: 'produtos.html',     perfis: ['super_admin','coordenacao','tecnico'] },
+    { id: 'financeiro',   icone: '◈', href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
+    // ── Apoio ────────────────────────────────────────────────
     { id: 'viagens',      icone: '✈', href: 'viagens.html',      perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'usuarios',     icone: '◍', href: 'usuarios.html',     perfis: ['super_admin'] },
   ];
@@ -27,13 +31,28 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   const u = appState.usuario;
   const iniciais = u?.nome_completo?.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() || 'US';
 
-  const navHtml = navItems.map(item => {
-    if (item.perfis && !item.perfis.includes(appState.perfil)) return '';
-    const ativo = paginaAtiva === item.id ? 'ativo' : '';
-    return `<a class="nav-item ${ativo}" href="${item.href}">
-      <span style="font-size:14px">${item.icone}</span>
-      <span>${t('nav', item.id)}</span>
-    </a>`;
+  const navGroups = [
+    { label: null,          ids: ['dashboard'] },
+    { label: 'Planejamento', ids: ['atividades','tdrs','matriz'] },
+    { label: 'Execução',     ids: ['fornecedores','contratos','produtos','financeiro'] },
+    { label: 'Apoio',        ids: ['viagens','usuarios'] },
+  ];
+
+  const navHtml = navGroups.map(group => {
+    const itens = navItems.filter(item => group.ids.includes(item.id));
+    const linhas = itens.map(item => {
+      if (item.perfis && !item.perfis.includes(appState.perfil)) return '';
+      const ativo = paginaAtiva === item.id ? 'ativo' : '';
+      return `<a class="nav-item ${ativo}" href="${item.href}">
+        <span style="font-size:14px">${item.icone}</span>
+        <span>${t('nav', item.id)}</span>
+      </a>`;
+    }).join('');
+    if (!linhas.trim()) return '';
+    const sep = group.label
+      ? `<div class="nav-section" style="margin-top:10px">${group.label}</div>`
+      : '';
+    return sep + linhas;
   }).join('');
 
   return `
@@ -63,7 +82,6 @@ function gerarLayout(tituloPagina, paginaAtiva) {
       </div>
 
       <nav class="sidebar-nav">
-        <div class="nav-section">Menu</div>
         ${navHtml}
       </nav>
 
