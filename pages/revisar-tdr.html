@@ -242,7 +242,7 @@ async function carregarTDR(){
   try{
     // Supabase v2: não suporta .catch() encadeado — usar try/catch individual
     const {data:tdr, error:tdrErr} = await db.from('tdrs')
-      .select('*,atividades(id,codigo,nome_pt,objeto_pt),fornecedores(id,nome)')
+      .select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome)')
       .eq('id',tdrId).single();
     if(tdrErr) throw tdrErr;
 
@@ -689,25 +689,14 @@ function avancarComSenha(novoStatus, label){
       ajustes:'devolvido_ajuste',
       cancelado:'cancelado',
     };
-    try{
-      // Tentar via RPC (registra log + atualiza status)
-      const {error:rpcErr}=await db.rpc('fn_registrar_acao_tdr',{
-        p_tdr_id:tdrId,p_usuario_id:appState.usuario.id,
-        p_acao:acaoMap[novoStatus]||'editado',
-        p_comentario:null,p_ip:null
-      });
-      if(rpcErr){
-        console.warn('[AVANÇAR] RPC falhou, tentando update direto:', rpcErr.message);
-        // Fallback: atualizar status diretamente
-        const {error:updErr}=await db.from('tdrs').update({status:novoStatus}).eq('id',tdrId);
-        if(updErr) throw updErr;
-      }
-      toast(`TDR avançado para "${FASES_LABELS[novoStatus]}"!`,'success');
-      setTimeout(()=>window.location.href='tdrs.html',1200);
-    }catch(e){
-      console.error('[AVANÇAR] Erro:', e);
-      toast('Erro ao avançar fase: '+(e.message||JSON.stringify(e)),'error');
-    }
+    const {error}=await db.rpc('fn_registrar_acao_tdr',{
+      p_tdr_id:tdrId,p_usuario_id:appState.usuario.id,
+      p_acao:acaoMap[novoStatus]||'editado',
+      p_comentario:null,p_ip:null
+    });
+    if(error){toast('Erro: '+error.message,'error');return;}
+    toast(`TDR avançado para "${FASES_LABELS[novoStatus]}"!`,'success');
+    setTimeout(()=>window.location.href='tdrs.html',1200);
   });
 }
 
@@ -786,8 +775,9 @@ async function confirmarSenha(){
   const btn=document.getElementById('senha-btn');
   btn.textContent='Verificando...';btn.disabled=true;
   try{
-    const {error}=await db.auth.signInWithPassword({email:appState.usuario.email,password:s});
-    if(error){
+    // Usa RPC seguro — NÃO usa signInWithPassword que reseta sessão e quebra auth.uid()
+    const {data:senhaOk,error}=await db.rpc('fn_verificar_senha',{p_senha:s});
+    if(error||!senhaOk){
       document.getElementById('senha-erro').style.display='block';
       document.getElementById('senha-inp').value='';
       document.getElementById('senha-inp').focus();
@@ -796,7 +786,8 @@ async function confirmarSenha(){
     fecharSenha();
     if(senhaCallback)await senhaCallback();
   }catch(e){
-    toast('Erro na verificação.','error');
+    console.error('[SENHA] Erro:', e);
+    toast('Erro na verificação: '+(e.message||''),'error');
     btn.textContent='Confirmar';btn.disabled=false;
   }
 }
