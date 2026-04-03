@@ -55,6 +55,22 @@
 .sec-label{font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--borda);}
 .prog-bar{height:3px;background:var(--cinza-100);border-radius:2px;overflow:hidden;margin-top:6px;display:none;}
 .prog-fill{height:100%;background:var(--verde-medio);border-radius:2px;transition:width .3s;}
+.det-tabs{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:12px;}
+.det-tab{padding:6px 14px;font-size:11px;font-weight:600;color:var(--cinza-500);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font-sans);transition:all .15s;}
+.det-tab.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:4px;}
+.prod-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;}
+.prod-card.pend{border-left:3px solid var(--aviso);}
+.prod-card.pago{border-left:3px solid var(--sucesso);}
+.prod-card.venc{border-left:3px solid var(--erro);}
+.prod-card.cancel{border-left:3px solid var(--cinza-300);opacity:.65;}
+.prod-num{font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.prod-desc{font-size:12px;font-weight:500;color:var(--cinza-900);margin-bottom:5px;line-height:1.35;}
+.prod-valor{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--verde-medio);}
+.prod-venc{font-size:10px;color:var(--cinza-500);margin-top:2px;}
+.prod-sit{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;display:inline-block;margin-top:5px;}
+.ps-pendente{background:#FFFBEB;color:#92400E}.ps-em_analise{background:#EFF6FF;color:#1E40AF}
+.ps-pago{background:#ECFDF5;color:#065F46}.ps-cancelado{background:#F3F4F6;color:#6B7280}
 </style>
 </head>
 <body>
@@ -70,6 +86,20 @@
     </div>
     <div class="modal-body" id="m-body"></div>
     <div class="modal-footer" id="m-footer"></div>
+  </div>
+</div>
+<!-- MODAL PRODUTOS DO CONTRATO -->
+<div class="modal-overlay" id="modal-produtos">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="mp-titulo">Produtos / Entregas</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="mp-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModalProd()"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>#x2715;</button>
+    </div>
+    <div class="modal-body" id="mp-body"></div>
+    <div class="modal-footer" id="mp-footer"></div>
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -211,56 +241,104 @@ function buildDet(c){
   var total=parseFloat(c.valor_total_brl||0);
   var usado=parseFloat(c.valor_utilizado_brl||0);
   var saldo=parseFloat(c.saldo_brl||total-usado);
-  var h='<div class="detail-grid">';
-  h+='<div class="detail-item"><span class="detail-lbl">TDR vinculado</span><span class="detail-val">'+(c.tdrs?c.tdrs.numero:'--')+'</span></div>';
-  h+='<div class="detail-item"><span class="detail-lbl">Atividade</span><span class="detail-val">'+(c.atividades?c.atividades.codigo:'--')+'</span></div>';
-  h+='<div class="detail-item"><span class="detail-lbl">Tipo</span><span class="detail-val">'+(c.tipo||'--')+'</span></div>';
-  h+='<div class="detail-item"><span class="detail-lbl">Utilizado</span><span class="detail-val" style="color:var(--aviso)">'+fmtBRL(usado)+'</span></div>';
-  h+='<div class="detail-item"><span class="detail-lbl">Saldo</span><span class="detail-val" style="color:'+(saldo<0?'var(--erro)':'var(--sucesso)')+'">'+fmtBRL(saldo)+'</span></div>';
-  h+='<div class="detail-item"><span class="detail-lbl">Elemento despesa</span><span class="detail-val">'+(c.elemento_despesa||'--')+'</span></div>';
-  h+='</div>';
-  h+='<div style="font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Documentos</div>';
-  h+='<div class="pdf-row">';
-  if(c.contrato_assinado_url){
-    h+='<div class="pdf-card"><div class="pdf-card-icon" style="background:#FEF2F2">&#x1F4C4;</div>'
-      +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_assinado_nome||'Contrato EN')+'</div>'
-      +'<div class="pdf-card-meta">Original EN'+(c.contrato_assinado_data?' &middot; '+fmtData(c.contrato_assinado_data):'')+'</div></div>'
-      +'<div class="pdf-card-btns">'
-      +'<button class="btn-xs" onclick="window.open(\''+c.contrato_assinado_url+'\',\'_blank\')">&#x1F441;</button>'
-      +'<a href="'+c.contrato_assinado_url+'" download class="btn-xs">&#x2B07;</a>'
-      +'</div></div>';
+  var prods=produtosPorContrato[c.id]||[];
+  var qtdProd=prods.length;
+  var qtdPend=prods.filter(function(p){return p.situacao==='pendente'||p.situacao==='em_analise';}).length;
+  var tabAtiva=detTabAtiva[c.id]||'docs';
+
+  var h='<div class="det-tabs">'
+    +'<button class="det-tab '+(tabAtiva==='docs'?'ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'docs\')">Detalhes &amp; Documentos</button>'
+    +'<button class="det-tab '+(tabAtiva==='prods'?'ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'prods\')">'
+    +'Produtos / Entregas'+(qtdProd?' <span style="background:var(--verde-medio);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px;margin-left:4px">'+qtdProd+'</span>':'')
+    +'</button></div>';
+
+  if(tabAtiva==='docs'){
+    h+='<div class="detail-grid">';
+    h+='<div class="detail-item"><span class="detail-lbl">TDR vinculado</span><span class="detail-val">'+(c.tdrs?c.tdrs.numero:'--')+'</span></div>';
+    h+='<div class="detail-item"><span class="detail-lbl">Atividade</span><span class="detail-val">'+(c.atividades?c.atividades.codigo:'--')+'</span></div>';
+    h+='<div class="detail-item"><span class="detail-lbl">Tipo</span><span class="detail-val">'+(c.tipo||'--')+'</span></div>';
+    h+='<div class="detail-item"><span class="detail-lbl">Utilizado</span><span class="detail-val" style="color:var(--aviso)">'+fmtBRL(usado)+'</span></div>';
+    h+='<div class="detail-item"><span class="detail-lbl">Saldo</span><span class="detail-val" style="color:'+(saldo<0?'var(--erro)':'var(--sucesso)')+'">'+fmtBRL(saldo)+'</span></div>';
+    h+='<div class="detail-item"><span class="detail-lbl">Elemento despesa</span><span class="detail-val">'+(c.elemento_despesa||'--')+'</span></div>';
+    h+='</div>';
+    h+='<div style="font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Documentos</div>';
+    h+='<div class="pdf-row">';
+    if(c.contrato_assinado_url){
+      h+='<div class="pdf-card"><div class="pdf-card-icon" style="background:#FEF2F2">&#x1F4C4;</div>'
+        +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_assinado_nome||'Contrato EN')+'</div>'
+        +'<div class="pdf-card-meta">Original EN'+(c.contrato_assinado_data?' &middot; '+fmtData(c.contrato_assinado_data):'')+'</div></div>'
+        +'<div class="pdf-card-btns">'
+        +'<button class="btn-xs" onclick="window.open(\''+c.contrato_assinado_url+'\',\'_blank\')">&#x1F441;</button>'
+        +'<a href="'+c.contrato_assinado_url+'" download class="btn-xs">&#x2B07;</a>'
+        +'</div></div>';
+    } else {
+      h+='<div class="pdf-card" style="border-style:dashed">'
+        +'<div class="pdf-card-icon" style="background:var(--cinza-50)">&#x1F4C4;</div>'
+        +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">PDF original (EN) ausente</div>'
+        +'<div class="pdf-card-meta">Contrato assinado pela UNESCO</div></div>'
+        +'<label class="btn-xs btn-xs-prim" style="cursor:pointer">&#x2B06; Upload<input type="file" accept=".pdf" style="display:none" onchange="uploadDireto(\''+c.id+'\',this.files[0],\'en\')"></label>'
+        +'</div>';
+    }
+    if(c.contrato_pt_url){
+      h+='<div class="pdf-card"><div class="pdf-card-icon" style="background:#E1F5EE">&#x1F4C4;</div>'
+        +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_pt_nome||'Contrato PT')+'</div>'
+        +'<div class="pdf-card-meta">Traducao automatica PT'+(c.contrato_pt_data?' &middot; '+new Date(c.contrato_pt_data).toLocaleDateString('pt-BR'):'')+'</div></div>'
+        +'<div class="pdf-card-btns">'
+        +'<button class="btn-xs" onclick="window.open(\''+c.contrato_pt_url+'\',\'_blank\')">&#x1F441;</button>'
+        +'<a href="'+c.contrato_pt_url+'" download class="btn-xs">&#x2B07;</a>'
+        +'</div></div>';
+    } else if(c.contrato_assinado_url){
+      h+='<div class="pdf-card" style="border-style:dashed">'
+        +'<div class="pdf-card-icon" style="background:var(--azul-bg)">&#x1F310;</div>'
+        +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">Traducao PT nao gerada</div>'
+        +'<div class="pdf-card-meta">IA traduz o contrato EN para portugues</div></div>'
+        +'<button class="btn-xs btn-xs-prim" id="btn-tr-'+c.id+'" onclick="traduzir(\''+c.id+'\')">&#x1F310; Traduzir</button>'
+        +'</div>';
+    } else {
+      h+='<div class="pdf-card" style="border-style:dashed;opacity:.5">'
+        +'<div class="pdf-card-icon" style="background:var(--azul-bg)">&#x1F310;</div>'
+        +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">Traducao PT</div>'
+        +'<div class="pdf-card-meta">Disponivel apos upload do PDF EN</div></div>'
+        +'</div>';
+    }
+    h+='</div>';
+    if(c.objeto_pt)h+='<div style="font-size:11px;color:var(--cinza-700);background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;line-height:1.5"><strong>Objeto:</strong> '+c.objeto_pt+'</div>';
   } else {
-    h+='<div class="pdf-card" style="border-style:dashed">'
-      +'<div class="pdf-card-icon" style="background:var(--cinza-50)">&#x1F4C4;</div>'
-      +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">PDF original (EN) ausente</div>'
-      +'<div class="pdf-card-meta">Contrato assinado pela UNESCO</div></div>'
-      +'<label class="btn-xs btn-xs-prim" style="cursor:pointer">&#x2B06; Upload<input type="file" accept=".pdf" style="display:none" onchange="uploadDireto(\''+c.id+'\',this.files[0],\'en\')"></label>'
-      +'</div>';
+    // ABA PRODUTOS
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+    h+='<div style="font-size:12px;color:var(--cinza-600)">';
+    if(qtdProd){
+      var totProd=prods.reduce(function(s,p){return s+parseFloat(p.valor_brl||0);},0);
+      var totPago=prods.filter(function(p){return p.situacao==='pago';}).reduce(function(s,p){return s+parseFloat(p.valor_brl||0);},0);
+      h+='<span style="font-weight:600">'+qtdProd+' produto(s)</span> &middot; Total: <span class="mono">'+fmtBRL(totProd)+'</span> &middot; Pago: <span class="mono" style="color:var(--sucesso)">'+fmtBRL(totPago)+'</span>';
+      if(qtdPend) h+=' &middot; <span style="color:var(--aviso);font-weight:600">'+qtdPend+' pendente(s)</span>';
+    } else {
+      h+='Nenhum produto cadastrado ainda.';
+    }
+    h+='</div>';
+    if(PODE.verFinanceiro()) h+='<button class="btn btn-primary btn-sm" onclick="abrirModalProd(\''+c.id+'\')">+ Gerenciar produtos</button>';
+    h+='</div>';
+
+    if(qtdProd){
+      h+='<div class="prod-grid">';
+      prods.forEach(function(p){
+        var vencido=p.situacao==='pendente'&&p.dt_vencimento&&new Date(p.dt_vencimento)<new Date();
+        var cls=vencido?'venc':(p.situacao==='pago'?'pago':(p.situacao==='cancelado'?'cancel':'pend'));
+        var sitLabel={pendente:'Pendente',em_analise:'Em análise',pago:'Pago',cancelado:'Cancelado'};
+        h+='<div class="prod-card '+cls+'">'
+          +'<div class="prod-num">Produto '+p.numero_produto+'</div>'
+          +'<div class="prod-desc">'+p.descricao+'</div>'
+          +'<div class="prod-valor">'+fmtBRL(parseFloat(p.valor_brl||0))+'</div>'
+          +(p.dt_vencimento?'<div class="prod-venc">Venc: '+fmtData(p.dt_vencimento)+(vencido?' <span style="color:var(--erro);font-weight:700">Vencido</span>':'')+'</div>':'')
+          +(p.dt_entrega?'<div class="prod-venc">Entregue: '+fmtData(p.dt_entrega)+'</div>':'')
+          +'<span class="prod-sit ps-'+p.situacao+'">'+(sitLabel[p.situacao]||p.situacao)+'</span>'
+          +'</div>';
+      });
+      h+='</div>';
+    } else {
+      h+='<div class="empty-state" style="padding:20px 0"><div class="empty-state-msg">Clique em "Gerenciar produtos" para cadastrar as entregas previstas neste contrato.</div></div>';
+    }
   }
-  if(c.contrato_pt_url){
-    h+='<div class="pdf-card"><div class="pdf-card-icon" style="background:#E1F5EE">&#x1F4C4;</div>'
-      +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_pt_nome||'Contrato PT')+'</div>'
-      +'<div class="pdf-card-meta">Traducao automatica PT'+(c.contrato_pt_data?' &middot; '+new Date(c.contrato_pt_data).toLocaleDateString('pt-BR'):'')+'</div></div>'
-      +'<div class="pdf-card-btns">'
-      +'<button class="btn-xs" onclick="window.open(\''+c.contrato_pt_url+'\',\'_blank\')">&#x1F441;</button>'
-      +'<a href="'+c.contrato_pt_url+'" download class="btn-xs">&#x2B07;</a>'
-      +'</div></div>';
-  } else if(c.contrato_assinado_url){
-    h+='<div class="pdf-card" style="border-style:dashed">'
-      +'<div class="pdf-card-icon" style="background:var(--azul-bg)">&#x1F310;</div>'
-      +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">Traducao PT nao gerada</div>'
-      +'<div class="pdf-card-meta">IA traduz o contrato EN para portugues</div></div>'
-      +'<button class="btn-xs btn-xs-prim" id="btn-tr-'+c.id+'" onclick="traduzir(\''+c.id+'\')">&#x1F310; Traduzir</button>'
-      +'</div>';
-  } else {
-    h+='<div class="pdf-card" style="border-style:dashed;opacity:.5">'
-      +'<div class="pdf-card-icon" style="background:var(--azul-bg)">&#x1F310;</div>'
-      +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">Traducao PT</div>'
-      +'<div class="pdf-card-meta">Disponivel apos upload do PDF EN</div></div>'
-      +'</div>';
-  }
-  h+='</div>';
-  if(c.objeto_pt)h+='<div style="font-size:11px;color:var(--cinza-700);background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;line-height:1.5"><strong>Objeto:</strong> '+c.objeto_pt+'</div>';
   return h;
 }
 
@@ -461,7 +539,7 @@ window.salvar=async function(){
     elemento_despesa:document.getElementById('f-elem').value.trim()||null,
     status:document.getElementById('f-status').value,
   };
-  // saldo_brl é GENERATED ALWAYS no banco (valor_total_brl - valor_utilizado_brl), não enviar
+  // saldo_brl é GENERATED ALWAYS no banco, não enviar
   var prog=document.getElementById('prog-bar');
   var fill=document.getElementById('prog-fill');
   if(prog)prog.style.display='block';
@@ -500,6 +578,136 @@ window.salvar=async function(){
     else toast('Erro: '+(e.message||''),'error');
     if(prog)prog.style.display='none';
   }
+};
+
+// ── ESTADO PRODUTOS ───────────────────────────────────────────
+var produtosPorContrato={};
+var detTabAtiva={};
+var contratoModalProdId=null;
+
+async function carregarProdutos(contratoId){
+  var r=await db.from('contratos_produtos').select('*').eq('contrato_id',contratoId).order('numero_produto',{ascending:true});
+  produtosPorContrato[contratoId]=r.data||[];
+  return produtosPorContrato[contratoId];
+}
+
+window.mudarDetTab=async function(contratoId,tab){
+  detTabAtiva[contratoId]=tab;
+  if(tab==='prods'&&!produtosPorContrato[contratoId])await carregarProdutos(contratoId);
+  var c=todosContratos.find(function(x){return x.id===contratoId;});
+  var inner=document.getElementById('inner-'+contratoId);
+  if(inner&&c)inner.innerHTML=buildDet(c);
+};
+
+async function recarregarDet(contratoId){
+  await carregarProdutos(contratoId);
+  var c=todosContratos.find(function(x){return x.id===contratoId;});
+  var inner=document.getElementById('inner-'+contratoId);
+  if(inner&&c)inner.innerHTML=buildDet(c);
+}
+
+window.abrirModalProd=async function(contratoId){
+  contratoModalProdId=contratoId;
+  var c=todosContratos.find(function(x){return x.id===contratoId;});
+  if(!c)return;
+  document.getElementById('mp-titulo').textContent='Produtos / Entregas — '+c.numero;
+  document.getElementById('mp-sub').textContent=(c.fornecedores?c.fornecedores.nome:'')+(c.objeto_pt?' | '+c.objeto_pt.substring(0,60):'');
+  document.getElementById('mp-footer').innerHTML='<button class="btn btn-secondary" onclick="fecharModalProd()">Fechar</button><button class="btn btn-primary" onclick="salvarProdutos()">Salvar produtos</button>';
+  var prods=produtosPorContrato[contratoId];
+  if(!prods)prods=await carregarProdutos(contratoId);
+  renderFormProd(c,prods);
+  document.getElementById('modal-produtos').classList.add('aberto');
+};
+
+var linhasProd=[];
+
+function renderFormProd(c,prods){
+  linhasProd=prods.length
+    ?prods.map(function(p){return{id:p.id,num:p.numero_produto,desc:p.descricao,val:p.valor_brl,venc:p.dt_vencimento||'',entrega:p.dt_entrega||'',sit:p.situacao,obs:p.observacoes||''};})
+    :[{id:null,num:1,desc:'',val:'',venc:'',entrega:'',sit:'pendente',obs:''}];
+  var total=parseFloat(c.valor_total_brl||0);
+  document.getElementById('mp-body').innerHTML=
+    '<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 14px;margin-bottom:14px;display:flex;gap:24px;font-size:12px">'
+    +'<span>Valor do contrato: <strong class="mono">'+fmtBRL(total)+'</strong></span>'
+    +'<span id="mp-soma">Soma dos produtos: <strong class="mono">--</strong></span>'
+    +'<span id="mp-diff"></span></div>'
+    +'<div id="prod-linhas"></div>'
+    +'<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addLinhaProd()">+ Adicionar produto</button>';
+  renderLinhasProd();
+  calcSoma(total);
+}
+
+function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+
+function renderLinhasProd(){
+  var container=document.getElementById('prod-linhas');
+  if(!container)return;
+  var SIT=['pendente','em_analise','pago','cancelado'];
+  var SLBL={pendente:'Pendente',em_analise:'Em análise',pago:'Pago',cancelado:'Cancelado'};
+  container.innerHTML=linhasProd.map(function(p,i){
+    var bgCard=p.sit==='pago'?'background:var(--sucesso-bg);border-color:#9FE1CB':p.sit==='cancelado'?'background:var(--cinza-50);opacity:.7':'';
+    return '<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:8px;'+bgCard+'">'
+      +'<div style="display:grid;grid-template-columns:52px 1fr 140px 140px 32px;gap:8px;align-items:end;margin-bottom:8px">'
+      +'<div><label class="form-label" style="font-size:10px">N\u00ba</label><input class="form-control" type="number" min="1" value="'+p.num+'" oninput="updProd('+i+',\'num\',this.value)" style="font-family:var(--font-mono);text-align:center"></div>'
+      +'<div><label class="form-label" style="font-size:10px">Descri\u00e7\u00e3o <span class="obrig">*</span></label><input class="form-control" type="text" value="'+escHtml(p.desc)+'" placeholder="Ex: Relat\u00f3rio t\u00e9cnico" oninput="updProd('+i+',\'desc\',this.value)"></div>'
+      +'<div><label class="form-label" style="font-size:10px">Valor R$ <span class="obrig">*</span></label><input class="form-control" type="number" step="0.01" value="'+p.val+'" placeholder="0,00" oninput="updProd('+i+',\'val\',this.value);calcSoma()"></div>'
+      +'<div><label class="form-label" style="font-size:10px">Situa\u00e7\u00e3o</label><select class="form-control" onchange="updProd('+i+',\'sit\',this.value);renderLinhasProd()">'
+      +SIT.map(function(s){return '<option value="'+s+'" '+(p.sit===s?'selected':'')+'>'+SLBL[s]+'</option>';}).join('')+'</select></div>'
+      +'<div><label class="form-label" style="font-size:10px">&nbsp;</label>'
+      +(linhasProd.length>1?'<button onclick="remLinhaProd('+i+')" style="width:32px;height:36px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:14px">&#x2715;</button>':'<div style="width:32px"></div>')
+      +'</div></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+      +'<div><label class="form-label" style="font-size:10px">Vencimento previsto</label><input class="form-control" type="date" value="'+p.venc+'" oninput="updProd('+i+',\'venc\',this.value)"></div>'
+      +'<div><label class="form-label" style="font-size:10px">Data de entrega</label><input class="form-control" type="date" value="'+p.entrega+'" oninput="updProd('+i+',\'entrega\',this.value)"></div>'
+      +'<div><label class="form-label" style="font-size:10px">Observa\u00e7\u00f5es</label><input class="form-control" type="text" value="'+escHtml(p.obs)+'" placeholder="Opcional" oninput="updProd('+i+',\'obs\',this.value)"></div>'
+      +'</div></div>';
+  }).join('');
+}
+
+window.updProd=function(i,campo,val){linhasProd[i][campo]=val;};
+window.addLinhaProd=function(){
+  var maxNum=linhasProd.reduce(function(m,p){return Math.max(m,parseInt(p.num)||0);},0);
+  linhasProd.push({id:null,num:maxNum+1,desc:'',val:'',venc:'',entrega:'',sit:'pendente',obs:''});
+  renderLinhasProd();
+};
+window.remLinhaProd=function(i){linhasProd.splice(i,1);renderLinhasProd();calcSoma();};
+
+function calcSoma(){
+  var c=todosContratos.find(function(x){return x.id===contratoModalProdId;});
+  var total=c?parseFloat(c.valor_total_brl||0):0;
+  var soma=linhasProd.reduce(function(s,p){return s+parseFloat(p.val||0);},0);
+  var el=document.getElementById('mp-soma');
+  var elD=document.getElementById('mp-diff');
+  if(el)el.innerHTML='Soma dos produtos: <strong class="mono">'+fmtBRL(soma)+'</strong>';
+  if(elD){
+    var diff=total-soma;
+    if(Math.abs(diff)<0.01){elD.innerHTML='<span style="color:var(--sucesso);font-weight:600">&#x2714; Valores conferem</span>';}
+    else{elD.innerHTML='<span style="color:'+(diff<0?'var(--erro)':'var(--aviso)')+';font-weight:600">'+(diff<0?'Excedido':'Restante')+': '+fmtBRL(Math.abs(diff))+'</span>';}
+  }
+}
+
+window.salvarProdutos=async function(){
+  if(!contratoModalProdId)return;
+  var invalidos=linhasProd.filter(function(p){return !p.desc.trim()||!p.val;});
+  if(invalidos.length){toast('Preencha descrição e valor em todos os produtos.','error');return;}
+  toast('Salvando produtos...','info');
+  try{
+    for(var i=0;i<linhasProd.length;i++){
+      var p=linhasProd[i];
+      var dados={contrato_id:contratoModalProdId,numero_produto:parseInt(p.num)||i+1,descricao:p.desc.trim(),valor_brl:parseFloat(p.val)||0,dt_vencimento:p.venc||null,dt_entrega:p.entrega||null,situacao:p.sit,observacoes:p.obs.trim()||null,criado_por:appState.usuario.id};
+      if(p.id){var upd=await db.from('contratos_produtos').update(dados).eq('id',p.id);if(upd.error)throw upd.error;}
+      else{var ins=await db.from('contratos_produtos').insert(dados).select('id').single();if(ins.error)throw ins.error;linhasProd[i].id=ins.data.id;}
+    }
+    toast('Produtos salvos!','success');
+    fecharModalProd();
+    detTabAtiva[contratoModalProdId]='prods';
+    await recarregarDet(contratoModalProdId);
+  }catch(e){toast('Erro ao salvar: '+(e.message||''),'error');}
+};
+
+window.fecharModalProd=function(){
+  document.getElementById('modal-produtos').classList.remove('aberto');
+  contratoModalProdId=null;
 };
 
 window.fecharModal=function(){
