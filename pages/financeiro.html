@@ -53,7 +53,14 @@
 .upload-mini:hover{border-color:var(--verde-claro);color:var(--verde-medio);}
 .upload-mini.tem{border-color:var(--verde-claro);background:var(--sucesso-bg);color:var(--sucesso);}
 
-.cotacao-chip{display:inline-flex;align-items:center;gap:5px;background:var(--verde-bg);color:var(--verde-medio);font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;font-family:var(--font-mono);}
+.cotacao-card{display:inline-flex;align-items:center;gap:14px;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:10px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.cotacao-valor{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--cinza-900);letter-spacing:-.02em;}
+.cotacao-label{font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+.cotacao-var{font-size:12px;font-weight:700;padding:2px 7px;border-radius:99px;}
+.cotacao-var.up{background:#FEF2F2;color:#DC2626;}
+.cotacao-var.down{background:#ECFDF5;color:#059669;}
+.cotacao-var.flat{background:var(--cinza-100);color:var(--cinza-500);}
+.cotacao-sep{width:1px;height:36px;background:var(--borda);}
 </style>
 </head>
 <body>
@@ -87,6 +94,8 @@ let todosLanc = [];
 let atividades = [], contratos = [], fornecedores = [], resultados = [];
 let lancEditando = null, arquivoComp = null;
 let taxaAtual = 5.87;
+let taxaAnterior = null;
+let taxaDataRef = null;
 let visaoAtual = 'lancamentos';
 
 (async () => {
@@ -170,7 +179,9 @@ async function carregar() {
     contratos = conts || [];
     fornecedores = forns || [];
     resultados = ress || [];
-    taxaAtual = cotacao?.cotacao || 5.87;
+    taxaAtual    = cotacao?.cotacao || 5.87;
+    taxaAnterior = cotacao?.cotacao_anterior || null;
+    taxaDataRef  = cotacao?.data_ref || null;
 
     // Preencher filtro de atividades
     const filAtiv = document.getElementById('fil-ativ');
@@ -196,8 +207,8 @@ async function carregar() {
     }
 
     // Cotação chip
-    document.getElementById('cotacao-chip').innerHTML =
-      `<span class="cotacao-chip">💱 R$ ${taxaAtual.toFixed(2)}/USD · hoje</span>`;
+    // Card de cotação
+    renderCotacaoCard();
 
     renderStats();
     renderConteudo();
@@ -205,6 +216,46 @@ async function carregar() {
     console.error(e);
     toast('Erro ao carregar dados financeiros.','error');
   }
+}
+
+function renderCotacaoCard() {
+  const el = document.getElementById('cotacao-chip');
+  if (!el) return;
+
+  const varPct = taxaAnterior && taxaAnterior > 0
+    ? ((taxaAtual - taxaAnterior) / taxaAnterior) * 100
+    : null;
+
+  const varDir  = varPct === null ? 'flat' : varPct > 0.005 ? 'up' : varPct < -0.005 ? 'down' : 'flat';
+  const varSeta = varDir === 'up' ? '↑' : varDir === 'down' ? '↓' : '→';
+  const varTxt  = varPct !== null ? `${varSeta} ${Math.abs(varPct).toFixed(2)}%` : '—';
+  const varLbl  = varDir === 'up' ? 'Alta' : varDir === 'down' ? 'Baixa' : 'Estável';
+
+  const dataFmt = taxaDataRef
+    ? new Date(taxaDataRef + 'T12:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'short'})
+    : 'hoje';
+
+  el.innerHTML = `
+    <div class="cotacao-card">
+      <div>
+        <div class="cotacao-label">Dólar Comercial · ${dataFmt}</div>
+        <div class="cotacao-valor">R$ ${taxaAtual.toFixed(4)}</div>
+      </div>
+      <div class="cotacao-sep"></div>
+      <div style="text-align:center">
+        <div class="cotacao-label">Variação</div>
+        <span class="cotacao-var ${varDir}">${varTxt}</span>
+        <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">${varLbl} vs ontem</div>
+      </div>
+      <div class="cotacao-sep"></div>
+      <div style="text-align:center">
+        <div class="cotacao-label">1 USD =</div>
+        <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--cinza-700)">
+          R$ ${taxaAtual.toFixed(2)}
+        </div>
+        <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">BCB · Comercial</div>
+      </div>
+    </div>`;
 }
 
 function renderStats() {
@@ -305,7 +356,8 @@ function renderLancamentos() {
             <tbody>
               ${fil.map(l => {
                 const vencido = l.situacao==='a_pagar'&&l.dt_vencimento&&new Date(l.dt_vencimento)<new Date();
-                const usd = parseFloat(l.valor_brl||0)/taxaAtual;
+                const taxaLanc = parseFloat(l.cotacao_uso || taxaAtual);
+                const usd = parseFloat(l.valor_brl||0) / taxaLanc;
                 return `<tr style="${vencido?'background:var(--erro-bg)':''}">
                   <td>
                     <div style="font-size:12px;font-weight:500;color:var(--cinza-900);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.descricao||'—'}</div>
@@ -593,8 +645,13 @@ function renderFormLanc(l) {
           value="${l?.valor_brl||''}" placeholder="0,00"
           oninput="calcUSD(this.value)">
         <div style="font-size:11px;color:var(--cinza-500);margin-top:4px">
-          ≈ <span id="usd-preview" style="font-family:var(--font-mono);font-weight:600">${l?.valor_brl?fmtUSD(parseFloat(l.valor_brl)/taxaAtual):'—'}</span>
-          <span style="color:var(--cinza-400)">(cotação R$ ${taxaAtual.toFixed(2)}/USD)</span>
+          ≈ <span id="usd-preview" style="font-family:var(--font-mono);font-weight:600">${l?.valor_brl?fmtUSD(parseFloat(l.valor_brl)/(l?.cotacao_uso||taxaAtual)):'—'}</span>
+          ${l?.cotacao_travada_em
+            ? `<span style="margin-left:6px;font-size:10px;background:#ECFDF5;color:#065F46;padding:1px 7px;border-radius:99px;font-weight:700">
+                🔒 cotação travada R$ ${parseFloat(l.cotacao_uso).toFixed(4)} · ${new Date(l.cotacao_travada_em).toLocaleDateString('pt-BR')}
+               </span>`
+            : `<span style="color:var(--cinza-400)">(cotação estimada R$ ${taxaAtual.toFixed(4)}/USD · trava ao pagar)</span>`
+          }
         </div>
       </div>
       <div class="form-group">
@@ -783,9 +840,12 @@ function preencherDeProduto(prodId, desc, valor, dtVenc) {
 }
 
 function calcUSD(val) {
-  const brl = parseFloat(val)||0;
+  const brl  = parseFloat(val) || 0;
+  const taxa = (lancEditando?.cotacao_travada_em && lancEditando?.situacao === 'pago')
+    ? parseFloat(lancEditando.cotacao_uso)
+    : taxaAtual;
   const el = document.getElementById('usd-preview');
-  if (el) el.textContent = brl > 0 ? fmtUSD(brl/taxaAtual) : '—';
+  if (el) el.textContent = brl > 0 ? fmtUSD(brl / taxa) : '—';
 }
 
 function selecionarComp(file) {
@@ -805,14 +865,21 @@ async function salvarLanc() {
     toast('Preencha descrição, atividade e valor.','error'); return;
   }
 
+  const jaTravo = lancEditando?.cotacao_travada_em && lancEditando?.situacao === 'pago';
+
   const dados = {
     descricao: desc,
     atividade_id: ativId,
     contrato_id: document.getElementById('f-cont').value||null,
     fornecedor_id: document.getElementById('f-forn').value||null,
     valor_brl: brl,
-    valor_usd: parseFloat((brl/taxaAtual).toFixed(2)),
-    cotacao_uso: taxaAtual,
+    // Se já travado e continua pago: manter valores originais; caso contrário calcular
+    valor_usd: jaTravo
+      ? lancEditando.valor_usd
+      : parseFloat((brl / taxaAtual).toFixed(2)),
+    cotacao_uso: jaTravo
+      ? lancEditando.cotacao_uso
+      : taxaAtual,
     numero_nf: document.getElementById('f-nf').value.trim()||null,
     dt_vencimento: document.getElementById('f-venc').value||null,
     dt_pagamento: document.getElementById('f-pgto').value||null,
