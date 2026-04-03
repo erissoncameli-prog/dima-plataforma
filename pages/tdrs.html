@@ -995,15 +995,31 @@ async function confirmarSenhaTDR(){
   const btn=document.getElementById('senha-tdr-btn');
   btn.textContent='Verificando...';btn.disabled=true;
   try{
-    // Usa RPC seguro — NÃO usa signInWithPassword que reseta a sessão e quebra o auth.uid()
-    const {data:senhaOk, error}=await db.rpc('fn_verificar_senha',{p_senha:senha});
-    if(error||!senhaOk){
+    // 1. Salvar sessão atual antes de verificar
+    const {data:{session:sessaoAtual}}=await db.auth.getSession();
+
+    // 2. Verificar senha com signInWithPassword (mais confiável)
+    const {data:authData, error:authErr}=await db.auth.signInWithPassword({
+      email: appState.usuario.email,
+      password: senha
+    });
+
+    if(authErr||!authData?.session){
       document.getElementById('senha-tdr-erro').style.display='block';
       document.getElementById('senha-tdr-input').value='';
       document.getElementById('senha-tdr-input').focus();
       btn.textContent='Confirmar';btn.disabled=false;
       return;
     }
+
+    // 3. Restaurar sessão original para não quebrar o auth.uid() das chamadas seguintes
+    if(sessaoAtual?.refresh_token){
+      await db.auth.setSession({
+        access_token: sessaoAtual.access_token,
+        refresh_token: sessaoAtual.refresh_token
+      });
+    }
+
     fecharSenhaTDR();
     if(senhaTDRCallback)await senhaTDRCallback();
   }catch(e){
