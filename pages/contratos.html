@@ -308,36 +308,24 @@ window.traduzir=async function(id){
   if(btn){btn.textContent='Traduzindo...';btn.disabled=true;}
   toast('Traduzindo com IA -- aguarde ate 30 segundos...','info',30000);
   try{
-    var resp=await fetch(c.contrato_assinado_url);
-    if(!resp.ok)throw new Error('Erro ao baixar PDF: HTTP '+resp.status);
-    var blob=await resp.blob();
-    if(blob.size===0)throw new Error('Arquivo vazio ou inacessivel.');
-    var b64=await new Promise(function(res,rej){
-      var rd=new FileReader();
-      rd.onload=function(){res(rd.result.split(',')[1]);};
-      rd.onerror=function(){rej(new Error('Falha ao ler arquivo'));};
-      rd.readAsDataURL(blob);
-    });
-    if(!b64||b64.length<100)throw new Error('Falha ao converter PDF para base64.');
-    var aiResp=await fetch('https://api.anthropic.com/v1/messages',{
+    // Chamar Edge Function no Supabase (evita CORS da API Anthropic)
+    var SB_URL='https://wfymnmlinonvdqfucjya.supabase.co';
+    var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
+    var efResp=await fetch(SB_URL+'/functions/v1/traduzir-contrato',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:4000,
-        messages:[{role:'user',content:[
-          {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
-          {type:'text',text:'Voce e um tradutor juridico especializado em contratos UNESCO/PNUD. Traduza o contrato acima do ingles para o portugues brasileiro de forma fiel e completa. Mantenha a numeracao de clausulas, titulos e estrutura original. Retorne APENAS o texto traduzido, sem comentarios ou explicacoes adicionais.'}
-        ]}]
-      })
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY
+      },
+      body:JSON.stringify({pdf_url:c.contrato_assinado_url})
     });
-    if(!aiResp.ok){
-      var ed=await aiResp.json().catch(function(){return {};});
-      throw new Error('Erro API: '+(ed&&ed.error&&ed.error.message||'status '+aiResp.status));
-    }
-    var aiData=await aiResp.json();
-    var txt=(aiData.content&&aiData.content[0]&&aiData.content[0].text)||'';
-    if(!txt||txt.trim().length<50)throw new Error('Traducao retornada vazia. PDF pode estar protegido ou sem texto selecionavel.');
+    var efData=await efResp.json();
+    if(!efData.ok)throw new Error(efData.erro||'Erro na traducao');
+    var txt=efData.traducao||'';
+    if(!txt||txt.trim().length<50)throw new Error('Traducao retornada vazia.');
+
+    // Salvar traducao como arquivo texto no Storage
     var nomeBase=(c.contrato_assinado_nome||'contrato').replace(/\.(pdf|docx)$/i,'');
     var nomeTrad=nomeBase+'_PT_traduzido.txt';
     var blobTrad=new Blob([txt],{type:'text/plain;charset=utf-8'});
@@ -345,12 +333,15 @@ window.traduzir=async function(id){
     var upR=await db.storage.from('contratos-docs').upload(path,blobTrad,{upsert:true,contentType:'text/plain'});
     if(upR.error)throw new Error('Erro upload: '+upR.error.message);
     var urlTrad=db.storage.from('contratos-docs').getPublicUrl(path).data.publicUrl;
+
+    // Salvar no banco
     var dbR=await db.from('contratos').update({
       contrato_pt_url:urlTrad,
       contrato_pt_nome:nomeTrad,
       contrato_pt_data:new Date().toISOString()
     }).eq('id',id);
     if(dbR.error)throw new Error('Erro banco: '+dbR.error.message);
+
     Object.assign(c,{contrato_pt_url:urlTrad,contrato_pt_nome:nomeTrad,contrato_pt_data:new Date().toISOString()});
     toast('Contrato traduzido e salvo!','success');
     expandidos[id]=false;toggleDet(id);
