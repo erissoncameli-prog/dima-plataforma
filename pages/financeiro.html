@@ -159,7 +159,7 @@ async function carregar() {
         fornecedores(id,nome,tipo)
       `).order('dt_vencimento',{ascending:false}),
       db.from('atividades').select('id,codigo,nome_pt,orcamento_usd,resultado_id').order('codigo'),
-      db.from('contratos').select('id,numero,objeto_pt,fornecedor_id').order('numero'),
+      db.from('contratos').select('id,numero,objeto_pt,fornecedor_id,atividade_id,valor_total_brl,valor_utilizado_brl,saldo_brl').order('numero'),
       db.from('fornecedores').select('id,nome,tipo').order('nome'),
       db.from('resultados').select('*').order('codigo'),
       obterCotacao()
@@ -482,36 +482,107 @@ function abrirEditar(id) {
   document.getElementById('modal-lanc').classList.add('aberto');
 }
 
+function _optsContratos(atividadeId, contratoSelId) {
+  const lista = atividadeId
+    ? contratos.filter(c => c.atividade_id === atividadeId)
+    : contratos;
+  return `<option value="">— Sem contrato —</option>` +
+    lista.map(c => {
+      const obj = c.objeto_pt ? ` — ${c.objeto_pt.substring(0,38)}` : '';
+      return `<option value="${c.id}" ${c.id===contratoSelId?'selected':''}>${c.numero}${obj}</option>`;
+    }).join('');
+}
+
+function _renderPainelSaldo(contrato) {
+  if (!contrato) return '';
+  const total    = parseFloat(contrato.valor_total_brl || 0);
+  const utilizado= parseFloat(contrato.valor_utilizado_brl || 0);
+  const saldo    = parseFloat(contrato.saldo_brl ?? (total - utilizado));
+  const pct      = total > 0 ? Math.min(utilizado / total * 100, 100) : 0;
+  const corBarra = pct >= 90 ? '#DC2626' : pct >= 70 ? '#D97706' : '#059669';
+  const corSaldo = saldo < 0 ? 'var(--erro)' : saldo === 0 ? 'var(--cinza-500)' : 'var(--sucesso)';
+  return `
+    <div id="painel-saldo" style="background:var(--cinza-50);border:1px solid var(--borda);
+      border-radius:var(--raio);padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+        color:var(--cinza-500);margin-bottom:10px;">📋 Saldo do Contrato: ${contrato.numero}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div style="text-align:center;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 4px">
+          <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Valor Total</div>
+          <div style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--cinza-800)">${fmtBRL(total)}</div>
+        </div>
+        <div style="text-align:center;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 4px">
+          <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Utilizado</div>
+          <div style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--aviso)">${fmtBRL(utilizado)}</div>
+        </div>
+        <div style="text-align:center;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 4px">
+          <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Saldo</div>
+          <div style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:${corSaldo}">${fmtBRL(saldo)}</div>
+        </div>
+      </div>
+      <div style="height:6px;background:var(--cinza-200);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${corBarra};border-radius:3px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--cinza-500);margin-top:4px;text-align:right">${Math.round(pct)}% utilizado</div>
+    </div>`;
+}
+
 function renderFormLanc(l) {
+  const atividadeId  = l?.atividade_id  || '';
+  const contratoId   = l?.contrato_id   || '';
+  const fornecedorId = l?.fornecedor_id || '';
+  const contratoSel  = contratos.find(c => c.id === contratoId);
+  const fornAutoId   = contratoSel?.fornecedor_id || '';
+  const fornAtivo    = fornecedorId || fornAutoId;
+  const contsFiltrados = atividadeId ? contratos.filter(c=>c.atividade_id===atividadeId) : contratos;
+  const qtdConts = contsFiltrados.length;
+
   document.getElementById('ml-body').innerHTML = `
     <div class="form-group">
       <label class="form-label">Descrição <span class="obrig">*</span></label>
       <input class="form-control" id="f-desc" type="text" value="${l?.descricao||''}"
         placeholder="Ex: Pagamento consultoria — Produto 1">
     </div>
+
     <div class="grid-2">
+      <!-- 1. ATIVIDADE -->
       <div class="form-group">
         <label class="form-label">Atividade <span class="obrig">*</span></label>
-        <select class="form-control" id="f-ativ">
-          <option value="">Selecione...</option>
-          ${atividades.map(a=>`<option value="${a.id}" ${l?.atividade_id===a.id?'selected':''}>${a.codigo} — ${a.nome_pt?.substring(0,40)}</option>`).join('')}
+        <select class="form-control" id="f-ativ" onchange="cascataAtividade(this.value)">
+          <option value="">Selecione a atividade...</option>
+          ${atividades.map(a=>`<option value="${a.id}" ${atividadeId===a.id?'selected':''}>${a.codigo} — ${(a.nome_pt||'').substring(0,38)}</option>`).join('')}
         </select>
       </div>
+      <!-- 2. CONTRATO filtrado -->
       <div class="form-group">
         <label class="form-label">Contrato</label>
-        <select class="form-control" id="f-cont">
-          <option value="">Sem contrato</option>
-          ${contratos.map(c=>`<option value="${c.id}" ${l?.contrato_id===c.id?'selected':''}>${c.numero}</option>`).join('')}
+        <select class="form-control" id="f-cont" onchange="cascataContrato(this.value)">
+          ${_optsContratos(atividadeId, contratoId)}
         </select>
+        <div id="hint-cont" class="form-hint" style="color:${atividadeId?(qtdConts?'var(--verde-600)':'var(--aviso)'):'var(--cinza-400)'};margin-top:3px">
+          ${atividadeId
+            ? (qtdConts ? `✓ ${qtdConts} contrato(s) vinculado(s) à atividade` : '⚠ Nenhum contrato vinculado a esta atividade')
+            : 'Selecione uma atividade para filtrar os contratos'}
+        </div>
       </div>
     </div>
+
+    <!-- 3. PAINEL DE SALDO (visível apenas se contrato selecionado) -->
+    <div id="wrap-saldo">${contratoSel ? _renderPainelSaldo(contratoSel) : ''}</div>
+
+    <!-- 4. FORNECEDOR automático -->
     <div class="form-group">
       <label class="form-label">Fornecedor</label>
-      <select class="form-control" id="f-forn">
-        <option value="">Selecione o fornecedor...</option>
-        ${fornecedores.map(f=>`<option value="${f.id}" ${l?.fornecedor_id===f.id?'selected':''}>${f.nome} (${f.tipo})</option>`).join('')}
+      <select class="form-control" id="f-forn"
+        style="${fornAutoId?'background:var(--sucesso-bg);border-color:#6EE7B7':''}">
+        <option value="">— Sem fornecedor —</option>
+        ${fornecedores.map(f=>`<option value="${f.id}" ${f.id===fornAtivo?'selected':''}>${f.nome} (${f.tipo})</option>`).join('')}
       </select>
+      <div id="hint-forn" class="form-hint" style="color:var(--verde-600);margin-top:3px;${fornAutoId?'':'display:none'}">
+        ✓ Fornecedor preenchido automaticamente pelo contrato selecionado
+      </div>
     </div>
+
     <div class="grid-2">
       <div class="form-group">
         <label class="form-label">Valor R$ <span class="obrig">*</span></label>
@@ -520,7 +591,7 @@ function renderFormLanc(l) {
           oninput="calcUSD(this.value)">
         <div style="font-size:11px;color:var(--cinza-500);margin-top:4px">
           ≈ <span id="usd-preview" style="font-family:var(--font-mono);font-weight:600">${l?.valor_brl?fmtUSD(parseFloat(l.valor_brl)/taxaAtual):'—'}</span>
-          <span style="color:var(--cinza-400,#9CA3AF)">(cotação R$ ${taxaAtual.toFixed(2)}/USD)</span>
+          <span style="color:var(--cinza-400)">(cotação R$ ${taxaAtual.toFixed(2)}/USD)</span>
         </div>
       </div>
       <div class="form-group">
@@ -573,6 +644,61 @@ function renderFormLanc(l) {
           onchange="selecionarComp(this.files[0])">
       </div>
     </div>`;
+}
+
+// ── CASCATA INTELIGENTE ───────────────────────────────────────
+function cascataAtividade(atividadeId) {
+  // Refiltrar contratos
+  const contsFiltrados = atividadeId
+    ? contratos.filter(c => c.atividade_id === atividadeId)
+    : contratos;
+
+  const selCont = document.getElementById('f-cont');
+  if (selCont) selCont.innerHTML = _optsContratos(atividadeId, '');
+
+  const hintCont = document.getElementById('hint-cont');
+  if (hintCont) {
+    if (!atividadeId) {
+      hintCont.style.color = 'var(--cinza-400)';
+      hintCont.textContent = 'Selecione uma atividade para filtrar os contratos';
+    } else if (contsFiltrados.length === 0) {
+      hintCont.style.color = 'var(--aviso)';
+      hintCont.textContent = '⚠ Nenhum contrato vinculado a esta atividade';
+    } else {
+      hintCont.style.color = 'var(--verde-600,#059669)';
+      hintCont.textContent = `✓ ${contsFiltrados.length} contrato(s) vinculado(s) à atividade`;
+    }
+  }
+
+  // Limpar saldo e fornecedor ao mudar atividade
+  cascataContrato('');
+}
+
+function cascataContrato(contratoId) {
+  const contrato = contratos.find(c => c.id === contratoId);
+
+  // Painel de saldo
+  const wrapSaldo = document.getElementById('wrap-saldo');
+  if (wrapSaldo) {
+    wrapSaldo.innerHTML = contrato ? _renderPainelSaldo(contrato) : '';
+  }
+
+  // Fornecedor automático
+  const selForn = document.getElementById('f-forn');
+  const hintForn = document.getElementById('hint-forn');
+  if (selForn) {
+    if (contrato?.fornecedor_id) {
+      selForn.value = contrato.fornecedor_id;
+      selForn.style.background = 'var(--sucesso-bg)';
+      selForn.style.borderColor = '#6EE7B7';
+      if (hintForn) hintForn.style.display = '';
+    } else {
+      selForn.value = '';
+      selForn.style.background = '';
+      selForn.style.borderColor = '';
+      if (hintForn) hintForn.style.display = 'none';
+    }
+  }
 }
 
 function calcUSD(val) {
