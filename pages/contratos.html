@@ -461,7 +461,7 @@ window.salvar=async function(){
     elemento_despesa:document.getElementById('f-elem').value.trim()||null,
     status:document.getElementById('f-status').value,
   };
-  dados.saldo_brl=dados.valor_total_brl-dados.valor_utilizado_brl;
+  // saldo_brl é GENERATED ALWAYS no banco (valor_total_brl - valor_utilizado_brl), não enviar
   var prog=document.getElementById('prog-bar');
   var fill=document.getElementById('prog-fill');
   if(prog)prog.style.display='block';
