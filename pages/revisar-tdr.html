@@ -775,18 +775,29 @@ async function confirmarSenha(){
   const btn=document.getElementById('senha-btn');
   btn.textContent='Verificando...';btn.disabled=true;
   try{
-    // Usa RPC seguro — NÃO usa signInWithPassword que reseta sessão e quebra auth.uid()
-    const {data:senhaOk,error}=await db.rpc('fn_verificar_senha',{p_senha:s});
-    if(error||!senhaOk){
+    // 1. Salvar sessão atual
+    const {data:{session:sessaoAtual}}=await db.auth.getSession();
+    // 2. Verificar senha
+    const {data:authData,error:authErr}=await db.auth.signInWithPassword({
+      email:appState.usuario.email, password:s
+    });
+    if(authErr||!authData?.session){
       document.getElementById('senha-erro').style.display='block';
       document.getElementById('senha-inp').value='';
       document.getElementById('senha-inp').focus();
       btn.textContent='Confirmar';btn.disabled=false;return;
     }
+    // 3. Restaurar sessão original
+    if(sessaoAtual?.refresh_token){
+      await db.auth.setSession({
+        access_token:sessaoAtual.access_token,
+        refresh_token:sessaoAtual.refresh_token
+      });
+    }
     fecharSenha();
     if(senhaCallback)await senhaCallback();
   }catch(e){
-    console.error('[SENHA] Erro:', e);
+    console.error('[SENHA] Erro:',e);
     toast('Erro na verificação: '+(e.message||''),'error');
     btn.textContent='Confirmar';btn.disabled=false;
   }
