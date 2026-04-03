@@ -183,7 +183,7 @@ function renderLinha(c){
   var obj=(c.objeto_pt||'').substring(0,55)+(c.objeto_pt&&c.objeto_pt.length>55?'...':'');
 
   var main='<tr class="main-row '+(aberto?'aberto':'')+'" onclick="toggleDet(\''+c.id+'\')">'
-    +'<td><button class="xbtn '+(aberto?'aberto':'')+'" id="xb-'+c.id+'" onclick="event.stopPropagation();toggleDet(\''+c.id+'\')">'+(aberto?'&#9660;':'&#9658;')+'</button></td>'
+    +'<td><button class="xbtn '+(aberto?'aberto':'')+'" id="xb-'+c.id+'" onclick="event.stopPropagation()">'+(aberto?'&#9660;':'&#9658;')+'</button></td>'
     +'<td><span class="mono" style="font-weight:600">'+c.numero+'</span></td>'
     +'<td style="max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(c.objeto_pt||'')+'" >'+obj+'</div>'
       +(vencido?'<span style="font-size:9px;background:var(--erro-bg);color:var(--erro);padding:1px 5px;border-radius:3px;font-weight:600">Vencido</span>':critico?'<span style="font-size:9px;background:var(--aviso-bg);color:var(--aviso);padding:1px 5px;border-radius:3px;font-weight:600">Critico</span>':'')
@@ -265,12 +265,17 @@ function buildDet(c){
 }
 
 window.toggleDet=function(id){
+  // Evitar chamadas duplicadas pelo evento de click bubbling
+  if(window._toggling===id)return;
+  window._toggling=id;
+  setTimeout(function(){window._toggling=null;},50);
+
   expandidos[id]=!expandidos[id];
   var det=document.getElementById('det-'+id);
   var inner=document.getElementById('inner-'+id);
   var xb=document.getElementById('xb-'+id);
   var mainRow=det?det.previousElementSibling:null;
-  if(!det)return;
+  if(!det){expandidos[id]=!expandidos[id];return;}
   if(expandidos[id]){
     det.style.display='table-row';
     var c=todosContratos.find(function(x){return x.id===id;});
