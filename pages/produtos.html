@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Avaliação de Produtos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+/* Stats */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-a::after{background:var(--aviso)}
+.sc-b::after{background:var(--azul-medio)}.sc-r::after{background:var(--erro)}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:22px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
+
+/* Filtros em cascata */
+.filtro-cascata{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 20px;margin-bottom:16px;}
+.filtro-steps{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.filtro-step-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:var(--verde-medio);color:#fff;border-radius:50%;font-size:10px;font-weight:700;margin-right:6px;flex-shrink:0;}
+.filtro-step-label{font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;}
+
+/* Cards de produto */
+.produtos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+.prod-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s;}
+.prod-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);border-color:var(--verde-medio);}
+.prod-card-header{padding:12px 14px;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:8px;background:var(--cinza-50);}
+.prod-card-body{padding:14px;}
+.prod-card-footer{padding:10px 14px;border-top:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;background:var(--cinza-50);}
+
+/* Badges de situação */
+.sit{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
+.sit-pendente{background:#FFFBEB;color:#92400E}
+.sit-em_analise{background:#EFF6FF;color:#1E40AF}
+.sit-pago{background:#ECFDF5;color:#065F46}
+.sit-cancelado{background:#F3F4F6;color:#6B7280}
+
+.venc-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;}
+.venc-ok{background:var(--cinza-100);color:var(--cinza-600)}
+.venc-alerta{background:#FFFBEB;color:#92400E}
+.venc-vencido{background:#FEF2F2;color:#991B1B}
+
+/* Número do produto */
+.num-prod{font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--verde-medio);color:#fff;padding:2px 8px;border-radius:4px;}
+
+/* Seções por status */
+.secao-titulo{font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.07em;padding:8px 0;margin-bottom:8px;border-bottom:2px solid var(--borda);display:flex;align-items:center;gap:8px;}
+.secao-count{background:var(--cinza-200);color:var(--cinza-700);font-size:10px;padding:1px 7px;border-radius:99px;}
+.secao-em_analise .secao-titulo{color:#1E40AF;border-color:#BFDBFE;}
+.secao-em_analise .secao-count{background:#DBEAFE;color:#1E40AF;}
+.secao-pendente .secao-titulo{color:#92400E;border-color:#FDE68A;}
+.secao-pendente .secao-count{background:#FEF3C7;color:#92400E;}
+
+/* Modal de avaliação */
+.modal-aval{max-width:680px;}
+.aval-header-info{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:16px;}
+.aval-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.aval-item{display:flex;flex-direction:column;gap:2px;}
+.aval-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;}
+.aval-val{font-size:12px;color:var(--cinza-900);font-weight:500;}
+
+/* Timeline do histórico */
+.timeline{margin-top:12px;}
+.tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.tl-dot.pendente{background:var(--aviso);}
+.tl-dot.em_analise{background:var(--azul-medio);}
+.tl-dot.pago{background:var(--sucesso);}
+.tl-dot.devolvido{background:var(--erro);}
+.tl-data{font-size:10px;color:var(--cinza-500);min-width:90px;margin-top:2px;}
+.tl-texto{font-size:12px;color:var(--cinza-800);}
+
+/* Upload zona */
+.upload-zona{border:2px dashed var(--borda-forte);border-radius:var(--raio);padding:16px;text-align:center;cursor:pointer;transition:all .15s;}
+.upload-zona:hover,.upload-zona.drag{border-color:var(--verde-medio);background:var(--verde-bg);}
+.upload-zona.tem{border-color:var(--sucesso);background:var(--sucesso-bg);border-style:solid;}
+
+/* Botões de ação do modal */
+.btn-aprovar{background:#059669;color:#fff;border:none;border-radius:var(--raio);padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:background .15s;}
+.btn-aprovar:hover{background:#047857;}
+.btn-devolver{background:#FEF2F2;color:#DC2626;border:1px solid #FCA5A5;border-radius:var(--raio);padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);}
+.btn-devolver:hover{background:#FEE2E2;}
+.btn-registrar{background:var(--azul-medio);color:#fff;border:none;border-radius:var(--raio);padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);}
+.btn-registrar:hover{background:#1D4ED8;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando módulo de produtos...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE AVALIAÇÃO -->
+<div class="modal-overlay" id="modal-aval">
+  <div class="modal modal-aval">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="ma-titulo">Avaliar Produto</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="ma-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="ma-body"></div>
+    <div class="modal-footer" id="ma-footer"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+// ── ESTADO ────────────────────────────────────────────────────
+let atividades = [], contratos = [], todosProdutos = [];
+let produtoAtual = null, arquivoEntrega = null;
+let filtAtiv = '', filtCont = '';
+
+// ── INIT ──────────────────────────────────────────────────────
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+
+  document.getElementById('app').innerHTML =
+    gerarLayout('Avaliação de Produtos', 'produtos') + `
+    <div class="fade-in">
+      <div class="stat-row" id="stats"></div>
+
+      <!-- Filtros em cascata -->
+      <div class="filtro-cascata">
+        <div class="filtro-steps">
+          <div>
+            <div class="filtro-step-label">
+              <span class="filtro-step-num">1</span> Atividade
+            </div>
+            <select class="form-control" id="sel-ativ" onchange="selecionarAtividade(this.value)">
+              <option value="">Selecione a atividade...</option>
+            </select>
+          </div>
+          <div>
+            <div class="filtro-step-label">
+              <span class="filtro-step-num">2</span> Contrato
+            </div>
+            <select class="form-control" id="sel-cont" onchange="selecionarContrato(this.value)" disabled>
+              <option value="">Selecione primeiro a atividade</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conteúdo -->
+      <div id="conteudo-produtos">
+        <div class="empty-state">
+          <div class="empty-state-icon">&#x25A3;</div>
+          <div class="empty-state-msg">Selecione uma atividade e um contrato para ver os produtos.</div>
+        </div>
+      </div>
+    </div>` + `</div></div></div>`;
+
+  await carregar();
+})();
+
+// ── CARREGAR DADOS BASE ───────────────────────────────────────
+async function carregar() {
+  const [rAtiv, rCont] = await Promise.all([
+    db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
+    db.from('contratos')
+      .select('id,numero,objeto_pt,atividade_id,fornecedor_id,fornecedores(id,nome)')
+      .order('numero')
+  ]);
+  atividades = rAtiv.data || [];
+  contratos  = rCont.data || [];
+
+  // Preencher select de atividades (apenas com contratos vinculados)
+  const ativComContrato = new Set(contratos.map(c => c.atividade_id).filter(Boolean));
+  const selAtiv = document.getElementById('sel-ativ');
+  atividades
+    .filter(a => ativComContrato.has(a.id))
+    .forEach(a => {
+      const o = document.createElement('option');
+      o.value = a.id;
+      o.textContent = `${a.codigo} — ${(a.nome_pt||'').substring(0,60)}`;
+      selAtiv.appendChild(o);
+    });
+
+  await renderStats();
+}
+
+// ── STATS GLOBAIS ─────────────────────────────────────────────
+async function renderStats() {
+  const { data } = await db.from('contratos_produtos').select('situacao');
+  const todos = data || [];
+  const pend  = todos.filter(p => p.situacao === 'pendente').length;
+  const anal  = todos.filter(p => p.situacao === 'em_analise').length;
+  const pago  = todos.filter(p => p.situacao === 'pago').length;
+  const total = todos.length;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card sc-b">
+      <div class="stat-lbl">Total de produtos</div>
+      <div class="stat-val">${total}</div>
+      <div class="stat-sub">em todos os contratos</div>
+    </div>
+    <div class="stat-card sc-a">
+      <div class="stat-lbl">Pendentes</div>
+      <div class="stat-val" style="color:var(--aviso)">${pend}</div>
+      <div class="stat-sub">aguardando entrega</div>
+    </div>
+    <div class="stat-card" style="border-color:#BFDBFE">
+      <div class="stat-lbl" style="color:#1E40AF">Em avaliação</div>
+      <div class="stat-val" style="color:#1E40AF">${anal}</div>
+      <div class="stat-sub">aguardando parecer</div>
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:#2563EB"></div>
+    </div>
+    <div class="stat-card sc-g">
+      <div class="stat-lbl">Aprovados / Pagos</div>
+      <div class="stat-val" style="color:var(--sucesso)">${pago}</div>
+      <div class="stat-sub">concluídos</div>
+    </div>`;
+}
+
+// ── CASCATA: ATIVIDADE → CONTRATO ────────────────────────────
+function selecionarAtividade(atividadeId) {
+  filtAtiv = atividadeId;
+  filtCont = '';
+  todosProdutos = [];
+
+  const selCont = document.getElementById('sel-cont');
+  selCont.innerHTML = '<option value="">Selecione o contrato...</option>';
+
+  if (!atividadeId) {
+    selCont.disabled = true;
+    selCont.innerHTML = '<option value="">Selecione primeiro a atividade</option>';
+    renderVazio('Selecione uma atividade e um contrato para ver os produtos.');
+    return;
+  }
+
+  const contsFiltrados = contratos.filter(c => c.atividade_id === atividadeId);
+  contsFiltrados.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id;
+    const fornNome = c.fornecedores?.nome ? ` · ${c.fornecedores.nome}` : '';
+    o.textContent = `${c.numero}${fornNome}`;
+    selCont.appendChild(o);
+  });
+
+  selCont.disabled = contsFiltrados.length === 0;
+
+  if (contsFiltrados.length === 0) {
+    selCont.innerHTML = '<option value="">Nenhum contrato vinculado a esta atividade</option>';
+    renderVazio('Nenhum contrato encontrado para esta atividade.');
+  } else if (contsFiltrados.length === 1) {
+    // Selecionar automaticamente se só tem um
+    selCont.value = contsFiltrados[0].id;
+    selecionarContrato(contsFiltrados[0].id);
+  } else {
+    renderVazio(`${contsFiltrados.length} contratos encontrados. Selecione um para ver os produtos.`);
+  }
+}
+
+async function selecionarContrato(contratoId) {
+  filtCont = contratoId;
+  if (!contratoId) { renderVazio('Selecione um contrato.'); return; }
+
+  document.getElementById('conteudo-produtos').innerHTML =
+    '<div style="text-align:center;padding:30px;color:var(--cinza-400)">Carregando produtos...</div>';
+
+  const { data, error } = await db.from('contratos_produtos')
+    .select('*')
+    .eq('contrato_id', contratoId)
+    .not('situacao', 'in', '("pago","cancelado")')
+    .order('numero_produto', { ascending: true });
+
+  todosProdutos = data || [];
+  renderProdutos();
+}
+
+// ── RENDER LISTA ──────────────────────────────────────────────
+function renderProdutos() {
+  const el = document.getElementById('conteudo-produtos');
+  if (!todosProdutos.length) {
+    renderVazio('Nenhum produto pendente neste contrato. Todos foram aprovados ou pagos.');
+    return;
+  }
+
+  const emAnalise = todosProdutos.filter(p => p.situacao === 'em_analise');
+  const pendentes = todosProdutos.filter(p => p.situacao === 'pendente');
+
+  let html = '';
+
+  // Seção Em Avaliação (prioridade visual)
+  if (emAnalise.length) {
+    html += `<div class="secao-em_analise" style="margin-bottom:20px">
+      <div class="secao-titulo">
+        &#x23F3; Em avaliação
+        <span class="secao-count">${emAnalise.length}</span>
+      </div>
+      <div class="produtos-grid">${emAnalise.map(p => renderCard(p)).join('')}</div>
+    </div>`;
+  }
+
+  // Seção Pendentes
+  if (pendentes.length) {
+    html += `<div class="secao-pendente">
+      <div class="secao-titulo">
+        &#x25CB; Aguardando entrega
+        <span class="secao-count">${pendentes.length}</span>
+      </div>
+      <div class="produtos-grid">${pendentes.map(p => renderCard(p)).join('')}</div>
+    </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderCard(p) {
+  const hoje = new Date();
+  const venc = p.dt_vencimento ? new Date(p.dt_vencimento + 'T12:00:00') : null;
+  const diasVenc = venc ? Math.ceil((venc - hoje) / 86400000) : null;
+  let vencClass = 'venc-ok', vencTxt = '';
+  if (venc) {
+    if (diasVenc < 0) { vencClass = 'venc-vencido'; vencTxt = `Vencido há ${Math.abs(diasVenc)}d`; }
+    else if (diasVenc <= 7) { vencClass = 'venc-alerta'; vencTxt = `Vence em ${diasVenc}d`; }
+    else { vencTxt = `Vence ${fmtData(p.dt_vencimento)}`; }
+  }
+
+  const isAnalise = p.situacao === 'em_analise';
+  const headerBg  = isAnalise ? 'background:#EFF6FF;border-bottom-color:#BFDBFE' : '';
+  const cardBorder = isAnalise ? 'border-color:#93C5FD' : '';
+
+  return `<div class="prod-card" style="${cardBorder}" onclick="abrirModal('${p.id}')">
+    <div class="prod-card-header" style="${headerBg}">
+      <span class="num-prod">Produto ${p.numero_produto}</span>
+      <span class="sit sit-${p.situacao}">${sitLabel(p.situacao)}</span>
+      ${venc ? `<span class="venc-badge ${vencClass}" style="margin-left:auto">${vencTxt}</span>` : ''}
+    </div>
+    <div class="prod-card-body">
+      <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:8px;line-height:1.35">
+        ${p.descricao}
+      </div>
+      <div style="font-family:var(--font-mono);font-size:15px;font-weight:700;color:var(--verde-medio);margin-bottom:6px">
+        ${fmtBRL(parseFloat(p.valor_brl||0))}
+      </div>
+      ${p.arquivo_entrega_nome ? `
+        <div style="font-size:11px;color:var(--azul-medio);display:flex;align-items:center;gap:4px">
+          &#x1F4CE; ${p.arquivo_entrega_nome}
+        </div>` : ''}
+      ${p.observacoes ? `<div style="font-size:11px;color:var(--cinza-500);margin-top:4px;line-height:1.4">${p.observacoes}</div>` : ''}
+    </div>
+    <div class="prod-card-footer">
+      <span style="font-size:11px;color:var(--cinza-500)">
+        ${p.dt_entrega ? `Entregue: ${fmtData(p.dt_entrega)}` : 'Entrega não registrada'}
+      </span>
+      <span style="font-size:11px;font-weight:600;color:${isAnalise ? '#2563EB' : 'var(--cinza-400)'}">
+        ${isAnalise ? '&#x1F50D; Avaliar &#x2192;' : '&#x1F4E5; Registrar entrega &#x2192;'}
+      </span>
+    </div>
+  </div>`;
+}
+
+function sitLabel(s) {
+  return {pendente:'Pendente',em_analise:'Em avaliação',pago:'Pago',cancelado:'Cancelado'}[s] || s;
+}
+
+function renderVazio(msg) {
+  document.getElementById('conteudo-produtos').innerHTML =
+    `<div class="empty-state"><div class="empty-state-icon">&#x25A3;</div>
+    <div class="empty-state-msg">${msg}</div></div>`;
+}
+
+// ── MODAL DE AVALIAÇÃO ────────────────────────────────────────
+async function abrirModal(prodId) {
+  arquivoEntrega = null;
+  const { data: p } = await db.from('contratos_produtos').select('*').eq('id', prodId).single();
+  if (!p) return;
+  produtoAtual = p;
+
+  const cont = contratos.find(c => c.id === p.contrato_id);
+
+  document.getElementById('ma-titulo').textContent =
+    `${p.situacao === 'em_analise' ? 'Avaliar' : 'Registrar Entrega'} — Produto ${p.numero_produto}`;
+  document.getElementById('ma-sub').textContent =
+    cont ? `Contrato ${cont.numero} · ${cont.fornecedores?.nome || ''}` : '';
+
+  const historico = Array.isArray(p.historico) ? p.historico : [];
+  const isAnalise = p.situacao === 'em_analise';
+  const isPend    = p.situacao === 'pendente';
+
+  document.getElementById('ma-body').innerHTML = `
+    <!-- Info do produto -->
+    <div class="aval-header-info">
+      <div class="aval-row">
+        <div class="aval-item">
+          <span class="aval-lbl">Descrição</span>
+          <span class="aval-val">${p.descricao}</span>
+        </div>
+        <div class="aval-item">
+          <span class="aval-lbl">Valor</span>
+          <span class="aval-val" style="font-family:var(--font-mono);font-weight:700;color:var(--verde-medio)">${fmtBRL(parseFloat(p.valor_brl||0))}</span>
+        </div>
+        <div class="aval-item">
+          <span class="aval-lbl">Vencimento previsto</span>
+          <span class="aval-val">${p.dt_vencimento ? fmtData(p.dt_vencimento) : '—'}</span>
+        </div>
+        <div class="aval-item">
+          <span class="aval-lbl">Situação atual</span>
+          <span class="sit sit-${p.situacao}">${sitLabel(p.situacao)}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SE PENDENTE: registrar entrega -->
+    ${isPend ? `
+    <div style="margin-bottom:16px">
+      <div class="sec-label" style="font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--borda)">
+        Registrar entrega do consultor
+      </div>
+      <div class="grid-2" style="margin-bottom:12px">
+        <div class="form-group">
+          <label class="form-label">Data de entrega <span class="obrig">*</span></label>
+          <input class="form-control" type="date" id="f-dt-entrega" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Observações iniciais</label>
+          <input class="form-control" type="text" id="f-obs-entrega" placeholder="Ex: Produto entregue conforme prazo">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Documento entregue pelo consultor</label>
+        <div class="upload-zona ${p.arquivo_entrega_url ? 'tem' : ''}" id="zona-upload"
+          onclick="document.getElementById('inp-arquivo').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="event.preventDefault();this.classList.remove('drag');selecionarArquivo(event.dataTransfer.files[0])">
+          <input type="file" id="inp-arquivo" style="display:none"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.jpg,.png"
+            onchange="selecionarArquivo(this.files[0])">
+          ${p.arquivo_entrega_url
+            ? `<div style="font-size:13px;font-weight:500">&#x1F4CE; ${p.arquivo_entrega_nome} <span style="font-size:11px;color:var(--cinza-500)">(clique para substituir)</span></div>`
+            : `<div style="font-size:13px;font-weight:500;color:var(--cinza-600)">&#x1F4E5; Arraste o arquivo ou clique para selecionar</div>
+               <div style="font-size:11px;color:var(--cinza-400);margin-top:4px">PDF, Word, Excel, ZIP · até 20MB</div>`}
+        </div>
+        <div id="nome-arquivo" style="font-size:12px;color:var(--verde-medio);margin-top:6px;font-weight:500"></div>
+      </div>
+    </div>` : ''}
+
+    <!-- SE EM_ANALISE: formulário de parecer -->
+    ${isAnalise ? `
+    <div style="margin-bottom:16px">
+      <div class="sec-label" style="font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--borda)">
+        Avaliação do produto entregue
+      </div>
+      ${p.arquivo_entrega_url ? `
+        <div style="background:var(--azul-bg);border:1px solid #BFDBFE;border-radius:var(--raio);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">&#x1F4CE;</span>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:600;color:var(--azul-medio)">${p.arquivo_entrega_nome}</div>
+            <div style="font-size:11px;color:var(--cinza-500)">Entregue em ${p.dt_entrega ? fmtData(p.dt_entrega) : '—'}</div>
+          </div>
+          <button class="btn btn-sm btn-secondary" onclick="window.open('${p.arquivo_entrega_url}','_blank')">
+            &#x1F441; Abrir
+          </button>
+        </div>` : `
+        <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--cinza-500)">
+          &#x26A0; Nenhum arquivo anexado pelo consultor.
+        </div>`}
+      <div class="form-group">
+        <label class="form-label">Parecer da avaliação <span class="obrig">*</span></label>
+        <textarea class="form-control" id="f-parecer" rows="3"
+          placeholder="Descreva o resultado da avaliação: o que foi verificado, se atende aos requisitos, observações...">${p.parecer_avaliador||''}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data de avaliação</label>
+        <input class="form-control" type="date" id="f-dt-aval" value="${new Date().toISOString().split('T')[0]}">
+      </div>
+    </div>` : ''}
+
+    <!-- Histórico -->
+    ${historico.length ? `
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Histórico</div>
+      <div class="timeline">
+        ${historico.slice().reverse().map(h => `
+          <div class="tl-item">
+            <div class="tl-dot ${h.status||'pendente'}"></div>
+            <div class="tl-data">${h.data ? new Date(h.data).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}</div>
+            <div class="tl-texto">${h.texto||''}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}`;
+
+  // Footer com botões contextuais
+  if (isPend) {
+    document.getElementById('ma-footer').innerHTML = `
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-registrar" onclick="registrarEntrega()">&#x1F4E5; Registrar entrega e enviar para avaliação</button>`;
+  } else if (isAnalise) {
+    document.getElementById('ma-footer').innerHTML = `
+      <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
+      <button class="btn-devolver" onclick="devolverProduto()">&#x21A9; Devolver ao consultor</button>
+      <button class="btn-aprovar" onclick="aprovarProduto()">&#x2714; Aprovar e liberar pagamento</button>`;
+  } else {
+    document.getElementById('ma-footer').innerHTML = `
+      <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
+  }
+
+  document.getElementById('modal-aval').classList.add('aberto');
+}
+
+function selecionarArquivo(file) {
+  if (!file) return;
+  arquivoEntrega = file;
+  const zona = document.getElementById('zona-upload');
+  const nome = document.getElementById('nome-arquivo');
+  if (zona) { zona.classList.add('tem'); zona.innerHTML = `<div style="font-size:13px;font-weight:500">&#x1F4CE; ${file.name} <span style="font-size:11px;color:var(--cinza-500)">(${Math.round(file.size/1024)}KB)</span></div>`; }
+  if (nome) nome.textContent = '';
+}
+
+// ── AÇÕES ─────────────────────────────────────────────────────
+async function registrarEntrega() {
+  const dtEntrega = document.getElementById('f-dt-entrega')?.value;
+  const obs       = document.getElementById('f-obs-entrega')?.value?.trim() || '';
+  if (!dtEntrega) { toast('Informe a data de entrega.', 'error'); return; }
+
+  const p = produtoAtual;
+  const historico = Array.isArray(p.historico) ? [...p.historico] : [];
+  historico.push({
+    status: 'em_analise',
+    data: new Date().toISOString(),
+    texto: `Entrega registrada${obs ? ': ' + obs : ''}. Enviado para avaliação.`
+  });
+
+  const upd = {
+    situacao: 'em_analise',
+    dt_entrega: dtEntrega,
+    observacoes: obs || p.observacoes,
+    historico,
+    atualizado_em: new Date().toISOString()
+  };
+
+  // Upload do arquivo se selecionado
+  if (arquivoEntrega) {
+    toast('Enviando arquivo...', 'info');
+    const path = `produtos/${p.id}/${Date.now()}_${arquivoEntrega.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const { error: upErr } = await db.storage.from('tdrs-arquivos').upload(path, arquivoEntrega, {upsert:true});
+    if (upErr) { toast('Erro no upload: ' + upErr.message, 'error'); return; }
+    const { data: urlData } = db.storage.from('tdrs-arquivos').getPublicUrl(path);
+    upd.arquivo_entrega_url  = urlData.publicUrl;
+    upd.arquivo_entrega_nome = arquivoEntrega.name;
+    upd.arquivo_entrega_data = new Date().toISOString();
+  }
+
+  const { error } = await db.from('contratos_produtos').update(upd).eq('id', p.id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+
+  toast('Entrega registrada! Produto enviado para avaliação.', 'success');
+  fecharModal();
+  await selecionarContrato(filtCont);
+  await renderStats();
+}
+
+async function aprovarProduto() {
+  const parecer = document.getElementById('f-parecer')?.value?.trim();
+  const dtAval  = document.getElementById('f-dt-aval')?.value;
+  if (!parecer) { toast('Informe o parecer da avaliação.', 'error'); return; }
+
+  const p = produtoAtual;
+  const historico = Array.isArray(p.historico) ? [...p.historico] : [];
+  historico.push({
+    status: 'pago',
+    data: new Date().toISOString(),
+    texto: `Aprovado. Parecer: ${parecer}`
+  });
+
+  const { error } = await db.from('contratos_produtos').update({
+    situacao: 'pago',
+    parecer_avaliador: parecer,
+    avaliado_em: dtAval ? dtAval + 'T12:00:00Z' : new Date().toISOString(),
+    avaliado_por: appState.usuario.id,
+    historico,
+    atualizado_em: new Date().toISOString()
+  }).eq('id', p.id);
+
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+
+  toast('Produto aprovado! Pagamento liberado.', 'success');
+  fecharModal();
+  await selecionarContrato(filtCont);
+  await renderStats();
+}
+
+async function devolverProduto() {
+  const parecer = document.getElementById('f-parecer')?.value?.trim();
+  if (!parecer) { toast('Informe o motivo da devolução no campo de parecer.', 'error'); return; }
+
+  const p = produtoAtual;
+  const historico = Array.isArray(p.historico) ? [...p.historico] : [];
+  historico.push({
+    status: 'devolvido',
+    data: new Date().toISOString(),
+    texto: `Devolvido ao consultor. Motivo: ${parecer}`
+  });
+
+  const { error } = await db.from('contratos_produtos').update({
+    situacao: 'pendente',
+    parecer_avaliador: parecer,
+    dt_entrega: null,
+    historico,
+    atualizado_em: new Date().toISOString()
+  }).eq('id', p.id);
+
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+
+  toast('Produto devolvido ao consultor para correção.', 'info');
+  fecharModal();
+  await selecionarContrato(filtCont);
+  await renderStats();
+}
+
+function fecharModal() {
+  document.getElementById('modal-aval').classList.remove('aberto');
+  produtoAtual = null; arquivoEntrega = null;
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+</script>
+</body>
+</html>
