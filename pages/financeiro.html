@@ -804,7 +804,7 @@ async function carregarProdutosPendentes(contratoId) {
             const corFundo = vencido ? '#FEF2F2' : 'var(--sucesso-bg)';
             const corNum   = vencido ? 'var(--erro)' : 'var(--verde-medio)';
             return `<button type="button"
-              onclick="preencherDeProduto('${p.id}','${(p.descricao||'').replace(/'/g,"\\'")}',${parseFloat(p.valor_brl||0)},'${p.dt_vencimento||''}')"
+              onclick="preencherDeProduto('${p.id}',${p.numero_produto},'${(p.descricao||'').replace(/'/g,"\\'")}',${parseFloat(p.valor_brl||0)},'${p.dt_vencimento||''}')"
               style="border:1px solid ${corBorda};background:${corFundo};border-radius:var(--raio);
                 padding:6px 10px;cursor:pointer;text-align:left;font-family:var(--font-sans)">
               <div style="font-size:9px;font-weight:700;color:${corNum};text-transform:uppercase;letter-spacing:.05em">
@@ -824,19 +824,39 @@ async function carregarProdutosPendentes(contratoId) {
   }
 }
 
-function preencherDeProduto(prodId, desc, valor, dtVenc) {
+function preencherDeProduto(prodId, numProd, desc, valor, dtVenc) {
   const fDesc = document.getElementById('f-desc');
   const fBrl  = document.getElementById('f-brl');
   const fVenc = document.getElementById('f-venc');
   if (fDesc && !fDesc.value) fDesc.value = desc;
   if (fBrl  && !fBrl.value)  { fBrl.value = valor; calcUSD(valor); }
   if (fVenc && !fVenc.value && dtVenc) fVenc.value = dtVenc;
+
+  // Guardar referência oculta do produto selecionado para o salvarLanc usar
+  let hidden = document.getElementById('f-num-produto');
+  if (!hidden) {
+    hidden = document.createElement('input');
+    hidden.type = 'hidden'; hidden.id = 'f-num-produto';
+    document.getElementById('ml-body').appendChild(hidden);
+  }
+  hidden.value = numProd;
+
+  // Guardar também o id do produto para vincular lancamento_id depois
+  let hiddenProdId = document.getElementById('f-prod-id');
+  if (!hiddenProdId) {
+    hiddenProdId = document.createElement('input');
+    hiddenProdId.type = 'hidden'; hiddenProdId.id = 'f-prod-id';
+    document.getElementById('ml-body').appendChild(hiddenProdId);
+  }
+  hiddenProdId.value = prodId;
+
   // Marcar produto selecionado visualmente
   document.querySelectorAll('#wrap-prod-pendentes button').forEach(b => {
-    b.style.opacity = b.getAttribute('onclick')?.includes(`'${prodId}'`) ? '1' : '0.4';
-    b.style.outline = b.getAttribute('onclick')?.includes(`'${prodId}'`) ? '2px solid var(--verde-medio)' : 'none';
+    const match = b.getAttribute('onclick')?.includes(`'${prodId}'`);
+    b.style.opacity = match ? '1' : '0.4';
+    b.style.outline = match ? '2px solid var(--verde-medio)' : 'none';
   });
-  toast('Campos preenchidos com dados do produto. Confira e salve.','info');
+  toast('Campos preenchidos com os dados do Produto '+numProd+'. Confira e salve.','info');
 }
 
 function calcUSD(val) {
@@ -867,13 +887,15 @@ async function salvarLanc() {
 
   const jaTravo = lancEditando?.cotacao_travada_em && lancEditando?.situacao === 'pago';
 
+  const numProduto = parseInt(document.getElementById('f-num-produto')?.value) || null;
+  const produtoId  = document.getElementById('f-prod-id')?.value || null;
+
   const dados = {
     descricao: desc,
     atividade_id: ativId,
     contrato_id: document.getElementById('f-cont').value||null,
     fornecedor_id: document.getElementById('f-forn').value||null,
     valor_brl: brl,
-    // Se já travado e continua pago: manter valores originais; caso contrário calcular
     valor_usd: jaTravo
       ? lancEditando.valor_usd
       : parseFloat((brl / taxaAtual).toFixed(2)),
@@ -881,6 +903,7 @@ async function salvarLanc() {
       ? lancEditando.cotacao_uso
       : taxaAtual,
     numero_nf: document.getElementById('f-nf').value.trim()||null,
+    numero_produto: numProduto,
     dt_vencimento: document.getElementById('f-venc').value||null,
     dt_pagamento: document.getElementById('f-pgto').value||null,
     situacao: document.getElementById('f-sit').value,
@@ -906,7 +929,12 @@ async function salvarLanc() {
       toast('Lançamento atualizado!','success');
     }
 
-    // Upload comprovante
+    // Vincular lancamento_id no produto se veio de um produto pendente
+    if (produtoId && id) {
+      await db.from('contratos_produtos')
+        .update({ lancamento_id: id })
+        .eq('id', produtoId);
+    }
     if (arquivoComp && id) {
       const ext = arquivoComp.name.split('.').pop();
       const path = `comprovante-${id}.${ext}`;
