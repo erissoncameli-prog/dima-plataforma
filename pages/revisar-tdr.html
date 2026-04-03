@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Revisar TDR</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<style>
+body{overflow:hidden}
+.rev-layout{display:grid;grid-template-columns:1fr 300px;height:calc(100vh - 52px);overflow:hidden;}
+.rev-main{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--borda);}
+.rev-side{display:flex;flex-direction:column;overflow:hidden;background:var(--cinza-50);}
+
+/* Topbar */
+.rev-topbar{height:52px;background:var(--branco);border-bottom:1px solid var(--borda);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;position:sticky;top:0;z-index:10;}
+.rev-titulo{font-size:13px;font-weight:600;color:var(--cinza-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+
+/* Toolbar do editor */
+.ed-toolbar{padding:6px 12px;border-bottom:1px solid var(--borda);background:var(--cinza-50);flex-shrink:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.ed-toolbar-info{font-size:11px;color:var(--cinza-500);margin-left:auto;}
+
+/* Quill */
+.ql-toolbar.ql-snow{border:none;background:transparent;padding:4px 0;flex-shrink:0;}
+.ql-container.ql-snow{border:none;flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.ql-editor{flex:1;overflow-y:auto;padding:20px 28px;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.8;max-width:720px;margin:0 auto;width:100%;}
+.ql-editor p{margin-bottom:8px;}
+.ql-editor h1,.ql-editor h2,.ql-editor h3{font-family:'DM Sans',sans-serif;color:var(--cinza-900);margin:16px 0 8px;}
+.ql-editor.ql-blank::before{font-style:normal;color:var(--cinza-400,#9CA3AF);}
+.quill-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+
+/* Comentários */
+.side-header{padding:10px 12px;border-bottom:1px solid var(--borda);background:var(--branco);flex-shrink:0;}
+.side-tabs{display:flex;gap:0;margin-top:6px;}
+.stab{flex:1;padding:5px;text-align:center;font-size:11px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);}
+.stab.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.side-body{flex:1;overflow-y:auto;padding:8px;}
+.com-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:7px;overflow:hidden;cursor:pointer;}
+.com-card:hover{border-color:var(--verde-claro);}
+.com-card.ia{border-left:3px solid #7C3AED;}
+.com-card.resolvido{opacity:.5;}
+.com-header{padding:7px 9px;display:flex;align-items:center;gap:6px;}
+.com-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
+.ca-h{background:var(--verde-medio);}.ca-ia{background:#7C3AED;}
+.com-autor{font-size:11px;font-weight:600;color:var(--cinza-900);flex:1;}
+.com-hora{font-size:10px;color:var(--cinza-400,#9CA3AF);}
+.com-trecho{font-size:10px;color:var(--cinza-500);padding:3px 9px;background:var(--cinza-50);border-top:1px solid var(--borda);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.com-texto{font-size:12px;color:var(--cinza-700);padding:7px 9px;line-height:1.5;}
+.com-acoes{padding:5px 9px;border-top:1px solid var(--borda);display:flex;gap:5px;}
+.btn-res{font-size:10px;font-weight:500;padding:2px 7px;border-radius:99px;border:1px solid var(--verde-claro);color:var(--verde-medio);background:none;cursor:pointer;font-family:var(--font-sans);}
+.btn-res:hover{background:var(--sucesso-bg);}
+
+/* Novo comentário */
+.novo-com{background:var(--branco);border-top:1px solid var(--borda);padding:10px 12px;flex-shrink:0;}
+.trecho-prev{font-size:10px;color:var(--cinza-500);background:var(--cinza-50);padding:3px 8px;border-radius:var(--raio);border-left:3px solid var(--aviso);font-style:italic;margin-bottom:6px;display:none;}
+.trecho-prev.vis{display:block;}
+
+/* IA panel */
+.ia-panel{background:#F5F3FF;border:1px solid #C4B5FD;border-radius:var(--raio-lg);margin:8px;overflow:hidden;}
+.ia-header{padding:8px 10px;display:flex;align-items:center;gap:7px;cursor:pointer;}
+.ia-av{width:22px;height:22px;background:#7C3AED;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0;}
+.ia-titulo{font-size:12px;font-weight:600;color:#3C3489;flex:1;}
+.ia-body{padding:0 10px 10px;display:none;}
+.ia-body.open{display:block;}
+.ia-btn{width:100%;padding:7px;background:#7C3AED;color:#fff;border:none;border-radius:var(--raio);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-sans);margin-top:6px;}
+.ia-btn:hover{background:#6D28D9;}
+.ia-btn:disabled{opacity:.6;cursor:not-allowed;}
+.ia-score{text-align:center;padding:8px;background:var(--branco);border-radius:var(--raio);border:1px solid #C4B5FD;margin-bottom:6px;}
+
+/* Versões */
+.ver-item{display:flex;gap:8px;padding:7px 9px;border-bottom:1px solid var(--borda);cursor:pointer;font-size:12px;transition:background .1s;}
+.ver-item:hover{background:var(--cinza-50);}
+.ver-item.atual{background:var(--sucesso-bg);}
+.ver-num{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--verde-medio);}
+
+/* Upload zona */
+.upload-pedido{background:#FFF7ED;border:2px dashed #FED7AA;border-radius:var(--raio-lg);padding:20px;text-align:center;margin:16px;}
+.upload-pedido.drag{border-color:var(--verde-claro);background:var(--sucesso-bg);}
+
+/* Modal senha */
+.senha-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.6);align-items:center;justify-content:center;}
+.senha-overlay.aberto{display:flex;}
+.senha-box{background:var(--branco);border-radius:var(--raio-xl);box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:380px;margin:20px;overflow:hidden;}
+
+/* Fase badge */
+.fase-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="rev-topbar">
+  <a href="tdrs.html" style="font-size:12px;color:var(--cinza-500);text-decoration:none;flex-shrink:0">← TDRs</a>
+  <div style="width:1px;height:16px;background:var(--borda);flex-shrink:0"></div>
+  <div class="rev-titulo" id="rev-titulo">Carregando...</div>
+  <div id="rev-status"></div>
+  <div style="display:flex;gap:6px;flex-shrink:0" id="rev-acoes"></div>
+</div>
+
+<!-- LAYOUT PRINCIPAL -->
+<div class="rev-layout">
+
+  <!-- EDITOR -->
+  <div class="rev-main">
+    <div class="ed-toolbar" id="ed-toolbar">
+      <div style="font-size:12px;color:var(--cinza-500)" id="ed-cenario"></div>
+      <div class="ed-toolbar-info" id="ed-info"></div>
+    </div>
+    <div class="quill-wrap" id="quill-wrap">
+      <!-- Quill montado aqui via JS -->
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="rev-side">
+    <!-- Painel IA -->
+    <div class="ia-panel">
+      <div class="ia-header" onclick="toggleIA()">
+        <div class="ia-av">✦</div>
+        <div class="ia-titulo">Revisão por IA</div>
+        <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:#7C3AED;color:#fff" id="ia-badge">Pronto</span>
+      </div>
+      <div class="ia-body" id="ia-body">
+        <div style="font-size:11px;color:#534AB7;line-height:1.5;margin-bottom:6px">Analisa o TDR, compara com o objeto da atividade e identifica pontos de atenção.</div>
+        <div id="ia-score-wrap" style="display:none">
+          <div class="ia-score">
+            <div style="font-size:26px;font-weight:700;font-family:var(--font-mono)" id="ia-score-num">—</div>
+            <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em">Score de conformidade</div>
+          </div>
+        </div>
+        <div id="ia-result" style="font-size:11px;color:#534AB7;line-height:1.5"></div>
+        <button class="ia-btn" id="ia-btn" onclick="analisarIA()">✦ Analisar com IA</button>
+      </div>
+    </div>
+
+    <!-- Abas -->
+    <div class="side-header">
+      <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">Painel de revisão</div>
+      <div class="side-tabs">
+        <button class="stab ativo" id="stab-com" onclick="sideAba('com',this)">Comentários (<span id="cnt-com">0</span>)</button>
+        <button class="stab" id="stab-ver" onclick="sideAba('ver',this)">Versões (<span id="cnt-ver">0</span>)</button>
+      </div>
+    </div>
+
+    <div class="side-body">
+      <div id="lista-com"></div>
+      <div id="lista-ver" style="display:none"></div>
+    </div>
+
+    <!-- Novo comentário -->
+    <div class="novo-com" id="painel-com">
+      <div style="font-size:11px;font-weight:600;color:var(--cinza-700);margin-bottom:6px" id="com-hint">
+        Selecione um trecho para comentar
+      </div>
+      <div class="trecho-prev" id="trecho-prev"></div>
+      <textarea class="form-control" id="com-txt" rows="3" style="font-size:12px;resize:none"
+        placeholder="Comentário sobre o trecho..."></textarea>
+      <button class="btn btn-primary btn-sm" style="width:100%;margin-top:6px"
+        onclick="addComentario()" id="btn-add-com" disabled>+ Comentar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SENHA -->
+<div class="senha-overlay" id="modal-senha">
+  <div class="senha-box">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid var(--borda)">
+      <div style="font-size:14px;font-weight:600;color:var(--cinza-900)" id="senha-titulo">Confirmar</div>
+      <div style="font-size:12px;color:var(--cinza-500);margin-top:2px" id="senha-sub"></div>
+    </div>
+    <div style="padding:14px 18px">
+      <label class="form-label">Sua senha <span class="obrig">*</span></label>
+      <input class="form-control" id="senha-inp" type="password" placeholder="Digite sua senha"
+        onkeydown="if(event.key==='Enter')confirmarSenha()">
+      <div id="senha-erro" style="font-size:12px;color:var(--erro);display:none;margin-top:4px">✗ Senha incorreta.</div>
+    </div>
+    <div style="padding:10px 18px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="fecharSenha()">Cancelar</button>
+      <button class="btn btn-primary" id="senha-btn" onclick="confirmarSenha()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<script src="../js/config.js"></script>
+<script>
+// ── Estado ────────────────────────────────────────────────
+let tdrId=null, tdrDados=null, quill=null;
+let comentarios=[], versoes=[];
+let trechoSelecionado='', trechoRange=null;
+let senhaCallback=null, iaAberto=false;
+
+const FASES=['rascunho','revisao_interna','ajustes','enviado_unesco','retorno_unesco','aprovado'];
+const FASES_LABELS={rascunho:'Rascunho',revisao_interna:'Revisão Interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado'};
+
+// ── Init ──────────────────────────────────────────────────
+(async()=>{
+  const u=await carregarUsuario();
+  if(!u){window.location.href='../index.html';return;}
+
+  const p=new URLSearchParams(window.location.search);
+  tdrId=p.get('id');
+  if(!tdrId){alert('TDR não especificado.');window.location.href='tdrs.html';return;}
+
+  // Inicializar Quill
+  const container=document.getElementById('quill-wrap');
+  const toolbarOptions=[
+    ['bold','italic','underline'],
+    [{'header':[1,2,3,false]}],
+    [{'list':'ordered'},{'list':'bullet'}],
+    ['clean']
+  ];
+  container.innerHTML='<div id="quill-editor"></div>';
+  quill=new Quill('#quill-editor',{theme:'snow',modules:{toolbar:toolbarOptions},placeholder:'Carregando conteúdo do TDR...'});
+
+  // Detectar seleção para comentário
+  quill.on('selection-change',(range)=>{
+    if(range&&range.length>0){
+      trechoSelecionado=quill.getText(range.index,range.length).trim().substring(0,200);
+      trechoRange=range;
+      const prev=document.getElementById('trecho-prev');
+      prev.textContent=`"${trechoSelecionado.substring(0,70)}${trechoSelecionado.length>70?'…':''}"`;
+      prev.classList.add('vis');
+      document.getElementById('btn-add-com').disabled=false;
+      document.getElementById('com-hint').textContent='Comentar trecho selecionado:';
+    } else {
+      trechoSelecionado='';trechoRange=null;
+      document.getElementById('trecho-prev').classList.remove('vis');
+      document.getElementById('btn-add-com').disabled=true;
+      document.getElementById('com-hint').textContent='Selecione um trecho para comentar';
+    }
+  });
+
+  await carregarTDR();
+})();
+
+async function carregarTDR(){
+  try{
+    // Supabase v2: não suporta .catch() encadeado — usar try/catch individual
+    const {data:tdr, error:tdrErr} = await db.from('tdrs')
+      .select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome)')
+      .eq('id',tdrId).single();
+    if(tdrErr) throw tdrErr;
+
+    let coms=[], vers=[];
+    try {
+      const {data:comsData} = await db.from('tdr_comentarios')
+        .select('*,usuarios(id,nome_completo)')
+        .eq('tdr_id',tdrId).order('criado_em');
+      coms = comsData||[];
+    } catch(e){ coms=[]; }
+
+    try {
+      const {data:versData} = await db.from('tdr_versoes_editor')
+        .select('*,usuarios(id,nome_completo)')
+        .eq('tdr_id',tdrId).order('versao',{ascending:false});
+      vers = versData||[];
+    } catch(e){ vers=[]; }
+
+    tdrDados=tdr;
+    comentarios=coms||[];
+    versoes=vers||[];
+
+    // Topbar
+    document.getElementById('rev-titulo').textContent=`${tdr.numero} — ${tdr.objeto_pt?.substring(0,55)||''}`;
+    document.getElementById('rev-status').innerHTML=badgeStatusTDR(tdr.status);
+
+    // Definir permissões por fase
+    const eCoordenador=['super_admin','coordenacao'].includes(appState.perfil);
+    const eTecnico=['super_admin','coordenacao','tecnico'].includes(appState.perfil);
+    const podeEditar=(eTecnico&&['rascunho','ajustes'].includes(tdr.status))||(eCoordenador&&['revisao_interna','enviado_unesco','retorno_unesco'].includes(tdr.status))||(appState.perfil==='super_admin');
+
+    // Botões de ação
+    renderAcoes(tdr, podeEditar, eCoordenador);
+
+    // Informação do cenário
+    renderCenario(tdr);
+
+    // Carregar conteúdo
+    await carregarConteudo(tdr, podeEditar);
+
+    renderComentarios();
+    renderVersoes();
+
+    // Bloquear editor se sem permissão
+    if(!podeEditar) quill.disable();
+
+  }catch(e){
+    console.error(e);
+    toast('Erro ao carregar TDR: '+(e.message||''),'error');
+  }
+}
+
+function renderAcoes(t, podeEditar, eCoordenador){
+  const acoes=[];
+
+  if(podeEditar){
+    acoes.push(`<button class="btn btn-secondary btn-sm" onclick="salvarVersao()">💾 Salvar versão</button>`);
+  }
+
+  // Avanço de fase
+  if(eCoordenador&&t.status==='revisao_interna'){
+    acoes.push(`<button class="btn-devolver btn-sm" onclick="devolverAjustes()" style="padding:5px 10px;font-size:12px">↩ Devolver</button>`);
+    acoes.push(`<button class="btn btn-primary btn-sm" onclick="avancarComSenha('enviado_unesco','Aprovar e enviar à UNESCO')">✓ Aprovar → UNESCO</button>`);
+  }
+  if(['super_admin','coordenacao','tecnico'].includes(appState.perfil)&&t.status==='ajustes'){
+    acoes.push(`<button class="btn btn-primary btn-sm" onclick="avancarComSenha('revisao_interna','Reenviar para revisão')">→ Reenviar para revisão</button>`);
+  }
+  if(eCoordenador&&t.status==='enviado_unesco'){
+    acoes.push(`<button class="btn btn-secondary btn-sm" onclick="avancarComSenha('retorno_unesco','Registrar retorno da UNESCO')">→ Retorno UNESCO</button>`);
+  }
+  if(eCoordenador&&t.status==='retorno_unesco'){
+    acoes.push(`<button class="btn-devolver btn-sm" onclick="devolverAjustes()" style="padding:5px 10px;font-size:12px">↩ Ajustes</button>`);
+    acoes.push(`<button class="btn btn-primary btn-sm" onclick="avancarComSenha('aprovado','Aprovar TDR definitivamente')">✓ Aprovar definitivo</button>`);
+  }
+  if(['rascunho','ajustes'].includes(t.status)&&['super_admin','coordenacao','tecnico'].includes(appState.perfil)){
+    acoes.push(`<button class="btn btn-primary btn-sm" onclick="avancarComSenha('revisao_interna','Enviar para revisão interna')">→ Enviar para revisão</button>`);
+  }
+  if(t.status==='aprovado'){
+    acoes.push(`<button class="btn btn-secondary btn-sm" onclick="gerarPDF()">📄 PDF final</button>`);
+    acoes.push(`<button class="btn btn-secondary btn-sm" onclick="exportarDOCX()">📝 DOCX final</button>`);
+  }
+
+  document.getElementById('rev-acoes').innerHTML=acoes.join('');
+}
+
+function renderCenario(t){
+  const temStorage=t.arquivo_url&&!t.arquivo_url.includes('drive.google')&&!t.arquivo_url.includes('docs.google');
+  const temDrive=t.arquivo_url&&(t.arquivo_url.includes('drive.google')||t.arquivo_url.includes('docs.google'));
+  const el=document.getElementById('ed-cenario');
+  const info=document.getElementById('ed-info');
+
+  if(temStorage){
+    el.innerHTML='<span style="color:var(--sucesso);font-weight:500">📎 Arquivo no sistema</span>';
+    info.innerHTML=`<span style="font-size:11px;color:var(--cinza-500)">${t.arquivo_nome||'arquivo.docx'}</span>`;
+  } else if(temDrive){
+    el.innerHTML='<span style="color:var(--azul-medio);font-weight:500">🔗 Arquivo no Google Drive</span>';
+    info.innerHTML=`<a href="${t.arquivo_url}" target="_blank" class="btn btn-sm btn-secondary" style="font-size:11px">Abrir no Drive →</a>`;
+  } else {
+    el.innerHTML='<span style="color:var(--cinza-400,#9CA3AF)">📄 Sem arquivo — editando campos do TDR</span>';
+  }
+}
+
+async function carregarConteudo(t, podeEditar){
+  // 1. Prioridade: versão salva no editor
+  if(versoes.length>0){
+    try{
+      quill.setContents(JSON.parse(versoes[0].conteudo_delta));
+      toast(`Versão ${versoes[0].versao} carregada.`,'info');
+      return;
+    }catch(e){console.warn('Erro ao carregar delta:',e);}
+  }
+
+  // 2. Arquivo no Storage interno
+  const temStorage=t.arquivo_url&&!t.arquivo_url.includes('drive.google')&&!t.arquivo_url.includes('docs.google');
+  if(temStorage){
+    try{
+      toast('Carregando arquivo...','info');
+      let url=t.arquivo_url;
+      try{
+        const urlObj=new URL(t.arquivo_url);
+        const match=urlObj.pathname.match(/\/object\/(?:public|sign)\/tdrs-arquivos\/(.+)/);
+        if(match){
+          const {data}=await db.storage.from('tdrs-arquivos').createSignedUrl(match[1],3600);
+          if(data?.signedUrl)url=data.signedUrl;
+        }
+      }catch(e){}
+
+      const resp=await fetch(url);
+      const blob=await resp.blob();
+      if(t.arquivo_nome?.toLowerCase().endsWith('.docx')||blob.type.includes('wordprocessingml')||blob.type.includes('openxmlformats')){
+        const ab=await blob.arrayBuffer();
+        const result=await mammoth.convertToHtml({arrayBuffer:ab});
+        quill.clipboard.dangerouslyPasteHTML(result.value);
+        toast('Arquivo carregado com sucesso!','success');
+        return;
+      }
+    }catch(e){
+      console.warn('Erro ao carregar arquivo:',e);
+      toast('Não foi possível extrair o arquivo. Carregando campos do TDR.','warning');
+    }
+  }
+
+  // 3. Link do Drive — mostrar zona de upload
+  const temDrive=t.arquivo_url&&(t.arquivo_url.includes('drive.google')||t.arquivo_url.includes('docs.google'));
+  if(temDrive){
+    mostrarZonaUploadDrive(t);
+    return;
+  }
+
+  // 4. Fallback: campos do TDR como texto estruturado
+  carregarCamposTDR(t);
+}
+
+function mostrarZonaUploadDrive(t){
+  quill.disable();
+  const wrapper=document.getElementById('quill-wrap');
+  wrapper.innerHTML=`
+    <div style="padding:20px;overflow-y:auto;flex:1">
+      <div class="upload-pedido" id="zona-drive"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="onDropDrive(event)">
+        <div style="font-size:32px;margin-bottom:10px">📥</div>
+        <div style="font-size:14px;font-weight:600;color:var(--cinza-900);margin-bottom:6px">
+          O arquivo está no Google Drive
+        </div>
+        <div style="font-size:13px;color:var(--cinza-600,#4B5563);margin-bottom:14px;line-height:1.5">
+          Para editar no sistema, faça o download do arquivo <strong>.docx</strong> do Drive e faça upload aqui.<br>
+          Isso só precisa ser feito <strong>uma única vez</strong>.
+        </div>
+        <a href="${t.arquivo_url}" target="_blank" class="btn btn-secondary btn-sm" style="margin-bottom:12px;display:inline-block">
+          1. Abrir no Google Drive →
+        </a>
+        <div style="font-size:12px;color:var(--cinza-500);margin-bottom:10px">
+          Baixe o arquivo como <strong>.docx</strong> no Drive (Arquivo → Baixar → Microsoft Word)
+        </div>
+        <label class="btn btn-primary" style="cursor:pointer;display:inline-block">
+          2. Fazer upload do .docx
+          <input type="file" accept=".docx" style="display:none" onchange="uploadDocxDrive(this.files[0])">
+        </label>
+        <div style="font-size:11px;color:var(--cinza-400,#9CA3AF);margin-top:8px">ou arraste o arquivo aqui</div>
+      </div>
+    </div>`;
+}
+
+async function onDropDrive(e){
+  e.preventDefault();
+  document.getElementById('zona-drive')?.classList.remove('drag');
+  await uploadDocxDrive(e.dataTransfer.files[0]);
+}
+
+async function uploadDocxDrive(file){
+  if(!file||!file.name.endsWith('.docx')){toast('Selecione um arquivo .docx','error');return;}
+  try{
+    toast('Fazendo upload e extraindo texto...','info');
+    // Upload para o Storage
+    const path=`tdr-${tdrId}/documento-principal.docx`;
+    const {error:upErr}=await db.storage.from('tdrs-arquivos').upload(path,file,{upsert:true});
+    if(upErr)throw upErr;
+    const {data:urlData}=db.storage.from('tdrs-arquivos').getPublicUrl(path);
+    // Atualizar TDR com nova URL
+    await db.from('tdrs').update({arquivo_url:urlData.publicUrl,arquivo_nome:file.name}).eq('id',tdrId);
+    tdrDados.arquivo_url=urlData.publicUrl;tdrDados.arquivo_nome=file.name;
+    // Extrair e mostrar no editor
+    const ab=await file.arrayBuffer();
+    const result=await mammoth.convertToHtml({arrayBuffer:ab});
+    // Restaurar editor Quill
+    document.getElementById('quill-wrap').innerHTML='<div id="quill-editor"></div>';
+    quill=new Quill('#quill-editor',{theme:'snow',modules:{toolbar:['bold','italic','underline',[{'header':[1,2,3,false]}],[{'list':'ordered'},{'list':'bullet'}],['clean']]},placeholder:'Carregando...'});
+    quill.clipboard.dangerouslyPasteHTML(result.value);
+    quill.on('selection-change',onSelectionChange);
+    renderCenario(tdrDados);
+    renderAcoes(tdrDados,true,['super_admin','coordenacao'].includes(appState.perfil));
+    toast('Arquivo carregado! Agora você pode editar e salvar versões.','success');
+  }catch(e){toast('Erro no upload: '+(e.message||''),'error');}
+}
+
+function onSelectionChange(range){
+  if(range&&range.length>0){
+    trechoSelecionado=quill.getText(range.index,range.length).trim().substring(0,200);
+    trechoRange=range;
+    document.getElementById('trecho-prev').textContent=`"${trechoSelecionado.substring(0,70)}${trechoSelecionado.length>70?'…':''}"`;
+    document.getElementById('trecho-prev').classList.add('vis');
+    document.getElementById('btn-add-com').disabled=false;
+    document.getElementById('com-hint').textContent='Comentar trecho selecionado:';
+  } else {
+    trechoSelecionado='';trechoRange=null;
+    document.getElementById('trecho-prev').classList.remove('vis');
+    document.getElementById('btn-add-com').disabled=true;
+    document.getElementById('com-hint').textContent='Selecione um trecho para comentar';
+  }
+}
+
+function carregarCamposTDR(t){
+  const campos=[
+    ['OBJETO',t.objeto_pt],['ESCOPO',t.escopo_pt],
+    ['FORMAÇÃO MÍNIMA',t.formacao_minima_pt],
+    ['EXPERIÊNCIA REQUERIDA',t.experiencia_requerida_pt],
+    ['EQUIPE MÍNIMA',t.equipe_minima_pt],
+    ['ATESTADOS',t.atestados_pt],
+    ['ÁREA DE ATUAÇÃO',t.area_atuacao_pt],
+    ['OBSERVAÇÕES',t.observacao],
+  ].filter(([,v])=>v);
+  let html=`<h2>${t.numero}</h2>`;
+  campos.forEach(([l,v])=>{html+=`<h3>${l}</h3><p>${v}</p>`;});
+  quill.clipboard.dangerouslyPasteHTML(html||'<p>Nenhum campo preenchido.</p>');
+}
+
+// ── COMENTÁRIOS ───────────────────────────────────────────
+function addComentario(){
+  const txt=document.getElementById('com-txt').value.trim();
+  if(!txt||!trechoSelecionado){toast('Selecione um trecho e escreva o comentário.','error');return;}
+
+  if(trechoRange){
+    quill.formatText(trechoRange.index,trechoRange.length,'background','#FEF9C3');
+  }
+
+  const com={
+    id:'c-'+Date.now(),tdr_id:tdrId,
+    usuario_id:appState.usuario.id,
+    texto:txt,trecho:trechoSelecionado,
+    range_index:trechoRange?.index,
+    range_length:trechoRange?.length,
+    tipo:'humano',resolvido:false,
+    criado_em:new Date().toISOString(),
+    usuarios:{nome_completo:appState.usuario.nome_completo},
+  };
+  comentarios.push(com);
+  document.getElementById('com-txt').value='';
+  trechoSelecionado='';trechoRange=null;
+  document.getElementById('trecho-prev').classList.remove('vis');
+  document.getElementById('btn-add-com').disabled=true;
+
+  // Salvar comentário no banco (sem .catch encadeado — Supabase v2)
+  db.from('tdr_comentarios').insert({
+    tdr_id:tdrId,usuario_id:appState.usuario.id,
+    texto:txt,trecho:com.trecho,
+    range_index:com.range_index,range_length:com.range_length,
+    tipo:'humano',resolvido:false,
+  }).then(({error})=>{ if(error) console.warn('Erro ao salvar comentário:',error); });
+
+  renderComentarios();
+  toast('Comentário adicionado!','success');
+}
+
+function renderComentarios(){
+  document.getElementById('cnt-com').textContent=comentarios.filter(c=>!c.resolvido).length;
+  const el=document.getElementById('lista-com');
+  if(!comentarios.length){
+    el.innerHTML=`<div style="text-align:center;padding:20px;font-size:12px;color:var(--cinza-500)">Selecione texto no editor para comentar.</div>`;
+    return;
+  }
+  el.innerHTML=comentarios.map(c=>{
+    const ini=(c.usuarios?.nome_completo||'IA').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
+    const isIA=c.tipo==='ia';
+    return`<div class="com-card ${isIA?'ia':''} ${c.resolvido?'resolvido':''}">
+      <div class="com-header">
+        <div class="com-av ${isIA?'ca-ia':'ca-h'}">${isIA?'✦':ini}</div>
+        <div class="com-autor">${isIA?'IA':c.usuarios?.nome_completo||'—'}</div>
+        <div class="com-hora">${new Date(c.criado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      ${c.trecho?`<div class="com-trecho">"${c.trecho.substring(0,55)}"</div>`:''}
+      <div class="com-texto">${c.texto}</div>
+      ${!c.resolvido?`<div class="com-acoes">
+        <button class="btn-res" onclick="resolverCom('${c.id}')">✓ Resolver</button>
+      </div>`:`<div style="padding:4px 9px;font-size:10px;color:var(--sucesso)">✓ Resolvido</div>`}
+    </div>`;
+  }).join('');
+}
+
+async function resolverCom(id){
+  const c=comentarios.find(x=>x.id===id);
+  if(c)c.resolvido=true;
+  try { await db.from('tdr_comentarios').update({resolvido:true}).eq('id',id); } catch(e){}
+  renderComentarios();
+}
+
+// ── VERSÕES ───────────────────────────────────────────────
+function renderVersoes(){
+  document.getElementById('cnt-ver').textContent=versoes.length;
+  const el=document.getElementById('lista-ver');
+  if(!versoes.length){
+    el.innerHTML=`<div style="text-align:center;padding:20px;font-size:12px;color:var(--cinza-500)">Nenhuma versão. Clique em "Salvar versão".</div>`;
+    return;
+  }
+  el.innerHTML=versoes.map((v,i)=>`
+    <div class="ver-item ${i===0?'atual':''}" onclick="loadVersao(${i})">
+      <div class="ver-num">v${v.versao}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;color:var(--cinza-900)">${v.usuarios?.nome_completo||'—'}</div>
+        <div style="font-size:10px;color:var(--cinza-500)">${new Date(v.criado_em).toLocaleString('pt-BR')}</div>
+        ${v.comentario_versao?`<div style="font-size:10px;color:var(--cinza-500);font-style:italic">${v.comentario_versao}</div>`:''}
+      </div>
+      ${i===0?`<span style="font-size:10px;font-weight:600;color:var(--verde-medio);background:var(--sucesso-bg);padding:1px 6px;border-radius:99px">Atual</span>`:''}
+    </div>`).join('');
+}
+
+function loadVersao(idx){
+  try{
+    quill.setContents(JSON.parse(versoes[idx].conteudo_delta));
+    toast(`Versão ${versoes[idx].versao} carregada.`,'info');
+  }catch(e){toast('Erro ao carregar versão.','error');}
+}
+
+async function salvarVersao(){
+  const delta=JSON.stringify(quill.getContents());
+  const comsAbertos=comentarios.filter(c=>!c.resolvido).length;
+  const desc=prompt('Descrição desta versão (opcional):','')||null;
+
+  pedirSenha('Salvar versão',
+    comsAbertos>0?`⚠ ${comsAbertos} comentário(s) aberto(s).`:'Versão assinada digitalmente.',
+    async()=>{
+      const proxV=(versoes[0]?.versao||0)+1;
+      const {data,error}=await db.from('tdr_versoes_editor').insert({
+        tdr_id:tdrId,usuario_id:appState.usuario.id,
+        versao:proxV,conteudo_delta:delta,
+        comentario_versao:desc,comentarios_abertos:comsAbertos,
+      }).select('*,usuarios(id,nome_completo)').single();
+      if(error){toast('Erro ao salvar: '+error.message,'error');return;}
+      versoes.unshift(data);
+      renderVersoes();
+      toast(`Versão ${proxV} salva!`,'success');
+    }
+  );
+}
+
+// ── IA ────────────────────────────────────────────────────
+function toggleIA(){
+  iaAberto=!iaAberto;
+  document.getElementById('ia-body').classList.toggle('open',iaAberto);
+}
+
+async function analisarIA(){
+  const btn=document.getElementById('ia-btn');
+  btn.disabled=true;btn.textContent='Analisando...';
+  document.getElementById('ia-badge').textContent='Analisando...';
+  try{
+    const texto=quill.getText().substring(0,4000);
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:1200,
+        system:'Você é revisor técnico de TDRs UNESCO. Retorne SOMENTE JSON válido, sem texto adicional.',
+        messages:[{role:'user',content:`Analise este TDR e retorne JSON:
+ATIVIDADE: ${tdrDados?.atividades?.nome_pt||''}
+OBJETO TDR: ${tdrDados?.objeto_pt||''}
+TEXTO: ${texto}
+
+JSON esperado:
+{"score":0,"resumo":"","pontos":[{"trecho":"","comentario":"","severidade":"alta"}],"sugestoes":[]}`}]
+      })
+    });
+    const d=await resp.json();
+    let txt=d.content?.[0]?.text||'{}';
+    txt=txt.replace(/```json|```/g,'').trim();
+    const a=JSON.parse(txt);
+    const score=a.score||0;
+    document.getElementById('ia-score-wrap').style.display='block';
+    const sEl=document.getElementById('ia-score-num');
+    sEl.textContent=score+'%';
+    sEl.style.color=score>=70?'var(--sucesso)':score>=40?'var(--aviso)':'var(--erro)';
+    document.getElementById('ia-result').innerHTML=`
+      <div style="margin-bottom:6px">${a.resumo||''}</div>
+      ${a.sugestoes?.length?a.sugestoes.map(s=>`<div style="padding:3px 0;border-left:2px solid #C4B5FD;padding-left:6px;margin-bottom:3px">${s}</div>`).join(''):''}`;
+    // Adicionar comentários da IA
+    if(a.pontos?.length){
+      const full=quill.getText();
+      a.pontos.forEach(p=>{
+        const idx=full.indexOf(p.trecho);
+        if(idx>=0){
+          quill.formatText(idx,p.trecho.length,'background','#EDE9FE');
+          comentarios.push({
+            id:'ia-'+Date.now()+Math.random(),tdr_id:tdrId,
+            texto:p.comentario+(p.severidade==='alta'?' ⚠ ALTA':''),
+            trecho:p.trecho,tipo:'ia',resolvido:false,
+            criado_em:new Date().toISOString(),
+            usuarios:{nome_completo:'IA'},
+          });
+        }
+      });
+      renderComentarios();
+      sideAba('com',document.getElementById('stab-com'));
+    }
+    document.getElementById('ia-badge').textContent=`${a.pontos?.length||0} pontos`;
+    btn.disabled=false;btn.textContent='✦ Reanalisar';
+    toast(`Score: ${score}% — ${a.pontos?.length||0} pontos de atenção.`,'success');
+  }catch(e){
+    console.error(e);
+    document.getElementById('ia-badge').textContent='Erro';
+    btn.disabled=false;btn.textContent='✦ Analisar com IA';
+    toast('Erro na análise: '+(e.message||''),'error');
+  }
+}
+
+// ── FLUXO DE FASES ────────────────────────────────────────
+function avancarComSenha(novoStatus, label){
+  pedirSenha(label,'Ação registrada no log de auditoria.',async()=>{
+    const acaoMap={
+      revisao_interna:'enviado_revisao',
+      enviado_unesco:'enviado_unesco',
+      retorno_unesco:'retorno_unesco',
+      aprovado:'aprovado_final',
+      ajustes:'devolvido_ajuste',
+      cancelado:'cancelado',
+    };
+    const {error}=await db.rpc('fn_registrar_acao_tdr',{
+      p_tdr_id:tdrId,p_usuario_id:appState.usuario.id,
+      p_acao:acaoMap[novoStatus]||'editado',
+      p_comentario:null,p_ip:null
+    });
+    if(error){toast('Erro: '+error.message,'error');return;}
+    toast(`TDR avançado para "${FASES_LABELS[novoStatus]}"!`,'success');
+    setTimeout(()=>window.location.href='tdrs.html',1200);
+  });
+}
+
+function devolverAjustes(){
+  const motivo=prompt('Motivo da devolução (obrigatório):','');
+  if(!motivo?.trim()){return;}
+  pedirSenha('Confirmar devolução',motivo,async()=>{
+    const {error}=await db.rpc('fn_registrar_acao_tdr',{
+      p_tdr_id:tdrId,p_usuario_id:appState.usuario.id,
+      p_acao:'devolvido_ajuste',p_comentario:motivo,p_ip:null
+    });
+    if(error){toast('Erro: '+error.message,'error');return;}
+    toast('TDR devolvido para ajustes.','success');
+    setTimeout(()=>window.location.href='tdrs.html',1200);
+  });
+}
+
+// ── EXPORTAR PDF ──────────────────────────────────────────
+function gerarPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const M=20,W=170;let y=M;
+  doc.setFillColor(31,78,44);doc.rect(0,0,210,18,'F');
+  doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  doc.text(`TDR ${tdrDados?.numero||'—'}`,M,11);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');
+  doc.text(`SEMA/AC · UNESCO · 218BRA2001 · ${new Date().toLocaleDateString('pt-BR')}`,M,16);
+  y=26;
+  const linhas=quill.getText().split('\n').filter(l=>l.trim());
+  doc.setFontSize(11);doc.setFont('helvetica','normal');doc.setTextColor(40,40,40);
+  linhas.forEach(l=>{
+    if(y>270){doc.addPage();y=M;}
+    const w=doc.splitTextToSize(l.trim(),W);
+    doc.text(w,M,y);y+=w.length*6+2;
+  });
+  const pgs=doc.getNumberOfPages();
+  for(let p=1;p<=pgs;p++){
+    doc.setPage(p);doc.setFontSize(7);doc.setTextColor(150,150,150);
+    doc.text(`SEMA/AC · UNESCO · 218BRA2001 · Página ${p}/${pgs} · Versão final`,M,290);
+  }
+  doc.save(`TDR-${tdrDados?.numero||'final'}.pdf`);
+  toast('PDF gerado!','success');
+}
+
+// ── EXPORTAR DOCX ─────────────────────────────────────────
+function exportarDOCX(){
+  // Gerar HTML limpo do editor
+  const html=quill.root.innerHTML;
+  // Criar arquivo HTML que pode ser aberto como DOCX no Word
+  const blob=new Blob([`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>body{font-family:Calibri,sans-serif;font-size:12pt;line-height:1.5;margin:2cm;}
+    h1{font-size:16pt;}h2{font-size:14pt;}h3{font-size:13pt;}p{margin-bottom:6pt;}</style>
+    </head><body>${html}</body></html>`],
+    {type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`TDR-${tdrDados?.numero||'final'}.doc`;
+  a.click();URL.revokeObjectURL(url);
+  toast('Arquivo Word gerado!','success');
+}
+
+// ── SENHA ─────────────────────────────────────────────────
+function pedirSenha(titulo,sub,cb){
+  document.getElementById('senha-titulo').textContent=titulo;
+  document.getElementById('senha-sub').textContent=sub;
+  document.getElementById('senha-inp').value='';
+  document.getElementById('senha-erro').style.display='none';
+  senhaCallback=cb;
+  document.getElementById('modal-senha').classList.add('aberto');
+  setTimeout(()=>document.getElementById('senha-inp').focus(),100);
+}
+
+async function confirmarSenha(){
+  const s=document.getElementById('senha-inp').value;
+  if(!s){toast('Digite a senha.','error');return;}
+  const btn=document.getElementById('senha-btn');
+  btn.textContent='Verificando...';btn.disabled=true;
+  try{
+    const {error}=await db.auth.signInWithPassword({email:appState.usuario.email,password:s});
+    if(error){
+      document.getElementById('senha-erro').style.display='block';
+      document.getElementById('senha-inp').value='';
+      document.getElementById('senha-inp').focus();
+      btn.textContent='Confirmar';btn.disabled=false;return;
+    }
+    fecharSenha();
+    if(senhaCallback)await senhaCallback();
+  }catch(e){
+    toast('Erro na verificação.','error');
+    btn.textContent='Confirmar';btn.disabled=false;
+  }
+}
+
+function fecharSenha(){
+  document.getElementById('modal-senha').classList.remove('aberto');
+  senhaCallback=null;
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function sideAba(aba,btn){
+  document.querySelectorAll('.stab').forEach(b=>b.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  document.getElementById('lista-com').style.display=aba==='com'?'block':'none';
+  document.getElementById('lista-ver').style.display=aba==='ver'?'block':'none';
+  document.getElementById('painel-com').style.display=aba==='com'?'':'none';
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharSenha();});
+</script>
+</body>
+</html>
