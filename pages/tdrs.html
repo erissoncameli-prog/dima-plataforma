@@ -213,6 +213,30 @@
   </div>
 </div>
 
+<!-- MODAL DEVOLVER TDR -->
+<div class="modal-overlay" id="modal-devolver">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title">Devolver para ajustes</span>
+      <button class="modal-close" onclick="fecharModal('modal-devolver')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning" style="margin-bottom:14px">
+        O TDR será devolvido ao elaborador com o motivo indicado. O responsável será notificado.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo da devolução <span class="obrig">*</span></label>
+        <textarea class="form-control" id="devolver-motivo" rows="4"
+          placeholder="Descreva o que precisa ser corrigido ou ajustado..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-devolver')">Cancelar</button>
+      <button class="btn-devolver" onclick="executarDevolucao()">↩ Confirmar devolução</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -221,6 +245,7 @@
 <script>
 let todosTDRs=[], atividades=[], tdrAtual=null;
 let dadosOriginais={}, dadosEditados={}, arquivoSelecionado=null;
+let senhaTDRCallback=null, tdrAcoes={}, camposModificados={};
 
 const FASES=['rascunho','revisao_interna','ajustes','enviado_unesco','retorno_unesco','aprovado'];
 const FASES_LABELS={rascunho:'Rascunho',revisao_interna:'Revisão Interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado'};
@@ -943,6 +968,9 @@ async function confirmarSenhaTDR(){
 function fecharSenhaTDR(){
   document.getElementById('modal-senha-tdr').classList.remove('aberto');
   document.getElementById('senha-tdr-input').value='';
+  document.getElementById('senha-tdr-erro').style.display='none';
+  const btn=document.getElementById('senha-tdr-btn');
+  if(btn){btn.textContent='Confirmar';btn.disabled=false;}
   senhaTDRCallback=null;
 }
 
