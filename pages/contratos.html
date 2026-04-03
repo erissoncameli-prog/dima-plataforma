@@ -19,7 +19,7 @@
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
 .tbl th{padding:9px 10px;font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--borda);background:var(--cinza-50);text-align:left;white-space:nowrap;}
 .tbl td{padding:9px 10px;border-bottom:1px solid var(--borda);color:var(--cinza-700);vertical-align:middle;}
-.tbl tbody tr.main-row:hover td{background:var(--cinza-50);cursor:pointer;}
+.tbl tbody tr.main-row:hover td{background:var(--cinza-50);}
 .tbl tbody tr.main-row.aberto td{background:#F0FDF4;}
 .tbl tbody tr.detail-row td{padding:0;border-bottom:1px solid var(--borda);}
 .xbtn{width:22px;height:22px;border-radius:4px;border:1px solid var(--borda);background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--cinza-400,#9CA3AF);transition:all .15s;}
@@ -182,8 +182,8 @@ function renderLinha(c){
   var aberto=!!expandidos[c.id];
   var obj=(c.objeto_pt||'').substring(0,55)+(c.objeto_pt&&c.objeto_pt.length>55?'...':'');
 
-  var main='<tr class="main-row '+(aberto?'aberto':'')+'" onclick="toggleDet(\''+c.id+'\')">'
-    +'<td><button class="xbtn '+(aberto?'aberto':'')+'" id="xb-'+c.id+'" onclick="event.stopPropagation()">'+(aberto?'&#9660;':'&#9658;')+'</button></td>'
+  var main='<tr class="main-row '+(aberto?'aberto':'')+'">'
+    +'<td><button class="xbtn '+(aberto?'aberto':'')+'" id="xb-'+c.id+'" onclick="toggleDet(\''+c.id+'\')">'+(aberto?'&#9660;':'&#9658;')+'</button></td>'
     +'<td><span class="mono" style="font-weight:600">'+c.numero+'</span></td>'
     +'<td style="max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(c.objeto_pt||'')+'" >'+obj+'</div>'
       +(vencido?'<span style="font-size:9px;background:var(--erro-bg);color:var(--erro);padding:1px 5px;border-radius:3px;font-weight:600">Vencido</span>':critico?'<span style="font-size:9px;background:var(--aviso-bg);color:var(--aviso);padding:1px 5px;border-radius:3px;font-weight:600">Critico</span>':'')
@@ -265,11 +265,6 @@ function buildDet(c){
 }
 
 window.toggleDet=function(id){
-  // Evitar chamadas duplicadas pelo evento de click bubbling
-  if(window._toggling===id)return;
-  window._toggling=id;
-  setTimeout(function(){window._toggling=null;},50);
-
   expandidos[id]=!expandidos[id];
   var det=document.getElementById('det-'+id);
   var inner=document.getElementById('inner-'+id);
