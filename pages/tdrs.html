@@ -771,9 +771,7 @@ function abrirSalvar(taxa){
 }
 
 async function confirmarSalvar(){
-  if(!tdrAtual&&!arquivoSelecionado&&Object.keys(camposModificados).length===0){
-    toast('Nenhuma alteração detectada.','info');return;
-  }
+  if(!tdrAtual){toast('Nenhum TDR selecionado.','error');return;}
   pedirSenhaTDR('Confirmar salvamento','Suas alterações serão registradas com assinatura digital',async()=>{
     await _executarSalvar();
   });
@@ -997,11 +995,9 @@ async function confirmarSenhaTDR(){
   const btn=document.getElementById('senha-tdr-btn');
   btn.textContent='Verificando...';btn.disabled=true;
   try{
-    const {error}=await db.auth.signInWithPassword({
-      email:appState.usuario.email,
-      password:senha
-    });
-    if(error){
+    // Usa RPC seguro — NÃO usa signInWithPassword que reseta a sessão e quebra o auth.uid()
+    const {data:senhaOk, error}=await db.rpc('fn_verificar_senha',{p_senha:senha});
+    if(error||!senhaOk){
       document.getElementById('senha-tdr-erro').style.display='block';
       document.getElementById('senha-tdr-input').value='';
       document.getElementById('senha-tdr-input').focus();
@@ -1011,7 +1007,8 @@ async function confirmarSenhaTDR(){
     fecharSenhaTDR();
     if(senhaTDRCallback)await senhaTDRCallback();
   }catch(e){
-    toast('Erro na verificação.','error');
+    console.error('[SENHA] Erro:', e);
+    toast('Erro na verificação: '+(e.message||''),'error');
     btn.textContent='Confirmar';btn.disabled=false;
   }
 }
