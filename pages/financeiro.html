@@ -570,6 +570,9 @@ function renderFormLanc(l) {
     <!-- 3. PAINEL DE SALDO (visível apenas se contrato selecionado) -->
     <div id="wrap-saldo">${contratoSel ? _renderPainelSaldo(contratoSel) : ''}</div>
 
+    <!-- 3b. PRODUTOS PENDENTES DO CONTRATO -->
+    <div id="wrap-prod-pendentes">${contratoId ? '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Carregando produtos...</div>' : ''}</div>
+
     <!-- 4. FORNECEDOR automático -->
     <div class="form-group">
       <label class="form-label">Fornecedor</label>
@@ -644,6 +647,11 @@ function renderFormLanc(l) {
           onchange="selecionarComp(this.files[0])">
       </div>
     </div>`;
+
+  // Se já tem contrato (edição), carregar produtos pendentes
+  if (contratoId) {
+    setTimeout(() => carregarProdutosPendentes(contratoId), 60);
+  }
 }
 
 // ── CASCATA INTELIGENTE ───────────────────────────────────────
@@ -699,6 +707,79 @@ function cascataContrato(contratoId) {
       if (hintForn) hintForn.style.display = 'none';
     }
   }
+
+  // Painel de produtos pendentes
+  const wrapProd = document.getElementById('wrap-prod-pendentes');
+  if (wrapProd) {
+    if (contratoId) {
+      wrapProd.innerHTML = '<div style="font-size:11px;color:var(--cinza-400);padding:6px 0">Buscando produtos pendentes...</div>';
+      carregarProdutosPendentes(contratoId);
+    } else {
+      wrapProd.innerHTML = '';
+    }
+  }
+}
+
+async function carregarProdutosPendentes(contratoId) {
+  const wrap = document.getElementById('wrap-prod-pendentes');
+  if (!wrap) return;
+  try {
+    const { data } = await db.from('contratos_produtos')
+      .select('id,numero_produto,descricao,valor_brl,dt_vencimento,situacao')
+      .eq('contrato_id', contratoId)
+      .in('situacao', ['pendente','em_analise'])
+      .order('numero_produto', {ascending: true});
+
+    if (!data || !data.length) {
+      wrap.innerHTML = '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Nenhum produto pendente neste contrato.</div>';
+      return;
+    }
+
+    wrap.innerHTML = `
+      <div style="margin-top:4px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:6px">
+          Produtos pendentes — clique para preencher automaticamente
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${data.map(p => {
+            const vencido = p.dt_vencimento && new Date(p.dt_vencimento) < new Date();
+            const corBorda = vencido ? '#FCA5A5' : '#9FE1CB';
+            const corFundo = vencido ? '#FEF2F2' : 'var(--sucesso-bg)';
+            const corNum   = vencido ? 'var(--erro)' : 'var(--verde-medio)';
+            return `<button type="button"
+              onclick="preencherDeProduto('${p.id}','${(p.descricao||'').replace(/'/g,"\\'")}',${parseFloat(p.valor_brl||0)},'${p.dt_vencimento||''}')"
+              style="border:1px solid ${corBorda};background:${corFundo};border-radius:var(--raio);
+                padding:6px 10px;cursor:pointer;text-align:left;font-family:var(--font-sans)">
+              <div style="font-size:9px;font-weight:700;color:${corNum};text-transform:uppercase;letter-spacing:.05em">
+                Produto ${p.numero_produto}${vencido?' ⚠ Vencido':''}
+              </div>
+              <div style="font-size:11px;font-weight:500;color:var(--cinza-800);max-width:200px;
+                overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.descricao}</div>
+              <div style="font-size:11px;font-family:var(--font-mono);color:var(--verde-medio);font-weight:700">
+                ${fmtBRL(parseFloat(p.valor_brl||0))}
+              </div>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
+  } catch(e) {
+    wrap.innerHTML = '';
+  }
+}
+
+function preencherDeProduto(prodId, desc, valor, dtVenc) {
+  const fDesc = document.getElementById('f-desc');
+  const fBrl  = document.getElementById('f-brl');
+  const fVenc = document.getElementById('f-venc');
+  if (fDesc && !fDesc.value) fDesc.value = desc;
+  if (fBrl  && !fBrl.value)  { fBrl.value = valor; calcUSD(valor); }
+  if (fVenc && !fVenc.value && dtVenc) fVenc.value = dtVenc;
+  // Marcar produto selecionado visualmente
+  document.querySelectorAll('#wrap-prod-pendentes button').forEach(b => {
+    b.style.opacity = b.getAttribute('onclick')?.includes(`'${prodId}'`) ? '1' : '0.4';
+    b.style.outline = b.getAttribute('onclick')?.includes(`'${prodId}'`) ? '2px solid var(--verde-medio)' : 'none';
+  });
+  toast('Campos preenchidos com dados do produto. Confira e salve.','info');
 }
 
 function calcUSD(val) {
