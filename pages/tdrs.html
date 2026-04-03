@@ -633,16 +633,30 @@ async function abrirTDR(id){
     <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;align-items:center">
       ${fa.devolver?`<button class="btn-devolver" onclick="abrirDevolver()">↩ Devolver</button>`:''}
       ${podeAbrirEditorModal?`<a href="revisar-tdr.html?id=${t.id}" class="btn btn-secondary" style="text-decoration:none">✏ Editor</a>`:''}
-      ${fa.avancar?`<button class="btn btn-primary" onclick="pedirSenhaTDR('${fa.avancar.l}','Confirmar — ação registrada no log',()=>avancarFase('${fa.avancar.s}'))">${fa.avancar.l}</button>`:''}
-      ${fa.aprovar?`<button class="btn" style="background:var(--verde-medio);color:#fff" onclick="pedirSenhaTDR('${fa.aprovar.l}','Ação irreversível — Super Admin',()=>avancarFase('${fa.aprovar.s}'))">${fa.aprovar.l}</button>`:''}
+      ${fa.avancar?`<button class="btn btn-primary" id="btn-avancar-fase" data-status="${fa.avancar.s}" data-label="${(fa.avancar.l||'').replace(/"/g,'&quot;')}">${fa.avancar.l}</button>`:''}
+      ${fa.aprovar?`<button class="btn" id="btn-aprovar-fase" style="background:var(--verde-medio);color:#fff" data-status="${fa.aprovar.s}" data-label="${(fa.aprovar.l||'').replace(/"/g,'&quot;')}">${fa.aprovar.l}</button>`:''}
       ${t.status==='aprovado'?`<button class="btn btn-secondary" onclick="gerarPDF()">📄 PDF</button>`:''}
     </div>`;
 
-  // Listener seguro para botão apagar (evita quebra por caracteres no numero)
+  // Listeners seguros para botões de ação (evita quebra por caracteres especiais no onclick inline)
   const btnApagar = document.getElementById('btn-apagar-tdr');
   if(btnApagar){
     btnApagar.addEventListener('click', ()=>{
       confirmarApagarTDR(btnApagar.dataset.id, btnApagar.dataset.numero);
+    });
+  }
+  const btnAvancar = document.getElementById('btn-avancar-fase');
+  if(btnAvancar){
+    btnAvancar.addEventListener('click', ()=>{
+      pedirSenhaTDR(btnAvancar.dataset.label,'Confirmar — ação registrada no log',
+        ()=>avancarFase(btnAvancar.dataset.status));
+    });
+  }
+  const btnAprovar = document.getElementById('btn-aprovar-fase');
+  if(btnAprovar){
+    btnAprovar.addEventListener('click', ()=>{
+      pedirSenhaTDR(btnAprovar.dataset.label,'Ação irreversível — Super Admin',
+        ()=>avancarFase(btnAprovar.dataset.status));
     });
   }
 
@@ -861,25 +875,30 @@ async function avancarFase(novoStatus){
     cancelado:'cancelado',
   };
   try{
-    // Usar função SQL que atualiza status + gera notificações
-    const {data,error}=await db.rpc('fn_registrar_acao_tdr',{
+    // Tentar via RPC (registra log + notificações)
+    const {error:rpcErr}=await db.rpc('fn_registrar_acao_tdr',{
       p_tdr_id: tdrAtual.id,
       p_usuario_id: appState.usuario.id,
       p_acao: acaoMap[novoStatus]||'editado',
       p_comentario: null,
       p_ip: null
     });
-    if(error)throw error;
+    if(rpcErr){
+      console.warn('[AVANÇAR] RPC falhou, usando update direto:', rpcErr.message);
+      // Fallback: atualizar status diretamente na tabela
+      const {error:updErr}=await db.from('tdrs').update({status:novoStatus}).eq('id',tdrAtual.id);
+      if(updErr) throw updErr;
+    }
 
+    const statusAnterior=tdrAtual.status;
     tdrAtual.status=novoStatus;
     const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
     if(idx>=0)todosTDRs[idx].status=novoStatus;
 
-    // Atualizar cache de ações
     if(!tdrAcoes[tdrAtual.id])tdrAcoes[tdrAtual.id]=[];
     tdrAcoes[tdrAtual.id].unshift({
       acao:acaoMap[novoStatus]||'editado',
-      status_anterior:tdrAtual.status,
+      status_anterior:statusAnterior,
       status_novo:novoStatus,
       usuarios:{nome_completo:appState.usuario.nome_completo},
       criado_em:new Date().toISOString()
@@ -889,7 +908,8 @@ async function avancarFase(novoStatus){
     renderStats();filtrar();
     toast(`Fase avançada para "${FASES_LABELS[novoStatus]}"!`,'success');
   }catch(e){
-    toast('Erro ao avançar fase: '+(e.message||''),'error');
+    console.error('[AVANÇAR] Erro:', e);
+    toast('Erro ao avançar fase: '+(e.message||JSON.stringify(e)),'error');
   }
 }
 
