@@ -96,10 +96,39 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     <div class="main-content">
       <div class="topbar">
         <div class="topbar-title">${tituloPagina}</div>
-        <div class="topbar-breadcrumb">
-          <span>SEMA/AC</span>
-          <span>›</span>
-          <span>${tituloPagina}</span>
+        <div style="display:flex;align-items:center;gap:12px;margin-left:auto">
+          <div class="topbar-breadcrumb">
+            <span>SEMA/AC</span>
+            <span>›</span>
+            <span>${tituloPagina}</span>
+          </div>
+          <!-- SINO DE NOTIFICAÇÕES -->
+          <div style="position:relative" id="sino-wrap">
+            <button id="sino-btn" onclick="toggleSino()"
+              style="width:36px;height:36px;border-radius:50%;border:1px solid var(--borda);
+                background:var(--branco);cursor:pointer;display:flex;align-items:center;
+                justify-content:center;font-size:16px;position:relative;transition:all .15s;"
+              onmouseover="this.style.background='var(--cinza-50)'"
+              onmouseout="this.style.background='var(--branco)'">
+              🔔
+              <span id="sino-badge" style="display:none;position:absolute;top:-2px;right:-2px;
+                background:#DC2626;color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;
+                border-radius:99px;display:none;align-items:center;justify-content:center;padding:0 4px;
+                font-family:var(--font-mono)">0</span>
+            </button>
+            <!-- Dropdown de notificações -->
+            <div id="sino-dropdown" style="display:none;position:absolute;right:0;top:44px;
+              width:360px;background:var(--branco);border:1px solid var(--borda);
+              border-radius:var(--raio-lg);box-shadow:0 8px 32px rgba(0,0,0,.12);z-index:1000;overflow:hidden">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:13px;font-weight:600;color:var(--cinza-900)">Notificações</span>
+                <button onclick="marcarTodasLidas()" style="font-size:11px;color:var(--verde-medio);border:none;background:none;cursor:pointer;font-family:var(--font-sans)">Marcar todas como lidas</button>
+              </div>
+              <div id="sino-lista" style="max-height:380px;overflow-y:auto">
+                <div style="padding:20px;text-align:center;color:var(--cinza-400);font-size:12px">Carregando...</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="page-body" id="page-body" style="overflow-x:hidden;min-width:0;width:100%">
@@ -126,3 +155,119 @@ async function initPagina(tituloPagina, paginaAtiva, callback) {
     gerarLayout(tituloPagina, paginaAtiva) + `</div></div></div>`;
   if (callback) await callback();
 }
+
+// ── SINO DE NOTIFICAÇÕES ──────────────────────────────────────
+let sinoAberto = false;
+let notifCache = [];
+
+async function iniciarSino() {
+  await carregarNotificacoes();
+  // Fechar ao clicar fora
+  document.addEventListener('click', e => {
+    if (sinoAberto && !document.getElementById('sino-wrap')?.contains(e.target)) {
+      fecharSino();
+    }
+  });
+}
+
+async function carregarNotificacoes() {
+  if (!appState?.usuario?.id) return;
+  const { data } = await db.from('notificacoes')
+    .select('*')
+    .eq('usuario_id', appState.usuario.id)
+    .eq('lida', false)
+    .order('criado_em', { ascending: false })
+    .limit(20);
+
+  notifCache = data || [];
+  renderBadge();
+}
+
+function renderBadge() {
+  const badge = document.getElementById('sino-badge');
+  if (!badge) return;
+  const total = notifCache.length;
+  if (total > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = total > 9 ? '9+' : total;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function toggleSino() {
+  sinoAberto ? fecharSino() : abrirSino();
+}
+
+async function abrirSino() {
+  sinoAberto = true;
+  const dropdown = document.getElementById('sino-dropdown');
+  if (dropdown) dropdown.style.display = 'block';
+  await carregarNotificacoes();
+  renderListaNotif();
+}
+
+function fecharSino() {
+  sinoAberto = false;
+  const dropdown = document.getElementById('sino-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+function renderListaNotif() {
+  const lista = document.getElementById('sino-lista');
+  if (!lista) return;
+
+  if (!notifCache.length) {
+    lista.innerHTML = `<div style="padding:24px;text-align:center;color:var(--cinza-400);font-size:12px">
+      ✓ Nenhuma notificação pendente
+    </div>`;
+    return;
+  }
+
+  const icones = {
+    avaliacao_produto: '📋',
+    produto_aprovado:  '✅',
+    produto_devolvido: '↩',
+    tdr:               '📄',
+  };
+
+  lista.innerHTML = notifCache.map(n => `
+    <div onclick="clicarNotif('${n.id}','${n.link||''}')"
+      style="padding:12px 16px;border-bottom:1px solid var(--borda);cursor:pointer;
+        background:${n.lida?'var(--branco)':'#F0FDF4'};transition:background .1s"
+      onmouseover="this.style.background='var(--cinza-50)'"
+      onmouseout="this.style.background='${n.lida?'var(--branco)':'#F0FDF4'}'">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:18px;flex-shrink:0">${icones[n.tipo]||'🔔'}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--cinza-900);margin-bottom:2px">${n.titulo||''}</div>
+          <div style="font-size:11px;color:var(--cinza-600);line-height:1.4">${n.mensagem||''}</div>
+          <div style="font-size:10px;color:var(--cinza-400);margin-top:4px">
+            ${n.criado_em ? new Date(n.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}
+          </div>
+        </div>
+        ${!n.lida ? '<div style="width:7px;height:7px;background:#059669;border-radius:50%;flex-shrink:0;margin-top:4px"></div>' : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function clicarNotif(id, link) {
+  // Marcar como lida
+  await db.from('notificacoes').update({ lida: true, lida_em: new Date().toISOString() }).eq('id', id);
+  notifCache = notifCache.filter(n => n.id !== id);
+  renderBadge();
+  fecharSino();
+  if (link) window.location.href = link;
+}
+
+async function marcarTodasLidas() {
+  await db.rpc('marcar_notificacoes_lidas');
+  notifCache = [];
+  renderBadge();
+  renderListaNotif();
+}
+
+// Iniciar sino após carregar a página
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(iniciarSino, 500);
+});
