@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Repositório de Referências</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
+.sc-a::after{background:var(--aviso)}.sc-p::after{background:#7C3AED}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:22px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
+
+/* Cards do catálogo */
+.repo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;}
+.repo-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;transition:box-shadow .15s,border-color .15s;display:flex;flex-direction:column;}
+.repo-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.08);border-color:var(--verde-medio);}
+.repo-card-img{height:140px;background:var(--cinza-50);overflow:hidden;position:relative;flex-shrink:0;}
+.repo-card-img img{width:100%;height:100%;object-fit:cover;}
+.repo-card-img-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:40px;color:var(--cinza-300);}
+.repo-card-body{padding:14px;flex:1;display:flex;flex-direction:column;gap:6px;}
+.repo-card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;}
+.repo-cat{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
+.repo-lang{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:var(--cinza-100);color:var(--cinza-600);text-transform:uppercase;}
+.repo-card-titulo{font-size:13px;font-weight:600;color:var(--cinza-900);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.repo-card-desc{font-size:11px;color:var(--cinza-600);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:1;}
+.repo-card-foot{padding:10px 14px;border-top:1px solid var(--borda);background:var(--cinza-50);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;}
+.repo-fonte{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-600);font-weight:500;min-width:0;overflow:hidden;}
+.repo-fonte img{width:14px;height:14px;border-radius:2px;flex-shrink:0;}
+.repo-data{font-size:10px;color:var(--cinza-400);}
+
+/* Categorias — cores */
+.cat-biodiversidade{background:#DCFCE7;color:#166534}
+.cat-governanca{background:#DBEAFE;color:#1E40AF}
+.cat-genero{background:#FDF4FF;color:#7E22CE}
+.cat-restauracao{background:#FEF3C7;color:#92400E}
+.cat-comunicacao{background:#FFE4E6;color:#9F1239}
+.cat-legislacao{background:#F3F4F6;color:#374151}
+.cat-relatorio{background:#E0F2FE;color:#0C4A6E}
+.cat-outro{background:var(--cinza-100);color:var(--cinza-700)}
+
+/* Modal inserir */
+.modal-repo{max-width:640px;}
+.url-input-wrap{display:flex;gap:8px;align-items:flex-start;}
+.url-input-wrap input{flex:1;}
+.preview-card{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-top:10px;display:none;}
+.preview-img{width:80px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0;}
+.fetch-status{font-size:12px;margin-top:6px;display:flex;align-items:center;gap:6px;}
+
+/* Filtros */
+.filtros-wrap{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+/* Sem resultado */
+.empty-repo{text-align:center;padding:60px 20px;color:var(--cinza-400);}
+.empty-repo-icon{font-size:48px;margin-bottom:12px;}
+.empty-repo-msg{font-size:14px;}
+
+/* Admin: botão desativar */
+.btn-desativar{font-size:11px;padding:3px 8px;border:1px solid #FCA5A5;background:#FEF2F2;color:#DC2626;border-radius:var(--raio);cursor:pointer;font-family:var(--font-sans);}
+.btn-desativar:hover{background:#FEE2E2;}
+.repo-card.inativo{opacity:.5;filter:grayscale(.5);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando repositório...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INSERIR LINK -->
+<div class="modal-overlay" id="modal-repo">
+  <div class="modal modal-repo">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Adicionar referência</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Cole o link e buscaremos as informações automaticamente</div>
+      </div>
+      <button class="modal-close" onclick="fecharModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+const SB_URL = 'https://wfymnmlinonvdqfucjya.supabase.co';
+const CATEGORIAS = [
+  'Biodiversidade','Governança','Gênero','Restauração',
+  'Comunicação','Legislação','Relatório UNESCO','Outro'
+];
+const CAT_CLASSE = {
+  'Biodiversidade':'cat-biodiversidade','Governança':'cat-governanca',
+  'Gênero':'cat-genero','Restauração':'cat-restauracao',
+  'Comunicação':'cat-comunicacao','Legislação':'cat-legislacao',
+  'Relatório UNESCO':'cat-relatorio','Outro':'cat-outro'
+};
+const IDIOMAS = ['pt','en','es','fr','de','ar','zh'];
+
+let todosLinks = [], metadataFetch = {};
+let filtCat = '', filtLang = '', filtBusca = '';
+
+// ── INIT ──────────────────────────────────────────────────────
+(async () => {
+  const u = await carregarUsuario();
+  if (!u) { window.location.href = '../index.html'; return; }
+
+  document.getElementById('app').innerHTML =
+    gerarLayout('Repositório de Referências', 'repositorio') + `
+    <div class="fade-in">
+      <div class="stat-row" id="stats"></div>
+
+      <!-- Barra de filtros + botão -->
+      <div class="filtros-wrap">
+        <input class="form-control" type="text" id="f-busca" style="width:240px"
+          placeholder="🔍 Buscar título, fonte ou descrição..."
+          oninput="filtrar()">
+        <select class="form-control" id="f-cat" onchange="filtrar()" style="width:160px">
+          <option value="">Todas as categorias</option>
+          ${CATEGORIAS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <select class="form-control" id="f-lang" onchange="filtrar()" style="width:110px">
+          <option value="">Todos os idiomas</option>
+          ${IDIOMAS.map(l=>`<option value="${l}">${l.toUpperCase()}</option>`).join('')}
+        </select>
+        <span id="cont-links" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
+        <button class="btn btn-primary btn-sm" onclick="abrirModal()">+ Adicionar link</button>
+      </div>
+
+      <div id="repo-conteudo"></div>
+    </div>` + `</div></div></div>`;
+
+  await carregar();
+})();
+
+async function carregar() {
+  const { data } = await db.from('repositorio_links')
+    .select('*,usuarios(id,nome_completo)')
+    .eq('ativo', true)
+    .order('inserido_em', { ascending: false });
+  todosLinks = data || [];
+  renderStats();
+  filtrar();
+}
+
+function renderStats() {
+  const total = todosLinks.length;
+  const cats  = new Set(todosLinks.map(l => l.categoria).filter(Boolean)).size;
+  const langs = new Set(todosLinks.map(l => l.idioma).filter(Boolean)).size;
+  const hoje  = todosLinks.filter(l => {
+    const d = new Date(l.inserido_em);
+    const n = new Date();
+    return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth();
+  }).length;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card sc-b"><div class="stat-lbl">Total de links</div><div class="stat-val">${total}</div><div class="stat-sub">no repositório</div></div>
+    <div class="stat-card sc-g"><div class="stat-lbl">Categorias</div><div class="stat-val">${cats}</div><div class="stat-sub">temáticas distintas</div></div>
+    <div class="stat-card sc-p"><div class="stat-lbl">Idiomas</div><div class="stat-val">${langs}</div><div class="stat-sub">representados</div></div>
+    <div class="stat-card sc-a"><div class="stat-lbl">Adicionados</div><div class="stat-val">${hoje}</div><div class="stat-sub">este mês</div></div>`;
+}
+
+function filtrar() {
+  filtBusca = (document.getElementById('f-busca')?.value || '').toLowerCase();
+  filtCat   = document.getElementById('f-cat')?.value  || '';
+  filtLang  = document.getElementById('f-lang')?.value || '';
+
+  const fil = todosLinks.filter(l => {
+    if (filtCat  && l.categoria !== filtCat) return false;
+    if (filtLang && l.idioma    !== filtLang) return false;
+    if (filtBusca) {
+      const txt = [(l.titulo||''),(l.descricao||''),(l.fonte||''),(l.url||'')].join(' ').toLowerCase();
+      if (!txt.includes(filtBusca)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('cont-links').textContent =
+    `${fil.length} de ${todosLinks.length} referências`;
+
+  const el = document.getElementById('repo-conteudo');
+  if (!fil.length) {
+    el.innerHTML = `<div class="empty-repo">
+      <div class="empty-repo-icon">🔗</div>
+      <div class="empty-repo-msg">Nenhuma referência encontrada.<br>
+      <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="abrirModal()">+ Adicionar o primeiro link</button></div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="repo-grid">${fil.map(renderCard).join('')}</div>`;
+}
+
+function renderCard(l) {
+  const catCls = CAT_CLASSE[l.categoria] || 'cat-outro';
+  const dominio = (() => { try { return new URL(l.url).hostname.replace(/^www\./,''); } catch { return l.fonte||''; }})();
+  const favicon = `https://www.google.com/s2/favicons?domain=${dominio}&sz=32`;
+  const isAdmin = appState.perfil === 'super_admin';
+  const dtFmt = l.inserido_em
+    ? new Date(l.inserido_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})
+    : '';
+
+  return `<div class="repo-card${l.ativo?'':' inativo'}">
+    <div class="repo-card-img">
+      ${l.imagem_url
+        ? `<img src="${l.imagem_url}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        : ''
+      }
+      <div class="repo-card-img-placeholder" style="${l.imagem_url?'display:none':''}">🔗</div>
+    </div>
+    <div class="repo-card-body">
+      <div class="repo-card-meta">
+        ${l.categoria?`<span class="repo-cat ${catCls}">${l.categoria}</span>`:''}
+        ${l.idioma?`<span class="repo-lang">${l.idioma.toUpperCase()}</span>`:''}
+        ${!l.ativo?'<span style="font-size:10px;background:#F3F4F6;color:#6B7280;padding:2px 7px;border-radius:99px">Inativo</span>':''}
+      </div>
+      <div class="repo-card-titulo">${l.titulo||l.url}</div>
+      ${l.descricao?`<div class="repo-card-desc">${l.descricao}</div>`:''}
+    </div>
+    <div class="repo-card-foot">
+      <div class="repo-fonte" style="min-width:0;overflow:hidden">
+        <img src="${favicon}" alt="" onerror="this.style.display='none'">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.fonte||dominio}</span>
+        <span class="repo-data" style="flex-shrink:0">· ${dtFmt}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${isAdmin?`<button class="btn-desativar" onclick="desativar('${l.id}')">Desativar</button>`:''}
+        <a href="${l.url}" target="_blank" rel="noopener"
+          class="btn btn-primary btn-sm" style="font-size:11px;text-decoration:none">
+          Abrir →
+        </a>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── MODAL INSERIR ─────────────────────────────────────────────
+function abrirModal() {
+  metadataFetch = {};
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">URL da referência <span class="obrig">*</span></label>
+      <div class="url-input-wrap">
+        <input class="form-control" id="f-url" type="url"
+          placeholder="https://..." oninput="limparPreview()">
+        <button class="btn btn-secondary" id="btn-fetch" onclick="buscarMetadata()"
+          style="white-space:nowrap;flex-shrink:0">
+          🔍 Buscar informações
+        </button>
+      </div>
+      <div id="fetch-status" class="fetch-status"></div>
+    </div>
+
+    <!-- Preview automático -->
+    <div id="preview-card" class="preview-card">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <img id="prev-img" class="preview-img" src="" alt="" style="display:none">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--verde-medio);margin-bottom:2px" id="prev-fonte"></div>
+          <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:4px" id="prev-titulo"></div>
+          <div style="font-size:11px;color:var(--cinza-600);line-height:1.4" id="prev-desc"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="form-fields" style="display:none">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Título</label>
+          <input class="form-control" id="f-titulo" type="text" placeholder="Título da matéria">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fonte / Veículo</label>
+          <input class="form-control" id="f-fonte" type="text" placeholder="Ex: UNESCO, G1, IUCN">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição</label>
+        <textarea class="form-control" id="f-desc" rows="2"
+          placeholder="Resumo do conteúdo da referência" style="font-size:12px"></textarea>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Categoria <span class="obrig">*</span></label>
+          <select class="form-control" id="f-cat">
+            <option value="">Selecione...</option>
+            ${CATEGORIAS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Idioma</label>
+          <select class="form-control" id="f-lang">
+            <option value="">Selecione...</option>
+            ${IDIOMAS.map(l=>`<option value="${l}">${l.toUpperCase()}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-primary" id="btn-salvar" onclick="salvar()" disabled>Salvar referência</button>`;
+
+  document.getElementById('modal-repo').classList.add('aberto');
+}
+
+function limparPreview() {
+  metadataFetch = {};
+  document.getElementById('preview-card').style.display = 'none';
+  document.getElementById('form-fields').style.display = 'none';
+  document.getElementById('fetch-status').innerHTML = '';
+  const btn = document.getElementById('btn-salvar');
+  if (btn) btn.disabled = true;
+}
+
+async function buscarMetadata() {
+  const url = document.getElementById('f-url')?.value?.trim();
+  if (!url) { toast('Cole uma URL primeiro.', 'error'); return; }
+
+  const btn = document.getElementById('btn-fetch');
+  const status = document.getElementById('fetch-status');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando...'; }
+  status.innerHTML = '<span style="color:var(--cinza-400)">Buscando informações da página...</span>';
+
+  try {
+    // Chamar a Edge Function
+    const { data: { session } } = await db.auth.getSession();
+    const token = session?.access_token || '';
+
+    const res = await fetch(`${SB_URL}/functions/v1/fetch-link-metadata`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': appConfig?.supabaseKey || ''
+      },
+      body: JSON.stringify({ url })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok && data.erro) {
+      status.innerHTML = `<span style="color:var(--erro)">⚠ ${data.erro}. Preencha os campos manualmente.</span>`;
+      mostrarFormManual();
+      return;
+    }
+
+    metadataFetch = data;
+
+    // Preencher preview
+    const prev = document.getElementById('preview-card');
+    const prevImg = document.getElementById('prev-img');
+    if (data.imagem_url) { prevImg.src = data.imagem_url; prevImg.style.display = 'block'; }
+    document.getElementById('prev-fonte').textContent = data.fonte || data.dominio || '';
+    document.getElementById('prev-titulo').textContent = data.titulo || url;
+    document.getElementById('prev-desc').textContent = (data.descricao||'').substring(0,180);
+    prev.style.display = 'block';
+
+    // Preencher campos do formulário
+    mostrarFormManual();
+    document.getElementById('f-titulo').value = data.titulo || '';
+    document.getElementById('f-fonte').value  = data.fonte  || '';
+    document.getElementById('f-desc').value   = data.descricao || '';
+    if (data.idioma) {
+      const sel = document.getElementById('f-lang');
+      if ([...sel.options].some(o => o.value === data.idioma)) sel.value = data.idioma;
+    }
+
+    status.innerHTML = '<span style="color:var(--sucesso)">✓ Informações carregadas automaticamente. Revise e escolha a categoria.</span>';
+
+  } catch (e) {
+    status.innerHTML = `<span style="color:var(--aviso)">⚠ Não foi possível buscar automaticamente. Preencha os campos abaixo.</span>`;
+    mostrarFormManual();
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔍 Buscar novamente'; }
+  }
+}
+
+function mostrarFormManual() {
+  document.getElementById('form-fields').style.display = 'block';
+  const btn = document.getElementById('btn-salvar');
+  if (btn) btn.disabled = false;
+}
+
+async function salvar() {
+  const url      = document.getElementById('f-url')?.value?.trim();
+  const titulo   = document.getElementById('f-titulo')?.value?.trim();
+  const fonte    = document.getElementById('f-fonte')?.value?.trim();
+  const descricao= document.getElementById('f-desc')?.value?.trim();
+  const categoria= document.getElementById('f-cat')?.value;
+  const idioma   = document.getElementById('f-lang')?.value;
+
+  if (!url) { toast('URL obrigatória.', 'error'); return; }
+  if (!categoria) { toast('Escolha uma categoria.', 'error'); return; }
+
+  // Verificar duplicata
+  const jaExiste = todosLinks.some(l => l.url === url);
+  if (jaExiste) { toast('Este link já foi adicionado ao repositório.', 'error'); return; }
+
+  const { error } = await db.from('repositorio_links').insert({
+    url,
+    titulo:     titulo  || metadataFetch.titulo  || url,
+    fonte:      fonte   || metadataFetch.fonte   || '',
+    descricao:  descricao || metadataFetch.descricao || '',
+    imagem_url: metadataFetch.imagem_url || null,
+    categoria,
+    idioma:     idioma  || metadataFetch.idioma  || 'pt',
+    inserido_por: appState.usuario.id
+  });
+
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+
+  toast('Referência adicionada ao repositório!', 'success');
+  fecharModal();
+  await carregar();
+}
+
+// ── ADMIN: DESATIVAR ──────────────────────────────────────────
+async function desativar(id) {
+  if (!confirm('Desativar esta referência? Ela ficará oculta para todos os usuários, mas não será excluída.')) return;
+  const { error } = await db.from('repositorio_links').update({
+    ativo: false,
+    desativado_por: appState.usuario.id,
+    desativado_em: new Date().toISOString()
+  }).eq('id', id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Referência desativada.', 'info');
+  await carregar();
+}
+
+function fecharModal() {
+  document.getElementById('modal-repo').classList.remove('aberto');
+  metadataFetch = {};
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+</script>
+</body>
+</html>
