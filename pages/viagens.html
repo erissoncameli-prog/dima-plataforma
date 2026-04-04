@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Viagens e Diárias</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
+.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
+.sb-solicitado{background:#EFF6FF;color:#1E40AF}
+.sb-aprovado{background:#FEF3C7;color:#92400E}
+.sb-em_prestacao{background:#F5F3FF;color:#6D28D9}
+.sb-concluido{background:#D1FAE5;color:#065F46}
+.sb-cancelado{background:#F3F4F6;color:#6B7280}
+.sb-rejeitado{background:#FEE2E2;color:#991B1B}
+.sit-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
+.item-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;}
+.ib-solicitado{background:#EFF6FF;color:#1E40AF}
+.ib-aprovado{background:#D1FAE5;color:#065F46}
+.ib-rejeitado{background:#FEE2E2;color:#991B1B}
+.ib-nao{background:#F3F4F6;color:#9CA3AF}
+.viagem-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+.viagem-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 10px rgba(45,106,79,.08);}
+.viagem-card.cancelado,.viagem-card.rejeitado{opacity:.55;}
+.rota{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--cinza-900);}
+.rota-sep{color:var(--cinza-400);font-size:18px;}
+.form-secao{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden;}
+.form-secao-header{padding:12px 16px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;}
+.form-secao-titulo{font-size:13px;font-weight:600;color:var(--cinza-800);flex:1;}
+.form-secao-body{padding:16px;}
+.toggle-group{display:inline-flex;border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;}
+.toggle-btn{padding:5px 14px;cursor:pointer;border:none;background:var(--branco);color:var(--cinza-600);font-family:var(--font-sans);font-size:12px;transition:all .12s;}
+.toggle-btn.ativo{background:var(--verde-medio);color:#fff;font-weight:600;}
+.trecho-row{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:8px;}
+.embarque-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.embarque-thumb{position:relative;aspect-ratio:4/3;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);cursor:pointer;}
+.embarque-thumb img{width:100%;height:100%;object-fit:cover;}
+.embarque-del{position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1;}
+.tl-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--borda);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.upload-mini{border:2px dashed var(--borda-forte);border-radius:var(--raio);padding:14px;text-align:center;cursor:pointer;font-size:12px;color:var(--cinza-500);transition:all .15s;}
+.upload-mini:hover{border-color:var(--verde-claro);color:var(--verde-medio);}
+.upload-mini.tem{border-color:var(--verde-claro);background:var(--sucesso-bg);color:var(--sucesso);}
+.aviso-pdf{background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio);padding:10px 14px;font-size:11px;color:#92400E;line-height:1.5;}
+.diaria-row{display:grid;grid-template-columns:1fr 70px 110px 100px 36px;gap:8px;align-items:center;margin-bottom:8px;}
+.diaria-row-header{font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;}
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;}
+#lightbox.aberto{display:flex;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando viagens...
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-viagem">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="mv-titulo">Viagem</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="mv-sub"></div></div>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mv-body" style="padding:20px 24px;max-height:72vh;overflow-y:auto"></div>
+    <div class="modal-footer" id="mv-footer"></div>
+  </div>
+</div>
+
+<div id="lightbox" onclick="fecharLightbox()">
+  <button onclick="fecharLightbox()" style="position:absolute;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;background:none;border:none;z-index:1">✕</button>
+  <img id="lightbox-img" src="" alt="" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px">
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+const SIT_LABELS={solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',concluido:'Concluído',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+const ITEM_LABELS={solicitado:'Aguarda aprovação',aprovado:'Aprovado',rejeitado:'Rejeitado'};
+const TIPO_PASSAGEM=['Aérea','Rodoviária','Fluvial','Ferroviária','Outro'];
+const FUNCOES=['Servidor SEMA','Consultor','Pesquisador','Coordenador','Convidado','Outro'];
+const ATIV_217_ID='44b7a6fc-dab6-49ba-bc1f-9764a99bb9d0';
+
+let todasViagens=[],viagemAtual=null;
+let embarqueFiles=[],arquivoRelatorio=null;
+let trechoIdx=0,diariaIdx=0;
+
+const fmtBRL=v=>'R$ '+parseFloat(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtData=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+(async()=>{
+  const u=await carregarUsuario();
+  if(!u){window.location.href='../index.html';return;}
+  document.getElementById('app').innerHTML=gerarLayout('Viagens e Diárias','viagens')+`
+    <div class="fade-in">
+      <div class="stat-row" id="stats"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+        <input class="form-control" id="f-busca" style="width:240px" placeholder="🔍 Buscar SEI, beneficiário, destino..."
+          oninput="filtrar()">
+        <select class="form-control" id="f-sit-filt" style="width:160px" onchange="filtrar()">
+          <option value="">Todas as situações</option>
+          ${Object.entries(SIT_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormNovo()">+ Nova solicitação</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>
+      </div>
+      <div id="lista-viagens"></div>
+    </div>`+`</div></div></div>`;
+  await carregar();
+})();
+
+async function carregar(){
+  const{data}=await db.from('viagens_diarias').select(`*,passagens:viagem_passagens(*),diarias:viagem_diarias(*)`).order('criado_em',{ascending:false});
+  todasViagens=data||[];renderStats();filtrar();
+}
+
+function renderStats(){
+  const t=todasViagens;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat-card sc-b"><div class="stat-lbl">Total</div><div class="stat-val">${t.length}</div><div class="stat-sub">solicitações</div></div>
+    <div class="stat-card sc-a"><div class="stat-lbl">Aguardando</div><div class="stat-val" style="color:var(--aviso)">${t.filter(v=>v.situacao==='solicitado').length}</div><div class="stat-sub">aprovação</div></div>
+    <div class="stat-card sc-g"><div class="stat-lbl">Aprovadas</div><div class="stat-val">${t.filter(v=>v.situacao==='aprovado').length}</div><div class="stat-sub">em andamento</div></div>
+    <div class="stat-card sc-t"><div class="stat-lbl">Prestação</div><div class="stat-val" style="color:#0D9488">${t.filter(v=>v.situacao==='em_prestacao').length}</div><div class="stat-sub">aguardando docs</div></div>
+    <div class="stat-card sc-g"><div class="stat-lbl">Concluídas</div><div class="stat-val" style="color:var(--sucesso)">${t.filter(v=>v.situacao==='concluido').length}</div><div class="stat-sub">no financeiro</div></div>`;
+}
+
+function filtrar(){
+  const b=(document.getElementById('f-busca')?.value||'').toLowerCase();
+  const s=document.getElementById('f-sit-filt')?.value||'';
+  const fil=todasViagens.filter(v=>{
+    if(s&&v.situacao!==s)return false;
+    if(b){const txt=[(v.numero_sei||''),(v.spd_passagem||''),(v.spd_diaria||''),(v.beneficiario_nome||''),(v.destino||'')].join(' ').toLowerCase();if(!txt.includes(b))return false;}
+    return true;
+  });
+  const el=document.getElementById('lista-viagens');
+  if(!fil.length){el.innerHTML=`<div style="text-align:center;padding:60px;color:var(--cinza-400)"><div style="font-size:40px;margin-bottom:10px">✈</div><div>Nenhuma viagem encontrada.</div><button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="abrirFormNovo()">+ Nova solicitação</button></div>`;return;}
+  el.innerHTML=fil.map(renderCard).join('');
+}
+
+function renderCard(v){
+  const passTotal=(v.passagens||[]).reduce((s,p)=>s+parseFloat(p.valor||0),0);
+  const diarTotal=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+  const total=passTotal+diarTotal;
+  const numDias=v.dt_retorno&&v.dt_saida?Math.ceil((new Date(v.dt_retorno)-new Date(v.dt_saida))/(1000*60*60*24)):null;
+  const isAdmin=appState.perfil==='super_admin';
+  const podePrestacao=(v.situacao==='em_prestacao'||v.situacao==='aprovado')&&(isAdmin||v.criado_por===appState.usuario.id);
+  return`<div class="viagem-card ${v.situacao}" onclick="abrirDetalhe('${v.id}')">
+    <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+          ${v.numero_sei?`<span style="font-family:var(--font-mono);font-size:10px;background:var(--cinza-100);padding:1px 6px;border-radius:3px">SEI ${esc(v.numero_sei)}</span>`:''}
+          ${v.spd_passagem?`<span style="font-family:var(--font-mono);font-size:10px;background:#EFF6FF;color:#1E40AF;padding:1px 6px;border-radius:3px">SPD-Pass ${esc(v.spd_passagem)}</span>`:''}
+          ${v.spd_diaria?`<span style="font-family:var(--font-mono);font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:3px">SPD-Diár ${esc(v.spd_diaria)}</span>`:''}
+        </div>
+        <div class="rota"><span>${esc(v.origem||'—')}</span><span class="rota-sep">→</span><span>${esc(v.destino||'—')}</span></div>
+        <div style="font-size:12px;color:var(--cinza-600);margin-top:4px">👤 ${esc(v.beneficiario_nome||'—')}${numDias?` · 📅 ${fmtData(v.dt_saida)} → ${fmtData(v.dt_retorno)} (${numDias}d)`:''}</div>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+          ${v.tem_passagem?`<span class="item-badge ib-${v.sit_passagem||'solicitado'}">✈ Passagem: ${ITEM_LABELS[v.sit_passagem||'solicitado']}</span>`:`<span class="item-badge ib-nao">✈ Sem passagem</span>`}
+          ${v.tem_diaria?`<span class="item-badge ib-${v.sit_diaria||'solicitado'}">🏨 Diária: ${ITEM_LABELS[v.sit_diaria||'solicitado']}</span>`:`<span class="item-badge ib-nao">🏨 Sem diária</span>`}
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <span class="sit-badge sb-${v.situacao}">${SIT_LABELS[v.situacao]||v.situacao}</span>
+        ${total>0?`<div style="font-family:var(--font-mono);font-size:15px;font-weight:700;color:var(--verde-medio);margin-top:6px">${fmtBRL(total)}</div>
+        <div style="font-size:10px;color:var(--cinza-400)">${[passTotal>0?'✈ '+fmtBRL(passTotal):'',diarTotal>0?'🏨 '+fmtBRL(diarTotal):''].filter(Boolean).join(' · ')}</div>`:''}
+        ${podePrestacao&&!isAdmin?`<div onclick="event.stopPropagation();fecharModal();abrirPrestacao('${v.id}')" style="margin-top:8px;font-size:11px;font-weight:700;color:#6D28D9;cursor:pointer;background:#F5F3FF;padding:4px 10px;border-radius:99px;border:1px solid #DDD6FE">📋 Prestação →</div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// FORMULÁRIO — NOVA SOLICITAÇÃO
+// ══════════════════════════════════════════════════════════════
+function abrirFormNovo(){
+  viagemAtual=null;trechoIdx=0;diariaIdx=0;
+  document.getElementById('mv-titulo').textContent='Nova solicitação de viagem';
+  document.getElementById('mv-sub').textContent='Preencha e envie para aprovação';
+  document.getElementById('mv-body').innerHTML=buildForm(null);
+  document.getElementById('mv-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarSolicitacao()">Enviar para aprovação →</button>`;
+  document.getElementById('modal-viagem').classList.add('aberto');
+  addTrecho();addDiaria();
+}
+
+function buildForm(v){
+  return`
+  <div class="form-secao">
+    <div class="form-secao-header"><span style="font-size:18px">📋</span><span class="form-secao-titulo">Identificação</span></div>
+    <div class="form-secao-body">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Nº SEI</label>
+          <input class="form-control" id="f-sei" type="text" value="${esc(v?.numero_sei||'')}" placeholder="Preencher quando disponível" style="font-family:var(--font-mono)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail do solicitante</label>
+          <input class="form-control" id="f-email" type="email" value="${esc(v?.email_solicitante||appState.usuario?.email||'')}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Objetivo da viagem <span class="obrig">*</span></label>
+        <textarea class="form-control" id="f-obj" rows="2" placeholder="Descreva o objetivo...">${esc(v?.objetivo||'')}</textarea>
+      </div>
+    </div>
+  </div>
+  <div class="form-secao">
+    <div class="form-secao-header"><span style="font-size:18px">✈</span><span class="form-secao-titulo">Rota e datas</span></div>
+    <div class="form-secao-body">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Origem <span class="obrig">*</span></label>
+          <input class="form-control" id="f-orig" type="text" value="${esc(v?.origem||'')}" placeholder="Ex: Rio Branco/AC" oninput="propagarRota()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destino <span class="obrig">*</span></label>
+          <input class="form-control" id="f-dest" type="text" value="${esc(v?.destino||'')}" placeholder="Ex: Brasília/DF" oninput="propagarRota()">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Data de saída</label>
+          <input class="form-control" id="f-saida" type="date" value="${v?.dt_saida||''}" onchange="propagarRota();calcDiariasAuto()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de retorno</label>
+          <input class="form-control" id="f-retorno" type="date" value="${v?.dt_retorno||''}" onchange="calcDiariasAuto()">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="form-secao">
+    <div class="form-secao-header"><span style="font-size:18px">👤</span><span class="form-secao-titulo">Beneficiário</span></div>
+    <div class="form-secao-body">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Nome completo <span class="obrig">*</span></label>
+          <input class="form-control" id="f-ben-nome" type="text" value="${esc(v?.beneficiario_nome||'')}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Função</label>
+          <input class="form-control" id="f-ben-func" type="text" value="${esc(v?.beneficiario_funcao||'')}" list="funcoes-list">
+          <datalist id="funcoes-list">${FUNCOES.map(f=>`<option value="${f}">`).join('')}</datalist>
+        </div>
+      </div>
+      <div class="form-group" style="max-width:220px">
+        <label class="form-label">CPF</label>
+        <input class="form-control" id="f-ben-cpf" type="text" value="${esc(v?.beneficiario_cpf||'')}" style="font-family:var(--font-mono)" placeholder="000.000.000-00">
+      </div>
+    </div>
+  </div>
+  <div class="form-secao">
+    <div class="form-secao-header">
+      <span style="font-size:18px">🎫</span><span class="form-secao-titulo">Passagem</span>
+      <div class="toggle-group">
+        <button class="toggle-btn ativo" id="pass-sim" onclick="toggleItem('passagem',true)">Sim</button>
+        <button class="toggle-btn" id="pass-nao" onclick="toggleItem('passagem',false)">Não precisa</button>
+      </div>
+    </div>
+    <div id="secao-passagem">
+      <div class="form-secao-body">
+        <div class="form-group">
+          <label class="form-label">Nº SPD da Passagem</label>
+          <input class="form-control" id="f-spd-pass" type="text" value="${esc(v?.spd_passagem||'')}" placeholder="Preenchido após emissão pela UNESCO" style="font-family:var(--font-mono);max-width:300px">
+          <div class="form-hint">Deixe em branco se ainda não foi emitido</div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Trechos</div>
+        <div id="trechos-lista"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addTrecho()">+ Adicionar trecho</button>
+        <div style="text-align:right;margin-top:10px;font-size:12px;font-weight:600">Total passagens: <span id="total-pass" style="font-family:var(--font-mono);color:var(--azul-medio)">R$ 0,00</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="form-secao">
+    <div class="form-secao-header">
+      <span style="font-size:18px">🏨</span><span class="form-secao-titulo">Diárias</span>
+      <div class="toggle-group">
+        <button class="toggle-btn ativo" id="diar-sim" onclick="toggleItem('diaria',true)">Sim</button>
+        <button class="toggle-btn" id="diar-nao" onclick="toggleItem('diaria',false)">Não precisa</button>
+      </div>
+    </div>
+    <div id="secao-diaria">
+      <div class="form-secao-body">
+        <div class="form-group">
+          <label class="form-label">Nº SPD das Diárias</label>
+          <input class="form-control" id="f-spd-diar" type="text" value="${esc(v?.spd_diaria||'')}" placeholder="Preenchido após emissão pela UNESCO" style="font-family:var(--font-mono);max-width:300px">
+          <div class="form-hint">Deixe em branco se ainda não foi emitido</div>
+        </div>
+        <div class="diaria-row diaria-row-header" style="padding:0 4px">
+          <span>Tipo</span><span style="text-align:center">Qtd.</span><span style="text-align:right">Valor unit. R$</span><span style="text-align:right">Subtotal</span><span></span>
+        </div>
+        <div id="diarias-lista"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addDiaria()">+ Adicionar linha</button>
+        <div id="dias-info" style="font-size:11px;color:var(--azul-medio);margin-top:6px"></div>
+        <div style="text-align:right;margin-top:10px;font-size:12px;font-weight:600">Total diárias: <span id="total-diar" style="font-family:var(--font-mono);color:var(--aviso)">R$ 0,00</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Observações</label>
+    <textarea class="form-control" id="f-obs" rows="2">${esc(v?.observacoes||'')}</textarea>
+  </div>`;
+}
+
+function toggleItem(tipo,sim){
+  const isPass=tipo==='passagem';
+  const sec=document.getElementById(isPass?'secao-passagem':'secao-diaria');
+  const btnSim=document.getElementById(isPass?'pass-sim':'diar-sim');
+  const btnNao=document.getElementById(isPass?'pass-nao':'diar-nao');
+  if(sec)sec.style.display=sim?'block':'none';
+  if(btnSim)btnSim.classList.toggle('ativo',sim);
+  if(btnNao)btnNao.classList.toggle('ativo',!sim);
+}
+
+function propagarRota(){
+  const orig=document.getElementById('f-orig')?.value||'';
+  const dest=document.getElementById('f-dest')?.value||'';
+  const saida=document.getElementById('f-saida')?.value||'';
+  document.querySelectorAll('[name^="tr-orig-"]').forEach(el=>{if(!el.value)el.value=orig;});
+  document.querySelectorAll('[name^="tr-dest-"]').forEach(el=>{if(!el.value)el.value=dest;});
+  document.querySelectorAll('[name^="tr-saida-"]').forEach(el=>{if(!el.value)el.value=saida;});
+}
+
+function calcDiariasAuto(){
+  const saida=document.getElementById('f-saida')?.value;
+  const retorno=document.getElementById('f-retorno')?.value;
+  if(!saida||!retorno)return;
+  const dias=Math.ceil((new Date(retorno)-new Date(saida))/(1000*60*60*24));
+  if(dias<=0)return;
+  const qtd=document.querySelector('[name^="di-qtd-"]');
+  if(qtd){qtd.value=dias;calcSubDiaria(qtd.name.split('-').pop());}
+  const info=document.getElementById('dias-info');
+  if(info)info.textContent=`ℹ ${dias} noite${dias!==1?'s':''} calculadas automaticamente.`;
+}
+
+function addTrecho(){
+  const idx=trechoIdx++;
+  const orig=document.getElementById('f-orig')?.value||'';
+  const dest=document.getElementById('f-dest')?.value||'';
+  const saida=document.getElementById('f-saida')?.value||'';
+  const el=document.createElement('div');
+  el.innerHTML=`<div class="trecho-row" id="tr-${idx}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Origem</label>
+        <input class="form-control" name="tr-orig-${idx}" type="text" value="${esc(orig)}" style="height:34px;font-size:12px"></div>
+      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Destino</label>
+        <input class="form-control" name="tr-dest-${idx}" type="text" value="${esc(dest)}" style="height:34px;font-size:12px"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:end">
+      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Tipo</label>
+        <select class="form-control" name="tr-tipo-${idx}" style="height:34px;font-size:12px">
+          ${TIPO_PASSAGEM.map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
+      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Nº Bilhete</label>
+        <input class="form-control" name="tr-bil-${idx}" type="text" style="height:34px;font-size:12px;font-family:var(--font-mono)"></div>
+      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Data saída</label>
+        <input class="form-control" name="tr-saida-${idx}" type="date" value="${saida}" style="height:34px;font-size:12px"></div>
+      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Valor R$ <span class="obrig">*</span></label>
+        <input class="form-control" name="tr-val-${idx}" type="number" step="0.01" placeholder="0,00"
+          style="height:34px;font-size:12px" oninput="calcTotalPass()"></div>
+      <button onclick="document.getElementById('tr-${idx}').remove();calcTotalPass()"
+        style="height:34px;width:34px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:14px;flex-shrink:0">✕</button>
+    </div>
+  </div>`;
+  document.getElementById('trechos-lista').appendChild(el.firstChild);
+}
+
+function calcTotalPass(){
+  const total=Array.from(document.querySelectorAll('[name^="tr-val-"]')).reduce((s,i)=>s+parseFloat(i.value||0),0);
+  const el=document.getElementById('total-pass');if(el)el.textContent=fmtBRL(total);
+}
+
+function addDiaria(){
+  const idx=diariaIdx++;
+  const el=document.createElement('div');
+  el.innerHTML=`<div class="diaria-row" id="di-${idx}">
+    <input class="form-control" name="di-tipo-${idx}" type="text" value="Diária padrão" style="height:34px;font-size:12px">
+    <input class="form-control" name="di-qtd-${idx}" type="number" min="0" value="1" style="height:34px;font-size:12px;text-align:center" oninput="calcSubDiaria(${idx})">
+    <input class="form-control" name="di-unit-${idx}" type="number" step="0.01" placeholder="0,00" style="height:34px;font-size:12px;text-align:right" oninput="calcSubDiaria(${idx})">
+    <div id="di-sub-${idx}" style="font-family:var(--font-mono);font-size:12px;font-weight:600;text-align:right;padding:0 4px">R$ 0,00</div>
+    <button onclick="document.getElementById('di-${idx}').remove();calcTotalDiar()"
+      style="height:34px;width:34px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:14px">✕</button>
+  </div>`;
+  document.getElementById('diarias-lista').appendChild(el.firstChild);
+}
+
+function calcSubDiaria(idx){
+  const qtd=parseFloat(document.querySelector(`[name="di-qtd-${idx}"]`)?.value||0);
+  const unit=parseFloat(document.querySelector(`[name="di-unit-${idx}"]`)?.value||0);
+  const sub=document.getElementById('di-sub-'+idx);if(sub)sub.textContent=fmtBRL(qtd*unit);
+  calcTotalDiar();
+}
+function calcTotalDiar(){
+  let total=0;
+  document.querySelectorAll('[name^="di-qtd-"]').forEach(q=>{
+    const idx=q.name.split('-').pop();
+    total+=parseFloat(q.value||0)*parseFloat(document.querySelector(`[name="di-unit-${idx}"]`)?.value||0);
+  });
+  const el=document.getElementById('total-diar');if(el)el.textContent=fmtBRL(total);
+}
+
+async function salvarSolicitacao(){
+  const obj=document.getElementById('f-obj')?.value.trim();
+  const orig=document.getElementById('f-orig')?.value.trim();
+  const dest=document.getElementById('f-dest')?.value.trim();
+  const benNome=document.getElementById('f-ben-nome')?.value.trim();
+  if(!obj||!orig||!dest||!benNome){toast('Preencha objetivo, rota e beneficiário.','error');return;}
+  const temPass=document.getElementById('pass-sim')?.classList.contains('ativo');
+  const temDiar=document.getElementById('diar-sim')?.classList.contains('ativo');
+  const dados={
+    objetivo:obj,origem:orig,destino:dest,
+    dt_saida:document.getElementById('f-saida')?.value||null,
+    dt_retorno:document.getElementById('f-retorno')?.value||null,
+    beneficiario_nome:benNome,
+    beneficiario_funcao:document.getElementById('f-ben-func')?.value.trim()||null,
+    beneficiario_cpf:document.getElementById('f-ben-cpf')?.value.trim()||null,
+    numero_sei:document.getElementById('f-sei')?.value.trim()||null,
+    email_solicitante:document.getElementById('f-email')?.value.trim()||null,
+    spd_passagem:document.getElementById('f-spd-pass')?.value.trim()||null,
+    spd_diaria:document.getElementById('f-spd-diar')?.value.trim()||null,
+    tem_passagem:temPass,tem_diaria:temDiar,
+    sit_passagem:temPass?'solicitado':null,sit_diaria:temDiar?'solicitado':null,
+    observacoes:document.getElementById('f-obs')?.value.trim()||null,
+    situacao:'solicitado',atividade_id:ATIV_217_ID,criado_por:appState.usuario.id,
+  };
+  const{data,error}=await db.from('viagens_diarias').insert(dados).select().single();
+  if(error){toast('Erro: '+error.message,'error');return;}
+
+  if(temPass){
+    const list=[];
+    document.querySelectorAll('[name^="tr-orig-"]').forEach(el=>{
+      const idx=el.name.split('-').pop();
+      const val=parseFloat(document.querySelector(`[name="tr-val-${idx}"]`)?.value||0);
+      list.push({viagem_id:data.id,origem:el.value||null,
+        destino:document.querySelector(`[name="tr-dest-${idx}"]`)?.value||null,
+        tipo:document.querySelector(`[name="tr-tipo-${idx}"]`)?.value||null,
+        numero_bilhete:document.querySelector(`[name="tr-bil-${idx}"]`)?.value||null,
+        dt_saida:document.querySelector(`[name="tr-saida-${idx}"]`)?.value||null,valor:val});
+    });
+    if(list.length)await db.from('viagem_passagens').insert(list);
+  }
+
+  if(temDiar){
+    const list=[];
+    document.querySelectorAll('[name^="di-qtd-"]').forEach(el=>{
+      const idx=el.name.split('-').pop();
+      const qtd=parseFloat(el.value||0);
+      const unit=parseFloat(document.querySelector(`[name="di-unit-${idx}"]`)?.value||0);
+      list.push({viagem_id:data.id,tipo_diaria:document.querySelector(`[name="di-tipo-${idx}"]`)?.value||'Diária',
+        quantidade:qtd,valor_unitario:unit,
+        numero_sei:dados.numero_sei,email_solicitante:dados.email_solicitante});
+    });
+    if(list.length)await db.from('viagem_diarias').insert(list);
+  }
+
+  toast('Solicitação enviada para aprovação!','success');fecharModal();await carregar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DETALHE
+// ══════════════════════════════════════════════════════════════
+async function abrirDetalhe(id){
+  const{data:v}=await db.from('viagens_diarias').select(`*,passagens:viagem_passagens(*),diarias:viagem_diarias(*)`).eq('id',id).single();
+  if(!v)return;
+  viagemAtual=v;
+  const isAdmin=appState.perfil==='super_admin';
+  const passTotal=(v.passagens||[]).reduce((s,p)=>s+parseFloat(p.valor||0),0);
+  const diarTotal=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+
+  document.getElementById('mv-titulo').textContent=`${esc(v.origem||'—')} → ${esc(v.destino||'—')}`;
+  document.getElementById('mv-sub').textContent=`${v.beneficiario_nome||''} · ${SIT_LABELS[v.situacao]||v.situacao}`;
+
+  const infoRows=[
+    ['Beneficiário',v.beneficiario_nome],['Função',v.beneficiario_funcao],['CPF',v.beneficiario_cpf],
+    ['SEI',v.numero_sei],['E-mail solicitante',v.email_solicitante],
+    ['Saída',v.dt_saida?fmtData(v.dt_saida):null],['Retorno',v.dt_retorno?fmtData(v.dt_retorno):null],
+    ['Objetivo',v.objetivo],['Observações',v.observacoes]
+  ].filter(([,val])=>val);
+
+  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px">
+      ${infoRows.map(([lbl,val])=>`<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--borda);font-size:12px">
+        <span style="color:var(--cinza-500);min-width:130px;flex-shrink:0">${lbl}</span>
+        <span style="color:var(--cinza-900)">${esc(val)}</span></div>`).join('')}
+    </div>
+    <div>
+      <div style="background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:10px">Status dos itens</div>
+        ${[
+          v.tem_passagem?{ico:'✈',label:'Passagem',sit:v.sit_passagem,spd:v.spd_passagem,motivo:v.rejeitado_pass_motivo,total:passTotal}:null,
+          v.tem_diaria?{ico:'🏨',label:'Diárias',sit:v.sit_diaria,spd:v.spd_diaria,motivo:v.rejeitado_diar_motivo,total:diarTotal}:null
+        ].filter(Boolean).map(item=>`<div class="tl-item">
+          <div class="tl-dot" style="background:${item.sit==='aprovado'?'#D1FAE5':item.sit==='rejeitado'?'#FEE2E2':'#EFF6FF'}">${item.ico}</div>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:600">${item.label} — <span class="item-badge ib-${item.sit||'solicitado'}">${ITEM_LABELS[item.sit||'solicitado']}</span></div>
+            ${item.spd?`<div style="font-size:11px;color:var(--cinza-500)">SPD: ${esc(item.spd)}</div>`:''}
+            ${item.motivo?`<div style="font-size:11px;color:var(--erro)">${esc(item.motivo)}</div>`:''}
+            <div style="font-size:11px;font-weight:600;color:var(--verde-medio)">${fmtBRL(item.total)}</div>
+          </div></div>`).join('')}
+        ${!v.tem_passagem&&!v.tem_diaria?'<div style="font-size:12px;color:var(--cinza-400);text-align:center;padding:10px">Nenhum item solicitado</div>':''}
+      </div>
+      ${passTotal+diarTotal>0?`<div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:10px;text-align:center">
+        <div style="font-size:10px;color:var(--cinza-600)">Total estimado</div>
+        <div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--verde-medio)">${fmtBRL(passTotal+diarTotal)}</div></div>`:''}
+    </div>
+  </div>`;
+
+  if(v.passagens?.length){
+    html+=`<div style="font-size:12px;font-weight:700;margin-bottom:8px">Trechos de passagem</div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:16px">
+      <thead><tr style="background:var(--cinza-50)">${['Rota','Tipo','Bilhete','Data saída','Valor'].map(h=>`<th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--borda);font-size:10px;text-transform:uppercase;color:var(--cinza-500)">${h}</th>`).join('')}</tr></thead>
+      <tbody>${v.passagens.map(p=>`<tr style="border-bottom:1px solid var(--borda)">
+        <td style="padding:8px 10px">${esc(p.origem||'—')} → ${esc(p.destino||'—')}</td>
+        <td style="padding:8px 10px">${esc(p.tipo||'—')}</td>
+        <td style="padding:8px 10px;font-family:var(--font-mono)">${esc(p.numero_bilhete||'—')}</td>
+        <td style="padding:8px 10px">${p.dt_saida?fmtData(p.dt_saida):'—'}</td>
+        <td style="padding:8px 10px;font-family:var(--font-mono);font-weight:600;text-align:right">${fmtBRL(p.valor)}</td>
+      </tr>`).join('')}
+      <tr style="background:var(--cinza-50)"><td colspan="4" style="padding:8px 10px;font-weight:600;text-align:right">Total</td>
+      <td style="padding:8px 10px;font-family:var(--font-mono);font-weight:700;text-align:right;color:var(--azul-medio)">${fmtBRL(passTotal)}</td></tr>
+      </tbody></table>`;
+  }
+
+  if(v.diarias?.length){
+    html+=`<div style="font-size:12px;font-weight:700;margin-bottom:8px">Diárias</div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:16px">
+      <thead><tr style="background:var(--cinza-50)">${['Tipo','Qtd.','Valor unit.','Subtotal'].map(h=>`<th style="padding:7px 10px;text-align:left;border-bottom:1px solid var(--borda);font-size:10px;text-transform:uppercase;color:var(--cinza-500)">${h}</th>`).join('')}</tr></thead>
+      <tbody>${v.diarias.map(d=>`<tr style="border-bottom:1px solid var(--borda)">
+        <td style="padding:8px 10px">${esc(d.tipo_diaria||'—')}</td>
+        <td style="padding:8px 10px;text-align:center">${d.quantidade||0}</td>
+        <td style="padding:8px 10px;font-family:var(--font-mono)">${fmtBRL(d.valor_unitario)}</td>
+        <td style="padding:8px 10px;font-family:var(--font-mono);font-weight:600">${fmtBRL(parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0))}</td>
+      </tr>`).join('')}
+      <tr style="background:var(--cinza-50)"><td colspan="3" style="padding:8px 10px;font-weight:600;text-align:right">Total</td>
+      <td style="padding:8px 10px;font-family:var(--font-mono);font-weight:700;color:var(--aviso)">${fmtBRL(diarTotal)}</td></tr>
+      </tbody></table>`;
+  }
+
+  // Prestação de contas
+  if(['em_prestacao','concluido'].includes(v.situacao)){
+    html+=`<div style="font-size:13px;font-weight:700;margin-bottom:10px;padding-top:8px;border-top:1px solid var(--borda)">📋 Prestação de contas</div>`;
+    if(v.cartoes_embarque_urls?.length){
+      html+=`<div style="font-size:12px;font-weight:600;margin-bottom:8px">Cartões de embarque</div>
+      <div class="embarque-grid" style="margin-bottom:16px">${v.cartoes_embarque_urls.map((url,i)=>`
+        <div class="embarque-thumb" onclick="abrirLightbox('${esc(url)}')">
+          <img src="${esc(url)}" alt="Cartão ${i+1}" loading="lazy"></div>`).join('')}</div>`;
+    }
+    if(v.relatorio_url){
+      html+=`<div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">📄</span>
+        <div style="flex:1"><div style="font-size:12px;font-weight:600">${esc(v.relatorio_nome||'Relatório de viagem')}</div>
+        <div style="font-size:11px;color:var(--cinza-500)">PDF assinado</div></div>
+        <button class="btn btn-sm btn-secondary" onclick="window.open('${esc(v.relatorio_url)}','_blank')">📥 Abrir</button></div>`;
+    }
+  }
+
+  document.getElementById('mv-body').innerHTML=html;
+
+  // Footer
+  let footer=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
+  if(isAdmin){
+    if(v.situacao==='solicitado')
+      footer+=`<div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn btn-danger btn-sm" onclick="rejeitarViagem()">✕ Rejeitar</button>
+        <button class="btn btn-primary" onclick="aprovarViagem()">✓ Aprovar</button></div>`;
+    if(v.situacao==='aprovado')
+      footer+=`<button class="btn btn-primary" style="margin-left:auto" onclick="abrirFormSPDs()">✎ SPDs / Atualizar</button>`;
+    if(v.situacao==='em_prestacao')
+      footer+=`<button class="btn btn-primary" style="margin-left:auto;background:#059669" onclick="concluirViagem()">✓ Concluir e lançar no financeiro</button>`;
+  }
+  if(v.situacao==='aprovado'&&(isAdmin||v.criado_por===appState.usuario.id))
+    footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="fecharModal();abrirPrestacao('${v.id}')">📋 Prestação de contas</button>`;
+
+  document.getElementById('mv-footer').innerHTML=footer;
+  document.getElementById('modal-viagem').classList.add('aberto');
+}
+
+// ══════════════════════════════════════════════════════════════
+// APROVAÇÃO
+// ══════════════════════════════════════════════════════════════
+async function aprovarViagem(){
+  const v=viagemAtual;if(!v)return;
+  const upd={situacao:'aprovado'};
+  if(v.tem_passagem){upd.sit_passagem='aprovado';upd.aprovado_pass_por=appState.usuario.id;upd.aprovado_pass_em=new Date().toISOString();}
+  if(v.tem_diaria){upd.sit_diaria='aprovado';upd.aprovado_diar_por=appState.usuario.id;upd.aprovado_diar_em=new Date().toISOString();}
+  const{error}=await db.from('viagens_diarias').update(upd).eq('id',v.id);
+  if(error){toast('Erro: '+error.message,'error');return;}
+  await db.from('notificacoes').insert({usuario_id:v.criado_por,tipo:'viagem_aprovada',
+    titulo:'Viagem aprovada — '+(v.destino||''),
+    mensagem:'Sua solicitação foi aprovada. Aguarde a emissão dos SPDs pela UNESCO.',
+    lida:false,link:'viagens.html',entidade_tipo:'viagens_diarias',entidade_id:v.id});
+  toast('Viagem aprovada!','success');fecharModal();await carregar();
+}
+
+async function rejeitarViagem(){
+  const motivo=prompt('Motivo da rejeição:');if(motivo===null)return;
+  const v=viagemAtual;
+  const upd={situacao:'rejeitado'};
+  if(v.tem_passagem){upd.sit_passagem='rejeitado';upd.rejeitado_pass_motivo=motivo;}
+  if(v.tem_diaria){upd.sit_diaria='rejeitado';upd.rejeitado_diar_motivo=motivo;}
+  await db.from('viagens_diarias').update(upd).eq('id',v.id);
+  toast('Viagem rejeitada.','info');fecharModal();await carregar();
+}
+
+function abrirFormSPDs(){
+  const v=viagemAtual;
+  document.getElementById('mv-body').innerHTML=`
+    <div style="font-size:13px;font-weight:600;margin-bottom:14px">Preencher SPDs e atualizar situação</div>
+    ${v.tem_passagem?`<div class="form-group">
+      <label class="form-label">SPD — Passagem</label>
+      <input class="form-control" id="s-spd-pass" type="text" value="${esc(v.spd_passagem||'')}" style="font-family:var(--font-mono);max-width:300px">
+    </div>`:''}
+    ${v.tem_diaria?`<div class="form-group">
+      <label class="form-label">SPD — Diárias</label>
+      <input class="form-control" id="s-spd-diar" type="text" value="${esc(v.spd_diaria||'')}" style="font-family:var(--font-mono);max-width:300px">
+    </div>`:''}
+    <div class="form-group"><label class="form-label">Situação</label>
+      <select class="form-control" id="s-situacao" style="max-width:280px">
+        <option value="aprovado">Aprovado</option>
+        <option value="em_prestacao">Em prestação de contas</option>
+        <option value="concluido">Concluído (lança no financeiro)</option>
+      </select></div>`;
+  document.getElementById('mv-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="abrirDetalhe('${v.id}')">← Voltar</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarSPDs()">Salvar</button>`;
+}
+
+async function salvarSPDs(){
+  const v=viagemAtual;
+  const upd={
+    spd_passagem:document.getElementById('s-spd-pass')?.value.trim()||v.spd_passagem||null,
+    spd_diaria:document.getElementById('s-spd-diar')?.value.trim()||v.spd_diaria||null,
+    situacao:document.getElementById('s-situacao')?.value||v.situacao,
+  };
+  const{error}=await db.from('viagens_diarias').update(upd).eq('id',v.id);
+  if(error){toast('Erro: '+error.message,'error');return;}
+  toast('Salvo!','success');fecharModal();await carregar();
+}
+
+async function concluirViagem(){
+  if(!confirm('Confirmar conclusão e lançar no financeiro?'))return;
+  const{error}=await db.from('viagens_diarias').update({situacao:'concluido'}).eq('id',viagemAtual.id);
+  if(error){toast('Erro: '+error.message,'error');return;}
+  toast('Concluída e lançada no financeiro!','success');fecharModal();await carregar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PRESTAÇÃO DE CONTAS
+// ══════════════════════════════════════════════════════════════
+async function abrirPrestacao(id){
+  const{data:v}=await db.from('viagens_diarias').select('*').eq('id',id).single();
+  if(!v)return;
+  viagemAtual=v;embarqueFiles=[];arquivoRelatorio=null;
+  document.getElementById('mv-titulo').textContent='Prestação de contas';
+  document.getElementById('mv-sub').textContent=`${esc(v.origem||'')} → ${esc(v.destino||'')} · ${esc(v.beneficiario_nome||'')}`;
+  document.getElementById('mv-body').innerHTML=`
+    ${v.tem_passagem?`<div class="form-secao">
+      <div class="form-secao-header"><span style="font-size:18px">🎫</span>
+        <span class="form-secao-titulo">Cartões de embarque</span>
+        <span style="font-size:11px;color:var(--cinza-500)">obrigatório para viagens com passagem · JPEG/PNG · até 6</span></div>
+      <div class="form-secao-body">
+        <div class="upload-mini" onclick="document.getElementById('inp-emb').click()">
+          <input type="file" id="inp-emb" style="display:none" accept=".jpg,.jpeg,.png" multiple onchange="adicionarEmbarque(this.files)">
+          📷 Clique aqui para adicionar cartões de embarque
+        </div>
+        <div id="emb-grid" class="embarque-grid"></div>
+        <div id="emb-count" style="font-size:11px;color:var(--cinza-500);margin-top:6px"></div>
+      </div>
+    </div>`:''}
+    <div class="form-secao">
+      <div class="form-secao-header"><span style="font-size:18px">📄</span>
+        <span class="form-secao-titulo">Relatório de viagem</span>
+        <span style="font-size:11px;color:var(--erro);font-weight:600">obrigatório</span></div>
+      <div class="form-secao-body">
+        <div class="aviso-pdf" style="margin-bottom:12px">
+          ℹ️ <strong>O relatório deve ser em PDF assinado</strong> e conter: <strong>fotos do evento</strong>, lista de participantes, principais resultados e conclusões.
+          Insira as fotos diretamente no documento antes de assinar.
+        </div>
+        ${v.relatorio_url?`<div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:10px;margin-bottom:10px;font-size:12px;display:flex;align-items:center;gap:8px">
+          📄 <strong>${esc(v.relatorio_nome||'Relatório')}</strong> — já enviado
+          <button class="btn btn-sm btn-secondary" style="margin-left:auto" onclick="window.open('${esc(v.relatorio_url)}','_blank')">Abrir</button>
+        </div>`:''}
+        <div class="upload-mini" id="upload-rel" onclick="document.getElementById('inp-rel').click()">
+          <input type="file" id="inp-rel" style="display:none" accept=".pdf" onchange="selecionarRelatorio(this.files[0])">
+          📎 ${v.relatorio_url?'Substituir relatório (PDF)':'Clique para anexar o relatório em PDF'}
+        </div>
+        <div id="rel-info" style="font-size:12px;color:var(--verde-medio);margin-top:6px;font-weight:500"></div>
+      </div>
+    </div>`;
+  document.getElementById('mv-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="enviarPrestacao()">📤 Enviar prestação de contas</button>`;
+  document.getElementById('modal-viagem').classList.add('aberto');
+}
+
+function adicionarEmbarque(files){
+  const MAX=6;
+  Array.from(files).forEach(f=>{
+    if(!['image/jpeg','image/jpg','image/png'].includes(f.type)){toast(f.name+': apenas JPEG/PNG.','error');return;}
+    if(embarqueFiles.length>=MAX){toast('Máximo '+MAX+' cartões.','error');return;}
+    embarqueFiles.push(f);
+  });
+  const grid=document.getElementById('emb-grid');
+  const count=document.getElementById('emb-count');
+  if(grid)grid.innerHTML=embarqueFiles.map((f,i)=>{
+    const url=URL.createObjectURL(f);
+    return`<div class="embarque-thumb">
+      <img src="${url}" alt="Cartão ${i+1}">
+      <button class="embarque-del" onclick="embarqueFiles.splice(${i},1);adicionarEmbarque([])">✕</button>
+    </div>`;
+  }).join('');
+  if(count)count.textContent=embarqueFiles.length?`${embarqueFiles.length}/6 cartão(s)`:'' ;
+}
+
+function selecionarRelatorio(file){
+  if(!file)return;
+  arquivoRelatorio=file;
+  const el=document.getElementById('upload-rel');
+  if(el){el.classList.add('tem');el.innerHTML='✓ '+esc(file.name)+'<input type="file" id="inp-rel" style="display:none" accept=".pdf" onchange="selecionarRelatorio(this.files[0])">';}
+}
+
+async function enviarPrestacao(){
+  const v=viagemAtual;
+  if(!arquivoRelatorio&&!v.relatorio_url){toast('Anexe o relatório em PDF.','error');return;}
+  if(v.tem_passagem&&embarqueFiles.length===0&&!(v.cartoes_embarque_urls?.length)){
+    if(!confirm('Não há cartões de embarque. Deseja continuar mesmo assim?'))return;
+  }
+  toast('Enviando arquivos...','info');
+  let relUrl=v.relatorio_url,relNome=v.relatorio_nome;
+  let cartUrls=[...(v.cartoes_embarque_urls||[])];
+
+  for(let i=0;i<embarqueFiles.length;i++){
+    const f=embarqueFiles[i];const ext=f.name.split('.').pop().toLowerCase();
+    const path=`viagens/${v.id}/embarque-${Date.now()}-${i}.${ext}`;
+    const{error}=await db.storage.from('tdrs-arquivos').upload(path,f,{upsert:true});
+    if(!error){const{data:ud}=db.storage.from('tdrs-arquivos').getPublicUrl(path);cartUrls.push(ud.publicUrl);}
+  }
+
+  if(arquivoRelatorio){
+    const ext=arquivoRelatorio.name.split('.').pop();
+    const path=`viagens/${v.id}/relatorio-${Date.now()}.${ext}`;
+    const{error}=await db.storage.from('tdrs-arquivos').upload(path,arquivoRelatorio,{upsert:true});
+    if(!error){const{data:ud}=db.storage.from('tdrs-arquivos').getPublicUrl(path);relUrl=ud.publicUrl;relNome=arquivoRelatorio.name;}
+  }
+
+  await db.from('viagens_diarias').update({
+    cartoes_embarque_urls:cartUrls,relatorio_url:relUrl,relatorio_nome:relNome,
+    relatorio_data:new Date().toISOString(),situacao:'em_prestacao'
+  }).eq('id',v.id);
+
+  // Notificar super_admins
+  const{data:admins}=await db.from('usuarios').select('id').eq('perfil','super_admin').eq('ativo',true);
+  if(admins?.length)await db.from('notificacoes').insert(admins.map(a=>({
+    usuario_id:a.id,tipo:'viagem_prestacao',
+    titulo:'Prestação de contas — '+(v.destino||''),
+    mensagem:(v.beneficiario_nome||'')+ ' enviou a prestação da viagem para '+(v.destino||'')+'.',
+    lida:false,link:'viagens.html',entidade_tipo:'viagens_diarias',entidade_id:v.id
+  })));
+
+  embarqueFiles=[];arquivoRelatorio=null;
+  toast('Prestação enviada!','success');fecharModal();await carregar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILITÁRIOS
+// ══════════════════════════════════════════════════════════════
+function abrirLightbox(url){
+  const lb=document.getElementById('lightbox');
+  const img=document.getElementById('lightbox-img');
+  if(lb)lb.classList.add('aberto');if(img)img.src=url;
+}
+function fecharLightbox(){
+  const lb=document.getElementById('lightbox');
+  if(lb)lb.classList.remove('aberto');
+  const img=document.getElementById('lightbox-img');if(img)img.src='';
+}
+
+function fecharModal(){
+  document.getElementById('modal-viagem').classList.remove('aberto');
+  viagemAtual=null;embarqueFiles=[];arquivoRelatorio=null;trechoIdx=0;diariaIdx=0;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){fecharLightbox();fecharModal();}});
+
+function exportarCSV(){
+  const headers=['SEI','SPD Passagem','SPD Diárias','Beneficiário','Função','Origem','Destino','Saída','Retorno','Objetivo','Passagens R$','Diárias R$','Total R$','Situação'];
+  const rows=todasViagens.map(v=>{
+    const p=(v.passagens||[]).reduce((s,x)=>s+parseFloat(x.valor||0),0);
+    const d=(v.diarias||[]).reduce((s,x)=>s+parseFloat(x.quantidade||0)*parseFloat(x.valor_unitario||0),0);
+    return[v.numero_sei||'',v.spd_passagem||'',v.spd_diaria||'',
+      `"${(v.beneficiario_nome||'').replace(/"/g,'""')}"`,v.beneficiario_funcao||'',
+      v.origem||'',v.destino||'',v.dt_saida||'',v.dt_retorno||'',
+      `"${(v.objetivo||'').replace(/"/g,'""')}"`,
+      p.toFixed(2).replace('.',','),d.toFixed(2).replace('.',','),
+      (p+d).toFixed(2).replace('.',','),SIT_LABELS[v.situacao]||v.situacao];
+  });
+  const csv=[headers.join(';'),...rows.map(r=>r.join(';'))].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`viagens-dima-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();toast('CSV exportado!','success');
+}
+</script>
+</body>
+</html>
