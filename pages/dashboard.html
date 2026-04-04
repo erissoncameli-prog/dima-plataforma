@@ -80,6 +80,23 @@
 .fin-res-item{display:flex;flex-direction:column;gap:2px;}
 .fin-res-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;}
 .fin-res-val{font-size:13px;font-weight:600;font-family:var(--font-mono);}
+/* Painel de tarefas */
+.tarefa-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--borda);align-items:flex-start;}
+.tarefa-item:last-child{border-bottom:none;}
+.tarefa-item:hover{background:var(--cinza-50);margin:0 -16px;padding:12px 16px;border-radius:var(--raio);}
+.tarefa-ico{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.tarefa-corpo{flex:1;min-width:0;}
+.tarefa-tit{font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:3px;}
+.tarefa-sub{font-size:11px;color:var(--cinza-500);line-height:1.4;}
+.tarefa-meta{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;}
+.tarefa-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+.tarefa-dias{font-size:10px;color:var(--cinza-400);}
+.tarefa-acao{flex-shrink:0;margin-top:2px;}
+.venc-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.venc-card:last-child{margin-bottom:0;}
+.venc-dias-ok{background:#ECFDF5;color:#065F46;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;font-family:var(--font-mono);text-align:center;min-width:44px;flex-shrink:0;}
+.venc-dias-alerta{background:#FFFBEB;color:#92400E;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;font-family:var(--font-mono);text-align:center;min-width:44px;flex-shrink:0;}
+.venc-dias-vencido{background:#FEF2F2;color:#991B1B;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;font-family:var(--font-mono);text-align:center;min-width:44px;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -108,6 +125,7 @@ var CHARTS = {};
   document.getElementById('app').innerHTML = gerarLayout(
     'Bem-vindo(a), '+u.nome_completo.split(' ')[0]+'!', 'dashboard'
   ) + `
+    <div id="pane-tarefas" class="dash-pane"></div>
     <div id="pane-financiadores" class="dash-pane ativo"><div class="empty-state"><div class="spinner"></div></div></div>
     <div id="pane-operacional" class="dash-pane"></div>
     <div id="pane-resultados" class="dash-pane"></div>
@@ -133,15 +151,21 @@ var CHARTS = {};
     var _tabs = document.createElement('div');
     _tabs.className = 'dash-tabs';
     var _tabDefs = [
+      ['tarefas','📋 Minhas Tarefas'],
       ['financiadores','Financiadores'],
       ['operacional','Gestão operacional'],
       ['resultados','Resultados × Financeiro'],
       ['execucao','Execução financeira'],
       ['alertas','Alertas']
     ];
+    // Aba inicial: técnicos abrem em Tarefas, demais em Financiadores
+    var _abaInicial = (appState.perfil === 'tecnico') ? 'tarefas' : 'financiadores';
+    document.getElementById('pane-'+_abaInicial).classList.add('ativo');
+    document.getElementById('pane-financiadores').classList.remove('ativo');
     _tabDefs.forEach(function(td, i) {
       var btn = document.createElement('button');
-      btn.className = 'dash-tab' + (i===0?' ativo':'');
+      var isAtiva = td[0] === _abaInicial;
+      btn.className = 'dash-tab' + (isAtiva ? ' ativo' : '');
       btn.textContent = td[1];
       btn.setAttribute('onclick', "mudarAba('"+td[0]+"',this)");
       _tabs.appendChild(btn);
@@ -178,6 +202,7 @@ async function loadData(){
 
   renderFinanciadores();
   renderOperacional();
+  renderTarefas();
   renderResultados();
   renderExecucao();
   renderAlertas();
@@ -624,6 +649,156 @@ function renderAlertas(){
     D.sal.forEach(function(s){if(stCount[s.status_saldo]!==undefined)stCount[s.status_saldo]++;});
     mkChart('ch-saldo-status',{type:'doughnut',data:{labels:['OK','Atenção','Crítico','Extrapolado'],datasets:[{data:[stCount.ok,stCount.atencao,stCount.critico,stCount.extrapolado],backgroundColor:['#34D399','#FCD34D','#FB923C','#EF4444'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}});
   },50);
+}
+
+// ── PAINEL DE TAREFAS ─────────────────────────────────────
+async function renderTarefas() {
+  var el = document.getElementById('pane-tarefas');
+  if(!el) return;
+  el.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+
+  // Buscar tarefas e vencimentos em paralelo
+  var [rTarefas, rVenc] = await Promise.all([
+    db.rpc('get_minhas_tarefas'),
+    db.rpc('get_produtos_vencendo', { dias_limite: 10 })
+  ]);
+
+  var tarefas = rTarefas.data || [];
+  var vencendo = rVenc.data   || [];
+  var perfil   = appState.perfil;
+  var nome     = appState.usuario?.nome_completo?.split(' ')[0] || '';
+  var hora     = new Date().getHours();
+  var saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+
+  var h = '';
+
+  // ── Cabeçalho personalizado ──────────────────────────────
+  h += '<div style="background:linear-gradient(135deg,var(--verde-medio) 0%,#1a5c38 100%);border-radius:var(--raio-lg);padding:20px 24px;margin-bottom:20px;color:#fff">';
+  h += '<div style="font-size:18px;font-weight:600;margin-bottom:4px">' + saudacao + ', ' + nome + '!</div>';
+  h += '<div style="font-size:13px;opacity:.85">';
+  if(tarefas.length === 0 && vencendo.length === 0) {
+    h += '✓ Você não tem tarefas pendentes no momento. Bom trabalho!';
+  } else {
+    var partes = [];
+    if(tarefas.length) partes.push(tarefas.length + ' produto(s) aguardando sua avaliação');
+    if(vencendo.length) partes.push(vencendo.length + ' produto(s) com vencimento próximo');
+    h += partes.join(' · ');
+  }
+  h += '</div></div>';
+
+  h += '<div class="g2" style="align-items:start">';
+
+  // ── COLUNA ESQUERDA: Avaliações pendentes ────────────────
+  h += '<div>';
+  h += '<div class="ch">';
+  h += '<div class="ch-tit">📋 Avaliações pendentes';
+  if(tarefas.length) h += ' <span style="background:#EFF6FF;color:#1E40AF;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + tarefas.length + '</span>';
+  h += '</div>';
+  h += '<div class="ch-sub">Produtos entregues aguardando seu parecer</div>';
+
+  if(!tarefas.length) {
+    h += '<div style="padding:24px 0;text-align:center;color:var(--cinza-400);font-size:12px">✓ Nenhuma avaliação pendente</div>';
+  } else {
+    h += '<div style="margin-top:4px">';
+    tarefas.forEach(function(t) {
+      var dias = parseInt(t.dias_aguardando) || 0;
+      var urgente = dias >= 3;
+      var corDias = urgente ? '#DC2626' : '#6B7280';
+      var bgDias  = urgente ? '#FEF2F2' : 'var(--cinza-100)';
+
+      h += '<div class="tarefa-item">';
+      h += '<div class="tarefa-ico" style="background:#EFF6FF">📋</div>';
+      h += '<div class="tarefa-corpo">';
+      h += '<div class="tarefa-tit">Produto ' + t.produto_num + ' — ' + (t.produto_desc||'').substring(0,50) + (t.produto_desc?.length>50?'…':'') + '</div>';
+      h += '<div class="tarefa-sub">';
+      h += '<span style="font-family:var(--font-mono);font-size:10px;font-weight:600;background:var(--cinza-100);padding:1px 5px;border-radius:3px">' + (t.atividade_cod||'') + '</span> ';
+      h += (t.atividade_nome||'').substring(0,45) + (t.atividade_nome?.length>45?'…':'');
+      h += '</div>';
+      h += '<div class="tarefa-meta">';
+      h += '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#EFF6FF;color:#1E40AF">Em avaliação</span>';
+      if(t.dt_entrega) h += '<span class="tarefa-dias">Entregue ' + D_DATE(t.dt_entrega) + '</span>';
+      h += '<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:'+bgDias+';color:'+corDias+'">' + (urgente ? '⚠ ' : '') + dias + 'd aguardando</span>';
+      if(t.arquivo_nome) h += '<span style="font-size:10px;color:var(--azul-medio)">📎 ' + t.arquivo_nome.substring(0,20) + '</span>';
+      h += '</div></div>';
+      h += '<div class="tarefa-acao">';
+      h += '<a href="produtos.html" class="btn btn-primary btn-sm" style="font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:4px">Avaliar →</a>';
+      h += '</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>'; // .ch
+  h += '</div>'; // coluna esquerda
+
+  // ── COLUNA DIREITA: Vencimentos + Notificações ───────────
+  h += '<div style="display:flex;flex-direction:column;gap:14px">';
+
+  // Vencimentos
+  h += '<div class="ch">';
+  h += '<div class="ch-tit">⏰ Vencimentos próximos';
+  if(vencendo.length) h += ' <span style="background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + vencendo.length + '</span>';
+  h += '</div>';
+  h += '<div class="ch-sub">Produtos com prazo nos próximos 10 dias</div>';
+
+  if(!vencendo.length) {
+    h += '<div style="padding:20px 0;text-align:center;color:var(--cinza-400);font-size:12px">✓ Nenhum vencimento próximo</div>';
+  } else {
+    h += '<div style="margin-top:8px">';
+    vencendo.forEach(function(v) {
+      var dias = parseInt(v.dias_restantes);
+      var vencido = dias < 0;
+      var cls = vencido ? 'venc-dias-vencido' : dias <= 3 ? 'venc-dias-alerta' : 'venc-dias-ok';
+      var txt = vencido ? Math.abs(dias)+'d<br>vencido' : dias+'d<br>restantes';
+
+      h += '<div class="venc-card">';
+      h += '<div class="' + cls + '" style="line-height:1.2;font-size:11px">' + txt + '</div>';
+      h += '<div style="flex:1;min-width:0">';
+      h += '<div style="font-size:12px;font-weight:600;color:var(--cinza-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">';
+      h += 'Produto ' + v.produto_num + ' — ' + (v.produto_desc||'').substring(0,35) + (v.produto_desc?.length>35?'…':'');
+      h += '</div>';
+      h += '<div style="font-size:10px;color:var(--cinza-500);margin-top:2px">';
+      h += (v.atividade_cod||'') + ' · Contrato ' + (v.contrato_numero||'');
+      h += '</div>';
+      h += '<div style="margin-top:4px">';
+      var sitCor = {pendente:'#92400E',em_analise:'#1E40AF',entrega_parcial:'#6D28D9'}[v.situacao]||'#6B7280';
+      var sitBg  = {pendente:'#FFFBEB',em_analise:'#EFF6FF',entrega_parcial:'#F5F3FF'}[v.situacao]||'var(--cinza-100)';
+      var sitNm  = {pendente:'Pendente',em_analise:'Em avaliação',entrega_parcial:'Parcial'}[v.situacao]||v.situacao;
+      h += '<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:99px;background:'+sitBg+';color:'+sitCor+'">' + sitNm + '</span>';
+      h += '</div></div></div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>'; // .ch vencimentos
+
+  // Resumo rápido de notificações não lidas
+  var {data: notifs} = await db.from('notificacoes')
+    .select('id,titulo,criado_em')
+    .eq('usuario_id', appState.usuario.id)
+    .eq('lida', false)
+    .order('criado_em', {ascending: false})
+    .limit(5);
+
+  if(notifs && notifs.length) {
+    h += '<div class="ch">';
+    h += '<div class="ch-tit">🔔 Notificações <span style="background:#FEF2F2;color:#DC2626;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + notifs.length + '</span></div>';
+    h += '<div class="ch-sub">Não lidas</div>';
+    h += '<div style="margin-top:8px">';
+    notifs.forEach(function(n) {
+      h += '<div style="padding:8px 0;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:8px">';
+      h += '<div style="width:7px;height:7px;background:#059669;border-radius:50%;flex-shrink:0"></div>';
+      h += '<div style="flex:1;font-size:12px;color:var(--cinza-800)">' + (n.titulo||'').substring(0,50) + '</div>';
+      h += '<div style="font-size:10px;color:var(--cinza-400)">' + (n.criado_em ? new Date(n.criado_em).toLocaleDateString('pt-BR') : '') + '</div>';
+      h += '</div>';
+    });
+    h += '<div style="text-align:center;margin-top:10px">';
+    h += '<button onclick="abrirSino()" class="btn btn-secondary btn-sm" style="font-size:11px">Ver todas as notificações</button>';
+    h += '</div></div></div>';
+  }
+
+  h += '</div>'; // coluna direita
+  h += '</div>'; // .g2
+
+  el.innerHTML = h;
 }
 
 })();
