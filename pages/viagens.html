@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Viagens e Diárias</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
+.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
+/* Status badges */
+.sit-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
+.sb-solicitado{background:#EFF6FF;color:#1E40AF}
+.sb-aprovado{background:#FEF3C7;color:#92400E}
+.sb-em_prestacao{background:#F5F3FF;color:#6D28D9}
+.sb-realizado{background:#D1FAE5;color:#065F46}
+.sb-cancelado{background:#F3F4F6;color:#6B7280}
+.sb-rejeitado{background:#FEE2E2;color:#991B1B}
+.item-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;}
+.ib-solicitado{background:#EFF6FF;color:#1E40AF}
+.ib-aprovado{background:#D1FAE5;color:#065F46}
+.ib-rejeitado{background:#FEE2E2;color:#991B1B}
+.ib-nao{background:#F3F4F6;color:#9CA3AF}
+/* Cards */
+.prot-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+.prot-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 10px rgba(45,106,79,.08);}
+.prot-card.cancelado,.prot-card.rejeitado{opacity:.55;}
+.proto-num{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--verde-medio);background:var(--verde-bg);padding:2px 10px;border-radius:4px;border:1px solid var(--borda-verde);}
+.rota{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--cinza-900);}
+.rota-sep{color:var(--cinza-400);font-size:18px;}
+/* Formulário */
+.form-secao{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden;}
+.form-secao-header{padding:12px 16px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;}
+.form-secao-titulo{font-size:13px;font-weight:600;color:var(--cinza-800);flex:1;}
+.form-secao-body{padding:16px;}
+/* Viajante card no form */
+.viajante-form-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden;}
+.viajante-form-header{padding:10px 16px;background:var(--azul-bg);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:8px;}
+.viajante-form-body{padding:14px 16px;}
+/* Toggle */
+.toggle-group{display:inline-flex;border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;}
+.toggle-btn{padding:4px 12px;cursor:pointer;border:none;background:var(--branco);color:var(--cinza-600);font-family:var(--font-sans);font-size:11px;transition:all .12s;}
+.toggle-btn.ativo{background:var(--verde-medio);color:#fff;font-weight:600;}
+/* Trechos */
+.trecho-row{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;margin-bottom:6px;}
+/* Diárias */
+.diaria-row{display:grid;grid-template-columns:1fr 70px 110px 90px 34px;gap:6px;align-items:center;margin-bottom:6px;}
+/* Embarque */
+.embarque-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+.embarque-thumb{position:relative;aspect-ratio:4/3;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);cursor:pointer;}
+.embarque-thumb img{width:100%;height:100%;object-fit:cover;}
+.embarque-del{position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
+.upload-mini{border:2px dashed var(--borda-forte);border-radius:var(--raio);padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--cinza-500);transition:all .15s;}
+.upload-mini:hover,.upload-mini.drag{border-color:var(--verde-claro);color:var(--verde-medio);}
+.upload-mini.tem{border-color:var(--verde-claro);background:var(--sucesso-bg);color:var(--sucesso);}
+.aviso-pdf{background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio);padding:10px 14px;font-size:11px;color:#92400E;line-height:1.5;}
+/* Timeline */
+.tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+/* Lightbox */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;}
+#lightbox.aberto{display:flex;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando viagens...
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-prot">
+  <div class="modal" style="max-width:820px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="mp-titulo">Protocolo de Viagem</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="mp-sub"></div></div>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mp-body" style="padding:20px 24px;max-height:74vh;overflow-y:auto"></div>
+    <div class="modal-footer" id="mp-footer"></div>
+  </div>
+</div>
+<div id="lightbox" onclick="fecharLightbox()">
+  <button onclick="fecharLightbox()" style="position:absolute;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;background:none;border:none">✕</button>
+  <img id="lb-img" src="" alt="" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px">
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+// ── Constantes ────────────────────────────────────────────────
+const SIT_LABELS={solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+const ITEM_LABELS={solicitado:'Aguarda aprovação',aprovado:'Aprovado',rejeitado:'Rejeitado'};
+const TIPOS_TRECHO=['Aérea','Rodoviária','Fluvial','Ferroviária','Outro'];
+const FUNCOES=['Servidor SEMA','Consultor','Pesquisador','Coordenador','Convidado','Outro'];
+const ATIV_217='44b7a6fc-dab6-49ba-bc1f-9764a99bb9d0';
+
+// ── Estado ────────────────────────────────────────────────────
+let protocolos=[], protAtual=null;
+let viajantesForm=[];   // [{id,nome,funcao,cpf,email,temPass,temDiar,trechos:[],diarias:[]}]
+let embarqueFiles={};   // {viajante_idx: [File,...]}
+let relatorioFiles={};  // {viajante_idx: File}
+let trechoIdx=0, diariaIdx=0, viajanteIdx=0;
+
+// esc() local
+function escV(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+const esc=escV;
+
+// ── INIT ──────────────────────────────────────────────────────
+(async()=>{
+  const u=await carregarUsuario();
+  if(!u){window.location.href='../index.html';return;}
+  document.getElementById('app').innerHTML=gerarLayout('Viagens e Diárias','viagens')+`
+    <div class="fade-in">
+      <div class="stat-row" id="stats"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+        <input class="form-control" id="f-busca" style="width:240px" placeholder="🔍 Buscar protocolo, viajante, destino..."
+          oninput="filtrar()">
+        <select class="form-control" id="f-sit-filt" style="width:160px" onchange="filtrar()">
+          <option value="">Todas as situações</option>
+          ${Object.entries(SIT_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+        </select>
+        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormNovo()">+ Novo protocolo</button>
+        <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>
+      </div>
+      <div id="lista-protocolos"></div>
+    </div>`+`</div></div></div>`;
+  await carregar();
+})();
+
+async function carregar(){
+  const{data}=await db.from('viagem_protocolos')
+    .select(`*,viajantes:viagem_viajantes(
+      *,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)
+    )`)
+    .order('criado_em',{ascending:false});
+  protocolos=data||[];
+  renderStats();filtrar();
+}
+
+function renderStats(){
+  const t=protocolos;
+  const totalVal=t.reduce((s,p)=>{
+    return s+(p.viajantes||[]).reduce((sv,v)=>{
+      const tp=(v.trechos||[]).reduce((st,tr)=>st+parseFloat(tr.valor||0),0);
+      const td=(v.diarias||[]).reduce((sd,d)=>sd+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+      return sv+tp+td;
+    },0);
+  },0);
+  document.getElementById('stats').innerHTML=`
+    <div class="stat-card sc-b"><div class="stat-lbl">Protocolos</div><div class="stat-val">${t.length}</div><div class="stat-sub">total</div></div>
+    <div class="stat-card sc-a"><div class="stat-lbl">Aguardando</div><div class="stat-val" style="color:var(--aviso)">${t.filter(p=>p.situacao==='solicitado').length}</div><div class="stat-sub">aprovação</div></div>
+    <div class="stat-card sc-g"><div class="stat-lbl">Aprovados</div><div class="stat-val">${t.filter(p=>p.situacao==='aprovado').length}</div><div class="stat-sub">em andamento</div></div>
+    <div class="stat-card sc-t"><div class="stat-lbl">Prestação</div><div class="stat-val" style="color:#0D9488">${t.filter(p=>p.situacao==='em_prestacao').length}</div><div class="stat-sub">aguardando docs</div></div>
+    <div class="stat-card sc-g"><div class="stat-lbl">Realizados</div><div class="stat-val" style="color:var(--sucesso)">${t.filter(p=>p.situacao==='realizado').length}</div><div class="stat-sub">lançados</div></div>`;
+}
+
+function calcTotalProtocolo(p){
+  return (p.viajantes||[]).reduce((sv,v)=>{
+    const tp=(v.trechos||[]).reduce((s,tr)=>s+parseFloat(tr.valor||0),0);
+    const td=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+    return sv+tp+td;
+  },0);
+}
+
+function filtrar(){
+  const b=(document.getElementById('f-busca')?.value||'').toLowerCase();
+  const s=document.getElementById('f-sit-filt')?.value||'';
+  const fil=protocolos.filter(p=>{
+    if(s&&p.situacao!==s)return false;
+    if(b){
+      const nomes=(p.viajantes||[]).map(v=>v.nome||'').join(' ');
+      const txt=[(p.numero||''),(p.destino_principal||''),(p.numero_sei||''),nomes].join(' ').toLowerCase();
+      if(!txt.includes(b))return false;
+    }
+    return true;
+  });
+  const el=document.getElementById('lista-protocolos');
+  if(!fil.length){
+    el.innerHTML=`<div style="text-align:center;padding:60px;color:var(--cinza-400)">
+      <div style="font-size:40px;margin-bottom:10px">✈</div>
+      <div>Nenhum protocolo encontrado.</div>
+      <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="abrirFormNovo()">+ Novo protocolo</button>
+    </div>`;return;
+  }
+  el.innerHTML=fil.map(renderCard).join('');
+}
+
+function renderCard(p){
+  const total=calcTotalProtocolo(p);
+  const viajantes=p.viajantes||[];
+  const numDias=p.dt_retorno&&p.dt_saida?Math.ceil((new Date(p.dt_retorno)-new Date(p.dt_saida))/(1000*60*60*24)):null;
+  return`<div class="prot-card ${p.situacao}" onclick="abrirDetalhe('${p.id}')">
+    <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <span class="proto-num">${esc(p.numero||'—')}</span>
+          <span class="sit-badge sb-${p.situacao}">${SIT_LABELS[p.situacao]||p.situacao}</span>
+          ${p.numero_sei?`<span style="font-family:var(--font-mono);font-size:10px;background:var(--cinza-100);padding:1px 6px;border-radius:3px">SEI ${esc(p.numero_sei)}</span>`:''}
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:4px">
+          📍 ${esc(p.destino_principal||'—')}
+          ${numDias?`<span style="font-size:11px;color:var(--cinza-500);font-weight:400;margin-left:8px">📅 ${fmtData(p.dt_saida)} → ${fmtData(p.dt_retorno)} (${numDias}d)</span>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--cinza-600);margin-bottom:6px;line-height:1.4">${esc((p.objetivo||'').substring(0,80))}${(p.objetivo||'').length>80?'…':''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${viajantes.slice(0,4).map(v=>`
+            <div style="display:flex;align-items:center;gap:4px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:99px;padding:2px 8px">
+              <span style="font-size:11px;font-weight:500">👤 ${esc(v.nome)}</span>
+              ${v.tem_passagem?`<span class="item-badge ib-${v.sit_passagem||'solicitado'}" style="font-size:9px">✈</span>`:''}
+              ${v.tem_diaria?`<span class="item-badge ib-${v.sit_diaria||'solicitado'}" style="font-size:9px">🏨</span>`:''}
+            </div>`).join('')}
+          ${viajantes.length>4?`<span style="font-size:11px;color:var(--cinza-500);padding:2px 6px">+${viajantes.length-4} viajante(s)</span>`:''}
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        ${total>0?`<div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--verde-medio)">${fmtBRL(total)}</div>
+        <div style="font-size:10px;color:var(--cinza-400)">${viajantes.length} viajante${viajantes.length!==1?'s':''}</div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// FORMULÁRIO — NOVO PROTOCOLO
+// ══════════════════════════════════════════════════════════════
+function abrirFormNovo(){
+  protAtual=null;viajantesForm=[];trechoIdx=0;diariaIdx=0;viajanteIdx=0;
+  embarqueFiles={};relatorioFiles={};
+  document.getElementById('mp-titulo').textContent='Novo protocolo de viagem';
+  document.getElementById('mp-sub').textContent='Número gerado automaticamente ao salvar';
+  document.getElementById('mp-body').innerHTML=buildFormProtocolo();
+  document.getElementById('mp-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarProtocolo()">✈ Enviar para aprovação →</button>`;
+  document.getElementById('modal-prot').classList.add('aberto');
+  addViajante(); // iniciar com 1 viajante
+}
+
+function buildFormProtocolo(){
+  return`
+  <!-- DADOS DO EVENTO -->
+  <div class="form-secao">
+    <div class="form-secao-header"><span style="font-size:18px">📋</span><span class="form-secao-titulo">Dados do evento</span></div>
+    <div class="form-secao-body">
+      <div class="form-group">
+        <label class="form-label">Objetivo / Evento <span class="obrig">*</span></label>
+        <textarea class="form-control" id="f-objetivo" rows="2" placeholder="Descreva o objetivo da viagem ou nome do evento..."></textarea>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Destino principal <span class="obrig">*</span></label>
+          <input class="form-control" id="f-destino" type="text" placeholder="Ex: Brasília/DF" oninput="propagarDestinoViajantes()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nº SEI</label>
+          <input class="form-control" id="f-sei" type="text" placeholder="Preencher quando disponível" style="font-family:var(--font-mono)">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Data de saída</label>
+          <input class="form-control" id="f-saida" type="date" onchange="propagarDatasViajantes()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data de retorno</label>
+          <input class="form-control" id="f-retorno" type="date" onchange="propagarDatasViajantes()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail do solicitante</label>
+        <input class="form-control" id="f-email-sol" type="email" value="${esc(appState.usuario?.email||'')}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" id="f-obs" rows="1"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIAJANTES -->
+  <div id="viajantes-container"></div>
+
+  <!-- TOTAL -->
+  <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio-lg);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div style="font-size:11px;color:var(--cinza-600);margin-bottom:2px">Total estimado do protocolo</div>
+      <div id="total-protocolo" style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--verde-medio)">R$ 0,00</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="addViajante()">+ Adicionar viajante</button>
+  </div>`;
+}
+
+// ── Gerenciar viajantes no form ────────────────────────────────
+function addViajante(){
+  const idx=viajanteIdx++;
+  viajantesForm.push({idx,temPass:false,temDiar:false});
+  embarqueFiles[idx]=[];
+  const dest=document.getElementById('f-destino')?.value||'';
+  const saida=document.getElementById('f-saida')?.value||'';
+  const retorno=document.getElementById('f-retorno')?.value||'';
+
+  const el=document.createElement('div');
+  el.id=`viajante-block-${idx}`;
+  el.innerHTML=renderViajanteForm(idx,dest,saida,retorno);
+  document.getElementById('viajantes-container').appendChild(el);
+}
+
+function renderViajanteForm(idx,dest,saida,retorno){
+  return`<div class="viajante-form-card">
+    <div class="viajante-form-header">
+      <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:#2563EB;color:#fff;padding:1px 8px;border-radius:3px">Viajante ${idx+1}</span>
+      <span class="form-secao-titulo" style="color:#1E40AF">Dados do viajante</span>
+      <button onclick="removerViajante(${idx})" style="margin-left:auto;width:24px;height:24px;border:1px solid #FCA5A5;border-radius:50%;background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <div class="viajante-form-body">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:10px">Nome completo <span class="obrig">*</span></label>
+          <input class="form-control" id="vn-nome-${idx}" type="text" style="height:34px;font-size:12px" placeholder="Nome do viajante">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:10px">Função</label>
+          <input class="form-control" id="vn-func-${idx}" type="text" style="height:34px;font-size:12px" list="funcoes-list">
+          <datalist id="funcoes-list">${FUNCOES.map(f=>`<option value="${f}">`).join('')}</datalist>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:10px">CPF</label>
+          <input class="form-control" id="vn-cpf-${idx}" type="text" style="height:34px;font-size:12px;font-family:var(--font-mono)" placeholder="000.000.000-00">
+        </div>
+      </div>
+
+      <!-- PASSAGEM -->
+      <div style="border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:10px;overflow:hidden">
+        <div style="padding:8px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px">
+          <span style="font-size:15px">🎫</span>
+          <span style="font-size:12px;font-weight:600;flex:1">Passagem</span>
+          <div class="toggle-group">
+            <button class="toggle-btn" id="vn-pass-sim-${idx}" onclick="toggleViajante(${idx},'pass',true)">Sim</button>
+            <button class="toggle-btn ativo" id="vn-pass-nao-${idx}" onclick="toggleViajante(${idx},'pass',false)">Não</button>
+          </div>
+        </div>
+        <div id="vn-pass-sec-${idx}" style="display:none;padding:12px">
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label" style="font-size:10px">SPD Passagem</label>
+            <input class="form-control" id="vn-spd-pass-${idx}" type="text" style="height:32px;font-size:12px;max-width:280px;font-family:var(--font-mono)" placeholder="Preenchido após emissão pela UNESCO">
+          </div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:6px">Trechos</div>
+          <div id="vn-trechos-${idx}"></div>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="addTrechoViajante(${idx})">+ Adicionar trecho</button>
+          <div style="text-align:right;margin-top:8px;font-size:11px;font-weight:600">
+            Total passagens: <span id="vn-total-pass-${idx}" style="font-family:var(--font-mono);color:var(--azul-medio)">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIÁRIAS -->
+      <div style="border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden">
+        <div style="padding:8px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px">
+          <span style="font-size:15px">🏨</span>
+          <span style="font-size:12px;font-weight:600;flex:1">Diárias</span>
+          <div class="toggle-group">
+            <button class="toggle-btn" id="vn-diar-sim-${idx}" onclick="toggleViajante(${idx},'diar',true)">Sim</button>
+            <button class="toggle-btn ativo" id="vn-diar-nao-${idx}" onclick="toggleViajante(${idx},'diar',false)">Não</button>
+          </div>
+        </div>
+        <div id="vn-diar-sec-${idx}" style="display:none;padding:12px">
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label" style="font-size:10px">SPD Diárias</label>
+            <input class="form-control" id="vn-spd-diar-${idx}" type="text" style="height:32px;font-size:12px;max-width:280px;font-family:var(--font-mono)" placeholder="Preenchido após emissão pela UNESCO">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 70px 110px 90px 34px;gap:6px;align-items:center;margin-bottom:4px;padding:0 2px">
+            ${['Tipo','Qtd.','Valor unit.','Subtotal',''].map(h=>`<span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500)">${h}</span>`).join('')}
+          </div>
+          <div id="vn-diarias-${idx}"></div>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="addDiariaViajante(${idx})">+ Adicionar linha</button>
+          <div id="vn-dias-info-${idx}" style="font-size:11px;color:var(--azul-medio);margin-top:4px"></div>
+          <div style="text-align:right;margin-top:8px;font-size:11px;font-weight:600">
+            Total diárias: <span id="vn-total-diar-${idx}" style="font-family:var(--font-mono);color:var(--aviso)">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>`;
+}
+
+function removerViajante(idx){
+  document.getElementById(`viajante-block-${idx}`)?.remove();
+  viajantesForm=viajantesForm.filter(v=>v.idx!==idx);
+  calcTotalForm();
+}
+
+function toggleViajante(idx,tipo,sim){
+  const sec=document.getElementById(`vn-${tipo==='pass'?'pass':'diar'}-sec-${idx}`);
+  const btnS=document.getElementById(`vn-${tipo==='pass'?'pass':'diar'}-sim-${idx}`);
+  const btnN=document.getElementById(`vn-${tipo==='pass'?'pass':'diar'}-nao-${idx}`);
+  if(sec)sec.style.display=sim?'block':'none';
+  if(btnS)btnS.classList.toggle('ativo',sim);
+  if(btnN)btnN.classList.toggle('ativo',!sim);
+  // Ao abrir passagem, adicionar 1 trecho inicial
+  if(sim&&tipo==='pass'){
+    const lista=document.getElementById(`vn-trechos-${idx}`);
+    if(lista&&lista.children.length===0) addTrechoViajante(idx);
+  }
+  // Ao abrir diária, adicionar 1 linha e calcular
+  if(sim&&tipo==='diar'){
+    const lista=document.getElementById(`vn-diarias-${idx}`);
+    if(lista&&lista.children.length===0){
+      addDiariaViajante(idx);
+      calcDiariasViajante(idx);
+    }
+  }
+  const vf=viajantesForm.find(v=>v.idx===idx);
+  if(vf){if(tipo==='pass')vf.temPass=sim;else vf.temDiar=sim;}
+}
+
+// ── Propagação automática ──────────────────────────────────────
+function propagarDestinoViajantes(){
+  const dest=document.getElementById('f-destino')?.value||'';
+  // Propaga destino para todos os campos tr-dest de todos os viajantes
+  document.querySelectorAll('[name^="tr-dest-"]').forEach(el=>{el.value=dest;});
+}
+
+function propagarDatasViajantes(){
+  const saida=document.getElementById('f-saida')?.value||'';
+  document.querySelectorAll('[name^="tr-saida-"]').forEach(el=>{el.value=saida;});
+  // Calcular diárias para cada viajante
+  document.querySelectorAll('[id^="vn-diar-sec-"]').forEach(sec=>{
+    if(sec.style.display!=='none'){
+      const idx=sec.id.split('-').pop();
+      calcDiariasViajante(parseInt(idx));
+    }
+  });
+}
+
+// ── Trechos ────────────────────────────────────────────────────
+function addTrechoViajante(vidx){
+  const tidx=trechoIdx++;
+  const dest=document.getElementById('f-destino')?.value||'';
+  const saida=document.getElementById('f-saida')?.value||'';
+  // Origem: se é o primeiro trecho, pegar do campo anterior ou vazio
+  const origemPrev=document.querySelector(`[id="vn-trechos-${vidx}"] [name^="tr-dest-"]`);
+  const orig=origemPrev?origemPrev.value:'';
+
+  const el=document.createElement('div');
+  el.innerHTML=`<div class="trecho-row" id="tr-${tidx}">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Origem</label>
+        <input class="form-control" name="tr-orig-${tidx}" data-vidx="${vidx}" type="text" value="${esc(orig)}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Destino</label>
+        <input class="form-control" name="tr-dest-${tidx}" data-vidx="${vidx}" type="text" value="${esc(dest)}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Tipo</label>
+        <select class="form-control" name="tr-tipo-${tidx}" style="height:30px;font-size:11px">
+          ${TIPOS_TRECHO.map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Data</label>
+        <input class="form-control" name="tr-saida-${tidx}" type="date" value="${saida}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$ <span class="obrig">*</span></label>
+        <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" placeholder="0,00"
+          style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
+      <button onclick="document.getElementById('tr-${tidx}').remove();calcTotalPassViajante(${vidx});calcTotalForm()"
+        style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px;margin-top:14px">✕</button>
+    </div>
+  </div>`;
+  document.getElementById(`vn-trechos-${vidx}`).appendChild(el.firstChild);
+}
+
+function calcTotalPassViajante(vidx){
+  let total=0;
+  document.querySelectorAll(`[name^="tr-val-"][data-vidx="${vidx}"]`).forEach(i=>{
+    total+=parseFloat(i.value||0);
+  });
+  // Fallback: varrer todos os trechos deste viajante
+  if(total===0){
+    document.querySelectorAll(`#vn-trechos-${vidx} [name^="tr-val-"]`).forEach(i=>{
+      total+=parseFloat(i.value||0);
+    });
+  }
+  const el=document.getElementById(`vn-total-pass-${vidx}`);
+  if(el)el.textContent=fmtBRL(total);
+  calcTotalForm();
+}
+
+// ── Diárias ────────────────────────────────────────────────────
+function addDiariaViajante(vidx){
+  const didx=diariaIdx++;
+  const el=document.createElement('div');
+  el.innerHTML=`<div class="diaria-row" id="di-${didx}">
+    <input class="form-control" name="di-tipo-${didx}" data-vidx="${vidx}" type="text" value="Diária padrão" style="height:30px;font-size:11px">
+    <input class="form-control" name="di-qtd-${didx}" data-vidx="${vidx}" type="number" min="0" value="1"
+      style="height:30px;font-size:11px;text-align:center" oninput="calcSubDiariaViajante(${didx},${vidx})">
+    <input class="form-control" name="di-unit-${didx}" data-vidx="${vidx}" type="number" step="0.01" placeholder="0,00"
+      style="height:30px;font-size:11px;text-align:right" oninput="calcSubDiariaViajante(${didx},${vidx})">
+    <div id="di-sub-${didx}" style="font-family:var(--font-mono);font-size:11px;font-weight:600;text-align:right;padding:0 2px">R$ 0,00</div>
+    <button onclick="document.getElementById('di-${didx}').remove();calcTotalDiarViajante(${vidx});calcTotalForm()"
+      style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px">✕</button>
+  </div>`;
+  document.getElementById(`vn-diarias-${vidx}`).appendChild(el.firstChild);
+}
+
+function calcSubDiariaViajante(didx,vidx){
+  const qtd=parseFloat(document.querySelector(`[name="di-qtd-${didx}"]`)?.value||0);
+  const unit=parseFloat(document.querySelector(`[name="di-unit-${didx}"]`)?.value||0);
+  const sub=document.getElementById(`di-sub-${didx}`);
+  if(sub)sub.textContent=fmtBRL(qtd*unit);
+  calcTotalDiarViajante(vidx);
+}
+
+function calcTotalDiarViajante(vidx){
+  let total=0;
+  document.querySelectorAll(`#vn-diarias-${vidx} [name^="di-qtd-"]`).forEach(q=>{
+    const didx=q.name.split('-').pop();
+    total+=parseFloat(q.value||0)*parseFloat(document.querySelector(`[name="di-unit-${didx}"]`)?.value||0);
+  });
+  const el=document.getElementById(`vn-total-diar-${vidx}`);
+  if(el)el.textContent=fmtBRL(total);
+  calcTotalForm();
+}
+
+function calcDiariasViajante(vidx){
+  const saida=document.getElementById('f-saida')?.value;
+  const retorno=document.getElementById('f-retorno')?.value;
+  const info=document.getElementById(`vn-dias-info-${vidx}`);
+  if(!saida||!retorno){if(info)info.textContent='';return;}
+  const dias=Math.ceil((new Date(retorno)-new Date(saida))/(1000*60*60*24));
+  if(dias<=0){if(info)info.textContent='⚠ Retorno deve ser após saída.';return;}
+  document.querySelectorAll(`#vn-diarias-${vidx} [name^="di-qtd-"]`).forEach(el=>{
+    el.value=dias;
+    calcSubDiariaViajante(el.name.split('-').pop(),vidx);
+  });
+  if(info)info.textContent=`ℹ ${dias} noite${dias!==1?'s':''} calculadas automaticamente.`;
+}
+
+function calcTotalForm(){
+  let grand=0;
+  // Somar todos os trechos
+  document.querySelectorAll('[name^="tr-val-"]').forEach(i=>grand+=parseFloat(i.value||0));
+  // Somar todas as diárias
+  document.querySelectorAll('[name^="di-qtd-"]').forEach(q=>{
+    const idx=q.name.split('-').pop();
+    grand+=parseFloat(q.value||0)*parseFloat(document.querySelector(`[name="di-unit-${idx}"]`)?.value||0);
+  });
+  const el=document.getElementById('total-protocolo');
+  if(el)el.textContent=fmtBRL(grand);
+}
+
+// ══════════════════════════════════════════════════════════════
+// SALVAR PROTOCOLO
+// ══════════════════════════════════════════════════════════════
+async function salvarProtocolo(){
+  const objetivo=document.getElementById('f-objetivo')?.value.trim();
+  const destino=document.getElementById('f-destino')?.value.trim();
+  if(!objetivo||!destino){toast('Preencha objetivo e destino.','error');return;}
+
+  // Coletar viajantes do DOM
+  const viajBlocos=document.querySelectorAll('[id^="viajante-block-"]');
+  if(!viajBlocos.length){toast('Adicione pelo menos um viajante.','error');return;}
+
+  const viajantesData=[];
+  let erros=[];
+  viajBlocos.forEach(bloco=>{
+    const idx=parseInt(bloco.id.split('-').pop());
+    const nome=document.getElementById(`vn-nome-${idx}`)?.value.trim();
+    if(!nome){erros.push(`Viajante ${idx+1}: nome obrigatório.`);return;}
+    const temPass=document.getElementById(`vn-pass-sim-${idx}`)?.classList.contains('ativo');
+    const temDiar=document.getElementById(`vn-diar-sim-${idx}`)?.classList.contains('ativo');
+
+    // Trechos
+    const trechos=[];
+    let ordem=1;
+    bloco.querySelectorAll('[name^="tr-orig-"]').forEach(el=>{
+      const tidx=el.name.split('-').pop();
+      const val=parseFloat(document.querySelector(`[name="tr-val-${tidx}"]`)?.value||0);
+      trechos.push({
+        ordem:ordem++,
+        origem:el.value||null,
+        destino:document.querySelector(`[name="tr-dest-${tidx}"]`)?.value||null,
+        tipo:document.querySelector(`[name="tr-tipo-${tidx}"]`)?.value||'Aérea',
+        dt_saida:document.querySelector(`[name="tr-saida-${tidx}"]`)?.value||null,
+        valor:val,
+      });
+    });
+
+    // Diárias
+    const diarias=[];
+    bloco.querySelectorAll('[name^="di-qtd-"]').forEach(el=>{
+      const didx=el.name.split('-').pop();
+      const qtd=parseFloat(el.value||0);
+      const unit=parseFloat(document.querySelector(`[name="di-unit-${didx}"]`)?.value||0);
+      diarias.push({
+        tipo_diaria:document.querySelector(`[name="di-tipo-${didx}"]`)?.value||'Diária padrão',
+        quantidade:qtd,valor_unitario:unit,
+      });
+    });
+
+    viajantesData.push({
+      idx,nome,
+      funcao:document.getElementById(`vn-func-${idx}`)?.value.trim()||null,
+      cpf:document.getElementById(`vn-cpf-${idx}`)?.value.trim()||null,
+      tem_passagem:temPass, tem_diaria:temDiar,
+      spd_passagem:document.getElementById(`vn-spd-pass-${idx}`)?.value.trim()||null,
+      spd_diaria:document.getElementById(`vn-spd-diar-${idx}`)?.value.trim()||null,
+      sit_passagem:temPass?'solicitado':null,
+      sit_diaria:temDiar?'solicitado':null,
+      trechos, diarias,
+    });
+  });
+
+  if(erros.length){toast(erros.join('\n'),'error');return;}
+  if(!viajantesData.length){toast('Adicione pelo menos um viajante.','error');return;}
+
+  // Inserir protocolo
+  const{data:prot,error:pErr}=await db.from('viagem_protocolos').insert({
+    objetivo,
+    destino_principal:destino,
+    dt_saida:document.getElementById('f-saida')?.value||null,
+    dt_retorno:document.getElementById('f-retorno')?.value||null,
+    numero_sei:document.getElementById('f-sei')?.value.trim()||null,
+    email_solicitante:document.getElementById('f-email-sol')?.value.trim()||null,
+    observacoes:document.getElementById('f-obs')?.value.trim()||null,
+    atividade_id:ATIV_217,
+    criado_por:appState.usuario.id,
+  }).select().single();
+
+  if(pErr){toast('Erro ao criar protocolo: '+pErr.message,'error');return;}
+
+  // Inserir viajantes + trechos + diárias
+  for(const v of viajantesData){
+    const{data:viaj,error:vErr}=await db.from('viagem_viajantes').insert({
+      protocolo_id:prot.id,
+      nome:v.nome, funcao:v.funcao, cpf:v.cpf,
+      tem_passagem:v.tem_passagem, tem_diaria:v.tem_diaria,
+      spd_passagem:v.spd_passagem, spd_diaria:v.spd_diaria,
+      sit_passagem:v.sit_passagem, sit_diaria:v.sit_diaria,
+    }).select().single();
+    if(vErr){toast('Erro viajante: '+vErr.message,'error');return;}
+
+    if(v.tem_passagem&&v.trechos.length){
+      await db.from('viagem_trechos').insert(
+        v.trechos.map(tr=>({...tr,viajante_id:viaj.id,protocolo_id:prot.id}))
+      );
+    }
+    if(v.tem_diaria&&v.diarias.length){
+      await db.from('viagem_diarias_v2').insert(
+        v.diarias.map(d=>({...d,viajante_id:viaj.id,protocolo_id:prot.id}))
+      );
+    }
+  }
+
+  toast(`Protocolo ${prot.numero} criado e enviado para aprovação!`,'success');
+  fecharModal();await carregar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DETALHE DO PROTOCOLO
+// ══════════════════════════════════════════════════════════════
+async function abrirDetalhe(id){
+  const{data:p}=await db.from('viagem_protocolos')
+    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
+    .eq('id',id).single();
+  if(!p)return;
+  protAtual=p;
+  const isAdmin=appState.perfil==='super_admin';
+  const viajantes=p.viajantes||[];
+  const total=calcTotalProtocolo(p);
+  const numDias=p.dt_retorno&&p.dt_saida?Math.ceil((new Date(p.dt_retorno)-new Date(p.dt_saida))/(1000*60*60*24)):null;
+
+  document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span style="font-size:14px;font-weight:500;color:var(--cinza-700);margin-left:8px">${esc(p.destino_principal||'—')}</span>`;
+  document.getElementById('mp-sub').textContent=`${SIT_LABELS[p.situacao]||p.situacao} · ${viajantes.length} viajante${viajantes.length!==1?'s':''}`;
+
+  let html=`
+  <!-- Cabeçalho -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px">
+      ${[
+        ['Objetivo',p.objetivo],['Destino',p.destino_principal],
+        ['Saída',p.dt_saida?fmtData(p.dt_saida):null],
+        ['Retorno',p.dt_retorno?fmtData(p.dt_retorno):null],
+        ...(numDias?[['Duração',numDias+'d']]:[]),
+        ['SEI',p.numero_sei],['Solicitante',p.email_solicitante],
+        ['Observações',p.observacoes]
+      ].filter(([,v])=>v).map(([l,v])=>`
+        <div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--borda);font-size:12px">
+          <span style="color:var(--cinza-500);min-width:100px;flex-shrink:0">${l}</span>
+          <span style="color:var(--cinza-900)">${esc(v)}</span>
+        </div>`).join('')}
+    </div>
+    <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:12px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <div style="font-size:10px;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total do protocolo</div>
+        <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--verde-medio)">${fmtBRL(total)}</div>
+      </div>
+      <div>
+        <span class="sit-badge sb-${p.situacao}" style="font-size:11px">${SIT_LABELS[p.situacao]}</span>
+        ${p.aprovado_em?`<div style="font-size:11px;color:var(--cinza-500);margin-top:6px">Aprovado em ${fmtData(p.aprovado_em?.split('T')[0])}</div>`:''}
+        ${p.realizado_em?`<div style="font-size:11px;color:var(--verde-medio);margin-top:4px">✓ Realizado em ${fmtData(p.realizado_em?.split('T')[0])}</div>`:''}
+      </div>
+    </div>
+  </div>
+
+  <!-- Viajantes -->
+  <div style="font-size:13px;font-weight:700;margin-bottom:10px">Viajantes (${viajantes.length})</div>`;
+
+  viajantes.forEach((v,vi)=>{
+    const totalPass=(v.trechos||[]).reduce((s,t)=>s+parseFloat(t.valor||0),0);
+    const totalDiar=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+    html+=`
+    <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:12px;overflow:hidden">
+      <div style="padding:10px 14px;background:var(--azul-bg);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:#2563EB;color:#fff;padding:1px 8px;border-radius:3px">Viajante ${vi+1}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--cinza-900)">${esc(v.nome)}</span>
+        ${v.funcao?`<span style="font-size:11px;color:var(--cinza-600)">${esc(v.funcao)}</span>`:''}
+        ${v.cpf?`<span style="font-size:11px;font-family:var(--font-mono);color:var(--cinza-500)">${esc(v.cpf)}</span>`:''}
+        <div style="margin-left:auto;display:flex;gap:6px">
+          ${v.tem_passagem?`<span class="item-badge ib-${v.sit_passagem||'solicitado'}">✈ Passagem: ${ITEM_LABELS[v.sit_passagem||'solicitado']}</span>`:`<span class="item-badge ib-nao">✈ Sem passagem</span>`}
+          ${v.tem_diaria?`<span class="item-badge ib-${v.sit_diaria||'solicitado'}">🏨 Diária: ${ITEM_LABELS[v.sit_diaria||'solicitado']}</span>`:`<span class="item-badge ib-nao">🏨 Sem diária</span>`}
+          <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--verde-medio)">${fmtBRL(totalPass+totalDiar)}</span>
+        </div>
+      </div>
+      <div style="padding:12px 14px">
+        ${v.spd_passagem||v.spd_diaria?`<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+          ${v.spd_passagem?`<span style="font-family:var(--font-mono);font-size:11px;background:#EFF6FF;color:#1E40AF;padding:2px 8px;border-radius:3px">SPD Pass: ${esc(v.spd_passagem)}</span>`:''}
+          ${v.spd_diaria?`<span style="font-family:var(--font-mono);font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:3px">SPD Diár: ${esc(v.spd_diaria)}</span>`:''}
+        </div>`:''}
+        ${v.tem_passagem&&v.trechos?.length?`
+          <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:6px">Trechos de passagem</div>
+          <table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:10px">
+            <thead><tr style="background:var(--cinza-50)">
+              ${['Trecho','Tipo','Data','Valor R$'].map(h=>`<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda);font-size:9px;text-transform:uppercase;color:var(--cinza-500)">${h}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${(v.trechos||[]).sort((a,b)=>a.ordem-b.ordem).map(tr=>`<tr style="border-bottom:1px solid var(--borda)">
+                <td style="padding:6px 8px">${esc(tr.origem||'—')} → ${esc(tr.destino||'—')}</td>
+                <td style="padding:6px 8px">${esc(tr.tipo||'—')}</td>
+                <td style="padding:6px 8px">${tr.dt_saida?fmtData(tr.dt_saida):'—'}</td>
+                <td style="padding:6px 8px;font-family:var(--font-mono);font-weight:600;text-align:right">${fmtBRL(tr.valor)}</td>
+              </tr>`).join('')}
+              <tr style="background:var(--cinza-50)">
+                <td colspan="3" style="padding:6px 8px;font-weight:600;text-align:right">Total passagens</td>
+                <td style="padding:6px 8px;font-family:var(--font-mono);font-weight:700;text-align:right;color:var(--azul-medio)">${fmtBRL(totalPass)}</td>
+              </tr>
+            </tbody>
+          </table>`:''}
+        ${v.tem_diaria&&v.diarias?.length?`
+          <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:6px">Diárias</div>
+          <table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:10px">
+            <thead><tr style="background:var(--cinza-50)">
+              ${['Tipo','Qtd.','Valor unit.','Subtotal'].map(h=>`<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda);font-size:9px;text-transform:uppercase;color:var(--cinza-500)">${h}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${(v.diarias||[]).map(d=>`<tr style="border-bottom:1px solid var(--borda)">
+                <td style="padding:6px 8px">${esc(d.tipo_diaria||'—')}</td>
+                <td style="padding:6px 8px;text-align:center">${d.quantidade||0}</td>
+                <td style="padding:6px 8px;font-family:var(--font-mono)">${fmtBRL(d.valor_unitario)}</td>
+                <td style="padding:6px 8px;font-family:var(--font-mono);font-weight:600">${fmtBRL(parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0))}</td>
+              </tr>`).join('')}
+              <tr style="background:var(--cinza-50)">
+                <td colspan="3" style="padding:6px 8px;font-weight:600;text-align:right">Total diárias</td>
+                <td style="padding:6px 8px;font-family:var(--font-mono);font-weight:700;color:var(--aviso)">${fmtBRL(totalDiar)}</td>
+              </tr>
+            </tbody>
+          </table>`:''}
+        ${['em_prestacao','realizado'].includes(p.situacao)?renderPrestacaoViajante(v):''}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('mp-body').innerHTML=html;
+
+  // Footer
+  let footer=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
+  if(isAdmin){
+    if(p.situacao==='solicitado')
+      footer+=`<div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn btn-danger btn-sm" onclick="rejeitarProtocolo()">✕ Rejeitar</button>
+        <button class="btn btn-primary" onclick="aprovarProtocolo()">✓ Aprovar →</button></div>`;
+    if(p.situacao==='aprovado')
+      footer+=`<button class="btn btn-primary" style="margin-left:auto" onclick="abrirFormSPDs()">✎ SPDs / Atualizar</button>`;
+    if(p.situacao==='em_prestacao')
+      footer+=`<button class="btn btn-primary" style="margin-left:auto;background:#059669" onclick="realizarProtocolo()">✓ Confirmar realizado → lançar financeiro</button>`;
+  }
+  if(p.situacao==='aprovado'&&(isAdmin||p.criado_por===appState.usuario.id))
+    footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="abrirPrestacao('${p.id}')">📋 Prestação de contas</button>`;
+
+  document.getElementById('mp-footer').innerHTML=footer;
+  document.getElementById('modal-prot').classList.add('aberto');
+}
+
+function renderPrestacaoViajante(v){
+  if(!v.relatorio_url&&!v.cartoes_embarque_urls?.length)return'';
+  let h=`<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;margin-top:8px">
+    <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:8px">📋 Prestação de contas</div>`;
+  if(v.cartoes_embarque_urls?.length){
+    h+=`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:6px">Cartões de embarque</div>
+    <div class="embarque-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px">
+      ${v.cartoes_embarque_urls.map((url,i)=>`
+        <div class="embarque-thumb" onclick="abrirLightbox('${esc(url)}')">
+          <img src="${esc(url)}" alt="Cartão ${i+1}" loading="lazy"></div>`).join('')}
+    </div>`;
+  }
+  if(v.relatorio_url){
+    h+=`<div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:16px">📄</span>
+      <div style="flex:1;font-size:11px"><strong>${esc(v.relatorio_nome||'Relatório')}</strong> — PDF assinado</div>
+      <button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="window.open('${esc(v.relatorio_url)}','_blank')">Abrir</button>
+    </div>`;
+  }
+  return h+'</div>';
+}
+
+// ══════════════════════════════════════════════════════════════
+// APROVAÇÃO
+// ══════════════════════════════════════════════════════════════
+async function aprovarProtocolo(){
+  const p=protAtual;if(!p)return;
+  // Aprovar protocolo
+  await db.from('viagem_protocolos').update({
+    situacao:'aprovado',aprovado_por:appState.usuario.id,aprovado_em:new Date().toISOString()
+  }).eq('id',p.id);
+  // Aprovar cada viajante (cria lançamentos a_pagar via trigger)
+  for(const v of (p.viajantes||[])){
+    const upd={};
+    if(v.tem_passagem){upd.sit_passagem='aprovado';upd.aprovado_pass_por=appState.usuario.id;upd.aprovado_pass_em=new Date().toISOString();}
+    if(v.tem_diaria){upd.sit_diaria='aprovado';upd.aprovado_diar_por=appState.usuario.id;upd.aprovado_diar_em=new Date().toISOString();}
+    if(Object.keys(upd).length)await db.from('viagem_viajantes').update(upd).eq('id',v.id);
+  }
+  // Notificar solicitante
+  await db.from('notificacoes').insert({
+    usuario_id:p.criado_por,tipo:'viagem_aprovada',
+    titulo:`Protocolo ${p.numero} aprovado`,
+    mensagem:`Sua solicitação de viagem para ${p.destino_principal||'—'} (${p.numero}) foi aprovada. Aguarde a emissão dos SPDs pela UNESCO.`,
+    lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
+  });
+  toast(`Protocolo ${p.numero} aprovado! Lançamentos a_pagar gerados.`,'success');
+  fecharModal();await carregar();
+}
+
+async function rejeitarProtocolo(){
+  const motivo=prompt('Motivo da rejeição:');if(motivo===null)return;
+  const p=protAtual;
+  await db.from('viagem_protocolos').update({
+    situacao:'rejeitado',rejeitado_por:appState.usuario.id,
+    rejeitado_em:new Date().toISOString(),rejeitado_motivo:motivo
+  }).eq('id',p.id);
+  // Notificar solicitante
+  await db.from('notificacoes').insert({
+    usuario_id:p.criado_por,tipo:'viagem_rejeitada',
+    titulo:`Protocolo ${p.numero} rejeitado`,
+    mensagem:`Motivo: ${motivo}`,
+    lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
+  });
+  toast('Protocolo rejeitado.','info');fecharModal();await carregar();
+}
+
+// ── SPDs ──────────────────────────────────────────────────────
+function abrirFormSPDs(){
+  const p=protAtual;
+  let html=`<div style="font-size:13px;font-weight:600;margin-bottom:14px">Preencher SPDs e atualizar situação</div>`;
+  (p.viajantes||[]).forEach((v,i)=>{
+    html+=`<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">👤 ${esc(v.nome)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${v.tem_passagem?`<div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:10px">SPD Passagem</label>
+          <input class="form-control" id="spd-pass-${v.id}" type="text" value="${esc(v.spd_passagem||'')}" style="font-family:var(--font-mono);height:32px;font-size:12px">
+        </div>`:''}
+        ${v.tem_diaria?`<div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:10px">SPD Diárias</label>
+          <input class="form-control" id="spd-diar-${v.id}" type="text" value="${esc(v.spd_diaria||'')}" style="font-family:var(--font-mono);height:32px;font-size:12px">
+        </div>`:''}
+      </div></div>`;
+  });
+  html+=`<div class="form-group"><label class="form-label">Situação do protocolo</label>
+    <select class="form-control" id="s-situacao" style="max-width:280px">
+      <option value="aprovado">Aprovado</option>
+      <option value="em_prestacao">Em prestação de contas</option>
+    </select></div>`;
+  document.getElementById('mp-body').innerHTML=html;
+  document.getElementById('mp-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="abrirDetalhe('${p.id}')">← Voltar</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarSPDs()">Salvar</button>`;
+}
+
+async function salvarSPDs(){
+  const p=protAtual;
+  // Atualizar SPDs de cada viajante
+  for(const v of (p.viajantes||[])){
+    const upd={};
+    const sp=document.getElementById(`spd-pass-${v.id}`)?.value.trim();
+    const sd=document.getElementById(`spd-diar-${v.id}`)?.value.trim();
+    if(sp!==undefined)upd.spd_passagem=sp||null;
+    if(sd!==undefined)upd.spd_diaria=sd||null;
+    if(Object.keys(upd).length)await db.from('viagem_viajantes').update(upd).eq('id',v.id);
+  }
+  const sit=document.getElementById('s-situacao')?.value||p.situacao;
+  await db.from('viagem_protocolos').update({situacao:sit}).eq('id',p.id);
+  toast('SPDs salvos!','success');fecharModal();await carregar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PRESTAÇÃO DE CONTAS
+// ══════════════════════════════════════════════════════════════
+async function abrirPrestacao(id){
+  const{data:p}=await db.from('viagem_protocolos')
+    .select(`*,viajantes:viagem_viajantes(*)`)
+    .eq('id',id).single();
+  if(!p)return;
+  protAtual=p;
+  embarqueFiles={};relatorioFiles={};
+
+  document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span style="font-size:13px;color:var(--cinza-600);margin-left:8px">Prestação de contas</span>`;
+  document.getElementById('mp-sub').textContent=`${p.destino_principal||''} · ${p.viajantes?.length||0} viajante(s)`;
+
+  let html='';
+  (p.viajantes||[]).forEach((v,i)=>{
+    html+=`
+    <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden">
+      <div style="padding:10px 14px;background:var(--azul-bg);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:8px">
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:#2563EB;color:#fff;padding:1px 8px;border-radius:3px">Viajante ${i+1}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--cinza-900)">${esc(v.nome)}</span>
+      </div>
+      <div style="padding:14px">
+        ${v.tem_passagem?`
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            🎫 Cartões de embarque
+            <span style="font-size:10px;font-weight:700;background:#FEF2F2;color:#DC2626;padding:1px 6px;border-radius:99px">obrigatório</span>
+          </div>
+          <div class="upload-mini" onclick="document.getElementById('inp-emb-${i}').click()">
+            <input type="file" id="inp-emb-${i}" style="display:none" accept=".jpg,.jpeg,.png" multiple
+              onchange="adicionarEmbarque(${i},'${v.id}',this.files)">
+            📷 Clique para adicionar cartões de embarque · JPEG/PNG · até 6
+          </div>
+          <div id="emb-grid-${i}" class="embarque-grid" style="grid-template-columns:repeat(4,1fr)"></div>
+          <div id="emb-count-${i}" style="font-size:11px;color:var(--cinza-500);margin-top:4px"></div>
+        </div>`:''}
+        <div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+            📄 Relatório de viagem
+            <span style="font-size:10px;font-weight:700;background:#FEF2F2;color:#DC2626;padding:1px 6px;border-radius:99px">obrigatório</span>
+          </div>
+          <div class="aviso-pdf" style="margin-bottom:8px">
+            ℹ️ PDF assinado com <strong>fotos do evento</strong>, lista de participantes e resultados.
+          </div>
+          ${v.relatorio_url?`<div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:8px;margin-bottom:8px;font-size:11px;display:flex;align-items:center;gap:8px">
+            📄 <strong>${esc(v.relatorio_nome||'Relatório')}</strong> — já enviado
+            <button class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:10px" onclick="window.open('${esc(v.relatorio_url)}','_blank')">Abrir</button>
+          </div>`:''}
+          <div class="upload-mini" id="upload-rel-${i}" onclick="document.getElementById('inp-rel-${i}').click()">
+            <input type="file" id="inp-rel-${i}" style="display:none" accept=".pdf"
+              onchange="selecionarRelatorio(${i},'${v.id}',this.files[0])">
+            📎 ${v.relatorio_url?'Substituir relatório (PDF)':'Clique para anexar relatório em PDF'}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('mp-body').innerHTML=html;
+  document.getElementById('mp-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="enviarPrestacao()">📤 Enviar prestação de contas</button>`;
+  document.getElementById('modal-prot').classList.add('aberto');
+}
+
+function adicionarEmbarque(visIdx,viajanteId,files){
+  if(!embarqueFiles[visIdx])embarqueFiles[visIdx]=[];
+  const MAX=6;
+  Array.from(files).forEach(f=>{
+    if(!['image/jpeg','image/jpg','image/png'].includes(f.type)){toast(f.name+': apenas JPEG/PNG.','error');return;}
+    if(embarqueFiles[visIdx].length>=MAX){toast(`Máximo ${MAX} cartões por viajante.`,'error');return;}
+    embarqueFiles[visIdx].push({file:f,viajanteId});
+  });
+  const grid=document.getElementById(`emb-grid-${visIdx}`);
+  const count=document.getElementById(`emb-count-${visIdx}`);
+  if(grid)grid.innerHTML=embarqueFiles[visIdx].map((item,i)=>{
+    const url=URL.createObjectURL(item.file);
+    return`<div class="embarque-thumb">
+      <img src="${url}" alt="Cartão ${i+1}">
+      <button class="embarque-del" onclick="embarqueFiles[${visIdx}].splice(${i},1);adicionarEmbarque(${visIdx},'${viajanteId}',[])">✕</button>
+    </div>`;
+  }).join('');
+  if(count)count.textContent=embarqueFiles[visIdx].length?`${embarqueFiles[visIdx].length}/6 cartão(s)`:'';
+}
+
+function selecionarRelatorio(visIdx,viajanteId,file){
+  if(!file)return;
+  relatorioFiles[visIdx]={file,viajanteId};
+  const el=document.getElementById(`upload-rel-${visIdx}`);
+  if(el){el.classList.add('tem');el.innerHTML='✓ '+esc(file.name)+'<input type="file" id="inp-rel-'+visIdx+'" style="display:none" accept=".pdf" onchange="selecionarRelatorio('+visIdx+',\''+viajanteId+'\',this.files[0])">';}
+}
+
+async function enviarPrestacao(){
+  const p=protAtual;
+  const viajantes=p.viajantes||[];
+  // Validar: todos precisam de relatório; com passagem precisam de cartões
+  for(let i=0;i<viajantes.length;i++){
+    const v=viajantes[i];
+    if(!relatorioFiles[i]&&!v.relatorio_url){toast(`Viajante ${i+1} (${v.nome}): anexe o relatório de viagem.`,'error');return;}
+    if(v.tem_passagem&&!(embarqueFiles[i]?.length)&&!v.cartoes_embarque_urls?.length){
+      if(!confirm(`Viajante ${i+1} (${v.nome}) solicitou passagem mas não há cartões de embarque. Continuar mesmo assim?`))return;
+    }
+  }
+  toast('Enviando arquivos...','info');
+
+  for(let i=0;i<viajantes.length;i++){
+    const v=viajantes[i];
+    let cartUrls=[...(v.cartoes_embarque_urls||[])];
+    let relUrl=v.relatorio_url,relNome=v.relatorio_nome;
+
+    // Cartões
+    const embs=embarqueFiles[i]||[];
+    for(let j=0;j<embs.length;j++){
+      const f=embs[j].file;const ext=f.name.split('.').pop().toLowerCase();
+      const path=`viagens/${p.id}/viajante-${v.id}/embarque-${Date.now()}-${j}.${ext}`;
+      const{error}=await db.storage.from('tdrs-arquivos').upload(path,f,{upsert:true});
+      if(!error){const{data:ud}=db.storage.from('tdrs-arquivos').getPublicUrl(path);cartUrls.push(ud.publicUrl);}
+    }
+    // Relatório
+    if(relatorioFiles[i]){
+      const f=relatorioFiles[i].file;const ext=f.name.split('.').pop();
+      const path=`viagens/${p.id}/viajante-${v.id}/relatorio-${Date.now()}.${ext}`;
+      const{error}=await db.storage.from('tdrs-arquivos').upload(path,f,{upsert:true});
+      if(!error){const{data:ud}=db.storage.from('tdrs-arquivos').getPublicUrl(path);relUrl=ud.publicUrl;relNome=f.name;}
+    }
+    await db.from('viagem_viajantes').update({
+      cartoes_embarque_urls:cartUrls,relatorio_url:relUrl,relatorio_nome:relNome,
+      relatorio_data:new Date().toISOString()
+    }).eq('id',v.id);
+  }
+
+  await db.from('viagem_protocolos').update({situacao:'em_prestacao'}).eq('id',p.id);
+
+  // Notificar super_admins
+  const{data:admins}=await db.from('usuarios').select('id').eq('perfil','super_admin').eq('ativo',true);
+  if(admins?.length)await db.from('notificacoes').insert(admins.map(a=>({
+    usuario_id:a.id,tipo:'viagem_prestacao',
+    titulo:`Prestação de contas — ${p.numero}`,
+    mensagem:`Protocolo ${p.numero} (${p.destino_principal||'—'}) aguarda confirmação.`,
+    lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
+  })));
+
+  embarqueFiles={};relatorioFiles={};
+  toast('Prestação enviada!','success');fecharModal();await carregar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// REALIZAR (super_admin)
+// ══════════════════════════════════════════════════════════════
+async function realizarProtocolo(){
+  if(!confirm('Confirmar realização e lançar todos os lançamentos como PAGO no financeiro?'))return;
+  await db.from('viagem_protocolos').update({
+    situacao:'realizado',
+    realizado_por:appState.usuario.id,
+    realizado_em:new Date().toISOString()
+  }).eq('id',protAtual.id);
+  // Notificar solicitante
+  await db.from('notificacoes').insert({
+    usuario_id:protAtual.criado_por,tipo:'viagem_aprovada',
+    titulo:`Protocolo ${protAtual.numero} realizado`,
+    mensagem:`O protocolo ${protAtual.numero} foi confirmado como realizado e os valores foram lançados no financeiro.`,
+    lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:protAtual.id
+  });
+  toast('Protocolo realizado e lançado no financeiro!','success');fecharModal();await carregar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILITÁRIOS
+// ══════════════════════════════════════════════════════════════
+function abrirLightbox(url){
+  const lb=document.getElementById('lightbox');
+  const img=document.getElementById('lb-img');
+  if(lb)lb.classList.add('aberto');if(img)img.src=url;
+}
+function fecharLightbox(){
+  const lb=document.getElementById('lightbox');
+  if(lb)lb.classList.remove('aberto');
+  const img=document.getElementById('lb-img');if(img)img.src='';
+}
+function fecharModal(){
+  document.getElementById('modal-prot').classList.remove('aberto');
+  protAtual=null;embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){fecharLightbox();fecharModal();}});
+
+function exportarCSV(){
+  const headers=['Protocolo','Situação','Destino','SEI','Saída','Retorno','Viajante','Função','CPF','Passagem R$','Diárias R$','Total R$'];
+  const rows=[];
+  protocolos.forEach(p=>{
+    (p.viajantes||[]).forEach(v=>{
+      const tp=(v.trechos||[]).reduce((s,t)=>s+parseFloat(t.valor||0),0);
+      const td=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+      rows.push([p.numero||'',SIT_LABELS[p.situacao]||p.situacao,p.destino_principal||'',
+        p.numero_sei||'',p.dt_saida||'',p.dt_retorno||'',
+        `"${(v.nome||'').replace(/"/g,'""')}"`,v.funcao||'',v.cpf||'',
+        tp.toFixed(2).replace('.',','),td.toFixed(2).replace('.',','),
+        (tp+td).toFixed(2).replace('.',',')]);
+    });
+    if(!(p.viajantes?.length))rows.push([p.numero||'',SIT_LABELS[p.situacao]||p.situacao,
+      p.destino_principal||'',p.numero_sei||'',p.dt_saida||'',p.dt_retorno||'','','','','','','']);
+  });
+  const csv=[headers.join(';'),...rows.map(r=>r.join(';'))].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`protocolos-viagem-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();toast('CSV exportado!','success');
+}
+</script>
+</body>
+</html>
