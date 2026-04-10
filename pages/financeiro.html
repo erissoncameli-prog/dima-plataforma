@@ -131,18 +131,21 @@ let visaoAtual = 'lancamentos';
 
       <!-- Filtros (visão lançamentos) -->
       <div id="filtros-lanc" class="filter-bar" style="margin-bottom:14px">
-        <input class="form-control" type="text" id="busca" style="width:220px"
+        <input class="form-control" type="text" id="busca" style="width:200px"
           placeholder="Buscar descrição ou NF..." oninput="renderLancamentos()">
-        <select class="form-control" id="fil-sit" onchange="renderLancamentos()" style="width:140px">
+        <select class="form-control" id="fil-sit" onchange="renderLancamentos()" style="width:130px">
           <option value="">Todas situações</option>
           <option value="pago">Pago</option>
           <option value="a_pagar">A Pagar</option>
           <option value="cancelado">Cancelado</option>
         </select>
-        <select class="form-control" id="fil-ativ" onchange="renderLancamentos()" style="width:180px">
+        <select class="form-control" id="fil-ativ" onchange="renderLancamentos()" style="width:170px">
           <option value="">Todas as atividades</option>
         </select>
-        <select class="form-control" id="fil-mes" onchange="renderLancamentos()" style="width:140px">
+        <select class="form-control" id="fil-forn" onchange="renderLancamentos()" style="width:170px">
+          <option value="">Todos os fornecedores</option>
+        </select>
+        <select class="form-control" id="fil-mes" onchange="renderLancamentos()" style="width:130px">
           <option value="">Todos os meses</option>
         </select>
         <span id="cont-lanc" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
@@ -183,14 +186,37 @@ async function carregar() {
     taxaAnterior = cotacao?.cotacao_anterior || null;
     taxaDataRef  = cotacao?.data_ref || null;
 
-    // Preencher filtro de atividades
+    // Preencher filtro de atividades — só as que têm pelo menos um contrato
     const filAtiv = document.getElementById('fil-ativ');
     if (filAtiv) {
-      atividades.forEach(a => {
-        const opt = document.createElement('option');
-        opt.value = a.id; opt.textContent = `${a.codigo} — ${a.nome_pt?.substring(0,40)}`;
-        filAtiv.appendChild(opt);
+      const atvsComContrato = new Set((conts||[]).map(c => c.atividade_id).filter(Boolean));
+      atividades
+        .filter(a => atvsComContrato.has(a.id))
+        .forEach(a => {
+          const opt = document.createElement('option');
+          opt.value = a.id;
+          opt.textContent = `${a.codigo} — ${a.nome_pt?.substring(0,38)}`;
+          filAtiv.appendChild(opt);
+        });
+    }
+
+    // Preencher filtro de fornecedores — só os que aparecem nos lançamentos
+    const filForn = document.getElementById('fil-forn');
+    if (filForn) {
+      const fornsVistos = new Map();
+      (lancs||[]).forEach(l => {
+        if (l.fornecedor_id && l.fornecedores?.nome && !fornsVistos.has(l.fornecedor_id)) {
+          fornsVistos.set(l.fornecedor_id, l.fornecedores.nome);
+        }
       });
+      [...fornsVistos.entries()]
+        .sort((a,b) => a[1].localeCompare(b[1]))
+        .forEach(([id, nome]) => {
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = nome.substring(0, 45);
+          filForn.appendChild(opt);
+        });
     }
 
     // Preencher filtro de meses
@@ -312,18 +338,20 @@ function renderConteudo() {
 
 // ── VISÃO LANÇAMENTOS ─────────────────────────────────────────
 function renderLancamentos() {
-  const busca = document.getElementById('busca')?.value.toLowerCase()||'';
-  const sit = document.getElementById('fil-sit')?.value||'';
+  const busca  = document.getElementById('busca')?.value.toLowerCase()||'';
+  const sit    = document.getElementById('fil-sit')?.value||'';
   const ativId = document.getElementById('fil-ativ')?.value||'';
-  const mes = document.getElementById('fil-mes')?.value||'';
+  const fornId = document.getElementById('fil-forn')?.value||'';
+  const mes    = document.getElementById('fil-mes')?.value||'';
 
   const fil = todosLanc.filter(l => {
     const desc = (l.descricao||'').toLowerCase();
-    const nf = (l.numero_nf||'').toLowerCase();
-    if (busca && !desc.includes(busca) && !nf.includes(busca)) return false;
-    if (sit && l.situacao !== sit) return false;
+    const nf   = (l.numero_nf||'').toLowerCase();
+    if (busca  && !desc.includes(busca) && !nf.includes(busca)) return false;
+    if (sit    && l.situacao    !== sit)    return false;
     if (ativId && l.atividade_id !== ativId) return false;
-    if (mes && !(l.dt_vencimento||'').startsWith(mes)) return false;
+    if (fornId && l.fornecedor_id !== fornId) return false;
+    if (mes    && !(l.dt_vencimento||'').startsWith(mes)) return false;
     return true;
   });
 
