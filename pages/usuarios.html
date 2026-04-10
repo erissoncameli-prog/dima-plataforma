@@ -672,9 +672,9 @@ async function uploadAvatar(file){
   toast('Enviando foto...','info');
   const ext=file.name.split('.').pop().toLowerCase();
   const path=`avatares/${appState.usuario.id}/avatar.${ext}`;
-  const{error:upErr}=await db.storage.from('tdrs-arquivos').upload(path,file,{upsert:true});
+  const{error:upErr}=await db.storage.from('avatares').upload(path,file,{upsert:true,contentType:file.type});
   if(upErr){toast('Erro no upload: '+upErr.message,'error');return;}
-  const{data:urlData}=db.storage.from('tdrs-arquivos').getPublicUrl(path);
+  const{data:urlData}=db.storage.from('avatares').getPublicUrl(path);
   const avatarUrl=urlData.publicUrl+'?t='+Date.now();
   const{error}=await db.from('usuarios').update({avatar_url:avatarUrl,atualizado_em:new Date().toISOString()}).eq('id',appState.usuario.id);
   if(error){toast('Erro ao salvar: '+error.message,'error');return;}
@@ -708,9 +708,9 @@ async function uploadAvatarAdmin(usuarioId,file){
   toast('Enviando foto...','info');
   const ext=file.name.split('.').pop().toLowerCase();
   const path=`avatares/${usuarioId}/avatar.${ext}`;
-  const{error:upErr}=await db.storage.from('tdrs-arquivos').upload(path,file,{upsert:true});
+  const{error:upErr}=await db.storage.from('avatares').upload(path,file,{upsert:true,contentType:file.type});
   if(upErr){toast('Erro no upload: '+upErr.message,'error');return;}
-  const{data:urlData}=db.storage.from('tdrs-arquivos').getPublicUrl(path);
+  const{data:urlData}=db.storage.from('avatares').getPublicUrl(path);
   const avatarUrl=urlData.publicUrl+'?t='+Date.now();
   const{error}=await db.from('usuarios').update({avatar_url:avatarUrl,atualizado_em:new Date().toISOString()}).eq('id',usuarioId);
   if(error){toast('Erro ao salvar: '+error.message,'error');return;}
