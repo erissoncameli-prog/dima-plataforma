@@ -260,7 +260,7 @@ async function carregar() {
       {data:forns}, {data:ress}, cotacao
     ] = await Promise.all([
       db.from('execucao_financeira').select(`
-        *,
+        *,cotacao_unesco,valor_usd_unesco,impacto_usd,
         atividades(id,codigo,nome_pt,resultado_id),
         contratos(id,numero,objeto_pt),
         fornecedores(id,nome,tipo)
@@ -277,6 +277,11 @@ async function carregar() {
     contratos = conts || [];
     fornecedores = forns || [];
     resultados = ress || [];
+
+    // Pré-carregar última cotação UNESCO utilizada nos pagamentos
+    const ultimoComUNESCO = (lancs||[]).find(l => l.cotacao_unesco && l.situacao === 'pago');
+    if (ultimoComUNESCO) taxaUnescoUltima = parseFloat(ultimoComUNESCO.cotacao_unesco);
+
     taxaAtual        = cotacao?.cotacao       || 5.87;
     taxaAnterior     = cotacao?.cotacao_anterior || null;
     taxaVariacaoPct  = cotacao?.variacao_pct  || null;
@@ -810,12 +815,37 @@ function renderFormLanc(l) {
     </div>
     <div class="grid-2">
       <div class="form-group">
-        <label class="form-label">Situação <span class="obrig">*</span></label>
-        <select class="form-control" id="f-sit">
-          <option value="a_pagar" ${(l?.situacao||'a_pagar')==='a_pagar'?'selected':''}>A Pagar</option>
-          <option value="pago" ${l?.situacao==='pago'?'selected':''}>Pago</option>
-          <option value="cancelado" ${l?.situacao==='cancelado'?'selected':''}>Cancelado</option>
-        </select>
+        <label class="form-label">Situação</label>
+        ${(() => {
+          const sit = l?.situacao || 'a_pagar';
+          if (!l) {
+            // Novo lançamento: sempre A Pagar, sem seleção
+            return `<div style="display:flex;align-items:center;gap:8px;height:36px">
+              <span class="sit-badge sit-a_pagar">A Pagar</span>
+              <span style="font-size:11px;color:var(--cinza-400)">Novo lançamento sempre inicia como A Pagar</span>
+            </div>
+            <input type="hidden" id="f-sit" value="a_pagar">`;
+          }
+          if (sit === 'pago') {
+            return `<div style="display:flex;align-items:center;gap:8px;height:36px">
+              <span class="sit-badge sit-pago">✓ Pago</span>
+              <span style="font-size:11px;color:var(--cinza-400)">Situação não pode ser alterada após pagamento</span>
+            </div>
+            <input type="hidden" id="f-sit" value="pago">`;
+          }
+          if (sit === 'a_pagar') {
+            return `<div style="display:flex;align-items:center;gap:8px;height:36px">
+              <span class="sit-badge sit-a_pagar">A Pagar</span>
+              <span style="font-size:11px;color:var(--cinza-400)">Use o botão 💳 Pagar para efetivar</span>
+            </div>
+            <input type="hidden" id="f-sit" value="a_pagar">`;
+          }
+          // Cancelado: exibe informativo
+          return `<div style="display:flex;align-items:center;gap:8px;height:36px">
+            <span class="sit-badge sit-cancelado">Cancelado</span>
+          </div>
+          <input type="hidden" id="f-sit" value="cancelado">`;
+        })()}
       </div>
       <div class="form-group">
         <label class="form-label">Elemento de despesa</label>
@@ -1144,6 +1174,7 @@ function exportarCSV() {
 // ── MODAL EFETIVAR PAGAMENTO ──────────────────────────────────
 let lancPagando = null;
 let arquivoPgto = null;
+let taxaUnescoUltima = null; // lembra a última cotação UNESCO usada
 
 async function abrirPagamento(id) {
   lancPagando = todosLanc.find(l => l.id === id);
@@ -1276,12 +1307,27 @@ async function abrirPagamento(id) {
         placeholder="Ex: Pago via TED, banco XXXX">${l.observacoes||''}</textarea>
     </div>
 
-    <!-- Cotação travada -->
-    <div class="cotacao-trava">
-      🔒 Cotação travada na data do pagamento:
-      <strong>R$ ${taxaLanc.toFixed(4)}/USD</strong>
-      <span style="color:#6B7280">·</span>
-      ${fmtBRL(l.valor_brl)} = <strong>USD ${usdEstimado}</strong>
+    <!-- Cotação UNESCO + comparativo -->
+    <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:var(--raio);padding:14px 16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#0369A1;margin-bottom:12px">
+        💱 Câmbio do Pagamento
+      </div>
+      <div class="grid-2" style="margin-bottom:10px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Cotação UNESCO (UNORE) <span class="obrig">*</span></label>
+          <input class="form-control" type="number" id="pgto-cotacao-unesco" step="0.0001" min="0.01"
+            placeholder="Ex: 5.6500"
+            value="${taxaUnescoUltima ? taxaUnescoUltima.toFixed(4) : ''}"
+            oninput="atualizarComparativoCotacao()"
+            style="font-family:var(--font-mono)">
+          <div class="form-hint">Taxa operacional do período (UNORE)</div>
+        </div>
+        <div style="font-size:11px;color:#0369A1;line-height:1.7;padding-top:22px">
+          <div>📊 Cotação mercado (hoje): <strong style="font-family:var(--font-mono)">R$ ${taxaLanc.toFixed(4)}</strong></div>
+          <div id="pgto-usd-unesco" style="margin-top:4px">Informe a cotação UNESCO</div>
+        </div>
+      </div>
+      <div id="pgto-comparativo" style="display:none;margin-top:8px;padding-top:10px;border-top:1px solid #BAE6FD"></div>
     </div>`;
 
   document.getElementById('pgto-footer').innerHTML = `
@@ -1291,24 +1337,85 @@ async function abrirPagamento(id) {
     </button>`;
 }
 
-async function confirmarPagamento() {
-  const dtPgto = document.getElementById('pgto-data')?.value;
-  if (!dtPgto) { toast('Informe a data do pagamento.','error'); return; }
-
+function atualizarComparativoCotacao() {
   const l = lancPagando;
-  const nf  = document.getElementById('pgto-nf')?.value.trim() || l.numero_nf || null;
-  const obs = document.getElementById('pgto-obs')?.value.trim() || null;
+  if (!l) return;
+  const cotUNESCO = parseFloat(document.getElementById('pgto-cotacao-unesco')?.value) || 0;
+  const valorBRL  = parseFloat(l.valor_brl || 0);
+  const elUSD     = document.getElementById('pgto-usd-unesco');
+  const elComp    = document.getElementById('pgto-comparativo');
+  if (!cotUNESCO || cotUNESCO <= 0) {
+    if (elUSD)  elUSD.textContent  = 'Informe a cotação UNESCO';
+    if (elComp) elComp.style.display = 'none';
+    return;
+  }
+  const usdUnesco  = valorBRL / cotUNESCO;
+  const usdMercado = valorBRL / taxaAtual;
+  const difUSD     = usdUnesco - usdMercado;
+  const difPct     = (difUSD / usdMercado) * 100;
+  const positivo   = difUSD >= 0;
+
+  if (elUSD) elUSD.innerHTML =
+    `Valor oficial UNESCO: <strong style="font-family:var(--font-mono);color:#0369A1">USD ${usdUnesco.toFixed(2)}</strong>`;
+
+  if (elComp) {
+    elComp.style.display = 'block';
+    elComp.innerHTML = `
+      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">
+        <div>
+          <div style="font-size:10px;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Valor pelo câmbio UNESCO</div>
+          <div style="font-family:var(--font-mono);font-weight:700;font-size:14px;color:#0369A1">USD ${usdUnesco.toFixed(2)}</div>
+          <div style="font-size:10px;color:#6B7280">R$ ${valorBRL.toLocaleString('pt-BR',{minimumFractionDigits:2})} ÷ ${cotUNESCO.toFixed(4)}</div>
+        </div>
+        <div style="color:var(--cinza-300);display:flex;align-items:center;font-size:20px">vs</div>
+        <div>
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Valor pelo câmbio de mercado</div>
+          <div style="font-family:var(--font-mono);font-weight:700;font-size:14px;color:var(--cinza-700)">USD ${usdMercado.toFixed(2)}</div>
+          <div style="font-size:10px;color:#6B7280">R$ ${valorBRL.toLocaleString('pt-BR',{minimumFractionDigits:2})} ÷ ${taxaAtual.toFixed(4)}</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;color:var(--cinza-500)">Impacto financeiro</div>
+          <div style="font-family:var(--font-mono);font-weight:700;font-size:14px;color:${positivo?'#059669':'#DC2626'}">
+            ${positivo?'+':''}USD ${difUSD.toFixed(2)}
+          </div>
+          <div style="font-size:10px;color:${positivo?'#059669':'#DC2626'}">
+            ${positivo?'▲':'▼'} ${Math.abs(difPct).toFixed(2)}% ${positivo?'a mais pelo câmbio UNESCO':'a menos pelo câmbio UNESCO'}
+          </div>
+        </div>
+      </div>`;
+  }
+}
+
+async function confirmarPagamento() {
+  const dtPgto      = document.getElementById('pgto-data')?.value;
+  const cotUNESCO   = parseFloat(document.getElementById('pgto-cotacao-unesco')?.value) || 0;
+  if (!dtPgto)     { toast('Informe a data do pagamento.','error');    return; }
+  if (!cotUNESCO)  { toast('Informe a cotação UNESCO (UNORE).','error'); return; }
+
+  const l          = lancPagando;
+  const valorBRL   = parseFloat(l.valor_brl || 0);
+  const nf         = document.getElementById('pgto-nf')?.value.trim() || l.numero_nf || null;
+  const obs        = document.getElementById('pgto-obs')?.value.trim() || null;
+  const usdUnesco  = parseFloat((valorBRL / cotUNESCO).toFixed(2));
+  const usdMercado = parseFloat((valorBRL / taxaAtual).toFixed(2));
+  const impactoUSD = parseFloat((usdUnesco - usdMercado).toFixed(2));
+
+  // Lembra para próximo pagamento
+  taxaUnescoUltima = cotUNESCO;
 
   try {
     const dados = {
-      situacao:          'pago',
-      dt_pagamento:      dtPgto,
-      numero_nf:         nf,
-      observacoes:       obs,
-      cotacao_uso:       taxaAtual,
+      situacao:           'pago',
+      dt_pagamento:       dtPgto,
+      numero_nf:          nf,
+      observacoes:        obs,
+      cotacao_uso:        taxaAtual,         // câmbio de mercado (AwesomeAPI)
+      cotacao_unesco:     cotUNESCO,         // câmbio operacional UNESCO
       cotacao_travada_em: new Date().toISOString(),
-      valor_usd:         parseFloat((parseFloat(l.valor_brl||0) / taxaAtual).toFixed(2)),
-      atualizado_em:     new Date().toISOString()
+      valor_usd:          usdUnesco,         // valor oficial = câmbio UNESCO
+      valor_usd_unesco:   usdUnesco,
+      impacto_usd:        impactoUSD,        // diferença vs mercado
+      atualizado_em:      new Date().toISOString()
     };
 
     const { error } = await db.from('execucao_financeira').update(dados).eq('id', l.id);
