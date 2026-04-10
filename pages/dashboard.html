@@ -161,7 +161,10 @@ var CHARTS = {};
     // Aba inicial: técnicos abrem em Tarefas, demais em Financiadores
     var _abaInicial = (appState.perfil === 'tecnico') ? 'tarefas' : 'financiadores';
     document.getElementById('pane-'+_abaInicial).classList.add('ativo');
-    document.getElementById('pane-financiadores').classList.remove('ativo');
+    // Só oculta financiadores se a aba inicial for outra
+    if(_abaInicial !== 'financiadores'){
+      document.getElementById('pane-financiadores').classList.remove('ativo');
+    }
     _tabDefs.forEach(function(td, i) {
       var btn = document.createElement('button');
       var isAtiva = td[0] === _abaInicial;
@@ -186,6 +189,10 @@ window.mudarAba = function(id,btn){
   document.querySelectorAll('.dash-pane').forEach(function(p){p.classList.remove('ativo');});
   btn.classList.add('ativo');
   document.getElementById('pane-'+id).classList.add('ativo');
+  // Redimensiona todos os gráficos ao trocar de aba (canvas precisa estar visível)
+  setTimeout(function(){
+    Object.values(CHARTS).forEach(function(c){ try{ c.resize(); }catch(e){} });
+  }, 30);
 };
 
 // ── Dados ─────────────────────────────────────────────────
