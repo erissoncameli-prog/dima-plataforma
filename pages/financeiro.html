@@ -95,7 +95,9 @@ let atividades = [], contratos = [], fornecedores = [], resultados = [];
 let lancEditando = null, arquivoComp = null;
 let taxaAtual = 5.87;
 let taxaAnterior = null;
+let taxaVariacaoPct = null;
 let taxaDataRef = null;
+let taxaEHoje = false;
 let visaoAtual = 'lancamentos';
 
 (async () => {
@@ -158,6 +160,63 @@ let visaoAtual = 'lancamentos';
   await carregar();
 })();
 
+// ── Cotação USD — busca e persiste diariamente ────────────────
+async function sincronizarCotacao() {
+  const hoje = new Date().toISOString().split('T')[0];
+
+  // Busca os dois últimos registros (hoje + anterior para variação)
+  const { data: ultimas } = await db.from('cotacoes_usd')
+    .select('id,cotacao,cotacao_anterior,variacao_pct,data_ref,fonte')
+    .order('data_ref', { ascending: false })
+    .limit(2);
+
+  const ultima   = ultimas?.[0];
+  const anterior = ultimas?.[1];
+
+  // Já tem cotação de hoje → retorna direto
+  if (ultima?.data_ref === hoje) {
+    return {
+      cotacao:          parseFloat(ultima.cotacao),
+      cotacao_anterior: anterior ? parseFloat(anterior.cotacao) : null,
+      variacao_pct:     ultima.variacao_pct ? parseFloat(ultima.variacao_pct) : null,
+      data_ref:         ultima.data_ref
+    };
+  }
+
+  // Buscar cotação atual na AwesomeAPI (gratuita, sem chave)
+  try {
+    const res  = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL');
+    const json = await res.json();
+    const nova = parseFloat(json.USDBRL.bid);
+
+    const cotAnt = ultima ? parseFloat(ultima.cotacao) : null;
+    const varPct = cotAnt ? parseFloat(((nova - cotAnt) / cotAnt * 100).toFixed(4)) : null;
+
+    await db.from('cotacoes_usd').insert({
+      cotacao:          nova,
+      cotacao_anterior: cotAnt,
+      variacao_pct:     varPct,
+      data_ref:         hoje,
+      fonte:            'AwesomeAPI'
+    });
+
+    return { cotacao: nova, cotacao_anterior: cotAnt, variacao_pct: varPct, data_ref: hoje };
+
+  } catch (e) {
+    // Fallback: usa o último registro disponível
+    console.warn('AwesomeAPI indisponível, usando última cotação salva.', e);
+    if (ultima) {
+      return {
+        cotacao:          parseFloat(ultima.cotacao),
+        cotacao_anterior: anterior ? parseFloat(anterior.cotacao) : null,
+        variacao_pct:     ultima.variacao_pct ? parseFloat(ultima.variacao_pct) : null,
+        data_ref:         ultima.data_ref
+      };
+    }
+    return { cotacao: 5.87, cotacao_anterior: null, variacao_pct: null, data_ref: null };
+  }
+}
+
 async function carregar() {
   try {
     const [
@@ -174,7 +233,7 @@ async function carregar() {
       db.from('contratos').select('id,numero,objeto_pt,fornecedor_id,atividade_id,valor_total_brl,valor_utilizado_brl,saldo_brl').order('numero'),
       db.from('fornecedores').select('id,nome,tipo').order('nome'),
       db.from('resultados').select('*').order('codigo'),
-      obterCotacao()
+      sincronizarCotacao()
     ]);
 
     todosLanc = lancs || [];
@@ -182,9 +241,11 @@ async function carregar() {
     contratos = conts || [];
     fornecedores = forns || [];
     resultados = ress || [];
-    taxaAtual    = cotacao?.cotacao || 5.87;
-    taxaAnterior = cotacao?.cotacao_anterior || null;
-    taxaDataRef  = cotacao?.data_ref || null;
+    taxaAtual        = cotacao?.cotacao       || 5.87;
+    taxaAnterior     = cotacao?.cotacao_anterior || null;
+    taxaVariacaoPct  = cotacao?.variacao_pct  || null;
+    taxaDataRef      = cotacao?.data_ref      || null;
+    taxaEHoje        = cotacao?.data_ref === new Date().toISOString().split('T')[0];
 
     // Preencher filtro de atividades — só as que têm pelo menos um contrato
     const filAtiv = document.getElementById('fil-ativ');
@@ -248,9 +309,12 @@ function renderCotacaoCard() {
   const el = document.getElementById('cotacao-chip');
   if (!el) return;
 
-  const varPct = taxaAnterior && taxaAnterior > 0
-    ? ((taxaAtual - taxaAnterior) / taxaAnterior) * 100
-    : null;
+  // Usa variacao_pct do banco; recalcula só como fallback
+  const varPct = taxaVariacaoPct !== null
+    ? taxaVariacaoPct
+    : (taxaAnterior && taxaAnterior > 0
+        ? parseFloat(((taxaAtual - taxaAnterior) / taxaAnterior * 100).toFixed(4))
+        : null);
 
   const varDir  = varPct === null ? 'flat' : varPct > 0.005 ? 'up' : varPct < -0.005 ? 'down' : 'flat';
   const varSeta = varDir === 'up' ? '↑' : varDir === 'down' ? '↓' : '→';
@@ -259,27 +323,32 @@ function renderCotacaoCard() {
 
   const dataFmt = taxaDataRef
     ? new Date(taxaDataRef + 'T12:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'short'})
-    : 'hoje';
+    : '—';
+
+  // Badge: verde "Hoje" se for do dia, laranja com data se for fallback
+  const statusBadge = taxaEHoje
+    ? `<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:99px;padding:1px 7px;font-weight:700">● Hoje</span>`
+    : `<span style="font-size:9px;background:#FEF3C7;color:#92400E;border-radius:99px;padding:1px 7px;font-weight:700" title="Cotação mais recente disponível">⚠ ${dataFmt}</span>`;
 
   el.innerHTML = `
     <div class="cotacao-card">
       <div>
-        <div class="cotacao-label">Dólar Comercial · ${dataFmt}</div>
+        <div class="cotacao-label" style="display:flex;align-items:center;gap:6px">
+          Dólar Comercial ${statusBadge}
+        </div>
         <div class="cotacao-valor">R$ ${taxaAtual.toFixed(4)}</div>
       </div>
       <div class="cotacao-sep"></div>
       <div style="text-align:center">
-        <div class="cotacao-label">Variação</div>
+        <div class="cotacao-label">Variação vs ontem</div>
         <span class="cotacao-var ${varDir}">${varTxt}</span>
-        <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">${varLbl} vs ontem</div>
+        <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">${varLbl}</div>
       </div>
       <div class="cotacao-sep"></div>
       <div style="text-align:center">
-        <div class="cotacao-label">1 USD =</div>
-        <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--cinza-700)">
-          R$ ${taxaAtual.toFixed(2)}
-        </div>
-        <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">BCB · Comercial</div>
+        <div class="cotacao-label">Fonte</div>
+        <div style="font-size:11px;font-weight:600;color:var(--cinza-700)">AwesomeAPI</div>
+        <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">USD · Comercial</div>
       </div>
     </div>`;
 }

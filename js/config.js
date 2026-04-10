@@ -192,7 +192,9 @@ function toast(msg, tipo = 'info') {
 // ── Cotação USD ───────────────────────────────────────────────
 async function obterCotacao() {
   const { data } = await db.from('cotacoes_usd')
-    .select('cotacao,data_ref').order('data_ref', { ascending: false }).limit(1).single();
+    .select('cotacao,cotacao_anterior,variacao_pct,data_ref,fonte')
+    .order('data_ref', { ascending: false })
+    .limit(1).single();
   return data;
 }
 
