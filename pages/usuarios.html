@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Usuários</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
+.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:22px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
+/* Tabela */
+.usr-table{width:100%;border-collapse:collapse;background:var(--branco);border-radius:var(--raio-lg);overflow:hidden;border:1px solid var(--borda);}
+.usr-table th{padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);background:var(--cinza-50);border-bottom:1px solid var(--borda);text-align:left;white-space:nowrap;}
+.usr-table td{padding:11px 14px;font-size:13px;color:var(--cinza-700);border-bottom:1px solid var(--borda);vertical-align:middle;}
+.usr-table tr:last-child td{border-bottom:none;}
+.usr-table tr:hover td{background:var(--cinza-50);}
+.usr-table tr.inativo td{opacity:.55;}
+/* Avatar */
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--verde-medio);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;overflow:hidden;}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+/* Upload foto */
+.avatar-upload-wrap{position:relative;display:inline-block;cursor:pointer;}
+.avatar-upload-wrap:hover .avatar-overlay{opacity:1;}
+.avatar-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;font-size:16px;color:#fff;}
+/* Perfil badge */
+.perfil-badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
+.pb-super_admin{background:#FEF3C7;color:#92400E}
+.pb-coordenacao{background:#DBEAFE;color:#1E40AF}
+.pb-tecnico{background:#D1FAE5;color:#065F46}
+.pb-financeiro{background:#F5F3FF;color:#6D28D9}
+.pb-consultor_externo{background:#FFE4E6;color:#9F1239}
+.pb-visualizador{background:#F3F4F6;color:#6B7280}
+/* Status */
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;}
+.sd-ativo{background:#10B981}
+.sd-inativo{background:#D1D5DB}
+/* Ações */
+.btn-acao{font-size:11px;padding:4px 10px;border-radius:var(--raio);border:1px solid var(--borda);background:var(--branco);cursor:pointer;font-family:var(--font-sans);color:var(--cinza-700);transition:all .12s;}
+.btn-acao:hover{background:var(--cinza-50);border-color:var(--cinza-400);}
+/* Senha strength */
+.senha-bar{height:4px;background:var(--cinza-100);border-radius:2px;margin-top:6px;overflow:hidden;}
+.senha-fill{height:100%;border-radius:2px;transition:all .3s;}
+/* Perfil pessoal — seções */
+.perfil-secao{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden;}
+.perfil-secao-header{padding:12px 16px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;}
+.perfil-secao-body{padding:16px;}
+/* Solicitações pendentes badge */
+.sol-badge{background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando...
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRINCIPAL -->
+<div class="modal-overlay" id="modal-usr">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="mu-titulo">Usuário</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="mu-sub"></div></div>
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+    </div>
+    <div class="modal-body" id="mu-body" style="padding:20px 24px;max-height:70vh;overflow-y:auto"></div>
+    <div class="modal-footer" id="mu-footer"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+const PERFIS={
+  super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',
+  financeiro:'Financeiro',consultor_externo:'Consultor Externo',visualizador:'Visualizador'
+};
+const PERFIS_LIST=Object.keys(PERFIS);
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtDT=d=>d?new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+
+let todosUsuarios=[],solicitacoes=[];
+let usuarioAtual=null;
+
+// Gera iniciais a partir do nome
+function mkIniciais(nome){return(nome||'U').split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();}
+
+// Renderiza avatar: foto se disponível, iniciais caso contrário
+function mkAvatar(u,size=34,extraStyle=''){
+  const ini=mkIniciais(u.nome_completo);
+  const bg=u.ativo===false?'var(--cinza-300)':'var(--verde-medio)';
+  const s=`width:${size}px;height:${size}px;font-size:${Math.round(size*0.35)}px;${extraStyle}`;
+  if(u.avatar_url){
+    return`<div class="avatar" style="${s}${u.ativo===false?';background:var(--cinza-300)':''}">
+      <img src="${esc(u.avatar_url)}" alt="${esc(ini)}" onerror="this.parentNode.innerHTML='${ini}'">
+    </div>`;
+  }
+  return`<div class="avatar" style="${s};background:${bg}">${ini}</div>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+(async()=>{
+  const u=await carregarUsuario();
+  if(!u){window.location.href='../index.html';return;}
+
+  const isAdmin=appState.perfil==='super_admin';
+
+  if(isAdmin){
+    // Painel administrativo completo
+    document.getElementById('app').innerHTML=gerarLayout('Usuários','usuarios')+`
+      <div class="fade-in">
+        <div class="stat-row" id="stats"></div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <input class="form-control" id="f-busca" style="width:240px" placeholder="🔍 Buscar nome ou e-mail..."
+            oninput="filtrar()">
+          <select class="form-control" id="f-perfil" style="width:150px" onchange="filtrar()">
+            <option value="">Todos os perfis</option>
+            ${Object.entries(PERFIS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+          </select>
+          <select class="form-control" id="f-status" style="width:130px" onchange="filtrar()">
+            <option value="">Todos</option>
+            <option value="ativo">Ativos</option>
+            <option value="inativo">Inativos</option>
+            <option value="trocar">Trocar senha</option>
+          </select>
+          <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormNovo()">+ Novo usuário</button>
+        </div>
+        <table class="usr-table" id="tabela-usuarios">
+          <thead><tr>
+            <th style="width:36px"></th>
+            <th>Nome</th><th>E-mail</th><th>Perfil</th>
+            <th>Status</th><th>Último acesso</th><th>Ações</th>
+          </tr></thead>
+          <tbody id="tbody-usuarios"></tbody>
+        </table>
+      </div>`+`</div></div></div>`;
+    await carregarDados();
+  } else {
+    // Perfil pessoal para não-admins
+    document.getElementById('app').innerHTML=gerarLayout('Meu Perfil','usuarios')+`
+      <div class="fade-in" style="max-width:640px">
+        <div id="perfil-content"></div>
+      </div>`+`</div></div></div>`;
+    renderPerfilPessoal();
+  }
+})();
+
+// ══════════════════════════════════════════════════════════════
+// PAINEL ADMIN
+// ══════════════════════════════════════════════════════════════
+async function carregarDados(){
+  const[{data:u},{data:s}]=await Promise.all([
+    db.from('usuarios').select('*').order('nome_completo'),
+    db.from('solicitacoes_senha').select('*').eq('status','pendente')
+  ]);
+  todosUsuarios=u||[];solicitacoes=s||[];
+  renderStats();filtrar();
+}
+
+function renderStats(){
+  const t=todosUsuarios;
+  const ativos=t.filter(u=>u.ativo).length;
+  const trocar=t.filter(u=>u.deve_trocar_senha).length;
+  const solPend=solicitacoes.length;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat-card sc-b"><div class="stat-lbl">Total</div><div class="stat-val">${t.length}</div><div class="stat-sub">usuários cadastrados</div></div>
+    <div class="stat-card sc-g"><div class="stat-lbl">Ativos</div><div class="stat-val" style="color:var(--sucesso)">${ativos}</div><div class="stat-sub">${t.length-ativos} inativos</div></div>
+    <div class="stat-card sc-a"><div class="stat-lbl">Trocar senha</div><div class="stat-val" style="color:var(--aviso)">${trocar}</div><div class="stat-sub">aguardando troca</div></div>
+    <div class="stat-card sc-r"><div class="stat-lbl">Solicitações</div><div class="stat-val" style="color:var(--erro)">${solPend}</div><div class="stat-sub">reset pendente</div></div>`;
+}
+
+function filtrar(){
+  const b=(document.getElementById('f-busca')?.value||'').toLowerCase();
+  const p=document.getElementById('f-perfil')?.value||'';
+  const s=document.getElementById('f-status')?.value||'';
+  const fil=todosUsuarios.filter(u=>{
+    if(p&&u.perfil!==p)return false;
+    if(s==='ativo'&&!u.ativo)return false;
+    if(s==='inativo'&&u.ativo)return false;
+    if(s==='trocar'&&!u.deve_trocar_senha)return false;
+    if(b){const txt=[(u.nome_completo||''),(u.email||'')].join(' ').toLowerCase();if(!txt.includes(b))return false;}
+    return true;
+  });
+  const tbody=document.getElementById('tbody-usuarios');
+  if(!tbody)return;
+  tbody.innerHTML=fil.map(u=>{
+    const temSol=solicitacoes.some(s=>s.usuario_id===u.id);
+    return`<tr class="${u.ativo?'':'inativo'}" style="cursor:pointer" onclick="abrirUsuario('${u.id}')">
+      <td>${mkAvatar(u,34)}</td>
+      <td>
+        <div style="font-weight:600;color:var(--cinza-900)">${esc(u.nome_completo||'—')}</div>
+        ${u.deve_trocar_senha?'<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:99px">⚠ Trocar senha</span>':''}
+        ${temSol?'<span style="font-size:10px;background:#FEE2E2;color:#DC2626;padding:1px 6px;border-radius:99px;margin-left:4px">🔑 Solicitou reset</span>':''}
+      </td>
+      <td style="font-size:12px;color:var(--cinza-600)">${esc(u.email||'—')}</td>
+      <td><span class="perfil-badge pb-${u.perfil}">${PERFIS[u.perfil]||u.perfil}</span></td>
+      <td><div style="display:flex;align-items:center;gap:6px">
+        <span class="status-dot ${u.ativo?'sd-ativo':'sd-inativo'}"></span>
+        <span style="font-size:12px">${u.ativo?'Ativo':'Inativo'}</span>
+      </div></td>
+      <td style="font-size:11px;color:var(--cinza-500)">${fmtDT(u.ultimo_acesso_em)}</td>
+      <td onclick="event.stopPropagation()" style="white-space:nowrap">
+        <button class="btn-acao" onclick="abrirUsuario('${u.id}')">✎ Editar</button>
+        <button class="btn-acao" style="margin-left:4px" onclick="toggleAtivo('${u.id}',${u.ativo})">${u.ativo?'Desativar':'Ativar'}</button>
+      </td>
+    </tr>`;
+  }).join('');
+  if(!fil.length)tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--cinza-400)">Nenhum usuário encontrado.</td></tr>`;
+}
+
+// ── Abrir usuário (admin) ──────────────────────────────────────
+async function abrirUsuario(id){
+  const u=todosUsuarios.find(x=>x.id===id);
+  if(!u)return;
+  usuarioAtual=u;
+  const solUser=solicitacoes.filter(s=>s.usuario_id===id);
+
+  document.getElementById('mu-titulo').textContent=u.nome_completo||'Usuário';
+  document.getElementById('mu-sub').textContent=`${PERFIS[u.perfil]||u.perfil} · ${u.email}`;
+
+  document.getElementById('mu-body').innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--borda)">
+      ${mkAvatar(u,52,'flex-shrink:0')}
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--cinza-900)">${esc(u.nome_completo)}</div>
+        <div style="font-size:12px;color:var(--cinza-500)">${esc(u.email)}</div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <span class="perfil-badge pb-${u.perfil}">${PERFIS[u.perfil]||u.perfil}</span>
+          <span style="font-size:10px;padding:2px 8px;border-radius:99px;${u.ativo?'background:#D1FAE5;color:#065F46':'background:#F3F4F6;color:#6B7280'}">${u.ativo?'Ativo':'Inativo'}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados -->
+    <div class="grid-2" style="margin-bottom:14px">
+      <div class="form-group"><label class="form-label">Nome completo</label>
+        <input class="form-control" id="eu-nome" type="text" value="${esc(u.nome_completo||'')}"></div>
+      <div class="form-group"><label class="form-label">Perfil</label>
+        <select class="form-control" id="eu-perfil">
+          ${PERFIS_LIST.map(p=>`<option value="${p}" ${u.perfil===p?'selected':''}>${PERFIS[p]}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Telefone</label>
+        <input class="form-control" id="eu-tel" type="text" value="${esc(u.telefone||'')}"></div>
+      <div class="form-group"><label class="form-label">WhatsApp?</label>
+        <div style="display:flex;align-items:center;gap:8px;height:36px">
+          <input type="checkbox" id="eu-whats" ${u.telefone_whatsapp?'checked':''} style="width:16px;height:16px">
+          <label for="eu-whats" style="font-size:13px">Sim, é WhatsApp</label>
+        </div></div>
+    </div>
+
+    <!-- Histórico de acesso -->
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:8px">Histórico</div>
+      ${[
+        ['Criado em',fmtDT(u.criado_em)],
+        ['Primeiro acesso',fmtDT(u.primeiro_acesso_em)],
+        ['Último acesso',fmtDT(u.ultimo_acesso_em)],
+        ['Deve trocar senha',u.deve_trocar_senha?'⚠ Sim':'Não'],
+      ].map(([l,v])=>`<div style="display:flex;gap:8px;font-size:12px;padding:3px 0;border-bottom:1px solid var(--borda)">
+        <span style="color:var(--cinza-500);min-width:140px">${l}</span>
+        <span style="color:var(--cinza-900)">${v}</span>
+      </div>`).join('')}
+    </div>
+
+    <!-- Reset de senha -->
+    <div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+        🔑 Reset de senha
+        ${solUser.length?`<span class="sol-badge">${solUser.length} solicitação(ões) pendente(s)</span>`:''}
+      </div>
+      ${solUser.length?`<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--raio);padding:8px 12px;font-size:12px;margin-bottom:10px;color:#92400E">
+        ⚠ Usuário solicitou reset de senha. Defina uma senha temporária abaixo.
+      </div>`:''}
+      <div class="grid-2">
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:10px">Nova senha temporária</label>
+          <input class="form-control" id="eu-senha" type="text" placeholder="Mín. 8 caracteres"
+            oninput="avaliarSenha(this.value,'eu-senha-bar')">
+          <div class="senha-bar"><div id="eu-senha-bar" class="senha-fill" style="width:0%;background:var(--erro)"></div></div>
+        </div>
+        <div class="form-group" style="margin:0;display:flex;align-items:flex-end">
+          <button class="btn btn-secondary btn-sm" onclick="gerarSenhaAleatoria()" style="height:36px">🎲 Gerar senha</button>
+        </div>
+      </div>
+      <div class="form-hint" style="margin-top:4px">O usuário será obrigado a trocar no próximo acesso.</div>
+    </div>`;
+
+  document.getElementById('mu-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn ${u.ativo?'btn-danger':'btn-secondary'} btn-sm" onclick="toggleAtivo('${u.id}',${u.ativo})">
+      ${u.ativo?'Desativar usuário':'Ativar usuário'}
+    </button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarUsuario('${u.id}')">Salvar alterações</button>`;
+
+  document.getElementById('modal-usr').classList.add('aberto');
+}
+
+async function salvarUsuario(id){
+  const nome=document.getElementById('eu-nome')?.value.trim();
+  const perfil=document.getElementById('eu-perfil')?.value;
+  const tel=document.getElementById('eu-tel')?.value.trim();
+  const whats=document.getElementById('eu-whats')?.checked;
+  const senha=document.getElementById('eu-senha')?.value.trim();
+  if(!nome){toast('Nome obrigatório.','error');return;}
+
+  // Atualizar dados do usuário
+  const{error}=await db.from('usuarios').update({
+    nome_completo:nome,perfil,
+    telefone:tel||null,telefone_whatsapp:whats,
+    atualizado_em:new Date().toISOString()
+  }).eq('id',id);
+  if(error){toast('Erro: '+error.message,'error');return;}
+
+  // Resetar senha se preenchida
+  if(senha){
+    if(senha.length<8){toast('Senha mínima de 8 caracteres.','error');return;}
+    const{error:sErr}=await db.rpc('fn_resetar_senha_usuario',{
+      p_usuario_id:id, p_nova_senha:senha
+    });
+    if(sErr){toast('Erro ao resetar senha: '+sErr.message,'error');return;}
+    toast('Senha temporária definida! Usuário deverá trocar no próximo acesso.','success');
+  } else {
+    toast('Usuário atualizado!','success');
+  }
+  fecharModal();await carregarDados();
+}
+
+async function toggleAtivo(id,estaAtivo){
+  const acao=estaAtivo?'desativar':'ativar';
+  if(!confirm(`Deseja ${acao} este usuário?`))return;
+  await db.from('usuarios').update({ativo:!estaAtivo,atualizado_em:new Date().toISOString()}).eq('id',id);
+  toast(`Usuário ${estaAtivo?'desativado':'ativado'}.`,'info');
+  fecharModal();await carregarDados();
+}
+
+// ── Novo usuário ───────────────────────────────────────────────
+function abrirFormNovo(){
+  document.getElementById('mu-titulo').textContent='Novo usuário';
+  document.getElementById('mu-sub').textContent='Preencha os dados para criar a conta';
+  document.getElementById('mu-body').innerHTML=`
+    <div class="form-group"><label class="form-label">Nome completo <span class="obrig">*</span></label>
+      <input class="form-control" id="nu-nome" type="text" placeholder="Nome completo"></div>
+    <div class="form-group"><label class="form-label">E-mail <span class="obrig">*</span></label>
+      <input class="form-control" id="nu-email" type="email" placeholder="email@sema.ac.gov.br"></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Perfil <span class="obrig">*</span></label>
+        <select class="form-control" id="nu-perfil">
+          ${PERFIS_LIST.map(p=>`<option value="${p}">${PERFIS[p]}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Telefone</label>
+        <input class="form-control" id="nu-tel" type="text" placeholder="(68) 99999-9999"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Senha temporária <span class="obrig">*</span></label>
+      <div style="display:flex;gap:8px">
+        <input class="form-control" id="nu-senha" type="text" placeholder="Mín. 8 caracteres"
+          oninput="avaliarSenha(this.value,'nu-senha-bar')">
+        <button class="btn btn-secondary btn-sm" onclick="gerarSenhaAleatoria('nu-senha')" style="white-space:nowrap">🎲 Gerar</button>
+      </div>
+      <div class="senha-bar"><div id="nu-senha-bar" class="senha-fill" style="width:0%;background:var(--erro)"></div></div>
+      <div class="form-hint">Usuário será obrigado a trocar no primeiro acesso.</div>
+    </div>`;
+  document.getElementById('mu-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="criarUsuario()">Criar usuário</button>`;
+  document.getElementById('modal-usr').classList.add('aberto');
+}
+
+async function criarUsuario(){
+  const nome=document.getElementById('nu-nome')?.value.trim();
+  const email=document.getElementById('nu-email')?.value.trim();
+  const perfil=document.getElementById('nu-perfil')?.value;
+  const tel=document.getElementById('nu-tel')?.value.trim();
+  const senha=document.getElementById('nu-senha')?.value.trim();
+  if(!nome||!email||!senha){toast('Nome, e-mail e senha são obrigatórios.','error');return;}
+  if(senha.length<8){toast('Senha mínima de 8 caracteres.','error');return;}
+  if(!email.includes('@')){toast('E-mail inválido.','error');return;}
+
+  // Criar usuário via Supabase Auth Admin (precisa de service role — não disponível no front)
+  // Alternativa: usar signUp + depois atualizar a tabela usuarios
+  toast('Criando usuário...','info');
+  const{data,error}=await db.auth.admin?.createUser({
+    email, password:senha,
+    email_confirm:true,
+    user_metadata:{nome_completo:nome}
+  });
+
+  // Fallback: signUp normal (limitação do front-end sem service role)
+  if(error||!data){
+    // Inserir direto na tabela se o auth já foi criado externamente
+    toast('Para criar novos usuários, utilize o painel Supabase ou configure a service key no servidor.','error');
+    return;
+  }
+
+  // Atualizar tabela usuarios com os dados extras
+  await db.from('usuarios').update({
+    nome_completo:nome,perfil,
+    telefone:tel||null,
+    deve_trocar_senha:true,
+    senha_temporaria_usada:false,
+  }).eq('id',data.user.id);
+
+  toast('Usuário criado! Senha temporária definida.','success');
+  fecharModal();await carregarDados();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PERFIL PESSOAL (todos os perfis)
+// ══════════════════════════════════════════════════════════════
+async function renderPerfilPessoal(){
+  const u=appState.usuario;
+  if(!u)return;
+  idiomaTemp=u.idioma_pref||'pt'; // definir aqui, após appState estar disponível
+
+  // Buscar solicitações pendentes do próprio usuário
+  const{data:sols}=await db.from('solicitacoes_senha')
+    .select('*').eq('usuario_id',u.id).order('criado_em',{ascending:false}).limit(3);
+
+  const iniciais=mkIniciais(u.nome_completo);
+  const temSolPendente=(sols||[]).some(s=>s.status==='pendente');
+
+  // Avatar — clicável para upload
+  const avatarHtml=`
+    <div class="avatar-upload-wrap" onclick="document.getElementById('inp-avatar').click()" title="Clique para alterar a foto">
+      <input type="file" id="inp-avatar" style="display:none" accept=".jpg,.jpeg,.png,.webp"
+        onchange="uploadAvatar(this.files[0])">
+      <div style="width:60px;height:60px;border-radius:50%;overflow:hidden;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0">
+        ${u.avatar_url
+          ? `<img id="avatar-img" src="${esc(u.avatar_url)}" alt="${iniciais}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`
+          : `<span id="avatar-ini">${iniciais}</span>`}
+      </div>
+      <div class="avatar-overlay">📷</div>
+    </div>`;
+
+  document.getElementById('perfil-content').innerHTML=`
+    <!-- Avatar + identidade -->
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:20px;background:linear-gradient(135deg,var(--verde-medio) 0%,#1a5c38 100%);border-radius:var(--raio-lg);color:#fff">
+      ${avatarHtml}
+      <div>
+        <div style="font-size:18px;font-weight:700">${esc(u.nome_completo||'—')}</div>
+        <div style="font-size:13px;opacity:.85">${esc(u.email||'—')}</div>
+        <div style="margin-top:4px"><span style="font-size:11px;background:rgba(255,255,255,.2);padding:2px 10px;border-radius:99px">${PERFIS[u.perfil]||u.perfil}</span></div>
+        <div style="font-size:10px;opacity:.6;margin-top:4px">Clique na foto para alterar</div>
+      </div>
+    </div>
+
+    <!-- Dados pessoais -->
+    <div class="perfil-secao">
+      <div class="perfil-secao-header"><span style="font-size:18px">👤</span><span style="font-size:13px;font-weight:600;color:var(--cinza-800)">Dados pessoais</span></div>
+      <div class="perfil-secao-body">
+        <div class="form-group"><label class="form-label">Nome completo</label>
+          <input class="form-control" id="p-nome" type="text" value="${esc(u.nome_completo||'')}"></div>
+        <div class="grid-2">
+          <div class="form-group"><label class="form-label">Telefone</label>
+            <input class="form-control" id="p-tel" type="text" value="${esc(u.telefone||'')}" placeholder="(68) 99999-9999"></div>
+          <div class="form-group"><label class="form-label">É WhatsApp?</label>
+            <div style="display:flex;align-items:center;gap:8px;height:36px">
+              <input type="checkbox" id="p-whats" ${u.telefone_whatsapp?'checked':''} style="width:16px;height:16px">
+              <label for="p-whats" style="font-size:13px">Sim, é WhatsApp</label>
+            </div></div>
+        </div>
+        <div class="form-group"><label class="form-label">Idioma preferido</label>
+          <div style="display:flex;gap:8px">
+            ${['pt','en','es'].map(l=>`
+              <button onclick="selecionarIdioma('${l}')" id="lang-btn-${l}"
+                style="padding:6px 16px;border-radius:var(--raio);border:2px solid ${(u.idioma_pref||'pt')===l?'var(--verde-medio)':'var(--borda)'};
+                background:${(u.idioma_pref||'pt')===l?'var(--verde-bg)':'var(--branco)'};
+                color:${(u.idioma_pref||'pt')===l?'var(--verde-medio)':'var(--cinza-600)'};
+                font-weight:${(u.idioma_pref||'pt')===l?'700':'400'};
+                font-family:var(--font-mono);cursor:pointer;font-size:12px;transition:all .15s">
+                ${l.toUpperCase()}
+              </button>`).join('')}
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="salvarPerfilPessoal()">Salvar dados</button>
+      </div>
+    </div>
+
+    <!-- Segurança -->
+    <div class="perfil-secao">
+      <div class="perfil-secao-header"><span style="font-size:18px">🔒</span><span style="font-size:13px;font-weight:600;color:var(--cinza-800)">Segurança</span></div>
+      <div class="perfil-secao-body">
+
+        <!-- Trocar senha direto -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:12px;font-weight:700;color:var(--cinza-700);margin-bottom:12px">Alterar minha senha</div>
+          <div class="form-group"><label class="form-label">Senha atual <span class="obrig">*</span></label>
+            <input class="form-control" id="p-senha-atual" type="password" placeholder="Digite sua senha atual"></div>
+          <div class="form-group"><label class="form-label">Nova senha <span class="obrig">*</span></label>
+            <input class="form-control" id="p-senha-nova" type="password" placeholder="Mín. 8 caracteres"
+              oninput="avaliarSenha(this.value,'p-senha-bar')">
+            <div class="senha-bar"><div id="p-senha-bar" class="senha-fill" style="width:0%"></div></div>
+          </div>
+          <div class="form-group"><label class="form-label">Confirmar nova senha <span class="obrig">*</span></label>
+            <input class="form-control" id="p-senha-conf" type="password" placeholder="Repita a nova senha"></div>
+          <button class="btn btn-primary" onclick="trocarSenhaPropria()">🔑 Alterar senha</button>
+        </div>
+
+        <div style="border-top:1px solid var(--borda);padding-top:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--cinza-700);margin-bottom:6px">
+            Solicitar reset ao administrador
+          </div>
+          <div style="font-size:12px;color:var(--cinza-600);margin-bottom:10px;line-height:1.5">
+            Caso não consiga acessar com sua senha atual, solicite um reset. O administrador irá definir uma senha temporária para você.
+          </div>
+          ${temSolPendente?`
+          <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--raio);padding:8px 12px;font-size:12px;color:#92400E;margin-bottom:10px">
+            ⏳ Você já tem uma solicitação pendente. Aguarde o administrador atendê-la.
+          </div>`:''}
+          <button class="btn btn-secondary" ${temSolPendente?'disabled':''} onclick="solicitarResetAdmin()">
+            📨 Solicitar reset de senha
+          </button>
+        </div>
+
+        <!-- Histórico de solicitações -->
+        ${(sols||[]).length?`
+        <div style="margin-top:16px;border-top:1px solid var(--borda);padding-top:12px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:8px">Histórico de solicitações</div>
+          ${(sols||[]).map(s=>`
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--borda)">
+              <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${s.status==='pendente'?'#F59E0B':s.status==='atendido'?'#10B981':'#9CA3AF'}"></span>
+              <span style="flex:1;color:var(--cinza-700)">${s.status==='pendente'?'Aguardando atendimento':s.status==='atendido'?'Atendido':'Cancelado'}</span>
+              <span style="color:var(--cinza-400)">${fmtDT(s.criado_em)}</span>
+            </div>`).join('')}
+        </div>`:''}
+      </div>
+    </div>
+
+    <!-- Info última sessão -->
+    <div style="font-size:11px;color:var(--cinza-400);text-align:center;padding:8px">
+      Cadastrado em ${fmtDT(u.criado_em)} · Último acesso: ${fmtDT(u.ultimo_acesso_em)}
+    </div>`;
+}
+
+let idiomaTemp='pt'; // inicializado após carregarUsuario()
+function selecionarIdioma(lang){
+  idiomaTemp=lang;
+  ['pt','en','es'].forEach(l=>{
+    const btn=document.getElementById(`lang-btn-${l}`);
+    if(!btn)return;
+    const sel=l===lang;
+    btn.style.borderColor=sel?'var(--verde-medio)':'var(--borda)';
+    btn.style.background=sel?'var(--verde-bg)':'var(--branco)';
+    btn.style.color=sel?'var(--verde-medio)':'var(--cinza-600)';
+    btn.style.fontWeight=sel?'700':'400';
+  });
+}
+
+async function salvarPerfilPessoal(){
+  const nome=document.getElementById('p-nome')?.value.trim();
+  const tel=document.getElementById('p-tel')?.value.trim();
+  const whats=document.getElementById('p-whats')?.checked;
+  if(!nome){toast('Nome obrigatório.','error');return;}
+  const{error}=await db.from('usuarios').update({
+    nome_completo:nome,telefone:tel||null,telefone_whatsapp:whats,
+    idioma_pref:idiomaTemp,atualizado_em:new Date().toISOString()
+  }).eq('id',appState.usuario.id);
+  if(error){toast('Erro: '+error.message,'error');return;}
+  // Atualizar idioma globalmente
+  if(idiomaTemp!==appState.idioma){
+    appState.idioma=idiomaTemp;localStorage.setItem('dima_idioma',idiomaTemp);
+  }
+  toast('Perfil atualizado!','success');
+  // Atualizar appState
+  appState.usuario.nome_completo=nome;appState.usuario.telefone=tel;
+}
+
+async function trocarSenhaPropria(){
+  const atual=document.getElementById('p-senha-atual')?.value;
+  const nova=document.getElementById('p-senha-nova')?.value;
+  const conf=document.getElementById('p-senha-conf')?.value;
+  if(!atual||!nova||!conf){toast('Preencha todos os campos de senha.','error');return;}
+  if(nova.length<8){toast('Nova senha deve ter pelo menos 8 caracteres.','error');return;}
+  if(nova!==conf){toast('Nova senha e confirmação não coincidem.','error');return;}
+
+  // Verificar senha atual via signInWithPassword
+  const email=appState.usuario.email;
+  const{data:sessaoOriginal}=await db.auth.getSession();
+
+  const{error:loginErr}=await db.auth.signInWithPassword({email,password:atual});
+  if(loginErr){
+    // Restaurar sessão original
+    if(sessaoOriginal?.session)await db.auth.setSession(sessaoOriginal.session);
+    toast('Senha atual incorreta.','error');return;
+  }
+  // Restaurar sessão original imediatamente
+  if(sessaoOriginal?.session)await db.auth.setSession(sessaoOriginal.session);
+
+  // Atualizar para nova senha
+  const{error}=await db.auth.updateUser({password:nova});
+  if(error){toast('Erro ao alterar senha: '+error.message,'error');return;}
+
+  // Limpar deve_trocar_senha se estava marcado
+  await db.from('usuarios').update({
+    deve_trocar_senha:false,senha_temporaria_usada:true,
+    atualizado_em:new Date().toISOString()
+  }).eq('id',appState.usuario.id);
+
+  // Limpar campos
+  ['p-senha-atual','p-senha-nova','p-senha-conf'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  const bar=document.getElementById('p-senha-bar');
+  if(bar){bar.style.width='0%';}
+
+  toast('Senha alterada com sucesso!','success');
+}
+
+async function solicitarResetAdmin(){
+  const{error}=await db.from('solicitacoes_senha').insert({
+    usuario_id:appState.usuario.id,
+    status:'pendente',
+    motivo:'Solicitação via sistema'
+  });
+  if(error){toast('Erro: '+error.message,'error');return;}
+  toast('Solicitação enviada! O administrador irá definir uma senha temporária.','success');
+  renderPerfilPessoal(); // recarregar para mostrar pendente
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILITÁRIOS
+// ══════════════════════════════════════════════════════════════
+function avaliarSenha(senha,barId){
+  const bar=document.getElementById(barId);if(!bar)return;
+  let forca=0;
+  if(senha.length>=8)forca+=25;
+  if(senha.length>=12)forca+=15;
+  if(/[A-Z]/.test(senha))forca+=20;
+  if(/[0-9]/.test(senha))forca+=20;
+  if(/[^A-Za-z0-9]/.test(senha))forca+=20;
+  const cor=forca<40?'#EF4444':forca<70?'#F59E0B':'#10B981';
+  bar.style.width=forca+'%';bar.style.background=cor;
+}
+
+function gerarSenhaAleatoria(campoId='eu-senha'){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$';
+  let senha='';
+  for(let i=0;i<12;i++)senha+=chars[Math.floor(Math.random()*chars.length)];
+  const el=document.getElementById(campoId);
+  if(el){el.value=senha;el.type='text';avaliarSenha(senha,campoId==='eu-senha'?'eu-senha-bar':'nu-senha-bar');}
+  toast('Senha gerada: '+senha,'info',5000);
+}
+
+// ── UPLOAD DE AVATAR ──────────────────────────────────────────
+async function uploadAvatar(file){
+  if(!file)return;
+  const tipos=['image/jpeg','image/jpg','image/png','image/webp'];
+  if(!tipos.includes(file.type)){toast('Formato inválido. Use JPG, PNG ou WEBP.','error');return;}
+  if(file.size>2*1024*1024){toast('Imagem muito grande. Máximo 2MB.','error');return;}
+
+  toast('Enviando foto...','info');
+  const ext=file.name.split('.').pop().toLowerCase();
+  const path=`avatares/${appState.usuario.id}/avatar.${ext}`;
+
+  const{error:upErr}=await db.storage.from('tdrs-arquivos').upload(path,file,{upsert:true});
+  if(upErr){toast('Erro no upload: '+upErr.message,'error');return;}
+
+  const{data:urlData}=db.storage.from('tdrs-arquivos').getPublicUrl(path);
+  const avatarUrl=urlData.publicUrl+'?t='+Date.now(); // cache bust
+
+  const{error}=await db.from('usuarios').update({
+    avatar_url:avatarUrl,atualizado_em:new Date().toISOString()
+  }).eq('id',appState.usuario.id);
+  if(error){toast('Erro ao salvar URL: '+error.message,'error');return;}
+
+  // Atualizar appState e exibição imediata
+  appState.usuario.avatar_url=avatarUrl;
+
+  // Atualizar imagem no cabeçalho sem recarregar
+  const imgEl=document.getElementById('avatar-img');
+  const iniEl=document.getElementById('avatar-ini');
+  if(imgEl){imgEl.src=avatarUrl;}
+  else if(iniEl){
+    // Criar img e substituir iniciais
+    const wrap=iniEl.parentNode;
+    const img=document.createElement('img');
+    img.id='avatar-img';img.src=avatarUrl;img.alt='avatar';
+    img.style.cssText='width:100%;height:100%;object-fit:cover';
+    wrap.replaceChild(img,iniEl);
+  }
+
+  // Atualizar avatar no sidebar também
+  const sidebarAvatar=document.querySelector('.sidebar-avatar');
+  if(sidebarAvatar){
+    sidebarAvatar.style.background='transparent';
+    sidebarAvatar.style.padding='0';
+    sidebarAvatar.innerHTML=`<img src="${avatarUrl}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  }
+
+  toast('Foto atualizada com sucesso!','success');
+}
+
+function fecharModal(){
+  document.getElementById('modal-usr').classList.remove('aberto');
+  usuarioAtual=null;
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal();});
+</script>
+</body>
+</html>
