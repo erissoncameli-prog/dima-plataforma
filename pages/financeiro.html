@@ -61,6 +61,27 @@
 .cotacao-var.down{background:#ECFDF5;color:#059669;}
 .cotacao-var.flat{background:var(--cinza-100);color:var(--cinza-500);}
 .cotacao-sep{width:1px;height:36px;background:var(--borda);}
+
+/* Modal pagamento */
+.pgto-resumo{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px 24px;}
+.pgto-resumo-item{display:flex;flex-direction:column;gap:2px;}
+.pgto-resumo-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);font-weight:600;}
+.pgto-resumo-val{font-size:13px;font-weight:600;color:var(--cinza-900);}
+/* Timeline histórico */
+.timeline{padding:4px 0;margin-bottom:16px;}
+.tl-item{display:flex;gap:12px;position:relative;padding-bottom:14px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-item:not(:last-child)::before{content:'';position:absolute;left:11px;top:24px;bottom:0;width:2px;background:var(--borda);}
+.tl-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--borda);}
+.tl-dot.ok{background:#ECFDF5;border-color:#6EE7B7;}
+.tl-dot.warn{background:#FEF9C3;border-color:#FDE047;}
+.tl-dot.pend{background:var(--cinza-50);border-color:var(--cinza-200);}
+.tl-body{flex:1;padding-top:2px;}
+.tl-titulo{font-size:12px;font-weight:600;color:var(--cinza-800);}
+.tl-data{font-size:11px;color:var(--cinza-400);margin-top:1px;}
+.tl-parecer{font-size:11px;color:var(--cinza-600);margin-top:4px;font-style:italic;background:var(--cinza-50);border-radius:var(--raio);padding:6px 10px;border-left:3px solid var(--verde-claro);}
+/* Cotação travada chip */
+.cotacao-trava{display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:8px 14px;font-size:12px;color:#1E40AF;font-weight:500;}
 </style>
 </head>
 <body>
@@ -71,6 +92,21 @@
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
       Carregando financeiro...
     </div>
+  </div>
+</div>
+
+<!-- MODAL EFETIVAR PAGAMENTO -->
+<div class="modal-overlay" id="modal-pgto">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">💳 Efetivar Pagamento</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="pgto-subtitulo"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModalPgto()">✕</button>
+    </div>
+    <div class="modal-body" id="pgto-body" style="padding:20px 24px;max-height:72vh;overflow-y:auto"></div>
+    <div class="modal-footer" id="pgto-footer"></div>
   </div>
 </div>
 
@@ -474,7 +510,10 @@ function renderLancamentos() {
                       ?`<button class="btn btn-sm btn-secondary" style="padding:3px 6px;font-size:10px" onclick="abrirComp('${l.id}','${l.comprovante_url}')">📎</button>`
                       :`<span style="font-size:11px;color:var(--cinza-300)">—</span>`}
                   </td>
-                  <td>
+                  <td style="white-space:nowrap;display:flex;gap:4px">
+                    ${l.situacao==='a_pagar'
+                      ? `<button class="btn btn-sm" style="background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;font-size:11px;padding:3px 9px;font-weight:600" onclick="abrirPagamento('${l.id}')" title="Efetivar pagamento">💳 Pagar</button>`
+                      : ''}
                     <button class="btn btn-sm btn-secondary btn-icon" onclick="abrirEditar('${l.id}')" title="Editar">✏️</button>
                   </td>
                 </tr>`;
@@ -1102,11 +1141,230 @@ function exportarCSV() {
   toast('CSV exportado com sucesso!','success');
 }
 
+// ── MODAL EFETIVAR PAGAMENTO ──────────────────────────────────
+let lancPagando = null;
+let arquivoPgto = null;
+
+async function abrirPagamento(id) {
+  lancPagando = todosLanc.find(l => l.id === id);
+  if (!lancPagando) return;
+  arquivoPgto = null;
+
+  const l = lancPagando;
+  const taxaLanc = taxaAtual;
+  const hoje = new Date().toISOString().split('T')[0];
+
+  document.getElementById('pgto-subtitulo').textContent = l.descricao || '';
+  document.getElementById('modal-pgto').classList.add('aberto');
+  document.getElementById('pgto-body').innerHTML =
+    `<div style="text-align:center;padding:24px;color:var(--cinza-400)">
+      <div style="width:24px;height:24px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 8px"></div>
+      Carregando histórico...
+    </div>`;
+
+  // Buscar produto vinculado (se houver)
+  let produto = null;
+  if (l.contrato_id && l.numero_produto) {
+    const { data } = await db.from('contratos_produtos')
+      .select(`id,numero_produto,descricao,valor_brl,dt_vencimento,dt_entrega,situacao,
+               arquivo_entrega_url,arquivo_entrega_nome,arquivo_entrega_data,
+               parecer_avaliador,avaliado_em,pct_aprovado,valor_aprovado,
+               usuarios!contratos_produtos_avaliado_por_fkey(nome_completo)`)
+      .eq('contrato_id', l.contrato_id)
+      .eq('numero_produto', l.numero_produto)
+      .maybeSingle();
+    produto = data;
+  }
+
+  // ── Resumo do lançamento ──
+  const ativNome = l.atividades ? `${l.atividades.codigo} · ${l.atividades.nome_pt?.substring(0,40)}` : '—';
+  const fornNome = l.fornecedores?.nome || '—';
+  const contNum  = l.contratos?.numero  || '—';
+  const venc     = l.dt_vencimento ? fmtData(l.dt_vencimento) : '—';
+  const vencido  = l.dt_vencimento && new Date(l.dt_vencimento) < new Date();
+
+  // ── Timeline histórico do produto ──
+  let timelineHtml = '';
+  if (produto) {
+    const itens = [];
+
+    // 1. Contrato vinculado
+    itens.push({ dot:'ok', ico:'📄', titulo:`Produto ${produto.numero_produto} — ${produto.descricao?.substring(0,60)||''}`, data: contNum ? `Contrato nº ${contNum}` : '' });
+
+    // 2. Prazo de entrega
+    if (produto.dt_vencimento) {
+      const prazoOk = produto.dt_entrega && produto.dt_entrega <= produto.dt_vencimento;
+      itens.push({ dot: produto.dt_entrega ? 'ok' : 'warn', ico: produto.dt_entrega ? '📦' : '⏳',
+        titulo: produto.dt_entrega ? 'Produto entregue' : 'Aguardando entrega',
+        data: produto.dt_entrega
+          ? `Entregue em ${fmtData(produto.dt_entrega)}${produto.arquivo_entrega_nome ? ' · 📎 '+produto.arquivo_entrega_nome : ''}`
+          : `Prazo: ${fmtData(produto.dt_vencimento)}` });
+    }
+
+    // 3. Avaliação
+    if (produto.avaliado_em) {
+      const avaliador = produto.usuarios?.nome_completo || 'Avaliador';
+      itens.push({ dot:'ok', ico:'✅',
+        titulo: `Avaliado — ${produto.pct_aprovado != null ? produto.pct_aprovado+'% aprovado' : 'Aprovado'}`,
+        data: `${fmtData(produto.avaliado_em)} · ${avaliador}`,
+        parecer: produto.parecer_avaliador });
+    } else if (produto.dt_entrega) {
+      itens.push({ dot:'warn', ico:'🔍', titulo:'Aguardando avaliação', data:'Produto entregue, pendente de avaliação' });
+    }
+
+    timelineHtml = `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:10px">📋 Histórico do Produto</div>
+      <div class="timeline">
+        ${itens.map(i => `
+          <div class="tl-item">
+            <div class="tl-dot ${i.dot}">${i.ico}</div>
+            <div class="tl-body">
+              <div class="tl-titulo">${i.titulo}</div>
+              ${i.data ? `<div class="tl-data">${i.data}</div>` : ''}
+              ${i.parecer ? `<div class="tl-parecer">"${i.parecer}"</div>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  // ── Cotação ──
+  const usdEstimado = (parseFloat(l.valor_brl||0) / taxaLanc).toFixed(2);
+
+  document.getElementById('pgto-body').innerHTML = `
+    <!-- Resumo -->
+    <div class="pgto-resumo">
+      <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Atividade</span><span class="pgto-resumo-val">${ativNome}</span></div>
+      <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Fornecedor</span><span class="pgto-resumo-val">${fornNome}</span></div>
+      <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Contrato</span><span class="pgto-resumo-val">${contNum}</span></div>
+      <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Vencimento</span>
+        <span class="pgto-resumo-val" style="color:${vencido?'var(--erro)':'inherit'}">${venc}${vencido?' ⚠ Vencido':''}</span></div>
+      <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Valor</span>
+        <span class="pgto-resumo-val" style="color:var(--verde-medio)">${fmtBRL(l.valor_brl)}</span></div>
+    </div>
+
+    ${timelineHtml}
+
+    <!-- Seção pagamento -->
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:12px">💳 Dados do Pagamento</div>
+
+    <div class="grid-2" style="margin-bottom:12px">
+      <div class="form-group">
+        <label class="form-label">Data do pagamento <span class="obrig">*</span></label>
+        <input class="form-control" type="date" id="pgto-data" value="${hoje}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nº NF / Recibo</label>
+        <input class="form-control" type="text" id="pgto-nf" placeholder="Ex: NF-001234" value="${l.numero_nf||''}">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Comprovante de pagamento</label>
+      <div class="upload-mini ${l.comprovante_url?'tem':''}" id="pgto-upload-wrap"
+        onclick="document.getElementById('pgto-arquivo').click()">
+        <input type="file" id="pgto-arquivo" style="display:none" accept=".pdf,.jpg,.jpeg,.png"
+          onchange="selecionarArquivoPgto(this.files[0])">
+        ${l.comprovante_url
+          ? `✓ Comprovante já anexado · clique para substituir`
+          : `📎 Clique para anexar PDF ou imagem`}
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Observações</label>
+      <textarea class="form-control" id="pgto-obs" rows="2" style="font-size:12px"
+        placeholder="Ex: Pago via TED, banco XXXX">${l.observacoes||''}</textarea>
+    </div>
+
+    <!-- Cotação travada -->
+    <div class="cotacao-trava">
+      🔒 Cotação travada na data do pagamento:
+      <strong>R$ ${taxaLanc.toFixed(4)}/USD</strong>
+      <span style="color:#6B7280">·</span>
+      ${fmtBRL(l.valor_brl)} = <strong>USD ${usdEstimado}</strong>
+    </div>`;
+
+  document.getElementById('pgto-footer').innerHTML = `
+    <button class="btn btn-secondary" onclick="fecharModalPgto()">Cancelar</button>
+    <button class="btn btn-primary" style="background:#059669;border-color:#059669" onclick="confirmarPagamento()">
+      ✓ Confirmar Pagamento
+    </button>`;
+}
+
+async function confirmarPagamento() {
+  const dtPgto = document.getElementById('pgto-data')?.value;
+  if (!dtPgto) { toast('Informe a data do pagamento.','error'); return; }
+
+  const l = lancPagando;
+  const nf  = document.getElementById('pgto-nf')?.value.trim() || l.numero_nf || null;
+  const obs = document.getElementById('pgto-obs')?.value.trim() || null;
+
+  try {
+    const dados = {
+      situacao:          'pago',
+      dt_pagamento:      dtPgto,
+      numero_nf:         nf,
+      observacoes:       obs,
+      cotacao_uso:       taxaAtual,
+      cotacao_travada_em: new Date().toISOString(),
+      valor_usd:         parseFloat((parseFloat(l.valor_brl||0) / taxaAtual).toFixed(2)),
+      atualizado_em:     new Date().toISOString()
+    };
+
+    const { error } = await db.from('execucao_financeira').update(dados).eq('id', l.id);
+    if (error) throw error;
+
+    // Upload comprovante se selecionado
+    if (arquivoPgto) {
+      const ext  = arquivoPgto.name.split('.').pop();
+      const path = `comprovante-${l.id}.${ext}`;
+      const { error: upErr } = await db.storage.from('tdrs-arquivos')
+        .upload(path, arquivoPgto, { upsert: true, contentType: arquivoPgto.type });
+      if (!upErr) {
+        const { data: urlData } = db.storage.from('tdrs-arquivos').getPublicUrl(path);
+        await db.from('execucao_financeira').update({
+          comprovante_url:  urlData.publicUrl,
+          comprovante_nome: arquivoPgto.name
+        }).eq('id', l.id);
+        dados.comprovante_url  = urlData.publicUrl;
+        dados.comprovante_nome = arquivoPgto.name;
+      }
+    }
+
+    // Atualiza local
+    Object.assign(l, dados);
+    fecharModalPgto();
+    renderStats();
+    renderConteudo();
+    toast('Pagamento registrado com sucesso!', 'success');
+
+  } catch(e) {
+    toast('Erro ao registrar pagamento: ' + e.message, 'error');
+  }
+}
+
+function selecionarArquivoPgto(file) {
+  if (!file) return;
+  arquivoPgto = file;
+  const wrap = document.getElementById('pgto-upload-wrap');
+  if (wrap) { wrap.classList.add('tem'); wrap.innerHTML = `✓ ${file.name} selecionado`; }
+}
+
+function fecharModalPgto() {
+  document.getElementById('modal-pgto').classList.remove('aberto');
+  lancPagando = null; arquivoPgto = null;
+}
+
 function fecharModal() {
   document.getElementById('modal-lanc').classList.remove('aberto');
   lancEditando = null; arquivoComp = null;
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal();});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('modal-pgto').classList.contains('aberto')) fecharModalPgto();
+    else fecharModal();
+  }
+});
 </script>
 </body>
 </html>
