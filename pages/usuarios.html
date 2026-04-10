@@ -53,6 +53,18 @@
 .perfil-secao-body{padding:16px;}
 /* Solicitações pendentes badge */
 .sol-badge{background:#FEF3C7;color:#92400E;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+/* Modal visualizar foto */
+.modal-foto-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-foto-overlay.aberto{opacity:1;pointer-events:all;}
+.modal-foto-box{background:var(--branco);border-radius:18px;padding:28px 28px 22px;max-width:360px;width:92%;text-align:center;transform:scale(.93);transition:transform .2s;box-shadow:0 24px 64px rgba(0,0,0,.4);}
+.modal-foto-overlay.aberto .modal-foto-box{transform:scale(1);}
+.modal-foto-img-wrap{width:160px;height:160px;border-radius:50%;overflow:hidden;margin:0 auto 16px;border:4px solid var(--borda);background:var(--cinza-100);}
+.modal-foto-img-wrap img{width:100%;height:100%;object-fit:cover;}
+.modal-foto-nome{font-size:15px;font-weight:700;color:var(--cinza-900);margin-bottom:4px;}
+.modal-foto-cargo{font-size:12px;color:var(--cinza-500);margin-bottom:20px;}
+.modal-foto-acoes{display:flex;gap:10px;justify-content:center;margin-bottom:14px;}
+.modal-foto-fechar{font-size:11px;color:var(--cinza-400);cursor:pointer;background:none;border:none;font-family:var(--font-sans);padding:4px 8px;border-radius:var(--raio);transition:color .15s;}
+.modal-foto-fechar:hover{color:var(--cinza-700);}
 </style>
 </head>
 <body>
@@ -63,6 +75,22 @@
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
       Carregando...
     </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZAR FOTO -->
+<div class="modal-foto-overlay" id="modal-foto" onclick="fecharModalFoto(event)">
+  <div class="modal-foto-box">
+    <div class="modal-foto-img-wrap">
+      <img id="modal-foto-img" src="" alt="foto">
+    </div>
+    <div class="modal-foto-nome" id="modal-foto-nome"></div>
+    <div class="modal-foto-cargo" id="modal-foto-cargo"></div>
+    <div class="modal-foto-acoes">
+      <button class="btn btn-secondary" style="font-size:12px;padding:7px 16px" onclick="trocarFotoModal()">📷 Trocar foto</button>
+      <button class="btn" style="font-size:12px;padding:7px 16px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="removerFotoModal()">🗑 Remover</button>
+    </div>
+    <button class="modal-foto-fechar" onclick="fecharModalFoto()">Fechar</button>
   </div>
 </div>
 
@@ -232,8 +260,8 @@ async function abrirUsuario(id){
 
   document.getElementById('mu-body').innerHTML=`
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--borda)">
-      <!-- Avatar clicável para upload -->
-      <div class="avatar-upload-wrap" onclick="document.getElementById('inp-avatar-admin').click()" title="Clique para alterar a foto">
+      <!-- Avatar clicável para visualizar/trocar -->
+      <div class="avatar-upload-wrap" onclick="${u.avatar_url ? `abrirModalFoto('admin')` : `document.getElementById('inp-avatar-admin').click()`}" title="${u.avatar_url ? 'Clique para ver ou trocar a foto' : 'Clique para adicionar uma foto'}">
         <input type="file" id="inp-avatar-admin" style="display:none" accept=".jpg,.jpeg,.png,.webp"
           onchange="uploadAvatarAdmin('${u.id}',this.files[0])">
         <div id="avatar-admin-wrap" style="width:60px;height:60px;border-radius:50%;overflow:hidden;flex-shrink:0;${u.ativo?'background:var(--verde-medio)':'background:var(--cinza-300)'};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff">
@@ -241,7 +269,7 @@ async function abrirUsuario(id){
             ? `<img id="avatar-admin-img" src="${esc(u.avatar_url)}" alt="${esc(u.nome_completo)}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`
             : `<span id="avatar-admin-ini">${mkIniciais(u.nome_completo)}</span>`}
         </div>
-        <div class="avatar-overlay">📷</div>
+        <div class="avatar-overlay">${u.avatar_url ? '🔍' : '📷'}</div>
       </div>
       <div>
         <div style="font-size:16px;font-weight:700;color:var(--cinza-900)">${esc(u.nome_completo)}</div>
@@ -250,7 +278,7 @@ async function abrirUsuario(id){
           <span class="perfil-badge pb-${u.perfil}">${PERFIS[u.perfil]||u.perfil}</span>
           <span style="font-size:10px;padding:2px 8px;border-radius:99px;${u.ativo?'background:#D1FAE5;color:#065F46':'background:#F3F4F6;color:#6B7280'}">${u.ativo?'Ativo':'Inativo'}</span>
         </div>
-        <div style="font-size:10px;color:var(--cinza-400);margin-top:4px">Clique na foto para alterar</div>
+        <div style="font-size:10px;color:var(--cinza-400);margin-top:4px">${u.avatar_url ? 'Clique para ver ou trocar a foto' : 'Clique para adicionar uma foto'}</div>
       </div>
     </div>
 
@@ -441,9 +469,9 @@ async function renderPerfilPessoal(){
   const iniciais=mkIniciais(u.nome_completo);
   const temSolPendente=(sols||[]).some(s=>s.status==='pendente');
 
-  // Avatar — clicável para upload
+  // Avatar — clicável para upload (ou visualização se já tem foto)
   const avatarHtml=`
-    <div class="avatar-upload-wrap" onclick="document.getElementById('inp-avatar').click()" title="Clique para alterar a foto">
+    <div class="avatar-upload-wrap" onclick="${u.avatar_url ? `abrirModalFoto('proprio')` : `document.getElementById('inp-avatar').click()`}" title="${u.avatar_url ? 'Clique para ver ou trocar a foto' : 'Clique para adicionar uma foto'}">
       <input type="file" id="inp-avatar" style="display:none" accept=".jpg,.jpeg,.png,.webp"
         onchange="uploadAvatar(this.files[0])">
       <div style="width:60px;height:60px;border-radius:50%;overflow:hidden;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0">
@@ -451,7 +479,7 @@ async function renderPerfilPessoal(){
           ? `<img id="avatar-img" src="${esc(u.avatar_url)}" alt="${iniciais}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`
           : `<span id="avatar-ini">${iniciais}</span>`}
       </div>
-      <div class="avatar-overlay">📷</div>
+      <div class="avatar-overlay">${u.avatar_url ? '🔍' : '📷'}</div>
     </div>`;
 
   document.getElementById('perfil-content').innerHTML=`
@@ -731,11 +759,102 @@ async function uploadAvatarAdmin(usuarioId,file){
   toast('Foto do usuário atualizada!','success');
 }
 
+// ── MODAL VISUALIZAR FOTO ─────────────────────────────────────
+let _fotoContexto=null; // 'proprio' | 'admin'
+
+function abrirModalFoto(contexto){
+  const u = contexto==='admin' ? usuarioAtual : appState.usuario;
+  if(!u?.avatar_url) return;
+  _fotoContexto=contexto;
+  document.getElementById('modal-foto-img').src=u.avatar_url;
+  document.getElementById('modal-foto-nome').textContent=u.nome_completo||'—';
+  document.getElementById('modal-foto-cargo').textContent=PERFIS[u.perfil]||u.perfil||'';
+  document.getElementById('modal-foto').classList.add('aberto');
+}
+
+function fecharModalFoto(e){
+  if(e && e.target!==document.getElementById('modal-foto') && !e.target.classList.contains('modal-foto-fechar')) return;
+  document.getElementById('modal-foto').classList.remove('aberto');
+}
+
+function trocarFotoModal(){
+  document.getElementById('modal-foto').classList.remove('aberto');
+  const inputId=_fotoContexto==='admin' ? 'inp-avatar-admin' : 'inp-avatar';
+  setTimeout(()=>document.getElementById(inputId)?.click(), 150);
+}
+
+async function removerFotoModal(){
+  const u=_fotoContexto==='admin' ? usuarioAtual : appState.usuario;
+  if(!u) return;
+  if(!confirm('Remover a foto de perfil?')) return;
+  document.getElementById('modal-foto').classList.remove('aberto');
+
+  const{error}=await db.from('usuarios')
+    .update({avatar_url:null, atualizado_em:new Date().toISOString()})
+    .eq('id',u.id);
+  if(error){toast('Erro ao remover foto: '+error.message,'error');return;}
+
+  u.avatar_url=null;
+
+  if(_fotoContexto==='proprio'){
+    // Atualizar avatar no perfil pessoal
+    const imgEl=document.getElementById('avatar-img');
+    const wrap=imgEl?.parentNode;
+    if(imgEl&&wrap){
+      const ini=document.createElement('span');
+      ini.id='avatar-ini';ini.textContent=mkIniciais(u.nome_completo);
+      wrap.replaceChild(ini,imgEl);
+    }
+    // Atualizar onclick para abrir picker diretamente
+    const uploadWrap=document.querySelector('#perfil-content .avatar-upload-wrap');
+    if(uploadWrap){
+      uploadWrap.setAttribute('onclick',"document.getElementById('inp-avatar').click()");
+      uploadWrap.setAttribute('title','Clique para adicionar uma foto');
+      const overlay=uploadWrap.querySelector('.avatar-overlay');
+      if(overlay) overlay.textContent='📷';
+    }
+    // Atualizar sidebar
+    const sidebarAvatar=document.querySelector('.sidebar-avatar');
+    if(sidebarAvatar){
+      sidebarAvatar.style.background='';sidebarAvatar.style.padding='';
+      sidebarAvatar.innerHTML=mkIniciais(u.nome_completo);
+    }
+  } else {
+    // Atualizar avatar no modal admin
+    const imgEl=document.getElementById('avatar-admin-img');
+    const iniEl=document.getElementById('avatar-admin-ini');
+    const wrap=document.getElementById('avatar-admin-wrap');
+    if(imgEl&&wrap){
+      const ini=document.createElement('span');
+      ini.id='avatar-admin-ini';ini.textContent=mkIniciais(u.nome_completo);
+      wrap.replaceChild(ini,imgEl);
+    }
+    const uploadWrap=wrap?.closest('.avatar-upload-wrap');
+    if(uploadWrap){
+      uploadWrap.setAttribute('onclick',"document.getElementById('inp-avatar-admin').click()");
+      uploadWrap.setAttribute('title','Clique para adicionar uma foto');
+      const overlay=uploadWrap.querySelector('.avatar-overlay');
+      if(overlay) overlay.textContent='📷';
+    }
+    const uLocal=todosUsuarios.find(x=>x.id===u.id);
+    if(uLocal) uLocal.avatar_url=null;
+  }
+  toast('Foto removida.','success');
+}
+
 function fecharModal(){
   document.getElementById('modal-usr').classList.remove('aberto');
   usuarioAtual=null;
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal();});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('modal-foto').classList.contains('aberto')){
+      document.getElementById('modal-foto').classList.remove('aberto');
+    } else {
+      fecharModal();
+    }
+  }
+});
 </script>
 </body>
 </html>
