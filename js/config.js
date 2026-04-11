@@ -171,7 +171,10 @@ function fmtUSD(v) {
 }
 function fmtData(d) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('pt-BR');
+  const s = String(d);
+  // Se for só data (YYYY-MM-DD), adiciona T12:00 para evitar shift de fuso horário
+  const dt = s.length === 10 ? new Date(s + 'T12:00:00') : new Date(s);
+  return dt.toLocaleDateString('pt-BR');
 }
 function fmtPct(v) {
   if (v == null) return '0%';

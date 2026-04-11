@@ -23,6 +23,7 @@
 .sb-realizado{background:#D1FAE5;color:#065F46}
 .sb-cancelado{background:#F3F4F6;color:#6B7280}
 .sb-rejeitado{background:#FEE2E2;color:#991B1B}
+.sb-rascunho{background:#F3F4F6;color:#374151}
 .item-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;}
 .ib-solicitado{background:#EFF6FF;color:#1E40AF}
 .ib-aprovado{background:#D1FAE5;color:#065F46}
@@ -91,6 +92,41 @@
     <div class="modal-footer" id="mp-footer"></div>
   </div>
 </div>
+<!-- Modal e-mail UNESCO -->
+<div class="modal-overlay" id="modal-email">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div><div class="modal-title">📧 Notificar UNESCO</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Minuta de solicitação de passagens e diárias</div></div>
+      <button class="modal-close" onclick="document.getElementById('modal-email').classList.remove('aberto')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px 24px">
+      <div class="grid-2" style="margin-bottom:10px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Para <span class="obrig">*</span></label>
+          <input class="form-control" id="email-para" type="email" placeholder="email@unesco.org" style="font-size:12px">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Cc</label>
+          <input class="form-control" id="email-cc" type="email" placeholder="coordenacao@sema.ac.gov.br" style="font-size:12px">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label class="form-label">Assunto</label>
+        <input class="form-control" id="email-assunto" type="text" style="font-size:12px">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Corpo do e-mail</label>
+        <textarea class="form-control" id="email-corpo" rows="14" style="font-size:11px;font-family:var(--font-mono);line-height:1.6"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-email').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-secondary" style="margin-left:8px" onclick="copiarEmail()">📋 Copiar texto</button>
+      <button class="btn btn-primary" style="margin-left:auto" onclick="enviarEmailUnesco()">✉ Abrir no e-mail →</button>
+    </div>
+  </div>
+</div>
 <!-- Modal rejeição -->
 <div class="modal-overlay" id="modal-rejeitar">
   <div class="modal" style="max-width:480px">
@@ -121,7 +157,7 @@
 <script src="../js/layout.js"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────
-const SIT_LABELS={solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+const SIT_LABELS={rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
 const ITEM_LABELS={solicitado:'Aguarda aprovação',aprovado:'Aprovado',rejeitado:'Rejeitado'};
 const TIPOS_TRECHO=['Aérea','Rodoviária','Fluvial','Ferroviária','Outro'];
 const FUNCOES=['Servidor SEMA','Consultor','Pesquisador','Coordenador','Convidado','Outro'];
@@ -302,7 +338,8 @@ function abrirFormNovo(){
   document.getElementById('mp-body').innerHTML=buildFormProtocolo();
   document.getElementById('mp-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-primary" onclick="salvarProtocolo()">✈ Enviar para aprovação →</button>`;
+    <button class="btn btn-secondary" style="margin-left:8px" onclick="salvarProtocolo('rascunho')">💾 Salvar rascunho</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarProtocolo('solicitado')">✈ Enviar para aprovação →</button>`;
   document.getElementById('modal-prot').classList.add('aberto');
   addViajante(); // iniciar com 1 viajante
 }
@@ -468,10 +505,13 @@ function toggleViajante(idx,tipo,sim){
   if(sec)sec.style.display=sim?'block':'none';
   if(btnS)btnS.classList.toggle('ativo',sim);
   if(btnN)btnN.classList.toggle('ativo',!sim);
-  // Ao abrir passagem, adicionar 1 trecho inicial
+  // Ao abrir passagem, adicionar trechos de ida e volta automaticamente
   if(sim&&tipo==='pass'){
     const lista=document.getElementById(`vn-trechos-${idx}`);
-    if(lista&&lista.children.length===0) addTrechoViajante(idx);
+    if(lista&&lista.children.length===0){
+      addTrechoViajante(idx,'ida');
+      addTrechoViajante(idx,'volta');
+    }
   }
   // Ao abrir diária, adicionar 1 linha e calcular
   if(sim&&tipo==='diar'){
@@ -505,13 +545,22 @@ function propagarDatasViajantes(){
 }
 
 // ── Trechos ────────────────────────────────────────────────────
-function addTrechoViajante(vidx){
+function addTrechoViajante(vidx, sentido){
   const tidx=trechoIdx++;
   const dest=document.getElementById('f-destino')?.value||'';
   const saida=document.getElementById('f-saida')?.value||'';
-  // Origem: se é o primeiro trecho, pegar do campo anterior ou vazio
-  const origemPrev=document.querySelector(`[id="vn-trechos-${vidx}"] [name^="tr-dest-"]`);
-  const orig=origemPrev?origemPrev.value:'';
+  const retorno=document.getElementById('f-retorno')?.value||'';
+  // Definir origem/destino/data conforme sentido
+  let orig='', destTrecho=dest, dataTrecho=saida;
+  if(sentido==='ida'){
+    orig='Rio Branco/AC'; destTrecho=dest; dataTrecho=saida;
+  } else if(sentido==='volta'){
+    orig=dest; destTrecho='Rio Branco/AC'; dataTrecho=retorno;
+  } else {
+    // Manual: pegar destino do campo anterior ou vazio
+    const origemPrev=document.querySelector(`#vn-trechos-${vidx} [name^="tr-dest-"]`);
+    orig=origemPrev?origemPrev.value:'';
+  }
 
   const el=document.createElement('div');
   el.innerHTML=`<div class="trecho-row" id="tr-${tidx}">
@@ -519,14 +568,14 @@ function addTrechoViajante(vidx){
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Origem</label>
         <input class="form-control" name="tr-orig-${tidx}" data-vidx="${vidx}" type="text" value="${esc(orig)}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Destino</label>
-        <input class="form-control" name="tr-dest-${tidx}" data-vidx="${vidx}" type="text" value="${esc(dest)}" style="height:30px;font-size:11px"></div>
+        <input class="form-control" name="tr-dest-${tidx}" data-vidx="${vidx}" type="text" value="${esc(destTrecho)}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Tipo</label>
         <select class="form-control" name="tr-tipo-${tidx}" style="height:30px;font-size:11px">
           ${TIPOS_TRECHO.map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Data</label>
-        <input class="form-control" name="tr-saida-${tidx}" type="date" value="${saida}" style="height:30px;font-size:11px"></div>
-      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$ <span class="obrig">*</span></label>
-        <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" placeholder="0,00"
+        <input class="form-control" name="tr-saida-${tidx}" type="date" value="${dataTrecho}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$</label>
+        <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" placeholder="UNESCO"
           style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
       <button onclick="document.getElementById('tr-${tidx}').remove();calcTotalPassViajante(${vidx});calcTotalForm()"
         style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px;margin-top:14px">✕</button>
@@ -617,7 +666,7 @@ function calcTotalForm(){
 // ══════════════════════════════════════════════════════════════
 // SALVAR PROTOCOLO
 // ══════════════════════════════════════════════════════════════
-async function salvarProtocolo(){
+async function salvarProtocolo(situacaoAlvo='solicitado'){
   const objetivo=document.getElementById('f-objetivo')?.value.trim();
   const destino=document.getElementById('f-destino')?.value.trim();
   if(!objetivo||!destino){toast('Preencha objetivo e destino.','error');return;}
@@ -690,6 +739,7 @@ async function salvarProtocolo(){
     observacoes:document.getElementById('f-obs')?.value.trim()||null,
     atividade_id:ATIV_217,
     criado_por:appState.usuario.id,
+    situacao:situacaoAlvo,
   }).select().single();
 
   if(pErr){toast('Erro ao criar protocolo: '+pErr.message,'error');return;}
@@ -717,8 +767,70 @@ async function salvarProtocolo(){
     }
   }
 
-  toast(`Protocolo ${prot.numero} criado e enviado para aprovação!`,'success');
+  const msg=situacaoAlvo==='rascunho'
+    ?`Rascunho ${prot.numero} salvo! Envie para aprovação quando estiver pronto.`
+    :`Protocolo ${prot.numero} enviado para aprovação!`;
+  toast(msg,'success');
   fecharModal();await carregar();
+}
+
+// ── Timeline do fluxo ─────────────────────────────────────────
+function renderTimeline(p){
+  const etapas=[];
+  // Criação
+  if(p.criado_em) etapas.push({
+    icone:'📝', cor:'#6B7280',
+    label:'Solicitação criada',
+    data:p.criado_em,
+    desc:p.situacao==='rascunho'?'Rascunho salvo':'Enviado para aprovação'
+  });
+  // Aprovação
+  if(p.aprovado_em) etapas.push({
+    icone:'✅', cor:'#059669',
+    label:'Aprovado',
+    data:p.aprovado_em,
+    desc:'Aguardando emissão de SPDs pela UNESCO'
+  });
+  // Notificação UNESCO
+  if(p.notificado_unesco_em) etapas.push({
+    icone:'📧', cor:'#2563EB',
+    label:'UNESCO notificada',
+    data:p.notificado_unesco_em,
+    desc:'E-mail de solicitação enviado'
+  });
+  // Rejeição
+  if(p.rejeitado_em) etapas.push({
+    icone:'❌', cor:'#DC2626',
+    label:'Rejeitado',
+    data:p.rejeitado_em,
+    desc:p.rejeitado_motivo?`Motivo: ${p.rejeitado_motivo.substring(0,60)}`:''
+  });
+  // Prestação
+  if(p.situacao==='em_prestacao'||p.situacao==='realizado') etapas.push({
+    icone:'📋', cor:'#7C3AED',
+    label:'Prestação enviada',
+    data:null,
+    desc:'Documentos aguardando confirmação'
+  });
+  // Realizado
+  if(p.realizado_em) etapas.push({
+    icone:'🏁', cor:'#059669',
+    label:'Realizado',
+    data:p.realizado_em,
+    desc:'Lançado no financeiro'
+  });
+
+  if(!etapas.length) return '<div style="font-size:11px;color:var(--cinza-400)">Nenhum evento registrado.</div>';
+
+  return etapas.map((e,i)=>`
+    <div style="display:flex;gap:8px;align-items:flex-start;${i<etapas.length-1?'padding-bottom:8px;border-left:2px solid #D1FAE5;margin-left:9px;padding-left:12px;':'margin-left:9px;padding-left:12px;'}">
+      <div style="width:20px;height:20px;border-radius:50%;background:${e.cor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-left:-21px">${e.icone}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${e.label}</div>
+        ${e.data?`<div style="font-size:10px;color:var(--cinza-500)">${new Date(e.data).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`:''}
+        ${e.desc?`<div style="font-size:10px;color:var(--cinza-600);margin-top:1px">${esc(e.desc)}</div>`:''}
+      </div>
+    </div>`).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -730,10 +842,17 @@ async function abrirDetalhe(id){
     .eq('id',id).single();
   if(!p)return;
   protAtual=p;
-  const isAdmin=appState.perfil==='super_admin';
+  const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
   const viajantes=p.viajantes||[];
   const total=calcTotalProtocolo(p);
   const numDias=p.dt_retorno&&p.dt_saida?Math.ceil((new Date(p.dt_retorno)-new Date(p.dt_saida))/(1000*60*60*24)):null;
+
+  // Buscar saldo da atividade para admin/coordenação
+  let saldoAtiv=null;
+  if(isAdmin){
+    const{data:sal}=await db.from('vw_saldo_atividade').select('*').eq('id',ATIV_217).single();
+    saldoAtiv=sal;
+  }
 
   document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span style="font-size:14px;font-weight:500;color:var(--cinza-700);margin-left:8px">${esc(p.destino_principal||'—')}</span>`;
   document.getElementById('mp-sub').textContent=`${SIT_LABELS[p.situacao]||p.situacao} · ${viajantes.length} viajante${viajantes.length!==1?'s':''}`;
@@ -755,15 +874,20 @@ async function abrirDetalhe(id){
           <span style="color:var(--cinza-900)">${esc(v)}</span>
         </div>`).join('')}
     </div>
-    <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:12px;display:flex;flex-direction:column;justify-content:space-between">
+    <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:12px;display:flex;flex-direction:column;gap:10px">
       <div>
         <div style="font-size:10px;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total do protocolo</div>
-        <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--verde-medio)">${fmtBRL(total)}</div>
+        <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--verde-medio)">${fmtBRL(total)}</div>
+        ${isAdmin&&saldoAtiv?`<div style="margin-top:6px;padding:6px 8px;background:${total>(saldoAtiv.disponivel_usd*(saldoAtiv.cotacao||1)||99999)?'#FEF2F2':'#ECFDF5'};border-radius:var(--raio);border:1px solid ${total>(saldoAtiv.disponivel_usd*(saldoAtiv.cotacao||1)||99999)?'#FECACA':'#86EFAC'}">
+          <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:var(--cinza-500);margin-bottom:2px">Saldo da atividade</div>
+          <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${fmtBRL((saldoAtiv.disponivel_usd||0)*(saldoAtiv.cotacao||1))} disponível</div>
+          <div style="font-size:10px;color:var(--cinza-500)">U$ ${(saldoAtiv.disponivel_usd||0).toFixed(2)}</div>
+        </div>`:''}
       </div>
+      <!-- Timeline do fluxo -->
       <div>
-        <span class="sit-badge sb-${p.situacao}" style="font-size:11px">${SIT_LABELS[p.situacao]}</span>
-        ${p.aprovado_em?`<div style="font-size:11px;color:var(--cinza-500);margin-top:6px">Aprovado em ${fmtData(p.aprovado_em?.split('T')[0])}</div>`:''}
-        ${p.realizado_em?`<div style="font-size:11px;color:var(--verde-medio);margin-top:4px">✓ Realizado em ${fmtData(p.realizado_em?.split('T')[0])}</div>`:''}
+        <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:var(--cinza-500);margin-bottom:6px;letter-spacing:.05em">Histórico do fluxo</div>
+        ${renderTimeline(p)}
       </div>
     </div>
   </div>
@@ -854,10 +978,17 @@ async function abrirDetalhe(id){
         <button class="btn" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="abrirModalRejeitar()">✕ Rejeitar</button>
         <button class="btn btn-primary" onclick="aprovarProtocolo()">✓ Aprovar →</button></div>`;
     if(p.situacao==='aprovado')
-      footer+=`<button class="btn btn-primary" style="margin-left:auto" onclick="abrirFormSPDs()">✎ SPDs / Atualizar</button>`;
+      footer+=`<div style="display:flex;gap:8px;margin-left:auto">
+        ${!p.notificado_unesco_em?`<button class="btn" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="abrirModalEmail()">📧 Notificar UNESCO</button>`:`<span style="font-size:11px;color:#059669;display:flex;align-items:center;gap:4px">✉ UNESCO notificada em ${fmtData(p.notificado_unesco_em.split('T')[0])}</span>`}
+        <button class="btn btn-primary" onclick="abrirFormSPDs()">✎ SPDs / Atualizar</button>
+      </div>`;
     if(p.situacao==='em_prestacao')
       footer+=`<button class="btn btn-primary" style="margin-left:auto;background:#059669" onclick="realizarProtocolo()">✓ Confirmar realizado → lançar financeiro</button>`;
   }
+
+  // Rascunho: dono pode enviar para aprovação
+  if(p.situacao==='rascunho'&&ehDono)
+    footer+=`<button class="btn btn-primary" style="margin-left:auto" onclick="enviarParaAprovacao('${p.id}')">✈ Enviar para aprovação →</button>`;
 
   // Prestação: dono ou admin, quando aprovado
   if(p.situacao==='aprovado'&&(isAdmin||ehDono))
@@ -1144,6 +1275,99 @@ async function enviarPrestacao(){
 
   embarqueFiles={};relatorioFiles={};
   toast('Prestação enviada!','success');fecharModal();await carregar();
+}
+
+async function enviarParaAprovacao(id){
+  const{error}=await db.from('viagem_protocolos').update({situacao:'solicitado'}).eq('id',id);
+  if(error){toast('Erro: '+error.message,'error');return;}
+  toast('Protocolo enviado para aprovação!','success');
+  fecharModal();await carregar();
+}
+
+function abrirModalEmail(){
+  const p=protAtual;if(!p)return;
+  const viajantes=p.viajantes||[];
+
+  // Montar lista de beneficiários
+  const beneficiarios=viajantes.map((v,i)=>{
+    const trechos=(v.trechos||[]).sort((a,b)=>a.ordem-b.ordem);
+    const temPass=v.tem_passagem&&trechos.length>0;
+    const temDiar=v.tem_diaria;
+    let linha=`${i+1}. ${v.nome||'—'}`;
+    if(v.cpf) linha+=` | CPF: ${v.cpf}`;
+    if(v.funcao) linha+=` | ${v.funcao}`;
+    if(temPass){
+      const trechosStr=trechos.map(t=>`${t.origem||'—'} → ${t.destino||'—'}${t.dt_saida?' ('+fmtData(t.dt_saida)+')':''}`).join(', ');
+      linha+=`\n   Passagem: ${trechosStr}`;
+    }
+    if(temDiar){
+      const qtdDias=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0),0);
+      linha+=`\n   Diárias: ${qtdDias} diária(s)`;
+    }
+    return linha;
+  }).join('\n\n');
+
+  const aprovadoPor=appState.usuario?.nome_completo||'';
+  const dtAprov=p.aprovado_em?fmtData(p.aprovado_em.split('T')[0]):'';
+
+  const assunto=`Solicitação de Passagens e Diárias — ${p.numero}${p.numero_sei?' — SEI '+p.numero_sei:''}`;
+
+  const corpo=`Prezados,
+
+Encaminhamos solicitação de providências para emissão de passagens aéreas e pagamento de diárias referente ao Protocolo ${p.numero}, conforme autorização registrada${p.numero_sei?' no processo SEI nº '+p.numero_sei:''}.
+
+OBJETIVO DO EVENTO
+${p.objetivo||'—'}
+
+PERÍODO: ${p.dt_saida?fmtData(p.dt_saida):'—'} a ${p.dt_retorno?fmtData(p.dt_retorno):'—'}
+DESTINO: ${p.destino_principal||'—'}
+
+BENEFICIÁRIOS
+${beneficiarios||'—'}
+
+Esta solicitação foi devidamente analisada e aprovada por ${aprovadoPor}${dtAprov?' em '+dtAprov:''}, estando em conformidade com o plano de trabalho do Projeto 218BRA2001 — DIMA UNESCO/SEMA-AC.
+
+Solicitamos a emissão dos respectivos SPDs e confirmação de disponibilidade.
+
+Atenciosamente,
+${aprovadoPor}
+Secretaria de Estado do Meio Ambiente — SEMA/AC
+Projeto DIMA — UNESCO / Fundo Brasil`;
+
+  document.getElementById('email-para').value='';
+  document.getElementById('email-cc').value='';
+  document.getElementById('email-assunto').value=assunto;
+  document.getElementById('email-corpo').value=corpo;
+  document.getElementById('modal-email').classList.add('aberto');
+}
+
+async function enviarEmailUnesco(){
+  const para=document.getElementById('email-para').value.trim();
+  const cc=document.getElementById('email-cc').value.trim();
+  const assunto=encodeURIComponent(document.getElementById('email-assunto').value);
+  const corpo=encodeURIComponent(document.getElementById('email-corpo').value);
+  if(!para){toast('Informe o e-mail da UNESCO.','error');return;}
+
+  // Registrar no banco
+  if(protAtual){
+    await db.from('viagem_protocolos').update({
+      notificado_unesco_em:new Date().toISOString()
+    }).eq('id',protAtual.id);
+  }
+
+  // Abrir cliente de e-mail
+  const ccParam=cc?`&cc=${encodeURIComponent(cc)}`:'';
+  window.location.href=`mailto:${encodeURIComponent(para)}${ccParam}&subject=${assunto}&body=${corpo}`;
+
+  document.getElementById('modal-email').classList.remove('aberto');
+  toast('E-mail aberto no cliente de e-mail. UNESCO marcada como notificada.','success');
+  await carregar();
+  if(protAtual) abrirDetalhe(protAtual.id);
+}
+
+function copiarEmail(){
+  const corpo=document.getElementById('email-corpo').value;
+  navigator.clipboard.writeText(corpo).then(()=>toast('Texto copiado!','success'));
 }
 
 // ══════════════════════════════════════════════════════════════
