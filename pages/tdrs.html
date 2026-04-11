@@ -299,19 +299,20 @@ async function carregar(){
     let tdrQuery=db.from('tdrs').select(`*,atividades(codigo,nome_pt,responsavel_id),fornecedores(nome,tipo)`)
       .order('criado_em',{ascending:false});
 
-    // Técnico: vê TDRs que criou OU cujas atividades ele é responsável
+    // Técnico: vê TDRs que criou OU cujas atividades ele é responsável OU substituto
     if(appState.perfil==='tecnico'){
       const uid=appState.usuario.id;
-      // Buscar IDs das atividades onde é responsável
+      // Buscar IDs das atividades onde é responsável ou substituto
       const {data:ativsResp}=await db.from('atividades')
-        .select('id').eq('responsavel_id',uid);
+        .select('id')
+        .or(`responsavel_id.eq.${uid},substituto_id.eq.${uid}`);
       const idsAtivs=(ativsResp||[]).map(a=>a.id);
 
       if(idsAtivs.length>0){
-        // Ver TDRs criados por ele OU vinculados às suas atividades
+        // Ver TDRs criados por ele OU vinculados às suas atividades (responsável ou substituto)
         tdrQuery=tdrQuery.or(`criado_por.eq.${uid},atividade_id.in.(${idsAtivs.join(',')})`);
       } else {
-        // Não é responsável por nenhuma atividade — só vê os que criou
+        // Não é responsável nem substituto de nenhuma atividade — só vê os que criou
         tdrQuery=tdrQuery.eq('criado_por',uid);
       }
     }
