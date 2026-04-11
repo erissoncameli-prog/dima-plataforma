@@ -141,6 +141,15 @@ async function carregarUsuario() {
     appState.usuario = usuario;
     appState.perfil = usuario.perfil;
     appState.idioma = usuario.idioma_pref || appState.idioma;
+
+    // Registrar acesso: atualiza ultimo_acesso_em sempre;
+    // define primeiro_acesso_em apenas se ainda não foi registrado
+    const agora = new Date().toISOString();
+    const updates = { ultimo_acesso_em: agora };
+    if (!usuario.primeiro_acesso_em) updates.primeiro_acesso_em = agora;
+    db.from('usuarios').update(updates).eq('id', usuario.id)
+      .then(() => {}) // fire-and-forget, não bloqueia o carregamento
+      .catch(() => {});
   }
   return usuario;
 }
