@@ -969,7 +969,7 @@ async function abrirDetalhe(id){
               </tr>
             </tbody>
           </table>`:''}
-        ${['em_prestacao','realizado'].includes(p.situacao)?renderPrestacaoViajante(v):''}
+        ${renderPrestacaoViajante(v)}
       </div>
     </div>`;
   });
@@ -1005,31 +1005,37 @@ async function abrirDetalhe(id){
   if(p.situacao==='rascunho'&&ehDono)
     footer+=`<button class="btn btn-primary" style="margin-left:auto" onclick="enviarParaAprovacao('${p.id}')">✈ Enviar para aprovação →</button>`;
 
-  // Prestação: dono ou admin, quando aprovado
-  if(p.situacao==='aprovado'&&(isAdmin||ehDono))
-    footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="abrirPrestacao('${p.id}')">📋 Prestação de contas</button>`;
+  // Prestação: qualquer usuário com acesso pode editar enquanto não for realizado
+  if(p.situacao!=='realizado'&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(isAdmin||ehDono))
+    footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="abrirPrestacao('${p.id}')">📋 ${(p.viajantes||[]).some(v=>v.relatorio_url)?'✎ Atualizar prestação':'📋 Prestação de contas'}</button>`;
 
   document.getElementById('mp-footer').innerHTML=footer;
   document.getElementById('modal-prot').classList.add('aberto');
 }
 
 function renderPrestacaoViajante(v){
-  if(!v.relatorio_url&&!v.cartoes_embarque_urls?.length)return'';
+  const temCartoes=v.cartoes_embarque_urls?.length>0;
+  const temRelatorio=!!v.relatorio_url;
+  if(!temCartoes&&!temRelatorio)return'';
   let h=`<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;margin-top:8px">
     <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:8px">📋 Prestação de contas</div>`;
-  if(v.cartoes_embarque_urls?.length){
-    h+=`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:6px">Cartões de embarque</div>
-    <div class="embarque-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px">
+  if(temCartoes){
+    h+=`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:6px">Cartões de embarque (${v.cartoes_embarque_urls.length})</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
       ${v.cartoes_embarque_urls.map((url,i)=>`
-        <div class="embarque-thumb" onclick="abrirLightbox('${esc(url)}')">
-          <img src="${esc(url)}" alt="Cartão ${i+1}" loading="lazy"></div>`).join('')}
+        <div style="position:relative;aspect-ratio:4/3;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);cursor:pointer"
+          onclick="abrirLightbox('${esc(url)}')">
+          <img src="${esc(url)}" alt="Cartão ${i+1}" loading="lazy"
+            style="width:100%;height:100%;object-fit:cover"
+            onerror="this.parentNode.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;font-size:20px;color:var(--cinza-400)\'>🖼</div>'">
+        </div>`).join('')}
     </div>`;
   }
-  if(v.relatorio_url){
+  if(temRelatorio){
     h+=`<div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:16px">📄</span>
       <div style="flex:1;font-size:11px"><strong>${esc(v.relatorio_nome||'Relatório')}</strong> — PDF assinado</div>
-      <button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="window.open('${esc(v.relatorio_url)}','_blank')">Abrir</button>
+      <a class="btn btn-sm btn-secondary" style="font-size:11px" href="${esc(v.relatorio_url)}" target="_blank" rel="noopener">Abrir</a>
     </div>`;
   }
   return h+'</div>';
