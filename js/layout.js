@@ -42,11 +42,19 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   const navHtml = navGroups.map(group => {
     const itens = navItems.filter(item => group.ids.includes(item.id));
     const linhas = itens.map(item => {
-      if (item.perfis && !item.perfis.includes(appState.perfil)) return '';
+      // Acesso por perfil (regra base) OU por permissão extra dinâmica
+      const temPerfil = !item.perfis || item.perfis.includes(appState.perfil);
+      const temPermissao = (appState.permissoes || []).includes(item.id);
+      if (!temPerfil && !temPermissao) return '';
       const ativo = paginaAtiva === item.id ? 'ativo' : '';
-      return `<a class="nav-item ${ativo}" href="${item.href}">
-        <span style="font-size:14px">${item.icone}</span>
-        <span>${t('nav', item.id)}</span>
+      // Indicador visual de acesso extra (não é do perfil padrão)
+      const extraTag = (!temPerfil && temPermissao)
+        ? `<span style="font-size:8px;background:rgba(255,255,255,.18);color:rgba(255,255,255,.8);padding:1px 5px;border-radius:99px;margin-left:auto;flex-shrink:0" title="Acesso extra concedido pelo administrador">extra</span>`
+        : '';
+      return `<a class="nav-item ${ativo}" href="${item.href}" style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px;flex-shrink:0">${item.icone}</span>
+        <span style="flex:1">${t('nav', item.id)}</span>
+        ${extraTag}
       </a>`;
     }).join('');
     if (!linhas.trim()) return '';

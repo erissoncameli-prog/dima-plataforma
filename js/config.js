@@ -124,7 +124,8 @@ const i18n = {
 let appState = {
   usuario: null, perfil: null,
   idioma: localStorage.getItem('dima_idioma') || 'pt',
-  sessao: null
+  sessao: null,
+  permissoes: []   // módulos extras liberados dinamicamente pelo super_admin
 };
 
 function t(secao, chave) {
@@ -136,17 +137,31 @@ async function carregarUsuario() {
   const { data: { session } } = await db.auth.getSession();
   if (!session) return null;
   appState.sessao = session;
-  const { data: usuario } = await db.from('usuarios').select('*').eq('id', session.user.id).single();
+
+  const [{ data: usuario }, { data: permsRaw }] = await Promise.all([
+    db.from('usuarios').select('*').eq('id', session.user.id).single(),
+    db.from('usuario_permissoes')
+      .select('modulo,valido_ate')
+      .eq('usuario_id', session.user.id)
+      .eq('ativo', true)
+      .lte('valido_de', new Date().toISOString())
+  ]);
+
   if (usuario) {
     appState.usuario = usuario;
     appState.perfil = usuario.perfil;
     appState.idioma = usuario.idioma_pref || appState.idioma;
 
-    // Registrar acesso: atualiza ultimo_acesso_em sempre;
-    // define primeiro_acesso_em apenas se ainda não foi registrado
-    const agora = new Date().toISOString();
-    const updates = { ultimo_acesso_em: agora };
-    if (!usuario.primeiro_acesso_em) updates.primeiro_acesso_em = agora;
+    // Filtrar permissões que ainda não expiraram
+    const agora = new Date();
+    appState.permissoes = (permsRaw || [])
+      .filter(p => !p.valido_ate || new Date(p.valido_ate) > agora)
+      .map(p => p.modulo);
+
+    // Registrar acesso
+    const agoraISO = agora.toISOString();
+    const updates = { ultimo_acesso_em: agoraISO };
+    if (!usuario.primeiro_acesso_em) updates.primeiro_acesso_em = agoraISO;
     try {
       await db.from('usuarios').update(updates).eq('id', usuario.id);
     } catch(e) { /* não crítico */ }

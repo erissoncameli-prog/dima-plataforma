@@ -119,6 +119,21 @@ const PERFIS_LIST=Object.keys(PERFIS);
 const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmtDT=d=>d?new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
 
+// Módulos disponíveis para concessão de acesso extra
+const MODULOS_LISTA = [
+  { id:'dashboard',    icone:'⊞', label:'Dashboard',            perfis:null },
+  { id:'atividades',   icone:'◈', label:'Atividades',           perfis:null },
+  { id:'tdrs',         icone:'◧', label:'TDRs',                 perfis:null },
+  { id:'matriz',       icone:'◎', label:'Matriz de Resultados', perfis:null },
+  { id:'fornecedores', icone:'◫', label:'Fornecedores',         perfis:['super_admin','coordenacao','financeiro','tecnico'] },
+  { id:'contratos',    icone:'◪', label:'Contratos',            perfis:['super_admin','coordenacao','financeiro'] },
+  { id:'produtos',     icone:'◉', label:'Produtos Entregues',   perfis:['super_admin','coordenacao','tecnico'] },
+  { id:'financeiro',   icone:'◈', label:'Financeiro',           perfis:['super_admin','coordenacao','financeiro'] },
+  { id:'viagens',      icone:'✈', label:'Viagens',              perfis:['super_admin','coordenacao','financeiro','tecnico'] },
+  { id:'repositorio',  icone:'🔗', label:'Repositório',          perfis:null },
+  { id:'usuarios',     icone:'◍', label:'Usuários',             perfis:['super_admin'] },
+];
+
 let todosUsuarios=[],solicitacoes=[];
 let usuarioAtual=null;
 
@@ -255,6 +270,12 @@ async function abrirUsuario(id){
   usuarioAtual=u;
   const solUser=solicitacoes.filter(s=>s.usuario_id===id);
 
+  // Carregar permissões extras existentes para este usuário
+  const {data:permsDB}=await db.from('usuario_permissoes')
+    .select('*').eq('usuario_id',id).eq('ativo',true);
+  const permsMap={}; // modulo → registro
+  (permsDB||[]).forEach(p=>permsMap[p.modulo]=p);
+
   document.getElementById('mu-titulo').textContent=u.nome_completo||'Usuário';
   document.getElementById('mu-sub').textContent=`${PERFIS[u.perfil]||u.perfil} · ${u.email}`;
 
@@ -311,6 +332,60 @@ async function abrirUsuario(id){
         <span style="color:var(--cinza-500);min-width:140px">${l}</span>
         <span style="color:var(--cinza-900)">${v}</span>
       </div>`).join('')}
+    </div>
+
+    <!-- Permissões de acesso -->
+    <div style="border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;margin-bottom:14px">
+      <div style="padding:10px 14px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:8px">
+        <span style="font-size:14px">🔐</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--cinza-900)">Permissões de acesso</div>
+          <div style="font-size:10px;color:var(--cinza-500)">Módulos com <span style="background:#D1FAE5;color:#065F46;padding:0 4px;border-radius:3px">perfil</span> já são acessíveis pelo perfil do usuário. Os demais podem ser liberados individualmente com validade opcional.</div>
+        </div>
+      </div>
+      <div style="padding:10px 14px">
+        ${MODULOS_LISTA.map(m=>{
+          const temPerfil=!m.perfis||m.perfis.includes(u.perfil);
+          const perm=permsMap[m.modulo];
+          const temExtra=!!perm;
+          const expirado=perm?.valido_ate&&new Date(perm.valido_ate)<new Date();
+          // Data/hora local para preencher o input (formato datetime-local: YYYY-MM-DDTHH:MM)
+          const validAteVal=perm?.valido_ate
+            ?new Date(new Date(perm.valido_ate).getTime()-new Date().getTimezoneOffset()*60000)
+              .toISOString().slice(0,16)
+            :'';
+          return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--borda)" id="perm-row-${m.id}">
+            <!-- Checkbox -->
+            <input type="checkbox" id="perm-chk-${m.id}"
+              ${temPerfil||temExtra?'checked':''}
+              ${temPerfil?'disabled':''}
+              style="width:15px;height:15px;flex-shrink:0;accent-color:var(--verde-medio)"
+              onchange="togglePermRow('${m.id}','${id}')">
+            <!-- Ícone + label -->
+            <span style="font-size:13px;flex-shrink:0">${m.icone}</span>
+            <span style="font-size:12px;font-weight:500;color:var(--cinza-900);flex:1">${m.label}</span>
+            <!-- Tag de origem -->
+            ${temPerfil
+              ?`<span style="font-size:9px;background:#D1FAE5;color:#065F46;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">perfil</span>`
+              :temExtra&&!expirado
+                ?`<span style="font-size:9px;background:#EFF6FF;color:#1E40AF;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">extra</span>`
+                :expirado
+                  ?`<span style="font-size:9px;background:#FEE2E2;color:#DC2626;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">expirado</span>`
+                  :`<span style="font-size:9px;background:var(--cinza-100);color:var(--cinza-500);padding:1px 7px;border-radius:99px;flex-shrink:0">sem acesso</span>`}
+            <!-- Campo de validade (só para extras) -->
+            ${!temPerfil?`
+            <div id="perm-dt-wrap-${m.id}" style="display:${temExtra?'flex':'none'};align-items:center;gap:4px">
+              <label style="font-size:9px;color:var(--cinza-500);white-space:nowrap">Válido até</label>
+              <input type="datetime-local" id="perm-dt-${m.id}" value="${validAteVal}"
+                style="font-size:10px;padding:3px 6px;border:1px solid var(--borda);border-radius:var(--raio);font-family:var(--font-mono);width:155px">
+              <span style="font-size:9px;color:var(--cinza-400)">(vazio = sem expiração)</span>
+            </div>`:''}
+          </div>`;
+        }).join('')}
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="salvarPermissoes('${u.id}')">💾 Salvar permissões</button>
+        </div>
+      </div>
     </div>
 
     <!-- Reset de senha -->
@@ -374,6 +449,66 @@ async function salvarUsuario(id){
     toast('Usuário atualizado!','success');
   }
   fecharModal();await carregarDados();
+}
+
+// ── Permissões dinâmicas ───────────────────────────────────────
+function togglePermRow(modulo, userId){
+  const chk=document.getElementById(`perm-chk-${modulo}`);
+  const dtWrap=document.getElementById(`perm-dt-wrap-${modulo}`);
+  if(dtWrap) dtWrap.style.display=chk?.checked?'flex':'none';
+}
+
+async function salvarPermissoes(userId){
+  const agora=appState.usuario.id;
+  const ops=[];
+
+  for(const m of MODULOS_LISTA){
+    const chk=document.getElementById(`perm-chk-${m.id}`);
+    if(!chk||chk.disabled) continue; // módulos do perfil: ignorar
+
+    const marcado=chk.checked;
+    const dtEl=document.getElementById(`perm-dt-${m.id}`);
+    const validAte=dtEl?.value ? new Date(dtEl.value).toISOString() : null;
+
+    if(marcado){
+      // UPSERT: inserir ou atualizar
+      ops.push(
+        db.from('usuario_permissoes').upsert({
+          usuario_id:  userId,
+          modulo:      m.id,
+          ativo:       true,
+          valido_de:   new Date().toISOString(),
+          valido_ate:  validAte,
+          concedido_por: agora,
+          concedido_em:  new Date().toISOString(),
+          revogado_por:  null,
+          revogado_em:   null,
+          motivo:        null
+        },{onConflict:'usuario_id,modulo'})
+      );
+    } else {
+      // Revogar: ativo=false + registrar quem revogou
+      ops.push(
+        db.from('usuario_permissoes').update({
+          ativo:       false,
+          revogado_por: agora,
+          revogado_em:  new Date().toISOString()
+        }).eq('usuario_id', userId).eq('modulo', m.id)
+      );
+    }
+  }
+
+  const resultados=await Promise.all(ops);
+  const erros=resultados.filter(r=>r.error);
+  if(erros.length){
+    toast('Erro ao salvar permissões: '+erros[0].error.message,'error');
+    return;
+  }
+  toast('Permissões salvas com sucesso!','success');
+  // Reabrir para refletir estado atualizado
+  fecharModal();
+  await carregarDados();
+  setTimeout(()=>abrirUsuario(userId),200);
 }
 
 async function toggleAtivo(id,estaAtivo){
