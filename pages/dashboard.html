@@ -199,7 +199,7 @@ window.mudarAba = function(id,btn){
 async function loadData(){
   var r = await Promise.all([
     db.from('atividades').select('*'),
-    db.from('tdrs').select('*,responsavel:usuarios!tdrs_responsavel_id_fkey(id,nome_completo)'),
+    db.from('tdrs').select('*,atividades(codigo,responsavel:usuarios!atividades_responsavel_id_fkey(id,nome_completo))'),
     db.from('resultados').select('*'),
     db.from('vw_saldo_atividade').select('*'),
     db.from('indicadores').select('*,resultados(codigo,nome_pt)').eq('ativo',true),
@@ -386,7 +386,7 @@ function renderOperacional(){
   // TDRs por responsável
   var respSet=new Map();
   D.tdrs.forEach(function(t){
-    var nome=(t.responsavel&&t.responsavel.nome_completo)||'Sem responsável';
+    var nome=(t.atividades&&t.atividades.responsavel&&t.atividades.responsavel.nome_completo)||'Sem responsável';
     if(!respSet.has(nome))respSet.set(nome,{rascunho:0,revisao_interna:0,ajustes:0,enviado_unesco:0,retorno_unesco:0,aprovado:0,cancelado:0});
     var r=respSet.get(nome);
     if(r[t.status]!==undefined)r[t.status]++;else r['rascunho']++;

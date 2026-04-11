@@ -299,7 +299,7 @@ function podeEditarFase(status){
 
 async function carregar(){
   try{
-    let tdrQuery=db.from('tdrs').select(`*,atividades(codigo,nome_pt,responsavel_id),fornecedores(nome,tipo),responsavel:usuarios!tdrs_responsavel_id_fkey(id,nome_completo)`)
+    let tdrQuery=db.from('tdrs').select(`*,atividades(codigo,nome_pt,responsavel_id,responsavel:usuarios!atividades_responsavel_id_fkey(id,nome_completo)),fornecedores(nome,tipo)`)
       .order('criado_em',{ascending:false});
 
     // Técnico: vê TDRs que criou OU cujas atividades ele é responsável OU substituto
@@ -339,17 +339,20 @@ function renderStats(){
     <div class="stat-card sc-a"><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:14px">${fmtBRL(t.filter(x=>x.status!=='cancelado').reduce((s,x)=>s+parseFloat(x.valor_brl||0),0))}</div><div class="stat-sub">TDRs ativos</div></div>`;
 }
 
+function getResponsavelTDR(t){
+  // Responsável vem da atividade vinculada
+  return t.atividades?.responsavel || null;
+}
+
 function popularFiltroResp(){
   const sel=document.getElementById('fil-resp');
   if(!sel)return;
-  // Coletar responsáveis únicos com nome
+  // Coletar responsáveis únicos via atividade
   const mapa=new Map();
   todosTDRs.forEach(t=>{
-    if(t.responsavel?.id && t.responsavel?.nome_completo){
-      mapa.set(t.responsavel.id, t.responsavel.nome_completo);
-    }
+    const r=getResponsavelTDR(t);
+    if(r?.id && r?.nome_completo) mapa.set(r.id, r.nome_completo);
   });
-  // Manter a seleção atual
   const atual=sel.value;
   sel.innerHTML='<option value="">Todos os responsáveis</option>';
   [...mapa.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id,nome])=>{
@@ -369,7 +372,7 @@ function filtrar(){
     if(b&&!t.numero.toLowerCase().includes(b)&&!(t.objeto_pt||'').toLowerCase().includes(b))return false;
     if(s&&t.status!==s)return false;
     if(tp&&t.tipo!==tp)return false;
-    if(resp&&t.responsavel?.id!==resp)return false;
+    if(resp&&getResponsavelTDR(t)?.id!==resp)return false;
     return true;
   });
   document.getElementById('cont').textContent=`${f.length} de ${todosTDRs.length} TDRs`;
