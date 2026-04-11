@@ -91,6 +91,27 @@
     <div class="modal-footer" id="mp-footer"></div>
   </div>
 </div>
+<!-- Modal rejeição -->
+<div class="modal-overlay" id="modal-rejeitar">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div><div class="modal-title">Rejeitar protocolo</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Informe o motivo da rejeição ao solicitante</div></div>
+      <button class="modal-close" onclick="document.getElementById('modal-rejeitar').classList.remove('aberto')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div class="form-group">
+        <label class="form-label">Motivo da rejeição <span class="obrig">*</span></label>
+        <textarea class="form-control" id="rejeitar-motivo" rows="4"
+          placeholder="Descreva o motivo para que o solicitante possa corrigir e reenviar..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-rejeitar').classList.remove('aberto')">Cancelar</button>
+      <button class="btn" style="margin-left:auto;background:#DC2626;color:#fff;border:1px solid #DC2626" onclick="confirmarRejeitar()">✕ Confirmar rejeição</button>
+    </div>
+  </div>
+</div>
 <div id="lightbox" onclick="fecharLightbox()">
   <button onclick="fecharLightbox()" style="position:absolute;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;background:none;border:none">✕</button>
   <img id="lb-img" src="" alt="" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px">
@@ -121,8 +142,13 @@ const esc=escV;
 (async()=>{
   const u=await carregarUsuario();
   if(!u){window.location.href='../index.html';return;}
+
+  const isTecnico=appState.perfil==='tecnico';
+  const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
+
   document.getElementById('app').innerHTML=gerarLayout('Viagens e Diárias','viagens')+`
     <div class="fade-in">
+      <div id="notif-banner"></div>
       <div class="stat-row" id="stats"></div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
         <input class="form-control" id="f-busca" style="width:240px" placeholder="🔍 Buscar protocolo, viajante, destino..."
@@ -131,15 +157,18 @@ const esc=escV;
           <option value="">Todas as situações</option>
           ${Object.entries(SIT_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
         </select>
+        ${isTecnico?`<span style="font-size:11px;color:var(--cinza-500);background:var(--cinza-50);border:1px solid var(--borda);padding:4px 10px;border-radius:99px">👤 Meus protocolos</span>`:''}
         <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormNovo()">+ Novo protocolo</button>
-        <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>
+        ${isAdmin?`<button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>`:''}
       </div>
       <div id="lista-protocolos"></div>
     </div>`+`</div></div></div>`;
-  await carregar();
+
+  await Promise.all([carregar(), carregarNotificacoes()]);
 })();
 
 async function carregar(){
+  // RLS já filtra por perfil no banco; a query é a mesma para todos
   const{data}=await db.from('viagem_protocolos')
     .select(`*,viajantes:viagem_viajantes(
       *,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)
@@ -147,6 +176,36 @@ async function carregar(){
     .order('criado_em',{ascending:false});
   protocolos=data||[];
   renderStats();filtrar();
+}
+
+// ── NOTIFICAÇÕES ──────────────────────────────────────────────
+async function carregarNotificacoes(){
+  try{
+    const{data}=await db.from('notificacoes')
+      .select('*').eq('usuario_id',appState.usuario.id)
+      .eq('lida',false)
+      .eq('entidade_tipo','viagem_protocolos')
+      .order('criado_em',{ascending:false})
+      .limit(10);
+    if(!data?.length)return;
+    const el=document.getElementById('notif-banner');
+    if(!el)return;
+    el.innerHTML=data.map(n=>`
+      <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+        <span style="font-size:18px;flex-shrink:0">${n.tipo==='viagem_aprovada'?'✅':n.tipo==='viagem_rejeitada'?'❌':n.tipo==='viagem_prestacao'?'📋':'🔔'}</span>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">${n.titulo}</div>
+          ${n.mensagem?`<div style="font-size:11px;color:var(--cinza-600);margin-top:2px">${n.mensagem}</div>`:''}
+          <div style="font-size:10px;color:var(--cinza-400);margin-top:3px">${new Date(n.criado_em).toLocaleString('pt-BR')}</div>
+        </div>
+        <button onclick="marcarLida('${n.id}',this.parentNode)" style="font-size:10px;color:var(--cinza-400);background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0">✕ marcar lida</button>
+      </div>`).join('');
+  }catch(e){}
+}
+
+async function marcarLida(id,el){
+  try{await db.from('notificacoes').update({lida:true}).eq('id',id);}catch(e){}
+  el?.remove();
 }
 
 function renderStats(){
@@ -778,19 +837,30 @@ async function abrirDetalhe(id){
 
   document.getElementById('mp-body').innerHTML=html;
 
-  // Footer
+  const ehDono=p.criado_por===appState.usuario.id;
+
+  // Footer — botões por perfil e fase
   let footer=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
+
+  // Técnico: pode cancelar se ainda solicitado e for dono
+  if(ehDono && p.situacao==='solicitado' && !isAdmin){
+    footer+=`<button class="btn" style="margin-left:8px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="cancelarProtocolo()">✕ Cancelar solicitação</button>`;
+  }
+
+  // Admin: aprovar/rejeitar/SPDs/realizar
   if(isAdmin){
     if(p.situacao==='solicitado')
       footer+=`<div style="display:flex;gap:8px;margin-left:auto">
-        <button class="btn btn-danger btn-sm" onclick="rejeitarProtocolo()">✕ Rejeitar</button>
+        <button class="btn" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="abrirModalRejeitar()">✕ Rejeitar</button>
         <button class="btn btn-primary" onclick="aprovarProtocolo()">✓ Aprovar →</button></div>`;
     if(p.situacao==='aprovado')
       footer+=`<button class="btn btn-primary" style="margin-left:auto" onclick="abrirFormSPDs()">✎ SPDs / Atualizar</button>`;
     if(p.situacao==='em_prestacao')
       footer+=`<button class="btn btn-primary" style="margin-left:auto;background:#059669" onclick="realizarProtocolo()">✓ Confirmar realizado → lançar financeiro</button>`;
   }
-  if(p.situacao==='aprovado'&&(isAdmin||p.criado_por===appState.usuario.id))
+
+  // Prestação: dono ou admin, quando aprovado
+  if(p.situacao==='aprovado'&&(isAdmin||ehDono))
     footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="abrirPrestacao('${p.id}')">📋 Prestação de contas</button>`;
 
   document.getElementById('mp-footer').innerHTML=footer;
@@ -846,21 +916,40 @@ async function aprovarProtocolo(){
   fecharModal();await carregar();
 }
 
-async function rejeitarProtocolo(){
-  const motivo=prompt('Motivo da rejeição:');if(motivo===null)return;
+function abrirModalRejeitar(){
+  document.getElementById('rejeitar-motivo').value='';
+  document.getElementById('modal-rejeitar').classList.add('aberto');
+}
+
+async function confirmarRejeitar(){
+  const motivo=document.getElementById('rejeitar-motivo').value.trim();
+  if(!motivo){toast('Informe o motivo da rejeição.','error');return;}
+  document.getElementById('modal-rejeitar').classList.remove('aberto');
   const p=protAtual;
   await db.from('viagem_protocolos').update({
     situacao:'rejeitado',rejeitado_por:appState.usuario.id,
     rejeitado_em:new Date().toISOString(),rejeitado_motivo:motivo
   }).eq('id',p.id);
   // Notificar solicitante
-  await db.from('notificacoes').insert({
-    usuario_id:p.criado_por,tipo:'viagem_rejeitada',
-    titulo:`Protocolo ${p.numero} rejeitado`,
-    mensagem:`Motivo: ${motivo}`,
-    lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
-  });
+  if(p.criado_por){
+    await db.from('notificacoes').insert({
+      usuario_id:p.criado_por,tipo:'viagem_rejeitada',
+      titulo:`Protocolo ${p.numero} rejeitado`,
+      mensagem:`Motivo: ${motivo}`,
+      lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
+    });
+  }
   toast('Protocolo rejeitado.','info');fecharModal();await carregar();
+}
+
+async function cancelarProtocolo(){
+  const p=protAtual;if(!p)return;
+  if(!confirm(`Cancelar a solicitação do protocolo ${p.numero}? Esta ação não pode ser desfeita.`))return;
+  const{error}=await db.from('viagem_protocolos').update({
+    situacao:'cancelado'
+  }).eq('id',p.id).eq('criado_por',appState.usuario.id);
+  if(error){toast('Erro ao cancelar: '+error.message,'error');return;}
+  toast('Solicitação cancelada.','info');fecharModal();await carregar();
 }
 
 // ── SPDs ──────────────────────────────────────────────────────
