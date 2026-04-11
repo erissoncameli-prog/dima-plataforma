@@ -339,7 +339,7 @@ function abrirFormNovo(){
   document.getElementById('mp-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
     <button class="btn btn-secondary" style="margin-left:8px" onclick="salvarProtocolo('rascunho')">💾 Salvar rascunho</button>
-    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarProtocolo('solicitado')">✈ Enviar para aprovação →</button>`;
+    <button class="btn btn-primary" id="btn-enviar-aprov" style="margin-left:auto;opacity:.4;cursor:not-allowed" disabled title="Salve o rascunho primeiro" onclick="salvarProtocolo('solicitado')">✈ Enviar para aprovação →</button>`;
   document.getElementById('modal-prot').classList.add('aberto');
   addViajante(); // iniciar com 1 viajante
 }
@@ -771,6 +771,21 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
     ?`Rascunho ${prot.numero} salvo! Envie para aprovação quando estiver pronto.`
     :`Protocolo ${prot.numero} enviado para aprovação!`;
   toast(msg,'success');
+
+  if(situacaoAlvo==='rascunho'){
+    // Ativar botão de envio após salvar rascunho com sucesso
+    const btnEnv=document.getElementById('btn-enviar-aprov');
+    if(btnEnv){
+      btnEnv.disabled=false;
+      btnEnv.style.opacity='1';
+      btnEnv.style.cursor='pointer';
+      btnEnv.removeAttribute('title');
+    }
+    // Recarregar lista em background sem fechar o modal
+    carregar();
+    return;
+  }
+
   fecharModal();await carregar();
 }
 
