@@ -296,12 +296,26 @@ function podeEditarFase(status){
 
 async function carregar(){
   try{
-    // Controle de acesso: técnico só vê TDRs que criou
-    let tdrQuery=db.from('tdrs').select(`*,atividades(codigo,nome_pt),fornecedores(nome,tipo)`)
+    let tdrQuery=db.from('tdrs').select(`*,atividades(codigo,nome_pt,responsavel_id),fornecedores(nome,tipo)`)
       .order('criado_em',{ascending:false});
+
+    // Técnico: vê TDRs que criou OU cujas atividades ele é responsável
     if(appState.perfil==='tecnico'){
-      tdrQuery=tdrQuery.eq('criado_por',appState.usuario.id);
+      const uid=appState.usuario.id;
+      // Buscar IDs das atividades onde é responsável
+      const {data:ativsResp}=await db.from('atividades')
+        .select('id').eq('responsavel_id',uid);
+      const idsAtivs=(ativsResp||[]).map(a=>a.id);
+
+      if(idsAtivs.length>0){
+        // Ver TDRs criados por ele OU vinculados às suas atividades
+        tdrQuery=tdrQuery.or(`criado_por.eq.${uid},atividade_id.in.(${idsAtivs.join(',')})`);
+      } else {
+        // Não é responsável por nenhuma atividade — só vê os que criou
+        tdrQuery=tdrQuery.eq('criado_por',uid);
+      }
     }
+
     const [{data:tdrs},{data:ativs}]=await Promise.all([
       tdrQuery,
       db.from('atividades').select('id,codigo,nome_pt').order('codigo')
