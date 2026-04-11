@@ -206,10 +206,13 @@ async function loadData(){
     db.from('execucao_financeira').select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome),contratos(id,numero)'),
     db.from('fornecedores').select('id,nome,tipo'),
     db.from('contratos').select('id,numero,objeto_pt'),
+    db.from('matriz_itens').select('id,resultado,produto_codigo,indicador,meta_numerica,unidade').eq('ativo',true).order('ordem'),
+    db.from('vw_matriz_progresso').select('*'),
   ]);
   D.atv=r[0].data||[]; D.tdrs=r[1].data||[]; D.res=r[2].data||[];
   D.sal=r[3].data||[]; D.ind=r[4].data||[]; D.lanc=r[5].data||[];
   D.forns=r[6].data||[]; D.contr=r[7].data||[];
+  D.matrizItens=r[8].data||[]; D.matrizProg=r[9].data||[];
   D.lancFilt = D.lanc.slice(); // cópia para filtros
 
   renderFinanciadores();
@@ -468,7 +471,67 @@ function renderResultados(){
   var orc=D.atv.reduce(function(s,a){return s+parseFloat(a.orcamento_usd||0);},0);
   var metasProg=D.ind.filter(function(i){return parseFloat(i.valor_atingido||0)>0;}).length;
 
-  var h='<div class="kpi-row">';
+  // ── Widget Matriz de Resultados ───────────────────────────
+  var h='';
+  if(D.matrizItens&&D.matrizItens.length){
+    var mProg=D.matrizProg||[];
+    var totalInd=D.matrizItens.length;
+    var comMeta=D.matrizItens.filter(function(i){return parseFloat(i.meta_numerica||0)>0;});
+    var atingidos=comMeta.filter(function(i){
+      var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+      return parseFloat(p.pct_confirmado||0)>=100;
+    }).length;
+    var emRisco=comMeta.filter(function(i){
+      var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+      return parseFloat(p.pct_confirmado||0)<40;
+    }).length;
+    var pendConf=mProg.reduce(function(s,p){return s+parseFloat(p.realizado_pendente||0);},0);
+    var mediaGeral=comMeta.length?Math.round(comMeta.reduce(function(s,i){
+      var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+      return s+Math.min(parseFloat(p.pct_confirmado||0),100);
+    },0)/comMeta.length):0;
+
+    // Por resultado (1, 2, 3)
+    var coresRes={1:'#1D9E75',2:'#2563EB',3:'#7F77DD'};
+    var resBlocks=[1,2,3].map(function(r){
+      var itensR=comMeta.filter(function(i){return i.resultado===r;});
+      if(!itensR.length)return'';
+      var mediaR=Math.round(itensR.reduce(function(s,i){
+        var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+        return s+Math.min(parseFloat(p.pct_confirmado||0),100);
+      },0)/itensR.length);
+      var cor=coresRes[r];
+      var hasPend=itensR.some(function(i){var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{realizado_pendente:0};return parseFloat(p.realizado_pendente||0)>0;});
+      return '<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
+        +'<span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:'+cor+';color:#fff;padding:1px 7px;border-radius:3px">R'+r+'</span>'
+        +(hasPend?'<span style="font-size:9px;background:#FEF3C7;color:#92400E;padding:1px 5px;border-radius:3px;font-weight:700">⏳ pend.</span>':'')
+        +'<span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+cor+'">'+mediaR+'%</span>'
+        +'</div>'
+        +'<div style="height:6px;background:var(--cinza-100);border-radius:3px;overflow:hidden">'
+        +'<div style="height:100%;background:'+cor+';width:'+mediaR+'%;border-radius:3px;transition:width .5s"></div>'
+        +'</div>'
+        +'<div style="font-size:9px;color:var(--cinza-400);margin-top:2px">'+itensR.length+' indicadores</div>'
+        +'</div>';
+    }).join('');
+
+    h='<div class="ch" style="margin-bottom:14px;border-color:#D1FAE5;background:linear-gradient(135deg,#F0FDF4 0%,#fff 100%)">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      +'<div><div class="ch-tit" style="color:#1D9E75">◎ Matriz de Resultados — Progresso</div><div class="ch-sub">Contribuições confirmadas pelos técnicos</div></div>'
+      +'<a href="matriz.html" style="font-size:11px;color:#1D9E75;font-weight:600;text-decoration:none;padding:4px 10px;border:1px solid #A7F3D0;border-radius:5px">Ver completo →</a>'
+      +'</div>'
+      +'<div style="display:flex;gap:16px;margin-bottom:14px">'
+      +'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:#059669;font-family:var(--font-mono)">'+mediaGeral+'%</div><div style="font-size:10px;color:var(--cinza-500)">progresso médio</div></div>'
+      +'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:#059669;font-family:var(--font-mono)">'+atingidos+'</div><div style="font-size:10px;color:var(--cinza-500)">metas atingidas</div></div>'
+      +'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:'+(emRisco>0?'#DC2626':'#059669')+';font-family:var(--font-mono)">'+emRisco+'</div><div style="font-size:10px;color:var(--cinza-500)">em risco (&lt;40%)</div></div>'
+      +(pendConf>0?'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:#D97706;font-family:var(--font-mono)">'+Math.round(pendConf)+'</div><div style="font-size:10px;color:var(--cinza-500)">aguardam conf.</div></div>':'')
+      +'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:var(--cinza-700);font-family:var(--font-mono)">'+totalInd+'</div><div style="font-size:10px;color:var(--cinza-500)">indicadores</div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:10px">'+resBlocks+'</div>'
+      +'</div>';
+  }
+
+  h+='<div class="kpi-row">';
   h+='<div class="kpi-card kv"><div class="kpi-lbl">Metas com progresso</div><div class="kpi-val" style="color:var(--sucesso)">'+metasProg+' / '+D.ind.length+'</div><div class="kpi-sub">indicadores com valor > 0</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+D_P(metasProg,D.ind.length)+'%;background:var(--sucesso)"></div></div></div>';
   h+='<div class="kpi-card ko"><div class="kpi-lbl">Financeiro vs metas</div><div class="kpi-val" style="color:var(--ouro)">'+(orc>0?pago/orc*100:0).toFixed(1)+'%</div><div class="kpi-sub">pago vs. orçamento total</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+(orc>0?Math.min(pago/orc*100,100):0)+'%;background:var(--ouro)"></div></div></div>';
   h+='<div class="kpi-card ke"><div class="kpi-lbl">Indicadores em risco</div><div class="kpi-val" style="color:var(--erro)">'+(D.ind.length-metasProg)+'</div><div class="kpi-sub">sem avanço registrado</div></div>';

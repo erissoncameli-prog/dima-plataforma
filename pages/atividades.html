@@ -645,6 +645,54 @@ function abrirModal(id) {
     <div class="form-group">
       <label class="form-label">Eixo</label>
       <input class="form-control" id="ed-eixo" type="text" value="${a.eixo||''}" placeholder="Ex: Governança">
+    </div>
+
+    <!-- ODS vinculados -->
+    <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px;margin-top:4px">
+      <div style="font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">ODS Vinculados <span style="font-weight:400;color:var(--cinza-400)">(opcional)</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px" id="ods-checks">
+        ${[
+          ['1','Erradicação da Pobreza','#E5243B'],
+          ['2','Fome Zero','#DDA63A'],
+          ['3','Saúde','#4C9F38'],
+          ['4','Educação','#C5192D'],
+          ['5','Igualdade de Gênero','#FF3A21'],
+          ['6','Água Potável','#26BDE2'],
+          ['7','Energia Limpa','#FCC30B'],
+          ['8','Trabalho Decente','#A21942'],
+          ['9','Indústria','#FD6925'],
+          ['10','Desigualdades','#DD1367'],
+          ['11','Cidades','#FD9D24'],
+          ['12','Consumo Resp.','#BF8B2E'],
+          ['13','Clima','#3F7E44'],
+          ['14','Vida na Água','#0A97D9'],
+          ['15','Vida Terrestre','#56C02B'],
+          ['16','Paz','#00689D'],
+          ['17','Parcerias','#19486A']
+        ].map(([num,label,cor])=>{
+          const checked=(a.ods||[]).includes(num)?'checked':'';
+          return `<label style="display:flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid ${(a.ods||[]).includes(num)?cor:'var(--borda)'};border-radius:4px;cursor:pointer;font-size:11px;background:${(a.ods||[]).includes(num)?cor+'18':'transparent'};transition:all .1s" title="ODS ${num} — ${label}">
+            <input type="checkbox" name="ed-ods" value="${num}" ${checked} style="accent-color:${cor};width:12px;height:12px">
+            <span style="font-weight:600;color:${cor}">ODS ${num}</span>
+          </label>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Metas Kunming-Montreal -->
+    <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px;margin-top:8px">
+      <div style="font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Metas Kunming-Montreal <span style="font-weight:400;color:var(--cinza-400)">(opcional — destaque: 2, 4, 10, 11, 21, 22, 23)</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${Array.from({length:23},(_,i)=>{
+          const num=String(i+1);
+          const isProj=['2','4','10','11','21','22','23'].includes(num);
+          const checked=(a.metas_km||[]).includes(num)?'checked':'';
+          return `<label style="display:flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid ${(a.metas_km||[]).includes(num)?'#5B21B6':'var(--borda)'};border-radius:4px;cursor:pointer;font-size:11px;background:${(a.metas_km||[]).includes(num)?'#EDE9FE':'transparent'};transition:all .1s">
+            <input type="checkbox" name="ed-km" value="${num}" ${checked} style="accent-color:#5B21B6;width:12px;height:12px">
+            <span style="font-weight:600;color:${(a.metas_km||[]).includes(num)||isProj?'#5B21B6':'var(--cinza-500)'}">KM ${num}${isProj?' ★':''}</span>
+          </label>`;
+        }).join('')}
+      </div>
     </div>`;
 
   document.getElementById('modal-atividade').classList.add('aberto');
@@ -710,6 +758,7 @@ async function salvarAtividade() {
   }
 
   // Capturar valores ANTES de pedir senha (evita perda de referência DOM)
+  const getChecked = (name) => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el=>el.value);
   const updates = {
     fase: document.getElementById('ed-fase')?.value,
     orcamento_usd: parseFloat(document.getElementById('ed-orc')?.value)||0,
@@ -717,6 +766,8 @@ async function salvarAtividade() {
     ano2_usd: parseFloat(document.getElementById('ed-ano2')?.value)||0,
     nome_pt: document.getElementById('ed-nome-pt')?.value.trim(),
     eixo: document.getElementById('ed-eixo')?.value.trim()||null,
+    ods: getChecked('ed-ods'),
+    metas_km: getChecked('ed-km'),
   };
   const ativId = ativEditando.id;
 

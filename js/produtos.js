@@ -8,6 +8,7 @@ let fotosNovas=[];
 let docsEntrega=[];
 let notaTecnicaFile=null;
 let notifPendenteId=null;
+let matrizItensCache=null; // cache de indicadores da matriz
 
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmtDT(d){return d?new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';}
@@ -289,7 +290,21 @@ async function abrirModal(prodId){
       +'</div>'
       +'<div id="fotos-grid" class="fotos-grid"></div>'
       +'<div id="fotos-count" style="font-size:11px;color:var(--cinza-500);margin-top:6px"></div>'
-      +'</div></div>';
+      +'</div>'
+      // Contribuição à Matriz de Resultados
+      +'<div style="border-top:1px solid var(--borda);padding-top:14px;margin-top:4px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em">&#x25CE; Contribuição à Matriz de Resultados</div>'
+      +'<span style="font-size:10px;color:var(--cinza-400);font-style:italic">opcional — sujeito a confirmação técnica</span>'
+      +'</div>'
+      +'<div id="matriz-contribs-lista" style="margin-bottom:8px"></div>'
+      +'<button class="btn btn-sm btn-secondary" onclick="adicionarLinhaMatriz()">+ Vincular indicador</button>'
+      +'</div>'
+      +'</div>';
+
+    // Carregar opções de matriz em background
+    carregarMatrizItens();
+
     document.getElementById('mp-footer').innerHTML=
       '<button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>'
       +'<button class="btn-registrar" onclick="registrarEntrega('+numProxEntrega+','+pctRest.toFixed(2)+','+valorRest.toFixed(2)+')">&#x1F4E5; Registrar e enviar para avaliação</button>';
@@ -571,6 +586,59 @@ function fecharLightbox(){
   var img=document.getElementById('lb-img');if(img)img.src='';
 }
 
+// ── Matriz de Resultados — carregar indicadores ───────────────
+async function carregarMatrizItens(){
+  if(matrizItensCache)return;
+  var r=await db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,unidade,meta_numerica').eq('ativo',true).order('ordem');
+  matrizItensCache=r.data||[];
+}
+
+function adicionarLinhaMatriz(){
+  if(!matrizItensCache||!matrizItensCache.length){
+    toast('Indicadores da matriz ainda carregando, aguarde...','info');
+    carregarMatrizItens();return;
+  }
+  var lista=document.getElementById('matriz-contribs-lista');
+  if(!lista)return;
+  var idx=lista.children.length;
+  var opcoesInd=matrizItensCache.map(function(i){
+    return '<option value="'+i.id+'">[R'+i.resultado+'/'+i.produto_codigo+'] '+(i.indicador||'').substring(0,60)+(i.indicador&&i.indicador.length>60?'…':'')+(i.unidade?' ('+i.unidade+')':'')+'</option>';
+  }).join('');
+
+  var div=document.createElement('div');
+  div.className='mc-row-'+idx;
+  div.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:6px 8px;';
+  div.innerHTML='<select class="form-control" id="mc-ind-'+idx+'" style="flex:2;height:30px;font-size:11px">'
+    +'<option value="">Selecione o indicador...</option>'
+    +opcoesInd
+    +'</select>'
+    +'<input class="form-control" type="number" id="mc-val-'+idx+'" step="0.01" placeholder="Valor" style="width:90px;height:30px;font-size:12px" min="0">'
+    +'<input class="form-control" type="text" id="mc-obs-'+idx+'" placeholder="Observação (opcional)" style="flex:1;height:30px;font-size:11px">'
+    +'<button style="border:none;background:none;cursor:pointer;color:var(--cinza-400);font-size:16px;padding:0 4px;flex-shrink:0" onclick="this.parentElement.remove()" title="Remover">✕</button>';
+  lista.appendChild(div);
+}
+
+function coletarContribsMatriz(){
+  var lista=document.getElementById('matriz-contribs-lista');
+  if(!lista)return[];
+  var contribs=[];
+  var rows=lista.children;
+  for(var i=0;i<rows.length;i++){
+    var sel=rows[i].querySelector('select');
+    var valEl=rows[i].querySelector('input[type="number"]');
+    var obsEl=rows[i].querySelector('input[type="text"]');
+    if(!sel||!sel.value||!valEl||!valEl.value)continue;
+    var ind=matrizItensCache&&matrizItensCache.find(function(x){return x.id===sel.value;});
+    contribs.push({
+      matriz_item_id:sel.value,
+      valor:parseFloat(valEl.value)||0,
+      unidade:ind&&ind.unidade||'',
+      observacao:obsEl&&obsEl.value&&obsEl.value.trim()||null
+    });
+  }
+  return contribs;
+}
+
 async function registrarEntrega(numEntrega,pctRest,valorRest){
   var dtEnt=document.getElementById('f-dt-ent')&&document.getElementById('f-dt-ent').value;
   var obs=document.getElementById('f-obs-ent')&&document.getElementById('f-obs-ent').value&&document.getElementById('f-obs-ent').value.trim()||'';
@@ -611,6 +679,17 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
   }
 
   await db.from('contratos_produtos').update({dt_entrega:dtEnt,situacao:'em_analise',observacoes:obs||produtoAtual.observacoes,atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
+
+  // Salvar contribuições à Matriz de Resultados (status pendente = aguarda confirmação técnica)
+  var contribs=coletarContribsMatriz();
+  if(contribs.length){
+    var contribRows=contribs.map(function(c){
+      return {produto_id:entrega.id,matriz_item_id:c.matriz_item_id,valor:c.valor,unidade:c.unidade,observacao:c.observacao,status:'pendente',criado_por:appState.usuario.id};
+    });
+    var cR=await db.from('produto_matriz_contribuicao').insert(contribRows);
+    if(!cR.error){toast(contribs.length+' contribuição(ões) à Matriz de Resultados registrada(s) — aguarda confirmação técnica.','info');}
+  }
+
   var qtd=docsEntrega.length;docsEntrega=[];
   toast('Entrega com '+qtd+' documento(s) registrada e enviada para avaliação!','success');
   fecharModal();await selecionarCont(filtCont);await renderStats();

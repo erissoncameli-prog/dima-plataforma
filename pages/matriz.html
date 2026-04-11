@@ -7,74 +7,101 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
 <style>
+/* ── Stats ── */
 .stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
 .stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
 .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
-.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:#2563EB}
 .sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
 .stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
 .stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
 .stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
 
-.visao-tabs{display:flex;gap:0;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:4px;width:fit-content;}
-.visao-tab{padding:7px 16px;border-radius:var(--raio);font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;transition:all .15s;border:none;background:none;font-family:var(--font-sans);}
-.visao-tab.ativo{background:var(--branco);color:var(--verde-medio);box-shadow:0 1px 4px rgba(0,0,0,.08);font-weight:600;}
-
-.resultado-bloco{margin-bottom:16px;}
-.resultado-titulo{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg) var(--raio-lg) 0 0;border-bottom:none;cursor:pointer;}
-.resultado-codigo{font-family:var(--font-mono);font-size:12px;font-weight:700;padding:2px 10px;border-radius:4px;color:#fff;}
-.rc-r1{background:#1D9E75}.rc-r2{background:#2563EB}.rc-r3{background:#7F77DD}.rc-r4{background:#BA7517}
-.resultado-nome-txt{font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;}
-
-.ind-card{background:var(--branco);border:1px solid var(--borda);border-left:4px solid var(--borda);padding:14px 16px;transition:all .15s;cursor:pointer;border-top:none;}
-.ind-card:hover{background:var(--cinza-50);}
-.ind-card:last-child{border-radius:0 0 var(--raio-lg) var(--raio-lg);}
-.ind-card.risco-alto{border-left-color:var(--erro);}
-.ind-card.risco-medio{border-left-color:var(--aviso);}
-.ind-card.risco-ok{border-left-color:var(--verde-claro);}
-.ind-card.risco-sem{border-left-color:var(--cinza-300);}
-
-.ind-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
-.ind-num{font-family:var(--font-mono);font-size:11px;font-weight:700;background:var(--cinza-100);padding:2px 8px;border-radius:3px;color:var(--cinza-700);flex-shrink:0;margin-top:2px;}
-.ind-nome{font-size:13px;font-weight:500;color:var(--cinza-900);flex:1;line-height:1.4;}
-.ind-nome-en{font-size:11px;color:var(--cinza-500);margin-top:2px;font-style:italic;}
-.ind-badges{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;align-items:flex-start;}
-
-.ind-progresso{display:grid;grid-template-columns:1fr 150px;gap:16px;align-items:center;}
-.ind-barra{height:8px;background:var(--cinza-100);border-radius:4px;overflow:hidden;margin-bottom:4px;}
-.ind-fill{height:100%;border-radius:4px;transition:width .5s ease;}
-.ind-fill-ok{background:var(--verde-claro);}
-.ind-fill-warn{background:var(--aviso);}
-.ind-fill-crit{background:var(--erro);}
-.ind-fill-zero{background:var(--cinza-300);}
-.ind-nums{display:flex;justify-content:space-between;font-size:10px;color:var(--cinza-500);}
-
-.ind-vals{display:flex;flex-direction:column;gap:2px;text-align:right;}
-.ind-val-atingido{font-size:22px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono);line-height:1;}
-.ind-val-meta{font-size:11px;color:var(--cinza-500);}
-.ind-val-pct{font-size:13px;font-weight:700;}
-
-.risco-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
-.rb-alto{background:#FEE2E2;color:#991B1B}
-.rb-medio{background:#FEF3C7;color:#92400E}
-.rb-ok{background:#D1FAE5;color:#065F46}
-.rb-sem{background:#F3F4F6;color:#6B7280}
-
-.ods-chip{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:#E6F1FB;color:#1E40AF;margin:1px;}
-.km-chip{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;background:#EDE9FE;color:#4C1D95;margin:1px;}
-
-.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:16px;overflow-x:auto;}
-.tab-btn{padding:8px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
-.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
-.tab-content{display:none;}
-.tab-content.ativo{display:block;animation:fadeIn .2s ease;}
+/* ── Main tabs ── */
+.main-tabs{display:flex;gap:0;border-bottom:2px solid var(--borda);margin-bottom:18px;}
+.main-tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
+.main-tab.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);font-weight:600;}
+.main-tab-content{display:none;}
+.main-tab-content.ativo{display:block;animation:fadeIn .2s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
-.hist-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda);}
-.hist-row:last-child{border-bottom:none;}
-.hist-trim{font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--cinza-100);padding:2px 8px;border-radius:3px;min-width:60px;}
-.hist-barra{flex:1;height:6px;background:var(--cinza-100);border-radius:3px;overflow:hidden;}
-.hist-fill{height:100%;background:var(--verde-claro);border-radius:3px;}
+/* ── Resultado accordion ── */
+.resultado-bloco{margin-bottom:12px;border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
+.resultado-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--cinza-50);cursor:pointer;user-select:none;}
+.resultado-header:hover{background:var(--cinza-100);}
+.resultado-codigo{font-family:var(--font-mono);font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;color:#fff;flex-shrink:0;}
+.rc-1{background:#1D9E75}.rc-2{background:#2563EB}.rc-3{background:#7F77DD}
+.resultado-nome-txt{font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;line-height:1.3;}
+
+/* ── Produto group ── */
+.produto-group{border-top:1px solid var(--borda);background:var(--branco);}
+.produto-label{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#F8FAFF;border-top:1px solid var(--borda);cursor:pointer;}
+.produto-label:hover{background:#F0F4FF;}
+.produto-cod{font-family:var(--font-mono);font-size:11px;font-weight:700;color:#2563EB;background:#EFF6FF;padding:2px 8px;border-radius:3px;}
+.produto-titulo-txt{font-size:12px;font-weight:500;color:var(--cinza-700);flex:1;}
+
+/* ── Indicador card ── */
+.ind-card{padding:12px 16px;border-top:1px solid var(--borda);border-left:4px solid transparent;cursor:pointer;transition:background .1s;}
+.ind-card:hover{background:var(--cinza-50);}
+.ind-card.risco-ok{border-left-color:#059669;}
+.ind-card.risco-med{border-left-color:#D97706;}
+.ind-card.risco-alto{border-left-color:#DC2626;}
+.ind-card.risco-sem{border-left-color:var(--cinza-300);}
+.ind-header{display:flex;align-items:flex-start;gap:10px;}
+.ind-num{font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:2px 7px;border-radius:3px;color:var(--cinza-600);flex-shrink:0;margin-top:2px;}
+.ind-nome{font-size:12px;font-weight:500;color:var(--cinza-900);flex:1;line-height:1.4;}
+.ind-badges{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;align-items:flex-start;}
+
+.ind-prog{margin-top:8px;display:flex;align-items:center;gap:10px;}
+.prog-bar-wrap{flex:1;height:6px;background:var(--cinza-100);border-radius:3px;overflow:hidden;position:relative;}
+.prog-fill-conf{height:100%;background:#059669;border-radius:3px;transition:width .5s;position:absolute;left:0;}
+.prog-fill-pend{height:100%;background:#FCD34D;border-radius:3px;transition:width .5s;position:absolute;}
+.ind-prog-nums{font-size:10px;color:var(--cinza-500);white-space:nowrap;text-align:right;min-width:90px;}
+.ind-pct{font-family:var(--font-mono);font-size:13px;font-weight:700;min-width:38px;text-align:right;}
+
+/* ── Chips ── */
+.ods-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#EFF6FF;color:#1D4ED8;}
+.km-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#EDE9FE;color:#5B21B6;}
+.pend-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#FEF3C7;color:#92400E;}
+.conf-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
+.cb-ok{background:#D1FAE5;color:#065F46}
+.cb-med{background:#FEF3C7;color:#92400E}
+.cb-alto{background:#FEE2E2;color:#991B1B}
+.cb-sem{background:#F3F4F6;color:#6B7280}
+
+/* ── ODS grid ── */
+.ods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+.ods-card{border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px;text-align:center;cursor:pointer;transition:all .15s;opacity:.45;filter:grayscale(.6);}
+.ods-card.ativo{opacity:1;filter:none;box-shadow:0 2px 12px rgba(0,0,0,.1);}
+.ods-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.12);}
+.ods-emoji{font-size:30px;margin-bottom:6px;}
+.ods-num{font-family:var(--font-mono);font-size:11px;font-weight:700;margin-bottom:3px;}
+.ods-titulo{font-size:10px;color:var(--cinza-700);line-height:1.3;}
+.ods-badge-cnt{font-size:9px;font-weight:700;margin-top:5px;padding:1px 7px;border-radius:99px;display:inline-block;}
+
+/* ── KM list ── */
+.km-item{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;cursor:pointer;transition:all .15s;opacity:.5;}
+.km-item.ativo{opacity:1;background:var(--branco);box-shadow:0 1px 6px rgba(0,0,0,.07);}
+.km-item.ativo:hover{background:var(--cinza-50);}
+.km-num{font-family:var(--font-mono);font-size:14px;font-weight:700;min-width:32px;text-align:center;padding:4px 0;}
+.km-body{flex:1;}
+.km-titulo{font-size:12px;font-weight:600;color:var(--cinza-900);margin-bottom:3px;}
+.km-resumo{font-size:11px;color:var(--cinza-600);line-height:1.4;}
+.km-inds{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
+
+/* ── Tabs dentro do modal ── */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:14px;overflow-x:auto;}
+.tab-btn{padding:7px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
+.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.tab-content{display:none;}
+.tab-content.ativo{display:block;}
+
+/* ── Contribuição item ── */
+.contrib-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;background:var(--branco);}
+.contrib-status{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;}
+.cs-pend{background:#FEF3C7;color:#92400E}
+.cs-conf{background:#D1FAE5;color:#065F46}
+.cs-rej{background:#FEE2E2;color:#991B1B}
 </style>
 </head>
 <body>
@@ -83,14 +110,14 @@
     <div style="text-align:center">
       <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      Carregando Matriz de Resultados...
+      Carregando Matriz de Resultados…
     </div>
   </div>
 </div>
 
 <!-- MODAL INDICADOR -->
-<div class="modal-overlay" id="modal-ind">
-  <div class="modal" style="max-width:700px">
+<div class="modal-overlay" id="modal-ind" style="display:none">
+  <div class="modal" style="max-width:720px">
     <div class="modal-header">
       <div>
         <div class="modal-title" id="mi-titulo">Indicador</div>
@@ -98,18 +125,29 @@
       </div>
       <button class="modal-close" onclick="fecharModal()">✕</button>
     </div>
-    <div class="modal-body" id="mi-body" style="padding:16px 24px"></div>
+    <div class="modal-body" id="mi-body" style="padding:16px 24px;max-height:70vh;overflow-y:auto"></div>
     <div class="modal-footer" id="mi-footer"></div>
   </div>
 </div>
 
+<!-- MODAL ODS/KM detalhes -->
+<div class="modal-overlay" id="modal-ref" style="display:none">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title" id="mr-titulo">Referência</div>
+      <button class="modal-close" onclick="document.getElementById('modal-ref').style.display='none'">✕</button>
+    </div>
+    <div class="modal-body" id="mr-body" style="padding:16px 24px"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script>
-let indicadores=[], resultados=[], historicos=[];
-let indAtual=null, visaoAtual='resultado';
+// ── Dados globais ─────────────────────────────────────────────
+let matrizItens=[], progresso=[], odsRefs=[], kmRefs=[];
+let indAtual=null;
 
 (async()=>{
   const usuario=await carregarUsuario();
@@ -118,591 +156,703 @@ let indAtual=null, visaoAtual='resultado';
   document.getElementById('app').innerHTML=
     gerarLayout('Matriz de Resultados','matriz')+`
     <div class="fade-in">
-      <div class="stat-row" id="stats"></div>
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <div class="visao-tabs">
-          <button class="visao-tab ativo" onclick="mudarVisao('resultado',this)">◎ Por Resultado</button>
-          <button class="visao-tab" onclick="mudarVisao('tabela',this)">☰ Tabela</button>
-          <button class="visao-tab" onclick="mudarVisao('risco',this)">⚠ Em risco</button>
-        </div>
-        <input class="form-control" type="text" id="busca-ind" style="width:220px"
-          placeholder="Buscar indicador..." oninput="renderVisao()">
+      <!-- Stats row -->
+      <div class="stat-row" id="stats-row"></div>
+
+      <!-- Toolbar -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <input class="form-control" type="text" id="busca-ind" style="width:230px;height:34px"
+          placeholder="🔍 Buscar indicador..." oninput="renderTabAtual()">
         <div style="margin-left:auto;display:flex;gap:8px">
+          ${PODE.editarAtividade()||PODE.aprovarProduto()?`<button class="btn btn-secondary btn-sm" onclick="abrirModalNovoInd()">＋ Indicador</button>`:''}
           <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>
-          <button class="btn btn-secondary btn-sm" onclick="exportarPDF()">📄 PDF UNESCO</button>
         </div>
       </div>
-      <div id="conteudo-matriz"></div>
+
+      <!-- Main tabs -->
+      <div class="main-tabs">
+        <button class="main-tab ativo" id="tab-btn-matriz" onclick="mudarAba('matriz',this)">◎ Matriz de Resultados</button>
+        <button class="main-tab" id="tab-btn-ods" onclick="mudarAba('ods',this)">🌐 ODS</button>
+        <button class="main-tab" id="tab-btn-km" onclick="mudarAba('km',this)">🌿 Kunming-Montreal</button>
+      </div>
+
+      <!-- Tab Matriz -->
+      <div class="main-tab-content ativo" id="tc-matriz">
+        <div id="conteudo-matriz">
+          <div style="text-align:center;padding:40px;color:var(--cinza-400)">Carregando…</div>
+        </div>
+      </div>
+
+      <!-- Tab ODS -->
+      <div class="main-tab-content" id="tc-ods">
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1E40AF">
+          <strong>9 ODS</strong> estão vinculados a este projeto. Os demais são exibidos de forma desbotada para referência.
+        </div>
+        <div class="ods-grid" id="ods-grid"></div>
+      </div>
+
+      <!-- Tab KM -->
+      <div class="main-tab-content" id="tc-km">
+        <div style="background:#EDE9FE;border:1px solid #C4B5FD;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#4C1D95">
+          <strong>7 Metas de Kunming-Montreal</strong> aparecem neste projeto (metas 2, 4, 10, 11, 21, 22 e 23). Destaques em roxo.
+        </div>
+        <div id="km-lista"></div>
+      </div>
     </div>`+`</div></div></div>`;
 
   await carregar();
 })();
 
+// ── Carregar dados ────────────────────────────────────────────
 async function carregar(){
   try{
-    const [{data:inds},{data:ress},{data:hists}]=await Promise.all([
-      db.from('indicadores').select('*').eq('ativo',true).order('ordem').order('codigo'),
-      db.from('resultados').select('*').order('codigo'),
-      db.from('historico_indicadores').select('*').order('trimestre',{ascending:false})
+    const [
+      {data:itens},
+      {data:prog},
+      {data:ods},
+      {data:km}
+    ] = await Promise.all([
+      db.from('matriz_itens').select('*').eq('ativo',true).order('ordem'),
+      db.from('vw_matriz_progresso').select('*'),
+      db.from('ods_refs').select('*').order('numero'),
+      db.from('metas_km_refs').select('*').order('numero')
     ]);
-    indicadores=inds||[];
-    resultados=ress||[];
-    historicos=hists||[];
+
+    matrizItens = itens||[];
+    progresso   = prog||[];
+    odsRefs     = ods||[];
+    kmRefs      = km||[];
+
     renderStats();
-    renderVisao();
+    renderMatriz();
+    renderODS();
+    renderKM();
   }catch(e){
     console.error(e);
-    toast('Erro ao carregar Matriz de Resultados.','error');
+    document.getElementById('conteudo-matriz').innerHTML=
+      `<div class="empty-state"><div class="empty-state-msg">Erro ao carregar dados. Verifique se o SQL de migração foi executado no Supabase.</div></div>`;
   }
 }
 
-function calcPct(ind){
-  const meta=parseFloat(ind.meta_numerica||0);
-  const ating=parseFloat(ind.valor_atingido||0);
-  if(!meta)return 0;
-  return Math.round(ating/meta*100);
+// ── Helpers ───────────────────────────────────────────────────
+function getProgresso(id){
+  return progresso.find(p=>p.matriz_item_id===id)||{realizado_confirmado:0,realizado_pendente:0,realizado_total:0,pct_confirmado:0};
 }
 
-function classeRisco(pct,temMeta){
-  if(!temMeta)return 'risco-sem';
-  if(pct>=100)return 'risco-ok';
-  if(pct>=40)return 'risco-medio';
-  return 'risco-alto';
+function calcPct(item){
+  const p=getProgresso(item.id);
+  const meta=parseFloat(item.meta_numerica||0);
+  if(!meta)return{conf:0,pend:0,total:0};
+  const conf=Math.min(parseFloat(p.realizado_confirmado||0)/meta*100,100);
+  const pend=Math.min(parseFloat(p.realizado_pendente||0)/meta*100,100);
+  return{conf:Math.round(conf),pend:Math.round(Math.min(conf+pend,100)-conf),total:Math.round(Math.min(conf+pend,100))};
 }
 
-function badgeRisco(pct,temMeta){
-  if(!temMeta)return`<span class="risco-badge rb-sem">Sem meta</span>`;
-  if(pct>=100)return`<span class="risco-badge rb-ok">✓ Meta atingida</span>`;
-  if(pct>=70)return`<span class="risco-badge rb-ok">Em dia</span>`;
-  if(pct>=40)return`<span class="risco-badge rb-medio">⚠ Atenção</span>`;
-  return`<span class="risco-badge rb-alto">🔴 Em risco</span>`;
+function classeRisco(item){
+  const meta=parseFloat(item.meta_numerica||0);
+  if(!meta)return'risco-sem';
+  const{conf}=calcPct(item);
+  if(conf>=100)return'risco-ok';
+  if(conf>=40)return'risco-med';
+  return'risco-alto';
 }
 
-function classeBarra(pct){
-  if(pct===0)return'ind-fill-zero';
-  if(pct>=70)return'ind-fill-ok';
-  if(pct>=40)return'ind-fill-warn';
-  return'ind-fill-crit';
+function badgeConf(item){
+  const meta=parseFloat(item.meta_numerica||0);
+  if(!meta)return`<span class="conf-badge cb-sem">Sem meta</span>`;
+  const{conf}=calcPct(item);
+  if(conf>=100)return`<span class="conf-badge cb-ok">✓ Atingida</span>`;
+  if(conf>=70)return`<span class="conf-badge cb-ok">Em dia</span>`;
+  if(conf>=40)return`<span class="conf-badge cb-med">⚠ Atenção</span>`;
+  return`<span class="conf-badge cb-alto">🔴 Risco</span>`;
 }
 
-function corResultado(codigo){
-  const cores={R1:'#1D9E75',R2:'#2563EB',R3:'#7F77DD',R4:'#BA7517'};
-  return cores[codigo]||'#6B7280';
+function corPct(pct){
+  if(pct>=100)return'#059669';
+  if(pct>=70)return'#059669';
+  if(pct>=40)return'#D97706';
+  return'#DC2626';
 }
 
-// Unidade no idioma atual
-function unidade(ind){
-  const lang=appState.idioma;
-  return ind[`unidade_${lang}`]||ind.unidade_pt||'';
-}
-
-// Meios de verificação no idioma atual
-function meiosVerif(ind){
-  const lang=appState.idioma;
-  return ind[`meios_verificacao_${lang}`]||ind.meios_verificacao_pt||'';
-}
-
+// ── Stats ─────────────────────────────────────────────────────
 function renderStats(){
-  const total=indicadores.length;
-  const comMeta=indicadores.filter(i=>parseFloat(i.meta_numerica||0)>0);
-  const atingidos=comMeta.filter(i=>calcPct(i)>=100).length;
-  const emRisco=comMeta.filter(i=>{const p=calcPct(i);return p>0&&p<40;}).length;
-  const zerados=comMeta.filter(i=>calcPct(i)===0).length;
-  const media=comMeta.length?Math.round(comMeta.reduce((s,i)=>s+Math.min(calcPct(i),100),0)/comMeta.length):0;
+  const total=matrizItens.length;
+  const comMeta=matrizItens.filter(i=>parseFloat(i.meta_numerica||0)>0);
+  const atingidos=comMeta.filter(i=>calcPct(i).conf>=100).length;
+  const emRisco=comMeta.filter(i=>calcPct(i).conf<40).length;
+  const pendConf=progresso.reduce((s,p)=>s+parseFloat(p.realizado_pendente||0),0);
+  const media=comMeta.length
+    ?Math.round(comMeta.reduce((s,i)=>s+calcPct(i).conf,0)/comMeta.length):0;
 
-  document.getElementById('stats').innerHTML=`
+  document.getElementById('stats-row').innerHTML=`
     <div class="stat-card sc-b">
-      <div class="stat-lbl">Total Indicadores</div>
+      <div class="stat-lbl">Indicadores</div>
       <div class="stat-val">${total}</div>
-      <div class="stat-sub">em 4 Resultados</div>
+      <div class="stat-sub">em 3 Resultados</div>
     </div>
     <div class="stat-card sc-g">
-      <div class="stat-lbl">Meta Atingida</div>
+      <div class="stat-lbl">Metas Atingidas</div>
       <div class="stat-val">${atingidos}</div>
-      <div class="stat-sub">100% ou mais</div>
+      <div class="stat-sub">100% confirmado</div>
     </div>
     <div class="stat-card sc-t">
       <div class="stat-lbl">Progresso Médio</div>
       <div class="stat-val">${media}%</div>
-      <div class="stat-sub">todos os indicadores</div>
+      <div class="stat-sub">confirmado</div>
     </div>
     <div class="stat-card sc-a">
       <div class="stat-lbl">Em Risco</div>
-      <div class="stat-val" style="color:${emRisco>0?'var(--aviso)':'var(--sucesso)'}">${emRisco}</div>
+      <div class="stat-val" style="color:${emRisco>0?'var(--aviso)':'#059669'}">${emRisco}</div>
       <div class="stat-sub">abaixo de 40%</div>
     </div>
     <div class="stat-card sc-r">
-      <div class="stat-lbl">Sem Progresso</div>
-      <div class="stat-val" style="color:${zerados>0?'var(--erro)':'var(--sucesso)'}">${zerados}</div>
-      <div class="stat-sub">nenhum valor ainda</div>
+      <div class="stat-lbl">Aguardam Conf.</div>
+      <div class="stat-val" style="color:${pendConf>0?'var(--aviso)':'var(--cinza-400)'}">
+        ${pendConf>0?Math.round(pendConf):0}
+      </div>
+      <div class="stat-sub">unidades pendentes</div>
     </div>`;
 }
 
-function mudarVisao(v,btn){
-  visaoAtual=v;
-  document.querySelectorAll('.visao-tab').forEach(b=>b.classList.remove('ativo'));
+// ── Tab switcher ──────────────────────────────────────────────
+let abaAtual='matriz';
+function mudarAba(aba,btn){
+  abaAtual=aba;
+  document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('ativo'));
   btn.classList.add('ativo');
-  renderVisao();
+  document.querySelectorAll('.main-tab-content').forEach(c=>c.classList.remove('ativo'));
+  document.getElementById('tc-'+aba).classList.add('ativo');
+  if(aba==='matriz')renderMatriz();
 }
+function renderTabAtual(){if(abaAtual==='matriz')renderMatriz();}
 
-function renderVisao(){
-  const busca=document.getElementById('busca-ind')?.value.toLowerCase()||'';
-  let inds=indicadores.filter(i=>
-    !busca||(i.nome_pt||'').toLowerCase().includes(busca)||
-    (i.nome_en||'').toLowerCase().includes(busca)||
-    (i.codigo||'').toLowerCase().includes(busca)
-  );
-  if(visaoAtual==='risco')inds=inds.filter(i=>{
-    const p=calcPct(i);
-    return parseFloat(i.meta_numerica||0)>0&&p<40;
-  });
-  if(visaoAtual==='tabela')renderTabela(inds);
-  else renderPorResultado(inds);
-}
-
-function renderPorResultado(inds){
+// ── MATRIZ ────────────────────────────────────────────────────
+function renderMatriz(){
+  const busca=(document.getElementById('busca-ind')?.value||'').toLowerCase();
   const el=document.getElementById('conteudo-matriz');
-  if(!resultados.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-msg">Nenhum resultado encontrado.</div></div>`;return;}
+  if(!matrizItens.length){
+    el.innerHTML=`<div class="empty-state"><div class="empty-state-msg">Nenhum indicador cadastrado. Execute o SQL de migração 04 no Supabase.</div></div>`;
+    return;
+  }
 
-  el.innerHTML=resultados.map(r=>{
-    const indsR=inds.filter(i=>i.resultado_id===r.id);
-    if(!indsR.length&&visaoAtual==='risco')return'';
-    const pcts=indsR.filter(i=>parseFloat(i.meta_numerica||0)>0).map(i=>Math.min(calcPct(i),100));
-    const mediaR=pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):0;
-    const corR=corResultado(r.codigo);
-    const nomeR=campo(r,'nome');
+  const res=[1,2,3];
+  const nomes={
+    1:'Fortalecimento do uso sustentável dos recursos naturais e da sociobiodiversidade',
+    2:'Mitigação da vulnerabilidade ambiental e aumento da resiliência das APAs',
+    3:'Fortalecimento da governança e equidade de gênero'
+  };
+  const coresRes={1:'#1D9E75',2:'#2563EB',3:'#7F77DD'};
+
+  el.innerHTML=res.map(r=>{
+    let itensR=matrizItens.filter(i=>i.resultado===r);
+    if(busca) itensR=itensR.filter(i=>(i.indicador||'').toLowerCase().includes(busca)||(i.produto_titulo||'').toLowerCase().includes(busca)||(i.produto_codigo||'').toLowerCase().includes(busca));
+    if(!itensR.length&&busca)return'';
+
+    // Agrupar por produto_codigo
+    const produtos=[...new Set(itensR.map(i=>i.produto_codigo))].sort();
+
+    // Progresso geral do resultado
+    const comMeta=itensR.filter(i=>parseFloat(i.meta_numerica||0)>0);
+    const mediaR=comMeta.length?Math.round(comMeta.reduce((s,i)=>s+calcPct(i).conf,0)/comMeta.length):0;
+
+    const corR=coresRes[r];
 
     return`<div class="resultado-bloco">
-      <div class="resultado-titulo" onclick="toggleBloco('bloco-${r.id}')">
-        <span class="resultado-codigo rc-${r.codigo.toLowerCase()}">${r.codigo}</span>
-        <span class="resultado-nome-txt">${nomeR.substring(0,70)}${nomeR.length>70?'…':''}</span>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:80px;height:6px;background:var(--cinza-200,#E5E7EB);border-radius:3px;overflow:hidden">
+      <div class="resultado-header" onclick="toggleResultado('rb-${r}','icon-${r}')">
+        <span class="resultado-codigo rc-${r}">R${r}</span>
+        <span class="resultado-nome-txt">${nomes[r]}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div style="width:80px;height:5px;background:var(--cinza-200);border-radius:3px;overflow:hidden">
             <div style="height:100%;background:${corR};width:${mediaR}%;border-radius:3px;transition:width .5s"></div>
           </div>
-          <span style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:${corR}">${mediaR}%</span>
-          <span style="font-size:11px;color:var(--cinza-500)">${indsR.length} indicadores</span>
-          <span style="font-size:12px;color:var(--cinza-400,#9CA3AF)">▾</span>
+          <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corR}">${mediaR}%</span>
+          <span style="font-size:11px;color:var(--cinza-400)">${itensR.length} ind.</span>
+          <span id="icon-${r}" style="font-size:12px;color:var(--cinza-400);transition:transform .2s">▾</span>
         </div>
       </div>
-      <div id="bloco-${r.id}">
-        ${indsR.length?indsR.map(i=>renderIndCard(i,r)).join(''):
-          `<div style="padding:20px;text-align:center;font-size:12px;color:var(--cinza-500);border:1px solid var(--borda);background:var(--branco)">
-            Nenhum indicador ${visaoAtual==='risco'?'em risco ':''} neste resultado.
-          </div>`}
+      <div id="rb-${r}">
+        ${produtos.map(cod=>{
+          const itensP=itensR.filter(i=>i.produto_codigo===cod);
+          const titulo=itensP[0]?.produto_titulo||cod;
+          const comMetaP=itensP.filter(i=>parseFloat(i.meta_numerica||0)>0);
+          const mediaP=comMetaP.length?Math.round(comMetaP.reduce((s,i)=>s+calcPct(i).conf,0)/comMetaP.length):0;
+          const hasPend=itensP.some(i=>parseFloat(getProgresso(i.id).realizado_pendente||0)>0);
+
+          return`<div class="produto-group">
+            <div class="produto-label" onclick="toggleProduto('pg-${r}-${cod.replace('.','-')}','pig-${r}-${cod.replace('.','-')}')">
+              <span class="produto-cod">${cod}</span>
+              <span class="produto-titulo-txt">${titulo}</span>
+              ${hasPend?`<span class="pend-chip">Aguarda confirmação</span>`:''}
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+                <div style="width:60px;height:4px;background:var(--cinza-200);border-radius:2px;overflow:hidden">
+                  <div style="height:100%;background:#2563EB;width:${mediaP}%;border-radius:2px"></div>
+                </div>
+                <span style="font-size:10px;color:var(--cinza-500);font-family:var(--font-mono)">${mediaP}%</span>
+                <span id="pig-${r}-${cod.replace('.','-')}" style="font-size:10px;color:var(--cinza-400);transition:transform .2s">▾</span>
+              </div>
+            </div>
+            <div id="pg-${r}-${cod.replace('.','-')}">
+              ${itensP.map(i=>renderIndCard(i)).join('')}
+            </div>
+          </div>`;
+        }).join('')}
       </div>
     </div>`;
   }).join('');
 }
 
-function renderIndCard(i,res){
-  const pct=calcPct(i);
-  const temMeta=parseFloat(i.meta_numerica||0)>0;
-  const risco=classeRisco(pct,temMeta);
-  const nomePT=i.nome_pt||'—';
-  const nomeEN=i.nome_en||'';
-  const und=unidade(i);
-  const ods=i.ods_codigos||[];
-  const km=i.km_metas||[];
+function toggleResultado(id,iconId){
+  const el=document.getElementById(id);
+  const ic=document.getElementById(iconId);
+  if(!el)return;
+  const hidden=el.style.display==='none';
+  el.style.display=hidden?'':'none';
+  if(ic)ic.style.transform=hidden?'':'rotate(-90deg)';
+}
+function toggleProduto(id,iconId){
+  const el=document.getElementById(id);
+  const ic=document.getElementById(iconId);
+  if(!el)return;
+  const hidden=el.style.display==='none';
+  el.style.display=hidden?'':'none';
+  if(ic)ic.style.transform=hidden?'':'rotate(-90deg)';
+}
+
+function renderIndCard(i){
+  const meta=parseFloat(i.meta_numerica||0);
+  const{conf,pend}=calcPct(i);
+  const temMeta=meta>0;
+  const p=getProgresso(i.id);
+  const risco=classeRisco(i);
+
+  const ods=(i.ods||[]).slice(0,4).map(o=>`<span class="ods-chip">ODS${o}</span>`).join('');
+  const km=(i.metas_km||[]).slice(0,3).map(k=>`<span class="km-chip">KM${k}</span>`).join('');
+  const hasPend=parseFloat(p.realizado_pendente||0)>0;
 
   return`<div class="ind-card ${risco}" onclick="abrirIndicador('${i.id}')">
     <div class="ind-header">
-      <span class="ind-num">${i.codigo||'—'}</span>
+      <span class="ind-num">${i.produto_codigo}.${(i.ods||[''])[0]||'?'}</span>
       <div style="flex:1;min-width:0">
-        <div class="ind-nome">${nomePT.substring(0,100)}${nomePT.length>100?'…':''}</div>
-        ${nomeEN?`<div class="ind-nome-en">${nomeEN.substring(0,80)}${nomeEN.length>80?'…':''}</div>`:''}
+        <div class="ind-nome">${(i.indicador||'').substring(0,110)}${(i.indicador||'').length>110?'…':''}</div>
+        <div style="font-size:10px;color:var(--cinza-400);margin-top:2px">Meta: ${i.meta_descricao||'—'}</div>
       </div>
-      <div class="ind-badges">
-        ${badgeRisco(pct,temMeta)}
-        ${ods.slice(0,3).map(o=>`<span class="ods-chip">ODS ${o}</span>`).join('')}
-        ${km.slice(0,2).map(k=>`<span class="km-chip">KM ${k}</span>`).join('')}
-      </div>
-    </div>
-    <div class="ind-progresso">
-      <div>
-        <div class="ind-barra">
-          <div class="ind-fill ${classeBarra(pct)}" style="width:${Math.min(pct,100)}%"></div>
-        </div>
-        <div class="ind-nums">
-          <span>Baseline: ${i.linha_de_base||'—'}</span>
-          <span>Meta: ${i.meta_numerica||'—'} ${und}</span>
-        </div>
-        ${i.meta_2_anos?`<div style="font-size:10px;color:var(--cinza-400,#9CA3AF);margin-top:2px">Meta 2 anos: ${i.meta_2_anos}</div>`:''}
-      </div>
-      <div class="ind-vals">
-        <div class="ind-val-atingido">${i.valor_atingido||0}<span style="font-size:12px;font-weight:400;color:var(--cinza-500);margin-left:3px">${und}</span></div>
-        <div class="ind-val-meta">de ${i.meta_numerica||'—'} (meta)</div>
-        <div class="ind-val-pct" style="color:${pct>=100?'var(--sucesso)':pct>=40?'var(--aviso)':'var(--erro)'}">${pct}%</div>
+      <div class="ind-badges" style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        ${badgeConf(i)}
+        ${hasPend?`<span class="pend-chip">⏳ Pend.</span>`:''}
+        <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end">${ods}${km}</div>
       </div>
     </div>
+    ${temMeta?`<div class="ind-prog">
+      <div class="prog-bar-wrap">
+        <div class="prog-fill-conf" style="width:${conf}%"></div>
+        <div class="prog-fill-pend" style="width:${pend}%;left:${conf}%"></div>
+      </div>
+      <div class="ind-prog-nums">
+        ${parseFloat(p.realizado_confirmado||0).toLocaleString('pt-BR')} / ${meta.toLocaleString('pt-BR')} ${i.unidade||''}
+      </div>
+      <div class="ind-pct" style="color:${corPct(conf)}">${conf}%</div>
+    </div>`:`<div style="margin-top:6px;font-size:10px;color:var(--cinza-400)">Meta qualitativa — sem valor numérico</div>`}
   </div>`;
 }
 
-function renderTabela(inds){
-  document.getElementById('conteudo-matriz').innerHTML=`
-    <div class="card">
-      <div class="table-wrap"><div class="table-scroll">
-        <table>
-          <thead><tr>
-            <th style="width:70px">Código</th>
-            <th>Indicador</th>
-            <th style="width:50px">Result.</th>
-            <th style="width:80px;text-align:right">Baseline</th>
-            <th style="width:90px;text-align:right">Meta</th>
-            <th style="width:80px;text-align:right">Atingido</th>
-            <th style="width:110px">Progresso</th>
-            <th style="width:85px">Status</th>
-            <th style="width:80px">ODS/KM</th>
-          </tr></thead>
-          <tbody>
-            ${inds.map(i=>{
-              const pct=calcPct(i);
-              const temMeta=parseFloat(i.meta_numerica||0)>0;
-              const res=resultados.find(r=>r.id===i.resultado_id);
-              const und=unidade(i);
-              const ods=i.ods_codigos||[];
-              const km=i.km_metas||[];
-              return`<tr>
-                <td><span class="ind-num">${i.codigo||'—'}</span></td>
-                <td>
-                  <div style="font-size:12px;font-weight:500;color:var(--cinza-900);line-height:1.3">${(i.nome_pt||'—').substring(0,65)}${(i.nome_pt||'').length>65?'…':''}</div>
-                  ${i.nome_en?`<div style="font-size:10px;color:var(--cinza-500);font-style:italic">${i.nome_en.substring(0,55)}</div>`:''}
-                </td>
-                <td><span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corResultado(res?.codigo)}">${res?.codigo||'—'}</span></td>
-                <td style="text-align:right;font-family:var(--font-mono);font-size:11px">${i.linha_de_base||'—'}</td>
-                <td style="text-align:right;font-family:var(--font-mono);font-size:11px;font-weight:600">${i.meta_numerica||'—'} <span style="font-size:9px;color:var(--cinza-500)">${und}</span></td>
-                <td style="text-align:right;font-family:var(--font-mono);font-size:12px;font-weight:600;color:${pct>=100?'var(--sucesso)':pct>=40?'var(--aviso)':'var(--erro)'}">${i.valor_atingido||0}</td>
-                <td>
-                  <div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;margin-bottom:2px">
-                    <div class="ind-fill ${classeBarra(pct)}" style="width:${Math.min(pct,100)}%"></div>
-                  </div>
-                  <div style="font-size:10px;text-align:right;color:var(--cinza-500)">${pct}%</div>
-                </td>
-                <td>${badgeRisco(pct,temMeta)}</td>
-                <td>
-                  ${ods.slice(0,2).map(o=>`<span class="ods-chip">${o}</span>`).join('')}
-                  ${km.slice(0,1).map(k=>`<span class="km-chip">${k}</span>`).join('')}
-                </td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div></div>
+// ── ODS ───────────────────────────────────────────────────────
+function renderODS(){
+  const el=document.getElementById('ods-grid');
+  if(!odsRefs.length){el.innerHTML='<div style="color:var(--cinza-400);font-size:12px">Execute o SQL de migração.</div>';return;}
+
+  el.innerHTML=odsRefs.map(o=>{
+    const cnt=matrizItens.filter(i=>(i.ods||[]).includes(o.numero)).length;
+    return`<div class="ods-card${o.no_projeto?' ativo':''}"
+      style="border-color:${o.no_projeto?o.cor+'44':'var(--borda)'};background:${o.no_projeto?o.cor+'08':'var(--cinza-50)'}"
+      onclick="abrirRefODS('${o.numero}')">
+      <div class="ods-emoji">${o.emoji}</div>
+      <div class="ods-num" style="color:${o.cor}">ODS ${o.numero}</div>
+      <div class="ods-titulo">${o.titulo}</div>
+      ${o.no_projeto?`<div class="ods-badge-cnt" style="background:${o.cor}22;color:${o.cor}">${cnt} indicador${cnt!==1?'es':''}</div>`:''}
     </div>`;
+  }).join('');
 }
 
-function toggleBloco(id){
-  const el=document.getElementById(id);
-  if(el)el.style.display=el.style.display==='none'?'':'none';
+function abrirRefODS(num){
+  const o=odsRefs.find(x=>x.numero===num);
+  if(!o)return;
+  const inds=matrizItens.filter(i=>(i.ods||[]).includes(num));
+  document.getElementById('mr-titulo').textContent=`ODS ${num} — ${o.titulo}`;
+  document.getElementById('mr-body').innerHTML=`
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:48px">${o.emoji}</div>
+      ${o.no_projeto?`<span style="background:${o.cor}22;color:${o.cor};font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px">✓ Presente neste projeto</span>`:`<span style="background:var(--cinza-100);color:var(--cinza-500);font-size:11px;padding:2px 10px;border-radius:99px">Não vinculado ao projeto</span>`}
+    </div>
+    ${inds.length?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${inds.length} indicador(es) vinculado(s)</div>
+    ${inds.map(i=>`<div style="padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:5px;cursor:pointer;font-size:12px" onclick="document.getElementById('modal-ref').style.display='none';abrirIndicador('${i.id}')">
+      <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:1px 6px;border-radius:3px;margin-right:6px">${i.produto_codigo}</span>
+      ${(i.indicador||'').substring(0,80)}${(i.indicador||'').length>80?'…':''}
+    </div>`).join('')}`:`<div style="text-align:center;padding:16px;color:var(--cinza-400);font-size:12px">Nenhum indicador diretamente vinculado.</div>`}`;
+  document.getElementById('modal-ref').style.display='flex';
 }
 
-// ── MODAL ─────────────────────────────────────────────────────
+// ── KM ────────────────────────────────────────────────────────
+function renderKM(){
+  const el=document.getElementById('km-lista');
+  if(!kmRefs.length){el.innerHTML='<div style="color:var(--cinza-400);font-size:12px">Execute o SQL de migração.</div>';return;}
+
+  el.innerHTML=kmRefs.map(k=>{
+    const inds=matrizItens.filter(i=>(i.metas_km||[]).includes(k.numero));
+    const{conf}=inds.reduce((acc,i)=>{const p=calcPct(i);return{conf:acc.conf+p.conf};},{conf:0});
+    const mediaKM=inds.filter(i=>parseFloat(i.meta_numerica||0)>0).length
+      ?Math.round(conf/(inds.filter(i=>parseFloat(i.meta_numerica||0)>0).length)):0;
+
+    return`<div class="km-item${k.no_projeto?' ativo':''}" onclick="abrirRefKM('${k.numero}')">
+      <div class="km-num" style="color:${k.no_projeto?'#5B21B6':'var(--cinza-300)'}">
+        <div style="font-size:16px;font-weight:700">${k.numero}</div>
+        ${k.no_projeto?`<div style="font-size:8px;font-weight:700;background:#EDE9FE;color:#5B21B6;padding:1px 5px;border-radius:3px;margin-top:2px;text-align:center">✓</div>`:''}
+      </div>
+      <div class="km-body">
+        <div class="km-titulo">${k.titulo}</div>
+        <div class="km-resumo">${(k.resumo||'').substring(0,120)}${(k.resumo||'').length>120?'…':''}</div>
+        ${k.no_projeto&&inds.length?`<div class="km-inds">
+          ${inds.slice(0,4).map(i=>`<span style="font-size:9px;background:var(--cinza-100);color:var(--cinza-600);padding:1px 6px;border-radius:3px">${i.produto_codigo}</span>`).join('')}
+          ${inds.length>4?`<span style="font-size:9px;color:var(--cinza-400)">+${inds.length-4}</span>`:''}
+          ${parseFloat(mediaKM)>0?`<span style="margin-left:auto;font-size:9px;font-weight:700;color:${corPct(mediaKM)}">${mediaKM}%</span>`:''}
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirRefKM(num){
+  const k=kmRefs.find(x=>x.numero===num);
+  if(!k)return;
+  const inds=matrizItens.filter(i=>(i.metas_km||[]).includes(num));
+  document.getElementById('mr-titulo').textContent=`Meta KM ${num} — ${k.titulo}`;
+  document.getElementById('mr-body').innerHTML=`
+    <div style="padding:12px;background:${k.no_projeto?'#EDE9FE':'var(--cinza-50)'};border-radius:var(--raio);margin-bottom:14px">
+      <div style="font-size:12px;color:${k.no_projeto?'#4C1D95':'var(--cinza-600)'};line-height:1.5">${k.resumo||k.titulo}</div>
+      ${k.no_projeto?`<div style="margin-top:6px"><span style="background:#5B21B6;color:#fff;font-size:9px;font-weight:700;padding:1px 8px;border-radius:99px">✓ Presente neste projeto</span></div>`:''}
+    </div>
+    ${inds.length?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${inds.length} indicador(es) vinculado(s)</div>
+    ${inds.map(i=>{
+      const{conf}=calcPct(i);
+      return`<div style="padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:8px" onclick="document.getElementById('modal-ref').style.display='none';abrirIndicador('${i.id}')">
+        <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:1px 6px;border-radius:3px">${i.produto_codigo}</span>
+        <span style="flex:1">${(i.indicador||'').substring(0,80)}${(i.indicador||'').length>80?'…':''}</span>
+        ${parseFloat(i.meta_numerica||0)>0?`<span style="font-size:10px;font-weight:700;color:${corPct(conf)};font-family:var(--font-mono)">${conf}%</span>`:''}
+      </div>`;
+    }).join('')}`:`<div style="text-align:center;padding:16px;color:var(--cinza-400);font-size:12px">Nenhum indicador diretamente vinculado.</div>`}`;
+  document.getElementById('modal-ref').style.display='flex';
+}
+
+// ── MODAL INDICADOR ───────────────────────────────────────────
 async function abrirIndicador(id){
-  indAtual=indicadores.find(i=>i.id===id);
+  indAtual=matrizItens.find(i=>i.id===id);
   if(!indAtual)return;
   const i=indAtual;
-  const pct=calcPct(i);
-  const temMeta=parseFloat(i.meta_numerica||0)>0;
-  const res=resultados.find(r=>r.id===i.resultado_id);
-  const und=unidade(i);
-  const meios=meiosVerif(i);
-  const ods=i.ods_codigos||[];
-  const km=i.km_metas||[];
-  const hists=historicos.filter(h=>h.indicador_id===id).sort((a,b)=>b.trimestre.localeCompare(a.trimestre));
-  const maxHist=hists.length?Math.max(...hists.map(h=>parseFloat(h.valor||0))):parseFloat(i.meta_numerica||1)||1;
+  const meta=parseFloat(i.meta_numerica||0);
+  const{conf,pend}=calcPct(i);
+  const p=getProgresso(id);
+  const temMeta=meta>0;
 
-  document.getElementById('mi-titulo').textContent=i.codigo||'Indicador';
-  document.getElementById('mi-sub').textContent=`${res?.codigo||''} · ${und} · ${i.nome_pt?.substring(0,50)||''}`;
+  document.getElementById('mi-titulo').textContent=`${i.produto_codigo} · Indicador`;
+  document.getElementById('mi-sub').textContent=`Resultado ${i.resultado} → Produto ${i.produto_codigo} · ${i.unidade||'qualitativo'}`;
+
+  // Carregar contribuições
+  const{data:contribs}=await db.from('produto_matriz_contribuicao')
+    .select('*,produtos_entregas(titulo,criado_em,consultor_id)')
+    .eq('matriz_item_id',id)
+    .order('criado_em',{ascending:false})
+    .limit(30);
+
+  const pendentes=(contribs||[]).filter(c=>c.status==='pendente');
+  const podeAprovar=PODE.aprovarProduto();
 
   document.getElementById('mi-body').innerHTML=`
-    <!-- Progresso -->
-    <div style="background:var(--cinza-50);border-radius:var(--raio-lg);padding:16px;border:1px solid var(--borda);margin-bottom:16px">
-      <div style="display:flex;align-items:flex-start;gap:16px">
+    <!-- Progresso visual -->
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:8px;line-height:1.4">${i.indicador||'—'}</div>
+      ${temMeta?`
+      <div style="display:flex;align-items:center;gap:12px">
         <div style="flex:1">
-          <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:3px;line-height:1.4">${i.nome_pt||'—'}</div>
-          ${i.nome_en?`<div style="font-size:11px;color:var(--cinza-500);font-style:italic;margin-bottom:8px">${i.nome_en}</div>`:''}
-          <div class="ind-barra" style="height:10px;margin-bottom:6px">
-            <div class="ind-fill ${classeBarra(pct)}" style="width:${Math.min(pct,100)}%"></div>
+          <div style="height:10px;background:var(--cinza-100);border-radius:5px;overflow:hidden;position:relative">
+            <div style="position:absolute;height:100%;background:#059669;width:${conf}%;border-radius:5px"></div>
+            <div style="position:absolute;height:100%;background:#FCD34D;width:${pend}%;left:${conf}%;border-radius:5px"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--cinza-500)">
-            <span>Baseline: <strong>${i.linha_de_base||'0'} ${und}</strong></span>
-            ${i.meta_2_anos?`<span>Meta 2 anos: <strong>${i.meta_2_anos}</strong></span>`:''}
-            <span>Meta: <strong>${i.meta_numerica||'—'} ${und}</strong></span>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cinza-500);margin-top:4px">
+            <span>Confirmado: <strong>${parseFloat(p.realizado_confirmado||0).toLocaleString('pt-BR')} ${i.unidade||''}</strong></span>
+            ${parseFloat(p.realizado_pendente||0)>0?`<span style="color:#D97706">Pendente: +${parseFloat(p.realizado_pendente||0).toLocaleString('pt-BR')}</span>`:''}
+            <span>Meta: <strong>${meta.toLocaleString('pt-BR')} ${i.unidade||''}</strong></span>
           </div>
         </div>
-        <div style="text-align:center;min-width:80px">
-          <div style="font-size:34px;font-weight:700;font-family:var(--font-mono);color:${pct>=100?'var(--sucesso)':pct>=40?'var(--aviso)':'var(--erro)'};line-height:1">${pct}%</div>
-          <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">${i.valor_atingido||0} / ${i.meta_numerica||'—'}</div>
-          <div style="margin-top:6px">${badgeRisco(pct,temMeta)}</div>
+        <div style="text-align:center;min-width:60px">
+          <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:${corPct(conf)};line-height:1">${conf}%</div>
+          <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">confirmado</div>
         </div>
+      </div>`:`<div style="font-size:11px;color:var(--cinza-500);background:#FFF;border:1px solid var(--borda);border-radius:var(--raio);padding:8px 12px">Indicador qualitativo — progresso acompanhado por registros</div>`}
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        ${(i.ods||[]).map(o=>{const r=odsRefs.find(x=>x.numero===o);return`<span class="ods-chip" style="background:${r?.cor||'#2563EB'}22;color:${r?.cor||'#2563EB'}" title="${r?.titulo||''}">${r?.emoji||''} ODS ${o}</span>`;}).join('')}
+        ${(i.metas_km||[]).map(k=>`<span class="km-chip">KM ${k}</span>`).join('')}
       </div>
     </div>
 
+    <!-- Tabs -->
     <div class="tab-bar">
-      <button class="tab-btn ativo" onclick="aba('detalhes',this)">Detalhes</button>
-      <button class="tab-btn" onclick="aba('historico',this)">Histórico (${hists.length})</button>
-      ${PODE.editarAtividade()||PODE.aprovarProduto()?`<button class="tab-btn" onclick="aba('atualizar',this)">✏️ Atualizar</button>`:''}
+      <button class="tab-btn ativo" onclick="abaModal('det',this)">Detalhes</button>
+      <button class="tab-btn" onclick="abaModal('contrib',this)">Contribuições (${(contribs||[]).length})</button>
+      ${pendentes.length&&podeAprovar?`<button class="tab-btn" style="color:#D97706" onclick="abaModal('aprovar',this)">⏳ Confirmar (${pendentes.length})</button>`:''}
     </div>
 
     <!-- DETALHES -->
-    <div class="tab-content ativo" id="tab-detalhes">
-      <div class="grid-2" style="gap:14px">
+    <div class="tab-content ativo" id="mtab-det">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div>
           ${[
-            ['Código',i.codigo],
-            ['Resultado',res?`${res.codigo} — ${campo(res,'nome')?.substring(0,40)}`:'—'],
-            ['Unidade de medida',und],
-            ['Linha de base',i.linha_de_base],
-            ['Meta (final)',`${i.meta_numerica||'—'} ${und}`],
-            ['Meta 2 anos',i.meta_2_anos],
-            ['Valor atingido',`${i.valor_atingido||0} ${und}`],
-          ].map(([l,v])=>v?`<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--borda)">
+            ['Resultado',`R${i.resultado}`],
+            ['Produto',`${i.produto_codigo} — ${i.produto_titulo}`],
+            ['Meta',i.meta_descricao],
+            ['Meta numérica',temMeta?`${meta.toLocaleString('pt-BR')} ${i.unidade||''}`:null],
+          ].filter(([,v])=>v).map(([l,v])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--borda)">
             <span style="color:var(--cinza-500)">${l}</span>
-            <span style="font-weight:500;color:var(--cinza-900)">${v}</span>
-          </div>`:''). join('')}
+            <span style="font-weight:500;color:var(--cinza-900);text-align:right;max-width:200px">${v}</span>
+          </div>`).join('')}
         </div>
         <div>
-          ${[
-            ['ODS Vinculado(s)',ods.length?ods.map(o=>`<span class="ods-chip">ODS ${o}</span>`).join(' '):null],
-            ['Kunming-Montreal',km.length?km.map(k=>`<span class="km-chip">KM ${k}</span>`).join(' '):null],
-            ['Responsável',i.responsavel],
-            ['Última atualização',i.ultima_atualizacao?fmtData(i.ultima_atualizacao):null],
-            ['Status',i.status_execucao],
-          ].map(([l,v])=>v?`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--borda)">
-            <span style="color:var(--cinza-500)">${l}</span>
-            <span style="font-weight:500;color:var(--cinza-900)">${v}</span>
-          </div>`:''). join('')}
+          ${i.meios_verificacao?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Meios de Verificação</div>
+          <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:8px 10px;border-radius:var(--raio);border:1px solid var(--borda)">${i.meios_verificacao}</div>`:''}
+          ${i.hipoteses_riscos?`<div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hipóteses / Riscos</div>
+          <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:8px 10px;border-radius:var(--raio);border:1px solid var(--borda)">${i.hipoteses_riscos}</div>`:''}
         </div>
       </div>
-      ${meios?`<div style="margin-top:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Meios de Verificação</div>
-        <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${meios}</div>
-      </div>`:''}
-      ${i.hipoteses_pt?`<div style="margin-top:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hipóteses</div>
-        <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${i.hipoteses_pt}</div>
-      </div>`:''}
-      ${i.observacoes?`<div style="margin-top:12px">
-        <div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Observações</div>
-        <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${i.observacoes}</div>
-      </div>`:''}
     </div>
 
-    <!-- HISTÓRICO -->
-    <div class="tab-content" id="tab-historico">
-      ${hists.length?hists.map(h=>{
-        const pctH=maxHist>0?Math.min(parseFloat(h.valor||0)/maxHist*100,100):0;
-        return`<div class="hist-row">
-          <span class="hist-trim">${h.trimestre}</span>
-          <div class="hist-barra"><div class="hist-fill" style="width:${pctH}%"></div></div>
-          <span style="font-family:var(--font-mono);font-size:12px;font-weight:500;min-width:60px;text-align:right">${h.valor} ${und}</span>
-          <span style="font-size:11px;color:var(--cinza-500);min-width:40px;text-align:right">${i.meta_numerica>0?Math.round(parseFloat(h.valor||0)/parseFloat(i.meta_numerica)*100)+'%':'—'}</span>
-          ${h.observacao?`<span style="font-size:10px;color:var(--cinza-500);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.observacao}</span>`:''}
+    <!-- CONTRIBUIÇÕES -->
+    <div class="tab-content" id="mtab-contrib">
+      ${(contribs||[]).length?`
+        <div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px">
+          Total confirmado: <strong>${parseFloat(p.realizado_confirmado||0).toLocaleString('pt-BR')} ${i.unidade||''}</strong>
+          ${parseFloat(p.realizado_pendente||0)>0?` · Pendente: <strong style="color:#D97706">${parseFloat(p.realizado_pendente||0).toLocaleString('pt-BR')}</strong>`:''}
+        </div>
+        ${(contribs||[]).map(c=>{
+          const nomeProduto=c.produtos_entregas?.titulo||'Produto';
+          const statusMap={pendente:'Pendente',confirmado:'Confirmado',rejeitado:'Rejeitado'};
+          const cssMap={pendente:'cs-pend',confirmado:'cs-conf',rejeitado:'cs-rej'};
+          return`<div class="contrib-item">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:500;color:var(--cinza-900)">${nomeProduto.substring(0,60)}</div>
+              <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">${c.observacao||''}</div>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--cinza-900)">${parseFloat(c.valor||0).toLocaleString('pt-BR')} <span style="font-size:10px;font-weight:400;color:var(--cinza-400)">${c.unidade||i.unidade||''}</span></div>
+            <span class="contrib-status ${cssMap[c.status]||'cs-pend'}">${statusMap[c.status]||c.status}</span>
+            ${c.status==='pendente'&&podeAprovar?`
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-sm" style="background:#D1FAE5;color:#065F46;border:none;padding:3px 8px;font-size:11px" onclick="confirmarContrib('${c.id}','confirmado')">✓</button>
+              <button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B;border:none;padding:3px 8px;font-size:11px" onclick="confirmarContrib('${c.id}','rejeitado')">✕</button>
+            </div>`:''}
+          </div>`;
+        }).join('')}`:`<div class="empty-state"><div class="empty-state-msg">Nenhuma contribuição registrada ainda.</div></div>`}
+    </div>
+
+    <!-- APROVAR (somente para pending + podeAprovar) -->
+    ${pendentes.length&&podeAprovar?`
+    <div class="tab-content" id="mtab-aprovar">
+      <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--raio);padding:10px 12px;margin-bottom:12px;font-size:12px;color:#92400E">
+        ⏳ <strong>${pendentes.length} contribuição(ões)</strong> aguardam confirmação técnica para contabilizar no progresso.
+      </div>
+      ${pendentes.map(c=>{
+        const nomeProduto=c.produtos_entregas?.titulo||'Produto';
+        return`<div class="contrib-item" style="border-color:#FCD34D;background:#FFFBEB">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500;color:var(--cinza-900)">${nomeProduto.substring(0,60)}</div>
+            <div style="font-size:10px;color:var(--cinza-500)">${c.observacao||''}</div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:#92400E">${parseFloat(c.valor||0).toLocaleString('pt-BR')} ${c.unidade||i.unidade||''}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm" style="background:#059669;color:#fff;border:none;padding:4px 12px;font-size:11px;border-radius:6px" onclick="confirmarContrib('${c.id}','confirmado')">✓ Confirmar</button>
+            <button class="btn btn-sm" style="background:#DC2626;color:#fff;border:none;padding:4px 12px;font-size:11px;border-radius:6px" onclick="confirmarContrib('${c.id}','rejeitado')">✕ Rejeitar</button>
+          </div>
         </div>`;
-      }).join(''):
-        `<div class="empty-state"><div class="empty-state-msg">Nenhum histórico trimestral ainda.</div></div>`}
-      ${PODE.editarAtividade()||PODE.aprovarProduto()?`
-        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--borda)">
-          <div style="font-size:12px;font-weight:600;color:var(--cinza-700);margin-bottom:10px">Adicionar registro trimestral</div>
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">Trimestre</label>
-              <select class="form-control" id="hist-trim" style="height:36px;font-size:12px">
-                ${gerarTrimestres().map(t=>`<option value="${t}">${t}</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Valor atingido</label>
-              <input class="form-control" id="hist-val" type="number" step="0.01" placeholder="0" style="height:36px;font-size:12px">
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Observação</label>
-            <input class="form-control" id="hist-obs" type="text" placeholder="Comentário sobre este período..." style="height:36px;font-size:12px">
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="salvarHistorico()">Registrar</button>
-        </div>`:''}
-    </div>
-
-    <!-- ATUALIZAR -->
-    ${PODE.editarAtividade()||PODE.aprovarProduto()?`
-    <div class="tab-content" id="tab-atualizar">
-      <div class="alert alert-info" style="margin-bottom:14px;font-size:12px">
-        ℹ Use este formulário para atualizar manualmente o valor atingido e informações do indicador.
-      </div>
-      <div class="grid-2">
-        <div class="form-group">
-          <label class="form-label">Valor atingido atual</label>
-          <input class="form-control" id="upd-valor" type="number" step="0.01" value="${i.valor_atingido||0}">
-          <div class="form-hint">Unidade: ${und} · Meta: ${i.meta_numerica||'—'}</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Responsável</label>
-          <input class="form-control" id="upd-resp" type="text" value="${i.responsavel||''}">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Meios de verificação</label>
-        <textarea class="form-control" id="upd-meios" rows="2">${i.meios_verificacao_pt||''}</textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Observações</label>
-        <textarea class="form-control" id="upd-obs" rows="3">${i.observacoes||''}</textarea>
-      </div>
-      <button class="btn btn-primary" onclick="atualizarIndicador()">💾 Salvar atualização</button>
+      }).join('')}
     </div>`:''}
   `;
 
-  document.getElementById('mi-footer').innerHTML=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
-  document.getElementById('modal-ind').classList.add('aberto');
-}
+  document.getElementById('mi-footer').innerHTML=`
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      ${PODE.editarAtividade()||PODE.aprovarProduto()?`<button class="btn btn-secondary" onclick="abrirEditarInd('${id}')">✎ Editar indicador</button>`:''}
+      <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
+    </div>`;
 
-function gerarTrimestres(){
-  const ts=[];const ano=new Date().getFullYear();
-  for(let a=ano;a>=ano-2;a--)for(let q=4;q>=1;q--)ts.push(`${a}T${q}`);
-  return ts;
-}
-
-function aba(id,btn){
-  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('ativo'));
-  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('ativo'));
-  document.getElementById('tab-'+id)?.classList.add('ativo');
-  btn.classList.add('ativo');
-}
-
-async function salvarHistorico(){
-  if(!indAtual)return;
-  const trim=document.getElementById('hist-trim')?.value;
-  const val=parseFloat(document.getElementById('hist-val')?.value);
-  if(!trim||isNaN(val)){toast('Preencha trimestre e valor.','error');return;}
-  try{
-    const{error}=await db.from('historico_indicadores').upsert({
-      indicador_id:indAtual.id,trimestre:trim,valor:val,
-      observacao:document.getElementById('hist-obs')?.value.trim()||null,
-      registrado_por:appState.usuario.id
-    },{onConflict:'indicador_id,trimestre'});
-    if(error)throw error;
-    const idx=historicos.findIndex(h=>h.indicador_id===indAtual.id&&h.trimestre===trim);
-    if(idx>=0)historicos[idx].valor=val;
-    else historicos.push({indicador_id:indAtual.id,trimestre:trim,valor:val});
-    toast('Registro trimestral salvo!','success');
-    setTimeout(()=>abrirIndicador(indAtual.id),300);
-  }catch(e){toast('Erro: '+(e.message||''),'error');}
-}
-
-async function atualizarIndicador(){
-  if(!indAtual)return;
-  const valor=parseFloat(document.getElementById('upd-valor')?.value)||0;
-  try{
-    const updates={
-      valor_atingido:valor,
-      responsavel:document.getElementById('upd-resp')?.value.trim()||null,
-      meios_verificacao_pt:document.getElementById('upd-meios')?.value.trim()||null,
-      observacoes:document.getElementById('upd-obs')?.value.trim()||null,
-      ultima_atualizacao:new Date().toISOString().split('T')[0],
-      atualizado_por:appState.usuario.id,
-    };
-    const{error}=await db.from('indicadores').update(updates).eq('id',indAtual.id);
-    if(error)throw error;
-    Object.assign(indAtual,updates);
-    const idx=indicadores.findIndex(i=>i.id===indAtual.id);
-    if(idx>=0)Object.assign(indicadores[idx],updates);
-    fecharModal();renderStats();renderVisao();
-    toast('Indicador atualizado!','success');
-  }catch(e){toast('Erro: '+(e.message||''),'error');}
-}
-
-function exportarCSV(){
-  const headers=['Código','Indicador PT','Indicador EN','Resultado','Baseline','Meta 2 anos','Meta Final','Atingido','%','Unidade','ODS','KM','Responsável','Meios Verificação','Status'];
-  const rows=indicadores.map(i=>{
-    const pct=calcPct(i);
-    const res=resultados.find(r=>r.id===i.resultado_id);
-    const st=pct>=100?'Meta atingida':pct>=70?'Em dia':pct>=40?'Atenção':'Em risco';
-    return[
-      i.codigo||'',
-      `"${(i.nome_pt||'').replace(/"/g,'""')}"`,
-      `"${(i.nome_en||'').replace(/"/g,'""')}"`,
-      res?.codigo||'',
-      i.linha_de_base||'',
-      i.meta_2_anos||'',
-      i.meta_numerica||'',
-      i.valor_atingido||0,
-      pct+'%',
-      unidade(i),
-      (i.ods_codigos||[]).join('|'),
-      (i.km_metas||[]).join('|'),
-      `"${(i.responsavel||'').replace(/"/g,'""')}"`,
-      `"${(i.meios_verificacao_pt||'').replace(/"/g,'""')}"`,
-      st
-    ];
-  });
-  const csv=[headers.join(';'),...rows.map(r=>r.join(';'))].join('\n');
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`matriz-resultados-${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();URL.revokeObjectURL(url);
-  toast('CSV exportado!','success');
-}
-
-function exportarPDF(){
-  const{jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-  const W=297,M=14;let y=M;
-  doc.setFillColor(31,78,44);doc.rect(0,0,W,20,'F');
-  doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
-  doc.text('MATRIZ DE RESULTADOS — PROJETO 218BRA2001',M,9);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');
-  doc.text(`SEMA/AC · UNESCO · MPTF · Gerado em ${new Date().toLocaleDateString('pt-BR')}`,M,16);
-  y=28;
-  resultados.forEach(r=>{
-    const indsR=indicadores.filter(i=>i.resultado_id===r.id);
-    if(!indsR.length)return;
-    if(y>170){doc.addPage();y=M;}
-    doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(31,78,44);
-    doc.text(`${r.codigo} — ${campo(r,'nome')?.substring(0,80)||''}`,M,y);y+=7;
-    const cols=[12,88,18,18,18,18,14,28,18];
-    const hdrs=['Cód.','Indicador','Unid.','Baseline','Meta 2a','Meta','%','Verificação','Status'];
-    let x=M;
-    doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(80,80,80);
-    hdrs.forEach((h,ci)=>{doc.text(h,x+1,y);x+=cols[ci];});
-    y+=1;doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3;
-    indsR.forEach(i=>{
-      if(y>185){doc.addPage();y=M;}
-      const pct=calcPct(i);
-      const st=pct>=100?'Atingida':pct>=40?'Parcial':'Em risco';
-      const vals=[
-        i.codigo||'',
-        (i.nome_pt||'').substring(0,52),
-        unidade(i).substring(0,8),
-        String(i.linha_de_base||'—'),
-        String(i.meta_2_anos||'—'),
-        String(i.meta_numerica||'—'),
-        pct+'%',
-        (i.meios_verificacao_pt||'—').substring(0,20),
-        st
-      ];
-      x=M;
-      doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);
-      vals.forEach((v,ci)=>{doc.text(String(v),x+1,y);x+=cols[ci];});
-      y+=5;
-    });
-    y+=4;
-  });
-  const pgs=doc.getNumberOfPages();
-  for(let p=1;p<=pgs;p++){
-    doc.setPage(p);doc.setFontSize(7);doc.setTextColor(150,150,150);
-    doc.text(`SEMA/AC · UNESCO · 218BRA2001 · Página ${p}/${pgs}`,M,205);
-  }
-  doc.save(`MatrizResultados-218BRA2001-${new Date().toISOString().split('T')[0]}.pdf`);
-  toast('PDF UNESCO gerado!','success');
+  document.getElementById('modal-ind').style.display='flex';
 }
 
 function fecharModal(){
-  document.getElementById('modal-ind').classList.remove('aberto');
-  indAtual=null;
+  document.getElementById('modal-ind').style.display='none';
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharModal();});
+
+function abaModal(id,btn){
+  document.querySelectorAll('#mi-body .tab-btn').forEach(b=>b.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  document.querySelectorAll('#mi-body .tab-content').forEach(c=>c.classList.remove('ativo'));
+  const el=document.getElementById('mtab-'+id);
+  if(el)el.classList.add('ativo');
+}
+
+// ── Confirmar contribuição ────────────────────────────────────
+async function confirmarContrib(contribId, novoStatus){
+  const{error}=await db.from('produto_matriz_contribuicao')
+    .update({
+      status:novoStatus,
+      confirmado_por:appState.usuario.id,
+      confirmado_em:new Date().toISOString()
+    })
+    .eq('id',contribId);
+
+  if(error){toast('Erro ao atualizar contribuição.','error');return;}
+  toast(novoStatus==='confirmado'?'Contribuição confirmada!':'Contribuição rejeitada.', novoStatus==='confirmado'?'success':'info');
+
+  // Recarregar progresso e reabrir modal
+  const{data:prog}=await db.from('vw_matriz_progresso').select('*');
+  progresso=prog||[];
+  renderStats();
+  renderMatriz();
+  if(indAtual)await abrirIndicador(indAtual.id);
+}
+
+// ── Editar/Criar indicador ────────────────────────────────────
+function abrirModalNovoInd(){
+  indAtual=null;
+  abrirFormInd(null);
+}
+function abrirEditarInd(id){
+  const i=matrizItens.find(x=>x.id===id);
+  fecharModal();
+  setTimeout(()=>abrirFormInd(i),150);
+}
+
+function abrirFormInd(i){
+  const titulo=i?'Editar Indicador':'Novo Indicador';
+  document.getElementById('mi-titulo').textContent=titulo;
+  document.getElementById('mi-sub').textContent=i?`${i.produto_codigo} — ${i.produto_titulo}`:'Preencha os campos abaixo';
+  document.getElementById('mi-body').innerHTML=`
+    <div class="grid-2" style="gap:12px">
+      <div class="form-group">
+        <label class="form-label">Resultado *</label>
+        <select class="form-control" id="fi-resultado" style="height:36px">
+          <option value="1" ${i?.resultado===1?'selected':''}>1 — Uso sustentável</option>
+          <option value="2" ${i?.resultado===2?'selected':''}>2 — Mitigação ambiental</option>
+          <option value="3" ${i?.resultado===3?'selected':''}>3 — Governança e gênero</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Código Produto *</label>
+        <input class="form-control" id="fi-produto-cod" placeholder="ex: 1.1" value="${i?.produto_codigo||''}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Título do Produto *</label>
+      <input class="form-control" id="fi-produto-titulo" placeholder="ex: Desenvolvimento de Produtos Sustentáveis" value="${i?.produto_titulo||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Indicador *</label>
+      <textarea class="form-control" id="fi-indicador" rows="2" placeholder="Descreva o indicador...">${i?.indicador||''}</textarea>
+    </div>
+    <div class="grid-2" style="gap:12px">
+      <div class="form-group">
+        <label class="form-label">Meta (descrição)</label>
+        <input class="form-control" id="fi-meta-desc" placeholder="ex: 200 unidades produtivas" value="${i?.meta_descricao||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Meta numérica</label>
+        <input class="form-control" type="number" id="fi-meta-num" step="0.01" placeholder="200" value="${i?.meta_numerica||''}">
+      </div>
+    </div>
+    <div class="grid-2" style="gap:12px">
+      <div class="form-group">
+        <label class="form-label">Unidade de medida</label>
+        <input class="form-control" id="fi-unidade" placeholder="ex: pessoas, hectares" value="${i?.unidade||''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ordem</label>
+        <input class="form-control" type="number" id="fi-ordem" value="${i?.ordem||0}">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ODS vinculados (números separados por vírgula)</label>
+      <input class="form-control" id="fi-ods" placeholder="ex: 2, 12, 13" value="${(i?.ods||[]).join(', ')}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Metas Kunming-Montreal (números separados por vírgula)</label>
+      <input class="form-control" id="fi-km" placeholder="ex: 2, 10, 22" value="${(i?.metas_km||[]).join(', ')}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Meios de Verificação</label>
+      <textarea class="form-control" id="fi-meios" rows="2" placeholder="Como será medido...">${i?.meios_verificacao||''}</textarea>
+    </div>
+  `;
+  document.getElementById('mi-footer').innerHTML=`
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarIndicador('${i?.id||''}')">💾 Salvar</button>
+    </div>`;
+  document.getElementById('modal-ind').style.display='flex';
+}
+
+async function salvarIndicador(id){
+  const parseArr=v=>v.split(',').map(x=>x.trim()).filter(Boolean);
+  const payload={
+    resultado:parseInt(document.getElementById('fi-resultado').value)||1,
+    produto_codigo:(document.getElementById('fi-produto-cod').value||'').trim(),
+    produto_titulo:(document.getElementById('fi-produto-titulo').value||'').trim(),
+    indicador:(document.getElementById('fi-indicador').value||'').trim(),
+    meta_descricao:(document.getElementById('fi-meta-desc').value||'').trim(),
+    meta_numerica:parseFloat(document.getElementById('fi-meta-num').value)||null,
+    unidade:(document.getElementById('fi-unidade').value||'').trim()||null,
+    ordem:parseInt(document.getElementById('fi-ordem').value)||0,
+    ods:parseArr(document.getElementById('fi-ods').value),
+    metas_km:parseArr(document.getElementById('fi-km').value),
+    meios_verificacao:(document.getElementById('fi-meios').value||'').trim()||null,
+    atualizado_em:new Date().toISOString()
+  };
+
+  if(!payload.indicador||!payload.produto_codigo||!payload.produto_titulo){
+    toast('Preencha os campos obrigatórios.','warning');return;
+  }
+
+  let error;
+  if(id){
+    ({error}=await db.from('matriz_itens').update(payload).eq('id',id));
+  }else{
+    ({error}=await db.from('matriz_itens').insert(payload));
+  }
+  if(error){toast('Erro ao salvar: '+error.message,'error');return;}
+  toast(id?'Indicador atualizado!':'Indicador criado!','success');
+  fecharModal();
+  await carregar();
+}
+
+// ── Exportar CSV ──────────────────────────────────────────────
+function exportarCSV(){
+  const rows=[['Resultado','Produto','Indicador','Meta','Meta Numérica','Unidade','Confirmado','% Confirmado','ODS','KM','Meios de Verificação']];
+  matrizItens.forEach(i=>{
+    const p=getProgresso(i.id);
+    const meta=parseFloat(i.meta_numerica||0);
+    const conf=parseFloat(p.realizado_confirmado||0);
+    const pct=meta>0?Math.round(conf/meta*100):0;
+    rows.push([
+      `R${i.resultado}`,i.produto_codigo,i.indicador,
+      i.meta_descricao,i.meta_numerica||'',i.unidade||'',
+      conf,pct+'%',
+      (i.ods||[]).join(';'),(i.metas_km||[]).join(';'),
+      (i.meios_verificacao||'').replace(/[\n\r,]/g,' ')
+    ]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='matriz_resultados_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// Fechar modais clicando fora
+document.getElementById('modal-ind').addEventListener('click',e=>{if(e.target===document.getElementById('modal-ind'))fecharModal();});
+document.getElementById('modal-ref').addEventListener('click',e=>{if(e.target===document.getElementById('modal-ref'))document.getElementById('modal-ref').style.display='none';});
 </script>
 </body>
 </html>
