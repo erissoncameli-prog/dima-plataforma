@@ -24,7 +24,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'produtos',     icone: '◉', href: 'produtos.html',     perfis: ['super_admin','coordenacao','tecnico'] },
     { id: 'financeiro',   icone: '◈', href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     // ── Apoio ────────────────────────────────────────────────
-    { id: 'viagens',      icone: '✈', href: 'viagens.html',      perfis: ['super_admin','coordenacao','financeiro'] },
+    { id: 'viagens',      icone: '✈', href: 'viagens.html',      perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
     { id: 'repositorio',  icone: '🔗', href: 'repositorio.html',  perfis: null },
     { id: 'usuarios',     icone: '◍', href: 'usuarios.html',     perfis: ['super_admin'] },
   ];
