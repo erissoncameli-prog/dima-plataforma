@@ -199,7 +199,7 @@ window.mudarAba = function(id,btn){
 async function loadData(){
   var r = await Promise.all([
     db.from('atividades').select('*'),
-    db.from('tdrs').select('*'),
+    db.from('tdrs').select('*,responsavel:usuarios!tdrs_responsavel_id_fkey(id,nome_completo)'),
     db.from('resultados').select('*'),
     db.from('vw_saldo_atividade').select('*'),
     db.from('indicadores').select('*,resultados(codigo,nome_pt)').eq('ativo',true),
@@ -383,6 +383,22 @@ function renderOperacional(){
   // Linha barra TDR status
   h+='<div class="ch"><div class="ch-tit">Evolução do fluxo de TDRs</div><div class="ch-sub">Quantidade e valor por status</div><div style="position:relative;height:200px"><canvas id="ch-tdr-bar-combo"></canvas></div></div>';
 
+  // TDRs por responsável
+  var respSet=new Map();
+  D.tdrs.forEach(function(t){
+    var nome=(t.responsavel&&t.responsavel.nome_completo)||'Sem responsável';
+    if(!respSet.has(nome))respSet.set(nome,{rascunho:0,revisao_interna:0,ajustes:0,enviado_unesco:0,retorno_unesco:0,aprovado:0,cancelado:0});
+    var r=respSet.get(nome);
+    if(r[t.status]!==undefined)r[t.status]++;else r['rascunho']++;
+  });
+  var respNomes=[...respSet.keys()].sort(function(a,b){
+    var ta=Object.values(respSet.get(a)).reduce(function(s,v){return s+v;},0);
+    var tb=Object.values(respSet.get(b)).reduce(function(s,v){return s+v;},0);
+    return tb-ta;
+  });
+  var respH=Math.max(respNomes.length*36+60,160);
+  h+='<div class="ch"><div class="ch-tit">TDRs por responsável</div><div class="ch-sub">Distribuição por status</div><div style="position:relative;height:'+respH+'px"><canvas id="ch-tdr-resp"></canvas></div></div>';
+
   document.getElementById('pane-operacional').innerHTML = h;
 
   setTimeout(function(){
@@ -415,6 +431,31 @@ function renderOperacional(){
       {type:'bar',label:'Quantidade',data:stKs2.map(function(k){return stMap2[k];}),backgroundColor:'#BFDBFE',borderRadius:4,yAxisID:'y'},
       {type:'line',label:'Valor U$',data:stKs2.map(function(k){return stVal2[k];}),borderColor:'#D97706',backgroundColor:'rgba(217,119,6,.1)',pointBackgroundColor:'#D97706',pointRadius:5,fill:true,tension:0.3,yAxisID:'y2'},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#6B7280'}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{stepSize:1,font:{size:10},color:'#9CA3AF'},title:{display:true,text:'Qtd',font:{size:10}}},y2:{position:'right',grid:{display:false},ticks:{font:{size:10},color:'#9CA3AF',callback:function(v){return 'U$'+Math.round(v/1000)+'K';}},title:{display:true,text:'Valor',font:{size:10}}}}}});
+
+    // TDRs por responsável — barras empilhadas horizontais
+    var stCores={rascunho:'#D1D5DB',revisao_interna:'#93C5FD',ajustes:'#FCD34D',enviado_unesco:'#6EE7B7',retorno_unesco:'#F9A8D4',aprovado:'#34D399',cancelado:'#FCA5A5'};
+    var stLabels={rascunho:'Rascunho',revisao_interna:'Revisão interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado',cancelado:'Cancelado'};
+    var stKeys=Object.keys(stCores);
+    var respDatasets=stKeys.map(function(sk){
+      return{label:stLabels[sk],data:respNomes.map(function(n){return(respSet.get(n)||{})[sk]||0;}),backgroundColor:stCores[sk],borderRadius:2,borderSkipped:false};
+    });
+    // Abreviar nomes longos no eixo
+    var respLabels=respNomes.map(function(n){
+      var parts=n.split(' ');
+      if(parts.length<=2)return n;
+      return parts[0]+' '+parts[parts.length-1];
+    });
+    mkChart('ch-tdr-resp',{type:'bar',data:{labels:respLabels,datasets:respDatasets},options:{
+      responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{title:function(items){return respNomes[items[0].dataIndex];}}}
+      },
+      scales:{
+        x:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{stepSize:1,font:{size:10},color:'#9CA3AF'}},
+        y:{stacked:true,grid:{display:false},ticks:{font:{size:10},color:'#374151'}}
+      }
+    }});
   },50);
 }
 

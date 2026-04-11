@@ -274,17 +274,20 @@ function podeEditarFase(status){
     <div class="fade-in">
       <div class="stat-row" id="stats"></div>
       <div class="filter-bar">
-        <input class="form-control" type="text" id="busca" style="width:260px"
+        <input class="form-control" type="text" id="busca" style="width:220px"
           placeholder="Buscar número ou objeto..." oninput="filtrar()">
-        <select class="form-control" id="fil-st" onchange="filtrar()" style="width:155px">
+        <select class="form-control" id="fil-st" onchange="filtrar()" style="width:145px">
           <option value="">Todos os status</option>
           ${FASES.map(f=>`<option value="${f}">${FASES_LABELS[f]}</option>`).join('')}
           <option value="cancelado">Cancelado</option>
         </select>
-        <select class="form-control" id="fil-tp" onchange="filtrar()" style="width:120px">
+        <select class="form-control" id="fil-tp" onchange="filtrar()" style="width:110px">
           <option value="">PF + PJ</option>
           <option value="PF">Pessoa Física</option>
           <option value="PJ">Pessoa Jurídica</option>
+        </select>
+        <select class="form-control" id="fil-resp" onchange="filtrar()" style="width:180px">
+          <option value="">Todos os responsáveis</option>
         </select>
         <span id="cont" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
         ${PODE.editarTDR()?`<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo TDR</button>`:''}
@@ -296,7 +299,7 @@ function podeEditarFase(status){
 
 async function carregar(){
   try{
-    let tdrQuery=db.from('tdrs').select(`*,atividades(codigo,nome_pt,responsavel_id),fornecedores(nome,tipo)`)
+    let tdrQuery=db.from('tdrs').select(`*,atividades(codigo,nome_pt,responsavel_id),fornecedores(nome,tipo),responsavel:usuarios!tdrs_responsavel_id_fkey(id,nome_completo)`)
       .order('criado_em',{ascending:false});
 
     // Técnico: vê TDRs que criou OU cujas atividades ele é responsável OU substituto
@@ -322,7 +325,7 @@ async function carregar(){
       db.from('atividades').select('id,codigo,nome_pt').order('codigo')
     ]);
     atividades=ativs||[];todosTDRs=tdrs||[];
-    renderStats();filtrar();
+    renderStats();popularFiltroResp();filtrar();
   }catch(e){toast('Erro ao carregar TDRs.','error');}
 }
 
@@ -336,14 +339,37 @@ function renderStats(){
     <div class="stat-card sc-a"><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:14px">${fmtBRL(t.filter(x=>x.status!=='cancelado').reduce((s,x)=>s+parseFloat(x.valor_brl||0),0))}</div><div class="stat-sub">TDRs ativos</div></div>`;
 }
 
+function popularFiltroResp(){
+  const sel=document.getElementById('fil-resp');
+  if(!sel)return;
+  // Coletar responsáveis únicos com nome
+  const mapa=new Map();
+  todosTDRs.forEach(t=>{
+    if(t.responsavel?.id && t.responsavel?.nome_completo){
+      mapa.set(t.responsavel.id, t.responsavel.nome_completo);
+    }
+  });
+  // Manter a seleção atual
+  const atual=sel.value;
+  sel.innerHTML='<option value="">Todos os responsáveis</option>';
+  [...mapa.entries()].sort((a,b)=>a[1].localeCompare(b[1])).forEach(([id,nome])=>{
+    const opt=document.createElement('option');
+    opt.value=id; opt.textContent=nome;
+    sel.appendChild(opt);
+  });
+  if(atual)sel.value=atual;
+}
+
 function filtrar(){
   const b=document.getElementById('busca').value.toLowerCase();
   const s=document.getElementById('fil-st').value;
   const tp=document.getElementById('fil-tp').value;
+  const resp=document.getElementById('fil-resp')?.value||'';
   const f=todosTDRs.filter(t=>{
     if(b&&!t.numero.toLowerCase().includes(b)&&!(t.objeto_pt||'').toLowerCase().includes(b))return false;
     if(s&&t.status!==s)return false;
     if(tp&&t.tipo!==tp)return false;
+    if(resp&&t.responsavel?.id!==resp)return false;
     return true;
   });
   document.getElementById('cont').textContent=`${f.length} de ${todosTDRs.length} TDRs`;
