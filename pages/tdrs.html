@@ -997,7 +997,6 @@ async function executarDevolucao(){
 // ── SISTEMA DE SENHA PARA TDRs ───────────────────────────────
 function pedirSenhaTDR(titulo,subtitulo,callback){
   document.getElementById('senha-tdr-titulo').textContent=titulo;
-  document.getElementById('senha-tdr-sub').textContent=subtitulo;
   document.getElementById('senha-tdr-input').value='';
   document.getElementById('senha-tdr-erro').style.display='none';
   senhaTDRCallback=callback;
