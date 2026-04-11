@@ -1113,15 +1113,17 @@ async function enviarPrestacao(){
     for(let j=0;j<embs.length;j++){
       const f=embs[j].file;const ext=f.name.split('.').pop().toLowerCase();
       const path=`viagens/${p.id}/viajante-${v.id}/embarque-${Date.now()}-${j}.${ext}`;
-      const{error}=await db.storage.from('tdrs-arquivos').upload(path,f,{upsert:true});
-      if(!error){const{data:ud}=db.storage.from('tdrs-arquivos').getPublicUrl(path);cartUrls.push(ud.publicUrl);}
+      const{error}=await db.storage.from('viagens-arquivos').upload(path,f,{upsert:true});
+      if(!error){const{data:ud}=db.storage.from('viagens-arquivos').getPublicUrl(path);cartUrls.push(ud.publicUrl);}
+      else{toast(`Erro ao enviar cartão ${j+1}: ${error.message}`,'error');}
     }
     // Relatório
     if(relatorioFiles[i]){
       const f=relatorioFiles[i].file;const ext=f.name.split('.').pop();
       const path=`viagens/${p.id}/viajante-${v.id}/relatorio-${Date.now()}.${ext}`;
-      const{error}=await db.storage.from('tdrs-arquivos').upload(path,f,{upsert:true});
-      if(!error){const{data:ud}=db.storage.from('tdrs-arquivos').getPublicUrl(path);relUrl=ud.publicUrl;relNome=f.name;}
+      const{error}=await db.storage.from('viagens-arquivos').upload(path,f,{upsert:true});
+      if(!error){const{data:ud}=db.storage.from('viagens-arquivos').getPublicUrl(path);relUrl=ud.publicUrl;relNome=f.name;}
+      else{toast(`Erro ao enviar relatório: ${error.message}`,'error');}
     }
     await db.from('viagem_viajantes').update({
       cartoes_embarque_urls:cartUrls,relatorio_url:relUrl,relatorio_nome:relNome,
