@@ -1032,12 +1032,14 @@ async function confirmarSenhaTDR(){
     // Usar a nova sessão diretamente (mesmo usuário, token atualizado)
     appState.sessao=authData.session;
 
+    // Salvar callback ANTES de fecharSenhaTDR (que zera senhaTDRCallback)
+    const cb=senhaTDRCallback;
     fecharSenhaTDR();
     btn.textContent='Confirmar';btn.disabled=false;
 
-    if(senhaTDRCallback){
+    if(cb){
       try{
-        await senhaTDRCallback();
+        await cb();
       }catch(cbErr){
         console.error('[SENHA callback] Erro:',cbErr);
         toast('Erro ao executar ação: '+(cbErr.message||JSON.stringify(cbErr)),'error');
