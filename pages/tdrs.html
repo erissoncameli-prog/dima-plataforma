@@ -436,11 +436,10 @@ function filtrar(){
           </div>`;
         }).join('')}
       </div>
-      <!-- Contratos vinculados -->
+      <!-- Contratos vinculados (compacto) -->
       ${(()=>{
         const conts=(t.contratos||[]);
         if(!conts.length) return '';
-        const STATUS_CT={vigente:'Vigente',encerrado:'Encerrado',suspenso:'Suspenso',rescindido:'Rescindido'};
         const corStatus={vigente:'#059669',encerrado:'#6B7280',suspenso:'#D97706',rescindido:'#DC2626'};
         const html=conts.map(c=>{
           const total=parseFloat(c.valor_total_brl||0);
@@ -449,42 +448,28 @@ function filtrar(){
           const saldo=c.saldo_brl!=null?parseFloat(c.saldo_brl):(total-utilizado);
           const pctUtil=total>0?Math.min(utilizado/total*100,100):0;
           const pctComp=total>0?Math.min(comprometido/total*100,100):0;
-          const corSaldo=saldo<0?'var(--erro)':saldo<total*0.1?'var(--aviso)':'var(--sucesso)';
-          return `<div style="padding:8px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px" onclick="event.stopPropagation()">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-              <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--cinza-800)">${c.numero}</span>
-              <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;background:${corStatus[c.status]||'#6B7280'}20;color:${corStatus[c.status]||'#6B7280'}">${STATUS_CT[c.status]||c.status}</span>
+          const corSaldo=saldo<0?'var(--erro)':saldo<total*0.1?'var(--aviso)':'#059669';
+          const cor=corStatus[c.status]||'#6B7280';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--borda)" onclick="event.stopPropagation()">
+            <!-- número + status -->
+            <span style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--cinza-800);white-space:nowrap;min-width:90px">${c.numero}</span>
+            <span style="width:6px;height:6px;border-radius:50%;background:${cor};flex-shrink:0" title="${c.status}"></span>
+            <!-- barra de progresso -->
+            <div style="flex:1;height:4px;background:var(--cinza-200);border-radius:2px;overflow:hidden;position:relative;min-width:40px">
+              <div style="position:absolute;left:0;top:0;height:100%;width:${pctComp.toFixed(1)}%;background:#FCD34D"></div>
+              <div style="position:absolute;left:0;top:0;height:100%;width:${pctUtil.toFixed(1)}%;background:#059669"></div>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px">
-              <div>
-                <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Contrato</div>
-                <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--cinza-900)">${fmtBRL(total)}</div>
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Comprometido</div>
-                <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--aviso)">${fmtBRL(comprometido)}</div>
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Utilizado</div>
-                <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--sucesso)">${fmtBRL(utilizado)}</div>
-              </div>
-              <div>
-                <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px">Saldo</div>
-                <div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corSaldo}">${fmtBRL(saldo)}</div>
-              </div>
-            </div>
-            <div style="height:5px;background:var(--cinza-200);border-radius:3px;overflow:hidden;position:relative">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${pctComp.toFixed(1)}%;background:#FCD34D;border-radius:3px"></div>
-              <div style="position:absolute;left:0;top:0;height:100%;width:${pctUtil.toFixed(1)}%;background:var(--verde-medio);border-radius:3px"></div>
-            </div>
-            <div style="display:flex;gap:12px;margin-top:3px">
-              <span style="font-size:9px;color:var(--cinza-400)">■ <span style="color:var(--verde-medio)">Utilizado ${pctUtil.toFixed(0)}%</span></span>
-              <span style="font-size:9px;color:var(--cinza-400)">■ <span style="color:#D97706">Comprometido ${pctComp.toFixed(0)}%</span></span>
+            <!-- valores inline -->
+            <div style="display:flex;gap:10px;flex-shrink:0;align-items:baseline">
+              <span style="font-size:9px;color:var(--cinza-500)" title="Total contratado">T <span style="font-family:var(--font-mono);color:var(--cinza-800)">${fmtBRL(total)}</span></span>
+              <span style="font-size:9px;color:var(--cinza-500)" title="Comprometido">C <span style="font-family:var(--font-mono);color:#D97706">${fmtBRL(comprometido)}</span></span>
+              <span style="font-size:9px;color:var(--cinza-500)" title="Utilizado">U <span style="font-family:var(--font-mono);color:#059669">${fmtBRL(utilizado)}</span></span>
+              <span style="font-size:9px;color:var(--cinza-500)" title="Saldo disponível">S <span style="font-family:var(--font-mono);font-weight:700;color:${corSaldo}">${fmtBRL(saldo)}</span></span>
             </div>
           </div>`;
         }).join('');
-        return `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--borda)">
-          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📄 Contrato${conts.length>1?'s':''} vinculado${conts.length>1?'s':''} (${conts.length})</div>
+        return `<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--borda)">
+          <div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📄 Contrato${conts.length>1?'s':''} (${conts.length}) · <span style="color:var(--cinza-400);font-weight:400">T=total  C=comprometido  U=utilizado  S=saldo</span></div>
           ${html}
         </div>`;
       })()}
