@@ -910,37 +910,30 @@ async function resolverComent(id){
 
 async function avancarFase(novoStatus){
   if(!tdrAtual)return;
-  const acaoMap={
-    revisao_interna:'enviado_revisao',
-    ajustes:'devolvido_ajuste',
-    enviado_unesco:'enviado_unesco',
-    retorno_unesco:'retorno_unesco',
-    aprovado:'aprovado_final',
-    cancelado:'cancelado',
-  };
   try{
-    // Garantir usuario_id via auth como fallback
-    let usuarioId = appState?.usuario?.id;
-    if(!usuarioId){
-      const {data:{user}} = await db.auth.getUser();
-      usuarioId = user?.id;
+    // Atualizar status diretamente (abordagem direta e confiável)
+    const {error:updErr}=await db.from('tdrs').update({status:novoStatus}).eq('id',tdrAtual.id);
+    if(updErr){
+      console.error('[AVANÇAR] update erro:',updErr);
+      throw new Error(updErr.message||'Erro ao atualizar status no banco de dados.');
     }
-    if(!usuarioId) throw new Error('Usuário não identificado. Faça login novamente.');
 
-    console.log('[AVANÇAR] tdrId:', tdrAtual.id, 'usuarioId:', usuarioId, 'acao:', acaoMap[novoStatus]);
-
-    const {error:rpcErr}=await db.rpc('fn_registrar_acao_tdr',{
-      p_tdr_id: tdrAtual.id,
-      p_usuario_id: usuarioId,
-      p_acao: acaoMap[novoStatus]||'editado',
-      p_comentario: null,
-      p_ip: null
-    });
-    if(rpcErr){
-      console.warn('[AVANÇAR] RPC falhou:', rpcErr.message, rpcErr.details, rpcErr.hint);
-      // Fallback: atualizar status diretamente
-      const {error:updErr}=await db.from('tdrs').update({status:novoStatus}).eq('id',tdrAtual.id);
-      if(updErr) throw updErr;
+    // Registrar ação no log (tentativa, não bloqueia se falhar)
+    const acaoMap={
+      revisao_interna:'enviado_revisao', ajustes:'devolvido_ajuste',
+      enviado_unesco:'enviado_unesco', retorno_unesco:'retorno_unesco',
+      aprovado:'aprovado_final', cancelado:'cancelado',
+    };
+    let usuarioId=appState?.usuario?.id;
+    if(!usuarioId){
+      const {data:{user}}=await db.auth.getUser();
+      usuarioId=user?.id;
+    }
+    if(usuarioId){
+      await db.rpc('fn_registrar_acao_tdr',{
+        p_tdr_id:tdrAtual.id, p_usuario_id:usuarioId,
+        p_acao:acaoMap[novoStatus]||'editado', p_comentario:null, p_ip:null
+      }).catch(e=>console.warn('[AVANÇAR] RPC log falhou (não crítico):',e.message));
     }
 
     const statusAnterior=tdrAtual.status;
@@ -948,20 +941,11 @@ async function avancarFase(novoStatus){
     const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
     if(idx>=0)todosTDRs[idx].status=novoStatus;
 
-    if(!tdrAcoes[tdrAtual.id])tdrAcoes[tdrAtual.id]=[];
-    tdrAcoes[tdrAtual.id].unshift({
-      acao:acaoMap[novoStatus]||'editado',
-      status_anterior:statusAnterior,
-      status_novo:novoStatus,
-      usuarios:{nome_completo:appState?.usuario?.nome_completo||''},
-      criado_em:new Date().toISOString()
-    });
-
     fecharModal('modal-tdr');
     renderStats();filtrar();
-    toast(`Fase avançada para "${FASES_LABELS[novoStatus]}"!`,'success');
+    toast(`Fase avançada para "${FASES_LABELS[novoStatus]}"! ✓`,'success');
   }catch(e){
-    console.error('[AVANÇAR] Erro:', e);
+    console.error('[AVANÇAR] Erro:',e);
     toast('Erro ao avançar fase: '+(e.message||JSON.stringify(e)),'error');
   }
 }
@@ -1027,14 +1011,16 @@ async function confirmarSenhaTDR(){
   const btn=document.getElementById('senha-tdr-btn');
   btn.textContent='Verificando...';btn.disabled=true;
   try{
-    // 1. Salvar sessão atual antes de verificar
-    const {data:{session:sessaoAtual}}=await db.auth.getSession();
+    // Pegar e-mail direto da sessão Auth (não depende da tabela usuarios)
+    const {data:{session}}=await db.auth.getSession();
+    const email=session?.user?.email||appState.usuario?.email||appState.sessao?.user?.email;
+    if(!email){
+      toast('Não foi possível identificar o e-mail do usuário. Faça login novamente.','error');
+      btn.textContent='Confirmar';btn.disabled=false;
+      return;
+    }
 
-    // 2. Verificar senha com signInWithPassword (mais confiável)
-    const {data:authData, error:authErr}=await db.auth.signInWithPassword({
-      email: appState.usuario.email,
-      password: senha
-    });
+    const {data:authData,error:authErr}=await db.auth.signInWithPassword({email,password:senha});
 
     if(authErr||!authData?.session){
       document.getElementById('senha-tdr-erro').style.display='block';
@@ -1044,18 +1030,22 @@ async function confirmarSenhaTDR(){
       return;
     }
 
-    // 3. Restaurar sessão original para não quebrar o auth.uid() das chamadas seguintes
-    if(sessaoAtual?.refresh_token){
-      await db.auth.setSession({
-        access_token: sessaoAtual.access_token,
-        refresh_token: sessaoAtual.refresh_token
-      });
-    }
+    // Usar a nova sessão diretamente (mesmo usuário, token atualizado)
+    appState.sessao=authData.session;
 
     fecharSenhaTDR();
-    if(senhaTDRCallback)await senhaTDRCallback();
+    btn.textContent='Confirmar';btn.disabled=false;
+
+    if(senhaTDRCallback){
+      try{
+        await senhaTDRCallback();
+      }catch(cbErr){
+        console.error('[SENHA callback] Erro:',cbErr);
+        toast('Erro ao executar ação: '+(cbErr.message||JSON.stringify(cbErr)),'error');
+      }
+    }
   }catch(e){
-    console.error('[SENHA] Erro:', e);
+    console.error('[SENHA] Erro:',e);
     toast('Erro na verificação: '+(e.message||''),'error');
     btn.textContent='Confirmar';btn.disabled=false;
   }
@@ -1083,15 +1073,25 @@ function confirmarApagarTDR(id, numero){
           db.from('tdr_comentarios').delete().eq('tdr_id', id),
           db.from('tdr_acoes').delete().eq('tdr_id', id),
         ]);
-        if (r1.error) console.warn('[APAGAR TDR] tdr_versoes:', r1.error.message);
-        if (r2.error) console.warn('[APAGAR TDR] tdr_comentarios:', r2.error.message);
-        if (r3.error) console.warn('[APAGAR TDR] tdr_acoes:', r3.error.message);
+        if(r1.error) console.warn('[APAGAR] tdr_versoes:', r1.error.message);
+        if(r2.error) console.warn('[APAGAR] tdr_comentarios:', r2.error.message);
+        if(r3.error) console.warn('[APAGAR] tdr_acoes:', r3.error.message);
 
-        // Agora apagar o TDR
+        // Verificar se ainda há filhos bloqueando (FK)
+        if(r1.error || r3.error){
+          // Tentar de novo individualmente para pegar o erro real
+          const vCheck=await db.from('tdr_versoes').select('id',{count:'exact',head:true}).eq('tdr_id',id);
+          const aCheck=await db.from('tdr_acoes').select('id',{count:'exact',head:true}).eq('tdr_id',id);
+          if((vCheck.count||0)>0||(aCheck.count||0)>0){
+            throw new Error('Não foi possível remover registros filhos. Verifique as permissões RLS no banco.');
+          }
+        }
+
+        // Apagar o TDR
         const { error } = await db.from('tdrs').delete().eq('id', id);
         if (error) {
-          console.error('[APAGAR TDR] Erro ao deletar TDR:', error);
-          throw error;
+          console.error('[APAGAR TDR] Erro:', error);
+          throw new Error(error.message||'Erro ao apagar TDR. Verifique as políticas de acesso.');
         }
 
         // Remover do cache local e atualizar UI
