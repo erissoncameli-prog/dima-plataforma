@@ -85,6 +85,14 @@ body{overflow:hidden}
 
 /* Fase badge */
 .fase-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;}
+
+/* Autor badge (cor do usuário) */
+.autor-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;color:#fff;flex-shrink:0;}
+
+/* Diff modal lines */
+.diff-add{background:#DCFCE7;color:#166534;padding:3px 8px;border-radius:4px;margin:2px 0;font-size:12px;font-family:var(--font-mono);display:block;white-space:pre-wrap;word-break:break-word;}
+.diff-rem{background:#FEE2E2;color:#991B1B;padding:3px 8px;border-radius:4px;margin:2px 0;font-size:12px;font-family:var(--font-mono);text-decoration:line-through;display:block;white-space:pre-wrap;word-break:break-word;}
+.diff-eq{background:transparent;color:var(--cinza-400,#9CA3AF);padding:2px 8px;margin:1px 0;font-size:11px;font-family:var(--font-mono);display:block;white-space:pre-wrap;word-break:break-word;}
 </style>
 </head>
 <body>
@@ -95,6 +103,7 @@ body{overflow:hidden}
   <div style="width:1px;height:16px;background:var(--borda);flex-shrink:0"></div>
   <div class="rev-titulo" id="rev-titulo">Carregando...</div>
   <div id="rev-status"></div>
+  <div id="autor-badge-wrap" style="flex-shrink:0"></div>
   <div style="display:flex;gap:6px;flex-shrink:0" id="rev-acoes"></div>
 </div>
 
@@ -162,6 +171,43 @@ body{overflow:hidden}
   </div>
 </div>
 
+<!-- MODAL DIFF -->
+<div class="senha-overlay" id="modal-diff">
+  <div class="senha-box" style="max-width:560px">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid var(--borda)">
+      <div style="font-size:14px;font-weight:600;color:var(--cinza-900)" id="diff-titulo">Resumo das alterações</div>
+      <div style="font-size:12px;color:var(--cinza-500);margin-top:2px" id="diff-sub"></div>
+    </div>
+    <div style="padding:14px 18px;max-height:340px;overflow-y:auto" id="diff-corpo"></div>
+    <div style="padding:12px 18px;border-top:1px solid var(--borda)">
+      <label class="form-label">Comentário <span id="diff-obrig" class="obrig" style="display:none">*</span></label>
+      <textarea class="form-control" id="diff-comentario" rows="2" style="font-size:12px" placeholder="Descreva o que foi alterado..."></textarea>
+    </div>
+    <div style="padding:10px 18px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="fecharModalDiff()">Cancelar</button>
+      <button class="btn btn-primary" id="diff-btn-confirmar" onclick="confirmarDiff()">Confirmar e assinar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DEVOLVER -->
+<div class="senha-overlay" id="modal-devolver">
+  <div class="senha-box" style="max-width:440px">
+    <div style="padding:16px 18px 12px;border-bottom:1px solid var(--borda)">
+      <div style="font-size:14px;font-weight:600;color:var(--cinza-900)">Devolver para ajustes</div>
+      <div style="font-size:12px;color:var(--cinza-500);margin-top:2px">O elaborador será notificado para fazer as correções.</div>
+    </div>
+    <div style="padding:14px 18px">
+      <label class="form-label">Motivo da devolução <span class="obrig">*</span></label>
+      <textarea class="form-control" id="devolver-motivo" rows="4" placeholder="Descreva o que precisa ser corrigido..."></textarea>
+    </div>
+    <div style="padding:10px 18px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="fecharModalDevolver()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarDevolver()">Confirmar devolução →</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL SENHA -->
 <div class="senha-overlay" id="modal-senha">
   <div class="senha-box">
@@ -193,6 +239,14 @@ let tdrId=null, tdrDados=null, quill=null;
 let comentarios=[], versoes=[];
 let trechoSelecionado='', trechoRange=null;
 let senhaCallback=null, iaAberto=false;
+let corUsuario='#374151';
+let textoBaseVersaoAnterior='';
+
+// Estado do diff modal
+let _diffCallback=null;
+let _diffLabel='';
+let _diffNovoStatus=null;
+let _diffObrigatorio=false;
 
 const FASES=['rascunho','revisao_interna','ajustes','enviado_unesco','retorno_unesco','aprovado'];
 const FASES_LABELS={rascunho:'Rascunho',revisao_interna:'Revisão Interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado'};
@@ -235,12 +289,41 @@ const FASES_LABELS={rascunho:'Rascunho',revisao_interna:'Revisão Interna',ajust
     }
   });
 
+  // Aplicar cor do usuário ao digitar
+  quill.on('text-change',(delta,oldDelta,source)=>{
+    if(source==='user'&&corUsuario){
+      quill.format('color',corUsuario);
+    }
+  });
+
   await carregarTDR();
 })();
 
+// ── Cor por perfil ────────────────────────────────────────
+function obterCorUsuario(){
+  const mapa={
+    tecnico:'#16a34a',
+    coordenacao:'#2563EB',
+    super_admin:'#7C3AED',
+    financeiro:'#D97706',
+  };
+  return mapa[appState.perfil]||'#374151';
+}
+
+function aplicarCorUsuario(){
+  corUsuario=obterCorUsuario();
+  quill.format('color',corUsuario);
+
+  // Badge "Editando como: Nome"
+  const nome=appState.usuario?.nome_completo||appState.usuario?.email||'Usuário';
+  const wrap=document.getElementById('autor-badge-wrap');
+  if(wrap){
+    wrap.innerHTML=`<span class="autor-badge" style="background:${corUsuario}">Editando como: ${nome.split(' ')[0]}</span>`;
+  }
+}
+
 async function carregarTDR(){
   try{
-    // Supabase v2: não suporta .catch() encadeado — usar try/catch individual
     const {data:tdr, error:tdrErr} = await db.from('tdrs')
       .select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome)')
       .eq('id',tdrId).single();
@@ -265,6 +348,17 @@ async function carregarTDR(){
     comentarios=coms||[];
     versoes=vers||[];
 
+    // Guardar texto da versão anterior como base para diff
+    if(versoes.length>0){
+      try{
+        const deltaAnterior=JSON.parse(versoes[0].conteudo_delta);
+        // Reconstituir texto da delta anterior
+        const tempQuill=new Quill(document.createElement('div'));
+        tempQuill.setContents(deltaAnterior);
+        textoBaseVersaoAnterior=tempQuill.getText();
+      }catch(e){ textoBaseVersaoAnterior=''; }
+    }
+
     // Topbar
     document.getElementById('rev-titulo').textContent=`${tdr.numero} — ${tdr.objeto_pt?.substring(0,55)||''}`;
     document.getElementById('rev-status').innerHTML=badgeStatusTDR(tdr.status);
@@ -287,7 +381,12 @@ async function carregarTDR(){
     renderVersoes();
 
     // Bloquear editor se sem permissão
-    if(!podeEditar) quill.disable();
+    if(!podeEditar){
+      quill.disable();
+    } else {
+      // Aplicar cor do usuário quando pode editar
+      aplicarCorUsuario();
+    }
 
   }catch(e){
     console.error(e);
@@ -454,6 +553,10 @@ async function uploadDocxDrive(file){
     quill=new Quill('#quill-editor',{theme:'snow',modules:{toolbar:['bold','italic','underline',[{'header':[1,2,3,false]}],[{'list':'ordered'},{'list':'bullet'}],['clean']]},placeholder:'Carregando...'});
     quill.clipboard.dangerouslyPasteHTML(result.value);
     quill.on('selection-change',onSelectionChange);
+    quill.on('text-change',(delta,oldDelta,source)=>{
+      if(source==='user'&&corUsuario) quill.format('color',corUsuario);
+    });
+    aplicarCorUsuario();
     renderCenario(tdrDados);
     renderAcoes(tdrDados,true,['super_admin','coordenacao'].includes(appState.perfil));
     toast('Arquivo carregado! Agora você pode editar e salvar versões.','success');
@@ -516,7 +619,6 @@ function addComentario(){
   document.getElementById('trecho-prev').classList.remove('vis');
   document.getElementById('btn-add-com').disabled=true;
 
-  // Salvar comentário no banco (sem .catch encadeado — Supabase v2)
   db.from('tdr_comentarios').insert({
     tdr_id:tdrId,usuario_id:appState.usuario.id,
     texto:txt,trecho:com.trecho,
@@ -587,26 +689,168 @@ function loadVersao(idx){
   }catch(e){toast('Erro ao carregar versão.','error');}
 }
 
-async function salvarVersao(){
+// ── DIFF ──────────────────────────────────────────────────
+function calcDiff(textoAnterior, textoAtual){
+  const splitLinhas=(t)=>t.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  const antigas=splitLinhas(textoAnterior);
+  const novas=splitLinhas(textoAtual);
+
+  // LCS simplificado: comparar por presença em cada conjunto
+  const setAntigas=new Set(antigas);
+  const setNovas=new Set(novas);
+
+  // Gerar sequência de diff linha a linha com contexto
+  const linhas=[];
+  let adds=0, rems=0, iguais=0;
+
+  // Usar algoritmo de diff de dois ponteiros simples
+  const maxLen=Math.max(antigas.length,novas.length);
+  let ai=0, ni=0;
+  while(ai<antigas.length||ni<novas.length){
+    const la=antigas[ai];
+    const ln=novas[ni];
+    if(ai>=antigas.length){
+      // só tem novas
+      linhas.push({tipo:'add',texto:ln});
+      adds++;ni++;
+    } else if(ni>=novas.length){
+      // só tem antigas
+      linhas.push({tipo:'rem',texto:la});
+      rems++;ai++;
+    } else if(la===ln){
+      linhas.push({tipo:'eq',texto:la});
+      iguais++;ai++;ni++;
+    } else {
+      // verificar se linha antiga aparece mais à frente nas novas (remoção)
+      const futuroIdx=novas.indexOf(la,ni);
+      // verificar se linha nova aparece mais à frente nas antigas (adição)
+      const passadoIdx=antigas.indexOf(ln,ai);
+      if(futuroIdx>=0&&(passadoIdx<0||futuroIdx<passadoIdx)){
+        // linha nova não existe nas antigas → adição
+        linhas.push({tipo:'add',texto:ln});
+        adds++;ni++;
+      } else if(passadoIdx>=0){
+        // linha antiga não existe nas novas → remoção
+        linhas.push({tipo:'rem',texto:la});
+        rems++;ai++;
+      } else {
+        // ambas são únicas — linha modificada: rem + add
+        linhas.push({tipo:'rem',texto:la});
+        linhas.push({tipo:'add',texto:ln});
+        rems++;adds++;ai++;ni++;
+      }
+    }
+  }
+
+  return {adds,rems,unchanged:iguais,linhas};
+}
+
+function abrirModalDiff(label, novoStatus, aoConfirmar, obrigatorio=false){
+  _diffLabel=label;
+  _diffNovoStatus=novoStatus;
+  _diffCallback=aoConfirmar;
+  _diffObrigatorio=obrigatorio;
+
+  const textoAtual=quill.getText();
+  const diff=calcDiff(textoBaseVersaoAnterior, textoAtual);
+
+  document.getElementById('diff-titulo').textContent='Resumo das alterações';
+  document.getElementById('diff-comentario').value='';
+
+  const obrigEl=document.getElementById('diff-obrig');
+  obrigEl.style.display=obrigatorio?'':'none';
+
+  // Montar corpo do diff
+  const corpo=document.getElementById('diff-corpo');
+  if(!textoBaseVersaoAnterior){
+    corpo.innerHTML=`<div style="padding:12px;text-align:center;color:var(--cinza-500);font-size:13px">
+      Nenhuma versão anterior — este é o primeiro envio.
+    </div>`;
+    document.getElementById('diff-sub').textContent='Primeira versão do documento.';
+  } else {
+    const total=diff.adds+diff.rems;
+    document.getElementById('diff-sub').textContent=
+      `${diff.adds} parágrafo(s) adicionado(s), ${diff.rems} removido(s), ${diff.unchanged} sem alteração`;
+
+    // Mostrar apenas linhas alteradas com contexto (máx 1 linha igual antes/após)
+    let html='';
+    const linhas=diff.linhas;
+    for(let i=0;i<linhas.length;i++){
+      const l=linhas[i];
+      if(l.tipo==='add'){
+        html+=`<span class="diff-add">+ ${escHtml(l.texto)}</span>`;
+      } else if(l.tipo==='rem'){
+        html+=`<span class="diff-rem">− ${escHtml(l.texto)}</span>`;
+      } else {
+        // Só mostrar linha igual se adjacente a mudança
+        const prev=linhas[i-1];const next=linhas[i+1];
+        if((prev&&prev.tipo!=='eq')||(next&&next.tipo!=='eq')){
+          html+=`<span class="diff-eq">${escHtml(l.texto.substring(0,80))}${l.texto.length>80?'…':''}</span>`;
+        }
+      }
+    }
+    if(!html){
+      html=`<div style="padding:12px;text-align:center;color:var(--cinza-500);font-size:12px">Nenhuma alteração detectada no texto.</div>`;
+    }
+    corpo.innerHTML=html;
+  }
+
+  document.getElementById('modal-diff').classList.add('aberto');
+  setTimeout(()=>document.getElementById('diff-comentario').focus(),100);
+}
+
+function fecharModalDiff(){
+  document.getElementById('modal-diff').classList.remove('aberto');
+  _diffCallback=null;
+  _diffLabel='';
+  _diffNovoStatus=null;
+}
+
+function confirmarDiff(){
+  const comentario=document.getElementById('diff-comentario').value.trim();
+  if(_diffObrigatorio&&!comentario){
+    toast('O comentário é obrigatório para avançar a fase.','error');
+    document.getElementById('diff-comentario').focus();
+    return;
+  }
+  fecharModalDiff();
+  const cb=_diffCallback;
+  // Abrir modal de senha agora
+  const titulo=_diffLabel||'Confirmar';
+  const comsAbertos=comentarios.filter(c=>!c.resolvido).length;
+  const sub=comsAbertos>0?`⚠ ${comsAbertos} comentário(s) aberto(s). Ação registrada no log.`:'Ação registrada no log de auditoria.';
+  pedirSenha(titulo,sub,()=>cb&&cb(comentario));
+}
+
+function escHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── SALVAR VERSÃO ─────────────────────────────────────────
+function salvarVersao(){
+  const comsAbertos=comentarios.filter(c=>!c.resolvido).length;
+  abrirModalDiff('Salvar versão',null,async(comentario)=>{
+    await salvarVersaoAutomatica(comentario,false);
+  },false);
+}
+
+async function salvarVersaoAutomatica(comentario, isAprovacao){
   const delta=JSON.stringify(quill.getContents());
   const comsAbertos=comentarios.filter(c=>!c.resolvido).length;
-  const desc=prompt('Descrição desta versão (opcional):','')||null;
-
-  pedirSenha('Salvar versão',
-    comsAbertos>0?`⚠ ${comsAbertos} comentário(s) aberto(s).`:'Versão assinada digitalmente.',
-    async()=>{
-      const proxV=(versoes[0]?.versao||0)+1;
-      const {data,error}=await db.from('tdr_versoes_editor').insert({
-        tdr_id:tdrId,usuario_id:appState.usuario.id,
-        versao:proxV,conteudo_delta:delta,
-        comentario_versao:desc,comentarios_abertos:comsAbertos,
-      }).select('*,usuarios(id,nome_completo)').single();
-      if(error){toast('Erro ao salvar: '+error.message,'error');return;}
-      versoes.unshift(data);
-      renderVersoes();
-      toast(`Versão ${proxV} salva!`,'success');
-    }
-  );
+  const proxV=(versoes[0]?.versao||0)+1;
+  const {data,error}=await db.from('tdr_versoes_editor').insert({
+    tdr_id:tdrId,usuario_id:appState.usuario.id,
+    versao:proxV,conteudo_delta:delta,
+    comentario_versao:comentario||null,
+    comentarios_abertos:comsAbertos,
+  }).select('*,usuarios(id,nome_completo)').single();
+  if(error){toast('Erro ao salvar versão: '+error.message,'error');return;}
+  versoes.unshift(data);
+  // Atualizar base para próximo diff
+  textoBaseVersaoAnterior=quill.getText();
+  renderVersoes();
+  if(!isAprovacao) toast(`Versão ${proxV} salva!`,'success');
+  return data;
 }
 
 // ── IA ────────────────────────────────────────────────────
@@ -680,7 +924,23 @@ JSON esperado:
 
 // ── FLUXO DE FASES ────────────────────────────────────────
 function avancarComSenha(novoStatus, label){
-  pedirSenha(label,'Ação registrada no log de auditoria.',async()=>{
+  // Abrir diff modal primeiro, depois senha
+  abrirModalDiff(label,novoStatus,async(comentario)=>{
+    const isAprovacao=(novoStatus==='aprovado');
+
+    // Limpar cores se aprovação
+    if(isAprovacao){
+      limparCoresDocumento();
+    }
+
+    // 1. Update direto no banco
+    const {error:upErr}=await db.from('tdrs').update({status:novoStatus}).eq('id',tdrId);
+    if(upErr){
+      toast('Erro ao atualizar status: '+upErr.message,'error');
+      return;
+    }
+
+    // 2. Tentar RPC log (não bloqueante)
     const acaoMap={
       revisao_interna:'enviado_revisao',
       enviado_unesco:'enviado_unesco',
@@ -689,29 +949,85 @@ function avancarComSenha(novoStatus, label){
       ajustes:'devolvido_ajuste',
       cancelado:'cancelado',
     };
-    const {error}=await db.rpc('fn_registrar_acao_tdr',{
-      p_tdr_id:tdrId,p_usuario_id:appState.usuario.id,
-      p_acao:acaoMap[novoStatus]||'editado',
-      p_comentario:null,p_ip:null
-    });
-    if(error){toast('Erro: '+error.message,'error');return;}
-    toast(`TDR avançado para "${FASES_LABELS[novoStatus]}"!`,'success');
+    try{
+      await db.rpc('fn_registrar_acao_tdr',{
+        p_tdr_id:tdrId,p_usuario_id:appState.usuario.id,
+        p_acao:acaoMap[novoStatus]||'editado',
+        p_comentario:comentario||null,p_ip:null
+      });
+    }catch(e){ console.warn('[RPC log] Ignorado:',e); }
+
+    // 3. Salvar versão automática
+    try{
+      await salvarVersaoAutomatica(comentario,isAprovacao);
+    }catch(e){ console.warn('[salvarVersao] Ignorado:',e); }
+
+    toast(`TDR avançado para "${FASES_LABELS[novoStatus]||novoStatus}"!`,'success');
     setTimeout(()=>window.location.href='tdrs.html',1200);
-  });
+  },true); // comentário obrigatório ao avançar fase
 }
 
+// ── LIMPAR CORES DO DOCUMENTO ─────────────────────────────
+function limparCoresDocumento(){
+  const delta=quill.getContents();
+  const novasOps=delta.ops.map(op=>{
+    if(op.attributes&&op.attributes.color){
+      const attrs={...op.attributes};
+      delete attrs.color;
+      return {...op,attributes:attrs};
+    }
+    return op;
+  });
+  // Remover attributes vazio
+  const opsLimpas=novasOps.map(op=>{
+    if(op.attributes&&Object.keys(op.attributes).length===0){
+      const {attributes,...rest}=op;
+      return rest;
+    }
+    return op;
+  });
+  quill.setContents({ops:opsLimpas},'api');
+}
+
+// ── DEVOLVER ──────────────────────────────────────────────
 function devolverAjustes(){
-  const motivo=prompt('Motivo da devolução (obrigatório):','');
-  if(!motivo?.trim()){return;}
-  pedirSenha('Confirmar devolução',motivo,async()=>{
-    const {error}=await db.rpc('fn_registrar_acao_tdr',{
-      p_tdr_id:tdrId,p_usuario_id:appState.usuario.id,
-      p_acao:'devolvido_ajuste',p_comentario:motivo,p_ip:null
-    });
-    if(error){toast('Erro: '+error.message,'error');return;}
+  document.getElementById('devolver-motivo').value='';
+  document.getElementById('modal-devolver').classList.add('aberto');
+  setTimeout(()=>document.getElementById('devolver-motivo').focus(),100);
+}
+
+function fecharModalDevolver(){
+  document.getElementById('modal-devolver').classList.remove('aberto');
+}
+
+function confirmarDevolver(){
+  const motivo=document.getElementById('devolver-motivo').value.trim();
+  if(!motivo){toast('Informe o motivo da devolução.','error');document.getElementById('devolver-motivo').focus();return;}
+  fecharModalDevolver();
+
+  // Abrir diff modal → depois senha → depois executar
+  abrirModalDiff('Confirmar devolução','ajustes',async(comentario)=>{
+    // 1. Update direto
+    const {error:upErr}=await db.from('tdrs').update({status:'ajustes'}).eq('id',tdrId);
+    if(upErr){toast('Erro ao devolver: '+upErr.message,'error');return;}
+
+    // 2. RPC log (não bloqueante)
+    try{
+      await db.rpc('fn_registrar_acao_tdr',{
+        p_tdr_id:tdrId,p_usuario_id:appState.usuario.id,
+        p_acao:'devolvido_ajuste',
+        p_comentario:motivo+(comentario?'\n'+comentario:''),p_ip:null
+      });
+    }catch(e){ console.warn('[RPC log] Ignorado:',e); }
+
+    // 3. Salvar versão
+    try{
+      await salvarVersaoAutomatica(motivo+(comentario?'\n'+comentario:''),false);
+    }catch(e){ console.warn('[salvarVersao] Ignorado:',e); }
+
     toast('TDR devolvido para ajustes.','success');
     setTimeout(()=>window.location.href='tdrs.html',1200);
-  });
+  },false);
 }
 
 // ── EXPORTAR PDF ──────────────────────────────────────────
@@ -743,9 +1059,7 @@ function gerarPDF(){
 
 // ── EXPORTAR DOCX ─────────────────────────────────────────
 function exportarDOCX(){
-  // Gerar HTML limpo do editor
   const html=quill.root.innerHTML;
-  // Criar arquivo HTML que pode ser aberto como DOCX no Word
   const blob=new Blob([`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <style>body{font-family:Calibri,sans-serif;font-size:12pt;line-height:1.5;margin:2cm;}
     h1{font-size:16pt;}h2{font-size:14pt;}h3{font-size:13pt;}p{margin-bottom:6pt;}</style>
@@ -775,27 +1089,26 @@ async function confirmarSenha(){
   const btn=document.getElementById('senha-btn');
   btn.textContent='Verificando...';btn.disabled=true;
   try{
-    // 1. Salvar sessão atual
-    const {data:{session:sessaoAtual}}=await db.auth.getSession();
-    // 2. Verificar senha
-    const {data:authData,error:authErr}=await db.auth.signInWithPassword({
-      email:appState.usuario.email, password:s
-    });
+    // Obter email da sessão ativa (não do usuario da tabela)
+    const {data:{session}}=await db.auth.getSession();
+    const email=session?.user?.email||appState.usuario?.email;
+    if(!email){
+      toast('Não foi possível identificar o email do usuário.','error');
+      btn.textContent='Confirmar';btn.disabled=false;
+      return;
+    }
+    const {data:authData,error:authErr}=await db.auth.signInWithPassword({email,password:s});
     if(authErr||!authData?.session){
       document.getElementById('senha-erro').style.display='block';
       document.getElementById('senha-inp').value='';
       document.getElementById('senha-inp').focus();
       btn.textContent='Confirmar';btn.disabled=false;return;
     }
-    // 3. Restaurar sessão original
-    if(sessaoAtual?.refresh_token){
-      await db.auth.setSession({
-        access_token:sessaoAtual.access_token,
-        refresh_token:sessaoAtual.refresh_token
-      });
-    }
+    // Salvar referência ao callback ANTES de fecharSenha (que zera senhaCallback)
+    const cb=senhaCallback;
     fecharSenha();
-    if(senhaCallback)await senhaCallback();
+    if(cb) await cb();
+    // Não fazer setSession — usar nova sessão diretamente
   }catch(e){
     console.error('[SENHA] Erro:',e);
     toast('Erro na verificação: '+(e.message||''),'error');
@@ -821,7 +1134,13 @@ function sideAba(aba,btn){
   document.getElementById('painel-com').style.display=aba==='com'?'':'none';
 }
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharSenha();});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    fecharSenha();
+    fecharModalDiff();
+    fecharModalDevolver();
+  }
+});
 </script>
 </body>
 </html>
