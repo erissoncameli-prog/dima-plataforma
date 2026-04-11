@@ -147,9 +147,9 @@ async function carregarUsuario() {
     const agora = new Date().toISOString();
     const updates = { ultimo_acesso_em: agora };
     if (!usuario.primeiro_acesso_em) updates.primeiro_acesso_em = agora;
-    db.from('usuarios').update(updates).eq('id', usuario.id)
-      .then(() => {}) // fire-and-forget, não bloqueia o carregamento
-      .catch(() => {});
+    try {
+      await db.from('usuarios').update(updates).eq('id', usuario.id);
+    } catch(e) { /* não crítico */ }
   }
   return usuario;
 }
