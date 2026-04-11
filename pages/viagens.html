@@ -821,11 +821,17 @@ function renderTimeline(p){
     desc:p.rejeitado_motivo?`Motivo: ${p.rejeitado_motivo.substring(0,60)}`:''
   });
   // Prestação
-  if(p.situacao==='em_prestacao'||p.situacao==='realizado') etapas.push({
+  if(p.situacao==='em_prestacao') etapas.push({
     icone:'📋', cor:'#7C3AED',
     label:'Prestação enviada',
     data:null,
-    desc:'Documentos aguardando confirmação'
+    desc:'Documentos aguardando confirmação pelo coordenador/admin'
+  });
+  if(p.situacao==='realizado') etapas.push({
+    icone:'📋', cor:'#059669',
+    label:'Prestação confirmada',
+    data:p.realizado_em||null,
+    desc:'Documentos validados'
   });
   // Realizado
   if(p.realizado_em) etapas.push({
@@ -899,6 +905,15 @@ async function abrirDetalhe(id){
           <div style="font-size:10px;color:var(--cinza-500)">U$ ${(saldoAtiv.disponivel_usd||0).toFixed(2)}</div>
         </div>`:''}
       </div>
+      <!-- Aviso de ação pendente para admins -->
+      ${isAdmin&&p.situacao==='em_prestacao'?`
+      <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--raio);padding:8px 12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">⏳</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#92400E">Aguarda sua confirmação</div>
+          <div style="font-size:10px;color:#B45309">Clique em <strong>"✓ Confirmar realizado"</strong> abaixo para validar a prestação e lançar no financeiro.</div>
+        </div>
+      </div>`:''}
       <!-- Timeline do fluxo -->
       <div>
         <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:var(--cinza-500);margin-bottom:6px;letter-spacing:.05em">Histórico do fluxo</div>
