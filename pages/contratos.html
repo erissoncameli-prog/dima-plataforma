@@ -133,6 +133,12 @@ var TIPOS=['Servico','Consultoria','Consumo','Diaria','Passagens','Obra'];
   '<option value="com">Com PDF</option>'+
   '<option value="sem">Sem PDF</option>'+
   '</select>'+
+  '<select class="form-control" id="fil-ativ" onchange="filtrar()" style="width:180px">'+
+  '<option value="">Todas as atividades</option>'+
+  '</select>'+
+  '<select class="form-control" id="fil-forn" onchange="filtrar()" style="width:170px">'+
+  '<option value="">Todos os fornecedores</option>'+
+  '</select>'+
   '<span id="cont" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>'+
   (PODE.verFinanceiro()?'<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo contrato</button>':'')+
   '</div>'+
@@ -163,6 +169,46 @@ async function carregar(){
   atividades=rs[1].data||[];
   fornecedores=rs[2].data||[];
   tdrs=rs[3].data||[];
+
+  // Preencher filtro de atividades — só as que têm ao menos um contrato
+  var filAtiv=document.getElementById('fil-ativ');
+  if(filAtiv){
+    var atvsComContrato=new Map();
+    todosContratos.forEach(function(c){
+      if(c.atividade_id&&c.atividades&&!atvsComContrato.has(c.atividade_id)){
+        atvsComContrato.set(c.atividade_id,c.atividades);
+      }
+    });
+    // Ordenar por código
+    Array.from(atvsComContrato.values())
+      .sort(function(a,b){return (a.codigo||'').localeCompare(b.codigo||'');})
+      .forEach(function(a){
+        var o=document.createElement('option');
+        o.value=a.id;
+        o.textContent=(a.codigo||'')+' — '+(a.nome_pt||'').substring(0,38);
+        filAtiv.appendChild(o);
+      });
+  }
+
+  // Preencher filtro de fornecedores — só os que têm ao menos um contrato
+  var filForn=document.getElementById('fil-forn');
+  if(filForn){
+    var fornsComContrato=new Map();
+    todosContratos.forEach(function(c){
+      if(c.fornecedor_id&&c.fornecedores&&!fornsComContrato.has(c.fornecedor_id)){
+        fornsComContrato.set(c.fornecedor_id,c.fornecedores.nome||'—');
+      }
+    });
+    Array.from(fornsComContrato.entries())
+      .sort(function(a,b){return a[1].localeCompare(b[1]);})
+      .forEach(function(entry){
+        var o=document.createElement('option');
+        o.value=entry[0];
+        o.textContent=entry[1].substring(0,45);
+        filForn.appendChild(o);
+      });
+  }
+
   renderStats();filtrar();
 }
 
@@ -182,10 +228,14 @@ function filtrar(){
   var b=(document.getElementById('busca').value||'').toLowerCase();
   var s=document.getElementById('fil-status').value;
   var fp=document.getElementById('fil-pdf').value;
+  var fa=document.getElementById('fil-ativ')?.value||'';
+  var ff=document.getElementById('fil-forn')?.value||'';
   var fil=todosContratos.filter(function(c){
     if(s&&c.status!==s)return false;
     if(fp==='com'&&!c.contrato_assinado_url)return false;
     if(fp==='sem'&&c.contrato_assinado_url)return false;
+    if(fa&&c.atividade_id!==fa)return false;
+    if(ff&&c.fornecedor_id!==ff)return false;
     if(b&&!((c.numero+' '+(c.objeto_pt||'')+' '+(c.fornecedores?c.fornecedores.nome:'')).toLowerCase()).includes(b))return false;
     return true;
   });
