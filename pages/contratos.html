@@ -778,9 +778,10 @@ window.salvarProdutos=async function(){
       else{var ins=await db.from('contratos_produtos').insert(dados).select('id').single();if(ins.error)throw ins.error;linhasProd[i].id=ins.data.id;}
     }
     toast('Produtos salvos!','success');
+    var idSalvo=contratoModalProdId;
     fecharModalProd();
-    detTabAtiva[contratoModalProdId]='prods';
-    await recarregarDet(contratoModalProdId);
+    detTabAtiva[idSalvo]='prods';
+    await recarregarDet(idSalvo);
   }catch(e){toast('Erro ao salvar: '+(e.message||''),'error');}
 };
 
