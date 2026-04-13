@@ -288,16 +288,30 @@ function filtrar() {
 
 // ── DETALHE ───────────────────────────────────────────────────
 async function abrirDetalhe(id) {
+  try {
   const f = todosFornecedores.find(x=>x.id===id);
   if (!f) return;
   fornEditando = f;
 
-  // Buscar contratos do fornecedor com TDR e atividade
-  const {data:contratos} = await db.from('contratos')
-    .select(`numero,objeto_pt,status,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,dt_inicio,dt_fim,
-      tdr:tdrs(numero,objeto_pt),
-      atividade:atividades(codigo,nome_pt)`)
+  // Buscar contratos base
+  const {data:contratosBase, error:cErr} = await db.from('contratos')
+    .select('id,numero,objeto_pt,status,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,dt_inicio,dt_fim,tdr_id,atividade_id')
     .eq('fornecedor_id',id).order('dt_inicio',{ascending:false});
+  if(cErr) console.error('contratos query error:',cErr);
+
+  // Enriquecer com TDR e Atividade em queries separadas
+  let contratos = contratosBase||[];
+  if(contratos.length){
+    const tdrIds=[...new Set(contratos.map(c=>c.tdr_id).filter(Boolean))];
+    const atIds=[...new Set(contratos.map(c=>c.atividade_id).filter(Boolean))];
+    const [{data:tdrsData},{data:ativsData}] = await Promise.all([
+      tdrIds.length ? db.from('tdrs').select('id,numero,objeto_pt').in('id',tdrIds) : {data:[]},
+      atIds.length  ? db.from('atividades').select('id,codigo,nome_pt').in('id',atIds) : {data:[]},
+    ]);
+    const tdrMap=Object.fromEntries((tdrsData||[]).map(t=>[t.id,t]));
+    const atMap=Object.fromEntries((ativsData||[]).map(a=>[a.id,a]));
+    contratos=contratos.map(c=>({...c,tdr:tdrMap[c.tdr_id]||null,atividade:atMap[c.atividade_id]||null}));
+  }
 
   // Buscar lançamentos
   const {data:lancamentos} = await db.from('execucao_financeira')
@@ -398,6 +412,10 @@ async function abrirDetalhe(id) {
     ${PODE.verFinanceiro()||PODE.editarAtividade()?`<button class="btn btn-primary" onclick="abrirEditar('${f.id}')">✏️ Editar cadastro</button>`:''}`;
 
   document.getElementById('modal-forn').classList.add('aberto');
+  } catch(e) {
+    console.error('abrirDetalhe error:',e);
+    toast('Erro ao carregar detalhes do fornecedor.','error');
+  }
 }
 
 function campo(label, valor, mono=false) {
