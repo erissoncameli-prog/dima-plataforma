@@ -37,7 +37,6 @@
   --font-display: 'Fraunces', Georgia, serif;
   --sidebar-w:    240px;
   --header-h:     58px;
-  --banner-h:     72px;
 
   /* badges */
   --badge-green:  #059669;
@@ -73,7 +72,7 @@ body {
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: var(--banner-h); left: 0; bottom: 0;
+  top: 0; left: 0; bottom: 0;
   z-index: 100;
   overflow-y: hidden;
   overflow-x: hidden;
@@ -249,27 +248,6 @@ body {
   min-height: 100vh;
 }
 
-.gov-banner {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: var(--banner-h);
-  background: linear-gradient(90deg, #1F4E2C 0%, #2a7a50 50%, #1F4E2C 100%);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 200;
-  padding: 0 20px;
-}
-.gov-banner-inner {
-  display: flex; align-items: center; gap: 20px;
-  background: #ffffff;
-  border: none;
-  border-radius: 99px;
-  padding: 8px 28px 8px 20px;
-  height: 56px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.2);
-}
-.gov-banner-logo { height: 38px; width: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast; }
-.gov-banner-sep { width: 1px; height: 36px; background: #B5860D; flex-shrink: 0; }
-.gov-banner-gov-logo { height: 40px; width: auto; object-fit: contain; image-rendering: -webkit-optimize-contrast; }
 
 .topbar {
   height: var(--header-h);
@@ -277,7 +255,7 @@ body {
   border-bottom: 1px solid var(--borda);
   display: flex; align-items: center;
   padding: 0 28px;
-  position: sticky; top: var(--banner-h); z-index: 50;
+  position: sticky; top: 0; z-index: 50;
   gap: 12px;
 }
 .topbar-title {
