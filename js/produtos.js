@@ -32,7 +32,13 @@ const TIPOS_DOC=['Relatório Técnico','Nota Fiscal','Comprovante de Pagamento',
     +'<select class="form-control" id="sel-ativ" style="max-width:340px" onchange="selecionarAtiv(this.value)">'
     +'<option value="">Selecione a atividade...</option>'
     +'</select>'
-    +'<input class="form-control" id="inp-forn" style="max-width:220px" placeholder="🔍 Fornecedor..." title="Filtrar contratos pelo nome do fornecedor" oninput="filtrarForn(this.value)">'
+    +'<div style="position:relative;max-width:240px;flex:0 0 auto">'
+    +'<input class="form-control" id="inp-forn" placeholder="🔍 Fornecedor..." autocomplete="off"'
+    +' oninput="filtrarForn(this.value)"'
+    +' onfocus="mostrarSugestoesForn(this.value)"'
+    +' onblur="setTimeout(function(){ocultarSugestoesForn()},200)">'
+    +'<div id="forn-sugestoes" style="display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:#fff;border:1px solid var(--borda);border-radius:var(--raio);box-shadow:0 4px 16px rgba(0,0,0,.1);max-height:220px;overflow-y:auto;z-index:200"></div>'
+    +'</div>'
     +'<select class="form-control" id="sel-cont" style="max-width:300px" onchange="selecionarCont(this.value)" disabled>'
     +'<option value="">Selecione o contrato...</option>'
     +'</select>'
@@ -115,6 +121,53 @@ function selecionarAtiv(id){
 function filtrarForn(val){
   filtForn=val.trim();
   atualizarDropdownContrato();
+  mostrarSugestoesForn(val);
+}
+
+function mostrarSugestoesForn(val){
+  var el=document.getElementById('forn-sugestoes');
+  if(!el)return;
+  var q=(val||'').trim().toLowerCase();
+  var nomes=[];
+  var vistos={};
+  contratos.forEach(function(c){
+    var n=c.fornecedores&&c.fornecedores.nome;
+    if(n&&!vistos[n]){vistos[n]=true;nomes.push(n);}
+  });
+  nomes.sort();
+  var filtrados=q?nomes.filter(function(n){return n.toLowerCase().includes(q);}):nomes;
+  if(!filtrados.length){el.style.display='none';return;}
+  el.innerHTML=filtrados.map(function(n){
+    var bold=q?n.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<strong>$1</strong>'):n;
+    return '<div style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--cinza-100)"'
+      +' onmousedown="selecionarFornAuto(\''+n.replace(/\\/g,'\\\\').replace(/'/g,'\\\'')+'\')"'
+      +' onmouseover="this.style.background=\'var(--cinza-50)\'"'
+      +' onmouseout="this.style.background=\'\'">'+bold+'</div>';
+  }).join('');
+  el.style.display='block';
+}
+
+function ocultarSugestoesForn(){
+  var el=document.getElementById('forn-sugestoes');
+  if(el)el.style.display='none';
+}
+
+function selecionarFornAuto(nome){
+  filtForn=nome;
+  var inp=document.getElementById('inp-forn');
+  if(inp)inp.value=nome;
+  ocultarSugestoesForn();
+  atualizarDropdownContrato();
+  // Se só restar 1 contrato, seleciona automaticamente
+  var lista=contratos.filter(function(c){
+    if(filtAtiv&&c.atividade_id!==filtAtiv)return false;
+    return (c.fornecedores&&c.fornecedores.nome||'').toLowerCase().includes(nome.toLowerCase());
+  });
+  if(lista.length===1){
+    var sel=document.getElementById('sel-cont');
+    if(sel){sel.value=lista[0].id;}
+    selecionarCont(lista[0].id);
+  }
 }
 
 function atualizarDropdownContrato(){
