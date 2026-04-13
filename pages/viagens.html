@@ -164,7 +164,7 @@ const FUNCOES=['Servidor SEMA','Consultor','Pesquisador','Coordenador','Convidad
 const ATIV_217='44b7a6fc-dab6-49ba-bc1f-9764a99bb9d0';
 
 // ── Estado ────────────────────────────────────────────────────
-let protocolos=[], protAtual=null;
+let protocolos=[], protAtual=null, editandoProtocoloId=null;
 let viajantesForm=[];   // [{id,nome,funcao,cpf,email,temPass,temDiar,trechos:[],diarias:[]}]
 let embarqueFiles={};   // {viajante_idx: [File,...]}
 let relatorioFiles={};  // {viajante_idx: File}
@@ -320,6 +320,7 @@ function renderCard(p){
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0">
+        ${(p.situacao==='rascunho'||p.situacao==='solicitado')&&(p.criado_por===appState.usuario?.id||['super_admin','coordenacao'].includes(appState.perfil))?`<button class="btn btn-secondary btn-sm" style="font-size:11px;margin-bottom:8px;display:block;width:100%;white-space:nowrap" onclick="event.stopPropagation();abrirFormEdicao('${p.id}')">✎ Editar</button>`:''}
         ${total>0?`<div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--verde-medio)">${fmtBRL(total)}</div>
         <div style="font-size:10px;color:var(--cinza-400)">${viajantes.length} viajante${viajantes.length!==1?'s':''}</div>`:''}
       </div>
@@ -331,7 +332,7 @@ function renderCard(p){
 // FORMULÁRIO — NOVO PROTOCOLO
 // ══════════════════════════════════════════════════════════════
 function abrirFormNovo(){
-  protAtual=null;viajantesForm=[];trechoIdx=0;diariaIdx=0;viajanteIdx=0;
+  protAtual=null;editandoProtocoloId=null;viajantesForm=[];trechoIdx=0;diariaIdx=0;viajanteIdx=0;
   embarqueFiles={};relatorioFiles={};
   document.getElementById('mp-titulo').textContent='Novo protocolo de viagem';
   document.getElementById('mp-sub').textContent='Número gerado automaticamente ao salvar';
@@ -342,6 +343,140 @@ function abrirFormNovo(){
     <button class="btn btn-primary" id="btn-enviar-aprov" style="margin-left:auto;opacity:.4;cursor:not-allowed" disabled title="Salve o rascunho primeiro" onclick="salvarProtocolo('solicitado')">✈ Enviar para aprovação →</button>`;
   document.getElementById('modal-prot').classList.add('aberto');
   addViajante(); // iniciar com 1 viajante
+}
+
+// ══════════════════════════════════════════════════════════════
+// EDITAR RASCUNHO
+// ══════════════════════════════════════════════════════════════
+async function abrirFormEdicao(id){
+  // Buscar dados atualizados do banco
+  const{data:p}=await db.from('viagem_protocolos')
+    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
+    .eq('id',id).single();
+  if(!p)return;
+
+  protAtual=p;
+  editandoProtocoloId=id;
+  viajantesForm=[];trechoIdx=0;diariaIdx=0;viajanteIdx=0;
+  embarqueFiles={};relatorioFiles={};
+
+  document.getElementById('mp-titulo').innerHTML=`✎ Editar rascunho <span class="proto-num" style="margin-left:6px">${esc(p.numero||'')}</span>`;
+  document.getElementById('mp-sub').textContent='Rascunho — salve novamente antes de enviar para aprovação';
+  document.getElementById('mp-body').innerHTML=buildFormProtocolo();
+  document.getElementById('mp-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button class="btn btn-secondary" style="margin-left:8px" onclick="salvarProtocolo('rascunho')">💾 Salvar rascunho</button>
+    <button class="btn btn-primary" id="btn-enviar-aprov" style="margin-left:auto" onclick="salvarProtocolo('solicitado')">✈ Enviar para aprovação →</button>`;
+  document.getElementById('modal-prot').classList.add('aberto');
+
+  // Pré-preencher campos do evento
+  document.getElementById('f-objetivo').value=p.objetivo||'';
+  document.getElementById('f-destino').value=p.destino_principal||'';
+  document.getElementById('f-sei').value=p.numero_sei||'';
+  document.getElementById('f-saida').value=p.dt_saida||'';
+  document.getElementById('f-retorno').value=p.dt_retorno||'';
+  document.getElementById('f-email-sol').value=p.email_solicitante||'';
+  document.getElementById('f-obs').value=p.observacoes||'';
+
+  // Adicionar viajantes pré-preenchidos
+  const viajantes=(p.viajantes||[]).sort((a,b)=>a.id<b.id?-1:1);
+  if(viajantes.length){
+    viajantes.forEach(v=>addViajantePreenchido(v));
+  } else {
+    addViajante();
+  }
+  calcTotalForm();
+}
+
+function addViajantePreenchido(v){
+  const idx=viajanteIdx++;
+  viajantesForm.push({idx,temPass:v.tem_passagem||false,temDiar:v.tem_diaria||false});
+  embarqueFiles[idx]=[];
+
+  const dest=document.getElementById('f-destino')?.value||'';
+  const saida=document.getElementById('f-saida')?.value||'';
+  const retorno=document.getElementById('f-retorno')?.value||'';
+
+  const el=document.createElement('div');
+  el.id=`viajante-block-${idx}`;
+  el.innerHTML=renderViajanteForm(idx,dest,saida,retorno);
+  document.getElementById('viajantes-container').appendChild(el);
+
+  // Preencher dados básicos
+  document.getElementById(`vn-nome-${idx}`).value=v.nome||'';
+  document.getElementById(`vn-func-${idx}`).value=v.funcao||'';
+  document.getElementById(`vn-cpf-${idx}`).value=v.cpf||'';
+
+  // Passagem
+  if(v.tem_passagem){
+    // Ativar seção manualmente sem auto-add de trechos
+    const sec=document.getElementById(`vn-pass-sec-${idx}`);
+    if(sec)sec.style.display='block';
+    document.getElementById(`vn-pass-sim-${idx}`)?.classList.add('ativo');
+    document.getElementById(`vn-pass-nao-${idx}`)?.classList.remove('ativo');
+    const vf=viajantesForm.find(x=>x.idx===idx);if(vf)vf.temPass=true;
+    if(document.getElementById(`vn-spd-pass-${idx}`))
+      document.getElementById(`vn-spd-pass-${idx}`).value=v.spd_passagem||'';
+    // Inserir trechos salvos
+    (v.trechos||[]).sort((a,b)=>a.ordem-b.ordem).forEach(tr=>addTrechoPreenchido(idx,tr));
+    calcTotalPassViajante(idx);
+  }
+
+  // Diárias
+  if(v.tem_diaria){
+    const sec=document.getElementById(`vn-diar-sec-${idx}`);
+    if(sec)sec.style.display='block';
+    document.getElementById(`vn-diar-sim-${idx}`)?.classList.add('ativo');
+    document.getElementById(`vn-diar-nao-${idx}`)?.classList.remove('ativo');
+    const vf=viajantesForm.find(x=>x.idx===idx);if(vf)vf.temDiar=true;
+    if(document.getElementById(`vn-spd-diar-${idx}`))
+      document.getElementById(`vn-spd-diar-${idx}`).value=v.spd_diaria||'';
+    // Inserir diárias salvas
+    (v.diarias||[]).forEach(d=>addDiariaPreenchida(idx,d));
+    calcTotalDiarViajante(idx);
+  }
+}
+
+function addTrechoPreenchido(vidx,tr){
+  const tidx=trechoIdx++;
+  const el=document.createElement('div');
+  el.innerHTML=`<div class="trecho-row" id="tr-${tidx}">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Origem</label>
+        <input class="form-control" name="tr-orig-${tidx}" data-vidx="${vidx}" type="text" value="${esc(tr.origem||'')}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Destino</label>
+        <input class="form-control" name="tr-dest-${tidx}" data-vidx="${vidx}" type="text" value="${esc(tr.destino||'')}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Tipo</label>
+        <select class="form-control" name="tr-tipo-${tidx}" style="height:30px;font-size:11px">
+          ${TIPOS_TRECHO.map(t=>`<option value="${t}"${t===tr.tipo?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Data</label>
+        <input class="form-control" name="tr-saida-${tidx}" type="date" value="${tr.dt_saida||''}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$</label>
+        <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" value="${tr.valor||''}"
+          style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
+      <button onclick="document.getElementById('tr-${tidx}').remove();calcTotalPassViajante(${vidx});calcTotalForm()"
+        style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px;margin-top:14px">✕</button>
+    </div>
+  </div>`;
+  document.getElementById(`vn-trechos-${vidx}`).appendChild(el.firstChild);
+}
+
+function addDiariaPreenchida(vidx,d){
+  const didx=diariaIdx++;
+  const qtd=parseFloat(d.quantidade||0);
+  const unit=parseFloat(d.valor_unitario||0);
+  const el=document.createElement('div');
+  el.innerHTML=`<div class="diaria-row" id="di-${didx}">
+    <input class="form-control" name="di-tipo-${didx}" data-vidx="${vidx}" type="text" value="${esc(d.tipo_diaria||'Diária padrão')}" style="height:30px;font-size:11px">
+    <input class="form-control" name="di-qtd-${didx}" data-vidx="${vidx}" type="number" min="0" value="${qtd}"
+      style="height:30px;font-size:11px;text-align:center" oninput="calcSubDiariaViajante(${didx},${vidx})">
+    <input class="form-control" name="di-unit-${didx}" data-vidx="${vidx}" type="number" step="0.01" value="${unit}"
+      style="height:30px;font-size:11px;text-align:right" oninput="calcSubDiariaViajante(${didx},${vidx})">
+    <div id="di-sub-${didx}" style="font-family:var(--font-mono);font-size:11px;font-weight:600;text-align:right;padding:0 2px">${fmtBRL(qtd*unit)}</div>
+    <button onclick="document.getElementById('di-${didx}').remove();calcTotalDiarViajante(${vidx});calcTotalForm()"
+      style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px">✕</button>
+  </div>`;
+  document.getElementById(`vn-diarias-${vidx}`).appendChild(el.firstChild);
 }
 
 function buildFormProtocolo(){
@@ -728,26 +863,51 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
   if(erros.length){toast(erros.join('\n'),'error');return;}
   if(!viajantesData.length){toast('Adicione pelo menos um viajante.','error');return;}
 
-  // Inserir protocolo
-  const{data:prot,error:pErr}=await db.from('viagem_protocolos').insert({
-    objetivo,
-    destino_principal:destino,
-    dt_saida:document.getElementById('f-saida')?.value||null,
-    dt_retorno:document.getElementById('f-retorno')?.value||null,
-    numero_sei:document.getElementById('f-sei')?.value.trim()||null,
-    email_solicitante:document.getElementById('f-email-sol')?.value.trim()||null,
-    observacoes:document.getElementById('f-obs')?.value.trim()||null,
-    atividade_id:ATIV_217,
-    criado_por:appState.usuario.id,
-    situacao:situacaoAlvo,
-  }).select().single();
+  let protId, protNumero;
 
-  if(pErr){toast('Erro ao criar protocolo: '+pErr.message,'error');return;}
+  if(editandoProtocoloId){
+    // ── MODO EDIÇÃO — UPDATE ────────────────────────────────────
+    const camposUpdate={
+      objetivo,
+      destino_principal:destino,
+      dt_saida:document.getElementById('f-saida')?.value||null,
+      dt_retorno:document.getElementById('f-retorno')?.value||null,
+      numero_sei:document.getElementById('f-sei')?.value.trim()||null,
+      email_solicitante:document.getElementById('f-email-sol')?.value.trim()||null,
+      observacoes:document.getElementById('f-obs')?.value.trim()||null,
+      situacao:situacaoAlvo,
+    };
+    const{error:pErr}=await db.from('viagem_protocolos').update(camposUpdate).eq('id',editandoProtocoloId);
+    if(pErr){toast('Erro ao atualizar protocolo: '+pErr.message,'error');return;}
+    protId=editandoProtocoloId;
+    protNumero=protAtual?.numero||'';
+    // Apagar sub-registros para re-inserir limpo
+    await db.from('viagem_trechos').delete().eq('protocolo_id',protId);
+    await db.from('viagem_diarias_v2').delete().eq('protocolo_id',protId);
+    await db.from('viagem_viajantes').delete().eq('protocolo_id',protId);
+  } else {
+    // ── MODO CRIAÇÃO — INSERT ───────────────────────────────────
+    const{data:prot,error:pErr}=await db.from('viagem_protocolos').insert({
+      objetivo,
+      destino_principal:destino,
+      dt_saida:document.getElementById('f-saida')?.value||null,
+      dt_retorno:document.getElementById('f-retorno')?.value||null,
+      numero_sei:document.getElementById('f-sei')?.value.trim()||null,
+      email_solicitante:document.getElementById('f-email-sol')?.value.trim()||null,
+      observacoes:document.getElementById('f-obs')?.value.trim()||null,
+      atividade_id:ATIV_217,
+      criado_por:appState.usuario.id,
+      situacao:situacaoAlvo,
+    }).select().single();
+    if(pErr){toast('Erro ao criar protocolo: '+pErr.message,'error');return;}
+    protId=prot.id;
+    protNumero=prot.numero;
+  }
 
-  // Inserir viajantes + trechos + diárias
+  // Inserir viajantes + trechos + diárias (igual para criação e edição)
   for(const v of viajantesData){
     const{data:viaj,error:vErr}=await db.from('viagem_viajantes').insert({
-      protocolo_id:prot.id,
+      protocolo_id:protId,
       nome:v.nome, funcao:v.funcao, cpf:v.cpf,
       tem_passagem:v.tem_passagem, tem_diaria:v.tem_diaria,
       spd_passagem:v.spd_passagem, spd_diaria:v.spd_diaria,
@@ -757,35 +917,38 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
 
     if(v.tem_passagem&&v.trechos.length){
       await db.from('viagem_trechos').insert(
-        v.trechos.map(tr=>({...tr,viajante_id:viaj.id,protocolo_id:prot.id}))
+        v.trechos.map(tr=>({...tr,viajante_id:viaj.id,protocolo_id:protId}))
       );
     }
     if(v.tem_diaria&&v.diarias.length){
       await db.from('viagem_diarias_v2').insert(
-        v.diarias.map(d=>({...d,viajante_id:viaj.id,protocolo_id:prot.id}))
+        v.diarias.map(d=>({...d,viajante_id:viaj.id,protocolo_id:protId}))
       );
     }
   }
 
+  const ehEdicao=!!editandoProtocoloId;
   const msg=situacaoAlvo==='rascunho'
-    ?`Rascunho ${prot.numero} salvo! Envie para aprovação quando estiver pronto.`
-    :`Protocolo ${prot.numero} enviado para aprovação!`;
+    ?`Rascunho ${protNumero} ${ehEdicao?'atualizado':'salvo'}! Envie para aprovação quando estiver pronto.`
+    :`Protocolo ${protNumero} enviado para aprovação!`;
   toast(msg,'success');
 
   if(situacaoAlvo==='rascunho'){
-    // Ativar botão de envio após salvar rascunho com sucesso
-    const btnEnv=document.getElementById('btn-enviar-aprov');
-    if(btnEnv){
-      btnEnv.disabled=false;
-      btnEnv.style.opacity='1';
-      btnEnv.style.cursor='pointer';
-      btnEnv.removeAttribute('title');
+    // Em criação nova: ativar botão de envio após salvar
+    if(!ehEdicao){
+      const btnEnv=document.getElementById('btn-enviar-aprov');
+      if(btnEnv){
+        btnEnv.disabled=false;
+        btnEnv.style.opacity='1';
+        btnEnv.style.cursor='pointer';
+        btnEnv.removeAttribute('title');
+      }
     }
-    // Recarregar lista em background sem fechar o modal
     carregar();
     return;
   }
 
+  editandoProtocoloId=null;
   fecharModal();await carregar();
 }
 
@@ -996,8 +1159,9 @@ async function abrirDetalhe(id){
   // Footer — botões por perfil e fase
   let footer=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
 
-  // Técnico: pode cancelar se ainda solicitado e for dono
+  // Técnico: pode editar e cancelar se ainda solicitado e for dono
   if(ehDono && p.situacao==='solicitado' && !isAdmin){
+    footer+=`<button class="btn btn-secondary" style="margin-left:8px" onclick="abrirFormEdicao('${p.id}')">✎ Editar</button>`;
     footer+=`<button class="btn" style="margin-left:8px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="cancelarProtocolo()">✕ Cancelar solicitação</button>`;
   }
 
@@ -1016,9 +1180,11 @@ async function abrirDetalhe(id){
       footer+=`<button class="btn btn-primary" style="margin-left:auto;background:#059669" onclick="realizarProtocolo()">✓ Confirmar realizado → lançar financeiro</button>`;
   }
 
-  // Rascunho: dono pode enviar para aprovação
-  if(p.situacao==='rascunho'&&ehDono)
-    footer+=`<button class="btn btn-primary" style="margin-left:auto" onclick="enviarParaAprovacao('${p.id}')">✈ Enviar para aprovação →</button>`;
+  // Rascunho: dono pode editar e enviar para aprovação
+  if(p.situacao==='rascunho'&&(ehDono||isAdmin)){
+    footer+=`<button class="btn btn-secondary" style="margin-left:auto" onclick="abrirFormEdicao('${p.id}')">✎ Editar rascunho</button>`;
+    footer+=`<button class="btn btn-primary" style="margin-left:8px" onclick="enviarParaAprovacao('${p.id}')">✈ Enviar para aprovação →</button>`;
+  }
 
   // Prestação: qualquer usuário com acesso pode editar enquanto não for realizado
   if(p.situacao!=='realizado'&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(isAdmin||ehDono))
@@ -1441,7 +1607,7 @@ function fecharLightbox(){
 }
 function fecharModal(){
   document.getElementById('modal-prot').classList.remove('aberto');
-  protAtual=null;embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;
+  protAtual=null;editandoProtocoloId=null;embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){fecharLightbox();fecharModal();}});
 
