@@ -292,9 +292,11 @@ async function abrirDetalhe(id) {
   if (!f) return;
   fornEditando = f;
 
-  // Buscar contratos do fornecedor
+  // Buscar contratos do fornecedor com TDR e atividade
   const {data:contratos} = await db.from('contratos')
-    .select('numero,objeto_pt,status,valor_total_brl,dt_inicio,dt_fim')
+    .select(`numero,objeto_pt,status,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,dt_inicio,dt_fim,
+      tdr:tdrs(numero,objeto_pt),
+      atividade:atividades(codigo,nome_pt)`)
     .eq('fornecedor_id',id).order('dt_inicio',{ascending:false});
 
   // Buscar lançamentos
@@ -387,18 +389,7 @@ async function abrirDetalhe(id) {
 
     <!-- ABA CONTRATOS -->
     <div class="tab-content" id="tab-contratos">
-      ${(contratos||[]).length ?
-        contratos.map(c=>`
-        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--borda)">
-          <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--cinza-900);min-width:90px">${c.numero}</span>
-          <div style="flex:1;font-size:12px;color:var(--cinza-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(c.objeto_pt||'--').substring(0,60)}</div>
-          <span class="badge" style="background:${c.status==='vigente'?'#ECFDF5':c.status==='encerrado'?'#F3F4F6':'#FEF2F2'};color:${c.status==='vigente'?'#065F46':c.status==='encerrado'?'#374151':'#991B1B'}">${c.status}</span>
-          <a href="contratos.html" style="font-size:10px;color:var(--azul-medio);text-decoration:underline;white-space:nowrap">&#x2197; Ver contrato</a>
-        </div>`).join('') :
-        `<div class="empty-state" style="padding:20px"><div class="empty-state-msg">Nenhum contrato vinculado.</div></div>`}
-      <div style="margin-top:12px;background:var(--cinza-50);border-radius:var(--raio);padding:9px 12px;font-size:11px;color:var(--cinza-500)">
-        Para cadastrar um novo contrato acesse o modulo <a href="contratos.html" style="color:var(--azul-medio)">Contratos</a>.
-      </div>
+      ${renderContratos(contratos||[])}
     </div>
   `;
 
@@ -721,6 +712,20 @@ async function salvar() {
   if (doc) {
     const ok = tipo === 'PF' ? validarCPF(doc) : validarCNPJ(doc);
     if (!ok) { toast(`${tipo==='PF'?'CPF':'CNPJ'} inválido. Verifique antes de salvar.`,'error'); return; }
+    // Verificar duplicata antes de tentar inserir
+    const docFmt = document.getElementById('f-doc')?.value||'';
+    const duplicata = todosFornecedores.find(f =>
+      f.id !== fornEditando?.id &&
+      (f.cpf_cnpj||'').replace(/\D/g,'') === doc
+    );
+    if (duplicata) {
+      if (!duplicata.ativo) {
+        toast(`Este ${tipo==='PF'?'CPF':'CNPJ'} pertence a "${duplicata.nome}" que está inativo. Abra o cadastro e clique em "Reativar".`,'error');
+      } else {
+        toast(`${tipo==='PF'?'CPF':'CNPJ'} já cadastrado para "${duplicata.nome}".`,'error');
+      }
+      return;
+    }
   }
 
   const dados = {
@@ -759,7 +764,17 @@ async function salvar() {
     if (!fornEditando) {
       const {data,error} = await db.from('fornecedores').insert(dados).select().single();
       if (error) {
-        if (error.code==='23505') { toast('CPF/CNPJ já cadastrado.','error'); return; }
+        if (error.code==='23505') {
+          const docNum = doc||'';
+          const existente = todosFornecedores.find(f=>(f.cpf_cnpj||'').replace(/\D/g,'')===docNum);
+          if (existente && !existente.ativo)
+            toast(`Este ${tipo==='PF'?'CPF':'CNPJ'} pertence a "${existente.nome}" que está inativo. Abra o cadastro e clique em "Reativar".`,'error');
+          else if (existente)
+            toast(`${tipo==='PF'?'CPF':'CNPJ'} já cadastrado para "${existente.nome}".`,'error');
+          else
+            toast(`${tipo==='PF'?'CPF':'CNPJ'} já existe no sistema. Verifique fornecedores inativos.`,'error');
+          return;
+        }
         throw error;
       }
       id = data.id;
@@ -805,6 +820,125 @@ async function alterarAtivo(id, ativo) {
   fecharModal();
   renderStats(); filtrar();
   toast(ativo?'Fornecedor reativado.':'Fornecedor desativado.','success');
+}
+
+function renderContratos(contratos){
+  if(!contratos.length) return`
+    <div class="empty-state" style="padding:24px"><div class="empty-state-msg">Nenhum contrato vinculado.</div></div>
+    <div style="margin-top:8px;background:var(--cinza-50);border-radius:var(--raio);padding:9px 12px;font-size:11px;color:var(--cinza-500)">
+      Para cadastrar acesse o módulo <a href="contratos.html" style="color:var(--azul-medio)">Contratos</a>.
+    </div>`;
+
+  const STATUS_COR={
+    vigente:{bg:'#ECFDF5',color:'#065F46'},
+    encerrado:{bg:'#F3F4F6',color:'#374151'},
+    suspenso:{bg:'#FEF3C7',color:'#92400E'},
+    rescindido:{bg:'#FEE2E2',color:'#991B1B'},
+  };
+
+  const cards=contratos.map(c=>{
+    const cor=STATUS_COR[c.status]||{bg:'#F3F4F6',color:'#374151'};
+    const total=parseFloat(c.valor_total_brl||0);
+    const utilizado=parseFloat(c.valor_utilizado_brl||0);
+    const comprometido=parseFloat(c.valor_comprometido_brl||0);
+    const saldo=parseFloat(c.saldo_brl||0);
+    const pct=total>0?Math.min(100,Math.round((utilizado/total)*100)):0;
+    const pctComp=total>0?Math.min(100,Math.round(((utilizado+comprometido)/total)*100)):0;
+
+    return`
+    <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:12px;overflow:hidden">
+      <!-- Cabeçalho do contrato -->
+      <div style="padding:10px 14px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cinza-900)">${esc(c.numero||'—')}</span>
+        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${cor.bg};color:${cor.color}">${c.status||'—'}</span>
+        ${c.dt_inicio&&c.dt_fim?`<span style="font-size:11px;color:var(--cinza-500)">📅 ${fmtData(c.dt_inicio)} → ${fmtData(c.dt_fim)}</span>`:''}
+        <a href="contratos.html" style="margin-left:auto;font-size:11px;color:var(--azul-medio);text-decoration:none;white-space:nowrap">↗ Ver contrato</a>
+      </div>
+
+      <div style="padding:12px 14px">
+        <!-- Objeto -->
+        ${c.objeto_pt?`<div style="font-size:12px;color:var(--cinza-700);line-height:1.5;margin-bottom:10px">${esc(c.objeto_pt)}</div>`:''}
+
+        <!-- Atividade e TDR -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          ${c.atividade?`<div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:4px 10px">
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);display:block;margin-bottom:1px">Atividade</span>
+            <span style="font-size:11px;font-weight:600;color:var(--verde-medio)">${esc(c.atividade.codigo)}</span>
+            <span style="font-size:11px;color:var(--cinza-600);margin-left:4px">${esc((c.atividade.nome_pt||'').substring(0,60))}${(c.atividade.nome_pt||'').length>60?'…':''}</span>
+          </div>`:''}
+          ${c.tdr?`<div style="background:var(--azul-bg);border:1px solid #BFDBFE;border-radius:var(--raio);padding:4px 10px">
+            <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);display:block;margin-bottom:1px">TDR</span>
+            <span style="font-size:11px;font-weight:600;color:var(--azul-medio)">${esc(c.tdr.numero)}</span>
+          </div>`:''}
+        </div>
+
+        <!-- Valores em grade -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+          <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);margin-bottom:3px">Valor total</div>
+            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--cinza-900)">${fmtBRL(total)}</div>
+          </div>
+          <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);margin-bottom:3px">Utilizado</div>
+            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#1E40AF">${fmtBRL(utilizado)}</div>
+          </div>
+          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);margin-bottom:3px">Comprometido</div>
+            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#92400E">${fmtBRL(comprometido)}</div>
+          </div>
+          <div style="background:${saldo>0?'#ECFDF5':'#FEE2E2'};border:1px solid ${saldo>0?'#A7F3D0':'#FECACA'};border-radius:var(--raio);padding:8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);margin-bottom:3px">Saldo livre</div>
+            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${saldo>0?'#065F46':'#991B1B'}">${fmtBRL(saldo)}</div>
+          </div>
+        </div>
+
+        <!-- Barra de progresso -->
+        ${total>0?`<div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cinza-500);margin-bottom:3px">
+            <span>Execução</span><span>${pct}% utilizado${comprometido>0?' · '+pctComp+'% comprometido':''}</span>
+          </div>
+          <div style="height:6px;background:var(--cinza-100);border-radius:99px;overflow:hidden;position:relative">
+            <div style="position:absolute;left:0;top:0;height:100%;width:${pctComp}%;background:#FDE68A;border-radius:99px"></div>
+            <div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:var(--azul-medio);border-radius:99px"></div>
+          </div>
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Totalizador
+  const totTotal=contratos.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
+  const totUtil=contratos.reduce((s,c)=>s+parseFloat(c.valor_utilizado_brl||0),0);
+  const totComp=contratos.reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0);
+  const totSaldo=contratos.reduce((s,c)=>s+parseFloat(c.saldo_brl||0),0);
+
+  const totalizador=contratos.length>1?`
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;margin-top:4px">
+      <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:8px">Totais — ${contratos.length} contrato(s)</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        <div style="text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;color:var(--cinza-500);margin-bottom:2px">Valor total</div>
+          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--cinza-900)">${fmtBRL(totTotal)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;color:var(--cinza-500);margin-bottom:2px">Utilizado</div>
+          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#1E40AF">${fmtBRL(totUtil)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;color:var(--cinza-500);margin-bottom:2px">Comprometido</div>
+          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#92400E">${fmtBRL(totComp)}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;text-transform:uppercase;color:var(--cinza-500);margin-bottom:2px">Saldo livre</div>
+          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${totSaldo>0?'#065F46':'#991B1B'}">${fmtBRL(totSaldo)}</div>
+        </div>
+      </div>
+    </div>`:'';
+
+  return cards+totalizador+`
+    <div style="margin-top:10px;background:var(--cinza-50);border-radius:var(--raio);padding:8px 12px;font-size:11px;color:var(--cinza-500)">
+      Para cadastrar um novo contrato acesse o módulo <a href="contratos.html" style="color:var(--azul-medio)">Contratos</a>.
+    </div>`;
 }
 
 function aba(id,btn) {
