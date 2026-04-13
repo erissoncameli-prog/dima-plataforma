@@ -260,11 +260,12 @@ body {
 }
 .gov-banner-inner {
   display: flex; align-items: center; gap: 16px;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.15);
+  background: #ffffff;
+  border: none;
   border-radius: 99px;
   padding: 6px 20px 6px 16px;
   height: 40px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
 }
 .gov-banner-logo { height: 26px; width: auto; object-fit: contain; }
 .gov-banner-sep { width: 1px; height: 28px; background: #B5860D; flex-shrink: 0; }
