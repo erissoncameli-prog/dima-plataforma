@@ -70,14 +70,15 @@
 .cb-sem{background:#F3F4F6;color:#6B7280}
 
 /* ── ODS grid ── */
-.ods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
-.ods-card{border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px;text-align:center;cursor:pointer;transition:all .15s;opacity:.45;filter:grayscale(.6);}
-.ods-card.ativo{opacity:1;filter:none;box-shadow:0 2px 12px rgba(0,0,0,.1);}
-.ods-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.12);}
-.ods-emoji{font-size:30px;margin-bottom:6px;}
-.ods-num{font-family:var(--font-mono);font-size:11px;font-weight:700;margin-bottom:3px;}
-.ods-titulo{font-size:10px;color:var(--cinza-700);line-height:1.3;}
-.ods-badge-cnt{font-size:9px;font-weight:700;margin-top:5px;padding:1px 7px;border-radius:99px;display:inline-block;}
+.ods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+.ods-card{border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;text-align:center;cursor:pointer;transition:all .2s;opacity:.35;filter:grayscale(.8);background:#fff;}
+.ods-card.ativo{opacity:1;filter:none;box-shadow:0 4px 18px rgba(0,0,0,.13);}
+.ods-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.15);opacity:1;filter:none;}
+.ods-img-wrap{width:100%;aspect-ratio:1/1;overflow:hidden;}
+.ods-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s;}
+.ods-card:hover .ods-img-wrap img{transform:scale(1.04);}
+.ods-card-foot{padding:6px 8px 8px;}
+.ods-badge-cnt{font-size:9px;font-weight:700;margin-top:4px;padding:2px 8px;border-radius:99px;display:inline-block;}
 
 /* ── KM list ── */
 .km-item{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;cursor:pointer;transition:all .15s;opacity:.5;}
@@ -207,16 +208,21 @@ let indAtual=null;
 async function carregar(){
   try{
     const [
-      {data:itens},
-      {data:prog},
-      {data:ods},
-      {data:km}
+      {data:itens,  error:eItens},
+      {data:prog,   error:eProg},
+      {data:ods,    error:eOds},
+      {data:km,     error:eKm}
     ] = await Promise.all([
       db.from('matriz_itens').select('*').eq('ativo',true).order('ordem'),
       db.from('vw_matriz_progresso').select('*'),
-      db.from('ods_refs').select('*').order('numero'),
-      db.from('metas_km_refs').select('*').order('numero')
+      db.from('ods_refs').select('*'),        // ordenação feita no cliente
+      db.from('metas_km_refs').select('*')    // ordenação feita no cliente
     ]);
+
+    if(eItens) console.warn('[matriz] matriz_itens:', eItens.message);
+    if(eProg)  console.warn('[matriz] vw_matriz_progresso:', eProg.message);
+    if(eOds)   console.warn('[matriz] ods_refs:', eOds.message);
+    if(eKm)    console.warn('[matriz] metas_km_refs:', eKm.message);
 
     matrizItens = itens||[];
     progresso   = prog||[];
@@ -228,7 +234,7 @@ async function carregar(){
     renderODS();
     renderKM();
   }catch(e){
-    console.error(e);
+    console.error('[matriz] erro geral:', e);
     document.getElementById('conteudo-matriz').innerHTML=
       `<div class="empty-state"><div class="empty-state-msg">Erro ao carregar dados. Verifique se o SQL de migração foi executado no Supabase.</div></div>`;
   }
@@ -456,31 +462,59 @@ function renderIndCard(i){
 }
 
 // ── ODS ───────────────────────────────────────────────────────
+// Fallback quando imagem local não carrega
+function odsImgFalhou(img, num, cor){
+  img.onerror=null;
+  var wrap=img.parentNode;
+  var d=document.createElement('div');
+  d.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:'+cor;
+  d.innerHTML='<span style="font-size:30px;font-weight:800;color:#fff;font-family:sans-serif">'+num+'</span>';
+  wrap.innerHTML='';
+  wrap.appendChild(d);
+}
+
 function renderODS(){
   const el=document.getElementById('ods-grid');
+  if(!el)return;
   if(!odsRefs.length){el.innerHTML='<div style="color:var(--cinza-400);font-size:12px">Execute o SQL de migração.</div>';return;}
 
-  el.innerHTML=odsRefs.map(o=>{
-    const cnt=matrizItens.filter(i=>(i.ods||[]).includes(o.numero)).length;
+  // Ordenação numérica no cliente (numero pode ser TEXT ou INTEGER no BD)
+  const sorted=[...odsRefs].sort((a,b)=>parseInt(a.numero,10)-parseInt(b.numero,10));
+  el.innerHTML=sorted.map(o=>{
+    const num=parseInt(o.numero,10);
+    const cor=o.cor||'#1F4E2C';
+    const cnt=matrizItens.filter(i=>{
+      const arr=i.ods||[];
+      return arr.includes(o.numero)||arr.includes(num)||arr.includes(String(num));
+    }).length;
+    // Imagens locais: ../assets/sdg/sdg-1.jpg … sdg-17.jpg
+    const localUrl=`../assets/sdg/sdg-${num}.jpg`;
+    const borderStyle=o.no_projeto?`border:2px solid ${cor}88`:`border:1px solid var(--borda)`;
     return`<div class="ods-card${o.no_projeto?' ativo':''}"
-      style="border-color:${o.no_projeto?o.cor+'44':'var(--borda)'};background:${o.no_projeto?o.cor+'08':'var(--cinza-50)'}"
+      style="${borderStyle}"
       onclick="abrirRefODS('${o.numero}')">
-      <div class="ods-emoji">${o.emoji}</div>
-      <div class="ods-num" style="color:${o.cor}">ODS ${o.numero}</div>
-      <div class="ods-titulo">${o.titulo}</div>
-      ${o.no_projeto?`<div class="ods-badge-cnt" style="background:${o.cor}22;color:${o.cor}">${cnt} indicador${cnt!==1?'es':''}</div>`:''}
+      <div class="ods-img-wrap">
+        <img src="${localUrl}" alt="ODS ${num}"
+          onerror="odsImgFalhou(this,${num},'${cor}')">
+      </div>
+      <div class="ods-card-foot">
+        ${o.no_projeto&&cnt?`<div class="ods-badge-cnt" style="background:${cor}22;color:${cor}">${cnt} indicador${cnt!==1?'es':''}</div>`:''}
+      </div>
     </div>`;
   }).join('');
 }
 
 function abrirRefODS(num){
-  const o=odsRefs.find(x=>x.numero===num);
+  const o=odsRefs.find(x=>String(x.numero)===String(num));
   if(!o)return;
-  const inds=matrizItens.filter(i=>(i.ods||[]).includes(num));
+  const inds=matrizItens.filter(i=>{const a=i.ods||[];return a.includes(num)||a.includes(o.numero)||a.includes(String(num));});
   document.getElementById('mr-titulo').textContent=`ODS ${num} — ${o.titulo}`;
   document.getElementById('mr-body').innerHTML=`
     <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:48px">${o.emoji}</div>
+      <img src="../assets/sdg/sdg-${num}.jpg" alt="ODS ${num}"
+        style="width:80px;height:80px;object-fit:cover;border-radius:12px;margin-bottom:8px"
+        onerror="this.style.display='none'">
+      <br>
       ${o.no_projeto?`<span style="background:${o.cor}22;color:${o.cor};font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px">✓ Presente neste projeto</span>`:`<span style="background:var(--cinza-100);color:var(--cinza-500);font-size:11px;padding:2px 10px;border-radius:99px">Não vinculado ao projeto</span>`}
     </div>
     ${inds.length?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${inds.length} indicador(es) vinculado(s)</div>
