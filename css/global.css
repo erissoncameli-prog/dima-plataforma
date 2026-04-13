@@ -37,6 +37,7 @@
   --font-display: 'Fraunces', Georgia, serif;
   --sidebar-w:    240px;
   --header-h:     58px;
+  --banner-h:     52px;
 
   /* badges */
   --badge-green:  #059669;
@@ -72,7 +73,7 @@ body {
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 0; left: 0; bottom: 0;
+  top: var(--banner-h); left: 0; bottom: 0;
   z-index: 100;
   overflow-y: hidden;
   overflow-x: hidden;
@@ -248,13 +249,37 @@ body {
   min-height: 100vh;
 }
 
+.gov-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--banner-h);
+  background: #0e1c2f;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+  padding: 0 20px;
+}
+.gov-banner-inner {
+  display: flex; align-items: center; gap: 16px;
+  background: #162338;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 99px;
+  padding: 6px 20px 6px 16px;
+  height: 40px;
+}
+.gov-banner-logo { height: 26px; width: auto; object-fit: contain; }
+.gov-banner-sep { width: 1px; height: 28px; background: #B5860D; flex-shrink: 0; }
+.gov-banner-txt { font-size: 11px; color: rgba(255,255,255,.75); line-height: 1.35; font-family: 'DM Sans', sans-serif; }
+.gov-banner-gov { display: flex; align-items: center; gap: 10px; }
+.gov-banner-gov-logo { height: 28px; width: auto; object-fit: contain; }
+.gov-banner-gov-txt { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.75); letter-spacing: .08em; text-transform: uppercase; font-family: 'DM Sans', sans-serif; line-height: 1.3; }
+
 .topbar {
   height: var(--header-h);
   background: var(--branco);
   border-bottom: 1px solid var(--borda);
   display: flex; align-items: center;
   padding: 0 28px;
-  position: sticky; top: 0; z-index: 50;
+  position: sticky; top: var(--banner-h); z-index: 50;
   gap: 12px;
 }
 .topbar-title {

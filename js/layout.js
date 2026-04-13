@@ -65,7 +65,19 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   }).join('');
 
   return `
-  <div class="app-layout">
+  <div class="gov-banner">
+    <div class="gov-banner-inner">
+      <img class="gov-banner-logo" src="../assets/1695134345-1-horizontal-verde-solo.png" alt="SEMA">
+      <div class="gov-banner-sep"></div>
+      <div class="gov-banner-txt">Secretaria<br>de Estado do Meio Ambiente</div>
+      <div style="width:24px;flex-shrink:0"></div>
+      <div class="gov-banner-gov">
+        <img class="gov-banner-gov-logo" src="../assets/3-vertical-verde-conjunto-1024x805.png" alt="Governo do Acre">
+        <div class="gov-banner-gov-txt">Governo<br>do Acre</div>
+      </div>
+    </div>
+  </div>
+  <div class="app-layout" style="margin-top:var(--banner-h)">
     <aside class="sidebar" id="sidebar" style="background:linear-gradient(175deg,#2a7a50 0%,#1F4E2C 40%,#143520 75%,#0a1f12 100%);">
       <div class="sidebar-brand">
         <div style="background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:8px;box-shadow:0 3px 16px rgba(0,0,0,.25);">
