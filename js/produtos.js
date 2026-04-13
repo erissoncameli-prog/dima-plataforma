@@ -3,7 +3,7 @@
 
 let atividades=[],contratos=[],todosProdutos=[];
 let produtoAtual=null,entregaAtual=null,entregaArquivo=null;
-let filtAtiv='',filtCont='',decisaoSel='';
+let filtAtiv='',filtCont='',filtForn='',decisaoSel='';
 let fotosNovas=[];
 let docsEntrega=[];
 let notaTecnicaFile=null;
@@ -32,6 +32,7 @@ const TIPOS_DOC=['Relatório Técnico','Nota Fiscal','Comprovante de Pagamento',
     +'<select class="form-control" id="sel-ativ" style="max-width:340px" onchange="selecionarAtiv(this.value)">'
     +'<option value="">Selecione a atividade...</option>'
     +'</select>'
+    +'<input class="form-control" id="inp-forn" style="max-width:220px" placeholder="🔍 Fornecedor..." title="Filtrar contratos pelo nome do fornecedor" oninput="filtrarForn(this.value)">'
     +'<select class="form-control" id="sel-cont" style="max-width:300px" onchange="selecionarCont(this.value)" disabled>'
     +'<option value="">Selecione o contrato...</option>'
     +'</select>'
@@ -107,11 +108,29 @@ async function renderStats(){
 }
 
 function selecionarAtiv(id){
-  filtAtiv=id;filtCont='';todosProdutos=[];
+  filtAtiv=id;
+  atualizarDropdownContrato();
+}
+
+function filtrarForn(val){
+  filtForn=val.trim();
+  atualizarDropdownContrato();
+}
+
+function atualizarDropdownContrato(){
+  filtCont='';todosProdutos=[];
   var sel=document.getElementById('sel-cont');
   sel.innerHTML='<option value="">Selecione o contrato...</option>';
-  if(!id){sel.disabled=true;renderVazio('Selecione uma atividade para começar.');return;}
-  var lista=contratos.filter(function(c){return c.atividade_id===id;});
+
+  var lista=contratos.filter(function(c){
+    if(filtAtiv&&c.atividade_id!==filtAtiv)return false;
+    if(filtForn){
+      var nome=(c.fornecedores&&c.fornecedores.nome||'').toLowerCase();
+      if(!nome.includes(filtForn.toLowerCase()))return false;
+    }
+    return true;
+  });
+
   lista.forEach(function(c){
     var o=document.createElement('option');
     o.value=c.id;
@@ -119,7 +138,9 @@ function selecionarAtiv(id){
     sel.appendChild(o);
   });
   sel.disabled=lista.length===0;
-  if(lista.length===0)renderVazio('Nenhum contrato nesta atividade.');
+
+  if(!filtAtiv&&!filtForn)renderVazio('Selecione uma atividade ou busque pelo fornecedor para começar.');
+  else if(lista.length===0)renderVazio('Nenhum contrato encontrado com esses filtros.');
   else renderVazio('Selecione um contrato para ver os produtos.');
 }
 
