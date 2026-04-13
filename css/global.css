@@ -253,15 +253,15 @@ body {
   position: fixed;
   top: 0; left: 0; right: 0;
   height: var(--banner-h);
-  background: #0e1c2f;
+  background: linear-gradient(90deg, #1F4E2C 0%, #2a7a50 50%, #1F4E2C 100%);
   display: flex; align-items: center; justify-content: center;
   z-index: 200;
   padding: 0 20px;
 }
 .gov-banner-inner {
   display: flex; align-items: center; gap: 16px;
-  background: #162338;
-  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
   border-radius: 99px;
   padding: 6px 20px 6px 16px;
   height: 40px;

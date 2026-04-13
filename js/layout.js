@@ -69,12 +69,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     <div class="gov-banner-inner">
       <img class="gov-banner-logo" src="../assets/1695134345-1-horizontal-verde-solo.png" alt="SEMA">
       <div class="gov-banner-sep"></div>
-      <div class="gov-banner-txt">Secretaria<br>de Estado do Meio Ambiente</div>
-      <div style="width:24px;flex-shrink:0"></div>
-      <div class="gov-banner-gov">
-        <img class="gov-banner-gov-logo" src="../assets/3-vertical-verde-conjunto-1024x805.png" alt="Governo do Acre">
-        <div class="gov-banner-gov-txt">Governo<br>do Acre</div>
-      </div>
+      <img class="gov-banner-gov-logo" src="../assets/3-vertical-verde-conjunto-1024x805.png" alt="Governo do Acre">
     </div>
   </div>
   <div class="app-layout" style="margin-top:var(--banner-h)">
