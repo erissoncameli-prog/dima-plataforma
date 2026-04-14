@@ -25,6 +25,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'financeiro',   icone: '◈', href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     // ── Apoio ────────────────────────────────────────────────
     { id: 'viagens',      icone: '✈', href: 'viagens.html',      perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
+    { id: 'relatorios',   icone: '📊', href: 'relatorios.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'repositorio',  icone: '🔗', href: 'repositorio.html',  perfis: null },
     { id: 'usuarios',     icone: '◍', href: 'usuarios.html',     perfis: ['super_admin'] },
   ];
@@ -36,7 +37,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { label: null,          ids: ['dashboard'] },
     { label: 'Planejamento', ids: ['atividades','tdrs','matriz'] },
     { label: 'Execução',     ids: ['fornecedores','contratos','produtos','financeiro'] },
-    { label: 'Apoio',        ids: ['viagens','repositorio','usuarios'] },
+    { label: 'Apoio',        ids: ['viagens','relatorios','repositorio','usuarios'] },
   ];
 
   const navHtml = navGroups.map(group => {

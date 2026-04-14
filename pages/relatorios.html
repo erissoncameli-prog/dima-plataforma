@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Relatórios</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+/* ── SELETOR DE TEMAS ─────────────────────────────────────── */
+.temas-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
+.tema-btn{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:99px;border:1.5px solid var(--borda);background:var(--branco);cursor:pointer;font-family:var(--font-sans);font-size:12px;font-weight:500;color:var(--cinza-600);transition:all .15s;}
+.tema-btn:hover{border-color:currentColor;opacity:.85;}
+.tema-btn.ativo{color:#fff;border-color:transparent;}
+.tema-btn .tema-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+/* ── LISTA DE RELATÓRIOS ──────────────────────────────────── */
+.rel-lista{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:24px;}
+.rel-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 18px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;}
+.rel-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;}
+.rel-card:hover{box-shadow:var(--sombra-md);transform:translateY(-1px);}
+.rel-card.ativo{box-shadow:var(--sombra-md);}
+.rel-card-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.rel-card-icon{width:34px;height:34px;border-radius:var(--raio);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.rel-card-titulo{font-size:13px;font-weight:600;color:var(--cinza-900);line-height:1.3;}
+.rel-card-desc{font-size:11px;color:var(--cinza-500);line-height:1.5;}
+.rel-card-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.05em;margin-top:8px;}
+
+/* ── PAINEL DE CONFIGURAÇÃO ──────────────────────────────── */
+.config-panel{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:20px 24px;margin-bottom:20px;}
+.config-titulo{font-size:14px;font-weight:600;color:var(--cinza-900);margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.config-desc{font-size:12px;color:var(--cinza-500);margin-bottom:16px;}
+.config-filtros{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+.config-grupo{display:flex;flex-direction:column;gap:4px;}
+.config-lbl{font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;}
+.config-select,.config-input{height:34px;border:1px solid var(--borda);border-radius:var(--raio);padding:0 10px;font-family:var(--font-sans);font-size:12px;color:var(--cinza-900);background:var(--branco);min-width:140px;}
+.config-select:focus,.config-input:focus{outline:none;border-color:var(--verde-medio);}
+
+/* ── ÁREA DE VISUALIZAÇÃO ─────────────────────────────────── */
+.preview-wrap{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:20px;min-height:200px;}
+.preview-vazio{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;color:var(--cinza-400);gap:10px;}
+.preview-vazio-icon{font-size:48px;opacity:.4;}
+
+/* ── DOCUMENTO IMPRIMÍVEL ─────────────────────────────────── */
+.doc-wrap{background:#fff;max-width:900px;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.1);border-radius:4px;}
+
+/* CABEÇALHO DO RELATÓRIO */
+.doc-header{padding:20px 32px 16px;border-bottom:3px solid #1F4E2C;position:relative;}
+.doc-header-logos{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.doc-header-logos-esq{display:flex;align-items:center;gap:10px;}
+.doc-header-logos-dir{display:flex;align-items:center;gap:10px;}
+.doc-header-logo{height:32px;width:auto;object-fit:contain;}
+.doc-header-sep{width:1px;height:28px;background:#B5860D;flex-shrink:0;}
+.doc-header-projeto{font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;}
+.doc-header-programa{font-size:11px;color:var(--cinza-600);margin-bottom:1px;}
+.doc-header-local{font-size:10px;color:var(--cinza-500);}
+.doc-header-titulo-wrap{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+.doc-header-titulo{font-size:18px;font-weight:700;color:var(--cinza-900);display:flex;align-items:center;gap:10px;}
+.doc-header-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;text-transform:uppercase;letter-spacing:.06em;color:#fff;}
+.doc-header-meta{text-align:right;font-size:10px;color:var(--cinza-500);line-height:1.6;}
+
+/* MARCA D'ÁGUA */
+.doc-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:0;opacity:.06;}
+.doc-watermark img{width:280px;height:auto;}
+
+/* CORPO DO RELATÓRIO */
+.doc-body{padding:24px 32px;position:relative;z-index:1;}
+
+/* RODAPÉ DO RELATÓRIO */
+.doc-footer{padding:12px 32px;border-top:1.5px solid #1F4E2C;display:flex;align-items:center;justify-content:space-between;background:#f8faf8;}
+.doc-footer-esq{font-size:10px;color:var(--cinza-600);line-height:1.6;}
+.doc-footer-centro{font-size:9px;color:var(--cinza-400);text-align:center;}
+.doc-footer-dir{font-size:11px;font-weight:600;color:var(--cinza-700);font-family:var(--font-mono);}
+
+/* TABELAS DO RELATÓRIO */
+.rep-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px;}
+.rep-tbl th{padding:7px 10px;font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #1F4E2C;background:#f0f7f2;text-align:left;white-space:nowrap;}
+.rep-tbl td{padding:7px 10px;border-bottom:1px solid var(--borda);color:var(--cinza-700);vertical-align:middle;}
+.rep-tbl tbody tr:nth-child(even) td{background:#fafcfa;}
+.rep-tbl tbody tr:hover td{background:#f0f7f2;}
+.rep-tbl tfoot td{padding:8px 10px;font-weight:700;color:var(--cinza-900);border-top:2px solid #1F4E2C;background:#f0f7f2;}
+
+/* STATS DO RELATÓRIO */
+.rep-stats{display:grid;gap:12px;margin-bottom:20px;}
+.rep-stats-4{grid-template-columns:repeat(4,1fr);}
+.rep-stats-3{grid-template-columns:repeat(3,1fr);}
+.rep-stat{background:#f0f7f2;border:1px solid #c8e6d0;border-radius:var(--raio);padding:12px 14px;}
+.rep-stat-lbl{font-size:9px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.rep-stat-val{font-size:18px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono);letter-spacing:-.01em;}
+.rep-stat-sub{font-size:10px;color:var(--cinza-500);margin-top:2px;}
+
+/* SEÇÃO DO RELATÓRIO */
+.rep-secao{margin-bottom:20px;}
+.rep-secao-titulo{font-size:11px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.08em;padding:6px 0;border-bottom:1.5px solid #c8e6d0;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+
+/* BARRA DE PROGRESSO */
+.rep-barra{height:6px;background:var(--cinza-100);border-radius:3px;overflow:hidden;}
+.rep-barra-fill{height:100%;border-radius:3px;background:#2D6A4F;transition:width .4s;}
+.rep-barra-fill.warn{background:var(--aviso);}
+.rep-barra-fill.crit{background:var(--erro);}
+
+/* BADGES */
+.rep-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;white-space:nowrap;}
+.rb-verde{background:#ECFDF5;color:#065F46}
+.rb-azul{background:#EFF6FF;color:#1E40AF}
+.rb-ouro{background:#FFFBEB;color:#92400E}
+.rb-vermelho{background:#FEF2F2;color:#991B1B}
+.rb-cinza{background:#F3F4F6;color:#374151}
+.rb-teal{background:#F0FDFA;color:#0F766E}
+
+/* MONO */
+.mono{font-family:var(--font-mono);font-size:10px;}
+.mono-sm{font-family:var(--font-mono);font-size:9px;}
+
+/* BOTÕES DE AÇÃO */
+.btn-imprimir{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;background:#1F4E2C;color:#fff;border:none;border-radius:var(--raio);font-family:var(--font-sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-imprimir:hover{background:#143520;}
+
+/* ── PRINT ─────────────────────────────────────────────────── */
+@media print {
+  body > *:not(#print-area){ display:none !important; }
+  #print-area{ display:block !important; }
+  .doc-wrap{ box-shadow:none; max-width:100%; }
+  .doc-footer{ position:running(footer); }
+  @page {
+    margin: 0;
+    @bottom-center { content: element(footer); }
+  }
+  .doc-watermark{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .rep-tbl th,.rep-stat,.rep-secao-titulo,.doc-header,.doc-footer{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando relatórios...
+    </div>
+  </div>
+</div>
+
+<!-- ÁREA DE IMPRESSÃO (oculta na tela, visível só ao imprimir) -->
+<div id="print-area" style="display:none"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/i18n.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════════════════════
+let relAtivo = null;   // id do relatório selecionado
+let filtros  = {};     // filtros do relatório atual
+let dadosRel = null;   // dados carregados
+
+// ══════════════════════════════════════════════════════════════
+// CATÁLOGO DE RELATÓRIOS
+// ══════════════════════════════════════════════════════════════
+const TEMAS = [
+  { id:'todos',      label:'Todos',              cor:'#374151' },
+  { id:'financeiro', label:'Financeiro',         cor:'#B5860D' },
+  { id:'contratos',  label:'Contratos',          cor:'#1A3A5C' },
+  { id:'fornecedores',label:'Fornecedores',      cor:'#2D6A4F' },
+  { id:'produtos',   label:'Produtos/Entregas',  cor:'#0D9488' },
+  { id:'tdrs',       label:'TDRs',               cor:'#6D28D9' },
+  { id:'atividades', label:'Atividades',         cor:'#1F4E2C' },
+  { id:'matriz',     label:'Matriz',             cor:'#2563EB' },
+  { id:'viagens',    label:'Viagens',            cor:'#D97706' },
+  { id:'usuarios',   label:'Usuários',           cor:'#374151' },
+  { id:'logs',       label:'Logs',               cor:'#DC2626' },
+];
+
+const RELATORIOS = [
+  // ── FINANCEIRO ────────────────────────────────────────────
+  { id:'F1', tema:'financeiro', icone:'💰', titulo:'Execução Orçamentária Geral',
+    desc:'Orçamento total vs. comprometido vs. pago por atividade e resultado (BRL e USD).',
+    filtros:['periodo','atividade','resultado'] },
+  { id:'F2', tema:'financeiro', icone:'📅', titulo:'Fluxo de Caixa — Vencimentos',
+    desc:'Produtos a vencer nos próximos 30/60/90 dias com valores comprometidos.',
+    filtros:['horizonte','atividade','fornecedor'] },
+  { id:'F3', tema:'financeiro', icone:'💳', titulo:'Pagamentos Realizados',
+    desc:'Lista de pagamentos com fornecedor, contrato, produto, valor BRL/USD e cotação.',
+    filtros:['periodo','fornecedor','situacao'] },
+  { id:'F4', tema:'financeiro', icone:'📈', titulo:'Evolução da Cotação USD',
+    desc:'Histórico da cotação UNESCO, variação acumulada e impacto no orçamento.',
+    filtros:['periodo'] },
+  { id:'F5', tema:'financeiro', icone:'⚖️', titulo:'Saldo por Atividade',
+    desc:'Orçamento previsto, comprometido, pago e saldo livre por atividade.',
+    filtros:['atividade','resultado','fase'] },
+  { id:'F6', tema:'financeiro', icone:'⚠️', titulo:'Inadimplência / Atrasos',
+    desc:'Produtos com vencimento ultrapassado e situação pendente.',
+    filtros:['atividade','fornecedor'] },
+  // ── CONTRATOS ─────────────────────────────────────────────
+  { id:'C1', tema:'contratos', icone:'📋', titulo:'Carteira de Contratos',
+    desc:'Todos os contratos com valor total, utilizado, saldo, vigência e status.',
+    filtros:['status_contrato','tipo_contrato','atividade','periodo'] },
+  { id:'C2', tema:'contratos', icone:'🔔', titulo:'Contratos Próximos do Vencimento',
+    desc:'Contratos com encerramento nos próximos 30/60/90 dias.',
+    filtros:['horizonte','status_contrato'] },
+  { id:'C3', tema:'contratos', icone:'📊', titulo:'Execução por Contrato',
+    desc:'Valor total vs. produtos pagos, a pagar e cancelados por contrato.',
+    filtros:['fornecedor','atividade'] },
+  { id:'C4', tema:'contratos', icone:'📎', titulo:'Contratos sem Documentos',
+    desc:'Contratos sem PDF assinado ou tradução em PT.',
+    filtros:['atividade'] },
+  // ── FORNECEDORES ──────────────────────────────────────────
+  { id:'V1', tema:'fornecedores', icone:'🏢', titulo:'Cadastro de Fornecedores',
+    desc:'Lista completa com tipo, CPF/CNPJ, e-mail, contratos vinculados e total contratado.',
+    filtros:['tipo_forn','ativo_forn'] },
+  { id:'V2', tema:'fornecedores', icone:'📉', titulo:'Concentração de Contratos',
+    desc:'Valor total contratado por fornecedor para análise de concentração de risco.',
+    filtros:['periodo','tipo_forn'] },
+  { id:'V3', tema:'fornecedores', icone:'🔍', titulo:'Histórico por Fornecedor',
+    desc:'Contratos, produtos entregues e pagamentos de um fornecedor específico.',
+    filtros:['fornecedor'] },
+  // ── PRODUTOS ──────────────────────────────────────────────
+  { id:'P1', tema:'produtos', icone:'📦', titulo:'Status de Entregas',
+    desc:'Produtos por situação (pendente → pago) com percentual de execução.',
+    filtros:['atividade','fornecedor','periodo','situacao'] },
+  { id:'P2', tema:'produtos', icone:'🚨', titulo:'Atrasos na Entrega',
+    desc:'Produtos com vencimento passado e sem entrega registrada.',
+    filtros:['atividade','fornecedor'] },
+  { id:'P3', tema:'produtos', icone:'✅', titulo:'Taxa de Aprovação',
+    desc:'% aprovado por produto, contrato e fornecedor com valor aprovado vs. contratado.',
+    filtros:['atividade','fornecedor'] },
+  { id:'P4', tema:'produtos', icone:'⏱️', titulo:'Tempo de Avaliação',
+    desc:'Dias entre entrega e avaliação de cada produto.',
+    filtros:['periodo'] },
+  // ── TDRs ──────────────────────────────────────────────────
+  { id:'T1', tema:'tdrs', icone:'📄', titulo:'Pipeline de TDRs',
+    desc:'Quantidade e valor por status — visualização de gargalos no fluxo.',
+    filtros:['status_tdr','tipo_tdr','atividade'] },
+  { id:'T2', tema:'tdrs', icone:'⏳', titulo:'Tempo de Tramitação',
+    desc:'Tempo médio entre cada etapa do fluxo de aprovação.',
+    filtros:['periodo','tipo_tdr'] },
+  { id:'T3', tema:'tdrs', icone:'🔗', titulo:'TDRs Aprovados sem Contrato',
+    desc:'TDRs com status aprovado que ainda não possuem contrato vinculado.',
+    filtros:['periodo','atividade'] },
+  // ── ATIVIDADES ────────────────────────────────────────────
+  { id:'A1', tema:'atividades', icone:'◈', titulo:'Execução por Atividade',
+    desc:'Fase, orçamento, comprometido (TDRs), pago, saldo e responsável.',
+    filtros:['resultado','fase'] },
+  { id:'A2', tema:'atividades', icone:'📭', titulo:'Atividades sem TDR',
+    desc:'Atividades em fases iniciais sem nenhum TDR criado.',
+    filtros:['resultado','fase'] },
+  { id:'A3', tema:'atividades', icone:'👤', titulo:'Concentração por Responsável',
+    desc:'Quantidade de atividades e orçamento por técnico responsável.',
+    filtros:[] },
+  // ── MATRIZ ────────────────────────────────────────────────
+  { id:'M1', tema:'matriz', icone:'🌍', titulo:'Progresso dos Indicadores',
+    desc:'% de avanço de cada indicador da matriz em relação à meta.',
+    filtros:['resultado','ods'] },
+  { id:'M2', tema:'matriz', icone:'🔗', titulo:'Contribuição de Produtos',
+    desc:'Entregas que contribuíram para cada indicador com % e confirmação.',
+    filtros:['resultado','periodo'] },
+  { id:'M4', tema:'matriz', icone:'🚩', titulo:'Indicadores em Risco',
+    desc:'Indicadores com baixo progresso em relação à meta.',
+    filtros:['resultado'] },
+  // ── VIAGENS ───────────────────────────────────────────────
+  { id:'Vi1', tema:'viagens', icone:'✈', titulo:'Protocolos por Período',
+    desc:'Todos os protocolos com status, viajantes, datas e valores.',
+    filtros:['periodo','status_viagem'] },
+  { id:'Vi2', tema:'viagens', icone:'👤', titulo:'Gasto por Viajante',
+    desc:'Total de diárias e passagens por pessoa no período.',
+    filtros:['periodo'] },
+  { id:'Vi3', tema:'viagens', icone:'◈', titulo:'Gasto por Atividade',
+    desc:'Custo de viagens imputado por atividade.',
+    filtros:['atividade','periodo'] },
+  // ── USUÁRIOS ──────────────────────────────────────────────
+  { id:'U1', tema:'usuarios', icone:'👥', titulo:'Cadastro de Usuários',
+    desc:'Lista com perfil, status, primeiro e último acesso.',
+    filtros:['perfil','ativo_forn'] },
+  { id:'U4', tema:'usuarios', icone:'😴', titulo:'Usuários Inativos',
+    desc:'Usuários ativos há mais de X dias sem acessar a plataforma.',
+    filtros:['dias_sem_acesso'] },
+  // ── LOGS ──────────────────────────────────────────────────
+  { id:'L1', tema:'logs', icone:'📝', titulo:'Ações em TDRs',
+    desc:'Todas as ações registradas por usuário, data e tipo.',
+    filtros:['periodo'] },
+  { id:'L4', tema:'logs', icone:'🔎', titulo:'Avaliações de Produtos',
+    desc:'Quem avaliou, quando, % aprovado e parecer registrado.',
+    filtros:['periodo'] },
+];
+
+// ══════════════════════════════════════════════════════════════
+// DADOS AUXILIARES
+// ══════════════════════════════════════════════════════════════
+let _atividades=[], _fornecedores=[], _usuarios=[];
+
+async function carregarAuxiliares(){
+  const [ra,rf,ru] = await Promise.all([
+    db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
+    db.from('fornecedores').select('id,nome').eq('ativo',true).order('nome'),
+    db.from('usuarios').select('id,nome_completo,perfil').eq('ativo',true).order('nome_completo'),
+  ]);
+  _atividades = ra.data||[];
+  _fornecedores = rf.data||[];
+  _usuarios = ru.data||[];
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+(async()=>{
+  const usuario = await carregarUsuario();
+  if(!usuario){ window.location.href='../index.html'; return; }
+  document.getElementById('app').innerHTML =
+    gerarLayout('Relatórios','relatorios') +
+    `<div class="page-body">
+      <div style="margin-bottom:18px">
+        <div style="font-size:18px;font-weight:700;color:var(--cinza-900);margin-bottom:4px">📊 Central de Relatórios</div>
+        <div style="font-size:12px;color:var(--cinza-500)">Selecione um tema e um relatório para configurar e visualizar.</div>
+      </div>
+
+      <!-- TEMAS -->
+      <div class="temas-grid" id="temas-grid"></div>
+
+      <!-- LISTA DE RELATÓRIOS -->
+      <div class="rel-lista" id="rel-lista"></div>
+
+      <!-- PAINEL CONFIG + PREVIEW -->
+      <div id="config-area" style="display:none">
+        <div class="config-panel" id="config-panel"></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px" id="acoes-area"></div>
+        <div class="preview-wrap" id="preview-area">
+          <div class="preview-vazio">
+            <div class="preview-vazio-icon">📊</div>
+            <div>Configure os filtros e clique em <strong>Gerar Relatório</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>` +
+    fecharLayout();
+
+  await carregarAuxiliares();
+  renderTemas('todos');
+  renderLista('todos');
+  iniciarSidebar();
+  carregarNotificacoesSino();
+})();
+
+// ══════════════════════════════════════════════════════════════
+// RENDER TEMAS
+// ══════════════════════════════════════════════════════════════
+let temaAtivo = 'todos';
+function renderTemas(ativo){
+  temaAtivo = ativo;
+  document.getElementById('temas-grid').innerHTML = TEMAS.map(t=>`
+    <button class="tema-btn${t.id===ativo?' ativo':''}"
+      style="${t.id===ativo?'background:'+t.cor+';border-color:'+t.cor:''}"
+      onclick="renderTemas('${t.id}');renderLista('${t.id}')">
+      <span class="tema-dot" style="background:${t.id===ativo?'rgba(255,255,255,.7)':t.cor}"></span>
+      ${t.label}
+    </button>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER LISTA
+// ══════════════════════════════════════════════════════════════
+function renderLista(tema){
+  const lista = tema==='todos' ? RELATORIOS : RELATORIOS.filter(r=>r.tema===tema);
+  const temaInfo = t => TEMAS.find(x=>x.id===t)||{cor:'#374151'};
+  document.getElementById('rel-lista').innerHTML = lista.map(r=>{
+    const ti = temaInfo(r.tema);
+    return `<div class="rel-card${relAtivo===r.id?' ativo':''}"
+        style="--card-cor:${ti.cor};border-left:4px solid ${ti.cor}"
+        onclick="selecionarRel('${r.id}')">
+      <div class="rel-card-header">
+        <div class="rel-card-icon" style="background:${ti.cor}22;color:${ti.cor}">${r.icone}</div>
+        <div>
+          <div class="rel-card-titulo">${r.titulo}</div>
+          <div style="font-size:9px;font-family:var(--font-mono);color:${ti.cor};font-weight:700;margin-top:2px">${r.id}</div>
+        </div>
+      </div>
+      <div class="rel-card-desc">${r.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SELECIONAR RELATÓRIO
+// ══════════════════════════════════════════════════════════════
+function selecionarRel(id){
+  relAtivo = id;
+  filtros = {};
+  dadosRel = null;
+  renderLista(temaAtivo);
+  const rel = RELATORIOS.find(r=>r.id===id);
+  const ti = TEMAS.find(t=>t.id===rel.tema)||{cor:'#374151'};
+  document.getElementById('config-area').style.display='block';
+  // Painel de config
+  document.getElementById('config-panel').innerHTML = `
+    <div class="config-titulo" style="color:${ti.cor}">
+      <span>${rel.icone}</span> ${rel.titulo}
+      <span style="font-size:9px;font-family:var(--font-mono);background:${ti.cor}22;color:${ti.cor};padding:2px 8px;border-radius:99px;font-weight:700">${rel.id}</span>
+    </div>
+    <div class="config-desc">${rel.desc}</div>
+    <div class="config-filtros" id="filtros-form">
+      ${renderFiltros(rel.filtros)}
+    </div>`;
+  document.getElementById('acoes-area').innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="limparPreview()">✕ Limpar</button>
+    <button class="btn-imprimir" onclick="gerarRelatorio('${id}')">▶ Gerar Relatório</button>`;
+  document.getElementById('preview-area').innerHTML = `
+    <div class="preview-vazio">
+      <div class="preview-vazio-icon">⚙️</div>
+      <div>Configure os filtros acima e clique em <strong>Gerar Relatório</strong></div>
+    </div>`;
+  document.getElementById('config-area').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ══════════════════════════════════════════════════════════════
+// FILTROS DINÂMICOS
+// ══════════════════════════════════════════════════════════════
+function renderFiltros(lista){
+  return lista.map(f=>{
+    switch(f){
+      case 'periodo': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Data início</span>
+          <input type="date" class="config-input" id="fil-dt-ini" style="width:140px">
+        </div>
+        <div class="config-grupo">
+          <span class="config-lbl">Data fim</span>
+          <input type="date" class="config-input" id="fil-dt-fim" style="width:140px">
+        </div>`;
+      case 'horizonte': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Horizonte</span>
+          <select class="config-select" id="fil-horizonte">
+            <option value="30">Próximos 30 dias</option>
+            <option value="60">Próximos 60 dias</option>
+            <option value="90">Próximos 90 dias</option>
+          </select>
+        </div>`;
+      case 'atividade': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Atividade</span>
+          <select class="config-select" id="fil-atividade">
+            <option value="">Todas</option>
+            ${_atividades.map(a=>`<option value="${a.id}">${a.codigo} — ${a.nome_pt.substring(0,30)}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'resultado': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Resultado</span>
+          <select class="config-select" id="fil-resultado">
+            <option value="">Todos</option>
+            <option value="1">Resultado 1</option>
+            <option value="2">Resultado 2</option>
+            <option value="3">Resultado 3</option>
+          </select>
+        </div>`;
+      case 'fornecedor': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Fornecedor</span>
+          <select class="config-select" id="fil-fornecedor">
+            <option value="">Todos</option>
+            ${_fornecedores.map(f=>`<option value="${f.id}">${f.nome.substring(0,35)}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'situacao': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Situação</span>
+          <select class="config-select" id="fil-situacao">
+            <option value="">Todas</option>
+            <option value="pago">Pago</option>
+            <option value="a_pagar">A pagar</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>`;
+      case 'status_contrato': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Status</span>
+          <select class="config-select" id="fil-status-contrato">
+            <option value="">Todos</option>
+            <option value="vigente">Vigente</option>
+            <option value="encerrado">Encerrado</option>
+            <option value="suspenso">Suspenso</option>
+          </select>
+        </div>`;
+      case 'tipo_contrato': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Tipo</span>
+          <select class="config-select" id="fil-tipo-contrato">
+            <option value="">Todos</option>
+            <option value="Servico">Serviço</option>
+            <option value="Consultoria">Consultoria</option>
+            <option value="Consumo">Consumo</option>
+            <option value="Diaria">Diária</option>
+            <option value="Passagens">Passagens</option>
+          </select>
+        </div>`;
+      case 'fase': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Fase</span>
+          <select class="config-select" id="fil-fase">
+            <option value="">Todas</option>
+            <option value="A_INICIAR">A Iniciar</option>
+            <option value="ELABORACAO">Elaboração</option>
+            <option value="LICITACAO">Licitação</option>
+            <option value="ELABORADO">Elaborado</option>
+            <option value="CONTRATADO">Contratado</option>
+            <option value="CONCLUIDO">Concluído</option>
+          </select>
+        </div>`;
+      case 'status_tdr': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Status TDR</span>
+          <select class="config-select" id="fil-status-tdr">
+            <option value="">Todos</option>
+            <option value="rascunho">Rascunho</option>
+            <option value="revisao_interna">Revisão Interna</option>
+            <option value="enviado_unesco">Enviado UNESCO</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>`;
+      case 'tipo_tdr': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Tipo TDR</span>
+          <select class="config-select" id="fil-tipo-tdr">
+            <option value="">Todos</option>
+            <option value="Consultoria">Consultoria</option>
+            <option value="Servico">Serviço</option>
+            <option value="Consumo">Consumo</option>
+          </select>
+        </div>`;
+      case 'status_viagem': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Status</span>
+          <select class="config-select" id="fil-status-viagem">
+            <option value="">Todos</option>
+            <option value="rascunho">Rascunho</option>
+            <option value="solicitado">Solicitado</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="pago">Pago</option>
+          </select>
+        </div>`;
+      case 'perfil': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Perfil</span>
+          <select class="config-select" id="fil-perfil">
+            <option value="">Todos</option>
+            <option value="super_admin">Super Admin</option>
+            <option value="coordenacao">Coordenação</option>
+            <option value="tecnico">Técnico</option>
+            <option value="financeiro">Financeiro</option>
+          </select>
+        </div>`;
+      case 'tipo_forn': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Tipo</span>
+          <select class="config-select" id="fil-tipo-forn">
+            <option value="">Todos</option>
+            <option value="PF">Pessoa Física</option>
+            <option value="PJ">Pessoa Jurídica</option>
+          </select>
+        </div>`;
+      case 'ativo_forn': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Status</span>
+          <select class="config-select" id="fil-ativo">
+            <option value="">Todos</option>
+            <option value="true">Ativos</option>
+            <option value="false">Inativos</option>
+          </select>
+        </div>`;
+      case 'ods': return `
+        <div class="config-grupo">
+          <span class="config-lbl">ODS</span>
+          <select class="config-select" id="fil-ods">
+            <option value="">Todos</option>
+            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17].map(n=>`<option value="${n}">ODS ${n}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'dias_sem_acesso': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Sem acesso há mais de</span>
+          <select class="config-select" id="fil-dias">
+            <option value="30">30 dias</option>
+            <option value="60">60 dias</option>
+            <option value="90">90 dias</option>
+          </select>
+        </div>`;
+      default: return '';
+    }
+  }).join('');
+}
+
+function limparPreview(){
+  document.getElementById('preview-area').innerHTML=`
+    <div class="preview-vazio">
+      <div class="preview-vazio-icon">📊</div>
+      <div>Configure os filtros e clique em <strong>Gerar Relatório</strong></div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════
+const fmtBRL = v => v==null?'—':'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtUSD = v => v==null?'—':'US$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtPct = v => v==null?'—':Number(v).toFixed(1)+'%';
+const fmtDt  = s => !s?'—':new Date(s+'T00:00:00').toLocaleDateString('pt-BR');
+const now    = ()=> new Date().toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+const filVal = id => { const el=document.getElementById(id); return el?el.value:null; };
+
+// ══════════════════════════════════════════════════════════════
+// CABEÇALHO E RODAPÉ PADRÃO
+// ══════════════════════════════════════════════════════════════
+function docHeader(tituloRel, temaBadge, corBadge, periodoTxt){
+  const u = appState.usuario;
+  const dtGer = now();
+  return `
+  <div class="doc-header">
+    <div class="doc-header-logos">
+      <div class="doc-header-logos-esq">
+        <img class="doc-header-logo" src="../assets/1695134345-1-horizontal-verde-solo.png" alt="SEMA">
+        <div class="doc-header-sep"></div>
+        <img class="doc-header-logo" src="../assets/3-vertical-verde-conjunto-1024x805.png" alt="Governo do Acre">
+      </div>
+      <div class="doc-header-logos-dir">
+        <img class="doc-header-logo" src="../assets/UNESCO_logo_hor_blue_transparent.png.png" alt="UNESCO">
+        <img class="doc-header-logo" src="../assets/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil" style="height:28px">
+      </div>
+    </div>
+    <div>
+      <div class="doc-header-projeto">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
+      <div class="doc-header-programa">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
+      <div class="doc-header-local">Rio Branco, Acre — SEMA/AC</div>
+    </div>
+    <div class="doc-header-titulo-wrap">
+      <div class="doc-header-titulo">
+        ${tituloRel}
+        <span class="doc-header-badge" style="background:${corBadge}">${temaBadge}</span>
+      </div>
+      <div class="doc-header-meta">
+        ${periodoTxt?`<div>${periodoTxt}</div>`:''}
+        <div>Gerado em: <strong>${dtGer} (Horário de Brasília)</strong></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function docFooter(nomeUsuario, perfil){
+  return `
+  <div class="doc-footer">
+    <div class="doc-footer-esq">
+      Impresso por: <strong>${nomeUsuario}</strong> · ${perfil}<br>
+      <span style="font-size:9px;color:var(--cinza-400)">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
+    </div>
+    <div class="doc-footer-centro">
+      Plataforma DIMA · UNESCO 218BRA2001
+    </div>
+    <div class="doc-footer-dir" id="num-pagina">Página 1</div>
+  </div>`;
+}
+
+function docWatermark(){
+  return `<div class="doc-watermark" style="top:50%;left:50%;position:absolute;transform:translate(-50%,-50%);pointer-events:none;z-index:0">
+    <img src="../assets/logo-resiliencia.png" style="width:280px;height:auto;opacity:.06" alt="">
+  </div>`;
+}
+
+function wrapDoc(conteudo, rel){
+  const u = appState.usuario;
+  const ti = TEMAS.find(t=>t.id===rel.tema)||{cor:'#374151', label:rel.tema};
+  const dtIni = filVal('fil-dt-ini');
+  const dtFim = filVal('fil-dt-fim');
+  const periodoTxt = dtIni||dtFim
+    ? 'Período: '+(dtIni?fmtDt(dtIni):'início')+' a '+(dtFim?fmtDt(dtFim):'hoje')
+    : '';
+  const perfilLabel = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',financeiro:'Financeiro'}[appState.perfil]||appState.perfil;
+  return `
+  <div class="doc-wrap" id="doc-content">
+    <div style="position:relative">
+      ${docHeader(rel.icone+' '+rel.titulo, ti.label.toUpperCase(), ti.cor, periodoTxt)}
+      ${docWatermark()}
+    </div>
+    <div class="doc-body" style="position:relative;z-index:1">
+      ${conteudo}
+    </div>
+    ${docFooter(u?.nome_completo||'Usuário', perfilLabel)}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// GERADOR DE RELATÓRIOS
+// ══════════════════════════════════════════════════════════════
+async function gerarRelatorio(id){
+  const rel = RELATORIOS.find(r=>r.id===id);
+  if(!rel) return;
+  const area = document.getElementById('preview-area');
+  area.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:var(--cinza-500)">
+    <div style="width:24px;height:24px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite"></div>
+    Gerando relatório...
+  </div>`;
+  try {
+    let html = '';
+    switch(id){
+      case 'F1': html = await relF1(); break;
+      case 'F2': html = await relF2(); break;
+      case 'F3': html = await relF3(); break;
+      case 'C1': html = await relC1(); break;
+      case 'V1': html = await relV1(); break;
+      case 'P1': html = await relP1(); break;
+      case 'P2': html = await relP2(); break;
+      case 'A1': html = await relA1(); break;
+      case 'Vi1': html = await relVi1(); break;
+      case 'U1': html = await relU1(); break;
+      default: html = `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Relatório <strong>${id}</strong> em desenvolvimento.</div>`;
+    }
+    area.innerHTML = wrapDoc(html, rel) + `
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+        <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      </div>`;
+    // Conta páginas aproximadas
+    const linhas = area.querySelectorAll('.rep-tbl tbody tr').length;
+    const pags = Math.max(1, Math.ceil(linhas/30));
+    const np = area.querySelector('#num-pagina');
+    if(np) np.textContent = pags>1?`${pags} páginas`:`Página 1`;
+  } catch(e){
+    area.innerHTML = `<div style="padding:24px;color:var(--erro)">Erro ao gerar relatório: ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// F1 — EXECUÇÃO ORÇAMENTÁRIA GERAL
+// ══════════════════════════════════════════════════════════════
+async function relF1(){
+  const ativFil = filVal('fil-atividade');
+  const resFil  = filVal('fil-resultado');
+
+  let q = db.from('atividades')
+    .select(`id,codigo,nome_pt,orcamento_usd,fase,
+      resultado:resultados(codigo,nome_pt),
+      tdrs(valor_brl,valor_usd,status),
+      contratos(valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,status)`)
+    .order('codigo');
+  if(ativFil) q = q.eq('id', ativFil);
+
+  const {data:ativs, error} = await q;
+  if(error) throw error;
+
+  let rows = (ativs||[]);
+  if(resFil) rows = rows.filter(a => a.resultado?.codigo == resFil);
+
+  // Deduplicar resultados do PostgREST
+  rows = rows.map(a => {
+    const seenT=new Set(), seenC=new Set();
+    return { ...a,
+      tdrs: (a.tdrs||[]).filter(t=>{ if(seenT.has(t.status+t.valor_brl)) return false; seenT.add(t.status+t.valor_brl); return true; }),
+      contratos: (a.contratos||[]).filter(c=>{ if(seenC.has(c.valor_total_brl)) return false; seenC.add(c.valor_total_brl); return true; }),
+    };
+  });
+
+  const totalOrc  = rows.reduce((s,a)=>s+(a.orcamento_usd||0),0);
+  const totalComp = rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_comprometido_brl||0),0),0);
+  const totalPago = rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_utilizado_brl||0),0),0);
+  const totalSald = rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.saldo_brl||0),0),0);
+
+  const badgeStatus = f => {
+    const m = {A_INICIAR:'rb-cinza',ELABORACAO:'rb-ouro',LICITACAO:'rb-azul',ELABORADO:'rb-azul',CONTRATADO:'rb-verde',CONCLUIDO:'rb-teal'};
+    const l = {A_INICIAR:'A Iniciar',ELABORACAO:'Elaboração',LICITACAO:'Licitação',ELABORADO:'Elaborado',CONTRATADO:'Contratado',CONCLUIDO:'Concluído'};
+    return `<span class="rep-badge ${m[f]||'rb-cinza'}">${l[f]||f}</span>`;
+  };
+
+  const pct = (v,t) => t>0?(v/t*100).toFixed(1)+'%':'—';
+
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento Total (USD)</div><div class="rep-stat-val">${fmtUSD(totalOrc)}</div><div class="rep-stat-sub">${rows.length} atividades</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Comprometido (BRL)</div><div class="rep-stat-val">${fmtBRL(totalComp)}</div><div class="rep-stat-sub">Em contratos ativos</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago (BRL)</div><div class="rep-stat-val">${fmtBRL(totalPago)}</div><div class="rep-stat-sub">${pct(totalPago,totalComp)} do comprometido</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo Disponível (BRL)</div><div class="rep-stat-val">${fmtBRL(totalSald)}</div><div class="rep-stat-sub">Saldo em contratos</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">◈ Execução por Atividade</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Código</th><th>Atividade</th><th>Resultado</th><th>Fase</th>
+        <th style="text-align:right">Orç. (USD)</th>
+        <th style="text-align:right">Comprometido</th>
+        <th style="text-align:right">Pago</th>
+        <th style="text-align:right">Saldo</th>
+        <th style="min-width:80px">Execução</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(a=>{
+        const comp = (a.contratos||[]).reduce((s,c)=>s+(c.valor_comprometido_brl||0),0);
+        const pago = (a.contratos||[]).reduce((s,c)=>s+(c.valor_utilizado_brl||0),0);
+        const sald = (a.contratos||[]).reduce((s,c)=>s+(c.saldo_brl||0),0);
+        const pctExec = comp>0?(pago/comp*100):0;
+        const cls = pctExec>80?'crit':pctExec>50?'warn':'';
+        return `<tr>
+          <td class="mono">${a.codigo}</td>
+          <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nome_pt}</td>
+          <td><span class="rep-badge rb-verde">R${a.resultado?.codigo||'?'}</span></td>
+          <td>${badgeStatus(a.fase)}</td>
+          <td class="mono" style="text-align:right">${fmtUSD(a.orcamento_usd)}</td>
+          <td class="mono" style="text-align:right">${fmtBRL(comp)}</td>
+          <td class="mono" style="text-align:right">${fmtBRL(pago)}</td>
+          <td class="mono" style="text-align:right">${fmtBRL(sald)}</td>
+          <td><div class="rep-barra"><div class="rep-barra-fill ${cls}" style="width:${Math.min(100,pctExec).toFixed(0)}%"></div></div><div class="mono-sm" style="margin-top:2px">${pct(pago,comp)}</div></td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="4"><strong>TOTAL GERAL</strong></td>
+        <td class="mono" style="text-align:right">${fmtUSD(totalOrc)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(totalComp)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(totalPago)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(totalSald)}</td>
+        <td></td>
+      </tr></tfoot>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// F2 — FLUXO DE CAIXA / VENCIMENTOS
+// ══════════════════════════════════════════════════════════════
+async function relF2(){
+  const dias = parseInt(filVal('fil-horizonte')||'30');
+  const hoje = new Date();
+  const fim  = new Date(hoje); fim.setDate(fim.getDate()+dias);
+  const fimStr = fim.toISOString().split('T')[0];
+  const hojStr = hoje.toISOString().split('T')[0];
+
+  const ativFil = filVal('fil-atividade');
+  const fornFil = filVal('fil-fornecedor');
+
+  let q = db.from('contratos_produtos_entregas')
+    .select(`id,numero_produto,descricao,valor_brl,dt_vencimento,situacao,
+      contrato:contratos(numero,objeto_pt,fornecedor:fornecedores(nome),atividade:atividades(codigo,nome_pt))`)
+    .gte('dt_vencimento', hojStr)
+    .lte('dt_vencimento', fimStr)
+    .not('situacao','in','("pago","cancelado")')
+    .order('dt_vencimento');
+
+  const {data, error} = await q;
+  if(error) throw error;
+
+  let rows = data||[];
+  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade?.id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor?.id===fornFil);
+
+  const total = rows.reduce((s,r)=>s+(r.valor_brl||0),0);
+
+  const sitBadge = s => {
+    const m = {pendente:'rb-cinza',em_analise:'rb-ouro',aprovado:'rb-verde'};
+    const l = {pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado'};
+    return `<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||s}</span>`;
+  };
+
+  const diasAte = dt => {
+    const d = Math.ceil((new Date(dt+' 12:00')-hoje)/(1000*60*60*24));
+    return `<span class="${d<=7?'rep-badge rb-vermelho':d<=15?'rep-badge rb-ouro':''}">${d}d</span>`;
+  };
+
+  return `
+  <div class="rep-stats rep-stats-3">
+    <div class="rep-stat"><div class="rep-stat-lbl">Vencimentos nos Próximos ${dias} dias</div><div class="rep-stat-val">${rows.length}</div><div class="rep-stat-sub">produtos/entregas</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Valor Total a Pagar</div><div class="rep-stat-val">${fmtBRL(total)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Período</div><div class="rep-stat-val" style="font-size:13px">${fmtDt(hojStr)} — ${fmtDt(fimStr)}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">📅 Vencimentos Previstos</div>
+    ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum vencimento nos próximos ${dias} dias.</div>`:`
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Vencimento</th><th>Falta</th><th>Produto</th><th>Contrato</th>
+        <th>Fornecedor</th><th>Atividade</th>
+        <th style="text-align:right">Valor</th><th>Situação</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(r=>`<tr>
+        <td class="mono">${fmtDt(r.dt_vencimento)}</td>
+        <td>${diasAte(r.dt_vencimento)}</td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td class="mono">${r.contrato?.numero||'—'}</td>
+        <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
+        <td>${sitBadge(r.situacao)}</td>
+      </tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colspan="6"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(total)}</td><td></td></tr></tfoot>
+    </table>`}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// F3 — PAGAMENTOS REALIZADOS
+// ══════════════════════════════════════════════════════════════
+async function relF3(){
+  const dtIni = filVal('fil-dt-ini');
+  const dtFim = filVal('fil-dt-fim');
+  const sitFil = filVal('fil-situacao');
+  const fornFil = filVal('fil-fornecedor');
+
+  let q = db.from('execucao_financeira')
+    .select(`*,contrato:contratos(numero,atividade:atividades(codigo)),fornecedor:fornecedores(nome)`)
+    .order('dt_pagamento',{ascending:false});
+  if(dtIni) q = q.gte('dt_pagamento', dtIni);
+  if(dtFim) q = q.lte('dt_pagamento', dtFim);
+  if(sitFil) q = q.eq('situacao', sitFil);
+  if(fornFil) q = q.eq('fornecedor_id', fornFil);
+
+  const {data, error} = await q;
+  if(error) throw error;
+  const rows = data||[];
+
+  const totBRL = rows.filter(r=>r.situacao==='pago').reduce((s,r)=>s+(r.valor_brl||0),0);
+  const totUSD = rows.filter(r=>r.situacao==='pago').reduce((s,r)=>s+(r.valor_usd_unesco||0),0);
+  const aPagar = rows.filter(r=>r.situacao==='a_pagar').reduce((s,r)=>s+(r.valor_brl||0),0);
+
+  const sitBadge = s => {
+    const m = {pago:'rb-verde',a_pagar:'rb-ouro',cancelado:'rb-cinza'};
+    const l = {pago:'Pago',a_pagar:'A pagar',cancelado:'Cancelado'};
+    return `<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||s}</span>`;
+  };
+
+  return `
+  <div class="rep-stats rep-stats-3">
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago (BRL)</div><div class="rep-stat-val">${fmtBRL(totBRL)}</div><div class="rep-stat-sub">${rows.filter(r=>r.situacao==='pago').length} lançamentos</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago (USD)</div><div class="rep-stat-val">${fmtUSD(totUSD)}</div><div class="rep-stat-sub">Cotação UNESCO</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">A Pagar (BRL)</div><div class="rep-stat-val">${fmtBRL(aPagar)}</div><div class="rep-stat-sub">${rows.filter(r=>r.situacao==='a_pagar').length} pendentes</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">💳 Lançamentos Financeiros</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Data Pagamento</th><th>Fornecedor</th><th>Contrato</th><th>Atividade</th>
+        <th>Produto/Descrição</th>
+        <th style="text-align:right">Valor BRL</th>
+        <th style="text-align:right">Cotação</th>
+        <th style="text-align:right">Valor USD</th>
+        <th>Situação</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(r=>`<tr>
+        <td class="mono">${fmtDt(r.dt_pagamento)}</td>
+        <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.fornecedor?.nome||'—'}</td>
+        <td class="mono">${r.contrato?.numero||'—'}</td>
+        <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
+        <td class="mono" style="text-align:right">${r.cotacao_unesco?Number(r.cotacao_unesco).toFixed(4):'—'}</td>
+        <td class="mono" style="text-align:right">${fmtUSD(r.valor_usd_unesco)}</td>
+        <td>${sitBadge(r.situacao)}</td>
+      </tr>`).join('')}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="5"><strong>TOTAL PAGO</strong></td>
+        <td class="mono" style="text-align:right">${fmtBRL(totBRL)}</td>
+        <td></td>
+        <td class="mono" style="text-align:right">${fmtUSD(totUSD)}</td>
+        <td></td>
+      </tr></tfoot>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// C1 — CARTEIRA DE CONTRATOS
+// ══════════════════════════════════════════════════════════════
+async function relC1(){
+  const stFil   = filVal('fil-status-contrato');
+  const tpFil   = filVal('fil-tipo-contrato');
+  const ativFil = filVal('fil-atividade');
+
+  let q = db.from('contratos')
+    .select(`*,fornecedor:fornecedores(nome),atividade:atividades(codigo,nome_pt)`)
+    .order('dt_inicio',{ascending:false});
+  if(stFil) q = q.eq('status', stFil);
+  if(tpFil) q = q.eq('tipo', tpFil);
+  if(ativFil) q = q.eq('atividade_id', ativFil);
+
+  const {data, error} = await q;
+  if(error) throw error;
+  const rows = data||[];
+
+  const totalContratado = rows.reduce((s,r)=>s+(r.valor_total_brl||0),0);
+  const totalUtilizado  = rows.reduce((s,r)=>s+(r.valor_utilizado_brl||0),0);
+  const totalSaldo      = rows.reduce((s,r)=>s+(r.saldo_brl||0),0);
+
+  const stBadge = s => {
+    const m={vigente:'rb-verde',encerrado:'rb-cinza',suspenso:'rb-vermelho'};
+    return `<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;
+  };
+
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Contratos</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Contratado</div><div class="rep-stat-val">${fmtBRL(totalContratado)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Utilizado</div><div class="rep-stat-val">${fmtBRL(totalUtilizado)}</div><div class="rep-stat-sub">${fmtPct(totalContratado>0?totalUtilizado/totalContratado*100:0)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo Total</div><div class="rep-stat-val">${fmtBRL(totalSaldo)}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">📋 Contratos</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Número</th><th>Fornecedor</th><th>Atividade</th><th>Tipo</th>
+        <th>Início</th><th>Fim</th>
+        <th style="text-align:right">Total</th>
+        <th style="text-align:right">Utilizado</th>
+        <th style="text-align:right">Saldo</th>
+        <th>Status</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(r=>`<tr>
+        <td class="mono">${r.numero||'—'}</td>
+        <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.fornecedor?.nome||'—'}</td>
+        <td class="mono">${r.atividade?.codigo||'—'}</td>
+        <td><span class="rep-badge rb-azul">${r.tipo||'—'}</span></td>
+        <td class="mono">${fmtDt(r.dt_inicio)}</td>
+        <td class="mono">${fmtDt(r.dt_fim)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.valor_total_brl)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.valor_utilizado_brl)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.saldo_brl)}</td>
+        <td>${stBadge(r.status)}</td>
+      </tr>`).join('')}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="6"><strong>TOTAL</strong></td>
+        <td class="mono" style="text-align:right">${fmtBRL(totalContratado)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(totalUtilizado)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(totalSaldo)}</td>
+        <td></td>
+      </tr></tfoot>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// V1 — CADASTRO DE FORNECEDORES
+// ══════════════════════════════════════════════════════════════
+async function relV1(){
+  const tpFil  = filVal('fil-tipo-forn');
+  const atFil  = filVal('fil-ativo');
+
+  let q = db.from('fornecedores')
+    .select(`*,contratos(id,valor_total_brl,status)`)
+    .order('nome');
+  if(tpFil) q = q.eq('tipo', tpFil);
+  if(atFil!==null&&atFil!=='') q = q.eq('ativo', atFil==='true');
+
+  const {data, error} = await q;
+  if(error) throw error;
+  const rows = (data||[]).map(f=>{
+    const seenC=new Set();
+    return {...f, contratos:(f.contratos||[]).filter(c=>{ if(seenC.has(c.id)) return false; seenC.add(c.id); return true; })};
+  });
+
+  return `
+  <div class="rep-stats rep-stats-3">
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Fornecedores</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Pessoa Física</div><div class="rep-stat-val">${rows.filter(r=>r.tipo==='PF').length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Pessoa Jurídica</div><div class="rep-stat-val">${rows.filter(r=>r.tipo==='PJ').length}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">🏢 Fornecedores</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Nome</th><th>Tipo</th><th>CPF/CNPJ</th><th>E-mail</th>
+        <th style="text-align:center">Contratos</th>
+        <th style="text-align:right">Total Contratado</th>
+        <th>Status</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(r=>{
+        const totalContr = (r.contratos||[]).reduce((s,c)=>s+(c.valor_total_brl||0),0);
+        return `<tr>
+          <td style="font-weight:500">${r.nome}</td>
+          <td><span class="rep-badge ${r.tipo==='PF'?'rb-azul':'rb-ouro'}">${r.tipo}</span></td>
+          <td class="mono">${r.cnpj||r.cpf||'—'}</td>
+          <td style="font-size:10px">${r.email||'—'}</td>
+          <td class="mono" style="text-align:center">${(r.contratos||[]).length}</td>
+          <td class="mono" style="text-align:right">${fmtBRL(totalContr)}</td>
+          <td><span class="rep-badge ${r.ativo?'rb-verde':'rb-cinza'}">${r.ativo?'Ativo':'Inativo'}</span></td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// P1 — STATUS DE ENTREGAS
+// ══════════════════════════════════════════════════════════════
+async function relP1(){
+  const ativFil = filVal('fil-atividade');
+  const fornFil = filVal('fil-fornecedor');
+  const sitFil  = filVal('fil-situacao');
+
+  let q = db.from('contratos_produtos_entregas')
+    .select(`*,contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
+    .order('dt_vencimento');
+  if(sitFil) q = q.eq('situacao', sitFil);
+
+  const {data, error} = await q;
+  if(error) throw error;
+  let rows = data||[];
+  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade?.id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor?.id===fornFil);
+
+  const cnt = s => rows.filter(r=>r.situacao===s).length;
+  const sitBadge = s => {
+    const m={pendente:'rb-cinza',em_analise:'rb-ouro',aprovado:'rb-azul',pago:'rb-verde',cancelado:'rb-cinza'};
+    const l={pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado'};
+    return `<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||s}</span>`;
+  };
+
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Produtos</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Pendentes</div><div class="rep-stat-val">${cnt('pendente')}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Em Avaliação</div><div class="rep-stat-val">${cnt('em_analise')}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Pagos</div><div class="rep-stat-val">${cnt('pago')}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">📦 Produtos / Entregas</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>#</th><th>Descrição</th><th>Contrato</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Vencimento</th><th>Entrega</th>
+        <th style="text-align:right">Valor</th>
+        <th style="text-align:right">% Aprov.</th>
+        <th>Situação</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(r=>`<tr>
+        <td class="mono">${r.numero_produto||'—'}</td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td class="mono">${r.contrato?.numero||'—'}</td>
+        <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
+        <td class="mono">${fmtDt(r.dt_vencimento)}</td>
+        <td class="mono">${fmtDt(r.dt_entrega)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
+        <td class="mono" style="text-align:right">${r.pct_aprovado!=null?fmtPct(r.pct_aprovado):'—'}</td>
+        <td>${sitBadge(r.situacao)}</td>
+      </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// P2 — ATRASOS NA ENTREGA
+// ══════════════════════════════════════════════════════════════
+async function relP2(){
+  const hoje = new Date().toISOString().split('T')[0];
+  const ativFil = filVal('fil-atividade');
+  const fornFil = filVal('fil-fornecedor');
+
+  const {data, error} = await db.from('contratos_produtos_entregas')
+    .select(`*,contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
+    .lt('dt_vencimento', hoje)
+    .is('dt_entrega', null)
+    .not('situacao','in','("pago","cancelado")')
+    .order('dt_vencimento');
+  if(error) throw error;
+  let rows = data||[];
+  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade?.id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor?.id===fornFil);
+
+  const diasAtraso = dt => Math.ceil((new Date()-new Date(dt+' 12:00'))/(1000*60*60*24));
+  const totalVal   = rows.reduce((s,r)=>s+(r.valor_brl||0),0);
+
+  return `
+  <div class="rep-stats rep-stats-3">
+    <div class="rep-stat"><div class="rep-stat-lbl">Produtos em Atraso</div><div class="rep-stat-val" style="color:var(--erro)">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Valor em Risco</div><div class="rep-stat-val">${fmtBRL(totalVal)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Atraso Médio</div><div class="rep-stat-val">${rows.length>0?Math.round(rows.reduce((s,r)=>s+diasAtraso(r.dt_vencimento),0)/rows.length):0} dias</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">🚨 Produtos com Atraso na Entrega</div>
+    ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum produto em atraso.</div>`:`
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Produto</th><th>Contrato</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Vencimento</th><th>Dias em Atraso</th>
+        <th style="text-align:right">Valor</th><th>Situação</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(r=>`<tr>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td class="mono">${r.contrato?.numero||'—'}</td>
+        <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
+        <td class="mono">${fmtDt(r.dt_vencimento)}</td>
+        <td><span class="rep-badge ${diasAtraso(r.dt_vencimento)>30?'rb-vermelho':'rb-ouro'}">${diasAtraso(r.dt_vencimento)} dias</span></td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
+        <td><span class="rep-badge rb-cinza">${r.situacao}</span></td>
+      </tr>`).join('')}
+      </tbody>
+    </table>`}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// A1 — EXECUÇÃO POR ATIVIDADE
+// ══════════════════════════════════════════════════════════════
+async function relA1(){
+  const resFil  = filVal('fil-resultado');
+  const faseFil = filVal('fil-fase');
+
+  let q = db.from('atividades')
+    .select(`*,resultado:resultados(codigo,nome_pt),
+      responsaveis:atividade_responsaveis(usuario:usuarios(nome_completo)),
+      tdrs(id,status,valor_brl),
+      contratos(valor_total_brl,valor_utilizado_brl,saldo_brl,status)`)
+    .order('codigo');
+  if(faseFil) q = q.eq('fase', faseFil);
+
+  const {data, error} = await q;
+  if(error) throw error;
+  let rows = data||[];
+  if(resFil) rows = rows.filter(a=>a.resultado?.codigo==resFil);
+
+  const faseLabel = {A_INICIAR:'A Iniciar',ELABORACAO:'Elaboração',LICITACAO:'Licitação',ELABORADO:'Elaborado',CONTRATADO:'Contratado',CONCLUIDO:'Concluído'};
+  const faseClass = {A_INICIAR:'rb-cinza',ELABORACAO:'rb-ouro',LICITACAO:'rb-azul',ELABORADO:'rb-azul',CONTRATADO:'rb-verde',CONCLUIDO:'rb-teal'};
+
+  return `
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">◈ Atividades — Execução e Fase</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Código</th><th>Atividade</th><th>Res.</th><th>Fase</th>
+        <th>Responsável</th>
+        <th style="text-align:right">Orç. USD</th>
+        <th style="text-align:right">Pago BRL</th>
+        <th style="text-align:right">Saldo BRL</th>
+        <th style="text-align:center">TDRs</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(a=>{
+        const seen=new Set();
+        const contratos=(a.contratos||[]).filter(c=>{const k=c.valor_total_brl+'';if(seen.has(k))return false;seen.add(k);return true;});
+        const pago=contratos.reduce((s,c)=>s+(c.valor_utilizado_brl||0),0);
+        const saldo=contratos.reduce((s,c)=>s+(c.saldo_brl||0),0);
+        const resps=[...new Set((a.responsaveis||[]).map(r=>r.usuario?.nome_completo).filter(Boolean))];
+        const tdrsAprov=(a.tdrs||[]).filter(t=>t.status==='aprovado').length;
+        return `<tr>
+          <td class="mono">${a.codigo}</td>
+          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nome_pt}</td>
+          <td><span class="rep-badge rb-verde">R${a.resultado?.codigo||'?'}</span></td>
+          <td><span class="rep-badge ${faseClass[a.fase]||'rb-cinza'}">${faseLabel[a.fase]||a.fase}</span></td>
+          <td style="font-size:10px">${resps.join(', ')||'—'}</td>
+          <td class="mono" style="text-align:right">${fmtUSD(a.orcamento_usd)}</td>
+          <td class="mono" style="text-align:right">${fmtBRL(pago)}</td>
+          <td class="mono" style="text-align:right">${fmtBRL(saldo)}</td>
+          <td class="mono" style="text-align:center">${tdrsAprov}/${(a.tdrs||[]).length}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// Vi1 — PROTOCOLOS DE VIAGEM
+// ══════════════════════════════════════════════════════════════
+async function relVi1(){
+  const dtIni  = filVal('fil-dt-ini');
+  const dtFim  = filVal('fil-dt-fim');
+  const stFil  = filVal('fil-status-viagem');
+
+  let q = db.from('viagem_protocolos')
+    .select(`*,viajantes:viagem_viajantes(*,diarias:viagem_diarias_v2(*))`)
+    .order('dt_saida',{ascending:false});
+  if(dtIni) q = q.gte('dt_saida', dtIni);
+  if(dtFim) q = q.lte('dt_saida', dtFim);
+  if(stFil) q = q.eq('situacao', stFil);
+
+  const {data, error} = await q;
+  if(error) throw error;
+
+  const rows = (data||[]).map(p=>{
+    const seenV=new Set();
+    const viajantes=(p.viajantes||[]).filter(v=>{if(seenV.has(v.id))return false;seenV.add(v.id);return true;});
+    const total=viajantes.reduce((s,v)=>{
+      const seenD=new Set();
+      return s+(v.diarias||[]).filter(d=>{if(seenD.has(d.id))return false;seenD.add(d.id);return true;})
+        .reduce((sd,d)=>sd+(d.valor_unitario||0)*(d.qtd_dias||1),0);
+    },0);
+    return {...p, viajantes, _total:total};
+  });
+
+  const totalGeral = rows.reduce((s,r)=>s+r._total,0);
+  const stBadge = s=>{const m={rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',pago:'rb-teal',cancelado:'rb-vermelho'};return`<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;};
+
+  return `
+  <div class="rep-stats rep-stats-3">
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Protocolos</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Viajantes</div><div class="rep-stat-val">${rows.reduce((s,r)=>s+r.viajantes.length,0)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Estimado</div><div class="rep-stat-val">${fmtBRL(totalGeral)}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">✈ Protocolos de Viagem</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Número</th><th>Objetivo / Destino</th>
+        <th>Saída</th><th>Retorno</th>
+        <th style="text-align:center">Viajantes</th>
+        <th style="text-align:right">Total Est.</th>
+        <th>Situação</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(r=>`<tr>
+        <td class="mono">${r.numero||'—'}</td>
+        <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.objetivo||r.destino_principal||'—'}</td>
+        <td class="mono">${fmtDt(r.dt_saida)}</td>
+        <td class="mono">${fmtDt(r.dt_retorno)}</td>
+        <td class="mono" style="text-align:center">${r.viajantes.length}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r._total)}</td>
+        <td>${stBadge(r.situacao)}</td>
+      </tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colspan="5"><strong>TOTAL GERAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalGeral)}</td><td></td></tr></tfoot>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// U1 — CADASTRO DE USUÁRIOS
+// ══════════════════════════════════════════════════════════════
+async function relU1(){
+  const perfFil = filVal('fil-perfil');
+  const atFil   = filVal('fil-ativo');
+
+  let q = db.from('usuarios').select('*').order('nome_completo');
+  if(perfFil) q = q.eq('perfil', perfFil);
+  if(atFil!==null&&atFil!=='') q = q.eq('ativo', atFil==='true');
+
+  const {data, error} = await q;
+  if(error) throw error;
+  const rows = data||[];
+
+  const perfilLabel = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',financeiro:'Financeiro',consultor_externo:'Consultor Externo',visualizador:'Visualizador'};
+  const fmtDtHr = s => !s?'—':new Date(s).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+  return `
+  <div class="rep-stats rep-stats-3">
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Usuários</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Ativos</div><div class="rep-stat-val">${rows.filter(r=>r.ativo).length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Inativos</div><div class="rep-stat-val">${rows.filter(r=>!r.ativo).length}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">👥 Usuários do Sistema</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Nome</th><th>E-mail</th><th>Perfil</th>
+        <th>Primeiro Acesso</th><th>Último Acesso</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+      ${rows.map(r=>`<tr>
+        <td style="font-weight:500">${r.nome_completo||'—'}</td>
+        <td style="font-size:10px">${r.email||'—'}</td>
+        <td><span class="rep-badge rb-azul">${perfilLabel[r.perfil]||r.perfil}</span></td>
+        <td class="mono" style="font-size:10px">${fmtDtHr(r.primeiro_acesso_em)}</td>
+        <td class="mono" style="font-size:10px">${fmtDtHr(r.ultimo_acesso_em)}</td>
+        <td><span class="rep-badge ${r.ativo?'rb-verde':'rb-cinza'}">${r.ativo?'Ativo':'Inativo'}</span></td>
+      </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+</script>
+</body>
+</html>
