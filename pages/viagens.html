@@ -378,8 +378,11 @@ async function abrirFormEdicao(id){
   document.getElementById('f-email-sol').value=p.email_solicitante||'';
   document.getElementById('f-obs').value=p.observacoes||'';
 
-  // Adicionar viajantes pré-preenchidos
-  const viajantes=(p.viajantes||[]).sort((a,b)=>a.id<b.id?-1:1);
+  // Adicionar viajantes pré-preenchidos (deduplica por ID — produto cartesiano do PostgREST)
+  const _vSeen=new Set();
+  const viajantes=(p.viajantes||[])
+    .filter(v=>{ if(_vSeen.has(v.id))return false; _vSeen.add(v.id); return true; })
+    .sort((a,b)=>a.id<b.id?-1:1);
   if(viajantes.length){
     viajantes.forEach(v=>addViajantePreenchido(v));
   } else {
@@ -1607,7 +1610,7 @@ function fecharLightbox(){
 }
 function fecharModal(){
   document.getElementById('modal-prot').classList.remove('aberto');
-  protAtual=null;editandoProtocoloId=null;embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;
+  protAtual=null;editandoProtocoloId=null;viajantesForm=[];embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){fecharLightbox();fecharModal();}});
 
