@@ -885,9 +885,16 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
     protId=editandoProtocoloId;
     protNumero=protAtual?.numero||'';
     // Apagar sub-registros para re-inserir limpo
-    await db.from('viagem_trechos').delete().eq('protocolo_id',protId);
-    await db.from('viagem_diarias_v2').delete().eq('protocolo_id',protId);
-    await db.from('viagem_viajantes').delete().eq('protocolo_id',protId);
+    // Deleta por viajante_id (FK garantida) para evitar violação de constraint ao deletar viajantes
+    const viajIdsAntigos=(protAtual?.viajantes||[]).map(v=>v.id).filter(Boolean);
+    if(viajIdsAntigos.length){
+      const{error:tErr}=await db.from('viagem_trechos').delete().in('viajante_id',viajIdsAntigos);
+      if(tErr){toast('Erro ao limpar trechos: '+tErr.message,'error');return;}
+      const{error:dErr}=await db.from('viagem_diarias_v2').delete().in('viajante_id',viajIdsAntigos);
+      if(dErr){toast('Erro ao limpar diárias: '+dErr.message,'error');return;}
+    }
+    const{error:vDelErr}=await db.from('viagem_viajantes').delete().eq('protocolo_id',protId);
+    if(vDelErr){toast('Erro ao limpar viajantes: '+vDelErr.message,'error');return;}
   } else {
     // ── MODO CRIAÇÃO — INSERT ───────────────────────────────────
     const{data:prot,error:pErr}=await db.from('viagem_protocolos').insert({
