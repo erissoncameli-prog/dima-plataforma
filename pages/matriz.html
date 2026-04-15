@@ -150,6 +150,62 @@
 let matrizItens=[], progresso=[], odsRefs=[], kmRefs=[];
 let indAtual=null;
 
+// ── Traduções dos modais ──────────────────────────────────────
+const i18nM={
+  pt:{
+    ods_info:'<strong>9 ODS</strong> estão vinculados a este projeto. Os demais são exibidos de forma desbotada para referência.',
+    km_info:'<strong>7 Metas de Kunming-Montreal</strong> aparecem neste projeto (metas 2, 4, 10, 11, 21, 22 e 23). Destaques em roxo.',
+    presente:'✓ Presente neste projeto', nao_vinc:'Não vinculado ao projeto',
+    ind_vinc:'indicador(es) vinculado(s)', sem_ind:'Nenhum indicador diretamente vinculado.',
+    conf_lbl:'Confirmado', pend_lbl:'Pendente', meta_lbl:'Meta', conf_sub:'confirmado',
+    ind_qual:'Indicador qualitativo — progresso acompanhado por registros',
+    tab_det:'Detalhes', tab_contrib:'Contribuições', tab_conf:'⏳ Confirmar',
+    f_resultado:'Resultado', f_produto:'Produto', f_meta:'Meta', f_meta_num:'Meta numérica',
+    meios:'Meios de Verificação', hip:'Hipóteses / Riscos',
+    total_conf:'Total confirmado',
+    s_pend:'Pendente', s_conf:'Confirmado', s_rej:'Rejeitado',
+    sem_contrib:'Nenhuma contribuição registrada ainda.',
+    aguardam:'contribuição(ões) aguardam confirmação técnica para contabilizar no progresso.',
+    btn_conf:'✓ Confirmar', btn_rej:'✕ Rejeitar',
+    btn_edit:'✎ Editar indicador', btn_fechar:'Fechar',
+  },
+  en:{
+    ods_info:'<strong>9 SDGs</strong> are linked to this project. Others are shown faded for reference.',
+    km_info:'<strong>7 Kunming-Montreal Targets</strong> appear in this project (targets 2, 4, 10, 11, 21, 22 and 23). Highlighted in purple.',
+    presente:'✓ Present in this project', nao_vinc:'Not linked to this project',
+    ind_vinc:'linked indicator(s)', sem_ind:'No indicators directly linked.',
+    conf_lbl:'Confirmed', pend_lbl:'Pending', meta_lbl:'Target', conf_sub:'confirmed',
+    ind_qual:'Qualitative indicator — progress tracked by records',
+    tab_det:'Details', tab_contrib:'Contributions', tab_conf:'⏳ Confirm',
+    f_resultado:'Result', f_produto:'Product', f_meta:'Target', f_meta_num:'Numeric target',
+    meios:'Means of Verification', hip:'Assumptions / Risks',
+    total_conf:'Total confirmed',
+    s_pend:'Pending', s_conf:'Confirmed', s_rej:'Rejected',
+    sem_contrib:'No contributions recorded yet.',
+    aguardam:'contribution(s) awaiting technical confirmation to count toward progress.',
+    btn_conf:'✓ Confirm', btn_rej:'✕ Reject',
+    btn_edit:'✎ Edit indicator', btn_fechar:'Close',
+  },
+  es:{
+    ods_info:'<strong>9 ODS</strong> están vinculados a este proyecto. Los demás se muestran atenuados como referencia.',
+    km_info:'<strong>7 Metas de Kunming-Montreal</strong> aparecen en este proyecto (metas 2, 4, 10, 11, 21, 22 y 23). Destacadas en morado.',
+    presente:'✓ Presente en este proyecto', nao_vinc:'No vinculado al proyecto',
+    ind_vinc:'indicador(es) vinculado(s)', sem_ind:'Ningún indicador directamente vinculado.',
+    conf_lbl:'Confirmado', pend_lbl:'Pendiente', meta_lbl:'Meta', conf_sub:'confirmado',
+    ind_qual:'Indicador cualitativo — progreso seguido por registros',
+    tab_det:'Detalles', tab_contrib:'Contribuciones', tab_conf:'⏳ Confirmar',
+    f_resultado:'Resultado', f_produto:'Producto', f_meta:'Meta', f_meta_num:'Meta numérica',
+    meios:'Medios de Verificación', hip:'Hipótesis / Riesgos',
+    total_conf:'Total confirmado',
+    s_pend:'Pendiente', s_conf:'Confirmado', s_rej:'Rechazado',
+    sem_contrib:'Ninguna contribución registrada aún.',
+    aguardam:'contribución(es) esperan confirmación técnica para contar en el progreso.',
+    btn_conf:'✓ Confirmar', btn_rej:'✕ Rechazar',
+    btn_edit:'✎ Editar indicador', btn_fechar:'Cerrar',
+  }
+};
+function mT(k){return(i18nM[appState.idioma||'pt']||i18nM.pt)[k]||i18nM.pt[k]||k;}
+
 (async()=>{
   const usuario=await carregarUsuario();
   if(!usuario){window.location.href='../index.html';return;}
@@ -186,15 +242,13 @@ let indAtual=null;
 
       <!-- Tab ODS -->
       <div class="main-tab-content" id="tc-ods">
-        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1E40AF">
-          <strong>9 ODS</strong> estão vinculados a este projeto. Os demais são exibidos de forma desbotada para referência.
-        </div>
+        <div id="ods-info-txt" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1E40AF"></div>
         <div class="ods-grid" id="ods-grid"></div>
       </div>
 
       <!-- Tab KM -->
       <div class="main-tab-content" id="tc-km">
-        <div style="background:#EDE9FE;border:1px solid #C4B5FD;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#4C1D95">
+        <div id="km-info-txt" style="background:#EDE9FE;border:1px solid #C4B5FD;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#4C1D95">
           <strong>7 Metas de Kunming-Montreal</strong> aparecem neste projeto (metas 2, 4, 10, 11, 21, 22 e 23). Destaques em roxo.
         </div>
         <div id="km-lista"></div>
@@ -484,6 +538,8 @@ function odsTitulo(o){
 function renderODS(){
   const el=document.getElementById('ods-grid');
   if(!el)return;
+  const infoEl=document.getElementById('ods-info-txt');
+  if(infoEl) infoEl.innerHTML=mT('ods_info');
   if(!odsRefs.length){el.innerHTML='<div style="color:var(--cinza-400);font-size:12px">Execute o SQL de migração.</div>';return;}
 
   const sorted=[...odsRefs].sort((a,b)=>parseInt(a.numero,10)-parseInt(b.numero,10));
