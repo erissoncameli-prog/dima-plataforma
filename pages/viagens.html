@@ -191,7 +191,7 @@ const esc=escV;
           oninput="filtrar()">
         <select class="form-control" id="f-sit-filt" style="width:160px" onchange="filtrar()">
           <option value="">Todas as situações</option>
-          ${Object.entries(SIT_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+          ${Object.entries(SIT_LABELS).map(([k,v])=>`<option value="${k}" ${k==='rascunho'?'selected':''}>${v}</option>`).join('')}
         </select>
         ${isTecnico?`<span style="font-size:11px;color:var(--cinza-500);background:var(--cinza-50);border:1px solid var(--borda);padding:4px 10px;border-radius:99px">👤 Meus protocolos</span>`:''}
         <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormNovo()">+ Novo protocolo</button>
