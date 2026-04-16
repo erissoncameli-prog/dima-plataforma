@@ -1174,13 +1174,21 @@ async function abrirDetalhe(id){
   const ehDono=p.criado_por===appState.usuario.id;
 
   // Footer — botões por perfil e fase
+  // "realizado" = pago — cancelar/excluir nunca permitidos nessa fase
+  const pago=p.situacao==='realizado';
   let footer=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
 
-  // Técnico: pode editar e cancelar se ainda solicitado e for dono
-  if(ehDono && p.situacao==='solicitado' && !isAdmin){
+  // Cancelar: dono pode cancelar em qualquer fase não-paga (exceto já cancelado/rejeitado)
+  if(!pago && p.situacao!=='cancelado' && p.situacao!=='rejeitado' && (ehDono||isAdmin))
+    footer+=`<button class="btn" style="margin-left:8px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="cancelarProtocolo()">✕ Cancelar</button>`;
+
+  // Excluir: apenas admin, qualquer fase não-paga
+  if(!pago && isAdmin)
+    footer+=`<button class="btn" style="margin-left:8px;background:#7F1D1D;color:#fff;border:1px solid #991B1B" onclick="excluirProtocolo()">🗑 Excluir</button>`;
+
+  // Técnico: editar se solicitado e for dono
+  if(ehDono && p.situacao==='solicitado' && !isAdmin)
     footer+=`<button class="btn btn-secondary" style="margin-left:8px" onclick="abrirFormEdicao('${p.id}')">✎ Editar</button>`;
-    footer+=`<button class="btn" style="margin-left:8px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="cancelarProtocolo()">✕ Cancelar solicitação</button>`;
-  }
 
   // Admin: aprovar/rejeitar/SPDs/realizar
   if(isAdmin){
@@ -1204,7 +1212,7 @@ async function abrirDetalhe(id){
   }
 
   // Prestação: qualquer usuário com acesso pode editar enquanto não for realizado
-  if(p.situacao!=='realizado'&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(isAdmin||ehDono))
+  if(!pago&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(isAdmin||ehDono))
     footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="abrirPrestacao('${p.id}')">📋 ${(p.viajantes||[]).some(v=>v.relatorio_url)?'✎ Atualizar prestação':'📋 Prestação de contas'}</button>`;
 
   document.getElementById('mp-footer').innerHTML=footer;
@@ -1294,12 +1302,31 @@ async function confirmarRejeitar(){
 
 async function cancelarProtocolo(){
   const p=protAtual;if(!p)return;
-  if(!confirm(`Cancelar a solicitação do protocolo ${p.numero}? Esta ação não pode ser desfeita.`))return;
-  const{error}=await db.from('viagem_protocolos').update({
-    situacao:'cancelado'
-  }).eq('id',p.id).eq('criado_por',appState.usuario.id);
+  if(p.situacao==='realizado'){toast('Protocolo já realizado/pago — não pode ser cancelado.','error');return;}
+  if(!confirm(`Cancelar o protocolo ${p.numero}? Esta ação não pode ser desfeita.`))return;
+  const{error}=await db.from('viagem_protocolos').update({situacao:'cancelado'}).eq('id',p.id);
   if(error){toast('Erro ao cancelar: '+error.message,'error');return;}
-  toast('Solicitação cancelada.','info');fecharModal();await carregar();
+  toast('Protocolo cancelado.','info');fecharModal();await carregar();
+}
+
+async function excluirProtocolo(){
+  const p=protAtual;if(!p)return;
+  if(p.situacao==='realizado'){toast('Protocolo já realizado/pago — não pode ser excluído.','error');return;}
+  if(!confirm(`Excluir permanentemente o protocolo ${p.numero}?\n\nTodos os viajantes, trechos e diárias serão removidos. Esta ação não pode ser desfeita.`))return;
+  const id=p.id;
+  // Deleta cascata: trechos → diárias → viajantes → protocolo
+  const viajIds=(p.viajantes||[]).map(v=>v.id).filter(Boolean);
+  if(viajIds.length){
+    const{error:tErr}=await db.from('viagem_trechos').delete().in('viajante_id',viajIds);
+    if(tErr){toast('Erro ao excluir trechos: '+tErr.message,'error');return;}
+    const{error:dErr}=await db.from('viagem_diarias_v2').delete().in('viajante_id',viajIds);
+    if(dErr){toast('Erro ao excluir diárias: '+dErr.message,'error');return;}
+    const{error:vErr}=await db.from('viagem_viajantes').delete().eq('protocolo_id',id);
+    if(vErr){toast('Erro ao excluir viajantes: '+vErr.message,'error');return;}
+  }
+  const{error}=await db.from('viagem_protocolos').delete().eq('id',id);
+  if(error){toast('Erro ao excluir protocolo: '+error.message,'error');return;}
+  toast('Protocolo excluído permanentemente.','info');fecharModal();await carregar();
 }
 
 // ── SPDs ──────────────────────────────────────────────────────
