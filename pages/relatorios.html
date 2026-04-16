@@ -698,7 +698,7 @@ function imprimir(orientacao) {
     styleEl.id = '_print_orient';
     document.head.appendChild(styleEl);
   }
-  styleEl.textContent = `@media print { @page { size: A4 ${orientacao}; margin: 10mm 12mm; } }`;
+  styleEl.textContent = `@media print { @page { size: A4 ${orientacao}; margin: 0; } }`;
 
   window.addEventListener('afterprint', () => { printArea.innerHTML = ''; }, { once: true });
   window.print();
