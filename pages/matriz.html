@@ -591,10 +591,31 @@ function abrirRefODS(num){
     </div>
     ${inds.length
       ?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${inds.length} ${vinculados}</div>
-        ${inds.map(i=>`<div style="padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:5px;cursor:pointer;font-size:12px" onclick="document.getElementById('modal-ref').style.display='none';abrirIndicador('${i.id}')">
-          <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:1px 6px;border-radius:3px;margin-right:6px">${i.produto_codigo}</span>
-          ${(i.indicador||'').substring(0,80)}${(i.indicador||'').length>80?'…':''}
-        </div>`).join('')}`
+        ${inds.map(i=>{
+          const{conf,pend}=calcPct(i);
+          const p=getProgresso(i.id);
+          const meta=parseFloat(i.meta_numerica||0);
+          const realConf=parseFloat(p.realizado_confirmado||0);
+          const realPend=parseFloat(p.realizado_pendente||0);
+          const temMeta=meta>0;
+          return`<div style="padding:8px 10px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:5px;cursor:pointer" onclick="document.getElementById('modal-ref').style.display='none';abrirIndicador('${i.id}')">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:${temMeta?'6px':'0'}">
+              <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:1px 6px;border-radius:3px;flex-shrink:0">${i.produto_codigo}</span>
+              <span style="font-size:12px;color:var(--cinza-800);flex:1">${(i.indicador||'').substring(0,75)}${(i.indicador||'').length>75?'…':''}</span>
+              ${temMeta?`<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corPct(conf)};flex-shrink:0">${conf}%</span>`:''}
+            </div>
+            ${temMeta?`
+            <div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;position:relative;margin-bottom:4px">
+              <div style="position:absolute;height:100%;background:#059669;width:${conf}%;border-radius:3px"></div>
+              <div style="position:absolute;height:100%;background:#FCD34D;width:${pend}%;left:${conf}%;border-radius:3px"></div>
+            </div>
+            <div style="font-size:10px;color:var(--cinza-500);display:flex;gap:10px">
+              ${realConf>0?`<span style="color:#059669">✓ ${realConf.toLocaleString('pt-BR')} conf.</span>`:''}
+              ${realPend>0?`<span style="color:#D97706">⏳ ${realPend.toLocaleString('pt-BR')} pend.</span>`:''}
+              <span style="margin-left:auto">Meta: <strong>${meta.toLocaleString('pt-BR')} ${i.unidade||''}</strong></span>
+            </div>`:''}
+          </div>`;
+        }).join('')}`
       :`<div style="text-align:center;padding:16px;color:var(--cinza-400);font-size:12px">${semInd}</div>`}`;
   document.getElementById('modal-ref').style.display='flex';
 }
@@ -640,11 +661,28 @@ function abrirRefKM(num){
     </div>
     ${inds.length?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${inds.length} indicador(es) vinculado(s)</div>
     ${inds.map(i=>{
-      const{conf}=calcPct(i);
-      return`<div style="padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:5px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:8px" onclick="document.getElementById('modal-ref').style.display='none';abrirIndicador('${i.id}')">
-        <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:1px 6px;border-radius:3px">${i.produto_codigo}</span>
-        <span style="flex:1">${(i.indicador||'').substring(0,80)}${(i.indicador||'').length>80?'…':''}</span>
-        ${parseFloat(i.meta_numerica||0)>0?`<span style="font-size:10px;font-weight:700;color:${corPct(conf)};font-family:var(--font-mono)">${conf}%</span>`:''}
+      const{conf,pend}=calcPct(i);
+      const p=getProgresso(i.id);
+      const meta=parseFloat(i.meta_numerica||0);
+      const realConf=parseFloat(p.realizado_confirmado||0);
+      const realPend=parseFloat(p.realizado_pendente||0);
+      const temMeta=meta>0;
+      return`<div style="padding:8px 10px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:5px;cursor:pointer" onclick="document.getElementById('modal-ref').style.display='none';abrirIndicador('${i.id}')">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:${temMeta?'6px':'0'}">
+          <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:1px 6px;border-radius:3px;flex-shrink:0">${i.produto_codigo}</span>
+          <span style="flex:1;font-size:12px;color:var(--cinza-800)">${(i.indicador||'').substring(0,75)}${(i.indicador||'').length>75?'…':''}</span>
+          ${temMeta?`<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corPct(conf)};flex-shrink:0">${conf}%</span>`:''}
+        </div>
+        ${temMeta?`
+        <div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;position:relative;margin-bottom:4px">
+          <div style="position:absolute;height:100%;background:#059669;width:${conf}%;border-radius:3px"></div>
+          <div style="position:absolute;height:100%;background:#FCD34D;width:${pend}%;left:${conf}%;border-radius:3px"></div>
+        </div>
+        <div style="font-size:10px;color:var(--cinza-500);display:flex;gap:10px">
+          ${realConf>0?`<span style="color:#059669">✓ ${realConf.toLocaleString('pt-BR')} conf.</span>`:''}
+          ${realPend>0?`<span style="color:#D97706">⏳ ${realPend.toLocaleString('pt-BR')} pend.</span>`:''}
+          <span style="margin-left:auto">Meta: <strong>${meta.toLocaleString('pt-BR')} ${i.unidade||''}</strong></span>
+        </div>`:''}
       </div>`;
     }).join('')}`:`<div style="text-align:center;padding:16px;color:var(--cinza-400);font-size:12px">Nenhum indicador diretamente vinculado.</div>`}`;
   document.getElementById('modal-ref').style.display='flex';
