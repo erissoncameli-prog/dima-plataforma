@@ -143,14 +143,6 @@
     padding-top:185px !important;
     padding-bottom:70px !important;
   }
-  /* Número de página automático */
-  #num-pagina{ font-size:0; }
-  #num-pagina::after{
-    content:"Página " counter(page);
-    font-size:11px; font-weight:600;
-    color:var(--cinza-700); font-family:var(--font-mono);
-  }
-
   .doc-watermark,
   .rep-tbl th,.rep-stat,.rep-secao-titulo,.doc-header,.doc-footer{
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
@@ -716,8 +708,20 @@ function wrapDoc(conteudo, rel){
 function imprimir(orientacao) {
   const content = document.getElementById('doc-content');
   if (!content) return;
+
+  // Estimar total de páginas com base na altura renderizada do corpo
+  const bodyEl = content.querySelector('.doc-body');
+  const mmToPx = 3.7795;
+  const pageH   = orientacao === 'portrait' ? 297 * mmToPx : 210 * mmToPx;
+  const usableH  = pageH - 185 - 70; // descontar espaço do header e footer fixos
+  const totalPag = bodyEl ? Math.max(1, Math.ceil(bodyEl.scrollHeight / usableH)) : 1;
+
   const printArea = document.getElementById('print-area');
   printArea.innerHTML = content.outerHTML;
+
+  // Atualizar número de páginas no rodapé da cópia de impressão
+  const np = printArea.querySelector('#num-pagina');
+  if (np) np.textContent = totalPag > 1 ? `Pág. 1 – ${totalPag}` : 'Página 1';
 
   let styleEl = document.getElementById('_print_orient');
   if (!styleEl) {
