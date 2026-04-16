@@ -665,7 +665,7 @@ async function abrirIndicador(id){
 
   // Carregar contribuições
   const{data:contribs}=await db.from('produto_matriz_contribuicao')
-    .select('*,contratos_produtos_entregas(numero_entrega,descricao,dt_entrega)')
+    .select('*,contratos_produtos_entregas(numero_entrega,dt_entrega,situacao,tipo_documento)')
     .eq('matriz_item_id',id)
     .order('criado_em',{ascending:false})
     .limit(30);
@@ -740,7 +740,7 @@ async function abrirIndicador(id){
         </div>
         ${(contribs||[]).map(c=>{
           const ent=c.contratos_produtos_entregas;
-          const nomeProduto=ent?.descricao||('Entrega '+(ent?.numero_entrega||''));
+          const nomeProduto='Entrega '+(ent?.numero_entrega||'—')+(ent?.dt_entrega?' · '+new Date(ent.dt_entrega+'T12:00').toLocaleDateString('pt-BR'):'');
           const statusMap={pendente:'Pendente',confirmado:'Confirmado',rejeitado:'Rejeitado'};
           const cssMap={pendente:'cs-pend',confirmado:'cs-conf',rejeitado:'cs-rej'};
           return`<div class="contrib-item">
