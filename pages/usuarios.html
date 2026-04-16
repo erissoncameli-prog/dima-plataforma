@@ -561,29 +561,19 @@ async function criarUsuario(){
   if(senha.length<8){toast('Senha mínima de 8 caracteres.','error');return;}
   if(!email.includes('@')){toast('E-mail inválido.','error');return;}
 
-  // Criar usuário via Supabase Auth Admin (precisa de service role — não disponível no front)
-  // Alternativa: usar signUp + depois atualizar a tabela usuarios
   toast('Criando usuário...','info');
-  const{data,error}=await db.auth.admin?.createUser({
-    email, password:senha,
-    email_confirm:true,
-    user_metadata:{nome_completo:nome}
+  const{data,error}=await db.rpc('fn_criar_usuario',{
+    p_email:email,
+    p_senha:senha,
+    p_nome:nome,
+    p_perfil:perfil,
+    p_telefone:tel||null
   });
 
-  // Fallback: signUp normal (limitação do front-end sem service role)
-  if(error||!data){
-    // Inserir direto na tabela se o auth já foi criado externamente
-    toast('Para criar novos usuários, utilize o painel Supabase ou configure a service key no servidor.','error');
+  if(error){
+    toast('Erro ao criar usuário: '+error.message,'error');
     return;
   }
-
-  // Atualizar tabela usuarios com os dados extras
-  await db.from('usuarios').update({
-    nome_completo:nome,perfil,
-    telefone:tel||null,
-    deve_trocar_senha:true,
-    senha_temporaria_usada:false,
-  }).eq('id',data.user.id);
 
   toast('Usuário criado! Senha temporária definida.','success');
   fecharModal();await carregarDados();
