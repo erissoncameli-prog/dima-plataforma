@@ -42,7 +42,7 @@
 .preview-vazio-icon{font-size:48px;opacity:.4;}
 
 /* ── DOCUMENTO IMPRIMÍVEL ─────────────────────────────────── */
-.doc-wrap{background:#fff;max-width:900px;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.1);border-radius:4px;}
+.doc-wrap{position:relative;background:#fff;max-width:900px;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.1);border-radius:4px;}
 
 /* CABEÇALHO DO RELATÓRIO */
 .doc-header{padding:20px 32px 16px;border-bottom:3px solid #1F4E2C;position:relative;}
@@ -122,6 +122,35 @@
   #print-area{ display:block !important; }
   .doc-wrap{ box-shadow:none; max-width:100%; border-radius:0; }
   tfoot{ display:table-row-group; }
+
+  /* Cabeçalho fixo — repete em todas as páginas */
+  .doc-header{
+    position:fixed; top:0; left:0; right:0;
+    background:#fff; z-index:100;
+  }
+  /* Rodapé fixo — repete em todas as páginas */
+  .doc-footer{
+    position:fixed; bottom:0; left:0; right:0;
+    z-index:100;
+  }
+  /* Marca d'água fixa — repete em todas as páginas */
+  .doc-watermark{
+    position:fixed; top:50vh; left:50%;
+    transform:translate(-50%,-50%);
+  }
+  /* Espaço para não sobrepor cabeçalho/rodapé fixos */
+  .doc-body{
+    padding-top:185px !important;
+    padding-bottom:70px !important;
+  }
+  /* Número de página automático */
+  #num-pagina{ font-size:0; }
+  #num-pagina::after{
+    content:"Página " counter(page);
+    font-size:11px; font-weight:600;
+    color:var(--cinza-700); font-family:var(--font-mono);
+  }
+
   .doc-watermark,
   .rep-tbl th,.rep-stat,.rep-secao-titulo,.doc-header,.doc-footer{
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
@@ -656,8 +685,8 @@ function docFooter(nomeUsuario, perfil){
 }
 
 function docWatermark(){
-  return `<div class="doc-watermark" style="top:50%;left:50%;position:absolute;transform:translate(-50%,-50%);pointer-events:none;z-index:0">
-    <img src="../assets/logo-resiliencia.png" style="width:280px;height:auto;opacity:.06" alt="">
+  return `<div class="doc-watermark">
+    <img src="../assets/logo-resiliencia.png" alt="">
   </div>`;
 }
 
@@ -672,14 +701,12 @@ function wrapDoc(conteudo, rel){
   const perfilLabel = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',financeiro:'Financeiro'}[appState.perfil]||appState.perfil;
   return `
   <div class="doc-wrap" id="doc-content">
-    <div style="position:relative">
-      ${docHeader(rel.icone+' '+rel.titulo, ti.label.toUpperCase(), ti.cor, periodoTxt)}
-      ${docWatermark()}
-    </div>
-    <div class="doc-body" style="position:relative;z-index:1">
+    ${docHeader(rel.icone+' '+rel.titulo, ti.label.toUpperCase(), ti.cor, periodoTxt)}
+    <div class="doc-body">
       ${conteudo}
     </div>
     ${docFooter(u?.nome_completo||'Usuário', perfilLabel)}
+    ${docWatermark()}
   </div>`;
 }
 
