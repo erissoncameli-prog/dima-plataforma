@@ -121,13 +121,11 @@
   body > *:not(#print-area){ display:none !important; }
   #print-area{ display:block !important; }
   .doc-wrap{ box-shadow:none; max-width:100%; }
-  .doc-footer{ position:running(footer); }
-  @page {
-    margin: 0;
-    @bottom-center { content: element(footer); }
+  @page { margin: 10mm 12mm; }
+  .doc-watermark,
+  .rep-tbl th,.rep-stat,.rep-secao-titulo,.doc-header,.doc-footer{
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
-  .doc-watermark{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .rep-tbl th,.rep-stat,.rep-secao-titulo,.doc-header,.doc-footer{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 }
 </style>
 </head>
@@ -686,6 +684,27 @@ function wrapDoc(conteudo, rel){
 }
 
 // ══════════════════════════════════════════════════════════════
+// IMPRESSÃO / PDF
+// ══════════════════════════════════════════════════════════════
+function imprimir(orientacao) {
+  const content = document.getElementById('doc-content');
+  if (!content) return;
+  const printArea = document.getElementById('print-area');
+  printArea.innerHTML = content.outerHTML;
+
+  let styleEl = document.getElementById('_print_orient');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = '_print_orient';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `@media print { @page { size: A4 ${orientacao}; margin: 10mm 12mm; } }`;
+
+  window.addEventListener('afterprint', () => { printArea.innerHTML = ''; }, { once: true });
+  window.print();
+}
+
+// ══════════════════════════════════════════════════════════════
 // GERADOR DE RELATÓRIOS
 // ══════════════════════════════════════════════════════════════
 async function gerarRelatorio(id){
@@ -712,8 +731,10 @@ async function gerarRelatorio(id){
       default: html = `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Relatório <strong>${id}</strong> em desenvolvimento.</div>`;
     }
     area.innerHTML = wrapDoc(html, rel) + `
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-        <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:flex-end;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--cinza-500)">Orientação A4:</span>
+        <button class="btn btn-secondary btn-sm" onclick="imprimir('portrait')" title="Retrato — adequado para listas simples">📄 Retrato</button>
+        <button class="btn btn-secondary btn-sm" onclick="imprimir('landscape')" title="Paisagem — adequado para tabelas largas">📰 Paisagem</button>
       </div>`;
     // Conta páginas aproximadas
     const linhas = area.querySelectorAll('.rep-tbl tbody tr').length;
