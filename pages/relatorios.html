@@ -120,8 +120,8 @@
 @media print {
   body > *:not(#print-area){ display:none !important; }
   #print-area{ display:block !important; }
-  .doc-wrap{ box-shadow:none; max-width:100%; }
-  @page { margin: 10mm 12mm; }
+  .doc-wrap{ box-shadow:none; max-width:100%; border-radius:0; }
+  tfoot{ display:table-row-group; }
   .doc-watermark,
   .rep-tbl th,.rep-stat,.rep-secao-titulo,.doc-header,.doc-footer{
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
@@ -698,7 +698,7 @@ function imprimir(orientacao) {
     styleEl.id = '_print_orient';
     document.head.appendChild(styleEl);
   }
-  styleEl.textContent = `@media print { @page { size: A4 ${orientacao}; margin: 0; } }`;
+  styleEl.textContent = `@page { size: A4 ${orientacao}; margin: 0; }`;
 
   window.addEventListener('afterprint', () => { printArea.innerHTML = ''; }, { once: true });
   window.print();
