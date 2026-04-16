@@ -365,7 +365,7 @@ async function abrirFormEdicao(id){
   document.getElementById('mp-body').innerHTML=buildFormProtocolo();
   document.getElementById('mp-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-secondary" style="margin-left:8px" onclick="salvarProtocolo('rascunho')">💾 Salvar rascunho</button>
+    <button class="btn btn-secondary" id="btn-salvar-rasc" style="margin-left:8px" onclick="salvarProtocolo('rascunho')">💾 Salvar rascunho</button>
     <button class="btn btn-primary" id="btn-enviar-aprov" style="margin-left:auto" onclick="salvarProtocolo('solicitado')">✈ Enviar para aprovação →</button>`;
   document.getElementById('modal-prot').classList.add('aberto');
 
@@ -944,22 +944,24 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
   toast(msg,'success');
 
   if(situacaoAlvo==='rascunho'){
-    // Ativar botão de envio após salvar rascunho com sucesso.
-    // IMPORTANTE: agora o onclick aponta para enviarParaAprovacao(id) que só faz UPDATE,
-    // evitando que salvarProtocolo seja chamado de novo e crie um segundo protocolo com os mesmos beneficiários.
-    const btnEnv=document.getElementById('btn-enviar-aprov');
-    if(btnEnv){
-      btnEnv.disabled=false;
-      btnEnv.style.opacity='1';
-      btnEnv.style.cursor='pointer';
-      btnEnv.removeAttribute('title');
-      btnEnv.onclick=()=>enviarParaAprovacao(prot.id);
+    if(ehEdicao){
+      // Edição: fechar e recarregar — protAtual ficaria stale, não manter modal aberto
+      editandoProtocoloId=null;
+      fecharModal();await carregar();
+    } else {
+      // Criação nova: habilitar "Enviar para aprovação" e bloquear novo save para evitar duplicação
+      const btnEnv=document.getElementById('btn-enviar-aprov');
+      if(btnEnv){
+        btnEnv.disabled=false;
+        btnEnv.style.opacity='1';
+        btnEnv.style.cursor='pointer';
+        btnEnv.removeAttribute('title');
+        btnEnv.onclick=()=>enviarParaAprovacao(protId);
+      }
+      const btnRasc=document.getElementById('btn-salvar-rasc');
+      if(btnRasc){btnRasc.disabled=true;btnRasc.style.opacity='.4';btnRasc.style.cursor='not-allowed';}
+      carregar();
     }
-    // Bloquear "Salvar rascunho" para não criar outro protocolo duplicado
-    const btnRasc=document.getElementById('btn-salvar-rasc');
-    if(btnRasc){btnRasc.disabled=true;btnRasc.style.opacity='.4';btnRasc.style.cursor='not-allowed';}
-    // Recarregar lista em background sem fechar o modal
-    carregar();
     return;
   }
 
