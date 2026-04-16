@@ -116,6 +116,30 @@
 .btn-imprimir{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;background:#1F4E2C;color:#fff;border:none;border-radius:var(--raio);font-family:var(--font-sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
 .btn-imprimir:hover{background:#143520;}
 
+/* ── MODAL DE EXPORTAÇÃO ──────────────────────────────────── */
+#export-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.72);flex-direction:row;}
+#export-modal.aberto{display:flex;}
+.exp-sidebar{width:210px;flex-shrink:0;background:#1F4E2C;display:flex;flex-direction:column;padding:0;overflow-y:auto;}
+.exp-sidebar-hd{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.14);}
+.exp-sidebar-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:2px;}
+.exp-sidebar-sub{font-size:10px;color:rgba(255,255,255,.55);line-height:1.4;}
+.exp-sidebar-body{padding:14px 12px;display:flex;flex-direction:column;gap:6px;flex:1;}
+.exp-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.07em;padding:8px 0 3px;}
+.exp-btn{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--raio);border:none;cursor:pointer;font-family:var(--font-sans);font-size:12px;font-weight:600;text-align:left;transition:all .15s;width:100%;color:#fff;}
+.exp-btn-pdf{background:rgba(255,255,255,.13);}
+.exp-btn-pdf:hover{background:rgba(255,255,255,.23);}
+.exp-btn-csv{background:rgba(255,255,255,.08);}
+.exp-btn-csv:hover{background:rgba(255,255,255,.18);}
+.exp-btn-xls{background:rgba(21,128,61,.45);}
+.exp-btn-xls:hover{background:rgba(21,128,61,.65);}
+.exp-btn-print{background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);}
+.exp-btn-print:hover{background:rgba(255,255,255,.14);color:#fff;}
+.exp-btn-close{background:rgba(220,38,38,.18);color:rgba(255,255,255,.8);margin-top:auto;}
+.exp-btn-close:hover{background:rgba(220,38,38,.45);color:#fff;}
+.exp-btn:disabled{opacity:.5;cursor:wait;}
+.exp-preview{flex:1;overflow-y:auto;background:#d1d5db;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:0;}
+.exp-preview .doc-wrap{width:100%;max-width:960px;margin:0;}
+
 /* ── PRINT ─────────────────────────────────────────────────── */
 @media print {
   body > *:not(#print-area){ display:none !important; }
@@ -161,10 +185,38 @@
   </div>
 </div>
 
-<!-- ÁREA DE IMPRESSÃO (oculta na tela, visível só ao imprimir) -->
+<!-- ÁREA DE IMPRESSÃO -->
 <div id="print-area" style="display:none"></div>
 
+<!-- MODAL DE EXPORTAÇÃO -->
+<div id="export-modal">
+  <div class="exp-sidebar">
+    <div class="exp-sidebar-hd">
+      <div class="exp-sidebar-title">📤 Exportar Relatório</div>
+      <div class="exp-sidebar-sub" id="exp-rel-nome">—</div>
+    </div>
+    <div class="exp-sidebar-body">
+      <div class="exp-lbl">PDF · A4</div>
+      <button class="exp-btn exp-btn-pdf" onclick="exportPDF('portrait',this)">📄 Retrato</button>
+      <button class="exp-btn exp-btn-pdf" onclick="exportPDF('landscape',this)">📰 Paisagem</button>
+
+      <div class="exp-lbl">Dados</div>
+      <button class="exp-btn exp-btn-csv" onclick="exportCSV()">📊 CSV</button>
+      <button class="exp-btn exp-btn-xls" onclick="exportExcel()">📗 Excel (.xlsx)</button>
+
+      <div class="exp-lbl">Imprimir</div>
+      <button class="exp-btn exp-btn-print" onclick="exportPrint('portrait')">🖨️ Retrato</button>
+      <button class="exp-btn exp-btn-print" onclick="exportPrint('landscape')">🖨️ Paisagem</button>
+
+      <button class="exp-btn exp-btn-close" onclick="fecharExport()" style="margin-top:20px">✕ Fechar</button>
+    </div>
+  </div>
+  <div class="exp-preview" id="exp-preview-content"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script>
@@ -703,36 +755,90 @@ function wrapDoc(conteudo, rel){
 }
 
 // ══════════════════════════════════════════════════════════════
-// IMPRESSÃO / PDF
+// MODAL DE EXPORTAÇÃO
 // ══════════════════════════════════════════════════════════════
-function imprimir(orientacao) {
+function abrirExport() {
   const content = document.getElementById('doc-content');
   if (!content) return;
+  const rel = RELATORIOS.find(r => r.id === relAtivo);
+  document.getElementById('exp-rel-nome').textContent = rel ? `${rel.id} · ${rel.titulo}` : '—';
+  const preview = document.getElementById('exp-preview-content');
+  preview.innerHTML = content.outerHTML;
+  preview.querySelector('#doc-content')?.removeAttribute('id');
+  // Watermark: remover position:fixed herdado e manter absolute para preview
+  preview.querySelectorAll('.doc-watermark').forEach(el => el.style.position = 'absolute');
+  document.getElementById('export-modal').classList.add('aberto');
+  document.body.style.overflow = 'hidden';
+}
 
-  // Estimar total de páginas com base na altura renderizada do corpo
-  const bodyEl = content.querySelector('.doc-body');
-  const mmToPx = 3.7795;
-  const pageH   = orientacao === 'portrait' ? 297 * mmToPx : 210 * mmToPx;
-  const usableH  = pageH - 185 - 70; // descontar espaço do header e footer fixos
-  const totalPag = bodyEl ? Math.max(1, Math.ceil(bodyEl.scrollHeight / usableH)) : 1;
+function fecharExport() {
+  document.getElementById('export-modal').classList.remove('aberto');
+  document.body.style.overflow = '';
+}
 
+document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharExport(); });
+
+function exportPDF(orientacao, btn) {
+  const el = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
+  if (!el) return;
+  const rel = RELATORIOS.find(r => r.id === relAtivo);
+  const nome = (rel?.titulo || 'relatorio').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40);
+  const filename = `${relAtivo}_${nome}_${new Date().toISOString().slice(0,10)}.pdf`;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ Gerando...'; btn.disabled = true;
+  html2pdf().set({
+    margin: [8, 8, 8, 8],
+    filename,
+    image: { type: 'jpeg', quality: 0.97 },
+    html2canvas: { scale: 2, useCORS: true, logging: false },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: orientacao, compress: true },
+    pagebreak: { mode: ['css', 'legacy'] }
+  }).from(el).save().finally(() => { btn.innerHTML = orig; btn.disabled = false; });
+}
+
+function exportCSV() {
+  const table = document.querySelector('#exp-preview-content table');
+  if (!table) { alert('Nenhuma tabela encontrada neste relatório.'); return; }
+  const rel = RELATORIOS.find(r => r.id === relAtivo);
+  const nome = (rel?.titulo || 'relatorio').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40);
+  const linhas = [];
+  table.querySelectorAll('tr').forEach(tr => {
+    const cols = [...tr.querySelectorAll('th,td')].map(c =>
+      '"' + c.textContent.trim().replace(/\s+/g,' ').replace(/"/g,'""') + '"'
+    );
+    if (cols.some(c => c !== '""')) linhas.push(cols.join(';'));
+  });
+  _download('\uFEFF' + linhas.join('\r\n'), `${relAtivo}_${nome}_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8;');
+}
+
+function exportExcel() {
+  const tables = [...document.querySelectorAll('#exp-preview-content table')];
+  if (!tables.length) { alert('Nenhuma tabela encontrada neste relatório.'); return; }
+  const rel = RELATORIOS.find(r => r.id === relAtivo);
+  const nome = (rel?.titulo || 'relatorio').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40);
+  const wb = XLSX.utils.book_new();
+  tables.forEach((tbl, i) => XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(tbl), `Aba${i+1}`));
+  XLSX.writeFile(wb, `${relAtivo}_${nome}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportPrint(orientacao) {
+  const el = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
+  if (!el) return;
   const printArea = document.getElementById('print-area');
-  printArea.innerHTML = content.outerHTML;
-
-  // Atualizar número de páginas no rodapé da cópia de impressão
-  const np = printArea.querySelector('#num-pagina');
-  if (np) np.textContent = totalPag > 1 ? `Pág. 1 – ${totalPag}` : 'Página 1';
-
-  let styleEl = document.getElementById('_print_orient');
-  if (!styleEl) {
-    styleEl = document.createElement('style');
-    styleEl.id = '_print_orient';
-    document.head.appendChild(styleEl);
-  }
-  styleEl.textContent = `@page { size: A4 ${orientacao}; margin: 0; }`;
-
+  printArea.innerHTML = el.outerHTML;
+  let s = document.getElementById('_po');
+  if (!s) { s = document.createElement('style'); s.id = '_po'; document.head.appendChild(s); }
+  s.textContent = `@page { size: A4 ${orientacao}; margin: 0; }`;
   window.addEventListener('afterprint', () => { printArea.innerHTML = ''; }, { once: true });
   window.print();
+}
+
+function _download(conteudo, nome, tipo) {
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([conteudo], { type: tipo })),
+    download: nome
+  });
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -762,10 +868,8 @@ async function gerarRelatorio(id){
       default: html = `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Relatório <strong>${id}</strong> em desenvolvimento.</div>`;
     }
     area.innerHTML = wrapDoc(html, rel) + `
-      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;justify-content:flex-end;flex-wrap:wrap">
-        <span style="font-size:11px;color:var(--cinza-500)">Orientação A4:</span>
-        <button class="btn btn-secondary btn-sm" onclick="imprimir('portrait')" title="Retrato — adequado para listas simples">📄 Retrato</button>
-        <button class="btn btn-secondary btn-sm" onclick="imprimir('landscape')" title="Paisagem — adequado para tabelas largas">📰 Paisagem</button>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <button class="btn-imprimir" onclick="abrirExport()">📤 Exportar / Imprimir</button>
       </div>`;
     // Conta páginas aproximadas
     const linhas = area.querySelectorAll('.rep-tbl tbody tr').length;
