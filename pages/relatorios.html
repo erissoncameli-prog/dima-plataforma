@@ -779,21 +779,33 @@ function fecharExport() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharExport(); });
 
 function exportPDF(orientacao, btn) {
-  const el = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
-  if (!el) return;
+  const wrapper = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
+  if (!wrapper) return;
   const rel = RELATORIOS.find(r => r.id === relAtivo);
   const nome = (rel?.titulo || 'relatorio').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40);
   const filename = `${relAtivo}_${nome}_${new Date().toISOString().slice(0,10)}.pdf`;
   const orig = btn.innerHTML;
   btn.innerHTML = '⏳ Gerando...'; btn.disabled = true;
+
+  // Clonar fora do modal para html2canvas renderizar sem interferência de scroll/overflow
+  const largura = orientacao === 'portrait' ? '794px' : '1060px';
+  const clone = wrapper.cloneNode(true);
+  clone.style.cssText = `position:absolute;top:-9999px;left:-9999px;width:${largura};background:#fff;box-shadow:none;border-radius:0;`;
+  // Watermark via canvas pode causar taint — ocultar no PDF
+  clone.querySelectorAll('.doc-watermark').forEach(e => e.style.display = 'none');
+  document.body.appendChild(clone);
+
   html2pdf().set({
-    margin: [8, 8, 8, 8],
+    margin: [6, 8, 6, 8],
     filename,
-    image: { type: 'jpeg', quality: 0.97 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: orientacao, compress: true },
-    pagebreak: { mode: ['css', 'legacy'] }
-  }).from(el).save().finally(() => { btn.innerHTML = orig; btn.disabled = false; });
+    pagebreak: { mode: 'avoid-all' }
+  }).from(clone).save().finally(() => {
+    document.body.removeChild(clone);
+    btn.innerHTML = orig; btn.disabled = false;
+  });
 }
 
 function exportCSV() {
