@@ -526,8 +526,8 @@ function renderAdminFiltrosList(){
       html += `<div class="admin-item">
         <input type="checkbox" id="adm-${i.id}" data-id="${i.id}" ${i.visivel_no_mapa?'checked':''}>
         <div style="flex:1;min-width:0">
-          <div class="admin-item-nome">${escHtml(i.produto_titulo||i.indicador||'Sem título')}</div>
-          <div class="admin-item-sub">${escHtml(i.produto_codigo||'')}${meta?' · '+meta:''}</div>
+          <div class="admin-item-nome">${escHtml(i.indicador||i.produto_titulo||'Sem título')}</div>
+          <div class="admin-item-sub">${escHtml([i.produto_codigo, i.produto_titulo].filter(Boolean).join(' · '))}${meta?' · '+meta:''}</div>
         </div>
       </div>`;
     });
