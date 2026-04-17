@@ -787,20 +787,20 @@ function exportPDF(orientacao, btn) {
   const orig = btn.innerHTML;
   btn.innerHTML = '⏳ Gerando...'; btn.disabled = true;
 
-  // Ocultar watermark temporariamente para evitar taint no canvas
-  const watermarks = wrapper.querySelectorAll('.doc-watermark');
-  watermarks.forEach(e => e.style.visibility = 'hidden');
+  // Clonar o HTML removendo watermark (evita taint) e passar como string
+  // para o html2pdf criar container próprio sem herdar offset do modal
+  const clone = wrapper.cloneNode(true);
+  clone.querySelectorAll('.doc-watermark').forEach(e => e.remove());
+  const htmlStr = clone.outerHTML;
 
-  // Renderizar direto do elemento visível no modal — evita branco do html2canvas fora do viewport
   html2pdf().set({
     margin: [6, 8, 6, 8],
     filename,
     image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0, windowWidth: wrapper.scrollWidth },
+    html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: orientacao, compress: true },
     pagebreak: { mode: 'avoid-all' }
-  }).from(wrapper).save().finally(() => {
-    watermarks.forEach(e => e.style.visibility = '');
+  }).from(htmlStr).save().finally(() => {
     btn.innerHTML = orig; btn.disabled = false;
   });
 }
