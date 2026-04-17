@@ -1022,7 +1022,7 @@ async function relF2(){
   const ativFil = filVal('fil-atividade');
   const fornFil = filVal('fil-fornecedor');
 
-  let q = db.from('contratos_produtos_entregas')
+  let q = db.from('contratos_produtos')
     .select(`id,numero_produto,descricao,valor_brl,dt_vencimento,situacao,
       contrato:contratos(numero,objeto_pt,fornecedor:fornecedores(nome),atividade:atividades(codigo,nome_pt))`)
     .gte('dt_vencimento', hojStr)
@@ -1286,7 +1286,7 @@ async function relP1(){
   const fornFil = filVal('fil-fornecedor');
   const sitFil  = filVal('fil-situacao');
 
-  let q = db.from('contratos_produtos_entregas')
+  let q = db.from('contratos_produtos')
     .select(`*,contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
     .order('dt_vencimento');
   if(sitFil) q = q.eq('situacao', sitFil);
@@ -1347,7 +1347,7 @@ async function relP2(){
   const ativFil = filVal('fil-atividade');
   const fornFil = filVal('fil-fornecedor');
 
-  const {data, error} = await db.from('contratos_produtos_entregas')
+  const {data, error} = await db.from('contratos_produtos')
     .select(`*,contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
     .lt('dt_vencimento', hoje)
     .is('dt_entrega', null)
@@ -1635,7 +1635,7 @@ async function relF6(){
   const hoje = new Date().toISOString().split('T')[0];
   const ativFil = filVal('fil-atividade');
   const fornFil = filVal('fil-fornecedor');
-  const {data, error} = await db.from('contratos_produtos_entregas')
+  const {data, error} = await db.from('contratos_produtos')
     .select(`*,contrato:contratos(numero,fornecedor:fornecedores(id,nome),atividade:atividades(id,codigo))`)
     .lt('dt_vencimento', hoje)
     .not('situacao','in','("pago","cancelado")')
@@ -1736,7 +1736,7 @@ async function relC3(){
   const fornFil = filVal('fil-fornecedor');
   let q = db.from('contratos')
     .select(`*,fornecedor:fornecedores(id,nome),atividade:atividades(id,codigo),
-      produtos:contratos_produtos_entregas(id,situacao,valor_brl)`)
+      produtos:contratos_produtos(id,situacao,valor_brl)`)
     .order('numero');
   if(ativFil) q = q.eq('atividade_id', ativFil);
   if(fornFil) q = q.eq('fornecedor_id', fornFil);
@@ -1894,7 +1894,7 @@ async function relV3(){
   const [{data:forn},{data:conts},{data:prods}] = await Promise.all([
     db.from('fornecedores').select('*').eq('id',fornFil).single(),
     db.from('contratos').select('*,atividade:atividades(codigo,nome_pt)').eq('fornecedor_id',fornFil).order('dt_inicio',{ascending:false}),
-    db.from('contratos_produtos_entregas').select(`*,contrato:contratos!inner(numero)`).eq('contratos.fornecedor_id',fornFil).order('dt_vencimento',{ascending:false}),
+    db.from('contratos_produtos').select(`*,contrato:contratos!inner(numero)`).eq('contratos.fornecedor_id',fornFil).order('dt_vencimento',{ascending:false}),
   ]);
   const f = forn||{};
   const cs = conts||[];
@@ -1955,7 +1955,7 @@ async function relV3(){
 async function relP3(){
   const ativFil = filVal('fil-atividade');
   const fornFil = filVal('fil-fornecedor');
-  const {data, error} = await db.from('contratos_produtos_entregas')
+  const {data, error} = await db.from('contratos_produtos')
     .select(`*,contrato:contratos(numero,fornecedor:fornecedores(id,nome),atividade:atividades(id,codigo))`)
     .not('pct_aprovado','is',null)
     .order('avaliado_em',{ascending:false});
@@ -2012,7 +2012,7 @@ async function relP3(){
 async function relP4(){
   const dtIni = filVal('fil-dt-ini');
   const dtFim = filVal('fil-dt-fim');
-  let q = db.from('contratos_produtos_entregas')
+  let q = db.from('contratos_produtos')
     .select(`*,contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
     .not('dt_entrega','is',null).not('avaliado_em','is',null)
     .order('avaliado_em',{ascending:false});
@@ -2741,7 +2741,7 @@ async function relL1(){
 async function relL4(){
   const dtIni = filVal('fil-dt-ini');
   const dtFim = filVal('fil-dt-fim');
-  let q = db.from('contratos_produtos_entregas')
+  let q = db.from('contratos_produtos')
     .select(`*,avaliador:usuarios!contratos_produtos_avaliado_por_fkey(nome_completo),
       contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
     .not('avaliado_em','is',null)
