@@ -75,7 +75,7 @@
 /* TABELAS DO RELATÓRIO */
 .rep-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px;}
 .rep-tbl th{padding:7px 10px;font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #1F4E2C;background:#f0f7f2;text-align:left;white-space:nowrap;}
-.rep-tbl td{padding:7px 10px;border-bottom:1px solid var(--borda);color:var(--cinza-700);vertical-align:middle;}
+.rep-tbl td{padding:7px 10px;border-bottom:1px solid var(--borda);color:var(--cinza-700);vertical-align:middle;word-break:break-word;}
 .rep-tbl tbody tr:nth-child(even) td{background:#fafcfa;}
 .rep-tbl tbody tr:hover td{background:#f0f7f2;}
 .rep-tbl tfoot td{padding:8px 10px;font-weight:700;color:var(--cinza-900);border-top:2px solid #1F4E2C;background:#f0f7f2;}
@@ -986,7 +986,7 @@ async function relF1(){
         const cls = pctExec>80?'crit':pctExec>50?'warn':'';
         return `<tr>
           <td class="mono">${a.codigo}</td>
-          <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nome_pt}</td>
+          <td>${a.nome_pt}</td>
           <td><span class="rep-badge rb-verde">R${a.resultado?.codigo||'?'}</span></td>
           <td>${badgeStatus(a.fase)}</td>
           <td class="mono" style="text-align:right">${fmtUSD(a.orcamento_usd)}</td>
@@ -1069,9 +1069,9 @@ async function relF2(){
       ${rows.map(r=>`<tr>
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td>${diasAte(r.dt_vencimento)}</td>
-        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td>${r.descricao||'—'}</td>
         <td class="mono">${r.contrato?.numero||'—'}</td>
-        <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td>${r.contrato?.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
         <td>${sitBadge(r.situacao)}</td>
@@ -1133,10 +1133,10 @@ async function relF3(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${fmtDt(r.dt_pagamento)}</td>
-        <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.fornecedor?.nome||'—'}</td>
+        <td>${r.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.contrato?.numero||'—'}</td>
         <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
-        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td>${r.descricao||'—'}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
         <td class="mono" style="text-align:right">${r.cotacao_unesco?Number(r.cotacao_unesco).toFixed(4):'—'}</td>
         <td class="mono" style="text-align:right">${fmtUSD(r.valor_usd_unesco)}</td>
@@ -1203,7 +1203,7 @@ async function relC1(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${r.numero||'—'}</td>
-        <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.fornecedor?.nome||'—'}</td>
+        <td>${r.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.atividade?.codigo||'—'}</td>
         <td><span class="rep-badge rb-azul">${r.tipo||'—'}</span></td>
         <td class="mono">${fmtDt(r.dt_inicio)}</td>
@@ -1324,9 +1324,9 @@ async function relP1(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${r.numero_produto||'—'}</td>
-        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td>${r.descricao||'—'}</td>
         <td class="mono">${r.contrato?.numero||'—'}</td>
-        <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td>${r.contrato?.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td class="mono">${fmtDt(r.dt_entrega)}</td>
@@ -1378,9 +1378,9 @@ async function relP2(){
       </tr></thead>
       <tbody>
       ${rows.map(r=>`<tr>
-        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td>${r.descricao||'—'}</td>
         <td class="mono">${r.contrato?.numero||'—'}</td>
-        <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td>${r.contrato?.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td><span class="rep-badge ${diasAtraso(r.dt_vencimento)>30?'rb-vermelho':'rb-ouro'}">${diasAtraso(r.dt_vencimento)} dias</span></td>
@@ -1437,7 +1437,7 @@ async function relA1(){
         const tdrsAprov=(a.tdrs||[]).filter(t=>t.status==='aprovado').length;
         return `<tr>
           <td class="mono">${a.codigo}</td>
-          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nome_pt}</td>
+          <td>${a.nome_pt}</td>
           <td><span class="rep-badge rb-verde">R${a.resultado?.codigo||'?'}</span></td>
           <td><span class="rep-badge ${faseClass[a.fase]||'rb-cinza'}">${faseLabel[a.fase]||a.fase}</span></td>
           <td style="font-size:10px">${resps.join(', ')||'—'}</td>
@@ -1503,7 +1503,7 @@ async function relVi1(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${r.numero||'—'}</td>
-        <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.objetivo||r.destino_principal||'—'}</td>
+        <td>${r.objetivo||r.destino_principal||'—'}</td>
         <td class="mono">${fmtDt(r.dt_saida)}</td>
         <td class="mono">${fmtDt(r.dt_retorno)}</td>
         <td class="mono" style="text-align:center">${r.viajantes.length}</td>
@@ -1607,7 +1607,7 @@ async function relF5(){
         const faseC={A_INICIAR:'rb-cinza',ELABORACAO:'rb-ouro',LICITACAO:'rb-azul',ELABORADO:'rb-azul',CONTRATADO:'rb-verde',CONCLUIDO:'rb-teal'};
         return `<tr>
           <td class="mono">${a.codigo}</td>
-          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nome_pt}</td>
+          <td>${a.nome_pt}</td>
           <td><span class="rep-badge rb-verde">R${a.resultado?.codigo||'?'}</span></td>
           <td><span class="rep-badge ${faseC[a.fase]||'rb-cinza'}">${faseL[a.fase]||a.fase}</span></td>
           <td class="mono" style="text-align:right">${fmtUSD(a.orcamento_usd)}</td>
@@ -1663,9 +1663,9 @@ async function relF6(){
       </tr></thead>
       <tbody>
       ${rows.map(r=>`<tr>
-        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td>${r.descricao||'—'}</td>
         <td class="mono">${r.contrato?.numero||'—'}</td>
-        <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td>${r.contrato?.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td><span class="rep-badge ${diasAt(r.dt_vencimento)>60?'rb-vermelho':diasAt(r.dt_vencimento)>30?'rb-ouro':'rb-cinza'}">${diasAt(r.dt_vencimento)}d</span></td>
@@ -1715,7 +1715,7 @@ async function relC2(){
       <tbody>
       ${rows.map(r=>{const d=diasAte(r.dt_fim);return`<tr>
         <td class="mono">${r.numero||'—'}</td>
-        <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.fornecedor?.nome||'—'}</td>
+        <td>${r.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.atividade?.codigo||'—'}</td>
         <td><span class="rep-badge rb-azul">${r.tipo||'—'}</span></td>
         <td class="mono">${fmtDt(r.dt_fim)}</td>
@@ -1775,7 +1775,7 @@ async function relC3(){
         const pct    =total>0?pago/total*100:0;
         return `<tr>
           <td class="mono">${c.numero||'—'}</td>
-          <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.fornecedor?.nome||'—'}</td>
+          <td>${c.fornecedor?.nome||'—'}</td>
           <td class="mono">${c.atividade?.codigo||'—'}</td>
           <td class="mono" style="text-align:right">${fmtBRL(total)}</td>
           <td class="mono" style="text-align:right">${fmtBRL(pago)}</td>
@@ -1821,7 +1821,7 @@ async function relC4(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${r.numero||'—'}</td>
-        <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.fornecedor?.nome||'—'}</td>
+        <td>${r.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.atividade?.codigo||'—'}</td>
         <td><span class="rep-badge rb-azul">${r.tipo||'—'}</span></td>
         <td class="mono">${fmtDt(r.dt_inicio)}</td>
@@ -1938,7 +1938,7 @@ async function relV3(){
       <thead><tr><th>#</th><th>Descrição</th><th>Contrato</th><th>Vencimento</th><th>Entrega</th><th style="text-align:right">Valor</th><th>Situação</th></tr></thead>
       <tbody>${ps.map(p=>`<tr>
         <td class="mono">${p.numero_produto||'—'}</td>
-        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.descricao||'—'}</td>
+        <td>${p.descricao||'—'}</td>
         <td class="mono">${p.contrato?.numero||'—'}</td>
         <td class="mono">${fmtDt(p.dt_vencimento)}</td>
         <td class="mono">${fmtDt(p.dt_entrega)}</td>
@@ -1986,9 +1986,9 @@ async function relP3(){
         const pct=r.pct_aprovado||0;
         return `<tr>
           <td class="mono">${r.numero_produto||'—'}</td>
-          <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+          <td>${r.descricao||'—'}</td>
           <td class="mono">${r.contrato?.numero||'—'}</td>
-          <td style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+          <td>${r.contrato?.fornecedor?.nome||'—'}</td>
           <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
           <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
           <td class="mono" style="text-align:right">${fmtBRL(r.valor_aprovado)}</td>
@@ -2045,9 +2045,9 @@ async function relP4(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${r.numero_produto||'—'}</td>
-        <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td>${r.descricao||'—'}</td>
         <td class="mono">${r.contrato?.numero||'—'}</td>
-        <td style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td>${r.contrato?.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
         <td class="mono">${fmtDt(r.dt_entrega)}</td>
         <td class="mono">${r.avaliado_em?new Date(r.avaliado_em).toLocaleDateString('pt-BR'):'—'}</td>
@@ -2111,7 +2111,7 @@ async function relT1(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${r.numero||'—'}</td>
-        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.objeto_pt||'—'}</td>
+        <td>${r.objeto_pt||'—'}</td>
         <td class="mono">${r.atividade?.codigo||'—'}</td>
         <td><span class="rep-badge rb-azul">${r.tipo||'—'}</span></td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
@@ -2170,7 +2170,7 @@ async function relT2(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${r.numero||'—'}</td>
-        <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.objeto_pt||'—'}</td>
+        <td>${r.objeto_pt||'—'}</td>
         <td><span class="rep-badge rb-azul">${r.tipo||'—'}</span></td>
         <td class="mono">${r.atividade?.codigo||'—'}</td>
         <td class="mono">${r.criado_em?new Date(r.criado_em).toLocaleDateString('pt-BR'):'—'}</td>
@@ -2220,7 +2220,7 @@ async function relT3(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono">${r.numero||'—'}</td>
-        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.objeto_pt||'—'}</td>
+        <td>${r.objeto_pt||'—'}</td>
         <td><span class="rep-badge rb-azul">${r.tipo||'—'}</span></td>
         <td class="mono">${r.atividade?.codigo||'—'}</td>
         <td class="mono">${r.criado_em?new Date(r.criado_em).toLocaleDateString('pt-BR'):'—'}</td>
@@ -2268,7 +2268,7 @@ async function relA2(){
       <tbody>
       ${semTDR.map(a=>`<tr>
         <td class="mono">${a.codigo}</td>
-        <td style="max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nome_pt}</td>
+        <td>${a.nome_pt}</td>
         <td><span class="rep-badge rb-verde">R${a.resultado?.codigo||'?'}</span></td>
         <td><span class="rep-badge ${faseClass[a.fase]||'rb-cinza'}">${faseLabel[a.fase]||a.fase}</span></td>
         <td class="mono" style="text-align:right">${fmtUSD(a.orcamento_usd)}</td>
@@ -2386,7 +2386,7 @@ async function relM1(){
         const realiz=parseFloat(p.realizado_confirmado||0);
         return `<tr>
           <td class="mono">${i.produto_codigo||'—'}</td>
-          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.indicador||'—'}</td>
+          <td>${i.indicador||'—'}</td>
           <td><span class="rep-badge rb-verde">R${i.resultado||'?'}</span></td>
           <td class="mono" style="text-align:right">${meta>0?meta.toLocaleString('pt-BR')+' '+(i.unidade||''):'—'}</td>
           <td class="mono" style="text-align:right">${meta>0?realiz.toLocaleString('pt-BR')+' '+(i.unidade||''):'—'}</td>
@@ -2437,7 +2437,7 @@ async function relM2(){
         const pct=parseFloat(p.pct_confirmado||0);
         return `<tr>
           <td class="mono">${i.produto_codigo||'—'}</td>
-          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.indicador||'—'}</td>
+          <td>${i.indicador||'—'}</td>
           <td><span class="rep-badge rb-verde">R${i.resultado||'?'}</span></td>
           <td style="font-size:10px">${i.unidade||'—'}</td>
           <td class="mono" style="text-align:right">${meta>0?meta.toLocaleString('pt-BR'):'—'}</td>
@@ -2491,7 +2491,7 @@ async function relM4(){
         const real=parseFloat(p.realizado_confirmado||0);
         return `<tr>
           <td class="mono">${i.produto_codigo||'—'}</td>
-          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.indicador||'—'}</td>
+          <td>${i.indicador||'—'}</td>
           <td><span class="rep-badge rb-verde">R${i.resultado||'?'}</span></td>
           <td class="mono" style="text-align:right">${meta.toLocaleString('pt-BR')} ${i.unidade||''}</td>
           <td class="mono" style="text-align:right">${real.toLocaleString('pt-BR')} ${i.unidade||''}</td>
@@ -2626,7 +2626,7 @@ async function relVi3(){
         const pct=totalGeral>0?r.total/totalGeral*100:0;
         return `<tr>
           <td class="mono">${r.codigo}</td>
-          <td style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.nome}</td>
+          <td>${r.nome}</td>
           <td class="mono" style="text-align:center">${r.protocolos}</td>
           <td class="mono" style="text-align:right">${fmtBRL(r.total)}</td>
           <td class="mono" style="text-align:right">${fmtPct1(pct)}</td>
@@ -2723,12 +2723,12 @@ async function relL1(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono" style="font-size:10px">${r.criado_em?new Date(r.criado_em).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td>
-        <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.usuario?.nome_completo||'—'}</td>
+        <td>${r.usuario?.nome_completo||'—'}</td>
         <td class="mono">${r.tdr?.numero||'—'}</td>
         <td class="mono">${r.tdr?.atividade?.codigo||'—'}</td>
         <td>${r.status_anterior?`<span class="rep-badge ${stClass[r.status_anterior]||'rb-cinza'}">${stLabel[r.status_anterior]||r.status_anterior}</span>`:'—'}</td>
         <td>${r.status_novo?`<span class="rep-badge ${stClass[r.status_novo]||'rb-cinza'}">${stLabel[r.status_novo]||r.status_novo}</span>`:'—'}</td>
-        <td style="max-width:180px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.observacao||'—'}</td>
+        <td style="font-size:10px">${r.observacao||'—'}</td>
       </tr>`).join('')}
       </tbody>
     </table>
@@ -2772,14 +2772,14 @@ async function relL4(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td class="mono" style="font-size:10px">${r.avaliado_em?new Date(r.avaliado_em).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td>
-        <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.avaliador?.nome_completo||'—'}</td>
-        <td style="max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.descricao||'—'}</td>
+        <td>${r.avaliador?.nome_completo||'—'}</td>
+        <td>${r.descricao||'—'}</td>
         <td class="mono">${r.contrato?.numero||'—'}</td>
-        <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.contrato?.fornecedor?.nome||'—'}</td>
+        <td>${r.contrato?.fornecedor?.nome||'—'}</td>
         <td class="mono">${r.contrato?.atividade?.codigo||'—'}</td>
         <td><span class="rep-badge ${(r.pct_aprovado||0)>=80?'rb-verde':(r.pct_aprovado||0)>=50?'rb-ouro':'rb-vermelho'}">${r.pct_aprovado!=null?fmtPct1(r.pct_aprovado):'—'}</span></td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_aprovado)}</td>
-        <td style="max-width:140px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic">${r.parecer_avaliador||'—'}</td>
+        <td style="font-size:10px;font-style:italic">${r.parecer_avaliador||'—'}</td>
       </tr>`).join('')}
       </tbody>
       <tfoot><tr>
