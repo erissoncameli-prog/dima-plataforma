@@ -1398,7 +1398,7 @@ async function relA1(){
 
   let q = db.from('atividades')
     .select(`*,resultado:resultados(codigo,nome_pt),
-      responsaveis:atividade_responsaveis(usuario:usuarios(nome_completo)),
+      responsaveis:atividade_responsaveis(usuario:usuarios!usuario_id(nome_completo)),
       tdrs(id,status,valor_brl),
       contratos(valor_total_brl,valor_utilizado_brl,saldo_brl,status)`)
     .order('codigo');
@@ -2282,7 +2282,7 @@ async function relA2(){
 async function relA3(){
   const {data, error} = await db.from('atividades')
     .select(`id,codigo,nome_pt,orcamento_usd,fase,
-      responsaveis:atividade_responsaveis(usuario:usuarios(id,nome_completo))`)
+      responsaveis:atividade_responsaveis(usuario:usuarios!usuario_id(id,nome_completo))`)
     .order('codigo');
   if(error) throw error;
   const rows = data||[];
