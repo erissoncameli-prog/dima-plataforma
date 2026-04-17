@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Mapa de Entregas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<style>
+/* ── Layout ────────────────────────────────────────────────── */
+.mapa-wrapper{display:flex;flex-direction:column;gap:14px;height:100%;}
+.mapa-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.mapa-container{display:flex;gap:14px;flex:1;min-height:0;}
+#mapa{flex:1;border-radius:var(--raio-lg);border:1px solid var(--borda);min-height:520px;z-index:0;}
+.mapa-painel{width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto;}
+
+/* ── Stat mini ─────────────────────────────────────────────── */
+.stat-mini{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;position:relative;overflow:hidden;}
+.stat-mini::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sm-g::after{background:var(--verde-claro)}.sm-b::after{background:var(--azul-medio)}.sm-a::after{background:var(--aviso)}
+.stat-mini .lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.stat-mini .val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-mini .sub{font-size:10px;color:var(--cinza-500);margin-top:2px;}
+
+/* ── Filtros ───────────────────────────────────────────────── */
+.filtro-bloco{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px;}
+.filtro-bloco h4{font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.filtro-item{display:flex;align-items:center;gap:7px;padding:4px 0;cursor:pointer;font-size:12px;color:var(--cinza-700);}
+.filtro-item input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;}
+.filtro-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* ── Lista de pontos ───────────────────────────────────────── */
+.pontos-lista{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;flex:1;min-height:0;}
+.pontos-lista h4{font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;padding:10px 12px 8px;border-bottom:1px solid var(--borda);margin:0;}
+.pontos-scroll{overflow-y:auto;max-height:280px;}
+.ponto-item{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-bottom:1px solid var(--cinza-100);cursor:pointer;transition:background .12s;}
+.ponto-item:last-child{border-bottom:none;}
+.ponto-item:hover{background:var(--cinza-50);}
+.ponto-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.ponto-nome{font-size:12px;font-weight:500;color:var(--cinza-800);line-height:1.3;}
+.ponto-sub{font-size:10px;color:var(--cinza-500);margin-top:1px;}
+
+/* ── Badge APA ─────────────────────────────────────────────── */
+.badge-apa{font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;flex-shrink:0;}
+.apa-isf{background:#DCFCE7;color:#166534;}
+.apa-la{background:#DBEAFE;color:#1E40AF;}
+.apa-out{background:#F3F4F6;color:#374151;}
+
+/* ── Modal ─────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-box{background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-header{padding:18px 20px 14px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-header h3{margin:0;font-size:15px;font-weight:600;color:var(--cinza-900);}
+.modal-body{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:13px;}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+.form-group label{font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;}
+.form-group input,.form-group select,.form-group textarea{font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--borda);border-radius:var(--raio);color:var(--cinza-900);background:#fff;width:100%;box-sizing:border-box;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--verde-escuro);box-shadow:0 0 0 3px rgba(31,78,44,.1);}
+.form-group textarea{resize:vertical;min-height:70px;}
+.geo-row{display:flex;gap:8px;align-items:flex-end;}
+.geo-row .form-group{flex:1;}
+.btn-geo{padding:8px 10px;border:1px dashed var(--verde-escuro);background:rgba(31,78,44,.06);color:var(--verde-escuro);border-radius:var(--raio);cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.btn-geo:hover{background:rgba(31,78,44,.12);}
+
+/* foto upload */
+.foto-upload-area{border:2px dashed var(--borda);border-radius:var(--raio);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;}
+.foto-upload-area:hover,.foto-upload-area.drag{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
+.foto-upload-area .ico{font-size:28px;margin-bottom:6px;}
+.foto-upload-area p{margin:0;font-size:12px;color:var(--cinza-500);}
+.foto-preview{width:100%;max-height:160px;object-fit:cover;border-radius:var(--raio);margin-top:8px;display:none;}
+
+/* popup leaflet */
+.mapa-popup{min-width:200px;max-width:260px;font-family:'DM Sans',sans-serif;}
+.mapa-popup h4{margin:0 0 6px;font-size:13px;font-weight:600;color:#1F4E2C;}
+.mapa-popup .pp-foto{width:100%;height:120px;object-fit:cover;border-radius:6px;margin-bottom:8px;}
+.mapa-popup .pp-linha{display:flex;gap:6px;font-size:11px;color:#555;margin-bottom:3px;align-items:flex-start;}
+.mapa-popup .pp-linha strong{color:#222;min-width:64px;flex-shrink:0;}
+.mapa-popup .pp-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;text-transform:uppercase;margin-top:4px;}
+
+/* csv modal */
+.csv-drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:30px;text-align:center;cursor:pointer;}
+.csv-drop:hover{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
+.csv-preview{margin-top:12px;font-size:11px;color:var(--cinza-600);background:var(--cinza-50);border-radius:var(--raio);padding:10px;max-height:160px;overflow-y:auto;}
+.csv-preview table{border-collapse:collapse;width:100%;}
+.csv-preview td,.csv-preview th{padding:3px 6px;border:1px solid var(--cinza-200);white-space:nowrap;}
+.csv-preview th{background:var(--cinza-100);font-weight:600;}
+</style>
+</head>
+<body>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<div id="app"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+// ── Supabase ──────────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── Cor por APA ───────────────────────────────────────────────────────────
+const COR_APA = {
+  'Igarapé São Francisco': '#16a34a',
+  'Lago do Amapá':         '#2563eb',
+  'Outra':                 '#9ca3af',
+};
+
+function corApa(apa){ return COR_APA[apa] || '#9ca3af'; }
+function classApa(apa){
+  if(apa==='Igarapé São Francisco') return 'apa-isf';
+  if(apa==='Lago do Amapá') return 'apa-la';
+  return 'apa-out';
+}
+
+function criarIcone(apa){
+  const cor = corApa(apa);
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:14px;height:14px;border-radius:50%;background:${cor};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
+    iconSize:[14,14], iconAnchor:[7,7], popupAnchor:[0,-10]
+  });
+}
+
+// ── Estado ────────────────────────────────────────────────────────────────
+let mapaL = null;
+let clusters = null;
+let pontos = [];
+let pontosLayer = [];
+let filtrosAPA = new Set(['Igarapé São Francisco','Lago do Amapá','Outra']);
+let produtoId = null; // opcional: vincular ao produto
+
+// ── Init ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await verificarAuth();
+  document.getElementById('app').innerHTML = gerarLayout('Mapa de Entregas','mapa');
+  document.querySelector('.conteudo-principal').innerHTML = renderPagina();
+  await iniciarMapa();
+  await carregarPontos();
+  vincularEventos();
+});
+
+function renderPagina(){
+  return `
+  <div class="mapa-wrapper">
+    <div class="mapa-toolbar">
+      <div style="flex:1">
+        <h2 style="margin:0;font-size:18px;font-weight:600;color:var(--cinza-900)">Mapa de Entregas</h2>
+        <p style="margin:2px 0 0;font-size:12px;color:var(--cinza-500)">APAs Igarapé São Francisco e Lago do Amapá · Rio Branco, Acre</p>
+      </div>
+      <button class="btn btn-outline" onclick="abrirModalCSV()" style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:14px">📂</span> Importar CSV
+      </button>
+      <button class="btn btn-primary" onclick="abrirModalNovo()" style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:16px">＋</span> Adicionar ponto
+      </button>
+    </div>
+
+    <div class="mapa-container">
+      <div id="mapa"></div>
+
+      <div class="mapa-painel">
+        <!-- stats -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="stat-mini sm-g">
+            <div class="lbl">Total</div>
+            <div class="val" id="stat-total">—</div>
+            <div class="sub">pontos</div>
+          </div>
+          <div class="stat-mini sm-b">
+            <div class="lbl">Ativos</div>
+            <div class="val" id="stat-ativos">—</div>
+            <div class="sub">registros</div>
+          </div>
+        </div>
+
+        <!-- filtros APA -->
+        <div class="filtro-bloco">
+          <h4>Filtrar por APA</h4>
+          <label class="filtro-item"><input type="checkbox" checked data-apa="Igarapé São Francisco" onchange="toggleFiltroAPA(this)">
+            <span class="filtro-dot" style="background:#16a34a"></span>Igarapé São Francisco
+          </label>
+          <label class="filtro-item"><input type="checkbox" checked data-apa="Lago do Amapá" onchange="toggleFiltroAPA(this)">
+            <span class="filtro-dot" style="background:#2563eb"></span>Lago do Amapá
+          </label>
+          <label class="filtro-item"><input type="checkbox" checked data-apa="Outra" onchange="toggleFiltroAPA(this)">
+            <span class="filtro-dot" style="background:#9ca3af"></span>Outra
+          </label>
+        </div>
+
+        <!-- lista de pontos -->
+        <div class="pontos-lista">
+          <h4>Pontos cadastrados</h4>
+          <div class="pontos-scroll" id="lista-pontos">
+            <div style="padding:16px;text-align:center;font-size:12px;color:var(--cinza-400)">Carregando...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Novo/Editar ponto -->
+  <div class="modal-overlay" id="modal-ponto" style="display:none">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-ponto-titulo">Adicionar ponto</h3>
+        <button class="btn-close" onclick="fecharModalPonto()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-ponto-body">
+        <!-- injetado dinamicamente -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModalPonto()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-ponto" onclick="salvarPonto()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Importar CSV -->
+  <div class="modal-overlay" id="modal-csv" style="display:none">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Importar CSV</h3>
+        <button class="btn-close" onclick="fecharModalCSV()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0;font-size:12px;color:var(--cinza-600)">
+          O arquivo CSV deve conter os cabeçalhos: <code>nome_local, apa, tipo_atividade, responsavel, data_implantacao, lat, lng, observacao</code><br>
+          <em>lat/lng</em> em graus decimais (ex: <em>-9.9748, -67.8072</em>).
+        </p>
+        <button class="btn btn-outline" onclick="baixarTemplate()" style="font-size:12px;margin-top:2px;">⬇ Baixar template</button>
+
+        <div class="csv-drop" id="csv-drop" onclick="document.getElementById('csv-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="onCsvDrop(event)">
+          <div style="font-size:32px;margin-bottom:8px">📄</div>
+          <p style="margin:0;font-size:13px;font-weight:500;color:var(--cinza-700)">Arraste o CSV aqui ou clique para selecionar</p>
+          <p style="margin:4px 0 0;font-size:11px;color:var(--cinza-400)">Apenas arquivos .csv</p>
+        </div>
+        <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="onCsvFile(this.files[0])">
+
+        <div class="csv-preview" id="csv-preview" style="display:none"></div>
+        <p id="csv-status" style="font-size:12px;color:var(--cinza-600);margin:4px 0 0"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModalCSV()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-importar-csv" onclick="importarCSV()" disabled>Importar</button>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+// ── Mapa ──────────────────────────────────────────────────────────────────
+function iniciarMapa(){
+  // Centro aproximado entre as duas APAs em Rio Branco, Acre
+  mapaL = L.map('mapa', { center: [-9.96, -67.81], zoom: 12, zoomControl: true });
+
+  // Satélite Esri
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Esri, Maxar, Earthstar Geographics',
+    maxZoom: 19
+  }).addTo(mapaL);
+
+  // Rótulos por cima (OpenStreetMap labels only)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    attribution: '© CartoDB',
+    opacity: 0.7,
+    maxZoom: 19
+  }).addTo(mapaL);
+
+  clusters = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 16 });
+  mapaL.addLayer(clusters);
+}
+
+// ── Carregar pontos ───────────────────────────────────────────────────────
+async function carregarPontos(){
+  const { data, error } = await sb.from('produto_pontos_mapa').select('*').order('criado_em', { ascending: false });
+  if(error){ console.error(error); return; }
+  pontos = data || [];
+  renderizarMarcadores();
+  renderizarLista();
+  atualizarStats();
+}
+
+function renderizarMarcadores(){
+  clusters.clearLayers();
+  pontosLayer = [];
+  pontos.filter(p => filtrosAPA.has(p.apa)).forEach(p => {
+    const m = L.marker([p.lat, p.lng], { icon: criarIcone(p.apa) });
+    m.bindPopup(renderPopup(p), { maxWidth: 280 });
+    m.pontoId = p.id;
+    clusters.addLayer(m);
+    pontosLayer.push(m);
+  });
+}
+
+function renderPopup(p){
+  const dt = p.data_implantacao ? new Date(p.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '—';
+  const fotoHtml = p.foto_url ? `<img class="pp-foto" src="${escHtml(p.foto_url)}" alt="foto">` : '';
+  return `<div class="mapa-popup">
+    ${fotoHtml}
+    <h4>${escHtml(p.nome_local)}</h4>
+    <div class="pp-linha"><strong>APA:</strong>${escHtml(p.apa)}</div>
+    ${p.tipo_atividade?`<div class="pp-linha"><strong>Atividade:</strong>${escHtml(p.tipo_atividade)}</div>`:''}
+    ${p.responsavel?`<div class="pp-linha"><strong>Responsável:</strong>${escHtml(p.responsavel)}</div>`:''}
+    <div class="pp-linha"><strong>Implantação:</strong>${dt}</div>
+    ${p.observacao?`<div class="pp-linha"><strong>Obs.:</strong>${escHtml(p.observacao)}</div>`:''}
+    <div style="margin-top:8px;display:flex;gap:6px">
+      <button onclick="abrirModalEditar('${p.id}')" style="font-size:11px;padding:4px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
+      <button onclick="excluirPonto('${p.id}')" style="font-size:11px;padding:4px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
+    </div>
+  </div>`;
+}
+
+function renderizarLista(){
+  const el = document.getElementById('lista-pontos');
+  if(!el) return;
+  const vis = pontos.filter(p => filtrosAPA.has(p.apa));
+  if(!vis.length){ el.innerHTML = `<div style="padding:16px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum ponto cadastrado.</div>`; return; }
+  el.innerHTML = vis.map(p => {
+    const dt = p.data_implantacao ? new Date(p.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '';
+    return `<div class="ponto-item" onclick="focarPonto('${p.id}')">
+      <span class="ponto-dot" style="background:${corApa(p.apa)}"></span>
+      <div style="flex:1;min-width:0">
+        <div class="ponto-nome">${escHtml(p.nome_local)}</div>
+        <div class="ponto-sub">${escHtml(p.apa)}${dt?' · '+dt:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function atualizarStats(){
+  const el1 = document.getElementById('stat-total');
+  const el2 = document.getElementById('stat-ativos');
+  if(el1) el1.textContent = pontos.length;
+  if(el2) el2.textContent = pontos.filter(p=>p.status==='ativo').length;
+}
+
+function focarPonto(id){
+  const p = pontos.find(x=>x.id===id);
+  if(!p) return;
+  mapaL.setView([p.lat, p.lng], 17);
+  const layer = pontosLayer.find(m=>m.pontoId===id);
+  if(layer){ clusters.zoomToShowLayer(layer, ()=>layer.openPopup()); }
+}
+
+function toggleFiltroAPA(el){
+  const apa = el.dataset.apa;
+  if(el.checked) filtrosAPA.add(apa); else filtrosAPA.delete(apa);
+  renderizarMarcadores();
+  renderizarLista();
+}
+
+// ── Modal: Novo ponto ─────────────────────────────────────────────────────
+let editandoId = null;
+
+function htmlFormPonto(p={}){
+  return `
+  <div class="form-row">
+    <div class="form-group full">
+      <label>Nome do local *</label>
+      <input id="f-nome" type="text" value="${escHtml(p.nome_local||'')}" placeholder="Ex: Unidade Produtiva — Comunidade Boa Vista" required>
+    </div>
+    <div class="form-group">
+      <label>APA *</label>
+      <select id="f-apa">
+        <option value="">Selecione…</option>
+        <option value="Igarapé São Francisco" ${p.apa==='Igarapé São Francisco'?'selected':''}>Igarapé São Francisco</option>
+        <option value="Lago do Amapá" ${p.apa==='Lago do Amapá'?'selected':''}>Lago do Amapá</option>
+        <option value="Outra" ${p.apa==='Outra'?'selected':''}>Outra</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Tipo de atividade</label>
+      <input id="f-tipo" type="text" value="${escHtml(p.tipo_atividade||'')}" placeholder="Ex: Unidade produtiva">
+    </div>
+    <div class="form-group">
+      <label>Responsável</label>
+      <input id="f-resp" type="text" value="${escHtml(p.responsavel||'')}" placeholder="Nome">
+    </div>
+    <div class="form-group">
+      <label>Data de implantação</label>
+      <input id="f-data" type="date" value="${p.data_implantacao||''}">
+    </div>
+  </div>
+
+  <div>
+    <label style="font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px">Localização *</label>
+    <div class="geo-row">
+      <div class="form-group">
+        <label>Latitude</label>
+        <input id="f-lat" type="number" step="any" value="${p.lat||''}" placeholder="-9.9748">
+      </div>
+      <div class="form-group">
+        <label>Longitude</label>
+        <input id="f-lng" type="number" step="any" value="${p.lng||''}" placeholder="-67.8072">
+      </div>
+      <button class="btn-geo" onclick="usarGeolocalizacao()" title="Usar minha localização atual">
+        📍 GPS
+      </button>
+    </div>
+    <p style="font-size:10px;color:var(--cinza-400);margin:4px 0 0">Ou clique no mapa após fechar este modal para posicionar.</p>
+  </div>
+
+  <div class="form-group">
+    <label>Foto</label>
+    <div class="foto-upload-area" id="foto-area" onclick="document.getElementById('f-foto').click()"
+      ondragover="event.preventDefault();document.getElementById('foto-area').classList.add('drag')"
+      ondragleave="document.getElementById('foto-area').classList.remove('drag')"
+      ondrop="onFotoDrop(event)">
+      <div class="ico">📷</div>
+      <p>${p.foto_url?'Substituir foto atual':'Clique ou arraste para adicionar foto'}</p>
+      ${p.foto_url?`<img id="foto-preview" class="foto-preview" src="${escHtml(p.foto_url)}" style="display:block">`:`<img id="foto-preview" class="foto-preview">`}
+    </div>
+    <input type="file" id="f-foto" accept="image/*" style="display:none" onchange="previewFoto(this)">
+  </div>
+
+  <div class="form-group">
+    <label>Observação</label>
+    <textarea id="f-obs" placeholder="Informações adicionais…">${escHtml(p.observacao||'')}</textarea>
+  </div>
+  `;
+}
+
+function abrirModalNovo(){
+  editandoId = null;
+  document.getElementById('modal-ponto-titulo').textContent = 'Adicionar ponto';
+  document.getElementById('modal-ponto-body').innerHTML = htmlFormPonto();
+  document.getElementById('modal-ponto').style.display = 'flex';
+}
+
+function abrirModalEditar(id){
+  const p = pontos.find(x=>x.id===id);
+  if(!p) return;
+  editandoId = id;
+  document.getElementById('modal-ponto-titulo').textContent = 'Editar ponto';
+  document.getElementById('modal-ponto-body').innerHTML = htmlFormPonto(p);
+  document.getElementById('modal-ponto').style.display = 'flex';
+}
+
+function fecharModalPonto(){ document.getElementById('modal-ponto').style.display = 'none'; editandoId = null; }
+
+function usarGeolocalizacao(){
+  if(!navigator.geolocation){ alert('Geolocalização não suportada neste navegador.'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    document.getElementById('f-lat').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('f-lng').value = pos.coords.longitude.toFixed(6);
+  }, () => alert('Não foi possível obter a localização. Verifique as permissões.'));
+}
+
+let fotoArquivo = null;
+function previewFoto(input){
+  const f = input.files[0];
+  if(!f) return;
+  fotoArquivo = f;
+  const url = URL.createObjectURL(f);
+  const img = document.getElementById('foto-preview');
+  img.src = url; img.style.display = 'block';
+}
+function onFotoDrop(e){
+  e.preventDefault();
+  document.getElementById('foto-area').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if(!f || !f.type.startsWith('image/')) return;
+  fotoArquivo = f;
+  const url = URL.createObjectURL(f);
+  const img = document.getElementById('foto-preview');
+  img.src = url; img.style.display = 'block';
+}
+
+async function salvarPonto(){
+  const nome = document.getElementById('f-nome').value.trim();
+  const apa  = document.getElementById('f-apa').value;
+  const lat  = parseFloat(document.getElementById('f-lat').value);
+  const lng  = parseFloat(document.getElementById('f-lng').value);
+
+  if(!nome || !apa || isNaN(lat) || isNaN(lng)){
+    alert('Preencha os campos obrigatórios: Nome, APA, Latitude e Longitude.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-salvar-ponto');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  let foto_url = editandoId ? (pontos.find(p=>p.id===editandoId)?.foto_url || null) : null;
+  let foto_nome = editandoId ? (pontos.find(p=>p.id===editandoId)?.foto_nome || null) : null;
+
+  // Upload de foto
+  if(fotoArquivo){
+    const ext = fotoArquivo.name.split('.').pop();
+    const path = `pontos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { data: upData, error: upErr } = await sb.storage.from('pontos-mapa').upload(path, fotoArquivo, { upsert: true });
+    if(upErr){ alert('Erro ao enviar foto: '+upErr.message); btn.disabled=false; btn.textContent='Salvar'; return; }
+    const { data: urlData } = sb.storage.from('pontos-mapa').getPublicUrl(path);
+    foto_url = urlData.publicUrl;
+    foto_nome = fotoArquivo.name;
+  }
+
+  const payload = {
+    nome_local:       nome,
+    apa,
+    tipo_atividade:   document.getElementById('f-tipo').value.trim() || null,
+    responsavel:      document.getElementById('f-resp').value.trim() || null,
+    data_implantacao: document.getElementById('f-data').value || null,
+    lat, lng,
+    foto_url, foto_nome,
+    observacao:       document.getElementById('f-obs').value.trim() || null,
+    status:           'ativo',
+  };
+
+  let err;
+  if(editandoId){
+    ({ error: err } = await sb.from('produto_pontos_mapa').update(payload).eq('id', editandoId));
+  } else {
+    payload.criado_por = appState.usuario?.id || null;
+    ({ error: err } = await sb.from('produto_pontos_mapa').insert(payload));
+  }
+
+  btn.disabled = false; btn.textContent = 'Salvar';
+  if(err){ alert('Erro ao salvar: '+err.message); return; }
+  fotoArquivo = null;
+  fecharModalPonto();
+  await carregarPontos();
+}
+
+async function excluirPonto(id){
+  if(!confirm('Excluir este ponto?')) return;
+  const { error } = await sb.from('produto_pontos_mapa').delete().eq('id', id);
+  if(error){ alert('Erro: '+error.message); return; }
+  await carregarPontos();
+}
+
+// ── Modal CSV ─────────────────────────────────────────────────────────────
+let csvLinhas = [];
+const CSV_CAMPOS = ['nome_local','apa','tipo_atividade','responsavel','data_implantacao','lat','lng','observacao'];
+
+function abrirModalCSV(){
+  csvLinhas = [];
+  document.getElementById('csv-preview').style.display='none';
+  document.getElementById('csv-status').textContent='';
+  document.getElementById('btn-importar-csv').disabled=true;
+  document.getElementById('modal-csv').style.display='flex';
+}
+function fecharModalCSV(){ document.getElementById('modal-csv').style.display='none'; }
+
+function baixarTemplate(){
+  const cabecalho = CSV_CAMPOS.join(',');
+  const exemplo = 'Unidade Produtiva 01,Igarapé São Francisco,Unidade produtiva,João Silva,2025-04-10,-9.9720,-67.8050,Próximo ao igarapé';
+  const blob = new Blob([cabecalho+'\n'+exemplo], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'template_pontos_mapa.csv';
+  a.click();
+}
+
+function onCsvDrop(e){
+  e.preventDefault();
+  document.getElementById('csv-drop').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if(f) processarCSV(f);
+}
+function onCsvFile(f){ if(f) processarCSV(f); }
+
+function processarCSV(file){
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const txt = e.target.result;
+    const linhas = txt.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(!linhas.length){ document.getElementById('csv-status').textContent='Arquivo vazio.'; return; }
+
+    // Cabeçalho
+    const header = linhas[0].split(',').map(h=>h.trim().toLowerCase().replace(/[^a-z_]/g,''));
+    const dados = linhas.slice(1).map(linha => {
+      const cols = parseCsvLinha(linha);
+      const obj = {};
+      header.forEach((h,i) => { obj[h] = cols[i]?.trim() || null; });
+      return obj;
+    }).filter(r => r.nome_local && r.lat && r.lng);
+
+    if(!dados.length){ document.getElementById('csv-status').textContent='Nenhuma linha válida encontrada.'; return; }
+
+    csvLinhas = dados;
+    document.getElementById('csv-status').textContent=`${dados.length} registros prontos para importar.`;
+    document.getElementById('btn-importar-csv').disabled=false;
+
+    // Preview (primeiras 5 linhas)
+    const prev = document.getElementById('csv-preview');
+    const cols = CSV_CAMPOS.filter(c=>header.includes(c));
+    prev.style.display='block';
+    prev.innerHTML=`<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${dados.slice(0,5).map(r=>`<tr>${cols.map(c=>`<td>${escHtml(r[c]||'')}</td>`).join('')}</tr>`).join('')}${dados.length>5?`<tr><td colspan="${cols.length}" style="text-align:center;color:#999">…e mais ${dados.length-5}</td></tr>`:''}</tbody></table>`;
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function parseCsvLinha(linha){
+  // Simples: lida com aspas duplas
+  const result = [];
+  let cur = ''; let inQ = false;
+  for(let i=0;i<linha.length;i++){
+    const c=linha[i];
+    if(c==='"'){ inQ=!inQ; } else if(c===','&&!inQ){ result.push(cur); cur=''; } else { cur+=c; }
+  }
+  result.push(cur);
+  return result;
+}
+
+async function importarCSV(){
+  if(!csvLinhas.length) return;
+  const btn = document.getElementById('btn-importar-csv');
+  btn.disabled=true; btn.textContent='Importando…';
+
+  const uid = appState.usuario?.id || null;
+  const inserts = csvLinhas.map(r => ({
+    nome_local:       r.nome_local,
+    apa:              ['Igarapé São Francisco','Lago do Amapá','Outra'].includes(r.apa) ? r.apa : 'Outra',
+    tipo_atividade:   r.tipo_atividade || null,
+    responsavel:      r.responsavel || null,
+    data_implantacao: r.data_implantacao || null,
+    lat:              parseFloat(r.lat),
+    lng:              parseFloat(r.lng),
+    observacao:       r.observacao || null,
+    status:           'ativo',
+    criado_por:       uid,
+  })).filter(r => !isNaN(r.lat) && !isNaN(r.lng));
+
+  const { error } = await sb.from('produto_pontos_mapa').insert(inserts);
+  btn.disabled=false; btn.textContent='Importar';
+  if(error){ alert('Erro ao importar: '+error.message); return; }
+  fecharModalCSV();
+  await carregarPontos();
+}
+
+// ── Clique no mapa para novo ponto ────────────────────────────────────────
+let aguardandoCliqueMapa = false;
+function vincularEventos(){
+  mapaL.on('click', (e) => {
+    if(!aguardandoCliqueMapa) return;
+    aguardandoCliqueMapa = false;
+    mapaL.getContainer().style.cursor = '';
+    // pré-preenche lat/lng se modal estiver aberto
+    const fLat = document.getElementById('f-lat');
+    const fLng = document.getElementById('f-lng');
+    if(fLat) fLat.value = e.latlng.lat.toFixed(6);
+    if(fLng) fLng.value = e.latlng.lng.toFixed(6);
+    document.getElementById('modal-ponto').style.display='flex';
+  });
+}
+
+// ── Utilitários ───────────────────────────────────────────────────────────
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

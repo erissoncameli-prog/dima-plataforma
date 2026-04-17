@@ -16,7 +16,7 @@ const i18n = {
     nav: {
       dashboard: 'Visão Geral', atividades: 'Atividades', tdrs: 'TDRs',
       financeiro: 'Financeiro', contratos: 'Contratos', fornecedores: 'Fornecedores',
-      viagens: 'Viagens', relatorios: 'Relatórios', repositorio: 'Repositório', produtos: 'Produtos Entregues', matriz: 'Matriz de Resultados', usuarios: 'Usuários', sair: 'Sair'
+      viagens: 'Viagens', relatorios: 'Relatórios', mapa: 'Mapa de Entregas', repositorio: 'Repositório', produtos: 'Produtos Entregues', matriz: 'Matriz de Resultados', usuarios: 'Usuários', sair: 'Sair'
     },
     comum: {
       salvar: 'Salvar', cancelar: 'Cancelar', editar: 'Editar', excluir: 'Excluir',
@@ -53,7 +53,7 @@ const i18n = {
     nav: {
       dashboard: 'Overview', atividades: 'Activities', tdrs: 'TORs',
       financeiro: 'Financial', contratos: 'Contracts', fornecedores: 'Suppliers',
-      viagens: 'Travel', relatorios: 'Reports', repositorio: 'Repository', produtos: 'Delivered Products', matriz: 'Results Matrix', usuarios: 'Users', sair: 'Sign out'
+      viagens: 'Travel', relatorios: 'Reports', mapa: 'Delivery Map', repositorio: 'Repository', produtos: 'Delivered Products', matriz: 'Results Matrix', usuarios: 'Users', sair: 'Sign out'
     },
     comum: {
       salvar: 'Save', cancelar: 'Cancel', editar: 'Edit', excluir: 'Delete',
@@ -90,7 +90,7 @@ const i18n = {
     nav: {
       dashboard: 'Resumen', atividades: 'Actividades', tdrs: 'TDRs',
       financeiro: 'Financiero', contratos: 'Contratos', fornecedores: 'Proveedores',
-      viagens: 'Viajes', relatorios: 'Informes', repositorio: 'Repositorio', produtos: 'Productos Entregados', matriz: 'Matriz de Resultados', usuarios: 'Usuarios', sair: 'Salir'
+      viagens: 'Viajes', relatorios: 'Informes', mapa: 'Mapa de Entregas', repositorio: 'Repositorio', produtos: 'Productos Entregados', matriz: 'Matriz de Resultados', usuarios: 'Usuarios', sair: 'Salir'
     },
     comum: {
       salvar: 'Guardar', cancelar: 'Cancelar', editar: 'Editar', excluir: 'Eliminar',
