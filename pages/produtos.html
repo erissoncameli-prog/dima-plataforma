@@ -79,6 +79,8 @@
 .foto-exist{position:relative;aspect-ratio:1;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);cursor:pointer;}
 .foto-exist img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s;}
 .foto-exist:hover img{transform:scale(1.05);}
+/* Animação aviso geo */
+@keyframes pulse-warn{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.5)}50%{box-shadow:0 0 0 6px rgba(251,191,36,0)}}
 /* Lightbox */
 #lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column;}
 #lightbox.aberto{display:flex;}
@@ -115,7 +117,25 @@
     <div class="modal-footer" id="mp-footer"></div>
   </div>
 </div>
+<!-- Modal: Planilha de Geolocalização -->
+<div class="modal-overlay" id="modal-geo-csv" style="display:none">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📍 Planilha de Geolocalização</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Importe as coordenadas dos pontos entregues</div>
+      </div>
+      <button class="modal-close" onclick="fecharModalGeoCsv()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="geo-csv-body" style="max-height:68vh;overflow-y:auto">
+      <!-- injetado dinamicamente em etapas -->
+    </div>
+    <div class="modal-footer" id="geo-csv-footer"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/produtos.js"></script>

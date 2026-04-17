@@ -9,11 +9,13 @@ let docsEntrega=[];
 let notaTecnicaFile=null;
 let notifPendenteId=null;
 let matrizItensCache=null; // cache de indicadores da matriz
+let geoCSVPontos=[]; // pontos do CSV de geolocalização pendentes para salvar
 
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function fmtDT(d){return d?new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';}
 
-const TIPOS_DOC=['Relatório Técnico','Nota Fiscal','Comprovante de Pagamento','Contrato / Aditivo','Declaração / Atestado','Relatório Parcial','Outro'];
+const TIPOS_DOC=['Relatório Técnico','Nota Fiscal','Comprovante de Pagamento','Contrato / Aditivo','Declaração / Atestado','Relatório Parcial','Planilha de Geolocalização','Outro'];
+const TIPO_GEO='Planilha de Geolocalização';
 
 (async function(){
   var u=await carregarUsuario();
@@ -349,11 +351,11 @@ async function abrirModal(prodId){
       +'<select class="form-control" id="sel-tipo-doc" style="flex:1;height:34px;font-size:12px">'
       +TIPOS_DOC.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('')
       +'</select>'
-      +'<button class="btn btn-secondary btn-sm" style="white-space:nowrap;height:34px" onclick="document.getElementById(\'inp-arq\').click()">+ Adicionar</button>'
+      +'<button class="btn btn-secondary btn-sm" style="white-space:nowrap;height:34px" onclick="onBtnAdicionarDoc()">+ Adicionar</button>'
       +'<input type="file" id="inp-arq" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.jpg,.png" onchange="adicionarDoc(this.files[0]);this.value=\'\'">'
       +'</div>'
       +'<div id="lista-docs"><div style="font-size:11px;color:var(--cinza-400);padding:6px 0">Nenhum documento adicionado ainda.</div></div>'
-      +'<div style="font-size:10px;color:var(--cinza-400);margin-top:4px">PDF, Word, Excel, ZIP, Imagem · até 20MB por arquivo</div>'
+      +'<div style="font-size:10px;color:var(--cinza-400);margin-top:4px">PDF, Word, Excel, ZIP, Imagem · até 20MB por arquivo · ou selecione <b>Planilha de Geolocalização</b> para importar CSV com coordenadas</div>'
       +'</div>'
       +'<div class="form-group">'
       +'<label class="form-label">Fotos de evidência <span style="font-size:10px;color:var(--cinza-400);font-weight:400">(JPEG/PNG · até 10)</span></label>'
@@ -364,6 +366,11 @@ async function abrirModal(prodId){
       +'</div>'
       +'<div id="fotos-grid" class="fotos-grid"></div>'
       +'<div id="fotos-count" style="font-size:11px;color:var(--cinza-500);margin-top:6px"></div>'
+      +'</div>'
+      // Aviso contribuição obrigatória quando há geo
+      +'<div id="aviso-geo" style="display:none;align-items:flex-start;gap:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">'
+      +'<span style="font-size:16px;flex-shrink:0">&#x26A0;&#xFE0F;</span>'
+      +'<div style="font-size:12px;color:#92400E"><strong>Contribuição obrigatória.</strong> Esta entrega contém uma planilha de geolocalização — vincule-a a pelo menos um indicador da Matriz de Resultados abaixo antes de enviar.</div>'
       +'</div>'
       // Contribuição à Matriz de Resultados
       +'<div style="border-top:1px solid var(--borda);padding-top:14px;margin-top:4px">'
@@ -393,11 +400,15 @@ async function abrirModal(prodId){
       html+='<div style="background:var(--azul-bg);border:1px solid #BFDBFE;border-radius:var(--raio);padding:12px 14px;margin-bottom:10px">'
         +'<div style="font-size:11px;font-weight:700;color:var(--azul-medio);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4CE; Documentos entregues (Entrega '+entregaAtual.numero_entrega+(entregaAtual.dt_entrega?' · '+fmtData(entregaAtual.dt_entrega):'')+')</div>';
       docs.forEach(function(d){
+        var isGeoDoc=d.tipo_documento===TIPO_GEO;
         html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #BFDBFE">'
-          +'<span>&#x1F4C4;</span>'
+          +'<span>'+(isGeoDoc?'&#x1F4CD;':'&#x1F4C4;')+'</span>'
           +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(d.arquivo_nome)+'</div>'
           +'<div style="font-size:10px;color:var(--cinza-500)">'+esc(d.tipo_documento)+'</div></div>'
-          +'<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirArquivo(\''+esc(d.arquivo_url)+'\')">&#x1F441; Abrir</button>'
+          +(isGeoDoc
+            ? '<button class="btn btn-sm btn-secondary" style="font-size:11px;white-space:nowrap" onclick="window.open(\'mapa.html?produto='+esc(entregaAtual.id)+'\',\'_blank\')">&#x1F5FA; Ver no mapa</button>'
+            : '<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirArquivo(\''+esc(d.arquivo_url)+'\')">&#x1F441; Abrir</button>'
+          )
           +'</div>';
       });
       if(entregaAtual.arquivo_url&&!docs.length){
@@ -605,8 +616,18 @@ function adicionarDoc(file){
 function renderListaDocs(){
   var el=document.getElementById('lista-docs');
   if(!el)return;
-  if(!docsEntrega.length){el.innerHTML='<div style="font-size:11px;color:var(--cinza-400);padding:6px 0">Nenhum documento adicionado ainda.</div>';return;}
+  if(!docsEntrega.length){el.innerHTML='<div style="font-size:11px;color:var(--cinza-400);padding:6px 0">Nenhum documento adicionado ainda.</div>';renderAvisoGeo();return;}
   el.innerHTML=docsEntrega.map(function(d,i){
+    if(d.isGeo){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#F0FDF4;border:1px solid #86EFAC;border-radius:var(--raio);margin-bottom:4px">'
+        +'<span style="font-size:16px">&#x1F4CD;</span>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:12px;font-weight:600;color:#166534">'+esc(d.nome)+'</div>'
+        +'<div style="font-size:10px;color:#15803D">'+d.pontos.length+' pontos · Planilha de Geolocalização</div>'
+        +'</div>'
+        +'<button onclick="removerDoc('+i+')" style="width:22px;height:22px;border:1px solid #86EFAC;border-radius:50%;background:#DCFCE7;color:#166534;cursor:pointer;font-size:11px">&#x2715;</button>'
+        +'</div>';
+    }
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:4px">'
       +'<span>&#x1F4CE;</span>'
       +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(d.nome)+'</div>'
@@ -614,6 +635,18 @@ function renderListaDocs(){
       +'<button onclick="removerDoc('+i+')" style="width:22px;height:22px;border:1px solid #FCA5A5;border-radius:50%;background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:11px">&#x2715;</button>'
       +'</div>';
   }).join('');
+  renderAvisoGeo();
+}
+
+function renderAvisoGeo(){
+  var aviso=document.getElementById('aviso-geo');
+  if(!aviso)return;
+  var temGeo=docsEntrega.some(function(d){return d.isGeo;});
+  if(temGeo){
+    aviso.style.display='flex';
+  } else {
+    aviso.style.display='none';
+  }
 }
 
 function removerDoc(i){docsEntrega.splice(i,1);renderListaDocs();}
@@ -718,6 +751,15 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
   var obs=document.getElementById('f-obs-ent')&&document.getElementById('f-obs-ent').value&&document.getElementById('f-obs-ent').value.trim()||'';
   if(!dtEnt){toast('Informe a data de entrega.','error');return;}
   if(!docsEntrega.length){toast('Adicione pelo menos um documento.','error');return;}
+  // Contribuição obrigatória quando há planilha de geolocalização
+  var temGeo=docsEntrega.some(function(d){return d.isGeo;});
+  if(temGeo&&!coletarContribsMatriz().length){
+    toast('Esta entrega contém geolocalização — vincule ao menos um indicador da Matriz de Resultados.','error');
+    var aviso=document.getElementById('aviso-geo');
+    if(aviso){aviso.style.animation='none';aviso.offsetHeight;aviso.style.animation='pulse-warn .4s 2';}
+    document.getElementById('matriz-contribs-lista').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
 
   var fotosUrls=[],fotosNomes=[];
   if(fotosNovas.length){
@@ -764,7 +806,34 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
     if(!cR.error){toast(contribs.length+' contribuição(ões) à Matriz de Resultados registrada(s) — aguarda confirmação técnica.','info');}
   }
 
-  var qtd=docsEntrega.length;docsEntrega=[];
+  // Salvar pontos de geolocalização
+  var geoDocs=docsEntrega.filter(function(d){return d.isGeo&&d.pontos&&d.pontos.length;});
+  if(geoDocs.length){
+    var todospontos=[];
+    geoDocs.forEach(function(d){
+      d.pontos.forEach(function(p){
+        todospontos.push({
+          nome_local:p.nome_local||'Ponto sem nome',
+          apa:['Igarapé São Francisco','Lago do Amapá','Outra'].includes(p.apa)?p.apa:'Outra',
+          tipo_atividade:p.tipo_atividade||null,
+          responsavel:p.responsavel||null,
+          data_implantacao:p.data_implantacao||null,
+          lat:parseFloat(p.lat),lng:parseFloat(p.lng),
+          observacao:p.observacao||null,
+          status:'ativo',
+          produto_id:entrega.id,
+          criado_por:appState.usuario.id
+        });
+      });
+    });
+    var validos=todospontos.filter(function(p){return !isNaN(p.lat)&&!isNaN(p.lng);});
+    if(validos.length){
+      var gR=await db.from('produto_pontos_mapa').insert(validos);
+      if(!gR.error){toast(validos.length+' ponto(s) de geolocalização salvos no mapa.','info');}
+    }
+  }
+
+  var qtd=docsEntrega.length;docsEntrega=[];geoCSVPontos=[];
   toast('Entrega com '+qtd+' documento(s) registrada e enviada para avaliação!','success');
   fecharModal();await selecionarCont(filtCont);await renderStats();
 }
@@ -841,6 +910,177 @@ async function emitirDespacho(tipoBtn){
 function fecharModal(){
   document.getElementById('modal-prod').classList.remove('aberto');
   produtoAtual=null;entregaAtual=null;entregaArquivo=null;decisaoSel='';
-  docsEntrega=[];notaTecnicaFile=null;fotosNovas=[];
+  docsEntrega=[];notaTecnicaFile=null;fotosNovas=[];geoCSVPontos=[];
 }
-document.addEventListener('keydown',function(e){if(e.key==='Escape')fecharModal();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){fecharModal();fecharModalGeoCsv();}});
+
+// ── Planilha de Geolocalização ─────────────────────────────────────────────
+
+function onBtnAdicionarDoc(){
+  var tipo=document.getElementById('sel-tipo-doc')&&document.getElementById('sel-tipo-doc').value||'';
+  if(tipo===TIPO_GEO){
+    abrirModalGeoCsv();
+  } else {
+    document.getElementById('inp-arq').click();
+  }
+}
+
+var _geoCsvLinhas=[];
+
+function abrirModalGeoCsv(){
+  _geoCsvLinhas=[];
+  renderModalGeoCsvEtapa1();
+  document.getElementById('modal-geo-csv').style.display='flex';
+}
+
+function fecharModalGeoCsv(){
+  var m=document.getElementById('modal-geo-csv');
+  if(m)m.style.display='none';
+  _geoCsvLinhas=[];
+}
+
+function renderModalGeoCsvEtapa1(){
+  var body=document.getElementById('geo-csv-body');
+  var footer=document.getElementById('geo-csv-footer');
+  if(!body||!footer)return;
+
+  body.innerHTML=''
+    +'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:12px 14px;margin-bottom:14px">'
+    +'<div style="font-size:12px;font-weight:600;color:#1E40AF;margin-bottom:4px">&#x1F4CB; Como usar</div>'
+    +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.7">'
+    +'<li>Baixe o template Excel abaixo e preencha com os pontos entregues.</li>'
+    +'<li><strong>Salve o arquivo como CSV</strong> (no Excel: Arquivo → Salvar Como → CSV UTF-8).</li>'
+    +'<li>Importe o CSV aqui.</li>'
+    +'</ol>'
+    +'</div>'
+    +'<button class="btn btn-secondary btn-sm" style="margin-bottom:14px" onclick="baixarTemplateGeoExcel()">&#x1F4E5; Baixar template Excel (.xlsx)</button>'
+    +'<div id="geo-drop-area" style="border:2px dashed var(--borda-forte);border-radius:var(--raio);padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cinza-50)"'
+    +' onclick="document.getElementById(\'geo-csv-input\').click()"'
+    +' ondragover="event.preventDefault();this.style.borderColor=\'var(--verde-medio)\';this.style.background=\'var(--verde-bg)\'"'
+    +' ondragleave="this.style.borderColor=\'\';this.style.background=\'var(--cinza-50)\'"'
+    +' ondrop="event.preventDefault();this.style.borderColor=\'\';this.style.background=\'var(--cinza-50)\';onGeoDropCSV(event.dataTransfer.files[0])">'
+    +'<div style="font-size:32px;margin-bottom:8px">&#x1F4C2;</div>'
+    +'<div style="font-size:13px;font-weight:500;color:var(--cinza-700)">Arraste o CSV ou clique para selecionar</div>'
+    +'<div style="font-size:11px;color:var(--cinza-400);margin-top:4px">Apenas .csv · Certifique-se de salvar como CSV antes de importar</div>'
+    +'</div>'
+    +'<input type="file" id="geo-csv-input" accept=".csv" style="display:none" onchange="onGeoDropCSV(this.files[0]);this.value=\'\'">';
+
+  footer.innerHTML=''
+    +'<button class="btn btn-secondary" onclick="fecharModalGeoCsv()">Cancelar</button>';
+}
+
+function onGeoDropCSV(file){
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var txt=e.target.result;
+    var linhas=txt.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+    if(!linhas.length){alert('Arquivo vazio.');return;}
+
+    var header=linhas[0].split(',').map(function(h){return h.trim().toLowerCase().replace(/[^a-z_]/g,'');});
+    var GEO_COLS=['nome_local','apa','lat','lng'];
+    var faltando=GEO_COLS.filter(function(c){return !header.includes(c);});
+    if(faltando.length){alert('Colunas obrigatórias não encontradas: '+faltando.join(', ')+'\n\nCabeçalho lido: '+header.join(', '));return;}
+
+    var validas=[],invalidas=[];
+    linhas.slice(1).forEach(function(linha,idx){
+      var cols=parseCsvLinhaGeo(linha);
+      var obj={};header.forEach(function(h,i){obj[h]=cols[i]?cols[i].trim():null;});
+      var lat=parseFloat(obj.lat),lng=parseFloat(obj.lng);
+      if(!obj.nome_local||isNaN(lat)||isNaN(lng)){
+        invalidas.push({linha:idx+2,dado:obj});
+      } else {
+        obj.lat=lat;obj.lng=lng;
+        validas.push(obj);
+      }
+    });
+    _geoCsvLinhas=validas;
+    renderModalGeoCsvEtapa2(validas,invalidas,header);
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+function parseCsvLinhaGeo(linha){
+  var result=[],cur='',inQ=false;
+  for(var i=0;i<linha.length;i++){
+    var c=linha[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){result.push(cur);cur='';}
+    else{cur+=c;}
+  }
+  result.push(cur);return result;
+}
+
+function renderModalGeoCsvEtapa2(validas,invalidas,header){
+  var body=document.getElementById('geo-csv-body');
+  var footer=document.getElementById('geo-csv-footer');
+  if(!body)return;
+
+  var colsExibir=['nome_local','apa','lat','lng','tipo_atividade','responsavel','data_implantacao'].filter(function(c){return header.includes(c);});
+
+  var tabelaHtml='<div style="overflow-x:auto;max-height:300px;overflow-y:auto;border:1px solid var(--borda);border-radius:var(--raio)">'
+    +'<table style="border-collapse:collapse;width:100%;font-size:11px">'
+    +'<thead><tr style="background:var(--cinza-100);position:sticky;top:0">'
+    +colsExibir.map(function(c){return '<th style="padding:5px 8px;text-align:left;font-weight:600;white-space:nowrap;border-bottom:1px solid var(--borda)">'+c+'</th>';}).join('')
+    +'</tr></thead><tbody>'
+    +validas.slice(0,100).map(function(r,i){
+      return '<tr style="border-bottom:1px solid var(--cinza-100)'+(i%2?';background:var(--cinza-50)':'')+'\">'
+        +colsExibir.map(function(c){return '<td style="padding:4px 8px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">'+esc(String(r[c]||''))+'</td>';}).join('')
+        +'</tr>';
+    }).join('')
+    +(validas.length>100?'<tr><td colspan="'+colsExibir.length+'" style="padding:6px 8px;text-align:center;color:var(--cinza-400);font-style:italic">…e mais '+(validas.length-100)+' linhas</td></tr>':'')
+    +'</tbody></table></div>';
+
+  body.innerHTML=''
+    +'<div style="display:flex;gap:10px;margin-bottom:12px">'
+    +'<div style="flex:1;background:#F0FDF4;border:1px solid #86EFAC;border-radius:var(--raio);padding:10px 12px;text-align:center">'
+    +'<div style="font-size:20px;font-weight:700;color:#166534">'+validas.length+'</div>'
+    +'<div style="font-size:11px;color:#15803D">pontos válidos</div>'
+    +'</div>'
+    +(invalidas.length?'<div style="flex:1;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:10px 12px;text-align:center">'
+    +'<div style="font-size:20px;font-weight:700;color:#DC2626">'+invalidas.length+'</div>'
+    +'<div style="font-size:11px;color:#B91C1C">linhas inválidas</div>'
+    +'</div>':'')
+    +'</div>'
+    +(invalidas.length?'<div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:8px 10px;margin-bottom:12px">&#x26A0; Linhas ignoradas (lat/lng ausente ou inválido): '+invalidas.map(function(x){return 'linha '+x.linha;}).join(', ')+'</div>':'')
+    +tabelaHtml
+    +'<p style="font-size:11px;color:var(--cinza-500);margin:8px 0 0">Os pontos serão salvos no mapa após o envio da entrega. Você ainda poderá visualizá-los em <strong>Mapa de Entregas</strong>.</p>';
+
+  footer.innerHTML=''
+    +'<button class="btn btn-secondary" onclick="renderModalGeoCsvEtapa1()">&#x2190; Voltar</button>'
+    +(validas.length
+      ? '<button class="btn btn-primary" onclick="confirmarGeoCsv()">&#x2714; Confirmar '+validas.length+' ponto(s)</button>'
+      : '<span style="font-size:12px;color:var(--cinza-500)">Nenhum ponto válido para importar.</span>'
+    );
+}
+
+function confirmarGeoCsv(){
+  if(!_geoCsvLinhas.length)return;
+  // Adicionar à lista de documentos como entrada especial
+  docsEntrega.push({
+    isGeo:true,
+    tipo:TIPO_GEO,
+    nome:'geo_pontos_'+_geoCsvLinhas.length+'.csv',
+    size:0,
+    file:null,
+    pontos:_geoCsvLinhas.slice()
+  });
+  renderListaDocs();
+  fecharModalGeoCsv();
+  toast(_geoCsvLinhas.length+' pontos de geolocalização adicionados à entrega.','success');
+}
+
+function baixarTemplateGeoExcel(){
+  if(typeof XLSX==='undefined'){alert('Biblioteca Excel ainda carregando, tente novamente em instantes.');return;}
+  var wb=XLSX.utils.book_new();
+  var dados=[
+    ['nome_local','apa','lat','lng','tipo_atividade','responsavel','data_implantacao','observacao'],
+    ['Ex: Unidade Produtiva — Comunidade Boa Vista','Igarapé São Francisco','-9.972000','-67.805000','Unidades Produtivas','João Silva','2025-04-10','Próximo ao igarapé']
+  ];
+  var ws=XLSX.utils.aoa_to_sheet(dados);
+  // Larguras das colunas
+  ws['!cols']=[{wch:40},{wch:30},{wch:14},{wch:14},{wch:25},{wch:20},{wch:22},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,ws,'Pontos Geolocalização');
+  XLSX.writeFile(wb,'template_geo_pontos.xlsx');
+  toast('Template baixado! Preencha e salve como CSV antes de importar.','info');
+}
