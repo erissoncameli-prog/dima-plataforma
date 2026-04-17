@@ -139,10 +139,13 @@ let produtoId = null; // opcional: vincular ao produto
 document.addEventListener('DOMContentLoaded', async () => {
   const u = await carregarUsuario();
   if (!u) { window.location.href = '../index.html'; return; }
-  document.getElementById('app').innerHTML = gerarLayout('Mapa de Entregas','mapa') + renderPagina();
-  iniciarMapa();
-  await carregarPontos();
-  vincularEventos();
+  document.getElementById('app').innerHTML = gerarLayout('Mapa de Entregas','mapa') + renderPagina() + fecharLayout();
+  // Aguarda o browser processar o DOM antes de iniciar o Leaflet
+  setTimeout(async () => {
+    iniciarMapa();
+    await carregarPontos();
+    vincularEventos();
+  }, 0);
 });
 
 function renderPagina(){
