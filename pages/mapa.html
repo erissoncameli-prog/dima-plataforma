@@ -139,9 +139,8 @@ let produtoId = null; // opcional: vincular ao produto
 document.addEventListener('DOMContentLoaded', async () => {
   const u = await carregarUsuario();
   if (!u) { window.location.href = '../index.html'; return; }
-  document.getElementById('app').innerHTML = gerarLayout('Mapa de Entregas','mapa');
-  document.querySelector('.conteudo-principal').innerHTML = renderPagina();
-  await iniciarMapa();
+  document.getElementById('app').innerHTML = gerarLayout('Mapa de Entregas','mapa') + renderPagina();
+  iniciarMapa();
   await carregarPontos();
   vincularEventos();
 });
