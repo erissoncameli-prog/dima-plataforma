@@ -603,11 +603,22 @@ async function salvarAdminFiltros(){
 let editandoId = null;
 
 function htmlFormPonto(p={}){
-  const tipoOptions = matrizVisiveis.length
-    ? [...new Set(matrizVisiveis.map(i=>i.produto_titulo).filter(Boolean))].map(t =>
-        `<option value="${escHtml(t)}" ${p.tipo_atividade===t?'selected':''}>${escHtml(t)}</option>`
-      ).join('')
+  // Agrupar itens visíveis por produto_titulo (igual ao modal de configuração)
+  const porTipo = {};
+  matrizVisiveis.forEach(i => {
+    if(!i.produto_titulo) return;
+    if(!porTipo[i.produto_titulo]) porTipo[i.produto_titulo] = [];
+    porTipo[i.produto_titulo].push(i);
+  });
+  const tipoOptions = Object.keys(porTipo).length
+    ? Object.entries(porTipo).map(([titulo, itens]) => {
+        const opts = itens.map(i =>
+          `<option value="${escHtml(titulo)}" ${p.tipo_atividade===titulo?'selected':''}>${escHtml(i.indicador||titulo)}</option>`
+        ).join('');
+        return `<optgroup label="${escHtml(titulo)}">${opts}</optgroup>`;
+      }).join('')
     : '';
+  const temTipoConhecido = p.tipo_atividade && porTipo[p.tipo_atividade];
 
   return `
   <div class="form-row">
@@ -627,12 +638,12 @@ function htmlFormPonto(p={}){
       <select id="f-tipo" onchange="onChangeTipo(this)">
         <option value="">Selecione…</option>
         ${tipoOptions}
-        <option value="__outro" ${(!p.tipo_atividade||!tipoOptions)?'selected':''}>Outro (digitar)</option>
+        <option value="__outro" ${!temTipoConhecido?'selected':''}>Outro (digitar)</option>
       </select>
     </div>
-    <div class="form-group" id="g-tipo-livre" style="${p.tipo_atividade&&tipoOptions?'display:none':''}">
+    <div class="form-group" id="g-tipo-livre" style="${temTipoConhecido?'display:none':''}">
       <label>Tipo (livre)</label>
-      <input id="f-tipo-livre" type="text" value="${tipoOptions?'':(escHtml(p.tipo_atividade||''))}" placeholder="Descreva o tipo">
+      <input id="f-tipo-livre" type="text" value="${temTipoConhecido?'':(escHtml(p.tipo_atividade||''))}" placeholder="Descreva o tipo">
     </div>
     <div class="form-group">
       <label>Responsável</label>
