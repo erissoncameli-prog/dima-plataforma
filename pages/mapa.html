@@ -11,43 +11,37 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <style>
 /* ── Layout ─────────────────────────────────────────────────── */
-.mapa-wrapper{display:flex;flex-direction:column;gap:12px;height:calc(100vh - 110px);min-height:500px;}
-.mapa-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;}
+.mapa-wrapper{display:flex;flex-direction:column;gap:10px;height:calc(100vh - 108px);min-height:500px;}
+.mapa-topbar{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
 .mapa-container{display:flex;gap:12px;flex:1;min-height:0;}
 #mapa{flex:1;border-radius:var(--raio-lg);border:1px solid var(--borda);z-index:0;min-height:0;}
-.mapa-painel{width:270px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding-right:2px;}
-
-/* ── Stats mini ─────────────────────────────────────────────── */
-.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
-.stat-mini{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:10px 12px;position:relative;overflow:hidden;}
-.stat-mini::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
-.sm-g::after{background:var(--verde-claro)}.sm-b::after{background:var(--azul-medio)}
-.stat-mini .lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
-.stat-mini .val{font-size:18px;font-weight:600;color:var(--cinza-900);}
+.mapa-painel{width:268px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding-right:2px;}
 
 /* ── Blocos de filtro ───────────────────────────────────────── */
 .filtro-bloco{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
-.filtro-bloco-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--borda);cursor:pointer;user-select:none;}
-.filtro-bloco-header h4{margin:0;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;}
+.filtro-bloco-header{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid var(--borda);cursor:pointer;user-select:none;}
+.filtro-bloco-header h4{margin:0;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;flex:1;}
 .filtro-bloco-body{padding:8px 12px 10px;}
-.filtro-item{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12px;color:var(--cinza-700);}
-.filtro-item input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
-.filtro-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.filtro-count{margin-left:auto;font-size:10px;font-weight:600;color:var(--cinza-400);background:var(--cinza-100);padding:1px 6px;border-radius:99px;}
+.filtro-item{display:flex;align-items:flex-start;gap:7px;padding:4px 0;font-size:12px;color:var(--cinza-700);}
+.filtro-item input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;margin-top:2px;}
+.filtro-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;}
 
-/* APA: botão geojson */
-.apa-row{display:flex;align-items:center;gap:4px;padding:4px 0;}
+/* APA row */
+.apa-row{display:flex;align-items:center;gap:6px;padding:4px 0;}
 .apa-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
-.apa-row .apa-label{flex:1;font-size:12px;color:var(--cinza-700);display:flex;align-items:center;gap:6px;}
-.btn-geojson{font-size:10px;padding:2px 7px;border:1px dashed var(--borda);border-radius:4px;background:transparent;color:var(--cinza-500);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.btn-geojson{font-size:10px;padding:2px 7px;border:1px dashed var(--borda);border-radius:4px;background:transparent;color:var(--cinza-500);cursor:pointer;white-space:nowrap;transition:all .15s;margin-left:auto;}
 .btn-geojson:hover{border-color:var(--verde-escuro);color:var(--verde-escuro);}
 .btn-geojson.carregado{border-color:#16a34a;color:#16a34a;background:#f0fdf4;}
 
+/* Botão admin ⚙ */
+.btn-admin-filtros{border:none;background:none;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:4px;transition:background .15s;flex-shrink:0;}
+.btn-admin-filtros:hover{background:var(--cinza-100);}
+
 /* ── Lista de pontos ───────────────────────────────────────── */
-.pontos-lista{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;flex:1;min-height:80px;}
+.pontos-lista{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;flex:1;min-height:60px;}
 .pontos-lista-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 8px;border-bottom:1px solid var(--borda);}
 .pontos-lista-header h4{margin:0;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;}
-.pontos-scroll{overflow-y:auto;max-height:240px;}
+.pontos-scroll{overflow-y:auto;max-height:220px;}
 .ponto-item{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;border-bottom:1px solid var(--cinza-100);cursor:pointer;transition:background .12s;}
 .ponto-item:last-child{border-bottom:none;}
 .ponto-item:hover{background:var(--cinza-50);}
@@ -55,13 +49,16 @@
 .ponto-nome{font-size:12px;font-weight:500;color:var(--cinza-800);line-height:1.3;}
 .ponto-sub{font-size:10px;color:var(--cinza-500);margin-top:1px;}
 
-/* ── Modal ─────────────────────────────────────────────────── */
+/* ── Modais genéricos ──────────────────────────────────────── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;}
 .modal-box{background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-box.lg{max-width:680px;}
 .modal-header{padding:16px 20px 12px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .modal-header h3{margin:0;font-size:15px;font-weight:600;color:var(--cinza-900);}
 .modal-body{padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
 .modal-footer{padding:12px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
+
+/* Formulário */
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .form-group{display:flex;flex-direction:column;gap:4px;}
 .form-group.full{grid-column:1/-1;}
@@ -79,14 +76,14 @@
 .foto-upload-area p{margin:0;font-size:12px;color:var(--cinza-500);}
 .foto-preview{width:100%;max-height:140px;object-fit:cover;border-radius:var(--raio);margin-top:8px;display:none;}
 
-/* ── Popup Leaflet ──────────────────────────────────────────── */
+/* Popup */
 .mapa-popup{min-width:200px;max-width:260px;font-family:'DM Sans',sans-serif;}
 .mapa-popup h4{margin:0 0 6px;font-size:13px;font-weight:600;color:#1F4E2C;}
 .mapa-popup .pp-foto{width:100%;height:120px;object-fit:cover;border-radius:6px;margin-bottom:8px;}
 .mapa-popup .pp-linha{display:flex;gap:6px;font-size:11px;color:#555;margin-bottom:3px;align-items:flex-start;}
 .mapa-popup .pp-linha strong{color:#222;min-width:64px;flex-shrink:0;}
 
-/* ── CSV modal ──────────────────────────────────────────────── */
+/* CSV */
 .csv-drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:24px;text-align:center;cursor:pointer;}
 .csv-drop:hover,.csv-drop.drag{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
 .csv-preview{margin-top:10px;font-size:11px;color:var(--cinza-600);background:var(--cinza-50);border-radius:var(--raio);padding:8px;max-height:140px;overflow-y:auto;}
@@ -94,8 +91,14 @@
 .csv-preview td,.csv-preview th{padding:3px 6px;border:1px solid var(--cinza-200);white-space:nowrap;}
 .csv-preview th{background:var(--cinza-100);font-weight:600;}
 
-/* ── Tipo badge ─────────────────────────────────────────────── */
-.tipo-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;white-space:nowrap;}
+/* Admin modal — lista de itens */
+.admin-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--cinza-100);transition:background .12s;}
+.admin-item:last-child{border-bottom:none;}
+.admin-item:hover{background:var(--cinza-50);}
+.admin-item input[type=checkbox]{accent-color:var(--verde-escuro);width:15px;height:15px;cursor:pointer;flex-shrink:0;margin-top:2px;}
+.admin-item-nome{font-size:12px;font-weight:500;color:var(--cinza-800);line-height:1.3;}
+.admin-item-sub{font-size:10px;color:var(--cinza-500);margin-top:1px;}
+.admin-resultado-label{font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;padding:6px 12px 3px;background:var(--cinza-50);border-bottom:1px solid var(--cinza-100);}
 </style>
 </head>
 <body>
@@ -113,37 +116,34 @@ const APA_CONFIG = {
   'Lago do Amapá':          { cor:'#2563eb', fill:'#2563eb', lsKey:'dima_geojson_la'  },
   'Outra':                  { cor:'#9ca3af', fill:'#9ca3af', lsKey:null               },
 };
-
-// Paleta para tipos de entrega (rotativa)
 const TIPO_CORES = ['#7c3aed','#d97706','#0891b2','#dc2626','#059669','#d946ef','#f59e0b','#3b82f6'];
+const filtroProdutoId = new URLSearchParams(window.location.search).get('produto') || null;
 
 // ── Estado ────────────────────────────────────────────────────────────────
 let mapaL = null, clusters = null;
 let pontos = [], pontosLayer = [];
-let matrizItens = [];   // itens da matriz com indicador geolocalizável
+let matrizItens = [];       // todos os itens ativos
+let matrizVisiveis = [];    // apenas os com visivel_no_mapa=true
 let filtrosAPA  = new Set(Object.keys(APA_CONFIG));
-let filtrosTipo = new Set();   // preenchido após carregar matriz
-let apaPolygonLayers = {};     // { 'Igarapé São Francisco': L.geoJSON, ... }
-let tipoCores = {};            // { tipo: cor }
-const filtroProdutoId = new URLSearchParams(window.location.search).get('produto') || null;
+let filtrosTipo = new Set();
+let apaPolygonLayers = {};
+let tipoCores = {};
 
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const u = await carregarUsuario();
   if (!u) { window.location.href = '../index.html'; return; }
 
-  // Carregar matriz_itens em paralelo com o layout
-  const [, matrizData] = await Promise.all([
-    Promise.resolve(),
-    db.from('matriz_itens')
-      .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade')
-      .eq('ativo', true)
-      .order('produto_codigo')
-  ]);
-  matrizItens = (matrizData.data || []);
+  const matrizData = await db.from('matriz_itens')
+    .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,visivel_no_mapa')
+    .eq('ativo', true)
+    .order('produto_codigo');
 
-  // Montar tipos únicos com cores
-  const tiposUnicos = [...new Set(matrizItens.map(i => i.produto_titulo).filter(Boolean))];
+  matrizItens = matrizData.data || [];
+  matrizVisiveis = matrizItens.filter(i => i.visivel_no_mapa);
+
+  // Cores por tipo (produto_titulo) dos visíveis
+  const tiposUnicos = [...new Set(matrizVisiveis.map(i => i.produto_titulo).filter(Boolean))];
   tiposUnicos.forEach((t, idx) => {
     tipoCores[t] = TIPO_CORES[idx % TIPO_CORES.length];
     filtrosTipo.add(t);
@@ -162,12 +162,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ── Render ────────────────────────────────────────────────────────────────
 function renderPagina(){
-  // Seção tipos de entrega (dinâmica)
-  const tiposHtml = matrizItens.length === 0
-    ? `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Nenhum item na matriz.</div>`
-    : [...new Set(matrizItens.map(i=>i.produto_titulo).filter(Boolean))].map(tipo => {
+  const ehAdmin = appState.perfil === 'super_admin';
+
+  // Tipos visíveis no mapa
+  const tiposHtml = matrizVisiveis.length === 0
+    ? `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">${ehAdmin ? 'Nenhum tipo configurado. Clique em ⚙ para configurar.' : 'Nenhum tipo configurado.'}</div>`
+    : [...new Set(matrizVisiveis.map(i=>i.produto_titulo).filter(Boolean))].map(tipo => {
         const cor = tipoCores[tipo] || '#9ca3af';
-        const item = matrizItens.find(i=>i.produto_titulo===tipo);
+        const item = matrizVisiveis.find(i=>i.produto_titulo===tipo);
         const meta = item?.meta_numerica ? ` · meta ${item.meta_numerica} ${item.unidade||''}`.trim() : '';
         return `<div class="filtro-item">
           <input type="checkbox" checked data-tipo="${escHtml(tipo)}" onchange="toggleFiltroTipo(this)">
@@ -179,73 +181,70 @@ function renderPagina(){
   return `
   <div class="mapa-wrapper">
     ${filtroProdutoId ? `
-    <div style="display:flex;align-items:center;gap:10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:10px 14px;flex-shrink:0">
-      <span style="font-size:16px">🔍</span>
+    <div style="display:flex;align-items:center;gap:10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:9px 14px;flex-shrink:0">
+      <span style="font-size:15px">🔍</span>
       <div style="flex:1;font-size:12px;color:#1E40AF"><strong>Filtrando por entrega específica.</strong> Exibindo apenas os pontos vinculados a esta entrega.</div>
       <a href="mapa.html" style="font-size:11px;color:#1E40AF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:3px 10px;text-decoration:none;white-space:nowrap">Ver todos</a>
     </div>` : ''}
-    <div class="mapa-toolbar">
+
+    <!-- Barra acima do mapa -->
+    <div class="mapa-topbar">
       <div style="flex:1">
         <h2 style="margin:0;font-size:17px;font-weight:600;color:var(--cinza-900)">Mapa de Entregas</h2>
-        <p style="margin:2px 0 0;font-size:11px;color:var(--cinza-500)">APAs · Rio Branco, Acre</p>
+        <p style="margin:2px 0 0;font-size:11px;color:var(--cinza-500)">APAs Igarapé São Francisco e Lago do Amapá · Rio Branco, Acre</p>
       </div>
       <button class="btn btn-outline" onclick="abrirModalCSV()" style="font-size:12px;display:flex;align-items:center;gap:5px;">
-        <span>📂</span> Importar CSV
+        📂 Importar CSV
       </button>
       <button class="btn btn-primary" onclick="abrirModalNovo()" style="font-size:12px;display:flex;align-items:center;gap:5px;">
-        <span>＋</span> Adicionar ponto
+        ＋ Adicionar ponto
       </button>
     </div>
 
+    <!-- Mapa + painel -->
     <div class="mapa-container">
       <div id="mapa"></div>
 
       <div class="mapa-painel">
-        <!-- stats -->
-        <div class="stats-row">
-          <div class="stat-mini sm-g"><div class="lbl">Total</div><div class="val" id="stat-total">—</div></div>
-          <div class="stat-mini sm-b"><div class="lbl">Ativos</div><div class="val" id="stat-ativos">—</div></div>
-        </div>
 
         <!-- Demarcação APAs -->
         <div class="filtro-bloco">
           <div class="filtro-bloco-header" onclick="toggleBloco('bloco-apa')">
             <h4>Demarcação das APAs</h4>
-            <span style="font-size:10px;color:var(--cinza-400)" id="chevron-bloco-apa">▾</span>
+            <span id="chevron-bloco-apa" style="font-size:10px;color:var(--cinza-400)">▾</span>
           </div>
           <div class="filtro-bloco-body" id="bloco-apa">
             ${Object.entries(APA_CONFIG).filter(([k])=>k!=='Outra').map(([nome, cfg])=>`
             <div class="apa-row">
               <input type="checkbox" checked data-apa="${escHtml(nome)}" onchange="toggleFiltroAPA(this)">
-              <span class="apa-label">
-                <span class="filtro-dot" style="background:${cfg.cor}"></span>
-                <span style="flex:1">${escHtml(nome)}</span>
-              </span>
+              <span class="filtro-dot" style="background:${cfg.cor}"></span>
+              <span style="font-size:12px;color:var(--cinza-700);flex:1">${escHtml(nome)}</span>
               <button class="btn-geojson ${localStorage.getItem(cfg.lsKey)?'carregado':''}"
                 id="btn-geojson-${escHtml(nome.replace(/\s/g,'_'))}"
                 onclick="abrirUploadGeoJson('${escHtml(nome)}')"
-                title="${localStorage.getItem(cfg.lsKey)?'Demarcação carregada — clique para substituir':'Importar arquivo GeoJSON da demarcação'}">
+                title="${localStorage.getItem(cfg.lsKey)?'Demarcação carregada — clique para substituir':'Importar GeoJSON da APA'}">
                 ${localStorage.getItem(cfg.lsKey)?'✓ GeoJSON':'📁 GeoJSON'}
               </button>
             </div>`).join('')}
             <p style="font-size:10px;color:var(--cinza-400);margin:6px 0 0;line-height:1.4">
-              Importe o arquivo <code>.geojson</code> oficial do CNUC/SEMA para visualizar o limite da APA no mapa.
+              Importe o <code>.geojson</code> oficial (CNUC/SEMA) para visualizar o limite no mapa.
             </p>
           </div>
         </div>
 
-        <!-- Filtro por tipo de entrega -->
+        <!-- Tipos de entrega -->
         <div class="filtro-bloco">
           <div class="filtro-bloco-header" onclick="toggleBloco('bloco-tipos')">
             <h4>Tipos de entrega</h4>
-            <span style="font-size:10px;color:var(--cinza-400)" id="chevron-bloco-tipos">▾</span>
+            ${ehAdmin ? `<button class="btn-admin-filtros" onclick="event.stopPropagation();abrirModalAdminFiltros()" title="Configurar quais tipos aparecem aqui">⚙️</button>` : ''}
+            <span id="chevron-bloco-tipos" style="font-size:10px;color:var(--cinza-400)">▾</span>
           </div>
           <div class="filtro-bloco-body" id="bloco-tipos">
             ${tiposHtml}
           </div>
         </div>
 
-        <!-- lista de pontos -->
+        <!-- Lista de pontos -->
         <div class="pontos-lista">
           <div class="pontos-lista-header">
             <h4>Pontos visíveis</h4>
@@ -255,9 +254,10 @@ function renderPagina(){
             <div style="padding:14px;text-align:center;font-size:12px;color:var(--cinza-400)">Carregando...</div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
+
+      </div><!-- /painel -->
+    </div><!-- /container -->
+  </div><!-- /wrapper -->
 
   <!-- Modal: Novo/Editar ponto -->
   <div class="modal-overlay" id="modal-ponto" style="display:none">
@@ -306,7 +306,31 @@ function renderPagina(){
     </div>
   </div>
 
-  <!-- Input oculto para upload GeoJSON -->
+  <!-- Modal: Admin — configurar tipos visíveis -->
+  <div class="modal-overlay" id="modal-admin-filtros" style="display:none">
+    <div class="modal-box lg">
+      <div class="modal-header">
+        <h3>⚙️ Configurar tipos de entrega no mapa</h3>
+        <button class="btn-close" onclick="fecharModalAdminFiltros()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <div style="padding:14px 20px 10px;border-bottom:1px solid var(--borda)">
+          <p style="margin:0;font-size:12px;color:var(--cinza-600)">
+            Marque os itens da Matriz de Resultados que devem aparecer como camada de filtro no mapa. Apenas itens com produtos que possuem geolocalização devem ser marcados.
+          </p>
+        </div>
+        <div id="admin-filtros-lista" style="overflow-y:auto;max-height:420px">
+          <div style="padding:20px;text-align:center;font-size:12px;color:var(--cinza-400)">Carregando...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModalAdminFiltros()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-admin-filtros" onclick="salvarAdminFiltros()">Salvar configuração</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input oculto para GeoJSON -->
   <input type="file" id="geojson-input" accept=".geojson,.json" style="display:none" onchange="onGeoJsonFile(this.files[0])">
   `;
 }
@@ -314,29 +338,24 @@ function renderPagina(){
 // ── Mapa ──────────────────────────────────────────────────────────────────
 function iniciarMapa(){
   mapaL = L.map('mapa', { center:[-9.965,-67.81], zoom:12 });
-
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
     attribution:'Esri, Maxar, Earthstar Geographics', maxZoom:19
   }).addTo(mapaL);
-
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{
     attribution:'© CartoDB', opacity:0.8, maxZoom:19
   }).addTo(mapaL);
-
   clusters = L.markerClusterGroup({ maxClusterRadius:40, disableClusteringAtZoom:17 });
   mapaL.addLayer(clusters);
 }
 
-// ── GeoJSON das APAs ──────────────────────────────────────────────────────
-let apaGeoJsonAtual = null; // qual APA está sendo importada
+// ── GeoJSON APAs ──────────────────────────────────────────────────────────
+let apaGeoJsonAtual = null;
 
 function carregarGeoJsonSalvos(){
   Object.entries(APA_CONFIG).forEach(([nome, cfg]) => {
     if(!cfg.lsKey) return;
     const raw = localStorage.getItem(cfg.lsKey);
-    if(raw){
-      try { renderizarApaPolygon(nome, JSON.parse(raw)); } catch(e){}
-    }
+    if(raw){ try{ renderizarApaPolygon(nome, JSON.parse(raw)); }catch(e){} }
   });
 }
 
@@ -350,51 +369,28 @@ function onGeoJsonFile(file){
   if(!file || !apaGeoJsonAtual) return;
   const reader = new FileReader();
   reader.onload = e => {
-    try {
+    try{
       const gj = JSON.parse(e.target.result);
       const cfg = APA_CONFIG[apaGeoJsonAtual];
       if(cfg?.lsKey) localStorage.setItem(cfg.lsKey, JSON.stringify(gj));
       renderizarApaPolygon(apaGeoJsonAtual, gj);
-      // Atualizar botão
-      const btnId = 'btn-geojson-'+apaGeoJsonAtual.replace(/\s/g,'_');
-      const btn = document.getElementById(btnId);
+      const btn = document.getElementById('btn-geojson-'+apaGeoJsonAtual.replace(/\s/g,'_'));
       if(btn){ btn.textContent='✓ GeoJSON'; btn.classList.add('carregado'); }
-    } catch(err){
-      alert('Arquivo GeoJSON inválido: '+err.message);
-    }
+    }catch(err){ alert('GeoJSON inválido: '+err.message); }
   };
-  reader.readAsText(file, 'utf-8');
+  reader.readAsText(file,'utf-8');
 }
 
 function renderizarApaPolygon(nome, geojson){
-  // Remover camada anterior se existir
-  if(apaPolygonLayers[nome]){
-    mapaL.removeLayer(apaPolygonLayers[nome]);
-    delete apaPolygonLayers[nome];
-  }
+  if(apaPolygonLayers[nome]){ mapaL.removeLayer(apaPolygonLayers[nome]); delete apaPolygonLayers[nome]; }
   const cfg = APA_CONFIG[nome];
-  const layer = L.geoJSON(geojson, {
-    style: {
-      color: cfg.cor,
-      weight: 2,
-      opacity: 0.9,
-      fillColor: cfg.fill,
-      fillOpacity: 0.15,
-      dashArray: '5 4'
-    }
-  });
-
-  // Só adiciona ao mapa se a APA estiver ligada no filtro
-  if(filtrosAPA.has(nome)){
-    layer.addTo(mapaL);
-    mapaL.fitBounds(layer.getBounds(), { padding:[20,20] });
-  }
+  const layer = L.geoJSON(geojson,{ style:{ color:cfg.cor,weight:2,opacity:.9,fillColor:cfg.fill,fillOpacity:.15,dashArray:'5 4' }});
+  if(filtrosAPA.has(nome)){ layer.addTo(mapaL); mapaL.fitBounds(layer.getBounds(),{padding:[20,20]}); }
   apaPolygonLayers[nome] = layer;
 }
 
 function toggleBloco(id){
-  const el = document.getElementById(id);
-  const ch = document.getElementById('chevron-'+id);
+  const el=document.getElementById(id), ch=document.getElementById('chevron-'+id);
   if(!el) return;
   const aberto = el.style.display !== 'none';
   el.style.display = aberto ? 'none' : '';
@@ -403,7 +399,6 @@ function toggleBloco(id){
 
 // ── Marcadores ────────────────────────────────────────────────────────────
 function corIcone(p){
-  // Cor pelo tipo de entrega; se não tiver tipo, usa a cor da APA
   if(p.tipo_atividade && tipoCores[p.tipo_atividade]) return tipoCores[p.tipo_atividade];
   return APA_CONFIG[p.apa]?.cor || '#9ca3af';
 }
@@ -426,24 +421,21 @@ async function carregarPontos(){
   pontos = data || [];
   renderizarMarcadores();
   renderizarLista();
-  atualizarStats();
 }
 
 function pontoVisivel(p){
   if(!filtrosAPA.has(p.apa)) return false;
-  if(p.tipo_atividade && !filtrosTipo.has(p.tipo_atividade)) return false;
+  if(p.tipo_atividade && filtrosTipo.size > 0 && !filtrosTipo.has(p.tipo_atividade)) return false;
   return true;
 }
 
 function renderizarMarcadores(){
-  clusters.clearLayers();
-  pontosLayer = [];
+  clusters.clearLayers(); pontosLayer = [];
   pontos.filter(pontoVisivel).forEach(p => {
     const m = L.marker([p.lat, p.lng], { icon: criarIcone(p) });
     m.bindPopup(renderPopup(p), { maxWidth:280 });
     m.pontoId = p.id;
-    clusters.addLayer(m);
-    pontosLayer.push(m);
+    clusters.addLayer(m); pontosLayer.push(m);
   });
 }
 
@@ -466,15 +458,11 @@ function renderPopup(p){
 }
 
 function renderizarLista(){
-  const el = document.getElementById('lista-pontos');
-  const ct = document.getElementById('lista-count');
+  const el=document.getElementById('lista-pontos'), ct=document.getElementById('lista-count');
   if(!el) return;
   const vis = pontos.filter(pontoVisivel);
   if(ct) ct.textContent = vis.length;
-  if(!vis.length){
-    el.innerHTML=`<div style="padding:14px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum ponto visível.</div>`;
-    return;
-  }
+  if(!vis.length){ el.innerHTML=`<div style="padding:14px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum ponto visível.</div>`; return; }
   el.innerHTML = vis.map(p => {
     const cor = corIcone(p);
     const dt = p.data_implantacao ? new Date(p.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '';
@@ -488,12 +476,6 @@ function renderizarLista(){
   }).join('');
 }
 
-function atualizarStats(){
-  const el1=document.getElementById('stat-total'), el2=document.getElementById('stat-ativos');
-  if(el1) el1.textContent=pontos.length;
-  if(el2) el2.textContent=pontos.filter(p=>p.status==='ativo').length;
-}
-
 function focarPonto(id){
   const p=pontos.find(x=>x.id===id); if(!p) return;
   mapaL.setView([p.lat,p.lng],17);
@@ -504,28 +486,121 @@ function focarPonto(id){
 function toggleFiltroAPA(el){
   const apa = el.dataset.apa;
   if(el.checked) filtrosAPA.add(apa); else filtrosAPA.delete(apa);
-  // Mostrar/ocultar polígono
   if(apaPolygonLayers[apa]){
-    if(el.checked) apaPolygonLayers[apa].addTo(mapaL);
-    else mapaL.removeLayer(apaPolygonLayers[apa]);
+    if(el.checked) apaPolygonLayers[apa].addTo(mapaL); else mapaL.removeLayer(apaPolygonLayers[apa]);
   }
-  renderizarMarcadores();
-  renderizarLista();
+  renderizarMarcadores(); renderizarLista();
 }
 
 function toggleFiltroTipo(el){
   const tipo = el.dataset.tipo;
   if(el.checked) filtrosTipo.add(tipo); else filtrosTipo.delete(tipo);
-  renderizarMarcadores();
-  renderizarLista();
+  renderizarMarcadores(); renderizarLista();
+}
+
+// ── Modal Admin: configurar tipos visíveis ────────────────────────────────
+function abrirModalAdminFiltros(){
+  document.getElementById('modal-admin-filtros').style.display='flex';
+  renderAdminFiltrosList();
+}
+function fecharModalAdminFiltros(){ document.getElementById('modal-admin-filtros').style.display='none'; }
+
+function renderAdminFiltrosList(){
+  const el = document.getElementById('admin-filtros-lista');
+  if(!el) return;
+  if(!matrizItens.length){ el.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum item na matriz.</div>'; return; }
+
+  // Agrupar por resultado
+  const porResultado = {};
+  matrizItens.forEach(i => {
+    const key = 'Resultado '+i.resultado;
+    if(!porResultado[key]) porResultado[key] = [];
+    porResultado[key].push(i);
+  });
+
+  let html = '';
+  Object.entries(porResultado).forEach(([res, itens]) => {
+    html += `<div class="admin-resultado-label">${escHtml(res)}</div>`;
+    itens.forEach(i => {
+      const meta = i.meta_numerica ? `meta ${i.meta_numerica} ${i.unidade||''}`.trim() : '';
+      html += `<div class="admin-item">
+        <input type="checkbox" id="adm-${i.id}" data-id="${i.id}" ${i.visivel_no_mapa?'checked':''}>
+        <div style="flex:1;min-width:0">
+          <div class="admin-item-nome">${escHtml(i.produto_titulo||i.indicador||'Sem título')}</div>
+          <div class="admin-item-sub">${escHtml(i.produto_codigo||'')}${meta?' · '+meta:''}</div>
+        </div>
+      </div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+
+async function salvarAdminFiltros(){
+  const checkboxes = document.querySelectorAll('#admin-filtros-lista input[type=checkbox][data-id]');
+  const btn = document.getElementById('btn-salvar-admin-filtros');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  // Atualizar em batch: separar marcados e desmarcados
+  const marcados = [], desmarcados = [];
+  checkboxes.forEach(cb => {
+    if(cb.checked) marcados.push(cb.dataset.id); else desmarcados.push(cb.dataset.id);
+  });
+
+  let erro = null;
+  if(marcados.length){
+    const r = await db.from('matriz_itens').update({visivel_no_mapa:true}).in('id', marcados);
+    if(r.error) erro = r.error;
+  }
+  if(!erro && desmarcados.length){
+    const r = await db.from('matriz_itens').update({visivel_no_mapa:false}).in('id', desmarcados);
+    if(r.error) erro = r.error;
+  }
+
+  btn.disabled = false; btn.textContent = 'Salvar configuração';
+  if(erro){ alert('Erro ao salvar: '+erro.message); return; }
+
+  // Recarregar dados locais e remontar filtros
+  const matrizData = await db.from('matriz_itens')
+    .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,visivel_no_mapa')
+    .eq('ativo', true).order('produto_codigo');
+  matrizItens = matrizData.data || [];
+  matrizVisiveis = matrizItens.filter(i => i.visivel_no_mapa);
+
+  // Recalcular cores
+  tipoCores = {}; filtrosTipo = new Set();
+  [...new Set(matrizVisiveis.map(i=>i.produto_titulo).filter(Boolean))].forEach((t,idx) => {
+    tipoCores[t] = TIPO_CORES[idx % TIPO_CORES.length];
+    filtrosTipo.add(t);
+  });
+
+  fecharModalAdminFiltros();
+
+  // Re-renderizar o bloco de tipos sem recarregar a página
+  const ehAdmin = appState.perfil === 'super_admin';
+  const tiposHtml = matrizVisiveis.length === 0
+    ? `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">${ehAdmin?'Nenhum tipo configurado. Clique em ⚙ para configurar.':'Nenhum tipo configurado.'}</div>`
+    : [...new Set(matrizVisiveis.map(i=>i.produto_titulo).filter(Boolean))].map(tipo => {
+        const cor = tipoCores[tipo]||'#9ca3af';
+        const item = matrizVisiveis.find(i=>i.produto_titulo===tipo);
+        const meta = item?.meta_numerica?` · meta ${item.meta_numerica} ${item.unidade||''}`.trim():'';
+        return `<div class="filtro-item">
+          <input type="checkbox" checked data-tipo="${escHtml(tipo)}" onchange="toggleFiltroTipo(this)">
+          <span class="filtro-dot" style="background:${cor}"></span>
+          <span style="flex:1;line-height:1.3">${escHtml(tipo)}<span style="display:block;font-size:9px;color:var(--cinza-400)">${escHtml(item?.resultado||'')}${meta}</span></span>
+        </div>`;
+      }).join('');
+  const bloco = document.getElementById('bloco-tipos');
+  if(bloco) bloco.innerHTML = tiposHtml;
+
+  renderizarMarcadores(); renderizarLista();
 }
 
 // ── Modal: Novo/Editar ponto ──────────────────────────────────────────────
 let editandoId = null;
 
 function htmlFormPonto(p={}){
-  const tipoOptions = matrizItens.length
-    ? [...new Set(matrizItens.map(i=>i.produto_titulo).filter(Boolean))].map(t =>
+  const tipoOptions = matrizVisiveis.length
+    ? [...new Set(matrizVisiveis.map(i=>i.produto_titulo).filter(Boolean))].map(t =>
         `<option value="${escHtml(t)}" ${p.tipo_atividade===t?'selected':''}>${escHtml(t)}</option>`
       ).join('')
     : '';
@@ -545,13 +620,13 @@ function htmlFormPonto(p={}){
     </div>
     <div class="form-group">
       <label>Tipo de entrega</label>
-      <select id="f-tipo">
+      <select id="f-tipo" onchange="onChangeTipo(this)">
         <option value="">Selecione…</option>
         ${tipoOptions}
-        <option value="__outro" ${!p.tipo_atividade||!tipoOptions?'selected':''}>Outro (digitar)</option>
+        <option value="__outro" ${(!p.tipo_atividade||!tipoOptions)?'selected':''}>Outro (digitar)</option>
       </select>
     </div>
-    <div class="form-group" id="g-tipo-livre" style="${p.tipo_atividade&&tipoOptions&&!['__outro'].includes(p.tipo_atividade)?'display:none':''}">
+    <div class="form-group" id="g-tipo-livre" style="${p.tipo_atividade&&tipoOptions?'display:none':''}">
       <label>Tipo (livre)</label>
       <input id="f-tipo-livre" type="text" value="${tipoOptions?'':(escHtml(p.tipo_atividade||''))}" placeholder="Descreva o tipo">
     </div>
@@ -591,50 +666,15 @@ function htmlFormPonto(p={}){
   </div>`;
 }
 
-function abrirModalNovo(){
-  editandoId=null;
-  document.getElementById('modal-ponto-titulo').textContent='Adicionar ponto';
-  document.getElementById('modal-ponto-body').innerHTML=htmlFormPonto();
-  document.getElementById('modal-ponto').style.display='flex';
-  // Mostrar campo livre quando selecionar "outro"
-  document.getElementById('f-tipo').addEventListener('change', onChangeTipo);
-}
-function abrirModalEditar(id){
-  const p=pontos.find(x=>x.id===id); if(!p) return;
-  editandoId=id;
-  document.getElementById('modal-ponto-titulo').textContent='Editar ponto';
-  document.getElementById('modal-ponto-body').innerHTML=htmlFormPonto(p);
-  document.getElementById('modal-ponto').style.display='flex';
-  document.getElementById('f-tipo').addEventListener('change', onChangeTipo);
-}
+function abrirModalNovo(){ editandoId=null; document.getElementById('modal-ponto-titulo').textContent='Adicionar ponto'; document.getElementById('modal-ponto-body').innerHTML=htmlFormPonto(); document.getElementById('modal-ponto').style.display='flex'; }
+function abrirModalEditar(id){ const p=pontos.find(x=>x.id===id); if(!p) return; editandoId=id; document.getElementById('modal-ponto-titulo').textContent='Editar ponto'; document.getElementById('modal-ponto-body').innerHTML=htmlFormPonto(p); document.getElementById('modal-ponto').style.display='flex'; }
 function fecharModalPonto(){ document.getElementById('modal-ponto').style.display='none'; editandoId=null; fotoArquivo=null; }
-function onChangeTipo(e){
-  const livre=document.getElementById('g-tipo-livre');
-  if(livre) livre.style.display = e.target.value==='__outro' ? '' : 'none';
-}
-
-function usarGeolocalizacao(){
-  if(!navigator.geolocation){ alert('Geolocalização não suportada.'); return; }
-  navigator.geolocation.getCurrentPosition(pos=>{
-    document.getElementById('f-lat').value=pos.coords.latitude.toFixed(6);
-    document.getElementById('f-lng').value=pos.coords.longitude.toFixed(6);
-  }, ()=>alert('Sem permissão de localização.'));
-}
+function onChangeTipo(sel){ const livre=document.getElementById('g-tipo-livre'); if(livre) livre.style.display=sel.value==='__outro'?'':'none'; }
+function usarGeolocalizacao(){ if(!navigator.geolocation){alert('Não suportado.');return;} navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('f-lat').value=pos.coords.latitude.toFixed(6);document.getElementById('f-lng').value=pos.coords.longitude.toFixed(6);},()=>alert('Sem permissão.')); }
 
 let fotoArquivo=null;
-function previewFoto(input){
-  const f=input.files[0]; if(!f) return;
-  fotoArquivo=f;
-  const img=document.getElementById('foto-preview');
-  img.src=URL.createObjectURL(f); img.style.display='block';
-}
-function onFotoDrop(e){
-  e.preventDefault(); document.getElementById('foto-area').classList.remove('drag');
-  const f=e.dataTransfer.files[0]; if(!f||!f.type.startsWith('image/')) return;
-  fotoArquivo=f;
-  const img=document.getElementById('foto-preview');
-  img.src=URL.createObjectURL(f); img.style.display='block';
-}
+function previewFoto(input){ const f=input.files[0];if(!f)return;fotoArquivo=f;const img=document.getElementById('foto-preview');img.src=URL.createObjectURL(f);img.style.display='block'; }
+function onFotoDrop(e){ e.preventDefault();document.getElementById('foto-area').classList.remove('drag');const f=e.dataTransfer.files[0];if(!f||!f.type.startsWith('image/'))return;fotoArquivo=f;const img=document.getElementById('foto-preview');img.src=URL.createObjectURL(f);img.style.display='block'; }
 
 async function salvarPonto(){
   const nome=document.getElementById('f-nome').value.trim();
@@ -642,62 +682,39 @@ async function salvarPonto(){
   const lat=parseFloat(document.getElementById('f-lat').value);
   const lng=parseFloat(document.getElementById('f-lng').value);
   const tipoSel=document.getElementById('f-tipo').value;
-  const tipo = tipoSel==='__outro'
-    ? (document.getElementById('f-tipo-livre')?.value.trim()||null)
-    : (tipoSel||null);
-
-  if(!nome||!apa||isNaN(lat)||isNaN(lng)){
-    alert('Preencha Nome, APA, Latitude e Longitude.'); return;
-  }
-  const btn=document.getElementById('btn-salvar-ponto');
-  btn.disabled=true; btn.textContent='Salvando…';
-
+  const tipo=tipoSel==='__outro'?(document.getElementById('f-tipo-livre')?.value.trim()||null):(tipoSel||null);
+  if(!nome||!apa||isNaN(lat)||isNaN(lng)){alert('Preencha Nome, APA, Latitude e Longitude.');return;}
+  const btn=document.getElementById('btn-salvar-ponto');btn.disabled=true;btn.textContent='Salvando…';
   let foto_url=editandoId?(pontos.find(p=>p.id===editandoId)?.foto_url||null):null;
   let foto_nome=editandoId?(pontos.find(p=>p.id===editandoId)?.foto_nome||null):null;
   if(fotoArquivo){
     const ext=fotoArquivo.name.split('.').pop();
     const path=`pontos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
     const {error:upErr}=await db.storage.from('pontos-mapa').upload(path,fotoArquivo,{upsert:true});
-    if(upErr){ alert('Erro foto: '+upErr.message); btn.disabled=false; btn.textContent='Salvar'; return; }
+    if(upErr){alert('Erro foto: '+upErr.message);btn.disabled=false;btn.textContent='Salvar';return;}
     const {data:urlData}=db.storage.from('pontos-mapa').getPublicUrl(path);
-    foto_url=urlData.publicUrl; foto_nome=fotoArquivo.name;
+    foto_url=urlData.publicUrl;foto_nome=fotoArquivo.name;
   }
-
   const payload={nome_local:nome,apa,tipo_atividade:tipo,responsavel:document.getElementById('f-resp').value.trim()||null,
     data_implantacao:document.getElementById('f-data').value||null,lat,lng,foto_url,foto_nome,
     observacao:document.getElementById('f-obs').value.trim()||null,status:'ativo'};
   let err;
   if(editandoId){({error:err}=await db.from('produto_pontos_mapa').update(payload).eq('id',editandoId));}
   else{payload.criado_por=appState.usuario?.id||null;({error:err}=await db.from('produto_pontos_mapa').insert(payload));}
-
-  btn.disabled=false; btn.textContent='Salvar';
+  btn.disabled=false;btn.textContent='Salvar';
   if(err){alert('Erro: '+err.message);return;}
   fecharModalPonto();
   await carregarPontos();
-  // Novo tipo adicionado? Atualizar filtro
-  if(tipo && !tipoCores[tipo]){
-    const idx=Object.keys(tipoCores).length;
-    tipoCores[tipo]=TIPO_CORES[idx%TIPO_CORES.length];
-    filtrosTipo.add(tipo);
-  }
 }
 
-async function excluirPonto(id){
-  if(!confirm('Excluir este ponto?')) return;
-  const {error}=await db.from('produto_pontos_mapa').delete().eq('id',id);
-  if(error){alert('Erro: '+error.message);return;}
-  await carregarPontos();
-}
+async function excluirPonto(id){ if(!confirm('Excluir este ponto?'))return;const {error}=await db.from('produto_pontos_mapa').delete().eq('id',id);if(error){alert('Erro: '+error.message);return;}await carregarPontos(); }
 
 // ── CSV ───────────────────────────────────────────────────────────────────
 let csvLinhas=[];
 const CSV_CAMPOS=['nome_local','apa','tipo_atividade','responsavel','data_implantacao','lat','lng','observacao'];
-function abrirModalCSV(){ csvLinhas=[];document.getElementById('csv-preview').style.display='none';document.getElementById('csv-status').textContent='';document.getElementById('btn-importar-csv').disabled=true;document.getElementById('modal-csv').style.display='flex'; }
-function fecharModalCSV(){ document.getElementById('modal-csv').style.display='none'; }
-function baixarTemplate(){
-  const blob=new Blob([CSV_CAMPOS.join(',')+'\nUnidade Produtiva 01,Igarapé São Francisco,Unidades Produtivas,João Silva,2025-04-10,-9.9720,-67.8050,Próximo ao igarapé'],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='template_pontos_mapa.csv';a.click();
-}
+function abrirModalCSV(){csvLinhas=[];document.getElementById('csv-preview').style.display='none';document.getElementById('csv-status').textContent='';document.getElementById('btn-importar-csv').disabled=true;document.getElementById('modal-csv').style.display='flex';}
+function fecharModalCSV(){document.getElementById('modal-csv').style.display='none';}
+function baixarTemplate(){const blob=new Blob([CSV_CAMPOS.join(',')+'\nUnidade Produtiva 01,Igarapé São Francisco,Unidades Produtivas,João Silva,2025-04-10,-9.9720,-67.8050,Próximo ao igarapé'],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='template_pontos_mapa.csv';a.click();}
 function onCsvDrop(e){e.preventDefault();document.getElementById('csv-drop').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processarCSV(f);}
 function onCsvFile(f){if(f)processarCSV(f);}
 function processarCSV(file){
@@ -706,16 +723,12 @@ function processarCSV(file){
     const linhas=e.target.result.split('\n').map(l=>l.trim()).filter(Boolean);
     if(!linhas.length){document.getElementById('csv-status').textContent='Arquivo vazio.';return;}
     const header=linhas[0].split(',').map(h=>h.trim().toLowerCase().replace(/[^a-z_]/g,''));
-    const dados=linhas.slice(1).map(linha=>{
-      const cols=parseCsvLinha(linha);const obj={};
-      header.forEach((h,i)=>{obj[h]=cols[i]?.trim()||null;});return obj;
-    }).filter(r=>r.nome_local&&r.lat&&r.lng);
+    const dados=linhas.slice(1).map(linha=>{const cols=parseCsvLinha(linha);const obj={};header.forEach((h,i)=>{obj[h]=cols[i]?.trim()||null;});return obj;}).filter(r=>r.nome_local&&r.lat&&r.lng);
     if(!dados.length){document.getElementById('csv-status').textContent='Nenhuma linha válida.';return;}
     csvLinhas=dados;
     document.getElementById('csv-status').textContent=`${dados.length} registros prontos.`;
     document.getElementById('btn-importar-csv').disabled=false;
-    const prev=document.getElementById('csv-preview');
-    const cols=CSV_CAMPOS.filter(c=>header.includes(c));
+    const prev=document.getElementById('csv-preview');const cols=CSV_CAMPOS.filter(c=>header.includes(c));
     prev.style.display='block';
     prev.innerHTML=`<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${dados.slice(0,5).map(r=>`<tr>${cols.map(c=>`<td>${escHtml(r[c]||'')}</td>`).join('')}</tr>`).join('')}${dados.length>5?`<tr><td colspan="${cols.length}" style="text-align:center;color:#999">…+${dados.length-5}</td></tr>`:''}</tbody></table>`;
   };
@@ -723,23 +736,14 @@ function processarCSV(file){
 }
 function parseCsvLinha(linha){const result=[];let cur='',inQ=false;for(let i=0;i<linha.length;i++){const c=linha[i];if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){result.push(cur);cur='';}else{cur+=c;}}result.push(cur);return result;}
 async function importarCSV(){
-  if(!csvLinhas.length) return;
+  if(!csvLinhas.length)return;
   const btn=document.getElementById('btn-importar-csv');btn.disabled=true;btn.textContent='Importando…';
   const uid=appState.usuario?.id||null;
-  const inserts=csvLinhas.map(r=>({
-    nome_local:r.nome_local,
-    apa:Object.keys(APA_CONFIG).includes(r.apa)?r.apa:'Outra',
-    tipo_atividade:r.tipo_atividade||null,
-    responsavel:r.responsavel||null,
-    data_implantacao:r.data_implantacao||null,
-    lat:parseFloat(r.lat),lng:parseFloat(r.lng),
-    observacao:r.observacao||null,status:'ativo',criado_por:uid
-  })).filter(r=>!isNaN(r.lat)&&!isNaN(r.lng));
+  const inserts=csvLinhas.map(r=>({nome_local:r.nome_local,apa:Object.keys(APA_CONFIG).includes(r.apa)?r.apa:'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat:parseFloat(r.lat),lng:parseFloat(r.lng),observacao:r.observacao||null,status:'ativo',criado_por:uid})).filter(r=>!isNaN(r.lat)&&!isNaN(r.lng));
   const {error}=await db.from('produto_pontos_mapa').insert(inserts);
   btn.disabled=false;btn.textContent='Importar';
   if(error){alert('Erro: '+error.message);return;}
-  fecharModalCSV();
-  await carregarPontos();
+  fecharModalCSV();await carregarPontos();
 }
 
 // ── Clique no mapa ────────────────────────────────────────────────────────
@@ -747,7 +751,7 @@ function vincularEventos(){
   mapaL.on('click', e => {
     const fLat=document.getElementById('f-lat'), fLng=document.getElementById('f-lng');
     if(fLat&&fLng&&document.getElementById('modal-ponto').style.display!=='none'){
-      fLat.value=e.latlng.lat.toFixed(6); fLng.value=e.latlng.lng.toFixed(6);
+      fLat.value=e.latlng.lat.toFixed(6);fLng.value=e.latlng.lng.toFixed(6);
     }
   });
 }
