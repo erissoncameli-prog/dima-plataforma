@@ -427,7 +427,8 @@ async function carregarPontos(){
 
 function pontoVisivel(p){
   if(!filtrosAPA.has(p.apa)) return false;
-  if(p.tipo_atividade && filtrosTipo.size > 0 && !filtrosTipo.has(p.tipo_atividade)) return false;
+  // Pontos cujo tipo não existe na matriz (órfãos) sempre aparecem — apenas filtra os que têm tipo reconhecido
+  if(p.tipo_atividade && filtrosTipo.size > 0 && tipoCores[p.tipo_atividade] && !filtrosTipo.has(p.tipo_atividade)) return false;
   return true;
 }
 
