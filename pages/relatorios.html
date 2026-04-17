@@ -787,23 +787,20 @@ function exportPDF(orientacao, btn) {
   const orig = btn.innerHTML;
   btn.innerHTML = '⏳ Gerando...'; btn.disabled = true;
 
-  // Clonar fora do modal para html2canvas renderizar sem interferência de scroll/overflow
-  const largura = orientacao === 'portrait' ? '794px' : '1060px';
-  const clone = wrapper.cloneNode(true);
-  clone.style.cssText = `position:absolute;top:-9999px;left:-9999px;width:${largura};background:#fff;box-shadow:none;border-radius:0;`;
-  // Watermark via canvas pode causar taint — ocultar no PDF
-  clone.querySelectorAll('.doc-watermark').forEach(e => e.style.display = 'none');
-  document.body.appendChild(clone);
+  // Ocultar watermark temporariamente para evitar taint no canvas
+  const watermarks = wrapper.querySelectorAll('.doc-watermark');
+  watermarks.forEach(e => e.style.visibility = 'hidden');
 
+  // Renderizar direto do elemento visível no modal — evita branco do html2canvas fora do viewport
   html2pdf().set({
     margin: [6, 8, 6, 8],
     filename,
     image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0, windowWidth: wrapper.scrollWidth },
     jsPDF: { unit: 'mm', format: 'a4', orientation: orientacao, compress: true },
     pagebreak: { mode: 'avoid-all' }
-  }).from(clone).save().finally(() => {
-    document.body.removeChild(clone);
+  }).from(wrapper).save().finally(() => {
+    watermarks.forEach(e => e.style.visibility = '');
     btn.innerHTML = orig; btn.disabled = false;
   });
 }
