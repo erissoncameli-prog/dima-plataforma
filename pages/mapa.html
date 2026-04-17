@@ -98,12 +98,11 @@
 <script src="../js/layout.js"></script>
 <div id="app"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
-// ── Supabase ──────────────────────────────────────────────────────────────
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// db já está disponível via config.js (usa o mesmo cliente Supabase)
 
 // ── Cor por APA ───────────────────────────────────────────────────────────
 const COR_APA = {
@@ -138,7 +137,8 @@ let produtoId = null; // opcional: vincular ao produto
 
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  await verificarAuth();
+  const u = await carregarUsuario();
+  if (!u) { window.location.href = '../index.html'; return; }
   document.getElementById('app').innerHTML = gerarLayout('Mapa de Entregas','mapa');
   document.querySelector('.conteudo-principal').innerHTML = renderPagina();
   await iniciarMapa();
@@ -279,7 +279,7 @@ function iniciarMapa(){
 
 // ── Carregar pontos ───────────────────────────────────────────────────────
 async function carregarPontos(){
-  const { data, error } = await sb.from('produto_pontos_mapa').select('*').order('criado_em', { ascending: false });
+  const { data, error } = await db.from('produto_pontos_mapa').select('*').order('criado_em', { ascending: false });
   if(error){ console.error(error); return; }
   pontos = data || [];
   renderizarMarcadores();
@@ -494,9 +494,9 @@ async function salvarPonto(){
   if(fotoArquivo){
     const ext = fotoArquivo.name.split('.').pop();
     const path = `pontos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-    const { data: upData, error: upErr } = await sb.storage.from('pontos-mapa').upload(path, fotoArquivo, { upsert: true });
+    const { data: upData, error: upErr } = await db.storage.from('pontos-mapa').upload(path, fotoArquivo, { upsert: true });
     if(upErr){ alert('Erro ao enviar foto: '+upErr.message); btn.disabled=false; btn.textContent='Salvar'; return; }
-    const { data: urlData } = sb.storage.from('pontos-mapa').getPublicUrl(path);
+    const { data: urlData } = db.storage.from('pontos-mapa').getPublicUrl(path);
     foto_url = urlData.publicUrl;
     foto_nome = fotoArquivo.name;
   }
@@ -515,10 +515,10 @@ async function salvarPonto(){
 
   let err;
   if(editandoId){
-    ({ error: err } = await sb.from('produto_pontos_mapa').update(payload).eq('id', editandoId));
+    ({ error: err } = await db.from('produto_pontos_mapa').update(payload).eq('id', editandoId));
   } else {
     payload.criado_por = appState.usuario?.id || null;
-    ({ error: err } = await sb.from('produto_pontos_mapa').insert(payload));
+    ({ error: err } = await db.from('produto_pontos_mapa').insert(payload));
   }
 
   btn.disabled = false; btn.textContent = 'Salvar';
@@ -530,7 +530,7 @@ async function salvarPonto(){
 
 async function excluirPonto(id){
   if(!confirm('Excluir este ponto?')) return;
-  const { error } = await sb.from('produto_pontos_mapa').delete().eq('id', id);
+  const { error } = await db.from('produto_pontos_mapa').delete().eq('id', id);
   if(error){ alert('Erro: '+error.message); return; }
   await carregarPontos();
 }
@@ -628,7 +628,7 @@ async function importarCSV(){
     criado_por:       uid,
   })).filter(r => !isNaN(r.lat) && !isNaN(r.lng));
 
-  const { error } = await sb.from('produto_pontos_mapa').insert(inserts);
+  const { error } = await db.from('produto_pontos_mapa').insert(inserts);
   btn.disabled=false; btn.textContent='Importar';
   if(error){ alert('Erro ao importar: '+error.message); return; }
   fecharModalCSV();
