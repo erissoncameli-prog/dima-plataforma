@@ -225,34 +225,34 @@ const APA_CONFIG = {
 };
 const TIPO_CORES = ['#7c3aed','#d97706','#0891b2','#dc2626','#059669','#d946ef','#f59e0b','#3b82f6'];
 
-// Radicais normalizados (sem acentos) para correspondência robusta
+// Cada keyword é um radical individual (sem acento) que aparece como substring do tipo_atividade normalizado
 const ICONE_MAP = [
-  // Tipos específicos da matriz de resultados
-  { kw:['produt sustentav','produt florest','desenvolv produt','cadeia produt','extrativ'], emoji:'🌿', cor:'#15803d' },
-  { kw:['vulnerab','mitig','resilienc','conservac','protec apa'],                          emoji:'🛡', cor:'#0891b2' },
-  { kw:['fortalec','organiz local','cooperativ','associac','govern'],                      emoji:'🤝', cor:'#f97316' },
-  { kw:['monitor','adaptac','gestao','fiscaliz','vigilanc'],                               emoji:'📡', cor:'#6366f1' },
-  // Infraestrutura e saneamento
-  { kw:['fossa','sanitari','saneamento','esgoto','banheiro'],                              emoji:'🚽', cor:'#7c3aed' },
-  { kw:['energia','solar','biodigest','gerador','eletric'],                                emoji:'⚡', cor:'#ca8a04' },
-  { kw:['ponte','estrada','acesso','infraestrut','cerca','demarcac'],                      emoji:'🏗', cor:'#78716c' },
+  // Tipos da matriz de resultados — verificados contra os tipos reais
+  { kw:['sustentav','extrativ','pfnm','cadeia valor'],            emoji:'🌿', cor:'#15803d' },
+  { kw:['vulnerab','mitigac','resilienc'],                        emoji:'🛡', cor:'#0891b2' },
+  { kw:['fortalec','organiz'],                                    emoji:'🤝', cor:'#f97316' },
+  { kw:['monitor','adaptac','gestao','fiscaliz'],                 emoji:'📡', cor:'#6366f1' },
+  // Saneamento e infraestrutura
+  { kw:['fossa','sanitari','saneamento','esgoto'],                emoji:'🚽', cor:'#7c3aed' },
+  { kw:['energia','solar','biodigest','eletric'],                 emoji:'⚡', cor:'#ca8a04' },
+  { kw:['infraestrut','construc','obra','ponte','estrada'],       emoji:'🏗', cor:'#78716c' },
   // Recursos hídricos
-  { kw:['nascente','hidrol','hidric','igarape','rio','lago','agua','hidrograf'],           emoji:'💧', cor:'#0284c7' },
-  { kw:['meteorol','pluviometr','clima','chuva','estacao meteorol'],                       emoji:'🌤', cor:'#64748b' },
+  { kw:['nascente','igarape','hidric','hidrol','agua','lago'],    emoji:'💧', cor:'#0284c7' },
+  { kw:['meteorol','pluviometr','clima','chuva'],                 emoji:'🌤', cor:'#64748b' },
   // Produção agroflorestal
-  { kw:['reflorest','plantio','arbor','floresta','mudas'],                                 emoji:'🌱', cor:'#16a34a' },
-  { kw:['viveiro','sement','producao florest','pfnm'],                                    emoji:'🪴', cor:'#15803d' },
-  { kw:['pesca','aquicultur','pescador','peixe','piscicultur'],                            emoji:'🐟', cor:'#0369a1' },
-  { kw:['apicultur','mel','abelha','colmeia'],                                             emoji:'🍯', cor:'#d97706' },
-  { kw:['agricultur','roca','cultiv','horta','mandioca','cacau','agroflorest'],            emoji:'🌾', cor:'#65a30d' },
+  { kw:['reflorest','plantio','arboriz'],                         emoji:'🌱', cor:'#16a34a' },
+  { kw:['viveiro','sement'],                                      emoji:'🪴', cor:'#166534' },
+  { kw:['pesca','aquicultur','piscicultur'],                      emoji:'🐟', cor:'#0369a1' },
+  { kw:['apicultur','mel','abelha'],                              emoji:'🍯', cor:'#d97706' },
+  { kw:['agricultur','roca','cultiv','horta','agroflorest'],      emoji:'🌾', cor:'#65a30d' },
   // Social e educação
-  { kw:['escola','educac','ensino','capacitac','curso','formac'],                          emoji:'📚', cor:'#f59e0b' },
-  { kw:['saude','medico','posto','hospital','farmacia','unidade saude'],                   emoji:'🏥', cor:'#ef4444' },
-  { kw:['comunidad','aldeia','assentament','familia','social'],                            emoji:'🏘', cor:'#f97316' },
+  { kw:['educac','ensino','capacitac','escola','curso','formac'], emoji:'📚', cor:'#f59e0b' },
+  { kw:['saude','medico','hospital','farmacia'],                  emoji:'🏥', cor:'#ef4444' },
+  { kw:['comunidad','aldeia','assentament','social'],             emoji:'🏘', cor:'#ea580c' },
   // Meio ambiente
-  { kw:['fauna','biodiversid','armadilha','camera','especie'],                            emoji:'📷', cor:'#8b5cf6' },
-  { kw:['residuo','lixo','coleta','reciclagem'],                                           emoji:'♻', cor:'#0d9488' },
-  { kw:['incendio','queimada','fogo','prevencao'],                                         emoji:'🔥', cor:'#dc2626' },
+  { kw:['fauna','biodiversid','armadilha','especie'],             emoji:'📷', cor:'#8b5cf6' },
+  { kw:['residuo','lixo','reciclagem'],                           emoji:'♻', cor:'#0d9488' },
+  { kw:['incendio','queimada','fogo'],                            emoji:'🔥', cor:'#dc2626' },
 ];
 const filtroProdutoId = new URLSearchParams(window.location.search).get('produto') || null;
 
