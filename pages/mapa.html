@@ -113,6 +113,11 @@
 .mapa-poi-label{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:11px;color:#374151;cursor:pointer;white-space:nowrap;}
 .mapa-poi-label input{accent-color:var(--verde-escuro);cursor:pointer;}
 
+/* Abas do modal de geometria */
+.geo-tab{padding:8px 16px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);font-family:'DM Sans',sans-serif;transition:all .15s;}
+.geo-tab.ativo{color:var(--verde-escuro);border-bottom-color:var(--verde-escuro);}
+.geo-tab:hover:not(.ativo){background:var(--cinza-50);}
+
 /* Admin modal — lista de itens */
 .admin-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--cinza-100);transition:background .12s;}
 .admin-item:last-child{border-bottom:none;}
@@ -135,6 +140,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/shpjs@4.0.4/dist/shp.js"></script>
 <script src="https://unpkg.com/leaflet.gridlayer.googlemutant@latest/dist/Leaflet.GoogleMutant.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script>
 // ── Modos de mapa ─────────────────────────────────────────────────────────
 const MODOS_MAPA = {
@@ -179,6 +185,36 @@ function _reaplicarTiles(){
   if(googleLayer){ mapaL.removeLayer(googleLayer); googleLayer = null; }
   googleLayer = L.gridLayer.googleMutant({ type:MODOS_MAPA[modoMapaAtual].tipo, maxZoom:22, styles:_construirStyles() });
   googleLayer.addTo(mapaL);
+}
+
+// ── Cálculos geoespaciais (Turf.js) ───────────────────────────────────────
+function _calcularArea(latlngs){
+  if(latlngs.length < 3) return 0;
+  try{
+    const coords = latlngs.map(([lat,lng]) => [lng,lat]);
+    coords.push(coords[0]);
+    return turf.area(turf.polygon([coords]));
+  }catch(e){ return 0; }
+}
+
+function _calcularDistancia(latlngs){
+  if(latlngs.length < 2) return 0;
+  try{
+    const coords = latlngs.map(([lat,lng]) => [lng,lat]);
+    return turf.length(turf.lineString(coords), {units:'kilometers'}) * 1000;
+  }catch(e){ return 0; }
+}
+
+function _formatarArea(m2){
+  if(m2 <= 0) return '—';
+  if(m2 >= 10000) return `${(m2/10000).toFixed(2)} ha`;
+  return `${Math.round(m2).toLocaleString('pt-BR')} m²`;
+}
+
+function _formatarDistancia(m){
+  if(m <= 0) return '—';
+  if(m >= 1000) return `${(m/1000).toFixed(2)} km`;
+  return `${Math.round(m).toLocaleString('pt-BR')} m`;
 }
 
 // ── Constantes ────────────────────────────────────────────────────────────
@@ -374,6 +410,26 @@ function renderPagina(){
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="fecharModalAdminFiltros()">Cancelar</button>
         <button class="btn btn-primary" id="btn-salvar-admin-filtros" onclick="salvarAdminFiltros()">Salvar configuração</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Editar polígono / trilha -->
+  <div class="modal-overlay" id="modal-geometria" style="display:none">
+    <div class="modal-box lg">
+      <div class="modal-header">
+        <h3 id="modal-geo-titulo">Editar polígono</h3>
+        <button class="btn-close" onclick="fecharModalGeometria()">✕</button>
+      </div>
+      <div style="display:flex;border-bottom:1px solid var(--borda);flex-shrink:0">
+        <button class="geo-tab ativo" data-aba="dados" onclick="abaGeometria('dados')">Dados</button>
+        <button class="geo-tab" data-aba="vertices" onclick="abaGeometria('vertices')">Vértices e medidas</button>
+      </div>
+      <div class="modal-body" id="modal-geo-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="excluirGeometria(_geoEditando?.group,_geoEditando?.tipo);fecharModalGeometria()" style="color:#dc2626;border-color:#fca5a5;margin-right:auto">🗑 Excluir</button>
+        <button class="btn btn-outline" onclick="fecharModalGeometria()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-geo" onclick="salvarGeometria()">Salvar</button>
       </div>
     </div>
   </div>
@@ -687,7 +743,7 @@ function renderizarMarcadores(){
     const latlngs = pts.map(p => [p.lat, p.lng]);
     const cor = corIcone(pts[0]);
     const poly = L.polygon(latlngs, {color:cor, fillColor:cor, fillOpacity:0.15, weight:2});
-    poly.bindPopup(`<div class="mapa-popup"><h4>${escHtml(nome)}</h4><div class="pp-linha"><strong>Tipo:</strong>Polígono</div><div class="pp-linha"><strong>APA:</strong>${escHtml(pts[0].apa)}</div>${pts[0].tipo_atividade?`<div class="pp-linha"><strong>Entrega:</strong>${escHtml(pts[0].tipo_atividade)}</div>`:''}<div class="pp-linha"><strong>Vértices:</strong>${pts.length}</div></div>`, {maxWidth:280});
+    poly.bindPopup(_popupGeometria(nome, pts, 'poligono'), {maxWidth:290});
     poly.addTo(mapaL);
     geometryLayers.push(poly);
   });
@@ -703,7 +759,7 @@ function renderizarMarcadores(){
     const latlngs = pts.map(p => [p.lat, p.lng]);
     const cor = corIcone(pts[0]);
     const line = L.polyline(latlngs, {color:cor, weight:3, dashArray:'6,4'});
-    line.bindPopup(`<div class="mapa-popup"><h4>${escHtml(nome)}</h4><div class="pp-linha"><strong>Tipo:</strong>Trilha</div><div class="pp-linha"><strong>APA:</strong>${escHtml(pts[0].apa)}</div>${pts[0].tipo_atividade?`<div class="pp-linha"><strong>Entrega:</strong>${escHtml(pts[0].tipo_atividade)}</div>`:''}<div class="pp-linha"><strong>Pontos:</strong>${pts.length}</div></div>`, {maxWidth:280});
+    line.bindPopup(_popupGeometria(nome, pts, 'trilha'), {maxWidth:290});
     // Marcadores de início/fim da trilha
     const mIni = L.circleMarker(latlngs[0], {radius:6,color:cor,fillColor:cor,fillOpacity:1,weight:2});
     const mFim = L.circleMarker(latlngs[latlngs.length-1], {radius:6,color:cor,fillColor:'#fff',fillOpacity:1,weight:2});
@@ -725,6 +781,30 @@ function renderPopup(p){
     <div style="margin-top:8px;display:flex;gap:6px">
       <button onclick="abrirModalEditar('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
       <button onclick="excluirPonto('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
+    </div>
+  </div>`;
+}
+
+function _popupGeometria(nome, pts, tipo){
+  const p0 = pts[0];
+  const cor = corIcone(p0);
+  const dt = p0.data_implantacao ? new Date(p0.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '—';
+  const latlngs = pts.map(p => [p.lat, p.lng]);
+  const medida = tipo === 'poligono'
+    ? `<div class="pp-linha"><strong>Área:</strong>${_formatarArea(_calcularArea(latlngs))}</div>`
+    : `<div class="pp-linha"><strong>Distância:</strong>${_formatarDistancia(_calcularDistancia(latlngs))}</div>`;
+  return `<div class="mapa-popup">
+    <h4>${escHtml(nome)}</h4>
+    ${p0.tipo_atividade?`<div style="margin-bottom:7px"><span style="background:${cor}22;color:${cor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid ${cor}55">${escHtml(p0.tipo_atividade)}</span></div>`:''}
+    <div class="pp-linha"><strong>APA:</strong>${escHtml(p0.apa)}</div>
+    ${p0.responsavel?`<div class="pp-linha"><strong>Responsável:</strong>${escHtml(p0.responsavel)}</div>`:''}
+    <div class="pp-linha"><strong>Implantação:</strong>${dt}</div>
+    ${medida}
+    <div class="pp-linha"><strong>${tipo==='poligono'?'Vértices':'Pontos'}:</strong>${pts.length}</div>
+    ${p0.observacao?`<div class="pp-linha"><strong>Obs.:</strong>${escHtml(p0.observacao)}</div>`:''}
+    <div style="margin-top:8px;display:flex;gap:6px">
+      <button onclick="abrirModalEditarGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
+      <button onclick="excluirGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
     </div>
   </div>`;
 }
@@ -1007,6 +1087,170 @@ async function salvarPonto(){
 }
 
 async function excluirPonto(id){ if(!confirm('Excluir este ponto?'))return;const {error}=await db.from('produto_pontos_mapa').delete().eq('id',id);if(error){alert('Erro: '+error.message);return;}await carregarPontos(); }
+
+// ── Edição de polígonos e trilhas ─────────────────────────────────────────
+let _geoEditando = null;
+
+function abrirModalEditarGeometria(group, tipo){
+  const pts = pontos
+    .filter(p => p.geometry_group === group && p.geometry_type === tipo)
+    .sort((a,b) => (a.geometry_order||0)-(b.geometry_order||0));
+  if(!pts.length) return;
+  _geoEditando = { group, tipo, pts: pts.map(p=>({...p})), abaAtiva:'dados' };
+  document.getElementById('modal-geo-titulo').textContent = tipo === 'poligono' ? 'Editar polígono' : 'Editar trilha / caminho';
+  abaGeometria('dados');
+  document.getElementById('modal-geometria').style.display = 'flex';
+}
+
+function fecharModalGeometria(){
+  document.getElementById('modal-geometria').style.display = 'none';
+  _geoEditando = null;
+}
+
+function abaGeometria(aba){
+  if(!_geoEditando) return;
+  _geoEditando.abaAtiva = aba;
+  document.querySelectorAll('.geo-tab').forEach(b => b.classList.toggle('ativo', b.dataset.aba === aba));
+  document.getElementById('modal-geo-body').innerHTML =
+    aba === 'dados' ? _htmlGeoFormDados(_geoEditando.pts[0]) : _htmlGeoVertices();
+}
+
+function _htmlGeoFormDados(p){
+  const porTipo = {};
+  matrizVisiveis.forEach(i => {
+    if(!i.produto_titulo) return;
+    if(!porTipo[i.produto_titulo]) porTipo[i.produto_titulo] = [];
+    porTipo[i.produto_titulo].push(i);
+  });
+  const tipoOptions = Object.keys(porTipo).length
+    ? Object.entries(porTipo).map(([titulo, itens]) =>
+        `<optgroup label="${escHtml(titulo)}">${itens.map(i =>
+          `<option value="${escHtml(titulo)}" ${p.tipo_atividade===titulo?'selected':''}>${escHtml(i.indicador||titulo)}</option>`
+        ).join('')}</optgroup>`).join('')
+    : '';
+  const temTipoConhecido = p.tipo_atividade && porTipo[p.tipo_atividade];
+  return `<div class="form-row">
+    <div class="form-group full"><label>Nome *</label>
+      <input id="fg-nome" type="text" value="${escHtml(p.nome_local||'')}"></div>
+    <div class="form-group"><label>APA *</label>
+      <select id="fg-apa">${Object.keys(APA_CONFIG).map(a=>`<option value="${escHtml(a)}" ${p.apa===a?'selected':''}>${escHtml(a)}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Tipo de entrega</label>
+      <select id="fg-tipo" onchange="onChangeTipo(this)">
+        <option value="">Selecione…</option>${tipoOptions}
+        <option value="__outro" ${!temTipoConhecido?'selected':''}>Outro (digitar)</option>
+      </select></div>
+    <div class="form-group" id="g-tipo-livre" style="${temTipoConhecido?'display:none':''}">
+      <label>Tipo (livre)</label>
+      <input id="fg-tipo-livre" type="text" value="${temTipoConhecido?'':(escHtml(p.tipo_atividade||''))}" placeholder="Descreva o tipo"></div>
+    <div class="form-group"><label>Responsável</label>
+      <input id="fg-resp" type="text" value="${escHtml(p.responsavel||'')}"></div>
+    <div class="form-group"><label>Data de implantação</label>
+      <input id="fg-data" type="date" value="${p.data_implantacao||''}"></div>
+    <div class="form-group full"><label>Observação</label>
+      <textarea id="fg-obs">${escHtml(p.observacao||'')}</textarea></div>
+  </div>`;
+}
+
+function _htmlGeoVertices(){
+  const { pts, tipo } = _geoEditando;
+  const latlngs = pts.map(p => [p.lat, p.lng]);
+  const minPts = tipo === 'poligono' ? 3 : 2;
+  const medida = tipo === 'poligono'
+    ? `Área: <strong>${_formatarArea(_calcularArea(latlngs))}</strong>`
+    : `Distância: <strong>${_formatarDistancia(_calcularDistancia(latlngs))}</strong>`;
+  return `
+  <div id="geo-medida" style="font-size:12px;color:var(--cinza-600);background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:7px 12px;margin-bottom:8px">${medida}</div>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:var(--cinza-100)">
+        <th style="padding:5px 8px;text-align:center;border-bottom:1px solid var(--borda);width:28px">#</th>
+        <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Latitude</th>
+        <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Longitude</th>
+        <th style="padding:5px 8px;border-bottom:1px solid var(--borda);width:84px"></th>
+      </tr></thead>
+      <tbody>${pts.map((p,i) => `<tr>
+        <td style="padding:4px 8px;text-align:center;color:var(--cinza-400);font-size:11px">${i+1}</td>
+        <td style="padding:3px 4px"><input type="number" step="any" value="${p.lat}" data-idx="${i}" data-campo="lat" onchange="_onVertexChange(this)" style="width:100%;font-size:12px;padding:3px 6px;border:1px solid var(--borda);border-radius:4px;font-family:monospace"></td>
+        <td style="padding:3px 4px"><input type="number" step="any" value="${p.lng}" data-idx="${i}" data-campo="lng" onchange="_onVertexChange(this)" style="width:100%;font-size:12px;padding:3px 6px;border:1px solid var(--borda);border-radius:4px;font-family:monospace"></td>
+        <td style="padding:3px 4px;white-space:nowrap;text-align:center">
+          ${i>0?`<button onclick="_moverVertex(${i},-1)" title="Subir" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:#fff;cursor:pointer">↑</button>`:'<span style="display:inline-block;width:24px"></span>'}
+          ${i<pts.length-1?`<button onclick="_moverVertex(${i},1)" title="Descer" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:#fff;cursor:pointer">↓</button>`:'<span style="display:inline-block;width:24px"></span>'}
+          ${pts.length>minPts?`<button onclick="_removerVertex(${i})" title="Remover" style="font-size:10px;padding:2px 5px;border:1px solid #fca5a5;border-radius:3px;background:#fff;color:#dc2626;cursor:pointer">✕</button>`:''}
+        </td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>
+  <button onclick="_adicionarVertex()" class="btn btn-outline" style="margin-top:8px;font-size:12px;width:100%">＋ Adicionar vértice</button>`;
+}
+
+function _onVertexChange(input){
+  const idx = parseInt(input.dataset.idx);
+  _geoEditando.pts[idx][input.dataset.campo] = parseFloat(input.value)||0;
+  const latlngs = _geoEditando.pts.map(p=>[p.lat,p.lng]);
+  const el = document.getElementById('geo-medida');
+  if(el) el.innerHTML = _geoEditando.tipo === 'poligono'
+    ? `Área: <strong>${_formatarArea(_calcularArea(latlngs))}</strong>`
+    : `Distância: <strong>${_formatarDistancia(_calcularDistancia(latlngs))}</strong>`;
+}
+
+function _moverVertex(idx, dir){
+  const pts = _geoEditando.pts;
+  [pts[idx], pts[idx+dir]] = [pts[idx+dir], pts[idx]];
+  abaGeometria('vertices');
+}
+
+function _removerVertex(idx){
+  _geoEditando.pts.splice(idx,1);
+  abaGeometria('vertices');
+}
+
+function _adicionarVertex(){
+  const pts = _geoEditando.pts;
+  const ult = pts[pts.length-1];
+  pts.push({...ult, lat:+(ult.lat+0.001).toFixed(6), lng:+(ult.lng+0.001).toFixed(6), id:null});
+  abaGeometria('vertices');
+}
+
+async function salvarGeometria(){
+  if(!_geoEditando) return;
+  const btn = document.getElementById('btn-salvar-geo');
+  btn.disabled=true; btn.textContent='Salvando…';
+  const fNome = document.getElementById('fg-nome');
+  let nome, apa, tipo_atividade, responsavel, data_implantacao, observacao;
+  if(fNome){
+    nome = fNome.value.trim();
+    apa = document.getElementById('fg-apa').value;
+    const ts = document.getElementById('fg-tipo').value;
+    tipo_atividade = ts==='__outro' ? (document.getElementById('fg-tipo-livre')?.value.trim()||null) : (ts||null);
+    responsavel = document.getElementById('fg-resp').value.trim()||null;
+    data_implantacao = document.getElementById('fg-data').value||null;
+    observacao = document.getElementById('fg-obs').value.trim()||null;
+  } else {
+    const p0 = _geoEditando.pts[0];
+    ({nome_local:nome, apa, tipo_atividade, responsavel, data_implantacao, observacao} = p0);
+  }
+  if(!nome){ alert('Nome é obrigatório.'); btn.disabled=false; btn.textContent='Salvar'; return; }
+  const { group, tipo:geoTipo } = _geoEditando;
+  const { error:delErr } = await db.from('produto_pontos_mapa')
+    .delete().eq('geometry_group', group).eq('geometry_type', geoTipo);
+  if(delErr){ alert('Erro: '+delErr.message); btn.disabled=false; btn.textContent='Salvar'; return; }
+  const inserts = _geoEditando.pts.map((p,i) => ({
+    nome_local:nome, apa, tipo_atividade, responsavel, data_implantacao, observacao,
+    lat:p.lat, lng:p.lng, geometry_type:geoTipo, geometry_group:nome,
+    geometry_order:i, status:'ativo', criado_por:appState.usuario?.id||null
+  }));
+  const { error:insErr } = await db.from('produto_pontos_mapa').insert(inserts);
+  btn.disabled=false; btn.textContent='Salvar';
+  if(insErr){ alert('Erro: '+insErr.message); return; }
+  fecharModalGeometria();
+  await carregarPontos();
+}
+
+async function excluirGeometria(group, tipo){
+  if(!confirm(`Excluir este ${tipo==='poligono'?'polígono':'caminho/trilha'} permanentemente?`)) return;
+  await db.from('produto_pontos_mapa').delete().eq('geometry_group',group).eq('geometry_type',tipo);
+  await carregarPontos();
+}
 
 // ── Importar Geolocalização (3 etapas — igual a produtos) ─────────────────
 let _impLinhas = { pontos:[], poligonos:[], trilhas:[] };
