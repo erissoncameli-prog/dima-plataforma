@@ -786,6 +786,7 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
   toast('Enviando '+docsEntrega.length+' documento(s)...','info');
   for(var j=0;j<docsEntrega.length;j++){
     var doc=docsEntrega[j];
+    if(doc.isGeo||!doc.file)continue; // geo docs não têm arquivo para upload
     var dpath='produtos/'+produtoAtual.id+'/entrega-'+numEntrega+'-'+Date.now()+'_'+doc.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
     var dUp=await db.storage.from('tdrs-arquivos').upload(dpath,doc.file,{upsert:true});
     if(!dUp.error){
