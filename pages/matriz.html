@@ -103,6 +103,18 @@
 .cs-pend{background:#FEF3C7;color:#92400E}
 .cs-conf{background:#D1FAE5;color:#065F46}
 .cs-rej{background:#FEE2E2;color:#991B1B}
+
+/* ── ODS/KM seletores no formulário ── */
+.fi-ods-sel{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);min-height:44px;}
+.fi-ods-chip{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .12s;background:#F3F4F6;color:var(--cinza-500);user-select:none;}
+.fi-ods-chip:hover{filter:brightness(.94);}
+.fi-ods-chip.sel{border-color:currentColor;}
+.fi-km-sel{display:flex;flex-direction:column;gap:3px;padding:8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);max-height:220px;overflow-y:auto;}
+.fi-km-chip{display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:all .12s;background:var(--branco);user-select:none;}
+.fi-km-chip:hover{background:#EDE9FE33;}
+.fi-km-chip.sel{background:#EDE9FE;border-color:#7C3AED;}
+.fi-km-chip-num{font-family:var(--font-mono);font-size:11px;font-weight:700;min-width:22px;color:#5B21B6;margin-top:1px;}
+.fi-km-chip-txt{font-size:11px;color:var(--cinza-700);line-height:1.35;}
 </style>
 </head>
 <body>
@@ -922,12 +934,12 @@ function abrirFormInd(i){
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">ODS vinculados (números separados por vírgula)</label>
-      <input class="form-control" id="fi-ods" placeholder="ex: 2, 12, 13" value="${(i?.ods||[]).join(', ')}">
+      <label class="form-label">ODS vinculados <span style="font-size:10px;color:var(--cinza-400);font-weight:400">(selecione quantos forem necessários)</span></label>
+      <div class="fi-ods-sel" id="fi-ods-grid"></div>
     </div>
     <div class="form-group">
-      <label class="form-label">Metas Kunming-Montreal (números separados por vírgula)</label>
-      <input class="form-control" id="fi-km" placeholder="ex: 2, 10, 22" value="${(i?.metas_km||[]).join(', ')}">
+      <label class="form-label">Metas Kunming-Montreal <span style="font-size:10px;color:var(--cinza-400);font-weight:400">(selecione quantas forem necessárias)</span></label>
+      <div class="fi-km-sel" id="fi-km-grid"></div>
     </div>
     <div class="form-group">
       <label class="form-label">Meios de Verificação</label>
@@ -939,11 +951,62 @@ function abrirFormInd(i){
       <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarIndicador('${i?.id||''}')">💾 Salvar</button>
     </div>`;
+  renderOdsSel(i?.ods||[]);
+  renderKmSel(i?.metas_km||[]);
   document.getElementById('modal-ind').style.display='flex';
 }
 
+function renderOdsSel(selecionados){
+  const cont=document.getElementById('fi-ods-grid');
+  if(!cont)return;
+  const sel=new Set((selecionados||[]).map(String));
+  const sorted=[...odsRefs].sort((a,b)=>parseInt(a.numero,10)-parseInt(b.numero,10));
+  if(!sorted.length){cont.innerHTML='<span style="font-size:11px;color:var(--cinza-400)">Carregando ODS…</span>';return;}
+  cont.innerHTML=sorted.map(o=>{
+    const isSel=sel.has(String(o.numero));
+    const cor=o.cor||'#2563EB';
+    const st=isSel?`background:${cor}22;color:${cor};border-color:${cor}`:'';
+    return `<label class="fi-ods-chip${isSel?' sel':''}" style="${st}" title="${o.titulo||''}">
+      <input type="checkbox" value="${o.numero}" ${isSel?'checked':''} style="display:none" onchange="toggleOdsSel(this)">
+      ${o.emoji||''} ODS ${o.numero}
+    </label>`;
+  }).join('');
+}
+
+function toggleOdsSel(cb){
+  const label=cb.closest('.fi-ods-chip');
+  const o=odsRefs.find(x=>String(x.numero)===String(cb.value));
+  const cor=o?.cor||'#2563EB';
+  if(cb.checked){
+    label.classList.add('sel');
+    label.style.cssText=`background:${cor}22;color:${cor};border-color:${cor}`;
+  }else{
+    label.classList.remove('sel');
+    label.style.cssText='';
+  }
+}
+
+function renderKmSel(selecionados){
+  const cont=document.getElementById('fi-km-grid');
+  if(!cont)return;
+  const sel=new Set((selecionados||[]).map(String));
+  const sorted=[...kmRefs].sort((a,b)=>parseInt(a.numero,10)-parseInt(b.numero,10));
+  if(!sorted.length){cont.innerHTML='<span style="font-size:11px;color:var(--cinza-400)">Carregando metas KM…</span>';return;}
+  cont.innerHTML=sorted.map(k=>{
+    const isSel=sel.has(String(k.numero));
+    return `<label class="fi-km-chip${isSel?' sel':''}">
+      <input type="checkbox" value="${k.numero}" ${isSel?'checked':''} style="display:none" onchange="toggleKmSel(this)">
+      <span class="fi-km-chip-num">${k.numero}</span>
+      <span class="fi-km-chip-txt">${k.titulo||k.resumo||''}</span>
+    </label>`;
+  }).join('');
+}
+
+function toggleKmSel(cb){
+  cb.closest('.fi-km-chip').classList.toggle('sel',cb.checked);
+}
+
 async function salvarIndicador(id){
-  const parseArr=v=>v.split(',').map(x=>x.trim()).filter(Boolean);
   const payload={
     resultado:parseInt(document.getElementById('fi-resultado').value)||1,
     produto_codigo:(document.getElementById('fi-produto-cod').value||'').trim(),
@@ -953,8 +1016,8 @@ async function salvarIndicador(id){
     meta_numerica:parseFloat(document.getElementById('fi-meta-num').value)||null,
     unidade:(document.getElementById('fi-unidade').value||'').trim()||null,
     ordem:parseInt(document.getElementById('fi-ordem').value)||0,
-    ods:parseArr(document.getElementById('fi-ods').value),
-    metas_km:parseArr(document.getElementById('fi-km').value),
+    ods:[...document.querySelectorAll('#fi-ods-grid input:checked')].map(x=>x.value),
+    metas_km:[...document.querySelectorAll('#fi-km-grid input:checked')].map(x=>x.value),
     meios_verificacao:(document.getElementById('fi-meios').value||'').trim()||null,
     atualizado_em:new Date().toISOString()
   };
