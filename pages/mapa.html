@@ -267,6 +267,9 @@ let camadas = [];
 let tipoCores = {};
 let matrizByTipo = {};
 
+// Verifica se o usuário pode adicionar/editar/excluir pontos
+function _ehEditor(){ return appState.perfil === 'super_admin' || appState.perfil === 'coordenador'; }
+
 // Agrega ODS e metas_km por produto_titulo (vários itens podem ter o mesmo título)
 function _buildMatrizByTipo(itens){
   const map = {};
@@ -344,7 +347,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ── Render ────────────────────────────────────────────────────────────────
 function renderPagina(){
-  const ehAdmin = appState.perfil === 'super_admin';
+  const ehAdmin  = appState.perfil === 'super_admin';
+  const ehEditor = ehAdmin || appState.perfil === 'coordenador';
 
   // Tipos visíveis no mapa — exibir cada item individualmente (igual ao modal de configuração)
   const tiposHtml = _renderTiposHtml();
@@ -364,12 +368,12 @@ function renderPagina(){
         <h2 style="margin:0;font-size:17px;font-weight:600;color:var(--cinza-900)">Mapa de Entregas</h2>
         <p style="margin:2px 0 0;font-size:11px;color:var(--cinza-500)">APAs Igarapé São Francisco e Lago do Amapá · Rio Branco, Acre</p>
       </div>
-      <button class="btn btn-outline" onclick="abrirModalCSV()" style="font-size:12px;display:flex;align-items:center;gap:5px;">
+      ${ehEditor ? `<button class="btn btn-outline" onclick="abrirModalCSV()" style="font-size:12px;display:flex;align-items:center;gap:5px;">
         📂 Importar .xlsx
       </button>
       <button class="btn btn-primary" onclick="abrirModalNovo()" style="font-size:12px;display:flex;align-items:center;gap:5px;">
         ＋ Adicionar ponto
-      </button>
+      </button>` : ''}
     </div>
 
     <!-- Mapa + painel -->
@@ -882,10 +886,10 @@ function renderPopup(p){
     <div class="pp-linha"><strong>Implantação:</strong>${dt}</div>
     ${p.observacao?`<div class="pp-linha"><strong>Obs.:</strong>${escHtml(p.observacao)}</div>`:''}
     ${_htmlOdsKm(p.tipo_atividade)}
-    <div style="margin-top:8px;display:flex;gap:6px">
+    ${_ehEditor() ? `<div style="margin-top:8px;display:flex;gap:6px">
       <button onclick="abrirModalEditar('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
       <button onclick="excluirPonto('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
-    </div>
+    </div>` : ''}
   </div>`;
 }
 
@@ -907,10 +911,10 @@ function _popupGeometria(nome, pts, tipo){
     <div class="pp-linha"><strong>${tipo==='poligono'?'Vértices':'Pontos'}:</strong>${pts.length}</div>
     ${p0.observacao?`<div class="pp-linha"><strong>Obs.:</strong>${escHtml(p0.observacao)}</div>`:''}
     ${_htmlOdsKm(p0.tipo_atividade)}
-    <div style="margin-top:8px;display:flex;gap:6px">
+    ${_ehEditor() ? `<div style="margin-top:8px;display:flex;gap:6px">
       <button onclick="abrirModalEditarGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
       <button onclick="excluirGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
-    </div>
+    </div>` : ''}
   </div>`;
 }
 
