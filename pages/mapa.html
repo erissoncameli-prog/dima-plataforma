@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB-9AoauSLoRjeEfnpfr5GNSziETRQkbB8"></script>
 <style>
 /* ── Layout ─────────────────────────────────────────────────── */
 .mapa-wrapper{display:flex;flex-direction:column;gap:10px;height:calc(100vh - 108px);min-height:500px;}
@@ -98,6 +99,10 @@
 .imp-stat.ok .imp-stat-lbl{color:#15803D;}
 .imp-stat.err .imp-stat-lbl{color:#B91C1C;}
 
+/* Camada row */
+.camada-row{display:flex;align-items:center;gap:6px;padding:4px 0;}
+.camada-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
+
 /* Admin modal — lista de itens */
 .admin-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--cinza-100);transition:background .12s;}
 .admin-item:last-child{border-bottom:none;}
@@ -119,12 +124,13 @@
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/shpjs@4.0.4/dist/shp.js"></script>
+<script src="https://unpkg.com/leaflet.gridlayer.googlemutant@latest/dist/Leaflet.GoogleMutant.js"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────────────────
 const APA_CONFIG = {
-  'Igarapé São Francisco': { cor:'#16a34a', fill:'#16a34a', lsKey:'dima_geojson_isf' },
-  'Lago do Amapá':          { cor:'#2563eb', fill:'#2563eb', lsKey:'dima_geojson_la'  },
-  'Outra':                  { cor:'#9ca3af', fill:'#9ca3af', lsKey:null               },
+  'Igarapé São Francisco': { cor:'#16a34a' },
+  'Lago do Amapá':          { cor:'#2563eb' },
+  'Outra':                  { cor:'#9ca3af' },
 };
 const TIPO_CORES = ['#7c3aed','#d97706','#0891b2','#dc2626','#059669','#d946ef','#f59e0b','#3b82f6'];
 const filtroProdutoId = new URLSearchParams(window.location.search).get('produto') || null;
@@ -132,11 +138,11 @@ const filtroProdutoId = new URLSearchParams(window.location.search).get('produto
 // ── Estado ────────────────────────────────────────────────────────────────
 let mapaL = null, clusters = null;
 let pontos = [], pontosLayer = [];
-let matrizItens = [];       // todos os itens ativos
-let matrizVisiveis = [];    // apenas os com visivel_no_mapa=true
+let matrizItens = [];
+let matrizVisiveis = [];
 let filtrosAPA  = new Set(Object.keys(APA_CONFIG));
 let filtrosTipo = new Set();
-let apaPolygonLayers = {};
+let camadas = [];
 let tipoCores = {};
 
 // ── Init ──────────────────────────────────────────────────────────────────
@@ -164,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   setTimeout(async () => {
     iniciarMapa();
-    carregarGeoJsonSalvos();
+    await carregarCamadas();
     await carregarPontos();
     vincularEventos();
   }, 0);
@@ -206,10 +212,10 @@ function renderPagina(){
 
       <div class="mapa-painel">
 
-        <!-- Demarcação APAs -->
+        <!-- Filtrar por APA -->
         <div class="filtro-bloco">
           <div class="filtro-bloco-header" onclick="toggleBloco('bloco-apa')">
-            <h4>Demarcação das APAs</h4>
+            <h4>Filtrar por APA</h4>
             <span id="chevron-bloco-apa" style="font-size:10px;color:var(--cinza-400)">▾</span>
           </div>
           <div class="filtro-bloco-body" id="bloco-apa">
@@ -218,17 +224,21 @@ function renderPagina(){
               <input type="checkbox" checked data-apa="${escHtml(nome)}" onchange="toggleFiltroAPA(this)">
               <span class="filtro-dot" style="background:${cfg.cor}"></span>
               <span style="font-size:12px;color:var(--cinza-700);flex:1">${escHtml(nome)}</span>
-              <button class="btn-geojson ${localStorage.getItem(cfg.lsKey)?'carregado':''}"
-                id="btn-geojson-${escHtml(nome.replace(/\s/g,'_'))}"
-                onclick="abrirUploadGeoJson('${escHtml(nome)}')"
-                title="${localStorage.getItem(cfg.lsKey)?'Demarcação carregada — clique para substituir':'Importar GeoJSON ou Shapefile (.zip) da APA'}">
-                ${localStorage.getItem(cfg.lsKey)?'✓ Carregado':'📁 GeoJSON / SHP'}
-              </button>
-              ${localStorage.getItem(cfg.lsKey)?`<button onclick="removerDemarcacao('${escHtml(nome)}')" title="Remover demarcação" style="font-size:11px;padding:2px 6px;border:1px solid #FCA5A5;border-radius:4px;background:#FEF2F2;color:#DC2626;cursor:pointer;margin-left:2px">✕</button>`:''}
             </div>`).join('')}
-            <p style="font-size:10px;color:var(--cinza-400);margin:6px 0 0;line-height:1.4">
-              Importe o arquivo <code>.geojson</code> ou <code>.zip</code> (shapefile) oficial (CNUC/SEMA).
-            </p>
+          </div>
+        </div>
+
+        <!-- Camadas de delimitação -->
+        <div class="filtro-bloco">
+          <div class="filtro-bloco-header" onclick="toggleBloco('bloco-camadas')">
+            <h4>Camadas de delimitação</h4>
+            ${ehAdmin ? `<button class="btn-admin-filtros" onclick="event.stopPropagation();abrirModalNovaCamada()" title="Adicionar nova camada" style="font-size:15px;font-weight:700;line-height:1">＋</button>` : ''}
+            <span id="chevron-bloco-camadas" style="font-size:10px;color:var(--cinza-400)">▾</span>
+          </div>
+          <div class="filtro-bloco-body" id="bloco-camadas">
+            <div id="bloco-camadas-lista">
+              <div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Carregando…</div>
+            </div>
           </div>
         </div>
 
@@ -313,131 +323,204 @@ function renderPagina(){
     </div>
   </div>
 
-  <!-- Input oculto para GeoJSON / Shapefile -->
-  <input type="file" id="geojson-input" accept=".geojson,.json,.zip" style="display:none" onchange="onGeoJsonFile(this.files[0])">
+  <!-- Modal: Nova camada de delimitação -->
+  <div class="modal-overlay" id="modal-nova-camada" style="display:none">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Nova camada de delimitação</h3>
+        <button class="btn-close" onclick="fecharModalNovaCamada()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Nome da camada *</label>
+            <input id="nc-nome" type="text" placeholder="Ex: ISF — Polígono Original 2023">
+          </div>
+          <div class="form-group">
+            <label>APA</label>
+            <select id="nc-apa">
+              <option value="isf">Igarapé São Francisco</option>
+              <option value="la">Lago do Amapá</option>
+              <option value="outra">Outra</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Cor</label>
+            <input id="nc-cor" type="color" value="#16a34a" style="height:36px;padding:2px 4px;cursor:pointer;width:100%">
+          </div>
+          <div class="form-group full">
+            <label>Arquivo (GeoJSON ou Shapefile .zip) *</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-outline" style="font-size:12px;flex-shrink:0" onclick="document.getElementById('nc-arquivo').click()">📁 Selecionar arquivo</button>
+              <span id="nc-arquivo-status" style="font-size:12px;color:var(--cinza-400)">Nenhum arquivo selecionado</span>
+            </div>
+            <input type="file" id="nc-arquivo" accept=".geojson,.json,.zip" style="display:none" onchange="onNovaCamadaArquivo(this.files[0])">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModalNovaCamada()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-salvar-nova-camada" onclick="salvarNovaCamada()">Salvar camada</button>
+      </div>
+    </div>
+  </div>
   `;
 }
 
 // ── Mapa ──────────────────────────────────────────────────────────────────
 function iniciarMapa(){
   mapaL = L.map('mapa', { center:[-9.965,-67.81], zoom:12 });
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
-    attribution:'Esri, Maxar, Earthstar Geographics', maxZoom:19
-  }).addTo(mapaL);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',{
-    attribution:'© CartoDB', opacity:0.8, maxZoom:19
-  }).addTo(mapaL);
+  L.gridLayer.googleMutant({ type:'hybrid', maxZoom:22 }).addTo(mapaL);
   clusters = L.markerClusterGroup({ maxClusterRadius:40, disableClusteringAtZoom:17 });
   mapaL.addLayer(clusters);
 }
 
-// ── GeoJSON APAs ──────────────────────────────────────────────────────────
-let apaGeoJsonAtual = null;
+// ── Camadas de delimitação (Supabase) ─────────────────────────────────────
 
-function carregarGeoJsonSalvos(){
-  Object.entries(APA_CONFIG).forEach(([nome, cfg]) => {
-    if(!cfg.lsKey) return;
-    const raw = localStorage.getItem(cfg.lsKey);
-    if(raw){ try{ renderizarApaPolygon(nome, JSON.parse(raw)); }catch(e){} }
-  });
+async function carregarCamadas(){
+  const { data, error } = await db.from('apa_demarcacoes')
+    .select('id, nome, apa_key, cor, geojson, visivel')
+    .order('created_at');
+  if(error){ console.error('Erro ao carregar camadas:', error); renderCamadasHtml(); return; }
+  const visPref = JSON.parse(localStorage.getItem('dima_camadas_vis')||'{}');
+  camadas = (data||[]).map(c => ({
+    ...c,
+    visivel: visPref.hasOwnProperty(c.id) ? visPref[c.id] : c.visivel,
+    layer: null
+  }));
+  camadas.forEach(c => { if(c.visivel) _renderizarCamada(c); });
+  renderCamadasHtml();
 }
 
-function abrirUploadGeoJson(nomeApa){
-  apaGeoJsonAtual = nomeApa;
-  document.getElementById('geojson-input').value = '';
-  document.getElementById('geojson-input').click();
+function _renderizarCamada(c){
+  if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
+  if(!c.geojson) return;
+  c.layer = L.geoJSON(c.geojson, { style:{ color:c.cor, weight:2, opacity:.9, fillColor:c.cor, fillOpacity:.15, dashArray:'5 4' }});
+  c.layer.addTo(mapaL);
 }
 
-function onGeoJsonFile(file){
-  if(!file || !apaGeoJsonAtual) return;
+function renderCamadasHtml(){
+  const ehAdmin = appState.perfil === 'super_admin';
+  const el = document.getElementById('bloco-camadas-lista');
+  if(!el) return;
+  if(!camadas.length){
+    el.innerHTML = `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">${ehAdmin?'Nenhuma camada. Clique em ＋ para adicionar.':'Nenhuma camada disponível.'}</div>`;
+    return;
+  }
+  el.innerHTML = camadas.map(c => `
+    <div class="camada-row">
+      <input type="checkbox" ${c.visivel?'checked':''} onchange="toggleCamadaVisivel('${c.id}',this.checked)">
+      <span class="filtro-dot" style="background:${c.cor}"></span>
+      <span style="font-size:12px;color:var(--cinza-700);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(c.nome)}">${escHtml(c.nome)}</span>
+      ${ehAdmin?`<button onclick="removerCamada('${c.id}')" title="Remover camada" style="font-size:11px;padding:2px 6px;border:1px solid #FCA5A5;border-radius:4px;background:#FEF2F2;color:#DC2626;cursor:pointer;flex-shrink:0">✕</button>`:''}
+    </div>`).join('');
+}
+
+function toggleCamadaVisivel(id, visivel){
+  const c = camadas.find(x=>x.id===id);
+  if(!c) return;
+  c.visivel = visivel;
+  if(visivel){ _renderizarCamada(c); }
+  else if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
+  const visPref = JSON.parse(localStorage.getItem('dima_camadas_vis')||'{}');
+  visPref[id] = visivel;
+  localStorage.setItem('dima_camadas_vis', JSON.stringify(visPref));
+}
+
+async function removerCamada(id){
+  if(!confirm('Remover esta camada permanentemente?')) return;
+  const c = camadas.find(x=>x.id===id);
+  if(c?.layer){ mapaL.removeLayer(c.layer); }
+  camadas = camadas.filter(x=>x.id!==id);
+  renderCamadasHtml();
+  await db.from('apa_demarcacoes').delete().eq('id', id);
+}
+
+let _novaCamadaGeoJson = null;
+
+function abrirModalNovaCamada(){
+  _novaCamadaGeoJson = null;
+  document.getElementById('nc-nome').value = '';
+  document.getElementById('nc-cor').value = '#16a34a';
+  document.getElementById('nc-apa').value = 'isf';
+  document.getElementById('nc-arquivo-status').textContent = 'Nenhum arquivo selecionado';
+  document.getElementById('nc-arquivo-status').style.color = 'var(--cinza-400)';
+  document.getElementById('nc-arquivo').value = '';
+  document.getElementById('modal-nova-camada').style.display = 'flex';
+}
+
+function fecharModalNovaCamada(){
+  document.getElementById('modal-nova-camada').style.display = 'none';
+  _novaCamadaGeoJson = null;
+}
+
+function onNovaCamadaArquivo(file){
+  if(!file) return;
+  const statusEl = document.getElementById('nc-arquivo-status');
+  statusEl.textContent = 'Processando…';
+  statusEl.style.color = 'var(--cinza-500)';
   const isZip = file.name.toLowerCase().endsWith('.zip');
-
   if(isZip){
-    if(typeof shp === 'undefined' || typeof JSZip === 'undefined'){
-      alert('Bibliotecas ainda carregando, tente em instantes.'); return;
-    }
     const reader = new FileReader();
     reader.onload = async e => {
       try{
-        // Abrir o zip e listar todos os arquivos (independente de pasta aninhada)
         const zip = await JSZip.loadAsync(e.target.result);
         const allFiles = Object.keys(zip.files).filter(f => !zip.files[f].dir);
-
-        // Encontrar arquivos .shp — priorizar o que tem "perimetro" no nome
         const shpFiles = allFiles.filter(f => f.toLowerCase().endsWith('.shp'));
-        if(!shpFiles.length){ alert('Nenhum arquivo .shp encontrado no zip.'); return; }
-        const shpPath = shpFiles.find(f => f.toLowerCase().includes('perimetro')) || shpFiles[0];
-
-        // Encontrar .dbf e .prj correspondentes (mesmo nome base)
-        const baseLower = shpPath.toLowerCase().replace(/\.shp$/, '');
-        const dbfPath = allFiles.find(f => f.toLowerCase().replace(/\.dbf$/,'') === baseLower && f.toLowerCase().endsWith('.dbf'));
-        const prjPath = allFiles.find(f => f.toLowerCase().replace(/\.prj$/,'') === baseLower && f.toLowerCase().endsWith('.prj'));
-        if(!dbfPath){ alert('Arquivo .dbf não encontrado no zip.'); return; }
-
-        // Criar zip plano na memória (shpjs exige arquivos na raiz)
+        if(!shpFiles.length){ statusEl.textContent='Nenhum .shp encontrado.'; statusEl.style.color='#dc2626'; return; }
+        const shpPath = shpFiles.find(f=>f.toLowerCase().includes('perimetro'))||shpFiles[0];
+        const baseLower = shpPath.toLowerCase().replace(/\.shp$/,'');
+        const dbfPath = allFiles.find(f=>f.toLowerCase().replace(/\.dbf$/,'')===baseLower&&f.toLowerCase().endsWith('.dbf'));
+        const prjPath = allFiles.find(f=>f.toLowerCase().replace(/\.prj$/,'')===baseLower&&f.toLowerCase().endsWith('.prj'));
+        if(!dbfPath){ statusEl.textContent='.dbf não encontrado.'; statusEl.style.color='#dc2626'; return; }
         const fileName = shpPath.split('/').pop().replace(/\.shp$/i,'');
         const flatZip = new JSZip();
         flatZip.file(fileName+'.shp', await zip.files[shpPath].async('arraybuffer'));
         flatZip.file(fileName+'.dbf', await zip.files[dbfPath].async('arraybuffer'));
         if(prjPath) flatZip.file(fileName+'.prj', await zip.files[prjPath].async('arraybuffer'));
-
         const flatBuf = await flatZip.generateAsync({type:'arraybuffer'});
         const result = await shp(flatBuf);
-
-        // shpjs pode retornar FeatureCollection ou array — normalizar
-        const geojson = Array.isArray(result)
-          ? { type:'FeatureCollection', features: result.flatMap(g => g.features||[]) }
+        _novaCamadaGeoJson = Array.isArray(result)
+          ? {type:'FeatureCollection', features:result.flatMap(g=>g.features||[])}
           : result;
-
-        const cfg = APA_CONFIG[apaGeoJsonAtual];
-        if(cfg?.lsKey) localStorage.setItem(cfg.lsKey, JSON.stringify(geojson));
-        renderizarApaPolygon(apaGeoJsonAtual, geojson);
-        const btn = document.getElementById('btn-geojson-'+apaGeoJsonAtual.replace(/\s/g,'_'));
-        if(btn){ btn.textContent='✓ SHP'; btn.classList.add('carregado'); }
-      }catch(err){ alert('Erro ao ler shapefile: '+err.message); }
+        statusEl.textContent = '✓ Shapefile processado com sucesso';
+        statusEl.style.color = '#16a34a';
+      }catch(err){ statusEl.textContent='Erro: '+err.message; statusEl.style.color='#dc2626'; }
     };
     reader.readAsArrayBuffer(file);
-
   } else {
-    // GeoJSON
     const reader = new FileReader();
     reader.onload = e => {
       try{
-        const gj = JSON.parse(e.target.result);
-        const cfg = APA_CONFIG[apaGeoJsonAtual];
-        if(cfg?.lsKey) localStorage.setItem(cfg.lsKey, JSON.stringify(gj));
-        renderizarApaPolygon(apaGeoJsonAtual, gj);
-        const btn = document.getElementById('btn-geojson-'+apaGeoJsonAtual.replace(/\s/g,'_'));
-        if(btn){ btn.textContent='✓ GeoJSON'; btn.classList.add('carregado'); }
-      }catch(err){ alert('GeoJSON inválido: '+err.message); }
+        _novaCamadaGeoJson = JSON.parse(e.target.result);
+        statusEl.textContent = '✓ GeoJSON carregado com sucesso';
+        statusEl.style.color = '#16a34a';
+      }catch(err){ statusEl.textContent='GeoJSON inválido: '+err.message; statusEl.style.color='#dc2626'; }
     };
     reader.readAsText(file,'utf-8');
   }
 }
 
-function removerDemarcacao(nome){
-  const cfg = APA_CONFIG[nome];
-  if(cfg?.lsKey) localStorage.removeItem(cfg.lsKey);
-  if(apaPolygonLayers[nome]){ mapaL.removeLayer(apaPolygonLayers[nome]); delete apaPolygonLayers[nome]; }
-  // Atualizar botões na UI
-  const id = nome.replace(/\s/g,'_');
-  const btnCarregado = document.getElementById('btn-geojson-'+id);
-  if(btnCarregado){
-    btnCarregado.textContent = '📁 GeoJSON / SHP';
-    btnCarregado.classList.remove('carregado');
-    btnCarregado.title = 'Importar GeoJSON ou Shapefile (.zip) da APA';
-    // Remover o botão ✕
-    const btnRemover = btnCarregado.nextElementSibling;
-    if(btnRemover && btnRemover.textContent.trim() === '✕') btnRemover.remove();
-  }
-}
-
-function renderizarApaPolygon(nome, geojson){
-  if(apaPolygonLayers[nome]){ mapaL.removeLayer(apaPolygonLayers[nome]); delete apaPolygonLayers[nome]; }
-  const cfg = APA_CONFIG[nome];
-  const layer = L.geoJSON(geojson,{ style:{ color:cfg.cor,weight:2,opacity:.9,fillColor:cfg.fill,fillOpacity:.15,dashArray:'5 4' }});
-  if(filtrosAPA.has(nome)){ layer.addTo(mapaL); mapaL.fitBounds(layer.getBounds(),{padding:[20,20]}); }
-  apaPolygonLayers[nome] = layer;
+async function salvarNovaCamada(){
+  const nome = document.getElementById('nc-nome').value.trim();
+  const apa_key = document.getElementById('nc-apa').value;
+  const cor = document.getElementById('nc-cor').value;
+  if(!nome){ alert('Informe um nome para a camada.'); return; }
+  if(!_novaCamadaGeoJson){ alert('Selecione um arquivo GeoJSON ou Shapefile .zip.'); return; }
+  const btn = document.getElementById('btn-salvar-nova-camada');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+  const { data, error } = await db.from('apa_demarcacoes').insert({
+    nome, apa_key, cor, geojson: _novaCamadaGeoJson, visivel: true,
+    uploaded_by: appState.usuario?.id||null
+  }).select().single();
+  btn.disabled = false; btn.textContent = 'Salvar camada';
+  if(error){ alert('Erro ao salvar: '+error.message); return; }
+  fecharModalNovaCamada();
+  const novaCamada = {...data, layer:null};
+  camadas.push(novaCamada);
+  _renderizarCamada(novaCamada);
+  if(novaCamada.layer) mapaL.fitBounds(novaCamada.layer.getBounds(), {padding:[20,20]});
+  renderCamadasHtml();
 }
 
 function toggleBloco(id){
@@ -616,9 +699,6 @@ function toggleTodosTipos(){
 function toggleFiltroAPA(el){
   const apa = el.dataset.apa;
   if(el.checked) filtrosAPA.add(apa); else filtrosAPA.delete(apa);
-  if(apaPolygonLayers[apa]){
-    if(el.checked) apaPolygonLayers[apa].addTo(mapaL); else mapaL.removeLayer(apaPolygonLayers[apa]);
-  }
   renderizarMarcadores(); renderizarLista();
 }
 
