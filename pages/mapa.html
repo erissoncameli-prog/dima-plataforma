@@ -406,7 +406,7 @@ function criarIcone(p){
 }
 
 async function carregarPontos(){
-  let q = db.from('produto_pontos_mapa').select('*').order('geometry_type').order('geometry_group').order('geometry_order').order('criado_em',{ascending:false});
+  let q = db.from('produto_pontos_mapa').select('*').order('criado_em',{ascending:false});
   if(filtroProdutoId) q = q.eq('produto_id', filtroProdutoId);
   const { data, error } = await q;
   if(error){ console.error(error); return; }
