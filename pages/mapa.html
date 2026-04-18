@@ -1496,6 +1496,22 @@ function _impLerArquivo(file){
 
 function _impProcessarWorkbook(wb){
   const pontos=[], poligonos=[], trilhas=[], erros=[];
+  // Suporta 3 formatos de coordenada:
+  //   1) colunas separadas com ponto:        lat=-10.042  lng=-67.852
+  //   2) colunas separadas com vírgula BR:   lat=-10,042  lng=-67,852
+  //   3) par colado do Google Maps na célula lat: "-10.042, -67.852" (lng vazia)
+  const extrairCoords = (latRaw, lngRaw) => {
+    const latStr = String(latRaw||'').trim();
+    const lngStr = String(lngRaw||'').trim();
+    if(latStr.includes(',') && lngStr === ''){
+      const partes = latStr.split(',');
+      if(partes.length >= 2){
+        const a = parseFloat(partes[0].trim()), b = parseFloat(partes[1].trim());
+        if(!isNaN(a)&&!isNaN(b)&&Math.abs(a)<=90&&Math.abs(b)<=180) return {lat:a, lng:b};
+      }
+    }
+    return {lat:parseFloat(latStr.replace(',','.')), lng:parseFloat(lngStr.replace(',','.'))};
+  };
   wb.SheetNames.forEach(nome => {
     const ws = wb.Sheets[nome];
     const rows = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
@@ -1503,19 +1519,19 @@ function _impProcessarWorkbook(wb){
     const coordOk = (lat,lng) => !isNaN(lat)&&!isNaN(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
     if(nomeLower.includes('pont')){
       rows.forEach((r,i) => {
-        const lat=parseFloat(String(r.lat||r.LAT).replace(',','.')), lng=parseFloat(String(r.lng||r.LNG).replace(',','.'));
+        const {lat,lng} = extrairCoords(r.lat||r.LAT, r.lng||r.LNG);
         if(!r.nome_local||!coordOk(lat,lng)){ erros.push(`${nome} linha ${i+2}: coordenadas inválidas (lat=${r.lat} lng=${r.lng})`); return; }
         pontos.push({nome_local:String(r.nome_local),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'ponto'});
       });
     } else if(nomeLower.includes('pol')){
       rows.forEach((r,i) => {
-        const lat=parseFloat(String(r.lat||r.LAT).replace(',','.')), lng=parseFloat(String(r.lng||r.LNG).replace(',','.'));
+        const {lat,lng} = extrairCoords(r.lat||r.LAT, r.lng||r.LNG);
         if(!r.nome_area||!coordOk(lat,lng)){ erros.push(`${nome} linha ${i+2}: coordenadas inválidas`); return; }
         poligonos.push({nome_local:String(r.nome_area),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'poligono',geometry_group:String(r.nome_area),geometry_order:parseInt(r.ordem)||0});
       });
     } else if(nomeLower.includes('trilh')){
       rows.forEach((r,i) => {
-        const lat=parseFloat(String(r.lat||r.LAT).replace(',','.')), lng=parseFloat(String(r.lng||r.LNG).replace(',','.'));
+        const {lat,lng} = extrairCoords(r.lat||r.LAT, r.lng||r.LNG);
         if(!r.nome_trilha||!coordOk(lat,lng)){ erros.push(`${nome} linha ${i+2}: coordenadas inválidas`); return; }
         trilhas.push({nome_local:String(r.nome_trilha),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'trilha',geometry_group:String(r.nome_trilha),geometry_order:parseInt(r.ordem)||0});
       });

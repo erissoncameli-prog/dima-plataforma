@@ -966,7 +966,7 @@ function renderModalGeoCsvEtapa1(){
     +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.7">'
     +'<li>Baixe o template e preencha <strong>apenas as abas que se aplicam</strong> ao produto (<strong>Pontos</strong>, <strong>Polígono</strong> ou <strong>Trilha</strong>).</li>'
     +'<li><strong>Apague as linhas de exemplo</strong> das abas que não for usar — caso contrário elas serão importadas como dados reais.</li>'
-    +'<li>As colunas <strong>lat</strong> e <strong>lng</strong> aceitam <strong>vírgula ou ponto</strong> como decimal (ex: <code>-9,972</code> ou <code>-9.972</code>).</li>'
+    +'<li>As colunas <strong>lat</strong> e <strong>lng</strong> aceitam vírgula ou ponto decimal (<code>-9,972</code> ou <code>-9.972</code>). Também é possível <strong>colar a coordenada completa do Google Maps</strong> (<code>-10.042, -67.852</code>) direto na coluna <strong>lat</strong>, deixando <strong>lng</strong> vazia.</li>'
     +'<li><strong>Importe o próprio arquivo .xlsx</strong> — não é necessário converter para CSV.</li>'
     +'</ol>'
     +'</div>'
@@ -999,6 +999,25 @@ function onGeoDropXlsx(file){
     var wb=XLSX.read(e.target.result,{type:'binary'});
     var validas=[],invalidas=[];
     var coordOk=function(lat,lng){return !isNaN(lat)&&!isNaN(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;};
+    // Extrai lat e lng suportando 3 formatos:
+    //   1) colunas separadas com ponto:   lat=-10.042  lng=-67.852
+    //   2) colunas separadas com vírgula BR: lat=-10,042  lng=-67,852
+    //   3) par colado do Google Maps na célula lat: "-10.042663, -67.852065" (lng vazia)
+    var extrairCoords=function(latRaw,lngRaw){
+      var latStr=String(latRaw||'').trim();
+      var lngStr=String(lngRaw||'').trim();
+      // Detectar par "lat, lng" na célula lat (Google Maps / cópia direta)
+      if(latStr.indexOf(',')!==-1&&lngStr===''){
+        var partes=latStr.split(',');
+        if(partes.length>=2){
+          var a=parseFloat(partes[0].trim());
+          var b=parseFloat(partes[1].trim());
+          if(!isNaN(a)&&!isNaN(b)&&Math.abs(a)<=90&&Math.abs(b)<=180)return{lat:a,lng:b};
+        }
+      }
+      // Formato normal (vírgula como decimal BR ou ponto)
+      return{lat:parseFloat(latStr.replace(',','.')),lng:parseFloat(lngStr.replace(',','.'))};
+    };
     if(!wb.SheetNames.length){alert('Arquivo vazio ou inválido.');return;}
     wb.SheetNames.forEach(function(sheetNome){
       var ws=wb.Sheets[sheetNome];
@@ -1007,8 +1026,8 @@ function onGeoDropXlsx(file){
       rows.forEach(function(r,idx){
         var obj={};
         Object.keys(r).forEach(function(k){obj[k.trim().toLowerCase()]=String(r[k]||'').trim();});
-        var lat=parseFloat(String(obj.lat||'').replace(',','.'));
-        var lng=parseFloat(String(obj.lng||'').replace(',','.'));
+        var coords=extrairCoords(obj.lat,obj.lng);
+        var lat=coords.lat,lng=coords.lng;
         // Ignorar linhas de exemplo do template (nome começa com "Ex:")
         var nomeChave=nl.includes('pol')?obj.nome_area:nl.includes('trilh')?obj.nome_trilha:obj.nome_local;
         if(nomeChave&&/^ex:/i.test(nomeChave.trim()))return;
