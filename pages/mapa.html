@@ -775,8 +775,7 @@ function _impEtapa1(){
     +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.8">'
     +'<li>Baixe o template Excel com as 3 abas: <strong>Pontos</strong>, <strong>Polígono</strong> e <strong>Trilha</strong>.</li>'
     +'<li>Preencha as abas desejadas com seus dados.</li>'
-    +'<li><strong>Salve como CSV</strong> (Excel → Arquivo → Salvar Como → CSV UTF-8) — <em>uma aba por vez</em>, ou importe o .xlsx diretamente.</li>'
-    +'<li>Importe o arquivo aqui.</li>'
+    +'<li><strong>Importe o próprio arquivo .xlsx</strong> — não é necessário converter para CSV.</li>'
     +'</ol>'
     +'</div>'
     +'<button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="_impBaixarTemplate()">&#x1F4E5; Baixar template Excel (.xlsx)</button>'
@@ -786,10 +785,10 @@ function _impEtapa1(){
     +' ondragleave="this.classList.remove(\'drag\')"'
     +' ondrop="event.preventDefault();this.classList.remove(\'drag\');_impLerArquivo(event.dataTransfer.files[0])">'
     +'<div style="font-size:32px;margin-bottom:8px">📂</div>'
-    +'<div style="font-size:13px;font-weight:500;color:var(--cinza-700)">Arraste o arquivo ou clique para selecionar</div>'
-    +'<div style="font-size:11px;color:var(--cinza-400);margin-top:4px">Aceita .csv ou .xlsx</div>'
+    +'<div style="font-size:13px;font-weight:500;color:var(--cinza-700)">Arraste o arquivo .xlsx ou clique para selecionar</div>'
+    +'<div style="font-size:11px;color:var(--cinza-400);margin-top:4px">Apenas .xlsx (Excel)</div>'
     +'</div>'
-    +'<input type="file" id="imp-input" accept=".csv,.xlsx" style="display:none" onchange="_impLerArquivo(this.files[0]);this.value=\'\'">';
+    +'<input type="file" id="imp-input" accept=".xlsx" style="display:none" onchange="_impLerArquivo(this.files[0]);this.value=\'\'">';
   document.getElementById('imp-footer').innerHTML=
     '<button class="btn btn-secondary" onclick="fecharModalCSV()">Cancelar</button>';
 }
@@ -827,22 +826,13 @@ function _impBaixarTemplate(){
 
 function _impLerArquivo(file){
   if(!file) return;
-  const ext = file.name.split('.').pop().toLowerCase();
-  if(ext === 'xlsx'){
-    const reader = new FileReader();
-    reader.onload = e => {
-      const wb = XLSX.read(e.target.result, {type:'binary'});
-      _impProcessarWorkbook(wb);
-    };
-    reader.readAsBinaryString(file);
-  } else {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const wb = XLSX.read(e.target.result, {type:'string'});
-      _impProcessarWorkbook(wb);
-    };
-    reader.readAsText(file, 'utf-8');
-  }
+  if(!file.name.toLowerCase().endsWith('.xlsx')){ alert('Por favor selecione um arquivo .xlsx (Excel).'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, {type:'binary'});
+    _impProcessarWorkbook(wb);
+  };
+  reader.readAsBinaryString(file);
 }
 
 function _impProcessarWorkbook(wb){
