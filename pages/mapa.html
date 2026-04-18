@@ -224,9 +224,10 @@ function renderPagina(){
                 title="${localStorage.getItem(cfg.lsKey)?'Demarcação carregada — clique para substituir':'Importar GeoJSON ou Shapefile (.zip) da APA'}">
                 ${localStorage.getItem(cfg.lsKey)?'✓ Carregado':'📁 GeoJSON / SHP'}
               </button>
+              ${localStorage.getItem(cfg.lsKey)?`<button onclick="removerDemarcacao('${escHtml(nome)}')" title="Remover demarcação" style="font-size:11px;padding:2px 6px;border:1px solid #FCA5A5;border-radius:4px;background:#FEF2F2;color:#DC2626;cursor:pointer;margin-left:2px">✕</button>`:''}
             </div>`).join('')}
             <p style="font-size:10px;color:var(--cinza-400);margin:6px 0 0;line-height:1.4">
-              Importe o <code>.geojson</code> oficial (CNUC/SEMA) para visualizar o limite no mapa.
+              Importe o arquivo <code>.geojson</code> ou <code>.zip</code> (shapefile) oficial (CNUC/SEMA).
             </p>
           </div>
         </div>
@@ -411,6 +412,23 @@ function onGeoJsonFile(file){
       }catch(err){ alert('GeoJSON inválido: '+err.message); }
     };
     reader.readAsText(file,'utf-8');
+  }
+}
+
+function removerDemarcacao(nome){
+  const cfg = APA_CONFIG[nome];
+  if(cfg?.lsKey) localStorage.removeItem(cfg.lsKey);
+  if(apaPolygonLayers[nome]){ mapaL.removeLayer(apaPolygonLayers[nome]); delete apaPolygonLayers[nome]; }
+  // Atualizar botões na UI
+  const id = nome.replace(/\s/g,'_');
+  const btnCarregado = document.getElementById('btn-geojson-'+id);
+  if(btnCarregado){
+    btnCarregado.textContent = '📁 GeoJSON / SHP';
+    btnCarregado.classList.remove('carregado');
+    btnCarregado.title = 'Importar GeoJSON ou Shapefile (.zip) da APA';
+    // Remover o botão ✕
+    const btnRemover = btnCarregado.nextElementSibling;
+    if(btnRemover && btnRemover.textContent.trim() === '✕') btnRemover.remove();
   }
 }
 
