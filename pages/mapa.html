@@ -104,10 +104,14 @@
 .camada-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
 
 /* Controle de modo do mapa */
-.mapa-modo-ctrl{display:flex;flex-direction:column;gap:2px;margin-top:8px;}
-.modo-mapa-btn{display:block;width:100%;padding:5px 10px;font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;background:#fff;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:all .15s;text-align:left;}
+.mapa-modo-ctrl{display:flex;flex-direction:column;gap:2px;background:#fff;padding:8px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.22);min-width:186px;}
+.modo-mapa-btn{display:block;width:100%;padding:5px 10px;font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;background:transparent;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;white-space:nowrap;transition:all .15s;text-align:left;}
 .modo-mapa-btn:hover{background:#f3f4f6;}
 .modo-mapa-btn.ativo{background:var(--verde-escuro);color:#fff;border-color:var(--verde-escuro);}
+.mapa-poi-ctrl{border-top:1px solid #e5e7eb;margin-top:5px;padding-top:5px;}
+.mapa-poi-ctrl-titulo{font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;padding:0 0 3px;}
+.mapa-poi-label{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:11px;color:#374151;cursor:pointer;white-space:nowrap;}
+.mapa-poi-label input{accent-color:var(--verde-escuro);cursor:pointer;}
 
 /* Admin modal — lista de itens */
 .admin-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--cinza-100);transition:background .12s;}
@@ -133,39 +137,49 @@
 <script src="https://unpkg.com/leaflet.gridlayer.googlemutant@latest/dist/Leaflet.GoogleMutant.js"></script>
 <script>
 // ── Modos de mapa ─────────────────────────────────────────────────────────
-const _STYLES_SEM_POLUICAO = [
-  { featureType:'poi',                  elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'poi.business',         elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'poi.attraction',       elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'poi.government',       elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'poi.medical',          elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'poi.place_of_worship', elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'poi.school',           elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'poi.sports_complex',   elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'transit',              elementType:'all',    stylers:[{ visibility:'off' }] },
-  { featureType:'road',                 elementType:'labels.icon', stylers:[{ visibility:'off' }] },
-  { featureType:'road.local',           elementType:'labels', stylers:[{ visibility:'off' }] },
+const MODOS_MAPA = {
+  satelite: { label:'🛰 Satélite', tipo:'satellite' },
+  hibrido:  { label:'🗺 Híbrido',  tipo:'hybrid'    },
+  ruas:     { label:'🏙 Ruas',     tipo:'roadmap'   }
+};
+
+const FILTROS_POI = [
+  { key:'business',   tipos:['poi.business'],                                    label:'Restaurantes e comércios' },
+  { key:'school',     tipos:['poi.school'],                                      label:'Escolas'                  },
+  { key:'medical',    tipos:['poi.medical'],                                     label:'Hospitais e farmácias'    },
+  { key:'worship',    tipos:['poi.place_of_worship'],                            label:'Igrejas e templos'        },
+  { key:'park',       tipos:['poi.park'],                                        label:'Parques'                  },
+  { key:'transit',    tipos:['transit'],                                         label:'Transporte público'       },
+  { key:'attraction', tipos:['poi.attraction','poi.government','poi.sports_complex'], label:'Atrações e esportes' },
 ];
 
-const MODOS_MAPA = {
-  satelite: {
-    label: '🛰 Satélite',
-    tipo: 'satellite',
-    styles: []
-  },
-  hibrido: {
-    label: '🗺 Híbrido',
-    tipo: 'hybrid',
-    styles: _STYLES_SEM_POLUICAO
-  },
-  ruas: {
-    label: '🏙 Ruas',
-    tipo: 'roadmap',
-    styles: _STYLES_SEM_POLUICAO
-  }
-};
+let filtrosPOI = Object.fromEntries(FILTROS_POI.map(f => [f.key, false]));
 let googleLayer = null;
 let modoMapaAtual = 'satelite';
+
+function _construirStyles(){
+  if(modoMapaAtual === 'satelite') return [];
+  const styles = [
+    { featureType:'road', elementType:'labels.icon', stylers:[{ visibility:'off' }] },
+    { featureType:'road.local', elementType:'labels', stylers:[{ visibility:'off' }] },
+  ];
+  FILTROS_POI.forEach(f => {
+    if(!filtrosPOI[f.key])
+      f.tipos.forEach(ft => styles.push({ featureType:ft, elementType:'all', stylers:[{ visibility:'off' }] }));
+  });
+  return styles;
+}
+
+function toggleFiltroPOI(key, visivel){
+  filtrosPOI[key] = visivel;
+  _reaplicarTiles();
+}
+
+function _reaplicarTiles(){
+  if(googleLayer){ mapaL.removeLayer(googleLayer); googleLayer = null; }
+  googleLayer = L.gridLayer.googleMutant({ type:MODOS_MAPA[modoMapaAtual].tipo, maxZoom:22, styles:_construirStyles() });
+  googleLayer.addTo(mapaL);
+}
 
 // ── Constantes ────────────────────────────────────────────────────────────
 const APA_CONFIG = {
@@ -418,14 +432,13 @@ function iniciarMapa(){
 }
 
 function _aplicarModoMapa(modo){
-  if(googleLayer){ mapaL.removeLayer(googleLayer); googleLayer = null; }
-  const cfg = MODOS_MAPA[modo];
-  googleLayer = L.gridLayer.googleMutant({ type:cfg.tipo, maxZoom:22, styles:cfg.styles });
-  googleLayer.addTo(mapaL);
   modoMapaAtual = modo;
+  _reaplicarTiles();
   document.querySelectorAll('.modo-mapa-btn').forEach(btn =>
     btn.classList.toggle('ativo', btn.dataset.modo === modo)
   );
+  const poiCtrl = document.getElementById('mapa-ctrl-poi');
+  if(poiCtrl) poiCtrl.style.display = modo === 'satelite' ? 'none' : '';
 }
 
 function _adicionarControleModoMapa(){
@@ -433,9 +446,19 @@ function _adicionarControleModoMapa(){
     options: { position:'topright' },
     onAdd(){
       const div = L.DomUtil.create('div','mapa-modo-ctrl');
-      div.innerHTML = Object.entries(MODOS_MAPA).map(([key,cfg]) =>
-        `<button class="modo-mapa-btn${key==='satelite'?' ativo':''}" data-modo="${key}" onclick="_aplicarModoMapa('${key}')">${cfg.label}</button>`
-      ).join('');
+      div.innerHTML =
+        Object.entries(MODOS_MAPA).map(([key,cfg]) =>
+          `<button class="modo-mapa-btn${key==='satelite'?' ativo':''}" data-modo="${key}" onclick="_aplicarModoMapa('${key}')">${cfg.label}</button>`
+        ).join('')
+        + `<div id="mapa-ctrl-poi" class="mapa-poi-ctrl" style="display:none">
+            <div class="mapa-poi-ctrl-titulo">Mostrar no mapa</div>
+            ${FILTROS_POI.map(f =>
+              `<label class="mapa-poi-label">
+                <input type="checkbox" onchange="toggleFiltroPOI('${f.key}',this.checked)">
+                ${f.label}
+              </label>`
+            ).join('')}
+           </div>`;
       L.DomEvent.disableClickPropagation(div);
       return div;
     }
