@@ -117,6 +117,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://unpkg.com/shpjs@4.0.4/dist/shp.js"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────────────────
@@ -351,16 +352,42 @@ function onGeoJsonFile(file){
   const isZip = file.name.toLowerCase().endsWith('.zip');
 
   if(isZip){
-    // Shapefile (.zip) → converter para GeoJSON via shpjs
-    if(typeof shp === 'undefined'){ alert('Biblioteca shpjs ainda carregando, tente em instantes.'); return; }
+    if(typeof shp === 'undefined' || typeof JSZip === 'undefined'){
+      alert('Bibliotecas ainda carregando, tente em instantes.'); return;
+    }
     const reader = new FileReader();
     reader.onload = async e => {
       try{
-        const gj = await shp(e.target.result);
-        // shpjs pode retornar FeatureCollection ou array delas — normalizar
-        const geojson = Array.isArray(gj)
-          ? { type:'FeatureCollection', features: gj.flatMap(g => g.features||[]) }
-          : gj;
+        // Abrir o zip e listar todos os arquivos (independente de pasta aninhada)
+        const zip = await JSZip.loadAsync(e.target.result);
+        const allFiles = Object.keys(zip.files).filter(f => !zip.files[f].dir);
+
+        // Encontrar arquivos .shp — priorizar o que tem "perimetro" no nome
+        const shpFiles = allFiles.filter(f => f.toLowerCase().endsWith('.shp'));
+        if(!shpFiles.length){ alert('Nenhum arquivo .shp encontrado no zip.'); return; }
+        const shpPath = shpFiles.find(f => f.toLowerCase().includes('perimetro')) || shpFiles[0];
+
+        // Encontrar .dbf e .prj correspondentes (mesmo nome base)
+        const baseLower = shpPath.toLowerCase().replace(/\.shp$/, '');
+        const dbfPath = allFiles.find(f => f.toLowerCase().replace(/\.dbf$/,'') === baseLower && f.toLowerCase().endsWith('.dbf'));
+        const prjPath = allFiles.find(f => f.toLowerCase().replace(/\.prj$/,'') === baseLower && f.toLowerCase().endsWith('.prj'));
+        if(!dbfPath){ alert('Arquivo .dbf não encontrado no zip.'); return; }
+
+        // Criar zip plano na memória (shpjs exige arquivos na raiz)
+        const fileName = shpPath.split('/').pop().replace(/\.shp$/i,'');
+        const flatZip = new JSZip();
+        flatZip.file(fileName+'.shp', await zip.files[shpPath].async('arraybuffer'));
+        flatZip.file(fileName+'.dbf', await zip.files[dbfPath].async('arraybuffer'));
+        if(prjPath) flatZip.file(fileName+'.prj', await zip.files[prjPath].async('arraybuffer'));
+
+        const flatBuf = await flatZip.generateAsync({type:'arraybuffer'});
+        const result = await shp(flatBuf);
+
+        // shpjs pode retornar FeatureCollection ou array — normalizar
+        const geojson = Array.isArray(result)
+          ? { type:'FeatureCollection', features: result.flatMap(g => g.features||[]) }
+          : result;
+
         const cfg = APA_CONFIG[apaGeoJsonAtual];
         if(cfg?.lsKey) localStorage.setItem(cfg.lsKey, JSON.stringify(geojson));
         renderizarApaPolygon(apaGeoJsonAtual, geojson);
@@ -369,6 +396,7 @@ function onGeoJsonFile(file){
       }catch(err){ alert('Erro ao ler shapefile: '+err.message); }
     };
     reader.readAsArrayBuffer(file);
+
   } else {
     // GeoJSON
     const reader = new FileReader();
