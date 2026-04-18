@@ -810,13 +810,24 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
   // Salvar pontos de geolocalização
   var geoDocs=docsEntrega.filter(function(d){return d.isGeo&&d.pontos&&d.pontos.length;});
   if(geoDocs.length){
+    // Determinar tipo_atividade a partir do indicador selecionado em "Vincular indicador"
+    // Prioridade: 1º indicador vinculado → produto_titulo do item da matriz
+    // Fallback: produto_titulo do produto atual
+    var tipoAtividade=null;
+    var contribsSel=coletarContribsMatriz();
+    if(contribsSel.length&&matrizItensCache){
+      var itemSel=matrizItensCache.find(function(x){return x.id===contribsSel[0].matriz_item_id;});
+      if(itemSel) tipoAtividade=itemSel.produto_titulo||null;
+    }
+    if(!tipoAtividade) tipoAtividade=produtoAtual.produto_titulo||null;
+
     var todospontos=[];
     geoDocs.forEach(function(d){
       d.pontos.forEach(function(p){
         todospontos.push({
           nome_local:p.nome_local||'Ponto sem nome',
           apa:['Igarapé São Francisco','Lago do Amapá','Outra'].includes(p.apa)?p.apa:'Outra',
-          tipo_atividade:p.tipo_atividade||null,
+          tipo_atividade:tipoAtividade,
           responsavel:p.responsavel||null,
           data_implantacao:p.data_implantacao||null,
           lat:parseFloat(p.lat),lng:parseFloat(p.lng),
@@ -827,10 +838,11 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
         });
       });
     });
-    var validos=todospontos.filter(function(p){return !isNaN(p.lat)&&!isNaN(p.lng);});
+    var validos=todospontos.filter(function(p){return !isNaN(p.lat)&&!isNaN(p.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;});
     if(validos.length){
       var gR=await db.from('produto_pontos_mapa').insert(validos);
       if(!gR.error){toast(validos.length+' ponto(s) de geolocalização salvos no mapa.','info');}
+      else{toast('Erro ao salvar geolocalização: '+gR.error.message,'error');}
     }
   }
 
@@ -1067,11 +1079,11 @@ function baixarTemplateGeoExcel(){
   if(typeof XLSX==='undefined'){alert('Biblioteca Excel ainda carregando, tente novamente em instantes.');return;}
   var wb=XLSX.utils.book_new();
   var dados=[
-    ['nome_local','apa','lat','lng','tipo_atividade','responsavel','data_implantacao','observacao'],
-    ['Ex: Unidade Produtiva — Comunidade Boa Vista','Igarapé São Francisco','-9.972000','-67.805000','Unidades Produtivas','João Silva','2025-04-10','Próximo ao igarapé']
+    ['nome_local','apa','lat','lng','responsavel','data_implantacao','observacao'],
+    ['Ex: Unidade Produtiva — Comunidade Boa Vista','Igarapé São Francisco','-9.972000','-67.805000','João Silva','2025-04-10','Próximo ao igarapé']
   ];
   var ws=XLSX.utils.aoa_to_sheet(dados);
-  ws['!cols']=[{wch:40},{wch:30},{wch:14},{wch:14},{wch:25},{wch:20},{wch:22},{wch:30}];
+  ws['!cols']=[{wch:40},{wch:30},{wch:14},{wch:14},{wch:20},{wch:22},{wch:30}];
   // Formatar lat (col 2) e lng (col 3) como Texto para evitar que o Excel brasileiro
   // interprete ponto como separador de milhar (ex: -67.83 → -6783)
   for(var r=1;r<=100;r++){
