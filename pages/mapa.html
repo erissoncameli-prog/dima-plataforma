@@ -431,7 +431,9 @@ function renderizarMarcadores(){
   geometryLayers.forEach(l => mapaL.removeLayer(l));
   geometryLayers = [];
 
-  const visiveis = pontos.filter(pontoVisivel);
+  // Filtrar coordenadas inválidas para não travar o Leaflet
+  const coordOk = p => !isNaN(p.lat)&&!isNaN(p.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;
+  const visiveis = pontos.filter(pontoVisivel).filter(coordOk);
 
   // Pontos individuais → cluster
   visiveis.filter(p => (p.geometry_type||'ponto') === 'ponto').forEach(p => {
@@ -843,22 +845,23 @@ function _impProcessarWorkbook(wb){
     const ws = wb.Sheets[nome];
     const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
     const nomeLower = nome.toLowerCase();
+    const coordOk = (lat,lng) => !isNaN(lat)&&!isNaN(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
     if(nomeLower.includes('pont')){
       rows.forEach((r,i) => {
-        const lat=parseFloat(r.lat||r.LAT), lng=parseFloat(r.lng||r.LNG);
-        if(!r.nome_local||isNaN(lat)||isNaN(lng)){ erros.push(`${nome} linha ${i+2}: nome_local/lat/lng inválido`); return; }
+        const lat=parseFloat(String(r.lat||r.LAT).replace(',','.')), lng=parseFloat(String(r.lng||r.LNG).replace(',','.'));
+        if(!r.nome_local||!coordOk(lat,lng)){ erros.push(`${nome} linha ${i+2}: coordenadas inválidas (lat=${r.lat} lng=${r.lng})`); return; }
         pontos.push({nome_local:String(r.nome_local),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'ponto'});
       });
     } else if(nomeLower.includes('pol')){
       rows.forEach((r,i) => {
-        const lat=parseFloat(r.lat||r.LAT), lng=parseFloat(r.lng||r.LNG);
-        if(!r.nome_area||isNaN(lat)||isNaN(lng)){ erros.push(`${nome} linha ${i+2}: nome_area/lat/lng inválido`); return; }
+        const lat=parseFloat(String(r.lat||r.LAT).replace(',','.')), lng=parseFloat(String(r.lng||r.LNG).replace(',','.'));
+        if(!r.nome_area||!coordOk(lat,lng)){ erros.push(`${nome} linha ${i+2}: coordenadas inválidas`); return; }
         poligonos.push({nome_local:String(r.nome_area),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'poligono',geometry_group:String(r.nome_area),geometry_order:parseInt(r.ordem)||0});
       });
     } else if(nomeLower.includes('trilh')){
       rows.forEach((r,i) => {
-        const lat=parseFloat(r.lat||r.LAT), lng=parseFloat(r.lng||r.LNG);
-        if(!r.nome_trilha||isNaN(lat)||isNaN(lng)){ erros.push(`${nome} linha ${i+2}: nome_trilha/lat/lng inválido`); return; }
+        const lat=parseFloat(String(r.lat||r.LAT).replace(',','.')), lng=parseFloat(String(r.lng||r.LNG).replace(',','.'));
+        if(!r.nome_trilha||!coordOk(lat,lng)){ erros.push(`${nome} linha ${i+2}: coordenadas inválidas`); return; }
         trilhas.push({nome_local:String(r.nome_trilha),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'trilha',geometry_group:String(r.nome_trilha),geometry_order:parseInt(r.ordem)||0});
       });
     }
