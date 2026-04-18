@@ -103,6 +103,12 @@
 .camada-row{display:flex;align-items:center;gap:6px;padding:4px 0;}
 .camada-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
 
+/* Controle de modo do mapa */
+.mapa-modo-ctrl{display:flex;flex-direction:column;gap:2px;margin-top:8px;}
+.modo-mapa-btn{display:block;width:100%;padding:5px 10px;font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;background:#fff;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:all .15s;text-align:left;}
+.modo-mapa-btn:hover{background:#f3f4f6;}
+.modo-mapa-btn.ativo{background:var(--verde-escuro);color:#fff;border-color:var(--verde-escuro);}
+
 /* Admin modal — lista de itens */
 .admin-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--cinza-100);transition:background .12s;}
 .admin-item:last-child{border-bottom:none;}
@@ -126,6 +132,36 @@
 <script src="https://unpkg.com/shpjs@4.0.4/dist/shp.js"></script>
 <script src="https://unpkg.com/leaflet.gridlayer.googlemutant@latest/dist/Leaflet.GoogleMutant.js"></script>
 <script>
+// ── Modos de mapa ─────────────────────────────────────────────────────────
+const MODOS_MAPA = {
+  satelite: {
+    label: '🛰 Satélite',
+    tipo: 'satellite',
+    styles: []
+  },
+  hibrido: {
+    label: '🗺 Híbrido',
+    tipo: 'hybrid',
+    styles: [
+      { featureType:'poi',     stylers:[{ visibility:'off' }] },
+      { featureType:'transit', stylers:[{ visibility:'off' }] },
+      { featureType:'road',    elementType:'labels.icon', stylers:[{ visibility:'off' }] },
+      { featureType:'road.local', elementType:'labels', stylers:[{ visibility:'off' }] },
+    ]
+  },
+  ruas: {
+    label: '🏙 Ruas',
+    tipo: 'roadmap',
+    styles: [
+      { featureType:'poi',     stylers:[{ visibility:'off' }] },
+      { featureType:'transit', stylers:[{ visibility:'off' }] },
+      { featureType:'road.local', elementType:'labels', stylers:[{ visibility:'off' }] },
+    ]
+  }
+};
+let googleLayer = null;
+let modoMapaAtual = 'satelite';
+
 // ── Constantes ────────────────────────────────────────────────────────────
 const APA_CONFIG = {
   'Igarapé São Francisco': { cor:'#16a34a' },
@@ -370,9 +406,36 @@ function renderPagina(){
 // ── Mapa ──────────────────────────────────────────────────────────────────
 function iniciarMapa(){
   mapaL = L.map('mapa', { center:[-9.965,-67.81], zoom:12 });
-  L.gridLayer.googleMutant({ type:'hybrid', maxZoom:22 }).addTo(mapaL);
+  _aplicarModoMapa('satelite');
+  _adicionarControleModoMapa();
   clusters = L.markerClusterGroup({ maxClusterRadius:40, disableClusteringAtZoom:17 });
   mapaL.addLayer(clusters);
+}
+
+function _aplicarModoMapa(modo){
+  if(googleLayer){ mapaL.removeLayer(googleLayer); googleLayer = null; }
+  const cfg = MODOS_MAPA[modo];
+  googleLayer = L.gridLayer.googleMutant({ type:cfg.tipo, maxZoom:22, styles:cfg.styles });
+  googleLayer.addTo(mapaL);
+  modoMapaAtual = modo;
+  document.querySelectorAll('.modo-mapa-btn').forEach(btn =>
+    btn.classList.toggle('ativo', btn.dataset.modo === modo)
+  );
+}
+
+function _adicionarControleModoMapa(){
+  const Ctrl = L.Control.extend({
+    options: { position:'topright' },
+    onAdd(){
+      const div = L.DomUtil.create('div','mapa-modo-ctrl');
+      div.innerHTML = Object.entries(MODOS_MAPA).map(([key,cfg]) =>
+        `<button class="modo-mapa-btn${key==='satelite'?' ativo':''}" data-modo="${key}" onclick="_aplicarModoMapa('${key}')">${cfg.label}</button>`
+      ).join('');
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    }
+  });
+  new Ctrl().addTo(mapaL);
 }
 
 // ── Camadas de delimitação (Supabase) ─────────────────────────────────────
