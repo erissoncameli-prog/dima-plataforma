@@ -391,9 +391,15 @@ async function abrirModal(prodId){
       +'<button class="btn-registrar" onclick="registrarEntrega('+numProxEntrega+','+pctRest.toFixed(2)+','+valorRest.toFixed(2)+')">&#x1F4E5; Registrar e enviar para avaliação</button>';
 
   } else if(isAnalise&&entregaAtual){
-    // Buscar documentos da entrega
-    var docsR=await db.from('entrega_documentos').select('*').eq('entrega_id',entregaAtual.id).order('inserido_em');
+    // Buscar documentos e contribuições da entrega
+    var [docsR,contribsR]=await Promise.all([
+      db.from('entrega_documentos').select('*').eq('entrega_id',entregaAtual.id).order('inserido_em'),
+      db.from('produto_matriz_contribuicao')
+        .select('*,matriz_itens(resultado,produto_codigo,produto_titulo,indicador,unidade)')
+        .eq('produto_id',entregaAtual.id)
+    ]);
     var docs=docsR.data||[];
+    var contribs=contribsR.data||[];
 
     // Documentos entregues
     if(docs.length||entregaAtual.arquivo_url){
@@ -429,6 +435,29 @@ async function abrirModal(prodId){
         html+='<div class="foto-exist" onclick="abrirLightbox(\''+url.replace(/'/g,"\\'")+'\',\''+nome.replace(/'/g,"\\'")+'\')"><img src="'+url+'" alt="'+esc(nome)+'" loading="lazy"></div>';
       });
       html+='</div></div>';
+    }
+
+    // Contribuição à Matriz de Resultados
+    if(contribs.length){
+      var statusCor={'pendente':'#92400E','confirmado':'#065F46','rejeitado':'#991B1B'};
+      var statusBg={'pendente':'#FEF3C7','confirmado':'#D1FAE5','rejeitado':'#FEE2E2'};
+      var statusLbl={'pendente':'Pendente','confirmado':'Confirmado','rejeitado':'Rejeitado'};
+      html+='<div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:var(--raio);padding:12px 14px;margin-bottom:10px">'
+        +'<div style="font-size:11px;font-weight:700;color:#4C1D95;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x25CE; Contribuição à Matriz de Resultados</div>';
+      contribs.forEach(function(c){
+        var mi=c.matriz_itens||{};
+        var st=c.status||'pendente';
+        html+='<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #DDD6FE;border-radius:var(--raio);margin-bottom:6px">'
+          +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#5B21B6;margin-bottom:2px">R'+mi.resultado+' · '+esc(mi.produto_codigo||'')+'</div>'
+          +'<div style="font-size:12px;font-weight:600;color:var(--cinza-900);line-height:1.3;margin-bottom:4px">'+esc(mi.indicador||'')+'</div>'
+          +'<div style="font-size:11px;color:var(--cinza-600)">Valor declarado: <strong style="font-family:var(--font-mono)">'+parseFloat(c.valor||0).toLocaleString('pt-BR')+'</strong>'+(c.unidade?' '+esc(c.unidade):'')+'</div>'
+          +(c.observacao?'<div style="font-size:10px;color:var(--cinza-500);margin-top:3px;font-style:italic">'+esc(c.observacao)+'</div>':'')
+          +'</div>'
+          +'<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;background:'+statusBg[st]+';color:'+statusCor[st]+'">'+statusLbl[st]+'</span>'
+          +'</div>';
+      });
+      html+='</div>';
     }
 
     // Decisão de avaliação

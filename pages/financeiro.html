@@ -1214,6 +1214,28 @@ async function abrirPagamento(id) {
   const venc     = l.dt_vencimento ? fmtData(l.dt_vencimento) : '—';
   const vencido  = l.dt_vencimento && new Date(l.dt_vencimento) < new Date();
 
+  // ── Documentos e contribuições da última entrega ──
+  let entregaDocs = [], entregaContribs = [], entregaInfo = null;
+  if (produto) {
+    const { data: ent } = await db.from('contratos_produtos_entregas')
+      .select('id,numero_entrega,dt_entrega')
+      .eq('produto_id', produto.id)
+      .order('numero_entrega', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (ent) {
+      entregaInfo = ent;
+      const [docsR, contribsR] = await Promise.all([
+        db.from('entrega_documentos').select('*').eq('entrega_id', ent.id).order('inserido_em'),
+        db.from('produto_matriz_contribuicao')
+          .select('*,matriz_itens(resultado,produto_codigo,produto_titulo,indicador,unidade)')
+          .eq('produto_id', ent.id)
+      ]);
+      entregaDocs  = docsR.data  || [];
+      entregaContribs = contribsR.data || [];
+    }
+  }
+
   // ── Timeline histórico do produto ──
   let timelineHtml = '';
   if (produto) {
@@ -1274,6 +1296,46 @@ async function abrirPagamento(id) {
     </div>
 
     ${timelineHtml}
+
+    ${(entregaDocs.length || entregaContribs.length) ? `
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:10px">
+        📎 Documentos e Indicadores da Entrega ${entregaInfo?.numero_entrega||''}${entregaInfo?.dt_entrega?' · '+fmtData(entregaInfo.dt_entrega):''}
+      </div>
+
+      ${entregaDocs.length ? `
+      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:10px 12px;margin-bottom:8px">
+        <div style="font-size:10px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📄 Documentos entregues</div>
+        ${entregaDocs.map(d => `
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #BFDBFE">
+            <span>${d.tipo_documento==='Planilha de Geolocalização'?'📍':'📄'}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.arquivo_nome)}</div>
+              <div style="font-size:10px;color:#3B82F6">${esc(d.tipo_documento)}</div>
+            </div>
+            ${d.arquivo_url ? `<button class="btn btn-sm btn-secondary" style="font-size:11px;flex-shrink:0" onclick="window.open('${esc(d.arquivo_url)}','_blank')">👁 Abrir</button>` : ''}
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${entregaContribs.length ? `
+      <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:var(--raio);padding:10px 12px">
+        <div style="font-size:10px;font-weight:700;color:#4C1D95;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">◎ Contribuição à Matriz de Resultados</div>
+        ${entregaContribs.map(c => {
+          const mi = c.matriz_itens || {};
+          const stBg  = {pendente:'#FEF3C7',confirmado:'#D1FAE5',rejeitado:'#FEE2E2'}[c.status]||'#F3F4F6';
+          const stCor = {pendente:'#92400E',confirmado:'#065F46',rejeitado:'#991B1B'}[c.status]||'#374151';
+          const stLbl = {pendente:'Pendente',confirmado:'Confirmado',rejeitado:'Rejeitado'}[c.status]||c.status;
+          return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #DDD6FE;border-radius:var(--raio);margin-bottom:5px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#5B21B6;margin-bottom:2px">R${mi.resultado} · ${esc(mi.produto_codigo||'')}</div>
+              <div style="font-size:12px;font-weight:600;color:var(--cinza-900);line-height:1.3;margin-bottom:3px">${esc(mi.indicador||'')}</div>
+              <div style="font-size:11px;color:var(--cinza-600)">Valor declarado: <strong style="font-family:var(--font-mono)">${parseFloat(c.valor||0).toLocaleString('pt-BR')}</strong>${c.unidade?' '+esc(c.unidade):''}</div>
+            </div>
+            <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;background:${stBg};color:${stCor}">${stLbl}</span>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+    </div>` : ''}
 
     <!-- Seção pagamento -->
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:12px">💳 Dados do Pagamento</div>
