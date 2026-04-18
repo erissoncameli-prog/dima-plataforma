@@ -949,45 +949,48 @@ function renderModalGeoCsvEtapa1(){
     +'<div style="font-size:12px;font-weight:600;color:#1E40AF;margin-bottom:4px">&#x1F4CB; Como usar</div>'
     +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.7">'
     +'<li>Baixe o template Excel abaixo e preencha com os pontos entregues.</li>'
-    +'<li><strong>Salve o arquivo como CSV</strong> (no Excel: Arquivo → Salvar Como → CSV UTF-8).</li>'
-    +'<li>Importe o CSV aqui.</li>'
+    +'<li>As colunas <strong>lat</strong> e <strong>lng</strong> aceitam <strong>vírgula ou ponto</strong> como decimal (ex: <code>-9,972</code> ou <code>-9.972</code>).</li>'
+    +'<li><strong>Importe o próprio arquivo .xlsx</strong> — não é necessário converter para CSV.</li>'
     +'</ol>'
     +'</div>'
     +'<button class="btn btn-secondary btn-sm" style="margin-bottom:14px" onclick="baixarTemplateGeoExcel()">&#x1F4E5; Baixar template Excel (.xlsx)</button>'
     +'<div id="geo-drop-area" style="border:2px dashed var(--borda-forte);border-radius:var(--raio);padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cinza-50)"'
-    +' onclick="document.getElementById(\'geo-csv-input\').click()"'
+    +' onclick="document.getElementById(\'geo-xlsx-input\').click()"'
     +' ondragover="event.preventDefault();this.style.borderColor=\'var(--verde-medio)\';this.style.background=\'var(--verde-bg)\'"'
     +' ondragleave="this.style.borderColor=\'\';this.style.background=\'var(--cinza-50)\'"'
-    +' ondrop="event.preventDefault();this.style.borderColor=\'\';this.style.background=\'var(--cinza-50)\';onGeoDropCSV(event.dataTransfer.files[0])">'
+    +' ondrop="event.preventDefault();this.style.borderColor=\'\';this.style.background=\'var(--cinza-50)\';onGeoDropXlsx(event.dataTransfer.files[0])">'
     +'<div style="font-size:32px;margin-bottom:8px">&#x1F4C2;</div>'
-    +'<div style="font-size:13px;font-weight:500;color:var(--cinza-700)">Arraste o CSV ou clique para selecionar</div>'
-    +'<div style="font-size:11px;color:var(--cinza-400);margin-top:4px">Apenas .csv · Certifique-se de salvar como CSV antes de importar</div>'
+    +'<div style="font-size:13px;font-weight:500;color:var(--cinza-700)">Arraste o arquivo .xlsx ou clique para selecionar</div>'
+    +'<div style="font-size:11px;color:var(--cinza-400);margin-top:4px">Apenas .xlsx (Excel)</div>'
     +'</div>'
-    +'<input type="file" id="geo-csv-input" accept=".csv" style="display:none" onchange="onGeoDropCSV(this.files[0]);this.value=\'\'">';
+    +'<input type="file" id="geo-xlsx-input" accept=".xlsx" style="display:none" onchange="onGeoDropXlsx(this.files[0]);this.value=\'\'">';
 
   footer.innerHTML=''
     +'<button class="btn btn-secondary" onclick="fecharModalGeoCsv()">Cancelar</button>';
 }
 
-function onGeoDropCSV(file){
+function onGeoDropXlsx(file){
   if(!file)return;
+  if(!file.name.toLowerCase().endsWith('.xlsx')){alert('Por favor selecione um arquivo .xlsx (Excel).');return;}
+  if(typeof XLSX==='undefined'){alert('Biblioteca Excel ainda carregando, tente em instantes.');return;}
   var reader=new FileReader();
   reader.onload=function(e){
-    var txt=e.target.result;
-    var linhas=txt.split('\n').map(function(l){return l.trim();}).filter(Boolean);
-    if(!linhas.length){alert('Arquivo vazio.');return;}
-
-    var header=linhas[0].split(',').map(function(h){return h.trim().toLowerCase().replace(/[^a-z_]/g,'');});
+    var wb=XLSX.read(e.target.result,{type:'binary'});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    var rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
     var GEO_COLS=['nome_local','apa','lat','lng'];
+    if(!rows.length){alert('Planilha vazia.');return;}
+    var header=Object.keys(rows[0]).map(function(h){return h.trim().toLowerCase();});
     var faltando=GEO_COLS.filter(function(c){return !header.includes(c);});
-    if(faltando.length){alert('Colunas obrigatórias não encontradas: '+faltando.join(', ')+'\n\nCabeçalho lido: '+header.join(', '));return;}
-
+    if(faltando.length){alert('Colunas obrigatórias não encontradas: '+faltando.join(', ')+'\n\nColunas lidas: '+header.join(', '));return;}
     var validas=[],invalidas=[];
-    linhas.slice(1).forEach(function(linha,idx){
-      var cols=parseCsvLinhaGeo(linha);
-      var obj={};header.forEach(function(h,i){obj[h]=cols[i]?cols[i].trim():null;});
-      var lat=parseFloat(obj.lat),lng=parseFloat(obj.lng);
-      if(!obj.nome_local||isNaN(lat)||isNaN(lng)){
+    rows.forEach(function(r,idx){
+      var obj={};
+      Object.keys(r).forEach(function(k){obj[k.trim().toLowerCase()]=String(r[k]||'').trim();});
+      var lat=parseFloat(String(obj.lat||'').replace(',','.'));
+      var lng=parseFloat(String(obj.lng||'').replace(',','.'));
+      var coordOk=!isNaN(lat)&&!isNaN(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
+      if(!obj.nome_local||!coordOk){
         invalidas.push({linha:idx+2,dado:obj});
       } else {
         obj.lat=lat;obj.lng=lng;
@@ -997,18 +1000,7 @@ function onGeoDropCSV(file){
     _geoCsvLinhas=validas;
     renderModalGeoCsvEtapa2(validas,invalidas,header);
   };
-  reader.readAsText(file,'utf-8');
-}
-
-function parseCsvLinhaGeo(linha){
-  var result=[],cur='',inQ=false;
-  for(var i=0;i<linha.length;i++){
-    var c=linha[i];
-    if(c==='"'){inQ=!inQ;}
-    else if(c===','&&!inQ){result.push(cur);cur='';}
-    else{cur+=c;}
-  }
-  result.push(cur);return result;
+  reader.readAsBinaryString(file);
 }
 
 function renderModalGeoCsvEtapa2(validas,invalidas,header){
@@ -1060,7 +1052,7 @@ function confirmarGeoCsv(){
   docsEntrega.push({
     isGeo:true,
     tipo:TIPO_GEO,
-    nome:'geo_pontos_'+_geoCsvLinhas.length+'.csv',
+    nome:'geo_pontos_'+_geoCsvLinhas.length+'.xlsx',
     size:0,
     file:null,
     pontos:_geoCsvLinhas.slice()
@@ -1078,9 +1070,20 @@ function baixarTemplateGeoExcel(){
     ['Ex: Unidade Produtiva — Comunidade Boa Vista','Igarapé São Francisco','-9.972000','-67.805000','Unidades Produtivas','João Silva','2025-04-10','Próximo ao igarapé']
   ];
   var ws=XLSX.utils.aoa_to_sheet(dados);
-  // Larguras das colunas
   ws['!cols']=[{wch:40},{wch:30},{wch:14},{wch:14},{wch:25},{wch:20},{wch:22},{wch:30}];
+  // Formatar lat (col 2) e lng (col 3) como Texto para evitar que o Excel brasileiro
+  // interprete ponto como separador de milhar (ex: -67.83 → -6783)
+  for(var r=1;r<=100;r++){
+    [2,3].forEach(function(c){
+      var ref=XLSX.utils.encode_cell({r:r,c:c});
+      if(!ws[ref])ws[ref]={t:'s',v:'',z:'@'};
+      else{ws[ref].z='@';if(ws[ref].t!=='s'){ws[ref].t='s';ws[ref].v=String(ws[ref].v||'');delete ws[ref].w;}}
+    });
+  }
+  var range=XLSX.utils.decode_range(ws['!ref']);
+  range.e.r=Math.max(range.e.r,100);
+  ws['!ref']=XLSX.utils.encode_range(range);
   XLSX.utils.book_append_sheet(wb,ws,'Pontos Geolocalização');
   XLSX.writeFile(wb,'template_geo_pontos.xlsx');
-  toast('Template baixado! Preencha e salve como CSV antes de importar.','info');
+  toast('Template baixado! Preencha e importe o .xlsx diretamente.','info');
 }
