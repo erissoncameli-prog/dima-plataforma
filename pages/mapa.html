@@ -133,6 +133,20 @@
 <script src="https://unpkg.com/leaflet.gridlayer.googlemutant@latest/dist/Leaflet.GoogleMutant.js"></script>
 <script>
 // ── Modos de mapa ─────────────────────────────────────────────────────────
+const _STYLES_SEM_POLUICAO = [
+  { featureType:'poi',                  elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'poi.business',         elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'poi.attraction',       elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'poi.government',       elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'poi.medical',          elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'poi.place_of_worship', elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'poi.school',           elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'poi.sports_complex',   elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'transit',              elementType:'all',    stylers:[{ visibility:'off' }] },
+  { featureType:'road',                 elementType:'labels.icon', stylers:[{ visibility:'off' }] },
+  { featureType:'road.local',           elementType:'labels', stylers:[{ visibility:'off' }] },
+];
+
 const MODOS_MAPA = {
   satelite: {
     label: '🛰 Satélite',
@@ -142,21 +156,12 @@ const MODOS_MAPA = {
   hibrido: {
     label: '🗺 Híbrido',
     tipo: 'hybrid',
-    styles: [
-      { featureType:'poi',     stylers:[{ visibility:'off' }] },
-      { featureType:'transit', stylers:[{ visibility:'off' }] },
-      { featureType:'road',    elementType:'labels.icon', stylers:[{ visibility:'off' }] },
-      { featureType:'road.local', elementType:'labels', stylers:[{ visibility:'off' }] },
-    ]
+    styles: _STYLES_SEM_POLUICAO
   },
   ruas: {
     label: '🏙 Ruas',
     tipo: 'roadmap',
-    styles: [
-      { featureType:'poi',     stylers:[{ visibility:'off' }] },
-      { featureType:'transit', stylers:[{ visibility:'off' }] },
-      { featureType:'road.local', elementType:'labels', stylers:[{ visibility:'off' }] },
-    ]
+    styles: _STYLES_SEM_POLUICAO
   }
 };
 let googleLayer = null;
