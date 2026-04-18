@@ -1544,6 +1544,7 @@ function _impProcessarWorkbook(wb){
 function _impEtapa2(erros){
   const total = _impLinhas.pontos.length + _impLinhas.poligonos.length + _impLinhas.trilhas.length;
   const body = document.getElementById('imp-body');
+
   const statsHtml = `
     <div class="imp-stats">
       <div class="imp-stat ok"><div class="imp-stat-val">${_impLinhas.pontos.length}</div><div class="imp-stat-lbl">pontos</div></div>
@@ -1551,8 +1552,28 @@ function _impEtapa2(erros){
       <div class="imp-stat ok"><div class="imp-stat-val">${[...new Set(_impLinhas.trilhas.map(r=>r.geometry_group))].length}</div><div class="imp-stat-lbl">trilhas (${_impLinhas.trilhas.length} pontos)</div></div>
       ${erros.length?`<div class="imp-stat err"><div class="imp-stat-val">${erros.length}</div><div class="imp-stat-lbl">erros ignorados</div></div>`:''}
     </div>`;
+
+  // Seletor de tipo de atividade — opções da matriz + "manter da planilha"
+  const tiposUnicos = [...new Set(matrizVisiveis.map(i=>i.produto_titulo).filter(Boolean))];
+  const tipoOpts = tiposUnicos.map(t=>`<option value="${escHtml(t)}">${escHtml(t)}</option>`).join('');
+  const seletorHtml = `
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Tipo de atividade</div>
+      <select id="imp-tipo-sel" style="font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);color:var(--cinza-900);background:#fff;width:100%;box-sizing:border-box">
+        <option value="">— Manter da planilha (cada linha usa seu próprio tipo) —</option>
+        ${tipoOpts}
+      </select>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:5px">
+        Selecione um tipo para aplicar a <strong>todos</strong> os registros importados, sobrescrevendo o campo da planilha.
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:8px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">
+      <span style="font-size:15px;flex-shrink:0">⚠️</span>
+      <span style="font-size:11px;color:#92400E;line-height:1.5">Esta importação é um registro administrativo direto — <strong>não gera vínculo com entrega de produto</strong>. Para vincular pontos a uma entrega, use a planilha de geolocalização dentro do modal de <em>Produto Entregue</em>.</span>
+    </div>`;
+
   const tabelaRows = [..._impLinhas.pontos, ..._impLinhas.poligonos, ..._impLinhas.trilhas].slice(0,100);
-  const tabelaHtml = `<div style="overflow-x:auto;max-height:280px;overflow-y:auto;border:1px solid var(--borda);border-radius:var(--raio)">
+  const tabelaHtml = `<div style="overflow-x:auto;max-height:240px;overflow-y:auto;border:1px solid var(--borda);border-radius:var(--raio)">
     <table style="border-collapse:collapse;width:100%;font-size:11px">
       <thead><tr style="background:var(--cinza-100);position:sticky;top:0">
         <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Tipo</th>
@@ -1573,7 +1594,12 @@ function _impEtapa2(erros){
       ${tabelaRows.length<total?`<tr><td colspan="6" style="padding:6px 8px;text-align:center;color:var(--cinza-400);font-style:italic">…e mais ${total-tabelaRows.length} registros</td></tr>`:''}
       </tbody>
     </table></div>`;
-  body.innerHTML = statsHtml + (erros.length?`<div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:8px 10px">⚠ Linhas ignoradas: ${erros.slice(0,5).join(' · ')}${erros.length>5?` …e mais ${erros.length-5}`:''}</div>`:'') + tabelaHtml;
+
+  body.innerHTML = statsHtml
+    + (erros.length?`<div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:8px 10px;margin-bottom:10px">⚠ Linhas ignoradas: ${erros.slice(0,5).join(' · ')}${erros.length>5?` …e mais ${erros.length-5}`:''}</div>`:'')
+    + seletorHtml
+    + tabelaHtml;
+
   document.getElementById('imp-footer').innerHTML=
     '<button class="btn btn-secondary" onclick="_impEtapa1()">&#x2190; Voltar</button>'
     +(total>0?`<button class="btn btn-primary" onclick="_impConfirmar()">&#x2714; Importar ${total} registro(s)</button>`:'<span style="font-size:12px;color:var(--cinza-500)">Nenhum registro válido.</span>');
@@ -1585,7 +1611,15 @@ async function _impConfirmar(){
   const btn = document.getElementById('imp-footer').querySelector('.btn-primary');
   btn.disabled=true; btn.textContent='Importando…';
   const uid = appState.usuario?.id||null;
-  const normalizar = r => ({...r, apa: Object.keys(APA_CONFIG).includes(r.apa)?r.apa:'Outra', status:'ativo', criado_por:uid});
+  // Tipo selecionado no seletor — vazio = manter da planilha
+  const tipoSel = (document.getElementById('imp-tipo-sel')?.value||'').trim() || null;
+  const normalizar = r => ({
+    ...r,
+    apa: Object.keys(APA_CONFIG).includes(r.apa)?r.apa:'Outra',
+    tipo_atividade: tipoSel || r.tipo_atividade || null,
+    status:'ativo',
+    criado_por:uid
+  });
   const inserts = [
     ..._impLinhas.pontos.map(normalizar),
     ..._impLinhas.poligonos.map(normalizar),
