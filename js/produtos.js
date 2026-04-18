@@ -964,10 +964,15 @@ function renderModalGeoCsvEtapa1(){
     +'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:12px 14px;margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:600;color:#1E40AF;margin-bottom:4px">&#x1F4CB; Como usar</div>'
     +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.7">'
-    +'<li>Baixe o template Excel com as 3 abas: <strong>Pontos</strong>, <strong>Polígono</strong> e <strong>Trilha</strong>. Preencha apenas as abas necessárias.</li>'
+    +'<li>Baixe o template e preencha <strong>apenas as abas que se aplicam</strong> ao produto (<strong>Pontos</strong>, <strong>Polígono</strong> ou <strong>Trilha</strong>).</li>'
+    +'<li><strong>Apague as linhas de exemplo</strong> das abas que não for usar — caso contrário elas serão importadas como dados reais.</li>'
     +'<li>As colunas <strong>lat</strong> e <strong>lng</strong> aceitam <strong>vírgula ou ponto</strong> como decimal (ex: <code>-9,972</code> ou <code>-9.972</code>).</li>'
     +'<li><strong>Importe o próprio arquivo .xlsx</strong> — não é necessário converter para CSV.</li>'
     +'</ol>'
+    +'</div>'
+    +'<div style="display:flex;align-items:flex-start;gap:8px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">'
+    +'<span style="font-size:15px;flex-shrink:0">&#x26A0;&#xFE0F;</span>'
+    +'<span style="font-size:11px;color:#92400E;line-height:1.5">Cada produto deve ter sua própria planilha. Se o produto entregue for apenas pontos, use só a aba <strong>Pontos</strong> e apague os exemplos das demais. O sistema ignora automaticamente linhas cujo nome começa com <strong>"Ex:"</strong>.</span>'
     +'</div>'
     +'<button class="btn btn-secondary btn-sm" style="margin-bottom:14px" onclick="baixarTemplateGeoExcel()">&#x1F4E5; Baixar template Excel (.xlsx)</button>'
     +'<div id="geo-drop-area" style="border:2px dashed var(--borda-forte);border-radius:var(--raio);padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cinza-50)"'
@@ -1004,6 +1009,9 @@ function onGeoDropXlsx(file){
         Object.keys(r).forEach(function(k){obj[k.trim().toLowerCase()]=String(r[k]||'').trim();});
         var lat=parseFloat(String(obj.lat||'').replace(',','.'));
         var lng=parseFloat(String(obj.lng||'').replace(',','.'));
+        // Ignorar linhas de exemplo do template (nome começa com "Ex:")
+        var nomeChave=nl.includes('pol')?obj.nome_area:nl.includes('trilh')?obj.nome_trilha:obj.nome_local;
+        if(nomeChave&&/^ex:/i.test(nomeChave.trim()))return;
         if(nl.includes('pol')){
           // Aba Polígono — coluna chave: nome_area
           if(!obj.nome_area||!coordOk(lat,lng)){invalidas.push({linha:idx+2,sheet:sheetNome,dado:obj});return;}
