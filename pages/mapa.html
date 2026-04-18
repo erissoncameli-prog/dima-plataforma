@@ -117,6 +117,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/shpjs@4.0.4/dist/shp.js"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────────────────
 const APA_CONFIG = {
@@ -219,8 +220,8 @@ function renderPagina(){
               <button class="btn-geojson ${localStorage.getItem(cfg.lsKey)?'carregado':''}"
                 id="btn-geojson-${escHtml(nome.replace(/\s/g,'_'))}"
                 onclick="abrirUploadGeoJson('${escHtml(nome)}')"
-                title="${localStorage.getItem(cfg.lsKey)?'Demarcação carregada — clique para substituir':'Importar GeoJSON da APA'}">
-                ${localStorage.getItem(cfg.lsKey)?'✓ GeoJSON':'📁 GeoJSON'}
+                title="${localStorage.getItem(cfg.lsKey)?'Demarcação carregada — clique para substituir':'Importar GeoJSON ou Shapefile (.zip) da APA'}">
+                ${localStorage.getItem(cfg.lsKey)?'✓ Carregado':'📁 GeoJSON / SHP'}
               </button>
             </div>`).join('')}
             <p style="font-size:10px;color:var(--cinza-400);margin:6px 0 0;line-height:1.4">
@@ -310,8 +311,8 @@ function renderPagina(){
     </div>
   </div>
 
-  <!-- Input oculto para GeoJSON -->
-  <input type="file" id="geojson-input" accept=".geojson,.json" style="display:none" onchange="onGeoJsonFile(this.files[0])">
+  <!-- Input oculto para GeoJSON / Shapefile -->
+  <input type="file" id="geojson-input" accept=".geojson,.json,.zip" style="display:none" onchange="onGeoJsonFile(this.files[0])">
   `;
 }
 
@@ -347,18 +348,42 @@ function abrirUploadGeoJson(nomeApa){
 
 function onGeoJsonFile(file){
   if(!file || !apaGeoJsonAtual) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try{
-      const gj = JSON.parse(e.target.result);
-      const cfg = APA_CONFIG[apaGeoJsonAtual];
-      if(cfg?.lsKey) localStorage.setItem(cfg.lsKey, JSON.stringify(gj));
-      renderizarApaPolygon(apaGeoJsonAtual, gj);
-      const btn = document.getElementById('btn-geojson-'+apaGeoJsonAtual.replace(/\s/g,'_'));
-      if(btn){ btn.textContent='✓ GeoJSON'; btn.classList.add('carregado'); }
-    }catch(err){ alert('GeoJSON inválido: '+err.message); }
-  };
-  reader.readAsText(file,'utf-8');
+  const isZip = file.name.toLowerCase().endsWith('.zip');
+
+  if(isZip){
+    // Shapefile (.zip) → converter para GeoJSON via shpjs
+    if(typeof shp === 'undefined'){ alert('Biblioteca shpjs ainda carregando, tente em instantes.'); return; }
+    const reader = new FileReader();
+    reader.onload = async e => {
+      try{
+        const gj = await shp(e.target.result);
+        // shpjs pode retornar FeatureCollection ou array delas — normalizar
+        const geojson = Array.isArray(gj)
+          ? { type:'FeatureCollection', features: gj.flatMap(g => g.features||[]) }
+          : gj;
+        const cfg = APA_CONFIG[apaGeoJsonAtual];
+        if(cfg?.lsKey) localStorage.setItem(cfg.lsKey, JSON.stringify(geojson));
+        renderizarApaPolygon(apaGeoJsonAtual, geojson);
+        const btn = document.getElementById('btn-geojson-'+apaGeoJsonAtual.replace(/\s/g,'_'));
+        if(btn){ btn.textContent='✓ SHP'; btn.classList.add('carregado'); }
+      }catch(err){ alert('Erro ao ler shapefile: '+err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    // GeoJSON
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const gj = JSON.parse(e.target.result);
+        const cfg = APA_CONFIG[apaGeoJsonAtual];
+        if(cfg?.lsKey) localStorage.setItem(cfg.lsKey, JSON.stringify(gj));
+        renderizarApaPolygon(apaGeoJsonAtual, gj);
+        const btn = document.getElementById('btn-geojson-'+apaGeoJsonAtual.replace(/\s/g,'_'));
+        if(btn){ btn.textContent='✓ GeoJSON'; btn.classList.add('carregado'); }
+      }catch(err){ alert('GeoJSON inválido: '+err.message); }
+    };
+    reader.readAsText(file,'utf-8');
+  }
 }
 
 function renderizarApaPolygon(nome, geojson){
