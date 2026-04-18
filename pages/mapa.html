@@ -224,6 +224,25 @@ const APA_CONFIG = {
   'Outra':                  { cor:'#9ca3af' },
 };
 const TIPO_CORES = ['#7c3aed','#d97706','#0891b2','#dc2626','#059669','#d946ef','#f59e0b','#3b82f6'];
+
+const ICONE_MAP = [
+  { kw:['fossa','sanitár','saneamento','esgoto','banheiro'],          emoji:'🚽', cor:'#7c3aed' },
+  { kw:['nascente','hidrológ','hídric','igarapé','rio','lago','água'], emoji:'💧', cor:'#0284c7' },
+  { kw:['meteorológ','pluviométr','clima','chuva','estação'],         emoji:'🌤', cor:'#64748b' },
+  { kw:['reflorest','plantio','muda','floresta','arboriz'],           emoji:'🌱', cor:'#16a34a' },
+  { kw:['pesca','aquicultura','pescador','peixe'],                    emoji:'🐟', cor:'#0369a1' },
+  { kw:['apicultura','mel','abelha','colmeia'],                       emoji:'🍯', cor:'#d97706' },
+  { kw:['agricultur','roça','cultivo','horta','mandioca','cacau'],    emoji:'🌾', cor:'#65a30d' },
+  { kw:['monitoramento','câmera','armadilha','fauna','biodiversidade'],emoji:'📷', cor:'#6366f1' },
+  { kw:['comunidade','associação','cooperativa','organização'],       emoji:'🏘', cor:'#f97316' },
+  { kw:['escola','educação','ensino','capacitação','curso'],          emoji:'📚', cor:'#f59e0b' },
+  { kw:['saúde','médico','posto','hospital','farmácia'],              emoji:'🏥', cor:'#ef4444' },
+  { kw:['energia','solar','biodigestor','gerador'],                   emoji:'⚡', cor:'#ca8a04' },
+  { kw:['trilha','caminho','estrada','acesso','ponte'],               emoji:'🛤', cor:'#78716c' },
+  { kw:['viveiro','muda','semente','produção florestal'],             emoji:'🪴', cor:'#15803d' },
+  { kw:['resíduo','lixo','coleta','reciclagem'],                      emoji:'♻', cor:'#0d9488' },
+  { kw:['cerca','limite','demarcação','georreferenciamento'],         emoji:'📍', cor:'#dc2626' },
+];
 const filtroProdutoId = new URLSearchParams(window.location.search).get('produto') || null;
 
 // ── Estado ────────────────────────────────────────────────────────────────
@@ -684,13 +703,41 @@ function corIcone(p){
   return APA_CONFIG[p.apa]?.cor || '#9ca3af';
 }
 
+function _emojiTipo(tipo){
+  if(!tipo) return null;
+  const t = tipo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  for(const entry of ICONE_MAP){
+    if(entry.kw.some(k => t.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,'')))) return entry;
+  }
+  return null;
+}
+
+function _tamanhoIcone(){
+  const z = mapaL?.getZoom() || 12;
+  if(z >= 18) return 32;
+  if(z >= 16) return 26;
+  if(z >= 14) return 20;
+  return 16;
+}
+
 function criarIcone(p){
-  const cor = corIcone(p);
-  const letra = (p.tipo_atividade||'?')[0].toUpperCase();
+  const match = _emojiTipo(p.tipo_atividade);
+  const cor = match ? match.cor : corIcone(p);
+  const sz = _tamanhoIcone();
+  const conteudo = match
+    ? `<span style="font-size:${Math.round(sz*.55)}px;line-height:1">${match.emoji}</span>`
+    : `<span style="font-size:${Math.round(sz*.5)}px;font-weight:700;color:#fff;font-family:sans-serif">${(p.tipo_atividade||'?')[0].toUpperCase()}</span>`;
   return L.divIcon({
     className:'',
-    html:`<div style="width:16px;height:16px;border-radius:50%;background:${cor};border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;font-family:sans-serif">${letra}</div>`,
-    iconSize:[16,16], iconAnchor:[8,8], popupAnchor:[0,-10]
+    html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${cor};border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;transition:all .2s">${conteudo}</div>`,
+    iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]
+  });
+}
+
+function _atualizarTamanhoIcones(){
+  pontosLayer.forEach(m => {
+    const p = pontos.find(x => x.id === m.pontoId);
+    if(p) m.setIcon(criarIcone(p));
   });
 }
 
@@ -1480,6 +1527,7 @@ function vincularEventos(){
       fLat.value=e.latlng.lat.toFixed(6);fLng.value=e.latlng.lng.toFixed(6);
     }
   });
+  mapaL.on('zoomend', _atualizarTamanhoIcones);
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────
