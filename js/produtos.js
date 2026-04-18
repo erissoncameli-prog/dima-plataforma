@@ -834,7 +834,10 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
           observacao:p.observacao||null,
           status:'ativo',
           produto_id:entrega.id,
-          criado_por:appState.usuario.id
+          criado_por:appState.usuario.id,
+          geometry_type:p.geometry_type||'ponto',
+          geometry_group:p.geometry_group||null,
+          geometry_order:p.geometry_order||0
         });
       });
     });
@@ -961,7 +964,7 @@ function renderModalGeoCsvEtapa1(){
     +'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:12px 14px;margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:600;color:#1E40AF;margin-bottom:4px">&#x1F4CB; Como usar</div>'
     +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.7">'
-    +'<li>Baixe o template Excel abaixo e preencha com os pontos entregues.</li>'
+    +'<li>Baixe o template Excel com as 3 abas: <strong>Pontos</strong>, <strong>Polígono</strong> e <strong>Trilha</strong>. Preencha apenas as abas necessárias.</li>'
     +'<li>As colunas <strong>lat</strong> e <strong>lng</strong> aceitam <strong>vírgula ou ponto</strong> como decimal (ex: <code>-9,972</code> ou <code>-9.972</code>).</li>'
     +'<li><strong>Importe o próprio arquivo .xlsx</strong> — não é necessário converter para CSV.</li>'
     +'</ol>'
@@ -989,114 +992,177 @@ function onGeoDropXlsx(file){
   var reader=new FileReader();
   reader.onload=function(e){
     var wb=XLSX.read(e.target.result,{type:'binary'});
-    var ws=wb.Sheets[wb.SheetNames[0]];
-    var rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
-    var GEO_COLS=['nome_local','apa','lat','lng'];
-    if(!rows.length){alert('Planilha vazia.');return;}
-    var header=Object.keys(rows[0]).map(function(h){return h.trim().toLowerCase();});
-    var faltando=GEO_COLS.filter(function(c){return !header.includes(c);});
-    if(faltando.length){alert('Colunas obrigatórias não encontradas: '+faltando.join(', ')+'\n\nColunas lidas: '+header.join(', '));return;}
     var validas=[],invalidas=[];
-    rows.forEach(function(r,idx){
-      var obj={};
-      Object.keys(r).forEach(function(k){obj[k.trim().toLowerCase()]=String(r[k]||'').trim();});
-      var lat=parseFloat(String(obj.lat||'').replace(',','.'));
-      var lng=parseFloat(String(obj.lng||'').replace(',','.'));
-      var coordOk=!isNaN(lat)&&!isNaN(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
-      if(!obj.nome_local||!coordOk){
-        invalidas.push({linha:idx+2,dado:obj});
-      } else {
-        obj.lat=lat;obj.lng=lng;
-        validas.push(obj);
-      }
+    var coordOk=function(lat,lng){return !isNaN(lat)&&!isNaN(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;};
+    if(!wb.SheetNames.length){alert('Arquivo vazio ou inválido.');return;}
+    wb.SheetNames.forEach(function(sheetNome){
+      var ws=wb.Sheets[sheetNome];
+      var rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
+      var nl=sheetNome.toLowerCase();
+      rows.forEach(function(r,idx){
+        var obj={};
+        Object.keys(r).forEach(function(k){obj[k.trim().toLowerCase()]=String(r[k]||'').trim();});
+        var lat=parseFloat(String(obj.lat||'').replace(',','.'));
+        var lng=parseFloat(String(obj.lng||'').replace(',','.'));
+        if(nl.includes('pol')){
+          // Aba Polígono — coluna chave: nome_area
+          if(!obj.nome_area||!coordOk(lat,lng)){invalidas.push({linha:idx+2,sheet:sheetNome,dado:obj});return;}
+          validas.push({nome_local:obj.nome_area,apa:obj.apa||'Outra',responsavel:obj.responsavel||null,
+            data_implantacao:obj.data_implantacao||null,lat:lat,lng:lng,observacao:obj.observacao||null,
+            geometry_type:'poligono',geometry_group:obj.nome_area,geometry_order:parseInt(obj.ordem||'0')||0});
+        } else if(nl.includes('trilh')){
+          // Aba Trilha — coluna chave: nome_trilha
+          if(!obj.nome_trilha||!coordOk(lat,lng)){invalidas.push({linha:idx+2,sheet:sheetNome,dado:obj});return;}
+          validas.push({nome_local:obj.nome_trilha,apa:obj.apa||'Outra',responsavel:obj.responsavel||null,
+            data_implantacao:obj.data_implantacao||null,lat:lat,lng:lng,observacao:obj.observacao||null,
+            geometry_type:'trilha',geometry_group:obj.nome_trilha,geometry_order:parseInt(obj.ordem||'0')||0});
+        } else {
+          // Aba Pontos (default) — coluna chave: nome_local
+          if(!obj.nome_local||!coordOk(lat,lng)){invalidas.push({linha:idx+2,sheet:sheetNome,dado:obj});return;}
+          validas.push({nome_local:obj.nome_local,apa:obj.apa||'Outra',responsavel:obj.responsavel||null,
+            data_implantacao:obj.data_implantacao||null,lat:lat,lng:lng,observacao:obj.observacao||null,
+            geometry_type:'ponto'});
+        }
+      });
     });
     _geoCsvLinhas=validas;
-    renderModalGeoCsvEtapa2(validas,invalidas,header);
+    renderModalGeoCsvEtapa2(validas,invalidas);
   };
   reader.readAsBinaryString(file);
 }
 
-function renderModalGeoCsvEtapa2(validas,invalidas,header){
+function renderModalGeoCsvEtapa2(validas,invalidas){
   var body=document.getElementById('geo-csv-body');
   var footer=document.getElementById('geo-csv-footer');
   if(!body)return;
 
-  var colsExibir=['nome_local','apa','lat','lng','tipo_atividade','responsavel','data_implantacao'].filter(function(c){return header.includes(c);});
+  var nPontos=validas.filter(function(r){return (r.geometry_type||'ponto')==='ponto';}).length;
+  var gruposPol=[...new Set(validas.filter(function(r){return r.geometry_type==='poligono';}).map(function(r){return r.geometry_group;}))].length;
+  var gruposTrilha=[...new Set(validas.filter(function(r){return r.geometry_type==='trilha';}).map(function(r){return r.geometry_group;}))].length;
 
-  var tabelaHtml='<div style="overflow-x:auto;max-height:300px;overflow-y:auto;border:1px solid var(--borda);border-radius:var(--raio)">'
-    +'<table style="border-collapse:collapse;width:100%;font-size:11px">'
-    +'<thead><tr style="background:var(--cinza-100);position:sticky;top:0">'
-    +colsExibir.map(function(c){return '<th style="padding:5px 8px;text-align:left;font-weight:600;white-space:nowrap;border-bottom:1px solid var(--borda)">'+c+'</th>';}).join('')
-    +'</tr></thead><tbody>'
-    +validas.slice(0,100).map(function(r,i){
-      return '<tr style="border-bottom:1px solid var(--cinza-100)'+(i%2?';background:var(--cinza-50)':'')+'\">'
-        +colsExibir.map(function(c){return '<td style="padding:4px 8px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">'+esc(String(r[c]||''))+'</td>';}).join('')
-        +'</tr>';
-    }).join('')
-    +(validas.length>100?'<tr><td colspan="'+colsExibir.length+'" style="padding:6px 8px;text-align:center;color:var(--cinza-400);font-style:italic">…e mais '+(validas.length-100)+' linhas</td></tr>':'')
-    +'</tbody></table></div>';
-
-  body.innerHTML=''
-    +'<div style="display:flex;gap:10px;margin-bottom:12px">'
+  var statsHtml='<div style="display:flex;gap:10px;margin-bottom:12px">'
     +'<div style="flex:1;background:#F0FDF4;border:1px solid #86EFAC;border-radius:var(--raio);padding:10px 12px;text-align:center">'
-    +'<div style="font-size:20px;font-weight:700;color:#166534">'+validas.length+'</div>'
-    +'<div style="font-size:11px;color:#15803D">pontos válidos</div>'
-    +'</div>'
+    +'<div style="font-size:20px;font-weight:700;color:#166534">'+nPontos+'</div>'
+    +'<div style="font-size:11px;color:#15803D">pontos</div></div>'
+    +'<div style="flex:1;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:10px 12px;text-align:center">'
+    +'<div style="font-size:20px;font-weight:700;color:#1D4ED8">'+gruposPol+'</div>'
+    +'<div style="font-size:11px;color:#1E40AF">polígonos</div></div>'
+    +'<div style="flex:1;background:#FFF7ED;border:1px solid #FED7AA;border-radius:var(--raio);padding:10px 12px;text-align:center">'
+    +'<div style="font-size:20px;font-weight:700;color:#C2410C">'+gruposTrilha+'</div>'
+    +'<div style="font-size:11px;color:#EA580C">trilhas</div></div>'
     +(invalidas.length?'<div style="flex:1;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:10px 12px;text-align:center">'
     +'<div style="font-size:20px;font-weight:700;color:#DC2626">'+invalidas.length+'</div>'
-    +'<div style="font-size:11px;color:#B91C1C">linhas inválidas</div>'
-    +'</div>':'')
-    +'</div>'
-    +(invalidas.length?'<div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:8px 10px;margin-bottom:12px">&#x26A0; Linhas ignoradas (lat/lng ausente ou inválido): '+invalidas.map(function(x){return 'linha '+x.linha;}).join(', ')+'</div>':'')
-    +tabelaHtml
-    +'<p style="font-size:11px;color:var(--cinza-500);margin:8px 0 0">Os pontos serão salvos no mapa após o envio da entrega. Você ainda poderá visualizá-los em <strong>Mapa de Entregas</strong>.</p>';
+    +'<div style="font-size:11px;color:#B91C1C">erros</div></div>':'')
+    +'</div>';
 
+  var tabelaHtml='<div style="overflow-x:auto;max-height:280px;overflow-y:auto;border:1px solid var(--borda);border-radius:var(--raio)">'
+    +'<table style="border-collapse:collapse;width:100%;font-size:11px">'
+    +'<thead><tr style="background:var(--cinza-100);position:sticky;top:0">'
+    +'<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Tipo</th>'
+    +'<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Nome</th>'
+    +'<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">APA</th>'
+    +'<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Lat</th>'
+    +'<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Lng</th>'
+    +'</tr></thead><tbody>'
+    +validas.slice(0,100).map(function(r,i){
+      var gt=r.geometry_type||'ponto';
+      var tipoLabel=gt==='poligono'?'Polígono':gt==='trilha'?'Trilha':'Ponto';
+      var bg=gt==='poligono'?'background:#EFF6FF;color:#1E40AF':gt==='trilha'?'background:#FFF7ED;color:#92400E':'background:#F0FDF4;color:#166534';
+      return '<tr style="border-bottom:1px solid var(--cinza-100)'+(i%2?';background:var(--cinza-50)':'')+'\">'
+        +'<td style="padding:4px 8px"><span style="font-size:10px;padding:1px 6px;border-radius:99px;'+bg+'">'+tipoLabel+'</span></td>'
+        +'<td style="padding:4px 8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.nome_local||'')+'</td>'
+        +'<td style="padding:4px 8px;white-space:nowrap">'+esc(r.apa||'')+'</td>'
+        +'<td style="padding:4px 8px;font-family:monospace;white-space:nowrap">'+r.lat+'</td>'
+        +'<td style="padding:4px 8px;font-family:monospace;white-space:nowrap">'+r.lng+'</td>'
+        +'</tr>';
+    }).join('')
+    +(validas.length>100?'<tr><td colspan="5" style="padding:6px 8px;text-align:center;color:var(--cinza-400);font-style:italic">…e mais '+(validas.length-100)+' linhas</td></tr>':'')
+    +'</tbody></table></div>';
+
+  body.innerHTML=statsHtml
+    +(invalidas.length?'<div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:8px 10px;margin-bottom:12px">&#x26A0; Linhas ignoradas: '+invalidas.map(function(x){return (x.sheet?x.sheet+' l.':'l.')+x.linha;}).join(', ')+'</div>':'')
+    +tabelaHtml
+    +'<p style="font-size:11px;color:var(--cinza-500);margin:8px 0 0">As geometrias serão salvas no mapa após o envio da entrega. Você poderá visualizá-las em <strong>Mapa de Entregas</strong>.</p>';
+
+  var partes=[nPontos?nPontos+' ponto(s)':'',gruposPol?gruposPol+' polígono(s)':'',gruposTrilha?gruposTrilha+' trilha(s)':''].filter(Boolean).join(' + ');
   footer.innerHTML=''
     +'<button class="btn btn-secondary" onclick="renderModalGeoCsvEtapa1()">&#x2190; Voltar</button>'
     +(validas.length
-      ? '<button class="btn btn-primary" onclick="confirmarGeoCsv()">&#x2714; Confirmar '+validas.length+' ponto(s)</button>'
-      : '<span style="font-size:12px;color:var(--cinza-500)">Nenhum ponto válido para importar.</span>'
+      ? '<button class="btn btn-primary" onclick="confirmarGeoCsv()">&#x2714; Confirmar '+partes+'</button>'
+      : '<span style="font-size:12px;color:var(--cinza-500)">Nenhum dado válido para importar.</span>'
     );
 }
 
 function confirmarGeoCsv(){
   if(!_geoCsvLinhas.length)return;
-  // Adicionar à lista de documentos como entrada especial
+  var nPontos=_geoCsvLinhas.filter(function(r){return (r.geometry_type||'ponto')==='ponto';}).length;
+  var nPol=[...new Set(_geoCsvLinhas.filter(function(r){return r.geometry_type==='poligono';}).map(function(r){return r.geometry_group;}))].length;
+  var nTrilha=[...new Set(_geoCsvLinhas.filter(function(r){return r.geometry_type==='trilha';}).map(function(r){return r.geometry_group;}))].length;
+  var partes=[nPontos?nPontos+' ponto(s)':'',nPol?nPol+' polígono(s)':'',nTrilha?nTrilha+' trilha(s)':''].filter(Boolean).join(' + ');
   docsEntrega.push({
     isGeo:true,
     tipo:TIPO_GEO,
-    nome:'geo_pontos_'+_geoCsvLinhas.length+'.xlsx',
+    nome:'Geolocalização: '+partes,
     size:0,
     file:null,
     pontos:_geoCsvLinhas.slice()
   });
   renderListaDocs();
   fecharModalGeoCsv();
-  toast(_geoCsvLinhas.length+' pontos de geolocalização adicionados à entrega.','success');
+  toast(partes+' de geolocalização adicionados à entrega.','success');
 }
 
 function baixarTemplateGeoExcel(){
   if(typeof XLSX==='undefined'){alert('Biblioteca Excel ainda carregando, tente novamente em instantes.');return;}
-  var wb=XLSX.utils.book_new();
-  var dados=[
-    ['nome_local','apa','lat','lng','responsavel','data_implantacao','observacao'],
-    ['Ex: Unidade Produtiva — Comunidade Boa Vista','Igarapé São Francisco','-9.972000','-67.805000','João Silva','2025-04-10','Próximo ao igarapé']
-  ];
-  var ws=XLSX.utils.aoa_to_sheet(dados);
-  ws['!cols']=[{wch:40},{wch:30},{wch:14},{wch:14},{wch:20},{wch:22},{wch:30}];
-  // Formatar lat (col 2) e lng (col 3) como Texto para evitar que o Excel brasileiro
-  // interprete ponto como separador de milhar (ex: -67.83 → -6783)
-  for(var r=1;r<=100;r++){
-    [2,3].forEach(function(c){
-      var ref=XLSX.utils.encode_cell({r:r,c:c});
-      if(!ws[ref])ws[ref]={t:'s',v:'',z:'@'};
-      else{ws[ref].z='@';if(ws[ref].t!=='s'){ws[ref].t='s';ws[ref].v=String(ws[ref].v||'');delete ws[ref].w;}}
-    });
+
+  // Formata colunas lat/lng como Texto (@) para evitar que o Excel brasileiro
+  // interprete o ponto decimal como separador de milhar (ex: -67.83 → -6783)
+  function fmtLatLng(ws,colLat,colLng,maxRow){
+    for(var r=1;r<=maxRow;r++){
+      [colLat,colLng].forEach(function(c){
+        var ref=XLSX.utils.encode_cell({r:r,c:c});
+        if(!ws[ref]){ws[ref]={t:'s',v:'',z:'@'};}
+        else{ws[ref].z='@';if(ws[ref].t!=='s'){ws[ref].t='s';ws[ref].v=String(ws[ref].v||'');delete ws[ref].w;}}
+      });
+    }
+    var range=XLSX.utils.decode_range(ws['!ref']);
+    range.e.r=Math.max(range.e.r,maxRow);
+    ws['!ref']=XLSX.utils.encode_range(range);
   }
-  var range=XLSX.utils.decode_range(ws['!ref']);
-  range.e.r=Math.max(range.e.r,100);
-  ws['!ref']=XLSX.utils.encode_range(range);
-  XLSX.utils.book_append_sheet(wb,ws,'Pontos Geolocalização');
-  XLSX.writeFile(wb,'template_geo_pontos.xlsx');
-  toast('Template baixado! Preencha e importe o .xlsx diretamente.','info');
+
+  var wb=XLSX.utils.book_new();
+
+  // Aba 1 — Pontos (lat=col5, lng=col6)
+  var wsPontos=XLSX.utils.aoa_to_sheet([
+    ['nome_local','apa','tipo_atividade','responsavel','data_implantacao','lat','lng','observacao'],
+    ['Ex: Unidade Produtiva 01','Igarapé São Francisco','Desenvolvimento de Produtos Sustentáveis','João Silva','2025-04-10','-9.972000','-67.805000','Próximo ao igarapé']
+  ]);
+  wsPontos['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:14},{wch:14},{wch:30}];
+  fmtLatLng(wsPontos,5,6,100);
+  XLSX.utils.book_append_sheet(wb,wsPontos,'Pontos');
+
+  // Aba 2 — Polígono (lat=col6, lng=col7)
+  var wsPolig=XLSX.utils.aoa_to_sheet([
+    ['nome_area','apa','tipo_atividade','responsavel','data_implantacao','ordem','lat','lng','observacao'],
+    ['Ex: Área de Reflorestamento A','Lago do Amapá','Mitigação da Vulnerabilidade das APAs','Maria Silva','2025-04-10','1','-9.950000','-67.820000','Vértice 1'],
+    ['Ex: Área de Reflorestamento A','Lago do Amapá','Mitigação da Vulnerabilidade das APAs','Maria Silva','2025-04-10','2','-9.952000','-67.818000','Vértice 2'],
+    ['Ex: Área de Reflorestamento A','Lago do Amapá','Mitigação da Vulnerabilidade das APAs','Maria Silva','2025-04-10','3','-9.951000','-67.815000','Vértice 3']
+  ]);
+  wsPolig['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:8},{wch:14},{wch:14},{wch:30}];
+  fmtLatLng(wsPolig,6,7,100);
+  XLSX.utils.book_append_sheet(wb,wsPolig,'Polígono');
+
+  // Aba 3 — Trilha (lat=col6, lng=col7)
+  var wsTrilha=XLSX.utils.aoa_to_sheet([
+    ['nome_trilha','apa','tipo_atividade','responsavel','data_implantacao','ordem','lat','lng','observacao'],
+    ['Ex: Trilha Ecológica Norte','Igarapé São Francisco','Monitoramento e Adaptação','Carlos Souza','2025-04-10','1','-9.960000','-67.810000','Início da trilha'],
+    ['Ex: Trilha Ecológica Norte','Igarapé São Francisco','Monitoramento e Adaptação','Carlos Souza','2025-04-10','2','-9.962000','-67.812000','Ponto intermediário'],
+    ['Ex: Trilha Ecológica Norte','Igarapé São Francisco','Monitoramento e Adaptação','Carlos Souza','2025-04-10','3','-9.965000','-67.814000','Final da trilha']
+  ]);
+  wsTrilha['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:8},{wch:14},{wch:14},{wch:30}];
+  fmtLatLng(wsTrilha,6,7,100);
+  XLSX.utils.book_append_sheet(wb,wsTrilha,'Trilha');
+
+  XLSX.writeFile(wb,'template_geo_mapa.xlsx');
+  toast('Template baixado! Preencha as abas desejadas e importe o .xlsx.','info');
 }
