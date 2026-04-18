@@ -813,19 +813,46 @@ function renderizarLista(){
   const el=document.getElementById('lista-pontos'), ct=document.getElementById('lista-count');
   if(!el) return;
   const vis = pontos.filter(pontoVisivel);
-  if(ct) ct.textContent = vis.length;
-  if(!vis.length){ el.innerHTML=`<div style="padding:14px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum ponto visível.</div>`; return; }
-  el.innerHTML = vis.map(p => {
+
+  // Deduplicar: pontos individuais + um item por geometry_group
+  const itens = [];
+  const gruposVistos = new Set();
+  vis.forEach(p => {
+    const tipo = p.geometry_type || 'ponto';
+    if(tipo === 'ponto'){
+      itens.push({ tipo, p, id: p.id });
+    } else {
+      const key = tipo + ':' + p.geometry_group;
+      if(!gruposVistos.has(key)){ gruposVistos.add(key); itens.push({ tipo, p, group: p.geometry_group }); }
+    }
+  });
+
+  if(ct) ct.textContent = itens.length;
+  if(!itens.length){ el.innerHTML=`<div style="padding:14px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum ponto visível.</div>`; return; }
+
+  el.innerHTML = itens.map(item => {
+    const { p, tipo } = item;
     const cor = corIcone(p);
     const dt = p.data_implantacao ? new Date(p.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '';
-    return `<div class="ponto-item" onclick="focarPonto('${p.id}')">
+    const tipoLabel = tipo === 'poligono' ? 'Polígono' : tipo === 'trilha' ? 'Trilha' : null;
+    const onclick = tipo === 'ponto'
+      ? `focarPonto('${p.id}')`
+      : `focarGeometria('${escHtml(item.group)}','${tipo}')`;
+    return `<div class="ponto-item" onclick="${onclick}">
       <span class="ponto-dot" style="background:${cor}"></span>
       <div style="flex:1;min-width:0">
         <div class="ponto-nome">${escHtml(p.nome_local)}</div>
-        <div class="ponto-sub">${escHtml(p.tipo_atividade||p.apa)}${dt?' · '+dt:''}</div>
+        <div class="ponto-sub">${tipoLabel?tipoLabel+' · ':''}${escHtml(p.tipo_atividade||p.apa)}${dt?' · '+dt:''}</div>
       </div>
     </div>`;
   }).join('');
+}
+
+function focarGeometria(group, tipo){
+  const pts = pontos.filter(p => p.geometry_group === group && p.geometry_type === tipo);
+  if(!pts.length) return;
+  const bounds = L.latLngBounds(pts.map(p => [p.lat, p.lng]));
+  mapaL.fitBounds(bounds, {padding:[40,40], maxZoom:17});
 }
 
 function focarPonto(id){
