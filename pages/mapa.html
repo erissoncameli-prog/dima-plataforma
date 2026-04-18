@@ -265,6 +265,50 @@ let filtrosAPA  = new Set(Object.keys(APA_CONFIG));
 let filtrosTipo = new Set();
 let camadas = [];
 let tipoCores = {};
+let matrizByTipo = {};
+
+// Agrega ODS e metas_km por produto_titulo (vários itens podem ter o mesmo título)
+function _buildMatrizByTipo(itens){
+  const map = {};
+  itens.forEach(i => {
+    if(!i.produto_titulo) return;
+    if(!map[i.produto_titulo]) map[i.produto_titulo] = { ods:[], metas_km:[] };
+    const entry = map[i.produto_titulo];
+    if(Array.isArray(i.ods)) i.ods.forEach(n => { if(!entry.ods.includes(n)) entry.ods.push(n); });
+    if(Array.isArray(i.metas_km)) i.metas_km.forEach(n => { if(!entry.metas_km.includes(n)) entry.metas_km.push(n); });
+  });
+  return map;
+}
+
+// Gera HTML com logos ODS e badges KM para o popup
+function _htmlOdsKm(tipo_atividade){
+  const dados = matrizByTipo[tipo_atividade];
+  if(!dados) return '';
+  const ods = (dados.ods||[]).slice().sort((a,b)=>a-b);
+  const km  = (dados.metas_km||[]).slice().sort((a,b)=>a-b);
+  if(!ods.length && !km.length) return '';
+  let html = '<div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:8px">';
+  if(ods.length){
+    html += '<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">ODS Atendidos</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px">';
+    ods.forEach(n => {
+      html += `<img src="../assets/sdg/sdg-${n}.jpg" title="ODS ${n}" alt="ODS ${n}" `
+            + `style="width:38px;height:38px;border-radius:5px;object-fit:cover;border:1px solid #e5e7eb" `
+            + `onerror="this.outerHTML='<span style=\\'font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0\\'>ODS&nbsp;${n}</span>'">`;
+    });
+    html += '</div>';
+  }
+  if(km.length){
+    html += '<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Metas Kunming-Montreal</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+    km.forEach(n => {
+      html += `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:#ede9fe;color:#5B21B6;border:1px solid #c4b5fd;white-space:nowrap">Meta ${n}</span>`;
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -272,12 +316,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!u) { window.location.href = '../index.html'; return; }
 
   const matrizData = await db.from('matriz_itens')
-    .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,visivel_no_mapa')
+    .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,visivel_no_mapa,ods,metas_km')
     .eq('ativo', true)
     .order('produto_codigo');
 
   matrizItens = matrizData.data || [];
   matrizVisiveis = matrizItens.filter(i => i.visivel_no_mapa);
+  matrizByTipo = _buildMatrizByTipo(matrizItens);
 
   // Cores por tipo (produto_titulo) dos visíveis
   const tiposUnicos = [...new Set(matrizVisiveis.map(i => i.produto_titulo).filter(Boolean))];
@@ -836,6 +881,7 @@ function renderPopup(p){
     ${p.responsavel?`<div class="pp-linha"><strong>Responsável:</strong>${escHtml(p.responsavel)}</div>`:''}
     <div class="pp-linha"><strong>Implantação:</strong>${dt}</div>
     ${p.observacao?`<div class="pp-linha"><strong>Obs.:</strong>${escHtml(p.observacao)}</div>`:''}
+    ${_htmlOdsKm(p.tipo_atividade)}
     <div style="margin-top:8px;display:flex;gap:6px">
       <button onclick="abrirModalEditar('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
       <button onclick="excluirPonto('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
@@ -860,6 +906,7 @@ function _popupGeometria(nome, pts, tipo){
     ${medida}
     <div class="pp-linha"><strong>${tipo==='poligono'?'Vértices':'Pontos'}:</strong>${pts.length}</div>
     ${p0.observacao?`<div class="pp-linha"><strong>Obs.:</strong>${escHtml(p0.observacao)}</div>`:''}
+    ${_htmlOdsKm(p0.tipo_atividade)}
     <div style="margin-top:8px;display:flex;gap:6px">
       <button onclick="abrirModalEditarGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
       <button onclick="excluirGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
@@ -1027,10 +1074,11 @@ async function salvarAdminFiltros(){
 
   // Recarregar dados locais e remontar filtros
   const matrizData = await db.from('matriz_itens')
-    .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,visivel_no_mapa')
+    .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,visivel_no_mapa,ods,metas_km')
     .eq('ativo', true).order('produto_codigo');
   matrizItens = matrizData.data || [];
   matrizVisiveis = matrizItens.filter(i => i.visivel_no_mapa);
+  matrizByTipo = _buildMatrizByTipo(matrizItens);
 
   // Recalcular cores
   tipoCores = {}; filtrosTipo = new Set();
