@@ -354,6 +354,9 @@ const RELATORIOS = [
   { id:'L4', tema:'logs', icone:'🔎', titulo:'Avaliações de Produtos',
     desc:'Quem avaliou, quando, % aprovado e parecer registrado.',
     filtros:['periodo'] },
+  { id:'L5', tema:'logs', icone:'🗺️', titulo:'Log de Alterações — Mapa',
+    desc:'Histórico de criação, edição e exclusão de pontos, polígonos e trilhas no Mapa de Entregas. Campo a campo.',
+    filtros:['periodo','acao_log','usuario_log'], somente_super_admin:true },
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -431,7 +434,9 @@ function renderTemas(ativo){
 // RENDER LISTA
 // ══════════════════════════════════════════════════════════════
 function renderLista(tema){
-  const lista = tema==='todos' ? RELATORIOS : RELATORIOS.filter(r=>r.tema===tema);
+  const isSuperAdmin = appState.perfil === 'super_admin';
+  const lista = (tema==='todos' ? RELATORIOS : RELATORIOS.filter(r=>r.tema===tema))
+    .filter(r => !r.somente_super_admin || isSuperAdmin);
   const temaInfo = t => TEMAS.find(x=>x.id===t)||{cor:'#374151'};
   document.getElementById('rel-lista').innerHTML = lista.map(r=>{
     const ti = temaInfo(r.tema);
@@ -654,6 +659,24 @@ function renderFiltros(lista){
             <option value="30">30 dias</option>
             <option value="60">60 dias</option>
             <option value="90">90 dias</option>
+          </select>
+        </div>`;
+      case 'acao_log': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Ação</span>
+          <select class="config-select" id="fil-acao-log">
+            <option value="">Todas</option>
+            <option value="criar">➕ Criar</option>
+            <option value="editar">✏️ Editar</option>
+            <option value="excluir">🗑️ Excluir</option>
+          </select>
+        </div>`;
+      case 'usuario_log': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Usuário</span>
+          <select class="config-select" id="fil-usuario-log">
+            <option value="">Todos</option>
+            ${_usuarios.map(u=>`<option value="${u.id}">${u.nome_completo||u.id}</option>`).join('')}
           </select>
         </div>`;
       default: return '';
@@ -897,6 +920,7 @@ async function gerarRelatorio(id){
       case 'U4': html = await relU4(); break;
       case 'L1': html = await relL1(); break;
       case 'L4': html = await relL4(); break;
+      case 'L5': html = await relL5(); break;
       default: html = `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Relatório <strong>${id}</strong> em desenvolvimento.</div>`;
     }
     area.innerHTML = wrapDoc(html, rel) + `
@@ -2786,6 +2810,178 @@ async function relL4(){
         <td></td>
       </tr></tfoot>
     </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// L5 — LOG DE ALTERAÇÕES NO MAPA
+// ══════════════════════════════════════════════════════════════
+async function relL5(){
+  if(appState.perfil !== 'super_admin'){
+    return `<div style="padding:32px;text-align:center;color:var(--erro)">⚠️ Acesso restrito a Super Administradores.</div>`;
+  }
+
+  const dtIni   = filVal('fil-dt-ini');
+  const dtFim   = filVal('fil-dt-fim');
+  const acaoFil = filVal('fil-acao-log');
+  const usrFil  = filVal('fil-usuario-log');
+
+  let q = db.from('mapa_pontos_log').select('*').order('criado_em',{ascending:false});
+  if(dtIni)   q = q.gte('criado_em', dtIni);
+  if(dtFim)   q = q.lte('criado_em', dtFim+'T23:59:59');
+  if(acaoFil) q = q.eq('acao', acaoFil);
+  if(usrFil)  q = q.eq('usuario_id', usrFil);
+
+  const {data, error} = await q;
+  if(error) throw error;
+  const rows = data||[];
+
+  const fmtDtHr = s => !s ? '—' : new Date(s).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  const acaoCor  = { criar:'#16a34a', editar:'#2563eb', excluir:'#dc2626' };
+  const acaoIcon = { criar:'➕', editar:'✏️', excluir:'🗑️' };
+  const acaoLabel= { criar:'Criação', editar:'Edição', excluir:'Exclusão' };
+  const geoLabel = { ponto:'Ponto', poligono:'Polígono', trilha:'Trilha', caminho:'Caminho' };
+
+  // campos com rótulo legível — exclui campos internos/estruturais
+  const CAMPOS = {
+    nome_local:'Nome', apa:'APA', tipo_atividade:'Tipo de Atividade',
+    responsavel:'Responsável', data_implantacao:'Data de Implantação',
+    observacao:'Observação', lat:'Latitude', lng:'Longitude',
+    foto_url:'Foto URL', foto_nome:'Nome da Foto', status:'Status'
+  };
+
+  function _diffHtml(antes, depois){
+    if(!antes && !depois) return '<em style="color:var(--cinza-400)">Sem dados.</em>';
+
+    // Para geometrias (antes ou depois tem vertices), mostra apenas campos + contagem de vértices
+    const a = antes || {};
+    const d = depois || {};
+    const camposParaComparar = Object.keys(CAMPOS);
+    const linhas = [];
+
+    camposParaComparar.forEach(k => {
+      const va = a[k] !== undefined ? a[k] : null;
+      const vd = d[k] !== undefined ? d[k] : null;
+      const mudou = JSON.stringify(va) !== JSON.stringify(vd);
+      if(!mudou && !antes) return; // na criação, mostra todos
+      if(!mudou && !depois) return; // na exclusão, mostra todos
+      if(!mudou) return; // na edição, só mostra alterados
+
+      const label = CAMPOS[k];
+      const valAntes = va !== null && va !== undefined && va !== '' ? String(va) : '—';
+      const valDepois = vd !== null && vd !== undefined && vd !== '' ? String(vd) : '—';
+
+      if(!depois){
+        // Exclusão: mostra valor que existia
+        linhas.push(`<tr>
+          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600);white-space:nowrap">${label}</td>
+          <td style="padding:4px 8px;font-size:11px;color:#dc2626;text-decoration:line-through">${valAntes}</td>
+          <td style="padding:4px 8px;font-size:11px;color:var(--cinza-400)">—</td>
+        </tr>`);
+      } else if(!antes){
+        // Criação: mostra valor novo
+        linhas.push(`<tr>
+          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600);white-space:nowrap">${label}</td>
+          <td style="padding:4px 8px;font-size:11px;color:var(--cinza-400)">—</td>
+          <td style="padding:4px 8px;font-size:11px;color:#16a34a">${valDepois}</td>
+        </tr>`);
+      } else {
+        // Edição: antes → depois
+        linhas.push(`<tr>
+          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600);white-space:nowrap">${label}</td>
+          <td style="padding:4px 8px;font-size:11px;color:#dc2626;text-decoration:line-through">${valAntes}</td>
+          <td style="padding:4px 8px;font-size:11px;color:#16a34a">${valDepois}</td>
+        </tr>`);
+      }
+    });
+
+    // Vértices — para polígonos/trilhas
+    if(a.vertices || d.vertices){
+      const nAntes  = a.vertices ? a.vertices.length : '—';
+      const nDepois = d.vertices ? d.vertices.length : '—';
+      const mudouVtx = nAntes !== nDepois;
+      if(!depois){
+        linhas.push(`<tr>
+          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600)">Vértices</td>
+          <td style="padding:4px 8px;font-size:11px;color:#dc2626;text-decoration:line-through">${nAntes} ponto(s)</td>
+          <td style="padding:4px 8px;font-size:11px;color:var(--cinza-400)">—</td>
+        </tr>`);
+      } else if(!antes){
+        linhas.push(`<tr>
+          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600)">Vértices</td>
+          <td style="padding:4px 8px;font-size:11px;color:var(--cinza-400)">—</td>
+          <td style="padding:4px 8px;font-size:11px;color:#16a34a">${nDepois} ponto(s)</td>
+        </tr>`);
+      } else if(mudouVtx){
+        linhas.push(`<tr>
+          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600)">Vértices</td>
+          <td style="padding:4px 8px;font-size:11px;color:#dc2626;text-decoration:line-through">${nAntes} ponto(s)</td>
+          <td style="padding:4px 8px;font-size:11px;color:#16a34a">${nDepois} ponto(s)</td>
+        </tr>`);
+      }
+    }
+
+    if(!linhas.length){
+      return '<em style="color:var(--cinza-400);font-size:11px">Nenhuma alteração de campo registrada.</em>';
+    }
+
+    return `<table style="width:100%;border-collapse:collapse;border:1px solid var(--borda);border-radius:6px;overflow:hidden">
+      <thead><tr style="background:var(--cinza-50)">
+        <th style="padding:4px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--borda);color:var(--cinza-500)">Campo</th>
+        <th style="padding:4px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--borda);color:#dc2626">Antes</th>
+        <th style="padding:4px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--borda);color:#16a34a">Depois</th>
+      </tr></thead>
+      <tbody>${linhas.join('')}</tbody>
+    </table>`;
+  }
+
+  const totCriar  = rows.filter(r=>r.acao==='criar').length;
+  const totEditar = rows.filter(r=>r.acao==='editar').length;
+  const totExcluir= rows.filter(r=>r.acao==='excluir').length;
+
+  return `
+  <div class="rep-stats rep-stats-3">
+    <div class="rep-stat"><div class="rep-stat-lbl">Total de Eventos</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Criações / Edições / Exclusões</div>
+      <div class="rep-stat-val" style="font-size:14px">
+        <span style="color:#16a34a">${totCriar}</span> /
+        <span style="color:#2563eb">${totEditar}</span> /
+        <span style="color:#dc2626">${totExcluir}</span>
+      </div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Usuários distintos</div><div class="rep-stat-val">${new Set(rows.map(r=>r.usuario_email).filter(Boolean)).size}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">🗺️ Histórico de Alterações no Mapa</div>
+    ${rows.length === 0
+      ? '<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum registro encontrado para os filtros selecionados.</div>'
+      : rows.map((r,i) => {
+          const cor = acaoCor[r.acao]||'#374151';
+          const geo = geoLabel[r.geometry_type]||r.geometry_type||'Ponto';
+          return `
+          <div style="border:1px solid var(--borda);border-radius:8px;margin-bottom:10px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${cor}11;border-bottom:1px solid ${cor}33;cursor:pointer"
+                 onclick="this.parentElement.querySelector('.l5-diff').style.display=this.parentElement.querySelector('.l5-diff').style.display==='none'?'block':'none'">
+              <span style="font-size:16px">${acaoIcon[r.acao]||'•'}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">
+                  <span style="color:${cor};background:${cor}1a;padding:1px 8px;border-radius:99px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-right:6px">${acaoLabel[r.acao]||r.acao}</span>
+                  ${r.ponto_nome ? `<strong>${r.ponto_nome}</strong>` : '<em style="color:var(--cinza-400)">sem nome</em>'}
+                  <span style="font-size:10px;color:var(--cinza-400);margin-left:6px">[${geo}]</span>
+                </div>
+                <div style="font-size:10px;color:var(--cinza-500);margin-top:2px">
+                  ${fmtDtHr(r.criado_em)} · ${r.usuario_nome||r.usuario_email||'Desconhecido'}
+                  ${r.apa ? ` · APA: ${r.apa}` : ''}
+                </div>
+              </div>
+              <span style="font-size:11px;color:var(--cinza-400)">▼ detalhes</span>
+            </div>
+            <div class="l5-diff" style="display:none;padding:12px 14px">
+              ${_diffHtml(r.dados_antes, r.dados_depois)}
+            </div>
+          </div>`;
+        }).join('')
+    }
   </div>`;
 }
 

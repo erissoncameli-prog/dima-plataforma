@@ -506,7 +506,7 @@ function renderPagina(){
       </div>
       <div class="modal-body" id="modal-geo-body"></div>
       <div class="modal-footer">
-        <button class="btn btn-outline" onclick="excluirGeometria(_geoEditando?.group,_geoEditando?.tipo);fecharModalGeometria()" style="color:#dc2626;border-color:#fca5a5;margin-right:auto">🗑 Excluir</button>
+        <button class="btn btn-outline" onclick="excluirGeometria(_geoEditando?.group,_geoEditando?.tipo)" style="color:#dc2626;border-color:#fca5a5;margin-right:auto">🗑 Excluir</button>
         <button class="btn btn-outline" onclick="fecharModalGeometria()">Cancelar</button>
         <button class="btn btn-primary" id="btn-salvar-geo" onclick="salvarGeometria()">Salvar</button>
       </div>
@@ -551,6 +551,30 @@ function renderPagina(){
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="fecharModalNovaCamada()">Cancelar</button>
         <button class="btn btn-primary" id="btn-salvar-nova-camada" onclick="salvarNovaCamada()">Salvar camada</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmação por senha -->
+  <div class="modal-overlay" id="modal-senha-confirm" style="display:none;z-index:10000">
+    <div class="modal-box" style="max-width:400px">
+      <div class="modal-header">
+        <h3 id="modal-senha-titulo">Confirmar alteração</h3>
+        <button class="btn-close" onclick="_cancelarSenha()">✕</button>
+      </div>
+      <div class="modal-body" style="gap:10px">
+        <div id="modal-senha-desc" style="font-size:13px;color:var(--cinza-700);line-height:1.5;padding:10px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio)"></div>
+        <div class="form-group">
+          <label>Sua senha *</label>
+          <input id="modal-senha-input" type="password" placeholder="Digite sua senha para confirmar" onkeydown="if(event.key==='Enter')_submitSenha()">
+        </div>
+        <div id="modal-senha-erro" style="display:none;font-size:12px;color:#dc2626;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio);padding:8px 10px">
+          ❌ Senha incorreta. Tente novamente.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="_cancelarSenha()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-confirmar-senha" onclick="_submitSenha()">Confirmar</button>
       </div>
     </div>
   </div>
@@ -1193,37 +1217,67 @@ function previewFoto(input){ const f=input.files[0];if(!f)return;fotoArquivo=f;c
 function onFotoDrop(e){ e.preventDefault();document.getElementById('foto-area').classList.remove('drag');const f=e.dataTransfer.files[0];if(!f||!f.type.startsWith('image/'))return;fotoArquivo=f;const img=document.getElementById('foto-preview');img.src=URL.createObjectURL(f);img.style.display='block'; }
 
 async function salvarPonto(){
-  const nome=document.getElementById('f-nome').value.trim();
-  const apa=document.getElementById('f-apa').value;
-  const lat=parseFloat(document.getElementById('f-lat').value);
-  const lng=parseFloat(document.getElementById('f-lng').value);
-  const tipoSel=document.getElementById('f-tipo').value;
-  const tipo=tipoSel==='__outro'?(document.getElementById('f-tipo-livre')?.value.trim()||null):(tipoSel||null);
-  if(!nome||!apa||isNaN(lat)||isNaN(lng)){alert('Preencha Nome, APA, Latitude e Longitude.');return;}
-  const btn=document.getElementById('btn-salvar-ponto');btn.disabled=true;btn.textContent='Salvando…';
-  let foto_url=editandoId?(pontos.find(p=>p.id===editandoId)?.foto_url||null):null;
-  let foto_nome=editandoId?(pontos.find(p=>p.id===editandoId)?.foto_nome||null):null;
-  if(fotoArquivo){
-    const ext=fotoArquivo.name.split('.').pop();
-    const path=`pontos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-    const {error:upErr}=await db.storage.from('pontos-mapa').upload(path,fotoArquivo,{upsert:true});
-    if(upErr){alert('Erro foto: '+upErr.message);btn.disabled=false;btn.textContent='Salvar';return;}
-    const {data:urlData}=db.storage.from('pontos-mapa').getPublicUrl(path);
-    foto_url=urlData.publicUrl;foto_nome=fotoArquivo.name;
-  }
-  const payload={nome_local:nome,apa,tipo_atividade:tipo,responsavel:document.getElementById('f-resp').value.trim()||null,
-    data_implantacao:document.getElementById('f-data').value||null,lat,lng,foto_url,foto_nome,
-    observacao:document.getElementById('f-obs').value.trim()||null,status:'ativo'};
-  let err;
-  if(editandoId){({error:err}=await db.from('produto_pontos_mapa').update(payload).eq('id',editandoId));}
-  else{payload.criado_por=appState.usuario?.id||null;({error:err}=await db.from('produto_pontos_mapa').insert(payload));}
-  btn.disabled=false;btn.textContent='Salvar';
-  if(err){alert('Erro: '+err.message);return;}
-  fecharModalPonto();
-  await carregarPontos();
+  const nome = document.getElementById('f-nome').value.trim();
+  const apa  = document.getElementById('f-apa').value;
+  const lat  = parseFloat(document.getElementById('f-lat').value);
+  const lng  = parseFloat(document.getElementById('f-lng').value);
+  const tipoSel = document.getElementById('f-tipo').value;
+  const tipo = tipoSel==='__outro' ? (document.getElementById('f-tipo-livre')?.value.trim()||null) : (tipoSel||null);
+  if(!nome||!apa||isNaN(lat)||isNaN(lng)){ alert('Preencha Nome, APA, Latitude e Longitude.'); return; }
+
+  const pontoAntes = editandoId ? (pontos.find(p=>p.id===editandoId)||null) : null;
+  const acao = editandoId ? 'editar' : 'criar';
+  const desc = acao==='editar'
+    ? `✏️ <strong>Editar ponto</strong><br><span style="color:var(--cinza-600)">${escHtml(nome)}</span>`
+    : `➕ <strong>Criar ponto</strong><br><span style="color:var(--cinza-600)">${escHtml(nome)}</span>`;
+
+  _confirmarComSenha(desc, async () => {
+    const btn = document.getElementById('btn-salvar-ponto');
+    if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+    let foto_url  = editandoId ? (pontos.find(p=>p.id===editandoId)?.foto_url ||null) : null;
+    let foto_nome = editandoId ? (pontos.find(p=>p.id===editandoId)?.foto_nome||null) : null;
+    if(fotoArquivo){
+      const ext  = fotoArquivo.name.split('.').pop();
+      const path = `pontos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const {error:upErr} = await db.storage.from('pontos-mapa').upload(path, fotoArquivo, {upsert:true});
+      if(upErr){ alert('Erro foto: '+upErr.message); if(btn){btn.disabled=false;btn.textContent='Salvar';} return; }
+      const {data:urlData} = db.storage.from('pontos-mapa').getPublicUrl(path);
+      foto_url = urlData.publicUrl; foto_nome = fotoArquivo.name;
+    }
+    const payload = {
+      nome_local: nome, apa, tipo_atividade: tipo,
+      responsavel:      document.getElementById('f-resp').value.trim()||null,
+      data_implantacao: document.getElementById('f-data').value||null,
+      lat, lng, foto_url, foto_nome,
+      observacao: document.getElementById('f-obs').value.trim()||null,
+      status: 'ativo'
+    };
+    let err, novoId = editandoId;
+    if(editandoId){
+      ({error:err} = await db.from('produto_pontos_mapa').update(payload).eq('id', editandoId));
+    } else {
+      payload.criado_por = appState.usuario?.id||null;
+      const {data:ins, error:insErr} = await db.from('produto_pontos_mapa').insert(payload).select('id').single();
+      err = insErr; if(ins) novoId = ins.id;
+    }
+    if(btn){ btn.disabled=false; btn.textContent='Salvar'; }
+    if(err){ alert('Erro: '+err.message); return; }
+    await _gravarLog(acao, pontoAntes, { ...payload, id: novoId, geometry_type: 'ponto' });
+    fecharModalPonto();
+    await carregarPontos();
+  });
 }
 
-async function excluirPonto(id){ if(!confirm('Excluir este ponto?'))return;const {error}=await db.from('produto_pontos_mapa').delete().eq('id',id);if(error){alert('Erro: '+error.message);return;}await carregarPontos(); }
+async function excluirPonto(id){
+  const ponto = pontos.find(p=>p.id===id) || { id };
+  const desc = `🗑️ <strong>Excluir ponto</strong><br><span style="color:var(--cinza-600)">${escHtml(ponto.nome_local||id)}</span>`;
+  _confirmarComSenha(desc, async () => {
+    const {error} = await db.from('produto_pontos_mapa').delete().eq('id', id);
+    if(error){ alert('Erro: '+error.message); return; }
+    await _gravarLog('excluir', { ...ponto, geometry_type: 'ponto' }, null);
+    await carregarPontos();
+  });
+}
 
 // ── Edição de polígonos e trilhas ─────────────────────────────────────────
 let _geoEditando = null;
@@ -1350,8 +1404,6 @@ function _adicionarVertex(){
 
 async function salvarGeometria(){
   if(!_geoEditando) return;
-  const btn = document.getElementById('btn-salvar-geo');
-  btn.disabled=true; btn.textContent='Salvando…';
   const fNome = document.getElementById('fg-nome');
   let nome, apa, tipo_atividade, responsavel, data_implantacao, observacao;
   if(fNome){
@@ -1366,27 +1418,68 @@ async function salvarGeometria(){
     const p0 = _geoEditando.pts[0];
     ({nome_local:nome, apa, tipo_atividade, responsavel, data_implantacao, observacao} = p0);
   }
-  if(!nome){ alert('Nome é obrigatório.'); btn.disabled=false; btn.textContent='Salvar'; return; }
+  if(!nome){ alert('Nome é obrigatório.'); return; }
+
   const { group, tipo:geoTipo } = _geoEditando;
-  const { error:delErr } = await db.from('produto_pontos_mapa')
-    .delete().eq('geometry_group', group).eq('geometry_type', geoTipo);
-  if(delErr){ alert('Erro: '+delErr.message); btn.disabled=false; btn.textContent='Salvar'; return; }
-  const inserts = _geoEditando.pts.map((p,i) => ({
-    nome_local:nome, apa, tipo_atividade, responsavel, data_implantacao, observacao,
-    lat:p.lat, lng:p.lng, geometry_type:geoTipo, geometry_group:nome,
-    geometry_order:i, status:'ativo', criado_por:appState.usuario?.id||null
-  }));
-  const { error:insErr } = await db.from('produto_pontos_mapa').insert(inserts);
-  btn.disabled=false; btn.textContent='Salvar';
-  if(insErr){ alert('Erro: '+insErr.message); return; }
-  fecharModalGeometria();
-  await carregarPontos();
+  const tipLabel = geoTipo==='poligono' ? 'polígono' : 'trilha/caminho';
+  const dadosAntes = {
+    geometry_type: geoTipo, geometry_group: group,
+    nome_local:       _geoEditando.pts[0]?.nome_local      || group,
+    apa:              _geoEditando.pts[0]?.apa              || null,
+    tipo_atividade:   _geoEditando.pts[0]?.tipo_atividade   || null,
+    responsavel:      _geoEditando.pts[0]?.responsavel      || null,
+    data_implantacao: _geoEditando.pts[0]?.data_implantacao || null,
+    observacao:       _geoEditando.pts[0]?.observacao       || null,
+    vertices: _geoEditando.pts.map(p=>({lat:p.lat, lng:p.lng}))
+  };
+  const desc = `✏️ <strong>Editar ${tipLabel}</strong><br><span style="color:var(--cinza-600)">${escHtml(nome)}</span>`;
+
+  _confirmarComSenha(desc, async () => {
+    const btn = document.getElementById('btn-salvar-geo');
+    if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+    const {error:delErr} = await db.from('produto_pontos_mapa')
+      .delete().eq('geometry_group', group).eq('geometry_type', geoTipo);
+    if(delErr){ alert('Erro: '+delErr.message); if(btn){btn.disabled=false;btn.textContent='Salvar';} return; }
+    const inserts = _geoEditando.pts.map((p,i) => ({
+      nome_local: nome, apa, tipo_atividade, responsavel, data_implantacao, observacao,
+      lat: p.lat, lng: p.lng, geometry_type: geoTipo, geometry_group: nome,
+      geometry_order: i, status: 'ativo', criado_por: appState.usuario?.id||null
+    }));
+    const {error:insErr} = await db.from('produto_pontos_mapa').insert(inserts);
+    if(btn){ btn.disabled=false; btn.textContent='Salvar'; }
+    if(insErr){ alert('Erro: '+insErr.message); return; }
+    const dadosDepois = {
+      geometry_type: geoTipo, geometry_group: nome,
+      nome_local: nome, apa, tipo_atividade, responsavel, data_implantacao, observacao,
+      vertices: _geoEditando.pts.map(p=>({lat:p.lat, lng:p.lng}))
+    };
+    await _gravarLog('editar', dadosAntes, dadosDepois);
+    fecharModalGeometria();
+    await carregarPontos();
+  });
 }
 
 async function excluirGeometria(group, tipo){
-  if(!confirm(`Excluir este ${tipo==='poligono'?'polígono':'caminho/trilha'} permanentemente?`)) return;
-  await db.from('produto_pontos_mapa').delete().eq('geometry_group',group).eq('geometry_type',tipo);
-  await carregarPontos();
+  const pts = pontos
+    .filter(p=>p.geometry_group===group&&p.geometry_type===tipo)
+    .sort((a,b)=>(a.geometry_order||0)-(b.geometry_order||0));
+  const p0 = pts[0] || {};
+  const tipLabel = tipo==='poligono' ? 'polígono' : 'trilha/caminho';
+  const dadosAntes = {
+    geometry_type: tipo, geometry_group: group,
+    nome_local: p0.nome_local||group, apa: p0.apa||null,
+    tipo_atividade: p0.tipo_atividade||null,
+    responsavel: p0.responsavel||null, data_implantacao: p0.data_implantacao||null,
+    observacao: p0.observacao||null,
+    vertices: pts.map(p=>({lat:p.lat, lng:p.lng}))
+  };
+  const desc = `🗑️ <strong>Excluir ${tipLabel}</strong><br><span style="color:var(--cinza-600)">${escHtml(p0.nome_local||group)}</span>`;
+  _confirmarComSenha(desc, async () => {
+    await db.from('produto_pontos_mapa').delete().eq('geometry_group',group).eq('geometry_type',tipo);
+    await _gravarLog('excluir', dadosAntes, null);
+    fecharModalGeometria();
+    await carregarPontos();
+  });
 }
 
 // ── Importar Geolocalização (3 etapas — igual a produtos) ─────────────────
@@ -1630,6 +1723,65 @@ async function _impConfirmar(){
   if(error){alert('Erro ao importar: '+error.message);btn.textContent=`Importar ${total} registro(s)`;return;}
   fecharModalCSV();
   await carregarPontos();
+}
+
+// ── Confirmação por senha + log de alterações ─────────────────────────────
+let _senhaCallback = null;
+
+function _confirmarComSenha(descricao, callback){
+  _senhaCallback = callback;
+  document.getElementById('modal-senha-desc').innerHTML = descricao;
+  document.getElementById('modal-senha-input').value = '';
+  document.getElementById('modal-senha-erro').style.display = 'none';
+  document.getElementById('modal-senha-confirm').style.display = 'flex';
+  setTimeout(() => document.getElementById('modal-senha-input').focus(), 120);
+}
+
+function _cancelarSenha(){
+  document.getElementById('modal-senha-confirm').style.display = 'none';
+  _senhaCallback = null;
+}
+
+async function _submitSenha(){
+  const senha = document.getElementById('modal-senha-input').value;
+  if(!senha) return;
+  const btn = document.getElementById('btn-confirmar-senha');
+  btn.disabled = true; btn.textContent = 'Verificando…';
+  const { error } = await db.auth.signInWithPassword({
+    email: appState.usuario?.email || '',
+    password: senha
+  });
+  btn.disabled = false; btn.textContent = 'Confirmar';
+  if(error){
+    document.getElementById('modal-senha-erro').style.display = 'block';
+    document.getElementById('modal-senha-input').value = '';
+    document.getElementById('modal-senha-input').focus();
+    return;
+  }
+  document.getElementById('modal-senha-confirm').style.display = 'none';
+  const cb = _senhaCallback; _senhaCallback = null;
+  if(cb) await cb();
+}
+
+async function _gravarLog(acao, dadosAntes, dadosDepois){
+  try {
+    const u = appState.usuario || {};
+    const ref = dadosDepois || dadosAntes || {};
+    await db.from('mapa_pontos_log').insert({
+      usuario_id:    u.id    || null,
+      usuario_nome:  u.nome  || u.email || null,
+      usuario_email: u.email || null,
+      acao,
+      ponto_id:       ref.id             || null,
+      ponto_nome:     ref.nome_local     || ref.geometry_group || null,
+      geometry_type:  ref.geometry_type  || 'ponto',
+      geometry_group: ref.geometry_group || null,
+      apa:            ref.apa            || null,
+      tipo_atividade: ref.tipo_atividade || null,
+      dados_antes:  dadosAntes  || null,
+      dados_depois: dadosDepois || null
+    });
+  } catch(e){ console.warn('Erro ao gravar log:', e); }
 }
 
 // ── Clique no mapa ────────────────────────────────────────────────────────
