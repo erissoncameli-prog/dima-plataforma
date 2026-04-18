@@ -84,13 +84,19 @@
 .mapa-popup .pp-linha{display:flex;gap:6px;font-size:11px;color:#555;margin-bottom:3px;align-items:flex-start;}
 .mapa-popup .pp-linha strong{color:#222;min-width:64px;flex-shrink:0;}
 
-/* CSV */
-.csv-drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:24px;text-align:center;cursor:pointer;}
-.csv-drop:hover,.csv-drop.drag{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
-.csv-preview{margin-top:10px;font-size:11px;color:var(--cinza-600);background:var(--cinza-50);border-radius:var(--raio);padding:8px;max-height:140px;overflow-y:auto;}
-.csv-preview table{border-collapse:collapse;width:100%;}
-.csv-preview td,.csv-preview th{padding:3px 6px;border:1px solid var(--cinza-200);white-space:nowrap;}
-.csv-preview th{background:var(--cinza-100);font-weight:600;}
+/* Import modal */
+.imp-drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cinza-50);}
+.imp-drop:hover,.imp-drop.drag{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
+.imp-stats{display:flex;gap:10px;margin-bottom:12px;}
+.imp-stat{flex:1;padding:10px 12px;text-align:center;border-radius:var(--raio);border:1px solid;}
+.imp-stat.ok{background:#F0FDF4;border-color:#86EFAC;}
+.imp-stat.err{background:#FEF2F2;border-color:#FCA5A5;}
+.imp-stat-val{font-size:20px;font-weight:700;}
+.imp-stat.ok .imp-stat-val{color:#166534;}
+.imp-stat.err .imp-stat-val{color:#DC2626;}
+.imp-stat-lbl{font-size:11px;margin-top:2px;}
+.imp-stat.ok .imp-stat-lbl{color:#15803D;}
+.imp-stat.err .imp-stat-lbl{color:#B91C1C;}
 
 /* Admin modal — lista de itens */
 .admin-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--cinza-100);transition:background .12s;}
@@ -108,6 +114,7 @@
 <script src="../js/layout.js"></script>
 <div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>Carregando mapa...</div></div></div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
@@ -276,35 +283,18 @@ function renderPagina(){
     </div>
   </div>
 
-  <!-- Modal: Importar CSV -->
+  <!-- Modal: Importar Geolocalização -->
   <div class="modal-overlay" id="modal-csv" style="display:none">
-    <div class="modal-box">
+    <div class="modal-box" style="max-width:660px">
       <div class="modal-header">
-        <h3>Importar CSV</h3>
-        <button class="btn-close" onclick="fecharModalCSV()">✕</button>
-      </div>
-      <div class="modal-body">
-        <p style="margin:0;font-size:12px;color:var(--cinza-600)">
-          Cabeçalhos esperados: <code>nome_local, apa, tipo_atividade, responsavel, data_implantacao, lat, lng, observacao</code>
-        </p>
-        <button class="btn btn-outline" onclick="baixarTemplate()" style="font-size:12px;">⬇ Baixar template</button>
-        <div class="csv-drop" id="csv-drop"
-          onclick="document.getElementById('csv-input').click()"
-          ondragover="event.preventDefault();this.classList.add('drag')"
-          ondragleave="this.classList.remove('drag')"
-          ondrop="onCsvDrop(event)">
-          <div style="font-size:28px;margin-bottom:6px">📄</div>
-          <p style="font-size:13px;font-weight:500;color:var(--cinza-700)">Arraste ou clique para selecionar</p>
-          <p style="font-size:11px;color:var(--cinza-400);margin-top:4px">Apenas .csv</p>
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--cinza-900)">📍 Importar Geolocalização</div>
+          <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Importe pontos, polígonos de área ou trilhas</div>
         </div>
-        <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="onCsvFile(this.files[0])">
-        <div class="csv-preview" id="csv-preview" style="display:none"></div>
-        <p id="csv-status" style="font-size:12px;color:var(--cinza-600);margin:4px 0 0"></p>
+        <button class="btn-close" onclick="fecharModalCSV()">&#x2715;</button>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline" onclick="fecharModalCSV()">Cancelar</button>
-        <button class="btn btn-primary" id="btn-importar-csv" onclick="importarCSV()" disabled>Importar</button>
-      </div>
+      <div class="modal-body" id="imp-body" style="max-height:68vh;overflow-y:auto"></div>
+      <div class="modal-footer" id="imp-footer"></div>
     </div>
   </div>
 
@@ -416,7 +406,7 @@ function criarIcone(p){
 }
 
 async function carregarPontos(){
-  let q = db.from('produto_pontos_mapa').select('*').order('criado_em',{ascending:false});
+  let q = db.from('produto_pontos_mapa').select('*').order('geometry_type').order('geometry_group').order('geometry_order').order('criado_em',{ascending:false});
   if(filtroProdutoId) q = q.eq('produto_id', filtroProdutoId);
   const { data, error } = await q;
   if(error){ console.error(error); return; }
@@ -432,13 +422,57 @@ function pontoVisivel(p){
   return true;
 }
 
+// Camadas de polígonos e trilhas (fora do cluster)
+let geometryLayers = [];
+
 function renderizarMarcadores(){
   clusters.clearLayers(); pontosLayer = [];
-  pontos.filter(pontoVisivel).forEach(p => {
+  // Limpar geometrias anteriores
+  geometryLayers.forEach(l => mapaL.removeLayer(l));
+  geometryLayers = [];
+
+  const visiveis = pontos.filter(pontoVisivel);
+
+  // Pontos individuais → cluster
+  visiveis.filter(p => (p.geometry_type||'ponto') === 'ponto').forEach(p => {
     const m = L.marker([p.lat, p.lng], { icon: criarIcone(p) });
     m.bindPopup(renderPopup(p), { maxWidth:280 });
     m.pontoId = p.id;
     clusters.addLayer(m); pontosLayer.push(m);
+  });
+
+  // Polígonos → agrupar por geometry_group
+  const grupos = {};
+  visiveis.filter(p => p.geometry_type === 'poligono').forEach(p => {
+    if(!grupos[p.geometry_group]) grupos[p.geometry_group] = [];
+    grupos[p.geometry_group].push(p);
+  });
+  Object.entries(grupos).forEach(([nome, pts]) => {
+    pts.sort((a,b) => (a.geometry_order||0)-(b.geometry_order||0));
+    const latlngs = pts.map(p => [p.lat, p.lng]);
+    const cor = corIcone(pts[0]);
+    const poly = L.polygon(latlngs, {color:cor, fillColor:cor, fillOpacity:0.15, weight:2});
+    poly.bindPopup(`<div class="mapa-popup"><h4>${escHtml(nome)}</h4><div class="pp-linha"><strong>Tipo:</strong>Polígono</div><div class="pp-linha"><strong>APA:</strong>${escHtml(pts[0].apa)}</div>${pts[0].tipo_atividade?`<div class="pp-linha"><strong>Entrega:</strong>${escHtml(pts[0].tipo_atividade)}</div>`:''}<div class="pp-linha"><strong>Vértices:</strong>${pts.length}</div></div>`, {maxWidth:280});
+    poly.addTo(mapaL);
+    geometryLayers.push(poly);
+  });
+
+  // Trilhas → agrupar por geometry_group
+  const trilhaGrupos = {};
+  visiveis.filter(p => p.geometry_type === 'trilha').forEach(p => {
+    if(!trilhaGrupos[p.geometry_group]) trilhaGrupos[p.geometry_group] = [];
+    trilhaGrupos[p.geometry_group].push(p);
+  });
+  Object.entries(trilhaGrupos).forEach(([nome, pts]) => {
+    pts.sort((a,b) => (a.geometry_order||0)-(b.geometry_order||0));
+    const latlngs = pts.map(p => [p.lat, p.lng]);
+    const cor = corIcone(pts[0]);
+    const line = L.polyline(latlngs, {color:cor, weight:3, dashArray:'6,4'});
+    line.bindPopup(`<div class="mapa-popup"><h4>${escHtml(nome)}</h4><div class="pp-linha"><strong>Tipo:</strong>Trilha</div><div class="pp-linha"><strong>APA:</strong>${escHtml(pts[0].apa)}</div>${pts[0].tipo_atividade?`<div class="pp-linha"><strong>Entrega:</strong>${escHtml(pts[0].tipo_atividade)}</div>`:''}<div class="pp-linha"><strong>Pontos:</strong>${pts.length}</div></div>`, {maxWidth:280});
+    // Marcadores de início/fim da trilha
+    const mIni = L.circleMarker(latlngs[0], {radius:6,color:cor,fillColor:cor,fillOpacity:1,weight:2});
+    const mFim = L.circleMarker(latlngs[latlngs.length-1], {radius:6,color:cor,fillColor:'#fff',fillOpacity:1,weight:2});
+    [line, mIni, mFim].forEach(l => { l.addTo(mapaL); geometryLayers.push(l); });
   });
 }
 
@@ -724,41 +758,178 @@ async function salvarPonto(){
 
 async function excluirPonto(id){ if(!confirm('Excluir este ponto?'))return;const {error}=await db.from('produto_pontos_mapa').delete().eq('id',id);if(error){alert('Erro: '+error.message);return;}await carregarPontos(); }
 
-// ── CSV ───────────────────────────────────────────────────────────────────
-let csvLinhas=[];
-const CSV_CAMPOS=['nome_local','apa','tipo_atividade','responsavel','data_implantacao','lat','lng','observacao'];
-function abrirModalCSV(){csvLinhas=[];document.getElementById('csv-preview').style.display='none';document.getElementById('csv-status').textContent='';document.getElementById('btn-importar-csv').disabled=true;document.getElementById('modal-csv').style.display='flex';}
-function fecharModalCSV(){document.getElementById('modal-csv').style.display='none';}
-function baixarTemplate(){const blob=new Blob([CSV_CAMPOS.join(',')+'\nUnidade Produtiva 01,Igarapé São Francisco,Unidades Produtivas,João Silva,2025-04-10,-9.9720,-67.8050,Próximo ao igarapé'],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='template_pontos_mapa.csv';a.click();}
-function onCsvDrop(e){e.preventDefault();document.getElementById('csv-drop').classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processarCSV(f);}
-function onCsvFile(f){if(f)processarCSV(f);}
-function processarCSV(file){
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const linhas=e.target.result.split('\n').map(l=>l.trim()).filter(Boolean);
-    if(!linhas.length){document.getElementById('csv-status').textContent='Arquivo vazio.';return;}
-    const header=linhas[0].split(',').map(h=>h.trim().toLowerCase().replace(/[^a-z_]/g,''));
-    const dados=linhas.slice(1).map(linha=>{const cols=parseCsvLinha(linha);const obj={};header.forEach((h,i)=>{obj[h]=cols[i]?.trim()||null;});return obj;}).filter(r=>r.nome_local&&r.lat&&r.lng);
-    if(!dados.length){document.getElementById('csv-status').textContent='Nenhuma linha válida.';return;}
-    csvLinhas=dados;
-    document.getElementById('csv-status').textContent=`${dados.length} registros prontos.`;
-    document.getElementById('btn-importar-csv').disabled=false;
-    const prev=document.getElementById('csv-preview');const cols=CSV_CAMPOS.filter(c=>header.includes(c));
-    prev.style.display='block';
-    prev.innerHTML=`<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${dados.slice(0,5).map(r=>`<tr>${cols.map(c=>`<td>${escHtml(r[c]||'')}</td>`).join('')}</tr>`).join('')}${dados.length>5?`<tr><td colspan="${cols.length}" style="text-align:center;color:#999">…+${dados.length-5}</td></tr>`:''}</tbody></table>`;
-  };
-  reader.readAsText(file,'utf-8');
+// ── Importar Geolocalização (3 etapas — igual a produtos) ─────────────────
+let _impLinhas = { pontos:[], poligonos:[], trilhas:[] };
+
+function abrirModalCSV(){
+  _impLinhas = { pontos:[], poligonos:[], trilhas:[] };
+  document.getElementById('modal-csv').style.display='flex';
+  _impEtapa1();
 }
-function parseCsvLinha(linha){const result=[];let cur='',inQ=false;for(let i=0;i<linha.length;i++){const c=linha[i];if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){result.push(cur);cur='';}else{cur+=c;}}result.push(cur);return result;}
-async function importarCSV(){
-  if(!csvLinhas.length)return;
-  const btn=document.getElementById('btn-importar-csv');btn.disabled=true;btn.textContent='Importando…';
-  const uid=appState.usuario?.id||null;
-  const inserts=csvLinhas.map(r=>({nome_local:r.nome_local,apa:Object.keys(APA_CONFIG).includes(r.apa)?r.apa:'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat:parseFloat(r.lat),lng:parseFloat(r.lng),observacao:r.observacao||null,status:'ativo',criado_por:uid})).filter(r=>!isNaN(r.lat)&&!isNaN(r.lng));
-  const {error}=await db.from('produto_pontos_mapa').insert(inserts);
-  btn.disabled=false;btn.textContent='Importar';
-  if(error){alert('Erro: '+error.message);return;}
-  fecharModalCSV();await carregarPontos();
+function fecharModalCSV(){ document.getElementById('modal-csv').style.display='none'; }
+
+function _impEtapa1(){
+  document.getElementById('imp-body').innerHTML=''
+    +'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:12px 14px">'
+    +'<div style="font-size:12px;font-weight:600;color:#1E40AF;margin-bottom:4px">📋 Como usar</div>'
+    +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.8">'
+    +'<li>Baixe o template Excel com as 3 abas: <strong>Pontos</strong>, <strong>Polígono</strong> e <strong>Trilha</strong>.</li>'
+    +'<li>Preencha as abas desejadas com seus dados.</li>'
+    +'<li><strong>Salve como CSV</strong> (Excel → Arquivo → Salvar Como → CSV UTF-8) — <em>uma aba por vez</em>, ou importe o .xlsx diretamente.</li>'
+    +'<li>Importe o arquivo aqui.</li>'
+    +'</ol>'
+    +'</div>'
+    +'<button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="_impBaixarTemplate()">&#x1F4E5; Baixar template Excel (.xlsx)</button>'
+    +'<div class="imp-drop" id="imp-drop"'
+    +' onclick="document.getElementById(\'imp-input\').click()"'
+    +' ondragover="event.preventDefault();this.classList.add(\'drag\')"'
+    +' ondragleave="this.classList.remove(\'drag\')"'
+    +' ondrop="event.preventDefault();this.classList.remove(\'drag\');_impLerArquivo(event.dataTransfer.files[0])">'
+    +'<div style="font-size:32px;margin-bottom:8px">📂</div>'
+    +'<div style="font-size:13px;font-weight:500;color:var(--cinza-700)">Arraste o arquivo ou clique para selecionar</div>'
+    +'<div style="font-size:11px;color:var(--cinza-400);margin-top:4px">Aceita .csv ou .xlsx</div>'
+    +'</div>'
+    +'<input type="file" id="imp-input" accept=".csv,.xlsx" style="display:none" onchange="_impLerArquivo(this.files[0]);this.value=\'\'">';
+  document.getElementById('imp-footer').innerHTML=
+    '<button class="btn btn-secondary" onclick="fecharModalCSV()">Cancelar</button>';
+}
+
+function _impBaixarTemplate(){
+  if(typeof XLSX==='undefined'){alert('Biblioteca Excel ainda carregando, tente em instantes.');return;}
+  const wb = XLSX.utils.book_new();
+  // Aba Pontos
+  const wsPontos = XLSX.utils.aoa_to_sheet([
+    ['nome_local','apa','tipo_atividade','responsavel','data_implantacao','lat','lng','observacao'],
+    ['Ex: Unidade Produtiva 01','Igarapé São Francisco','Desenvolvimento de Produtos Sustentáveis','João Silva','2025-04-10','-9.972000','-67.805000','Próximo ao igarapé']
+  ]);
+  wsPontos['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:14},{wch:14},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, wsPontos, 'Pontos');
+  // Aba Polígono
+  const wsPolig = XLSX.utils.aoa_to_sheet([
+    ['nome_area','apa','tipo_atividade','responsavel','data_implantacao','ordem','lat','lng','observacao'],
+    ['Ex: Área de Reflorestamento A','Lago do Amapá','Mitigação da Vulnerabilidade das APAs','Maria Silva','2025-04-10','1','-9.950000','-67.820000','Vértice 1'],
+    ['Ex: Área de Reflorestamento A','Lago do Amapá','Mitigação da Vulnerabilidade das APAs','Maria Silva','2025-04-10','2','-9.952000','-67.818000','Vértice 2'],
+    ['Ex: Área de Reflorestamento A','Lago do Amapá','Mitigação da Vulnerabilidade das APAs','Maria Silva','2025-04-10','3','-9.951000','-67.815000','Vértice 3']
+  ]);
+  wsPolig['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:8},{wch:14},{wch:14},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, wsPolig, 'Polígono');
+  // Aba Trilha
+  const wsTrilha = XLSX.utils.aoa_to_sheet([
+    ['nome_trilha','apa','tipo_atividade','responsavel','data_implantacao','ordem','lat','lng','observacao'],
+    ['Ex: Trilha Ecológica Norte','Igarapé São Francisco','Monitoramento e Adaptação','Carlos Souza','2025-04-10','1','-9.960000','-67.810000','Início da trilha'],
+    ['Ex: Trilha Ecológica Norte','Igarapé São Francisco','Monitoramento e Adaptação','Carlos Souza','2025-04-10','2','-9.962000','-67.812000','Ponto intermediário'],
+    ['Ex: Trilha Ecológica Norte','Igarapé São Francisco','Monitoramento e Adaptação','Carlos Souza','2025-04-10','3','-9.965000','-67.814000','Final da trilha']
+  ]);
+  wsTrilha['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:8},{wch:14},{wch:14},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, wsTrilha, 'Trilha');
+  XLSX.writeFile(wb, 'template_geo_mapa.xlsx');
+}
+
+function _impLerArquivo(file){
+  if(!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if(ext === 'xlsx'){
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      _impProcessarWorkbook(wb);
+    };
+    reader.readAsBinaryString(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wb = XLSX.read(e.target.result, {type:'string'});
+      _impProcessarWorkbook(wb);
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+}
+
+function _impProcessarWorkbook(wb){
+  const pontos=[], poligonos=[], trilhas=[], erros=[];
+  wb.SheetNames.forEach(nome => {
+    const ws = wb.Sheets[nome];
+    const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    const nomeLower = nome.toLowerCase();
+    if(nomeLower.includes('pont')){
+      rows.forEach((r,i) => {
+        const lat=parseFloat(r.lat||r.LAT), lng=parseFloat(r.lng||r.LNG);
+        if(!r.nome_local||isNaN(lat)||isNaN(lng)){ erros.push(`${nome} linha ${i+2}: nome_local/lat/lng inválido`); return; }
+        pontos.push({nome_local:String(r.nome_local),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'ponto'});
+      });
+    } else if(nomeLower.includes('pol')){
+      rows.forEach((r,i) => {
+        const lat=parseFloat(r.lat||r.LAT), lng=parseFloat(r.lng||r.LNG);
+        if(!r.nome_area||isNaN(lat)||isNaN(lng)){ erros.push(`${nome} linha ${i+2}: nome_area/lat/lng inválido`); return; }
+        poligonos.push({nome_local:String(r.nome_area),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'poligono',geometry_group:String(r.nome_area),geometry_order:parseInt(r.ordem)||0});
+      });
+    } else if(nomeLower.includes('trilh')){
+      rows.forEach((r,i) => {
+        const lat=parseFloat(r.lat||r.LAT), lng=parseFloat(r.lng||r.LNG);
+        if(!r.nome_trilha||isNaN(lat)||isNaN(lng)){ erros.push(`${nome} linha ${i+2}: nome_trilha/lat/lng inválido`); return; }
+        trilhas.push({nome_local:String(r.nome_trilha),apa:r.apa||'Outra',tipo_atividade:r.tipo_atividade||null,responsavel:r.responsavel||null,data_implantacao:r.data_implantacao||null,lat,lng,observacao:r.observacao||null,geometry_type:'trilha',geometry_group:String(r.nome_trilha),geometry_order:parseInt(r.ordem)||0});
+      });
+    }
+  });
+  _impLinhas = {pontos, poligonos, trilhas};
+  _impEtapa2(erros);
+}
+
+function _impEtapa2(erros){
+  const total = _impLinhas.pontos.length + _impLinhas.poligonos.length + _impLinhas.trilhas.length;
+  const body = document.getElementById('imp-body');
+  const statsHtml = `
+    <div class="imp-stats">
+      <div class="imp-stat ok"><div class="imp-stat-val">${_impLinhas.pontos.length}</div><div class="imp-stat-lbl">pontos</div></div>
+      <div class="imp-stat ok"><div class="imp-stat-val">${[...new Set(_impLinhas.poligonos.map(r=>r.geometry_group))].length}</div><div class="imp-stat-lbl">polígonos (${_impLinhas.poligonos.length} vértices)</div></div>
+      <div class="imp-stat ok"><div class="imp-stat-val">${[...new Set(_impLinhas.trilhas.map(r=>r.geometry_group))].length}</div><div class="imp-stat-lbl">trilhas (${_impLinhas.trilhas.length} pontos)</div></div>
+      ${erros.length?`<div class="imp-stat err"><div class="imp-stat-val">${erros.length}</div><div class="imp-stat-lbl">erros ignorados</div></div>`:''}
+    </div>`;
+  const tabelaRows = [..._impLinhas.pontos, ..._impLinhas.poligonos, ..._impLinhas.trilhas].slice(0,100);
+  const tabelaHtml = `<div style="overflow-x:auto;max-height:280px;overflow-y:auto;border:1px solid var(--borda);border-radius:var(--raio)">
+    <table style="border-collapse:collapse;width:100%;font-size:11px">
+      <thead><tr style="background:var(--cinza-100);position:sticky;top:0">
+        <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Tipo</th>
+        <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Nome</th>
+        <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">APA</th>
+        <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Tipo de entrega</th>
+        <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Lat</th>
+        <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Lng</th>
+      </tr></thead>
+      <tbody>${tabelaRows.map((r,i)=>`<tr style="border-bottom:1px solid var(--cinza-100)${i%2?';background:var(--cinza-50)':''}">
+        <td style="padding:4px 8px"><span style="font-size:10px;padding:1px 6px;border-radius:99px;background:${r.geometry_type==='ponto'?'#EFF6FF':r.geometry_type==='poligono'?'#F0FDF4':'#FFF7ED'};color:${r.geometry_type==='ponto'?'#1E40AF':r.geometry_type==='poligono'?'#166534':'#92400E'}">${r.geometry_type}</span></td>
+        <td style="padding:4px 8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(r.nome_local)}</td>
+        <td style="padding:4px 8px;white-space:nowrap">${escHtml(r.apa)}</td>
+        <td style="padding:4px 8px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(r.tipo_atividade||'—')}</td>
+        <td style="padding:4px 8px;font-family:monospace">${r.lat}</td>
+        <td style="padding:4px 8px;font-family:monospace">${r.lng}</td>
+      </tr>`).join('')}
+      ${tabelaRows.length<total?`<tr><td colspan="6" style="padding:6px 8px;text-align:center;color:var(--cinza-400);font-style:italic">…e mais ${total-tabelaRows.length} registros</td></tr>`:''}
+      </tbody>
+    </table></div>`;
+  body.innerHTML = statsHtml + (erros.length?`<div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:8px 10px">⚠ Linhas ignoradas: ${erros.slice(0,5).join(' · ')}${erros.length>5?` …e mais ${erros.length-5}`:''}</div>`:'') + tabelaHtml;
+  document.getElementById('imp-footer').innerHTML=
+    '<button class="btn btn-secondary" onclick="_impEtapa1()">&#x2190; Voltar</button>'
+    +(total>0?`<button class="btn btn-primary" onclick="_impConfirmar()">&#x2714; Importar ${total} registro(s)</button>`:'<span style="font-size:12px;color:var(--cinza-500)">Nenhum registro válido.</span>');
+}
+
+async function _impConfirmar(){
+  const total = _impLinhas.pontos.length + _impLinhas.poligonos.length + _impLinhas.trilhas.length;
+  if(!total) return;
+  const btn = document.getElementById('imp-footer').querySelector('.btn-primary');
+  btn.disabled=true; btn.textContent='Importando…';
+  const uid = appState.usuario?.id||null;
+  const normalizar = r => ({...r, apa: Object.keys(APA_CONFIG).includes(r.apa)?r.apa:'Outra', status:'ativo', criado_por:uid});
+  const inserts = [
+    ..._impLinhas.pontos.map(normalizar),
+    ..._impLinhas.poligonos.map(normalizar),
+    ..._impLinhas.trilhas.map(normalizar)
+  ];
+  const {error} = await db.from('produto_pontos_mapa').insert(inserts);
+  btn.disabled=false;
+  if(error){alert('Erro ao importar: '+error.message);btn.textContent=`Importar ${total} registro(s)`;return;}
+  fecharModalCSV();
+  await carregarPontos();
 }
 
 // ── Clique no mapa ────────────────────────────────────────────────────────
