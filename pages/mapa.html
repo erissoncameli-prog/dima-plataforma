@@ -829,7 +829,9 @@ function _impLerArquivo(file){
   if(!file.name.toLowerCase().endsWith('.xlsx')){ alert('Por favor selecione um arquivo .xlsx (Excel).'); return; }
   const reader = new FileReader();
   reader.onload = e => {
-    const wb = XLSX.read(e.target.result, {type:'binary'});
+    // raw:false força todas as células a serem lidas como string, evitando que o Excel
+    // converta coordenadas decimais em inteiros com zeros extras
+    const wb = XLSX.read(e.target.result, {type:'binary', raw:false});
     _impProcessarWorkbook(wb);
   };
   reader.readAsBinaryString(file);
