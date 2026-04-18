@@ -173,19 +173,7 @@ function renderPagina(){
   const ehAdmin = appState.perfil === 'super_admin';
 
   // Tipos visíveis no mapa — exibir cada item individualmente (igual ao modal de configuração)
-  const tiposHtml = matrizVisiveis.length === 0
-    ? `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">${ehAdmin ? 'Nenhum tipo configurado. Clique em ⚙ para configurar.' : 'Nenhum tipo configurado.'}</div>`
-    : matrizVisiveis.map(item => {
-        const tipo = item.produto_titulo || '';
-        const cor = tipoCores[tipo] || '#9ca3af';
-        const meta = item.meta_numerica ? `meta ${item.meta_numerica} ${item.unidade||''}`.trim() : '';
-        const sub = [item.produto_codigo, tipo, meta].filter(Boolean).join(' · ');
-        return `<div class="filtro-item">
-          <input type="checkbox" checked data-tipo="${escHtml(tipo)}" onchange="toggleFiltroTipo(this)">
-          <span class="filtro-dot" style="background:${cor}"></span>
-          <span style="flex:1;line-height:1.3">${escHtml(item.indicador||tipo)}<span style="display:block;font-size:9px;color:var(--cinza-400)">${escHtml(sub)}</span></span>
-        </div>`;
-      }).join('');
+  const tiposHtml = _renderTiposHtml();
 
   return `
   <div class="mapa-wrapper">
@@ -522,6 +510,38 @@ function focarPonto(id){
   if(layer) clusters.zoomToShowLayer(layer,()=>layer.openPopup());
 }
 
+function _renderTiposHtml(){
+  const ehAdmin = appState.perfil === 'super_admin';
+  if(matrizVisiveis.length === 0)
+    return `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">${ehAdmin?'Nenhum tipo configurado. Clique em ⚙ para configurar.':'Nenhum tipo configurado.'}</div>`;
+  const todosMarcados = [...Object.keys(tipoCores)].every(t => filtrosTipo.has(t));
+  return `<div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+    <button onclick="toggleTodosTipos()" id="btn-todos-tipos" style="font-size:10px;color:var(--cinza-500);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px">${todosMarcados?'Desmarcar todos':'Marcar todos'}</button>
+  </div>`
+  + matrizVisiveis.map(item => {
+      const tipo = item.produto_titulo||'';
+      const cor = tipoCores[tipo]||'#9ca3af';
+      const marcado = filtrosTipo.has(tipo);
+      const meta = item.meta_numerica?`meta ${item.meta_numerica} ${item.unidade||''}`.trim():'';
+      const sub = [item.produto_codigo, tipo, meta].filter(Boolean).join(' · ');
+      return `<div class="filtro-item">
+        <input type="checkbox" ${marcado?'checked':''} data-tipo="${escHtml(tipo)}" onchange="toggleFiltroTipo(this)">
+        <span class="filtro-dot" style="background:${cor}"></span>
+        <span style="flex:1;line-height:1.3">${escHtml(item.indicador||tipo)}<span style="display:block;font-size:9px;color:var(--cinza-400)">${escHtml(sub)}</span></span>
+      </div>`;
+    }).join('');
+}
+
+function toggleTodosTipos(){
+  const tipos = Object.keys(tipoCores);
+  const todosMarcados = tipos.every(t => filtrosTipo.has(t));
+  if(todosMarcados){ tipos.forEach(t => filtrosTipo.delete(t)); }
+  else { tipos.forEach(t => filtrosTipo.add(t)); }
+  const bloco = document.getElementById('bloco-tipos');
+  if(bloco) bloco.innerHTML = _renderTiposHtml();
+  renderizarMarcadores(); renderizarLista();
+}
+
 function toggleFiltroAPA(el){
   const apa = el.dataset.apa;
   if(el.checked) filtrosAPA.add(apa); else filtrosAPA.delete(apa);
@@ -615,22 +635,8 @@ async function salvarAdminFiltros(){
   fecharModalAdminFiltros();
 
   // Re-renderizar o bloco de tipos sem recarregar a página
-  const ehAdmin = appState.perfil === 'super_admin';
-  const tiposHtml = matrizVisiveis.length === 0
-    ? `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">${ehAdmin?'Nenhum tipo configurado. Clique em ⚙ para configurar.':'Nenhum tipo configurado.'}</div>`
-    : matrizVisiveis.map(item => {
-        const tipo = item.produto_titulo||'';
-        const cor = tipoCores[tipo]||'#9ca3af';
-        const meta = item.meta_numerica?`meta ${item.meta_numerica} ${item.unidade||''}`.trim():'';
-        const sub = [item.produto_codigo, tipo, meta].filter(Boolean).join(' · ');
-        return `<div class="filtro-item">
-          <input type="checkbox" checked data-tipo="${escHtml(tipo)}" onchange="toggleFiltroTipo(this)">
-          <span class="filtro-dot" style="background:${cor}"></span>
-          <span style="flex:1;line-height:1.3">${escHtml(item.indicador||tipo)}<span style="display:block;font-size:9px;color:var(--cinza-400)">${escHtml(sub)}</span></span>
-        </div>`;
-      }).join('');
   const bloco = document.getElementById('bloco-tipos');
-  if(bloco) bloco.innerHTML = tiposHtml;
+  if(bloco) bloco.innerHTML = _renderTiposHtml();
 
   renderizarMarcadores(); renderizarLista();
 }
