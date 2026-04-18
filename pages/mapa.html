@@ -776,7 +776,7 @@ function _impEtapa1(){
     +'<div style="font-size:12px;font-weight:600;color:#1E40AF;margin-bottom:4px">📋 Como usar</div>'
     +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.8">'
     +'<li>Baixe o template Excel com as 3 abas: <strong>Pontos</strong>, <strong>Polígono</strong> e <strong>Trilha</strong>.</li>'
-    +'<li>Preencha as abas desejadas com seus dados.</li>'
+    +'<li>Preencha as abas desejadas. As colunas <strong>lat</strong> e <strong>lng</strong> aceitam <strong>vírgula ou ponto</strong> como decimal (ex: <code>-9,972</code> ou <code>-9.972</code>).</li>'
     +'<li><strong>Importe o próprio arquivo .xlsx</strong> — não é necessário converter para CSV.</li>'
     +'</ol>'
     +'</div>'
@@ -797,15 +797,39 @@ function _impEtapa1(){
 
 function _impBaixarTemplate(){
   if(typeof XLSX==='undefined'){alert('Biblioteca Excel ainda carregando, tente em instantes.');return;}
+
+  // Formata colunas lat/lng como Texto (@) para evitar que o Excel brasileiro
+  // interprete o ponto decimal como separador de milhar (ex: -67.83 → -6783)
+  function formatarTexto(ws, colLat, colLng, maxRow){
+    for(let r = 1; r <= maxRow; r++){
+      [colLat, colLng].forEach(c => {
+        const ref = XLSX.utils.encode_cell({r, c});
+        if(!ws[ref]){ ws[ref] = {t:'s', v:'', z:'@'}; }
+        else {
+          ws[ref].z = '@';
+          if(ws[ref].t !== 's'){ ws[ref].t = 's'; ws[ref].v = String(ws[ref].v||''); delete ws[ref].w; }
+        }
+      });
+    }
+    if(ws['!ref']){
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      range.e.r = Math.max(range.e.r, maxRow);
+      ws['!ref'] = XLSX.utils.encode_range(range);
+    }
+  }
+
   const wb = XLSX.utils.book_new();
-  // Aba Pontos
+
+  // Aba Pontos — lat=col 5 (F), lng=col 6 (G)
   const wsPontos = XLSX.utils.aoa_to_sheet([
     ['nome_local','apa','tipo_atividade','responsavel','data_implantacao','lat','lng','observacao'],
     ['Ex: Unidade Produtiva 01','Igarapé São Francisco','Desenvolvimento de Produtos Sustentáveis','João Silva','2025-04-10','-9.972000','-67.805000','Próximo ao igarapé']
   ]);
   wsPontos['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:14},{wch:14},{wch:30}];
+  formatarTexto(wsPontos, 5, 6, 100);
   XLSX.utils.book_append_sheet(wb, wsPontos, 'Pontos');
-  // Aba Polígono
+
+  // Aba Polígono — lat=col 6 (G), lng=col 7 (H)
   const wsPolig = XLSX.utils.aoa_to_sheet([
     ['nome_area','apa','tipo_atividade','responsavel','data_implantacao','ordem','lat','lng','observacao'],
     ['Ex: Área de Reflorestamento A','Lago do Amapá','Mitigação da Vulnerabilidade das APAs','Maria Silva','2025-04-10','1','-9.950000','-67.820000','Vértice 1'],
@@ -813,8 +837,10 @@ function _impBaixarTemplate(){
     ['Ex: Área de Reflorestamento A','Lago do Amapá','Mitigação da Vulnerabilidade das APAs','Maria Silva','2025-04-10','3','-9.951000','-67.815000','Vértice 3']
   ]);
   wsPolig['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:8},{wch:14},{wch:14},{wch:30}];
+  formatarTexto(wsPolig, 6, 7, 100);
   XLSX.utils.book_append_sheet(wb, wsPolig, 'Polígono');
-  // Aba Trilha
+
+  // Aba Trilha — lat=col 6 (G), lng=col 7 (H)
   const wsTrilha = XLSX.utils.aoa_to_sheet([
     ['nome_trilha','apa','tipo_atividade','responsavel','data_implantacao','ordem','lat','lng','observacao'],
     ['Ex: Trilha Ecológica Norte','Igarapé São Francisco','Monitoramento e Adaptação','Carlos Souza','2025-04-10','1','-9.960000','-67.810000','Início da trilha'],
@@ -822,7 +848,9 @@ function _impBaixarTemplate(){
     ['Ex: Trilha Ecológica Norte','Igarapé São Francisco','Monitoramento e Adaptação','Carlos Souza','2025-04-10','3','-9.965000','-67.814000','Final da trilha']
   ]);
   wsTrilha['!cols']=[{wch:35},{wch:28},{wch:38},{wch:18},{wch:20},{wch:8},{wch:14},{wch:14},{wch:30}];
+  formatarTexto(wsTrilha, 6, 7, 100);
   XLSX.utils.book_append_sheet(wb, wsTrilha, 'Trilha');
+
   XLSX.writeFile(wb, 'template_geo_mapa.xlsx');
 }
 
