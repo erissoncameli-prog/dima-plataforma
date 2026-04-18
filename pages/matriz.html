@@ -564,8 +564,8 @@ function renderODS(){
       return arr.includes(o.numero)||arr.includes(num)||arr.includes(String(num));
     }).length;
     const localUrl=`../assets/sdg/sdg-${num}.jpg`;
-    const borderStyle=o.no_projeto?`border:2px solid ${cor}88`:`border:1px solid var(--borda)`;
-    return`<div class="ods-card${o.no_projeto?' ativo':''}"
+    const borderStyle=cnt>0?`border:2px solid ${cor}88`:`border:1px solid var(--borda)`;
+    return`<div class="ods-card${cnt>0?' ativo':''}"
       style="${borderStyle}"
       onclick="abrirRefODS('${o.numero}')">
       <div class="ods-img-wrap">
@@ -574,7 +574,7 @@ function renderODS(){
       </div>
       <div class="ods-card-foot">
         <div class="ods-card-titulo" style="font-size:9px;color:var(--cinza-600);line-height:1.3;padding:0 2px 2px;text-align:center">${titulo}</div>
-        ${o.no_projeto&&cnt?`<div class="ods-badge-cnt" style="background:${cor}22;color:${cor}">${cnt} indicador${cnt!==1?'es':''}</div>`:''}
+        ${cnt>0?`<div class="ods-badge-cnt" style="background:${cor}22;color:${cor}">${cnt} indicador${cnt!==1?'es':''}</div>`:''}
       </div>
     </div>`;
   }).join('');
