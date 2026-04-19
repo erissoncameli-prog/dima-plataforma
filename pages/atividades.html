@@ -205,7 +205,7 @@ let senhaCallback = null; // função a executar após confirmação de senha
                   <th style="width:110px">Pago U$<div style="font-size:9px;font-weight:400;color:var(--cinza-400,#9CA3AF)">(financeiro)</div></th>
                   <th style="width:140px">Responsável(is)</th>
                   <th style="width:120px">TDRs</th>
-                  ${PODE.editarAtividade() || PODE.verAtividade() ? `<th style="width:60px">Ações</th>` : ''}
+                  ${PODE.editarAtividade() || PODE.verAtividade?.() ? `<th style="width:60px">Ações</th>` : ''}
                 </tr>
               </thead>
               <tbody id="tbody-atividades">
@@ -372,7 +372,7 @@ function renderTabela() {
     const nomeAtv = campo(a,'nome');
     const faseClasse = `fs-${a.fase}`;
     const podEditar = PODE.editarAtividade();
-    const podVer = PODE.verAtividade();
+    const podVer = PODE.verAtividade?.() ?? false;
     const tdrsAtiv = tdrsPorAtividade[a.id]||[];
     const temAlerta = a.tdrs_sem_arquivo > 0;
     const painelId = `painel-${a.id}`;
