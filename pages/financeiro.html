@@ -1193,23 +1193,41 @@ async function abrirPagamento(id) {
       Carregando histórico...
     </div>`;
 
-  // Buscar produto vinculado (se houver)
-  let produto = null;
+  // Buscar produto vinculado, dados do fornecedor e totais do contrato em paralelo
+  let produto = null, fornData = {nome:'—',cpf_cnpj:'',email:''};
+  let ctTotais = {total:0, aprovado:0, pago:0};
+  const fornId = l.fornecedores?.id;
+  const contratoId = l.contratos?.id || l.contrato_id;
+
+  const paralelos = [];
   if (l.contrato_id && l.numero_produto) {
-    const { data } = await db.from('contratos_produtos')
-      .select(`id,numero_produto,descricao,valor_brl,dt_vencimento,dt_entrega,situacao,
-               arquivo_entrega_url,arquivo_entrega_nome,arquivo_entrega_data,
-               parecer_avaliador,avaliado_em,pct_aprovado,valor_aprovado,
-               usuarios!contratos_produtos_avaliado_por_fkey(nome_completo)`)
-      .eq('contrato_id', l.contrato_id)
-      .eq('numero_produto', l.numero_produto)
-      .maybeSingle();
-    produto = data;
-  }
+    paralelos.push(
+      db.from('contratos_produtos')
+        .select(`id,numero_produto,descricao,valor_brl,dt_vencimento,dt_entrega,situacao,
+                 arquivo_entrega_url,arquivo_entrega_nome,arquivo_entrega_data,
+                 parecer_avaliador,avaliado_em,pct_aprovado,valor_aprovado,
+                 usuarios!contratos_produtos_avaliado_por_fkey(nome_completo)`)
+        .eq('contrato_id', l.contrato_id)
+        .eq('numero_produto', l.numero_produto)
+        .maybeSingle()
+    );
+  } else { paralelos.push(Promise.resolve({data:null})); }
+  paralelos.push(
+    fornId ? db.from('fornecedores').select('nome,cpf_cnpj,email').eq('id',fornId).single() : Promise.resolve({data:null}),
+    contratoId ? db.from('contratos_produtos').select('valor_brl,valor_aprovado,situacao').eq('contrato_id',contratoId) : Promise.resolve({data:[]})
+  );
+  const [prodR, fornR, totaisR] = await Promise.all(paralelos);
+  produto = prodR.data;
+  if (fornR.data) fornData = fornR.data;
+  const todosCont = totaisR.data || [];
+  ctTotais.total    = todosCont.reduce((s,x) => s + parseFloat(x.valor_brl||0), 0);
+  ctTotais.aprovado = todosCont.reduce((s,x) => s + parseFloat(x.valor_aprovado||0), 0);
+  ctTotais.pago     = todosCont.filter(x => x.situacao==='pago').reduce((s,x) => s + parseFloat(x.valor_aprovado||0), 0);
+  const ctSaldo     = ctTotais.total - ctTotais.pago;
 
   // ── Resumo do lançamento ──
   const ativNome = l.atividades ? `${l.atividades.codigo} · ${l.atividades.nome_pt?.substring(0,40)}` : '—';
-  const fornNome = l.fornecedores?.nome || '—';
+  const fornNome = fornData.nome || l.fornecedores?.nome || '—';
   const contNum  = l.contratos?.numero  || '—';
   const venc     = l.dt_vencimento ? fmtData(l.dt_vencimento) : '—';
   const vencido  = l.dt_vencimento && new Date(l.dt_vencimento) < new Date();
@@ -1284,6 +1302,34 @@ async function abrirPagamento(id) {
   const usdEstimado = (parseFloat(l.valor_brl||0) / taxaLanc).toFixed(2);
 
   document.getElementById('pgto-body').innerHTML = `
+    <!-- Painel de contrato -->
+    <div style="background:#F8FAFC;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;margin-bottom:14px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏢</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--cinza-900)">${esc(fornNome)}</div>
+            ${fornData.cpf_cnpj ? `<div style="font-size:11px;color:var(--cinza-500);font-family:var(--font-mono)">${esc(fornData.cpf_cnpj)}</div>` : ''}
+            ${fornData.email    ? `<div style="font-size:11px;color:var(--cinza-500)">${esc(fornData.email)}</div>` : ''}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em">Contrato</div>
+          <div style="font-size:13px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono)">${esc(contNum)}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:12px;border-top:1px solid var(--borda)">
+        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Total contrato</div>
+          <div style="font-size:12px;font-weight:700;color:var(--cinza-800);font-family:var(--font-mono)">${fmtBRL(ctTotais.total)}</div></div>
+        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Aprovado</div>
+          <div style="font-size:12px;font-weight:700;color:#7C3AED;font-family:var(--font-mono)">${fmtBRL(ctTotais.aprovado)}</div></div>
+        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Pago</div>
+          <div style="font-size:12px;font-weight:700;color:#059669;font-family:var(--font-mono)">${fmtBRL(ctTotais.pago)}</div></div>
+        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Saldo</div>
+          <div style="font-size:12px;font-weight:700;color:${ctSaldo>=0?'#1D4ED8':'#DC2626'};font-family:var(--font-mono)">${fmtBRL(ctSaldo)}</div></div>
+      </div>
+    </div>
+
     <!-- Resumo -->
     <div class="pgto-resumo">
       <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Atividade</span><span class="pgto-resumo-val">${ativNome}</span></div>

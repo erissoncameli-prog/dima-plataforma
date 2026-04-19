@@ -274,9 +274,36 @@ function renderLista(){
   document.getElementById('conteudo').innerHTML=html;
 }
 
+function renderPainelContrato(forn,contratoNum,totais){
+  var saldo=totais.total-totais.pago;
+  return '<div style="background:#F8FAFC;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;margin-bottom:14px">'
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<div style="width:36px;height:36px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">&#x1F3E2;</div>'
+    +'<div>'
+    +'<div style="font-size:13px;font-weight:700;color:var(--cinza-900)">'+esc(forn.nome||'—')+'</div>'
+    +(forn.cpf_cnpj?'<div style="font-size:11px;color:var(--cinza-500);font-family:var(--font-mono)">'+esc(forn.cpf_cnpj)+'</div>':'')
+    +(forn.email?'<div style="font-size:11px;color:var(--cinza-500)">'+esc(forn.email)+'</div>':'')
+    +'</div></div>'
+    +'<div style="text-align:right">'
+    +'<div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em">Contrato</div>'
+    +'<div style="font-size:13px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono)">'+esc(contratoNum||'—')+'</div>'
+    +'</div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:12px;border-top:1px solid var(--borda)">'
+    +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Total contrato</div>'
+    +'<div style="font-size:12px;font-weight:700;color:var(--cinza-800);font-family:var(--font-mono)">'+fmtBRL(totais.total)+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Aprovado</div>'
+    +'<div style="font-size:12px;font-weight:700;color:#7C3AED;font-family:var(--font-mono)">'+fmtBRL(totais.aprovado)+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Pago</div>'
+    +'<div style="font-size:12px;font-weight:700;color:#059669;font-family:var(--font-mono)">'+fmtBRL(totais.pago)+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Saldo</div>'
+    +'<div style="font-size:12px;font-weight:700;color:'+(saldo>=0?'#1D4ED8':'#DC2626')+';font-family:var(--font-mono)">'+fmtBRL(saldo)+'</div></div>'
+    +'</div></div>';
+}
+
 async function abrirModal(prodId){
   var r=await db.from('contratos_produtos')
-    .select('*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(*)')
+    .select('*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome,cpf_cnpj,email),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(*)')
     .eq('id',prodId).single();
   var p=r.data;
   if(!p)return;
@@ -297,6 +324,16 @@ async function abrirModal(prodId){
   var isAnalise=p.situacao==='em_analise';
   var isDevolvido=p.situacao==='devolvido';
 
+  // Totais financeiros do contrato + docs devolvida em paralelo quando possível
+  var totaisR=await db.from('contratos_produtos').select('valor_brl,valor_aprovado,situacao').eq('contrato_id',p.contrato_id);
+  var todosCont=totaisR.data||[];
+  var ctTotal=todosCont.reduce(function(s,x){return s+parseFloat(x.valor_brl||0);},0);
+  var ctAprovado=todosCont.reduce(function(s,x){return s+parseFloat(x.valor_aprovado||0);},0);
+  var ctPago=todosCont.filter(function(x){return x.situacao==='pago';}).reduce(function(s,x){return s+parseFloat(x.valor_aprovado||0);},0);
+  var ctTotais={total:ctTotal,aprovado:ctAprovado,pago:ctPago};
+  var fornContrato=p.contratos&&p.contratos.fornecedores||{};
+  var numContrato=p.contratos&&p.contratos.numero||'';
+
   // Para devolvido: buscar entrega devolvida e seus documentos anteriores
   var entregaDevolvida=null,docsDevolvida=[];
   if(isDevolvido){
@@ -311,6 +348,9 @@ async function abrirModal(prodId){
   document.getElementById('mp-titulo').textContent=titulo;
 
   var html='';
+
+  // Painel de contrato (topo — visível em todas as fases)
+  html+=renderPainelContrato(fornContrato,numContrato,ctTotais);
 
   // Cabeçalho do produto
   html+='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:14px">'
