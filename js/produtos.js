@@ -558,6 +558,21 @@ async function abrirModal(prodId){
     var entregaById={};
     entregas.forEach(function(e){entregaById[e.id]=e;});
 
+    // Injetar arquivo direto da entrega (arquivo_url/arquivo_nome) como doc sintético
+    entregas.forEach(function(e){
+      if(e.arquivo_url&&e.arquivo_nome){
+        allDocs.push({
+          id:'__arq__'+e.id,
+          entrega_id:e.id,
+          arquivo_nome:e.arquivo_nome,
+          arquivo_url:e.arquivo_url,
+          tipo_documento:'Arquivo da Entrega',
+          inserido_em:e.dt_entrega||e.criado_em||null,
+          _sintetico:true
+        });
+      }
+    });
+
     // Agrupar docs por tipo_documento; dentro de cada grupo: mais recente primeiro
     var docsByTipo={};
     var tiposOrdem=[];
