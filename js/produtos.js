@@ -212,7 +212,7 @@ async function selecionarCont(id){
   renderLista();
 }
 
-function sitLbl(s){return{pendente:'Pendente',em_analise:'Em avaliação',entrega_parcial:'Parcial',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado'}[s]||s;}
+function sitLbl(s){return{pendente:'Pendente',em_analise:'Em avaliação',entrega_parcial:'Parcial',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado',devolvido:'Devolvido p/ correção'}[s]||s;}
 
 function renderVazio(msg){
   document.getElementById('conteudo').innerHTML='<div class="empty-state"><div class="empty-state-icon">&#x25A3;</div><div class="empty-state-msg">'+msg+'</div></div>';
@@ -262,11 +262,13 @@ function renderLista(){
   var pendentes=todosProdutos.filter(function(p){return p.situacao==='pendente';});
   var emAnalise=todosProdutos.filter(function(p){return p.situacao==='em_analise';});
   var parcial=todosProdutos.filter(function(p){return p.situacao==='entrega_parcial';});
+  var devolvidos=todosProdutos.filter(function(p){return p.situacao==='devolvido';});
   var aprovados=todosProdutos.filter(function(p){return p.situacao==='aprovado';});
   if(!todosProdutos.length){renderVazio('Nenhum produto encontrado para este contrato.');return;}
   var html='';
   if(emAnalise.length)html+='<div class="sec-lbl" style="color:#1E40AF">🔍 Em avaliação ('+emAnalise.length+')</div><div class="produtos-grid">'+emAnalise.map(renderCard).join('')+'</div>';
   if(parcial.length)html+='<div class="sec-lbl" style="color:#6D28D9">⚡ Entrega parcial ('+parcial.length+')</div><div class="produtos-grid">'+parcial.map(renderCard).join('')+'</div>';
+  if(devolvidos.length)html+='<div class="sec-lbl" style="color:#991B1B">↩ Devolvidos p/ correção ('+devolvidos.length+')</div><div class="produtos-grid">'+devolvidos.map(renderCard).join('')+'</div>';
   if(pendentes.length)html+='<div class="sec-lbl">📋 Pendentes ('+pendentes.length+')</div><div class="produtos-grid">'+pendentes.map(renderCard).join('')+'</div>';
   if(aprovados.length)html+='<div class="sec-lbl" style="color:#166534">✓ Aprovados / A pagar ('+aprovados.length+')</div><div class="produtos-grid">'+aprovados.map(renderCard).join('')+'</div>';
   document.getElementById('conteudo').innerHTML=html;
@@ -291,7 +293,7 @@ async function abrirModal(prodId){
   var valorRest=parseFloat(p.valor_brl||0)*pctRest/100;
   var numProxEntrega=(entregas.length+1);
 
-  var isPend=p.situacao==='pendente'||p.situacao==='entrega_parcial';
+  var isPend=p.situacao==='pendente'||p.situacao==='entrega_parcial'||p.situacao==='devolvido';
   var isAnalise=p.situacao==='em_analise';
 
   var titulo=isPend?('Registrar Entrega — Produto '+p.numero_produto):('Avaliar Entrega — Produto '+p.numero_produto);
@@ -401,7 +403,23 @@ async function abrirModal(prodId){
     var docs=docsR.data||[];
     var contribs=contribsR.data||[];
 
-    // Documentos entregues
+    // Painel: O que foi contratado
+    html+='<div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:var(--raio);padding:12px 14px;margin-bottom:12px">'
+      +'<div style="font-size:11px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4CB; O que foi contratado</div>'
+      +'<div style="font-size:13px;font-weight:600;color:var(--cinza-900);line-height:1.4;margin-bottom:'+(p.observacoes?'8':'0')+'px">'+esc(p.descricao||'')+'</div>'
+      +(p.observacoes?'<div style="font-size:11px;color:var(--cinza-600);line-height:1.55;border-top:1px solid #BAE6FD;padding-top:8px"><strong style="font-size:10px;color:#0369A1;text-transform:uppercase;letter-spacing:.04em">Observações: </strong>'+esc(p.observacoes)+'</div>':'')
+      +'</div>';
+
+    // Tabs: Documentos+Indicadores | Fotos
+    var nFotos=(entregaAtual.fotos_urls||[]).length;
+    html+='<div class="eval-tabs">'
+      +'<button class="eval-tab-btn ativo" id="eval-btn-docs" onclick="switchEvalTab(\'docs\')">&#x1F4CE; Documentos'+(docs.length?' ('+docs.length+')':'')+'</button>'
+      +(nFotos?'<button class="eval-tab-btn" id="eval-btn-fotos" onclick="switchEvalTab(\'fotos\')">&#x1F4F7; Fotos ('+nFotos+')</button>':'')
+      +(contribs.length?'<button class="eval-tab-btn" id="eval-btn-ind" onclick="switchEvalTab(\'ind\')">&#x25CE; Indicadores ('+contribs.length+')</button>':'')
+      +'</div>';
+
+    // Tab 1: Documentos
+    html+='<div class="eval-tab-content ativo" id="eval-tab-docs">';
     if(docs.length||entregaAtual.arquivo_url){
       html+='<div style="background:var(--azul-bg);border:1px solid #BFDBFE;border-radius:var(--raio);padding:12px 14px;margin-bottom:10px">'
         +'<div style="font-size:11px;font-weight:700;color:var(--azul-medio);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4CE; Documentos entregues (Entrega '+entregaAtual.numero_entrega+(entregaAtual.dt_entrega?' · '+fmtData(entregaAtual.dt_entrega):'')+')</div>';
@@ -412,8 +430,8 @@ async function abrirModal(prodId){
           +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(d.arquivo_nome)+'</div>'
           +'<div style="font-size:10px;color:var(--cinza-500)">'+esc(d.tipo_documento)+'</div></div>'
           +(isGeoDoc
-            ? '<button class="btn btn-sm btn-secondary" style="font-size:11px;white-space:nowrap" onclick="window.open(\'mapa.html?produto='+esc(entregaAtual.id)+'\',\'_blank\')">&#x1F5FA; Ver no mapa</button>'
-            : '<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirArquivo(\''+esc(d.arquivo_url)+'\')">&#x1F441; Abrir</button>'
+            ?'<button class="btn btn-sm btn-secondary" style="font-size:11px;white-space:nowrap" onclick="window.open(\'mapa.html?produto='+esc(entregaAtual.id)+'\',\'_blank\')">&#x1F5FA; Ver no mapa</button>'
+            :'<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirArquivo(\''+esc(d.arquivo_url)+'\')">&#x1F441; Abrir</button>'
           )
           +'</div>';
       });
@@ -425,24 +443,30 @@ async function abrirModal(prodId){
           +'</div>';
       }
       html+='</div>';
+    }else{
+      html+='<div style="font-size:12px;color:var(--cinza-400);padding:12px 0">Nenhum documento carregado nesta entrega.</div>';
     }
+    html+='</div>';
 
-    // Fotos
-    if(entregaAtual.fotos_urls&&entregaAtual.fotos_urls.length){
-      html+='<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4F7; Fotos ('+entregaAtual.fotos_urls.length+')</div><div class="fotos-existentes">';
+    // Tab 2: Fotos (álbum)
+    if(nFotos){
+      html+='<div class="eval-tab-content" id="eval-tab-fotos">'
+        +'<div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px">'+nFotos+' foto(s) de evidência — clique para ampliar</div>'
+        +'<div class="album-grid">';
       entregaAtual.fotos_urls.forEach(function(url,i){
         var nome=(entregaAtual.fotos_nomes||[])[i]||('Foto '+(i+1));
-        html+='<div class="foto-exist" onclick="abrirLightbox(\''+url.replace(/'/g,"\\'")+'\',\''+nome.replace(/'/g,"\\'")+'\')"><img src="'+url+'" alt="'+esc(nome)+'" loading="lazy"></div>';
+        html+='<div class="album-foto" onclick="abrirLightbox(\''+url.replace(/'/g,"\\'")+'\',\''+nome.replace(/'/g,"\\'")+'\')"><img src="'+url+'" alt="'+esc(nome)+'" loading="lazy"><div class="album-foto-nome">'+esc(nome)+'</div></div>';
       });
       html+='</div></div>';
     }
 
-    // Contribuição à Matriz de Resultados
+    // Tab 3: Indicadores (Matriz)
     if(contribs.length){
-      var statusCor={'pendente':'#92400E','confirmado':'#065F46','rejeitado':'#991B1B'};
-      var statusBg={'pendente':'#FEF3C7','confirmado':'#D1FAE5','rejeitado':'#FEE2E2'};
-      var statusLbl={'pendente':'Pendente','confirmado':'Confirmado','rejeitado':'Rejeitado'};
-      html+='<div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:var(--raio);padding:12px 14px;margin-bottom:10px">'
+      var stCor={'pendente':'#92400E','confirmado':'#065F46','rejeitado':'#991B1B'};
+      var stBg={'pendente':'#FEF3C7','confirmado':'#D1FAE5','rejeitado':'#FEE2E2'};
+      var stLbl={'pendente':'Pendente','confirmado':'Confirmado','rejeitado':'Rejeitado'};
+      html+='<div class="eval-tab-content" id="eval-tab-ind">'
+        +'<div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:var(--raio);padding:12px 14px">'
         +'<div style="font-size:11px;font-weight:700;color:#4C1D95;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x25CE; Contribuição à Matriz de Resultados</div>';
       contribs.forEach(function(c){
         var mi=c.matriz_itens||{};
@@ -454,11 +478,19 @@ async function abrirModal(prodId){
           +'<div style="font-size:11px;color:var(--cinza-600)">Valor declarado: <strong style="font-family:var(--font-mono)">'+parseFloat(c.valor||0).toLocaleString('pt-BR')+'</strong>'+(c.unidade?' '+esc(c.unidade):'')+'</div>'
           +(c.observacao?'<div style="font-size:10px;color:var(--cinza-500);margin-top:3px;font-style:italic">'+esc(c.observacao)+'</div>':'')
           +'</div>'
-          +'<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;background:'+statusBg[st]+';color:'+statusCor[st]+'">'+statusLbl[st]+'</span>'
+          +'<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;background:'+stBg[st]+';color:'+stCor[st]+'">'+stLbl[st]+'</span>'
           +'</div>';
       });
-      html+='</div>';
+      html+='</div></div>';
     }
+
+    // Checkbox de confirmação (obrigatório para aprovar)
+    html+='<div style="background:#FEF9C3;border:1px solid #FDE047;border-radius:var(--raio);padding:10px 14px;margin:14px 0 10px">'
+      +'<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">'
+      +'<input type="checkbox" id="chk-confirmacao" onchange="toggleAvalCheckbox()" style="margin-top:2px;width:16px;height:16px;accent-color:#059669;flex-shrink:0">'
+      +'<span style="font-size:12px;font-weight:600;color:#713F12;line-height:1.45">Confirmo que o produto entregue corresponde ao objeto contratado descrito acima. Conteúdo, tipo e qualidade estão em conformidade.</span>'
+      +'</label>'
+      +'</div>';
 
     // Decisão de avaliação
     var pctRestF=pctRest.toFixed(0);
@@ -889,7 +921,11 @@ async function emitirDespacho(tipoBtn){
   if(!tipo){toast('Selecione uma decisão.','error');return;}
   var despacho=document.getElementById('f-despacho')&&document.getElementById('f-despacho').value&&document.getElementById('f-despacho').value.trim()||'';
   var dtDesp=document.getElementById('f-dt-desp')&&document.getElementById('f-dt-desp').value||'';
-  if(!despacho||despacho.length<20){toast('O texto do despacho deve ter pelo menos 20 caracteres.','error');return;}
+  if(!despacho||despacho.length<20){
+    var td=document.getElementById('f-despacho');
+    if(td){td.style.borderColor='#DC2626';td.focus();setTimeout(function(){if(td)td.style.borderColor='';},2500);}
+    toast('O texto do despacho deve ter pelo menos 20 caracteres.','error');return;
+  }
 
   var pctAprov=100,valorAprov=parseFloat(produtoAtual.valor_brl||0)*(100-parseFloat(produtoAtual.pct_aprovado||0))/100;
   if(tipo==='aprovacao_parcial'){
@@ -921,7 +957,7 @@ async function emitirDespacho(tipoBtn){
     despacho_data:dtDesp||new Date().toISOString().split('T')[0],
     despachado_por:appState.usuario.id,despachado_em:new Date().toISOString(),
     pct_entregue:tipo!=='devolucao'?pctAprov:0,valor_entregue:tipo!=='devolucao'?valorAprov:0,
-    nota_tecnica_url:ntUrl,nota_tecnica_nome:ntNome,nota_tecnica_data:ntUrl?new Date().toISOString():null,
+    nota_tecnica_url:ntUrl,nota_tecnica_nome:ntNome,
     atualizado_em:new Date().toISOString()
   }).eq('id',entregaAtual.id);
   if(updR.error){toast('Erro: '+updR.error.message,'error');return;}
@@ -933,7 +969,7 @@ async function emitirDespacho(tipoBtn){
     var novaSitProd=novoPct>=100?'pago':'entrega_parcial';
     await db.from('contratos_produtos').update({pct_aprovado:novoPct,valor_aprovado:novoVal,situacao:novaSitProd,atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
   } else {
-    await db.from('contratos_produtos').update({situacao:'pendente',atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
+    await db.from('contratos_produtos').update({situacao:'devolvido',atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
   }
 
   var msgs={aprovacao_total:'&#x2714; Despacho '+numDesp+' emitido. Lançamento gerado no Financeiro.',aprovacao_parcial:'&#x25D1; Despacho '+numDesp+' emitido. Lançamento parcial gerado.',devolucao:'&#x21A9; Despacho '+numDesp+' emitido. Produto devolvido para correção.'};
@@ -950,6 +986,24 @@ async function emitirDespacho(tipoBtn){
   }
   window.history.replaceState({},'',window.location.pathname);
   fecharModal();await selecionarCont(filtCont);await renderStats();
+}
+
+function switchEvalTab(name){
+  document.querySelectorAll('.eval-tab-btn').forEach(function(b){b.classList.remove('ativo');});
+  document.querySelectorAll('.eval-tab-content').forEach(function(c){c.classList.remove('ativo');});
+  var btn=document.getElementById('eval-btn-'+name);
+  var cont=document.getElementById('eval-tab-'+name);
+  if(btn)btn.classList.add('ativo');
+  if(cont)cont.classList.add('ativo');
+}
+
+function toggleAvalCheckbox(){
+  var checked=document.getElementById('chk-confirmacao')?.checked;
+  document.querySelectorAll('.btn-aprovar,.btn-parcial').forEach(function(btn){
+    btn.disabled=!checked;
+    btn.style.opacity=checked?'':'0.4';
+    btn.style.cursor=checked?'':'not-allowed';
+  });
 }
 
 function fecharModal(){
