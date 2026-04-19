@@ -1530,6 +1530,12 @@ async function confirmarPagamento() {
     const { error } = await db.from('execucao_financeira').update(dados).eq('id', l.id);
     if (error) throw error;
 
+    // Marcar produto como pago em contratos_produtos (vínculo reverso via lancamento_id)
+    await db.from('contratos_produtos')
+      .update({ situacao: 'pago', atualizado_em: new Date().toISOString() })
+      .eq('lancamento_id', l.id)
+      .eq('situacao', 'aprovado');
+
     // Upload comprovante se selecionado
     if (arquivoPgto) {
       const ext  = arquivoPgto.name.split('.').pop();

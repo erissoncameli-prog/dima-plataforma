@@ -1242,7 +1242,7 @@ async function emitirDespacho(tipoBtn){
   if(tipo!=='devolucao'){
     var novoPct=Math.min(100,parseFloat(produtoAtual.pct_aprovado||0)+pctAprov);
     var novoVal=parseFloat(produtoAtual.valor_brl||0)*novoPct/100;
-    var novaSitProd=novoPct>=100?'pago':'entrega_parcial';
+    var novaSitProd=novoPct>=100?'aprovado':'entrega_parcial';
     await db.from('contratos_produtos').update({pct_aprovado:novoPct,valor_aprovado:novoVal,situacao:novaSitProd,atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
   } else {
     await db.from('contratos_produtos').update({situacao:'devolvido',atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
