@@ -275,7 +275,7 @@ function renderLista(){
   document.getElementById('conteudo').innerHTML=html;
 }
 
-function renderPainelContrato(forn,contratoNum,totais){
+function renderPainelContrato(forn,contratoNum,totais,seiContrato){
   var saldo=totais.total-totais.pago;
   return '<div style="background:#F8FAFC;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;margin-bottom:14px">'
     +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap">'
@@ -289,6 +289,8 @@ function renderPainelContrato(forn,contratoNum,totais){
     +'<div style="text-align:right">'
     +'<div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em">Contrato</div>'
     +'<div style="font-size:13px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono)">'+esc(contratoNum||'—')+'</div>'
+    +(seiContrato?'<div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-top:6px">SEI</div>'
+      +'<div>'+linkSEI(seiContrato)+'</div>':'')
     +'</div></div>'
     +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:12px;border-top:1px solid var(--borda)">'
     +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Total contrato</div>'
@@ -304,7 +306,7 @@ function renderPainelContrato(forn,contratoNum,totais){
 
 async function abrirModal(prodId){
   var r=await db.from('contratos_produtos')
-    .select('*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome,cpf_cnpj,email),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(*)')
+    .select('*,contratos(id,numero,objeto_pt,atividade_id,numero_sei,fornecedores(id,nome,cpf_cnpj,email),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(*)')
     .eq('id',prodId).single();
   var p=r.data;
   if(!p)return;
@@ -334,6 +336,7 @@ async function abrirModal(prodId){
   var ctTotais={total:ctTotal,aprovado:ctAprovado,pago:ctPago};
   var fornContrato=p.contratos&&p.contratos.fornecedores||{};
   var numContrato=p.contratos&&p.contratos.numero||'';
+  var seiContrato=p.contratos&&p.contratos.numero_sei||'';
 
   // Para devolvido: buscar entrega devolvida e seus documentos anteriores
   var entregaDevolvida=null,docsDevolvida=[];
@@ -351,7 +354,7 @@ async function abrirModal(prodId){
   var html='';
 
   // Painel de contrato (topo — visível em todas as fases)
-  html+=renderPainelContrato(fornContrato,numContrato,ctTotais);
+  html+=renderPainelContrato(fornContrato,numContrato,ctTotais,seiContrato);
 
   // Cabeçalho do produto
   html+='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:14px">'
@@ -378,6 +381,7 @@ async function abrirModal(prodId){
         +'<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:'+bgSit+';color:'+(cSit[e.situacao]||'#6B7280')+'">'+(nSit[e.situacao]||e.situacao)+'</span>'
         +'<span style="font-size:11px;font-family:var(--font-mono);color:var(--verde-medio);font-weight:700;margin-left:auto">'+e.pct_entregue+'% · '+fmtBRL(parseFloat(e.valor_entregue||0))+'</span>'
         +'</div>'
+        +(e.numero_sei_subprocesso?'<div style="font-size:10px;color:var(--cinza-600);margin-bottom:3px">SEI: '+linkSEI(e.numero_sei_subprocesso)+'</div>':'')
         +(e.despacho_numero?'<div style="font-size:10px;color:var(--cinza-500);margin-bottom:3px">&#x1F4CB; '+esc(e.despacho_numero)+(e.despacho_data?' · '+fmtData(e.despacho_data):'')+'</div>':'')
         +(e.despacho_texto?'<div style="font-size:11px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);border-radius:4px;padding:6px 8px;margin-top:4px;border-left:3px solid '+(cSit[e.situacao]||'var(--borda)')+'">'+esc(e.despacho_texto.substring(0,200))+(e.despacho_texto.length>200?'…':'')+'</div>':'')
         +(e.arquivo_nome?'<div style="font-size:11px;color:var(--azul-medio);margin-top:5px;display:flex;align-items:center;gap:6px">&#x1F4CE; '+esc(e.arquivo_nome)
@@ -432,6 +436,13 @@ async function abrirModal(prodId){
       +'<div class="form-group"><label class="form-label">Observação</label>'
       +'<input class="form-control" type="text" id="f-obs-ent" placeholder="Ex: Entregue conforme cronograma"></div>'
       +'</div>'
+      +'<div class="form-group" style="margin-bottom:12px">'
+      +'<label class="form-label">SEI — sub-processo desta entrega'
+      +'<span style="font-size:10px;font-weight:400;color:var(--cinza-400);margin-left:6px">opcional · preenche automaticamente com o SEI do contrato se deixado em branco</span></label>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<input class="form-control" id="f-sei-sub" type="text" placeholder="'+(seiContrato||'0000000.000000/0000-00')+'" value="'+(seiContrato||'')+'" maxlength="22" style="font-family:var(--font-mono);max-width:280px" oninput="this.value=maskSEI(this.value)">'
+      +(seiContrato?'<span style="font-size:11px;color:var(--cinza-400)">← do contrato</span>':'')
+      +'</div></div>'
       +'<div class="form-group">'
       +'<label class="form-label">Documentos entregues <span class="obrig">*</span></label>'
       +'<div style="display:flex;gap:8px;margin-bottom:8px">'
@@ -1016,12 +1027,14 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
     if(fotosErros>0) toast(fotosErros+' foto(s) não puderam ser enviadas. Verifique as permissões do storage.','error');
   }
 
+  var seiSub=(document.getElementById('f-sei-sub')&&document.getElementById('f-sei-sub').value.trim())||null;
   var insR=await db.from('contratos_produtos_entregas').insert({
     produto_id:produtoAtual.id,contrato_id:produtoAtual.contrato_id,
     numero_entrega:numEntrega,pct_entregue:pctRest,valor_entregue:valorRest,
     dt_entrega:dtEnt,dt_vencimento_orig:produtoAtual.dt_vencimento,
     situacao:'em_analise',tipo_documento:docsEntrega[0]&&docsEntrega[0].tipo||'Relatório Técnico',
     fotos_urls:fotosUrls,fotos_nomes:fotosNomes,fotos_total:fotosUrls.length,
+    numero_sei_subprocesso:seiSub,
     criado_por:appState.usuario.id
   }).select().single();
   if(insR.error){toast('Erro: '+insR.error.message,'error');return;}

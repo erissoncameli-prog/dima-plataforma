@@ -541,6 +541,12 @@ function renderForm(c){
     '<select class="form-control" id="f-status">'+
     ['vigente','encerrado','suspenso'].map(function(s){return '<option value="'+s+'" '+((c?c.status:'vigente')===s?'selected':'')+'>'+SL[s]+'</option>';}).join('')+
     '</select></div></div>'+
+    '<div class="form-group"><label class="form-label">Número SEI'+
+    '<span style="font-size:10px;font-weight:400;color:var(--cinza-400);margin-left:6px">Processo no Sistema Eletrônico de Informações</span></label>'+
+    '<div style="display:flex;align-items:center;gap:8px">'+
+    '<input class="form-control" id="f-sei" type="text" value="'+(c&&c.numero_sei||'')+'" placeholder="0000000.000000/0000-00" maxlength="22" style="font-family:var(--font-mono);max-width:260px" oninput="this.value=maskSEI(this.value)">'+
+    (c&&c.numero_sei?'<a href="'+SEI_BASE_URL+encodeURIComponent(c.numero_sei)+'" target="_blank" rel="noopener" style="font-size:12px;color:#1E40AF;white-space:nowrap">Abrir no SEI ↗</a>':'')+
+    '</div></div>'+
     '<div class="sec-label">Documento do contrato (PDF assinado)</div>'+
     '<div class="upload-zone" id="zone-pdf" onclick="document.getElementById(\'inp-pdf\').click()" '+
     'ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" '+
@@ -591,6 +597,7 @@ window.salvar=async function(){
     dt_fim:document.getElementById('f-fim').value||null,
     elemento_despesa:document.getElementById('f-elem').value.trim()||null,
     status:document.getElementById('f-status').value,
+    numero_sei:document.getElementById('f-sei').value.trim()||null,
   };
   // saldo_brl é GENERATED ALWAYS no banco, não enviar
   var prog=document.getElementById('prog-bar');
