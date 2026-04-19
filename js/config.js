@@ -280,7 +280,8 @@ function badgeSituacao(sit) {
 // ── Permissões ────────────────────────────────────────────────
 const PODE = {
   verFinanceiro:    () => ['super_admin','coordenacao','financeiro'].includes(appState.perfil),
-  editarAtividade:  () => ['super_admin','coordenacao','tecnico'].includes(appState.perfil),
+  editarAtividade:  () => ['super_admin','coordenacao'].includes(appState.perfil),
+  verAtividade:     () => ['super_admin','coordenacao','tecnico'].includes(appState.perfil),
   aprovarProduto:   () => ['super_admin','coordenacao'].includes(appState.perfil),
   gerirUsuarios:    () => appState.perfil === 'super_admin',
   verAuditLog:      () => ['super_admin','coordenacao'].includes(appState.perfil),

@@ -132,7 +132,7 @@ td{overflow:visible;white-space:normal;word-break:break-word;vertical-align:top;
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarAtividade()">Salvar alterações</button>
+      <button id="btn-salvar-atividade" class="btn btn-primary" onclick="salvarAtividade()">Salvar alterações</button>
     </div>
   </div>
 </div>
@@ -205,7 +205,7 @@ let senhaCallback = null; // função a executar após confirmação de senha
                   <th style="width:110px">Pago U$<div style="font-size:9px;font-weight:400;color:var(--cinza-400,#9CA3AF)">(financeiro)</div></th>
                   <th style="width:140px">Responsável(is)</th>
                   <th style="width:120px">TDRs</th>
-                  ${PODE.editarAtividade() ? `<th style="width:60px">Ações</th>` : ''}
+                  ${PODE.editarAtividade() || PODE.verAtividade() ? `<th style="width:60px">Ações</th>` : ''}
                 </tr>
               </thead>
               <tbody id="tbody-atividades">
@@ -372,6 +372,7 @@ function renderTabela() {
     const nomeAtv = campo(a,'nome');
     const faseClasse = `fs-${a.fase}`;
     const podEditar = PODE.editarAtividade();
+    const podVer = PODE.verAtividade();
     const tdrsAtiv = tdrsPorAtividade[a.id]||[];
     const temAlerta = a.tdrs_sem_arquivo > 0;
     const painelId = `painel-${a.id}`;
@@ -451,12 +452,14 @@ function renderTabela() {
       </td>
       ${podEditar?`<td>
         <button class="btn btn-sm btn-secondary btn-icon" title="Editar" onclick="abrirModal('${a.id}')">✏️</button>
+      </td>`:podVer?`<td>
+        <button class="btn btn-sm btn-secondary btn-icon" title="Visualizar" onclick="abrirModal('${a.id}',true)">👁</button>
       </td>`:''}
     </tr>`;
 
     // Painel expansível com TDRs
     const painelTdrs = `<tr class="tdr-painel" id="${painelId}">
-      <td colspan="${podEditar?10:9}" style="padding:0">
+      <td colspan="${(podEditar||podVer)?10:9}" style="padding:0">
         <div class="tdr-painel-inner">
           <div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px">
             TDRs vinculados à atividade ${a.codigo}
@@ -566,13 +569,13 @@ async function alterarFase(id, sel) {
   } catch(e) { toast('Erro ao atualizar fase.', 'error'); }
 }
 
-function abrirModal(id) {
+function abrirModal(id, somenteLeitura = false) {
   ativEditando = todasAtividades.find(a => a.id === id);
   if (!ativEditando) return;
   const a = ativEditando;
   const nome = campo(a,'nome');
 
-  document.getElementById('modal-titulo').textContent = `Editar — ${a.codigo}`;
+  document.getElementById('modal-titulo').textContent = `${somenteLeitura ? 'Visualizar' : 'Editar'} — ${a.codigo}`;
   document.getElementById('modal-body').innerHTML = `
     <div style="margin-bottom:14px;padding:10px 14px;background:var(--cinza-50);border-radius:var(--raio);border:1px solid var(--borda)">
       <div style="font-size:11px;color:var(--cinza-500);margin-bottom:2px">${a.wbs_unesco||a.codigo}</div>
@@ -696,6 +699,14 @@ function abrirModal(id) {
     </div>`;
 
   document.getElementById('modal-atividade').classList.add('aberto');
+
+  const btnSalvar = document.getElementById('btn-salvar-atividade');
+  btnSalvar.style.display = somenteLeitura ? 'none' : '';
+  if (somenteLeitura) {
+    document.getElementById('modal-body').querySelectorAll('input,select,textarea,button').forEach(el => {
+      el.disabled = true;
+    });
+  }
 }
 
 async function adicionarResponsavel(ativId) {
