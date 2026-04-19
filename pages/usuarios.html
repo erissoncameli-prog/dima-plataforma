@@ -403,7 +403,6 @@ async function salvarUsuario(id){
   const senha=document.getElementById('eu-senha')?.value.trim();
   if(!nome){toast('Nome obrigatório.','error');return;}
 
-  // Atualizar dados do usuário
   const{error}=await db.from('usuarios').update({
     nome_completo:nome,perfil,
     telefone:tel||null,telefone_whatsapp:whats,
@@ -411,16 +410,19 @@ async function salvarUsuario(id){
   }).eq('id',id);
   if(error){toast('Erro: '+error.message,'error');return;}
 
-  // Resetar senha se preenchida
+  // Salvar permissões junto
+  const erroPerm=await _persistirPermissoes(id);
+  if(erroPerm){toast('Erro ao salvar permissões: '+erroPerm,'error');return;}
+
   if(senha){
     if(senha.length<8){toast('Senha mínima de 8 caracteres.','error');return;}
     const{error:sErr}=await db.rpc('fn_resetar_senha_usuario',{
       p_usuario_id:id, p_nova_senha:senha
     });
     if(sErr){toast('Erro ao resetar senha: '+sErr.message,'error');return;}
-    toast('Senha temporária definida! Usuário deverá trocar no próximo acesso.','success');
+    toast('Alterações e senha temporária salvas!','success');
   } else {
-    toast('Usuário atualizado!','success');
+    toast('Alterações salvas!','success');
   }
   fecharModal();await carregarDados();
 }
@@ -493,54 +495,39 @@ function togglePermRow(modulo, userId){
   if(dtWrap) dtWrap.style.display=chk?.checked?'flex':'none';
 }
 
-async function salvarPermissoes(userId){
+// Persiste permissões sem side-effects (sem toast, sem fechar modal)
+// Retorna mensagem de erro ou null se ok
+async function _persistirPermissoes(userId){
   const agora=appState.usuario.id;
   const ops=[];
-
   for(const m of MODULOS_LISTA){
     const chk=document.getElementById(`perm-chk-${m.id}`);
-    if(!chk||chk.disabled) continue; // módulos do perfil: ignorar
-
+    if(!chk||chk.disabled) continue;
     const marcado=chk.checked;
     const dtEl=document.getElementById(`perm-dt-${m.id}`);
     const validAte=dtEl?.value ? new Date(dtEl.value).toISOString() : null;
-
     if(marcado){
-      // UPSERT: inserir ou atualizar
-      ops.push(
-        db.from('usuario_permissoes').upsert({
-          usuario_id:  userId,
-          modulo:      m.id,
-          ativo:       true,
-          valido_de:   new Date().toISOString(),
-          valido_ate:  validAte,
-          concedido_por: agora,
-          concedido_em:  new Date().toISOString(),
-          revogado_por:  null,
-          revogado_em:   null,
-          motivo:        null
-        },{onConflict:'usuario_id,modulo'})
-      );
+      ops.push(db.from('usuario_permissoes').upsert({
+        usuario_id:userId, modulo:m.id, ativo:true,
+        valido_de:new Date().toISOString(), valido_ate:validAte,
+        concedido_por:agora, concedido_em:new Date().toISOString(),
+        revogado_por:null, revogado_em:null, motivo:null
+      },{onConflict:'usuario_id,modulo'}));
     } else {
-      // Revogar: ativo=false + registrar quem revogou
-      ops.push(
-        db.from('usuario_permissoes').update({
-          ativo:       false,
-          revogado_por: agora,
-          revogado_em:  new Date().toISOString()
-        }).eq('usuario_id', userId).eq('modulo', m.id)
-      );
+      ops.push(db.from('usuario_permissoes').update({
+        ativo:false, revogado_por:agora, revogado_em:new Date().toISOString()
+      }).eq('usuario_id',userId).eq('modulo',m.id));
     }
   }
-
   const resultados=await Promise.all(ops);
   const erros=resultados.filter(r=>r.error);
-  if(erros.length){
-    toast('Erro ao salvar permissões: '+erros[0].error.message,'error');
-    return;
-  }
-  toast('Permissões salvas com sucesso!','success');
-  // Reabrir para refletir estado atualizado
+  return erros.length ? erros[0].error.message : null;
+}
+
+async function salvarPermissoes(userId){
+  const erro=await _persistirPermissoes(userId);
+  if(erro){toast('Erro ao salvar permissões: '+erro,'error');return;}
+  toast('Permissões salvas!','success');
   fecharModal();
   await carregarDados();
   setTimeout(()=>abrirUsuario(userId),200);
