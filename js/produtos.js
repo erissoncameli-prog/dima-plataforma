@@ -404,15 +404,15 @@ async function abrirModal(prodId){
   html+=renderPainelContrato(fornContrato,numContrato,ctTotais,seiContrato);
 
   // Cabeçalho do produto
-  html+='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:14px">'
-    +'<div style="font-size:13px;font-weight:700;color:var(--cinza-900);margin-bottom:8px">'+esc(p.descricao)+'</div>'
-    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11px">'
-    +'<div><div class="info-lbl">Valor total</div><div class="info-val" style="font-family:var(--font-mono);font-weight:700;color:var(--verde-medio)">'+fmtBRL(parseFloat(p.valor_brl||0))+'</div></div>'
-    +'<div><div class="info-lbl">Situação</div><div class="info-val"><span class="sit sit-'+p.situacao+'">'+sitLbl(p.situacao)+'</span></div></div>'
-    +(pctAprov>0?'<div><div class="info-lbl">Aprovado</div><div class="info-val" style="color:#7C3AED;font-weight:600">'+pctAprov+'% · '+fmtBRL(parseFloat(p.valor_aprovado||0))+'</div></div>':'')
-    +(p.dt_vencimento?'<div><div class="info-lbl">Vencimento</div><div class="info-val">'+fmtData(p.dt_vencimento)+'</div></div>':'')
+  html+='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--cinza-900);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.descricao)+'</div>'
+    +'<div style="display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap">'
+    +'<span class="sit sit-'+p.situacao+'">'+sitLbl(p.situacao)+'</span>'
+    +'<span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--verde-medio)">'+fmtBRL(parseFloat(p.valor_brl||0))+'</span>'
+    +(pctAprov>0?'<span style="font-size:11px;color:#7C3AED;font-weight:600">'+pctAprov+'% aprovado</span>':'')
+    +(p.dt_vencimento?'<span style="font-size:11px;color:var(--cinza-500)">Venc. '+fmtData(p.dt_vencimento)+'</span>':'')
     +'</div>'
-    +(pctAprov>0?'<div style="margin-top:10px"><div style="font-size:10px;color:var(--cinza-500);margin-bottom:3px">Progresso</div><div class="prog-produto" style="height:8px"><div class="prog-fill" style="width:'+pctAprov+'%;background:#7C3AED"></div></div></div>':'')
+    +(pctAprov>0?'</div><div style="width:100%;padding:0 0 2px"><div class="prog-produto" style="height:4px"><div class="prog-fill" style="width:'+pctAprov+'%;background:#7C3AED"></div></div>':'')
     +'</div>';
 
   // Histórico de entregas anteriores
@@ -427,18 +427,20 @@ async function abrirModal(prodId){
       var cSit={aprovada:'#059669',em_analise:'#2563EB',devolvida:'#DC2626'};
       var nSit={aprovada:'Aprovada',em_analise:'Em avaliação',devolvida:'Devolvida'};
       var bgSit=e.situacao==='aprovada'?'#ECFDF5':e.situacao==='devolvida'?'#FEF2F2':'#EFF6FF';
-      html+='<div class="entrega-item"><div class="edot '+e.situacao+'"></div><div style="flex:1">'
-        +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
+      // linha compacta: tudo em uma linha + despacho texto em sub-linha se houver
+      html+='<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--cinza-100)">'
+        +'<div class="edot '+e.situacao+'" style="margin-top:4px;flex-shrink:0"></div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
         +'<span style="font-size:12px;font-weight:600;color:var(--cinza-900)">Entrega '+e.numero_entrega+'</span>'
-        +'<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:'+bgSit+';color:'+(cSit[e.situacao]||'#6B7280')+'">'+(nSit[e.situacao]||e.situacao)+'</span>'
+        +'<span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;background:'+bgSit+';color:'+(cSit[e.situacao]||'#6B7280')+'">'+(nSit[e.situacao]||e.situacao)+'</span>'
         +'<span style="font-size:11px;font-family:var(--font-mono);color:var(--verde-medio);font-weight:700;margin-left:auto">'+e.pct_entregue+'% · '+fmtBRL(parseFloat(e.valor_entregue||0))+'</span>'
+        +(e.numero_sei_subprocesso?'<span style="font-size:10px;color:var(--cinza-500)">· SEI: '+linkSEI(e.numero_sei_subprocesso)+'</span>':'')
+        +(e.despacho_numero?'<span style="font-size:10px;color:var(--cinza-500)">· &#x1F4CB; '+esc(e.despacho_numero)+(e.despacho_data?' '+fmtData(e.despacho_data):'')+'</span>':'')
+        +(e.arquivo_nome?'<span style="font-size:10px;color:var(--azul-medio);display:inline-flex;align-items:center;gap:4px">· &#x1F4CE; '+esc(e.arquivo_nome.length>28?e.arquivo_nome.substring(0,26)+'…':e.arquivo_nome)+(e.arquivo_url?'<button class="btn-xs" onclick="event.stopPropagation();abrirArquivo(\''+e.arquivo_url+'\')" style="height:18px;padding:0 5px;font-size:9px">Abrir</button>':'')+'</span>':'')
+        +((e.fotos_total||0)>0?'<span style="font-size:10px;color:var(--cinza-400)">· &#x1F4F7; '+e.fotos_total+'</span>':'')
         +'</div>'
-        +(e.numero_sei_subprocesso?'<div style="font-size:10px;color:var(--cinza-600);margin-bottom:3px">SEI: '+linkSEI(e.numero_sei_subprocesso)+'</div>':'')
-        +(e.despacho_numero?'<div style="font-size:10px;color:var(--cinza-500);margin-bottom:3px">&#x1F4CB; '+esc(e.despacho_numero)+(e.despacho_data?' · '+fmtData(e.despacho_data):'')+'</div>':'')
-        +(e.despacho_texto?'<div style="font-size:11px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);border-radius:4px;padding:6px 8px;margin-top:4px;border-left:3px solid '+(cSit[e.situacao]||'var(--borda)')+'">'+esc(e.despacho_texto.substring(0,200))+(e.despacho_texto.length>200?'…':'')+'</div>':'')
-        +(e.arquivo_nome?'<div style="font-size:11px;color:var(--azul-medio);margin-top:5px;display:flex;align-items:center;gap:6px">&#x1F4CE; '+esc(e.arquivo_nome)
-          +(e.arquivo_url?'<button class="btn-xs" onclick="event.stopPropagation();abrirArquivo(\''+e.arquivo_url+'\')" style="height:20px;padding:0 6px;font-size:10px">Abrir</button>':'')+'</div>':'')
-        +((e.fotos_total||0)>0?'<div style="font-size:11px;color:var(--cinza-500);margin-top:4px">&#x1F4F7; '+e.fotos_total+' foto(s) de evidência</div>':'')
+        +(e.despacho_texto?'<div style="font-size:11px;color:var(--cinza-600);line-height:1.45;margin-top:3px;padding:4px 8px;background:var(--cinza-50);border-left:2px solid '+(cSit[e.situacao]||'var(--borda)')+';border-radius:2px">'+esc(e.despacho_texto.substring(0,160))+(e.despacho_texto.length>160?'…':'')+'</div>':'')
         +'</div></div>';
     });
     html+='</div></details>';
