@@ -5,6 +5,7 @@ let atividades=[],contratos=[],todosProdutos=[];
 let produtoAtual=null,entregaAtual=null,entregaArquivo=null;
 let filtAtiv='',filtCont='',filtForn='',decisaoSel='';
 let fotosNovas=[];
+let geoPontosCache=[];
 let docsEntrega=[];
 let notaTecnicaFile=null;
 let notifPendenteId=null;
@@ -477,74 +478,148 @@ async function abrirModal(prodId){
       +'<button class="btn-registrar" onclick="registrarEntrega('+numProxEntrega+','+pctRest.toFixed(2)+','+valorRest.toFixed(2)+')">&#x1F4E5; Registrar e enviar para avaliação</button>';
 
   } else if(isAnalise&&entregaAtual){
-    // Buscar documentos e contribuições da entrega
-    var [docsR,contribsR]=await Promise.all([
-      db.from('entrega_documentos').select('*').eq('entrega_id',entregaAtual.id).order('inserido_em'),
-      db.from('produto_matriz_contribuicao')
-        .select('*,matriz_itens(resultado,produto_codigo,produto_titulo,indicador,unidade)')
-        .eq('produto_id',entregaAtual.id)
+    // Buscar: todos os docs de todas as entregas + pontos geo da entrega atual + contribuições
+    var entregaIds=entregas.map(function(e){return e.id;});
+    var [allDocsR,geoR,contribsR]=await Promise.all([
+      db.from('entrega_documentos').select('*').in('entrega_id',entregaIds).order('inserido_em'),
+      db.from('produto_pontos_mapa').select('id,nome,latitude,longitude,tipo_geometria').eq('entrega_id',entregaAtual.id),
+      db.from('produto_matriz_contribuicao').select('*,matriz_itens(resultado,produto_codigo,produto_titulo,indicador,unidade)').eq('produto_id',entregaAtual.id)
     ]);
-    var docs=docsR.data||[];
+    var allDocs=allDocsR.data||[];
+    geoPontosCache=geoR.data||[];
     var contribs=contribsR.data||[];
 
-    // Painel: O que foi contratado
-    html+='<div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:var(--raio);padding:12px 14px;margin-bottom:12px">'
-      +'<div style="font-size:11px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4CB; O que foi contratado</div>'
-      +'<div style="font-size:13px;font-weight:600;color:var(--cinza-900);line-height:1.4;margin-bottom:'+(p.observacoes?'8':'0')+'px">'+esc(p.descricao||'')+'</div>'
-      +(p.observacoes?'<div style="font-size:11px;color:var(--cinza-600);line-height:1.55;border-top:1px solid #BAE6FD;padding-top:8px"><strong style="font-size:10px;color:#0369A1;text-transform:uppercase;letter-spacing:.04em">Observações: </strong>'+esc(p.observacoes)+'</div>':'')
-      +'</div>';
+    // Lookup de entregas por id
+    var entregaById={};
+    entregas.forEach(function(e){entregaById[e.id]=e;});
 
-    // Tabs: Documentos+Indicadores | Fotos
-    var nFotos=(entregaAtual.fotos_urls||[]).length;
+    // Agrupar docs por tipo_documento; dentro de cada grupo: mais recente primeiro
+    var docsByTipo={};
+    var tiposOrdem=[];
+    allDocs.forEach(function(d){
+      var t=d.tipo_documento||'Outros';
+      if(!docsByTipo[t]){docsByTipo[t]=[];tiposOrdem.push(t);}
+      docsByTipo[t].push(d);
+    });
+    tiposOrdem.forEach(function(t){
+      docsByTipo[t].sort(function(a,b){
+        var na=(entregaById[a.entrega_id]||{}).numero_entrega||0;
+        var nb=(entregaById[b.entrega_id]||{}).numero_entrega||0;
+        return nb-na;
+      });
+    });
+
+    // Coletar fotos de TODAS as entregas (mais recente primeiro)
+    var todasFotos=[];
+    entregas.slice().sort(function(a,b){return b.numero_entrega-a.numero_entrega;}).forEach(function(e){
+      (e.fotos_urls||[]).forEach(function(url,i){
+        todasFotos.push({url:url,nome:(e.fotos_nomes||[])[i]||('Foto '+(i+1)),entregaNum:e.numero_entrega,isAtual:e.id===entregaAtual.id});
+      });
+    });
+
+    var nDocs=allDocs.length;
+    var nFotos=todasFotos.length;
+    var nGeo=geoPontosCache.length;
+
+    // ── Layout 2 colunas ─────────────────────────────────────────
+    html+='<div class="aval-2col">';
+
+    // ── COLUNA ESQUERDA: evidências ───────────────────────────────
+    html+='<div>';
     html+='<div class="eval-tabs">'
-      +'<button class="eval-tab-btn ativo" id="eval-btn-docs" onclick="switchEvalTab(\'docs\')">&#x1F4CE; Documentos'+(docs.length?' ('+docs.length+')':'')+'</button>'
+      +'<button class="eval-tab-btn ativo" id="eval-btn-docs" onclick="switchEvalTab(\'docs\')">&#x1F4CE; Documentos'+(nDocs?' ('+nDocs+')':'')+'</button>'
       +(nFotos?'<button class="eval-tab-btn" id="eval-btn-fotos" onclick="switchEvalTab(\'fotos\')">&#x1F4F7; Fotos ('+nFotos+')</button>':'')
+      +(nGeo?'<button class="eval-tab-btn" id="eval-btn-geo" onclick="switchEvalTab(\'geo\')">&#x1F4CD; Geo ('+nGeo+' pts)</button>':'')
       +(contribs.length?'<button class="eval-tab-btn" id="eval-btn-ind" onclick="switchEvalTab(\'ind\')">&#x25CE; Indicadores ('+contribs.length+')</button>':'')
       +'</div>';
 
-    // Tab 1: Documentos
+    // Tab Documentos (versionado)
     html+='<div class="eval-tab-content ativo" id="eval-tab-docs">';
-    if(docs.length||entregaAtual.arquivo_url){
-      html+='<div style="background:var(--azul-bg);border:1px solid #BFDBFE;border-radius:var(--raio);padding:12px 14px;margin-bottom:10px">'
-        +'<div style="font-size:11px;font-weight:700;color:var(--azul-medio);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4CE; Documentos entregues (Entrega '+entregaAtual.numero_entrega+(entregaAtual.dt_entrega?' · '+fmtData(entregaAtual.dt_entrega):'')+')</div>';
-      docs.forEach(function(d){
-        var isGeoDoc=d.tipo_documento===TIPO_GEO;
-        html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #BFDBFE">'
-          +'<span>'+(isGeoDoc?'&#x1F4CD;':'&#x1F4C4;')+'</span>'
-          +'<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(d.arquivo_nome)+'</div>'
-          +'<div style="font-size:10px;color:var(--cinza-500)">'+esc(d.tipo_documento)+'</div></div>'
-          +(isGeoDoc
-            ?'<button class="btn btn-sm btn-secondary" style="font-size:11px;white-space:nowrap" onclick="window.open(\'mapa.html?produto='+esc(entregaAtual.id)+'\',\'_blank\')">&#x1F5FA; Ver no mapa</button>'
-            :'<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirArquivo(\''+esc(d.arquivo_url)+'\')">&#x1F441; Abrir</button>'
-          )
+    if(nDocs){
+      tiposOrdem.forEach(function(tipo){
+        var items=docsByTipo[tipo];
+        var isGeo=tipo===TIPO_GEO;
+        html+='<div style="border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;margin-bottom:10px">'
+          +'<div style="padding:7px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);font-size:11px;font-weight:700;color:var(--cinza-700);display:flex;align-items:center;gap:6px">'
+          +(isGeo?'&#x1F4CD;':'&#x1F4C4;')+' '+esc(tipo)
+          +(items.length>1?'<span style="font-size:10px;color:var(--cinza-400);font-weight:400;margin-left:4px">('+items.length+' versões)</span>':'')
           +'</div>';
+        items.forEach(function(d,idx){
+          var ent=entregaById[d.entrega_id]||{};
+          var isAtual=d.entrega_id===entregaAtual.id;
+          var rowBg=idx===0?'background:#fff':'background:var(--cinza-50)';
+          html+='<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--borda);'+rowBg+'">'
+            +'<div style="flex:1;min-width:0">'
+            +'<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(d.arquivo_nome||'Documento')+'</div>'
+            +'<div style="font-size:10px;color:var(--cinza-500);margin-top:2px">Entrega '+esc(String(ent.numero_entrega||'?'))+(ent.dt_entrega?' · '+fmtData(ent.dt_entrega):'')+'</div>'
+            +'</div>'
+            +(isAtual
+              ?'<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:#DCFCE7;color:#166534;flex-shrink:0;white-space:nowrap">&#x2714; Atual</span>'
+              :'<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--cinza-100);color:var(--cinza-500);flex-shrink:0;white-space:nowrap">Anterior</span>'
+            )
+            +(isGeo
+              ?'<button class="btn btn-sm btn-secondary" style="font-size:11px;white-space:nowrap;flex-shrink:0" onclick="switchEvalTab(\'geo\')">&#x1F4CD; Ver pontos</button>'
+              :(d.arquivo_url?'<button class="btn btn-sm btn-secondary" style="font-size:11px;flex-shrink:0" onclick="abrirArquivo(\''+esc(d.arquivo_url)+'\')">&#x1F441; Abrir</button>':'')
+            )
+            +'</div>';
+        });
+        html+='</div>';
       });
-      if(entregaAtual.arquivo_url&&!docs.length){
-        html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0">'
-          +'<span>&#x1F4C4;</span>'
-          +'<div style="flex:1;font-size:12px;font-weight:600">'+esc(entregaAtual.arquivo_nome||'Documento')+'</div>'
-          +'<button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirArquivo(\''+esc(entregaAtual.arquivo_url)+'\')">&#x1F441; Abrir</button>'
-          +'</div>';
-      }
-      html+='</div>';
     }else{
-      html+='<div style="font-size:12px;color:var(--cinza-400);padding:12px 0">Nenhum documento carregado nesta entrega.</div>';
+      html+='<div style="font-size:12px;color:var(--cinza-400);padding:12px 0">Nenhum documento encontrado.</div>';
     }
     html+='</div>';
 
-    // Tab 2: Fotos (álbum)
+    // Tab Fotos — todas as entregas agrupadas
     if(nFotos){
-      html+='<div class="eval-tab-content" id="eval-tab-fotos">'
-        +'<div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px">'+nFotos+' foto(s) de evidência — clique para ampliar</div>'
-        +'<div class="album-grid">';
-      entregaAtual.fotos_urls.forEach(function(url,i){
-        var nome=(entregaAtual.fotos_nomes||[])[i]||('Foto '+(i+1));
-        html+='<div class="album-foto" onclick="abrirLightbox(\''+url.replace(/'/g,"\\'")+'\',\''+nome.replace(/'/g,"\\'")+'\')"><img src="'+url+'" alt="'+esc(nome)+'" loading="lazy"><div class="album-foto-nome">'+esc(nome)+'</div></div>';
+      html+='<div class="eval-tab-content" id="eval-tab-fotos">';
+      var fotosPorEnt={};var ordemEnts=[];
+      todasFotos.forEach(function(f){
+        var k=f.entregaNum;
+        if(!fotosPorEnt[k]){fotosPorEnt[k]=[];ordemEnts.push(k);}
+        fotosPorEnt[k].push(f);
       });
-      html+='</div></div>';
+      ordemEnts.forEach(function(en){
+        var fotos=fotosPorEnt[en];
+        var isAtu=fotos[0]&&fotos[0].isAtual;
+        html+='<div style="margin-bottom:14px">'
+          +'<div style="font-size:11px;font-weight:700;color:var(--cinza-600);margin-bottom:8px;display:flex;align-items:center;gap:6px">Entrega '+en
+          +(isAtu?' <span style="font-size:9px;padding:2px 7px;background:#DCFCE7;color:#166534;border-radius:99px;font-weight:700">Atual</span>':'')
+          +'</div>'
+          +'<div class="album-grid">';
+        fotos.forEach(function(f){
+          html+='<div class="album-foto" onclick="abrirLightbox(\''+f.url.replace(/'/g,"\\'")+'\',\''+f.nome.replace(/'/g,"\\'")+'\')"><img src="'+f.url+'" alt="'+esc(f.nome)+'" loading="lazy"><div class="album-foto-nome">'+esc(f.nome)+'</div></div>';
+        });
+        html+='</div></div>';
+      });
+      html+='</div>';
     }
 
-    // Tab 3: Indicadores (Matriz)
+    // Tab Geo — tabela de pontos
+    if(nGeo){
+      html+='<div class="eval-tab-content" id="eval-tab-geo">'
+        +'<div style="font-size:11px;color:var(--cinza-500);margin-bottom:8px">'+nGeo+' ponto(s) carregados na Entrega '+entregaAtual.numero_entrega+'</div>'
+        +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+        +'<thead><tr style="background:var(--cinza-50);border-bottom:2px solid var(--borda)">'
+        +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--cinza-500)">#</th>'
+        +'<th style="text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--cinza-500)">Nome</th>'
+        +'<th style="text-align:right;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--cinza-500)">Latitude</th>'
+        +'<th style="text-align:right;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--cinza-500)">Longitude</th>'
+        +'<th style="text-align:center;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--cinza-500)">Tipo</th>'
+        +'</tr></thead><tbody>';
+      geoPontosCache.forEach(function(pt,i){
+        html+='<tr style="border-bottom:1px solid var(--borda);'+(i%2===0?'':'background:var(--cinza-50)')+'">'
+          +'<td style="padding:7px 10px;color:var(--cinza-400);font-size:11px">'+(i+1)+'</td>'
+          +'<td style="padding:7px 10px;font-weight:500">'+esc(pt.nome||'—')+'</td>'
+          +'<td style="padding:7px 10px;text-align:right;font-family:var(--font-mono);font-size:11px">'+parseFloat(pt.latitude||0).toFixed(6)+'</td>'
+          +'<td style="padding:7px 10px;text-align:right;font-family:var(--font-mono);font-size:11px">'+parseFloat(pt.longitude||0).toFixed(6)+'</td>'
+          +'<td style="padding:7px 10px;text-align:center"><span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--cinza-100);color:var(--cinza-600)">'+esc(pt.tipo_geometria||'ponto')+'</span></td>'
+          +'</tr>';
+      });
+      html+='</tbody></table></div></div>';
+    }
+
+    // Tab Indicadores
     if(contribs.length){
       var stCor={'pendente':'#92400E','confirmado':'#065F46','rejeitado':'#991B1B'};
       var stBg={'pendente':'#FEF3C7','confirmado':'#D1FAE5','rejeitado':'#FEE2E2'};
@@ -553,8 +628,7 @@ async function abrirModal(prodId){
         +'<div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:var(--raio);padding:12px 14px">'
         +'<div style="font-size:11px;font-weight:700;color:#4C1D95;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x25CE; Contribuição à Matriz de Resultados</div>';
       contribs.forEach(function(c){
-        var mi=c.matriz_itens||{};
-        var st=c.status||'pendente';
+        var mi=c.matriz_itens||{};var st=c.status||'pendente';
         html+='<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #DDD6FE;border-radius:var(--raio);margin-bottom:6px">'
           +'<div style="flex:1;min-width:0">'
           +'<div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#5B21B6;margin-bottom:2px">R'+mi.resultado+' · '+esc(mi.produto_codigo||'')+'</div>'
@@ -562,34 +636,44 @@ async function abrirModal(prodId){
           +'<div style="font-size:11px;color:var(--cinza-600)">Valor declarado: <strong style="font-family:var(--font-mono)">'+parseFloat(c.valor||0).toLocaleString('pt-BR')+'</strong>'+(c.unidade?' '+esc(c.unidade):'')+'</div>'
           +(c.observacao?'<div style="font-size:10px;color:var(--cinza-500);margin-top:3px;font-style:italic">'+esc(c.observacao)+'</div>':'')
           +'</div>'
-          +'<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;background:'+stBg[st]+';color:'+stCor[st]+'">'+stLbl[st]+'</span>'
+          +'<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;background:'+(stBg[st]||'#F3F4F6')+';color:'+(stCor[st]||'#374151')+'">'+(stLbl[st]||st)+'</span>'
           +'</div>';
       });
       html+='</div></div>';
     }
+    html+='</div>'; // fim coluna esquerda
 
-    // Checkbox de confirmação (obrigatório para aprovar)
-    html+='<div style="background:#FEF9C3;border:1px solid #FDE047;border-radius:var(--raio);padding:10px 14px;margin:14px 0 10px">'
-      +'<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">'
-      +'<input type="checkbox" id="chk-confirmacao" onchange="toggleAvalCheckbox()" style="margin-top:2px;width:16px;height:16px;accent-color:#059669;flex-shrink:0">'
-      +'<span style="font-size:12px;font-weight:600;color:#713F12;line-height:1.45">Confirmo que o produto entregue corresponde ao objeto contratado descrito acima. Conteúdo, tipo e qualidade estão em conformidade.</span>'
-      +'</label>'
+    // ── COLUNA DIREITA: decisão ───────────────────────────────────
+    html+='<div>';
+
+    // O que foi contratado
+    html+='<div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:var(--raio);padding:12px 14px;margin-bottom:12px">'
+      +'<div style="font-size:11px;font-weight:700;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4CB; O que foi contratado</div>'
+      +'<div style="font-size:13px;font-weight:600;color:var(--cinza-900);line-height:1.4;margin-bottom:'+(p.observacoes?'8':'0')+'px">'+esc(p.descricao||'')+'</div>'
+      +(p.observacoes?'<div style="font-size:11px;color:var(--cinza-600);line-height:1.55;border-top:1px solid #BAE6FD;padding-top:8px"><strong style="font-size:10px;color:#0369A1;text-transform:uppercase;letter-spacing:.04em">Observações: </strong>'+esc(p.observacoes)+'</div>':'')
       +'</div>';
 
-    // Decisão de avaliação
+    // Confirmação
+    html+='<div style="background:#FEF9C3;border:1px solid #FDE047;border-radius:var(--raio);padding:10px 14px;margin-bottom:12px">'
+      +'<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">'
+      +'<input type="checkbox" id="chk-confirmacao" onchange="toggleAvalCheckbox()" style="margin-top:2px;width:16px;height:16px;accent-color:#059669;flex-shrink:0">'
+      +'<span style="font-size:12px;font-weight:600;color:#713F12;line-height:1.45">Confirmo que o produto corresponde ao contratado. Conteúdo e qualidade estão em conformidade.</span>'
+      +'</label></div>';
+
+    // Decisão
     var pctRestF=pctRest.toFixed(0);
     var valorRestF=fmtBRL(valorRest);
-    html+='<div style="border-top:1px solid var(--borda);padding-top:14px">'
+    html+='<div style="margin-bottom:12px">'
       +'<div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Decisão de avaliação</div>'
       +'<div class="decisao-opts">'
       +'<label class="decisao-opt" id="opt-total" onclick="selecionarDecisao(\'aprovacao_total\')">'
       +'<input type="radio" name="decisao" value="aprovacao_total">'
       +'<div><div class="decisao-tit" style="color:#059669">&#x2714; Aprovação total</div>'
-      +'<div class="decisao-sub">Atende integralmente — pagamento integral liberado ('+pctRestF+'% · '+valorRestF+')</div></div></label>'
+      +'<div class="decisao-sub">'+pctRestF+'% aprovado · '+valorRestF+'</div></div></label>'
       +'<label class="decisao-opt" id="opt-parcial" onclick="selecionarDecisao(\'aprovacao_parcial\')">'
       +'<input type="radio" name="decisao" value="aprovacao_parcial">'
       +'<div><div class="decisao-tit" style="color:#7C3AED">&#x25D1; Aprovação parcial</div>'
-      +'<div class="decisao-sub">Atende parcialmente — pagamento proporcional</div></div></label>'
+      +'<div class="decisao-sub">Pagamento proporcional</div></div></label>'
       +'<div id="wrap-parcial" style="display:none">'
       +'<div class="grid-2"><div class="form-group" style="margin-bottom:0">'
       +'<label class="form-label">% aprovado <span class="obrig">*</span></label>'
@@ -603,9 +687,11 @@ async function abrirModal(prodId){
       +'<input type="radio" name="decisao" value="devolucao">'
       +'<div><div class="decisao-tit" style="color:#DC2626">&#x21A9; Devolução</div>'
       +'<div class="decisao-sub">Não atende — devolvido para correção</div></div></label>'
-      +'</div>'
-      +'<div class="despacho-box">'
-      +'<div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">&#x1F4CB; Despacho — número gerado automaticamente ao salvar</div>'
+      +'</div></div>';
+
+    // Despacho
+    html+='<div class="despacho-box">'
+      +'<div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">&#x1F4CB; Despacho — número gerado automaticamente</div>'
       +'<div class="form-group" style="margin-bottom:10px"><label class="form-label">Texto do despacho <span class="obrig">*</span></label>'
       +'<textarea class="form-control" id="f-despacho" rows="4" placeholder="Descreva formalmente sua decisão..." style="font-size:12px;line-height:1.6"></textarea></div>'
       +'<div class="grid-2">'
@@ -613,16 +699,20 @@ async function abrirModal(prodId){
       +'<input class="form-control" type="date" id="f-dt-desp" value="'+new Date().toISOString().split('T')[0]+'"></div>'
       +'<div class="form-group" style="margin-bottom:0"><label class="form-label">Avaliador</label>'
       +'<input class="form-control" value="'+(appState.usuario&&appState.usuario.nome_completo||'')+'" readonly style="background:var(--cinza-50)"></div>'
-      +'</div></div>'
-      +'<div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:var(--raio);padding:12px 14px;margin-top:12px">'
+      +'</div></div>';
+
+    // Nota Técnica
+    html+='<div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:var(--raio);padding:12px 14px;margin-top:12px">'
       +'<div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4C4; Nota Técnica (PDF)</div>'
       +(entregaAtual.nota_tecnica_url?'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 8px;background:#fff;border:1px solid #86EFAC;border-radius:var(--raio)"><span>&#x1F4C4;</span><div style="flex:1;font-size:12px;font-weight:600">'+esc(entregaAtual.nota_tecnica_nome||'Nota Técnica')+'</div><button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirArquivo(\''+esc(entregaAtual.nota_tecnica_url)+'\')">&#x1F441; Abrir</button></div>':'')
       +'<div class="upload-zona" id="zona-nt" style="padding:10px" onclick="document.getElementById(\'inp-nt\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="event.preventDefault();this.classList.remove(\'drag\');selNotaTecnica(event.dataTransfer.files[0])">'
       +'<input type="file" id="inp-nt" style="display:none" accept=".pdf" onchange="selNotaTecnica(this.files[0])">'
       +'<div style="font-size:12px;font-weight:500;color:var(--cinza-600)">'+(entregaAtual.nota_tecnica_url?'&#x1F4CE; Substituir nota técnica':'&#x1F4CE; Anexar nota técnica (PDF)')+'</div>'
       +'</div><div id="nt-nome" style="font-size:11px;margin-top:4px;color:var(--cinza-500)"></div>'
-      +'<div style="font-size:10px;color:var(--cinza-400);margin-top:4px">Visível para todas as partes ao clicar em Abrir</div>'
-      +'</div></div>';
+      +'</div>';
+
+    html+='</div>'; // fim coluna direita
+    html+='</div>'; // fim aval-2col
 
     document.getElementById('mp-footer').innerHTML=
       '<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>'
