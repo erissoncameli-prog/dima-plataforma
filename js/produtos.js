@@ -992,7 +992,7 @@ async function emitirDespacho(tipoBtn){
   var anoAtual=new Date().getFullYear();
   var dSeqR=await db.from('despachos_seq').select('*').eq('ano',anoAtual).single();
   var dSeq=1;
-  if(dSeqR.data){dSeq=dSeqR.data.ultimo+1;await db.from('despachos_seq').update({ultimo:dSeq}).eq('ano',anoAtual);}
+  if(dSeqR.data){dSeq=parseInt(dSeqR.data.ultimo||0)+1;await db.from('despachos_seq').update({ultimo:dSeq}).eq('ano',anoAtual);}
   else{await db.from('despachos_seq').insert({ano:anoAtual,ultimo:1});}
   var numDesp='DESP-'+anoAtual+'-'+String(dSeq).padStart(3,'0');
   var novaSit=tipo==='devolucao'?'devolvida':tipo==='aprovacao_parcial'?'aprovada':'aprovada';
