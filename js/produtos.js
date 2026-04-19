@@ -902,7 +902,8 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
         });
       });
     });
-    var validos=todospontos.filter(function(p){return !isNaN(p.lat)&&!isNaN(p.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;});
+    var validos=todospontos.filter(function(p){return !isNaN(p.lat)&&!isNaN(p.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;})
+      .map(function(p){return Object.assign({},p,{entrega_id:entrega.id});});
     if(validos.length){
       var gR=await db.from('produto_pontos_mapa').insert(validos);
       if(!gR.error){toast(validos.length+' ponto(s) de geolocalização salvos no mapa.','info');}
@@ -962,6 +963,14 @@ async function emitirDespacho(tipoBtn){
   }).eq('id',entregaAtual.id);
   if(updR.error){toast('Erro: '+updR.error.message,'error');return;}
   notaTecnicaFile=null;
+
+  if(tipo==='devolucao'){
+    // Cancelar contribuições à matriz e remover pontos do mapa desta entrega
+    await Promise.all([
+      db.from('produto_matriz_contribuicao').update({status:'cancelado'}).eq('produto_id',entregaAtual.id),
+      db.from('produto_pontos_mapa').delete().eq('entrega_id',entregaAtual.id)
+    ]);
+  }
 
   if(tipo!=='devolucao'){
     var novoPct=Math.min(100,parseFloat(produtoAtual.pct_aprovado||0)+pctAprov);
