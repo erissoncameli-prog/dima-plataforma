@@ -230,8 +230,8 @@ function renderCard(p){
   }
   var pct=parseFloat(p.pct_aprovado||0);
   var corProg=p.situacao==='entrega_parcial'?'#7C3AED':p.situacao==='em_analise'?'#2563EB':'var(--verde-claro)';
-  var acaoTxt={pendente:'&#x1F4E5; Registrar entrega &#x2192;',em_analise:'&#x1F50D; Avaliar &#x2192;',entrega_parcial:'&#x1F4E5; Nova entrega &#x2192;',aprovado:'&#x1F4B3; Aguardando pagamento'}[p.situacao]||'&#x2192;';
-  var topBg=p.situacao==='em_analise'?'background:#EFF6FF;border-bottom-color:#BFDBFE':p.situacao==='entrega_parcial'?'background:#F5F3FF;border-bottom-color:#DDD6FE':p.situacao==='aprovado'?'background:#F0FDF4;border-bottom-color:#86EFAC':'';
+  var acaoTxt={pendente:'&#x1F4E5; Registrar entrega &#x2192;',em_analise:'&#x1F50D; Avaliar &#x2192;',entrega_parcial:'&#x1F4E5; Nova entrega &#x2192;',aprovado:'&#x1F4B3; Aguardando pagamento',devolvido:'&#x21A9; Reenviar entrega &#x2192;'}[p.situacao]||'&#x2192;';
+  var topBg=p.situacao==='em_analise'?'background:#EFF6FF;border-bottom-color:#BFDBFE':p.situacao==='entrega_parcial'?'background:#F5F3FF;border-bottom-color:#DDD6FE':p.situacao==='aprovado'?'background:#F0FDF4;border-bottom-color:#86EFAC':p.situacao==='devolvido'?'background:#FEF2F2;border-bottom-color:#FCA5A5':'';
   var clicavel=p.situacao!=='aprovado';
   var acaoCor=p.situacao==='aprovado'?'color:#166534;font-style:italic':'color:var(--cinza-400)';
   var onclk=clicavel?' onclick="abrirModal(\''+p.id+'\')"':'';
@@ -295,8 +295,19 @@ async function abrirModal(prodId){
 
   var isPend=p.situacao==='pendente'||p.situacao==='entrega_parcial'||p.situacao==='devolvido';
   var isAnalise=p.situacao==='em_analise';
+  var isDevolvido=p.situacao==='devolvido';
 
-  var titulo=isPend?('Registrar Entrega — Produto '+p.numero_produto):('Avaliar Entrega — Produto '+p.numero_produto);
+  // Para devolvido: buscar entrega devolvida e seus documentos anteriores
+  var entregaDevolvida=null,docsDevolvida=[];
+  if(isDevolvido){
+    entregaDevolvida=entregas.filter(function(e){return e.situacao==='devolvida';}).sort(function(a,b){return b.numero_entrega-a.numero_entrega;})[0]||null;
+    if(entregaDevolvida){
+      var ddR=await db.from('entrega_documentos').select('*').eq('entrega_id',entregaDevolvida.id);
+      docsDevolvida=ddR.data||[];
+    }
+  }
+
+  var titulo=isDevolvido?('Reenviar Entrega — Produto '+p.numero_produto):isPend?('Registrar Entrega — Produto '+p.numero_produto):('Avaliar Entrega — Produto '+p.numero_produto);
   document.getElementById('mp-titulo').textContent=titulo;
 
   var html='';
@@ -338,6 +349,39 @@ async function abrirModal(prodId){
 
   // FORMULÁRIO DE ENTREGA
   if(isPend){
+
+    // Painel de contexto para produtos devolvidos
+    if(isDevolvido&&entregaDevolvida){
+      html+='<div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:14px 16px;margin-bottom:14px">'
+        +'<div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:10px;display:flex;align-items:center;gap:6px">&#x21A9; Este produto foi devolvido para correção</div>'
+        // Motivo da devolução
+        +(entregaDevolvida.despacho_texto?'<div style="font-size:12px;color:#7F1D1D;background:#fff;border:1px solid #FCA5A5;border-radius:var(--raio);padding:8px 10px;margin-bottom:10px;line-height:1.55">'
+          +'<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#DC2626">Motivo ('+(entregaDevolvida.despacho_numero||'Despacho')+'): </span>'
+          +esc(entregaDevolvida.despacho_texto)
+          +'</div>':'')
+        // Documentos enviados anteriormente
+        +(docsDevolvida.length?'<div style="font-size:11px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">&#x1F4CE; Documentos enviados anteriormente</div>'
+          +'<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:'+(entregaDevolvida.fotos_total>0?'10':'0')+'px">'
+          +docsDevolvida.map(function(d){
+            return '<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #FCA5A5;border-radius:var(--raio);padding:6px 10px;font-size:11px">'
+              +'<span style="font-size:13px">&#x1F4C4;</span>'
+              +'<div style="flex:1;min-width:0"><div style="font-weight:600;color:var(--cinza-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(d.arquivo_nome||'Documento')+'</div>'
+              +'<div style="color:var(--cinza-500);font-size:10px">'+esc(d.tipo_documento||'')+'</div></div>'
+              +(d.arquivo_url?'<button class="btn btn-sm btn-secondary" style="flex-shrink:0;height:24px;padding:0 8px;font-size:10px" onclick="event.stopPropagation();abrirArquivo(\''+esc(d.arquivo_url)+'\')">Abrir</button>':'')
+              +'</div>';
+          }).join('')
+          +'</div>':'')
+        // Fotos enviadas anteriormente
+        +((entregaDevolvida.fotos_total>0&&(entregaDevolvida.fotos_urls||[]).length)?'<div style="font-size:11px;font-weight:700;color:#991B1B;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">&#x1F4F7; Fotos enviadas anteriormente ('+entregaDevolvida.fotos_total+')</div>'
+          +'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px">'
+          +(entregaDevolvida.fotos_urls||[]).map(function(url,i){
+            var nome=(entregaDevolvida.fotos_nomes||[])[i]||('Foto '+(i+1));
+            return '<div class="album-foto" style="border-radius:6px;overflow:hidden;aspect-ratio:1;cursor:zoom-in;background:var(--cinza-100);position:relative;border:1px solid #FCA5A5" onclick="abrirLightbox(\''+url.replace(/'/g,"\\'")+'\',\''+nome.replace(/'/g,"\\'")+'\')"><img src="'+url+'" alt="'+esc(nome)+'" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block"></div>';
+          }).join('')
+          +'</div>':'')
+        +'</div>';
+    }
+
     var complemento=p.situacao==='entrega_parcial'?'<span style="font-size:10px;font-weight:400;color:var(--cinza-500)">&nbsp;— complemento (restam '+pctRest.toFixed(0)+'% · '+fmtBRL(valorRest)+')</span>':'';
     html+='<div style="border-top:1px solid var(--borda);padding-top:14px">'
       +'<div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Registrar Entrega '+numProxEntrega+' '+complemento+'</div>'
