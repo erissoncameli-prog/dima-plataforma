@@ -728,18 +728,20 @@ async function abrirModal(prodId){
     // Decisão
     var pctRestF=pctRest.toFixed(0);
     var valorRestF=fmtBRL(valorRest);
-    html+='<div style="margin-bottom:12px">'
-      +'<div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Decisão de avaliação</div>'
+    html+='<div style="margin-bottom:10px">'
+      +'<div style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Decisão de avaliação</div>'
       +'<div class="decisao-opts">'
-      +'<label class="decisao-opt" id="opt-total" onclick="selecionarDecisao(\'aprovacao_total\')">'
+      +'<label class="decisao-opt" id="opt-total" onclick="selecionarDecisao(\'aprovacao_total\')" title="'+pctRestF+'% aprovado · '+valorRestF+'">'
       +'<input type="radio" name="decisao" value="aprovacao_total">'
-      +'<div><div class="decisao-tit" style="color:#059669">&#x2714; Aprovação total</div>'
-      +'<div class="decisao-sub">'+pctRestF+'% aprovado · '+valorRestF+'</div></div></label>'
-      +'<label class="decisao-opt" id="opt-parcial" onclick="selecionarDecisao(\'aprovacao_parcial\')">'
+      +'<div class="decisao-tit" style="color:#059669">&#x2714; Aprovação total</div></label>'
+      +'<label class="decisao-opt" id="opt-parcial" onclick="selecionarDecisao(\'aprovacao_parcial\')" title="Pagamento proporcional">'
       +'<input type="radio" name="decisao" value="aprovacao_parcial">'
-      +'<div><div class="decisao-tit" style="color:#7C3AED">&#x25D1; Aprovação parcial</div>'
-      +'<div class="decisao-sub">Pagamento proporcional</div></div></label>'
-      +'<div id="wrap-parcial" style="display:none">'
+      +'<div class="decisao-tit" style="color:#7C3AED">&#x25D1; Parcial</div></label>'
+      +'<label class="decisao-opt" id="opt-devol" onclick="selecionarDecisao(\'devolucao\')" title="Não atende — devolvido para correção">'
+      +'<input type="radio" name="decisao" value="devolucao">'
+      +'<div class="decisao-tit" style="color:#DC2626">&#x21A9; Devolução</div></label>'
+      +'</div>'
+      +'<div id="wrap-parcial" style="display:none;margin-top:6px">'
       +'<div class="grid-2"><div class="form-group" style="margin-bottom:0">'
       +'<label class="form-label">% aprovado <span class="obrig">*</span></label>'
       +'<input class="form-control" type="number" id="f-pct" min="1" max="'+pctRestF+'" placeholder="Ex: 70" oninput="calcValorParcial(this.value,'+parseFloat(p.valor_brl||0)+')">'
@@ -748,32 +750,32 @@ async function abrirModal(prodId){
       +'<label class="form-label">Valor a pagar (R$)</label>'
       +'<input class="form-control" type="number" id="f-val-parcial" readonly style="background:var(--cinza-50);font-family:var(--font-mono);font-weight:600" placeholder="Calculado">'
       +'</div></div></div>'
-      +'<label class="decisao-opt" id="opt-devol" onclick="selecionarDecisao(\'devolucao\')">'
-      +'<input type="radio" name="decisao" value="devolucao">'
-      +'<div><div class="decisao-tit" style="color:#DC2626">&#x21A9; Devolução</div>'
-      +'<div class="decisao-sub">Não atende — devolvido para correção</div></div></label>'
-      +'</div></div>';
+      +'</div>';
 
-    // Despacho
+    // Despacho + Nota Técnica integrada
     html+='<div class="despacho-box">'
-      +'<div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">&#x1F4CB; Despacho — número gerado automaticamente</div>'
-      +'<div class="form-group" style="margin-bottom:10px"><label class="form-label">Texto do despacho <span class="obrig">*</span></label>'
-      +'<textarea class="form-control" id="f-despacho" rows="4" placeholder="Descreva formalmente sua decisão..." style="font-size:12px;line-height:1.6"></textarea></div>'
-      +'<div class="grid-2">'
+      +'<div style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">&#x1F4CB; Despacho — número gerado automaticamente</div>'
+      +'<div class="form-group" style="margin-bottom:8px"><label class="form-label">Texto do despacho <span class="obrig">*</span></label>'
+      +'<textarea class="form-control" id="f-despacho" rows="3" placeholder="Descreva formalmente sua decisão..." style="font-size:12px;line-height:1.6"></textarea></div>'
+      +'<div class="grid-2" style="margin-bottom:10px">'
       +'<div class="form-group" style="margin-bottom:0"><label class="form-label">Data do despacho</label>'
       +'<input class="form-control" type="date" id="f-dt-desp" value="'+new Date().toISOString().split('T')[0]+'"></div>'
       +'<div class="form-group" style="margin-bottom:0"><label class="form-label">Avaliador</label>'
       +'<input class="form-control" value="'+(appState.usuario&&appState.usuario.nome_completo||'')+'" readonly style="background:var(--cinza-50)"></div>'
-      +'</div></div>';
-
-    // Nota Técnica
-    html+='<div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:var(--raio);padding:12px 14px;margin-top:12px">'
-      +'<div style="font-size:11px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">&#x1F4C4; Nota Técnica (PDF)</div>'
-      +(entregaAtual.nota_tecnica_url?'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 8px;background:#fff;border:1px solid #86EFAC;border-radius:var(--raio)"><span>&#x1F4C4;</span><div style="flex:1;font-size:12px;font-weight:600">'+esc(entregaAtual.nota_tecnica_nome||'Nota Técnica')+'</div><button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirArquivo(\''+esc(entregaAtual.nota_tecnica_url)+'\')">&#x1F441; Abrir</button></div>':'')
-      +'<div class="upload-zona" id="zona-nt" style="padding:10px" onclick="document.getElementById(\'inp-nt\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="event.preventDefault();this.classList.remove(\'drag\');selNotaTecnica(event.dataTransfer.files[0])">'
+      +'</div>'
+      // Nota Técnica como linha compacta dentro do despacho
+      +'<div style="border-top:1px solid #FDE68A;padding-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+      +'<span style="font-size:10px;font-weight:700;color:#92400E;text-transform:uppercase;letter-spacing:.04em">&#x1F4C4; Nota Técnica</span>'
+      +(entregaAtual.nota_tecnica_url
+        ?'<span style="font-size:11px;color:#713F12;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(entregaAtual.nota_tecnica_nome||'Nota Técnica')+'</span>'
+         +'<button class="btn btn-sm btn-secondary" style="font-size:10px;height:24px;padding:0 8px;flex-shrink:0" onclick="abrirArquivo(\''+esc(entregaAtual.nota_tecnica_url)+'\')">&#x1F441; Abrir</button>'
+        :'<span id="nt-nome" style="font-size:11px;color:#92400E;flex:1;font-style:italic">nenhuma anexada</span>')
       +'<input type="file" id="inp-nt" style="display:none" accept=".pdf" onchange="selNotaTecnica(this.files[0])">'
-      +'<div style="font-size:12px;font-weight:500;color:var(--cinza-600)">'+(entregaAtual.nota_tecnica_url?'&#x1F4CE; Substituir nota técnica':'&#x1F4CE; Anexar nota técnica (PDF)')+'</div>'
-      +'</div><div id="nt-nome" style="font-size:11px;margin-top:4px;color:var(--cinza-500)"></div>'
+      +'<button class="btn btn-sm btn-secondary" style="font-size:10px;height:24px;padding:0 8px;flex-shrink:0" onclick="document.getElementById(\'inp-nt\').click()">'
+      +(entregaAtual.nota_tecnica_url?'&#x1F4CE; Substituir':'&#x1F4CE; Anexar PDF')
+      +'</button>'
+      +(entregaAtual.nota_tecnica_url?'':'<div id="nt-nome" style="font-size:10px;color:#059669;width:100%;margin-top:2px"></div>')
+      +'</div>'
       +'</div>';
 
     html+='</div>'; // fim coluna direita
