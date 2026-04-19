@@ -175,6 +175,12 @@ async function sair() {
   window.location.href = '../index.html';
 }
 
+// ── Utilitários ───────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ── Formatação ────────────────────────────────────────────────
 function fmtBRL(v) {
   if (v == null || v === '') return '—';
