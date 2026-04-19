@@ -51,10 +51,10 @@ const TIPO_GEO='Planilha de Geolocalização';
     +'</div>'
     +'</div></div></div>'
     +'<div class="modal-overlay" id="modal-prod">'
-    +'<div class="modal" style="max-width:680px">'
+    +'<div class="modal" style="max-width:min(92vw,1000px)">'
     +'<div class="modal-header"><div class="modal-title" id="mp-titulo">Produto</div>'
     +'<button class="modal-close" onclick="fecharModal()">&#x2715;</button></div>'
-    +'<div class="modal-body" id="mp-body" style="max-height:72vh;overflow-y:auto"></div>'
+    +'<div class="modal-body" id="mp-body" style="max-height:82vh;overflow-y:auto"></div>'
     +'<div class="modal-footer" id="mp-footer"></div>'
     +'</div></div>'
     +'<div id="lightbox" onclick="fecharLightbox()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out">'
@@ -332,31 +332,23 @@ function renderLista(){
 
 function renderPainelContrato(forn,contratoNum,totais,seiContrato){
   var saldo=totais.total-totais.pago;
-  return '<div style="background:#F8FAFC;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;margin-bottom:14px">'
-    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap">'
-    +'<div style="display:flex;align-items:center;gap:10px">'
-    +'<div style="width:36px;height:36px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">&#x1F3E2;</div>'
-    +'<div>'
-    +'<div style="font-size:13px;font-weight:700;color:var(--cinza-900)">'+esc(forn.nome||'—')+'</div>'
-    +(forn.cpf_cnpj?'<div style="font-size:11px;color:var(--cinza-500);font-family:var(--font-mono)">'+esc(forn.cpf_cnpj)+'</div>':'')
-    +(forn.email?'<div style="font-size:11px;color:var(--cinza-500)">'+esc(forn.email)+'</div>':'')
+  return '<div style="background:#F8FAFC;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:12px">'
+    +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+    +'<div style="width:30px;height:30px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">&#x1F3E2;</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:13px;font-weight:700;color:var(--cinza-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(forn.nome||'—')+'</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-top:1px;flex-wrap:wrap">'
+    +(forn.cpf_cnpj?'<span style="font-size:10px;color:var(--cinza-500);font-family:var(--font-mono)">'+esc(forn.cpf_cnpj)+'</span>':'')
+    +'<span style="font-size:10px;color:var(--cinza-400)">·</span>'
+    +'<span style="font-size:10px;font-weight:600;color:var(--cinza-700);font-family:var(--font-mono)">Contrato '+esc(contratoNum||'—')+'</span>'
+    +(seiContrato?'<span style="font-size:10px;color:var(--cinza-400)">·</span><span style="font-size:10px">SEI: '+linkSEI(seiContrato)+'</span>':'')
     +'</div></div>'
-    +'<div style="text-align:right">'
-    +'<div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em">Contrato</div>'
-    +'<div style="font-size:13px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono)">'+esc(contratoNum||'—')+'</div>'
-    +(seiContrato?'<div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-top:6px">SEI</div>'
-      +'<div>'+linkSEI(seiContrato)+'</div>':'')
-    +'</div></div>'
-    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:12px;border-top:1px solid var(--borda)">'
-    +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Total contrato</div>'
-    +'<div style="font-size:12px;font-weight:700;color:var(--cinza-800);font-family:var(--font-mono)">'+fmtBRL(totais.total)+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Aprovado</div>'
-    +'<div style="font-size:12px;font-weight:700;color:#7C3AED;font-family:var(--font-mono)">'+fmtBRL(totais.aprovado)+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Pago</div>'
-    +'<div style="font-size:12px;font-weight:700;color:#059669;font-family:var(--font-mono)">'+fmtBRL(totais.pago)+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Saldo</div>'
-    +'<div style="font-size:12px;font-weight:700;color:'+(saldo>=0?'#1D4ED8':'#DC2626')+';font-family:var(--font-mono)">'+fmtBRL(saldo)+'</div></div>'
-    +'</div></div>';
+    +'<div style="display:flex;gap:16px;align-items:center;flex-shrink:0">'
+    +'<div style="text-align:right"><div style="font-size:9px;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.04em">Total</div><div style="font-size:11px;font-weight:700;color:var(--cinza-800);font-family:var(--font-mono)">'+fmtBRL(totais.total)+'</div></div>'
+    +'<div style="text-align:right"><div style="font-size:9px;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.04em">Aprovado</div><div style="font-size:11px;font-weight:700;color:#7C3AED;font-family:var(--font-mono)">'+fmtBRL(totais.aprovado)+'</div></div>'
+    +'<div style="text-align:right"><div style="font-size:9px;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.04em">Pago</div><div style="font-size:11px;font-weight:700;color:#059669;font-family:var(--font-mono)">'+fmtBRL(totais.pago)+'</div></div>'
+    +'<div style="text-align:right"><div style="font-size:9px;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.04em">Saldo</div><div style="font-size:11px;font-weight:700;color:'+(saldo>=0?'#1D4ED8':'#DC2626')+';font-family:var(--font-mono)">'+fmtBRL(saldo)+'</div></div>'
+    +'</div></div></div>';
 }
 
 async function abrirModal(prodId){
@@ -425,7 +417,12 @@ async function abrirModal(prodId){
 
   // Histórico de entregas anteriores
   if(entregas.length){
-    html+='<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Histórico de entregas</div>';
+    var histAberto=entregas.length<=2?' open':'';
+    html+='<details'+histAberto+' style="margin-bottom:14px;border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden">'
+      +'<summary style="padding:10px 14px;font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.06em;cursor:pointer;background:var(--cinza-50);list-style:none;display:flex;align-items:center;justify-content:space-between">'
+      +'<span>Histórico de entregas <span style="font-size:10px;background:var(--cinza-200);color:var(--cinza-600);border-radius:99px;padding:1px 7px;font-weight:600;margin-left:6px">'+entregas.length+'</span></span>'
+      +'<span style="font-size:10px;color:var(--cinza-400);font-weight:400">clique para '+(histAberto?' ocultar':'expandir')+'</span></summary>'
+      +'<div style="padding:12px 14px">';
     entregas.forEach(function(e){
       var cSit={aprovada:'#059669',em_analise:'#2563EB',devolvida:'#DC2626'};
       var nSit={aprovada:'Aprovada',em_analise:'Em avaliação',devolvida:'Devolvida'};
@@ -444,7 +441,7 @@ async function abrirModal(prodId){
         +((e.fotos_total||0)>0?'<div style="font-size:11px;color:var(--cinza-500);margin-top:4px">&#x1F4F7; '+e.fotos_total+' foto(s) de evidência</div>':'')
         +'</div></div>';
     });
-    html+='</div>';
+    html+='</div></details>';
   }
 
   // FORMULÁRIO DE ENTREGA
@@ -710,7 +707,7 @@ async function abrirModal(prodId){
     html+='</div>'; // fim coluna esquerda
 
     // ── COLUNA DIREITA: decisão ───────────────────────────────────
-    html+='<div>';
+    html+='<div class="aval-col-direita">';
 
     // O que foi contratado
     html+='<div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:var(--raio);padding:12px 14px;margin-bottom:12px">'
