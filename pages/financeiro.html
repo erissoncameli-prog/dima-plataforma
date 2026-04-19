@@ -1193,37 +1193,42 @@ async function abrirPagamento(id) {
       Carregando histórico...
     </div>`;
 
-  // Buscar produto vinculado, dados do fornecedor e totais do contrato em paralelo
+  // Buscar produto vinculado, dados do fornecedor e totais do contrato
   let produto = null, fornData = {nome:'—',cpf_cnpj:'',email:''};
   let ctTotais = {total:0, aprovado:0, pago:0};
   const fornId = l.fornecedores?.id;
   const contratoId = l.contratos?.id || l.contrato_id;
 
-  const paralelos = [];
-  if (l.contrato_id && l.numero_produto) {
-    paralelos.push(
-      db.from('contratos_produtos')
+  try {
+    if (l.contrato_id && l.numero_produto) {
+      const { data } = await db.from('contratos_produtos')
         .select(`id,numero_produto,descricao,valor_brl,dt_vencimento,dt_entrega,situacao,
                  arquivo_entrega_url,arquivo_entrega_nome,arquivo_entrega_data,
                  parecer_avaliador,avaliado_em,pct_aprovado,valor_aprovado,
                  usuarios!contratos_produtos_avaliado_por_fkey(nome_completo)`)
         .eq('contrato_id', l.contrato_id)
         .eq('numero_produto', l.numero_produto)
-        .maybeSingle()
-    );
-  } else { paralelos.push(Promise.resolve({data:null})); }
-  paralelos.push(
-    fornId ? db.from('fornecedores').select('nome,cpf_cnpj,email').eq('id',fornId).single() : Promise.resolve({data:null}),
-    contratoId ? db.from('contratos_produtos').select('valor_brl,valor_aprovado,situacao').eq('contrato_id',contratoId) : Promise.resolve({data:[]})
-  );
-  const [prodR, fornR, totaisR] = await Promise.all(paralelos);
-  produto = prodR.data;
-  if (fornR.data) fornData = fornR.data;
-  const todosCont = totaisR.data || [];
-  ctTotais.total    = todosCont.reduce((s,x) => s + parseFloat(x.valor_brl||0), 0);
-  ctTotais.aprovado = todosCont.reduce((s,x) => s + parseFloat(x.valor_aprovado||0), 0);
-  ctTotais.pago     = todosCont.filter(x => x.situacao==='pago').reduce((s,x) => s + parseFloat(x.valor_aprovado||0), 0);
-  const ctSaldo     = ctTotais.total - ctTotais.pago;
+        .maybeSingle();
+      produto = data;
+    }
+
+    const [fornR, totaisR] = await Promise.all([
+      fornId
+        ? db.from('fornecedores').select('nome,cpf_cnpj,email').eq('id', fornId).maybeSingle()
+        : Promise.resolve({data:null}),
+      contratoId
+        ? db.from('contratos_produtos').select('valor_brl,valor_aprovado,situacao').eq('contrato_id', contratoId)
+        : Promise.resolve({data:[]})
+    ]);
+    if (fornR.data) fornData = fornR.data;
+    const todosCont = fornR.error ? [] : (totaisR.data || []);
+    ctTotais.total    = todosCont.reduce((s,x) => s + parseFloat(x.valor_brl||0), 0);
+    ctTotais.aprovado = todosCont.reduce((s,x) => s + parseFloat(x.valor_aprovado||0), 0);
+    ctTotais.pago     = todosCont.filter(x => x.situacao==='pago').reduce((s,x) => s + parseFloat(x.valor_aprovado||0), 0);
+  } catch(e) {
+    console.error('[abrirPagamento] erro nas queries:', e);
+  }
+  const ctSaldo = ctTotais.total - ctTotais.pago;
 
   // ── Resumo do lançamento ──
   const ativNome = l.atividades ? `${l.atividades.codigo} · ${l.atividades.nome_pt?.substring(0,40)}` : '—';
