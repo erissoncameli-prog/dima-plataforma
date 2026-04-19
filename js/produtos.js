@@ -4,6 +4,7 @@
 let atividades=[],contratos=[],todosProdutos=[];
 let produtoAtual=null,entregaAtual=null,entregaArquivo=null;
 let filtAtiv='',filtCont='',filtForn='',decisaoSel='';
+let filtroStatus=null,statsCounts=null;
 let fotosNovas=[];
 let geoPontosCache=[];
 let docsEntrega=[];
@@ -104,16 +105,45 @@ async function abrirModalPorEntrega(entregaId){
 async function renderStats(){
   var r=await db.from('contratos_produtos').select('situacao');
   var t=r.data||[];
-  var pend=t.filter(function(p){return p.situacao==='pendente';}).length;
-  var anal=t.filter(function(p){return p.situacao==='em_analise';}).length;
-  var aprov=t.filter(function(p){return p.situacao==='aprovado';}).length;
-  var pago=t.filter(function(p){return p.situacao==='pago';}).length;
+  statsCounts={
+    total:t.length,
+    pend:t.filter(function(p){return p.situacao==='pendente';}).length,
+    anal:t.filter(function(p){return p.situacao==='em_analise';}).length,
+    aprov:t.filter(function(p){return p.situacao==='aprovado';}).length,
+    pago:t.filter(function(p){return p.situacao==='pago';}).length,
+    dev:t.filter(function(p){return p.situacao==='devolvido';}).length,
+  };
+  renderStatsHTML();
+}
+
+function renderStatsHTML(){
+  if(!statsCounts)return;
+  var c=statsCounts;
+  function card(status,lbl,val,valColor,borderCol,barCol,sub){
+    var ativo=filtroStatus===status;
+    var ring=ativo?'box-shadow:0 0 0 2px '+barCol+';border-color:'+borderCol+';':'';
+    return '<div class="stat-card" style="cursor:pointer;'+ring+(barCol?'':'')+(borderCol&&!ativo?'border-color:'+borderCol+';':'')+'" onclick="setFiltroStatus('+"'"+status+"'"+')"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+barCol+'"></div>'
+      +'<div class="stat-lbl" style="color:'+(ativo?barCol:'')+'">'+lbl+(ativo?' ✕':' ▾')+'</div>'
+      +'<div class="stat-val" style="color:'+valColor+'">'+val+'</div>'
+      +'<div class="stat-sub">'+sub+'</div></div>';
+  }
+  var ativoTodo=filtroStatus===null;
   document.getElementById('stats').innerHTML=
-    '<div class="stat-card sc-b"><div class="stat-lbl">Total</div><div class="stat-val">'+t.length+'</div><div class="stat-sub">todos os contratos</div></div>'
-    +'<div class="stat-card sc-a"><div class="stat-lbl">Pendentes</div><div class="stat-val" style="color:var(--aviso)">'+pend+'</div><div class="stat-sub">aguardando entrega</div></div>'
-    +'<div class="stat-card" style="border-color:#BFDBFE"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:#2563EB"></div><div class="stat-lbl" style="color:#1E40AF">Em avaliação</div><div class="stat-val" style="color:#1E40AF">'+anal+'</div><div class="stat-sub">aguardando parecer</div></div>'
-    +'<div class="stat-card" style="border-color:#86EFAC"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:#059669"></div><div class="stat-lbl" style="color:#166534">Aprovados</div><div class="stat-val" style="color:#166534">'+aprov+'</div><div class="stat-sub">aguardando pagamento</div></div>'
-    +'<div class="stat-card sc-g"><div class="stat-lbl">Pagos</div><div class="stat-val" style="color:var(--sucesso)">'+pago+'</div><div class="stat-sub">100% concluídos</div></div>';
+    '<div class="stat-card sc-b" style="cursor:pointer;'+(ativoTodo?'box-shadow:0 0 0 2px var(--verde-medio);':'')+'" onclick="setFiltroStatus(null)">'
+    +'<div class="stat-lbl">Total'+(ativoTodo?' (todos)':'')+'</div>'
+    +'<div class="stat-val">'+c.total+'</div>'
+    +'<div class="stat-sub">todos os contratos</div></div>'
+    +card('pendente','Pendentes',c.pend,'var(--aviso)','#FDE68A','#D97706','aguardando entrega')
+    +card('em_analise','Em avaliação',c.anal,'#1E40AF','#BFDBFE','#2563EB','aguardando parecer')
+    +card('aprovado','Aprovados',c.aprov,'#166534','#86EFAC','#059669','aguardando pagamento')
+    +card('pago','Pagos',c.pago,'var(--sucesso)','#6EE7B7','#10B981','100% concluídos')
+    +card('devolvido','Devolvidos',c.dev,'#991B1B','#FCA5A5','#EF4444','retornados p/ correção');
+}
+
+function setFiltroStatus(s){
+  filtroStatus=(filtroStatus===s&&s!==null)?null:s;
+  renderStatsHTML();
+  if(todosProdutos.length)renderLista();
 }
 
 function selecionarAtiv(id){
@@ -260,13 +290,20 @@ function renderCard(p){
 }
 
 function renderLista(){
+  if(!todosProdutos.length){renderVazio('Nenhum produto encontrado para este contrato.');return;}
+  var html='';
+  if(filtroStatus){
+    var filtrados=todosProdutos.filter(function(p){return p.situacao===filtroStatus;});
+    if(!filtrados.length){renderVazio('Nenhum produto com este status neste contrato.');return;}
+    html='<div class="produtos-grid">'+filtrados.map(renderCard).join('')+'</div>';
+    document.getElementById('conteudo').innerHTML=html;
+    return;
+  }
   var pendentes=todosProdutos.filter(function(p){return p.situacao==='pendente';});
   var emAnalise=todosProdutos.filter(function(p){return p.situacao==='em_analise';});
   var parcial=todosProdutos.filter(function(p){return p.situacao==='entrega_parcial';});
   var devolvidos=todosProdutos.filter(function(p){return p.situacao==='devolvido';});
   var aprovados=todosProdutos.filter(function(p){return p.situacao==='aprovado';});
-  if(!todosProdutos.length){renderVazio('Nenhum produto encontrado para este contrato.');return;}
-  var html='';
   if(emAnalise.length)html+='<div class="sec-lbl" style="color:#1E40AF">🔍 Em avaliação ('+emAnalise.length+')</div><div class="produtos-grid">'+emAnalise.map(renderCard).join('')+'</div>';
   if(parcial.length)html+='<div class="sec-lbl" style="color:#6D28D9">⚡ Entrega parcial ('+parcial.length+')</div><div class="produtos-grid">'+parcial.map(renderCard).join('')+'</div>';
   if(devolvidos.length)html+='<div class="sec-lbl" style="color:#991B1B">↩ Devolvidos p/ correção ('+devolvidos.length+')</div><div class="produtos-grid">'+devolvidos.map(renderCard).join('')+'</div>';
