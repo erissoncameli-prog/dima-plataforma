@@ -140,10 +140,28 @@ function renderStatsHTML(){
     +card('devolvido','Devolvidos',c.dev,'#991B1B','#FCA5A5','#EF4444','retornados p/ correção');
 }
 
-function setFiltroStatus(s){
+async function setFiltroStatus(s){
   filtroStatus=(filtroStatus===s&&s!==null)?null:s;
   renderStatsHTML();
-  if(todosProdutos.length)renderLista();
+  if(filtroStatus===null){
+    // limpar filtro — se contrato selecionado re-renderiza, senão volta ao estado vazio
+    if(filtCont){renderLista();}
+    else{renderVazio('Selecione uma atividade ou busque pelo fornecedor para começar.');}
+    return;
+  }
+  if(filtCont){
+    // contrato já selecionado — filtrar localmente
+    renderLista();
+    return;
+  }
+  // sem contrato — buscar globalmente no banco
+  renderVazio('<div style="text-align:center;padding:40px"><div style="animation:spin .7s linear infinite;width:24px;height:24px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;margin:0 auto 8px"></div>Carregando...</div>');
+  var r=await db.from('contratos_produtos')
+    .select('*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome),atividades(id,codigo,nome_pt))')
+    .eq('situacao',filtroStatus)
+    .order('numero_produto',{ascending:true});
+  todosProdutos=r.data||[];
+  renderLista();
 }
 
 function selecionarAtiv(id){
@@ -231,7 +249,7 @@ function atualizarDropdownContrato(){
 }
 
 async function selecionarCont(id){
-  filtCont=id;todosProdutos=[];
+  filtCont=id;todosProdutos=[];filtroStatus=null;renderStatsHTML();
   if(!id){renderVazio('Selecione um contrato para ver os produtos.');return;}
   renderVazio('<div style="text-align:center;padding:40px"><div style="animation:spin .7s linear infinite;width:24px;height:24px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;margin:0 auto 8px"></div>Carregando...</div>');
   var r=await db.from('contratos_produtos')
