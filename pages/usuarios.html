@@ -116,7 +116,7 @@ const PERFIS={
   financeiro:'Financeiro',consultor_externo:'Consultor Externo',visualizador:'Visualizador'
 };
 const PERFIS_LIST=Object.keys(PERFIS);
-const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
 const fmtDT=d=>d?new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
 
 // Módulos disponíveis para concessão de acesso extra
