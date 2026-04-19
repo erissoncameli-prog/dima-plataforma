@@ -541,7 +541,7 @@ function renderForm(c){
     '<select class="form-control" id="f-status">'+
     ['vigente','encerrado','suspenso'].map(function(s){return '<option value="'+s+'" '+((c?c.status:'vigente')===s?'selected':'')+'>'+SL[s]+'</option>';}).join('')+
     '</select></div></div>'+
-    '<div class="form-group"><label class="form-label">Número SEI'+
+    '<div class="form-group"><label class="form-label">Número SEI <span class="obrig">*</span>'+
     '<span style="font-size:10px;font-weight:400;color:var(--cinza-400);margin-left:6px">Processo no Sistema Eletrônico de Informações</span></label>'+
     '<div style="display:flex;align-items:center;gap:8px">'+
     '<input class="form-control" id="f-sei" type="text" value="'+(c&&c.numero_sei||'')+'" placeholder="0000000.000000/0000-00" maxlength="22" style="font-family:var(--font-mono);max-width:260px" oninput="this.value=maskSEI(this.value)">'+
@@ -584,7 +584,9 @@ window.salvar=async function(){
   var num=(document.getElementById('f-num').value||'').trim();
   var fornId=document.getElementById('f-forn').value;
   var total=parseFloat(document.getElementById('f-total').value)||0;
+  var sei=(document.getElementById('f-sei').value||'').trim();
   if(!num||!fornId||!total){toast('Preencha numero, fornecedor e valor total.','error');return;}
+  if(!sei){toast('Preencha o Número SEI.','error');document.getElementById('f-sei').focus();return;}
   var dados={
     numero:num,fornecedor_id:fornId,
     tdr_id:document.getElementById('f-tdr').value||null,
@@ -597,7 +599,7 @@ window.salvar=async function(){
     dt_fim:document.getElementById('f-fim').value||null,
     elemento_despesa:document.getElementById('f-elem').value.trim()||null,
     status:document.getElementById('f-status').value,
-    numero_sei:document.getElementById('f-sei').value.trim()||null,
+    numero_sei:sei||null,
   };
   // saldo_brl é GENERATED ALWAYS no banco, não enviar
   var prog=document.getElementById('prog-bar');
