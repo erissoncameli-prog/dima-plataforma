@@ -46,7 +46,10 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     const linhas = itens.map(item => {
       // Acesso por perfil (regra base) OU por permissão extra dinâmica
       const temPerfil = !item.perfis || item.perfis.includes(appState.perfil);
-      const temPermissao = (appState.permissoes || []).includes(item.id);
+      const perms = appState.permissoes || [];
+      const temPermissao = item.id === 'relatorios'
+        ? perms.some(p => p.startsWith('relatorios_'))
+        : perms.includes(item.id);
       if (!temPerfil && !temPermissao) return '';
       const ativo = paginaAtiva === item.id ? 'ativo' : '';
       // Indicador visual de acesso extra (não é do perfil padrão)
