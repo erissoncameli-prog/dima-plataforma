@@ -19,7 +19,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'tdrs',         icone: '◧', href: 'tdrs.html',         perfis: null },
     { id: 'matriz',       icone: '◎', href: 'matriz.html',       perfis: null },
     // ── Execução ─────────────────────────────────────────────
-    { id: 'fornecedores', icone: '◫', href: 'fornecedores.html', perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
+    { id: 'fornecedores', icone: '◫', href: 'fornecedores.html', perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'contratos',    icone: '◪', href: 'contratos.html',    perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'produtos',     icone: '◉', href: 'produtos.html',     perfis: ['super_admin','coordenacao','tecnico'] },
     { id: 'financeiro',   icone: '◈', href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
