@@ -221,7 +221,7 @@ function filtrar() {
   el.innerHTML = `<div class="repo-lista">${fil.map(renderLinha).join('')}</div>`;
 }
 
-function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 
 function getDominio(url){ try{ return new URL(url).hostname.replace(/^www\./,''); }catch{ return ''; } }
 

@@ -12,7 +12,7 @@ let notifPendenteId=null;
 let matrizItensCache=null; // cache de indicadores da matriz
 let geoCSVPontos=[]; // pontos do CSV de geolocalização pendentes para salvar
 
-function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
 function fmtDT(d){return d?new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';}
 
 const TIPOS_DOC=['Relatório Técnico','Nota Fiscal','Comprovante de Pagamento','Contrato / Aditivo','Declaração / Atestado','Relatório Parcial','Planilha de Geolocalização','Outro'];
