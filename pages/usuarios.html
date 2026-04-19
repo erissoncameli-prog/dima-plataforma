@@ -131,7 +131,17 @@ const MODULOS_LISTA = [
   { id:'financeiro',   icone:'◈', label:'Financeiro',           perfis:['super_admin','coordenacao','financeiro'] },
   { id:'viagens',      icone:'✈', label:'Viagens',              perfis:['super_admin','coordenacao','financeiro','tecnico'] },
   { id:'repositorio',  icone:'🔗', label:'Repositório',          perfis:null },
+  { id:'formularios',  icone:'📋', label:'Guia Formulários',     perfis:null },
   { id:'usuarios',     icone:'◍', label:'Usuários',             perfis:['super_admin'] },
+  // Sub-módulos da Central de Relatórios (prefixo relatorios_)
+  { id:'relatorios_financeiro',   icone:'💰', label:'Financeiro',        grupo:'relatorios', grupoLabel:'📊 Central de Relatórios', perfis:null },
+  { id:'relatorios_contratos',    icone:'📋', label:'Contratos',         grupo:'relatorios', perfis:null },
+  { id:'relatorios_fornecedores', icone:'🏢', label:'Fornecedores',      grupo:'relatorios', perfis:null },
+  { id:'relatorios_produtos',     icone:'📦', label:'Produtos/Entregas', grupo:'relatorios', perfis:null },
+  { id:'relatorios_tdrs',         icone:'◧', label:'TDRs',              grupo:'relatorios', perfis:null },
+  { id:'relatorios_atividades',   icone:'◈', label:'Atividades',        grupo:'relatorios', perfis:null },
+  { id:'relatorios_matriz',       icone:'◎', label:'Matriz',            grupo:'relatorios', perfis:null },
+  { id:'relatorios_viagens',      icone:'✈', label:'Viagens',           grupo:'relatorios', perfis:null },
 ];
 
 let todosUsuarios=[],solicitacoes=[];
@@ -344,44 +354,7 @@ async function abrirUsuario(id){
         </div>
       </div>
       <div style="padding:10px 14px">
-        ${MODULOS_LISTA.map(m=>{
-          const temPerfil=!m.perfis||m.perfis.includes(u.perfil);
-          const perm=permsMap[m.modulo];
-          const temExtra=!!perm;
-          const expirado=perm?.valido_ate&&new Date(perm.valido_ate)<new Date();
-          // Data/hora local para preencher o input (formato datetime-local: YYYY-MM-DDTHH:MM)
-          const validAteVal=perm?.valido_ate
-            ?new Date(new Date(perm.valido_ate).getTime()-new Date().getTimezoneOffset()*60000)
-              .toISOString().slice(0,16)
-            :'';
-          return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--borda)" id="perm-row-${m.id}">
-            <!-- Checkbox -->
-            <input type="checkbox" id="perm-chk-${m.id}"
-              ${temPerfil||temExtra?'checked':''}
-              ${temPerfil?'disabled':''}
-              style="width:15px;height:15px;flex-shrink:0;accent-color:var(--verde-medio)"
-              onchange="togglePermRow('${m.id}','${id}')">
-            <!-- Ícone + label -->
-            <span style="font-size:13px;flex-shrink:0">${m.icone}</span>
-            <span style="font-size:12px;font-weight:500;color:var(--cinza-900);flex:1">${m.label}</span>
-            <!-- Tag de origem -->
-            ${temPerfil
-              ?`<span style="font-size:9px;background:#D1FAE5;color:#065F46;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">perfil</span>`
-              :temExtra&&!expirado
-                ?`<span style="font-size:9px;background:#EFF6FF;color:#1E40AF;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">extra</span>`
-                :expirado
-                  ?`<span style="font-size:9px;background:#FEE2E2;color:#DC2626;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">expirado</span>`
-                  :`<span style="font-size:9px;background:var(--cinza-100);color:var(--cinza-500);padding:1px 7px;border-radius:99px;flex-shrink:0">sem acesso</span>`}
-            <!-- Campo de validade (só para extras) -->
-            ${!temPerfil?`
-            <div id="perm-dt-wrap-${m.id}" style="display:${temExtra?'flex':'none'};align-items:center;gap:4px">
-              <label style="font-size:9px;color:var(--cinza-500);white-space:nowrap">Válido até</label>
-              <input type="datetime-local" id="perm-dt-${m.id}" value="${validAteVal}"
-                style="font-size:10px;padding:3px 6px;border:1px solid var(--borda);border-radius:var(--raio);font-family:var(--font-mono);width:155px">
-              <span style="font-size:9px;color:var(--cinza-400)">(vazio = sem expiração)</span>
-            </div>`:''}
-          </div>`;
-        }).join('')}
+        ${renderPermissoes(u, permsMap, id)}
         <div style="display:flex;justify-content:flex-end;margin-top:10px">
           <button class="btn btn-primary btn-sm" onclick="salvarPermissoes('${u.id}')">💾 Salvar permissões</button>
         </div>
@@ -449,6 +422,67 @@ async function salvarUsuario(id){
     toast('Usuário atualizado!','success');
   }
   fecharModal();await carregarDados();
+}
+
+// ── Render bloco de permissões (suporta módulos normais e grupos) ──
+function renderPermissoes(u, permsMap, userId){
+  let html='';
+  let grupoAtivo=null;
+  for(const m of MODULOS_LISTA){
+    // Cabeçalho de grupo (primeira vez que aparece)
+    if(m.grupo && m.grupo!==grupoAtivo){
+      grupoAtivo=m.grupo;
+      html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 0 4px;border-top:2px solid var(--borda);margin-top:6px">
+        <span style="font-size:11px;font-weight:700;color:var(--cinza-700);flex:1">${m.grupoLabel}</span>
+        <button type="button" onclick="toggleGrupoRel('${m.grupo}','${userId}',true)"
+          style="font-size:9px;padding:2px 8px;border:1px solid #BFDBFE;border-radius:99px;background:#EFF6FF;color:#1E40AF;cursor:pointer">Todos</button>
+        <button type="button" onclick="toggleGrupoRel('${m.grupo}','${userId}',false)"
+          style="font-size:9px;padding:2px 8px;border:1px solid var(--borda);border-radius:99px;background:var(--cinza-100);color:var(--cinza-500);cursor:pointer">Nenhum</button>
+      </div>`;
+    }
+    const isSubItem=!!m.grupo;
+    const temPerfil=!m.perfis||m.perfis.includes(u.perfil);
+    const perm=permsMap[m.id];
+    const temExtra=!!perm;
+    const expirado=perm?.valido_ate&&new Date(perm.valido_ate)<new Date();
+    const validAteVal=perm?.valido_ate
+      ?new Date(new Date(perm.valido_ate).getTime()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)
+      :'';
+    html+=`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--borda);${isSubItem?'padding-left:16px':''}" id="perm-row-${m.id}">
+      <input type="checkbox" id="perm-chk-${m.id}"
+        ${temPerfil||temExtra?'checked':''}
+        ${temPerfil?'disabled':''}
+        style="width:15px;height:15px;flex-shrink:0;accent-color:var(--verde-medio)"
+        onchange="togglePermRow('${m.id}','${userId}')">
+      <span style="font-size:13px;flex-shrink:0">${m.icone}</span>
+      <span style="font-size:12px;font-weight:500;color:var(--cinza-900);flex:1">${m.label}</span>
+      ${temPerfil
+        ?`<span style="font-size:9px;background:#D1FAE5;color:#065F46;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">perfil</span>`
+        :temExtra&&!expirado
+          ?`<span style="font-size:9px;background:#EFF6FF;color:#1E40AF;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">extra</span>`
+          :expirado
+            ?`<span style="font-size:9px;background:#FEE2E2;color:#DC2626;padding:1px 7px;border-radius:99px;font-weight:700;flex-shrink:0">expirado</span>`
+            :`<span style="font-size:9px;background:var(--cinza-100);color:var(--cinza-500);padding:1px 7px;border-radius:99px;flex-shrink:0">sem acesso</span>`}
+      ${!temPerfil?`
+        <div id="perm-dt-wrap-${m.id}" style="display:${temExtra?'flex':'none'};align-items:center;gap:4px">
+          <label style="font-size:9px;color:var(--cinza-500);white-space:nowrap">Válido até</label>
+          <input type="datetime-local" id="perm-dt-${m.id}" value="${validAteVal}"
+            style="font-size:10px;padding:3px 6px;border:1px solid var(--borda);border-radius:var(--raio);font-family:var(--font-mono);width:155px">
+          <span style="font-size:9px;color:var(--cinza-400)">(vazio = sem expiração)</span>
+        </div>`:''}
+    </div>`;
+  }
+  return html;
+}
+
+function toggleGrupoRel(grupo, userId, marcar){
+  MODULOS_LISTA.filter(m=>m.grupo===grupo).forEach(m=>{
+    const chk=document.getElementById(`perm-chk-${m.id}`);
+    if(chk&&!chk.disabled){
+      chk.checked=marcar;
+      togglePermRow(m.id, userId);
+    }
+  });
 }
 
 // ── Permissões dinâmicas ───────────────────────────────────────

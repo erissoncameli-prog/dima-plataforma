@@ -377,10 +377,22 @@ async function carregarAuxiliares(){
 
 // ══════════════════════════════════════════════════════════════
 // INIT
+// ── Abas visíveis para o usuário atual ───────────────────────
+function getAbasPermitidas(){
+  const perfil=appState.perfil;
+  if(['super_admin','coordenacao'].includes(perfil))
+    return TEMAS.filter(t=>t.id!=='todos').map(t=>t.id);
+  return TEMAS
+    .filter(t=>t.id!=='todos'&&t.id!=='usuarios'&&t.id!=='logs')
+    .filter(t=>appState.permissoes.includes('relatorios_'+t.id))
+    .map(t=>t.id);
+}
+
 // ══════════════════════════════════════════════════════════════
 (async()=>{
   const usuario = await carregarUsuario();
   if(!usuario){ window.location.href='../index.html'; return; }
+  if(getAbasPermitidas().length===0){ window.location.href='../index.html'; return; }
   document.getElementById('app').innerHTML =
     gerarLayout('Relatórios','relatorios') +
     `<div class="page-body">
@@ -421,7 +433,9 @@ async function carregarAuxiliares(){
 let temaAtivo = 'todos';
 function renderTemas(ativo){
   temaAtivo = ativo;
-  document.getElementById('temas-grid').innerHTML = TEMAS.map(t=>`
+  const abasOk = getAbasPermitidas();
+  const temasVisiveis = TEMAS.filter(t=>t.id==='todos'||abasOk.includes(t.id));
+  document.getElementById('temas-grid').innerHTML = temasVisiveis.map(t=>`
     <button class="tema-btn${t.id===ativo?' ativo':''}"
       style="${t.id===ativo?'background:'+t.cor+';border-color:'+t.cor:''}"
       onclick="renderTemas('${t.id}');renderLista('${t.id}')">
@@ -435,8 +449,10 @@ function renderTemas(ativo){
 // ══════════════════════════════════════════════════════════════
 function renderLista(tema){
   const isSuperAdmin = appState.perfil === 'super_admin';
+  const abasOk = getAbasPermitidas();
   const lista = (tema==='todos' ? RELATORIOS : RELATORIOS.filter(r=>r.tema===tema))
-    .filter(r => !r.somente_super_admin || isSuperAdmin);
+    .filter(r => !r.somente_super_admin || isSuperAdmin)
+    .filter(r => abasOk.includes(r.tema));
   const temaInfo = t => TEMAS.find(x=>x.id===t)||{cor:'#374151'};
   document.getElementById('rel-lista').innerHTML = lista.map(r=>{
     const ti = temaInfo(r.tema);
