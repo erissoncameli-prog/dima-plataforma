@@ -332,7 +332,7 @@ body {
 
 /* ── TABELAS ──────────────────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
-.table-scroll { max-height: 480px; overflow-y: auto; }
+.table-scroll { max-height: calc(100vh - 340px); min-height: 300px; overflow-y: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead th {
   text-align: left; padding: 10px 12px;
