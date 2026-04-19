@@ -956,7 +956,7 @@ async function emitirDespacho(tipoBtn){
     situacao:novaSit,tipo_decisao:tipo,despacho_numero:numDesp,despacho_texto:despacho,
     despacho_data:dtDesp||new Date().toISOString().split('T')[0],
     despachado_por:appState.usuario.id,despachado_em:new Date().toISOString(),
-    pct_entregue:tipo!=='devolucao'?pctAprov:0,valor_entregue:tipo!=='devolucao'?valorAprov:0,
+    ...(tipo!=='devolucao'?{pct_entregue:pctAprov,valor_entregue:valorAprov}:{}),
     nota_tecnica_url:ntUrl,nota_tecnica_nome:ntNome,
     atualizado_em:new Date().toISOString()
   }).eq('id',entregaAtual.id);
