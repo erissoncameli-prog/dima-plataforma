@@ -968,8 +968,23 @@ async function relF1(){
     .order('codigo');
   if(ativFil) q = q.eq('id', ativFil);
 
-  const {data:ativs, error} = await q;
+  // Buscar lançamentos diretos (sem contrato: viagens, etc.)
+  let qDir = db.from('execucao_financeira')
+    .select('atividade_id,valor_brl,situacao')
+    .is('contrato_id', null)
+    .neq('situacao','cancelado');
+  if(ativFil) qDir = qDir.eq('atividade_id', ativFil);
+
+  const [{data:ativs, error}, {data:diretos}] = await Promise.all([q, qDir]);
   if(error) throw error;
+
+  // Mapear lançamentos diretos por atividade
+  const dirMap = {};
+  (diretos||[]).forEach(l => {
+    if(!dirMap[l.atividade_id]) dirMap[l.atividade_id] = {comp:0, pago:0};
+    dirMap[l.atividade_id].comp += parseFloat(l.valor_brl||0);
+    if(l.situacao==='pago') dirMap[l.atividade_id].pago += parseFloat(l.valor_brl||0);
+  });
 
   let rows = (ativs||[]);
   if(resFil) rows = rows.filter(a => a.resultado?.codigo == resFil);
@@ -984,8 +999,14 @@ async function relF1(){
   });
 
   const totalOrc  = rows.reduce((s,a)=>s+(a.orcamento_usd||0),0);
-  const totalComp = rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_comprometido_brl||0),0),0);
-  const totalPago = rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_utilizado_brl||0),0),0);
+  const totalComp = rows.reduce((s,a)=>{
+    const dc = dirMap[a.id]?.comp||0;
+    return s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_comprometido_brl||0),0)+dc;
+  },0);
+  const totalPago = rows.reduce((s,a)=>{
+    const dp = dirMap[a.id]?.pago||0;
+    return s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_utilizado_brl||0),0)+dp;
+  },0);
   const totalSald = rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.saldo_brl||0),0),0);
 
   const badgeStatus = f => {
@@ -1016,8 +1037,8 @@ async function relF1(){
       </tr></thead>
       <tbody>
       ${rows.map(a=>{
-        const comp = (a.contratos||[]).reduce((s,c)=>s+(c.valor_comprometido_brl||0),0);
-        const pago = (a.contratos||[]).reduce((s,c)=>s+(c.valor_utilizado_brl||0),0);
+        const comp = (a.contratos||[]).reduce((s,c)=>s+(c.valor_comprometido_brl||0),0) + (dirMap[a.id]?.comp||0);
+        const pago = (a.contratos||[]).reduce((s,c)=>s+(c.valor_utilizado_brl||0),0) + (dirMap[a.id]?.pago||0);
         const sald = (a.contratos||[]).reduce((s,c)=>s+(c.saldo_brl||0),0);
         const pctExec = comp>0?(pago/comp*100):0;
         const cls = pctExec>80?'crit':pctExec>50?'warn':'';
