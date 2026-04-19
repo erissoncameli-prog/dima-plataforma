@@ -54,7 +54,7 @@ const TIPO_GEO='Planilha de Geolocalização';
     +'<div class="modal" style="max-width:min(92vw,1000px)">'
     +'<div class="modal-header"><div class="modal-title" id="mp-titulo">Produto</div>'
     +'<button class="modal-close" onclick="fecharModal()">&#x2715;</button></div>'
-    +'<div class="modal-body" id="mp-body" style="max-height:82vh;overflow-y:auto"></div>'
+    +'<div class="modal-body" id="mp-body"></div>'
     +'<div class="modal-footer" id="mp-footer"></div>'
     +'</div></div>'
     +'<div id="lightbox" onclick="fecharLightbox()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out">'
