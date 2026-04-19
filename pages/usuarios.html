@@ -134,14 +134,15 @@ const MODULOS_LISTA = [
   { id:'formularios',  icone:'📋', label:'Guia Formulários',     perfis:null },
   { id:'usuarios',     icone:'◍', label:'Usuários',             perfis:['super_admin'] },
   // Sub-módulos da Central de Relatórios (prefixo relatorios_)
-  { id:'relatorios_financeiro',   icone:'💰', label:'Financeiro',        grupo:'relatorios', grupoLabel:'📊 Central de Relatórios', perfis:null },
-  { id:'relatorios_contratos',    icone:'📋', label:'Contratos',         grupo:'relatorios', perfis:null },
-  { id:'relatorios_fornecedores', icone:'🏢', label:'Fornecedores',      grupo:'relatorios', perfis:null },
-  { id:'relatorios_produtos',     icone:'📦', label:'Produtos/Entregas', grupo:'relatorios', perfis:null },
-  { id:'relatorios_tdrs',         icone:'◧', label:'TDRs',              grupo:'relatorios', perfis:null },
-  { id:'relatorios_atividades',   icone:'◈', label:'Atividades',        grupo:'relatorios', perfis:null },
-  { id:'relatorios_matriz',       icone:'◎', label:'Matriz',            grupo:'relatorios', perfis:null },
-  { id:'relatorios_viagens',      icone:'✈', label:'Viagens',           grupo:'relatorios', perfis:null },
+  // perfis: super_admin e coordenacao têm acesso nativo; demais precisam de concessão explícita
+  { id:'relatorios_financeiro',   icone:'💰', label:'Financeiro',        grupo:'relatorios', grupoLabel:'📊 Central de Relatórios', perfis:['super_admin','coordenacao'] },
+  { id:'relatorios_contratos',    icone:'📋', label:'Contratos',         grupo:'relatorios', perfis:['super_admin','coordenacao'] },
+  { id:'relatorios_fornecedores', icone:'🏢', label:'Fornecedores',      grupo:'relatorios', perfis:['super_admin','coordenacao'] },
+  { id:'relatorios_produtos',     icone:'📦', label:'Produtos/Entregas', grupo:'relatorios', perfis:['super_admin','coordenacao'] },
+  { id:'relatorios_tdrs',         icone:'◧', label:'TDRs',              grupo:'relatorios', perfis:['super_admin','coordenacao'] },
+  { id:'relatorios_atividades',   icone:'◈', label:'Atividades',        grupo:'relatorios', perfis:['super_admin','coordenacao'] },
+  { id:'relatorios_matriz',       icone:'◎', label:'Matriz',            grupo:'relatorios', perfis:['super_admin','coordenacao'] },
+  { id:'relatorios_viagens',      icone:'✈', label:'Viagens',           grupo:'relatorios', perfis:['super_admin','coordenacao'] },
 ];
 
 let todosUsuarios=[],solicitacoes=[];
