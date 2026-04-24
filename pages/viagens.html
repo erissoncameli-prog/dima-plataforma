@@ -127,6 +127,113 @@
     </div>
   </div>
 </div>
+<!-- Modal beneficiário -->
+<div class="modal-overlay" id="modal-benef">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="modal-benef-titulo">Novo Beneficiário</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Dados exigidos pela UNESCO para processamento de SPDs</div></div>
+      <button class="modal-close" onclick="document.getElementById('modal-benef').classList.remove('aberto')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:72vh;overflow-y:auto;padding:20px 24px">
+      <!-- Identificação -->
+      <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borda)">Identificação</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div class="form-group" style="margin:0;grid-column:1/-1">
+          <label class="form-label">Nome completo <span class="obrig">*</span></label>
+          <input class="form-control" id="benef-nome" type="text" placeholder="Nome completo do beneficiário">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">CPF</label>
+          <input class="form-control" id="benef-cpf" type="text" placeholder="000.000.000-00" style="font-family:var(--font-mono)">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Data de nascimento</label>
+          <input class="form-control" id="benef-nascimento" type="date">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Nacionalidade</label>
+          <input class="form-control" id="benef-nacionalidade" type="text" placeholder="Brasileira">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">E-mail</label>
+          <input class="form-control" id="benef-email" type="email" placeholder="email@exemplo.com">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Telefone</label>
+          <input class="form-control" id="benef-telefone" type="text" placeholder="(00) 00000-0000">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Cargo / Função</label>
+          <input class="form-control" id="benef-cargo" type="text" placeholder="Ex: Consultor, Técnico...">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Instituição / Organização</label>
+          <input class="form-control" id="benef-instituicao" type="text" placeholder="SEMA/AC, UNESCO...">
+        </div>
+      </div>
+      <!-- Passaporte -->
+      <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borda)">Passaporte (viagens internacionais)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Nº do passaporte</label>
+          <input class="form-control" id="benef-pass-num" type="text" placeholder="BR000000" style="font-family:var(--font-mono)">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Validade</label>
+          <input class="form-control" id="benef-pass-val" type="date">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">País de emissão</label>
+          <input class="form-control" id="benef-pass-pais" type="text" placeholder="Brasil">
+        </div>
+      </div>
+      <!-- Dados bancários -->
+      <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borda)">Dados bancários</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Banco</label>
+          <input class="form-control" id="benef-banco" type="text" placeholder="Ex: Banco do Brasil">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Agência</label>
+          <input class="form-control" id="benef-agencia" type="text" placeholder="0000-0" style="font-family:var(--font-mono)">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Nº da conta</label>
+          <input class="form-control" id="benef-conta" type="text" placeholder="00000-0" style="font-family:var(--font-mono)">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Tipo de conta</label>
+          <select class="form-control" id="benef-tipo-conta">
+            <option value="corrente">Corrente</option>
+            <option value="poupanca">Poupança</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Chave PIX</label>
+          <input class="form-control" id="benef-pix" type="text" placeholder="CPF, e-mail ou telefone">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">IBAN <span style="font-size:10px;color:var(--cinza-400)">(remessas internacionais)</span></label>
+          <input class="form-control" id="benef-iban" type="text" placeholder="BR00 0000 0000 0000..." style="font-family:var(--font-mono)">
+        </div>
+      </div>
+      <!-- Status -->
+      <div class="form-group" style="margin:0">
+        <label class="form-label">Status</label>
+        <select class="form-control" id="benef-ativo" style="max-width:180px">
+          <option value="true">Ativo</option>
+          <option value="false">Inativo</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-benef').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-primary" style="margin-left:auto" onclick="salvarBenef()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
 <!-- Modal devolução -->
 <div class="modal-overlay" id="modal-devolver">
   <div class="modal" style="max-width:480px">
@@ -199,25 +306,55 @@ let trechoIdx=0, diariaIdx=0, viajanteIdx=0;
 
   const isTecnico=appState.perfil==='tecnico';
   const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
+  const abaInicial=new URLSearchParams(window.location.search).get('aba')||'protocolos';
 
-  document.getElementById('app').innerHTML=gerarLayout('Viagens e Diárias','viagens')+`
+  const paginaNavAtiva = abaInicial==='beneficiarios' ? 'beneficiarios' : 'viagens';
+  document.getElementById('app').innerHTML=gerarLayout('Viagens e Diárias', paginaNavAtiva)+`
     <div class="fade-in">
       <div id="notif-banner"></div>
-      <div class="stat-row" id="stats"></div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-        <input class="form-control" id="f-busca" style="width:240px" placeholder="🔍 Buscar protocolo, viajante, destino..."
-          oninput="filtrar()">
-        <select class="form-control" id="f-sit-filt" style="width:160px" onchange="filtrar()">
-          <option value="">Todas as situações</option>
-          ${Object.entries(SIT_LABELS).map(([k,v])=>`<option value="${k}" ${k==='rascunho'?'selected':''}>${v}</option>`).join('')}
-        </select>
-        ${isTecnico?`<span style="font-size:11px;color:var(--cinza-500);background:var(--cinza-50);border:1px solid var(--borda);padding:4px 10px;border-radius:99px">👤 Meus protocolos</span>`:''}
-        <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormNovo()">+ Novo protocolo</button>
-        ${isAdmin?`<button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>`:''}
+      <!-- Abas -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--borda);margin-bottom:18px">
+        <button id="aba-btn-protocolos" onclick="mudarAba('protocolos')"
+          style="padding:8px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;font-family:var(--font-sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s">
+          ✈ Protocolos
+        </button>
+        ${isAdmin?`<button id="aba-btn-beneficiarios" onclick="mudarAba('beneficiarios')"
+          style="padding:8px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;font-family:var(--font-sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s">
+          👤 Beneficiários
+        </button>`:''}
       </div>
-      <div id="lista-protocolos"></div>
+      <!-- Aba Protocolos -->
+      <div id="aba-protocolos">
+        <div class="stat-row" id="stats"></div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+          <input class="form-control" id="f-busca" style="width:240px" placeholder="🔍 Buscar protocolo, viajante, destino..."
+            oninput="filtrar()">
+          <select class="form-control" id="f-sit-filt" style="width:160px" onchange="filtrar()">
+            <option value="">Todas as situações</option>
+            ${Object.entries(SIT_LABELS).map(([k,v])=>`<option value="${k}" ${k==='rascunho'?'selected':''}>${v}</option>`).join('')}
+          </select>
+          ${isTecnico?`<span style="font-size:11px;color:var(--cinza-500);background:var(--cinza-50);border:1px solid var(--borda);padding:4px 10px;border-radius:99px">👤 Meus protocolos</span>`:''}
+          <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormNovo()">+ Novo protocolo</button>
+          ${isAdmin?`<button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>`:''}
+        </div>
+        <div id="lista-protocolos"></div>
+      </div>
+      <!-- Aba Beneficiários -->
+      <div id="aba-beneficiarios" style="display:none">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+          <input class="form-control" id="f-benef-busca" style="width:260px" placeholder="🔍 Buscar por nome ou CPF..." oninput="filtrarBenef()">
+          <select class="form-control" id="f-benef-ativo" style="width:140px" onchange="filtrarBenef()">
+            <option value="">Todos</option>
+            <option value="true" selected>Ativos</option>
+            <option value="false">Inativos</option>
+          </select>
+          <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormBenef(null)">+ Novo beneficiário</button>
+        </div>
+        <div id="lista-benef"></div>
+      </div>
     </div>`+`</div></div></div>`;
 
+  mudarAba(abaInicial, false);
   await Promise.all([carregar(), carregarNotificacoes()]);
 })();
 
@@ -230,6 +367,133 @@ async function carregar(){
   protocolos=data||[];
   await verificarAutoTransicao(protocolos);
   renderStats();filtrar();
+}
+
+// ══════════════════════════════════════════════════════════════
+// ABAS
+// ══════════════════════════════════════════════════════════════
+let abaAtiva='protocolos';
+
+function mudarAba(aba, pushState=true){
+  abaAtiva=aba;
+  ['protocolos','beneficiarios'].forEach(a=>{
+    const el=document.getElementById('aba-'+a);
+    const btn=document.getElementById('aba-btn-'+a);
+    if(el) el.style.display=a===aba?'':'none';
+    if(btn){
+      btn.style.color=a===aba?'#2563EB':'var(--cinza-500)';
+      btn.style.borderBottomColor=a===aba?'#2563EB':'transparent';
+      btn.style.fontWeight=a===aba?'600':'500';
+    }
+  });
+  if(aba==='beneficiarios') carregarBenef();
+  if(pushState) history.replaceState(null,'',aba==='beneficiarios'?'?aba=beneficiarios':'viagens.html');
+}
+
+// ══════════════════════════════════════════════════════════════
+// BENEFICIÁRIOS
+// ══════════════════════════════════════════════════════════════
+let todosbenef=[], benefEditando=null;
+
+async function carregarBenef(){
+  const{data}=await db.from('beneficiarios').select('*').order('nome');
+  todosbenef=data||[];
+  filtrarBenef();
+}
+
+function filtrarBenef(){
+  const q=(document.getElementById('f-benef-busca')?.value||'').toLowerCase();
+  const ativo=document.getElementById('f-benef-ativo')?.value;
+  let lista=todosbenef;
+  if(q) lista=lista.filter(b=>(b.nome||'').toLowerCase().includes(q)||(b.cpf||'').includes(q));
+  if(ativo!=='') lista=lista.filter(b=>String(b.ativo)===ativo);
+  renderBenef(lista);
+}
+
+function renderBenef(lista){
+  const el=document.getElementById('lista-benef');
+  if(!el)return;
+  if(!lista.length){el.innerHTML=`<div style="text-align:center;padding:40px;color:var(--cinza-400)">Nenhum beneficiário cadastrado.</div>`;return;}
+  el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:var(--cinza-50);border-bottom:2px solid var(--borda)">
+      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">Nome</th>
+      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">CPF</th>
+      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">Cargo / Instituição</th>
+      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">Passaporte</th>
+      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">Banco / IBAN</th>
+      <th style="padding:8px 12px;text-align:center;font-weight:600;color:var(--cinza-600)">Status</th>
+      <th style="padding:8px 12px"></th>
+    </tr></thead>
+    <tbody>
+    ${lista.map(b=>`<tr style="border-bottom:1px solid var(--borda);transition:background .1s" onmouseover="this.style.background='var(--cinza-50)'" onmouseout="this.style.background=''">
+      <td style="padding:9px 12px;font-weight:500;color:var(--cinza-900)">${esc(b.nome)}</td>
+      <td style="padding:9px 12px;font-family:var(--font-mono);color:var(--cinza-700)">${esc(b.cpf||'—')}</td>
+      <td style="padding:9px 12px;color:var(--cinza-600)">${esc(b.cargo||'—')}${b.instituicao?`<br><span style="font-size:10px;color:var(--cinza-400)">${esc(b.instituicao)}</span>`:''}</td>
+      <td style="padding:9px 12px;font-family:var(--font-mono);color:var(--cinza-600)">${esc(b.passaporte_numero||'—')}${b.passaporte_validade?`<br><span style="font-size:10px;color:var(--cinza-400)">Val: ${fmtData(b.passaporte_validade)}</span>`:''}</td>
+      <td style="padding:9px 12px;color:var(--cinza-600)">${esc(b.banco||'—')}${b.iban?`<br><span style="font-size:10px;font-family:var(--font-mono);color:var(--cinza-400)">${esc(b.iban)}</span>`:''}</td>
+      <td style="padding:9px 12px;text-align:center">
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;${b.ativo?'background:#D1FAE5;color:#065F46':'background:#F3F4F6;color:#6B7280'}">${b.ativo?'Ativo':'Inativo'}</span>
+      </td>
+      <td style="padding:9px 12px;text-align:right">
+        <button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirFormBenef('${b.id}')">✎ Editar</button>
+      </td>
+    </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function abrirFormBenef(id){
+  benefEditando=id?todosbenef.find(b=>b.id===id):null;
+  const b=benefEditando||{};
+  document.getElementById('modal-benef-titulo').textContent=id?'Editar Beneficiário':'Novo Beneficiário';
+  const campos=[
+    ['benef-nome',b.nome||''],['benef-cpf',b.cpf||''],['benef-nascimento',b.data_nascimento||''],
+    ['benef-nacionalidade',b.nacionalidade||'Brasileira'],['benef-email',b.email||''],['benef-telefone',b.telefone||''],
+    ['benef-cargo',b.cargo||''],['benef-instituicao',b.instituicao||''],
+    ['benef-pass-num',b.passaporte_numero||''],['benef-pass-val',b.passaporte_validade||''],['benef-pass-pais',b.passaporte_pais_emissao||''],
+    ['benef-banco',b.banco||''],['benef-agencia',b.agencia||''],['benef-conta',b.conta||''],['benef-tipo-conta',b.tipo_conta||'corrente'],
+    ['benef-pix',b.pix||''],['benef-iban',b.iban||''],
+  ];
+  campos.forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.value=val;});
+  const sel=document.getElementById('benef-ativo');if(sel)sel.value=String(b.ativo!==false?'true':'false');
+  document.getElementById('modal-benef').classList.add('aberto');
+}
+
+async function salvarBenef(){
+  const nome=document.getElementById('benef-nome')?.value.trim();
+  if(!nome){toast('Nome é obrigatório.','error');return;}
+  const dados={
+    nome,
+    cpf:document.getElementById('benef-cpf')?.value.trim()||null,
+    data_nascimento:document.getElementById('benef-nascimento')?.value||null,
+    nacionalidade:document.getElementById('benef-nacionalidade')?.value.trim()||'Brasileira',
+    email:document.getElementById('benef-email')?.value.trim()||null,
+    telefone:document.getElementById('benef-telefone')?.value.trim()||null,
+    cargo:document.getElementById('benef-cargo')?.value.trim()||null,
+    instituicao:document.getElementById('benef-instituicao')?.value.trim()||null,
+    passaporte_numero:document.getElementById('benef-pass-num')?.value.trim()||null,
+    passaporte_validade:document.getElementById('benef-pass-val')?.value||null,
+    passaporte_pais_emissao:document.getElementById('benef-pass-pais')?.value.trim()||null,
+    banco:document.getElementById('benef-banco')?.value.trim()||null,
+    agencia:document.getElementById('benef-agencia')?.value.trim()||null,
+    conta:document.getElementById('benef-conta')?.value.trim()||null,
+    tipo_conta:document.getElementById('benef-tipo-conta')?.value||'corrente',
+    pix:document.getElementById('benef-pix')?.value.trim()||null,
+    iban:document.getElementById('benef-iban')?.value.trim()||null,
+    ativo:document.getElementById('benef-ativo')?.value==='true',
+    atualizado_em:new Date().toISOString(),
+  };
+  let error;
+  if(benefEditando){
+    ({error}=await db.from('beneficiarios').update(dados).eq('id',benefEditando.id));
+  } else {
+    dados.criado_por=appState.usuario.id;
+    ({error}=await db.from('beneficiarios').insert(dados));
+  }
+  if(error){toast('Erro ao salvar: '+error.message,'error');return;}
+  toast(benefEditando?'Beneficiário atualizado!':'Beneficiário cadastrado!','success');
+  document.getElementById('modal-benef').classList.remove('aberto');
+  await carregarBenef();
 }
 
 async function verificarAutoTransicao(lista){

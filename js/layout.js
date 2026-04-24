@@ -24,7 +24,8 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'produtos',     icone: '◉', href: 'produtos.html',     perfis: ['super_admin','coordenacao','tecnico'] },
     { id: 'financeiro',   icone: '◈', href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     // ── Apoio ────────────────────────────────────────────────
-    { id: 'viagens',      icone: '✈', href: 'viagens.html',      perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
+    { id: 'viagens',        icone: '✈',  href: 'viagens.html',                    perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
+    { id: 'beneficiarios',  icone: '👤', href: 'viagens.html?aba=beneficiarios',   perfis: ['super_admin','coordenacao'] },
     { id: 'relatorios',   icone: '📊', href: 'relatorios.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'mapa',         icone: '&#x1F5FA;', href: 'mapa.html',   perfis: null },
     { id: 'repositorio',  icone: '🔗', href: 'repositorio.html',  perfis: null },
@@ -38,7 +39,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { label: null,          ids: ['dashboard'] },
     { label: 'Planejamento', ids: ['atividades','tdrs','matriz'] },
     { label: 'Execução',     ids: ['fornecedores','contratos','produtos','financeiro'] },
-    { label: 'Apoio',        ids: ['viagens','relatorios','mapa','repositorio','usuarios'] },
+    { label: 'Apoio',        ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','usuarios'] },
   ];
 
   const navHtml = navGroups.map(group => {
