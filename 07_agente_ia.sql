@@ -4,47 +4,58 @@
 -- ═══════════════════════════════════════════════════════════════════
 
 -- ──────────────────────────────────────────────────────────────────
--- 1. Atualizar constraint de status dos TDRs
+-- 1. Atualizar ENUM status_tdr com os novos valores
 --    Novo fluxo: rascunho → submetido → pendente_correcao →
 --                em_avaliacao → em_revisao_unesco → aprovado → cancelado
 -- ──────────────────────────────────────────────────────────────────
-ALTER TABLE public.tdrs
-  DROP CONSTRAINT IF EXISTS tdrs_status_check;
 
-ALTER TABLE public.tdrs
-  ADD CONSTRAINT tdrs_status_check
-  CHECK (status IN (
-    'rascunho',
-    'submetido',
-    'pendente_correcao',
-    'em_avaliacao',
-    'em_revisao_unesco',
-    'aprovado',
-    'cancelado'
-  ));
+-- Adicionar novos valores ao enum (ADD VALUE é seguro e não remove os antigos)
+ALTER TYPE public.status_tdr ADD VALUE IF NOT EXISTS 'submetido';
+ALTER TYPE public.status_tdr ADD VALUE IF NOT EXISTS 'pendente_correcao';
+ALTER TYPE public.status_tdr ADD VALUE IF NOT EXISTS 'em_avaliacao';
+ALTER TYPE public.status_tdr ADD VALUE IF NOT EXISTS 'em_revisao_unesco';
 
 -- Migrar dados existentes para os novos status
+-- (os valores antigos continuam válidos no enum mas não serão mais usados)
 UPDATE public.tdrs SET status = 'em_avaliacao'      WHERE status = 'revisao_interna';
 UPDATE public.tdrs SET status = 'pendente_correcao' WHERE status = 'ajustes';
 UPDATE public.tdrs SET status = 'em_revisao_unesco' WHERE status = 'enviado_unesco';
 UPDATE public.tdrs SET status = 'pendente_correcao' WHERE status = 'retorno_unesco';
 
 -- ──────────────────────────────────────────────────────────────────
--- 2. Adicionar status 'devolvido' em contratos_produtos_entregas
+-- 2. Adicionar 'devolvida' em contratos_produtos_entregas.situacao
+--    Trata tanto ENUM quanto TEXT+CHECK
 -- ──────────────────────────────────────────────────────────────────
-ALTER TABLE public.contratos_produtos_entregas
-  DROP CONSTRAINT IF EXISTS contratos_produtos_entregas_situacao_check;
+DO $$
+DECLARE
+  col_type TEXT;
+  enum_name TEXT;
+BEGIN
+  SELECT data_type, udt_name
+    INTO col_type, enum_name
+    FROM information_schema.columns
+   WHERE table_schema = 'public'
+     AND table_name   = 'contratos_produtos_entregas'
+     AND column_name  = 'situacao';
 
-ALTER TABLE public.contratos_produtos_entregas
-  ADD CONSTRAINT contratos_produtos_entregas_situacao_check
-  CHECK (situacao IN (
-    'pendente',
-    'em_analise',
-    'aprovada',
-    'devolvida',
-    'rejeitada',
-    'cancelada'
-  ));
+  IF col_type = 'USER-DEFINED' THEN
+    -- É um ENUM: adicionar o valor ao tipo
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = enum_name AND e.enumlabel = 'devolvida'
+    ) THEN
+      EXECUTE format('ALTER TYPE %I ADD VALUE %L', enum_name, 'devolvida');
+    END IF;
+  ELSE
+    -- É TEXT com CHECK: recriar a constraint
+    ALTER TABLE public.contratos_produtos_entregas
+      DROP CONSTRAINT IF EXISTS contratos_produtos_entregas_situacao_check;
+    ALTER TABLE public.contratos_produtos_entregas
+      ADD CONSTRAINT contratos_produtos_entregas_situacao_check
+      CHECK (situacao IN ('pendente','em_analise','aprovada','devolvida','rejeitada','cancelada'));
+  END IF;
+END $$;
 
 -- ──────────────────────────────────────────────────────────────────
 -- 3. Criar tabela de log de análises do agente IA
