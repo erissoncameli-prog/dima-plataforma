@@ -136,6 +136,10 @@
       <button class="modal-close" onclick="document.getElementById('modal-benef').classList.remove('aberto')">✕</button>
     </div>
     <div class="modal-body" style="max-height:72vh;overflow-y:auto;padding:20px 24px">
+      <!-- Aviso campos obrigatórios -->
+      <div id="modal-benef-aviso" style="display:none;background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--raio);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#991B1B">
+        ⚠ <strong>Dados incompletos.</strong> Preencha os campos destacados em vermelho para poder enviar o protocolo para aprovação.
+      </div>
       <!-- Identificação -->
       <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borda)">Identificação</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
@@ -297,6 +301,7 @@ let viajantesForm=[];   // [{id,nome,funcao,cpf,email,temPass,temDiar,trechos:[]
 let embarqueFiles={};   // {viajante_idx: [File,...]}
 let relatorioFiles={};  // {viajante_idx: File}
 let trechoIdx=0, diariaIdx=0, viajanteIdx=0;
+let selectedBenef={};   // {viajante_idx: beneficiarioObj}
 
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -355,7 +360,11 @@ let trechoIdx=0, diariaIdx=0, viajanteIdx=0;
     </div>`+`</div></div></div>`;
 
   mudarAba(abaInicial, false);
-  await Promise.all([carregar(), carregarNotificacoes()]);
+  await Promise.all([
+    carregar(),
+    carregarNotificacoes(),
+    db.from('beneficiarios').select('*').order('nome').then(({data})=>{todosbenef=data||[];}),
+  ]);
 })();
 
 async function carregar(){
@@ -442,7 +451,7 @@ function renderBenef(lista){
   </table>`;
 }
 
-function abrirFormBenef(id){
+function abrirFormBenef(id, camposDestaque=[]){
   benefEditando=id?todosbenef.find(b=>b.id===id):null;
   const b=benefEditando||{};
   document.getElementById('modal-benef-titulo').textContent=id?'Editar Beneficiário':'Novo Beneficiário';
@@ -454,8 +463,29 @@ function abrirFormBenef(id){
     ['benef-banco',b.banco||''],['benef-agencia',b.agencia||''],['benef-conta',b.conta||''],['benef-tipo-conta',b.tipo_conta||'corrente'],
     ['benef-pix',b.pix||''],['benef-iban',b.iban||''],
   ];
-  campos.forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.value=val;});
+  campos.forEach(([fieldId,val])=>{
+    const el=document.getElementById(fieldId);
+    if(!el)return;
+    el.value=val;
+    // Destacar campos obrigatórios vazios em vermelho
+    if(camposDestaque.includes(fieldId)&&!val){
+      el.style.borderColor='#EF4444';
+      el.style.background='#FEF2F2';
+      el.addEventListener('input',()=>{el.style.borderColor='';el.style.background='';},{once:true});
+    } else {
+      el.style.borderColor='';el.style.background='';
+    }
+  });
   const sel=document.getElementById('benef-ativo');if(sel)sel.value=String(b.ativo!==false?'true':'false');
+  // Mostrar aviso se há campos obrigatórios faltando
+  const avisoEl=document.getElementById('modal-benef-aviso');
+  if(avisoEl){
+    if(camposDestaque.length){
+      avisoEl.style.display='block';
+    } else {
+      avisoEl.style.display='none';
+    }
+  }
   document.getElementById('modal-benef').classList.add('aberto');
 }
 
@@ -491,9 +521,13 @@ async function salvarBenef(){
     ({error}=await db.from('beneficiarios').insert(dados));
   }
   if(error){toast('Erro ao salvar: '+error.message,'error');return;}
-  toast(benefEditando?'Beneficiário atualizado!':'Beneficiário cadastrado!','success');
+  toast(benefEditando?'Beneficiário atualizado! Agora clique em "Enviar para aprovação" novamente.':'Beneficiário cadastrado!','success');
   document.getElementById('modal-benef').classList.remove('aberto');
-  await carregarBenef();
+  document.getElementById('modal-benef-aviso').style.display='none';
+  // Recarregar cache de beneficiários para que a próxima validação use dados atualizados
+  const{data:benefs}=await db.from('beneficiarios').select('*').order('nome');
+  todosbenef=benefs||[];
+  if(document.getElementById('lista-benef')?.style.display!=='none') filtrarBenef();
 }
 
 async function verificarAutoTransicao(lista){
@@ -620,7 +654,7 @@ function renderCard(p){
 // ══════════════════════════════════════════════════════════════
 function abrirFormNovo(){
   protAtual=null;editandoProtocoloId=null;viajantesForm=[];trechoIdx=0;diariaIdx=0;viajanteIdx=0;
-  embarqueFiles={};relatorioFiles={};
+  embarqueFiles={};relatorioFiles={};selectedBenef={};
   document.getElementById('mp-titulo').textContent='Novo protocolo de viagem';
   document.getElementById('mp-sub').textContent='Número gerado automaticamente ao salvar';
   document.getElementById('mp-body').innerHTML=buildFormProtocolo();
@@ -645,7 +679,7 @@ async function abrirFormEdicao(id){
   protAtual=p;
   editandoProtocoloId=id;
   viajantesForm=[];trechoIdx=0;diariaIdx=0;viajanteIdx=0;
-  embarqueFiles={};relatorioFiles={};
+  embarqueFiles={};relatorioFiles={};selectedBenef={};
 
   document.getElementById('mp-titulo').innerHTML=`✎ Editar rascunho <span class="proto-num" style="margin-left:6px">${esc(p.numero||'')}</span>`;
   document.getElementById('mp-sub').textContent='Rascunho — salve novamente antes de enviar para aprovação';
@@ -696,6 +730,18 @@ function addViajantePreenchido(v){
   document.getElementById(`vn-nome-${idx}`).value=v.nome||'';
   document.getElementById(`vn-func-${idx}`).value=v.funcao||'';
   document.getElementById(`vn-cpf-${idx}`).value=v.cpf||'';
+  // Restaurar vínculo com beneficiário se existir
+  if(v.beneficiario_id){
+    const b=todosbenef.find(x=>x.id===v.beneficiario_id);
+    if(b){
+      selectedBenef[idx]=b;
+      document.getElementById(`vn-benef-id-${idx}`)?.setAttribute('value',v.beneficiario_id);
+      const tag=document.getElementById(`vn-benef-tag-${idx}`);
+      const nomeTag=document.getElementById(`vn-benef-nome-tag-${idx}`);
+      if(tag)tag.style.display='inline-flex';
+      if(nomeTag)nomeTag.textContent=b.nome;
+    }
+  }
 
   // Passagem
   if(v.tem_passagem){
@@ -782,7 +828,10 @@ function buildFormProtocolo(){
       <div class="grid-2">
         <div class="form-group">
           <label class="form-label">Destino principal <span class="obrig">*</span></label>
-          <input class="form-control" id="f-destino" type="text" placeholder="Ex: Brasília/DF" oninput="propagarDestinoViajantes()">
+          <input class="form-control" id="f-destino" type="text" placeholder="Ex: Brasília/DF" oninput="propagarDestinoViajantes();atualizarBadgeIntl()">
+          <div id="badge-intl" style="display:none;margin-top:4px;font-size:10px;font-weight:700;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;padding:2px 8px;border-radius:99px;align-items:center;gap:4px">
+            🌍 Viagem internacional detectada — passaporte será exigido
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Nº SEI</label>
@@ -823,6 +872,91 @@ function buildFormProtocolo(){
   </div>`;
 }
 
+// ── Detecção de viagem internacional ──────────────────────────
+const PAISES_ESTRANGEIROS=[
+  'peru','colombia','bolivia','argentina','chile','paraguai','uruguai',
+  'venezuela','guiana','suriname','equador','ecuador',
+  'estados unidos','eua','usa','mexico','canada',
+  'franca','alemanha','italia','espanha','portugal','reino unido',
+  'inglaterra','irlanda','holanda','belgica','suica','austria','suecia',
+  'noruega','dinamarca','finlandia','russia','turquia','polonia','republica tcheca',
+  'china','japao','coreia','india','tailandia','vietna','indonesia','filipinas',
+  'australia','nova zelandia','africa do sul','angola','mocambique','nigeria',
+  'kenya','tanzania','etiopia','egito','marrocos','tunisia',
+  'new york','washington','paris','london','londres','madrid','roma',
+  'toquio','pequim','beijing','santiago','buenos aires','lima','bogota',
+  'caracas','quito','assuncao','montevideo','genebra','geneva','viena','vienna',
+  'miami','los angeles','toronto','montreal','cidade do mexico',
+];
+function isDestinoInternacional(destino){
+  if(!destino)return false;
+  const d=destino.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return PAISES_ESTRANGEIROS.some(p=>d.includes(p));
+}
+
+// ── Beneficiário search no form de viajante ──────────────────
+function buscarBenefParaViajante(idx,query){
+  const dd=document.getElementById(`vn-benef-dd-${idx}`);
+  if(!dd)return;
+  const q=query.trim().toLowerCase();
+  if(q.length<2){dd.style.display='none';return;}
+  const res=todosbenef.filter(b=>
+    (b.nome||'').toLowerCase().includes(q)||(b.cpf||'').includes(q)
+  ).slice(0,8);
+  if(!res.length){
+    dd.innerHTML=`<div style="padding:10px;font-size:12px;color:var(--cinza-500)">Nenhum beneficiário encontrado.</div>`;
+  } else {
+    dd.innerHTML=res.map(b=>`
+      <div onclick="selecionarBenefViajante(${idx},'${b.id}')"
+        style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--borda);font-size:12px"
+        onmouseover="this.style.background='var(--cinza-50)'" onmouseout="this.style.background=''">
+        <div style="font-weight:600">${esc(b.nome)}</div>
+        <div style="font-size:10px;color:var(--cinza-500)">${b.cpf||'sem CPF'} · ${b.cargo||b.instituicao||'—'}</div>
+      </div>`).join('');
+  }
+  dd.style.display='block';
+}
+
+function selecionarBenefViajante(idx,benefId){
+  const b=todosbenef.find(x=>x.id===benefId);
+  if(!b)return;
+  selectedBenef[idx]=b;
+  const nEl=document.getElementById(`vn-nome-${idx}`);
+  const cEl=document.getElementById(`vn-cpf-${idx}`);
+  if(nEl)nEl.value=b.nome||'';
+  if(cEl)cEl.value=b.cpf||'';
+  document.getElementById(`vn-benef-id-${idx}`)?.setAttribute('value',benefId);
+  document.getElementById(`vn-benef-search-${idx}`).value='';
+  document.getElementById(`vn-benef-dd-${idx}`).style.display='none';
+  const tag=document.getElementById(`vn-benef-tag-${idx}`);
+  const nomeTag=document.getElementById(`vn-benef-nome-tag-${idx}`);
+  if(tag){tag.style.display='inline-flex';}
+  if(nomeTag)nomeTag.textContent=b.nome;
+}
+
+function deselecionarBenef(idx){
+  delete selectedBenef[idx];
+  document.getElementById(`vn-benef-id-${idx}`)?.setAttribute('value','');
+  const tag=document.getElementById(`vn-benef-tag-${idx}`);
+  if(tag)tag.style.display='none';
+}
+
+// ── Validar dados do beneficiário para submissão ──────────────
+function camposFaltando(benef, internacional){
+  const falta=[];
+  if(!benef.cpf)falta.push({id:'benef-cpf',label:'CPF'});
+  if(!benef.banco)falta.push({id:'benef-banco',label:'Banco'});
+  if(!benef.agencia)falta.push({id:'benef-agencia',label:'Agência'});
+  if(!benef.conta)falta.push({id:'benef-conta',label:'Conta'});
+  if(!benef.iban)falta.push({id:'benef-iban',label:'IBAN'});
+  if(internacional){
+    if(!benef.passaporte_numero)falta.push({id:'benef-pass-num',label:'Nº Passaporte'});
+    if(!benef.passaporte_validade)falta.push({id:'benef-pass-val',label:'Validade do Passaporte'});
+    if(!benef.passaporte_pais_emissao)falta.push({id:'benef-pass-pais',label:'País de emissão'});
+  }
+  return falta;
+}
+
 // ── Gerenciar viajantes no form ────────────────────────────────
 function addViajante(){
   const idx=viajanteIdx++;
@@ -846,6 +980,22 @@ function renderViajanteForm(idx,dest,saida,retorno){
       <button onclick="removerViajante(${idx})" style="margin-left:auto;width:24px;height:24px;border:1px solid #FCA5A5;border-radius:50%;background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <div class="viajante-form-body">
+      <!-- Vínculo com beneficiário cadastrado -->
+      <div style="margin-bottom:12px;padding:10px 12px;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:var(--raio)">
+        <div style="font-size:10px;font-weight:700;color:#0284C7;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">🔍 Vincular beneficiário cadastrado <span style="font-weight:400;color:#0284C7;font-size:9px">(obrigatório para envio)</span></div>
+        <div style="position:relative">
+          <input class="form-control" id="vn-benef-search-${idx}" type="text" style="height:32px;font-size:12px"
+            placeholder="Digite o nome ou CPF para buscar..."
+            oninput="buscarBenefParaViajante(${idx},this.value)"
+            autocomplete="off">
+          <div id="vn-benef-dd-${idx}" style="display:none;position:absolute;top:34px;left:0;right:0;background:#fff;border:1px solid var(--borda);border-radius:var(--raio);box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:200;max-height:200px;overflow-y:auto"></div>
+        </div>
+        <div id="vn-benef-tag-${idx}" style="display:none;margin-top:6px;font-size:11px;font-weight:600;background:#D1FAE5;color:#065F46;padding:4px 10px;border-radius:99px;align-items:center;gap:6px">
+          ✓ <span id="vn-benef-nome-tag-${idx}"></span>
+          <button onclick="deselecionarBenef(${idx})" style="border:none;background:none;cursor:pointer;color:#065F46;font-size:14px;padding:0;line-height:1;margin-left:2px">×</button>
+        </div>
+        <input type="hidden" id="vn-benef-id-${idx}" value="">
+      </div>
       <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:12px">
         <div class="form-group" style="margin:0">
           <label class="form-label" style="font-size:10px">Nome completo <span class="obrig">*</span></label>
@@ -948,6 +1098,13 @@ function toggleViajante(idx,tipo,sim){
   }
   const vf=viajantesForm.find(v=>v.idx===idx);
   if(vf){if(tipo==='pass')vf.temPass=sim;else vf.temDiar=sim;}
+}
+
+function atualizarBadgeIntl(){
+  const dest=document.getElementById('f-destino')?.value||'';
+  const badge=document.getElementById('badge-intl');
+  if(!badge)return;
+  badge.style.display=isDestinoInternacional(dest)?'inline-flex':'none';
 }
 
 // ── Propagação automática ──────────────────────────────────────
@@ -1141,6 +1298,7 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
       idx,nome,
       funcao:document.getElementById(`vn-func-${idx}`)?.value.trim()||null,
       cpf:document.getElementById(`vn-cpf-${idx}`)?.value.trim()||null,
+      beneficiario_id:document.getElementById(`vn-benef-id-${idx}`)?.value||null,
       tem_passagem:temPass, tem_diaria:temDiar,
       spd_passagem:document.getElementById(`vn-spd-pass-${idx}`)?.value.trim()||null,
       spd_diaria:document.getElementById(`vn-spd-diar-${idx}`)?.value.trim()||null,
@@ -1206,6 +1364,7 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
     const{data:viaj,error:vErr}=await db.from('viagem_viajantes').insert({
       protocolo_id:protId,
       nome:v.nome, funcao:v.funcao, cpf:v.cpf,
+      beneficiario_id:v.beneficiario_id||null,
       tem_passagem:v.tem_passagem, tem_diaria:v.tem_diaria,
       spd_passagem:v.spd_passagem, spd_diaria:v.spd_diaria,
       sit_passagem:v.sit_passagem, sit_diaria:v.sit_diaria,
@@ -1919,6 +2078,42 @@ async function enviarPrestacao(){
 }
 
 async function enviarParaAprovacao(id){
+  // ── Validar dados dos beneficiários vinculados ────────────────
+  const{data:prot}=await db.from('viagem_protocolos')
+    .select('*,viajantes:viagem_viajantes(*)')
+    .eq('id',id).single();
+  if(!prot){toast('Protocolo não encontrado.','error');return;}
+
+  const intl=isDestinoInternacional(prot.destino_principal||'');
+  const viajantes=prot.viajantes||[];
+
+  // Verificar se todos têm beneficiário vinculado
+  const semBenef=viajantes.filter(v=>!v.beneficiario_id);
+  if(semBenef.length){
+    toast(`⚠ ${semBenef.map(v=>v.nome).join(', ')} não tem beneficiário vinculado. Edite o rascunho e vincule antes de enviar.`,'error');
+    return;
+  }
+
+  // Verificar completude de cada beneficiário
+  for(const v of viajantes){
+    const benef=todosbenef.find(b=>b.id===v.beneficiario_id);
+    if(!benef){
+      // Recarregar do banco se necessário
+      const{data:bd}=await db.from('beneficiarios').select('*').eq('id',v.beneficiario_id).single();
+      if(!bd){toast(`Beneficiário de ${v.nome} não encontrado.`,'error');return;}
+      todosbenef.push(bd);
+    }
+    const b=todosbenef.find(x=>x.id===v.beneficiario_id);
+    const falta=camposFaltando(b,intl);
+    if(falta.length){
+      const nomesCampos=falta.map(f=>f.label).join(', ');
+      toast(`⚠ Dados incompletos de ${b.nome}: ${nomesCampos}. Complete o cadastro e tente novamente.`,'error');
+      // Abrir modal do beneficiário com campos destacados
+      abrirFormBenef(b.id, falta.map(f=>f.id));
+      return;
+    }
+  }
+
   const{error}=await db.from('viagem_protocolos').update({situacao:'solicitado'}).eq('id',id);
   if(error){toast('Erro: '+error.message,'error');return;}
   toast('Protocolo enviado para aprovação!','success');
@@ -2046,7 +2241,7 @@ function fecharLightbox(){
 }
 function fecharModal(){
   document.getElementById('modal-prot').classList.remove('aberto');
-  protAtual=null;editandoProtocoloId=null;viajantesForm=[];embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;
+  protAtual=null;editandoProtocoloId=null;viajantesForm=[];embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;selectedBenef={};
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){fecharLightbox();fecharModal();}});
 
