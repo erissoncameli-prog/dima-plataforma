@@ -968,15 +968,19 @@ async function relF1(){
     .order('codigo');
   if(ativFil) q = q.eq('id', ativFil);
 
-  // Buscar lançamentos diretos (sem contrato: viagens, etc.)
+  // Buscar lançamentos diretos (sem contrato: viagens, etc.) e cotação atual
   let qDir = db.from('execucao_financeira')
     .select('atividade_id,valor_brl,situacao')
     .is('contrato_id', null)
     .neq('situacao','cancelado');
   if(ativFil) qDir = qDir.eq('atividade_id', ativFil);
 
-  const [{data:ativs, error}, {data:diretos}] = await Promise.all([q, qDir]);
+  const [{data:ativs, error}, {data:diretos}, {data:cotRows}] = await Promise.all([
+    q, qDir,
+    db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
+  ]);
   if(error) throw error;
+  const taxaRel = parseFloat(cotRows?.[0]?.cotacao || 0);
 
   // Mapear lançamentos diretos por atividade
   const dirMap = {};
@@ -1007,7 +1011,9 @@ async function relF1(){
     const dp = dirMap[a.id]?.pago||0;
     return s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_utilizado_brl||0),0)+dp;
   },0);
-  const totalSald = rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.saldo_brl||0),0),0);
+  const totalSald = taxaRel > 0
+    ? rows.reduce((s,a) => s + ((a.orcamento_usd||0)*taxaRel) - ((a.contratos||[]).reduce((sc,c)=>sc+(c.valor_comprometido_brl||0),0) + (dirMap[a.id]?.comp||0)), 0)
+    : rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.saldo_brl||0),0),0);
 
   const badgeStatus = f => {
     const m = {A_INICIAR:'rb-cinza',ELABORACAO:'rb-ouro',LICITACAO:'rb-azul',ELABORADO:'rb-azul',CONTRATADO:'rb-verde',CONCLUIDO:'rb-teal'};
@@ -1039,7 +1045,7 @@ async function relF1(){
       ${rows.map(a=>{
         const comp = (a.contratos||[]).reduce((s,c)=>s+(c.valor_comprometido_brl||0),0) + (dirMap[a.id]?.comp||0);
         const pago = (a.contratos||[]).reduce((s,c)=>s+(c.valor_utilizado_brl||0),0) + (dirMap[a.id]?.pago||0);
-        const sald = (a.contratos||[]).reduce((s,c)=>s+(c.saldo_brl||0),0);
+        const sald = taxaRel > 0 ? ((a.orcamento_usd||0)*taxaRel) - comp : (a.contratos||[]).reduce((s,c)=>s+(c.saldo_brl||0),0);
         const pctExec = comp>0?(pago/comp*100):0;
         const cls = pctExec>80?'crit':pctExec>50?'warn':'';
         return `<tr>
@@ -1064,6 +1070,7 @@ async function relF1(){
         <td></td>
       </tr></tfoot>
     </table>
+    ${taxaRel > 0 ? `<div style="font-size:10px;color:var(--cinza-500);margin-top:8px;text-align:right">* Saldo = Orçamento USD × R$ ${taxaRel.toFixed(4)} (cotação atual) − Comprometido BRL</div>` : ''}
   </div>`;
 }
 
