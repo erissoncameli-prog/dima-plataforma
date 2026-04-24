@@ -333,10 +333,10 @@ const RELATORIOS = [
   // ── VIAGENS ───────────────────────────────────────────────
   { id:'Vi1', tema:'viagens', icone:'✈', titulo:'Protocolos por Período',
     desc:'Todos os protocolos com status, viajantes, datas e valores.',
-    filtros:['periodo','status_viagem'] },
+    filtros:['periodo','status_viagem','protocolo_viagem'] },
   { id:'Vi2', tema:'viagens', icone:'👤', titulo:'Gasto por Viajante',
     desc:'Total de diárias e passagens por pessoa no período.',
-    filtros:['periodo'] },
+    filtros:['periodo','viajante_viagem'] },
   { id:'Vi3', tema:'viagens', icone:'◈', titulo:'Gasto por Atividade',
     desc:'Custo de viagens imputado por atividade.',
     filtros:['atividade','periodo'] },
@@ -362,17 +362,21 @@ const RELATORIOS = [
 // ══════════════════════════════════════════════════════════════
 // DADOS AUXILIARES
 // ══════════════════════════════════════════════════════════════
-let _atividades=[], _fornecedores=[], _usuarios=[];
+let _atividades=[], _fornecedores=[], _usuarios=[], _protocolos=[], _viajantesNomes=[];
 
 async function carregarAuxiliares(){
-  const [ra,rf,ru] = await Promise.all([
+  const [ra,rf,ru,rp,rv] = await Promise.all([
     db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
     db.from('fornecedores').select('id,nome').eq('ativo',true).order('nome'),
     db.from('usuarios').select('id,nome_completo,perfil').eq('ativo',true).order('nome_completo'),
+    db.from('viagem_protocolos').select('id,numero').order('numero',{ascending:false}),
+    db.from('viagem_viajantes').select('nome').order('nome'),
   ]);
   _atividades = ra.data||[];
   _fornecedores = rf.data||[];
   _usuarios = ru.data||[];
+  _protocolos = rp.data||[];
+  _viajantesNomes = [...new Set((rv.data||[]).map(v=>v.nome).filter(Boolean))].sort();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -629,6 +633,22 @@ function renderFiltros(lista){
             <option value="solicitado">Solicitado</option>
             <option value="aprovado">Aprovado</option>
             <option value="pago">Pago</option>
+          </select>
+        </div>`;
+      case 'protocolo_viagem': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Protocolo</span>
+          <select class="config-select" id="fil-protocolo-viagem">
+            <option value="">Todos</option>
+            ${_protocolos.map(p=>`<option value="${p.id}">${p.numero}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'viajante_viagem': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Viajante</span>
+          <select class="config-select" id="fil-viajante-viagem">
+            <option value="">Todos</option>
+            ${_viajantesNomes.map(n=>`<option value="${n}">${n}</option>`).join('')}
           </select>
         </div>`;
       case 'perfil': return `
@@ -1524,13 +1544,15 @@ async function relVi1(){
   const dtIni  = filVal('fil-dt-ini');
   const dtFim  = filVal('fil-dt-fim');
   const stFil  = filVal('fil-status-viagem');
+  const protFil = filVal('fil-protocolo-viagem');
 
   let q = db.from('viagem_protocolos')
     .select(`*,viajantes:viagem_viajantes(*,diarias:viagem_diarias_v2(*))`)
     .order('dt_saida',{ascending:false});
-  if(dtIni) q = q.gte('dt_saida', dtIni);
-  if(dtFim) q = q.lte('dt_saida', dtFim);
-  if(stFil) q = q.eq('situacao', stFil);
+  if(dtIni)   q = q.gte('dt_saida', dtIni);
+  if(dtFim)   q = q.lte('dt_saida', dtFim);
+  if(stFil)   q = q.eq('situacao', stFil);
+  if(protFil) q = q.eq('id', protFil);
 
   const {data, error} = await q;
   if(error) throw error;
@@ -2573,8 +2595,9 @@ async function relM4(){
 // Vi2 — GASTO POR VIAJANTE
 // ══════════════════════════════════════════════════════════════
 async function relVi2(){
-  const dtIni = filVal('fil-dt-ini');
-  const dtFim = filVal('fil-dt-fim');
+  const dtIni    = filVal('fil-dt-ini');
+  const dtFim    = filVal('fil-dt-fim');
+  const viaFil   = filVal('fil-viajante-viagem');
   let q = db.from('viagem_protocolos')
     .select(`id,dt_saida,situacao,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
     .order('dt_saida',{ascending:false});
@@ -2583,9 +2606,12 @@ async function relVi2(){
   const {data, error} = await q;
   if(error) throw error;
   const mapa = {};
+  const viaFil_lc = viaFil?.toLowerCase();
   (data||[]).forEach(p=>{
     const seenV=new Set();
-    (p.viajantes||[]).filter(v=>{if(seenV.has(v.id))return false;seenV.add(v.id);return true;}).forEach(v=>{
+    (p.viajantes||[]).filter(v=>{if(seenV.has(v.id))return false;seenV.add(v.id);return true;})
+      .filter(v=>!viaFil_lc||(v.nome||'').toLowerCase()===viaFil_lc)
+      .forEach(v=>{
       const nome=v.nome||'Sem Nome';
       if(!mapa[nome]) mapa[nome]={nome,protocolos:0,totalPass:0,totalDiar:0};
       mapa[nome].protocolos++;
