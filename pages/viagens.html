@@ -127,6 +127,27 @@
     </div>
   </div>
 </div>
+<!-- Modal devolução -->
+<div class="modal-overlay" id="modal-devolver">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div><div class="modal-title">↩ Devolver para correção</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">O técnico poderá corrigir e reenviar para aprovação</div></div>
+      <button class="modal-close" onclick="document.getElementById('modal-devolver').classList.remove('aberto')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div class="form-group">
+        <label class="form-label">Motivo da devolução <span class="obrig">*</span></label>
+        <textarea class="form-control" id="devolver-motivo" rows="4"
+          placeholder="Descreva o que precisa ser corrigido ou complementado..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-devolver').classList.remove('aberto')">Cancelar</button>
+      <button class="btn" style="margin-left:auto;background:#D97706;color:#fff;border:1px solid #D97706" onclick="confirmarDevolver()">↩ Confirmar devolução</button>
+    </div>
+  </div>
+</div>
 <!-- Modal rejeição -->
 <div class="modal-overlay" id="modal-rejeitar">
   <div class="modal" style="max-width:480px">
@@ -201,14 +222,27 @@ let trechoIdx=0, diariaIdx=0, viajanteIdx=0;
 })();
 
 async function carregar(){
-  // RLS já filtra por perfil no banco; a query é a mesma para todos
   const{data}=await db.from('viagem_protocolos')
     .select(`*,viajantes:viagem_viajantes(
       *,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)
     )`)
     .order('criado_em',{ascending:false});
   protocolos=data||[];
+  await verificarAutoTransicao(protocolos);
   renderStats();filtrar();
+}
+
+async function verificarAutoTransicao(lista){
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const pendentes=(lista||[]).filter(p=>
+    p.situacao==='aprovado' && p.dt_retorno && new Date(p.dt_retorno) < hoje
+  );
+  for(const p of pendentes){
+    await db.from('viagem_protocolos')
+      .update({situacao:'em_prestacao',atualizado_em:new Date().toISOString()})
+      .eq('id',p.id);
+    p.situacao='em_prestacao';
+  }
 }
 
 // ── NOTIFICAÇÕES ──────────────────────────────────────────────
@@ -1047,7 +1081,32 @@ async function abrirDetalhe(id){
   document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span style="font-size:14px;font-weight:500;color:var(--cinza-700);margin-left:8px">${esc(p.destino_principal||'—')}</span>`;
   document.getElementById('mp-sub').textContent=`${SIT_LABELS[p.situacao]||p.situacao} · ${viajantes.length} viajante${viajantes.length!==1?'s':''}`;
 
-  let html=`
+  // Banner devolvido (rascunho com motivo)
+  const bannerDevolvido = p.situacao==='rascunho' && p.rejeitado_motivo
+    ? `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:10px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start">
+        <span style="font-size:16px">↩</span>
+        <div><div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:2px">Protocolo devolvido para correção</div>
+        <div style="font-size:12px;color:#78350F">${esc(p.rejeitado_motivo)}</div></div>
+      </div>` : '';
+
+  // Banner prazo prestação
+  let bannerPrestacao = '';
+  if(p.situacao==='em_prestacao' && p.dt_retorno){
+    const prazo=new Date(p.dt_retorno);prazo.setDate(prazo.getDate()+5);
+    const hoje2=new Date();hoje2.setHours(0,0,0,0);
+    const diasRestantes=Math.ceil((prazo-hoje2)/(1000*60*60*24));
+    const vencido=diasRestantes<0;
+    const cor=vencido?'#FEE2E2':'#EFF6FF';const borda=vencido?'#FECACA':'#BFDBFE';const txt=vencido?'#991B1B':'#1E40AF';
+    bannerPrestacao=`<div style="background:${cor};border:1px solid ${borda};border-radius:var(--raio);padding:10px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:center">
+      <span style="font-size:16px">${vencido?'⚠️':'📋'}</span>
+      <div style="font-size:12px;color:${txt}">
+        ${vencido?`<strong>Prazo encerrado</strong> — prestação de contas atrasada (venceu em ${prazo.toLocaleDateString('pt-BR')})`
+                 :`<strong>Prazo para prestação de contas:</strong> ${prazo.toLocaleDateString('pt-BR')} (${diasRestantes} dia${diasRestantes!==1?'s':''} restante${diasRestantes!==1?'s':''})`}
+      </div>
+    </div>`;
+  }
+
+  let html=`${bannerDevolvido}${bannerPrestacao}
   <!-- Cabeçalho -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
     <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px">
@@ -1183,6 +1242,7 @@ async function abrirDetalhe(id){
   if(isAdmin){
     if(p.situacao==='solicitado')
       footer+=`<div style="display:flex;gap:8px;margin-left:auto">
+        <button class="btn" style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A" onclick="abrirModalDevolver()">↩ Devolver</button>
         <button class="btn" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="abrirModalRejeitar()">✕ Rejeitar</button>
         <button class="btn btn-primary" onclick="aprovarProtocolo()">✓ Aprovar →</button></div>`;
     if(p.situacao==='aprovado')
@@ -1263,6 +1323,33 @@ async function aprovarProtocolo(){
   fecharModal();await carregar();
 }
 
+function abrirModalDevolver(){
+  document.getElementById('devolver-motivo').value='';
+  document.getElementById('modal-devolver').classList.add('aberto');
+}
+
+async function confirmarDevolver(){
+  const motivo=document.getElementById('devolver-motivo').value.trim();
+  if(!motivo){toast('Informe o motivo da devolução.','error');return;}
+  document.getElementById('modal-devolver').classList.remove('aberto');
+  const p=protAtual;
+  await db.from('viagem_protocolos').update({
+    situacao:'rascunho',
+    rejeitado_por:appState.usuario.id,
+    rejeitado_em:new Date().toISOString(),
+    rejeitado_motivo:motivo
+  }).eq('id',p.id);
+  if(p.criado_por){
+    await db.from('notificacoes').insert({
+      usuario_id:p.criado_por,tipo:'viagem_devolvida',
+      titulo:`Protocolo ${p.numero} devolvido para correção`,
+      mensagem:`Motivo: ${motivo}`,
+      lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
+    });
+  }
+  toast('Protocolo devolvido para correção.','info');fecharModal();await carregar();
+}
+
 function abrirModalRejeitar(){
   document.getElementById('rejeitar-motivo').value='';
   document.getElementById('modal-rejeitar').classList.add('aberto');
@@ -1318,49 +1405,96 @@ async function excluirProtocolo(){
   toast('Protocolo excluído permanentemente.','info');fecharModal();await carregar();
 }
 
-// ── SPDs ──────────────────────────────────────────────────────
+// ── SPDs + Valores ────────────────────────────────────────────
 function abrirFormSPDs(){
   const p=protAtual;
-  let html=`<div style="font-size:13px;font-weight:600;margin-bottom:14px">Preencher SPDs e atualizar situação</div>`;
+  let html=`<div style="font-size:13px;font-weight:600;margin-bottom:14px">SPDs, Valores Reais e Situação</div>`;
   (p.viajantes||[]).forEach((v,i)=>{
-    html+=`<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;margin-bottom:8px">👤 ${esc(v.nome)}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        ${v.tem_passagem?`<div class="form-group" style="margin:0">
-          <label class="form-label" style="font-size:10px">SPD Passagem</label>
-          <input class="form-control" id="spd-pass-${v.id}" type="text" value="${esc(v.spd_passagem||'')}" style="font-family:var(--font-mono);height:32px;font-size:12px">
-        </div>`:''}
-        ${v.tem_diaria?`<div class="form-group" style="margin:0">
-          <label class="form-label" style="font-size:10px">SPD Diárias</label>
-          <input class="form-control" id="spd-diar-${v.id}" type="text" value="${esc(v.spd_diaria||'')}" style="font-family:var(--font-mono);height:32px;font-size:12px">
-        </div>`:''}
-      </div></div>`;
+    const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+    const diarias=(v.diarias||[]);
+    html+=`<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--cinza-800)">👤 ${esc(v.nome)}</div>
+
+      ${v.tem_passagem&&trechos.length?`
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">✈ Passagens — Valores Reais</div>
+        ${trechos.map(t=>`
+        <div style="display:grid;grid-template-columns:1fr 1fr 140px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
+          <span style="color:var(--cinza-700)">${esc(t.origem||'—')} → ${esc(t.destino||'—')}</span>
+          <span style="color:var(--cinza-500)">${t.dt_saida?fmtData(t.dt_saida):''}</span>
+          <input class="form-control" id="trecho-val-${t.id}" type="number" step="0.01" min="0"
+            value="${parseFloat(t.valor||0).toFixed(2)}"
+            style="height:28px;font-size:11px;font-family:var(--font-mono);text-align:right">
+        </div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label" style="font-size:10px">SPD Passagem</label>
+            <input class="form-control" id="spd-pass-${v.id}" type="text" value="${esc(v.spd_passagem||'')}" style="font-family:var(--font-mono);height:30px;font-size:11px">
+          </div>
+        </div>
+      </div>`:''}
+
+      ${v.tem_diaria&&diarias.length?`
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">🏨 Diárias — Valores Reais</div>
+        ${diarias.map(d=>`
+        <div style="display:grid;grid-template-columns:1fr 80px 140px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
+          <span style="color:var(--cinza-700)">${esc(d.tipo_diaria||'—')}</span>
+          <input class="form-control" id="diar-qtd-${d.id}" type="number" step="1" min="0"
+            value="${parseFloat(d.quantidade||0)}"
+            placeholder="Qtd" style="height:28px;font-size:11px;text-align:center">
+          <input class="form-control" id="diar-vunit-${d.id}" type="number" step="0.01" min="0"
+            value="${parseFloat(d.valor_unitario||0).toFixed(2)}"
+            placeholder="Valor unit." style="height:28px;font-size:11px;font-family:var(--font-mono);text-align:right">
+        </div>`).join('')}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label" style="font-size:10px">SPD Diárias</label>
+            <input class="form-control" id="spd-diar-${v.id}" type="text" value="${esc(v.spd_diaria||'')}" style="font-family:var(--font-mono);height:30px;font-size:11px">
+          </div>
+        </div>
+      </div>`:''}
+    </div>`;
   });
   html+=`<div class="form-group"><label class="form-label">Situação do protocolo</label>
     <select class="form-control" id="s-situacao" style="max-width:280px">
-      <option value="aprovado">Aprovado</option>
-      <option value="em_prestacao">Em prestação de contas</option>
+      <option value="aprovado"${p.situacao==='aprovado'?' selected':''}>Aprovado</option>
+      <option value="em_prestacao"${p.situacao==='em_prestacao'?' selected':''}>Em prestação de contas</option>
     </select></div>`;
   document.getElementById('mp-body').innerHTML=html;
   document.getElementById('mp-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="abrirDetalhe('${p.id}')">← Voltar</button>
-    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarSPDs()">Salvar</button>`;
+    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarSPDs()">💾 Salvar</button>`;
 }
 
 async function salvarSPDs(){
   const p=protAtual;
-  // Atualizar SPDs de cada viajante
   for(const v of (p.viajantes||[])){
+    // SPDs
     const upd={};
     const sp=document.getElementById(`spd-pass-${v.id}`)?.value.trim();
     const sd=document.getElementById(`spd-diar-${v.id}`)?.value.trim();
     if(sp!==undefined)upd.spd_passagem=sp||null;
     if(sd!==undefined)upd.spd_diaria=sd||null;
     if(Object.keys(upd).length)await db.from('viagem_viajantes').update(upd).eq('id',v.id);
+    // Valores reais dos trechos
+    for(const t of (v.trechos||[])){
+      const el=document.getElementById(`trecho-val-${t.id}`);
+      if(el)await db.from('viagem_trechos').update({valor:parseFloat(el.value)||0}).eq('id',t.id);
+    }
+    // Valores reais das diárias
+    for(const d of (v.diarias||[])){
+      const elQ=document.getElementById(`diar-qtd-${d.id}`);
+      const elV=document.getElementById(`diar-vunit-${d.id}`);
+      if(elQ||elV)await db.from('viagem_diarias_v2').update({
+        quantidade:elQ?parseInt(elQ.value)||0:d.quantidade,
+        valor_unitario:elV?parseFloat(elV.value)||0:d.valor_unitario
+      }).eq('id',d.id);
+    }
   }
   const sit=document.getElementById('s-situacao')?.value||p.situacao;
-  await db.from('viagem_protocolos').update({situacao:sit}).eq('id',p.id);
-  toast('SPDs salvos!','success');fecharModal();await carregar();
+  await db.from('viagem_protocolos').update({situacao:sit,atualizado_em:new Date().toISOString()}).eq('id',p.id);
+  toast('Valores e SPDs salvos!','success');fecharModal();await carregar();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1393,9 +1527,9 @@ async function abrirPrestacao(id){
             <span style="font-size:10px;font-weight:700;background:#FEF2F2;color:#DC2626;padding:1px 6px;border-radius:99px">obrigatório</span>
           </div>
           <div class="upload-mini" onclick="document.getElementById('inp-emb-${i}').click()">
-            <input type="file" id="inp-emb-${i}" style="display:none" accept=".jpg,.jpeg,.png" multiple
+            <input type="file" id="inp-emb-${i}" style="display:none" accept=".jpg,.jpeg,.png,.pdf" multiple
               onchange="adicionarEmbarque(${i},'${v.id}',this.files)">
-            📷 Clique para adicionar cartões de embarque · JPEG/PNG · até 6
+            📷 Clique para adicionar cartões de embarque · JPEG/PNG/PDF · até 6
           </div>
           <div id="emb-grid-${i}" class="embarque-grid" style="grid-template-columns:repeat(4,1fr)"></div>
           <div id="emb-count-${i}" style="font-size:11px;color:var(--cinza-500);margin-top:4px"></div>
@@ -1432,17 +1566,21 @@ async function abrirPrestacao(id){
 function adicionarEmbarque(visIdx,viajanteId,files){
   if(!embarqueFiles[visIdx])embarqueFiles[visIdx]=[];
   const MAX=6;
+  const TIPOS=['image/jpeg','image/jpg','image/png','application/pdf'];
   Array.from(files).forEach(f=>{
-    if(!['image/jpeg','image/jpg','image/png'].includes(f.type)){toast(f.name+': apenas JPEG/PNG.','error');return;}
+    if(!TIPOS.includes(f.type)){toast(f.name+': apenas JPEG/PNG/PDF.','error');return;}
     if(embarqueFiles[visIdx].length>=MAX){toast(`Máximo ${MAX} cartões por viajante.`,'error');return;}
     embarqueFiles[visIdx].push({file:f,viajanteId});
   });
   const grid=document.getElementById(`emb-grid-${visIdx}`);
   const count=document.getElementById(`emb-count-${visIdx}`);
   if(grid)grid.innerHTML=embarqueFiles[visIdx].map((item,i)=>{
-    const url=URL.createObjectURL(item.file);
+    const isPdf=item.file.type==='application/pdf';
+    const thumb=isPdf
+      ?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#FEF2F2;font-size:22px;gap:4px">📄<span style="font-size:9px;color:#991B1B;word-break:break-all;padding:0 4px;text-align:center">${esc(item.file.name)}</span></div>`
+      :`<img src="${URL.createObjectURL(item.file)}" alt="Cartão ${i+1}">`;
     return`<div class="embarque-thumb">
-      <img src="${url}" alt="Cartão ${i+1}">
+      ${thumb}
       <button class="embarque-del" onclick="embarqueFiles[${visIdx}].splice(${i},1);adicionarEmbarque(${visIdx},'${viajanteId}',[])">✕</button>
     </div>`;
   }).join('');
