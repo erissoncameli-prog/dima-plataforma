@@ -1686,8 +1686,8 @@ async function abrirDetalhe(id){
     footer+=`<button class="btn btn-primary" style="margin-left:8px" onclick="enviarParaAprovacao('${p.id}')">✈ Enviar para aprovação →</button>`;
   }
 
-  // Prestação: qualquer usuário com acesso pode editar enquanto não for realizado
-  if(!pago&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(isAdmin||ehDono))
+  // Prestação: disponível apenas quando o protocolo está em prestação (a partir da data de retorno)
+  if(p.situacao==='em_prestacao'&&(isAdmin||ehDono))
     footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="abrirPrestacao('${p.id}')">📋 ${(p.viajantes||[]).some(v=>v.relatorio_url)?'✎ Atualizar prestação':'📋 Prestação de contas'}</button>`;
 
   document.getElementById('mp-footer').innerHTML=footer;
