@@ -55,10 +55,10 @@
 .tdr-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 10px rgba(45,106,79,.08);}
 .tdr-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:var(--raio-lg) 0 0 var(--raio-lg);}
 .tdr-card.st-rascunho::before{background:var(--cinza-300);}
-.tdr-card.st-revisao_interna::before{background:var(--azul-medio);}
-.tdr-card.st-ajustes::before{background:var(--aviso);}
-.tdr-card.st-enviado_unesco::before{background:#0D9488;}
-.tdr-card.st-retorno_unesco::before{background:var(--erro);}
+.tdr-card.st-submetido::before{background:var(--azul-medio);}
+.tdr-card.st-pendente_correcao::before{background:var(--aviso);}
+.tdr-card.st-em_avaliacao::before{background:#0D9488;}
+.tdr-card.st-em_revisao_unesco::before{background:#7C3AED;}
 .tdr-card.st-aprovado::before{background:var(--sucesso);}
 .tdr-card.st-cancelado::before{background:var(--cinza-400,#9CA3AF);}
 /* Objeto truncado em 2 linhas */
@@ -247,16 +247,16 @@ let todosTDRs=[], atividades=[], tdrAtual=null;
 let dadosOriginais={}, dadosEditados={}, arquivoSelecionado=null;
 let senhaTDRCallback=null, tdrAcoes={}, camposModificados={};
 
-const FASES=['rascunho','revisao_interna','ajustes','enviado_unesco','retorno_unesco','aprovado'];
-const FASES_LABELS={rascunho:'Rascunho',revisao_interna:'Revisão Interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado'};
+const FASES=['rascunho','submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','aprovado'];
+const FASES_LABELS={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente Correção',em_avaliacao:'Em Avaliação',em_revisao_unesco:'Em Revisão UNESCO',aprovado:'Aprovado'};
 
 // Quem pode editar em cada fase
 const PERM_FASE={
   rascunho:['super_admin','coordenacao','tecnico'],
-  revisao_interna:['super_admin','coordenacao'],
-  ajustes:['super_admin','coordenacao','tecnico'],
-  enviado_unesco:[], // bloqueado
-  retorno_unesco:['super_admin','coordenacao','tecnico'],
+  submetido:[], // bloqueado — aguardando análise do agente
+  pendente_correcao:['super_admin','coordenacao','tecnico'],
+  em_avaliacao:['super_admin','coordenacao'],
+  em_revisao_unesco:[], // bloqueado
   aprovado:[], // bloqueado
   cancelado:[]
 };
@@ -334,7 +334,7 @@ function renderStats(){
   document.getElementById('stats').innerHTML=`
     <div class="stat-card sc-g"><div class="stat-lbl">Total</div><div class="stat-val">${t.length}</div><div class="stat-sub">${t.filter(x=>x.status==='aprovado').length} aprovados</div></div>
     <div class="stat-card sc-b"><div class="stat-lbl">Rascunho</div><div class="stat-val">${t.filter(x=>x.status==='rascunho').length}</div><div class="stat-sub">aguardando revisão</div></div>
-    <div class="stat-card sc-t"><div class="stat-lbl">Em andamento</div><div class="stat-val">${t.filter(x=>['revisao_interna','ajustes','enviado_unesco','retorno_unesco'].includes(x.status)).length}</div><div class="stat-sub">em fluxo</div></div>
+    <div class="stat-card sc-t"><div class="stat-lbl">Em andamento</div><div class="stat-val">${t.filter(x=>['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco'].includes(x.status)).length}</div><div class="stat-sub">em fluxo</div></div>
     <div class="stat-card sc-r"><div class="stat-lbl">Atrasados</div><div class="stat-val">${t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&x.status!=='aprovado').length}</div><div class="stat-sub">prazo vencido</div></div>
     <div class="stat-card sc-a"><div class="stat-lbl">Valor total</div><div class="stat-val" style="font-size:14px">${fmtBRL(t.filter(x=>x.status!=='cancelado').reduce((s,x)=>s+parseFloat(x.valor_brl||0),0))}</div><div class="stat-sub">TDRs ativos</div></div>`;
 }
@@ -391,12 +391,12 @@ function filtrar(){
 
     // Botão Revisar — lógica por fase e perfil
     const podeAbrirEditor =
-      (podeEd && ['rascunho','ajustes'].includes(t.status)) ||
-      (eCoordenador && ['revisao_interna','enviado_unesco','retorno_unesco'].includes(t.status)) ||
+      (podeEd && ['rascunho','pendente_correcao'].includes(t.status)) ||
+      (eCoordenador && ['em_avaliacao','em_revisao_unesco'].includes(t.status)) ||
       (appState.perfil==='super_admin');
 
     // Labels abreviadas para timeline
-    const FASES_ABREV={rascunho:'Rascunho',revisao_interna:'Revisão',ajustes:'Ajustes',enviado_unesco:'UNESCO',retorno_unesco:'Retorno',aprovado:'Aprovado'};
+    const FASES_ABREV={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente',em_avaliacao:'Avaliação',em_revisao_unesco:'UNESCO',aprovado:'Aprovado'};
 
     return `<div class="tdr-card st-${t.status}" onclick="abrirTDR('${t.id}')">
       <!-- Linha 1: badges -->
@@ -497,7 +497,7 @@ async function abrirTDR(id){
   const t=tdrAtual;
   const fi=FASES.indexOf(t.status);
   const podeEd=podeEditarFase(t.status);
-  const bloqueado=['enviado_unesco','aprovado'].includes(t.status);
+  const bloqueado=['submetido','em_revisao_unesco','aprovado'].includes(t.status);
   const cotacao=await obterCotacao();
   const taxaAtual=cotacao?.cotacao||5.87;
 
@@ -589,7 +589,7 @@ async function abrirTDR(id){
         ${campoEditavel('dt_contratacao','Data de contratação','date',t.dt_contratacao,podeEd)}
       </div>
 
-      ${t.status==='retorno_unesco'||t.motivo_recusa?campoEditavel('motivo_recusa','Correções solicitadas pela UNESCO','textarea',t.motivo_recusa,podeEd,3):''}
+      ${t.status==='pendente_correcao'||t.motivo_recusa?campoEditavel('motivo_recusa','Correções solicitadas','textarea',t.motivo_recusa,podeEd,3):''}
       ${campoEditavel('observacao','Observações gerais','textarea',t.observacao,podeEd,2)}
 
       ${podeEd?`
@@ -717,31 +717,30 @@ async function abrirTDR(id){
 
   const acoesFase={
     rascunho:{
-      avancar: eTecnicoModal?{s:'revisao_interna',l:'→ Enviar para revisão interna'}:null,
+      avancar: eTecnicoModal?{s:'submetido',l:'→ Submeter para análise do agente'}:null,
       devolver: null,
     },
-    revisao_interna:{
-      avancar: eCoordenadorModal?{s:'enviado_unesco',l:'→ Aprovar e enviar à UNESCO'}:null,
+    submetido:{
+      avancar: null, // agente processa automaticamente
+      devolver: null,
+    },
+    pendente_correcao:{
+      avancar: eTecnicoModal?{s:'submetido',l:'→ Resubmeter após correções'}:null,
+      devolver: null,
+    },
+    em_avaliacao:{
+      avancar: eCoordenadorModal?{s:'em_revisao_unesco',l:'→ Enviar à UNESCO'}:null,
       devolver: eCoordenadorModal,
     },
-    ajustes:{
-      avancar: eTecnicoModal?{s:'revisao_interna',l:'→ Reenviar para revisão'}:null,
-      devolver: null,
-    },
-    enviado_unesco:{
-      avancar: eCoordenadorModal?{s:'retorno_unesco',l:'→ Registrar retorno da UNESCO'}:null,
+    em_revisao_unesco:{
+      avancar: eCoordenadorModal?{s:'aprovado',l:'✓ Aprovar'}:null,
       devolver: eCoordenadorModal,
-    },
-    retorno_unesco:{
-      avancar: eCoordenadorModal?{s:'ajustes',l:'→ Encaminhar para ajustes'}:null,
-      aprovar: appState.perfil==='super_admin'?{s:'aprovado',l:'✓ Aprovar definitivamente'}:null,
-      devolver: null,
     },
   };
   const fa=acoesFase[t.status]||{};
   const podeAbrirEditorModal=
-    (eTecnicoModal&&['rascunho','ajustes'].includes(t.status))||
-    (eCoordenadorModal&&['revisao_interna','enviado_unesco','retorno_unesco'].includes(t.status))||
+    (eTecnicoModal&&['rascunho','pendente_correcao'].includes(t.status))||
+    (eCoordenadorModal&&['em_avaliacao','em_revisao_unesco'].includes(t.status))||
     appState.perfil==='super_admin';
 
   // Permissão de exclusão: super_admin sempre, técnico só no próprio rascunho
@@ -1001,8 +1000,8 @@ async function avancarFase(novoStatus){
 
     // Registrar ação no log (tentativa, não bloqueia se falhar)
     const acaoMap={
-      revisao_interna:'enviado_revisao', ajustes:'devolvido_ajuste',
-      enviado_unesco:'enviado_unesco', retorno_unesco:'retorno_unesco',
+      submetido:'submetido', pendente_correcao:'devolvido_ajuste',
+      em_avaliacao:'em_avaliacao', em_revisao_unesco:'enviado_unesco',
       aprovado:'aprovado_final', cancelado:'cancelado',
     };
     let usuarioId=appState?.usuario?.id;
@@ -1054,15 +1053,15 @@ async function executarDevolucao(){
       });
       if(error)throw error;
 
-      tdrAtual.status='ajustes';
+      tdrAtual.status='pendente_correcao';
       const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
-      if(idx>=0)todosTDRs[idx].status='ajustes';
+      if(idx>=0)todosTDRs[idx].status='pendente_correcao';
 
       if(!tdrAcoes[tdrAtual.id])tdrAcoes[tdrAtual.id]=[];
       tdrAcoes[tdrAtual.id].unshift({
         acao:'devolvido_ajuste',
         status_anterior:tdrAtual.status,
-        status_novo:'ajustes',
+        status_novo:'pendente_correcao',
         comentario:motivo,
         usuarios:{nome_completo:appState.usuario.nome_completo},
         criado_em:new Date().toISOString()
