@@ -165,6 +165,8 @@ async function carregarUsuario() {
     try {
       await db.from('usuarios').update(updates).eq('id', usuario.id);
     } catch(e) { /* não crítico */ }
+
+    iniciarIdleTimer();
   }
   return usuario;
 }
@@ -174,6 +176,75 @@ async function sair() {
   localStorage.removeItem('dima_idioma');
   window.location.href = '../index.html';
 }
+
+// ── Idle Session Timer (30 min) ───────────────────────────────
+const iniciarIdleTimer = (() => {
+  const AVISO_MS  = 28 * 60 * 1000; // 28 min → exibe aviso
+  const LOGOUT_MS = 30 * 60 * 1000; // 30 min → logout automático
+  const EVENTOS   = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+
+  const TEXTOS = {
+    pt: { titulo: 'Sessão prestes a expirar', msg: 'Por inatividade, sua sessão será encerrada em:', continuar: 'Continuar sessão', sairAgora: 'Sair agora' },
+    en: { titulo: 'Session about to expire',  msg: 'Due to inactivity, your session will end in:',   continuar: 'Stay signed in',   sairAgora: 'Sign out now' },
+    es: { titulo: 'Sesión a punto de expirar', msg: 'Por inactividad, su sesión se cerrará en:',     continuar: 'Continuar sesión', sairAgora: 'Salir ahora' }
+  };
+
+  let timerAviso, timerLogout, countdownInterval, modalEl;
+  let iniciado = false;
+
+  function _textos() { return TEXTOS[appState.idioma] || TEXTOS.pt; }
+
+  function _fecharModal() {
+    clearInterval(countdownInterval); countdownInterval = null;
+    if (modalEl) { modalEl.remove(); modalEl = null; }
+  }
+
+  function _mostrarAviso() {
+    if (modalEl) return;
+    const tx = _textos();
+    const overlay = document.createElement('div');
+    overlay.id = 'idle-modal';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-family:\'DM Sans\',sans-serif';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:36px 40px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center">
+        <div style="font-size:44px;margin-bottom:12px">⏱️</div>
+        <h2 style="margin:0 0 10px;font-size:20px;font-weight:700;color:#111827">${tx.titulo}</h2>
+        <p style="margin:0 0 6px;color:#6B7280;font-size:14px;line-height:1.6">${tx.msg}</p>
+        <p style="margin:0 0 28px"><span id="idle-countdown" style="font-size:32px;font-weight:700;color:#DC2626">2:00</span></p>
+        <div style="display:flex;gap:12px;justify-content:center">
+          <button id="idle-btn-sair" style="padding:10px 24px;border-radius:8px;border:1px solid #E5E7EB;background:#fff;color:#374151;font-size:14px;font-weight:500;cursor:pointer">${tx.sairAgora}</button>
+          <button id="idle-btn-continuar" style="padding:10px 24px;border-radius:8px;border:none;background:#2563EB;color:#fff;font-size:14px;font-weight:600;cursor:pointer">${tx.continuar}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    modalEl = overlay;
+
+    let segs = 120;
+    const cdEl = document.getElementById('idle-countdown');
+    countdownInterval = setInterval(() => {
+      segs--;
+      if (cdEl) cdEl.textContent = `${Math.floor(segs/60)}:${String(segs%60).padStart(2,'0')}`;
+      if (segs <= 0) clearInterval(countdownInterval);
+    }, 1000);
+
+    document.getElementById('idle-btn-continuar').addEventListener('click', () => { _fecharModal(); _resetar(); });
+    document.getElementById('idle-btn-sair').addEventListener('click', () => { _fecharModal(); sair(); });
+  }
+
+  function _resetar() {
+    clearTimeout(timerAviso);
+    clearTimeout(timerLogout);
+    timerAviso  = setTimeout(_mostrarAviso, AVISO_MS);
+    timerLogout = setTimeout(() => { _fecharModal(); sair(); }, LOGOUT_MS);
+  }
+
+  return function iniciarIdleTimer() {
+    if (iniciado) { _resetar(); return; }
+    iniciado = true;
+    EVENTOS.forEach(ev => document.addEventListener(ev, _resetar, { passive: true }));
+    _resetar();
+  };
+})();
 
 // ── SEI ───────────────────────────────────────────────────────
 const SEI_BASE_URL = 'https://app.sei.ac.gov.br/sei/controlador.php?acao=pesquisa_rapida&pesquisa_rapida_nr_protocolo=';
