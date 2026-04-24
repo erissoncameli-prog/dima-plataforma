@@ -988,9 +988,57 @@ async function resolverComent(id){
   setTimeout(()=>abrirTDR(tdrAtual.id),300);
 }
 
+async function submeterParaAgente(){
+  if(!tdrAtual)return;
+  fecharModal('modal-tdr');
+  toast('Submetendo TDR para análise do agente... aguarde.','info');
+  try{
+    // 1. Marcar como submetido
+    const {error}=await db.from('tdrs').update({status:'submetido'}).eq('id',tdrAtual.id);
+    if(error)throw new Error(error.message);
+
+    // 2. Chamar Edge Function
+    const {data:{session}}=await db.auth.getSession();
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/analisar-tdr`,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${session?.access_token}`,
+        'apikey':SUPABASE_ANON_KEY,
+      },
+      body:JSON.stringify({tdr_id:tdrAtual.id}),
+    });
+    const resultado=await res.json();
+    if(!res.ok)throw new Error(resultado.error||'Erro na análise');
+
+    // 3. Exibir resultado ao usuário
+    const icone={aprovado:'✅',alerta:'⚠️',reprovado:'❌'}[resultado.status]||'🔍';
+    const label={aprovado:'Aprovado pelo agente',alerta:'Aprovado com alertas',reprovado:'Pendente de correção'}[resultado.status]||resultado.status;
+    toast(`${icone} ${label}: ${resultado.resumo}`,'info',8000);
+
+    // 4. Atualizar estado local e recarregar
+    tdrAtual.status=resultado.novo_status_tdr;
+    const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+    if(idx>=0)todosTDRs[idx].status=resultado.novo_status_tdr;
+    renderStats();filtrar();
+    setTimeout(()=>abrirTDR(tdrAtual.id),600);
+  }catch(e){
+    console.error('[AGENTE]',e);
+    // Reverter status se a chamada falhou
+    await db.from('tdrs').update({status:'rascunho'}).eq('id',tdrAtual.id).catch(()=>{});
+    toast('Erro ao acionar o agente: '+(e.message||'tente novamente'),'error');
+  }
+}
+
 async function avancarFase(novoStatus){
   if(!tdrAtual)return;
   try{
+    // Submissão ao agente: fluxo especial
+    if(novoStatus==='submetido'){
+      await submeterParaAgente();
+      return;
+    }
+
     // Atualizar status diretamente (abordagem direta e confiável)
     const {error:updErr}=await db.from('tdrs').update({status:novoStatus}).eq('id',tdrAtual.id);
     if(updErr){
