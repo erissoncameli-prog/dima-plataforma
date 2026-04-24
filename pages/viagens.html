@@ -302,6 +302,7 @@ let embarqueFiles={};   // {viajante_idx: [File,...]}
 let relatorioFiles={};  // {viajante_idx: File}
 let trechoIdx=0, diariaIdx=0, viajanteIdx=0;
 let selectedBenef={};   // {viajante_idx: beneficiarioObj}
+let _salvando=false;    // guard anti-duplo-clique
 
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -1297,6 +1298,13 @@ function calcTotalForm(){
 // SALVAR PROTOCOLO
 // ══════════════════════════════════════════════════════════════
 async function salvarProtocolo(situacaoAlvo='solicitado'){
+  if(_salvando){return;}  // guard anti-duplo-clique
+  _salvando=true;
+  try{ await _salvarProtocoloInterno(situacaoAlvo); }
+  finally{ _salvando=false; }
+}
+
+async function _salvarProtocoloInterno(situacaoAlvo){
   const objetivo=document.getElementById('f-objetivo')?.value.trim();
   const destino=document.getElementById('f-destino')?.value.trim();
   if(!objetivo||!destino){toast('Preencha objetivo e destino.','error');return;}
@@ -1377,16 +1385,15 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
     if(pErr){toast('Erro ao atualizar protocolo: '+pErr.message,'error');return;}
     protId=editandoProtocoloId;
     protNumero=protAtual?.numero||'';
-    // Apagar sub-registros para re-inserir limpo
-    // Deleta por viajante_id (FK garantida) para evitar violação de constraint ao deletar viajantes
-    const viajIdsAntigos=(protAtual?.viajantes||[]).map(v=>v.id).filter(Boolean);
-    if(viajIdsAntigos.length){
-      const{error:tErr}=await db.from('viagem_trechos').delete().in('viajante_id',viajIdsAntigos);
-      if(tErr){toast('Erro ao limpar trechos: '+tErr.message,'error');return;}
-      const{error:dErr}=await db.from('viagem_diarias_v2').delete().in('viajante_id',viajIdsAntigos);
-      if(dErr){toast('Erro ao limpar diárias: '+dErr.message,'error');return;}
-    }
-    const{error:vDelErr}=await db.from('viagem_viajantes').delete().eq('protocolo_id',protId);
+    // Apagar tudo pelo protocolo_id diretamente — não depende de protAtual (evita duplicação)
+    // viagem_trechos e viagem_diarias_v2 têm protocolo_id, então o delete é direto e completo
+    const[{error:tErr},{error:dErr},{error:vDelErr}]=await Promise.all([
+      db.from('viagem_trechos').delete().eq('protocolo_id',protId),
+      db.from('viagem_diarias_v2').delete().eq('protocolo_id',protId),
+      db.from('viagem_viajantes').delete().eq('protocolo_id',protId),
+    ]);
+    if(tErr){toast('Erro ao limpar trechos: '+tErr.message,'error');return;}
+    if(dErr){toast('Erro ao limpar diárias: '+dErr.message,'error');return;}
     if(vDelErr){toast('Erro ao limpar viajantes: '+vDelErr.message,'error');return;}
   } else {
     // ── MODO CRIAÇÃO — INSERT ───────────────────────────────────
@@ -2289,7 +2296,7 @@ function fecharLightbox(){
 }
 function fecharModal(){
   document.getElementById('modal-prot').classList.remove('aberto');
-  protAtual=null;editandoProtocoloId=null;viajantesForm=[];embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;selectedBenef={};
+  protAtual=null;editandoProtocoloId=null;viajantesForm=[];embarqueFiles={};relatorioFiles={};trechoIdx=0;diariaIdx=0;viajanteIdx=0;selectedBenef={};_salvando=false;
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){fecharLightbox();fecharModal();}});
 
