@@ -360,12 +360,12 @@ let _salvando=false;    // guard anti-duplo-clique
       </div>
     </div>`+`</div></div></div>`;
 
-  mudarAba(abaInicial, false);
   await Promise.all([
     carregar(),
     carregarNotificacoes(),
     db.from('beneficiarios').select('*').order('nome').then(({data})=>{todosbenef=data||[];}),
   ]);
+  mudarAba(abaInicial, false); // após carregar() para que protocolos[] esteja disponível
 })();
 
 async function carregar(){
@@ -407,23 +407,21 @@ let todosbenef=[], benefEditando=null;
 let protocolosPorBenef={};   // {benefId: [{numero,situacao,destino_principal,id}]}
 
 async function carregarBenef(){
-  const[{data:benefs},{data:vinculos}]=await Promise.all([
-    db.from('beneficiarios').select('*').order('nome'),
-    db.from('viagem_viajantes')
-      .select('beneficiario_id, protocolo:viagem_protocolos(id,numero,situacao,destino_principal)')
-      .not('beneficiario_id','is',null),
-  ]);
-  todosbenef=benefs||[];
-  // Montar mapa beneficiario_id → protocolos (excluindo cancelados)
+  const{data}=await db.from('beneficiarios').select('*').order('nome');
+  todosbenef=data||[];
+  // Montar mapa benefId → protocolos a partir de protocolos[] já carregado
+  // (carregar() já faz select de viagem_viajantes com *, que inclui beneficiario_id)
   protocolosPorBenef={};
-  (vinculos||[]).forEach(v=>{
-    if(!v.beneficiario_id||!v.protocolo)return;
-    const sit=v.protocolo.situacao;
-    if(sit==='cancelado'||sit==='rejeitado')return;
-    if(!protocolosPorBenef[v.beneficiario_id])protocolosPorBenef[v.beneficiario_id]=[];
-    // evitar duplicatas (mesmo protocolo com vários vínculos)
-    if(!protocolosPorBenef[v.beneficiario_id].some(p=>p.id===v.protocolo.id))
-      protocolosPorBenef[v.beneficiario_id].push(v.protocolo);
+  (protocolos||[]).forEach(p=>{
+    if(p.situacao==='cancelado'||p.situacao==='rejeitado')return;
+    (p.viajantes||[]).forEach(v=>{
+      if(!v.beneficiario_id)return;
+      if(!protocolosPorBenef[v.beneficiario_id])protocolosPorBenef[v.beneficiario_id]=[];
+      if(!protocolosPorBenef[v.beneficiario_id].some(x=>x.id===p.id))
+        protocolosPorBenef[v.beneficiario_id].push({
+          id:p.id,numero:p.numero,situacao:p.situacao,destino_principal:p.destino_principal
+        });
+    });
   });
   filtrarBenef();
 }
