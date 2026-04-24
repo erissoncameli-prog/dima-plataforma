@@ -1,22 +1,28 @@
 -- ═══════════════════════════════════════════════════════════════════
 -- DIMA · Migration 07 — Agente IA: fluxo TDR, entregas e log de análises
--- Execute no SQL Editor do Supabase
+--
+-- ATENÇÃO: Execute em DUAS etapas no SQL Editor do Supabase:
+--   ETAPA 1: apenas o bloco marcado como [ETAPA 1] abaixo
+--   ETAPA 2: o restante do arquivo [ETAPA 2] em seguida
+--
+-- Motivo: PostgreSQL não permite usar novos valores de ENUM
+-- na mesma transação em que foram criados.
 -- ═══════════════════════════════════════════════════════════════════
 
--- ──────────────────────────────────────────────────────────────────
--- 1. Atualizar ENUM status_tdr com os novos valores
---    Novo fluxo: rascunho → submetido → pendente_correcao →
---                em_avaliacao → em_revisao_unesco → aprovado → cancelado
--- ──────────────────────────────────────────────────────────────────
+-- ══════════════════════════════════════════
+-- [ETAPA 1] — Execute este bloco primeiro
+-- ══════════════════════════════════════════
 
--- Adicionar novos valores ao enum (ADD VALUE é seguro e não remove os antigos)
 ALTER TYPE public.status_tdr ADD VALUE IF NOT EXISTS 'submetido';
 ALTER TYPE public.status_tdr ADD VALUE IF NOT EXISTS 'pendente_correcao';
 ALTER TYPE public.status_tdr ADD VALUE IF NOT EXISTS 'em_avaliacao';
 ALTER TYPE public.status_tdr ADD VALUE IF NOT EXISTS 'em_revisao_unesco';
 
+-- ══════════════════════════════════════════════════════════════════
+-- [ETAPA 2] — Execute este bloco após a ETAPA 1 ter sido confirmada
+-- ══════════════════════════════════════════════════════════════════
+
 -- Migrar dados existentes para os novos status
--- (os valores antigos continuam válidos no enum mas não serão mais usados)
 UPDATE public.tdrs SET status = 'em_avaliacao'      WHERE status = 'revisao_interna';
 UPDATE public.tdrs SET status = 'pendente_correcao' WHERE status = 'ajustes';
 UPDATE public.tdrs SET status = 'em_revisao_unesco' WHERE status = 'enviado_unesco';
