@@ -1071,11 +1071,15 @@ async function abrirDetalhe(id){
   const total=calcTotalProtocolo(p);
   const numDias=p.dt_retorno&&p.dt_saida?Math.ceil((new Date(p.dt_retorno)-new Date(p.dt_saida))/(1000*60*60*24)):null;
 
-  // Buscar saldo da atividade para admin/coordenação
-  let saldoAtiv=null;
+  // Buscar saldo da atividade e cotação atual para admin/coordenação
+  let saldoAtiv=null, cotacaoAtual=1;
   if(isAdmin){
-    const{data:sal}=await db.from('vw_saldo_atividade').select('*').eq('id',ATIV_217).single();
+    const [{data:sal},{data:cotRows}] = await Promise.all([
+      db.from('vw_saldo_atividade').select('*').eq('id',ATIV_217).single(),
+      db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
+    ]);
     saldoAtiv=sal;
+    cotacaoAtual=parseFloat(cotRows?.[0]?.cotacao||1);
   }
 
   document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span style="font-size:14px;font-weight:500;color:var(--cinza-700);margin-left:8px">${esc(p.destino_principal||'—')}</span>`;
@@ -1127,10 +1131,10 @@ async function abrirDetalhe(id){
       <div>
         <div style="font-size:10px;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total do protocolo</div>
         <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--verde-medio)">${fmtBRL(total)}</div>
-        ${isAdmin&&saldoAtiv?`<div style="margin-top:6px;padding:6px 8px;background:${total>(saldoAtiv.disponivel_usd*(saldoAtiv.cotacao||1)||99999)?'#FEF2F2':'#ECFDF5'};border-radius:var(--raio);border:1px solid ${total>(saldoAtiv.disponivel_usd*(saldoAtiv.cotacao||1)||99999)?'#FECACA':'#86EFAC'}">
+        ${isAdmin&&saldoAtiv?`<div style="margin-top:6px;padding:6px 8px;background:${total>(saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual?'#FEF2F2':'#ECFDF5'};border-radius:var(--raio);border:1px solid ${total>(saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual?'#FECACA':'#86EFAC'}">
           <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:var(--cinza-500);margin-bottom:2px">Saldo da atividade</div>
-          <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${fmtBRL((saldoAtiv.disponivel_usd||0)*(saldoAtiv.cotacao||1))} disponível</div>
-          <div style="font-size:10px;color:var(--cinza-500)">U$ ${(saldoAtiv.disponivel_usd||0).toFixed(2)}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${fmtBRL((saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual)} disponível</div>
+          <div style="font-size:10px;color:var(--cinza-500)">U$ ${Number(saldoAtiv.saldo_disponivel_usd||0).toFixed(2)}</div>
         </div>`:''}
       </div>
       <!-- Aviso de ação pendente para admins -->
