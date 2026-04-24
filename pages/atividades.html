@@ -146,11 +146,13 @@ let ativFiltradas = [];
 let ativEditando = null;
 let resultadosMap = {};
 let tdrsPorAtividade = {};
-let tdrsAbertos = {}; // cache de URLs por tdr_id
+let tdrsAbertos = {};
 let painelAberto = {};
 let todosUsuarios = [];
-let respPorAtividade = {}; // responsáveis por atividade
-let senhaCallback = null; // função a executar após confirmação de senha
+let respPorAtividade = {};
+let senhaCallback = null;
+let todosMatrizItens = []; // cache dos indicadores da matriz
+let matrizPorAtividade = {}; // cache de vínculos atividade_matriz
 
 (async () => {
   const usuario = await carregarUsuario();
@@ -240,6 +242,18 @@ async function carregarDados() {
     ]);
     todosUsuarios = usuarios || [];
 
+    // Carregar indicadores da matriz e vínculos existentes em paralelo
+    const [{ data: matrizItens }, { data: matrizLinks }] = await Promise.all([
+      db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,meta_descricao').eq('ativo',true).order('ordem'),
+      db.from('atividade_matriz').select('atividade_id,matriz_item_id')
+    ]);
+    todosMatrizItens = matrizItens || [];
+    matrizPorAtividade = {};
+    (matrizLinks||[]).forEach(l => {
+      if (!matrizPorAtividade[l.atividade_id]) matrizPorAtividade[l.atividade_id] = [];
+      matrizPorAtividade[l.atividade_id].push(l.matriz_item_id);
+    });
+
     // Mapear resultados
     resultados?.forEach(r => { resultadosMap[r.id] = r; });
 
@@ -249,7 +263,6 @@ async function carregarDados() {
 
     // Mapear TDRs por atividade
     tdrsPorAtividade = {};
-    // Filtrar cancelados no JS e mapear por atividade
     (tdrsData||[]).filter(t=>t.status!=='cancelado').forEach(t => {
       if (!tdrsPorAtividade[t.atividade_id]) tdrsPorAtividade[t.atividade_id] = [];
       tdrsPorAtividade[t.atividade_id].push(t);
@@ -696,6 +709,40 @@ function abrirModal(id, somenteLeitura = false) {
           </label>`;
         }).join('')}
       </div>
+    </div>
+
+    <!-- Indicadores da Matriz de Resultados -->
+    <div style="border:1px solid var(--verde-claro);border-radius:var(--raio-lg);padding:12px;margin-top:8px;background:#F0FDF4">
+      <div style="font-size:11px;font-weight:600;color:var(--verde-escuro,#085041);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">
+        Indicadores da Matriz de Resultados
+        <span style="font-weight:400;color:var(--cinza-500)">(define quais metas esta atividade contribui)</span>
+      </div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px">Selecione os indicadores que os TDRs desta atividade devem entregar.</div>
+      ${(() => {
+        const vinculados = matrizPorAtividade[a.id] || [];
+        const porResultado = {};
+        todosMatrizItens.forEach(mi => {
+          const r = mi.resultado || 'Outros';
+          if (!porResultado[r]) porResultado[r] = [];
+          porResultado[r].push(mi);
+        });
+        if (todosMatrizItens.length === 0) return '<div style="font-size:12px;color:var(--cinza-400)">Nenhum indicador cadastrado na Matriz de Resultados.</div>';
+        return Object.entries(porResultado).map(([res, itens]) => `
+          <div style="margin-bottom:10px">
+            <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Resultado ${res}</div>
+            ${itens.map(mi => {
+              const checked = vinculados.includes(mi.id) ? 'checked' : '';
+              const meta = mi.meta_numerica ? `${mi.meta_numerica} ${mi.unidade}` : mi.meta_descricao || 'qualitativa';
+              return `<label style="display:flex;align-items:flex-start;gap:7px;padding:6px 8px;border:1px solid ${checked?'var(--verde-claro)':'var(--borda)'};border-radius:var(--raio);cursor:pointer;margin-bottom:4px;background:${checked?'#ECFDF5':'var(--branco)'};transition:all .1s">
+                <input type="checkbox" name="ed-matriz" value="${mi.id}" ${checked} style="accent-color:var(--verde-claro);margin-top:2px;flex-shrink:0">
+                <div>
+                  <div style="font-size:11px;font-weight:600;color:var(--cinza-800)">${mi.produto_codigo} — ${mi.produto_titulo}</div>
+                  <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">${mi.indicador} · <em>Meta: ${meta}</em></div>
+                </div>
+              </label>`;
+            }).join('')}
+          </div>`).join('');
+      })()}
     </div>`;
 
   document.getElementById('modal-atividade').classList.add('aberto');
@@ -780,12 +827,23 @@ async function salvarAtividade() {
     ods: getChecked('ed-ods'),
     metas_km: getChecked('ed-km'),
   };
+  const matrizSelecionados = getChecked('ed-matriz');
   const ativId = ativEditando.id;
 
   pedirSenha('Confirmar alterações na atividade', `Atividade ${ativEditando.codigo}`, async () => {
     try {
       const { error } = await db.from('atividades').update(updates).eq('id', ativId);
       if (error) throw error;
+
+      // Atualizar vínculos com a Matriz de Resultados
+      await db.from('atividade_matriz').delete().eq('atividade_id', ativId);
+      if (matrizSelecionados.length > 0) {
+        await db.from('atividade_matriz').insert(
+          matrizSelecionados.map(mid => ({ atividade_id: ativId, matriz_item_id: mid }))
+        );
+      }
+      matrizPorAtividade[ativId] = matrizSelecionados;
+
       const atv = todasAtividades.find(a=>a.id===ativId);
       if (atv) Object.assign(atv, updates);
       fecharModal();
