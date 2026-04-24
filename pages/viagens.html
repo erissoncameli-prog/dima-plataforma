@@ -403,10 +403,27 @@ function mudarAba(aba, pushState=true){
 // BENEFICIÁRIOS
 // ══════════════════════════════════════════════════════════════
 let todosbenef=[], benefEditando=null;
+let protocolosPorBenef={};   // {benefId: [{numero,situacao,destino_principal,id}]}
 
 async function carregarBenef(){
-  const{data}=await db.from('beneficiarios').select('*').order('nome');
-  todosbenef=data||[];
+  const[{data:benefs},{data:vinculos}]=await Promise.all([
+    db.from('beneficiarios').select('*').order('nome'),
+    db.from('viagem_viajantes')
+      .select('beneficiario_id, protocolo:viagem_protocolos(id,numero,situacao,destino_principal)')
+      .not('beneficiario_id','is',null),
+  ]);
+  todosbenef=benefs||[];
+  // Montar mapa beneficiario_id → protocolos (excluindo cancelados)
+  protocolosPorBenef={};
+  (vinculos||[]).forEach(v=>{
+    if(!v.beneficiario_id||!v.protocolo)return;
+    const sit=v.protocolo.situacao;
+    if(sit==='cancelado'||sit==='rejeitado')return;
+    if(!protocolosPorBenef[v.beneficiario_id])protocolosPorBenef[v.beneficiario_id]=[];
+    // evitar duplicatas (mesmo protocolo com vários vínculos)
+    if(!protocolosPorBenef[v.beneficiario_id].some(p=>p.id===v.protocolo.id))
+      protocolosPorBenef[v.beneficiario_id].push(v.protocolo);
+  });
   filtrarBenef();
 }
 
@@ -434,8 +451,41 @@ function renderBenef(lista){
       <th style="padding:8px 12px"></th>
     </tr></thead>
     <tbody>
-    ${lista.map(b=>`<tr style="border-bottom:1px solid var(--borda);transition:background .1s" onmouseover="this.style.background='var(--cinza-50)'" onmouseout="this.style.background=''">
-      <td style="padding:9px 12px;font-weight:500;color:var(--cinza-900)">${esc(b.nome)}</td>
+    ${lista.map(b=>{
+      const prots=protocolosPorBenef[b.id]||[];
+      // Ordenar: em_prestacao primeiro
+      const ordenados=[...prots].sort((a,b)=>a.situacao==='em_prestacao'?-1:b.situacao==='em_prestacao'?1:0);
+      const badges=ordenados.map(p=>{
+        if(p.situacao==='em_prestacao')
+          return `<span onclick="event.stopPropagation();abrirDetalhe('${p.id}')" title="Clique para ver o protocolo"
+            style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;white-space:nowrap">
+            ⏰ ${esc(p.numero)} — prestação pendente
+          </span>`;
+        if(p.situacao==='solicitado')
+          return `<span onclick="event.stopPropagation();abrirDetalhe('${p.id}')" title="Clique para ver o protocolo"
+            style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE;white-space:nowrap">
+            📋 ${esc(p.numero)} — em análise
+          </span>`;
+        if(p.situacao==='aprovado')
+          return `<span onclick="event.stopPropagation();abrirDetalhe('${p.id}')" title="Clique para ver o protocolo"
+            style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;white-space:nowrap">
+            ✈ ${esc(p.numero)} — aprovado
+          </span>`;
+        if(p.situacao==='realizado')
+          return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;padding:2px 7px;border-radius:99px;background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0;white-space:nowrap">
+            ✓ ${esc(p.numero)}
+          </span>`;
+        return `<span style="display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:2px 7px;border-radius:99px;background:#F3F4F6;color:#6B7280;border:1px solid var(--borda);white-space:nowrap">
+          ${esc(p.numero)}
+        </span>`;
+      }).join(' ');
+      return`<tr style="border-bottom:1px solid var(--borda);transition:background .1s" onmouseover="this.style.background='var(--cinza-50)'" onmouseout="this.style.background=''">
+      <td style="padding:9px 12px;font-weight:500;color:var(--cinza-900)">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:5px">
+          <span>${esc(b.nome)}</span>
+          ${badges}
+        </div>
+      </td>
       <td style="padding:9px 12px;font-family:var(--font-mono);color:var(--cinza-700)">${esc(b.cpf||'—')}</td>
       <td style="padding:9px 12px;color:var(--cinza-600)">${esc(b.cargo||'—')}${b.instituicao?`<br><span style="font-size:10px;color:var(--cinza-400)">${esc(b.instituicao)}</span>`:''}</td>
       <td style="padding:9px 12px;font-family:var(--font-mono);color:var(--cinza-600)">${esc(b.passaporte_numero||'—')}${b.passaporte_validade?`<br><span style="font-size:10px;color:var(--cinza-400)">Val: ${fmtData(b.passaporte_validade)}</span>`:''}</td>
@@ -524,10 +574,8 @@ async function salvarBenef(){
   toast(benefEditando?'Beneficiário atualizado! Agora clique em "Enviar para aprovação" novamente.':'Beneficiário cadastrado!','success');
   document.getElementById('modal-benef').classList.remove('aberto');
   document.getElementById('modal-benef-aviso').style.display='none';
-  // Recarregar cache de beneficiários para que a próxima validação use dados atualizados
-  const{data:benefs}=await db.from('beneficiarios').select('*').order('nome');
-  todosbenef=benefs||[];
-  if(document.getElementById('lista-benef')?.style.display!=='none') filtrarBenef();
+  // Recarregar cache completo para que a próxima validação use dados atualizados
+  await carregarBenef();
 }
 
 async function verificarAutoTransicao(lista){
