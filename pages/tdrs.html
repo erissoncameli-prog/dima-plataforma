@@ -299,7 +299,7 @@ function podeEditarFase(status){
 
 async function carregar(){
   try{
-    let tdrQuery=db.from('tdrs').select(`*,atividades(codigo,nome_pt,responsavel_id,responsavel:usuarios!atividades_responsavel_id_fkey(id,nome_completo)),fornecedores(nome,tipo),contratos(id,numero,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,status)`)
+    let tdrQuery=db.from('tdrs').select(`*,atividades(id,codigo,nome_pt,responsavel_id,responsavel:usuarios!atividades_responsavel_id_fkey(id,nome_completo)),fornecedores(nome,tipo),contratos(id,numero,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,status)`)
       .order('criado_em',{ascending:false});
 
     // Técnico: vê TDRs que criou OU cujas atividades ele é responsável OU substituto
