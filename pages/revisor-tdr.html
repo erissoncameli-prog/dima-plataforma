@@ -234,43 +234,65 @@ async function init(){
   }
 }
 
-// ── RENDERIZAR DOCUMENTO (painel esq) ─────────────────────────────
+// ── RENDERIZAR DOCUMENTO COMPLETO (painel esq) ────────────────────
 function renderDoc(){
-  const LABELS={
-    objeto_pt:'Objeto',escopo_pt:'Escopo do trabalho',
-    formacao_minima_pt:'Formação mínima',experiencia_requerida_pt:'Experiência requerida',
-    area_atuacao_pt:'Área de atuação',equipe_minima_pt:'Equipe mínima'
-  };
-  const CAMPOS_ORDEM=['objeto_pt','escopo_pt','formacao_minima_pt','experiencia_requerida_pt','area_atuacao_pt','equipe_minima_pt'];
-
   const sugestaoPorCampo={};
   sugestoes.forEach((s,i)=>sugestaoPorCampo[s.campo]=i);
 
-  let html='';
-  for(const campo of CAMPOS_ORDEM){
-    const label=LABELS[campo]||campo;
-    const idx=sugestaoPorCampo[campo];
+  function secao(label, valor, campo=null){
+    const idx=campo!=null?sugestaoPorCampo[campo]:undefined;
     const hasSugestao=idx!==undefined;
     const s=hasSugestao?sugestoes[idx]:null;
-    const textoAtual=tdrInfo[campo]||(hasSugestao?'(campo vazio)':'(não preenchido)');
     const estado=s?.estado||'';
-    const classMark=hasSugestao?`rv-mark ${estado}`:'';
-
-    html+=`<div class="rv-doc-section">
-      <div class="rv-doc-label">${label}</div>
-      <div class="rv-doc-text">`;
-
+    let textoExibir=valor||'';
     if(hasSugestao){
-      const textoExibir=estado==='aceito-ia'?s.depois:estado==='aceito-user'?s.textoEditado:estado==='rejeitado'?textoAtual:textoAtual;
-      html+=`<mark class="rv-mark ${estado}${idx===pontoAtual?' ativo':''}" id="mark-${idx}" onclick="irPonto(${idx})">
-        <span class="rv-mark-num">${idx+1}</span>${textoExibir||(textoAtual==='(campo vazio)'?'<em style="color:var(--cinza-400)">(campo vazio)</em>':textoExibir)}
+      if(estado==='aceito-ia')textoExibir=s.depois;
+      else if(estado==='aceito-user')textoExibir=s.textoEditado;
+    }
+    const vazio=!textoExibir;
+    let conteudo='';
+    if(hasSugestao){
+      conteudo=`<mark class="rv-mark ${estado}${idx===pontoAtual?' ativo':''}" id="mark-${idx}" onclick="irPonto(${idx})">
+        <span class="rv-mark-num">${idx+1}</span>${vazio?'<em style="color:var(--cinza-400)">(campo vazio — sugestão disponível)</em>':escHtml(textoExibir)}
       </mark>`;
     }else{
-      html+=textoAtual||'<em style="color:var(--cinza-400)">(não preenchido)</em>';
+      conteudo=vazio?`<em style="color:var(--cinza-300,#D1D5DB)">(não preenchido)</em>`:escHtml(textoExibir);
     }
-
-    html+='</div></div>';
+    return `<div class="rv-doc-section"><div class="rv-doc-label">${label}</div><div class="rv-doc-text">${conteudo}</div></div>`;
   }
+
+  function secaoGrid(...pares){
+    return `<div class="rv-doc-section"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${pares.map(([label,val])=>`<div><div class="rv-doc-label">${label}</div><div class="rv-doc-text">${escHtml(val)||'<em style="color:var(--cinza-300)">(—)</em>'}</div></div>`).join('')}
+    </div></div>`;
+  }
+
+  const t=tdrInfo;
+  const html=`
+    <div style="border-bottom:1px solid var(--borda,#E5E7EB);padding-bottom:14px;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700;color:var(--cinza-900,#111827);margin-bottom:4px">TDR ${escHtml(t.numero||'')}</div>
+      <div style="font-size:12px;color:var(--cinza-500,#6B7280)">${escHtml(t.atividade_codigo||'')} — ${escHtml(t.atividade_nome||'')}</div>
+      ${t.tipo?`<div style="margin-top:6px"><span style="font-size:10px;font-weight:700;background:#E6F1FB;color:#0C447C;padding:2px 8px;border-radius:4px;text-transform:uppercase">${t.tipo}</span></div>`:''}
+    </div>
+
+    ${secao('Objeto do TDR', t.objeto_pt, 'objeto_pt')}
+    ${secao('Escopo do trabalho / Metodologia', t.escopo_pt, 'escopo_pt')}
+    ${secao('Formação mínima exigida', t.formacao_minima_pt, 'formacao_minima_pt')}
+    ${secao('Experiência requerida', t.experiencia_requerida_pt, 'experiencia_requerida_pt')}
+    ${secao('Área de atuação', t.area_atuacao_pt, 'area_atuacao_pt')}
+    ${secao('Equipe mínima', t.equipe_minima_pt, 'equipe_minima_pt')}
+    ${t.atestados_pt?secao('Atestados requeridos', t.atestados_pt):''}
+
+    <div style="border-top:1px solid var(--borda,#E5E7EB);padding-top:14px;margin-top:4px">
+      ${secaoGrid(
+        ['Prazo limite', t.prazo_limite?new Date(t.prazo_limite).toLocaleDateString('pt-BR'):''],
+        ['Data contratação prevista', t.dt_contratacao?new Date(t.dt_contratacao).toLocaleDateString('pt-BR'):''],
+        ['Valor estimado (BRL)', t.valor_brl?`R$ ${Number(t.valor_brl).toLocaleString('pt-BR',{minimumFractionDigits:2})}`:''],
+        ['Valor estimado (USD)', t.valor_usd?`US$ ${Number(t.valor_usd).toLocaleString('pt-BR',{minimumFractionDigits:2})}`:'']
+      )}
+      ${t.observacao?secao('Observações', t.observacao):''}
+    </div>`;
+
   document.getElementById('rv-doc').innerHTML=html;
 }
 
