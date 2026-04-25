@@ -1578,15 +1578,18 @@ async function analisarComIA(forcar=false){
       </div>`;
     }).join('');
 
-    // Botão corrigir com IA — sempre visível após análise realizada
+    // Botões de ação após análise
     document.getElementById('btn-corrigir-ia-wrap')?.remove();
-    const ultimaAnalise=analises[0];
-    const temReprovados=(ultimaAnalise?.detalhes?.criterios||[]).some(c=>!c.ok);
     const wrap=document.createElement('div');
     wrap.id='btn-corrigir-ia-wrap';
-    wrap.style.cssText='margin-top:12px;text-align:right';
-    const labelBtn=temReprovados?'✨ Corrigir com IA':'✨ Melhorar com IA';
-    wrap.innerHTML=`<button onclick="corrigirComIA()" style="background:var(--azul-medio);color:#fff;border:none;border-radius:var(--raio-md);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px">${labelBtn}</button>`;
+    wrap.style.cssText='margin-top:12px;display:flex;gap:8px;justify-content:flex-end';
+    wrap.innerHTML=`
+      <button onclick="corrigirComIA()" style="background:#F9FAFB;border:1px solid var(--borda);border-radius:var(--raio-md);padding:8px 14px;font-size:12px;font-weight:600;color:var(--cinza-700);cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+        ✨ Corrigir direto com IA
+      </button>
+      <button onclick="abrirRevisor()" style="background:var(--azul-medio);color:#fff;border:none;border-radius:var(--raio-md);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+        🔍 Iniciar Revisão Guiada
+      </button>`;
     el.parentElement.appendChild(wrap);
 
     _iaFeito=true;
@@ -1636,6 +1639,33 @@ async function corrigirComIA(){
     if(btn){btn.disabled=false;btn.textContent='✨ Corrigir com IA';}
   }
 }
+
+function abrirRevisor(){
+  if(!tdrAtual)return;
+  window.location.href=`revisor-tdr.html?tdr_id=${tdrAtual.id}`;
+}
+
+// Ao retornar do revisor: ?abrir=ID&aba=versoes
+(function verificarRetornoRevisor(){
+  const params=new URLSearchParams(location.search);
+  const abrirId=params.get('abrir');
+  const aba=params.get('aba');
+  if(abrirId){
+    // Limpar params da URL sem recarregar
+    history.replaceState(null,'',location.pathname);
+    // Aguardar dados carregarem e abrir TDR
+    const tentarAbrir=setInterval(async()=>{
+      if(todosTDRs.length>0){
+        clearInterval(tentarAbrir);
+        await abrirTDR(abrirId);
+        if(aba==='versoes'){
+          await new Promise(r=>setTimeout(r,400));
+          document.getElementById('tab-btn-versoes')?.click();
+        }
+      }
+    },200);
+  }
+})();
 
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape')['modal-tdr','modal-novo','modal-salvar'].forEach(fecharModal);
