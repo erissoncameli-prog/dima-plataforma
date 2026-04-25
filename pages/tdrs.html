@@ -127,7 +127,7 @@
   <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
     <div style="text-align:center">
       <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.12)}}</style>
       Carregando TDRs...
     </div>
   </div>
@@ -594,7 +594,7 @@ async function abrirTDR(id){
       <button class="tab-btn" onclick="aba('versoes',this)">🕐 Versões (${(versoes||[]).length})</button>
       <button class="tab-btn" onclick="aba('comentarios',this)">💬 Revisão${comsAbertos>0?`<span class="notif-badge">${comsAbertos}</span>`:` (${(comentarios||[]).length})`}</button>
       ${t.arquivo_url?`<button class="tab-btn" onclick="abrirArquivo()">📎 Arquivo</button>`:''}
-      <button class="tab-btn" onclick="aba('ia',this);if(!_iaFeito)analisarComIA()">🤖 Análise IA</button>
+      <button class="tab-btn" id="tab-btn-ia" onclick="aba('ia',this);if(!_iaFeito)analisarComIA()">🤖 Análise do Agente</button>
     </div>
 
     <!-- ABA CAMPOS (EDIÇÃO RASTREADA) -->
@@ -1011,41 +1011,108 @@ async function resolverComent(id){
   setTimeout(()=>abrirTDR(tdrAtual.id),300);
 }
 
+function _mostrarProgressoAgente(){
+  // Remove overlay anterior se existir
+  document.getElementById('agente-overlay')?.remove();
+
+  const overlay=document.createElement('div');
+  overlay.id='agente-overlay';
+  overlay.style.cssText=`
+    position:absolute;inset:0;z-index:999;background:rgba(255,255,255,0.97);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;border-radius:var(--raio-lg);backdrop-filter:blur(2px);
+  `;
+  overlay.innerHTML=`
+    <div style="text-align:center">
+      <div style="font-size:36px;margin-bottom:10px;animation:pulse 1.5s ease-in-out infinite">🤖</div>
+      <div style="font-size:15px;font-weight:700;color:var(--cinza-900);margin-bottom:4px">Analisando TDR com IA</div>
+      <div id="agente-etapa" style="font-size:12px;color:var(--cinza-500);min-height:18px">Preparando submissão...</div>
+    </div>
+    <div style="width:320px;max-width:80%">
+      <div style="height:6px;background:var(--cinza-100);border-radius:99px;overflow:hidden">
+        <div id="agente-barra" style="height:100%;width:0%;background:linear-gradient(90deg,var(--verde-claro),#34d399);border-radius:99px;transition:width 0.6s cubic-bezier(.4,0,.2,1)"></div>
+      </div>
+    </div>
+    <div id="agente-etapas-lista" style="display:flex;gap:6px;align-items:center">
+      ${['Submetendo','Lendo documento','Analisando','Salvando'].map((e,i)=>`
+        <div class="etapa-dot" id="dot-${i}" style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--cinza-400)">
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--cinza-200);flex-shrink:0;transition:background .4s" id="dot-circle-${i}"></div>${e}
+        </div>
+        ${i<3?'<div style="font-size:10px;color:var(--cinza-300)">›</div>':''}
+      `).join('')}
+    </div>`;
+
+  // Inserir no modal-tdr
+  const modal=document.getElementById('modal-tdr');
+  if(modal)modal.style.position='relative';
+  modal?.appendChild(overlay);
+  return overlay;
+}
+
+function _atualizarProgressoAgente(etapa, pct){
+  const barra=document.getElementById('agente-barra');
+  const etapaEl=document.getElementById('agente-etapa');
+  const msgs=['Preparando submissão...','Lendo documento anexado...','Analisando com inteligência artificial...','Salvando resultado...'];
+  if(barra)barra.style.width=pct+'%';
+  if(etapaEl)etapaEl.textContent=msgs[etapa]||'';
+  for(let i=0;i<4;i++){
+    const c=document.getElementById(`dot-circle-${i}`);
+    if(!c)continue;
+    if(i<etapa)c.style.background='var(--verde-claro)';
+    else if(i===etapa)c.style.background='var(--azul-medio)';
+    else c.style.background='var(--cinza-200)';
+  }
+}
+
 async function submeterParaAgente(){
   if(!tdrAtual)return;
-  const tdrId=tdrAtual.id; // salvar antes de fechar o modal
-  fecharModal('modal-tdr');
-  toast('Submetendo TDR para análise do agente... aguarde.','info');
+  const tdrId=tdrAtual.id;
+
+  _mostrarProgressoAgente();
+  _atualizarProgressoAgente(0,8);
+
+  // Avança barra simulando etapas enquanto aguarda a IA
+  const timerEtapa1=setTimeout(()=>_atualizarProgressoAgente(1,28),800);
+  const timerEtapa2=setTimeout(()=>_atualizarProgressoAgente(2,52),2200);
+  const timerEtapa3=setTimeout(()=>_atualizarProgressoAgente(2,78),6000);
+
   try{
     // 1. Marcar como submetido
     const {error}=await db.from('tdrs').update({status:'submetido'}).eq('id',tdrId);
     if(error)throw new Error(error.message);
 
     // 2. Chamar Edge Function
-    const {data:{session}}=await db.auth.getSession();
     const res=await fetch(`${SUPABASE_URL}/functions/v1/analisar-tdr`,{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'Authorization':`Bearer ${session?.access_token}`,
-        'apikey':SUPABASE_ANON_KEY,
-      },
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
       body:JSON.stringify({tdr_id:tdrId}),
     });
     const resultado=await res.json();
     if(!res.ok)throw new Error(resultado.error||'Erro na análise');
 
-    // 3. Exibir resultado ao usuário
-    const icone={aprovado:'✅',alerta:'⚠️',reprovado:'❌'}[resultado.status]||'🔍';
-    const label={aprovado:'Aprovado pelo agente',alerta:'Aprovado com alertas',reprovado:'Pendente de correção'}[resultado.status]||resultado.status;
-    toast(`${icone} ${label}: ${resultado.resumo}`,'info',8000);
+    clearTimeout(timerEtapa1);clearTimeout(timerEtapa2);clearTimeout(timerEtapa3);
+    _atualizarProgressoAgente(3,92);
+    await new Promise(r=>setTimeout(r,600));
+    _atualizarProgressoAgente(3,100);
+    await new Promise(r=>setTimeout(r,500));
 
-    // 4. Atualizar estado local e recarregar
+    // Remover overlay
+    document.getElementById('agente-overlay')?.remove();
+
+    // 3. Atualizar estado local
     const idx=todosTDRs.findIndex(t=>t.id===tdrId);
     if(idx>=0)todosTDRs[idx].status=resultado.novo_status_tdr;
+    if(tdrAtual)tdrAtual.status=resultado.novo_status_tdr;
     renderStats();filtrar();
-    setTimeout(()=>abrirTDR(tdrId),600);
+
+    // 4. Ir direto para aba Análise do Agente e carregar resultado
+    _iaFeito=false;
+    const tabBtn=document.getElementById('tab-btn-ia');
+    if(tabBtn){tabBtn.click();}else{aba('ia',null);analisarComIA(true);}
+
   }catch(e){
+    clearTimeout(timerEtapa1);clearTimeout(timerEtapa2);clearTimeout(timerEtapa3);
+    document.getElementById('agente-overlay')?.remove();
     console.error('[AGENTE]',e);
     try{ await db.from('tdrs').update({status:'rascunho'}).eq('id',tdrId); }catch(_){}
     toast('Erro ao acionar o agente: '+(e.message||'tente novamente'),'error');
@@ -1511,9 +1578,65 @@ async function analisarComIA(forcar=false){
       </div>`;
     }).join('');
 
+    // Botão corrigir com IA — aparece se a análise mais recente tem critérios reprovados
+    const ultimaAnalise=analises[0];
+    const temReprovados=(ultimaAnalise?.detalhes?.criterios||[]).some(c=>!c.ok);
+    const jaCorrigindo=document.getElementById('btn-corrigir-ia');
+    if(!jaCorrigindo){
+      const wrap=document.createElement('div');
+      wrap.id='btn-corrigir-ia-wrap';
+      wrap.style.cssText='margin-top:12px;text-align:right';
+      if(temReprovados){
+        wrap.innerHTML=`<button onclick="corrigirComIA()" style="background:var(--azul-medio);color:#fff;border:none;border-radius:var(--raio-md);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          ✨ Corrigir com IA
+        </button>`;
+      }
+      el.parentElement.appendChild(wrap);
+    }
+
     _iaFeito=true;
   }catch(e){
     el.innerHTML=`<div class="alert alert-danger">Erro ao carregar análises: ${e.message}</div>`;
+  }
+}
+
+async function corrigirComIA(){
+  if(!tdrAtual)return;
+  const btn=document.querySelector('#btn-corrigir-ia-wrap button');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Corrigindo...';}
+
+  try{
+    const SUPABASE_URL=db.supabaseUrl||window._env?.SUPABASE_URL;
+    const SUPABASE_ANON_KEY=db.supabaseKey||window._env?.SUPABASE_ANON_KEY;
+    const fnUrl=`${SUPABASE_URL}/functions/v1/corrigir-tdr`;
+
+    const res=await fetch(fnUrl,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
+      body:JSON.stringify({tdr_id:tdrAtual.id})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Erro desconhecido');
+
+    // Atualizar dados locais
+    const campos=data.campos_corrigidos||[];
+    if(campos.length>0&&tdrAtual){
+      // Recarregar TDR do banco para refletir campos corrigidos
+      const{data:tdrAtualizado}=await db.from('tdrs').select('*,atividades(id,codigo,nome_pt)').eq('id',tdrAtual.id).single();
+      if(tdrAtualizado){Object.assign(tdrAtual,tdrAtualizado);}
+      const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+      if(idx>=0)Object.assign(todosTDRs[idx],tdrAtual);
+    }
+
+    toast(`✅ Correção aplicada! ${campos.length} campo(s) ajustado(s). Versão ${data.numero_versao} criada.`,'success');
+
+    // Recarregar aba Análise IA e versões
+    _iaFeito=false;
+    analisarComIA(true);
+
+  }catch(e){
+    toast(`Erro ao corrigir: ${e.message}`,'error');
+    if(btn){btn.disabled=false;btn.textContent='✨ Corrigir com IA';}
   }
 }
 

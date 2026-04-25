@@ -152,7 +152,9 @@ function parsearResposta(texto: string): {
   sugestoes: string[]
 } {
   try {
-    const json = JSON.parse(texto.trim())
+    // Remove markdown code blocks if Claude wrapped the JSON
+    const limpo = texto.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+    const json = JSON.parse(limpo)
     if (!['aprovado', 'alerta', 'reprovado'].includes(json.status)) {
       json.status = 'reprovado'
     }
@@ -262,17 +264,20 @@ Deno.serve(async (req) => {
     await supabase.from('tdrs').update({ status: novoStatus }).eq('id', tdr_id)
 
     // 7. Registrar na timeline do TDR
-    await supabase
-      .from('tdr_acoes')
-      .insert({
-        tdr_id,
-        usuario_id: null,
-        acao: 'analise_agente',
-        status_anterior: 'submetido',
-        status_novo: novoStatus,
-        comentario: analise.resumo,
-      })
-      .catch((e: Error) => console.warn('[analisar-tdr] tdr_acoes falhou (não crítico):', e.message))
+    try {
+      await supabase
+        .from('tdr_acoes')
+        .insert({
+          tdr_id,
+          usuario_id: null,
+          acao: 'analise_agente',
+          status_anterior: 'submetido',
+          status_novo: novoStatus,
+          comentario: analise.resumo,
+        })
+    } catch (e) {
+      console.warn('[analisar-tdr] tdr_acoes falhou (não crítico):', (e as Error).message)
+    }
 
     return Response.json(
       {
