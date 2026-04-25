@@ -538,7 +538,7 @@ async function abrirTDR(id){
   // Mensagem de permissão por fase
   const msgPerm=()=>{
     if(bloqueado)return`<div class="fase-permissao">🔒 TDR em status "${FASES_LABELS[t.status]}" — campos bloqueados para edição. Avance para uma fase editável para fazer alterações.</div>`;
-    if(!podeEd)return`<div class="fase-permissao">ℹ Seu perfil (${t('perfis',appState.perfil)}) não tem permissão para editar na fase "${FASES_LABELS[t.status]}". Aguarde o responsável desta fase.</div>`;
+    if(!podeEd)return`<div class="fase-permissao">ℹ Seu perfil (${_i18n('perfis',appState.perfil)}) não tem permissão para editar na fase "${FASES_LABELS[t.status]}". Aguarde o responsável desta fase.</div>`;
     return'';
   };
 
