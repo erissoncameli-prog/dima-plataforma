@@ -821,6 +821,10 @@ async function abrirTDR(id){
       });
     },100);
   }
+  }catch(e){
+    console.error('[abrirTDR] Erro:',e);
+    toast('Erro ao abrir TDR: '+e.message,'error');
+  }
 }
 
 function campoEditavel(id,label,tipo,valor,podeEd,rows=1){
