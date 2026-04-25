@@ -1147,10 +1147,12 @@ async function avancarFase(novoStatus){
       usuarioId=user?.id;
     }
     if(usuarioId){
-      await db.rpc('fn_registrar_acao_tdr',{
-        p_tdr_id:tdrAtual.id, p_usuario_id:usuarioId,
-        p_acao:acaoMap[novoStatus]||'editado', p_comentario:null, p_ip:null
-      }).catch(e=>console.warn('[AVANÇAR] RPC log falhou (não crítico):',e.message));
+      try{
+        await db.rpc('fn_registrar_acao_tdr',{
+          p_tdr_id:tdrAtual.id, p_usuario_id:usuarioId,
+          p_acao:acaoMap[novoStatus]||'editado', p_comentario:null, p_ip:null
+        });
+      }catch(e){console.warn('[AVANÇAR] RPC log falhou (não crítico):',e.message);}
     }
 
     const statusAnterior=tdrAtual.status;
