@@ -422,7 +422,7 @@ async function concluirRevisao(){
     }
 
     // Buscar próximo número de versão
-    const{data:ultimaVersao}=await db.from('tdr_versoes').select('numero_versao').eq('tdr_id',tdrId).order('numero_versao',{ascending:false}).limit(1).single();
+    const{data:ultimaVersao}=await db.from('tdr_versoes').select('numero_versao').eq('tdr_id',tdrId).order('numero_versao',{ascending:false}).limit(1).maybeSingle();
     const proximaVersao=((ultimaVersao?.numero_versao||0))+1;
 
     // Salvar versão
