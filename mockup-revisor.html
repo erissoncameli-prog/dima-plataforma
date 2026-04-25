@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modo Revisor — Mockup</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:#F3F4F6;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+  /* HEADER */
+  .header{background:#fff;border-bottom:1px solid #E5E7EB;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+  .header-back{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:6px 12px;font-size:12px;color:#6B7280;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .header-title{font-size:14px;font-weight:700;color:#111827}
+  .header-sub{font-size:11px;color:#9CA3AF;margin-top:1px}
+  .header-progress{flex:1;display:flex;align-items:center;gap:10px;justify-content:center}
+  .progress-label{font-size:11px;color:#6B7280;white-space:nowrap}
+  .progress-track{width:200px;height:6px;background:#E5E7EB;border-radius:99px;overflow:hidden}
+  .progress-fill{height:100%;width:40%;background:linear-gradient(90deg,#16A34A,#34D399);border-radius:99px;transition:width .4s}
+  .progress-count{font-size:12px;font-weight:700;color:#111827;white-space:nowrap}
+  .header-actions{display:flex;gap:8px}
+  .btn-ghost{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:500;color:#374151;cursor:pointer}
+  .btn-primary{background:#16A34A;border:none;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:600;color:#fff;cursor:pointer}
+
+  /* BODY */
+  .body{display:flex;flex:1;overflow:hidden;gap:0}
+
+  /* PAINEL ESQUERDO */
+  .panel-left{width:52%;background:#fff;border-right:1px solid #E5E7EB;display:flex;flex-direction:column;overflow:hidden}
+  .panel-left-header{padding:12px 18px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .panel-left-title{font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em}
+  .panel-left-body{flex:1;overflow-y:auto;padding:20px 24px;font-size:13px;color:#374151;line-height:1.75}
+
+  .doc-section{margin-bottom:24px}
+  .doc-section-label{font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .doc-section-text{font-size:13px;color:#374151;line-height:1.75}
+
+  /* Highlight de sugestão */
+  .sugestao-mark{background:#FEF9C3;border-bottom:2px solid #EAB308;border-radius:3px;padding:1px 2px;cursor:pointer;transition:background .2s}
+  .sugestao-mark:hover{background:#FEF08A}
+  .sugestao-mark.ativa{background:#FDE68A;border-bottom-color:#D97706;box-shadow:0 0 0 2px #FCD34D}
+  .sugestao-mark.concluida{background:#DCFCE7;border-bottom-color:#16A34A}
+  .sugestao-mark.rejeitada{background:#F1F5F9;border-bottom-color:#CBD5E1;text-decoration:line-through;color:#94A3B8}
+
+  .sugestao-badge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:#EAB308;color:#fff;border-radius:50%;font-size:9px;font-weight:700;margin-right:3px;vertical-align:middle}
+  .sugestao-badge.ativa{background:#D97706}
+  .sugestao-badge.concluida{background:#16A34A}
+
+  /* PAINEL DIREITO */
+  .panel-right{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#F9FAFB}
+  .panel-right-header{padding:14px 20px;background:#fff;border-bottom:1px solid #E5E7EB;flex-shrink:0}
+  .ponto-label{font-size:10px;font-weight:700;color:#D97706;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  .ponto-label-dot{width:8px;height:8px;background:#EAB308;border-radius:50%;animation:pulse2 1.5s ease-in-out infinite}
+  @keyframes pulse2{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+  .ponto-campo{font-size:13px;font-weight:700;color:#111827}
+  .ponto-motivo{font-size:11px;color:#6B7280;margin-top:3px}
+
+  .panel-right-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px}
+
+  /* Cards antes/depois */
+  .diff-card{border-radius:10px;overflow:hidden;border:1px solid}
+  .diff-card.antes{border-color:#FECACA}
+  .diff-card.depois{border-color:#BBF7D0}
+  .diff-header{padding:7px 12px;display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  .diff-header.antes{background:#FEF2F2;color:#DC2626}
+  .diff-header.depois{background:#F0FDF4;color:#16A34A}
+  .diff-body{padding:12px;font-size:12px;line-height:1.7;background:#fff;color:#374151}
+  .diff-body.antes{color:#6B7280}
+
+  /* Editor */
+  .editor-wrap{border-radius:10px;overflow:hidden;border:1px solid #6366F1}
+  .editor-header{padding:7px 12px;background:#EEF2FF;display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#4F46E5}
+  .editor-body{width:100%;min-height:80px;border:none;outline:none;padding:12px;font-size:12px;font-family:inherit;line-height:1.7;color:#111827;resize:none;background:#fff}
+
+  /* Ações */
+  .acoes{display:flex;gap:8px;padding:14px 20px;background:#fff;border-top:1px solid #E5E7EB;flex-shrink:0}
+  .btn-aceitar{flex:1;background:#16A34A;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .btn-aceitar-editar{flex:1;background:#4F46E5;border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .btn-pular{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px 16px;font-size:12px;font-weight:500;color:#6B7280;cursor:pointer}
+  .btn-rejeitar{background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:10px 16px;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer}
+
+  /* Nav pontos */
+  .nav-pontos{padding:12px 20px;background:#fff;border-top:1px solid #E5E7EB;display:flex;align-items:center;gap:8px;flex-shrink:0;justify-content:center}
+  .ponto-dot{width:28px;height:28px;border-radius:50%;border:2px solid #E5E7EB;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#9CA3AF;cursor:pointer;transition:all .2s}
+  .ponto-dot.ativo{border-color:#EAB308;background:#FEF9C3;color:#D97706}
+  .ponto-dot.feito{border-color:#16A34A;background:#DCFCE7;color:#16A34A}
+  .ponto-dot.ia{border-color:#16A34A;background:#DCFCE7;color:#16A34A}
+  .ponto-dot.usuario{border-color:#4F46E5;background:#EEF2FF;color:#4F46E5}
+
+  /* Tooltip autor */
+  .autor-tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600}
+  .autor-tag.ia{background:#DCFCE7;color:#16A34A}
+  .autor-tag.user{background:#EEF2FF;color:#4F46E5}
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#E5E7EB;border-radius:99px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <button class="header-back">← Voltar ao TDR</button>
+  <div>
+    <div class="header-title">Modo Revisor — TDR 1.1.4-001</div>
+    <div class="header-sub">Trilha de Observação · Atividade 1.1.4</div>
+  </div>
+  <div class="header-progress">
+    <span class="progress-label">Progresso da revisão</span>
+    <div class="progress-track"><div class="progress-fill" id="prog-fill"></div></div>
+    <span class="progress-count" id="prog-count">Ponto 2 de 5</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn-ghost">Salvar rascunho</button>
+    <button class="btn-primary" style="background:#6B7280" disabled>Concluir revisão</button>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- PAINEL ESQUERDO: documento -->
+  <div class="panel-left">
+    <div class="panel-left-header">
+      <span class="panel-left-title">📄 Documento TDR</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div style="width:8px;height:8px;border-radius:50%;background:#EAB308"></div>
+        <span style="font-size:10px;color:#9CA3AF">3 pendentes</span>
+        <div style="width:8px;height:8px;border-radius:50%;background:#16A34A;margin-left:6px"></div>
+        <span style="font-size:10px;color:#9CA3AF">1 aceito</span>
+        <div style="width:8px;height:8px;border-radius:50%;background:#6366F1;margin-left:6px"></div>
+        <span style="font-size:10px;color:#9CA3AF">1 editado</span>
+      </div>
+    </div>
+    <div class="panel-left-body">
+
+      <div class="doc-section">
+        <div class="doc-section-label">Objeto</div>
+        <div class="doc-section-text">
+          Contratação de
+          <mark class="sugestao-mark concluida" onclick="irPonto(0)">
+            <span class="sugestao-badge concluida">1</span>pessoa jurídica especializada na estruturação e implementação de 2 (duas) trilhas de observação de animais silvestres, contribuindo com o indicador "Trilhas de observação de animais implementadas (coexistência humano-fauna)" da Matriz de Resultados do projeto.
+          </mark>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <div class="doc-section-label">Escopo</div>
+        <div class="doc-section-text">
+          <mark class="sugestao-mark ativa" onclick="irPonto(1)">
+            <span class="sugestao-badge ativa">2</span>A empresa contratada deverá realizar diagnóstico da área, elaborar projeto técnico das trilhas, executar as obras de implantação, instalar sinalização interpretativa e elaborar relatório final com documentação fotográfica. O prazo de entrega é de 180 dias corridos, com marcos intermediários em 60 e 150 dias. Meta: 2 trilhas implementadas.
+          </mark>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <div class="doc-section-label">Formação mínima</div>
+        <div class="doc-section-text" style="color:#9CA3AF;font-style:italic">
+          <mark class="sugestao-mark" onclick="irPonto(2)">
+            <span class="sugestao-badge">3</span>Campo não preenchido — sugestão da IA disponível.
+          </mark>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <div class="doc-section-label">Experiência requerida</div>
+        <div class="doc-section-text" style="color:#9CA3AF;font-style:italic">
+          <mark class="sugestao-mark" onclick="irPonto(3)">
+            <span class="sugestao-badge">4</span>Campo não preenchido — sugestão da IA disponível.
+          </mark>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <div class="doc-section-label">Área de atuação</div>
+        <div class="doc-section-text" style="color:#9CA3AF;font-style:italic">
+          <mark class="sugestao-mark" onclick="irPonto(4)">
+            <span class="sugestao-badge">5</span>Campo não preenchido — sugestão da IA disponível.
+          </mark>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <div class="doc-section-label">Valor e prazo</div>
+        <div class="doc-section-text">
+          Valor estimado: R$ 85.000,00 · Prazo limite: 30/01/2026
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PAINEL DIREITO: revisão -->
+  <div class="panel-right">
+    <div class="panel-right-header">
+      <div class="ponto-label">
+        <div class="ponto-label-dot"></div>
+        Ponto 2 de 5 — Aguardando revisão
+      </div>
+      <div class="ponto-campo">Campo: Escopo do trabalho</div>
+      <div class="ponto-motivo">⚠️ Campo ausente — metodologia e prazo não estavam descritos. A IA gerou uma proposta baseada no indicador vinculado.</div>
+    </div>
+
+    <div class="panel-right-body">
+
+      <!-- Antes -->
+      <div class="diff-card antes">
+        <div class="diff-header antes">✕ &nbsp;Texto original</div>
+        <div class="diff-body antes" style="font-style:italic">(campo vazio)</div>
+      </div>
+
+      <!-- Sugestão IA -->
+      <div class="diff-card depois">
+        <div class="diff-header depois">
+          ✦ &nbsp;Sugestão do Agente IA
+          <span class="autor-tag ia" style="margin-left:auto">🤖 Agente IA</span>
+        </div>
+        <div class="diff-body">
+          A empresa contratada deverá realizar diagnóstico da área, elaborar projeto técnico das trilhas, executar as obras de implantação, instalar sinalização interpretativa e elaborar relatório final com documentação fotográfica. O prazo de entrega é de 180 dias corridos, com marcos intermediários em 60 e 150 dias. <strong>Meta: 2 trilhas implementadas</strong>, conforme indicador "Trilhas de observação de animais implementadas (coexistência humano-fauna)" da Matriz de Resultados.
+        </div>
+      </div>
+
+      <!-- Editor do usuário -->
+      <div class="editor-wrap">
+        <div class="editor-header">
+          ✏️ &nbsp;Editar antes de aceitar
+          <span class="autor-tag user" style="margin-left:auto">👤 Erisson C. Santiago</span>
+        </div>
+        <textarea class="editor-body" id="editor-texto" rows="5">A empresa contratada deverá realizar diagnóstico da área, elaborar projeto técnico das trilhas, executar as obras de implantação, instalar sinalização interpretativa e elaborar relatório final com documentação fotográfica. O prazo de entrega é de 180 dias corridos, com marcos intermediários em 60 e 150 dias. Meta: 2 trilhas implementadas, conforme indicador "Trilhas de observação de animais implementadas (coexistência humano-fauna)" da Matriz de Resultados.</textarea>
+      </div>
+
+    </div>
+
+    <!-- Ações -->
+    <div class="acoes">
+      <button class="btn-rejeitar" onclick="rejeitar()">✕ Rejeitar</button>
+      <button class="btn-pular" onclick="pular()">⏭ Pular</button>
+      <button class="btn-aceitar" onclick="aceitar()">✅ Aceitar sugestão da IA</button>
+      <button class="btn-aceitar-editar" onclick="aceitarEditar()">✏️ Aceitar minha edição</button>
+    </div>
+
+    <!-- Nav pontos -->
+    <div class="nav-pontos">
+      <div class="ponto-dot ia" onclick="irPonto(0)" title="Objeto — Aceito pela IA">1</div>
+      <div style="width:20px;height:1px;background:#E5E7EB"></div>
+      <div class="ponto-dot ativo" onclick="irPonto(1)" title="Escopo — Em revisão">2</div>
+      <div style="width:20px;height:1px;background:#E5E7EB"></div>
+      <div class="ponto-dot" onclick="irPonto(2)" title="Formação — Pendente">3</div>
+      <div style="width:20px;height:1px;background:#E5E7EB"></div>
+      <div class="ponto-dot" onclick="irPonto(3)" title="Experiência — Pendente">4</div>
+      <div style="width:20px;height:1px;background:#E5E7EB"></div>
+      <div class="ponto-dot" onclick="irPonto(4)" title="Área — Pendente">5</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Estado simulado dos pontos
+const pontos=[
+  {campo:'Objeto do TDR',motivo:'Meta quantitativa não estava mencionada.',antes:'Contratação de pessoa jurídica para construção de trilhas.',depois:'Contratação de pessoa jurídica especializada na estruturação e implementação de 2 (duas) trilhas de observação de animais silvestres, contribuindo com o indicador "Trilhas de observação de animais implementadas (coexistência humano-fauna)" da Matriz de Resultados.',estado:'ia'},
+  {campo:'Escopo do trabalho',motivo:'Campo ausente — metodologia e prazo não estavam descritos.',antes:'(campo vazio)',depois:'A empresa contratada deverá realizar diagnóstico da área, elaborar projeto técnico das trilhas, executar as obras de implantação, instalar sinalização interpretativa e elaborar relatório final com documentação fotográfica. O prazo de entrega é de 180 dias corridos, com marcos intermediários em 60 e 150 dias. Meta: 2 trilhas implementadas, conforme indicador "Trilhas de observação de animais implementadas (coexistência humano-fauna)" da Matriz de Resultados.',estado:'pendente'},
+  {campo:'Formação mínima',motivo:'Campo ausente — requisito de formação não definido.',antes:'(campo vazio)',depois:'Ensino superior completo em Engenharia Florestal, Biologia, Gestão Ambiental ou áreas correlatas, com experiência comprovada em projetos de ecoturismo ou manejo de trilhas em unidades de conservação.',estado:'pendente'},
+  {campo:'Experiência requerida',motivo:'Campo ausente — experiência prévia não especificada.',antes:'(campo vazio)',depois:'Comprovação de experiência anterior em estruturação ou manutenção de trilhas interpretativas, preferencialmente em áreas protegidas com foco em fauna silvestre ou ecoturismo.',estado:'pendente'},
+  {campo:'Área de atuação',motivo:'Campo ausente — área geográfica não delimitada.',antes:'(campo vazio)',depois:'Unidade de Conservação localizada no estado do Mato Grosso, conforme delimitação estabelecida no Plano de Trabalho do Projeto UNESCO/SEMA.',estado:'pendente'},
+];
+
+let pontoAtual=1;
+
+function renderPonto(idx){
+  const p=pontos[idx];
+  const header=document.querySelector('.panel-right-header');
+  const estados={ia:'✅ Aceito pela IA',usuario:'✏️ Editado pelo usuário',rejeitado:'✕ Rejeitado',pendente:'Aguardando revisão'};
+  const corEstado={ia:'#16A34A',usuario:'#4F46E5',rejeitado:'#DC2626',pendente:'#D97706'};
+  header.querySelector('.ponto-label').innerHTML=`<div class="ponto-label-dot" style="background:${corEstado[p.estado]||'#EAB308'}"></div> Ponto ${idx+1} de ${pontos.length} — <span style="color:${corEstado[p.estado]}">${estados[p.estado]||'Aguardando'}</span>`;
+  header.querySelector('.ponto-campo').textContent=`Campo: ${p.campo}`;
+  header.querySelector('.ponto-motivo').textContent=`⚠️ ${p.motivo}`;
+  document.querySelector('.diff-body.antes').style.fontStyle=p.antes==='(campo vazio)'?'italic':'normal';
+  document.querySelector('.diff-body.antes').textContent=p.antes;
+  document.querySelector('.diff-body:not(.antes)').innerHTML=p.depois;
+  document.getElementById('editor-texto').value=p.depois;
+
+  // Nav dots
+  document.querySelectorAll('.ponto-dot').forEach((d,i)=>{
+    d.className='ponto-dot'+(i===idx?' ativo':' '+pontos[i].estado);
+  });
+
+  // Progresso
+  const feitos=pontos.filter(p=>p.estado!=='pendente').length;
+  document.getElementById('prog-fill').style.width=(feitos/pontos.length*100)+'%';
+  document.getElementById('prog-count').textContent=`Ponto ${idx+1} de ${pontos.length}`;
+
+  // Scroll no painel esquerdo
+  document.querySelectorAll('.sugestao-mark').forEach((m,i)=>{
+    m.className='sugestao-mark'+(i===idx?' ativa':pontos[i].estado==='ia'?' concluida':pontos[i].estado==='usuario'?' concluida':pontos[i].estado==='rejeitado'?' rejeitada':'');
+    m.querySelectorAll('.sugestao-badge').forEach(b=>b.className='sugestao-badge'+(i===idx?' ativa':pontos[i].estado!=='pendente'?' concluida':''));
+  });
+
+  // Botão concluir
+  const todosConcluidos=pontos.every(p=>p.estado!=='pendente');
+  document.querySelector('.btn-primary').disabled=!todosConcluidos;
+  document.querySelector('.btn-primary').style.background=todosConcluidos?'#16A34A':'#6B7280';
+
+  pontoAtual=idx;
+}
+
+function irPonto(idx){renderPonto(idx);}
+
+function proximo(){
+  const prox=pontos.findIndex((p,i)=>i>pontoAtual&&p.estado==='pendente');
+  if(prox>=0)renderPonto(prox);
+  else{
+    const qualquer=pontos.findIndex(p=>p.estado==='pendente');
+    if(qualquer>=0)renderPonto(qualquer);
+    else toast('✅ Todos os pontos revisados!');
+  }
+}
+
+function aceitar(){
+  pontos[pontoAtual].estado='ia';
+  proximo();
+}
+function aceitarEditar(){
+  pontos[pontoAtual].depois=document.getElementById('editor-texto').value;
+  pontos[pontoAtual].estado='usuario';
+  proximo();
+}
+function rejeitar(){
+  pontos[pontoAtual].estado='rejeitado';
+  proximo();
+}
+function pular(){
+  const prox=(pontoAtual+1)%pontos.length;
+  renderPonto(prox);
+}
+
+function toast(msg){
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2)';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+renderPonto(1);
+</script>
+</body>
+</html>
