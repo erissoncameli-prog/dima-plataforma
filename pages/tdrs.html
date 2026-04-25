@@ -501,10 +501,13 @@ async function abrirTDR(id){
   const cotacao=await obterCotacao();
   const taxaAtual=cotacao?.cotacao||5.87;
 
-  const [{data:versoes},{data:comentarios},{data:acoes}]=await Promise.all([
+  const [{data:versoes},{data:comentarios},{data:acoes},{data:matrizLinks}]=await Promise.all([
     db.from('tdr_versoes').select('*').eq('tdr_id',id).order('numero_versao',{ascending:false}),
     db.from('tdr_comentarios').select('*,usuarios(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:false}),
-    db.from('tdr_acoes').select('*,usuarios(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:true})
+    db.from('tdr_acoes').select('*,usuarios(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:true}),
+    t.atividades?.id
+      ? db.from('atividade_matriz').select('matriz_itens(id,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,meta_descricao)').eq('atividade_id',t.atividades.id)
+      : Promise.resolve({data:[]})
   ]);
   // Mapear último ação por status_novo para a timeline
   const acaosPorFase={};
@@ -562,6 +565,27 @@ async function abrirTDR(id){
     </div>
     ${msgPerm()}
     ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado'?`<div class="alert alert-danger" style="margin-bottom:10px">⚠ Prazo vencido em ${fmtData(t.prazo_limite)}</div>`:''}
+
+    <!-- Painel de indicadores da Matriz de Resultados -->
+    ${(()=>{
+      const itens=(matrizLinks||[]).map(l=>l.matriz_itens).filter(Boolean);
+      if(!itens.length) return`<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio-lg);margin-bottom:12px;font-size:12px;color:#92400E">
+        ⚠ Esta atividade não está vinculada a nenhum indicador da Matriz de Resultados. Configure em <strong>Atividades</strong> antes de submeter.
+      </div>`;
+      return`<div style="padding:10px 14px;background:#F0FDF4;border:1px solid var(--verde-claro);border-radius:var(--raio-lg);margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:var(--verde-escuro,#085041);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Indicadores da Matriz de Resultados</div>
+        ${itens.map(mi=>{
+          const meta=mi.meta_numerica?`${mi.meta_numerica} ${mi.unidade}`:mi.meta_descricao||'qualitativa';
+          return`<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:5px;padding:6px 8px;background:var(--branco);border:1px solid #BBF7D0;border-radius:var(--raio)">
+            <span style="font-size:14px;flex-shrink:0">🎯</span>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--cinza-800)">${mi.produto_codigo} — ${mi.produto_titulo}</div>
+              <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">${mi.indicador} · <em>Meta: ${meta}</em></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    })()}
 
     <!-- Abas -->
     <div class="tab-bar">
