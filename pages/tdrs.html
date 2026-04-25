@@ -700,17 +700,16 @@ async function abrirTDR(id){
     <div class="tab-content" id="tab-ia">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--cinza-900)">🤖 Análise automática por Inteligência Artificial</div>
-          <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">A IA lê os campos do TDR e o documento anexado para identificar possíveis erros, inconsistências e pontos de melhoria.</div>
+          <div style="font-size:13px;font-weight:600;color:var(--cinza-900)">🤖 Histórico de Análises do Agente</div>
+          <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Resultados das análises realizadas pelo agente a cada submissão do TDR.</div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="analisarComIA(true)" id="btn-reanalisar">🔄 Reanalisar</button>
       </div>
       <div id="ia-resultado" style="min-height:120px">
         <div style="display:flex;align-items:center;gap:10px;padding:20px;background:var(--cinza-50);border-radius:var(--raio-lg);border:1px solid var(--borda)">
           <div style="width:28px;height:28px;border:3px solid var(--borda);border-top-color:var(--verde-claro);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
           <div>
-            <div style="font-size:12px;font-weight:500;color:var(--cinza-700)" class="extracting">Preparando análise...</div>
-            <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">${t.arquivo_url?'Extraindo texto do documento e analisando campos...':'Analisando campos cadastrados...'}</div>
+            <div style="font-size:12px;font-weight:500;color:var(--cinza-700)" class="extracting">Carregando análises...</div>
+            <div style="font-size:11px;color:var(--cinza-500);margin-top:2px"></div>
           </div>
         </div>
       </div>
@@ -1048,7 +1047,7 @@ async function submeterParaAgente(){
     setTimeout(()=>abrirTDR(tdrId),600);
   }catch(e){
     console.error('[AGENTE]',e);
-    await db.from('tdrs').update({status:'rascunho'}).eq('id',tdrId).catch(()=>{});
+    try{ await db.from('tdrs').update({status:'rascunho'}).eq('id',tdrId); }catch(_){}
     toast('Erro ao acionar o agente: '+(e.message||'tente novamente'),'error');
   }
 }
@@ -1447,106 +1446,74 @@ async function analisarComIA(forcar=false){
   if(!el)return;
 
   el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:20px;background:var(--cinza-50);border-radius:var(--raio-lg);border:1px solid var(--borda)">
-    <div style="width:28px;height:28px;border:3px solid var(--borda);border-top-color:var(--verde-claro);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
-    <div>
-      <div style="font-size:12px;font-weight:500;color:var(--verde-claro)" class="extracting">Analisando TDR com IA...</div>
-      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">${tdrAtual.arquivo_url?'Extraindo texto do documento anexado...':'Processando campos cadastrados...'}</div>
-    </div>
+    <div style="width:22px;height:22px;border:3px solid var(--borda);border-top-color:var(--verde-claro);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+    <div style="font-size:12px;color:var(--cinza-500)">Carregando histórico de análises...</div>
   </div>`;
 
-  let conteudo_docx=null;
-
-  // Tentar extrair texto do .docx se houver arquivo no storage
-  if(tdrAtual.arquivo_url){
-    try{
-      // Gerar link temporário
-      const urlObj=new URL(tdrAtual.arquivo_url);
-      const match=urlObj.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
-      if(match&&(tdrAtual.arquivo_nome||'').toLowerCase().endsWith('.docx')){
-        const{data:signed}=await db.storage.from('tdrs-arquivos').createSignedUrl(match[1],600);
-        if(signed?.signedUrl){
-          el.querySelector('.extracting').textContent='Baixando e lendo documento...';
-          const resp=await fetch(signed.signedUrl);
-          const buf=await resp.arrayBuffer();
-          const result=await mammoth.extractRawText({arrayBuffer:buf});
-          conteudo_docx=result.value||null;
-        }
-      }
-    }catch(ex){
-      console.warn('[IA] Não foi possível extrair texto do arquivo:',ex.message);
-    }
-  }
-
-  // Montar campos do sistema
-  const campos_tdr={
-    numero: tdrAtual.numero||'',
-    tipo: tdrAtual.tipo||'',
-    objeto: tdrAtual.objeto_pt||'',
-    escopo: tdrAtual.escopo_pt||'',
-    formacao: tdrAtual.formacao_minima_pt||'',
-    experiencia: tdrAtual.experiencia_requerida_pt||'',
-    valor_brl: tdrAtual.valor_brl?`R$ ${parseFloat(tdrAtual.valor_brl).toLocaleString('pt-BR',{minimumFractionDigits:2})}`:'',
-    prazo: tdrAtual.prazo_limite?new Date(tdrAtual.prazo_limite).toLocaleDateString('pt-BR'):'',
-    status: FASES_LABELS[tdrAtual.status]||tdrAtual.status,
-    observacao: tdrAtual.observacao||''
-  };
-
   try{
-    el.querySelector('.extracting').textContent='Consultando inteligência artificial...';
+    const{data:analises}=await db.from('agente_analises')
+      .select('*')
+      .eq('referencia_id',tdrAtual.id)
+      .eq('checkpoint',1)
+      .order('criado_em',{ascending:false});
 
-    const resp=await fetch(
-      `https://wfymnmlinonvdqfucjya.supabase.co/functions/v1/analisar-tdr`,
-      {
-        method:'POST',
-        headers:{'Content-Type':'application/json','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8'},
-        body:JSON.stringify({campos_tdr,conteudo_docx})
-      }
-    );
-
-    const json=await resp.json();
-
-    if(json.error){
-      el.innerHTML=`<div class="alert alert-warning" style="white-space:pre-wrap;font-size:12px">
-        ⚠ ${json.error}
-        ${json.error.includes('ANTHROPIC_API_KEY')?`<br><br>
-        <strong>Como configurar:</strong><br>
-        1. Acesse <a href="https://supabase.com/dashboard/project/wfymnmlinonvdqfucjya/functions" target="_blank" style="color:var(--azul-medio)">Supabase → Edge Functions</a><br>
-        2. Clique em <strong>analisar-tdr</strong> → <strong>Secrets</strong><br>
-        3. Adicione: <code>ANTHROPIC_API_KEY</code> = sua chave da API Anthropic<br>
-        4. Clique em "Reanalisar"
-        `:''}
+    if(!analises||analises.length===0){
+      el.innerHTML=`<div style="text-align:center;padding:32px 20px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg)">
+        <div style="font-size:28px;margin-bottom:8px">🤖</div>
+        <div style="font-size:13px;font-weight:500;color:var(--cinza-700);margin-bottom:4px">Nenhuma análise realizada ainda</div>
+        <div style="font-size:11px;color:var(--cinza-500)">Clique em <strong>"→ Submeter para análise do agente"</strong> para iniciar.</div>
       </div>`;
+      _iaFeito=true;
       return;
     }
 
-    // Formatar resultado em HTML
-    const texto=json.analise||'Sem resposta.';
-    const html=texto
-      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-      .replace(/🔴\s*/g,'<span style="color:var(--erro)">🔴</span> ')
-      .replace(/🟡\s*/g,'<span style="color:var(--aviso)">🟡</span> ')
-      .replace(/🟢\s*/g,'<span style="color:var(--sucesso)">🟢</span> ')
-      .replace(/\n\n/g,'</p><p style="margin:0 0 10px">')
-      .replace(/\n/g,'<br>');
+    const corStatus={aprovado:'var(--sucesso)',alerta:'var(--aviso)',reprovado:'var(--erro)'};
+    const bgStatus={aprovado:'#ECFDF5',alerta:'#FFFBEB',reprovado:'#FEF2F2'};
+    const iconeStatus={aprovado:'✅',alerta:'⚠️',reprovado:'❌'};
+    const labelStatus={aprovado:'Aprovado',alerta:'Aprovado com alertas',reprovado:'Pendente de correção'};
 
-    el.innerHTML=`
-      <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--borda)">
-          <span style="font-size:18px">🤖</span>
-          <div>
-            <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">Análise gerada pela IA</div>
-            <div style="font-size:10px;color:var(--cinza-500)">${conteudo_docx?'Com leitura do documento anexado • ':'Baseada nos campos do sistema • '}${new Date().toLocaleString('pt-BR')}</div>
+    el.innerHTML=analises.map((a,idx)=>{
+      const det=a.detalhes||{};
+      const criterios=det.criterios||[];
+      const sugestoes=det.sugestoes||[];
+      const data=new Date(a.criado_em).toLocaleString('pt-BR');
+      const isUltima=idx===0;
+
+      return`<div style="border:1px solid ${isUltima?corStatus[a.status]:'var(--borda)'};border-radius:var(--raio-lg);margin-bottom:12px;overflow:hidden;${isUltima?`box-shadow:0 2px 8px rgba(0,0,0,.06)`:'opacity:.75'}">
+        <!-- Cabeçalho -->
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:${isUltima?bgStatus[a.status]:'var(--cinza-50)'};border-bottom:1px solid var(--borda)">
+          <span style="font-size:20px">${iconeStatus[a.status]}</span>
+          <div style="flex:1">
+            <div style="font-size:12px;font-weight:600;color:${corStatus[a.status]}">${labelStatus[a.status]}${isUltima?' · Análise mais recente':''}</div>
+            <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">${data} · ${a.modelo_ia||'agente'} · ${a.tokens_usados||0} tokens</div>
           </div>
         </div>
-        <div style="font-size:12px;color:var(--cinza-800);line-height:1.7"><p style="margin:0 0 10px">${html}</p></div>
-        <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--borda);font-size:10px;color:var(--cinza-400,#9CA3AF)">
-          ⚠ Esta análise é sugestiva. Revise as recomendações com a equipe técnica antes de tomar decisões.
-        </div>
+        <!-- Resumo -->
+        <div style="padding:12px 14px;font-size:12px;color:var(--cinza-800);border-bottom:1px solid var(--borda)">${a.resumo||''}</div>
+        <!-- Critérios -->
+        ${criterios.length?`<div style="padding:10px 14px;border-bottom:1px solid var(--borda)">
+          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Critérios avaliados</div>
+          ${criterios.map(c=>`<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:4px">
+            <span style="font-size:13px;flex-shrink:0;margin-top:1px">${c.ok?'✅':'❌'}</span>
+            <div>
+              <span style="font-size:11px;font-weight:500;color:var(--cinza-800)">${c.nome.replace(/_/g,' ')}</span>
+              ${c.observacao?`<span style="font-size:11px;color:var(--cinza-500)"> — ${c.observacao}</span>`:''}
+            </div>
+          </div>`).join('')}
+        </div>`:''}
+        <!-- Sugestões -->
+        ${sugestoes.length?`<div style="padding:10px 14px">
+          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Sugestões</div>
+          ${sugestoes.map(s=>`<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;font-size:11px;color:var(--cinza-700)">
+            <span style="flex-shrink:0;color:var(--azul-medio)">→</span>${s}
+          </div>`).join('')}
+        </div>`:''}
       </div>`;
+    }).join('');
 
     _iaFeito=true;
   }catch(e){
-    el.innerHTML=`<div class="alert alert-danger">Erro ao contactar a IA: ${e.message||'Verifique sua conexão e tente novamente.'}</div>`;
+    el.innerHTML=`<div class="alert alert-danger">Erro ao carregar análises: ${e.message}</div>`;
   }
 }
 
