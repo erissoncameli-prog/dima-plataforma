@@ -1014,11 +1014,12 @@ async function resolverComent(id){
 
 async function submeterParaAgente(){
   if(!tdrAtual)return;
+  const tdrId=tdrAtual.id; // salvar antes de fechar o modal
   fecharModal('modal-tdr');
   toast('Submetendo TDR para análise do agente... aguarde.','info');
   try{
     // 1. Marcar como submetido
-    const {error}=await db.from('tdrs').update({status:'submetido'}).eq('id',tdrAtual.id);
+    const {error}=await db.from('tdrs').update({status:'submetido'}).eq('id',tdrId);
     if(error)throw new Error(error.message);
 
     // 2. Chamar Edge Function
@@ -1030,7 +1031,7 @@ async function submeterParaAgente(){
         'Authorization':`Bearer ${session?.access_token}`,
         'apikey':SUPABASE_ANON_KEY,
       },
-      body:JSON.stringify({tdr_id:tdrAtual.id}),
+      body:JSON.stringify({tdr_id:tdrId}),
     });
     const resultado=await res.json();
     if(!res.ok)throw new Error(resultado.error||'Erro na análise');
@@ -1041,15 +1042,13 @@ async function submeterParaAgente(){
     toast(`${icone} ${label}: ${resultado.resumo}`,'info',8000);
 
     // 4. Atualizar estado local e recarregar
-    tdrAtual.status=resultado.novo_status_tdr;
-    const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+    const idx=todosTDRs.findIndex(t=>t.id===tdrId);
     if(idx>=0)todosTDRs[idx].status=resultado.novo_status_tdr;
     renderStats();filtrar();
-    setTimeout(()=>abrirTDR(tdrAtual.id),600);
+    setTimeout(()=>abrirTDR(tdrId),600);
   }catch(e){
     console.error('[AGENTE]',e);
-    // Reverter status se a chamada falhou
-    await db.from('tdrs').update({status:'rascunho'}).eq('id',tdrAtual.id).catch(()=>{});
+    await db.from('tdrs').update({status:'rascunho'}).eq('id',tdrId).catch(()=>{});
     toast('Erro ao acionar o agente: '+(e.message||'tente novamente'),'error');
   }
 }
