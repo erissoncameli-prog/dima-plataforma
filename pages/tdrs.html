@@ -491,6 +491,7 @@ function filtrar(){
 
 // ── ABRIR TDR ─────────────────────────────────────────────────
 async function abrirTDR(id){
+  try{
   tdrAtual=todosTDRs.find(t=>t.id===id);
   if(!tdrAtual)return;
   _iaFeito=false; // reset análise a cada TDR aberto
