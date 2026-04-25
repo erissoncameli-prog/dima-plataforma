@@ -591,7 +591,7 @@ async function abrirTDR(id){
     <div class="tab-bar">
       <button class="tab-btn ativo" onclick="aba('campos',this)">📝 ${podeEd?'Editar campos':'Ver campos'}</button>
       <button class="tab-btn" onclick="aba('financeiro',this)">💰 Financeiro</button>
-      <button class="tab-btn" onclick="aba('versoes',this)">🕐 Versões (${(versoes||[]).length})</button>
+      <button class="tab-btn" id="tab-btn-versoes" onclick="aba('versoes',this)">🕐 Versões (${(versoes||[]).length})</button>
       <button class="tab-btn" onclick="aba('comentarios',this)">💬 Revisão${comsAbertos>0?`<span class="notif-badge">${comsAbertos}</span>`:` (${(comentarios||[]).length})`}</button>
       ${t.arquivo_url?`<button class="tab-btn" onclick="abrirArquivo()">📎 Arquivo</button>`:''}
       <button class="tab-btn" id="tab-btn-ia" onclick="aba('ia',this);if(!_iaFeito)analisarComIA()">🤖 Análise do Agente</button>
@@ -1578,21 +1578,16 @@ async function analisarComIA(forcar=false){
       </div>`;
     }).join('');
 
-    // Botão corrigir com IA — aparece se a análise mais recente tem critérios reprovados
+    // Botão corrigir com IA — sempre visível após análise realizada
+    document.getElementById('btn-corrigir-ia-wrap')?.remove();
     const ultimaAnalise=analises[0];
     const temReprovados=(ultimaAnalise?.detalhes?.criterios||[]).some(c=>!c.ok);
-    const jaCorrigindo=document.getElementById('btn-corrigir-ia');
-    if(!jaCorrigindo){
-      const wrap=document.createElement('div');
-      wrap.id='btn-corrigir-ia-wrap';
-      wrap.style.cssText='margin-top:12px;text-align:right';
-      if(temReprovados){
-        wrap.innerHTML=`<button onclick="corrigirComIA()" style="background:var(--azul-medio);color:#fff;border:none;border-radius:var(--raio-md);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-          ✨ Corrigir com IA
-        </button>`;
-      }
-      el.parentElement.appendChild(wrap);
-    }
+    const wrap=document.createElement('div');
+    wrap.id='btn-corrigir-ia-wrap';
+    wrap.style.cssText='margin-top:12px;text-align:right';
+    const labelBtn=temReprovados?'✨ Corrigir com IA':'✨ Melhorar com IA';
+    wrap.innerHTML=`<button onclick="corrigirComIA()" style="background:var(--azul-medio);color:#fff;border:none;border-radius:var(--raio-md);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px">${labelBtn}</button>`;
+    el.parentElement.appendChild(wrap);
 
     _iaFeito=true;
   }catch(e){
@@ -1630,9 +1625,11 @@ async function corrigirComIA(){
 
     toast(`✅ Correção aplicada! ${campos.length} campo(s) ajustado(s). Versão ${data.numero_versao} criada.`,'success');
 
-    // Recarregar aba Análise IA e versões
-    _iaFeito=false;
-    analisarComIA(true);
+    // Reabrir modal para recarregar versões e ir direto para aba Versões
+    const tdrId=tdrAtual.id;
+    await abrirTDR(tdrId);
+    await new Promise(r=>setTimeout(r,300));
+    document.getElementById('tab-btn-versoes')?.click();
 
   }catch(e){
     toast(`Erro ao corrigir: ${e.message}`,'error');
