@@ -568,8 +568,6 @@ function _aplicarModoMapa(modo){
   document.querySelectorAll('.modo-mapa-btn').forEach(btn =>
     btn.classList.toggle('ativo', btn.dataset.modo === modo)
   );
-  const poiCtrl = document.getElementById('mapa-ctrl-poi');
-  if(poiCtrl) poiCtrl.style.display = modo === 'satelite' ? 'none' : '';
 }
 
 function _adicionarControleModoMapa(){
