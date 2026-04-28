@@ -383,12 +383,29 @@ tbody tr:hover td { background: #EDF7F1 !important; }
 
 /* ── BADGES ───────────────────────────────────────────────── */
 .badge {
-  display: inline-block;
+  display: inline-flex; align-items: center;
   font-size: 10px; font-weight: 700;
-  padding: 3px 8px; border-radius: 99px;
-  color: #fff; white-space: nowrap;
-  text-transform: uppercase; letter-spacing: .04em;
+  padding: 3px 9px; border-radius: 99px;
+  white-space: nowrap;
+  text-transform: uppercase; letter-spacing: .05em;
+  line-height: 1.4;
 }
+/* Filled */
+.badge-verde  { background: #DCFCE7; color: #166534; }
+.badge-teal   { background: #CCFBF1; color: #0F5549; }
+.badge-blue   { background: #DBEAFE; color: #1E40AF; }
+.badge-ouro   { background: #FEF3C7; color: #92400E; }
+.badge-erro   { background: #FEE2E2; color: #991B1B; }
+.badge-cinza  { background: var(--cinza-100); color: var(--cinza-600); }
+.badge-dark   { background: var(--cinza-200); color: var(--cinza-800); }
+.badge-roxo   { background: #EDE9FE; color: #5B21B6; }
+/* Outline */
+.badge-outline { background: transparent; }
+.badge-verde.badge-outline   { border: 1.5px solid #86EFAC; color: #16A34A; }
+.badge-ouro.badge-outline    { border: 1.5px solid #FCD34D; color: #B45309; }
+.badge-erro.badge-outline    { border: 1.5px solid #FCA5A5; color: #DC2626; }
+.badge-blue.badge-outline    { border: 1.5px solid #93C5FD; color: #2563EB; }
+.badge-cinza.badge-outline   { border: 1.5px solid var(--cinza-300); color: var(--cinza-500); }
 
 /* ── BOTÕES ───────────────────────────────────────────────── */
 .btn {
