@@ -412,19 +412,23 @@ tbody tr:hover td { background: #EDF7F1 !important; }
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: var(--raio);
   font-family: var(--font-sans); font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all .15s; border: none;
-  text-decoration: none; white-space: nowrap;
+  cursor: pointer; transition: all .15s; border: 1px solid transparent;
+  text-decoration: none; white-space: nowrap; line-height: 1.4;
 }
 .btn:active { transform: scale(.98); }
-.btn-primary { background: var(--verde-medio); color: #fff; }
-.btn-primary:hover { background: var(--verde); }
-.btn-secondary { background: var(--cinza-100); color: var(--cinza-700); border: 1px solid var(--borda); }
-.btn-secondary:hover { background: var(--cinza-200, #E5E7EB); }
-.btn-ouro { background: var(--ouro); color: #fff; }
-.btn-ouro:hover { background: #9A720B; }
-.btn-danger { background: var(--erro); color: #fff; }
-.btn-danger:hover { background: #B91C1C; }
+.btn:focus-visible { outline: 3px solid rgba(82,183,136,.4); outline-offset: 2px; }
+.btn-primary { background: var(--verde-medio); color: #fff; border-color: var(--verde-medio); box-shadow: 0 1px 3px rgba(45,106,79,.3); }
+.btn-primary:hover { background: var(--verde); border-color: var(--verde); box-shadow: 0 2px 6px rgba(31,78,44,.35); }
+.btn-secondary { background: var(--branco); color: var(--cinza-700); border-color: var(--borda-forte); }
+.btn-secondary:hover { background: var(--cinza-50); border-color: var(--cinza-300); }
+.btn-ghost { background: transparent; color: var(--cinza-600); border-color: transparent; }
+.btn-ghost:hover { background: var(--cinza-100); color: var(--cinza-900); }
+.btn-ouro { background: var(--ouro); color: #fff; border-color: var(--ouro); box-shadow: 0 1px 3px rgba(181,134,13,.3); }
+.btn-ouro:hover { background: #9A720B; border-color: #9A720B; }
+.btn-danger { background: var(--erro); color: #fff; border-color: var(--erro); }
+.btn-danger:hover { background: #B91C1C; border-color: #B91C1C; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; border-radius: 6px; }
 .btn-icon { padding: 7px; border-radius: var(--raio); }
 
 /* ── FORMULÁRIOS ──────────────────────────────────────────── */
