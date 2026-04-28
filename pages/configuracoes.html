@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Configurações</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+.config-wrap{display:flex;height:calc(100vh - 56px);overflow:hidden;margin:-20px;}
+.config-editor{width:420px;flex-shrink:0;border-right:1px solid var(--borda);background:var(--branco);display:flex;flex-direction:column;overflow:hidden;}
+.editor-header{padding:14px 20px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;}
+.editor-header h2{font-size:14px;font-weight:600;color:var(--cinza-900);white-space:nowrap;}
+.editor-body{flex:1;overflow-y:auto;}
+.tab-nav{display:flex;border-bottom:1px solid var(--borda);padding:0 20px;flex-shrink:0;}
+.tab-btn{padding:10px 14px;font-size:13px;font-weight:500;color:var(--cinza-500);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font-sans);transition:all .15s;}
+.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
+.tab-btn:hover:not(.ativo){color:var(--cinza-700);}
+.tab-content{display:none;padding:20px;}
+.tab-content.ativo{display:block;}
+.upload-zone{border:2px dashed var(--borda);border-radius:var(--raio-lg);padding:16px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cinza-50);}
+.upload-zone:hover{border-color:var(--verde-claro);background:#F0FDF4;}
+.sort-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;cursor:default;transition:border-color .15s;}
+.sort-item.dragging{opacity:.35;}
+.sort-item.drag-over{border-color:var(--verde-claro);background:#F0FDF4;box-shadow:0 0 0 2px rgba(82,183,136,.2);}
+.drag-handle{cursor:grab;color:var(--cinza-300);font-size:16px;flex-shrink:0;padding:2px 3px;border-radius:4px;line-height:1;transition:color .1s;}
+.drag-handle:hover{color:var(--cinza-500);}
+.sort-thumb{width:40px;height:30px;object-fit:cover;border-radius:4px;flex-shrink:0;background:var(--cinza-100);}
+.sort-thumb-logo{width:50px;height:32px;object-fit:contain;border-radius:4px;flex-shrink:0;background:var(--cinza-50);border:1px solid var(--borda);padding:3px;}
+.sort-info{flex:1;min-width:0;}
+.caption-input{font-size:11px;border:none;background:transparent;width:100%;color:var(--cinza-700);font-family:var(--font-sans);font-weight:500;padding:0;outline:none;border-bottom:1px dashed transparent;transition:border-color .15s;}
+.caption-input:focus{border-bottom-color:var(--verde-claro);}
+.alt-input{font-size:10px;border:none;background:transparent;width:100%;color:var(--cinza-400);font-family:var(--font-mono);padding:0;outline:none;border-bottom:1px dashed transparent;transition:border-color .15s;}
+.alt-input:focus{border-bottom-color:var(--verde-claro);}
+.sort-actions{display:flex;gap:4px;flex-shrink:0;}
+.btn-icon-sm{width:26px;height:26px;border-radius:4px;border:1px solid var(--borda);background:var(--branco);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--cinza-500);transition:all .15s;font-family:var(--font-sans);}
+.btn-icon-sm:hover{background:var(--cinza-50);color:var(--cinza-700);}
+.btn-icon-sm.danger:hover{background:#FEF2F2;border-color:#FECACA;color:#DC2626;}
+.size-select{font-size:11px;padding:2px 6px;border:1px solid var(--borda);border-radius:4px;background:var(--branco);color:var(--cinza-700);font-family:var(--font-sans);cursor:pointer;flex-shrink:0;}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.section-label span.line{flex:1;height:1px;background:var(--borda);}
+.limit-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--cinza-100);color:var(--cinza-500);font-family:var(--font-mono);flex-shrink:0;}
+.limit-badge.warn{background:#FEF3C7;color:#92400E;}
+.btn-add-item{display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px dashed var(--borda);border-radius:var(--raio);background:none;color:var(--cinza-400);font-size:12px;font-family:var(--font-sans);cursor:pointer;width:100%;justify-content:center;transition:all .15s;margin-top:4px;}
+.btn-add-item:hover{border-color:var(--verde-claro);color:var(--verde-medio);background:#F0FDF4;}
+.color-row{display:flex;align-items:center;gap:8px;}
+.color-swatch{width:32px;height:32px;border-radius:6px;border:1px solid var(--borda);flex-shrink:0;}
+
+/* Preview panel */
+.config-preview-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#ECEEF1;}
+.preview-header{padding:10px 20px;background:var(--branco);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.preview-header-title{font-size:13px;font-weight:600;color:var(--cinza-700);}
+.live-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;background:#DCFCE7;color:#166534;letter-spacing:.05em;}
+#preview-outer{flex:1;overflow:auto;padding:24px;display:flex;justify-content:center;align-items:flex-start;}
+#preview-frame{width:1280px;height:800px;display:flex;overflow:hidden;border-radius:10px;box-shadow:0 16px 56px rgba(0,0,0,.3);transform-origin:top center;flex-shrink:0;}
+
+/* Preview: esquerdo */
+#pv-esq{flex:1;position:relative;overflow:hidden;}
+#pv-foto{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity .8s;}
+#pv-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,45,22,.88) 0%,rgba(15,45,22,.52) 30%,rgba(15,45,22,.52) 70%,rgba(8,28,14,.92) 100%);}
+#pv-conteudo{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:22px 28px;}
+#pv-logos-topo{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.5);backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.75);border-radius:8px;padding:6px 12px;width:fit-content;}
+#pv-logo-projeto-wrap{position:absolute;top:10px;right:10px;z-index:5;}
+#pv-logo-projeto-box{background:rgba(255,255,255,.5);backdrop-filter:blur(6px);border:1.5px solid rgba(255,255,255,.75);border-radius:8px;padding:6px 10px;display:flex;align-items:center;justify-content:center;}
+#pv-proj-info{background:rgba(0,0,0,.45);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:12px 16px;}
+#pv-proj-badge{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#F4D35E;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.pv-dot{width:5px;height:5px;border-radius:50%;background:#F4D35E;flex-shrink:0;}
+#pv-proj-nome{font-size:11px;font-weight:600;color:#fff;margin-bottom:3px;line-height:1.4;}
+#pv-proj-local{font-size:9px;color:rgba(255,255,255,.55);margin-bottom:8px;}
+#pv-dots{display:flex;gap:4px;align-items:center;}
+
+/* Preview: direito */
+#pv-dir{width:330px;flex-shrink:0;background:#fff;padding:28px 24px;display:flex;flex-direction:column;justify-content:center;}
+.pv-lang-row{display:flex;gap:4px;margin-bottom:14px;}
+.pv-lang-btn{flex:1;padding:4px;border-radius:5px;border:1px solid #E5E7EB;font-size:9px;text-align:center;color:#6B7280;}
+.pv-lang-btn.ativo{background:#2D6A4F;color:#fff;border-color:#2D6A4F;}
+.pv-titulo{font-size:16px;font-weight:600;color:#111827;margin-bottom:4px;}
+.pv-sub{font-size:10px;color:#6B7280;margin-bottom:14px;}
+.pv-label{font-size:9px;font-weight:600;color:#374151;margin-bottom:3px;}
+.pv-input{height:30px;border:1px solid #E5E7EB;border-radius:6px;margin-bottom:9px;width:100%;}
+.pv-btn{height:34px;border-radius:6px;width:100%;margin-bottom:14px;border:none;}
+.pv-sep{border-top:1px solid #E5E7EB;margin-bottom:10px;}
+.pv-parceiros-label{font-size:8px;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+#pv-parceiros-logos{display:flex;align-items:center;flex-wrap:wrap;gap:10px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando configurações...
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script>
+// ── Estado ───────────────────────────────────────────────────
+let cfg = {
+  projeto_id: 'default', projeto_nome: '', projeto_codigo: '',
+  projeto_localizacao: '', cor_primaria: '#1F4E2C',
+  logos_topo: [], logo_projeto: { url: '', alt: '' },
+  logos_parceiros: [], fotos: []
+};
+let tabAtual = 'identidade';
+let salvando = false;
+let fotoPreviewIdx = 0;
+let fotoTimer;
+
+// ── Init ─────────────────────────────────────────────────────
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+  if (appState.perfil !== 'super_admin') { window.location.href = 'dashboard.html'; return; }
+
+  document.getElementById('app').innerHTML =
+    gerarLayout('Configurações', 'configuracoes') + '</div></div></div>';
+
+  const pb = document.getElementById('page-body');
+  pb.style.padding = '0';
+  pb.style.overflow = 'hidden';
+
+  await carregarConfig();
+  renderPagina();
+  window.addEventListener('resize', ajustarPreview);
+  iniciarSino();
+})();
+
+// ── Carregar config ───────────────────────────────────────────
+async function carregarConfig() {
+  const { data } = await db.from('configuracoes_sistema')
+    .select('*').eq('projeto_id', 'default').single();
+  if (data) {
+    cfg = {
+      projeto_id: data.projeto_id || 'default',
+      projeto_nome: data.projeto_nome || '',
+      projeto_codigo: data.projeto_codigo || '',
+      projeto_localizacao: data.projeto_localizacao || '',
+      cor_primaria: data.cor_primaria || '#1F4E2C',
+      logos_topo: data.logos_topo || [],
+      logo_projeto: data.logo_projeto || { url: '', alt: '' },
+      logos_parceiros: data.logos_parceiros || [],
+      fotos: data.fotos || []
+    };
+  }
+}
+
+// ── Render página ─────────────────────────────────────────────
+function renderPagina() {
+  document.getElementById('page-body').innerHTML = `
+  <div class="config-wrap fade-in">
+    <div class="config-editor">
+      <div class="editor-header">
+        <h2>⚙ Configurações</h2>
+        <button class="btn btn-primary btn-sm" id="btn-salvar" onclick="salvarConfig()">Salvar alterações</button>
+      </div>
+      <div class="tab-nav">
+        <button class="tab-btn ativo" onclick="setTab('identidade',this)">Identidade</button>
+        <button class="tab-btn" onclick="setTab('fotos',this)">Fotos</button>
+        <button class="tab-btn" onclick="setTab('logos',this)">Logos</button>
+      </div>
+      <div class="editor-body">
+        ${renderTabIdentidade()}
+        ${renderTabFotos()}
+        ${renderTabLogos()}
+      </div>
+    </div>
+    <div class="config-preview-panel">
+      <div class="preview-header">
+        <span class="preview-header-title">Pré-visualização</span>
+        <span class="live-badge">● AO VIVO</span>
+        <span style="font-size:11px;color:var(--cinza-400);margin-left:auto">Mudanças refletem aqui antes de salvar</span>
+      </div>
+      <div id="preview-outer">${renderPreviewHTML()}</div>
+    </div>
+  </div>`;
+
+  initDragDrop('lista-fotos', sincronizarFotosDOM);
+  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+  iniciarTimerFotos();
+  ajustarPreview();
+}
+
+// ── Tab: Identidade ───────────────────────────────────────────
+function renderTabIdentidade() {
+  return `
+  <div id="tab-identidade" class="tab-content ativo">
+    <div class="form-group">
+      <label class="form-label">Nome do Projeto</label>
+      <input class="form-control" value="${esc(cfg.projeto_nome)}"
+        oninput="cfg.projeto_nome=this.value;pvTextos()"
+        placeholder="Nome completo do projeto">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Código do Projeto</label>
+      <input class="form-control" value="${esc(cfg.projeto_codigo)}"
+        oninput="cfg.projeto_codigo=this.value;pvTextos()"
+        placeholder="Ex: 218BRA2001 · UNESCO/MPTF">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Localização / Subtítulo</label>
+      <input class="form-control" value="${esc(cfg.projeto_localizacao)}"
+        oninput="cfg.projeto_localizacao=this.value;pvTextos()"
+        placeholder="Ex: Rio Branco, Acre — Fundo Multipartes">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cor Principal</label>
+      <div class="color-row">
+        <div class="color-swatch" id="cor-swatch" style="background:${cfg.cor_primaria}"></div>
+        <input class="form-control" id="inp-cor-hex" value="${cfg.cor_primaria}"
+          maxlength="7" placeholder="#1F4E2C"
+          oninput="onHexInput(this.value)" style="font-family:var(--font-mono);font-size:13px">
+        <input type="color" value="${cfg.cor_primaria}"
+          onchange="aplicarCor(this.value)"
+          style="width:36px;height:36px;padding:2px;border:1px solid var(--borda);border-radius:6px;cursor:pointer;flex-shrink:0">
+      </div>
+    </div>
+  </div>`;
+}
+
+function onHexInput(v) {
+  if (/^#[0-9A-Fa-f]{6}$/.test(v)) aplicarCor(v);
+}
+function aplicarCor(v) {
+  cfg.cor_primaria = v;
+  const s = document.getElementById('cor-swatch');
+  const h = document.getElementById('inp-cor-hex');
+  if (s) s.style.background = v;
+  if (h) h.value = v;
+  const btn = document.querySelector('#pv-dir .pv-btn');
+  if (btn) btn.style.background = v;
+}
+
+// ── Tab: Fotos ────────────────────────────────────────────────
+function renderTabFotos() {
+  const n = cfg.fotos.length;
+  return `
+  <div id="tab-fotos" class="tab-content">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:14px">
+      <p style="font-size:12px;color:var(--cinza-500);line-height:1.6">
+        Slideshow da tela de login.<br>
+        <strong>JPG/JPEG</strong> · máx <strong>5 MB</strong> · mín <strong>1280×720 px</strong> · orientação paisagem
+      </p>
+      <span class="limit-badge ${n>=15?'warn':''}">${n}/15</span>
+    </div>
+    <div id="lista-fotos">
+      ${cfg.fotos.map((f, i) => renderFotoItem(f, i)).join('')}
+    </div>
+    ${n < 15 ? `
+    <button class="btn-add-item" onclick="document.getElementById('inp-foto').click()">
+      <span style="font-size:14px">+</span> Adicionar foto
+    </button>
+    <input type="file" id="inp-foto" accept=".jpg,.jpeg" style="display:none"
+      onchange="handleUploadFoto(this.files)">
+    ` : `<p style="font-size:11px;color:var(--cinza-400);text-align:center;margin-top:8px">Limite de 15 fotos atingido</p>`}
+  </div>`;
+}
+
+function renderFotoItem(f, i) {
+  const shortUrl = f.url.length > 36 ? '...' + f.url.slice(-33) : f.url;
+  return `
+  <div class="sort-item" draggable="true" data-idx="${i}">
+    <span class="drag-handle" title="Arrastar para reordenar">⠿</span>
+    <img class="sort-thumb" src="${imgUrl(f.url)}" alt="" onerror="this.style.opacity='.2'">
+    <div class="sort-info">
+      <input class="caption-input" value="${esc(f.legenda)}" placeholder="Legenda"
+        oninput="cfg.fotos[${i}].legenda=this.value" onclick="event.stopPropagation()">
+      <div class="alt-input" style="cursor:default;user-select:all">${shortUrl}</div>
+    </div>
+    <div class="sort-actions">
+      <button class="btn-icon-sm danger" onclick="removerFoto(${i})" title="Remover">✕</button>
+    </div>
+  </div>`;
+}
+
+async function handleUploadFoto(files) {
+  if (!files.length) return;
+  const file = files[0];
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['jpg','jpeg'].includes(ext)) { toast('Apenas JPG/JPEG para fotos.', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { toast('Tamanho máximo: 5 MB.', 'error'); return; }
+  if (cfg.fotos.length >= 15) { toast('Limite de 15 fotos atingido.', 'error'); return; }
+  toast('Enviando foto...', 'info');
+  try {
+    const url = await uploadArquivo(file, 'fotos');
+    cfg.fotos.push({ url, legenda: '', ordem: cfg.fotos.length });
+    reRenderTab('fotos');
+    initDragDrop('lista-fotos', sincronizarFotosDOM);
+    pvFotos();
+    toast('Foto adicionada!', 'success');
+  } catch(e) { toast('Erro ao enviar: ' + e.message, 'error'); }
+}
+
+function removerFoto(i) {
+  cfg.fotos.splice(i, 1);
+  cfg.fotos.forEach((f, idx) => f.ordem = idx);
+  reRenderTab('fotos');
+  initDragDrop('lista-fotos', sincronizarFotosDOM);
+  pvFotos();
+}
+
+function sincronizarFotosDOM() {
+  const items = [...document.querySelectorAll('#lista-fotos .sort-item')];
+  const nova = items.map(el => cfg.fotos[parseInt(el.dataset.idx)]).filter(Boolean);
+  cfg.fotos = nova.map((f, i) => ({ ...f, ordem: i }));
+  reRenderTab('fotos');
+  initDragDrop('lista-fotos', sincronizarFotosDOM);
+  pvFotos();
+}
+
+// ── Tab: Logos ────────────────────────────────────────────────
+function renderTabLogos() {
+  return `
+  <div id="tab-logos" class="tab-content">
+
+    <div style="margin-bottom:22px">
+      <div class="section-label">
+        Zona A — Topo Esquerdo <span class="line"></span>
+        <span class="limit-badge ${cfg.logos_topo.length>=3?'warn':''}">${cfg.logos_topo.length}/3</span>
+      </div>
+      <p style="font-size:11px;color:var(--cinza-400);margin-bottom:10px">
+        Logos na caixa branca superior · <strong>PNG/SVG</strong> · máx <strong>500 KB</strong>
+      </p>
+      <div id="lista-logos-topo">
+        ${cfg.logos_topo.map((l, i) => renderLogoItem(l, i, 'topo')).join('')}
+      </div>
+      ${cfg.logos_topo.length < 3 ? `
+        <button class="btn-add-item" onclick="document.getElementById('inp-logo-topo').click()">
+          <span style="font-size:14px">+</span> Adicionar logo
+        </button>
+        <input type="file" id="inp-logo-topo" accept=".png,.svg" style="display:none"
+          onchange="handleUploadLogo(this.files,'topo')">
+      ` : ''}
+    </div>
+
+    <div style="margin-bottom:22px">
+      <div class="section-label">Zona B — Logo do Projeto <span class="line"></span></div>
+      <p style="font-size:11px;color:var(--cinza-400);margin-bottom:10px">
+        Destaque no canto superior direito · <strong>PNG/SVG</strong> · máx <strong>500 KB</strong>
+      </p>
+      <div id="logo-projeto-slot">
+        ${cfg.logo_projeto?.url ? `
+        <div class="sort-item" style="margin-bottom:6px">
+          <img class="sort-thumb-logo" src="${imgUrl(cfg.logo_projeto.url)}" alt="" onerror="this.style.opacity='.2'">
+          <div class="sort-info">
+            <input class="alt-input" value="${esc(cfg.logo_projeto.alt||'')}"
+              placeholder="Texto alternativo"
+              oninput="cfg.logo_projeto.alt=this.value">
+          </div>
+          <div class="sort-actions">
+            <button class="btn-icon-sm" onclick="document.getElementById('inp-logo-projeto').click()" title="Trocar">↺</button>
+            <button class="btn-icon-sm danger" onclick="removerLogoProjeto()" title="Remover">✕</button>
+          </div>
+        </div>` : `
+        <button class="btn-add-item" onclick="document.getElementById('inp-logo-projeto').click()">
+          <span style="font-size:14px">+</span> Adicionar logo do projeto
+        </button>`}
+        <input type="file" id="inp-logo-projeto" accept=".png,.svg" style="display:none"
+          onchange="handleUploadLogo(this.files,'projeto')">
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">
+        Zona C — Parceiros <span class="line"></span>
+        <span class="limit-badge ${cfg.logos_parceiros.length>=8?'warn':''}">${cfg.logos_parceiros.length}/8</span>
+      </div>
+      <p style="font-size:11px;color:var(--cinza-400);margin-bottom:10px">
+        Seção "Realização e Parceiros" · <strong>PNG/SVG</strong> · máx <strong>1 MB</strong>
+      </p>
+      <div id="lista-parceiros">
+        ${cfg.logos_parceiros.map((l, i) => renderLogoItem(l, i, 'parceiro')).join('')}
+      </div>
+      ${cfg.logos_parceiros.length < 8 ? `
+        <button class="btn-add-item" onclick="document.getElementById('inp-logo-parceiro').click()">
+          <span style="font-size:14px">+</span> Adicionar parceiro
+        </button>
+        <input type="file" id="inp-logo-parceiro" accept=".png,.svg" style="display:none"
+          onchange="handleUploadLogo(this.files,'parceiro')">
+      ` : ''}
+    </div>
+  </div>`;
+}
+
+function renderLogoItem(l, i, tipo) {
+  const sizeSel = tipo === 'parceiro' ? `
+    <select class="size-select" onchange="setTamanho(${i},this.value)" onclick="event.stopPropagation()">
+      <option value="pequeno" ${l.tamanho==='pequeno'?'selected':''}>Peq.</option>
+      <option value="medio"   ${(!l.tamanho||l.tamanho==='medio')?'selected':''}>Méd.</option>
+      <option value="grande"  ${l.tamanho==='grande'?'selected':''}>Gde.</option>
+    </select>` : '';
+  return `
+  <div class="sort-item" draggable="true" data-idx="${i}">
+    <span class="drag-handle" title="Arrastar para reordenar">⠿</span>
+    <img class="sort-thumb-logo" src="${imgUrl(l.url)}" alt="" onerror="this.style.opacity='.2'">
+    <div class="sort-info">
+      <input class="alt-input" value="${esc(l.alt||'')}" placeholder="Nome / alt"
+        oninput="setAlt('${tipo}',${i},this.value)" onclick="event.stopPropagation()">
+    </div>
+    ${sizeSel}
+    <div class="sort-actions">
+      <button class="btn-icon-sm" onclick="trocarLogo('${tipo}',${i})" title="Trocar imagem">↺</button>
+      <button class="btn-icon-sm danger" onclick="removerLogo('${tipo}',${i})" title="Remover">✕</button>
+    </div>
+  </div>
+  <input type="file" id="inp-troca-${tipo}-${i}" accept=".png,.svg" style="display:none"
+    onchange="handleTrocarLogo(this.files,'${tipo}',${i})">`;
+}
+
+function setAlt(tipo, i, val) {
+  if (tipo === 'topo') cfg.logos_topo[i].alt = val;
+  else if (tipo === 'parceiro') cfg.logos_parceiros[i].alt = val;
+  pvLogos();
+}
+function setTamanho(i, val) {
+  cfg.logos_parceiros[i].tamanho = val;
+  pvLogos();
+}
+function trocarLogo(tipo, i) {
+  document.getElementById(`inp-troca-${tipo}-${i}`)?.click();
+}
+function removerLogoProjeto() {
+  cfg.logo_projeto = { url: '', alt: '' };
+  reRenderTab('logos');
+  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+  pvLogos();
+}
+function removerLogo(tipo, i) {
+  if (tipo === 'topo') cfg.logos_topo.splice(i, 1);
+  else cfg.logos_parceiros.splice(i, 1);
+  reRenderTab('logos');
+  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+  pvLogos();
+}
+
+async function handleUploadLogo(files, zona) {
+  if (!files.length) return;
+  const file = files[0];
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['png','svg'].includes(ext)) { toast('Apenas PNG ou SVG para logos.', 'error'); return; }
+  const maxBytes = zona === 'parceiro' ? 1024*1024 : 512*1024;
+  const maxLabel = zona === 'parceiro' ? '1 MB' : '500 KB';
+  if (file.size > maxBytes) { toast(`Tamanho máximo: ${maxLabel}.`, 'error'); return; }
+  toast('Enviando logo...', 'info');
+  try {
+    const url = await uploadArquivo(file, 'logos');
+    const item = { url, alt: file.name.replace(/\.[^.]+$/, ''), ordem: 0 };
+    if (zona === 'topo') cfg.logos_topo.push({ ...item, ordem: cfg.logos_topo.length });
+    else if (zona === 'projeto') cfg.logo_projeto = item;
+    else cfg.logos_parceiros.push({ ...item, tamanho: 'medio', ordem: cfg.logos_parceiros.length });
+    reRenderTab('logos');
+    initDragDrop('lista-logos-topo', sincronizarTopoDOM);
+    initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+    pvLogos();
+    toast('Logo adicionada!', 'success');
+  } catch(e) { toast('Erro ao enviar: ' + e.message, 'error'); }
+}
+
+async function handleTrocarLogo(files, tipo, i) {
+  if (!files.length) return;
+  const file = files[0];
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['png','svg'].includes(ext)) { toast('Apenas PNG ou SVG.', 'error'); return; }
+  const maxBytes = tipo === 'parceiro' ? 1024*1024 : 512*1024;
+  if (file.size > maxBytes) { toast('Arquivo muito grande.', 'error'); return; }
+  toast('Trocando...', 'info');
+  try {
+    const url = await uploadArquivo(file, 'logos');
+    if (tipo === 'topo') cfg.logos_topo[i].url = url;
+    else cfg.logos_parceiros[i].url = url;
+    reRenderTab('logos');
+    initDragDrop('lista-logos-topo', sincronizarTopoDOM);
+    initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+    pvLogos();
+    toast('Logo atualizada!', 'success');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+function sincronizarTopoDOM() {
+  const items = [...document.querySelectorAll('#lista-logos-topo .sort-item')];
+  cfg.logos_topo = items.map(el => cfg.logos_topo[parseInt(el.dataset.idx)]).filter(Boolean)
+    .map((l, i) => ({ ...l, ordem: i }));
+  reRenderTab('logos');
+  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+  pvLogos();
+}
+
+function sincronizarParceirosDOM() {
+  const items = [...document.querySelectorAll('#lista-parceiros .sort-item')];
+  cfg.logos_parceiros = items.map(el => cfg.logos_parceiros[parseInt(el.dataset.idx)]).filter(Boolean)
+    .map((l, i) => ({ ...l, ordem: i }));
+  reRenderTab('logos');
+  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+  pvLogos();
+}
+
+// ── Tabs ──────────────────────────────────────────────────────
+function setTab(nome, btn) {
+  tabAtual = nome;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativo'));
+  if (btn) btn.classList.add('ativo');
+  document.getElementById('tab-' + nome)?.classList.add('ativo');
+}
+
+function reRenderTab(nome) {
+  const el = document.getElementById('tab-' + nome);
+  if (!el) return;
+  const ativo = el.classList.contains('ativo');
+  const map = { identidade: renderTabIdentidade, fotos: renderTabFotos, logos: renderTabLogos };
+  el.outerHTML = map[nome]();
+  if (ativo) document.getElementById('tab-' + nome)?.classList.add('ativo');
+}
+
+// ── Preview ───────────────────────────────────────────────────
+function renderPreviewHTML() {
+  const fotoUrl = imgUrl(cfg.fotos[0]?.url || '');
+  return `
+  <div id="preview-frame">
+    <div id="pv-esq">
+      <div id="pv-foto" style="background-image:url('${fotoUrl}')"></div>
+      <div id="pv-overlay"></div>
+      <div id="pv-conteudo">
+        <div><div id="pv-logos-topo">${pvHtmlLogosTopo()}</div></div>
+        <div id="pv-logo-projeto-wrap">
+          <div id="pv-logo-projeto-box">${pvHtmlLogoProjeto()}</div>
+        </div>
+        <div id="pv-proj-info">
+          <div id="pv-proj-badge"><div class="pv-dot"></div>${esc(cfg.projeto_codigo)}</div>
+          <div id="pv-proj-nome">${esc(cfg.projeto_nome)}</div>
+          <div id="pv-proj-local">${esc(cfg.projeto_localizacao)}</div>
+          <div id="pv-dots" style="display:flex;gap:4px;margin-top:8px">${pvHtmlDots()}</div>
+        </div>
+      </div>
+    </div>
+    <div id="pv-dir">
+      <div class="pv-lang-row">
+        <div class="pv-lang-btn ativo">🇧🇷 PT</div>
+        <div class="pv-lang-btn">🇺🇸 EN</div>
+        <div class="pv-lang-btn">🇪🇸 ES</div>
+      </div>
+      <div class="pv-titulo">Entrar na plataforma</div>
+      <div class="pv-sub">Acesse com suas credenciais institucionais</div>
+      <div class="pv-label">E-mail</div><div class="pv-input"></div>
+      <div class="pv-label">Senha</div><div class="pv-input"></div>
+      <div class="pv-btn" style="background:${cfg.cor_primaria}"></div>
+      <div class="pv-sep"></div>
+      <div class="pv-parceiros-label">Realização e parceiros</div>
+      <div id="pv-parceiros-logos">${pvHtmlParceiros()}</div>
+    </div>
+  </div>`;
+}
+
+function pvHtmlLogosTopo() {
+  if (!cfg.logos_topo.length)
+    return '<span style="font-size:10px;color:rgba(255,255,255,.4)">Sem logos</span>';
+  return cfg.logos_topo.map((l, i) =>
+    `${i > 0 ? '<div style="width:1px;height:30px;background:rgba(0,0,0,.15);flex-shrink:0"></div>' : ''}
+     <img src="${imgUrl(l.url)}" alt="${esc(l.alt||'')}" style="height:34px;width:auto;object-fit:contain" onerror="this.style.opacity='.2'>`
+  ).join('');
+}
+
+function pvHtmlLogoProjeto() {
+  if (!cfg.logo_projeto?.url)
+    return '<div style="width:80px;height:60px;background:rgba(255,255,255,.1);border-radius:6px"></div>';
+  return `<img src="${imgUrl(cfg.logo_projeto.url)}" alt=""
+    style="height:72px;width:auto;display:block;max-width:160px" onerror="this.style.opacity='.2'">`;
+}
+
+function pvHtmlParceiros() {
+  if (!cfg.logos_parceiros.length)
+    return '<span style="font-size:9px;color:#9CA3AF">Sem parceiros</span>';
+  const h = { pequeno:'28px', medio:'40px', grande:'58px' };
+  return cfg.logos_parceiros.map(l =>
+    `<img src="${imgUrl(l.url)}" alt="${esc(l.alt||'')}"
+      style="height:${h[l.tamanho||'medio']};width:auto;object-fit:contain;max-width:90px;opacity:.85"
+      onerror="this.style.opacity='.2'">`
+  ).join('');
+}
+
+function pvHtmlDots() {
+  return cfg.fotos.map((_, i) =>
+    `<div style="width:${i===fotoPreviewIdx?'14':'5'}px;height:4px;border-radius:2px;
+      background:${i===fotoPreviewIdx?'#F4D35E':'rgba(255,255,255,.3)'}"></div>`
+  ).join('');
+}
+
+// Atualizações parciais do preview
+function pvTextos() {
+  const badge = document.getElementById('pv-proj-badge');
+  const nome  = document.getElementById('pv-proj-nome');
+  const local = document.getElementById('pv-proj-local');
+  if (badge) badge.innerHTML = `<div class="pv-dot"></div>${esc(cfg.projeto_codigo)}`;
+  if (nome)  nome.textContent  = cfg.projeto_nome;
+  if (local) local.textContent = cfg.projeto_localizacao;
+}
+
+function pvFotos() {
+  fotoPreviewIdx = Math.min(fotoPreviewIdx, Math.max(0, cfg.fotos.length - 1));
+  const pv = document.getElementById('pv-foto');
+  const dots = document.getElementById('pv-dots');
+  if (pv && cfg.fotos.length)
+    pv.style.backgroundImage = `url('${imgUrl(cfg.fotos[fotoPreviewIdx].url)}')`;
+  if (dots) dots.innerHTML = pvHtmlDots();
+  iniciarTimerFotos();
+}
+
+function pvLogos() {
+  const topo = document.getElementById('pv-logos-topo');
+  const proj = document.getElementById('pv-logo-projeto-box');
+  const parc = document.getElementById('pv-parceiros-logos');
+  if (topo) topo.innerHTML = pvHtmlLogosTopo();
+  if (proj) proj.innerHTML = pvHtmlLogoProjeto();
+  if (parc) parc.innerHTML = pvHtmlParceiros();
+}
+
+function iniciarTimerFotos() {
+  clearInterval(fotoTimer);
+  if (cfg.fotos.length <= 1) return;
+  fotoTimer = setInterval(() => {
+    fotoPreviewIdx = (fotoPreviewIdx + 1) % cfg.fotos.length;
+    pvFotos();
+  }, 3000);
+}
+
+function ajustarPreview() {
+  const outer = document.getElementById('preview-outer');
+  const frame = document.getElementById('preview-frame');
+  if (!outer || !frame) return;
+  const availW = outer.clientWidth - 48;
+  const scale  = Math.min(availW / 1280, 1);
+  frame.style.transform = `scale(${scale})`;
+  outer.style.minHeight = (800 * scale + 48) + 'px';
+}
+
+// ── Upload Storage ────────────────────────────────────────────
+async function uploadArquivo(file, pasta) {
+  const ext  = file.name.split('.').pop().toLowerCase();
+  const nome = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  const { data, error } = await db.storage
+    .from('plataforma-assets')
+    .upload(`${pasta}/${nome}`, file, { contentType: file.type, upsert: false });
+  if (error) throw error;
+  const { data: urlData } = db.storage.from('plataforma-assets').getPublicUrl(data.path);
+  return urlData.publicUrl;
+}
+
+// ── Salvar ────────────────────────────────────────────────────
+async function salvarConfig() {
+  if (salvando) return;
+  salvando = true;
+  const btn = document.getElementById('btn-salvar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+  try {
+    cfg.fotos           = cfg.fotos.map((f, i) => ({ ...f, ordem: i }));
+    cfg.logos_topo      = cfg.logos_topo.map((l, i) => ({ ...l, ordem: i }));
+    cfg.logos_parceiros = cfg.logos_parceiros.map((l, i) => ({ ...l, ordem: i }));
+
+    const { error } = await db.from('configuracoes_sistema').upsert({
+      projeto_id: cfg.projeto_id, projeto_nome: cfg.projeto_nome,
+      projeto_codigo: cfg.projeto_codigo, projeto_localizacao: cfg.projeto_localizacao,
+      cor_primaria: cfg.cor_primaria, logos_topo: cfg.logos_topo,
+      logo_projeto: cfg.logo_projeto, logos_parceiros: cfg.logos_parceiros,
+      fotos: cfg.fotos, atualizado_em: new Date().toISOString(),
+      atualizado_por: appState.usuario?.id
+    }, { onConflict: 'projeto_id' });
+
+    if (error) throw error;
+    toast('Configurações salvas com sucesso!', 'success');
+  } catch(e) {
+    toast('Erro ao salvar: ' + e.message, 'error');
+  } finally {
+    salvando = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar alterações'; }
+  }
+}
+
+// ── Drag and Drop ─────────────────────────────────────────────
+function initDragDrop(containerId, onReorder) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  let dragSrc = null;
+
+  container.addEventListener('dragstart', e => {
+    const item = e.target.closest('[draggable]');
+    if (!item) return;
+    dragSrc = item;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => item.classList.add('dragging'), 0);
+  });
+  container.addEventListener('dragend', () => {
+    container.querySelectorAll('.dragging,.drag-over').forEach(el => {
+      el.classList.remove('dragging', 'drag-over');
+    });
+    dragSrc = null;
+  });
+  container.addEventListener('dragover', e => {
+    e.preventDefault();
+    const item = e.target.closest('[draggable]');
+    if (!item || item === dragSrc) return;
+    container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    item.classList.add('drag-over');
+  });
+  container.addEventListener('dragleave', e => {
+    const item = e.target.closest('[draggable]');
+    if (item) item.classList.remove('drag-over');
+  });
+  container.addEventListener('drop', e => {
+    e.preventDefault();
+    const item = e.target.closest('[draggable]');
+    if (!item || !dragSrc || item === dragSrc) return;
+    item.classList.remove('drag-over');
+    const all = [...container.querySelectorAll('[draggable]')];
+    if (all.indexOf(dragSrc) < all.indexOf(item)) item.after(dragSrc);
+    else item.before(dragSrc);
+    onReorder();
+  });
+}
+
+// ── Util ──────────────────────────────────────────────────────
+function imgUrl(url) {
+  if (!url) return '';
+  return url.startsWith('http') ? url : '../' + url;
+}
+</script>
+</body>
+</html>
