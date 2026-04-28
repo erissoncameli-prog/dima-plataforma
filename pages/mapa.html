@@ -581,15 +581,7 @@ function _adicionarControleModoMapa(){
         Object.entries(MODOS_MAPA).map(([key,cfg]) =>
           `<button class="modo-mapa-btn${key==='satelite'?' ativo':''}" data-modo="${key}" onclick="_aplicarModoMapa('${key}')">${cfg.label}</button>`
         ).join('')
-        + `<div id="mapa-ctrl-poi" class="mapa-poi-ctrl" style="display:none">
-            <div class="mapa-poi-ctrl-titulo">Mostrar no mapa</div>
-            ${FILTROS_POI.map(f =>
-              `<label class="mapa-poi-label">
-                <input type="checkbox" onchange="toggleFiltroPOI('${f.key}',this.checked)">
-                ${f.label}
-              </label>`
-            ).join('')}
-           </div>`;
+;
       L.DomEvent.disableClickPropagation(div);
       return div;
     }
