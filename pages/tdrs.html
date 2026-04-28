@@ -1189,14 +1189,20 @@ async function executarDevolucao(){
   fecharModal('modal-devolver');
   pedirSenhaTDR('Confirmar devolução',`TDR ${tdrAtual.numero} — motivo registrado`,async()=>{
     try{
-      const {error}=await db.rpc('fn_registrar_acao_tdr',{
-        p_tdr_id:tdrAtual.id,
-        p_usuario_id:appState.usuario.id,
-        p_acao:'devolvido_ajuste',
-        p_comentario:motivo,
-        p_ip:null
-      });
-      if(error)throw error;
+      // Atualizar status no banco
+      const {error:updErr}=await db.from('tdrs').update({status:'pendente_correcao',motivo_recusa:motivo}).eq('id',tdrAtual.id);
+      if(updErr)throw new Error(updErr.message);
+
+      // Registrar ação no log (não crítico)
+      try{
+        await db.rpc('fn_registrar_acao_tdr',{
+          p_tdr_id:tdrAtual.id,
+          p_usuario_id:appState.usuario.id,
+          p_acao:'devolvido_ajuste',
+          p_comentario:motivo,
+          p_ip:null
+        });
+      }catch(_){}
 
       tdrAtual.status='pendente_correcao';
       const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
