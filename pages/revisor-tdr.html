@@ -214,6 +214,7 @@ async function init(){
     if(!res.ok)throw new Error(data.error||'Erro ao carregar sugestões');
 
     tdrInfo=data.tdr;
+    conteudoDocumento=data.conteudo_documento||null;
     sugestoes=(data.sugestoes||[]).map(s=>({...s,estado:'pendente',textoEditado:s.depois}));
 
     // Header
