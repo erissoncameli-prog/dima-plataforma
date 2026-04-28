@@ -142,46 +142,19 @@
 <script>
 // ── Modos de mapa ─────────────────────────────────────────────────────────
 const MODOS_MAPA = {
-  satelite: { label:'🛰 Satélite', tipo:'satellite' },
-  hibrido:  { label:'🗺 Híbrido',  tipo:'hybrid'    },
-  ruas:     { label:'🏙 Ruas',     tipo:'roadmap'   }
+  satelite: { label:'🛰 Satélite', url:'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}' },
+  hibrido:  { label:'🗺 Híbrido',  url:'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}' },
+  ruas:     { label:'🏙 Ruas',     url:'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}' },
 };
 
-const FILTROS_POI = [
-  { key:'business',   tipos:['poi.business'],                                    label:'Restaurantes e comércios' },
-  { key:'school',     tipos:['poi.school'],                                      label:'Escolas'                  },
-  { key:'medical',    tipos:['poi.medical'],                                     label:'Hospitais e farmácias'    },
-  { key:'worship',    tipos:['poi.place_of_worship'],                            label:'Igrejas e templos'        },
-  { key:'park',       tipos:['poi.park'],                                        label:'Parques'                  },
-  { key:'transit',    tipos:['transit'],                                         label:'Transporte público'       },
-  { key:'attraction', tipos:['poi.attraction','poi.government','poi.sports_complex'], label:'Atrações e esportes' },
-];
+const TILE_OPTIONS = { maxZoom:20, subdomains:['mt0','mt1','mt2','mt3'], attribution:'© Google' };
 
-let filtrosPOI = Object.fromEntries(FILTROS_POI.map(f => [f.key, false]));
 let googleLayer = null;
 let modoMapaAtual = 'satelite';
 
-function _construirStyles(){
-  if(modoMapaAtual === 'satelite') return [];
-  const styles = [
-    { featureType:'road', elementType:'labels.icon', stylers:[{ visibility:'off' }] },
-    { featureType:'road.local', elementType:'labels', stylers:[{ visibility:'off' }] },
-  ];
-  FILTROS_POI.forEach(f => {
-    if(!filtrosPOI[f.key])
-      f.tipos.forEach(ft => styles.push({ featureType:ft, elementType:'all', stylers:[{ visibility:'off' }] }));
-  });
-  return styles;
-}
-
-function toggleFiltroPOI(key, visivel){
-  filtrosPOI[key] = visivel;
-  _reaplicarTiles();
-}
-
 function _reaplicarTiles(){
   if(googleLayer){ mapaL.removeLayer(googleLayer); googleLayer = null; }
-  googleLayer = L.gridLayer.googleMutant({ type:MODOS_MAPA[modoMapaAtual].tipo, maxZoom:22, styles:_construirStyles() });
+  googleLayer = L.tileLayer(MODOS_MAPA[modoMapaAtual].url, TILE_OPTIONS);
   googleLayer.addTo(mapaL);
 }
 
