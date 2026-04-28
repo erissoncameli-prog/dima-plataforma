@@ -237,6 +237,15 @@ async function init(){
 }
 
 // ── RENDERIZAR DOCUMENTO COMPLETO (painel esq) ────────────────────
+let modoVisualizacao='campos'; // 'campos' | 'documento'
+
+function toggleModo(modo){
+  modoVisualizacao=modo;
+  document.getElementById('rv-modo-campos').className='rv-modo-btn'+(modo==='campos'?' ativo':'');
+  document.getElementById('rv-modo-doc').className='rv-modo-btn'+(modo==='documento'?' ativo':'');
+  renderDoc();
+}
+
 function renderDoc(){
   const sugestaoPorCampo={};
   sugestoes.forEach((s,i)=>sugestaoPorCampo[s.campo]=i);
@@ -270,22 +279,46 @@ function renderDoc(){
   }
 
   const t=tdrInfo;
-  const html=`
+
+  const cabecalho=`
     <div style="border-bottom:1px solid var(--borda,#E5E7EB);padding-bottom:14px;margin-bottom:16px">
       <div style="font-size:16px;font-weight:700;color:var(--cinza-900,#111827);margin-bottom:4px">TDR ${escHtml(t.numero||'')}</div>
       <div style="font-size:12px;color:var(--cinza-500,#6B7280)">${escHtml(t.atividade_codigo||'')} — ${escHtml(t.atividade_nome||'')}</div>
       ${t.tipo?`<div style="margin-top:6px"><span style="font-size:10px;font-weight:700;background:#E6F1FB;color:#0C447C;padding:2px 8px;border-radius:4px;text-transform:uppercase">${t.tipo}</span></div>`:''}
-    </div>
+    </div>`;
 
-    ${secao('Objeto do TDR', t.objeto_pt, 'objeto_pt')}
-    ${secao('Escopo do trabalho / Metodologia', t.escopo_pt, 'escopo_pt')}
-    ${secao('Formação mínima exigida', t.formacao_minima_pt, 'formacao_minima_pt')}
-    ${secao('Experiência requerida', t.experiencia_requerida_pt, 'experiencia_requerida_pt')}
-    ${secao('Área de atuação', t.area_atuacao_pt, 'area_atuacao_pt')}
-    ${secao('Equipe mínima', t.equipe_minima_pt, 'equipe_minima_pt')}
-    ${t.atestados_pt?secao('Atestados requeridos', t.atestados_pt):''}
+  if(modoVisualizacao==='documento' && conteudoDocumento){
+    // Vista do documento original completo com destaque nos campos com sugestão
+    let docTexto=escHtml(conteudoDocumento);
+    // Destaca trechos que aparecem nos "antes" das sugestões
+    sugestoes.forEach((s,i)=>{
+      if(s.antes && s.antes!=='(campo vazio)' && s.antes.length>20){
+        const trecho=escHtml(s.antes.slice(0,80));
+        const cor={pendente:'#FEF9C3','aceito-ia':'#DCFCE7','aceito-user':'#EEF2FF',rejeitado:'#F1F5F9'}[s.estado]||'#FEF9C3';
+        docTexto=docTexto.replace(trecho,
+          `<mark style="background:${cor};border-radius:3px;padding:1px 2px;cursor:pointer" onclick="irPonto(${i})" title="${escHtml(s.label)}">${trecho}</mark>`
+        );
+      }
+    });
+    document.getElementById('rv-doc').innerHTML=cabecalho+
+      `<div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <span style="width:8px;height:8px;border-radius:50%;background:#EAB308;display:inline-block"></span>
+        Trechos destacados = campos com sugestão da IA. Clique para revisar.
+      </div>
+      <div style="font-size:12px;line-height:1.9;color:var(--cinza-700,#374151);white-space:pre-wrap;word-break:break-word">${docTexto}</div>`;
+    return;
+  }
 
-    <div style="border-top:1px solid var(--borda,#E5E7EB);padding-top:14px;margin-top:4px">
+  // Vista de campos estruturados (padrão)
+  const html=cabecalho+
+    secao('Objeto do TDR', t.objeto_pt, 'objeto_pt')+
+    secao('Escopo do trabalho / Metodologia', t.escopo_pt, 'escopo_pt')+
+    secao('Formação mínima exigida', t.formacao_minima_pt, 'formacao_minima_pt')+
+    secao('Experiência requerida', t.experiencia_requerida_pt, 'experiencia_requerida_pt')+
+    secao('Área de atuação', t.area_atuacao_pt, 'area_atuacao_pt')+
+    secao('Equipe mínima', t.equipe_minima_pt, 'equipe_minima_pt')+
+    secao('Atestados requeridos', t.atestados_pt, 'atestados_pt')+
+    `<div style="border-top:1px solid var(--borda,#E5E7EB);padding-top:14px;margin-top:4px">
       ${secaoGrid(
         ['Prazo limite', t.prazo_limite?new Date(t.prazo_limite).toLocaleDateString('pt-BR'):''],
         ['Data contratação prevista', t.dt_contratacao?new Date(t.dt_contratacao).toLocaleDateString('pt-BR'):''],
