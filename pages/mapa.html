@@ -588,6 +588,7 @@ function iniciarMapa(){
   _adicionarControleModoMapa();
   clusters = L.markerClusterGroup({ maxClusterRadius:40, disableClusteringAtZoom:17 });
   mapaL.addLayer(clusters);
+  requestAnimationFrame(() => mapaL.invalidateSize());
 }
 
 function _aplicarModoMapa(modo){
