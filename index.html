@@ -344,19 +344,21 @@ async function carregarConfigLogin() {
       }
     }
 
-    // Texto do projeto
-    if (data.projeto_nome) {
-      const el = document.querySelector('.proj-nome');
-      if (el) el.textContent = data.projeto_nome;
-    }
-    if (data.projeto_codigo) {
-      const badge = document.querySelector('.proj-badge');
-      if (badge) badge.innerHTML = `<div class="proj-badge-dot"></div>${data.projeto_codigo}`;
-    }
-    if (data.projeto_localizacao) {
-      const el = document.querySelector('.proj-sub');
-      if (el) el.textContent = data.projeto_localizacao;
-    }
+    // ── Textos do projeto ──
+    // Sempre aplica quando a chave existe (string vazia limpa o texto)
+    const projNome = document.querySelector('.proj-nome');
+    if (projNome && data.projeto_nome !== undefined)
+      projNome.textContent = data.projeto_nome;
+
+    const projBadge = document.querySelector('.proj-badge');
+    if (projBadge && data.projeto_codigo !== undefined)
+      projBadge.innerHTML = data.projeto_codigo
+        ? `<div class="proj-badge-dot"></div>${data.projeto_codigo}`
+        : '';
+
+    const projSub = document.querySelector('.proj-sub');
+    if (projSub && data.projeto_localizacao !== undefined)
+      projSub.textContent = data.projeto_localizacao;
   } catch(e) { /* mantém valores hardcoded se config falhar */ }
 }
 
