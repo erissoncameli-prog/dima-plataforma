@@ -237,6 +237,11 @@ async function init(){
       return;
     }
 
+    // Mostrar toggle de visualização se há documento disponível
+    if(conteudoDocumento){
+      document.getElementById('rv-modo-toggle').style.display='flex';
+    }
+
     renderDoc();
     renderNav();
     renderPonto(0);
