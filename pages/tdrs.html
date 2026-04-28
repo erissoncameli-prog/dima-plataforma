@@ -481,8 +481,6 @@ function filtrar(){
           ${t.cotacao_registro?`<div><div class="tdr-val-lbl">Cotação</div><div class="tdr-val-num">R$ ${parseFloat(t.cotacao_registro).toFixed(2)}</div></div>`:''}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
-          ${podeAbrirEditor?`<a href="revisar-tdr.html?id=${t.id}" class="btn btn-sm btn-primary" style="text-decoration:none">✏ Revisar</a>`:''}
-          ${t.arquivo_url?`<button class="btn btn-sm btn-secondary" onclick="abrirArquivoCard('${t.arquivo_url}')">📎 Arquivo</button>`:''}
         </div>
       </div>
     </div>`;

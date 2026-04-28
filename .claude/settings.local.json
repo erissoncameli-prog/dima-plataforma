@@ -4,7 +4,11 @@
       "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__deploy_edge_function",
       "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__execute_sql",
       "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__get_logs",
-      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__list_projects"
+      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__list_projects",
+      "Bash(npx supabase *)",
+      "Bash(supabase functions *)",
+      "Bash(git add *)",
+      "Bash(git push *)"
     ]
   }
 }
