@@ -8,7 +8,12 @@
       "Bash(npx supabase *)",
       "Bash(supabase functions *)",
       "Bash(git add *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where python *)",
+      "Bash(where python3 *)",
+      "Bash(where node *)",
+      "Bash(where py *)"
     ]
   }
 }
