@@ -13,7 +13,14 @@
       "Bash(where python *)",
       "Bash(where python3 *)",
       "Bash(where node *)",
-      "Bash(where py *)"
+      "Bash(where py *)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\kind-jones-9de4f9\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\kind-jones-9de4f9\" diff css/global.css)",
+      "Bash(git -C '/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/.claude/worktrees/kind-jones-9de4f9' diff --cached css/global.css)",
+      "Bash(git -C '/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/.claude/worktrees/kind-jones-9de4f9' diff css/global.css)",
+      "Bash(git -C '/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/.claude/worktrees/kind-jones-9de4f9' diff HEAD css/global.css)",
+      "Bash(git -C '/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/.claude/worktrees/kind-jones-9de4f9' add -A)",
+      "Bash(git -C '/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/.claude/worktrees/kind-jones-9de4f9' commit -m ' *)"
     ]
   }
 }
