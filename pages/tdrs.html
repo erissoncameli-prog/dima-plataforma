@@ -499,7 +499,7 @@ async function abrirTDR(id){
   const t=tdrAtual;
   const fi=FASES.indexOf(t.status);
   const podeEd=podeEditarFase(t.status);
-  const bloqueado=['submetido','em_revisao_unesco','aprovado'].includes(t.status);
+  const bloqueado=['submetido','em_revisao_unesco','aprovado','cancelado'].includes(t.status);
   const cotacao=await obterCotacao();
   const taxaAtual=cotacao?.cotacao||5.87;
 
