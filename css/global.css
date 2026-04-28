@@ -286,19 +286,27 @@ body {
   border: 1px solid var(--borda);
   border-radius: var(--raio-lg);
   box-shadow: var(--sombra);
+  transition: box-shadow .2s;
 }
+.card:hover { box-shadow: var(--sombra-md); }
 .card-header {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--borda);
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px;
+  background: var(--branco);
+  border-radius: var(--raio-lg) var(--raio-lg) 0 0;
 }
 .card-title {
-  font-size: 14px; font-weight: 600; color: var(--cinza-900);
+  font-size: 13px; font-weight: 600; color: var(--cinza-800);
+  letter-spacing: -.01em;
+}
+.card-subtitle {
+  font-size: 11px; color: var(--cinza-400); margin-top: 1px;
 }
 .card-body { padding: 20px; }
 .card-footer {
-  padding: 12px 20px;
+  padding: 10px 20px;
   border-top: 1px solid var(--borda);
   background: var(--cinza-50);
   border-radius: 0 0 var(--raio-lg) var(--raio-lg);
