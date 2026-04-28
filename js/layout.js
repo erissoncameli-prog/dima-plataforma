@@ -29,7 +29,8 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'relatorios',   icone: '📊', href: 'relatorios.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'mapa',         icone: '&#x1F5FA;', href: 'mapa.html',   perfis: null },
     { id: 'repositorio',  icone: '🔗', href: 'repositorio.html',  perfis: null },
-    { id: 'usuarios',     icone: '◍', href: 'usuarios.html',     perfis: ['super_admin'] },
+    { id: 'usuarios',       icone: '◍', href: 'usuarios.html',       perfis: ['super_admin'] },
+    { id: 'configuracoes',  icone: '⚙', href: 'configuracoes.html',  perfis: ['super_admin'] },
   ];
 
   const u = appState.usuario;
