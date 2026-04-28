@@ -217,8 +217,8 @@ const SUPABASE_URL='https://wfymnmlinonvdqfucjya.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
 const{createClient}=supabase;const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// Galeria com 10 fotos
-const TOTAL=10;
+// Galeria (total atualizado pelo config)
+let TOTAL=10;
 let slideAtual=0;
 let timer;
 
