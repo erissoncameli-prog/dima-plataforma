@@ -144,10 +144,16 @@ body{font-family:var(--font-sans,system-ui);background:#F3F4F6;display:flex;flex
   <div class="rv-left">
     <div class="rv-left-top">
       <span class="rv-left-title">📄 Campos do TDR</span>
-      <div class="rv-legenda" id="rv-legenda">
-        <div class="rv-legenda-item"><div class="rv-legenda-dot" style="background:#EAB308"></div>Pendente</div>
-        <div class="rv-legenda-item"><div class="rv-legenda-dot" style="background:#16A34A"></div>Aceito IA</div>
-        <div class="rv-legenda-item"><div class="rv-legenda-dot" style="background:#6366F1"></div>Editado</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="rv-modo-toggle" id="rv-modo-toggle" style="display:none">
+          <button class="rv-modo-btn ativo" id="rv-modo-campos" onclick="toggleModo('campos')">Campos</button>
+          <button class="rv-modo-btn" id="rv-modo-doc" onclick="toggleModo('documento')">📄 Documento</button>
+        </div>
+        <div class="rv-legenda" id="rv-legenda">
+          <div class="rv-legenda-item"><div class="rv-legenda-dot" style="background:#EAB308"></div>Pendente</div>
+          <div class="rv-legenda-item"><div class="rv-legenda-dot" style="background:#16A34A"></div>Aceito IA</div>
+          <div class="rv-legenda-item"><div class="rv-legenda-dot" style="background:#6366F1"></div>Editado</div>
+        </div>
       </div>
     </div>
     <div class="rv-left-body" id="rv-doc">
