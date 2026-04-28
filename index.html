@@ -404,11 +404,11 @@ document.getElementById('inp-email').addEventListener('keydown',e=>{if(e.key==='
 (async()=>{
   const{data:{session}}=await db.auth.getSession();
   if(session){
-    // Verificar se precisa trocar senha
     const{data:u}=await db.from('usuarios').select('deve_trocar_senha').eq('id',session.user.id).single();
     if(u?.deve_trocar_senha) window.location.href='pages/trocar-senha.html';
     else window.location.href='pages/dashboard.html';
   }
+  await carregarConfigLogin();
   aplicarTextos();
 })();
 </script>
