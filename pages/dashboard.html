@@ -121,6 +121,7 @@ var _podeCobertura = false; // definido após carregarUsuario()
 (async function(){
   var u = await carregarUsuario();
   if(!u){ window.location.href='../index.html'; return; }
+  _podeCobertura = ['super_admin','coordenacao'].includes(appState.perfil) || (appState.permissoes||[]).includes('dashboard_cobertura');
 
   // Render layout normal
   document.getElementById('app').innerHTML = gerarLayout(
