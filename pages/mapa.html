@@ -137,6 +137,11 @@
 .pp-video{width:100%;aspect-ratio:16/9;border-radius:6px;margin-top:2px;border:none;}
 /* Coluna ponto especial na tabela de vértices */
 .pe-select{font-size:11px;padding:2px 4px;border:1px solid var(--borda);border-radius:4px;width:100%;font-family:inherit;}
+/* Badge de vídeo flutuante na trilha */
+@keyframes trilhaPulse{
+  0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 0 rgba(30,58,95,.5);}
+  60%{box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 8px rgba(30,58,95,0);}
+}
 /* Modal de vídeo (overlay escuro tela cheia) */
 #modal-video{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;}
 #modal-video.aberto{display:flex;}
