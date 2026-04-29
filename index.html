@@ -295,7 +295,7 @@ async function carregarConfigLogin() {
         wrapTopo.style.display = '';
         wrapTopo.innerHTML = logos.map((l, i) =>
           `${i>0?'<div class="logo-sep-topo"></div>':''}
-           <img src="${l.url}" alt="${l.alt||''}" style="height:50px;width:auto;object-fit:contain">`
+           <img src="${l.url}" alt="${l.alt||''}" style="height:75px;width:auto;object-fit:contain">`
         ).join('');
       } else {
         wrapTopo.style.display = 'none';
