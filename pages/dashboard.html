@@ -160,8 +160,8 @@ var _podeCobertura = false; // definido após carregarUsuario()
       ['resultados','Resultados × Financeiro'],
       ['execucao','Execução financeira'],
       ['alertas','Alertas'],
-      ['cobertura','Cobertura de Indicadores']
     ];
+    if(_podeCobertura) _tabDefs.push(['cobertura','Cobertura de Indicadores']);
     // Aba inicial: técnicos abrem em Tarefas, demais em Financiadores
     var _abaInicial = (appState.perfil === 'tecnico') ? 'tarefas' : 'financiadores';
     document.getElementById('pane-'+_abaInicial).classList.add('ativo');
