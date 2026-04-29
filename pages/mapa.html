@@ -1239,8 +1239,8 @@ function _renderTiposHtml(){
   </div>`
   + matrizVisiveis.map(item => {
       const tipo = item.produto_titulo||'';
-      const cor = tipoCores[tipo]||'#9ca3af';
-      const emoji = tipoIcones[tipo]||'';
+      const cor = item.cor || '#9ca3af';
+      const emoji = item.emoji || '';
       const marcado = filtrosTipo.has(tipo);
       const meta = item.meta_numerica?`meta ${item.meta_numerica} ${item.unidade||''}`.trim():'';
       const sub = [item.produto_codigo, tipo, meta].filter(Boolean).join(' · ');
@@ -1251,7 +1251,7 @@ function _renderTiposHtml(){
         <input type="checkbox" ${marcado?'checked':''} data-tipo="${escHtml(tipo)}" onchange="toggleFiltroTipo(this)">
         ${dot}
         <span style="flex:1;line-height:1.3">${escHtml(item.indicador||tipo)}<span style="display:block;font-size:9px;color:var(--cinza-400)">${escHtml(sub)}</span></span>
-        ${ehAdmin?`<button onclick="event.stopPropagation();abrirModalEditarTipo('${escHtml(tipo)}')" title="Editar ícone e cor" style="font-size:11px;padding:1px 5px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;flex-shrink:0;color:var(--cinza-500);margin-top:1px">✏</button>`:''}
+        ${ehAdmin?`<button onclick="event.stopPropagation();abrirModalEditarTipo('${item.id}')" title="Editar ícone e cor" style="font-size:11px;padding:1px 5px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;flex-shrink:0;color:var(--cinza-500);margin-top:1px">✏</button>`:''}
       </div>`;
     }).join('');
 }
