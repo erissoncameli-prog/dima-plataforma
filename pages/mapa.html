@@ -779,6 +779,17 @@ function toggleBloco(id){
 }
 
 // ── Marcadores ────────────────────────────────────────────────────────────
+function _recalcularTipoCoresIcones(){
+  tipoCores = {}; tipoIcones = {}; filtrosTipo = new Set();
+  const tiposUnicos = [...new Set(matrizVisiveis.map(i => i.produto_titulo).filter(Boolean))];
+  tiposUnicos.forEach((t, idx) => {
+    const item = matrizVisiveis.find(i => i.produto_titulo === t);
+    tipoCores[t] = item?.cor || TIPO_CORES[idx % TIPO_CORES.length];
+    if(item?.emoji) tipoIcones[t] = item.emoji;
+    filtrosTipo.add(t);
+  });
+}
+
 function corIcone(p){
   if(p.tipo_atividade && tipoCores[p.tipo_atividade]) return tipoCores[p.tipo_atividade];
   return APA_CONFIG[p.apa]?.cor || '#9ca3af';
@@ -786,6 +797,8 @@ function corIcone(p){
 
 function _emojiTipo(tipo){
   if(!tipo) return null;
+  // Preferir \u00edcone definido pelo admin no DB
+  if(tipoIcones[tipo]) return { emoji: tipoIcones[tipo], cor: tipoCores[tipo] || '#9ca3af' };
   const t = tipo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   for(const entry of ICONE_MAP){
     if(entry.kw.some(k => t.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,'')))) return entry;
