@@ -1431,9 +1431,12 @@ function _htmlGeoVertices(){
   const { pts, tipo } = _geoEditando;
   const latlngs = pts.map(p => [p.lat, p.lng]);
   const minPts = tipo === 'poligono' ? 3 : 2;
+  const ehTrilha = tipo === 'trilha';
   const medida = tipo === 'poligono'
     ? `Área: <strong>${_formatarArea(_calcularArea(latlngs))}</strong>`
     : `Distância: <strong>${_formatarDistancia(_calcularDistancia(latlngs))}</strong>`;
+  const peOptions = Object.entries(PONTOS_ESPECIAIS)
+    .map(([k,v]) => `<option value="${k}">${v.emoji} ${v.label}</option>`).join('');
   return `
   <div id="geo-medida" style="font-size:12px;color:var(--cinza-600);background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:7px 12px;margin-bottom:8px">${medida}</div>
   <div style="overflow-x:auto">
@@ -1442,12 +1445,19 @@ function _htmlGeoVertices(){
         <th style="padding:5px 8px;text-align:center;border-bottom:1px solid var(--borda);width:28px">#</th>
         <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Latitude</th>
         <th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda)">Longitude</th>
+        ${ehTrilha?`<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda);min-width:140px">Ponto especial</th>`:''}
         <th style="padding:5px 8px;border-bottom:1px solid var(--borda);width:84px"></th>
       </tr></thead>
       <tbody>${pts.map((p,i) => `<tr>
         <td style="padding:4px 8px;text-align:center;color:var(--cinza-400);font-size:11px">${i+1}</td>
         <td style="padding:3px 4px"><input type="number" step="any" value="${p.lat}" data-idx="${i}" data-campo="lat" onchange="_onVertexChange(this)" style="width:100%;font-size:12px;padding:3px 6px;border:1px solid var(--borda);border-radius:4px;font-family:monospace"></td>
         <td style="padding:3px 4px"><input type="number" step="any" value="${p.lng}" data-idx="${i}" data-campo="lng" onchange="_onVertexChange(this)" style="width:100%;font-size:12px;padding:3px 6px;border:1px solid var(--borda);border-radius:4px;font-family:monospace"></td>
+        ${ehTrilha?`<td style="padding:3px 4px">
+          <select class="pe-select" data-idx="${i}" onchange="_onPontoEspecialChange(this)">
+            <option value="">— regular —</option>
+            ${peOptions.replace(`value="${p.ponto_especial||''}"`,`value="${p.ponto_especial||''}" selected`)}
+          </select>
+        </td>`:''}
         <td style="padding:3px 4px;white-space:nowrap;text-align:center">
           ${i>0?`<button onclick="_moverVertex(${i},-1)" title="Subir" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:#fff;cursor:pointer">↑</button>`:'<span style="display:inline-block;width:24px"></span>'}
           ${i<pts.length-1?`<button onclick="_moverVertex(${i},1)" title="Descer" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:#fff;cursor:pointer">↓</button>`:'<span style="display:inline-block;width:24px"></span>'}
