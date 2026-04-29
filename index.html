@@ -329,10 +329,8 @@ async function carregarConfigLogin() {
       const parc = [...(data.logos_parceiros || [])].sort((a,b) => a.ordem - b.ordem);
       if (parc.length) {
         if (wrapParc) wrapParc.style.display = '';
-        const alturas = { pequeno:'36px', medio:'54px', grande:'80px' };
         listaParc.innerHTML = parc.map(l =>
-          `<img src="${l.url}" alt="${l.alt||''}" class="logo-form"
-            style="height:${alturas[l.tamanho||'medio']};width:auto;object-fit:contain;max-width:200px">`
+          `<img src="${l.url}" alt="${l.alt||''}" class="logo-form">`
         ).join('');
       } else {
         if (wrapParc) wrapParc.style.display = 'none';
