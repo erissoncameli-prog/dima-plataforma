@@ -240,6 +240,28 @@ const ICONE_MAP = [
   { kw:['residuo','lixo','reciclagem'],                           emoji:'♻', cor:'#0d9488' },
   { kw:['incendio','queimada','fogo'],                            emoji:'🔥', cor:'#dc2626' },
 ];
+// Pontos especiais de trilha
+const PONTOS_ESPECIAIS = {
+  'descanso': { emoji:'🪑', label:'Área de descanso',  cor:'#f59e0b' },
+  'igarape':  { emoji:'💧', label:'Igarapé / Córrego', cor:'#0284c7' },
+  'lago':     { emoji:'🌊', label:'Lago / Lagoa',       cor:'#0891b2' },
+  'arvore':   { emoji:'🌳', label:'Árvore histórica',   cor:'#166534' },
+  'mirante':  { emoji:'🏔', label:'Mirante / Vista',    cor:'#6366f1' },
+  'outro':    { emoji:'⭐', label:'Ponto de interesse', cor:'#d97706' },
+};
+
+// Emojis disponíveis para escolha do admin
+const EMOJIS_EDITAVEIS = [
+  '🌿','🌱','🌾','🪴','🌳','🌲','🌴','🍃','🍀','🎋',
+  '🐟','🐠','🦜','🦋','🐝','🐞','🐾','🦅',
+  '💧','🌊','🏞','🏔','⛰','🌤','🌧','❄',
+  '🌽','🥕','🧅','🍎','🍌','🫘','🥑','🌰',
+  '🚜','🏗','🛖','🏘','🏥','🏫','⚡','☀',
+  '🚽','♻','🪣','🔥','📡','📷','🔭','🗺',
+  '🤝','📚','🛡','🎯','⭐','🏆','❤','🙌',
+  '🚶','🏕','🌅','🪑','🌉','🛤','🚣','🏄',
+];
+
 const filtroProdutoId = new URLSearchParams(window.location.search).get('produto') || null;
 
 // ── Estado ────────────────────────────────────────────────────────────────
@@ -251,6 +273,8 @@ let filtrosAPA  = new Set(Object.keys(APA_CONFIG));
 let filtrosTipo = new Set();
 let camadas = [];
 let tipoCores = {};
+let tipoIcones = {};       // emoji por produto_titulo (definido pelo admin no DB)
+let trilhaMetadata = {};   // video_url por geometry_group
 let matrizByTipo = {};
 
 // Verifica se o usuário pode adicionar/editar/excluir pontos
