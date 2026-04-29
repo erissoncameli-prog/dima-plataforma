@@ -1724,10 +1724,16 @@ function _htmlGeoVertices(){
         <td style="padding:3px 4px"><input type="number" step="any" value="${p.lat}" data-idx="${i}" data-campo="lat" onchange="_onVertexChange(this)" style="width:100%;font-size:12px;padding:3px 6px;border:1px solid var(--borda);border-radius:4px;font-family:monospace"></td>
         <td style="padding:3px 4px"><input type="number" step="any" value="${p.lng}" data-idx="${i}" data-campo="lng" onchange="_onVertexChange(this)" style="width:100%;font-size:12px;padding:3px 6px;border:1px solid var(--borda);border-radius:4px;font-family:monospace"></td>
         ${ehTrilha?`<td style="padding:3px 4px">
-          <select class="pe-select" data-idx="${i}" onchange="_onPontoEspecialChange(this)">
-            <option value="">— regular —</option>
-            ${peOptions.replace(`value="${p.ponto_especial||''}"`,`value="${p.ponto_especial||''}" selected`)}
-          </select>
+          <div style="display:flex;gap:3px;align-items:center">
+            <select class="pe-select" data-idx="${i}" onchange="_onPontoEspecialChange(this)" style="flex:1">
+              <option value="">— regular —</option>
+              ${peOptions.replace(`value="${p.ponto_especial||''}"`,`value="${p.ponto_especial||''}" selected`)}
+            </select>
+            ${p.ponto_especial ? `<button onclick="abrirModalPeDetalhes(${i})" title="Foto e vídeo deste ponto"
+              style="font-size:11px;padding:2px 5px;border:1px solid var(--verde-escuro);border-radius:3px;background:#f0fdf4;color:var(--verde-escuro);cursor:pointer;flex-shrink:0;white-space:nowrap">
+              ${p.foto_url||p.video_url ? '📷✓' : '📷'}
+            </button>` : ''}
+          </div>
         </td>`:''}
         <td style="padding:3px 4px;white-space:nowrap;text-align:center">
           ${i>0?`<button onclick="_moverVertex(${i},-1)" title="Subir" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:#fff;cursor:pointer">↑</button>`:'<span style="display:inline-block;width:24px"></span>'}
