@@ -1818,10 +1818,14 @@ async function salvarGeometria(){
       .delete().eq('geometry_group', group).eq('geometry_type', geoTipo);
     if(delErr){ alert('Erro: '+delErr.message); if(btn){btn.disabled=false;btn.textContent='Salvar';} return; }
     const inserts = _geoEditando.pts.map((p,i) => ({
-      nome_local: nome, apa, tipo_atividade, responsavel, data_implantacao, observacao,
+      nome_local: nome, apa, tipo_atividade, responsavel, data_implantacao,
+      // Pontos especiais têm observacao, foto e vídeo próprios; demais usam o campo do formulário
+      observacao: (geoTipo === 'trilha' && p.ponto_especial) ? (p.observacao ?? observacao) : observacao,
       lat: p.lat, lng: p.lng, geometry_type: geoTipo, geometry_group: nome,
       geometry_order: i, status: 'ativo', criado_por: appState.usuario?.id||null,
-      ponto_especial: geoTipo === 'trilha' ? (p.ponto_especial || null) : null
+      ponto_especial: geoTipo === 'trilha' ? (p.ponto_especial || null) : null,
+      foto_url:  p.foto_url  || null,
+      video_url: p.video_url || null,
     }));
     const {error:insErr} = await db.from('produto_pontos_mapa').insert(inserts);
     if(btn){ btn.disabled=false; btn.textContent='Salvar'; }
