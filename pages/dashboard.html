@@ -228,7 +228,7 @@ async function loadData(){
   renderResultados();
   renderExecucao();
   renderAlertas();
-  renderCobertura();
+  if(_podeCobertura) renderCobertura();
 }
 
 // ── resMap helper ─────────────────────────────────────────
