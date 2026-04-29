@@ -1391,13 +1391,16 @@ async function salvarPeDetalhes(){
 let _tipoEditando = null;
 let _tipoEmojiSel = null;
 
-function abrirModalEditarTipo(tipo){
-  _tipoEditando = tipo;
-  const corAtual = tipoCores[tipo] || '#16a34a';
-  _tipoEmojiSel = tipoIcones[tipo] || null;
+function abrirModalEditarTipo(id){
+  const item = matrizItens.find(i => i.id === id);
+  if(!item) return;
+  _tipoEditando = id;
+  const corAtual = item.cor || '#16a34a';
+  _tipoEmojiSel = item.emoji || null;
 
-  document.getElementById('modal-tipo-titulo').textContent = 'Editar: ' + tipo;
-  document.getElementById('tipo-preview-nome').textContent = tipo;
+  const nome = item.indicador || item.produto_titulo || '';
+  document.getElementById('modal-tipo-titulo').textContent = 'Editar: ' + nome;
+  document.getElementById('tipo-preview-nome').textContent = nome;
   document.getElementById('tipo-cor-picker').value = corAtual;
   document.getElementById('tipo-cor-texto').value = corAtual;
   document.getElementById('tipo-emoji-atual').value = _tipoEmojiSel || '';
