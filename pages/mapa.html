@@ -1101,7 +1101,7 @@ function renderPopup(p){
   const dt = p.data_implantacao ? new Date(p.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '—';
   const cor = corIcone(p);
   return `<div class="mapa-popup">
-    ${p.foto_url?`<img class="pp-foto" src="${escHtml(p.foto_url)}" alt="foto">`:''}
+    ${p.foto_url?`<img class="pp-foto pp-foto-click" src="${escHtml(p.foto_url)}" alt="foto" onclick="abrirFotoModal('${escHtml(p.foto_url)}')">`:''}
     <h4>${escHtml(p.nome_local)}</h4>
     ${p.tipo_atividade?`<div style="margin-bottom:7px"><span style="background:${cor}22;color:${cor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid ${cor}55">${escHtml(p.tipo_atividade)}</span></div>`:''}
     <div class="pp-linha"><strong>APA:</strong>${escHtml(p.apa)}</div>
