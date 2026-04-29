@@ -333,7 +333,7 @@ async function carregarConfigLogin() {
       if (parc.length) {
         if (wrapParc) wrapParc.style.display = '';
         listaParc.innerHTML = parc.map(l =>
-          `<img src="${l.url}" alt="${l.alt||''}" class="logo-form">`
+          `<img src="${l.url}" alt="${l.alt||''}" class="logo-form${l.tamanho==='grande'?' logo-grande':''}">`
         ).join('');
       } else {
         if (wrapParc) wrapParc.style.display = 'none';
