@@ -1194,7 +1194,7 @@ function renderCobertura(){
     h+='<td style="padding:9px 10px;white-space:nowrap"><span style="font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--cinza-100);padding:2px 7px;border-radius:4px;color:var(--cinza-700)">'+a.codigo+'</span></td>';
 
     // Nome
-    h+='<td style="padding:9px 10px;color:var(--cinza-800);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+nome+'">'+nome.substring(0,55)+(nome.length>55?'…':'')+'</td>';
+    h+='<td style="padding:9px 10px;color:var(--cinza-800);max-width:300px;word-break:break-word;line-height:1.4">'+nome+'</td>';
 
     // Resultado
     h+='<td style="padding:9px 10px;white-space:nowrap"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:'+resCor+'22;color:'+resCor+'">'+resCod+'</span></td>';
