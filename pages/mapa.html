@@ -1213,6 +1213,105 @@ function toggleFiltroTipo(el){
   renderizarMarcadores(); renderizarLista();
 }
 
+// ── Modal: Vídeo em tela cheia ────────────────────────────────────────────
+function abrirVideoModal(url){
+  const embed = _videoEmbedUrl(url);
+  const iframe = document.getElementById('modal-video-iframe');
+  const link   = document.getElementById('modal-video-link');
+  if(embed){
+    iframe.src = embed + (embed.includes('?') ? '&' : '?') + 'autoplay=1';
+    iframe.style.display = 'block';
+  } else {
+    iframe.src = '';
+    iframe.style.display = 'none';
+  }
+  link.href = url;
+  link.style.display = 'block';
+  document.getElementById('modal-video').classList.add('aberto');
+}
+
+function fecharVideoModal(){
+  document.getElementById('modal-video-iframe').src = '';
+  document.getElementById('modal-video').classList.remove('aberto');
+}
+
+// Fechar ao clicar no fundo escuro
+document.addEventListener('click', e => {
+  const mv = document.getElementById('modal-video');
+  if(mv && e.target === mv) fecharVideoModal();
+});
+
+// ── Modal: Detalhes do ponto especial (foto + vídeo) ─────────────────────
+let _peEditandoIdx = null;
+let _peFotoArquivo = null;
+
+function abrirModalPeDetalhes(idx){
+  _peEditandoIdx = idx;
+  _peFotoArquivo = null;
+  const p = _geoEditando.pts[idx];
+  const pe = PONTOS_ESPECIAIS[p.ponto_especial] || {};
+
+  document.getElementById('modal-pe-titulo').textContent =
+    (pe.emoji ? pe.emoji + ' ' : '') + (pe.label || 'Detalhes do ponto');
+  document.getElementById('pe-foto-url').value   = p.foto_url   || '';
+  document.getElementById('pe-video-url').value  = p.video_url  || '';
+  document.getElementById('pe-observacao').value = p.observacao || '';
+  document.getElementById('pe-foto-status').textContent = '';
+  atualizarPreviaPe();
+  document.getElementById('modal-pe-detalhes').style.display = 'flex';
+}
+
+function fecharModalPeDetalhes(){
+  document.getElementById('modal-pe-detalhes').style.display = 'none';
+  _peEditandoIdx = null; _peFotoArquivo = null;
+}
+
+function atualizarPreviaPe(){
+  const url = document.getElementById('pe-foto-url').value.trim();
+  const wrap = document.getElementById('pe-foto-preview-wrap');
+  const img  = document.getElementById('pe-foto-preview-img');
+  if(url){ img.src = url; wrap.style.display = 'block'; }
+  else    { wrap.style.display = 'none'; }
+}
+
+function uploadFotoPe(input){
+  const file = input.files[0];
+  if(!file) return;
+  _peFotoArquivo = file;
+  const url = URL.createObjectURL(file);
+  document.getElementById('pe-foto-url').value = '';
+  const wrap = document.getElementById('pe-foto-preview-wrap');
+  const img  = document.getElementById('pe-foto-preview-img');
+  img.src = url; wrap.style.display = 'block';
+  document.getElementById('pe-foto-status').textContent = `📎 ${file.name} — será enviado ao salvar`;
+}
+
+async function salvarPeDetalhes(){
+  if(_peEditandoIdx === null) return;
+  const btn = document.querySelector('#modal-pe-detalhes .btn-primary');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  let foto_url = document.getElementById('pe-foto-url').value.trim() || null;
+
+  if(_peFotoArquivo){
+    const ext  = _peFotoArquivo.name.split('.').pop();
+    const path = `pontos/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error: upErr } = await db.storage.from('pontos-mapa').upload(path, _peFotoArquivo, { upsert: true });
+    if(upErr){ alert('Erro no upload da foto: ' + upErr.message); btn.disabled=false; btn.textContent='OK'; return; }
+    const { data: urlData } = db.storage.from('pontos-mapa').getPublicUrl(path);
+    foto_url = urlData.publicUrl;
+  }
+
+  const pt = _geoEditando.pts[_peEditandoIdx];
+  pt.foto_url   = foto_url;
+  pt.video_url  = document.getElementById('pe-video-url').value.trim()  || null;
+  pt.observacao = document.getElementById('pe-observacao').value.trim()  || null;
+
+  btn.disabled = false; btn.textContent = 'OK';
+  fecharModalPeDetalhes();
+  abaGeometria('vertices'); // re-render para refletir que o ponto tem foto/vídeo
+}
+
 // ── Modal: Editar ícone e cor do tipo de entrega ──────────────────────────
 let _tipoEditando = null;
 let _tipoEmojiSel = null;
