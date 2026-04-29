@@ -137,6 +137,10 @@
 .pp-video{width:100%;aspect-ratio:16/9;border-radius:6px;margin-top:2px;border:none;}
 /* Coluna ponto especial na tabela de vértices */
 .pe-select{font-size:11px;padding:2px 4px;border:1px solid var(--borda);border-radius:4px;width:100%;font-family:inherit;}
+/* Modal de vídeo (overlay escuro tela cheia) */
+#modal-video{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;}
+#modal-video.aberto{display:flex;}
+#modal-video-iframe{width:min(880px,96vw);aspect-ratio:16/9;border:none;border-radius:10px;display:block;}
 </style>
 </head>
 <body>
