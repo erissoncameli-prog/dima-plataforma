@@ -1166,6 +1166,85 @@ function toggleFiltroTipo(el){
   renderizarMarcadores(); renderizarLista();
 }
 
+// ── Modal: Editar ícone e cor do tipo de entrega ──────────────────────────
+let _tipoEditando = null;
+let _tipoEmojiSel = null;
+
+function abrirModalEditarTipo(tipo){
+  _tipoEditando = tipo;
+  const corAtual = tipoCores[tipo] || '#16a34a';
+  _tipoEmojiSel = tipoIcones[tipo] || null;
+
+  document.getElementById('modal-tipo-titulo').textContent = 'Editar: ' + tipo;
+  document.getElementById('tipo-preview-nome').textContent = tipo;
+  document.getElementById('tipo-cor-picker').value = corAtual;
+  document.getElementById('tipo-cor-texto').value = corAtual;
+  document.getElementById('tipo-emoji-atual').value = _tipoEmojiSel || '';
+
+  // Grade de emojis
+  document.getElementById('emoji-grid-container').innerHTML = EMOJIS_EDITAVEIS.map(e =>
+    `<button class="emoji-btn${_tipoEmojiSel===e?' sel':''}" onclick="selecionarEmoji('${e}')">${e}</button>`
+  ).join('');
+
+  atualizarPreviewTipo();
+  document.getElementById('modal-editar-tipo').style.display = 'flex';
+}
+
+function fecharModalEditarTipo(){
+  document.getElementById('modal-editar-tipo').style.display = 'none';
+  _tipoEditando = null; _tipoEmojiSel = null;
+}
+
+function selecionarEmoji(e){
+  _tipoEmojiSel = e;
+  document.getElementById('tipo-emoji-atual').value = e;
+  document.querySelectorAll('#emoji-grid-container .emoji-btn').forEach(b =>
+    b.classList.toggle('sel', b.textContent.trim() === e)
+  );
+  atualizarPreviewTipo();
+}
+
+function sincronizarCorTipo(val){
+  if(/^#[0-9a-fA-F]{6}$/.test(val)){
+    document.getElementById('tipo-cor-picker').value = val;
+    atualizarPreviewTipo();
+  }
+}
+
+function atualizarPreviewTipo(){
+  const cor = document.getElementById('tipo-cor-picker').value;
+  document.getElementById('tipo-cor-texto').value = cor;
+  const prev = document.getElementById('tipo-preview-icone');
+  prev.style.background = cor;
+  prev.textContent = _tipoEmojiSel || '?';
+}
+
+async function salvarIconeTipo(){
+  if(!_tipoEditando) return;
+  const cor   = document.getElementById('tipo-cor-picker').value;
+  const emoji = _tipoEmojiSel || null;
+  const btn   = document.getElementById('btn-salvar-tipo');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+
+  const ids = matrizItens.filter(i => i.produto_titulo === _tipoEditando).map(i => i.id);
+  if(ids.length){
+    const { error } = await db.from('matriz_itens').update({ cor, emoji }).in('id', ids);
+    if(error){ alert('Erro: '+error.message); btn.disabled=false; btn.textContent='Salvar'; return; }
+  }
+
+  // Atualizar estado local
+  matrizItens.forEach(i => { if(i.produto_titulo === _tipoEditando){ i.cor = cor; i.emoji = emoji; } });
+  matrizVisiveis = matrizItens.filter(i => i.visivel_no_mapa);
+  _recalcularTipoCoresIcones();
+
+  btn.disabled = false; btn.textContent = 'Salvar';
+  fecharModalEditarTipo();
+
+  const bloco = document.getElementById('bloco-tipos');
+  if(bloco) bloco.innerHTML = _renderTiposHtml();
+  renderizarMarcadores();
+}
+
 // ── Modal Admin: configurar tipos visíveis ────────────────────────────────
 function abrirModalAdminFiltros(){
   document.getElementById('modal-admin-filtros').style.display='flex';
