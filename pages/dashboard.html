@@ -947,6 +947,10 @@ function renderCobertura(){
   var resById={};
   D.res.forEach(function(r){resById[r.id]=r;});
 
+  // resultado codigo → nome
+  var resNomes={};
+  D.res.forEach(function(r){resNomes[r.codigo]=r.nome_pt||r.nome||r.codigo;});
+
   var atvById={};
   D.atv.forEach(function(a){atvById[a.id]=a;});
 
@@ -1000,7 +1004,6 @@ function renderCobertura(){
     var fill=line+' L'+coords[coords.length-1][0].toFixed(1)+','+(H-padY)+' L'+padX+','+(H-padY)+' Z';
     var lastPct=maxV>0?Math.min(pts[pts.length-1]/maxV,1):0;
     var cor=lastPct>=0.7?'#059669':lastPct>=0.4?'#D97706':'#DC2626';
-    // Meta line (horizontal) se meta numérica definida
     var metaLine='';
     if(parseFloat(meta)>0){
       var metaY=(padY+(0)*(H-2*padY)).toFixed(1);
@@ -1029,84 +1032,122 @@ function renderCobertura(){
   h+='<div class="ch" style="padding:16px 18px;border-top:3px solid #D97706"><div class="kpi-lbl">Indicadores órfãos</div><div class="kpi-val" style="color:#D97706">'+indOrfaos+'</div><div class="kpi-sub">de '+D.matrizItens.length+' na matriz</div></div>';
   h+='</div>';
 
-  // ── Bloco 2 — Grid de cards de indicadores ────────────
+  // ── Bloco 2 — Indicadores agrupados por Resultado (colapsável) ──
   h+='<div style="font-size:14px;font-weight:600;color:var(--cinza-800);margin-bottom:4px">Indicadores da Matriz de Resultados</div>';
   h+='<div style="font-size:11px;color:var(--cinza-500);margin-bottom:14px">Progresso confirmado, tendência histórica e atividades cobrindo cada indicador</div>';
 
   if(!D.matrizItens.length){
     h+='<div class="ch" style="text-align:center;padding:32px;color:var(--cinza-400);font-size:13px">Nenhum indicador cadastrado na Matriz de Resultados.</div>';
   } else {
-    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-bottom:26px">';
-    D.matrizItens.forEach(function(mi){
-      var prog=progMap[mi.id]||{realizado_confirmado:0,realizado_pendente:0,pct_confirmado:0};
-      var meta=parseFloat(mi.meta_numerica||0);
-      var conf=parseFloat(prog.realizado_confirmado||0);
-      var pend=parseFloat(prog.realizado_pendente||0);
-      var pct=meta>0?Math.min(conf/meta*100,100):0;
-      var pctPend=meta>0?Math.min(pend/meta*100,100):0;
-      var cor=pct>=70?'#059669':pct>=40?'#D97706':'#DC2626';
-      var resCor=resCores[mi.resultado]||'#6B7280';
-      var atvsIds=matToAtv[mi.id]||[];
+    // Resultados únicos ordenados
+    var resultadosUnicos=[];
+    D.matrizItens.forEach(function(mi){if(resultadosUnicos.indexOf(mi.resultado)<0)resultadosUnicos.push(mi.resultado);});
+    resultadosUnicos.sort();
 
-      h+='<div style="background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;border-top:3px solid '+resCor+'">';
+    h+='<div style="margin-bottom:26px">';
+    resultadosUnicos.forEach(function(res,ri){
+      var itensRes=D.matrizItens.filter(function(mi){return mi.resultado===res;});
+      var cor=resCores[res]||'#6B7280';
+      var nomeRes=resNomes[res]||res;
+      var secId='cob-sec-'+ri;
 
-      // Header: código + % atual
-      h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">';
-      h+='<div style="flex:1;min-width:0">';
-      h+='<div style="font-size:10px;font-weight:700;color:'+resCor+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">'+mi.resultado+' · '+mi.produto_codigo+'</div>';
-      h+='<div style="font-size:12px;font-weight:600;color:var(--cinza-900);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+mi.indicador+'</div>';
-      h+='</div>';
-      h+='<div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:'+cor+';flex-shrink:0;margin-top:2px">'+Math.round(pct)+'%</div>';
-      h+='</div>';
+      // Progresso médio do resultado
+      var comMetaR=itensRes.filter(function(mi){return parseFloat(mi.meta_numerica||0)>0;});
+      var mediaR=comMetaR.length?Math.round(comMetaR.reduce(function(s,mi){
+        return s+parseFloat((progMap[mi.id]||{}).pct_confirmado||0);
+      },0)/comMetaR.length):0;
+      var indOrfaosR=itensRes.filter(function(mi){return!(matToAtv[mi.id]||[]).length;}).length;
 
-      // Sparkline
-      h+=sparkSVG(mi.id, meta);
+      // ── Cabeçalho colapsável ──
+      h+='<div style="margin-bottom:10px;border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden">';
+      h+='<div onclick="toggleCobSec(\''+secId+'\')" style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--cinza-50);cursor:pointer;user-select:none;" onmouseover="this.style.background=\'var(--cinza-100)\'" onmouseout="this.style.background=\'var(--cinza-50)\'">';
+      h+='<span style="font-family:var(--font-mono);font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;color:#fff;background:'+cor+';flex-shrink:0">'+res+'</span>';
+      h+='<span style="font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;line-height:1.3">'+nomeRes+'</span>';
+      h+='<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">';
+      h+='<div style="width:80px;height:5px;background:var(--cinza-200);border-radius:3px;overflow:hidden"><div style="height:100%;background:'+cor+';width:'+mediaR+'%;border-radius:3px;transition:width .5s"></div></div>';
+      h+='<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+cor+'">'+mediaR+'%</span>';
+      h+='<span style="font-size:11px;color:var(--cinza-400)">'+itensRes.length+' ind.</span>';
+      if(indOrfaosR>0)h+='<span style="font-size:10px;font-weight:600;background:#FEF3C7;color:#92400E;padding:1px 7px;border-radius:99px">'+indOrfaosR+' s/ atividade</span>';
+      h+='<span id="'+secId+'-ic" style="font-size:12px;color:var(--cinza-400);transition:transform .2s">▾</span>';
+      h+='</div></div>';
 
-      // Barra dupla conf + pend
-      if(meta>0){
-        h+='<div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;margin-top:8px;position:relative">';
-        h+='<div style="position:absolute;left:0;top:0;height:100%;width:'+Math.min(pct+pctPend,100).toFixed(1)+'%;background:#FCD34D;border-radius:3px"></div>';
-        h+='<div style="position:absolute;left:0;top:0;height:100%;width:'+pct.toFixed(1)+'%;background:#059669;border-radius:3px"></div>';
+      // ── Corpo: grid de cards ──
+      h+='<div id="'+secId+'" style="padding:14px 16px;background:var(--branco)">';
+      h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">';
+
+      itensRes.forEach(function(mi){
+        var prog=progMap[mi.id]||{realizado_confirmado:0,realizado_pendente:0,pct_confirmado:0};
+        var meta=parseFloat(mi.meta_numerica||0);
+        var conf=parseFloat(prog.realizado_confirmado||0);
+        var pend=parseFloat(prog.realizado_pendente||0);
+        var pct=meta>0?Math.min(conf/meta*100,100):0;
+        var pctPend=meta>0?Math.min(pend/meta*100,100):0;
+        var corPct=pct>=70?'#059669':pct>=40?'#D97706':'#DC2626';
+        var atvsIds=matToAtv[mi.id]||[];
+
+        h+='<div style="background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;border-top:3px solid '+cor+'">';
+
+        // Header: produto_codigo + % atual
+        h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">';
+        h+='<div style="flex:1;min-width:0">';
+        h+='<div style="font-size:10px;font-weight:700;color:'+cor+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">'+mi.produto_codigo+'</div>';
+        h+='<div style="font-size:12px;font-weight:600;color:var(--cinza-900);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+mi.indicador+'</div>';
         h+='</div>';
-        h+='<div style="font-size:10px;color:var(--cinza-500);margin-top:5px;font-family:var(--font-mono)">';
-        h+=conf.toLocaleString('pt-BR')+' conf. ';
-        if(pend>0) h+='· '+pend.toLocaleString('pt-BR')+' pend. ';
-        h+='/ meta '+meta.toLocaleString('pt-BR')+' '+(mi.unidade||'');
+        h+='<div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:'+corPct+';flex-shrink:0;margin-top:2px">'+Math.round(pct)+'%</div>';
         h+='</div>';
-      } else {
-        h+='<div style="font-size:10px;color:var(--cinza-400);margin-top:8px;font-style:italic">Indicador qualitativo</div>';
-      }
 
-      // Atividades cobrindo
-      h+='<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--borda)">';
-      if(atvsIds.length){
-        h+='<div style="font-size:10px;color:var(--cinza-500);margin-bottom:5px">Atividades cobrindo ('+atvsIds.length+'):</div>';
-        h+='<div style="display:flex;flex-wrap:wrap;gap:4px">';
-        atvsIds.slice(0,4).forEach(function(aid){
-          var a=atvById[aid];
-          if(!a)return;
-          h+='<span title="'+(a.nome_pt||a.nome||'')+'" style="font-size:10px;font-weight:600;background:var(--cinza-100);color:var(--cinza-700);padding:2px 7px;border-radius:99px;font-family:var(--font-mono)">'+a.codigo+'</span>';
-        });
-        if(atvsIds.length>4) h+='<span style="font-size:10px;color:var(--cinza-400);align-self:center">+'+( atvsIds.length-4)+' mais</span>';
+        // Sparkline
+        h+=sparkSVG(mi.id, meta);
+
+        // Barra dupla conf + pend
+        if(meta>0){
+          h+='<div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;margin-top:8px;position:relative">';
+          h+='<div style="position:absolute;left:0;top:0;height:100%;width:'+Math.min(pct+pctPend,100).toFixed(1)+'%;background:#FCD34D;border-radius:3px"></div>';
+          h+='<div style="position:absolute;left:0;top:0;height:100%;width:'+pct.toFixed(1)+'%;background:#059669;border-radius:3px"></div>';
+          h+='</div>';
+          h+='<div style="font-size:10px;color:var(--cinza-500);margin-top:5px;font-family:var(--font-mono)">';
+          h+=conf.toLocaleString('pt-BR')+' conf. ';
+          if(pend>0)h+='· '+pend.toLocaleString('pt-BR')+' pend. ';
+          h+='/ meta '+meta.toLocaleString('pt-BR')+' '+(mi.unidade||'');
+          h+='</div>';
+        } else {
+          h+='<div style="font-size:10px;color:var(--cinza-400);margin-top:8px;font-style:italic">Indicador qualitativo</div>';
+        }
+
+        // Atividades cobrindo
+        h+='<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--borda)">';
+        if(atvsIds.length){
+          h+='<div style="font-size:10px;color:var(--cinza-500);margin-bottom:5px">Atividades cobrindo ('+atvsIds.length+'):</div>';
+          h+='<div style="display:flex;flex-wrap:wrap;gap:4px">';
+          atvsIds.slice(0,4).forEach(function(aid){
+            var a=atvById[aid];
+            if(!a)return;
+            h+='<span title="'+(a.nome_pt||a.nome||'')+'" style="font-size:10px;font-weight:600;background:var(--cinza-100);color:var(--cinza-700);padding:2px 7px;border-radius:99px;font-family:var(--font-mono)">'+a.codigo+'</span>';
+          });
+          if(atvsIds.length>4)h+='<span style="font-size:10px;color:var(--cinza-400);align-self:center">+'+(atvsIds.length-4)+' mais</span>';
+          h+='</div>';
+        } else {
+          h+='<span style="font-size:10px;font-weight:600;color:#DC2626;background:#FEE2E2;padding:3px 9px;border-radius:99px">Sem atividade vinculada</span>';
+        }
         h+='</div>';
-      } else {
-        h+='<span style="font-size:10px;font-weight:600;color:#DC2626;background:#FEE2E2;padding:3px 9px;border-radius:99px">Sem atividade vinculada</span>';
-      }
-      h+='</div>';
 
-      h+='</div>'; // card
+        h+='</div>'; // card
+      });
+
+      h+='</div></div>'; // grid + corpo
+      h+='</div>'; // bloco resultado
     });
-    h+='</div>'; // grid
+    h+='</div>'; // container resultados
   }
 
-  // ── Bloco 3 — Tabela atividade × indicadores ──────────
+  // ── Bloco 3 — Tabela atividade × indicadores com vinculação inline ──
   h+='<div class="ch">';
   h+='<div class="ch-tit">Atividades × Indicadores da Matriz</div>';
-  h+='<div class="ch-sub">Vínculo entre cada atividade e as metas de resultado que ela cobre</div>';
+  h+='<div class="ch-sub">Vínculo entre cada atividade e as metas de resultado que ela cobre — clique em "+ Vincular" para adicionar</div>';
   h+='<div style="overflow-x:auto;margin-top:14px">';
   h+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
   h+='<thead><tr style="background:var(--cinza-50)">';
-  var ths=['Código','Atividade','Resultado','Fase','Indicadores vinculados','Melhor progresso'];
+  var ths=['Código','Atividade','Resultado','Fase','Indicadores vinculados','Melhor progresso',''];
   ths.forEach(function(t,i){
     h+='<th style="padding:8px 10px;text-align:'+(i>=5?'center':'left')+';font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--borda);white-space:nowrap">'+t+'</th>';
   });
@@ -1124,6 +1165,12 @@ function renderCobertura(){
     return(a.codigo||'').localeCompare(b.codigo||'');
   });
 
+  // Monta opções de indicadores para o dropdown de vinculação
+  var indOptsHtml='<option value="">Escolha um indicador…</option>';
+  D.matrizItens.forEach(function(mi){
+    indOptsHtml+='<option value="'+mi.id+'">'+mi.resultado+' · '+mi.produto_codigo+' — '+(mi.indicador||'').substring(0,60)+'</option>';
+  });
+
   atvSort.forEach(function(a,idx){
     var rv=resById[a.resultado_id];
     var resCod=rv?rv.codigo:'—';
@@ -1133,7 +1180,6 @@ function renderCobertura(){
     var nome=a.nome_pt||a.nome||'';
     var semLink=inds.length===0;
 
-    // Melhor % entre os indicadores vinculados
     var bestPct=0;
     inds.forEach(function(mid){
       var p=progMap[mid];
@@ -1141,6 +1187,7 @@ function renderCobertura(){
     });
 
     var rowBg=semLink?'#FFF5F5':'transparent';
+    var dropId='vdrop-'+a.id;
     h+='<tr style="border-bottom:1px solid var(--borda);background:'+rowBg+'" onmouseover="this.style.background=\''+(semLink?'#FFE4E4':'var(--cinza-50)')+'\'" onmouseout="this.style.background=\''+rowBg+'\'">';
 
     // Código
@@ -1155,7 +1202,7 @@ function renderCobertura(){
     // Fase
     h+='<td style="padding:9px 10px;white-space:nowrap"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:'+(faseBg[fase]||'#F3F4F6')+';color:'+(faseFg[fase]||'#374151')+'">'+(faseNm[fase]||fase||'—')+'</span></td>';
 
-    // Indicadores
+    // Indicadores vinculados
     h+='<td style="padding:9px 10px">';
     if(semLink){
       h+='<span style="font-size:10px;font-weight:600;color:#DC2626;background:#FEE2E2;padding:2px 9px;border-radius:99px">Sem vínculo</span>';
@@ -1169,7 +1216,8 @@ function renderCobertura(){
         var cor2=pct2>=70?'#059669':pct2>=40?'#D97706':'#DC2626';
         h+='<span title="'+mi.indicador+'" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;background:#F0FDF4;color:#065F46;padding:2px 8px;border-radius:99px;border:1px solid #A7F3D0">';
         h+=mi.produto_codigo;
-        if(mi.meta_numerica) h+=' <span style="color:'+cor2+';font-family:var(--font-mono);font-size:9px">'+Math.round(pct2)+'%</span>';
+        if(mi.meta_numerica)h+=' <span style="color:'+cor2+';font-family:var(--font-mono);font-size:9px">'+Math.round(pct2)+'%</span>';
+        h+='<span onclick="desvincularInd(\''+a.id+'\',\''+mid+'\')" title="Remover vínculo" style="cursor:pointer;color:#DC2626;font-size:10px;line-height:1;margin-left:1px">×</span>';
         h+='</span>';
       });
       h+='</div>';
@@ -1186,12 +1234,61 @@ function renderCobertura(){
     }
     h+='</td>';
 
+    // Dropdown inline de vinculação
+    h+='<td style="padding:9px 10px;white-space:nowrap">';
+    h+='<div style="position:relative;display:inline-block">';
+    h+='<button onclick="toggleVdrop(\''+dropId+'\')" style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;border:1px solid var(--borda);background:var(--branco);color:var(--cinza-600);cursor:pointer;display:inline-flex;align-items:center;gap:4px">+ Vincular</button>';
+    h+='<div id="'+dropId+'" style="display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:99;background:#fff;border:1px solid var(--borda);border-radius:var(--raio);box-shadow:0 4px 18px rgba(0,0,0,.12);min-width:280px;padding:6px">';
+    h+='<select onchange="vincularInd(\''+a.id+'\',this)" style="width:100%;font-size:11px;padding:5px 8px;border:1px solid var(--borda);border-radius:4px;color:var(--cinza-800)">'+indOptsHtml+'</select>';
+    h+='</div></div>';
+    h+='</td>';
+
     h+='</tr>';
   });
 
   h+='</tbody></table></div></div>';
 
   el.innerHTML=h;
+}
+
+function toggleCobSec(id){
+  var el=document.getElementById(id);
+  var ic=document.getElementById(id+'-ic');
+  if(!el)return;
+  var hidden=el.style.display==='none';
+  el.style.display=hidden?'':'none';
+  if(ic)ic.style.transform=hidden?'':'rotate(-90deg)';
+}
+
+function toggleVdrop(id){
+  var el=document.getElementById(id);
+  if(!el)return;
+  var open=el.style.display==='none'||!el.style.display;
+  // Fecha todos
+  document.querySelectorAll('[id^="vdrop-"]').forEach(function(d){d.style.display='none';});
+  el.style.display=open?'block':'none';
+}
+
+async function vincularInd(atvId, sel){
+  var matrizItemId=sel.value;
+  if(!matrizItemId)return;
+  sel.value='';
+  toggleVdrop(sel.closest('[id^="vdrop-"]')&&sel.closest('[id^="vdrop-"]').id||'');
+  var{error}=await db.from('atividade_matriz').upsert({atividade_id:atvId,matriz_item_id:matrizItemId},{onConflict:'atividade_id,matriz_item_id'});
+  if(error){alert('Erro ao vincular: '+error.message);return;}
+  // Recarrega dados de cobertura
+  var r=await db.from('atividade_matriz').select('atividade_id,matriz_item_id');
+  D.atvMatriz=r.data||[];
+  renderCobertura();
+}
+
+async function desvincularInd(atvId, matrizItemId){
+  if(!confirm('Remover vínculo entre esta atividade e o indicador?'))return;
+  var{error}=await db.from('atividade_matriz').delete().eq('atividade_id',atvId).eq('matriz_item_id',matrizItemId);
+  if(error){alert('Erro ao remover: '+error.message);return;}
+  var r=await db.from('atividade_matriz').select('atividade_id,matriz_item_id');
+  D.atvMatriz=r.data||[];
+  renderCobertura();
 }
 
 })();
