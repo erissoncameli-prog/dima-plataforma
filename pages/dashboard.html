@@ -1084,8 +1084,11 @@ function renderCobertura(){
         var pctPend=meta>0?Math.min(pend/meta*100,100):0;
         var corPct=pct>=70?'#059669':pct>=40?'#D97706':'#DC2626';
         var atvsIds=matToAtv[mi.id]||[];
+        var temVinculo=atvsIds.length>0;
+        var cardBorder=temVinculo?'2px solid #16A34A':'2px solid #DC2626';
+        var cardBg=temVinculo?'#F0FDF4':'#FFF5F5';
 
-        h+='<div style="background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;border-top:3px solid '+cor+'">';
+        h+='<div style="background:'+cardBg+';border:'+cardBorder+';border-radius:var(--raio-lg);padding:14px 16px;border-top:3px solid '+cor+'">';
 
         // Header: produto_codigo + % atual
         h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">';
