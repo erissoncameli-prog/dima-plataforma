@@ -1081,15 +1081,12 @@ function _popupGeometria(nome, pts, tipo){
     }
     const meta = trilhaMetadata[nome];
     if(meta?.video_url){
-      const embed = _videoEmbedUrl(meta.video_url);
       extraTrilha += `<div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:7px">
-        <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Vídeo</div>`;
-      if(embed){
-        extraTrilha += `<iframe src="${escHtml(embed)}" class="pp-video" allowfullscreen loading="lazy"></iframe>`;
-      } else {
-        extraTrilha += `<a href="${escHtml(meta.video_url)}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb">▶ Assistir vídeo</a>`;
-      }
-      extraTrilha += `</div>`;
+        <button onclick="abrirVideoModal('${escHtml(meta.video_url)}')"
+          style="width:100%;padding:7px 12px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+          ▶ Assistir vídeo da trilha
+        </button>
+      </div>`;
     }
   }
 
