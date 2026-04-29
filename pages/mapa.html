@@ -1016,12 +1016,19 @@ function renderizarMarcadores(){
     // Pontos especiais ao longo da trilha
     pts.filter(p => p.ponto_especial && PONTOS_ESPECIAIS[p.ponto_especial]).forEach(p => {
       const pe = PONTOS_ESPECIAIS[p.ponto_especial];
-      const mPe = L.marker([p.lat, p.lng], { icon: _divIcone(pe.emoji, pe.cor, 24) });
-      mPe.bindPopup(
-        `<div style="font-size:12px;font-weight:600">${pe.emoji} ${pe.label}</div>`
-        + (p.observacao ? `<div style="font-size:11px;color:#555;margin-top:4px">${escHtml(p.observacao)}</div>` : ''),
-        {maxWidth:200}
-      );
+      const mPe = L.marker([p.lat, p.lng], { icon: _divIcone(pe.emoji, pe.cor, 26) });
+      let popHtml = '<div class="mapa-popup" style="min-width:180px">';
+      if(p.foto_url)
+        popHtml += `<img src="${escHtml(p.foto_url)}" alt="foto" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:7px">`;
+      popHtml += `<div style="font-size:12px;font-weight:700;color:#1f4e2c">${pe.emoji} ${pe.label}</div>`;
+      if(p.observacao)
+        popHtml += `<div style="font-size:11px;color:#555;margin-top:4px;line-height:1.4">${escHtml(p.observacao)}</div>`;
+      if(p.video_url)
+        popHtml += `<button onclick="abrirVideoModal('${escHtml(p.video_url)}')"
+          style="margin-top:8px;width:100%;padding:5px 10px;background:#1e3a5f;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">
+          ▶ Assistir vídeo</button>`;
+      popHtml += '</div>';
+      mPe.bindPopup(popHtml, { maxWidth: 230 });
       mPe.addTo(mapaL);
       geometryLayers.push(mPe);
     });
