@@ -173,11 +173,36 @@ async function trocarIdioma(lang) {
   location.reload();
 }
 
+async function carregarLogosSidebar() {
+  try {
+    const { data } = await db.from('configuracoes_sistema')
+      .select('logos_topo,projeto_codigo')
+      .eq('projeto_id', 'default').single();
+    if (!data) return;
+
+    const wrap = document.getElementById('sidebar-logos-topo');
+    if (wrap) {
+      const logos = [...(data.logos_topo || [])].sort((a, b) => a.ordem - b.ordem);
+      if (logos.length) {
+        const alturas = { pequeno: '18px', medio: '24px', grande: '32px' };
+        wrap.innerHTML = logos.map((l, i) =>
+          `${i > 0 ? '<div style="width:1px;height:22px;background:rgba(0,0,0,.15);flex-shrink:0"></div>' : ''}
+           <img src="${l.url}" alt="${l.alt || ''}" style="height:${alturas[l.tamanho || 'medio']};width:auto;object-fit:contain" onerror="this.style.display='none'">`
+        ).join('');
+      }
+    }
+
+    const sub = document.getElementById('sidebar-brand-sub');
+    if (sub && data.projeto_codigo) sub.textContent = data.projeto_codigo;
+  } catch(e) { /* mantém fallback hardcoded */ }
+}
+
 async function initPagina(tituloPagina, paginaAtiva, callback) {
   const usuario = await carregarUsuario();
   if (!usuario) { window.location.href = '../index.html'; return; }
   document.getElementById('app').innerHTML =
     gerarLayout(tituloPagina, paginaAtiva) + `</div></div></div>`;
+  carregarLogosSidebar();
   if (callback) await callback();
 }
 
