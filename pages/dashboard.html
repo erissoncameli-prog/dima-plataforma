@@ -934,6 +934,264 @@ async function renderTarefas() {
   el.innerHTML = h;
 }
 
+// ─────────────────────────────────────────────────────────
+// GUIA 7 — COBERTURA DE INDICADORES
+// ─────────────────────────────────────────────────────────
+function renderCobertura(){
+  var el=document.getElementById('pane-cobertura');
+  if(!el)return;
+
+  // ── Mapas de lookup ──────────────────────────────────
+  var resById={};
+  D.res.forEach(function(r){resById[r.id]=r;});
+
+  var atvById={};
+  D.atv.forEach(function(a){atvById[a.id]=a;});
+
+  // atividade → [matriz_item_id]
+  var atvToMat={};
+  D.atvMatriz.forEach(function(l){
+    if(!atvToMat[l.atividade_id])atvToMat[l.atividade_id]=[];
+    atvToMat[l.atividade_id].push(l.matriz_item_id);
+  });
+
+  // indicador → [atividade_id]
+  var matToAtv={};
+  D.atvMatriz.forEach(function(l){
+    if(!matToAtv[l.matriz_item_id])matToAtv[l.matriz_item_id]=[];
+    matToAtv[l.matriz_item_id].push(l.atividade_id);
+  });
+
+  // progresso por indicador
+  var progMap={};
+  D.matrizProg.forEach(function(p){progMap[p.matriz_item_id]=p;});
+
+  // contribuições confirmadas agrupadas por indicador e mês
+  var sparkByInd={};
+  D.contribs.forEach(function(c){
+    var dt=c.contratos_produtos_entregas&&c.contratos_produtos_entregas.dt_entrega;
+    if(!dt)return;
+    var m=dt.substring(0,7);
+    if(!sparkByInd[c.matriz_item_id])sparkByInd[c.matriz_item_id]={};
+    sparkByInd[c.matriz_item_id][m]=(sparkByInd[c.matriz_item_id][m]||0)+parseFloat(c.valor||0);
+  });
+
+  // ── Cores por resultado ───────────────────────────────
+  var resCores={R1:'#1D9E75',R2:'#2563EB',R3:'#7F77DD',R4:'#D97706',Outros:'#6B7280'};
+
+  // ── Sparkline SVG ─────────────────────────────────────
+  function sparkSVG(indId, meta){
+    var byMonth=sparkByInd[indId]||{};
+    var months=Object.keys(byMonth).sort().slice(-8);
+    if(months.length<2)return'<div style="height:44px;display:flex;align-items:center;font-size:10px;color:var(--cinza-400);padding:0 2px">Sem histórico de contribuições</div>';
+    var cum=0;
+    var pts=months.map(function(m){cum+=byMonth[m];return cum;});
+    var maxV=parseFloat(meta)||Math.max.apply(null,pts)||1;
+    var W=200,H=44,padX=4,padY=6;
+    var coords=pts.map(function(v,i){
+      return [
+        padX+i*(W-2*padX)/(Math.max(pts.length-1,1)),
+        padY+(1-Math.min(v/maxV,1.05))*(H-2*padY)
+      ];
+    });
+    var line=coords.map(function(c,i){return(i?'L':'M')+c[0].toFixed(1)+','+c[1].toFixed(1);}).join('');
+    var fill=line+' L'+coords[coords.length-1][0].toFixed(1)+','+(H-padY)+' L'+padX+','+(H-padY)+' Z';
+    var lastPct=maxV>0?Math.min(pts[pts.length-1]/maxV,1):0;
+    var cor=lastPct>=0.7?'#059669':lastPct>=0.4?'#D97706':'#DC2626';
+    // Meta line (horizontal) se meta numérica definida
+    var metaLine='';
+    if(parseFloat(meta)>0){
+      var metaY=(padY+(0)*(H-2*padY)).toFixed(1);
+      metaLine='<line x1="'+padX+'" y1="'+metaY+'" x2="'+(W-padX)+'" y2="'+metaY+'" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="3,3"/>';
+    }
+    return'<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:44px;display:block" preserveAspectRatio="none">'
+      +metaLine
+      +'<path d="'+fill+'" fill="'+cor+'" fill-opacity="0.1"/>'
+      +'<path d="'+line+'" fill="none" stroke="'+cor+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+      +'<circle cx="'+coords[coords.length-1][0].toFixed(1)+'" cy="'+coords[coords.length-1][1].toFixed(1)+'" r="3.5" fill="'+cor+'" stroke="#fff" stroke-width="1.5"/>'
+      +'</svg>';
+  }
+
+  // ── Bloco 1 — Cards resumo ────────────────────────────
+  var total=D.atv.length;
+  var comVinculo=D.atv.filter(function(a){return(atvToMat[a.id]||[]).length>0;}).length;
+  var semVinculo=total-comVinculo;
+  var indOrfaos=D.matrizItens.filter(function(mi){return!(matToAtv[mi.id]||[]).length;}).length;
+  var pctCob=total>0?Math.round(comVinculo/total*100):0;
+
+  var h='';
+  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px">';
+  h+='<div class="ch" style="padding:16px 18px"><div class="kpi-lbl">Total de atividades</div><div class="kpi-val">'+total+'</div><div class="kpi-sub">no projeto</div></div>';
+  h+='<div class="ch" style="padding:16px 18px;border-top:3px solid #059669"><div class="kpi-lbl">Com indicador vinculado</div><div class="kpi-val" style="color:#059669">'+comVinculo+'</div><div class="kpi-sub">'+pctCob+'% do total</div><div class="kpi-bar" style="margin-top:8px"><div class="kpi-fill" style="width:'+pctCob+'%;background:#059669"></div></div></div>';
+  h+='<div class="ch" style="padding:16px 18px;border-top:3px solid #DC2626"><div class="kpi-lbl">Sem vínculo com indicador</div><div class="kpi-val" style="color:#DC2626">'+semVinculo+'</div><div class="kpi-sub">não rastreadas na matriz</div></div>';
+  h+='<div class="ch" style="padding:16px 18px;border-top:3px solid #D97706"><div class="kpi-lbl">Indicadores órfãos</div><div class="kpi-val" style="color:#D97706">'+indOrfaos+'</div><div class="kpi-sub">de '+D.matrizItens.length+' na matriz</div></div>';
+  h+='</div>';
+
+  // ── Bloco 2 — Grid de cards de indicadores ────────────
+  h+='<div style="font-size:14px;font-weight:600;color:var(--cinza-800);margin-bottom:4px">Indicadores da Matriz de Resultados</div>';
+  h+='<div style="font-size:11px;color:var(--cinza-500);margin-bottom:14px">Progresso confirmado, tendência histórica e atividades cobrindo cada indicador</div>';
+
+  if(!D.matrizItens.length){
+    h+='<div class="ch" style="text-align:center;padding:32px;color:var(--cinza-400);font-size:13px">Nenhum indicador cadastrado na Matriz de Resultados.</div>';
+  } else {
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;margin-bottom:26px">';
+    D.matrizItens.forEach(function(mi){
+      var prog=progMap[mi.id]||{realizado_confirmado:0,realizado_pendente:0,pct_confirmado:0};
+      var meta=parseFloat(mi.meta_numerica||0);
+      var conf=parseFloat(prog.realizado_confirmado||0);
+      var pend=parseFloat(prog.realizado_pendente||0);
+      var pct=meta>0?Math.min(conf/meta*100,100):0;
+      var pctPend=meta>0?Math.min(pend/meta*100,100):0;
+      var cor=pct>=70?'#059669':pct>=40?'#D97706':'#DC2626';
+      var resCor=resCores[mi.resultado]||'#6B7280';
+      var atvsIds=matToAtv[mi.id]||[];
+
+      h+='<div style="background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;border-top:3px solid '+resCor+'">';
+
+      // Header: código + % atual
+      h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">';
+      h+='<div style="flex:1;min-width:0">';
+      h+='<div style="font-size:10px;font-weight:700;color:'+resCor+';text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">'+mi.resultado+' · '+mi.produto_codigo+'</div>';
+      h+='<div style="font-size:12px;font-weight:600;color:var(--cinza-900);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+mi.indicador+'</div>';
+      h+='</div>';
+      h+='<div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:'+cor+';flex-shrink:0;margin-top:2px">'+Math.round(pct)+'%</div>';
+      h+='</div>';
+
+      // Sparkline
+      h+=sparkSVG(mi.id, meta);
+
+      // Barra dupla conf + pend
+      if(meta>0){
+        h+='<div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;margin-top:8px;position:relative">';
+        h+='<div style="position:absolute;left:0;top:0;height:100%;width:'+Math.min(pct+pctPend,100).toFixed(1)+'%;background:#FCD34D;border-radius:3px"></div>';
+        h+='<div style="position:absolute;left:0;top:0;height:100%;width:'+pct.toFixed(1)+'%;background:#059669;border-radius:3px"></div>';
+        h+='</div>';
+        h+='<div style="font-size:10px;color:var(--cinza-500);margin-top:5px;font-family:var(--font-mono)">';
+        h+=conf.toLocaleString('pt-BR')+' conf. ';
+        if(pend>0) h+='· '+pend.toLocaleString('pt-BR')+' pend. ';
+        h+='/ meta '+meta.toLocaleString('pt-BR')+' '+(mi.unidade||'');
+        h+='</div>';
+      } else {
+        h+='<div style="font-size:10px;color:var(--cinza-400);margin-top:8px;font-style:italic">Indicador qualitativo</div>';
+      }
+
+      // Atividades cobrindo
+      h+='<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--borda)">';
+      if(atvsIds.length){
+        h+='<div style="font-size:10px;color:var(--cinza-500);margin-bottom:5px">Atividades cobrindo ('+atvsIds.length+'):</div>';
+        h+='<div style="display:flex;flex-wrap:wrap;gap:4px">';
+        atvsIds.slice(0,4).forEach(function(aid){
+          var a=atvById[aid];
+          if(!a)return;
+          h+='<span title="'+(a.nome_pt||a.nome||'')+'" style="font-size:10px;font-weight:600;background:var(--cinza-100);color:var(--cinza-700);padding:2px 7px;border-radius:99px;font-family:var(--font-mono)">'+a.codigo+'</span>';
+        });
+        if(atvsIds.length>4) h+='<span style="font-size:10px;color:var(--cinza-400);align-self:center">+'+( atvsIds.length-4)+' mais</span>';
+        h+='</div>';
+      } else {
+        h+='<span style="font-size:10px;font-weight:600;color:#DC2626;background:#FEE2E2;padding:3px 9px;border-radius:99px">Sem atividade vinculada</span>';
+      }
+      h+='</div>';
+
+      h+='</div>'; // card
+    });
+    h+='</div>'; // grid
+  }
+
+  // ── Bloco 3 — Tabela atividade × indicadores ──────────
+  h+='<div class="ch">';
+  h+='<div class="ch-tit">Atividades × Indicadores da Matriz</div>';
+  h+='<div class="ch-sub">Vínculo entre cada atividade e as metas de resultado que ela cobre</div>';
+  h+='<div style="overflow-x:auto;margin-top:14px">';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  h+='<thead><tr style="background:var(--cinza-50)">';
+  var ths=['Código','Atividade','Resultado','Fase','Indicadores vinculados','Melhor progresso'];
+  ths.forEach(function(t,i){
+    h+='<th style="padding:8px 10px;text-align:'+(i>=5?'center':'left')+';font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--borda);white-space:nowrap">'+t+'</th>';
+  });
+  h+='</tr></thead><tbody>';
+
+  var faseNm={A_INICIAR:'A Iniciar',ELABORACAO:'Elaboração',LICITACAO:'Licitação',ELABORADO:'Elaborado',CONTRATADO:'Contratado',CONCLUIDO:'Concluído'};
+  var faseBg={A_INICIAR:'#F3F4F6',ELABORACAO:'#EFF6FF',LICITACAO:'#FFFBEB',ELABORADO:'#F0FDF4',CONTRATADO:'#ECFDF5',CONCLUIDO:'#1F2937'};
+  var faseFg={A_INICIAR:'#374151',ELABORACAO:'#1E40AF',LICITACAO:'#92400E',ELABORADO:'#065F46',CONTRATADO:'#065F46',CONCLUIDO:'#F9FAFB'};
+
+  // Ordena: atividades sem vínculo por último
+  var atvSort=D.atv.slice().sort(function(a,b){
+    var la=(atvToMat[a.id]||[]).length,lb=(atvToMat[b.id]||[]).length;
+    if(la===0&&lb>0)return 1;
+    if(lb===0&&la>0)return-1;
+    return(a.codigo||'').localeCompare(b.codigo||'');
+  });
+
+  atvSort.forEach(function(a,idx){
+    var rv=resById[a.resultado_id];
+    var resCod=rv?rv.codigo:'—';
+    var resCor=resCores[resCod]||'#6B7280';
+    var inds=atvToMat[a.id]||[];
+    var fase=a.fase||'';
+    var nome=a.nome_pt||a.nome||'';
+    var semLink=inds.length===0;
+
+    // Melhor % entre os indicadores vinculados
+    var bestPct=0;
+    inds.forEach(function(mid){
+      var p=progMap[mid];
+      if(p&&parseFloat(p.pct_confirmado||0)>bestPct)bestPct=parseFloat(p.pct_confirmado||0);
+    });
+
+    var rowBg=semLink?'#FFF5F5':'transparent';
+    h+='<tr style="border-bottom:1px solid var(--borda);background:'+rowBg+'" onmouseover="this.style.background=\''+(semLink?'#FFE4E4':'var(--cinza-50)')+'\'" onmouseout="this.style.background=\''+rowBg+'\'">';
+
+    // Código
+    h+='<td style="padding:9px 10px;white-space:nowrap"><span style="font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--cinza-100);padding:2px 7px;border-radius:4px;color:var(--cinza-700)">'+a.codigo+'</span></td>';
+
+    // Nome
+    h+='<td style="padding:9px 10px;color:var(--cinza-800);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+nome+'">'+nome.substring(0,55)+(nome.length>55?'…':'')+'</td>';
+
+    // Resultado
+    h+='<td style="padding:9px 10px;white-space:nowrap"><span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:'+resCor+'22;color:'+resCor+'">'+resCod+'</span></td>';
+
+    // Fase
+    h+='<td style="padding:9px 10px;white-space:nowrap"><span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:'+(faseBg[fase]||'#F3F4F6')+';color:'+(faseFg[fase]||'#374151')+'">'+(faseNm[fase]||fase||'—')+'</span></td>';
+
+    // Indicadores
+    h+='<td style="padding:9px 10px">';
+    if(semLink){
+      h+='<span style="font-size:10px;font-weight:600;color:#DC2626;background:#FEE2E2;padding:2px 9px;border-radius:99px">Sem vínculo</span>';
+    } else {
+      h+='<div style="display:flex;flex-wrap:wrap;gap:3px">';
+      inds.forEach(function(mid){
+        var mi=D.matrizItens.find(function(x){return x.id===mid;});
+        if(!mi)return;
+        var p=progMap[mid]||{pct_confirmado:0};
+        var pct2=parseFloat(p.pct_confirmado||0);
+        var cor2=pct2>=70?'#059669':pct2>=40?'#D97706':'#DC2626';
+        h+='<span title="'+mi.indicador+'" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;background:#F0FDF4;color:#065F46;padding:2px 8px;border-radius:99px;border:1px solid #A7F3D0">';
+        h+=mi.produto_codigo;
+        if(mi.meta_numerica) h+=' <span style="color:'+cor2+';font-family:var(--font-mono);font-size:9px">'+Math.round(pct2)+'%</span>';
+        h+='</span>';
+      });
+      h+='</div>';
+    }
+    h+='</td>';
+
+    // Melhor progresso
+    h+='<td style="padding:9px 10px;text-align:center">';
+    if(semLink){
+      h+='<span style="color:var(--cinza-300)">—</span>';
+    } else {
+      var bCor=bestPct>=70?'#059669':bestPct>=40?'#D97706':'#DC2626';
+      h+='<span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:'+bCor+'">'+Math.round(bestPct)+'%</span>';
+    }
+    h+='</td>';
+
+    h+='</tr>';
+  });
+
+  h+='</tbody></table></div></div>';
+
+  el.innerHTML=h;
+}
+
 })();
 </script>
 </body>
