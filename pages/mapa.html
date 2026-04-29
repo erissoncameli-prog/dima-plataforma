@@ -1490,10 +1490,15 @@ function _removerVertex(idx){
   abaGeometria('vertices');
 }
 
+function _onPontoEspecialChange(sel){
+  const idx = parseInt(sel.dataset.idx);
+  _geoEditando.pts[idx].ponto_especial = sel.value || null;
+}
+
 function _adicionarVertex(){
   const pts = _geoEditando.pts;
   const ult = pts[pts.length-1];
-  pts.push({...ult, lat:+(ult.lat+0.001).toFixed(6), lng:+(ult.lng+0.001).toFixed(6), id:null});
+  pts.push({...ult, lat:+(ult.lat+0.001).toFixed(6), lng:+(ult.lng+0.001).toFixed(6), id:null, ponto_especial:null});
   abaGeometria('vertices');
 }
 
