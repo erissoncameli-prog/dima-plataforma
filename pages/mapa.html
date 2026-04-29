@@ -1018,6 +1018,51 @@ function renderizarMarcadores(){
 
     [line, mIni, mFim].forEach(l => { l.addTo(mapaL); geometryLayers.push(l); });
 
+    // Badge de vídeo no ponto médio da trilha
+    const meta = trilhaMetadata[nome];
+    let mBadge = null;
+    if(meta?.video_url){
+      const midPt = latlngs[Math.floor(latlngs.length / 2)];
+      const videoUrl = meta.video_url;
+
+      const _badgeIconNormal = () => L.divIcon({
+        className:'',
+        html:`<div style="width:30px;height:30px;border-radius:50%;background:rgba(30,58,95,.55);border:2px solid rgba(255,255,255,.65);box-shadow:0 2px 7px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all .25s">🎬</div>`,
+        iconSize:[30,30], iconAnchor:[15,15], popupAnchor:[0,-18]
+      });
+
+      const _badgeIconHover = () => L.divIcon({
+        className:'',
+        html:`<div style="height:32px;padding:0 14px;border-radius:99px;background:rgba(30,58,95,.96);border:2px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.5);display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;animation:trilhaPulse 1.6s ease-in-out infinite">🎬 <span>Assistir vídeo</span></div>`,
+        iconSize:[140,32], iconAnchor:[70,16], popupAnchor:[0,-20]
+      });
+
+      mBadge = L.marker(midPt, { icon: _badgeIconNormal(), zIndexOffset:400, interactive:true });
+      mBadge.on('click', () => abrirVideoModal(videoUrl));
+      mBadge.addTo(mapaL);
+      geometryLayers.push(mBadge);
+
+      // Hover na linha ou no badge: engrossar linha + expandir badge
+      let _hoverTimer = null;
+      const _ativar = () => {
+        clearTimeout(_hoverTimer);
+        line.setStyle({ weight:5, dashArray:null, opacity:1 });
+        if(mBadge) mBadge.setIcon(_badgeIconHover());
+      };
+      const _desativar = () => {
+        _hoverTimer = setTimeout(() => {
+          line.setStyle({ weight:3, dashArray:'6,4' });
+          if(mBadge) mBadge.setIcon(_badgeIconNormal());
+        }, 180);
+      };
+      line.on('mouseover', _ativar).on('mouseout', _desativar);
+      mBadge.on('mouseover', _ativar).on('mouseout', _desativar);
+    } else {
+      // Sem vídeo: hover simples só engrossa a linha
+      line.on('mouseover', () => line.setStyle({weight:5, dashArray:null}))
+          .on('mouseout',  () => line.setStyle({weight:3, dashArray:'6,4'}));
+    }
+
     // Pontos especiais ao longo da trilha
     pts.filter(p => p.ponto_especial && PONTOS_ESPECIAIS[p.ponto_especial]).forEach(p => {
       const pe = PONTOS_ESPECIAIS[p.ponto_especial];
