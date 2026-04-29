@@ -293,9 +293,10 @@ async function carregarConfigLogin() {
       const logos = [...(data.logos_topo || [])].sort((a,b) => a.ordem - b.ordem);
       if (logos.length) {
         wrapTopo.style.display = '';
+        const alturasTopo = { pequeno:'40px', medio:'63px', grande:'95px' };
         wrapTopo.innerHTML = logos.map((l, i) =>
           `${i>0?'<div class="logo-sep-topo"></div>':''}
-           <img src="${l.url}" alt="${l.alt||''}" style="height:75px;width:auto;object-fit:contain">`
+           <img src="${l.url}" alt="${l.alt||''}" style="height:${alturasTopo[l.tamanho||'medio']};width:auto;object-fit:contain">`
         ).join('');
       } else {
         wrapTopo.style.display = 'none';
