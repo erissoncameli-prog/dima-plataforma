@@ -1187,18 +1187,12 @@ async function salvarAdminFiltros(){
 
   // Recarregar dados locais e remontar filtros
   const matrizData = await db.from('matriz_itens')
-    .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,visivel_no_mapa,ods,metas_km')
+    .select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,visivel_no_mapa,ods,metas_km,cor,emoji')
     .eq('ativo', true).order('produto_codigo');
   matrizItens = matrizData.data || [];
   matrizVisiveis = matrizItens.filter(i => i.visivel_no_mapa);
   matrizByTipo = _buildMatrizByTipo(matrizItens);
-
-  // Recalcular cores
-  tipoCores = {}; filtrosTipo = new Set();
-  [...new Set(matrizVisiveis.map(i=>i.produto_titulo).filter(Boolean))].forEach((t,idx) => {
-    tipoCores[t] = TIPO_CORES[idx % TIPO_CORES.length];
-    filtrosTipo.add(t);
-  });
+  _recalcularTipoCoresIcones();
 
   fecharModalAdminFiltros();
 
