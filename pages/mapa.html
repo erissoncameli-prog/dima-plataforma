@@ -958,6 +958,15 @@ function renderPopup(p){
   </div>`;
 }
 
+function _videoEmbedUrl(url){
+  if(!url) return null;
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if(yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vi = url.match(/vimeo\.com\/(\d+)/);
+  if(vi) return `https://player.vimeo.com/video/${vi[1]}`;
+  return null;
+}
+
 function _popupGeometria(nome, pts, tipo){
   const p0 = pts[0];
   const cor = corIcone(p0);
@@ -966,6 +975,35 @@ function _popupGeometria(nome, pts, tipo){
   const medida = tipo === 'poligono'
     ? `<div class="pp-linha"><strong>Área:</strong>${_formatarArea(_calcularArea(latlngs))}</div>`
     : `<div class="pp-linha"><strong>Distância:</strong>${_formatarDistancia(_calcularDistancia(latlngs))}</div>`;
+
+  // Pontos de interesse e vídeo (trilha)
+  let extraTrilha = '';
+  if(tipo === 'trilha'){
+    const especiais = pts.filter(p => p.ponto_especial && PONTOS_ESPECIAIS[p.ponto_especial]);
+    if(especiais.length){
+      extraTrilha += `<div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:7px">
+        <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Pontos de interesse</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">`;
+      especiais.forEach(p => {
+        const pe = PONTOS_ESPECIAIS[p.ponto_especial];
+        extraTrilha += `<span class="pe-badge" style="background:${pe.cor}22;border:1px solid ${pe.cor}55;color:${pe.cor}">${pe.emoji} ${pe.label}</span>`;
+      });
+      extraTrilha += `</div></div>`;
+    }
+    const meta = trilhaMetadata[nome];
+    if(meta?.video_url){
+      const embed = _videoEmbedUrl(meta.video_url);
+      extraTrilha += `<div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:7px">
+        <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Vídeo</div>`;
+      if(embed){
+        extraTrilha += `<iframe src="${escHtml(embed)}" class="pp-video" allowfullscreen loading="lazy"></iframe>`;
+      } else {
+        extraTrilha += `<a href="${escHtml(meta.video_url)}" target="_blank" rel="noopener" style="font-size:11px;color:#2563eb">▶ Assistir vídeo</a>`;
+      }
+      extraTrilha += `</div>`;
+    }
+  }
+
   return `<div class="mapa-popup">
     <h4>${escHtml(nome)}</h4>
     ${p0.tipo_atividade?`<div style="margin-bottom:7px"><span style="background:${cor}22;color:${cor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid ${cor}55">${escHtml(p0.tipo_atividade)}</span></div>`:''}
@@ -976,6 +1014,7 @@ function _popupGeometria(nome, pts, tipo){
     <div class="pp-linha"><strong>${tipo==='poligono'?'Vértices':'Pontos'}:</strong>${pts.length}</div>
     ${p0.observacao?`<div class="pp-linha"><strong>Obs.:</strong>${escHtml(p0.observacao)}</div>`:''}
     ${_htmlOdsKm(p0.tipo_atividade)}
+    ${extraTrilha}
     ${_ehEditor() ? `<div style="margin-top:8px;display:flex;gap:6px">
       <button onclick="abrirModalEditarGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
       <button onclick="excluirGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
