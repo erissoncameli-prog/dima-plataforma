@@ -115,6 +115,7 @@ var D_DATE = function(d){ return d ? new Date(d+'T12:00:00').toLocaleDateString(
 var D_P = function(v,t){ return t>0 ? Math.min(parseFloat(v||0)/parseFloat(t)*100,100) : 0; };
 var D = {};
 var CHARTS = {};
+var _podeCobertura = false; // definido após carregarUsuario()
 
 // ── Init ──────────────────────────────────────────────────
 (async function(){
