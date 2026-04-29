@@ -1251,45 +1251,44 @@ function renderCobertura(){
   el.innerHTML=h;
 }
 
-function toggleCobSec(id){
+window.toggleCobSec=function(id){
   var el=document.getElementById(id);
   var ic=document.getElementById(id+'-ic');
   if(!el)return;
   var hidden=el.style.display==='none';
   el.style.display=hidden?'':'none';
   if(ic)ic.style.transform=hidden?'':'rotate(-90deg)';
-}
+};
 
-function toggleVdrop(id){
+window.toggleVdrop=function(id){
   var el=document.getElementById(id);
   if(!el)return;
   var open=el.style.display==='none'||!el.style.display;
-  // Fecha todos
   document.querySelectorAll('[id^="vdrop-"]').forEach(function(d){d.style.display='none';});
   el.style.display=open?'block':'none';
-}
+};
 
-async function vincularInd(atvId, sel){
+window.vincularInd=async function(atvId, sel){
   var matrizItemId=sel.value;
   if(!matrizItemId)return;
   sel.value='';
-  toggleVdrop(sel.closest('[id^="vdrop-"]')&&sel.closest('[id^="vdrop-"]').id||'');
+  var dropEl=sel.closest('[id^="vdrop-"]');
+  if(dropEl)dropEl.style.display='none';
   var{error}=await db.from('atividade_matriz').upsert({atividade_id:atvId,matriz_item_id:matrizItemId},{onConflict:'atividade_id,matriz_item_id'});
   if(error){alert('Erro ao vincular: '+error.message);return;}
-  // Recarrega dados de cobertura
   var r=await db.from('atividade_matriz').select('atividade_id,matriz_item_id');
   D.atvMatriz=r.data||[];
   renderCobertura();
-}
+};
 
-async function desvincularInd(atvId, matrizItemId){
+window.desvincularInd=async function(atvId, matrizItemId){
   if(!confirm('Remover vínculo entre esta atividade e o indicador?'))return;
   var{error}=await db.from('atividade_matriz').delete().eq('atividade_id',atvId).eq('matriz_item_id',matrizItemId);
   if(error){alert('Erro ao remover: '+error.message);return;}
   var r=await db.from('atividade_matriz').select('atividade_id,matriz_item_id');
   D.atvMatriz=r.data||[];
   renderCobertura();
-}
+};
 
 })();
 </script>
