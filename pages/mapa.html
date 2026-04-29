@@ -566,6 +566,49 @@ function renderPagina(){
   </div>
 
   <!-- Modal: Confirmação por senha -->
+  <!-- Modal: Vídeo em tela cheia -->
+  <div id="modal-video">
+    <button onclick="fecharVideoModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer;line-height:1;z-index:1">✕</button>
+    <iframe id="modal-video-iframe" src="" allowfullscreen allow="autoplay; fullscreen"></iframe>
+    <a id="modal-video-link" href="#" target="_blank" rel="noopener" style="color:#93c5fd;font-size:12px;margin-top:12px;display:none;text-decoration:underline">Abrir no serviço original ↗</a>
+  </div>
+
+  <!-- Modal: Detalhes do ponto especial (foto + vídeo) -->
+  <div class="modal-overlay" id="modal-pe-detalhes" style="display:none">
+    <div class="modal-box" style="max-width:440px">
+      <div class="modal-header">
+        <h3 id="modal-pe-titulo">Detalhes do ponto</h3>
+        <button class="btn-close" onclick="fecharModalPeDetalhes()">✕</button>
+      </div>
+      <div class="modal-body" style="gap:12px">
+        <div class="form-group full">
+          <label>Foto do local</label>
+          <div id="pe-foto-preview-wrap" style="display:none;margin-bottom:8px">
+            <img id="pe-foto-preview-img" src="" style="width:100%;height:150px;object-fit:cover;border-radius:var(--raio);border:1px solid var(--borda)">
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="pe-foto-url" type="url" placeholder="URL da foto ou faça upload →" style="flex:1" oninput="atualizarPreviaPe()">
+            <label for="pe-foto-file" style="display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px dashed var(--verde-escuro);border-radius:var(--raio);cursor:pointer;font-size:11px;color:var(--verde-escuro);white-space:nowrap;flex-shrink:0">📷 Upload</label>
+            <input type="file" id="pe-foto-file" accept="image/*" style="display:none" onchange="uploadFotoPe(this)">
+          </div>
+          <div id="pe-foto-status" style="font-size:10px;color:var(--cinza-400);margin-top:3px"></div>
+        </div>
+        <div class="form-group full">
+          <label>🎬 Vídeo do local (YouTube, Vimeo…)</label>
+          <input id="pe-video-url" type="url" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+        <div class="form-group full">
+          <label>Observação / descrição</label>
+          <textarea id="pe-observacao" style="min-height:64px"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="fecharModalPeDetalhes()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarPeDetalhes()">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Editar ícone e cor do tipo de entrega -->
   <div class="modal-overlay" id="modal-editar-tipo" style="display:none">
     <div class="modal-box" style="max-width:460px">
