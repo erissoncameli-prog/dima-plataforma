@@ -1906,12 +1906,21 @@ async function salvarGeometria(){
     // Salvar vídeo da trilha
     if(geoTipo === 'trilha'){
       const videoEl = document.getElementById('fg-video');
-      const videoUrl = videoEl?.value.trim() || null;
+      // Se o elemento não está no DOM (usuário salvou pela aba de vértices),
+      // preserva o valor já gravado em vez de sobrescrever com null
+      const videoUrl = videoEl
+        ? (videoEl.value.trim() || null)
+        : (trilhaMetadata[group]?.video_url || null);
       await db.from('trilha_metadata').upsert(
         { geometry_group: nome, video_url: videoUrl, updated_at: new Date().toISOString() },
         { onConflict: 'geometry_group' }
       );
       trilhaMetadata[nome] = { geometry_group: nome, video_url: videoUrl };
+      // Se a trilha foi renomeada, remove o registro antigo para não deixar órfão
+      if(nome !== group){
+        await db.from('trilha_metadata').delete().eq('geometry_group', group);
+        delete trilhaMetadata[group];
+      }
     }
     const dadosDepois = {
       geometry_type: geoTipo, geometry_group: nome,
