@@ -208,13 +208,16 @@ async function loadData(){
     db.from('execucao_financeira').select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome),contratos(id,numero)'),
     db.from('fornecedores').select('id,nome,tipo'),
     db.from('contratos').select('id,numero,objeto_pt'),
-    db.from('matriz_itens').select('id,resultado,produto_codigo,indicador,meta_numerica,unidade').eq('ativo',true).order('ordem'),
+    db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade').eq('ativo',true).order('ordem'),
     db.from('vw_matriz_progresso').select('*'),
+    db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
+    db.from('produto_matriz_contribuicao').select('matriz_item_id,valor,status,contratos_produtos_entregas(dt_entrega)').eq('status','confirmado'),
   ]);
   D.atv=r[0].data||[]; D.tdrs=r[1].data||[]; D.res=r[2].data||[];
   D.sal=r[3].data||[]; D.ind=r[4].data||[]; D.lanc=r[5].data||[];
   D.forns=r[6].data||[]; D.contr=r[7].data||[];
   D.matrizItens=r[8].data||[]; D.matrizProg=r[9].data||[];
+  D.atvMatriz=r[10].data||[]; D.contribs=r[11].data||[];
   D.lancFilt = D.lanc.slice(); // cópia para filtros
 
   renderFinanciadores();
@@ -223,6 +226,7 @@ async function loadData(){
   renderResultados();
   renderExecucao();
   renderAlertas();
+  renderCobertura();
 }
 
 // ── resMap helper ─────────────────────────────────────────
