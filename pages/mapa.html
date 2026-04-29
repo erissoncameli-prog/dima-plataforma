@@ -1450,14 +1450,12 @@ async function salvarIconeTipo(){
   const btn   = document.getElementById('btn-salvar-tipo');
   btn.disabled = true; btn.textContent = 'Salvando…';
 
-  const ids = matrizItens.filter(i => i.produto_titulo === _tipoEditando).map(i => i.id);
-  if(ids.length){
-    const { error } = await db.from('matriz_itens').update({ cor, emoji }).in('id', ids);
-    if(error){ alert('Erro: '+error.message); btn.disabled=false; btn.textContent='Salvar'; return; }
-  }
+  const { error } = await db.from('matriz_itens').update({ cor, emoji }).eq('id', _tipoEditando);
+  if(error){ alert('Erro: '+error.message); btn.disabled=false; btn.textContent='Salvar'; return; }
 
-  // Atualizar estado local
-  matrizItens.forEach(i => { if(i.produto_titulo === _tipoEditando){ i.cor = cor; i.emoji = emoji; } });
+  // Atualizar estado local apenas do indicador editado
+  const itemLocal = matrizItens.find(i => i.id === _tipoEditando);
+  if(itemLocal){ itemLocal.cor = cor; itemLocal.emoji = emoji; }
   matrizVisiveis = matrizItens.filter(i => i.visivel_no_mapa);
   _recalcularTipoCoresIcones();
 
