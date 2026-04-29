@@ -1278,6 +1278,16 @@ function toggleFiltroTipo(el){
   renderizarMarcadores(); renderizarLista();
 }
 
+// ── Lightbox de foto ──────────────────────────────────────────────────────
+function abrirFotoModal(url){
+  document.getElementById('modal-foto-img').src = url;
+  document.getElementById('modal-foto').classList.add('aberto');
+}
+function fecharFotoModal(){
+  document.getElementById('modal-foto').classList.remove('aberto');
+  document.getElementById('modal-foto-img').src = '';
+}
+
 // ── Modal: Vídeo em tela cheia ────────────────────────────────────────────
 function abrirVideoModal(url){
   const embed = _videoEmbedUrl(url);
