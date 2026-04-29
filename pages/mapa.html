@@ -146,6 +146,12 @@
 #modal-video{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;}
 #modal-video.aberto{display:flex;}
 #modal-video-iframe{width:min(880px,96vw);aspect-ratio:16/9;border:none;border-radius:10px;display:block;}
+/* Lightbox de foto */
+#modal-foto{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;}
+#modal-foto.aberto{display:flex;}
+#modal-foto img{max-width:min(1100px,96vw);max-height:92vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);object-fit:contain;cursor:default;}
+.pp-foto-click,.pe-foto-click{cursor:zoom-in;transition:opacity .15s;}
+.pp-foto-click:hover,.pe-foto-click:hover{opacity:.88;}
 </style>
 </head>
 <body>
