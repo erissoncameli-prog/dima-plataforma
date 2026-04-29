@@ -178,12 +178,19 @@ function _construirStyles(){
 
 function toggleFiltroPOI(key, visivel){
   filtrosPOI[key] = visivel;
-  if(googleLayer) googleLayer.setStyles(_construirStyles());
+  if(googleLayer && googleLayer.setStyles) googleLayer.setStyles(_construirStyles());
 }
 
 function _reaplicarTiles(){
   if(googleLayer){ mapaL.removeLayer(googleLayer); googleLayer = null; }
-  googleLayer = L.gridLayer.googleMutant({ type:MODOS_MAPA[modoMapaAtual].tipo, maxZoom:22, styles:_construirStyles() });
+  if(modoMapaAtual === 'satelite'){
+    // L.tileLayer nativo do Leaflet — zoom sempre funciona
+    googleLayer = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+      { maxZoom:22, subdomains:['mt0','mt1','mt2','mt3'] });
+  } else {
+    // GoogleMutant só para Híbrido/Ruas, onde os filtros de POI funcionam
+    googleLayer = L.gridLayer.googleMutant({ type:MODOS_MAPA[modoMapaAtual].tipo, maxZoom:22, styles:_construirStyles() });
+  }
   googleLayer.addTo(mapaL);
 }
 
