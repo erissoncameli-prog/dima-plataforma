@@ -25,7 +25,9 @@
       "Bash(git commit *)",
       "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\practical-taussig-69e95c\" log --oneline -5)",
       "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\practical-taussig-69e95c\" log --oneline --all)",
-      "Bash(grep -n \"^}\\)\\(\\);\\\\|^\\(function\\\\|IIFE\\\\|;}\\)\\(\\)$\" \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\practical-taussig-69e95c/pages/dashboard.html\")"
+      "Bash(grep -n \"^}\\)\\(\\);\\\\|^\\(function\\\\|IIFE\\\\|;}\\)\\(\\)$\" \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\practical-taussig-69e95c/pages/dashboard.html\")",
+      "Bash(git pull *)",
+      "Bash(git stash *)"
     ]
   }
 }
