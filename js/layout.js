@@ -75,13 +75,13 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   return `
   <div class="app-layout">
     <aside class="sidebar" id="sidebar" style="background:linear-gradient(175deg,#2a7a50 0%,#1F4E2C 40%,#143520 75%,#0a1f12 100%);">
-      <div class="sidebar-brand">
-        <div id="sidebar-logos-topo" style="background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 3px 16px rgba(0,0,0,.25);min-height:44px;">
+      <div class="sidebar-brand" style="background:linear-gradient(180deg,#020d06 0%,#0d2318 55%,#1a3d22 100%);margin:-0px;padding:18px 14px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
+        <div id="sidebar-logos-topo" style="display:flex;align-items:center;justify-content:center;gap:12px;min-height:40px;margin-bottom:10px;">
           <img src="../assets/1695134345-1-horizontal-verde-solo.png" alt="SEMA" style="height:22px;width:auto;object-fit:contain;">
-          <div style="width:1px;height:22px;background:#B5860D;flex-shrink:0;"></div>
+          <div style="width:1px;height:22px;background:rgba(255,255,255,.25);flex-shrink:0;"></div>
           <img src="../assets/3-vertical-verde-conjunto-1024x805.png" alt="Governo do Acre" style="height:24px;width:auto;object-fit:contain;">
         </div>
-        <div class="sidebar-brand-sub" id="sidebar-brand-sub">UNESCO · DIMA · 218BRA2001</div>
+        <div class="sidebar-brand-sub" id="sidebar-brand-sub" style="color:rgba(255,255,255,.45);">UNESCO · DIMA · 218BRA2001</div>
       </div>
 
       <div class="sidebar-user" onclick="window.location.href='usuarios.html'"
