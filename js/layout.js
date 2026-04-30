@@ -77,9 +77,9 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     <aside class="sidebar" id="sidebar" style="background:linear-gradient(175deg,#2a7a50 0%,#1F4E2C 40%,#143520 75%,#0a1f12 100%);">
       <div class="sidebar-brand" style="background:linear-gradient(180deg,#020d06 0%,#0d2318 55%,#1a3d22 100%);margin:-0px;padding:18px 14px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
         <div id="sidebar-logos-topo" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:40px;margin-bottom:10px;">
-          <img src="../assets/governo-acre-hd.png" alt="Governo do Acre" style="height:36px;width:auto;object-fit:contain;flex-shrink:0;">
+          <img src="../assets/brasao-acre.png" alt="Governo do Acre" style="height:38px;width:auto;object-fit:contain;flex-shrink:0;">
           <div style="width:1px;height:28px;background:rgba(255,255,255,.25);flex-shrink:0;"></div>
-          <img src="../assets/logo-sema-hd.png" alt="SEMA" style="height:20px;width:auto;object-fit:contain;flex-shrink:0;max-width:90px;">
+          <img src="../assets/sema-branco.png" alt="SEMA" style="height:22px;width:auto;object-fit:contain;flex-shrink:0;max-width:96px;">
         </div>
         <div class="sidebar-brand-sub" id="sidebar-brand-sub" style="color:rgba(255,255,255,.45);">UNESCO · DIMA · 218BRA2001</div>
       </div>
