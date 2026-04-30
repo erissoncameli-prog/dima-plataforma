@@ -194,7 +194,7 @@ async function carregarLogosSidebar() {
 
     const sub = document.getElementById('sidebar-brand-sub');
     if (sub && data.projeto_codigo) sub.textContent = data.projeto_codigo;
-  } catch(e) { /* mantém fallback hardcoded */ }
+  } catch(e) { console.error('[sidebar-logos]', e); }
 }
 
 async function initPagina(tituloPagina, paginaAtiva, callback) {
