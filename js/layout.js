@@ -173,11 +173,13 @@ async function carregarLogosSidebar() {
   try {
     const { data } = await db.from('configuracoes_sistema')
       .select('*').eq('projeto_id', 'default').single();
+    console.log('[sidebar-logos] logos_topo:', JSON.stringify(data?.logos_topo));
     if (!data) return;
 
     const wrap = document.getElementById('sidebar-logos-topo');
     if (wrap) {
       const logos = [...(data.logos_topo || [])].sort((a, b) => a.ordem - b.ordem);
+      console.log('[sidebar-logos] logos count:', logos.length, 'wrap found:', !!wrap);
       if (logos.length) {
         const alturas = { pequeno: '18px', medio: '24px', grande: '32px' };
         wrap.innerHTML = logos.map((l, i) =>
