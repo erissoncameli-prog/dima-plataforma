@@ -172,9 +172,7 @@ async function trocarIdioma(lang) {
 async function carregarLogosSidebar() {
   try {
     const { data } = await db.from('configuracoes_sistema')
-      .select('logos_topo,projeto_codigo')
-      .eq('projeto_id', 'default').single();
-    console.log('[sidebar-logos] data:', JSON.stringify(data));
+      .select('*').eq('projeto_id', 'default').single();
     if (!data) return;
 
     const wrap = document.getElementById('sidebar-logos-topo');
@@ -184,7 +182,7 @@ async function carregarLogosSidebar() {
         const alturas = { pequeno: '18px', medio: '24px', grande: '32px' };
         wrap.innerHTML = logos.map((l, i) =>
           `${i > 0 ? '<div style="width:1px;height:22px;background:rgba(255,255,255,.25);flex-shrink:0"></div>' : ''}
-           <img src="${l.url}" alt="${l.alt || ''}" style="height:${alturas[l.tamanho || 'medio']};width:auto;object-fit:contain" onerror="this.style.display='none'">`
+           <img src="${l.url}" alt="${l.alt || ''}" style="height:${alturas[l.tamanho || 'medio']};width:auto;object-fit:contain">`
         ).join('');
       }
     }
