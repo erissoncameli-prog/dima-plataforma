@@ -174,6 +174,7 @@ async function carregarLogosSidebar() {
     const { data } = await db.from('configuracoes_sistema')
       .select('logos_topo,projeto_codigo')
       .eq('projeto_id', 'default').single();
+    console.log('[sidebar-logos] data:', JSON.stringify(data));
     if (!data) return;
 
     const wrap = document.getElementById('sidebar-logos-topo');
