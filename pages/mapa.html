@@ -1710,6 +1710,7 @@ async function excluirPonto(id){
 
 // ── Edição de polígonos e trilhas ─────────────────────────────────────────
 let _geoEditando = null;
+let _geoFotos = []; // [{url, file}] — fotos existentes ou novas aguardando upload
 
 function abrirModalEditarGeometria(group, tipo){
   const pts = pontos
