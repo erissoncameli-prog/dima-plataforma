@@ -2700,16 +2700,19 @@ async function relVi2(){
         ? diarias.map(d=>`<div>${esc(d.tipo_diaria||d.tipo||'—')}: ${d.quantidade||d.qtd_dias||0}d × ${fmtBRL(d.valor_unitario||0)}</div>`).join('')
         : '<span style="color:var(--cinza-400)">—</span>';
 
-      const orcBRL = p.atividade?.orcamento_usd ? parseFloat(p.atividade.orcamento_usd) * cotacao : 0;
-      const pctAtiv = orcBRL > 0 ? (vPass + vDiar) / orcBRL * 100 : null;
-      const pctCor = pctAtiv === null ? '' : pctAtiv >= 20 ? '#DC2626' : pctAtiv >= 10 ? '#D97706' : '#059669';
-      const pctHtml = pctAtiv === null
+      const saldoAtv  = p.atividade_id ? ativSaldo[p.atividade_id] : null;
+      const saldoBRL  = saldoAtv?.saldoBRL ?? 0;
+      const gastoViaj = vPass + vDiar;
+      const pctAtiv   = saldoBRL > 0 ? gastoViaj / saldoBRL * 100 : null;
+      const pctCor    = pctAtiv === null ? '' : pctAtiv >= 30 ? '#DC2626' : pctAtiv >= 15 ? '#D97706' : '#059669';
+      const pctHtml   = pctAtiv === null
         ? '<span style="color:var(--cinza-400)">—</span>'
-        : `<div style="display:flex;flex-direction:column;gap:3px;min-width:70px">
+        : `<div style="display:flex;flex-direction:column;gap:3px;min-width:80px">
             <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:${pctCor}">${fmtPct1(pctAtiv)}</div>
+            <div style="font-size:9px;color:var(--cinza-500)">de ${fmtBRL(saldoBRL)}</div>
             <div class="rep-barra"><div class="rep-barra-fill" style="width:${Math.min(100,pctAtiv).toFixed(0)}%;background:${pctCor}"></div></div>
            </div>`;
-      const ativHtml = p.atividade
+      const ativHtml  = p.atividade
         ? `<span style="font-size:9px;background:var(--cinza-100);padding:2px 5px;border-radius:3px;font-family:var(--font-mono)">${esc(p.atividade.codigo)}</span>`
         : '<span style="color:var(--cinza-400)">—</span>';
 
