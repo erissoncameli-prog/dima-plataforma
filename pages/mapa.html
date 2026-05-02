@@ -44,10 +44,10 @@
 .btn-admin-filtros:hover{background:var(--cinza-100);}
 
 /* ── Lista de pontos ───────────────────────────────────────── */
-.pontos-lista{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;flex:1;min-height:60px;}
-.pontos-lista-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 8px;border-bottom:1px solid var(--borda);}
+.pontos-lista{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;flex:1;min-height:60px;display:flex;flex-direction:column;}
+.pontos-lista-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 8px;border-bottom:1px solid var(--borda);flex-shrink:0;}
 .pontos-lista-header h4{margin:0;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;}
-.pontos-scroll{overflow-y:auto;max-height:220px;}
+.pontos-scroll{overflow-y:auto;flex:1;min-height:0;}
 .ponto-item{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;border-bottom:1px solid var(--cinza-100);cursor:pointer;transition:background .12s;}
 .ponto-item:last-child{border-bottom:none;}
 .ponto-item:hover{background:var(--cinza-50);}
