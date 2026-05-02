@@ -554,16 +554,18 @@ function renderPreviewHTML() {
       <div class="pv-foto-legenda">${cfg.fotos[0]?.legenda || 'APAs · Rio Branco, Acre'}</div>
     </div>
     <div id="pv-dir">
-      <div class="pv-lang-row">
-        <div class="pv-lang-btn ativo">🇧🇷 PT</div>
-        <div class="pv-lang-btn">🇺🇸 EN</div>
-        <div class="pv-lang-btn">🇪🇸 ES</div>
+      <div id="pv-login-box">
+        <div class="pv-lang-row">
+          <div class="pv-lang-btn ativo">🇧🇷 PT</div>
+          <div class="pv-lang-btn">🇺🇸 EN</div>
+          <div class="pv-lang-btn">🇪🇸 ES</div>
+        </div>
+        <div class="pv-titulo">Entrar na plataforma</div>
+        <div class="pv-sub">Acesse com suas credenciais institucionais</div>
+        <div class="pv-label">E-mail</div><div class="pv-input"></div>
+        <div class="pv-label">Senha</div><div class="pv-input"></div>
+        <div class="pv-btn" style="background:${cfg.cor_primaria}"></div>
       </div>
-      <div class="pv-titulo">Entrar na plataforma</div>
-      <div class="pv-sub">Acesse com suas credenciais institucionais</div>
-      <div class="pv-label">E-mail</div><div class="pv-input"></div>
-      <div class="pv-label">Senha</div><div class="pv-input"></div>
-      <div class="pv-btn" style="background:${cfg.cor_primaria}"></div>
     </div>
   </div>`;
 }
