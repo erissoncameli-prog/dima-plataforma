@@ -2841,14 +2841,15 @@ async function relVi3(){
   // Coletar IDs únicos das atividades presentes nos protocolos
   const ativIds = [...new Set((data||[]).map(p=>p.atividade_id).filter(Boolean))];
 
-  // Query 2: atividades com contratos (query direta — sem aninhamento triplo)
-  const {data:ativData} = ativIds.length
-    ? await db.from('atividades')
-        .select('id,contratos(valor_comprometido_brl,valor_utilizado_brl)')
-        .in('id', ativIds)
-    : {data:[]};
+  // Queries paralelas: contratos + lançamentos diretos (execucao_financeira sem contrato)
+  const [{ data:ativData }, { data:dirData }] = ativIds.length
+    ? await Promise.all([
+        db.from('atividades').select('id,contratos(valor_comprometido_brl,valor_utilizado_brl)').in('id',ativIds),
+        db.from('execucao_financeira').select('atividade_id,valor_brl,situacao').in('atividade_id',ativIds).is('contrato_id',null).neq('situacao','cancelado')
+      ])
+    : [{data:[]},{data:[]}];
 
-  // Índice atividade_id → {pago, comprometido}
+  // Índice atividade_id → {pago, comprometido} (contratos + diretos)
   const ativContratos = {};
   (ativData||[]).forEach(a=>{
     const contratos = a.contratos||[];
@@ -2856,6 +2857,11 @@ async function relVi3(){
       pago:        contratos.reduce((s,c)=>s+parseFloat(c.valor_utilizado_brl||0),0),
       comprometido:contratos.reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0)
     };
+  });
+  (dirData||[]).forEach(l=>{
+    if(!ativContratos[l.atividade_id]) ativContratos[l.atividade_id]={pago:0,comprometido:0};
+    ativContratos[l.atividade_id].comprometido += parseFloat(l.valor_brl||0);
+    if(l.situacao==='pago') ativContratos[l.atividade_id].pago += parseFloat(l.valor_brl||0);
   });
 
   // Mapa por atividade — agrega viagens e dados orçamentários
