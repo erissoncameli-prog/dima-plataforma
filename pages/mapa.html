@@ -2362,6 +2362,73 @@ async function _gravarLog(acao, dadosAntes, dadosDepois){
   } catch(e){ console.warn('Erro ao gravar log:', e); }
 }
 
+// ── Scrollbar customizada do painel de filtros ────────────────────────────
+function initScrollbarCustom(){
+  const painel = document.getElementById('mapa-painel');
+  const outer  = document.getElementById('mapa-scrollbar-outer');
+  if(!painel || !outer) return;
+
+  const CORES = ['#2D6A4F','#1d4ed8','#7c3aed','#475569'];
+
+  function getSections(){
+    const blocos = Array.from(painel.querySelectorAll('.filtro-bloco'));
+    const pontos = painel.querySelector('.pontos-lista');
+    return [...blocos, pontos].filter(Boolean);
+  }
+
+  function update(){
+    const totalH  = painel.scrollHeight;
+    const outerH  = outer.clientHeight;
+    const sections = getSections();
+
+    sections.forEach((el, i) => {
+      const zona = document.getElementById('msb-z' + i);
+      if(!zona) return;
+      zona.style.top    = (el.offsetTop    / totalH * 100) + '%';
+      zona.style.height = (el.offsetHeight / totalH * 100) + '%';
+    });
+
+    const thumb = document.getElementById('mapa-scrollbar-thumb');
+    if(thumb){
+      if(totalH <= painel.clientHeight){ thumb.style.display = 'none'; return; }
+      thumb.style.display = 'block';
+      const visRatio = painel.clientHeight / totalH;
+      const thumbH   = Math.max(22, visRatio * outerH);
+      const scrollPct = painel.scrollTop / (totalH - painel.clientHeight);
+      thumb.style.height = thumbH + 'px';
+      thumb.style.top    = (scrollPct * (outerH - thumbH)) + 'px';
+    }
+
+    const mid = painel.scrollTop + painel.clientHeight / 2;
+    sections.forEach((el, i) => {
+      const zona = document.getElementById('msb-z' + i);
+      if(!zona) return;
+      zona.style.opacity = (mid >= el.offsetTop && mid < el.offsetTop + el.offsetHeight) ? '1' : '0.38';
+    });
+  }
+
+  painel.addEventListener('scroll', update);
+
+  outer.addEventListener('click', e => {
+    const rect = outer.getBoundingClientRect();
+    const pct  = (e.clientY - rect.top) / rect.height;
+    painel.scrollTo({ top: pct * painel.scrollHeight, behavior: 'smooth' });
+  });
+
+  getSections().forEach((el, i) => {
+    const zona = document.getElementById('msb-z' + i);
+    if(!zona) return;
+    zona.addEventListener('click', ev => {
+      ev.stopPropagation();
+      painel.scrollTo({ top: el.offsetTop, behavior: 'smooth' });
+    });
+  });
+
+  new ResizeObserver(update).observe(painel);
+  new MutationObserver(update).observe(painel, { subtree: true, attributes: true, attributeFilter: ['style'] });
+  setTimeout(update, 300);
+}
+
 // ── Clique no mapa ────────────────────────────────────────────────────────
 function vincularEventos(){
   mapaL.on('click', e => {
