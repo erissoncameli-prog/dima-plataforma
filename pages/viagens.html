@@ -276,6 +276,39 @@
     </div>
   </div>
 </div>
+<!-- Modal notificação por e-mail -->
+<div class="modal-overlay" id="modal-notif-email">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📧 Enviar notificações por e-mail</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Remetente: projetounesco.acre@gmail.com</div>
+      </div>
+      <button class="modal-close" onclick="fecharModalNotif()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px 24px">
+      <!-- Fase + protocolo -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:16px">
+        <span style="font-size:20px">📋</span>
+        <div>
+          <div style="font-size:11px;color:var(--cinza-500)">Protocolo</div>
+          <div style="font-size:13px;font-weight:700" id="notif-protocolo-num">—</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:11px;color:var(--cinza-500)">Fase</div>
+          <div style="font-size:12px;font-weight:600;color:#1E40AF" id="notif-evento-label">—</div>
+        </div>
+      </div>
+      <!-- Lista de destinatários -->
+      <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Destinatários</div>
+      <div id="notif-destinatarios"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalNotif()">Cancelar</button>
+      <button class="btn btn-primary" style="margin-left:auto" id="notif-btn-enviar" onclick="confirmarEnvioEmails()">📧 Enviar e-mails</button>
+    </div>
+  </div>
+</div>
 <div id="lightbox" onclick="fecharLightbox()">
   <button onclick="fecharLightbox()" style="position:absolute;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;background:none;border:none">✕</button>
   <img id="lb-img" src="" alt="" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px">
@@ -1652,6 +1685,10 @@ async function abrirDetalhe(id){
   const pago=p.situacao==='realizado';
   let footer=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
 
+  // Notificar por e-mail: admin ou dono, em qualquer fase notificável
+  if(p.situacao!=='rascunho'&&p.situacao!=='cancelado'&&(ehDono||isAdmin))
+    footer+=`<button class="btn" style="margin-left:8px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="abrirModalNotif('${p.id}','${p.situacao}')">📧 Notificar</button>`;
+
   // Cancelar: dono pode cancelar em qualquer fase não-paga (exceto já cancelado/rejeitado)
   if(!pago && p.situacao!=='cancelado' && p.situacao!=='rejeitado' && (ehDono||isAdmin))
     footer+=`<button class="btn" style="margin-left:8px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="cancelarProtocolo()">✕ Cancelar</button>`;
@@ -2167,6 +2204,101 @@ async function enviarEmailUnesco(){
 function copiarEmail(){
   const corpo=document.getElementById('email-corpo').value;
   navigator.clipboard.writeText(corpo).then(()=>toast('Texto copiado!','success'));
+}
+
+// ══════════════════════════════════════════════════════════════
+// NOTIFICAÇÃO POR E-MAIL (viajantes + criador)
+// ══════════════════════════════════════════════════════════════
+const NOTIF_LABELS={
+  solicitado:'Solicitação registrada',
+  aprovado:'Aprovação',
+  rejeitado:'Não aprovado',
+  em_prestacao:'Prestação de contas',
+  realizado:'Conclusão'
+};
+
+async function abrirModalNotif(protId,evento){
+  const p=protocolos.find(x=>x.id===protId)||protAtual;
+  if(!p)return;
+
+  document.getElementById('notif-protocolo-num').textContent=p.numero||'—';
+  document.getElementById('notif-evento-label').textContent=NOTIF_LABELS[evento]||evento;
+
+  // Viajantes com e-mail
+  const comEmail=(p.viajantes||[]).filter(v=>v.email);
+  const semEmail=(p.viajantes||[]).filter(v=>!v.email);
+
+  let html='';
+
+  // Criador (e-mail do usuário logado se for dono, senão indicação genérica)
+  const isCriador=p.criado_por===appState.usuario.id;
+  const criadorEmail=isCriador?appState.usuario.email:null;
+  html+=`<div style="padding:9px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:16px">👤</span>
+    <div style="flex:1">
+      <div style="font-size:12px;font-weight:600">${esc(p.criado_por_nome||'Criador do protocolo')}</div>
+      <div style="font-size:11px;color:var(--cinza-500)">${criadorEmail?esc(criadorEmail):'e-mail buscado automaticamente'}</div>
+    </div>
+    <span style="font-size:10px;background:#EFF6FF;color:#1E40AF;padding:2px 7px;border-radius:99px;white-space:nowrap">Msg detalhada</span>
+  </div>`;
+
+  // Viajantes com e-mail
+  comEmail.forEach(v=>{
+    if(v.email===criadorEmail)return; // já incluído acima
+    html+=`<div style="padding:9px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:16px">✈</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600">${esc(v.nome||'—')}</div>
+        <div style="font-size:11px;color:var(--cinza-500)">${esc(v.email)}</div>
+      </div>
+      <span style="font-size:10px;background:#F0FDF4;color:#166534;padding:2px 7px;border-radius:99px;white-space:nowrap">Msg simplificada</span>
+    </div>`;
+  });
+
+  if(semEmail.length>0)
+    html+=`<div style="margin-top:4px;font-size:11px;color:#92400E;background:#FFFBEB;padding:7px 10px;border-radius:var(--raio);border:1px solid #FDE68A">
+      ⚠ ${semEmail.length} viajante(s) sem e-mail cadastrado não receberão notificação:
+      ${semEmail.map(v=>esc(v.nome||'—')).join(', ')}
+    </div>`;
+
+  document.getElementById('notif-destinatarios').innerHTML=html;
+
+  const btn=document.getElementById('notif-btn-enviar');
+  btn.dataset.protocolo=protId;
+  btn.dataset.evento=evento;
+  btn.disabled=false;
+  btn.textContent='📧 Enviar e-mails';
+
+  document.getElementById('modal-notif-email').classList.add('aberto');
+}
+
+function fecharModalNotif(){
+  document.getElementById('modal-notif-email').classList.remove('aberto');
+}
+
+async function confirmarEnvioEmails(){
+  const btn=document.getElementById('notif-btn-enviar');
+  const protocolo_id=btn.dataset.protocolo;
+  const evento=btn.dataset.evento;
+  btn.disabled=true;btn.textContent='⏳ Enviando...';
+  try{
+    const {data:{session}}=await db.auth.getSession();
+    const resp=await fetch(`${SUPABASE_URL}/functions/v1/enviar-email-viagem`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token}`},
+      body:JSON.stringify({protocolo_id,evento})
+    });
+    const result=await resp.json();
+    if(result.ok){
+      toast(`✉ ${result.enviados} e-mail(s) enviado(s) com sucesso!`,'success');
+      fecharModalNotif();
+    } else {
+      throw new Error(result.error||'Erro desconhecido ao enviar e-mails');
+    }
+  }catch(e){
+    toast(`Erro: ${e.message}`,'error');
+    btn.disabled=false;btn.textContent='📧 Enviar e-mails';
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
