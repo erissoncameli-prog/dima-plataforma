@@ -1176,7 +1176,7 @@ function _geoCarNav(dir){
   _geoCarAtual.idx = (_geoCarAtual.idx + dir + n) % n;
   const img     = document.getElementById('geo-car-img');
   const counter = document.getElementById('geo-car-counter');
-  if(img)     img.src = escHtml(_geoCarAtual.fotos[_geoCarAtual.idx]);
+  if(img)     img.src = _geoCarAtual.fotos[_geoCarAtual.idx];
   if(counter) counter.textContent = `${_geoCarAtual.idx + 1}/${n}`;
 }
 
