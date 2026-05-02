@@ -539,13 +539,21 @@ function renderPreviewHTML() {
         <div id="pv-logo-projeto-wrap">
           <div id="pv-logo-projeto-box">${pvHtmlLogoProjeto()}</div>
         </div>
-        <div id="pv-proj-info">
-          <div id="pv-proj-badge"><div class="pv-dot"></div>${esc(cfg.projeto_codigo)}</div>
-          <div id="pv-proj-nome">${esc(cfg.projeto_nome)}</div>
-          <div id="pv-proj-local">${esc(cfg.projeto_localizacao)}</div>
-          <div id="pv-dots" style="display:flex;gap:4px;margin-top:8px">${pvHtmlDots()}</div>
+        <div>
+          <div id="pv-proj-info">
+            <div id="pv-proj-badge"><div class="pv-dot"></div>${esc(cfg.projeto_codigo)}</div>
+            <div id="pv-proj-nome">${esc(cfg.projeto_nome)}</div>
+            <div id="pv-proj-local">${esc(cfg.projeto_localizacao)}</div>
+            <div id="pv-dots" style="display:flex;gap:4px;margin-top:8px">${pvHtmlDots()}</div>
+          </div>
+          <div id="pv-parceiros-wrap">
+            <span class="pv-parceiros-label-left">Realização e parceiros</span>
+            <div id="pv-parceiros-logos">${pvHtmlParceiros()}</div>
+          </div>
         </div>
       </div>
+      <div class="pv-foto-contador">${cfg.fotos.length ? '1 / ' + cfg.fotos.length : ''}</div>
+      <div class="pv-foto-legenda">${cfg.fotos[0]?.legenda || 'APAs · Rio Branco, Acre'}</div>
     </div>
     <div id="pv-dir">
       <div class="pv-lang-row">
@@ -558,9 +566,6 @@ function renderPreviewHTML() {
       <div class="pv-label">E-mail</div><div class="pv-input"></div>
       <div class="pv-label">Senha</div><div class="pv-input"></div>
       <div class="pv-btn" style="background:${cfg.cor_primaria}"></div>
-      <div class="pv-sep"></div>
-      <div class="pv-parceiros-label">Realização e parceiros</div>
-      <div id="pv-parceiros-logos">${pvHtmlParceiros()}</div>
     </div>
   </div>`;
 }
