@@ -2638,22 +2638,12 @@ async function relVi2(){
   const dtFim    = filVal('fil-dt-fim');
   const viaFil   = filVal('fil-viajante-viagem');
 
-  const [qProt, qCot] = await Promise.all([
-    db.from('viagem_protocolos')
-      .select(`*,atividade:atividades(id,codigo,nome_pt,orcamento_usd),viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
-      .order('dt_saida',{ascending:false})
-      .then(r => dtIni ? {...r, data:(r.data||[]).filter(p=>p.dt_saida>=dtIni)} : r)
-      .then(r => dtFim ? {...r, data:(r.data||[]).filter(p=>p.dt_saida<=dtFim)} : r),
-    db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
-  ]);
-
-  // Re-executar a query corretamente com filtros no servidor
   let q = db.from('viagem_protocolos')
     .select(`*,atividade:atividades(id,codigo,nome_pt,orcamento_usd),viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
     .order('dt_saida',{ascending:false});
   if(dtIni) q = q.gte('dt_saida', dtIni);
   if(dtFim) q = q.lte('dt_saida', dtFim);
-  const {data, error} = await q;
+  const [{data, error}, qCot] = await Promise.all([q, db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)]);
   if(error) throw error;
 
   const cotacao = parseFloat(qCot.data?.[0]?.cotacao||1);
