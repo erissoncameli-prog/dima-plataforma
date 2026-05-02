@@ -2749,6 +2749,259 @@ async function relVi3(){
 }
 
 // ══════════════════════════════════════════════════════════════
+// Vi4 — RELATÓRIO DETALHADO DE PROTOCOLO
+// ══════════════════════════════════════════════════════════════
+async function relVi4(){
+  const sel = document.getElementById('fil-protocolo-vi4-multi');
+  const selectedIds = sel ? [...sel.selectedOptions].map(o=>o.value) : [];
+  const stFil  = filVal('fil-status-viagem');
+  const dtIni  = filVal('fil-dt-ini');
+  const dtFim  = filVal('fil-dt-fim');
+
+  let q = db.from('viagem_protocolos')
+    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
+    .order('dt_saida',{ascending:false});
+  if(selectedIds.length) q = q.in('id', selectedIds);
+  if(stFil) q = q.eq('situacao', stFil);
+  if(dtIni) q = q.gte('dt_saida', dtIni);
+  if(dtFim) q = q.lte('dt_saida', dtFim);
+
+  const {data, error} = await q;
+  if(error) throw error;
+  const rows = data||[];
+  if(!rows.length) return `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Nenhum protocolo encontrado para os filtros selecionados.</div>`;
+
+  const SIT_LABELS2 = {rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em Prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+  const SIT_BADGE2  = {rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
+
+  const nomeUsuario = id => {
+    if(!id) return '—';
+    const u = _usuarios.find(u=>u.id===id);
+    return u?.nome_completo||id;
+  };
+
+  const dedup = (arr, key='id') => {
+    const seen = new Set();
+    return (arr||[]).filter(x=>{ if(seen.has(x[key])) return false; seen.add(x[key]); return true; });
+  };
+
+  const calcTotais = vList => {
+    let pass=0, diar=0;
+    vList.forEach(v=>{
+      dedup(v.trechos).forEach(t=>{ pass+=parseFloat(t.valor||0); });
+      dedup(v.diarias).forEach(d=>{ diar+=parseFloat(d.quantidade||d.qtd_dias||0)*parseFloat(d.valor_unitario||0); });
+    });
+    return {pass, diar, total:pass+diar};
+  };
+
+  const blocos = rows.map(p=>{
+    const vList = dedup(p.viajantes);
+    const {pass:totalPass, diar:totalDiar, total:totalGeral} = calcTotais(vList);
+
+    // ── Timeline ──────────────────────────────────────────────
+    const etapas = [];
+    const solicitante = p.email_solicitante||nomeUsuario(p.criado_por);
+    etapas.push({icone:'📝',cor:'#2563EB',label:'Solicitado',data:p.criado_em,desc:`Por: ${solicitante}`,ok:true});
+
+    if(p.rejeitado_em){
+      etapas.push({icone:'❌',cor:'#DC2626',label:'Rejeitado / Devolvido',data:p.rejeitado_em,
+        desc:p.rejeitado_motivo?`Motivo: ${p.rejeitado_motivo.substring(0,80)}`:'',ok:true});
+    } else if(p.aprovado_em){
+      etapas.push({icone:'✅',cor:'#059669',label:'Aprovado',data:p.aprovado_em,
+        desc:`Por: ${nomeUsuario(p.aprovado_por)}`,ok:true});
+    } else {
+      etapas.push({icone:'⏳',cor:'#9CA3AF',label:'Aguardando aprovação',data:null,desc:'',ok:false});
+    }
+
+    if(!p.rejeitado_em && p.aprovado_em){
+      const viagemOcorreu = p.dt_retorno && new Date(p.dt_retorno) < new Date();
+      if(viagemOcorreu || p.situacao==='em_prestacao' || p.situacao==='realizado'){
+        etapas.push({icone:'✈',cor:'#7C3AED',label:'Viagem realizada',data:p.dt_retorno,desc:'',ok:true});
+        if(p.situacao==='realizado'){
+          etapas.push({icone:'📋',cor:'#059669',label:'Prestação confirmada',data:p.realizado_em,desc:'Documentos validados',ok:true});
+          etapas.push({icone:'🏁',cor:'#059669',label:'Concluído',data:p.realizado_em,desc:'Lançado no financeiro',ok:true});
+        } else if(p.situacao==='em_prestacao'){
+          etapas.push({icone:'📋',cor:'#7C3AED',label:'Prestação de contas enviada',data:null,desc:'Aguardando validação pelo coordenador',ok:true});
+          etapas.push({icone:'🏁',cor:'#9CA3AF',label:'Conclusão',data:null,desc:'Aguardando dados',ok:false});
+        } else {
+          etapas.push({icone:'📋',cor:'#9CA3AF',label:'Prestação de contas',data:null,desc:'Aguardando dados',ok:false});
+          etapas.push({icone:'🏁',cor:'#9CA3AF',label:'Conclusão',data:null,desc:'Aguardando dados',ok:false});
+        }
+      } else {
+        etapas.push({icone:'✈',cor:'#9CA3AF',label:'Viagem ainda não ocorrida',data:null,desc:`Prevista: ${fmtDt(p.dt_saida)}`,ok:false});
+        etapas.push({icone:'📋',cor:'#9CA3AF',label:'Prestação de contas',data:null,desc:'Aguardando dados',ok:false});
+        etapas.push({icone:'🏁',cor:'#9CA3AF',label:'Conclusão',data:null,desc:'Aguardando dados',ok:false});
+      }
+    }
+
+    const timelineHtml = etapas.map((e,i)=>`
+      <div style="display:flex;gap:8px;align-items:flex-start${i<etapas.length-1?';padding-bottom:10px':''}">
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:22px">
+          <div style="width:22px;height:22px;border-radius:50%;background:${e.cor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;${e.ok?'':'opacity:.4'}">${e.icone}</div>
+          ${i<etapas.length-1?`<div style="width:2px;flex:1;min-height:10px;background:${e.ok?e.cor:'#E5E7EB'};margin-top:2px;opacity:.4"></div>`:''}
+        </div>
+        <div style="flex:1;padding-top:2px;${e.ok?'':'opacity:.45'}">
+          <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${e.label}</div>
+          ${e.data?`<div style="font-size:10px;color:var(--cinza-500)">${new Date(e.data).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`:''}
+          ${e.desc?`<div style="font-size:10px;color:var(--cinza-600);margin-top:1px">${esc(e.desc)}</div>`:''}
+        </div>
+      </div>`).join('');
+
+    // ── Viajantes / trechos / diárias ─────────────────────────
+    const vRows = vList.map(v=>{
+      const trechos = dedup(v.trechos);
+      const diarias = dedup(v.diarias);
+      const vPass   = trechos.reduce((s,t)=>s+parseFloat(t.valor||0),0);
+      const vDiar   = diarias.reduce((s,d)=>s+parseFloat(d.quantidade||d.qtd_dias||0)*parseFloat(d.valor_unitario||0),0);
+      const tStr    = trechos.length
+        ? trechos.map(t=>`${esc(t.origem||'?')}→${esc(t.destino||'?')} <span style="color:var(--cinza-400)">(${esc(t.tipo||'—')}, ${fmtDt(t.dt_saida)})</span> <span class="mono">${fmtBRL(t.valor||0)}</span>`).join('<br>')
+        : '<span style="color:var(--cinza-400)">—</span>';
+      const dStr    = diarias.length
+        ? diarias.map(d=>`${esc(d.tipo_diaria||d.tipo||'—')}: ${d.quantidade||d.qtd_dias||0}d × ${fmtBRL(d.valor_unitario||0)}`).join('<br>')
+        : '<span style="color:var(--cinza-400)">—</span>';
+      return `<tr>
+        <td>${esc(v.nome||'—')}</td>
+        <td style="color:var(--cinza-500);font-size:10px">${esc(v.funcao||'—')}</td>
+        <td style="font-size:10px">${tStr}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(vPass)}</td>
+        <td style="font-size:10px">${dStr}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(vDiar)}</td>
+        <td class="mono" style="text-align:right;font-weight:600">${fmtBRL(vPass+vDiar)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--cinza-400);padding:12px">Nenhum viajante cadastrado</td></tr>`;
+
+    // ── Prestação de contas ───────────────────────────────────
+    const prestacaoAtiva = ['em_prestacao','realizado'].includes(p.situacao);
+    let prestacaoHtml;
+    if(!prestacaoAtiva){
+      prestacaoHtml = `<div style="font-size:11px;color:var(--cinza-400);font-style:italic;padding:8px 0">Aguardando dados — prestação de contas ainda não iniciada.</div>`;
+    } else {
+      const secoes = vList.map(v=>{
+        const cartoes = v.cartoes_embarque_urls||[];
+        const thumbs  = cartoes.map((url,i)=>`
+          <a href="${esc(url)}" target="_blank" rel="noopener"
+             style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:56px;border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;text-decoration:none;flex-shrink:0">
+            <img src="${esc(url)}" style="width:100%;height:100%;object-fit:cover"
+              onerror="this.parentElement.innerHTML='<span style=\\'font-size:18px\\'>🎫</span>'"
+              alt="Cartão ${i+1}">
+          </a>`).join('');
+        const relHtml = v.relatorio_url
+          ? `<a href="${esc(v.relatorio_url)}" target="_blank" rel="noopener"
+               style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--verde-medio);text-decoration:none;background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:4px 10px">
+               📄 ${esc(v.relatorio_nome||'Relatório de viagem')}
+             </a>`
+          : `<span style="font-size:11px;color:var(--cinza-400);font-style:italic">Aguardando dados</span>`;
+        return `
+          <div style="margin-bottom:10px">
+            <div style="font-size:10px;font-weight:600;color:var(--cinza-700);margin-bottom:6px">${esc(v.nome||'—')}</div>
+            <div style="margin-bottom:6px">
+              <span style="font-size:9px;text-transform:uppercase;color:var(--cinza-400);letter-spacing:.05em">Relatório de viagem</span><br>
+              <div style="margin-top:3px">${relHtml}</div>
+            </div>
+            ${cartoes.length?`
+            <div>
+              <span style="font-size:9px;text-transform:uppercase;color:var(--cinza-400);letter-spacing:.05em">Cartões de embarque (${cartoes.length})</span>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${thumbs}</div>
+            </div>`:''}
+          </div>`;
+      }).join('');
+      prestacaoHtml = secoes || `<span style="font-size:11px;color:var(--cinza-400);font-style:italic">Aguardando dados</span>`;
+    }
+
+    return `
+    <div style="border:2px solid var(--borda);border-radius:8px;margin-bottom:28px;overflow:hidden;page-break-inside:avoid">
+      <!-- Cabeçalho -->
+      <div style="background:var(--verde-bg);border-bottom:2px solid var(--borda-verde);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;background:var(--verde-escuro);color:#fff;padding:3px 10px;border-radius:4px">${esc(p.numero||'—')}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;min-width:0">${esc(p.objetivo||p.destino_principal||'—')}</span>
+        <span class="rep-badge ${SIT_BADGE2[p.situacao]||'rb-cinza'}">${SIT_LABELS2[p.situacao]||p.situacao}</span>
+      </div>
+
+      <!-- Grid principal: dados+timeline | financeiro+prestação -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--borda)">
+
+        <!-- Esquerda: dados + timeline -->
+        <div style="padding:16px;border-right:1px solid var(--borda)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Dados do Protocolo</div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px">
+            ${[
+              ['Número SEI', p.numero_sei||'—'],
+              ['Destino',    p.destino_principal||'—'],
+              ['Objetivo',   p.objetivo||'—'],
+              ['Saída',      p.dt_saida?fmtDt(p.dt_saida):'—'],
+              ['Retorno',    p.dt_retorno?fmtDt(p.dt_retorno):'—'],
+              ['Solicitante',p.email_solicitante||nomeUsuario(p.criado_por)||'—'],
+              ...(p.observacoes?[['Observações',p.observacoes]]:[])
+            ].map(([l,v])=>`<tr>
+              <td style="padding:3px 8px 3px 0;color:var(--cinza-500);white-space:nowrap;vertical-align:top;width:88px;font-size:10px">${l}</td>
+              <td style="padding:3px 0;color:var(--cinza-900);word-break:break-word">${esc(String(v))}</td>
+            </tr>`).join('')}
+          </table>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Histórico</div>
+          ${timelineHtml}
+        </div>
+
+        <!-- Direita: financeiro + prestação -->
+        <div style="padding:16px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Resumo Financeiro</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
+            <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;text-align:center">
+              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:4px">Passagens</div>
+              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cinza-900)">${fmtBRL(totalPass)}</div>
+            </div>
+            <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;text-align:center">
+              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:4px">Diárias</div>
+              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cinza-900)">${fmtBRL(totalDiar)}</div>
+            </div>
+            <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:10px;text-align:center">
+              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:4px">Total</div>
+              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--verde-medio)">${fmtBRL(totalGeral)}</div>
+            </div>
+          </div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Prestação de Contas</div>
+          ${prestacaoHtml}
+        </div>
+      </div>
+
+      <!-- Viajantes / Trechos / Diárias -->
+      <div style="padding:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Viajantes · Trechos · Diárias</div>
+        <table class="rep-tbl">
+          <thead><tr>
+            <th>Viajante</th><th>Função</th><th>Trechos</th>
+            <th style="text-align:right">Passagens</th>
+            <th>Diárias</th>
+            <th style="text-align:right">Total Diárias</th>
+            <th style="text-align:right">Total</th>
+          </tr></thead>
+          <tbody>${vRows}</tbody>
+          <tfoot><tr>
+            <td colspan="3"><strong>TOTAL DO PROTOCOLO</strong></td>
+            <td class="mono" style="text-align:right">${fmtBRL(totalPass)}</td>
+            <td></td>
+            <td class="mono" style="text-align:right">${fmtBRL(totalDiar)}</td>
+            <td class="mono" style="text-align:right;font-weight:700">${fmtBRL(totalGeral)}</td>
+          </tr></tfoot>
+        </table>
+      </div>
+    </div>`;
+  });
+
+  const grandTotal = rows.reduce((s,p)=>{ const vl=dedup(p.viajantes); return s+calcTotais(vl).total; },0);
+  const grandPass  = rows.reduce((s,p)=>{ const vl=dedup(p.viajantes); return s+calcTotais(vl).pass;  },0);
+  const grandDiar  = rows.reduce((s,p)=>{ const vl=dedup(p.viajantes); return s+calcTotais(vl).diar;  },0);
+
+  return `
+  <div class="rep-stats rep-stats-4" style="margin-bottom:24px">
+    <div class="rep-stat"><div class="rep-stat-lbl">Protocolos</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Viajantes</div><div class="rep-stat-val">${rows.reduce((s,p)=>s+dedup(p.viajantes).length,0)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Passagens</div><div class="rep-stat-val">${fmtBRL(grandPass)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Diárias</div><div class="rep-stat-val">${fmtBRL(grandDiar)}</div></div>
+  </div>
+  ${blocos.join('')}`;
+}
+
+// ══════════════════════════════════════════════════════════════
 // U4 — USUÁRIOS INATIVOS
 // ══════════════════════════════════════════════════════════════
 async function relU4(){
