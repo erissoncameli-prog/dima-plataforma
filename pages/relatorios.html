@@ -2648,19 +2648,27 @@ async function relVi2(){
 
   const cotacao = parseFloat(qCot.data?.[0]?.cotacao||1);
 
-  // Query separada para contratos (evita aninhamento triplo no Supabase)
+  // Queries separadas para contratos + lançamentos diretos (mesmo padrão do financeiro)
   const ativIds = [...new Set((data||[]).map(p=>p.atividade_id).filter(Boolean))];
-  const {data:ativData} = ativIds.length
-    ? await db.from('atividades').select('id,orcamento_usd,contratos(valor_comprometido_brl,valor_utilizado_brl)').in('id',ativIds)
-    : {data:[]};
+  const [{ data:ativData }, { data:dirDataV2 }] = ativIds.length
+    ? await Promise.all([
+        db.from('atividades').select('id,orcamento_usd,contratos(valor_comprometido_brl,valor_utilizado_brl)').in('id',ativIds),
+        db.from('execucao_financeira').select('atividade_id,valor_brl,situacao').in('atividade_id',ativIds).is('contrato_id',null).neq('situacao','cancelado')
+      ])
+    : [{data:[]},{data:[]}];
 
   // Índice atividade_id → { saldoBRL, orcBRL }
   const ativSaldo = {};
   (ativData||[]).forEach(a=>{
-    const orcBRL      = parseFloat(a.orcamento_usd||0)*cotacao;
+    const orcBRL       = parseFloat(a.orcamento_usd||0)*cotacao;
     const comprometido = (a.contratos||[]).reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0);
-    ativSaldo[a.id]   = { orcBRL, saldoBRL: Math.max(0, orcBRL - comprometido) };
+    ativSaldo[a.id]    = { orcBRL, comprometido };
   });
+  (dirDataV2||[]).forEach(l=>{
+    if(!ativSaldo[l.atividade_id]) ativSaldo[l.atividade_id]={orcBRL:0,comprometido:0};
+    ativSaldo[l.atividade_id].comprometido += parseFloat(l.valor_brl||0);
+  });
+  Object.values(ativSaldo).forEach(a=>{ a.saldoBRL = Math.max(0, a.orcBRL - a.comprometido); });
 
   // mapa[nome] = { nome, totalPass, totalDiar, itens:[{prot, viajante}] }
   const mapa = {};
