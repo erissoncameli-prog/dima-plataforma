@@ -1788,6 +1788,50 @@ function _htmlGeoFormDados(p){
   </div>`;
 }
 
+function _htmlGeoFotos(){
+  const MAX = 10;
+  const items = _geoFotos.map((f, i) => {
+    const src = f.file ? escHtml(URL.createObjectURL(f.file)) : escHtml(f.url);
+    const clickUrl = f.file ? src : escHtml(f.url);
+    return `<div class="geo-foto-item">
+      <img src="${src}" onclick="abrirFotoModal('${clickUrl}')" title="Ver foto em tamanho maior">
+      <button class="geo-foto-rm" onclick="_geoRemoverFoto(${i})" title="Remover foto">✕</button>
+    </div>`;
+  }).join('');
+  const podAdicionar = _geoFotos.length < MAX;
+  const addBtn = podAdicionar ? `
+    <label class="geo-foto-add" for="geo-foto-input" title="Adicionar fotos (até ${MAX - _geoFotos.length} restantes)">
+      <span style="font-size:22px">📷</span>
+      <span>Adicionar</span>
+    </label>
+    <input type="file" id="geo-foto-input" accept="image/*" multiple style="display:none" onchange="_geoAdicionarFotos(this)">
+  ` : '';
+  const vazio = _geoFotos.length === 0
+    ? `<p style="font-size:12px;color:var(--cinza-400);text-align:center;margin:24px 0 8px">Nenhuma foto adicionada ainda.</p>` : '';
+  return `
+    <div style="font-size:12px;color:var(--cinza-500);margin-bottom:8px">${_geoFotos.length} / ${MAX} fotos • JPG, PNG, WEBP</div>
+    ${vazio}
+    <div class="geo-foto-grid">${items}${addBtn}</div>
+    <p style="font-size:11px;color:var(--cinza-400);margin-top:10px">As fotos são salvas ao clicar em <strong>Salvar</strong>.</p>
+  `;
+}
+
+function _geoAdicionarFotos(input){
+  const MAX = 10;
+  Array.from(input.files || []).forEach(f => {
+    if(_geoFotos.length >= MAX) return;
+    if(!f.type.startsWith('image/')) return;
+    _geoFotos.push({ url: null, file: f });
+  });
+  input.value = '';
+  abaGeometria('fotos');
+}
+
+function _geoRemoverFoto(idx){
+  _geoFotos.splice(idx, 1);
+  abaGeometria('fotos');
+}
+
 function _htmlGeoVertices(){
   const { pts, tipo } = _geoEditando;
   const latlngs = pts.map(p => [p.lat, p.lng]);
