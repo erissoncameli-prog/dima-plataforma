@@ -839,8 +839,22 @@ function abrirExport() {
   const preview = document.getElementById('exp-preview-content');
   preview.innerHTML = content.outerHTML;
   preview.querySelector('#doc-content')?.removeAttribute('id');
-  // Watermark: remover position:fixed herdado e manter absolute para preview
   preview.querySelectorAll('.doc-watermark').forEach(el => el.style.position = 'absolute');
+
+  // Destacar botões paisagem quando o relatório recomenda essa orientação
+  const sidebar = document.querySelector('.exp-sidebar-body');
+  sidebar.querySelectorAll('.exp-aviso-paisagem').forEach(el => el.remove());
+  sidebar.querySelectorAll('.exp-btn-recomendado').forEach(el => el.classList.remove('exp-btn-recomendado'));
+  if (rel?.paisagem) {
+    const aviso = document.createElement('div');
+    aviso.className = 'exp-aviso-paisagem';
+    aviso.innerHTML = '📰 Este relatório é recomendado em <strong>Paisagem</strong> para melhor visualização.';
+    sidebar.insertBefore(aviso, sidebar.firstChild);
+    sidebar.querySelectorAll('.exp-btn-pdf, .exp-btn-print').forEach(btn => {
+      if (btn.textContent.includes('Paisagem')) btn.classList.add('exp-btn-recomendado');
+    });
+  }
+
   document.getElementById('export-modal').classList.add('aberto');
   document.body.style.overflow = 'hidden';
 }
