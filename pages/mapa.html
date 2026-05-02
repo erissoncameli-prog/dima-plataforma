@@ -1212,7 +1212,11 @@ function _popupGeometria(nome, pts, tipo){
     }
   }
 
+  const fotos = geometriaFotos[tipo + ':' + nome] || [];
+  _geoCarAtual = { fotos, idx: 0 };
+
   return `<div class="mapa-popup">
+    ${_htmlCarrosselPopup(fotos)}
     <h4>${escHtml(nome)}</h4>
     ${p0.tipo_atividade?`<div style="margin-bottom:5px"><span style="background:${cor}22;color:${cor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid ${cor}55">${escHtml(p0.tipo_atividade)}</span></div>`:''}
     ${btnVideo}
