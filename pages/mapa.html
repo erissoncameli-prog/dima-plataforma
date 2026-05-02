@@ -1163,6 +1163,15 @@ function _videoEmbedUrl(url){
   return null;
 }
 
+function _pararCarTimer(){
+  if(_geoCarTimer){ clearInterval(_geoCarTimer); _geoCarTimer = null; }
+}
+function _iniciarCarTimer(){
+  _pararCarTimer();
+  if(_geoCarAtual.fotos.length <= 1) return;
+  _geoCarTimer = setInterval(() => _geoCarNav(1, true), 2000);
+}
+
 function _htmlCarrosselPopup(fotos){
   if(!fotos || !fotos.length) return '';
   const multi = fotos.length > 1;
