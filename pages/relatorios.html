@@ -2802,61 +2802,154 @@ async function relVi3(){
   const dtIni   = filVal('fil-dt-ini');
   const dtFim   = filVal('fil-dt-fim');
   const ativFil = filVal('fil-atividade');
+
   let q = db.from('viagem_protocolos')
-    .select(`id,numero,dt_saida,atividade_id,atividade:atividades(id,codigo,nome_pt),situacao,
+    .select(`id,numero,dt_saida,atividade_id,situacao,
+      atividade:atividades(id,codigo,nome_pt,orcamento_usd,contratos(valor_comprometido_brl,valor_utilizado_brl)),
       viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
     .order('dt_saida',{ascending:false});
   if(dtIni)   q = q.gte('dt_saida', dtIni);
   if(dtFim)   q = q.lte('dt_saida', dtFim);
   if(ativFil) q = q.eq('atividade_id', ativFil);
-  const {data, error} = await q;
+
+  const [{data,error}, qCot] = await Promise.all([
+    q,
+    db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
+  ]);
   if(error) throw error;
+
+  const cotacao = parseFloat(qCot.data?.[0]?.cotacao||1);
+
+  // mapa por atividade — agrega viagens e guarda dados orçamentários
   const mapa = {};
   (data||[]).forEach(p=>{
-    const key=p.atividade?.id||'sem-atv';
-    if(!mapa[key]) mapa[key]={codigo:p.atividade?.codigo||'—',nome:p.atividade?.nome_pt||'Sem Atividade',protocolos:0,total:0};
+    const key = p.atividade?.id||'sem-atv';
+    if(!mapa[key]){
+      const atv = p.atividade;
+      const orcBRL = atv ? parseFloat(atv.orcamento_usd||0)*cotacao : 0;
+      const contratos = atv?.contratos||[];
+      const pago       = contratos.reduce((s,c)=>s+parseFloat(c.valor_utilizado_brl||0),0);
+      const comprometido = contratos.reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0);
+      mapa[key]={
+        id:key, codigo:atv?.codigo||'—', nome:atv?.nome_pt||'Sem Atividade',
+        orcBRL, pago, comprometido, aPagar:Math.max(0,comprometido-pago),
+        viagens:0, protocolos:0
+      };
+    }
     mapa[key].protocolos++;
     const seenV=new Set();
     (p.viajantes||[]).filter(v=>{if(seenV.has(v.id))return false;seenV.add(v.id);return true;}).forEach(v=>{
       const seenT=new Set(),seenD=new Set();
-      mapa[key].total+=(v.trechos||[]).filter(t=>{if(seenT.has(t.id))return false;seenT.add(t.id);return true;}).reduce((s,t)=>s+parseFloat(t.valor||0),0);
-      mapa[key].total+=(v.diarias||[]).filter(d=>{if(seenD.has(d.id))return false;seenD.add(d.id);return true;}).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+      mapa[key].viagens+=(v.trechos||[]).filter(t=>{if(seenT.has(t.id))return false;seenT.add(t.id);return true;}).reduce((s,t)=>s+parseFloat(t.valor||0),0);
+      mapa[key].viagens+=(v.diarias||[]).filter(d=>{if(seenD.has(d.id))return false;seenD.add(d.id);return true;}).reduce((s,d)=>s+parseFloat(d.quantidade||d.qtd_dias||0)*parseFloat(d.valor_unitario||0),0);
     });
   });
-  const lista=Object.values(mapa).sort((a,b)=>b.total-a.total);
-  const totalGeral=lista.reduce((s,r)=>s+r.total,0);
+
+  const lista = Object.values(mapa).sort((a,b)=>b.viagens-a.viagens);
+  const totalGeral   = lista.reduce((s,r)=>s+r.viagens,0);
+  const totalOrc     = lista.reduce((s,r)=>s+r.orcBRL,0);
+  const totalPago    = lista.reduce((s,r)=>s+r.pago,0);
+  const totalComp    = lista.reduce((s,r)=>s+r.comprometido,0);
+  const totalSaldo   = lista.reduce((s,r)=>s+Math.max(0,r.orcBRL-r.comprometido-r.viagens),0);
+
+  // ── gráfico empilhado por atividade ───────────────────────────
+  const grafico = lista.filter(r=>r.orcBRL>0).map(r=>{
+    const total = r.orcBRL;
+    const pPago   = Math.min(100, r.pago/total*100);
+    const pAPagar = Math.min(100-pPago, r.aPagar/total*100);
+    const pViag   = Math.min(100-pPago-pAPagar, r.viagens/total*100);
+    const pSaldo  = Math.max(0, 100-pPago-pAPagar-pViag);
+    const saldo   = r.orcBRL - r.comprometido - r.viagens;
+    const over    = saldo < 0;
+    return `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+        <div style="font-size:10px;font-weight:600;color:var(--cinza-800)">
+          <span style="font-family:var(--font-mono);background:var(--cinza-100);padding:1px 5px;border-radius:3px;margin-right:6px">${esc(r.codigo)}</span>${esc(r.nome)}
+        </div>
+        <div style="font-size:10px;color:${over?'#DC2626':'var(--cinza-500)'};font-family:var(--font-mono)">
+          Saldo: <strong style="color:${over?'#DC2626':'#059669'}">${fmtBRL(saldo)}</strong>
+          ${over?'<span style="color:#DC2626;margin-left:4px">⚠ Acima do orçamento</span>':''}
+        </div>
+      </div>
+      <div style="height:18px;border-radius:4px;overflow:hidden;display:flex;background:var(--cinza-100)">
+        ${pPago>0   ?`<div style="width:${pPago.toFixed(1)}%;background:#059669;height:100%;transition:width .3s" title="Pago: ${fmtBRL(r.pago)}"></div>`:''}
+        ${pAPagar>0 ?`<div style="width:${pAPagar.toFixed(1)}%;background:#D97706;height:100%" title="A pagar: ${fmtBRL(r.aPagar)}"></div>`:''}
+        ${pViag>0   ?`<div style="width:${pViag.toFixed(1)}%;background:#0891B2;height:100%" title="Viagens: ${fmtBRL(r.viagens)}"></div>`:''}
+        ${pSaldo>0  ?`<div style="width:${pSaldo.toFixed(1)}%;background:#E5E7EB;height:100%" title="Saldo: ${fmtBRL(saldo)}"></div>`:''}
+        ${over      ?`<div style="width:4px;background:#DC2626;height:100%"></div>`:''}
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:9px;color:var(--cinza-500);font-family:var(--font-mono)">
+        <span>Orç: ${fmtBRL(r.orcBRL)}</span>
+        <span style="display:flex;gap:10px">
+          <span style="color:#059669">■ Pago ${fmtBRL(r.pago)}</span>
+          <span style="color:#D97706">■ A pagar ${fmtBRL(r.aPagar)}</span>
+          <span style="color:#0891B2">■ Viagens ${fmtBRL(r.viagens)}</span>
+        </span>
+      </div>
+    </div>`;
+  }).join('');
+
   return `
-  <div class="rep-stats rep-stats-3">
+  <div class="rep-stats rep-stats-4">
     <div class="rep-stat"><div class="rep-stat-lbl">Atividades com Viagem</div><div class="rep-stat-val">${lista.length}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Protocolos</div><div class="rep-stat-val">${lista.reduce((s,r)=>s+r.protocolos,0)}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Custo Total</div><div class="rep-stat-val">${fmtBRL(totalGeral)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento Total</div><div class="rep-stat-val">${fmtBRL(totalOrc)}</div><div class="rep-stat-sub">base na cotação atual</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Custo Viagens</div><div class="rep-stat-val">${fmtBRL(totalGeral)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo Disponível</div><div class="rep-stat-val" style="color:${totalSaldo>=0?'var(--sucesso)':'var(--erro)'}">${fmtBRL(totalSaldo)}</div></div>
   </div>
+
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">📊 Orçamento × Execução por Atividade</div>
+    <div style="padding:4px 0 8px;display:flex;gap:16px;flex-wrap:wrap;font-size:10px;margin-bottom:12px">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#059669;border-radius:2px;display:inline-block"></span>Pago</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#D97706;border-radius:2px;display:inline-block"></span>A pagar (comprometido)</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#0891B2;border-radius:2px;display:inline-block"></span>Viagens</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#E5E7EB;border:1px solid #D1D5DB;border-radius:2px;display:inline-block"></span>Saldo livre</span>
+    </div>
+    ${grafico||'<div style="color:var(--cinza-400);font-size:11px">Nenhuma atividade com orçamento cadastrado.</div>'}
+  </div>
+
   <div class="rep-secao">
     <div class="rep-secao-titulo">◈ Gasto de Viagens por Atividade</div>
     <table class="rep-tbl">
       <thead><tr>
         <th>Código</th><th>Atividade</th>
         <th style="text-align:center">Protocolos</th>
-        <th style="text-align:right">Custo Total</th>
-        <th style="text-align:right">% do Total</th>
-        <th style="min-width:80px">Part.</th>
+        <th style="text-align:right">Orçamento</th>
+        <th style="text-align:right">Pago</th>
+        <th style="text-align:right">A pagar</th>
+        <th style="text-align:right">Viagens</th>
+        <th style="text-align:right">Saldo</th>
+        <th style="text-align:right">% Viag/Orç</th>
+        <th style="min-width:80px">Part. viagens</th>
       </tr></thead>
       <tbody>
       ${lista.map(r=>{
-        const pct=totalGeral>0?r.total/totalGeral*100:0;
+        const saldo = r.orcBRL - r.comprometido - r.viagens;
+        const over  = saldo < 0;
+        const pctViag = r.orcBRL>0 ? r.viagens/r.orcBRL*100 : 0;
+        const pctPart = totalGeral>0 ? r.viagens/totalGeral*100 : 0;
         return `<tr>
-          <td class="mono">${r.codigo}</td>
-          <td>${r.nome}</td>
+          <td class="mono">${esc(r.codigo)}</td>
+          <td>${esc(r.nome)}</td>
           <td class="mono" style="text-align:center">${r.protocolos}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(r.total)}</td>
-          <td class="mono" style="text-align:right">${fmtPct1(pct)}</td>
-          <td><div class="rep-barra"><div class="rep-barra-fill" style="width:${Math.min(100,pct).toFixed(0)}%"></div></div></td>
+          <td class="mono" style="text-align:right">${r.orcBRL>0?fmtBRL(r.orcBRL):'—'}</td>
+          <td class="mono" style="text-align:right;color:#059669">${fmtBRL(r.pago)}</td>
+          <td class="mono" style="text-align:right;color:#D97706">${fmtBRL(r.aPagar)}</td>
+          <td class="mono" style="text-align:right;color:#0891B2">${fmtBRL(r.viagens)}</td>
+          <td class="mono" style="text-align:right;font-weight:600;color:${over?'#DC2626':'#059669'}">${r.orcBRL>0?fmtBRL(saldo):'—'}</td>
+          <td class="mono" style="text-align:right">${r.orcBRL>0?fmtPct1(pctViag):'—'}</td>
+          <td><div class="rep-barra"><div class="rep-barra-fill" style="width:${Math.min(100,pctPart).toFixed(0)}%"></div></div><div class="mono-sm">${fmtPct1(pctPart)}</div></td>
         </tr>`;
       }).join('')}
       </tbody>
       <tfoot><tr>
         <td colspan="3"><strong>TOTAL</strong></td>
-        <td class="mono" style="text-align:right">${fmtBRL(totalGeral)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(totalOrc)}</td>
+        <td class="mono" style="text-align:right;color:#059669">${fmtBRL(totalPago)}</td>
+        <td class="mono" style="text-align:right;color:#D97706">${fmtBRL(totalComp-totalPago)}</td>
+        <td class="mono" style="text-align:right;color:#0891B2">${fmtBRL(totalGeral)}</td>
+        <td class="mono" style="text-align:right;font-weight:700;color:${totalSaldo>=0?'#059669':'#DC2626'}">${fmtBRL(totalSaldo)}</td>
         <td colspan="2"></td>
       </tr></tfoot>
     </table>
