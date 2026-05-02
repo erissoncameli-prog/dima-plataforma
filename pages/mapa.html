@@ -1345,14 +1345,52 @@ function toggleFiltroTipo(el){
 }
 
 // ── Lightbox de foto ──────────────────────────────────────────────────────
+function _syncFotoModalNav(){
+  const n     = _geoCarAtual.fotos.length;
+  const multi = n > 1;
+  const prev    = document.getElementById('modal-foto-prev');
+  const next    = document.getElementById('modal-foto-next');
+  const counter = document.getElementById('modal-foto-counter');
+  if(prev)    prev.style.display    = multi ? 'flex' : 'none';
+  if(next)    next.style.display    = multi ? 'flex' : 'none';
+  if(counter){ counter.style.display = multi ? 'block' : 'none';
+               counter.textContent   = `${_geoCarAtual.idx + 1} / ${n}`; }
+}
+
 function abrirFotoModal(url){
+  const idx = _geoCarAtual.fotos.indexOf(url);
+  if(idx >= 0) _geoCarAtual.idx = idx;
   document.getElementById('modal-foto-img').src = url;
+  _syncFotoModalNav();
   document.getElementById('modal-foto').classList.add('aberto');
 }
+
 function fecharFotoModal(){
   document.getElementById('modal-foto').classList.remove('aberto');
   document.getElementById('modal-foto-img').src = '';
 }
+
+function _fotoModalNav(dir){
+  const n = _geoCarAtual.fotos.length;
+  if(!n) return;
+  _geoCarAtual.idx = (_geoCarAtual.idx + dir + n) % n;
+  const url = _geoCarAtual.fotos[_geoCarAtual.idx];
+  document.getElementById('modal-foto-img').src = url;
+  // sincroniza o mini-carrossel do popup se estiver visível
+  const carImg     = document.getElementById('geo-car-img');
+  const carCounter = document.getElementById('geo-car-counter');
+  if(carImg)     carImg.src = url;
+  if(carCounter) carCounter.textContent = `${_geoCarAtual.idx + 1}/${n}`;
+  _syncFotoModalNav();
+}
+
+// Teclado: ← → Esc no lightbox
+document.addEventListener('keydown', e => {
+  if(!document.getElementById('modal-foto')?.classList.contains('aberto')) return;
+  if(e.key === 'ArrowLeft')  { e.preventDefault(); _fotoModalNav(-1); }
+  if(e.key === 'ArrowRight') { e.preventDefault(); _fotoModalNav(1);  }
+  if(e.key === 'Escape')     { fecharFotoModal(); }
+});
 
 // ── Modal: Vídeo em tela cheia ────────────────────────────────────────────
 function abrirVideoModal(url){
