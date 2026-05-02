@@ -820,8 +820,9 @@ function wrapDoc(conteudo, rel){
     ? 'Período: '+(dtIni?fmtDt(dtIni):'início')+' a '+(dtFim?fmtDt(dtFim):'hoje')
     : '';
   const perfilLabel = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',financeiro:'Financeiro'}[appState.perfil]||appState.perfil;
+  const paisagemAttr = rel.paisagem ? ' data-paisagem="true" class="doc-wrap doc-paisagem"' : ' class="doc-wrap"';
   return `
-  <div class="doc-wrap" id="doc-content">
+  <div${paisagemAttr} id="doc-content">
     ${docHeader(rel.icone+' '+rel.titulo, ti.label.toUpperCase(), ti.cor, periodoTxt)}
     <div class="doc-body">
       ${conteudo}
