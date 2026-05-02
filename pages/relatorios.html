@@ -646,6 +646,16 @@ function renderFiltros(lista){
             ${_protocolos.map(p=>`<option value="${p.id}">${p.numero}</option>`).join('')}
           </select>
         </div>`;
+      case 'protocolo_viagem_multi': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Protocolos</span>
+          <div style="font-size:10px;color:var(--cinza-500);margin-bottom:5px;display:flex;align-items:center;gap:4px">
+            💡 <span>Segure <kbd style="background:var(--cinza-100);border:1px solid var(--borda);border-radius:3px;padding:0 4px;font-size:9px">Ctrl</kbd> para selecionar mais de um · Sem seleção = todos</span>
+          </div>
+          <select class="config-select" id="fil-protocolo-vi4-multi" multiple size="7" style="height:auto;min-height:120px">
+            ${_protocolos.map(p=>`<option value="${p.id}">${esc(p.numero||'—')}${p.destino_principal?' — '+esc(p.destino_principal):''}</option>`).join('')}
+          </select>
+        </div>`;
       case 'viajante_viagem': return `
         <div class="config-grupo">
           <span class="config-lbl">Viajante</span>
