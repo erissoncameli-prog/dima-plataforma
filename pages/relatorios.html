@@ -2613,30 +2613,95 @@ async function relVi2(){
   const dtFim    = filVal('fil-dt-fim');
   const viaFil   = filVal('fil-viajante-viagem');
   let q = db.from('viagem_protocolos')
-    .select(`id,dt_saida,situacao,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
+    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
     .order('dt_saida',{ascending:false});
   if(dtIni) q = q.gte('dt_saida', dtIni);
   if(dtFim) q = q.lte('dt_saida', dtFim);
   const {data, error} = await q;
   if(error) throw error;
+
+  // mapa[nome] = { nome, totalPass, totalDiar, itens:[{prot, viajante}] }
   const mapa = {};
   const viaFil_lc = viaFil?.toLowerCase();
   (data||[]).forEach(p=>{
     const seenV=new Set();
-    (p.viajantes||[]).filter(v=>{if(seenV.has(v.id))return false;seenV.add(v.id);return true;})
+    (p.viajantes||[])
+      .filter(v=>{ if(seenV.has(v.id)) return false; seenV.add(v.id); return true; })
       .filter(v=>!viaFil_lc||(v.nome||'').toLowerCase()===viaFil_lc)
       .forEach(v=>{
-      const nome=v.nome||'Sem Nome';
-      if(!mapa[nome]) mapa[nome]={nome,protocolos:0,totalPass:0,totalDiar:0};
-      mapa[nome].protocolos++;
-      const seenT=new Set(),seenD=new Set();
-      mapa[nome].totalPass+=(v.trechos||[]).filter(t=>{if(seenT.has(t.id))return false;seenT.add(t.id);return true;}).reduce((s,t)=>s+parseFloat(t.valor||0),0);
-      mapa[nome].totalDiar+=(v.diarias||[]).filter(d=>{if(seenD.has(d.id))return false;seenD.add(d.id);return true;}).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
-    });
+        const nome = v.nome||'Sem Nome';
+        if(!mapa[nome]) mapa[nome]={nome,totalPass:0,totalDiar:0,itens:[]};
+        const seenT=new Set(), seenD=new Set();
+        const trechos = (v.trechos||[]).filter(t=>{ if(seenT.has(t.id)) return false; seenT.add(t.id); return true; });
+        const diarias = (v.diarias||[]).filter(d=>{ if(seenD.has(d.id)) return false; seenD.add(d.id); return true; });
+        const vPass = trechos.reduce((s,t)=>s+parseFloat(t.valor||0),0);
+        const vDiar = diarias.reduce((s,d)=>s+parseFloat(d.quantidade||d.qtd_dias||0)*parseFloat(d.valor_unitario||0),0);
+        mapa[nome].totalPass += vPass;
+        mapa[nome].totalDiar += vDiar;
+        mapa[nome].itens.push({prot:p, viajante:v, trechos, diarias, vPass, vDiar});
+      });
   });
-  const lista=Object.values(mapa).sort((a,b)=>(b.totalPass+b.totalDiar)-(a.totalPass+a.totalDiar));
-  const totPass=lista.reduce((s,r)=>s+r.totalPass,0);
-  const totDiar=lista.reduce((s,r)=>s+r.totalDiar,0);
+
+  const SIT_BADGE_V2  = {rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
+  const SIT_LABELS_V2 = {rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em Prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+
+  const lista = Object.values(mapa).sort((a,b)=>(b.totalPass+b.totalDiar)-(a.totalPass+a.totalDiar));
+  const totPass = lista.reduce((s,r)=>s+r.totalPass,0);
+  const totDiar = lista.reduce((s,r)=>s+r.totalDiar,0);
+
+  const detalhesPorViajante = lista.map(r=>{
+    const protRows = r.itens.map(({prot:p, trechos, diarias, vPass, vDiar})=>{
+      const tStr = trechos.length
+        ? trechos.map(t=>`<div>${esc(t.origem||'?')}→${esc(t.destino||'?')} <span style="color:var(--cinza-400)">(${esc(t.tipo||'—')}, ${fmtDt(t.dt_saida)})</span> <span class="mono">${fmtBRL(t.valor||0)}</span></div>`).join('')
+        : '<span style="color:var(--cinza-400)">—</span>';
+      const dStr = diarias.length
+        ? diarias.map(d=>`<div>${esc(d.tipo_diaria||d.tipo||'—')}: ${d.quantidade||d.qtd_dias||0}d × ${fmtBRL(d.valor_unitario||0)}</div>`).join('')
+        : '<span style="color:var(--cinza-400)">—</span>';
+      return `<tr>
+        <td><span style="font-family:var(--font-mono);font-size:10px;background:#D1FAE5;color:#065F46;padding:2px 6px;border-radius:3px">${esc(p.numero||'—')}</span></td>
+        <td>${esc(p.numero_sei||'—')}</td>
+        <td>${esc(p.objetivo||p.destino_principal||'—')}</td>
+        <td class="mono">${fmtDt(p.dt_saida)}</td>
+        <td class="mono">${fmtDt(p.dt_retorno)}</td>
+        <td><span class="rep-badge ${SIT_BADGE_V2[p.situacao]||'rb-cinza'}">${SIT_LABELS_V2[p.situacao]||p.situacao}</span></td>
+        <td style="font-size:10px">${tStr}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(vPass)}</td>
+        <td style="font-size:10px">${dStr}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(vDiar)}</td>
+        <td class="mono" style="text-align:right;font-weight:600">${fmtBRL(vPass+vDiar)}</td>
+      </tr>`;
+    }).join('');
+
+    const tot = r.totalPass+r.totalDiar;
+    return `
+    <div style="border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:20px;overflow:hidden;page-break-inside:avoid">
+      <div style="background:var(--cinza-50);border-bottom:1px solid var(--borda);padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:700;color:var(--cinza-900);flex:1">👤 ${esc(r.nome)}</span>
+        <span style="font-size:11px;color:var(--cinza-500)">${r.itens.length} protocolo${r.itens.length!==1?'s':''}</span>
+        <span class="mono" style="font-size:11px;color:var(--cinza-600)">Pass: ${fmtBRL(r.totalPass)}</span>
+        <span class="mono" style="font-size:11px;color:var(--cinza-600)">Diárias: ${fmtBRL(r.totalDiar)}</span>
+        <span class="mono" style="font-size:12px;font-weight:700;color:var(--verde-medio)">Total: ${fmtBRL(tot)}</span>
+      </div>
+      <table class="rep-tbl" style="margin-bottom:0">
+        <thead><tr>
+          <th>Protocolo</th><th>SEI</th><th>Objetivo / Destino</th>
+          <th>Saída</th><th>Retorno</th><th>Situação</th>
+          <th>Trechos</th><th style="text-align:right">Passagens</th>
+          <th>Diárias</th><th style="text-align:right">Total Diárias</th>
+          <th style="text-align:right">Total</th>
+        </tr></thead>
+        <tbody>${protRows}</tbody>
+        <tfoot><tr>
+          <td colspan="7"><strong>TOTAL — ${esc(r.nome)}</strong></td>
+          <td class="mono" style="text-align:right">${fmtBRL(r.totalPass)}</td>
+          <td></td>
+          <td class="mono" style="text-align:right">${fmtBRL(r.totalDiar)}</td>
+          <td class="mono" style="text-align:right;font-weight:700">${fmtBRL(tot)}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  }).join('');
+
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Viajantes no Período</div><div class="rep-stat-val">${lista.length}</div></div>
@@ -2644,7 +2709,7 @@ async function relVi2(){
     <div class="rep-stat"><div class="rep-stat-lbl">Total Diárias</div><div class="rep-stat-val">${fmtBRL(totDiar)}</div></div>
   </div>
   <div class="rep-secao">
-    <div class="rep-secao-titulo">👤 Gasto por Viajante</div>
+    <div class="rep-secao-titulo">👤 Resumo por Viajante</div>
     <table class="rep-tbl">
       <thead><tr>
         <th>#</th><th>Viajante</th>
@@ -2660,8 +2725,8 @@ async function relVi2(){
         const pct=(totPass+totDiar)>0?tot/(totPass+totDiar)*100:0;
         return `<tr>
           <td class="mono">${i+1}</td>
-          <td style="font-weight:500">${r.nome}</td>
-          <td class="mono" style="text-align:center">${r.protocolos}</td>
+          <td style="font-weight:500">${esc(r.nome)}</td>
+          <td class="mono" style="text-align:center">${r.itens.length}</td>
           <td class="mono" style="text-align:right">${fmtBRL(r.totalPass)}</td>
           <td class="mono" style="text-align:right">${fmtBRL(r.totalDiar)}</td>
           <td class="mono" style="text-align:right;font-weight:600">${fmtBRL(tot)}</td>
@@ -2677,6 +2742,10 @@ async function relVi2(){
         <td></td>
       </tr></tfoot>
     </table>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">📋 Detalhamento por Viajante</div>
+    ${detalhesPorViajante}
   </div>`;
 }
 
