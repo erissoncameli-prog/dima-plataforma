@@ -602,8 +602,15 @@ function renderPagina(){
   <!-- Modal: Confirmação por senha -->
   <!-- Lightbox de foto -->
   <div id="modal-foto" onclick="fecharFotoModal()">
-    <button onclick="fecharFotoModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer;line-height:1;z-index:1">✕</button>
-    <img id="modal-foto-img" src="" alt="foto">
+    <button onclick="fecharFotoModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer;line-height:1;z-index:2">✕</button>
+    <button id="modal-foto-prev" onclick="event.stopPropagation();_fotoModalNav(-1)"
+      style="position:absolute;left:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);backdrop-filter:blur(4px);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:26px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:2;transition:background .15s"
+      onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">‹</button>
+    <img id="modal-foto-img" src="" alt="foto" onclick="event.stopPropagation()">
+    <button id="modal-foto-next" onclick="event.stopPropagation();_fotoModalNav(1)"
+      style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);backdrop-filter:blur(4px);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:26px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:2;transition:background .15s"
+      onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">›</button>
+    <div id="modal-foto-counter" style="position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);color:#fff;font-size:13px;font-weight:600;padding:4px 16px;border-radius:99px;display:none"></div>
   </div>
 
   <!-- Modal: Vídeo em tela cheia -->
