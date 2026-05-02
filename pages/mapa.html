@@ -1712,12 +1712,19 @@ async function excluirPonto(id){
 let _geoEditando = null;
 let _geoFotos = []; // [{url, file}] — fotos existentes ou novas aguardando upload
 
-function abrirModalEditarGeometria(group, tipo){
+async function abrirModalEditarGeometria(group, tipo){
   const pts = pontos
     .filter(p => p.geometry_group === group && p.geometry_type === tipo)
     .sort((a,b) => (a.geometry_order||0)-(b.geometry_order||0));
   if(!pts.length) return;
   _geoEditando = { group, tipo, pts: pts.map(p=>({...p})), abaAtiva:'dados' };
+  _geoFotos = [];
+  const { data: fotosData } = await db.from('geometria_fotos')
+    .select('foto_url, ordem')
+    .eq('geometry_group', group)
+    .eq('geometry_type', tipo)
+    .order('ordem');
+  if(fotosData) _geoFotos = fotosData.map(f => ({ url: f.foto_url, file: null }));
   document.getElementById('modal-geo-titulo').textContent = tipo === 'poligono' ? 'Editar polígono' : 'Editar trilha / caminho';
   abaGeometria('dados');
   document.getElementById('modal-geometria').style.display = 'flex';
