@@ -2803,9 +2803,10 @@ async function relVi3(){
   const dtFim   = filVal('fil-dt-fim');
   const ativFil = filVal('fil-atividade');
 
+  // Query 1: protocolos com viajantes (sem tentar aninhar contratos)
   let q = db.from('viagem_protocolos')
     .select(`id,numero,dt_saida,atividade_id,situacao,
-      atividade:atividades(id,codigo,nome_pt,orcamento_usd,contratos(valor_comprometido_brl,valor_utilizado_brl)),
+      atividade:atividades(id,codigo,nome_pt,orcamento_usd),
       viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
     .order('dt_saida',{ascending:false});
   if(dtIni)   q = q.gte('dt_saida', dtIni);
@@ -2820,16 +2821,34 @@ async function relVi3(){
 
   const cotacao = parseFloat(qCot.data?.[0]?.cotacao||1);
 
-  // mapa por atividade — agrega viagens e guarda dados orçamentários
+  // Coletar IDs únicos das atividades presentes nos protocolos
+  const ativIds = [...new Set((data||[]).map(p=>p.atividade_id).filter(Boolean))];
+
+  // Query 2: atividades com contratos (query direta — sem aninhamento triplo)
+  const {data:ativData} = ativIds.length
+    ? await db.from('atividades')
+        .select('id,contratos(valor_comprometido_brl,valor_utilizado_brl)')
+        .in('id', ativIds)
+    : {data:[]};
+
+  // Índice atividade_id → {pago, comprometido}
+  const ativContratos = {};
+  (ativData||[]).forEach(a=>{
+    const contratos = a.contratos||[];
+    ativContratos[a.id] = {
+      pago:        contratos.reduce((s,c)=>s+parseFloat(c.valor_utilizado_brl||0),0),
+      comprometido:contratos.reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0)
+    };
+  });
+
+  // Mapa por atividade — agrega viagens e dados orçamentários
   const mapa = {};
   (data||[]).forEach(p=>{
     const key = p.atividade?.id||'sem-atv';
     if(!mapa[key]){
-      const atv = p.atividade;
+      const atv  = p.atividade;
       const orcBRL = atv ? parseFloat(atv.orcamento_usd||0)*cotacao : 0;
-      const contratos = atv?.contratos||[];
-      const pago       = contratos.reduce((s,c)=>s+parseFloat(c.valor_utilizado_brl||0),0);
-      const comprometido = contratos.reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0);
+      const {pago=0, comprometido=0} = ativContratos[atv?.id]||{};
       mapa[key]={
         id:key, codigo:atv?.codigo||'—', nome:atv?.nome_pt||'Sem Atividade',
         orcBRL, pago, comprometido, aPagar:Math.max(0,comprometido-pago),
