@@ -2514,6 +2514,7 @@ function vincularEventos(){
     }
   });
   mapaL.on('zoomend', _atualizarTamanhoIcones);
+  mapaL.on('popupclose', _pararCarTimer);
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────
