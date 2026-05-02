@@ -2895,46 +2895,41 @@ async function relVi3(){
     });
   });
 
-  const lista = Object.values(mapa).sort((a,b)=>b.viagens-a.viagens);
-  const totalGeral   = lista.reduce((s,r)=>s+r.viagens,0);
-  const totalOrc     = lista.reduce((s,r)=>s+r.orcBRL,0);
-  const totalPago    = lista.reduce((s,r)=>s+r.pago,0);
-  const totalComp    = lista.reduce((s,r)=>s+r.comprometido,0);
-  const totalSaldo   = lista.reduce((s,r)=>s+Math.max(0,r.orcBRL-r.comprometido-r.viagens),0);
+  const lista      = Object.values(mapa).sort((a,b)=>b.protocolos-a.protocolos);
+  const totalOrc   = lista.reduce((s,r)=>s+r.orcBRL,0);
+  const totalPago  = lista.reduce((s,r)=>s+r.pago,0);
+  const totalComp  = lista.reduce((s,r)=>s+r.comprometido,0);
+  const totalSaldo = lista.reduce((s,r)=>s+Math.max(0,r.orcBRL-r.comprometido),0);
 
   // ── gráfico empilhado por atividade ───────────────────────────
   const grafico = lista.filter(r=>r.orcBRL>0).map(r=>{
-    const total = r.orcBRL;
-    const pPago   = Math.min(100, r.pago/total*100);
-    const pAPagar = Math.min(100-pPago, r.aPagar/total*100);
-    const pViag   = Math.min(100-pPago-pAPagar, r.viagens/total*100);
-    const pSaldo  = Math.max(0, 100-pPago-pAPagar-pViag);
-    const saldo   = r.orcBRL - r.comprometido - r.viagens;
-    const over    = saldo < 0;
+    const saldo  = r.orcBRL - r.comprometido;
+    const over   = saldo < 0;
+    const pPago  = Math.min(100, r.pago/r.orcBRL*100);
+    const pAPag  = Math.min(100-pPago, r.aPagar/r.orcBRL*100);
+    const pSaldo = Math.max(0, 100-pPago-pAPag);
     return `
     <div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
         <div style="font-size:10px;font-weight:600;color:var(--cinza-800)">
           <span style="font-family:var(--font-mono);background:var(--cinza-100);padding:1px 5px;border-radius:3px;margin-right:6px">${esc(r.codigo)}</span>${esc(r.nome)}
         </div>
-        <div style="font-size:10px;color:${over?'#DC2626':'var(--cinza-500)'};font-family:var(--font-mono)">
+        <div style="font-size:10px;font-family:var(--font-mono)">
           Saldo: <strong style="color:${over?'#DC2626':'#059669'}">${fmtBRL(saldo)}</strong>
           ${over?'<span style="color:#DC2626;margin-left:4px">⚠ Acima do orçamento</span>':''}
         </div>
       </div>
       <div style="height:18px;border-radius:4px;overflow:hidden;display:flex;background:var(--cinza-100)">
-        ${pPago>0   ?`<div style="width:${pPago.toFixed(1)}%;background:#059669;height:100%;transition:width .3s" title="Pago: ${fmtBRL(r.pago)}"></div>`:''}
-        ${pAPagar>0 ?`<div style="width:${pAPagar.toFixed(1)}%;background:#D97706;height:100%" title="A pagar: ${fmtBRL(r.aPagar)}"></div>`:''}
-        ${pViag>0   ?`<div style="width:${pViag.toFixed(1)}%;background:#0891B2;height:100%" title="Viagens: ${fmtBRL(r.viagens)}"></div>`:''}
-        ${pSaldo>0  ?`<div style="width:${pSaldo.toFixed(1)}%;background:#E5E7EB;height:100%" title="Saldo: ${fmtBRL(saldo)}"></div>`:''}
-        ${over      ?`<div style="width:4px;background:#DC2626;height:100%"></div>`:''}
+        ${pPago>0 ?`<div style="width:${pPago.toFixed(1)}%;background:#059669;height:100%" title="Pago: ${fmtBRL(r.pago)}"></div>`:''}
+        ${pAPag>0 ?`<div style="width:${pAPag.toFixed(1)}%;background:#D97706;height:100%" title="A pagar: ${fmtBRL(r.aPagar)}"></div>`:''}
+        ${pSaldo>0?`<div style="width:${pSaldo.toFixed(1)}%;background:#E5E7EB;height:100%" title="Saldo: ${fmtBRL(saldo)}"></div>`:''}
+        ${over    ?`<div style="width:4px;background:#DC2626;height:100%"></div>`:''}
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:9px;color:var(--cinza-500);font-family:var(--font-mono)">
         <span>Orç: ${fmtBRL(r.orcBRL)}</span>
         <span style="display:flex;gap:10px">
           <span style="color:#059669">■ Pago ${fmtBRL(r.pago)}</span>
           <span style="color:#D97706">■ A pagar ${fmtBRL(r.aPagar)}</span>
-          <span style="color:#0891B2">■ Viagens ${fmtBRL(r.viagens)}</span>
         </span>
       </div>
     </div>`;
@@ -2944,7 +2939,7 @@ async function relVi3(){
   <div class="rep-stats rep-stats-4">
     <div class="rep-stat"><div class="rep-stat-lbl">Atividades com Viagem</div><div class="rep-stat-val">${lista.length}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Orçamento Total</div><div class="rep-stat-val">${fmtBRL(totalOrc)}</div><div class="rep-stat-sub">base na cotação atual</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Custo Viagens</div><div class="rep-stat-val">${fmtBRL(totalGeral)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Comprometido</div><div class="rep-stat-val">${fmtBRL(totalComp)}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Saldo Disponível</div><div class="rep-stat-val" style="color:${totalSaldo>=0?'var(--sucesso)':'var(--erro)'}">${fmtBRL(totalSaldo)}</div></div>
   </div>
 
@@ -2953,14 +2948,13 @@ async function relVi3(){
     <div style="padding:4px 0 8px;display:flex;gap:16px;flex-wrap:wrap;font-size:10px;margin-bottom:12px">
       <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#059669;border-radius:2px;display:inline-block"></span>Pago</span>
       <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#D97706;border-radius:2px;display:inline-block"></span>A pagar (comprometido)</span>
-      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#0891B2;border-radius:2px;display:inline-block"></span>Viagens</span>
       <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#E5E7EB;border:1px solid #D1D5DB;border-radius:2px;display:inline-block"></span>Saldo livre</span>
     </div>
     ${grafico||'<div style="color:var(--cinza-400);font-size:11px">Nenhuma atividade com orçamento cadastrado.</div>'}
   </div>
 
   <div class="rep-secao">
-    <div class="rep-secao-titulo">◈ Gasto de Viagens por Atividade</div>
+    <div class="rep-secao-titulo">◈ Execução por Atividade</div>
     <table class="rep-tbl">
       <thead><tr>
         <th>Código</th><th>Atividade</th>
@@ -2968,17 +2962,14 @@ async function relVi3(){
         <th style="text-align:right">Orçamento</th>
         <th style="text-align:right">Pago</th>
         <th style="text-align:right">A pagar</th>
-        <th style="text-align:right">Viagens</th>
         <th style="text-align:right">Saldo</th>
-        <th style="text-align:right">% Viag/Orç</th>
-        <th style="min-width:80px">Part. viagens</th>
+        <th style="min-width:80px">Execução</th>
       </tr></thead>
       <tbody>
       ${lista.map(r=>{
-        const saldo = r.orcBRL - r.comprometido - r.viagens;
+        const saldo = r.orcBRL - r.comprometido;
         const over  = saldo < 0;
-        const pctViag = r.orcBRL>0 ? r.viagens/r.orcBRL*100 : 0;
-        const pctPart = totalGeral>0 ? r.viagens/totalGeral*100 : 0;
+        const pctExec = r.orcBRL>0 ? r.comprometido/r.orcBRL*100 : 0;
         return `<tr>
           <td class="mono">${esc(r.codigo)}</td>
           <td>${esc(r.nome)}</td>
@@ -2986,10 +2977,8 @@ async function relVi3(){
           <td class="mono" style="text-align:right">${r.orcBRL>0?fmtBRL(r.orcBRL):'—'}</td>
           <td class="mono" style="text-align:right;color:#059669">${fmtBRL(r.pago)}</td>
           <td class="mono" style="text-align:right;color:#D97706">${fmtBRL(r.aPagar)}</td>
-          <td class="mono" style="text-align:right;color:#0891B2">${fmtBRL(r.viagens)}</td>
           <td class="mono" style="text-align:right;font-weight:600;color:${over?'#DC2626':'#059669'}">${r.orcBRL>0?fmtBRL(saldo):'—'}</td>
-          <td class="mono" style="text-align:right">${r.orcBRL>0?fmtPct1(pctViag):'—'}</td>
-          <td><div class="rep-barra"><div class="rep-barra-fill" style="width:${Math.min(100,pctPart).toFixed(0)}%"></div></div><div class="mono-sm">${fmtPct1(pctPart)}</div></td>
+          <td><div class="rep-barra"><div class="rep-barra-fill" style="width:${Math.min(100,pctExec).toFixed(0)}%"></div></div><div class="mono-sm">${r.orcBRL>0?fmtPct1(pctExec):'—'}</div></td>
         </tr>`;
       }).join('')}
       </tbody>
@@ -2998,9 +2987,8 @@ async function relVi3(){
         <td class="mono" style="text-align:right">${fmtBRL(totalOrc)}</td>
         <td class="mono" style="text-align:right;color:#059669">${fmtBRL(totalPago)}</td>
         <td class="mono" style="text-align:right;color:#D97706">${fmtBRL(totalComp-totalPago)}</td>
-        <td class="mono" style="text-align:right;color:#0891B2">${fmtBRL(totalGeral)}</td>
         <td class="mono" style="text-align:right;font-weight:700;color:${totalSaldo>=0?'#059669':'#DC2626'}">${fmtBRL(totalSaldo)}</td>
-        <td colspan="2"></td>
+        <td></td>
       </tr></tfoot>
     </table>
   </div>`;
