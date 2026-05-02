@@ -1984,6 +1984,29 @@ async function salvarGeometria(){
         delete trilhaMetadata[group];
       }
     }
+    // Salvar fotos do polígono/trilha
+    await db.from('geometria_fotos').delete()
+      .eq('geometry_group', group).eq('geometry_type', geoTipo);
+    if(nome !== group){
+      await db.from('geometria_fotos').delete()
+        .eq('geometry_group', nome).eq('geometry_type', geoTipo);
+    }
+    const fotoInserts = [];
+    for(let fi = 0; fi < _geoFotos.length; fi++){
+      const f = _geoFotos[fi];
+      let fotoUrl = f.url;
+      if(f.file){
+        const ext = f.file.name.split('.').pop();
+        const path = `geometria/${nome}/${Date.now()}_${fi}.${ext}`;
+        const { error: upErr } = await db.storage.from('pontos-mapa').upload(path, f.file, { upsert: true });
+        if(upErr){ alert('Erro no upload da foto: ' + upErr.message); continue; }
+        const { data: urlData } = db.storage.from('pontos-mapa').getPublicUrl(path);
+        fotoUrl = urlData.publicUrl;
+      }
+      if(fotoUrl) fotoInserts.push({ geometry_group: nome, geometry_type: geoTipo, foto_url: fotoUrl, ordem: fi });
+    }
+    if(fotoInserts.length > 0) await db.from('geometria_fotos').insert(fotoInserts);
+
     const dadosDepois = {
       geometry_type: geoTipo, geometry_group: nome,
       nome_local: nome, apa, tipo_atividade, responsavel, data_implantacao, observacao,
