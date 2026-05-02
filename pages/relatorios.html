@@ -2648,6 +2648,20 @@ async function relVi2(){
 
   const cotacao = parseFloat(qCot.data?.[0]?.cotacao||1);
 
+  // Query separada para contratos (evita aninhamento triplo no Supabase)
+  const ativIds = [...new Set((data||[]).map(p=>p.atividade_id).filter(Boolean))];
+  const {data:ativData} = ativIds.length
+    ? await db.from('atividades').select('id,orcamento_usd,contratos(valor_comprometido_brl,valor_utilizado_brl)').in('id',ativIds)
+    : {data:[]};
+
+  // Índice atividade_id → { saldoBRL, orcBRL }
+  const ativSaldo = {};
+  (ativData||[]).forEach(a=>{
+    const orcBRL      = parseFloat(a.orcamento_usd||0)*cotacao;
+    const comprometido = (a.contratos||[]).reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0);
+    ativSaldo[a.id]   = { orcBRL, saldoBRL: Math.max(0, orcBRL - comprometido) };
+  });
+
   // mapa[nome] = { nome, totalPass, totalDiar, itens:[{prot, viajante}] }
   const mapa = {};
   const viaFil_lc = viaFil?.toLowerCase();
