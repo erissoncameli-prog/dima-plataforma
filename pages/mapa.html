@@ -1235,6 +1235,7 @@ function _popupGeometria(nome, pts, tipo){
 
   const fotos = geometriaFotos[tipo + ':' + nome] || [];
   _geoCarAtual = { fotos, idx: 0 };
+  setTimeout(_iniciarCarTimer, 80);
 
   return `<div class="mapa-popup">
     ${_htmlCarrosselPopup(fotos)}
