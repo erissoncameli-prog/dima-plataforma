@@ -303,6 +303,7 @@ let tipoIcones = {};       // emoji por produto_titulo (definido pelo admin no D
 let trilhaMetadata = {};   // video_url por geometry_group
 let geometriaFotos = {};   // "tipo:group" → [url, ...]
 let _geoCarAtual   = { fotos: [], idx: 0 };
+let _geoCarTimer   = null;
 let matrizByTipo = {};
 
 // Verifica se o usuário pode adicionar/editar/excluir pontos
