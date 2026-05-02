@@ -2860,13 +2860,13 @@ async function relVi4(){
         ? diarias.map(d=>`${esc(d.tipo_diaria||d.tipo||'—')}: ${d.quantidade||d.qtd_dias||0}d × ${fmtBRL(d.valor_unitario||0)}`).join('<br>')
         : '<span style="color:var(--cinza-400)">—</span>';
       return `<tr>
-        <td>${esc(v.nome||'—')}</td>
-        <td style="color:var(--cinza-500);font-size:10px">${esc(v.funcao||'—')}</td>
+        <td style="white-space:nowrap">${esc(v.nome||'—')}</td>
+        <td style="color:var(--cinza-500);font-size:10px;white-space:nowrap">${esc(v.funcao||'—')}</td>
         <td style="font-size:10px">${tStr}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(vPass)}</td>
+        <td class="mono" style="text-align:right;white-space:nowrap">${fmtBRL(vPass)}</td>
         <td style="font-size:10px">${dStr}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(vDiar)}</td>
-        <td class="mono" style="text-align:right;font-weight:600">${fmtBRL(vPass+vDiar)}</td>
+        <td class="mono" style="text-align:right;white-space:nowrap">${fmtBRL(vDiar)}</td>
+        <td class="mono" style="text-align:right;white-space:nowrap;font-weight:600">${fmtBRL(vPass+vDiar)}</td>
       </tr>`;
     }).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--cinza-400);padding:12px">Nenhum viajante cadastrado</td></tr>`;
 
