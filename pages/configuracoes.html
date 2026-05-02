@@ -653,7 +653,7 @@ function ajustarPreview() {
   const availW = outer.clientWidth - 48;
   const scale  = Math.min(availW / 1280, 1);
   frame.style.transform = `scale(${scale})`;
-  outer.style.minHeight = (800 * scale + 48) + 'px';
+  outer.style.minHeight = (720 * scale + 48) + 'px';
 }
 
 // ── Upload Storage ────────────────────────────────────────────
