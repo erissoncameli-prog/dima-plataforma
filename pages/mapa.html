@@ -18,10 +18,9 @@
 .mapa-painel{width:268px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding-right:2px;scrollbar-width:none;-ms-overflow-style:none;}
 .mapa-painel::-webkit-scrollbar{display:none;}
 .mapa-painel-wrap{display:flex;flex-direction:row;gap:5px;flex-shrink:0;min-height:0;}
-#mapa-scrollbar-outer{width:10px;flex-shrink:0;position:relative;border-radius:6px;overflow:hidden;cursor:pointer;background:var(--cinza-100);}
-.msb-zona{position:absolute;left:0;right:0;border-radius:3px;transition:opacity .25s;opacity:.38;}
-.msb-zona:hover{opacity:.75 !important;}
-#mapa-scrollbar-thumb{position:absolute;left:1px;right:1px;background:rgba(255,255,255,.55);border-radius:4px;pointer-events:none;border:1px solid rgba(255,255,255,.8);box-shadow:0 1px 4px rgba(0,0,0,.2);transition:top .06s linear;}
+#mapa-scrollbar-outer{width:8px;flex-shrink:0;position:relative;border-radius:6px;background:var(--cinza-100);cursor:pointer;}
+#mapa-scrollbar-thumb{position:absolute;left:1px;right:1px;background:#2D6A4F;border-radius:5px;cursor:pointer;min-height:24px;transition:top .06s linear;opacity:.75;}
+#mapa-scrollbar-thumb:hover{opacity:1;}
 
 /* ── Blocos de filtro ───────────────────────────────────────── */
 .filtro-bloco{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
