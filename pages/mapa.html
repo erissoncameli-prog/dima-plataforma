@@ -1188,14 +1188,17 @@ function _htmlCarrosselPopup(fotos){
   </div>`;
 }
 
-function _geoCarNav(dir){
+function _geoCarNav(dir, auto = false){
   const n = _geoCarAtual.fotos.length;
   if(!n) return;
   _geoCarAtual.idx = (_geoCarAtual.idx + dir + n) % n;
+  const url     = _geoCarAtual.fotos[_geoCarAtual.idx];
   const img     = document.getElementById('geo-car-img');
   const counter = document.getElementById('geo-car-counter');
-  if(img)     img.src = _geoCarAtual.fotos[_geoCarAtual.idx];
+  if(img)     img.src = url;
   if(counter) counter.textContent = `${_geoCarAtual.idx + 1}/${n}`;
+  // Navegação manual reinicia o timer; automática não (evita sobreposição)
+  if(!auto) _iniciarCarTimer();
 }
 
 function _popupGeometria(nome, pts, tipo){
