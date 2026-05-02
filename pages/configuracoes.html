@@ -616,11 +616,15 @@ function pvTextos() {
 
 function pvFotos() {
   fotoPreviewIdx = Math.min(fotoPreviewIdx, Math.max(0, cfg.fotos.length - 1));
-  const pv = document.getElementById('pv-foto');
-  const dots = document.getElementById('pv-dots');
+  const pv       = document.getElementById('pv-foto');
+  const dots     = document.getElementById('pv-dots');
+  const contador = document.querySelector('.pv-foto-contador');
+  const legenda  = document.querySelector('.pv-foto-legenda');
   if (pv && cfg.fotos.length)
     pv.style.backgroundImage = `url('${imgUrl(cfg.fotos[fotoPreviewIdx].url)}')`;
   if (dots) dots.innerHTML = pvHtmlDots();
+  if (contador) contador.textContent = cfg.fotos.length ? (fotoPreviewIdx + 1) + ' / ' + cfg.fotos.length : '';
+  if (legenda)  legenda.textContent  = cfg.fotos[fotoPreviewIdx]?.legenda || 'APAs · Rio Branco, Acre';
   iniciarTimerFotos();
 }
 
