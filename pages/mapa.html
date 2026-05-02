@@ -1025,7 +1025,7 @@ function renderizarMarcadores(){
     const latlngs = pts.map(p => [p.lat, p.lng]);
     const cor = corIcone(pts[0]);
     const poly = L.polygon(latlngs, {color:cor, fillColor:cor, fillOpacity:0.15, weight:2});
-    poly.bindPopup(_popupGeometria(nome, pts, 'poligono'), {maxWidth:290});
+    poly.bindPopup(() => _popupGeometria(nome, pts, 'poligono'), {maxWidth:290});
     poly.addTo(mapaL);
     geometryLayers.push(poly);
   });
