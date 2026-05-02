@@ -1741,7 +1741,9 @@ function abaGeometria(aba){
   _geoEditando.abaAtiva = aba;
   document.querySelectorAll('.geo-tab').forEach(b => b.classList.toggle('ativo', b.dataset.aba === aba));
   document.getElementById('modal-geo-body').innerHTML =
-    aba === 'dados' ? _htmlGeoFormDados(_geoEditando.pts[0]) : _htmlGeoVertices();
+    aba === 'dados'    ? _htmlGeoFormDados(_geoEditando.pts[0]) :
+    aba === 'fotos'    ? _htmlGeoFotos() :
+    _htmlGeoVertices();
 }
 
 function _htmlGeoFormDados(p){
