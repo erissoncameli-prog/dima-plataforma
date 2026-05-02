@@ -967,14 +967,21 @@ function _atualizarTamanhoIcones(){
 async function carregarPontos(){
   let q = db.from('produto_pontos_mapa').select('*').order('criado_em',{ascending:false});
   if(filtroProdutoId) q = q.eq('produto_id', filtroProdutoId);
-  const [{ data, error }, metaRes] = await Promise.all([
+  const [{ data, error }, metaRes, fotosRes] = await Promise.all([
     q,
-    db.from('trilha_metadata').select('geometry_group,video_url')
+    db.from('trilha_metadata').select('geometry_group,video_url'),
+    db.from('geometria_fotos').select('geometry_group,geometry_type,foto_url,ordem').order('ordem')
   ]);
   if(error){ console.error(error); return; }
   pontos = data || [];
   trilhaMetadata = {};
   (metaRes.data||[]).forEach(m => { trilhaMetadata[m.geometry_group] = m; });
+  geometriaFotos = {};
+  (fotosRes.data||[]).forEach(f => {
+    const key = f.geometry_type + ':' + f.geometry_group;
+    if(!geometriaFotos[key]) geometriaFotos[key] = [];
+    geometriaFotos[key].push(f.foto_url);
+  });
   renderizarMarcadores();
   renderizarLista();
 }
