@@ -372,7 +372,7 @@ async function carregarAuxiliares(){
     db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
     db.from('fornecedores').select('id,nome').eq('ativo',true).order('nome'),
     db.from('usuarios').select('id,nome_completo,perfil').eq('ativo',true).order('nome_completo'),
-    db.from('viagem_protocolos').select('id,numero').order('numero',{ascending:false}),
+    db.from('viagem_protocolos').select('id,numero,destino_principal').order('numero',{ascending:false}),
     db.from('viagem_viajantes').select('nome').order('nome'),
   ]);
   _atividades = ra.data||[];
