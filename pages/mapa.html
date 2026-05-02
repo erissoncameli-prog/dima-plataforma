@@ -1043,7 +1043,7 @@ function renderizarMarcadores(){
 
     // Linha tracejada
     const line = L.polyline(latlngs, {color:cor, weight:3, dashArray:'6,4'});
-    line.bindPopup(_popupGeometria(nome, pts, 'trilha'), {maxWidth:300});
+    line.bindPopup(() => _popupGeometria(nome, pts, 'trilha'), {maxWidth:300});
 
     // Marcador de início — 🚶 verde
     const _divIcone = (emoji, bg, sz) => L.divIcon({
