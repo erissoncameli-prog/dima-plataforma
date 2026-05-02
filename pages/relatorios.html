@@ -926,6 +926,7 @@ function exportExcel() {
 function exportPrint(orientacao) {
   const el = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
   if (!el) return;
+  if (el.dataset.paisagem === 'true') orientacao = 'landscape';
   const printArea = document.getElementById('print-area');
   printArea.innerHTML = el.outerHTML;
   let s = document.getElementById('_po');
