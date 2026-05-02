@@ -873,6 +873,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharExport
 function exportPDF(orientacao, btn) {
   const wrapper = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
   if (!wrapper) return;
+  if (wrapper.dataset.paisagem === 'true') orientacao = 'landscape';
   const rel = RELATORIOS.find(r => r.id === relAtivo);
   const nome = (rel?.titulo || 'relatorio').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40);
   const filename = `${relAtivo}_${nome}_${new Date().toISOString().slice(0,10)}.pdf`;
