@@ -1377,12 +1377,14 @@ function abrirFotoModal(url){
   if(idx >= 0) _geoCarAtual.idx = idx;
   document.getElementById('modal-foto-img').src = url;
   _syncFotoModalNav();
+  _pararCarTimer();
   document.getElementById('modal-foto').classList.add('aberto');
 }
 
 function fecharFotoModal(){
   document.getElementById('modal-foto').classList.remove('aberto');
   document.getElementById('modal-foto-img').src = '';
+  if(document.getElementById('geo-car-img')) _iniciarCarTimer();
 }
 
 function _fotoModalNav(dir){
