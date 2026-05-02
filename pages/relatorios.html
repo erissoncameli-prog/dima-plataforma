@@ -1577,7 +1577,7 @@ async function relVi1(){
   const protFil = filVal('fil-protocolo-viagem');
 
   let q = db.from('viagem_protocolos')
-    .select(`*,viajantes:viagem_viajantes(*,diarias:viagem_diarias_v2(*))`)
+    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
     .order('dt_saida',{ascending:false});
   if(dtIni)   q = q.gte('dt_saida', dtIni);
   if(dtFim)   q = q.lte('dt_saida', dtFim);
@@ -1591,9 +1591,12 @@ async function relVi1(){
     const seenV=new Set();
     const viajantes=(p.viajantes||[]).filter(v=>{if(seenV.has(v.id))return false;seenV.add(v.id);return true;});
     const total=viajantes.reduce((s,v)=>{
-      const seenD=new Set();
-      return s+(v.diarias||[]).filter(d=>{if(seenD.has(d.id))return false;seenD.add(d.id);return true;})
-        .reduce((sd,d)=>sd+(d.valor_unitario||0)*(d.qtd_dias||1),0);
+      const seenT=new Set(), seenD=new Set();
+      const pass=(v.trechos||[]).filter(t=>{if(seenT.has(t.id))return false;seenT.add(t.id);return true;})
+        .reduce((st,t)=>st+parseFloat(t.valor||0),0);
+      const diar=(v.diarias||[]).filter(d=>{if(seenD.has(d.id))return false;seenD.add(d.id);return true;})
+        .reduce((sd,d)=>sd+parseFloat(d.valor_unitario||0)*parseFloat(d.quantidade||d.qtd_dias||0),0);
+      return s+pass+diar;
     },0);
     return {...p, viajantes, _total:total};
   });
