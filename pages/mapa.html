@@ -2011,7 +2011,8 @@ async function salvarGeometria(){
       let fotoUrl = f.url;
       if(f.file){
         const ext = f.file.name.split('.').pop();
-        const path = `geometria/${nome}/${Date.now()}_${fi}.${ext}`;
+        const nomeSlug = nome.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9_-]/g,'_');
+        const path = `geometria/${nomeSlug}/${Date.now()}_${fi}.${ext}`;
         const { error: upErr } = await db.storage.from('pontos-mapa').upload(path, f.file, { upsert: true });
         if(upErr){ alert('Erro no upload da foto: ' + upErr.message); continue; }
         const { data: urlData } = db.storage.from('pontos-mapa').getPublicUrl(path);
