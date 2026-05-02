@@ -2685,6 +2685,20 @@ async function relVi2(){
       const dStr = diarias.length
         ? diarias.map(d=>`<div>${esc(d.tipo_diaria||d.tipo||'—')}: ${d.quantidade||d.qtd_dias||0}d × ${fmtBRL(d.valor_unitario||0)}</div>`).join('')
         : '<span style="color:var(--cinza-400)">—</span>';
+
+      const orcBRL = p.atividade?.orcamento_usd ? parseFloat(p.atividade.orcamento_usd) * cotacao : 0;
+      const pctAtiv = orcBRL > 0 ? (vPass + vDiar) / orcBRL * 100 : null;
+      const pctCor = pctAtiv === null ? '' : pctAtiv >= 20 ? '#DC2626' : pctAtiv >= 10 ? '#D97706' : '#059669';
+      const pctHtml = pctAtiv === null
+        ? '<span style="color:var(--cinza-400)">—</span>'
+        : `<div style="display:flex;flex-direction:column;gap:3px;min-width:70px">
+            <div style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:${pctCor}">${fmtPct1(pctAtiv)}</div>
+            <div class="rep-barra"><div class="rep-barra-fill" style="width:${Math.min(100,pctAtiv).toFixed(0)}%;background:${pctCor}"></div></div>
+           </div>`;
+      const ativHtml = p.atividade
+        ? `<span style="font-size:9px;background:var(--cinza-100);padding:2px 5px;border-radius:3px;font-family:var(--font-mono)">${esc(p.atividade.codigo)}</span>`
+        : '<span style="color:var(--cinza-400)">—</span>';
+
       return `<tr>
         <td><span style="font-family:var(--font-mono);font-size:10px;background:#D1FAE5;color:#065F46;padding:2px 6px;border-radius:3px">${esc(p.numero||'—')}</span></td>
         <td>${esc(p.numero_sei||'—')}</td>
@@ -2697,6 +2711,8 @@ async function relVi2(){
         <td style="font-size:10px">${dStr}</td>
         <td class="mono" style="text-align:right">${fmtBRL(vDiar)}</td>
         <td class="mono" style="text-align:right;font-weight:600">${fmtBRL(vPass+vDiar)}</td>
+        <td>${ativHtml}</td>
+        <td>${pctHtml}</td>
       </tr>`;
     }).join('');
 
@@ -2717,6 +2733,7 @@ async function relVi2(){
           <th>Trechos</th><th style="text-align:right">Passagens</th>
           <th>Diárias</th><th style="text-align:right">Total Diárias</th>
           <th style="text-align:right">Total</th>
+          <th>Atividade</th><th>% Orçamento</th>
         </tr></thead>
         <tbody>${protRows}</tbody>
         <tfoot><tr>
@@ -2725,6 +2742,7 @@ async function relVi2(){
           <td></td>
           <td class="mono" style="text-align:right">${fmtBRL(r.totalDiar)}</td>
           <td class="mono" style="text-align:right;font-weight:700">${fmtBRL(tot)}</td>
+          <td colspan="2"></td>
         </tr></tfoot>
       </table>
     </div>`;
