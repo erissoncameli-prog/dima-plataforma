@@ -1175,9 +1175,10 @@ function _iniciarCarTimer(){
 function _htmlCarrosselPopup(fotos){
   if(!fotos || !fotos.length) return '';
   const multi = fotos.length > 1;
-  return `<div style="position:relative;margin-bottom:8px;border-radius:6px;overflow:hidden;background:#000;height:130px">
+  return `<div style="position:relative;margin-bottom:8px;border-radius:6px;overflow:hidden;background:#000;height:130px"
+    onmouseenter="_pararCarTimer()" onmouseleave="_iniciarCarTimer()">
     <img id="geo-car-img" src="${escHtml(fotos[0])}"
-         style="width:100%;height:130px;object-fit:cover;display:block;cursor:zoom-in"
+         style="width:100%;height:130px;object-fit:cover;display:block;cursor:zoom-in;transition:opacity .3s"
          onclick="abrirFotoModal(document.getElementById('geo-car-img').src)" title="Ver em tela cheia">
     ${multi ? `
     <button onclick="_geoCarNav(-1)" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:15px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center">‹</button>
