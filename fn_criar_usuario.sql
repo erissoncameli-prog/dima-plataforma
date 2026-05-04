@@ -48,7 +48,12 @@ BEGIN
     raw_user_meta_data,
     is_super_admin,
     role,
-    aud
+    aud,
+    confirmation_token,
+    recovery_token,
+    email_change,
+    email_change_token_new,
+    email_change_token_current
   ) VALUES (
     v_user_id,
     '00000000-0000-0000-0000-000000000000',
@@ -61,7 +66,12 @@ BEGIN
     jsonb_build_object('nome_completo', p_nome),
     false,
     'authenticated',
-    'authenticated'
+    'authenticated',
+    '',
+    '',
+    '',
+    '',
+    ''
   );
 
   -- Criar identidade de e-mail
