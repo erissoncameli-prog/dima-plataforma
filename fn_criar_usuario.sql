@@ -75,10 +75,10 @@ BEGIN
     created_at,
     updated_at
   ) VALUES (
-    gen_random_uuid(),
+    v_user_id,
     v_user_id,
     p_email,
-    jsonb_build_object('sub', v_user_id::text, 'email', p_email),
+    jsonb_build_object('sub', v_user_id::text, 'email', p_email, 'email_verified', true, 'provider_id', p_email),
     'email',
     NOW(),
     NOW(),
