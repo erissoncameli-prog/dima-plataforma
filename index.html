@@ -383,6 +383,7 @@ async function fazerLogin(){
     const{data,error}=await db.auth.signInWithPassword({email,password:senha});
     if(error){
       // Mapear mensagens específicas do Supabase
+      console.error('[Login] Supabase auth error:', error.message, error);
       const msg = error.message||'';
       let textoErro = t.erro_gen;
       if(msg.includes('Invalid login credentials')||msg.includes('invalid_credentials')){
