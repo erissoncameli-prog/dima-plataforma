@@ -1957,7 +1957,70 @@ async function salvarSPDs(){
   }
   const sit=document.getElementById('s-situacao')?.value||p.situacao;
   await db.from('viagem_protocolos').update({situacao:sit,atualizado_em:new Date().toISOString()}).eq('id',p.id);
+
+  // Sincronizar lançamentos financeiros se protocolo já foi lançado
+  const situacaoLancada=['aprovado','em_prestacao','realizado'];
+  if(situacaoLancada.includes(sit)){
+    await _syncFinanceiroSPDs(p);
+  }
+
   toast('Valores e SPDs salvos!','success');fecharModal();await carregar();
+}
+
+async function _syncFinanceiroSPDs(p){
+  // Buscar cotação atual uma só vez
+  const{data:cotData}=await db.from('cotacoes_usd')
+    .select('cotacao').order('data_ref',{ascending:false}).limit(1).single();
+  const cotacao=parseFloat(cotData?.cotacao||5.87);
+
+  for(const v of (p.viajantes||[])){
+    // Recalcular totais usando os valores recém-salvos (lidos dos inputs ou do estado anterior)
+    const totalPass=(v.trechos||[]).reduce((s,t)=>{
+      const el=document.getElementById(`trecho-val-${t.id}`);
+      return s+(el?parseFloat(el.value)||0:parseFloat(t.valor)||0);
+    },0);
+    const totalDiar=(v.diarias||[]).reduce((s,d)=>{
+      const elQ=document.getElementById(`diar-qtd-${d.id}`);
+      const elV=document.getElementById(`diar-vunit-${d.id}`);
+      const qty=elQ?parseInt(elQ.value)||0:parseFloat(d.quantidade)||0;
+      const vunit=elV?parseFloat(elV.value)||0:parseFloat(d.valor_unitario)||0;
+      return s+qty*vunit;
+    },0);
+    const total=Math.round((totalPass+totalDiar)*100)/100;
+
+    if(v.lancamento_id){
+      // Lançamento existe: atualizar se não estiver pago
+      const{data:lanc}=await db.from('execucao_financeira')
+        .select('situacao,valor_brl').eq('id',v.lancamento_id).single();
+      if(lanc&&lanc.situacao!=='pago'&&parseFloat(lanc.valor_brl)!==total){
+        await db.from('execucao_financeira').update({
+          valor_brl:total,
+          valor_usd:Math.round(total/cotacao*100)/100,
+          atualizado_em:new Date().toISOString()
+        }).eq('id',v.lancamento_id);
+      }
+    } else if(total>0&&(v.sit_passagem==='aprovado'||v.sit_diaria==='aprovado')){
+      // Lançamento nunca foi criado (total era zero na aprovação): criar agora
+      const descricao=(p.numero||'')+' — '+v.nome+' ('+(p.destino_principal||'')+')';
+      const{data:newLanc}=await db.from('execucao_financeira').insert({
+        atividade_id:p.atividade_id,
+        descricao,
+        valor_brl:total,
+        valor_usd:Math.round(total/cotacao*100)/100,
+        cotacao_uso:cotacao,
+        cotacao_travada_em:new Date().toISOString(),
+        dt_vencimento:p.dt_retorno||new Date().toISOString().split('T')[0],
+        situacao:'a_pagar',
+        elemento_despesa:'33903',
+        criado_por:p.criado_por
+      }).select('id').single();
+      if(newLanc){
+        await db.from('viagem_viajantes')
+          .update({lancamento_id:newLanc.id})
+          .eq('id',v.id);
+      }
+    }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
