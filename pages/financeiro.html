@@ -1230,6 +1230,18 @@ async function abrirPagamento(id) {
   }
   const ctSaldo = ctTotais.total - ctTotais.pago;
 
+  // ── Painel de atividade (lançamentos sem contrato, ex: viagens) ──
+  const semContrato = !l.contrato_id;
+  let atTotais = { orcamento: 0, pago: 0, aPagar: 0 };
+  if (semContrato && l.atividade_id) {
+    const atividadeObj = atividades.find(a => a.id === l.atividade_id);
+    atTotais.orcamento = parseFloat(atividadeObj?.orcamento_usd || 0) * taxaAtual;
+    const lancsDaAtiv = todosLanc.filter(x => x.atividade_id === l.atividade_id && x.situacao !== 'cancelado');
+    atTotais.pago   = lancsDaAtiv.filter(x => x.situacao === 'pago').reduce((s,x) => s + parseFloat(x.valor_brl||0), 0);
+    atTotais.aPagar = lancsDaAtiv.filter(x => x.situacao === 'a_pagar').reduce((s,x) => s + parseFloat(x.valor_brl||0), 0);
+  }
+  const atSaldo = atTotais.orcamento - atTotais.pago - atTotais.aPagar;
+
   // ── Resumo do lançamento ──
   const ativNome = l.atividades ? `${l.atividades.codigo} · ${l.atividades.nome_pt?.substring(0,40)}` : '—';
   const fornNome = fornData.nome || l.fornecedores?.nome || '—';
