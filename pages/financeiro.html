@@ -1319,8 +1319,34 @@ async function abrirPagamento(id) {
   const usdEstimado = (parseFloat(l.valor_brl||0) / taxaLanc).toFixed(2);
 
   document.getElementById('pgto-body').innerHTML = `
-    <!-- Painel de contrato -->
+    <!-- Painel de contrato ou atividade -->
     <div style="background:#F8FAFC;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;margin-bottom:14px">
+      ${semContrato ? `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">✈️</div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--cinza-900)">${esc(l.descricao||'—')}</div>
+            <div style="font-size:11px;color:var(--cinza-500)">Recurso executado diretamente pela UNESCO</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em">Atividade</div>
+          <div style="font-size:13px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono)">${l.atividades?.codigo||'—'}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:12px;border-top:1px solid var(--borda)">
+        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Orçamento</div>
+          <div style="font-size:12px;font-weight:700;color:var(--cinza-800);font-family:var(--font-mono)">${fmtBRL(atTotais.orcamento)}</div>
+          <div style="font-size:10px;color:var(--cinza-400)">cotação estimada</div></div>
+        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Pago</div>
+          <div style="font-size:12px;font-weight:700;color:#059669;font-family:var(--font-mono)">${fmtBRL(atTotais.pago)}</div></div>
+        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">A Pagar</div>
+          <div style="font-size:12px;font-weight:700;color:#D97706;font-family:var(--font-mono)">${fmtBRL(atTotais.aPagar)}</div></div>
+        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Saldo</div>
+          <div style="font-size:12px;font-weight:700;color:${atSaldo>=0?'#1D4ED8':'#DC2626'};font-family:var(--font-mono)">${fmtBRL(atSaldo)}</div></div>
+      </div>
+      ` : `
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="width:36px;height:36px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏢</div>
@@ -1345,6 +1371,7 @@ async function abrirPagamento(id) {
         <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Saldo</div>
           <div style="font-size:12px;font-weight:700;color:${ctSaldo>=0?'#1D4ED8':'#DC2626'};font-family:var(--font-mono)">${fmtBRL(ctSaldo)}</div></div>
       </div>
+      `}
     </div>
 
     <!-- Layout 2 colunas -->
