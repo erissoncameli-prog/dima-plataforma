@@ -1048,11 +1048,12 @@ async function carregarMapa() {
   mapaL.addLayer(clusterLayer);
 
   // Buscar dados em paralelo
-  const [mapaRes, metaRes, fotosRes, camadasRes] = await Promise.all([
+  const [mapaRes, metaRes, fotosRes, camadasRes, tiposRes] = await Promise.all([
     db.rpc('fn_publico_mapa'),
     db.from('trilha_metadata').select('geometry_group,video_url').then(r => r, () => ({ data: null })),
     db.from('geometria_fotos').select('geometry_group,geometry_type,foto_url,ordem').order('ordem').then(r => r, () => ({ data: null })),
     db.rpc('fn_publico_camadas').then(r => r, () => ({ data: null })),
+    db.rpc('fn_publico_tipos_mapa').then(r => r, () => ({ data: null })),
   ]);
 
   if(mapaRes.error || !mapaRes.data){
