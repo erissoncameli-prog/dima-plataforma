@@ -266,7 +266,13 @@ function mudarAba(id, btn) {
   document.querySelectorAll('.pub-pane').forEach(p => p.classList.remove('ativo'));
   btn.classList.add('ativo');
   document.getElementById('pane-' + id).classList.add('ativo');
-  if (id === 'mapa' && mapaL) setTimeout(() => mapaL.invalidateSize(), 80);
+  const content = document.getElementById('pub-content');
+  if (id === 'mapa') {
+    content.classList.add('mapa-ativo');
+    if (mapaL) setTimeout(() => mapaL.invalidateSize(), 80);
+  } else {
+    content.classList.remove('mapa-ativo');
+  }
   Object.values(charts).forEach(c => { try { c.resize(); } catch(e) {} });
 }
 
