@@ -961,6 +961,22 @@ document.addEventListener('click', e => {
   if(mv && e.target===mv) fecharVideoModal();
 });
 
+// ── Camadas de delimitação ────────────────────────────────────
+function _adicionarCamada(c){
+  if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
+  if(!c.geojson) return;
+  c.layer = L.geoJSON(c.geojson, {
+    style: { color: c.cor||'#16a34a', weight: 2, opacity: .9, fillColor: c.cor||'#16a34a', fillOpacity: .12, dashArray: '5 4' }
+  });
+  c.layer.addTo(mapaL);
+}
+function _toggleCamada(id, visivel){
+  const c = _camadas.find(x => x.id === id); if(!c) return;
+  c.visivel = visivel;
+  if(visivel){ _adicionarCamada(c); }
+  else if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
+}
+
 // ── carregarMapa ──────────────────────────────────────────────
 async function carregarMapa() {
   const el = document.getElementById('pane-mapa');
