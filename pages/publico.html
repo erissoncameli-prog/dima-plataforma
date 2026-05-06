@@ -225,7 +225,12 @@ const SUPABASE_URL = 'https://wfymnmlinonvdqfucjya.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let mapaL = null, clusterLayer = null, todosPontos = [];
+let mapaL = null, clusterLayer = null;
+let _pontos = [], _pontosLayer = [], _geometryLayers = [];
+let _trilhaMetadata = {}, _geometriaFotos = {};
+let _filtrosAPA = new Set(), _filtrosTipo = new Set();
+let _tipoCores = {}, _tipoIcones = {};
+let _geoCarAtual = { fotos: [], idx: 0 }, _geoCarTimer = null;
 const charts = {};
 
 // ── Ícone por tipo de atividade ──────────────────────────────
