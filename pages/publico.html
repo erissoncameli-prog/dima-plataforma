@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Público — Resiliência Socioambiental</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<style>
+:root{
+  --verde:#1F4E2C;--verde-medio:#2D6A4F;--verde-claro:#52B788;
+  --ouro:#F4D35E;--azul:#2563EB;
+  --cinza-50:#F9FAFB;--cinza-100:#F3F4F6;--cinza-200:#E5E7EB;
+  --cinza-400:#9CA3AF;--cinza-500:#6B7280;--cinza-700:#374151;
+  --cinza-800:#1F2937;--cinza-900:#111827;
+  --branco:#fff;--borda:#E5E7EB;
+  --sucesso:#059669;--erro:#DC2626;--aviso:#D97706;
+  --raio:8px;--raio-lg:12px;
+  --font-sans:'DM Sans',sans-serif;--font-mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-900);min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── Header ───────────────────────────────────────────────── */
+.pub-header{background:var(--verde);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:58px;box-shadow:0 2px 8px rgba(0,0,0,.2);position:sticky;top:0;z-index:200;flex-shrink:0;}
+.pub-brand{display:flex;align-items:center;gap:10px;}
+.pub-brand-dot{width:8px;height:8px;border-radius:50%;background:var(--verde-claro);}
+.pub-brand-title{font-size:14px;font-weight:600;letter-spacing:-.01em;}
+.pub-brand-sub{font-size:10px;opacity:.65;margin-top:1px;}
+.btn-login{background:#fff;color:var(--verde);border:none;border-radius:var(--raio);padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);text-decoration:none;letter-spacing:.01em;transition:opacity .15s;flex-shrink:0;}
+.btn-login:hover{opacity:.88;}
+
+/* ── Badge público ─────────────────────────────────────────── */
+.pub-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:3px 10px 3px 6px;font-size:10px;font-weight:600;letter-spacing:.04em;color:rgba(255,255,255,.85);margin-left:10px;}
+.pub-badge-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── Tabs ─────────────────────────────────────────────────── */
+.pub-tabs{background:#fff;border-bottom:1px solid var(--borda);display:flex;padding:0 28px;overflow-x:auto;flex-shrink:0;}
+.pub-tab{padding:13px 20px;font-size:13px;font-weight:500;color:var(--cinza-500);border:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;background:none;font-family:var(--font-sans);white-space:nowrap;transition:all .15s;gap:6px;display:flex;align-items:center;}
+.pub-tab:hover{color:var(--cinza-800);}
+.pub-tab.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);font-weight:600;}
+
+/* ── Content ──────────────────────────────────────────────── */
+.pub-content{flex:1;max-width:1280px;width:100%;margin:0 auto;padding:24px 28px;}
+.pub-pane{display:none;}
+.pub-pane.ativo{display:block;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Banner ───────────────────────────────────────────────── */
+.pub-banner{background:#F0FDF4;border:1px solid #A7F3D0;border-radius:var(--raio-lg);padding:10px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;font-size:12px;color:#065F46;}
+.pub-banner a{color:#065F46;font-weight:600;}
+
+/* ── KPIs ─────────────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi-card{background:#fff;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:18px 20px;position:relative;overflow:hidden;}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.kv::after{background:var(--verde-claro)}.ko::after{background:var(--ouro)}.ka::after{background:var(--azul)}.ke::after{background:var(--erro)}
+.kpi-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.kpi-val{font-size:24px;font-weight:600;color:var(--cinza-900);letter-spacing:-.02em;line-height:1.1;}
+.kpi-sub{font-size:11px;color:var(--cinza-500);margin-top:4px;}
+.kpi-bar{height:3px;background:var(--cinza-100);border-radius:2px;margin-top:10px;overflow:hidden;}
+.kpi-fill{height:100%;border-radius:2px;}
+
+/* ── Charts ───────────────────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.ch{background:#fff;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:20px;}
+.ch-tit{font-size:13px;font-weight:600;color:var(--cinza-800);margin-bottom:3px;}
+.ch-sub{font-size:11px;color:var(--cinza-500);margin-bottom:16px;}
+
+/* ── Matriz ───────────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:#fff;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul)}.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}
+.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.stat-val{font-size:20px;font-weight:600;color:var(--cinza-900);}
+.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
+
+.res-bloco{margin-bottom:12px;border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
+.res-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--cinza-50);cursor:pointer;user-select:none;transition:background .12s;}
+.res-header:hover{background:var(--cinza-100);}
+.res-codigo{font-family:var(--font-mono);font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;color:#fff;flex-shrink:0;}
+.res-nome{font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;line-height:1.3;}
+.res-body{border-top:1px solid var(--borda);}
+
+.prod-label{display:flex;align-items:center;gap:8px;padding:7px 16px;background:#F8FAFF;border-bottom:1px solid var(--borda);}
+.prod-cod{font-family:var(--font-mono);font-size:11px;font-weight:700;color:#2563EB;background:#EFF6FF;padding:2px 8px;border-radius:3px;}
+.prod-titulo{font-size:12px;font-weight:500;color:var(--cinza-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.ind-card{padding:11px 16px;border-bottom:1px solid var(--borda);border-left:4px solid transparent;}
+.ind-card:last-child{border-bottom:none;}
+.ind-card.ok{border-left-color:#059669;}.ind-card.med{border-left-color:#D97706;}.ind-card.alto{border-left-color:#DC2626;}.ind-card.sem{border-left-color:var(--cinza-200);}
+.ind-header{display:flex;align-items:flex-start;gap:8px;}
+.ind-num{font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:2px 6px;border-radius:3px;color:var(--cinza-500);flex-shrink:0;margin-top:1px;}
+.ind-nome{font-size:12px;font-weight:500;color:var(--cinza-900);flex:1;line-height:1.4;}
+.ind-bdg{display:flex;flex-direction:column;gap:3px;align-items:flex-end;flex-shrink:0;}
+.bdg{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;}
+.bdg-ok{background:#D1FAE5;color:#065F46}.bdg-med{background:#FEF3C7;color:#92400E}.bdg-alto{background:#FEE2E2;color:#991B1B}.bdg-sem{background:var(--cinza-100);color:var(--cinza-500)}
+.pend-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#FEF3C7;color:#92400E;}
+.ods-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#EFF6FF;color:#1D4ED8;}
+.km-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#EDE9FE;color:#5B21B6;}
+.ind-prog{margin-top:8px;display:flex;align-items:center;gap:10px;}
+.prog-wrap{flex:1;height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;position:relative;}
+.prog-conf{position:absolute;left:0;top:0;height:100%;background:#059669;border-radius:3px;}
+.prog-pend{position:absolute;top:0;height:100%;background:#FCD34D;border-radius:3px;}
+.ind-nums{font-size:10px;color:var(--cinza-500);white-space:nowrap;min-width:80px;text-align:right;}
+.ind-pct{font-family:var(--font-mono);font-size:13px;font-weight:700;min-width:36px;text-align:right;}
+
+/* ── Mapa ─────────────────────────────────────────────────── */
+.mapa-wrapper{display:flex;gap:12px;height:calc(100vh - 190px);min-height:500px;}
+.mapa-filtros{width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;scrollbar-width:none;}
+.mapa-filtros::-webkit-scrollbar{display:none;}
+#mapa-pub{flex:1;border-radius:var(--raio-lg);border:1px solid var(--borda);z-index:0;}
+.mapa-lista{width:230px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
+.mapa-lista-hdr{padding:9px 12px;border-bottom:1px solid var(--borda);font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;}
+.mapa-lista-scroll{overflow-y:auto;flex:1;min-height:0;scrollbar-width:thin;}
+.ponto-item{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;border-bottom:1px solid var(--cinza-100);cursor:pointer;transition:background .1s;}
+.ponto-item:hover{background:var(--cinza-50);}
+.ponto-item:last-child{border-bottom:none;}
+.ponto-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;background:var(--verde-medio);}
+.ponto-nome{font-size:12px;font-weight:500;color:var(--cinza-800);line-height:1.3;}
+.ponto-sub{font-size:10px;color:var(--cinza-500);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.filtro-bloco{background:#fff;border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
+.filtro-hdr{padding:8px 12px;border-bottom:1px solid var(--borda);}
+.filtro-hdr h4{font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin:0;}
+.filtro-body{padding:8px 12px 10px;max-height:200px;overflow-y:auto;}
+.filtro-item{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;color:var(--cinza-700);cursor:pointer;}
+.filtro-item input{accent-color:var(--verde);cursor:pointer;flex-shrink:0;}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.pub-footer{text-align:center;padding:20px 28px;color:var(--cinza-400);font-size:11px;border-top:1px solid var(--borda);flex-shrink:0;}
+.pub-footer a{color:var(--verde-medio);font-weight:500;text-decoration:none;}
+
+/* ── Spinner / Empty ──────────────────────────────────────── */
+.spinner{width:28px;height:28px;border:3px solid var(--cinza-200);border-top-color:var(--verde-medio);border-radius:50%;animation:spin .7s linear infinite;margin:36px auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px 20px;color:var(--cinza-400);font-size:13px;}
+
+@media(max-width:900px){
+  .kpi-row,.stat-row{grid-template-columns:1fr 1fr;}
+  .g2{grid-template-columns:1fr;}
+  .mapa-wrapper{flex-direction:column;height:auto;}
+  .mapa-filtros{width:100%;max-height:140px;flex-direction:row;flex-wrap:wrap;gap:6px;}
+  .mapa-lista{width:100%;max-height:200px;}
+  #mapa-pub{height:400px;}
+}
+</style>
+</head>
+<body>
+
+<header class="pub-header">
+  <div class="pub-brand">
+    <div class="pub-brand-dot"></div>
+    <div>
+      <div class="pub-brand-title" id="pub-nome">Resiliência Socioambiental</div>
+      <div class="pub-brand-sub">Painel Público de Acompanhamento</div>
+    </div>
+    <div class="pub-badge"><span class="pub-badge-dot"></span>AO VIVO</div>
+  </div>
+  <a href="../index.html" class="btn-login">Fazer Login →</a>
+</header>
+
+<div class="pub-tabs">
+  <button class="pub-tab ativo" onclick="mudarAba('operacional',this)">📊 Painel Geral</button>
+  <button class="pub-tab" onclick="mudarAba('matriz',this)">◎ Matriz de Resultados</button>
+  <button class="pub-tab" onclick="mudarAba('mapa',this)">🗺 Mapa de Entregas</button>
+</div>
+
+<div class="pub-content">
+  <div id="pane-operacional" class="pub-pane ativo"><div class="spinner"></div></div>
+  <div id="pane-matriz"      class="pub-pane"><div class="spinner"></div></div>
+  <div id="pane-mapa"        class="pub-pane"><div class="spinner"></div></div>
+</div>
+
+<footer class="pub-footer">
+  Visualização pública — somente leitura.
+  <a href="../index.html">Fazer login</a> para acesso completo ao sistema.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+// ── Supabase (chave pública anon — sem autenticação) ─────────
+const SUPABASE_URL = 'https://wfymnmlinonvdqfucjya.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let mapaL = null, clusterLayer = null, todosPontos = [];
+const charts = {};
+
+// ── Ícone por tipo de atividade ──────────────────────────────
+const ICONE_MAP = [
+  { kw:['sustentav','extrativ','pfnm','cadeia'],   emoji:'🌿', cor:'#15803d' },
+  { kw:['vulnerab','mitigac','resilienc'],          emoji:'🛡', cor:'#0891b2' },
+  { kw:['fortalec','organiz'],                      emoji:'🤝', cor:'#f97316' },
+  { kw:['monitor','gestao','fiscaliz'],              emoji:'📡', cor:'#6366f1' },
+  { kw:['fossa','sanitari','saneamento'],            emoji:'🚽', cor:'#7c3aed' },
+  { kw:['energia','solar','biodigest'],              emoji:'⚡', cor:'#ca8a04' },
+  { kw:['nascente','igarape','hidric','agua'],       emoji:'💧', cor:'#0284c7' },
+  { kw:['reflorest','plantio','arboriz'],            emoji:'🌱', cor:'#16a34a' },
+  { kw:['pesca','aquicultur'],                       emoji:'🐟', cor:'#0369a1' },
+  { kw:['apicultur','mel'],                          emoji:'🍯', cor:'#d97706' },
+  { kw:['agricultur','cultiv','horta'],              emoji:'🌾', cor:'#65a30d' },
+  { kw:['educac','capacitac','curso'],               emoji:'📚', cor:'#f59e0b' },
+  { kw:['saude','medico'],                           emoji:'🏥', cor:'#ef4444' },
+  { kw:['fauna','biodiversid'],                      emoji:'📷', cor:'#8b5cf6' },
+  { kw:['residuo','reciclagem'],                     emoji:'♻', cor:'#0d9488' },
+];
+
+function tipoIcon(tipo) {
+  if (!tipo) return { emoji:'📍', cor:'#2D6A4F' };
+  const norm = tipo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  for (const m of ICONE_MAP) {
+    if (m.kw.some(k => norm.includes(k))) return { emoji: m.emoji, cor: m.cor };
+  }
+  return { emoji:'📍', cor:'#2D6A4F' };
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Troca de aba ─────────────────────────────────────────────
+function mudarAba(id, btn) {
+  document.querySelectorAll('.pub-tab').forEach(b => b.classList.remove('ativo'));
+  document.querySelectorAll('.pub-pane').forEach(p => p.classList.remove('ativo'));
+  btn.classList.add('ativo');
+  document.getElementById('pane-' + id).classList.add('ativo');
+  if (id === 'mapa' && mapaL) setTimeout(() => mapaL.invalidateSize(), 80);
+  Object.values(charts).forEach(c => { try { c.resize(); } catch(e) {} });
+}
+
+// ── Boot ─────────────────────────────────────────────────────
+(async () => {
+  // Configurações do projeto (acesso público — qual=true na tabela)
+  try {
+    const { data: cfg } = await db.from('configuracoes_sistema')
+      .select('projeto_nome,projeto_codigo').eq('projeto_id','default').single();
+    if (cfg?.projeto_nome) {
+      const titulo = cfg.projeto_codigo
+        ? `${cfg.projeto_codigo} — ${cfg.projeto_nome}`
+        : cfg.projeto_nome;
+      document.getElementById('pub-nome').textContent = titulo;
+      document.title = `Painel Público — ${cfg.projeto_nome}`;
+    }
+  } catch(e) {}
+
+  // Carregar as 3 abas em paralelo
+  carregarOperacional();
+  carregarMatriz();
+  carregarMapa();
+})();
+
+// ──────────────────────────────────────────────────────────────
+// PAINEL GERAL
+// ──────────────────────────────────────────────────────────────
+async function carregarOperacional() {
+  const el = document.getElementById('pane-operacional');
+  const { data, error } = await db.rpc('fn_publico_operacional');
+  if (error || !data) { el.innerHTML = '<div class="empty">Erro ao carregar dados.</div>'; return; }
+
+  const d = data;
+  const pctAprov = d.tdrs_total > 0 ? Math.round(d.tdrs_aprovados / d.tdrs_total * 100) : 0;
+  const pctProg  = d.indicadores_total > 0 ? Math.round(d.indicadores_com_progresso / d.indicadores_total * 100) : 0;
+
+  const fasesNm = { A_INICIAR:'A Iniciar', ELABORACAO:'Elaboração', LICITACAO:'Licitação', ELABORADO:'Elaborado', CONTRATADO:'Contratado', CONCLUIDO:'Concluído' };
+  const fasesCor = ['#D1D5DB','#93C5FD','#FCD34D','#6EE7B7','#34D399','#059669'];
+  const statusNm = { rascunho:'Rascunho', revisao_interna:'Revisão', aprovado:'Aprovado', ajustes:'Ajustes', enviado_unesco:'UNESCO' };
+  const statusCor = { rascunho:'#D1D5DB', revisao_interna:'#93C5FD', aprovado:'#34D399', ajustes:'#FCD34D', enviado_unesco:'#6EE7B7' };
+
+  el.innerHTML = `
+    <div class="pub-banner">
+      🌍 Dados públicos do projeto — atualizados em tempo real.
+      <a href="../index.html">Fazer login</a> para acesso completo.
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card kv">
+        <div class="kpi-lbl">Total de atividades</div>
+        <div class="kpi-val">${d.atividades_total}</div>
+        <div class="kpi-sub">no projeto</div>
+      </div>
+      <div class="kpi-card ka">
+        <div class="kpi-lbl">TDRs aprovados</div>
+        <div class="kpi-val" style="color:var(--azul)">${d.tdrs_aprovados} / ${d.tdrs_total}</div>
+        <div class="kpi-sub">${pctAprov}% do total</div>
+        <div class="kpi-bar"><div class="kpi-fill" style="width:${Math.min(pctAprov,100)}%;background:var(--azul)"></div></div>
+      </div>
+      <div class="kpi-card kv">
+        <div class="kpi-lbl">Produtos entregues</div>
+        <div class="kpi-val" style="color:var(--sucesso)">${d.produtos_total}</div>
+        <div class="kpi-sub">registrados no sistema</div>
+      </div>
+      <div class="kpi-card ko">
+        <div class="kpi-lbl">Indicadores com progresso</div>
+        <div class="kpi-val" style="color:var(--aviso)">${d.indicadores_com_progresso} / ${d.indicadores_total}</div>
+        <div class="kpi-sub">${pctProg}% do total</div>
+        <div class="kpi-bar"><div class="kpi-fill" style="width:${Math.min(pctProg,100)}%;background:var(--aviso)"></div></div>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="ch">
+        <div class="ch-tit">Pipeline de contratação</div>
+        <div class="ch-sub">Atividades por fase</div>
+        <div style="position:relative;height:220px"><canvas id="ch-fases"></canvas></div>
+      </div>
+      <div class="ch">
+        <div class="ch-tit">TDRs por status</div>
+        <div class="ch-sub">Termos de Referência ativos</div>
+        <div style="display:flex;align-items:center;gap:14px;height:220px">
+          <div style="position:relative;flex:0 0 150px;height:150px"><canvas id="ch-tdr"></canvas></div>
+          <div id="leg-tdr" style="flex:1;font-size:11px"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    const fases = d.atividades_por_fase || {};
+    const fNms = Object.keys(fasesNm);
+    charts.fases = new Chart(document.getElementById('ch-fases'), {
+      type: 'bar',
+      data: {
+        labels: fNms.map(k => fasesNm[k]),
+        datasets: [{ data: fNms.map(k => fases[k] || 0), backgroundColor: fasesCor, borderRadius: 5 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#6B7280' } }, y: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { stepSize: 1, font: { size: 10 } } } }
+      }
+    });
+
+    const stMap = d.tdrs_por_status || {};
+    const stKs = Object.keys(stMap).filter(k => stMap[k] > 0);
+    charts.tdr = new Chart(document.getElementById('ch-tdr'), {
+      type: 'doughnut',
+      data: {
+        labels: stKs.map(k => statusNm[k] || k),
+        datasets: [{ data: stKs.map(k => stMap[k]), backgroundColor: stKs.map(k => statusCor[k] || '#ccc'), borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: false } } }
+    });
+    document.getElementById('leg-tdr').innerHTML = stKs.map(k =>
+      `<div style="display:flex;align-items:center;gap:5px;margin-bottom:7px">
+        <div style="width:10px;height:10px;border-radius:2px;background:${statusCor[k]||'#ccc'};flex-shrink:0"></div>
+        <span style="color:var(--cinza-700)">${statusNm[k]||k}<br>
+        <strong style="font-family:var(--font-mono);font-size:11px">${stMap[k]}</strong></span>
+      </div>`
+    ).join('');
+  }, 50);
+}
+
+// ──────────────────────────────────────────────────────────────
+// MATRIZ DE RESULTADOS
+// ──────────────────────────────────────────────────────────────
+async function carregarMatriz() {
+  const el = document.getElementById('pane-matriz');
+  const { data, error } = await db.rpc('fn_publico_resultados');
+  if (error || !data) { el.innerHTML = '<div class="empty">Erro ao carregar matriz.</div>'; return; }
+
+  const items = data;
+  const comMeta = items.filter(i => parseFloat(i.meta_numerica || 0) > 0);
+  const atingidos = comMeta.filter(i => parseFloat(i.pct_confirmado || 0) >= 100).length;
+  const emRisco   = comMeta.filter(i => parseFloat(i.pct_confirmado || 0) < 40).length;
+  const pendentes = items.filter(i => parseFloat(i.realizado_pendente || 0) > 0).length;
+  const media = comMeta.length
+    ? Math.round(comMeta.reduce((s, i) => s + Math.min(parseFloat(i.pct_confirmado || 0), 100), 0) / comMeta.length)
+    : 0;
+
+  // Agrupar por resultado
+  const porRes = {};
+  items.forEach(i => { if (!porRes[i.resultado]) porRes[i.resultado] = []; porRes[i.resultado].push(i); });
+  const resCors = { 1:'#1D9E75', 2:'#2563EB', 3:'#7F77DD' };
+
+  let h = `
+    <div class="stat-row">
+      <div class="stat-card sc-g">
+        <div class="stat-lbl">Progresso médio</div>
+        <div class="stat-val" style="color:var(--sucesso)">${media}%</div>
+        <div class="stat-sub">Contribuições confirmadas</div>
+      </div>
+      <div class="stat-card sc-b">
+        <div class="stat-lbl">Metas atingidas</div>
+        <div class="stat-val" style="color:var(--azul)">${atingidos}</div>
+        <div class="stat-sub">de ${comMeta.length} com meta definida</div>
+      </div>
+      <div class="stat-card sc-a">
+        <div class="stat-lbl">Aguardam confirmação</div>
+        <div class="stat-val" style="color:var(--aviso)">${pendentes}</div>
+        <div class="stat-sub">indicadores com pendências</div>
+      </div>
+      <div class="stat-card sc-r">
+        <div class="stat-lbl">Em risco (&lt;40%)</div>
+        <div class="stat-val" style="color:var(--erro)">${emRisco}</div>
+        <div class="stat-sub">de ${items.length} indicadores</div>
+      </div>
+    </div>
+  `;
+
+  Object.keys(porRes).sort().forEach(rk => {
+    const itens = porRes[rk];
+    const cor = resCors[rk] || '#6B7280';
+    const comMetaR = itens.filter(i => parseFloat(i.meta_numerica || 0) > 0);
+    const mediaR = comMetaR.length
+      ? Math.round(comMetaR.reduce((s, i) => s + Math.min(parseFloat(i.pct_confirmado || 0), 100), 0) / comMetaR.length)
+      : 0;
+
+    h += `<div class="res-bloco">
+      <div class="res-header" onclick="toggleRes(this)">
+        <span class="res-codigo" style="background:${cor}">R${rk}</span>
+        <span class="res-nome">Resultado ${rk}</span>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+          <div style="width:80px;height:5px;background:var(--cinza-200);border-radius:3px;overflow:hidden">
+            <div style="height:100%;background:${cor};width:${mediaR}%;border-radius:3px;transition:width .5s"></div>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:${cor}">${mediaR}%</span>
+          <span style="font-size:11px;color:var(--cinza-400)">${itens.length} ind.</span>
+          <span style="font-size:11px;color:var(--cinza-400);transition:transform .2s" class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="res-body">`;
+
+    // Agrupar por produto
+    const porProd = {};
+    itens.forEach(i => {
+      const pk = i.produto_codigo || 'SEM';
+      if (!porProd[pk]) porProd[pk] = { titulo: i.produto_titulo || '', itens: [] };
+      porProd[pk].itens.push(i);
+    });
+
+    Object.entries(porProd).forEach(([pk, pv]) => {
+      h += `<div>
+        <div class="prod-label">
+          <span class="prod-cod">${esc(pk)}</span>
+          <span class="prod-titulo">${esc((pv.titulo || '').substring(0, 80))}</span>
+        </div>`;
+
+      pv.itens.forEach((ind, idx) => {
+        const meta  = parseFloat(ind.meta_numerica || 0);
+        const conf  = parseFloat(ind.realizado_confirmado || 0);
+        const pend  = parseFloat(ind.realizado_pendente || 0);
+        const pct   = meta > 0 ? Math.min(conf / meta * 100, 100) : 0;
+        const pctP  = meta > 0 ? Math.min(pend / meta * 100, 100 - Math.min(pct, 100)) : 0;
+        const riscoClass = pct >= 70 ? 'ok' : pct >= 40 ? 'med' : meta > 0 ? 'alto' : 'sem';
+        const bdgCls  = pct >= 100 ? 'bdg-ok' : pct >= 70 ? 'bdg-ok' : pct >= 40 ? 'bdg-med' : meta > 0 ? 'bdg-alto' : 'bdg-sem';
+        const bdgTxt  = pct >= 100 ? 'Meta atingida' : pct >= 70 ? 'Em dia' : pct >= 40 ? 'Atenção' : meta > 0 ? 'Risco' : 'Sem meta';
+        const corPct  = pct >= 70 ? '#059669' : pct >= 40 ? '#D97706' : '#DC2626';
+        const ods = (ind.ods || []).slice(0, 3);
+        const km  = (ind.metas_km || []).slice(0, 2);
+
+        h += `<div class="ind-card ${riscoClass}">
+          <div class="ind-header">
+            <span class="ind-num">${idx + 1}</span>
+            <span class="ind-nome">${esc(ind.indicador)}</span>
+            <div class="ind-bdg">
+              <span class="bdg ${bdgCls}">${bdgTxt}</span>
+              ${pend > 0 ? '<span class="pend-chip">⏳ pend.</span>' : ''}
+            </div>
+          </div>
+          <div class="ind-prog">
+            <div class="prog-wrap">
+              ${pctP > 0 ? `<div class="prog-pend" style="left:${Math.min(pct,100)}%;width:${pctP}%"></div>` : ''}
+              <div class="prog-conf" style="width:${Math.min(pct,100)}%"></div>
+            </div>
+            <div class="ind-nums">${meta > 0 ? `${conf.toFixed(0)} / ${meta} ${esc(ind.unidade || '')}` : (ind.meta_descricao || '').substring(0,30) || '—'}</div>
+            <div class="ind-pct" style="color:${corPct}">${meta > 0 ? Math.round(pct) + '%' : '—'}</div>
+          </div>
+          ${ods.length || km.length ? `<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:5px">
+            ${ods.map(o => `<span class="ods-chip">ODS ${esc(o)}</span>`).join('')}
+            ${km.map(m => `<span class="km-chip">KM ${esc(m)}</span>`).join('')}
+          </div>` : ''}
+        </div>`;
+      });
+      h += '</div>';
+    });
+    h += '</div></div>';
+  });
+
+  if (!items.length) h += '<div class="empty">Nenhum indicador cadastrado na Matriz de Resultados.</div>';
+  el.innerHTML = h;
+}
+
+window.toggleRes = function(hdr) {
+  const body    = hdr.nextElementSibling;
+  const chevron = hdr.querySelector('.chevron');
+  const open    = body.style.display !== 'none';
+  body.style.display    = open ? 'none' : '';
+  if (chevron) chevron.style.transform = open ? 'rotate(-90deg)' : '';
+};
+
+// ──────────────────────────────────────────────────────────────
+// MAPA DE ENTREGAS
+// ──────────────────────────────────────────────────────────────
+async function carregarMapa() {
+  const el = document.getElementById('pane-mapa');
+  el.innerHTML = `
+    <div class="mapa-wrapper">
+      <div class="mapa-filtros">
+        <div class="filtro-bloco">
+          <div class="filtro-hdr"><h4>Tipo de atividade</h4></div>
+          <div class="filtro-body" id="filtro-tipos"><div class="spinner" style="width:18px;height:18px;border-width:2px;margin:8px auto"></div></div>
+        </div>
+        <div class="filtro-bloco">
+          <div class="filtro-hdr"><h4>Área / APA</h4></div>
+          <div class="filtro-body" id="filtro-apa"><div class="spinner" style="width:18px;height:18px;border-width:2px;margin:8px auto"></div></div>
+        </div>
+      </div>
+      <div id="mapa-pub"></div>
+      <div class="mapa-lista">
+        <div class="mapa-lista-hdr">Pontos (<span id="pontos-cnt">—</span>)</div>
+        <div class="mapa-lista-scroll" id="pontos-lista"></div>
+      </div>
+    </div>
+  `;
+
+  mapaL = L.map('mapa-pub', { zoomControl: true, attributionControl: false });
+  L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+    maxZoom: 20, subdomains: ['mt0','mt1','mt2','mt3']
+  }).addTo(mapaL);
+  mapaL.setView([-9.975, -67.81], 8);
+
+  clusterLayer = L.markerClusterGroup({ maxClusterRadius: 50 });
+  mapaL.addLayer(clusterLayer);
+
+  const { data, error } = await db.rpc('fn_publico_mapa');
+  if (error || !data) {
+    document.getElementById('pontos-lista').innerHTML = '<div style="padding:16px;text-align:center;color:var(--cinza-500);font-size:12px">Erro ao carregar pontos.</div>';
+    return;
+  }
+  todosPontos = data;
+
+  // Filtros de tipo
+  const tipos = [...new Set(data.map(p => p.tipo_atividade).filter(Boolean))].sort();
+  document.getElementById('filtro-tipos').innerHTML = tipos.length
+    ? tipos.map(t => `<label class="filtro-item"><input type="checkbox" value="${esc(t)}" checked onchange="filtrarMapa()"> ${esc(t)}</label>`).join('')
+    : '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Nenhum tipo cadastrado</div>';
+
+  // Filtros de APA
+  const apas = [...new Set(data.map(p => p.apa).filter(Boolean))].sort();
+  document.getElementById('filtro-apa').innerHTML = apas.length
+    ? apas.map(a => `<label class="filtro-item"><input type="checkbox" value="${esc(a)}" checked onchange="filtrarMapa()"> ${esc(a)}</label>`).join('')
+    : '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Sem filtro de APA</div>';
+
+  renderPontos(data);
+}
+
+function renderPontos(pontos) {
+  clusterLayer.clearLayers();
+
+  // Pontos individuais (geometry_type='ponto' ou sem tipo)
+  const pts = pontos.filter(p => (!p.geometry_type || p.geometry_type === 'ponto') && p.lat && p.lng);
+  document.getElementById('pontos-cnt').textContent = pts.length;
+
+  pts.forEach(p => {
+    const { emoji, cor } = tipoIcon(p.tipo_atividade);
+    const icon = L.divIcon({
+      html: `<div style="background:${cor};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">${emoji}</div>`,
+      className: '',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+    });
+
+    const fotos = (p.fotos || []).filter(f => f.foto_url);
+    const fotoHtml = p.foto_url
+      ? `<img src="${esc(p.foto_url)}" style="width:100%;height:90px;object-fit:cover;border-radius:6px;margin-bottom:6px">`
+      : fotos[0]?.foto_url
+        ? `<img src="${esc(fotos[0].foto_url)}" style="width:100%;height:90px;object-fit:cover;border-radius:6px;margin-bottom:6px">`
+        : '';
+
+    const popup = L.popup({ maxWidth: 240 }).setContent(`
+      <div style="font-family:'DM Sans',sans-serif;min-width:180px">
+        ${fotoHtml}
+        <div style="font-size:13px;font-weight:600;color:#1F4E2C;margin-bottom:4px">${esc(p.nome_local || '—')}</div>
+        ${p.tipo_atividade ? `<div style="font-size:11px;color:#555;margin-bottom:2px">🏷 ${esc(p.tipo_atividade)}</div>` : ''}
+        ${p.apa ? `<div style="font-size:11px;color:#555;margin-bottom:2px">🌿 ${esc(p.apa)}</div>` : ''}
+        ${p.data_implantacao ? `<div style="font-size:10px;color:#9CA3AF">${new Date(p.data_implantacao+'T12:00:00').toLocaleDateString('pt-BR')}</div>` : ''}
+      </div>
+    `);
+
+    L.marker([p.lat, p.lng], { icon }).bindPopup(popup).addTo(clusterLayer);
+  });
+
+  // Polígonos / linhas: agrupar por geometry_group + geometry_type
+  const grupos = {};
+  pontos.filter(p => p.geometry_type && p.geometry_type !== 'ponto' && p.lat && p.lng).forEach(p => {
+    const k = (p.geometry_group || p.id) + '|' + p.geometry_type;
+    if (!grupos[k]) grupos[k] = { pts: [], p };
+    grupos[k].pts.push([p.lat, p.lng]);
+  });
+  Object.values(grupos).forEach(({ pts: latlngs, p }) => {
+    if (latlngs.length < 2) return;
+    const { cor } = tipoIcon(p.tipo_atividade);
+    const isPolygon = p.geometry_type === 'poligono' || p.geometry_type === 'multipoligono';
+    const layer = isPolygon
+      ? L.polygon(latlngs, { color: cor, weight: 2, fillOpacity: 0.18 })
+      : L.polyline(latlngs, { color: cor, weight: 3 });
+    layer.bindPopup(`<div style="font-family:'DM Sans',sans-serif"><strong>${esc(p.nome_local || '—')}</strong>${p.tipo_atividade ? `<br><span style="font-size:11px;color:#555">${esc(p.tipo_atividade)}</span>` : ''}</div>`);
+    layer.addTo(clusterLayer);
+  });
+
+  // Ajustar zoom
+  if (pts.length > 0) {
+    try { mapaL.fitBounds(L.latLngBounds(pts.map(p => [p.lat, p.lng])), { padding: [30, 30] }); } catch(e) {}
+  }
+
+  // Lista lateral
+  const listaEl = document.getElementById('pontos-lista');
+  listaEl.innerHTML = pts.length
+    ? pts.map(p => {
+        const { cor } = tipoIcon(p.tipo_atividade);
+        return `<div class="ponto-item" onclick="focarPonto(${p.lat},${p.lng})">
+          <div class="ponto-dot" style="background:${cor}"></div>
+          <div style="min-width:0">
+            <div class="ponto-nome">${esc(p.nome_local || '—')}</div>
+            ${p.tipo_atividade ? `<div class="ponto-sub">${esc(p.tipo_atividade)}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')
+    : '<div style="padding:16px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum ponto encontrado.</div>';
+}
+
+window.focarPonto = function(lat, lng) {
+  if (mapaL) mapaL.setView([lat, lng], 14);
+};
+
+window.filtrarMapa = function() {
+  const tipos = new Set([...document.querySelectorAll('#filtro-tipos input:checked')].map(i => i.value));
+  const apas  = new Set([...document.querySelectorAll('#filtro-apa input:checked')].map(i => i.value));
+  const filtrados = todosPontos.filter(p => {
+    const tipoOk = !p.tipo_atividade || tipos.has(p.tipo_atividade);
+    const apaOk  = !p.apa || apas.has(p.apa);
+    return tipoOk && apaOk;
+  });
+  renderPontos(filtrados);
+};
+</script>
+</body>
+</html>
