@@ -230,22 +230,43 @@ const charts = {};
 
 // ── Ícone por tipo de atividade ──────────────────────────────
 const ICONE_MAP = [
-  { kw:['sustentav','extrativ','pfnm','cadeia'],   emoji:'🌿', cor:'#15803d' },
-  { kw:['vulnerab','mitigac','resilienc'],          emoji:'🛡', cor:'#0891b2' },
-  { kw:['fortalec','organiz'],                      emoji:'🤝', cor:'#f97316' },
-  { kw:['monitor','gestao','fiscaliz'],              emoji:'📡', cor:'#6366f1' },
-  { kw:['fossa','sanitari','saneamento'],            emoji:'🚽', cor:'#7c3aed' },
-  { kw:['energia','solar','biodigest'],              emoji:'⚡', cor:'#ca8a04' },
-  { kw:['nascente','igarape','hidric','agua'],       emoji:'💧', cor:'#0284c7' },
-  { kw:['reflorest','plantio','arboriz'],            emoji:'🌱', cor:'#16a34a' },
-  { kw:['pesca','aquicultur'],                       emoji:'🐟', cor:'#0369a1' },
-  { kw:['apicultur','mel'],                          emoji:'🍯', cor:'#d97706' },
-  { kw:['agricultur','cultiv','horta'],              emoji:'🌾', cor:'#65a30d' },
-  { kw:['educac','capacitac','curso'],               emoji:'📚', cor:'#f59e0b' },
-  { kw:['saude','medico'],                           emoji:'🏥', cor:'#ef4444' },
-  { kw:['fauna','biodiversid'],                      emoji:'📷', cor:'#8b5cf6' },
-  { kw:['residuo','reciclagem'],                     emoji:'♻', cor:'#0d9488' },
+  { kw:['sustentav','extrativ','pfnm','cadeia valor'],            emoji:'🌿', cor:'#15803d' },
+  { kw:['vulnerab','mitigac','resilienc'],                        emoji:'🛡', cor:'#0891b2' },
+  { kw:['fortalec','organiz'],                                    emoji:'🤝', cor:'#f97316' },
+  { kw:['monitor','adaptac','gestao','fiscaliz'],                 emoji:'📡', cor:'#6366f1' },
+  { kw:['fossa','sanitari','saneamento','esgoto'],                emoji:'🚽', cor:'#7c3aed' },
+  { kw:['energia','solar','biodigest','eletric'],                 emoji:'⚡', cor:'#ca8a04' },
+  { kw:['infraestrut','construc','obra','ponte','estrada'],       emoji:'🏗', cor:'#78716c' },
+  { kw:['nascente','igarape','hidric','hidrol','agua','lago'],    emoji:'💧', cor:'#0284c7' },
+  { kw:['meteorol','pluviometr','clima','chuva'],                 emoji:'🌤', cor:'#64748b' },
+  { kw:['reflorest','plantio','arboriz'],                         emoji:'🌱', cor:'#16a34a' },
+  { kw:['viveiro','sement'],                                      emoji:'🪴', cor:'#166534' },
+  { kw:['pesca','aquicultur','piscicultur'],                      emoji:'🐟', cor:'#0369a1' },
+  { kw:['apicultur','mel','abelha'],                              emoji:'🍯', cor:'#d97706' },
+  { kw:['agricultur','roca','cultiv','horta','agroflorest'],      emoji:'🌾', cor:'#65a30d' },
+  { kw:['educac','ensino','capacitac','escola','curso','formac'], emoji:'📚', cor:'#f59e0b' },
+  { kw:['saude','medico','hospital','farmacia'],                  emoji:'🏥', cor:'#ef4444' },
+  { kw:['comunidad','aldeia','assentament','social'],             emoji:'🏘', cor:'#ea580c' },
+  { kw:['fauna','biodiversid','armadilha','especie'],             emoji:'📷', cor:'#8b5cf6' },
+  { kw:['residuo','lixo','reciclagem'],                           emoji:'♻', cor:'#0d9488' },
+  { kw:['incendio','queimada','fogo'],                            emoji:'🔥', cor:'#dc2626' },
 ];
+
+// ── Constantes do mapa ────────────────────────────────────────
+const APA_CONFIG = {
+  'Igarapé São Francisco': { cor:'#16a34a' },
+  'Lago do Amapá':          { cor:'#2563eb' },
+  'Outra':                  { cor:'#9ca3af' },
+};
+const TIPO_CORES = ['#7c3aed','#d97706','#0891b2','#dc2626','#059669','#d946ef','#f59e0b','#3b82f6'];
+const PONTOS_ESPECIAIS = {
+  'descanso': { emoji:'🪑', label:'Área de descanso',  cor:'#f59e0b' },
+  'igarape':  { emoji:'💧', label:'Igarapé / Córrego', cor:'#0284c7' },
+  'lago':     { emoji:'🌊', label:'Lago / Lagoa',       cor:'#0891b2' },
+  'arvore':   { emoji:'🌳', label:'Árvore histórica',   cor:'#166534' },
+  'mirante':  { emoji:'🏔', label:'Mirante / Vista',    cor:'#6366f1' },
+  'outro':    { emoji:'⭐', label:'Ponto de interesse', cor:'#d97706' },
+};
 
 function tipoIcon(tipo) {
   if (!tipo) return { emoji:'📍', cor:'#2D6A4F' };
