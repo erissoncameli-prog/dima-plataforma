@@ -563,23 +563,421 @@ window.toggleRes = function(hdr) {
 // ──────────────────────────────────────────────────────────────
 // MAPA DE ENTREGAS
 // ──────────────────────────────────────────────────────────────
+
+// ── Cálculos geoespaciais (Turf.js) ──────────────────────────
+function _calcularArea(latlngs){
+  if(latlngs.length < 3) return 0;
+  try{
+    const coords = latlngs.map(([lat,lng]) => [lng,lat]);
+    coords.push(coords[0]);
+    return turf.area(turf.polygon([coords]));
+  }catch(e){ return 0; }
+}
+function _calcularDistancia(latlngs){
+  if(latlngs.length < 2) return 0;
+  try{
+    const coords = latlngs.map(([lat,lng]) => [lng,lat]);
+    return turf.length(turf.lineString(coords), {units:'kilometers'}) * 1000;
+  }catch(e){ return 0; }
+}
+function _formatarArea(m2){
+  if(m2 <= 0) return '—';
+  return m2 >= 10000 ? `${(m2/10000).toFixed(2)} ha` : `${Math.round(m2).toLocaleString('pt-BR')} m²`;
+}
+function _formatarDistancia(m){
+  if(m <= 0) return '—';
+  return m >= 1000 ? `${(m/1000).toFixed(2)} km` : `${Math.round(m).toLocaleString('pt-BR')} m`;
+}
+
+// ── Cor e ícone ───────────────────────────────────────────────
+function _corIcone(p){
+  if(p.tipo_atividade && _tipoCores[p.tipo_atividade]) return _tipoCores[p.tipo_atividade];
+  return APA_CONFIG[p.apa]?.cor || '#9ca3af';
+}
+function _emojiTipo(tipo){
+  if(!tipo) return null;
+  if(_tipoIcones[tipo]) return { emoji: _tipoIcones[tipo], cor: _tipoCores[tipo] || '#9ca3af' };
+  const t = tipo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  for(const entry of ICONE_MAP){
+    if(entry.kw.some(k => t.includes(k.normalize('NFD').replace(/[̀-ͯ]/g,'')))) return entry;
+  }
+  return null;
+}
+function _criarIcone(p){
+  const match = _emojiTipo(p.tipo_atividade);
+  const cor = match ? match.cor : _corIcone(p);
+  const sz = 24;
+  const conteudo = match
+    ? `<span style="font-size:13px;line-height:1">${match.emoji}</span>`
+    : `<span style="font-size:11px;font-weight:700;color:#fff">${(p.tipo_atividade||'?')[0].toUpperCase()}</span>`;
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${cor};border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center">${conteudo}</div>`,
+    iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]
+  });
+}
+function _divIcone(emoji, bg, sz){
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${bg};border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz*.55)}px">${emoji}</div>`,
+    iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]
+  });
+}
+
+// ── Vídeo embed ───────────────────────────────────────────────
+function _videoEmbedUrl(url){
+  if(!url) return null;
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if(yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vi = url.match(/vimeo\.com\/(\d+)/);
+  if(vi) return `https://player.vimeo.com/video/${vi[1]}`;
+  return null;
+}
+
+// ── Carrossel de fotos ────────────────────────────────────────
+function _pararCarTimer(){ if(_geoCarTimer){ clearInterval(_geoCarTimer); _geoCarTimer = null; } }
+function _iniciarCarTimer(){
+  _pararCarTimer();
+  if(_geoCarAtual.fotos.length <= 1) return;
+  _geoCarTimer = setInterval(() => _geoCarNav(1, true), 2000);
+}
+function _geoCarNav(dir, auto=false){
+  const n = _geoCarAtual.fotos.length;
+  if(!n) return;
+  _geoCarAtual.idx = (_geoCarAtual.idx + dir + n) % n;
+  const img = document.getElementById('geo-car-img');
+  const counter = document.getElementById('geo-car-counter');
+  if(img) img.src = _geoCarAtual.fotos[_geoCarAtual.idx];
+  if(counter) counter.textContent = `${_geoCarAtual.idx+1}/${n}`;
+  if(!auto) _iniciarCarTimer();
+}
+function _htmlCarrossel(fotos){
+  if(!fotos?.length) return '';
+  const multi = fotos.length > 1;
+  return `<div style="position:relative;margin-bottom:8px;border-radius:6px;overflow:hidden;background:#000;height:130px"
+    onmouseenter="_pararCarTimer()" onmouseleave="_iniciarCarTimer()">
+    <img id="geo-car-img" src="${esc(fotos[0])}"
+      style="width:100%;height:130px;object-fit:cover;display:block;cursor:zoom-in;transition:opacity .3s"
+      onclick="abrirFotoModal(document.getElementById('geo-car-img').src)" title="Ver em tela cheia">
+    ${multi ? `
+    <button onclick="_geoCarNav(-1)" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:15px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center">‹</button>
+    <button onclick="_geoCarNav(1)"  style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:15px;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center">›</button>
+    <div id="geo-car-counter" style="position:absolute;bottom:5px;right:7px;background:rgba(0,0,0,.5);color:#fff;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px">1/${fotos.length}</div>
+    ` : ''}
+  </div>`;
+}
+
+// ── Popups ────────────────────────────────────────────────────
+function _renderPopup(p){
+  const cor = _corIcone(p);
+  const dt = p.data_implantacao ? new Date(p.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '—';
+  const fotoKey = 'ponto:' + (p.geometry_group || p.id);
+  const fotos = _geometriaFotos[fotoKey] || (p.foto_url ? [p.foto_url] : []);
+  return `<div class="mapa-popup">
+    ${fotos.length ? `<img src="${esc(fotos[0])}" style="width:100%;height:100px;object-fit:cover;border-radius:6px;margin-bottom:8px;cursor:zoom-in;display:block" onclick="abrirFotoModal('${esc(fotos[0])}')" title="Ver em tela cheia">` : ''}
+    <h4>${esc(p.nome_local)}</h4>
+    ${p.tipo_atividade ? `<div style="margin-bottom:7px"><span style="background:${cor}22;color:${cor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid ${cor}55">${esc(p.tipo_atividade)}</span></div>` : ''}
+    <div class="pp-linha"><strong>APA:</strong>${esc(p.apa||'—')}</div>
+    <div class="pp-linha"><strong>Implantação:</strong>${dt}</div>
+    ${p.observacao ? `<div class="pp-linha"><strong>Obs.:</strong>${esc(p.observacao)}</div>` : ''}
+  </div>`;
+}
+
+function _popupGeometria(nome, pts, tipo){
+  const p0 = pts[0];
+  const cor = _corIcone(p0);
+  const dt = p0.data_implantacao ? new Date(p0.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '—';
+  const latlngs = pts.map(p => [p.lat, p.lng]);
+  const medida = tipo === 'poligono'
+    ? `<div class="pp-linha"><strong>Área:</strong>${_formatarArea(_calcularArea(latlngs))}</div>`
+    : `<div class="pp-linha"><strong>Distância:</strong>${_formatarDistancia(_calcularDistancia(latlngs))}</div>`;
+
+  let btnVideo = '', badgesPE = '';
+  if(tipo === 'trilha'){
+    const meta = _trilhaMetadata[nome];
+    if(meta?.video_url){
+      btnVideo = `<button onclick="abrirVideoModal('${esc(meta.video_url)}')"
+        style="width:100%;margin:6px 0 4px;padding:7px 12px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        ▶ Assistir vídeo da trilha</button>`;
+    }
+    const especiais = pts.filter(p => p.ponto_especial && PONTOS_ESPECIAIS[p.ponto_especial]);
+    if(especiais.length){
+      badgesPE = `<div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:7px">
+        <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Pontos de interesse</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">`;
+      especiais.forEach(p => {
+        const pe = PONTOS_ESPECIAIS[p.ponto_especial];
+        badgesPE += `<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;border-radius:99px;white-space:nowrap;font-weight:500;background:${pe.cor}22;border:1px solid ${pe.cor}55;color:${pe.cor}">${pe.emoji} ${pe.label}</span>`;
+      });
+      badgesPE += `</div></div>`;
+    }
+  }
+
+  const fotos = _geometriaFotos[tipo + ':' + nome] || [];
+  _geoCarAtual = { fotos, idx: 0 };
+  setTimeout(_iniciarCarTimer, 80);
+
+  return `<div class="mapa-popup">
+    ${_htmlCarrossel(fotos)}
+    <h4>${esc(nome)}</h4>
+    ${p0.tipo_atividade ? `<div style="margin-bottom:5px"><span style="background:${cor}22;color:${cor};font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid ${cor}55">${esc(p0.tipo_atividade)}</span></div>` : ''}
+    ${btnVideo}
+    <div class="pp-linha"><strong>APA:</strong>${esc(p0.apa||'—')}</div>
+    <div class="pp-linha"><strong>Implantação:</strong>${dt}</div>
+    ${medida}
+    <div class="pp-linha"><strong>${tipo==='poligono'?'Vértices':'Pontos'}:</strong>${pts.length}</div>
+    ${p0.observacao ? `<div class="pp-linha"><strong>Obs.:</strong>${esc(p0.observacao)}</div>` : ''}
+    ${badgesPE}
+  </div>`;
+}
+
+// ── Renderização ──────────────────────────────────────────────
+function _pontoVisivel(p){
+  const apa = p.apa || '';
+  if(_filtrosAPA.size > 0 && !_filtrosAPA.has(apa)) return false;
+  if(p.tipo_atividade && _filtrosTipo.size > 0 && !_filtrosTipo.has(p.tipo_atividade)) return false;
+  return true;
+}
+
+function _renderizarMarcadores(){
+  clusterLayer.clearLayers(); _pontosLayer = [];
+  _geometryLayers.forEach(l => mapaL.removeLayer(l));
+  _geometryLayers = [];
+
+  const coordOk = p => !isNaN(p.lat) && !isNaN(p.lng) && Math.abs(p.lat)<=90 && Math.abs(p.lng)<=180;
+  const visiveis = _pontos.filter(_pontoVisivel).filter(coordOk);
+
+  // Pontos individuais → cluster
+  visiveis.filter(p => (p.geometry_type||'ponto') === 'ponto').forEach(p => {
+    const m = L.marker([p.lat, p.lng], { icon: _criarIcone(p) });
+    m.bindPopup(_renderPopup(p), { maxWidth: 270 });
+    m._pontoId = p.id;
+    clusterLayer.addLayer(m); _pontosLayer.push(m);
+  });
+
+  // Polígonos → agrupar por geometry_group
+  const gruposPol = {};
+  visiveis.filter(p => p.geometry_type === 'poligono').forEach(p => {
+    if(!gruposPol[p.geometry_group]) gruposPol[p.geometry_group] = [];
+    gruposPol[p.geometry_group].push(p);
+  });
+  Object.entries(gruposPol).forEach(([nome, pts]) => {
+    pts.sort((a,b) => (a.geometry_order||0)-(b.geometry_order||0));
+    const latlngs = pts.map(p => [p.lat, p.lng]);
+    const cor = _corIcone(pts[0]);
+    const poly = L.polygon(latlngs, {color:cor, fillColor:cor, fillOpacity:0.15, weight:2});
+    poly.bindPopup(() => _popupGeometria(nome, pts, 'poligono'), {maxWidth:290});
+    poly.addTo(mapaL);
+    _geometryLayers.push(poly);
+  });
+
+  // Trilhas → agrupar por geometry_group
+  const gruposTri = {};
+  visiveis.filter(p => p.geometry_type === 'trilha').forEach(p => {
+    if(!gruposTri[p.geometry_group]) gruposTri[p.geometry_group] = [];
+    gruposTri[p.geometry_group].push(p);
+  });
+  Object.entries(gruposTri).forEach(([nome, pts]) => {
+    pts.sort((a,b) => (a.geometry_order||0)-(b.geometry_order||0));
+    const latlngs = pts.map(p => [p.lat, p.lng]);
+    const cor = _corIcone(pts[0]);
+
+    const line = L.polyline(latlngs, {color:cor, weight:3, dashArray:'6,4'});
+    line.bindPopup(() => _popupGeometria(nome, pts, 'trilha'), {maxWidth:300});
+
+    const mIni = L.marker(latlngs[0], { icon: _divIcone('🚶','#16a34a',28) });
+    mIni.bindPopup(`<div style="font-size:12px;font-weight:600;color:#166534">▶ Início: ${esc(nome)}</div>`, {maxWidth:200});
+
+    const mFim = L.marker(latlngs[latlngs.length-1], { icon: _divIcone('🏁','#dc2626',24) });
+    mFim.bindPopup(`<div style="font-size:12px;font-weight:600;color:#dc2626">🏁 Fim: ${esc(nome)}</div>`, {maxWidth:200});
+
+    [line, mIni, mFim].forEach(l => { l.addTo(mapaL); _geometryLayers.push(l); });
+
+    // Badge de vídeo no ponto médio
+    const meta = _trilhaMetadata[nome];
+    if(meta?.video_url){
+      const midPt = latlngs[Math.floor(latlngs.length / 2)];
+      const videoUrl = meta.video_url;
+      const _badgeNorm = () => L.divIcon({
+        className:'',
+        html:`<div style="width:30px;height:30px;border-radius:50%;background:rgba(30,58,95,.55);border:2px solid rgba(255,255,255,.65);box-shadow:0 2px 7px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer">🎬</div>`,
+        iconSize:[30,30], iconAnchor:[15,15], popupAnchor:[0,-18]
+      });
+      const _badgeHover = () => L.divIcon({
+        className:'',
+        html:`<div style="height:32px;padding:0 14px;border-radius:99px;background:rgba(30,58,95,.96);border:2px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.5);display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;animation:trilhaPulse 1.6s ease-in-out infinite">🎬 <span>Assistir vídeo</span></div>`,
+        iconSize:[140,32], iconAnchor:[70,16], popupAnchor:[0,-20]
+      });
+      const mBadge = L.marker(midPt, { icon: _badgeNorm(), zIndexOffset:400 });
+      mBadge.on('click', () => abrirVideoModal(videoUrl));
+      mBadge.addTo(mapaL); _geometryLayers.push(mBadge);
+
+      let _hoverTimer = null;
+      const _ativar = () => { clearTimeout(_hoverTimer); line.setStyle({weight:5,dashArray:null,opacity:1}); mBadge.setIcon(_badgeHover()); };
+      const _desativar = () => { _hoverTimer = setTimeout(() => { line.setStyle({weight:3,dashArray:'6,4'}); mBadge.setIcon(_badgeNorm()); }, 180); };
+      line.on('mouseover',_ativar).on('mouseout',_desativar);
+      mBadge.on('mouseover',_ativar).on('mouseout',_desativar);
+    } else {
+      line.on('mouseover', () => line.setStyle({weight:5,dashArray:null}))
+          .on('mouseout',  () => line.setStyle({weight:3,dashArray:'6,4'}));
+    }
+
+    // Pontos especiais ao longo da trilha
+    pts.filter(p => p.ponto_especial && PONTOS_ESPECIAIS[p.ponto_especial]).forEach(p => {
+      const pe = PONTOS_ESPECIAIS[p.ponto_especial];
+      const mPe = L.marker([p.lat, p.lng], { icon: _divIcone(pe.emoji, pe.cor, 26) });
+      let popHtml = '<div class="mapa-popup" style="min-width:180px">';
+      if(p.foto_url) popHtml += `<img src="${esc(p.foto_url)}" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:7px;display:block;cursor:zoom-in" onclick="abrirFotoModal('${esc(p.foto_url)}')">`;
+      popHtml += `<div style="font-size:12px;font-weight:700;color:#1f4e2c">${pe.emoji} ${pe.label}</div>`;
+      if(p.observacao) popHtml += `<div style="font-size:11px;color:#555;margin-top:4px;line-height:1.4">${esc(p.observacao)}</div>`;
+      if(p.video_url) popHtml += `<button onclick="abrirVideoModal('${esc(p.video_url)}')" style="margin-top:8px;width:100%;padding:5px 10px;background:#1e3a5f;color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">▶ Assistir vídeo</button>`;
+      popHtml += '</div>';
+      mPe.bindPopup(popHtml, {maxWidth:230});
+      mPe.addTo(mapaL); _geometryLayers.push(mPe);
+    });
+  });
+}
+
+function _renderizarLista(){
+  const el = document.getElementById('pontos-lista');
+  const ct = document.getElementById('pontos-cnt');
+  if(!el) return;
+  const vis = _pontos.filter(_pontoVisivel);
+  const itens = [];
+  const gruposVistos = new Set();
+  vis.forEach(p => {
+    const tipo = p.geometry_type || 'ponto';
+    if(tipo === 'ponto'){
+      itens.push({ tipo, p, id: p.id });
+    } else {
+      const key = tipo + ':' + p.geometry_group;
+      if(!gruposVistos.has(key)){ gruposVistos.add(key); itens.push({ tipo, p, group: p.geometry_group }); }
+    }
+  });
+  if(ct) ct.textContent = itens.length;
+  if(!itens.length){ el.innerHTML='<div style="padding:14px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum ponto visível.</div>'; return; }
+  el.innerHTML = itens.map(item => {
+    const { p, tipo } = item;
+    const cor = _corIcone(p);
+    const dt = p.data_implantacao ? new Date(p.data_implantacao+'T12:00').toLocaleDateString('pt-BR') : '';
+    const tipoLabel = tipo === 'poligono' ? 'Polígono' : tipo === 'trilha' ? 'Trilha' : null;
+    const onclick = tipo === 'ponto'
+      ? `_focarPonto('${p.id}')`
+      : `_focarGeometria('${esc(item.group)}','${tipo}')`;
+    return `<div class="ponto-item" onclick="${onclick}">
+      <span class="ponto-dot" style="background:${cor}"></span>
+      <div style="flex:1;min-width:0">
+        <div class="ponto-nome">${esc(p.nome_local||'—')}</div>
+        <div class="ponto-sub">${tipoLabel?tipoLabel+' · ':''}${esc(p.tipo_atividade||p.apa||'')}${dt?' · '+dt:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _focarPonto(id){
+  const p = _pontos.find(x => x.id===id); if(!p) return;
+  mapaL.setView([p.lat, p.lng], 17);
+  const layer = _pontosLayer.find(m => m._pontoId===id);
+  if(layer) clusterLayer.zoomToShowLayer(layer, () => layer.openPopup());
+}
+function _focarGeometria(group, tipo){
+  const pts = _pontos.filter(p => p.geometry_group===group && p.geometry_type===tipo);
+  if(!pts.length) return;
+  mapaL.fitBounds(L.latLngBounds(pts.map(p => [p.lat, p.lng])), {padding:[40,40], maxZoom:17});
+}
+function _filtrarMapa(){
+  _filtrosTipo = new Set([...document.querySelectorAll('#filtro-tipos input:checked')].map(i => i.value));
+  _filtrosAPA  = new Set([...document.querySelectorAll('#filtro-apa input:checked')].map(i => i.value));
+  _renderizarMarcadores();
+  _renderizarLista();
+}
+function _toggleTodosTipos(){
+  const inputs = [...document.querySelectorAll('#filtro-tipos input[type=checkbox]')];
+  const todos = inputs.every(i => i.checked);
+  inputs.forEach(i => i.checked = !todos);
+  const btn = document.querySelector('#filtro-tipos button');
+  if(btn) btn.textContent = todos ? 'Marcar todos' : 'Desmarcar todos';
+  _filtrarMapa();
+}
+
+// ── Lightbox de foto ──────────────────────────────────────────
+function _syncFotoModalNav(){
+  const n = _geoCarAtual.fotos.length, multi = n > 1;
+  const prev = document.getElementById('modal-foto-prev');
+  const next = document.getElementById('modal-foto-next');
+  const counter = document.getElementById('modal-foto-counter');
+  if(prev) prev.style.display = multi ? 'flex' : 'none';
+  if(next) next.style.display = multi ? 'flex' : 'none';
+  if(counter){ counter.style.display = multi ? 'block' : 'none'; counter.textContent = `${_geoCarAtual.idx+1} / ${n}`; }
+}
+function abrirFotoModal(url){
+  const idx = _geoCarAtual.fotos.indexOf(url);
+  if(idx >= 0) _geoCarAtual.idx = idx;
+  document.getElementById('modal-foto-img').src = url;
+  _syncFotoModalNav();
+  _pararCarTimer();
+  document.getElementById('modal-foto').classList.add('aberto');
+}
+function fecharFotoModal(){
+  document.getElementById('modal-foto').classList.remove('aberto');
+  document.getElementById('modal-foto-img').src = '';
+  if(document.getElementById('geo-car-img')) _iniciarCarTimer();
+}
+function _fotoModalNav(dir){
+  const n = _geoCarAtual.fotos.length; if(!n) return;
+  _geoCarAtual.idx = (_geoCarAtual.idx + dir + n) % n;
+  const url = _geoCarAtual.fotos[_geoCarAtual.idx];
+  document.getElementById('modal-foto-img').src = url;
+  const carImg = document.getElementById('geo-car-img');
+  const carCounter = document.getElementById('geo-car-counter');
+  if(carImg) carImg.src = url;
+  if(carCounter) carCounter.textContent = `${_geoCarAtual.idx+1}/${n}`;
+  _syncFotoModalNav();
+}
+document.addEventListener('keydown', e => {
+  if(!document.getElementById('modal-foto')?.classList.contains('aberto')) return;
+  if(e.key==='ArrowLeft')  { e.preventDefault(); _fotoModalNav(-1); }
+  if(e.key==='ArrowRight') { e.preventDefault(); _fotoModalNav(1); }
+  if(e.key==='Escape')     { fecharFotoModal(); }
+});
+
+// ── Modal de vídeo ────────────────────────────────────────────
+function abrirVideoModal(url){
+  const embed = _videoEmbedUrl(url);
+  const iframe = document.getElementById('modal-video-iframe');
+  const link   = document.getElementById('modal-video-link');
+  if(embed){ iframe.src = embed + (embed.includes('?') ? '&' : '?') + 'autoplay=1'; iframe.style.display='block'; }
+  else { iframe.src=''; iframe.style.display='none'; }
+  link.href = url; link.style.display = 'block';
+  document.getElementById('modal-video').classList.add('aberto');
+}
+function fecharVideoModal(){
+  document.getElementById('modal-video-iframe').src = '';
+  document.getElementById('modal-video').classList.remove('aberto');
+}
+document.addEventListener('click', e => {
+  const mv = document.getElementById('modal-video');
+  if(mv && e.target===mv) fecharVideoModal();
+});
+
+// ── carregarMapa ──────────────────────────────────────────────
 async function carregarMapa() {
   const el = document.getElementById('pane-mapa');
   el.innerHTML = `
     <div class="mapa-wrapper">
-      <div class="mapa-filtros">
-        <div class="filtro-bloco">
-          <div class="filtro-hdr"><h4>Tipo de atividade</h4></div>
-          <div class="filtro-body" id="filtro-tipos"><div class="spinner" style="width:18px;height:18px;border-width:2px;margin:8px auto"></div></div>
+      <div class="mapa-filtros-pub">
+        <div class="filtro-bloco-pub">
+          <div class="filtro-bloco-hdr"><h4>Tipo de atividade</h4></div>
+          <div class="filtro-bloco-body" id="filtro-tipos"><div class="spinner" style="width:18px;height:18px;border-width:2px;margin:8px auto"></div></div>
         </div>
-        <div class="filtro-bloco">
-          <div class="filtro-hdr"><h4>Área / APA</h4></div>
-          <div class="filtro-body" id="filtro-apa"><div class="spinner" style="width:18px;height:18px;border-width:2px;margin:8px auto"></div></div>
+        <div class="filtro-bloco-pub">
+          <div class="filtro-bloco-hdr"><h4>Área / APA</h4></div>
+          <div class="filtro-bloco-body" id="filtro-apa"><div class="spinner" style="width:18px;height:18px;border-width:2px;margin:8px auto"></div></div>
         </div>
       </div>
-      <div id="mapa-pub"></div>
-      <div class="mapa-lista">
-        <div class="mapa-lista-hdr">Pontos (<span id="pontos-cnt">—</span>)</div>
+      <div id="mapa-pub" style="flex:1;z-index:0;min-height:0"></div>
+      <div class="mapa-lista-pub">
+        <div class="mapa-lista-hdr">Entregas (<span id="pontos-cnt">—</span>)</div>
         <div class="mapa-lista-scroll" id="pontos-lista"></div>
       </div>
     </div>
@@ -587,124 +985,78 @@ async function carregarMapa() {
 
   mapaL = L.map('mapa-pub', { zoomControl: true, attributionControl: false });
   L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-    maxZoom: 20, subdomains: ['mt0','mt1','mt2','mt3']
+    maxZoom: 22, subdomains: ['mt0','mt1','mt2','mt3']
   }).addTo(mapaL);
   mapaL.setView([-9.975, -67.81], 8);
 
   clusterLayer = L.markerClusterGroup({ maxClusterRadius: 50 });
   mapaL.addLayer(clusterLayer);
 
-  const { data, error } = await db.rpc('fn_publico_mapa');
-  if (error || !data) {
+  // Buscar dados em paralelo
+  const [mapaRes, metaRes, fotosRes] = await Promise.all([
+    db.rpc('fn_publico_mapa'),
+    db.from('trilha_metadata').select('geometry_group,video_url').then(r => r, () => ({ data: null })),
+    db.from('geometria_fotos').select('geometry_group,geometry_type,foto_url,ordem').order('ordem').then(r => r, () => ({ data: null })),
+  ]);
+
+  if(mapaRes.error || !mapaRes.data){
     document.getElementById('pontos-lista').innerHTML = '<div style="padding:16px;text-align:center;color:var(--cinza-500);font-size:12px">Erro ao carregar pontos.</div>';
     return;
   }
-  todosPontos = data;
 
-  // Filtros de tipo
-  const tipos = [...new Set(data.map(p => p.tipo_atividade).filter(Boolean))].sort();
-  document.getElementById('filtro-tipos').innerHTML = tipos.length
-    ? tipos.map(t => `<label class="filtro-item"><input type="checkbox" value="${esc(t)}" checked onchange="filtrarMapa()"> ${esc(t)}</label>`).join('')
+  _pontos = mapaRes.data;
+  _trilhaMetadata = {};
+  (metaRes.data||[]).forEach(m => { _trilhaMetadata[m.geometry_group] = m; });
+  _geometriaFotos = {};
+  (fotosRes.data||[]).forEach(f => {
+    const key = f.geometry_type + ':' + f.geometry_group;
+    if(!_geometriaFotos[key]) _geometriaFotos[key] = [];
+    _geometriaFotos[key].push(f.foto_url);
+  });
+
+  // Calcular cores por tipo usando ICONE_MAP
+  const tiposUnicos = [...new Set(_pontos.map(p => p.tipo_atividade).filter(Boolean))];
+  _tipoCores = {}; _tipoIcones = {};
+  tiposUnicos.forEach((t, idx) => {
+    const norm = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    const match = ICONE_MAP.find(m => m.kw.some(k => norm.includes(k.normalize('NFD').replace(/[̀-ͯ]/g,''))));
+    _tipoCores[t] = match ? match.cor : TIPO_CORES[idx % TIPO_CORES.length];
+    if(match) _tipoIcones[t] = match.emoji;
+  });
+
+  const apas = [...new Set(_pontos.map(p => p.apa||'').filter(Boolean))].sort();
+  _filtrosAPA = new Set(apas);
+  _filtrosTipo = new Set(tiposUnicos);
+
+  // Filtros HTML — Tipos
+  document.getElementById('filtro-tipos').innerHTML = tiposUnicos.length
+    ? `<div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+        <button onclick="_toggleTodosTipos()" style="font-size:10px;color:var(--cinza-500);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px">Desmarcar todos</button>
+      </div>` +
+      tiposUnicos.map(t => {
+        const cor = _tipoCores[t] || '#9ca3af';
+        const emoji = _tipoIcones[t] || '';
+        const dot = emoji
+          ? `<span style="width:16px;height:16px;border-radius:50%;background:${cor};display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0">${emoji}</span>`
+          : `<span style="width:10px;height:10px;border-radius:50%;background:${cor};display:inline-block;flex-shrink:0"></span>`;
+        return `<label class="filtro-item-pub"><input type="checkbox" value="${esc(t)}" checked onchange="_filtrarMapa()"> ${dot} <span>${esc(t)}</span></label>`;
+      }).join('')
     : '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Nenhum tipo cadastrado</div>';
 
-  // Filtros de APA
-  const apas = [...new Set(data.map(p => p.apa).filter(Boolean))].sort();
+  // Filtros HTML — APA
   document.getElementById('filtro-apa').innerHTML = apas.length
-    ? apas.map(a => `<label class="filtro-item"><input type="checkbox" value="${esc(a)}" checked onchange="filtrarMapa()"> ${esc(a)}</label>`).join('')
+    ? apas.map(a => `<label class="filtro-item-pub"><input type="checkbox" value="${esc(a)}" checked onchange="_filtrarMapa()"> <span>${esc(a)}</span></label>`).join('')
     : '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Sem filtro de APA</div>';
 
-  renderPontos(data);
+  _renderizarMarcadores();
+  _renderizarLista();
+
+  // Ajustar zoom para todos os pontos
+  const coordsAll = _pontos.filter(p => !isNaN(p.lat) && !isNaN(p.lng)).map(p => [p.lat, p.lng]);
+  if(coordsAll.length) try { mapaL.fitBounds(L.latLngBounds(coordsAll), {padding:[30,30]}); } catch(e) {}
+
+  setTimeout(() => mapaL.invalidateSize(), 200);
 }
-
-function renderPontos(pontos) {
-  clusterLayer.clearLayers();
-
-  // Pontos individuais (geometry_type='ponto' ou sem tipo)
-  const pts = pontos.filter(p => (!p.geometry_type || p.geometry_type === 'ponto') && p.lat && p.lng);
-  document.getElementById('pontos-cnt').textContent = pts.length;
-
-  pts.forEach(p => {
-    const { emoji, cor } = tipoIcon(p.tipo_atividade);
-    const icon = L.divIcon({
-      html: `<div style="background:${cor};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">${emoji}</div>`,
-      className: '',
-      iconSize: [30, 30],
-      iconAnchor: [15, 15],
-    });
-
-    const fotos = (p.fotos || []).filter(f => f.foto_url);
-    const fotoHtml = p.foto_url
-      ? `<img src="${esc(p.foto_url)}" style="width:100%;height:90px;object-fit:cover;border-radius:6px;margin-bottom:6px">`
-      : fotos[0]?.foto_url
-        ? `<img src="${esc(fotos[0].foto_url)}" style="width:100%;height:90px;object-fit:cover;border-radius:6px;margin-bottom:6px">`
-        : '';
-
-    const popup = L.popup({ maxWidth: 240 }).setContent(`
-      <div style="font-family:'DM Sans',sans-serif;min-width:180px">
-        ${fotoHtml}
-        <div style="font-size:13px;font-weight:600;color:#1F4E2C;margin-bottom:4px">${esc(p.nome_local || '—')}</div>
-        ${p.tipo_atividade ? `<div style="font-size:11px;color:#555;margin-bottom:2px">🏷 ${esc(p.tipo_atividade)}</div>` : ''}
-        ${p.apa ? `<div style="font-size:11px;color:#555;margin-bottom:2px">🌿 ${esc(p.apa)}</div>` : ''}
-        ${p.data_implantacao ? `<div style="font-size:10px;color:#9CA3AF">${new Date(p.data_implantacao+'T12:00:00').toLocaleDateString('pt-BR')}</div>` : ''}
-      </div>
-    `);
-
-    L.marker([p.lat, p.lng], { icon }).bindPopup(popup).addTo(clusterLayer);
-  });
-
-  // Polígonos / linhas: agrupar por geometry_group + geometry_type
-  const grupos = {};
-  pontos.filter(p => p.geometry_type && p.geometry_type !== 'ponto' && p.lat && p.lng).forEach(p => {
-    const k = (p.geometry_group || p.id) + '|' + p.geometry_type;
-    if (!grupos[k]) grupos[k] = { pts: [], p };
-    grupos[k].pts.push([p.lat, p.lng]);
-  });
-  Object.values(grupos).forEach(({ pts: latlngs, p }) => {
-    if (latlngs.length < 2) return;
-    const { cor } = tipoIcon(p.tipo_atividade);
-    const isPolygon = p.geometry_type === 'poligono' || p.geometry_type === 'multipoligono';
-    const layer = isPolygon
-      ? L.polygon(latlngs, { color: cor, weight: 2, fillOpacity: 0.18 })
-      : L.polyline(latlngs, { color: cor, weight: 3 });
-    layer.bindPopup(`<div style="font-family:'DM Sans',sans-serif"><strong>${esc(p.nome_local || '—')}</strong>${p.tipo_atividade ? `<br><span style="font-size:11px;color:#555">${esc(p.tipo_atividade)}</span>` : ''}</div>`);
-    layer.addTo(clusterLayer);
-  });
-
-  // Ajustar zoom
-  if (pts.length > 0) {
-    try { mapaL.fitBounds(L.latLngBounds(pts.map(p => [p.lat, p.lng])), { padding: [30, 30] }); } catch(e) {}
-  }
-
-  // Lista lateral
-  const listaEl = document.getElementById('pontos-lista');
-  listaEl.innerHTML = pts.length
-    ? pts.map(p => {
-        const { cor } = tipoIcon(p.tipo_atividade);
-        return `<div class="ponto-item" onclick="focarPonto(${p.lat},${p.lng})">
-          <div class="ponto-dot" style="background:${cor}"></div>
-          <div style="min-width:0">
-            <div class="ponto-nome">${esc(p.nome_local || '—')}</div>
-            ${p.tipo_atividade ? `<div class="ponto-sub">${esc(p.tipo_atividade)}</div>` : ''}
-          </div>
-        </div>`;
-      }).join('')
-    : '<div style="padding:16px;text-align:center;font-size:12px;color:var(--cinza-400)">Nenhum ponto encontrado.</div>';
-}
-
-window.focarPonto = function(lat, lng) {
-  if (mapaL) mapaL.setView([lat, lng], 14);
-};
-
-window.filtrarMapa = function() {
-  const tipos = new Set([...document.querySelectorAll('#filtro-tipos input:checked')].map(i => i.value));
-  const apas  = new Set([...document.querySelectorAll('#filtro-apa input:checked')].map(i => i.value));
-  const filtrados = todosPontos.filter(p => {
-    const tipoOk = !p.tipo_atividade || tipos.has(p.tipo_atividade);
-    const apaOk  = !p.apa || apas.has(p.apa);
-    return tipoOk && apaOk;
-  });
-  renderPontos(filtrados);
-};
 </script>
 </body>
 </html>
