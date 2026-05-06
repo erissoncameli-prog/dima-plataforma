@@ -192,6 +192,23 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
   <div id="pane-mapa"        class="pub-pane"><div class="spinner"></div></div>
 </div>
 
+<!-- Modal: Foto em tela cheia -->
+<div id="modal-foto" onclick="if(event.target===this)fecharFotoModal()">
+  <img id="modal-foto-img" src="" alt="foto">
+  <div style="position:fixed;top:16px;right:16px;display:flex;gap:8px;align-items:center;z-index:100000">
+    <button id="modal-foto-prev" onclick="event.stopPropagation();_fotoModalNav(-1)" style="display:none;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);cursor:pointer;font-size:18px;align-items:center;justify-content:center">‹</button>
+    <span id="modal-foto-counter" style="color:rgba(255,255,255,.8);font-size:12px;display:none"></span>
+    <button id="modal-foto-next" onclick="event.stopPropagation();_fotoModalNav(1)" style="display:none;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);cursor:pointer;font-size:18px;align-items:center;justify-content:center">›</button>
+    <button onclick="fecharFotoModal()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center">✕</button>
+  </div>
+</div>
+<!-- Modal: Vídeo -->
+<div id="modal-video">
+  <button onclick="fecharVideoModal()" style="position:fixed;top:16px;right:16px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100000">✕</button>
+  <iframe id="modal-video-iframe" allowfullscreen></iframe>
+  <a id="modal-video-link" href="#" target="_blank" rel="noopener" style="color:rgba(255,255,255,.7);font-size:12px;margin-top:12px;text-decoration:underline;display:none">Abrir em nova aba →</a>
+</div>
+
 <footer class="pub-footer">
   Visualização pública — somente leitura.
   <a href="../index.html">Fazer login</a> para acesso completo ao sistema.
