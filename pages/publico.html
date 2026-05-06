@@ -994,10 +994,11 @@ async function carregarMapa() {
   mapaL.addLayer(clusterLayer);
 
   // Buscar dados em paralelo
-  const [mapaRes, metaRes, fotosRes] = await Promise.all([
+  const [mapaRes, metaRes, fotosRes, camadasRes] = await Promise.all([
     db.rpc('fn_publico_mapa'),
     db.from('trilha_metadata').select('geometry_group,video_url').then(r => r, () => ({ data: null })),
     db.from('geometria_fotos').select('geometry_group,geometry_type,foto_url,ordem').order('ordem').then(r => r, () => ({ data: null })),
+    db.from('apa_demarcacoes').select('id,nome,cor,geojson,visivel').order('created_at').then(r => r, () => ({ data: null })),
   ]);
 
   if(mapaRes.error || !mapaRes.data){
