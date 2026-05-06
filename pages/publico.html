@@ -1038,6 +1038,16 @@ async function carregarMapa() {
   _filtrosAPA = new Set(apas);
   _filtrosTipo = new Set(tiposUnicos);
 
+  // Filtros HTML — Camadas
+  const fcEl = document.getElementById('filtro-camadas');
+  if(fcEl) fcEl.innerHTML = _camadas.length
+    ? _camadas.map(c => `<label class="filtro-item-pub">
+        <input type="checkbox" data-camada-id="${esc(c.id)}" ${c.visivel?'checked':''} onchange="_toggleCamada('${esc(c.id)}',this.checked)">
+        <span style="width:14px;height:14px;border-radius:2px;background:${esc(c.cor||'#16a34a')};display:inline-block;flex-shrink:0;opacity:.85"></span>
+        <span>${esc(c.nome)}</span>
+      </label>`).join('')
+    : '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Nenhuma camada cadastrada</div>';
+
   // Filtros HTML — Tipos
   document.getElementById('filtro-tipos').innerHTML = tiposUnicos.length
     ? `<div style="display:flex;justify-content:flex-end;margin-bottom:4px">
