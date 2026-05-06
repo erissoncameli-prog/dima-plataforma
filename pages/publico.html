@@ -1134,14 +1134,18 @@ async function carregarMapa() {
   _renderizarMarcadores();
   _renderizarLista();
 
-  // Ajustar zoom para cobrir todos os pontos e camadas
+  // Zoom inicial: prioriza cobrir as delimitações das APAs; fallback nos pontos
   setTimeout(() => {
     mapaL.invalidateSize();
-    const bounds = [];
-    _pontos.filter(p => !isNaN(p.lat) && !isNaN(p.lng)).forEach(p => bounds.push([p.lat, p.lng]));
-    _camadas.forEach(c => { try { if(c.layer) c.layer.getBounds().isValid() && c.layer.getBounds().getNorthEast && bounds.push(c.layer.getBounds().getNorthEast(), c.layer.getBounds().getSouthWest()); } catch(e){} });
-    if(bounds.length) try { mapaL.fitBounds(L.latLngBounds(bounds), {padding:[30,30], maxZoom:13}); } catch(e) {}
-  }, 250);
+    const allBounds = L.latLngBounds([]);
+    // Extender com os polígonos das APAs (camadas GeoJSON)
+    _camadas.forEach(c => { try { if(c.layer && c.layer.getBounds().isValid()) allBounds.extend(c.layer.getBounds()); } catch(e){} });
+    // Se não houver camadas válidas, usa os pontos
+    if(!allBounds.isValid()) {
+      _pontos.filter(p => !isNaN(p.lat) && !isNaN(p.lng)).forEach(p => allBounds.extend([p.lat, p.lng]));
+    }
+    if(allBounds.isValid()) try { mapaL.fitBounds(allBounds, {padding:[40,40], maxZoom:12}); } catch(e) {}
+  }, 300);
 }
 </script>
 </body>
