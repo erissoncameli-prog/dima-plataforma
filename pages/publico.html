@@ -1075,14 +1075,26 @@ async function carregarMapa() {
   _camadas = (camadasRes.data||[]).map(c => ({ ...c, layer: null }));
   _camadas.filter(c => c.visivel).forEach(_adicionarCamada);
 
-  // Calcular cores por tipo usando ICONE_MAP
+  // Ícones e cores: prioriza configuração do admin no DB, fallback ao ICONE_MAP
   const tiposUnicos = [...new Set(_pontos.map(p => p.tipo_atividade).filter(Boolean))];
   _tipoCores = {}; _tipoIcones = {};
+
+  // Índice dos tipos configurados pelo admin (emoji + cor definidos na matriz)
+  const tiposDB = {};
+  (tiposRes.data || []).forEach(t => {
+    if(t.produto_titulo) tiposDB[t.produto_titulo] = t;
+  });
+
   tiposUnicos.forEach((t, idx) => {
-    const norm = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-    const match = ICONE_MAP.find(m => m.kw.some(k => norm.includes(k.normalize('NFD').replace(/[̀-ͯ]/g,''))));
-    _tipoCores[t] = match ? match.cor : TIPO_CORES[idx % TIPO_CORES.length];
-    if(match) _tipoIcones[t] = match.emoji;
+    if(tiposDB[t]?.cor)   _tipoCores[t]  = tiposDB[t].cor;
+    if(tiposDB[t]?.emoji) _tipoIcones[t] = tiposDB[t].emoji;
+    // Fallback: ICONE_MAP por palavra-chave
+    if(!_tipoCores[t]) {
+      const norm = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+      const match = ICONE_MAP.find(m => m.kw.some(k => norm.includes(k.normalize('NFD').replace(/[̀-ͯ]/g,''))));
+      _tipoCores[t]  = match ? match.cor  : TIPO_CORES[idx % TIPO_CORES.length];
+      if(match && !_tipoIcones[t]) _tipoIcones[t] = match.emoji;
+    }
   });
 
   const apas = [...new Set(_pontos.map(p => p.apa||'').filter(Boolean))].sort();
