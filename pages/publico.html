@@ -208,15 +208,15 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 </div>
 
 <div class="pub-tabs">
-  <button class="pub-tab ativo" onclick="mudarAba('operacional',this)">📊 Painel Geral</button>
+  <button class="pub-tab ativo" onclick="mudarAba('mapa',this)">🗺 Mapa de Entregas</button>
+  <button class="pub-tab" onclick="mudarAba('operacional',this)">📊 Painel Geral</button>
   <button class="pub-tab" onclick="mudarAba('matriz',this)">◎ Matriz de Resultados</button>
-  <button class="pub-tab" onclick="mudarAba('mapa',this)">🗺 Mapa de Entregas</button>
 </div>
 
-<div class="pub-content" id="pub-content">
-  <div id="pane-operacional" class="pub-pane ativo"><div class="spinner"></div></div>
+<div class="pub-content mapa-ativo" id="pub-content">
+  <div id="pane-mapa"        class="pub-pane ativo"><div class="spinner"></div></div>
+  <div id="pane-operacional" class="pub-pane"><div class="spinner"></div></div>
   <div id="pane-matriz"      class="pub-pane"><div class="spinner"></div></div>
-  <div id="pane-mapa"        class="pub-pane"><div class="spinner"></div></div>
 </div>
 
 <!-- Modal: Foto em tela cheia -->
