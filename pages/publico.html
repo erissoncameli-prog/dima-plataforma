@@ -1016,6 +1016,10 @@ async function carregarMapa() {
     _geometriaFotos[key].push(f.foto_url);
   });
 
+  // Camadas de delimitação das APAs
+  _camadas = (camadasRes.data||[]).map(c => ({ ...c, layer: null }));
+  _camadas.filter(c => c.visivel).forEach(_adicionarCamada);
+
   // Calcular cores por tipo usando ICONE_MAP
   const tiposUnicos = [...new Set(_pontos.map(p => p.tipo_atividade).filter(Boolean))];
   _tipoCores = {}; _tipoIcones = {};
