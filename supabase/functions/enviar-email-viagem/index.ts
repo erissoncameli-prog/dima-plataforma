@@ -26,7 +26,7 @@ function tplCriador(evento: string, p: any): { assunto: string; corpo: string } 
     .map((v: any) => `  • ${v.nome || '—'} (${v.funcao || '—'})`)
     .join('\n') || '  —'
 
-  const ass = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC\nprojetounesco.acre@gmail.com`
+  const ass = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC\nfundobrasilonuacre@gmail.com`
 
   if (evento === 'solicitado') return {
     assunto: `[DIMA] Protocolo ${num} — Solicitação registrada`,
