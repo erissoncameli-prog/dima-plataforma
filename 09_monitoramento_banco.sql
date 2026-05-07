@@ -34,8 +34,8 @@ BEGIN
     jsonb_build_object(
       'tabela',        relname,
       'linhas',        COALESCE(n_live_tup, 0),
-      'tamanho_bytes', pg_total_relation_size(oid)
-    ) ORDER BY pg_total_relation_size(oid) DESC
+      'tamanho_bytes', pg_total_relation_size(relid)
+    ) ORDER BY pg_total_relation_size(relid) DESC
   )
   INTO v_tabelas
   FROM pg_stat_user_tables
