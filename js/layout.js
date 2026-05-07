@@ -31,7 +31,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'repositorio',  icone: '🔗', href: 'repositorio.html',  perfis: null },
     { id: 'usuarios',       icone: '◍', href: 'usuarios.html',       perfis: ['super_admin'] },
     { id: 'configuracoes',  icone: '⚙', href: 'configuracoes.html',  perfis: ['super_admin'] },
-    { id: 'banco_dados',    icone: '☁', href: 'banco-dados.html',    perfis: ['super_admin'] },
+    { id: 'banco_dados',    icone: '☁', href: 'banco-dados.html',    perfis: ['super_admin'], parent: 'configuracoes' },
   ];
 
   const u = appState.usuario;
