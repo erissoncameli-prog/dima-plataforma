@@ -514,7 +514,6 @@ function setTab(nome, btn) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativo'));
   if (btn) btn.classList.add('ativo');
   document.getElementById('tab-' + nome)?.classList.add('ativo');
-  if (nome === 'banco' && !monitoramento && !monCarregando) carregarMonitoramento();
 }
 
 function reRenderTab(nome) {
