@@ -46,38 +46,6 @@
 .color-row{display:flex;align-items:center;gap:8px;}
 .color-swatch{width:32px;height:32px;border-radius:6px;border:1px solid var(--borda);flex-shrink:0;}
 
-/* ── Monitoramento Banco de Dados ── */
-.mon-header{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
-.mon-plano-badge{font-size:10px;font-weight:700;padding:2px 9px;border-radius:99px;background:#DBEAFE;color:#1D4ED8;letter-spacing:.05em;}
-.mon-ts{font-size:11px;color:var(--cinza-400);margin-left:auto;font-family:var(--font-mono);}
-.mon-gauges{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
-.mon-gauge-card{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;}
-.mon-gauge-label{font-size:11px;font-weight:600;color:var(--cinza-700);text-align:center;}
-.mon-gauge-sub{font-size:10px;color:var(--cinza-500);font-family:var(--font-mono);text-align:center;line-height:1.4;}
-.mon-alert{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:var(--raio);margin-bottom:10px;font-size:12px;line-height:1.5;}
-.mon-alert.aviso{background:#FFFBEB;border:1px solid #FDE68A;color:#92400E;}
-.mon-alert.critico{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;}
-.mon-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borda);}
-.mon-bucket-item{display:flex;flex-direction:column;gap:4px;padding:8px 0;border-bottom:1px solid var(--cinza-50);}
-.mon-bucket-row{display:flex;align-items:center;gap:6px;}
-.mon-bucket-name{font-size:12px;font-weight:500;color:var(--cinza-700);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.mon-bucket-meta{font-size:10px;color:var(--cinza-400);font-family:var(--font-mono);white-space:nowrap;flex-shrink:0;}
-.mon-bar-track{height:5px;background:var(--cinza-100);border-radius:99px;overflow:hidden;}
-.mon-bar-fill{height:100%;border-radius:99px;transition:width .4s ease;}
-.mon-table-wrap{overflow:hidden;}
-.mon-tbl{width:100%;border-collapse:collapse;font-size:11px;}
-.mon-tbl th{text-align:left;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.05em;padding:5px 6px;border-bottom:1px solid var(--borda);}
-.mon-tbl td{padding:5px 6px;color:var(--cinza-700);border-bottom:1px solid var(--cinza-50);}
-.mon-tbl td.mono{font-family:var(--font-mono);color:var(--cinza-500);}
-.mon-tbl tr:last-child td{border-bottom:none;}
-.mon-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px 0;color:var(--cinza-400);font-size:13px;}
-.mon-empty{text-align:center;padding:32px 0;color:var(--cinza-400);font-size:12px;}
-.mon-erro{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:var(--raio);padding:12px;font-size:12px;margin-top:8px;}
-.tab-btn-badge{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;font-size:9px;font-weight:700;margin-left:5px;vertical-align:middle;line-height:1;}
-.tab-btn-badge.aviso{background:#FEF3C7;color:#92400E;}
-.tab-btn-badge.critico{background:#FEE2E2;color:#991B1B;animation:pulse-badge 1.5s ease-in-out infinite;}
-@keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:.5}}
-
 /* Preview panel */
 .config-preview-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#ECEEF1;}
 .preview-header{padding:10px 20px;background:var(--branco);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;flex-shrink:0;}
