@@ -49,7 +49,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   const navHtml = navGroups.map(group => {
     const itens = navItems.filter(item => group.ids.includes(item.id));
     const linhas = itens.map(item => {
-      if (item.parent) return ''; // sub-items renderizados após seu pai
+      if (item.parent) return ''; // sub-items renderizados pelo pai
       // Acesso por perfil (regra base) OU por permissão extra dinâmica
       const temPerfil = !item.perfis || item.perfis.includes(appState.perfil);
       const perms = appState.permissoes || [];
@@ -57,27 +57,47 @@ function gerarLayout(tituloPagina, paginaAtiva) {
         ? perms.some(p => p.startsWith('relatorios_'))
         : perms.includes(item.id);
       if (!temPerfil && !temPermissao) return '';
+
+      // ── Item recolhível (ex: Configurações) ──────────────────
+      if (item.collapsible) {
+        const filhos = navItems.filter(si => si.parent === item.id && (!si.perfis || si.perfis.includes(appState.perfil)));
+        if (!filhos.length) return '';
+        // Auto-expandir se página atual é um sub-item OU se localStorage indica aberto
+        const filhoAtivo = filhos.some(si => paginaAtiva === si.id || (si.id === 'dados_sistema' && paginaAtiva === 'configuracoes'));
+        const aberto = filhoAtivo || localStorage.getItem(`dima_nav_${item.id}`) === '1';
+        const subHtml = filhos.map(si => {
+          const siAtivo = (paginaAtiva === si.id || (si.id === 'dados_sistema' && paginaAtiva === 'configuracoes')) ? 'ativo' : '';
+          return `<a class="nav-item ${siAtivo}" href="${si.href}"
+            style="display:flex;align-items:center;gap:8px;padding-left:30px;font-size:12.5px">
+            <span style="color:rgba(255,255,255,.25);font-size:10px;flex-shrink:0">└</span>
+            <span style="font-size:13px;flex-shrink:0">${si.icone}</span>
+            <span style="flex:1">${t('nav', si.id)}</span>
+          </a>`;
+        }).join('');
+        return `
+          <button class="nav-item" onclick="toggleNavGroup('${item.id}')"
+            style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit;color:inherit;">
+            <span style="font-size:14px;flex-shrink:0">${item.icone}</span>
+            <span style="flex:1">${t('nav', item.id)}</span>
+            <span id="nav-chevron-${item.id}"
+              style="font-size:9px;flex-shrink:0;transition:transform .2s;${aberto ? 'transform:rotate(90deg)' : ''}">▶</span>
+          </button>
+          <div id="nav-children-${item.id}"
+            style="overflow:hidden;transition:max-height .22s ease;max-height:${aberto ? '200px' : '0px'}">
+            ${subHtml}
+          </div>`;
+      }
+
+      // ── Item normal ───────────────────────────────────────────
       const ativo = paginaAtiva === item.id ? 'ativo' : '';
-      // Indicador visual de acesso extra (não é do perfil padrão)
       const extraTag = (!temPerfil && temPermissao)
         ? `<span style="font-size:8px;background:rgba(255,255,255,.18);color:rgba(255,255,255,.8);padding:1px 5px;border-radius:99px;margin-left:auto;flex-shrink:0" title="Acesso extra concedido pelo administrador">extra</span>`
         : '';
-      // Sub-itens deste item (ex: banco_dados abaixo de configuracoes)
-      const filhos = navItems.filter(si => si.parent === item.id && (!si.perfis || si.perfis.includes(appState.perfil)));
-      const subHtml = filhos.map(si => {
-        const siAtivo = paginaAtiva === si.id ? 'ativo' : '';
-        return `<a class="nav-item ${siAtivo}" href="${si.href}"
-          style="display:flex;align-items:center;gap:8px;padding-left:32px;font-size:12.5px">
-          <span style="color:rgba(255,255,255,.25);font-size:10px;flex-shrink:0;line-height:1">└</span>
-          <span style="font-size:13px;flex-shrink:0">${si.icone}</span>
-          <span style="flex:1">${t('nav', si.id)}</span>
-        </a>`;
-      }).join('');
       return `<a class="nav-item ${ativo}" href="${item.href}" style="display:flex;align-items:center;gap:8px">
         <span style="font-size:14px;flex-shrink:0">${item.icone}</span>
         <span style="flex:1">${t('nav', item.id)}</span>
         ${extraTag}
-      </a>${subHtml}`;
+      </a>`;
     }).join('');
     if (!linhas.trim()) return '';
     const sep = group.label
