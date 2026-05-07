@@ -42,7 +42,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { label: 'Planejamento', ids: ['atividades','tdrs','matriz'] },
     { label: 'Execução',     ids: ['fornecedores','contratos','produtos','financeiro'] },
     { label: 'Apoio',        ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','usuarios'] },
-    { label: 'Sistema',      ids: ['configuracoes', 'banco_dados'] },
+    { label: 'Sistema',      ids: ['configuracoes'] },
   ];
 
   const navHtml = navGroups.map(group => {
