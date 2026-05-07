@@ -83,7 +83,7 @@ let monCarregando = false;
   if (appState.perfil !== 'super_admin') { window.location.href = 'dashboard.html'; return; }
 
   document.getElementById('app').innerHTML =
-    gerarLayout('Banco de Dados', 'banco_dados') + '</div></div></div>';
+    gerarLayout('Armazenamento em Nuvem', 'banco_dados') + '</div></div></div>';
 
   iniciarSino();
   await carregarMonitoramento();
