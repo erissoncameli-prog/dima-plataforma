@@ -782,6 +782,163 @@ function initDragDrop(containerId, onReorder) {
   });
 }
 
+// ── Tab: Banco de Dados ───────────────────────────────────────
+function renderTabBancoDados() {
+  const plano = PLANOS[planoAtual];
+
+  if (monCarregando) {
+    return `<div id="tab-banco" class="tab-content">
+      <div class="mon-loading">
+        <div style="width:18px;height:18px;border:2px solid var(--borda);border-top-color:var(--verde-medio);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+        Consultando métricas...
+      </div>
+    </div>`;
+  }
+
+  if (!monitoramento) {
+    return `<div id="tab-banco" class="tab-content">
+      <div class="mon-empty">Clique na aba para carregar as métricas.</div>
+    </div>`;
+  }
+
+  if (monitoramento.erro) {
+    return `<div id="tab-banco" class="tab-content">
+      <div class="mon-erro">⚠ Erro ao consultar: ${esc(monitoramento.erro)}</div>
+    </div>`;
+  }
+
+  const { db_size_bytes, storage_buckets, tabelas, consultado_em } = monitoramento;
+  const storageTotal = (storage_buckets || []).reduce((s, b) => s + (b.tamanho_bytes || 0), 0);
+  const dbPct  = Math.min(Math.round(db_size_bytes / plano.db_bytes * 100), 100);
+  const stPct  = Math.min(Math.round(storageTotal  / plano.storage_bytes * 100), 100);
+  const hora   = new Date(consultado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  return `<div id="tab-banco" class="tab-content">
+    <div class="mon-header">
+      <span class="mon-plano-badge">${plano.nome}</span>
+      <button class="btn-icon-sm" onclick="recarregarMonitoramento()" title="Atualizar">↻</button>
+      <span class="mon-ts">${hora}</span>
+    </div>
+
+    <div class="mon-gauges">
+      ${monGaugeCard('Banco de Dados', db_size_bytes, plano.db_bytes, dbPct)}
+      ${monGaugeCard('Storage Total', storageTotal, plano.storage_bytes, stPct)}
+    </div>
+
+    ${dbPct >= 80 ? monAlerta(dbPct, 'banco de dados', plano.nome) : ''}
+    ${stPct >= 80 ? monAlerta(stPct, 'storage', plano.nome) : ''}
+
+    ${monStorageBuckets(storage_buckets || [], storageTotal)}
+    ${monTabelasStats(tabelas || [], db_size_bytes)}
+  </div>`;
+}
+
+function monGaugeCard(label, usado, total, pct) {
+  const cor = pct < 60 ? '#22c55e' : pct < 80 ? '#f59e0b' : '#ef4444';
+  const r = 36, cx = 44, cy = 44;
+  const circ = 2 * Math.PI * r;
+  const arc  = circ * 0.75;
+  const fill = arc * (pct / 100);
+  const svg = `<svg width="88" height="88" viewBox="0 0 88 88">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#E5E7EB" stroke-width="8"
+      stroke-dasharray="${arc.toFixed(1)} ${(circ - arc).toFixed(1)}"
+      stroke-linecap="round" transform="rotate(135 ${cx} ${cy})"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${cor}" stroke-width="8"
+      stroke-dasharray="${fill.toFixed(1)} ${(circ - fill).toFixed(1)}"
+      stroke-linecap="round" transform="rotate(135 ${cx} ${cy})"/>
+    <text x="${cx}" y="41" text-anchor="middle" font-size="15" font-weight="600" fill="#111827"
+      font-family="DM Sans,sans-serif">${pct}%</text>
+    <text x="${cx}" y="54" text-anchor="middle" font-size="9" fill="#6B7280"
+      font-family="DM Sans,sans-serif">utilizado</text>
+  </svg>`;
+  return `<div class="mon-gauge-card">
+    ${svg}
+    <div class="mon-gauge-label">${label}</div>
+    <div class="mon-gauge-sub">${monFmtBytes(usado)} / ${monFmtBytes(total)}</div>
+  </div>`;
+}
+
+function monAlerta(pct, recurso, plano) {
+  const critico = pct >= 95;
+  const cls = critico ? 'critico' : 'aviso';
+  const icon = critico ? '🔴' : '⚠️';
+  const msg = critico
+    ? `${icon} <strong>${pct}% do ${recurso} utilizado.</strong> Limite crítico atingido — considere migrar para o plano Pro.`
+    : `${icon} <strong>${pct}% do ${recurso} utilizado.</strong> Você está se aproximando do limite do plano ${plano}.`;
+  return `<div class="mon-alert ${cls}">${msg}</div>`;
+}
+
+function monStorageBuckets(buckets, totalStorage) {
+  if (!buckets.length) return `<div class="mon-empty" style="padding:16px 0">Nenhum bucket encontrado.</div>`;
+  const itens = buckets.map(b => {
+    const pct = totalStorage > 0 ? Math.round(b.tamanho_bytes / totalStorage * 100) : 0;
+    const cor = '#60a5fa';
+    return `<div class="mon-bucket-item">
+      <div class="mon-bucket-row">
+        <span style="font-size:13px;flex-shrink:0">📁</span>
+        <span class="mon-bucket-name" title="${esc(b.bucket_id)}">${esc(b.bucket_id)}</span>
+        <span class="mon-bucket-meta">${monFmtBytes(b.tamanho_bytes)} · ${b.total_arquivos} arq.</span>
+      </div>
+      <div class="mon-bar-track">
+        <div class="mon-bar-fill" style="width:${pct}%;background:${cor}"></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div style="margin-bottom:16px">
+    <div class="mon-section-title">Storage por Bucket</div>
+    ${itens}
+  </div>`;
+}
+
+function monTabelasStats(tabelas, dbTotal) {
+  if (!tabelas.length) return '';
+  const top = tabelas.slice(0, 12);
+  const linhas = top.map(tb => {
+    const pct = dbTotal > 0 ? (tb.tamanho_bytes / dbTotal * 100).toFixed(1) : '0.0';
+    return `<tr>
+      <td>${esc(tb.tabela)}</td>
+      <td class="mono">${Number(tb.linhas).toLocaleString('pt-BR')}</td>
+      <td class="mono">${monFmtBytes(tb.tamanho_bytes)}</td>
+      <td class="mono">${pct}%</td>
+    </tr>`;
+  }).join('');
+  return `<div class="mon-table-wrap">
+    <div class="mon-section-title">Tabelas</div>
+    <table class="mon-tbl">
+      <thead><tr><th>Tabela</th><th>Linhas</th><th>Tamanho</th><th>%</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+  </div>`;
+}
+
+function monFmtBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const units = ['B','KB','MB','GB','TB'];
+  let i = 0, v = bytes;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return v.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+}
+
+async function carregarMonitoramento() {
+  monCarregando = true;
+  reRenderTab('banco');
+  try {
+    const { data, error } = await db.rpc('get_monitoramento_banco');
+    if (error) throw error;
+    monitoramento = data;
+  } catch(e) {
+    monitoramento = { erro: e.message || 'Erro desconhecido' };
+  } finally {
+    monCarregando = false;
+    reRenderTab('banco');
+  }
+}
+
+async function recarregarMonitoramento() {
+  monitoramento = null;
+  await carregarMonitoramento();
+}
+
 // ── Util ──────────────────────────────────────────────────────
 function imgUrl(url) {
   if (!url) return '';
