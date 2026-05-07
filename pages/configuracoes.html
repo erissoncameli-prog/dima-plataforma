@@ -142,6 +142,17 @@ let salvando = false;
 let fotoPreviewIdx = 0;
 let fotoTimer;
 
+// ── Monitoramento — planos Supabase ───────────────────────────
+// Para migrar para Pro: altere planoAtual para 'pro'
+const PLANOS = {
+  free: { nome: 'Free',  db_bytes: 500  * 1024 * 1024,         storage_bytes: 1   * 1024 * 1024 * 1024 },
+  pro:  { nome: 'Pro',   db_bytes: 8    * 1024 * 1024 * 1024,   storage_bytes: 100 * 1024 * 1024 * 1024 },
+  team: { nome: 'Team',  db_bytes: 8    * 1024 * 1024 * 1024,   storage_bytes: 100 * 1024 * 1024 * 1024 },
+};
+let planoAtual = 'free';
+let monitoramento = null;
+let monCarregando = false;
+
 // ── Init ─────────────────────────────────────────────────────
 (async () => {
   const usuario = await carregarUsuario();
