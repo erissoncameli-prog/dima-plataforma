@@ -62,9 +62,8 @@ function gerarLayout(tituloPagina, paginaAtiva) {
       if (item.collapsible) {
         const filhos = navItems.filter(si => si.parent === item.id && (!si.perfis || si.perfis.includes(appState.perfil)));
         if (!filhos.length) return '';
-        // Auto-expandir se página atual é um sub-item OU se localStorage indica aberto
-        const filhoAtivo = filhos.some(si => paginaAtiva === si.id || (si.id === 'dados_sistema' && paginaAtiva === 'configuracoes'));
-        const aberto = filhoAtivo || localStorage.getItem(`dima_nav_${item.id}`) === '1';
+        // Expandir apenas se a página atual é um sub-item — recolhe ao sair
+        const aberto = filhos.some(si => paginaAtiva === si.id || (si.id === 'dados_sistema' && paginaAtiva === 'configuracoes'));
         const subHtml = filhos.map(si => {
           const siAtivo = (paginaAtiva === si.id || (si.id === 'dados_sistema' && paginaAtiva === 'configuracoes')) ? 'ativo' : '';
           return `<a class="nav-item ${siAtivo}" href="${si.href}"
@@ -76,7 +75,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
         }).join('');
         return `
           <button class="nav-item" onclick="toggleNavGroup('${item.id}')"
-            style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit;color:inherit;">
+            style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit;color:rgba(255,255,255,.75);">
             <span style="font-size:14px;flex-shrink:0">${item.icone}</span>
             <span style="flex:1">${t('nav', item.id)}</span>
             <span id="nav-chevron-${item.id}"
