@@ -520,7 +520,7 @@ function reRenderTab(nome) {
   const el = document.getElementById('tab-' + nome);
   if (!el) return;
   const ativo = el.classList.contains('ativo');
-  const map = { identidade: renderTabIdentidade, fotos: renderTabFotos, logos: renderTabLogos, banco: renderTabBancoDados };
+  const map = { identidade: renderTabIdentidade, fotos: renderTabFotos, logos: renderTabLogos };
   el.outerHTML = map[nome]();
   if (ativo) document.getElementById('tab-' + nome)?.classList.add('ativo');
 }
