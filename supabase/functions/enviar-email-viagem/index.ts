@@ -6,7 +6,7 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <projetounesco.acre@gmail.com>'
+const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 
 function fmtData(s: string | null): string {
   if (!s) return '—'
