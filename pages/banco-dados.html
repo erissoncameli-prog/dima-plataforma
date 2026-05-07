@@ -141,15 +141,52 @@ function renderConteudo() {
   const hora   = new Date(consultado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return `
-    <div class="bd-header">
-      <h2>🗄 Banco de Dados</h2>
-      <span class="bd-plano-badge">${plano.nome}</span>
-      <button class="bd-btn-refresh" id="btn-refresh" onclick="recarregarMonitoramento()">↻ Atualizar</button>
-      <span class="bd-ts">Consultado às ${hora}</span>
+    <div class="bd-hero">
+      <div class="bd-hero-info">
+        <h2 class="bd-hero-title">☁ Armazenamento em Nuvem</h2>
+        <p class="bd-hero-sub">Monitoramento de uso do banco de dados e arquivos no Supabase</p>
+        <div class="bd-hero-controls">
+          <span class="bd-plano-badge">${plano.nome}</span>
+          <button class="bd-btn-refresh" id="btn-refresh" onclick="recarregarMonitoramento()">↻ Atualizar</button>
+          <span class="bd-ts">Consultado às ${hora}</span>
+        </div>
+      </div>
+      <div class="bd-hero-img">
+        <svg width="130" height="110" viewBox="0 0 130 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Cloud shape -->
+          <ellipse cx="65" cy="52" rx="52" ry="32" fill="#BFDBFE" opacity=".7"/>
+          <ellipse cx="42" cy="58" rx="28" ry="20" fill="#BFDBFE" opacity=".7"/>
+          <ellipse cx="88" cy="58" rx="28" ry="20" fill="#BFDBFE" opacity=".7"/>
+          <ellipse cx="65" cy="62" rx="52" ry="22" fill="#DBEAFE"/>
+          <!-- DB cylinder bottom -->
+          <ellipse cx="65" cy="88" rx="22" ry="7" fill="#1D4ED8" opacity=".3"/>
+          <rect x="43" y="70" width="44" height="18" fill="#2563EB"/>
+          <ellipse cx="65" cy="70" rx="22" ry="7" fill="#3B82F6"/>
+          <!-- DB cylinder top -->
+          <ellipse cx="65" cy="57" rx="22" ry="7" fill="#1D4ED8" opacity=".3"/>
+          <rect x="43" y="40" width="44" height="17" fill="#1D4ED8"/>
+          <ellipse cx="65" cy="40" rx="22" ry="7" fill="#2563EB"/>
+          <!-- Horizontal lines on cylinders (disk feel) -->
+          <line x1="43" y1="47" x2="87" y2="47" stroke="#3B82F6" stroke-width="1" opacity=".5"/>
+          <line x1="43" y1="52" x2="87" y2="52" stroke="#3B82F6" stroke-width="1" opacity=".5"/>
+          <line x1="43" y1="76" x2="87" y2="76" stroke="#60A5FA" stroke-width="1" opacity=".5"/>
+          <line x1="43" y1="81" x2="87" y2="81" stroke="#60A5FA" stroke-width="1" opacity=".5"/>
+          <!-- LED indicator -->
+          <circle cx="80" cy="44" r="3.5" fill="#34D399"/>
+          <circle cx="80" cy="44" r="2" fill="#6EE7B7"/>
+          <!-- Upload arrow -->
+          <path d="M65 18 L65 8 M65 8 L60 13 M65 8 L70 13" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Floating data dots -->
+          <circle cx="20" cy="40" r="3" fill="#60A5FA" opacity=".6"/>
+          <circle cx="110" cy="35" r="2.5" fill="#93C5FD" opacity=".7"/>
+          <circle cx="15" cy="65" r="2" fill="#3B82F6" opacity=".5"/>
+          <circle cx="115" cy="60" r="3" fill="#60A5FA" opacity=".5"/>
+        </svg>
+      </div>
     </div>
 
     <div class="bd-gauges">
-      ${bdGaugeCard('Banco de Dados', db_size_bytes, plano.db_bytes, dbPct)}
+      ${bdGaugeCard('PostgreSQL DB', db_size_bytes, plano.db_bytes, dbPct)}
       ${bdGaugeCard('Storage Total',  storageTotal,  plano.storage_bytes, stPct)}
     </div>
 
