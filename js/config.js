@@ -53,7 +53,7 @@ const i18n = {
     nav: {
       dashboard: 'Overview', atividades: 'Activities', tdrs: 'TORs',
       financeiro: 'Financial', contratos: 'Contracts', fornecedores: 'Suppliers',
-      viagens: 'Travel', relatorios: 'Reports', mapa: 'Delivery Map', repositorio: 'Repository', produtos: 'Delivered Products', matriz: 'Results Matrix', usuarios: 'Users', configuracoes: 'Settings', sair: 'Sign out'
+      viagens: 'Travel', relatorios: 'Reports', mapa: 'Delivery Map', repositorio: 'Repository', produtos: 'Delivered Products', matriz: 'Results Matrix', usuarios: 'Users', configuracoes: 'Settings', banco_dados: 'Database', sair: 'Sign out'
     },
     comum: {
       salvar: 'Save', cancelar: 'Cancel', editar: 'Edit', excluir: 'Delete',
