@@ -30,8 +30,9 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'mapa',         icone: '&#x1F5FA;', href: 'mapa.html',   perfis: null },
     { id: 'repositorio',  icone: '🔗', href: 'repositorio.html',  perfis: null },
     { id: 'usuarios',       icone: '◍', href: 'usuarios.html',       perfis: ['super_admin'] },
-    { id: 'configuracoes',  icone: '⚙', href: 'configuracoes.html',  perfis: ['super_admin'] },
-    { id: 'banco_dados',    icone: '☁', href: 'banco-dados.html',    perfis: ['super_admin'], parent: 'configuracoes' },
+    { id: 'configuracoes', icone: '⚙', href: null,                 perfis: ['super_admin'], collapsible: true },
+    { id: 'dados_sistema', icone: '⊟', href: 'configuracoes.html', perfis: ['super_admin'], parent: 'configuracoes' },
+    { id: 'banco_dados',   icone: '☁', href: 'banco-dados.html',   perfis: ['super_admin'], parent: 'configuracoes' },
   ];
 
   const u = appState.usuario;
