@@ -944,6 +944,44 @@ async function recarregarMonitoramento() {
   await carregarMonitoramento();
 }
 
+async function verificarAlertasBanco() {
+  try {
+    const { data, error } = await db.rpc('get_monitoramento_banco');
+    if (error || !data) return;
+    monitoramento = data;
+
+    const plano = PLANOS[planoAtual];
+    const storageTotal = (data.storage_buckets || []).reduce((s, b) => s + (b.tamanho_bytes || 0), 0);
+    const dbPct = Math.min(Math.round(data.db_size_bytes / plano.db_bytes * 100), 100);
+    const stPct = Math.min(Math.round(storageTotal / plano.storage_bytes * 100), 100);
+    const maxPct = Math.max(dbPct, stPct);
+
+    if (maxPct < 80) return;
+
+    const critico = maxPct >= 95;
+    const cls = critico ? 'critico' : 'aviso';
+    const icon = critico ? '🔴' : '⚠️';
+
+    // Badge na aba
+    const tabBanco = document.querySelector('.tab-btn[onclick*="banco"]');
+    if (tabBanco && !tabBanco.querySelector('.tab-btn-badge')) {
+      tabBanco.insertAdjacentHTML('beforeend',
+        `<span class="tab-btn-badge ${cls}">${icon}</span>`);
+    }
+
+    // Toast de notificação
+    const recursos = [];
+    if (dbPct >= 80) recursos.push(`banco de dados (${dbPct}%)`);
+    if (stPct >= 80) recursos.push(`storage (${stPct}%)`);
+
+    const msg = critico
+      ? `🔴 Limite crítico: ${recursos.join(' e ')} do plano ${plano.nome} atingido!`
+      : `⚠️ Atenção: ${recursos.join(' e ')} do plano ${plano.nome} acima de 80%.`;
+
+    toast(msg, critico ? 'error' : 'warning');
+  } catch(e) { /* silencioso — não interrompe o fluxo da página */ }
+}
+
 // ── Util ──────────────────────────────────────────────────────
 function imgUrl(url) {
   if (!url) return '';
