@@ -2352,7 +2352,7 @@ async function confirmarEnvioEmails(){
   btn.disabled=true;btn.textContent='⏳ Enviando...';
   try{
     const {data:{session}}=await db.auth.getSession();
-    const resp=await fetch(`${SUPABASE_URL}/functions/v1/enviar-email-viagem`,{
+    const resp=await fetch(`${SUPABASE_URL}/functions/v1/dynamic-endpoint`,{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token}`},
       body:JSON.stringify({protocolo_id,evento})
