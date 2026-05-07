@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
       port: 587,
       secure: false,
       auth: {
-        user: 'projetounesco.acre@gmail.com',
+        user: 'fundobrasilonuacre@gmail.com',
         pass: Deno.env.get('GMAIL_APP_PASSWORD')!,
       },
     })
