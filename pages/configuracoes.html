@@ -554,13 +554,14 @@ function setTab(nome, btn) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativo'));
   if (btn) btn.classList.add('ativo');
   document.getElementById('tab-' + nome)?.classList.add('ativo');
+  if (nome === 'banco' && !monitoramento && !monCarregando) carregarMonitoramento();
 }
 
 function reRenderTab(nome) {
   const el = document.getElementById('tab-' + nome);
   if (!el) return;
   const ativo = el.classList.contains('ativo');
-  const map = { identidade: renderTabIdentidade, fotos: renderTabFotos, logos: renderTabLogos };
+  const map = { identidade: renderTabIdentidade, fotos: renderTabFotos, logos: renderTabLogos, banco: renderTabBancoDados };
   el.outerHTML = map[nome]();
   if (ativo) document.getElementById('tab-' + nome)?.classList.add('ativo');
 }
