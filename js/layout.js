@@ -239,6 +239,23 @@ async function initPagina(tituloPagina, paginaAtiva, callback) {
   if (callback) await callback();
 }
 
+// ── Menu recolhível ───────────────────────────────────────────
+function toggleNavGroup(id) {
+  const children = document.getElementById(`nav-children-${id}`);
+  const chevron  = document.getElementById(`nav-chevron-${id}`);
+  if (!children) return;
+  const aberto = children.style.maxHeight !== '0px';
+  if (aberto) {
+    children.style.maxHeight = '0px';
+    if (chevron) chevron.style.transform = '';
+    localStorage.setItem(`dima_nav_${id}`, '0');
+  } else {
+    children.style.maxHeight = '200px';
+    if (chevron) chevron.style.transform = 'rotate(90deg)';
+    localStorage.setItem(`dima_nav_${id}`, '1');
+  }
+}
+
 // ── SINO DE NOTIFICAÇÕES ──────────────────────────────────────
 let sinoAberto = false;
 let notifCache = [];
