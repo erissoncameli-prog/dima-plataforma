@@ -865,6 +865,8 @@ function addViajantePreenchido(v){
     if(benef){
       const hidEl=document.getElementById(`vn-benef-id-${idx}`);
       if(hidEl) hidEl.value=benef.id;
+      const emailHid2=document.getElementById(`vn-email-${idx}`);
+      if(emailHid2) emailHid2.value=benef.email||'';
       mostrarStatusBenef(idx,benef,false);
     } else {
       const statusEl=document.getElementById(`vn-benef-status-${idx}`);
