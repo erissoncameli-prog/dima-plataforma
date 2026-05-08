@@ -142,7 +142,7 @@ Caso tenha dúvidas, entre em contato com a equipe de gestão do projeto.${ass}`
 }
 
 // ── Templates viajante (mensagem simplificada) ────────────────────────────────
-function tplViajante(evento: string, p: any, v: any): { assunto: string; corpo: string } | null {
+function tplViajante(evento: string, p: any, v: any, linkPrestacao?: string): { assunto: string; corpo: string } | null {
   const num   = p.numero || '—'
   const dest  = p.destino_principal || '—'
   const saida = fmtData(p.dt_saida)
