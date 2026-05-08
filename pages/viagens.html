@@ -1927,7 +1927,9 @@ async function confirmarRejeitar(){
       lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
     });
   }
-  toast('Protocolo rejeitado.','info');fecharModal();await carregar();
+  toast('Protocolo rejeitado.','info');
+  await enviarEmailAuto(p.id,'rejeitado');
+  fecharModal();await carregar();
 }
 
 async function cancelarProtocolo(){
