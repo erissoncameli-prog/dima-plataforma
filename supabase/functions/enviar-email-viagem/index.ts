@@ -101,6 +101,23 @@ DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
 Os valores correspondentes foram lançados no módulo financeiro da Plataforma FundoBrasilONU.${ass}`,
   }
 
+  if (evento === 'cancelado') return {
+    assunto: `[DIMA] Protocolo ${num} — Cancelado`,
+    corpo: `Prezado(a) solicitante,
+
+Informamos que o Protocolo ${num} foi CANCELADO.
+
+PROTOCOLO: ${num}${sei}
+DESTINO: ${dest}
+PERÍODO: ${saida} a ${ret}
+OBJETIVO: ${obj}
+
+DESPACHO DE CANCELAMENTO:
+${p.cancelado_motivo || '—'}
+
+Caso tenha dúvidas, entre em contato com a equipe de gestão do projeto.${ass}`,
+  }
+
   return null
 }
 
