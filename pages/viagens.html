@@ -1958,13 +1958,63 @@ async function confirmarRejeitar(){
   fecharModal();await carregar();
 }
 
-async function cancelarProtocolo(){
+function cancelarProtocolo(){
   const p=protAtual;if(!p)return;
   if(p.situacao==='realizado'){toast('Protocolo já realizado/pago — não pode ser cancelado.','error');return;}
-  if(!confirm(`Cancelar o protocolo ${p.numero}? Esta ação não pode ser desfeita.`))return;
-  const{error}=await db.from('viagem_protocolos').update({situacao:'cancelado'}).eq('id',p.id);
-  if(error){toast('Erro ao cancelar: '+error.message,'error');return;}
-  toast('Protocolo cancelado.','info');fecharModal();await carregar();
+  document.getElementById('cancelar-motivo').value='';
+  document.getElementById('cancelar-senha').value='';
+  document.getElementById('cancelar-erro').style.display='none';
+  document.getElementById('cancelar-btn-confirmar').disabled=false;
+  document.getElementById('cancelar-btn-confirmar').textContent='⛔ Cancelar protocolo';
+  document.getElementById('modal-cancelar').classList.add('aberto');
+}
+
+function fecharModalCancelar(){
+  document.getElementById('modal-cancelar').classList.remove('aberto');
+}
+
+async function confirmarCancelamento(){
+  const motivo=document.getElementById('cancelar-motivo').value.trim();
+  const senha=document.getElementById('cancelar-senha').value;
+  const erroEl=document.getElementById('cancelar-erro');
+  const btn=document.getElementById('cancelar-btn-confirmar');
+
+  if(!motivo){erroEl.textContent='Informe o despacho de cancelamento.';erroEl.style.display='block';return;}
+  if(!senha){erroEl.textContent='Digite sua senha para confirmar.';erroEl.style.display='block';return;}
+
+  erroEl.style.display='none';
+  btn.disabled=true;btn.textContent='⏳ Verificando…';
+
+  // Reautenticar com a senha do usuário logado
+  const{data:{session}}=await db.auth.getSession();
+  const email=session?.user?.email;
+  const{error:authErr}=await db.auth.signInWithPassword({email,password:senha});
+  if(authErr){
+    erroEl.textContent='Senha incorreta. Tente novamente.';
+    erroEl.style.display='block';
+    btn.disabled=false;btn.textContent='⛔ Cancelar protocolo';
+    return;
+  }
+
+  const p=protAtual;
+  const{error}=await db.from('viagem_protocolos').update({
+    situacao:'cancelado',
+    cancelado_motivo:motivo,
+    cancelado_por:appState.usuario.id,
+    cancelado_em:new Date().toISOString()
+  }).eq('id',p.id);
+
+  if(error){
+    erroEl.textContent='Erro ao cancelar: '+error.message;
+    erroEl.style.display='block';
+    btn.disabled=false;btn.textContent='⛔ Cancelar protocolo';
+    return;
+  }
+
+  fecharModalCancelar();
+  await enviarEmailAuto(p.id,'cancelado');
+  toast('Protocolo cancelado. Viajantes notificados por e-mail.','info');
+  fecharModal();await carregar();
 }
 
 async function excluirProtocolo(){
