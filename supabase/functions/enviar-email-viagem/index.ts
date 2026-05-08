@@ -61,7 +61,7 @@ OBJETIVO: ${obj}
 VIAJANTES APROVADOS:
 ${viaj}
 
-Os respectivos SPDs (passagens e/ou diárias) serão processados junto à UNESCO. Acompanhe o andamento pelo sistema.${ass}`,
+Os respectivos SPDs (passagens e/ou diárias) serão processados junto à UNESCO. Acompanhe o andamento pela Plataforma FundoBrasilONU.${ass}`,
   }
 
   if (evento === 'rejeitado') return {
