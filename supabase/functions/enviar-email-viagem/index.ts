@@ -42,7 +42,9 @@ OBJETIVO: ${obj}
 VIAJANTES:
 ${viaj}
 
-A solicitação está aguardando análise e aprovação pela coordenação. Você será notificado(a) sobre os próximos passos.${ass}`,
+A solicitação está aguardando análise e aprovação pela coordenação. Você será notificado(a) sobre os próximos passos.
+
+Acompanhe o andamento pela Plataforma FundoBrasilONU.${ass}`,
   }
 
   if (evento === 'aprovado') return {
