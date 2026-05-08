@@ -278,6 +278,31 @@
     </div>
   </div>
 </div>
+<!-- Modal cancelamento com despacho + senha -->
+<div class="modal-overlay" id="modal-cancelar">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div><div class="modal-title">⛔ Cancelar protocolo</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Esta ação não pode ser desfeita — os viajantes serão notificados por e-mail</div></div>
+      <button class="modal-close" onclick="fecharModalCancelar()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Despacho de cancelamento <span style="color:var(--erro)">*</span></label>
+        <textarea id="cancelar-motivo" class="form-control" rows="4" placeholder="Descreva o motivo e o despacho oficial de cancelamento…" style="resize:vertical"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirme sua senha <span style="color:var(--erro)">*</span></label>
+        <input type="password" id="cancelar-senha" class="form-control" placeholder="Digite sua senha para autorizar">
+        <div id="cancelar-erro" style="display:none;color:var(--erro);font-size:11px;margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalCancelar()">Voltar</button>
+      <button class="btn" id="cancelar-btn-confirmar" style="margin-left:auto;background:#DC2626;color:#fff;border:1px solid #DC2626" onclick="confirmarCancelamento()">⛔ Cancelar protocolo</button>
+    </div>
+  </div>
+</div>
 <!-- Modal notificação por e-mail -->
 <div class="modal-overlay" id="modal-notif-email">
   <div class="modal" style="max-width:520px">
