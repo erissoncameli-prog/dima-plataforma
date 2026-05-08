@@ -150,11 +150,31 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Marcar token como usado (não invalida — permite reenvio até expirar)
+    // Expirar token imediatamente após envio bem-sucedido
+    const agora = new Date().toISOString()
     await supabase
       .from('prestacao_tokens')
-      .update({ usado_em: new Date().toISOString() })
+      .update({ usado_em: agora, expires_at: agora })
       .eq('token', token)
+
+    return json({ ok: true })
+  }
+
+  // ── POST ?action=expirar ─────────────────────────────────────
+  // Chamado pelo sistema (viagens.html) após envio via interface
+  if (req.method === 'POST' && action === 'expirar') {
+    const body = await req.json().catch(() => null)
+    if (!body) return erro('Corpo da requisição inválido')
+
+    const { viajante_ids } = body
+    if (!Array.isArray(viajante_ids) || !viajante_ids.length) return erro('viajante_ids é obrigatório')
+
+    const agora = new Date().toISOString()
+    await supabase
+      .from('prestacao_tokens')
+      .update({ usado_em: agora, expires_at: agora })
+      .in('viajante_id', viajante_ids)
+      .gt('expires_at', agora)
 
     return json({ ok: true })
   }
