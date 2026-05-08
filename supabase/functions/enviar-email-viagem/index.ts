@@ -87,7 +87,7 @@ Solicitamos que cada viajante acesse o sistema e submeta os documentos obrigató
   • Relatório de viagem (PDF assinado)
   • Cartões de embarque (ida e volta)
 
-Acesse o sistema → Viagens → Protocolo ${num} → "Prestação de contas".${ass}`,
+Acesse a Plataforma FundoBrasilONU → Viagens → Protocolo ${num} → "Prestação de contas".${ass}`,
   }
 
   if (evento === 'realizado') return {
