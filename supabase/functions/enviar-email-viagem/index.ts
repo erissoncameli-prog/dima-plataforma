@@ -32,7 +32,7 @@ function tplCriador(evento: string, p: any): { assunto: string; corpo: string } 
     assunto: `[DIMA] Protocolo ${num} — Solicitação registrada`,
     corpo: `Prezado(a) solicitante,
 
-Sua solicitação de viagem foi registrada com sucesso no sistema DIMA.
+Sua solicitação de viagem foi registrada com sucesso na Plataforma FundoBrasilONU.
 
 PROTOCOLO: ${num}${sei}
 DESTINO: ${dest}
