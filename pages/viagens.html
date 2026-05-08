@@ -605,6 +605,8 @@ function selecionarBenefViajante(idx, benefId){
   document.getElementById(`vn-nome-${idx}`).value=benef.nome||'';
   document.getElementById(`vn-func-${idx}`).value=benef.cargo||'';
   document.getElementById(`vn-cpf-${idx}`).value=benef.cpf||'';
+  const emailHid=document.getElementById(`vn-email-${idx}`);
+  if(emailHid) emailHid.value=benef.email||'';
   const vf=viajantesForm.find(x=>x.idx===idx);
   mostrarStatusBenef(idx,benef,vf?.internacional||false);
 }
