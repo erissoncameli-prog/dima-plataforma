@@ -7,6 +7,26 @@ const CORS = {
 }
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
+const SITE_URL = 'https://erissoncameli-prog.github.io/dima-plataforma'
+
+async function gerarTokenPrestacao(supabase: any, viajante_id: string, protocolo_id: string): Promise<string> {
+  // Reutiliza token válido existente para o mesmo viajante
+  const { data: existing } = await supabase
+    .from('prestacao_tokens')
+    .select('token')
+    .eq('viajante_id', viajante_id)
+    .gt('expires_at', new Date().toISOString())
+    .order('criado_em', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (existing?.token) return existing.token
+
+  const token = crypto.randomUUID()
+  const expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  await supabase.from('prestacao_tokens').insert({ token, viajante_id, protocolo_id, expires_at })
+  return token
+}
 
 function fmtData(s: string | null): string {
   if (!s) return '—'
