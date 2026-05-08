@@ -1805,8 +1805,12 @@ async function abrirDetalhe(id){
   if(p.situacao!=='rascunho'&&p.situacao!=='cancelado'&&(ehDono||isAdmin))
     footer+=`<button class="btn" style="margin-left:8px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="abrirModalNotif('${p.id}','${p.situacao}')">📧 Notificar</button>`;
 
-  // Cancelar: dono pode cancelar em qualquer fase não-paga (exceto já cancelado/rejeitado)
-  if(!pago && p.situacao!=='cancelado' && p.situacao!=='rejeitado' && (ehDono||isAdmin))
+  // Cancelar: dono só em rascunho/solicitado; super_admin em qualquer fase não-paga
+  const podeCancelar=!pago&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(
+    (ehDono&&['rascunho','solicitado'].includes(p.situacao))||
+    appState.perfil==='super_admin'
+  );
+  if(podeCancelar)
     footer+=`<button class="btn" style="margin-left:8px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="cancelarProtocolo()">✕ Cancelar</button>`;
 
   // Excluir: apenas admin, qualquer fase não-paga
