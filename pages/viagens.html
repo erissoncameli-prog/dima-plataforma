@@ -1873,6 +1873,7 @@ async function aprovarProtocolo(){
     lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
   });
   toast(`Protocolo ${p.numero} aprovado! Lançamentos a_pagar gerados.`,'success');
+  await enviarEmailAuto(p.id,'aprovado');
   fecharModal();await carregar();
 }
 
