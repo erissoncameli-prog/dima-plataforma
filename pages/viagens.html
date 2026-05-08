@@ -2352,6 +2352,17 @@ async function enviarPrestacao(){
   })));
 
   embarqueFiles={};relatorioFiles={};
+
+  // Expirar tokens de magic link dos viajantes que acabaram de enviar
+  const idsEnviados=(p.viajantes||[]).map(v=>v.id).filter(Boolean);
+  if(idsEnviados.length){
+    fetch(`${SUPABASE_URL}/functions/v1/prestacao-publica?action=expirar`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({viajante_ids:idsEnviados})
+    }).catch(()=>{});
+  }
+
   toast('Prestação enviada!','success');fecharModal();await carregar();
 }
 
