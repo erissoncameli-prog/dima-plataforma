@@ -83,7 +83,7 @@ O Protocolo ${num} entrou na fase de prestação de contas.
 
 DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
 
-Solicitamos que cada viajante acesse o sistema e submeta os documentos obrigatórios:
+Solicitamos que cada viajante acesse a Plataforma FundoBrasilONU e submeta os documentos obrigatórios:
   • Relatório de viagem (PDF assinado)
   • Cartões de embarque (ida e volta)
 
