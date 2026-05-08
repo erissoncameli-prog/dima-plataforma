@@ -89,6 +89,12 @@ Deno.serve(async (req) => {
 
       // Alerta: atingiu 30 dias e ainda não alertado
       if (dias >= 30 && !v.alerta_prestacao_em) {
+        let linkAlerta = ''
+        try {
+          const tk = await gerarTokenPrestacao(supabase, v.id, proto.id)
+          linkAlerta = `${SITE_URL}/pages/prestacao-publica.html?token=${tk}`
+        } catch (_) { /* não crítico */ }
+
         try {
           await transporter.sendMail({
             from: REMETENTE,
@@ -104,8 +110,10 @@ Você ainda não enviou:
 
 ⚠ ATENÇÃO: Caso não regularize sua situação em breve, você ficará IMPEDIDO(A) de participar de novas viagens pelo Projeto DIMA.
 
-Para regularizar, acesse:
-  Sistema DIMA → Viagens → Protocolo ${proto.numero} → "Prestação de contas"
+${linkAlerta
+  ? `➡ ENVIAR DOCUMENTOS AGORA (sem precisar de login):\n${linkAlerta}\n\nOu acesse: Sistema DIMA → Viagens → Protocolo ${proto.numero} → "Prestação de contas".`
+  : `Para regularizar, acesse: Sistema DIMA → Viagens → Protocolo ${proto.numero} → "Prestação de contas".`
+}
 
 Atenciosamente,
 Equipe de Gestão – Projeto DIMA
