@@ -614,6 +614,7 @@ function selecionarBenefViajante(idx, benefId){
 function verificarCompletudeViajante(benef, isIntl){
   const faltando=[];
   if(!benef.cpf) faltando.push('CPF');
+  if(!benef.email) faltando.push('E-mail (necessário para notificações)');
   if(!benef.cargo) faltando.push('Cargo/Função');
   if(isIntl){
     if(!benef.passaporte_numero) faltando.push('Nº do passaporte');
