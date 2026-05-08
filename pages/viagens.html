@@ -2488,7 +2488,9 @@ async function realizarProtocolo(){
     mensagem:`O protocolo ${protAtual.numero} foi confirmado como realizado e os valores foram lançados no financeiro.`,
     lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:protAtual.id
   });
-  toast('Protocolo realizado e lançado no financeiro!','success');fecharModal();await carregar();
+  toast('Protocolo realizado e lançado no financeiro!','success');
+  await enviarEmailAuto(protAtual.id,'realizado');
+  fecharModal();await carregar();
 }
 
 // ══════════════════════════════════════════════════════════════
