@@ -1506,6 +1506,20 @@ function renderTimeline(p){
     desc:'Lançado no financeiro'
   });
 
+  // Notificações enviadas por e-mail
+  const NOTIF_LABELS_LOCAL={solicitado:'Solicitação registrada',aprovado:'Aprovação',rejeitado:'Não aprovado',em_prestacao:'Prestação de contas',realizado:'Conclusão'};
+  (p.notif_log||[]).forEach(n=>{
+    etapas.push({
+      icone:'📧', cor:'#2563EB',
+      label:`Notificação — ${NOTIF_LABELS_LOCAL[n.evento]||n.evento}`,
+      data:n.enviado_em,
+      desc:`${n.total_enviados} e-mail(s) enviado(s)`
+    });
+  });
+
+  // Ordenar por data
+  etapas.sort((a,b)=>{if(!a.data)return 1;if(!b.data)return -1;return new Date(a.data)-new Date(b.data);});
+
   if(!etapas.length) return '<div style="font-size:11px;color:var(--cinza-400)">Nenhum evento registrado.</div>';
 
   return etapas.map((e,i)=>`
