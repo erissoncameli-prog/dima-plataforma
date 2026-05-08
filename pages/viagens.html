@@ -1518,6 +1518,7 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
     return;
   }
 
+  await enviarEmailAuto(protId,'solicitado');
   editandoProtocoloId=null;
   fecharModal();await carregar();
 }
