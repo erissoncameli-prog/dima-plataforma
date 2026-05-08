@@ -2276,6 +2276,7 @@ async function enviarParaAprovacao(id){
   const{error}=await db.from('viagem_protocolos').update({situacao:'solicitado'}).eq('id',id);
   if(error){toast('Erro: '+error.message,'error');return;}
   toast('Protocolo enviado para aprovação!','success');
+  await enviarEmailAuto(id,'solicitado');
   fecharModal();await carregar();
 }
 
