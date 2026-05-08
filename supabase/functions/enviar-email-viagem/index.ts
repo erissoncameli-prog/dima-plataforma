@@ -108,6 +108,7 @@ function tplViajante(evento: string, p: any, v: any): { assunto: string; corpo: 
   const dest  = p.destino_principal || '—'
   const saida = fmtData(p.dt_saida)
   const ret   = fmtData(p.dt_retorno)
+  const obj   = p.objetivo || '—'
   const nome  = v.nome || 'Prezado(a)'
 
   const ass = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC`
@@ -116,11 +117,12 @@ function tplViajante(evento: string, p: any, v: any): { assunto: string; corpo: 
     assunto: `[DIMA] Você foi incluído(a) no Protocolo ${num}`,
     corpo: `Prezado(a) ${nome},
 
-Informamos que você foi incluído(a) em uma solicitação de viagem no sistema DIMA.
+Informamos que você foi incluído(a) em uma solicitação de viagem na Plataforma FundoBrasilONU.
 
 PROTOCOLO: ${num}
 DESTINO: ${dest}
 PERÍODO: ${saida} a ${ret}
+OBJETIVO: ${obj}
 
 A solicitação está em análise. Você receberá uma nova notificação quando houver aprovação.${ass}`,
   }
@@ -133,6 +135,7 @@ Sua participação no Protocolo ${num} foi aprovada.
 
 DESTINO: ${dest}
 PERÍODO: ${saida} a ${ret}
+OBJETIVO: ${obj}
 
 As passagens e/ou diárias serão processadas pela equipe responsável. Fique atento(a) às orientações da coordenação.${ass}`,
   }
@@ -143,7 +146,10 @@ As passagens e/ou diárias serão processadas pela equipe responsável. Fique at
 
 O Protocolo ${num} está na fase de prestação de contas.
 
-Por favor, acesse o sistema DIMA e envie:
+DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
+OBJETIVO: ${obj}
+
+Por favor, acesse a Plataforma FundoBrasilONU e envie:
   • Relatório de viagem (PDF assinado)
   • Cartões de embarque (ida e volta)
 
@@ -154,7 +160,10 @@ Acesse: Viagens → Protocolo ${num} → "Prestação de contas".${ass}`,
     assunto: `[DIMA] Protocolo ${num} — Encerrado`,
     corpo: `Prezado(a) ${nome},
 
-Informamos que o Protocolo ${num} foi encerrado com sucesso no sistema DIMA.
+Informamos que o Protocolo ${num} foi encerrado com sucesso na Plataforma FundoBrasilONU.
+
+DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
+OBJETIVO: ${obj}
 
 Obrigado(a) pela sua participação!${ass}`,
   }
