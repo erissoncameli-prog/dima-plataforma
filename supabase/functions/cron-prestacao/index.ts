@@ -131,6 +131,12 @@ fundobrasilonuacre@gmail.com`,
 
       // Bloqueio: passou de 30 dias e ainda não bloqueado formalmente
       if (dias > 30 && !v.bloqueio_prestacao_em) {
+        let linkBloqueio = ''
+        try {
+          const tk = await gerarTokenPrestacao(supabase, v.id, proto.id)
+          linkBloqueio = `${SITE_URL}/pages/prestacao-publica.html?token=${tk}`
+        } catch (_) { /* não crítico */ }
+
         try {
           await transporter.sendMail({
             from: REMETENTE,
@@ -143,10 +149,10 @@ Informamos que você está BLOQUEADO(A) de participar de novas viagens pelo Proj
 MOTIVO: Não foram submetidos os documentos de prestação de contas do Protocolo ${proto.numero} (data de retorno: ${fmtData(proto.dt_retorno)}), ultrapassando o prazo de 30 dias estabelecido.
 
 Para regularizar e remover o bloqueio:
-  1. Acesse o Sistema DIMA → Viagens → Protocolo ${proto.numero}
-  2. Clique em "Prestação de contas"
-  3. Envie o Relatório de Viagem (PDF assinado) e os Cartões de Embarque
-  4. O bloqueio será removido automaticamente após a submissão
+${linkBloqueio
+  ? `➡ ENVIAR DOCUMENTOS AGORA (sem precisar de login):\n${linkBloqueio}\n\nO bloqueio será removido automaticamente após a submissão.`
+  : `  1. Acesse o Sistema DIMA → Viagens → Protocolo ${proto.numero}\n  2. Clique em "Prestação de contas"\n  3. Envie o Relatório de Viagem (PDF assinado) e os Cartões de Embarque\n  4. O bloqueio será removido automaticamente após a submissão`
+}
 
 Atenciosamente,
 Equipe de Gestão – Projeto DIMA
