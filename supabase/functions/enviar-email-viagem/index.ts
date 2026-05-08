@@ -188,11 +188,14 @@ O Protocolo ${num} está na fase de prestação de contas.
 DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
 OBJETIVO: ${obj}
 
-Por favor, acesse a Plataforma FundoBrasilONU e envie:
+Por favor, envie os documentos obrigatórios:
   • Relatório de viagem (PDF assinado)
   • Cartões de embarque (ida e volta)
 
-Acesse: Viagens → Protocolo ${num} → "Prestação de contas".${ass}`,
+${linkPrestacao
+  ? `➡ ENVIAR DOCUMENTOS AGORA (sem precisar de login):\n${linkPrestacao}\n\nOu acesse: Sistema DIMA → Viagens → Protocolo ${num} → "Prestação de contas".`
+  : `Acesse: Sistema DIMA → Viagens → Protocolo ${num} → "Prestação de contas".`
+}${ass}`,
   }
 
   if (evento === 'realizado') return {
