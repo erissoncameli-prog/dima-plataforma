@@ -596,10 +596,30 @@ function fecharDropBenef(idx){
   if(drop) drop.style.display='none';
 }
 
-function selecionarBenefViajante(idx, benefId){
+async function selecionarBenefViajante(idx, benefId){
   const benef=todosbenef.find(b=>b.id===benefId);
   if(!benef) return;
   fecharDropBenef(idx);
+
+  // Verificar bloqueio por prestação de contas pendente
+  if(benef.cpf || benef.email){
+    const statusEl=document.getElementById(`vn-benef-status-${idx}`);
+    if(statusEl) statusEl.innerHTML=`<div style="font-size:11px;color:var(--cinza-500)">⏳ Verificando pendências...</div>`;
+    const bloqueio=await verificarBloqueioPrestacao(benef);
+    if(bloqueio){
+      const buscaEl=document.getElementById(`vn-busca-${idx}`);
+      if(buscaEl) buscaEl.value='';
+      const hidEl=document.getElementById(`vn-benef-id-${idx}`);
+      if(hidEl) hidEl.value='';
+      if(statusEl) statusEl.innerHTML=`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--raio);padding:10px 12px;font-size:11px;color:#991B1B">
+        <div style="font-weight:700;margin-bottom:4px">⛔ Beneficiário bloqueado</div>
+        <div>${esc(benef.nome)} não pode ser adicionado(a) pois está com prestação de contas pendente do Protocolo <strong>${esc(bloqueio.numero)}</strong> (retorno em ${bloqueio.dtRetornoFmt}, vencido há ${bloqueio.dias} dias).</div>
+        <div style="margin-top:6px;color:#7F1D1D">Para desbloquear: peça ao beneficiário que submeta os documentos no protocolo pendente.</div>
+      </div>`;
+      return;
+    }
+  }
+
   const buscaEl=document.getElementById(`vn-busca-${idx}`);
   if(buscaEl) buscaEl.value=benef.nome;
   const hidEl=document.getElementById(`vn-benef-id-${idx}`);
@@ -611,6 +631,32 @@ function selecionarBenefViajante(idx, benefId){
   if(emailHid) emailHid.value=benef.email||'';
   const vf=viajantesForm.find(x=>x.idx===idx);
   mostrarStatusBenef(idx,benef,vf?.internacional||false);
+}
+
+async function verificarBloqueioPrestacao(benef){
+  try{
+    let query=db.from('viagem_viajantes')
+      .select('id, relatorio_url, protocolo:viagem_protocolos(numero, dt_retorno, situacao)')
+      .is('relatorio_url', null);
+    if(benef.cpf) query=query.eq('cpf', benef.cpf);
+    else if(benef.email) query=query.eq('email', benef.email);
+    else return null;
+    const{data}=await query;
+    if(!data) return null;
+    const hoje=new Date(); hoje.setHours(0,0,0,0);
+    for(const v of data){
+      const proto=v.protocolo;
+      if(!proto?.dt_retorno) continue;
+      if(!['em_prestacao','realizado'].includes(proto.situacao)) continue;
+      const dtRet=new Date(proto.dt_retorno); dtRet.setHours(0,0,0,0);
+      const dias=Math.floor((hoje-dtRet)/(1000*60*60*24));
+      if(dias>30){
+        const d=proto.dt_retorno.split('T')[0].split('-');
+        return{numero:proto.numero, dtRetornoFmt:`${d[2]}/${d[1]}/${d[0]}`, dias};
+      }
+    }
+    return null;
+  }catch(e){return null;}
 }
 
 function verificarCompletudeViajante(benef, isIntl){
