@@ -1524,7 +1524,7 @@ function renderTimeline(p){
 // ══════════════════════════════════════════════════════════════
 async function abrirDetalhe(id){
   const{data:p}=await db.from('viagem_protocolos')
-    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
+    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)),notif_log:viagem_notif_log(*)`)
     .eq('id',id).single();
   if(!p)return;
   protAtual=p;
