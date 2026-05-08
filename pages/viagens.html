@@ -2367,7 +2367,13 @@ async function confirmarEnvioEmails(){
     const result=await resp.json();
     if(result.ok){
       toast(`✉ ${result.enviados} e-mail(s) enviado(s) com sucesso!`,'success');
+      await db.from('viagem_notif_log').insert({
+        protocolo_id,evento,
+        total_enviados:result.enviados,
+        enviado_por:appState.usuario.id
+      });
       fecharModalNotif();
+      await carregar();
     } else {
       throw new Error(result.error||'Erro desconhecido ao enviar e-mails');
     }
