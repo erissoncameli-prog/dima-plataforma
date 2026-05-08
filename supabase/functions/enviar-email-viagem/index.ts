@@ -266,7 +266,16 @@ Deno.serve(async (req) => {
     for (const v of (proto.viajantes || [])) {
       if (!v.email) continue
       if (v.email === criadorEmail) continue  // criador já recebeu msg detalhada
-      const tpl = tplViajante(evento, proto, v)
+
+      let linkPrestacao: string | undefined
+      if (evento === 'em_prestacao' && v.id) {
+        try {
+          const tk = await gerarTokenPrestacao(supabase, v.id, protocolo_id)
+          linkPrestacao = `${SITE_URL}/pages/prestacao-publica.html?token=${tk}`
+        } catch (_) { /* não crítico — e-mail vai sem link */ }
+      }
+
+      const tpl = tplViajante(evento, proto, v, linkPrestacao)
       if (tpl) envios.push({ to: v.email, ...tpl })
     }
 
