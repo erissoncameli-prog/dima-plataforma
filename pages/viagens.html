@@ -1403,7 +1403,7 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
   for(const v of viajantesData){
     const{data:viaj,error:vErr}=await db.from('viagem_viajantes').insert({
       protocolo_id:protId,
-      nome:v.nome, funcao:v.funcao, cpf:v.cpf,
+      nome:v.nome, funcao:v.funcao, cpf:v.cpf, email:v.email||null,
       tem_passagem:v.tem_passagem, tem_diaria:v.tem_diaria,
       spd_passagem:v.spd_passagem, spd_diaria:v.spd_diaria,
       sit_passagem:v.sit_passagem, sit_diaria:v.sit_diaria,
