@@ -98,7 +98,7 @@ O Protocolo ${num} foi concluído e encerrado com sucesso no sistema DIMA.
 
 DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
 
-Os valores correspondentes foram lançados no módulo financeiro do projeto.${ass}`,
+Os valores correspondentes foram lançados no módulo financeiro da Plataforma FundoBrasilONU.${ass}`,
   }
 
   return null
