@@ -715,6 +715,26 @@ async function verificarAutoTransicao(lista){
   }
 }
 
+// ── E-MAIL AUTOMÁTICO ─────────────────────────────────────────
+async function enviarEmailAuto(protocolo_id, evento){
+  try{
+    const{data:{session}}=await db.auth.getSession();
+    const resp=await fetch(`${SUPABASE_URL}/functions/v1/dynamic-endpoint`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token}`},
+      body:JSON.stringify({protocolo_id,evento})
+    });
+    const result=await resp.json();
+    if(result.ok&&result.enviados>0){
+      await db.from('viagem_notif_log').insert({
+        protocolo_id,evento,
+        total_enviados:result.enviados,
+        enviado_por:appState.usuario.id
+      });
+    }
+  }catch(_){}
+}
+
 // ── NOTIFICAÇÕES ──────────────────────────────────────────────
 async function carregarNotificacoes(){
   try{
