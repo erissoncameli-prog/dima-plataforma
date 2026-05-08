@@ -94,7 +94,7 @@ Acesse a Plataforma FundoBrasilONU → Viagens → Protocolo ${num} → "Presta�
     assunto: `[DIMA] Protocolo ${num} — Concluído ✓`,
     corpo: `Prezado(a) solicitante,
 
-O Protocolo ${num} foi concluído e encerrado com sucesso no sistema DIMA.
+O Protocolo ${num} foi concluído e encerrado com sucesso na Plataforma FundoBrasilONU.
 
 DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
 
