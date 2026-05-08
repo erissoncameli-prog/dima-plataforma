@@ -187,6 +187,19 @@ OBJETIVO: ${obj}
 Obrigado(a) pela sua participação!${ass}`,
   }
 
+  if (evento === 'cancelado') return {
+    assunto: `[DIMA] Protocolo ${num} — Cancelado`,
+    corpo: `Prezado(a) ${nome},
+
+Informamos que o Protocolo ${num} foi CANCELADO.
+
+DESTINO: ${dest}
+PERÍODO: ${saida} a ${ret}
+OBJETIVO: ${obj}
+
+Em caso de dúvidas, entre em contato com a equipe de gestão do projeto.${ass}`,
+  }
+
   return null
 }
 
