@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIMA — Envio de Prestação de Contas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F8FAFC;color:#1E293B;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px}
+.card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:28px;max-width:580px;width:100%;margin-top:16px}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.logo-badge{background:#166534;color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;padding:4px 10px;border-radius:4px;letter-spacing:.04em}
+.logo-text{font-size:13px;color:#64748B;font-weight:500}
+h1{font-size:18px;font-weight:600;color:#0F172A;margin-bottom:4px}
+.subtitle{font-size:13px;color:#64748B;margin-bottom:20px}
+.proto-info{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:12px 14px;margin-bottom:20px;font-size:13px}
+.proto-info strong{color:#166534}
+.secao{margin-bottom:18px}
+.secao-titulo{font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.badge-obrig{font-size:10px;font-weight:700;background:#FEF2F2;color:#DC2626;padding:1px 6px;border-radius:99px}
+.badge-opcional{font-size:10px;font-weight:700;background:#F1F5F9;color:#64748B;padding:1px 6px;border-radius:99px}
+.upload-area{border:2px dashed #CBD5E1;border-radius:8px;padding:18px;text-align:center;cursor:pointer;transition:all .15s;font-size:13px;color:#64748B}
+.upload-area:hover{border-color:#166534;background:#F0FDF4;color:#166534}
+.upload-area.tem{border-color:#166534;border-style:solid;background:#F0FDF4;color:#166534;font-weight:500}
+.upload-area.erro{border-color:#DC2626;background:#FEF2F2;color:#DC2626}
+input[type=file]{display:none}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.thumb{border:1px solid #E2E8F0;border-radius:6px;aspect-ratio:1;overflow:hidden;position:relative;background:#F8FAFC}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb-pdf{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;font-size:20px;gap:2px}
+.thumb-pdf span{font-size:9px;color:#64748B;text-align:center;padding:0 4px;word-break:break-all}
+.thumb-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1}
+.aviso{background:#FFF7ED;border:1px solid #FED7AA;border-radius:6px;padding:8px 12px;font-size:12px;color:#92400E;margin-bottom:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:#166534;color:#fff}
+.btn-primary:hover{background:#15803D}
+.btn-primary:disabled{background:#9CA3AF;cursor:not-allowed}
+.btn-full{width:100%;margin-top:8px}
+.progress-bar{height:4px;background:#E2E8F0;border-radius:2px;overflow:hidden;margin-top:12px}
+.progress-fill{height:100%;background:#166534;border-radius:2px;transition:width .3s}
+.msg{text-align:center;padding:32px 16px}
+.msg-icon{font-size:48px;margin-bottom:12px}
+.msg-titulo{font-size:18px;font-weight:600;margin-bottom:6px}
+.msg-sub{font-size:13px;color:#64748B}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status-ja{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:8px 12px;font-size:12px;color:#1E40AF;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+
+<div class="card" id="card-loading">
+  <div class="logo">
+    <span class="logo-badge">DIMA</span>
+    <span class="logo-text">UNESCO / SEMA-AC</span>
+  </div>
+  <div style="text-align:center;padding:32px;color:#64748B;font-size:13px">Carregando...</div>
+</div>
+
+<div class="card" id="card-form" style="display:none">
+  <div class="logo">
+    <span class="logo-badge">DIMA</span>
+    <span class="logo-text">UNESCO / SEMA-AC</span>
+  </div>
+  <h1>Prestação de Contas</h1>
+  <p class="subtitle" id="sub-nome"></p>
+
+  <div class="proto-info" id="proto-info"></div>
+
+  <!-- Cartões de embarque -->
+  <div class="secao" id="secao-embarque" style="display:none">
+    <div class="secao-titulo">🎫 Cartões de embarque <span class="badge-obrig">obrigatório</span></div>
+    <div class="aviso">📷 Fotos ou PDF dos cartões de embarque — ida e volta. Até 6 arquivos (JPEG/PNG/PDF).</div>
+    <div id="status-embarque"></div>
+    <div class="upload-area" id="area-embarque" onclick="document.getElementById('inp-embarque').click()">
+      📷 Clique para adicionar cartões de embarque
+    </div>
+    <input type="file" id="inp-embarque" accept=".jpg,.jpeg,.png,.pdf" multiple onchange="adicionarEmbarques(this.files)">
+    <div class="thumbs" id="thumbs-embarque"></div>
+    <div style="font-size:11px;color:#94A3B8;margin-top:4px" id="count-embarque"></div>
+  </div>
+
+  <!-- Relatório de viagem -->
+  <div class="secao">
+    <div class="secao-titulo">📄 Relatório de viagem <span class="badge-obrig">obrigatório</span></div>
+    <div class="aviso">📋 PDF assinado com fotos do evento, lista de participantes e resultados.</div>
+    <div id="status-relatorio"></div>
+    <div class="upload-area" id="area-relatorio" onclick="document.getElementById('inp-relatorio').click()">
+      📎 Clique para anexar o relatório em PDF
+    </div>
+    <input type="file" id="inp-relatorio" accept=".pdf" onchange="selecionarRelatorio(this.files[0])">
+  </div>
+
+  <div class="progress-bar" id="barra-prog" style="display:none"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+
+  <button class="btn btn-primary btn-full" id="btn-enviar" onclick="enviar()">📤 Enviar prestação de contas</button>
+</div>
+
+<div class="card" id="card-sucesso" style="display:none">
+  <div class="logo">
+    <span class="logo-badge">DIMA</span>
+    <span class="logo-text">UNESCO / SEMA-AC</span>
+  </div>
+  <div class="msg">
+    <div class="msg-icon">✅</div>
+    <div class="msg-titulo">Prestação enviada!</div>
+    <p class="msg-sub">Seus documentos foram recebidos com sucesso. A equipe de gestão do Projeto DIMA foi notificada.</p>
+  </div>
+</div>
+
+<div class="card" id="card-erro" style="display:none">
+  <div class="logo">
+    <span class="logo-badge">DIMA</span>
+    <span class="logo-text">UNESCO / SEMA-AC</span>
+  </div>
+  <div class="msg">
+    <div class="msg-icon">⚠️</div>
+    <div class="msg-titulo" id="erro-titulo">Link inválido ou expirado</div>
+    <p class="msg-sub" id="erro-msg">Este link de prestação de contas não é mais válido. Entre em contato com a equipe DIMA.</p>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wfymnmlinonvdqfucjya.supabase.co'
+const FN = `${SUPABASE_URL}/functions/v1/prestacao-publica`
+
+const token = new URLSearchParams(location.search).get('token')
+let viajante = null
+let embarques = []   // { file, public_url }
+let relatorio = null // { file, public_url }
+
+function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+function fmtData(s){ if(!s)return'—'; const p=s.split('T')[0].split('-'); return`${p[2]}/${p[1]}/${p[0]}` }
+
+function show(id){ document.getElementById(id).style.display='' }
+function hide(id){ document.getElementById(id).style.display='none' }
+
+async function init(){
+  if(!token){ mostrarErro('Link inválido','Acesse este link pelo e-mail de alerta enviado pelo Projeto DIMA.'); return }
+
+  const res = await fetch(`${FN}?action=info&token=${encodeURIComponent(token)}`).catch(()=>null)
+  if(!res||!res.ok){ mostrarErro('Link inválido ou expirado','Este link não é mais válido. Contate a equipe DIMA.'); return }
+
+  const data = await res.json()
+  if(!data.ok){ mostrarErro('Link inválido ou expirado', data.error||''); return }
+
+  viajante = data.viajante
+  const proto = data.protocolo
+
+  document.getElementById('sub-nome').textContent = viajante.nome || ''
+  document.getElementById('proto-info').innerHTML =
+    `<strong>Protocolo ${esc(proto.numero)}</strong> · ${esc(proto.destino_principal||'—')}<br>` +
+    `<span style="color:#4B5563">Período: ${fmtData(proto.dt_saida)} a ${fmtData(proto.dt_retorno)}</span>`
+
+  if(viajante.tem_passagem) show('secao-embarque')
+
+  // Mostrar documentos já enviados anteriormente
+  if(viajante.relatorio_url){
+    document.getElementById('status-relatorio').innerHTML =
+      `<div class="status-ja">✅ Relatório já enviado: <strong>${esc(viajante.relatorio_nome||'relatorio.pdf')}</strong> — você pode substituir abaixo.</div>`
+  }
+  if(viajante.cartoes_embarque_urls?.length){
+    document.getElementById('status-embarque').innerHTML =
+      `<div class="status-ja">✅ ${viajante.cartoes_embarque_urls.length} cartão(s) já enviado(s) — você pode adicionar mais abaixo.</div>`
+  }
+
+  hide('card-loading')
+  show('card-form')
+}
+
+function adicionarEmbarques(files){
+  const TIPOS = ['image/jpeg','image/jpg','image/png','application/pdf']
+  Array.from(files).forEach(f=>{
+    if(!TIPOS.includes(f.type)){ alert(f.name+': apenas JPEG/PNG/PDF.'); return }
+    if(embarques.length>=6){ alert('Máximo 6 cartões.'); return }
+    embarques.push({ file: f, public_url: null })
+  })
+  renderThumbs()
+}
+
+function renderThumbs(){
+  const grid = document.getElementById('thumbs-embarque')
+  const count = document.getElementById('count-embarque')
+  const area = document.getElementById('area-embarque')
+  grid.innerHTML = embarques.map((e,i)=>{
+    const isPdf = e.file.type==='application/pdf'
+    const thumb = isPdf
+      ? `<div class="thumb-pdf">📄<span>${esc(e.file.name)}</span></div>`
+      : `<img src="${URL.createObjectURL(e.file)}" alt="Cartão ${i+1}">`
+    return `<div class="thumb">${thumb}<button class="thumb-del" onclick="removerEmbarque(${i})">✕</button></div>`
+  }).join('')
+  count.textContent = embarques.length ? `${embarques.length}/6 cartão(s)` : ''
+  if(embarques.length) area.classList.add('tem')
+  else area.classList.remove('tem')
+}
+
+function removerEmbarque(i){ embarques.splice(i,1); renderThumbs() }
+
+function selecionarRelatorio(file){
+  if(!file) return
+  relatorio = { file, public_url: null }
+  const area = document.getElementById('area-relatorio')
+  area.classList.add('tem')
+  area.innerHTML = `✓ ${esc(file.name)}<input type="file" id="inp-relatorio" style="display:none" accept=".pdf" onchange="selecionarRelatorio(this.files[0])">`
+}
+
+function setProgress(pct){ document.getElementById('prog-fill').style.width = pct+'%' }
+
+async function uploadComSignedUrl(file, tipo, index=0){
+  const ext = file.name.split('.').pop().toLowerCase()
+  const res = await fetch(`${FN}?action=signed-url`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ token, tipo, ext, index })
+  })
+  const data = await res.json()
+  if(!data.ok) throw new Error(data.error||'Erro ao obter URL de upload')
+
+  const upRes = await fetch(data.signed_url,{
+    method:'PUT',
+    body: file,
+    headers:{'Content-Type': file.type||'application/octet-stream','x-upsert':'true'}
+  })
+  if(!upRes.ok) throw new Error('Falha no upload do arquivo')
+
+  return data.public_url
+}
+
+async function enviar(){
+  const temPassagem = viajante?.tem_passagem
+  const temRelatorioNovo = !!relatorio
+  const temRelatAnt = !!viajante?.relatorio_url
+  const temEmbarqueNovo = embarques.length > 0
+  const temEmbarqueAnt = viajante?.cartoes_embarque_urls?.length > 0
+
+  if(!temRelatorioNovo && !temRelatAnt){
+    document.getElementById('area-relatorio').classList.add('erro')
+    alert('Anexe o relatório de viagem em PDF.')
+    return
+  }
+  if(temPassagem && !temEmbarqueNovo && !temEmbarqueAnt){
+    if(!confirm('Você solicitou passagem mas não adicionou cartões de embarque. Deseja enviar mesmo assim?')) return
+  }
+
+  const btn = document.getElementById('btn-enviar')
+  btn.disabled = true
+  btn.innerHTML = '<span class="spinner"></span> Enviando...'
+  show('barra-prog')
+
+  try {
+    const total = (temRelatorioNovo?1:0) + embarques.length
+    let feitos = 0
+
+    // Upload cartões de embarque
+    const cartoesUrls = []
+    for(let i=0;i<embarques.length;i++){
+      cartoesUrls.push(await uploadComSignedUrl(embarques[i].file,'embarque',i))
+      feitos++
+      setProgress(Math.round(feitos/total*85))
+    }
+
+    // Upload relatório
+    let relatorioUrl = null, relatorioNome = null
+    if(relatorio){
+      relatorioUrl = await uploadComSignedUrl(relatorio.file,'relatorio')
+      relatorioNome = relatorio.file.name
+      feitos++
+      setProgress(Math.round(feitos/total*85))
+    }
+
+    // Finalizar
+    setProgress(90)
+    const res = await fetch(`${FN}?action=finalizar`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token, relatorio_url: relatorioUrl, relatorio_nome: relatorioNome, cartoes_urls: cartoesUrls })
+    })
+    const data = await res.json()
+    if(!data.ok) throw new Error(data.error||'Erro ao finalizar')
+
+    setProgress(100)
+    hide('card-form')
+    show('card-sucesso')
+
+  } catch(e){
+    btn.disabled = false
+    btn.innerHTML = '📤 Enviar prestação de contas'
+    hide('barra-prog')
+    alert('Erro: '+e.message)
+  }
+}
+
+function mostrarErro(titulo, msg){
+  hide('card-loading')
+  hide('card-form')
+  document.getElementById('erro-titulo').textContent = titulo
+  document.getElementById('erro-msg').textContent = msg
+  show('card-erro')
+}
+
+init()
+</script>
+</body>
+</html>
