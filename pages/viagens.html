@@ -712,6 +712,7 @@ async function verificarAutoTransicao(lista){
       .update({situacao:'em_prestacao',atualizado_em:new Date().toISOString()})
       .eq('id',p.id);
     p.situacao='em_prestacao';
+    await enviarEmailAuto(p.id,'em_prestacao');
   }
 }
 
