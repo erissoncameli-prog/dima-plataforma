@@ -1557,12 +1557,13 @@ async function confirmarPagamento() {
       dt_pagamento:       dtPgto,
       numero_nf:          nf,
       observacoes:        obs,
-      cotacao_uso:        taxaAtual,         // câmbio de mercado (AwesomeAPI)
-      cotacao_unesco:     cotUNESCO,         // câmbio operacional UNESCO
+      cotacao_uso:        taxaAtual,
+      cotacao_unesco:     cotUNESCO,
       cotacao_travada_em: new Date().toISOString(),
-      valor_usd:          usdUnesco,         // valor oficial = câmbio UNESCO
+      valor_usd:          usdUnesco,
       valor_usd_unesco:   usdUnesco,
-      impacto_usd:        impactoUSD,        // diferença vs mercado
+      impacto_usd:        impactoUSD,
+      pago_por:           appState.usuario.id,
       atualizado_em:      new Date().toISOString()
     };
 
