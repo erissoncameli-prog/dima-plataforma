@@ -1144,7 +1144,8 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
     }
   }
 
-  await db.from('contratos_produtos').update({dt_entrega:dtEnt,situacao:'em_analise',observacoes:obs||produtoAtual.observacoes,atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
+  var cpUpd=await db.from('contratos_produtos').update({dt_entrega:dtEnt,situacao:'em_analise',observacoes:obs||produtoAtual.observacoes,atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
+  if(cpUpd.error){toast('Aviso: entrega registrada mas não foi possível atualizar o status do produto. Contate o administrador.','error');}
 
   // Salvar contribuições à Matriz de Resultados (status pendente = aguarda confirmação técnica)
   var contribs=coletarContribsMatriz();
