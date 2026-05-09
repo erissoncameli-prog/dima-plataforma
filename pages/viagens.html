@@ -2595,6 +2595,30 @@ async function realizarProtocolo(){
 }
 
 // ══════════════════════════════════════════════════════════════
+// NOTIFICAÇÃO UNESCO — CONCLUSÃO (com anexos)
+// ══════════════════════════════════════════════════════════════
+async function notificarUnescoConcluso(protId){
+  try{
+    const{data:{session}}=await db.auth.getSession();
+    const resp=await fetch(`${SUPABASE_URL}/functions/v1/notificar-unesco-conclusao`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token}`},
+      body:JSON.stringify({protocolo_id:protId,enviado_por:appState.usuario?.id})
+    });
+    const result=await resp.json();
+    if(result.ok){
+      toast(`E-mail de conclusão enviado para UNESCO com ${result.anexos} anexo(s).`,'success');
+    }else{
+      toast('Aviso: não foi possível enviar e-mail para UNESCO. '+(result.error||''),'error');
+    }
+    return result.ok;
+  }catch(e){
+    toast('Aviso: erro ao notificar UNESCO.','error');
+    return false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // UTILITÁRIOS
 // ══════════════════════════════════════════════════════════════
 function abrirLightbox(url){
