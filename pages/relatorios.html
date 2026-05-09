@@ -3665,6 +3665,344 @@ async function relU1(){
     </table>
   </div>`;
 }
+
+// ══════════════════════════════════════════════════════════════
+// HELPERS COMPARTILHADOS — entregas
+// ══════════════════════════════════════════════════════════════
+const SIT_CONT = {vigente:'Vigente',encerrado:'Encerrado',suspenso:'Suspenso'};
+const COR_CONT = {vigente:'rb-verde',encerrado:'rb-cinza',suspenso:'rb-vermelho'};
+const SIT_PROD = {pendente:'Pendente',em_analise:'Em Análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado',entrega_parcial:'Parcial',devolvido:'Devolvido'};
+const COR_PROD = {pendente:'rb-ouro',em_analise:'rb-azul',aprovado:'rb-verde',pago:'rb-teal',cancelado:'rb-cinza',entrega_parcial:'rb-ouro',devolvido:'rb-vermelho'};
+const SIT_ENT  = {pendente:'Pendente',em_analise:'Em Análise',aprovada:'Aprovada',devolvida:'Devolvida'};
+const COR_ENT  = {pendente:'rb-ouro',em_analise:'rb-azul',aprovada:'rb-verde',devolvida:'rb-vermelho'};
+
+async function _buscarEntregas(pIds, sitEntFil, dtIni, dtFim){
+  if(!pIds.length) return [];
+  let q = db.from('contratos_produtos_entregas')
+    .select('id,produto_id,situacao,dt_entrega,despacho_numero,despacho_data,nota_tecnica_url,nota_tecnica_nome,pct_entregue,criado_por_u:usuarios!contratos_produtos_entregas_criado_por_fkey(nome_completo),despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo),lancamento:execucao_financeira!contratos_produtos_entregas_lancamento_id_fkey(dt_pagamento),documentos:entrega_documentos(arquivo_url,arquivo_nome,tipo_documento)')
+    .in('produto_id', pIds)
+    .order('dt_entrega',{ascending:true});
+  if(sitEntFil) q = q.eq('situacao', sitEntFil);
+  if(dtIni) q = q.gte('dt_entrega', dtIni);
+  if(dtFim) q = q.lte('dt_entrega', dtFim);
+  const {data, error} = await q;
+  if(error) throw error;
+  return data||[];
+}
+
+function _linksEntrega(e){
+  const docs = e.documentos||[];
+  const parts = [];
+  if(e.despacho_numero) parts.push(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid #BFDBFE;background:#EFF6FF;color:#1E40AF;white-space:nowrap">📋 ${esc(e.despacho_numero)}${e.despacho_data?' · '+fmtDt(e.despacho_data):''}</span>`);
+  if(e.nota_tecnica_url) parts.push(`<a href="${e.nota_tecnica_url}" target="_blank" style="font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;text-decoration:none;white-space:nowrap">📄 ${esc(e.nota_tecnica_nome||'Nota Técnica')}</a>`);
+  docs.forEach(d=>{ if(d.arquivo_url) parts.push(`<a href="${d.arquivo_url}" target="_blank" style="font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--borda);background:#fff;color:var(--cinza-700);text-decoration:none;white-space:nowrap">📎 ${esc(d.tipo_documento||d.arquivo_nome||'Doc')}</a>`); });
+  return parts.length ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${parts.join('')}</div>` : '';
+}
+
+function _quemEntrega(e){
+  const parts = [];
+  if(e.criado_por_u?.nome_completo) parts.push(`<span style="font-size:10px"><span style="font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase">Carregou</span> ${esc(e.criado_por_u.nome_completo)}</span>`);
+  if(e.despachado_por_u?.nome_completo) parts.push(`<span style="font-size:10px"><span style="font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase">Aprovou</span> ${esc(e.despachado_por_u.nome_completo)}${e.despacho_data?` <span style="color:var(--cinza-400)">em ${fmtDt(e.despacho_data)}</span>`:''}</span>`);
+  if(e.lancamento?.dt_pagamento) parts.push(`<span style="font-size:10px"><span style="font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase">Pago em</span> ${fmtDt(e.lancamento.dt_pagamento)}</span>`);
+  return parts.length ? `<div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;margin-bottom:2px">${parts.join('')}</div>` : '';
+}
+
+// ══════════════════════════════════════════════════════════════
+// C5 — ENTREGAS POR CONTRATO
+// ══════════════════════════════════════════════════════════════
+async function relC5(){
+  const ativFil   = filVal('fil-atividade');
+  const fornFil   = filVal('fil-fornecedor');
+  const statusFil = filVal('fil-status-contrato');
+  const sitEntFil = filVal('fil-sit-entrega');
+  const dtIni     = filVal('fil-dt-ini');
+  const dtFim     = filVal('fil-dt-fim');
+
+  let qC = db.from('contratos')
+    .select('id,numero,status,objeto_pt,valor_total_brl,fornecedores(nome,tipo),atividades(codigo)')
+    .order('numero');
+  if(ativFil)   qC = qC.eq('atividade_id', ativFil);
+  if(fornFil)   qC = qC.eq('fornecedor_id', fornFil);
+  if(statusFil) qC = qC.eq('status', statusFil);
+
+  const {data:contratos, error:eC} = await qC;
+  if(eC) throw eC;
+  if(!contratos?.length) return `<div style="text-align:center;padding:32px;color:var(--cinza-400)">Nenhum contrato encontrado com os filtros selecionados.</div>`;
+
+  const cIds = contratos.map(c=>c.id);
+
+  const {data:prods, error:eP} = await db.from('contratos_produtos')
+    .select('id,contrato_id,numero_produto,descricao,valor_brl,situacao')
+    .in('contrato_id', cIds).order('numero_produto');
+  if(eP) throw eP;
+
+  const pIds = (prods||[]).map(p=>p.id);
+  const entregas = await _buscarEntregas(pIds, sitEntFil, dtIni, dtFim);
+
+  const prodsByContrato = {};
+  (prods||[]).forEach(p=>{ if(!prodsByContrato[p.contrato_id]) prodsByContrato[p.contrato_id]=[]; prodsByContrato[p.contrato_id].push(p); });
+  const entsByProd = {};
+  entregas.forEach(e=>{ if(!entsByProd[e.produto_id]) entsByProd[e.produto_id]=[]; entsByProd[e.produto_id].push(e); });
+
+  const totEnts  = entregas.length;
+  const totAprov = entregas.filter(e=>e.situacao==='aprovada').length;
+  const totAnali = entregas.filter(e=>e.situacao==='em_analise').length;
+  const totDev   = entregas.filter(e=>e.situacao==='devolvida').length;
+
+  let html = `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Contratos</div><div class="rep-stat-val">${contratos.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Entregas</div><div class="rep-stat-val">${totEnts}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Aprovadas</div><div class="rep-stat-val" style="color:#065F46">${totAprov}</div><div class="rep-stat-sub">${totEnts?Math.round(totAprov/totEnts*100):0}% do total</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Em Análise / Devolvidas</div><div class="rep-stat-val" style="color:#1E40AF">${totAnali}</div><div class="rep-stat-sub">${totDev} devolvida(s)</div></div>
+  </div>`;
+
+  contratos.forEach(c=>{
+    const ps   = prodsByContrato[c.id]||[];
+    const cEnts= ps.flatMap(p=>entsByProd[p.id]||[]);
+    html += `<div class="rep-secao">
+      <div class="rep-secao-titulo">
+        📋 ${esc(c.numero)} — ${esc(c.fornecedores?.nome||'—')}
+        <span class="rep-badge ${COR_CONT[c.status]||'rb-cinza'}" style="margin-left:6px">${SIT_CONT[c.status]||c.status}</span>
+        <span style="margin-left:auto;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--cinza-500)">${c.atividades?.codigo||''} &nbsp;·&nbsp; ${fmtBRL(c.valor_total_brl)} &nbsp;·&nbsp; ${cEnts.length} entrega(s)</span>
+      </div>`;
+
+    if(!ps.length){
+      html += `<p style="font-size:11px;color:var(--cinza-400);font-style:italic;padding:4px 0">Nenhum produto cadastrado.</p>`;
+    } else {
+      ps.forEach(p=>{
+        const pe = entsByProd[p.id]||[];
+        html += `<div style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#f4f8f5;border-radius:4px;border:1px solid #ddeee4;margin-bottom:4px">
+            <span style="font-size:10px;font-weight:700;color:var(--cinza-400);font-family:var(--font-mono)">#${p.numero_produto}</span>
+            <span style="font-size:12px;font-weight:600;color:var(--cinza-900);flex:1">${esc(p.descricao)}</span>
+            <span style="font-family:var(--font-mono);font-size:11px;color:#2D6A4F">${fmtBRL(parseFloat(p.valor_brl||0))}</span>
+            <span class="rep-badge ${COR_PROD[p.situacao]||'rb-cinza'}">${SIT_PROD[p.situacao]||p.situacao}</span>
+          </div>`;
+        if(!pe.length){
+          html += `<div style="padding:5px 10px;font-size:11px;color:var(--cinza-400);font-style:italic">Nenhuma entrega registrada.</div>`;
+        } else {
+          pe.forEach((e,ei)=>{
+            html += `<div style="padding:8px 10px;margin-bottom:4px;border:1px solid #e2ede8;border-radius:4px;background:#fff">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:9px;font-weight:700;font-family:var(--font-mono);color:var(--cinza-400)">Entrega ${ei+1}</span>
+                ${e.dt_entrega?`<span style="font-size:11px;color:var(--cinza-700)">${fmtDt(e.dt_entrega)}</span>`:''}
+                <span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${SIT_ENT[e.situacao]||e.situacao}</span>
+                ${e.pct_entregue&&e.pct_entregue<100?`<span style="font-size:10px;color:var(--cinza-500)">${e.pct_entregue}%</span>`:''}
+              </div>
+              ${_quemEntrega(e)}
+              ${_linksEntrega(e)}
+            </div>`;
+          });
+        }
+        html += `</div>`;
+      });
+    }
+    html += `</div>`;
+  });
+  return html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// V4 — RASTREABILIDADE DE ENTREGAS POR FORNECEDOR
+// ══════════════════════════════════════════════════════════════
+async function relV4(){
+  const fornFil   = filVal('fil-fornecedor');
+  const ativFil   = filVal('fil-atividade');
+  const sitEntFil = filVal('fil-sit-entrega');
+  const dtIni     = filVal('fil-dt-ini');
+  const dtFim     = filVal('fil-dt-fim');
+
+  let qC = db.from('contratos')
+    .select('id,numero,status,valor_total_brl,fornecedor_id,fornecedores(id,nome,tipo,cpf,cnpj),atividades(codigo)')
+    .order('numero');
+  if(fornFil) qC = qC.eq('fornecedor_id', fornFil);
+  if(ativFil) qC = qC.eq('atividade_id', ativFil);
+
+  const {data:contratos, error:eC} = await qC;
+  if(eC) throw eC;
+  if(!contratos?.length) return `<div style="text-align:center;padding:32px;color:var(--cinza-400)">Nenhum contrato encontrado com os filtros selecionados.</div>`;
+
+  const cIds = contratos.map(c=>c.id);
+  const {data:prods, error:eP} = await db.from('contratos_produtos')
+    .select('id,contrato_id,numero_produto,descricao,valor_brl,situacao')
+    .in('contrato_id', cIds).order('numero_produto');
+  if(eP) throw eP;
+
+  const pIds = (prods||[]).map(p=>p.id);
+  const entregas = await _buscarEntregas(pIds, sitEntFil, dtIni, dtFim);
+
+  // Agrupar por fornecedor
+  const fornMap = {};
+  contratos.forEach(c=>{
+    const fid = c.fornecedor_id;
+    if(!fornMap[fid]) fornMap[fid]={info:c.fornecedores, contratos:[]};
+    fornMap[fid].contratos.push(c);
+  });
+  const prodsByContrato = {};
+  (prods||[]).forEach(p=>{ if(!prodsByContrato[p.contrato_id]) prodsByContrato[p.contrato_id]=[]; prodsByContrato[p.contrato_id].push(p); });
+  const entsByProd = {};
+  entregas.forEach(e=>{ if(!entsByProd[e.produto_id]) entsByProd[e.produto_id]=[]; entsByProd[e.produto_id].push(e); });
+
+  const totForn    = Object.keys(fornMap).length;
+  const totConts   = contratos.length;
+  const totEnts    = entregas.length;
+  const totAprov   = entregas.filter(e=>e.situacao==='aprovada').length;
+
+  let html = `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Fornecedores</div><div class="rep-stat-val">${totForn}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Contratos</div><div class="rep-stat-val">${totConts}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Entregas</div><div class="rep-stat-val">${totEnts}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Aprovadas</div><div class="rep-stat-val" style="color:#065F46">${totAprov}</div><div class="rep-stat-sub">${totEnts?Math.round(totAprov/totEnts*100):0}%</div></div>
+  </div>`;
+
+  Object.values(fornMap).forEach(({info:f, contratos:cs})=>{
+    const fEnts = cs.flatMap(c=>(prodsByContrato[c.id]||[]).flatMap(p=>entsByProd[p.id]||[]));
+    const fIdDoc = f?.cpf ? `CPF ${f.cpf}` : f?.cnpj ? `CNPJ ${f.cnpj}` : '';
+    html += `<div class="rep-secao">
+      <div class="rep-secao-titulo">
+        🏢 ${esc(f?.nome||'—')}
+        <span class="rep-badge ${f?.tipo==='PF'?'rb-azul':'rb-teal'}" style="margin-left:6px">${f?.tipo==='PF'?'PF':'PJ'}</span>
+        ${fIdDoc?`<span style="font-family:var(--font-mono);font-size:9px;color:var(--cinza-500);font-weight:400;text-transform:none;letter-spacing:0">${fIdDoc}</span>`:''}
+        <span style="margin-left:auto;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--cinza-500)">${cs.length} contrato(s) &nbsp;·&nbsp; ${fEnts.length} entrega(s)</span>
+      </div>`;
+
+    cs.forEach(c=>{
+      const ps   = prodsByContrato[c.id]||[];
+      const cEnts= ps.flatMap(p=>entsByProd[p.id]||[]);
+      html += `<div style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--borda);border-radius:var(--raio)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #eaf3ec">
+          <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--cinza-800)">${esc(c.numero)}</span>
+          <span class="rep-badge ${COR_CONT[c.status]||'rb-cinza'}">${SIT_CONT[c.status]||c.status}</span>
+          ${c.atividades?.codigo?`<span style="font-size:10px;color:var(--cinza-500)">${esc(c.atividades.codigo)}</span>`:''}
+          <span style="font-family:var(--font-mono);font-size:11px;color:#2D6A4F;margin-left:auto">${fmtBRL(parseFloat(c.valor_total_brl||0))}</span>
+          <span style="font-size:10px;color:var(--cinza-400)">${cEnts.length} entrega(s)</span>
+        </div>`;
+
+      ps.forEach(p=>{
+        const pe = entsByProd[p.id]||[];
+        html += `<div style="margin-bottom:8px;padding-left:10px;border-left:2px solid #c8e6d0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:10px;font-weight:700;color:var(--cinza-400)">#${p.numero_produto}</span>
+            <span style="font-size:11px;font-weight:600;color:var(--cinza-900);flex:1">${esc(p.descricao)}</span>
+            <span style="font-family:var(--font-mono);font-size:10px;color:#2D6A4F">${fmtBRL(parseFloat(p.valor_brl||0))}</span>
+            <span class="rep-badge ${COR_PROD[p.situacao]||'rb-cinza'}">${SIT_PROD[p.situacao]||p.situacao}</span>
+          </div>`;
+        if(!pe.length){
+          html += `<div style="font-size:10px;color:var(--cinza-400);font-style:italic;padding:2px 0">Sem entregas.</div>`;
+        } else {
+          pe.forEach((e,ei)=>{
+            html += `<div style="padding:6px 8px;margin-bottom:3px;background:#f8fafb;border-radius:4px;border:1px solid #e8f0ea">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:9px;font-family:var(--font-mono);color:var(--cinza-400)">Ent.${ei+1}</span>
+                ${e.dt_entrega?`<span style="font-size:10px;color:var(--cinza-700)">${fmtDt(e.dt_entrega)}</span>`:''}
+                <span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${SIT_ENT[e.situacao]||e.situacao}</span>
+                ${e.pct_entregue&&e.pct_entregue<100?`<span style="font-size:9px;color:var(--cinza-500)">${e.pct_entregue}%</span>`:''}
+              </div>
+              ${_quemEntrega(e)}
+              ${_linksEntrega(e)}
+            </div>`;
+          });
+        }
+        html += `</div>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  return html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// P5 — AUDITORIA DE DOCUMENTAÇÃO DE ENTREGAS (paisagem)
+// ══════════════════════════════════════════════════════════════
+async function relP5(){
+  const ativFil    = filVal('fil-atividade');
+  const fornFil    = filVal('fil-fornecedor');
+  const sitEntFil  = filVal('fil-sit-entrega');
+  const sitProdFil = filVal('fil-sit-produto');
+  const temNTFil   = filVal('fil-tem-nt');
+  const temDespFil = filVal('fil-tem-despacho');
+  const dtIni      = filVal('fil-dt-ini');
+  const dtFim      = filVal('fil-dt-fim');
+
+  let qC = db.from('contratos').select('id,numero,fornecedor_id,fornecedores(nome)').order('numero');
+  if(ativFil) qC = qC.eq('atividade_id', ativFil);
+  if(fornFil) qC = qC.eq('fornecedor_id', fornFil);
+  const {data:contratos, error:eC} = await qC;
+  if(eC) throw eC;
+  if(!contratos?.length) return `<div style="text-align:center;padding:32px;color:var(--cinza-400)">Nenhum dado encontrado.</div>`;
+
+  const contratoMap = Object.fromEntries(contratos.map(c=>[c.id,c]));
+
+  let qP = db.from('contratos_produtos')
+    .select('id,contrato_id,numero_produto,descricao,valor_brl,situacao')
+    .in('contrato_id', contratos.map(c=>c.id));
+  if(sitProdFil) qP = qP.eq('situacao', sitProdFil);
+  const {data:prods, error:eP} = await qP;
+  if(eP) throw eP;
+
+  const prodMap = Object.fromEntries((prods||[]).map(p=>[p.id,p]));
+  const pIds = (prods||[]).map(p=>p.id);
+
+  let entregas = await _buscarEntregas(pIds, sitEntFil, dtIni, dtFim);
+  if(temNTFil==='sim')    entregas = entregas.filter(e=>e.nota_tecnica_url);
+  if(temNTFil==='nao')    entregas = entregas.filter(e=>!e.nota_tecnica_url);
+  if(temDespFil==='sim')  entregas = entregas.filter(e=>e.despacho_numero);
+  if(temDespFil==='nao')  entregas = entregas.filter(e=>!e.despacho_numero);
+
+  if(!entregas.length) return `<div style="text-align:center;padding:32px;color:var(--cinza-400)">Nenhuma entrega encontrada com os filtros selecionados.</div>`;
+
+  const totEnts  = entregas.length;
+  const totAprov = entregas.filter(e=>e.situacao==='aprovada').length;
+  const totDev   = entregas.filter(e=>e.situacao==='devolvida').length;
+  const totSemDoc= entregas.filter(e=>!e.nota_tecnica_url&&!e.despacho_numero&&!(e.documentos?.length)).length;
+
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Total de Entregas</div><div class="rep-stat-val">${totEnts}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Aprovadas</div><div class="rep-stat-val" style="color:#065F46">${totAprov}</div><div class="rep-stat-sub">${Math.round(totAprov/totEnts*100)}% do total</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Devolvidas</div><div class="rep-stat-val" style="color:#991B1B">${totDev}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Sem Documentos</div><div class="rep-stat-val" style="color:#92400E">${totSemDoc}</div><div class="rep-stat-sub">sem NT, despacho ou doc</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">🔍 Registro de Entregas com Rastreabilidade</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Contrato</th><th>Fornecedor</th><th>Produto</th>
+        <th>Data Entrega</th><th>Situação</th>
+        <th>Carregou</th><th>Aprovou</th><th>Pago em</th>
+        <th>Documentos</th>
+      </tr></thead>
+      <tbody>
+      ${entregas.map(e=>{
+        const prod = prodMap[e.produto_id];
+        const cont = prod ? contratoMap[prod.contrato_id] : null;
+        const docs  = e.documentos||[];
+        const links = [];
+        if(e.despacho_numero) links.push(`<span style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid #BFDBFE;background:#EFF6FF;color:#1E40AF;white-space:nowrap">📋 ${esc(e.despacho_numero)}</span>`);
+        if(e.nota_tecnica_url) links.push(`<a href="${e.nota_tecnica_url}" target="_blank" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;text-decoration:none;white-space:nowrap">📄 NT</a>`);
+        docs.forEach(d=>{ if(d.arquivo_url) links.push(`<a href="${d.arquivo_url}" target="_blank" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--borda);background:#fff;color:var(--cinza-700);text-decoration:none;white-space:nowrap">📎 ${esc(d.tipo_documento||'Doc')}</a>`); });
+        return `<tr>
+          <td class="mono-sm" style="font-weight:600;white-space:nowrap">${esc(cont?.numero||'—')}</td>
+          <td style="font-size:10px;max-width:110px">${esc(cont?.fornecedores?.nome||'—')}</td>
+          <td style="font-size:10px;max-width:140px">${prod?`<span style="color:var(--cinza-400)">#${prod.numero_produto}</span> ${esc(prod.descricao)}`:'—'}</td>
+          <td class="mono-sm" style="white-space:nowrap">${fmtDt(e.dt_entrega)}</td>
+          <td><span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${SIT_ENT[e.situacao]||e.situacao}</span></td>
+          <td style="font-size:10px">${esc(e.criado_por_u?.nome_completo||'—')}</td>
+          <td style="font-size:10px">${e.despachado_por_u?.nome_completo?esc(e.despachado_por_u.nome_completo)+(e.despacho_data?`<div class="mono-sm">${fmtDt(e.despacho_data)}</div>`:''): '—'}</td>
+          <td class="mono-sm" style="white-space:nowrap">${fmtDt(e.lancamento?.dt_pagamento)}</td>
+          <td><div style="display:flex;flex-wrap:wrap;gap:2px">${links.join('')||'<span style="font-size:9px;color:var(--cinza-300)">—</span>'}</div></td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="9">${totEnts} entrega(s) &nbsp;·&nbsp; ${totAprov} aprovada(s) &nbsp;·&nbsp; ${totDev} devolvida(s) &nbsp;·&nbsp; ${totSemDoc} sem documentos</td>
+      </tr></tfoot>
+    </table>
+  </div>`;
+}
 </script>
 </body>
 </html>
