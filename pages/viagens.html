@@ -8,7 +8,9 @@
 <link href="../css/global.css" rel="stylesheet">
 <style>
 .stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;cursor:pointer;transition:all .15s;}
+.stat-card:hover{border-color:var(--cinza-400);box-shadow:0 2px 8px rgba(0,0,0,.08);}
+.stat-card.ativo{border-color:currentColor;box-shadow:0 0 0 2px currentColor;}
 .stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
 .sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
 .sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
