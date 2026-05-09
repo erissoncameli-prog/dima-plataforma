@@ -317,10 +317,14 @@ function buildDet(c){
   var qtdPend=prods.filter(function(p){return p.situacao==='pendente'||p.situacao==='em_analise';}).length;
   var tabAtiva=detTabAtiva[c.id]||'docs';
 
+  var qtdEnt=(entregasPorContrato[c.id]||[]).length;
   var h='<div class="det-tabs">'
     +'<button class="det-tab '+(tabAtiva==='docs'?'ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'docs\')">Detalhes &amp; Documentos</button>'
     +'<button class="det-tab '+(tabAtiva==='prods'?'ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'prods\')">'
-    +'Produtos / Entregas'+(qtdProd?' <span style="background:var(--verde-medio);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px;margin-left:4px">'+qtdProd+'</span>':'')
+    +'Produtos'+(qtdProd?' <span style="background:var(--verde-medio);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px;margin-left:4px">'+qtdProd+'</span>':'')
+    +'</button>'
+    +'<button class="det-tab '+(tabAtiva==='entregas'?'ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'entregas\')">'
+    +'Histórico de Entregas'+(qtdEnt?' <span style="background:var(--azul-medio);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px;margin-left:4px">'+qtdEnt+'</span>':'')
     +'</button></div>';
 
   if(tabAtiva==='docs'){
