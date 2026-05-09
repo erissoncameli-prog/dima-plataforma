@@ -484,9 +484,9 @@ window.traduzir=async function(id){
     // Salvar traducao como arquivo texto no Storage
     var nomeBase=(c.contrato_assinado_nome||'contrato').replace(/\.(pdf|docx)$/i,'');
     var nomeTrad=nomeBase+'_PT_traduzido.txt';
-    var blobTrad=new Blob([txt],{type:'text/plain;charset=utf-8'});
+    var blobTrad=new Blob([txt],{type:'application/octet-stream'});
     var path='contratos/'+id+'/'+nomeTrad;
-    var upR=await db.storage.from('contratos-docs').upload(path,blobTrad,{upsert:true,contentType:'text/plain'});
+    var upR=await db.storage.from('contratos-docs').upload(path,blobTrad,{upsert:true,contentType:'application/octet-stream'});
     if(upR.error)throw new Error('Erro upload: '+upR.error.message);
     var urlTrad=db.storage.from('contratos-docs').getPublicUrl(path).data.publicUrl;
 
