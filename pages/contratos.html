@@ -327,7 +327,9 @@ function buildDet(c){
     +'Histórico de Entregas'+(qtdEnt?' <span style="background:var(--azul-medio);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px;margin-left:4px">'+qtdEnt+'</span>':'')
     +'</button></div>';
 
-  if(tabAtiva==='docs'){
+  if(tabAtiva==='entregas'){
+    h+=buildTabEntregas(c);
+  } else if(tabAtiva==='docs'){
     h+='<div class="detail-grid">';
     h+='<div class="detail-item"><span class="detail-lbl">TDR vinculado</span><span class="detail-val">'+(c.tdrs?c.tdrs.numero:'--')+'</span></div>';
     h+='<div class="detail-item"><span class="detail-lbl">Atividade</span><span class="detail-val">'+(c.atividades?c.atividades.codigo:'--')+'</span></div>';
