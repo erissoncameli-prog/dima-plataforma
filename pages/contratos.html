@@ -758,7 +758,7 @@ function buildTabEntregas(c){
           +(e.pct_entregue&&e.pct_entregue<100?'<span style="font-size:10px;color:var(--cinza-500)">'+e.pct_entregue+'%</span>':'')
           +'</div>';
         // Quem fez o quê
-        var temQuem=e.criado_por_u||e.despachado_por_u||(e.lancamento&&e.lancamento.pago_por_u);
+        var temQuem=e.criado_por_u||e.despachado_por_u||(e.lancamento&&e.lancamento.dt_pagamento);
         if(temQuem){
           h+='<div class="ent-quem">';
           if(e.criado_por_u&&e.criado_por_u.nome_completo){
@@ -769,10 +769,8 @@ function buildTabEntregas(c){
               +(e.despacho_data?'<span class="ent-quem-data">em '+fmtData(e.despacho_data)+'</span>':'')
               +'</div>';
           }
-          if(e.lancamento&&e.lancamento.pago_por_u&&e.lancamento.pago_por_u.nome_completo){
-            h+='<div class="ent-quem-item"><span class="ent-quem-lbl">Pagou</span><span>'+escHtml(e.lancamento.pago_por_u.nome_completo)+'</span>'
-              +(e.lancamento.dt_pagamento?'<span class="ent-quem-data">em '+fmtData(e.lancamento.dt_pagamento)+'</span>':'')
-              +'</div>';
+          if(e.lancamento&&e.lancamento.dt_pagamento){
+            h+='<div class="ent-quem-item"><span class="ent-quem-lbl">Pago em</span><span>'+fmtData(e.lancamento.dt_pagamento)+'</span></div>';
           }
           h+='</div>';
         }
