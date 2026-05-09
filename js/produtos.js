@@ -95,7 +95,7 @@ async function abrirModalPorEntrega(entregaId){
     var selCont=document.getElementById('sel-cont');
     if(selCont)selCont.value=contratoId;
     filtCont=contratoId;
-    var r2=await db.from('contratos_produtos').select('*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome),atividades(id,codigo,nome_pt))').eq('contrato_id',contratoId).not('situacao','in','("pago","cancelado")').order('numero_produto',{ascending:true});
+    var r2=await db.from('contratos_produtos').select('*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(nota_tecnica_url,nota_tecnica_nome)').eq('contrato_id',contratoId).not('situacao','in','("pago","cancelado")').order('numero_produto',{ascending:true});
     todosProdutos=r2.data||[];
     renderLista();
   }
