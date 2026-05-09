@@ -184,6 +184,7 @@ async function carregarUsuario() {
 async function sair() {
   await db.auth.signOut();
   localStorage.removeItem('dima_idioma');
+  localStorage.removeItem('dima_ultima_atividade');
   window.location.href = '../index.html';
 }
 
