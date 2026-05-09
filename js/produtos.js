@@ -272,10 +272,11 @@ function renderCard(p){
   var venc=p.dt_vencimento?new Date(p.dt_vencimento+'T12:00:00'):null;
   var dias=venc?Math.ceil((venc-hoje)/86400000):null;
   var vClass='',vTxt='';
+  var sitAberta=p.situacao==='pendente'||p.situacao==='em_analise';
   if(venc){
-    if(dias<0){vClass='color:#991B1B;background:#FEF2F2';vTxt='Vencido '+Math.abs(dias)+'d';}
-    else if(dias<=7){vClass='color:#92400E;background:#FFFBEB';vTxt='Vence '+dias+'d';}
-    else{vClass='color:var(--cinza-600);background:var(--cinza-100)';vTxt='Vence '+fmtData(p.dt_vencimento);}
+    if(dias<0&&sitAberta){vClass='color:#991B1B;background:#FEF2F2';vTxt='Vencido '+Math.abs(dias)+'d';}
+    else if(dias>=0&&dias<=7&&sitAberta){vClass='color:#92400E;background:#FFFBEB';vTxt='Vence '+dias+'d';}
+    else if(dias>=0&&!sitAberta){vClass='color:var(--cinza-600);background:var(--cinza-100)';vTxt='Vence '+fmtData(p.dt_vencimento);}
   }
   var pct=parseFloat(p.pct_aprovado||0);
   var corProg=p.situacao==='entrega_parcial'?'#7C3AED':p.situacao==='em_analise'?'#2563EB':'var(--verde-claro)';
