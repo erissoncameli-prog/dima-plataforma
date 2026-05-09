@@ -811,6 +811,14 @@ function renderStats(){
     <div class="stat-card sc-g${sFilt==='realizado'?' ativo':''}" onclick="filtroCard('realizado')"><div class="stat-lbl">Realizados</div><div class="stat-val" style="color:var(--sucesso)">${t.filter(p=>p.situacao==='realizado').length}</div><div class="stat-sub">lançados</div></div>`;
 }
 
+function filtroCard(status){
+  const sel=document.getElementById('f-sit-filt');
+  if(!sel)return;
+  sel.value=(sel.value===status&&status!=='')?'':status;
+  filtrar();
+  renderStats();
+}
+
 function calcTotalProtocolo(p){
   return (p.viajantes||[]).reduce((sv,v)=>{
     const tp=(v.trechos||[]).reduce((s,tr)=>s+parseFloat(tr.valor||0),0);
