@@ -136,6 +136,16 @@ function t(secao, chave) {
 async function carregarUsuario() {
   const { data: { session } } = await db.auth.getSession();
   if (!session) return null;
+
+  // ── Verificar inatividade persistida (cobre fechamento de aba/browser) ──
+  const ultimaAtiv = localStorage.getItem('dima_ultima_atividade');
+  if (ultimaAtiv && Date.now() - parseInt(ultimaAtiv, 10) > 30 * 60 * 1000) {
+    await db.auth.signOut();
+    localStorage.removeItem('dima_ultima_atividade');
+    localStorage.removeItem('dima_idioma');
+    return null; // cada página redireciona para login automaticamente
+  }
+
   appState.sessao = session;
 
   const [{ data: usuario }, { data: permsRaw }] = await Promise.all([
