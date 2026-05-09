@@ -704,7 +704,7 @@ async function carregarEntregas(contratoId){
   if(!prods.length){entregasPorContrato[contratoId]=[];return [];}
   var ids=prods.map(function(p){return p.id;});
   var r=await db.from('contratos_produtos_entregas')
-    .select('*,criado_por_u:usuarios!contratos_produtos_entregas_criado_por_fkey(nome_completo),despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo),lancamento:execucao_financeira!contratos_produtos_entregas_lancamento_id_fkey(id,situacao,valor_brl,dt_pagamento),documentos:entrega_documentos(*)')
+    .select('*,criado_por_u:usuarios!contratos_produtos_entregas_criado_por_fkey(nome_completo),despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo),lancamento:execucao_financeira!contratos_produtos_entregas_lancamento_id_fkey(id,situacao,valor_brl,dt_pagamento,pago_por_u:usuarios!execucao_financeira_pago_por_fkey(nome_completo)),documentos:entrega_documentos(*)')
     .in('produto_id',ids)
     .order('criado_em',{ascending:true});
   if(r.error){console.error('[carregarEntregas]',r.error);entregasPorContrato[contratoId]=[];return [];}
