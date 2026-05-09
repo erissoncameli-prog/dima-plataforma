@@ -1612,8 +1612,16 @@ function renderTimeline(p){
     desc:'Lançado no financeiro'
   });
 
+  // UNESCO — conclusão
+  if(p.notificado_unesco_conclusao_em) etapas.push({
+    icone:'📧', cor:'#1D4ED8',
+    label:'UNESCO notificada — conclusão',
+    data:p.notificado_unesco_conclusao_em,
+    desc:'E-mail com documentos de prestação enviado para projetounesco.acre@gmail.com'
+  });
+
   // Notificações enviadas por e-mail
-  const NOTIF_LABELS_LOCAL={solicitado:'Solicitação registrada',aprovado:'Aprovação',rejeitado:'Não aprovado',em_prestacao:'Prestação de contas',realizado:'Conclusão'};
+  const NOTIF_LABELS_LOCAL={solicitado:'Solicitação registrada',aprovado:'Aprovação',rejeitado:'Não aprovado',em_prestacao:'Prestação de contas',realizado:'Conclusão',conclusao_unesco:'UNESCO — conclusão (reenvio)'};
   (p.notif_log||[]).forEach(n=>{
     etapas.push({
       icone:'📧', cor:'#2563EB',
