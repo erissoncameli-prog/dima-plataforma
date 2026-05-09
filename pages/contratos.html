@@ -707,6 +707,7 @@ async function carregarEntregas(contratoId){
     .select('*,criado_por_u:usuarios!contratos_produtos_entregas_criado_por_fkey(nome_completo),despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo),lancamento:execucao_financeira!contratos_produtos_entregas_lancamento_id_fkey(id,situacao,valor_brl,dt_pagamento),documentos:entrega_documentos(*)')
     .in('produto_id',ids)
     .order('criado_em',{ascending:true});
+  if(r.error){console.error('[carregarEntregas]',r.error);entregasPorContrato[contratoId]=[];return [];}
   entregasPorContrato[contratoId]=r.data||[];
   return entregasPorContrato[contratoId];
 }
