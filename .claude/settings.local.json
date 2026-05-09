@@ -28,7 +28,16 @@
       "Bash(grep -n \"^}\\)\\(\\);\\\\|^\\(function\\\\|IIFE\\\\|;}\\)\\(\\)$\" \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\practical-taussig-69e95c/pages/dashboard.html\")",
       "Bash(git pull *)",
       "Bash(git stash *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(xargs grep -l \"CREATE TABLE.*contrato\")",
+      "Bash(ls \"/C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/.claude/worktrees/jolly-clarke-6f3b14\"/*.sql 2>/dev/null | head -5)",
+      "Bash(find \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\" -path \"*/supabase/migrations*\" -type f -name \"*.sql\" 2>/dev/null | head -20)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\jolly-clarke-6f3b14\" log --all --oneline -- \"*.sql\")",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\jolly-clarke-6f3b14\" show HEAD:supabase/migrations/20260507_prestacao_tokens.sql)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\jolly-clarke-6f3b14\" log --reverse --all --oneline -- \"*.sql\")",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\jolly-clarke-6f3b14\" show 48ec780:supabase/migrations/20250101_init.sql)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\jolly-clarke-6f3b14\" log --all --diff-filter=A --find-object=contratos_produtos --oneline)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\jolly-clarke-6f3b14\" show 48ec780)"
     ]
   }
 }
