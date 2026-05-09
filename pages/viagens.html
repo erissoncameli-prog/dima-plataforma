@@ -802,12 +802,13 @@ function renderStats(){
       return sv+tp+td;
     },0);
   },0);
+  const sFilt=document.getElementById('f-sit-filt')?.value||'';
   document.getElementById('stats').innerHTML=`
-    <div class="stat-card sc-b"><div class="stat-lbl">Protocolos</div><div class="stat-val">${t.length}</div><div class="stat-sub">total</div></div>
-    <div class="stat-card sc-a"><div class="stat-lbl">Aguardando</div><div class="stat-val" style="color:var(--aviso)">${t.filter(p=>p.situacao==='solicitado').length}</div><div class="stat-sub">aprovação</div></div>
-    <div class="stat-card sc-g"><div class="stat-lbl">Aprovados</div><div class="stat-val">${t.filter(p=>p.situacao==='aprovado').length}</div><div class="stat-sub">em andamento</div></div>
-    <div class="stat-card sc-t"><div class="stat-lbl">Prestação</div><div class="stat-val" style="color:#0D9488">${t.filter(p=>p.situacao==='em_prestacao').length}</div><div class="stat-sub">aguardando docs</div></div>
-    <div class="stat-card sc-g"><div class="stat-lbl">Realizados</div><div class="stat-val" style="color:var(--sucesso)">${t.filter(p=>p.situacao==='realizado').length}</div><div class="stat-sub">lançados</div></div>`;
+    <div class="stat-card sc-b${sFilt===''?'':''}" onclick="filtroCard('')"><div class="stat-lbl">Protocolos</div><div class="stat-val">${t.length}</div><div class="stat-sub">total</div></div>
+    <div class="stat-card sc-a${sFilt==='solicitado'?' ativo':''}" onclick="filtroCard('solicitado')"><div class="stat-lbl">Aguardando</div><div class="stat-val" style="color:var(--aviso)">${t.filter(p=>p.situacao==='solicitado').length}</div><div class="stat-sub">aprovação</div></div>
+    <div class="stat-card sc-g${sFilt==='aprovado'?' ativo':''}" onclick="filtroCard('aprovado')"><div class="stat-lbl">Aprovados</div><div class="stat-val">${t.filter(p=>p.situacao==='aprovado').length}</div><div class="stat-sub">em andamento</div></div>
+    <div class="stat-card sc-t${sFilt==='em_prestacao'?' ativo':''}" onclick="filtroCard('em_prestacao')"><div class="stat-lbl">Prestação</div><div class="stat-val" style="color:#0D9488">${t.filter(p=>p.situacao==='em_prestacao').length}</div><div class="stat-sub">aguardando docs</div></div>
+    <div class="stat-card sc-g${sFilt==='realizado'?' ativo':''}" onclick="filtroCard('realizado')"><div class="stat-lbl">Realizados</div><div class="stat-val" style="color:var(--sucesso)">${t.filter(p=>p.situacao==='realizado').length}</div><div class="stat-sub">lançados</div></div>`;
 }
 
 function calcTotalProtocolo(p){
