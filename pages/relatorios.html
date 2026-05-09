@@ -1043,6 +1043,9 @@ async function gerarRelatorio(id){
       case 'L1': html = await relL1(); break;
       case 'L4': html = await relL4(); break;
       case 'L5': html = await relL5(); break;
+      case 'C5': html = await relC5(); break;
+      case 'V4': html = await relV4(); break;
+      case 'P5': html = await relP5(); break;
       default: html = `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Relatório <strong>${id}</strong> em desenvolvimento.</div>`;
     }
     area.innerHTML = wrapDoc(html, rel) + `
