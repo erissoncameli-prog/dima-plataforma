@@ -682,6 +682,10 @@ async function carregarProdutos(contratoId){
 window.mudarDetTab=async function(contratoId,tab){
   detTabAtiva[contratoId]=tab;
   if(tab==='prods'&&!produtosPorContrato[contratoId])await carregarProdutos(contratoId);
+  if(tab==='entregas'){
+    if(!produtosPorContrato[contratoId])await carregarProdutos(contratoId);
+    await carregarEntregas(contratoId);
+  }
   var c=todosContratos.find(function(x){return x.id===contratoId;});
   var inner=document.getElementById('inner-'+contratoId);
   if(inner&&c)inner.innerHTML=buildDet(c);
@@ -689,9 +693,117 @@ window.mudarDetTab=async function(contratoId,tab){
 
 async function recarregarDet(contratoId){
   await carregarProdutos(contratoId);
+  if(entregasPorContrato[contratoId]!==undefined)await carregarEntregas(contratoId);
   var c=todosContratos.find(function(x){return x.id===contratoId;});
   var inner=document.getElementById('inner-'+contratoId);
   if(inner&&c)inner.innerHTML=buildDet(c);
+}
+
+async function carregarEntregas(contratoId){
+  var prods=produtosPorContrato[contratoId]||[];
+  if(!prods.length){entregasPorContrato[contratoId]=[];return [];}
+  var ids=prods.map(function(p){return p.id;});
+  var r=await db.from('contratos_produtos_entregas')
+    .select('*,criado_por_u:usuarios!contratos_produtos_entregas_criado_por_fkey(nome_completo),despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo),lancamento:execucao_financeira!contratos_produtos_entregas_lancamento_id_fkey(id,situacao,dt_pagamento,pago_por,pago_por_u:usuarios!execucao_financeira_pago_por_fkey(nome_completo)),documentos:entrega_documentos(*)')
+    .in('produto_id',ids)
+    .order('criado_em',{ascending:true});
+  entregasPorContrato[contratoId]=r.data||[];
+  return entregasPorContrato[contratoId];
+}
+
+function buildTabEntregas(c){
+  if(!entregasPorContrato[c.id]){
+    setTimeout(async function(){
+      if(!produtosPorContrato[c.id])await carregarProdutos(c.id);
+      await carregarEntregas(c.id);
+      var inner=document.getElementById('inner-'+c.id);
+      if(inner)inner.innerHTML=buildDet(c);
+    },0);
+    return '<div style="padding:20px;text-align:center;font-size:12px;color:var(--cinza-400)">Carregando entregas...</div>';
+  }
+  var prods=produtosPorContrato[c.id]||[];
+  var entregas=entregasPorContrato[c.id]||[];
+  var SIT_PROD={pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado',entrega_parcial:'Parcial',devolvido:'Devolvido'};
+  var COR_PROD={pendente:'background:#FFFBEB;color:#92400E',em_analise:'background:#EFF6FF;color:#1E40AF',aprovado:'background:#F0FDF4;color:#166534',pago:'background:#ECFDF5;color:#065F46',cancelado:'background:#F3F4F6;color:#6B7280',entrega_parcial:'background:#FFF7ED;color:#9A3412',devolvido:'background:#FEF2F2;color:#991B1B'};
+  var SIT_ENT={pendente:'Pendente',em_analise:'Em análise',aprovada:'Aprovada',devolvida:'Devolvida'};
+  var COR_ENT={pendente:'background:#FFFBEB;color:#92400E',em_analise:'background:#EFF6FF;color:#1E40AF',aprovada:'background:#F0FDF4;color:#166534',devolvida:'background:#FEF2F2;color:#991B1B'};
+
+  if(!prods.length)return '<div class="ent-vazia">Nenhum produto cadastrado.</div>';
+
+  var h='<div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px">'+
+    (entregas.length?'<strong>'+entregas.length+'</strong> entrega(s) registrada(s) neste contrato.':'Nenhuma entrega registrada ainda.')+
+    '</div>';
+
+  prods.forEach(function(p){
+    var pe=entregas.filter(function(e){return e.produto_id===p.id;});
+    var corProd=COR_PROD[p.situacao]||'background:#F3F4F6;color:#6B7280';
+    h+='<div class="ent-bloco">';
+    h+='<div class="ent-prod-header">'
+      +'<span style="font-size:10px;font-weight:700;color:var(--cinza-400);font-family:var(--font-mono)">#'+p.numero_produto+'</span>'
+      +'<span class="ent-prod-title" title="'+escHtml(p.descricao)+'">'+escHtml(p.descricao)+'</span>'
+      +'<span class="mono" style="font-size:11px;color:var(--verde-medio);flex-shrink:0">'+fmtBRL(parseFloat(p.valor_brl||0))+'</span>'
+      +'<span class="ent-badge" style="'+corProd+';flex-shrink:0">'+(SIT_PROD[p.situacao]||p.situacao)+'</span>'
+      +'</div>';
+    if(!pe.length){
+      h+='<div class="ent-vazia">Nenhuma entrega registrada.</div>';
+    } else {
+      pe.forEach(function(e,ei){
+        var corEnt=COR_ENT[e.situacao]||'background:#F3F4F6;color:#6B7280';
+        h+='<div class="ent-item">';
+        // Linha topo: número, data, status, pct
+        h+='<div class="ent-row">'
+          +'<span class="ent-num">Entrega '+(ei+1)+'</span>'
+          +(e.dt_entrega?'<span style="font-size:11px;color:var(--cinza-700)">'+fmtData(e.dt_entrega)+'</span>':'')
+          +'<span class="ent-badge" style="'+corEnt+'">'+(SIT_ENT[e.situacao]||e.situacao)+'</span>'
+          +(e.pct_entregue&&e.pct_entregue<100?'<span style="font-size:10px;color:var(--cinza-500)">'+e.pct_entregue+'%</span>':'')
+          +'</div>';
+        // Quem fez o quê
+        var temQuem=e.criado_por_u||e.despachado_por_u||(e.lancamento&&e.lancamento.pago_por_u);
+        if(temQuem){
+          h+='<div class="ent-quem">';
+          if(e.criado_por_u&&e.criado_por_u.nome_completo){
+            h+='<div class="ent-quem-item"><span class="ent-quem-lbl">Carregou</span><span>'+escHtml(e.criado_por_u.nome_completo)+'</span></div>';
+          }
+          if(e.despachado_por_u&&e.despachado_por_u.nome_completo){
+            h+='<div class="ent-quem-item"><span class="ent-quem-lbl">Aprovou</span><span>'+escHtml(e.despachado_por_u.nome_completo)+'</span>'
+              +(e.despacho_data?'<span class="ent-quem-data">em '+fmtData(e.despacho_data)+'</span>':'')
+              +'</div>';
+          }
+          if(e.lancamento&&e.lancamento.pago_por_u&&e.lancamento.pago_por_u.nome_completo){
+            h+='<div class="ent-quem-item"><span class="ent-quem-lbl">Pagou</span><span>'+escHtml(e.lancamento.pago_por_u.nome_completo)+'</span>'
+              +(e.lancamento.dt_pagamento?'<span class="ent-quem-data">em '+fmtData(e.lancamento.dt_pagamento)+'</span>':'')
+              +'</div>';
+          }
+          h+='</div>';
+        }
+        // Links
+        var temLinks=e.despacho_numero||e.nota_tecnica_url||(e.documentos&&e.documentos.length);
+        if(temLinks){
+          h+='<div class="ent-links">';
+          if(e.despacho_numero){
+            h+='<span class="ent-link ent-link-desp">📋 Despacho '+escHtml(e.despacho_numero)
+              +(e.despacho_data?' · '+fmtData(e.despacho_data):'')+'</span>';
+          }
+          if(e.nota_tecnica_url){
+            h+='<a href="'+e.nota_tecnica_url+'" target="_blank" rel="noopener" class="ent-link ent-link-nt">📄 '
+              +escHtml(e.nota_tecnica_nome||'Nota Técnica')+'</a>';
+          }
+          if(e.documentos&&e.documentos.length){
+            e.documentos.forEach(function(d){
+              if(d.arquivo_url){
+                h+='<a href="'+d.arquivo_url+'" target="_blank" rel="noopener" class="ent-link">📎 '
+                  +escHtml(d.tipo_documento||d.arquivo_nome||'Documento')+'</a>';
+              }
+            });
+          }
+          h+='</div>';
+        }
+        h+='</div>'; // ent-item
+      });
+    }
+    h+='</div>'; // ent-bloco
+  });
+  return h;
 }
 
 window.abrirModalProd=async function(contratoId){
