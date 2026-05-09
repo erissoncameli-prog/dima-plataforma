@@ -494,7 +494,7 @@ async function abrirModal(prodId){
       +'<label class="form-label">SEI — sub-processo desta entrega'
       +'<span style="font-size:10px;font-weight:400;color:var(--cinza-400);margin-left:6px">opcional · preenche automaticamente com o SEI do contrato se deixado em branco</span></label>'
       +'<div style="display:flex;align-items:center;gap:8px">'
-      +'<input class="form-control" id="f-sei-sub" type="text" placeholder="'+(seiContrato||'0000000.000000/0000-00')+'" value="'+(seiContrato||'')+'" maxlength="22" style="font-family:var(--font-mono);max-width:280px" oninput="this.value=maskSEI(this.value)">'
+      +'<input class="form-control" id="f-sei-sub" type="text" placeholder="'+(seiContrato||'0000.000000.00000/0000-00')+'" value="'+(seiContrato||'')+'" maxlength="25" style="font-family:var(--font-mono);max-width:310px" oninput="this.value=maskSEI(this.value)">'
       +(seiContrato?'<span style="font-size:11px;color:var(--cinza-400)">← do contrato</span>':'')
       +'</div></div>'
       +'<div class="form-group">'
