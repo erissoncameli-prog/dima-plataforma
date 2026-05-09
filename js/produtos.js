@@ -67,8 +67,11 @@ const TIPO_GEO='Planilha de Geolocalização';
 
 async function carregar(){
   var rA=await db.rpc('get_minhas_atividades');
-  var rC=await db.from('contratos').select('id,numero,objeto_pt,atividade_id,fornecedor_id,elemento_despesa,fornecedores(id,nome)').order('numero');
   atividades=rA.data||[];
+  var ativIds=atividades.map(function(a){return a.id;});
+  var rC=ativIds.length
+    ?await db.from('contratos').select('id,numero,objeto_pt,atividade_id,fornecedor_id,elemento_despesa,fornecedores(id,nome)').in('atividade_id',ativIds).order('numero')
+    :{data:[]};
   contratos=rC.data||[];
   var sel=document.getElementById('sel-ativ');
   atividades.forEach(function(a){
