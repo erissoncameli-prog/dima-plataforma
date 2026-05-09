@@ -282,6 +282,9 @@ const RELATORIOS = [
   { id:'C4', tema:'contratos', icone:'📎', titulo:'Contratos sem Documentos',
     desc:'Contratos sem PDF assinado ou tradução em PT.',
     filtros:['atividade'] },
+  { id:'C5', tema:'contratos', icone:'📦', titulo:'Entregas por Contrato',
+    desc:'Todos os contratos com suas entregas — quem carregou, aprovou, data de pagamento e links para documentos.',
+    filtros:['atividade','fornecedor','status_contrato','situacao_entrega','periodo'] },
   // ── FORNECEDORES ──────────────────────────────────────────
   { id:'V1', tema:'fornecedores', icone:'🏢', titulo:'Cadastro de Fornecedores',
     desc:'Lista completa com tipo, CPF/CNPJ, e-mail, contratos vinculados e total contratado.',
