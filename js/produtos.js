@@ -312,6 +312,7 @@ function renderCard(p){
     +(p.contratos&&p.contratos.atividades&&p.contratos.atividades.codigo?'<span style="font-family:var(--font-mono);font-size:10px;font-weight:600;background:var(--verde-bg);color:var(--verde-medio);padding:2px 6px;border-radius:3px">'+esc(p.contratos.atividades.codigo)+'</span>':'')
     +(p.contratos&&p.contratos.numero?'<span style="font-size:10px;color:var(--cinza-500)">Contrato '+esc(p.contratos.numero)+'</span>':'')
     +(p.contratos&&p.contratos.fornecedores&&p.contratos.fornecedores.nome?'<span style="font-size:10px;color:var(--cinza-600);font-weight:500">· '+esc(p.contratos.fornecedores.nome)+'</span>':'')
+    +linkEntrega
     +'</div></div>';
   return html;
 }
