@@ -106,7 +106,8 @@ async function abrirModalPorEntrega(entregaId){
 }
 
 async function renderStats(){
-  var r=await db.from('contratos_produtos').select('situacao');
+  var contIds=contratos.map(function(c){return c.id;});
+  var r=contIds.length?await db.from('contratos_produtos').select('situacao').in('contrato_id',contIds):{data:[]};
   var t=r.data||[];
   statsCounts={
     total:t.length,
