@@ -771,7 +771,10 @@ function buildTabEntregas(c){
               +'</div>';
           }
           if(e.lancamento&&e.lancamento.dt_pagamento){
-            h+='<div class="ent-quem-item"><span class="ent-quem-lbl">Pago em</span><span>'+fmtData(e.lancamento.dt_pagamento)+'</span></div>';
+            var pagNome=e.lancamento.pago_por_u&&e.lancamento.pago_por_u.nome_completo?e.lancamento.pago_por_u.nome_completo:'';
+            h+='<div class="ent-quem-item"><span class="ent-quem-lbl">Pagamento</span>'
+              +(pagNome?'<span>'+escHtml(pagNome)+'</span>':'')
+              +'<span class="ent-quem-data">em '+fmtData(e.lancamento.dt_pagamento)+'</span></div>';
           }
           h+='</div>';
         }
