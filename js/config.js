@@ -180,11 +180,12 @@ const SEI_BASE_URL = 'https://app.sei.ac.gov.br/sei/controlador.php?acao=pesquis
 
 function maskSEI(v) {
   v = (v || '').replace(/\D/g, '');
-  if (v.length > 19) v = v.slice(0, 19);
-  let r = v.slice(0, 7);
-  if (v.length > 7)  r += '.' + v.slice(7, 13);
-  if (v.length > 13) r += '/' + v.slice(13, 17);
-  if (v.length > 17) r += '-' + v.slice(17, 19);
+  if (v.length > 21) v = v.slice(0, 21);
+  let r = v.slice(0, 4);
+  if (v.length > 4)  r += '.' + v.slice(4, 10);
+  if (v.length > 10) r += '.' + v.slice(10, 15);
+  if (v.length > 15) r += '/' + v.slice(15, 19);
+  if (v.length > 19) r += '-' + v.slice(19, 21);
   return r;
 }
 
