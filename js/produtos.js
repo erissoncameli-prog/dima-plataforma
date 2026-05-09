@@ -253,7 +253,7 @@ async function selecionarCont(id){
   if(!id){renderVazio('Selecione um contrato para ver os produtos.');return;}
   renderVazio('<div style="text-align:center;padding:40px"><div style="animation:spin .7s linear infinite;width:24px;height:24px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;margin:0 auto 8px"></div>Carregando...</div>');
   var r=await db.from('contratos_produtos')
-    .select('*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome),atividades(id,codigo,nome_pt))')
+    .select('*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(nota_tecnica_url,nota_tecnica_nome)')
     .eq('contrato_id',id)
     .not('situacao','in','("pago","cancelado")')
     .order('numero_produto',{ascending:true});
