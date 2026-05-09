@@ -72,6 +72,25 @@
 .ps-pendente{background:#FFFBEB;color:#92400E}.ps-em_analise{background:#EFF6FF;color:#1E40AF}
 .ps-aprovado{background:#F0FDF4;color:#166534;border:1px solid #86EFAC}
 .ps-pago{background:#ECFDF5;color:#065F46}.ps-cancelado{background:#F3F4F6;color:#6B7280}
+/* ── Histórico de Entregas ── */
+.ent-bloco{margin-bottom:12px;border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;}
+.ent-prod-header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);}
+.ent-prod-title{font-size:12px;font-weight:600;color:var(--cinza-900);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ent-item{background:var(--branco);padding:10px 12px;border-top:1px solid var(--borda);}
+.ent-item:first-child{border-top:none;}
+.ent-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.ent-num{font-size:10px;font-weight:700;color:var(--cinza-400);font-family:var(--font-mono);}
+.ent-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;}
+.ent-quem{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
+.ent-quem-item{display:flex;align-items:baseline;gap:4px;font-size:11px;color:var(--cinza-700);}
+.ent-quem-lbl{font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.04em;}
+.ent-quem-data{font-size:10px;color:var(--cinza-400);}
+.ent-links{display:flex;flex-wrap:wrap;gap:4px;}
+.ent-link{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--borda);background:var(--branco);color:var(--cinza-700);text-decoration:none;white-space:nowrap;}
+.ent-link:hover{background:var(--cinza-50);}
+.ent-link-desp{border-color:#BFDBFE;background:#EFF6FF;color:#1E40AF;}
+.ent-link-nt{border-color:#BBF7D0;background:#F0FDF4;color:#166534;}
+.ent-vazia{padding:10px 12px;font-size:11px;color:var(--cinza-400);font-style:italic;}
 </style>
 </head>
 <body>
