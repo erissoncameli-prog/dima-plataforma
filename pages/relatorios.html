@@ -742,6 +742,47 @@ function renderFiltros(lista){
             ${_usuarios.map(u=>`<option value="${u.id}">${u.nome_completo||u.id}</option>`).join('')}
           </select>
         </div>`;
+      case 'situacao_entrega': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Situação da Entrega</span>
+          <select class="config-select" id="fil-sit-entrega">
+            <option value="">Todas</option>
+            <option value="pendente">Pendente</option>
+            <option value="em_analise">Em Análise</option>
+            <option value="aprovada">Aprovada</option>
+            <option value="devolvida">Devolvida</option>
+          </select>
+        </div>`;
+      case 'situacao_produto': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Situação do Produto</span>
+          <select class="config-select" id="fil-sit-produto">
+            <option value="">Todos</option>
+            <option value="pendente">Pendente</option>
+            <option value="em_analise">Em Análise</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="pago">Pago</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>`;
+      case 'tem_nota_tecnica': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Nota Técnica</span>
+          <select class="config-select" id="fil-tem-nt">
+            <option value="">Todos</option>
+            <option value="sim">Com Nota Técnica</option>
+            <option value="nao">Sem Nota Técnica</option>
+          </select>
+        </div>`;
+      case 'tem_despacho': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Despacho</span>
+          <select class="config-select" id="fil-tem-despacho">
+            <option value="">Todos</option>
+            <option value="sim">Com Despacho</option>
+            <option value="nao">Sem Despacho</option>
+          </select>
+        </div>`;
       default: return '';
     }
   }).join('');
