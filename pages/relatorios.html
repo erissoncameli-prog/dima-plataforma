@@ -295,6 +295,9 @@ const RELATORIOS = [
   { id:'V3', tema:'fornecedores', icone:'🔍', titulo:'Histórico por Fornecedor',
     desc:'Contratos, produtos entregues e pagamentos de um fornecedor específico.',
     filtros:['fornecedor'] },
+  { id:'V4', tema:'fornecedores', icone:'📋', titulo:'Rastreabilidade de Entregas',
+    desc:'Todas as entregas por fornecedor com documentação, responsáveis e datas de aprovação e pagamento.',
+    filtros:['fornecedor','atividade','situacao_entrega','periodo'] },
   // ── PRODUTOS ──────────────────────────────────────────────
   { id:'P1', tema:'produtos', icone:'📦', titulo:'Status de Entregas',
     desc:'Produtos por situação (pendente → pago) com percentual de execução.',
