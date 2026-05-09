@@ -243,16 +243,28 @@ const iniciarIdleTimer = (() => {
   }
 
   function _resetar() {
+    localStorage.setItem('dima_ultima_atividade', Date.now().toString());
     clearTimeout(timerAviso);
     clearTimeout(timerLogout);
     timerAviso  = setTimeout(_mostrarAviso, AVISO_MS);
     timerLogout = setTimeout(() => { _fecharModal(); sair(); }, LOGOUT_MS);
   }
 
+  function _verificarAoVoltar() {
+    if (document.visibilityState !== 'visible') return;
+    const ultima = localStorage.getItem('dima_ultima_atividade');
+    if (ultima && Date.now() - parseInt(ultima, 10) > 30 * 60 * 1000) {
+      _fecharModal();
+      sair();
+    }
+  }
+
   return function iniciarIdleTimer() {
     if (iniciado) { _resetar(); return; }
     iniciado = true;
     EVENTOS.forEach(ev => document.addEventListener(ev, _resetar, { passive: true }));
+    // Cobre retorno à aba após longa inatividade (ex: computador em sleep)
+    document.addEventListener('visibilitychange', _verificarAoVoltar);
     _resetar();
   };
 })();
