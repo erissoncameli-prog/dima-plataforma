@@ -458,6 +458,66 @@ window.uploadDireto=async function(id,file,lang){
   expandidos[id]=false;toggleDet(id);
 };
 
+function gerarPdfTraducao(txt,c){
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+  var pageW=210,pageH=297,mL=20,mR=20,mT=20,mB=28;
+  var cW=pageW-mL-mR;
+  var dataHoje=new Date().toLocaleDateString('pt-BR');
+  var rodape='Tradução gerada por Inteligência Artificial Claude (Anthropic) em '+dataHoje+' — documento não oficial, sujeito a revisão.';
+
+  function addHeader(pg){
+    doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(140);
+    doc.text('UNESCO · DIMA · 218BRA2001  |  Contrato Nº '+(c.numero||''),mL,11);
+    doc.text('TRADUÇÃO PARA O PORTUGUÊS',pageW/2,11,{align:'center'});
+    doc.text('Página '+pg,pageW-mR,11,{align:'right'});
+    doc.setDrawColor(180);doc.setLineWidth(0.25);
+    doc.line(mL,14,pageW-mR,14);
+    doc.setTextColor(0);
+  }
+
+  function addFooter(){
+    doc.setDrawColor(180);doc.setLineWidth(0.25);
+    doc.line(mL,pageH-mB+4,pageW-mR,pageH-mB+4);
+    doc.setFontSize(7);doc.setFont('helvetica','italic');doc.setTextColor(130);
+    doc.text(rodape,pageW/2,pageH-mB+10,{align:'center',maxWidth:cW});
+    doc.setTextColor(0);
+  }
+
+  var pg=1;
+  addHeader(pg);
+
+  // Bloco título
+  doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(20);
+  doc.text('TRADUÇÃO — '+(c.numero||''),pageW/2,26,{align:'center'});
+  doc.setFontSize(9.5);doc.setFont('helvetica','normal');doc.setTextColor(80);
+  var forn=c.fornecedores&&c.fornecedores.nome?c.fornecedores.nome:'';
+  if(forn)doc.text('Fornecedor: '+forn,pageW/2,32,{align:'center'});
+  doc.setDrawColor(34,139,84);doc.setLineWidth(0.6);
+  doc.line(mL,36,pageW-mR,36);
+
+  var y=42,lh=5.5;
+  var paras=txt.split(/\n+/);
+  for(var i=0;i<paras.length;i++){
+    var para=paras[i].trim();
+    if(!para){y+=2;continue;}
+    var isHead=/^[A-ZÁÉÍÓÚÀÃÕÂÊÎÔÛÇ0-9][A-ZÁÉÍÓÚÀÃÕÂÊÎÔÛÇ0-9\s\.\-:,\/]{2,79}$/.test(para)&&para===para.toUpperCase()&&para.length<100;
+    if(isHead){doc.setFont('helvetica','bold');doc.setFontSize(10);}
+    else{doc.setFont('helvetica','normal');doc.setFontSize(9.5);}
+    doc.setTextColor(20);
+    var lines=doc.splitTextToSize(para,cW);
+    var bH=lines.length*lh+(isHead?4:3);
+    if(y+bH>pageH-mB){
+      addFooter();doc.addPage();pg++;addHeader(pg);y=mT+4;
+    }
+    if(isHead)y+=2;
+    doc.text(lines,mL,y);
+    y+=lines.length*lh+(isHead?4:3);
+  }
+  addFooter();
+  return doc.output('arraybuffer');
+}
+
 window.traduzir=async function(id){
   var c=todosContratos.find(function(x){return x.id===id;});
   if(!c||!c.contrato_assinado_url){toast('PDF original nao encontrado.','error');return;}
@@ -465,16 +525,11 @@ window.traduzir=async function(id){
   if(btn){btn.textContent='Traduzindo...';btn.disabled=true;}
   toast('Traduzindo com IA -- aguarde ate 30 segundos...','info',30000);
   try{
-    // Chamar Edge Function no Supabase (evita CORS da API Anthropic)
     var SB_URL='https://wfymnmlinonvdqfucjya.supabase.co';
     var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
     var efResp=await fetch(SB_URL+'/functions/v1/traduzir-contrato',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'apikey':SB_KEY,
-        'Authorization':'Bearer '+SB_KEY
-      },
+      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
       body:JSON.stringify({pdf_url:c.contrato_assinado_url})
     });
     var efData=await efResp.json();
@@ -482,16 +537,16 @@ window.traduzir=async function(id){
     var txt=efData.traducao||'';
     if(!txt||txt.trim().length<50)throw new Error('Traducao retornada vazia.');
 
-    // Salvar traducao como arquivo texto no Storage
+    // Gerar PDF formatado com rodape IA
+    var pdfBuffer=gerarPdfTraducao(txt,c);
     var nomeBase=(c.contrato_assinado_nome||'contrato').replace(/\.(pdf|docx)$/i,'');
-    var nomeTrad=nomeBase+'_PT_traduzido.txt';
-    var blobTrad=new Blob([txt],{type:'text/plain;charset=utf-8'});
+    var nomeTrad=nomeBase+'_PT_traduzido.pdf';
+    var blobTrad=new Blob([pdfBuffer],{type:'application/pdf'});
     var path='contratos/'+id+'/'+nomeTrad;
-    var upR=await db.storage.from('contratos-docs').upload(path,blobTrad,{upsert:true,contentType:'text/plain'});
+    var upR=await db.storage.from('contratos-docs').upload(path,blobTrad,{upsert:true,contentType:'application/pdf'});
     if(upR.error)throw new Error('Erro upload: '+upR.error.message);
     var urlTrad=db.storage.from('contratos-docs').getPublicUrl(path).data.publicUrl;
 
-    // Salvar no banco
     var dbR=await db.from('contratos').update({
       contrato_pt_url:urlTrad,
       contrato_pt_nome:nomeTrad,
@@ -500,7 +555,7 @@ window.traduzir=async function(id){
     if(dbR.error)throw new Error('Erro banco: '+dbR.error.message);
 
     Object.assign(c,{contrato_pt_url:urlTrad,contrato_pt_nome:nomeTrad,contrato_pt_data:new Date().toISOString()});
-    toast('Contrato traduzido e salvo!','success');
+    toast('Contrato traduzido e salvo como PDF!','success');
     expandidos[id]=false;toggleDet(id);
   }catch(e){
     console.error('Erro traducao:',e);
