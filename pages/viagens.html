@@ -1846,6 +1846,16 @@ async function abrirDetalhe(id){
       </div>`;
     if(p.situacao==='em_prestacao')
       footer+=`<button class="btn btn-primary" style="margin-left:auto;background:#059669" onclick="realizarProtocolo()">✓ Confirmar realizado → lançar financeiro</button>`;
+    if(p.situacao==='realizado'){
+      if(p.notificado_unesco_conclusao_em){
+        footer+=`<div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+          <span style="font-size:11px;color:#059669;display:flex;align-items:center;gap:4px">✉ UNESCO notificada (conclusão) em ${fmtData(p.notificado_unesco_conclusao_em.split('T')[0])}</span>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})">↺ Reenviar</button>
+        </div>`;
+      }else{
+        footer+=`<button class="btn" style="margin-left:auto;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})">📧 Notificar UNESCO — conclusão</button>`;
+      }
+    }
   }
 
   // Rascunho: dono pode editar e enviar para aprovação
