@@ -2591,7 +2591,10 @@ async function realizarProtocolo(){
   });
   toast('Protocolo realizado e lançado no financeiro!','success');
   await enviarEmailAuto(protAtual.id,'realizado');
+  const protId=protAtual.id;
   fecharModal();await carregar();
+  await notificarUnescoConcluso(protId);
+  await carregar();
 }
 
 // ══════════════════════════════════════════════════════════════
