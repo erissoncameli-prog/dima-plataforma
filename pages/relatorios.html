@@ -311,6 +311,9 @@ const RELATORIOS = [
   { id:'P4', tema:'produtos', icone:'⏱️', titulo:'Tempo de Avaliação',
     desc:'Dias entre entrega e avaliação de cada produto.',
     filtros:['periodo'] },
+  { id:'P5', tema:'produtos', icone:'🔍', titulo:'Auditoria de Documentação de Entregas',
+    desc:'Visão tabular de todas as entregas com rastreabilidade completa: quem carregou, aprovou, data de pagamento e links para documentos.',
+    filtros:['atividade','fornecedor','situacao_entrega','situacao_produto','tem_nota_tecnica','tem_despacho','periodo'], paisagem:true },
   // ── TDRs ──────────────────────────────────────────────────
   { id:'T1', tema:'tdrs', icone:'📄', titulo:'Pipeline de TDRs',
     desc:'Quantidade e valor por status — visualização de gargalos no fluxo.',
