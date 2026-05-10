@@ -504,43 +504,79 @@ function renderResultados(){
       return s+Math.min(parseFloat(p.pct_confirmado||0),100);
     },0)/comMeta.length):0;
 
-    // Por resultado (1, 2, 3)
+    // Por resultado — design com rings SVG e dot grid
     var coresRes={1:'#1D9E75',2:'#2563EB',3:'#7F77DD'};
-    var resBlocks=[1,2,3].map(function(r){
+    var resBlocos=[1,2,3].map(function(r){
       var itensR=comMeta.filter(function(i){return i.resultado===r;});
       if(!itensR.length)return'';
+      var cor=coresRes[r];
       var mediaR=Math.round(itensR.reduce(function(s,i){
         var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
         return s+Math.min(parseFloat(p.pct_confirmado||0),100);
       },0)/itensR.length);
-      var cor=coresRes[r];
       var hasPend=itensR.some(function(i){var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{realizado_pendente:0};return parseFloat(p.realizado_pendente||0)>0;});
-      return '<div style="flex:1;min-width:0">'
-        +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">'
-        +'<span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:'+cor+';color:#fff;padding:1px 7px;border-radius:3px">R'+r+'</span>'
-        +(hasPend?'<span style="font-size:9px;background:#FEF3C7;color:#92400E;padding:1px 5px;border-radius:3px;font-weight:700">⏳ pend.</span>':'')
-        +'<span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;font-weight:700;color:'+cor+'">'+mediaR+'%</span>'
+      // SVG ring
+      var sz=68,rv2=sz/2-6,circ=2*Math.PI*rv2,offset=circ*(1-Math.min(mediaR,100)/100);
+      var ring='<svg width="'+sz+'" height="'+sz+'" style="transform:rotate(-90deg);display:block">'
+        +'<circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+rv2+'" fill="none" stroke="#F3F4F6" stroke-width="6"/>'
+        +'<circle cx="'+sz/2+'" cy="'+sz/2+'" r="'+rv2+'" fill="none" stroke="'+cor+'" stroke-width="6" stroke-linecap="round"'
+        +' stroke-dasharray="'+circ.toFixed(1)+'" stroke-dashoffset="'+offset.toFixed(1)+'" style="transition:stroke-dashoffset .8s ease"/>'
+        +'</svg>';
+      // Dot grid — cada indicador = ponto colorido por status
+      var dots=itensR.map(function(i){
+        var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+        var pct=parseFloat(p.pct_confirmado||0);
+        var dc=pct>=80?'#10B981':pct>=40?'#F59E0B':'#EF4444';
+        return '<span title="'+i.indicador+' — '+Math.round(pct)+'%" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+dc+';margin:2px;cursor:default"></span>';
+      }).join('');
+      return '<div style="background:#fff;border:1px solid #F3F4F6;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">'
+        +'<div style="display:flex;align-items:center;gap:7px">'
+        +'<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:'+cor+';color:#fff;padding:2px 9px;border-radius:4px">R'+r+'</span>'
+        +(hasPend?'<span style="font-size:9px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:3px;font-weight:600">⏳ pendente</span>':'')
         +'</div>'
-        +'<div style="height:6px;background:var(--cinza-100);border-radius:3px;overflow:hidden">'
-        +'<div style="height:100%;background:'+cor+';width:'+mediaR+'%;border-radius:3px;transition:width .5s"></div>'
+        +'<div style="display:flex;align-items:center;gap:12px">'
+        +'<div style="position:relative;width:'+sz+'px;height:'+sz+'px;flex-shrink:0">'
+        +ring
+        +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">'
+        +'<span style="font-size:13px;font-weight:800;color:'+cor+';font-family:var(--font-mono);line-height:1">'+mediaR+'%</span>'
+        +'</div></div>'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="height:8px;background:#F3F4F6;border-radius:4px;overflow:hidden;margin-bottom:8px">'
+        +'<div style="height:100%;background:'+cor+';width:'+mediaR+'%;border-radius:4px;transition:width .6s ease"></div>'
         +'</div>'
-        +'<div style="font-size:9px;color:var(--cinza-400);margin-top:2px">'+itensR.length+' indicadores</div>'
-        +'</div>';
+        +'<div style="font-size:10px;color:#6B7280;margin-bottom:6px">'+itensR.length+' indicador'+(itensR.length!==1?'es':'')+'</div>'
+        +'<div style="line-height:1.4">'+dots+'</div>'
+        +'</div></div></div>';
     }).join('');
 
+    // KPIs com mini cards + cor semântica no progresso
+    var corMedia=mediaGeral>=70?'#059669':mediaGeral>=40?'#D97706':'#DC2626';
     h='<div class="ch" style="margin-bottom:14px;border-color:#D1FAE5;background:linear-gradient(135deg,#F0FDF4 0%,#fff 100%)">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
-      +'<div><div class="ch-tit" style="color:#1D9E75">◎ Matriz de Resultados — Progresso</div><div class="ch-sub">Contribuições confirmadas pelos técnicos</div></div>'
-      +'<a href="matriz.html" style="font-size:11px;color:#1D9E75;font-weight:600;text-decoration:none;padding:4px 10px;border:1px solid #A7F3D0;border-radius:5px">Ver completo →</a>'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+      +'<div><div class="ch-tit" style="color:#1D9E75">◎ Matriz de Resultados — Progresso</div>'
+      +'<div class="ch-sub" style="margin-bottom:0">Contribuições confirmadas pelos técnicos</div></div>'
+      +'<a href="matriz.html" style="font-size:11px;color:#1D9E75;font-weight:600;text-decoration:none;padding:5px 12px;border:1px solid #A7F3D0;border-radius:6px;white-space:nowrap">Ver completo →</a>'
       +'</div>'
-      +'<div style="display:flex;gap:16px;margin-bottom:14px">'
-      +'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:#059669;font-family:var(--font-mono)">'+mediaGeral+'%</div><div style="font-size:10px;color:var(--cinza-500)">progresso médio</div></div>'
-      +'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:#059669;font-family:var(--font-mono)">'+atingidos+'</div><div style="font-size:10px;color:var(--cinza-500)">metas atingidas</div></div>'
-      +'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:'+(emRisco>0?'#DC2626':'#059669')+';font-family:var(--font-mono)">'+emRisco+'</div><div style="font-size:10px;color:var(--cinza-500)">em risco (&lt;40%)</div></div>'
-      +(pendConf>0?'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:#D97706;font-family:var(--font-mono)">'+Math.round(pendConf)+'</div><div style="font-size:10px;color:var(--cinza-500)">aguardam conf.</div></div>':'')
-      +'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:var(--cinza-700);font-family:var(--font-mono)">'+totalInd+'</div><div style="font-size:10px;color:var(--cinza-500)">indicadores</div></div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:16px">'
+      +'<div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;text-align:center">'
+      +'<div style="font-size:22px;font-weight:800;color:'+corMedia+';font-family:var(--font-mono);line-height:1.1">'+mediaGeral+'%</div>'
+      +'<div style="font-size:10px;color:#6B7280;margin-top:3px">progresso médio</div></div>'
+      +'<div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;text-align:center">'
+      +'<div style="font-size:22px;font-weight:800;color:#059669;font-family:var(--font-mono);line-height:1.1">'+atingidos+'</div>'
+      +'<div style="font-size:10px;color:#6B7280;margin-top:3px">metas atingidas</div></div>'
+      +'<div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;text-align:center">'
+      +'<div style="font-size:22px;font-weight:800;color:'+(emRisco>0?'#DC2626':'#059669')+';font-family:var(--font-mono);line-height:1.1">'+emRisco+'</div>'
+      +'<div style="font-size:10px;color:#6B7280;margin-top:3px">em risco (&lt;40%)</div></div>'
+      +(pendConf>0
+        ?'<div style="background:#fff;border:1px solid #FEF3C7;border-radius:8px;padding:10px 12px;text-align:center">'
+        +'<div style="font-size:22px;font-weight:800;color:#D97706;font-family:var(--font-mono);line-height:1.1">'+Math.round(pendConf)+'</div>'
+        +'<div style="font-size:10px;color:#6B7280;margin-top:3px">aguardam conf.</div></div>':''
+      )
+      +'<div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:10px 12px;text-align:center">'
+      +'<div style="font-size:22px;font-weight:800;color:#374151;font-family:var(--font-mono);line-height:1.1">'+totalInd+'</div>'
+      +'<div style="font-size:10px;color:#6B7280;margin-top:3px">indicadores</div></div>'
       +'</div>'
-      +'<div style="display:flex;gap:10px">'+resBlocks+'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">'+resBlocos+'</div>'
       +'</div>';
   }
 
