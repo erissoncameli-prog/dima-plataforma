@@ -236,6 +236,9 @@ async function loadData(){
 // ── resMap helper ─────────────────────────────────────────
 function resMap(){
   var m={};
+  D.res.forEach(function(rv){
+    m[rv.codigo]={orc:0,comp:0,pago:0,apagar:0,nome:rv.nome_pt,ind:[]};
+  });
   D.sal.forEach(function(s){
     var a=D.atv.find(function(x){return x.id===s.id;});
     if(!a)return;
