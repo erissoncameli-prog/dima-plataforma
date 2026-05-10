@@ -606,7 +606,24 @@ function renderExecucao(){
   var contrOpts=D.contr.map(function(c){return '<option value="'+c.id+'">'+c.numero+'</option>';}).join('');
   var atvOpts=D.atv.map(function(a){return '<option value="'+a.id+'">'+a.codigo+' — '+a.nome_pt.substring(0,40)+'</option>';}).join('');
 
-  var h='<div class="fin-filters">';
+  // Rosca total do projeto (usa D.sal, independente de filtros)
+  var _orc=D.sal.reduce(function(s,a){return s+parseFloat(a.orcamento_usd||0);},0);
+  var _comp=D.sal.reduce(function(s,a){return s+parseFloat(a.comprometido_usd||0);},0);
+  var _pago=D.sal.reduce(function(s,a){return s+parseFloat(a.pago_usd||0);},0);
+  var _apagar=D.sal.reduce(function(s,a){return s+parseFloat(a.a_pagar_usd||0);},0);
+  var _tdr=Math.max(0,_comp-_pago-_apagar);
+  var _livre=Math.max(0,_orc-_comp);
+  var _pctPago=_orc>0?(_pago/_orc*100):0;
+
+  var h='<div class="ch" style="margin-bottom:14px">';
+  h+='<div class="ch-tit">Execução financeira total do projeto</div>';
+  h+='<div class="ch-sub">Orçamento global × comprometido × pago — valores independentes de filtros</div>';
+  h+='<div style="display:flex;align-items:center;gap:32px;height:240px;padding:8px 0">';
+  h+='<div style="position:relative;flex:0 0 240px;height:100%"><canvas id="ch-proj-donut"></canvas></div>';
+  h+='<div id="leg-proj-donut" style="flex:1;max-width:340px"></div>';
+  h+='</div></div>';
+
+  h+='<div class="fin-filters">';
   h+='<label>Data de:</label><input type="date" id="fil-dt-ini">';
   h+='<label>até:</label><input type="date" id="fil-dt-fim">';
   h+='<label>Situação:</label><select id="fil-sit"><option value="">Todas</option><option value="pago">Pago</option><option value="a_pagar">A pagar</option><option value="cancelado">Cancelado</option></select>';
@@ -620,7 +637,7 @@ function renderExecucao(){
   // KPIs dinâmicos
   h+='<div id="fin-kpis" class="kpi-row" style="grid-template-columns:repeat(5,1fr)"></div>';
 
-  // Gráficos
+  // Gráficos filtráveis
   h+='<div class="g2" style="margin-bottom:14px">';
   h+='<div class="ch"><div class="ch-tit">Distribuição por situação</div><div class="ch-sub">Valor total por status</div><div style="display:flex;align-items:center;gap:14px;height:180px"><div style="position:relative;flex:1;height:100%"><canvas id="ch-fin-donut"></canvas></div><div id="leg-fin-donut" style="font-size:11px"></div></div></div>';
   h+='<div class="ch"><div class="ch-tit">Valor por atividade</div><div class="ch-sub">Lançamentos filtrados</div><div style="position:relative;height:180px"><canvas id="ch-fin-atv"></canvas></div></div>';
@@ -630,6 +647,62 @@ function renderExecucao(){
   // Tabela
   h+='<div class="ch"><div class="ch-tit">Lançamentos financeiros</div><div id="fin-tabela-wrap"><div class="empty-state"><div class="spinner"></div></div></div></div>';
   document.getElementById('pane-execucao').innerHTML=h;
+
+  // Renderizar rosca do projeto
+  setTimeout(function(){
+    var centerPlugin={
+      id:'projCenter',
+      afterDraw:function(chart){
+        var ctx=chart.ctx;
+        var cx=(chart.chartArea.left+chart.chartArea.right)/2;
+        var cy=(chart.chartArea.top+chart.chartArea.bottom)/2;
+        ctx.save();
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.font='bold 26px Inter,sans-serif';
+        ctx.fillStyle='#111827';
+        ctx.fillText(_pctPago.toFixed(1)+'%',cx,cy-10);
+        ctx.font='12px Inter,sans-serif';
+        ctx.fillStyle='#6B7280';
+        ctx.fillText('pago',cx,cy+14);
+        ctx.restore();
+      }
+    };
+    mkChart('ch-proj-donut',{
+      type:'doughnut',
+      plugins:[centerPlugin],
+      data:{
+        labels:['Pago','A pagar','Comprometido (TDR)','Saldo livre'],
+        datasets:[{
+          data:[_pago,_apagar,_tdr,_livre],
+          backgroundColor:['#059669','#F59E0B','#D97706','#E5E7EB'],
+          borderWidth:3,
+          borderColor:'#fff'
+        }]
+      },
+      options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.raw;var pct=_orc>0?(v/_orc*100):0;return ' '+D_USD(v)+' ('+pct.toFixed(1)+'%)';}}}}
+      }
+    });
+    var legEl=document.getElementById('leg-proj-donut');
+    if(legEl){
+      var items=[
+        ['Pago','#059669',_pago],
+        ['A pagar','#F59E0B',_apagar],
+        ['Comprometido (TDR)','#D97706',_tdr],
+        ['Saldo livre','#E5E7EB',_livre]
+      ];
+      legEl.innerHTML=items.map(function(x){
+        var pct=_orc>0?(x[2]/_orc*100):0;
+        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'+
+          '<div style="width:14px;height:14px;border-radius:3px;background:'+x[1]+';flex-shrink:0;border:1px solid rgba(0,0,0,.08)"></div>'+
+          '<div><div style="font-size:12px;color:#374151;font-weight:500">'+x[0]+'</div>'+
+          '<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#111827">'+D_USD(x[2])+'</div>'+
+          '<div style="font-size:11px;color:#6B7280">'+pct.toFixed(1)+'% do orçamento total</div></div>'+
+          '</div>';
+      }).join('');
+    }
+  },50);
+
   renderFinTabela();
 }
 
