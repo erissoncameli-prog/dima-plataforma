@@ -283,12 +283,41 @@ function renderFinanciadores(){
   var pTdr=D.tdrs.length>0?taprov/D.tdrs.length*100:0;
   var rm=resMap(); var rks=Object.keys(rm);
 
-  var h='<div class="kpi-row">';
-  h+='<div class="kpi-card kv"><div class="kpi-lbl">Taxa de execução</div><div class="kpi-val" style="color:var(--sucesso)">'+pExec.toFixed(1)+'%</div><div class="kpi-sub">'+D_USD(pago)+' pagos de '+D_USD(orc)+'</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+Math.min(pExec,100)+'%;background:var(--sucesso)"></div></div></div>';
-  h+='<div class="kpi-card ko"><div class="kpi-lbl">Comprometido (TDR)</div><div class="kpi-val" style="color:var(--ouro)">'+D_PCT(pComp)+'</div><div class="kpi-sub">'+D_USD(comp)+' em TDRs ativos</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+Math.min(pComp,100)+'%;background:var(--ouro)"></div></div></div>';
-  h+='<div class="kpi-card" style="border-color:#FDE68A"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:#F59E0B"></div><div class="kpi-lbl">A pagar</div><div class="kpi-val" style="color:#D97706">'+D_PCT(pApagar)+'</div><div class="kpi-sub">'+D_USD(apagar)+' comprometido financ.</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+Math.min(pApagar,100)+'%;background:#F59E0B"></div></div></div>';
-  h+='<div class="kpi-card ka"><div class="kpi-lbl">TDRs aprovados</div><div class="kpi-val" style="color:var(--azul-medio)">'+taprov+' / '+D.tdrs.length+'</div><div class="kpi-sub">'+D_PCT(pTdr)+' do total</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+Math.min(pTdr,100)+'%;background:var(--azul-medio)"></div></div></div>';
-  h+='<div class="kpi-card krx"><div class="kpi-lbl">Metas com avanço</div><div class="kpi-val" style="color:#7C3AED">'+metasProg+' / '+D.ind.length+'</div><div class="kpi-sub">indicadores em progresso</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+D_P(metasProg,D.ind.length)+'%;background:#7C3AED"></div></div></div>';
+  // Hero gauge — semi-rosca SVG para Taxa de Execução (legível mesmo em valores baixos)
+  var _arcLen=157.08; // π × 50 (comprimento da semi-circunferência)
+  var _arcFill=(_arcLen*Math.min(pExec,100)/100).toFixed(2);
+  var _corExec=pExec>=50?'#059669':pExec>=20?'#D97706':'#EF4444';
+
+  var h='<div style="display:grid;grid-template-columns:minmax(190px,1.3fr) repeat(4,1fr);gap:12px;margin-bottom:16px;align-items:stretch">';
+
+  // Card hero — gauge
+  h+='<div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center">';
+  h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Taxa de execução</div>';
+  h+='<svg viewBox="0 0 120 68" style="width:100%;max-width:170px">'
+    +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="#F3F4F6" stroke-width="11" stroke-linecap="round"/>'
+    +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+_corExec+'" stroke-width="11" stroke-linecap="round"'
+    +' stroke-dasharray="'+_arcFill+' '+_arcLen+'"/>'
+    +'</svg>';
+  h+='<div style="font-size:30px;font-weight:900;color:'+_corExec+';font-family:var(--font-mono);line-height:1;margin-top:-4px">'+pExec.toFixed(1)+'%</div>';
+  h+='<div style="font-size:11px;color:#6B7280;margin-top:6px;text-align:center">'+D_USD(pago)+' pagos de '+D_USD(orc)+'</div>';
+  h+='</div>';
+
+  // 4 cards modernizados — barra grossa + borda esquerda + fundo semântico suave
+  [
+    {lbl:'Comprometido (TDR)', val:D_PCT(pComp),        sub:D_USD(comp)+' em TDRs ativos',          pct:Math.min(pComp,100),              cor:'#D97706', bg:'#FFFBEB', bc:'#FDE68A'},
+    {lbl:'A pagar',            val:D_PCT(pApagar),       sub:D_USD(apagar)+' comprometido financ.',   pct:Math.min(pApagar,100),            cor:'#F59E0B', bg:'#FFFBEB', bc:'#FEF3C7'},
+    {lbl:'TDRs aprovados',     val:taprov+' / '+D.tdrs.length, sub:D_PCT(pTdr)+' do total',          pct:Math.min(pTdr,100),               cor:'#2563EB', bg:'#EFF6FF', bc:'#BFDBFE'},
+    {lbl:'Metas com avanço',   val:metasProg+' / '+D.ind.length, sub:'indicadores em progresso',     pct:D_P(metasProg,D.ind.length),      cor:'#7C3AED', bg:'#F5F3FF', bc:'#DDD6FE'},
+  ].forEach(function(c){
+    h+='<div style="background:'+c.bg+';border:1px solid '+c.bc+';border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:3px">';
+    h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.05em;text-transform:uppercase">'+c.lbl+'</div>';
+    h+='<div style="font-size:26px;font-weight:800;color:'+c.cor+';font-family:var(--font-mono);line-height:1.15">'+c.val+'</div>';
+    h+='<div style="font-size:11px;color:#6B7280">'+c.sub+'</div>';
+    h+='<div style="height:7px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden;margin-top:8px">';
+    h+='<div style="height:100%;background:'+c.cor+';width:'+c.pct+'%;border-radius:4px;transition:width .5s ease"></div>';
+    h+='</div></div>';
+  });
+
   h+='</div>';
 
   // Linha 1: Donut orçamento + Stacked bar por resultado
