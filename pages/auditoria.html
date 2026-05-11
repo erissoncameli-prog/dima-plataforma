@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Auditoria IA</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+/* ── Layout ── */
+.aud-grid { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
+
+/* ── Cabeçalho da execução ── */
+.exec-banner { background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio-lg); padding: 20px 24px; margin-bottom: 18px; display: flex; align-items: center; gap: 20px; }
+.exec-icon { width: 52px; height: 52px; border-radius: var(--raio-lg); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+.exec-icon.ok { background: #ECFDF5; }
+.exec-icon.warn { background: #FFFBEB; }
+.exec-icon.crit { background: #FEF2F2; }
+.exec-icon.idle { background: var(--cinza-50); }
+.exec-meta { flex: 1; min-width: 0; }
+.exec-titulo { font-size: 14px; font-weight: 600; color: var(--cinza-900); margin-bottom: 4px; }
+.exec-sub { font-size: 12px; color: var(--cinza-500); line-height: 1.5; }
+.exec-resumo { font-size: 12px; color: var(--cinza-700); line-height: 1.6; margin-top: 8px; padding: 10px 14px; background: var(--cinza-50); border-radius: var(--raio); border-left: 3px solid var(--verde-claro); white-space: pre-line; }
+
+/* ── Botão rodar auditoria ── */
+.btn-auditar { display: inline-flex; align-items: center; gap: 8px; background: var(--verde-medio); color: #fff; border: none; border-radius: var(--raio); padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font-sans); transition: all .15s; white-space: nowrap; }
+.btn-auditar:hover { background: var(--verde-escuro); }
+.btn-auditar:disabled { opacity: .6; cursor: not-allowed; }
+.btn-auditar .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Stats bar ── */
+.stats-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.stat-pill { display: flex; align-items: center; gap: 7px; background: var(--branco); border: 1px solid var(--borda); border-radius: 99px; padding: 6px 14px 6px 8px; font-size: 12px; font-weight: 500; color: var(--cinza-700); }
+.stat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dot-critico { background: #DC2626; }
+.dot-alto    { background: #F97316; }
+.dot-medio   { background: #EAB308; }
+.dot-baixo   { background: #3B82F6; }
+.dot-info    { background: var(--cinza-400); }
+.stat-num { font-weight: 700; font-size: 13px; }
+
+/* ── Filtros ── */
+.filtros { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.filtro-btn { padding: 5px 12px; border-radius: 99px; border: 1px solid var(--borda); background: var(--branco); font-size: 11px; font-weight: 500; color: var(--cinza-600); cursor: pointer; font-family: var(--font-sans); transition: all .12s; }
+.filtro-btn:hover { border-color: var(--verde-claro); color: var(--verde-medio); }
+.filtro-btn.ativo { background: var(--verde-medio); border-color: var(--verde-medio); color: #fff; }
+
+/* ── Cards de achados ── */
+.achado-card { background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio-lg); margin-bottom: 10px; overflow: hidden; transition: box-shadow .15s; }
+.achado-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+.achado-header { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; cursor: pointer; }
+.sev-strip { width: 4px; border-radius: 2px; flex-shrink: 0; align-self: stretch; min-height: 20px; }
+.sev-critico { background: #DC2626; }
+.sev-alto    { background: #F97316; }
+.sev-medio   { background: #EAB308; }
+.sev-baixo   { background: #3B82F6; }
+.sev-info    { background: var(--cinza-300); }
+.achado-titulo { font-size: 13px; font-weight: 600; color: var(--cinza-900); flex: 1; }
+.achado-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.sev-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: .04em; }
+.sev-badge.critico { background: #FEF2F2; color: #991B1B; }
+.sev-badge.alto    { background: #FFF7ED; color: #9A3412; }
+.sev-badge.medio   { background: #FEFCE8; color: #854D0E; }
+.sev-badge.baixo   { background: #EFF6FF; color: #1E40AF; }
+.sev-badge.info    { background: var(--cinza-100); color: var(--cinza-600); }
+.dom-badge { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: var(--cinza-100); color: var(--cinza-600); }
+.achado-ref { font-family: var(--font-mono); font-size: 10px; color: var(--cinza-500); }
+.achado-chevron { color: var(--cinza-400); font-size: 14px; flex-shrink: 0; transition: transform .2s; }
+.achado-card.aberto .achado-chevron { transform: rotate(180deg); }
+
+.achado-body { padding: 0 16px 16px 32px; border-top: 1px solid var(--borda); display: none; }
+.achado-card.aberto .achado-body { display: block; }
+.achado-desc { font-size: 12px; color: var(--cinza-700); line-height: 1.6; margin: 12px 0 10px; }
+.achado-rec { font-size: 12px; color: var(--cinza-800); line-height: 1.6; padding: 10px 14px; background: #F0FDF4; border-radius: var(--raio); border-left: 3px solid #4ADE80; }
+.achado-rec strong { color: #166534; display: block; margin-bottom: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+.achado-acoes { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.btn-acao { padding: 6px 14px; border-radius: var(--raio); border: 1px solid var(--borda); background: var(--branco); font-size: 11px; font-weight: 500; cursor: pointer; font-family: var(--font-sans); color: var(--cinza-700); transition: all .12s; }
+.btn-acao:hover { background: var(--cinza-50); }
+.btn-acao.resolver { border-color: var(--verde-claro); color: var(--verde-medio); }
+.btn-acao.resolver:hover { background: #ECFDF5; }
+.btn-acao.ignorar { border-color: var(--cinza-300); color: var(--cinza-500); }
+.achado-status-tag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+.tag-aberto    { background: #FEF2F2; color: #991B1B; }
+.tag-em_analise{ background: #FFFBEB; color: #854D0E; }
+.tag-resolvido { background: #ECFDF5; color: #065F46; }
+.tag-ignorado  { background: var(--cinza-100); color: var(--cinza-500); }
+
+/* ── Painel lateral ── */
+.painel-card { background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio-lg); padding: 18px; margin-bottom: 14px; }
+.painel-titulo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--cinza-500); margin-bottom: 14px; }
+
+/* Donut chart placeholder → barras por domínio */
+.dom-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.dom-row:last-child { margin-bottom: 0; }
+.dom-nome { font-size: 11px; color: var(--cinza-700); font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dom-barra-bg { height: 6px; background: var(--cinza-100); border-radius: 3px; overflow: hidden; width: 80px; flex-shrink: 0; }
+.dom-barra-fill { height: 100%; border-radius: 3px; background: var(--verde-claro); }
+.dom-count { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--cinza-700); min-width: 20px; text-align: right; }
+
+/* Histórico de execuções */
+.exec-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--borda); font-size: 11px; cursor: pointer; }
+.exec-row:last-child { border-bottom: none; }
+.exec-row:hover { color: var(--verde-medio); }
+.exec-row-data { color: var(--cinza-500); min-width: 90px; }
+.exec-row-achados { font-family: var(--font-mono); font-weight: 600; }
+.exec-row-crit { color: #DC2626; }
+
+/* ── Empty state ── */
+.empty { text-align: center; padding: 60px 20px; color: var(--cinza-400); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-msg { font-size: 14px; font-weight: 500; color: var(--cinza-600); }
+.empty-sub { font-size: 12px; margin-top: 6px; }
+
+/* Modal resolução */
+.modal-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; }
+.modal-box { background: var(--branco); border-radius: var(--raio-lg); padding: 28px; max-width: 480px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.modal-titulo { font-size: 15px; font-weight: 700; color: var(--cinza-900); margin-bottom: 8px; }
+.modal-sub { font-size: 12px; color: var(--cinza-500); margin-bottom: 16px; }
+.modal-label { font-size: 11px; font-weight: 600; color: var(--cinza-700); margin-bottom: 6px; display: block; }
+.modal-textarea { width: 100%; border: 1px solid var(--borda); border-radius: var(--raio); padding: 10px; font-size: 12px; font-family: var(--font-sans); color: var(--cinza-900); resize: vertical; min-height: 80px; box-sizing: border-box; }
+.modal-acoes { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+.btn-modal-cancel { padding: 8px 18px; border: 1px solid var(--borda); background: var(--branco); border-radius: var(--raio); font-size: 12px; font-weight: 500; cursor: pointer; font-family: var(--font-sans); color: var(--cinza-700); }
+.btn-modal-ok { padding: 8px 18px; border: none; background: var(--verde-medio); color: #fff; border-radius: var(--raio); font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-sans); }
+</style>
+</head>
+<body>
+<div id="sidebar-container"></div>
+
+<main class="main-content" id="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1 class="page-titulo">Auditoria IA</h1>
+      <p class="page-sub">Varredura automatizada de conformidade e consistência dos dados</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="ultima-execucao" style="font-size:11px;color:var(--cinza-500)"></span>
+      <button class="btn-auditar" id="btn-auditar" onclick="dispararAuditoria()">
+        <span>🔍</span> Rodar Auditoria
+      </button>
+    </div>
+  </div>
+
+  <!-- Banner da última execução -->
+  <div class="exec-banner" id="exec-banner" style="display:none">
+    <div class="exec-icon idle" id="exec-icon">🔍</div>
+    <div class="exec-meta">
+      <div class="exec-titulo" id="exec-titulo">Iniciando auditoria...</div>
+      <div class="exec-sub" id="exec-sub"></div>
+      <div class="exec-resumo" id="exec-resumo" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="aud-grid">
+    <!-- Coluna principal: achados -->
+    <div>
+      <!-- Stats pills -->
+      <div class="stats-bar" id="stats-bar" style="display:none">
+        <div class="stat-pill"><span class="stat-dot dot-critico"></span><span class="stat-num" id="cnt-critico">0</span> Crítico</div>
+        <div class="stat-pill"><span class="stat-dot dot-alto"></span><span class="stat-num" id="cnt-alto">0</span> Alto</div>
+        <div class="stat-pill"><span class="stat-dot dot-medio"></span><span class="stat-num" id="cnt-medio">0</span> Médio</div>
+        <div class="stat-pill"><span class="stat-dot dot-baixo"></span><span class="stat-num" id="cnt-baixo">0</span> Baixo</div>
+        <div class="stat-pill"><span class="stat-dot dot-info"></span><span class="stat-num" id="cnt-info">0</span> Info</div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros" id="filtros" style="display:none">
+        <button class="filtro-btn ativo" onclick="filtrar('todos',this)">Todos</button>
+        <button class="filtro-btn" onclick="filtrar('aberto',this)">Abertos</button>
+        <button class="filtro-btn" onclick="filtrar('resolvido',this)">Resolvidos</button>
+        <span style="width:1px;background:var(--borda);height:20px;align-self:center"></span>
+        <button class="filtro-btn" onclick="filtrarDom('tdr_contrato',this)">TDR / Contrato</button>
+        <button class="filtro-btn" onclick="filtrarDom('financeiro',this)">Financeiro</button>
+        <button class="filtro-btn" onclick="filtrarDom('produtos',this)">Produtos</button>
+        <button class="filtro-btn" onclick="filtrarDom('viagens',this)">Viagens</button>
+        <button class="filtro-btn" onclick="filtrarDom('matriz',this)">Matriz</button>
+        <button class="filtro-btn" onclick="filtrarDom('qualidade_dados',this)">Qualidade</button>
+      </div>
+
+      <!-- Lista de achados -->
+      <div id="lista-achados">
+        <div class="empty" id="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-msg">Nenhuma auditoria executada ainda</div>
+          <div class="empty-sub">Clique em "Rodar Auditoria" para iniciar a varredura do sistema</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Painel lateral -->
+    <div>
+      <!-- Por domínio -->
+      <div class="painel-card" id="painel-dominios" style="display:none">
+        <div class="painel-titulo">Achados por domínio</div>
+        <div id="dom-chart"></div>
+      </div>
+
+      <!-- Histórico de execuções -->
+      <div class="painel-card">
+        <div class="painel-titulo">Histórico de execuções</div>
+        <div id="historico-execucoes">
+          <div style="font-size:12px;color:var(--cinza-400);text-align:center;padding:16px 0">Nenhuma execução ainda</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal de resolução -->
+<div class="modal-overlay" id="modal-resolucao" style="display:none" onclick="fecharModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-titulo" id="modal-titulo">Resolver achado</div>
+    <div class="modal-sub">Informe o que foi feito para corrigir esta inconsistência.</div>
+    <label class="modal-label">Comentário / ação realizada *</label>
+    <textarea class="modal-textarea" id="modal-comentario" placeholder="Ex: TDR aprovado em reunião de coordenação em 10/05/2026..."></textarea>
+    <div class="modal-acoes">
+      <button class="btn-modal-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-modal-ok" id="modal-btn-ok" onclick="confirmarResolucao()">Confirmar resolução</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/auditoria.js"></script>
+</body>
+</html>
