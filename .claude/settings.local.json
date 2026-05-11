@@ -51,7 +51,9 @@
       "Bash(Select-Object Name, PSIsContainer)",
       "Bash(Format-Table -AutoSize)",
       "Bash(ls -la \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\"/*.sql 2>/dev/null | head -5)",
-      "Bash(supabase --version)"
+      "Bash(supabase --version)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\wonderful-mclaren-dd2f8a\" status)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\wonderful-mclaren-dd2f8a\" diff pages/financeiro.html)"
     ]
   }
 }
