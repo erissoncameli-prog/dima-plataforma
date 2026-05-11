@@ -396,7 +396,7 @@ function renderPainelContrato(forn,contratoNum,totais,seiContrato){
 
 async function abrirModal(prodId){
   var r=await db.from('contratos_produtos')
-    .select('*,contratos(id,numero,objeto_pt,atividade_id,numero_sei,fornecedores(id,nome,cpf_cnpj,email),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(*)')
+    .select('*,criado_por_u:usuarios!contratos_produtos_criado_por_fkey(nome_completo),contratos(id,numero,objeto_pt,atividade_id,numero_sei,fornecedores(id,nome,cpf_cnpj,email),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(*)')
     .eq('id',prodId).single();
   var p=r.data;
   if(!p)return;
