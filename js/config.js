@@ -380,5 +380,6 @@ const PODE = {
   aprovarProduto:   () => ['super_admin','coordenacao'].includes(appState.perfil),
   gerirUsuarios:    () => appState.perfil === 'super_admin',
   verAuditLog:      () => ['super_admin','coordenacao'].includes(appState.perfil),
+  verAuditoria:     () => ['super_admin','coordenacao'].includes(appState.perfil),
   editarTDR:        () => ['super_admin','coordenacao','tecnico'].includes(appState.perfil),
 };
