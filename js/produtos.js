@@ -1224,6 +1224,7 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
 
   var qtd=docsEntrega.length;docsEntrega=[];geoCSVPontos=[];
   toast('Entrega com '+qtd+' documento(s) registrada e enviada para avaliação!','success');
+  enviarEmailProduto(produtoAtual.id,entrega.id,'entregue');
   fecharModal();await selecionarCont(filtCont);await renderStats();
 }
 
