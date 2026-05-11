@@ -1314,7 +1314,8 @@ async function abrirPagamento(id) {
       const dtDev = e.despacho_data ? fmtData(e.despacho_data)
         : e.despachado_em ? fmtData(e.despachado_em.split('T')[0])
         : `Entrega ${e.numero_entrega}`;
-      itens.push({ dot:'dev', ico:'↩️', titulo:'Devolvido para ajustes', data:`Devolvido em ${dtDev}`, parecer: e.despacho_texto });
+      const userDev = e.despachado_por_u?.nome_completo;
+      itens.push({ dot:'dev', ico:'↩️', titulo:'Devolvido para ajustes', data:`Devolvido em ${dtDev}${userDev ? ' · '+userDev : ''}`, parecer: e.despacho_texto });
     });
 
     // 3. Avaliação — considera situacao do produto quando avaliado_em não foi preenchido
