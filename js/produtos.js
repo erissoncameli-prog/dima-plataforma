@@ -1311,6 +1311,43 @@ async function emitirDespacho(tipoBtn){
   fecharModal();await selecionarCont(filtCont);await renderStats();
 }
 
+async function renderHistoricoEmails(prodId){
+  var r=await db.from('produto_notif_log')
+    .select('*,enviado_por_u:usuarios!produto_notif_log_enviado_por_fkey(nome_completo)')
+    .eq('produto_id',prodId)
+    .order('criado_em',{ascending:false});
+  var logs=r.data||[];
+  if(!logs.length)return '';
+
+  var EVT={entregue:'&#x1F4EC; Entregue',aprovado:'&#x2705; Aprovado',aprovado_parcial:'&#x25D1; Aprox. parcial',devolvido:'&#x21A9; Devolvido',pago:'&#x1F4B3; Pago'};
+
+  var rows=logs.map(function(l){
+    var lbl=EVT[l.evento]||l.evento;
+    var dt=fmtDT(l.criado_em);
+    var por=esc((l.enviado_por_u&&l.enviado_por_u.nome_completo)||'—');
+    var okTxt=l.total_enviados+' enviado'+(l.total_enviados!==1?'s':'');
+    var falhaTxt=l.falhas>0?' <span style="color:#DC2626">· '+l.falhas+' falha(s)</span>':'';
+    return '<tr style="border-bottom:1px solid var(--borda)">'
+      +'<td style="padding:5px 8px;font-size:11px;font-weight:600;white-space:nowrap">'+lbl+'</td>'
+      +'<td style="padding:5px 8px;font-size:11px;color:var(--cinza-500);white-space:nowrap">'+dt+'</td>'
+      +'<td style="padding:5px 8px;font-size:11px;color:#059669">'+okTxt+falhaTxt+'</td>'
+      +'<td style="padding:5px 8px;font-size:11px;color:var(--cinza-600)">'+por+'</td>'
+      +'</tr>';
+  }).join('');
+
+  return '<div style="border-top:1px solid var(--borda);padding-top:14px;margin-top:14px">'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:10px">&#x2709; Hist&#xF3;rico de notifica&#xE7;&#xF5;es por e-mail</div>'
+    +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
+    +'<thead><tr style="background:var(--cinza-50);border-bottom:2px solid var(--borda)">'
+    +'<th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--cinza-600);text-align:left;text-transform:uppercase;letter-spacing:.04em">Evento</th>'
+    +'<th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--cinza-600);text-align:left;text-transform:uppercase;letter-spacing:.04em">Data</th>'
+    +'<th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--cinza-600);text-align:left;text-transform:uppercase;letter-spacing:.04em">Enviados</th>'
+    +'<th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--cinza-600);text-align:left;text-transform:uppercase;letter-spacing:.04em">Por</th>'
+    +'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'</table></div></div>';
+}
+
 function switchEvalTab(name){
   document.querySelectorAll('.eval-tab-btn').forEach(function(b){b.classList.remove('ativo');});
   document.querySelectorAll('.eval-tab-content').forEach(function(c){c.classList.remove('ativo');});

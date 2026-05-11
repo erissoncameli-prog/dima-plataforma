@@ -50,7 +50,8 @@
       "Bash(Get-ChildItem -Path . -Force)",
       "Bash(Select-Object Name, PSIsContainer)",
       "Bash(Format-Table -AutoSize)",
-      "Bash(ls -la \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\"/*.sql 2>/dev/null | head -5)"
+      "Bash(ls -la \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\"/*.sql 2>/dev/null | head -5)",
+      "Bash(supabase --version)"
     ]
   }
 }
