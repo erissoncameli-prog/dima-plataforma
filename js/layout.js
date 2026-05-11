@@ -29,6 +29,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'relatorios',   icone: '📊', href: 'relatorios.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'mapa',         icone: '&#x1F5FA;', href: 'mapa.html',   perfis: null },
     { id: 'repositorio',  icone: '🔗', href: 'repositorio.html',  perfis: null },
+    { id: 'auditoria',     icone: '🛡', href: 'auditoria.html',     perfis: ['super_admin','coordenacao'] },
     { id: 'usuarios',       icone: '◍', href: 'usuarios.html',       perfis: ['super_admin'] },
     { id: 'configuracoes', icone: '⚙', href: null,                 perfis: ['super_admin'], collapsible: true },
     { id: 'dados_sistema', icone: '⊟', href: 'configuracoes.html', perfis: ['super_admin'], parent: 'configuracoes' },
