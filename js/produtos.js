@@ -929,7 +929,7 @@ async function renderLinhaTempo(p){
       var bgL=lanc.situacao==='pago'?'#D1FAE5':'#FEF3C7';
       var corL=lanc.situacao==='pago'?'#065F46':'#92400E';
       var lancC='<div style="font-size:12px;font-weight:700;color:'+corL+'">'+(lanc.situacao==='pago'?'Pago':'A pagar')+'</div>'
-        +'<div style="font-size:11px;color:var(--cinza-500);margin-top:2px">'+fmtBRL(lanc.valor_brl)+(lanc.dt_pagamento?' · Pago em '+fmtData(lanc.dt_pagamento):'')+'</div>';
+        +'<div style="font-size:11px;color:var(--cinza-500);margin-top:2px">'+fmtBRL(lanc.valor_brl)+(lanc.dt_pagamento?' · Pago em '+fmtData(lanc.dt_pagamento):'')+(lanc.pago_por_u&&lanc.pago_por_u.nome_completo?' · '+esc(lanc.pago_por_u.nome_completo):'')+'</div>';
       html+=tlItem(lanc.situacao==='pago'?'&#x1F4B0;':'&#x1F4B3;',bgL,lancC,false);
     }
   });
