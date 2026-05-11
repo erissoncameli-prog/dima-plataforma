@@ -1305,7 +1305,7 @@ async function abrirPagamento(id) {
       itens.push({ dot: produto.dt_entrega ? 'ok' : 'warn', ico: produto.dt_entrega ? '📦' : '⏳',
         titulo: produto.dt_entrega ? 'Produto entregue' : 'Aguardando entrega',
         data: produto.dt_entrega
-          ? `Entregue em ${fmtData(produto.dt_entrega)}${produto.arquivo_entrega_nome ? ' · 📎 '+produto.arquivo_entrega_nome : ''}`
+          ? `Entregue em ${fmtData(produto.dt_entrega)}${entregaInfo?.criado_por_u?.nome_completo ? ' · '+entregaInfo.criado_por_u.nome_completo : ''}${produto.arquivo_entrega_nome ? ' · 📎 '+produto.arquivo_entrega_nome : ''}`
           : `Prazo: ${fmtData(produto.dt_vencimento)}` });
     }
 
