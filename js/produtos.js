@@ -1295,6 +1295,8 @@ async function emitirDespacho(tipoBtn){
 
   var msgs={aprovacao_total:'&#x2714; Despacho '+numDesp+' emitido. Lançamento gerado no Financeiro.',aprovacao_parcial:'&#x25D1; Despacho '+numDesp+' emitido. Lançamento parcial gerado.',devolucao:'&#x21A9; Despacho '+numDesp+' emitido. Produto devolvido para correção.'};
   toast(msgs[tipo]||'Despacho emitido.','success',7000);
+  var emailEvt=tipo==='devolucao'?'devolvido':tipo==='aprovacao_parcial'?'aprovado_parcial':'aprovado';
+  enviarEmailProduto(produtoAtual.id,entregaAtual.id,emailEvt);
 
   if(notifPendenteId){
     await db.from('notificacoes').update({lida:true,lida_em:new Date().toISOString()}).eq('id',notifPendenteId);
