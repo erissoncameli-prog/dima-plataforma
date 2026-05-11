@@ -1314,6 +1314,7 @@ async function emitirDespacho(tipoBtn){
   }
   window.history.replaceState({},'',window.location.pathname);
   fecharModal();await selecionarCont(filtCont);await renderStats();
+  }finally{_emitindoDespacho=false;}
 }
 
 async function renderHistoricoEmails(prodId){
