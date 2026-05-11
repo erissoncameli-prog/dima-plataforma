@@ -231,7 +231,7 @@ async function carregarLogosSidebar() {
 
 async function initPagina(tituloPagina, paginaAtiva, callback) {
   const usuario = await carregarUsuario();
-  if (!usuario) { window.location.href = '../index.html'; return; }
+  if (!usuario) { localStorage.setItem('dima_redirect', window.location.href); window.location.href = '../index.html'; return; }
   document.getElementById('app').innerHTML =
     gerarLayout(tituloPagina, paginaAtiva) + `</div></div></div>`;
   carregarLogosSidebar();
