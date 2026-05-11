@@ -1,6 +1,24 @@
 // produtos.js — Avaliação de Produtos DIMA
 // Sem template literals — concatenação pura para evitar corte pelo parser HTML
 
+async function enviarEmailProduto(produto_id,entrega_id,evento){
+  try{
+    var sess=await db.auth.getSession();
+    var token=sess.data&&sess.data.session&&sess.data.session.access_token;
+    var resp=await fetch(SUPABASE_URL+'/functions/v1/enviar-email-produto',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({produto_id:produto_id,entrega_id:entrega_id||null,evento:evento})
+    });
+    var result=await resp.json();
+    if(result.ok&&result.enviados>0){
+      await db.from('produto_notif_log').insert({produto_id:produto_id,entrega_id:entrega_id||null,evento:evento,total_enviados:result.enviados,falhas:result.falhas||0,enviado_por:appState.usuario.id});
+    }
+  }catch(e){
+    console.error('Erro ao enviar e-mail de produto:',e);
+  }
+}
+
 let atividades=[],contratos=[],todosProdutos=[];
 let produtoAtual=null,entregaAtual=null,entregaArquivo=null;
 let filtAtiv='',filtCont='',filtForn='',decisaoSel='';
