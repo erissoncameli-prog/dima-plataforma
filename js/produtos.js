@@ -852,6 +852,7 @@ async function abrirModal(prodId){
     document.getElementById('mp-footer').innerHTML='<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>';
   }
 
+  html+=await renderHistoricoEmails(prodId);
   document.getElementById('mp-body').innerHTML=html;
   document.getElementById('modal-prod').classList.add('aberto');
 }
