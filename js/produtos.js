@@ -879,7 +879,7 @@ async function renderLinhaTempo(p){
     +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:14px">&#x1F4CB; Histórico do produto</div>';
 
   var cadC='<div style="font-size:12px;font-weight:700;color:var(--cinza-900)">Produto cadastrado</div>'
-    +'<div style="font-size:11px;color:var(--cinza-500);margin-top:2px">'+fmtDT(p.criado_em)+'</div>'
+    +'<div style="font-size:11px;color:var(--cinza-500);margin-top:2px">'+fmtDT(p.criado_em)+(p.criado_por_u&&p.criado_por_u.nome_completo?' · '+esc(p.criado_por_u.nome_completo):'')+'</div>'
     +'<div style="font-size:11px;color:var(--cinza-600);margin-top:4px">Valor: <strong>'+fmtBRL(p.valor_brl)+'</strong>'+(p.dt_vencimento?' · Vence: '+fmtData(p.dt_vencimento):'')+'</div>';
   html+=tlItem('&#x1F7E2;','#D1FAE5',cadC,entregas.length>0);
 
