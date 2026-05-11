@@ -1271,7 +1271,7 @@ async function abrirPagamento(id) {
   let entregaDocs = [], entregaContribs = [], entregaInfo = null, entDevolvidas = [], entAprovada = null;
   if (produto) {
     const { data: todasEnts } = await db.from('contratos_produtos_entregas')
-      .select('id,numero_entrega,dt_entrega,situacao,despacho_data,despachado_em,despacho_texto')
+      .select('id,numero_entrega,dt_entrega,situacao,despacho_data,despachado_em,despacho_texto,criado_por_u:usuarios!contratos_produtos_entregas_criado_por_fkey(nome_completo),despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo)')
       .eq('produto_id', produto.id)
       .order('numero_entrega', { ascending: true });
     const listaEntregas = todasEnts || [];
