@@ -1321,9 +1321,12 @@ async function abrirPagamento(id) {
     const situacaoAprovada = ['aprovado', 'entrega_parcial', 'pago'].includes(produto.situacao);
     if (produto.avaliado_em || situacaoAprovada) {
       const avaliador = produto.usuarios?.nome_completo || 'Avaliador';
+      const dtAprov = produto.avaliado_em
+        || entAprovada?.despacho_data
+        || (entAprovada?.despachado_em ? entAprovada.despachado_em.split('T')[0] : null);
       itens.push({ dot:'ok', ico:'✅',
         titulo: `Avaliado — ${produto.pct_aprovado != null ? produto.pct_aprovado+'% aprovado' : 'Aprovado'}`,
-        data: `${produto.avaliado_em ? fmtData(produto.avaliado_em)+' · ' : ''}${avaliador}`,
+        data: `${dtAprov ? fmtData(dtAprov)+' · ' : ''}${avaliador}`,
         parecer: produto.parecer_avaliador });
     } else if (produto.dt_entrega) {
       itens.push({ dot:'warn', ico:'🔍', titulo:'Aguardando avaliação', data:'Produto entregue, pendente de avaliação' });
