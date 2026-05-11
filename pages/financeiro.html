@@ -1276,6 +1276,7 @@ async function abrirPagamento(id) {
       .order('numero_entrega', { ascending: true });
     const listaEntregas = todasEnts || [];
     entDevolvidas = listaEntregas.filter(e => e.situacao === 'devolvida');
+    entAprovada = listaEntregas.filter(e => e.situacao === 'aprovada').slice(-1)[0] || null;
     const ent = listaEntregas.slice(-1)[0] || null;
     if (ent) {
       entregaInfo = ent;
