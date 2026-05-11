@@ -509,6 +509,30 @@ function renderOperacional(){
       {type:'line',label:'Valor U$',data:stKs2.map(function(k){return stVal2[k];}),borderColor:'#D97706',backgroundColor:'rgba(217,119,6,.1)',pointBackgroundColor:'#D97706',pointRadius:5,fill:true,tension:0.3,yAxisID:'y2'},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#6B7280'}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{stepSize:1,font:{size:10},color:'#9CA3AF'},title:{display:true,text:'Qtd',font:{size:10}}},y2:{position:'right',grid:{display:false},ticks:{font:{size:10},color:'#9CA3AF',callback:function(v){return 'U$'+Math.round(v/1000)+'K';}},title:{display:true,text:'Valor',font:{size:10}}}}}});
 
+    // Atividades × TDRs — barras empilhadas horizontais
+    var _stCores={rascunho:'#D1D5DB',revisao_interna:'#93C5FD',ajustes:'#FCD34D',enviado_unesco:'#6EE7B7',retorno_unesco:'#F9A8D4',aprovado:'#34D399',cancelado:'#FCA5A5'};
+    var _stLabels={rascunho:'Rascunho',revisao_interna:'Revisão',ajustes:'Ajustes',enviado_unesco:'UNESCO',retorno_unesco:'Retorno',aprovado:'Aprovado',cancelado:'Cancelado'};
+    var atvLabels=atvTdrs.map(function(x){return x.total===0?'⚠ '+x.atv.codigo:x.atv.codigo;});
+    var atvDatasets=_stKeys.map(function(sk){
+      return{label:_stLabels[sk],data:atvTdrs.map(function(x){return x.counts[sk]||0;}),backgroundColor:_stCores[sk],borderRadius:2,borderSkipped:false};
+    });
+    // dataset phantom para atividades sem TDR (barra vermelha tênue de 0.3 indicando ausência)
+    atvDatasets.unshift({label:'Sem TDR',data:atvTdrs.map(function(x){return x.total===0?0.4:0;}),backgroundColor:'#FCA5A5',borderRadius:2,borderSkipped:false});
+    mkChart('ch-atv-tdrs',{type:'bar',data:{labels:atvLabels,datasets:atvDatasets},options:{
+      responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10},boxWidth:10,padding:8,filter:function(item){return item.text!=='Sem TDR';}}},
+        tooltip:{callbacks:{
+          title:function(items){var x=atvTdrs[items[0].dataIndex];return x.atv.codigo+' — '+(x.atv.nome_pt||'').substring(0,50);},
+          afterTitle:function(items){var x=atvTdrs[items[0].dataIndex];return x.total===0?'⚠ Nenhum TDR cadastrado':x.total+' TDR(s) no total';}
+        }}
+      },
+      scales:{
+        x:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{stepSize:1,font:{size:10},color:'#9CA3AF'}},
+        y:{stacked:true,grid:{display:false},ticks:{font:{size:10},color:function(ctx){var x=atvTdrs[ctx.index];return x&&x.total===0?'#EF4444':'#374151';}}}
+      }
+    }});
+
     // TDRs por responsável — barras empilhadas horizontais
     var stCores={rascunho:'#D1D5DB',revisao_interna:'#93C5FD',ajustes:'#FCD34D',enviado_unesco:'#6EE7B7',retorno_unesco:'#F9A8D4',aprovado:'#34D399',cancelado:'#FCA5A5'};
     var stLabels={rascunho:'Rascunho',revisao_interna:'Revisão interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado',cancelado:'Cancelado'};
