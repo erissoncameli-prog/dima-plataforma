@@ -1562,7 +1562,14 @@ function atualizarComparativoCotacao() {
 }
 
 function abrirSenhaPgto() {
+  const perfisAutorizados = ['super_admin', 'financeiro'];
+  if (!perfisAutorizados.includes(appState.perfil)) {
+    toast('Acesso negado. Apenas Super Admin e Financeiro podem efetivar pagamentos.', 'error');
+    return;
+  }
   const email = appState.sessao?.user?.email || '';
+  const nome  = appState.usuario?.nome_completo || '';
+  document.getElementById('senha-pgto-nome').textContent  = nome;
   document.getElementById('senha-pgto-email').textContent = email;
   document.getElementById('inp-senha-pgto').value = '';
   document.getElementById('senha-pgto-erro').style.display = 'none';
