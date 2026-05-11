@@ -1571,10 +1571,30 @@ async function confirmarPagamento() {
     if (error) throw error;
 
     // Marcar produto como pago em contratos_produtos (vínculo reverso via lancamento_id)
-    await db.from('contratos_produtos')
+    const { data: prodsPagos } = await db.from('contratos_produtos')
       .update({ situacao: 'pago', atualizado_em: new Date().toISOString() })
       .eq('lancamento_id', l.id)
-      .eq('situacao', 'aprovado');
+      .eq('situacao', 'aprovado')
+      .select('id');
+
+    // Notificar fornecedor por e-mail
+    if (prodsPagos && prodsPagos.length) {
+      const sess = await db.auth.getSession();
+      const token = sess.data?.session?.access_token;
+      for (const prod of prodsPagos) {
+        try {
+          const r = await fetch(SUPABASE_URL+'/functions/v1/enviar-email-produto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer '+token },
+            body: JSON.stringify({ produto_id: prod.id, evento: 'pago' })
+          });
+          const result = await r.json();
+          if (result.ok && result.enviados > 0) {
+            await db.from('produto_notif_log').insert({ produto_id: prod.id, evento: 'pago', total_enviados: result.enviados, falhas: result.falhas||0, enviado_por: appState.usuario.id });
+          }
+        } catch(e) { console.error('Erro e-mail pago:', e); }
+      }
+    }
 
     // Upload comprovante se selecionado
     if (arquivoPgto) {
