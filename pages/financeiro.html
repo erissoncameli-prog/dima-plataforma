@@ -1291,12 +1291,21 @@ async function abrirPagamento(id) {
           : `Prazo: ${fmtData(produto.dt_vencimento)}` });
     }
 
-    // 3. Avaliação
-    if (produto.avaliado_em) {
+    // 2.5 Devoluções registradas em contratos_produtos_entregas
+    entDevolvidas.forEach(e => {
+      const dtDev = e.despacho_data ? fmtData(e.despacho_data)
+        : e.despachado_em ? fmtData(e.despachado_em.split('T')[0])
+        : `Entrega ${e.numero_entrega}`;
+      itens.push({ dot:'dev', ico:'↩️', titulo:'Devolvido para ajustes', data:`Devolvido em ${dtDev}`, parecer: e.despacho_texto });
+    });
+
+    // 3. Avaliação — considera situacao do produto quando avaliado_em não foi preenchido
+    const situacaoAprovada = ['aprovado', 'entrega_parcial', 'pago'].includes(produto.situacao);
+    if (produto.avaliado_em || situacaoAprovada) {
       const avaliador = produto.usuarios?.nome_completo || 'Avaliador';
       itens.push({ dot:'ok', ico:'✅',
         titulo: `Avaliado — ${produto.pct_aprovado != null ? produto.pct_aprovado+'% aprovado' : 'Aprovado'}`,
-        data: `${fmtData(produto.avaliado_em)} · ${avaliador}`,
+        data: `${produto.avaliado_em ? fmtData(produto.avaliado_em)+' · ' : ''}${avaliador}`,
         parecer: produto.parecer_avaliador });
     } else if (produto.dt_entrega) {
       itens.push({ dot:'warn', ico:'🔍', titulo:'Aguardando avaliação', data:'Produto entregue, pendente de avaliação' });
