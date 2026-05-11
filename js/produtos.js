@@ -1229,10 +1229,14 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
   fecharModal();await selecionarCont(filtCont);await renderStats();
 }
 
+var _emitindoDespacho=false;
 async function emitirDespacho(tipoBtn){
+  if(_emitindoDespacho)return;
+  _emitindoDespacho=true;
+  try{
   if(tipoBtn)selecionarDecisao(tipoBtn);
   var tipo=tipoBtn||decisaoSel;
-  if(!tipo){toast('Selecione uma decisão.','error');return;}
+  if(!tipo){_emitindoDespacho=false;toast('Selecione uma decisão.','error');return;}
   var despacho=document.getElementById('f-despacho')&&document.getElementById('f-despacho').value&&document.getElementById('f-despacho').value.trim()||'';
   var dtDesp=document.getElementById('f-dt-desp')&&document.getElementById('f-dt-desp').value||'';
   if(!despacho||despacho.length<20){
