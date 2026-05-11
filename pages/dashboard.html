@@ -449,6 +449,17 @@ function renderOperacional(){
   // Linha barra TDR status
   h+='<div class="ch"><div class="ch-tit">Evolução do fluxo de TDRs</div><div class="ch-sub">Quantidade e valor por status</div><div style="position:relative;height:200px"><canvas id="ch-tdr-bar-combo"></canvas></div></div>';
 
+  // Atividades × TDRs — card visual
+  h+='<div class="ch" style="margin-bottom:14px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  h+='<div><div class="ch-tit">Atividades × TDRs cadastrados</div><div class="ch-sub">Cobertura por atividade — ordenado por prioridade (sem TDR primeiro)</div></div>';
+  h+='<div style="display:flex;gap:8px;flex-shrink:0">';
+  h+='<span style="font-size:11px;font-weight:700;background:#FEE2E2;color:#991B1B;padding:4px 12px;border-radius:20px">'+_semTdr+' sem TDR</span>';
+  h+='<span style="font-size:11px;font-weight:700;background:#D1FAE5;color:#065F46;padding:4px 12px;border-radius:20px">'+_comTdr+' com TDR</span>';
+  h+='</div></div>';
+  h+='<div style="position:relative;height:'+(atvTdrs.length*30+50)+'px"><canvas id="ch-atv-tdrs"></canvas></div>';
+  h+='</div>';
+
   // TDRs por responsável
   var respSet=new Map();
   D.tdrs.forEach(function(t){
