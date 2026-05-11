@@ -517,7 +517,7 @@ function renderResultados(){
   var pago=D.lanc.filter(function(l){return l.situacao==='pago';}).reduce(function(s,l){return s+parseFloat(l.valor_usd||0);},0);
   var orc=D.atv.reduce(function(s,a){return s+parseFloat(a.orcamento_usd||0);},0);
   var mProgR=D.matrizProg||[];
-  var comMetaR=D.matrizItens.filter(function(i){return parseFloat(i.meta_numerica||0)>0;});
+  var comMetaR=D.matrizItens;
   var metasProg=comMetaR.filter(function(i){
     var p=mProgR.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
     return parseFloat(p.pct_confirmado||0)>0;
