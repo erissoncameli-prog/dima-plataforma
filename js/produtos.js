@@ -859,7 +859,7 @@ async function abrirModal(prodId){
 
 async function renderLinhaTempo(p){
   var r=await db.from('contratos_produtos_entregas')
-    .select('*,criado_por_u:usuarios!contratos_produtos_entregas_criado_por_fkey(nome_completo),despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo),lancamento:execucao_financeira!contratos_produtos_entregas_lancamento_id_fkey(id,situacao,valor_brl,dt_pagamento),documentos:entrega_documentos(*)')
+    .select('*,criado_por_u:usuarios!contratos_produtos_entregas_criado_por_fkey(nome_completo),despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo),lancamento:execucao_financeira!contratos_produtos_entregas_lancamento_id_fkey(id,situacao,valor_brl,dt_pagamento,pago_por_u:usuarios!execucao_financeira_pago_por_fkey(nome_completo)),documentos:entrega_documentos(*)')
     .eq('produto_id',p.id).order('numero_entrega');
   var entregas=r.data||[];
 
