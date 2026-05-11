@@ -624,9 +624,9 @@ function renderResultados(){
   }
 
   h+='<div class="kpi-row">';
-  h+='<div class="kpi-card kv"><div class="kpi-lbl">Metas com progresso</div><div class="kpi-val" style="color:var(--sucesso)">'+metasProg+' / '+D.ind.length+'</div><div class="kpi-sub">indicadores com valor > 0</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+D_P(metasProg,D.ind.length)+'%;background:var(--sucesso)"></div></div></div>';
+  h+='<div class="kpi-card kv"><div class="kpi-lbl">Metas com progresso</div><div class="kpi-val" style="color:var(--sucesso)">'+metasProg+' / '+comMetaR.length+'</div><div class="kpi-sub">indicadores com progresso &gt; 0</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+D_P(metasProg,comMetaR.length)+'%;background:var(--sucesso)"></div></div></div>';
   h+='<div class="kpi-card ko"><div class="kpi-lbl">Financeiro vs metas</div><div class="kpi-val" style="color:var(--ouro)">'+(orc>0?pago/orc*100:0).toFixed(1)+'%</div><div class="kpi-sub">pago vs. orçamento total</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+(orc>0?Math.min(pago/orc*100,100):0)+'%;background:var(--ouro)"></div></div></div>';
-  h+='<div class="kpi-card ke"><div class="kpi-lbl">Indicadores em risco</div><div class="kpi-val" style="color:var(--erro)">'+(D.ind.length-metasProg)+'</div><div class="kpi-sub">sem avanço registrado</div></div>';
+  h+='<div class="kpi-card ke"><div class="kpi-lbl">Indicadores em risco</div><div class="kpi-val" style="color:var(--erro)">'+emRiscoGlobal+'</div><div class="kpi-sub">com progresso &lt; 40%</div></div>';
   h+='<div class="kpi-card ka"><div class="kpi-lbl">Resultados ativos</div><div class="kpi-val" style="color:var(--azul-medio)">'+rks.length+'</div><div class="kpi-sub">com atividades e orçamento</div></div>';
   h+='</div>';
 
