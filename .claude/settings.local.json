@@ -46,7 +46,11 @@
       "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\lucid-villani-7ac4f8\" commit -m \"feat: rosca de execução financeira total na aba execução do dashboard\")",
       "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\lucid-villani-7ac4f8\" push origin HEAD:main)",
       "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\lucid-villani-7ac4f8\" show --stat HEAD)",
-      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\lucid-villani-7ac4f8\" log --oneline -5)"
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\lucid-villani-7ac4f8\" log --oneline -5)",
+      "Bash(Get-ChildItem -Path . -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(ls -la \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\"/*.sql 2>/dev/null | head -5)"
     ]
   }
 }
