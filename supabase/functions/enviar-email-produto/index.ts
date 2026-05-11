@@ -226,14 +226,28 @@ Deno.serve(async (req) => {
     }
 
     // Buscar responsáveis da atividade (para evento entregue)
+    // Duas queries separadas — o join implícito usuarios(...) pode falhar silenciosamente
     let responsaveis: any[] = []
     if (evento === 'entregue' && p.contratos?.atividades?.id) {
       const { data: resps } = await supabase
         .from('atividade_responsaveis')
-        .select('usuario_id, papel, ativo, usuarios(id, nome_completo, email)')
+        .select('usuario_id, papel, ativo')
         .eq('atividade_id', p.contratos.atividades.id)
         .eq('ativo', true)
-      responsaveis = resps || []
+
+      if (resps && resps.length > 0) {
+        const userIds = resps.map((r: any) => r.usuario_id)
+        const { data: users } = await supabase
+          .from('usuarios')
+          .select('id, nome_completo, email')
+          .in('id', userIds)
+
+        // Combinar: cada resp recebe o objeto usuario correspondente
+        responsaveis = resps.map((r: any) => ({
+          ...r,
+          usuario: (users || []).find((u: any) => u.id === r.usuario_id) || null,
+        }))
+      }
     }
 
     const envios: Array<{ to: string; assunto: string; corpo: string; attachments?: any[] }> = []
