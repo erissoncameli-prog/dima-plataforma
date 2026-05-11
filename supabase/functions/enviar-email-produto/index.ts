@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
     // E-mail #1 — entregue → todos os responsáveis da atividade
     if (evento === 'entregue') {
       for (const r of responsaveis) {
-        const email = (r.usuarios as any)?.email
+        const email = r.usuario?.email
         if (!email) continue
         const tpl = tplResponsavel(p, entrega)
         envios.push({ to: email, ...tpl })
