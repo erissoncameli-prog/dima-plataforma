@@ -649,10 +649,10 @@ function renderResultados(){
     if(pC>0.5)h+='<div style="width:'+Math.min(pC,100)+'%;background:#D97706"></div>';
     h+='<div style="flex:1;background:var(--cinza-100)"></div></div>';
     rv.ind.slice(0,5).forEach(function(i){
-      var meta=parseFloat(i.meta_numerica||0),atual=parseFloat(i.valor_atingido||0);
-      var p=meta>0?Math.min(atual/meta*100,100):0;
-      var cor=p>=75?'var(--sucesso)':p>=30?'var(--aviso)':'var(--erro)';
-      h+='<div class="ind-row"><div class="ind-dot" style="background:'+cor+'"></div><div class="ind-nome">'+i.nome_pt+'</div><div class="ind-meta">meta '+meta+'</div><div class="ind-val" style="color:'+cor+'">'+atual+'</div><div class="ind-prog"><div class="ind-bar"><div class="ind-fill" style="width:'+p+'%;background:'+cor+'"></div></div><div class="ind-pct">'+Math.round(p)+'%</div></div></div>';
+      var pg=D.matrizProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0,realizado_confirmado:0};
+      var pct=Math.min(parseFloat(pg.pct_confirmado||0),100);
+      var cor=pct>=75?'var(--sucesso)':pct>=30?'var(--aviso)':'var(--erro)';
+      h+='<div class="ind-row"><div class="ind-dot" style="background:'+cor+'"></div><div class="ind-nome">'+(i.indicador||'—')+'</div><div class="ind-meta">meta '+(i.meta_numerica||'—')+'</div><div class="ind-val" style="color:'+cor+'">'+pct.toFixed(0)+'%</div><div class="ind-prog"><div class="ind-bar"><div class="ind-fill" style="width:'+pct+'%;background:'+cor+'"></div></div><div class="ind-pct">'+Math.round(pct)+'%</div></div></div>';
     });
     if(rv.ind.length>5)h+='<div style="font-size:10px;color:var(--cinza-500);text-align:center;padding-top:6px">+ '+(rv.ind.length-5)+' indicadores</div>';
     h+='</div>';
