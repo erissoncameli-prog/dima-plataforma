@@ -426,7 +426,9 @@ async function fazerLogin(){
     if(usuario?.deve_trocar_senha){
       window.location.href='pages/trocar-senha.html';
     } else {
-      window.location.href='pages/dashboard.html';
+      const destino=localStorage.getItem('dima_redirect');
+      localStorage.removeItem('dima_redirect');
+      window.location.href=destino||'pages/dashboard.html';
     }
   }catch(e){erroEl.textContent=t.erro_gen;erroEl.style.display='block';}
   finally{btn.disabled=false;spinner.style.display='none';btnTexto.style.opacity='1';}
