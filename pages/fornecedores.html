@@ -727,6 +727,8 @@ async function salvar() {
   const doc = document.getElementById('f-doc')?.value.replace(/\D/g,'');
 
   if (!nome) { toast('Preencha o nome/razão social.','error'); return; }
+  const emailVal = document.getElementById('f-email')?.value.trim();
+  if (!emailVal) { toast('O campo e-mail é obrigatório para envio de notificações.','error'); document.getElementById('f-email')?.focus(); return; }
   if (doc) {
     const ok = tipo === 'PF' ? validarCPF(doc) : validarCNPJ(doc);
     if (!ok) { toast(`${tipo==='PF'?'CPF':'CNPJ'} inválido. Verifique antes de salvar.`,'error'); return; }
