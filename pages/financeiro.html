@@ -1604,6 +1604,8 @@ async function confirmarPagamento() {
 }
 
 async function executarPagamento() {
+  const dtPgto     = document.getElementById('pgto-data')?.value;
+  const cotUNESCO  = parseFloat(document.getElementById('pgto-cotacao-unesco')?.value) || 0;
   const l          = lancPagando;
   const valorBRL   = parseFloat(l.valor_brl || 0);
   const nf         = document.getElementById('pgto-nf')?.value.trim() || l.numero_nf || null;
