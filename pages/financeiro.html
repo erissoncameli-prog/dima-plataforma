@@ -1268,7 +1268,7 @@ async function abrirPagamento(id) {
   const vencido  = l.dt_vencimento && new Date(l.dt_vencimento) < new Date();
 
   // ── Documentos e contribuições da última entrega ──
-  let entregaDocs = [], entregaContribs = [], entregaInfo = null, entDevolvidas = [];
+  let entregaDocs = [], entregaContribs = [], entregaInfo = null, entDevolvidas = [], entAprovada = null;
   if (produto) {
     const { data: todasEnts } = await db.from('contratos_produtos_entregas')
       .select('id,numero_entrega,dt_entrega,situacao,despacho_data,despachado_em,despacho_texto')
