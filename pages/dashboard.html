@@ -276,7 +276,12 @@ function renderFinanciadores(){
   var pago=D.sal.reduce(function(s,a){return s+parseFloat(a.pago_usd||0);},0);
   var apagar=D.sal.reduce(function(s,a){return s+parseFloat(a.a_pagar_usd||0);},0);
   var taprov=D.tdrs.filter(function(t){return t.status==='aprovado';}).length;
-  var metasProg=D.ind.filter(function(i){return parseFloat(i.valor_atingido||0)>0;}).length;
+  var _mPF=D.matrizProg||[];
+  var _cmF=D.matrizItens.filter(function(i){return parseFloat(i.meta_numerica||0)>0;});
+  var metasProg=_cmF.filter(function(i){
+    var p=_mPF.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+    return parseFloat(p.pct_confirmado||0)>0;
+  }).length;
   var pExec=orc>0?pago/orc*100:0;
   var pComp=orc>0?comp/orc*100:0;
   var pApagar=orc>0?apagar/orc*100:0;
