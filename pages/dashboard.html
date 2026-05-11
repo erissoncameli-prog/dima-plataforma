@@ -251,9 +251,9 @@ function resMap(){
     m[k].pago+=parseFloat(s.pago_usd||0);
     m[k].apagar+=parseFloat(s.a_pagar_usd||0);
   });
-  D.ind.forEach(function(i){
-    var k=i.resultados&&i.resultados.codigo||null;
-    if(k&&m[k])m[k].ind.push(i);
+  D.matrizItens.forEach(function(mi){
+    var k='R'+mi.resultado;
+    if(m[k])m[k].ind.push(mi);
   });
   return m;
 }
