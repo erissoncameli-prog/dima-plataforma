@@ -1321,7 +1321,7 @@ async function abrirPagamento(id) {
     // 3. Avaliação — considera situacao do produto quando avaliado_em não foi preenchido
     const situacaoAprovada = ['aprovado', 'entrega_parcial', 'pago'].includes(produto.situacao);
     if (produto.avaliado_em || situacaoAprovada) {
-      const avaliador = produto.usuarios?.nome_completo || 'Avaliador';
+      const avaliador = produto.usuarios?.nome_completo || entAprovada?.despachado_por_u?.nome_completo || 'Avaliador';
       const dtAprov = produto.avaliado_em
         || entAprovada?.despacho_data
         || (entAprovada?.despachado_em ? entAprovada.despachado_em.split('T')[0] : null);
