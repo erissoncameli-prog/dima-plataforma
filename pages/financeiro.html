@@ -1561,12 +1561,49 @@ function atualizarComparativoCotacao() {
   }
 }
 
+function abrirSenhaPgto() {
+  const email = appState.sessao?.user?.email || '';
+  document.getElementById('senha-pgto-email').textContent = email;
+  document.getElementById('inp-senha-pgto').value = '';
+  document.getElementById('senha-pgto-erro').style.display = 'none';
+  const el = document.getElementById('modal-senha-pgto');
+  el.style.display = 'flex';
+  setTimeout(() => document.getElementById('inp-senha-pgto').focus(), 80);
+}
+
+function fecharSenhaPgto() {
+  document.getElementById('modal-senha-pgto').style.display = 'none';
+}
+
+async function verificarSenhaEPagar() {
+  const senha  = document.getElementById('inp-senha-pgto').value;
+  const erroEl = document.getElementById('senha-pgto-erro');
+  const btn    = document.getElementById('btn-conf-senha');
+  erroEl.style.display = 'none';
+  if (!senha) { erroEl.textContent = 'Informe sua senha.'; erroEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Verificando…';
+  const email = appState.sessao?.user?.email || '';
+  const { error } = await db.auth.signInWithPassword({ email, password: senha });
+  if (error) {
+    erroEl.textContent = 'Senha incorreta. Tente novamente.';
+    erroEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '🔑 Confirmar';
+    document.getElementById('inp-senha-pgto').select();
+    return;
+  }
+  fecharSenhaPgto();
+  await executarPagamento();
+}
+
 async function confirmarPagamento() {
   const dtPgto      = document.getElementById('pgto-data')?.value;
   const cotUNESCO   = parseFloat(document.getElementById('pgto-cotacao-unesco')?.value) || 0;
   if (!dtPgto)     { toast('Informe a data do pagamento.','error');    return; }
   if (!cotUNESCO)  { toast('Informe a cotação UNESCO (UNORE).','error'); return; }
+  abrirSenhaPgto();
+}
 
+async function executarPagamento() {
   const l          = lancPagando;
   const valorBRL   = parseFloat(l.valor_brl || 0);
   const nf         = document.getElementById('pgto-nf')?.value.trim() || l.numero_nf || null;
