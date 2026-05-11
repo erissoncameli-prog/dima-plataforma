@@ -541,9 +541,9 @@ function renderForm(f) {
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">E-mail</label>
+        <label class="form-label">E-mail <span style="color:#DC2626">*</span></label>
         <input class="form-control" id="f-email" type="email" value="${f?.email||''}"
-          placeholder="contato@empresa.com.br">
+          placeholder="contato@empresa.com.br" required>
       </div>
 
       <div class="form-section-title">Responsável pelo contrato</div>
