@@ -312,7 +312,7 @@ function renderFinanciadores(){
     {lbl:'Comprometido (TDR)', val:D_PCT(pComp),        sub:D_USD(comp)+' em TDRs ativos',          pct:Math.min(pComp,100),              cor:'#D97706', bg:'#FFFBEB', bc:'#FDE68A'},
     {lbl:'A pagar',            val:D_PCT(pApagar),       sub:D_USD(apagar)+' comprometido financ.',   pct:Math.min(pApagar,100),            cor:'#F59E0B', bg:'#FFFBEB', bc:'#FEF3C7'},
     {lbl:'TDRs aprovados',     val:taprov+' / '+D.tdrs.length, sub:D_PCT(pTdr)+' do total',          pct:Math.min(pTdr,100),               cor:'#2563EB', bg:'#EFF6FF', bc:'#BFDBFE'},
-    {lbl:'Metas com avanço',   val:metasProg+' / '+D.ind.length, sub:'indicadores em progresso',     pct:D_P(metasProg,D.ind.length),      cor:'#7C3AED', bg:'#F5F3FF', bc:'#DDD6FE'},
+    {lbl:'Metas com avanço',   val:metasProg+' / '+_cmF.length,  sub:'indicadores com progresso >0',  pct:D_P(metasProg,_cmF.length),       cor:'#7C3AED', bg:'#F5F3FF', bc:'#DDD6FE'},
   ].forEach(function(c){
     h+='<div style="background:'+c.bg+';border:1px solid '+c.bc+';border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:3px">';
     h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.05em;text-transform:uppercase">'+c.lbl+'</div>';
