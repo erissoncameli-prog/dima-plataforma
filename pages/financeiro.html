@@ -1154,9 +1154,9 @@ async function cancelarLanc(id) {
 async function abrirComp(lancId, url) {
   try {
     const urlObj = new URL(url);
-    const match = urlObj.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
+    const match = urlObj.pathname.match(/\/object\/public\/(financeiro-docs|tdrs-arquivos)\/(.+)/);
     if (match) {
-      const {data,error} = await db.storage.from('tdrs-arquivos').createSignedUrl(match[1],3600);
+      const {data,error} = await db.storage.from(match[1]).createSignedUrl(match[2],3600);
       if (!error && data?.signedUrl) { window.open(data.signedUrl,'_blank'); return; }
     }
     window.open(url,'_blank');
