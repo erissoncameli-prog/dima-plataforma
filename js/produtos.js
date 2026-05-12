@@ -1131,12 +1131,12 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
     for(var i=0;i<fotosNovas.length;i++){
       var foto=fotosNovas[i];var ext=foto.name.split('.').pop().toLowerCase();
       var path='produtos/'+produtoAtual.id+'/foto-ent'+numEntrega+'-'+(i+1)+'-'+Date.now()+'.'+ext;
-      var fUp=await db.storage.from('tdrs-arquivos').upload(path,foto,{upsert:true,contentType:foto.type});
+      var fUp=await db.storage.from('entregas-docs').upload(path,foto,{upsert:true,contentType:foto.type});
       if(fUp.error){
         console.error('Erro upload foto '+(i+1)+':',fUp.error);
         fotosErros++;
       } else {
-        var fUrl=db.storage.from('tdrs-arquivos').getPublicUrl(path);
+        var fUrl=db.storage.from('entregas-docs').getPublicUrl(path);
         fotosUrls.push(fUrl.data.publicUrl);
         fotosNomes.push(foto.name);
       }
