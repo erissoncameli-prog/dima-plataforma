@@ -166,6 +166,37 @@
   </div>
 </div>
 
+<!-- Chat panel (fora do #app para z-index correto) -->
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-header">
+    <div class="chat-header-icon">🤖</div>
+    <div class="chat-header-info">
+      <div class="chat-header-title">Assistente de Auditoria</div>
+      <div class="chat-header-sub" id="chat-header-sub">Powered by Claude — sem contexto ainda</div>
+    </div>
+    <button class="chat-close" onclick="toggleChat()" title="Fechar">✕</button>
+  </div>
+  <div class="chat-msgs" id="chat-msgs">
+    <div class="chat-welcome" id="chat-welcome">
+      <div class="chat-welcome-icon">🤖</div>
+      <div class="chat-welcome-title">Assistente de Auditoria IA</div>
+      <div class="chat-welcome-text">Faça perguntas sobre os achados, peça recomendações de prioridade ou ajuda para redigir resoluções.</div>
+      <div class="chat-sugestoes">
+        <button class="chat-sugestao" onclick="enviarSugestao('Quais são os achados mais críticos e o que devo resolver primeiro?')">🚨 O que resolver primeiro?</button>
+        <button class="chat-sugestao" onclick="enviarSugestao('Resuma os problemas encontrados na auditoria por domínio')">📋 Resumo por domínio</button>
+        <button class="chat-sugestao" onclick="enviarSugestao('Quais contratos têm problemas com TDR ou documentação?')">📄 Contratos com problemas</button>
+        <button class="chat-sugestao" onclick="enviarSugestao('Há algum risco financeiro imediato que precise de atenção urgente?')">💰 Riscos financeiros</button>
+      </div>
+    </div>
+  </div>
+  <div class="chat-input-area">
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chat-input" placeholder="Pergunte sobre os achados..." rows="1" onkeydown="chatKeydown(event)" oninput="autoResizeTextarea(this)"></textarea>
+      <button class="chat-send" id="chat-send" onclick="enviarMensagemChat()" title="Enviar">➤</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
