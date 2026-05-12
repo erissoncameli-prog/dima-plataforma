@@ -1401,6 +1401,31 @@ async function abrirArquivo(){
   }
 }
 
+// ── UPLOAD ARQUIVO TDR EXISTENTE ─────────────────────────────
+window.uploadArquivoTDR = async function(tdrId, file) {
+  if (!file) return;
+  const MAX = 50 * 1024 * 1024;
+  if (file.size > MAX) { toast('Arquivo muito grande (máx 50 MB).', 'error'); return; }
+  toast('Enviando arquivo...', 'info');
+  try {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const path = `tdr-${tdrId}/v-upload-${Date.now()}.${ext}`;
+    const { error: upErr } = await db.storage.from('tdrs-arquivos').upload(path, file, { upsert: true });
+    if (upErr) throw upErr;
+    const { data: urlData } = db.storage.from('tdrs-arquivos').getPublicUrl(path);
+    await db.from('tdrs').update({ arquivo_url: urlData.publicUrl, arquivo_nome: file.name }).eq('id', tdrId);
+    // Atualizar cache local
+    const tdr = todosTDRs.find(t => t.id === tdrId);
+    if (tdr) { tdr.arquivo_url = urlData.publicUrl; tdr.arquivo_nome = file.name; }
+    if (tdrAtual && tdrAtual.id === tdrId) { tdrAtual.arquivo_url = urlData.publicUrl; tdrAtual.arquivo_nome = file.name; }
+    toast('Arquivo enviado com sucesso!', 'success');
+    // Reabrir o painel para refletir a mudança
+    await abrirTDR(tdrId);
+  } catch(e) {
+    toast('Erro no upload: ' + (e.message || 'Tente novamente.'), 'error');
+  }
+};
+
 // ── NOVO TDR ─────────────────────────────────────────────────
 function abrirNovo(){
   arquivoSelecionado=null;
