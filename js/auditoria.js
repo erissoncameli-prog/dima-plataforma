@@ -132,6 +132,7 @@ async function carregarUltimaExecucao() {
 
   if (!execucao) return
   mostrarBannerExecucao(execucao)
+  setChatExecucao(execucao.id, execucao.concluido_em)
   await carregarAchados(execucao.id)
 }
 
