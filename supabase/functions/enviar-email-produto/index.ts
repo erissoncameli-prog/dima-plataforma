@@ -23,6 +23,29 @@ function fmtBRL(v: number): string {
 const ASS = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC\nfundobrasilonuacre@gmail.com`
 
 // ── Template para responsáveis da atividade (evento: entregue) ────────────────
+function tplResponsavelPago(p: any, entrega: any): { assunto: string; corpo: string } {
+  const numProd  = p.numero_produto || '—'
+  const desc     = p.descricao || '—'
+  const cont     = p.contratos?.numero || '—'
+  const ativ     = p.contratos?.atividades
+  const ativDesc = ativ ? `${ativ.codigo} — ${ativ.nome_pt}` : '—'
+  const forn     = p.contratos?.fornecedores?.nome || '—'
+  const valor    = parseFloat(entrega?.valor_entregue || 0)
+
+  return {
+    assunto: `[DIMA] Produto Nº ${numProd} — Pagamento confirmado ✓`,
+    corpo: `Prezado(a) responsável,
+
+Informamos que o pagamento referente ao Produto Nº ${numProd} foi confirmado e registrado no módulo financeiro da Plataforma DIMA.
+
+PRODUTO   : Nº ${numProd} — ${desc}
+ATIVIDADE : ${ativDesc}
+CONTRATO  : ${cont}
+FORNECEDOR: ${forn}
+VALOR PAGO: ${valor > 0 ? fmtBRL(valor) : '—'}${ASS}`,
+  }
+}
+
 function tplResponsavel(p: any, entrega: any): { assunto: string; corpo: string } {
   const numProd  = p.numero_produto || '—'
   const desc     = p.descricao || '—'
@@ -224,7 +247,7 @@ Deno.serve(async (req) => {
         .eq('id', entrega_id)
         .single()
       entrega = e
-    } else if (['aprovado', 'aprovado_parcial'].includes(evento)) {
+    } else if (['aprovado', 'aprovado_parcial', 'pago'].includes(evento)) {
       const { data: e } = await supabase
         .from('contratos_produtos_entregas')
         .select('*, documentos:entrega_documentos(arquivo_url, arquivo_nome, tipo_documento)')
@@ -236,10 +259,10 @@ Deno.serve(async (req) => {
       entrega = e
     }
 
-    // Buscar responsáveis da atividade (para evento entregue)
+    // Buscar responsáveis da atividade (para eventos entregue e pago)
     // Duas queries separadas — o join implícito usuarios(...) pode falhar silenciosamente
     let responsaveis: any[] = []
-    if (evento === 'entregue' && p.contratos?.atividades?.id) {
+    if (['entregue', 'pago'].includes(evento) && p.contratos?.atividades?.id) {
       const { data: resps } = await supabase
         .from('atividade_responsaveis')
         .select('usuario_id, papel, ativo')
@@ -269,6 +292,16 @@ Deno.serve(async (req) => {
         const email = r.usuario?.email
         if (!email) continue
         const tpl = tplResponsavel(p, entrega)
+        envios.push({ to: email, ...tpl })
+      }
+    }
+
+    // E-mail pago → responsáveis da atividade
+    if (evento === 'pago') {
+      for (const r of responsaveis) {
+        const email = r.usuario?.email
+        if (!email) continue
+        const tpl = tplResponsavelPago(p, entrega)
         envios.push({ to: email, ...tpl })
       }
     }
