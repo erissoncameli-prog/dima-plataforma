@@ -180,8 +180,9 @@
     <div class="chat-welcome" id="chat-welcome">
       <div class="chat-welcome-icon">🤖</div>
       <div class="chat-welcome-title">Assistente de Auditoria IA</div>
-      <div class="chat-welcome-text">Faça perguntas sobre os achados, peça recomendações de prioridade ou ajuda para redigir resoluções.</div>
+      <div class="chat-welcome-text">Faça perguntas sobre os achados, rode uma nova auditoria ou peça ajuda para resolver inconsistências.</div>
       <div class="chat-sugestoes">
+        <button class="chat-sugestao cmd" onclick="enviarSugestao('/auditar')">/auditar — Rodar auditoria completa agora</button>
         <button class="chat-sugestao" onclick="enviarSugestao('Quais são os achados mais críticos e o que devo resolver primeiro?')">🚨 O que resolver primeiro?</button>
         <button class="chat-sugestao" onclick="enviarSugestao('Resuma os problemas encontrados na auditoria por domínio')">📋 Resumo por domínio</button>
         <button class="chat-sugestao" onclick="enviarSugestao('Quais contratos têm problemas com TDR ou documentação?')">📄 Contratos com problemas</button>
