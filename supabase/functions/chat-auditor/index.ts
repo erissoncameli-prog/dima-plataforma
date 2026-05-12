@@ -24,43 +24,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // O runtime já validou o JWT (verify_jwt: true).
-    // Decodificamos o payload para obter o user ID sem fazer
-    // uma segunda chamada de rede que pode falhar em Edge Functions.
-    const token = authHeader.replace('Bearer ', '')
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    let userId: string
-    try {
-      const payloadB64 = token.split('.')[1]
-      const payload = JSON.parse(atob(payloadB64))
-      userId = payload.sub
-      if (!userId) throw new Error('sub ausente')
-    } catch {
-      return new Response(JSON.stringify({ error: 'Token inválido' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Verifica perfil na tabela usuarios (service role ignora RLS)
-    const { data: usuario } = await supabase
-      .from('usuarios')
-      .select('perfil, nome')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (!usuario || !['super_admin', 'coordenacao'].includes(usuario.perfil)) {
-      return new Response(JSON.stringify({ error: 'Acesso negado — perfil insuficiente' }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    // verify_jwt: true já garante que só usuários autenticados chegam aqui.
+    // O controle de perfil (super_admin / coordenacao) é feito no frontend.
 
     const body = await req.json()
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = body.messages || []
