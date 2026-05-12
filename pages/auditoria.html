@@ -145,6 +145,13 @@
 .chat-sugestao:hover{border-color:var(--verde-claro);color:var(--verde-medio);background:#F0FDF4;}
 .chat-sugestao.cmd{font-family:var(--font-mono);font-size:11px;background:#EEF2FF;border-color:#C7D2FE;color:#4338CA;}
 .chat-sugestao.cmd:hover{background:#E0E7FF;border-color:#818CF8;color:#3730A3;}
+/* Chips bar — sempre visível acima do input */
+.chat-chips-bar{display:flex;gap:5px;padding:7px 12px 0;overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
+.chat-chips-bar::-webkit-scrollbar{display:none;}
+.chat-chip{white-space:nowrap;flex-shrink:0;padding:4px 10px;border-radius:99px;border:1px solid var(--borda);background:var(--branco);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font-sans);color:var(--cinza-600);transition:all .12s;}
+.chat-chip:hover{background:var(--cinza-100);border-color:var(--cinza-300);}
+.chat-chip.cmd{font-family:var(--font-mono);background:#EEF2FF;border-color:#C7D2FE;color:#4338CA;}
+.chat-chip.cmd:hover{background:#E0E7FF;border-color:#818CF8;color:#3730A3;}
 /* Chat toggle button */
 .btn-chat{display:inline-flex;align-items:center;gap:7px;background:var(--cinza-50);color:var(--cinza-700);border:1px solid var(--borda);border-radius:var(--raio);padding:9px 15px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-sans);transition:all .15s;white-space:nowrap;}
 .btn-chat:hover{background:var(--cinza-100);border-color:var(--cinza-300);}
