@@ -502,3 +502,136 @@ async function ignorarAchado(id) {
   renderStats()
   renderDomChart()
 }
+
+// ── Chat ────────────────────────────────────────────────────────
+function setChatExecucao(id, dt) {
+  _chatExecucaoId = id
+  const sub = document.getElementById('chat-header-sub')
+  if (sub) {
+    const dtFmt = dt
+      ? new Date(dt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '?'
+    sub.textContent = 'Contexto: auditoria de ' + dtFmt
+  }
+}
+
+function toggleChat() {
+  _chatAberto = !_chatAberto
+  const panel  = document.getElementById('chat-panel')
+  const btnChat = document.getElementById('btn-chat')
+  if (panel) {
+    if (_chatAberto) panel.classList.add('aberto')
+    else             panel.classList.remove('aberto')
+  }
+  if (btnChat) {
+    if (_chatAberto) btnChat.classList.add('ativo')
+    else             btnChat.classList.remove('ativo')
+  }
+}
+
+function enviarSugestao(texto) {
+  const input = document.getElementById('chat-input')
+  if (input) {
+    input.value = texto
+    autoResizeTextarea(input)
+  }
+  enviarMensagemChat()
+}
+
+async function enviarMensagemChat() {
+  if (_chatEnviando) return
+  const input  = document.getElementById('chat-input')
+  const texto  = (input?.value || '').trim()
+  if (!texto)  return
+
+  input.value = ''
+  autoResizeTextarea(input)
+
+  // Hide welcome screen
+  const welcome = document.getElementById('chat-welcome')
+  if (welcome) welcome.style.display = 'none'
+
+  // Add user message to state and DOM
+  _chatMessages.push({ role: 'user', content: texto })
+  adicionarBolha('user', texto)
+
+  // Show typing indicator
+  const msgsEl  = document.getElementById('chat-msgs')
+  const typing  = document.createElement('div')
+  typing.id     = 'chat-typing'
+  typing.className = 'chat-msg assistant'
+  typing.innerHTML = '<div class="chat-bubble"><div class="chat-thinking"><div class="chat-dot"></div><div class="chat-dot"></div><div class="chat-dot"></div></div></div>'
+  if (msgsEl) { msgsEl.appendChild(typing); msgsEl.scrollTop = msgsEl.scrollHeight }
+
+  _chatEnviando = true
+  const sendBtn = document.getElementById('chat-send')
+  if (sendBtn) sendBtn.disabled = true
+
+  try {
+    const { data: { session } } = await db.auth.getSession()
+    const res = await fetch(
+      SUPABASE_URL + '/functions/v1/chat-auditor',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (session?.access_token || ''),
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          messages: _chatMessages,
+          execucao_id: _chatExecucaoId,
+        }),
+      }
+    )
+
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || 'Erro HTTP ' + res.status)
+
+    _chatMessages.push({ role: 'assistant', content: json.resposta })
+    const typingEl = document.getElementById('chat-typing')
+    if (typingEl) typingEl.remove()
+    adicionarBolha('assistant', json.resposta)
+
+  } catch (e) {
+    const typingEl = document.getElementById('chat-typing')
+    if (typingEl) typingEl.remove()
+    const msg = '❌ Não consegui processar sua pergunta. ' + e.message
+    _chatMessages.push({ role: 'assistant', content: msg })
+    adicionarBolha('assistant', msg)
+  } finally {
+    _chatEnviando = false
+    if (sendBtn) sendBtn.disabled = false
+    const m = document.getElementById('chat-msgs')
+    if (m) m.scrollTop = m.scrollHeight
+  }
+}
+
+function adicionarBolha(role, texto) {
+  const msgsEl = document.getElementById('chat-msgs')
+  if (!msgsEl) return
+  const div = document.createElement('div')
+  div.className = 'chat-msg ' + role
+  // Format: convert newlines to <br>, keep text safe
+  const safe = texto
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+  div.innerHTML = '<div class="chat-bubble">' + safe + '</div>'
+  msgsEl.appendChild(div)
+  msgsEl.scrollTop = msgsEl.scrollHeight
+}
+
+function chatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    enviarMensagemChat()
+  }
+}
+
+function autoResizeTextarea(el) {
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 96) + 'px'
+}
