@@ -500,6 +500,9 @@ async function abrirTDR(id){
   const bloqueado=['submetido','em_revisao_unesco','aprovado','cancelado'].includes(t.status);
   const cotacao=await obterCotacao();
   const taxaAtual=cotacao?.cotacao||5.87;
+  const eCoordenador=['super_admin','coordenacao'].includes(appState.perfil);
+  const temArquivoStorage=t.arquivo_url&&!t.arquivo_url.includes('drive.google.com')&&!t.arquivo_url.includes('docs.google.com');
+  const temDrive=t.arquivo_url&&(t.arquivo_url.includes('drive.google.com')||t.arquivo_url.includes('docs.google.com'));
 
   const [{data:versoes},{data:comentarios},{data:acoes},{data:matrizLinks}]=await Promise.all([
     db.from('tdr_versoes').select('*').eq('tdr_id',id).order('numero_versao',{ascending:false}),
