@@ -1122,9 +1122,9 @@ async function salvarLanc() {
     if (arquivoComp && id) {
       const ext = arquivoComp.name.split('.').pop();
       const path = `comprovante-${id}.${ext}`;
-      const {error:upErr} = await db.storage.from('tdrs-arquivos').upload(path,arquivoComp,{upsert:true});
+      const {error:upErr} = await db.storage.from('financeiro-docs').upload(path,arquivoComp,{upsert:true});
       if (!upErr) {
-        const {data:urlData} = db.storage.from('tdrs-arquivos').getPublicUrl(path);
+        const {data:urlData} = db.storage.from('financeiro-docs').getPublicUrl(path);
         await db.from('execucao_financeira').update({
           comprovante_url: urlData.publicUrl, comprovante_nome: arquivoComp.name
         }).eq('id',id);
