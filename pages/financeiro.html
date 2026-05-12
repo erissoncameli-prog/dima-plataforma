@@ -1679,10 +1679,10 @@ async function executarPagamento() {
     if (arquivoPgto) {
       const ext  = arquivoPgto.name.split('.').pop();
       const path = `comprovante-${l.id}.${ext}`;
-      const { error: upErr } = await db.storage.from('tdrs-arquivos')
+      const { error: upErr } = await db.storage.from('financeiro-docs')
         .upload(path, arquivoPgto, { upsert: true, contentType: arquivoPgto.type });
       if (!upErr) {
-        const { data: urlData } = db.storage.from('tdrs-arquivos').getPublicUrl(path);
+        const { data: urlData } = db.storage.from('financeiro-docs').getPublicUrl(path);
         await db.from('execucao_financeira').update({
           comprovante_url:  urlData.publicUrl,
           comprovante_nome: arquivoPgto.name
