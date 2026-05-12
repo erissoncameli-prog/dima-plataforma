@@ -641,3 +641,137 @@ function autoResizeTextarea(el) {
   el.style.height = 'auto'
   el.style.height = Math.min(el.scrollHeight, 96) + 'px'
 }
+
+// ── Slash commands do chat ──────────────────────────────────────
+async function executarComandoChat(cmd) {
+  const partes  = cmd.trim().toLowerCase().split(/\s+/)
+  const cmdBase = partes[0]
+
+  // Mostrar o que o usuário digitou
+  adicionarBolha('user', cmd)
+
+  if (cmdBase === '/auditar') {
+    await _cmdAuditar()
+    return
+  }
+
+  if (cmdBase === '/ajuda' || cmdBase === '/help') {
+    adicionarBolha('assistant',
+      '📋 Comandos disponíveis:\n\n' +
+      '• /auditar — Roda a auditoria completa (6 agentes + Claude supervisor)\n' +
+      '• /ajuda   — Mostra esta mensagem\n\n' +
+      'Ou simplesmente escreva uma pergunta sobre os achados!'
+    )
+    return
+  }
+
+  adicionarBolha('assistant',
+    '❓ Comando não reconhecido: ' + cmdBase + '\n\n' +
+    'Use /ajuda para ver os comandos disponíveis.'
+  )
+}
+
+async function _cmdAuditar() {
+  const sendBtn = document.getElementById('chat-send')
+  const btnAud  = document.getElementById('btn-auditar')
+  _chatEnviando = true
+  if (sendBtn) sendBtn.disabled = true
+  if (btnAud)  { btnAud.disabled = true; btnAud.innerHTML = '<span class="spin"></span> Auditando...' }
+
+  // Mensagem de progresso
+  const DOMINIOS_LABEL = {
+    tdr_contrato: 'TDR / Contrato', financeiro: 'Financeiro',
+    produtos: 'Produtos', viagens: 'Viagens',
+    matriz: 'Matriz', qualidade_dados: 'Qualidade de Dados',
+  }
+
+  adicionarBolha('assistant',
+    '🔍 Iniciando varredura completa do sistema...\n\n' +
+    '6 agentes especialistas verificando:\n' +
+    '• TDR / Contratos\n• Financeiro\n• Produtos\n• Viagens\n• Matriz\n• Qualidade de Dados\n\n' +
+    '⏳ Aguarde — pode levar até 1 minuto...'
+  )
+
+  // Atualizar banner principal
+  const icon   = document.getElementById('exec-icon')
+  const titulo = document.getElementById('exec-titulo')
+  const sub    = document.getElementById('exec-sub')
+  const banner = document.getElementById('exec-banner')
+  if (banner) banner.style.display = 'flex'
+  if (icon)   { icon.className = 'exec-icon idle'; icon.textContent = '⏳' }
+  if (titulo) titulo.textContent = 'Auditoria em andamento...'
+  if (sub)    sub.textContent = 'Disparada pelo Assistente IA'
+
+  try {
+    const { data: { session } } = await db.auth.getSession()
+    const res = await fetch(
+      SUPABASE_URL + '/functions/v1/auditor-ia',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (session?.access_token || ''),
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ usuario_id: appState.usuario?.id }),
+      }
+    )
+
+    const resultado = await res.json()
+    if (!res.ok) throw new Error(resultado.error || 'Erro HTTP ' + res.status)
+
+    const total    = resultado.total_achados    || 0
+    const criticos = resultado.achados_criticos || 0
+    const altos    = resultado.achados_altos    || 0
+    const porDom   = resultado.por_dominio      || {}
+
+    // Atualizar contexto do chat para a nova execução
+    if (resultado.execucao_id) {
+      setChatExecucao(resultado.execucao_id, new Date().toISOString())
+    }
+
+    // Montar mensagem de resultado
+    const iconeGeral = criticos > 0 ? '🚨' : altos > 0 ? '⚠️' : total > 0 ? '📋' : '✅'
+    let msg = iconeGeral + ' **Auditoria concluída!**\n\n'
+
+    if (total === 0) {
+      msg += '✅ Nenhuma inconsistência detectada. Sistema em conformidade.'
+    } else {
+      msg += '**' + total + ' achado' + (total !== 1 ? 's' : '') + ' encontrado' + (total !== 1 ? 's' : '') + '**'
+      if (criticos > 0) msg += '\n🚨 ' + criticos + ' crítico' + (criticos !== 1 ? 's' : '') + ' — ação urgente necessária'
+      if (altos    > 0) msg += '\n⚠️ ' + altos    + ' alto'    + (altos    !== 1 ? 's' : '')
+
+      // Por domínio
+      const linhasDom = Object.entries(porDom)
+        .filter(function(kv) { return (kv[1] || 0) > 0 })
+        .map(function(kv) {
+          return '  ' + (DOMINIOS_LABEL[kv[0]] || kv[0]) + ': ' + kv[1]
+        })
+      if (linhasDom.length) msg += '\n\nPor domínio:\n' + linhasDom.join('\n')
+    }
+
+    if (resultado.resumo) {
+      msg += '\n\n' + resultado.resumo
+    }
+
+    if (total > 0) {
+      msg += '\n\nAgora posso detalhar os achados. Pergunte-me:\n• "O que resolver primeiro?"\n• "Quais são os achados críticos?"\n• "Resumo por domínio"'
+    }
+
+    adicionarBolha('assistant', msg)
+
+    // Recarregar painel principal
+    await Promise.all([carregarUltimaExecucao(), carregarHistorico()])
+    toast('Auditoria concluída: ' + total + ' achados', criticos > 0 ? 'error' : total > 0 ? 'warning' : 'success')
+
+  } catch (e) {
+    console.error('[chat /auditar]', e)
+    adicionarBolha('assistant', '❌ Erro ao executar auditoria: ' + e.message + '\n\nTente novamente ou use o botão "Rodar Auditoria" no topo da página.')
+    if (icon)   icon.textContent = '❌'
+    if (titulo) titulo.textContent = 'Erro na execução'
+  } finally {
+    _chatEnviando = false
+    if (sendBtn) sendBtn.disabled = false
+    if (btnAud)  { btnAud.disabled = false; btnAud.innerHTML = '<span>🔍</span> Rodar Auditoria' }
+  }
+}
