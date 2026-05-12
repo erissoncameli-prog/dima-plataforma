@@ -551,6 +551,12 @@ async function enviarMensagemChat() {
   const welcome = document.getElementById('chat-welcome')
   if (welcome) welcome.style.display = 'none'
 
+  // ── Slash commands ─────────────────────────────────────────
+  if (texto.startsWith('/')) {
+    await executarComandoChat(texto)
+    return
+  }
+
   // Add user message to state and DOM
   _chatMessages.push({ role: 'user', content: texto })
   adicionarBolha('user', texto)
