@@ -192,6 +192,16 @@
       </div>
     </div>
   </div>
+  <div class="chat-chips-bar">
+    <button class="chat-chip cmd" onclick="enviarSugestao('/auditar')" title="Rodar auditoria completa">/auditar</button>
+    <button class="chat-chip" onclick="enviarSugestao('Quais são os achados mais críticos e o que devo resolver primeiro?')">🚨 Prioridade</button>
+    <button class="chat-chip" onclick="enviarSugestao('Resuma os problemas encontrados na auditoria por domínio')">📋 Por domínio</button>
+    <button class="chat-chip" onclick="enviarSugestao('Quais contratos têm problemas com TDR ou documentação?')">📄 Contratos</button>
+    <button class="chat-chip" onclick="enviarSugestao('Há algum risco financeiro imediato que precise de atenção urgente?')">💰 Financeiro</button>
+    <button class="chat-chip" onclick="enviarSugestao('Quais produtos ainda estão pendentes de aprovação ou com prazo vencido?')">📦 Produtos</button>
+    <button class="chat-chip" onclick="enviarSugestao('Há viagens com retorno vencido sem conclusão registrada?')">✈️ Viagens</button>
+    <button class="chat-chip" onclick="enviarSugestao('Me ajude a redigir um comentário de resolução para um achado')">✏️ Redigir resolução</button>
+  </div>
   <div class="chat-input-area">
     <div class="chat-input-row">
       <textarea class="chat-input" id="chat-input" placeholder="Pergunte sobre os achados ou use /auditar..." rows="1" onkeydown="chatKeydown(event)" oninput="autoResizeTextarea(this)"></textarea>
