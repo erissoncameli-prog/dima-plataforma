@@ -635,11 +635,16 @@ async function abrirTDR(id){
             <span style="color:#1D4ED8;font-weight:600">🔗 Google Drive</span>
             <a href="${t.arquivo_url}" target="_blank" rel="noopener" style="color:#1D4ED8;font-size:11px">${t.arquivo_url.substring(0,60)}…</a>
           </div>
-          ${eCoordenador?`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:8px">Para garantir acesso permanente, faça upload do arquivo no sistema:</div>
-          <label class="btn btn-sm btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            ⬆ Upload para o sistema
-            <input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])">
-          </label>`:''}
+          ${eCoordenador?`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:8px">Para garantir acesso permanente, importe o arquivo direto do Drive:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-primary" style="display:inline-flex;align-items:center;gap:6px" onclick="importarDoDrive('${t.id}','${t.arquivo_url}')">
+              📥 Importar do Drive automaticamente
+            </button>
+            <label class="btn btn-sm btn-secondary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="Ou faça upload manual de um arquivo local">
+              ⬆ Upload manual
+              <input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])">
+            </label>
+          </div>`:''}
         </div>`
         :`
         <div style="background:var(--cinza-50);border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:10px 12px;font-size:12px">
