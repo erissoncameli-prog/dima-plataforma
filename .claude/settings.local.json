@@ -59,7 +59,8 @@
       "Bash(ConvertTo-Csv -NoTypeInformation)",
       "Bash(Out-String)",
       "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__list_edge_functions",
-      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__list_tables"
+      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__list_tables",
+      "Bash(mkdir -p \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\.claude\\\\worktrees\\\\awesome-nobel-e024aa\\\\.claude\\\\commands\")"
     ]
   }
 }
