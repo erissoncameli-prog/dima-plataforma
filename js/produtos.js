@@ -1162,9 +1162,9 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
     var doc=docsEntrega[j];
     if(doc.isGeo||!doc.file)continue; // geo docs não têm arquivo para upload
     var dpath='produtos/'+produtoAtual.id+'/entrega-'+numEntrega+'-'+Date.now()+'_'+doc.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    var dUp=await db.storage.from('tdrs-arquivos').upload(dpath,doc.file,{upsert:true});
+    var dUp=await db.storage.from('entregas-docs').upload(dpath,doc.file,{upsert:true});
     if(!dUp.error){
-      var dUrl=db.storage.from('tdrs-arquivos').getPublicUrl(dpath);
+      var dUrl=db.storage.from('entregas-docs').getPublicUrl(dpath);
       await db.from('entrega_documentos').insert({entrega_id:entrega.id,tipo_documento:doc.tipo,arquivo_url:dUrl.data.publicUrl,arquivo_nome:doc.nome,arquivo_tamanho:doc.size,inserido_por:appState.usuario.id});
     }
   }
