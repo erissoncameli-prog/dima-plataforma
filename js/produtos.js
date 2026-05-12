@@ -1268,8 +1268,8 @@ async function emitirDespacho(tipoBtn){
   if(notaTecnicaFile){
     toast('Enviando nota técnica...','info');
     var ntpath='produtos/'+produtoAtual.id+'/nota-tecnica-'+Date.now()+'_'+notaTecnicaFile.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    var ntUp=await db.storage.from('tdrs-arquivos').upload(ntpath,notaTecnicaFile,{upsert:true});
-    if(!ntUp.error){var ntD=db.storage.from('tdrs-arquivos').getPublicUrl(ntpath);ntUrl=ntD.data.publicUrl;ntNome=notaTecnicaFile.name;}
+    var ntUp=await db.storage.from('entregas-docs').upload(ntpath,notaTecnicaFile,{upsert:true});
+    if(!ntUp.error){var ntD=db.storage.from('entregas-docs').getPublicUrl(ntpath);ntUrl=ntD.data.publicUrl;ntNome=notaTecnicaFile.name;}
   }
 
   var updR=await db.from('contratos_produtos_entregas').update({
