@@ -1432,6 +1432,7 @@ window.importarDoDrive = async function(tdrId, driveUrl) {
     if (tdrAtual && tdrAtual.id === tdrId) { tdrAtual.arquivo_url = json.arquivo_url; tdrAtual.arquivo_nome = json.arquivo_nome; }
     const kb = json.tamanho_bytes ? ` (${(json.tamanho_bytes/1024).toFixed(0)} KB)` : '';
     toast(`✓ "${json.arquivo_nome}" importado com sucesso${kb}`, 'success');
+    filtrar();          // atualiza o badge no card da lista
     await abrirTDR(tdrId);
   } catch(e) {
     toast('Erro ao importar: ' + (e.message || 'Tente novamente.'), 'error');
