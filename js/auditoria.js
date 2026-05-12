@@ -342,7 +342,10 @@ async function carregarExecucao(execucaoId) {
     .select('*')
     .eq('id', execucaoId)
     .single()
-  if (execucao) mostrarBannerExecucao(execucao)
+  if (execucao) {
+    mostrarBannerExecucao(execucao)
+    setChatExecucao(execucao.id, execucao.concluido_em)
+  }
   await carregarAchados(execucaoId)
 }
 
