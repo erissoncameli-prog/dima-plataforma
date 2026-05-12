@@ -958,10 +958,12 @@ function calcValorParcial(pct,totalProduto){
 
 async function abrirArquivo(url){
   if(!url){toast('URL não disponível.','error');return;}
-  var match=url.match(/\/object\/(?:public|sign)\/tdrs-arquivos\/(.+?)(\?.*)?$/);
+  // Suporta entregas-docs (novo) e tdrs-arquivos (legado)
+  var match=url.match(/\/object\/(?:public|sign)\/(entregas-docs|tdrs-arquivos)\/(.+?)(\?.*)?$/);
   if(!match){window.open(url,'_blank');return;}
-  var path=decodeURIComponent(match[1]);
-  var r=await db.storage.from('tdrs-arquivos').createSignedUrl(path,3600);
+  var bucket=match[1];
+  var path=decodeURIComponent(match[2]);
+  var r=await db.storage.from(bucket).createSignedUrl(path,3600);
   if(r.error||!r.data||!r.data.signedUrl){toast('Erro ao gerar link.','error');return;}
   window.open(r.data.signedUrl,'_blank');
 }
