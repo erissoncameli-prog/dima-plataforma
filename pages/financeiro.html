@@ -876,14 +876,15 @@ function renderFormLanc(l) {
       <textarea class="form-control" id="f-obs" rows="2">${l?.observacoes||''}</textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Comprovante de pagamento</label>
+      <label class="form-label">Comprovante de transferência / pagamento</label>
+      <div style="font-size:11px;color:var(--cinza-400);margin-bottom:6px">Recibo bancário, ordem de pagamento ou extrato — <strong>não</strong> é a Nota Fiscal do fornecedor (a NF vai em Produtos → Registrar entrega)</div>
       ${l?.comprovante_url?`<div class="alert alert-info" style="margin-bottom:8px;font-size:12px">
         📎 Comprovante já carregado.
         <button class="btn btn-sm btn-secondary" style="margin-left:8px" onclick="abrirComp('${l.id}','${l.comprovante_url}')">Abrir</button>
       </div>`:''}
       <div class="upload-mini ${l?.comprovante_url?'tem':''}" id="upload-comp"
         onclick="document.getElementById('inp-comp').click()">
-        ${l?.comprovante_url?'✓ Substituir comprovante':'📎 Clique para anexar comprovante (.pdf, .jpg, .png)'}
+        ${l?.comprovante_url?'✓ Substituir comprovante':'📎 Clique para anexar comprovante de pagamento (.pdf, .jpg, .png)'}
         <input type="file" id="inp-comp" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
           onchange="selecionarComp(this.files[0])">
       </div>
