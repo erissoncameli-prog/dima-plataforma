@@ -279,7 +279,7 @@ function renderFinanciadores(){
   var _mPF=D.matrizProg||[];
   var _cmF=D.matrizItens;
   var metasProg=_cmF.filter(function(i){
-    var p=_mPF.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+    var p=_mPF.find(function(x){return x.id===i.id;})||{pct_confirmado:0};
     return parseFloat(p.pct_confirmado||0)>0;
   }).length;
   var pExec=orc>0?pago/orc*100:0;
@@ -570,11 +570,11 @@ function renderResultados(){
   var mProgR=D.matrizProg||[];
   var comMetaR=D.matrizItens;
   var metasProg=comMetaR.filter(function(i){
-    var p=mProgR.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+    var p=mProgR.find(function(x){return x.id===i.id;})||{pct_confirmado:0};
     return parseFloat(p.pct_confirmado||0)>0;
   }).length;
   var emRiscoGlobal=comMetaR.filter(function(i){
-    var p=mProgR.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+    var p=mProgR.find(function(x){return x.id===i.id;})||{pct_confirmado:0};
     return parseFloat(p.pct_confirmado||0)<40;
   }).length;
 
@@ -585,16 +585,16 @@ function renderResultados(){
     var totalInd=D.matrizItens.length;
     var comMeta=D.matrizItens.filter(function(i){return parseFloat(i.meta_numerica||0)>0;});
     var atingidos=comMeta.filter(function(i){
-      var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+      var p=mProg.find(function(x){return x.id===i.id;})||{pct_confirmado:0};
       return parseFloat(p.pct_confirmado||0)>=100;
     }).length;
     var emRisco=comMeta.filter(function(i){
-      var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+      var p=mProg.find(function(x){return x.id===i.id;})||{pct_confirmado:0};
       return parseFloat(p.pct_confirmado||0)<40;
     }).length;
     var pendConf=mProg.reduce(function(s,p){return s+parseFloat(p.realizado_pendente||0);},0);
     var mediaGeral=comMeta.length?Math.round(comMeta.reduce(function(s,i){
-      var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+      var p=mProg.find(function(x){return x.id===i.id;})||{pct_confirmado:0};
       return s+Math.min(parseFloat(p.pct_confirmado||0),100);
     },0)/comMeta.length):0;
 
@@ -605,10 +605,10 @@ function renderResultados(){
       if(!itensR.length)return'';
       var cor=coresRes[r];
       var mediaR=Math.round(itensR.reduce(function(s,i){
-        var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+        var p=mProg.find(function(x){return x.id===i.id;})||{pct_confirmado:0};
         return s+Math.min(parseFloat(p.pct_confirmado||0),100);
       },0)/itensR.length);
-      var hasPend=itensR.some(function(i){var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{realizado_pendente:0};return parseFloat(p.realizado_pendente||0)>0;});
+      var hasPend=itensR.some(function(i){var p=mProg.find(function(x){return x.id===i.id;})||{realizado_pendente:0};return parseFloat(p.realizado_pendente||0)>0;});
       // SVG ring
       var sz=68,rv2=sz/2-6,circ=2*Math.PI*rv2,offset=circ*(1-Math.min(mediaR,100)/100);
       var ring='<svg width="'+sz+'" height="'+sz+'" style="transform:rotate(-90deg);display:block">'
@@ -618,7 +618,7 @@ function renderResultados(){
         +'</svg>';
       // Dot grid — cada indicador = ponto colorido por status
       var dots=itensR.map(function(i){
-        var p=mProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0};
+        var p=mProg.find(function(x){return x.id===i.id;})||{pct_confirmado:0};
         var pct=parseFloat(p.pct_confirmado||0);
         var dc=pct>=80?'#10B981':pct>=40?'#F59E0B':'#EF4444';
         return '<span title="'+i.indicador+' — '+Math.round(pct)+'%" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+dc+';margin:2px;cursor:default"></span>';
@@ -700,7 +700,7 @@ function renderResultados(){
     if(pC>0.5)h+='<div style="width:'+Math.min(pC,100)+'%;background:#D97706"></div>';
     h+='<div style="flex:1;background:var(--cinza-100)"></div></div>';
     rv.ind.slice(0,5).forEach(function(i){
-      var pg=D.matrizProg.find(function(x){return x.matriz_item_id===i.id;})||{pct_confirmado:0,realizado_confirmado:0};
+      var pg=D.matrizProg.find(function(x){return x.id===i.id;})||{pct_confirmado:0,realizado_confirmado:0};
       var pct=Math.min(parseFloat(pg.pct_confirmado||0),100);
       var cor=pct>=75?'var(--sucesso)':pct>=30?'var(--aviso)':'var(--erro)';
       h+='<div class="ind-row"><div class="ind-dot" style="background:'+cor+'"></div><div class="ind-nome">'+(i.indicador||'—')+'</div><div class="ind-meta">meta '+(i.meta_numerica||'—')+'</div><div class="ind-val" style="color:'+cor+'">'+pct.toFixed(0)+'%</div><div class="ind-prog"><div class="ind-bar"><div class="ind-fill" style="width:'+pct+'%;background:'+cor+'"></div></div><div class="ind-pct">'+Math.round(pct)+'%</div></div></div>';
