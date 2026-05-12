@@ -616,6 +616,38 @@ async function abrirTDR(id){
       ${t.status==='pendente_correcao'||t.motivo_recusa?campoEditavel('motivo_recusa','Correções solicitadas','textarea',t.motivo_recusa,podeEd,3):''}
       ${campoEditavel('observacao','Observações gerais','textarea',t.observacao,podeEd,2)}
 
+      <!-- Seção de arquivo do TDR -->
+      <div style="margin-top:16px;border-top:1px solid var(--borda);padding-top:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">📎 Arquivo do TDR</div>
+        ${temArquivoStorage?`
+        <div style="display:flex;align-items:center;gap:10px;background:var(--sucesso-bg);border:1px solid #86EFAC;border-radius:var(--raio);padding:10px 12px;font-size:12px">
+          <span style="color:#059669;font-weight:600">✓ Arquivo no sistema</span>
+          <span style="color:var(--cinza-500);flex:1">${t.arquivo_nome||'Arquivo'}</span>
+          <button class="btn btn-sm btn-secondary" onclick="abrirArquivo()">Abrir</button>
+          ${eCoordenador?`<label class="btn btn-sm btn-secondary" style="cursor:pointer;margin-left:4px">Substituir<input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])"></label>`:''}
+        </div>`
+        :temDrive?`
+        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:10px 12px;font-size:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="color:#1D4ED8;font-weight:600">🔗 Google Drive</span>
+            <a href="${t.arquivo_url}" target="_blank" rel="noopener" style="color:#1D4ED8;font-size:11px">${t.arquivo_url.substring(0,60)}…</a>
+          </div>
+          ${eCoordenador?`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:8px">Para garantir acesso permanente, faça upload do arquivo no sistema:</div>
+          <label class="btn btn-sm btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            ⬆ Upload para o sistema
+            <input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])">
+          </label>`:''}
+        </div>`
+        :`
+        <div style="background:var(--cinza-50);border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:10px 12px;font-size:12px">
+          <div style="color:var(--cinza-500);margin-bottom:8px">📄 Nenhum arquivo anexado</div>
+          ${eCoordenador?`<label class="btn btn-sm btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            ⬆ Fazer upload do TDR
+            <input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])">
+          </label>`:''}
+        </div>`}
+      </div>
+
       ${podeEd?`
       <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
         <button class="btn btn-primary" id="btn-salvar-ed" onclick="abrirSalvar(${taxaAtual})" disabled>
