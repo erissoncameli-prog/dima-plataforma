@@ -287,14 +287,14 @@ Deno.serve(async (req) => {
 
       // Nota técnica
       if (entrega?.nota_tecnica_url) {
-        const anx = await baixarAnexo(entrega.nota_tecnica_url, entrega.nota_tecnica_nome || 'nota-tecnica.pdf')
+        const anx = await baixarAnexo(supabase, entrega.nota_tecnica_url, entrega.nota_tecnica_nome || 'nota-tecnica.pdf')
         if (anx) attachments.push(anx)
       }
 
       // Documentos da entrega aprovada (excluindo geo — sem arquivo_url real)
       for (const doc of (entrega?.documentos || [])) {
         if (!doc.arquivo_url) continue
-        const anx = await baixarAnexo(doc.arquivo_url, doc.arquivo_nome || 'documento')
+        const anx = await baixarAnexo(supabase, doc.arquivo_url, doc.arquivo_nome || 'documento')
         if (anx) attachments.push(anx)
       }
 
