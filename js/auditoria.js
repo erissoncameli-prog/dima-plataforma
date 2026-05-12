@@ -16,6 +16,12 @@ let _filtroStatus = 'todos'
 let _filtroDom    = null
 let _resolvendoId = null
 
+// ── Chat state ─────────────────────────────────────────────────
+let _chatMessages   = []
+let _chatAberto     = false
+let _chatExecucaoId = null
+let _chatEnviando   = false
+
 // ── Inicialização ──────────────────────────────────────────────
 ;(async function () {
   const usuario = await carregarUsuario()
