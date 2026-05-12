@@ -50,6 +50,9 @@ let _chatEnviando   = false
       '</div>' +
       '<div style="display:flex;align-items:center;gap:10px">' +
         '<span id="ultima-execucao" style="font-size:11px;color:var(--cinza-500)"></span>' +
+        '<button class="btn-chat" id="btn-chat" onclick="toggleChat()">' +
+          '🤖 Assistente IA' +
+        '</button>' +
         '<button class="btn-auditar" id="btn-auditar" onclick="dispararAuditoria()">' +
           '<span>🔍</span> Rodar Auditoria' +
         '</button>' +
