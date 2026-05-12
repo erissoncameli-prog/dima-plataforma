@@ -308,7 +308,7 @@ async function carregar(){
 
 // ── Helpers ───────────────────────────────────────────────────
 function getProgresso(id){
-  return progresso.find(p=>p.matriz_item_id===id)||{realizado_confirmado:0,realizado_pendente:0,realizado_total:0,pct_confirmado:0};
+  return progresso.find(p=>p.id===id)||{realizado_confirmado:0,realizado_pendente:0,realizado_total:0,pct_confirmado:0};
 }
 
 function calcPct(item){
