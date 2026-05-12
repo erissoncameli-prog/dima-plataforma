@@ -163,19 +163,21 @@ Seguem em anexo os documentos da entrega aprovada e a nota técnica de avaliaç�
   }
 }
 
-// ── Extrair path do storage a partir da URL pública/assinada ─────────────────
-function extrairPathStorage(url: string): string | null {
-  const m = url.match(/\/object\/(?:public|sign)\/tdrs-arquivos\/(.+?)(\?.*)?$/)
-  return m ? decodeURIComponent(m[1]) : null
+// ── Extrair bucket + path a partir da URL pública/assinada ───────────────────
+// Suporta entregas-docs (novo) e tdrs-arquivos (legado)
+function extrairPathStorage(url: string): { bucket: string; path: string } | null {
+  const m = url.match(/\/object\/(?:public|sign)\/(entregas-docs|tdrs-arquivos)\/(.+?)(\?.*)?$/)
+  if (!m) return null
+  return { bucket: m[1], path: decodeURIComponent(m[2]) }
 }
 
 // ── Baixar arquivo via Supabase Storage (bucket privado) ──────────────────────
 // Usa o cliente com service_role para contornar RLS/bucket privado
 async function baixarAnexo(supabase: any, url: string, nome: string): Promise<any | null> {
   try {
-    const path = extrairPathStorage(url)
-    if (!path) return null
-    const { data, error } = await supabase.storage.from('tdrs-arquivos').download(path)
+    const parsed = extrairPathStorage(url)
+    if (!parsed) return null
+    const { data, error } = await supabase.storage.from(parsed.bucket).download(parsed.path)
     if (error || !data) return null
     const buf = await data.arrayBuffer()
     return { filename: nome, content: Buffer.from(buf) }
