@@ -163,12 +163,21 @@ Seguem em anexo os documentos da entrega aprovada e a nota técnica de avaliaç�
   }
 }
 
-// ── Baixar arquivo e retornar como attachment do nodemailer ──────────────────
-async function baixarAnexo(url: string, nome: string): Promise<any | null> {
+// ── Extrair path do storage a partir da URL pública/assinada ─────────────────
+function extrairPathStorage(url: string): string | null {
+  const m = url.match(/\/object\/(?:public|sign)\/tdrs-arquivos\/(.+?)(\?.*)?$/)
+  return m ? decodeURIComponent(m[1]) : null
+}
+
+// ── Baixar arquivo via Supabase Storage (bucket privado) ──────────────────────
+// Usa o cliente com service_role para contornar RLS/bucket privado
+async function baixarAnexo(supabase: any, url: string, nome: string): Promise<any | null> {
   try {
-    const resp = await fetch(url)
-    if (!resp.ok) return null
-    const buf = await resp.arrayBuffer()
+    const path = extrairPathStorage(url)
+    if (!path) return null
+    const { data, error } = await supabase.storage.from('tdrs-arquivos').download(path)
+    if (error || !data) return null
+    const buf = await data.arrayBuffer()
     return { filename: nome, content: Buffer.from(buf) }
   } catch (_) {
     return null
