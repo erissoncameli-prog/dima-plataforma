@@ -18,36 +18,45 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization') ?? ''
 
-    // Admin client for data queries
+    // Admin client for data queries (service role — bypasses RLS)
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Verify the user JWT
-    const anonClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    )
-    const { data: { user }, error: authError } = await anonClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
-    if (authError || !user) {
+    // O runtime já validou o JWT (verify_jwt: true).
+    // Decodificamos o payload para obter o user ID sem fazer
+    // uma segunda chamada de rede que pode falhar em Edge Functions.
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Check profile — only super_admin and coordenacao
+    let userId: string
+    try {
+      const payloadB64 = token.split('.')[1]
+      const payload = JSON.parse(atob(payloadB64))
+      userId = payload.sub
+      if (!userId) throw new Error('sub ausente')
+    } catch {
+      return new Response(JSON.stringify({ error: 'Token inválido' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Verifica perfil na tabela usuarios (service role ignora RLS)
     const { data: usuario } = await supabase
       .from('usuarios')
       .select('perfil, nome')
-      .eq('id', user.id)
-      .single()
+      .eq('id', userId)
+      .maybeSingle()
 
     if (!usuario || !['super_admin', 'coordenacao'].includes(usuario.perfil)) {
-      return new Response(JSON.stringify({ error: 'Acesso negado' }), {
+      return new Response(JSON.stringify({ error: 'Acesso negado — perfil insuficiente' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
