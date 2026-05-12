@@ -1409,6 +1409,35 @@ async function abrirArquivo(){
   }
 }
 
+// ── IMPORTAR ARQUIVO DO GOOGLE DRIVE ─────────────────────────
+window.importarDoDrive = async function(tdrId, driveUrl) {
+  if (!driveUrl) { toast('URL do Drive não encontrada.', 'error'); return; }
+  toast('Baixando do Google Drive… aguarde.', 'info');
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/importar-arquivo-drive', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (session?.access_token || ''),
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ tdr_id: tdrId, drive_url: driveUrl }),
+    });
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error || 'Erro desconhecido');
+    // Atualizar cache local
+    const tdr = todosTDRs.find(t => t.id === tdrId);
+    if (tdr) { tdr.arquivo_url = json.arquivo_url; tdr.arquivo_nome = json.arquivo_nome; }
+    if (tdrAtual && tdrAtual.id === tdrId) { tdrAtual.arquivo_url = json.arquivo_url; tdrAtual.arquivo_nome = json.arquivo_nome; }
+    const kb = json.tamanho_bytes ? ` (${(json.tamanho_bytes/1024).toFixed(0)} KB)` : '';
+    toast(`✓ "${json.arquivo_nome}" importado com sucesso${kb}`, 'success');
+    await abrirTDR(tdrId);
+  } catch(e) {
+    toast('Erro ao importar: ' + (e.message || 'Tente novamente.'), 'error');
+  }
+};
+
 // ── UPLOAD ARQUIVO TDR EXISTENTE ─────────────────────────────
 window.uploadArquivoTDR = async function(tdrId, file) {
   if (!file) return;
