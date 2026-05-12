@@ -1178,7 +1178,7 @@ function renderCobertura(){
 
   // progresso por indicador
   var progMap={};
-  D.matrizProg.forEach(function(p){progMap[p.matriz_item_id]=p;});
+  D.matrizProg.forEach(function(p){progMap[p.id]=p;});
 
   // contribuições confirmadas agrupadas por indicador e mês
   var sparkByInd={};
