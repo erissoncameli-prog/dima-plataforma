@@ -2087,7 +2087,7 @@ async function relV3(){
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
       <div class="rep-stat"><div class="rep-stat-lbl">Nome</div><div style="font-size:13px;font-weight:600">${f.nome||'—'}</div></div>
       <div class="rep-stat"><div class="rep-stat-lbl">Tipo</div><div style="font-size:13px">${f.tipo==='PF'?'Pessoa Física':'Pessoa Jurídica'}</div></div>
-      <div class="rep-stat"><div class="rep-stat-lbl">CPF / CNPJ</div><div class="mono" style="font-size:12px">${f.cnpj||f.cpf||'—'}</div></div>
+      <div class="rep-stat"><div class="rep-stat-lbl">CPF / CNPJ</div><div class="mono" style="font-size:12px">${f.cpf_cnpj||'—'}</div></div>
     </div>
   </div>
   <div class="rep-stats rep-stats-3">
