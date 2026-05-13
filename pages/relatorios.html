@@ -3859,7 +3859,7 @@ async function relV4(){
 
   Object.values(fornMap).forEach(({info:f, contratos:cs})=>{
     const fEnts = cs.flatMap(c=>(prodsByContrato[c.id]||[]).flatMap(p=>entsByProd[p.id]||[]));
-    const fIdDoc = f?.cpf ? `CPF ${f.cpf}` : f?.cnpj ? `CNPJ ${f.cnpj}` : '';
+    const fIdDoc = f?.cpf_cnpj ? `${f.tipo==='PF'?'CPF':'CNPJ'} ${f.cpf_cnpj}` : '';
     html += `<div class="rep-secao">
       <div class="rep-secao-titulo">
         🏢 ${esc(f?.nome||'—')}
