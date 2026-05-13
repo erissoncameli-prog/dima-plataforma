@@ -1440,7 +1440,7 @@ async function relV1(){
         return `<tr>
           <td style="font-weight:500">${r.nome}</td>
           <td><span class="rep-badge ${r.tipo==='PF'?'rb-azul':'rb-ouro'}">${r.tipo}</span></td>
-          <td class="mono">${r.cnpj||r.cpf||'—'}</td>
+          <td class="mono">${r.cpf_cnpj||'—'}</td>
           <td style="font-size:10px">${r.email||'—'}</td>
           <td class="mono" style="text-align:center">${(r.contratos||[]).length}</td>
           <td class="mono" style="text-align:right">${fmtBRL(totalContr)}</td>
