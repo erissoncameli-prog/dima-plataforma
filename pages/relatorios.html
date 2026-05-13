@@ -3814,7 +3814,7 @@ async function relV4(){
   const dtFim     = filVal('fil-dt-fim');
 
   let qC = db.from('contratos')
-    .select('id,numero,status,valor_total_brl,fornecedor_id,fornecedores(id,nome,tipo,cpf,cnpj),atividades(codigo)')
+    .select('id,numero,status,valor_total_brl,fornecedor_id,fornecedores(id,nome,tipo,cpf_cnpj),atividades(codigo)')
     .order('numero');
   if(fornFil) qC = qC.eq('fornecedor_id', fornFil);
   if(ativFil) qC = qC.eq('atividade_id', ativFil);
