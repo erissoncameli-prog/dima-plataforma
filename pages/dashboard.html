@@ -1313,6 +1313,24 @@ async function renderTarefas() {
   el.innerHTML = h;
 }
 
+function filtrarAval(cod, btn) {
+  document.querySelectorAll('.pill-aval').forEach(function(b) {
+    b.style.background = 'var(--cinza-100)';
+    b.style.color = 'var(--cinza-700)';
+    b.classList.remove('active');
+  });
+  if(btn) {
+    btn.style.background = 'var(--verde-medio)';
+    btn.style.color = '#fff';
+    btn.classList.add('active');
+  }
+  var lista = document.getElementById('lista-aval');
+  if(!lista) return;
+  lista.querySelectorAll('.tarefa-item').forEach(function(el) {
+    el.style.display = (!cod || el.dataset.atv === cod) ? '' : 'none';
+  });
+}
+
 // ─────────────────────────────────────────────────────────
 // GUIA 7 — COBERTURA DE INDICADORES
 // ─────────────────────────────────────────────────────────
