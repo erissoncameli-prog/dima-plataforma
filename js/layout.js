@@ -75,12 +75,18 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   const iniciais = u?.nome_completo?.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() || 'US';
 
   const navGroups = [
-    { label: null,          ids: ['dashboard'] },
-    { label: 'Planejamento', ids: ['atividades','tdrs','matriz'] },
-    { label: 'Execução',     ids: ['fornecedores','contratos','produtos','financeiro'] },
-    { label: 'Apoio',        ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','usuarios'] },
-    { label: 'Sistema',      ids: ['configuracoes'] },
+    { label: null,           key: null,            ids: ['dashboard'] },
+    { label: 'Planejamento', key: 'planejamento',  ids: ['atividades','tdrs','matriz'] },
+    { label: 'Execução',     key: 'execucao',      ids: ['fornecedores','contratos','produtos','financeiro'] },
+    { label: 'Apoio',        key: 'apoio',         ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','usuarios'] },
+    { label: 'Sistema',      key: 'sistema',       ids: ['configuracoes'] },
   ];
+
+  function grupoAberto(key, ids) {
+    if (ids.includes(paginaAtiva)) return true; // sempre aberto se página ativa está no grupo
+    const saved = localStorage.getItem('dima_nav_grupo_' + key);
+    return saved === null ? true : saved === '1'; // padrão: aberto
+  }
 
   const navHtml = navGroups.map(group => {
     const itens = navItems.filter(item => group.ids.includes(item.id));
@@ -135,10 +141,22 @@ function gerarLayout(tituloPagina, paginaAtiva) {
       </a>`;
     }).join('');
     if (!linhas.trim()) return '';
-    const sep = group.label
-      ? `<div class="nav-section" style="margin-top:10px">${group.label}</div>`
-      : '';
-    return sep + linhas;
+    if (!group.label) return linhas;
+    const aberto = grupoAberto(group.key, group.ids);
+    return `
+      <button onclick="toggleGrupoNav('${group.key}')"
+        style="display:flex;align-items:center;width:100%;text-align:left;background:none;border:none;
+               cursor:pointer;padding:10px 16px 4px;gap:6px;font-family:inherit;">
+        <span style="flex:1;font-size:10px;font-weight:700;letter-spacing:1.2px;
+                     color:rgba(255,255,255,.4);text-transform:uppercase">${group.label}</span>
+        <span id="nav-group-chevron-${group.key}"
+          style="font-size:8px;color:rgba(255,255,255,.3);transition:transform .2s;
+                 ${aberto ? '' : 'transform:rotate(-90deg)'}">▼</span>
+      </button>
+      <div id="nav-group-${group.key}"
+        style="overflow:hidden;transition:max-height .25s ease;max-height:${aberto ? '800px' : '0px'}">
+        ${linhas}
+      </div>`;
   }).join('');
 
   return `
@@ -277,7 +295,18 @@ async function initPagina(tituloPagina, paginaAtiva, callback) {
   if (callback) await callback();
 }
 
-// ── Menu recolhível ───────────────────────────────────────────
+// ── Grupos do nav (Planejamento, Execução, Apoio…) ───────────
+function toggleGrupoNav(key) {
+  const wrap    = document.getElementById('nav-group-' + key);
+  const chevron = document.getElementById('nav-group-chevron-' + key);
+  if (!wrap) return;
+  const aberto = wrap.style.maxHeight !== '0px';
+  wrap.style.maxHeight = aberto ? '0px' : '800px';
+  if (chevron) chevron.style.transform = aberto ? 'rotate(-90deg)' : '';
+  localStorage.setItem('dima_nav_grupo_' + key, aberto ? '0' : '1');
+}
+
+// ── Sub-menu recolhível (ex: Configurações) ───────────────────
 function toggleNavGroup(id) {
   const children = document.getElementById(`nav-children-${id}`);
   const chevron  = document.getElementById(`nav-chevron-${id}`);
