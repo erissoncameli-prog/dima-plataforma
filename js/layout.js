@@ -393,14 +393,18 @@ function renderListaNotif() {
   };
 
   lista.innerHTML = notifCache.map(n => {
-    const isProduto = n.tipo === 'produto_para_avaliar';
-    const badgePendente = isProduto && !n.lida
-      ? `<span style="font-size:9px;background:#FEF3C7;color:#92400E;padding:1px 6px;border-radius:99px;font-weight:700;margin-left:4px">Aguarda ação</span>`
+    const needsAction = (n.tipo === 'produto_para_avaliar' || n.tipo === 'produto_devolvido') && !n.lida;
+    const badgeBg  = n.tipo === 'produto_devolvido' ? '#FEF2F2' : '#FEF3C7';
+    const badgeCor = n.tipo === 'produto_devolvido' ? '#DC2626'  : '#92400E';
+    const badgeTxt = n.tipo === 'produto_devolvido' ? 'Corrigir' : 'Aguarda ação';
+    const badgePendente = needsAction
+      ? `<span style="font-size:9px;background:${badgeBg};color:${badgeCor};padding:1px 6px;border-radius:99px;font-weight:700;margin-left:4px">${badgeTxt}</span>`
       : '';
+    const rowBg = n.lida ? 'var(--branco)' : (n.tipo === 'produto_devolvido' ? '#FFF5F5' : '#F0FDF4');
     return `
     <div onclick="clicarNotif('${n.id}','${n.link||''}','${n.entidade_id||''}')"
       style="padding:12px 16px;border-bottom:1px solid var(--borda);cursor:pointer;
-        background:${n.lida?'var(--branco)':'#F0FDF4'};transition:background .1s"
+        background:${rowBg};transition:background .1s"
       onmouseover="this.style.background='var(--cinza-50)'"
       onmouseout="this.style.background='${n.lida?'var(--branco)':'#F0FDF4'}'">
       <div style="display:flex;gap:10px;align-items:flex-start">
