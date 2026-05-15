@@ -22,7 +22,46 @@ function fmtBRL(v: number): string {
 
 const ASS = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC\nfundobrasilonuacre@gmail.com`
 
-// ── Template para responsáveis da atividade (evento: entregue) ────────────────
+// ── Template para responsáveis da atividade (evento: aprovado / aprovado_parcial) ─
+function tplResponsavelAprovado(evento: string, p: any, entrega: any): { assunto: string; corpo: string } {
+  const numProd  = p.numero_produto || '—'
+  const desc     = p.descricao || '—'
+  const cont     = p.contratos?.numero || '—'
+  const ativ     = p.contratos?.atividades
+  const ativDesc = ativ ? `${ativ.codigo} — ${ativ.nome_pt}` : '—'
+  const forn     = p.contratos?.fornecedores?.nome || '—'
+  const numDesp  = entrega?.despacho_numero || '—'
+  const despacho = entrega?.despacho_texto || '—'
+  const dtDesp   = fmtData(entrega?.despacho_data || null)
+  const pct      = parseFloat(entrega?.pct_entregue || 0)
+  const valor    = parseFloat(entrega?.valor_entregue || 0)
+  const parcial  = evento === 'aprovado_parcial'
+
+  return {
+    assunto: parcial
+      ? `[DIMA] Produto Nº ${numProd} — Aprovação parcial registrada (${pct}%)`
+      : `[DIMA] Produto Nº ${numProd} — Aprovação registrada ✓`,
+    corpo: `Prezado(a) responsável,
+
+${parcial
+  ? `A aprovação parcial (${pct}%) do Produto Nº ${numProd} foi registrada com sucesso na Plataforma DIMA.`
+  : `A aprovação integral do Produto Nº ${numProd} foi registrada com sucesso na Plataforma DIMA.`}
+
+PRODUTO   : Nº ${numProd} — ${desc}
+ATIVIDADE : ${ativDesc}
+CONTRATO  : ${cont}
+FORNECEDOR: ${forn}
+DESPACHO  : ${numDesp} (${dtDesp})
+VALOR     : ${valor > 0 ? fmtBRL(valor) : '—'}
+
+PARECER TÉCNICO:
+${despacho}
+
+O fornecedor foi notificado e o processo foi encaminhado para pagamento.${ASS}`,
+  }
+}
+
+// ── Template para responsáveis da atividade (evento: pago) ───────────────────
 function tplResponsavelPago(p: any, entrega: any): { assunto: string; corpo: string } {
   const numProd  = p.numero_produto || '—'
   const desc     = p.descricao || '—'
@@ -259,10 +298,10 @@ Deno.serve(async (req) => {
       entrega = e
     }
 
-    // Buscar responsáveis da atividade (para eventos entregue e pago)
+    // Buscar responsáveis da atividade (entregue, aprovado, aprovado_parcial, pago)
     // Duas queries separadas — o join implícito usuarios(...) pode falhar silenciosamente
     let responsaveis: any[] = []
-    if (['entregue', 'pago'].includes(evento) && p.contratos?.atividades?.id) {
+    if (['entregue', 'aprovado', 'aprovado_parcial', 'pago'].includes(evento) && p.contratos?.atividades?.id) {
       const { data: resps } = await supabase
         .from('atividade_responsaveis')
         .select('usuario_id, papel, ativo')
@@ -292,6 +331,16 @@ Deno.serve(async (req) => {
         const email = r.usuario?.email
         if (!email) continue
         const tpl = tplResponsavel(p, entrega)
+        envios.push({ to: email, ...tpl })
+      }
+    }
+
+    // aprovado / aprovado_parcial → responsáveis da atividade (confirmação)
+    if (['aprovado', 'aprovado_parcial'].includes(evento)) {
+      for (const r of responsaveis) {
+        const email = r.usuario?.email
+        if (!email) continue
+        const tpl = tplResponsavelAprovado(evento, p, entrega)
         envios.push({ to: email, ...tpl })
       }
     }
