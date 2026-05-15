@@ -103,9 +103,9 @@ function gerarLayout(tituloPagina, paginaAtiva) {
         const subHtml = filhos.map(si => {
           const siAtivo = (paginaAtiva === si.id || (si.id === 'dados_sistema' && paginaAtiva === 'configuracoes')) ? 'ativo' : '';
           return `<a class="nav-item ${siAtivo}" href="${si.href}"
-            style="display:flex;align-items:center;gap:8px;padding-left:30px;font-size:12.5px">
+            style="display:flex;align-items:center;gap:8px;padding-left:22px;font-size:12.5px">
             <span style="color:rgba(255,255,255,.25);font-size:10px;flex-shrink:0">└</span>
-            <span style="font-size:13px;flex-shrink:0">${si.icone}</span>
+            ${renderPill(si.id, 24)}
             <span style="flex:1">${t('nav', si.id)}</span>
           </a>`;
         }).join('');
