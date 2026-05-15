@@ -1247,7 +1247,69 @@ async function renderTarefas() {
   } else {
     h += '<div style="padding:24px 0;text-align:center;color:var(--cinza-400);font-size:12px">✓ Nenhuma avaliação pendente</div>';
   }
-  h += '</div>'; // .ch
+  h += '</div>'; // .ch avaliações
+
+  // ── CARD: Produtos devolvidos para o usuário ─────────────
+  if(totalDev) {
+    var itensDev = devolvidas.length ? devolvidas : null;
+    h += '<div class="ch" style="margin-top:14px;border-left:3px solid #EF4444">';
+    h += '<div class="ch-tit" style="color:#991B1B">↩ Produtos devolvidos para você';
+    h += ' <span style="background:#FEF2F2;color:#DC2626;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + totalDev + '</span>';
+    h += '</div>';
+    h += '<div class="ch-sub">Aguardando correção e reenvio</div>';
+    h += '<div style="margin-top:6px">';
+
+    if(itensDev) {
+      // Fonte primária: dados do banco via RPC
+      itensDev.forEach(function(d) {
+        var venc = d.dt_vencimento ? new Date(d.dt_vencimento+'T12:00:00') : null;
+        var diasV = venc ? Math.ceil((venc - new Date()) / 86400000) : null;
+        var vencTxt = '', vencCor = '';
+        if(diasV !== null) {
+          if(diasV < 0)  { vencTxt = Math.abs(diasV)+'d vencido'; vencCor = '#DC2626'; }
+          else if(diasV <= 7) { vencTxt = 'Vence em '+diasV+'d'; vencCor = '#D97706'; }
+        }
+        var dtDesp = d.despachado_em ? new Date(d.despachado_em).toLocaleDateString('pt-BR') : '';
+        h += '<div class="tarefa-item" style="border-left:none">';
+        h += '<div class="tarefa-ico" style="background:#FEF2F2">↩</div>';
+        h += '<div class="tarefa-corpo">';
+        h += '<div class="tarefa-tit">Produto ' + d.produto_num + ' — ' + esc((d.produto_desc||'').substring(0,50)) + (d.produto_desc&&d.produto_desc.length>50?'…':'') + '</div>';
+        if(d.atividade_cod) {
+          h += '<div class="tarefa-sub"><span style="font-family:var(--font-mono);font-size:10px;font-weight:600;background:var(--cinza-100);padding:1px 5px;border-radius:3px">' + esc(d.atividade_cod) + '</span> ' + esc((d.atividade_nome||'').substring(0,45)) + '</div>';
+        }
+        if(d.despacho_texto) {
+          h += '<div style="font-size:11px;color:#7F1D1D;background:#FEF2F2;border-left:2px solid #EF4444;padding:4px 8px;border-radius:0 4px 4px 0;margin:4px 0;line-height:1.4">'
+            + esc(d.despacho_texto.substring(0,120)) + (d.despacho_texto.length>120?'…':'') + '</div>';
+        }
+        h += '<div class="tarefa-meta">';
+        h += '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#FEF2F2;color:#DC2626">Devolvido</span>';
+        if(dtDesp) h += '<span class="tarefa-dias">Devolvido ' + dtDesp + '</span>';
+        if(vencTxt) h += '<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;background:#FEF2F2;color:'+vencCor+'">⏰ '+vencTxt+'</span>';
+        h += '</div></div>';
+        h += '<div class="tarefa-acao">';
+        h += '<a href="produtos.html?entrega=' + d.entrega_id + '" class="btn btn-sm" style="font-size:11px;background:#DC2626;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px">↩ Corrigir →</a>';
+        h += '</div></div>';
+      });
+    } else {
+      // Fallback: notificações produto_devolvido não lidas
+      notifDev.forEach(function(n) {
+        var nid = n.id||'', nlink = (n.link||'').replace(/'/g,"\\'"), nent = (n.entidade_id||'').replace(/'/g,"\\'");
+        var dtFmt = n.criado_em ? new Date(n.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+        h += '<div class="tarefa-item" style="border-left:none;cursor:pointer" onclick="clicarNotif(\''+nid+'\',\''+nlink+'\',\''+nent+'\')">';
+        h += '<div class="tarefa-ico" style="background:#FEF2F2">↩</div>';
+        h += '<div class="tarefa-corpo">';
+        h += '<div class="tarefa-tit">' + esc(n.titulo||'') + '</div>';
+        if(n.mensagem) h += '<div style="font-size:11px;color:#7F1D1D;background:#FEF2F2;border-left:2px solid #EF4444;padding:4px 8px;border-radius:0 4px 4px 0;margin:4px 0;line-height:1.4">' + esc((n.mensagem||'').substring(0,120)) + '</div>';
+        h += '<div class="tarefa-meta"><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#FEF2F2;color:#DC2626">Devolvido</span>';
+        h += '<span class="tarefa-dias">' + dtFmt + '</span></div>';
+        h += '</div><div class="tarefa-acao"><button onclick="event.stopPropagation();clicarNotif(\''+nid+'\',\''+nlink+'\',\''+nent+'\')" class="btn btn-sm" style="font-size:11px;background:#DC2626;color:#fff">↩ Corrigir →</button></div></div>';
+      });
+    }
+
+    h += '</div>'; // lista
+    h += '</div>'; // .ch devolvidos
+  }
+
   h += '</div>'; // coluna esquerda
 
   // ── COLUNA DIREITA: Vencimentos + Notificações ───────────
