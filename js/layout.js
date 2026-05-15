@@ -383,10 +383,13 @@ function renderListaNotif() {
   }
 
   const icones = {
-    avaliacao_produto: '📋',
-    produto_aprovado:  '✅',
-    produto_devolvido: '↩',
-    tdr:               '📄',
+    produto_para_avaliar: '📋',
+    produto_aprovado:     '✅',
+    produto_devolvido:    '↩',
+    tdr_para_revisar:     '📄',
+    viagem_solicitada:    '✈️',
+    viagem_aprovada:      '✅',
+    viagem_prestacao:     '🧾',
   };
 
   lista.innerHTML = notifCache.map(n => {
