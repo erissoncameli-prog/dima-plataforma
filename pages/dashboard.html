@@ -857,18 +857,47 @@ function renderExecucao(){
         ctx.save();
         ctx.textAlign='center';
         ctx.textBaseline='middle';
-        ctx.font='bold 24px Inter,sans-serif';
+        ctx.font='bold 22px Inter,sans-serif';
         ctx.fillStyle='#111827';
         ctx.fillText(_brl_pctPago.toFixed(1)+'%',cx,cy-10);
         ctx.font='11px Inter,sans-serif';
         ctx.fillStyle='#6B7280';
-        ctx.fillText('pago',cx,cy+13);
+        ctx.fillText('pago',cx,cy+12);
         ctx.restore();
+      }
+    };
+    var contrSliceLabels={
+      id:'contrSliceLabels',
+      afterDraw:function(chart){
+        var ctx=chart.ctx;
+        var meta=chart.getDatasetMeta(0);
+        var data=chart.data.datasets[0].data;
+        var labels=chart.data.labels;
+        var cors=['#fff','#fff','#6B7280'];
+        meta.data.forEach(function(arc,i){
+          var total=data.reduce(function(s,v){return s+(v||0);},0);
+          if(!data[i]||total===0)return;
+          var pct=data[i]/total*100;
+          if(pct<5)return;
+          var angle=(arc.startAngle+arc.endAngle)/2;
+          var r=(arc.outerRadius+arc.innerRadius)/2;
+          var x=arc.x+Math.cos(angle)*r;
+          var y=arc.y+Math.sin(angle)*r;
+          ctx.save();
+          ctx.textAlign='center';
+          ctx.textBaseline='middle';
+          ctx.font='bold 10px Inter,sans-serif';
+          ctx.fillStyle=cors[i]||'#fff';
+          ctx.fillText(labels[i],x,y-7);
+          ctx.font='9px Inter,sans-serif';
+          ctx.fillText(pct.toFixed(1)+'%',x,y+6);
+          ctx.restore();
+        });
       }
     };
     mkChart('ch-contr-donut',{
       type:'doughnut',
-      plugins:[contrCenterPlugin],
+      plugins:[contrCenterPlugin,contrSliceLabels],
       data:{
         labels:['Pago','A pagar','Saldo'],
         datasets:[{
@@ -878,7 +907,7 @@ function renderExecucao(){
           borderColor:'#fff'
         }]
       },
-      options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.raw;var pct=_brl_contratado>0?(v/_brl_contratado*100):0;return ' '+formatBRL(v)+' ('+pct.toFixed(1)+'%)';}}}}}
+      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.raw;var pct=_brl_contratado>0?(v/_brl_contratado*100):0;return ' '+formatBRL(v)+' ('+pct.toFixed(1)+'%)';}}}}}
     });
     var legContrEl=document.getElementById('leg-contr-donut');
     if(legContrEl){
@@ -890,12 +919,17 @@ function renderExecucao(){
       ];
       legContrEl.innerHTML=contrItems.map(function(x){
         var pct=x[3]>0?(x[2]/x[3]*100):0;
-        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+
-          '<div style="width:14px;height:14px;border-radius:3px;background:'+x[1]+';flex-shrink:0;border:1px solid rgba(0,0,0,.08)"></div>'+
-          '<div><div style="font-size:12px;color:#374151;font-weight:500">'+x[0]+'</div>'+
-          '<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#111827">'+formatBRL(x[2])+'</div>'+
-          (x[3]?'<div style="font-size:11px;color:#6B7280">'+pct.toFixed(1)+'% do total contratado</div>':'')+
-          '</div></div>';
+        var barW=x[3]?Math.max(0,Math.min(100,pct)):100;
+        var barClr=x[1]==='#E5E7EB'?'#9CA3AF':x[1];
+        return '<div style="margin-bottom:11px">'+
+          '<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">'+
+          '<div style="width:12px;height:12px;border-radius:2px;background:'+x[1]+';flex-shrink:0;border:1px solid rgba(0,0,0,.1)"></div>'+
+          '<span style="font-size:11px;color:#6B7280;font-weight:500">'+x[0]+'</span>'+
+          (x[3]?'<span style="margin-left:auto;font-size:10px;color:#9CA3AF">'+pct.toFixed(1)+'%</span>':'')+
+          '</div>'+
+          '<div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:#111827;margin-bottom:4px;padding-left:19px">'+formatBRL(x[2])+'</div>'+
+          (x[3]?'<div style="margin-left:19px;height:4px;border-radius:2px;background:#F3F4F6;overflow:hidden"><div style="height:100%;width:'+barW+'%;background:'+barClr+';border-radius:2px;transition:width .4s"></div></div>':'')+
+          '</div>';
       }).join('');
     }
   },50);
