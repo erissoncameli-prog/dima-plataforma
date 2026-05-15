@@ -141,11 +141,12 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     return `
       <button onclick="toggleGrupoNav('${group.key}')"
         style="display:flex;align-items:center;width:100%;text-align:left;background:none;border:none;
-               cursor:pointer;padding:10px 16px 4px;gap:6px;font-family:inherit;">
-        <span style="flex:1;font-size:10px;font-weight:700;letter-spacing:1.2px;
-                     color:rgba(255,255,255,.4);text-transform:uppercase">${group.label}</span>
+               cursor:pointer;padding:14px 14px 5px;gap:6px;font-family:inherit;
+               border-top:1px solid rgba(255,255,255,.08);margin-top:4px;">
+        <span style="flex:1;font-size:11px;font-weight:700;letter-spacing:0.8px;
+                     color:rgba(255,255,255,.7)">${group.label}</span>
         <span id="nav-group-chevron-${group.key}"
-          style="font-size:8px;color:rgba(255,255,255,.3);transition:transform .2s;
+          style="font-size:9px;color:rgba(255,255,255,.45);transition:transform .2s;
                  ${aberto ? '' : 'transform:rotate(-90deg)'}">▼</span>
       </button>
       <div id="nav-group-${group.key}"
