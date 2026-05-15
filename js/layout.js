@@ -8,42 +8,36 @@
     link.href = '../css/sidebar.css';
     document.head.appendChild(link);
   }
-  // Injetar Lucide Icons (ícones SVG do nav)
-  if (!document.querySelector('script[src*="lucide"]')) {
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/lucide@latest/dist/umd/lucide.min.js';
-    s.onload = () => lucide.createIcons();
-    document.head.appendChild(s);
-  }
 })();
 
 function gerarLayout(tituloPagina, paginaAtiva) {
+  // SVG paths inline — sem dependência de CDN, renderiza instantaneamente
   const iconePills = {
-    dashboard:    { lucide: 'layout-dashboard',    cor: '#60a5fa', bg: 'rgba(96,165,250,0.22)'   },
-    atividades:   { lucide: 'list-checks',         cor: '#34d399', bg: 'rgba(52,211,153,0.22)'   },
-    tdrs:         { lucide: 'file-text',           cor: '#a78bfa', bg: 'rgba(167,139,250,0.22)'  },
-    matriz:       { lucide: 'target',              cor: '#f59e0b', bg: 'rgba(245,158,11,0.22)'   },
-    fornecedores: { lucide: 'building-2',          cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'   },
-    contratos:    { lucide: 'file-signature',      cor: '#fb7185', bg: 'rgba(251,113,133,0.22)'  },
-    produtos:     { lucide: 'package-check',       cor: '#4ade80', bg: 'rgba(74,222,128,0.22)'   },
-    financeiro:   { lucide: 'coins',               cor: '#fbbf24', bg: 'rgba(251,191,36,0.22)'   },
-    viagens:      { lucide: 'plane',               cor: '#67e8f9', bg: 'rgba(103,232,249,0.22)'  },
-    beneficiarios:{ lucide: 'users',               cor: '#c084fc', bg: 'rgba(192,132,252,0.22)'  },
-    relatorios:   { lucide: 'bar-chart-2',         cor: '#f97316', bg: 'rgba(249,115,22,0.22)'   },
-    mapa:         { lucide: 'map-pin',             cor: '#2dd4bf', bg: 'rgba(45,212,191,0.22)'   },
-    repositorio:  { lucide: 'folder-open',         cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)'  },
-    auditoria:    { lucide: 'shield-check',        cor: '#ef4444', bg: 'rgba(239,68,68,0.22)'    },
-    usuarios:     { lucide: 'user-cog',            cor: '#e2e8f0', bg: 'rgba(226,232,240,0.15)'  },
-    configuracoes:{ lucide: 'settings-2',          cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)'  },
-    dados_sistema:{ lucide: 'sliders-horizontal',  cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)'  },
-    banco_dados:  { lucide: 'database',            cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'   },
+    dashboard:    { svg: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',                                                                                           cor: '#60a5fa', bg: 'rgba(96,165,250,0.22)'  },
+    atividades:   { svg: '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',                                                                                                                                                                                  cor: '#34d399', bg: 'rgba(52,211,153,0.22)'  },
+    tdrs:         { svg: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',                                                                                                                       cor: '#a78bfa', bg: 'rgba(167,139,250,0.22)' },
+    matriz:       { svg: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',                                                                                                                                                                                                 cor: '#f59e0b', bg: 'rgba(245,158,11,0.22)'  },
+    fornecedores: { svg: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',                                             cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'  },
+    contratos:    { svg: '<path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L18 5.5"/><path d="M8 18h1"/><path d="M18.42 9.61a2.1 2.1 0 1 1 2.97 2.97L16.95 17 13 18l.99-3.95 4.43-4.44Z"/>',                                                                                                      cor: '#fb7185', bg: 'rgba(251,113,133,0.22)' },
+    produtos:     { svg: '<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/>',                            cor: '#4ade80', bg: 'rgba(74,222,128,0.22)'  },
+    financeiro:   { svg: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>',                                                                                                                                                          cor: '#fbbf24', bg: 'rgba(251,191,36,0.22)'  },
+    viagens:      { svg: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 2c-2-2-4-2-5.5-.5L10 5 1.8 6.2a.27.27 0 0 0-.1.5l1.7 1.7 4.4-1.1L4.3 11l.6.6L9 10l1.1 4.4 1.7 1.7a.27.27 0 0 0 .5-.1z"/>',                                                                                                                   cor: '#67e8f9', bg: 'rgba(103,232,249,0.22)' },
+    beneficiarios:{ svg: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',                                                                                                                               cor: '#c084fc', bg: 'rgba(192,132,252,0.22)' },
+    relatorios:   { svg: '<line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>',                                                                                                                                                                           cor: '#f97316', bg: 'rgba(249,115,22,0.22)'  },
+    mapa:         { svg: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',                                                                                                                                                                                                     cor: '#2dd4bf', bg: 'rgba(45,212,191,0.22)'  },
+    repositorio:  { svg: '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',                                                                                            cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
+    auditoria:    { svg: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',                                                                                   cor: '#ef4444', bg: 'rgba(239,68,68,0.22)'   },
+    usuarios:     { svg: '<circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/><path d="M10 15H6a4 4 0 0 0-4 4v2"/><path d="m21.7 16.4-.9-.3"/><path d="m15.2 13.9-.9-.3"/><path d="m16.6 18.7.3-.9"/><path d="m19.1 12.2.3-.9"/><path d="m19.6 18.7-.4-1"/><path d="m16.8 12.3-.4-1"/><path d="m14.3 16.6 1-.4"/><path d="m20.7 13.8 1-.4"/>', cor: '#e2e8f0', bg: 'rgba(226,232,240,0.15)' },
+    configuracoes:{ svg: '<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>',                                                                                                                                                                                           cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
+    dados_sistema:{ svg: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
+    banco_dados:  { svg: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>',                                                                                                                                                                                cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'  },
   };
 
   function renderPill(id, size) {
-    const p = iconePills[id] || { lucide: 'circle', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' };
+    const p = iconePills[id] || { svg: '<circle cx="12" cy="12" r="4"/>', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' };
     const px = size || 28;
     return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${px}px;height:${px}px;border-radius:7px;background:${p.bg};flex-shrink:0">
-      <i data-lucide="${p.lucide}" style="width:15px;height:15px;stroke:${p.cor};stroke-width:2;fill:none"></i>
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="${p.cor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p.svg}</svg>
     </span>`;
   }
 
@@ -262,8 +256,6 @@ async function trocarIdioma(lang) {
 }
 
 async function carregarLogosSidebar() {
-  // Ativar ícones Lucide após o layout ser injetado no DOM (fallback se já carregado/cacheado)
-  if (typeof lucide !== 'undefined') lucide.createIcons();
   try {
     const { data } = await db.from('configuracoes_sistema')
       .select('*').eq('projeto_id', 'default').single();
