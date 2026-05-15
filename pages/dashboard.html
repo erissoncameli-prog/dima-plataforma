@@ -1354,7 +1354,7 @@ async function renderTarefas() {
 
   // Notificações não lidas (exceto produto_para_avaliar — já exibidas acima)
   if(notifOutras.length) {
-    var iconeNotif = {produto_aprovado:'✅',produto_devolvido:'↩',tdr:'📄',viagem:'✈️',contrato:'📝'};
+    var iconeNotif = {produto_aprovado:'✅',produto_devolvido:'↩',tdr_para_revisar:'📄',viagem_solicitada:'✈️',viagem_aprovada:'✅',viagem_prestacao:'🧾'};
     h += '<div class="ch">';
     h += '<div class="ch-tit">🔔 Notificações <span style="background:#FEF2F2;color:#DC2626;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + notifOutras.length + '</span></div>';
     h += '<div class="ch-sub">Não lidas — clique para abrir</div>';
