@@ -1131,11 +1131,12 @@ async function renderTarefas() {
   h += '<div style="background:linear-gradient(135deg,var(--verde-medio) 0%,#1a5c38 100%);border-radius:var(--raio-lg);padding:20px 24px;margin-bottom:20px;color:#fff">';
   h += '<div style="font-size:18px;font-weight:600;margin-bottom:4px">' + saudacao + ', ' + nome + '!</div>';
   h += '<div style="font-size:13px;opacity:.85">';
-  if(tarefas.length === 0 && vencendo.length === 0) {
+  var totalAval = tarefas.length || notifAval.length;
+  if(totalAval === 0 && vencendo.length === 0 && notifOutras.length === 0) {
     h += '✓ Você não tem tarefas pendentes no momento. Bom trabalho!';
   } else {
     var partes = [];
-    if(tarefas.length) partes.push(tarefas.length + ' produto(s) aguardando sua avaliação');
+    if(totalAval) partes.push(totalAval + ' produto(s) aguardando sua avaliação');
     if(vencendo.length) partes.push(vencendo.length + ' produto(s) com vencimento próximo');
     h += partes.join(' · ');
   }
