@@ -133,8 +133,8 @@ function tplResponsavelAprovado(evento: string, p: any, entrega: any): { assunto
 
   return {
     assunto: parcial
-      ? `[DIMA] Produto Nº ${numProd} — Aprovação parcial registrada (${pct}%)`
-      : `[DIMA] Produto Nº ${numProd} — Aprovação registrada ✓`,
+      ? `[DIMA | ${forn}] Produto Nº ${numProd} — Aprovação parcial registrada (${pct}%)`
+      : `[DIMA | ${forn}] Produto Nº ${numProd} — Aprovação registrada ✓`,
     corpo: `Prezado(a) responsável,
 
 ${parcial
@@ -166,7 +166,7 @@ function tplResponsavelPago(p: any, entrega: any): { assunto: string; corpo: str
   const valor    = parseFloat(entrega?.valor_entregue || 0)
 
   return {
-    assunto: `[DIMA] Produto Nº ${numProd} — Pagamento confirmado ✓`,
+    assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Pagamento confirmado ✓`,
     corpo: `Prezado(a) responsável,
 
 Informamos que o pagamento referente ao Produto Nº ${numProd} foi confirmado e registrado no módulo financeiro da Plataforma DIMA.
@@ -190,7 +190,7 @@ function tplResponsavel(p: any, entrega: any): { assunto: string; corpo: string 
   const link     = `${SITE_URL}/pages/produtos.html?entrega=${entrega?.id || ''}`
 
   return {
-    assunto: `[DIMA] Produto Nº ${numProd} — Entrega recebida, aguarda avaliação`,
+    assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Entrega recebida, aguarda avaliação`,
     corpo: `Prezado(a) responsável,
 
 Uma nova entrega foi registrada e aguarda sua avaliação na Plataforma DIMA.
@@ -211,6 +211,7 @@ function tplFornecedor(evento: string, p: any, entrega: any): { assunto: string;
   const numProd  = p.numero_produto || '—'
   const desc     = p.descricao || '—'
   const cont     = p.contratos?.numero || '—'
+  const forn     = p.contratos?.fornecedores?.nome || '—'
   const numDesp  = entrega?.despacho_numero || '—'
   const despacho = entrega?.despacho_texto || '—'
   const dtDesp   = fmtData(entrega?.despacho_data || null)
@@ -218,7 +219,7 @@ function tplFornecedor(evento: string, p: any, entrega: any): { assunto: string;
   const valor    = parseFloat(entrega?.valor_entregue || 0)
 
   if (evento === 'aprovado') return {
-    assunto: `[DIMA] Produto Nº ${numProd} — Aprovado ✓`,
+    assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Aprovado ✓`,
     corpo: `Prezado(a),
 
 Informamos que o Produto Nº ${numProd} foi APROVADO integralmente.
@@ -235,7 +236,7 @@ O produto será encaminhado para processamento do pagamento pela equipe financei
   }
 
   if (evento === 'aprovado_parcial') return {
-    assunto: `[DIMA] Produto Nº ${numProd} — Aprovação parcial (${pct}%)`,
+    assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Aprovação parcial (${pct}%)`,
     corpo: `Prezado(a),
 
 Informamos que o Produto Nº ${numProd} recebeu APROVAÇÃO PARCIAL.
@@ -253,7 +254,7 @@ Uma nova entrega poderá ser realizada para o percentual restante. Acesse a Plat
   }
 
   if (evento === 'devolvido') return {
-    assunto: `[DIMA] Produto Nº ${numProd} — Devolvido para correção`,
+    assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Devolvido para correção`,
     corpo: `Prezado(a),
 
 Informamos que o Produto Nº ${numProd} foi DEVOLVIDO para correção.
@@ -269,7 +270,7 @@ Por favor, realize os ajustes indicados e registre uma nova entrega na Plataform
   }
 
   if (evento === 'pago') return {
-    assunto: `[DIMA] Produto Nº ${numProd} — Pagamento confirmado ✓`,
+    assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Pagamento confirmado ✓`,
     corpo: `Prezado(a),
 
 Informamos que o pagamento referente ao Produto Nº ${numProd} foi confirmado.
@@ -299,7 +300,7 @@ function tplUnesco(evento: string, p: any, entrega: any): { assunto: string; cor
   const tipo     = evento === 'aprovado' ? 'APROVAÇÃO TOTAL (100%)' : `APROVAÇÃO PARCIAL (${pct}%)`
 
   return {
-    assunto: `[DIMA] Produto Nº ${numProd} aprovado — Encaminhamento de documentos`,
+    assunto: `[DIMA | ${forn}] Produto Nº ${numProd} aprovado — Encaminhamento de documentos`,
     corpo: `Prezados,
 
 Informamos que o Produto Nº ${numProd} foi avaliado e aprovado na Plataforma DIMA.
