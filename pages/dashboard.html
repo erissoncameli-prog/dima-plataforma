@@ -1096,10 +1096,11 @@ async function renderTarefas() {
   if(!el) return;
   el.innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
 
-  // Buscar tarefas, vencimentos e notificações em paralelo
-  var [rTarefas, rVenc, rNotifAval, rNotifOutras] = await Promise.all([
+  // Buscar tarefas, vencimentos, devolvidos e notificações em paralelo
+  var [rTarefas, rVenc, rDevolvidas, rNotifAval, rNotifDev, rNotifOutras] = await Promise.all([
     db.rpc('get_minhas_tarefas'),
     db.rpc('get_produtos_vencendo', { dias_limite: 30 }),
+    db.rpc('get_minhas_entregas_devolvidas'),
     db.from('notificacoes')
       .select('id,titulo,mensagem,tipo,link,entidade_id,criado_em')
       .eq('usuario_id', appState.usuario.id)
@@ -1110,15 +1111,24 @@ async function renderTarefas() {
     db.from('notificacoes')
       .select('id,titulo,mensagem,tipo,link,entidade_id,criado_em')
       .eq('usuario_id', appState.usuario.id)
+      .eq('tipo', 'produto_devolvido')
       .eq('lida', false)
-      .neq('tipo', 'produto_para_avaliar')
+      .order('criado_em', {ascending: false})
+      .limit(10),
+    db.from('notificacoes')
+      .select('id,titulo,mensagem,tipo,link,entidade_id,criado_em')
+      .eq('usuario_id', appState.usuario.id)
+      .eq('lida', false)
+      .not('tipo', 'in', '("produto_para_avaliar","produto_devolvido")')
       .order('criado_em', {ascending: false})
       .limit(5)
   ]);
 
   var tarefas     = rTarefas.data     || [];
   var vencendo    = rVenc.data        || [];
+  var devolvidas  = rDevolvidas.data  || [];
   var notifAval   = rNotifAval.data   || [];
+  var notifDev    = rNotifDev.data    || [];
   var notifOutras = rNotifOutras.data || [];
   var perfil   = appState.perfil;
   var nome     = appState.usuario?.nome_completo?.split(' ')[0] || '';
