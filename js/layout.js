@@ -129,7 +129,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
         ? `<span style="font-size:8px;background:rgba(255,255,255,.18);color:rgba(255,255,255,.8);padding:1px 5px;border-radius:99px;margin-left:auto;flex-shrink:0" title="Acesso extra concedido pelo administrador">extra</span>`
         : '';
       return `<a class="nav-item ${ativo}" href="${item.href}" style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:14px;flex-shrink:0">${item.icone}</span>
+        ${renderPill(item.id)}
         <span style="flex:1">${t('nav', item.id)}</span>
         ${extraTag}
       </a>`;
