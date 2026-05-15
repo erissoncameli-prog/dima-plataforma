@@ -1099,7 +1099,7 @@ async function renderTarefas() {
   // Buscar tarefas e vencimentos em paralelo
   var [rTarefas, rVenc] = await Promise.all([
     db.rpc('get_minhas_tarefas'),
-    db.rpc('get_produtos_vencendo', { dias_limite: 10 })
+    db.rpc('get_produtos_vencendo', { dias_limite: 30 })
   ]);
 
   var tarefas = rTarefas.data || [];
