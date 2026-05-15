@@ -1148,13 +1148,12 @@ async function renderTarefas() {
   h += '<div>';
   h += '<div class="ch">';
   h += '<div class="ch-tit">📋 Avaliações pendentes';
-  if(tarefas.length) h += ' <span style="background:#EFF6FF;color:#1E40AF;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + tarefas.length + '</span>';
+  if(totalAval) h += ' <span style="background:#EFF6FF;color:#1E40AF;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + totalAval + '</span>';
   h += '</div>';
   h += '<div class="ch-sub">Produtos entregues aguardando seu parecer</div>';
 
-  if(!tarefas.length) {
-    h += '<div style="padding:24px 0;text-align:center;color:var(--cinza-400);font-size:12px">✓ Nenhuma avaliação pendente</div>';
-  } else {
+  if(tarefas.length) {
+    // Fonte primária: produtos em_analise no banco
     h += '<div style="margin-top:4px">';
     tarefas.forEach(function(t) {
       var dias = parseInt(t.dias_aguardando) || 0;
@@ -1182,6 +1181,29 @@ async function renderTarefas() {
       h += '</div>';
     });
     h += '</div>';
+  } else if(notifAval.length) {
+    // Fallback: notificações produto_para_avaliar não lidas
+    h += '<div style="margin-top:4px">';
+    notifAval.forEach(function(n) {
+      var dtFmt = n.criado_em ? new Date(n.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      var nid = n.id || '', nlink = (n.link||'').replace(/'/g,"\\'"), nent = (n.entidade_id||'').replace(/'/g,"\\'");
+      h += '<div class="tarefa-item" style="cursor:pointer" onclick="clicarNotif(\''+nid+'\',\''+nlink+'\',\''+nent+'\')">';
+      h += '<div class="tarefa-ico" style="background:#FEF3C7">📋</div>';
+      h += '<div class="tarefa-corpo">';
+      h += '<div class="tarefa-tit">' + esc(n.titulo||'') + '</div>';
+      if(n.mensagem) h += '<div class="tarefa-sub">' + esc((n.mensagem||'').substring(0,70)) + '</div>';
+      h += '<div class="tarefa-meta">';
+      h += '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#FEF3C7;color:#92400E">Aguarda avaliação</span>';
+      h += '<span class="tarefa-dias">' + dtFmt + '</span>';
+      h += '</div></div>';
+      h += '<div class="tarefa-acao">';
+      h += '<button onclick="event.stopPropagation();clicarNotif(\''+nid+'\',\''+nlink+'\',\''+nent+'\')" class="btn btn-primary btn-sm" style="font-size:11px">🔍 Avaliar →</button>';
+      h += '</div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  } else {
+    h += '<div style="padding:24px 0;text-align:center;color:var(--cinza-400);font-size:12px">✓ Nenhuma avaliação pendente</div>';
   }
   h += '</div>'; // .ch
   h += '</div>'; // coluna esquerda
