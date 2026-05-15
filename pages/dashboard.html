@@ -211,7 +211,7 @@ async function loadData(){
     db.from('indicadores').select('*,resultados(codigo,nome_pt)').eq('ativo',true),
     db.from('execucao_financeira').select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome),contratos(id,numero)'),
     db.from('fornecedores').select('id,nome,tipo'),
-    db.from('contratos').select('id,numero,objeto_pt'),
+    db.from('contratos').select('id,numero,objeto_pt,valor_total_brl,status'),
     db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade').eq('ativo',true).order('ordem'),
     db.from('vw_matriz_progresso').select('*'),
     db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
