@@ -12,6 +12,7 @@
   if (!document.querySelector('script[src*="lucide"]')) {
     const s = document.createElement('script');
     s.src = 'https://unpkg.com/lucide@latest/dist/umd/lucide.min.js';
+    s.onload = () => lucide.createIcons();
     document.head.appendChild(s);
   }
 })();
@@ -261,9 +262,8 @@ async function trocarIdioma(lang) {
 }
 
 async function carregarLogosSidebar() {
-  // Ativar ícones Lucide após o layout ser injetado no DOM
+  // Ativar ícones Lucide após o layout ser injetado no DOM (fallback se já carregado/cacheado)
   if (typeof lucide !== 'undefined') lucide.createIcons();
-  else setTimeout(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); }, 300);
   try {
     const { data } = await db.from('configuracoes_sistema')
       .select('*').eq('projeto_id', 'default').single();
