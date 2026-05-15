@@ -75,12 +75,18 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   const iniciais = u?.nome_completo?.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase() || 'US';
 
   const navGroups = [
-    { label: null,          ids: ['dashboard'] },
-    { label: 'Planejamento', ids: ['atividades','tdrs','matriz'] },
-    { label: 'Execução',     ids: ['fornecedores','contratos','produtos','financeiro'] },
-    { label: 'Apoio',        ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','usuarios'] },
-    { label: 'Sistema',      ids: ['configuracoes'] },
+    { label: null,           key: null,            ids: ['dashboard'] },
+    { label: 'Planejamento', key: 'planejamento',  ids: ['atividades','tdrs','matriz'] },
+    { label: 'Execução',     key: 'execucao',      ids: ['fornecedores','contratos','produtos','financeiro'] },
+    { label: 'Apoio',        key: 'apoio',         ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','usuarios'] },
+    { label: 'Sistema',      key: 'sistema',       ids: ['configuracoes'] },
   ];
+
+  function grupoAberto(key, ids) {
+    if (ids.includes(paginaAtiva)) return true; // sempre aberto se página ativa está no grupo
+    const saved = localStorage.getItem('dima_nav_grupo_' + key);
+    return saved === null ? true : saved === '1'; // padrão: aberto
+  }
 
   const navHtml = navGroups.map(group => {
     const itens = navItems.filter(item => group.ids.includes(item.id));
