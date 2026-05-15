@@ -1154,14 +1154,27 @@ async function renderTarefas() {
 
   if(tarefas.length) {
     // Fonte primária: produtos em_analise no banco
-    h += '<div style="margin-top:4px">';
+    // Filtro por atividade (só aparece quando há múltiplas atividades)
+    var atvMap = {};
+    tarefas.forEach(function(t){ if(t.atividade_cod) atvMap[t.atividade_cod] = t.atividade_nome||t.atividade_cod; });
+    var atvCods = Object.keys(atvMap);
+    if(atvCods.length > 1) {
+      h += '<div style="display:flex;gap:5px;flex-wrap:wrap;margin:8px 0 4px">';
+      h += '<button class="pill-aval active" onclick="filtrarAval(null,this)" style="font-size:10px;padding:3px 10px;border-radius:99px;border:1px solid var(--borda);background:var(--verde-medio);color:#fff;cursor:pointer;font-weight:600">Todas ('+tarefas.length+')</button>';
+      atvCods.forEach(function(cod){
+        var cnt = tarefas.filter(function(t){return t.atividade_cod===cod;}).length;
+        h += '<button class="pill-aval" onclick="filtrarAval(\''+esc(cod)+'\',this)" style="font-size:10px;padding:3px 10px;border-radius:99px;border:1px solid var(--borda);background:var(--cinza-100);color:var(--cinza-700);cursor:pointer;font-weight:500">'+esc(cod)+' ('+cnt+')</button>';
+      });
+      h += '</div>';
+    }
+    h += '<div style="margin-top:4px" id="lista-aval">';
     tarefas.forEach(function(t) {
       var dias = parseInt(t.dias_aguardando) || 0;
       var urgente = dias >= 3;
       var corDias = urgente ? '#DC2626' : '#6B7280';
       var bgDias  = urgente ? '#FEF2F2' : 'var(--cinza-100)';
 
-      h += '<div class="tarefa-item">';
+      h += '<div class="tarefa-item" data-atv="'+esc(t.atividade_cod||'')+'">';
       h += '<div class="tarefa-ico" style="background:#EFF6FF">📋</div>';
       h += '<div class="tarefa-corpo">';
       h += '<div class="tarefa-tit">Produto ' + t.produto_num + ' — ' + (t.produto_desc||'').substring(0,50) + (t.produto_desc?.length>50?'…':'') + '</div>';
@@ -1183,11 +1196,28 @@ async function renderTarefas() {
     h += '</div>';
   } else if(notifAval.length) {
     // Fallback: notificações produto_para_avaliar não lidas
-    h += '<div style="margin-top:4px">';
+    // Extrair código de atividade do título ("Produto aguardando avaliação — AT-001")
+    var atvMapN = {};
+    notifAval.forEach(function(n){
+      var cod = (n.titulo||'').split(' — ')[1] || '';
+      if(cod) atvMapN[cod] = cod;
+    });
+    var atvCodsN = Object.keys(atvMapN);
+    if(atvCodsN.length > 1) {
+      h += '<div style="display:flex;gap:5px;flex-wrap:wrap;margin:8px 0 4px">';
+      h += '<button class="pill-aval active" onclick="filtrarAval(null,this)" style="font-size:10px;padding:3px 10px;border-radius:99px;border:1px solid var(--borda);background:var(--verde-medio);color:#fff;cursor:pointer;font-weight:600">Todas ('+notifAval.length+')</button>';
+      atvCodsN.forEach(function(cod){
+        var cnt = notifAval.filter(function(n){return (n.titulo||'').endsWith('— '+cod);}).length;
+        h += '<button class="pill-aval" onclick="filtrarAval(\''+esc(cod)+'\',this)" style="font-size:10px;padding:3px 10px;border-radius:99px;border:1px solid var(--borda);background:var(--cinza-100);color:var(--cinza-700);cursor:pointer;font-weight:500">'+esc(cod)+' ('+cnt+')</button>';
+      });
+      h += '</div>';
+    }
+    h += '<div style="margin-top:4px" id="lista-aval">';
     notifAval.forEach(function(n) {
+      var codAtv = (n.titulo||'').split(' — ')[1] || '';
       var dtFmt = n.criado_em ? new Date(n.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
       var nid = n.id || '', nlink = (n.link||'').replace(/'/g,"\\'"), nent = (n.entidade_id||'').replace(/'/g,"\\'");
-      h += '<div class="tarefa-item" style="cursor:pointer" onclick="clicarNotif(\''+nid+'\',\''+nlink+'\',\''+nent+'\')">';
+      h += '<div class="tarefa-item" data-atv="'+esc(codAtv)+'" style="cursor:pointer" onclick="clicarNotif(\''+nid+'\',\''+nlink+'\',\''+nent+'\')">';
       h += '<div class="tarefa-ico" style="background:#FEF3C7">📋</div>';
       h += '<div class="tarefa-corpo">';
       h += '<div class="tarefa-tit">' + esc(n.titulo||'') + '</div>';
