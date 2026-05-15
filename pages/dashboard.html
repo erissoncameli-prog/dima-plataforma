@@ -846,6 +846,58 @@ function renderExecucao(){
           '</div>';
       }).join('');
     }
+
+    // Rosca contratos BRL
+    var contrCenterPlugin={
+      id:'contrCenter',
+      afterDraw:function(chart){
+        var ctx=chart.ctx;
+        var cx=(chart.chartArea.left+chart.chartArea.right)/2;
+        var cy=(chart.chartArea.top+chart.chartArea.bottom)/2;
+        ctx.save();
+        ctx.textAlign='center';
+        ctx.textBaseline='middle';
+        ctx.font='bold 24px Inter,sans-serif';
+        ctx.fillStyle='#111827';
+        ctx.fillText(_brl_pctPago.toFixed(1)+'%',cx,cy-10);
+        ctx.font='11px Inter,sans-serif';
+        ctx.fillStyle='#6B7280';
+        ctx.fillText('pago',cx,cy+13);
+        ctx.restore();
+      }
+    };
+    mkChart('ch-contr-donut',{
+      type:'doughnut',
+      plugins:[contrCenterPlugin],
+      data:{
+        labels:['Pago','A pagar','Saldo'],
+        datasets:[{
+          data:[_brl_pago,_brl_apagar,_brl_saldo],
+          backgroundColor:['#059669','#F59E0B','#E5E7EB'],
+          borderWidth:3,
+          borderColor:'#fff'
+        }]
+      },
+      options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.raw;var pct=_brl_contratado>0?(v/_brl_contratado*100):0;return ' '+formatBRL(v)+' ('+pct.toFixed(1)+'%)';}}}}}
+    });
+    var legContrEl=document.getElementById('leg-contr-donut');
+    if(legContrEl){
+      var contrItems=[
+        ['Total contratado','#2563EB',_brl_contratado,null],
+        ['Pago','#059669',_brl_pago,_brl_contratado],
+        ['A pagar','#F59E0B',_brl_apagar,_brl_contratado],
+        ['Saldo','#E5E7EB',_brl_saldo,_brl_contratado]
+      ];
+      legContrEl.innerHTML=contrItems.map(function(x){
+        var pct=x[3]>0?(x[2]/x[3]*100):0;
+        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+
+          '<div style="width:14px;height:14px;border-radius:3px;background:'+x[1]+';flex-shrink:0;border:1px solid rgba(0,0,0,.08)"></div>'+
+          '<div><div style="font-size:12px;color:#374151;font-weight:500">'+x[0]+'</div>'+
+          '<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#111827">'+formatBRL(x[2])+'</div>'+
+          (x[3]?'<div style="font-size:11px;color:#6B7280">'+pct.toFixed(1)+'% do total contratado</div>':'')+
+          '</div></div>';
+      }).join('');
+    }
   },50);
 
   renderFinTabela();
