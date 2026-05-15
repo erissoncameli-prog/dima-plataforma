@@ -8,6 +8,12 @@
     link.href = '../css/sidebar.css';
     document.head.appendChild(link);
   }
+  // Injetar Lucide Icons (ícones SVG do nav)
+  if (!document.querySelector('script[src*="lucide"]')) {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/lucide@latest/dist/umd/lucide.min.js';
+    document.head.appendChild(s);
+  }
 })();
 
 function gerarLayout(tituloPagina, paginaAtiva) {
