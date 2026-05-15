@@ -1248,24 +1248,28 @@ async function renderTarefas() {
   }
   h += '</div>'; // .ch vencimentos
 
-  // Resumo rápido de notificações não lidas
-  var {data: notifs} = await db.from('notificacoes')
-    .select('id,titulo,criado_em')
-    .eq('usuario_id', appState.usuario.id)
-    .eq('lida', false)
-    .order('criado_em', {ascending: false})
-    .limit(5);
-
-  if(notifs && notifs.length) {
+  // Notificações não lidas (exceto produto_para_avaliar — já exibidas acima)
+  if(notifOutras.length) {
+    var iconeNotif = {produto_aprovado:'✅',produto_devolvido:'↩',tdr:'📄',viagem:'✈️',contrato:'📝'};
     h += '<div class="ch">';
-    h += '<div class="ch-tit">🔔 Notificações <span style="background:#FEF2F2;color:#DC2626;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + notifs.length + '</span></div>';
-    h += '<div class="ch-sub">Não lidas</div>';
+    h += '<div class="ch-tit">🔔 Notificações <span style="background:#FEF2F2;color:#DC2626;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-left:6px">' + notifOutras.length + '</span></div>';
+    h += '<div class="ch-sub">Não lidas — clique para abrir</div>';
     h += '<div style="margin-top:8px">';
-    notifs.forEach(function(n) {
-      h += '<div style="padding:8px 0;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:8px">';
-      h += '<div style="width:7px;height:7px;background:#059669;border-radius:50%;flex-shrink:0"></div>';
-      h += '<div style="flex:1;font-size:12px;color:var(--cinza-800)">' + (n.titulo||'').substring(0,50) + '</div>';
-      h += '<div style="font-size:10px;color:var(--cinza-400)">' + (n.criado_em ? new Date(n.criado_em).toLocaleDateString('pt-BR') : '') + '</div>';
+    notifOutras.forEach(function(n) {
+      var icone = iconeNotif[n.tipo] || '🔔';
+      var temLink = !!(n.link || n.entidade_id);
+      var nid = n.id||'', nlink = (n.link||'').replace(/'/g,"\\'"), nent = (n.entidade_id||'').replace(/'/g,"\\'");
+      var dtFmt = n.criado_em ? new Date(n.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      h += '<div style="padding:9px 0;border-bottom:1px solid var(--borda);display:flex;align-items:flex-start;gap:8px'+(temLink?';cursor:pointer':'')+'"'
+        + (temLink ? ' onclick="clicarNotif(\''+nid+'\',\''+nlink+'\',\''+nent+'\')" onmouseover="this.style.background=\'var(--cinza-50)\'" onmouseout="this.style.background=\'\'"' : '')
+        + '>';
+      h += '<span style="font-size:16px;flex-shrink:0;margin-top:1px">'+icone+'</span>';
+      h += '<div style="flex:1;min-width:0">';
+      h += '<div style="font-size:12px;font-weight:500;color:var(--cinza-800)">'+esc((n.titulo||'').substring(0,55))+'</div>';
+      if(n.mensagem) h += '<div style="font-size:10px;color:var(--cinza-500);margin-top:1px;line-height:1.4">'+esc((n.mensagem||'').substring(0,70))+'</div>';
+      h += '</div>';
+      h += '<div style="font-size:10px;color:var(--cinza-400);flex-shrink:0;margin-top:2px">'+dtFmt+'</div>';
+      if(temLink) h += '<span style="font-size:10px;color:var(--azul-medio);flex-shrink:0;margin-top:2px">→</span>';
       h += '</div>';
     });
     h += '<div style="text-align:center;margin-top:10px">';
