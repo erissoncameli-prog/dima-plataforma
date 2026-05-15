@@ -17,29 +17,58 @@
 })();
 
 function gerarLayout(tituloPagina, paginaAtiva) {
+  const iconePills = {
+    dashboard:    { lucide: 'layout-dashboard',    cor: '#60a5fa', bg: 'rgba(96,165,250,0.22)'   },
+    atividades:   { lucide: 'list-checks',         cor: '#34d399', bg: 'rgba(52,211,153,0.22)'   },
+    tdrs:         { lucide: 'file-text',           cor: '#a78bfa', bg: 'rgba(167,139,250,0.22)'  },
+    matriz:       { lucide: 'target',              cor: '#f59e0b', bg: 'rgba(245,158,11,0.22)'   },
+    fornecedores: { lucide: 'building-2',          cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'   },
+    contratos:    { lucide: 'file-signature',      cor: '#fb7185', bg: 'rgba(251,113,133,0.22)'  },
+    produtos:     { lucide: 'package-check',       cor: '#4ade80', bg: 'rgba(74,222,128,0.22)'   },
+    financeiro:   { lucide: 'coins',               cor: '#fbbf24', bg: 'rgba(251,191,36,0.22)'   },
+    viagens:      { lucide: 'plane',               cor: '#67e8f9', bg: 'rgba(103,232,249,0.22)'  },
+    beneficiarios:{ lucide: 'users',               cor: '#c084fc', bg: 'rgba(192,132,252,0.22)'  },
+    relatorios:   { lucide: 'bar-chart-2',         cor: '#f97316', bg: 'rgba(249,115,22,0.22)'   },
+    mapa:         { lucide: 'map-pin',             cor: '#2dd4bf', bg: 'rgba(45,212,191,0.22)'   },
+    repositorio:  { lucide: 'folder-open',         cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)'  },
+    auditoria:    { lucide: 'shield-check',        cor: '#ef4444', bg: 'rgba(239,68,68,0.22)'    },
+    usuarios:     { lucide: 'user-cog',            cor: '#e2e8f0', bg: 'rgba(226,232,240,0.15)'  },
+    configuracoes:{ lucide: 'settings-2',          cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)'  },
+    dados_sistema:{ lucide: 'sliders-horizontal',  cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)'  },
+    banco_dados:  { lucide: 'database',            cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'   },
+  };
+
+  function renderPill(id, size) {
+    const p = iconePills[id] || { lucide: 'circle', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' };
+    const px = size || 28;
+    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:${px}px;height:${px}px;border-radius:7px;background:${p.bg};flex-shrink:0">
+      <i data-lucide="${p.lucide}" style="width:15px;height:15px;stroke:${p.cor};stroke-width:2;fill:none"></i>
+    </span>`;
+  }
+
   const navItems = [
     // ── Visão geral ──────────────────────────────────────────
-    { id: 'dashboard',    icone: '⊞', href: 'dashboard.html',    perfis: null },
+    { id: 'dashboard',    href: 'dashboard.html',    perfis: null },
     // ── Planejamento ─────────────────────────────────────────
-    { id: 'atividades',   icone: '◈', href: 'atividades.html',   perfis: null },
-    { id: 'tdrs',         icone: '◧', href: 'tdrs.html',         perfis: null },
-    { id: 'matriz',       icone: '◎', href: 'matriz.html',       perfis: null },
+    { id: 'atividades',   href: 'atividades.html',   perfis: null },
+    { id: 'tdrs',         href: 'tdrs.html',         perfis: null },
+    { id: 'matriz',       href: 'matriz.html',       perfis: null },
     // ── Execução ─────────────────────────────────────────────
-    { id: 'fornecedores', icone: '◫', href: 'fornecedores.html', perfis: ['super_admin','coordenacao','financeiro'] },
-    { id: 'contratos',    icone: '◪', href: 'contratos.html',    perfis: ['super_admin','coordenacao','financeiro'] },
-    { id: 'produtos',     icone: '◉', href: 'produtos.html',     perfis: ['super_admin','coordenacao','tecnico'] },
-    { id: 'financeiro',   icone: '◈', href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
+    { id: 'fornecedores', href: 'fornecedores.html', perfis: ['super_admin','coordenacao','financeiro'] },
+    { id: 'contratos',    href: 'contratos.html',    perfis: ['super_admin','coordenacao','financeiro'] },
+    { id: 'produtos',     href: 'produtos.html',     perfis: ['super_admin','coordenacao','tecnico'] },
+    { id: 'financeiro',   href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     // ── Apoio ────────────────────────────────────────────────
-    { id: 'viagens',        icone: '✈',  href: 'viagens.html',                    perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
-    { id: 'beneficiarios',  icone: '👤', href: 'viagens.html?aba=beneficiarios',   perfis: ['super_admin','coordenacao'] },
-    { id: 'relatorios',   icone: '📊', href: 'relatorios.html',   perfis: ['super_admin','coordenacao','financeiro'] },
-    { id: 'mapa',         icone: '&#x1F5FA;', href: 'mapa.html',   perfis: null },
-    { id: 'repositorio',  icone: '🔗', href: 'repositorio.html',  perfis: null },
-    { id: 'auditoria',     icone: '🛡', href: 'auditoria.html',     perfis: ['super_admin','coordenacao'] },
-    { id: 'usuarios',       icone: '◍', href: 'usuarios.html',       perfis: ['super_admin'] },
-    { id: 'configuracoes', icone: '⚙', href: null,                 perfis: ['super_admin'], collapsible: true },
-    { id: 'dados_sistema', icone: '⊟', href: 'configuracoes.html', perfis: ['super_admin'], parent: 'configuracoes' },
-    { id: 'banco_dados',   icone: '☁', href: 'banco-dados.html',   perfis: ['super_admin'], parent: 'configuracoes' },
+    { id: 'viagens',       href: 'viagens.html',                   perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
+    { id: 'beneficiarios', href: 'viagens.html?aba=beneficiarios', perfis: ['super_admin','coordenacao'] },
+    { id: 'relatorios',    href: 'relatorios.html',                perfis: ['super_admin','coordenacao','financeiro'] },
+    { id: 'mapa',          href: 'mapa.html',                      perfis: null },
+    { id: 'repositorio',   href: 'repositorio.html',               perfis: null },
+    { id: 'auditoria',     href: 'auditoria.html',                 perfis: ['super_admin','coordenacao'] },
+    { id: 'usuarios',      href: 'usuarios.html',                  perfis: ['super_admin'] },
+    { id: 'configuracoes', href: null,                             perfis: ['super_admin'], collapsible: true },
+    { id: 'dados_sistema', href: 'configuracoes.html',             perfis: ['super_admin'], parent: 'configuracoes' },
+    { id: 'banco_dados',   href: 'banco-dados.html',               perfis: ['super_admin'], parent: 'configuracoes' },
   ];
 
   const u = appState.usuario;
