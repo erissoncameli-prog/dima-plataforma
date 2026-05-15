@@ -745,13 +745,28 @@ function renderExecucao(){
   var _livre=Math.max(0,_orc-_comp);
   var _pctPago=_orc>0?(_pago/_orc*100):0;
 
-  var h='<div class="ch" style="margin-bottom:14px">';
+  var _brl_contratado=D.contr.reduce(function(s,c){return s+parseFloat(c.valor_total_brl||0);},0);
+  var _brl_pago=D.lanc.filter(function(l){return l.situacao==='pago';}).reduce(function(s,l){return s+parseFloat(l.valor_brl||0);},0);
+  var _brl_apagar=D.lanc.filter(function(l){return l.situacao==='a_pagar';}).reduce(function(s,l){return s+parseFloat(l.valor_brl||0);},0);
+  var _brl_saldo=Math.max(0,_brl_contratado-_brl_pago-_brl_apagar);
+  var _brl_pctPago=_brl_contratado>0?(_brl_pago/_brl_contratado*100):0;
+
+  var h='<div class="g2" style="margin-bottom:14px">';
+  h+='<div class="ch">';
   h+='<div class="ch-tit">Execução financeira total do projeto</div>';
   h+='<div class="ch-sub">Orçamento global × comprometido × pago — valores independentes de filtros</div>';
-  h+='<div style="display:flex;align-items:center;gap:32px;height:240px;padding:8px 0">';
-  h+='<div style="position:relative;flex:0 0 240px;height:100%"><canvas id="ch-proj-donut"></canvas></div>';
-  h+='<div id="leg-proj-donut" style="flex:1;max-width:340px"></div>';
+  h+='<div style="display:flex;align-items:center;gap:24px;height:220px;padding:8px 0">';
+  h+='<div style="position:relative;flex:0 0 200px;height:100%"><canvas id="ch-proj-donut"></canvas></div>';
+  h+='<div id="leg-proj-donut" style="flex:1"></div>';
   h+='</div></div>';
+  h+='<div class="ch">';
+  h+='<div class="ch-tit">Contratos — Contratado × Pago × A pagar</div>';
+  h+='<div class="ch-sub">Valores em BRL — soma de todos os lançamentos financeiros</div>';
+  h+='<div style="display:flex;align-items:center;gap:24px;height:220px;padding:8px 0">';
+  h+='<div style="position:relative;flex:0 0 200px;height:100%"><canvas id="ch-contr-donut"></canvas></div>';
+  h+='<div id="leg-contr-donut" style="flex:1"></div>';
+  h+='</div></div>';
+  h+='</div>';
 
   h+='<div class="fin-filters">';
   h+='<label>Data de:</label><input type="date" id="fil-dt-ini">';
