@@ -9,6 +9,100 @@ const CORS = {
 const REMETENTE  = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 const UNESCO_EMAIL = 'projetounesco.acre@gmail.com'
 const SITE_URL   = 'https://erissoncameli-prog.github.io/dima-plataforma'
+const ASSETS     = `${SITE_URL}/assets`
+
+// ── Wrapper HTML com barra de logos ──────────────────────────────────────────
+function wrapHtml(corpo: string): string {
+  // Converte o texto plano em HTML: blocos "CHAVE : valor" viram tabela, resto em parágrafos
+  const linhas = corpo.split('\n')
+  let html = ''
+  let emBloco = false
+
+  for (const linha of linhas) {
+    const isItem = /^[A-ZÇÁÉÍÓÚÃÕ\s]{3,15}\s*:/.test(linha)
+    const isParecer = linha.startsWith('PARECER') || linha.startsWith('MOTIVO')
+
+    if (isParecer) {
+      if (emBloco) { html += '</table>'; emBloco = false }
+      html += `<p style="margin:4px 0 2px;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.04em">${linha}</p>`
+    } else if (isItem) {
+      if (!emBloco) { html += '<table style="width:100%;border-collapse:collapse;margin:12px 0">'; emBloco = true }
+      const sep = linha.indexOf(':')
+      const chave = linha.slice(0, sep).trim()
+      const valor = linha.slice(sep + 1).trim()
+      html += `<tr>
+        <td style="padding:4px 10px 4px 0;font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap;vertical-align:top;width:110px">${chave}</td>
+        <td style="padding:4px 0;font-size:13px;color:#111827;vertical-align:top">${valor || '—'}</td>
+      </tr>`
+    } else {
+      if (emBloco) { html += '</table>'; emBloco = false }
+      if (linha.trim() === '') {
+        html += '<br>'
+      } else {
+        html += `<p style="margin:4px 0;font-size:13px;color:#1F2937;line-height:1.6">${linha}</p>`
+      }
+    }
+  }
+  if (emBloco) html += '</table>'
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+
+  <!-- Cabeçalho verde -->
+  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="vertical-align:middle">
+          <img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0">
+        </td>
+        <td style="vertical-align:middle;text-align:right">
+          <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Plataforma de Gestão</span><br>
+          <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
+          <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Barra de logos parceiros -->
+  <tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/1695134345-1-horizontal-verde-solo.png"        alt="SEMA/AC"               height="32" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNESCO_logo_hor_blue_transparent.png.png"      alt="UNESCO"                height="28" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil"           height="28" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-fundo-brasil-onu.png"                     alt="Fundo Brasil-ONU"     height="32" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-consorcio-amazonia.png"                   alt="Consórcio Amazônia"   height="36" style="display:block;border:0"></td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Corpo -->
+  <tr><td style="background:#ffffff;padding:28px 24px 20px">
+    ${html}
+  </td></tr>
+
+  <!-- Rodapé -->
+  <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
+    <p style="margin:0;font-size:11px;color:#6B7280">
+      Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
+      <a href="mailto:fundobrasilonuacre@gmail.com" style="color:#059669;text-decoration:none">fundobrasilonuacre@gmail.com</a>
+      &nbsp;·&nbsp;
+      <a href="${SITE_URL}" style="color:#059669;text-decoration:none">Acessar Plataforma</a>
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+}
 
 function fmtData(s: string | null): string {
   if (!s) return '—'
@@ -410,6 +504,7 @@ Deno.serve(async (req) => {
           to: e.to,
           subject: e.assunto,
           text: e.corpo,
+          html: wrapHtml(e.corpo),
           attachments: e.attachments,
         })
       )
