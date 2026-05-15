@@ -112,7 +112,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
         return `
           <button class="nav-item" onclick="toggleNavGroup('${item.id}')"
             style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit;color:rgba(255,255,255,.75);">
-            <span style="font-size:14px;flex-shrink:0">${item.icone}</span>
+            ${renderPill(item.id)}
             <span style="flex:1">${t('nav', item.id)}</span>
             <span id="nav-chevron-${item.id}"
               style="font-size:9px;flex-shrink:0;transition:transform .2s;${aberto ? 'transform:rotate(90deg)' : ''}">▶</span>
