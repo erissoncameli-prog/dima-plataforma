@@ -295,7 +295,18 @@ async function initPagina(tituloPagina, paginaAtiva, callback) {
   if (callback) await callback();
 }
 
-// ── Menu recolhível ───────────────────────────────────────────
+// ── Grupos do nav (Planejamento, Execução, Apoio…) ───────────
+function toggleGrupoNav(key) {
+  const wrap    = document.getElementById('nav-group-' + key);
+  const chevron = document.getElementById('nav-group-chevron-' + key);
+  if (!wrap) return;
+  const aberto = wrap.style.maxHeight !== '0px';
+  wrap.style.maxHeight = aberto ? '0px' : '800px';
+  if (chevron) chevron.style.transform = aberto ? 'rotate(-90deg)' : '';
+  localStorage.setItem('dima_nav_grupo_' + key, aberto ? '0' : '1');
+}
+
+// ── Sub-menu recolhível (ex: Configurações) ───────────────────
 function toggleNavGroup(id) {
   const children = document.getElementById(`nav-children-${id}`);
   const chevron  = document.getElementById(`nav-chevron-${id}`);
