@@ -1311,7 +1311,8 @@ async function emitirDespacho(tipoBtn){
     if(typeof carregarNotificacoes==='function')await carregarNotificacoes();
   }
   if(entregaAtual&&entregaAtual.id){
-    await db.from('notificacoes').update({lida:true,lida_em:new Date().toISOString()}).eq('entidade_id',entregaAtual.id).eq('usuario_id',appState.usuario.id).eq('lida',false);
+    // Marcar para TODOS os usuários — evita notificações obsoletas após avaliação
+    await db.from('notificacoes').update({lida:true,lida_em:new Date().toISOString()}).eq('entidade_id',entregaAtual.id).eq('lida',false);
     if(typeof carregarNotificacoes==='function')await carregarNotificacoes();
   }
   window.history.replaceState({},'',window.location.pathname);
