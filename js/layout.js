@@ -256,8 +256,6 @@ async function trocarIdioma(lang) {
 }
 
 async function carregarLogosSidebar() {
-  // Ativar ícones Lucide após o layout ser injetado no DOM (fallback se já carregado/cacheado)
-  if (typeof lucide !== 'undefined') lucide.createIcons();
   try {
     const { data } = await db.from('configuracoes_sistema')
       .select('*').eq('projeto_id', 'default').single();
