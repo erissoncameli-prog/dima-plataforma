@@ -16,7 +16,7 @@ const i18n = {
     nav: {
       dashboard: 'Visão Geral', atividades: 'Atividades', tdrs: 'TDRs',
       financeiro: 'Financeiro', contratos: 'Contratos', fornecedores: 'Fornecedores',
-      viagens: 'Viagens', beneficiarios: 'Beneficiários', relatorios: 'Relatórios', mapa: 'Mapa de Entregas', repositorio: 'Repositório', produtos: 'Produtos Entregues', matriz: 'Matriz de Resultados', auditoria: 'Auditoria IA', usuarios: 'Usuários', configuracoes: 'Configurações', dados_sistema: 'Dados do Sistema', banco_dados: 'Armazenamento em Nuvem', sair: 'Sair'
+      viagens: 'Viagens', beneficiarios: 'Beneficiários', relatorios: 'Relatórios', mapa: 'Mapa de Entregas', repositorio: 'Repositório', produtos: 'Produtos Entregues', matriz: 'Matriz de Resultados', auditoria: 'Auditoria IA', ajuda: 'Ajuda', usuarios: 'Usuários', configuracoes: 'Configurações', dados_sistema: 'Dados do Sistema', banco_dados: 'Armazenamento em Nuvem', sair: 'Sair'
     },
     comum: {
       salvar: 'Salvar', cancelar: 'Cancelar', editar: 'Editar', excluir: 'Excluir',
