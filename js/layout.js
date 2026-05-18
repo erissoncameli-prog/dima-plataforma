@@ -11,6 +11,8 @@
 })();
 
 function gerarLayout(tituloPagina, paginaAtiva) {
+  window.AJUDA_NAV_ID = paginaAtiva;
+
   // SVG paths inline — sem dependência de CDN, renderiza instantaneamente
   const iconePills = {
     dashboard:    { svg: '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',                                                                                           cor: '#60a5fa', bg: 'rgba(96,165,250,0.22)'  },
