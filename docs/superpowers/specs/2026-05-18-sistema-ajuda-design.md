@@ -81,10 +81,10 @@ const AJUDA = {
 
 ### Integração com layout existente
 
-- `js/ajuda.js` incluído em **todas as páginas** via `<script>` adicionado ao template `gerarLayout()` em `js/layout.js`
-- O script detecta o `navId` ativo pelo atributo `data-nav` já presente nos links do sidebar
-- Adiciona o botão `?` flutuante via `DOMContentLoaded` — sem modificar nenhuma página individualmente
-- Usa `appState.idioma` já disponível via `config.js`
+- `js/ajuda.js` incluído em **todas as páginas** adicionando `<script src="../js/ajuda.js"></script>` ao HTML de cada página (após `layout.js`, antes do script da página)
+- `gerarLayout(titulo, paginaAtiva)` em `layout.js` define `window.AJUDA_NAV_ID = paginaAtiva` como variável global — `ajuda.js` lê esse valor para saber qual módulo exibir (não depende de atributos DOM)
+- Adiciona o botão `?` flutuante e o painel via `DOMContentLoaded` — um único bloco de HTML inserido em `document.body` (fora do `#app`, seguindo a armadilha #11)
+- Usa `appState.idioma` já disponível via `config.js` (carregado antes de `ajuda.js`)
 
 ### Item de menu
 
