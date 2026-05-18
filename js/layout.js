@@ -77,7 +77,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { label: null,           key: null,            ids: ['dashboard'] },
     { label: 'Planejamento', key: 'planejamento',  ids: ['atividades','tdrs','matriz'] },
     { label: 'Execução',     key: 'execucao',      ids: ['fornecedores','contratos','produtos','financeiro'] },
-    { label: 'Apoio',        key: 'apoio',         ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','usuarios'] },
+    { label: 'Apoio',        key: 'apoio',         ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','ajuda','usuarios'] },
     { label: 'Sistema',      key: 'sistema',       ids: ['configuracoes'] },
   ];
 
