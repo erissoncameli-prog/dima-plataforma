@@ -63,6 +63,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'mapa',          href: 'mapa.html',                      perfis: null },
     { id: 'repositorio',   href: 'repositorio.html',               perfis: null },
     { id: 'auditoria',     href: 'auditoria.html',                 perfis: ['super_admin','coordenacao'] },
+    { id: 'ajuda',         href: 'ajuda.html',                     perfis: null },
     { id: 'usuarios',      href: 'usuarios.html',                  perfis: ['super_admin'] },
     { id: 'configuracoes', href: null,                             perfis: ['super_admin'], collapsible: true },
     { id: 'dados_sistema', href: 'configuracoes.html',             perfis: ['super_admin'], parent: 'configuracoes' },
