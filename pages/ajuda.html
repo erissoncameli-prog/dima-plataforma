@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ajuda · DIMA</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .ajuda-page-wrap { padding: 24px; max-width: 900px; }
+
+    .ajuda-busca-global-wrap {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 20px;
+    }
+    #ajuda-busca-global {
+      flex: 1; padding: 10px 14px; border: 1px solid var(--borda);
+      border-radius: var(--raio-lg); font-size: 13px;
+      outline: none; font-family: var(--font-sans);
+      transition: border .15s; color: var(--cinza-900);
+    }
+    #ajuda-busca-global:focus { border-color: #009edb; }
+    #ajuda-busca-global::placeholder { color: var(--cinza-400); }
+
+    /* Tabs */
+    .ajuda-tabs-wrap {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--borda);
+      padding-bottom: 10px;
+    }
+    .ajuda-tab {
+      padding: 6px 14px; border-radius: var(--raio-lg);
+      border: 1px solid var(--borda); background: var(--branco);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      color: var(--cinza-600); transition: all .12s;
+      font-family: var(--font-sans);
+    }
+    .ajuda-tab:hover { background: var(--cinza-50); color: var(--cinza-900); }
+    .ajuda-tab.ativo {
+      background: #009edb; color: #fff; border-color: #009edb;
+    }
+
+    /* Conteúdo de tab */
+    .ajuda-tab-content { display: none; }
+    .ajuda-tab-content.ativo { display: block; }
+
+    .ajuda-intro-card {
+      background: #f0f9ff; border: 1px solid #bae6fd;
+      border-radius: var(--raio-lg); padding: 14px 16px;
+      font-size: 13px; color: #0c4a6e; line-height: 1.65;
+      margin-bottom: 16px;
+    }
+
+    /* Acordeão da página completa */
+    .ajuda-full-secao {
+      border: 1px solid var(--borda);
+      border-radius: var(--raio); margin-bottom: 8px;
+      overflow: hidden;
+    }
+    .ajuda-full-titulo {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; cursor: pointer;
+      background: var(--cinza-50); border: none; width: 100%;
+      text-align: left; font-family: var(--font-sans);
+      font-size: 13px; font-weight: 600; color: var(--cinza-800);
+      transition: background .12s;
+    }
+    .ajuda-full-titulo:hover { background: #f1f5f9; }
+    .ajuda-full-chevron { font-size: 10px; color: var(--cinza-400); transition: transform .2s; }
+    .ajuda-full-chevron.aberto { transform: rotate(90deg); }
+    .ajuda-full-corpo { overflow: hidden; transition: max-height .25s ease; }
+    .ajuda-full-corpo ul { margin: 0; padding: 12px 18px 12px 32px; }
+    .ajuda-full-corpo li {
+      font-size: 13px; color: var(--cinza-700);
+      line-height: 1.7; margin-bottom: 4px;
+    }
+    .ajuda-full-corpo li mark {
+      background: #fef08a; color: var(--cinza-900);
+      border-radius: 2px; padding: 0 2px;
+    }
+
+    /* Resultados de busca global */
+    #ajuda-resultados-busca { display: none; }
+    .ajuda-resultado-grupo { margin-bottom: 20px; }
+    .ajuda-resultado-grupo-titulo {
+      font-size: 11px; font-weight: 700; letter-spacing: .7px;
+      text-transform: uppercase; color: #009edb;
+      margin-bottom: 8px; padding-bottom: 4px;
+      border-bottom: 1px solid #bae6fd;
+    }
+    .ajuda-resultado-item {
+      padding: 8px 12px; border-radius: var(--raio);
+      border: 1px solid var(--borda); background: var(--branco);
+      margin-bottom: 6px; cursor: pointer; transition: all .12s;
+      font-size: 12.5px; color: var(--cinza-700);
+    }
+    .ajuda-resultado-item:hover {
+      border-color: #009edb; background: #f0f9ff;
+      color: var(--cinza-900);
+    }
+    .ajuda-resultado-item mark {
+      background: #fef08a; color: var(--cinza-900);
+      border-radius: 2px; padding: 0 2px;
+    }
+    #ajuda-sem-resultado-global {
+      display: none; padding: 32px; text-align: center;
+      color: var(--cinza-400); font-size: 13px;
+    }
+
+    .ajuda-tab-footer {
+      margin-top: 16px; padding-top: 12px;
+      border-top: 1px solid var(--borda);
+      font-size: 12px;
+    }
+    .ajuda-tab-footer a {
+      color: #009edb; text-decoration: none; font-weight: 600;
+    }
+    .ajuda-tab-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/ajuda.js"></script>
+<script>
+;(async function () {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+
+  const lang = _ajudaIdioma();
+
+  const TABS_ORDER = ['dashboard','atividades','tdrs','contratos','fornecedores','financeiro','produtos','viagens','auditoria','glossario'];
+
+  const MODULO_HREF = {
+    dashboard:    'dashboard.html',
+    atividades:   'atividades.html',
+    tdrs:         'tdrs.html',
+    contratos:    'contratos.html',
+    fornecedores: 'fornecedores.html',
+    financeiro:   'financeiro.html',
+    produtos:     'produtos.html',
+    viagens:      'viagens.html',
+    auditoria:    'auditoria.html',
+    glossario:    null,
+  };
+
+  const TITULO_PAGINA = {
+    pt: 'Manual do Sistema',
+    en: 'System Manual',
+    es: 'Manual del Sistema',
+  };
+
+  const IR_MODULO = {
+    pt: 'Ir para o módulo',
+    en: 'Go to module',
+    es: 'Ir al módulo',
+  };
+
+  const BUSCA_PH = {
+    pt: '🔍 Buscar em todo o manual...',
+    en: '🔍 Search the entire manual...',
+    es: '🔍 Buscar en todo el manual...',
+  };
+
+  const SEM_RESULT = {
+    pt: 'Nenhum resultado para',
+    en: 'No results for',
+    es: 'Sin resultados para',
+  };
+
+  function getLang() { return _ajudaIdioma(); }
+
+  function renderTabs(activeId) {
+    return TABS_ORDER.map(id => {
+      const mod = AJUDA[id]?.[getLang()] || AJUDA[id]?.pt;
+      return `<button class="ajuda-tab ${id === activeId ? 'ativo' : ''}"
+        onclick="ativarTab('${id}')">${mod?.titulo || id}</button>`;
+    }).join('');
+  }
+
+  function renderSecoes(modulo, termo) {
+    const normTermo = _norm(termo);
+    return (modulo.secoes || []).map((sec, si) => {
+      const itensFiltrados = normTermo
+        ? sec.itens.filter(item => _norm(item).includes(normTermo))
+        : sec.itens;
+      if (!itensFiltrados.length && normTermo) return '';
+      const aberto = si === 0 || !!normTermo;
+      const itensHtml = itensFiltrados.map(item => {
+        const txt = normTermo
+          ? item.replace(new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark>$1</mark>')
+          : item;
+        return `<li>${txt}</li>`;
+      }).join('');
+      return `
+        <div class="ajuda-full-secao">
+          <button class="ajuda-full-titulo" onclick="fullToggleSecao(this)">
+            ${sec.titulo}
+            <span class="ajuda-full-chevron ${aberto ? 'aberto' : ''}">▶</span>
+          </button>
+          <div class="ajuda-full-corpo" style="max-height:${aberto ? '1200px' : '0px'}">
+            <ul>${itensHtml}</ul>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderTabContent(id) {
+    const lang = getLang();
+    const modulo = AJUDA[id]?.[lang] || AJUDA[id]?.pt;
+    if (!modulo) return '';
+    const href = MODULO_HREF[id];
+    const footer = href
+      ? `<div class="ajuda-tab-footer"><a href="${href}">→ ${IR_MODULO[lang] || IR_MODULO.pt}: ${modulo.titulo}</a></div>`
+      : '';
+    return `
+      <div class="ajuda-intro-card">${modulo.intro || ''}</div>
+      <div id="secoes-${id}">${renderSecoes(modulo, '')}</div>
+      ${footer}`;
+  }
+
+  function buildPage(activeTab) {
+    const lang = getLang();
+    const tabsHtml  = renderTabs(activeTab);
+    const contentsHtml = TABS_ORDER.map(id =>
+      `<div class="ajuda-tab-content ${id === activeTab ? 'ativo' : ''}" id="tab-${id}">
+        ${renderTabContent(id)}
+      </div>`
+    ).join('');
+
+    document.getElementById('app').innerHTML =
+      gerarLayout(TITULO_PAGINA[lang] || 'Ajuda', 'ajuda') +
+      `<div class="ajuda-page-wrap">
+        <div class="ajuda-busca-global-wrap">
+          <input id="ajuda-busca-global" type="text" autocomplete="off"
+            placeholder="${BUSCA_PH[lang] || BUSCA_PH.pt}"
+            oninput="ajudaBuscaGlobal(this.value)">
+        </div>
+        <div id="ajuda-resultados-busca"></div>
+        <div id="ajuda-sem-resultado-global"></div>
+        <div id="ajuda-conteudo-principal">
+          <div class="ajuda-tabs-wrap">${tabsHtml}</div>
+          <div>${contentsHtml}</div>
+        </div>
+      </div>` +
+      '</div></div></div>';
+
+    carregarLogosSidebar();
+  }
+
+  const savedTab = localStorage.getItem('ajuda_tab_ativo') || 'dashboard';
+  buildPage(savedTab);
+
+  window.ativarTab = function(id) {
+    localStorage.setItem('ajuda_tab_ativo', id);
+    document.querySelectorAll('.ajuda-tab').forEach(b => b.classList.toggle('ativo', b.textContent.trim() === (AJUDA[id]?.[getLang()]?.titulo || id)));
+    // Atualizar todos os tabs mais precisamente
+    document.querySelectorAll('.ajuda-tab').forEach((b, i) => {
+      b.classList.toggle('ativo', TABS_ORDER[i] === id);
+    });
+    document.querySelectorAll('.ajuda-tab-content').forEach(c => c.classList.remove('ativo'));
+    const target = document.getElementById('tab-' + id);
+    if (target) target.classList.add('ativo');
+  };
+
+  window.fullToggleSecao = function(btn) {
+    const corpo = btn.nextElementSibling;
+    const chevron = btn.querySelector('.ajuda-full-chevron');
+    const aberto = corpo.style.maxHeight !== '0px';
+    corpo.style.maxHeight = aberto ? '0px' : '1200px';
+    chevron.classList.toggle('aberto', !aberto);
+  };
+
+  let _buscaTimer;
+  window.ajudaBuscaGlobal = function(termo) {
+    clearTimeout(_buscaTimer);
+    _buscaTimer = setTimeout(() => _executarBusca(termo), 220);
+  };
+
+  function _executarBusca(termo) {
+    const lang = getLang();
+    const normTermo = _norm(termo);
+    const principal  = document.getElementById('ajuda-conteudo-principal');
+    const resultados = document.getElementById('ajuda-resultados-busca');
+    const semResult  = document.getElementById('ajuda-sem-resultado-global');
+
+    if (!normTermo) {
+      principal.style.display  = '';
+      resultados.style.display = 'none';
+      semResult.style.display  = 'none';
+      return;
+    }
+
+    principal.style.display = 'none';
+    resultados.style.display = 'block';
+
+    let grupos = [];
+    TABS_ORDER.forEach(id => {
+      const mod = AJUDA[id]?.[lang] || AJUDA[id]?.pt;
+      if (!mod) return;
+      let achados = [];
+      (mod.secoes || []).forEach(sec => {
+        sec.itens.forEach(item => {
+          if (_norm(item).includes(normTermo)) {
+            achados.push({ secao: sec.titulo, item, id });
+          }
+        });
+      });
+      if (achados.length) grupos.push({ titulo: mod.titulo, id, achados });
+    });
+
+    if (!grupos.length) {
+      resultados.innerHTML = '';
+      semResult.style.display = 'block';
+      semResult.textContent = `${SEM_RESULT[lang] || SEM_RESULT.pt} "${termo}"`;
+      return;
+    }
+
+    semResult.style.display = 'none';
+    resultados.innerHTML = grupos.map(g => `
+      <div class="ajuda-resultado-grupo">
+        <div class="ajuda-resultado-grupo-titulo">${g.titulo}</div>
+        ${g.achados.map(a => {
+          const txt = a.item.replace(new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark>$1</mark>');
+          return `<div class="ajuda-resultado-item"
+            onclick="irParaResultado('${a.id}')"
+            title="${a.secao}">${txt}</div>`;
+        }).join('')}
+      </div>`).join('');
+  }
+
+  window.irParaResultado = function(id) {
+    document.getElementById('ajuda-busca-global').value = '';
+    document.getElementById('ajuda-resultados-busca').style.display = 'none';
+    document.getElementById('ajuda-sem-resultado-global').style.display = 'none';
+    document.getElementById('ajuda-conteudo-principal').style.display = '';
+    ativarTab(id);
+    document.getElementById('tab-' + id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+})();
+</script>
+</body>
+</html>
