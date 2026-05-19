@@ -351,6 +351,9 @@ Deno.serve(async (req) => {
     const { produto_id, evento, entrega_id } = await req.json()
     if (!produto_id || !evento) throw new Error('produto_id e evento são obrigatórios')
 
+    const EVENTOS_VALIDOS = ['entregue', 'aprovado', 'aprovado_parcial', 'devolvido', 'pago']
+    if (!EVENTOS_VALIDOS.includes(evento)) throw new Error(`evento inválido: ${evento}`)
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
