@@ -301,7 +301,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
                 </div>
               </div>
               <div style="padding:6px 8px">
-                <a href="usuarios.html" onclick="fecharUserMenu()"
+                <a href="usuarios.html?self=1" onclick="fecharUserMenu()"
                   style="display:flex;align-items:center;gap:12px;padding:10px 14px;
                     border-radius:8px;text-decoration:none;color:#3c4043;font-size:13px;
                     transition:background .12s"
