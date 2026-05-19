@@ -298,6 +298,8 @@ async function trocarIdioma(lang) {
 }
 
 async function carregarLogosSidebar() {
+  _dimaBarCompleta();
+  _dimaAtivarNavLinks();
   try {
     const { data } = await db.from('configuracoes_sistema')
       .select('*').eq('projeto_id', 'default').single();
