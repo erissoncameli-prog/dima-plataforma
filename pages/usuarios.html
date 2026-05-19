@@ -204,6 +204,7 @@ function mkAvatar(u,size=34,extraStyle=''){
         </table>
       </div>`+`</div></div></div>`;
     await carregarDados();
+    if (new URLSearchParams(location.search).get('self') === '1') abrirUsuario(appState.usuario.id);
   } else {
     // Perfil pessoal para não-admins
     document.getElementById('app').innerHTML=gerarLayout('Meu Perfil','usuarios')+`
