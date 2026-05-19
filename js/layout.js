@@ -262,6 +262,74 @@ function gerarLayout(tituloPagina, paginaAtiva) {
               </div>
             </div>
           </div>
+          <!-- USER MENU -->
+          <div style="position:relative" id="user-menu-wrap">
+            <button id="user-avatar-btn" onclick="toggleUserMenu()"
+              title="${esc(u?.nome_completo || 'Usuário')}"
+              style="width:36px;height:36px;border-radius:50%;padding:0;overflow:hidden;
+                background:linear-gradient(135deg,#F4D35E,#D4A017);
+                color:#1F4E2C;font-size:11px;font-weight:700;
+                display:flex;align-items:center;justify-content:center;
+                cursor:pointer;border:2px solid transparent;
+                box-shadow:0 1px 6px rgba(0,0,0,.15);transition:border-color .15s"
+              onmouseover="this.style.borderColor='rgba(31,78,44,.35)'"
+              onmouseout="this.style.borderColor='transparent'">
+              ${u?.avatar_url
+                ? `<img src="${u.avatar_url}" alt="${iniciais}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`
+                : iniciais}
+            </button>
+            <div id="user-menu-dropdown" style="display:none;position:absolute;right:0;top:46px;
+              width:284px;background:#fff;border:1px solid rgba(0,0,0,.12);
+              border-radius:12px;box-shadow:0 6px 28px rgba(0,0,0,.16);z-index:1000;overflow:hidden">
+              <div style="padding:22px 20px 16px;text-align:center;background:#fafafa;border-bottom:1px solid #efefef">
+                <div style="width:60px;height:60px;border-radius:50%;margin:0 auto 10px;
+                  background:${u?.avatar_url ? 'transparent' : 'linear-gradient(135deg,#F4D35E,#D4A017)'};
+                  color:#1F4E2C;font-size:20px;font-weight:700;
+                  display:flex;align-items:center;justify-content:center;
+                  box-shadow:0 2px 10px rgba(212,160,23,.3);overflow:hidden">
+                  ${u?.avatar_url
+                    ? `<img src="${u.avatar_url}" alt="${iniciais}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`
+                    : iniciais}
+                </div>
+                <div style="font-size:15px;font-weight:600;color:#202124">${esc(u?.nome_completo || 'Usuário')}</div>
+                <div style="font-size:12px;color:#5f6368;margin-top:3px">${esc(u?.email || '')}</div>
+                <div style="margin-top:10px">
+                  <span style="display:inline-block;font-size:11px;background:#e8f5e9;color:#2e7d32;
+                    padding:3px 12px;border-radius:99px;font-weight:500;border:1px solid #c8e6c9">
+                    ${t('perfis', appState.perfil)}
+                  </span>
+                </div>
+              </div>
+              <div style="padding:6px 8px">
+                <a href="usuarios.html" onclick="fecharUserMenu()"
+                  style="display:flex;align-items:center;gap:12px;padding:10px 14px;
+                    border-radius:8px;text-decoration:none;color:#3c4043;font-size:13px;
+                    transition:background .12s"
+                  onmouseover="this.style.background='#f1f3f4'"
+                  onmouseout="this.style.background=''">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#5f6368" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  Meu perfil
+                </a>
+              </div>
+              <div style="border-top:1px solid #efefef"></div>
+              <div style="padding:6px 8px">
+                <button onclick="sair()"
+                  style="display:flex;align-items:center;gap:12px;padding:10px 14px;
+                    border-radius:8px;width:100%;border:none;background:none;
+                    cursor:pointer;color:#3c4043;font-size:13px;font-family:inherit;
+                    text-align:left;transition:background .12s"
+                  onmouseover="this.style.background='#f1f3f4'"
+                  onmouseout="this.style.background=''">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#5f6368" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
+                  </svg>
+                  Sair
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="page-body" id="page-body" style="overflow-x:hidden;min-width:0;width:100%">
