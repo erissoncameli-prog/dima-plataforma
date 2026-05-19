@@ -526,9 +526,9 @@ function renderListaNotif() {
         <span style="font-size:18px;flex-shrink:0">${icones[n.tipo]||'🔔'}</span>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:600;color:var(--cinza-900);margin-bottom:2px">
-            ${n.titulo||''}${badgePendente}
+            ${esc(n.titulo||'')}${badgePendente}
           </div>
-          <div style="font-size:11px;color:var(--cinza-600);line-height:1.4">${n.mensagem||''}</div>
+          <div style="font-size:11px;color:var(--cinza-600);line-height:1.4">${esc(n.mensagem||'')}</div>
           <div style="font-size:10px;color:var(--cinza-400);margin-top:4px">
             ${n.criado_em ? new Date(n.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}
             ${isProduto ? '<span style="color:#1E40AF;margin-left:6px">→ Clique para avaliar</span>' : ''}
