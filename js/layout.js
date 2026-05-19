@@ -10,6 +10,43 @@
   }
 })();
 
+// ── Barra de progresso de navegação ──────────────────────────
+;(function() {
+  const bar = document.createElement('div');
+  bar.id = 'dima-progress-bar';
+  document.body.appendChild(bar);
+  // Double rAF garante que o CSS já foi aplicado antes de animar
+  requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = '42%'; }));
+  setTimeout(() => { bar.style.width = '72%'; }, 460);
+  window._dimaBar = bar;
+})();
+
+function _dimaBarCompleta() {
+  const bar = window._dimaBar || document.getElementById('dima-progress-bar');
+  if (!bar || bar._concluida) return;
+  bar._concluida = true;
+  bar.style.transition = 'width 0.18s ease';
+  bar.style.width = '100%';
+  setTimeout(() => {
+    bar.style.transition = 'width 0.18s ease, opacity 0.32s ease';
+    bar.style.opacity = '0';
+  }, 210);
+}
+
+function _dimaAtivarNavLinks() {
+  document.querySelectorAll('a.nav-item[href]').forEach(link => {
+    if (link._dimaNav) return;
+    link._dimaNav = true;
+    link.addEventListener('click', function(e) {
+      const href = this.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+      e.preventDefault();
+      document.body.classList.add('dima-saindo');
+      setTimeout(() => { window.location.href = href; }, 160);
+    });
+  });
+}
+
 function gerarLayout(tituloPagina, paginaAtiva) {
   window.AJUDA_NAV_ID = paginaAtiva;
 
