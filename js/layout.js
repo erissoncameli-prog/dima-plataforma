@@ -409,6 +409,23 @@ function toggleNavGroup(id) {
   }
 }
 
+// ── Menu do usuário (topbar) ──────────────────────────────────
+let _userMenuAberto = false;
+
+function toggleUserMenu() {
+  _userMenuAberto ? fecharUserMenu() : _abrirUserMenu();
+}
+function _abrirUserMenu() {
+  _userMenuAberto = true;
+  const d = document.getElementById('user-menu-dropdown');
+  if (d) d.style.display = 'block';
+}
+function fecharUserMenu() {
+  _userMenuAberto = false;
+  const d = document.getElementById('user-menu-dropdown');
+  if (d) d.style.display = 'none';
+}
+
 // ── SINO DE NOTIFICAÇÕES ──────────────────────────────────────
 let sinoAberto = false;
 let notifCache = [];
