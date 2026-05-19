@@ -208,22 +208,6 @@ function gerarLayout(tituloPagina, paginaAtiva) {
         <div class="sidebar-brand-sub" id="sidebar-brand-sub" style="color:rgba(255,255,255,.45);">UNESCO · DIMA · 218BRA2001</div>
       </div>
 
-      <div class="sidebar-user" onclick="window.location.href='usuarios.html'"
-        style="cursor:pointer;transition:background .15s;border-radius:var(--raio)"
-        onmouseover="this.style.background='rgba(255,255,255,.08)'"
-        onmouseout="this.style.background=''" title="Meu perfil">
-        <div class="sidebar-avatar" style="${u?.avatar_url?'background:transparent;padding:0;overflow:hidden':''}">
-          ${u?.avatar_url
-            ? `<img src="${u.avatar_url}" alt="${iniciais}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" onerror="this.style.display='none'">`
-            : iniciais}
-        </div>
-        <div class="sidebar-user-info">
-          <div class="sidebar-user-nome">${u?.nome_completo || 'Usuário'}</div>
-          <div class="sidebar-user-perfil">${t('perfis', appState.perfil)}</div>
-        </div>
-        <span style="font-size:11px;color:rgba(255,255,255,.4);flex-shrink:0">✎</span>
-      </div>
-
       <div class="sidebar-lang">
         <button class="lang-btn ${appState.idioma==='pt'?'ativo':''}" onclick="trocarIdioma('pt')">PT</button>
         <button class="lang-btn ${appState.idioma==='en'?'ativo':''}" onclick="trocarIdioma('en')">EN</button>
