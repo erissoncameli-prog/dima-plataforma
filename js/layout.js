@@ -437,6 +437,9 @@ async function iniciarSino() {
     if (sinoAberto && !document.getElementById('sino-wrap')?.contains(e.target)) {
       fecharSino();
     }
+    if (_userMenuAberto && !document.getElementById('user-menu-wrap')?.contains(e.target)) {
+      fecharUserMenu();
+    }
   });
 }
 
