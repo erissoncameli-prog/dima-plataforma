@@ -1,4 +1,33 @@
 /* sidebar.css — complementos apenas, sem duplicar global.css */
+
+/* ── Transições de navegação ─────────────────────────────────── */
+#dima-progress-bar {
+  position: fixed;
+  top: 0; left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #34d399 0%, #60a5fa 100%);
+  z-index: 99999;
+  border-radius: 0 3px 3px 0;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.55);
+  transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dima-saindo {
+  opacity: 0.5;
+  transition: opacity 0.17s ease;
+  pointer-events: none;
+}
+
+@keyframes dima-entrada {
+  from { opacity: 0; transform: translateY(9px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-body {
+  animation: dima-entrada 0.28s ease forwards;
+}
+
 /* Efeito decorativo adicional */
 .sidebar::after {
   content: '';
