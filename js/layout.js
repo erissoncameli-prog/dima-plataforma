@@ -571,3 +571,16 @@ async function marcarTodasLidas() {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(iniciarSino, 500);
 });
+
+// ── SIDEBAR MOBILE ────────────────────────────────────────────
+function abrirSidebarMobile() {
+  document.getElementById('sidebar')?.classList.add('aberta');
+  document.getElementById('sidebar-overlay')?.classList.add('ativo');
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharSidebarMobile() {
+  document.getElementById('sidebar')?.classList.remove('aberta');
+  document.getElementById('sidebar-overlay')?.classList.remove('ativo');
+  document.body.style.overflow = '';
+}
