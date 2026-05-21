@@ -25,11 +25,11 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 
 /* ── Header ───────────────────────────────────────────────── */
 .pub-header{background:linear-gradient(135deg,#0c2716 0%,#1F4E2C 52%,#2a5e3a 100%);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:66px;box-shadow:0 2px 18px rgba(0,0,0,.28);position:sticky;top:0;z-index:200;flex-shrink:0;gap:12px;border-bottom:1px solid rgba(255,255,255,.06);}
-.pub-brand{display:flex;align-items:center;gap:13px;}
-.pub-brand-icon{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.pub-brand{display:flex;align-items:center;gap:clamp(7px,1vw,13px);flex:1;min-width:0;}
+.pub-brand-icon{width:clamp(26px,2.8vw,38px);height:clamp(26px,2.8vw,38px);border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .pub-brand-dot{display:none;}
-.pub-brand-title{font-size:15px;font-weight:600;letter-spacing:-.01em;}
-.pub-brand-sub{font-size:10px;opacity:.52;margin-top:2px;letter-spacing:.02em;}
+.pub-brand-title{font-size:clamp(11px,1.1vw,15px);font-weight:600;letter-spacing:-.01em;}
+.pub-brand-sub{font-size:clamp(8px,0.75vw,10px);opacity:.52;margin-top:2px;letter-spacing:.02em;}
 .btn-login{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:var(--raio);padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);text-decoration:none;letter-spacing:.02em;transition:all .15s;flex-shrink:0;}
 .btn-login:hover{background:rgba(255,255,255,.22);}
 
