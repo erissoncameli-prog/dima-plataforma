@@ -41,6 +41,7 @@ function _dimaAtivarNavLinks() {
       const href = this.getAttribute('href');
       if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
       e.preventDefault();
+      fecharSidebarMobile();
       document.body.classList.add('dima-saindo');
       setTimeout(() => { window.location.href = href; }, 160);
     });
