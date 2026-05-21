@@ -48,9 +48,9 @@ body{font-family:var(--font-sans);min-height:100vh;display:flex;overflow:hidden;
   display:flex;align-items:center;gap:12px;
   width:fit-content;
 }
-.logo-gov{height:95px;width:auto;object-fit:contain;}
-.logo-sep-topo{width:1px;height:81px;background:rgba(0,0,0,.15);flex-shrink:0;}
-.logo-sema{height:45px;width:auto;object-fit:contain;}
+.logo-gov{height:clamp(26px,3.8vw,44px);width:auto;object-fit:contain;}
+.logo-sep-topo{width:1px;height:clamp(18px,2.5vw,32px);background:rgba(0,0,0,.15);flex-shrink:0;}
+.logo-sema{height:clamp(13px,1.9vw,24px);width:auto;object-fit:contain;}
 
 /* CENTRO: logo Resiliência */
 .logo-central-wrap{
@@ -102,6 +102,11 @@ body{font-family:var(--font-sans);min-height:100vh;display:flex;overflow:hidden;
 .btn-login:hover{background:var(--verde);}
 .btn-login:active{transform:scale(.99);}
 .btn-login:disabled{opacity:.6;cursor:not-allowed;}
+.btn-publico{width:100%;height:44px;margin-top:10px;background:transparent;color:var(--verde-m);border:1.5px solid var(--verde-m);border-radius:8px;font-family:var(--font-sans);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;}
+.btn-publico:hover{background:var(--verde-m);color:#fff;}
+.btn-publico:active{transform:scale(.99);}
+.btn-ou{display:flex;align-items:center;gap:10px;margin-top:16px;color:var(--cinza-400);font-size:12px;}
+.btn-ou::before,.btn-ou::after{content:'';flex:1;height:1px;background:var(--borda);}
 .erro-msg{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:14px;display:none;line-height:1.4;}
 .parceiros-form{margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.15);}
 .parceiros-label{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;display:block;}
@@ -117,9 +122,6 @@ body{font-family:var(--font-sans);min-height:100vh;display:flex;overflow:hidden;
   .painel-conteudo{padding:18px 16px;}
   .painel-dir{width:100%;padding:24px 20px 32px;}
   .logo-central-wrap{display:none;}
-  .logo-gov{height:36px;}
-  .logo-sema{height:20px;}
-  .logo-sep-topo{height:30px;}
   .logo-form{height:34px;width:auto;max-width:100px;}
   .logo-form.logo-grande{height:34px;width:auto;max-width:100px;}
   .parceiros-logos{gap:8px;}
