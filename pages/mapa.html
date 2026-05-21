@@ -176,6 +176,8 @@
   .mapa-painel-wrap.mobile-aberto .mapa-painel{width:100%;flex:1;padding:0 14px 20px;overflow-y:auto;height:auto;}
   .mapa-painel-wrap.mobile-aberto #mapa-scrollbar-outer{display:none;}
   .btn-filtros-mobile{display:flex;}
+  .mapa-backdrop{display:none;position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.38);-webkit-tap-highlight-color:transparent;}
+  .mapa-backdrop.ativo{display:block;}
 }
 </style>
 </head>
@@ -2537,8 +2539,10 @@ function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt
 
 function togglePainelMobile(){
   const wrap = document.querySelector('.mapa-painel-wrap');
+  const backdrop = document.getElementById('mapa-backdrop');
   if(!wrap) return;
   const aberto = wrap.classList.toggle('mobile-aberto');
+  if(backdrop) backdrop.classList.toggle('ativo', aberto);
   const btn = document.getElementById('btn-filtros-mobile');
   if(!btn) return;
   btn.innerHTML = aberto
@@ -2546,6 +2550,7 @@ function togglePainelMobile(){
     : `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="18" x2="12" y2="18"/></svg> Filtros`;
 }
 </script>
+<div id="mapa-backdrop" class="mapa-backdrop" onclick="togglePainelMobile()"></div>
 <button id="btn-filtros-mobile" class="btn-filtros-mobile" onclick="togglePainelMobile()">
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
   Filtros
