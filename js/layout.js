@@ -227,8 +227,12 @@ function gerarLayout(tituloPagina, paginaAtiva) {
       </div>
     </aside>
 
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="fecharSidebarMobile()"></div>
     <div class="main-content">
       <div class="topbar">
+        <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="abrirSidebarMobile()" aria-label="Menu">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
         <div class="topbar-title">${tituloPagina}</div>
         <div style="display:flex;align-items:center;gap:12px;margin-left:auto">
           <div class="topbar-breadcrumb">
