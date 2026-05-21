@@ -562,11 +562,82 @@ select.form-control { cursor: pointer; }
 /* ── DIVIDER ──────────────────────────────────────────────── */
 .divider { border: none; border-top: 1px solid var(--borda); margin: 20px 0; }
 
+/* ── HAMBÚRGUER (oculto no desktop) ───────────────────────── */
+.mobile-menu-btn {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: none; background: none;
+  color: var(--cinza-700); cursor: pointer;
+  border-radius: var(--raio);
+  -webkit-tap-highlight-color: transparent;
+}
+.mobile-menu-btn:hover { background: var(--cinza-100); }
+
+/* ── OVERLAY DA SIDEBAR (oculto por padrão) ───────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  z-index: 190;
+  background: rgba(0,0,0,.45);
+  -webkit-tap-highlight-color: transparent;
+}
+.sidebar-overlay.ativo { display: block; }
+
 /* ── RESPONSIVE ───────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); transition: transform .25s; }
+  /* Sidebar vira drawer deslizante */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform .28s ease;
+    z-index: 200;
+  }
   .sidebar.aberta { transform: translateX(0); }
+
+  /* Main content ocupa tela toda */
   .main-content { margin-left: 0; }
+
+  /* Hambúrguer visível */
+  .mobile-menu-btn { display: flex; }
+
+  /* Topbar */
+  .topbar { padding: 0 12px; gap: 6px; }
+  .topbar-breadcrumb { display: none; }
+
+  /* Conteúdo da página */
+  .page-body { padding: 14px 12px; }
+
+  /* KPI grid: 2 colunas no mobile */
   .kpi-grid { grid-template-columns: 1fr 1fr; }
+
+  /* Grids multi-coluna colapsam */
   .grid-2, .grid-3, .grid-60-40 { grid-template-columns: 1fr; }
+
+  /* Tabelas: scroll horizontal sem wrapper manual */
+  .table-wrap { -webkit-overflow-scrolling: touch; }
+  .table-scroll { max-height: none; }
+
+  /* Modal: margem menor, sem bottom-sheet para não quebrar formulários */
+  .modal { margin: 12px; max-width: calc(100vw - 24px); }
+
+  /* Dropdowns da topbar: largura adaptada */
+  #sino-dropdown {
+    width: min(360px, calc(100vw - 20px));
+    right: -10px;
+  }
+  #user-menu-dropdown {
+    width: min(284px, calc(100vw - 20px));
+    right: -10px;
+  }
+
+  /* Barra de filtros */
+  .filter-bar { flex-wrap: wrap; }
+  .search-input { width: 100%; }
+
+  /* Formulários: inputs full-width em mobile */
+  .form-control { font-size: 16px; } /* evita zoom automático no iOS */
+
+  /* Botões: touch targets mínimos */
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 34px; }
 }
