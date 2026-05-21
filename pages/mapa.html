@@ -163,6 +163,20 @@
 #modal-foto img{max-width:min(1100px,96vw);max-height:92vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);object-fit:contain;cursor:default;}
 .pp-foto-click,.pe-foto-click{cursor:zoom-in;transition:opacity .15s;}
 .pp-foto-click:hover,.pe-foto-click:hover{opacity:.88;}
+
+/* ── Mobile: botão de filtros + painel deslizante ──────────── */
+.btn-filtros-mobile{display:none;position:fixed;bottom:76px;right:16px;z-index:250;background:#2D6A4F;color:#fff;border:none;border-radius:50px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;align-items:center;gap:7px;box-shadow:0 4px 18px rgba(0,0,0,.28);font-family:var(--font-sans);-webkit-tap-highlight-color:transparent;transition:background .15s;}
+.btn-filtros-mobile:hover{background:#245c42;}
+.btn-filtros-mobile svg{flex-shrink:0;}
+@media(max-width:768px){
+  .mapa-wrapper{height:calc(100vh - 94px);}
+  .mapa-painel-wrap{display:none;}
+  .mapa-painel-wrap.mobile-aberto{display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;height:62vh;z-index:300;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.18);overflow:hidden;}
+  .mapa-painel-wrap.mobile-aberto::before{content:'';display:block;width:36px;height:4px;background:#d1d5db;border-radius:2px;margin:10px auto 6px;flex-shrink:0;}
+  .mapa-painel-wrap.mobile-aberto .mapa-painel{width:100%;flex:1;padding:0 14px 20px;overflow-y:auto;height:auto;}
+  .mapa-painel-wrap.mobile-aberto #mapa-scrollbar-outer{display:none;}
+  .btn-filtros-mobile{display:flex;}
+}
 </style>
 </head>
 <body>
