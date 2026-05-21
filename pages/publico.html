@@ -1200,8 +1200,10 @@ async function carregarMapa() {
 
 function toggleFiltrosPubMobile(){
   const panel = document.querySelector('.mapa-filtros-pub');
+  const backdrop = document.getElementById('pub-mapa-backdrop');
   if(!panel) return;
   const aberto = panel.classList.toggle('mobile-aberto');
+  if(backdrop) backdrop.classList.toggle('ativo', aberto);
   const btn = document.getElementById('btn-filtros-pub-mobile');
   if(!btn) return;
   btn.innerHTML = aberto
