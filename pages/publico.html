@@ -174,15 +174,20 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:40px 20px;color:var(--cinza-400);font-size:13px;}
 
+/* ── Botão filtros mobile (mapa público) ───────────────────── */
+.btn-filtros-pub-mobile{display:none;position:fixed;bottom:76px;right:16px;z-index:250;background:#2D6A4F;color:#fff;border:none;border-radius:50px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;align-items:center;gap:7px;box-shadow:0 4px 18px rgba(0,0,0,.28);font-family:var(--font-sans);-webkit-tap-highlight-color:transparent;transition:background .15s;}
+.btn-filtros-pub-mobile:hover{background:#245c42;}
+.btn-filtros-pub-mobile svg{flex-shrink:0;}
+
 @media(max-width:900px){
   .kpi-row,.stat-row{grid-template-columns:1fr 1fr;}
   .g2{grid-template-columns:1fr;}
   .pub-content.mapa-ativo{padding:0;}
-  #pane-mapa.ativo{height:auto;flex:none;}
-  .mapa-wrapper{flex-wrap:wrap;height:auto;min-height:0;}
-  .mapa-filtros-pub{width:100%;max-height:130px;flex-direction:row;border-right:none;border-bottom:1px solid var(--borda);}
-  .mapa-lista-pub{width:100%;max-height:180px;border-left:none;border-top:1px solid var(--borda);}
-  #mapa-pub{height:380px;width:100%;}
+  .mapa-filtros-pub{display:none;position:fixed;bottom:0;left:0;right:0;height:62vh;z-index:300;width:auto;max-height:none;flex-direction:column;border-right:none;border-bottom:none;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.18);overflow-y:auto;padding:0 12px 20px;background:#fff;}
+  .mapa-filtros-pub::before{content:'';display:block;width:36px;height:4px;background:#d1d5db;border-radius:2px;margin:10px auto 8px;flex-shrink:0;align-self:center;}
+  .mapa-filtros-pub.mobile-aberto{display:flex;}
+  .mapa-lista-pub{display:none;}
+  .btn-filtros-pub-mobile{display:flex;}
   .pub-header{padding:0 16px;height:60px;}
   .pub-brand-icon{width:32px;height:32px;}
   .pub-logos-bar{height:auto;min-height:50px;padding:8px 14px;gap:10px;flex-wrap:wrap;}
