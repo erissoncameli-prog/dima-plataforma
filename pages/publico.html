@@ -1109,6 +1109,8 @@ async function carregarMapa() {
 
   clusterLayer = L.markerClusterGroup({ maxClusterRadius: 50 });
   mapaL.addLayer(clusterLayer);
+  _adicionarRosaDosVentos();
+  _adicionarMiniMapa();
 
   // Buscar dados em paralelo
   const [mapaRes, metaRes, fotosRes, camadasRes, tiposRes] = await Promise.all([
