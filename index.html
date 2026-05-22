@@ -423,12 +423,16 @@ body {
 }
 
 /* Buttons */
+@keyframes shimmerBtn {
+  from { left:-80%; }
+  to   { left:140%; }
+}
 .btn-login {
-  width:100%;height:46px;
+  width:100%;height:48px;
   margin-top:10px;
   background:linear-gradient(135deg, var(--ouro-c) 0%, #B8943E 100%);
   color:#0A1A0F;
-  border:none;border-radius:9px;
+  border:none;border-radius:10px;
   font-family:var(--ff-ui);
   font-size:13.5px;font-weight:600;
   letter-spacing:.04em;
@@ -436,9 +440,23 @@ body {
   display:flex;align-items:center;justify-content:center;gap:8px;
   box-shadow:0 4px 22px rgba(201,168,76,.28);
   transition:all .22s;
+  position:relative;overflow:hidden;
+}
+.btn-login::after {
+  content:'';
+  position:absolute;top:0;left:-80%;
+  width:50%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);
+  transform:skewX(-18deg);
+  opacity:0;
+  transition:opacity .1s;
+}
+.btn-login:hover::after {
+  opacity:1;
+  animation:shimmerBtn .52s ease forwards;
 }
 .btn-login:hover {
-  box-shadow:0 6px 30px rgba(201,168,76,.42);
+  box-shadow:0 6px 32px rgba(201,168,76,.46);
   transform:translateY(-1px);
   background:linear-gradient(135deg, #F4D870 0%, var(--ouro) 100%);
 }
