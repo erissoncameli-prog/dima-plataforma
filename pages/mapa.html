@@ -756,9 +756,65 @@ function iniciarMapa(){
   mapaL = L.map('mapa', { center:[-9.965,-67.81], zoom:12 });
   _aplicarModoMapa('satelite');
   _adicionarControleModoMapa();
+  _adicionarRosaDosVentos();
+  _adicionarMiniMapa();
   clusters = L.markerClusterGroup({ maxClusterRadius:40, disableClusteringAtZoom:17 });
   mapaL.addLayer(clusters);
   requestAnimationFrame(() => mapaL.invalidateSize());
+}
+
+function _adicionarRosaDosVentos(){
+  const Ctrl = L.Control.extend({
+    options: { position: 'bottomleft' },
+    onAdd(){
+      const div = L.DomUtil.create('div', 'rosa-norte');
+      div.title = 'Norte';
+      div.innerHTML = `
+        <svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+          <!-- sombra fundo -->
+          <circle cx="22" cy="22" r="20" fill="none" stroke="#e5e7eb" stroke-width="1"/>
+          <!-- ponta norte (vermelha) -->
+          <polygon points="22,3 26,22 22,19 18,22" fill="#dc2626"/>
+          <!-- ponta sul (cinza) -->
+          <polygon points="22,41 18,22 22,25 26,22" fill="#9ca3af"/>
+          <!-- círculo central -->
+          <circle cx="22" cy="22" r="3" fill="#1f2937"/>
+          <!-- letra N -->
+          <text x="22" y="14" text-anchor="middle" font-size="6" font-weight="700"
+                font-family="DM Sans,sans-serif" fill="#dc2626" letter-spacing="0">N</text>
+          <!-- letra S -->
+          <text x="22" y="43" text-anchor="middle" font-size="5.5" font-weight="600"
+                font-family="DM Sans,sans-serif" fill="#6b7280">S</text>
+          <!-- letra L (Leste) -->
+          <text x="41" y="23.5" text-anchor="middle" font-size="5.5" font-weight="600"
+                font-family="DM Sans,sans-serif" fill="#6b7280">L</text>
+          <!-- letra O (Oeste) -->
+          <text x="3" y="23.5" text-anchor="middle" font-size="5.5" font-weight="600"
+                font-family="DM Sans,sans-serif" fill="#6b7280">O</text>
+        </svg>`;
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    }
+  });
+  new Ctrl().addTo(mapaL);
+}
+
+function _adicionarMiniMapa(){
+  const miniTile = L.tileLayer(
+    `https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}`,
+    { maxZoom: 22, subdomains: ['mt0','mt1','mt2','mt3'] }
+  );
+  const mini = new L.Control.MiniMap(miniTile, {
+    position:        'bottomright',
+    width:           140,
+    height:          110,
+    zoomLevelOffset: -6,   // zoom ~6 — mostra o Acre inteiro
+    toggleDisplay:   true,
+    minimized:       false,
+    aimingRectOptions:    { color:'#dc2626', weight:2, opacity:.9, fillOpacity:.1 },
+    shadowRectOptions:    { color:'#dc2626', weight:1, opacity:.4, fillOpacity:0 },
+  });
+  mini.addTo(mapaL);
 }
 
 function _aplicarModoMapa(modo){
