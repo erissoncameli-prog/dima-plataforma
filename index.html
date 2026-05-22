@@ -482,36 +482,166 @@ body {
 .login-footer { animation:fadeUp .5s .56s ease both; }
 
 /* ════════════════════════════════
-   MOBILE
+   MOBILE — Design Mata
+   Canopy verde · Card branco flutuante
 ════════════════════════════════ */
 @media(max-width:900px){
-  body { flex-direction:column;overflow:auto; }
+  /* ── Layout ── */
+  body { flex-direction:column;overflow:auto;background:#1F4E2C; }
   html,body { height:auto; }
 
+  /* ── CANOPY — painel esquerdo ── */
   .painel-esq {
-    height:58vw;
-    min-height:240px;max-height:400px;
+    height:355px;min-height:355px;max-height:355px;
     flex:none;
   }
-  .painel-conteudo { padding:14px 16px; }
-  .logo-central-wrap { display:none; }
+  .painel-conteudo {
+    padding:50px 22px 28px;
+    justify-content:space-between;
+  }
 
+  /* Logo Resiliência: volta ao fluxo, fica no centro vertical */
+  .logo-central-wrap {
+    display:flex !important;
+    position:static !important;
+    top:auto !important;right:auto !important;z-index:auto !important;
+    justify-content:center;
+    align-items:center;
+  }
+  .logo-central-box {
+    width:56px;height:56px;
+    background:rgba(255,255,255,.10);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:16px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .logo-central { height:40px;width:40px;object-fit:contain; }
+
+  /* Projeto info: sem card, tipografia centralizada */
+  .projeto-info {
+    background:transparent !important;
+    backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
+    border:none !important;border-left:none !important;
+    padding:0 !important;
+    text-align:center;
+  }
+  .proj-badge { justify-content:center; }
+  .proj-nome { font-size:14.5px;text-align:center; }
+  .proj-sub { text-align:center; }
+  .slide-dots { justify-content:center; }
+
+  /* Esconder parceiros e contadores no mobile */
+  .parceiros-form { display:none !important; }
+  .foto-legenda,.foto-contador { display:none; }
+
+  .logo-gov { height:clamp(20px,5.5vw,28px); }
+  .logo-sema { height:clamp(9px,3vw,15px); }
+  .logo-form,.logo-form.logo-grande { height:22px;max-width:68px; }
+
+  /* ── CARD BRANCO — painel direito ── */
   .painel-dir {
     width:100%;
-    min-height:0;
-    padding:28px 22px 36px;
-    border-left:none;
-    border-top:1px solid rgba(201,168,76,.18);
-    align-items:flex-start;
+    min-height:calc(100vh - 328px);
+    background:#ffffff !important;
+    border-radius:28px 28px 0 0;
+    border-left:none !important;
+    border-top:none !important;
+    padding:0;
+    margin-top:-28px;
+    position:relative;
+    z-index:1;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    box-shadow:0 -6px 32px rgba(0,0,0,.12);
   }
-  .login-box { max-width:none; }
-  .dima-header { margin-bottom:24px; }
-  .login-titulo { font-size:30px; }
+  .painel-dir::before,.painel-dir::after { display:none; }
+  .globe-deco,.painel-dir-noise { display:none; }
 
-  .logo-form { height:26px;max-width:76px; }
-  .logo-form.logo-grande { height:26px;max-width:76px; }
+  /* Handle pill no topo do card */
+  .login-box::before {
+    content:'';
+    display:block;
+    width:36px;height:4px;border-radius:2px;
+    background:#E5E7EB;
+    margin:0 auto 22px;
+  }
 
-  .globe-deco { width:260px;height:260px; }
+  /* Caixa de login */
+  .login-box {
+    max-width:none;width:100%;
+    padding:18px 26px 44px;
+  }
+  .dima-header { margin-bottom:20px; }
+  .dima-name { color:#0A1A0F; }
+  .dima-name-sub { color:#9CA3AF; }
+
+  /* Seletor de idioma: light */
+  .lang-opt {
+    border-color:#E5E7EB;
+    color:#9CA3AF;
+    background:transparent;
+  }
+  .lang-opt:hover { border-color:#B7D9C7;color:#2D6A4F; }
+  .lang-opt.ativo {
+    background:#F0F7F3;
+    border-color:#B7D9C7;
+    color:#2D6A4F;
+  }
+
+  /* Títulos: dark */
+  .login-titulo { color:#0A1A0F;font-size:32px; }
+  .login-sub { color:#9CA3AF; }
+
+  /* Inputs: light */
+  .form-label { color:#9CA3AF; }
+  .form-input {
+    color:#111827;
+    border-bottom-color:#E5E7EB;
+  }
+  .form-input:focus { border-bottom-color:#52B788; }
+  .form-input::placeholder { color:#D1D5DB;font-size:13px; }
+  .form-input:-webkit-autofill {
+    -webkit-box-shadow:0 0 0 40px #fff inset;
+    -webkit-text-fill-color:#111827;
+    caret-color:#111827;
+  }
+
+  /* Botão entrar: verde */
+  .btn-login {
+    background:linear-gradient(135deg,#1F4E2C 0%,#2D6A4F 100%);
+    color:#fff;
+    box-shadow:0 4px 20px rgba(31,78,44,.28);
+  }
+  .btn-login:hover {
+    background:linear-gradient(135deg,#2D6A4F 0%,#3A7A60 100%);
+    box-shadow:0 6px 28px rgba(31,78,44,.36);
+    transform:translateY(-1px);
+  }
+  .btn-login:active { transform:translateY(0);box-shadow:none; }
+  .btn-login:disabled { opacity:.48;cursor:not-allowed;transform:none; }
+  .spinner-sm { border-color:rgba(255,255,255,.25);border-top-color:#fff; }
+
+  /* Divisor "ou" */
+  .btn-ou { color:#D1D5DB; }
+  .btn-ou::before,.btn-ou::after { background:#E5E7EB; }
+
+  /* Botão painel público */
+  .btn-publico {
+    border-color:#E5E7EB;
+    color:#6B7280;
+    background:#fff;
+  }
+  .btn-publico:hover {
+    border-color:#B7D9C7;
+    color:#2D6A4F;
+    background:#F0F7F3;
+  }
+  .btn-publico:active { transform:scale(.99); }
+
+  /* Footer */
+  .login-footer { color:#C5C8D0; }
 }
 </style>
 </head>
