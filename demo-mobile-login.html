@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIMA · Demo Mobile Login — 3 Opções</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Página de demonstração ── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#0F0F11;
+  font-family:'Outfit',sans-serif;
+  min-height:100vh;
+  padding:40px 24px 60px;
+  color:#fff;
+}
+.demo-header{
+  text-align:center;
+  margin-bottom:48px;
+}
+.demo-header h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:28px;font-weight:500;font-style:italic;
+  color:#F4EFE6;
+  margin-bottom:6px;
+}
+.demo-header p{
+  font-size:13px;color:rgba(244,239,230,.45);
+  letter-spacing:.04em;
+}
+
+.opcoes-grid{
+  display:flex;
+  gap:40px;
+  justify-content:center;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+.opcao-col{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+}
+.opcao-label{
+  font-size:11px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:rgba(244,239,230,.4);
+}
+.opcao-nome{
+  font-family:'Cormorant Garamond',serif;
+  font-size:18px;font-weight:500;
+  color:#F4EFE6;
+  text-align:center;
+  line-height:1.2;
+}
+.opcao-desc{
+  font-size:11px;color:rgba(244,239,230,.38);
+  text-align:center;max-width:200px;line-height:1.5;
+}
+
+/* Frame do celular */
+.phone-frame{
+  width:390px;
+  height:844px;
+  border-radius:44px;
+  background:#1a1a1c;
+  box-shadow:
+    0 0 0 2px #3a3a3c,
+    0 30px 80px rgba(0,0,0,.7),
+    inset 0 0 0 1px rgba(255,255,255,.06);
+  overflow:hidden;
+  position:relative;
+  flex-shrink:0;
+}
+.phone-notch{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:126px;height:34px;
+  background:#1a1a1c;border-radius:0 0 20px 20px;
+  z-index:100;
+}
+.phone-screen{
+  width:100%;height:100%;
+  overflow:hidden;
+  position:relative;
+}
+
+/* ══════════════════════════════════
+   OPÇÃO A — IMERSIVO
+   Full-screen foto + bottom sheet
+══════════════════════════════════ */
+.a-screen{
+  width:100%;height:100%;
+  background:
+    linear-gradient(180deg,
+      rgba(5,14,8,.9) 0%,
+      rgba(8,20,12,.35) 28%,
+      rgba(8,20,12,.20) 55%,
+      rgba(4,12,7,.96) 100%),
+    linear-gradient(135deg, #0A1A0F 0%, #1F4E2C 40%, #2D6A4F 70%, #0A1A0F 100%);
+  position:relative;
+  font-family:'Outfit',sans-serif;
+}
+
+/* Textura sutil simulando foto */
+.a-screen::before{
+  content:'';
+  position:absolute;inset:0;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(82,183,136,.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(45,106,79,.15) 0%, transparent 45%),
+    radial-gradient(ellipse at 20% 80%, rgba(15,42,22,.3) 0%, transparent 40%);
+  pointer-events:none;
+}
+
+/* Topo */
+.a-topo{
+  position:absolute;top:44px;left:0;right:0;
+  padding:0 22px;
+  display:flex;justify-content:space-between;align-items:center;
+  z-index:5;
+}
+.a-badge-logos{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.38);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:100px;
+  padding:7px 13px;
+}
+.a-brasao{
+  width:24px;height:24px;
+  background:linear-gradient(135deg,#C9A84C,#F0CB6A);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:#0A1A0F;
+  flex-shrink:0;
+}
+.a-sema-txt{
+  font-size:9px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:rgba(255,255,255,.7);
+}
+.a-lang{
+  display:flex;gap:3px;
+}
+.a-lang-btn{
+  width:28px;height:28px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(0,0,0,.3);
+  backdrop-filter:blur(8px);
+  font-size:9px;font-weight:600;
+  color:rgba(255,255,255,.5);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+}
+.a-lang-btn.ativo{
+  background:rgba(201,168,76,.2);
+  border-color:rgba(201,168,76,.5);
+  color:#F0CB6A;
+}
+
+/* Meio — info projeto */
+.a-meio{
+  position:absolute;top:50%;left:0;right:0;
+  transform:translateY(-160px);
+  padding:0 24px;
+  z-index:5;
+}
+.a-logo-resil{
+  width:72px;height:72px;
+  background:rgba(0,0,0,.35);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(201,168,76,.25);
+  border-radius:18px;
+  margin:0 auto 16px;
+  display:flex;align-items:center;justify-content:center;
+}
+.a-proj-badge{
+  display:flex;align-items:center;gap:6px;
+  font-size:8.5px;font-weight:600;
+  letter-spacing:.13em;text-transform:uppercase;
+  color:#F0CB6A;
+  margin-bottom:8px;
+  justify-content:center;
+}
+.a-proj-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:#F0CB6A;
+  animation:pulso 2.5s ease-in-out infinite;
+}
+@keyframes pulso{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+.a-proj-nome{
+  font-family:'Cormorant Garamond',serif;
+  font-size:17px;font-weight:500;font-style:italic;
+  color:#fff;text-align:center;line-height:1.4;
+  margin-bottom:5px;
+}
+.a-proj-sub{
+  font-size:10px;color:rgba(255,255,255,.42);
+  text-align:center;
+}
+.a-dots{
+  display:flex;gap:4px;justify-content:center;margin-top:12px;
+}
+.a-dot{width:14px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);}
+.a-dot.ativo{background:#C9A84C;width:22px;}
+
+/* Bottom Sheet */
+.a-sheet{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(160deg, #122019 0%, #0A1A0F 100%);
+  border-radius:28px 28px 0 0;
+  border-top:1px solid rgba(201,168,76,.18);
+  padding:22px 26px 36px;
+  box-shadow:0 -20px 60px rgba(0,0,0,.5);
+}
+.a-sheet-handle{
+  width:36px;height:4px;border-radius:2px;
+  background:rgba(255,255,255,.12);
+  margin:0 auto 22px;
+}
+.a-header-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
+.a-dima{
+  display:flex;align-items:center;gap:9px;
+}
+.a-dima-ico{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,#2D6A4F,#52B788);
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 12px rgba(82,183,136,.3);
+}
+.a-dima-name{font-size:10px;font-weight:700;letter-spacing:.16em;color:#F4EFE6;}
+.a-dima-sub{font-size:8.5px;color:rgba(244,239,230,.35);margin-top:1px;}
+
+.a-titulo{
+  font-family:'Cormorant Garamond',serif;
+  font-size:26px;font-weight:500;
+  color:#F4EFE6;margin-bottom:3px;
+}
+.a-subtit{font-size:11px;color:rgba(244,239,230,.45);margin-bottom:18px;}
+
+.a-field{margin-bottom:16px;}
+.a-field-lbl{
+  font-size:8.5px;font-weight:600;letter-spacing:.10em;text-transform:uppercase;
+  color:rgba(244,239,230,.3);margin-bottom:7px;display:block;
+}
+.a-field-inp{
+  width:100%;height:42px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(244,239,230,.10);
+  border-radius:10px;
+  padding:0 14px;
+  font-size:13px;color:rgba(244,239,230,.5);
+  display:flex;align-items:center;
+}
+
+.a-btn-login{
+  width:100%;height:46px;margin-top:6px;
+  background:linear-gradient(135deg,#F0CB6A,#B8943E);
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13.5px;font-weight:700;letter-spacing:.04em;color:#0A1A0F;
+  box-shadow:0 4px 20px rgba(201,168,76,.3);
+  cursor:pointer;
+}
+.a-btn-pub{
+  width:100%;height:44px;margin-top:10px;
+  border:1px solid rgba(244,239,230,.10);
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  font-size:12.5px;color:rgba(244,239,230,.5);
+  cursor:pointer;
+}
+
+/* ══════════════════════════════════
+   OPÇÃO B — ORBITA
+   Dark full-screen, form centrado
+══════════════════════════════════ */
+.b-screen{
+  width:100%;height:100%;
+  background:linear-gradient(160deg, #122019 0%, #0A1A0F 50%, #081410 100%);
+  position:relative;
+  font-family:'Outfit',sans-serif;
+  display:flex;flex-direction:column;
+  padding:0;overflow:hidden;
+}
+
+/* Globe watermark */
+.b-globe{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-58%);
+  width:320px;height:320px;
+  opacity:.055;
+  pointer-events:none;
+}
+
+/* Glow radial */
+.b-screen::before{
+  content:'';
+  position:absolute;
+  bottom:-100px;right:-60px;
+  width:300px;height:300px;
+  background:radial-gradient(ellipse,rgba(45,106,79,.22) 0%,transparent 65%);
+  pointer-events:none;
+}
+.b-screen::after{
+  content:'';
+  position:absolute;
+  top:-80px;left:-50px;
+  width:260px;height:260px;
+  background:radial-gradient(ellipse,rgba(201,168,76,.07) 0%,transparent 65%);
+  pointer-events:none;
+}
+
+.b-inner{
+  position:relative;z-index:1;
+  flex:1;display:flex;flex-direction:column;
+  padding:52px 28px 38px;
+}
+
+.b-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:auto;
+}
+.b-dima{display:flex;align-items:center;gap:10px;}
+.b-dima-ico{
+  width:34px;height:34px;
+  background:linear-gradient(135deg,#2D6A4F,#52B788);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 14px rgba(82,183,136,.28);
+}
+.b-dima-name{font-size:11px;font-weight:700;letter-spacing:.18em;color:#F4EFE6;}
+.b-dima-sub{font-size:8.5px;color:rgba(244,239,230,.32);margin-top:2px;}
+.b-lang{display:flex;gap:4px;}
+.b-lang-btn{
+  padding:5px 9px;border-radius:7px;
+  border:1px solid rgba(244,239,230,.10);
+  font-size:9px;font-weight:600;color:rgba(244,239,230,.32);
+  background:transparent;cursor:pointer;
+}
+.b-lang-btn.ativo{
+  background:rgba(201,168,76,.14);
+  border-color:rgba(201,168,76,.45);
+  color:#F0CB6A;
+}
+
+.b-content{
+  flex:1;display:flex;flex-direction:column;justify-content:center;
+  padding:20px 0;
+}
+
+.b-proj-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:#F0CB6A;margin-bottom:12px;
+}
+.b-proj-dot{
+  width:4px;height:4px;border-radius:50%;background:#F0CB6A;
+  animation:pulso 2.5s ease-in-out infinite;
+}
+
+.b-titulo{
+  font-family:'Cormorant Garamond',serif;
+  font-size:36px;font-weight:500;line-height:1.08;
+  color:#F4EFE6;margin-bottom:6px;
+  letter-spacing:-.01em;
+}
+.b-subtit{
+  font-size:12px;font-weight:300;color:rgba(244,239,230,.45);
+  margin-bottom:28px;
+}
+
+.b-field{margin-bottom:0;}
+.b-field+.b-field{margin-top:18px;}
+.b-field-lbl{
+  font-size:8.5px;font-weight:600;letter-spacing:.10em;text-transform:uppercase;
+  color:rgba(244,239,230,.28);margin-bottom:8px;display:block;
+}
+.b-field-line{
+  width:100%;height:44px;
+  border:none;border-bottom:1.5px solid rgba(244,239,230,.12);
+  padding:0 2px;
+  font-size:14px;color:rgba(244,239,230,.45);
+  background:transparent;display:flex;align-items:center;
+}
+
+.b-btn-login{
+  width:100%;height:46px;margin-top:26px;
+  background:linear-gradient(135deg,#F0CB6A,#B8943E);
+  border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13.5px;font-weight:700;letter-spacing:.04em;color:#0A1A0F;
+  box-shadow:0 4px 22px rgba(201,168,76,.28);cursor:pointer;
+}
+.b-ou{
+  display:flex;align-items:center;gap:10px;
+  margin:14px 0;font-size:10px;color:rgba(244,239,230,.2);
+}
+.b-ou::before,.b-ou::after{content:'';flex:1;height:1px;background:rgba(244,239,230,.08);}
+.b-btn-pub{
+  width:100%;height:44px;
+  border:1px solid rgba(244,239,230,.09);
+  border-radius:11px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  font-size:12.5px;color:rgba(244,239,230,.4);cursor:pointer;
+}
+
+.b-bottom{margin-top:auto;}
+.b-parceiros-lbl{
+  font-size:8px;font-weight:500;letter-spacing:.10em;text-transform:uppercase;
+  color:rgba(244,239,230,.2);margin-bottom:8px;display:block;text-align:center;
+}
+.b-parceiros{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  flex-wrap:wrap;
+}
+.b-logo-p{
+  height:18px;
+  background:rgba(255,255,255,.12);
+  border-radius:3px;
+}
+.b-logo-p-1{width:54px;}
+.b-logo-p-2{width:62px;}
+.b-logo-p-3{width:42px;}
+.b-logo-p-4{width:70px;}
+
+/* ══════════════════════════════════
+   OPÇÃO C — BIPARTIDO
+   Topo visual + form limpo
+══════════════════════════════════ */
+.c-screen{
+  width:100%;height:100%;
+  position:relative;
+  font-family:'Outfit',sans-serif;
+  background:#F7F5F1;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+/* Topo foto */
+.c-topo{
+  height:320px;
+  flex-shrink:0;
+  position:relative;
+  background:
+    linear-gradient(180deg,
+      rgba(4,12,7,.75) 0%,
+      rgba(6,18,10,.2) 40%,
+      rgba(6,18,10,.55) 100%),
+    linear-gradient(135deg, #0A1A0F 0%, #1F4E2C 50%, #2D6A4F 100%);
+  overflow:hidden;
+}
+.c-topo::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse at 25% 30%, rgba(82,183,136,.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 75% 70%, rgba(45,106,79,.2) 0%, transparent 50%);
+}
+.c-topo-content{
+  position:relative;z-index:2;
+  height:100%;
+  display:flex;flex-direction:column;
+  padding:48px 22px 22px;
+}
+.c-logos-topo{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.3);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:100px;
+  padding:6px 12px;
+  width:fit-content;
+  margin-bottom:auto;
+}
+.c-brasao{
+  width:22px;height:22px;
+  background:linear-gradient(135deg,#C9A84C,#F0CB6A);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:#0A1A0F;
+}
+.c-sep{width:1px;height:16px;background:rgba(255,255,255,.15);}
+.c-sema-txt{
+  font-size:8.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(255,255,255,.65);
+}
+
+.c-logo-central{
+  margin:0 auto;
+  width:68px;height:68px;
+  border-radius:16px;
+  background:rgba(0,0,0,.32);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(201,168,76,.22);
+  display:flex;align-items:center;justify-content:center;
+}
+
+.c-proj-info{
+  margin-bottom:0;
+}
+.c-proj-badge{
+  display:flex;align-items:center;gap:6px;
+  font-size:8px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+  color:#F0CB6A;margin-bottom:6px;
+}
+.c-proj-dot{width:4px;height:4px;border-radius:50%;background:#F0CB6A;animation:pulso 2.5s ease-in-out infinite;}
+.c-proj-nome{
+  font-family:'Cormorant Garamond',serif;
+  font-size:14.5px;font-weight:500;font-style:italic;
+  color:#fff;line-height:1.4;margin-bottom:4px;
+}
+.c-proj-sub{font-size:9.5px;color:rgba(255,255,255,.38);}
+.c-dots{display:flex;gap:4px;margin-top:8px;}
+.c-dot{width:12px;height:3.5px;border-radius:2px;background:rgba(255,255,255,.18);}
+.c-dot.ativo{background:#C9A84C;width:20px;}
+
+/* Form card */
+.c-form-card{
+  flex:1;
+  background:#fff;
+  border-radius:24px 24px 0 0;
+  padding:26px 26px 32px;
+  margin-top:-22px;
+  box-shadow:0 -8px 30px rgba(0,0,0,.15);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.c-form-top{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:18px;
+}
+.c-dima{display:flex;align-items:center;gap:8px;}
+.c-dima-ico{
+  width:30px;height:30px;
+  background:linear-gradient(135deg,#2D6A4F,#52B788);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 10px rgba(82,183,136,.25);
+}
+.c-dima-name{font-size:10px;font-weight:700;letter-spacing:.16em;color:#1F4E2C;}
+.c-dima-sub{font-size:8.5px;color:#9CA3AF;margin-top:1px;}
+.c-lang{display:flex;gap:3px;}
+.c-lang-btn{
+  padding:4px 8px;border-radius:6px;
+  border:1px solid #E5E7EB;
+  font-size:9px;font-weight:600;color:#9CA3AF;background:#fff;cursor:pointer;
+}
+.c-lang-btn.ativo{
+  background:#F0FDF4;border-color:#86EFAC;color:#15803D;
+}
+
+.c-titulo{
+  font-family:'Cormorant Garamond',serif;
+  font-size:27px;font-weight:500;color:#111827;
+  margin-bottom:4px;
+}
+.c-subtit{font-size:11.5px;color:#6B7280;margin-bottom:20px;}
+
+.c-field{
+  margin-bottom:14px;
+}
+.c-field-lbl{
+  font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:#9CA3AF;margin-bottom:7px;display:block;
+}
+.c-field-inp{
+  width:100%;height:44px;
+  background:#F9FAFB;
+  border:1.5px solid #E5E7EB;
+  border-radius:10px;
+  padding:0 14px;
+  font-size:13.5px;color:#9CA3AF;
+  display:flex;align-items:center;
+}
+
+.c-btn-login{
+  width:100%;height:46px;margin-top:8px;
+  background:linear-gradient(135deg,#2D6A4F,#1F4E2C);
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13.5px;font-weight:700;letter-spacing:.04em;color:#fff;
+  box-shadow:0 4px 18px rgba(31,78,44,.28);cursor:pointer;
+}
+.c-ou{
+  display:flex;align-items:center;gap:10px;
+  margin:12px 0;font-size:10px;color:#D1D5DB;
+}
+.c-ou::before,.c-ou::after{content:'';flex:1;height:1px;background:#E5E7EB;}
+.c-btn-pub{
+  width:100%;height:44px;
+  border:1.5px solid #E5E7EB;
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  font-size:12.5px;color:#6B7280;cursor:pointer;background:#fff;
+}
+
+.c-footer{
+  margin-top:auto;padding-top:12px;
+  text-align:center;font-size:8.5px;color:#D1D5DB;line-height:1.5;
+}
+
+/* ── Notas de comparação ── */
+.notas-grid{
+  display:flex;gap:40px;justify-content:center;flex-wrap:wrap;
+  margin-top:32px;
+}
+.nota-col{
+  width:390px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;
+  padding:18px 20px;
+}
+.nota-titulo{
+  font-size:12px;font-weight:600;color:#F4EFE6;
+  margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.nota-tag{
+  font-size:8.5px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;
+  padding:3px 8px;border-radius:99px;
+  background:rgba(201,168,76,.15);color:#F0CB6A;border:1px solid rgba(201,168,76,.25);
+}
+.nota-pros,.nota-cons{
+  font-size:11px;color:rgba(244,239,230,.5);
+  line-height:1.6;
+}
+.nota-pros::before{content:'+ ';color:#52B788;}
+.nota-cons::before{content:'− ';color:rgba(239,68,68,.6);}
+.nota-pros{margin-bottom:4px;}
+
+.divisor{
+  width:100%;max-width:1300px;
+  height:1px;background:rgba(255,255,255,.06);
+  margin:40px auto;
+}
+</style>
+</head>
+<body>
+
+<div class="demo-header">
+  <h1>DIMA · Redesign Mobile — Login</h1>
+  <p>3 CONCEITOS · Paleta e tipografia originais · Frame 390×844 px</p>
+</div>
+
+<div class="opcoes-grid">
+
+  <!-- ══ OPÇÃO A ══ -->
+  <div class="opcao-col">
+    <div class="opcao-label">Opção A</div>
+    <div class="opcao-nome">Imersivo<br><span style="font-size:13px;font-style:italic;color:rgba(244,239,230,.5);">Full-screen + Bottom Sheet</span></div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen a-screen">
+
+        <!-- Topo -->
+        <div class="a-topo">
+          <div class="a-badge-logos">
+            <div class="a-brasao">AC</div>
+            <div class="a-sema-txt">SEMA/AC</div>
+          </div>
+          <div class="a-lang">
+            <div class="a-lang-btn ativo">PT</div>
+            <div class="a-lang-btn">EN</div>
+            <div class="a-lang-btn">ES</div>
+          </div>
+        </div>
+
+        <!-- Meio -->
+        <div class="a-meio">
+          <div class="a-logo-resil">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,.8)" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </div>
+          <div class="a-proj-badge">
+            <div class="a-proj-dot"></div>
+            Projeto 218BRA2001 · UNESCO/MPTF
+          </div>
+          <div class="a-proj-nome">Programa de Resiliência<br>Socioambiental · APAs/AC</div>
+          <div class="a-proj-sub">Rio Branco, Acre · Fundo Brasil-ONU</div>
+          <div class="a-dots">
+            <div class="a-dot ativo"></div>
+            <div class="a-dot"></div><div class="a-dot"></div>
+            <div class="a-dot"></div><div class="a-dot"></div>
+          </div>
+        </div>
+
+        <!-- Bottom Sheet -->
+        <div class="a-sheet">
+          <div class="a-sheet-handle"></div>
+          <div class="a-header-row">
+            <div class="a-dima">
+              <div class="a-dima-ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
+                  <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <div class="a-dima-name">DIMA</div>
+                <div class="a-dima-sub">Gestão UNESCO · SEMA/AC</div>
+              </div>
+            </div>
+          </div>
+          <div class="a-titulo">Entrar na<br>plataforma</div>
+          <div class="a-subtit">Credenciais institucionais</div>
+          <div class="a-field">
+            <span class="a-field-lbl">E-mail</span>
+            <div class="a-field-inp" style="color:rgba(244,239,230,.25);">seu@email.gov.br</div>
+          </div>
+          <div class="a-field">
+            <span class="a-field-lbl">Senha</span>
+            <div class="a-field-inp" style="color:rgba(244,239,230,.25);">••••••••</div>
+          </div>
+          <div class="a-btn-login">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Entrar
+          </div>
+          <div class="a-btn-pub">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Visualizar painel público
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="opcao-desc">Slideshow fica atrás, informação do projeto no centro. Form sobe como bottom sheet nativa.</div>
+  </div>
+
+  <!-- ══ OPÇÃO B ══ -->
+  <div class="opcao-col">
+    <div class="opcao-label">Opção B</div>
+    <div class="opcao-nome">Órbita<br><span style="font-size:13px;font-style:italic;color:rgba(244,239,230,.5);">Dark total · Form vertical</span></div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen b-screen">
+
+        <!-- Globe watermark -->
+        <svg class="b-globe" viewBox="0 0 360 360" fill="none">
+          <circle cx="180" cy="180" r="170" stroke="rgba(82,183,136,1)" stroke-width="1"/>
+          <circle cx="180" cy="180" r="130" stroke="rgba(82,183,136,1)" stroke-width="1"/>
+          <circle cx="180" cy="180" r="90" stroke="rgba(201,168,76,1)" stroke-width="1"/>
+          <circle cx="180" cy="180" r="50" stroke="rgba(82,183,136,1)" stroke-width="1"/>
+          <circle cx="180" cy="180" r="12" stroke="rgba(201,168,76,1)" stroke-width="1"/>
+          <line x1="180" y1="10" x2="180" y2="350" stroke="rgba(82,183,136,.5)" stroke-width="1"/>
+          <line x1="10" y1="180" x2="350" y2="180" stroke="rgba(82,183,136,.5)" stroke-width="1"/>
+          <line x1="60" y1="60" x2="300" y2="300" stroke="rgba(82,183,136,.25)" stroke-width=".6"/>
+          <line x1="300" y1="60" x2="60" y2="300" stroke="rgba(82,183,136,.25)" stroke-width=".6"/>
+          <ellipse cx="180" cy="180" rx="80" ry="170" stroke="rgba(82,183,136,.3)" stroke-width=".6"/>
+          <ellipse cx="180" cy="180" rx="140" ry="170" stroke="rgba(82,183,136,.18)" stroke-width=".6"/>
+          <ellipse cx="180" cy="125" rx="130" ry="30" stroke="rgba(82,183,136,.18)" stroke-width=".6"/>
+          <ellipse cx="180" cy="235" rx="130" ry="30" stroke="rgba(82,183,136,.18)" stroke-width=".6"/>
+          <path d="M180 150 C165 162 160 175 180 210 C200 175 195 162 180 150Z" stroke="rgba(201,168,76,1)" stroke-width="1" fill="none"/>
+        </svg>
+
+        <div class="b-inner">
+          <!-- Topo -->
+          <div class="b-top">
+            <div class="b-dima">
+              <div class="b-dima-ico">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
+                  <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <div class="b-dima-name">DIMA</div>
+                <div class="b-dima-sub">Gestão UNESCO · SEMA/AC</div>
+              </div>
+            </div>
+            <div class="b-lang">
+              <div class="b-lang-btn ativo">🇧🇷 PT</div>
+              <div class="b-lang-btn">EN</div>
+              <div class="b-lang-btn">ES</div>
+            </div>
+          </div>
+
+          <!-- Conteúdo central -->
+          <div class="b-content">
+            <div class="b-proj-badge">
+              <div class="b-proj-dot"></div>
+              218BRA2001 · UNESCO/MPTF
+            </div>
+            <div class="b-titulo">Entrar na<br>plataforma</div>
+            <div class="b-subtit">Credenciais institucionais SEMA/AC</div>
+
+            <div class="b-field">
+              <span class="b-field-lbl">E-mail</span>
+              <div class="b-field-line" style="color:rgba(244,239,230,.22);font-size:13px;">seu@email.gov.br</div>
+            </div>
+            <div class="b-field">
+              <span class="b-field-lbl">Senha</span>
+              <div class="b-field-line" style="color:rgba(244,239,230,.22);font-size:13px;">••••••••</div>
+            </div>
+
+            <div class="b-btn-login">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1A0F" stroke-width="2.5" style="margin-right:7px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              Entrar
+            </div>
+            <div class="b-ou">ou</div>
+            <div class="b-btn-pub">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Visualizar painel público
+            </div>
+          </div>
+
+          <!-- Logos parceiros -->
+          <div class="b-bottom">
+            <span class="b-parceiros-lbl">Realização e parceiros</span>
+            <div class="b-parceiros">
+              <div class="b-logo-p b-logo-p-1"></div>
+              <div class="b-logo-p b-logo-p-2"></div>
+              <div class="b-logo-p b-logo-p-3"></div>
+              <div class="b-logo-p b-logo-p-4"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="opcao-desc">Sem foto, tudo dark. Globe watermark decorativo. Logos de parceiros embaixo em strip discreta.</div>
+  </div>
+
+  <!-- ══ OPÇÃO C ══ -->
+  <div class="opcao-col">
+    <div class="opcao-label">Opção C</div>
+    <div class="opcao-nome">Bipartido<br><span style="font-size:13px;font-style:italic;color:rgba(244,239,230,.5);">Topo visual · Form claro</span></div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen c-screen">
+
+        <!-- Topo foto/visual -->
+        <div class="c-topo">
+          <div class="c-topo-content">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div class="c-logos-topo">
+                <div class="c-brasao">AC</div>
+                <div class="c-sep"></div>
+                <div class="c-sema-txt">SEMA / AC</div>
+              </div>
+              <div class="c-logo-central">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,.75)" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="2" y1="12" x2="22" y2="12"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+              </div>
+            </div>
+
+            <div style="flex:1;"></div>
+
+            <div class="c-proj-info">
+              <div class="c-proj-badge">
+                <div class="c-proj-dot"></div>
+                Projeto 218BRA2001 · UNESCO/MPTF
+              </div>
+              <div class="c-proj-nome">Programa de Resiliência<br>Socioambiental nas APAs/AC</div>
+              <div class="c-proj-sub">Rio Branco, Acre · Fundo Brasil-ONU</div>
+              <div class="c-dots">
+                <div class="c-dot ativo"></div>
+                <div class="c-dot"></div><div class="c-dot"></div>
+                <div class="c-dot"></div><div class="c-dot"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form card -->
+        <div class="c-form-card">
+          <div class="c-form-top">
+            <div class="c-dima">
+              <div class="c-dima-ico">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2">
+                  <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <div class="c-dima-name">DIMA</div>
+                <div class="c-dima-sub">Gestão UNESCO · SEMA/AC</div>
+              </div>
+            </div>
+            <div class="c-lang">
+              <div class="c-lang-btn ativo">PT</div>
+              <div class="c-lang-btn">EN</div>
+              <div class="c-lang-btn">ES</div>
+            </div>
+          </div>
+
+          <div class="c-titulo">Entrar</div>
+          <div class="c-subtit">Credenciais institucionais SEMA/AC</div>
+
+          <div class="c-field">
+            <span class="c-field-lbl">E-mail</span>
+            <div class="c-field-inp">seu@email.gov.br</div>
+          </div>
+          <div class="c-field">
+            <span class="c-field-lbl">Senha</span>
+            <div class="c-field-inp">••••••••</div>
+          </div>
+
+          <div class="c-btn-login">Entrar</div>
+          <div class="c-ou">ou</div>
+          <div class="c-btn-pub">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            Visualizar painel público
+          </div>
+
+          <div class="c-footer">
+            Acesso restrito · Projeto 218BRA2001<br>Fundo Brasil-ONU / UNESCO-MPTF
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="opcao-desc">Zona visual escura no topo (foto + projeto), card branco embaixo com form limpo e legível.</div>
+  </div>
+
+</div>
+
+<!-- Notas de comparação -->
+<div class="divisor"></div>
+
+<div class="notas-grid">
+  <div class="nota-col">
+    <div class="nota-titulo">
+      Opção A — Imersivo
+      <span class="nota-tag">APP-LIKE</span>
+    </div>
+    <div class="nota-pros">Máximo impacto visual, usa as fotos do projeto, sensação de app nativo</div>
+    <div class="nota-pros">Bottom sheet é padrão mobile universal (iOS/Android)</div>
+    <div class="nota-pros">Projeto em destaque antes de logar — contexto visual forte</div>
+    <div class="nota-cons">Depende da qualidade das fotos para ter boa aparência</div>
+    <div class="nota-cons">Bottom sheet pequeno em telas de 5" pode apertar o form</div>
+  </div>
+  <div class="nota-col">
+    <div class="nota-titulo">
+      Opção B — Órbita
+      <span class="nota-tag">INSTITUCIONAL</span>
+    </div>
+    <div class="nota-pros">Independe de fotos — carrega rápido em 3G/4G rural</div>
+    <div class="nota-pros">Mais espaço para o form — sem compressão vertical</div>
+    <div class="nota-pros">Mantém identidade visual existente (globe, paleta, tipografia)</div>
+    <div class="nota-cons">Menos impacto visual que as opções com foto</div>
+    <div class="nota-cons">Parceiros em strip discreta — menos visibilidade</div>
+  </div>
+  <div class="nota-col">
+    <div class="nota-titulo">
+      Opção C — Bipartido
+      <span class="nota-tag">EQUILIBRADO</span>
+    </div>
+    <div class="nota-pros">Melhor legibilidade do form — fundo branco, contraste máximo</div>
+    <div class="nota-pros">Separação clara entre "quem somos" e "acesso"</div>
+    <div class="nota-pros">Acessibilidade: form claro funciona bem para usuários com baixa visão</div>
+    <div class="nota-cons">Menos dramático que A, mais "site" que "app"</div>
+    <div class="nota-cons">Mudança maior em relação ao visual dark atual do sistema</div>
+  </div>
+</div>
+
+</body>
+</html>
