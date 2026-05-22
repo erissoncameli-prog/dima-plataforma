@@ -4,150 +4,537 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Plataforma de Gestão UNESCO</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ── Reset ── */
 *{box-sizing:border-box;margin:0;padding:0}
+
 :root{
-  --verde:#1F4E2C;--verde-m:#2D6A4F;--verde-c:#52B788;
-  --ouro-c:#F4D35E;
+  /* Palette */
+  --floresta:    #0A1A0F;
+  --floresta-m:  #0F2218;
+  --verde:       #1F4E2C;
+  --verde-m:     #2D6A4F;
+  --verde-c:     #52B788;
+  --ouro:        #C9A84C;
+  --ouro-c:      #F0CB6A;
+  --ouro-dim:    rgba(201,168,76,.14);
+  /* Text (dark panel) */
+  --t1:  #F4EFE6;
+  --t2:  rgba(244,239,230,.62);
+  --t3:  rgba(244,239,230,.32);
+  --bdr: rgba(244,239,230,.10);
+  /* Light (legacy compat) */
   --cinza-9:#111827;--cinza-7:#374151;--cinza-5:#6B7280;
   --cinza-3:#D1D5DB;--borda:#E5E7EB;--branco:#fff;
-  --font-sans:'DM Sans',system-ui,sans-serif;
+  /* Fonts */
+  --ff-display: 'Cormorant Garamond', Georgia, serif;
+  --ff-ui:      'Outfit', system-ui, sans-serif;
 }
-body{font-family:var(--font-sans);min-height:100vh;display:flex;overflow:hidden;}
 
-/* ── PAINEL ESQUERDO ── */
-.painel-esq{flex:1;position:relative;overflow:hidden;}
-.slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 1.6s ease-in-out;}
-.slide.ativo{opacity:1;}
-.slide-overlay{
-  position:absolute;inset:0;
-  background:linear-gradient(to bottom,
-    rgba(15,45,22,.88) 0%,
-    rgba(15,45,22,.55) 30%,
-    rgba(15,45,22,.55) 70%,
-    rgba(8,28,14,.90) 100%);
+html, body { height:100%; }
+body {
+  font-family: var(--ff-ui);
+  min-height:100vh;
+  display:flex;
+  overflow:hidden;
+  background: var(--floresta);
 }
-.painel-conteudo{
-  position:relative;z-index:2;
+
+/* ════════════════════════════════
+   PAINEL ESQUERDO — slideshow
+════════════════════════════════ */
+.painel-esq {
+  flex:1;
+  position:relative;
+  overflow:hidden;
+}
+
+/* Ken Burns */
+.slide {
+  position:absolute;inset:0;
+  background-size:cover;
+  background-position:center;
+  opacity:0;
+  transform:scale(1.06);
+  transition: opacity 2.2s cubic-bezier(.4,0,.2,1),
+              transform 14s ease-out;
+}
+.slide.ativo { opacity:1; transform:scale(1); }
+
+/* Multi-layer overlay */
+.slide-overlay {
+  position:absolute;inset:0;
+  background:
+    linear-gradient(to bottom,
+      rgba(6,16,9,.85)  0%,
+      rgba(6,16,9,.28)  30%,
+      rgba(6,16,9,.20)  60%,
+      rgba(4,12,7,.92) 100%),
+    linear-gradient(120deg, rgba(15,42,22,.55) 0%, transparent 55%);
+  z-index:1;
+}
+
+/* Top vignette */
+.topo-gradiente {
+  position:absolute;top:0;left:0;right:0;
+  height:220px;
+  background:linear-gradient(to bottom, rgba(0,0,0,.6) 0%, transparent 100%);
+  z-index:2;pointer-events:none;
+}
+
+/* Grain overlay */
+.painel-esq::after {
+  content:'';
+  position:absolute;inset:0;z-index:2;
+  pointer-events:none;
+  opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:200px;
+}
+
+.painel-conteudo {
+  position:relative;z-index:3;
   display:flex;flex-direction:column;
   justify-content:space-between;
-  height:100%;padding:28px 36px;
+  height:100%;
+  padding:26px 34px;
 }
 
-/* Faixa gradiente topo */
-.topo-gradiente{
-  position:absolute;top:0;left:0;right:0;
-  height:248px;
-  background:linear-gradient(to bottom,rgba(0,0,0,.65) 0%,transparent 100%);
-  z-index:1;pointer-events:none;
-}
-
-/* TOPO: logos */
-.logos-topo{
-  display:flex;align-items:center;gap:12px;
+/* ── Logos topo ── */
+.logos-topo {
+  display:flex;align-items:center;gap:10px;
+  background:rgba(0,0,0,.28);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:100px;
+  padding:6px 14px 6px 10px;
   width:fit-content;
 }
-.logo-gov{height:clamp(26px,3.8vw,44px);width:auto;object-fit:contain;}
-.logo-sep-topo{width:1px;height:clamp(18px,2.5vw,32px);background:rgba(0,0,0,.15);flex-shrink:0;}
-.logo-sema{height:clamp(13px,1.9vw,24px);width:auto;object-fit:contain;}
-
-/* CENTRO: logo Resiliência */
-.logo-central-wrap{
-  position:absolute;
-  top:12px;right:12px;
-  z-index:5;
+.logo-gov {
+  height:clamp(22px,3vw,36px);
+  width:auto;object-fit:contain;
+  filter:drop-shadow(0 1px 4px rgba(0,0,0,.5));
 }
-.logo-central-box{
+.logo-sep-topo {
+  width:1px;
+  height:clamp(16px,2.2vw,26px);
+  background:rgba(255,255,255,.18);
+  flex-shrink:0;
+}
+.logo-sema {
+  height:clamp(11px,1.6vw,20px);
+  width:auto;object-fit:contain;
+  filter:brightness(0) invert(1);
+  opacity:.75;
+}
+
+/* Logo Resiliência */
+.logo-central-wrap {
+  position:absolute;top:14px;right:14px;z-index:5;
+}
+.logo-central-box { display:flex;align-items:center; }
+.logo-central { height:88px;width:auto;display:block; }
+
+/* ── Projeto card ── */
+.projeto-info {
+  background:rgba(0,0,0,.42);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.10);
+  border-left:2px solid var(--ouro);
+  border-radius:10px;
+  padding:15px 20px;
+}
+.proj-badge {
+  font-family:var(--ff-ui);
+  font-size:9px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ouro-c);
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:7px;
+}
+.proj-badge-dot {
+  width:5px;height:5px;border-radius:50%;
+  background:var(--ouro-c);flex-shrink:0;
+  animation:pulso 2.5s ease-in-out infinite;
+}
+@keyframes pulso{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
+
+.proj-nome {
+  font-family:var(--ff-display);
+  font-size:clamp(13px,1.15vw,15.5px);
+  font-weight:500;font-style:italic;
+  color:#fff;line-height:1.45;
+  margin-bottom:5px;
+}
+.proj-sub {
+  font-family:var(--ff-ui);
+  font-size:10px;font-weight:300;
+  letter-spacing:.02em;
+  color:rgba(255,255,255,.48);
+  margin-bottom:12px;
+}
+
+/* Slide dots */
+.slide-dots { display:flex;gap:5px;align-items:center;flex-wrap:wrap; }
+.slide-dot {
+  width:5px;height:5px;border-radius:50%;
+  background:rgba(255,255,255,.22);
+  transition:all .4s cubic-bezier(.4,0,.2,1);
+  cursor:pointer;border:none;padding:0;
+}
+.slide-dot.ativo { background:var(--ouro);width:20px;border-radius:2px; }
+
+/* Parceiros */
+.parceiros-form {
+  margin-top:10px;padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.parceiros-label {
+  font-family:var(--ff-ui);
+  font-size:8px;font-weight:500;
+  letter-spacing:.10em;text-transform:uppercase;
+  color:rgba(255,255,255,.35);
+  margin-bottom:7px;display:block;
+}
+.parceiros-logos {
+  display:flex;align-items:center;
+  gap:6px;flex-wrap:wrap;
+}
+.logo-form {
+  height:clamp(24px,2.6vw,38px);
+  width:auto;max-width:100px;
+  object-fit:contain;object-position:center;
+  opacity:.7;
+  filter:brightness(0) invert(1);
+  transition:opacity .25s;
+  display:block;flex-shrink:0;
+}
+.logo-form.logo-grande { height:clamp(24px,2.6vw,38px);max-width:100px; }
+.logo-form:hover { opacity:1; }
+
+/* Counter */
+.foto-legenda {
+  position:absolute;bottom:11px;right:13px;z-index:4;
+  font-size:9px;color:rgba(255,255,255,.28);
+  letter-spacing:.05em;font-family:var(--ff-ui);
+}
+.foto-contador {
+  position:absolute;bottom:11px;left:13px;z-index:4;
+  font-size:9px;color:rgba(255,255,255,.28);
+  font-family:monospace;letter-spacing:.04em;
+}
+
+/* ════════════════════════════════
+   PAINEL DIREITO — login
+════════════════════════════════ */
+.painel-dir {
+  width:430px;flex-shrink:0;
+  background:linear-gradient(160deg, #122019 0%, #0A1A0F 55%, #081410 100%);
   display:flex;align-items:center;justify-content:center;
+  padding:40px 44px;
+  position:relative;
+  overflow:hidden;
+  border-left:1px solid rgba(201,168,76,.18);
 }
-.logo-central{height:96px;width:auto;display:block;}
 
-/* RODAPÉ: card projeto */
-.projeto-info{
-  background:rgba(0,0,0,.45);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:12px;padding:16px 22px;
+/* Radial glows */
+.painel-dir::before {
+  content:'';position:absolute;
+  bottom:-80px;right:-80px;
+  width:380px;height:380px;
+  background:radial-gradient(ellipse at 65% 65%,
+    rgba(45,106,79,.20) 0%, transparent 68%);
+  pointer-events:none;z-index:0;
 }
-.proj-badge{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ouro-c);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
-.proj-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--ouro-c);flex-shrink:0;animation:pulso 2s ease-in-out infinite;}
-@keyframes pulso{0%,100%{opacity:1}50%{opacity:.4}}
-.proj-nome{font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;line-height:1.4;}
-.proj-sub{font-size:11px;color:rgba(255,255,255,.55);margin-bottom:12px;}
+.painel-dir::after {
+  content:'';position:absolute;
+  top:-80px;left:-60px;
+  width:300px;height:300px;
+  background:radial-gradient(ellipse at 35% 35%,
+    rgba(201,168,76,.07) 0%, transparent 68%);
+  pointer-events:none;z-index:0;
+}
 
-/* Dots — até 10 */
-.slide-dots{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
-.slide-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .35s;cursor:pointer;border:none;padding:0;}
-.slide-dot.ativo{background:var(--ouro-c);width:18px;border-radius:3px;}
+/* Globe / atlas watermark */
+.globe-deco {
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:360px;height:360px;
+  opacity:.042;
+  pointer-events:none;
+  z-index:0;
+  flex-shrink:0;
+}
 
-.foto-legenda{position:absolute;bottom:12px;right:14px;z-index:3;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.04em;}
-.foto-contador{position:absolute;bottom:12px;left:14px;z-index:3;font-size:10px;color:rgba(255,255,255,.35);font-family:monospace;}
+/* Noise */
+.painel-dir-noise {
+  position:absolute;inset:0;z-index:0;
+  pointer-events:none;opacity:.022;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px;
+}
 
-/* ── PAINEL DIREITO ── */
-.painel-dir{width:440px;flex-shrink:0;background:var(--branco);display:flex;align-items:center;justify-content:center;padding:36px 32px;}
-.login-box{width:100%;max-width:360px;}
-.login-titulo{font-size:21px;font-weight:600;color:var(--cinza-9);margin-bottom:5px;}
-.login-sub{font-size:13px;color:var(--cinza-5);margin-bottom:24px;}
-.lang-row{display:flex;gap:5px;margin-bottom:20px;}
-.lang-opt{flex:1;padding:6px;border-radius:6px;border:1px solid var(--borda);background:transparent;cursor:pointer;font-family:var(--font-sans);font-size:11px;font-weight:500;color:var(--cinza-5);transition:all .15s;}
-.lang-opt:hover{border-color:var(--verde-c);color:var(--verde-m);}
-.lang-opt.ativo{background:var(--verde-m);border-color:var(--verde-m);color:#fff;}
-.form-group{margin-bottom:14px;}
-.form-label{display:block;font-size:12px;font-weight:600;color:var(--cinza-7);margin-bottom:5px;}
-.form-input{width:100%;height:42px;border:1px solid var(--borda);border-radius:8px;padding:0 14px;font-family:var(--font-sans);font-size:14px;color:var(--cinza-9);transition:border-color .15s,box-shadow .15s;background:var(--branco);}
-.form-input:focus{outline:none;border-color:var(--verde-c);box-shadow:0 0 0 3px rgba(82,183,136,.18);}
-.form-input::placeholder{color:var(--cinza-3);}
-.btn-login{width:100%;height:44px;margin-top:8px;background:var(--verde-m);color:#fff;border:none;border-radius:8px;font-family:var(--font-sans);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
-.btn-login:hover{background:var(--verde);}
-.btn-login:active{transform:scale(.99);}
-.btn-login:disabled{opacity:.6;cursor:not-allowed;}
-.btn-publico{width:100%;height:44px;margin-top:10px;background:transparent;color:var(--verde-m);border:1.5px solid var(--verde-m);border-radius:8px;font-family:var(--font-sans);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;}
-.btn-publico:hover{background:var(--verde-m);color:#fff;}
-.btn-publico:active{transform:scale(.99);}
-.btn-ou{display:flex;align-items:center;gap:10px;margin-top:16px;color:var(--cinza-400);font-size:12px;}
-.btn-ou::before,.btn-ou::after{content:'';flex:1;height:1px;background:var(--borda);}
-.erro-msg{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:6px;padding:10px 14px;font-size:12px;margin-bottom:14px;display:none;line-height:1.4;}
-.parceiros-form{margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.15);}
-.parceiros-label{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;display:block;}
-.parceiros-logos{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;}
-.logo-form{height:60px;width:150px;object-fit:contain;object-position:center;opacity:.95;transition:opacity .2s;display:block;flex-shrink:0;}
-.logo-form.logo-grande{height:100px;width:100px;}
-.logo-form:hover{opacity:1;}
+/* ── Login box ── */
+.login-box {
+  width:100%;max-width:340px;
+  position:relative;z-index:1;
+}
+
+/* Header row */
+.dima-header {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:38px;
+}
+.dima-wordmark { display:flex;align-items:center;gap:10px; }
+.dima-icon {
+  width:34px;height:34px;
+  background:linear-gradient(135deg, var(--verde-m) 0%, var(--verde-c) 100%);
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  box-shadow:0 3px 14px rgba(82,183,136,.28);
+}
+.dima-name {
+  font-family:var(--ff-ui);
+  font-size:11px;font-weight:600;
+  color:var(--t1);
+  letter-spacing:.18em;text-transform:uppercase;
+}
+.dima-name-sub {
+  font-family:var(--ff-ui);
+  font-size:9px;color:var(--t3);
+  letter-spacing:.04em;margin-top:2px;
+}
+
+/* Language selector */
+.lang-row {
+  display:flex;gap:4px;
+}
+.lang-opt {
+  padding:5px 9px;
+  border-radius:6px;
+  border:1px solid var(--bdr);
+  background:transparent;
+  cursor:pointer;
+  font-family:var(--ff-ui);
+  font-size:10px;font-weight:500;
+  color:var(--t3);
+  transition:all .18s;
+}
+.lang-opt:hover { border-color:rgba(201,168,76,.4);color:var(--t2); }
+.lang-opt.ativo {
+  background:var(--ouro-dim);
+  border-color:rgba(201,168,76,.5);
+  color:var(--ouro-c);
+}
+
+/* Title */
+.login-head { margin-bottom:26px; }
+.login-titulo {
+  font-family:var(--ff-display);
+  font-size:clamp(28px,2.6vw,36px);
+  font-weight:500;
+  line-height:1.12;
+  color:var(--t1);
+  letter-spacing:-.01em;
+  margin-bottom:7px;
+}
+.login-sub {
+  font-family:var(--ff-ui);
+  font-size:12px;font-weight:300;
+  color:var(--t2);
+  letter-spacing:.01em;
+}
+
+/* Error */
+.erro-msg {
+  background:rgba(239,68,68,.09);
+  border:1px solid rgba(239,68,68,.28);
+  color:#FCA5A5;
+  border-radius:7px;
+  padding:10px 13px;
+  font-size:11.5px;
+  margin-bottom:18px;
+  display:none;
+  line-height:1.5;
+  font-family:var(--ff-ui);
+}
+
+/* Form */
+.form-group { margin-bottom:20px; }
+.form-label {
+  display:block;
+  font-family:var(--ff-ui);
+  font-size:9.5px;font-weight:500;
+  letter-spacing:.10em;text-transform:uppercase;
+  color:var(--t3);
+  margin-bottom:8px;
+}
+.form-input {
+  width:100%;height:44px;
+  background:transparent;
+  border:none;
+  border-bottom:1.5px solid rgba(244,239,230,.14);
+  padding:0 2px;
+  font-family:var(--ff-ui);
+  font-size:14px;font-weight:400;
+  color:var(--t1);
+  outline:none;
+  border-radius:0;
+  transition:border-color .22s;
+}
+.form-input:focus { border-bottom-color:var(--ouro); }
+.form-input::placeholder { color:var(--t3);font-size:13px; }
+.form-input:-webkit-autofill {
+  -webkit-box-shadow:0 0 0 40px #0A1A0F inset;
+  -webkit-text-fill-color:var(--t1);
+  caret-color:var(--t1);
+}
+
+/* Buttons */
+.btn-login {
+  width:100%;height:46px;
+  margin-top:10px;
+  background:linear-gradient(135deg, var(--ouro-c) 0%, #B8943E 100%);
+  color:#0A1A0F;
+  border:none;border-radius:9px;
+  font-family:var(--ff-ui);
+  font-size:13.5px;font-weight:600;
+  letter-spacing:.04em;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 22px rgba(201,168,76,.28);
+  transition:all .22s;
+}
+.btn-login:hover {
+  box-shadow:0 6px 30px rgba(201,168,76,.42);
+  transform:translateY(-1px);
+  background:linear-gradient(135deg, #F4D870 0%, var(--ouro) 100%);
+}
+.btn-login:active { transform:translateY(0);box-shadow:none; }
+.btn-login:disabled { opacity:.48;cursor:not-allowed;transform:none; }
+
+.btn-ou {
+  display:flex;align-items:center;gap:10px;
+  margin:18px 0;
+  font-family:var(--ff-ui);
+  font-size:10.5px;color:var(--t3);
+}
+.btn-ou::before,.btn-ou::after {
+  content:'';flex:1;height:1px;background:var(--bdr);
+}
+
+.btn-publico {
+  width:100%;height:44px;
+  background:transparent;
+  color:var(--t2);
+  border:1px solid var(--bdr);
+  border-radius:9px;
+  font-family:var(--ff-ui);
+  font-size:13px;font-weight:400;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  text-decoration:none;
+  transition:all .18s;
+}
+.btn-publico:hover {
+  border-color:rgba(244,239,230,.28);
+  color:var(--t1);
+  background:rgba(244,239,230,.04);
+}
+.btn-publico:active { transform:scale(.99); }
+
+/* Footer note */
+.login-footer {
+  margin-top:22px;
+  text-align:center;
+  font-family:var(--ff-ui);
+  font-size:9px;color:var(--t3);
+  letter-spacing:.04em;
+  line-height:1.6;
+}
+
+/* Spinner */
 @keyframes spin{to{transform:rotate(360deg)}}
-.spinner-sm{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none;}
+.spinner-sm {
+  width:15px;height:15px;
+  border:2px solid rgba(10,26,15,.3);
+  border-top-color:#0A1A0F;
+  border-radius:50%;
+  animation:spin .6s linear infinite;
+  display:none;
+}
+
+/* ── Entrance animations ── */
+@keyframes fadeUp {
+  from { opacity:0;transform:translateY(13px); }
+  to   { opacity:1;transform:translateY(0); }
+}
+.dima-header  { animation:fadeUp .5s .06s ease both; }
+.login-head   { animation:fadeUp .5s .16s ease both; }
+.form-group:nth-of-type(1) { animation:fadeUp .5s .26s ease both; }
+.form-group:nth-of-type(2) { animation:fadeUp .5s .33s ease both; }
+.btn-login    { animation:fadeUp .5s .40s ease both; }
+.btn-ou       { animation:fadeUp .5s .46s ease both; }
+.btn-publico  { animation:fadeUp .5s .50s ease both; }
+.login-footer { animation:fadeUp .5s .56s ease both; }
+
+/* ════════════════════════════════
+   MOBILE
+════════════════════════════════ */
 @media(max-width:900px){
-  body{flex-direction:column;}
-  .painel-esq{min-height:380px;flex:none;}
-  .painel-conteudo{padding:18px 16px;}
-  .painel-dir{width:100%;padding:24px 20px 32px;}
-  .logo-central-wrap{display:none;}
-  .logo-form{height:34px;width:auto;max-width:100px;}
-  .logo-form.logo-grande{height:34px;width:auto;max-width:100px;}
-  .parceiros-logos{gap:8px;}
+  body { flex-direction:column;overflow:auto; }
+  html,body { height:auto; }
+
+  .painel-esq {
+    height:58vw;
+    min-height:240px;max-height:400px;
+    flex:none;
+  }
+  .painel-conteudo { padding:14px 16px; }
+  .logo-central-wrap { display:none; }
+
+  .painel-dir {
+    width:100%;
+    min-height:0;
+    padding:28px 22px 36px;
+    border-left:none;
+    border-top:1px solid rgba(201,168,76,.18);
+    align-items:flex-start;
+  }
+  .login-box { max-width:none; }
+  .dima-header { margin-bottom:24px; }
+  .login-titulo { font-size:30px; }
+
+  .logo-form { height:26px;max-width:76px; }
+  .logo-form.logo-grande { height:26px;max-width:76px; }
+
+  .globe-deco { width:260px;height:260px; }
 }
 </style>
 </head>
 <body>
 
+<!-- ═══════════════════════════ PAINEL ESQUERDO ═══════════════════════════ -->
 <div class="painel-esq">
-  <!-- 10 slides com fotos do projeto -->
   <div class="slide ativo" id="slide-0" style="background-image:url('assets/foto1.jpg')"></div>
-  <div class="slide" id="slide-1" style="background-image:url('assets/foto2.jpg')"></div>
-  <div class="slide" id="slide-2" style="background-image:url('assets/foto3.jpg')"></div>
-  <div class="slide" id="slide-3" style="background-image:url('assets/foto4.jpeg')"></div>
-  <div class="slide" id="slide-4" style="background-image:url('assets/foto5.jpeg')"></div>
-  <div class="slide" id="slide-5" style="background-image:url('assets/foto6.jpeg')"></div>
-  <div class="slide" id="slide-6" style="background-image:url('assets/foto7.jpeg')"></div>
-  <div class="slide" id="slide-7" style="background-image:url('assets/foto8.jpeg')"></div>
-  <div class="slide" id="slide-8" style="background-image:url('assets/foto9.jpeg')"></div>
-  <div class="slide" id="slide-9" style="background-image:url('assets/foto10.jpeg')"></div>
+  <div class="slide"       id="slide-1" style="background-image:url('assets/foto2.jpg')"></div>
+  <div class="slide"       id="slide-2" style="background-image:url('assets/foto3.jpg')"></div>
+  <div class="slide"       id="slide-3" style="background-image:url('assets/foto4.jpeg')"></div>
+  <div class="slide"       id="slide-4" style="background-image:url('assets/foto5.jpeg')"></div>
+  <div class="slide"       id="slide-5" style="background-image:url('assets/foto6.jpeg')"></div>
+  <div class="slide"       id="slide-6" style="background-image:url('assets/foto7.jpeg')"></div>
+  <div class="slide"       id="slide-7" style="background-image:url('assets/foto8.jpeg')"></div>
+  <div class="slide"       id="slide-8" style="background-image:url('assets/foto9.jpeg')"></div>
+  <div class="slide"       id="slide-9" style="background-image:url('assets/foto10.jpeg')"></div>
 
   <div class="slide-overlay"></div>
   <div class="topo-gradiente"></div>
 
   <div class="painel-conteudo">
-    <!-- Logos topo em caixa branca -->
+    <!-- Logos topo -->
     <div>
       <div class="logos-topo">
         <img class="logo-gov" src="assets/brasao-acre.png" alt="Governo do Acre">
@@ -156,14 +543,14 @@ body{font-family:var(--font-sans);min-height:100vh;display:flex;overflow:hidden;
       </div>
     </div>
 
-    <!-- Logo Resiliência — canto superior direito do painel esquerdo -->
+    <!-- Logo Resiliência -->
     <div class="logo-central-wrap">
       <div class="logo-central-box">
-        <img class="logo-central" src="assets/logo-resiliencia.png" alt="Resiliência Socioambiental — APAs">
+        <img class="logo-central" src="assets/logo-resiliencia.png" alt="Resiliência Socioambiental">
       </div>
     </div>
 
-    <!-- Card projeto + dots -->
+    <!-- Card projeto -->
     <div>
       <div class="projeto-info">
         <div class="proj-badge">
@@ -190,34 +577,97 @@ body{font-family:var(--font-sans);min-height:100vh;display:flex;overflow:hidden;
   <div class="foto-contador" id="foto-contador">1 / 10</div>
 </div>
 
-<!-- PAINEL DIREITO -->
+<!-- ═══════════════════════════ PAINEL DIREITO ═══════════════════════════ -->
 <div class="painel-dir">
+  <div class="painel-dir-noise"></div>
+
+  <!-- Globe / atlas watermark -->
+  <svg class="globe-deco" viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Concentric circles -->
+    <circle cx="180" cy="180" r="170" stroke="rgba(82,183,136,1)" stroke-width="1"/>
+    <circle cx="180" cy="180" r="130" stroke="rgba(82,183,136,1)" stroke-width="1"/>
+    <circle cx="180" cy="180" r="90"  stroke="rgba(201,168,76,1)"  stroke-width="1"/>
+    <circle cx="180" cy="180" r="50"  stroke="rgba(82,183,136,1)"  stroke-width="1"/>
+    <circle cx="180" cy="180" r="12"  stroke="rgba(201,168,76,1)"  stroke-width="1"/>
+    <!-- Crosshairs -->
+    <line x1="180" y1="10"  x2="180" y2="350" stroke="rgba(82,183,136,.5)" stroke-width="1"/>
+    <line x1="10"  y1="180" x2="350" y2="180" stroke="rgba(82,183,136,.5)" stroke-width="1"/>
+    <!-- Diagonals -->
+    <line x1="60"  y1="60"  x2="300" y2="300" stroke="rgba(82,183,136,.28)" stroke-width=".6"/>
+    <line x1="300" y1="60"  x2="60"  y2="300" stroke="rgba(82,183,136,.28)" stroke-width=".6"/>
+    <!-- Ellipses (meridians) -->
+    <ellipse cx="180" cy="180" rx="80" ry="170" stroke="rgba(82,183,136,.35)" stroke-width=".6"/>
+    <ellipse cx="180" cy="180" rx="140" ry="170" stroke="rgba(82,183,136,.22)" stroke-width=".6"/>
+    <!-- Latitude lines -->
+    <ellipse cx="180" cy="125" rx="130" ry="30" stroke="rgba(82,183,136,.22)" stroke-width=".6"/>
+    <ellipse cx="180" cy="235" rx="130" ry="30" stroke="rgba(82,183,136,.22)" stroke-width=".6"/>
+    <!-- Leaf / anchor mark center -->
+    <path d="M180 150 C165 162 160 175 180 210 C200 175 195 162 180 150Z"
+          stroke="rgba(201,168,76,1)" stroke-width="1" fill="none"/>
+  </svg>
+
   <div class="login-box">
-    <div class="lang-row">
-      <button class="lang-opt ativo" onclick="setLang('pt',this)">🇧🇷 PT</button>
-      <button class="lang-opt" onclick="setLang('en',this)">🇺🇸 EN</button>
-      <button class="lang-opt" onclick="setLang('es',this)">🇪🇸 ES</button>
+    <!-- Header: wordmark + language -->
+    <div class="dima-header">
+      <div class="dima-wordmark">
+        <div class="dima-icon">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+               stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+        </div>
+        <div>
+          <div class="dima-name">DIMA</div>
+          <div class="dima-name-sub">Gestão UNESCO · SEMA/AC</div>
+        </div>
+      </div>
+      <div class="lang-row">
+        <button class="lang-opt ativo" onclick="setLang('pt',this)">🇧🇷 PT</button>
+        <button class="lang-opt" onclick="setLang('en',this)">🇺🇸 EN</button>
+        <button class="lang-opt" onclick="setLang('es',this)">🇪🇸 ES</button>
+      </div>
     </div>
-    <div class="login-titulo" id="lbl-titulo">Entrar na plataforma</div>
-    <div class="login-sub" id="lbl-sub">Acesse com suas credenciais institucionais</div>
+
+    <!-- Title -->
+    <div class="login-head">
+      <div class="login-titulo" id="lbl-titulo">Entrar na plataforma</div>
+      <div class="login-sub"   id="lbl-sub">Acesse com suas credenciais institucionais</div>
+    </div>
+
     <div class="erro-msg" id="erro-msg"></div>
+
     <div class="form-group">
       <label class="form-label" id="lbl-email">E-mail</label>
-      <input class="form-input" type="email" id="inp-email" autocomplete="email" placeholder="seu@email.gov.br">
+      <input class="form-input" type="email" id="inp-email"
+             autocomplete="email" placeholder="seu@email.gov.br">
     </div>
     <div class="form-group">
       <label class="form-label" id="lbl-senha">Senha</label>
-      <input class="form-input" type="password" id="inp-senha" autocomplete="current-password">
+      <input class="form-input" type="password" id="inp-senha"
+             autocomplete="current-password">
     </div>
+
     <button class="btn-login" id="btn-login" onclick="fazerLogin()">
       <span id="btn-texto">Entrar</span>
       <div class="spinner-sm" id="spinner"></div>
     </button>
+
     <div class="btn-ou">ou</div>
     <a href="pages/publico.html" class="btn-publico">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
       Visualizar painel público
     </a>
+
+    <div class="login-footer">
+      Acesso restrito a usuários autorizados<br>
+      Projeto 218BRA2001 · Fundo Brasil-ONU / UNESCO-MPTF
+    </div>
   </div>
 </div>
 
@@ -227,12 +677,10 @@ const SUPABASE_URL='https://wfymnmlinonvdqfucjya.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
 const{createClient}=supabase;const db=createClient(SUPABASE_URL,SUPABASE_KEY);
 
-// Galeria (total atualizado pelo config)
 let TOTAL=10;
 let slideAtual=0;
 let timer;
 
-// Criar dots
 const dotsEl=document.getElementById('slide-dots');
 for(let i=0;i<TOTAL;i++){
   const btn=document.createElement('button');
@@ -255,27 +703,22 @@ function iniciarTimer(){
 }
 iniciarTimer();
 
-// Suporte a teclado (setas)
 document.addEventListener('keydown',e=>{
   if(e.key==='ArrowRight'){clearInterval(timer);irParaSlide(slideAtual+1);iniciarTimer();}
   if(e.key==='ArrowLeft'){clearInterval(timer);irParaSlide(slideAtual-1);iniciarTimer();}
 });
 
-// ── Config dinâmica ───────────────────────────────────────────
 async function carregarConfigLogin() {
   try {
     const { data } = await db.from('configuracoes_sistema')
       .select('*').eq('projeto_id','default').single();
     if (!data) return;
 
-    // Cor primária
     if (data.cor_primaria) {
       document.documentElement.style.setProperty('--verde-m', data.cor_primaria);
       document.documentElement.style.setProperty('--verde', data.cor_primaria);
     }
 
-    // ── Fotos do slideshow ──
-    // Sempre remove os slides hardcoded e aplica os da config
     const fotos = [...(data.fotos || [])].sort((a,b) => a.ordem - b.ordem);
     clearInterval(timer);
     document.querySelectorAll('.slide').forEach(s => s.remove());
@@ -302,13 +745,10 @@ async function carregarConfigLogin() {
       document.getElementById('foto-contador').textContent = '1 / ' + TOTAL;
       iniciarTimer();
     } else {
-      // Sem fotos: fundo sólido na cor primária
       esq.style.background = data.cor_primaria || '#1F4E2C';
       document.getElementById('foto-contador').textContent = '';
     }
 
-    // ── Logos do topo ──
-    // Sempre aplica — array vazio = caixa oculta
     const wrapTopo = document.querySelector('.logos-topo');
     if (wrapTopo) {
       const logos = [...(data.logos_topo || [])].sort((a,b) => a.ordem - b.ordem);
@@ -324,8 +764,6 @@ async function carregarConfigLogin() {
       }
     }
 
-    // ── Logo do projeto ──
-    // Sempre aplica — sem URL = elemento oculto
     const wrapProjeto = document.querySelector('.logo-central-wrap');
     if (wrapProjeto) {
       if (data.logo_projeto?.url) {
@@ -337,8 +775,6 @@ async function carregarConfigLogin() {
       }
     }
 
-    // ── Logos parceiros ──
-    // Sempre aplica — array vazio = seção oculta
     const wrapParc = document.querySelector('.parceiros-form');
     const listaParc = document.querySelector('.parceiros-logos');
     if (listaParc) {
@@ -353,8 +789,6 @@ async function carregarConfigLogin() {
       }
     }
 
-    // ── Textos do projeto ──
-    // Sempre aplica quando a chave existe (string vazia limpa o texto)
     const projNome = document.querySelector('.proj-nome');
     if (projNome && data.projeto_nome !== undefined)
       projNome.textContent = data.projeto_nome;
@@ -368,10 +802,9 @@ async function carregarConfigLogin() {
     const projSub = document.querySelector('.proj-sub');
     if (projSub && data.projeto_localizacao !== undefined)
       projSub.textContent = data.projeto_localizacao;
-  } catch(e) { /* mantém valores hardcoded se config falhar */ }
+  } catch(e) { /* mantém valores hardcoded */ }
 }
 
-// i18n
 let lang=localStorage.getItem('dima_idioma')||'pt';
 const textos={
   pt:{titulo:'Entrar na plataforma',sub:'Acesse com suas credenciais institucionais',email:'E-mail',senha:'Senha',btn:'Entrar',erro_cred:'E-mail ou senha incorretos.',erro_gen:'Erro ao conectar. Tente novamente.'},
@@ -381,7 +814,6 @@ const textos={
 function setLang(l,el){lang=l;localStorage.setItem('dima_idioma',l);document.querySelectorAll('.lang-opt').forEach(b=>b.classList.remove('ativo'));el.classList.add('ativo');aplicarTextos();}
 function aplicarTextos(){const t=textos[lang]||textos.pt;document.getElementById('lbl-titulo').textContent=t.titulo;document.getElementById('lbl-sub').textContent=t.sub;document.getElementById('lbl-email').textContent=t.email;document.getElementById('lbl-senha').textContent=t.senha;document.getElementById('btn-texto').textContent=t.btn;document.documentElement.lang=lang==='pt'?'pt-BR':lang;}
 
-// Login
 async function fazerLogin(){
   const email=document.getElementById('inp-email').value.trim();
   const senha=document.getElementById('inp-senha').value;
@@ -395,12 +827,11 @@ async function fazerLogin(){
   try{
     const{data,error}=await db.auth.signInWithPassword({email,password:senha});
     if(error){
-      // Mapear mensagens específicas do Supabase
       console.error('[Login] Supabase auth error:', error.message, error);
       const msg = error.message||'';
       let textoErro = t.erro_gen;
       if(msg.includes('Invalid login credentials')||msg.includes('invalid_credentials')){
-        textoErro = t.erro_cred; // E-mail ou senha incorretos
+        textoErro = t.erro_cred;
       } else if(msg.includes('Email not confirmed')||msg.includes('email_not_confirmed')){
         textoErro = 'E-mail não confirmado. Verifique sua caixa de entrada ou peça ao administrador para reenviar a confirmação.';
       } else if(msg.includes('User not found')){
@@ -414,21 +845,15 @@ async function fazerLogin(){
       erroEl.style.display = 'block';
       return;
     }
-
-    // Verificar se precisa trocar senha no primeiro acesso
     const{data:usuario}=await db.from('usuarios')
       .select('idioma_pref,deve_trocar_senha,ativo')
       .eq('id',data.user.id).single();
-
     if(!usuario?.ativo){
       await db.auth.signOut();
       erroEl.textContent='Conta desativada. Entre em contato com o administrador.';
       erroEl.style.display='block';return;
     }
-
     if(usuario?.idioma_pref)localStorage.setItem('dima_idioma',usuario.idioma_pref);
-
-    // Redirecionar para troca de senha se for primeiro acesso
     if(usuario?.deve_trocar_senha){
       window.location.href='pages/trocar-senha.html';
     } else {
