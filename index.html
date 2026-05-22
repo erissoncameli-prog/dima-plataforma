@@ -650,14 +650,33 @@ body {
   .form-label { color:#9CA3AF; }
   .form-input {
     color:#111827;
-    border-bottom-color:#E5E7EB;
+    background:rgba(0,0,0,.035);
+    border:1.5px solid #E5E7EB;
   }
-  .form-input:focus { border-bottom-color:#52B788; }
+  .form-input:hover {
+    background:rgba(0,0,0,.02);
+    border-color:#CBD5E1;
+  }
+  .form-input:focus {
+    background:#fff;
+    border-color:#52B788;
+    box-shadow:0 0 0 3.5px rgba(82,183,136,.14), 0 2px 8px rgba(0,0,0,.06);
+  }
   .form-input::placeholder { color:#D1D5DB;font-size:13px; }
   .form-input:-webkit-autofill {
     -webkit-box-shadow:0 0 0 40px #fff inset;
     -webkit-text-fill-color:#111827;
     caret-color:#111827;
+  }
+  /* Remove glassmorphism no mobile (card já é branco) */
+  .login-box {
+    background:transparent;
+    border:none;
+    border-radius:0;
+    box-shadow:none;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+    padding:18px 26px 44px;
   }
 
   /* Botão entrar: verde */
