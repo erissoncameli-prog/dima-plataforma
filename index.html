@@ -474,22 +474,25 @@ body {
 }
 
 .btn-publico {
-  width:100%;height:44px;
-  background:transparent;
+  width:100%;height:46px;
+  background:rgba(255,255,255,.04);
   color:var(--t2);
-  border:1px solid var(--bdr);
-  border-radius:9px;
+  border:1.5px solid rgba(244,239,230,.12);
+  border-radius:10px;
   font-family:var(--ff-ui);
   font-size:13px;font-weight:400;
   cursor:pointer;
   display:flex;align-items:center;justify-content:center;gap:8px;
   text-decoration:none;
-  transition:all .18s;
+  transition:all .2s;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
 }
 .btn-publico:hover {
-  border-color:rgba(244,239,230,.28);
+  border-color:rgba(244,239,230,.30);
   color:var(--t1);
-  background:rgba(244,239,230,.04);
+  background:rgba(255,255,255,.08);
+  box-shadow:0 2px 14px rgba(0,0,0,.14);
 }
 .btn-publico:active { transform:scale(.99); }
 
