@@ -74,7 +74,12 @@
       "Skill(frontend-design)",
       "Skill(frontend-design:*)",
       "Skill(brainstorming)",
-      "Skill(brainstorming:*)"
+      "Skill(brainstorming:*)",
+      "mcp__5499839e-86af-4699-b551-2eb3972f3f05__list_teams",
+      "mcp__5499839e-86af-4699-b551-2eb3972f3f05__list_projects",
+      "mcp__5499839e-86af-4699-b551-2eb3972f3f05__list_deployments",
+      "mcp__5499839e-86af-4699-b551-2eb3972f3f05__deploy_to_vercel",
+      "Bash(vercel deploy *)"
     ]
   }
 }
