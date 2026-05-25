@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
+import { Buffer } from 'node:buffer'
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://erissoncameli-prog.github.io',
