@@ -2622,20 +2622,25 @@ async function realizarProtocolo(){
 async function notificarUnescoConcluso(protId){
   try{
     const{data:{session}}=await db.auth.getSession();
+    const token=session?.access_token||SUPABASE_ANON_KEY;
     const resp=await fetch(`${SUPABASE_URL}/functions/v1/notificar-unesco-conclusao`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token}`},
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${token}`,
+        'apikey':SUPABASE_ANON_KEY,
+      },
       body:JSON.stringify({protocolo_id:protId,enviado_por:appState.usuario?.id})
     });
     const result=await resp.json();
     if(result.ok){
       toast(`E-mail de conclusão enviado para UNESCO com ${result.anexos} anexo(s).`,'success');
     }else{
-      toast('Aviso: não foi possível enviar e-mail para UNESCO. '+(result.error||''),'error');
+      toast('Erro ao notificar UNESCO: '+(result.error||'erro desconhecido'),'error');
     }
     return result.ok;
   }catch(e){
-    toast('Aviso: erro ao notificar UNESCO.','error');
+    toast('Erro ao notificar UNESCO: '+(e?.message||'falha de rede'),'error');
     return false;
   }
 }
