@@ -205,7 +205,7 @@ fundobrasilonuacre@gmail.com`
 
     return new Response(
       JSON.stringify({ ok: true, anexos: attachments.length, ignorados: skipped.length }),
-      { headers: { ...CORS, 'Content-Type': 'application/json' } }
+      { headers: { ...cors, 'Content-Type': 'application/json' } }
     )
   } catch (e: any) {
     return new Response(
