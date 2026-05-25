@@ -59,7 +59,8 @@ async function downloadWithTimeout(url: string): Promise<Uint8Array | null> {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  const cors = corsHeaders(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   try {
     const { protocolo_id, enviado_por } = await req.json()
