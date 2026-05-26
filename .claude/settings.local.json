@@ -80,7 +80,9 @@
       "mcp__5499839e-86af-4699-b551-2eb3972f3f05__list_deployments",
       "mcp__5499839e-86af-4699-b551-2eb3972f3f05__deploy_to_vercel",
       "Bash(vercel deploy *)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(cd \"C:\\\\Users\\\\eriss\\\\Downloads\" && ls shapes.zip)",
+      "Bash(powershell -Command \"Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead\\('shapes.zip'\\).Entries | Select-Object FullName, Length\")"
     ]
   }
 }
