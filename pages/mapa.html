@@ -874,11 +874,15 @@ function _renderizarCamada(c){
   const features = c.geojson.features || [];
   const hasNames = features.some(f => f.properties && (f.properties.name || f.properties.Name || f.properties.NAME));
   const multiFeature = features.length > 1;
+  const featureColors = c.feature_colors || {};
   let _fi = 0;
   c.layer = L.geoJSON(c.geojson, {
     style: multiFeature
-      ? () => {
-          const cor = SUBBACIA_PALETTE[_fi++ % SUBBACIA_PALETTE.length];
+      ? (feature) => {
+          const props = feature.properties || {};
+          const nome = props.name || props.Name || props.NAME || '';
+          const cor = featureColors[nome] || SUBBACIA_PALETTE[_fi % SUBBACIA_PALETTE.length];
+          _fi++;
           return { color:cor, weight:2, opacity:.9, fillColor:cor, fillOpacity:.22, dashArray:'5 4' };
         }
       : { color:c.cor, weight:2, opacity:.9, fillColor:c.cor, fillOpacity:.15, dashArray:'5 4' },
