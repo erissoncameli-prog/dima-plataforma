@@ -2901,6 +2901,11 @@ function vincularEventos(){
     }
   });
   mapaL.on('zoomend', _atualizarTamanhoIcones);
+  mapaL.on('zoomend', () => {
+    camadas.filter(c => c.visivel && c.geojson && (c.geojson.features||[]).some(
+      f => f.geometry && (f.geometry.type==='Point'||f.geometry.type==='MultiPoint')
+    )).forEach(_renderizarCamada);
+  });
   mapaL.on('popupclose', _pararCarTimer);
   _iniciarClickCamadas(() => camadas);
 }
