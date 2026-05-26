@@ -1323,6 +1323,11 @@ async function carregarMapa() {
   _camadas = (camadasRes.data||[]).map(c => ({ ...c, layer: null }));
   _camadas.filter(c => c.visivel).forEach(_adicionarCamada);
   _iniciarClickCamadas(() => _camadas);
+  mapaL.on('zoomend', () => {
+    _camadas.filter(c => c.visivel && c.geojson && (c.geojson.features||[]).some(
+      f => f.geometry && (f.geometry.type==='Point'||f.geometry.type==='MultiPoint')
+    )).forEach(_adicionarCamada);
+  });
 
   // Ícones e cores: prioriza configuração do admin no DB, fallback ao ICONE_MAP
   const tiposUnicos = [...new Set(_pontos.map(p => p.tipo_atividade).filter(Boolean))];
