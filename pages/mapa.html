@@ -2860,6 +2860,7 @@ function vincularEventos(){
   });
   mapaL.on('zoomend', _atualizarTamanhoIcones);
   mapaL.on('popupclose', _pararCarTimer);
+  _iniciarClickCamadas(() => camadas);
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────
