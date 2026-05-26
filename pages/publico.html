@@ -1119,7 +1119,25 @@ function _toggleCamada(id, visivel){
 // ── Click popup: camadas de delimitação ───────────────────────
 let _skipCamadaClick = false;
 
-function _buildCamadaHit(camada, feature, arr){
+function _areaFeature(pt, feature){
+  const gt = (feature.geometry && feature.geometry.type) || '';
+  let total = 0, clicada = 0;
+  try{ total = turf.area(feature); }catch(e){}
+  if(gt === 'Polygon'){
+    clicada = total;
+  } else if(gt === 'MultiPolygon'){
+    for(const ring of (feature.geometry.coordinates || [])){
+      try{
+        const sub = turf.polygon(ring);
+        if(turf.booleanPointInPolygon(pt, sub)){ clicada = turf.area(sub); break; }
+      }catch(e){}
+    }
+    if(!clicada) clicada = total;
+  }
+  return { clicada, total };
+}
+
+function _buildCamadaHit(camada, feature, arr, pt){
   const props = feature.properties || {};
   const isHidro = 'LENGTH' in props || 'REGIME' in props;
   const isAPA   = 'DECRETO' in props || 'ANO_CRIACA' in props || 'AREA_UC' in props;
@@ -1136,7 +1154,8 @@ function _buildCamadaHit(camada, feature, arr){
     if(regime) bodyHtml += `<div class="cp-row"><strong>Regime:</strong><span>${esc(regime)}</span></div>`;
     if(lenStr) bodyHtml += `<div class="cp-row"><strong>Comprimento:</strong><span>${esc(lenStr)}</span></div>`;
   } else if(isAPA){
-    try{ area = turf.area(feature); }catch(e){}
+    const av = _areaFeature(pt, feature);
+    area = av.clicada;
     [['Nome', props.NOME_UC||props.NOME||props.nome||''],
      ['Decreto', props.DECRETO||''],
      ['Criação', props.ANO_CRIACA||''],
@@ -1148,11 +1167,12 @@ function _buildCamadaHit(camada, feature, arr){
       if(val) bodyHtml += `<div class="cp-row"><strong>${esc(label)}:</strong><span>${esc(String(val))}</span></div>`;
     });
   } else if(isAPP){
-    try{ area = turf.area(feature); }catch(e){}
+    const av = _areaFeature(pt, feature);
+    area = av.clicada;
     const nome = props.name_4 || '';
     if(nome) bodyHtml += `<div class="cp-row"><strong>Sub-bacia:</strong><span>${esc(nome)}</span></div>`;
-    if(area) bodyHtml += `<div class="cp-row"><strong>Área APP:</strong><span>${(area/10000).toFixed(2)} ha</span></div>`;
-    if(arr && nome && area > 0){
+    if(area) bodyHtml += `<div class="cp-row"><strong>Área (fragmento):</strong><span>${(area/10000).toFixed(2)} ha</span></div>`;
+    if(arr && nome && av.total > 0){
       const sb = arr.find(x => x.visivel && x.geojson && x.geojson.features &&
         x.geojson.features.some(f => { const p=f.properties||{}; return p.name||p.Name||p.NAME; }));
       if(sb){
@@ -1161,11 +1181,12 @@ function _buildCamadaHit(camada, feature, arr){
           return (p.name||p.Name||p.NAME||'') === nome;
         });
         if(rf){ let ra=0; try{ra=turf.area(rf);}catch(e){}
-          if(ra>0) bodyHtml += `<div class="cp-badge">🌿 APP: ${Math.min(100,(area/ra)*100).toFixed(1)}% da sub-bacia</div>`; }
+          if(ra>0) bodyHtml += `<div class="cp-badge">🌿 APP total: ${Math.min(100,(av.total/ra)*100).toFixed(1)}% da sub-bacia</div>`; }
       }
     }
   } else {
-    try{ area = turf.area(feature); }catch(e){}
+    const av = _areaFeature(pt, feature);
+    area = av.clicada;
     const nome = props.name||props.Name||props.NAME||'';
     if(nome) bodyHtml += `<div class="cp-row"><strong>Nome:</strong><span>${esc(nome)}</span></div>`;
     if(area) bodyHtml += `<div class="cp-row"><strong>Área:</strong><span>${(area/10000).toFixed(2)} ha</span></div>`;
