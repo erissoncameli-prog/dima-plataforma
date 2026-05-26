@@ -468,13 +468,13 @@ function renderPagina(){
         </div>
 
         <!-- Camadas de delimitação -->
-        <div class="filtro-bloco">
-          <div class="filtro-bloco-header" onclick="toggleBloco('bloco-camadas')">
+        <div class="filtro-bloco" style="overflow:visible">
+          <div class="filtro-bloco-header" onclick="toggleBloco('bloco-camadas')" style="border-radius:var(--raio-lg) var(--raio-lg) 0 0">
             <h4>Camadas de delimitação</h4>
             ${ehAdmin ? `<button class="btn-admin-filtros" onclick="event.stopPropagation();abrirModalNovaCamada()" title="Adicionar nova camada" style="font-size:15px;font-weight:700;line-height:1">＋</button>` : ''}
             <span id="chevron-bloco-camadas" style="font-size:10px;color:var(--cinza-400)">▾</span>
           </div>
-          <div class="filtro-bloco-body" id="bloco-camadas">
+          <div id="bloco-camadas" style="padding:8px 12px 10px;max-height:200px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#2D6A4F #f3f4f6">
             <div id="bloco-camadas-lista">
               <div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Carregando…</div>
             </div>
