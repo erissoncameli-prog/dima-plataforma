@@ -906,13 +906,17 @@ function renderCamadasHtml(){
     el.innerHTML = `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">${ehAdmin?'Nenhuma camada. Clique em ＋ para adicionar.':'Nenhuma camada disponível.'}</div>`;
     return;
   }
-  el.innerHTML = camadas.map(c => `
+  el.innerHTML = camadas.map(c => {
+    const isMulti = (c.geojson?.features?.length || 0) > 1;
+    return `
     <div class="camada-row">
       <input type="checkbox" ${c.visivel?'checked':''} onchange="toggleCamadaVisivel('${c.id}',this.checked)">
       <span class="filtro-dot" style="background:${c.cor}"></span>
       <span style="font-size:12px;color:var(--cinza-700);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(c.nome)}">${escHtml(c.nome)}</span>
+      ${ehAdmin && isMulti ? `<button onclick="abrirModalCoresCamada('${c.id}')" title="Editar cores das sub-bacias" style="font-size:12px;padding:2px 5px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;flex-shrink:0">🎨</button>` : ''}
       ${ehAdmin?`<button onclick="removerCamada('${c.id}')" title="Remover camada" style="font-size:11px;padding:2px 6px;border:1px solid #FCA5A5;border-radius:4px;background:#FEF2F2;color:#DC2626;cursor:pointer;flex-shrink:0">✕</button>`:''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function toggleCamadaVisivel(id, visivel){
