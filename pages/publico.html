@@ -1065,8 +1065,18 @@ document.addEventListener('click', e => {
 function _adicionarCamada(c){
   if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
   if(!c.geojson) return;
+  const features = c.geojson.features || [];
+  const hasNames = features.some(f => f.properties && (f.properties.name || f.properties.Name || f.properties.NAME));
   c.layer = L.geoJSON(c.geojson, {
-    style: { color: c.cor||'#16a34a', weight: 2, opacity: .9, fillColor: c.cor||'#16a34a', fillOpacity: .12, dashArray: '5 4' }
+    style: { color: c.cor||'#16a34a', weight: 2, opacity: .9, fillColor: c.cor||'#16a34a', fillOpacity: .12, dashArray: '5 4' },
+    onEachFeature: hasNames ? (feature, layer) => {
+      const props = feature.properties || {};
+      const nome = props.name || props.Name || props.NAME || '';
+      if(nome){
+        layer.bindTooltip(nome, { permanent:true, direction:'center', className:'subbacia-label' });
+        layer.on('add', () => layer.openTooltip());
+      }
+    } : undefined
   });
   c.layer.addTo(mapaL);
 }
