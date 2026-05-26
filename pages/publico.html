@@ -193,6 +193,9 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 /* ── Mini-mapa ── */
 .leaflet-control-minimap{border-radius:8px!important;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.32)!important;border:2px solid rgba(255,255,255,.85)!important;}
 .leaflet-control-minimap a.minimized{border-radius:0 0 6px 6px!important;}
+/* ── Labels de sub-bacias ── */
+.subbacia-label{background:rgba(255,255,255,.82)!important;border:1px solid rgba(0,0,0,.12)!important;border-radius:4px!important;box-shadow:0 1px 4px rgba(0,0,0,.18)!important;font-size:11px!important;font-weight:700!important;color:#1a3c2a!important;padding:2px 7px!important;white-space:nowrap!important;pointer-events:none!important;}
+.subbacia-label::before{display:none!important;}
 .btn-filtros-pub-mobile{display:none;position:fixed;bottom:76px;right:16px;z-index:302;background:#2D6A4F;color:#fff;border:none;border-radius:50px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;align-items:center;gap:7px;box-shadow:0 4px 18px rgba(0,0,0,.28);font-family:var(--font-sans);-webkit-tap-highlight-color:transparent;transition:background .15s;}
 .btn-filtros-pub-mobile:hover{background:#245c42;}
 .btn-filtros-pub-mobile svg{flex-shrink:0;}
