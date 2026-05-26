@@ -1232,7 +1232,7 @@ function _iniciarClickCamadas(getCamadas){
           else if(gt==='LineString'||gt==='MultiLineString') hit = turf.pointToLineDistance(pt, feature, {units:'meters'}) <= lineTol;
         }catch(er){}
         if(hit){
-          const h = _buildCamadaHit(camada, feature, getCamadas());
+          const h = _buildCamadaHit(camada, feature, getCamadas(), pt);
           if(!seen.has(h.propKey)){ seen.add(h.propKey); hits.push(h); }
         }
       });
