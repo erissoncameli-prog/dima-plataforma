@@ -1006,13 +1006,17 @@ async function salvarCoresCamada(){
   if(!c) return;
   const btn = document.getElementById('btn-salvar-cores-camada');
   btn.disabled = true; btn.textContent = 'Salvando…';
-  const { error } = await db.from('apa_demarcacoes')
-    .update({ feature_colors: _coresEditando })
-    .eq('id', _coresEditandoId);
+  const isMulti = (c.geojson?.features?.length || 0) > 1;
+  const updateData = isMulti
+    ? { feature_colors: _coresEditando }
+    : { cor: _coresEditando['__single__'] || c.cor };
+  const { error } = await db.from('apa_demarcacoes').update(updateData).eq('id', _coresEditandoId);
   btn.disabled = false; btn.textContent = 'Salvar';
   if(error){ toast('Erro ao salvar: ' + error.message, 'error'); return; }
-  c.feature_colors = Object.assign({}, _coresEditando);
+  if(isMulti){ c.feature_colors = Object.assign({}, _coresEditando); }
+  else { c.cor = updateData.cor; }
   _renderizarCamada(c);
+  renderCamadasHtml();
   fecharModalCoresCamada();
   toast('Cores salvas com sucesso!', 'success');
 }
