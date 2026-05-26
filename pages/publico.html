@@ -1290,6 +1290,7 @@ async function carregarMapa() {
   // Camadas de delimitação das APAs
   _camadas = (camadasRes.data||[]).map(c => ({ ...c, layer: null }));
   _camadas.filter(c => c.visivel).forEach(_adicionarCamada);
+  _iniciarClickCamadas(() => _camadas);
 
   // Ícones e cores: prioriza configuração do admin no DB, fallback ao ICONE_MAP
   const tiposUnicos = [...new Set(_pontos.map(p => p.tipo_atividade).filter(Boolean))];
