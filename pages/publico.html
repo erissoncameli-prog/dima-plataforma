@@ -1161,7 +1161,7 @@ function _buildCamadaHit(camada, feature, arr, pt){
      ['Criação', props.ANO_CRIACA||''],
      ['Área', props.AREA_UC ? Number(props.AREA_UC).toLocaleString('pt-BR',{maximumFractionDigits:2})+' ha' : ''],
      ['Municípios', props.MUNICIPIO_||''],
-     ['Gestão', props.INSTITUICA||''],
+     ['Gestão', 'SEMA'],
      ['Pl. Manejo', props.PLANO_MANE||''],
     ].forEach(([label, val]) => {
       if(val) bodyHtml += `<div class="cp-row"><strong>${esc(label)}:</strong><span>${esc(String(val))}</span></div>`;
