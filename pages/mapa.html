@@ -902,11 +902,12 @@ function _renderizarCamada(c){
   if(!c.geojson) return;
   const features = c.geojson.features || [];
   const hasNames = features.some(f => f.properties && (f.properties.name || f.properties.Name || f.properties.NAME));
-  const multiFeature = features.length > 1;
+  // Paleta rotativa só para camadas com features nomeadas (sub-bacias); demais usam cor única
+  const usePalette = hasNames && features.length > 1;
   const featureColors = c.feature_colors || {};
   let _fi = 0;
   c.layer = L.geoJSON(c.geojson, {
-    style: multiFeature
+    style: usePalette
       ? (feature) => {
           const props = feature.properties || {};
           const nome = props.name || props.Name || props.NAME || '';
