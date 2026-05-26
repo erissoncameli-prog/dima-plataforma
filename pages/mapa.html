@@ -178,6 +178,19 @@
 .subbacia-label{background:rgba(255,255,255,.82)!important;border:1px solid rgba(0,0,0,.12)!important;border-radius:4px!important;box-shadow:0 1px 4px rgba(0,0,0,.18)!important;font-size:11px!important;font-weight:700!important;color:#1a3c2a!important;padding:2px 7px!important;white-space:nowrap!important;pointer-events:none!important;}
 .subbacia-label::before{display:none!important;}
 
+/* ── Popup de clique em camadas de delimitação ───────────────── */
+.leaflet-popup.camada-popup-wrap .leaflet-popup-content-wrapper{padding:0;border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.22);}
+.leaflet-popup.camada-popup-wrap .leaflet-popup-content{margin:0;min-width:200px;max-width:300px;}
+.camada-popup{font-family:'DM Sans',sans-serif;font-size:12px;color:#374151;}
+.camada-popup .cp-header{background:#1F4E2C;color:#fff;padding:8px 13px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.camada-popup .cp-layer{padding:9px 13px 10px;}
+.camada-popup .cp-layer-nome{font-size:10px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid #e5e7eb;}
+.camada-popup .cp-row{display:flex;gap:5px;font-size:11px;color:#374151;margin-bottom:3px;line-height:1.4;align-items:flex-start;}
+.camada-popup .cp-row strong{color:#111827;min-width:72px;flex-shrink:0;font-weight:600;}
+.camada-popup .cp-row span{word-break:break-word;}
+.camada-popup .cp-divider{height:1px;background:#e5e7eb;}
+.camada-popup .cp-badge{display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;margin-top:5px;}
+
 /* ── Mobile: botão de filtros + painel deslizante ──────────── */
 .btn-filtros-mobile{display:none;position:fixed;bottom:76px;right:16px;z-index:302;background:#2D6A4F;color:#fff;border:none;border-radius:50px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;align-items:center;gap:7px;box-shadow:0 4px 18px rgba(0,0,0,.28);font-family:var(--font-sans);-webkit-tap-highlight-color:transparent;transition:background .15s;}
 .btn-filtros-mobile:hover{background:#245c42;}
