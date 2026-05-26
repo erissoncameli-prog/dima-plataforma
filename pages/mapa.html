@@ -951,22 +951,30 @@ function onNovaCamadaArquivo(file){
         const allFiles = Object.keys(zip.files).filter(f => !zip.files[f].dir);
         const shpFiles = allFiles.filter(f => f.toLowerCase().endsWith('.shp'));
         if(!shpFiles.length){ statusEl.textContent='Nenhum .shp encontrado.'; statusEl.style.color='#dc2626'; return; }
-        const shpPath = shpFiles.find(f=>f.toLowerCase().includes('perimetro'))||shpFiles[0];
-        const baseLower = shpPath.toLowerCase().replace(/\.shp$/,'');
-        const dbfPath = allFiles.find(f=>f.toLowerCase().replace(/\.dbf$/,'')===baseLower&&f.toLowerCase().endsWith('.dbf'));
-        const prjPath = allFiles.find(f=>f.toLowerCase().replace(/\.prj$/,'')===baseLower&&f.toLowerCase().endsWith('.prj'));
-        if(!dbfPath){ statusEl.textContent='.dbf não encontrado.'; statusEl.style.color='#dc2626'; return; }
-        const fileName = shpPath.split('/').pop().replace(/\.shp$/i,'');
-        const flatZip = new JSZip();
-        flatZip.file(fileName+'.shp', await zip.files[shpPath].async('arraybuffer'));
-        flatZip.file(fileName+'.dbf', await zip.files[dbfPath].async('arraybuffer'));
-        if(prjPath) flatZip.file(fileName+'.prj', await zip.files[prjPath].async('arraybuffer'));
-        const flatBuf = await flatZip.generateAsync({type:'arraybuffer'});
-        const result = await shp(flatBuf);
-        _novaCamadaGeoJson = Array.isArray(result)
-          ? {type:'FeatureCollection', features:result.flatMap(g=>g.features||[])}
-          : result;
-        statusEl.textContent = '✓ Shapefile processado com sucesso';
+
+        // Processar todos os .shp e combinar em um único FeatureCollection
+        const allFeatures = [];
+        for(const shpPath of shpFiles){
+          const baseLower = shpPath.toLowerCase().replace(/\.shp$/,'');
+          const dbfPath = allFiles.find(f=>f.toLowerCase().replace(/\.dbf$/,'')===baseLower&&f.toLowerCase().endsWith('.dbf'));
+          const prjPath = allFiles.find(f=>f.toLowerCase().replace(/\.prj$/,'')===baseLower&&f.toLowerCase().endsWith('.prj'));
+          if(!dbfPath) continue;
+          const fileName = shpPath.split('/').pop().replace(/\.shp$/i,'');
+          const flatZip = new JSZip();
+          flatZip.file(fileName+'.shp', await zip.files[shpPath].async('arraybuffer'));
+          flatZip.file(fileName+'.dbf', await zip.files[dbfPath].async('arraybuffer'));
+          if(prjPath) flatZip.file(fileName+'.prj', await zip.files[prjPath].async('arraybuffer'));
+          const flatBuf = await flatZip.generateAsync({type:'arraybuffer'});
+          const result = await shp(flatBuf);
+          const feats = Array.isArray(result)
+            ? result.flatMap(g=>g.features||[])
+            : (result.features||[]);
+          allFeatures.push(...feats);
+        }
+        if(!allFeatures.length){ statusEl.textContent='Nenhuma geometria encontrada.'; statusEl.style.color='#dc2626'; return; }
+        _novaCamadaGeoJson = { type:'FeatureCollection', features:allFeatures };
+        const count = allFeatures.length;
+        statusEl.textContent = `✓ ${count} polígono${count>1?'s':''} processado${count>1?'s':''} com sucesso`;
         statusEl.style.color = '#16a34a';
       }catch(err){ statusEl.textContent='Erro: '+err.message; statusEl.style.color='#dc2626'; }
     };
