@@ -1062,13 +1062,25 @@ document.addEventListener('click', e => {
 });
 
 // ── Camadas de delimitação ────────────────────────────────────
+const SUBBACIA_PALETTE = [
+  '#16a34a','#2563eb','#d97706','#7c3aed','#0891b2',
+  '#dc2626','#65a30d','#db2777','#ea580c'
+];
+
 function _adicionarCamada(c){
   if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
   if(!c.geojson) return;
   const features = c.geojson.features || [];
   const hasNames = features.some(f => f.properties && (f.properties.name || f.properties.Name || f.properties.NAME));
+  const multiFeature = features.length > 1;
+  let _fi = 0;
   c.layer = L.geoJSON(c.geojson, {
-    style: { color: c.cor||'#16a34a', weight: 2, opacity: .9, fillColor: c.cor||'#16a34a', fillOpacity: .12, dashArray: '5 4' },
+    style: multiFeature
+      ? () => {
+          const cor = SUBBACIA_PALETTE[_fi++ % SUBBACIA_PALETTE.length];
+          return { color:cor, weight:2, opacity:.9, fillColor:cor, fillOpacity:.22, dashArray:'5 4' };
+        }
+      : { color:c.cor||'#16a34a', weight:2, opacity:.9, fillColor:c.cor||'#16a34a', fillOpacity:.15, dashArray:'5 4' },
     onEachFeature: hasNames ? (feature, layer) => {
       const props = feature.properties || {};
       const nome = props.name || props.Name || props.NAME || '';
