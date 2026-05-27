@@ -451,6 +451,9 @@ function filtrar(){
           const pctComp=total>0?Math.min(comprometido/total*100,100):0;
           const corSaldo=saldo<0?'var(--erro)':saldo<total*0.1?'var(--aviso)':'#059669';
           const cor=corStatus[c.status]||'#6B7280';
+          const valorTDR=parseFloat(t.valor_brl||0);
+          const delta=valorTDR-total;
+          const corDelta=delta<0?'var(--erro)':delta===0?'#059669':'var(--cinza-600)';
           return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--borda)" onclick="event.stopPropagation()">
             <!-- número + status -->
             <span style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--cinza-800);white-space:nowrap;min-width:90px">${c.numero}</span>
@@ -462,6 +465,8 @@ function filtrar(){
             </div>
             <!-- valores inline -->
             <div style="display:flex;gap:10px;flex-shrink:0;align-items:baseline">
+              <span style="font-size:9px;color:var(--cinza-500)" title="Valor do TDR">TDR <span style="font-family:var(--font-mono);color:var(--cinza-700)">${fmtBRL(valorTDR)}</span></span>
+              <span style="font-size:9px;color:var(--cinza-500)" title="Diferença TDR × Contrato (negativo = contrato excede TDR)">Δ <span style="font-family:var(--font-mono);font-weight:700;color:${corDelta}">${delta<0?'−':delta>0?'+':''}${fmtBRL(Math.abs(delta))}</span></span>
               <span style="font-size:9px;color:var(--cinza-500)" title="Total contratado">T <span style="font-family:var(--font-mono);color:var(--cinza-800)">${fmtBRL(total)}</span></span>
               <span style="font-size:9px;color:var(--cinza-500)" title="Comprometido">C <span style="font-family:var(--font-mono);color:#D97706">${fmtBRL(comprometido)}</span></span>
               <span style="font-size:9px;color:var(--cinza-500)" title="Utilizado">U <span style="font-family:var(--font-mono);color:#059669">${fmtBRL(utilizado)}</span></span>
