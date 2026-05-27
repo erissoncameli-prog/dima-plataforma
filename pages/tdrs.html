@@ -1139,10 +1139,15 @@ async function submeterParaAgente(){
     const {error}=await db.from('tdrs').update({status:'submetido'}).eq('id',tdrId);
     if(error)throw new Error(error.message);
 
-    // 2. Chamar Edge Function
+    // 2. Chamar Edge Function (usa session token, não anon key, para o gateway aceitar)
+    const {data:{session}}=await db.auth.getSession();
     const res=await fetch(`${SUPABASE_URL}/functions/v1/analisar-tdr`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':'Bearer '+(session?.access_token||SUPABASE_ANON_KEY),
+      },
       body:JSON.stringify({tdr_id:tdrId}),
     });
     const resultado=await res.json();
