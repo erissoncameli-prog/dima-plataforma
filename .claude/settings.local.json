@@ -82,7 +82,8 @@
       "Bash(vercel deploy *)",
       "Bash(python3 -c ' *)",
       "Bash(cd \"C:\\\\Users\\\\eriss\\\\Downloads\" && ls shapes.zip)",
-      "Bash(powershell -Command \"Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead\\('shapes.zip'\\).Entries | Select-Object FullName, Length\")"
+      "Bash(powershell -Command \"Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::OpenRead\\('shapes.zip'\\).Entries | Select-Object FullName, Length\")",
+      "Bash(cd \"/c/Users/eriss/OneDrive/Documents/OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\" && grep -n \"dbErr\" pages/tdrs.html)"
     ]
   }
 }

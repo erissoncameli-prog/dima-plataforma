@@ -678,8 +678,15 @@ async function abrirTDR(id){
           <div style="margin-top:10px">
             <label style="font-size:11px;color:var(--cinza-500);display:block;margin-bottom:4px">Atualizar valor R$</label>
             <input class="form-control" id="ed-brl" type="number" step="0.01" value="${t.valor_brl||''}"
+              data-campo="valor_brl"
               style="height:34px;font-size:12px;text-align:right" oninput="atualizarBRL(${taxaAtual},this.value)">
             <div style="font-size:10px;color:var(--cinza-500);margin-top:3px">U$ calculado: <span id="usd-calc">—</span></div>
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--borda);display:flex;align-items:center;gap:10px">
+            <button class="btn btn-primary btn-sm" id="btn-salvar-fin" onclick="abrirSalvar(${taxaAtual})" disabled>
+              💾 Salvar alteração de valor
+            </button>
+            <span id="txt-mudancas-fin" style="font-size:11px;color:var(--cinza-500)"></span>
           </div>`:''}
         </div>
         <div style="background:var(--cinza-50);border-radius:var(--raio);padding:16px;border:1px solid var(--borda)">
