@@ -486,9 +486,14 @@ function filtrar(){
             const totalContratos=conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
             const valorTDR=parseFloat(t.valor_brl||0);
             const delta=valorTDR-totalContratos;
-            const corDelta=delta<0?'var(--erro)':delta===0?'#059669':'#0369a1';
+            const corDelta=delta<0?'#DC2626':delta===0?'#059669':'#0369a1';
+            const bgDelta=delta<0?'#FEE2E2':delta===0?'#D1FAE5':'#DBEAFE';
             const sinal=delta<0?'−':delta>0?'+':'';
-            return `<div><div class="tdr-val-lbl" style="color:${corDelta}">Saldo TDR</div><div class="tdr-val-num" style="color:${corDelta}">${sinal}${fmtBRL(Math.abs(delta))}</div></div>`;
+            const icone=delta<0?'⚠':'✓';
+            return `<div style="background:${bgDelta};border-radius:6px;padding:4px 10px;display:flex;flex-direction:column;align-items:center;gap:1px;border:1px solid ${corDelta}22">
+              <div style="font-size:9px;font-weight:700;color:${corDelta};text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">${icone} Saldo TDR</div>
+              <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${corDelta};white-space:nowrap">${sinal}${fmtBRL(Math.abs(delta))}</div>
+            </div>`;
           })()}
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
