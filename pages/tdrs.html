@@ -910,12 +910,16 @@ function detectarMudancas(el){
   el.classList.toggle('campo-alterado',String(novoValor)!==String(dadosOriginais[campo]||''));
 
   const btn=document.getElementById('btn-salvar-ed');
+  const btnFin=document.getElementById('btn-salvar-fin');
   const alerta=document.getElementById('alerta-mudancas');
   const txt=document.getElementById('txt-mudancas');
+  const txtFin=document.getElementById('txt-mudancas-fin');
   if(btn)btn.disabled=!temMudancas;
+  if(btnFin)btnFin.disabled=!temMudancas;
   if(alerta)alerta.style.display=temMudancas?'flex':'none';
   const qtd=Object.keys(dadosOriginais).filter(k=>String(dadosEditados[k]||'')!==String(dadosOriginais[k]||'')).length;
   if(txt)txt.textContent=temMudancas?`${qtd} campo(s) alterado(s)`:'';
+  if(txtFin)txtFin.textContent=temMudancas?`${qtd} campo(s) alterado(s)`:'';
 }
 
 function descartarAlteracoes(){
@@ -925,8 +929,10 @@ function descartarAlteracoes(){
     el.classList.remove('campo-alterado');
   });
   const btn=document.getElementById('btn-salvar-ed');
+  const btnFin=document.getElementById('btn-salvar-fin');
   const alerta=document.getElementById('alerta-mudancas');
   if(btn)btn.disabled=true;
+  if(btnFin)btnFin.disabled=true;
   if(alerta)alerta.style.display='none';
   toast('Alterações descartadas.','info');
 }
@@ -1784,8 +1790,4 @@ function abrirRevisor(){
 })();
 
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-tdr','modal-novo','modal-salvar'].forEach(fecharModal);
-});
-</script>
-</body>
-</html>
+  if(e.key==='Escape')['mod
