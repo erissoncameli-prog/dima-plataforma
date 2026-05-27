@@ -1452,7 +1452,8 @@ window.uploadArquivoTDR = async function(tdrId, file) {
     const { error: upErr } = await db.storage.from('tdrs-arquivos').upload(path, file, { upsert: true });
     if (upErr) throw upErr;
     const { data: urlData } = db.storage.from('tdrs-arquivos').getPublicUrl(path);
-    await db.from('tdrs').update({ arquivo_url: urlData.publicUrl, arquivo_nome: file.name }).eq('id', tdrId);
+    const { error: dbErr } = await db.from('tdrs').update({ arquivo_url: urlData.publicUrl, arquivo_nome: file.name }).eq('id', tdrId);
+    if (dbErr) throw dbErr;
     // Atualizar cache local
     const tdr = todosTDRs.find(t => t.id === tdrId);
     if (tdr) { tdr.arquivo_url = urlData.publicUrl; tdr.arquivo_nome = file.name; }
