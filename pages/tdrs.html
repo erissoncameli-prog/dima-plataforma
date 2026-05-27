@@ -477,7 +477,10 @@ function filtrar(){
       <!-- Rodapé: valores + botões -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px solid var(--borda)">
         <div class="tdr-vals">
-          <div><div class="tdr-val-lbl">R$</div><div class="tdr-val-num">${t.valor_brl?fmtBRL(t.valor_brl):'—'}</div></div>
+          <div style="background:#F0F9FF;border-radius:6px;padding:4px 10px;display:flex;flex-direction:column;align-items:center;gap:1px;border:1px solid #BAE6FD">
+            <div style="font-size:9px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Valor TDR</div>
+            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#0369a1;white-space:nowrap">${t.valor_brl?fmtBRL(t.valor_brl):'—'}</div>
+          </div>
           <div><div class="tdr-val-lbl">U$</div><div class="tdr-val-num">${t.valor_usd?fmtUSD(t.valor_usd):'—'}</div></div>
           ${t.cotacao_registro?`<div><div class="tdr-val-lbl">Cotação</div><div class="tdr-val-num">R$ ${parseFloat(t.cotacao_registro).toFixed(2)}</div></div>`:''}
           ${(()=>{
