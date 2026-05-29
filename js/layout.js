@@ -457,7 +457,50 @@ async function carregarNotificacoes() {
     .order('criado_em', { ascending: false })
     .limit(20);
 
-  notifCache = data || [];
+  const todas = data || [];
+
+  // Verificar status atual das entidades para detectar notificações
+  // já atendidas por outro usuário (ex: produto já avaliado, viagem já aprovada)
+  const prodIds   = todas.filter(n => n.tipo === 'produto_para_avaliar' && n.entidade_id).map(n => n.entidade_id);
+  const viagIds   = todas.filter(n => n.tipo === 'viagem_solicitada'    && n.entidade_id).map(n => n.entidade_id);
+  const tdrIds    = todas.filter(n => n.tipo === 'tdr_para_revisar'     && n.entidade_id).map(n => n.entidade_id);
+
+  const statusProd = {}, statusViag = {}, statusTdr = {};
+  await Promise.all([
+    prodIds.length  && db.from('contratos_produtos').select('id,situacao').in('id', prodIds)
+      .then(({ data: d }) => (d || []).forEach(p => statusProd[p.id] = p.situacao)),
+    viagIds.length  && db.from('viagem_protocolos').select('id,situacao').in('id', viagIds)
+      .then(({ data: d }) => (d || []).forEach(v => statusViag[v.id] = v.situacao)),
+    tdrIds.length   && db.from('tdrs').select('id,status').in('id', tdrIds)
+      .then(({ data: d }) => (d || []).forEach(t => statusTdr[t.id] = t.status)),
+  ].filter(Boolean));
+
+  // Identificar notificações cujo item já foi atendido por outro usuário
+  const jaAtendidas = [];
+  todas.forEach(n => {
+    if (n.tipo === 'produto_para_avaliar' && n.entidade_id) {
+      const sit = statusProd[n.entidade_id];
+      if (sit && sit !== 'em_analise') jaAtendidas.push(n.id);
+    } else if (n.tipo === 'viagem_solicitada' && n.entidade_id) {
+      const sit = statusViag[n.entidade_id];
+      if (sit && sit !== 'solicitado') jaAtendidas.push(n.id);
+    } else if (n.tipo === 'tdr_para_revisar' && n.entidade_id) {
+      const sit = statusTdr[n.entidade_id];
+      // TDR continua pendente enquanto está em revisão_interna / enviado_unesco / retorno_unesco
+      const pendentes = ['rascunho','revisao_interna','enviado_unesco','retorno_unesco','submetido'];
+      if (sit && !pendentes.includes(sit)) jaAtendidas.push(n.id);
+    }
+  });
+
+  // Auto-marcar como lida as que já foram atendidas
+  if (jaAtendidas.length) {
+    db.from('notificacoes')
+      .update({ lida: true, lida_em: new Date().toISOString(), atendida_por_outro: true })
+      .in('id', jaAtendidas)
+      .then(() => {}).catch(() => {});
+  }
+
+  notifCache = todas.filter(n => !jaAtendidas.includes(n.id));
   renderBadge();
 }
 
