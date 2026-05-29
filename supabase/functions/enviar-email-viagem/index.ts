@@ -279,7 +279,7 @@ A solicitação está em análise. Você receberá uma nova notificação quando
   }
 
   if (evento === 'aprovado') return {
-    assunto: `[DIMA] Protocolo ${num} aprovado — sua viagem foi confirmada`,
+    assunto: `[DIMA] Protocolo ${num} | ${nome} — Viagem confirmada ✓`,
     corpo: `Prezado(a) ${nome},
 
 Sua participação no Protocolo ${num} foi aprovada.
@@ -292,7 +292,7 @@ As passagens e/ou diárias serão processadas pela equipe responsável. Fique at
   }
 
   if (evento === 'em_prestacao') return {
-    assunto: `[DIMA] Protocolo ${num} — Envie sua prestação de contas`,
+    assunto: `[DIMA] Protocolo ${num} | ${nome} — Envie sua prestação de contas`,
     corpo: `Prezado(a) ${nome},
 
 O Protocolo ${num} está na fase de prestação de contas.
@@ -312,7 +312,7 @@ Você pode enviar os documentos sem precisar de login utilizando o botão abaixo
   }
 
   if (evento === 'realizado') return {
-    assunto: `[DIMA] Protocolo ${num} — Encerrado`,
+    assunto: `[DIMA] Protocolo ${num} | ${nome} — Encerrado`,
     corpo: `Prezado(a) ${nome},
 
 Informamos que o Protocolo ${num} foi encerrado com sucesso na Plataforma DIMA.
@@ -433,6 +433,4 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ ok: false, error: e.message }),
       { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
-    )
-  }
-})
+   
