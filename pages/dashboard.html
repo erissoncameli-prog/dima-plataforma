@@ -949,32 +949,109 @@ function renderExecucao(){
   renderFinTabela();
 }
 
-function renderAcumuladoMensal(ano){
-  var lanc=D.lancFilt||D.lanc;
-  var meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  var pagoMes=new Array(12).fill(0);
-  var apagarMes=new Array(12).fill(0);
-  lanc.forEach(function(l){
-    var dt=l.dt_vencimento||l.dt_pagamento;
-    if(!dt)return;
-    var d=new Date(dt+'T00:00:00');
-    if(String(d.getFullYear())!==String(ano))return;
-    var m=d.getMonth();
-    var v=parseFloat(l.valor_brl||0);
-    if(l.situacao==='pago')pagoMes[m]+=v;
-    else if(l.situacao==='a_pagar')apagarMes[m]+=v;
+var _acumModoAtual='todos';
+function _acumSetBtn(modo){
+  _acumModoAtual=modo;
+  var btns=document.querySelectorAll('.acum-btn');
+  btns.forEach(function(b){
+    var ativo=b.dataset.modo===String(modo);
+    b.style.background=ativo?'var(--verde-medio)':'var(--branco)';
+    b.style.color=ativo?'#fff':'var(--cinza-600)';
+    b.style.borderColor=ativo?'var(--verde-medio)':'var(--borda)';
+    b.style.fontWeight=ativo?'600':'400';
   });
-  var acum=[];var soma=0;
-  for(var i=0;i<12;i++){soma+=pagoMes[i]+apagarMes[i];acum.push(soma);}
+  renderAcumuladoMensal(modo);
+}
+window._acumSetBtn=_acumSetBtn;
+
+function _acumPopularBtns(){
+  var el=document.getElementById('acum-btns');
+  if(!el||el.childElementCount>0)return;
+  var anosSet={};
+  D.lanc.forEach(function(l){var dt=l.dt_vencimento||l.dt_pagamento;if(dt){var y=new Date(dt+'T00:00:00').getFullYear();anosSet[y]=1;}});
+  var anos=Object.keys(anosSet).map(Number).sort();
+  var btnStyle='font-size:11px;font-family:var(--font-sans);border:1px solid var(--borda);border-radius:20px;padding:4px 12px;cursor:pointer;transition:all .15s;background:var(--branco);color:var(--cinza-600)';
+  var lista=[{label:'Todos os períodos',modo:'todos'}].concat(anos.map(function(a){return {label:String(a),modo:a};}));
+  el.innerHTML=lista.map(function(x){return '<button class="acum-btn" data-modo="'+x.modo+'" onclick="_acumSetBtn(\''+x.modo+'\')" style="'+btnStyle+'">'+x.label+'</button>';}).join('');
+  // marcar ativo inicial
+  _acumSetBtn(_acumModoAtual);
+}
+
+function renderAcumuladoMensal(modo){
+  var lanc=D.lancFilt||D.lanc;
+  var nmMeses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labels=[],pagoArr=[],apagarArr=[];
+
+  if(modo==='todos'){
+    // Coletar todos os meses presentes nos dados (ano+mês únicos, ordenados)
+    var mapa={};
+    lanc.forEach(function(l){
+      var dt=l.dt_vencimento||l.dt_pagamento;
+      if(!dt)return;
+      var d=new Date(dt+'T00:00:00');
+      var key=d.getFullYear()*100+d.getMonth(); // ex: 202400 = Jan/2024
+      if(!mapa[key])mapa[key]={pago:0,apagar:0,ano:d.getFullYear(),mes:d.getMonth()};
+      var v=parseFloat(l.valor_brl||0);
+      if(l.situacao==='pago')mapa[key].pago+=v;
+      else if(l.situacao==='a_pagar')mapa[key].apagar+=v;
+    });
+    // Preencher todos os meses do intervalo (sem lacunas)
+    var keys=Object.keys(mapa).map(Number).sort();
+    if(keys.length>0){
+      var kMin=keys[0],kMax=keys[keys.length-1];
+      var cur=kMin;
+      while(cur<=kMax){
+        var ano=Math.floor(cur/100),mes=cur%100;
+        labels.push(nmMeses[mes]+'/'+String(ano).slice(2));
+        var entry=mapa[cur]||{pago:0,apagar:0};
+        pagoArr.push(entry.pago);
+        apagarArr.push(entry.apagar);
+        // avançar um mês
+        mes++;if(mes>11){mes=0;ano++;}
+        cur=ano*100+mes;
+      }
+    }
+  } else {
+    var ano=parseInt(modo,10);
+    for(var i=0;i<12;i++){pagoArr.push(0);apagarArr.push(0);}
+    lanc.forEach(function(l){
+      var dt=l.dt_vencimento||l.dt_pagamento;
+      if(!dt)return;
+      var d=new Date(dt+'T00:00:00');
+      if(d.getFullYear()!==ano)return;
+      var m=d.getMonth();
+      var v=parseFloat(l.valor_brl||0);
+      if(l.situacao==='pago')pagoArr[m]+=v;
+      else if(l.situacao==='a_pagar')apagarArr[m]+=v;
+    });
+    labels=nmMeses.slice();
+  }
+
+  // Acumulado progressivo
+  var acum=[],soma=0;
+  for(var j=0;j<labels.length;j++){soma+=pagoArr[j]+apagarArr[j];acum.push(soma);}
+
+  // Largura dinâmica: 65px por barra no modo todos, responsivo no modo ano
+  var wrap=document.getElementById('acum-canvas-wrap');
+  var scroll=document.getElementById('acum-scroll');
+  var nCols=labels.length;
+  var minW=modo==='todos'?Math.max(nCols*68,scroll?scroll.clientWidth:800):null;
+  if(wrap){
+    if(minW){wrap.style.width=minW+'px';}
+    else{wrap.style.width='';}
+  }
+
   destroyChart('ch-acumulado-mensal');
-  mkChart('ch-acumulado-mensal',{
+  var el=document.getElementById('ch-acumulado-mensal');
+  if(!el)return;
+  CHARTS['ch-acumulado-mensal']=new Chart(el,{
     type:'bar',
     data:{
-      labels:meses,
+      labels:labels,
       datasets:[
-        {label:'Pago',data:pagoMes,backgroundColor:'rgba(5,150,105,.85)',borderRadius:4,borderSkipped:false,order:2},
-        {label:'A pagar',data:apagarMes,backgroundColor:'rgba(245,158,11,.75)',borderRadius:4,borderSkipped:false,order:2},
-        {label:'Acumulado',data:acum,type:'line',yAxisID:'yAcum',borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#fff',pointBorderColor:'#3B82F6',pointBorderWidth:2,borderWidth:2.5,order:1}
+        {label:'Pago',data:pagoArr,backgroundColor:'rgba(5,150,105,.85)',borderRadius:4,borderSkipped:false,order:2},
+        {label:'A pagar',data:apagarArr,backgroundColor:'rgba(245,158,11,.75)',borderRadius:4,borderSkipped:false,order:2},
+        {label:'Acumulado',data:acum,type:'line',yAxisID:'yAcum',borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.4,pointRadius:nCols>24?2:4,pointBackgroundColor:'#fff',pointBorderColor:'#3B82F6',pointBorderWidth:2,borderWidth:2.5,order:1}
       ]
     },
     options:{
@@ -985,7 +1062,7 @@ function renderAcumuladoMensal(ano){
         tooltip:{callbacks:{label:function(ctx){return ' '+ctx.dataset.label+': '+formatBRL(ctx.raw);}}}
       },
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:11},color:'#6B7280'}},
+        x:{grid:{display:false},ticks:{font:{size:nCols>24?9:11},color:'#6B7280',maxRotation:45,minRotation:0}},
         y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},color:'#9CA3AF',callback:function(v){return 'R$'+Math.round(v/1000)+'K';}}},
         yAcum:{position:'right',grid:{display:false},ticks:{font:{size:10},color:'#3B82F6',callback:function(v){return 'R$'+Math.round(v/1000)+'K';}}}
       }
