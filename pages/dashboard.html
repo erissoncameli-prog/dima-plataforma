@@ -1027,21 +1027,21 @@ function renderExecucao(){
   var _brl_pctPago=_brl_contratado>0?(_brl_pago/_brl_contratado*100):0;
 
   var h='<div style="display:flex;gap:14px;margin-bottom:14px;align-items:stretch">';
-  // --- Coluna esquerda: dois donuts empilhados verticalmente ---
-  h+='<div style="display:flex;flex-direction:column;gap:10px;flex:0 0 620px;min-width:0">';
-  h+='<div class="ch" style="flex:1">';
-  h+='<div class="ch-tit" style="font-size:12px">Execução financeira</div>';
-  h+='<div class="ch-sub" style="font-size:10px;margin-bottom:6px">USD — independente de filtros</div>';
-  h+='<div style="display:flex;align-items:center;gap:20px">';
-  h+='<div style="position:relative;width:180px;height:180px;flex-shrink:0"><canvas id="ch-proj-donut"></canvas></div>';
-  h+='<div id="leg-proj-donut" style="flex:1;min-width:0"></div>';
+  // --- Coluna esquerda: dois donuts lado a lado ---
+  h+='<div style="display:flex;flex-direction:row;gap:10px;flex:0 0 380px;min-width:0">';
+  h+='<div class="ch" style="flex:1;min-width:0">';
+  h+='<div class="ch-tit" style="font-size:11px">Execução financeira</div>';
+  h+='<div class="ch-sub" style="font-size:10px;margin-bottom:6px">USD — indep. filtros</div>';
+  h+='<div style="display:flex;flex-direction:column;align-items:center;gap:8px">';
+  h+='<div style="position:relative;width:120px;height:120px"><canvas id="ch-proj-donut"></canvas></div>';
+  h+='<div id="leg-proj-donut" style="width:100%"></div>';
   h+='</div></div>';
-  h+='<div class="ch" style="flex:1">';
-  h+='<div class="ch-tit" style="font-size:12px">Contratos — BRL</div>';
+  h+='<div class="ch" style="flex:1;min-width:0">';
+  h+='<div class="ch-tit" style="font-size:11px">Contratos — BRL</div>';
   h+='<div class="ch-sub" style="font-size:10px;margin-bottom:6px">Contratado × Pago × A pagar</div>';
-  h+='<div style="display:flex;align-items:center;gap:20px">';
-  h+='<div style="position:relative;width:180px;height:180px;flex-shrink:0"><canvas id="ch-contr-donut"></canvas></div>';
-  h+='<div id="leg-contr-donut" style="flex:1;min-width:0"></div>';
+  h+='<div style="display:flex;flex-direction:column;align-items:center;gap:8px">';
+  h+='<div style="position:relative;width:120px;height:120px"><canvas id="ch-contr-donut"></canvas></div>';
+  h+='<div id="leg-contr-donut" style="width:100%"></div>';
   h+='</div></div>';
   h+='</div>';
   // --- Coluna direita: gráfico acumulado ---
