@@ -2,10 +2,19 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk'
 import JSZip from 'npm:jszip'
 
-const CORS = {
-  'Access-Control-Allow-Origin': 'https://erissoncameli-prog.github.io',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('origin') || ''
+  const allowed = [
+    'https://erissoncameli-prog.github.io',
+    'https://fundobrasilonu-plataforma.vercel.app',
+  ]
+  const allowedOrigin = allowed.includes(origin) ? origin : allowed[0]
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  }
 }
+const CORS = getCorsHeaders
 
 // ── SYSTEM PROMPT ────────────────────────────────────────────────
 const SYSTEM_PROMPT = `Você é um agente especializado em analisar Termos de Referência (TDRs) de projetos de cooperação internacional, especificamente projetos de conservação ambiental com financiamento UNESCO.
