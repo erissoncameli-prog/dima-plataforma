@@ -495,7 +495,7 @@ async function carregarNotificacoes() {
   // Auto-marcar como lida as que já foram atendidas
   if (jaAtendidas.length) {
     db.from('notificacoes')
-      .update({ lida: true, lida_em: new Date().toISOString(), atendida_por_outro: true })
+      .update({ lida: true, lida_em: new Date().toISOString() })
       .in('id', jaAtendidas)
       .then(() => {}).catch(() => {});
   }
