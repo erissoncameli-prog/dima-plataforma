@@ -804,6 +804,33 @@ function renderPagina(){
     </div>
   </div>
 
+  <!-- Modal: Relatório Analítico Ambiental -->
+  <div class="modal-overlay" id="modal-relatorio" style="display:none;z-index:9998;padding:12px">
+    <div style="display:flex;flex-direction:column;width:100%;max-width:1200px;margin:0 auto;background:#fff;border-radius:16px;height:100%;max-height:calc(100vh - 24px);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--borda);flex-shrink:0" class="rel-header-btns">
+        <div style="flex:1;min-width:0">
+          <h2 style="margin:0;font-size:16px;font-weight:700;color:var(--cinza-900)">📊 Relatório Analítico Ambiental</h2>
+          <p style="margin:2px 0 0;font-size:11px;color:var(--cinza-500)">APA Igarapé São Francisco · Gerado automaticamente a partir das camadas de delimitação</p>
+        </div>
+        <button onclick="exportarRelCSV()" class="btn btn-outline" style="font-size:12px;display:flex;align-items:center;gap:5px;flex-shrink:0">⬇ CSV</button>
+        <button onclick="exportarRelPDF()" class="btn btn-outline" style="font-size:12px;display:flex;align-items:center;gap:5px;flex-shrink:0">🖨 PDF</button>
+        <button onclick="fecharRelatorioAmbiental()" class="btn-close" style="flex-shrink:0">✕</button>
+      </div>
+      <!-- Abas -->
+      <div style="display:flex;border-bottom:1px solid var(--borda);flex-shrink:0;background:var(--cinza-50);overflow-x:auto">
+        <button class="rel-tab ativo" data-aba="visao-geral"  onclick="_abaRelatorio('visao-geral')">📊 Visão Geral</button>
+        <button class="rel-tab"       data-aba="subbacias"    onclick="_abaRelatorio('subbacias')">🗺 Sub-bacias</button>
+        <button class="rel-tab"       data-aba="hidrografia"  onclick="_abaRelatorio('hidrografia')">💧 Hidrografia</button>
+        <button class="rel-tab"       data-aba="relatorio"    onclick="_abaRelatorio('relatorio')">📝 Relatório Textual</button>
+      </div>
+      <!-- Corpo -->
+      <div id="rel-body" style="flex:1;overflow-y:auto;padding:20px;background:var(--cinza-50);">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--cinza-400);font-size:14px">Carregando análise…</div>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-senha-confirm" style="display:none;z-index:10000">
     <div class="modal-box" style="max-width:400px">
       <div class="modal-header">
