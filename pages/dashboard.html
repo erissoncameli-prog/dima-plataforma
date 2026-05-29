@@ -1322,6 +1322,7 @@ function renderAcumuladoMensal(modo){
   destroyChart('ch-acumulado-mensal');
   var el=document.getElementById('ch-acumulado-mensal');
   if(!el)return;
+  destroyChart('ch-acumulado-mensal');
   CHARTS['ch-acumulado-mensal']=new Chart(el,{
     type:'bar',
     data:{
