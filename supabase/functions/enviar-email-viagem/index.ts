@@ -7,10 +7,116 @@ const CORS = {
 }
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
-const SITE_URL = 'https://erissoncameli-prog.github.io/dima-plataforma'
+const SITE_URL  = 'https://erissoncameli-prog.github.io/dima-plataforma'
+const ASSETS    = `${SITE_URL}/assets`
+
+// ── Wrapper HTML com barra de logos (mesmo padrão de enviar-email-produto) ────
+function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): string {
+  const linhas = corpo.split('\n')
+  let html = ''
+  let emBloco = false
+
+  for (const linha of linhas) {
+    const isItem    = /^[A-ZÇÁÉÍÓÚÃÕ\s]{3,15}\s*:/.test(linha)
+    const isParecer = linha.startsWith('MOTIVO') || linha.startsWith('DESPACHO')
+
+    if (isParecer) {
+      if (emBloco) { html += '</table>'; emBloco = false }
+      html += `<p style="margin:4px 0 2px;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.04em">${linha}</p>`
+    } else if (isItem) {
+      if (!emBloco) { html += '<table style="width:100%;border-collapse:collapse;margin:12px 0">'; emBloco = true }
+      const sep   = linha.indexOf(':')
+      const chave = linha.slice(0, sep).trim()
+      const valor = linha.slice(sep + 1).trim()
+      const valorHtml = valor.match(/^https?:\/\//)
+        ? `<a href="${valor}" style="color:#059669;word-break:break-all">${valor}</a>`
+        : (valor || '—')
+      html += `<tr>
+        <td style="padding:4px 10px 4px 0;font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap;vertical-align:top;width:110px">${chave}</td>
+        <td style="padding:4px 0;font-size:13px;color:#111827;vertical-align:top">${valorHtml}</td>
+      </tr>`
+    } else {
+      if (emBloco) { html += '</table>'; emBloco = false }
+      if (linha.trim() === '') {
+        html += '<br>'
+      } else {
+        html += `<p style="margin:4px 0;font-size:13px;color:#1F2937;line-height:1.6">${linha}</p>`
+      }
+    }
+  }
+  if (emBloco) html += '</table>'
+
+  if (linkBtn) {
+    html += `
+      <div style="margin:24px 0 8px;text-align:center">
+        <a href="${linkBtn.url}" style="display:inline-block;background:#166534;color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;letter-spacing:.02em">${linkBtn.label}</a>
+      </div>
+      <p style="margin:8px 0 0;font-size:11px;color:#9CA3AF;text-align:center">
+        Se o botão não funcionar, copie e cole este link no navegador:<br>
+        <span style="color:#059669;word-break:break-all">${linkBtn.url}</span>
+      </p>`
+  }
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+
+  <!-- Cabeçalho verde -->
+  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="vertical-align:middle">
+          <img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0">
+        </td>
+        <td style="vertical-align:middle;text-align:right">
+          <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Plataforma de Gestão</span><br>
+          <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
+          <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Barra de logos parceiros -->
+  <tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/1695134345-1-horizontal-verde-solo.png"          alt="SEMA/AC"             height="32" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNESCO_logo_hor_blue_transparent.png.png"        alt="UNESCO"              height="28" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil"          height="28" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-fundo-brasil-onu.png"                       alt="Fundo Brasil-ONU"   height="32" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-consorcio-amazonia.png"                     alt="Consórcio Amazônia" height="36" style="display:block;border:0"></td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Corpo -->
+  <tr><td style="background:#ffffff;padding:28px 24px 20px">
+    ${html}
+  </td></tr>
+
+  <!-- Rodapé -->
+  <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
+    <p style="margin:0;font-size:11px;color:#6B7280">
+      Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
+      <a href="mailto:fundobrasilonuacre@gmail.com" style="color:#059669;text-decoration:none">fundobrasilonuacre@gmail.com</a>
+      &nbsp;·&nbsp;
+      <a href="${SITE_URL}" style="color:#059669;text-decoration:none">Acessar Plataforma</a>
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
+}
 
 async function gerarTokenPrestacao(supabase: any, viajante_id: string, protocolo_id: string): Promise<string> {
-  // Reutiliza token válido existente para o mesmo viajante
   const { data: existing } = await supabase
     .from('prestacao_tokens')
     .select('token')
@@ -34,54 +140,56 @@ function fmtData(s: string | null): string {
   return `${parts[2]}/${parts[1]}/${parts[0]}`
 }
 
+const ASS = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC\nfundobrasilonuacre@gmail.com`
+
+type Tpl = { assunto: string; corpo: string; linkBtn?: { url: string; label: string } }
+
 // ── Templates criador (mensagem detalhada) ────────────────────────────────────
-function tplCriador(evento: string, p: any): { assunto: string; corpo: string } | null {
-  const num    = p.numero || '—'
-  const sei    = p.numero_sei ? ` | SEI: ${p.numero_sei}` : ''
-  const dest   = p.destino_principal || '—'
-  const saida  = fmtData(p.dt_saida)
-  const ret    = fmtData(p.dt_retorno)
-  const obj    = p.objetivo || '—'
-  const viaj   = (p.viajantes || [])
+function tplCriador(evento: string, p: any): Tpl | null {
+  const num   = p.numero || '—'
+  const sei   = p.numero_sei ? ` | SEI: ${p.numero_sei}` : ''
+  const dest  = p.destino_principal || '—'
+  const saida = fmtData(p.dt_saida)
+  const ret   = fmtData(p.dt_retorno)
+  const obj   = p.objetivo || '—'
+  const viaj  = (p.viajantes || [])
     .map((v: any) => `  • ${v.nome || '—'} (${v.funcao || '—'})`)
     .join('\n') || '  —'
-
-  const ass = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC\nfundobrasilonuacre@gmail.com`
 
   if (evento === 'solicitado') return {
     assunto: `[DIMA] Protocolo ${num} — Solicitação registrada`,
     corpo: `Prezado(a) solicitante,
 
-Sua solicitação de viagem foi registrada com sucesso na Plataforma FundoBrasilONU.
+Sua solicitação de viagem foi registrada com sucesso na Plataforma DIMA.
 
-PROTOCOLO: ${num}${sei}
-DESTINO: ${dest}
-PERÍODO: ${saida} a ${ret}
-OBJETIVO: ${obj}
+PROTOCOLO : ${num}${sei}
+DESTINO   : ${dest}
+PERÍODO   : ${saida} a ${ret}
+OBJETIVO  : ${obj}
 
 VIAJANTES:
 ${viaj}
 
-A solicitação está aguardando análise e aprovação pela coordenação. Você será notificado(a) sobre os próximos passos.
-
-Acompanhe o andamento pela Plataforma FundoBrasilONU.${ass}`,
+A solicitação está aguardando análise e aprovação pela coordenação. Você será notificado(a) sobre os próximos passos.${ASS}`,
+    linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Acompanhar na Plataforma' },
   }
 
   if (evento === 'aprovado') return {
     assunto: `[DIMA] Protocolo ${num} — APROVADO ✓`,
     corpo: `Prezado(a) solicitante,
 
-Sua solicitação de viagem foi APROVADA.
+A solicitação de viagem foi APROVADA.
 
-PROTOCOLO: ${num}${sei}
-DESTINO: ${dest}
-PERÍODO: ${saida} a ${ret}
-OBJETIVO: ${obj}
+PROTOCOLO : ${num}${sei}
+DESTINO   : ${dest}
+PERÍODO   : ${saida} a ${ret}
+OBJETIVO  : ${obj}
 
 VIAJANTES APROVADOS:
 ${viaj}
 
-Os respectivos SPDs (passagens e/ou diárias) serão processados junto à UNESCO. Acompanhe o andamento pela Plataforma FundoBrasilONU.${ass}`,
+Os respectivos SPDs (passagens e/ou diárias) serão processados junto à UNESCO.${ASS}`,
+    linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Ver na Plataforma' },
   }
 
   if (evento === 'rejeitado') return {
@@ -90,9 +198,10 @@ Os respectivos SPDs (passagens e/ou diárias) serão processados junto à UNESCO
 
 Informamos que o Protocolo ${num} não foi aprovado.
 
-MOTIVO: ${p.rejeitado_motivo || '—'}
+MOTIVO:
+${p.rejeitado_motivo || '—'}
 
-Caso necessário, entre em contato com a coordenação do projeto para esclarecimentos ou realize os ajustes indicados e reenvie a solicitação.${ass}`,
+Caso necessário, entre em contato com a coordenação do projeto para esclarecimentos ou realize os ajustes indicados e reenvie a solicitação.${ASS}`,
   }
 
   if (evento === 'em_prestacao') return {
@@ -101,24 +210,28 @@ Caso necessário, entre em contato com a coordenação do projeto para esclareci
 
 O Protocolo ${num} entrou na fase de prestação de contas.
 
-DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
+PROTOCOLO : ${num}${sei}
+DESTINO   : ${dest}
+PERÍODO   : ${saida} a ${ret}
 
-Solicitamos que cada viajante acesse a Plataforma FundoBrasilONU e submeta os documentos obrigatórios:
+Solicitamos que cada viajante acesse a Plataforma DIMA e submeta os documentos obrigatórios:
   • Relatório de viagem (PDF assinado)
-  • Cartões de embarque (ida e volta)
-
-Acesse a Plataforma FundoBrasilONU → Viagens → Protocolo ${num} → "Prestação de contas".${ass}`,
+  • Cartões de embarque (ida e volta)${ASS}`,
+    linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '📋 Gerenciar Prestação de Contas' },
   }
 
   if (evento === 'realizado') return {
     assunto: `[DIMA] Protocolo ${num} — Concluído ✓`,
     corpo: `Prezado(a) solicitante,
 
-O Protocolo ${num} foi concluído e encerrado com sucesso na Plataforma FundoBrasilONU.
+O Protocolo ${num} foi concluído e encerrado com sucesso na Plataforma DIMA.
 
-DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
+PROTOCOLO : ${num}${sei}
+DESTINO   : ${dest}
+PERÍODO   : ${saida} a ${ret}
 
-Os valores correspondentes foram lançados no módulo financeiro da Plataforma FundoBrasilONU.${ass}`,
+Os valores correspondentes foram lançados no módulo financeiro.${ASS}`,
+    linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Ver na Plataforma' },
   }
 
   if (evento === 'cancelado') return {
@@ -127,22 +240,22 @@ Os valores correspondentes foram lançados no módulo financeiro da Plataforma F
 
 Informamos que o Protocolo ${num} foi CANCELADO.
 
-PROTOCOLO: ${num}${sei}
-DESTINO: ${dest}
-PERÍODO: ${saida} a ${ret}
-OBJETIVO: ${obj}
+PROTOCOLO : ${num}${sei}
+DESTINO   : ${dest}
+PERÍODO   : ${saida} a ${ret}
+OBJETIVO  : ${obj}
 
 DESPACHO DE CANCELAMENTO:
 ${p.cancelado_motivo || '—'}
 
-Caso tenha dúvidas, entre em contato com a equipe de gestão do projeto.${ass}`,
+Caso tenha dúvidas, entre em contato com a equipe de gestão do projeto.${ASS}`,
   }
 
   return null
 }
 
 // ── Templates viajante (mensagem simplificada) ────────────────────────────────
-function tplViajante(evento: string, p: any, v: any, linkPrestacao?: string): { assunto: string; corpo: string } | null {
+function tplViajante(evento: string, p: any, v: any, linkPrestacao?: string): Tpl | null {
   const num   = p.numero || '—'
   const dest  = p.destino_principal || '—'
   const saida = fmtData(p.dt_saida)
@@ -150,20 +263,18 @@ function tplViajante(evento: string, p: any, v: any, linkPrestacao?: string): { 
   const obj   = p.objetivo || '—'
   const nome  = v.nome || 'Prezado(a)'
 
-  const ass = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC`
-
   if (evento === 'solicitado') return {
     assunto: `[DIMA] Você foi incluído(a) no Protocolo ${num}`,
     corpo: `Prezado(a) ${nome},
 
-Informamos que você foi incluído(a) em uma solicitação de viagem na Plataforma FundoBrasilONU.
+Informamos que você foi incluído(a) em uma solicitação de viagem na Plataforma DIMA.
 
-PROTOCOLO: ${num}
-DESTINO: ${dest}
-PERÍODO: ${saida} a ${ret}
-OBJETIVO: ${obj}
+PROTOCOLO : ${num}
+DESTINO   : ${dest}
+PERÍODO   : ${saida} a ${ret}
+OBJETIVO  : ${obj}
 
-A solicitação está em análise. Você receberá uma nova notificação quando houver aprovação.${ass}`,
+A solicitação está em análise. Você receberá uma nova notificação quando houver aprovação.${ASS}`,
   }
 
   if (evento === 'aprovado') return {
@@ -172,11 +283,11 @@ A solicitação está em análise. Você receberá uma nova notificação quando
 
 Sua participação no Protocolo ${num} foi aprovada.
 
-DESTINO: ${dest}
-PERÍODO: ${saida} a ${ret}
-OBJETIVO: ${obj}
+DESTINO  : ${dest}
+PERÍODO  : ${saida} a ${ret}
+OBJETIVO : ${obj}
 
-As passagens e/ou diárias serão processadas pela equipe responsável. Fique atento(a) às orientações da coordenação.${ass}`,
+As passagens e/ou diárias serão processadas pela equipe responsável. Fique atento(a) às orientações da coordenação.${ASS}`,
   }
 
   if (evento === 'em_prestacao') return {
@@ -185,29 +296,31 @@ As passagens e/ou diárias serão processadas pela equipe responsável. Fique at
 
 O Protocolo ${num} está na fase de prestação de contas.
 
-DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
-OBJETIVO: ${obj}
+DESTINO  : ${dest}
+PERÍODO  : ${saida} a ${ret}
+OBJETIVO : ${obj}
 
 Por favor, envie os documentos obrigatórios:
   • Relatório de viagem (PDF assinado)
   • Cartões de embarque (ida e volta)
 
-${linkPrestacao
-  ? `➡ ENVIAR DOCUMENTOS AGORA (sem precisar de login):\n${linkPrestacao}\n\nOu acesse: Sistema DIMA → Viagens → Protocolo ${num} → "Prestação de contas".`
-  : `Acesse: Sistema DIMA → Viagens → Protocolo ${num} → "Prestação de contas".`
-}${ass}`,
+Você pode enviar os documentos sem precisar de login utilizando o botão abaixo.${ASS}`,
+    linkBtn: linkPrestacao
+      ? { url: linkPrestacao, label: '📤 Enviar Documentos Agora' }
+      : { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Acessar Plataforma DIMA' },
   }
 
   if (evento === 'realizado') return {
     assunto: `[DIMA] Protocolo ${num} — Encerrado`,
     corpo: `Prezado(a) ${nome},
 
-Informamos que o Protocolo ${num} foi encerrado com sucesso na Plataforma FundoBrasilONU.
+Informamos que o Protocolo ${num} foi encerrado com sucesso na Plataforma DIMA.
 
-DESTINO: ${dest}  |  PERÍODO: ${saida} a ${ret}
-OBJETIVO: ${obj}
+DESTINO  : ${dest}
+PERÍODO  : ${saida} a ${ret}
+OBJETIVO : ${obj}
 
-Obrigado(a) pela sua participação!${ass}`,
+Obrigado(a) pela sua participação!${ASS}`,
   }
 
   if (evento === 'cancelado') return {
@@ -216,11 +329,11 @@ Obrigado(a) pela sua participação!${ass}`,
 
 Informamos que o Protocolo ${num} foi CANCELADO.
 
-DESTINO: ${dest}
-PERÍODO: ${saida} a ${ret}
-OBJETIVO: ${obj}
+DESTINO  : ${dest}
+PERÍODO  : ${saida} a ${ret}
+OBJETIVO : ${obj}
 
-Em caso de dúvidas, entre em contato com a equipe de gestão do projeto.${ass}`,
+Em caso de dúvidas, entre em contato com a equipe de gestão do projeto.${ASS}`,
   }
 
   return null
@@ -239,7 +352,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Buscar protocolo + viajantes
     const { data: proto, error: errProto } = await supabase
       .from('viagem_protocolos')
       .select('*, viajantes:viagem_viajantes(id, nome, funcao, email)')
@@ -248,15 +360,13 @@ Deno.serve(async (req) => {
 
     if (errProto || !proto) throw new Error('Protocolo não encontrado')
 
-    // Buscar e-mail do criador via auth.admin
     let criadorEmail: string | null = null
     if (proto.criado_por) {
       const { data: usr } = await supabase.auth.admin.getUserById(proto.criado_por)
       criadorEmail = usr?.user?.email ?? null
     }
 
-    // Montar lista de envios
-    const envios: Array<{ to: string; assunto: string; corpo: string }> = []
+    const envios: Array<{ to: string; assunto: string; corpo: string; linkBtn?: { url: string; label: string } }> = []
 
     if (criadorEmail) {
       const tpl = tplCriador(evento, proto)
@@ -265,14 +375,14 @@ Deno.serve(async (req) => {
 
     for (const v of (proto.viajantes || [])) {
       if (!v.email) continue
-      if (v.email === criadorEmail) continue  // criador já recebeu msg detalhada
+      if (v.email === criadorEmail) continue
 
       let linkPrestacao: string | undefined
       if (evento === 'em_prestacao' && v.id) {
         try {
           const tk = await gerarTokenPrestacao(supabase, v.id, protocolo_id)
           linkPrestacao = `${SITE_URL}/pages/prestacao-publica.html?token=${tk}`
-        } catch (_) { /* não crítico — e-mail vai sem link */ }
+        } catch (_) { /* não crítico */ }
       }
 
       const tpl = tplViajante(evento, proto, v, linkPrestacao)
@@ -286,7 +396,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Enviar via Gmail SMTP
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
@@ -304,6 +413,7 @@ Deno.serve(async (req) => {
           to: e.to,
           subject: e.assunto,
           text: e.corpo,
+          html: wrapHtml(e.corpo, e.linkBtn),
         })
       )
     )
