@@ -1131,6 +1131,70 @@ async function renderTarefas() {
   var notifAval   = rNotifAval.data   || [];
   var notifDev    = rNotifDev.data    || [];
   var notifOutras = rNotifOutras.data || [];
+
+  // ── Verificar status atual das entidades para detectar notificações já atendidas ──
+  // Garante que o painel não mostre "pendente" para itens que outro usuário já resolveu.
+  var prodIdsAval  = notifAval.filter(function(n){ return n.entidade_id; }).map(function(n){ return n.entidade_id; });
+  var prodIdsDev   = notifDev.filter(function(n){ return n.entidade_id; }).map(function(n){ return n.entidade_id; });
+  var viagIds      = notifOutras.filter(function(n){ return n.tipo==='viagem_solicitada' && n.entidade_id; }).map(function(n){ return n.entidade_id; });
+  var tdrIdsOut    = notifOutras.filter(function(n){ return n.tipo==='tdr_para_revisar' && n.entidade_id; }).map(function(n){ return n.entidade_id; });
+
+  var statusProdAval = {}, statusProdDev = {}, statusViag = {}, statusTdrOut = {};
+  await Promise.all([
+    prodIdsAval.length && db.from('contratos_produtos').select('id,situacao').in('id', prodIdsAval)
+      .then(function(r){ (r.data||[]).forEach(function(p){ statusProdAval[p.id]=p.situacao; }); }),
+    prodIdsDev.length  && db.from('contratos_produtos').select('id,situacao').in('id', prodIdsDev)
+      .then(function(r){ (r.data||[]).forEach(function(p){ statusProdDev[p.id]=p.situacao; }); }),
+    viagIds.length     && db.from('viagem_protocolos').select('id,situacao').in('id', viagIds)
+      .then(function(r){ (r.data||[]).forEach(function(v){ statusViag[v.id]=v.situacao; }); }),
+    tdrIdsOut.length   && db.from('tdrs').select('id,status').in('id', tdrIdsOut)
+      .then(function(r){ (r.data||[]).forEach(function(t){ statusTdrOut[t.id]=t.status; }); }),
+  ].filter(Boolean));
+
+  // Separar notifAval em ativas vs já atendidas por outro usuário
+  var notifAvalAtivas = [], notifAvalAtendidas = [];
+  notifAval.forEach(function(n) {
+    var sit = statusProdAval[n.entidade_id];
+    if (sit && sit !== 'em_analise') notifAvalAtendidas.push(n);
+    else notifAvalAtivas.push(n);
+  });
+  // Separar notifDev: se produto não está mais "devolvido" (foi resubmetido), já foi atendido
+  var notifDevAtivas = [], notifDevAtendidas = [];
+  notifDev.forEach(function(n) {
+    var sit = statusProdDev[n.entidade_id];
+    // Permanece devolvido quando situação ainda indica pendência de correção
+    var pendDev = !sit || sit === 'devolvido' || sit === 'pendente';
+    if (pendDev) notifDevAtivas.push(n);
+    else notifDevAtendidas.push(n);
+  });
+  // Separar notifOutras: viagens aprovadas/rejeitadas e TDRs resolvidos
+  var notifOutrasPend = [], notifOutrasAtend = [];
+  var tdrPendentes = ['rascunho','revisao_interna','enviado_unesco','retorno_unesco','submetido','pendente_correcao'];
+  notifOutras.forEach(function(n) {
+    var atendido = false;
+    if (n.tipo === 'viagem_solicitada' && n.entidade_id) {
+      var sit = statusViag[n.entidade_id];
+      if (sit && sit !== 'solicitado') atendido = true;
+    } else if (n.tipo === 'tdr_para_revisar' && n.entidade_id) {
+      var sit = statusTdrOut[n.entidade_id];
+      if (sit && !tdrPendentes.includes(sit)) atendido = true;
+    }
+    if (atendido) notifOutrasAtend.push(n);
+    else notifOutrasPend.push(n);
+  });
+
+  // Auto-marcar como lida as que já foram atendidas (disparo sem aguardar)
+  var idsParaMarcar = notifAvalAtendidas.concat(notifDevAtendidas).concat(notifOutrasAtend).map(function(n){ return n.id; });
+  if (idsParaMarcar.length) {
+    db.from('notificacoes').update({ lida: true, lida_em: new Date().toISOString() })
+      .in('id', idsParaMarcar).then(function(){}).catch(function(){});
+  }
+
+  // Usar listas filtradas daqui em diante
+  notifAval   = notifAvalAtivas;
+  notifDev    = notifDevAtivas;
+  notifOutras = notifOutrasPend;
+
   var perfil   = appState.perfil;
   var nome     = appState.usuario?.nome_completo?.split(' ')[0] || '';
   var hora     = new Date().getHours();
