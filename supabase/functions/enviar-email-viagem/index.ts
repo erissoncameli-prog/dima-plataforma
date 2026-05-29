@@ -7,7 +7,7 @@ const CORS = {
 }
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
-const SITE_URL  = 'https://erissoncameli-prog.github.io/dima-plataforma'
+const SITE_URL  = 'https://fundobrasilonu-plataforma.vercel.app'
 const ASSETS    = `${SITE_URL}/assets`
 
 // ── Wrapper HTML com barra de logos (mesmo padrão de enviar-email-produto) ────

@@ -457,12 +457,34 @@ function mudarAba(aba, pushState=true){
 // ══════════════════════════════════════════════════════════════
 // BENEFICIÁRIOS
 // ══════════════════════════════════════════════════════════════
-let todosbenef=[], benefEditando=null;
+let todosbenef=[], benefEditando=null, cpfsPendentes=new Set(), emailsPendentes=new Map();
 
 async function carregarBenef(){
-  const{data}=await db.from('beneficiarios').select('*').order('nome');
-  todosbenef=data||[];
+  const[{data:benefs},{data:viaj}]=await Promise.all([
+    db.from('beneficiarios').select('*').order('nome'),
+    db.from('viagem_viajantes')
+      .select('cpf,email,relatorio_url,protocolo:viagem_protocolos(numero,situacao)')
+      .is('relatorio_url',null)
+  ]);
+  todosbenef=benefs||[];
+
+  // Mapear CPFs e e-mails com prestação pendente
+  cpfsPendentes=new Set();
+  emailsPendentes=new Map();
+  for(const v of viaj||[]){
+    const sit=v.protocolo?.situacao;
+    if(!['em_prestacao','realizado'].includes(sit)) continue;
+    if(v.cpf) cpfsPendentes.add(v.cpf.replace(/\D/g,''));
+    if(v.email) emailsPendentes.set(v.email.toLowerCase(), v.protocolo?.numero||'');
+  }
+
   filtrarBenef();
+}
+
+function temPrestacaoPendente(b){
+  if(b.cpf && cpfsPendentes.has(b.cpf.replace(/\D/g,''))) return true;
+  if(b.email && emailsPendentes.has(b.email.toLowerCase())) return true;
+  return false;
 }
 
 function filtrarBenef(){
