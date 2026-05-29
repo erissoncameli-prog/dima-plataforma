@@ -1,4 +1,4 @@
-// ── DIMA UNESCO · Importar Arquivo do Google Drive ───────────────────────────
+﻿// ── DIMA UNESCO · Importar Arquivo do Google Drive ───────────────────────────
 // Baixa um arquivo do Google Drive no servidor e salva no Supabase Storage.
 // Evita CORS e a necessidade de download manual pelo usuário.
 

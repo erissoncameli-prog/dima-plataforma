@@ -1,19 +1,14 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
+﻿import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { Buffer } from 'node:buffer'
 
-const ALLOWED_ORIGINS = [
-  'https://erissoncameli-prog.github.io',
-  'https://fundobrasilonu-plataforma.vercel.app',
-]
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-function corsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get('origin') || ''
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  }
+function corsHeaders(_req: Request): Record<string, string> {
+  return CORS
 }
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'

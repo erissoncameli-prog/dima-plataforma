@@ -1,9 +1,9 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
+﻿import { createClient } from 'npm:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk'
 import JSZip from 'npm:jszip'
 
 const CORS = {
-  'Access-Control-Allow-Origin': 'https://erissoncameli-prog.github.io',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 

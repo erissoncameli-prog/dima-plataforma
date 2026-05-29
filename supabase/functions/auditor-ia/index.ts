@@ -1,4 +1,4 @@
-/**
+﻿/**
  * auditor-ia — Agente auditor multi-domínio do projeto DIMA UNESCO
  *
  * Arquitetura: 6 "agentes especialistas" (cada um responsável por um domínio)
@@ -12,7 +12,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk'
 
 const CORS = {
-  'Access-Control-Allow-Origin': 'https://erissoncameli-prog.github.io',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 

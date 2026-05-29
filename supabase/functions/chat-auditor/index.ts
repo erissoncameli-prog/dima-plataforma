@@ -1,4 +1,4 @@
-// ── DIMA UNESCO · Chat Auditor Edge Function ──────────────────────
+﻿// ── DIMA UNESCO · Chat Auditor Edge Function ──────────────────────
 // Stateful conversational assistant that answers questions about
 // audit findings using Claude + full conversation history.
 // v4: enriched context — detects contract numbers and fetches live data.
@@ -7,7 +7,7 @@ import Anthropic from 'npm:@anthropic-ai/sdk'
 import { createClient } from 'npm:@supabase/supabase-js'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://erissoncameli-prog.github.io',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
