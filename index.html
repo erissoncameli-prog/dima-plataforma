@@ -1059,12 +1059,29 @@ async function fazerLogin(){
       erroEl.style.display='block';return;
     }
     if(usuario?.idioma_pref)localStorage.setItem('dima_idioma',usuario.idioma_pref);
-    if(usuario?.deve_trocar_senha){
-      window.location.href='pages/trocar-senha.html';
+    const paginaDestino = usuario?.deve_trocar_senha
+      ? 'pages/trocar-senha.html'
+      : (localStorage.getItem('dima_redirect') || 'pages/dashboard.html');
+    localStorage.removeItem('dima_redirect');
+    // Aguarda o evento SIGNED_IN do SDK para garantir que o token
+    // foi persistido no localStorage antes de navegar para outra página.
+    // Sem isso, getSession() na próxima página pode retornar null
+    // intermitentemente e redirecionar de volta ao login.
+    const { data: { session: sessaoAtual } } = await db.auth.getSession();
+    if (sessaoAtual) {
+      window.location.replace(paginaDestino);
     } else {
-      const destino=localStorage.getItem('dima_redirect');
-      localStorage.removeItem('dima_redirect');
-      window.location.href=destino||'pages/dashboard.html';
+      await new Promise(resolve => {
+        const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_IN' && session) {
+            subscription.unsubscribe();
+            resolve();
+          }
+        });
+        // Fallback: se o evento demorar mais de 3s, navega mesmo assim
+        setTimeout(resolve, 3000);
+      });
+      window.location.replace(paginaDestino);
     }
   }catch(e){erroEl.textContent=t.erro_gen;erroEl.style.display='block';}
   finally{btn.disabled=false;spinner.style.display='none';btnTexto.style.opacity='1';}
