@@ -1105,9 +1105,38 @@ function renderExecucao(){
         ctx.restore();
       }
     };
+    var projSliceLabels={
+      id:'projSliceLabels',
+      afterDraw:function(chart){
+        var ctx=chart.ctx;
+        var meta=chart.getDatasetMeta(0);
+        var data=chart.data.datasets[0].data;
+        var labels=chart.data.labels;
+        var cors=['#fff','#fff','#fff','#6B7280'];
+        var total=data.reduce(function(s,v){return s+(v||0);},0);
+        meta.data.forEach(function(arc,i){
+          if(!data[i]||total===0)return;
+          var pct=data[i]/total*100;
+          if(pct<4)return;
+          var angle=(arc.startAngle+arc.endAngle)/2;
+          var r=(arc.outerRadius+arc.innerRadius)/2;
+          var x=arc.x+Math.cos(angle)*r;
+          var y=arc.y+Math.sin(angle)*r;
+          ctx.save();
+          ctx.textAlign='center';
+          ctx.textBaseline='middle';
+          ctx.font='bold 10px Inter,sans-serif';
+          ctx.fillStyle=cors[i]||'#fff';
+          ctx.fillText(labels[i],x,y-7);
+          ctx.font='9px Inter,sans-serif';
+          ctx.fillText(pct.toFixed(1)+'%',x,y+6);
+          ctx.restore();
+        });
+      }
+    };
     mkChart('ch-proj-donut',{
       type:'doughnut',
-      plugins:[centerPlugin],
+      plugins:[centerPlugin,projSliceLabels],
       data:{
         labels:['Pago','A pagar','Comprometido (TDR)','Saldo livre'],
         datasets:[{
@@ -1117,27 +1146,8 @@ function renderExecucao(){
           borderColor:'#fff'
         }]
       },
-      options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.raw;var pct=_orc>0?(v/_orc*100):0;return ' '+D_USD(v)+' ('+pct.toFixed(1)+'%)';}}}}
-      }
+      options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.raw;var pct=_orc>0?(v/_orc*100):0;return ' '+D_USD(v)+' ('+pct.toFixed(1)+'%)';}}}}}
     });
-    var legEl=document.getElementById('leg-proj-donut');
-    if(legEl){
-      var items=[
-        ['Pago','#059669',_pago],
-        ['A pagar','#F59E0B',_apagar],
-        ['Comprometido (TDR)','#D97706',_tdr],
-        ['Saldo livre','#E5E7EB',_livre]
-      ];
-      legEl.innerHTML=items.map(function(x){
-        var pct=_orc>0?(x[2]/_orc*100):0;
-        return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'+
-          '<div style="width:9px;height:9px;border-radius:2px;background:'+x[1]+';flex-shrink:0;border:1px solid rgba(0,0,0,.08)"></div>'+
-          '<div style="min-width:0"><div style="font-size:10px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+x[0]+'</div>'+
-          '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:#111827">'+D_USD(x[2])+'</div>'+
-          '<div style="font-size:9px;color:#9CA3AF">'+pct.toFixed(1)+'%</div></div>'+
-          '</div>';
-      }).join('');
-    }
 
     // Rosca contratos BRL
     var contrCenterPlugin={
