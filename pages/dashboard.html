@@ -1136,15 +1136,21 @@ async function renderTarefas() {
   // Garante que o painel não mostre "pendente" para itens que outro usuário já resolveu.
   var prodIdsAval  = notifAval.filter(function(n){ return n.entidade_id; }).map(function(n){ return n.entidade_id; });
   var prodIdsDev   = notifDev.filter(function(n){ return n.entidade_id; }).map(function(n){ return n.entidade_id; });
+  var prodIdsPag   = notifOutras.filter(function(n){ return n.tipo==='produto_aguarda_pagamento' && n.entidade_id; }).map(function(n){ return n.entidade_id; });
   var viagIds      = notifOutras.filter(function(n){ return n.tipo==='viagem_solicitada' && n.entidade_id; }).map(function(n){ return n.entidade_id; });
   var tdrIdsOut    = notifOutras.filter(function(n){ return n.tipo==='tdr_para_revisar' && n.entidade_id; }).map(function(n){ return n.entidade_id; });
 
-  var statusProdAval = {}, statusProdDev = {}, statusViag = {}, statusTdrOut = {};
+  // IDs únicos de contratos_produtos (aval + dev + pag)
+  var cpIdsUnicos = [...new Set([...prodIdsAval, ...prodIdsDev, ...prodIdsPag])];
+
+  var statusProdAval = {}, statusProdDev = {}, statusProdPag = {}, statusViag = {}, statusTdrOut = {};
   await Promise.all([
-    prodIdsAval.length && db.from('contratos_produtos').select('id,situacao').in('id', prodIdsAval)
-      .then(function(r){ (r.data||[]).forEach(function(p){ statusProdAval[p.id]=p.situacao; }); }),
-    prodIdsDev.length  && db.from('contratos_produtos').select('id,situacao').in('id', prodIdsDev)
-      .then(function(r){ (r.data||[]).forEach(function(p){ statusProdDev[p.id]=p.situacao; }); }),
+    cpIdsUnicos.length && db.from('contratos_produtos').select('id,situacao').in('id', cpIdsUnicos)
+      .then(function(r){ (r.data||[]).forEach(function(p){
+        statusProdAval[p.id] = p.situacao;
+        statusProdDev[p.id]  = p.situacao;
+        statusProdPag[p.id]  = p.situacao;
+      }); }),
     viagIds.length     && db.from('viagem_protocolos').select('id,situacao').in('id', viagIds)
       .then(function(r){ (r.data||[]).forEach(function(v){ statusViag[v.id]=v.situacao; }); }),
     tdrIdsOut.length   && db.from('tdrs').select('id,status').in('id', tdrIdsOut)
