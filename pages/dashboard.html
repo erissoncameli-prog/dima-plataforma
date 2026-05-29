@@ -459,7 +459,7 @@ function _popAcumulado(idx,ds,chart){
   var lanc=D.lancFilt||D.lanc;
   var nmMeses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var filtrados=lanc.filter(function(l){
-    var dt=l.dt_vencimento||l.dt_pagamento;if(!dt)return false;
+    var dt=l.dt_pagamento||l.dt_vencimento;if(!dt)return false;
     var d=new Date(dt+'T00:00:00');
     var lbFull=nmMeses[d.getMonth()]+'/'+String(d.getFullYear()).slice(2);
     var lbShort=nmMeses[d.getMonth()];
@@ -1255,7 +1255,7 @@ function _acumPopularBtns(){
   var el=document.getElementById('acum-btns');
   if(!el||el.childElementCount>0)return;
   var anosSet={};
-  D.lanc.forEach(function(l){var dt=l.dt_vencimento||l.dt_pagamento;if(dt){var y=new Date(dt+'T00:00:00').getFullYear();anosSet[y]=1;}});
+  D.lanc.forEach(function(l){var dt=l.dt_pagamento||l.dt_vencimento;if(dt){var y=new Date(dt+'T00:00:00').getFullYear();anosSet[y]=1;}});
   var anos=Object.keys(anosSet).map(Number).sort();
   var btnStyle='font-size:11px;font-family:var(--font-sans);border:1px solid var(--borda);border-radius:20px;padding:4px 12px;cursor:pointer;transition:all .15s;background:var(--branco);color:var(--cinza-600)';
   var lista=[{label:'Todos os períodos',modo:'todos'}].concat(anos.map(function(a){return {label:String(a),modo:a};}));
@@ -1273,7 +1273,7 @@ function renderAcumuladoMensal(modo){
     // Coletar todos os meses presentes nos dados (ano+mês únicos, ordenados)
     var mapa={};
     lanc.forEach(function(l){
-      var dt=l.dt_vencimento||l.dt_pagamento;
+      var dt=l.dt_pagamento||l.dt_vencimento;
       if(!dt)return;
       var d=new Date(dt+'T00:00:00');
       var key=d.getFullYear()*100+d.getMonth(); // ex: 202400 = Jan/2024
@@ -1302,7 +1302,7 @@ function renderAcumuladoMensal(modo){
     var ano=parseInt(modo,10);
     for(var i=0;i<12;i++){pagoArr.push(0);apagarArr.push(0);}
     lanc.forEach(function(l){
-      var dt=l.dt_vencimento||l.dt_pagamento;
+      var dt=l.dt_pagamento||l.dt_vencimento;
       if(!dt)return;
       var d=new Date(dt+'T00:00:00');
       if(d.getFullYear()!==ano)return;
