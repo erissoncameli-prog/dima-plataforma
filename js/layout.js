@@ -460,14 +460,18 @@ async function carregarNotificacoes() {
   const todas = data || [];
 
   // Verificar status atual das entidades para detectar notificações
-  // já atendidas por outro usuário (ex: produto já avaliado, viagem já aprovada)
-  const prodIds   = todas.filter(n => n.tipo === 'produto_para_avaliar' && n.entidade_id).map(n => n.entidade_id);
-  const viagIds   = todas.filter(n => n.tipo === 'viagem_solicitada'    && n.entidade_id).map(n => n.entidade_id);
-  const tdrIds    = todas.filter(n => n.tipo === 'tdr_para_revisar'     && n.entidade_id).map(n => n.entidade_id);
+  // já atendidas (por este ou outro usuário)
+  const prodAvalIds = todas.filter(n => n.tipo === 'produto_para_avaliar'    && n.entidade_id).map(n => n.entidade_id);
+  const prodPagIds  = todas.filter(n => n.tipo === 'produto_aguarda_pagamento' && n.entidade_id).map(n => n.entidade_id);
+  const viagIds     = todas.filter(n => n.tipo === 'viagem_solicitada'        && n.entidade_id).map(n => n.entidade_id);
+  const tdrIds      = todas.filter(n => n.tipo === 'tdr_para_revisar'         && n.entidade_id).map(n => n.entidade_id);
+
+  // IDs únicos de contratos_produtos a consultar
+  const cpIds = [...new Set([...prodAvalIds, ...prodPagIds])];
 
   const statusProd = {}, statusViag = {}, statusTdr = {};
   await Promise.all([
-    prodIds.length  && db.from('contratos_produtos').select('id,situacao').in('id', prodIds)
+    cpIds.length    && db.from('contratos_produtos').select('id,situacao').in('id', cpIds)
       .then(({ data: d }) => (d || []).forEach(p => statusProd[p.id] = p.situacao)),
     viagIds.length  && db.from('viagem_protocolos').select('id,situacao').in('id', viagIds)
       .then(({ data: d }) => (d || []).forEach(v => statusViag[v.id] = v.situacao)),
@@ -475,18 +479,22 @@ async function carregarNotificacoes() {
       .then(({ data: d }) => (d || []).forEach(t => statusTdr[t.id] = t.status)),
   ].filter(Boolean));
 
-  // Identificar notificações cujo item já foi atendido por outro usuário
+  // Identificar notificações cujo item já foi atendido
   const jaAtendidas = [];
   todas.forEach(n => {
     if (n.tipo === 'produto_para_avaliar' && n.entidade_id) {
       const sit = statusProd[n.entidade_id];
-      if (sit && sit !== 'em_analise') jaAtendidas.push(n.id);
+      // Órfão (registro deletado) ou produto não está mais em análise
+      if (!sit || sit !== 'em_analise') jaAtendidas.push(n.id);
+    } else if (n.tipo === 'produto_aguarda_pagamento' && n.entidade_id) {
+      const sit = statusProd[n.entidade_id];
+      // Órfão (registro deletado/substituído) ou já pago
+      if (!sit || sit === 'pago') jaAtendidas.push(n.id);
     } else if (n.tipo === 'viagem_solicitada' && n.entidade_id) {
       const sit = statusViag[n.entidade_id];
       if (sit && sit !== 'solicitado') jaAtendidas.push(n.id);
     } else if (n.tipo === 'tdr_para_revisar' && n.entidade_id) {
       const sit = statusTdr[n.entidade_id];
-      // TDR continua pendente enquanto está em revisão_interna / enviado_unesco / retorno_unesco
       const pendentes = ['rascunho','revisao_interna','enviado_unesco','retorno_unesco','submetido'];
       if (sit && !pendentes.includes(sit)) jaAtendidas.push(n.id);
     }
