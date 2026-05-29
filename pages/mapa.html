@@ -2981,6 +2981,450 @@ function vincularEventos(){
   _iniciarClickCamadas(() => camadas);
 }
 
+// ── Relatório Analítico Ambiental ─────────────────────────────────────────
+let _relCharts = [];
+let _relDados  = null;
+let _relAba    = 'visao-geral';
+
+function abrirRelatorioAmbiental(){
+  const modal = document.getElementById('modal-relatorio');
+  if(!modal) return;
+  modal.style.display = 'flex';
+  _relDados = _calcularDadosAmbientais();
+  _relAba   = 'visao-geral';
+  _atualizarRelTabs();
+  _renderRelAba('visao-geral');
+}
+
+function fecharRelatorioAmbiental(){
+  document.getElementById('modal-relatorio').style.display = 'none';
+  _relCharts.forEach(c => { try{ c.destroy(); }catch(e){} });
+  _relCharts = [];
+}
+
+function _abaRelatorio(aba){
+  _relAba = aba;
+  _atualizarRelTabs();
+  _renderRelAba(aba);
+}
+
+function _atualizarRelTabs(){
+  document.querySelectorAll('.rel-tab').forEach(b =>
+    b.classList.toggle('ativo', b.dataset.aba === _relAba)
+  );
+}
+
+function _renderRelAba(aba){
+  _relCharts.forEach(c => { try{ c.destroy(); }catch(e){} });
+  _relCharts = [];
+  const body = document.getElementById('rel-body');
+  if(!body) return;
+  if(!_relDados || !_relDados.subbacias.length){
+    body.innerHTML = '<div style="padding:48px;text-align:center;color:var(--cinza-400);font-size:14px">Nenhuma camada de sub-bacias encontrada.<br><span style="font-size:12px">Ative as camadas de delimitação no painel do mapa e reabra o relatório.</span></div>';
+    return;
+  }
+  if(aba === 'visao-geral')   body.innerHTML = _htmlRelVisaoGeral(_relDados);
+  else if(aba === 'subbacias')    body.innerHTML = _htmlRelSubbacias(_relDados);
+  else if(aba === 'hidrografia')  body.innerHTML = _htmlRelHidrografia(_relDados);
+  else if(aba === 'relatorio')    body.innerHTML = _htmlRelTextual(_relDados);
+  setTimeout(() => {
+    if(aba === 'visao-geral')      _chartVisaoGeral(_relDados);
+    else if(aba === 'subbacias')   _chartRanking(_relDados);
+    else if(aba === 'hidrografia') _chartHidro(_relDados);
+  }, 60);
+}
+
+// ── Cálculo dos dados ─────────────────────────────────────────────────────
+function _calcularDadosAmbientais(){
+  const findC = (...terms) => camadas.find(c =>
+    terms.some(t => c.nome.toLowerCase().includes(t.toLowerCase()))
+  );
+  const feats = c => c?.geojson?.features || [];
+  const nArea = p => parseFloat(p?.['area (ha)'] ?? p?.['AREA ha'] ?? p?.['AREA HA'] ?? p?.area ?? 0) || 0;
+  const toMap = (layer, fn, fa = nArea) => {
+    const m = {};
+    feats(layer).forEach(f => {
+      const p = f.properties || {};
+      const n = fn ? fn(p) : (p.name || p.name_2 || p.name_3 || p.name_4 || p.Name || p.NAME || '');
+      if(n) m[n] = fa(p);
+    });
+    return m;
+  };
+
+  const lSub   = findC('subbacias','Subbacias');
+  const lDesm  = findC('desmatamento','Desmatamento');
+  const lFlor  = findC('florestal','Florestal');
+  const lAppA  = findC('antropizada','Antropizada');
+  const lAppV  = findC('app vegetação','APP Vegetação');
+  const lRest  = findC('restauração','Restauração');
+  const lHidro = findC('hidrografia','Hidrografia');
+
+  const mSub  = toMap(lSub);
+  const mDesm = toMap(lDesm,  p => p?.name || '', p => parseFloat(p?.['AREA ha']  || 0) || 0);
+  const mFlor = toMap(lFlor);
+  const mAppA = toMap(lAppA, p => p?.name_4 || '');
+  const mAppV = toMap(lAppV, p => p?.name_3 || '', p => parseFloat(p?.['AREA HA'] || p?.area || 0) || 0);
+  const mRest = toMap(lRest, p => p?.name  || '', p => parseFloat(p?.['AREA HA'] || 0) || 0);
+
+  const subbacias = Object.entries(mSub).map(([nome, area]) => {
+    const desmat    = mDesm[nome] || 0;
+    const floresta  = mFlor[nome] || 0;
+    const appAntrop = mAppA[nome] || 0;
+    const appVeg    = mAppV[nome] || 0;
+    const restaur   = mRest[nome] || 0;
+    const pctDesmat  = area > 0 ? desmat   / area * 100 : 0;
+    const pctPreserv = area > 0 ? floresta / area * 100 : 0;
+    const appTotal   = appAntrop + appVeg;
+    const pctAppDeg  = appTotal > 0 ? appAntrop / appTotal * 100 : 0;
+    const deficit    = desmat - restaur;
+    const risco      = pctAppDeg > 60 || pctDesmat > 25 ? 'Alto' : pctAppDeg > 30 || pctDesmat > 10 ? 'Médio' : 'Baixo';
+    const prioridade = pctDesmat > 15 || deficit > 200   ? 'Alta' : pctDesmat > 5  || deficit > 0   ? 'Média' : 'Baixa';
+    return { nome, area, desmat, floresta, appAntrop, appVeg, restaur,
+             pctDesmat, pctPreserv, appTotal, pctAppDeg, deficit, risco, prioridade };
+  }).sort((a, b) => b.desmat - a.desmat);
+
+  const tot = {
+    area:  subbacias.reduce((s,x) => s + x.area,     0),
+    desmat:subbacias.reduce((s,x) => s + x.desmat,   0),
+    flor:  subbacias.reduce((s,x) => s + x.floresta, 0),
+    appA:  subbacias.reduce((s,x) => s + x.appAntrop,0),
+    appV:  subbacias.reduce((s,x) => s + x.appVeg,   0),
+    rest:  subbacias.reduce((s,x) => s + x.restaur,  0),
+  };
+  tot.pctDesmat  = tot.area > 0 ? tot.desmat / tot.area * 100 : 0;
+  tot.pctPreserv = tot.area > 0 ? tot.flor   / tot.area * 100 : 0;
+  tot.appTotal   = tot.appA + tot.appV;
+  tot.pctAppDeg  = tot.appTotal > 0 ? tot.appA / tot.appTotal * 100 : 0;
+
+  const hf = feats(lHidro);
+  const hidro = {
+    total:         hf.length,
+    comprimento:   hf.reduce((s,f) => s + (parseFloat(f.properties?.LENGTH) || 0), 0),
+    intermitentes: hf.filter(f => /intermit/i.test(f.properties?.REGIME || '')).length,
+    perenes:       hf.filter(f => /peren/i.test(f.properties?.REGIME   || '')).length,
+    semNome:       hf.filter(f => !(f.properties?.NOME_1 || '').trim()).length,
+    nomes: [...new Set(hf.map(f => (f.properties?.NOME_1||'').trim()).filter(Boolean))].slice(0,15),
+  };
+  return { subbacias, tot, hidro };
+}
+
+// ── HTML: Visão Geral ─────────────────────────────────────────────────────
+function _htmlRelVisaoGeral(d){
+  const { tot, subbacias } = d;
+  const f2 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const criticas   = subbacias.filter(s => s.pctDesmat > 15);
+  const altaRest   = subbacias.filter(s => s.prioridade === 'Alta');
+  return `
+  <div class="rel-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:16px">
+    <div class="rel-kpi"><div class="rel-kpi-val">${f2(tot.area)} ha</div><div class="rel-kpi-lbl">Área Total Analisada</div></div>
+    <div class="rel-kpi rel-kpi-danger"><div class="rel-kpi-val">${f2(tot.desmat)} ha</div><div class="rel-kpi-lbl">Área Desmatada</div><div class="rel-kpi-sub">${f1(tot.pctDesmat)}% da área total</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${f2(tot.flor)} ha</div><div class="rel-kpi-lbl">Formação Florestal</div><div class="rel-kpi-sub">${f1(tot.pctPreserv)}% da área total</div></div>
+    <div class="rel-kpi rel-kpi-warn"><div class="rel-kpi-val">${f2(tot.appA)} ha</div><div class="rel-kpi-lbl">APP Degradada</div><div class="rel-kpi-sub">${f1(tot.pctAppDeg)}% da APP total</div></div>
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${f2(tot.rest)} ha</div><div class="rel-kpi-lbl">Proposta de Restauração</div></div>
+    <div class="rel-kpi"><div class="rel-kpi-val">${subbacias.length}</div><div class="rel-kpi-lbl">Sub-bacias analisadas</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="rel-section">
+      <div class="rel-section-title">🔴 Sub-bacias Críticas <span style="font-size:11px;font-weight:400;color:var(--cinza-400)">(desmatamento > 15%)</span></div>
+      ${criticas.length
+        ? criticas.map(s => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--cinza-100);font-size:12px">
+            <span style="font-weight:600;color:var(--cinza-800)">${escHtml(s.nome)}</span>
+            <span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">${f1(s.pctDesmat)}%</span>
+          </div>`).join('')
+        : `<div style="font-size:12px;color:#16a34a;padding:10px 0">✅ Nenhuma sub-bacia acima de 15%</div>`}
+    </div>
+    <div class="rel-section">
+      <div class="rel-section-title">🌱 Alta Prioridade de Restauração</div>
+      ${altaRest.length
+        ? altaRest.map(s => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--cinza-100);font-size:12px">
+            <span style="font-weight:600;color:var(--cinza-800)">${escHtml(s.nome)}</span>
+            <span style="background:#fef9c3;color:#854d0e;border:1px solid #fde047;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">Alta</span>
+          </div>`).join('')
+        : `<div style="font-size:12px;color:#16a34a;padding:10px 0">✅ Nenhuma área com prioridade alta</div>`}
+    </div>
+  </div>
+  <div class="rel-section">
+    <div class="rel-section-title">📊 Vegetação × Desmatamento × APP por Sub-bacia</div>
+    <div style="height:280px"><canvas id="chart-visao-geral"></canvas></div>
+  </div>`;
+}
+
+// ── HTML: Sub-bacias ──────────────────────────────────────────────────────
+function _htmlRelSubbacias(d){
+  const { subbacias } = d;
+  const f2 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const bRisco = r => r==='Alto'  ? '<span class="rel-badge rel-badge-danger">Alto</span>'  :
+                      r==='Médio' ? '<span class="rel-badge rel-badge-warn">Médio</span>'   :
+                                    '<span class="rel-badge rel-badge-ok">Baixo</span>';
+  const bPrior = p => p==='Alta'  ? '<span class="rel-badge rel-badge-danger">Alta</span>'  :
+                      p==='Média' ? '<span class="rel-badge rel-badge-warn">Média</span>'   :
+                                    '<span class="rel-badge rel-badge-ok">Baixa</span>';
+  return `
+  <div class="rel-section" style="margin-bottom:16px">
+    <div class="rel-section-title">📊 Ranking por Área Desmatada (maior → menor)</div>
+    <div style="height:300px"><canvas id="chart-ranking"></canvas></div>
+  </div>
+  <div class="rel-section">
+    <div class="rel-section-title">🗂 Tabela Detalhada por Sub-bacia</div>
+    <div style="overflow-x:auto;margin-top:4px">
+      <table class="rel-table">
+        <thead><tr>
+          <th>#</th><th>Sub-bacia</th><th style="text-align:right">Área (ha)</th>
+          <th style="text-align:right">Desmatada (ha)</th><th style="text-align:center">% Desmat.</th>
+          <th style="text-align:right">Florestal (ha)</th><th style="text-align:center">% Preservado</th>
+          <th style="text-align:right">APP Degradada (ha)</th><th style="text-align:center">% APP Degradada</th>
+          <th style="text-align:right">Proposta Rest. (ha)</th>
+          <th style="text-align:center">Risco Assoreamento</th><th style="text-align:center">Prioridade Rest.</th>
+        </tr></thead>
+        <tbody>
+          ${subbacias.map((s,i) => `<tr>
+            <td style="text-align:center;font-weight:700;color:var(--cinza-400)">${i+1}</td>
+            <td style="font-weight:600;color:var(--cinza-800)">${escHtml(s.nome)}</td>
+            <td style="text-align:right">${f2(s.area)}</td>
+            <td style="text-align:right;color:#dc2626;font-weight:600">${f2(s.desmat)}</td>
+            <td style="text-align:center"><span style="font-weight:700;color:${s.pctDesmat>15?'#dc2626':s.pctDesmat>8?'#d97706':'#16a34a'}">${f1(s.pctDesmat)}%</span></td>
+            <td style="text-align:right;color:#16a34a">${f2(s.floresta)}</td>
+            <td style="text-align:center;color:#16a34a;font-weight:600">${f1(s.pctPreserv)}%</td>
+            <td style="text-align:right;color:#d97706">${f2(s.appAntrop)}</td>
+            <td style="text-align:center">${f1(s.pctAppDeg)}%</td>
+            <td style="text-align:right">${f2(s.restaur)}</td>
+            <td style="text-align:center">${bRisco(s.risco)}</td>
+            <td style="text-align:center">${bPrior(s.prioridade)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+// ── HTML: Hidrografia ─────────────────────────────────────────────────────
+function _htmlRelHidrografia(d){
+  const { hidro, tot, subbacias } = d;
+  const f2 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const pctIntermt = hidro.total > 0 ? hidro.intermitentes / hidro.total * 100 : 0;
+  const sorted = [...subbacias].sort((a,b) => b.pctAppDeg - a.pctAppDeg);
+  return `
+  <div class="rel-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:16px">
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${hidro.total.toLocaleString('pt-BR')}</div><div class="rel-kpi-lbl">Segmentos Hídricos</div></div>
+    <div class="rel-kpi"><div class="rel-kpi-val">${(hidro.comprimento/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})} km</div><div class="rel-kpi-lbl">Comprimento Total</div></div>
+    <div class="rel-kpi rel-kpi-warn"><div class="rel-kpi-val">${hidro.intermitentes}</div><div class="rel-kpi-lbl">Cursos Intermitentes</div><div class="rel-kpi-sub">${f1(pctIntermt)}% do total</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${hidro.perenes}</div><div class="rel-kpi-lbl">Cursos Perenes</div></div>
+    <div class="rel-kpi"><div class="rel-kpi-val">${hidro.nomes.length}+</div><div class="rel-kpi-lbl">Cursos Nomeados</div></div>
+    <div class="rel-kpi rel-kpi-danger"><div class="rel-kpi-val">${hidro.semNome}</div><div class="rel-kpi-lbl">Sem Denominação</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="rel-section">
+      <div class="rel-section-title">💧 Regime Hídrico</div>
+      <div style="height:200px"><canvas id="chart-hidro"></canvas></div>
+      <div style="margin-top:12px;font-size:12px;color:var(--cinza-600);line-height:1.6">
+        <strong>${f1(pctIntermt)}% dos cursos são intermitentes</strong> — ${
+          pctIntermt > 60 ? 'alta vulnerabilidade hídrica sazonal. Comunidades dependem fortemente do período chuvoso.' :
+          pctIntermt > 40 ? 'vulnerabilidade moderada. Atenção à recarga de aquíferos e manutenção de nascentes.' :
+                            'boa resiliência hídrica na maior parte da área protegida.'
+        }
+      </div>
+    </div>
+    <div class="rel-section">
+      <div class="rel-section-title">🌊 Situação da Vegetação Ciliar (APP)</div>
+      <div style="font-size:12px;color:var(--cinza-700);line-height:1.8">
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--cinza-100);padding:5px 0"><span>APP total mapeada</span><strong>${f2(tot.appTotal)} ha</strong></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--cinza-100);padding:5px 0"><span>APP com vegetação</span><strong style="color:#16a34a">${f2(tot.appV)} ha — ${f1(100 - tot.pctAppDeg)}%</strong></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--cinza-100);padding:5px 0"><span>APP degradada</span><strong style="color:#dc2626">${f2(tot.appA)} ha — ${f1(tot.pctAppDeg)}%</strong></div>
+      </div>
+      <div style="margin-top:12px;padding:10px;background:${tot.pctAppDeg>50?'#fef2f2':tot.pctAppDeg>30?'#fffbeb':'#f0fdf4'};border-radius:var(--raio);font-size:12px;color:${tot.pctAppDeg>50?'#dc2626':tot.pctAppDeg>30?'#d97706':'#16a34a'}">
+        ${tot.pctAppDeg > 50 ? '⚠️ Situação crítica: mais da metade da APP está degradada, expondo os cursos d\'água à erosão e assoreamento.' :
+          tot.pctAppDeg > 30 ? '⚠️ Situação preocupante: vegetação ciliar com degradação significativa. Intervenção prioritária recomendada.' :
+                               '✅ Vegetação ciliar relativamente preservada. Monitoramento contínuo recomendado.'}
+      </div>
+    </div>
+  </div>
+  <div class="rel-section">
+    <div class="rel-section-title">🏔 Risco de Assoreamento por Sub-bacia</div>
+    <table class="rel-table" style="margin-top:4px">
+      <thead><tr>
+        <th>Sub-bacia</th><th style="text-align:right">APP Degradada (ha)</th>
+        <th style="text-align:center">% APP Degradada</th><th style="text-align:center">% Desmatado</th>
+        <th style="text-align:center">Pressão Desmatamento</th><th style="text-align:center">Risco Assoreamento</th>
+      </tr></thead>
+      <tbody>
+        ${sorted.map(s => `<tr>
+          <td style="font-weight:600">${escHtml(s.nome)}</td>
+          <td style="text-align:right;color:#d97706">${f2(s.appAntrop)}</td>
+          <td style="text-align:center">${f1(s.pctAppDeg)}%</td>
+          <td style="text-align:center">${f1(s.pctDesmat)}%</td>
+          <td style="text-align:center"><span style="font-weight:700;color:${s.pctDesmat>15?'#dc2626':s.pctDesmat>8?'#d97706':'#16a34a'}">${s.pctDesmat>15?'Alta':s.pctDesmat>8?'Média':'Baixa'}</span></td>
+          <td style="text-align:center">${s.risco==='Alto'?'<span class="rel-badge rel-badge-danger">Alto</span>':s.risco==='Médio'?'<span class="rel-badge rel-badge-warn">Médio</span>':'<span class="rel-badge rel-badge-ok">Baixo</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ── HTML: Relatório Textual ───────────────────────────────────────────────
+function _htmlRelTextual(d){
+  const { subbacias, tot, hidro } = d;
+  const f2 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const criticas      = subbacias.filter(s => s.pctDesmat > 15);
+  const muitoCriticas = subbacias.filter(s => s.pctDesmat > 25);
+  const altaRest      = subbacias.filter(s => s.prioridade === 'Alta');
+  const altaRisco     = subbacias.filter(s => s.risco === 'Alto');
+  const situacao      = tot.pctDesmat > 20 ? 'crítica' : tot.pctDesmat > 10 ? 'preocupante' : 'moderada';
+  const pctIntermt    = hidro.total > 0 ? hidro.intermitentes / hidro.total * 100 : 0;
+  const data          = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <span style="font-size:12px;font-weight:600;color:var(--cinza-600)">Relatório gerado automaticamente em ${data}</span>
+    <span style="font-size:11px;color:var(--cinza-400)">Baseado nas camadas de delimitação ativas</span>
+  </div>
+  <div class="rel-text-block">
+    <h4>1. Apresentação</h4>
+    <p>O presente relatório apresenta a análise ambiental da <strong>Área de Proteção Ambiental (APA) Igarapé São Francisco</strong>, instituída pelo Decreto Estadual nº 12.310, de 14 de julho de 2005, nos municípios de Rio Branco e Bujari, no estado do Acre. A APA é gerida pelo Instituto de Meio Ambiente do Acre (IMAC) e integra o Programa SEMA/AC no âmbito do Fundo Brasil-ONU, Projeto 218BRA2001.</p>
+    <p>A análise foi produzida com base em dados geoespaciais do Sistema DIMA, compreendendo <strong>${subbacias.length} sub-bacias hidrográficas</strong>, <strong>${hidro.total.toLocaleString('pt-BR')} segmentos hídricos</strong> e múltiplas camadas temáticas de uso e cobertura do solo.</p>
+  </div>
+  <div class="rel-text-block">
+    <h4>2. Situação do Desmatamento</h4>
+    <p>A APA Igarapé São Francisco apresenta situação <strong>${situacao}</strong> em relação ao desmatamento. Do total de <strong>${f2(tot.area)} ha</strong> analisados, <strong>${f2(tot.desmat)} ha (${f1(tot.pctDesmat)}%)</strong> encontram-se desmatados, enquanto <strong>${f2(tot.flor)} ha (${f1(tot.pctPreserv)}%)</strong> mantêm cobertura florestal.</p>
+    ${criticas.length > 0
+      ? `<p>Foram identificadas <strong>${criticas.length} sub-bacia(s) em situação crítica</strong> (desmatamento superior a 15%): <strong>${criticas.map(s=>s.nome).join(', ')}</strong>.${muitoCriticas.length > 0 ? ` Destas, <strong>${muitoCriticas.length}</strong> ultrapassam 25% de desmatamento — configurando situação de emergência ambiental: <strong>${muitoCriticas.map(s=>s.nome).join(', ')}</strong>.` : ''}</p>`
+      : `<p>Nenhuma sub-bacia apresenta desmatamento superior a 15%, indicando situação relativamente controlada no período analisado.</p>`}
+    <p><strong>Ranking de desmatamento</strong> (maior → menor): ${subbacias.map((s,i) => `${i+1}º ${s.nome} — ${f2(s.desmat)} ha (${f1(s.pctDesmat)}%)`).join('; ')}.</p>
+  </div>
+  <div class="rel-text-block">
+    <h4>3. Análise das Áreas de Preservação Permanente (APP)</h4>
+    <p>O total de APP mapeada soma <strong>${f2(tot.appTotal)} ha</strong>, dos quais <strong>${f2(tot.appA)} ha (${f1(tot.pctAppDeg)}%)</strong> encontram-se antropizados e <strong>${f2(tot.appV)} ha (${f1(100 - tot.pctAppDeg)}%)</strong> mantêm cobertura vegetal.</p>
+    ${altaRisco.length > 0
+      ? `<p>As sub-bacias com <strong>maior risco de assoreamento</strong>, em razão da degradação da APP, são: <strong>${altaRisco.map(s=>s.nome).join(', ')}</strong>. A combinação de APP degradada com altos índices de desmatamento cria condições propícias ao carreamento de sedimentos, comprometendo qualidade da água e biodiversidade aquática.</p>`
+      : `<p>O risco de assoreamento é considerado moderado a baixo na maior parte da APA no período analisado.</p>`}
+  </div>
+  <div class="rel-text-block">
+    <h4>4. Hidrografia e Vegetação Ciliar</h4>
+    <p>A rede hídrica é composta por <strong>${hidro.total.toLocaleString('pt-BR')} segmentos</strong>, totalizando aproximadamente <strong>${(hidro.comprimento/1000).toFixed(1)} km</strong> de cursos d'água. Do total, <strong>${hidro.intermitentes} segmentos (${f1(pctIntermt)}%)</strong> são intermitentes, indicando ${pctIntermt > 60 ? 'alta vulnerabilidade hídrica sazonal — as comunidades dependem fortemente do período chuvoso e da manutenção das nascentes' : pctIntermt > 40 ? 'vulnerabilidade hídrica moderada — é necessária proteção rigorosa das zonas ripárias e das cabeceiras de drenagem' : 'boa resiliência hídrica na maior parte do território protegido'}.</p>
+    <p>A vegetação ciliar encontra-se degradada em <strong>${f1(tot.pctAppDeg)}%</strong> da APP total, impactando diretamente a qualidade da água, a estabilidade das margens e a conectividade entre fragmentos florestais.</p>
+  </div>
+  <div class="rel-text-block">
+    <h4>5. Fragmentação Florestal</h4>
+    <p>A cobertura florestal remanescente de <strong>${f2(tot.flor)} ha</strong> está distribuída de forma heterogênea entre as ${subbacias.length} sub-bacias. A fragmentação é mais intensa nas sub-bacias com maior pressão antrópica — <strong>${subbacias.slice(0,3).map(s=>s.nome).join(', ')}</strong> — onde a redução da continuidade florestal compromete a conectividade ecológica necessária à manutenção da biodiversidade e dos serviços ecossistêmicos.</p>
+  </div>
+  <div class="rel-text-block">
+    <h4>6. Áreas Prioritárias para Restauração Ecológica</h4>
+    <p>O mapeamento das áreas propostas para restauração totaliza <strong>${f2(tot.rest)} ha</strong>, distribuídos entre as sub-bacias com déficit identificado. Os critérios de priorização consideram: proximidade de cursos d'água e nascentes; percentual de APP degradada; grau de fragmentação florestal; e pressão atual do desmatamento.</p>
+    ${altaRest.length > 0
+      ? `<p>Sub-bacias com <strong>alta prioridade de restauração</strong>: <strong>${altaRest.map(s=>s.nome).join(', ')}</strong>.</p>`
+      : ''}
+  </div>
+  <div class="rel-text-block">
+    <h4>7. Recomendações Técnicas</h4>
+    <ol>
+      ${muitoCriticas.length > 0 ? `<li><strong>Ação emergencial</strong> nas sub-bacias ${muitoCriticas.map(s=>s.nome).join(' e ')}: implementação imediata de mecanismos de contenção do desmatamento e fiscalização intensificada.</li>` : ''}
+      ${altaRisco.length > 0 ? `<li><strong>Restauração da vegetação ciliar</strong> prioritariamente em ${altaRisco.map(s=>s.nome).join(', ')}, onde o risco de assoreamento é alto.</li>` : ''}
+      <li><strong>Monitoramento contínuo</strong> das nascentes e cursos d'água intermitentes para avaliar a resposta hídrica às intervenções de restauração.</li>
+      <li><strong>Conectividade florestal</strong>: implantação de corredores ecológicos entre fragmentos florestais, priorizando as sub-bacias mais fragmentadas.</li>
+      <li><strong>Pagamento por Serviços Ambientais (PSA)</strong> como instrumento de incentivo à manutenção e recuperação da cobertura florestal.</li>
+      <li><strong>Engajamento comunitário</strong> nos programas de restauração e monitoramento ambiental, envolvendo as comunidades das APAs Igarapé São Francisco e Lago do Amapá.</li>
+    </ol>
+  </div>
+  <div style="margin-top:4px;padding:12px 16px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);font-size:11px;color:var(--cinza-500)">
+    <strong>Nota metodológica:</strong> Este relatório foi gerado automaticamente pelo Sistema DIMA em ${data}, com base nos atributos dos arquivos shapefile carregados nas camadas de delimitação. Os valores de área são derivados dos campos dos shapefiles. Este relatório não substitui estudos de campo ou análises técnicas especializadas.
+  </div>`;
+}
+
+// ── Gráficos Chart.js ─────────────────────────────────────────────────────
+function _chartVisaoGeral(d){
+  const ctx = document.getElementById('chart-visao-geral');
+  if(!ctx || typeof Chart === 'undefined') return;
+  const { subbacias } = d;
+  const nomes = subbacias.map(s => s.nome.replace('Sub-bacia ','SB '));
+  const ch = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: nomes,
+      datasets: [
+        { label:'Formação Florestal (ha)', data: subbacias.map(s=>s.floresta),  backgroundColor:'#16a34a', stack:'a' },
+        { label:'Desmatamento (ha)',        data: subbacias.map(s=>s.desmat),    backgroundColor:'#dc2626', stack:'a' },
+        { label:'APP Degradada (ha)',       data: subbacias.map(s=>s.appAntrop), backgroundColor:'#f59e0b', stack:'a' },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom'}, tooltip:{callbacks:{label: c => `${c.dataset.label}: ${Number(c.parsed.y).toLocaleString('pt-BR',{maximumFractionDigits:2})} ha`}} },
+      scales:{ x:{stacked:true}, y:{stacked:true, ticks:{callback: v => Number(v).toLocaleString('pt-BR')+' ha'}} }
+    }
+  });
+  _relCharts.push(ch);
+}
+
+function _chartRanking(d){
+  const ctx = document.getElementById('chart-ranking');
+  if(!ctx || typeof Chart === 'undefined') return;
+  const sorted = [...d.subbacias].sort((a,b) => b.desmat - a.desmat);
+  const ch = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(s => s.nome.replace('Sub-bacia ','SB ')),
+      datasets:[{ label:'Desmatamento (ha)', data: sorted.map(s=>s.desmat),
+        backgroundColor: sorted.map(s => s.pctDesmat > 20 ? '#dc2626' : s.pctDesmat > 10 ? '#f59e0b' : '#16a34a') }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label: c => `${Number(c.parsed.x).toLocaleString('pt-BR',{maximumFractionDigits:2})} ha desmatados`}} },
+      scales:{ x:{ticks:{callback: v => Number(v).toLocaleString('pt-BR')+' ha'}} }
+    }
+  });
+  _relCharts.push(ch);
+}
+
+function _chartHidro(d){
+  const ctx = document.getElementById('chart-hidro');
+  if(!ctx || typeof Chart === 'undefined') return;
+  const { hidro } = d;
+  const outros = Math.max(0, hidro.total - hidro.intermitentes - hidro.perenes);
+  const ch = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Intermitentes','Perenes','Outros/N.class.'],
+      datasets:[{ data:[hidro.intermitentes, hidro.perenes, outros],
+        backgroundColor:['#f59e0b','#0891b2','#9ca3af'], borderWidth:2, borderColor:'#fff' }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom'}, tooltip:{callbacks:{label: c => `${c.label}: ${Number(c.parsed).toLocaleString('pt-BR')} segmentos`}} }
+    }
+  });
+  _relCharts.push(ch);
+}
+
+// ── Exportações ───────────────────────────────────────────────────────────
+function exportarRelCSV(){
+  if(!_relDados) return;
+  const { subbacias } = _relDados;
+  const f2 = n => Number(n).toFixed(2);
+  const f1 = n => Number(n).toFixed(1);
+  const header = ['Sub-bacia','Área Total (ha)','Desmatada (ha)','% Desmatado','Florestal (ha)','% Preservado',
+    'APP Degradada (ha)','APP Vegetação (ha)','% APP Degradada','Proposta Restauração (ha)','Déficit (ha)',
+    'Risco Assoreamento','Prioridade Restauração'].join(';');
+  const rows = subbacias.map(s =>
+    [s.nome, f2(s.area), f2(s.desmat), f1(s.pctDesmat), f2(s.floresta), f1(s.pctPreserv),
+     f2(s.appAntrop), f2(s.appVeg), f1(s.pctAppDeg), f2(s.restaur), f2(s.deficit),
+     s.risco, s.prioridade].join(';')
+  );
+  const blob = new Blob(['﻿' + header + '\n' + rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `relatorio-ambiental-apa-isf-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('CSV exportado com sucesso!', 'success');
+}
+
+function exportarRelPDF(){
+  toast('Abrindo diálogo de impressão…', 'info');
+  setTimeout(() => window.print(), 200);
+}
+
 // ── Utilitários ───────────────────────────────────────────────────────────
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
