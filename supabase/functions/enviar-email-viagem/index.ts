@@ -325,7 +325,7 @@ Obrigado(a) pela sua participação!${ASS}`,
   }
 
   if (evento === 'cancelado') return {
-    assunto: `[DIMA] Protocolo ${num} — Cancelado`,
+    assunto: `[DIMA] Protocolo ${num} | ${nome} — Cancelado`,
     corpo: `Prezado(a) ${nome},
 
 Informamos que o Protocolo ${num} foi CANCELADO.
@@ -433,4 +433,6 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ ok: false, error: e.message }),
       { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
-   
+    )
+  }
+})
