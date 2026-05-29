@@ -1589,6 +1589,12 @@ function abrirSenhaPgto() {
 
 function fecharSenhaPgto() {
   document.getElementById('modal-senha-pgto').style.display = 'none';
+  const btn = document.getElementById('btn-conf-senha');
+  if (btn) { btn.disabled = false; btn.textContent = '🔑 Confirmar'; }
+  const inp = document.getElementById('inp-senha-pgto');
+  if (inp) inp.value = '';
+  const erroEl = document.getElementById('senha-pgto-erro');
+  if (erroEl) erroEl.style.display = 'none';
 }
 
 async function verificarSenhaEPagar() {
