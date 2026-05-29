@@ -534,7 +534,7 @@ function renderBenef(lista){
     </tr></thead>
     <tbody>
     ${lista.map(b=>{
-      const pendente=temPrestacaoPendente(b);
+      const pend=infoPrestacaoPendente(b);
       return`<tr style="border-bottom:1px solid var(--borda);transition:background .1s" onmouseover="this.style.background='var(--cinza-50)'" onmouseout="this.style.background=''">
       <td style="padding:9px 12px;font-weight:500;color:var(--cinza-900)">${esc(b.nome)}</td>
       <td style="padding:9px 12px;font-family:var(--font-mono);color:var(--cinza-700)">${esc(b.cpf||'—')}</td>
@@ -542,8 +542,11 @@ function renderBenef(lista){
       <td style="padding:9px 12px;font-family:var(--font-mono);color:var(--cinza-600)">${esc(b.passaporte_numero||'—')}${b.passaporte_validade?`<br><span style="font-size:10px;color:var(--cinza-400)">Val: ${fmtData(b.passaporte_validade)}</span>`:''}</td>
       <td style="padding:9px 12px;color:var(--cinza-600)">${esc(b.banco||'—')}${b.iban?`<br><span style="font-size:10px;font-family:var(--font-mono);color:var(--cinza-400)">${esc(b.iban)}</span>`:''}</td>
       <td style="padding:9px 12px;text-align:center">
-        ${pendente
-          ? `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:#FEF2F2;color:#991B1B;white-space:nowrap" title="Prestação de contas pendente">⚠ Pendente</span>`
+        ${pend
+          ? `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:2px">
+               <span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:#FEF2F2;color:#991B1B;white-space:nowrap" title="Protocolo ${esc(pend.numero)}">⚠ Pendente</span>
+               <span style="font-size:10px;color:#B91C1C;font-weight:600">${pend.dias} dia${pend.dias!==1?'s':''}</span>
+             </div>`
           : `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:#D1FAE5;color:#065F46;white-space:nowrap">✓ OK</span>`}
       </td>
       <td style="padding:9px 12px;text-align:center">
