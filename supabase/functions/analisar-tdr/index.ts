@@ -180,12 +180,13 @@ function parsearResposta(texto: string): {
 
 // ── MAIN ─────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  const cors = CORS(req)
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   try {
     const { tdr_id } = await req.json()
     if (!tdr_id) {
-      return Response.json({ error: 'tdr_id obrigatório' }, { status: 400, headers: CORS })
+      return Response.json({ error: 'tdr_id obrigatório' }, { status: 400, headers: cors })
     }
 
     const supabase = createClient(
