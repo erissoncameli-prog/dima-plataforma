@@ -998,6 +998,8 @@ function renderResultados(){
       {label:'% Comprometido',data:rks.map(function(k){var r=rm[k];return r.orc>0?Math.min(r.comp/r.orc*100,150):0;}),borderColor:'#D97706',backgroundColor:'rgba(217,119,6,.15)',pointBackgroundColor:'#D97706',pointRadius:4},
       {label:'% Pago',data:rks.map(function(k){var r=rm[k];return r.orc>0?r.pago/r.orc*100:0;}),borderColor:'#059669',backgroundColor:'rgba(5,150,105,.15)',pointBackgroundColor:'#059669',pointRadius:4},
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}}},scales:{r:{suggestedMin:0,suggestedMax:100,grid:{color:'rgba(0,0,0,.06)'},ticks:{font:{size:9},color:'#9CA3AF',stepSize:25},pointLabels:{font:{size:11}}}}}});
+    addPopupToChart('ch-res-grouped',_popResGrouped);
+    addPopupToChart('ch-res-radar',_popResRadar);
   },50);
 }
 
