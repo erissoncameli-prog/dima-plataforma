@@ -1173,12 +1173,16 @@ async function renderTarefas() {
     if (pendDev) notifDevAtivas.push(n);
     else notifDevAtendidas.push(n);
   });
-  // Separar notifOutras: viagens aprovadas/rejeitadas e TDRs resolvidos
+  // Separar notifOutras: viagens aprovadas/rejeitadas, TDRs resolvidos e pagamentos já feitos
   var notifOutrasPend = [], notifOutrasAtend = [];
   var tdrPendentes = ['rascunho','revisao_interna','enviado_unesco','retorno_unesco','submetido','pendente_correcao'];
   notifOutras.forEach(function(n) {
     var atendido = false;
-    if (n.tipo === 'viagem_solicitada' && n.entidade_id) {
+    if (n.tipo === 'produto_aguarda_pagamento' && n.entidade_id) {
+      var sit = statusProdPag[n.entidade_id];
+      // Órfão (registro deletado/substituído) ou já pago
+      if (!sit || sit === 'pago') atendido = true;
+    } else if (n.tipo === 'viagem_solicitada' && n.entidade_id) {
       var sit = statusViag[n.entidade_id];
       if (sit && sit !== 'solicitado') atendido = true;
     } else if (n.tipo === 'tdr_para_revisar' && n.entidade_id) {
