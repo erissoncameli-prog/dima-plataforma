@@ -2986,13 +2986,15 @@ let _relCharts = [];
 let _relDados  = null;
 let _relAba    = 'visao-geral';
 
-function abrirRelatorioAmbiental(){
+async function abrirRelatorioAmbiental(){
   const modal = document.getElementById('modal-relatorio');
   if(!modal) return;
   modal.style.display = 'flex';
-  _relDados = _calcularDadosAmbientais();
-  _relAba   = 'visao-geral';
+  _relAba = 'visao-geral';
   _atualizarRelTabs();
+  const body = document.getElementById('rel-body');
+  if(body) body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--cinza-400);gap:10px"><div style="width:20px;height:20px;border:3px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite"></div> Calculando análise ambiental…</div>';
+  _relDados = await _calcularDadosAmbientais();
   _renderRelAba('visao-geral');
 }
 
