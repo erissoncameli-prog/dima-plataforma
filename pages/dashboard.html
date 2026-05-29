@@ -857,11 +857,11 @@ function renderExecucao(){
       ];
       legEl.innerHTML=items.map(function(x){
         var pct=_orc>0?(x[2]/_orc*100):0;
-        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'+
-          '<div style="width:14px;height:14px;border-radius:3px;background:'+x[1]+';flex-shrink:0;border:1px solid rgba(0,0,0,.08)"></div>'+
-          '<div><div style="font-size:12px;color:#374151;font-weight:500">'+x[0]+'</div>'+
-          '<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#111827">'+D_USD(x[2])+'</div>'+
-          '<div style="font-size:11px;color:#6B7280">'+pct.toFixed(1)+'% do orçamento total</div></div>'+
+        return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px">'+
+          '<div style="width:9px;height:9px;border-radius:2px;background:'+x[1]+';flex-shrink:0;border:1px solid rgba(0,0,0,.08)"></div>'+
+          '<div style="min-width:0"><div style="font-size:10px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+x[0]+'</div>'+
+          '<div style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:#111827">'+D_USD(x[2])+'</div>'+
+          '<div style="font-size:9px;color:#9CA3AF">'+pct.toFixed(1)+'%</div></div>'+
           '</div>';
       }).join('');
     }
