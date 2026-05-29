@@ -1013,20 +1013,20 @@ function renderExecucao(){
   var _brl_pctPago=_brl_contratado>0?(_brl_pago/_brl_contratado*100):0;
 
   var h='<div style="display:flex;gap:14px;margin-bottom:14px;align-items:stretch">';
-  // --- Coluna esquerda: dois donuts empilhados, mais estreitos ---
-  h+='<div style="display:flex;flex-direction:column;gap:10px;flex:0 0 300px;min-width:0">';
-  h+='<div class="ch" style="flex:1">';
-  h+='<div class="ch-tit" style="font-size:12px">Execução financeira total</div>';
-  h+='<div class="ch-sub">USD — independente de filtros</div>';
-  h+='<div style="display:flex;align-items:center;gap:12px;height:140px;padding:4px 0">';
-  h+='<div style="position:relative;flex:0 0 120px;height:100%"><canvas id="ch-proj-donut"></canvas></div>';
+  // --- Coluna esquerda: dois donuts lado a lado ---
+  h+='<div style="display:flex;flex-direction:row;gap:10px;flex:0 0 420px;min-width:0">';
+  h+='<div class="ch" style="flex:1;min-width:0">';
+  h+='<div class="ch-tit" style="font-size:11px">Execução financeira</div>';
+  h+='<div class="ch-sub" style="font-size:10px;margin-bottom:8px">USD — indep. de filtros</div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;height:130px">';
+  h+='<div style="position:relative;flex:0 0 95px;height:100%"><canvas id="ch-proj-donut"></canvas></div>';
   h+='<div id="leg-proj-donut" style="flex:1;min-width:0"></div>';
   h+='</div></div>';
-  h+='<div class="ch" style="flex:1">';
-  h+='<div class="ch-tit" style="font-size:12px">Contratos — BRL</div>';
-  h+='<div class="ch-sub">Contratado × Pago × A pagar</div>';
-  h+='<div style="display:flex;align-items:center;gap:12px;height:140px;padding:4px 0">';
-  h+='<div style="position:relative;flex:0 0 120px;height:100%"><canvas id="ch-contr-donut"></canvas></div>';
+  h+='<div class="ch" style="flex:1;min-width:0">';
+  h+='<div class="ch-tit" style="font-size:11px">Contratos — BRL</div>';
+  h+='<div class="ch-sub" style="font-size:10px;margin-bottom:8px">Contratado × Pago × A pagar</div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;height:130px">';
+  h+='<div style="position:relative;flex:0 0 95px;height:100%"><canvas id="ch-contr-donut"></canvas></div>';
   h+='<div id="leg-contr-donut" style="flex:1;min-width:0"></div>';
   h+='</div></div>';
   h+='</div>';
