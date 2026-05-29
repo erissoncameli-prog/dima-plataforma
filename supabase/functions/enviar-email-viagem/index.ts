@@ -487,13 +487,31 @@ Deno.serve(async (req) => {
       criadorEmail = usr?.user?.email ?? null
     }
 
+    // Coletar e-mails de todos os super_admins ativos
+    const superAdminEmails: string[] = []
+    if (evento === 'solicitado') {
+      const { data: admins } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('perfil', 'super_admin')
+        .eq('ativo', true)
+
+      for (const a of (admins || [])) {
+        const { data: usr } = await supabase.auth.admin.getUserById(a.id)
+        const email = usr?.user?.email
+        if (email) superAdminEmails.push(email)
+      }
+    }
+
     const envios: Array<{ to: string; assunto: string; corpo: string; linkBtn?: { url: string; label: string } }> = []
 
+    // 1. E-mail para o criador do protocolo
     if (criadorEmail) {
       const tpl = tplCriador(evento, proto)
       if (tpl) envios.push({ to: criadorEmail, ...tpl })
     }
 
+    // 2. E-mail para cada viajante individualmente
     for (const v of (proto.viajantes || [])) {
       if (!v.email) continue
       if (v.email === criadorEmail) continue
@@ -508,6 +526,24 @@ Deno.serve(async (req) => {
 
       const tpl = tplViajante(evento, proto, v, linkPrestacao)
       if (tpl) envios.push({ to: v.email, ...tpl })
+    }
+
+    // 3. Evento SOLICITADO → notificar super_admins (exceto se já é o criador)
+    if (evento === 'solicitado') {
+      const tplAdmin = tplSuperAdmin(proto)
+      for (const email of superAdminEmails) {
+        if (email === criadorEmail) continue // evita duplicata se o admin criou
+        envios.push({ to: email, ...tplAdmin })
+      }
+    }
+
+    // 4. Evento APROVADO → notificar coordenador UNESCO + viajantes (já incluídos acima)
+    if (evento === 'aprovado' && COORDENADOR_UNESCO) {
+      const tplCoord = tplCoordenadorUnesco(proto)
+      // Só adiciona se não for o mesmo e-mail do criador (evita duplicata)
+      if (COORDENADOR_UNESCO !== criadorEmail) {
+        envios.push({ to: COORDENADOR_UNESCO, ...tplCoord })
+      }
     }
 
     if (envios.length === 0) {
