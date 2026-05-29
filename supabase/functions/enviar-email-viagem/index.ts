@@ -158,7 +158,7 @@ function tplCriador(evento: string, p: any): Tpl | null {
   const nomes = (p.viajantes || []).map((v: any) => v.nome?.split(' ')[0] || '').filter(Boolean).join(', ') || '—'
 
   if (evento === 'solicitado') return {
-    assunto: `[DIMA] Protocolo ${num} — Solicitação registrada`,
+    assunto: `[DIMA] Protocolo ${num} | ${nomes} — Solicitação registrada`,
     corpo: `Prezado(a) solicitante,
 
 Sua solicitação de viagem foi registrada com sucesso na Plataforma DIMA.
@@ -176,7 +176,7 @@ A solicitação está aguardando análise e aprovação pela coordenação. Voc�
   }
 
   if (evento === 'aprovado') return {
-    assunto: `[DIMA] Protocolo ${num} — APROVADO ✓`,
+    assunto: `[DIMA] Protocolo ${num} | ${nomes} — APROVADO ✓`,
     corpo: `Prezado(a) solicitante,
 
 A solicitação de viagem foi APROVADA.
@@ -433,6 +433,4 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ ok: false, error: e.message }),
       { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
-    )
-  }
-})
+  
