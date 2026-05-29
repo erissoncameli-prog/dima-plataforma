@@ -3037,13 +3037,24 @@ function _renderRelAba(aba){
 }
 
 // ── Cálculo dos dados ─────────────────────────────────────────────────────
-function _calcularDadosAmbientais(){
-  const findC = (...terms) => camadas.find(c =>
-    terms.some(t => c.nome.toLowerCase().includes(t.toLowerCase()))
+async function _calcularDadosAmbientais(){
+  // Usa o array global de camadas se já tiver geojson carregado;
+  // caso contrário busca direto do banco (fallback robusto)
+  let fonte = camadas.filter(c => c.geojson && c.geojson.features);
+  if(!fonte.length){
+    const { data } = await db.from('apa_demarcacoes')
+      .select('id, nome, apa_key, cor, geojson, visivel, feature_colors')
+      .order('created_at');
+    fonte = (data || []).filter(c => c.geojson && c.geojson.features);
+  }
+
+  const findC = (...terms) => fonte.find(c =>
+    c.nome && terms.some(t => c.nome.toLowerCase().includes(t.toLowerCase()))
   );
   const feats = c => c?.geojson?.features || [];
-  const nArea = p => parseFloat(p?.['area (ha)'] ?? p?.['AREA ha'] ?? p?.['AREA HA'] ?? p?.area ?? 0) || 0;
-  const toMap = (layer, fn, fa = nArea) => {
+  const nArea = p => parseFloat(p?.['area (ha)'] != null ? p['area (ha)'] : p?.['AREA ha'] != null ? p['AREA ha'] : p?.['AREA HA'] != null ? p['AREA HA'] : p?.area != null ? p.area : 0) || 0;
+  const toMap = (layer, fn, fa) => {
+    if(!fa) fa = nArea;
     const m = {};
     feats(layer).forEach(f => {
       const p = f.properties || {};
