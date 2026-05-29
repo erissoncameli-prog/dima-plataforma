@@ -1511,6 +1511,9 @@ function renderAlertas(){
     var stCount={ok:0,atencao:0,critico:0,extrapolado:0};
     D.sal.forEach(function(s){if(stCount[s.status_saldo]!==undefined)stCount[s.status_saldo]++;});
     mkChart('ch-saldo-status',{type:'doughnut',data:{labels:['OK','Atenção','Crítico','Extrapolado'],datasets:[{data:[stCount.ok,stCount.atencao,stCount.critico,stCount.extrapolado],backgroundColor:['#34D399','#FCD34D','#FB923C','#EF4444'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'right',labels:{font:{size:11},boxWidth:12}}}}});
+    _POP_DATA.alertas=alertas;
+    addPopupToChart('ch-alertas-pie',_popAlertasPie);
+    addPopupToChart('ch-saldo-status',_popSaldoStatus);
   },50);
 }
 
