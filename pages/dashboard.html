@@ -947,6 +947,51 @@ function renderExecucao(){
   renderFinTabela();
 }
 
+function renderAcumuladoMensal(ano){
+  var lanc=D.lancFilt||D.lanc;
+  var meses=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var pagoMes=new Array(12).fill(0);
+  var apagarMes=new Array(12).fill(0);
+  lanc.forEach(function(l){
+    var dt=l.dt_vencimento||l.dt_pagamento;
+    if(!dt)return;
+    var d=new Date(dt+'T00:00:00');
+    if(String(d.getFullYear())!==String(ano))return;
+    var m=d.getMonth();
+    var v=parseFloat(l.valor_brl||0);
+    if(l.situacao==='pago')pagoMes[m]+=v;
+    else if(l.situacao==='a_pagar')apagarMes[m]+=v;
+  });
+  var acum=[];var soma=0;
+  for(var i=0;i<12;i++){soma+=pagoMes[i]+apagarMes[i];acum.push(soma);}
+  destroyChart('ch-acumulado-mensal');
+  mkChart('ch-acumulado-mensal',{
+    type:'bar',
+    data:{
+      labels:meses,
+      datasets:[
+        {label:'Pago',data:pagoMes,backgroundColor:'rgba(5,150,105,.85)',borderRadius:4,borderSkipped:false,order:2},
+        {label:'A pagar',data:apagarMes,backgroundColor:'rgba(245,158,11,.75)',borderRadius:4,borderSkipped:false,order:2},
+        {label:'Acumulado',data:acum,type:'line',yAxisID:'yAcum',borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#fff',pointBorderColor:'#3B82F6',pointBorderWidth:2,borderWidth:2.5,order:1}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:function(ctx){return ' '+ctx.dataset.label+': '+formatBRL(ctx.raw);}}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11},color:'#6B7280'}},
+        y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},color:'#9CA3AF',callback:function(v){return 'R$'+Math.round(v/1000)+'K';}}},
+        yAcum:{position:'right',grid:{display:false},ticks:{font:{size:10},color:'#3B82F6',callback:function(v){return 'R$'+Math.round(v/1000)+'K';}}}
+      }
+    }
+  });
+}
+window.renderAcumuladoMensal=renderAcumuladoMensal;
+
 function aplicarFiltros(){
   var dtIni=document.getElementById('fil-dt-ini').value;
   var dtFim=document.getElementById('fil-dt-fim').value;
