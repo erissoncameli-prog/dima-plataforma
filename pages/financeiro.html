@@ -1598,17 +1598,30 @@ async function verificarSenhaEPagar() {
   erroEl.style.display = 'none';
   if (!senha) { erroEl.textContent = 'Informe sua senha.'; erroEl.style.display = 'block'; return; }
   btn.disabled = true; btn.textContent = 'Verificando…';
-  const email = appState.sessao?.user?.email || '';
-  const { error } = await db.auth.signInWithPassword({ email, password: senha });
-  if (error) {
-    erroEl.textContent = 'Senha incorreta. Tente novamente.';
+  const email = appState.sessao?.user?.email || appState.usuario?.email || '';
+  if (!email) {
+    erroEl.textContent = 'Não foi possível identificar o e-mail da sessão. Recarregue a página.';
     erroEl.style.display = 'block';
     btn.disabled = false; btn.textContent = '🔑 Confirmar';
-    document.getElementById('inp-senha-pgto').select();
     return;
   }
-  fecharSenhaPgto();
-  await executarPagamento();
+  try {
+    const { error } = await db.auth.signInWithPassword({ email, password: senha });
+    if (error) {
+      erroEl.textContent = 'Senha incorreta. Tente novamente.';
+      erroEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = '🔑 Confirmar';
+      document.getElementById('inp-senha-pgto').select();
+      return;
+    }
+    fecharSenhaPgto();
+    await executarPagamento();
+  } catch(e) {
+    console.error('[verificarSenhaEPagar]', e);
+    erroEl.textContent = 'Erro de conexão. Verifique a internet e tente novamente.';
+    erroEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '🔑 Confirmar';
+  }
 }
 
 async function confirmarPagamento() {
