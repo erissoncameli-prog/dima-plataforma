@@ -1149,8 +1149,10 @@ function _mostrarProgressoAgente(){
       `).join('')}
     </div>`;
 
-  // Inserir no modal-tdr
-  const modal=document.getElementById('modal-tdr');
+  // Inserir na caixa branca do modal (não no backdrop — setar relative no backdrop
+  // derrubaria o position:fixed dele e faria o modal sair da viewport)
+  const modalOverlay=document.getElementById('modal-tdr');
+  const modal=modalOverlay?.querySelector('.modal');
   if(modal)modal.style.position='relative';
   modal?.appendChild(overlay);
   return overlay;
