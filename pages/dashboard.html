@@ -322,15 +322,13 @@ function addPopupToChart(chartId,fn){
   setTimeout(function(){
     var c=CHARTS[chartId];
     if(!c)return;
-    // onClick direto nas options — Chart.js 4 lê dinamicamente a cada clique
+    // Chart.js 4 lê options.onClick dinamicamente — sem necessidade de update()
     c.options.onClick=function(evt,elements,chart){
       if(!elements||!elements.length)return;
       try{var r=fn(elements[0].index,elements[0].datasetIndex,chart);if(r)POP.show(r.title,r.html,r.color,evt);}
       catch(e){console.error('popup:'+chartId,e);}
     };
-    // Cursor pointer via CSS no canvas
-    if(c.canvas)c.canvas.setAttribute('style',(c.canvas.getAttribute('style')||'')+';cursor:pointer!important');
-    c.update();
+    if(c.canvas)c.canvas.style.cursor='pointer';
   },400);
 }
 
