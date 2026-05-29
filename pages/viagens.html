@@ -457,34 +457,55 @@ function mudarAba(aba, pushState=true){
 // ══════════════════════════════════════════════════════════════
 // BENEFICIÁRIOS
 // ══════════════════════════════════════════════════════════════
-let todosbenef=[], benefEditando=null, cpfsPendentes=new Set(), emailsPendentes=new Map();
+let todosbenef=[], benefEditando=null;
+// Map de chave (cpf_limpo ou email) → {dias, numero}  para prestações pendentes
+let pendentesMap=new Map();
 
 async function carregarBenef(){
   const[{data:benefs},{data:viaj}]=await Promise.all([
     db.from('beneficiarios').select('*').order('nome'),
     db.from('viagem_viajantes')
-      .select('cpf,email,relatorio_url,protocolo:viagem_protocolos(numero,situacao)')
+      .select('cpf,email,relatorio_url,protocolo:viagem_protocolos(numero,situacao,dt_retorno)')
       .is('relatorio_url',null)
   ]);
   todosbenef=benefs||[];
 
-  // Mapear CPFs e e-mails com prestação pendente
-  cpfsPendentes=new Set();
-  emailsPendentes=new Map();
+  pendentesMap=new Map();
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+
+  function registrar(chave, proto){
+    if(!chave) return;
+    const dtRet=proto.dt_retorno?new Date(proto.dt_retorno):null;
+    if(!dtRet) return;
+    dtRet.setHours(0,0,0,0);
+    const dias=Math.floor((hoje-dtRet)/(1000*60*60*24));
+    // Guarda o registro mais antigo (mais dias) por chave
+    const atual=pendentesMap.get(chave);
+    if(!atual || dias>atual.dias){
+      pendentesMap.set(chave,{dias, numero:proto.numero||''});
+    }
+  }
+
   for(const v of viaj||[]){
     const sit=v.protocolo?.situacao;
     if(!['em_prestacao','realizado'].includes(sit)) continue;
-    if(v.cpf) cpfsPendentes.add(v.cpf.replace(/\D/g,''));
-    if(v.email) emailsPendentes.set(v.email.toLowerCase(), v.protocolo?.numero||'');
+    if(v.cpf) registrar(v.cpf.replace(/\D/g,''), v.protocolo);
+    if(v.email) registrar(v.email.toLowerCase(), v.protocolo);
   }
 
   filtrarBenef();
 }
 
-function temPrestacaoPendente(b){
-  if(b.cpf && cpfsPendentes.has(b.cpf.replace(/\D/g,''))) return true;
-  if(b.email && emailsPendentes.has(b.email.toLowerCase())) return true;
-  return false;
+function infoPrestacaoPendente(b){
+  if(b.cpf){
+    const info=pendentesMap.get(b.cpf.replace(/\D/g,''));
+    if(info) return info;
+  }
+  if(b.email){
+    const info=pendentesMap.get(b.email.toLowerCase());
+    if(info) return info;
+  }
+  return null;
 }
 
 function filtrarBenef(){
