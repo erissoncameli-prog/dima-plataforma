@@ -822,6 +822,14 @@ function renderOperacional(){
         y:{stacked:true,grid:{display:false},ticks:{font:{size:10},color:'#374151'}}
       }
     }});
+    _POP_DATA.topComp=topComp;
+    _POP_DATA.atvTdrs=atvTdrs;
+    _POP_DATA.respNomes=respNomes;
+    addPopupToChart('ch-pipeline',_popFase);
+    addPopupToChart('ch-top-comp',_popTopComp);
+    addPopupToChart('ch-tdr-bar-combo',_popTdrCombo);
+    addPopupToChart('ch-atv-tdrs',_popAtvTdrs);
+    addPopupToChart('ch-tdr-resp',_popTdrResp);
   },50);
 }
 
