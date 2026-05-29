@@ -211,7 +211,15 @@ Deno.serve(async (req) => {
       .eq('perfil', 'super_admin')
       .eq('ativo', true)
 
+    // Buscar dados do viajante para o e-mail
+    const { data: viajante } = await supabase
+      .from('viagem_viajantes')
+      .select('nome')
+      .eq('id', tk.viajante_id)
+      .single()
+
     if (admins?.length) {
+      // Notificação interna (sino da plataforma)
       await supabase.from('notificacoes').insert(
         admins.map((a: any) => ({
           usuario_id: a.id,
@@ -224,6 +232,42 @@ Deno.serve(async (req) => {
           entidade_id: tk.protocolo_id,
         }))
       )
+
+      // E-mail para cada super_admin
+      try {
+        const adminEmails: string[] = []
+        for (const a of admins) {
+          const { data: usr } = await supabase.auth.admin.getUserById(a.id)
+          const email = usr?.user?.email
+          if (email) adminEmails.push(email)
+        }
+
+        if (adminEmails.length) {
+          const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false,
+            auth: {
+              user: 'fundobrasilonuacre@gmail.com',
+              pass: Deno.env.get('GMAIL_APP_PASSWORD')!,
+            },
+          })
+
+          const htmlEmail = emailPrestacaoAdmin(proto, viajante)
+          const assunto   = `[DIMA] 📋 Prestação de contas aguarda validação — Protocolo ${proto?.numero || ''}`
+
+          await Promise.allSettled(
+            adminEmails.map(to =>
+              transporter.sendMail({
+                from: REMETENTE,
+                to,
+                subject: assunto,
+                html: htmlEmail,
+              })
+            )
+          )
+        }
+      } catch (_) { /* e-mail não crítico — notificação interna já foi inserida */ }
     }
 
     // Expirar token imediatamente após envio bem-sucedido
