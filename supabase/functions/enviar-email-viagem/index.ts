@@ -236,7 +236,7 @@ Os valores correspondentes foram lançados no módulo financeiro.${ASS}`,
   }
 
   if (evento === 'cancelado') return {
-    assunto: `[DIMA] Protocolo ${num} — Cancelado`,
+    assunto: `[DIMA] Protocolo ${num} | ${nomes} — Cancelado`,
     corpo: `Prezado(a) solicitante,
 
 Informamos que o Protocolo ${num} foi CANCELADO.
@@ -433,4 +433,6 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ ok: false, error: e.message }),
       { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
-  
+    )
+  }
+})
