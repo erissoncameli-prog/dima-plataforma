@@ -265,7 +265,7 @@ function tplViajante(evento: string, p: any, v: any, linkPrestacao?: string): Tp
   const nome  = v.nome || 'Prezado(a)'
 
   if (evento === 'solicitado') return {
-    assunto: `[DIMA] Você foi incluído(a) no Protocolo ${num}`,
+    assunto: `[DIMA] Protocolo ${num} | ${nome} — Incluído(a) como viajante`,
     corpo: `Prezado(a) ${nome},
 
 Informamos que você foi incluído(a) em uma solicitação de viagem na Plataforma DIMA.
