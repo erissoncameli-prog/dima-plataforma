@@ -140,6 +140,21 @@ function fmtData(s: string | null): string {
   return `${parts[2]}/${parts[1]}/${parts[0]}`
 }
 
+// Retorna "passagens e diárias", "passagens", "diárias" ou "benefícios"
+function descSPD(temPassagem: boolean, temDiaria: boolean): string {
+  if (temPassagem && temDiaria) return 'passagens e diárias'
+  if (temPassagem) return 'passagens'
+  if (temDiaria) return 'diárias'
+  return 'benefícios'
+}
+
+// Lista de documentos obrigatórios na prestação de contas por viajante
+function docsObrigatorios(temPassagem: boolean): string {
+  const lista = ['  • Relatório de viagem (PDF assinado)']
+  if (temPassagem) lista.push('  • Cartões de embarque (ida e volta)')
+  return lista.join('\n')
+}
+
 const ASS = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC\nfundobrasilonuacre@gmail.com`
 
 type Tpl = { assunto: string; corpo: string; linkBtn?: { url: string; label: string } }
@@ -152,10 +167,21 @@ function tplCriador(evento: string, p: any): Tpl | null {
   const saida = fmtData(p.dt_saida)
   const ret   = fmtData(p.dt_retorno)
   const obj   = p.objetivo || '—'
-  const viaj  = (p.viajantes || [])
-    .map((v: any) => `  • ${v.nome || '—'} (${v.funcao || '—'})`)
+
+  // Lista de viajantes com o que cada um solicitou
+  const viaj = (p.viajantes || [])
+    .map((v: any) => {
+      const spd = [v.tem_passagem && 'passagem', v.tem_diaria && 'diária'].filter(Boolean).join(' + ')
+      return `  • ${v.nome || '—'} (${v.funcao || '—'})${spd ? ` — ${spd}` : ''}`
+    })
     .join('\n') || '  —'
+
   const nomes = (p.viajantes || []).map((v: any) => v.nome?.split(' ')[0] || '').filter(Boolean).join(', ') || '—'
+
+  // Flags do protocolo: o que foi solicitado por pelo menos um viajante
+  const algumPassagem = (p.viajantes || []).some((v: any) => v.tem_passagem)
+  const algumaDiaria  = (p.viajantes || []).some((v: any) => v.tem_diaria)
+  const spd = descSPD(algumPassagem, algumaDiaria)
 
   if (evento === 'solicitado') return {
     assunto: `[DIMA] Protocolo ${num} | ${nomes} — Solicitação registrada`,
@@ -168,7 +194,7 @@ DESTINO   : ${dest}
 PERÍODO   : ${saida} a ${ret}
 OBJETIVO  : ${obj}
 
-VIAJANTES:
+VIAJANTES E SOLICITAÇÕES:
 ${viaj}
 
 A solicitação está aguardando análise e aprovação pela coordenação. Você será notificado(a) sobre os próximos passos.${ASS}`,
@@ -189,7 +215,7 @@ OBJETIVO  : ${obj}
 VIAJANTES APROVADOS:
 ${viaj}
 
-Os respectivos SPDs (passagens e/ou diárias) serão processados junto à UNESCO.${ASS}`,
+Os respectivos SPDs de ${spd} serão processados junto à UNESCO.${ASS}`,
     linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Ver na Plataforma' },
   }
 
@@ -205,9 +231,16 @@ ${p.rejeitado_motivo || '—'}
 Caso necessário, entre em contato com a coordenação do projeto para esclarecimentos ou realize os ajustes indicados e reenvie a solicitação.${ASS}`,
   }
 
-  if (evento === 'em_prestacao') return {
-    assunto: `[DIMA] Protocolo ${num} | ${nomes} — Fase de prestação de contas`,
-    corpo: `Prezado(a) solicitante,
+  if (evento === 'em_prestacao') {
+    // Documentos exigidos: relatório sempre; embarques apenas para quem tem passagem
+    const temAlgumPassagem = algumPassagem
+    const docsTxt = temAlgumPassagem
+      ? '  • Relatório de viagem (PDF assinado)\n  • Cartões de embarque — somente viajantes com passagem'
+      : '  • Relatório de viagem (PDF assinado)'
+
+    return {
+      assunto: `[DIMA] Protocolo ${num} | ${nomes} — Fase de prestação de contas`,
+      corpo: `Prezado(a) solicitante,
 
 O Protocolo ${num} entrou na fase de prestação de contas.
 
@@ -215,10 +248,10 @@ PROTOCOLO : ${num}${sei}
 DESTINO   : ${dest}
 PERÍODO   : ${saida} a ${ret}
 
-Solicitamos que cada viajante acesse a Plataforma DIMA e submeta os documentos obrigatórios:
-  • Relatório de viagem (PDF assinado)
-  • Cartões de embarque (ida e volta)${ASS}`,
-    linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '📋 Gerenciar Prestação de Contas' },
+Cada viajante receberá um e-mail individual com o link e os documentos exigidos conforme o que foi solicitado (${spd}). Os documentos obrigatórios são:
+${docsTxt}${ASS}`,
+      linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '📋 Gerenciar Prestação de Contas' },
+    }
   }
 
   if (evento === 'realizado') return {
@@ -231,7 +264,7 @@ PROTOCOLO : ${num}${sei}
 DESTINO   : ${dest}
 PERÍODO   : ${saida} a ${ret}
 
-Os valores correspondentes foram lançados no módulo financeiro.${ASS}`,
+Os valores referentes a ${spd} foram lançados no módulo financeiro.${ASS}`,
     linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Ver na Plataforma' },
   }
 
@@ -255,14 +288,17 @@ Caso tenha dúvidas, entre em contato com a equipe de gestão do projeto.${ASS}`
   return null
 }
 
-// ── Templates viajante (mensagem simplificada) ────────────────────────────────
+// ── Templates viajante (mensagem individual e personalizada) ──────────────────
 function tplViajante(evento: string, p: any, v: any, linkPrestacao?: string): Tpl | null {
-  const num   = p.numero || '—'
-  const dest  = p.destino_principal || '—'
-  const saida = fmtData(p.dt_saida)
-  const ret   = fmtData(p.dt_retorno)
-  const obj   = p.objetivo || '—'
-  const nome  = v.nome || 'Prezado(a)'
+  const num    = p.numero || '—'
+  const dest   = p.destino_principal || '—'
+  const saida  = fmtData(p.dt_saida)
+  const ret    = fmtData(p.dt_retorno)
+  const obj    = p.objetivo || '—'
+  const nome   = v.nome || 'Prezado(a)'
+  const pass   = !!v.tem_passagem
+  const diaria = !!v.tem_diaria
+  const spd    = descSPD(pass, diaria)
 
   if (evento === 'solicitado') return {
     assunto: `[DIMA] Protocolo ${num} | ${nome} — Incluído(a) como viajante`,
@@ -270,10 +306,11 @@ function tplViajante(evento: string, p: any, v: any, linkPrestacao?: string): Tp
 
 Informamos que você foi incluído(a) em uma solicitação de viagem na Plataforma DIMA.
 
-PROTOCOLO : ${num}
-DESTINO   : ${dest}
-PERÍODO   : ${saida} a ${ret}
-OBJETIVO  : ${obj}
+PROTOCOLO  : ${num}
+DESTINO    : ${dest}
+PERÍODO    : ${saida} a ${ret}
+OBJETIVO   : ${obj}
+SOLICITADO : ${spd}
 
 A solicitação está em análise. Você receberá uma nova notificação quando houver aprovação.${ASS}`,
   }
@@ -284,11 +321,19 @@ A solicitação está em análise. Você receberá uma nova notificação quando
 
 Sua participação no Protocolo ${num} foi aprovada.
 
-DESTINO  : ${dest}
-PERÍODO  : ${saida} a ${ret}
-OBJETIVO : ${obj}
+DESTINO    : ${dest}
+PERÍODO    : ${saida} a ${ret}
+OBJETIVO   : ${obj}
+APROVADO   : ${spd}
 
-As passagens e/ou diárias serão processadas pela equipe responsável. Fique atento(a) às orientações da coordenação.${ASS}`,
+${pass && diaria
+  ? 'As passagens e as diárias serão processadas pela equipe responsável. Fique atento(a) às orientações da coordenação.'
+  : pass
+    ? 'As passagens serão processadas pela equipe responsável. Fique atento(a) às orientações da coordenação.'
+    : diaria
+      ? 'As diárias serão processadas pela equipe responsável.'
+      : 'O protocolo será processado pela equipe responsável.'
+}${ASS}`,
   }
 
   if (evento === 'em_prestacao') return {
@@ -301,9 +346,8 @@ DESTINO  : ${dest}
 PERÍODO  : ${saida} a ${ret}
 OBJETIVO : ${obj}
 
-Por favor, envie os documentos obrigatórios:
-  • Relatório de viagem (PDF assinado)
-  • Cartões de embarque (ida e volta)
+Por favor, envie os documentos obrigatórios referentes à sua ${spd}:
+${docsObrigatorios(pass)}
 
 Você pode enviar os documentos sem precisar de login utilizando o botão abaixo.${ASS}`,
     linkBtn: linkPrestacao
@@ -353,9 +397,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    // Buscar protocolo + viajantes com flags de passagem e diária
     const { data: proto, error: errProto } = await supabase
       .from('viagem_protocolos')
-      .select('*, viajantes:viagem_viajantes(id, nome, funcao, email)')
+      .select('*, viajantes:viagem_viajantes(id, nome, funcao, email, tem_passagem, tem_diaria)')
       .eq('id', protocolo_id)
       .single()
 
