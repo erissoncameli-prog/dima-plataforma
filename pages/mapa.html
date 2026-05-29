@@ -3421,8 +3421,168 @@ function exportarRelCSV(){
 }
 
 function exportarRelPDF(){
-  toast('Abrindo diálogo de impressão…', 'info');
-  setTimeout(() => window.print(), 200);
+  if(!_relDados) return;
+  const body = document.getElementById('rel-body');
+  if(!body) return;
+
+  // Coletar o CSS necessário da página atual
+  const styles = Array.from(document.styleSheets).map(ss => {
+    try {
+      return Array.from(ss.cssRules).map(r => r.cssText).join('\n');
+    } catch(e) { return ''; }
+  }).join('\n');
+
+  const titulo = 'Relatório Analítico Ambiental — APA Igarapé São Francisco';
+  const data   = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if(!win){ toast('Popup bloqueado. Permita popups para este site.', 'error'); return; }
+
+  win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>${titulo}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#111827;background:#fff;padding:24px 32px;}
+h1{font-size:18px;font-weight:700;color:#1F4E2C;margin-bottom:4px;}
+.subtitulo{font-size:11px;color:#6b7280;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #e5e7eb;}
+.rel-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
+.rel-kpi{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;}
+.rel-kpi-val{font-size:19px;font-weight:700;color:#111827;line-height:1.2;}
+.rel-kpi-lbl{font-size:10px;color:#6b7280;margin-top:3px;font-weight:500;}
+.rel-kpi-sub{font-size:9px;color:#9ca3af;margin-top:2px;}
+.rel-kpi-danger{border-color:#fca5a5;background:#fef2f2;}.rel-kpi-danger .rel-kpi-val{color:#dc2626;}
+.rel-kpi-green{border-color:#86efac;background:#f0fdf4;}.rel-kpi-green .rel-kpi-val{color:#16a34a;}
+.rel-kpi-warn{border-color:#fde68a;background:#fffbeb;}.rel-kpi-warn .rel-kpi-val{color:#d97706;}
+.rel-kpi-info{border-color:#bfdbfe;background:#eff6ff;}.rel-kpi-info .rel-kpi-val{color:#1d4ed8;}
+.rel-section{border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:16px;break-inside:avoid;}
+.rel-section-title{font-size:12px;font-weight:700;color:#1f2937;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f3f4f6;}
+.rel-table{width:100%;border-collapse:collapse;font-size:11px;}
+.rel-table th{background:#f9fafb;padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #e5e7eb;white-space:nowrap;}
+.rel-table td{padding:6px 8px;border-bottom:1px solid #f3f4f6;color:#374151;}
+.rel-badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;border:1px solid;}
+.rel-badge-danger{background:#fef2f2;color:#dc2626;border-color:#fca5a5;}
+.rel-badge-warn{background:#fffbeb;color:#d97706;border-color:#fde68a;}
+.rel-badge-ok{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
+.rel-text-block{border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:12px;break-inside:avoid;}
+.rel-text-block h4{font-size:12px;font-weight:700;color:#1F4E2C;border-bottom:1px solid #f3f4f6;padding-bottom:7px;margin-bottom:8px;}
+.rel-text-block p{font-size:12px;color:#374151;line-height:1.7;margin-bottom:6px;}
+.rel-text-block ol{font-size:12px;line-height:1.9;padding-left:18px;color:#374151;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+@media print{
+  body{padding:12px 18px;}
+  .rel-section,.rel-text-block{break-inside:avoid;}
+}
+</style>
+</head>
+<body>
+<h1>📊 ${titulo}</h1>
+<div class="subtitulo">Gerado automaticamente pelo Sistema DIMA em ${data} · Projeto 218BRA2001 · SEMA/AC · Fundo Brasil-ONU</div>
+${_htmlRelVisaoGeralPrint(_relDados)}
+${_htmlRelSubbaciasPrint(_relDados)}
+${_htmlRelHidrografiaPrint(_relDados)}
+${_htmlRelTextual(_relDados)}
+</body>
+</html>`);
+
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 800);
+  toast('Janela de impressão aberta!', 'success');
+}
+
+function _htmlRelVisaoGeralPrint(d){
+  const { tot, subbacias } = d;
+  const f2 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const criticas = subbacias.filter(s => s.pctDesmat > 15);
+  const altaRest = subbacias.filter(s => s.prioridade === 'Alta');
+  return `
+  <div class="rel-kpi-grid">
+    <div class="rel-kpi"><div class="rel-kpi-val">${f2(tot.area)} ha</div><div class="rel-kpi-lbl">Área Total Analisada</div></div>
+    <div class="rel-kpi rel-kpi-danger"><div class="rel-kpi-val">${f2(tot.desmat)} ha</div><div class="rel-kpi-lbl">Área Desmatada</div><div class="rel-kpi-sub">${f1(tot.pctDesmat)}% da área total</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${f2(tot.flor)} ha</div><div class="rel-kpi-lbl">Formação Florestal</div><div class="rel-kpi-sub">${f1(tot.pctPreserv)}% da área total</div></div>
+    <div class="rel-kpi rel-kpi-warn"><div class="rel-kpi-val">${f2(tot.appA)} ha</div><div class="rel-kpi-lbl">APP Degradada</div><div class="rel-kpi-sub">${f1(tot.pctAppDeg)}% da APP</div></div>
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${f2(tot.rest)} ha</div><div class="rel-kpi-lbl">Proposta Restauração</div></div>
+    <div class="rel-kpi"><div class="rel-kpi-val">${subbacias.length}</div><div class="rel-kpi-lbl">Sub-bacias</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="rel-section">
+      <div class="rel-section-title">🔴 Sub-bacias Críticas (> 15% desmatado)</div>
+      ${criticas.length ? criticas.map(s => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:11px"><span style="font-weight:600">${escHtml(s.nome)}</span><span style="color:#dc2626;font-weight:700">${f1(s.pctDesmat)}%</span></div>`).join('') : '<div style="font-size:11px;color:#16a34a">✅ Nenhuma sub-bacia crítica</div>'}
+    </div>
+    <div class="rel-section">
+      <div class="rel-section-title">🌱 Alta Prioridade de Restauração</div>
+      ${altaRest.length ? altaRest.map(s => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:11px"><span style="font-weight:600">${escHtml(s.nome)}</span><span style="color:#d97706;font-weight:700">Alta</span></div>`).join('') : '<div style="font-size:11px;color:#16a34a">✅ Sem alta prioridade</div>'}
+    </div>
+  </div>`;
+}
+
+function _htmlRelSubbaciasPrint(d){
+  const { subbacias } = d;
+  const f2 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const bR = r => r==='Alto'?'<span class="rel-badge rel-badge-danger">Alto</span>':r==='Médio'?'<span class="rel-badge rel-badge-warn">Médio</span>':'<span class="rel-badge rel-badge-ok">Baixo</span>';
+  const bP = p => p==='Alta'?'<span class="rel-badge rel-badge-danger">Alta</span>':p==='Média'?'<span class="rel-badge rel-badge-warn">Média</span>':'<span class="rel-badge rel-badge-ok">Baixa</span>';
+  return `
+  <div class="rel-section">
+    <div class="rel-section-title">🗺 Ranking por Sub-bacia — Desmatamento (maior → menor)</div>
+    <table class="rel-table">
+      <thead><tr><th>#</th><th>Sub-bacia</th><th>Área (ha)</th><th>Desmatada (ha)</th><th>% Desmat.</th><th>Florestal (ha)</th><th>% Preservado</th><th>APP Degradada (ha)</th><th>% APP Degr.</th><th>Prop.Rest. (ha)</th><th>Risco Assoreamento</th><th>Prioridade</th></tr></thead>
+      <tbody>
+        ${subbacias.map((s,i) => `<tr>
+          <td style="text-align:center;color:#9ca3af;font-weight:700">${i+1}</td>
+          <td style="font-weight:600">${escHtml(s.nome)}</td>
+          <td style="text-align:right">${f2(s.area)}</td>
+          <td style="text-align:right;color:#dc2626;font-weight:600">${f2(s.desmat)}</td>
+          <td style="text-align:center;font-weight:700;color:${s.pctDesmat>15?'#dc2626':s.pctDesmat>8?'#d97706':'#16a34a'}">${f1(s.pctDesmat)}%</td>
+          <td style="text-align:right;color:#16a34a">${f2(s.floresta)}</td>
+          <td style="text-align:center;color:#16a34a;font-weight:600">${f1(s.pctPreserv)}%</td>
+          <td style="text-align:right;color:#d97706">${f2(s.appAntrop)}</td>
+          <td style="text-align:center">${f1(s.pctAppDeg)}%</td>
+          <td style="text-align:right">${f2(s.restaur)}</td>
+          <td style="text-align:center">${bR(s.risco)}</td>
+          <td style="text-align:center">${bP(s.prioridade)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function _htmlRelHidrografiaPrint(d){
+  const { hidro, tot, subbacias } = d;
+  const f2 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const pctIntermt = hidro.total > 0 ? hidro.intermitentes / hidro.total * 100 : 0;
+  const sorted = [...subbacias].sort((a,b) => b.pctAppDeg - a.pctAppDeg);
+  return `
+  <div class="rel-kpi-grid">
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${hidro.total.toLocaleString('pt-BR')}</div><div class="rel-kpi-lbl">Segmentos Hídricos</div></div>
+    <div class="rel-kpi"><div class="rel-kpi-val">${(hidro.comprimento/1000).toLocaleString('pt-BR',{maximumFractionDigits:1})} km</div><div class="rel-kpi-lbl">Comprimento Total</div></div>
+    <div class="rel-kpi rel-kpi-warn"><div class="rel-kpi-val">${hidro.intermitentes}</div><div class="rel-kpi-lbl">Cursos Intermitentes</div><div class="rel-kpi-sub">${f1(pctIntermt)}%</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${hidro.perenes}</div><div class="rel-kpi-lbl">Cursos Perenes</div></div>
+    <div class="rel-kpi rel-kpi-danger"><div class="rel-kpi-val">${tot.appA > 0 ? f2(tot.appA)+' ha' : '—'}</div><div class="rel-kpi-lbl">APP Degradada Total</div><div class="rel-kpi-sub">${f1(tot.pctAppDeg)}% da APP</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${tot.appV > 0 ? f2(tot.appV)+' ha' : '—'}</div><div class="rel-kpi-lbl">APP com Vegetação</div><div class="rel-kpi-sub">${f1(100-tot.pctAppDeg)}% da APP</div></div>
+  </div>
+  <div class="rel-section">
+    <div class="rel-section-title">🏔 Risco de Assoreamento por Sub-bacia</div>
+    <table class="rel-table">
+      <thead><tr><th>Sub-bacia</th><th>APP Degradada (ha)</th><th>% APP Degradada</th><th>% Desmatado</th><th>Pressão Desmatamento</th><th>Risco Assoreamento</th></tr></thead>
+      <tbody>
+        ${sorted.map(s => `<tr>
+          <td style="font-weight:600">${escHtml(s.nome)}</td>
+          <td style="text-align:right;color:#d97706">${f2(s.appAntrop)}</td>
+          <td style="text-align:center">${f1(s.pctAppDeg)}%</td>
+          <td style="text-align:center">${f1(s.pctDesmat)}%</td>
+          <td style="text-align:center;font-weight:700;color:${s.pctDesmat>15?'#dc2626':s.pctDesmat>8?'#d97706':'#16a34a'}">${s.pctDesmat>15?'Alta':s.pctDesmat>8?'Média':'Baixa'}</td>
+          <td style="text-align:center">${s.risco==='Alto'?'<span class="rel-badge rel-badge-danger">Alto</span>':s.risco==='Médio'?'<span class="rel-badge rel-badge-warn">Médio</span>':'<span class="rel-badge rel-badge-ok">Baixo</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────
