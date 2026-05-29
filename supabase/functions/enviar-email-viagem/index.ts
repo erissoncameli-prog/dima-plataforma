@@ -385,6 +385,80 @@ Em caso de dúvidas, entre em contato com a equipe de gestão do projeto.${ASS}`
   return null
 }
 
+// ── Template super_admin: nova solicitação aguardando aprovação ───────────────
+function tplSuperAdmin(p: any): Tpl {
+  const num   = p.numero || '—'
+  const sei   = p.numero_sei ? ` | SEI: ${p.numero_sei}` : ''
+  const dest  = p.destino_principal || '—'
+  const saida = fmtData(p.dt_saida)
+  const ret   = fmtData(p.dt_retorno)
+  const obj   = p.objetivo || '—'
+
+  const viaj = (p.viajantes || [])
+    .map((v: any) => {
+      const spd = [v.tem_passagem && 'passagem', v.tem_diaria && 'diária'].filter(Boolean).join(' + ')
+      return `  • ${v.nome || '—'} (${v.funcao || '—'})${spd ? ` — ${spd}` : ''}`
+    })
+    .join('\n') || '  —'
+
+  return {
+    assunto: `[DIMA] ⏳ Protocolo ${num} aguarda sua aprovação`,
+    corpo: `Prezado(a) Administrador(a),
+
+Um novo protocolo de viagem foi registrado na Plataforma DIMA e está aguardando sua aprovação.
+
+PROTOCOLO : ${num}${sei}
+DESTINO   : ${dest}
+PERÍODO   : ${saida} a ${ret}
+OBJETIVO  : ${obj}
+
+VIAJANTES:
+${viaj}
+
+Acesse a plataforma para analisar e aprovar ou rejeitar a solicitação.${ASS}`,
+    linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '🔍 Analisar Solicitação' },
+  }
+}
+
+// ── Template coordenador UNESCO: protocolo aprovado, providenciar SPD ─────────
+function tplCoordenadorUnesco(p: any): Tpl {
+  const num   = p.numero || '—'
+  const sei   = p.numero_sei ? ` | SEI: ${p.numero_sei}` : ''
+  const dest  = p.destino_principal || '—'
+  const saida = fmtData(p.dt_saida)
+  const ret   = fmtData(p.dt_retorno)
+  const obj   = p.objetivo || '—'
+
+  const algumPassagem = (p.viajantes || []).some((v: any) => v.tem_passagem)
+  const algumaDiaria  = (p.viajantes || []).some((v: any) => v.tem_diaria)
+  const spd = descSPD(algumPassagem, algumaDiaria)
+
+  const viaj = (p.viajantes || [])
+    .map((v: any) => {
+      const itens = [v.tem_passagem && 'passagem', v.tem_diaria && 'diária'].filter(Boolean).join(' + ')
+      return `  • ${v.nome || '—'} (${v.funcao || '—'})${itens ? ` — ${itens}` : ''}`
+    })
+    .join('\n') || '  —'
+
+  return {
+    assunto: `[DIMA] ✅ Protocolo ${num} aprovado — Providenciar ${spd}`,
+    corpo: `Prezado(a) Coordenador(a),
+
+O Protocolo de viagem abaixo foi aprovado pela gestão do Projeto DIMA. Solicitamos as providências junto à UNESCO para emissão dos SPDs de ${spd}.
+
+PROTOCOLO : ${num}${sei}
+DESTINO   : ${dest}
+PERÍODO   : ${saida} a ${ret}
+OBJETIVO  : ${obj}
+
+VIAJANTES E BENEFÍCIOS APROVADOS:
+${viaj}
+
+Em caso de dúvidas ou necessidade de informações complementares, entre em contato com a equipe de gestão.${ASS}`,
+    linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '📋 Ver Protocolo na Plataforma' },
+  }
+}
+
 // ── Handler principal ─────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
