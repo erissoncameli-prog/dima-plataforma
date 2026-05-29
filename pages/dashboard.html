@@ -321,18 +321,17 @@ function _popList(items){if(!items||!items.length)return '<div class="cpop-empty
 function addPopupToChart(chartId,fn){
   setTimeout(function(){
     var c=CHARTS[chartId];
-    if(!c||!c.canvas)return;
-    c.canvas.style.cursor='pointer';
-    // Remove listener anterior se existir
-    if(c.__popupListener)c.canvas.removeEventListener('click',c.__popupListener);
-    c.__popupListener=function(evt){
-      var elements=c.getElementsAtEventForMode(evt,'nearest',{intersect:true},false);
-      if(!elements||!elements.length){POP.close();return;}
-      try{var r=fn(elements[0].index,elements[0].datasetIndex,c);if(r)POP.show(r.title,r.html,r.color,evt);}
-      catch(e){console.error('popup',chartId,e);}
+    if(!c)return;
+    // onClick direto nas options — Chart.js 4 lê dinamicamente a cada clique
+    c.options.onClick=function(evt,elements,chart){
+      if(!elements||!elements.length)return;
+      try{var r=fn(elements[0].index,elements[0].datasetIndex,chart);if(r)POP.show(r.title,r.html,r.color,evt);}
+      catch(e){console.error('popup:'+chartId,e);}
     };
-    c.canvas.addEventListener('click',c.__popupListener);
-  },350);
+    // Cursor pointer via CSS no canvas
+    if(c.canvas)c.canvas.setAttribute('style',(c.canvas.getAttribute('style')||'')+';cursor:pointer!important');
+    c.update();
+  },400);
 }
 
 // ── Geradores de conteúdo ──────────────────────────────────
