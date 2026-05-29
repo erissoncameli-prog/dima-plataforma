@@ -5,7 +5,6 @@ import JSZip from 'npm:jszip'
 function getCorsHeaders(req: Request) {
   const origin = req.headers.get('origin') || ''
   const allowed = [
-    'https://erissoncameli-prog.github.io',
     'https://fundobrasilonu-plataforma.vercel.app',
   ]
   const allowedOrigin = allowed.includes(origin) ? origin : allowed[0]

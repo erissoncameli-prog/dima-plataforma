@@ -7,7 +7,7 @@ const CORS = {
 }
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
-const SITE_URL = 'https://erissoncameli-prog.github.io/dima-plataforma'
+const SITE_URL = 'https://fundobrasilonu-plataforma.vercel.app'
 
 async function gerarTokenPrestacao(supabase: any, viajante_id: string, protocolo_id: string): Promise<string> {
   const { data: existing } = await supabase
