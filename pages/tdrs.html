@@ -1675,8 +1675,14 @@ function aba(id,btn){
 }
 
 function fecharModal(id){
-  document.getElementById(id)?.classList.remove('aberto');
-  if(id==='modal-tdr'){tdrAtual=null;dadosOriginais={};dadosEditados={};_iaFeito=false;}
+  const el=document.getElementById(id);
+  el?.classList.remove('aberto');
+  if(id==='modal-tdr'){
+    // Limpa inline styles que o overlay do agente pode ter deixado no backdrop ou na caixa interna
+    el?.style.removeProperty('position');
+    el?.querySelector('.modal')?.style.removeProperty('position');
+    tdrAtual=null;dadosOriginais={};dadosEditados={};_iaFeito=false;
+  }
 }
 
 // ── ANÁLISE IA ────────────────────────────────────────────────
