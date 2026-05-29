@@ -442,23 +442,29 @@ function atualizarProgresso(){
 }
 
 // ── CONCLUIR ──────────────────────────────────────────────────────
+const CAMPOS_VALIDOS=['objeto_pt','escopo_pt','formacao_minima_pt','experiencia_requerida_pt','area_atuacao_pt','equipe_minima_pt','atestados_pt'];
+
 async function concluirRevisao(){
   const btn=document.getElementById('rv-btn-concluir');
   btn.disabled=true;btn.textContent='Salvando...';
 
   try{
     const tdrId=tdrInfo.id;
+    if(!tdrId)throw new Error('ID do TDR não encontrado. Recarregue a página.');
+
     const camposParaSalvar={};
     const camposAlterados=[];
     const logCampos=[];
 
     for(const s of sugestoes){
+      // Ignorar campos desconhecidos para não causar erro no banco
+      const campoValido=CAMPOS_VALIDOS.includes(s.campo);
       if(s.estado==='aceito-ia'){
-        camposParaSalvar[s.campo]=s.depois;
+        if(campoValido)camposParaSalvar[s.campo]=s.depois;
         camposAlterados.push(s.campo);
         logCampos.push({campo:s.campo,label:s.label,texto:s.depois,autor:'Agente IA',estado:'aceito-ia'});
       }else if(s.estado==='aceito-user'){
-        camposParaSalvar[s.campo]=s.textoEditado;
+        if(campoValido)camposParaSalvar[s.campo]=s.textoEditado;
         camposAlterados.push(s.campo);
         logCampos.push({campo:s.campo,label:s.label,texto:s.textoEditado,autor:nomeUsuario,estado:'aceito-user'});
       }else if(s.estado==='rejeitado'){
@@ -486,7 +492,7 @@ async function concluirRevisao(){
     if(aceitosUser.length)comentario+=` Editado por ${nomeUsuario} em: ${aceitosUser.join(', ')}.`;
     if(rejeitados.length)comentario+=` Rejeitados: ${rejeitados.join(', ')}.`;
 
-    await db.from('tdr_versoes').insert({
+    const{error:versaoError}=await db.from('tdr_versoes').insert({
       tdr_id:tdrId,
       numero_versao:proximaVersao,
       usuario_id:null,
@@ -496,6 +502,7 @@ async function concluirRevisao(){
       comentario,
       autor_nome:aceitosUser.length?nomeUsuario:'Agente IA',
     });
+    if(versaoError)throw new Error('Erro ao registrar versão: '+versaoError.message);
 
     toast('✅ Revisão salva! Redirecionando...','success');
     setTimeout(()=>{
