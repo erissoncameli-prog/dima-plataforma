@@ -785,16 +785,18 @@ function renderExecucao(){
 
   // Gráfico acumulado mensal
   h+='<div class="ch" style="margin-bottom:14px">';
-  h+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">';
   h+='<div><div class="ch-tit">Acumulado de pagamentos por mês</div><div class="ch-sub">Barras mensais (Pago · A pagar) + curva de acumulado — valores em BRL</div></div>';
-  h+='<select id="sel-ano-acum" onchange="renderAcumuladoMensal(this.value)" style="font-size:12px;border:1px solid var(--borda);border-radius:6px;padding:4px 10px;color:var(--cinza-700);background:var(--branco);cursor:pointer;font-family:var(--font-sans)"></select>';
+  h+='<div id="acum-btns" style="display:flex;gap:4px;flex-wrap:wrap"></div>';
   h+='</div>';
   h+='<div class="leg" style="margin-bottom:8px">';
   h+='<div class="leg-i"><div class="leg-sq" style="background:#059669"></div>Pago (mensal)</div>';
   h+='<div class="leg-i"><div class="leg-sq" style="background:#F59E0B"></div>A pagar (mensal)</div>';
   h+='<div class="leg-i"><div class="leg-sq" style="background:rgba(59,130,246,.25);border:1px solid #3B82F6"></div>Acumulado (eixo direito)</div>';
   h+='</div>';
-  h+='<div style="position:relative;height:260px"><canvas id="ch-acumulado-mensal"></canvas></div>';
+  h+='<div id="acum-scroll" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:8px">';
+  h+='<div id="acum-canvas-wrap" style="position:relative;height:260px;min-width:100%"><canvas id="ch-acumulado-mensal"></canvas></div>';
+  h+='</div>';
   h+='</div>';
 
   // Gráficos filtráveis
