@@ -194,7 +194,7 @@ Os respectivos SPDs (passagens e/ou diárias) serão processados junto à UNESCO
   }
 
   if (evento === 'rejeitado') return {
-    assunto: `[DIMA] Protocolo ${num} — Não aprovado`,
+    assunto: `[DIMA] Protocolo ${num} | ${nomes} — Não aprovado`,
     corpo: `Prezado(a) solicitante,
 
 Informamos que o Protocolo ${num} não foi aprovado.
@@ -206,7 +206,7 @@ Caso necessário, entre em contato com a coordenação do projeto para esclareci
   }
 
   if (evento === 'em_prestacao') return {
-    assunto: `[DIMA] Protocolo ${num} — Fase de prestação de contas`,
+    assunto: `[DIMA] Protocolo ${num} | ${nomes} — Fase de prestação de contas`,
     corpo: `Prezado(a) solicitante,
 
 O Protocolo ${num} entrou na fase de prestação de contas.
@@ -222,7 +222,7 @@ Solicitamos que cada viajante acesse a Plataforma DIMA e submeta os documentos o
   }
 
   if (evento === 'realizado') return {
-    assunto: `[DIMA] Protocolo ${num} — Concluído ✓`,
+    assunto: `[DIMA] Protocolo ${num} | ${nomes} — Concluído ✓`,
     corpo: `Prezado(a) solicitante,
 
 O Protocolo ${num} foi concluído e encerrado com sucesso na Plataforma DIMA.
