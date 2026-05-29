@@ -579,7 +579,7 @@ function renderListaNotif() {
           <div style="font-size:11px;color:var(--cinza-600);line-height:1.4">${esc(n.mensagem||'')}</div>
           <div style="font-size:10px;color:var(--cinza-400);margin-top:4px">
             ${n.criado_em ? new Date(n.criado_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}
-            ${isProduto ? '<span style="color:#1E40AF;margin-left:6px">→ Clique para avaliar</span>' : ''}
+            ${n.tipo === 'produto_para_avaliar' ? '<span style="color:#1E40AF;margin-left:6px">→ Clique para avaliar</span>' : ''}
           </div>
         </div>
         ${!n.lida ? '<div style="width:7px;height:7px;background:#059669;border-radius:50%;flex-shrink:0;margin-top:4px"></div>' : ''}
