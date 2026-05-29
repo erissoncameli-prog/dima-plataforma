@@ -155,6 +155,7 @@ function tplCriador(evento: string, p: any): Tpl | null {
   const viaj  = (p.viajantes || [])
     .map((v: any) => `  • ${v.nome || '—'} (${v.funcao || '—'})`)
     .join('\n') || '  —'
+  const nomes = (p.viajantes || []).map((v: any) => v.nome?.split(' ')[0] || '').filter(Boolean).join(', ') || '—'
 
   if (evento === 'solicitado') return {
     assunto: `[DIMA] Protocolo ${num} — Solicitação registrada`,
