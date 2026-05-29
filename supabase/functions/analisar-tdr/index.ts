@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
     if (tdr.status !== 'submetido') {
       return Response.json(
         { error: `TDR não está no status submetido (atual: ${tdr.status})` },
-        { status: 422, headers: CORS }
+        { status: 422, headers: cors }
       )
     }
 
