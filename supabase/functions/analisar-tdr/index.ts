@@ -297,10 +297,10 @@ Deno.serve(async (req) => {
         criterios: analise.criterios,
         sugestoes: analise.sugestoes,
       },
-      { headers: CORS }
+      { headers: cors }
     )
   } catch (e) {
     console.error('[analisar-tdr] Erro:', e)
-    return Response.json({ error: (e as Error).message }, { status: 500, headers: CORS })
+    return Response.json({ error: (e as Error).message }, { status: 500, headers: cors })
   }
 })
