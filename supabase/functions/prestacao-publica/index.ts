@@ -1,8 +1,84 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import nodemailer from 'npm:nodemailer@6'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
+const SITE_URL  = 'https://fundobrasilonu-plataforma.vercel.app'
+const ASSETS    = `${SITE_URL}/assets`
+
+function emailPrestacaoAdmin(proto: any, viajante: any): string {
+  const num  = proto?.numero || '—'
+  const dest = proto?.destino_principal || '—'
+  const nome = viajante?.nome || '—'
+  const agora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco' })
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+
+  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="vertical-align:middle">
+        <img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0">
+      </td>
+      <td style="vertical-align:middle;text-align:right">
+        <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Plataforma de Gestão</span><br>
+        <span style="color:#fff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
+        <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="background:#fff;padding:28px 24px 20px">
+    <p style="margin:0 0 18px;font-size:15px;font-weight:700;color:#1B4332">📋 Prestação de contas enviada — aguarda validação</p>
+    <p style="margin:4px 0;font-size:13px;color:#1F2937">O viajante abaixo enviou os documentos de prestação de contas pelo link de e-mail e a submissão aguarda sua validação na plataforma.</p>
+    <table style="width:100%;border-collapse:collapse;margin:18px 0">
+      <tr>
+        <td style="padding:5px 10px 5px 0;font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap;width:110px">VIAJANTE</td>
+        <td style="padding:5px 0;font-size:13px;color:#111827">${nome}</td>
+      </tr>
+      <tr>
+        <td style="padding:5px 10px 5px 0;font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap">PROTOCOLO</td>
+        <td style="padding:5px 0;font-size:13px;color:#111827">${num}</td>
+      </tr>
+      <tr>
+        <td style="padding:5px 10px 5px 0;font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap">DESTINO</td>
+        <td style="padding:5px 0;font-size:13px;color:#111827">${dest}</td>
+      </tr>
+      <tr>
+        <td style="padding:5px 10px 5px 0;font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap">ENVIADO EM</td>
+        <td style="padding:5px 0;font-size:13px;color:#111827">${agora} (horário de Brasília)</td>
+      </tr>
+    </table>
+    <div style="margin:24px 0 8px;text-align:center">
+      <a href="${SITE_URL}/pages/viagens.html" style="display:inline-block;background:#166534;color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none">
+        ✅ Validar Prestação de Contas
+      </a>
+    </div>
+  </td></tr>
+
+  <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
+    <p style="margin:0;font-size:11px;color:#6B7280">
+      Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
+      <a href="mailto:fundobrasilonuacre@gmail.com" style="color:#059669;text-decoration:none">fundobrasilonuacre@gmail.com</a>
+      &nbsp;·&nbsp;
+      <a href="${SITE_URL}" style="color:#059669;text-decoration:none">Acessar Plataforma</a>
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`
 }
 
 function json(data: unknown, status = 200) {
