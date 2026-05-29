@@ -6,9 +6,10 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
-const SITE_URL  = 'https://fundobrasilonu-plataforma.vercel.app'
-const ASSETS    = `${SITE_URL}/assets`
+const REMETENTE           = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
+const SITE_URL            = 'https://fundobrasilonu-plataforma.vercel.app'
+const ASSETS              = `${SITE_URL}/assets`
+const COORDENADOR_UNESCO  = Deno.env.get('COORDENADOR_UNESCO_EMAIL') || ''
 
 // ── Wrapper HTML com barra de logos (mesmo padrão de enviar-email-produto) ────
 function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): string {
