@@ -3238,29 +3238,43 @@ let _carCarregando = false;
 let _carSelecionado= null;   // selected Leaflet layer ref
 let _carSubbaciaOpts = [];   // distinct sub-bacia names
 
+// ── Estado global CAR ─────────────────────────────────────────────────────
+let _carMarcados  = new Map(); // cod_imovel → row da tabela car_marcados
+let _carAbertoCod = null;      // cod_imovel com painel aberto
+let _carAbertoFeat= null;      // feature do CAR aberto
+let _carDetAba    = 'atributos';
+
 // ── Status helpers ─────────────────────────────────────────────────────────
 function _carStatusKey(condicao){
   const c = (condicao||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-  if(c.includes('ativo'))       return 'ativo';
-  if(c.includes('analise') && !c.includes('aguardando') && !c.includes('em a')) return 'analise';
-  if(c.includes('aguardando'))  return 'aguardando';
-  if(c.includes('em anal'))     return 'analise';
+  if(c.includes('ativo'))      return 'ativo';
+  if(c.includes('aguardando')) return 'aguardando';
+  if(c.includes('em anal'))    return 'analise';
+  if(c.includes('analise'))    return 'analise';
   return 'outro';
 }
-function _carCor(key, alpha){
-  const mapa = { ativo:'#16a34a', aguardando:'#d97706', analise:'#2563eb', outro:'#9ca3af' };
-  return mapa[key] || mapa.outro;
+function _carCor(key){
+  return { ativo:'#16a34a', aguardando:'#d97706', analise:'#2563eb', outro:'#9ca3af' }[key] || '#9ca3af';
 }
+
 function _estiloCAR(f, hover, sel){
-  const key = _carStatusKey(f.properties?.condicao);
-  const cor  = _carCor(key);
-  return {
-    color:       sel  ? '#7c3aed' : cor,
-    weight:      sel  ? 3 : hover ? 2 : 1.5,
-    opacity:     1,
-    fillColor:   sel  ? '#7c3aed' : cor,
-    fillOpacity: sel  ? 0.35 : hover ? 0.3 : 0.18,
-  };
+  const cod     = f.properties?.cod_imovel;
+  const marcado = _carMarcados.has(cod);
+  const custom  = _carMarcados.get(cod);
+  const corBase = _carCor(_carStatusKey(f.properties?.condicao));
+
+  if(sel){
+    return { color:'#7c3aed', weight:3, opacity:1,
+             fillColor: custom?.fill_color || '#7c3aed', fillOpacity:0.35, dashArray:null };
+  }
+  const fillColor   = custom?.fill_color   || corBase;
+  const fillOpacity = hover
+    ? Math.min(0.8, (custom?.fill_opacity ?? 0.18) + 0.15)
+    : (custom?.fill_opacity ?? (marcado ? 0.22 : 0.18));
+  const strokeColor = marcado ? '#7c3aed' : (custom?.stroke_color || corBase);
+  const strokeWidth = hover ? 2.5 : (custom?.stroke_width ?? (marcado ? 2.5 : 1.5));
+  return { color:strokeColor, weight:strokeWidth, opacity:1,
+           fillColor, fillOpacity, dashArray: marcado ? '6 4' : null };
 }
 
 // ── Toggle da camada ───────────────────────────────────────────────────────
