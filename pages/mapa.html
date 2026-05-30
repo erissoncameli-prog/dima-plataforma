@@ -943,9 +943,9 @@ function iniciarMapa(){
   mapaL.addLayer(clusters);
 
   // Pane dedicado ao CAR — z-index 450 (acima do overlayPane 400, abaixo de markers/popups)
+  // Fica sempre visualmente acima das camadas de delimitação, independente da opacidade delas
   mapaL.createPane('carPane');
   mapaL.getPane('carPane').style.zIndex = 450;
-  mapaL.getPane('carPane').style.pointerEvents = 'none'; // cliques passam para o handler global
 
   requestAnimationFrame(() => mapaL.invalidateSize());
 }
