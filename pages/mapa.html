@@ -111,8 +111,24 @@
 .imp-stat.ok .imp-stat-lbl{color:#15803D;}
 .imp-stat.err .imp-stat-lbl{color:#B91C1C;}
 
-/* Camada row */
-.camada-row{display:flex;align-items:center;gap:6px;padding:4px 0;}
+/* Camada row — expandable style panel */
+.camada-row{display:flex;align-items:center;gap:6px;padding:5px 0;}
+.camada-row-outer{border-bottom:1px solid var(--cinza-100);}
+.camada-row-outer:last-child{border-bottom:none;}
+.camada-expand-body{background:var(--cinza-50);border-top:1px solid var(--cinza-100);padding:10px 12px;display:flex;flex-direction:column;gap:10px;}
+.camada-expand-section{display:flex;flex-direction:column;gap:5px;}
+.camada-expand-section-title{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:4px;padding-bottom:5px;border-bottom:1px solid var(--cinza-200);}
+.camada-link-btn{font-size:9px;color:var(--verde-escuro);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;margin-left:auto;}
+.camada-link-btn+.camada-link-btn{margin-left:4px;}
+.camada-feat-row{display:flex;align-items:center;gap:6px;padding:3px 0;}
+.camada-feat-nome{font-size:11px;color:var(--cinza-700);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.camada-color-mini{width:22px;height:22px;padding:1px;border:1px solid var(--borda);border-radius:3px;cursor:pointer;flex-shrink:0;background:none;}
+.camada-style-row{display:flex;align-items:center;gap:8px;padding:2px 0;}
+.camada-style-lbl{font-size:10px;font-weight:600;color:var(--cinza-500);width:86px;flex-shrink:0;}
+.camada-style-val{font-size:10px;font-weight:700;color:var(--cinza-700);width:34px;text-align:right;flex-shrink:0;}
+.camada-slider{flex:1;height:4px;accent-color:var(--verde-escuro);cursor:pointer;min-width:0;}
+.btn-camada-exp{font-size:12px;padding:2px 6px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;flex-shrink:0;transition:background .15s;line-height:1.4;}
+.btn-camada-exp:hover,.btn-camada-exp.ativo{background:#f0fdf4;border-color:#86efac;}
 .camada-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
 
 /* Controle de modo do mapa */
