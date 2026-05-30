@@ -3545,31 +3545,64 @@ function _renderCarDetBody(){
 // ── Aba Atributos ─────────────────────────────────────────────────────────
 function _htmlCarAtributos(f){
   if(!f) return '<div style="padding:24px;text-align:center;color:var(--cinza-400);font-size:12px">Nenhum imóvel selecionado</div>';
-  const p = f.properties || {};
+  const p   = f.properties || {};
+  const cod = p.cod_imovel;
   const key = _carStatusKey(p.condicao);
   const badgeCls = { ativo:'car-status-ativo', aguardando:'car-status-aguardando', analise:'car-status-analise', outro:'car-status-outro' }[key]||'car-status-outro';
   const labels   = { ativo:'Ativo', aguardando:'Aguardando análise', analise:'Em análise', outro:'Outro' };
   const f2  = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
   const fDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+
+  // Dados enriquecidos do Supabase (podem estar em cache ou ainda carregando)
+  const local = _carDadosLocais.get(cod);
+  const carregando = !_carDadosLocais.has(cod);
+
+  const secaoLocal = carregando
+    ? `<div class="car-det-field" style="background:var(--cinza-50);border-radius:var(--raio)">
+         <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza-400);padding:4px 0">
+           <div style="width:10px;height:10px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+           Buscando dados cadastrais…
+         </div>
+       </div>`
+    : local ? `
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 0;margin:6px 0">
+      <div style="font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;padding:0 12px 6px;border-bottom:1px solid var(--cinza-100);margin-bottom:4px">
+        Dados Cadastrais — SICAR Acre
+      </div>
+      ${local.nom_imovel ? `<div class="car-det-field"><div class="car-det-label">Nome do Imóvel</div>
+        <div class="car-det-value" style="font-size:13px;font-weight:700;color:var(--cinza-900)">${escHtml(local.nom_imovel)}</div></div>` : ''}
+      ${local.nome_compl ? `<div class="car-det-field"><div class="car-det-label">Proprietário / Possuidor</div>
+        <div class="car-det-value">${escHtml(local.nome_compl)}</div></div>` : ''}
+      ${local.cpf_cnpj ? `<div class="car-det-field"><div class="car-det-label">CPF / CNPJ</div>
+        <div class="car-det-value" style="font-family:monospace">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</div></div>` : ''}
+      ${local.nome_class ? `<div class="car-det-field"><div class="car-det-label">Classificação Ambiental</div>
+        <div class="car-det-value">${_badgeClass(local.nome_class)}</div></div>` : ''}
+      ${local.tipo_docum ? `<div class="car-det-field"><div class="car-det-label">Relação Jurídica</div>
+        <div class="car-det-value">${escHtml(local.tipo_docum)}</div></div>` : ''}
+      ${local.nome_docum ? `<div class="car-det-field"><div class="car-det-label">Documento</div>
+        <div class="car-det-value" style="font-size:11px">${escHtml(local.nome_docum)}</div></div>` : ''}
+    </div>` : '';
+
   return `
-    <div class="car-det-field"><div class="car-det-label">Situação</div>
+    ${secaoLocal}
+    <div class="car-det-field"><div class="car-det-label">Situação CAR</div>
       <div class="car-det-value"><span class="car-det-badge ${badgeCls}">${labels[key]||key}</span></div></div>
     <div class="car-det-field"><div class="car-det-label">Área Declarada</div>
       <div class="car-det-value" style="font-size:18px;font-weight:700;color:var(--verde-escuro)">${f2(p.area)} ha</div></div>
     <div class="car-det-field"><div class="car-det-label">Município</div>
       <div class="car-det-value">${escHtml(p.municipio||'—')} · ${escHtml(p.uf||'AC')}</div></div>
-    <div class="car-det-field"><div class="car-det-label">Tipo</div>
+    <div class="car-det-field"><div class="car-det-label">Tipo de Imóvel</div>
       <div class="car-det-value">${escHtml(p.tipo_imovel||'—')}</div></div>
     <div class="car-det-field"><div class="car-det-label">APA</div>
       <div class="car-det-value">${p._apa==='isf'?'🌿 Igarapé São Francisco':p._apa==='la'?'💧 Lago do Amapá':'⚠️ Fora das APAs'}</div></div>
     <div class="car-det-field"><div class="car-det-label">Sub-bacia</div>
       <div class="car-det-value">${escHtml(p._subbacia||'— não identificada')}</div></div>
+    <div class="car-det-field"><div class="car-det-label">Módulo Fiscal</div>
+      <div class="car-det-value">${f2(p.m_fiscal)} módulo(s)</div></div>
     <div class="car-det-field"><div class="car-det-label">Data de Cadastro</div>
       <div class="car-det-value">${fDt(p.dat_criacao)}</div></div>
     <div class="car-det-field"><div class="car-det-label">Última Atualização</div>
       <div class="car-det-value">${fDt(p.data_atualizacao)}</div></div>
-    <div class="car-det-field"><div class="car-det-label">Módulo Fiscal</div>
-      <div class="car-det-value">${f2(p.m_fiscal)} módulo(s)</div></div>
     <div class="car-det-field"><div class="car-det-label">Código CAR</div>
       <div class="car-det-value" style="font-family:monospace;font-size:10px;word-break:break-all;color:var(--cinza-400)">${escHtml(p.cod_imovel||'—')}</div></div>`;
 }
