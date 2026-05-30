@@ -3614,6 +3614,7 @@ async function salvarCarEstilo(){
     condicao:  p.condicao            || null,
     atualizado_em: new Date().toISOString(),
   };
+  // Inclui fill_color/stroke_color mesmo que null (upsert limpa campos anteriores)
   const { error } = await db.from('car_marcados').upsert(payload, { onConflict:'cod_imovel' });
   if(error){ toast('Erro ao salvar: ' + error.message, 'error'); return; }
   _carMarcados.set(cod, payload);
