@@ -4637,6 +4637,7 @@ function _htmlFichaCAR(f, imgData){
   const apaLabel = p._apa==='isf' ? '🌿 APA Igarapé São Francisco' : p._apa==='la' ? '💧 APA Lago do Amapá' : '⚠️ Fora das APAs';
   const apaBadge = p._apa==='isf' ? 'badge-isf' : p._apa==='la' ? 'badge-la' : 'badge-fora';
   const sicarUrl = `https://consultapublica.car.gov.br/publico/imoveis/index?idImovel=${encodeURIComponent(p.cod_imovel||'')}`;
+  const diag      = _carDiagCache.get(p.cod_imovel) || null;
   const descricao = _gerarDescricaoCAR(f);
 
   // Cores da classificação para o relatório impresso
