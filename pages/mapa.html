@@ -4312,7 +4312,8 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
 }
 
 function _htmlFichaCAR(f, imgData){
-  const p   = f.properties || {};
+  const p     = f.properties || {};
+  const local = _carDadosLocais.get(p.cod_imovel) || {};
   const f2  = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
   const fDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
   const key = _carStatusKey(p.condicao);
@@ -4321,6 +4322,15 @@ function _htmlFichaCAR(f, imgData){
   const apaBadge = p._apa==='isf' ? 'badge-isf' : p._apa==='la' ? 'badge-la' : 'badge-fora';
   const sicarUrl = `https://consultapublica.car.gov.br/publico/imoveis/index?idImovel=${encodeURIComponent(p.cod_imovel||'')}`;
   const descricao = _gerarDescricaoCAR(f);
+
+  // Cores da classificação para o relatório impresso
+  const classCfg = {
+    'Verde':           {bg:'#f0fdf4',cor:'#16a34a',brd:'#86efac'},
+    'Amarelo':         {bg:'#fffbeb',cor:'#d97706',brd:'#fde68a'},
+    'Vermelho':        {bg:'#fef2f2',cor:'#dc2626',brd:'#fca5a5'},
+    'Não Classificado':{bg:'#f3f4f6',cor:'#6b7280',brd:'#d1d5db'},
+  };
+  const cc = local.nome_class ? (classCfg[local.nome_class]||classCfg['Não Classificado']) : null;
 
   return `
 <div class="ficha">
