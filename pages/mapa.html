@@ -573,6 +573,56 @@ function renderPagina(){
           </div>
         </div>
 
+        <!-- CAR — Imóveis Rurais -->
+        <div class="filtro-bloco">
+          <div class="filtro-bloco-header" onclick="toggleBloco('bloco-car')">
+            <h4>🏡 CAR — Imóveis Rurais</h4>
+            <span id="car-count-badge" style="font-size:10px;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:99px;padding:1px 8px;display:none">0</span>
+            <span id="chevron-bloco-car" style="font-size:10px;color:var(--cinza-400)">▾</span>
+          </div>
+          <div class="filtro-bloco-body" id="bloco-car" style="padding:10px 12px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--cinza-700);margin-bottom:4px">
+              <input type="checkbox" id="car-toggle" style="accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer" onchange="toggleCamadaCAR(this)">
+              Exibir imóveis CAR
+            </label>
+            <div id="car-loading" style="display:none;font-size:11px;color:var(--cinza-400);display:none;align-items:center;gap:6px;padding:6px 0">
+              <div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+              Carregando imóveis…
+            </div>
+            <div id="car-filtros-wrap" style="display:none;margin-top:8px;display:none;flex-direction:column;gap:8px">
+              <div class="form-group" style="gap:3px">
+                <label style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em">Filtrar por APA</label>
+                <select id="car-sel-apa" style="font-size:12px;padding:5px 8px;border:1px solid var(--borda);border-radius:var(--raio);font-family:inherit" onchange="aplicarFiltrosCAR()">
+                  <option value="todas">Todas as APAs</option>
+                  <option value="isf">Igarapé São Francisco</option>
+                  <option value="la">Lago do Amapá</option>
+                </select>
+              </div>
+              <div class="form-group" style="gap:3px">
+                <label style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em">Filtrar por Sub-bacia</label>
+                <select id="car-sel-sub" style="font-size:12px;padding:5px 8px;border:1px solid var(--borda);border-radius:var(--raio);font-family:inherit" onchange="aplicarFiltrosCAR()">
+                  <option value="todas">Todas as sub-bacias</option>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Situação</div>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:2px 0"><input type="checkbox" checked data-car-status="ativo" style="accent-color:#16a34a;cursor:pointer" onchange="aplicarFiltrosCAR()"> Ativo</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:2px 0"><input type="checkbox" checked data-car-status="aguardando" style="accent-color:#d97706;cursor:pointer" onchange="aplicarFiltrosCAR()"> Aguardando análise</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:2px 0"><input type="checkbox" checked data-car-status="analise" style="accent-color:#1d4ed8;cursor:pointer" onchange="aplicarFiltrosCAR()"> Em análise</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:2px 0"><input type="checkbox" checked data-car-status="outro" style="accent-color:#9ca3af;cursor:pointer" onchange="aplicarFiltrosCAR()"> Outros</label>
+              </div>
+              <div id="car-stats-bloco" style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;font-size:11px"></div>
+              <div>
+                <div style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Legenda</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#16a34a33;border-color:#16a34a"></div>Ativo</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#d9770633;border-color:#d97706"></div>Aguardando análise</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#2563eb22;border-color:#2563eb"></div>Em análise</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#9ca3af22;border-color:#9ca3af"></div>Outros</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Lista de pontos -->
         <div class="pontos-lista">
           <div class="pontos-lista-header">
