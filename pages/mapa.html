@@ -3372,17 +3372,19 @@ function _aplicarCamadaCAR(){
       layer.on('mouseover', () => {
         if(layer !== _carSelecionado)
           layer.setStyle(_estiloCAR(f, true, false));
+        mapaL.getContainer().style.cursor = 'pointer';
       });
       layer.on('mouseout', () => {
         if(layer !== _carSelecionado)
           layer.setStyle(_estiloCAR(f, false, false));
+        mapaL.getContainer().style.cursor = '';
       });
-      // clique tratado pelo handler global do mapa (tem prioridade sobre delimitação)
+      layer.on('click', e => {
+        L.DomEvent.stopPropagation(e); // impede popup de delimitação
+        _selecionarCAR(f, layer);
+      });
     }
   }).addTo(mapaL);
-
-  // Sempre traz CAR para cima de qualquer camada de delimitação
-  setTimeout(() => { try{ _carLayer.bringToFront(); }catch(_){} }, 0);
 
   _atualizarBadgeCAR();
   document.getElementById('car-filtros-wrap').style.display = 'flex';
