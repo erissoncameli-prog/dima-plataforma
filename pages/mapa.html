@@ -3474,78 +3474,317 @@ function _selecionarCAR(f, layer){
   abrirDetalhesCAR(f);
 }
 
+// ── Carregar marcados/estilos do banco ────────────────────────────────────
+async function _carregarMarcados(){
+  const { data } = await db.from('car_marcados').select('*');
+  _carMarcados = new Map((data||[]).map(r => [r.cod_imovel, r]));
+  _atualizarContadorPins();
+}
+
+function _atualizarContadorPins(){
+  const n = _carMarcados.size;
+  ['car-pin-count-tab'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.textContent = n;
+  });
+}
+
+// ── Abas do painel de detalhe ─────────────────────────────────────────────
+function abaCarDet(aba){
+  _carDetAba = aba;
+  document.querySelectorAll('.car-det-tab').forEach(b =>
+    b.classList.toggle('ativo', b.dataset.tab === aba)
+  );
+  _renderCarDetBody();
+}
+
+function _renderCarDetBody(){
+  const bod = document.getElementById('car-det-body');
+  if(!bod) return;
+  if(_carDetAba === 'atributos')     bod.innerHTML = _htmlCarAtributos(_carAbertoFeat);
+  else if(_carDetAba === 'estilo')   bod.innerHTML = _htmlCarEstilo(_carAbertoFeat);
+  else if(_carDetAba === 'marcados') bod.innerHTML = _htmlCarMarcados();
+}
+
+// ── Aba Atributos ─────────────────────────────────────────────────────────
+function _htmlCarAtributos(f){
+  if(!f) return '<div style="padding:24px;text-align:center;color:var(--cinza-400);font-size:12px">Nenhum imóvel selecionado</div>';
+  const p = f.properties || {};
+  const key = _carStatusKey(p.condicao);
+  const badgeCls = { ativo:'car-status-ativo', aguardando:'car-status-aguardando', analise:'car-status-analise', outro:'car-status-outro' }[key]||'car-status-outro';
+  const labels   = { ativo:'Ativo', aguardando:'Aguardando análise', analise:'Em análise', outro:'Outro' };
+  const f2  = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const fDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+  return `
+    <div class="car-det-field"><div class="car-det-label">Situação</div>
+      <div class="car-det-value"><span class="car-det-badge ${badgeCls}">${labels[key]||key}</span></div></div>
+    <div class="car-det-field"><div class="car-det-label">Área Declarada</div>
+      <div class="car-det-value" style="font-size:18px;font-weight:700;color:var(--verde-escuro)">${f2(p.area)} ha</div></div>
+    <div class="car-det-field"><div class="car-det-label">Município</div>
+      <div class="car-det-value">${escHtml(p.municipio||'—')} · ${escHtml(p.uf||'AC')}</div></div>
+    <div class="car-det-field"><div class="car-det-label">Tipo</div>
+      <div class="car-det-value">${escHtml(p.tipo_imovel||'—')}</div></div>
+    <div class="car-det-field"><div class="car-det-label">APA</div>
+      <div class="car-det-value">${p._apa==='isf'?'🌿 Igarapé São Francisco':p._apa==='la'?'💧 Lago do Amapá':'⚠️ Fora das APAs'}</div></div>
+    <div class="car-det-field"><div class="car-det-label">Sub-bacia</div>
+      <div class="car-det-value">${escHtml(p._subbacia||'— não identificada')}</div></div>
+    <div class="car-det-field"><div class="car-det-label">Data de Cadastro</div>
+      <div class="car-det-value">${fDt(p.dat_criacao)}</div></div>
+    <div class="car-det-field"><div class="car-det-label">Última Atualização</div>
+      <div class="car-det-value">${fDt(p.data_atualizacao)}</div></div>
+    <div class="car-det-field"><div class="car-det-label">Módulo Fiscal</div>
+      <div class="car-det-value">${f2(p.m_fiscal)} módulo(s)</div></div>
+    <div class="car-det-field"><div class="car-det-label">Código CAR</div>
+      <div class="car-det-value" style="font-family:monospace;font-size:10px;word-break:break-all;color:var(--cinza-400)">${escHtml(p.cod_imovel||'—')}</div></div>`;
+}
+
+// ── Aba Estilo individual ─────────────────────────────────────────────────
+function _htmlCarEstilo(f){
+  if(!f) return '<div style="padding:24px;text-align:center;color:var(--cinza-400);font-size:12px">Selecione um imóvel primeiro</div>';
+  const cod    = f.properties?.cod_imovel;
+  const custom = _carMarcados.get(cod) || {};
+  const corBase= _carCor(_carStatusKey(f.properties?.condicao));
+  const fill   = custom.fill_color   || corBase;
+  const fo     = custom.fill_opacity  != null ? Math.round(custom.fill_opacity * 100) : 18;
+  const stroke = custom.stroke_color || corBase;
+  const sw     = custom.stroke_width  != null ? custom.stroke_width : 1.5;
+  return `
+  <div style="padding:4px 0 10px;font-size:11px;color:var(--cinza-500);line-height:1.5">
+    Personalize a aparência deste imóvel. As alterações são visíveis para todos os usuários.
+  </div>
+  <div class="car-style-row">
+    <span class="car-style-lbl">Preenchimento</span>
+    <input type="color" value="${fill}" id="cs-fill" class="camada-color-mini" oninput="_previewCarEstilo()">
+  </div>
+  <div class="car-style-row">
+    <span class="car-style-lbl">Opacidade</span>
+    <input type="range" min="0" max="100" step="5" value="${fo}" id="cs-fo" class="car-style-slider"
+      oninput="_previewCarEstilo();this.nextElementSibling.textContent=this.value+'%'">
+    <span class="car-style-val">${fo}%</span>
+  </div>
+  <div class="car-style-row" style="margin-top:8px">
+    <span class="car-style-lbl">Borda (cor)</span>
+    <input type="color" value="${stroke}" id="cs-stroke" class="camada-color-mini" oninput="_previewCarEstilo()">
+  </div>
+  <div class="car-style-row">
+    <span class="car-style-lbl">Espessura</span>
+    <input type="range" min="0.5" max="6" step="0.5" value="${sw}" id="cs-sw" class="car-style-slider"
+      oninput="_previewCarEstilo();this.nextElementSibling.textContent=this.value+'px'">
+    <span class="car-style-val">${sw}px</span>
+  </div>
+  <div style="display:flex;gap:7px;margin-top:14px">
+    <button onclick="salvarCarEstilo()" class="btn btn-primary" style="font-size:12px;flex:1">💾 Salvar estilo</button>
+    <button onclick="restaurarCarEstilo()" class="btn btn-outline" style="font-size:12px;flex:1">↩ Restaurar</button>
+  </div>`;
+}
+
+function _previewCarEstilo(){
+  if(!_carAbertoFeat) return;
+  const cod  = _carAbertoFeat.properties?.cod_imovel;
+  const cur  = _carMarcados.get(cod) || {};
+  const prev = {
+    ...cur,
+    fill_color:   document.getElementById('cs-fill')?.value   || cur.fill_color,
+    fill_opacity: (document.getElementById('cs-fo')?.value    || 18) / 100,
+    stroke_color: document.getElementById('cs-stroke')?.value || cur.stroke_color,
+    stroke_width: parseFloat(document.getElementById('cs-sw')?.value || 1.5),
+  };
+  // Atualiza somente o layer deste CAR (preview ao vivo)
+  _carLayer?.eachLayer(l => {
+    if(l.feature?.properties?.cod_imovel !== cod) return;
+    const isSel = _carSelecionado === l;
+    _carMarcados.set(cod, prev); // temporário para o _estiloCAR funcionar
+    l.setStyle(_estiloCAR(l.feature, false, isSel));
+  });
+}
+
+async function salvarCarEstilo(){
+  if(!_carAbertoFeat) return;
+  const cod = _carAbertoFeat.properties?.cod_imovel;
+  const p   = _carAbertoFeat.properties || {};
+  const payload = {
+    cod_imovel:   cod,
+    fill_color:   document.getElementById('cs-fill')?.value   || null,
+    fill_opacity: (document.getElementById('cs-fo')?.value    || 18) / 100,
+    stroke_color: document.getElementById('cs-stroke')?.value || null,
+    stroke_width: parseFloat(document.getElementById('cs-sw')?.value || 1.5),
+    area:      parseFloat(p.area)    || null,
+    municipio: p.municipio           || null,
+    condicao:  p.condicao            || null,
+    atualizado_em: new Date().toISOString(),
+  };
+  const { error } = await db.from('car_marcados').upsert(payload, { onConflict:'cod_imovel' });
+  if(error){ toast('Erro ao salvar: ' + error.message, 'error'); return; }
+  _carMarcados.set(cod, payload);
+  _atualizarLayerCAR(cod);
+  _atualizarBtnMarcar();
+  _atualizarContadorPins();
+  toast('Estilo salvo!', 'success');
+}
+
+async function restaurarCarEstilo(){
+  if(!_carAbertoFeat) return;
+  const cod = _carAbertoFeat.properties?.cod_imovel;
+  _carMarcados.delete(cod);
+  await db.from('car_marcados').delete().eq('cod_imovel', cod);
+  _atualizarLayerCAR(cod);
+  _renderCarDetBody(); // re-render aba estilo com valores padrão
+  _atualizarBtnMarcar();
+  _atualizarContadorPins();
+  toast('Estilo restaurado ao padrão', 'info');
+}
+
+// ── Aba Marcados ──────────────────────────────────────────────────────────
+function _htmlCarMarcados(){
+  const lista = [..._carMarcados.entries()];
+  if(!lista.length) return `
+    <div style="padding:32px 16px;text-align:center;color:var(--cinza-400)">
+      <div style="font-size:32px;margin-bottom:8px">📌</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Nenhum imóvel marcado</div>
+      <div style="font-size:11px">Abra um imóvel e clique em 📌 Marcar</div>
+    </div>`;
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const areaTot = lista.reduce((s,[,r]) => s + (parseFloat(r.area)||0), 0);
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 10px;border-bottom:1px solid var(--borda);margin-bottom:4px">
+    <span style="font-size:12px;font-weight:600;color:var(--cinza-700)">${lista.length} marcado(s) · ${f2(areaTot)} ha</span>
+    <button onclick="limparTodosMarcados()" class="btn btn-outline"
+      style="font-size:11px;color:#dc2626;border-color:#fca5a5;padding:3px 10px">🗑 Limpar tudo</button>
+  </div>
+  ${lista.map(([cod, r]) => `
+    <div class="car-pin-item" onclick="irParaCAR('${escHtml(cod)}')">
+      <div style="width:10px;height:10px;border-radius:50%;background:#7c3aed;border:2px solid #c4b5fd;flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:600;color:var(--cinza-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+          title="${escHtml(cod)}">${escHtml(cod.slice(-12))}…</div>
+        <div style="font-size:10px;color:var(--cinza-500)">${escHtml(r.municipio||'—')} · ${f2(r.area)} ha</div>
+      </div>
+      <button onclick="event.stopPropagation();desmarcarCAR('${escHtml(cod)}')"
+        style="font-size:11px;padding:2px 7px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#dc2626;cursor:pointer;flex-shrink:0">✕</button>
+    </div>`).join('')}
+  <div style="padding:10px 0 4px;font-size:11px;color:var(--cinza-400);text-align:center;border-top:1px solid var(--cinza-100);margin-top:6px">
+    Clique em um item para centralizar no mapa
+  </div>`;
+}
+
+// ── Marcar / desmarcar ────────────────────────────────────────────────────
+async function toggleMarcarCAR(){
+  if(!_carAbertoFeat) return;
+  const cod = _carAbertoFeat.properties?.cod_imovel;
+  if(_carMarcados.has(cod)){
+    await desmarcarCAR(cod);
+  } else {
+    const p = _carAbertoFeat.properties || {};
+    const payload = {
+      cod_imovel: cod, area: parseFloat(p.area)||null,
+      municipio: p.municipio||null, condicao: p.condicao||null,
+      atualizado_em: new Date().toISOString(),
+    };
+    const { error } = await db.from('car_marcados').upsert(payload, { onConflict:'cod_imovel' });
+    if(error){ toast('Erro: '+error.message,'error'); return; }
+    _carMarcados.set(cod, payload);
+    _atualizarLayerCAR(cod);
+    _atualizarBtnMarcar();
+    _atualizarContadorPins();
+    if(_carDetAba==='marcados') _renderCarDetBody();
+    toast('Imóvel marcado!','success');
+  }
+}
+
+async function desmarcarCAR(cod){
+  const { error } = await db.from('car_marcados').delete().eq('cod_imovel', cod);
+  if(error){ toast('Erro: '+error.message,'error'); return; }
+  _carMarcados.delete(cod);
+  _atualizarLayerCAR(cod);
+  if(cod === _carAbertoCod) _atualizarBtnMarcar();
+  _atualizarContadorPins();
+  if(_carDetAba==='marcados') _renderCarDetBody();
+  toast('Marcação removida','info');
+}
+
+async function limparTodosMarcados(){
+  if(!confirm(`Remover todos os ${_carMarcados.size} imóveis marcados?`)) return;
+  const { error } = await db.from('car_marcados').delete().neq('cod_imovel','__nenhum__');
+  if(error){ toast('Erro: '+error.message,'error'); return; }
+  const cods = [..._carMarcados.keys()];
+  _carMarcados.clear();
+  cods.forEach(cod => _atualizarLayerCAR(cod));
+  _atualizarBtnMarcar();
+  _atualizarContadorPins();
+  _renderCarDetBody();
+  toast('Todos os marcados foram removidos','info');
+}
+
+// ── Navegar para CAR na lista ─────────────────────────────────────────────
+function irParaCAR(cod){
+  if(!_carLayer) return;
+  let found = null;
+  _carLayer.eachLayer(l => {
+    if(!found && l.feature?.properties?.cod_imovel === cod) found = l;
+  });
+  if(!found){
+    toast('Este imóvel está fora do filtro atual','warning'); return;
+  }
+  try{ mapaL.fitBounds(found.getBounds(), { maxZoom:17, padding:[30,30] }); } catch(_){}
+  _selecionarCAR(found.feature, found);
+}
+
+// ── Atualizar style de um layer específico (sem re-render total) ──────────
+function _atualizarLayerCAR(cod){
+  if(!_carLayer) return;
+  _carLayer.eachLayer(l => {
+    if(l.feature?.properties?.cod_imovel !== cod) return;
+    l.setStyle(_estiloCAR(l.feature, false, _carSelecionado === l));
+  });
+}
+
+// ── Botões de marcação ────────────────────────────────────────────────────
+function _atualizarBtnMarcar(){
+  const cod     = _carAbertoFeat?.properties?.cod_imovel;
+  const marcado = cod && _carMarcados.has(cod);
+  const btnFoot = document.getElementById('btn-car-marcar');
+  const btnHdr  = document.getElementById('btn-car-pin-hdr');
+  if(btnFoot){
+    btnFoot.textContent = marcado ? '📌 Desmarcar' : '📌 Marcar';
+    btnFoot.classList.toggle('btn-car-marcado', !!marcado);
+  }
+  if(btnHdr){
+    btnHdr.style.background = marcado ? '#7c3aed' : 'rgba(255,255,255,.15)';
+  }
+}
+
+// ── Abrir / fechar painel ─────────────────────────────────────────────────
 function abrirDetalhesCAR(f){
-  const p   = f.properties || {};
+  _carAbertoFeat = f;
+  _carAbertoCod  = f.properties?.cod_imovel;
   const det = document.getElementById('car-det-panel');
   const cod = document.getElementById('car-det-codigo');
-  const bod = document.getElementById('car-det-body');
   const lnk = document.getElementById('car-det-link-sicar');
   if(!det) return;
-
-  if(cod) cod.textContent = p.cod_imovel || '—';
-
-  const key   = _carStatusKey(p.condicao);
-  const badgeCls = { ativo:'car-status-ativo', aguardando:'car-status-aguardando', analise:'car-status-analise', outro:'car-status-outro' }[key] || 'car-status-outro';
-  const labels   = { ativo:'Ativo', aguardando:'Aguardando análise', analise:'Em análise', outro:'Outro' };
-
-  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
-  const fDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
-
-  bod.innerHTML = `
-    <div class="car-det-field">
-      <div class="car-det-label">Situação</div>
-      <div class="car-det-value"><span class="car-det-badge ${badgeCls}">${labels[key]||key}</span></div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">Área Declarada</div>
-      <div class="car-det-value" style="font-size:18px;font-weight:700;color:var(--verde-escuro)">${f2(p.area)} ha</div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">Município</div>
-      <div class="car-det-value">${escHtml(p.municipio||'—')} · ${escHtml(p.uf||'AC')}</div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">Tipo de Imóvel</div>
-      <div class="car-det-value">${escHtml(p.tipo_imovel||'—')}</div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">APA (calculado)</div>
-      <div class="car-det-value">${p._apa === 'isf' ? '🌿 Igarapé São Francisco' : p._apa === 'la' ? '💧 Lago do Amapá' : '⚠️ Fora das APAs'}</div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">Sub-bacia (calculado)</div>
-      <div class="car-det-value">${escHtml(p._subbacia || '— não identificada')}</div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">Data de Cadastro</div>
-      <div class="car-det-value">${fDt(p.dat_criacao)}</div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">Última Atualização</div>
-      <div class="car-det-value">${fDt(p.data_atualizacao)}</div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">Módulo Fiscal</div>
-      <div class="car-det-value">${f2(p.m_fiscal)} módulo(s)</div>
-    </div>
-    <div class="car-det-field">
-      <div class="car-det-label">Código CAR</div>
-      <div class="car-det-value" style="font-family:monospace;font-size:11px;word-break:break-all;color:var(--cinza-500)">${escHtml(p.cod_imovel||'—')}</div>
-    </div>`;
-
-  if(lnk && p.cod_imovel){
-    lnk.href = `https://consultapublica.car.gov.br/publico/imoveis/index?idImovel=${encodeURIComponent(p.cod_imovel)}`;
-    lnk.style.display = 'flex';
-  }
+  if(cod) cod.textContent = _carAbertoCod || '—';
+  if(_carDetAba === 'marcados') _carDetAba = 'atributos'; // volta para atributos ao abrir novo
+  _atualizarAbas();
+  _renderCarDetBody();
+  _atualizarBtnMarcar();
+  if(lnk && _carAbertoCod)
+    lnk.href = `https://consultapublica.car.gov.br/publico/imoveis/index?idImovel=${encodeURIComponent(_carAbertoCod)}`;
   det.classList.add('aberto');
+}
+
+function _atualizarAbas(){
+  document.querySelectorAll('.car-det-tab').forEach(b =>
+    b.classList.toggle('ativo', b.dataset.tab === _carDetAba)
+  );
 }
 
 function fecharDetalhesCAR(){
   document.getElementById('car-det-panel')?.classList.remove('aberto');
   if(_carSelecionado){
-    try{ _carSelecionado.setStyle(_estiloCAR(_carSelecionado.feature || {properties:{}}, false, false)); } catch(e){}
+    try{ _carSelecionado.setStyle(_estiloCAR(_carSelecionado.feature||{properties:{}},false,false)); }catch(_){}
     _carSelecionado = null;
   }
+  _carAbertoFeat = null;
+  _carAbertoCod  = null;
 }
 
 // ── Aba CAR no Relatório Analítico ────────────────────────────────────────
