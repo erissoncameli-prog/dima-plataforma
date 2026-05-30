@@ -3359,11 +3359,13 @@ function _popularFiltroSubbacia(){
 // ── Renderiza camada no mapa ──────────────────────────────────────────────
 function _aplicarCamadaCAR(){
   if(_carLayer) mapaL.removeLayer(_carLayer);
-  if(!_carRenderer) _carRenderer = L.canvas({ padding: 0.5 });
+  // Canvas dentro do carPane (z-index 450 > overlayPane 400)
+  if(!_carRenderer) _carRenderer = L.canvas({ pane: 'carPane', padding: 0.5 });
 
   aplicarFiltrosCAR(false); // computa _carVisiveis sem redesenhar
 
   _carLayer = L.geoJSON({ type:'FeatureCollection', features: _carVisiveis }, {
+    pane:     'carPane',
     renderer: _carRenderer,
     style: f => _estiloCAR(f, false, false),
     onEachFeature: (f, layer) => {
