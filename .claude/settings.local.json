@@ -90,7 +90,9 @@
       "Bash(cd \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\" && ls -la)",
       "Bash(xargs grep -l \"viagem_viajantes\\\\|viagem_protocolos\")",
       "Bash(xargs sed -i \"s|'Access-Control-Allow-Origin': 'https://erissoncameli-prog.github.io'|'Access-Control-Allow-Origin': '*'|g\")",
-      "Bash(supabase secrets *)"
+      "Bash(supabase secrets *)",
+      "WebFetch(domain:geoserver.car.gov.br)",
+      "WebFetch(domain:consultapublica.car.gov.br)"
     ]
   }
 }
