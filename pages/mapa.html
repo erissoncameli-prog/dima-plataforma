@@ -4923,6 +4923,284 @@ function _chartCarApa(){
   _relCharts.push(ch);
 }
 
+// ── Diagnóstico da Sessão ─────────────────────────────────────────────────
+let _diagSessaoBatchRunning = false;
+
+function _htmlRelDiagnosticoSessao(d){
+  const cached = [..._carDiagCache.entries()].filter(([,v]) => v && !v.erro);
+  const total  = _carFeatures.length;
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+
+  if(!_carCarregado || !total){
+    return `<div style="padding:48px;text-align:center">
+      <div style="font-size:40px;margin-bottom:12px">🔬</div>
+      <div style="font-size:14px;font-weight:600;color:var(--cinza-700);margin-bottom:8px">Camada CAR não carregada</div>
+      <div style="font-size:12px;color:var(--cinza-400)">Ative a camada CAR no painel do mapa e reabra o relatório.</div>
+    </div>`;
+  }
+
+  // Agrega métricas de todos os diagnósticos no cache
+  const agg = cached.reduce((s,[,v]) => {
+    s.desmat   += v.desmat   || 0;
+    s.floresta += v.floresta || 0;
+    s.appA     += v.appA     || 0;
+    s.appV     += v.appV     || 0;
+    s.restaur  += v.restaur  || 0;
+    s.nascentes+= v.nascentes|| 0;
+    s.hidro    += v.hidro?.total || 0;
+    return s;
+  }, { desmat:0, floresta:0, appA:0, appV:0, restaur:0, nascentes:0, hidro:0 });
+  const deficit = agg.desmat - agg.restaur;
+  const appTotal = agg.appA + agg.appV;
+  const pctAppDeg = appTotal > 0 ? agg.appA / appTotal * 100 : 0;
+
+  // Ranking por risco
+  const ranking = cached
+    .map(([cod, v]) => {
+      const feat = _carFeatures.find(f => f.properties?.cod_imovel === cod);
+      const p = feat?.properties || {};
+      return { cod, municipio: p.municipio||'—', area: parseFloat(p.area)||0,
+               risco: v.risco, prioridade: v.prioridade,
+               pctDesmat: v.pctDesmat, desmat: v.desmat, pctAppDeg: v.pctAppDeg };
+    })
+    .sort((a,b) => {
+      const ord = { Alto:0, Médio:1, Baixo:2 };
+      return (ord[a.risco]??3) - (ord[b.risco]??3) || b.pctDesmat - a.pctDesmat;
+    });
+
+  const altos  = ranking.filter(r => r.risco === 'Alto').length;
+  const medios = ranking.filter(r => r.risco === 'Médio').length;
+  const baixos = ranking.filter(r => r.risco === 'Baixo').length;
+
+  const semDiag = total - cached.length;
+
+  return `
+  <!-- Barra de progresso -->
+  <div style="background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:12px;font-weight:600;color:var(--cinza-700);margin-bottom:6px">
+        🔬 Diagnósticos calculados: <strong>${cached.length}</strong> de <strong>${total}</strong> CARs
+      </div>
+      <div style="height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${total>0?(cached.length/total*100).toFixed(1):0}%;background:linear-gradient(90deg,#1F4E2C,#16a34a);border-radius:4px;transition:width .4s"></div>
+      </div>
+      ${semDiag > 0 ? `<div style="font-size:10px;color:var(--cinza-400);margin-top:4px">${semDiag} imóvel(is) sem diagnóstico — clique em cada um no mapa ou use o cálculo em lote</div>` : '<div style="font-size:10px;color:#16a34a;margin-top:4px">✅ Todos os CARs com diagnóstico calculado</div>'}
+    </div>
+    <div style="display:flex;gap:7px;flex-shrink:0">
+      <button id="btn-diag-batch" onclick="_calcularDiagBatch()" class="btn btn-primary" style="font-size:12px;display:flex;align-items:center;gap:5px">
+        <span id="btn-diag-batch-ico">⚡</span> Calcular todos
+      </button>
+      ${cached.length > 0 ? `<button onclick="_exportarDiagCSV()" class="btn btn-outline" style="font-size:12px">📥 CSV</button>` : ''}
+    </div>
+  </div>
+
+  ${cached.length === 0 ? `
+  <div style="padding:48px;text-align:center;color:var(--cinza-400)">
+    <div style="font-size:40px;margin-bottom:12px">🔬</div>
+    <div style="font-size:14px;font-weight:600;margin-bottom:6px">Nenhum diagnóstico calculado ainda</div>
+    <div style="font-size:12px;margin-bottom:16px">Clique em um imóvel CAR no mapa e acesse a aba Diagnóstico, ou use o botão "Calcular todos" acima.</div>
+  </div>` : `
+
+  <!-- KPIs agregados -->
+  <div class="rel-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(155px,1fr));margin-bottom:16px">
+    <div class="rel-kpi rel-kpi-danger"><div class="rel-kpi-val">${f2(agg.desmat)} ha</div><div class="rel-kpi-lbl">Total Desmatado</div><div class="rel-kpi-sub">${cached.length} imóvel(is)</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${f2(agg.floresta)} ha</div><div class="rel-kpi-lbl">Total Florestal</div></div>
+    <div class="rel-kpi rel-kpi-warn"><div class="rel-kpi-val">${f2(agg.appA)} ha</div><div class="rel-kpi-lbl">APP Degradada Total</div><div class="rel-kpi-sub">${f1(pctAppDeg)}% da APP</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${f2(agg.appV)} ha</div><div class="rel-kpi-lbl">APP Preservada Total</div></div>
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${f2(agg.restaur)} ha</div><div class="rel-kpi-lbl">Restauração Proposta</div></div>
+    <div class="rel-kpi" style="${deficit>0?'border-color:#fca5a5;background:#fef2f2':'border-color:#86efac;background:#f0fdf4'}">
+      <div class="rel-kpi-val" style="color:${deficit>0?'#dc2626':'#16a34a'}">${f2(Math.abs(deficit))} ha</div>
+      <div class="rel-kpi-lbl">${deficit>0?'Déficit':'Excedente'} de Restauração</div>
+    </div>
+  </div>
+
+  <!-- Gráfico + Riscos -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="rel-section">
+      <div class="rel-section-title">📊 Distribuição de Risco Ambiental</div>
+      <div style="height:200px"><canvas id="chart-diag-sessao-risco"></canvas></div>
+      <div style="display:flex;justify-content:space-around;margin-top:10px;font-size:12px;text-align:center">
+        <div><div style="font-size:22px;font-weight:700;color:#dc2626">${altos}</div><div style="color:#6b7280">Risco Alto</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:#d97706">${medios}</div><div style="color:#6b7280">Risco Médio</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:#16a34a">${baixos}</div><div style="color:#6b7280">Risco Baixo</div></div>
+      </div>
+    </div>
+    <div class="rel-section">
+      <div class="rel-section-title">🌿 Cobertura por Uso do Solo</div>
+      <div style="height:200px"><canvas id="chart-diag-sessao-uso"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Tabela ranking -->
+  <div class="rel-section">
+    <div class="rel-section-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>🏆 Ranking por Risco Ambiental — ${ranking.length} imóvel(is) diagnosticado(s)</span>
+      ${semDiag>0?`<span style="font-size:10px;color:var(--cinza-400)">${semDiag} sem diagnóstico</span>`:''}
+    </div>
+    <div style="overflow-x:auto;margin-top:4px">
+      <table class="rel-table">
+        <thead><tr>
+          <th>#</th><th>Código CAR (últimos 12)</th><th>Município</th>
+          <th style="text-align:right">Área (ha)</th>
+          <th style="text-align:right">Desmatado (ha)</th>
+          <th style="text-align:center">% Desmat.</th>
+          <th style="text-align:center">APP Deg.</th>
+          <th style="text-align:center">Risco</th>
+          <th style="text-align:center">Prioridade</th>
+          <th style="text-align:center">Ação</th>
+        </tr></thead>
+        <tbody>
+          ${ranking.map((r,i) => {
+            const corR = r.risco==='Alto'?'#dc2626':r.risco==='Médio'?'#d97706':'#16a34a';
+            const corP = r.prioridade==='Alta'?'#dc2626':r.prioridade==='Média'?'#d97706':'#16a34a';
+            const corD = r.pctDesmat>25?'#dc2626':r.pctDesmat>10?'#d97706':'#16a34a';
+            const bgR  = r.risco==='Alto'?'#fef2f2':r.risco==='Médio'?'#fffbeb':'#f0fdf4';
+            return `<tr>
+              <td style="text-align:center;font-weight:700;color:var(--cinza-400)">${i+1}</td>
+              <td style="font-family:monospace;font-size:11px;color:var(--cinza-700)"title="${escHtml(r.cod)}">…${escHtml(r.cod.slice(-12))}</td>
+              <td>${escHtml(r.municipio)}</td>
+              <td style="text-align:right">${f2(r.area)}</td>
+              <td style="text-align:right;color:#dc2626;font-weight:600">${f2(r.desmat)}</td>
+              <td style="text-align:center"><span style="font-weight:700;color:${corD}">${f1(r.pctDesmat)}%</span></td>
+              <td style="text-align:center">${f1(r.pctAppDeg)}%</td>
+              <td style="text-align:center"><span style="background:${bgR};color:${corR};border:1px solid ${corR}33;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700">${r.risco}</span></td>
+              <td style="text-align:center"><span style="color:${corP};font-weight:700;font-size:11px">${r.prioridade}</span></td>
+              <td style="text-align:center"><button onclick="fecharRelatorioAmbiental();irParaCAR('${escHtml(r.cod)}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;color:var(--verde-escuro)">Ver</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Hidrografia agregada -->
+  ${agg.hidro > 0 ? `
+  <div class="rel-section" style="margin-top:12px">
+    <div class="rel-section-title">💧 Hidrografia Interna (agregada)</div>
+    <div style="display:flex;gap:24px;font-size:12px;color:var(--cinza-700);flex-wrap:wrap;padding:4px 0">
+      <div><strong style="font-size:18px;color:#1d4ed8">${agg.hidro.toLocaleString('pt-BR')}</strong><br>segmentos hídricos</div>
+      <div><strong style="font-size:18px;color:#0891b2">${agg.nascentes.toLocaleString('pt-BR')}</strong><br>nascentes identificadas</div>
+    </div>
+  </div>` : ''}
+  `}`;
+}
+
+function _initDiagSessaoBtns(){
+  // noop — botões usam onclick inline
+}
+
+async function _calcularDiagBatch(){
+  if(_diagSessaoBatchRunning){ toast('Cálculo em andamento…','warning'); return; }
+  if(!_carFeatures.length){ toast('Nenhum CAR carregado','warning'); return; }
+
+  _diagSessaoBatchRunning = true;
+  const btn = document.getElementById('btn-diag-batch');
+  const ico = document.getElementById('btn-diag-batch-ico');
+  if(btn) btn.disabled = true;
+  if(ico) ico.textContent = '⏳';
+
+  const pendentes = _carFeatures.filter(f => !_carDiagCache.has(f.properties?.cod_imovel));
+  toast(`Calculando ${pendentes.length} diagnóstico(s)… pode levar alguns segundos.`,'info');
+
+  let done = 0;
+  for(const f of pendentes){
+    const cod = f.properties?.cod_imovel;
+    if(!cod) continue;
+    try{
+      const d = await _calcularDiagnosticoCAR(f);
+      _carDiagCache.set(cod, d);
+    }catch(_){}
+    done++;
+    if(done % 10 === 0) toast(`${done}/${pendentes.length} calculados…`,'info');
+  }
+
+  _diagSessaoBatchRunning = false;
+  if(btn) btn.disabled = false;
+  if(ico) ico.textContent = '⚡';
+  toast(`✅ ${done} diagnóstico(s) calculado(s)!`,'success');
+
+  // Re-renderiza a aba
+  if(_relAba === 'diagnostico-sessao'){
+    const body = document.getElementById('rel-body');
+    if(body) body.innerHTML = _htmlRelDiagnosticoSessao(_relDados);
+    setTimeout(_chartDiagSessao, 60);
+  }
+}
+
+function _exportarDiagCSV(){
+  const cached = [..._carDiagCache.entries()].filter(([,v]) => v && !v.erro);
+  if(!cached.length){ toast('Nenhum diagnóstico para exportar','warning'); return; }
+  const f2 = n => Number(n||0).toFixed(2);
+  const f1 = n => Number(n||0).toFixed(1);
+  const header = ['cod_imovel','municipio','area_ha','desmat_ha','pct_desmat','floresta_ha','pct_floresta',
+    'app_degradada_ha','app_vegetacao_ha','pct_app_deg','restauracao_ha','deficit_ha',
+    'nascentes','hidro_segmentos','risco','prioridade'].join(';');
+  const rows = cached.map(([cod, v]) => {
+    const feat = _carFeatures.find(f => f.properties?.cod_imovel === cod);
+    const p = feat?.properties || {};
+    return [cod, p.municipio||'', f2(p.area||0), f2(v.desmat), f1(v.pctDesmat),
+      f2(v.floresta), f1(v.pctFloresta), f2(v.appA), f2(v.appV), f1(v.pctAppDeg),
+      f2(v.restaur), f2(v.deficit), v.nascentes||0, v.hidro?.total||0,
+      v.risco, v.prioridade].join(';');
+  });
+  const blob = new Blob(['﻿'+header+'\n'+rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `diagnostico-car-sessao-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('CSV exportado!','success');
+}
+
+function _chartDiagSessao(){
+  const cached = [..._carDiagCache.entries()].filter(([,v]) => v && !v.erro);
+  if(!cached.length || typeof Chart === 'undefined') return;
+
+  // Gráfico de risco (doughnut)
+  const ctxR = document.getElementById('chart-diag-sessao-risco');
+  if(ctxR){
+    const altos  = cached.filter(([,v])=>v.risco==='Alto').length;
+    const medios = cached.filter(([,v])=>v.risco==='Médio').length;
+    const baixos = cached.filter(([,v])=>v.risco==='Baixo').length;
+    const ch = new Chart(ctxR,{
+      type:'doughnut',
+      data:{ labels:['Risco Alto','Risco Médio','Risco Baixo'],
+        datasets:[{data:[altos,medios,baixos],backgroundColor:['#dc2626','#f59e0b','#16a34a'],borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},
+          tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed}`}}}}
+    });
+    _relCharts.push(ch);
+  }
+
+  // Gráfico uso do solo (bar horizontal)
+  const ctxU = document.getElementById('chart-diag-sessao-uso');
+  if(ctxU){
+    const agg = cached.reduce((s,[,v])=>({
+      desmat: s.desmat+(v.desmat||0),
+      floresta: s.floresta+(v.floresta||0),
+      appA: s.appA+(v.appA||0),
+      appV: s.appV+(v.appV||0),
+      restaur: s.restaur+(v.restaur||0),
+    }),{desmat:0,floresta:0,appA:0,appV:0,restaur:0});
+    const ch = new Chart(ctxU,{
+      type:'bar',
+      data:{
+        labels:['Desmatado','Florestal','APP Degradada','APP Vegetação','Restauração'],
+        datasets:[{data:[agg.desmat,agg.floresta,agg.appA,agg.appV,agg.restaur],
+          backgroundColor:['#dc2626','#16a34a','#f59e0b','#86efac','#0891b2'],borderRadius:4}]
+      },
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},
+          tooltip:{callbacks:{label:c=>`${Number(c.parsed.x).toLocaleString('pt-BR',{maximumFractionDigits:2})} ha`}}},
+        scales:{x:{ticks:{callback:v=>Number(v).toLocaleString('pt-BR')+'ha'},grid:{color:'#f3f4f6'}},y:{grid:{display:false}}}
+      }
+    });
+    _relCharts.push(ch);
+  }
+}
+
 // ── Relatório Analítico ────────────────────────────────────────────────────
 let _relCharts = [];
 let _relDados  = null;
