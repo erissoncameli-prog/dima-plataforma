@@ -4247,9 +4247,13 @@ async function gerarRelatorioCarMarcados(){
   // Garante que o painel lateral não cobre o mapa
   document.getElementById('car-det-panel')?.classList.remove('aberto');
 
-  // Pré-carrega dados locais para todos os CARs marcados
-  toast(`Buscando dados cadastrais…`,'info');
-  await Promise.all(cods.map(cod => _buscarDadosLocais(cod)));
+  // Pré-carrega dados locais e diagnósticos para todos os CARs marcados
+  toast(`Buscando dados cadastrais e calculando diagnósticos…`,'info');
+  const featsParaDiag = cods.map(cod => _carFeatures.find(f => f.properties?.cod_imovel === cod)).filter(Boolean);
+  await Promise.all([
+    ...cods.map(cod => _buscarDadosLocais(cod)),
+    ...featsParaDiag.map(f => _calcularDiagnosticoCAR(f).then(d => _carDiagCache.set(f.properties.cod_imovel, d)))
+  ]);
 
   const capturas = [];
   for(let i = 0; i < cods.length; i++){
