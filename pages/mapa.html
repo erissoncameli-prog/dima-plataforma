@@ -3846,7 +3846,7 @@ function _atualizarBtnMarcar(){
 }
 
 // ── Abrir / fechar painel ─────────────────────────────────────────────────
-function abrirDetalhesCAR(f){
+async function abrirDetalhesCAR(f){
   _carAbertoFeat = f;
   _carAbertoCod  = f.properties?.cod_imovel;
   const det = document.getElementById('car-det-panel');
@@ -3854,13 +3854,22 @@ function abrirDetalhesCAR(f){
   const lnk = document.getElementById('car-det-link-sicar');
   if(!det) return;
   if(cod) cod.textContent = _carAbertoCod || '—';
-  if(_carDetAba === 'marcados') _carDetAba = 'atributos'; // volta para atributos ao abrir novo
+  if(_carDetAba === 'marcados') _carDetAba = 'atributos';
   _atualizarAbas();
-  _renderCarDetBody();
+  _renderCarDetBody(); // render imediato com dados do WFS
   _atualizarBtnMarcar();
   if(lnk && _carAbertoCod)
     lnk.href = `https://consultapublica.car.gov.br/publico/imoveis/index?idImovel=${encodeURIComponent(_carAbertoCod)}`;
   det.classList.add('aberto');
+
+  // Busca dados enriquecidos (Supabase) em segundo plano
+  if(_carDetAba === 'atributos'){
+    const local = await _buscarDadosLocais(_carAbertoCod);
+    // Só re-renderiza se o CAR aberto ainda for o mesmo
+    if(_carAbertoCod === f.properties?.cod_imovel && _carDetAba === 'atributos'){
+      _renderCarDetBody();
+    }
+  }
 }
 
 function _atualizarAbas(){
