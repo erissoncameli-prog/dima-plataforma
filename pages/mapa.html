@@ -3054,7 +3054,451 @@ function vincularEventos(){
   _iniciarClickCamadas(() => camadas);
 }
 
-// ── Relatório Analítico Ambiental ─────────────────────────────────────────
+// ── CAR — Cadastro Ambiental Rural ────────────────────────────────────────
+const CAR_WFS_BASE = 'https://geoserver.car.gov.br/geoserver/sicar/wfs';
+const CAR_BBOX     = '-68.3,-10.15,-67.4,-9.65,EPSG:4326';
+const CAR_PAGE     = 1000;
+
+let _carFeatures   = [];     // all loaded features (with computed _apa, _subbacia)
+let _carVisiveis   = [];     // filtered subset
+let _carLayer      = null;   // Leaflet GeoJSON layer
+let _carRenderer   = null;   // Canvas renderer
+let _carCarregado  = false;
+let _carCarregando = false;
+let _carSelecionado= null;   // selected Leaflet layer ref
+let _carSubbaciaOpts = [];   // distinct sub-bacia names
+
+// ── Status helpers ─────────────────────────────────────────────────────────
+function _carStatusKey(condicao){
+  const c = (condicao||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if(c.includes('ativo'))       return 'ativo';
+  if(c.includes('analise') && !c.includes('aguardando') && !c.includes('em a')) return 'analise';
+  if(c.includes('aguardando'))  return 'aguardando';
+  if(c.includes('em anal'))     return 'analise';
+  return 'outro';
+}
+function _carCor(key, alpha){
+  const mapa = { ativo:'#16a34a', aguardando:'#d97706', analise:'#2563eb', outro:'#9ca3af' };
+  return mapa[key] || mapa.outro;
+}
+function _estiloCAR(f, hover, sel){
+  const key = _carStatusKey(f.properties?.condicao);
+  const cor  = _carCor(key);
+  return {
+    color:       sel  ? '#7c3aed' : cor,
+    weight:      sel  ? 3 : hover ? 2 : 1.5,
+    opacity:     1,
+    fillColor:   sel  ? '#7c3aed' : cor,
+    fillOpacity: sel  ? 0.35 : hover ? 0.3 : 0.18,
+  };
+}
+
+// ── Toggle da camada ───────────────────────────────────────────────────────
+async function toggleCamadaCAR(el){
+  if(!el.checked){
+    if(_carLayer) mapaL.removeLayer(_carLayer);
+    fecharDetalhesCAR();
+    document.getElementById('car-filtros-wrap').style.display = 'none';
+    document.getElementById('car-count-badge').style.display  = 'none';
+    return;
+  }
+  if(!_carCarregado) await carregarDadosCAR();
+  else _aplicarCamadaCAR();
+}
+
+// ── Carregamento WFS paginado ──────────────────────────────────────────────
+async function carregarDadosCAR(){
+  if(_carCarregando) return;
+  _carCarregando = true;
+  const load = document.getElementById('car-loading');
+  if(load) { load.style.display = 'flex'; }
+
+  try{
+    // 1ª página — descobre total
+    const url0 = `${CAR_WFS_BASE}?service=WFS&version=2.0.0&request=GetFeature`
+               + `&typeNames=sicar:sicar_imoveis_ac&outputFormat=application/json`
+               + `&BBOX=${CAR_BBOX}&count=${CAR_PAGE}&startindex=0`;
+    const res0 = await fetch(url0).then(r => r.json());
+    const total = res0.numberMatched || res0.totalFeatures || (res0.features||[]).length;
+    const features = [...(res0.features || [])];
+
+    // Páginas restantes em paralelo
+    if(total > CAR_PAGE){
+      const npages = Math.ceil(total / CAR_PAGE);
+      const promises = [];
+      for(let i = 1; i < npages; i++){
+        const u = `${CAR_WFS_BASE}?service=WFS&version=2.0.0&request=GetFeature`
+                + `&typeNames=sicar:sicar_imoveis_ac&outputFormat=application/json`
+                + `&BBOX=${CAR_BBOX}&count=${CAR_PAGE}&startindex=${i * CAR_PAGE}`;
+        promises.push(fetch(u).then(r => r.json()));
+      }
+      const pages = await Promise.all(promises);
+      pages.forEach(p => features.push(...(p.features || [])));
+    }
+
+    _carFeatures = features;
+    _computarAtributosCAR();
+    _carCarregado  = true;
+    _carCarregando = false;
+    if(load) load.style.display = 'none';
+    _popularFiltroSubbacia();
+    _aplicarCamadaCAR();
+    toast(`${features.length.toLocaleString('pt-BR')} imóveis CAR carregados`, 'success');
+  } catch(err){
+    _carCarregando = false;
+    if(load) load.style.display = 'none';
+    toast('Erro ao carregar dados CAR: ' + err.message, 'error');
+    document.getElementById('car-toggle').checked = false;
+  }
+}
+
+// ── Pré-computa APA e sub-bacia de cada feature ───────────────────────────
+function _computarAtributosCAR(){
+  // Busca camadas de fonte (global ou pelo geojson carregado)
+  const fonte = camadas.filter(c => c.geojson && c.geojson.features);
+  const findLayer = (...terms) => fonte.find(c =>
+    terms.some(t => c.nome && c.nome.toLowerCase().includes(t.toLowerCase()))
+  );
+  const apaISF  = findLayer('igarapé são francisco','isf','São Francisco')?.geojson?.features?.[0];
+  const apaLA   = findLayer('lago do amapá','lago do amapa','la')?.geojson?.features?.[0];
+  const sbFeats = findLayer('subbacias','Subbacias')?.geojson?.features || [];
+
+  const sbNomes = new Set();
+  _carFeatures.forEach(f => {
+    if(!f.geometry) return;
+    let centroid;
+    try { centroid = turf.centroid(f); } catch(e) { return; }
+    const pt = centroid;
+
+    // APA
+    f.properties._apa = 'fora';
+    try{ if(apaISF && turf.booleanPointInPolygon(pt, apaISF)) f.properties._apa = 'isf'; } catch(e){}
+    try{ if(f.properties._apa === 'fora' && apaLA && turf.booleanPointInPolygon(pt, apaLA)) f.properties._apa = 'la'; } catch(e){}
+
+    // Sub-bacia
+    f.properties._subbacia = null;
+    for(const sb of sbFeats){
+      try{
+        if(turf.booleanPointInPolygon(pt, sb)){
+          f.properties._subbacia = sb.properties?.name || sb.properties?.Name || sb.properties?.NAME || null;
+          if(f.properties._subbacia) sbNomes.add(f.properties._subbacia);
+          break;
+        }
+      } catch(e) {}
+    }
+
+    // Interseção com desmatamento (marca flag)
+    f.properties._desmat = false;
+  });
+  _carSubbaciaOpts = [...sbNomes].sort();
+}
+
+// ── Popular select de sub-bacias ──────────────────────────────────────────
+function _popularFiltroSubbacia(){
+  const sel = document.getElementById('car-sel-sub');
+  if(!sel) return;
+  sel.innerHTML = '<option value="todas">Todas as sub-bacias</option>'
+    + _carSubbaciaOpts.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+}
+
+// ── Renderiza camada no mapa ──────────────────────────────────────────────
+function _aplicarCamadaCAR(){
+  if(_carLayer) mapaL.removeLayer(_carLayer);
+  if(!_carRenderer) _carRenderer = L.canvas({ padding: 0.5 });
+
+  aplicarFiltrosCAR(false); // computa _carVisiveis sem redesenhar
+
+  _carLayer = L.geoJSON({ type:'FeatureCollection', features: _carVisiveis }, {
+    renderer: _carRenderer,
+    style: f => _estiloCAR(f, false, false),
+    onEachFeature: (f, layer) => {
+      layer.on('mouseover', () => {
+        if(layer !== _carSelecionado)
+          layer.setStyle(_estiloCAR(f, true, false));
+      });
+      layer.on('mouseout', () => {
+        if(layer !== _carSelecionado)
+          layer.setStyle(_estiloCAR(f, false, false));
+      });
+      layer.on('click', e => {
+        L.DomEvent.stopPropagation(e);
+        _selecionarCAR(f, layer);
+      });
+    }
+  }).addTo(mapaL);
+
+  _atualizarBadgeCAR();
+  document.getElementById('car-filtros-wrap').style.display = 'flex';
+}
+
+// ── Filtros ───────────────────────────────────────────────────────────────
+function aplicarFiltrosCAR(redesenhar = true){
+  const apa    = document.getElementById('car-sel-apa')?.value  || 'todas';
+  const sub    = document.getElementById('car-sel-sub')?.value  || 'todas';
+  const checks = document.querySelectorAll('[data-car-status]');
+  const ativos = new Set([...checks].filter(c => c.checked).map(c => c.dataset.carStatus));
+
+  _carVisiveis = _carFeatures.filter(f => {
+    const p = f.properties || {};
+    if(apa !== 'todas' && p._apa !== apa) return false;
+    if(sub !== 'todas' && p._subbacia !== sub) return false;
+    const key = _carStatusKey(p.condicao);
+    if(!ativos.has(key)) return false;
+    return true;
+  });
+
+  if(redesenhar) _aplicarCamadaCAR();
+  else _atualizarBadgeCAR();
+}
+
+function _atualizarBadgeCAR(){
+  const badge = document.getElementById('car-count-badge');
+  if(badge){
+    badge.textContent = _carVisiveis.length.toLocaleString('pt-BR');
+    badge.style.display = 'inline-flex';
+  }
+  // Stats block
+  const sb = document.getElementById('car-stats-bloco');
+  if(!sb) return;
+  const areaTot = _carVisiveis.reduce((s,f) => s + (parseFloat(f.properties?.area)||0), 0);
+  const porStatus = {};
+  _carVisiveis.forEach(f => {
+    const k = _carStatusKey(f.properties?.condicao);
+    porStatus[k] = (porStatus[k]||0) + 1;
+  });
+  sb.innerHTML = `
+    <div class="car-stat-row"><span>Imóveis visíveis</span><span class="car-stat-val">${_carVisiveis.length.toLocaleString('pt-BR')}</span></div>
+    <div class="car-stat-row"><span>Área total declarada</span><span class="car-stat-val">${areaTot.toLocaleString('pt-BR',{maximumFractionDigits:0})} ha</span></div>
+    ${porStatus.ativo     ? `<div class="car-stat-row"><span style="color:#16a34a">● Ativo</span><span class="car-stat-val">${porStatus.ativo}</span></div>` : ''}
+    ${porStatus.aguardando? `<div class="car-stat-row"><span style="color:#d97706">● Aguardando</span><span class="car-stat-val">${porStatus.aguardando}</span></div>` : ''}
+    ${porStatus.analise   ? `<div class="car-stat-row"><span style="color:#2563eb">● Em análise</span><span class="car-stat-val">${porStatus.analise}</span></div>` : ''}`;
+}
+
+// ── Seleção de imóvel ─────────────────────────────────────────────────────
+function _selecionarCAR(f, layer){
+  // Resetar anterior
+  if(_carSelecionado) _carSelecionado.setStyle(_estiloCAR(_carSelecionado.feature || f, false, false));
+  _carSelecionado = layer;
+  layer.setStyle(_estiloCAR(f, false, true));
+  layer.bringToFront();
+  abrirDetalhesCAR(f);
+}
+
+function abrirDetalhesCAR(f){
+  const p   = f.properties || {};
+  const det = document.getElementById('car-det-panel');
+  const cod = document.getElementById('car-det-codigo');
+  const bod = document.getElementById('car-det-body');
+  const lnk = document.getElementById('car-det-link-sicar');
+  if(!det) return;
+
+  if(cod) cod.textContent = p.cod_imovel || '—';
+
+  const key   = _carStatusKey(p.condicao);
+  const badgeCls = { ativo:'car-status-ativo', aguardando:'car-status-aguardando', analise:'car-status-analise', outro:'car-status-outro' }[key] || 'car-status-outro';
+  const labels   = { ativo:'Ativo', aguardando:'Aguardando análise', analise:'Em análise', outro:'Outro' };
+
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const fDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+
+  bod.innerHTML = `
+    <div class="car-det-field">
+      <div class="car-det-label">Situação</div>
+      <div class="car-det-value"><span class="car-det-badge ${badgeCls}">${labels[key]||key}</span></div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">Área Declarada</div>
+      <div class="car-det-value" style="font-size:18px;font-weight:700;color:var(--verde-escuro)">${f2(p.area)} ha</div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">Município</div>
+      <div class="car-det-value">${escHtml(p.municipio||'—')} · ${escHtml(p.uf||'AC')}</div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">Tipo de Imóvel</div>
+      <div class="car-det-value">${escHtml(p.tipo_imovel||'—')}</div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">APA (calculado)</div>
+      <div class="car-det-value">${p._apa === 'isf' ? '🌿 Igarapé São Francisco' : p._apa === 'la' ? '💧 Lago do Amapá' : '⚠️ Fora das APAs'}</div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">Sub-bacia (calculado)</div>
+      <div class="car-det-value">${escHtml(p._subbacia || '— não identificada')}</div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">Data de Cadastro</div>
+      <div class="car-det-value">${fDt(p.dat_criacao)}</div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">Última Atualização</div>
+      <div class="car-det-value">${fDt(p.data_atualizacao)}</div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">Módulo Fiscal</div>
+      <div class="car-det-value">${f2(p.m_fiscal)} módulo(s)</div>
+    </div>
+    <div class="car-det-field">
+      <div class="car-det-label">Código CAR</div>
+      <div class="car-det-value" style="font-family:monospace;font-size:11px;word-break:break-all;color:var(--cinza-500)">${escHtml(p.cod_imovel||'—')}</div>
+    </div>`;
+
+  if(lnk && p.cod_imovel){
+    lnk.href = `https://consultapublica.car.gov.br/publico/imoveis/index?idImovel=${encodeURIComponent(p.cod_imovel)}`;
+    lnk.style.display = 'flex';
+  }
+  det.classList.add('aberto');
+}
+
+function fecharDetalhesCAR(){
+  document.getElementById('car-det-panel')?.classList.remove('aberto');
+  if(_carSelecionado){
+    try{ _carSelecionado.setStyle(_estiloCAR(_carSelecionado.feature || {properties:{}}, false, false)); } catch(e){}
+    _carSelecionado = null;
+  }
+}
+
+// ── Aba CAR no Relatório Analítico ────────────────────────────────────────
+function _htmlRelCAR(d){
+  if(!_carCarregado || !_carFeatures.length){
+    return `<div style="padding:48px;text-align:center">
+      <div style="font-size:40px;margin-bottom:12px">🏡</div>
+      <div style="font-size:14px;font-weight:600;color:var(--cinza-700);margin-bottom:8px">Camada CAR não carregada</div>
+      <div style="font-size:12px;color:var(--cinza-400);margin-bottom:16px">Ative a camada CAR no painel do mapa e reabra o relatório.</div>
+      <button class="btn btn-primary" style="font-size:12px" onclick="fecharRelatorioAmbiental();document.getElementById('car-toggle').click()">Ativar camada CAR</button>
+    </div>`;
+  }
+
+  const { subbacias } = d;
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+
+  const totalCar  = _carFeatures.length;
+  const totalArea = _carFeatures.reduce((s,f) => s + (parseFloat(f.properties?.area)||0), 0);
+  const porStatus = {};
+  _carFeatures.forEach(f => {
+    const k = _carStatusKey(f.properties?.condicao);
+    porStatus[k] = (porStatus[k]||0) + 1;
+  });
+
+  // Por sub-bacia
+  const porSub = {};
+  _carFeatures.forEach(f => {
+    const sb = f.properties?._subbacia || '—';
+    if(!porSub[sb]) porSub[sb] = { n:0, area:0, status:{} };
+    porSub[sb].n++;
+    porSub[sb].area += parseFloat(f.properties?.area)||0;
+    const k = _carStatusKey(f.properties?.condicao);
+    porSub[sb].status[k] = (porSub[sb].status[k]||0) + 1;
+  });
+
+  // Por APA
+  const isf = _carFeatures.filter(f => f.properties?._apa === 'isf');
+  const la  = _carFeatures.filter(f => f.properties?._apa === 'la');
+  const fora= _carFeatures.filter(f => f.properties?._apa === 'fora');
+
+  // KPIs APA coverage
+  const coberturaISF = d.tot?.area > 0 ? (_carFeatures.filter(f=>f.properties?._apa==='isf').reduce((s,f)=>s+(parseFloat(f.properties?.area)||0),0) / d.tot.area * 100) : 0;
+
+  return `
+  <div class="rel-kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:16px">
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${totalCar.toLocaleString('pt-BR')}</div><div class="rel-kpi-lbl">Total de CARs na área</div></div>
+    <div class="rel-kpi"><div class="rel-kpi-val">${f2(totalArea)} ha</div><div class="rel-kpi-lbl">Área total declarada</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${isf.length}</div><div class="rel-kpi-lbl">CARs na APA ISF</div></div>
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${la.length}</div><div class="rel-kpi-lbl">CARs na APA Lago Amapá</div></div>
+    <div class="rel-kpi rel-kpi-warn"><div class="rel-kpi-val">${(porStatus.aguardando||0).toLocaleString('pt-BR')}</div><div class="rel-kpi-lbl">Aguardando análise</div></div>
+    <div class="rel-kpi"><div class="rel-kpi-val">${f1(coberturaISF)}%</div><div class="rel-kpi-lbl">Cobertura CAR na APA ISF</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="rel-section">
+      <div class="rel-section-title">📊 CARs por Situação</div>
+      <div style="height:200px"><canvas id="chart-car-status"></canvas></div>
+    </div>
+    <div class="rel-section">
+      <div class="rel-section-title">🗺 Distribuição por APA</div>
+      <div style="height:200px"><canvas id="chart-car-apa"></canvas></div>
+    </div>
+  </div>
+
+  <div class="rel-section">
+    <div class="rel-section-title">🗂 CARs por Sub-bacia</div>
+    <div style="overflow-x:auto;margin-top:4px">
+      <table class="rel-table">
+        <thead><tr>
+          <th>Sub-bacia</th><th style="text-align:right">Nº CARs</th>
+          <th style="text-align:right">Área declarada (ha)</th>
+          <th style="text-align:right">Área sub-bacia (ha)</th>
+          <th style="text-align:center">Cobertura CAR</th>
+          <th style="text-align:center">Ativos</th><th style="text-align:center">Aguardando</th><th style="text-align:center">Em análise</th>
+        </tr></thead>
+        <tbody>
+          ${Object.entries(porSub)
+            .filter(([k]) => k !== '—')
+            .sort((a,b) => b[1].n - a[1].n)
+            .map(([nome, info]) => {
+              const sbDados = subbacias?.find(s => s.nome === nome);
+              const cobert  = sbDados?.area > 0 ? info.area / sbDados.area * 100 : null;
+              return `<tr>
+                <td style="font-weight:600">${escHtml(nome)}</td>
+                <td style="text-align:right;font-weight:700">${info.n}</td>
+                <td style="text-align:right">${f2(info.area)}</td>
+                <td style="text-align:right;color:var(--cinza-400)">${sbDados ? f2(sbDados.area) : '—'}</td>
+                <td style="text-align:center">${cobert != null ? `<span style="font-weight:700;color:${cobert>80?'#16a34a':cobert>50?'#d97706':'#dc2626'}">${f1(cobert)}%</span>` : '—'}</td>
+                <td style="text-align:center;color:#16a34a">${info.status.ativo||0}</td>
+                <td style="text-align:center;color:#d97706">${info.status.aguardando||0}</td>
+                <td style="text-align:center;color:#2563eb">${info.status.analise||0}</td>
+              </tr>`;
+            }).join('')}
+          ${porSub['—'] ? `<tr style="color:var(--cinza-400)">
+            <td>Fora das sub-bacias</td>
+            <td style="text-align:right">${porSub['—'].n}</td>
+            <td style="text-align:right">${f2(porSub['—'].area)}</td>
+            <td colspan="5" style="text-align:center">—</td>
+          </tr>` : ''}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function _chartCarStatus(d){
+  const ctx = document.getElementById('chart-car-status');
+  if(!ctx || typeof Chart === 'undefined' || !_carFeatures.length) return;
+  const porStatus = {};
+  _carFeatures.forEach(f => { const k = _carStatusKey(f.properties?.condicao); porStatus[k] = (porStatus[k]||0)+1; });
+  const ch = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Ativo','Aguardando análise','Em análise','Outros'],
+      datasets:[{ data:[porStatus.ativo||0, porStatus.aguardando||0, porStatus.analise||0, porStatus.outro||0],
+        backgroundColor:['#16a34a','#d97706','#2563eb','#9ca3af'], borderWidth:2, borderColor:'#fff' }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${Number(c.parsed).toLocaleString('pt-BR')}`}} } }
+  });
+  _relCharts.push(ch);
+}
+
+function _chartCarApa(){
+  const ctx = document.getElementById('chart-car-apa');
+  if(!ctx || typeof Chart === 'undefined' || !_carFeatures.length) return;
+  const isf  = _carFeatures.filter(f=>f.properties?._apa==='isf').length;
+  const la   = _carFeatures.filter(f=>f.properties?._apa==='la').length;
+  const fora = _carFeatures.filter(f=>f.properties?._apa==='fora').length;
+  const ch = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['APA Igarapé São Francisco','APA Lago do Amapá','Fora das APAs'],
+      datasets:[{ data:[isf, la, fora], backgroundColor:['#16a34a','#0891b2','#d1d5db'], borderWidth:2, borderColor:'#fff' }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${Number(c.parsed).toLocaleString('pt-BR')}`}} } }
+  });
+  _relCharts.push(ch);
+}
+
+// ── Relatório Analítico ────────────────────────────────────────────────────
 let _relCharts = [];
 let _relDados  = null;
 let _relAba    = 'visao-geral';
