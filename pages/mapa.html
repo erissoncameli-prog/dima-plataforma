@@ -3247,6 +3247,39 @@ let _carAbertoFeat  = null;     // feature do CAR aberto
 let _carDetAba      = 'atributos';
 let _carUltimoEstilo= null;     // último estilo salvo { fill_color, fill_opacity, stroke_color, stroke_width, cod_imovel }
 
+// ── Mascara CPF/CNPJ: exibe 3 primeiros e 2 últimos dígitos ──────────────
+function _mascaraCpfCnpj(v){
+  if(!v) return '—';
+  const d = String(v).replace(/\D/g,'');
+  if(d.length < 6) return d;
+  return d.slice(0,3) + '*'.repeat(d.length - 5) + d.slice(-2);
+}
+
+// ── Badge de classificação ambiental ─────────────────────────────────────
+function _badgeClass(nome_class){
+  if(!nome_class) return '<span style="font-size:10px;color:var(--cinza-400)">—</span>';
+  const cfg = {
+    'Verde':           { bg:'#f0fdf4', cor:'#16a34a', brd:'#86efac', ico:'🟢' },
+    'Amarelo':         { bg:'#fffbeb', cor:'#d97706', brd:'#fde68a', ico:'🟡' },
+    'Vermelho':        { bg:'#fef2f2', cor:'#dc2626', brd:'#fca5a5', ico:'🔴' },
+    'Não Classificado':{ bg:'#f3f4f6', cor:'#6b7280', brd:'#d1d5db', ico:'⚪' },
+  };
+  const c = cfg[nome_class] || { bg:'#f3f4f6', cor:'#6b7280', brd:'#d1d5db', ico:'○' };
+  return `<span style="display:inline-flex;align-items:center;gap:4px;background:${c.bg};color:${c.cor};border:1px solid ${c.brd};border-radius:99px;padding:2px 9px;font-size:11px;font-weight:700">${c.ico} ${escHtml(nome_class)}</span>`;
+}
+
+// ── Busca dados locais (Supabase) por cod_imovel ─────────────────────────
+async function _buscarDadosLocais(cod){
+  if(!cod) return null;
+  if(_carDadosLocais.has(cod)) return _carDadosLocais.get(cod);
+  const { data } = await db.from('car_dados_locais')
+    .select('nom_imovel,nome_compl,cpf_cnpj,nome_class,tipo_docum,nome_docum,dat_criaca')
+    .eq('cod_imovel', cod)
+    .maybeSingle();
+  _carDadosLocais.set(cod, data || null);
+  return data || null;
+}
+
 // ── Status helpers ─────────────────────────────────────────────────────────
 function _carStatusKey(condicao){
   const c = (condicao||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
