@@ -1040,7 +1040,7 @@ function _adicionarControleModoMapa(){
 
 async function carregarCamadas(){
   const { data, error } = await db.from('apa_demarcacoes')
-    .select('id, nome, apa_key, cor, geojson, visivel, feature_colors')
+    .select('id, nome, apa_key, cor, geojson, visivel, feature_colors, style_config')
     .order('created_at');
   if(error){ console.error('Erro ao carregar camadas:', error); renderCamadasHtml(); return; }
   const visPref = JSON.parse(localStorage.getItem('dima_camadas_vis')||'{}');
