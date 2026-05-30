@@ -3754,6 +3754,313 @@ async function restaurarCarEstilo(){
   toast('Estilo restaurado ao padrão', 'info');
 }
 
+// ── Aba Diagnóstico ───────────────────────────────────────────────────────
+let _carDiagCache = new Map(); // cod_imovel → dados calculados
+
+function _htmlCarDiagLoading(){
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--cinza-500)">
+    <div style="width:24px;height:24px;border:3px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div style="font-size:12px">Calculando diagnóstico espacial…</div>
+    <div style="font-size:10px;color:var(--cinza-400)">Intersectando ${camadas.filter(c=>c.geojson).length} camadas de delimitação</div>
+  </div>`;
+}
+
+async function _iniciarDiagnosticoCAR(f){
+  if(!f) return;
+  const cod = f.properties?.cod_imovel;
+  if(!cod) return;
+
+  // Usa cache se disponível
+  if(_carDiagCache.has(cod)){
+    if(_carAbertoCod === cod && _carDetAba === 'diagnostico')
+      document.getElementById('car-det-body').innerHTML = _htmlCarDiagnostico(_carDiagCache.get(cod), f);
+    return;
+  }
+
+  const dados = await _calcularDiagnosticoCAR(f);
+  _carDiagCache.set(cod, dados);
+
+  if(_carAbertoCod === cod && _carDetAba === 'diagnostico'){
+    const bod = document.getElementById('car-det-body');
+    if(bod) bod.innerHTML = _htmlCarDiagnostico(dados, f);
+  }
+}
+
+async function _calcularDiagnosticoCAR(f){
+  const p = f.properties || {};
+
+  // Garante geometria válida
+  let carPoly;
+  try { carPoly = turf.feature(f.geometry); }
+  catch(e){ return { erro: 'Geometria inválida para este imóvel.' }; }
+
+  const carBbox = turf.bbox(carPoly);
+
+  // Localiza camadas no array global
+  const fonte = camadas.filter(c => c.geojson?.features);
+  const findL = (...ts) => fonte.find(c => ts.some(t => c.nome?.toLowerCase().includes(t.toLowerCase())));
+  const lDesm  = findL('desmatamento');
+  const lFlor  = findL('florestal');
+  const lAppA  = findL('antropizada');
+  const lAppV  = findL('app vegetação','APP Vegetação');
+  const lRest  = findL('restauração');
+  const lNasc  = findL('nascentes');
+  const lHidro = findL('hidrografia');
+  const lSub   = findL('subbacias','Subbacias');
+
+  // Helper: calcula área da interseção entre o CAR e features de uma camada (em ha)
+  function intersectArea(layer){
+    if(!layer) return 0;
+    let total = 0;
+    for(const feat of (layer.geojson.features || [])){
+      // Pré-filtro por bbox para performance
+      try{
+        const fb = turf.bbox(feat);
+        if(fb[2] < carBbox[0] || fb[0] > carBbox[2] || fb[3] < carBbox[1] || fb[1] > carBbox[3]) continue;
+        const inter = turf.intersect(carPoly, turf.feature(feat.geometry));
+        if(inter) total += turf.area(inter);
+      }catch(_){}
+    }
+    return total / 10000; // m² → ha
+  }
+
+  // Helper: conta features de ponto/polígono dentro ou que intersectam o CAR
+  function countIntersect(layer){
+    if(!layer) return 0;
+    let n = 0;
+    for(const feat of (layer.geojson.features || [])){
+      try{
+        const fb = turf.bbox(feat);
+        if(fb[2] < carBbox[0] || fb[0] > carBbox[2] || fb[3] < carBbox[1] || fb[1] > carBbox[3]) continue;
+        if(turf.booleanIntersects(carPoly, turf.feature(feat.geometry))) n++;
+      }catch(_){}
+    }
+    return n;
+  }
+
+  // Sub-bacia (centroide do CAR)
+  let subbacia = p._subbacia || null;
+  if(!subbacia && lSub){
+    try{
+      const cent = turf.centroid(carPoly);
+      for(const sb of (lSub.geojson.features || [])){
+        if(turf.booleanPointInPolygon(cent, turf.feature(sb.geometry))){
+          subbacia = sb.properties?.name || sb.properties?.Name || null;
+          break;
+        }
+      }
+    }catch(_){}
+  }
+
+  // Hidrografia: filtra segmentos que intersectam o CAR
+  const hidroSegmentos = [];
+  if(lHidro){
+    for(const feat of (lHidro.geojson.features || [])){
+      try{
+        const fb = turf.bbox(feat);
+        if(fb[2] < carBbox[0] || fb[0] > carBbox[2] || fb[3] < carBbox[1] || fb[1] > carBbox[3]) continue;
+        if(turf.booleanIntersects(carPoly, turf.feature(feat.geometry))){
+          hidroSegmentos.push(feat);
+        }
+      }catch(_){}
+    }
+  }
+  const hidroComp   = hidroSegmentos.reduce((s,f) => s + (parseFloat(f.properties?.LENGTH)||0), 0) / 1000; // km
+  const hidroInterm = hidroSegmentos.filter(f => /intermit/i.test(f.properties?.REGIME||'')).length;
+  const hidroPerene = hidroSegmentos.filter(f => /peren/i.test(f.properties?.REGIME||'')).length;
+  const hidroNomes  = [...new Set(hidroSegmentos.map(f=>(f.properties?.NOME_1||'').trim()).filter(Boolean))];
+
+  // Métricas de área
+  const areaCAR  = parseFloat(p.area) || turf.area(carPoly) / 10000;
+  const desmat   = intersectArea(lDesm);
+  const floresta = intersectArea(lFlor);
+  const appA     = intersectArea(lAppA);
+  const appV     = intersectArea(lAppV);
+  const restaur  = intersectArea(lRest);
+  const nascentes= countIntersect(lNasc);
+
+  // Percentuais
+  const pctDesmat  = areaCAR > 0 ? desmat   / areaCAR * 100 : 0;
+  const pctFloresta= areaCAR > 0 ? floresta / areaCAR * 100 : 0;
+  const appTotal   = appA + appV;
+  const pctAppDeg  = appTotal > 0 ? appA / appTotal * 100 : 0;
+  const deficit    = desmat - restaur;
+
+  // Classificação de risco
+  const risco = pctDesmat > 30 || pctAppDeg > 60 ? 'Alto' :
+                pctDesmat > 15 || pctAppDeg > 35 ? 'Médio' : 'Baixo';
+  const prioridade = deficit > 5 || pctDesmat > 20 ? 'Alta' :
+                     deficit > 0 || pctDesmat > 8  ? 'Média' : 'Baixa';
+
+  return {
+    subbacia, areaCAR, desmat, floresta, appA, appV, restaur, nascentes,
+    pctDesmat, pctFloresta, appTotal, pctAppDeg, deficit, risco, prioridade,
+    hidro: { total: hidroSegmentos.length, comprimento: hidroComp,
+             intermitentes: hidroInterm, perenes: hidroPerene, nomes: hidroNomes }
+  };
+}
+
+function _htmlCarDiagnostico(d, f){
+  if(!d || d.erro) return `<div style="padding:24px;text-align:center;color:var(--cinza-400);font-size:12px">
+    ${d?.erro || 'Não foi possível calcular o diagnóstico.'}<br>
+    <small>Verifique se as camadas de delimitação estão ativas no mapa.</small></div>`;
+
+  const p  = f?.properties || {};
+  const local = _carDadosLocais.get(p.cod_imovel) || {};
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+
+  const corRisco = d.risco==='Alto' ? '#dc2626' : d.risco==='Médio' ? '#d97706' : '#16a34a';
+  const corPrior = d.prioridade==='Alta' ? '#dc2626' : d.prioridade==='Média' ? '#d97706' : '#16a34a';
+  const corDesmat= d.pctDesmat>25 ? '#dc2626' : d.pctDesmat>10 ? '#d97706' : '#16a34a';
+  const corApp   = d.pctAppDeg>50 ? '#dc2626' : d.pctAppDeg>30 ? '#d97706' : '#16a34a';
+
+  // Barra de progresso inline
+  const barra = (val, max, cor) => `
+    <div style="height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:3px">
+      <div style="height:100%;width:${Math.min(100,val/max*100).toFixed(1)}%;background:${cor};border-radius:3px"></div>
+    </div>`;
+
+  return `
+  <!-- KPIs principais -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio);padding:10px 12px">
+      <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Desmatado</div>
+      <div style="font-size:18px;font-weight:700;color:${corDesmat}">${f2(d.desmat)} ha</div>
+      <div style="font-size:10px;color:#6b7280">${f1(d.pctDesmat)}% da área</div>
+      ${barra(d.pctDesmat, 100, corDesmat)}
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--raio);padding:10px 12px">
+      <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Floresta</div>
+      <div style="font-size:18px;font-weight:700;color:#16a34a">${f2(d.floresta)} ha</div>
+      <div style="font-size:10px;color:#6b7280">${f1(d.pctFloresta)}% da área</div>
+      ${barra(d.pctFloresta, 100, '#16a34a')}
+    </div>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--raio);padding:10px 12px">
+      <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">APP Degradada</div>
+      <div style="font-size:18px;font-weight:700;color:${corApp}">${f2(d.appA)} ha</div>
+      <div style="font-size:10px;color:#6b7280">${f1(d.pctAppDeg)}% da APP</div>
+      ${barra(d.pctAppDeg, 100, corApp)}
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--raio);padding:10px 12px">
+      <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">APP Preservada</div>
+      <div style="font-size:18px;font-weight:700;color:#16a34a">${f2(d.appV)} ha</div>
+      <div style="font-size:10px;color:#6b7280">${f1(d.appTotal > 0 ? d.appV/d.appTotal*100 : 0)}% da APP</div>
+      ${barra(d.appTotal > 0 ? d.appV/d.appTotal*100 : 0, 100, '#16a34a')}
+    </div>
+  </div>
+
+  <!-- Classificações -->
+  <div style="display:flex;gap:6px;margin-bottom:10px">
+    <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Risco Ambiental</div>
+      <div style="font-size:13px;font-weight:700;color:${corRisco}">${d.risco}</div>
+    </div>
+    <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Prioridade Rest.</div>
+      <div style="font-size:13px;font-weight:700;color:${corPrior}">${d.prioridade}</div>
+    </div>
+    <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
+      <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Déficit Rest.</div>
+      <div style="font-size:13px;font-weight:700;color:${d.deficit>0?'#dc2626':'#16a34a'}">${d.deficit>0?'+':''}${f2(d.deficit)} ha</div>
+    </div>
+  </div>
+
+  <!-- Restauração -->
+  <div style="padding:8px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:10px;font-size:11px">
+    <div style="font-weight:700;color:var(--cinza-700);margin-bottom:4px">🌱 Restauração Proposta</div>
+    <div style="display:flex;justify-content:space-between">
+      <span style="color:var(--cinza-500)">Área mapeada</span><strong>${f2(d.restaur)} ha</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <span style="color:var(--cinza-500)">Déficit (desmat. − restaur.)</span>
+      <strong style="color:${d.deficit>0?'#dc2626':'#16a34a'}">${f2(Math.abs(d.deficit))} ha ${d.deficit>0?'descoberto':'excedente'}</strong>
+    </div>
+  </div>
+
+  <!-- Hidrografia -->
+  <div style="padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--raio);margin-bottom:10px;font-size:11px">
+    <div style="font-weight:700;color:#1d4ed8;margin-bottom:6px">💧 Hidrografia interna</div>
+    <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Segmentos hídricos</span><strong>${d.hidro.total}</strong></div>
+    <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Comprimento total</span><strong>${d.hidro.comprimento.toFixed(2)} km</strong></div>
+    <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Intermitentes</span><strong style="color:#d97706">${d.hidro.intermitentes}</strong></div>
+    <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Perenes</span><strong style="color:#0891b2">${d.hidro.perenes}</strong></div>
+    ${d.hidro.nomes.length ? `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>Cursos nomeados</span><strong>${d.hidro.nomes.join(', ')}</strong></div>` : ''}
+    <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Nascentes identificadas</span><strong style="color:#0284c7">${d.nascentes}</strong></div>
+  </div>
+
+  <!-- Análise narrativa -->
+  <div style="background:var(--cinza-50);border-left:3px solid #1F4E2C;padding:10px 12px;border-radius:0 var(--raio) var(--raio) 0;font-size:11px;color:var(--cinza-700);line-height:1.7;margin-bottom:8px">
+    <div style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 Diagnóstico</div>
+    ${_gerarTextoCarDiag(d, p, local)}
+  </div>
+
+  <div style="font-size:9px;color:var(--cinza-400);line-height:1.5;text-align:center">
+    Calculado via Turf.js · interseção com ${camadas.filter(c=>c.geojson).length} camadas ativas
+    ${d.subbacia ? '· ' + d.subbacia : ''}
+  </div>`;
+}
+
+function _gerarTextoCarDiag(d, p, local){
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  let t = [];
+
+  // Situação do desmatamento
+  if(d.pctDesmat > 30)
+    t.push(`⚠️ <strong>Desmatamento crítico</strong>: ${f2(d.desmat)} ha (${f1(d.pctDesmat)}% da área) foram desmatados — situação crítica que demanda intervenção imediata.`);
+  else if(d.pctDesmat > 10)
+    t.push(`🟡 <strong>Desmatamento moderado</strong>: ${f2(d.desmat)} ha (${f1(d.pctDesmat)}%) com pressão antrópica significativa.`);
+  else if(d.desmat > 0)
+    t.push(`✅ <strong>Desmatamento baixo</strong>: apenas ${f2(d.desmat)} ha (${f1(d.pctDesmat)}%) foram desmatados.`);
+
+  // Vegetação remanescente
+  if(d.floresta > 0)
+    t.push(`🌿 <strong>Floresta remanescente</strong>: ${f2(d.floresta)} ha (${f1(d.pctFloresta)}% da propriedade) ainda com cobertura florestal${d.pctFloresta < 20 ? ' — fragmento isolado com risco de perda de conectividade ecológica' : ''}.`);
+
+  // APP
+  if(d.appTotal > 0){
+    if(d.pctAppDeg > 50)
+      t.push(`🔴 <strong>APP em situação crítica</strong>: ${f2(d.appA)} ha (${f1(d.pctAppDeg)}%) degradados — exposição dos cursos d'água à erosão e assoreamento.`);
+    else if(d.pctAppDeg > 25)
+      t.push(`🟡 <strong>APP parcialmente degradada</strong>: ${f2(d.appA)} ha (${f1(d.pctAppDeg)}%) sem cobertura vegetal — recomenda-se restauração da vegetação ciliar.`);
+    else
+      t.push(`✅ <strong>APP relativamente preservada</strong>: apenas ${f2(d.appA)} ha (${f1(d.pctAppDeg)}%) degradados.`);
+  }
+
+  // Nascentes
+  if(d.nascentes > 0)
+    t.push(`💧 <strong>${d.nascentes} nascente(s)</strong> identificada(s) na propriedade ou adjacência imediata${d.appA > 0 ? ' — presença de APP degradada próxima configura risco hídrico' : ''}.`);
+
+  // Hidrografia
+  if(d.hidro.total > 0){
+    const msg = `💧 <strong>${d.hidro.total} segmento(s) hídrico(s)</strong> (${d.hidro.comprimento.toFixed(1)} km) cortam a propriedade`;
+    if(d.hidro.intermitentes > 0 && d.pctAppDeg > 30)
+      t.push(msg + ` — ${d.hidro.intermitentes} intermitente(s), indicando vulnerabilidade sazonal agravada pela APP degradada.`);
+    else
+      t.push(msg + '.');
+  }
+
+  // Restauração
+  if(d.deficit > 5)
+    t.push(`🌱 <strong>Déficit de restauração</strong>: ${f2(d.deficit)} ha desmatados além do mapeamento de restauração proposta — necessário ampliar ações de recuperação.`);
+  else if(d.restaur > 0)
+    t.push(`🌱 <strong>Área de restauração proposta</strong>: ${f2(d.restaur)} ha mapeados para recuperação.`);
+
+  // Classificação SICAR
+  if(local.nome_class){
+    const classMsgs = {
+      'Verde': '✅ Classificado como <strong>Verde</strong> no SICAR — imóvel em conformidade com o Código Florestal.',
+      'Amarelo': '🟡 Classificado como <strong>Amarelo</strong> no SICAR — pendências de regularização ambiental a resolver.',
+      'Vermelho': '🔴 Classificado como <strong>Vermelho</strong> no SICAR — imóvel em <strong>não conformidade</strong> com o Código Florestal.',
+      'Não Classificado': '⚪ <strong>Não classificado</strong> no SICAR — análise técnica pendente.',
+    };
+    if(classMsgs[local.nome_class]) t.push(classMsgs[local.nome_class]);
+  }
+
+  return t.map(s => `<p style="margin:0 0 5px">${s}</p>`).join('');
+}
+
 // ── Aba Marcados ──────────────────────────────────────────────────────────
 function _htmlCarMarcados(){
   const lista = [..._carMarcados.entries()];
