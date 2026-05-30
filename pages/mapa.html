@@ -3700,8 +3700,14 @@ function _htmlCarMarcados(){
   return `
   <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0 10px;border-bottom:1px solid var(--borda);margin-bottom:4px">
     <span style="font-size:12px;font-weight:600;color:var(--cinza-700)">${lista.length} marcado(s) · ${f2(areaTot)} ha</span>
-    <button onclick="limparTodosMarcados()" class="btn btn-outline"
-      style="font-size:11px;color:#dc2626;border-color:#fca5a5;padding:3px 10px">🗑 Limpar tudo</button>
+    <div style="display:flex;gap:5px">
+      <button onclick="gerarRelatorioCarMarcados()" class="btn btn-primary"
+        style="font-size:11px;padding:3px 10px;display:flex;align-items:center;gap:4px">
+        🖨 Relatório
+      </button>
+      <button onclick="limparTodosMarcados()" class="btn btn-outline"
+        style="font-size:11px;color:#dc2626;border-color:#fca5a5;padding:3px 10px">🗑 Limpar</button>
+    </div>
   </div>
   ${lista.map(([cod, r]) => `
     <div class="car-pin-item" onclick="irParaCAR('${escHtml(cod)}')">
