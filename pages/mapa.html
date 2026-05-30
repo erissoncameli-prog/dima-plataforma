@@ -4379,9 +4379,13 @@ function _gerarDescricaoCAR(f){
   let t = '';
 
   // Caracterização do imóvel
-  t += `Este imóvel rural, classificado como <strong>${classe}</strong> com <strong>${f2(area)} ha</strong> declarados `;
+  const nomImovel  = local.nom_imovel  ? `<strong>${escHtml(local.nom_imovel)}</strong>, ` : '';
+  const nomePropr  = local.nome_compl  ? `, pertencente a <strong>${escHtml(local.nome_compl)}</strong>` : '';
+  const tipoRelacao= local.tipo_docum  ? ` sob regime de <strong>${local.tipo_docum.toLowerCase()}</strong>` : '';
+  const classLabel = local.nome_class  ? `, com classificação ambiental <strong>${local.nome_class}</strong>` : '';
+  t += `O imóvel ${nomImovel}classificado como <strong>${classe}</strong> com <strong>${f2(area)} ha</strong> declarados `;
   t += `(${f2(mf)} módulo${mf !== 1?'s':''} fiscal${mf!==1?'is':''}), `;
-  t += `está situado no município de <strong>${p.municipio||'Rio Branco'}</strong>, estado do Acre. `;
+  t += `está situado no município de <strong>${p.municipio||'Rio Branco'}</strong>, estado do Acre${nomePropr}${tipoRelacao}${classLabel}. `;
 
   // Contexto APA
   if(p._apa === 'isf'){
