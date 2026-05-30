@@ -92,7 +92,8 @@
       "Bash(xargs sed -i \"s|'Access-Control-Allow-Origin': 'https://erissoncameli-prog.github.io'|'Access-Control-Allow-Origin': '*'|g\")",
       "Bash(supabase secrets *)",
       "WebFetch(domain:geoserver.car.gov.br)",
-      "WebFetch(domain:consultapublica.car.gov.br)"
+      "WebFetch(domain:consultapublica.car.gov.br)",
+      "WebFetch(domain:seloverde.sema.ac.gov.br)"
     ]
   }
 }
