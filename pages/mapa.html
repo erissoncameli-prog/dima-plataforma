@@ -1228,79 +1228,85 @@ function toggleCamadaVisivel(id, visivel){
   localStorage.setItem('dima_camadas_vis', JSON.stringify(visPref));
 }
 
-let _coresEditandoId = null;
-let _coresEditando = {};
+// ── Camadas: expandir painel de estilo ────────────────────────────────────
+function toggleExpandirCamada(id){
+  const body = document.getElementById(`camada-expand-${id}`);
+  const btn  = document.getElementById(`btn-exp-${id}`);
+  if(!body) return;
+  const aberto = body.style.display !== 'none';
+  body.style.display = aberto ? 'none' : 'block';
+  if(btn) btn.classList.toggle('ativo', !aberto);
+}
 
-function abrirModalCoresCamada(id){
-  const c = camadas.find(x => x.id === id);
-  if(!c) return;
-  _coresEditandoId = id;
-  _coresEditando = Object.assign({}, c.feature_colors || {});
-  const features = c.geojson?.features || [];
-  const isMulti = features.length > 1;
-  let rows = '';
-  if(isMulti){
-    let idx = 0;
-    rows = features.map(f => {
-      const props = f.properties || {};
-      const nome = props.name || props.Name || props.NAME || `Feature ${idx+1}`;
-      const cor = _coresEditando[nome] || SUBBACIA_PALETTE[idx % SUBBACIA_PALETTE.length];
-      const safeId = 'cp-' + idx;
-      idx++;
-      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--cinza-100)">
-        <input type="color" id="${safeId}" value="${cor}" data-nome="${escHtml(nome)}"
-          style="width:34px;height:34px;padding:2px;border:1px solid var(--borda);border-radius:var(--raio);cursor:pointer;flex-shrink:0"
-          oninput="onCorInput(this)">
-        <span style="font-size:12px;font-weight:500;color:var(--cinza-800);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${escHtml(nome)}</span>
-        <div id="${safeId}-prev" style="width:22px;height:22px;border-radius:50%;background:${cor};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.22);flex-shrink:0"></div>
-      </div>`;
-    }).join('');
+// ── Visibilidade individual de feature ────────────────────────────────────
+function _onFeatVis(id, nome, visivel){
+  const c = camadas.find(x => x.id === id); if(!c) return;
+  if(!c.style_config) c.style_config = {};
+  const h = new Set(c.style_config.hiddenFeatures || []);
+  visivel ? h.delete(nome) : h.add(nome);
+  c.style_config.hiddenFeatures = [...h];
+  _renderizarCamada(c);
+}
+
+function _toggleAllFeats(id, mostrar){
+  const c = camadas.find(x => x.id === id); if(!c) return;
+  if(!c.style_config) c.style_config = {};
+  if(mostrar){
+    c.style_config.hiddenFeatures = [];
   } else {
-    const cor = c.cor || '#16a34a';
-    _coresEditando['__single__'] = cor;
-    rows = `<div style="display:flex;align-items:center;gap:10px;padding:9px 0">
-      <input type="color" id="cp-0" value="${cor}" data-nome="__single__"
-        style="width:34px;height:34px;padding:2px;border:1px solid var(--borda);border-radius:var(--raio);cursor:pointer;flex-shrink:0"
-        oninput="onCorInput(this)">
-      <span style="font-size:12px;font-weight:500;color:var(--cinza-800);flex:1">${escHtml(c.nome)}</span>
-      <div id="cp-0-prev" style="width:22px;height:22px;border-radius:50%;background:${cor};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.22);flex-shrink:0"></div>
-    </div>`;
+    c.style_config.hiddenFeatures = (c.geojson?.features || [])
+      .map(f => f.properties?.name || f.properties?.Name || f.properties?.NAME || '')
+      .filter(Boolean);
   }
-  document.getElementById('modal-cores-lista').innerHTML = rows ||
-    '<div style="padding:16px;font-size:12px;color:var(--cinza-400)">Nenhuma geometria encontrada.</div>';
-  document.getElementById('modal-cores-camada').style.display = 'flex';
-}
-
-function onCorInput(input){
-  const nome = input.dataset.nome;
-  _coresEditando[nome] = input.value;
-  const prev = document.getElementById(input.id + '-prev');
-  if(prev) prev.style.background = input.value;
-}
-
-function fecharModalCoresCamada(){
-  document.getElementById('modal-cores-camada').style.display = 'none';
-  _coresEditandoId = null;
-}
-
-async function salvarCoresCamada(){
-  const c = camadas.find(x => x.id === _coresEditandoId);
-  if(!c) return;
-  const btn = document.getElementById('btn-salvar-cores-camada');
-  btn.disabled = true; btn.textContent = 'Salvando…';
-  const isMulti = (c.geojson?.features?.length || 0) > 1;
-  const updateData = isMulti
-    ? { feature_colors: _coresEditando }
-    : { cor: _coresEditando['__single__'] || c.cor };
-  const { error } = await db.from('apa_demarcacoes').update(updateData).eq('id', _coresEditandoId);
-  btn.disabled = false; btn.textContent = 'Salvar';
-  if(error){ toast('Erro ao salvar: ' + error.message, 'error'); return; }
-  if(isMulti){ c.feature_colors = Object.assign({}, _coresEditando); }
-  else { c.cor = updateData.cor; }
   _renderizarCamada(c);
   renderCamadasHtml();
-  fecharModalCoresCamada();
-  toast('Cores salvas com sucesso!', 'success');
+}
+
+// ── Cor de preenchimento por feature ─────────────────────────────────────
+function _onFeatFillColor(id, nome, cor){
+  const c = camadas.find(x => x.id === id); if(!c) return;
+  if(!c.feature_colors) c.feature_colors = {};
+  c.feature_colors[nome] = cor;
+  _renderizarCamada(c);
+}
+
+// ── Cor de borda por feature ──────────────────────────────────────────────
+function _onFeatStrokeColor(id, nome, cor){
+  const c = camadas.find(x => x.id === id); if(!c) return;
+  if(!c.style_config) c.style_config = {};
+  if(!c.style_config.featureStrokeColors) c.style_config.featureStrokeColors = {};
+  c.style_config.featureStrokeColors[nome] = cor;
+  _renderizarCamada(c);
+}
+
+// ── Cor fill da camada inteira (só para camadas sem palette) ──────────────
+function _onCamadaFillColor(id, cor){
+  const c = camadas.find(x => x.id === id); if(!c) return;
+  c.cor = cor;
+  _renderizarCamada(c);
+}
+
+// ── Estilo global (opacidade, cor borda, espessura) ───────────────────────
+function _onCamadaStyle(id, prop, valor){
+  const c = camadas.find(x => x.id === id); if(!c) return;
+  if(!c.style_config) c.style_config = {};
+  c.style_config[prop] = valor;
+  _renderizarCamada(c);
+}
+
+// ── Salvar estilo no banco ────────────────────────────────────────────────
+async function salvarStyleCamada(id){
+  const c = camadas.find(x => x.id === id); if(!c) return;
+  const btn = document.getElementById(`btn-ssc-${id}`);
+  if(btn){ btn.disabled = true; btn.textContent = 'Salvando…'; }
+  const { error } = await db.from('apa_demarcacoes').update({
+    cor:            c.cor,
+    feature_colors: c.feature_colors || {},
+    style_config:   c.style_config   || {},
+  }).eq('id', id);
+  if(btn){ btn.disabled = false; btn.textContent = '💾 Salvar estilo'; }
+  if(error){ toast('Erro ao salvar: ' + error.message, 'error'); return; }
+  toast('Estilo salvo com sucesso!', 'success');
 }
 
 async function removerCamada(id){
