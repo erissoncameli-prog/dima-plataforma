@@ -93,7 +93,16 @@
       "Bash(supabase secrets *)",
       "WebFetch(domain:geoserver.car.gov.br)",
       "WebFetch(domain:consultapublica.car.gov.br)",
-      "WebFetch(domain:seloverde.sema.ac.gov.br)"
+      "WebFetch(domain:seloverde.sema.ac.gov.br)",
+      "Read(//c/Users/eriss/Downloads/**)",
+      "Bash(powershell -Command ' *)",
+      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__get_publishable_keys",
+      "Bash(npm --version)",
+      "Bash(python -c \"import openpyxl; print\\('openpyxl ok'\\)\")",
+      "Bash(python -c \"import requests; print\\('requests ok'\\)\")",
+      "Bash(python -c \"import pandas; print\\('pandas ok'\\)\")",
+      "PowerShell(& \"C:\\\\Users\\\\eriss\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import openpyxl; print\\('openpyxl ok'\\)\" 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\eriss\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import requests; print\\('requests ok'\\)\" 2>&1)"
     ]
   }
 }
