@@ -3988,159 +3988,248 @@ function _svgFallbackCAR(f, bounds){
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
 
-// ── Janela de impressão ────────────────────────────────────────────────────
+// ── Janela de impressão — mesmo cabeçalho do sistema de relatórios ─────────
 function _abrirJanelaRelatorioCAR(capturas){
-  const win = window.open('', '_blank', 'width=960,height=760');
+  const win = window.open('', '_blank', 'width=1000,height=800');
   if(!win){ toast('Popup bloqueado. Permita popups para este site.','error'); return; }
 
-  const data = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  // URL base para logos (same origin, resolves from /pages/)
+  const base = window.location.href.replace(/\/pages\/.*$/, '');
+  const A = path => `${base}/assets/${path}`;
 
-  // Calcula totais
+  const now  = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
+             + ' — ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const user = appState?.usuario?.nome_completo || appState?.usuario?.email || 'Sistema DIMA';
+  const perfil = {
+    super_admin:'Super Admin', coordenacao:'Coordenação', tecnico:'Técnico',
+    financeiro:'Financeiro', consultor_externo:'Consultor Externo', visualizador:'Visualizador'
+  }[appState?.perfil] || appState?.perfil || '';
+
   const areaTot = capturas.reduce((s,{row}) => s+(parseFloat(row?.area)||0),0);
   const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
-  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
-
-  const fichas = capturas.map(({feat,imgData}) => _htmlFichaCAR(feat, imgData)).join('');
-
-  // Tabela de resumo
-  const porApa  = {isf:0,la:0,fora:0};
-  const porCond = {};
-  const porSub  = {};
+  const porApa={isf:0,la:0,fora:0}, porCond={}, porSub={};
   capturas.forEach(({feat}) => {
-    const p = feat.properties||{};
+    const p=feat.properties||{};
     porApa[p._apa||'fora']++;
-    const k = _carStatusKey(p.condicao);
-    porCond[k] = (porCond[k]||0)+1;
-    const sb = p._subbacia||'—';
-    porSub[sb] = (porSub[sb]||0)+1;
+    const k=_carStatusKey(p.condicao); porCond[k]=(porCond[k]||0)+1;
+    const sb=p._subbacia||'—'; porSub[sb]=(porSub[sb]||0)+1;
   });
+  const fichas = capturas.map(({feat,imgData}) => _htmlFichaCAR(feat, imgData)).join('');
 
   win.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Relatório CAR Marcados — SEMA/AC</title>
+<title>Relatório CAR — SEMA/AC · Projeto 218BRA2001</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Arial,sans-serif;font-size:12px;color:#1f2937;background:#fff;}
-.capa{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border-bottom:3px solid #1F4E2C;padding:40px;}
-.capa .logo{font-size:48px;margin-bottom:16px;}
-.capa h1{font-size:22px;font-weight:700;color:#1F4E2C;margin-bottom:8px;}
-.capa h2{font-size:16px;font-weight:400;color:#374151;margin-bottom:24px;}
-.capa .meta{font-size:11px;color:#6b7280;line-height:1.8;}
-.capa .stats{display:flex;gap:32px;margin-top:32px;border-top:1px solid #e5e7eb;padding-top:24px;}
-.capa .stat-val{font-size:28px;font-weight:700;color:#1F4E2C;}
-.capa .stat-lbl{font-size:11px;color:#6b7280;margin-top:4px;}
-.ficha{page-break-before:always;padding:20px 24px;min-height:100vh;display:flex;flex-direction:column;gap:14px;}
-.ficha-header{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:12px;border-bottom:2px solid #1F4E2C;}
-.ficha-titulo{font-size:16px;font-weight:700;color:#1F4E2C;}
-.ficha-cod{font-family:monospace;font-size:10px;color:#6b7280;margin-top:4px;word-break:break-all;}
-.ficha-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:700;border:1px solid;}
+body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;background:#f3f4f6;}
+
+/* ── DOC WRAP (igual ao sistema de relatórios) ── */
+.doc-wrap{background:#fff;max-width:960px;margin:20px auto;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,.12);overflow:hidden;}
+
+/* ── CABEÇALHO — idêntico ao relatorios.html ── */
+.doc-header{padding:20px 32px 16px;border-bottom:3px solid #1F4E2C;position:relative;background:#fff;}
+.doc-header-logos{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.doc-header-logos-esq{display:flex;align-items:center;gap:10px;}
+.doc-header-logos-dir{display:flex;align-items:center;gap:10px;}
+.doc-header-logo{height:32px;width:auto;object-fit:contain;}
+.doc-header-sep{width:1px;height:28px;background:#B5860D;flex-shrink:0;}
+.doc-header-projeto{font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;}
+.doc-header-programa{font-size:11px;color:#4b5563;margin-bottom:1px;}
+.doc-header-local{font-size:10px;color:#6b7280;}
+.doc-header-titulo-wrap{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+.doc-header-titulo{font-size:18px;font-weight:700;color:#111827;display:flex;align-items:center;gap:10px;}
+.doc-header-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;text-transform:uppercase;letter-spacing:.06em;color:#fff;background:#1F4E2C;}
+.doc-header-meta{text-align:right;font-size:10px;color:#6b7280;line-height:1.6;}
+.doc-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:0;opacity:.06;}
+.doc-watermark img{width:280px;height:auto;}
+
+/* ── RODAPÉ — idêntico ao relatorios.html ── */
+.doc-footer{padding:12px 32px;border-top:1.5px solid #1F4E2C;display:flex;align-items:center;justify-content:space-between;background:#f8faf8;}
+.doc-footer-esq{font-size:10px;color:#4b5563;line-height:1.6;}
+.doc-footer-centro{font-size:9px;color:#9ca3af;text-align:center;}
+.doc-footer-dir{font-size:11px;font-weight:600;color:#374151;font-family:monospace;}
+
+/* ── CORPO ── */
+.doc-body{padding:20px 32px;position:relative;z-index:1;}
+
+/* ── CAPA ── */
+.capa-body{padding:40px 32px;text-align:center;background:#f0f7f2;border-bottom:1px solid #c8e6d0;}
+.capa-icon{font-size:52px;margin-bottom:16px;}
+.capa-title{font-size:20px;font-weight:700;color:#1F4E2C;margin-bottom:6px;}
+.capa-sub{font-size:14px;color:#374151;margin-bottom:24px;}
+.capa-stats{display:inline-flex;gap:0;border:1px solid #c8e6d0;border-radius:10px;overflow:hidden;margin-top:12px;}
+.capa-stat{padding:14px 28px;text-align:center;background:#fff;border-right:1px solid #c8e6d0;}
+.capa-stat:last-child{border-right:none;}
+.capa-stat-val{font-size:26px;font-weight:700;color:#1F4E2C;}
+.capa-stat-lbl{font-size:10px;color:#6b7280;margin-top:3px;}
+
+/* ── FICHA POR CAR ── */
+.ficha{page-break-before:always;}
+.ficha-subhd{display:flex;align-items:center;gap:10px;padding:10px 32px;background:#f0f7f2;border-bottom:1px solid #c8e6d0;font-size:11px;font-weight:700;color:#1F4E2C;}
+.ficha-cod{font-family:monospace;font-size:10px;color:#6b7280;font-weight:400;}
+.ficha-badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:9px;font-weight:700;border:1px solid;}
 .badge-isf{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
 .badge-la{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;}
 .badge-fora{background:#fef9c3;color:#854d0e;border-color:#fde047;}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
-.card{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;}
-.card-title{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+
+/* ── GRID DADOS/MAPA ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;}
+.card{border:1px solid #e5e7eb;border-radius:6px;padding:12px 14px;}
+.card-title{font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #f3f4f6;}
 .attr-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f9fafb;font-size:11px;}
 .attr-row:last-child{border-bottom:none;}
 .attr-lbl{color:#6b7280;}
-.attr-val{font-weight:600;color:#111827;text-align:right;}
-.mapa-img{width:100%;border-radius:8px;border:1px solid #e5e7eb;display:block;max-height:320px;object-fit:cover;}
-.analise{background:#f9fafb;border-left:3px solid #1F4E2C;padding:12px 14px;border-radius:0 6px 6px 0;font-size:12px;color:#374151;line-height:1.75;}
-.analise-title{font-size:10px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;}
-.links-row{display:flex;gap:10px;margin-top:4px;}
-.link-btn{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:4px 12px;border-radius:4px;border:1px solid;text-decoration:none;}
+.attr-val{font-weight:600;color:#111827;}
+.mapa-img{width:100%;border-radius:6px;border:1px solid #e5e7eb;display:block;max-height:300px;object-fit:cover;}
+
+/* ── ANÁLISE ── */
+.analise{background:#f8faf8;border-left:3px solid #1F4E2C;padding:12px 16px;border-radius:0 6px 6px 0;font-size:11.5px;color:#374151;line-height:1.8;margin-bottom:10px;}
+.analise-title{font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;}
+.links-row{display:flex;gap:8px;}
+.link-btn{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:4px 12px;border-radius:4px;border:1px solid;text-decoration:none;font-weight:600;}
 .link-sicar{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;}
 .link-sema{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
-.resumo{page-break-before:always;padding:24px;}
-.resumo h2{font-size:16px;font-weight:700;color:#1F4E2C;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #1F4E2C;}
-.resumo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
-.resumo-kpi{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;text-align:center;}
-.resumo-kpi-val{font-size:22px;font-weight:700;color:#1F4E2C;}
-.resumo-kpi-lbl{font-size:10px;color:#6b7280;margin-top:3px;}
-table.res{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
-table.res th{background:#f3f4f6;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;border-bottom:2px solid #e5e7eb;}
-table.res td{padding:6px 10px;border-bottom:1px solid #f3f4f6;}
+
+/* ── TABELAS ── */
+.rep-tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.rep-tbl th{padding:6px 10px;font-size:9px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #1F4E2C;background:#f0f7f2;}
+.rep-tbl td{padding:6px 10px;border-bottom:1px solid #e5e7eb;color:#374151;}
+.rep-tbl tbody tr:nth-child(even) td{background:#fafcfa;}
+
+/* ── STATS RESUMO ── */
+.rep-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.rep-stat{background:#f0f7f2;border:1px solid #c8e6d0;border-radius:6px;padding:12px 14px;}
+.rep-stat-lbl{font-size:9px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.rep-stat-val{font-size:18px;font-weight:700;color:#111827;font-family:monospace;}
+.rep-secao-titulo{font-size:10px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.08em;padding:6px 0;border-bottom:1.5px solid #c8e6d0;margin:16px 0 10px;display:flex;align-items:center;gap:6px;}
+
 .nota{margin-top:16px;font-size:10px;color:#9ca3af;line-height:1.6;border-top:1px solid #e5e7eb;padding-top:10px;}
+
 @media print{
-  body{font-size:11px;}
-  .capa{height:auto;min-height:80vh;}
-  .ficha{min-height:auto;}
-  .mapa-img{max-height:260px;}
+  body{background:#fff;}
+  .doc-wrap{box-shadow:none;max-width:100%;border-radius:0;margin:0;}
+  .doc-header{position:fixed;top:0;left:0;right:0;background:#fff;z-index:100;}
+  .doc-footer{position:fixed;bottom:0;left:0;right:0;z-index:100;}
+  .doc-watermark{position:fixed;top:50vh;left:50%;z-index:0;}
+  .ficha .doc-body{padding-top:180px;padding-bottom:60px;}
+  .capa-body{padding-top:180px;}
+  .mapa-img{max-height:240px;}
 }
 </style>
 </head>
 <body>
-<!-- Capa -->
-<div class="capa">
-  <div class="logo">🌿</div>
-  <h1>Relatório de Imóveis CAR Marcados</h1>
-  <h2>Diagnóstico Ambiental por Propriedade Rural</h2>
-  <div class="meta">
-    <div><strong>Projeto 218BRA2001</strong> · SEMA/AC · Fundo Brasil-ONU</div>
-    <div>APAs Igarapé São Francisco e Lago do Amapá · Rio Branco, Acre</div>
-    <div>Gerado em ${data} · Sistema DIMA</div>
-  </div>
-  <div class="stats">
-    <div><div class="stat-val">${capturas.length}</div><div class="stat-lbl">Imóveis analisados</div></div>
-    <div><div class="stat-val">${f2(areaTot)} ha</div><div class="stat-lbl">Área total declarada</div></div>
-    <div><div class="stat-val">${porApa.isf+porApa.la}</div><div class="stat-lbl">Dentro das APAs</div></div>
-  </div>
-</div>
+<div class="doc-wrap">
 
-<!-- Fichas individuais -->
-${fichas}
-
-<!-- Resumo final -->
-<div class="resumo">
-  <h2>📊 Resumo dos Imóveis Analisados</h2>
-  <div class="resumo-grid">
-    <div class="resumo-kpi"><div class="resumo-kpi-val">${capturas.length}</div><div class="resumo-kpi-lbl">Total de imóveis</div></div>
-    <div class="resumo-kpi"><div class="resumo-kpi-val">${f2(areaTot)} ha</div><div class="resumo-kpi-lbl">Área total declarada</div></div>
-    <div class="resumo-kpi"><div class="resumo-kpi-val">${f2(areaTot/capturas.length)} ha</div><div class="resumo-kpi-lbl">Área média por imóvel</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-    <div>
-      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">Por APA</div>
-      <table class="res">
-        <thead><tr><th>APA</th><th>Qtd</th></tr></thead>
-        <tbody>
-          <tr><td>Igarapé São Francisco</td><td>${porApa.isf}</td></tr>
-          <tr><td>Lago do Amapá</td><td>${porApa.la}</td></tr>
-          <tr><td>Fora das APAs</td><td>${porApa.fora}</td></tr>
-        </tbody>
-      </table>
+  <!-- ── CABEÇALHO PADRÃO DO SISTEMA (igual ao relatorios.html) ── -->
+  <div class="doc-header">
+    <div class="doc-watermark"><img src="${A('logo-resiliencia.png')}" alt=""></div>
+    <div class="doc-header-logos">
+      <div class="doc-header-logos-esq">
+        <img class="doc-header-logo" src="${A('1695134345-1-horizontal-verde-solo.png')}" alt="SEMA">
+        <div class="doc-header-sep"></div>
+        <img class="doc-header-logo" src="${A('3-vertical-verde-conjunto-1024x805.png')}" alt="Governo do Acre">
+      </div>
+      <div class="doc-header-logos-dir">
+        <img class="doc-header-logo" src="${A('UNESCO_logo_hor_blue_transparent.png.png')}" alt="UNESCO">
+        <img class="doc-header-logo" src="${A('UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png')}" alt="ONU Brasil" style="height:28px">
+      </div>
     </div>
     <div>
-      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">Por Situação</div>
-      <table class="res">
-        <thead><tr><th>Situação</th><th>Qtd</th></tr></thead>
-        <tbody>
-          ${Object.entries(porCond).map(([k,n])=>`<tr><td>${{ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'}[k]||k}</td><td>${n}</td></tr>`).join('')}
-        </tbody>
-      </table>
+      <div class="doc-header-projeto">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
+      <div class="doc-header-programa">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
+      <div class="doc-header-local">Rio Branco, Acre — SEMA/AC</div>
+    </div>
+    <div class="doc-header-titulo-wrap">
+      <div class="doc-header-titulo">
+        🏡 Relatório de Imóveis CAR Marcados
+        <span class="doc-header-badge">CAR · Mapa de Entregas</span>
+      </div>
+      <div class="doc-header-meta">
+        <div>Gerado em: <strong>${now}</strong></div>
+        <div>Por: <strong>${user}</strong>${perfil ? ' · '+perfil : ''}</div>
+      </div>
     </div>
   </div>
-  ${Object.keys(porSub).length > 0 ? `
-  <div style="margin-top:14px">
-    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">Por Sub-bacia</div>
-    <table class="res">
-      <thead><tr><th>Sub-bacia</th><th>Qtd</th></tr></thead>
-      <tbody>
-        ${Object.entries(porSub).sort((a,b)=>b[1]-a[1]).map(([sb,n])=>`<tr><td>${sb}</td><td>${n}</td></tr>`).join('')}
-      </tbody>
-    </table>
-  </div>` : ''}
-  <div class="nota">
-    <strong>Fontes:</strong> SICAR — Sistema Nacional de Cadastro Ambiental Rural (car.gov.br) ·
-    SeloVerde AC (seloverde.sema.ac.gov.br) · Sistema DIMA — SEMA/AC.<br>
-    <strong>Nota:</strong> As imagens de satélite foram capturadas diretamente da visualização atual do Sistema DIMA.
-    Os valores de área são os declarados pelo produtor no SICAR e podem divergir da área georreferenciada.
-    Este relatório não substitui análises técnicas oficiais.
+
+  <!-- ── CAPA ── -->
+  <div class="capa-body">
+    <div class="capa-icon">🌿</div>
+    <div class="capa-title">Diagnóstico Ambiental por Propriedade Rural</div>
+    <div class="capa-sub">Cadastro Ambiental Rural — SICAR · APAs da Região de Rio Branco/AC</div>
+    <div class="capa-stats">
+      <div class="capa-stat"><div class="capa-stat-val">${capturas.length}</div><div class="capa-stat-lbl">Imóveis analisados</div></div>
+      <div class="capa-stat"><div class="capa-stat-val">${f2(areaTot)} ha</div><div class="capa-stat-lbl">Área total declarada</div></div>
+      <div class="capa-stat"><div class="capa-stat-val">${porApa.isf+porApa.la}</div><div class="capa-stat-lbl">Dentro das APAs</div></div>
+    </div>
   </div>
-</div>
-<script>window.onload = () => setTimeout(() => window.print(), 600);<\/script>
+
+  <!-- ── FICHAS INDIVIDUAIS ── -->
+  ${fichas}
+
+  <!-- ── RESUMO FINAL ── -->
+  <div class="ficha">
+    <div class="ficha-subhd">📊 Resumo dos Imóveis Analisados</div>
+    <div class="doc-body">
+      <div class="rep-stats">
+        <div class="rep-stat"><div class="rep-stat-lbl">Total de imóveis</div><div class="rep-stat-val">${capturas.length}</div></div>
+        <div class="rep-stat"><div class="rep-stat-lbl">Área total declarada</div><div class="rep-stat-val">${f2(areaTot)} ha</div></div>
+        <div class="rep-stat"><div class="rep-stat-lbl">Área média por imóvel</div><div class="rep-stat-val">${f2(areaTot/capturas.length)} ha</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        <div>
+          <div class="rep-secao-titulo">Por APA</div>
+          <table class="rep-tbl">
+            <thead><tr><th>APA</th><th style="text-align:center">Qtd</th></tr></thead>
+            <tbody>
+              <tr><td>Igarapé São Francisco</td><td style="text-align:center;font-weight:700">${porApa.isf}</td></tr>
+              <tr><td>Lago do Amapá</td><td style="text-align:center;font-weight:700">${porApa.la}</td></tr>
+              <tr><td>Fora das APAs</td><td style="text-align:center;font-weight:700">${porApa.fora}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="rep-secao-titulo">Por Situação</div>
+          <table class="rep-tbl">
+            <thead><tr><th>Situação</th><th style="text-align:center">Qtd</th></tr></thead>
+            <tbody>
+              ${Object.entries(porCond).map(([k,n])=>`<tr><td>${{ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'}[k]||k}</td><td style="text-align:center;font-weight:700">${n}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div class="rep-secao-titulo">Por Sub-bacia</div>
+          <table class="rep-tbl">
+            <thead><tr><th>Sub-bacia</th><th style="text-align:center">Qtd</th></tr></thead>
+            <tbody>
+              ${Object.entries(porSub).sort((a,b)=>b[1]-a[1]).map(([sb,n])=>`<tr><td>${sb}</td><td style="text-align:center;font-weight:700">${n}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="nota">
+        <strong>Fontes de dados:</strong> SICAR — Sistema Nacional de Cadastro Ambiental Rural (car.gov.br) ·
+        SeloVerde AC (seloverde.sema.ac.gov.br) · Sistema DIMA — Plataforma de Gestão UNESCO/SEMA/AC.<br>
+        <strong>Nota metodológica:</strong> As imagens de satélite foram capturadas diretamente da visualização atual do Sistema DIMA.
+        Os valores de área são os declarados pelo produtor no SICAR e podem divergir da área georreferenciada oficial.
+        Este relatório não substitui análises técnicas ou documentos oficiais emitidos pelos órgãos ambientais competentes.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RODAPÉ PADRÃO DO SISTEMA ── -->
+  <div class="doc-footer">
+    <div class="doc-footer-esq">
+      Impresso por: <strong>${user}</strong>${perfil?' · '+perfil:''}<br>
+      <span style="font-size:9px;color:#9ca3af">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
+    </div>
+    <div class="doc-footer-centro">Plataforma DIMA · UNESCO 218BRA2001</div>
+    <div class="doc-footer-dir">Relatório CAR</div>
+  </div>
+
+</div><!-- /doc-wrap -->
+<script>window.onload = () => setTimeout(() => window.print(), 700);<\/script>
 </body></html>`);
 
   win.document.close();
