@@ -4097,6 +4097,49 @@ function _htmlRelSubbaciasPrint(d){
   </div>`;
 }
 
+function _htmlRelCARPrint(d){
+  if(!_carCarregado || !_carFeatures.length) return '';
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const total     = _carFeatures.length;
+  const areaTot   = _carFeatures.reduce((s,f) => s + (parseFloat(f.properties?.area)||0), 0);
+  const porStatus = {};
+  _carFeatures.forEach(f => { const k = _carStatusKey(f.properties?.condicao); porStatus[k] = (porStatus[k]||0)+1; });
+  const isf = _carFeatures.filter(f=>f.properties?._apa==='isf').length;
+  const la  = _carFeatures.filter(f=>f.properties?._apa==='la').length;
+  const porSub = {};
+  _carFeatures.forEach(f => {
+    const sb = f.properties?._subbacia || '—';
+    if(!porSub[sb]) porSub[sb] = {n:0, area:0, status:{}};
+    porSub[sb].n++; porSub[sb].area += parseFloat(f.properties?.area)||0;
+    const k = _carStatusKey(f.properties?.condicao);
+    porSub[sb].status[k] = (porSub[sb].status[k]||0)+1;
+  });
+  const { subbacias } = d;
+  return `
+  <div class="rel-kpi-grid" style="margin-bottom:14px">
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${total.toLocaleString('pt-BR')}</div><div class="rel-kpi-lbl">Total de CARs</div></div>
+    <div class="rel-kpi"><div class="rel-kpi-val">${f2(areaTot)} ha</div><div class="rel-kpi-lbl">Área total declarada</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${isf}</div><div class="rel-kpi-lbl">CARs na APA ISF</div></div>
+    <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${la}</div><div class="rel-kpi-lbl">CARs Lago do Amapá</div></div>
+    <div class="rel-kpi rel-kpi-warn"><div class="rel-kpi-val">${porStatus.aguardando||0}</div><div class="rel-kpi-lbl">Aguardando análise</div></div>
+    <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${porStatus.ativo||0}</div><div class="rel-kpi-lbl">Ativos</div></div>
+  </div>
+  <div class="rel-section">
+    <div class="rel-section-title">🏡 CAR — Imóveis por Sub-bacia</div>
+    <table class="rel-table">
+      <thead><tr><th>Sub-bacia</th><th>Nº CARs</th><th>Área declarada (ha)</th><th>Área sub-bacia (ha)</th><th>Cobertura</th><th>Ativos</th><th>Aguardando</th><th>Em análise</th></tr></thead>
+      <tbody>
+        ${Object.entries(porSub).filter(([k])=>k!=='—').sort((a,b)=>b[1].n-a[1].n).map(([nome,info])=>{
+          const sbD = subbacias?.find(s=>s.nome===nome);
+          const cob = sbD?.area>0 ? info.area/sbD.area*100 : null;
+          return `<tr><td style="font-weight:600">${escHtml(nome)}</td><td style="text-align:center;font-weight:700">${info.n}</td><td style="text-align:right">${f2(info.area)}</td><td style="text-align:right;color:#6b7280">${sbD?f2(sbD.area):'—'}</td><td style="text-align:center;font-weight:700;color:${cob>80?'#16a34a':cob>50?'#d97706':'#dc2626'}">${cob!=null?f1(cob)+'%':'—'}</td><td style="text-align:center;color:#16a34a">${info.status.ativo||0}</td><td style="text-align:center;color:#d97706">${info.status.aguardando||0}</td><td style="text-align:center;color:#2563eb">${info.status.analise||0}</td></tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
 function _htmlRelHidrografiaPrint(d){
   const { hidro, tot, subbacias } = d;
   const f2 = n => Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
