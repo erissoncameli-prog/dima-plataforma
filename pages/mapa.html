@@ -1048,13 +1048,32 @@ const SUBBACIA_PALETTE = [
 function _renderizarCamada(c){
   if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
   if(!c.geojson) return;
-  const features = c.geojson.features || [];
-  const hasNames = features.some(f => f.properties && (f.properties.name || f.properties.Name || f.properties.NAME));
-  // Paleta rotativa só para camadas com features nomeadas (sub-bacias); demais usam cor única
-  const usePalette = hasNames && features.length > 1;
-  const featureColors = c.feature_colors || {};
+
+  const sc          = c.style_config || {};
+  const fillOpacity = sc.fillOpacity  != null ? sc.fillOpacity  : 0.22;
+  const strokeWidth = sc.strokeWidth  != null ? sc.strokeWidth  : 2;
+  const globalStroke= sc.strokeColor  || null;
+  const hidden      = new Set(sc.hiddenFeatures || []);
+  const featStroke  = sc.featureStrokeColors || {};
+  const featFill    = c.feature_colors || {};
+
+  const allFeatures = c.geojson.features || [];
+  const hasNames = allFeatures.some(f => f.properties &&
+    (f.properties.name || f.properties.Name || f.properties.NAME));
+  const usePalette = hasNames && allFeatures.length > 1;
+
+  // Filtra features ocultas individualmente
+  const visibleFeatures = hidden.size > 0
+    ? allFeatures.filter(f => {
+        const n = f.properties?.name || f.properties?.Name || f.properties?.NAME || '';
+        return !hidden.has(n);
+      })
+    : allFeatures;
+
+  const geoJsonVis = { ...c.geojson, features: visibleFeatures };
+
   let _fi = 0;
-  c.layer = L.geoJSON(c.geojson, {
+  c.layer = L.geoJSON(geoJsonVis, {
     pointToLayer: (feature, latlng) => {
       const sz = _tamanhoIcone();
       return L.marker(latlng, { icon: L.divIcon({
@@ -1065,16 +1084,17 @@ function _renderizarCamada(c){
     },
     style: usePalette
       ? (feature) => {
-          const props = feature.properties || {};
-          const nome = props.name || props.Name || props.NAME || '';
-          const cor = featureColors[nome] || SUBBACIA_PALETTE[_fi % SUBBACIA_PALETTE.length];
+          const p    = feature.properties || {};
+          const nome = p.name || p.Name || p.NAME || '';
+          const fill   = featFill[nome]   || SUBBACIA_PALETTE[_fi % SUBBACIA_PALETTE.length];
+          const stroke = featStroke[nome] || globalStroke || fill;
           _fi++;
-          return { color:cor, weight:2, opacity:.9, fillColor:cor, fillOpacity:.22, dashArray:'5 4' };
+          return { color:stroke, weight:strokeWidth, opacity:.9, fillColor:fill, fillOpacity, dashArray:'5 4' };
         }
-      : { color:c.cor, weight:2, opacity:.9, fillColor:c.cor, fillOpacity:.15, dashArray:'5 4' },
+      : { color: globalStroke||c.cor, weight:strokeWidth, opacity:.9, fillColor:c.cor, fillOpacity, dashArray:'5 4' },
     onEachFeature: hasNames ? (feature, layer) => {
-      const props = feature.properties || {};
-      const nome = props.name || props.Name || props.NAME || '';
+      const p    = feature.properties || {};
+      const nome = p.name || p.Name || p.NAME || '';
       if(nome){
         layer.bindTooltip(nome, { permanent:true, direction:'center', className:'subbacia-label' });
         layer.on('add', () => layer.openTooltip());
