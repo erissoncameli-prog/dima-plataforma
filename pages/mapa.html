@@ -3598,6 +3598,27 @@ function _htmlCarEstilo(f){
   </div>`;
 }
 
+// Aplica o último estilo salvo nos campos do formulário e faz preview ao vivo
+function _aplicarUltimoEstilo(){
+  if(!_carUltimoEstilo) return;
+  const u = _carUltimoEstilo;
+  const fo  = Math.round((u.fill_opacity ?? 0.18) * 100);
+  const sw  = u.stroke_width ?? 1.5;
+  const fillEl   = document.getElementById('cs-fill');
+  const foEl     = document.getElementById('cs-fo');
+  const foValEl  = foEl?.nextElementSibling;
+  const strokeEl = document.getElementById('cs-stroke');
+  const swEl     = document.getElementById('cs-sw');
+  const swValEl  = swEl?.nextElementSibling;
+  if(fillEl   && u.fill_color)   fillEl.value   = u.fill_color;
+  if(foEl)                        foEl.value     = fo;
+  if(foValEl)                     foValEl.textContent = fo + '%';
+  if(strokeEl && u.stroke_color) strokeEl.value = u.stroke_color;
+  if(swEl)                        swEl.value     = sw;
+  if(swValEl)                     swValEl.textContent = sw + 'px';
+  _previewCarEstilo(); // aplica visualmente no mapa
+}
+
 function _previewCarEstilo(){
   if(!_carAbertoFeat) return;
   const cod  = _carAbertoFeat.properties?.cod_imovel;
