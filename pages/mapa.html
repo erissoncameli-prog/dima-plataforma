@@ -1140,11 +1140,13 @@ function renderCamadasHtml(){
     const allFeats = c.geojson?.features || [];
     const hasNames = allFeats.some(f => f.properties &&
       (f.properties.name || f.properties.Name || f.properties.NAME));
+    // Paleta fixa por índice original — igual ao _renderizarCamada
     const namedFeats = hasNames ? allFeats.map((f, i) => {
       const nome = f.properties?.name || f.properties?.Name || f.properties?.NAME || `Feature ${i+1}`;
+      const paletaCor = SUBBACIA_PALETTE[i % SUBBACIA_PALETTE.length];
       return {
         nome,
-        fill:   featFill[nome]   || SUBBACIA_PALETTE[i % SUBBACIA_PALETTE.length],
+        fill:   featFill[nome]   || paletaCor,
         stroke: featStroke[nome] || sco
       };
     }) : [];
