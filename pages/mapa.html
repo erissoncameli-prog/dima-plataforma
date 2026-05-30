@@ -3617,9 +3617,18 @@ async function salvarCarEstilo(){
   const { error } = await db.from('car_marcados').upsert(payload, { onConflict:'cod_imovel' });
   if(error){ toast('Erro ao salvar: ' + error.message, 'error'); return; }
   _carMarcados.set(cod, payload);
+  // Guarda como último estilo para o botão "Repetir"
+  _carUltimoEstilo = {
+    fill_color:   payload.fill_color,
+    fill_opacity: payload.fill_opacity,
+    stroke_color: payload.stroke_color,
+    stroke_width: payload.stroke_width,
+    cod_imovel:   cod,
+  };
   _atualizarLayerCAR(cod);
   _atualizarBtnMarcar();
   _atualizarContadorPins();
+  _renderCarDetBody(); // re-renderiza para mostrar o botão Repetir no próximo CAR
   toast('Estilo salvo!', 'success');
 }
 
