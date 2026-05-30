@@ -1062,6 +1062,14 @@ function _renderizarCamada(c){
     (f.properties.name || f.properties.Name || f.properties.NAME));
   const usePalette = hasNames && allFeatures.length > 1;
 
+  // Pré-computa a cor da paleta por nome usando o índice ORIGINAL (antes de qualquer filtro)
+  // Assim ocultar/mostrar sub-bacias não muda a cor das demais
+  const paletaFixa = {};
+  allFeatures.forEach((f, i) => {
+    const n = f.properties?.name || f.properties?.Name || f.properties?.NAME || '';
+    if(n && !paletaFixa[n]) paletaFixa[n] = SUBBACIA_PALETTE[i % SUBBACIA_PALETTE.length];
+  });
+
   // Filtra features ocultas individualmente
   const visibleFeatures = hidden.size > 0
     ? allFeatures.filter(f => {
@@ -1072,7 +1080,6 @@ function _renderizarCamada(c){
 
   const geoJsonVis = { ...c.geojson, features: visibleFeatures };
 
-  let _fi = 0;
   c.layer = L.geoJSON(geoJsonVis, {
     pointToLayer: (feature, latlng) => {
       const sz = _tamanhoIcone();
@@ -1086,9 +1093,9 @@ function _renderizarCamada(c){
       ? (feature) => {
           const p    = feature.properties || {};
           const nome = p.name || p.Name || p.NAME || '';
-          const fill   = featFill[nome]   || SUBBACIA_PALETTE[_fi % SUBBACIA_PALETTE.length];
-          const stroke = featStroke[nome] || globalStroke || fill;
-          _fi++;
+          // usa cor salva pelo usuário (featFill) ou a cor fixa da paleta original
+          const fill   = featFill[nome]   || paletaFixa[nome] || '#9ca3af';
+          const stroke = featStroke[nome] || globalStroke      || fill;
           return { color:stroke, weight:strokeWidth, opacity:.9, fillColor:fill, fillOpacity, dashArray:'5 4' };
         }
       : { color: globalStroke||c.cor, weight:strokeWidth, opacity:.9, fillColor:c.cor, fillOpacity, dashArray:'5 4' },
