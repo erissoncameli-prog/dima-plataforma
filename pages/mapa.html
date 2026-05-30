@@ -4346,13 +4346,18 @@ function _htmlFichaCAR(f, imgData){
       <div>
         <div class="card">
           <div class="card-title">Dados Cadastrais — SICAR</div>
-          <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val">${f2(p.area)} ha</span></div>
+          ${local.nom_imovel?`<div class="attr-row"><span class="attr-lbl">Nome do imóvel</span><span class="attr-val" style="font-weight:700;color:#111">${escHtml(local.nom_imovel)}</span></div>`:''}
+          ${local.nome_compl?`<div class="attr-row"><span class="attr-lbl">Proprietário/Possuidor</span><span class="attr-val">${escHtml(local.nome_compl)}</span></div>`:''}
+          ${local.cpf_cnpj?`<div class="attr-row"><span class="attr-lbl">CPF / CNPJ</span><span class="attr-val" style="font-family:monospace">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</span></div>`:''}
+          ${cc?`<div class="attr-row"><span class="attr-lbl">Classificação</span><span class="attr-val"><span style="display:inline-flex;align-items:center;gap:3px;background:${cc.bg};color:${cc.cor};border:1px solid ${cc.brd};border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700">${escHtml(local.nome_class)}</span></span></div>`:''}
+          ${local.tipo_docum?`<div class="attr-row"><span class="attr-lbl">Relação jurídica</span><span class="attr-val">${escHtml(local.tipo_docum)}</span></div>`:''}
+          ${local.nome_docum?`<div class="attr-row"><span class="attr-lbl">Documento</span><span class="attr-val">${escHtml(local.nome_docum)}</span></div>`:''}
+          <div class="attr-row" style="margin-top:4px"><span class="attr-lbl">Área declarada</span><span class="attr-val">${f2(p.area)} ha</span></div>
           <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${p.municipio||'—'} / AC</span></div>
           <div class="attr-row"><span class="attr-lbl">Tipo de imóvel</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
           <div class="attr-row"><span class="attr-lbl">Módulo fiscal</span><span class="attr-val">${f2(p.m_fiscal)} módulo(s)</span></div>
           <div class="attr-row"><span class="attr-lbl">Situação</span><span class="attr-val">${statusLabel}</span></div>
           <div class="attr-row"><span class="attr-lbl">Data de cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
-          <div class="attr-row"><span class="attr-lbl">Última atualização</span><span class="attr-val">${fDt(p.data_atualizacao)}</span></div>
           <div class="attr-row"><span class="attr-lbl">Sub-bacia</span><span class="attr-val">${p._subbacia||'—'}</span></div>
         </div>
         <div style="margin-top:8px" class="links-row">
