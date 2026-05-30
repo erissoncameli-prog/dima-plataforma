@@ -3939,6 +3939,10 @@ async function gerarRelatorioCarMarcados(){
   // Garante que o painel lateral não cobre o mapa
   document.getElementById('car-det-panel')?.classList.remove('aberto');
 
+  // Pré-carrega dados locais para todos os CARs marcados
+  toast(`Buscando dados cadastrais…`,'info');
+  await Promise.all(cods.map(cod => _buscarDadosLocais(cod)));
+
   const capturas = [];
   for(let i = 0; i < cods.length; i++){
     if(_relCarAbortado) break;
