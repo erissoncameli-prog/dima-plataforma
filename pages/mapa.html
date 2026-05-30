@@ -4971,12 +4971,14 @@ function _renderRelAba(aba){
   else if(aba === 'subbacias')   body.innerHTML = _htmlRelSubbacias(_relDados);
   else if(aba === 'hidrografia') body.innerHTML = _htmlRelHidrografia(_relDados);
   else if(aba === 'relatorio')   body.innerHTML = _htmlRelTextual(_relDados);
-  else if(aba === 'car')         body.innerHTML = _htmlRelCAR(_relDados);
+  else if(aba === 'car')               body.innerHTML = _htmlRelCAR(_relDados);
+  else if(aba === 'diagnostico-sessao') { body.innerHTML = _htmlRelDiagnosticoSessao(_relDados); _initDiagSessaoBtns(); }
   setTimeout(() => {
     if(aba === 'visao-geral')      _chartVisaoGeral(_relDados);
     else if(aba === 'subbacias')   _chartRanking(_relDados);
     else if(aba === 'hidrografia') _chartHidro(_relDados);
     else if(aba === 'car')       { _chartCarStatus(_relDados); _chartCarApa(); }
+    else if(aba === 'diagnostico-sessao') _chartDiagSessao();
   }, 60);
 }
 
