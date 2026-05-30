@@ -3542,14 +3542,16 @@ function _renderRelAba(aba){
     body.innerHTML = '<div style="padding:48px;text-align:center;color:var(--cinza-400);font-size:14px">Nenhuma camada de sub-bacias encontrada.<br><span style="font-size:12px">Ative as camadas de delimitação no painel do mapa e reabra o relatório.</span></div>';
     return;
   }
-  if(aba === 'visao-geral')   body.innerHTML = _htmlRelVisaoGeral(_relDados);
-  else if(aba === 'subbacias')    body.innerHTML = _htmlRelSubbacias(_relDados);
-  else if(aba === 'hidrografia')  body.innerHTML = _htmlRelHidrografia(_relDados);
-  else if(aba === 'relatorio')    body.innerHTML = _htmlRelTextual(_relDados);
+  if(aba === 'visao-geral')      body.innerHTML = _htmlRelVisaoGeral(_relDados);
+  else if(aba === 'subbacias')   body.innerHTML = _htmlRelSubbacias(_relDados);
+  else if(aba === 'hidrografia') body.innerHTML = _htmlRelHidrografia(_relDados);
+  else if(aba === 'relatorio')   body.innerHTML = _htmlRelTextual(_relDados);
+  else if(aba === 'car')         body.innerHTML = _htmlRelCAR(_relDados);
   setTimeout(() => {
     if(aba === 'visao-geral')      _chartVisaoGeral(_relDados);
     else if(aba === 'subbacias')   _chartRanking(_relDados);
     else if(aba === 'hidrografia') _chartHidro(_relDados);
+    else if(aba === 'car')       { _chartCarStatus(_relDados); _chartCarApa(); }
   }, 60);
 }
 
