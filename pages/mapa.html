@@ -3845,6 +3845,416 @@ function fecharDetalhesCAR(){
   _carAbertoCod  = null;
 }
 
+// ── Relatório de CARs Marcados ────────────────────────────────────────────
+let _relCarAbortado = false;
+
+async function gerarRelatorioCarMarcados(){
+  const cods = [..._carMarcados.keys()];
+  if(!cods.length){ toast('Nenhum imóvel marcado para gerar relatório','warning'); return; }
+
+  _relCarAbortado = false;
+  const toast_id = toast(`Capturando ${cods.length} imóvel(is)… 0/${cods.length}`,'info');
+
+  // Salva estado atual do mapa
+  const viewAntes    = mapaL.getCenter();
+  const zoomAntes    = mapaL.getZoom();
+  const selAntes     = _carSelecionado;
+
+  // Garante que o painel lateral não cobre o mapa
+  document.getElementById('car-det-panel')?.classList.remove('aberto');
+
+  const capturas = [];
+  for(let i = 0; i < cods.length; i++){
+    if(_relCarAbortado) break;
+    const cod  = cods[i];
+    const feat = _carFeatures.find(f => f.properties?.cod_imovel === cod);
+    if(!feat) continue;
+
+    toast(`Capturando ${i+1}/${cods.length}: ${cod.slice(-8)}…`,'info');
+
+    const imgData = await _capturarMapaCAR(feat);
+    capturas.push({ feat, imgData, row: _carMarcados.get(cod) });
+  }
+
+  // Restaura estado anterior
+  mapaL.setView(viewAntes, zoomAntes);
+  if(selAntes) _carSelecionado = selAntes;
+
+  if(!capturas.length){ toast('Nenhuma captura realizada','error'); return; }
+
+  toast('Abrindo relatório…','success');
+  _abrirJanelaRelatorioCAR(capturas);
+}
+
+async function _capturarMapaCAR(f){
+  // 1. Calcula bounds do polígono
+  let bounds;
+  try{ bounds = turf.bbox(f); }catch(e){ bounds = [-68,-10,-67.5,-9.7]; }
+  const lBounds = [[bounds[1],bounds[0]],[bounds[3],bounds[2]]];
+
+  // 2. Destaca o CAR no mapa (cor de seleção)
+  _carLayer?.eachLayer(l => {
+    if(l.feature?.properties?.cod_imovel === f.properties?.cod_imovel){
+      if(_carSelecionado && _carSelecionado !== l)
+        _carSelecionado.setStyle(_estiloCAR(_carSelecionado.feature,false,false));
+      _carSelecionado = l;
+      l.setStyle(_estiloCAR(f,false,true));
+    }
+  });
+
+  // 3. Zoom para o polígono e aguarda tiles carregarem
+  await new Promise(resolve => {
+    const onMoveEnd = () => {
+      mapaL.off('moveend', onMoveEnd);
+      setTimeout(resolve, 1800); // aguarda tiles renderizarem
+    };
+    mapaL.on('moveend', onMoveEnd);
+    mapaL.fitBounds(lBounds, { padding:[70,70], maxZoom:17 });
+  });
+
+  // 4. Força re-render dos layers de canvas
+  try{ _carLayer?.bringToFront(); }catch(_){}
+
+  // 5. Captura com html2canvas
+  const mapEl = document.getElementById('mapa');
+  if(!mapEl || typeof html2canvas === 'undefined') return _svgFallbackCAR(f, bounds);
+
+  try{
+    const canvas = await html2canvas(mapEl, {
+      useCORS:      true,
+      allowTaint:   true,
+      scale:        Math.min(window.devicePixelRatio||1, 2),
+      logging:      false,
+      imageTimeout: 8000,
+      backgroundColor: '#1a1a2e',
+    });
+    // Tenta exportar — pode falhar por CORS taint
+    try{
+      return canvas.toDataURL('image/jpeg', 0.88);
+    } catch(_){
+      // CORS taint: copia só as partes de origem própria (canvas do CAR layer)
+      return _exportCanvasSemTaint(canvas, f, bounds);
+    }
+  } catch(err){
+    console.warn('html2canvas falhou:', err);
+    return _svgFallbackCAR(f, bounds);
+  }
+}
+
+// Tenta exportar ignorando pixels tainted (risca apenas o CAR polygon sobre preto)
+function _exportCanvasSemTaint(mainCanvas, f, bounds){
+  try{
+    // Cria canvas limpo do mesmo tamanho
+    const c2 = document.createElement('canvas');
+    c2.width = mainCanvas.width; c2.height = mainCanvas.height;
+    const ctx = c2.getContext('2d');
+    ctx.fillStyle = '#1a2030';
+    ctx.fillRect(0,0,c2.width,c2.height);
+    // Pega o canvas do carPane (mesmo origin, não tainted)
+    const carCanvas = document.querySelector('.leaflet-pane canvas');
+    if(carCanvas) ctx.drawImage(carCanvas, 0, 0, c2.width, c2.height);
+    return c2.toDataURL('image/jpeg', 0.88);
+  }catch(_){
+    return _svgFallbackCAR(f, bounds);
+  }
+}
+
+// SVG fallback: polígono do CAR projetado em coordenadas simples
+function _svgFallbackCAR(f, bounds){
+  const [minLng,minLat,maxLng,maxLat] = bounds;
+  const W = 600, H = 380;
+  const toX = lng => ((lng-minLng)/(maxLng-minLng)) * W;
+  const toY = lat => H - ((lat-minLat)/(maxLat-minLat)) * H;
+
+  const coords = (f.geometry?.type === 'MultiPolygon'
+    ? (f.geometry.coordinates[0]||[])[0]||[]
+    : (f.geometry?.coordinates[0]||[]));
+
+  const pts = coords.map(([lng,lat]) => `${toX(lng).toFixed(1)},${toY(lat).toFixed(1)}`).join(' ');
+
+  const cx = toX((minLng+maxLng)/2).toFixed(1);
+  const cy = toY((minLat+maxLat)/2).toFixed(1);
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <rect width="${W}" height="${H}" fill="#1a2030"/>
+    <text x="12" y="22" fill="#6b7280" font-family="monospace" font-size="11">
+      lat: ${minLat.toFixed(4)}..${maxLat.toFixed(4)} | lng: ${minLng.toFixed(4)}..${maxLng.toFixed(4)}
+    </text>
+    ${pts ? `<polygon points="${pts}" fill="#7c3aed44" stroke="#7c3aed" stroke-width="2"/>` : ''}
+    <circle cx="${cx}" cy="${cy}" r="5" fill="#7c3aed"/>
+    <text x="${cx}" y="${parseFloat(cy)+18}" fill="#c4b5fd" font-family="sans-serif" font-size="10" text-anchor="middle">centroide</text>
+  </svg>`;
+
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+}
+
+// ── Janela de impressão ────────────────────────────────────────────────────
+function _abrirJanelaRelatorioCAR(capturas){
+  const win = window.open('', '_blank', 'width=960,height=760');
+  if(!win){ toast('Popup bloqueado. Permita popups para este site.','error'); return; }
+
+  const data = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+  // Calcula totais
+  const areaTot = capturas.reduce((s,{row}) => s+(parseFloat(row?.area)||0),0);
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+
+  const fichas = capturas.map(({feat,imgData}) => _htmlFichaCAR(feat, imgData)).join('');
+
+  // Tabela de resumo
+  const porApa  = {isf:0,la:0,fora:0};
+  const porCond = {};
+  const porSub  = {};
+  capturas.forEach(({feat}) => {
+    const p = feat.properties||{};
+    porApa[p._apa||'fora']++;
+    const k = _carStatusKey(p.condicao);
+    porCond[k] = (porCond[k]||0)+1;
+    const sb = p._subbacia||'—';
+    porSub[sb] = (porSub[sb]||0)+1;
+  });
+
+  win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório CAR Marcados — SEMA/AC</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;font-size:12px;color:#1f2937;background:#fff;}
+.capa{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border-bottom:3px solid #1F4E2C;padding:40px;}
+.capa .logo{font-size:48px;margin-bottom:16px;}
+.capa h1{font-size:22px;font-weight:700;color:#1F4E2C;margin-bottom:8px;}
+.capa h2{font-size:16px;font-weight:400;color:#374151;margin-bottom:24px;}
+.capa .meta{font-size:11px;color:#6b7280;line-height:1.8;}
+.capa .stats{display:flex;gap:32px;margin-top:32px;border-top:1px solid #e5e7eb;padding-top:24px;}
+.capa .stat-val{font-size:28px;font-weight:700;color:#1F4E2C;}
+.capa .stat-lbl{font-size:11px;color:#6b7280;margin-top:4px;}
+.ficha{page-break-before:always;padding:20px 24px;min-height:100vh;display:flex;flex-direction:column;gap:14px;}
+.ficha-header{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:12px;border-bottom:2px solid #1F4E2C;}
+.ficha-titulo{font-size:16px;font-weight:700;color:#1F4E2C;}
+.ficha-cod{font-family:monospace;font-size:10px;color:#6b7280;margin-top:4px;word-break:break-all;}
+.ficha-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:700;border:1px solid;}
+.badge-isf{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
+.badge-la{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;}
+.badge-fora{background:#fef9c3;color:#854d0e;border-color:#fde047;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+.card{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;}
+.card-title{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.attr-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f9fafb;font-size:11px;}
+.attr-row:last-child{border-bottom:none;}
+.attr-lbl{color:#6b7280;}
+.attr-val{font-weight:600;color:#111827;text-align:right;}
+.mapa-img{width:100%;border-radius:8px;border:1px solid #e5e7eb;display:block;max-height:320px;object-fit:cover;}
+.analise{background:#f9fafb;border-left:3px solid #1F4E2C;padding:12px 14px;border-radius:0 6px 6px 0;font-size:12px;color:#374151;line-height:1.75;}
+.analise-title{font-size:10px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;}
+.links-row{display:flex;gap:10px;margin-top:4px;}
+.link-btn{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:4px 12px;border-radius:4px;border:1px solid;text-decoration:none;}
+.link-sicar{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;}
+.link-sema{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
+.resumo{page-break-before:always;padding:24px;}
+.resumo h2{font-size:16px;font-weight:700;color:#1F4E2C;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #1F4E2C;}
+.resumo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.resumo-kpi{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;text-align:center;}
+.resumo-kpi-val{font-size:22px;font-weight:700;color:#1F4E2C;}
+.resumo-kpi-lbl{font-size:10px;color:#6b7280;margin-top:3px;}
+table.res{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
+table.res th{background:#f3f4f6;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;border-bottom:2px solid #e5e7eb;}
+table.res td{padding:6px 10px;border-bottom:1px solid #f3f4f6;}
+.nota{margin-top:16px;font-size:10px;color:#9ca3af;line-height:1.6;border-top:1px solid #e5e7eb;padding-top:10px;}
+@media print{
+  body{font-size:11px;}
+  .capa{height:auto;min-height:80vh;}
+  .ficha{min-height:auto;}
+  .mapa-img{max-height:260px;}
+}
+</style>
+</head>
+<body>
+<!-- Capa -->
+<div class="capa">
+  <div class="logo">🌿</div>
+  <h1>Relatório de Imóveis CAR Marcados</h1>
+  <h2>Diagnóstico Ambiental por Propriedade Rural</h2>
+  <div class="meta">
+    <div><strong>Projeto 218BRA2001</strong> · SEMA/AC · Fundo Brasil-ONU</div>
+    <div>APAs Igarapé São Francisco e Lago do Amapá · Rio Branco, Acre</div>
+    <div>Gerado em ${data} · Sistema DIMA</div>
+  </div>
+  <div class="stats">
+    <div><div class="stat-val">${capturas.length}</div><div class="stat-lbl">Imóveis analisados</div></div>
+    <div><div class="stat-val">${f2(areaTot)} ha</div><div class="stat-lbl">Área total declarada</div></div>
+    <div><div class="stat-val">${porApa.isf+porApa.la}</div><div class="stat-lbl">Dentro das APAs</div></div>
+  </div>
+</div>
+
+<!-- Fichas individuais -->
+${fichas}
+
+<!-- Resumo final -->
+<div class="resumo">
+  <h2>📊 Resumo dos Imóveis Analisados</h2>
+  <div class="resumo-grid">
+    <div class="resumo-kpi"><div class="resumo-kpi-val">${capturas.length}</div><div class="resumo-kpi-lbl">Total de imóveis</div></div>
+    <div class="resumo-kpi"><div class="resumo-kpi-val">${f2(areaTot)} ha</div><div class="resumo-kpi-lbl">Área total declarada</div></div>
+    <div class="resumo-kpi"><div class="resumo-kpi-val">${f2(areaTot/capturas.length)} ha</div><div class="resumo-kpi-lbl">Área média por imóvel</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">Por APA</div>
+      <table class="res">
+        <thead><tr><th>APA</th><th>Qtd</th></tr></thead>
+        <tbody>
+          <tr><td>Igarapé São Francisco</td><td>${porApa.isf}</td></tr>
+          <tr><td>Lago do Amapá</td><td>${porApa.la}</td></tr>
+          <tr><td>Fora das APAs</td><td>${porApa.fora}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">Por Situação</div>
+      <table class="res">
+        <thead><tr><th>Situação</th><th>Qtd</th></tr></thead>
+        <tbody>
+          ${Object.entries(porCond).map(([k,n])=>`<tr><td>${{ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'}[k]||k}</td><td>${n}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  ${Object.keys(porSub).length > 0 ? `
+  <div style="margin-top:14px">
+    <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:6px">Por Sub-bacia</div>
+    <table class="res">
+      <thead><tr><th>Sub-bacia</th><th>Qtd</th></tr></thead>
+      <tbody>
+        ${Object.entries(porSub).sort((a,b)=>b[1]-a[1]).map(([sb,n])=>`<tr><td>${sb}</td><td>${n}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>` : ''}
+  <div class="nota">
+    <strong>Fontes:</strong> SICAR — Sistema Nacional de Cadastro Ambiental Rural (car.gov.br) ·
+    SeloVerde AC (seloverde.sema.ac.gov.br) · Sistema DIMA — SEMA/AC.<br>
+    <strong>Nota:</strong> As imagens de satélite foram capturadas diretamente da visualização atual do Sistema DIMA.
+    Os valores de área são os declarados pelo produtor no SICAR e podem divergir da área georreferenciada.
+    Este relatório não substitui análises técnicas oficiais.
+  </div>
+</div>
+<script>window.onload = () => setTimeout(() => window.print(), 600);<\/script>
+</body></html>`);
+
+  win.document.close();
+}
+
+function _htmlFichaCAR(f, imgData){
+  const p   = f.properties || {};
+  const f2  = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const fDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+  const key = _carStatusKey(p.condicao);
+  const statusLabel = {ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'}[key]||key;
+  const apaLabel = p._apa==='isf' ? '🌿 APA Igarapé São Francisco' : p._apa==='la' ? '💧 APA Lago do Amapá' : '⚠️ Fora das APAs';
+  const apaBadge = p._apa==='isf' ? 'badge-isf' : p._apa==='la' ? 'badge-la' : 'badge-fora';
+  const sicarUrl = `https://consultapublica.car.gov.br/publico/imoveis/index?idImovel=${encodeURIComponent(p.cod_imovel||'')}`;
+  const descricao = _gerarDescricaoCAR(f);
+
+  return `
+<div class="ficha">
+  <div class="ficha-header">
+    <div>
+      <div class="ficha-titulo">🏡 Ficha do Imóvel Rural — CAR</div>
+      <div class="ficha-cod">${p.cod_imovel||'—'}</div>
+    </div>
+    <span class="ficha-badge ${apaBadge}">${apaLabel}</span>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-title">Dados Cadastrais</div>
+        <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val">${f2(p.area)} ha</span></div>
+        <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${p.municipio||'—'}/AC</span></div>
+        <div class="attr-row"><span class="attr-lbl">Tipo</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Módulo fiscal</span><span class="attr-val">${f2(p.m_fiscal)} módulo(s)</span></div>
+        <div class="attr-row"><span class="attr-lbl">Situação CAR</span><span class="attr-val">${statusLabel}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Data cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Sub-bacia</span><span class="attr-val">${p._subbacia||'—'}</span></div>
+      </div>
+      <div style="margin-top:6px" class="links-row">
+        <a href="${sicarUrl}" target="_blank" class="link-btn link-sicar">🔗 Ver no SICAR</a>
+        <a href="https://seloverde.sema.ac.gov.br/consultar-car/" target="_blank" class="link-btn link-sema">🌿 SeloVerde AC</a>
+      </div>
+    </div>
+    <div>
+      <img src="${imgData}" alt="Imagem de satélite do imóvel" class="mapa-img"
+        onerror="this.alt='Imagem não disponível';this.style.background='#f3f4f6';this.style.minHeight='200px'">
+    </div>
+  </div>
+
+  <div class="analise">
+    <div class="analise-title">📋 Análise Ambiental</div>
+    ${descricao}
+  </div>
+</div>`;
+}
+
+function _gerarDescricaoCAR(f){
+  const p  = f.properties || {};
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const mf = parseFloat(p.m_fiscal)||0;
+  const area = parseFloat(p.area)||0;
+  const classe = mf < 1 ? 'minifúndio' : mf <= 4 ? 'pequena propriedade rural' : mf <= 15 ? 'média propriedade rural' : 'grande propriedade rural';
+  const sb = _relDados?.subbacias?.find(s => s.nome === p._subbacia);
+  let t = '';
+
+  // Caracterização do imóvel
+  t += `Este imóvel rural, classificado como <strong>${classe}</strong> com <strong>${f2(area)} ha</strong> declarados `;
+  t += `(${f2(mf)} módulo${mf !== 1?'s':''} fiscal${mf!==1?'is':''}), `;
+  t += `está situado no município de <strong>${p.municipio||'Rio Branco'}</strong>, estado do Acre. `;
+
+  // Contexto APA
+  if(p._apa === 'isf'){
+    t += `O imóvel está inserido na <strong>Área de Proteção Ambiental Igarapé São Francisco</strong> `;
+    t += `(Decreto Estadual nº 12.310, de 14 de julho de 2005), unidade de uso sustentável gerida pelo IMAC. `;
+  } else if(p._apa === 'la'){
+    t += `O imóvel está inserido na <strong>Área de Proteção Ambiental Lago do Amapá</strong> `;
+    t += `(Decreto Estadual nº 13.531, de 26 de dezembro de 2005), gerida pela SEMA/AC. `;
+  } else {
+    t += `O imóvel está localizado na área de influência das APAs monitoradas pelo Projeto 218BRA2001. `;
+  }
+
+  // Contexto sub-bacia
+  if(p._subbacia && sb){
+    t += `O imóvel pertence à <strong>${p._subbacia}</strong>, que possui área total de ${f2(sb.area)} ha, `;
+    t += `com <strong>${f1(sb.pctDesmat)}% de desmatamento acumulado</strong> (${f2(sb.desmat)} ha) `;
+    t += `e ${f1(sb.pctPreserv)}% de formação florestal remanescente. `;
+    if(sb.pctAppDeg > 0){
+      t += `A APP desta sub-bacia encontra-se <strong>${f1(sb.pctAppDeg)}% degradada</strong> `;
+      t += `(${f2(sb.appAntrop)} ha), configurando risco <strong>${sb.risco.toLowerCase()}</strong> de assoreamento `;
+      t += `dos cursos hídricos. `;
+    }
+    if(sb.restaur > 0){
+      t += `Foram identificadas <strong>${f2(sb.restaur)} ha</strong> como área prioritária para restauração ecológica nesta sub-bacia. `;
+    }
+    const critica = sb.pctDesmat > 15;
+    if(critica) t += `⚠️ Esta sub-bacia encontra-se em <strong>situação crítica</strong> de pressão antrópica, demandando intervenção prioritária. `;
+  } else if(p._subbacia){
+    t += `O imóvel está na ${p._subbacia}. `;
+  }
+
+  // Status CAR
+  const key = _carStatusKey(p.condicao);
+  const statusTextos = {
+    ativo:      'O cadastro ambiental do imóvel encontra-se <strong>ativo e regularizado</strong> no SICAR',
+    aguardando: 'O cadastro ambiental do imóvel <strong>aguarda análise técnica</strong> pelo órgão ambiental competente',
+    analise:    'O cadastro ambiental do imóvel <strong>encontra-se em processo de análise técnica</strong>',
+    outro:      'A situação cadastral do imóvel <strong>requer verificação</strong> no SICAR',
+  };
+  t += `${statusTextos[key]||statusTextos.outro}, com registro datado de ${new Date(p.dat_criacao||Date.now()).toLocaleDateString('pt-BR')}. `;
+  t += `Para diagnóstico socioambiental detalhado, consulte o <em>SeloVerde AC</em> e o <em>SICAR nacional</em>.`;
+  return `<p>${t}</p>`;
+}
+
 // ── Aba CAR no Relatório Analítico ────────────────────────────────────────
 function _htmlRelCAR(d){
   if(!_carCarregado || !_carFeatures.length){
