@@ -1088,9 +1088,7 @@ function renderCamadasHtml(){
   const ehAdmin = appState.perfil === 'super_admin';
   const el = document.getElementById('bloco-camadas-lista');
   if(!el) return;
-
-  // Forçar scroll diretamente via JS (CSS é bloqueado pelo overflow:hidden do pai)
-  el.style.maxHeight = '200px';
+  el.style.maxHeight = '400px';
   el.style.overflowY = 'auto';
   el.style.overflowX = 'hidden';
   el.style.scrollbarWidth = 'thin';
@@ -1100,14 +1098,103 @@ function renderCamadasHtml(){
     el.innerHTML = `<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">${ehAdmin?'Nenhuma camada. Clique em ＋ para adicionar.':'Nenhuma camada disponível.'}</div>`;
     return;
   }
-  el.innerHTML = camadas.map(c => `
-    <div class="camada-row">
-      <input type="checkbox" ${c.visivel?'checked':''} onchange="toggleCamadaVisivel('${c.id}',this.checked)">
-      <span class="filtro-dot" style="background:${c.cor}"></span>
-      <span style="font-size:12px;color:var(--cinza-700);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escHtml(c.nome)}">${escHtml(c.nome)}</span>
-      ${ehAdmin && c.geojson ? `<button onclick="abrirModalCoresCamada('${c.id}')" title="Editar cor" style="font-size:12px;padding:2px 5px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;flex-shrink:0">🎨</button>` : ''}
-      ${ehAdmin?`<button onclick="removerCamada('${c.id}')" title="Remover camada" style="font-size:11px;padding:2px 6px;border:1px solid #FCA5A5;border-radius:4px;background:#FEF2F2;color:#DC2626;cursor:pointer;flex-shrink:0">✕</button>`:''}
-    </div>`).join('');
+
+  el.innerHTML = camadas.map(c => {
+    const sc  = c.style_config || {};
+    const fo  = sc.fillOpacity  != null ? sc.fillOpacity  : 0.22;
+    const sw  = sc.strokeWidth  != null ? sc.strokeWidth  : 2;
+    const sco = sc.strokeColor  || c.cor;
+    const hidden     = new Set(sc.hiddenFeatures || []);
+    const featStroke = sc.featureStrokeColors || {};
+    const featFill   = c.feature_colors || {};
+
+    const allFeats = c.geojson?.features || [];
+    const hasNames = allFeats.some(f => f.properties &&
+      (f.properties.name || f.properties.Name || f.properties.NAME));
+    const namedFeats = hasNames ? allFeats.map((f, i) => {
+      const nome = f.properties?.name || f.properties?.Name || f.properties?.NAME || `Feature ${i+1}`;
+      return {
+        nome,
+        fill:   featFill[nome]   || SUBBACIA_PALETTE[i % SUBBACIA_PALETTE.length],
+        stroke: featStroke[nome] || sco
+      };
+    }) : [];
+
+    const featRowsHtml = namedFeats.length > 1 ? `
+      <div class="camada-expand-section">
+        <div class="camada-expand-section-title">
+          Sub-camadas
+          <button class="camada-link-btn" onclick="_toggleAllFeats('${c.id}',true)">Todas</button>
+          <button class="camada-link-btn" onclick="_toggleAllFeats('${c.id}',false)">Nenhuma</button>
+        </div>
+        ${namedFeats.map(({ nome, fill, stroke }) => `
+          <div class="camada-feat-row">
+            <input type="checkbox" ${!hidden.has(nome)?'checked':''} style="accent-color:var(--verde-escuro);width:12px;height:12px;cursor:pointer;flex-shrink:0"
+              onchange="_onFeatVis('${c.id}','${nome.replace(/'/g,"\\'")}',this.checked)">
+            <input type="color" value="${fill}" class="camada-color-mini" title="Cor de preenchimento"
+              oninput="_onFeatFillColor('${c.id}','${nome.replace(/'/g,"\\'")}',this.value)">
+            <input type="color" value="${stroke}" class="camada-color-mini" title="Cor da borda"
+              style="outline:2px solid rgba(0,0,0,.18);outline-offset:-1px"
+              oninput="_onFeatStrokeColor('${c.id}','${nome.replace(/'/g,"\\'")}',this.value)">
+            <span class="camada-feat-nome" title="${escHtml(nome)}">${escHtml(nome)}</span>
+          </div>`).join('')}
+      </div>` : '';
+
+    const styleHtml = ehAdmin ? `
+      <div class="camada-expand-section">
+        <div class="camada-expand-section-title">Estilo da camada</div>
+
+        ${!hasNames ? `
+        <div class="camada-style-row">
+          <span class="camada-style-lbl">Cor preench.</span>
+          <input type="color" value="${c.cor}" class="camada-color-mini"
+            oninput="_onCamadaFillColor('${c.id}',this.value)">
+        </div>` : ''}
+
+        <div class="camada-style-row">
+          <span class="camada-style-lbl">Opacidade</span>
+          <input type="range" min="0" max="100" step="5" value="${Math.round(fo*100)}" class="camada-slider"
+            oninput="_onCamadaStyle('${c.id}','fillOpacity',this.value/100);this.nextElementSibling.textContent=this.value+'%'">
+          <span class="camada-style-val">${Math.round(fo*100)}%</span>
+        </div>
+
+        <div class="camada-style-row">
+          <span class="camada-style-lbl">Cor da borda</span>
+          <input type="color" value="${sco}" class="camada-color-mini"
+            oninput="_onCamadaStyle('${c.id}','strokeColor',this.value)">
+        </div>
+
+        <div class="camada-style-row">
+          <span class="camada-style-lbl">Espessura</span>
+          <input type="range" min="0.5" max="6" step="0.5" value="${sw}" class="camada-slider"
+            oninput="_onCamadaStyle('${c.id}','strokeWidth',parseFloat(this.value));this.nextElementSibling.textContent=this.value+'px'">
+          <span class="camada-style-val">${sw}px</span>
+        </div>
+
+        <button id="btn-ssc-${c.id}" onclick="salvarStyleCamada('${c.id}')"
+          class="btn btn-primary" style="font-size:11px;padding:5px 0;margin-top:4px;width:100%">
+          💾 Salvar estilo
+        </button>
+      </div>` : '';
+
+    return `
+    <div class="camada-row-outer">
+      <div class="camada-row">
+        <input type="checkbox" ${c.visivel?'checked':''} style="accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0"
+          onchange="toggleCamadaVisivel('${c.id}',this.checked)">
+        <span class="filtro-dot" style="background:${c.cor}"></span>
+        <span style="font-size:12px;color:var(--cinza-700);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+          title="${escHtml(c.nome)}">${escHtml(c.nome)}</span>
+        ${ehAdmin?`<button id="btn-exp-${c.id}" class="btn-camada-exp" title="Configurar estilo"
+          onclick="toggleExpandirCamada('${c.id}')">⚙</button>`:''}
+        ${ehAdmin?`<button onclick="removerCamada('${c.id}')" title="Remover"
+          style="font-size:11px;padding:2px 6px;border:1px solid #FCA5A5;border-radius:4px;background:#FEF2F2;color:#DC2626;cursor:pointer;flex-shrink:0">✕</button>`:''}
+      </div>
+      ${ehAdmin?`<div id="camada-expand-${c.id}" class="camada-expand-body" style="display:none">
+        ${featRowsHtml}${styleHtml}
+      </div>`:''}
+    </div>`;
+  }).join('');
 }
 
 function toggleCamadaVisivel(id, visivel){
