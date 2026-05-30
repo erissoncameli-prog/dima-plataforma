@@ -3239,10 +3239,11 @@ let _carSelecionado= null;   // selected Leaflet layer ref
 let _carSubbaciaOpts = [];   // distinct sub-bacia names
 
 // ── Estado global CAR ─────────────────────────────────────────────────────
-let _carMarcados  = new Map(); // cod_imovel → row da tabela car_marcados
-let _carAbertoCod = null;      // cod_imovel com painel aberto
-let _carAbertoFeat= null;      // feature do CAR aberto
-let _carDetAba    = 'atributos';
+let _carMarcados    = new Map(); // cod_imovel → row da tabela car_marcados
+let _carAbertoCod   = null;     // cod_imovel com painel aberto
+let _carAbertoFeat  = null;     // feature do CAR aberto
+let _carDetAba      = 'atributos';
+let _carUltimoEstilo= null;     // último estilo salvo { fill_color, fill_opacity, stroke_color, stroke_width, cod_imovel }
 
 // ── Status helpers ─────────────────────────────────────────────────────────
 function _carStatusKey(condicao){
