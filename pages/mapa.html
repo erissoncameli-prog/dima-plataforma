@@ -1102,6 +1102,8 @@ function _renderizarCamada(c){
     } : undefined
   });
   c.layer.addTo(mapaL);
+  // Garante que o CAR fique sempre acima das camadas de delimitação
+  if(_carLayer) setTimeout(() => { try{ _carLayer.bringToFront(); }catch(_){} }, 0);
 }
 
 function renderCamadasHtml(){
