@@ -3123,9 +3123,31 @@ function _iniciarClickCamadas(getCamadas){
   mapaL.on('popupopen', ev => {
     if(ev.popup._source){ _skipCamadaClick=true; setTimeout(()=>{ _skipCamadaClick=false; },80); }
   });
+
   mapaL.on('click', e => {
     if(_skipCamadaClick) return;
     const pt = turf.point([e.latlng.lng, e.latlng.lat]);
+
+    // ── 1. CAR tem prioridade: verifica primeiro ───────────────────────────
+    if(_carCarregado && _carLayer){
+      let carHit = null;
+      _carLayer.eachLayer(l => {
+        if(carHit || !l.feature?.geometry) return;
+        try{
+          // pré-filtro rápido por bounding box antes do turf completo
+          const b = l.getBounds ? l.getBounds() : null;
+          if(b && !b.contains(e.latlng)) return;
+          if(turf.booleanPointInPolygon(pt, l.feature))
+            carHit = { f: l.feature, layer: l };
+        }catch(_){}
+      });
+      if(carHit){
+        _selecionarCAR(carHit.f, carHit.layer);
+        return; // não abre popup de delimitação
+      }
+    }
+
+    // ── 2. Camadas de delimitação ──────────────────────────────────────────
     const lineTol = 40 * Math.pow(2, Math.max(0, 12 - mapaL.getZoom()));
     const hits = [], seen = new Set();
     getCamadas().filter(c => c.visivel && c.geojson).forEach(camada => {
