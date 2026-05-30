@@ -3549,9 +3549,28 @@ function _htmlCarEstilo(f){
   const fo     = custom.fill_opacity  != null ? Math.round(custom.fill_opacity * 100) : 18;
   const stroke = custom.stroke_color || corBase;
   const sw     = custom.stroke_width  != null ? custom.stroke_width : 1.5;
+  // Botão "Repetir estilo" — aparece quando há um estilo anterior de outro CAR
+  const podeRepetir = _carUltimoEstilo && _carUltimoEstilo.cod_imovel !== cod;
+  const btnRepetir  = podeRepetir ? `
+    <div style="margin-bottom:12px;padding:9px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:var(--raio);display:flex;align-items:center;gap:8px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:600;color:#7c3aed">🎨 Repetir estilo anterior</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:1px">
+          Preench. <span style="font-family:monospace">${_carUltimoEstilo.fill_color||'—'}</span>
+          · Borda <span style="font-family:monospace">${_carUltimoEstilo.stroke_color||'—'}</span>
+          · ${Math.round((_carUltimoEstilo.fill_opacity||0.18)*100)}% · ${_carUltimoEstilo.stroke_width||1.5}px
+        </div>
+      </div>
+      <button onclick="_aplicarUltimoEstilo()" class="btn btn-outline"
+        style="font-size:11px;border-color:#7c3aed;color:#7c3aed;white-space:nowrap;flex-shrink:0">
+        Aplicar
+      </button>
+    </div>` : '';
+
   return `
-  <div style="padding:4px 0 10px;font-size:11px;color:var(--cinza-500);line-height:1.5">
-    Personalize a aparência deste imóvel. As alterações são visíveis para todos os usuários.
+  ${btnRepetir}
+  <div style="padding:0 0 10px;font-size:11px;color:var(--cinza-500);line-height:1.5">
+    Personalize a aparência deste imóvel. Visível para todos os usuários.
   </div>
   <div class="car-style-row">
     <span class="car-style-lbl">Preenchimento</span>
