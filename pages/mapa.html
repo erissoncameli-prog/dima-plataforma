@@ -941,6 +941,12 @@ function iniciarMapa(){
   _adicionarMiniMapa();
   clusters = L.markerClusterGroup({ maxClusterRadius:40, disableClusteringAtZoom:17 });
   mapaL.addLayer(clusters);
+
+  // Pane dedicado ao CAR — z-index 450 (acima do overlayPane 400, abaixo de markers/popups)
+  mapaL.createPane('carPane');
+  mapaL.getPane('carPane').style.zIndex = 450;
+  mapaL.getPane('carPane').style.pointerEvents = 'none'; // cliques passam para o handler global
+
   requestAnimationFrame(() => mapaL.invalidateSize());
 }
 
