@@ -3322,11 +3322,13 @@ async function carregarDadosCAR(){
 
     _carFeatures = features;
     _computarAtributosCAR();
+    await _carregarMarcados(); // carrega marcados/estilos do banco
     _carCarregado  = true;
     _carCarregando = false;
     if(load) load.style.display = 'none';
     _popularFiltroSubbacia();
     _aplicarCamadaCAR();
+    _atualizarContadorPins();
     toast(`${features.length.toLocaleString('pt-BR')} imóveis CAR carregados`, 'success');
   } catch(err){
     _carCarregando = false;
