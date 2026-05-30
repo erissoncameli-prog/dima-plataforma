@@ -3360,12 +3360,12 @@ function _aplicarCamadaCAR(){
         if(layer !== _carSelecionado)
           layer.setStyle(_estiloCAR(f, false, false));
       });
-      layer.on('click', e => {
-        L.DomEvent.stopPropagation(e);
-        _selecionarCAR(f, layer);
-      });
+      // clique tratado pelo handler global do mapa (tem prioridade sobre delimitação)
     }
   }).addTo(mapaL);
+
+  // Sempre traz CAR para cima de qualquer camada de delimitação
+  setTimeout(() => { try{ _carLayer.bringToFront(); }catch(_){} }, 0);
 
   _atualizarBadgeCAR();
   document.getElementById('car-filtros-wrap').style.display = 'flex';
