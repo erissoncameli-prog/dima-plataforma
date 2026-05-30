@@ -4248,40 +4248,45 @@ function _htmlFichaCAR(f, imgData){
 
   return `
 <div class="ficha">
-  <div class="ficha-header">
-    <div>
-      <div class="ficha-titulo">🏡 Ficha do Imóvel Rural — CAR</div>
-      <div class="ficha-cod">${p.cod_imovel||'—'}</div>
-    </div>
+  <!-- Sub-header da ficha -->
+  <div class="ficha-subhd">
+    🏡 Ficha do Imóvel Rural — CAR
     <span class="ficha-badge ${apaBadge}">${apaLabel}</span>
+    <span class="ficha-cod">${p.cod_imovel||'—'}</span>
   </div>
 
-  <div class="grid-2">
-    <div>
-      <div class="card">
-        <div class="card-title">Dados Cadastrais</div>
-        <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val">${f2(p.area)} ha</span></div>
-        <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${p.municipio||'—'}/AC</span></div>
-        <div class="attr-row"><span class="attr-lbl">Tipo</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
-        <div class="attr-row"><span class="attr-lbl">Módulo fiscal</span><span class="attr-val">${f2(p.m_fiscal)} módulo(s)</span></div>
-        <div class="attr-row"><span class="attr-lbl">Situação CAR</span><span class="attr-val">${statusLabel}</span></div>
-        <div class="attr-row"><span class="attr-lbl">Data cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
-        <div class="attr-row"><span class="attr-lbl">Sub-bacia</span><span class="attr-val">${p._subbacia||'—'}</span></div>
+  <div class="doc-body">
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-title">Dados Cadastrais — SICAR</div>
+          <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val">${f2(p.area)} ha</span></div>
+          <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${p.municipio||'—'} / AC</span></div>
+          <div class="attr-row"><span class="attr-lbl">Tipo de imóvel</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
+          <div class="attr-row"><span class="attr-lbl">Módulo fiscal</span><span class="attr-val">${f2(p.m_fiscal)} módulo(s)</span></div>
+          <div class="attr-row"><span class="attr-lbl">Situação</span><span class="attr-val">${statusLabel}</span></div>
+          <div class="attr-row"><span class="attr-lbl">Data de cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
+          <div class="attr-row"><span class="attr-lbl">Última atualização</span><span class="attr-val">${fDt(p.data_atualizacao)}</span></div>
+          <div class="attr-row"><span class="attr-lbl">Sub-bacia</span><span class="attr-val">${p._subbacia||'—'}</span></div>
+        </div>
+        <div style="margin-top:8px" class="links-row">
+          <a href="${sicarUrl}" target="_blank" class="link-btn link-sicar">🔗 Ver no SICAR</a>
+          <a href="https://seloverde.sema.ac.gov.br/consultar-car/" target="_blank" class="link-btn link-sema">🌿 SeloVerde AC</a>
+        </div>
       </div>
-      <div style="margin-top:6px" class="links-row">
-        <a href="${sicarUrl}" target="_blank" class="link-btn link-sicar">🔗 Ver no SICAR</a>
-        <a href="https://seloverde.sema.ac.gov.br/consultar-car/" target="_blank" class="link-btn link-sema">🌿 SeloVerde AC</a>
+      <div>
+        <img src="${imgData}" alt="Visão de satélite do imóvel — captura do Sistema DIMA" class="mapa-img"
+          onerror="this.style.background='#f0f7f2';this.style.minHeight='200px';this.style.display='flex';this.alt='Imagem de satélite não disponível'">
+        <div style="font-size:9px;color:#9ca3af;margin-top:4px;text-align:center">
+          Visão de satélite — captura do Sistema DIMA · ${new Date().toLocaleDateString('pt-BR')}
+        </div>
       </div>
     </div>
-    <div>
-      <img src="${imgData}" alt="Imagem de satélite do imóvel" class="mapa-img"
-        onerror="this.alt='Imagem não disponível';this.style.background='#f3f4f6';this.style.minHeight='200px'">
-    </div>
-  </div>
 
-  <div class="analise">
-    <div class="analise-title">📋 Análise Ambiental</div>
-    ${descricao}
+    <div class="analise">
+      <div class="analise-title">📋 Análise Ambiental</div>
+      ${descricao}
+    </div>
   </div>
 </div>`;
 }
