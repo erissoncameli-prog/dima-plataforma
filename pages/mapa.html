@@ -4695,6 +4695,26 @@ function _htmlFichaCAR(f, imgData){
       <div class="analise-title">📋 Análise Ambiental</div>
       ${descricao}
     </div>
+
+    ${diag && !diag.erro ? `
+    <div class="analise" style="border-left-color:#2563eb;background:#eff6ff;margin-top:10px">
+      <div class="analise-title" style="color:#1d4ed8">🔬 Diagnóstico Espacial (Turf.js)</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;font-size:11px">
+        <div style="text-align:center;padding:6px;background:#fff;border-radius:5px;border:1px solid #bfdbfe">
+          <div style="font-weight:700;color:#dc2626;font-size:14px">${Number(diag.desmat||0).toLocaleString('pt-BR',{maximumFractionDigits:2})} ha</div>
+          <div style="color:#6b7280">Desmatado (${Number(diag.pctDesmat||0).toFixed(1)}%)</div>
+        </div>
+        <div style="text-align:center;padding:6px;background:#fff;border-radius:5px;border:1px solid #bfdbfe">
+          <div style="font-weight:700;color:#16a34a;font-size:14px">${Number(diag.floresta||0).toLocaleString('pt-BR',{maximumFractionDigits:2})} ha</div>
+          <div style="color:#6b7280">Floresta (${Number(diag.pctFloresta||0).toFixed(1)}%)</div>
+        </div>
+        <div style="text-align:center;padding:6px;background:#fff;border-radius:5px;border:1px solid #bfdbfe">
+          <div style="font-weight:700;color:#d97706;font-size:14px">${Number(diag.appA||0).toLocaleString('pt-BR',{maximumFractionDigits:2})} ha</div>
+          <div style="color:#6b7280">APP Degradada (${Number(diag.pctAppDeg||0).toFixed(1)}%)</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#1e40af;line-height:1.7">${_gerarTextoCarDiag(diag, p, local).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim()}</div>
+    </div>` : ''}
   </div>
 </div>`;
 }
