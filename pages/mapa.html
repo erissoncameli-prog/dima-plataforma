@@ -4368,7 +4368,8 @@ function _htmlFichaCAR(f, imgData){
 }
 
 function _gerarDescricaoCAR(f){
-  const p  = f.properties || {};
+  const p     = f.properties || {};
+  const local = _carDadosLocais.get(p.cod_imovel) || {};
   const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
   const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
   const mf = parseFloat(p.m_fiscal)||0;
