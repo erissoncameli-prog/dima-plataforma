@@ -153,30 +153,7 @@ async function auditarTDRContratos(db: any): Promise<Achado[]> {
 async function auditarFinanceiro(db: any): Promise<Achado[]> {
   const achados: Achado[] = []
 
-  // 2a. Pagamentos sem comprovante
-  const { data: semComprovante } = await db
-    .from('execucao_financeira')
-    .select(`
-      id, situacao, data_pagamento,
-      lancamentos_financeiros (id, numero, descricao, valor_brl, contrato_id)
-    `)
-    .eq('situacao', 'pago')
-    .is('comprovante_url', null)
-    .limit(30)
-
-  for (const exec of semComprovante || []) {
-    const lf = exec.lancamentos_financeiros
-    achados.push({
-      dominio: 'financeiro',
-      severidade: 'alto',
-      titulo: `Pagamento ${lf?.numero || ''} registrado como pago sem comprovante`,
-      descricao: `O lançamento "${lf?.descricao || ''}" no valor de R$ ${lf?.valor_brl || '?'} está marcado como PAGO mas não possui documento comprovante anexado. Isso viola os requisitos de prestação de contas da UNESCO.`,
-      recomendacao: 'Anexar imediatamente o comprovante de pagamento (nota fiscal, recibo ou extrato bancário).',
-      referencia_tabela: 'execucao_financeira',
-      referencia_id: exec.id,
-      referencia_label: `Lançamento ${lf?.numero}`,
-    })
-  }
+  // 2a. Pagamentos sem comprovante — desativado temporariamente (digitalização em andamento)
 
   // 2b. Contratos com execução acima do valor contratado
   const { data: contratos } = await db
