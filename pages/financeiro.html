@@ -516,8 +516,8 @@ function renderLancamentos() {
                 const taxaLanc = parseFloat(l.cotacao_uso || taxaAtual);
                 const usd = parseFloat(l.valor_brl||0) / taxaLanc;
                 return `<tr style="${vencido?'background:var(--erro-bg)':''}">
-                  <td>
-                    <div style="font-size:12px;font-weight:500;color:var(--cinza-900);max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.descricao||'—'}</div>
+                  <td style="min-width:240px">
+                    <div style="font-size:12px;font-weight:500;color:var(--cinza-900)">${l.descricao||'—'}</div>
                     ${l.elemento_despesa?`<div style="font-size:10px;color:var(--cinza-500)">${l.elemento_despesa}</div>`:''}
                     ${vencido?`<div style="font-size:10px;color:var(--erro);font-weight:600">⚠ Vencido</div>`:''}
                   </td>
