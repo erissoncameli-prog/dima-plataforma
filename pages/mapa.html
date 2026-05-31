@@ -1333,6 +1333,21 @@ const VEG_LAYERS = {
       });
     }
   },
+  prodes_hist: {
+    layer: null,
+    make(opacity){
+      return L.tileLayer.wms('https://terrabrasilis.dpi.inpe.br/geoserver/prodes-amazon-nb/wms', {
+        layers: 'prodes-amazon-nb:accumulated_deforestation_2007_biome',
+        format: 'image/png',
+        transparent: true,
+        version: '1.1.1',
+        attribution: 'PRODES/INPE — Acumulado pré-2008',
+        opacity: opacity / 100,
+        maxZoom: 22,
+        maxNativeZoom: 15,
+      });
+    }
+  },
 };
 
 function toggleCamadaVeg(id, ativo){
