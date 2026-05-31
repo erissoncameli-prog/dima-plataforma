@@ -703,6 +703,77 @@ function renderPagina(){
           </div>
         </div>
 
+        <!-- Cobertura Vegetal -->
+        <div class="filtro-bloco">
+          <div class="filtro-bloco-header" onclick="toggleBloco('bloco-veg')">
+            <h4>🌿 Cobertura Vegetal</h4>
+            <span id="chevron-bloco-veg" style="font-size:10px;color:var(--cinza-400)">▾</span>
+          </div>
+          <div class="filtro-bloco-body" id="bloco-veg" style="display:flex;flex-direction:column;gap:10px">
+
+            <!-- NDVI -->
+            <div style="border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--cinza-50);border-bottom:1px solid var(--borda)">
+                <input type="checkbox" id="veg-ndvi-toggle" style="accent-color:#16a34a;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('ndvi',this.checked)">
+                <span style="font-size:12px;font-weight:600;color:var(--cinza-800);flex:1">NDVI — Índice de Vegetação</span>
+                <span style="font-size:9px;background:#dcfce7;color:#15803d;border-radius:99px;padding:1px 6px;font-weight:600">NASA</span>
+              </div>
+              <div style="padding:8px 10px;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:10px;color:var(--cinza-500);line-height:1.4">Saúde da vegetação em tempo quase-real via satélite MODIS. Atualizado semanalmente.</div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-size:10px;color:var(--cinza-500);white-space:nowrap">Opacidade</span>
+                  <input type="range" min="10" max="100" value="70" class="camada-slider" id="veg-ndvi-opacity" oninput="setOpacidadeVeg('ndvi',this.value)" style="flex:1">
+                  <span id="veg-ndvi-opacity-val" style="font-size:10px;font-weight:700;color:var(--cinza-700);width:28px;text-align:right">70%</span>
+                </div>
+                <!-- Legenda NDVI -->
+                <div id="veg-ndvi-legenda" style="display:none">
+                  <div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Legenda</div>
+                  <div style="display:flex;height:10px;border-radius:3px;overflow:hidden;border:1px solid var(--borda)">
+                    <div style="flex:1;background:#d73027"></div>
+                    <div style="flex:1;background:#fc8d59"></div>
+                    <div style="flex:1;background:#fee08b"></div>
+                    <div style="flex:1;background:#d9ef8b"></div>
+                    <div style="flex:1;background:#91cf60"></div>
+                    <div style="flex:1;background:#1a9850"></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cinza-500);margin-top:2px">
+                    <span>Sem veg.</span><span>Densa</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MapBiomas -->
+            <div style="border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden">
+              <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--cinza-50);border-bottom:1px solid var(--borda)">
+                <input type="checkbox" id="veg-mapbiomas-toggle" style="accent-color:#16a34a;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('mapbiomas',this.checked)">
+                <span style="font-size:12px;font-weight:600;color:var(--cinza-800);flex:1">MapBiomas 2023</span>
+                <span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:99px;padding:1px 6px;font-weight:600">BR</span>
+              </div>
+              <div style="padding:8px 10px;display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:10px;color:var(--cinza-500);line-height:1.4">Uso e cobertura do solo por classe (floresta, pastagem, água…). Resolução 30m, Amazônia.</div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-size:10px;color:var(--cinza-500);white-space:nowrap">Opacidade</span>
+                  <input type="range" min="10" max="100" value="70" class="camada-slider" id="veg-mapbiomas-opacity" oninput="setOpacidadeVeg('mapbiomas',this.value)" style="flex:1">
+                  <span id="veg-mapbiomas-opacity-val" style="font-size:10px;font-weight:700;color:var(--cinza-700);width:28px;text-align:right">70%</span>
+                </div>
+                <!-- Legenda MapBiomas -->
+                <div id="veg-mapbiomas-legenda" style="display:none">
+                  <div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Legenda</div>
+                  <div style="display:flex;flex-direction:column;gap:2px">
+                    <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--cinza-700)"><div style="width:10px;height:10px;background:#1f8d49;border-radius:2px;flex-shrink:0"></div>Floresta nativa</div>
+                    <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--cinza-700)"><div style="width:10px;height:10px;background:#7dc975;border-radius:2px;flex-shrink:0"></div>Outras formações naturais</div>
+                    <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--cinza-700)"><div style="width:10px;height:10px;background:#e974ed;border-radius:2px;flex-shrink:0"></div>Pastagem</div>
+                    <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--cinza-700)"><div style="width:10px;height:10px;background:#d6bc74;border-radius:2px;flex-shrink:0"></div>Agricultura</div>
+                    <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--cinza-700)"><div style="width:10px;height:10px;background:#2532e4;border-radius:2px;flex-shrink:0"></div>Corpo d'água</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
         <!-- CAR — Imóveis Rurais -->
         <div class="filtro-bloco">
           <div class="filtro-bloco-header" onclick="toggleBloco('bloco-car')">
