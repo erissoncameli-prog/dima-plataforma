@@ -4298,6 +4298,188 @@ function _htmlCarDiagnostico(d, f){
   </div>`;
 }
 
+// ── PRODES/INPE — Desmatamento por CAR ────────────────────────────────────
+const PRODES_WFS  = 'https://terrabrasilis.dpi.inpe.br/geoserver/prodes-amazonia-nb/wfs';
+const PRODES_TYPE = 'prodes-amazonia-nb:yearly_deforestation_biome';
+let _carProdesCache = new Map(); // cod_imovel → dados
+
+function _htmlProdesLoading(){
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--cinza-500)">
+    <div style="width:24px;height:24px;border:3px solid #e5e7eb;border-top-color:#dc2626;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div style="font-size:12px">Consultando PRODES/INPE…</div>
+    <div style="font-size:10px;color:var(--cinza-400)">Aguarde, buscando dados oficiais de desmatamento</div>
+  </div>`;
+}
+
+async function _iniciarProdesCAR(f){
+  if(!f) return;
+  const cod = f.properties?.cod_imovel;
+  if(!cod) return;
+
+  if(_carProdesCache.has(cod)){
+    if(_carAbertoCod === cod && _carDetAba === 'prodes')
+      document.getElementById('car-det-body').innerHTML = _htmlProdes(_carProdesCache.get(cod), f);
+    return;
+  }
+
+  const dados = await _fetchProdesCAR(f);
+  _carProdesCache.set(cod, dados);
+
+  if(_carAbertoCod === cod && _carDetAba === 'prodes'){
+    const bod = document.getElementById('car-det-body');
+    if(bod) bod.innerHTML = _htmlProdes(dados, f);
+  }
+}
+
+async function _fetchProdesCAR(f){
+  let carPoly;
+  try { carPoly = turf.feature(f.geometry); }
+  catch(e){ return { erro: 'Geometria inválida para este imóvel.' }; }
+
+  const bb = turf.bbox(carPoly); // [minLon, minLat, maxLon, maxLat]
+
+  // Margem de 0.01° (~1km) para capturar polígonos limítrofes
+  const bboxStr = `${bb[0]-0.01},${bb[1]-0.01},${bb[2]+0.01},${bb[3]+0.01},urn:ogc:def:crs:OGC:1.3:CRS84`;
+
+  const url = `${PRODES_WFS}?service=WFS&version=2.0.0&request=GetFeature`
+    + `&typeNames=${PRODES_TYPE}&outputFormat=application/json`
+    + `&BBOX=${bboxStr}&count=2000`;
+
+  let data;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch(e) {
+    if(e.name === 'TimeoutError') return { erro: 'Tempo limite atingido. O servidor INPE pode estar lento.' };
+    // Provável erro de CORS ou rede
+    return {
+      erro: 'Não foi possível conectar ao TerraBrasilis/INPE.',
+      detalhe: 'Isso pode ocorrer por restrição de CORS do servidor público do INPE. Tente novamente ou acesse diretamente o portal TerraBrasilis.',
+      link: 'https://terrabrasilis.dpi.inpe.br'
+    };
+  }
+
+  const areaCAR = parseFloat(f.properties?.area) || turf.area(carPoly) / 10000;
+  const porAno  = {};
+  let totalHa   = 0;
+  let nIntersect = 0;
+
+  for(const feat of (data.features || [])){
+    if(!feat.geometry) continue;
+    try{
+      const inter = turf.intersect(carPoly, turf.feature(feat.geometry));
+      if(!inter) continue;
+      const ha  = turf.area(inter) / 10000;
+      if(ha < 0.01) continue; // ignora interseções ínfimas
+      const ano = feat.properties?.year || feat.properties?.ano
+               || feat.properties?.data_detec?.slice(0,4)
+               || 'N/D';
+      porAno[ano] = (porAno[ano] || 0) + ha;
+      totalHa += ha;
+      nIntersect++;
+    }catch(_){}
+  }
+
+  const anos = Object.keys(porAno).sort();
+  return { porAno, anos, totalHa, areaCAR, nFeatures: data.features?.length || 0, nIntersect };
+}
+
+function _htmlProdes(d, f){
+  const p = f?.properties || {};
+  const nome = _carDadosLocais.get(p.cod_imovel)?.nom_imovel || p.cod_imovel || '—';
+
+  if(d?.erro) return `
+    <div style="padding:20px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio)">
+        <span style="font-size:18px;flex-shrink:0">⚠️</span>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:#dc2626;margin-bottom:4px">Não foi possível obter os dados</div>
+          <div style="font-size:11px;color:#6b7280;line-height:1.5">${d.erro}</div>
+          ${d.detalhe ? `<div style="font-size:10px;color:#9ca3af;margin-top:4px;line-height:1.4">${d.detalhe}</div>` : ''}
+        </div>
+      </div>
+      ${d.link ? `<a href="${d.link}" target="_blank" style="font-size:11px;color:#2563eb;text-align:center">Acessar TerraBrasilis →</a>` : ''}
+    </div>`;
+
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const pct = d.areaCAR > 0 ? d.totalHa / d.areaCAR * 100 : 0;
+  const corPct = pct > 30 ? '#dc2626' : pct > 10 ? '#d97706' : '#16a34a';
+
+  // Barra de anos (sparkline simples)
+  const maxAnual = Math.max(...Object.values(d.porAno), 0.01);
+  const barrasAnos = d.anos.map(ano => {
+    const ha  = d.porAno[ano];
+    const pct = (ha / maxAnual * 100).toFixed(1);
+    const cor = ano >= '2020' ? '#dc2626' : ano >= '2015' ? '#f97316' : '#fbbf24';
+    return `
+      <div style="display:flex;align-items:center;gap:6px;padding:3px 0">
+        <span style="font-size:10px;color:var(--cinza-500);width:32px;flex-shrink:0">${ano}</span>
+        <div style="flex:1;height:14px;background:#f3f4f6;border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${cor};border-radius:3px"></div>
+        </div>
+        <span style="font-size:10px;font-weight:600;color:var(--cinza-700);width:58px;text-align:right">${f2(ha)} ha</span>
+      </div>`;
+  }).join('');
+
+  const semDados = d.totalHa === 0;
+
+  return `
+  <div style="padding:4px 0">
+
+    <!-- KPI principal -->
+    <div style="margin:0 0 10px;padding:14px;background:${semDados?'#f0fdf4':'#fef2f2'};border:1px solid ${semDados?'#86efac':'#fca5a5'};border-radius:var(--raio);text-align:center">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">
+        Desmatamento PRODES dentro do CAR
+      </div>
+      <div style="font-size:28px;font-weight:700;color:${semDados?'#16a34a':corPct};line-height:1.1">${f2(d.totalHa)} ha</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:2px">${f1(pct)}% da área total (${f2(d.areaCAR)} ha)</div>
+      <div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:8px">
+        <div style="height:100%;width:${Math.min(100,pct).toFixed(1)}%;background:${corPct};border-radius:3px"></div>
+      </div>
+    </div>
+
+    ${semDados ? `
+    <div style="padding:16px;text-align:center;font-size:12px;color:#16a34a;background:#f0fdf4;border:1px solid #86efac;border-radius:var(--raio);margin-bottom:10px">
+      ✅ Nenhum polígono de desmatamento PRODES detectado dentro deste imóvel.
+    </div>` : `
+    <!-- Série histórica por ano -->
+    <div style="padding:10px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+        📅 Histórico por ano de detecção
+      </div>
+      ${barrasAnos}
+    </div>`}
+
+    <!-- Metadados da consulta -->
+    <div style="padding:8px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:10px;font-size:11px">
+      <div style="display:flex;justify-content:space-between;padding:2px 0">
+        <span style="color:var(--cinza-500)">Polígonos na área de busca</span><strong>${d.nFeatures}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0">
+        <span style="color:var(--cinza-500)">Polígonos que intersectam o CAR</span><strong>${d.nIntersect}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:2px 0">
+        <span style="color:var(--cinza-500)">Anos com registro</span><strong>${d.anos.length > 0 ? d.anos.join(', ') : '—'}</strong>
+      </div>
+    </div>
+
+    <!-- Aviso de precisão -->
+    <div style="padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--raio);font-size:10px;color:#92400e;line-height:1.5;margin-bottom:8px">
+      ⚠️ <strong>Precisão:</strong> Dados PRODES têm resolução de 30m (Landsat). O cálculo de área é feito via interseção geométrica com o polígono CAR. Margens de erro de 5–15% são esperadas em polígonos menores ou com geometria complexa. Para uso oficial, consulte diretamente o INPE.
+    </div>
+
+    <!-- Link fonte -->
+    <div style="text-align:center">
+      <a href="https://terrabrasilis.dpi.inpe.br/app/dashboard/deforestation/biomes/amazon/increments" target="_blank"
+         style="font-size:10px;color:#2563eb;text-decoration:none">
+        📊 Ver painel oficial PRODES/INPE →
+      </a>
+    </div>
+  </div>`;
+}
+
 function _gerarTextoCarDiag(d, p, local){
   const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
   const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
