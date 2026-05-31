@@ -4555,7 +4555,7 @@ function _htmlProdes(d, f){
   const barrasAnos = d.anosAnual.map(ano => {
     const ha  = d.anual.porAno[ano];
     const w   = (ha / maxAnualHa * 100).toFixed(1);
-    const cor = ano >= '2020' ? '#dc2626' : ano >= '2015' ? '#f97316' : '#fbbf24';
+    const cor = '#dc2626';
     return `
       <div style="display:flex;align-items:center;gap:6px;padding:3px 0">
         <span style="font-size:10px;color:var(--cinza-500);width:32px;flex-shrink:0">${ano}</span>
