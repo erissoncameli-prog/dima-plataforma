@@ -4901,13 +4901,26 @@ function _gerarTextoCarDiag(d, p, local){
   const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
   let t = [];
 
-  // Situação do desmatamento
-  if(d.pctDesmat > 30)
-    t.push(`⚠️ <strong>Desmatamento crítico</strong>: ${f2(d.desmat)} ha (${f1(d.pctDesmat)}% da área) foram desmatados — situação crítica que demanda intervenção imediata.`);
-  else if(d.pctDesmat > 10)
-    t.push(`🟡 <strong>Desmatamento moderado</strong>: ${f2(d.desmat)} ha (${f1(d.pctDesmat)}%) com pressão antrópica significativa.`);
-  else if(d.desmat > 0)
-    t.push(`✅ <strong>Desmatamento baixo</strong>: apenas ${f2(d.desmat)} ha (${f1(d.pctDesmat)}%) foram desmatados.`);
+  // Situação do desmatamento — usa PRODES como fonte principal quando disponível
+  const prodesD = _carProdesCache.get(p.cod_imovel);
+  const temProdesD = prodesD && !prodesD.erro;
+  const desmatRef  = temProdesD ? prodesD.totalGeral : d.desmat;
+  const areaRef    = d.areaCAR || parseFloat(p.area) || 1;
+  const pctRef     = desmatRef / areaRef * 100;
+  const fonteLabel = temProdesD ? 'PRODES/INPE' : 'camadas locais';
+
+  if(pctRef > 30)
+    t.push(`⚠️ <strong>Desmatamento crítico</strong>: ${f2(desmatRef)} ha (${f1(pctRef)}% da área) registrados pelo ${fonteLabel} — situação crítica que demanda intervenção imediata.`);
+  else if(pctRef > 10)
+    t.push(`🟡 <strong>Desmatamento moderado</strong>: ${f2(desmatRef)} ha (${f1(pctRef)}%) segundo o ${fonteLabel}, com pressão antrópica significativa.`);
+  else if(desmatRef > 0)
+    t.push(`✅ <strong>Desmatamento baixo</strong>: apenas ${f2(desmatRef)} ha (${f1(pctRef)}%) registrados pelo ${fonteLabel}.`);
+
+  if(temProdesD && prodesD.historico.totalHa > 0 && prodesD.anual.totalHa > 0){
+    t.push(`📡 <strong>Detalhamento PRODES</strong>: ${f2(prodesD.historico.totalHa)} ha acumulados antes de 2008 (passivo histórico) + ${f2(prodesD.anual.totalHa)} ha detectados entre 2008 e ${prodesD.anosAnual[prodesD.anosAnual.length-1] || 'hoje'} (monitoramento anual por satélite).`);
+  } else if(!temProdesD){
+    t.push(`ℹ️ Para utilizar os dados oficiais do PRODES/INPE, acesse a aba <strong>🌳 PRODES</strong> neste painel.`);
+  }
 
   // Vegetação remanescente
   if(d.floresta > 0)
