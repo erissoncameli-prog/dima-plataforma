@@ -844,6 +844,121 @@ function renderPagina(){
           </div>
         </div>
       </div>
+
+      <!-- Painel: Unidades de Conservação -->
+      <div class="mlb-dropdown" id="mlb-panel-uc" style="display:none;min-width:400px;max-width:500px">
+        <div class="mlb-dropdown-header">
+          <span class="mlb-dropdown-title">🌿 Unidades de Conservação — Acre</span>
+          <button class="mlb-close" onclick="fecharLayerBar('uc')">✕</button>
+        </div>
+        <div class="mlb-dropdown-body" style="gap:10px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--cinza-700)">
+            <input type="checkbox" id="uc-toggle" style="accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer" onchange="toggleCamadaUC(this.checked)">
+            <strong>Exibir Unidades de Conservação</strong>
+          </label>
+          <div id="uc-loading" class="uc-loading" style="display:none">
+            <div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+            Carregando dados do ICMBio…
+          </div>
+          <div id="uc-controles" style="display:none;flex-direction:column;gap:10px">
+            <!-- Opacidade -->
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;width:52px;flex-shrink:0">Opac.</span>
+              <input type="range" min="10" max="100" value="40" class="camada-slider" id="uc-opacity" oninput="setOpacidadeUC(this.value)">
+              <span id="uc-opacity-val" style="font-size:9px;font-weight:700;color:var(--cinza-700);width:26px;text-align:right">40%</span>
+            </div>
+            <!-- Esfera -->
+            <div>
+              <div class="uc-secao-titulo">Esfera</div>
+              <div class="uc-filtro-grupo" style="flex-direction:row;gap:10px;flex-wrap:wrap;padding-top:4px">
+                <label class="uc-filtro-label">
+                  <input type="checkbox" id="uc-esfera-federal" checked onchange="filtrarUC()">
+                  <span class="uc-esfera-badge" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">Federal</span>
+                </label>
+                <label class="uc-filtro-label">
+                  <input type="checkbox" id="uc-esfera-estadual" checked onchange="filtrarUC()">
+                  <span class="uc-esfera-badge" style="background:#fefce8;color:#854d0e;border-color:#fde68a">Estadual</span>
+                </label>
+                <label class="uc-filtro-label">
+                  <input type="checkbox" id="uc-esfera-municipal" checked onchange="filtrarUC()">
+                  <span class="uc-esfera-badge" style="background:#f0fdf4;color:#166534;border-color:#86efac">Municipal</span>
+                </label>
+              </div>
+            </div>
+            <!-- Tipo / Categoria -->
+            <div>
+              <div class="uc-secao-titulo" style="display:flex;align-items:center;gap:4px">
+                Tipo de UC
+                <button class="uc-select-all" onclick="ucSelecionarTodos(true)">todos</button>
+                <span style="color:var(--cinza-300)">·</span>
+                <button class="uc-select-all" onclick="ucSelecionarTodos(false)">nenhum</button>
+              </div>
+              <!-- Proteção Integral -->
+              <div style="margin-top:6px">
+                <div class="uc-grupo-header" onclick="ucToggleGrupo('pi')">
+                  <div style="width:12px;height:12px;border-radius:2px;background:#dc2626;flex-shrink:0;border:1px solid rgba(0,0,0,.12)"></div>
+                  <span class="uc-grupo-header-lbl">Proteção Integral</span>
+                  <span id="uc-chevron-pi" class="uc-grupo-toggle">▾</span>
+                </div>
+                <div id="uc-grupo-pi" class="uc-grupo-body">
+                  <div id="uc-tipos-pi" class="uc-filtro-grupo">
+                    <span style="font-size:10px;color:var(--cinza-400)">Carregando...</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Uso Sustentável -->
+              <div style="margin-top:4px">
+                <div class="uc-grupo-header" onclick="ucToggleGrupo('us')">
+                  <div style="width:12px;height:12px;border-radius:2px;background:#2563eb;flex-shrink:0;border:1px solid rgba(0,0,0,.12)"></div>
+                  <span class="uc-grupo-header-lbl">Uso Sustentável</span>
+                  <span id="uc-chevron-us" class="uc-grupo-toggle">▾</span>
+                </div>
+                <div id="uc-grupo-us" class="uc-grupo-body">
+                  <div id="uc-tipos-us" class="uc-filtro-grupo">
+                    <span style="font-size:10px;color:var(--cinza-400)">Carregando...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="uc-stat" class="uc-stat"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel: Terras Indígenas -->
+      <div class="mlb-dropdown" id="mlb-panel-ti" style="display:none;min-width:340px">
+        <div class="mlb-dropdown-header">
+          <span class="mlb-dropdown-title">🪶 Terras Indígenas — Acre</span>
+          <button class="mlb-close" onclick="fecharLayerBar('ti')">✕</button>
+        </div>
+        <div class="mlb-dropdown-body" style="gap:10px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--cinza-700)">
+            <input type="checkbox" id="ti-toggle" style="accent-color:#d97706;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaTI(this.checked)">
+            <strong>Exibir Terras Indígenas</strong>
+          </label>
+          <div id="ti-loading" class="uc-loading" style="display:none">
+            <div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#d97706;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+            Carregando dados da FUNAI…
+          </div>
+          <div id="ti-controles" style="display:none;flex-direction:column;gap:10px">
+            <!-- Opacidade -->
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;width:52px;flex-shrink:0">Opac.</span>
+              <input type="range" min="10" max="100" value="40" class="camada-slider" id="ti-opacity" oninput="setOpacidadeTI(this.value)" style="accent-color:#d97706">
+              <span id="ti-opacity-val" style="font-size:9px;font-weight:700;color:var(--cinza-700);width:26px;text-align:right">40%</span>
+            </div>
+            <!-- Filtro por fase -->
+            <div>
+              <div class="uc-secao-titulo">Fase de regularização</div>
+              <div id="ti-fases" class="uc-filtro-grupo" style="padding-top:4px">
+                <span style="font-size:10px;color:var(--cinza-400)">Carregando...</span>
+              </div>
+            </div>
+            <div id="ti-stat" class="uc-stat"></div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Mapa + painel -->
