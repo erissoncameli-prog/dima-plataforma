@@ -188,9 +188,9 @@ let visaoAtual = 'lancamentos';
 
       <!-- Filtros (visão lançamentos) -->
       <div id="filtros-lanc" class="filter-bar" style="margin-bottom:14px">
-        <input class="form-control" type="text" id="busca" style="width:200px"
+        <input class="form-control" type="search" id="busca" style="width:200px"
           placeholder="Buscar descrição ou NF..." oninput="renderLancamentos()"
-          autocomplete="off" name="busca-financeiro-noop">
+          autocomplete="off">
         <select class="form-control" id="fil-sit" onchange="renderLancamentos()" style="width:130px">
           <option value="">Todas situações</option>
           <option value="pago">Pago</option>
