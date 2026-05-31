@@ -1122,26 +1122,57 @@ function _adicionarMiniMapa(){
 function _aplicarModoMapa(modo){
   modoMapaAtual = modo;
   _reaplicarTiles();
-  document.querySelectorAll('.modo-mapa-btn').forEach(btn =>
-    btn.classList.toggle('ativo', btn.dataset.modo === modo)
+  document.querySelectorAll('.bmg-tile').forEach(t =>
+    t.classList.toggle('ativo', t.dataset.modo === modo)
   );
 }
+
+let _bmgOpen = true;
 
 function _adicionarControleModoMapa(){
   const Ctrl = L.Control.extend({
     options: { position:'topright' },
     onAdd(){
       const div = L.DomUtil.create('div','mapa-modo-ctrl');
-      div.innerHTML =
-        Object.entries(MODOS_MAPA).map(([key,cfg]) =>
-          `<button class="modo-mapa-btn${key==='satelite'?' ativo':''}" data-modo="${key}" onclick="_aplicarModoMapa('${key}')">${cfg.label}</button>`
-        ).join('')
-;
+
+      const gruposHtml = BASEMAP_GROUPS.map(g => `
+        <div class="bmg-group-title">${g.grupo}</div>
+        <div class="bmg-grid">
+          ${g.itens.map(bm => `
+            <div class="bmg-tile${bm.id===modoMapaAtual?' ativo':''}" data-modo="${bm.id}" onclick="_aplicarModoMapa('${bm.id}')">
+              <div class="bmg-thumb">
+                <img src="${bm.thumb}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="bmg-thumb-fallback" style="display:none">${bm.emoji}</div>
+                <div class="bmg-check"></div>
+              </div>
+              <span class="bmg-label">${bm.label}</span>
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+
+      div.innerHTML = `
+        <div class="bmg-header" onclick="_bmgToggle(this)">
+          <span class="bmg-header-title">🗂 Basemap</span>
+          <span class="bmg-toggle-icon">▲</span>
+        </div>
+        <div class="bmg-body" id="bmg-body">${gruposHtml}</div>
+      `;
+
       L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
       return div;
     }
   });
   new Ctrl().addTo(mapaL);
+}
+
+function _bmgToggle(header){
+  _bmgOpen = !_bmgOpen;
+  const body = document.getElementById('bmg-body');
+  const icon = header.querySelector('.bmg-toggle-icon');
+  if(body){ body.style.display = _bmgOpen ? '' : 'none'; }
+  if(icon){ icon.textContent = _bmgOpen ? '▲' : '▼'; }
 }
 
 // ── Camadas de delimitação (Supabase) ─────────────────────────────────────
