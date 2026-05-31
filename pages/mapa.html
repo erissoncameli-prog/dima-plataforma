@@ -4454,28 +4454,36 @@ async function _fetchProdesCAR(f){
   }
 
   const areaCAR = parseFloat(f.properties?.area) || turf.area(carPoly) / 10000;
-  const porAno  = {};
-  let totalHa   = 0;
-  let nIntersect = 0;
 
-  for(const feat of (data.features || [])){
-    if(!feat.geometry) continue;
-    try{
-      const inter = turf.intersect(carPoly, turf.feature(feat.geometry));
-      if(!inter) continue;
-      const ha  = turf.area(inter) / 10000;
-      if(ha < 0.01) continue; // ignora interseções ínfimas
-      const ano = feat.properties?.year || feat.properties?.ano
-               || feat.properties?.data_detec?.slice(0,4)
-               || 'N/D';
-      porAno[ano] = (porAno[ano] || 0) + ha;
-      totalHa += ha;
-      nIntersect++;
-    }catch(_){}
+  function calcIntersect(features){
+    const porAno = {}; let totalHa = 0; let nIntersect = 0;
+    for(const feat of (features || [])){
+      if(!feat.geometry) continue;
+      try{
+        const inter = turf.intersect(carPoly, turf.feature(feat.geometry));
+        if(!inter) continue;
+        const ha = turf.area(inter) / 10000;
+        if(ha < 0.01) continue;
+        const ano = String(feat.properties?.year || feat.properties?.ano
+                 || feat.properties?.data_detec?.slice(0,4) || 'N/D');
+        porAno[ano] = (porAno[ano] || 0) + ha;
+        totalHa += ha;
+        nIntersect++;
+      }catch(_){}
+    }
+    return { porAno, totalHa, nIntersect };
   }
 
-  const anos = Object.keys(porAno).sort();
-  return { porAno, anos, totalHa, areaCAR, nFeatures: data.features?.length || 0, nIntersect };
+  const anual     = calcIntersect(data.anual?.features);
+  const historico = calcIntersect(data.historico?.features);
+  const totalGeral = anual.totalHa + historico.totalHa;
+  const anosAnual  = Object.keys(anual.porAno).sort();
+
+  return {
+    anual, historico, totalGeral, anosAnual, areaCAR,
+    nFeaturesAnual:     data.anual?.features?.length || 0,
+    nFeaturesHistorico: data.historico?.features?.length || 0,
+  };
 }
 
 function _htmlProdes(d, f){
