@@ -6990,6 +6990,345 @@ function togglePainelMobile(){
   </div>
 </div>
 
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// UNIDADES DE CONSERVAÇÃO — ICMBio via TerraBrasilis WFS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const UC_CORES_PI = {
+  'Parque Nacional':              '#dc2626',
+  'Parque Estadual':              '#dc2626',
+  'Parque Natural Municipal':     '#dc2626',
+  'Estação Ecológica':            '#7f1d1d',
+  'Reserva Biológica':            '#991b1b',
+  'Monumento Natural':            '#c2410c',
+  'Refúgio de Vida Silvestre':    '#ea580c',
+};
+const UC_CORES_US = {
+  'Área de Proteção Ambiental':           '#2563eb',
+  'Área de Relevante Interesse Ecológico':'#d97706',
+  'Floresta Nacional':                    '#0369a1',
+  'Floresta Estadual':                    '#0284c7',
+  'Reserva Extrativista':                 '#059669',
+  'Reserva de Desenvolvimento Sustentável':'#0891b2',
+  'Reserva de Fauna':                     '#7c3aed',
+  'Reserva Particular do Patrimônio Natural':'#4f46e5',
+};
+
+function _ucCor(categoria){
+  if(!categoria) return '#6b7280';
+  return UC_CORES_PI[categoria] || UC_CORES_US[categoria] || '#6b7280';
+}
+function _ucGrupo(categoria){
+  if(!categoria) return 'us';
+  const pi = ['parque','estação','reserva biol','monumento','refúgio','refugio'];
+  const low = categoria.toLowerCase();
+  return pi.some(k => low.includes(k)) ? 'pi' : 'us';
+}
+
+// Normaliza campo: tenta múltiplos nomes de campo
+function _ucProp(props, ...keys){
+  for(const k of keys){
+    if(props[k] !== undefined && props[k] !== null && props[k] !== '') return String(props[k]);
+  }
+  return '';
+}
+
+let _ucGeojson = null;   // raw GeoJSON features
+let _ucLayer   = null;   // L.geoJSON layer
+let _ucOpacity = 0.4;
+let _ucAtivo   = false;
+let _ucTiposFiltro = new Set(); // tipos marcados
+
+let _tiGeojson = null;
+let _tiLayer   = null;
+let _tiOpacity = 0.4;
+let _tiAtivo   = false;
+let _tiFasesFiltro = new Set();
+
+// ── Carregar UC ────────────────────────────────────────────────────────────
+async function _carregarUC(){
+  const loading = document.getElementById('uc-loading');
+  loading.style.display = 'flex';
+  try {
+    // Fonte 1: TerraBrasilis — camada unificada de UCs
+    const url = 'https://terrabrasilis.dpi.inpe.br/geoserver/uc/wfs?' +
+      'service=WFS&version=1.1.0&request=GetFeature' +
+      '&typeName=uc:ucs_referencia' +
+      '&outputFormat=application/json' +
+      '&srsName=EPSG:4326' +
+      '&BBOX=-73.99,-11.15,-66.49,-7.10,EPSG:4326';
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    _ucGeojson = await r.json();
+    if(!_ucGeojson.features?.length) throw new Error('sem dados');
+  } catch(e) {
+    console.warn('TerraBrasilis UC falhou, tentando IBGE…', e);
+    try {
+      // Fonte 2: IBGE geoserver (fallback)
+      const url2 = 'https://geoserver.ibge.gov.br/geoserver/CCAR/wfs?' +
+        'service=WFS&version=1.0.0&request=GetFeature' +
+        '&typeName=CCAR:BC250_UnidConservacao_A' +
+        '&outputFormat=application/json' +
+        '&CQL_FILTER=sigla_uf=%27AC%27';
+      const r2 = await fetch(url2);
+      if(!r2.ok) throw new Error('HTTP ' + r2.status);
+      _ucGeojson = await r2.json();
+    } catch(e2) {
+      loading.style.display = 'none';
+      document.getElementById('uc-controles').style.display = 'flex';
+      document.getElementById('uc-stat').textContent = '⚠ Não foi possível carregar dados do servidor.';
+      return;
+    }
+  }
+  loading.style.display = 'none';
+  document.getElementById('uc-controles').style.display = 'flex';
+  _ucConstruirFiltrosTipos();
+  _renderizarUC();
+}
+
+function _ucConstruirFiltrosTipos(){
+  const contagemPI = {}, contagemUS = {};
+  (_ucGeojson.features || []).forEach(f => {
+    const cat = _ucProp(f.properties, 'categoria','categori3','cat','tipo_uc','nm_categoria','tipo');
+    if(!cat) return;
+    const g = _ucGrupo(cat);
+    if(g === 'pi') contagemPI[cat] = (contagemPI[cat]||0) + 1;
+    else           contagemUS[cat] = (contagemUS[cat]||0) + 1;
+    _ucTiposFiltro.add(cat);
+  });
+
+  ['pi','us'].forEach(grupo => {
+    const contagem = grupo === 'pi' ? contagemPI : contagemUS;
+    const el = document.getElementById('uc-tipos-' + grupo);
+    if(!el) return;
+    const cats = Object.keys(contagem).sort();
+    if(!cats.length){ el.innerHTML = '<span style="font-size:10px;color:var(--cinza-400)">Nenhuma nesta categoria</span>'; return; }
+    el.innerHTML = cats.map(cat => {
+      const cor = _ucCor(cat);
+      return `<label class="uc-filtro-label">
+        <input type="checkbox" checked data-uc-tipo="${esc(cat)}" style="accent-color:${cor};width:12px;height:12px;cursor:pointer" onchange="filtrarUC()">
+        <div class="uc-tipo-dot" style="background:${cor}33;border-color:${cor}"></div>
+        <span style="flex:1">${esc(cat)}</span>
+        <span style="font-size:9px;color:var(--cinza-400)">${contagem[cat]}</span>
+      </label>`;
+    }).join('');
+  });
+}
+
+function _renderizarUC(){
+  if(_ucLayer){ mapaL.removeLayer(_ucLayer); _ucLayer = null; }
+  if(!_ucGeojson || !_ucAtivo) return;
+
+  const esfFed = document.getElementById('uc-esfera-federal')?.checked;
+  const esfEst = document.getElementById('uc-esfera-estadual')?.checked;
+  const esfMun = document.getElementById('uc-esfera-municipal')?.checked;
+  const tiposAtivos = new Set(
+    [...document.querySelectorAll('[data-uc-tipo]')]
+      .filter(el => el.checked)
+      .map(el => el.dataset.ucTipo)
+  );
+
+  let count = 0;
+  _ucLayer = L.geoJSON(_ucGeojson, {
+    style: f => {
+      const cat = _ucProp(f.properties,'categoria','categori3','cat','tipo_uc','nm_categoria','tipo');
+      const cor = _ucCor(cat);
+      return { color: cor, weight: 1.5, opacity: 0.85, fillColor: cor, fillOpacity: _ucOpacity };
+    },
+    filter: f => {
+      const cat    = _ucProp(f.properties,'categoria','categori3','cat','tipo_uc','nm_categoria','tipo');
+      const esfera = _ucProp(f.properties,'esfera','nm_esfera','jurisdicao').toLowerCase();
+      const isFed  = esfera.includes('federal')  || esfera === 'f';
+      const isEst  = esfera.includes('estadual') || esfera === 'e';
+      const isMun  = esfera.includes('munic')    || esfera === 'm';
+      if(isFed && !esfFed) return false;
+      if(isEst && !esfEst) return false;
+      if(isMun && !esfMun) return false;
+      if(cat && tiposAtivos.size && !tiposAtivos.has(cat)) return false;
+      count++;
+      return true;
+    },
+    onEachFeature: (f, layer) => {
+      const p    = f.properties;
+      const nome = _ucProp(p,'nome_uc','nome','nm_uc','gid');
+      const cat  = _ucProp(p,'categoria','categori3','cat','tipo_uc','nm_categoria','tipo');
+      const esf  = _ucProp(p,'esfera','nm_esfera','jurisdicao');
+      const area = _ucProp(p,'area_ha','area','st_area_shape_');
+      const grupo= _ucGrupo(cat);
+      const corG = grupo === 'pi' ? '#dc2626' : '#2563eb';
+      const lblG = grupo === 'pi' ? 'Proteção Integral' : 'Uso Sustentável';
+      layer.bindPopup(`
+        <div class="camada-popup">
+          <div class="cp-header">🌿 Unidade de Conservação</div>
+          <div class="cp-layer">
+            <div class="cp-layer-nome">${esc(cat)}</div>
+            <div class="cp-row"><strong>Nome</strong><span>${esc(nome)}</span></div>
+            ${esf ? `<div class="cp-row"><strong>Esfera</strong><span>${esc(esf)}</span></div>` : ''}
+            ${area ? `<div class="cp-row"><strong>Área (ha)</strong><span>${Number(area).toLocaleString('pt-BR',{maximumFractionDigits:0})}</span></div>` : ''}
+            <div class="cp-badge" style="background:${corG}11;border-color:${corG};color:${corG}">${lblG}</div>
+          </div>
+        </div>`, { className:'camada-popup-wrap', maxWidth:300 }
+      );
+    }
+  });
+  _ucLayer.addTo(mapaL);
+  const stat = document.getElementById('uc-stat');
+  if(stat) stat.textContent = `${count} UC${count!==1?'s':''} exibida${count!==1?'s':''}`;
+  const badge = document.getElementById('uc-count-badge');
+  if(badge){ badge.textContent = count; badge.style.display = count ? '' : 'none'; }
+}
+
+function toggleCamadaUC(ativo){
+  _ucAtivo = ativo;
+  if(ativo && !_ucGeojson) { _carregarUC(); return; }
+  _renderizarUC();
+}
+function filtrarUC(){ _renderizarUC(); }
+function setOpacidadeUC(v){
+  _ucOpacity = v / 100;
+  document.getElementById('uc-opacity-val').textContent = v + '%';
+  if(_ucLayer) _ucLayer.setStyle({ fillOpacity: _ucOpacity });
+}
+function ucSelecionarTodos(estado){
+  document.querySelectorAll('[data-uc-tipo]').forEach(el => el.checked = estado);
+  filtrarUC();
+}
+function ucToggleGrupo(g){
+  const el = document.getElementById('uc-grupo-' + g);
+  const ch = document.getElementById('uc-chevron-' + g);
+  const aberto = el.style.display !== 'none';
+  el.style.display = aberto ? 'none' : '';
+  if(ch) ch.textContent = aberto ? '▸' : '▾';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TERRAS INDÍGENAS — FUNAI WFS
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TI_FASES_COR = {
+  'regularizada':   '#15803d',
+  'homologada':     '#16a34a',
+  'declarada':      '#d97706',
+  'delimitada':     '#f59e0b',
+  'em estudo':      '#9ca3af',
+  'identificada':   '#6b7280',
+};
+function _tiCorFase(fase){
+  if(!fase) return '#d97706';
+  const low = fase.toLowerCase();
+  for(const [k,v] of Object.entries(TI_FASES_COR)) if(low.includes(k)) return v;
+  return '#d97706';
+}
+
+async function _carregarTI(){
+  const loading = document.getElementById('ti-loading');
+  loading.style.display = 'flex';
+  try {
+    const url = 'https://geoserver.funai.gov.br/geoserver/Funai/ows?' +
+      'service=WFS&version=1.0.0&request=GetFeature' +
+      "&typeName=Funai:tis_poligonais" +
+      '&outputFormat=application/json' +
+      "&CQL_FILTER=uf_sigla='AC'";
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    _tiGeojson = await r.json();
+  } catch(e) {
+    console.warn('FUNAI WFS falhou:', e);
+    loading.style.display = 'none';
+    document.getElementById('ti-controles').style.display = 'flex';
+    document.getElementById('ti-stat').textContent = '⚠ Não foi possível carregar dados da FUNAI.';
+    return;
+  }
+  loading.style.display = 'none';
+  document.getElementById('ti-controles').style.display = 'flex';
+  _tiConstruirFiltrosFases();
+  _renderizarTI();
+}
+
+function _tiConstruirFiltrosFases(){
+  const cont = {};
+  (_tiGeojson.features || []).forEach(f => {
+    const fase = _ucProp(f.properties,'fase_ti','fase','situacao','status') || 'sem informação';
+    cont[fase] = (cont[fase]||0) + 1;
+    _tiFasesFiltro.add(fase);
+  });
+  const el = document.getElementById('ti-fases');
+  if(!el) return;
+  el.innerHTML = Object.entries(cont).sort().map(([fase, n]) => {
+    const cor = _tiCorFase(fase);
+    return `<label class="uc-filtro-label">
+      <input type="checkbox" checked data-ti-fase="${esc(fase)}" style="accent-color:${cor};width:12px;height:12px;cursor:pointer" onchange="filtrarTI()">
+      <div class="uc-tipo-dot" style="background:${cor}33;border-color:${cor}"></div>
+      <span style="flex:1;text-transform:capitalize">${esc(fase)}</span>
+      <span style="font-size:9px;color:var(--cinza-400)">${n}</span>
+    </label>`;
+  }).join('');
+}
+
+function _renderizarTI(){
+  if(_tiLayer){ mapaL.removeLayer(_tiLayer); _tiLayer = null; }
+  if(!_tiGeojson || !_tiAtivo) return;
+
+  const fasesAtivas = new Set(
+    [...document.querySelectorAll('[data-ti-fase]')]
+      .filter(el => el.checked)
+      .map(el => el.dataset.tiFase)
+  );
+  let count = 0;
+  _tiLayer = L.geoJSON(_tiGeojson, {
+    style: f => {
+      const fase = _ucProp(f.properties,'fase_ti','fase','situacao','status') || 'sem informação';
+      const cor  = _tiCorFase(fase);
+      return { color: cor, weight: 1.5, opacity: 0.9, fillColor: cor, fillOpacity: _tiOpacity };
+    },
+    filter: f => {
+      const fase = _ucProp(f.properties,'fase_ti','fase','situacao','status') || 'sem informação';
+      if(fasesAtivas.size && !fasesAtivas.has(fase)) return false;
+      count++;
+      return true;
+    },
+    onEachFeature: (f, layer) => {
+      const p     = f.properties;
+      const nome  = _ucProp(p,'terrai_nom','nome','nome_ti','nm_terra_indigena','gid');
+      const fase  = _ucProp(p,'fase_ti','fase','situacao','status');
+      const etnia = _ucProp(p,'etnia_nome','etnia','etnias','povo');
+      const area  = _ucProp(p,'area_ha','area_calc_ha','area','st_area_shape_');
+      const cor   = _tiCorFase(fase);
+      layer.bindPopup(`
+        <div class="camada-popup">
+          <div class="cp-header" style="background:#92400e">🪶 Terra Indígena</div>
+          <div class="cp-layer">
+            <div class="cp-layer-nome" style="color:#92400e">${esc(nome)}</div>
+            ${fase  ? `<div class="cp-row"><strong>Fase</strong><span style="text-transform:capitalize">${esc(fase)}</span></div>` : ''}
+            ${etnia ? `<div class="cp-row"><strong>Etnia(s)</strong><span>${esc(etnia)}</span></div>` : ''}
+            ${area  ? `<div class="cp-row"><strong>Área (ha)</strong><span>${Number(area).toLocaleString('pt-BR',{maximumFractionDigits:0})}</span></div>` : ''}
+            <div class="cp-badge" style="background:${cor}22;border-color:${cor};color:${cor};text-transform:capitalize">${fase||'—'}</div>
+          </div>
+        </div>`, { className:'camada-popup-wrap', maxWidth:300 }
+      );
+    }
+  });
+  _tiLayer.addTo(mapaL);
+  const stat = document.getElementById('ti-stat');
+  if(stat) stat.textContent = `${count} terra${count!==1?'s':''} indígena${count!==1?'s':''} exibida${count!==1?'s':''}`;
+  const badge = document.getElementById('ti-count-badge');
+  if(badge){ badge.textContent = count; badge.style.display = count ? '' : 'none'; }
+}
+
+function toggleCamadaTI(ativo){
+  _tiAtivo = ativo;
+  if(ativo && !_tiGeojson){ _carregarTI(); return; }
+  _renderizarTI();
+}
+function filtrarTI(){ _renderizarTI(); }
+function setOpacidadeTI(v){
+  _tiOpacity = v / 100;
+  document.getElementById('ti-opacity-val').textContent = v + '%';
+  if(_tiLayer) _tiLayer.setStyle({ fillOpacity: _tiOpacity });
+}
+</script>
+
 <div id="mapa-backdrop" class="mapa-backdrop" onclick="togglePainelMobile()"></div>
 <button id="btn-filtros-mobile" class="btn-filtros-mobile" onclick="togglePainelMobile()">
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
