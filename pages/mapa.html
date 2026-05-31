@@ -7093,48 +7093,37 @@ function _renderizarUC(){
   const esfMun = document.getElementById('uc-esfera-municipal')?.checked;
   const tiposAtivos = new Set(
     [...document.querySelectorAll('[data-uc-tipo]')]
-      .filter(el => el.checked)
-      .map(el => el.dataset.ucTipo)
+      .filter(el => el.checked).map(el => el.dataset.ucTipo)
   );
 
   let count = 0;
   _ucLayer = L.geoJSON(_ucGeojson, {
     style: f => {
-      const cat = _ucProp(f.properties,'categoria','categori3','cat','tipo_uc','nm_categoria','tipo');
-      const cor = _ucCor(cat);
-      return { color: cor, weight: 1.5, opacity: 0.85, fillColor: cor, fillOpacity: _ucOpacity };
+      const cor = _ucCor(f.properties.categoria);
+      return { color: cor, weight: 1.8, opacity: 0.9, fillColor: cor, fillOpacity: _ucOpacity };
     },
     filter: f => {
-      const cat    = _ucProp(f.properties,'categoria','categori3','cat','tipo_uc','nm_categoria','tipo');
-      const esfera = _ucProp(f.properties,'esfera','nm_esfera','jurisdicao').toLowerCase();
-      const isFed  = esfera.includes('federal')  || esfera === 'f';
-      const isEst  = esfera.includes('estadual') || esfera === 'e';
-      const isMun  = esfera.includes('munic')    || esfera === 'm';
-      if(isFed && !esfFed) return false;
-      if(isEst && !esfEst) return false;
-      if(isMun && !esfMun) return false;
-      if(cat && tiposAtivos.size && !tiposAtivos.has(cat)) return false;
+      const esf = (f.properties.esfera || '').toLowerCase();
+      if(esf === 'federal'   && !esfFed) return false;
+      if(esf === 'estadual'  && !esfEst) return false;
+      if(esf === 'municipal' && !esfMun) return false;
+      if(tiposAtivos.size && !tiposAtivos.has(f.properties.categoria)) return false;
       count++;
       return true;
     },
     onEachFeature: (f, layer) => {
-      const p    = f.properties;
-      const nome = _ucProp(p,'nome_uc','nome','nm_uc','gid');
-      const cat  = _ucProp(p,'categoria','categori3','cat','tipo_uc','nm_categoria','tipo');
-      const esf  = _ucProp(p,'esfera','nm_esfera','jurisdicao');
-      const area = _ucProp(p,'area_ha','area','st_area_shape_');
-      const grupo= _ucGrupo(cat);
-      const corG = grupo === 'pi' ? '#dc2626' : '#2563eb';
-      const lblG = grupo === 'pi' ? 'Proteção Integral' : 'Uso Sustentável';
+      const p   = f.properties;
+      const cor = p.grupo === 'PI' ? '#dc2626' : '#2563eb';
+      const lbl = p.grupo === 'PI' ? 'Proteção Integral' : 'Uso Sustentável';
       layer.bindPopup(`
         <div class="camada-popup">
-          <div class="cp-header">🌿 Unidade de Conservação</div>
+          <div class="cp-header" style="background:#1a5f38">🌿 Unidade de Conservação</div>
           <div class="cp-layer">
-            <div class="cp-layer-nome">${esc(cat)}</div>
-            <div class="cp-row"><strong>Nome</strong><span>${esc(nome)}</span></div>
-            ${esf ? `<div class="cp-row"><strong>Esfera</strong><span>${esc(esf)}</span></div>` : ''}
-            ${area ? `<div class="cp-row"><strong>Área (ha)</strong><span>${Number(area).toLocaleString('pt-BR',{maximumFractionDigits:0})}</span></div>` : ''}
-            <div class="cp-badge" style="background:${corG}11;border-color:${corG};color:${corG}">${lblG}</div>
+            <div class="cp-layer-nome" style="color:${_ucCor(p.categoria)}">${esc(p.categoria||'')}</div>
+            <div class="cp-row"><strong>Nome</strong><span>${esc(p.nome||'')}</span></div>
+            <div class="cp-row"><strong>Esfera</strong><span style="text-transform:capitalize">${esc(p.esfera||'')}</span></div>
+            ${p.ano_cria ? `<div class="cp-row"><strong>Criação</strong><span>${p.ano_cria}</span></div>` : ''}
+            <div class="cp-badge" style="background:${cor}11;border-color:${cor};color:${cor}">${lbl}</div>
           </div>
         </div>`, { className:'camada-popup-wrap', maxWidth:300 }
       );
