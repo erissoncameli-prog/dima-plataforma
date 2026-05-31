@@ -4450,6 +4450,7 @@ async function _fetchProdesCAR(f){
 
   function calcIntersect(features){
     const porAno = {}; let totalHa = 0; let nIntersect = 0;
+    const geojsonFeatures = []; // guarda geometrias intersectadas para renderização
     for(const feat of (features || [])){
       if(!feat.geometry) continue;
       try{
@@ -4462,9 +4463,10 @@ async function _fetchProdesCAR(f){
         porAno[ano] = (porAno[ano] || 0) + ha;
         totalHa += ha;
         nIntersect++;
+        geojsonFeatures.push({ ...inter, properties: { ...feat.properties, ha_calc: ha, ano } });
       }catch(_){}
     }
-    return { porAno, totalHa, nIntersect };
+    return { porAno, totalHa, nIntersect, geojsonFeatures };
   }
 
   const anual     = calcIntersect(data.anual?.features);
