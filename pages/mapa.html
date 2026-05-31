@@ -332,24 +332,108 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
-// ── Modos de mapa ─────────────────────────────────────────────────────────
-const MODOS_MAPA = {
-  satelite: { label:'🛰 Satélite', lyrs:'s' },
-  hibrido:  { label:'🗺 Híbrido',  lyrs:'y' },
-  ruas:     { label:'🏙 Ruas',     lyrs:'m' },
-};
+// ── Basemap Gallery ────────────────────────────────────────────────────────
+const BASEMAP_GROUPS = [
+  {
+    grupo: 'Imagens',
+    itens: [
+      {
+        id: 'satelite',
+        label: 'Satélite',
+        emoji: '🛰',
+        thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/4/6/5',
+        url: 'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        opts: { maxZoom:22, subdomains:['mt0','mt1','mt2','mt3'] },
+      },
+      {
+        id: 'hibrido',
+        label: 'Híbrido',
+        emoji: '🗺',
+        thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/4/6/5',
+        url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        opts: { maxZoom:22, subdomains:['mt0','mt1','mt2','mt3'] },
+      },
+      {
+        id: 'ruas',
+        label: 'Ruas',
+        emoji: '🏙',
+        thumb: 'https://tile.openstreetmap.org/4/6/6.png',
+        url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        opts: { maxZoom:22, subdomains:['mt0','mt1','mt2','mt3'] },
+      },
+    ]
+  },
+  {
+    grupo: 'Terreno',
+    itens: [
+      {
+        id: 'topo',
+        label: 'Topografia',
+        emoji: '⛰',
+        thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/4/6/5',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
+        opts: { maxZoom:19, attribution:'ESRI World Topo' },
+      },
+      {
+        id: 'relevo',
+        label: 'Relevo',
+        emoji: '🏔',
+        thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/4/6/5',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
+        opts: { maxZoom:13, attribution:'ESRI World Shaded Relief' },
+      },
+      {
+        id: 'osm',
+        label: 'OpenStreet',
+        emoji: '🗾',
+        thumb: 'https://tile.openstreetmap.org/4/5/6.png',
+        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        opts: { maxZoom:19, attribution:'© OpenStreetMap', subdomains:['a','b','c'] },
+      },
+    ]
+  },
+  {
+    grupo: 'Especial',
+    itens: [
+      {
+        id: 'claro',
+        label: 'Claro',
+        emoji: '⬜',
+        thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/4/6/5',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        opts: { maxZoom:16, attribution:'ESRI Light Gray' },
+      },
+      {
+        id: 'escuro',
+        label: 'Escuro',
+        emoji: '⬛',
+        thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/4/6/5',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        opts: { maxZoom:16, attribution:'ESRI Dark Gray' },
+      },
+      {
+        id: 'natgeo',
+        label: 'Nat. Geo.',
+        emoji: '🌿',
+        thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/4/6/5',
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
+        opts: { maxZoom:16, attribution:'ESRI NatGeo' },
+      },
+    ]
+  },
+];
 
-const TILE_OPTS = { maxZoom:22, subdomains:['mt0','mt1','mt2','mt3'] };
+// mapa plano id→config para lookup rápido
+const MODOS_MAPA = {};
+BASEMAP_GROUPS.forEach(g => g.itens.forEach(b => { MODOS_MAPA[b.id] = b; }));
 
 let googleLayer = null;
 let modoMapaAtual = 'satelite';
 
 function _reaplicarTiles(){
   if(googleLayer){ mapaL.removeLayer(googleLayer); googleLayer = null; }
-  googleLayer = L.tileLayer(
-    `https://{s}.google.com/vt/lyrs=${MODOS_MAPA[modoMapaAtual].lyrs}&x={x}&y={y}&z={z}`,
-    TILE_OPTS
-  );
+  const bm = MODOS_MAPA[modoMapaAtual];
+  googleLayer = L.tileLayer(bm.url, bm.opts);
   googleLayer.addTo(mapaL);
 }
 
