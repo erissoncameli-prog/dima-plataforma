@@ -115,7 +115,8 @@
       "Bash(curl -s -X POST \"https://wfymnmlinonvdqfucjya.supabase.co/functions/v1/prodes-proxy\" -H \"Content-Type: application/json\" -d \"{\\\\\"bbox\\\\\":[-68.8,-9.9,-68.7,-9.8]}\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('features:', len\\(d.get\\('features',[]\\)\\), '| error:', d.get\\('error','none'\\)\\)\")",
       "Bash(curl -s \"https://terrabrasilis.dpi.inpe.br/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=prodes-amazon-nb:accumulated_deforestation_2007_biome&outputFormat=application/json&BBOX=-68.8,-9.9,-68.7,-9.8,urn:ogc:def:crs:OGC:1.3:CRS84&count=3\")",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f['properties']\\) for f in d.get\\('features',[]\\)[:2]]; print\\('total bbox:', len\\(d.get\\('features',[]\\)\\), 'features'\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f['properties']\\) for f in d.get\\('features',[]\\)[:2]]; print\\('total bbox:', len\\(d.get\\('features',[]\\)\\), 'features'\\)\")",
+      "Bash(node --input-type=module)"
     ]
   }
 }
