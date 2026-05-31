@@ -102,7 +102,9 @@
       "Bash(python -c \"import requests; print\\('requests ok'\\)\")",
       "Bash(python -c \"import pandas; print\\('pandas ok'\\)\")",
       "PowerShell(& \"C:\\\\Users\\\\eriss\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import openpyxl; print\\('openpyxl ok'\\)\" 2>&1)",
-      "PowerShell(& \"C:\\\\Users\\\\eriss\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import requests; print\\('requests ok'\\)\" 2>&1)"
+      "PowerShell(& \"C:\\\\Users\\\\eriss\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import requests; print\\('requests ok'\\)\" 2>&1)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\" log --oneline -3 -- pages/mapa.html)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\" show HEAD:pages/mapa.html)"
     ]
   }
 }
