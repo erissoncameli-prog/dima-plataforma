@@ -213,6 +213,9 @@ let visaoAtual = 'lancamentos';
       <div id="conteudo-financeiro"></div>
     </div>` + `</div></div></div>`;
 
+  // Garante que o browser não preencha o campo de busca com dados salvos
+  setTimeout(() => { const b = document.getElementById('busca'); if (b) b.value = ''; }, 50);
+
   await carregar();
 })();
 
