@@ -7061,27 +7061,24 @@ async function _carregarUC(){
 function _ucConstruirFiltrosTipos(){
   const contagemPI = {}, contagemUS = {};
   (_ucGeojson.features || []).forEach(f => {
-    const cat = _ucProp(f.properties, 'categoria','categori3','cat','tipo_uc','nm_categoria','tipo');
-    if(!cat) return;
-    const g = _ucGrupo(cat);
-    if(g === 'pi') contagemPI[cat] = (contagemPI[cat]||0) + 1;
+    const cat = f.properties.categoria || '';
+    const g   = f.properties.grupo || 'US';
+    if(g === 'PI') contagemPI[cat] = (contagemPI[cat]||0) + 1;
     else           contagemUS[cat] = (contagemUS[cat]||0) + 1;
-    _ucTiposFiltro.add(cat);
   });
-
-  ['pi','us'].forEach(grupo => {
-    const contagem = grupo === 'pi' ? contagemPI : contagemUS;
-    const el = document.getElementById('uc-tipos-' + grupo);
+  ['pi','us'].forEach(g => {
+    const cont = g === 'pi' ? contagemPI : contagemUS;
+    const el   = document.getElementById('uc-tipos-' + g);
     if(!el) return;
-    const cats = Object.keys(contagem).sort();
-    if(!cats.length){ el.innerHTML = '<span style="font-size:10px;color:var(--cinza-400)">Nenhuma nesta categoria</span>'; return; }
+    const cats = Object.keys(cont).sort();
+    if(!cats.length){ el.innerHTML = '<span style="font-size:10px;color:var(--cinza-400)">Nenhuma</span>'; return; }
     el.innerHTML = cats.map(cat => {
       const cor = _ucCor(cat);
       return `<label class="uc-filtro-label">
         <input type="checkbox" checked data-uc-tipo="${esc(cat)}" style="accent-color:${cor};width:12px;height:12px;cursor:pointer" onchange="filtrarUC()">
         <div class="uc-tipo-dot" style="background:${cor}33;border-color:${cor}"></div>
         <span style="flex:1">${esc(cat)}</span>
-        <span style="font-size:9px;color:var(--cinza-400)">${contagem[cat]}</span>
+        <span style="font-size:9px;color:var(--cinza-400)">${cont[cat]}</span>
       </label>`;
     }).join('');
   });
