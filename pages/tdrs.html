@@ -1134,153 +1134,156 @@ function _mostrarProgressoAgente(){
   const MONKEY_SVG = `
   <style>
     @keyframes _detetive-flutua{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-    @keyframes _detetive-pisca{0%,90%,100%{transform:scaleY(1)}95%{transform:scaleY(0.1)}}
-    @keyframes _detetive-lupa-scan{0%,100%{transform:rotate(-12deg) translate(0,0)}50%{transform:rotate(8deg) translate(6px,-4px)}}
-    @keyframes _detetive-lupa-lendo{0%,100%{transform:rotate(-5deg) translateX(0)}50%{transform:rotate(-5deg) translateX(8px)}}
-    @keyframes _detetive-lupa-analisa{0%,100%{transform:rotate(-20deg) scale(1)}50%{transform:rotate(-20deg) scale(1.08)}}
-    @keyframes _detetive-lupa-salva{0%{transform:rotate(-12deg) translate(0,0)}100%{transform:rotate(30deg) translate(18px,-22px);opacity:0}}
-    @keyframes _detetive-blink-lupa{0%,80%,100%{opacity:1}85%{opacity:0.4}}
-    @keyframes _detetive-bigode-twitch{0%,80%,100%{transform:scaleX(1)}85%,95%{transform:scaleX(1.08)}}
-    @keyframes _detetive-aha{0%{transform:rotate(0deg)}20%{transform:rotate(-15deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-5deg)}80%,100%{transform:rotate(0deg)}}
+    @keyframes _detetive-pisca{0%,88%,100%{transform:scaleY(1)}92%{transform:scaleY(0.08)}}
+    @keyframes _detetive-lupa-scan{0%,100%{transform:rotate(-10deg) translate(0,0)}50%{transform:rotate(10deg) translate(8px,-5px)}}
+    @keyframes _detetive-lupa-lendo{0%,100%{transform:rotate(-4deg) translateX(0)}50%{transform:rotate(-4deg) translateX(10px)}}
+    @keyframes _detetive-lupa-analisa{0%,100%{transform:rotate(-18deg) scale(1)}50%{transform:rotate(-18deg) scale(1.1)}}
+    @keyframes _detetive-lupa-salva{0%{transform:rotate(-10deg) translate(0,0)}100%{transform:rotate(28deg) translate(20px,-24px);opacity:0}}
+    @keyframes _detetive-bigode-twitch{0%,78%,100%{transform:scaleX(1)}82%,92%{transform:scaleX(1.1)}}
     @keyframes _detetive-ombro{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-    @keyframes _detetive-cauda{0%,100%{d:path('M 92 115 Q 115 90 108 70 Q 101 50 118 42')}50%{d:path('M 92 115 Q 120 95 118 72 Q 115 50 98 38')}}
-    @keyframes _detetive-rabo-swing{0%,100%{transform-origin:92px 115px;transform:rotate(0deg)}50%{transform-origin:92px 115px;transform:rotate(18deg)}}
-    @keyframes _detetive-efeito-ok{0%{opacity:0;transform:scale(0.5) translateY(10px)}60%{opacity:1;transform:scale(1.2) translateY(-2px)}100%{opacity:1;transform:scale(1) translateY(0)}}
-    @keyframes _detetive-chapeu-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-    @keyframes _detetive-exclamacao{0%{opacity:0;transform:scale(0) rotate(-10deg)}40%{opacity:1;transform:scale(1.3) rotate(5deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
-    @keyframes _detetive-particulas{0%{opacity:0;transform:translate(0,0) scale(0)}30%{opacity:1}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(1)}}
-    @keyframes _shimmer-lupa{0%,100%{opacity:0.3}50%{opacity:0.9}}
+    @keyframes _detetive-chapeu-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+    @keyframes _shimmer-lupa{0%,100%{opacity:0.3}50%{opacity:0.95}}
+    @keyframes _detetive-orelha{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-6deg)}}
+    @keyframes _nariz-fremi{0%,85%,100%{transform:scaleX(1)}90%{transform:scaleX(1.12)}}
   </style>
-  <svg id="detetive-svg" width="160" height="180" viewBox="0 0 160 180" fill="none" xmlns="http://www.w3.org/2000/svg"
-    style="filter:drop-shadow(0 8px 24px rgba(0,0,0,0.13));animation:_detetive-flutua 3s ease-in-out infinite">
+  <svg id="detetive-svg" width="170" height="185" viewBox="0 0 170 185" fill="none" xmlns="http://www.w3.org/2000/svg"
+    style="filter:drop-shadow(0 10px 28px rgba(0,0,0,0.15));animation:_detetive-flutua 3.2s ease-in-out infinite">
 
-    <!-- CAUDA -->
-    <g style="animation:_detetive-rabo-swing 2.2s ease-in-out infinite">
-      <path d="M 92 115 Q 118 92 112 68 Q 106 46 122 40" stroke="#6B4226" stroke-width="5" stroke-linecap="round" fill="none"/>
-      <circle cx="122" cy="39" r="4" fill="#C1896B"/>
-    </g>
-
-    <!-- CORPO / CASACO -->
-    <rect x="44" y="100" width="72" height="58" rx="18" fill="#1a1a2e"/>
-    <!-- lapela -->
-    <path d="M 80 103 L 65 118 L 72 118 L 80 130 L 88 118 L 95 118 Z" fill="#2d2d44"/>
+    <!-- CORPO / CASACO (capivara tem corpo mais volumoso) -->
+    <rect x="36" y="108" width="98" height="60" rx="22" fill="#1a1a2e"/>
+    <!-- lapela esquerda -->
+    <path d="M 85 111 L 66 130 L 76 130 L 85 144" fill="#2d2d44"/>
+    <!-- lapela direita -->
+    <path d="M 85 111 L 104 130 L 94 130 L 85 144" fill="#2d2d44"/>
     <!-- botões -->
-    <circle cx="80" cy="135" r="2.5" fill="#4a4a6a"/>
-    <circle cx="80" cy="147" r="2.5" fill="#4a4a6a"/>
-    <!-- ombros animados -->
-    <ellipse cx="44" cy="108" rx="10" ry="8" fill="#1a1a2e" style="animation:_detetive-ombro 2s ease-in-out infinite"/>
-    <ellipse cx="116" cy="108" rx="10" ry="8" fill="#1a1a2e" style="animation:_detetive-ombro 2s ease-in-out infinite 0.3s"/>
+    <circle cx="85" cy="150" r="2.8" fill="#4a4a6a"/>
+    <circle cx="85" cy="160" r="2.8" fill="#4a4a6a"/>
+    <!-- ombros volumosos -->
+    <ellipse cx="36" cy="118" rx="13" ry="10" fill="#1a1a2e" style="animation:_detetive-ombro 2.2s ease-in-out infinite"/>
+    <ellipse cx="134" cy="118" rx="13" ry="10" fill="#1a1a2e" style="animation:_detetive-ombro 2.2s ease-in-out infinite 0.4s"/>
 
-    <!-- BRAÇO ESQUERDO (segurando documentos em etapa lendo/analisando) -->
+    <!-- BRAÇO ESQUERDO -->
     <g id="braco-esq">
-      <path d="M 44 112 Q 28 120 24 134" stroke="#1a1a2e" stroke-width="12" stroke-linecap="round" fill="none"/>
-      <ellipse cx="22" cy="137" rx="8" ry="6" fill="#8B5E3C"/>
+      <path d="M 38 120 Q 20 128 16 144" stroke="#1a1a2e" stroke-width="13" stroke-linecap="round" fill="none"/>
+      <ellipse cx="14" cy="147" rx="9" ry="7" fill="#7a5c3a"/>
     </g>
 
     <!-- BRAÇO DIREITO (lupa) -->
-    <g id="braco-dir" style="animation:_detetive-lupa-scan 2.5s ease-in-out infinite">
-      <path d="M 116 112 Q 130 118 136 128" stroke="#1a1a2e" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <g id="braco-dir" style="animation:_detetive-lupa-scan 2.8s ease-in-out infinite">
+      <path d="M 132 120 Q 148 126 154 138" stroke="#1a1a2e" stroke-width="13" stroke-linecap="round" fill="none"/>
       <!-- LUPA -->
-      <g transform="translate(128,120)">
-        <circle cx="12" cy="12" r="13" stroke="#8B6914" stroke-width="3.5" fill="none"/>
-        <circle cx="12" cy="12" r="11" fill="rgba(180,220,255,0.25)"/>
-        <!-- reflexo lupa -->
-        <ellipse cx="8" cy="8" rx="3" ry="2" fill="white" opacity="0.5" style="animation:_shimmer-lupa 1.8s ease-in-out infinite"/>
-        <line x1="21" y1="21" x2="29" y2="30" stroke="#5C4209" stroke-width="4" stroke-linecap="round"/>
-        <rect x="26" y="27" width="9" height="5" rx="2.5" fill="#8B6914" transform="rotate(45 26 27)"/>
+      <g transform="translate(144,126)">
+        <circle cx="13" cy="13" r="14" stroke="#8B6914" stroke-width="4" fill="none"/>
+        <circle cx="13" cy="13" r="11.5" fill="rgba(173,216,255,0.22)"/>
+        <ellipse cx="9" cy="9" rx="3.5" ry="2.5" fill="white" opacity="0.55" style="animation:_shimmer-lupa 2s ease-in-out infinite"/>
+        <line x1="23" y1="23" x2="32" y2="33" stroke="#5C4209" stroke-width="4.5" stroke-linecap="round"/>
+        <rect x="29" y="30" width="10" height="5.5" rx="2.7" fill="#8B6914" transform="rotate(45 29 30)"/>
       </g>
     </g>
 
-    <!-- PESCOÇO -->
-    <rect x="70" y="88" width="20" height="16" rx="6" fill="#8B5E3C"/>
+    <!-- PESCOÇO (curto — capivara quase não tem pescoço) -->
+    <rect x="68" y="96" width="34" height="16" rx="8" fill="#8a6040"/>
 
-    <!-- CABEÇA -->
-    <ellipse cx="80" cy="72" rx="34" ry="32" fill="#A0724A"/>
-    <!-- bochecha clara -->
-    <ellipse cx="60" cy="80" rx="10" ry="8" fill="#C1896B" opacity="0.6"/>
-    <ellipse cx="100" cy="80" rx="10" ry="8" fill="#C1896B" opacity="0.6"/>
-    <!-- focinho -->
-    <ellipse cx="80" cy="83" rx="14" ry="10" fill="#C1896B"/>
-    <!-- narinas -->
-    <ellipse cx="76" cy="82" rx="2.5" ry="2" fill="#6B4226" opacity="0.7"/>
-    <ellipse cx="84" cy="82" rx="2.5" ry="2" fill="#6B4226" opacity="0.7"/>
+    <!-- CABEÇA — capivara: retangular/larga, focinho enorme e quadrado -->
+    <!-- base da cabeça, forma mais quadrada/larga -->
+    <rect x="42" y="52" width="86" height="54" rx="20" fill="#9a7050"/>
+    <!-- topo levemente arredondado -->
+    <ellipse cx="85" cy="52" rx="43" ry="16" fill="#9a7050"/>
 
-    <!-- ORELHAS -->
-    <ellipse cx="48" cy="62" rx="9" ry="10" fill="#A0724A"/>
-    <ellipse cx="48" cy="62" rx="5" ry="6" fill="#C1896B"/>
-    <ellipse cx="112" cy="62" rx="9" ry="10" fill="#A0724A"/>
-    <ellipse cx="112" cy="62" rx="5" ry="6" fill="#C1896B"/>
+    <!-- FOCINHO LARGO (característica marcante da capivara) -->
+    <rect x="55" y="80" width="60" height="30" rx="12" fill="#b8906a"/>
+    <!-- lábio superior -->
+    <path d="M 70 88 Q 85 85 100 88" stroke="#7a5030" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- NARIZ largo e quadrado -->
+    <rect x="68" y="74" width="34" height="16" rx="7" fill="#c4a07a" style="animation:_nariz-fremi 4s ease-in-out infinite;transform-origin:85px 82px"/>
+    <!-- narinas grandes -->
+    <ellipse cx="77" cy="81" rx="4" ry="3.5" fill="#5a3a20" opacity="0.75"/>
+    <ellipse cx="93" cy="81" rx="4" ry="3.5" fill="#5a3a20" opacity="0.75"/>
+    <!-- linha do focinho -->
+    <line x1="85" y1="74" x2="85" y2="90" stroke="#7a5030" stroke-width="1.5" opacity="0.4"/>
 
-    <!-- OLHOS -->
-    <g style="animation:_detetive-pisca 4s ease-in-out infinite">
-      <ellipse cx="68" cy="68" rx="8" ry="9" fill="white"/>
-      <ellipse cx="93" cy="68" rx="8" ry="9" fill="white"/>
-      <circle cx="70" cy="69" r="5.5" fill="#2C1810"/>
-      <circle cx="95" cy="69" r="5.5" fill="#2C1810"/>
-      <circle cx="71.5" cy="67" r="2" fill="white"/>
-      <circle cx="96.5" cy="67" r="2" fill="white"/>
+    <!-- BIGODES capivara (pelos compridos saindo do focinho) -->
+    <g style="animation:_detetive-bigode-twitch 4.5s ease-in-out infinite;transform-origin:85px 82px">
+      <!-- bigodes esquerdos -->
+      <line x1="68" y1="79" x2="40" y2="72" stroke="#2a1a08" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+      <line x1="68" y1="82" x2="38" y2="80" stroke="#2a1a08" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+      <line x1="68" y1="85" x2="40" y2="90" stroke="#2a1a08" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+      <!-- bigodes direitos -->
+      <line x1="102" y1="79" x2="130" y2="72" stroke="#2a1a08" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+      <line x1="102" y1="82" x2="132" y2="80" stroke="#2a1a08" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+      <line x1="102" y1="85" x2="130" y2="90" stroke="#2a1a08" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+      <!-- BIGODE POIROT estilizado no centro -->
+      <path d="M 72 92 Q 65 89 58 84" stroke="#1a0d00" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+      <path d="M 98 92 Q 105 89 112 84" stroke="#1a0d00" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+      <path d="M 58 84 Q 55 82 57 79 Q 59 77 62 80" stroke="#1a0d00" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <path d="M 112 84 Q 115 82 113 79 Q 111 77 108 80" stroke="#1a0d00" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    </g>
+
+    <!-- ORELHAS (capivara: pequenas e redondas no topo lateral) -->
+    <g style="animation:_detetive-orelha 3s ease-in-out infinite;transform-origin:48px 54px">
+      <ellipse cx="48" cy="54" rx="10" ry="10" fill="#9a7050"/>
+      <ellipse cx="48" cy="54" rx="6" ry="6" fill="#c4a07a"/>
+    </g>
+    <g style="animation:_detetive-orelha 3s ease-in-out infinite 0.5s;transform-origin:122px 54px">
+      <ellipse cx="122" cy="54" rx="10" ry="10" fill="#9a7050"/>
+      <ellipse cx="122" cy="54" rx="6" ry="6" fill="#c4a07a"/>
+    </g>
+
+    <!-- OLHOS (capivara: pequenos, expressivos, ligeiramente separados) -->
+    <g style="animation:_detetive-pisca 4.5s ease-in-out infinite">
+      <ellipse cx="69" cy="66" rx="9" ry="10" fill="white"/>
+      <ellipse cx="101" cy="66" rx="9" ry="10" fill="white"/>
+      <circle cx="71" cy="67" r="6" fill="#1e0e05"/>
+      <circle cx="103" cy="67" r="6" fill="#1e0e05"/>
+      <!-- brilho -->
+      <circle cx="73" cy="64.5" r="2.3" fill="white"/>
+      <circle cx="105" cy="64.5" r="2.3" fill="white"/>
     </g>
     <!-- sobrancelhas -->
-    <path id="sobrancelha-e" d="M 60 58 Q 68 54 76 57" stroke="#4a2810" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-    <path id="sobrancelha-d" d="M 84 57 Q 92 54 100 58" stroke="#4a2810" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-
-    <!-- BIGODE POIROT -->
-    <g style="animation:_detetive-bigode-twitch 5s ease-in-out infinite;transform-origin:80px 88px">
-      <!-- base -->
-      <rect x="70" y="86" width="20" height="3" rx="1.5" fill="#1a1005"/>
-      <!-- asa esquerda -->
-      <path d="M 70 87.5 Q 58 84 52 78" stroke="#1a1005" stroke-width="2.8" stroke-linecap="round" fill="none"/>
-      <!-- asa direita -->
-      <path d="M 90 87.5 Q 102 84 108 78" stroke="#1a1005" stroke-width="2.8" stroke-linecap="round" fill="none"/>
-      <!-- pontas enroladas -->
-      <path d="M 52 78 Q 49 76 51 74 Q 53 72 55 75" stroke="#1a1005" stroke-width="2" stroke-linecap="round" fill="none"/>
-      <path d="M 108 78 Q 111 76 109 74 Q 107 72 105 75" stroke="#1a1005" stroke-width="2" stroke-linecap="round" fill="none"/>
-    </g>
+    <path id="sobrancelha-e" d="M 61 55 Q 69 51 77 54" stroke="#3a1e08" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+    <path id="sobrancelha-d" d="M 93 54 Q 101 51 109 55" stroke="#3a1e08" stroke-width="2.8" stroke-linecap="round" fill="none"/>
 
     <!-- CHAPÉU FEDORA -->
-    <g id="chapeu" style="animation:_detetive-chapeu-bounce 3s ease-in-out infinite">
-      <!-- aba -->
-      <ellipse cx="80" cy="42" rx="42" ry="7" fill="#1a1a2e"/>
+    <g id="chapeu" style="animation:_detetive-chapeu-bounce 3.2s ease-in-out infinite">
+      <!-- aba larga (combina com cabeça larga da capivara) -->
+      <ellipse cx="85" cy="44" rx="50" ry="8" fill="#1a1a2e"/>
       <!-- copa -->
-      <rect x="52" y="12" width="56" height="32" rx="8" fill="#222240"/>
+      <rect x="54" y="10" width="62" height="36" rx="9" fill="#222240"/>
+      <!-- amassado no topo (estilo noir) -->
+      <path d="M 54 22 Q 85 18 116 22" stroke="#2d2d50" stroke-width="4" fill="none"/>
       <!-- faixa -->
-      <rect x="52" y="38" width="56" height="6" rx="0" fill="#8B6914"/>
-      <!-- detalhe faixa -->
-      <rect x="75" y="38" width="10" height="6" fill="#A07820"/>
+      <rect x="54" y="40" width="62" height="7" rx="0" fill="#8B6914"/>
+      <rect x="79" y="40" width="12" height="7" fill="#A07820"/>
       <!-- sombra copa -->
-      <rect x="52" y="12" width="56" height="8" rx="8" fill="#2d2d50"/>
+      <rect x="54" y="10" width="62" height="9" rx="9" fill="#2d2d50"/>
     </g>
 
-    <!-- ELEMENTOS POR ETAPA (controlados via JS) -->
-    <!-- Envelope (etapa 0: Submetendo) -->
+    <!-- ELEMENTOS POR ETAPA -->
     <g id="etapa-envelope" opacity="0" style="transition:opacity .5s">
-      <rect x="14" y="125" width="22" height="16" rx="3" fill="#4CAF50" transform="rotate(-10 14 125)"/>
-      <path d="M 14 125 L 25 133 L 36 125" stroke="white" stroke-width="1.5" fill="none" transform="rotate(-10 14 125)"/>
+      <rect x="4" y="132" width="24" height="17" rx="3" fill="#4CAF50" transform="rotate(-8 4 132)"/>
+      <path d="M 4 132 L 16 141 L 28 132" stroke="white" stroke-width="1.5" fill="none" transform="rotate(-8 4 132)"/>
     </g>
-    <!-- Papel/doc (etapa 1: Lendo) -->
     <g id="etapa-doc" opacity="0" style="transition:opacity .5s">
-      <rect x="10" y="118" width="20" height="26" rx="3" fill="white" stroke="#ddd" stroke-width="1"/>
-      <line x1="13" y1="124" x2="27" y2="124" stroke="#ccc" stroke-width="1.5"/>
-      <line x1="13" y1="128" x2="27" y2="128" stroke="#ccc" stroke-width="1.5"/>
-      <line x1="13" y1="132" x2="22" y2="132" stroke="#ccc" stroke-width="1.5"/>
-      <line x1="13" y1="136" x2="25" y2="136" stroke="#ccc" stroke-width="1.5"/>
+      <rect x="4" y="124" width="20" height="28" rx="3" fill="white" stroke="#ddd" stroke-width="1"/>
+      <line x1="7" y1="130" x2="21" y2="130" stroke="#ccc" stroke-width="1.5"/>
+      <line x1="7" y1="134" x2="21" y2="134" stroke="#ccc" stroke-width="1.5"/>
+      <line x1="7" y1="138" x2="17" y2="138" stroke="#ccc" stroke-width="1.5"/>
+      <line x1="7" y1="142" x2="20" y2="142" stroke="#ccc" stroke-width="1.5"/>
     </g>
-    <!-- Engrenagem (etapa 2: Analisando) -->
     <g id="etapa-gear" opacity="0" style="transition:opacity .5s">
-      <circle cx="22" cy="132" r="11" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-dasharray="4 2"/>
-      <circle cx="22" cy="132" r="5" fill="#6366f1" opacity="0.7"/>
+      <circle cx="16" cy="138" r="12" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-dasharray="4 2"/>
+      <circle cx="16" cy="138" r="5.5" fill="#6366f1" opacity="0.75"/>
     </g>
-    <!-- Check (etapa 3: Salvando) -->
     <g id="etapa-check" opacity="0" style="transition:opacity .5s">
-      <circle cx="22" cy="132" r="11" fill="#22c55e"/>
-      <path d="M 15 132 L 20 138 L 30 124" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="16" cy="138" r="12" fill="#22c55e"/>
+      <path d="M 9 138 L 14 144 L 24 130" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
     </g>
 
     <!-- Balão de fala -->
-    <g id="balao-fala" opacity="0" style="transition:opacity .4s;transform-origin:115px 50px">
-      <rect x="96" y="20" width="52" height="26" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
-      <path d="M 108 46 L 112 54 L 118 46" fill="white" stroke="#e5e7eb" stroke-width="1.5" stroke-linejoin="round"/>
-      <text id="balao-texto" x="122" y="36" text-anchor="middle" font-size="9" fill="#374151" font-weight="600"></text>
+    <g id="balao-fala" opacity="0" style="transition:opacity .4s">
+      <rect x="100" y="16" width="58" height="28" rx="8" fill="white" stroke="#e5e7eb" stroke-width="1.5"/>
+      <path d="M 112 44 L 117 53 L 123 44" fill="white" stroke="#e5e7eb" stroke-width="1.5" stroke-linejoin="round"/>
+      <text id="balao-texto" x="129" y="33" text-anchor="middle" font-size="9.5" fill="#374151" font-weight="700"></text>
     </g>
   </svg>`;
 
