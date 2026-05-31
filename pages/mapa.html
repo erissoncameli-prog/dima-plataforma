@@ -4447,8 +4447,15 @@ async function _iniciarProdesCAR(f){
 
   if(_carAbertoCod === cod && _carDetAba === 'prodes'){
     const bod = document.getElementById('car-det-body');
-    if(bod) bod.innerHTML = _htmlProdes(dados, f);
+    if(bod) { bod.innerHTML = _htmlProdes(dados, f); _sincProdesTabToggles(); }
   }
+}
+
+function _sincProdesTabToggles(){
+  const ca = document.getElementById('prodes-tab-toggle-anual');
+  const ch = document.getElementById('prodes-tab-toggle-hist');
+  if(ca) ca.checked = !!VEG_LAYERS.prodes?.layer;
+  if(ch) ch.checked = !!VEG_LAYERS.prodes_hist?.layer;
 }
 
 async function _fetchProdesCAR(f){
