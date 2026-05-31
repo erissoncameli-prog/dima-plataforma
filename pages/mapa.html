@@ -4949,6 +4949,8 @@ function _atualizarBtnMarcar(){
 
 // ── Abrir / fechar painel ─────────────────────────────────────────────────
 async function abrirDetalhesCAR(f){
+  // Limpa camadas PRODES do CAR anterior ao abrir um novo
+  _limparProdesCarLayers();
   _carAbertoFeat = f;
   _carAbertoCod  = f.properties?.cod_imovel;
   const det = document.getElementById('car-det-panel');
