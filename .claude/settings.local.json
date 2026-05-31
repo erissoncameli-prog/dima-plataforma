@@ -111,7 +111,9 @@
       "Bash(echo.)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://terrabrasilis.dpi.inpe.br/geoserver/ows?service=WFS&version=2.0.0&request=GetCapabilities\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://terrabrasilis.dpi.inpe.br/geoserver/web/\")",
-      "Bash(curl -s \"https://terrabrasilis.dpi.inpe.br/geoserver/wfs?service=WFS&version=2.0.0&request=GetCapabilities\")"
+      "Bash(curl -s \"https://terrabrasilis.dpi.inpe.br/geoserver/wfs?service=WFS&version=2.0.0&request=GetCapabilities\")",
+      "Bash(curl -s -X POST \"https://wfymnmlinonvdqfucjya.supabase.co/functions/v1/prodes-proxy\" -H \"Content-Type: application/json\" -d \"{\\\\\"bbox\\\\\":[-68.8,-9.9,-68.7,-9.8]}\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('features:', len\\(d.get\\('features',[]\\)\\), '| error:', d.get\\('error','none'\\)\\)\")"
     ]
   }
 }

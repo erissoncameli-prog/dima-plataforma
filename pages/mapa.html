@@ -238,8 +238,12 @@
 }
 
 /* ── CAR — Imóveis Rurais ────────────────────────────────────────────────── */
-.car-det-panel{position:fixed;top:0;right:-400px;width:360px;height:100vh;background:#fff;z-index:600;display:flex;flex-direction:column;box-shadow:-4px 0 32px rgba(0,0,0,.22);transition:right .28s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+.car-det-panel{position:fixed;top:0;right:-420px;width:360px;height:100vh;background:#fff;z-index:600;display:flex;flex-direction:column;box-shadow:-4px 0 32px rgba(0,0,0,.22);transition:right .28s cubic-bezier(.4,0,.2,1);overflow:hidden;min-width:280px;max-width:680px;}
 .car-det-panel.aberto{right:0;}
+.car-det-resize-handle{position:absolute;top:0;left:0;width:5px;height:100%;cursor:ew-resize;z-index:10;background:transparent;transition:background .15s;}
+.car-det-resize-handle:hover,.car-det-resize-handle.dragging{background:rgba(45,106,79,.35);}
+.car-det-resize-handle::after{content:'';position:absolute;top:50%;left:1px;transform:translateY(-50%);width:3px;height:36px;border-radius:2px;background:#d1d5db;transition:background .15s;}
+.car-det-resize-handle:hover::after,.car-det-resize-handle.dragging::after{background:#2D6A4F;}
 .car-det-header{padding:14px 16px 12px;border-bottom:1px solid var(--borda);flex-shrink:0;background:linear-gradient(135deg,#1a3c2a,#2D6A4F);}
 .car-det-header h4{margin:0;font-size:14px;font-weight:700;color:#fff;}
 .car-det-header p{margin:3px 0 0;font-size:11px;color:rgba(255,255,255,.7);}
