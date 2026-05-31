@@ -6266,6 +6266,83 @@ function _htmlRelTextual(d){
   </div>`;
 }
 
+// ── Seção PRODES para o Relatório Textual ────────────────────────────────
+function _htmlRelProdes(){
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+
+  // Agrega dados de todos os CARs que já passaram pela aba PRODES
+  const entradas = [..._carProdesCache.entries()].filter(([,v]) => !v.erro);
+
+  const totalHist  = entradas.reduce((s,[,v]) => s + (v.historico?.totalHa||0), 0);
+  const totalAnual = entradas.reduce((s,[,v]) => s + (v.anual?.totalHa||0), 0);
+  const totalGeral = totalHist + totalAnual;
+  const nCars      = entradas.length;
+
+  // Agrega série anual consolidada
+  const porAnoGlobal = {};
+  entradas.forEach(([,v]) => {
+    Object.entries(v.anual?.porAno||{}).forEach(([ano,ha]) => {
+      porAnoGlobal[ano] = (porAnoGlobal[ano]||0) + ha;
+    });
+  });
+  const anosGlobal = Object.keys(porAnoGlobal).sort();
+
+  if(nCars === 0){
+    return `<p>Os dados oficiais do PRODES/INPE não foram carregados para nenhum imóvel nesta sessão. Para visualizar, selecione um imóvel CAR no mapa e acesse a aba <strong>🌳 PRODES</strong>.</p>
+    <p><em>Nota: O PRODES (Projeto de Monitoramento do Desmatamento na Amazônia Legal por Satélite) é o sistema oficial do INPE para quantificação do desmatamento na Amazônia desde 1988.</em></p>`;
+  }
+
+  const maxAnualHa = Math.max(...Object.values(porAnoGlobal), 0.01);
+  const barras = anosGlobal.map(ano => {
+    const ha = porAnoGlobal[ano];
+    const w  = (ha / maxAnualHa * 90).toFixed(1);
+    return `<tr>
+      <td style="padding:2px 8px 2px 0;font-size:11px;color:#374151;white-space:nowrap">${ano}</td>
+      <td style="padding:2px 0;width:100%">
+        <div style="height:12px;background:#dc2626;border-radius:2px;width:${w}%;min-width:2px"></div>
+      </td>
+      <td style="padding:2px 0 2px 8px;font-size:11px;font-weight:600;color:#374151;white-space:nowrap;text-align:right">${f2(ha)} ha</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <p>O PRODES (Projeto de Monitoramento do Desmatamento na Amazônia Legal por Satélite) é o sistema oficial do INPE para detecção e quantificação do desmatamento. A análise a seguir é baseada nos dados carregados para <strong>${nCars} imóvel(is) CAR</strong> consultados nesta sessão.</p>
+
+  <p><strong>Por que 2008 é o marco de referência?</strong> O PRODES iniciou o mapeamento sistemático anual da Amazônia em 1988, mas foi a partir de 2008 que o monitoramento se tornou suficientemente detalhado e contínuo — com resolução de 30m (Landsat) e cobertura completa do bioma — para permitir comparações rigorosas ano a ano. O desmatamento anterior a 2008 é disponibilizado pelo INPE como uma camada de <em>acumulado histórico</em>, representando o passivo ambiental consolidado até aquele ano.</p>
+
+  <div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">
+    <div style="flex:1;min-width:120px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:#c2410c">${f2(totalHist)} ha</div>
+      <div style="font-size:11px;color:#9a3412;margin-top:2px">Acumulado pré-2008</div>
+      <div style="font-size:10px;color:#fdba74;margin-top:4px;line-height:1.3">Passivo histórico anterior ao monitoramento anual sistemático</div>
+    </div>
+    <div style="flex:1;min-width:120px;padding:12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:#dc2626">${f2(totalAnual)} ha</div>
+      <div style="font-size:11px;color:#991b1b;margin-top:2px">Pós-2008 (anual)</div>
+      <div style="font-size:10px;color:#fca5a5;margin-top:4px;line-height:1.3">Detecção por satélite ano a ano — monitoramento rigoroso</div>
+    </div>
+    <div style="flex:1;min-width:120px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:#374151">${f2(totalGeral)} ha</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:2px">Total PRODES</div>
+      <div style="font-size:10px;color:#9ca3af;margin-top:4px;line-height:1.3">Soma do passivo histórico e das detecções anuais</div>
+    </div>
+  </div>
+
+  ${anosGlobal.length > 0 ? `
+  <p><strong>Série histórica anual (2008–hoje) — imóveis analisados:</strong></p>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:8px">
+    ${barras}
+  </table>` : ''}
+
+  <p style="font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px;margin-top:4px">
+    <strong>Fonte:</strong> PRODES/INPE via TerraBrasilis (terrabrasilis.dpi.inpe.br) ·
+    <strong>Resolução:</strong> 30m (Landsat / Sentinel-2) ·
+    <strong>Método:</strong> Interseção geométrica entre os polígonos PRODES e os limites CAR via Turf.js ·
+    <strong>Nota:</strong> Margens de erro de 5–15% esperadas. Para uso oficial, consultar diretamente o INPE.
+  </p>`;
+}
+
 // ── Gráficos Chart.js ─────────────────────────────────────────────────────
 function _chartVisaoGeral(d){
   const ctx = document.getElementById('chart-visao-geral');
