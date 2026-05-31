@@ -104,7 +104,14 @@
       "PowerShell(& \"C:\\\\Users\\\\eriss\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import openpyxl; print\\('openpyxl ok'\\)\" 2>&1)",
       "PowerShell(& \"C:\\\\Users\\\\eriss\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import requests; print\\('requests ok'\\)\" 2>&1)",
       "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\" log --oneline -3 -- pages/mapa.html)",
-      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\" show HEAD:pages/mapa.html)"
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\" show HEAD:pages/mapa.html)",
+      "Bash(curl -s -X POST \"https://wfymnmlinonvdqfucjya.supabase.co/functions/v1/prodes-proxy\" -H \"Content-Type: application/json\" -d \"{\\\\\"debug\\\\\":true}\")",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://terrabrasilis.dpi.inpe.br/geoserver/wfs?service=WFS&version=2.0.0&request=GetCapabilities\")",
+      "Bash(echo.)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://terrabrasilis.dpi.inpe.br/geoserver/ows?service=WFS&version=2.0.0&request=GetCapabilities\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://terrabrasilis.dpi.inpe.br/geoserver/web/\")",
+      "Bash(curl -s \"https://terrabrasilis.dpi.inpe.br/geoserver/wfs?service=WFS&version=2.0.0&request=GetCapabilities\")"
     ]
   }
 }
