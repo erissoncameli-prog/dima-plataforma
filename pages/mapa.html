@@ -4485,10 +4485,22 @@ function _htmlCarDiagnostico(d, f){
   const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
   const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
 
-  const corRisco = d.risco==='Alto' ? '#dc2626' : d.risco==='Médio' ? '#d97706' : '#16a34a';
-  const corPrior = d.prioridade==='Alta' ? '#dc2626' : d.prioridade==='Média' ? '#d97706' : '#16a34a';
-  const corDesmat= d.pctDesmat>25 ? '#dc2626' : d.pctDesmat>10 ? '#d97706' : '#16a34a';
-  const corApp   = d.pctAppDeg>50 ? '#dc2626' : d.pctAppDeg>30 ? '#d97706' : '#16a34a';
+  // PRODES como fonte principal de desmatamento
+  const prodes = _carProdesCache.get(p.cod_imovel);
+  const temProdes = prodes && !prodes.erro;
+  const desmatPrincipal = temProdes ? prodes.totalGeral : d.desmat;
+  const pctDesmatPrincipal = d.areaCAR > 0 ? desmatPrincipal / d.areaCAR * 100 : d.pctDesmat;
+  const fonteDesmat = temProdes ? 'PRODES/INPE' : 'Camadas locais';
+
+  // Risco e prioridade recalculados com base na fonte principal
+  const pctD = pctDesmatPrincipal;
+  const corRisco = (pctD>30||d.pctAppDeg>60)?'#dc2626':(pctD>15||d.pctAppDeg>35)?'#d97706':'#16a34a';
+  const riscoFinal = (pctD>30||d.pctAppDeg>60)?'Alto':(pctD>15||d.pctAppDeg>35)?'Médio':'Baixo';
+  const deficitFinal = desmatPrincipal - d.restaur;
+  const priorFinal = deficitFinal>5||pctD>20?'Alta':deficitFinal>0||pctD>8?'Média':'Baixa';
+  const corPrior = priorFinal==='Alta'?'#dc2626':priorFinal==='Média'?'#d97706':'#16a34a';
+  const corDesmat= pctD>25?'#dc2626':pctD>10?'#d97706':'#16a34a';
+  const corApp   = d.pctAppDeg>50?'#dc2626':d.pctAppDeg>30?'#d97706':'#16a34a';
 
   // Barra de progresso inline
   const barra = (val, max, cor) => `
@@ -4499,11 +4511,15 @@ function _htmlCarDiagnostico(d, f){
   return `
   <!-- KPIs principais -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio);padding:10px 12px">
+    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio);padding:10px 12px;position:relative">
       <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Desmatado</div>
-      <div style="font-size:18px;font-weight:700;color:${corDesmat}">${f2(d.desmat)} ha</div>
-      <div style="font-size:10px;color:#6b7280">${f1(d.pctDesmat)}% da área</div>
-      ${barra(d.pctDesmat, 100, corDesmat)}
+      <div style="font-size:18px;font-weight:700;color:${corDesmat}">${f2(desmatPrincipal)} ha</div>
+      <div style="font-size:10px;color:#6b7280">${f1(pctDesmatPrincipal)}% da área</div>
+      ${barra(pctDesmatPrincipal, 100, corDesmat)}
+      <div style="margin-top:4px;font-size:9px;font-weight:700;color:${temProdes?'#dc2626':'#9ca3af'};display:flex;align-items:center;gap:3px">
+        ${temProdes?'🛰':'📁'} ${fonteDesmat}
+        ${temProdes&&prodes.historico.totalHa>0?`<span style="color:#c2410c;margin-left:4px">· ${f2(prodes.historico.totalHa)} ha pré-2008</span>`:''}
+      </div>
     </div>
     <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--raio);padding:10px 12px">
       <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Floresta</div>
