@@ -3525,6 +3525,91 @@ function vincularEventos(){
   _iniciarClickCamadas(() => camadas);
 }
 
+// ── Resize do painel CAR ──────────────────────────────────────────────────
+(function(){
+  const CAR_WIDTH_KEY = 'dima_car_panel_width';
+  const MIN_W = 280, MAX_W = 680;
+
+  function _aplicarLargura(w){
+    const panel = document.getElementById('car-det-panel');
+    if(!panel) return;
+    const clamped = Math.min(MAX_W, Math.max(MIN_W, w));
+    panel.style.width = clamped + 'px';
+    // mantém o "right: -largura" quando fechado
+    if(!panel.classList.contains('aberto')){
+      panel.style.transition = 'none';
+      panel.style.right = `-${clamped + 10}px`;
+      requestAnimationFrame(() => { panel.style.transition = ''; });
+    }
+  }
+
+  // Restaura largura salva
+  const saved = parseInt(localStorage.getItem(CAR_WIDTH_KEY));
+  if(saved) _aplicarLargura(saved);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const handle = document.getElementById('car-resize-handle');
+    const panel  = document.getElementById('car-det-panel');
+    if(!handle || !panel) return;
+
+    let startX = 0, startW = 0, dragging = false;
+
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      dragging = true;
+      startX = e.clientX;
+      startW = panel.offsetWidth;
+      handle.classList.add('dragging');
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', e => {
+      if(!dragging) return;
+      // painel está à direita: mover mouse para esquerda aumenta largura
+      const delta = startX - e.clientX;
+      const newW  = Math.min(MAX_W, Math.max(MIN_W, startW + delta));
+      panel.style.transition = 'none';
+      panel.style.width = newW + 'px';
+    });
+
+    document.addEventListener('mouseup', e => {
+      if(!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      panel.style.transition = '';
+      const finalW = panel.offsetWidth;
+      localStorage.setItem(CAR_WIDTH_KEY, finalW);
+    });
+
+    // Touch support
+    handle.addEventListener('touchstart', e => {
+      const t = e.touches[0];
+      startX = t.clientX; startW = panel.offsetWidth; dragging = true;
+      handle.classList.add('dragging');
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+      if(!dragging) return;
+      const t = e.touches[0];
+      const delta = startX - t.clientX;
+      const newW  = Math.min(MAX_W, Math.max(MIN_W, startW + delta));
+      panel.style.transition = 'none';
+      panel.style.width = newW + 'px';
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+      if(!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      panel.style.transition = '';
+      localStorage.setItem(CAR_WIDTH_KEY, panel.offsetWidth);
+    });
+  });
+})();
+
 // ── CAR — Cadastro Ambiental Rural ────────────────────────────────────────
 const CAR_WFS_BASE = 'https://geoserver.car.gov.br/geoserver/sicar/wfs';
 const CAR_BBOX     = '-68.3,-10.15,-67.4,-9.65,EPSG:4326';
