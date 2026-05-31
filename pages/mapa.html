@@ -4545,15 +4545,15 @@ function _htmlCarDiagnostico(d, f){
   <div style="display:flex;gap:6px;margin-bottom:10px">
     <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
       <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Risco Ambiental</div>
-      <div style="font-size:13px;font-weight:700;color:${corRisco}">${d.risco}</div>
+      <div style="font-size:13px;font-weight:700;color:${corRisco}">${riscoFinal}</div>
     </div>
     <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
       <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Prioridade Rest.</div>
-      <div style="font-size:13px;font-weight:700;color:${corPrior}">${d.prioridade}</div>
+      <div style="font-size:13px;font-weight:700;color:${corPrior}">${priorFinal}</div>
     </div>
     <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
       <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Déficit Rest.</div>
-      <div style="font-size:13px;font-weight:700;color:${d.deficit>0?'#dc2626':'#16a34a'}">${d.deficit>0?'+':''}${f2(d.deficit)} ha</div>
+      <div style="font-size:13px;font-weight:700;color:${deficitFinal>0?'#dc2626':'#16a34a'}">${deficitFinal>0?'+':''}${f2(deficitFinal)} ha</div>
     </div>
   </div>
 
@@ -4564,8 +4564,8 @@ function _htmlCarDiagnostico(d, f){
       <span style="color:var(--cinza-500)">Área mapeada</span><strong>${f2(d.restaur)} ha</strong>
     </div>
     <div style="display:flex;justify-content:space-between">
-      <span style="color:var(--cinza-500)">Déficit (desmat. − restaur.)</span>
-      <strong style="color:${d.deficit>0?'#dc2626':'#16a34a'}">${f2(Math.abs(d.deficit))} ha ${d.deficit>0?'descoberto':'excedente'}</strong>
+      <span style="color:var(--cinza-500)">Déficit (PRODES − restaur.)</span>
+      <strong style="color:${deficitFinal>0?'#dc2626':'#16a34a'}">${f2(Math.abs(deficitFinal))} ha ${deficitFinal>0?'descoberto':'excedente'}</strong>
     </div>
   </div>
 
