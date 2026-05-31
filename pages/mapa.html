@@ -1765,6 +1765,38 @@ async function salvarNovaCamada(){
   renderCamadasHtml();
 }
 
+// ── Barra de camadas superior ─────────────────────────────────────────────
+function toggleLayerBar(id){
+  const panel = document.getElementById('mlb-panel-' + id);
+  const btn   = document.getElementById('mlb-btn-' + id);
+  if(!panel) return;
+  const abrindo = panel.style.display === 'none';
+  // Fecha todos os outros painéis
+  ['veg','car'].forEach(k => {
+    document.getElementById('mlb-panel-' + k).style.display = 'none';
+    document.getElementById('mlb-btn-' + k)?.classList.remove('ativo');
+  });
+  if(abrindo){
+    panel.style.display = '';
+    btn?.classList.add('ativo');
+  }
+}
+function fecharLayerBar(id){
+  document.getElementById('mlb-panel-' + id).style.display = 'none';
+  document.getElementById('mlb-btn-' + id)?.classList.remove('ativo');
+}
+// Fecha painel ao clicar fora
+document.addEventListener('click', e => {
+  const bar = document.getElementById('mapa-layerbar');
+  if(bar && !bar.contains(e.target)){
+    ['veg','car'].forEach(k => {
+      const p = document.getElementById('mlb-panel-' + k);
+      if(p) p.style.display = 'none';
+      document.getElementById('mlb-btn-' + k)?.classList.remove('ativo');
+    });
+  }
+}, true);
+
 function toggleBloco(id){
   const el=document.getElementById(id), ch=document.getElementById('chevron-'+id);
   if(!el) return;
