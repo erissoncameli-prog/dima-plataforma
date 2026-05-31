@@ -411,7 +411,8 @@ function filtrar(){
   const el=document.getElementById('lista');
   if(!f.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">◧</div><div class="empty-state-msg">Nenhum TDR encontrado.</div></div>`;return;}
   el.innerHTML=f.map(t=>{
-    const fi=FASES.indexOf(t.status);
+    const _statusNorm={enviado_unesco:'em_revisao_unesco',retorno_unesco:'em_revisao_unesco',revisao_interna:'submetido',ajustes:'pendente_correcao'};
+    const fi=FASES.indexOf(_statusNorm[t.status]||t.status);
     const atr=t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado';
     const podeEd=podeEditarFase(t.status);
     const eCoordenador=['super_admin','coordenacao'].includes(appState.perfil);
