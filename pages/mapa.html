@@ -4586,12 +4586,11 @@ function _htmlCarDiagnostico(d, f){
     ${_gerarTextoCarDiag(d, p, local)}
   </div>
 
-  <!-- Seção PRODES -->
-  ${_htmlDiagProdes(p.cod_imovel, d.areaCAR)}
-
   <div style="font-size:9px;color:var(--cinza-400);line-height:1.5;text-align:center">
-    Calculado via Turf.js · interseção com ${camadas.filter(c=>c.geojson).length} camadas ativas
-    ${d.subbacia ? '· ' + d.subbacia : ''}
+    ${temProdes
+      ? `🛰 Desmatamento: <strong style="color:#dc2626">PRODES/INPE</strong> (fonte oficial) · Demais métricas: Turf.js`
+      : `📁 Desmatamento: camadas locais · Carregue a aba 🌳 PRODES para dados oficiais`}
+    ${d.subbacia ? ' · ' + d.subbacia : ''}
   </div>`;
 }
 
