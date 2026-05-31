@@ -4966,35 +4966,6 @@ function _gerarTextoCarDiag(d, p, local){
     if(classMsgs[local.nome_class]) t.push(classMsgs[local.nome_class]);
   }
 
-  // Contexto PRODES (se disponível no cache)
-  const prodes = _carProdesCache.get(p.cod_imovel);
-  if(prodes && !prodes.erro){
-    const f2p = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
-    const f1p = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
-    const areaRef = parseFloat(p.area) || d.areaCAR || 1;
-
-    if(prodes.historico.totalHa > 0){
-      const pct = (prodes.historico.totalHa / areaRef * 100);
-      t.push(`🕰 <strong>Passivo histórico (PRODES pré-2008)</strong>: ${f2p(prodes.historico.totalHa)} ha (${f1p(pct)}% da área) já se encontravam desmatados antes de 2008, conforme o mapeamento acumulado do PRODES/INPE. Esse passivo representa supressão ocorrida antes do monitoramento sistemático por satélite e pode não estar totalmente capturado nas camadas locais.`);
-    }
-
-    if(prodes.anual.totalHa > 0){
-      const pct = (prodes.anual.totalHa / areaRef * 100);
-      const anoMaisRecente = prodes.anosAnual[prodes.anosAnual.length - 1];
-      const haMaisRecente = prodes.anual.porAno[anoMaisRecente] || 0;
-      t.push(`📡 <strong>Desmatamento pós-2008 (PRODES anual)</strong>: ${f2p(prodes.anual.totalHa)} ha (${f1p(pct)}%) detectados por satélite entre 2008 e ${anoMaisRecente}. O ano com maior supressão recente foi <strong>${anoMaisRecente}</strong> com ${f2p(haMaisRecente)} ha. Fonte oficial: INPE/TerraBrasilis.`);
-    }
-
-    if(prodes.totalGeral > 0){
-      const pctTotal = (prodes.totalGeral / areaRef * 100);
-      const grau = pctTotal > 50 ? 'extremamente comprometido' : pctTotal > 30 ? 'fortemente impactado' : pctTotal > 10 ? 'moderadamente impactado' : 'com baixo passivo registrado';
-      t.push(`📊 <strong>Passivo total PRODES</strong>: somando histórico e anual, o imóvel acumula <strong>${f2p(prodes.totalGeral)} ha (${f1p(pctTotal)}%)</strong> de desmatamento registrado pelo INPE — ${grau} segundo os dados oficiais.`);
-    }
-
-    if(prodes.totalGeral === 0)
-      t.push(`📡 <strong>PRODES/INPE</strong>: nenhum polígono de desmatamento detectado dentro do imóvel nos registros oficiais (pré e pós-2008).`);
-  }
-
   return t.map(s => `<p style="margin:0 0 5px">${s}</p>`).join('');
 }
 
