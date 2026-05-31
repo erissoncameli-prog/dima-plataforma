@@ -6492,11 +6492,28 @@ function _htmlRelTextual(d){
   </div>
   <div class="rel-text-block">
     <h4>2. Situação do Desmatamento</h4>
-    <p>A APA Igarapé São Francisco apresenta situação <strong>${situacao}</strong> em relação ao desmatamento. Do total de <strong>${f2(tot.area)} ha</strong> analisados, <strong>${f2(tot.desmat)} ha (${f1(tot.pctDesmat)}%)</strong> encontram-se desmatados, enquanto <strong>${f2(tot.flor)} ha (${f1(tot.pctPreserv)}%)</strong> mantêm cobertura florestal.</p>
+    ${(()=>{
+      // Agrega PRODES de todos os CARs com cache disponível
+      const prodEntradas = [..._carProdesCache.entries()].filter(([,v])=>!v.erro);
+      const temProdesRel = prodEntradas.length > 0;
+      const totalProdesHa = prodEntradas.reduce((s,[,v])=>s+(v.totalGeral||0),0);
+      const totalHistorico = prodEntradas.reduce((s,[,v])=>s+(v.historico?.totalHa||0),0);
+      const totalAnual    = prodEntradas.reduce((s,[,v])=>s+(v.anual?.totalHa||0),0);
+
+      if(temProdesRel){
+        const pctProd = tot.area>0 ? totalProdesHa/tot.area*100 : 0;
+        const sitProd = pctProd>20?'crítica':pctProd>10?'preocupante':'moderada';
+        return `<p>⚠️ <strong>Fonte primária: PRODES/INPE (dados oficiais)</strong>. Com base nos dados de ${prodEntradas.length} imóvel(is) CAR consultados, o desmatamento oficial registrado totaliza <strong>${f2(totalProdesHa)} ha</strong> dentro dos limites analisados — situação <strong>${sitProd}</strong>. Desse total, <strong>${f2(totalHistorico)} ha</strong> foram desmatados antes de 2008 (passivo histórico acumulado) e <strong>${f2(totalAnual)} ha</strong> foram detectados por satélite entre 2008 e o presente (monitoramento anual PRODES). Os demais dados de cobertura florestal, APP e restauração são derivados das camadas de delimitação ativas.</p>
+        <p>Do total de <strong>${f2(tot.area)} ha</strong> analisados pelas camadas locais, <strong>${f2(tot.flor)} ha (${f1(tot.pctPreserv)}%)</strong> mantêm cobertura florestal segundo o mapeamento de delimitação das APAs.</p>`;
+      } else {
+        return `<p>ℹ️ <strong>Dados PRODES/INPE não carregados</strong> para esta sessão. Para utilizar a fonte oficial de desmatamento, selecione imóveis CAR no mapa e acesse a aba 🌳 PRODES antes de gerar o relatório.</p>
+        <p>Com base nas camadas de delimitação locais: a área apresenta situação <strong>${situacao}</strong>. Do total de <strong>${f2(tot.area)} ha</strong> analisados, <strong>${f2(tot.desmat)} ha (${f1(tot.pctDesmat)}%)</strong> encontram-se desmatados e <strong>${f2(tot.flor)} ha (${f1(tot.pctPreserv)}%)</strong> mantêm cobertura florestal.</p>`;
+      }
+    })()}
     ${criticas.length > 0
-      ? `<p>Foram identificadas <strong>${criticas.length} sub-bacia(s) em situação crítica</strong> (desmatamento superior a 15%): <strong>${criticas.map(s=>s.nome).join(', ')}</strong>.${muitoCriticas.length > 0 ? ` Destas, <strong>${muitoCriticas.length}</strong> ultrapassam 25% de desmatamento — configurando situação de emergência ambiental: <strong>${muitoCriticas.map(s=>s.nome).join(', ')}</strong>.` : ''}</p>`
-      : `<p>Nenhuma sub-bacia apresenta desmatamento superior a 15%, indicando situação relativamente controlada no período analisado.</p>`}
-    <p><strong>Ranking de desmatamento</strong> (maior → menor): ${subbacias.map((s,i) => `${i+1}º ${s.nome} — ${f2(s.desmat)} ha (${f1(s.pctDesmat)}%)`).join('; ')}.</p>
+      ? `<p>Foram identificadas <strong>${criticas.length} sub-bacia(s) em situação crítica</strong> (desmatamento superior a 15%): <strong>${criticas.map(s=>s.nome).join(', ')}</strong>.${muitoCriticas.length > 0 ? ` Destas, <strong>${muitoCriticas.length}</strong> ultrapassam 25%: <strong>${muitoCriticas.map(s=>s.nome).join(', ')}</strong>.` : ''}</p>`
+      : `<p>Nenhuma sub-bacia das camadas locais apresenta desmatamento superior a 15%.</p>`}
+    <p><strong>Ranking por camadas locais</strong>: ${subbacias.map((s,i)=>`${i+1}º ${s.nome} — ${f2(s.desmat)} ha (${f1(s.pctDesmat)}%)`).join('; ')}.</p>
   </div>
   <div class="rel-text-block">
     <h4>3. Análise das Áreas de Preservação Permanente (APP)</h4>
