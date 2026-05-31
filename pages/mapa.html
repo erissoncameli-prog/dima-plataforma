@@ -4409,8 +4409,71 @@ async function _iniciarProdesCAR(f){
 function _sincProdesTabToggles(){
   const ca = document.getElementById('prodes-tab-toggle-anual');
   const ch = document.getElementById('prodes-tab-toggle-hist');
-  if(ca) ca.checked = !!VEG_LAYERS.prodes?.layer;
-  if(ch) ch.checked = !!VEG_LAYERS.prodes_hist?.layer;
+  if(ca) ca.checked = !!_prodesCarLayers.anual;
+  if(ch) ch.checked = !!_prodesCarLayers.hist;
+}
+
+// ── Camadas GeoJSON PRODES recortadas no(s) CAR(s) ───────────────────────
+const _prodesCarLayers = { anual: null, hist: null };
+
+function _toggleProdesCarLayer(tipo, ativo){
+  // Remove camada existente
+  if(_prodesCarLayers[tipo]){
+    mapaL.removeLayer(_prodesCarLayers[tipo]);
+    _prodesCarLayers[tipo] = null;
+  }
+  if(!ativo) return;
+
+  // Coleta geometrias de todos os CARs com cache PRODES
+  const allFeatures = [];
+  _carProdesCache.forEach((dados, cod) => {
+    if(dados.erro) return;
+    const src = tipo === 'anual' ? dados.anual : dados.historico;
+    (src.geojsonFeatures || []).forEach(f => allFeatures.push(f));
+  });
+
+  if(!allFeatures.length){
+    toast('Nenhum polígono PRODES disponível. Abra a aba 🌳 PRODES em um imóvel CAR primeiro.', 'warning');
+    // desmarca o checkbox
+    const el = document.getElementById(`prodes-tab-toggle-${tipo === 'anual' ? 'anual' : 'hist'}`);
+    if(el) el.checked = false;
+    return;
+  }
+
+  const corFill   = tipo === 'anual' ? '#dc2626' : '#c2410c';
+  const corStroke = tipo === 'anual' ? '#991b1b' : '#7c2d12';
+
+  _prodesCarLayers[tipo] = L.geoJSON(
+    { type: 'FeatureCollection', features: allFeatures },
+    {
+      style: {
+        fillColor:   corFill,
+        fillOpacity: 0.55,
+        color:       corStroke,
+        weight:      1,
+        opacity:     0.9,
+      },
+      onEachFeature(feat, layer){
+        const p   = feat.properties || {};
+        const ha  = Number(p.ha_calc||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+        const ano = p.ano || p.year || '—';
+        layer.bindTooltip(
+          `<strong>PRODES ${tipo === 'anual' ? 'Anual' : 'Pré-2008'}</strong><br>Ano: ${ano}<br>Área: ${ha} ha`,
+          { sticky: true, className: 'leaflet-tooltip' }
+        );
+      },
+    }
+  ).addTo(mapaL);
+
+  // Traz para frente mas abaixo dos marcadores
+  _prodesCarLayers[tipo].setZIndex ? _prodesCarLayers[tipo].setZIndex(200) : null;
+}
+
+// Remove camadas PRODES do CAR quando o painel fecha
+function _limparProdesCarLayers(){
+  ['anual','hist'].forEach(t => {
+    if(_prodesCarLayers[t]){ mapaL.removeLayer(_prodesCarLayers[t]); _prodesCarLayers[t] = null; }
+  });
 }
 
 async function _fetchProdesCAR(f){
