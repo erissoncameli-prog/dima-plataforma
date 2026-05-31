@@ -6247,7 +6247,11 @@ function _htmlRelTextual(d){
       : ''}
   </div>
   <div class="rel-text-block">
-    <h4>7. Recomendações Técnicas</h4>
+    <h4>7. Monitoramento Oficial PRODES/INPE</h4>
+    ${_htmlRelProdes()}
+  </div>
+  <div class="rel-text-block">
+    <h4>8. Recomendações Técnicas</h4>
     <ol>
       ${muitoCriticas.length > 0 ? `<li><strong>Ação emergencial</strong> nas sub-bacias ${muitoCriticas.map(s=>s.nome).join(' e ')}: implementação imediata de mecanismos de contenção do desmatamento e fiscalização intensificada.</li>` : ''}
       ${altaRisco.length > 0 ? `<li><strong>Restauração da vegetação ciliar</strong> prioritariamente em ${altaRisco.map(s=>s.nome).join(', ')}, onde o risco de assoreamento é alto.</li>` : ''}
