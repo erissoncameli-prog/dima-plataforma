@@ -7180,25 +7180,18 @@ function _tiCorFase(fase){
 }
 
 async function _carregarTI(){
-  const loading = document.getElementById('ti-loading');
-  loading.style.display = 'flex';
+  document.getElementById('ti-loading').style.display = 'flex';
   try {
-    const url = 'https://geoserver.funai.gov.br/geoserver/Funai/ows?' +
-      'service=WFS&version=1.0.0&request=GetFeature' +
-      "&typeName=Funai:tis_poligonais" +
-      '&outputFormat=application/json' +
-      "&CQL_FILTER=uf_sigla='AC'";
-    const r = await fetch(url);
+    const r = await fetch('../data/ti_acre.geojson');
     if(!r.ok) throw new Error('HTTP ' + r.status);
     _tiGeojson = await r.json();
   } catch(e) {
-    console.warn('FUNAI WFS falhou:', e);
-    loading.style.display = 'none';
+    document.getElementById('ti-loading').style.display = 'none';
     document.getElementById('ti-controles').style.display = 'flex';
-    document.getElementById('ti-stat').textContent = '⚠ Não foi possível carregar dados da FUNAI.';
+    document.getElementById('ti-stat').textContent = '⚠ Erro ao carregar TI: ' + e.message;
     return;
   }
-  loading.style.display = 'none';
+  document.getElementById('ti-loading').style.display = 'none';
   document.getElementById('ti-controles').style.display = 'flex';
   _tiConstruirFiltrosFases();
   _renderizarTI();
@@ -7207,9 +7200,8 @@ async function _carregarTI(){
 function _tiConstruirFiltrosFases(){
   const cont = {};
   (_tiGeojson.features || []).forEach(f => {
-    const fase = _ucProp(f.properties,'fase_ti','fase','situacao','status') || 'sem informação';
+    const fase = f.properties.fase_ti || 'Sem informação';
     cont[fase] = (cont[fase]||0) + 1;
-    _tiFasesFiltro.add(fase);
   });
   const el = document.getElementById('ti-fases');
   if(!el) return;
@@ -7218,7 +7210,7 @@ function _tiConstruirFiltrosFases(){
     return `<label class="uc-filtro-label">
       <input type="checkbox" checked data-ti-fase="${esc(fase)}" style="accent-color:${cor};width:12px;height:12px;cursor:pointer" onchange="filtrarTI()">
       <div class="uc-tipo-dot" style="background:${cor}33;border-color:${cor}"></div>
-      <span style="flex:1;text-transform:capitalize">${esc(fase)}</span>
+      <span style="flex:1">${esc(fase)}</span>
       <span style="font-size:9px;color:var(--cinza-400)">${n}</span>
     </label>`;
   }).join('');
@@ -7230,38 +7222,34 @@ function _renderizarTI(){
 
   const fasesAtivas = new Set(
     [...document.querySelectorAll('[data-ti-fase]')]
-      .filter(el => el.checked)
-      .map(el => el.dataset.tiFase)
+      .filter(el => el.checked).map(el => el.dataset.tiFase)
   );
   let count = 0;
   _tiLayer = L.geoJSON(_tiGeojson, {
     style: f => {
-      const fase = _ucProp(f.properties,'fase_ti','fase','situacao','status') || 'sem informação';
-      const cor  = _tiCorFase(fase);
-      return { color: cor, weight: 1.5, opacity: 0.9, fillColor: cor, fillOpacity: _tiOpacity };
+      const cor = _tiCorFase(f.properties.fase_ti);
+      return { color: cor, weight: 1.8, opacity: 0.9, fillColor: cor, fillOpacity: _tiOpacity };
     },
     filter: f => {
-      const fase = _ucProp(f.properties,'fase_ti','fase','situacao','status') || 'sem informação';
+      const fase = f.properties.fase_ti || 'Sem informação';
       if(fasesAtivas.size && !fasesAtivas.has(fase)) return false;
       count++;
       return true;
     },
     onEachFeature: (f, layer) => {
-      const p     = f.properties;
-      const nome  = _ucProp(p,'terrai_nom','nome','nome_ti','nm_terra_indigena','gid');
-      const fase  = _ucProp(p,'fase_ti','fase','situacao','status');
-      const etnia = _ucProp(p,'etnia_nome','etnia','etnias','povo');
-      const area  = _ucProp(p,'area_ha','area_calc_ha','area','st_area_shape_');
-      const cor   = _tiCorFase(fase);
+      const p   = f.properties;
+      const cor = _tiCorFase(p.fase_ti);
+      const ha  = p.superficie_perimetro_ha;
       layer.bindPopup(`
         <div class="camada-popup">
           <div class="cp-header" style="background:#92400e">🪶 Terra Indígena</div>
           <div class="cp-layer">
-            <div class="cp-layer-nome" style="color:#92400e">${esc(nome)}</div>
-            ${fase  ? `<div class="cp-row"><strong>Fase</strong><span style="text-transform:capitalize">${esc(fase)}</span></div>` : ''}
-            ${etnia ? `<div class="cp-row"><strong>Etnia(s)</strong><span>${esc(etnia)}</span></div>` : ''}
-            ${area  ? `<div class="cp-row"><strong>Área (ha)</strong><span>${Number(area).toLocaleString('pt-BR',{maximumFractionDigits:0})}</span></div>` : ''}
-            <div class="cp-badge" style="background:${cor}22;border-color:${cor};color:${cor};text-transform:capitalize">${fase||'—'}</div>
+            <div class="cp-layer-nome" style="color:#92400e">${esc(p.terrai_nome||'')}</div>
+            ${p.fase_ti      ? `<div class="cp-row"><strong>Fase</strong><span>${esc(p.fase_ti)}</span></div>` : ''}
+            ${p.etnia_nome   ? `<div class="cp-row"><strong>Etnia(s)</strong><span>${esc(p.etnia_nome)}</span></div>` : ''}
+            ${p.modalidade_ti? `<div class="cp-row"><strong>Modalidade</strong><span>${esc(p.modalidade_ti)}</span></div>` : ''}
+            ${ha             ? `<div class="cp-row"><strong>Área (ha)</strong><span>${Number(ha).toLocaleString('pt-BR',{maximumFractionDigits:0})}</span></div>` : ''}
+            <div class="cp-badge" style="background:${cor}22;border-color:${cor};color:${cor}">${esc(p.fase_ti||'—')}</div>
           </div>
         </div>`, { className:'camada-popup-wrap', maxWidth:300 }
       );
@@ -7269,7 +7257,7 @@ function _renderizarTI(){
   });
   _tiLayer.addTo(mapaL);
   const stat = document.getElementById('ti-stat');
-  if(stat) stat.textContent = `${count} terra${count!==1?'s':''} indígena${count!==1?'s':''} exibida${count!==1?'s':''}`;
+  if(stat) stat.textContent = `${count} terra${count!==1?'s':''} indígena${count!==1?'s':''}`;
   const badge = document.getElementById('ti-count-badge');
   if(badge){ badge.textContent = count; badge.style.display = count ? '' : 'none'; }
 }
