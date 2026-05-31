@@ -1927,7 +1927,7 @@ function fecharLayerBar(id){
 document.addEventListener('click', e => {
   const bar = document.getElementById('mapa-layerbar');
   if(bar && !bar.contains(e.target)){
-    ['veg','car'].forEach(k => {
+    ['veg','car','uc','ti'].forEach(k => {
       const p = document.getElementById('mlb-panel-' + k);
       if(p) p.style.display = 'none';
       document.getElementById('mlb-btn-' + k)?.classList.remove('ativo');
