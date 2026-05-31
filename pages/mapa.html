@@ -1910,7 +1910,7 @@ function toggleLayerBar(id){
   if(!panel) return;
   const abrindo = panel.style.display === 'none';
   // Fecha todos os outros painéis
-  ['veg','car'].forEach(k => {
+  ['veg','car','uc','ti'].forEach(k => {
     document.getElementById('mlb-panel-' + k).style.display = 'none';
     document.getElementById('mlb-btn-' + k)?.classList.remove('ativo');
   });
