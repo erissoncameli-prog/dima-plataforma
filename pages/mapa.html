@@ -7160,16 +7160,17 @@ function ucToggleGrupo(g){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TERRAS INDÍGENAS — FUNAI WFS
+// TERRAS INDÍGENAS — GeoJSON estático /data/ti_acre.geojson
+// Fonte: FUNAI · Campos: terrai_nome, etnia_nome, fase_ti,
+//        superficie_perimetro_ha, modalidade_ti
 // ═══════════════════════════════════════════════════════════════════════════
 
 const TI_FASES_COR = {
-  'regularizada':   '#15803d',
-  'homologada':     '#16a34a',
-  'declarada':      '#d97706',
-  'delimitada':     '#f59e0b',
-  'em estudo':      '#9ca3af',
-  'identificada':   '#6b7280',
+  'regularizada':      '#15803d',
+  'homologada':        '#16a34a',
+  'encaminhada ri':    '#0891b2',
+  'delimitada':        '#f59e0b',
+  'em estudo':         '#9ca3af',
 };
 function _tiCorFase(fase){
   if(!fase) return '#d97706';
