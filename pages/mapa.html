@@ -7013,44 +7013,22 @@ function togglePainelMobile(){
 //        esfera (federal/estadual), ano_cria
 // ═══════════════════════════════════════════════════════════════════════════
 
-const UC_CORES_PI = {
-  'Parque Nacional':              '#dc2626',
-  'Parque Estadual':              '#dc2626',
-  'Parque Natural Municipal':     '#dc2626',
-  'Estação Ecológica':            '#7f1d1d',
-  'Reserva Biológica':            '#991b1b',
-  'Monumento Natural':            '#c2410c',
-  'Refúgio de Vida Silvestre':    '#ea580c',
-};
-const UC_CORES_US = {
+// Cores por categoria (valores reais do dataset TerraBrasilis)
+const UC_CORES = {
+  'Parque':                               '#dc2626',
+  'Estação Ecológica':                    '#7f1d1d',
+  'Reserva Biológica':                    '#991b1b',
+  'Monumento Natural':                    '#c2410c',
+  'Refúgio de Vida Silvestre':            '#ea580c',
   'Área de Proteção Ambiental':           '#2563eb',
   'Área de Relevante Interesse Ecológico':'#d97706',
-  'Floresta Nacional':                    '#0369a1',
-  'Floresta Estadual':                    '#0284c7',
+  'Floresta':                             '#0369a1',
   'Reserva Extrativista':                 '#059669',
   'Reserva de Desenvolvimento Sustentável':'#0891b2',
   'Reserva de Fauna':                     '#7c3aed',
   'Reserva Particular do Patrimônio Natural':'#4f46e5',
 };
-
-function _ucCor(categoria){
-  if(!categoria) return '#6b7280';
-  return UC_CORES_PI[categoria] || UC_CORES_US[categoria] || '#6b7280';
-}
-function _ucGrupo(categoria){
-  if(!categoria) return 'us';
-  const pi = ['parque','estação','reserva biol','monumento','refúgio','refugio'];
-  const low = categoria.toLowerCase();
-  return pi.some(k => low.includes(k)) ? 'pi' : 'us';
-}
-
-// Normaliza campo: tenta múltiplos nomes de campo
-function _ucProp(props, ...keys){
-  for(const k of keys){
-    if(props[k] !== undefined && props[k] !== null && props[k] !== '') return String(props[k]);
-  }
-  return '';
-}
+function _ucCor(cat){ return UC_CORES[cat] || '#6b7280'; }
 
 let _ucGeojson = null;   // raw GeoJSON features
 let _ucLayer   = null;   // L.geoJSON layer
