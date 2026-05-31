@@ -7030,54 +7030,29 @@ const UC_CORES = {
 };
 function _ucCor(cat){ return UC_CORES[cat] || '#6b7280'; }
 
-let _ucGeojson = null;   // raw GeoJSON features
-let _ucLayer   = null;   // L.geoJSON layer
+let _ucGeojson = null;
+let _ucLayer   = null;
 let _ucOpacity = 0.4;
 let _ucAtivo   = false;
-let _ucTiposFiltro = new Set(); // tipos marcados
 
 let _tiGeojson = null;
 let _tiLayer   = null;
 let _tiOpacity = 0.4;
 let _tiAtivo   = false;
-let _tiFasesFiltro = new Set();
 
-// ── Carregar UC ────────────────────────────────────────────────────────────
 async function _carregarUC(){
-  const loading = document.getElementById('uc-loading');
-  loading.style.display = 'flex';
+  document.getElementById('uc-loading').style.display = 'flex';
   try {
-    // Fonte 1: TerraBrasilis — camada unificada de UCs
-    const url = 'https://terrabrasilis.dpi.inpe.br/geoserver/uc/wfs?' +
-      'service=WFS&version=1.1.0&request=GetFeature' +
-      '&typeName=uc:ucs_referencia' +
-      '&outputFormat=application/json' +
-      '&srsName=EPSG:4326' +
-      '&BBOX=-73.99,-11.15,-66.49,-7.10,EPSG:4326';
-    const r = await fetch(url);
+    const r = await fetch('../data/uc_acre.geojson');
     if(!r.ok) throw new Error('HTTP ' + r.status);
     _ucGeojson = await r.json();
-    if(!_ucGeojson.features?.length) throw new Error('sem dados');
   } catch(e) {
-    console.warn('TerraBrasilis UC falhou, tentando IBGE…', e);
-    try {
-      // Fonte 2: IBGE geoserver (fallback)
-      const url2 = 'https://geoserver.ibge.gov.br/geoserver/CCAR/wfs?' +
-        'service=WFS&version=1.0.0&request=GetFeature' +
-        '&typeName=CCAR:BC250_UnidConservacao_A' +
-        '&outputFormat=application/json' +
-        '&CQL_FILTER=sigla_uf=%27AC%27';
-      const r2 = await fetch(url2);
-      if(!r2.ok) throw new Error('HTTP ' + r2.status);
-      _ucGeojson = await r2.json();
-    } catch(e2) {
-      loading.style.display = 'none';
-      document.getElementById('uc-controles').style.display = 'flex';
-      document.getElementById('uc-stat').textContent = '⚠ Não foi possível carregar dados do servidor.';
-      return;
-    }
+    document.getElementById('uc-loading').style.display = 'none';
+    document.getElementById('uc-controles').style.display = 'flex';
+    document.getElementById('uc-stat').textContent = '⚠ Erro ao carregar UC: ' + e.message;
+    return;
   }
-  loading.style.display = 'none';
+  document.getElementById('uc-loading').style.display = 'none';
   document.getElementById('uc-controles').style.display = 'flex';
   _ucConstruirFiltrosTipos();
   _renderizarUC();
