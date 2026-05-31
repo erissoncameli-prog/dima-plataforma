@@ -680,6 +680,149 @@ function renderPagina(){
       </button>` : ''}
     </div>
 
+    <!-- ── Barra de camadas superior ── -->
+    <div class="mapa-layerbar" id="mapa-layerbar">
+      <div class="mlb-tabs">
+        <button class="mlb-tab" id="mlb-btn-veg" onclick="toggleLayerBar('veg')">
+          🌿 Cobertura Vegetal
+        </button>
+        <button class="mlb-tab" id="mlb-btn-car" onclick="toggleLayerBar('car')">
+          🏡 CAR — Imóveis Rurais
+          <span class="mlb-badge" id="car-count-badge" style="display:none">0</span>
+        </button>
+      </div>
+
+      <!-- Painel: Cobertura Vegetal -->
+      <div class="mlb-dropdown" id="mlb-panel-veg" style="display:none">
+        <div class="mlb-dropdown-header">
+          <span class="mlb-dropdown-title">🌿 Cobertura Vegetal</span>
+          <button class="mlb-close" onclick="fecharLayerBar('veg')">✕</button>
+        </div>
+        <div class="mlb-dropdown-body">
+          <div class="mlb-veg-grid">
+
+            <!-- PRODES Anual -->
+            <div class="mlb-veg-card">
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fef2f2;border-bottom:1px solid #fecaca">
+                <input type="checkbox" id="veg-prodes-toggle" style="accent-color:#dc2626;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('prodes',this.checked)">
+                <span style="font-size:11px;font-weight:600;color:var(--cinza-800);flex:1">PRODES Anual</span>
+                <span style="font-size:9px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:99px;padding:1px 5px;font-weight:600">INPE</span>
+              </div>
+              <div style="padding:7px 8px;display:flex;flex-direction:column;gap:5px">
+                <div style="font-size:9px;color:var(--cinza-500);line-height:1.3">Desmatamento 2008–hoje via satélite.</div>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <span style="font-size:9px;color:var(--cinza-500)">Opac.</span>
+                  <input type="range" min="10" max="100" value="75" class="camada-slider" id="veg-prodes-opacity" oninput="setOpacidadeVeg('prodes',this.value)" style="flex:1">
+                  <span id="veg-prodes-opacity-val" style="font-size:9px;font-weight:700;color:var(--cinza-700);width:24px;text-align:right">75%</span>
+                </div>
+                <div id="veg-prodes-legenda" style="display:none">
+                  <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700)"><div style="width:8px;height:8px;background:#e53e3e;border-radius:2px;flex-shrink:0"></div>Recente</div>
+                  <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700);margin-top:1px"><div style="width:8px;height:8px;background:#f6ad55;border-radius:2px;flex-shrink:0"></div>Anterior</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PRODES Pré-2008 -->
+            <div class="mlb-veg-card">
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff7ed;border-bottom:1px solid #fed7aa">
+                <input type="checkbox" id="veg-prodes-hist-toggle" style="accent-color:#c2410c;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('prodes_hist',this.checked)">
+                <span style="font-size:11px;font-weight:600;color:var(--cinza-800);flex:1">PRODES Pré-2008</span>
+                <span style="font-size:9px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:99px;padding:1px 5px;font-weight:600">INPE</span>
+              </div>
+              <div style="padding:7px 8px;display:flex;flex-direction:column;gap:5px">
+                <div style="font-size:9px;color:var(--cinza-500);line-height:1.3">Acumulado histórico até 2007.</div>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <span style="font-size:9px;color:var(--cinza-500)">Opac.</span>
+                  <input type="range" min="10" max="100" value="75" class="camada-slider" id="veg-prodes-hist-opacity" oninput="setOpacidadeVeg('prodes_hist',this.value)" style="flex:1">
+                  <span id="veg-prodes-hist-opacity-val" style="font-size:9px;font-weight:700;color:var(--cinza-700);width:24px;text-align:right">75%</span>
+                </div>
+                <div id="veg-prodes-hist-legenda" style="display:none">
+                  <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700)"><div style="width:8px;height:8px;background:#c2410c;border-radius:2px;flex-shrink:0"></div>Acumulado ≤ 2007</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MapBiomas -->
+            <div class="mlb-veg-card">
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--cinza-50);border-bottom:1px solid var(--borda)">
+                <input type="checkbox" id="veg-mapbiomas-toggle" style="accent-color:#16a34a;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('mapbiomas',this.checked)">
+                <span style="font-size:11px;font-weight:600;color:var(--cinza-800);flex:1">MapBiomas 2023</span>
+                <span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:99px;padding:1px 5px;font-weight:600">BR</span>
+              </div>
+              <div style="padding:7px 8px;display:flex;flex-direction:column;gap:5px">
+                <div style="font-size:9px;color:var(--cinza-500);line-height:1.3">Uso e cobertura do solo. Resolução 30m.</div>
+                <div style="display:flex;align-items:center;gap:5px">
+                  <span style="font-size:9px;color:var(--cinza-500)">Opac.</span>
+                  <input type="range" min="10" max="100" value="70" class="camada-slider" id="veg-mapbiomas-opacity" oninput="setOpacidadeVeg('mapbiomas',this.value)" style="flex:1">
+                  <span id="veg-mapbiomas-opacity-val" style="font-size:9px;font-weight:700;color:var(--cinza-700);width:24px;text-align:right">70%</span>
+                </div>
+                <div id="veg-mapbiomas-legenda" style="display:none;margin-top:2px">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">
+                    <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700)"><div style="width:8px;height:8px;background:#1f8d49;border-radius:2px;flex-shrink:0"></div>Floresta</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700)"><div style="width:8px;height:8px;background:#e974ed;border-radius:2px;flex-shrink:0"></div>Pastagem</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700)"><div style="width:8px;height:8px;background:#d6bc74;border-radius:2px;flex-shrink:0"></div>Agricultura</div>
+                    <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700)"><div style="width:8px;height:8px;background:#2532e4;border-radius:2px;flex-shrink:0"></div>Água</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel: CAR -->
+      <div class="mlb-dropdown" id="mlb-panel-car" style="display:none;left:auto;min-width:480px">
+        <div class="mlb-dropdown-header">
+          <span class="mlb-dropdown-title">🏡 CAR — Imóveis Rurais</span>
+          <button class="mlb-close" onclick="fecharLayerBar('car')">✕</button>
+        </div>
+        <div class="mlb-dropdown-body">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--cinza-700)">
+            <input type="checkbox" id="car-toggle" style="accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer" onchange="toggleCamadaCAR(this)">
+            <strong>Exibir imóveis CAR</strong>
+          </label>
+          <div id="car-loading" style="display:none;font-size:11px;color:var(--cinza-400);align-items:center;gap:6px;padding:4px 0">
+            <div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+            Carregando imóveis…
+          </div>
+          <div id="car-filtros-wrap" style="display:none;flex-direction:column;gap:8px">
+            <div class="mlb-car-row">
+              <div class="mlb-car-col">
+                <label style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">Filtrar por APA</label>
+                <select id="car-sel-apa" style="font-size:12px;padding:5px 8px;border:1px solid var(--borda);border-radius:var(--raio);font-family:inherit;width:100%" onchange="aplicarFiltrosCAR()">
+                  <option value="todas">Todas as APAs</option>
+                  <option value="isf">Igarapé São Francisco</option>
+                  <option value="la">Lago do Amapá</option>
+                </select>
+              </div>
+              <div class="mlb-car-col">
+                <label style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">Filtrar por Sub-bacia</label>
+                <select id="car-sel-sub" style="font-size:12px;padding:5px 8px;border:1px solid var(--borda);border-radius:var(--raio);font-family:inherit;width:100%" onchange="aplicarFiltrosCAR()">
+                  <option value="todas">Todas as sub-bacias</option>
+                </select>
+              </div>
+              <div class="mlb-car-col" style="min-width:120px;max-width:160px">
+                <div style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Situação</div>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="ativo" style="accent-color:#16a34a;cursor:pointer" onchange="aplicarFiltrosCAR()"> Ativo</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="aguardando" style="accent-color:#d97706;cursor:pointer" onchange="aplicarFiltrosCAR()"> Aguardando</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="analise" style="accent-color:#1d4ed8;cursor:pointer" onchange="aplicarFiltrosCAR()"> Em análise</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="outro" style="accent-color:#9ca3af;cursor:pointer" onchange="aplicarFiltrosCAR()"> Outros</label>
+              </div>
+              <div class="mlb-car-col" style="min-width:120px">
+                <div style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Legenda</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#16a34a33;border-color:#16a34a"></div>Ativo</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#d9770633;border-color:#d97706"></div>Aguardando</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#2563eb22;border-color:#2563eb"></div>Em análise</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#9ca3af22;border-color:#9ca3af"></div>Outros</div>
+              </div>
+            </div>
+            <div id="car-stats-bloco" style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;font-size:11px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Mapa + painel -->
     <div class="mapa-container">
       <div id="mapa"></div>
