@@ -3835,6 +3835,7 @@ function _renderCarDetBody(){
   if(!bod) return;
   if(_carDetAba === 'atributos')          bod.innerHTML = _htmlCarAtributos(_carAbertoFeat);
   else if(_carDetAba === 'diagnostico') { bod.innerHTML = _htmlCarDiagLoading(); _iniciarDiagnosticoCAR(_carAbertoFeat); }
+  else if(_carDetAba === 'prodes')      { bod.innerHTML = _htmlProdesLoading(); _iniciarProdesCAR(_carAbertoFeat); }
   else if(_carDetAba === 'estilo')        bod.innerHTML = _htmlCarEstilo(_carAbertoFeat);
   else if(_carDetAba === 'marcados')      bod.innerHTML = _htmlCarMarcados();
 }
