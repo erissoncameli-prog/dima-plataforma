@@ -1246,6 +1246,67 @@ function _bmgToggle(header){
   if(icon){ icon.textContent = _bmgOpen ? '▲' : '▼'; }
 }
 
+// ── Cobertura Vegetal — WMS overlays ──────────────────────────────────────
+const VEG_LAYERS = {
+  ndvi: {
+    layer: null,
+    make(opacity){
+      // NASA GIBS — MODIS NDVI (Terra, 8-day composite, colormap RdYlGn)
+      return L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
+        layers: 'MODIS_Terra_NDVI_8Day',
+        format: 'image/png',
+        transparent: true,
+        version: '1.3.0',
+        attribution: 'NASA GIBS / MODIS Terra',
+        opacity: opacity / 100,
+        maxZoom: 22,
+        maxNativeZoom: 9,
+      });
+    }
+  },
+  mapbiomas: {
+    layer: null,
+    make(opacity){
+      // MapBiomas — coleção 8 (2023), bioma Amazônia via TMS público
+      return L.tileLayer(
+        'https://storage.googleapis.com/mapbiomas-public/brasil/collection-8/lclu/coverage/{z}/{x}/{y}.png',
+        {
+          attribution: 'MapBiomas Coleção 8 (2023)',
+          opacity: opacity / 100,
+          maxZoom: 22,
+          maxNativeZoom: 12,
+        }
+      );
+    }
+  },
+};
+
+function toggleCamadaVeg(id, ativo){
+  const cfg = VEG_LAYERS[id];
+  if(!cfg) return;
+  if(ativo){
+    const opacityEl = document.getElementById(`veg-${id}-opacity`);
+    const opacity = opacityEl ? parseInt(opacityEl.value) : 70;
+    cfg.layer = cfg.make(opacity);
+    cfg.layer.addTo(mapaL);
+    // garante que fica abaixo dos pontos/camadas
+    cfg.layer.setZIndex(150);
+    const leg = document.getElementById(`veg-${id}-legenda`);
+    if(leg) leg.style.display = '';
+  } else {
+    if(cfg.layer){ mapaL.removeLayer(cfg.layer); cfg.layer = null; }
+    const leg = document.getElementById(`veg-${id}-legenda`);
+    if(leg) leg.style.display = 'none';
+  }
+}
+
+function setOpacidadeVeg(id, val){
+  const cfg = VEG_LAYERS[id];
+  const valEl = document.getElementById(`veg-${id}-opacity-val`);
+  if(valEl) valEl.textContent = val + '%';
+  if(cfg?.layer) cfg.layer.setOpacity(val / 100);
+}
+
 // ── Camadas de delimitação (Supabase) ─────────────────────────────────────
 
 async function carregarCamadas(){
