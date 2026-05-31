@@ -4618,6 +4618,25 @@ function _htmlProdes(d, f){
       ⚠️ <strong>Precisão:</strong> Dados PRODES têm resolução de 30m (Landsat/Sentinel-2). Margens de erro de 5–15% são esperadas. Para uso oficial, consulte o INPE diretamente.
     </div>
 
+    <!-- Toggles de camada no mapa -->
+    <div style="padding:8px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">🗺 Exibir no mapa</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;border-bottom:1px solid var(--cinza-100)">
+        <input type="checkbox" id="prodes-tab-toggle-anual"
+          style="accent-color:#dc2626;width:13px;height:13px;cursor:pointer"
+          onchange="toggleCamadaVeg('prodes',this.checked);document.getElementById('veg-prodes-toggle')&&(document.getElementById('veg-prodes-toggle').checked=this.checked)">
+        <div style="width:12px;height:12px;background:#e53e3e;border-radius:2px;flex-shrink:0"></div>
+        <span style="font-size:11px;color:var(--cinza-700);flex:1">Desmatamento anual (2008–hoje)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">
+        <input type="checkbox" id="prodes-tab-toggle-hist"
+          style="accent-color:#c2410c;width:13px;height:13px;cursor:pointer"
+          onchange="toggleCamadaVeg('prodes_hist',this.checked);document.getElementById('veg-prodes-hist-toggle')&&(document.getElementById('veg-prodes-hist-toggle').checked=this.checked)">
+        <div style="width:12px;height:12px;background:#c2410c;border-radius:2px;flex-shrink:0"></div>
+        <span style="font-size:11px;color:var(--cinza-700);flex:1">Acumulado pré-2008</span>
+      </label>
+    </div>
+
     <!-- Link fonte -->
     <div style="text-align:center">
       <a href="https://terrabrasilis.dpi.inpe.br/app/dashboard/deforestation/biomes/amazon/increments" target="_blank"
