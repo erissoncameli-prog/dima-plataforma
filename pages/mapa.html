@@ -4666,8 +4666,94 @@ function _gerarTextoCarDiag(d, p, local){
     if(classMsgs[local.nome_class]) t.push(classMsgs[local.nome_class]);
   }
 
+  // Contexto PRODES (se disponível no cache)
+  const prodes = _carProdesCache.get(p.cod_imovel);
+  if(prodes && !prodes.erro){
+    const f2p = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+    const f1p = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+    const areaRef = parseFloat(p.area) || d.areaCAR || 1;
+
+    if(prodes.historico.totalHa > 0){
+      const pct = (prodes.historico.totalHa / areaRef * 100);
+      t.push(`🕰 <strong>Passivo histórico (PRODES pré-2008)</strong>: ${f2p(prodes.historico.totalHa)} ha (${f1p(pct)}% da área) já se encontravam desmatados antes de 2008, conforme o mapeamento acumulado do PRODES/INPE. Esse passivo representa supressão ocorrida antes do monitoramento sistemático por satélite e pode não estar totalmente capturado nas camadas locais.`);
+    }
+
+    if(prodes.anual.totalHa > 0){
+      const pct = (prodes.anual.totalHa / areaRef * 100);
+      const anoMaisRecente = prodes.anosAnual[prodes.anosAnual.length - 1];
+      const haMaisRecente = prodes.anual.porAno[anoMaisRecente] || 0;
+      t.push(`📡 <strong>Desmatamento pós-2008 (PRODES anual)</strong>: ${f2p(prodes.anual.totalHa)} ha (${f1p(pct)}%) detectados por satélite entre 2008 e ${anoMaisRecente}. O ano com maior supressão recente foi <strong>${anoMaisRecente}</strong> com ${f2p(haMaisRecente)} ha. Fonte oficial: INPE/TerraBrasilis.`);
+    }
+
+    if(prodes.totalGeral > 0){
+      const pctTotal = (prodes.totalGeral / areaRef * 100);
+      const grau = pctTotal > 50 ? 'extremamente comprometido' : pctTotal > 30 ? 'fortemente impactado' : pctTotal > 10 ? 'moderadamente impactado' : 'com baixo passivo registrado';
+      t.push(`📊 <strong>Passivo total PRODES</strong>: somando histórico e anual, o imóvel acumula <strong>${f2p(prodes.totalGeral)} ha (${f1p(pctTotal)}%)</strong> de desmatamento registrado pelo INPE — ${grau} segundo os dados oficiais.`);
+    }
+
+    if(prodes.totalGeral === 0)
+      t.push(`📡 <strong>PRODES/INPE</strong>: nenhum polígono de desmatamento detectado dentro do imóvel nos registros oficiais (pré e pós-2008).`);
+  }
+
   return t.map(s => `<p style="margin:0 0 5px">${s}</p>`).join('');
 }
+
+// ── Bloco PRODES embutido no Diagnóstico ──────────────────────────────────
+function _htmlDiagProdes(cod, areaCAR){
+  const prodes = _carProdesCache.get(cod);
+
+  if(!prodes){
+    return `<div style="padding:8px 12px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:var(--raio);font-size:11px;color:var(--cinza-400);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+      <span>🌳</span>
+      <span>Dados PRODES/INPE não carregados. Acesse a aba <strong>🌳 PRODES</strong> para carregar os dados oficiais de desmatamento.</span>
+    </div>`;
+  }
+
+  if(prodes.erro){
+    return `<div style="padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio);font-size:11px;color:#dc2626;margin-bottom:8px">
+      ⚠️ Dados PRODES indisponíveis: ${prodes.erro}
+    </div>`;
+  }
+
+  const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f1 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:1});
+  const area = areaCAR || 1;
+  const pctHist  = f1(prodes.historico.totalHa / area * 100);
+  const pctAnual = f1(prodes.anual.totalHa / area * 100);
+  const pctTotal = f1(prodes.totalGeral / area * 100);
+  const corTotal = prodes.totalGeral / area > 0.30 ? '#dc2626' : prodes.totalGeral / area > 0.10 ? '#d97706' : '#16a34a';
+
+  return `
+  <div style="border:1px solid #e2e8f0;border-radius:var(--raio);overflow:hidden;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+      <span style="font-size:13px">🌳</span>
+      <span style="font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;flex:1">Monitoramento PRODES/INPE</span>
+      <span style="font-size:9px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:99px;padding:1px 6px;font-weight:600">Oficial</span>
+    </div>
+    <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="text-align:center;padding:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px">
+          <div style="font-size:13px;font-weight:700;color:#c2410c">${f2(prodes.historico.totalHa)} ha</div>
+          <div style="font-size:9px;color:#9a3412">Pré-2008 (${pctHist}%)</div>
+        </div>
+        <div style="text-align:center;padding:6px;background:#fef2f2;border:1px solid #fca5a5;border-radius:5px">
+          <div style="font-size:13px;font-weight:700;color:#dc2626">${f2(prodes.anual.totalHa)} ha</div>
+          <div style="font-size:9px;color:#991b1b">Pós-2008 (${pctAnual}%)</div>
+        </div>
+        <div style="text-align:center;padding:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px">
+          <div style="font-size:13px;font-weight:700;color:${corTotal}">${f2(prodes.totalGeral)} ha</div>
+          <div style="font-size:9px;color:#6b7280">Total (${pctTotal}%)</div>
+        </div>
+      </div>
+      ${prodes.anosAnual.length > 0 ? `
+      <div style="font-size:10px;color:var(--cinza-500)">
+        Anos com detecção: <strong style="color:var(--cinza-700)">${prodes.anosAnual.join(', ')}</strong>
+      </div>` : ''}
+      <div style="font-size:9px;color:#9ca3af;line-height:1.4">
+        Fonte: PRODES/INPE via TerraBrasilis · Resolução 30m · Interseção geométrica com polígono CAR
+      </div>
+    </div>
+  </div>`;
 
 // ── Aba Marcados ──────────────────────────────────────────────────────────
 function _htmlCarMarcados(){
