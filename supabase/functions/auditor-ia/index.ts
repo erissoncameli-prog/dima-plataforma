@@ -203,26 +203,7 @@ async function auditarFinanceiro(db: any): Promise<Achado[]> {
     }
   }
 
-  // 2c. Lançamentos sem contrato vinculado
-  const { data: semContrato } = await db
-    .from('lancamentos_financeiros')
-    .select('id, numero, descricao, valor_brl, tipo')
-    .is('contrato_id', null)
-    .eq('tipo', 'despesa')
-    .limit(20)
-
-  for (const lf of semContrato || []) {
-    achados.push({
-      dominio: 'financeiro',
-      severidade: 'medio',
-      titulo: `Lançamento ${lf.numero} sem contrato vinculado`,
-      descricao: `O lançamento de despesa "${lf.descricao || ''}" no valor de R$ ${lf.valor_brl || '?'} não está associado a nenhum contrato. Isso dificulta a rastreabilidade financeira.`,
-      recomendacao: 'Vincular o lançamento ao contrato correto ou justificar por que é uma despesa direta.',
-      referencia_tabela: 'lancamentos_financeiros',
-      referencia_id: lf.id,
-      referencia_label: `Lançamento ${lf.numero}`,
-    })
-  }
+  // 2c. Lançamentos sem contrato vinculado — desativado (diárias e passagens são emitidas diretamente pela UNESCO)
 
   return achados
 }
