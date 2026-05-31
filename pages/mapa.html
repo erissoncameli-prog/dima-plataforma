@@ -1261,22 +1261,6 @@ function _bmgToggle(header){
 
 // ── Cobertura Vegetal — WMS overlays ──────────────────────────────────────
 const VEG_LAYERS = {
-  ndvi: {
-    layer: null,
-    make(opacity){
-      // NASA GIBS — MODIS NDVI (Terra, 8-day composite, colormap RdYlGn)
-      return L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
-        layers: 'MODIS_Terra_NDVI_8Day',
-        format: 'image/png',
-        transparent: true,
-        version: '1.3.0',
-        attribution: 'NASA GIBS / MODIS Terra',
-        opacity: opacity / 100,
-        maxZoom: 22,
-        maxNativeZoom: 9,
-      });
-    }
-  },
   mapbiomas: {
     layer: null,
     make(opacity){
