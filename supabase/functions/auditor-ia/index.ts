@@ -503,7 +503,7 @@ async function auditarQualidadeDados(db: any): Promise<Achado[]> {
     const { count } = await db
       .from('contratos')
       .select('id', { count: 'exact', head: true })
-      .contains('atividades', [atv.id])
+      .eq('atividade_id', atv.id)
 
     if ((count || 0) === 0) {
       achados.push({
