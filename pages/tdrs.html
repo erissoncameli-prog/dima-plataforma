@@ -1362,15 +1362,71 @@ function _mostrarProgressoAgente(){
 function _atualizarProgressoAgente(etapa, pct){
   const barra=document.getElementById('agente-barra');
   const etapaEl=document.getElementById('agente-etapa');
-  const msgs=['Preparando submissão...','Lendo documento anexado...','Analisando com inteligência artificial...','Salvando resultado...'];
+
+  const msgs=[
+    'Hm... deixa eu ver esse documento!',
+    'Fascinante... lendo cada cláusula...',
+    'Eureka! Encontrei algo suspeito aqui...',
+    'Arquivando o relatório final...'
+  ];
+  const balaoTexts=['Submetendo!','Lendo...','Aha!','Salvo! ✓'];
+  const sobrancelhas=[
+    // etapa 0: neutro/concentrado
+    {e:'M 60 58 Q 68 54 76 57', d:'M 84 57 Q 92 54 100 58'},
+    // etapa 1: franzido (lendo)
+    {e:'M 60 56 Q 68 56 76 58', d:'M 84 58 Q 92 56 100 56'},
+    // etapa 2: surpreso (aha!)
+    {e:'M 60 54 Q 68 50 76 53', d:'M 84 53 Q 92 50 100 54'},
+    // etapa 3: satisfeito
+    {e:'M 60 58 Q 68 55 76 58', d:'M 84 58 Q 92 55 100 58'},
+  ];
+  const lupas=[
+    '_detetive-lupa-scan',
+    '_detetive-lupa-lendo',
+    '_detetive-lupa-analisa',
+    '_detetive-lupa-salva',
+  ];
+  const etapaEls=['etapa-envelope','etapa-doc','etapa-gear','etapa-check'];
+
   if(barra)barra.style.width=pct+'%';
   if(etapaEl)etapaEl.textContent=msgs[etapa]||'';
+
+  // Dots
   for(let i=0;i<4;i++){
-    const c=document.getElementById(`dot-circle-${i}`);
-    if(!c)continue;
-    if(i<etapa)c.style.background='var(--verde-claro)';
-    else if(i===etapa)c.style.background='var(--azul-medio)';
-    else c.style.background='var(--cinza-200)';
+    const dot=document.getElementById(`dot-${i}`);
+    if(!dot)continue;
+    dot.className='detetive-dot'+(i<etapa?' feito':i===etapa?' ativo':'');
+  }
+
+  // Sobrancelhas
+  const sb=sobrancelhas[etapa];
+  if(sb){
+    const se=document.getElementById('sobrancelha-e');
+    const sd=document.getElementById('sobrancelha-d');
+    if(se)se.setAttribute('d',sb.e);
+    if(sd)sd.setAttribute('d',sb.d);
+  }
+
+  // Animação da lupa
+  const bracoDirEl=document.getElementById('braco-dir');
+  if(bracoDirEl){
+    lupas.forEach(l=>bracoDirEl.style.animation='');
+    bracoDirEl.style.animation=`${lupas[etapa]} 2.5s ease-in-out infinite`;
+  }
+
+  // Elementos por etapa
+  etapaEls.forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el)el.style.opacity=i===etapa?'1':'0';
+  });
+
+  // Balão de fala
+  const balao=document.getElementById('balao-fala');
+  const balaoTxt=document.getElementById('balao-texto');
+  if(balao&&balaoTxt){
+    balaoTxt.textContent=balaoTexts[etapa]||'';
+    balao.style.opacity='1';
+    setTimeout(()=>{ if(balao)balao.style.opacity='0'; },2200);
   }
 }
 
