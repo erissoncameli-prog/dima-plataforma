@@ -5777,16 +5777,22 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
 
 .nota{margin-top:16px;font-size:10px;color:#9ca3af;line-height:1.6;border-top:1px solid #e5e7eb;padding-top:10px;}
 
+/* @page reserva margem física em TODAS as páginas do PDF —
+   o cabeçalho/rodapé fixos ficam na área de margem, sem sobrepor conteúdo */
+@page{margin-top:178px;margin-bottom:54px;margin-left:0;margin-right:0;}
 @media print{
   body{background:#fff;}
   .doc-wrap{box-shadow:none;max-width:100%;border-radius:0;margin:0;}
+  /* Cabeçalho e rodapé ficam na área de margem (@page) — não interferem no conteúdo */
   .doc-header{position:fixed;top:0;left:0;right:0;background:#fff;z-index:100;}
   .doc-footer{position:fixed;bottom:0;left:0;right:0;z-index:100;}
   .doc-watermark{position:fixed;top:50vh;left:50%;z-index:0;}
-  .ficha .doc-body{padding-top:172px;padding-bottom:20px;}
-  .resumo-secao .doc-body{padding-top:172px;padding-bottom:20px;}
-  .capa-body{padding-top:172px;}
-  .mapa-img{height:280px;}
+  /* Sem padding artificial — @page já garante o espaço em todas as páginas */
+  .ficha .doc-body{padding-top:0;padding-bottom:0;}
+  .resumo-secao .doc-body{padding-top:0;padding-bottom:0;}
+  .capa-body{padding-top:0;}
+  /* Mapa: contain preserva a legenda e não corta bordas */
+  .mapa-img{height:auto;max-height:320px;object-fit:contain;background:#1a2030;}
   .diag-cards{grid-template-columns:repeat(8,1fr);}
 }
 </style>
