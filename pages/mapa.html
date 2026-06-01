@@ -3929,7 +3929,7 @@ async function _buscarDadosLocais(cod){
   if(!cod) return null;
   if(_carDadosLocais.has(cod)) return _carDadosLocais.get(cod);
   const { data } = await db.from('car_dados_locais')
-    .select('nom_imovel,nome_compl,cpf_cnpj,nome_class,tipo_docum,nome_docum,dat_criaca')
+    .select('nom_imovel,nome_compl,cpf_cnpj,num_area_i,num_modulo,nom_munici,ind_status,condicao_i,nome_class,tipo_docum,nome_docum,dat_criaca')
     .eq('cod_imovel', cod)
     .maybeSingle();
   _carDadosLocais.set(cod, data || null);
