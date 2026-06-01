@@ -3951,6 +3951,10 @@ async function carregarDadosCAR(){
     }
 
     _carFeatures = features;
+    // Garante que o GeoJSON de UCs está disponível para classificação
+    if(!_ucGeojson){
+      try{ const r = await fetch('../data/uc_acre.geojson'); _ucGeojson = await r.json(); }catch(e){}
+    }
     _computarAtributosCAR();
     await _carregarMarcados(); // carrega marcados/estilos do banco
     _carCarregado  = true;
