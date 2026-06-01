@@ -7901,7 +7901,7 @@ var _munCor     = '#94a3b8';
 async function _carregarMunicipios() {
   document.getElementById('mun-loading').style.display = 'flex';
   try {
-    var r = await fetch('https://servicodados.ibge.gov.br/api/v3/malhas/estados/12?resolucao=5&formato=application/vnd.geo%2Bjson');
+    var r = await fetch('../data/municipios_acre.geojson');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     var geojson = await r.json();
     if (!mapaL.getPane('munPane')) {
