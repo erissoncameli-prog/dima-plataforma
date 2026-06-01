@@ -821,11 +821,10 @@ function renderPagina(){
           <div id="car-filtros-wrap" style="display:none;flex-direction:column;gap:8px">
             <div class="mlb-car-row">
               <div class="mlb-car-col">
-                <label style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">Filtrar por APA</label>
-                <select id="car-sel-apa" style="font-size:12px;padding:5px 8px;border:1px solid var(--borda);border-radius:var(--raio);font-family:inherit;width:100%" onchange="aplicarFiltrosCAR()">
-                  <option value="todas">Todas as APAs</option>
-                  <option value="isf">Igarapé São Francisco</option>
-                  <option value="la">Lago do Amapá</option>
+                <label style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px">Filtrar por UC</label>
+                <select id="car-sel-uc" style="font-size:12px;padding:5px 8px;border:1px solid var(--borda);border-radius:var(--raio);font-family:inherit;width:100%" onchange="aplicarFiltrosCAR()">
+                  <option value="todas">Todas as UCs</option>
+                  <option value="fora">Fora de UCs</option>
                 </select>
               </div>
               <div class="mlb-car-col">
