@@ -6031,7 +6031,35 @@ function _htmlFichaCAR(f, imgData){
             <div class="diag-card-lbl">Déficit<br>restore (ha)</div>
           </div>
         </div>
-        <div class="analise" style="margin:0;font-size:10.5px">
+        ${diag.camadasAdicionais?.length ? `
+        <div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:8px">
+          <div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">🗂 Camadas Adicionais (${diag.camadasAdicionais.length})</div>
+          <table style="width:100%;border-collapse:collapse;font-size:10px">
+            <thead><tr>
+              <th style="text-align:left;padding:3px 6px;background:#f0f7f2;border:1px solid #e5e7eb;font-size:9px;color:#374151">Camada</th>
+              <th style="text-align:left;padding:3px 6px;background:#f0f7f2;border:1px solid #e5e7eb;font-size:9px;color:#374151">Tipo</th>
+              <th style="text-align:right;padding:3px 6px;background:#f0f7f2;border:1px solid #e5e7eb;font-size:9px;color:#374151">Valor</th>
+              <th style="text-align:left;padding:3px 6px;background:#f0f7f2;border:1px solid #e5e7eb;font-size:9px;color:#374151">Classes detectadas</th>
+            </tr></thead>
+            <tbody>
+              ${diag.camadasAdicionais.map(c => {
+                const f2c = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+                const val = c.tipo==='poligono'
+                  ? `${f2c(c.areaHa)} ha (${Number(c.pctCam).toFixed(1)}%)`
+                  : c.tipo==='linha' ? `${c.contagem} seg. / ${f2c(c.comprKm)} km`
+                  : `${c.contagem} ponto(s)`;
+                const tipoLabel = c.tipo==='poligono'?'Polígono':c.tipo==='linha'?'Linha':'Ponto';
+                return `<tr>
+                  <td style="padding:3px 6px;border:1px solid #e5e7eb;font-weight:600">${c.nome}</td>
+                  <td style="padding:3px 6px;border:1px solid #e5e7eb;color:#6b7280">${tipoLabel}</td>
+                  <td style="padding:3px 6px;border:1px solid #e5e7eb;text-align:right;font-weight:600;color:#1F4E2C">${val}</td>
+                  <td style="padding:3px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:9px">${c.valores.join(', ')||'—'}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>` : ''}
+        <div class="analise" style="margin:8px 0 0;font-size:10.5px">
           <div class="analise-title">📋 Análise Ambiental</div>
           ${descricao}
         </div>
