@@ -3669,6 +3669,9 @@ function _iniciarClickCamadas(getCamadas){
       if(carHit){
         _selecionarCAR(carHit.f, carHit.layer);
         return; // não abre popup de delimitação
+      } else {
+        // Clicou fora de qualquer CAR — fecha o painel se estiver aberto
+        fecharDetalhesCAR();
       }
     }
 
