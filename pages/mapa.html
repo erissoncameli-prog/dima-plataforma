@@ -7291,7 +7291,7 @@ function exportarRelCSV(){
   toast('CSV exportado com sucesso!', 'success');
 }
 
-async function exportarRelPDF(){
+function exportarRelPDF(){
   if(!_relDados) return;
 
   const base    = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
