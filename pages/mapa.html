@@ -4077,9 +4077,13 @@ function _popularFiltroSubbacia(){
 function _popularFiltroUC(){
   const sel = document.getElementById('car-sel-uc');
   if(!sel) return;
-  sel.innerHTML = '<option value="todas">Todas as UCs</option>'
-    + '<option value="fora">Fora de UCs</option>'
-    + _carUCOpts.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+  const nomes = (_ucGeojson?.features || [])
+    .map(f => f.properties?.nome || f.properties?.name || f.properties?.NOME)
+    .filter(Boolean)
+    .sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  const atual = sel.value; // preserva seleção atual se já havia
+  sel.innerHTML = '<option value="todas">— Selecione uma UC —</option>'
+    + nomes.map(n => `<option value="${escHtml(n)}"${n===atual?' selected':''}>${escHtml(n)}</option>`).join('');
 }
 
 // ── Renderiza camada no mapa ──────────────────────────────────────────────
