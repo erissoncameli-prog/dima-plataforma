@@ -6150,9 +6150,14 @@ function _htmlFichaCAR(f, imgData){
   const p     = f.properties || {};
   const local = _carDadosLocais.get(p.cod_imovel) || {};
   const f2  = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const f4  = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:4});
   const fDt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
   const key = _carStatusKey(p.condicao);
-  const statusLabel = {ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'}[key]||key;
+  // Prioriza dados da planilha SICAR, fallback para GeoJSON
+  const statusLabel = local.condicao_i || ({ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'}[key]||key);
+  const areaExib    = local.num_area_i ? f4(local.num_area_i) : f2(p.area);
+  const municExib   = local.nom_munici || p.municipio || '—';
+  const modExib     = local.num_modulo ? f4(local.num_modulo) : f2(p.m_fiscal);
   const apaLabel = p._apa==='isf' ? '🌿 APA Igarapé São Francisco' : p._apa==='la' ? '💧 APA Lago do Amapá' : '⚠️ Fora das APAs';
   const apaBadge = p._apa==='isf' ? 'badge-isf' : p._apa==='la' ? 'badge-la' : 'badge-fora';
   const sicarUrl = `https://consultapublica.car.gov.br/publico/imoveis/index?idImovel=${encodeURIComponent(p.cod_imovel||'')}`;
@@ -6182,7 +6187,7 @@ function _htmlFichaCAR(f, imgData){
     <!-- BLOCO 1: Dados Cadastrais — 2 colunas compactas -->
     <div class="dados-grid">
       <div class="dados-col">
-        <div class="dados-col-title">📋 Dados Cadastrais</div>
+        <div class="dados-col-title">📋 Dados Cadastrais (SICAR)</div>
         ${local.nom_imovel?`<div class="attr-row"><span class="attr-lbl">Nome do imóvel</span><span class="attr-val">${escHtml(local.nom_imovel)}</span></div>`:''}
         ${local.nome_compl?`<div class="attr-row"><span class="attr-lbl">Proprietário/Possuidor</span><span class="attr-val">${escHtml(local.nome_compl)}</span></div>`:''}
         ${local.cpf_cnpj?`<div class="attr-row"><span class="attr-lbl">CPF / CNPJ</span><span class="attr-val" style="font-family:monospace;font-size:9.5px">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</span></div>`:''}
@@ -6192,11 +6197,11 @@ function _htmlFichaCAR(f, imgData){
       </div>
       <div>
         <div class="dados-col-title">📍 Localização e Situação</div>
-        <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val" style="color:#1F4E2C;font-size:12px;font-weight:700">${f2(p.area)} ha</span></div>
-        <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${p.municipio||'—'} / AC</span></div>
+        <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val" style="color:#1F4E2C;font-size:12px;font-weight:700">${areaExib} ha</span></div>
+        <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${escHtml(municExib)} / AC</span></div>
         <div class="attr-row"><span class="attr-lbl">Tipo de imóvel</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
-        <div class="attr-row"><span class="attr-lbl">Módulos fiscais</span><span class="attr-val">${f2(p.m_fiscal)}</span></div>
-        <div class="attr-row"><span class="attr-lbl">Situação cadastral</span><span class="attr-val">${statusLabel}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Módulos fiscais</span><span class="attr-val">${modExib}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Situação cadastral</span><span class="attr-val">${escHtml(statusLabel)}</span></div>
         <div class="attr-row"><span class="attr-lbl">Data de cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
         <div class="attr-row"><span class="attr-lbl">Sub-bacia hidrográfica</span><span class="attr-val">${p._subbacia||'—'}</span></div>
         <div style="padding:6px 10px;display:flex;gap:6px">
