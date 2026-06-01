@@ -3972,28 +3972,34 @@ async function carregarDadosCAR(){
   }
 }
 
-// ── Pré-computa APA e sub-bacia de cada feature ───────────────────────────
+// ── Pré-computa UC e sub-bacia de cada feature ────────────────────────────
 function _computarAtributosCAR(){
-  // Busca camadas de fonte (global ou pelo geojson carregado)
   const fonte = camadas.filter(c => c.geojson && c.geojson.features);
   const findLayer = (...terms) => fonte.find(c =>
     terms.some(t => c.nome && c.nome.toLowerCase().includes(t.toLowerCase()))
   );
-  const apaISF  = findLayer('igarapé são francisco','isf','São Francisco')?.geojson?.features?.[0];
-  const apaLA   = findLayer('lago do amapá','lago do amapa','la')?.geojson?.features?.[0];
-  const sbFeats = findLayer('subbacias','Subbacias')?.geojson?.features || [];
+  const sbFeats  = findLayer('subbacias','Subbacias')?.geojson?.features || [];
+  const ucFeats  = (_ucGeojson?.features || []).filter(f => f.geometry);
 
   const sbNomes = new Set();
+  const ucNomes = new Set();
   _carFeatures.forEach(f => {
     if(!f.geometry) return;
     let centroid;
     try { centroid = turf.centroid(f); } catch(e) { return; }
     const pt = centroid;
 
-    // APA
-    f.properties._apa = 'fora';
-    try{ if(apaISF && turf.booleanPointInPolygon(pt, apaISF)) f.properties._apa = 'isf'; } catch(e){}
-    try{ if(f.properties._apa === 'fora' && apaLA && turf.booleanPointInPolygon(pt, apaLA)) f.properties._apa = 'la'; } catch(e){}
+    // UC — encontra primeira UC que contém o centroide
+    f.properties._uc = null;
+    for(const uc of ucFeats){
+      try{
+        if(turf.booleanPointInPolygon(pt, uc)){
+          f.properties._uc = uc.properties?.nome || uc.properties?.name || uc.properties?.NOME || null;
+          if(f.properties._uc) ucNomes.add(f.properties._uc);
+          break;
+        }
+      } catch(e){}
+    }
 
     // Sub-bacia
     f.properties._subbacia = null;
@@ -4011,6 +4017,7 @@ function _computarAtributosCAR(){
     f.properties._desmat = false;
   });
   _carSubbaciaOpts = [...sbNomes].sort();
+  _carUCOpts = [...ucNomes].sort();
 }
 
 // ── Popular select de sub-bacias ──────────────────────────────────────────
