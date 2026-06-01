@@ -7951,8 +7951,13 @@ async function _carregarMunicipios() {
 
 function toggleCamadaMun(ativo) {
   _munAtivo = ativo;
-  if (ativo && !_munLayer) { _carregarMunicipios(); return; }
-  if (_munLayer) { if (ativo) _munLayer.addTo(mapaL); else mapaL.removeLayer(_munLayer); }
+  if (!ativo) {
+    // Remover layer (o evento 'remove' em cada sublayer remove os labels)
+    if (_munLayer) { mapaL.removeLayer(_munLayer); _munLayer = null; }
+    return;
+  }
+  // Carregar ou recriar (labels são criados em onEachFeature, precisam do mapaL ativo)
+  _carregarMunicipios();
 }
 function setOpacidadeMun(v) {
   _munOpacity = v / 100;
