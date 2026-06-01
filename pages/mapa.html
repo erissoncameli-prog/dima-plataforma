@@ -5908,7 +5908,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
           <table class="rep-tbl">
             <thead><tr><th>Situação</th><th style="text-align:center">Qtd</th></tr></thead>
             <tbody>
-              ${Object.entries(porCond).map(([k,n])=>`<tr><td>${{ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'}[k]||k}</td><td style="text-align:center;font-weight:700">${n}</td></tr>`).join('')}
+              ${Object.entries(porCond).map(([k,n])=>{const lb=({ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'})[k]||k;return `<tr><td>${lb}</td><td style="text-align:center;font-weight:700">${n}</td></tr>`;}).join('')}
             </tbody>
           </table>
         </div>

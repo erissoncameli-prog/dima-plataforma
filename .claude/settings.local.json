@@ -156,7 +156,8 @@
       "Bash(curl -s --max-time 120 -L -o 'C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/data/shp_cnuc.zip' https://dados.mma.gov.br/dataset/44b6dc8a-dc82-4a84-8d95-1b0da7c85dac/resource/6ba9a557-87e8-4882-acb7-b3e0f0ea192d/download/shp_cnuc_2025_08.zip)",
       "Bash(unzip -o \"C:/Users/eriss/Downloads/Shapes UCs.zip\" -d \"C:/Users/eriss/Downloads/shapes_uc_tmp/\")",
       "Bash(awk 'NR>=378 && NR<=7439' \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/pages/mapa.html\")",
-      "Bash(awk 'NR>=7486 && NR<=7819' \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/pages/mapa.html\")"
+      "Bash(awk 'NR>=7486 && NR<=7819' \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/pages/mapa.html\")",
+      "Bash(grep -n \"\\\\${{\" \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\pages\\\\mapa.html\")"
     ]
   }
 }
