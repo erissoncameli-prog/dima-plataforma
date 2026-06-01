@@ -4478,11 +4478,64 @@ async function _calcularDiagnosticoCAR(f){
   const prioridade = deficit > 5 || pctDesmat > 20 ? 'Alta' :
                      deficit > 0 || pctDesmat > 8  ? 'Média' : 'Baixa';
 
+  // ── Camadas adicionais: todas as demais camadas ativas ─────────────────
+  const camadasConhecidas = new Set([lDesm,lFlor,lAppA,lAppV,lRest,lNasc,lHidro,lSub].filter(Boolean));
+  const camadasAdicionais = [];
+
+  for(const cam of fonte.filter(c => !camadasConhecidas.has(c) && (c.geojson?.features?.length||0) > 0)){
+    const feats   = cam.geojson.features;
+    const tipoGeo = feats[0]?.geometry?.type || '';
+    const ehPoly  = /Polygon/i.test(tipoGeo);
+    const ehLinha = /Line/i.test(tipoGeo);
+    const ehPonto = /Point/i.test(tipoGeo);
+
+    let areaHa = 0, contagem = 0, comprKm = 0;
+    const fDentro = [];
+
+    for(const feat of feats){
+      if(!feat.geometry) continue;
+      try{
+        const fb = turf.bbox(feat);
+        if(fb[2]<carBbox[0]||fb[0]>carBbox[2]||fb[3]<carBbox[1]||fb[1]>carBbox[3]) continue;
+        if(ehPoly){
+          const inter = turf.intersect(carPoly, turf.feature(feat.geometry));
+          if(inter){ const ha = turf.area(inter)/10000; if(ha>0.01){ areaHa+=ha; contagem++; fDentro.push(feat); } }
+        } else if(ehLinha){
+          if(turf.booleanIntersects(carPoly, turf.feature(feat.geometry))){
+            comprKm += (parseFloat(feat.properties?.LENGTH||feat.properties?.COMPRIMENTO||feat.properties?.comp_km||0));
+            contagem++; fDentro.push(feat);
+          }
+        } else if(ehPonto){
+          if(turf.booleanPointInPolygon(turf.centroid(turf.feature(feat.geometry)), carPoly)){
+            contagem++; fDentro.push(feat);
+          }
+        }
+      }catch(_){}
+    }
+    if(contagem === 0) continue;
+
+    const pctCam = areaHa>0 && areaCAR>0 ? areaHa/areaCAR*100 : 0;
+
+    // Extrai propriedade mais representativa para agrupar por tipo/classe
+    const propKeys = ['tipo','classe','category','type','nome','name','NOME','TIPO','CLASSE','uso','USO','descricao','DESCRICAO'];
+    const propKey  = propKeys.find(k => fDentro.some(ft => ft.properties?.[k]));
+    const valores  = propKey
+      ? [...new Set(fDentro.map(ft => ft.properties?.[propKey]).filter(Boolean))].slice(0,5)
+      : [];
+
+    camadasAdicionais.push({
+      nome: cam.nome, cor: cam.cor||'#6b7280',
+      tipo: ehPoly?'poligono':ehLinha?'linha':'ponto',
+      areaHa, pctCam, comprKm, contagem, valores, propKey,
+    });
+  }
+
   return {
     subbacia, areaCAR, desmat, floresta, appA, appV, restaur, nascentes,
     pctDesmat, pctFloresta, appTotal, pctAppDeg, deficit, risco, prioridade,
     hidro: { total: hidroSegmentos.length, comprimento: hidroComp,
-             intermitentes: hidroInterm, perenes: hidroPerene, nomes: hidroNomes }
+             intermitentes: hidroInterm, perenes: hidroPerene, nomes: hidroNomes },
+    camadasAdicionais,
   };
 }
 

@@ -151,7 +151,9 @@
       "Bash(curl -s --max-time 15 -o /dev/null -w \"%{http_code}\" \"http://mapas.mma.gov.br/i3geo/datadownload.htm\")",
       "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' 'http://mapas.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
       "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' 'https://samge.icmbio.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
-      "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services)"
+      "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services)",
+      "Bash(curl -s --max-time 20 \"http://mapas.mma.gov.br/i3geo/datadownload.htm\")",
+      "Bash(curl -s --max-time 120 -L -o 'C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/data/shp_cnuc.zip' https://dados.mma.gov.br/dataset/44b6dc8a-dc82-4a84-8d95-1b0da7c85dac/resource/6ba9a557-87e8-4882-acb7-b3e0f0ea192d/download/shp_cnuc_2025_08.zip)"
     ]
   }
 }
