@@ -7482,12 +7482,19 @@ async function _carregarUC(){
   _renderizarUC();
 }
 
+// Normaliza grupo para 'pi' ou 'us' independente da fonte (PI/US ou texto completo CNUC)
+function _ucGrupoId(grupo){
+  if(!grupo) return 'us';
+  const g = grupo.toLowerCase();
+  return (g === 'pi' || g.includes('integral')) ? 'pi' : 'us';
+}
+
 function _ucConstruirFiltrosTipos(){
   const contagemPI = {}, contagemUS = {};
   (_ucGeojson.features || []).forEach(f => {
     const cat = f.properties.categoria || '';
-    const g   = f.properties.grupo || 'US';
-    if(g === 'PI') contagemPI[cat] = (contagemPI[cat]||0) + 1;
+    const g   = _ucGrupoId(f.properties.grupo || '');
+    if(g === 'pi') contagemPI[cat] = (contagemPI[cat]||0) + 1;
     else           contagemUS[cat] = (contagemUS[cat]||0) + 1;
   });
   ['pi','us'].forEach(g => {
