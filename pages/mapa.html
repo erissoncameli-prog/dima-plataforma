@@ -4127,10 +4127,14 @@ function aplicarFiltrosCAR(redesenhar = true){
   const checks = document.querySelectorAll('[data-car-status]');
   const ativos = new Set([...checks].filter(c => c.checked).map(c => c.dataset.carStatus));
 
+  // UC mudou → recarrega WFS para essa UC
+  if(uc !== _carUCAtual){
+    carregarDadosCAR(uc);
+    return;
+  }
+
   _carVisiveis = _carFeatures.filter(f => {
     const p = f.properties || {};
-    if(uc === 'fora'  && p._uc !== null) return false;
-    if(uc !== 'todas' && uc !== 'fora' && p._uc !== uc) return false;
     if(sub !== 'todas' && p._subbacia !== sub) return false;
     const key = _carStatusKey(p.condicao);
     if(!ativos.has(key)) return false;
