@@ -7885,9 +7885,145 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof mapaL !== 'undefined' && mapaL) {
       clearInterval(waitMapa);
       _carregarLimiteAcre();
+      _injetarTabMunicipios();
     }
   }, 300);
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MUNICÍPIOS DO ACRE — IBGE malhas (resolução 5 = nível municipal)
+// ═══════════════════════════════════════════════════════════════════════════
+var _munLayer   = null;
+var _munOpacity = 0.5;
+var _munAtivo   = false;
+var _munCor     = '#94a3b8';
+
+async function _carregarMunicipios() {
+  document.getElementById('mun-loading').style.display = 'flex';
+  try {
+    var r = await fetch('https://servicodados.ibge.gov.br/api/v3/malhas/estados/12?resolucao=5&formato=application/vnd.geo%2Bjson');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var geojson = await r.json();
+    if (!mapaL.getPane('munPane')) {
+      mapaL.createPane('munPane');
+      mapaL.getPane('munPane').style.zIndex = 415;
+      mapaL.getPane('munPane').style.pointerEvents = 'none';
+    }
+    _munLayer = L.geoJSON(geojson, {
+      pane: 'munPane',
+      style: { color: _munCor, weight: 1.5, opacity: _munOpacity, fillOpacity: 0, dashArray: '4 3' },
+      onEachFeature: function(f, layer) {
+        var p = f.properties || {};
+        var nome = p.name || p.nome || p.NOME || '';
+        if (nome) layer.bindTooltip(nome, { sticky: true, className: 'subbacia-label' });
+      }
+    });
+    document.getElementById('mun-loading').style.display = 'none';
+    document.getElementById('mun-controles').style.display = 'flex';
+    var n = geojson.features ? geojson.features.length : 0;
+    var stat = document.getElementById('mun-stat');
+    if (stat) stat.textContent = n + ' município' + (n !== 1 ? 's' : '');
+    if (_munAtivo) _munLayer.addTo(mapaL);
+  } catch(e) {
+    document.getElementById('mun-loading').style.display = 'none';
+    var stat = document.getElementById('mun-stat');
+    if (stat) stat.textContent = '⚠ Erro: ' + e.message;
+  }
+}
+
+function toggleCamadaMun(ativo) {
+  _munAtivo = ativo;
+  if (ativo && !_munLayer) { _carregarMunicipios(); return; }
+  if (_munLayer) { if (ativo) _munLayer.addTo(mapaL); else mapaL.removeLayer(_munLayer); }
+}
+function setOpacidadeMun(v) {
+  _munOpacity = v / 100;
+  var el = document.getElementById('mun-opacity-val');
+  if (el) el.textContent = v + '%';
+  if (_munLayer) _munLayer.setStyle({ opacity: _munOpacity });
+}
+function setCorMun(cor) {
+  _munCor = cor;
+  if (_munLayer) _munLayer.setStyle({ color: cor });
+}
+
+function _injetarTabMunicipios() {
+  if (document.getElementById('mlb-btn-mun')) return;
+
+  // Tab button
+  var tabs = document.querySelector('.mlb-tabs');
+  if (!tabs) return;
+  var btn = document.createElement('button');
+  btn.className = 'mlb-tab';
+  btn.id = 'mlb-btn-mun';
+  btn.onclick = function() { _toggleMunPanel(); };
+  btn.textContent = '🗺 Municípios';
+  tabs.appendChild(btn);
+
+  // Painel
+  var layerbar = document.getElementById('mapa-layerbar');
+  if (!layerbar) return;
+  var panel = document.createElement('div');
+  panel.className = 'mlb-dropdown';
+  panel.id = 'mlb-panel-mun';
+  panel.style.cssText = 'display:none;min-width:300px';
+  panel.innerHTML = ''
+    + '<div class="mlb-dropdown-header">'
+    +   '<span class="mlb-dropdown-title">🗺 Divisão Municipal — Acre</span>'
+    +   '<button class="mlb-close" onclick="_fecharMunPanel()">✕</button>'
+    + '</div>'
+    + '<div class="mlb-dropdown-body" style="gap:10px">'
+    +   '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--cinza-700)">'
+    +     '<input type="checkbox" id="mun-toggle" style="accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer" onchange="toggleCamadaMun(this.checked)">'
+    +     '<strong>Exibir divisão municipal</strong>'
+    +   '</label>'
+    +   '<div id="mun-loading" style="display:none;align-items:center;gap:8px;font-size:11px;color:var(--cinza-500)">'
+    +     '<div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>'
+    +     'Carregando…'
+    +   '</div>'
+    +   '<div id="mun-controles" style="display:none;flex-direction:column;gap:8px">'
+    +     '<div style="display:flex;align-items:center;gap:8px">'
+    +       '<span style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;width:52px;flex-shrink:0">Opac.</span>'
+    +       '<input type="range" min="10" max="100" value="50" class="camada-slider" id="mun-opacity" oninput="setOpacidadeMun(this.value)">'
+    +       '<span id="mun-opacity-val" style="font-size:9px;font-weight:700;color:var(--cinza-700);width:26px;text-align:right">50%</span>'
+    +     '</div>'
+    +     '<div style="display:flex;align-items:center;gap:8px">'
+    +       '<span style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;width:52px;flex-shrink:0">Cor</span>'
+    +       '<input type="color" id="mun-cor" value="#94a3b8" style="width:36px;height:24px;border:1px solid var(--borda);border-radius:4px;cursor:pointer;padding:1px" oninput="setCorMun(this.value)">'
+    +       '<span style="font-size:10px;color:var(--cinza-500)">linha dos limites</span>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div id="mun-stat" style="font-size:10px;color:var(--cinza-400)"></div>'
+    + '</div>';
+  layerbar.appendChild(panel);
+
+  // Fechar ao clicar fora
+  document.addEventListener('click', function(e) {
+    var lb = document.getElementById('mapa-layerbar');
+    if (lb && !lb.contains(e.target)) _fecharMunPanel();
+  }, true);
+}
+
+function _toggleMunPanel() {
+  var panel = document.getElementById('mlb-panel-mun');
+  var btn   = document.getElementById('mlb-btn-mun');
+  if (!panel) return;
+  var abrindo = panel.style.display === 'none';
+  ['veg','car','uc','ti'].forEach(function(k) {
+    var p = document.getElementById('mlb-panel-' + k);
+    var b = document.getElementById('mlb-btn-' + k);
+    if (p) p.style.display = 'none';
+    if (b) b.classList.remove('ativo');
+  });
+  if (abrindo) { panel.style.display = ''; btn.classList.add('ativo'); }
+  else _fecharMunPanel();
+}
+function _fecharMunPanel() {
+  var p = document.getElementById('mlb-panel-mun');
+  var b = document.getElementById('mlb-btn-mun');
+  if (p) p.style.display = 'none';
+  if (b) b.classList.remove('ativo');
+}
 </script>
 
 <div id="mapa-backdrop" class="mapa-backdrop" onclick="togglePainelMobile()"></div>
