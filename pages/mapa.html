@@ -5603,6 +5603,28 @@ async function _gerarPdfRelatorioCAR(capturas){
   const now = new Date().toISOString().slice(0,10);
   const filename = `relatorio-car-${now}`;
 
+  // Cabeçalho e rodapé como templates do Puppeteer (injetados em cada página)
+  const base = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
+  const nowStr = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  const user = appState?.usuario?.nome_completo || appState?.usuario?.email || 'DIMA';
+
+  const headerTemplate = `<div style="width:100%;font-family:Arial,sans-serif;font-size:8px;padding:6px 24px;background:#fff;border-bottom:2px solid #1F4E2C;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:8px">
+      <img src="${base}/assets/1695134345-1-horizontal-verde-solo.png" style="height:22px;width:auto" onerror="this.style.display='none'">
+      <span style="color:#6b7280">|</span>
+      <span style="color:#1F4E2C;font-weight:700;font-size:7px;text-transform:uppercase;letter-spacing:.05em">PROJETO 218BRA2001 · UNESCO / SEMA-AC</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="color:#6b7280;font-size:7px">Relatório CAR · ${nowStr}</span>
+      <img src="${base}/assets/UNESCO_logo_hor_blue_transparent.png.png" style="height:18px;width:auto" onerror="this.style.display='none'">
+    </div>
+  </div>`;
+
+  const footerTemplate = `<div style="width:100%;font-family:Arial,sans-serif;font-size:7px;padding:5px 24px;background:#f8faf8;border-top:1px solid #1F4E2C;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;color:#6b7280">
+    <span>Impresso por: <strong>${user}</strong> · Plataforma DIMA · UNESCO 218BRA2001</span>
+    <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+  </div>`;
+
   try{
     const { data:{ session } } = await db.auth.getSession();
     const res = await fetch(SUPABASE_URL + '/functions/v1/gerar-pdf-relatorio', {
@@ -5612,7 +5634,7 @@ async function _gerarPdfRelatorioCAR(capturas){
         'Authorization': 'Bearer ' + (session?.access_token || ''),
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ html: htmlContent, filename }),
+      body: JSON.stringify({ html: htmlContent, headerTemplate, footerTemplate, filename }),
     });
 
     if(!res.ok){
