@@ -7738,6 +7738,8 @@ async function _carregarUC() {
   document.getElementById('uc-controles').style.display = 'flex';
   _ucConstruirPainel();
   _renderizarUC();
+  _ucStatsAtualizar();
+  document.getElementById('uc-stats-card').classList.add('visivel');
 }
 
 function _ucConstruirPainel() {
