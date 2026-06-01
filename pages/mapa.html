@@ -3654,6 +3654,11 @@ function _iniciarClickCamadas(getCamadas){
     const pt = turf.point([e.latlng.lng, e.latlng.lat]);
 
     // ── 1. CAR tem prioridade: verifica primeiro ───────────────────────────
+    // Se CAR não está ativo mas painel está aberto, fecha
+    if(!_carCarregado || !_carLayer){
+      const panel = document.getElementById('car-det-panel');
+      if(panel?.classList.contains('aberto')) fecharDetalhesCAR();
+    }
     if(_carCarregado && _carLayer){
       let carHit = null;
       _carLayer.eachLayer(l => {
