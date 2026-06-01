@@ -5794,6 +5794,40 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
       <div class="capa-stat"><div class="capa-stat-val">${f2(areaTot)} ha</div><div class="capa-stat-lbl">Área total declarada</div></div>
       <div class="capa-stat"><div class="capa-stat-val">${porApa.isf+porApa.la}</div><div class="capa-stat-lbl">Dentro das APAs</div></div>
     </div>
+
+    <!-- Detalhamento na capa -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:28px;text-align:left;max-width:800px;margin-left:auto;margin-right:auto">
+      <div style="background:#fff;border:1px solid #c8e6d0;border-radius:8px;padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #c8e6d0">Por APA</div>
+        ${Object.entries({isf:'Igarapé São Francisco',la:'Lago do Amapá',fora:'Fora das APAs'}).map(([k,label])=>`
+        <div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid #f0f7f2">
+          <span style="color:#374151">${label}</span>
+          <strong style="color:#1F4E2C">${porApa[k]||0}</strong>
+        </div>`).join('')}
+      </div>
+      <div style="background:#fff;border:1px solid #c8e6d0;border-radius:8px;padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #c8e6d0">Por Situação CAR</div>
+        ${Object.entries(porCond).map(([k,n])=>`
+        <div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid #f0f7f2">
+          <span style="color:#374151">${{ativo:'Ativo',aguardando:'Aguardando análise',analise:'Em análise',outro:'Outro'}[k]||k}</span>
+          <strong style="color:#1F4E2C">${n}</strong>
+        </div>`).join('')}
+      </div>
+      <div style="background:#fff;border:1px solid #c8e6d0;border-radius:8px;padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #c8e6d0">Por Sub-bacia</div>
+        ${Object.entries(porSub).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([sb,n])=>`
+        <div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid #f0f7f2">
+          <span style="color:#374151">${sb}</span>
+          <strong style="color:#1F4E2C">${n}</strong>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div style="margin-top:24px;max-width:720px;margin-left:auto;margin-right:auto;font-size:11px;color:#6b7280;line-height:1.7;text-align:center">
+      Este relatório apresenta o diagnóstico socioambiental individualizado de ${capturas.length} imóvel(is) rural(is)
+      do Cadastro Ambiental Rural, com base nos dados SICAR, PRODES/INPE e camadas de delimitação das
+      APAs Igarapé São Francisco e Lago do Amapá — Projeto UNESCO 218BRA2001 · SEMA/AC.
+    </div>
   </div>
 
   <!-- ── FICHAS INDIVIDUAIS ── -->
