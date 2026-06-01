@@ -4074,14 +4074,15 @@ function _aplicarCamadaCAR(){
 
 // ── Filtros ───────────────────────────────────────────────────────────────
 function aplicarFiltrosCAR(redesenhar = true){
-  const apa    = document.getElementById('car-sel-apa')?.value  || 'todas';
+  const uc     = document.getElementById('car-sel-uc')?.value   || 'todas';
   const sub    = document.getElementById('car-sel-sub')?.value  || 'todas';
   const checks = document.querySelectorAll('[data-car-status]');
   const ativos = new Set([...checks].filter(c => c.checked).map(c => c.dataset.carStatus));
 
   _carVisiveis = _carFeatures.filter(f => {
     const p = f.properties || {};
-    if(apa !== 'todas' && p._apa !== apa) return false;
+    if(uc === 'fora'  && p._uc !== null) return false;
+    if(uc !== 'todas' && uc !== 'fora' && p._uc !== uc) return false;
     if(sub !== 'todas' && p._subbacia !== sub) return false;
     const key = _carStatusKey(p.condicao);
     if(!ativos.has(key)) return false;
