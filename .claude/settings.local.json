@@ -147,7 +147,11 @@
       "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' 'https://cnuc.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
       "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' 'https://ide.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
       "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' https://samge.icmbio.gov.br/api)",
-      "Bash(curl -s --max-time 20 \"https://cnuc.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities\")"
+      "Bash(curl -s --max-time 20 \"https://cnuc.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities\")",
+      "Bash(curl -s --max-time 15 -o /dev/null -w \"%{http_code}\" \"http://mapas.mma.gov.br/i3geo/datadownload.htm\")",
+      "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' 'http://mapas.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
+      "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' 'https://samge.icmbio.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
+      "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services)"
     ]
   }
 }

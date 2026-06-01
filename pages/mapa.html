@@ -5803,139 +5803,152 @@ function _htmlFichaCAR(f, imgData){
   </div>
 
   <div class="doc-body">
-    <div class="grid-3">
-      <!-- Col 1: Dados Cadastrais -->
+
+    <!-- BLOCO 1: Dados Cadastrais — 2 colunas compactas -->
+    <div class="dados-grid">
+      <div class="dados-col">
+        <div class="dados-col-title">📋 Dados Cadastrais</div>
+        ${local.nom_imovel?`<div class="attr-row"><span class="attr-lbl">Nome do imóvel</span><span class="attr-val">${escHtml(local.nom_imovel)}</span></div>`:''}
+        ${local.nome_compl?`<div class="attr-row"><span class="attr-lbl">Proprietário/Possuidor</span><span class="attr-val">${escHtml(local.nome_compl)}</span></div>`:''}
+        ${local.cpf_cnpj?`<div class="attr-row"><span class="attr-lbl">CPF / CNPJ</span><span class="attr-val" style="font-family:monospace;font-size:9.5px">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</span></div>`:''}
+        ${cc?`<div class="attr-row"><span class="attr-lbl">Classificação SICAR</span><span class="attr-val"><span style="background:${cc.bg};color:${cc.cor};border:1px solid ${cc.brd};border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">${escHtml(local.nome_class)}</span></span></div>`:''}
+        ${local.tipo_docum?`<div class="attr-row"><span class="attr-lbl">Relação jurídica</span><span class="attr-val">${escHtml(local.tipo_docum)}</span></div>`:''}
+        ${local.nome_docum?`<div class="attr-row"><span class="attr-lbl">Documento</span><span class="attr-val" style="font-size:9.5px">${escHtml(local.nome_docum)}</span></div>`:''}
+      </div>
       <div>
-        <div class="card">
-          <div class="card-title">Dados Cadastrais — SICAR</div>
-          ${local.nom_imovel?`<div class="attr-row"><span class="attr-lbl">Nome</span><span class="attr-val" style="font-weight:700;color:#111">${escHtml(local.nom_imovel)}</span></div>`:''}
-          ${local.nome_compl?`<div class="attr-row"><span class="attr-lbl">Proprietário</span><span class="attr-val">${escHtml(local.nome_compl)}</span></div>`:''}
-          ${local.cpf_cnpj?`<div class="attr-row"><span class="attr-lbl">CPF/CNPJ</span><span class="attr-val" style="font-family:monospace;font-size:9.5px">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</span></div>`:''}
-          ${cc?`<div class="attr-row"><span class="attr-lbl">Classificação</span><span class="attr-val"><span style="background:${cc.bg};color:${cc.cor};border:1px solid ${cc.brd};border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">${escHtml(local.nome_class)}</span></span></div>`:''}
-          ${local.tipo_docum?`<div class="attr-row"><span class="attr-lbl">Relação jurídica</span><span class="attr-val">${escHtml(local.tipo_docum)}</span></div>`:''}
-          <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val" style="color:#1F4E2C;font-size:12px">${f2(p.area)} ha</span></div>
-          <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${p.municipio||'—'} / AC</span></div>
-          <div class="attr-row"><span class="attr-lbl">Tipo</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
-          <div class="attr-row"><span class="attr-lbl">Módulos fiscais</span><span class="attr-val">${f2(p.m_fiscal)}</span></div>
-          <div class="attr-row"><span class="attr-lbl">Situação</span><span class="attr-val">${statusLabel}</span></div>
-          <div class="attr-row"><span class="attr-lbl">Cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
-          <div class="attr-row"><span class="attr-lbl">Sub-bacia</span><span class="attr-val">${p._subbacia||'—'}</span></div>
-        </div>
-        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-          <a href="${sicarUrl}" target="_blank" class="link-btn link-sicar">🔗 SICAR</a>
-          <a href="https://seloverde.sema.ac.gov.br/consultar-car/" target="_blank" class="link-btn link-sema">🌿 SeloVerde</a>
+        <div class="dados-col-title">📍 Localização e Situação</div>
+        <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val" style="color:#1F4E2C;font-size:12px;font-weight:700">${f2(p.area)} ha</span></div>
+        <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${p.municipio||'—'} / AC</span></div>
+        <div class="attr-row"><span class="attr-lbl">Tipo de imóvel</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Módulos fiscais</span><span class="attr-val">${f2(p.m_fiscal)}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Situação cadastral</span><span class="attr-val">${statusLabel}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Data de cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
+        <div class="attr-row"><span class="attr-lbl">Sub-bacia hidrográfica</span><span class="attr-val">${p._subbacia||'—'}</span></div>
+        <div style="padding:6px 10px;display:flex;gap:6px">
+          <a href="${sicarUrl}" target="_blank" class="link-btn link-sicar">🔗 Ver no SICAR</a>
+          <a href="https://seloverde.sema.ac.gov.br/consultar-car/" target="_blank" class="link-btn link-sema">🌿 SeloVerde AC</a>
         </div>
       </div>
+    </div>
 
-      <!-- Col 2: Mapa -->
-      <div>
-        <img src="${imgData}" alt="Mapa do imóvel" class="mapa-img"
-          onerror="this.style.background='#f0f7f2';this.alt='Imagem não disponível'">
-        <div style="font-size:8px;color:#9ca3af;margin-top:3px;text-align:center">
-          Captura DIMA · ${new Date().toLocaleDateString('pt-BR')}
-        </div>
+    <!-- BLOCO 2: Mapa largura total -->
+    <div class="mapa-wrap">
+      <img src="${imgData}" alt="Mapa do imóvel" class="mapa-img"
+        onerror="this.style.background='#f0f7f2';this.style.height='200px';this.alt='Imagem não disponível'">
+      <div style="font-size:8px;color:#9ca3af;margin-top:3px;text-align:center">
+        Visão de satélite com PRODES · Captura Sistema DIMA · ${new Date().toLocaleDateString('pt-BR')}
       </div>
+    </div>
 
-      <!-- Col 3: PRODES resumo -->
-      ${(()=>{
-        const prodes = _carProdesCache.get(p.cod_imovel);
-        const temP   = prodes && !prodes.erro;
-        const area   = parseFloat(p.area) || diag?.areaCAR || 1;
-        const f2r    = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
-        const f1r    = n => Number(n||0).toFixed(1);
-        if(!temP) return `
-          <div class="card" style="border-color:#e5e7eb">
-            <div class="card-title">🛰 PRODES/INPE</div>
-            <div style="font-size:10px;color:#9ca3af;padding:8px 0;text-align:center;line-height:1.4">
-              Dados não carregados.<br>Abra a aba PRODES para este imóvel.
-            </div>
-          </div>`;
-        const total  = prodes.totalGeral;
-        const hist   = prodes.historico.totalHa;
-        const anual  = prodes.anual.totalHa;
-        const pctT   = (total/area*100);
-        const corT   = pctT>30?'#dc2626':pctT>10?'#d97706':'#16a34a';
-        const grau   = pctT>50?'Ext. comprometido':pctT>30?'Fort. impactado':pctT>10?'Mod. impactado':'Baixo passivo';
-        const anoMax = prodes.anosAnual[prodes.anosAnual.length-1]||'';
-        const maxBar = Math.max(...Object.values(prodes.anual.porAno||{}),0.01);
-        const barras = prodes.anosAnual.map(ano=>{
-          const ha=prodes.anual.porAno[ano]; const w=(ha/maxBar*85).toFixed(1);
-          return `<tr>
-            <td style="font-size:9px;color:#374151;padding:1px 4px 1px 0;white-space:nowrap">${ano}</td>
-            <td style="width:100%"><div style="height:8px;background:#dc2626;border-radius:1px;width:${w}%;min-width:2px"></div></td>
-            <td style="font-size:9px;font-weight:600;color:#374151;padding:1px 0 1px 4px;white-space:nowrap;text-align:right">${f2r(ha)}</td>
-          </tr>`;
-        }).join('');
-        return `
-        <div class="card" style="border-color:#fca5a5">
-          <div class="card-title" style="color:#dc2626;border-color:#fecaca">🛰 Desmatamento PRODES/INPE</div>
-          <!-- KPI total -->
-          <div style="text-align:center;padding:6px 0;border-bottom:1px solid #fee2e2;margin-bottom:6px">
-            <div style="font-size:22px;font-weight:700;color:${corT};line-height:1">${f2r(total)} ha</div>
-            <div style="font-size:9px;color:#6b7280">${f1r(pctT)}% da área · ${grau}</div>
-          </div>
-          <!-- Pré/Pós -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
-            <div style="padding:5px 7px;background:#fff7ed;border:1px solid #fed7aa;border-radius:4px">
-              <div style="font-size:8px;font-weight:700;color:#9a3412;text-transform:uppercase">Pré-2008</div>
-              <div style="font-size:13px;font-weight:700;color:#c2410c">${f2r(hist)} ha</div>
-              <div style="font-size:8px;color:#9a3412">${f1r(hist/area*100)}%</div>
-            </div>
-            <div style="padding:5px 7px;background:#fef2f2;border:1px solid #fca5a5;border-radius:4px">
-              <div style="font-size:8px;font-weight:700;color:#991b1b;text-transform:uppercase">2008–${anoMax||'hoje'}</div>
-              <div style="font-size:13px;font-weight:700;color:#dc2626">${f2r(anual)} ha</div>
-              <div style="font-size:8px;color:#991b1b">${f1r(anual/area*100)}%</div>
-            </div>
-          </div>
-          ${prodes.anosAnual.length>0?`
-          <div style="font-size:8px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Série anual</div>
-          <table style="width:100%;border-collapse:collapse">${barras}</table>`:''}
+    <!-- BLOCO 3: PRODES — faixa horizontal -->
+    ${(()=>{
+      const prodes = _carProdesCache.get(p.cod_imovel);
+      const temP   = prodes && !prodes.erro;
+      const area   = parseFloat(p.area) || diag?.areaCAR || 1;
+      const f2r    = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+      const f1r    = n => Number(n||0).toFixed(1);
+      if(!temP) return `
+        <div style="border:1px dashed #d1d5db;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:10px;color:#9ca3af;text-align:center">
+          🛰 Dados PRODES/INPE não disponíveis para este imóvel nesta sessão.
         </div>`;
-      })()}
-    </div>
-
-    <!-- Análise + Diagnóstico lado a lado -->
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-top:10px">
-      <div class="analise" style="margin-bottom:0">
-        <div class="analise-title">📋 Análise Ambiental</div>
-        ${descricao}
-      </div>
-      ${diag && !diag.erro ? `
-      <div style="border:1px solid #bfdbfe;border-radius:6px;overflow:hidden">
-        <div style="background:#eff6ff;padding:6px 10px;border-bottom:1px solid #bfdbfe">
-          <span style="font-size:9px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.06em">🔬 Diagnóstico Complementar</span>
+      const total  = prodes.totalGeral;
+      const hist   = prodes.historico.totalHa;
+      const anual  = prodes.anual.totalHa;
+      const pctT   = (total/area*100);
+      const pctH   = (hist/area*100);
+      const pctA   = (anual/area*100);
+      const corT   = pctT>30?'#dc2626':pctT>10?'#d97706':'#16a34a';
+      const grau   = pctT>50?'Ext. comprometido':pctT>30?'Fort. impactado':pctT>10?'Mod. impactado':'Baixo passivo';
+      const anoMax = prodes.anosAnual[prodes.anosAnual.length-1]||'hoje';
+      const maxBar = Math.max(...Object.values(prodes.anual.porAno||{}),0.01);
+      const barras = prodes.anosAnual.map(ano=>{
+        const ha=prodes.anual.porAno[ano]; const w=(ha/maxBar*100).toFixed(1);
+        return `<tr>
+          <td style="font-size:9px;color:#374151;padding:1px 8px 1px 0;white-space:nowrap">${ano}</td>
+          <td style="width:100%"><div style="height:9px;background:#dc2626;border-radius:2px;width:${w}%;min-width:3px"></div></td>
+          <td style="font-size:9px;font-weight:600;color:#374151;padding:1px 0 1px 8px;white-space:nowrap;text-align:right">${f2r(ha)} ha</td>
+        </tr>`;
+      }).join('');
+      return `
+      <div class="prodes-faixa">
+        <div class="prodes-faixa-header">
+          <span style="font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.06em">🛰 Desmatamento PRODES/INPE — Fonte Oficial</span>
+          <span style="font-size:9px;color:rgba(255,255,255,.8)">TerraBrasilis · Landsat/Sentinel-2 · Resolução 30m</span>
         </div>
-        <div style="padding:8px 10px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
-            <div style="text-align:center;padding:5px;background:#fff;border-radius:4px;border:1px solid #bfdbfe">
-              <div style="font-weight:700;color:#16a34a;font-size:13px">${(diag.floresta||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
-              <div style="font-size:9px;color:#6b7280">Floresta (${(diag.pctFloresta||0).toFixed(1)}%)</div>
-            </div>
-            <div style="text-align:center;padding:5px;background:#fff;border-radius:4px;border:1px solid #bfdbfe">
-              <div style="font-weight:700;color:#d97706;font-size:13px">${(diag.appA||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
-              <div style="font-size:9px;color:#6b7280">APP Degradada (${(diag.pctAppDeg||0).toFixed(1)}%)</div>
-            </div>
-            <div style="text-align:center;padding:5px;background:#fff;border-radius:4px;border:1px solid #bfdbfe">
-              <div style="font-weight:700;color:#0891b2;font-size:13px">${(diag.appV||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
-              <div style="font-size:9px;color:#6b7280">APP Preservada</div>
-            </div>
-            <div style="text-align:center;padding:5px;background:#fff;border-radius:4px;border:1px solid #bfdbfe">
-              <div style="font-weight:700;color:#0891b2;font-size:13px">${diag.hidro?.total||0}</div>
-              <div style="font-size:9px;color:#6b7280">Seg. hídricos · ${(diag.hidro?.comprimento||0).toFixed(1)} km</div>
-            </div>
-            <div style="text-align:center;padding:5px;background:#fff;border-radius:4px;border:1px solid #bfdbfe">
-              <div style="font-weight:700;color:#0284c7;font-size:13px">${diag.nascentes||0}</div>
-              <div style="font-size:9px;color:#6b7280">Nascentes</div>
-            </div>
-            <div style="text-align:center;padding:5px;background:#fff;border-radius:4px;border:1px solid ${diag.deficit>0?'#fca5a5':'#86efac'}">
-              <div style="font-weight:700;color:${diag.deficit>0?'#dc2626':'#16a34a'};font-size:13px">${(diag.restaur||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
-              <div style="font-size:9px;color:#6b7280">Restauração proposta</div>
-            </div>
+        <div class="prodes-kpis">
+          <div class="prodes-kpi" style="background:#fff">
+            <div class="prodes-kpi-val" style="color:${corT}">${f2r(total)} ha</div>
+            <div class="prodes-kpi-lbl">Total desmatado · ${f1r(pctT)}% da área · <strong>${grau}</strong></div>
           </div>
-          <div style="font-size:9.5px;color:#1e40af;line-height:1.5;border-top:1px solid #dbeafe;padding-top:5px">${_gerarTextoCarDiag(diag, p, local).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,320)}${_gerarTextoCarDiag(diag,p,local).replace(/<[^>]*>/g,'').length>320?'…':''}</div>
+          <div class="prodes-kpi" style="background:#fff7ed">
+            <div class="prodes-kpi-val" style="color:#c2410c">${f2r(hist)} ha</div>
+            <div class="prodes-kpi-lbl" style="color:#9a3412">🕰 Acumulado pré-2008 · ${f1r(pctH)}% · Passivo histórico</div>
+          </div>
+          <div class="prodes-kpi" style="background:#fef2f2">
+            <div class="prodes-kpi-val" style="color:#dc2626">${f2r(anual)} ha</div>
+            <div class="prodes-kpi-lbl" style="color:#991b1b">📡 Anual 2008–${anoMax} · ${f1r(pctA)}% · Monitoramento satelital</div>
+          </div>
         </div>
-      </div>` : ''}
-    </div>
+        ${prodes.anosAnual.length>0?`
+        <div class="prodes-serie">
+          <div class="prodes-serie-title">Série histórica anual (2008–${anoMax})</div>
+          <table style="width:100%;border-collapse:collapse">${barras}</table>
+        </div>`:''}
+      </div>`;
+    })()}
+
+    <!-- BLOCO 4: Diagnóstico Ambiental -->
+    ${diag && !diag.erro ? `
+    <div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:12px">
+      <div style="background:#f0f7f2;padding:6px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.06em">🔬 Diagnóstico Espacial (Turf.js · Camadas de Delimitação)</span>
+      </div>
+      <div style="padding:10px 14px">
+        <div class="diag-cards">
+          <div class="diag-card" style="border-color:#86efac">
+            <div class="diag-card-val" style="color:#16a34a">${(diag.floresta||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
+            <div class="diag-card-lbl">Floresta<br>${(diag.pctFloresta||0).toFixed(1)}%</div>
+          </div>
+          <div class="diag-card" style="border-color:#fca5a5">
+            <div class="diag-card-val" style="color:#d97706">${(diag.appA||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
+            <div class="diag-card-lbl">APP Degrad.<br>${(diag.pctAppDeg||0).toFixed(1)}%</div>
+          </div>
+          <div class="diag-card" style="border-color:#86efac">
+            <div class="diag-card-val" style="color:#0891b2">${(diag.appV||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
+            <div class="diag-card-lbl">APP<br>Preservada</div>
+          </div>
+          <div class="diag-card" style="border-color:#bfdbfe">
+            <div class="diag-card-val" style="color:#2563eb">${diag.hidro?.total||0}</div>
+            <div class="diag-card-lbl">Seg.<br>Hídricos</div>
+          </div>
+          <div class="diag-card" style="border-color:#bfdbfe">
+            <div class="diag-card-val" style="color:#2563eb">${(diag.hidro?.comprimento||0).toFixed(1)} km</div>
+            <div class="diag-card-lbl">Hidrografia<br>interna</div>
+          </div>
+          <div class="diag-card" style="border-color:#bae6fd">
+            <div class="diag-card-val" style="color:#0284c7">${diag.nascentes||0}</div>
+            <div class="diag-card-lbl">Nascentes<br>identificadas</div>
+          </div>
+          <div class="diag-card" style="border-color:#fde68a">
+            <div class="diag-card-val" style="color:#d97706">${(diag.restaur||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
+            <div class="diag-card-lbl">Restauração<br>proposta</div>
+          </div>
+          <div class="diag-card" style="border-color:${diag.deficit>0?'#fca5a5':'#86efac'}">
+            <div class="diag-card-val" style="color:${diag.deficit>0?'#dc2626':'#16a34a'}">${diag.deficit>0?'+':''}${(diag.deficit||0).toLocaleString('pt-BR',{maximumFractionDigits:1})}</div>
+            <div class="diag-card-lbl">Déficit<br>restore (ha)</div>
+          </div>
+        </div>
+        <div class="analise" style="margin:0;font-size:10.5px">
+          <div class="analise-title">📋 Análise Ambiental</div>
+          ${descricao}
+        </div>
+      </div>
+    </div>` : `
+    <div class="analise">
+      <div class="analise-title">📋 Análise Ambiental</div>
+      ${descricao}
+    </div>`}
+
   </div>
 </div>`;
 }
