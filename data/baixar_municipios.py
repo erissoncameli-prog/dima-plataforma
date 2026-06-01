@@ -31,7 +31,10 @@ for i, m in enumerate(municipios):
     url_geo = f'https://servicodados.ibge.gov.br/api/v3/malhas/municipios/{cod}?formato=application/vnd.geo%2Bjson'
     try:
         with req.urlopen(url_geo) as r:
-            geojson = json.loads(r.read().decode('utf-8'))
+            raw2 = r.read()
+            try: raw2 = gzip.decompress(raw2)
+            except: pass
+            geojson = json.loads(raw2.decode('utf-8'))
         for feat in geojson.get('features', []):
             feat['properties']['codibge'] = str(cod)
             feat['properties']['nome']    = nome
