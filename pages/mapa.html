@@ -5318,9 +5318,15 @@ async function _capturarMapaCAR(f){
     if(captLayers.length) await new Promise(r => setTimeout(r, 900));
   }
 
+  // 4c. Injeta legenda HTML sobre o mapa antes da captura
+  const legendaEl = _criarLegendaMapa(f, prodesCapt);
+
   // 5. Captura com html2canvas
   const mapEl = document.getElementById('mapa');
-  if(!mapEl || typeof html2canvas === 'undefined') return _svgFallbackCAR(f, bounds);
+  if(!mapEl || typeof html2canvas === 'undefined'){
+    legendaEl?.remove();
+    return _svgFallbackCAR(f, bounds);
+  }
 
   let imgResult;
   try{
