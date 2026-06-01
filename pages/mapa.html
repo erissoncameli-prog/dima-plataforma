@@ -317,6 +317,43 @@
 /* UCs: fundo verde escuro, texto branco, caixa alta + sombra de texto suave */
 .uc-label-tt{background:rgba(26,95,56,.88)!important;border:1px solid rgba(26,95,56,.5)!important;border-radius:3px!important;box-shadow:0 1px 5px rgba(0,0,0,.35)!important;font-size:11px!important;font-weight:700!important;color:#fff!important;padding:3px 8px!important;white-space:nowrap!important;pointer-events:none!important;max-width:190px!important;overflow:hidden!important;text-overflow:ellipsis!important;text-transform:uppercase!important;letter-spacing:.04em!important;text-shadow:0 1px 2px rgba(0,0,0,.6),-1px 0 1px rgba(0,0,0,.3),1px 0 1px rgba(0,0,0,.3)!important;}
 .uc-label-tt::before{display:none!important;}
+
+/* ── Card flutuante de estatísticas das UCs ─────────────────────────────── */
+#uc-stats-card{
+  position:absolute;bottom:28px;left:10px;z-index:500;
+  width:272px;background:#fff;border-radius:12px;
+  box-shadow:0 4px 24px rgba(0,0,0,.22);overflow:hidden;
+  font-family:'DM Sans',sans-serif;display:none;
+}
+#uc-stats-card.visivel{display:block;}
+.usc-header{
+  background:linear-gradient(135deg,#1a3c2a,#2D6A4F);
+  padding:10px 13px;display:flex;align-items:center;gap:6px;cursor:pointer;
+}
+.usc-header-txt{flex:1;}
+.usc-header-titulo{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.06em;}
+.usc-header-sub{font-size:10px;color:rgba(255,255,255,.65);margin-top:1px;}
+.usc-collapse-btn{font-size:13px;color:rgba(255,255,255,.7);background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;transition:color .15s;}
+.usc-collapse-btn:hover{color:#fff;}
+.usc-body{padding:10px 13px 12px;display:flex;flex-direction:column;gap:10px;}
+.usc-totais{display:flex;gap:8px;}
+.usc-total-bloco{flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:8px;padding:7px 10px;text-align:center;}
+.usc-total-val{font-size:17px;font-weight:700;color:var(--verde-escuro);line-height:1;}
+.usc-total-lbl{font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+.usc-pct-badge{font-size:10px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:99px;padding:1px 7px;text-align:center;align-self:center;}
+.usc-secao-titulo{font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.07em;padding-bottom:5px;border-bottom:1px solid var(--cinza-100);}
+.usc-tipo-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--cinza-50);}
+.usc-tipo-row:last-child{border-bottom:none;}
+.usc-tipo-sigla{font-size:10px;font-weight:700;color:var(--cinza-700);width:38px;flex-shrink:0;}
+.usc-tipo-bar-wrap{flex:1;height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;}
+.usc-tipo-bar{height:100%;border-radius:3px;transition:width .4s ease;}
+.usc-tipo-info{font-size:10px;color:var(--cinza-500);white-space:nowrap;text-align:right;min-width:62px;}
+.usc-gestao-row{display:flex;align-items:center;gap:7px;padding:3px 0;}
+.usc-gestao-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.usc-gestao-nome{font-size:11px;color:var(--cinza-700);flex:1;}
+.usc-gestao-qtd{font-size:10px;font-weight:700;color:var(--cinza-800);min-width:18px;text-align:right;}
+.usc-gestao-ha{font-size:10px;color:var(--cinza-400);min-width:76px;text-align:right;}
+.usc-gestao-pct{font-size:9px;font-weight:700;color:var(--cinza-500);min-width:28px;text-align:right;}
 /* Municípios: pílula branca, borda cinza-azul, texto escuro + sombra clara de contorno */
 .mun-label-tt{background:rgba(255,255,255,.97)!important;border:1.5px solid #64748b!important;border-radius:99px!important;box-shadow:0 1px 6px rgba(0,0,0,.32)!important;font-size:12px!important;font-weight:700!important;color:#1e293b!important;padding:3px 11px!important;white-space:nowrap!important;pointer-events:none!important;max-width:200px!important;overflow:hidden!important;text-overflow:ellipsis!important;text-shadow:0 1px 3px rgba(255,255,255,.9),0 0 4px rgba(255,255,255,.8)!important;}
 .mun-label-tt::before{display:none!important;}
@@ -7294,69 +7331,25 @@ function exportarRelCSV(){
 function exportarRelPDF(){
   if(!_relDados) return;
 
-  const base    = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
-  const A       = p => `${base}/assets/${p}`;
-  const now     = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
-                + ' — ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const user    = appState?.usuario?.nome_completo || appState?.usuario?.email || 'Sistema DIMA';
-  const perfil  = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',
-    financeiro:'Financeiro',consultor_externo:'Consultor Externo',visualizador:'Visualizador'
-  }[appState?.perfil] || appState?.perfil || '';
-  const filename = `relatorio-ambiental-apa-${new Date().toISOString().slice(0,10)}`;
+  const titulo = 'Relatório Analítico Ambiental — APA Igarapé São Francisco';
+  const data   = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
-  const headerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;background:#fff;padding:16px 28px 12px;border-bottom:3px solid #1F4E2C;box-sizing:border-box;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <img src="${A('1695134345-1-horizontal-verde-solo.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
-        <div style="width:1px;height:24px;background:#B5860D;flex-shrink:0;"></div>
-        <img src="${A('3-vertical-verde-conjunto-1024x805.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <img src="${A('UNESCO_logo_hor_blue_transparent.png.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
-        <img src="${A('UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png')}" style="height:24px;width:auto;" onerror="this.style.display='none'">
-      </div>
-    </div>
-    <div style="margin-bottom:10px;">
-      <div style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
-      <div style="font-size:11px;color:#4b5563;margin-bottom:1px;">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
-      <div style="font-size:10px;color:#6b7280;">Rio Branco, Acre — SEMA/AC</div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:16px;font-weight:700;color:#111827;">📊 Relatório Analítico Ambiental</span>
-        <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff;background:#1F4E2C;letter-spacing:.05em;">APA · Mapa de Entregas</span>
-      </div>
-      <div style="text-align:right;font-size:10px;color:#6b7280;line-height:1.5;">
-        <div>Gerado em: <strong>${now}</strong></div>
-        <div>Por: <strong>${user}</strong>${perfil ? ' · '+perfil : ''}</div>
-      </div>
-    </div>
-  </div>`;
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if(!win){ toast('Popup bloqueado. Permita popups para este site.', 'error'); return; }
 
-  const footerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;padding:10px 28px;border-top:1.5px solid #1F4E2C;display:flex;align-items:center;justify-content:space-between;background:#f8faf8;box-sizing:border-box;">
-    <div style="font-size:10px;color:#4b5563;line-height:1.5;">
-      Impresso por: <strong>${user}</strong>${perfil ? ' · '+perfil : ''}<br>
-      <span style="font-size:9px;color:#9ca3af;">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
-    </div>
-    <div style="font-size:9px;color:#9ca3af;text-align:center;">Plataforma DIMA · UNESCO 218BRA2001</div>
-    <div style="font-size:11px;font-weight:600;color:#374151;font-family:monospace;">
-      Relatório Ambiental · p.<span class="pageNumber"></span>/<span class="totalPages"></span>
-    </div>
-  </div>`;
-
-  const htmlContent = `<!DOCTYPE html>
+  win.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Relatório Analítico Ambiental — APA Igarapé São Francisco</title>
+<title>${titulo}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;background:#f3f4f6;}
-.doc-wrap{background:#fff;max-width:960px;margin:20px auto;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,.12);overflow:hidden;}
-.doc-body{padding:20px 32px;}
-.sec-titulo{font-size:11px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.08em;padding:10px 32px 8px;background:#f0f7f2;border-bottom:1px solid #c8e6d0;border-top:1px solid #c8e6d0;margin-top:0;}
-.rel-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
-.rel-kpi{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;background:#fff;}
+body{font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#111827;background:#fff;padding:24px 32px;}
+h1{font-size:18px;font-weight:700;color:#1F4E2C;margin-bottom:4px;}
+.subtitulo{font-size:11px;color:#6b7280;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #e5e7eb;}
+.rel-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
+.rel-kpi{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;}
 .rel-kpi-val{font-size:19px;font-weight:700;color:#111827;line-height:1.2;}
 .rel-kpi-lbl{font-size:10px;color:#6b7280;margin-top:3px;font-weight:500;}
 .rel-kpi-sub{font-size:9px;color:#9ca3af;margin-top:2px;}
@@ -7364,7 +7357,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
 .rel-kpi-green{border-color:#86efac;background:#f0fdf4;}.rel-kpi-green .rel-kpi-val{color:#16a34a;}
 .rel-kpi-warn{border-color:#fde68a;background:#fffbeb;}.rel-kpi-warn .rel-kpi-val{color:#d97706;}
 .rel-kpi-info{border-color:#bfdbfe;background:#eff6ff;}.rel-kpi-info .rel-kpi-val{color:#1d4ed8;}
-.rel-section{border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:14px;break-inside:avoid;background:#fff;}
+.rel-section{border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:16px;break-inside:avoid;}
 .rel-section-title{font-size:12px;font-weight:700;color:#1f2937;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f3f4f6;}
 .rel-table{width:100%;border-collapse:collapse;font-size:11px;}
 .rel-table th{background:#f9fafb;padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;border-bottom:2px solid #e5e7eb;white-space:nowrap;}
@@ -7373,72 +7366,32 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
 .rel-badge-danger{background:#fef2f2;color:#dc2626;border-color:#fca5a5;}
 .rel-badge-warn{background:#fffbeb;color:#d97706;border-color:#fde68a;}
 .rel-badge-ok{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
-.rel-text-block{border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:12px;break-inside:avoid;background:#fff;}
+.rel-text-block{border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:12px;break-inside:avoid;}
 .rel-text-block h4{font-size:12px;font-weight:700;color:#1F4E2C;border-bottom:1px solid #f3f4f6;padding-bottom:7px;margin-bottom:8px;}
 .rel-text-block p{font-size:12px;color:#374151;line-height:1.7;margin-bottom:6px;}
 .rel-text-block ol{font-size:12px;line-height:1.9;padding-left:18px;color:#374151;}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+@media print{
+  body{padding:12px 18px;}
+  .rel-section,.rel-text-block{break-inside:avoid;}
+}
 </style>
 </head>
 <body>
-<div class="doc-wrap">
-  <!-- Cabeçalho gerenciado pelo Puppeteer via headerTemplate -->
+<h1>📊 ${titulo}</h1>
+<div class="subtitulo">Gerado automaticamente pelo Sistema DIMA em ${data} · Projeto 218BRA2001 · SEMA/AC · Fundo Brasil-ONU</div>
+${_htmlRelVisaoGeralPrint(_relDados)}
+${_htmlRelSubbaciasPrint(_relDados)}
+${_htmlRelHidrografiaPrint(_relDados)}
+${_htmlRelCARPrint(_relDados)}
+${_htmlRelTextual(_relDados)}
+</body>
+</html>`);
 
-  <div class="doc-body">
-    <div class="sec-titulo" style="border-top:none;margin-bottom:14px">📊 Visão Geral</div>
-    ${_htmlRelVisaoGeralPrint(_relDados)}
-
-    <div class="sec-titulo" style="page-break-before:always;margin-bottom:14px">🗺 Sub-bacias Hidrográficas</div>
-    ${_htmlRelSubbaciasPrint(_relDados)}
-
-    <div class="sec-titulo" style="page-break-before:always;margin-bottom:14px">💧 Hidrografia e Vegetação Ciliar</div>
-    ${_htmlRelHidrografiaPrint(_relDados)}
-
-    ${_carCarregado && _carFeatures.length ? `<div class="sec-titulo" style="page-break-before:always;margin-bottom:14px">🏡 Cadastro Ambiental Rural (CAR)</div>${_htmlRelCARPrint(_relDados)}` : ''}
-
-    <div class="sec-titulo" style="page-break-before:always;margin-bottom:14px">📝 Relatório Técnico</div>
-    ${_htmlRelTextual(_relDados)}
-  </div>
-
-  <!-- Rodapé gerenciado pelo Puppeteer via footerTemplate -->
-</div>
-</body></html>`;
-
-  try{
-    const { data:{ session } } = await db.auth.getSession();
-    const res = await fetch(SUPABASE_URL + '/functions/v1/gerar-pdf-relatorio', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + (session?.access_token || ''),
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ html: htmlContent, headerTemplate, footerTemplate, filename }),
-    });
-
-    if(!res.ok){
-      const err = await res.json().catch(()=>({ error: `HTTP ${res.status}` }));
-      if(err.error?.includes('BROWSERLESS_TOKEN')){
-        toast('⚠️ Token Browserless não configurado. Abrindo para impressão manual…','warning');
-        _abrirJanelaRelatorioFallback(htmlContent);
-        return;
-      }
-      throw new Error(err.error || `HTTP ${res.status}`);
-    }
-
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = filename + '.pdf';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    toast('✅ PDF gerado e baixado!', 'success');
-
-  }catch(e){
-    toast('Erro ao gerar PDF: ' + e.message + ' — abrindo versão impressão…', 'error');
-    _abrirJanelaRelatorioFallback(htmlContent);
-  }
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 800);
+  toast('Janela de impressão aberta!', 'success');
 }
 
 function _abrirJanelaRelatorioFallback(html){
