@@ -7875,34 +7875,28 @@ function filtrarUC() { _renderizarUC(); _ucStatsAtualizar(); }
 
 // ── Card flutuante de estatísticas das UCs ────────────────────────────────
 var _ucStatsCollapsed = false;
-var AREA_ACRE_HA = 16421700; // área do estado do Acre em ha
+var AREA_ACRE_HA = 16421700;
 
 function _ucStatsAtualizar() {
   if (!_ucGeojson || !_ucAtivo) return;
 
-  // Respeita os filtros ativos na interface
+  // Filtra apenas por esfera (checkboxes de gestão) — não por nome individual,
+  // para que FLOES, ARIE e outros sem geometria também sejam contados
   var esfFed = (document.getElementById('uc-esfera-federal')  || {checked:true}).checked;
   var esfEst = (document.getElementById('uc-esfera-estadual') || {checked:true}).checked;
   var esfMun = (document.getElementById('uc-esfera-municipal')|| {checked:true}).checked;
-  var nomesAtivos = new Set(
-    Array.from(document.querySelectorAll('[data-uc-nome]'))
-      .filter(function(el){ return el.checked; })
-      .map(function(el){ return el.dataset.ucNome; })
-  );
 
   var feats = _ucGeojson.features.filter(function(f) {
     var esf = (f.properties.esfera || '').toLowerCase();
     if (esf === 'federal'   && !esfFed) return false;
     if (esf === 'estadual'  && !esfEst) return false;
     if (esf === 'municipal' && !esfMun) return false;
-    if (nomesAtivos.size > 0 && !nomesAtivos.has(f.properties.nome)) return false;
     return true;
   });
 
-  var totalUCs  = feats.length;
-  var totalHa   = feats.reduce(function(s,f){ return s + (Number(f.properties.area_ha)||0); }, 0);
+  var totalUCs = feats.length;
+  var totalHa  = feats.reduce(function(s,f){ return s + (Number(f.properties.area_ha)||0); }, 0);
   var pctEstado = totalHa > 0 ? (totalHa / AREA_ACRE_HA * 100).toFixed(1) : '—';
-
   var fmtHa = function(n){ return Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:0}); };
 
   // Totais
@@ -7911,29 +7905,34 @@ function _ucStatsAtualizar() {
     '<div class="usc-total-bloco"><div class="usc-total-val">' + fmtHa(totalHa) + '</div><div class="usc-total-lbl">Hectares</div></div>' +
     '<div class="usc-pct-badge">≈ ' + pctEstado + '%<br><span style="font-size:8px;font-weight:500;color:#1d4ed8">do estado</span></div>';
 
-  // Por tipo (agrupa por sigla)
+  // Por tipo — agrupa por sigla, mostra qtd e área (sem área = "s/ dado")
   var porTipo = {};
   feats.forEach(function(f) {
-    var p   = f.properties;
-    var sig = p.sigla || p.categoria || '?';
+    var p = f.properties;
+    var sig = p.sigla || '?';
     if (!porTipo[sig]) porTipo[sig] = { sigla: sig, cat: p.categoria || sig, qtd: 0, ha: 0, cor: p.cor || '#2D6A4F' };
     porTipo[sig].qtd++;
     porTipo[sig].ha += Number(p.area_ha) || 0;
   });
-  var tipoList = Object.values(porTipo).sort(function(a,b){ return b.ha - a.ha; });
-  var maxHa    = tipoList.length ? tipoList[0].ha : 1;
+  var tipoList = Object.values(porTipo).sort(function(a,b){
+    // ordena: com área primeiro (desc), depois sem área (asc por sigla)
+    if (b.ha !== a.ha) return b.ha - a.ha;
+    return a.sigla.localeCompare(b.sigla);
+  });
+  var maxHa = tipoList.reduce(function(m,t){ return Math.max(m, t.ha); }, 1);
   document.getElementById('usc-tipos').innerHTML = tipoList.map(function(t) {
-    var pct = maxHa > 0 ? Math.max(3, Math.round(t.ha / maxHa * 100)) : 3;
-    var haStr = t.ha > 0 ? fmtHa(t.ha) + ' ha' : '— ha';
+    var pct   = Math.max(2, Math.round(t.ha / maxHa * 100));
+    var haStr = t.ha > 0 ? fmtHa(t.ha) + ' ha' : 's/ dado';
+    var barColor = t.ha > 0 ? t.cor : '#d1d5db';
     return '<div class="usc-tipo-row">' +
       '<span class="usc-tipo-sigla" title="' + t.cat + '">' + t.sigla + '</span>' +
-      '<div class="usc-tipo-bar-wrap"><div class="usc-tipo-bar" style="width:' + pct + '%;background:' + t.cor + '"></div></div>' +
+      '<div class="usc-tipo-bar-wrap"><div class="usc-tipo-bar" style="width:' + (t.ha > 0 ? pct : 0) + '%;background:' + barColor + '"></div></div>' +
       '<span class="usc-tipo-info">' + t.qtd + ' · ' + haStr + '</span>' +
       '</div>';
   }).join('');
 
   // Por gestão
-  var cores = { federal: '#2563eb', estadual: '#059669', municipal: '#d97706' };
+  var cores = { federal:'#2563eb', estadual:'#059669', municipal:'#d97706' };
   var porGestao = {};
   feats.forEach(function(f) {
     var esf = (f.properties.esfera || 'outro').toLowerCase();
@@ -7955,11 +7954,61 @@ function _ucStatsAtualizar() {
   }).join('');
 }
 
+function ucStatsFechar() {
+  document.getElementById('uc-stats-card').classList.remove('visivel');
+}
+
 function ucStatsToggleCollapse() {
   _ucStatsCollapsed = !_ucStatsCollapsed;
   document.getElementById('usc-body').style.display = _ucStatsCollapsed ? 'none' : '';
   document.getElementById('usc-collapse-btn').textContent = _ucStatsCollapsed ? '▸' : '▾';
 }
+
+// ── Drag do card ──────────────────────────────────────────────────────────
+(function(){
+  var card, handle, dragging = false, ox = 0, oy = 0;
+  function init() {
+    card   = document.getElementById('uc-stats-card');
+    handle = document.getElementById('usc-drag-handle');
+    if (!card || !handle) return;
+    handle.addEventListener('mousedown', onDown);
+  }
+  function onDown(e) {
+    // Ignora clique nos botões filhos do header
+    if (e.target.tagName === 'BUTTON') return;
+    dragging = true;
+    var rect = card.getBoundingClientRect();
+    var par  = card.offsetParent.getBoundingClientRect();
+    // Converte posição atual para top/left relativo ao pai (#mapa)
+    card.style.bottom = 'auto';
+    card.style.top    = (rect.top - par.top) + 'px';
+    card.style.left   = (rect.left - par.left) + 'px';
+    ox = e.clientX - rect.left;
+    oy = e.clientY - rect.top;
+    card.classList.add('dragging');
+    e.preventDefault();
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    var par = card.offsetParent.getBoundingClientRect();
+    var nx  = e.clientX - par.left - ox;
+    var ny  = e.clientY - par.top  - oy;
+    // Mantém dentro dos limites do pai
+    var maxX = card.offsetParent.offsetWidth  - card.offsetWidth;
+    var maxY = card.offsetParent.offsetHeight - card.offsetHeight;
+    card.style.left = Math.max(0, Math.min(nx, maxX)) + 'px';
+    card.style.top  = Math.max(0, Math.min(ny, maxY)) + 'px';
+  }
+  function onUp() {
+    dragging = false;
+    card.classList.remove('dragging');
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+  }
+  document.addEventListener('DOMContentLoaded', init);
+})();
 function setOpacidadeUC(v) {
   _ucOpacity = v / 100;
   document.getElementById('uc-opacity-val').textContent = v + '%';
