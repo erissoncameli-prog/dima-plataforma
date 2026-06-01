@@ -5639,12 +5639,9 @@ async function _gerarPdfRelatorioCAR(capturas){
   }
 }
 
-function _abrirJanelaRelatorioCAR(capturas){
-  const win = window.open('', '_blank', 'width=1000,height=800');
-  if(!win){ toast('Popup bloqueado. Permita popups para este site.','error'); return; }
-
-  // URL base para logos (same origin, resolves from /pages/)
-  const base = window.location.href.replace(/\/pages\/.*$/, '');
+function _montarHtmlRelatorioCAR(capturas){
+  // URL base absoluta para logos (acessível pelo servidor Browserless)
+  const base = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
   const A = path => `${base}/assets/${path}`;
 
   const now  = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
