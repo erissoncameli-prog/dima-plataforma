@@ -7882,6 +7882,28 @@ function _renderizarTI(){
       const p   = f.properties;
       const cor = _tiCorFase(p.fase_ti);
       const ha  = p.superficie_perimetro_ha;
+      // Label permanente no centróide
+      const nome = p.terrai_nome || '';
+      if(nome){
+        let centroid;
+        try {
+          const c = turf.centroid(f);
+          centroid = [c.geometry.coordinates[1], c.geometry.coordinates[0]];
+        } catch(e) {
+          const pts = f.geometry.type === 'MultiPolygon'
+            ? f.geometry.coordinates[0][0]
+            : f.geometry.coordinates[0];
+          const sumLon = pts.reduce((s,p)=>s+p[0],0);
+          const sumLat = pts.reduce((s,p)=>s+p[1],0);
+          centroid = [sumLat/pts.length, sumLon/pts.length];
+        }
+        const tt = L.tooltip({ permanent:true, direction:'center', className:'ti-label-tt', interactive:false });
+        tt.setContent(nome);
+        tt.setLatLng(centroid);
+        tt.addTo(mapaL);
+        layer._tiLabel = tt;
+        layer.on('remove', ()=>{ try{ mapaL.removeLayer(tt); }catch(x){} });
+      }
       layer.bindPopup(`
         <div class="camada-popup">
           <div class="cp-header" style="background:#92400e">🪶 Terra Indígena</div>
