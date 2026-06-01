@@ -320,12 +320,13 @@
 
 /* ── Card flutuante de estatísticas das UCs ─────────────────────────────── */
 #uc-stats-card{
-  position:absolute;bottom:28px;left:10px;z-index:500;
+  position:absolute;top:auto;bottom:28px;left:10px;z-index:500;
   width:272px;background:#fff;border-radius:12px;
   box-shadow:0 4px 24px rgba(0,0,0,.22);overflow:hidden;
   font-family:'DM Sans',sans-serif;display:none;
 }
 #uc-stats-card.visivel{display:block;}
+#uc-stats-card.dragging{box-shadow:0 8px 40px rgba(0,0,0,.35);transition:none;}
 .usc-header{
   background:linear-gradient(135deg,#1a3c2a,#2D6A4F);
   padding:10px 13px;display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;
