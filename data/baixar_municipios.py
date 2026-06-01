@@ -14,8 +14,12 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'municipios_acre.
 # Pegar lista de municípios do Acre
 print("Buscando lista de municípios do Acre...")
 url_lista = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados/12/municipios'
+import gzip, io
 with req.urlopen(url_lista) as r:
-    municipios = json.loads(r.read().decode('utf-8'))
+    raw = r.read()
+    try: raw = gzip.decompress(raw)
+    except: pass
+    municipios = json.loads(raw.decode('utf-8'))
 
 print(f"Total: {len(municipios)} municípios")
 
