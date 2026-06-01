@@ -5216,12 +5216,17 @@ async function gerarRelatorioCarMarcados(){
   // Garante que o painel lateral não cobre o mapa
   document.getElementById('car-det-panel')?.classList.remove('aberto');
 
-  // Pré-carrega dados locais e diagnósticos para todos os CARs marcados
-  toast(`Buscando dados cadastrais e calculando diagnósticos…`,'info');
+  // Pré-carrega dados locais, diagnósticos e PRODES para todos os CARs marcados
+  toast(`Buscando dados cadastrais, diagnósticos e PRODES/INPE…`,'info');
   const featsParaDiag = cods.map(cod => _carFeatures.find(f => f.properties?.cod_imovel === cod)).filter(Boolean);
   await Promise.all([
     ...cods.map(cod => _buscarDadosLocais(cod)),
-    ...featsParaDiag.map(f => _calcularDiagnosticoCAR(f).then(d => _carDiagCache.set(f.properties.cod_imovel, d)))
+    ...featsParaDiag.map(f => _calcularDiagnosticoCAR(f).then(d => _carDiagCache.set(f.properties.cod_imovel, d))),
+    ...featsParaDiag.map(f => {
+      const cod = f.properties?.cod_imovel;
+      if(_carProdesCache.has(cod)) return Promise.resolve();
+      return _fetchProdesCAR(f).then(d => _carProdesCache.set(cod, d)).catch(()=>{});
+    }),
   ]);
 
   const capturas = [];
