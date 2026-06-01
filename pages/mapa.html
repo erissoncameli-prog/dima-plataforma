@@ -3907,6 +3907,10 @@ function _estiloCAR(f, hover, sel){
            fillColor, fillOpacity, dashArray: marcado ? '6 4' : null };
 }
 
+// Cache: ucNome → features[] já carregadas
+const _carCacheUC = new Map();
+let _carUCAtual = null; // nome da UC atualmente carregada
+
 // ── Toggle da camada ───────────────────────────────────────────────────────
 async function toggleCamadaCAR(el){
   if(!el.checked){
@@ -3916,22 +3920,60 @@ async function toggleCamadaCAR(el){
     document.getElementById('car-count-badge').style.display  = 'none';
     return;
   }
-  if(!_carCarregado) await carregarDadosCAR();
-  else _aplicarCamadaCAR();
+  // Garante UCs carregadas para popular o select
+  if(!_ucGeojson){
+    try{ const r = await fetch('../data/uc_acre.geojson'); _ucGeojson = await r.json(); }catch(e){}
+  }
+  _popularFiltroUC();
+  document.getElementById('car-filtros-wrap').style.display = 'flex';
+  // Se já tem uma UC selecionada, carrega
+  const ucSel = document.getElementById('car-sel-uc')?.value || 'todas';
+  if(ucSel !== 'todas' && ucSel !== 'fora') await carregarDadosCAR(ucSel);
+  else _aplicarCamadaCAR(); // mostra vazio até o usuário escolher
 }
 
-// ── Carregamento WFS paginado ──────────────────────────────────────────────
-async function carregarDadosCAR(){
+// ── Carregamento WFS por UC ────────────────────────────────────────────────
+async function carregarDadosCAR(ucNome){
   if(_carCarregando) return;
+
+  // UC não específica: limpa e sai
+  if(!ucNome || ucNome === 'todas' || ucNome === 'fora'){
+    _carFeatures = [];
+    _carVisiveis = [];
+    if(_carLayer){ mapaL.removeLayer(_carLayer); _carLayer = null; }
+    _atualizarBadgeCAR();
+    return;
+  }
+
+  // Cache hit
+  if(_carCacheUC.has(ucNome)){
+    _carFeatures = _carCacheUC.get(ucNome);
+    _carUCAtual  = ucNome;
+    _carCarregado = true;
+    _computarAtributosCAR();
+    _popularFiltroSubbacia();
+    _aplicarCamadaCAR();
+    return;
+  }
+
   _carCarregando = true;
   const load = document.getElementById('car-loading');
-  if(load) { load.style.display = 'flex'; }
+  if(load) load.style.display = 'flex';
 
   try{
+    // Calcula bbox da UC selecionada
+    const ucFeat = (_ucGeojson?.features||[]).find(f =>
+      (f.properties?.nome || f.properties?.name || f.properties?.NOME) === ucNome
+    );
+    if(!ucFeat) throw new Error('UC não encontrada no GeoJSON: ' + ucNome);
+
+    const [minX, minY, maxX, maxY] = turf.bbox(ucFeat);
+    const bbox = `${minX},${minY},${maxX},${maxY},EPSG:4326`;
+
     // 1ª página — descobre total
     const url0 = `${CAR_WFS_BASE}?service=WFS&version=2.0.0&request=GetFeature`
                + `&typeNames=sicar:sicar_imoveis_ac&outputFormat=application/json`
-               + `&BBOX=${CAR_BBOX}&count=${CAR_PAGE}&startindex=0`;
+               + `&BBOX=${bbox}&count=${CAR_PAGE}&startindex=0`;
     const res0 = await fetch(url0).then(r => r.json());
     const total = res0.numberMatched || res0.totalFeatures || (res0.features||[]).length;
     const features = [...(res0.features || [])];
@@ -3943,33 +3985,35 @@ async function carregarDadosCAR(){
       for(let i = 1; i < npages; i++){
         const u = `${CAR_WFS_BASE}?service=WFS&version=2.0.0&request=GetFeature`
                 + `&typeNames=sicar:sicar_imoveis_ac&outputFormat=application/json`
-                + `&BBOX=${CAR_BBOX}&count=${CAR_PAGE}&startindex=${i * CAR_PAGE}`;
+                + `&BBOX=${bbox}&count=${CAR_PAGE}&startindex=${i * CAR_PAGE}`;
         promises.push(fetch(u).then(r => r.json()));
       }
       const pages = await Promise.all(promises);
       pages.forEach(p => features.push(...(p.features || [])));
     }
 
-    _carFeatures = features;
-    // Garante que o GeoJSON de UCs está disponível para classificação
-    if(!_ucGeojson){
-      try{ const r = await fetch('../data/uc_acre.geojson'); _ucGeojson = await r.json(); }catch(e){}
-    }
+    // Filtra estrito: mantém só os que o centroide cai dentro do polígono da UC
+    const dentro = features.filter(f => {
+      if(!f.geometry) return false;
+      try{ return turf.booleanPointInPolygon(turf.centroid(f), ucFeat); }catch(e){ return false; }
+    });
+
+    _carCacheUC.set(ucNome, dentro);
+    _carFeatures = dentro;
+    _carUCAtual  = ucNome;
     _computarAtributosCAR();
-    await _carregarMarcados(); // carrega marcados/estilos do banco
+    await _carregarMarcados();
     _carCarregado  = true;
     _carCarregando = false;
     if(load) load.style.display = 'none';
     _popularFiltroSubbacia();
-    _popularFiltroUC();
     _aplicarCamadaCAR();
     _atualizarContadorPins();
-    toast(`${features.length.toLocaleString('pt-BR')} imóveis CAR carregados`, 'success');
+    toast(`${dentro.length.toLocaleString('pt-BR')} imóveis CAR em ${ucNome}`, 'success');
   } catch(err){
     _carCarregando = false;
     if(load) load.style.display = 'none';
-    toast('Erro ao carregar dados CAR: ' + err.message, 'error');
-    document.getElementById('car-toggle').checked = false;
+    toast('Erro ao carregar CAR: ' + err.message, 'error');
   }
 }
 
