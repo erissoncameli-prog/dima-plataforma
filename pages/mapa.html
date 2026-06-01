@@ -328,8 +328,9 @@
 #uc-stats-card.visivel{display:block;}
 .usc-header{
   background:linear-gradient(135deg,#1a3c2a,#2D6A4F);
-  padding:10px 13px;display:flex;align-items:center;gap:6px;cursor:pointer;
+  padding:10px 13px;display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;
 }
+.usc-header:active{cursor:grabbing;}
 .usc-header-txt{flex:1;}
 .usc-header-titulo{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.06em;}
 .usc-header-sub{font-size:10px;color:rgba(255,255,255,.65);margin-top:1px;}
