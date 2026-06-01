@@ -7480,164 +7480,229 @@ function togglePainelMobile(){
 // ═══════════════════════════════════════════════════════════════════════════
 // UNIDADES DE CONSERVAÇÃO  —  /data/uc_acre.geojson
 // Fonte: Shapefile oficial SEMA/AC (21 UCs · federal + estadual + municipal)
+// Campos: nome, sigla, categoria, grupo (PI/US), esfera, ano_cria, ato_cria,
+//         gestor, municipios, area_ha, cor, centro_lon, centro_lat
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Cores por categoria (valores reais do dataset TerraBrasilis)
-const UC_CORES = {
-  'Parque':                               '#dc2626',
-  'Estação Ecológica':                    '#7f1d1d',
-  'Reserva Biológica':                    '#991b1b',
-  'Monumento Natural':                    '#c2410c',
-  'Refúgio de Vida Silvestre':            '#ea580c',
-  'Área de Proteção Ambiental':           '#2563eb',
-  'Área de Relevante Interesse Ecológico':'#d97706',
-  'Floresta':                             '#0369a1',
-  'Reserva Extrativista':                 '#059669',
-  'Reserva de Desenvolvimento Sustentável':'#0891b2',
-  'Reserva de Fauna':                     '#7c3aed',
-  'Reserva Particular do Patrimônio Natural':'#4f46e5',
-};
-function _ucCor(cat){ return UC_CORES[cat] || '#6b7280'; }
+// ── Cores individuais por UC — persistidas no localStorage ────────────────
+var _ucCoresLS = {};
+try { _ucCoresLS = JSON.parse(localStorage.getItem('dima_uc_cores') || '{}'); } catch(e){}
 
-let _ucGeojson = null;
-let _ucLayer   = null;
-let _ucOpacity = 0.4;
-let _ucAtivo   = false;
+function _ucCorNome(nome, fallback) {
+  return _ucCoresLS[nome] || fallback || '#6b7280';
+}
+function _ucSalvarCores() {
+  try { localStorage.setItem('dima_uc_cores', JSON.stringify(_ucCoresLS)); } catch(e) {}
+}
+function ucAlterarCor(nome, cor) {
+  _ucCoresLS[nome] = cor;
+  _ucSalvarCores();
+  var sw = document.querySelector('[data-ucsw="' + nome.replace(/"/g,'&quot;') + '"]');
+  if (sw) sw.style.background = cor;
+  if (_ucLayer) {
+    _ucLayer.eachLayer(function(l) {
+      if (l.feature && l.feature.properties && l.feature.properties.nome === nome)
+        l.setStyle({ color: cor, fillColor: cor });
+    });
+  }
+}
 
-let _tiGeojson = null;
-let _tiLayer   = null;
-let _tiOpacity = 0.4;
-let _tiAtivo   = false;
+// Color picker reutilizável
+var _ucPickerEl = null, _ucPickerNome = null;
+function ucAbrirColorPicker(nome, el) {
+  if (!_ucPickerEl) {
+    _ucPickerEl = document.createElement('input');
+    _ucPickerEl.type = 'color';
+    _ucPickerEl.style.cssText = 'position:fixed;opacity:0;width:0;height:0;pointer-events:none';
+    document.body.appendChild(_ucPickerEl);
+    _ucPickerEl.addEventListener('input', function(e) {
+      if (_ucPickerNome) ucAlterarCor(_ucPickerNome, e.target.value);
+    });
+  }
+  _ucPickerNome = nome;
+  _ucPickerEl.value = (_ucCoresLS[nome] || el.style.backgroundColor || '#059669').replace(/[^#0-9a-fA-F]/g,'').substring(0,7) || '#059669';
+  _ucPickerEl.click();
+}
 
-async function _carregarUC(){
+var _ucGeojson = null;
+var _ucLayer   = null;
+var _ucOpacity = 0.4;
+var _ucAtivo   = false;
+var _ucLabels  = true;
+
+var _tiGeojson = null;
+var _tiLayer   = null;
+var _tiOpacity = 0.4;
+var _tiAtivo   = false;
+
+function _ucGrupoId(grupo) {
+  if (!grupo) return 'us';
+  var g = grupo.toLowerCase();
+  return (g === 'pi' || g.indexOf('integral') >= 0) ? 'pi' : 'us';
+}
+
+async function _carregarUC() {
   document.getElementById('uc-loading').style.display = 'flex';
   try {
-    const r = await fetch('../data/uc_acre.geojson');
-    if(!r.ok) throw new Error('HTTP ' + r.status);
+    var r = await fetch('../data/uc_acre.geojson');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     _ucGeojson = await r.json();
   } catch(e) {
     document.getElementById('uc-loading').style.display = 'none';
     document.getElementById('uc-controles').style.display = 'flex';
-    document.getElementById('uc-stat').textContent = '⚠ Erro ao carregar UC: ' + e.message;
+    document.getElementById('uc-stat').textContent = '⚠ Erro: ' + e.message;
     return;
   }
   document.getElementById('uc-loading').style.display = 'none';
   document.getElementById('uc-controles').style.display = 'flex';
-  _ucConstruirFiltrosTipos();
+  _ucConstruirPainel();
   _renderizarUC();
 }
 
-// Normaliza grupo para 'pi' ou 'us' independente da fonte (PI/US ou texto completo CNUC)
-function _ucGrupoId(grupo){
-  if(!grupo) return 'us';
-  const g = grupo.toLowerCase();
-  return (g === 'pi' || g.includes('integral')) ? 'pi' : 'us';
-}
+function _ucConstruirPainel() {
+  // Injetar toggle de labels e atualizar titulo acima dos grupos
+  var tituloEl = document.querySelector('.uc-secao-titulo');
+  if (tituloEl && !document.getElementById('uc-labels-toggle')) {
+    var toggleRow = document.createElement('div');
+    toggleRow.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px';
+    toggleRow.innerHTML = '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--cinza-700)">'
+      + '<input type="checkbox" id="uc-labels-toggle" checked style="accent-color:var(--verde-escuro);width:12px;height:12px;cursor:pointer" onchange="ucToggleLabels(this.checked)">'
+      + 'Exibir nome sobre a área</label>';
+    tituloEl.parentNode.insertBefore(toggleRow, tituloEl);
+  }
 
-function _ucConstruirFiltrosTipos(){
-  const contagemPI = {}, contagemUS = {};
-  (_ucGeojson.features || []).forEach(f => {
-    const cat = f.properties.categoria || '';
-    const g   = _ucGrupoId(f.properties.grupo || '');
-    if(g === 'pi') contagemPI[cat] = (contagemPI[cat]||0) + 1;
-    else           contagemUS[cat] = (contagemUS[cat]||0) + 1;
+  // Construir lista de UCs por nome (PI e US separados)
+  var pi = [], us = [];
+  (_ucGeojson.features || []).forEach(function(f) {
+    var p = f.properties;
+    var g = _ucGrupoId(p.grupo);
+    var item = { nome: p.nome || '', sigla: p.sigla || '', esfera: p.esfera || '', cor: _ucCorNome(p.nome, p.cor) };
+    if (g === 'pi') pi.push(item); else us.push(item);
   });
-  ['pi','us'].forEach(g => {
-    const cont = g === 'pi' ? contagemPI : contagemUS;
-    const el   = document.getElementById('uc-tipos-' + g);
-    if(!el) return;
-    const cats = Object.keys(cont).sort();
-    if(!cats.length){ el.innerHTML = '<span style="font-size:10px;color:var(--cinza-400)">Nenhuma</span>'; return; }
-    el.innerHTML = cats.map(cat => {
-      const cor = _ucCor(cat);
-      return `<label class="uc-filtro-label">
-        <input type="checkbox" checked data-uc-tipo="${esc(cat)}" style="accent-color:${cor};width:12px;height:12px;cursor:pointer" onchange="filtrarUC()">
-        <div class="uc-tipo-dot" style="background:${cor}33;border-color:${cor}"></div>
-        <span style="flex:1">${esc(cat)}</span>
-        <span style="font-size:9px;color:var(--cinza-400)">${cont[cat]}</span>
-      </label>`;
+
+  function esferaBadge(esf) {
+    if (esf === 'federal')
+      return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;flex-shrink:0">' + esf + '</span>';
+    if (esf === 'estadual')
+      return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#fefce8;color:#854d0e;border:1px solid #fde68a;flex-shrink:0">' + esf + '</span>';
+    return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#f0fdf4;color:#166534;border:1px solid #86efac;flex-shrink:0">' + esf + '</span>';
+  }
+
+  function buildList(items) {
+    return items.sort(function(a,b){ return a.nome.localeCompare(b.nome); }).map(function(item) {
+      return '<div class="uc-filtro-label" style="gap:5px;padding:3px 0;align-items:center">'
+        + '<input type="checkbox" checked data-uc-nome="' + esc(item.nome) + '" style="accent-color:' + item.cor + ';width:12px;height:12px;cursor:pointer;flex-shrink:0" onchange="filtrarUC()">'
+        + '<div data-ucsw="' + esc(item.nome) + '" style="background:' + item.cor + ';border:1px solid ' + item.cor + ';cursor:pointer;width:14px;height:14px;border-radius:3px;flex-shrink:0" title="Mudar cor" onclick="ucAbrirColorPicker(\'' + esc(item.nome).replace(/'/g,'\\\'') + '\',this)"></div>'
+        + '<span style="font-size:10px;font-weight:600;color:var(--cinza-500);flex-shrink:0">' + esc(item.sigla) + '</span>'
+        + '<span style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(item.nome) + '">' + esc(item.nome) + '</span>'
+        + esferaBadge(item.esfera)
+        + '</div>';
     }).join('');
-  });
+  }
+
+  var piEl = document.getElementById('uc-tipos-pi');
+  var usEl = document.getElementById('uc-tipos-us');
+  if (piEl) piEl.innerHTML = pi.length ? buildList(pi) : '<span style="font-size:10px;color:var(--cinza-400)">Nenhuma</span>';
+  if (usEl) usEl.innerHTML = us.length ? buildList(us) : '<span style="font-size:10px;color:var(--cinza-400)">Nenhuma</span>';
 }
 
-function _renderizarUC(){
-  if(_ucLayer){ mapaL.removeLayer(_ucLayer); _ucLayer = null; }
-  if(!_ucGeojson || !_ucAtivo) return;
+function _renderizarUC() {
+  if (_ucLayer) { mapaL.removeLayer(_ucLayer); _ucLayer = null; }
+  if (!_ucGeojson || !_ucAtivo) return;
 
-  const esfFed = document.getElementById('uc-esfera-federal')?.checked;
-  const esfEst = document.getElementById('uc-esfera-estadual')?.checked;
-  const esfMun = document.getElementById('uc-esfera-municipal')?.checked;
-  const tiposAtivos = new Set(
-    [...document.querySelectorAll('[data-uc-tipo]')]
-      .filter(el => el.checked).map(el => el.dataset.ucTipo)
+  var esfFed = document.getElementById('uc-esfera-federal') ? document.getElementById('uc-esfera-federal').checked : true;
+  var esfEst = document.getElementById('uc-esfera-estadual') ? document.getElementById('uc-esfera-estadual').checked : true;
+  var esfMun = document.getElementById('uc-esfera-municipal') ? document.getElementById('uc-esfera-municipal').checked : true;
+
+  var nomesAtivos = new Set(
+    Array.from(document.querySelectorAll('[data-uc-nome]'))
+      .filter(function(el){ return el.checked; })
+      .map(function(el){ return el.dataset.ucNome; })
   );
 
-  let count = 0;
+  var count = 0;
   _ucLayer = L.geoJSON(_ucGeojson, {
-    style: f => {
-      const cor = _ucCor(f.properties.categoria);
-      return { color: cor, weight: 1.8, opacity: 0.9, fillColor: cor, fillOpacity: _ucOpacity };
+    style: function(f) {
+      var p = f.properties;
+      var cor = _ucCorNome(p.nome, p.cor);
+      return { color: cor, weight: 2, opacity: 0.9, fillColor: cor, fillOpacity: _ucOpacity };
     },
-    filter: f => {
-      const esf = (f.properties.esfera || '').toLowerCase();
-      if(esf === 'federal'   && !esfFed) return false;
-      if(esf === 'estadual'  && !esfEst) return false;
-      if(esf === 'municipal' && !esfMun) return false;
-      if(tiposAtivos.size && !tiposAtivos.has(f.properties.categoria)) return false;
+    filter: function(f) {
+      var esf = (f.properties.esfera || '').toLowerCase();
+      if (esf === 'federal'   && !esfFed) return false;
+      if (esf === 'estadual'  && !esfEst) return false;
+      if (esf === 'municipal' && !esfMun) return false;
+      if (nomesAtivos.size > 0 && !nomesAtivos.has(f.properties.nome)) return false;
       count++;
       return true;
     },
-    onEachFeature: (f, layer) => {
-      const p   = f.properties;
-      const gid = _ucGrupoId(p.grupo);
-      const cor = gid === 'pi' ? '#dc2626' : '#2563eb';
-      const lbl = gid === 'pi' ? 'Proteção Integral' : 'Uso Sustentável';
-      const ha  = p.area_ha ? Number(p.area_ha).toLocaleString('pt-BR',{maximumFractionDigits:0}) : null;
-      layer.bindPopup(`
-        <div class="camada-popup">
-          <div class="cp-header" style="background:#1a5f38">🌿 Unidade de Conservação</div>
-          <div class="cp-layer">
-            <div class="cp-layer-nome" style="color:${_ucCor(p.categoria)}">${esc(p.categoria||'')}</div>
-            <div class="cp-row"><strong>Nome</strong><span>${esc(p.nome||'')}</span></div>
-            <div class="cp-row"><strong>Esfera</strong><span style="text-transform:capitalize">${esc(p.esfera||'')}</span></div>
-            ${p.municipio ? `<div class="cp-row"><strong>Município</strong><span>${esc(p.municipio)}</span></div>` : ''}
-            ${p.ano_cria  ? `<div class="cp-row"><strong>Criação</strong><span>${esc(p.ano_cria)}</span></div>` : ''}
-            ${ha          ? `<div class="cp-row"><strong>Área (ha)</strong><span>${ha}</span></div>` : ''}
-            ${p.org_gestor? `<div class="cp-row"><strong>Gestor</strong><span>${esc(p.org_gestor)}</span></div>` : ''}
-            <div class="cp-badge" style="background:${cor}11;border-color:${cor};color:${cor}">${lbl}</div>
-          </div>
-        </div>`, { className:'camada-popup-wrap', maxWidth:320 }
-      );
+    onEachFeature: function(f, layer) {
+      var p   = f.properties;
+      var cor = _ucCorNome(p.nome, p.cor);
+      var gid = _ucGrupoId(p.grupo);
+      var corG = gid === 'pi' ? '#dc2626' : '#2563eb';
+      var lblG = gid === 'pi' ? 'Proteção Integral' : 'Uso Sustentável';
+      var ha   = p.area_ha ? Number(p.area_ha).toLocaleString('pt-BR', {maximumFractionDigits:0}) : '';
+
+      // Label permanente no centroide
+      if (_ucLabels && p.centro_lon && p.centro_lat) {
+        var tt = L.tooltip({ permanent: true, direction: 'center', className: 'uc-label-tt', interactive: false });
+        tt.setContent('<span style="color:' + cor + '">' + esc(p.sigla || '') + '</span> ' + esc(p.nome || ''));
+        tt.setLatLng([p.centro_lat, p.centro_lon]);
+        tt.addTo(mapaL);
+        layer._ucLabel = tt;
+        layer.on('remove', function() { try { mapaL.removeLayer(tt); } catch(x){} });
+      }
+
+      // Popup completo
+      var popHtml = '<div class="camada-popup">'
+        + '<div class="cp-header" style="background:#1a5f38">🌿 Unidade de Conservação</div>'
+        + '<div class="cp-layer">'
+        + '<div class="cp-layer-nome" style="color:' + cor + '">' + esc((p.sigla || '') + ' — ' + (p.nome || '')) + '</div>'
+        + '<div class="cp-row"><strong>Categoria</strong><span>' + esc(p.categoria || p.sigla || '') + '</span></div>'
+        + '<div class="cp-row"><strong>Esfera</strong><span style="text-transform:capitalize">' + esc(p.esfera || '') + '</span></div>'
+        + (p.municipios ? '<div class="cp-row"><strong>Municípios</strong><span>' + esc(p.municipios) + '</span></div>' : '')
+        + (p.ano_cria   ? '<div class="cp-row"><strong>Criação</strong><span>' + esc(p.ano_cria) + '</span></div>' : '')
+        + (p.ato_cria   ? '<div class="cp-row"><strong>Ato legal</strong><span style="font-size:10px">' + esc(p.ato_cria) + '</span></div>' : '')
+        + (ha           ? '<div class="cp-row"><strong>Área (ha)</strong><span>' + ha + '</span></div>' : '')
+        + (p.gestor     ? '<div class="cp-row"><strong>Gestor</strong><span>' + esc(p.gestor) + '</span></div>' : '')
+        + '<div class="cp-badge" style="background:' + corG + '11;border-color:' + corG + ';color:' + corG + '">' + lblG + '</div>'
+        + '</div></div>';
+      layer.bindPopup(popHtml, { className: 'camada-popup-wrap', maxWidth: 340 });
     }
   });
   _ucLayer.addTo(mapaL);
-  const stat = document.getElementById('uc-stat');
-  if(stat) stat.textContent = `${count} UC${count!==1?'s':''} exibida${count!==1?'s':''}`;
-  const badge = document.getElementById('uc-count-badge');
-  if(badge){ badge.textContent = count; badge.style.display = count ? '' : 'none'; }
+  var stat = document.getElementById('uc-stat');
+  if (stat) stat.textContent = count + ' UC' + (count !== 1 ? 's' : '') + ' exibida' + (count !== 1 ? 's' : '');
+  var badge = document.getElementById('uc-count-badge');
+  if (badge) { badge.textContent = count; badge.style.display = count ? '' : 'none'; }
 }
 
-function toggleCamadaUC(ativo){
+function toggleCamadaUC(ativo) {
   _ucAtivo = ativo;
-  if(ativo && !_ucGeojson) { _carregarUC(); return; }
+  if (ativo && !_ucGeojson) { _carregarUC(); return; }
   _renderizarUC();
 }
-function filtrarUC(){ _renderizarUC(); }
-function setOpacidadeUC(v){
+function filtrarUC() { _renderizarUC(); }
+function setOpacidadeUC(v) {
   _ucOpacity = v / 100;
   document.getElementById('uc-opacity-val').textContent = v + '%';
-  if(_ucLayer) _ucLayer.setStyle({ fillOpacity: _ucOpacity });
+  if (_ucLayer) _ucLayer.setStyle({ fillOpacity: _ucOpacity });
 }
-function ucSelecionarTodos(estado){
-  document.querySelectorAll('[data-uc-tipo]').forEach(el => el.checked = estado);
+function ucSelecionarTodos(estado) {
+  document.querySelectorAll('[data-uc-nome]').forEach(function(el){ el.checked = estado; });
   filtrarUC();
 }
-function ucToggleGrupo(g){
-  const el = document.getElementById('uc-grupo-' + g);
-  const ch = document.getElementById('uc-chevron-' + g);
-  const aberto = el.style.display !== 'none';
+function ucToggleGrupo(g) {
+  var el = document.getElementById('uc-grupo-' + g);
+  var ch = document.getElementById('uc-chevron-' + g);
+  var aberto = el.style.display !== 'none';
   el.style.display = aberto ? 'none' : '';
-  if(ch) ch.textContent = aberto ? '▸' : '▾';
+  if (ch) ch.textContent = aberto ? '▸' : '▾';
+}
+function ucToggleLabels(ativo) {
+  _ucLabels = ativo;
+  _renderizarUC();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
