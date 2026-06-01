@@ -3961,6 +3961,7 @@ async function carregarDadosCAR(){
     _carCarregando = false;
     if(load) load.style.display = 'none';
     _popularFiltroSubbacia();
+    _popularFiltroUC();
     _aplicarCamadaCAR();
     _atualizarContadorPins();
     toast(`${features.length.toLocaleString('pt-BR')} imóveis CAR carregados`, 'success');
