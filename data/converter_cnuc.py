@@ -64,7 +64,7 @@ def coords_to_geojson(shape):
         return {"type": "Point", "coordinates": [pts[0][0], pts[0][1]]}
     return None
 
-sf = shapefile.Reader(SHP, encoding='cp1252', encodingErrors='replace')
+sf = shapefile.Reader(SHP, encoding='latin-1', encodingErrors='replace')
 campos = [f[0] for f in sf.fields[1:]]
 
 features = []
