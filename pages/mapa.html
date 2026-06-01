@@ -5933,9 +5933,16 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
   </div>
 
 </div><!-- /doc-wrap -->
-<script>window.onload = () => setTimeout(() => window.print(), 700);<\/script>
-</body></html>`);
+</body></html>`;
+}
 
+function _abrirJanelaRelatorioCAR(capturas){
+  const win = window.open('', '_blank', 'width=1000,height=800');
+  if(!win){ toast('Popup bloqueado. Permita popups para este site.','error'); return; }
+  const html = _montarHtmlRelatorioCAR(capturas);
+  // Adiciona o script de impressão automática para o modo fallback
+  const htmlComPrint = html.replace('</body></html>', `<script>window.onload=()=>setTimeout(()=>window.print(),800);<\/script></body></html>`);
+  win.document.write(htmlComPrint);
   win.document.close();
 }
 
