@@ -8018,7 +8018,7 @@ async function _carregarMunicipios() {
           pts.forEach(function(p){ sumLon += p[0]; sumLat += p[1]; });
           centroid = [sumLat / pts.length, sumLon / pts.length];
         }
-        var tt = L.tooltip({ permanent: true, direction: 'center', className: 'subbacia-label', interactive: false });
+        var tt = L.tooltip({ permanent: true, direction: 'center', className: 'mun-label-tt', interactive: false });
         tt.setContent(nome);
         tt.setLatLng(centroid);
         tt.addTo(mapaL);
