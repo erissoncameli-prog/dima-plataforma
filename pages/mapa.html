@@ -5030,6 +5030,20 @@ function _gerarTextoCarDiag(d, p, local){
     if(classMsgs[local.nome_class]) t.push(classMsgs[local.nome_class]);
   }
 
+  // Camadas adicionais detectadas
+  if(d.camadasAdicionais?.length){
+    d.camadasAdicionais.forEach(c => {
+      const f2c = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+      const vStr = c.valores.length ? ` — classes identificadas: <em>${c.valores.join(', ')}</em>` : '';
+      if(c.tipo === 'poligono' && c.areaHa > 0)
+        t.push(`🗂 <strong>${c.nome}</strong>: ${f2c(c.areaHa)} ha (${Number(c.pctCam).toFixed(1)}% do imóvel) intersectam esta camada${vStr}.`);
+      else if(c.tipo === 'linha' && c.contagem > 0)
+        t.push(`🗂 <strong>${c.nome}</strong>: ${c.contagem} segmento(s) cortam o imóvel${c.comprKm>0?` — ${f2c(c.comprKm)} km total`:''}${vStr}.`);
+      else if(c.tipo === 'ponto' && c.contagem > 0)
+        t.push(`🗂 <strong>${c.nome}</strong>: ${c.contagem} ponto(s) dentro do imóvel${vStr}.`);
+    });
+  }
+
   return t.map(s => `<p style="margin:0 0 5px">${s}</p>`).join('');
 }
 
