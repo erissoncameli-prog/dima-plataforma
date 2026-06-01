@@ -1011,12 +1011,13 @@ function renderPagina(){
       <div id="mapa" style="position:relative">
         <!-- Card flutuante de estatísticas das UCs -->
         <div id="uc-stats-card">
-          <div class="usc-header" onclick="ucStatsToggleCollapse()">
+          <div class="usc-header" id="usc-drag-handle">
             <div class="usc-header-txt">
               <div class="usc-header-titulo">🌿 Unidades de Conservação</div>
               <div class="usc-header-sub" id="usc-header-sub">Acre</div>
             </div>
-            <button class="usc-collapse-btn" id="usc-collapse-btn" title="Recolher">▾</button>
+            <button class="usc-collapse-btn" id="usc-collapse-btn" onclick="ucStatsToggleCollapse()" title="Recolher/Expandir">▾</button>
+            <button class="usc-collapse-btn" onclick="ucStatsFechar()" title="Fechar" style="margin-left:2px">✕</button>
           </div>
           <div id="usc-body" class="usc-body">
             <div class="usc-totais" id="usc-totais"></div>
