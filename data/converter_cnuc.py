@@ -10,11 +10,18 @@ SHP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shp_cnuc_tmp", "
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uc_acre.geojson")
 
 def safe_str(v):
+    """Converte valor do shapefile para string UTF-8 correta.
+    O DBF é UTF-8 mas pyshp lê como latin-1, causando double-encoding.
+    Corrigimos re-codificando para bytes latin-1 e decodificando como UTF-8."""
     if v is None:
         return ""
     try:
         s = str(v).strip()
-        return s
+        # Tentar corrigir double-encoding: latin-1 → bytes → utf-8
+        try:
+            return s.encode('latin-1').decode('utf-8')
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            return s
     except Exception:
         return ""
 
