@@ -4650,11 +4650,37 @@ function _htmlCarDiagnostico(d, f){
     ${_gerarTextoCarDiag(d, p, local)}
   </div>
 
+  ${d.camadasAdicionais?.length ? `
+  <!-- Camadas adicionais detectadas -->
+  <div style="border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;margin-bottom:8px">
+    <div style="padding:6px 10px;background:var(--cinza-50);border-bottom:1px solid var(--borda);font-size:9px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em">
+      🗂 Camadas Adicionais Detectadas (${d.camadasAdicionais.length})
+    </div>
+    <div style="padding:4px 0">
+      ${d.camadasAdicionais.map(c => {
+        const f2c = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+        const val = c.tipo==='poligono'
+          ? `${f2c(c.areaHa)} ha · ${Number(c.pctCam).toFixed(1)}%`
+          : c.tipo==='linha'
+            ? `${c.contagem} seg. · ${f2c(c.comprKm)} km`
+            : `${c.contagem} ponto(s)`;
+        const ico = c.tipo==='poligono' ? '▪' : c.tipo==='linha' ? '〰' : '●';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:4px 10px;border-bottom:1px solid var(--cinza-100)">
+          <span style="color:${c.cor};font-size:11px;flex-shrink:0">${ico}</span>
+          <span style="font-size:11px;color:var(--cinza-800);flex:1;font-weight:500">${c.nome}</span>
+          <span style="font-size:10px;color:var(--cinza-600);font-weight:600;white-space:nowrap">${val}</span>
+        </div>
+        ${c.valores.length ? `<div style="padding:2px 10px 4px 28px;font-size:9px;color:var(--cinza-400)">${c.valores.join(' · ')}</div>` : ''}`;
+      }).join('')}
+    </div>
+  </div>` : ''}
+
   <div style="font-size:9px;color:var(--cinza-400);line-height:1.5;text-align:center">
     ${temProdes
       ? `🛰 Desmatamento: <strong style="color:#dc2626">PRODES/INPE</strong> (fonte oficial) · Demais métricas: Turf.js`
       : `📁 Desmatamento: camadas locais · Carregue a aba 🌳 PRODES para dados oficiais`}
     ${d.subbacia ? ' · ' + d.subbacia : ''}
+    ${d.camadasAdicionais?.length ? ` · ${d.camadasAdicionais.length} camada(s) adicional(is)` : ''}
   </div>`;
 }
 
