@@ -7819,6 +7819,69 @@ function setOpacidadeTI(v){
   document.getElementById('ti-opacity-val').textContent = v + '%';
   if(_tiLayer) _tiLayer.setStyle({ fillOpacity: _tiOpacity });
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LIMITE DO ESTADO DO ACRE — IBGE malhas API
+// Sempre visível sobre qualquer basemap (pane acima das tiles)
+// ═══════════════════════════════════════════════════════════════════════════
+var _acreLayer = null;
+
+async function _carregarLimiteAcre() {
+  if (_acreLayer) return; // já carregado
+  try {
+    var r = await fetch('https://servicodados.ibge.gov.br/api/v3/malhas/estados/12?formato=application/json');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var geojson = await r.json();
+
+    // Pane dedicado com z-index alto (acima das tiles, abaixo dos markers)
+    if (mapaL && !mapaL.getPane('acreBorderPane')) {
+      mapaL.createPane('acreBorderPane');
+      mapaL.getPane('acreBorderPane').style.zIndex = 420;
+      mapaL.getPane('acreBorderPane').style.pointerEvents = 'none';
+    }
+
+    _acreLayer = L.geoJSON(geojson, {
+      pane: 'acreBorderPane',
+      style: {
+        color:       '#FACC15',   // amarelo ouro — visível em satelite, mapa claro e escuro
+        weight:      3.5,
+        opacity:     1,
+        fillOpacity: 0,
+        dashArray:   null,
+        lineJoin:    'round',
+        lineCap:     'round',
+      }
+    });
+
+    // Camada dupla: sombra escura embaixo + linha amarela em cima
+    // Isso garante contraste em qualquer cor de fundo
+    var _acreSombra = L.geoJSON(geojson, {
+      pane: 'acreBorderPane',
+      style: {
+        color:       '#1a1a1a',
+        weight:      6,
+        opacity:     0.55,
+        fillOpacity: 0,
+      }
+    });
+
+    _acreSombra.addTo(mapaL);
+    _acreLayer.addTo(mapaL);
+
+  } catch(e) {
+    console.warn('Limite do Acre não carregado:', e);
+  }
+}
+
+// Carregar assim que o mapa estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+  var waitMapa = setInterval(function() {
+    if (typeof mapaL !== 'undefined' && mapaL) {
+      clearInterval(waitMapa);
+      _carregarLimiteAcre();
+    }
+  }, 300);
+});
 </script>
 
 <div id="mapa-backdrop" class="mapa-backdrop" onclick="togglePainelMobile()"></div>
