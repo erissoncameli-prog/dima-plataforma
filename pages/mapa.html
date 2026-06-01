@@ -5263,6 +5263,107 @@ async function gerarRelatorioCarMarcados(){
   _abrirJanelaRelatorioCAR(capturas);
 }
 
+function _criarLegendaMapa(f, prodesCapt){
+  const mapEl = document.getElementById('mapa');
+  if(!mapEl) return null;
+
+  // ── Itens da legenda ──────────────────────────────────────────────────
+  const itens = [];
+
+  // CAR selecionado
+  itens.push({ tipo:'poligono', cor:'#2D6A4F', brd:'#1F4E2C', label:'Imóvel CAR selecionado' });
+
+  // PRODES
+  const temP = prodesCapt && !prodesCapt.erro;
+  if(temP){
+    if((prodesCapt.anual?.totalHa||0) > 0)
+      itens.push({ tipo:'area', cor:'#dc2626', brd:'#991b1b', label:'Desmatamento PRODES 2008–hoje' });
+    if((prodesCapt.historico?.totalHa||0) > 0)
+      itens.push({ tipo:'area', cor:'#c2410c', brd:'#7c2d12', label:'Desmatamento PRODES pré-2008' });
+  }
+
+  // Camadas de delimitação ativas — identifica pelo nome
+  const fonte = camadas.filter(c => c.visivel && c.geojson?.features?.length);
+  const findC = (...terms) => fonte.find(c => terms.some(t => c.nome?.toLowerCase().includes(t.toLowerCase())));
+
+  const lDesm  = findC('desmatamento');
+  const lFlor  = findC('florestal','floresta');
+  const lAppA  = findC('antropizada','app antropiz');
+  const lAppV  = findC('app vegetação','app vegeta');
+  const lRest  = findC('restauração','restauracao');
+  const lNasc  = findC('nascentes','nascente');
+  const lHidro = findC('hidrografia','hidrograf');
+  const lSub   = findC('subbacias','sub-bacias','subbacia');
+  const lApa   = findC('igarapé são francisco','lago do amapá','apa ','demarcação');
+
+  if(lFlor)  itens.push({ tipo:'area',   cor:'#166534', brd:'#14532d', label:'Floresta remanescente' });
+  if(lDesm)  itens.push({ tipo:'area',   cor:'#b91c1c', brd:'#7f1d1d', label:'Desmatamento (camada local)' });
+  if(lAppV)  itens.push({ tipo:'area',   cor:'#15803d', brd:'#14532d', label:'APP com vegetação' });
+  if(lAppA)  itens.push({ tipo:'area',   cor:'#d97706', brd:'#92400e', label:'APP antropizada' });
+  if(lRest)  itens.push({ tipo:'area',   cor:'#0891b2', brd:'#164e63', label:'Área de restauração' });
+  if(lNasc)  itens.push({ tipo:'ponto',  cor:'#3b82f6', brd:'#1d4ed8', label:'Nascentes' });
+  if(lHidro) itens.push({ tipo:'linha',  cor:'#0ea5e9', label:'Hidrografia' });
+  if(lSub)   itens.push({ tipo:'linha',  cor:'#6366f1', label:'Sub-bacias' });
+  if(lApa)   itens.push({ tipo:'poligono', cor:'#7c3aed', brd:'#4c1d95', label:'Limites APA' });
+
+  // Camadas extras não identificadas acima
+  fonte.forEach(c => {
+    const jaTem = [lDesm,lFlor,lAppA,lAppV,lRest,lNasc,lHidro,lSub,lApa].includes(c);
+    if(!jaTem){
+      const cor = c.cor || '#6b7280';
+      itens.push({ tipo:'area', cor, brd: cor, label: c.nome });
+    }
+  });
+
+  if(!itens.length) return null;
+
+  // ── Renderiza ─────────────────────────────────────────────────────────
+  const simbolo = ({ tipo, cor, brd }) => {
+    if(tipo === 'ponto')
+      return `<div style="width:10px;height:10px;border-radius:50%;background:${cor};border:1.5px solid ${brd||cor};flex-shrink:0"></div>`;
+    if(tipo === 'linha')
+      return `<div style="width:16px;height:3px;background:${cor};border-radius:2px;flex-shrink:0;margin:3px 0"></div>`;
+    if(tipo === 'poligono')
+      return `<div style="width:14px;height:10px;background:${cor}55;border:2px solid ${brd||cor};border-radius:2px;flex-shrink:0"></div>`;
+    // area
+    return `<div style="width:14px;height:10px;background:${cor}99;border:1.5px solid ${brd||cor};border-radius:2px;flex-shrink:0"></div>`;
+  };
+
+  const rows = itens.map(i =>
+    `<div style="display:flex;align-items:center;gap:5px;padding:1px 0">
+      ${simbolo(i)}
+      <span style="font-size:9px;color:#1f2937;line-height:1.2">${i.label}</span>
+    </div>`
+  ).join('');
+
+  const div = document.createElement('div');
+  div.id = 'mapa-legenda-captura';
+  div.style.cssText = [
+    'position:absolute',
+    'bottom:10px',
+    'left:10px',
+    'z-index:9999',
+    'background:rgba(255,255,255,0.93)',
+    'border:1px solid #d1d5db',
+    'border-radius:7px',
+    'padding:7px 10px',
+    'box-shadow:0 2px 8px rgba(0,0,0,.18)',
+    'max-width:190px',
+    'pointer-events:none',
+  ].join(';');
+
+  div.innerHTML = `
+    <div style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;border-bottom:1px solid #e5e7eb;padding-bottom:4px">
+      🗺 Legenda
+    </div>
+    ${rows}
+  `;
+
+  mapEl.style.position = 'relative';
+  mapEl.appendChild(div);
+  return div;
+}
+
 async function _capturarMapaCAR(f){
   // 1. Calcula bounds do polígono
   let bounds;
