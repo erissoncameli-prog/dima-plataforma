@@ -4210,8 +4210,8 @@ function _htmlCarAtributos(f){
       <div class="car-det-value">${escHtml(p.municipio||'—')} · ${escHtml(p.uf||'AC')}</div></div>
     <div class="car-det-field"><div class="car-det-label">Tipo de Imóvel</div>
       <div class="car-det-value">${escHtml(p.tipo_imovel||'—')}</div></div>
-    <div class="car-det-field"><div class="car-det-label">APA</div>
-      <div class="car-det-value">${p._apa==='isf'?'🌿 Igarapé São Francisco':p._apa==='la'?'💧 Lago do Amapá':'⚠️ Fora das APAs'}</div></div>
+    <div class="car-det-field"><div class="car-det-label">Unidade de Conservação</div>
+      <div class="car-det-value">${p._uc ? '🌿 ' + escHtml(p._uc) : '⚠️ Fora de UC'}</div></div>
     <div class="car-det-field"><div class="car-det-label">Sub-bacia</div>
       <div class="car-det-value">${escHtml(p._subbacia||'— não identificada')}</div></div>
     <div class="car-det-field"><div class="car-det-label">Módulo Fiscal</div>
