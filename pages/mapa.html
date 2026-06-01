@@ -5603,26 +5603,56 @@ async function _gerarPdfRelatorioCAR(capturas){
   const now = new Date().toISOString().slice(0,10);
   const filename = `relatorio-car-${now}`;
 
-  // Cabeçalho e rodapé como templates do Puppeteer (injetados em cada página)
+  // Templates nativos do Puppeteer — reproduzem o cabeçalho/rodapé originais do sistema
   const base = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
-  const nowStr = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-  const user = appState?.usuario?.nome_completo || appState?.usuario?.email || 'DIMA';
+  const A2 = p => `${base}/assets/${p}`;
+  const nowStr = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
+               + ' — ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const userPdf  = appState?.usuario?.nome_completo || appState?.usuario?.email || 'Sistema DIMA';
+  const perfilPdf = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',
+    financeiro:'Financeiro',consultor_externo:'Consultor Externo',visualizador:'Visualizador'
+  }[appState?.perfil] || appState?.perfil || '';
 
-  const headerTemplate = `<div style="width:100%;font-family:Arial,sans-serif;font-size:8px;padding:6px 24px;background:#fff;border-bottom:2px solid #1F4E2C;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between">
-    <div style="display:flex;align-items:center;gap:8px">
-      <img src="${base}/assets/1695134345-1-horizontal-verde-solo.png" style="height:22px;width:auto" onerror="this.style.display='none'">
-      <span style="color:#6b7280">|</span>
-      <span style="color:#1F4E2C;font-weight:700;font-size:7px;text-transform:uppercase;letter-spacing:.05em">PROJETO 218BRA2001 · UNESCO / SEMA-AC</span>
+  // headerTemplate: reproduz exatamente o .doc-header original
+  const headerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;background:#fff;padding:16px 28px 12px;border-bottom:3px solid #1F4E2C;box-sizing:border-box;position:relative;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="${A2('1695134345-1-horizontal-verde-solo.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
+        <div style="width:1px;height:24px;background:#B5860D;flex-shrink:0;"></div>
+        <img src="${A2('3-vertical-verde-conjunto-1024x805.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="${A2('UNESCO_logo_hor_blue_transparent.png.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
+        <img src="${A2('UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png')}" style="height:24px;width:auto;" onerror="this.style.display='none'">
+      </div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <span style="color:#6b7280;font-size:7px">Relatório CAR · ${nowStr}</span>
-      <img src="${base}/assets/UNESCO_logo_hor_blue_transparent.png.png" style="height:18px;width:auto" onerror="this.style.display='none'">
+    <div style="margin-bottom:10px;">
+      <div style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
+      <div style="font-size:11px;color:#4b5563;margin-bottom:1px;">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
+      <div style="font-size:10px;color:#6b7280;">Rio Branco, Acre — SEMA/AC</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;font-weight:700;color:#111827;">🏡 Relatório de Imóveis CAR Marcados</span>
+        <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff;background:#1F4E2C;letter-spacing:.05em;">CAR · Mapa de Entregas</span>
+      </div>
+      <div style="text-align:right;font-size:10px;color:#6b7280;line-height:1.5;">
+        <div>Gerado em: <strong>${nowStr}</strong></div>
+        <div>Por: <strong>${userPdf}</strong>${perfilPdf ? ' · '+perfilPdf : ''}</div>
+      </div>
     </div>
   </div>`;
 
-  const footerTemplate = `<div style="width:100%;font-family:Arial,sans-serif;font-size:7px;padding:5px 24px;background:#f8faf8;border-top:1px solid #1F4E2C;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;color:#6b7280">
-    <span>Impresso por: <strong>${user}</strong> · Plataforma DIMA · UNESCO 218BRA2001</span>
-    <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+  // footerTemplate: reproduz exatamente o .doc-footer original
+  const footerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;padding:10px 28px;border-top:1.5px solid #1F4E2C;display:flex;align-items:center;justify-content:space-between;background:#f8faf8;box-sizing:border-box;">
+    <div style="font-size:10px;color:#4b5563;line-height:1.5;">
+      Impresso por: <strong>${userPdf}</strong>${perfilPdf ? ' · '+perfilPdf : ''}<br>
+      <span style="font-size:9px;color:#9ca3af;">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
+    </div>
+    <div style="font-size:9px;color:#9ca3af;text-align:center;">Plataforma DIMA · UNESCO 218BRA2001</div>
+    <div style="font-size:11px;font-weight:600;color:#374151;font-family:monospace;">
+      Relatório CAR · p.<span class="pageNumber"></span>/<span class="totalPages"></span>
+    </div>
   </div>`;
 
   try{
