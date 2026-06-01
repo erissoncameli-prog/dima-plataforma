@@ -7544,8 +7544,10 @@ function _renderizarUC(){
     },
     onEachFeature: (f, layer) => {
       const p   = f.properties;
-      const cor = p.grupo === 'PI' ? '#dc2626' : '#2563eb';
-      const lbl = p.grupo === 'PI' ? 'Proteção Integral' : 'Uso Sustentável';
+      const gid = _ucGrupoId(p.grupo);
+      const cor = gid === 'pi' ? '#dc2626' : '#2563eb';
+      const lbl = gid === 'pi' ? 'Proteção Integral' : 'Uso Sustentável';
+      const ha  = p.area_ha ? Number(p.area_ha).toLocaleString('pt-BR',{maximumFractionDigits:0}) : null;
       layer.bindPopup(`
         <div class="camada-popup">
           <div class="cp-header" style="background:#1a5f38">🌿 Unidade de Conservação</div>
@@ -7553,10 +7555,13 @@ function _renderizarUC(){
             <div class="cp-layer-nome" style="color:${_ucCor(p.categoria)}">${esc(p.categoria||'')}</div>
             <div class="cp-row"><strong>Nome</strong><span>${esc(p.nome||'')}</span></div>
             <div class="cp-row"><strong>Esfera</strong><span style="text-transform:capitalize">${esc(p.esfera||'')}</span></div>
-            ${p.ano_cria ? `<div class="cp-row"><strong>Criação</strong><span>${p.ano_cria}</span></div>` : ''}
+            ${p.municipio ? `<div class="cp-row"><strong>Município</strong><span>${esc(p.municipio)}</span></div>` : ''}
+            ${p.ano_cria  ? `<div class="cp-row"><strong>Criação</strong><span>${esc(p.ano_cria)}</span></div>` : ''}
+            ${ha          ? `<div class="cp-row"><strong>Área (ha)</strong><span>${ha}</span></div>` : ''}
+            ${p.org_gestor? `<div class="cp-row"><strong>Gestor</strong><span>${esc(p.org_gestor)}</span></div>` : ''}
             <div class="cp-badge" style="background:${cor}11;border-color:${cor};color:${cor}">${lbl}</div>
           </div>
-        </div>`, { className:'camada-popup-wrap', maxWidth:300 }
+        </div>`, { className:'camada-popup-wrap', maxWidth:320 }
       );
     }
   });
