@@ -5284,23 +5284,30 @@ async function _capturarMapaCAR(f){
   // 4. Força re-render dos layers de canvas
   try{ _carLayer?.bringToFront(); }catch(_){}
 
-  // 4b. Ativa camadas PRODES GeoJSON para este CAR na captura
+  // 4b. Renderiza camadas PRODES no prodesPane (z-index 460, canvas) para a captura
   const cod = f.properties?.cod_imovel;
   const prodesCapt = _carProdesCache.get(cod);
   const captLayers = [];
+  const prodesRenderer = L.canvas({ pane: 'prodesPane', padding: 0.5 });
   if(prodesCapt && !prodesCapt.erro){
     const estilos = [
-      { feats: prodesCapt.anual?.geojsonFeatures||[], fill:'#dc2626', stroke:'#991b1b' },
-      { feats: prodesCapt.historico?.geojsonFeatures||[], fill:'#c2410c', stroke:'#7c2d12' },
+      { feats: prodesCapt.historico?.geojsonFeatures||[], fill:'#c2410c', stroke:'#7c2d12', opacity:0.65 },
+      { feats: prodesCapt.anual?.geojsonFeatures||[], fill:'#dc2626', stroke:'#991b1b', opacity:0.70 },
     ];
-    estilos.forEach(({ feats, fill, stroke }) => {
+    estilos.forEach(({ feats, fill, stroke, opacity }) => {
       if(!feats.length) return;
-      const lyr = L.geoJSON({ type:'FeatureCollection', features: feats }, {
-        style:{ fillColor:fill, fillOpacity:0.6, color:stroke, weight:1.5, opacity:1 }
-      }).addTo(mapaL);
+      const lyr = L.geoJSON(
+        { type:'FeatureCollection', features: feats },
+        {
+          pane:     'prodesPane',
+          renderer: prodesRenderer,
+          style:    { fillColor:fill, fillOpacity:opacity, color:stroke, weight:2, opacity:1 },
+        }
+      ).addTo(mapaL);
       captLayers.push(lyr);
     });
-    if(captLayers.length) await new Promise(r => setTimeout(r, 400));
+    // Aguarda canvas renderizar completamente
+    if(captLayers.length) await new Promise(r => setTimeout(r, 900));
   }
 
   // 5. Captura com html2canvas
