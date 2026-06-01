@@ -5304,6 +5304,7 @@ async function _capturarMapaCAR(f){
   const mapEl = document.getElementById('mapa');
   if(!mapEl || typeof html2canvas === 'undefined') return _svgFallbackCAR(f, bounds);
 
+  let imgResult;
   try{
     const canvas = await html2canvas(mapEl, {
       useCORS:      true,
@@ -5313,17 +5314,19 @@ async function _capturarMapaCAR(f){
       imageTimeout: 8000,
       backgroundColor: '#1a1a2e',
     });
-    // Tenta exportar — pode falhar por CORS taint
     try{
-      return canvas.toDataURL('image/jpeg', 0.88);
+      imgResult = canvas.toDataURL('image/jpeg', 0.88);
     } catch(_){
-      // CORS taint: copia só as partes de origem própria (canvas do CAR layer)
-      return _exportCanvasSemTaint(canvas, f, bounds);
+      imgResult = _exportCanvasSemTaint(canvas, f, bounds);
     }
   } catch(err){
     console.warn('html2canvas falhou:', err);
-    return _svgFallbackCAR(f, bounds);
+    imgResult = _svgFallbackCAR(f, bounds);
+  } finally{
+    // Remove camadas PRODES temporárias da captura
+    captLayers.forEach(l => { try{ mapaL.removeLayer(l); }catch(_){} });
   }
+  return imgResult;
 }
 
 // Tenta exportar ignorando pixels tainted (risca apenas o CAR polygon sobre preto)
