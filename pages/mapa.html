@@ -5928,13 +5928,11 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
         <div>
-          <div class="rep-secao-titulo">Por APA</div>
+          <div class="rep-secao-titulo">Por UC</div>
           <table class="rep-tbl">
-            <thead><tr><th>APA</th><th style="text-align:center">Qtd</th></tr></thead>
+            <thead><tr><th>Unidade de Conservação</th><th style="text-align:center">Qtd</th></tr></thead>
             <tbody>
-              <tr><td>Igarapé São Francisco</td><td style="text-align:center;font-weight:700">${porApa.isf}</td></tr>
-              <tr><td>Lago do Amapá</td><td style="text-align:center;font-weight:700">${porApa.la}</td></tr>
-              <tr><td>Fora das APAs</td><td style="text-align:center;font-weight:700">${porApa.fora}</td></tr>
+              ${Object.entries(porUC).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<tr><td>${escHtml(k)}</td><td style="text-align:center;font-weight:700">${n}</td></tr>`).join('')}
             </tbody>
           </table>
         </div>
