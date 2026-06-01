@@ -5281,6 +5281,25 @@ async function _capturarMapaCAR(f){
   // 4. Força re-render dos layers de canvas
   try{ _carLayer?.bringToFront(); }catch(_){}
 
+  // 4b. Ativa camadas PRODES GeoJSON para este CAR na captura
+  const cod = f.properties?.cod_imovel;
+  const prodesCapt = _carProdesCache.get(cod);
+  const captLayers = [];
+  if(prodesCapt && !prodesCapt.erro){
+    const estilos = [
+      { feats: prodesCapt.anual?.geojsonFeatures||[], fill:'#dc2626', stroke:'#991b1b' },
+      { feats: prodesCapt.historico?.geojsonFeatures||[], fill:'#c2410c', stroke:'#7c2d12' },
+    ];
+    estilos.forEach(({ feats, fill, stroke }) => {
+      if(!feats.length) return;
+      const lyr = L.geoJSON({ type:'FeatureCollection', features: feats }, {
+        style:{ fillColor:fill, fillOpacity:0.6, color:stroke, weight:1.5, opacity:1 }
+      }).addTo(mapaL);
+      captLayers.push(lyr);
+    });
+    if(captLayers.length) await new Promise(r => setTimeout(r, 400));
+  }
+
   // 5. Captura com html2canvas
   const mapEl = document.getElementById('mapa');
   if(!mapEl || typeof html2canvas === 'undefined') return _svgFallbackCAR(f, bounds);
