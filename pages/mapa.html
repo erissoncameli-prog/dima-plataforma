@@ -5665,7 +5665,7 @@ function _montarHtmlRelatorioCAR(capturas){
   });
   const fichas = capturas.map(({feat,imgData}) => _htmlFichaCAR(feat, imgData)).join('');
 
-  win.document.write(`<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
