@@ -4299,7 +4299,7 @@ function _htmlCarAtributos(f){
     : local ? `
     <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 0;margin:6px 0">
       <div style="font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;padding:0 12px 6px;border-bottom:1px solid var(--cinza-100);margin-bottom:4px">
-        Dados Cadastrais — SICAR Acre
+        📋 Dados Cadastrais — SICAR Acre
       </div>
       ${local.nom_imovel ? `<div class="car-det-field"><div class="car-det-label">Nome do Imóvel</div>
         <div class="car-det-value" style="font-size:13px;font-weight:700;color:var(--cinza-900)">${escHtml(local.nom_imovel)}</div></div>` : ''}
@@ -4307,6 +4307,14 @@ function _htmlCarAtributos(f){
         <div class="car-det-value">${escHtml(local.nome_compl)}</div></div>` : ''}
       ${local.cpf_cnpj ? `<div class="car-det-field"><div class="car-det-label">CPF / CNPJ</div>
         <div class="car-det-value" style="font-family:monospace">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</div></div>` : ''}
+      ${local.num_area_i ? `<div class="car-det-field"><div class="car-det-label">Área (SICAR)</div>
+        <div class="car-det-value" style="font-weight:700;color:var(--verde-escuro)">${Number(local.num_area_i).toLocaleString('pt-BR',{maximumFractionDigits:4})} ha</div></div>` : ''}
+      ${local.num_modulo ? `<div class="car-det-field"><div class="car-det-label">Módulos Fiscais (SICAR)</div>
+        <div class="car-det-value">${Number(local.num_modulo).toLocaleString('pt-BR',{maximumFractionDigits:4})}</div></div>` : ''}
+      ${local.nom_munici ? `<div class="car-det-field"><div class="car-det-label">Município (SICAR)</div>
+        <div class="car-det-value">${escHtml(local.nom_munici)}</div></div>` : ''}
+      ${local.condicao_i ? `<div class="car-det-field"><div class="car-det-label">Situação (SICAR)</div>
+        <div class="car-det-value">${escHtml(local.condicao_i)}</div></div>` : ''}
       ${local.nome_class ? `<div class="car-det-field"><div class="car-det-label">Classificação Ambiental</div>
         <div class="car-det-value">${_badgeClass(local.nome_class)}</div></div>` : ''}
       ${local.tipo_docum ? `<div class="car-det-field"><div class="car-det-label">Relação Jurídica</div>
@@ -4315,14 +4323,19 @@ function _htmlCarAtributos(f){
         <div class="car-det-value" style="font-size:11px">${escHtml(local.nome_docum)}</div></div>` : ''}
     </div>` : '';
 
+  // Área e município: prioriza dados da planilha SICAR, fallback para GeoJSON
+  const areaExib  = local?.num_area_i  ? Number(local.num_area_i).toLocaleString('pt-BR',{maximumFractionDigits:4})  : f2(p.area);
+  const municExib = local?.nom_munici  || p.municipio || '—';
+  const modExib   = local?.num_modulo  ? Number(local.num_modulo).toLocaleString('pt-BR',{maximumFractionDigits:4}) : f2(p.m_fiscal);
+
   return `
     ${secaoLocal}
     <div class="car-det-field"><div class="car-det-label">Situação CAR</div>
       <div class="car-det-value"><span class="car-det-badge ${badgeCls}">${labels[key]||key}</span></div></div>
     <div class="car-det-field"><div class="car-det-label">Área Declarada</div>
-      <div class="car-det-value" style="font-size:18px;font-weight:700;color:var(--verde-escuro)">${f2(p.area)} ha</div></div>
+      <div class="car-det-value" style="font-size:18px;font-weight:700;color:var(--verde-escuro)">${areaExib} ha</div></div>
     <div class="car-det-field"><div class="car-det-label">Município</div>
-      <div class="car-det-value">${escHtml(p.municipio||'—')} · ${escHtml(p.uf||'AC')}</div></div>
+      <div class="car-det-value">${escHtml(municExib)} · ${escHtml(p.uf||'AC')}</div></div>
     <div class="car-det-field"><div class="car-det-label">Tipo de Imóvel</div>
       <div class="car-det-value">${escHtml(p.tipo_imovel||'—')}</div></div>
     <div class="car-det-field"><div class="car-det-label">Unidade de Conservação</div>
@@ -4330,7 +4343,7 @@ function _htmlCarAtributos(f){
     <div class="car-det-field"><div class="car-det-label">Sub-bacia</div>
       <div class="car-det-value">${escHtml(p._subbacia||'— não identificada')}</div></div>
     <div class="car-det-field"><div class="car-det-label">Módulo Fiscal</div>
-      <div class="car-det-value">${f2(p.m_fiscal)} módulo(s)</div></div>
+      <div class="car-det-value">${modExib} módulo(s)</div></div>
     <div class="car-det-field"><div class="car-det-label">Data de Cadastro</div>
       <div class="car-det-value">${fDt(p.dat_criacao)}</div></div>
     <div class="car-det-field"><div class="car-det-label">Última Atualização</div>
