@@ -5736,13 +5736,14 @@ function _montarHtmlRelatorioCAR(capturas){
 
   const areaTot = capturas.reduce((s,{row}) => s+(parseFloat(row?.area)||0),0);
   const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
-  const porApa={isf:0,la:0,fora:0}, porCond={}, porSub={};
+  const porUC={}, porCond={}, porSub={};
   capturas.forEach(({feat}) => {
     const p=feat.properties||{};
-    porApa[p._apa||'fora']++;
+    const ucKey=p._uc||'— Fora de UC'; porUC[ucKey]=(porUC[ucKey]||0)+1;
     const k=_carStatusKey(p.condicao); porCond[k]=(porCond[k]||0)+1;
     const sb=p._subbacia||'—'; porSub[sb]=(porSub[sb]||0)+1;
   });
+  const dentroUC = Object.entries(porUC).filter(([k])=>k!=='— Fora de UC').reduce((s,[,v])=>s+v,0);
   const fichas = capturas.map(({feat,imgData}) => _htmlFichaCAR(feat, imgData)).join('');
 
   return `<!DOCTYPE html>
