@@ -7481,27 +7481,37 @@ function togglePainelMobile(){
 //        esfera (federal/estadual), ano_cria
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Cores por categoria (valores reais do dataset TerraBrasilis)
-const UC_CORES = {
-  'Parque':                               '#dc2626',
-  'Estação Ecológica':                    '#7f1d1d',
-  'Reserva Biológica':                    '#991b1b',
-  'Monumento Natural':                    '#c2410c',
-  'Refúgio de Vida Silvestre':            '#ea580c',
-  'Área de Proteção Ambiental':           '#2563eb',
-  'Área de Relevante Interesse Ecológico':'#d97706',
-  'Floresta':                             '#0369a1',
-  'Reserva Extrativista':                 '#059669',
-  'Reserva de Desenvolvimento Sustentável':'#0891b2',
-  'Reserva de Fauna':                     '#7c3aed',
-  'Reserva Particular do Patrimônio Natural':'#4f46e5',
-};
-function _ucCor(cat){ return UC_CORES[cat] || '#6b7280'; }
+// ── UC: cores individuais persistidas no localStorage ─────────────────────
+const UC_CORES_LS_KEY = 'dima_uc_cores';
+let _ucCoresCustom = {};   // nome → cor (sobrescreve cor do GeoJSON)
+try { _ucCoresCustom = JSON.parse(localStorage.getItem(UC_CORES_LS_KEY)||'{}'); } catch(e){}
 
-let _ucGeojson = null;
-let _ucLayer   = null;
-let _ucOpacity = 0.4;
-let _ucAtivo   = false;
+function _ucCor(nome, corDefault){
+  return _ucCoresCustom[nome] || corDefault || '#6b7280';
+}
+function _ucSalvarCores(){
+  try{ localStorage.setItem(UC_CORES_LS_KEY, JSON.stringify(_ucCoresCustom)); }catch(e){}
+}
+function ucAlterarCor(nome, cor){
+  _ucCoresCustom[nome] = cor;
+  _ucSalvarCores();
+  // Atualizar preview do swatch no painel
+  const sw = document.querySelector(`[data-uc-swatch="${CSS.escape(nome)}"]`);
+  if(sw) sw.style.background = cor;
+  // Re-estilizar camada no mapa sem recriar
+  if(_ucLayer){
+    _ucLayer.eachLayer(l => {
+      if(l.feature?.properties?.nome === nome)
+        l.setStyle({ color: cor, fillColor: cor });
+    });
+  }
+}
+
+let _ucGeojson    = null;
+let _ucLayer      = null;
+let _ucOpacity    = 0.4;
+let _ucAtivo      = false;
+let _ucLabelsAtivo = true;  // labels ligados por padrão
 
 let _tiGeojson = null;
 let _tiLayer   = null;
@@ -7522,41 +7532,62 @@ async function _carregarUC(){
   }
   document.getElementById('uc-loading').style.display = 'none';
   document.getElementById('uc-controles').style.display = 'flex';
-  _ucConstruirFiltrosTipos();
+  _ucConstruirListaUCs();
   _renderizarUC();
 }
 
-// Normaliza grupo para 'pi' ou 'us' independente da fonte (PI/US ou texto completo CNUC)
 function _ucGrupoId(grupo){
   if(!grupo) return 'us';
   const g = grupo.toLowerCase();
   return (g === 'pi' || g.includes('integral')) ? 'pi' : 'us';
 }
 
-function _ucConstruirFiltrosTipos(){
-  const contagemPI = {}, contagemUS = {};
+function _ucConstruirListaUCs(){
+  const pi = [], us = [];
   (_ucGeojson.features || []).forEach(f => {
-    const cat = f.properties.categoria || '';
-    const g   = _ucGrupoId(f.properties.grupo || '');
-    if(g === 'pi') contagemPI[cat] = (contagemPI[cat]||0) + 1;
-    else           contagemUS[cat] = (contagemUS[cat]||0) + 1;
+    const p = f.properties;
+    const g = _ucGrupoId(p.grupo);
+    const item = { nome: p.nome, sigla: p.sigla, esfera: p.esfera, cor: _ucCor(p.nome, p.cor) };
+    if(g === 'pi') pi.push(item); else us.push(item);
   });
+
   ['pi','us'].forEach(g => {
-    const cont = g === 'pi' ? contagemPI : contagemUS;
-    const el   = document.getElementById('uc-tipos-' + g);
+    const lista = g === 'pi' ? pi : us;
+    const el = document.getElementById('uc-tipos-' + g);
     if(!el) return;
-    const cats = Object.keys(cont).sort();
-    if(!cats.length){ el.innerHTML = '<span style="font-size:10px;color:var(--cinza-400)">Nenhuma</span>'; return; }
-    el.innerHTML = cats.map(cat => {
-      const cor = _ucCor(cat);
-      return `<label class="uc-filtro-label">
-        <input type="checkbox" checked data-uc-tipo="${esc(cat)}" style="accent-color:${cor};width:12px;height:12px;cursor:pointer" onchange="filtrarUC()">
-        <div class="uc-tipo-dot" style="background:${cor}33;border-color:${cor}"></div>
-        <span style="flex:1">${esc(cat)}</span>
-        <span style="font-size:9px;color:var(--cinza-400)">${cont[cat]}</span>
-      </label>`;
+    if(!lista.length){ el.innerHTML = '<span style="font-size:10px;color:var(--cinza-400)">Nenhuma</span>'; return; }
+    el.innerHTML = lista.sort((a,b)=>a.nome.localeCompare(b.nome)).map(item => {
+      const esfBadge = item.esfera === 'federal'
+        ? `<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;flex-shrink:0">${item.esfera}</span>`
+        : item.esfera === 'estadual'
+        ? `<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#fefce8;color:#854d0e;border:1px solid #fde68a;flex-shrink:0">${item.esfera}</span>`
+        : `<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#f0fdf4;color:#166534;border:1px solid #86efac;flex-shrink:0">${item.esfera}</span>`;
+      return `<div class="uc-filtro-label" style="gap:5px;padding:3px 0;align-items:center">
+        <input type="checkbox" checked data-uc-nome="${esc(item.nome)}" style="accent-color:${item.cor};width:12px;height:12px;cursor:pointer;flex-shrink:0" onchange="filtrarUC()">
+        <div class="uc-tipo-dot" data-uc-swatch="${esc(item.nome)}" style="background:${item.cor};border-color:${item.cor};cursor:pointer;width:14px;height:14px;border-radius:3px;flex-shrink:0" title="Clique para mudar a cor" onclick="ucAbrirColorPicker('${esc(item.nome).replace(/'/g,"\\'")}',this)"></div>
+        <span style="font-size:10px;font-weight:600;color:var(--cinza-500);flex-shrink:0">${esc(item.sigla)}</span>
+        <span style="font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(item.nome)}">${esc(item.nome)}</span>
+        ${esfBadge}
+      </div>`;
     }).join('');
   });
+}
+
+// Color picker invisível reutilizável
+let _ucColorPickerEl = null;
+let _ucColorPickerNome = null;
+function ucAbrirColorPicker(nome, swatchEl){
+  if(!_ucColorPickerEl){
+    _ucColorPickerEl = document.createElement('input');
+    _ucColorPickerEl.type = 'color';
+    _ucColorPickerEl.style.cssText = 'position:fixed;opacity:0;width:0;height:0;pointer-events:none';
+    document.body.appendChild(_ucColorPickerEl);
+    _ucColorPickerEl.addEventListener('input', e => { if(_ucColorPickerNome) ucAlterarCor(_ucColorPickerNome, e.target.value); });
+  }
+  _ucColorPickerNome = nome;
+  const cor = _ucCoresCustom[nome] || swatchEl.style.background || '#059669';
+  _ucColorPickerEl.value = cor.length === 7 ? cor : '#059669';
+  _ucColorPickerEl.click();
 }
 
 function _renderizarUC(){
@@ -7566,46 +7597,65 @@ function _renderizarUC(){
   const esfFed = document.getElementById('uc-esfera-federal')?.checked;
   const esfEst = document.getElementById('uc-esfera-estadual')?.checked;
   const esfMun = document.getElementById('uc-esfera-municipal')?.checked;
-  const tiposAtivos = new Set(
-    [...document.querySelectorAll('[data-uc-tipo]')]
-      .filter(el => el.checked).map(el => el.dataset.ucTipo)
+  const nomesAtivos = new Set(
+    [...document.querySelectorAll('[data-uc-nome]')]
+      .filter(el => el.checked).map(el => el.dataset.ucNome)
   );
 
   let count = 0;
   _ucLayer = L.geoJSON(_ucGeojson, {
     style: f => {
-      const cor = _ucCor(f.properties.categoria);
-      return { color: cor, weight: 1.8, opacity: 0.9, fillColor: cor, fillOpacity: _ucOpacity };
+      const p = f.properties;
+      const cor = _ucCor(p.nome, p.cor);
+      return { color: cor, weight: 2, opacity: 0.9, fillColor: cor, fillOpacity: _ucOpacity };
     },
     filter: f => {
       const esf = (f.properties.esfera || '').toLowerCase();
       if(esf === 'federal'   && !esfFed) return false;
       if(esf === 'estadual'  && !esfEst) return false;
       if(esf === 'municipal' && !esfMun) return false;
-      if(tiposAtivos.size && !tiposAtivos.has(f.properties.categoria)) return false;
+      if(nomesAtivos.size && !nomesAtivos.has(f.properties.nome)) return false;
       count++;
       return true;
     },
     onEachFeature: (f, layer) => {
       const p   = f.properties;
+      const cor = _ucCor(p.nome, p.cor);
       const gid = _ucGrupoId(p.grupo);
-      const cor = gid === 'pi' ? '#dc2626' : '#2563eb';
-      const lbl = gid === 'pi' ? 'Proteção Integral' : 'Uso Sustentável';
-      const ha  = p.area_ha ? Number(p.area_ha).toLocaleString('pt-BR',{maximumFractionDigits:0}) : null;
+      const corG = gid === 'pi' ? '#dc2626' : '#2563eb';
+      const lblG = gid === 'pi' ? 'Proteção Integral' : 'Uso Sustentável';
+      const ha   = p.area_ha ? Number(p.area_ha).toLocaleString('pt-BR',{maximumFractionDigits:0}) : null;
+
+      // Label permanente no centróide
+      if(_ucLabelsAtivo){
+        const tooltipOpts = { permanent: true, direction: 'center', className: 'uc-label-tooltip', interactive: false };
+        if(p.centro_lon && p.centro_lat){
+          const lbl = L.tooltip(tooltipOpts).setContent(`<span style="color:${cor}">${esc(p.sigla)}</span> ${esc(p.nome)}`);
+          lbl.setLatLng([p.centro_lat, p.centro_lon]);
+          lbl.addTo(mapaL);
+          layer.on('remove', () => { try{ mapaL.removeLayer(lbl); }catch(e){} });
+          layer._ucLabel = lbl;
+        } else {
+          layer.bindTooltip(`<span style="color:${cor}">${esc(p.sigla)}</span> ${esc(p.nome)}`, tooltipOpts);
+        }
+      }
+
+      // Popup com dados completos
       layer.bindPopup(`
         <div class="camada-popup">
           <div class="cp-header" style="background:#1a5f38">🌿 Unidade de Conservação</div>
           <div class="cp-layer">
-            <div class="cp-layer-nome" style="color:${_ucCor(p.categoria)}">${esc(p.categoria||'')}</div>
-            <div class="cp-row"><strong>Nome</strong><span>${esc(p.nome||'')}</span></div>
+            <div class="cp-layer-nome" style="color:${cor}">${esc(p.sigla||'')} — ${esc(p.nome||'')}</div>
+            <div class="cp-row"><strong>Categoria</strong><span>${esc(p.categoria||p.sigla||'')}</span></div>
             <div class="cp-row"><strong>Esfera</strong><span style="text-transform:capitalize">${esc(p.esfera||'')}</span></div>
-            ${p.municipio ? `<div class="cp-row"><strong>Município</strong><span>${esc(p.municipio)}</span></div>` : ''}
-            ${p.ano_cria  ? `<div class="cp-row"><strong>Criação</strong><span>${esc(p.ano_cria)}</span></div>` : ''}
-            ${ha          ? `<div class="cp-row"><strong>Área (ha)</strong><span>${ha}</span></div>` : ''}
-            ${p.org_gestor? `<div class="cp-row"><strong>Gestor</strong><span>${esc(p.org_gestor)}</span></div>` : ''}
-            <div class="cp-badge" style="background:${cor}11;border-color:${cor};color:${cor}">${lbl}</div>
+            ${p.municipios ? `<div class="cp-row"><strong>Municípios</strong><span>${esc(p.municipios)}</span></div>` : ''}
+            ${p.ano_cria   ? `<div class="cp-row"><strong>Criação</strong><span>${esc(p.ano_cria)}</span></div>` : ''}
+            ${p.ato_cria   ? `<div class="cp-row"><strong>Ato legal</strong><span style="font-size:10px">${esc(p.ato_cria)}</span></div>` : ''}
+            ${ha           ? `<div class="cp-row"><strong>Área (ha)</strong><span>${ha}</span></div>` : ''}
+            ${p.gestor     ? `<div class="cp-row"><strong>Gestor</strong><span>${esc(p.gestor)}</span></div>` : ''}
+            <div class="cp-badge" style="background:${corG}11;border-color:${corG};color:${corG}">${lblG}</div>
           </div>
-        </div>`, { className:'camada-popup-wrap', maxWidth:320 }
+        </div>`, { className:'camada-popup-wrap', maxWidth:340 }
       );
     }
   });
@@ -7618,7 +7668,7 @@ function _renderizarUC(){
 
 function toggleCamadaUC(ativo){
   _ucAtivo = ativo;
-  if(ativo && !_ucGeojson) { _carregarUC(); return; }
+  if(ativo && !_ucGeojson){ _carregarUC(); return; }
   _renderizarUC();
 }
 function filtrarUC(){ _renderizarUC(); }
@@ -7628,7 +7678,7 @@ function setOpacidadeUC(v){
   if(_ucLayer) _ucLayer.setStyle({ fillOpacity: _ucOpacity });
 }
 function ucSelecionarTodos(estado){
-  document.querySelectorAll('[data-uc-tipo]').forEach(el => el.checked = estado);
+  document.querySelectorAll('[data-uc-nome]').forEach(el => el.checked = estado);
   filtrarUC();
 }
 function ucToggleGrupo(g){
@@ -7637,6 +7687,10 @@ function ucToggleGrupo(g){
   const aberto = el.style.display !== 'none';
   el.style.display = aberto ? 'none' : '';
   if(ch) ch.textContent = aberto ? '▸' : '▾';
+}
+function ucToggleLabels(ativo){
+  _ucLabelsAtivo = ativo;
+  _renderizarUC();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
