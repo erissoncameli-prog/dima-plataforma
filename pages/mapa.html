@@ -7914,7 +7914,26 @@ async function _carregarMunicipios() {
       style: { color: _munCor, weight: 1.5, opacity: _munOpacity, fillOpacity: 0, dashArray: '4 3' },
       onEachFeature: function(f, layer) {
         var nome = (f.properties && f.properties.nome) || '';
-        if (nome) layer.bindTooltip(nome, { sticky: true, className: 'subbacia-label' });
+        if (!nome) return;
+        // Label permanente no centróide (usando turf se disponível, senão média simples)
+        var centroid;
+        try {
+          var c = turf.centroid(f);
+          centroid = [c.geometry.coordinates[1], c.geometry.coordinates[0]];
+        } catch(e) {
+          var pts = f.geometry.type === 'Polygon'
+            ? f.geometry.coordinates[0]
+            : f.geometry.coordinates[0][0];
+          var sumLat = 0, sumLon = 0;
+          pts.forEach(function(p){ sumLon += p[0]; sumLat += p[1]; });
+          centroid = [sumLat / pts.length, sumLon / pts.length];
+        }
+        var tt = L.tooltip({ permanent: true, direction: 'center', className: 'subbacia-label', interactive: false });
+        tt.setContent(nome);
+        tt.setLatLng(centroid);
+        tt.addTo(mapaL);
+        layer._munLabel = tt;
+        layer.on('remove', function(){ try{ mapaL.removeLayer(tt); }catch(x){} });
       }
     });
     document.getElementById('mun-loading').style.display = 'none';
