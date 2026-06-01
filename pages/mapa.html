@@ -5347,8 +5347,9 @@ async function _capturarMapaCAR(f){
     console.warn('html2canvas falhou:', err);
     imgResult = _svgFallbackCAR(f, bounds);
   } finally{
-    // Remove camadas PRODES temporárias da captura
+    // Remove camadas PRODES temporárias e legenda da captura
     captLayers.forEach(l => { try{ mapaL.removeLayer(l); }catch(_){} });
+    legendaEl?.remove();
   }
   return imgResult;
 }
