@@ -5352,8 +5352,8 @@ async function gerarRelatorioCarMarcados(){
 
   if(!capturas.length){ toast('Nenhuma captura realizada','error'); return; }
 
-  toast('Abrindo relatório…','success');
-  _abrirJanelaRelatorioCAR(capturas);
+  toast('Gerando PDF via servidor…','info');
+  await _gerarPdfRelatorioCAR(capturas);
 }
 
 function _criarLegendaMapa(f, prodesCapt){
