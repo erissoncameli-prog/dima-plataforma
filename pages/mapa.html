@@ -4028,6 +4028,15 @@ function _popularFiltroSubbacia(){
     + _carSubbaciaOpts.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
 }
 
+// ── Popular select de UCs ─────────────────────────────────────────────────
+function _popularFiltroUC(){
+  const sel = document.getElementById('car-sel-uc');
+  if(!sel) return;
+  sel.innerHTML = '<option value="todas">Todas as UCs</option>'
+    + '<option value="fora">Fora de UCs</option>'
+    + _carUCOpts.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('');
+}
+
 // ── Renderiza camada no mapa ──────────────────────────────────────────────
 function _aplicarCamadaCAR(){
   if(_carLayer) mapaL.removeLayer(_carLayer);
