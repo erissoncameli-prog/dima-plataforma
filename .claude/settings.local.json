@@ -138,7 +138,16 @@
       "Bash(curl -s --max-time 30 -H 'User-Agent: Mozilla/5.0' -o /dev/null -w '%{http_code}' https://dados.gov.br/api/publico/conjuntos-dados/unidades-de-conservacao-icmbio)",
       "Bash(curl -s --max-time 20 -H 'User-Agent: Mozilla/5.0' -o /dev/null -w '%{http_code}' 'https://terrabrasilis.dpi.inpe.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
       "Bash(curl -s --max-time 20 -H 'User-Agent: Mozilla/5.0' 'https://terrabrasilis.dpi.inpe.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
-      "Bash(curl -s --max-time 90 -H 'User-Agent: Mozilla/5.0' -o 'C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/data/uc_acre.geojson' 'https://terrabrasilis.dpi.inpe.br/geoserver/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=prodes-amazon-nb:conservation_units_amazon_biome&outputFormat=application/json&srsName=EPSG:4326&BBOX=-73.99,-11.15,-66.49,-7.10,EPSG:4326')"
+      "Bash(curl -s --max-time 90 -H 'User-Agent: Mozilla/5.0' -o 'C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/data/uc_acre.geojson' 'https://terrabrasilis.dpi.inpe.br/geoserver/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=prodes-amazon-nb:conservation_units_amazon_biome&outputFormat=application/json&srsName=EPSG:4326&BBOX=-73.99,-11.15,-66.49,-7.10,EPSG:4326')",
+      "WebFetch(domain:samge.icmbio.gov.br)",
+      "WebFetch(domain:geoservicos.inde.gov.br)",
+      "WebFetch(domain:www.gov.br)",
+      "Bash(curl -s --max-time 30 -o /dev/null -w '%{http_code}' 'https://geoservicos.inde.gov.br/geoserver/ICMBio/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=ICMBio:limiteucsfederais_a&outputFormat=application/json&count=1')",
+      "Bash(curl -s --max-time 15 \"https://geoservicos.inde.gov.br/geoserver/ICMBio/ows?service=wfs&version=2.0.0&request=GetCapabilities\")",
+      "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' 'https://cnuc.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
+      "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' 'https://ide.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities')",
+      "Bash(curl -s --max-time 15 -o /dev/null -w '%{http_code}' https://samge.icmbio.gov.br/api)",
+      "Bash(curl -s --max-time 20 \"https://cnuc.mma.gov.br/geoserver/ows?service=WFS&version=1.0.0&request=GetCapabilities\")"
     ]
   }
 }
