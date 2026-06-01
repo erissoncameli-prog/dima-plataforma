@@ -157,7 +157,14 @@
       "Bash(unzip -o \"C:/Users/eriss/Downloads/Shapes UCs.zip\" -d \"C:/Users/eriss/Downloads/shapes_uc_tmp/\")",
       "Bash(awk 'NR>=378 && NR<=7439' \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/pages/mapa.html\")",
       "Bash(awk 'NR>=7486 && NR<=7819' \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/pages/mapa.html\")",
-      "Bash(grep -n \"\\\\${{\" \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\pages\\\\mapa.html\")"
+      "Bash(grep -n \"\\\\${{\" \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\pages\\\\mapa.html\")",
+      "Bash(awk 'NR>=675 && NR<=1315' \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/pages/mapa.html\")",
+      "Bash(grep -n '`')",
+      "Bash(grep -v '\\\\\\\\`\\\\|\\\\${')",
+      "Bash(awk 'NR>=852 && NR<=980' \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/pages/mapa.html\")",
+      "Bash(grep -n '`\\\\|\\\\${')",
+      "Bash(awk 'NR>=668 && NR<=1315' \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma/pages/mapa.html\")",
+      "Read(//tmp/**)"
     ]
   }
 }
