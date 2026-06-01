@@ -5807,36 +5807,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
 <body>
 <div class="doc-wrap">
 
-  <!-- ── CABEÇALHO PADRÃO DO SISTEMA (igual ao relatorios.html) ── -->
-  <div class="doc-header">
-    <div class="doc-watermark"><img src="${A('logo-resiliencia.png')}" alt=""></div>
-    <div class="doc-header-logos">
-      <div class="doc-header-logos-esq">
-        <img class="doc-header-logo" src="${A('1695134345-1-horizontal-verde-solo.png')}" alt="SEMA">
-        <div class="doc-header-sep"></div>
-        <img class="doc-header-logo" src="${A('3-vertical-verde-conjunto-1024x805.png')}" alt="Governo do Acre">
-      </div>
-      <div class="doc-header-logos-dir">
-        <img class="doc-header-logo" src="${A('UNESCO_logo_hor_blue_transparent.png.png')}" alt="UNESCO">
-        <img class="doc-header-logo" src="${A('UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png')}" alt="ONU Brasil" style="height:28px">
-      </div>
-    </div>
-    <div>
-      <div class="doc-header-projeto">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
-      <div class="doc-header-programa">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
-      <div class="doc-header-local">Rio Branco, Acre — SEMA/AC</div>
-    </div>
-    <div class="doc-header-titulo-wrap">
-      <div class="doc-header-titulo">
-        🏡 Relatório de Imóveis CAR Marcados
-        <span class="doc-header-badge">CAR · Mapa de Entregas</span>
-      </div>
-      <div class="doc-header-meta">
-        <div>Gerado em: <strong>${now}</strong></div>
-        <div>Por: <strong>${user}</strong>${perfil ? ' · '+perfil : ''}</div>
-      </div>
-    </div>
-  </div>
+  <!-- Cabeçalho gerenciado pelo Puppeteer via headerTemplate -->
 
   <!-- ── CAPA ── -->
   <div class="capa-body">
