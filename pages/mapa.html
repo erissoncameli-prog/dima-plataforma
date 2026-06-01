@@ -5596,6 +5596,49 @@ function _svgFallbackCAR(f, bounds){
 }
 
 // ── Janela de impressão — mesmo cabeçalho do sistema de relatórios ─────────
+async function _gerarPdfRelatorioCAR(capturas){
+  const htmlContent = _montarHtmlRelatorioCAR(capturas);
+  const now = new Date().toISOString().slice(0,10);
+  const filename = `relatorio-car-${now}`;
+
+  try{
+    const { data:{ session } } = await db.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/gerar-pdf-relatorio', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (session?.access_token || ''),
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ html: htmlContent, filename }),
+    });
+
+    if(!res.ok){
+      const err = await res.json().catch(()=>({ error: `HTTP ${res.status}` }));
+      // Fallback: abre em nova janela para impressão manual
+      if(err.error?.includes('BROWSERLESS_TOKEN')){
+        toast('⚠️ Token Browserless não configurado. Abrindo para impressão manual…','warning');
+        _abrirJanelaRelatorioCAR(capturas);
+        return;
+      }
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename + '.pdf';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast('✅ PDF gerado e baixado!', 'success');
+
+  } catch(e){
+    toast('Erro ao gerar PDF: ' + e.message + ' — abrindo versão impressão…', 'error');
+    _abrirJanelaRelatorioCAR(capturas);
+  }
+}
+
 function _abrirJanelaRelatorioCAR(capturas){
   const win = window.open('', '_blank', 'width=1000,height=800');
   if(!win){ toast('Popup bloqueado. Permita popups para este site.','error'); return; }
