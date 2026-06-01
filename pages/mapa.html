@@ -5784,36 +5784,95 @@ function _htmlFichaCAR(f, imgData){
   </div>
 
   <div class="doc-body">
-    <div class="grid-2">
+    <div class="grid-3">
+      <!-- Col 1: Dados Cadastrais -->
       <div>
         <div class="card">
           <div class="card-title">Dados Cadastrais — SICAR</div>
-          ${local.nom_imovel?`<div class="attr-row"><span class="attr-lbl">Nome do imóvel</span><span class="attr-val" style="font-weight:700;color:#111">${escHtml(local.nom_imovel)}</span></div>`:''}
-          ${local.nome_compl?`<div class="attr-row"><span class="attr-lbl">Proprietário/Possuidor</span><span class="attr-val">${escHtml(local.nome_compl)}</span></div>`:''}
-          ${local.cpf_cnpj?`<div class="attr-row"><span class="attr-lbl">CPF / CNPJ</span><span class="attr-val" style="font-family:monospace">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</span></div>`:''}
-          ${cc?`<div class="attr-row"><span class="attr-lbl">Classificação</span><span class="attr-val"><span style="display:inline-flex;align-items:center;gap:3px;background:${cc.bg};color:${cc.cor};border:1px solid ${cc.brd};border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700">${escHtml(local.nome_class)}</span></span></div>`:''}
+          ${local.nom_imovel?`<div class="attr-row"><span class="attr-lbl">Nome</span><span class="attr-val" style="font-weight:700;color:#111">${escHtml(local.nom_imovel)}</span></div>`:''}
+          ${local.nome_compl?`<div class="attr-row"><span class="attr-lbl">Proprietário</span><span class="attr-val">${escHtml(local.nome_compl)}</span></div>`:''}
+          ${local.cpf_cnpj?`<div class="attr-row"><span class="attr-lbl">CPF/CNPJ</span><span class="attr-val" style="font-family:monospace;font-size:9.5px">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</span></div>`:''}
+          ${cc?`<div class="attr-row"><span class="attr-lbl">Classificação</span><span class="attr-val"><span style="background:${cc.bg};color:${cc.cor};border:1px solid ${cc.brd};border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">${escHtml(local.nome_class)}</span></span></div>`:''}
           ${local.tipo_docum?`<div class="attr-row"><span class="attr-lbl">Relação jurídica</span><span class="attr-val">${escHtml(local.tipo_docum)}</span></div>`:''}
-          ${local.nome_docum?`<div class="attr-row"><span class="attr-lbl">Documento</span><span class="attr-val">${escHtml(local.nome_docum)}</span></div>`:''}
-          <div class="attr-row" style="margin-top:4px"><span class="attr-lbl">Área declarada</span><span class="attr-val">${f2(p.area)} ha</span></div>
+          <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val" style="color:#1F4E2C;font-size:12px">${f2(p.area)} ha</span></div>
           <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${p.municipio||'—'} / AC</span></div>
-          <div class="attr-row"><span class="attr-lbl">Tipo de imóvel</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
-          <div class="attr-row"><span class="attr-lbl">Módulo fiscal</span><span class="attr-val">${f2(p.m_fiscal)} módulo(s)</span></div>
+          <div class="attr-row"><span class="attr-lbl">Tipo</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
+          <div class="attr-row"><span class="attr-lbl">Módulos fiscais</span><span class="attr-val">${f2(p.m_fiscal)}</span></div>
           <div class="attr-row"><span class="attr-lbl">Situação</span><span class="attr-val">${statusLabel}</span></div>
-          <div class="attr-row"><span class="attr-lbl">Data de cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
+          <div class="attr-row"><span class="attr-lbl">Cadastro</span><span class="attr-val">${fDt(p.dat_criacao)}</span></div>
           <div class="attr-row"><span class="attr-lbl">Sub-bacia</span><span class="attr-val">${p._subbacia||'—'}</span></div>
         </div>
-        <div style="margin-top:8px" class="links-row">
-          <a href="${sicarUrl}" target="_blank" class="link-btn link-sicar">🔗 Ver no SICAR</a>
-          <a href="https://seloverde.sema.ac.gov.br/consultar-car/" target="_blank" class="link-btn link-sema">🌿 SeloVerde AC</a>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+          <a href="${sicarUrl}" target="_blank" class="link-btn link-sicar">🔗 SICAR</a>
+          <a href="https://seloverde.sema.ac.gov.br/consultar-car/" target="_blank" class="link-btn link-sema">🌿 SeloVerde</a>
         </div>
       </div>
+
+      <!-- Col 2: Mapa -->
       <div>
-        <img src="${imgData}" alt="Visão de satélite do imóvel — captura do Sistema DIMA" class="mapa-img"
-          onerror="this.style.background='#f0f7f2';this.style.minHeight='200px';this.style.display='flex';this.alt='Imagem de satélite não disponível'">
-        <div style="font-size:9px;color:#9ca3af;margin-top:4px;text-align:center">
-          Visão de satélite — captura do Sistema DIMA · ${new Date().toLocaleDateString('pt-BR')}
+        <img src="${imgData}" alt="Mapa do imóvel" class="mapa-img"
+          onerror="this.style.background='#f0f7f2';this.alt='Imagem não disponível'">
+        <div style="font-size:8px;color:#9ca3af;margin-top:3px;text-align:center">
+          Captura DIMA · ${new Date().toLocaleDateString('pt-BR')}
         </div>
       </div>
+
+      <!-- Col 3: PRODES resumo -->
+      ${(()=>{
+        const prodes = _carProdesCache.get(p.cod_imovel);
+        const temP   = prodes && !prodes.erro;
+        const area   = parseFloat(p.area) || diag?.areaCAR || 1;
+        const f2r    = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
+        const f1r    = n => Number(n||0).toFixed(1);
+        if(!temP) return `
+          <div class="card" style="border-color:#e5e7eb">
+            <div class="card-title">🛰 PRODES/INPE</div>
+            <div style="font-size:10px;color:#9ca3af;padding:8px 0;text-align:center;line-height:1.4">
+              Dados não carregados.<br>Abra a aba PRODES para este imóvel.
+            </div>
+          </div>`;
+        const total  = prodes.totalGeral;
+        const hist   = prodes.historico.totalHa;
+        const anual  = prodes.anual.totalHa;
+        const pctT   = (total/area*100);
+        const corT   = pctT>30?'#dc2626':pctT>10?'#d97706':'#16a34a';
+        const grau   = pctT>50?'Ext. comprometido':pctT>30?'Fort. impactado':pctT>10?'Mod. impactado':'Baixo passivo';
+        const anoMax = prodes.anosAnual[prodes.anosAnual.length-1]||'';
+        const maxBar = Math.max(...Object.values(prodes.anual.porAno||{}),0.01);
+        const barras = prodes.anosAnual.map(ano=>{
+          const ha=prodes.anual.porAno[ano]; const w=(ha/maxBar*85).toFixed(1);
+          return `<tr>
+            <td style="font-size:9px;color:#374151;padding:1px 4px 1px 0;white-space:nowrap">${ano}</td>
+            <td style="width:100%"><div style="height:8px;background:#dc2626;border-radius:1px;width:${w}%;min-width:2px"></div></td>
+            <td style="font-size:9px;font-weight:600;color:#374151;padding:1px 0 1px 4px;white-space:nowrap;text-align:right">${f2r(ha)}</td>
+          </tr>`;
+        }).join('');
+        return `
+        <div class="card" style="border-color:#fca5a5">
+          <div class="card-title" style="color:#dc2626;border-color:#fecaca">🛰 Desmatamento PRODES/INPE</div>
+          <!-- KPI total -->
+          <div style="text-align:center;padding:6px 0;border-bottom:1px solid #fee2e2;margin-bottom:6px">
+            <div style="font-size:22px;font-weight:700;color:${corT};line-height:1">${f2r(total)} ha</div>
+            <div style="font-size:9px;color:#6b7280">${f1r(pctT)}% da área · ${grau}</div>
+          </div>
+          <!-- Pré/Pós -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px">
+            <div style="padding:5px 7px;background:#fff7ed;border:1px solid #fed7aa;border-radius:4px">
+              <div style="font-size:8px;font-weight:700;color:#9a3412;text-transform:uppercase">Pré-2008</div>
+              <div style="font-size:13px;font-weight:700;color:#c2410c">${f2r(hist)} ha</div>
+              <div style="font-size:8px;color:#9a3412">${f1r(hist/area*100)}%</div>
+            </div>
+            <div style="padding:5px 7px;background:#fef2f2;border:1px solid #fca5a5;border-radius:4px">
+              <div style="font-size:8px;font-weight:700;color:#991b1b;text-transform:uppercase">2008–${anoMax||'hoje'}</div>
+              <div style="font-size:13px;font-weight:700;color:#dc2626">${f2r(anual)} ha</div>
+              <div style="font-size:8px;color:#991b1b">${f1r(anual/area*100)}%</div>
+            </div>
+          </div>
+          ${prodes.anosAnual.length>0?`
+          <div style="font-size:8px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Série anual</div>
+          <table style="width:100%;border-collapse:collapse">${barras}</table>`:''}
+        </div>`;
+      })()}
     </div>
 
     <div class="analise">
