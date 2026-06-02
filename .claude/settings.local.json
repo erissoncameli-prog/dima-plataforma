@@ -168,7 +168,11 @@
       "Bash(grep -n \"function _montarHtml\\\\|function _abrirJanela\\\\|function _gerarPdf\\\\|win\\\\.document\\\\|return \\\\`.*DOCTYPE\" \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\pages\\\\mapa.html\")",
       "Bash(curl -s \"https://servicodados.ibge.gov.br/api/v1/localidades/estados/12/municipios\")",
       "Bash(grep -v \"function\\\\|innerHTML\\\\|body.innerHTML\\\\|return \\\\`\\\\|<div\\\\|class=\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(ls \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/\")",
+      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__list_organizations",
+      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__confirm_cost",
+      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__create_project"
     ]
   }
 }
