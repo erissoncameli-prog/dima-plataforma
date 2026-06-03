@@ -7795,7 +7795,7 @@ function _ucConstruirPainel() {
 
   function buildList(items) {
     return items.sort(function(a,b){ return a.nome.localeCompare(b.nome); }).map(function(item) {
-      return '<div class="uc-filtro-label" style="gap:5px;padding:3px 0;align-items:center">'
+      return '<div class="uc-filtro-label" data-uc-esfera="' + esc(item.esfera.toLowerCase()) + '" style="gap:5px;padding:3px 0;align-items:center">'
         + '<input type="checkbox" checked data-uc-nome="' + esc(item.nome) + '" style="accent-color:' + item.cor + ';width:12px;height:12px;cursor:pointer;flex-shrink:0" onchange="filtrarUC()">'
         + '<div data-ucsw="' + esc(item.nome) + '" style="background:' + item.cor + ';border:1px solid ' + item.cor + ';cursor:pointer;width:14px;height:14px;border-radius:3px;flex-shrink:0" title="Mudar cor" onclick="ucAbrirColorPicker(\'' + esc(item.nome).replace(/'/g,'\\\'') + '\',this)"></div>'
         + '<span style="font-size:10px;font-weight:600;color:var(--cinza-500);flex-shrink:0">' + esc(item.sigla) + '</span>'
