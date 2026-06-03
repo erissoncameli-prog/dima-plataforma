@@ -7897,41 +7897,33 @@ function filtrarUC() {
 }
 
 function _ucSincronizarLista() {
-  if (!_ucGeojson) return;
   var esfFed = (document.getElementById('uc-esfera-federal')  || {checked:true}).checked;
   var esfEst = (document.getElementById('uc-esfera-estadual') || {checked:true}).checked;
   var esfMun = (document.getElementById('uc-esfera-municipal')|| {checked:true}).checked;
 
-  // monta dicionário nome → esfera
-  var esferaMap = {};
-  (_ucGeojson.features || []).forEach(function(f) {
-    esferaMap[f.properties.nome] = (f.properties.esfera || '').toLowerCase();
-  });
-
-  document.querySelectorAll('[data-uc-nome]').forEach(function(cb) {
-    var esf = esferaMap[cb.dataset.ucNome] || '';
-    var visivel = (esf === 'federal' && esfFed) ||
-                  (esf === 'estadual' && esfEst) ||
+  document.querySelectorAll('.uc-filtro-label[data-uc-esfera]').forEach(function(row) {
+    var esf = row.dataset.ucEsfera;
+    var visivel = (esf === 'federal'   && esfFed) ||
+                  (esf === 'estadual'  && esfEst) ||
                   (esf === 'municipal' && esfMun) ||
-                  (esf === '');
-    var row = cb.closest('.uc-filtro-label');
-    if (row) row.style.display = visivel ? '' : 'none';
+                  !esf;
+    row.classList.toggle('uc-esfera-oculta', !visivel);
   });
 
-  // atualiza contador nos cabeçalhos de grupo
+  // contador nos cabeçalhos de grupo
   ['pi', 'us'].forEach(function(g) {
     var el = document.getElementById('uc-tipos-' + g);
     if (!el) return;
-    var total   = el.querySelectorAll('[data-uc-nome]').length;
-    var visiveis = el.querySelectorAll('.uc-filtro-label:not([style*="display: none"]):not([style*="display:none"])').length;
-    var hdr = el.previousElementSibling;
-    if (!hdr) return;
-    var counter = hdr.querySelector('.uc-grupo-count');
+    var total    = el.querySelectorAll('.uc-filtro-label[data-uc-esfera]').length;
+    var visiveis = el.querySelectorAll('.uc-filtro-label[data-uc-esfera]:not(.uc-esfera-oculta)').length;
+    var hdrLbl   = document.querySelector('#uc-grupo-' + g).previousElementSibling.querySelector('.uc-grupo-header-lbl');
+    if (!hdrLbl) return;
+    var counter = hdrLbl.querySelector('.uc-grupo-count');
     if (!counter) {
       counter = document.createElement('span');
       counter.className = 'uc-grupo-count';
-      counter.style.cssText = 'font-size:9px;color:var(--cinza-400);margin-left:4px';
-      hdr.appendChild(counter);
+      counter.style.cssText = 'font-size:9px;font-weight:400;color:var(--cinza-400);margin-left:4px';
+      hdrLbl.appendChild(counter);
     }
     counter.textContent = visiveis === total ? '(' + total + ')' : '(' + visiveis + '/' + total + ')';
   });
