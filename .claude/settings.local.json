@@ -172,7 +172,16 @@
       "Bash(ls \"C:/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/\")",
       "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__list_organizations",
       "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__confirm_cost",
-      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__create_project"
+      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__create_project",
+      "Bash(vercel --version)",
+      "Bash(npx vercel *)",
+      "PowerShell(npx vercel --version 2>&1)",
+      "PowerShell($paths = @\\(\"$env:APPDATA\\\\npm\\\\npx.cmd\", \"$env:ProgramFiles\\\\nodejs\\\\npx.cmd\", \"$env:LOCALAPPDATA\\\\Programs\\\\nodejs\\\\npx.cmd\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Host \"Found: $p\" } }; Get-Command npx -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source)",
+      "PowerShell($p = \"$env:APPDATA\\\\vercel\\\\auth.json\"; if \\(Test-Path $p\\) { Get-Content $p } else { \"not found: $p\" }; $p2 = \"$env:LOCALAPPDATA\\\\vercel\\\\auth.json\"; if \\(Test-Path $p2\\) { Get-Content $p2 } else { \"not found: $p2\" })",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); node --version; npm --version)",
+      "Bash(gh --version)",
+      "Bash(git --version)",
+      "mcp__5499839e-86af-4699-b551-2eb3972f3f05__web_fetch_vercel_url"
     ]
   }
 }
