@@ -7889,7 +7889,52 @@ function toggleCamadaUC(ativo) {
   _ucStatsAtualizar();
   document.getElementById('uc-stats-card').classList.toggle('visivel', ativo);
 }
-function filtrarUC() { _renderizarUC(); _ucStatsAtualizar(); }
+function filtrarUC() {
+  _renderizarUC();
+  _ucStatsAtualizar();
+  _ucSincronizarLista();
+}
+
+function _ucSincronizarLista() {
+  if (!_ucGeojson) return;
+  var esfFed = (document.getElementById('uc-esfera-federal')  || {checked:true}).checked;
+  var esfEst = (document.getElementById('uc-esfera-estadual') || {checked:true}).checked;
+  var esfMun = (document.getElementById('uc-esfera-municipal')|| {checked:true}).checked;
+
+  // monta dicionário nome → esfera
+  var esferaMap = {};
+  (_ucGeojson.features || []).forEach(function(f) {
+    esferaMap[f.properties.nome] = (f.properties.esfera || '').toLowerCase();
+  });
+
+  document.querySelectorAll('[data-uc-nome]').forEach(function(cb) {
+    var esf = esferaMap[cb.dataset.ucNome] || '';
+    var visivel = (esf === 'federal' && esfFed) ||
+                  (esf === 'estadual' && esfEst) ||
+                  (esf === 'municipal' && esfMun) ||
+                  (esf === '');
+    var row = cb.closest('.uc-filtro-label');
+    if (row) row.style.display = visivel ? '' : 'none';
+  });
+
+  // atualiza contador nos cabeçalhos de grupo
+  ['pi', 'us'].forEach(function(g) {
+    var el = document.getElementById('uc-tipos-' + g);
+    if (!el) return;
+    var total   = el.querySelectorAll('[data-uc-nome]').length;
+    var visiveis = el.querySelectorAll('.uc-filtro-label:not([style*="display: none"]):not([style*="display:none"])').length;
+    var hdr = el.previousElementSibling;
+    if (!hdr) return;
+    var counter = hdr.querySelector('.uc-grupo-count');
+    if (!counter) {
+      counter = document.createElement('span');
+      counter.className = 'uc-grupo-count';
+      counter.style.cssText = 'font-size:9px;color:var(--cinza-400);margin-left:4px';
+      hdr.appendChild(counter);
+    }
+    counter.textContent = visiveis === total ? '(' + total + ')' : '(' + visiveis + '/' + total + ')';
+  });
+}
 
 // ── Card flutuante de estatísticas das UCs ────────────────────────────────
 var _ucStatsCollapsed = false;
