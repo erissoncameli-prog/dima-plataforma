@@ -181,7 +181,17 @@
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\",\"User\"\\); node --version; npm --version)",
       "Bash(gh --version)",
       "Bash(git --version)",
-      "mcp__5499839e-86af-4699-b551-2eb3972f3f05__web_fetch_vercel_url"
+      "mcp__5499839e-86af-4699-b551-2eb3972f3f05__web_fetch_vercel_url",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\" status data/)",
+      "Bash(Get-Item \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\\\\data\\\\uc_acre.geojson\")",
+      "Bash(Select-Object Length)",
+      "Bash(sort -t: -k3)",
+      "Bash(uniq -d -f2)",
+      "Bash(git -C \"C:\\\\Users\\\\eriss\\\\OneDrive\\\\Documents\\\\OneDrive\\\\Documents\\\\Dima OneDrive\\\\Fundo Onu\\\\Plataforma\\\\Fundo_Brasil_Onu\\\\dima-plataforma\" show fb951db:pages/mapa.html)",
+      "Bash(cd \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\" && grep -n \"^let _car\\\\|^const _car\" pages/mapa.html js/layout.js js/config.js js/ajuda.js 2>/dev/null)",
+      "Bash(cd \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\" && grep -n \"let \\\\|const \" js/layout.js | head -30)",
+      "mcp__5499839e-86af-4699-b551-2eb3972f3f05__get_project",
+      "Bash(find \"/c/Users/eriss\" -name \"mapa.html\" -not -path \"*/.claude/*\" 2>/dev/null | head -20)"
     ]
   }
 }
