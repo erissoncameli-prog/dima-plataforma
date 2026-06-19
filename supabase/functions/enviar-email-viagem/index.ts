@@ -421,38 +421,119 @@ Acesse a plataforma para analisar e aprovar ou rejeitar a solicitação.${ASS}`,
 }
 
 // ── Template coordenador UNESCO: protocolo aprovado, providenciar SPD ─────────
+function periodoHora(hr: string | null): string {
+  if (!hr) return '—'
+  const h = parseInt(hr.split(':')[0])
+  if (h >= 6 && h < 12) return 'Manhã'
+  if (h >= 12 && h < 18) return 'Tarde'
+  return 'Noite'
+}
+
+function fmtHora(hr: string | null): string {
+  if (!hr) return '—'
+  return hr.substring(0, 5)
+}
+
+function nan(v: any): string {
+  return v ? String(v) : '—'
+}
+
 function tplCoordenadorUnesco(p: any): Tpl {
-  const num   = p.numero || '—'
-  const sei   = p.numero_sei ? ` | SEI: ${p.numero_sei}` : ''
-  const dest  = p.destino_principal || '—'
+  const num  = p.numero || '—'
+  const dest = p.destino_principal || '—'
   const saida = fmtData(p.dt_saida)
   const ret   = fmtData(p.dt_retorno)
   const obj   = p.objetivo || '—'
+  const sei   = p.numero_sei || '—'
+  const obs   = p.observacoes || '—'
+  const aprvEm = p.aprovado_em
+    ? new Date(p.aprovado_em).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco' })
+    : '—'
+  const emailSol = p.email_solicitante || '—'
 
   const algumPassagem = (p.viajantes || []).some((v: any) => v.tem_passagem)
   const algumaDiaria  = (p.viajantes || []).some((v: any) => v.tem_diaria)
   const spd = descSPD(algumPassagem, algumaDiaria)
 
-  const viaj = (p.viajantes || [])
-    .map((v: any) => {
-      const itens = [v.tem_passagem && 'passagem', v.tem_diaria && 'diária'].filter(Boolean).join(' + ')
-      return `  • ${v.nome || '—'} (${v.funcao || '—'})${itens ? ` — ${itens}` : ''}`
-    })
-    .join('\n') || '  —'
+  const SEP = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+
+  const blocoProtocolo = `${SEP}
+ DADOS DO PROTOCOLO
+${SEP}
+PROTOCOLO          : ${num}
+SEI                : ${sei}
+DESTINO            : ${dest}
+PERÍODO            : ${saida} a ${ret}
+OBJETIVO           : ${obj}
+OBSERVAÇÕES        : ${obs}
+APROVADO EM        : ${aprvEm}
+E-MAIL SOLICITANTE : ${emailSol}`
+
+  const blocoViajantes = (p.viajantes || []).map((v: any, i: number) => {
+    const b = v.beneficiario || {}
+    const spd_v = [v.tem_passagem && 'passagem', v.tem_diaria && 'diária'].filter(Boolean).join(' + ')
+
+    // dados pessoais (beneficiário complementa viajante)
+    const nome        = v.nome || b.nome || '—'
+    const cpf         = v.cpf || b.cpf || '—'
+    const email       = v.email || b.email || '—'
+    const telefone    = nan(b.telefone)
+    const cargo       = v.funcao || b.cargo || '—'
+    const instituicao = nan(b.instituicao)
+    const nacional    = nan(b.nacionalidade)
+    const passNum     = nan(b.passaporte_numero)
+    const passVal     = b.passaporte_validade ? fmtData(b.passaporte_validade) : '—'
+    const passPais    = nan(b.passaporte_pais_emissao)
+
+    let bloco = `
+${SEP}
+ VIAJANTE ${i + 1} — ${nome}
+${SEP}
+FUNÇÃO             : ${cargo}
+CPF                : ${cpf}
+E-MAIL             : ${email}
+TELEFONE           : ${telefone}
+INSTITUIÇÃO        : ${instituicao}
+NACIONALIDADE      : ${nacional}
+PASSAPORTE Nº      : ${passNum}
+VALIDADE PASSAP.   : ${passVal}
+PAÍS DE EMISSÃO    : ${passPais}
+
+  BENEFÍCIOS SOLICITADOS: ${spd_v || '—'}`
+
+    // trechos
+    if (v.tem_passagem && (v.trechos || []).length > 0) {
+      const linhasTrechos = (v.trechos as any[])
+        .sort((a: any, b: any) => a.ordem - b.ordem)
+        .map((tr: any, ti: number) => {
+          const hr    = fmtHora(tr.hr_saida)
+          const per   = periodoHora(tr.hr_saida)
+          const bil   = nan(tr.numero_bilhete)
+          const val   = tr.valor ? `R$ ${parseFloat(tr.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'a confirmar'
+          return `  #${ti + 1}  ${tr.origem || '—'} → ${tr.destino || '—'}
+       Tipo: ${tr.tipo || '—'} | Data: ${fmtData(tr.dt_saida)} | Hr Saída: ${hr} | Período: ${per}
+       Bilhete: ${bil} | Valor: ${val}`
+        }).join('\n\n')
+
+      bloco += `
+
+  ✈ TRECHOS DE PASSAGEM
+${linhasTrechos}`
+    }
+
+    return bloco
+  }).join('\n')
 
   return {
     assunto: `[DIMA] ✅ Protocolo ${num} aprovado — Providenciar ${spd}`,
     corpo: `Prezado(a) Coordenador(a),
 
-O Protocolo de viagem abaixo foi aprovado pela gestão do Projeto DIMA. Solicitamos as providências junto à UNESCO para emissão dos SPDs de ${spd}.
+O Protocolo de viagem abaixo foi aprovado pela gestão do Projeto. Solicitamos as providências para emissão dos SPDs de ${spd}.
 
-PROTOCOLO : ${num}${sei}
-DESTINO   : ${dest}
-PERÍODO   : ${saida} a ${ret}
-OBJETIVO  : ${obj}
+${blocoProtocolo}
+${blocoViajantes}
 
-VIAJANTES E BENEFÍCIOS APROVADOS:
-${viaj}
+${SEP}
 
 Em caso de dúvidas ou necessidade de informações complementares, entre em contato com a equipe de gestão.${ASS}`,
     linkBtn: { url: `${SITE_URL}/pages/viagens.html`, label: '📋 Ver Protocolo na Plataforma' },
@@ -472,10 +553,18 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Buscar protocolo + viajantes com flags de passagem e diária
+    // Buscar protocolo + viajantes com trechos e dados do beneficiário
     const { data: proto, error: errProto } = await supabase
       .from('viagem_protocolos')
-      .select('*, viajantes:viagem_viajantes(id, nome, funcao, email, tem_passagem, tem_diaria)')
+      .select(`*,
+        viajantes:viagem_viajantes(
+          id, nome, funcao, cpf, email, tem_passagem, tem_diaria,
+          beneficiario:beneficiarios(
+            nome, cpf, email, telefone, cargo, instituicao, nacionalidade,
+            passaporte_numero, passaporte_validade, passaporte_pais_emissao
+          ),
+          trechos:viagem_trechos(ordem, origem, destino, tipo, dt_saida, hr_saida, numero_bilhete, valor)
+        )`)
       .eq('id', protocolo_id)
       .single()
 
@@ -537,13 +626,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Evento APROVADO → notificar coordenador UNESCO + viajantes (já incluídos acima)
-    if (evento === 'aprovado' && COORDENADOR_UNESCO) {
+    // 4. Evento APROVADO → notificar coordenador UNESCO
+    if (evento === 'aprovado') {
       const tplCoord = tplCoordenadorUnesco(proto)
-      // Só adiciona se não for o mesmo e-mail do criador (evita duplicata)
-      if (COORDENADOR_UNESCO !== criadorEmail) {
-        envios.push({ to: COORDENADOR_UNESCO, ...tplCoord })
-      }
+      envios.push({ to: 'm.lang@unesco.org', ...tplCoord })
     }
 
     if (envios.length === 0) {
