@@ -1068,7 +1068,7 @@ function addTrechoPreenchido(vidx,tr){
   const tidx=trechoIdx++;
   const el=document.createElement('div');
   el.innerHTML=`<div class="trecho-row" id="tr-${tidx}">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 90px 90px 1fr auto;gap:6px;align-items:end">
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Origem</label>
         <input class="form-control" name="tr-orig-${tidx}" data-vidx="${vidx}" type="text" value="${esc(tr.origem||'')}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Destino</label>
@@ -1078,6 +1078,10 @@ function addTrechoPreenchido(vidx,tr){
           ${TIPOS_TRECHO.map(t=>`<option value="${t}"${t===tr.tipo?' selected':''}>${t}</option>`).join('')}</select></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Data</label>
         <input class="form-control" name="tr-saida-${tidx}" type="date" value="${tr.dt_saida||''}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Hr Saída</label>
+        <input class="form-control" name="tr-hr-saida-${tidx}" type="time" value="${tr.hr_saida||''}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Hr Retorno</label>
+        <input class="form-control" name="tr-hr-retorno-${tidx}" type="time" value="${tr.hr_retorno||''}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$</label>
         <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" value="${tr.valor||''}"
           style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
@@ -1346,7 +1350,7 @@ function addTrechoViajante(vidx, sentido){
 
   const el=document.createElement('div');
   el.innerHTML=`<div class="trecho-row" id="tr-${tidx}">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:6px;align-items:end">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 90px 90px 1fr auto;gap:6px;align-items:end">
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Origem</label>
         <input class="form-control" name="tr-orig-${tidx}" data-vidx="${vidx}" type="text" value="${esc(orig)}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Destino</label>
@@ -1356,6 +1360,10 @@ function addTrechoViajante(vidx, sentido){
           ${TIPOS_TRECHO.map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Data</label>
         <input class="form-control" name="tr-saida-${tidx}" type="date" value="${dataTrecho}" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Hr Saída</label>
+        <input class="form-control" name="tr-hr-saida-${tidx}" type="time" style="height:30px;font-size:11px"></div>
+      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Hr Retorno</label>
+        <input class="form-control" name="tr-hr-retorno-${tidx}" type="time" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$</label>
         <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" placeholder="UNESCO"
           style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
@@ -1478,6 +1486,8 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
         destino:document.querySelector(`[name="tr-dest-${tidx}"]`)?.value||null,
         tipo:document.querySelector(`[name="tr-tipo-${tidx}"]`)?.value||'Aérea',
         dt_saida:document.querySelector(`[name="tr-saida-${tidx}"]`)?.value||null,
+        hr_saida:document.querySelector(`[name="tr-hr-saida-${tidx}"]`)?.value||null,
+        hr_retorno:document.querySelector(`[name="tr-hr-retorno-${tidx}"]`)?.value||null,
         valor:val,
       });
     });
