@@ -425,7 +425,9 @@ let benefVindoDeProtocolo=null; // {idx, acao:'novo'|'editar'}
 async function carregar(){
   const{data}=await db.from('viagem_protocolos')
     .select(`*,viajantes:viagem_viajantes(
-      *,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)
+      *,
+      beneficiario:beneficiarios(nome,cpf,email,telefone,cargo,instituicao,nacionalidade,passaporte_numero,passaporte_validade,passaporte_pais_emissao),
+      trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)
     ),notif_log:viagem_notif_log(*)`)
     .order('criado_em',{ascending:false});
   protocolos=data||[];
@@ -2494,54 +2496,91 @@ async function enviarParaAprovacao(id){
 function abrirModalEmail(){
   const p=protAtual;if(!p)return;
   const viajantes=p.viajantes||[];
+  const SEP='━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━';
 
-  // Montar lista de beneficiários
-  const beneficiarios=viajantes.map((v,i)=>{
-    const trechos=(v.trechos||[]).sort((a,b)=>a.ordem-b.ordem);
-    const temPass=v.tem_passagem&&trechos.length>0;
-    const temDiar=v.tem_diaria;
-    let linha=`${i+1}. ${v.nome||'—'}`;
-    if(v.cpf) linha+=` | CPF: ${v.cpf}`;
-    if(v.funcao) linha+=` | ${v.funcao}`;
-    if(temPass){
-      const trechosStr=trechos.map(t=>`${t.origem||'—'} → ${t.destino||'—'}${t.dt_saida?' ('+fmtData(t.dt_saida)+')':''}`).join(', ');
-      linha+=`\n   Passagem: ${trechosStr}`;
-    }
-    if(temDiar){
-      const qtdDias=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0),0);
-      linha+=`\n   Diárias: ${qtdDias} diária(s)`;
-    }
-    return linha;
-  }).join('\n\n');
+  function nan(v){return v||'—';}
+  function fmtHr(hr){return hr?hr.substring(0,5):'—';}
+  function periodo(hr){
+    if(!hr)return '—';
+    const h=parseInt(hr.split(':')[0]);
+    if(h>=6&&h<12)return 'Manhã';
+    if(h>=12&&h<18)return 'Tarde';
+    return 'Noite';
+  }
+  function fmtPassVal(s){if(!s)return '—';const p=s.split('T')[0].split('-');return `${p[2]}/${p[1]}/${p[0]}`;}
 
   const aprovadoPor=appState.usuario?.nome_completo||'';
   const dtAprov=p.aprovado_em?fmtData(p.aprovado_em.split('T')[0]):'';
+  const algumPass=viajantes.some(v=>v.tem_passagem);
+  const algumDiar=viajantes.some(v=>v.tem_diaria);
+  const spd=algumPass&&algumDiar?'passagens e diárias':algumPass?'passagens':algumDiar?'diárias':'benefícios';
 
-  const assunto=`Solicitação de Passagens e Diárias — ${p.numero}${p.numero_sei?' — SEI '+p.numero_sei:''}`;
+  const assunto=`[DIMA] ✅ Protocolo ${p.numero||'—'} aprovado — Providenciar ${spd}`;
 
-  const corpo=`Prezados,
+  const blocoProtocolo=`${SEP}
+ DADOS DO PROTOCOLO
+${SEP}
+PROTOCOLO          : ${nan(p.numero)}
+SEI                : ${nan(p.numero_sei)}
+DESTINO            : ${nan(p.destino_principal)}
+PERÍODO            : ${p.dt_saida?fmtData(p.dt_saida):'—'} a ${p.dt_retorno?fmtData(p.dt_retorno):'—'}
+OBJETIVO           : ${nan(p.objetivo)}
+OBSERVAÇÕES        : ${nan(p.observacoes)}
+APROVADO EM        : ${dtAprov||'—'}
+E-MAIL SOLICITANTE : ${nan(p.email_solicitante)}`;
 
-Encaminhamos solicitação de providências para emissão de passagens aéreas e pagamento de diárias referente ao Protocolo ${p.numero}, conforme autorização registrada${p.numero_sei?' no processo SEI nº '+p.numero_sei:''}.
+  const blocoViajantes=viajantes.map((v,i)=>{
+    const b=v.beneficiario||{};
+    const nome=v.nome||b.nome||'—';
+    const cpf=v.cpf||b.cpf||'—';
+    const email=v.email||b.email||'—';
+    const spd_v=[v.tem_passagem&&'passagem',v.tem_diaria&&'diária'].filter(Boolean).join(' + ')||'—';
+    let bloco=`
+${SEP}
+ VIAJANTE ${i+1} — ${nome}
+${SEP}
+FUNÇÃO             : ${nan(v.funcao||b.cargo)}
+CPF                : ${cpf}
+E-MAIL             : ${email}
+TELEFONE           : ${nan(b.telefone)}
+INSTITUIÇÃO        : ${nan(b.instituicao)}
+NACIONALIDADE      : ${nan(b.nacionalidade)}
+PASSAPORTE Nº      : ${nan(b.passaporte_numero)}
+VALIDADE PASSAP.   : ${fmtPassVal(b.passaporte_validade)}
+PAÍS DE EMISSÃO    : ${nan(b.passaporte_pais_emissao)}
 
-OBJETIVO DO EVENTO
-${p.objetivo||'—'}
+  BENEFÍCIOS SOLICITADOS: ${spd_v}`;
 
-PERÍODO: ${p.dt_saida?fmtData(p.dt_saida):'—'} a ${p.dt_retorno?fmtData(p.dt_retorno):'—'}
-DESTINO: ${p.destino_principal||'—'}
+    if(v.tem_passagem&&(v.trechos||[]).length>0){
+      const linhas=(v.trechos||[]).sort((a,b2)=>a.ordem-b2.ordem).map((tr,ti)=>{
+        const hr=fmtHr(tr.hr_saida);
+        const per=periodo(tr.hr_saida);
+        const bil=nan(tr.numero_bilhete);
+        const val=tr.valor?`R$ ${parseFloat(tr.valor).toLocaleString('pt-BR',{minimumFractionDigits:2})}` :'a confirmar';
+        return `  #${ti+1}  ${tr.origem||'—'} → ${tr.destino||'—'}\n       Tipo: ${nan(tr.tipo)} | Data: ${tr.dt_saida?fmtData(tr.dt_saida):'—'} | Hr Saída: ${hr} | Período: ${per}\n       Bilhete: ${bil} | Valor: ${val}`;
+      }).join('\n\n');
+      bloco+=`\n\n  ✈ TRECHOS DE PASSAGEM\n${linhas}`;
+    }
+    return bloco;
+  }).join('\n');
 
-BENEFICIÁRIOS
-${beneficiarios||'—'}
+  const corpo=`Prezado(a) Coordenador(a),
 
-Esta solicitação foi devidamente analisada e aprovada por ${aprovadoPor}${dtAprov?' em '+dtAprov:''}, estando em conformidade com o plano de trabalho do Projeto 218BRA2001 — DIMA UNESCO/SEMA-AC.
+O Protocolo de viagem abaixo foi aprovado pela gestão do Projeto. Solicitamos as providências para emissão dos SPDs de ${spd}.
 
-Solicitamos a emissão dos respectivos SPDs e confirmação de disponibilidade.
+${blocoProtocolo}
+${blocoViajantes}
+
+${SEP}
+
+Em caso de dúvidas ou necessidade de informações complementares, entre em contato com a equipe de gestão.
 
 Atenciosamente,
 ${aprovadoPor}
 Secretaria de Estado do Meio Ambiente — SEMA/AC
 Projeto DIMA — UNESCO / Fundo Brasil`;
 
-  document.getElementById('email-para').value='';
+  document.getElementById('email-para').value='m.lang@unesco.org';
   document.getElementById('email-cc').value='';
   document.getElementById('email-assunto').value=assunto;
   document.getElementById('email-corpo').value=corpo;
