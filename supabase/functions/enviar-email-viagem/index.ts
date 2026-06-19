@@ -626,8 +626,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 4. Evento APROVADO → notificar coordenador UNESCO
-    if (evento === 'aprovado') {
+    // 4. Evento APROVADO ou NOTIFICAR_UNESCO → notificar coordenador UNESCO
+    if (evento === 'aprovado' || evento === 'notificar_unesco') {
       const tplCoord = tplCoordenadorUnesco(proto)
       envios.push({ to: 'm.lang@unesco.org', ...tplCoord })
     }

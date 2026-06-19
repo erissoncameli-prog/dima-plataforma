@@ -1939,7 +1939,7 @@ async function abrirDetalhe(id){
         <button class="btn btn-primary" onclick="aprovarProtocolo()">✓ Aprovar →</button></div>`;
     if(p.situacao==='aprovado')
       footer+=`<div style="display:flex;gap:8px;margin-left:auto">
-        ${!p.notificado_unesco_em?`<button class="btn" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="abrirModalEmail()">📧 Notificar UNESCO</button>`:`<span style="font-size:11px;color:#059669;display:flex;align-items:center;gap:4px">✉ UNESCO notificada em ${fmtData(p.notificado_unesco_em.split('T')[0])}</span>`}
+        ${!p.notificado_unesco_em?`<button class="btn" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="notificarUnescoDireto('${p.id}')">📧 Notificar UNESCO</button>`:`<span style="font-size:11px;color:#059669;display:flex;align-items:center;gap:4px">✉ UNESCO notificada em ${fmtData(p.notificado_unesco_em.split('T')[0])}</span>`}
         <button class="btn btn-primary" onclick="abrirFormSPDs()">✎ SPDs / Atualizar</button>
       </div>`;
     if(p.situacao==='em_prestacao')
@@ -2614,6 +2614,28 @@ async function enviarEmailUnesco(){
 function copiarEmail(){
   const corpo=document.getElementById('email-corpo').value;
   navigator.clipboard.writeText(corpo).then(()=>toast('Texto copiado!','success'));
+}
+
+async function notificarUnescoDireto(protId){
+  if(!confirm('Enviar e-mail diretamente para m.lang@unesco.org com todos os dados do protocolo?'))return;
+  try{
+    const{data:{session}}=await db.auth.getSession();
+    const resp=await fetch(`${SUPABASE_URL}/functions/v1/enviar-email-viagem`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||''),'apikey':SUPABASE_ANON_KEY},
+      body:JSON.stringify({protocolo_id:protId,evento:'notificar_unesco'})
+    });
+    const result=await resp.json();
+    if(result.ok){
+      await db.from('viagem_protocolos').update({notificado_unesco_em:new Date().toISOString()}).eq('id',protId);
+      toast('E-mail enviado para m.lang@unesco.org com sucesso!','success');
+      fecharModal();await carregar();
+    }else{
+      toast('Erro ao enviar: '+(result.error||'falha desconhecida'),'error');
+    }
+  }catch(e){
+    toast('Erro ao enviar: '+(e?.message||'falha de rede'),'error');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
