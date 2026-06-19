@@ -1064,11 +1064,31 @@ function addViajantePreenchido(v){
   }
 }
 
+function periodoDia(hr){
+  if(!hr) return '';
+  const h=parseInt(hr.split(':')[0]);
+  if(h>=6&&h<12) return '🌅 Manhã';
+  if(h>=12&&h<18) return '☀️ Tarde';
+  return '🌙 Noite';
+}
+function periodoCor(hr){
+  if(!hr) return '#6B7280';
+  const h=parseInt(hr.split(':')[0]);
+  if(h>=6&&h<12) return '#0369A1';
+  if(h>=12&&h<18) return '#B45309';
+  return '#4C1D95';
+}
+function atualizarPeriodo(tidx){
+  const hr=document.querySelector(`[name="tr-hr-saida-${tidx}"]`)?.value||'';
+  const el=document.getElementById(`tr-periodo-${tidx}`);
+  if(el){ el.textContent=periodoDia(hr); el.style.color=periodoCor(hr); }
+}
+
 function addTrechoPreenchido(vidx,tr){
   const tidx=trechoIdx++;
   const el=document.createElement('div');
   el.innerHTML=`<div class="trecho-row" id="tr-${tidx}">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 90px 90px 1fr auto;gap:6px;align-items:end">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 90px 80px 1fr auto;gap:6px;align-items:end">
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Origem</label>
         <input class="form-control" name="tr-orig-${tidx}" data-vidx="${vidx}" type="text" value="${esc(tr.origem||'')}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Destino</label>
@@ -1079,9 +1099,11 @@ function addTrechoPreenchido(vidx,tr){
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Data</label>
         <input class="form-control" name="tr-saida-${tidx}" type="date" value="${tr.dt_saida||''}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Hr Saída</label>
-        <input class="form-control" name="tr-hr-saida-${tidx}" type="time" value="${tr.hr_saida||''}" style="height:30px;font-size:11px"></div>
-      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Hr Retorno</label>
-        <input class="form-control" name="tr-hr-retorno-${tidx}" type="time" value="${tr.hr_retorno||''}" style="height:30px;font-size:11px"></div>
+        <input class="form-control" name="tr-hr-saida-${tidx}" type="time" value="${tr.hr_saida||''}" style="height:30px;font-size:11px" oninput="atualizarPeriodo(${tidx})"></div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end">
+        <label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Período</label>
+        <span id="tr-periodo-${tidx}" style="height:30px;display:flex;align-items:center;font-size:11px;font-weight:600;color:${periodoCor(tr.hr_saida||'')}">${periodoDia(tr.hr_saida||'')}</span>
+      </div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$</label>
         <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" value="${tr.valor||''}"
           style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
@@ -1350,7 +1372,7 @@ function addTrechoViajante(vidx, sentido){
 
   const el=document.createElement('div');
   el.innerHTML=`<div class="trecho-row" id="tr-${tidx}">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 90px 90px 1fr auto;gap:6px;align-items:end">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 90px 80px 1fr auto;gap:6px;align-items:end">
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Origem</label>
         <input class="form-control" name="tr-orig-${tidx}" data-vidx="${vidx}" type="text" value="${esc(orig)}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Destino</label>
@@ -1361,9 +1383,11 @@ function addTrechoViajante(vidx, sentido){
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Data</label>
         <input class="form-control" name="tr-saida-${tidx}" type="date" value="${dataTrecho}" style="height:30px;font-size:11px"></div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Hr Saída</label>
-        <input class="form-control" name="tr-hr-saida-${tidx}" type="time" style="height:30px;font-size:11px"></div>
-      <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Hr Retorno</label>
-        <input class="form-control" name="tr-hr-retorno-${tidx}" type="time" style="height:30px;font-size:11px"></div>
+        <input class="form-control" name="tr-hr-saida-${tidx}" type="time" style="height:30px;font-size:11px" oninput="atualizarPeriodo(${tidx})"></div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end">
+        <label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Período</label>
+        <span id="tr-periodo-${tidx}" style="height:30px;display:flex;align-items:center;font-size:11px;font-weight:600;color:#6B7280">—</span>
+      </div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$</label>
         <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" placeholder="UNESCO"
           style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
@@ -1487,7 +1511,6 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
         tipo:document.querySelector(`[name="tr-tipo-${tidx}"]`)?.value||'Aérea',
         dt_saida:document.querySelector(`[name="tr-saida-${tidx}"]`)?.value||null,
         hr_saida:document.querySelector(`[name="tr-hr-saida-${tidx}"]`)?.value||null,
-        hr_retorno:document.querySelector(`[name="tr-hr-retorno-${tidx}"]`)?.value||null,
         valor:val,
       });
     });
