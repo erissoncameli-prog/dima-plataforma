@@ -99,7 +99,7 @@ Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 | Enum | Valores |
 |------|---------|
 | `status_contrato` | `vigente`, `encerrado`, `suspenso` |
-| `status_tdr` | `rascunho`, `revisao_interna`, `ajustes`, `enviado_unesco`, `retorno_unesco`, `aprovado`, `cancelado`, `submetido`, `pendente_correcao`, `em_avaliacao`, `em_revisao_unesco` |
+| `status_tdr` | `rascunho`, `revisao_interna`, `ajustes`, `enviado_unesco`, `retorno_unesco`, `aprovado`, `cancelado`, `submetido`, `pendente_correcao`, `em_avaliacao`, `em_revisao_unesco`, `em_licitacao`, `contratado` |
 | `status_produto` | `submetido`, `em_revisao`, `aprovado_tecnico`, `aprovado_coordenacao`, `aprovado_diretoria`, `recusado` |
 | `situacao_financeiro` | `pago`, `a_pagar`, `cancelado` |
 | `fase_atividade` | `A_INICIAR`, `ELABORACAO`, `LICITACAO`, `ELABORADO`, `CONTRATADO`, `CONCLUIDO` |
@@ -134,9 +134,13 @@ Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 | `atividade_id` | uuid FK → `atividades.id` | NOT NULL |
 | `numero` | varchar NOT NULL | |
 | `tipo` | `tipo_tdr` | `PF \| PJ` |
-| `status` | `status_tdr` | único aprovado = `aprovado` |
+| `status` | `status_tdr` | fluxo: …→`aprovado`→`em_licitacao`→`contratado` |
 | `fornecedor_id` | uuid FK → `fornecedores.id` | |
 | `valor_brl` / `valor_usd` | numeric | |
+| `modalidade_licitacao` | text | preenchido na fase `em_licitacao` |
+| `numero_processo` | text | nº processo licitatório (`em_licitacao`) |
+| `dt_licitacao` | date | data de abertura da licitação |
+| `dt_contratacao` | date | preenchido na fase `contratado` |
 | `arquivo_url` / `arquivo_nome` | text | |
 | `criado_em` / `atualizado_em` | timestamptz | |
 
@@ -147,8 +151,9 @@ SELECT c.id, c.numero
 FROM contratos c
 LEFT JOIN tdrs t ON t.id = c.tdr_id
 WHERE c.status = 'vigente'
-  AND (c.tdr_id IS NULL OR t.status != 'aprovado')
+  AND (c.tdr_id IS NULL OR t.status NOT IN ('aprovado','em_licitacao','contratado'))
 ```
+> ⚠️ `aprovado`, `em_licitacao` e `contratado` são todas fases **pós-aprovação**. Ao filtrar "TDR aprovado", considere as três (ver `FASES_POS_APROVACAO` em `tdrs.html`).
 
 ### Tabela: `atividades`
 | Coluna | Tipo | Obs |

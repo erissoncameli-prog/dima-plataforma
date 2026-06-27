@@ -35,7 +35,7 @@ const i18n = {
     status_tdr: {
       rascunho: 'Rascunho', revisao_interna: 'Revisão Interna', ajustes: 'Ajustes',
       enviado_unesco: 'Enviado UNESCO', retorno_unesco: 'Retorno UNESCO',
-      aprovado: 'Aprovado', cancelado: 'Cancelado'
+      aprovado: 'Aprovado', em_licitacao: 'Em Licitação', contratado: 'Contratado', cancelado: 'Cancelado'
     },
     situacao: { pago: 'Pago', a_pagar: 'A Pagar', cancelado: 'Cancelado' },
     dashboard: {
@@ -72,7 +72,7 @@ const i18n = {
     status_tdr: {
       rascunho: 'Draft', revisao_interna: 'Internal Review', ajustes: 'Adjustments',
       enviado_unesco: 'Sent to UNESCO', retorno_unesco: 'UNESCO Feedback',
-      aprovado: 'Approved', cancelado: 'Cancelled'
+      aprovado: 'Approved', em_licitacao: 'In Procurement', contratado: 'Contracted', cancelado: 'Cancelled'
     },
     situacao: { pago: 'Paid', a_pagar: 'Pending', cancelado: 'Cancelled' },
     dashboard: {
@@ -109,7 +109,7 @@ const i18n = {
     status_tdr: {
       rascunho: 'Borrador', revisao_interna: 'Revisión Interna', ajustes: 'Ajustes',
       enviado_unesco: 'Enviado UNESCO', retorno_unesco: 'Retorno UNESCO',
-      aprovado: 'Aprobado', cancelado: 'Cancelado'
+      aprovado: 'Aprobado', em_licitacao: 'En Licitación', contratado: 'Contratado', cancelado: 'Cancelado'
     },
     situacao: { pago: 'Pagado', a_pagar: 'Por pagar', cancelado: 'Cancelado' },
     dashboard: {
@@ -362,6 +362,7 @@ function badgeStatusTDR(status) {
     rascunho: 'var(--badge-gray)', revisao_interna: 'var(--badge-blue)',
     ajustes: 'var(--badge-amber)', enviado_unesco: 'var(--badge-teal)',
     retorno_unesco: 'var(--badge-red)', aprovado: 'var(--badge-green)',
+    em_licitacao: 'var(--badge-amber)', contratado: 'var(--badge-teal)',
     cancelado: 'var(--badge-dark)'
   };
   return `<span class="badge" style="background:${cores[status]||'var(--badge-gray)'}">${t('status_tdr', status)}</span>`;

@@ -60,6 +60,8 @@
 .tdr-card.st-em_avaliacao::before{background:#0D9488;}
 .tdr-card.st-em_revisao_unesco::before{background:#7C3AED;}
 .tdr-card.st-aprovado::before{background:var(--sucesso);}
+.tdr-card.st-em_licitacao::before{background:var(--aviso);}
+.tdr-card.st-contratado::before{background:#0D9488;}
 .tdr-card.st-cancelado::before{background:var(--cinza-400,#9CA3AF);}
 /* Objeto truncado em 2 linhas */
 .tdr-obj{font-size:13px;font-weight:500;color:var(--cinza-900);line-height:1.4;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
@@ -237,6 +239,74 @@
   </div>
 </div>
 
+<!-- MODAL ENVIAR PARA LICITAÇÃO -->
+<div class="modal-overlay" id="modal-licitacao">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Enviar para licitação</span>
+      <button class="modal-close" onclick="fecharModal('modal-licitacao')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:14px">
+        O TDR aprovado avançará para a fase <strong>Em Licitação</strong>. Registre os dados do processo licitatório.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Modalidade <span class="obrig">*</span></label>
+        <select class="form-control" id="lic-modalidade" onchange="toggleModalidadeOutro()">
+          <option value="">Selecionar modalidade...</option>
+          <option value="Pregão Eletrônico">Pregão Eletrônico</option>
+          <option value="Concorrência">Concorrência</option>
+          <option value="Dispensa de Licitação">Dispensa de Licitação</option>
+          <option value="Inexigibilidade">Inexigibilidade</option>
+          <option value="Carta-Convite">Carta-Convite</option>
+          <option value="Cotação/Shopping (ONU)">Cotação/Shopping (ONU)</option>
+          <option value="__outro">Outro...</option>
+        </select>
+      </div>
+      <div class="form-group" id="lic-outro-wrap" style="display:none">
+        <label class="form-label">Especifique a modalidade <span class="obrig">*</span></label>
+        <input class="form-control" type="text" id="lic-modalidade-outro" placeholder="Digite a modalidade">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nº do processo licitatório</label>
+        <input class="form-control" type="text" id="lic-processo" placeholder="Ex: 0001/2026">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data de abertura</label>
+        <input class="form-control" type="date" id="lic-data">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-licitacao')">Cancelar</button>
+      <button class="btn" style="background:var(--aviso);color:#fff" onclick="salvarLicitacao()">→ Confirmar licitação</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR CONTRATAÇÃO -->
+<div class="modal-overlay" id="modal-contratado">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <span class="modal-title">Registrar contratação</span>
+      <button class="modal-close" onclick="fecharModal('modal-contratado')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:14px">
+        Vincule o contrato deste TDR. O contrato é cadastrado na aba <strong>Contratos</strong> (com o TDR selecionado lá). Ao confirmar, o TDR avança para <strong>Contratado</strong>.
+      </div>
+      <div id="contratado-conteudo"></div>
+      <div class="form-group" style="margin-top:14px">
+        <label class="form-label">Data da contratação <span class="obrig">*</span></label>
+        <input class="form-control" type="date" id="contratado-data">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-contratado')">Cancelar</button>
+      <button class="btn" id="btn-confirmar-contratado" style="background:#0D9488;color:#fff" onclick="confirmarContratado()">✓ Confirmar contratação</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -248,8 +318,10 @@ let todosTDRs=[], atividades=[], tdrAtual=null;
 let dadosOriginais={}, dadosEditados={}, arquivoSelecionado=null;
 let senhaTDRCallback=null, tdrAcoes={}, camposModificados={};
 
-const FASES=['rascunho','submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','aprovado'];
-const FASES_LABELS={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente Correção',em_avaliacao:'Em Avaliação',em_revisao_unesco:'Em Revisão UNESCO',aprovado:'Aprovado',cancelado:'Cancelado'};
+const FASES=['rascunho','submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','aprovado','em_licitacao','contratado'];
+const FASES_LABELS={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente Correção',em_avaliacao:'Em Avaliação',em_revisao_unesco:'Em Revisão UNESCO',aprovado:'Aprovado',em_licitacao:'Em Licitação',contratado:'Contratado',cancelado:'Cancelado'};
+// Status que representam "aprovado ou além" — usados em stats e regras que tratavam 'aprovado' como fase final
+const FASES_POS_APROVACAO=['aprovado','em_licitacao','contratado'];
 
 // Quem pode editar em cada fase
 const PERM_FASE={
@@ -259,6 +331,8 @@ const PERM_FASE={
   em_avaliacao:['super_admin','coordenacao'],
   em_revisao_unesco:[], // bloqueado
   aprovado:[], // bloqueado
+  em_licitacao:[], // bloqueado — pós-aprovação
+  contratado:[], // bloqueado — fase final
   cancelado:[]
 };
 
@@ -335,9 +409,9 @@ function renderStats(){
   const soma=arr=>arr.reduce((s,x)=>s+parseFloat(x.valor_brl||0),0);
   const tAtivos=t.filter(x=>x.status!=='cancelado');
   const tRascunho=t.filter(x=>x.status==='rascunho');
-  const tAprovados=t.filter(x=>x.status==='aprovado');
-  const tAndamento=t.filter(x=>['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco'].includes(x.status));
-  const tAtrasados=t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&x.status!=='aprovado');
+  const tAprovados=t.filter(x=>FASES_POS_APROVACAO.includes(x.status));
+  const tAndamento=t.filter(x=>['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','em_licitacao'].includes(x.status));
+  const tAtrasados=t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(x.status));
   document.getElementById('stats').innerHTML=`
     <div class="stat-card sc-g">
       <div class="stat-lbl">Total</div>
@@ -413,7 +487,7 @@ function filtrar(){
   el.innerHTML=f.map(t=>{
     const _statusNorm={enviado_unesco:'em_revisao_unesco',retorno_unesco:'em_revisao_unesco',revisao_interna:'submetido',ajustes:'pendente_correcao'};
     const fi=FASES.indexOf(_statusNorm[t.status]||t.status);
-    const atr=t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado';
+    const atr=t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status);
     const podeEd=podeEditarFase(t.status);
     const eCoordenador=['super_admin','coordenacao'].includes(appState.perfil);
 
@@ -429,7 +503,7 @@ function filtrar(){
       (appState.perfil==='super_admin');
 
     // Labels abreviadas para timeline
-    const FASES_ABREV={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente',em_avaliacao:'Avaliação',em_revisao_unesco:'UNESCO',aprovado:'Aprovado'};
+    const FASES_ABREV={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente',em_avaliacao:'Avaliação',em_revisao_unesco:'UNESCO',aprovado:'Aprovado',em_licitacao:'Licitação',contratado:'Contratado'};
 
     return `<div class="tdr-card st-${t.status}" onclick="abrirTDR('${t.id}')">
       <!-- Linha 1: badges -->
@@ -548,7 +622,7 @@ async function abrirTDR(id){
   const t=tdrAtual;
   const fi=FASES.indexOf(t.status);
   const podeEd=podeEditarFase(t.status);
-  const bloqueado=['submetido','em_revisao_unesco','aprovado','cancelado'].includes(t.status);
+  const bloqueado=['submetido','em_revisao_unesco','aprovado','em_licitacao','contratado','cancelado'].includes(t.status);
   const cotacao=await obterCotacao();
   const taxaAtual=cotacao?.cotacao||5.87;
   const eCoordenador=['super_admin','coordenacao'].includes(appState.perfil);
@@ -618,7 +692,7 @@ async function abrirTDR(id){
       }).join('')}
     </div>
     ${msgPerm()}
-    ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&t.status!=='aprovado'?`<div class="alert alert-danger" style="margin-bottom:10px">⚠ Prazo vencido em ${fmtData(t.prazo_limite)}</div>`:''}
+    ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status)?`<div class="alert alert-danger" style="margin-bottom:10px">⚠ Prazo vencido em ${fmtData(t.prazo_limite)}</div>`:''}
 
     <!-- Painel de indicadores da Matriz de Resultados -->
     ${(()=>{
@@ -857,6 +931,12 @@ async function abrirTDR(id){
       avancar: eCoordenadorModal?{s:'aprovado',l:'✓ Aprovar'}:null,
       devolver: eCoordenadorModal,
     },
+    aprovado:{
+      licitacao: eCoordenadorModal, // abre modal de licitação → em_licitacao
+    },
+    em_licitacao:{
+      contratar: eCoordenadorModal, // abre modal de contratação → contratado
+    },
   };
   const fa=acoesFase[t.status]||{};
   const podeAbrirEditorModal=
@@ -882,7 +962,9 @@ async function abrirTDR(id){
       ${podeAbrirEditorModal?`<a href="revisar-tdr.html?id=${t.id}" class="btn btn-secondary" style="text-decoration:none">✏ Editor</a>`:''}
       ${fa.avancar?`<button class="btn btn-primary" id="btn-avancar-fase" data-status="${fa.avancar.s}" data-label="${(fa.avancar.l||'').replace(/"/g,'&quot;')}">${fa.avancar.l}</button>`:''}
       ${fa.aprovar?`<button class="btn" id="btn-aprovar-fase" style="background:var(--verde-medio);color:#fff" data-status="${fa.aprovar.s}" data-label="${(fa.aprovar.l||'').replace(/"/g,'&quot;')}">${fa.aprovar.l}</button>`:''}
-      ${t.status==='aprovado'?`<button class="btn btn-secondary" onclick="gerarPDF()">📄 PDF</button>`:''}
+      ${fa.licitacao?`<button class="btn" id="btn-licitacao-fase" style="background:var(--aviso);color:#fff">→ Enviar para licitação</button>`:''}
+      ${fa.contratar?`<button class="btn" id="btn-contratado-fase" style="background:#0D9488;color:#fff">✓ Registrar contratação</button>`:''}
+      ${FASES_POS_APROVACAO.includes(t.status)?`<button class="btn btn-secondary" onclick="gerarPDF()">📄 PDF</button>`:''}
     </div>`;
 
   // Listeners seguros para botões de ação (evita quebra por caracteres especiais no onclick inline)
@@ -905,6 +987,14 @@ async function abrirTDR(id){
       pedirSenhaTDR(btnAprovar.dataset.label,'Ação irreversível — Super Admin',
         ()=>avancarFase(btnAprovar.dataset.status));
     });
+  }
+  const btnLicitacao = document.getElementById('btn-licitacao-fase');
+  if(btnLicitacao){
+    btnLicitacao.addEventListener('click', ()=>abrirLicitacao());
+  }
+  const btnContratado = document.getElementById('btn-contratado-fase');
+  if(btnContratado){
+    btnContratado.addEventListener('click', ()=>abrirContratado());
   }
 
   document.getElementById('modal-tdr').classList.add('aberto');
@@ -1563,6 +1653,146 @@ async function avancarFase(novoStatus){
     console.error('[AVANÇAR] Erro:',e);
     toast('Erro ao avançar fase: '+(e.message||JSON.stringify(e)),'error');
   }
+}
+
+// ── ENVIAR PARA LICITAÇÃO (aprovado → em_licitacao) ──────────
+function toggleModalidadeOutro(){
+  const v=document.getElementById('lic-modalidade').value;
+  document.getElementById('lic-outro-wrap').style.display = v==='__outro'?'block':'none';
+}
+
+function abrirLicitacao(){
+  if(!tdrAtual)return;
+  document.getElementById('lic-modalidade').value=tdrAtual.modalidade_licitacao&&!['Pregão Eletrônico','Concorrência','Dispensa de Licitação','Inexigibilidade','Carta-Convite','Cotação/Shopping (ONU)'].includes(tdrAtual.modalidade_licitacao)?'__outro':(tdrAtual.modalidade_licitacao||'');
+  document.getElementById('lic-modalidade-outro').value=(document.getElementById('lic-modalidade').value==='__outro')?(tdrAtual.modalidade_licitacao||''):'';
+  document.getElementById('lic-processo').value=tdrAtual.numero_processo||'';
+  document.getElementById('lic-data').value=tdrAtual.dt_licitacao||'';
+  toggleModalidadeOutro();
+  document.getElementById('modal-licitacao').classList.add('aberto');
+}
+
+async function salvarLicitacao(){
+  if(!tdrAtual)return;
+  let modalidade=document.getElementById('lic-modalidade').value;
+  if(modalidade==='__outro') modalidade=document.getElementById('lic-modalidade-outro').value.trim();
+  if(!modalidade){toast('Selecione ou especifique a modalidade.','error');return;}
+  const processo=document.getElementById('lic-processo').value.trim()||null;
+  const data=document.getElementById('lic-data').value||null;
+
+  fecharModal('modal-licitacao');
+  pedirSenhaTDR('Enviar para licitação',`TDR ${tdrAtual.numero} → Em Licitação`,async()=>{
+    try{
+      const {error:updErr}=await db.from('tdrs').update({
+        status:'em_licitacao', modalidade_licitacao:modalidade,
+        numero_processo:processo, dt_licitacao:data
+      }).eq('id',tdrAtual.id);
+      if(updErr)throw new Error(updErr.message);
+
+      let usuarioId=appState?.usuario?.id;
+      if(usuarioId){
+        try{ await db.rpc('fn_registrar_acao_tdr',{p_tdr_id:tdrAtual.id,p_usuario_id:usuarioId,p_acao:'em_licitacao',p_comentario:`Modalidade: ${modalidade}${processo?' · Processo: '+processo:''}`,p_ip:null}); }catch(e){console.warn('[LICITAÇÃO] RPC log falhou:',e.message);}
+      }
+
+      tdrAtual.status='em_licitacao';
+      tdrAtual.modalidade_licitacao=modalidade; tdrAtual.numero_processo=processo; tdrAtual.dt_licitacao=data;
+      const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+      if(idx>=0)Object.assign(todosTDRs[idx],{status:'em_licitacao',modalidade_licitacao:modalidade,numero_processo:processo,dt_licitacao:data});
+
+      fecharModal('modal-tdr');
+      renderStats();filtrar();
+      toast('TDR enviado para licitação! ✓','success');
+    }catch(e){
+      console.error('[LICITAÇÃO] Erro:',e);
+      toast('Erro ao enviar para licitação: '+(e.message||JSON.stringify(e)),'error');
+    }
+  });
+}
+
+// ── REGISTRAR CONTRATAÇÃO (em_licitacao → contratado) ────────
+async function abrirContratado(){
+  if(!tdrAtual)return;
+  const cont=document.getElementById('contratado-conteudo');
+  document.getElementById('contratado-data').value=new Date().toISOString().slice(0,10);
+  cont.innerHTML='<div style="font-size:12px;color:var(--cinza-500)">Carregando contratos...</div>';
+  document.getElementById('modal-contratado').classList.add('aberto');
+
+  try{
+    // Contratos já vinculados a este TDR + contratos sem TDR (disponíveis para vincular)
+    const [{data:vinculados},{data:disponiveis}]=await Promise.all([
+      db.from('contratos').select('id,numero,valor_total_brl,status').eq('tdr_id',tdrAtual.id),
+      db.from('contratos').select('id,numero,valor_total_brl,status,fornecedores(nome)').is('tdr_id',null).order('criado_em',{ascending:false})
+    ]);
+    const vinc=vinculados||[], disp=disponiveis||[];
+
+    let html='';
+    if(vinc.length){
+      html+=`<div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Contrato vinculado a este TDR</div>`;
+      html+=vinc.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--sucesso-bg);border:1px solid var(--verde-claro);border-radius:var(--raio);margin-bottom:6px">
+        <span style="font-family:var(--font-mono);font-size:12px;font-weight:600">${c.numero}</span>
+        <span style="font-size:11px;color:var(--cinza-600)">${fmtBRL(c.valor_total_brl||0)}</span>
+        <span style="font-size:10px;color:var(--cinza-500);margin-left:auto">${c.status||''}</span>
+      </div>`).join('');
+      html+=`<input type="hidden" id="contratado-contrato-id" value="">`;
+    } else {
+      html+=`<div class="form-group">
+        <label class="form-label">Vincular contrato existente</label>
+        <select class="form-control" id="contratado-contrato-id">
+          <option value="">— selecionar contrato cadastrado —</option>
+          ${disp.map(c=>`<option value="${c.id}">${c.numero} · ${c.fornecedores?.nome||'sem fornecedor'} · ${fmtBRL(c.valor_total_brl||0)}</option>`).join('')}
+        </select>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:6px">
+          Nenhum contrato vinculado ainda. Selecione um já cadastrado ou cadastre na aba
+          <a href="contratos.html" style="color:var(--verde-medio)">Contratos</a> escolhendo este TDR.
+        </div>
+      </div>`;
+    }
+    cont.innerHTML=html;
+  }catch(e){
+    console.error('[CONTRATADO] Erro ao carregar contratos:',e);
+    cont.innerHTML='<div class="alert alert-warning">Erro ao carregar contratos.</div>';
+  }
+}
+
+async function confirmarContratado(){
+  if(!tdrAtual)return;
+  const sel=document.getElementById('contratado-contrato-id');
+  const contratoId=sel?sel.value:'';
+  const dtContratacao=document.getElementById('contratado-data').value;
+  if(!dtContratacao){toast('Informe a data da contratação.','error');return;}
+
+  // Se há select (nenhum vinculado), exigir escolha de contrato
+  if(sel && sel.tagName==='SELECT' && !contratoId){
+    toast('Selecione um contrato para vincular, ou cadastre na aba Contratos.','error');return;
+  }
+
+  fecharModal('modal-contratado');
+  pedirSenhaTDR('Registrar contratação',`TDR ${tdrAtual.numero} → Contratado`,async()=>{
+    try{
+      // Vincular contrato selecionado ao TDR (caso ainda não vinculado)
+      if(contratoId){
+        const {error:cErr}=await db.from('contratos').update({tdr_id:tdrAtual.id}).eq('id',contratoId);
+        if(cErr)throw new Error('Falha ao vincular contrato: '+cErr.message);
+      }
+      const {error:updErr}=await db.from('tdrs').update({status:'contratado',dt_contratacao:dtContratacao}).eq('id',tdrAtual.id);
+      if(updErr)throw new Error(updErr.message);
+
+      let usuarioId=appState?.usuario?.id;
+      if(usuarioId){
+        try{ await db.rpc('fn_registrar_acao_tdr',{p_tdr_id:tdrAtual.id,p_usuario_id:usuarioId,p_acao:'contratado',p_comentario:null,p_ip:null}); }catch(e){console.warn('[CONTRATADO] RPC log falhou:',e.message);}
+      }
+
+      tdrAtual.status='contratado'; tdrAtual.dt_contratacao=dtContratacao;
+      const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
+      if(idx>=0)Object.assign(todosTDRs[idx],{status:'contratado',dt_contratacao:dtContratacao});
+
+      fecharModal('modal-tdr');
+      renderStats();filtrar();
+      toast('Contratação registrada! ✓','success');
+    }catch(e){
+      console.error('[CONTRATADO] Erro:',e);
+      toast('Erro ao registrar contratação: '+(e.message||JSON.stringify(e)),'error');
+    }
+  });
 }
 
 // ── DEVOLVER PARA AJUSTES ────────────────────────────────────
