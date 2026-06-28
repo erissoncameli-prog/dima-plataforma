@@ -1963,8 +1963,12 @@ async function abrirDetalhe(id){
     footer+=`<button class="btn btn-primary" style="margin-left:8px" onclick="enviarParaAprovacao('${p.id}')">✈ Enviar para aprovação →</button>`;
   }
 
-  // Atualizar valores (diárias/passagens): super_admin e financeiro, quando aprovado ou em_prestacao
-  if(canEditValues&&!isAdmin&&['aprovado','em_prestacao'].includes(p.situacao))
+  // Atualizar valores (diárias/passagens): super_admin e financeiro
+  // em_prestacao: isAdmin não tem outro botão de valores nessa fase, então mostra aqui
+  // aprovado: financeiro não tem acesso ao SPDs, então mostra aqui; isAdmin já tem via SPDs
+  if(canEditValues&&p.situacao==='em_prestacao')
+    footer+=`<button class="btn btn-secondary" style="margin-left:8px" onclick="abrirFormValores()">💰 Atualizar valores</button>`;
+  if(canEditValues&&!isAdmin&&p.situacao==='aprovado')
     footer+=`<button class="btn btn-secondary" style="margin-left:auto" onclick="abrirFormValores()">💰 Atualizar valores</button>`;
 
   // Prestação: disponível apenas quando o protocolo está em prestação (a partir da data de retorno)
