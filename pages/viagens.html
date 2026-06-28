@@ -1747,6 +1747,7 @@ async function abrirDetalhe(id){
   if(!p)return;
   protAtual=p;
   const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
+  const canEditValues=['super_admin','financeiro'].includes(appState.perfil);
   const viajantes=p.viajantes||[];
   const total=calcTotalProtocolo(p);
   const numDias=p.dt_retorno&&p.dt_saida?Math.ceil((new Date(p.dt_retorno)-new Date(p.dt_saida))/(1000*60*60*24)):null;
@@ -1961,6 +1962,10 @@ async function abrirDetalhe(id){
     footer+=`<button class="btn btn-secondary" style="margin-left:auto" onclick="abrirFormEdicao('${p.id}')">✎ Editar rascunho</button>`;
     footer+=`<button class="btn btn-primary" style="margin-left:8px" onclick="enviarParaAprovacao('${p.id}')">✈ Enviar para aprovação →</button>`;
   }
+
+  // Atualizar valores (diárias/passagens): super_admin e financeiro, quando aprovado ou em_prestacao
+  if(canEditValues&&!isAdmin&&['aprovado','em_prestacao'].includes(p.situacao))
+    footer+=`<button class="btn btn-secondary" style="margin-left:auto" onclick="abrirFormValores()">💰 Atualizar valores</button>`;
 
   // Prestação: disponível apenas quando o protocolo está em prestação (a partir da data de retorno)
   if(p.situacao==='em_prestacao'&&(isAdmin||ehDono))
@@ -2315,12 +2320,81 @@ async function _syncFinanceiroSPDs(p){
   }
 }
 
+// ── Atualizar Valores (super_admin / financeiro) ───────────────
+function abrirFormValores(){
+  const p=protAtual;
+  if(!['super_admin','financeiro'].includes(appState.perfil)){toast('Sem permissão.','error');return;}
+  let html=`<div style="font-size:13px;font-weight:600;margin-bottom:14px">💰 Atualizar valores reais</div>`;
+  (p.viajantes||[]).forEach(v=>{
+    const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+    const diarias=(v.diarias||[]);
+    html+=`<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--cinza-800)">👤 ${esc(v.nome)}</div>
+      ${v.tem_passagem&&trechos.length?`
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">✈ Passagens — Valores Reais</div>
+        ${trechos.map(t=>`
+        <div style="display:grid;grid-template-columns:1fr 1fr 140px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
+          <span style="color:var(--cinza-700)">${esc(t.origem||'—')} → ${esc(t.destino||'—')}</span>
+          <span style="color:var(--cinza-500)">${t.dt_saida?fmtData(t.dt_saida):''}</span>
+          <input class="form-control" id="fv-trecho-${t.id}" type="number" step="0.01" min="0"
+            value="${parseFloat(t.valor||0).toFixed(2)}"
+            style="height:28px;font-size:11px;font-family:var(--font-mono);text-align:right">
+        </div>`).join('')}
+      </div>`:''}
+      ${v.tem_diaria&&diarias.length?`
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">🏨 Diárias — Valores Reais</div>
+        ${diarias.map(d=>`
+        <div style="display:grid;grid-template-columns:1fr 80px 140px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
+          <span style="color:var(--cinza-700)">${esc(d.tipo_diaria||'—')}</span>
+          <input class="form-control" id="fv-diar-qtd-${d.id}" type="number" step="1" min="0"
+            value="${parseFloat(d.quantidade||0)}"
+            placeholder="Qtd" style="height:28px;font-size:11px;text-align:center">
+          <input class="form-control" id="fv-diar-vunit-${d.id}" type="number" step="0.01" min="0"
+            value="${parseFloat(d.valor_unitario||0).toFixed(2)}"
+            placeholder="Valor unit." style="height:28px;font-size:11px;font-family:var(--font-mono);text-align:right">
+        </div>`).join('')}
+      </div>`:''}
+    </div>`;
+  });
+  document.getElementById('mp-body').innerHTML=html;
+  document.getElementById('mp-footer').innerHTML=`
+    <button class="btn btn-secondary" onclick="abrirDetalhe('${p.id}')">← Voltar</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarFormValores()">💾 Salvar valores</button>`;
+}
+
+async function salvarFormValores(){
+  const p=protAtual;
+  if(!['super_admin','financeiro'].includes(appState.perfil)){toast('Sem permissão.','error');return;}
+  for(const v of (p.viajantes||[])){
+    for(const t of (v.trechos||[])){
+      const el=document.getElementById(`fv-trecho-${t.id}`);
+      if(el)await db.from('viagem_trechos').update({valor:parseFloat(el.value)||0}).eq('id',t.id);
+    }
+    for(const d of (v.diarias||[])){
+      const elQ=document.getElementById(`fv-diar-qtd-${d.id}`);
+      const elV=document.getElementById(`fv-diar-vunit-${d.id}`);
+      if(elQ||elV)await db.from('viagem_diarias_v2').update({
+        quantidade:elQ?parseInt(elQ.value)||0:d.quantidade,
+        valor_unitario:elV?parseFloat(elV.value)||0:d.valor_unitario
+      }).eq('id',d.id);
+    }
+  }
+  // Recarregar protAtual atualizado para sync financeiro
+  const{data:pAtual}=await db.from('viagem_protocolos')
+    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
+    .eq('id',p.id).single();
+  if(pAtual){protAtual=pAtual;await _syncFinanceiroSPDs(pAtual);}
+  toast('Valores salvos!','success');fecharModal();await carregar();
+}
+
 // ══════════════════════════════════════════════════════════════
 // PRESTAÇÃO DE CONTAS
 // ══════════════════════════════════════════════════════════════
 async function abrirPrestacao(id){
   const{data:p}=await db.from('viagem_protocolos')
-    .select(`*,viajantes:viagem_viajantes(*)`)
+    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
     .eq('id',id).single();
   if(!p)return;
   protAtual=p;
@@ -2329,8 +2403,41 @@ async function abrirPrestacao(id){
   document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span style="font-size:13px;color:var(--cinza-600);margin-left:8px">Prestação de contas</span>`;
   document.getElementById('mp-sub').textContent=`${p.destino_principal||''} · ${p.viajantes?.length||0} viajante(s)`;
 
+  const canEditValues=['super_admin','financeiro'].includes(appState.perfil);
   let html='';
   (p.viajantes||[]).forEach((v,i)=>{
+    const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
+    const diarias=(v.diarias||[]);
+    const secaoValores=canEditValues?`
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:12px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:10px;display:flex;align-items:center;gap:6px">💰 Valores reais <span style="font-weight:400;color:#B45309">(super_admin / financeiro)</span></div>
+        ${v.tem_passagem&&trechos.length?`
+        <div style="margin-bottom:10px">
+          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">✈ Passagens</div>
+          ${trechos.map(t=>`
+          <div style="display:grid;grid-template-columns:1fr 1fr 130px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
+            <span style="color:var(--cinza-700)">${esc(t.origem||'—')} → ${esc(t.destino||'—')}</span>
+            <span style="color:var(--cinza-500)">${t.dt_saida?fmtData(t.dt_saida):''}</span>
+            <input class="form-control" id="prest-trecho-val-${t.id}" type="number" step="0.01" min="0"
+              value="${parseFloat(t.valor||0).toFixed(2)}"
+              style="height:28px;font-size:11px;font-family:var(--font-mono);text-align:right">
+          </div>`).join('')}
+        </div>`:''}
+        ${v.tem_diaria&&diarias.length?`
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">🏨 Diárias</div>
+          ${diarias.map(d=>`
+          <div style="display:grid;grid-template-columns:1fr 80px 130px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
+            <span style="color:var(--cinza-700)">${esc(d.tipo_diaria||'—')}</span>
+            <input class="form-control" id="prest-diar-qtd-${d.id}" type="number" step="1" min="0"
+              value="${parseFloat(d.quantidade||0)}"
+              placeholder="Qtd" style="height:28px;font-size:11px;text-align:center">
+            <input class="form-control" id="prest-diar-vunit-${d.id}" type="number" step="0.01" min="0"
+              value="${parseFloat(d.valor_unitario||0).toFixed(2)}"
+              placeholder="Valor unit." style="height:28px;font-size:11px;font-family:var(--font-mono);text-align:right">
+          </div>`).join('')}
+        </div>`:''}
+      </div>`:'';
     html+=`
     <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden">
       <div style="padding:10px 14px;background:var(--azul-bg);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:8px">
@@ -2338,6 +2445,7 @@ async function abrirPrestacao(id){
         <span style="font-size:13px;font-weight:600;color:var(--cinza-900)">${esc(v.nome)}</span>
       </div>
       <div style="padding:14px">
+        ${secaoValores}
         ${v.tem_passagem?`
         <div style="margin-bottom:14px">
           <div style="font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px">
@@ -2430,6 +2538,24 @@ async function enviarPrestacao(){
     }
   }
   toast('Enviando arquivos...','info');
+
+  // Salvar valores reais (diárias/passagens) se o perfil tem permissão
+  if(['super_admin','financeiro'].includes(appState.perfil)){
+    for(const v of viajantes){
+      for(const t of (v.trechos||[])){
+        const el=document.getElementById(`prest-trecho-val-${t.id}`);
+        if(el)await db.from('viagem_trechos').update({valor:parseFloat(el.value)||0}).eq('id',t.id);
+      }
+      for(const d of (v.diarias||[])){
+        const elQ=document.getElementById(`prest-diar-qtd-${d.id}`);
+        const elV=document.getElementById(`prest-diar-vunit-${d.id}`);
+        if(elQ||elV)await db.from('viagem_diarias_v2').update({
+          quantidade:elQ?parseInt(elQ.value)||0:d.quantidade,
+          valor_unitario:elV?parseFloat(elV.value)||0:d.valor_unitario
+        }).eq('id',d.id);
+      }
+    }
+  }
 
   for(let i=0;i<viajantes.length;i++){
     const v=viajantes[i];
