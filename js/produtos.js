@@ -817,6 +817,7 @@ async function abrirModal(prodId){
       +'<label class="form-label">Valor a pagar (R$)</label>'
       +'<input class="form-control" type="number" id="f-val-parcial" readonly style="background:var(--cinza-50);font-family:var(--font-mono);font-weight:600" placeholder="Calculado">'
       +'</div></div></div>'
+      +'<div class="form-hint" id="hint-decisao" style="margin-top:6px">Selecione uma decisão acima para habilitar o botão de confirmação correspondente.</div>'
       +'</div>';
 
     // Despacho + Nota Técnica integrada
@@ -850,9 +851,9 @@ async function abrirModal(prodId){
 
     document.getElementById('mp-footer').innerHTML=
       '<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>'
-      +'<button class="btn-devolver" onclick="emitirDespacho(\'devolucao\')">&#x21A9; Devolver</button>'
-      +'<button class="btn-parcial" onclick="emitirDespacho(\'aprovacao_parcial\')">&#x25D1; Aprovar parcialmente</button>'
-      +'<button class="btn-aprovar" onclick="emitirDespacho(\'aprovacao_total\')">&#x2714; Aprovar e liberar pagamento</button>';
+      +'<button id="btn-devolver" class="btn-devolver" style="display:none" onclick="emitirDespacho(\'devolucao\')">&#x21A9; Devolver</button>'
+      +'<button id="btn-parcial" class="btn-parcial" style="display:none" onclick="emitirDespacho(\'aprovacao_parcial\')">&#x25D1; Aprovar parcialmente</button>'
+      +'<button id="btn-aprovar" class="btn-aprovar" style="display:none" onclick="emitirDespacho(\'aprovacao_total\')">&#x2714; Aprovar e liberar pagamento</button>';
 
   } else if(!isPend&&!isAnalise){
     html+=await renderLinhaTempo(p);
@@ -958,6 +959,17 @@ function selecionarDecisao(tipo){
   if(radio)radio.checked=true;
   var wp=document.getElementById('wrap-parcial');
   if(wp)wp.style.display=tipo==='aprovacao_parcial'?'block':'none';
+
+  // Mostra apenas o botão de confirmação correspondente à decisão selecionada,
+  // evitando que uma aprovação parcial preenchida seja submetida como total (ou vice-versa)
+  var btnTotal=document.getElementById('btn-aprovar');
+  var btnParcial=document.getElementById('btn-parcial');
+  var btnDevolver=document.getElementById('btn-devolver');
+  var hint=document.getElementById('hint-decisao');
+  if(btnTotal)btnTotal.style.display=tipo==='aprovacao_total'?'':'none';
+  if(btnParcial)btnParcial.style.display=tipo==='aprovacao_parcial'?'':'none';
+  if(btnDevolver)btnDevolver.style.display=tipo==='devolucao'?'':'none';
+  if(hint)hint.style.display='none';
 }
 
 function calcValorParcial(pct,totalProduto){
