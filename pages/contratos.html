@@ -123,6 +123,23 @@
     <div class="modal-footer" id="mp-footer"></div>
   </div>
 </div>
+<!-- MODAL ENCERRAMENTO COM SALDO NÃO EXECUTADO -->
+<div class="modal-overlay" id="modal-encerramento">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">&#x26A0; Encerrar contrato com saldo não executado</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="me-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModalEncerramento()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="me-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalEncerramento()">Cancelar</button>
+      <button class="btn" style="background:#DC2626;color:#fff" onclick="confirmarEncerramento()">&#x26A0; Confirmar encerramento e liberar saldo</button>
+    </div>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
@@ -684,6 +701,22 @@ window.salvar=async function(){
     numero_sei:sei||null,
   };
   // saldo_brl é GENERATED ALWAYS no banco, não enviar
+
+  // Encerrando um contrato que ainda tem produtos não entregues/aprovados:
+  // exige justificativa formal antes de liberar o saldo não executado para a atividade.
+  if(contratoEditando&&dados.status==='encerrado'&&contratoEditando.status!=='encerrado'){
+    var todosProds=await carregarProdutos(contratoEditando.id);
+    var afetados=todosProds.filter(function(p){return ['pendente','em_analise','entrega_parcial','devolvido'].includes(p.situacao);});
+    if(afetados.length){
+      abrirModalEncerramento(dados,afetados);
+      return;
+    }
+  }
+
+  await executarSalvarContrato(dados);
+};
+
+async function executarSalvarContrato(dados){
   var prog=document.getElementById('prog-bar');
   var fill=document.getElementById('prog-fill');
   if(prog)prog.style.display='block';
@@ -717,10 +750,114 @@ window.salvar=async function(){
     }
     if(fill)fill.style.width='100%';
     fecharModal();renderStats();filtrar();
+    return cId;
   }catch(e){
     if(e.code==='23505')toast('Numero de contrato ja cadastrado.','error');
     else toast('Erro: '+(e.message||''),'error');
     if(prog)prog.style.display='none';
+    throw e;
+  }
+}
+
+// ── ENCERRAMENTO COM SALDO NÃO EXECUTADO ─────────────────────
+var dadosEncerramentoPendente=null,produtosEncerramentoPendente=null;
+
+function calcNaoExecutado(p){
+  return Math.max(0,parseFloat(p.valor_brl||0)-parseFloat(p.valor_aprovado||0));
+}
+
+window.abrirModalEncerramento=function(dados,afetados){
+  dadosEncerramentoPendente=dados;
+  produtosEncerramentoPendente=afetados;
+  document.getElementById('me-sub').textContent='Contrato '+contratoEditando.numero+' -- '+(contratoEditando.fornecedores?contratoEditando.fornecedores.nome:'');
+
+  var SIT_LBL={pendente:'Pendente',em_analise:'Em avaliação',entrega_parcial:'Parcial',devolvido:'Devolvido'};
+  var linhas=afetados.map(function(p,i){
+    var naoExec=calcNaoExecutado(p);
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--borda)">'
+      +'<input type="checkbox" class="chk-prod-enc" data-idx="'+i+'" checked onchange="recalcLiberado()" style="margin-top:3px">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;font-weight:600;color:var(--cinza-900)">Produto '+(p.numero_produto||'?')+' -- '+esc((p.descricao||'').substring(0,70))+'</div>'
+      +'<div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Situação atual: '+(SIT_LBL[p.situacao]||p.situacao)+' · Não executado: <strong style="color:#DC2626">'+fmtBRL(naoExec)+'</strong></div>'
+      +'</div></div>';
+  }).join('');
+
+  document.getElementById('me-body').innerHTML=
+    '<div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:10px 12px;margin-bottom:14px;font-size:12px;color:#991B1B">'
+    +'Este contrato está sendo encerrado com <strong>'+afetados.length+' produto(s)</strong> ainda não entregue(s)/aprovado(s). '
+    +'Desmarque abaixo os que <u>não</u> devem ser cancelados. O valor não executado dos itens marcados será liberado de volta para o saldo da atividade vinculada, permitindo nova contratação.'
+    +'</div>'
+    +'<div style="margin-bottom:14px">'+linhas+'</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;background:var(--cinza-50);border-radius:var(--raio);padding:10px 12px;margin-bottom:14px">'
+    +'<span style="font-size:12px;font-weight:600;color:var(--cinza-700)">Valor total a liberar para a atividade</span>'
+    +'<span id="me-valor-liberado" style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#DC2626"></span>'
+    +'</div>'
+    +'<div class="form-group"><label class="form-label">Justificativa do encerramento <span class="obrig">*</span></label>'
+    +'<textarea class="form-control" id="me-motivo" rows="3" placeholder="Ex: Fornecedor não entregou os produtos 03, 04 e 05 dentro do prazo contratual (encerrado em DD/MM/AAAA). Saldo remanescente liberado para nova contratação na mesma atividade."></textarea>'
+    +'<div class="form-hint">Mínimo 20 caracteres -- fica registrado permanentemente no histórico do contrato.</div></div>';
+
+  recalcLiberado();
+  document.getElementById('modal-encerramento').classList.add('aberto');
+};
+
+window.recalcLiberado=function(){
+  var total=0;
+  document.querySelectorAll('.chk-prod-enc').forEach(function(chk){
+    if(chk.checked){
+      var p=produtosEncerramentoPendente[parseInt(chk.dataset.idx)];
+      total+=calcNaoExecutado(p);
+    }
+  });
+  var el=document.getElementById('me-valor-liberado');
+  if(el)el.textContent=fmtBRL(total);
+};
+
+window.fecharModalEncerramento=function(){
+  document.getElementById('modal-encerramento').classList.remove('aberto');
+  dadosEncerramentoPendente=null;produtosEncerramentoPendente=null;
+};
+
+window.confirmarEncerramento=async function(){
+  var motivo=(document.getElementById('me-motivo').value||'').trim();
+  if(!motivo||motivo.length<20){toast('Descreva a justificativa do encerramento (mínimo 20 caracteres).','error');return;}
+
+  var selecionados=[];
+  document.querySelectorAll('.chk-prod-enc').forEach(function(chk){
+    if(chk.checked)selecionados.push(produtosEncerramentoPendente[parseInt(chk.dataset.idx)]);
+  });
+
+  var valorLiberadoBrl=selecionados.reduce(function(s,p){return s+calcNaoExecutado(p);},0);
+  var cot=await obterCotacao();
+  var valorLiberadoUsd=cot&&cot.cotacao?valorLiberadoBrl/parseFloat(cot.cotacao):null;
+
+  var dados=dadosEncerramentoPendente;
+  var atividadeId=dados.atividade_id;
+  var contratoId=contratoEditando.id;
+
+  try{
+    await executarSalvarContrato(dados);
+
+    if(selecionados.length){
+      var ids=selecionados.map(function(p){return p.id;});
+      var updProd=await db.from('contratos_produtos').update({situacao:'cancelado',atualizado_em:new Date().toISOString()}).in('id',ids);
+      if(updProd.error)throw updProd.error;
+    }
+
+    var snapshot=selecionados.map(function(p){
+      return {id:p.id,numero_produto:p.numero_produto,descricao:p.descricao,valor_brl:parseFloat(p.valor_brl||0),valor_aprovado:parseFloat(p.valor_aprovado||0),valor_nao_executado:calcNaoExecutado(p),situacao_anterior:p.situacao};
+    });
+    var insEnc=await db.from('contrato_encerramentos').insert({
+      contrato_id:contratoId,atividade_id:atividadeId||null,
+      valor_liberado_brl:valorLiberadoBrl,valor_liberado_usd:valorLiberadoUsd,
+      motivo:motivo,produtos_afetados:snapshot,autorizado_por:appState.usuario.id
+    });
+    if(insEnc.error)throw insEnc.error;
+
+    toast('Contrato encerrado. '+fmtBRL(valorLiberadoBrl)+' liberado(s) para a atividade.','success',7000);
+    fecharModalEncerramento();
+    await recarregarDet(contratoId);
+  }catch(e){
+    toast('Erro ao encerrar contrato: '+(e.message||''),'error');
   }
 };
 

@@ -310,9 +310,9 @@ function renderCard(p){
     else if(dias>=0&&!sitAberta){vClass='color:var(--cinza-600);background:var(--cinza-100)';vTxt='Vence '+fmtData(p.dt_vencimento);}
   }
   var pct=parseFloat(p.pct_aprovado||0);
-  var corProg=p.situacao==='entrega_parcial'?'#7C3AED':p.situacao==='em_analise'?'#2563EB':'var(--verde-claro)';
-  var acaoTxt={pendente:'&#x1F4E5; Registrar entrega &#x2192;',em_analise:'&#x1F50D; Avaliar &#x2192;',entrega_parcial:'&#x1F4E5; Nova entrega &#x2192;',aprovado:'&#x1F4B3; Aguardando pagamento',devolvido:'&#x21A9; Reenviar entrega &#x2192;'}[p.situacao]||'&#x2192;';
-  var topBg=p.situacao==='em_analise'?'background:#EFF6FF;border-bottom-color:#BFDBFE':p.situacao==='entrega_parcial'?'background:#F5F3FF;border-bottom-color:#DDD6FE':p.situacao==='aprovado'?'background:#F0FDF4;border-bottom-color:#86EFAC':p.situacao==='devolvido'?'background:#FEF2F2;border-bottom-color:#FCA5A5':'';
+  var corProg=p.situacao==='entrega_parcial'?'#7C3AED':p.situacao==='em_analise'?'#2563EB':p.situacao==='cancelado'?'var(--cinza-400)':'var(--verde-claro)';
+  var acaoTxt={pendente:'&#x1F4E5; Registrar entrega &#x2192;',em_analise:'&#x1F50D; Avaliar &#x2192;',entrega_parcial:'&#x1F4E5; Nova entrega &#x2192;',aprovado:'&#x1F4B3; Aguardando pagamento',devolvido:'&#x21A9; Reenviar entrega &#x2192;',cancelado:'&#x1F6AB; Cancelado no encerramento do contrato'}[p.situacao]||'&#x2192;';
+  var topBg=p.situacao==='em_analise'?'background:#EFF6FF;border-bottom-color:#BFDBFE':p.situacao==='entrega_parcial'?'background:#F5F3FF;border-bottom-color:#DDD6FE':p.situacao==='aprovado'?'background:#F0FDF4;border-bottom-color:#86EFAC':p.situacao==='devolvido'?'background:#FEF2F2;border-bottom-color:#FCA5A5':p.situacao==='cancelado'?'background:var(--cinza-100);border-bottom-color:var(--cinza-300)':'';
   var linkEntrega='';
   if((p.situacao==='aprovado'||p.situacao==='pago')&&p.contratos_produtos_entregas&&p.contratos_produtos_entregas.length){
     var links=[];
@@ -374,11 +374,13 @@ function renderLista(){
   var parcial=todosProdutos.filter(function(p){return p.situacao==='entrega_parcial';});
   var devolvidos=todosProdutos.filter(function(p){return p.situacao==='devolvido';});
   var aprovados=todosProdutos.filter(function(p){return p.situacao==='aprovado';});
+  var cancelados=todosProdutos.filter(function(p){return p.situacao==='cancelado';});
   if(emAnalise.length)html+='<div class="sec-lbl" style="color:#1E40AF">🔍 Em avaliação ('+emAnalise.length+')</div><div class="produtos-grid">'+emAnalise.map(renderCard).join('')+'</div>';
   if(parcial.length)html+='<div class="sec-lbl" style="color:#6D28D9">⚡ Entrega parcial ('+parcial.length+')</div><div class="produtos-grid">'+parcial.map(renderCard).join('')+'</div>';
   if(devolvidos.length)html+='<div class="sec-lbl" style="color:#991B1B">↩ Devolvidos p/ correção ('+devolvidos.length+')</div><div class="produtos-grid">'+devolvidos.map(renderCard).join('')+'</div>';
   if(pendentes.length)html+='<div class="sec-lbl">📋 Pendentes ('+pendentes.length+')</div><div class="produtos-grid">'+pendentes.map(renderCard).join('')+'</div>';
   if(aprovados.length)html+='<div class="sec-lbl" style="color:#166534">✓ Aprovados / A pagar ('+aprovados.length+')</div><div class="produtos-grid">'+aprovados.map(renderCard).join('')+'</div>';
+  if(cancelados.length)html+='<details style="margin-top:8px"><summary class="sec-lbl" style="color:var(--cinza-500);cursor:pointer;list-style:none">🚫 Cancelados no encerramento do contrato ('+cancelados.length+')</summary><div class="produtos-grid">'+cancelados.map(renderCard).join('')+'</div></details>';
   document.getElementById('conteudo').innerHTML=html;
 }
 
