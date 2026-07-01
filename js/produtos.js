@@ -2,6 +2,7 @@
 // Sem template literals — concatenação pura para evitar corte pelo parser HTML
 
 async function enviarEmailProduto(produto_id,entrega_id,evento){
+  var enviados=0,falhas=0,erro=null;
   try{
     var sess=await db.auth.getSession();
     var token=sess.data&&sess.data.session&&sess.data.session.access_token;
@@ -11,11 +12,19 @@ async function enviarEmailProduto(produto_id,entrega_id,evento){
       body:JSON.stringify({produto_id:produto_id,entrega_id:entrega_id||null,evento:evento})
     });
     var result=await resp.json();
-    if(result.ok&&result.enviados>0){
-      await db.from('produto_notif_log').insert({produto_id:produto_id,entrega_id:entrega_id||null,evento:evento,total_enviados:result.enviados,falhas:result.falhas||0,enviado_por:appState.usuario.id});
-    }
+    enviados=result.enviados||0;
+    falhas=result.falhas||0;
+    if(!result.ok||enviados===0){erro=result.error||('Falha no envio ('+falhas+' erro(s)).');}
   }catch(e){
+    erro=(e&&e.message)||'Erro de rede ao enviar e-mail.';
     console.error('Erro ao enviar e-mail de produto:',e);
+  }
+  // Sempre registra o resultado (sucesso ou falha) para permitir auditoria e reenvio manual
+  try{
+    await db.from('produto_notif_log').insert({produto_id:produto_id,entrega_id:entrega_id||null,evento:evento,total_enviados:enviados,falhas:falhas,erro:erro,enviado_por:appState.usuario.id});
+  }catch(e2){console.error('Erro ao gravar log de notificação:',e2);}
+  if(erro&&typeof toast==='function'){
+    toast('Falha ao enviar e-mail de notificação ('+evento+'): '+erro,'error',9000);
   }
 }
 
