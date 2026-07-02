@@ -175,7 +175,6 @@ Deno.serve(async (req) => {
     const dest  = proto.destino_principal || '—'
     const saida = fmtData(proto.dt_saida)
     const ret   = fmtData(proto.dt_retorno)
-    const obj   = proto.objetivo || '—'
 
     // Montar lista de todos os arquivos a baixar em paralelo
     type FileJob = {
@@ -246,7 +245,6 @@ Informamos que o Protocolo de Viagem ${num} foi concluído e encerrado com suces
 PROTOCOLO : ${num}
 DESTINO   : ${dest}
 PERÍODO   : ${saida} a ${ret}
-OBJETIVO  : ${obj}
 
 BENEFICIÁRIOS:
 ${benefLines || '  —\n'}
