@@ -37,6 +37,19 @@ function emailPrestacaoAdmin(proto: any, viajante: any): string {
     </tr></table>
   </td></tr>
 
+  <!-- Barra de logos parceiros -->
+  <tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/1695134345-1-horizontal-verde-solo.png"          alt="SEMA/AC"             height="32" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNESCO_logo_hor_blue_transparent.png.png"        alt="UNESCO"              height="28" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil"          height="28" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-fundo-brasil-onu.png"                       alt="Fundo Brasil-ONU"   height="32" style="display:block;border:0"></td>
+        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-consorcio-amazonia.png"                     alt="Consórcio Amazônia" height="36" style="display:block;border:0"></td>
+      </tr>
+    </table>
+  </td></tr>
+
   <tr><td style="background:#fff;padding:28px 24px 20px">
     <p style="margin:0 0 18px;font-size:15px;font-weight:700;color:#1B4332">📋 Prestação de contas enviada — aguarda validação</p>
     <p style="margin:4px 0;font-size:13px;color:#1F2937">O viajante abaixo enviou os documentos de prestação de contas pelo link de e-mail e a submissão aguarda sua validação na plataforma.</p>
