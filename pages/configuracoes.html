@@ -165,7 +165,7 @@ function renderPagina() {
       </div>
       <div class="tab-nav">
         <button class="tab-btn ativo" onclick="setTab('identidade',this)">Identidade</button>
-        <button class="tab-btn" onclick="setTab('fotos',this)">Fotos</button>
+        <button class="tab-btn" onclick="setTab('fotos',this)">Fotos e Vídeos</button>
         <button class="tab-btn" onclick="setTab('logos',this)">Logos</button>
       </div>
       <div class="editor-body">
@@ -248,8 +248,9 @@ function renderTabFotos() {
   <div id="tab-fotos" class="tab-content">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:14px">
       <p style="font-size:12px;color:var(--cinza-500);line-height:1.6">
-        Slideshow da tela de login.<br>
-        <strong>JPG/JPEG</strong> · máx <strong>5 MB</strong> · mín <strong>1280×720 px</strong> · orientação paisagem
+        Slideshow da tela de login. Fotos e vídeos podem ser misturados e reordenados.<br>
+        <strong>Foto:</strong> JPG/JPEG · máx <strong>5 MB</strong> · mín 1280×720 px, paisagem<br>
+        <strong>Vídeo:</strong> MP4/WEBM · máx <strong>40 MB</strong> · recomendado até 15s
       </p>
       <span class="limit-badge ${n>=15?'warn':''}">${n}/15</span>
     </div>
@@ -258,24 +259,31 @@ function renderTabFotos() {
     </div>
     ${n < 15 ? `
     <button class="btn-add-item" onclick="document.getElementById('inp-foto').click()">
-      <span style="font-size:14px">+</span> Adicionar foto
+      <span style="font-size:14px">+</span> Adicionar foto ou vídeo
     </button>
-    <input type="file" id="inp-foto" accept=".jpg,.jpeg" style="display:none"
+    <input type="file" id="inp-foto" accept=".jpg,.jpeg,.mp4,.webm" style="display:none"
       onchange="handleUploadFoto(this.files)">
-    ` : `<p style="font-size:11px;color:var(--cinza-400);text-align:center;margin-top:8px">Limite de 15 fotos atingido</p>`}
+    ` : `<p style="font-size:11px;color:var(--cinza-400);text-align:center;margin-top:8px">Limite de 15 itens atingido</p>`}
   </div>`;
 }
 
 function renderFotoItem(f, i) {
   const shortUrl = f.url.length > 36 ? '...' + f.url.slice(-33) : f.url;
+  const isVideo = f.tipo === 'video';
+  const thumb = isVideo
+    ? `<div class="sort-thumb" style="position:relative;background:#111;flex-shrink:0">
+         <video src="${imgUrl(f.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block"></video>
+         <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;text-shadow:0 1px 3px rgba(0,0,0,.6)">▶</span>
+       </div>`
+    : `<img class="sort-thumb" src="${imgUrl(f.url)}" alt="" onerror="this.style.opacity='.2'">`;
   return `
   <div class="sort-item" draggable="true" data-idx="${i}">
     <span class="drag-handle" title="Arrastar para reordenar">⠿</span>
-    <img class="sort-thumb" src="${imgUrl(f.url)}" alt="" onerror="this.style.opacity='.2'">
+    ${thumb}
     <div class="sort-info">
       <input class="caption-input" value="${esc(f.legenda)}" placeholder="Legenda"
         oninput="cfg.fotos[${i}].legenda=this.value" onclick="event.stopPropagation()">
-      <div class="alt-input" style="cursor:default;user-select:all">${shortUrl}</div>
+      <div class="alt-input" style="cursor:default;user-select:all">${isVideo?'🎬 ':''}${shortUrl}</div>
     </div>
     <div class="sort-actions">
       <button class="btn-icon-sm danger" onclick="removerFoto(${i})" title="Remover">✕</button>
@@ -287,17 +295,21 @@ async function handleUploadFoto(files) {
   if (!files.length) return;
   const file = files[0];
   const ext = file.name.split('.').pop().toLowerCase();
-  if (!['jpg','jpeg'].includes(ext)) { toast('Apenas JPG/JPEG para fotos.', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { toast('Tamanho máximo: 5 MB.', 'error'); return; }
-  if (cfg.fotos.length >= 15) { toast('Limite de 15 fotos atingido.', 'error'); return; }
-  toast('Enviando foto...', 'info');
+  const isVideo = ['mp4','webm'].includes(ext);
+  const isFoto  = ['jpg','jpeg'].includes(ext);
+  if (!isVideo && !isFoto) { toast('Apenas JPG/JPEG (foto) ou MP4/WEBM (vídeo).', 'error'); return; }
+  const maxBytes = isVideo ? 40 * 1024 * 1024 : 5 * 1024 * 1024;
+  const maxLabel = isVideo ? '40 MB' : '5 MB';
+  if (file.size > maxBytes) { toast(`Tamanho máximo: ${maxLabel}.`, 'error'); return; }
+  if (cfg.fotos.length >= 15) { toast('Limite de 15 itens atingido.', 'error'); return; }
+  toast(isVideo ? 'Enviando vídeo...' : 'Enviando foto...', 'info');
   try {
     const url = await uploadArquivo(file, 'fotos');
-    cfg.fotos.push({ url, legenda: '', ordem: cfg.fotos.length });
+    cfg.fotos.push({ url, legenda: '', ordem: cfg.fotos.length, tipo: isVideo ? 'video' : 'foto' });
     reRenderTab('fotos');
     initDragDrop('lista-fotos', sincronizarFotosDOM);
     pvFotos();
-    toast('Foto adicionada!', 'success');
+    toast(isVideo ? 'Vídeo adicionado!' : 'Foto adicionada!', 'success');
   } catch(e) { toast('Erro ao enviar: ' + e.message, 'error'); }
 }
 
@@ -528,11 +540,15 @@ function reRenderTab(nome) {
 
 // ── Preview ───────────────────────────────────────────────────
 function renderPreviewHTML() {
-  const fotoUrl = imgUrl(cfg.fotos[0]?.url || '');
+  const primeiro = cfg.fotos[0];
+  const ehVideo = primeiro?.tipo === 'video';
+  const pvMidia = ehVideo
+    ? `<video id="pv-foto" src="${imgUrl(primeiro.url)}" autoplay muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`
+    : `<div id="pv-foto" style="background-image:url('${imgUrl(primeiro?.url || '')}')"></div>`;
   return `
   <div id="preview-frame">
     <div id="pv-esq">
-      <div id="pv-foto" style="background-image:url('${fotoUrl}')"></div>
+      ${pvMidia}
       <div id="pv-overlay"></div>
       <div id="pv-conteudo">
         <div><div id="pv-logos-topo">${pvHtmlLogosTopo()}</div></div>
@@ -618,15 +634,21 @@ function pvTextos() {
 
 function pvFotos() {
   fotoPreviewIdx = Math.min(fotoPreviewIdx, Math.max(0, cfg.fotos.length - 1));
-  const pv       = document.getElementById('pv-foto');
+  const pvAntigo = document.getElementById('pv-foto');
   const dots     = document.getElementById('pv-dots');
   const contador = document.querySelector('.pv-foto-contador');
   const legenda  = document.querySelector('.pv-foto-legenda');
-  if (pv && cfg.fotos.length)
-    pv.style.backgroundImage = `url('${imgUrl(cfg.fotos[fotoPreviewIdx].url)}')`;
+  const item     = cfg.fotos[fotoPreviewIdx];
+  if (pvAntigo && item) {
+    const ehVideo = item.tipo === 'video';
+    const html = ehVideo
+      ? `<video id="pv-foto" src="${imgUrl(item.url)}" autoplay muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`
+      : `<div id="pv-foto" style="position:absolute;inset:0;background-size:cover;background-position:center;background-image:url('${imgUrl(item.url)}')"></div>`;
+    pvAntigo.outerHTML = html;
+  }
   if (dots) dots.innerHTML = pvHtmlDots();
   if (contador) contador.textContent = cfg.fotos.length ? (fotoPreviewIdx + 1) + ' / ' + cfg.fotos.length : '';
-  if (legenda)  legenda.textContent  = cfg.fotos[fotoPreviewIdx]?.legenda || 'APAs · Rio Branco, Acre';
+  if (legenda)  legenda.textContent  = item?.legenda || 'APAs · Rio Branco, Acre';
   iniciarTimerFotos();
 }
 
@@ -640,12 +662,17 @@ function pvLogos() {
 }
 
 function iniciarTimerFotos() {
+  clearTimeout(fotoTimer);
   clearInterval(fotoTimer);
   if (cfg.fotos.length <= 1) return;
-  fotoTimer = setInterval(() => {
-    fotoPreviewIdx = (fotoPreviewIdx + 1) % cfg.fotos.length;
-    pvFotos();
-  }, 3000);
+  const avancar = () => { fotoPreviewIdx = (fotoPreviewIdx + 1) % cfg.fotos.length; pvFotos(); };
+  const item = cfg.fotos[fotoPreviewIdx];
+  if (item?.tipo === 'video') {
+    const video = document.getElementById('pv-foto');
+    if (video) video.addEventListener('ended', avancar, { once: true });
+  } else {
+    fotoTimer = setTimeout(avancar, 3000);
+  }
 }
 
 function ajustarPreview() {

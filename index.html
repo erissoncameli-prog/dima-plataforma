@@ -62,6 +62,16 @@ body {
 }
 .slide.ativo { opacity:1; transform:scale(1); }
 
+/* Video slides — sem Ken Burns, só crossfade */
+.slide-video {
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  opacity:0;
+  transition: opacity 2.2s cubic-bezier(.4,0,.2,1);
+}
+.slide-video.ativo { opacity:1; }
+
 /* Multi-layer overlay */
 .slide-overlay {
   position:absolute;inset:0;
@@ -890,27 +900,45 @@ const dotsEl=document.getElementById('slide-dots');
 for(let i=0;i<TOTAL;i++){
   const btn=document.createElement('button');
   btn.className='slide-dot'+(i===0?' ativo':'');
-  btn.onclick=()=>{clearInterval(timer);irParaSlide(i);iniciarTimer();};
+  btn.onclick=()=>{pararTimer();irParaSlide(i);iniciarTimer();};
   dotsEl.appendChild(btn);
 }
 
+function pararTimer(){
+  clearTimeout(timer);
+  clearInterval(timer);
+  const atual=document.getElementById('slide-'+slideAtual);
+  if(atual && atual.tagName==='VIDEO'){ atual.pause(); atual.currentTime=0; }
+}
+
 function irParaSlide(n){
-  document.getElementById('slide-'+slideAtual).classList.remove('ativo');
+  const antigo=document.getElementById('slide-'+slideAtual);
+  antigo.classList.remove('ativo');
+  if(antigo.tagName==='VIDEO'){ antigo.pause(); antigo.currentTime=0; }
   document.querySelectorAll('.slide-dot')[slideAtual].classList.remove('ativo');
   slideAtual=(n+TOTAL)%TOTAL;
-  document.getElementById('slide-'+slideAtual).classList.add('ativo');
+  const novo=document.getElementById('slide-'+slideAtual);
+  novo.classList.add('ativo');
   document.querySelectorAll('.slide-dot')[slideAtual].classList.add('ativo');
   document.getElementById('foto-contador').textContent=(slideAtual+1)+' / '+TOTAL;
+  if(novo.tagName==='VIDEO'){ novo.currentTime=0; novo.play().catch(()=>{}); }
 }
 
 function iniciarTimer(){
-  timer=setInterval(()=>irParaSlide(slideAtual+1),6000);
+  clearTimeout(timer);
+  clearInterval(timer);
+  const atual=document.getElementById('slide-'+slideAtual);
+  if(atual && atual.tagName==='VIDEO'){
+    atual.addEventListener('ended',()=>{irParaSlide(slideAtual+1);iniciarTimer();},{once:true});
+  } else {
+    timer=setTimeout(()=>{irParaSlide(slideAtual+1);iniciarTimer();},6000);
+  }
 }
 iniciarTimer();
 
 document.addEventListener('keydown',e=>{
-  if(e.key==='ArrowRight'){clearInterval(timer);irParaSlide(slideAtual+1);iniciarTimer();}
-  if(e.key==='ArrowLeft'){clearInterval(timer);irParaSlide(slideAtual-1);iniciarTimer();}
+  if(e.key==='ArrowRight'){pararTimer();irParaSlide(slideAtual+1);iniciarTimer();}
+  if(e.key==='ArrowLeft'){pararTimer();irParaSlide(slideAtual-1);iniciarTimer();}
 });
 
 async function carregarConfigLogin() {
@@ -925,26 +953,41 @@ async function carregarConfigLogin() {
     }
 
     const fotos = [...(data.fotos || [])].sort((a,b) => a.ordem - b.ordem);
-    clearInterval(timer);
-    document.querySelectorAll('.slide').forEach(s => s.remove());
+    pararTimer();
+    document.querySelectorAll('.slide,.slide-video').forEach(s => s.remove());
     dotsEl.innerHTML = '';
     const esq = document.querySelector('.painel-esq');
     const overlay = esq.querySelector('.slide-overlay');
 
     if (fotos.length) {
       fotos.forEach((f, i) => {
-        const div = document.createElement('div');
-        div.className = 'slide' + (i===0?' ativo':'');
-        div.id = 'slide-' + i;
-        div.style.backgroundImage = `url('${f.url}')`;
-        esq.insertBefore(div, overlay);
+        let el;
+        if (f.tipo === 'video') {
+          el = document.createElement('video');
+          el.className = 'slide-video' + (i===0?' ativo':'');
+          el.src = f.url;
+          el.muted = true;
+          el.playsInline = true;
+          el.preload = 'auto';
+        } else {
+          el = document.createElement('div');
+          el.className = 'slide' + (i===0?' ativo':'');
+          el.style.backgroundImage = `url('${f.url}')`;
+        }
+        el.id = 'slide-' + i;
+        esq.insertBefore(el, overlay);
       });
       TOTAL = fotos.length;
       slideAtual = 0;
+      if (fotos[0].tipo === 'video') {
+        const primeiro = document.getElementById('slide-0');
+        primeiro.currentTime = 0;
+        primeiro.play().catch(()=>{});
+      }
       for (let i=0; i<TOTAL; i++) {
         const btn = document.createElement('button');
         btn.className = 'slide-dot' + (i===0?' ativo':'');
-        btn.onclick = () => { clearInterval(timer); irParaSlide(i); iniciarTimer(); };
+        btn.onclick = () => { pararTimer(); irParaSlide(i); iniciarTimer(); };
         dotsEl.appendChild(btn);
       }
       document.getElementById('foto-contador').textContent = '1 / ' + TOTAL;
