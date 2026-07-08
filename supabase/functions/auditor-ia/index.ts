@@ -302,6 +302,40 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
     }
   }
 
+  // 3d. Entregas marcadas como em avaliação/aprovadas sem nenhum documento comprobatório
+  // Rede de segurança para dados anteriores à trigger trg_validar_evidencia_entrega
+  // (que bloqueia esse cenário para novos registros) e para eventuais bypass via SQL direto.
+  const { data: entregasSemEvidencia } = await db
+    .from('contratos_produtos_entregas')
+    .select(`
+      id, numero_entrega, situacao, dt_entrega, fotos_total, nota_tecnica_url,
+      entrega_documentos (id),
+      produto_matriz_contribuicao (id),
+      contratos_produtos!contratos_produtos_entregas_produto_id_fkey (numero_produto, descricao)
+    `)
+    .in('situacao', ['em_analise', 'aprovada'])
+    .limit(50)
+
+  for (const e of entregasSemEvidencia || []) {
+    const temDoc = (e.entrega_documentos || []).length > 0
+    const temFoto = (e.fotos_total || 0) > 0
+    const temNota = !!e.nota_tecnica_url
+    const temIndicador = (e.produto_matriz_contribuicao || []).length > 0
+    if (temDoc || temFoto || temNota || temIndicador) continue
+
+    const prod = e.contratos_produtos as any
+    achados.push({
+      dominio: 'produtos',
+      severidade: 'critico',
+      titulo: `Produto ${prod?.numero_produto ?? '?'} marcado como "${e.situacao}" sem nenhum documento anexado`,
+      descricao: `A entrega nº ${e.numero_entrega} do produto "${(prod?.descricao || '').slice(0, 80)}" está com situação "${e.situacao}" (entregue em ${e.dt_entrega || '?'}) mas não possui documento, foto, nota técnica ou indicador vinculado — provável falha no upload no momento do envio.`,
+      recomendacao: 'Confirmar com o consultor se os arquivos foram de fato enviados. Se não houver evidência, devolver o produto para reenvio com os documentos corretos.',
+      referencia_tabela: 'contratos_produtos_entregas',
+      referencia_id: e.id,
+      referencia_label: `Produto ${prod?.numero_produto ?? '?'} — Entrega ${e.numero_entrega}`,
+    })
+  }
+
   return achados
 }
 
