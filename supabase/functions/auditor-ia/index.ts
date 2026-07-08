@@ -1,4 +1,4 @@
-﻿/**
+/**
  * auditor-ia — Agente auditor multi-domínio do projeto DIMA UNESCO
  *
  * Arquitetura: 6 "agentes especialistas" (cada um responsável por um domínio)
@@ -16,7 +16,6 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// ── Tipos ─────────────────────────────────────────────────────────
 type Severidade = 'critico' | 'alto' | 'medio' | 'baixo' | 'info'
 type Dominio = 'tdr_contrato' | 'financeiro' | 'produtos' | 'viagens' | 'matriz' | 'qualidade_dados'
 
@@ -31,7 +30,6 @@ interface Achado {
   referencia_label?: string
 }
 
-// ── SISTEMA DE PROMPT DO SUPERVISOR ──────────────────────────────
 const SUPERVISOR_SYSTEM = `Você é um auditor especializado em projetos de cooperação internacional da UNESCO, com foco em conformidade, gestão financeira e governança de projetos ambientais.
 
 Sua tarefa é analisar os achados brutos de auditoria do sistema DIMA (projeto 218BRA2001) e:
@@ -55,27 +53,13 @@ Responda APENAS com JSON válido neste formato:
   "acoes_prioritarias": ["string — lista das 3 a 5 ações mais urgentes"]
 }`
 
-// ── AGENTE 1: TDR × Contratos ────────────────────────────────────
 async function auditarTDRContratos(db: any): Promise<Achado[]> {
   const achados: Achado[] = []
 
-  // 1a. Atividades em fase CONTRATADO mas sem TDR aprovado
-  const { data: semTDRAprovado } = await db.rpc('exec_sql_audit', {
-    query: `
-      SELECT a.id, a.codigo, a.nome_pt,
-             COUNT(t.id) FILTER (WHERE t.status = 'aprovado') as tdrs_aprovados,
-             COUNT(t.id) as total_tdrs
-      FROM atividades a
-      LEFT JOIN tdrs t ON t.atividades->>'id' = a.id::text
-        OR (t.atividades IS NOT NULL AND t.atividades::jsonb ? 'id' AND (t.atividades->>'id')::uuid = a.id)
-      WHERE a.fase = 'CONTRATADO'
-      GROUP BY a.id, a.codigo, a.nome_pt
-      HAVING COUNT(t.id) FILTER (WHERE t.status = 'aprovado') = 0
-      LIMIT 20
-    `
+  await db.rpc('exec_sql_audit', {
+    query: `SELECT 1`
   }).catch(() => ({ data: null }))
 
-  // Fallback: query direta sem RPC
   const { data: atividadesContratadas } = await db
     .from('atividades')
     .select('id, codigo, nome_pt, fase')
@@ -84,7 +68,6 @@ async function auditarTDRContratos(db: any): Promise<Achado[]> {
 
   if (atividadesContratadas?.length) {
     for (const atv of atividadesContratadas) {
-      // Verificar se tem TDR aprovado vinculado
       const { data: tdrs } = await db
         .from('tdrs')
         .select('id, status, numero')
@@ -99,7 +82,7 @@ async function auditarTDRContratos(db: any): Promise<Achado[]> {
           dominio: 'tdr_contrato',
           severidade: 'alto',
           titulo: `Atividade contratada sem nenhum TDR vinculado`,
-          descricao: `A atividade ${atv.codigo} — "${atv.nome_pt}" está em fase CONTRATADO mas não possui nenhum TDR associado no sistema. Isso indica que o contrato pode ter sido feito sem o processo formal de elaboração do Termo de Referência.`,
+          descricao: `A atividade ${atv.codigo} — "${atv.nome_pt}" está em fase CONTRATADO mas não possui nenhum TDR associado no sistema.`,
           recomendacao: 'Verificar se o TDR existe físicamente e cadastrá-lo no sistema com o status correto.',
           referencia_tabela: 'atividades',
           referencia_id: atv.id,
@@ -112,7 +95,7 @@ async function auditarTDRContratos(db: any): Promise<Achado[]> {
           severidade: 'critico',
           titulo: `Contrato firmado com TDR não aprovado (${tdrEmAberto?.status})`,
           descricao: `A atividade ${atv.codigo} — "${atv.nome_pt}" está em fase CONTRATADO mas o TDR vinculado está com status "${tdrEmAberto?.status}". O fluxo correto exige TDR aprovado antes da contratação.`,
-          recomendacao: 'Concluir o processo de aprovação do TDR imediatamente para regularizar o fluxo. Se o contrato já está em execução, registrar justificativa formal.',
+          recomendacao: 'Concluir o processo de aprovação do TDR imediatamente para regularizar o fluxo.',
           referencia_tabela: 'tdrs',
           referencia_id: tdrEmAberto?.id,
           referencia_label: `TDR ${tdrEmAberto?.numero} / Atividade ${atv.codigo}`,
@@ -121,7 +104,6 @@ async function auditarTDRContratos(db: any): Promise<Achado[]> {
     }
   }
 
-  // 1b. TDRs parados em avaliação há muito tempo
   const diasLimite = 14
   const dataLimite = new Date(Date.now() - diasLimite * 24 * 60 * 60 * 1000).toISOString()
 
@@ -149,7 +131,6 @@ async function auditarTDRContratos(db: any): Promise<Achado[]> {
   return achados
 }
 
-// ── AGENTE 2: Financeiro ─────────────────────────────────────────
 async function auditarFinanceiro(db: any): Promise<Achado[]> {
   const achados: Achado[] = []
 
@@ -183,7 +164,7 @@ async function auditarFinanceiro(db: any): Promise<Achado[]> {
         dominio: 'financeiro',
         severidade: 'critico',
         titulo: `Contrato ${contrato.numero} com execução acima do valor (${Math.round(pct)}%)`,
-        descricao: `O contrato "${(contrato.objeto || '').slice(0, 60)}..." tem valor de R$ ${contrato.valor_brl} mas já foram pagos R$ ${totalPago.toFixed(2)} (${Math.round(pct)}% do contrato). Execução acima de 100% pode indicar erro nos lançamentos ou necessidade de aditivo.`,
+        descricao: `O contrato "${(contrato.objeto || '').slice(0, 60)}..." tem valor de R$ ${contrato.valor_brl} mas já foram pagos R$ ${totalPago.toFixed(2)} (${Math.round(pct)}% do contrato).`,
         recomendacao: 'Verificar se todos os lançamentos estão associados ao contrato correto. Se necessário, formalizar aditivo contratual.',
         referencia_tabela: 'contratos',
         referencia_id: contrato.id,
@@ -208,11 +189,9 @@ async function auditarFinanceiro(db: any): Promise<Achado[]> {
   return achados
 }
 
-// ── AGENTE 3: Produtos e Entregas ────────────────────────────────
 async function auditarProdutos(db: any): Promise<Achado[]> {
   const achados: Achado[] = []
 
-  // 3a. Produtos aprovados sem contribuição na matriz
   const { data: produtosAprovados } = await db
     .from('produtos_entregas')
     .select(`
@@ -233,8 +212,8 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
         dominio: 'produtos',
         severidade: 'alto',
         titulo: `Produto ${prod.numero} aprovado sem mapeamento na Matriz de Resultados`,
-        descricao: `O produto "${(prod.descricao || cpe?.descricao_pt || '').slice(0, 80)}..." foi aprovado mas não possui nenhuma contribuição registrada nos indicadores da Matriz de Resultados. Isso compromete a rastreabilidade dos avanços do projeto.`,
-        recomendacao: 'Registrar a contribuição deste produto aos indicadores da matriz correspondentes antes de autorizar o pagamento.',
+        descricao: `O produto "${(prod.descricao || cpe?.descricao_pt || '').slice(0, 80)}..." foi aprovado mas não possui nenhuma contribuição registrada nos indicadores da Matriz de Resultados.`,
+        recomendacao: 'Registrar a contribuição deste produto aos indicadores da matriz correspondentes.',
         referencia_tabela: 'produtos_entregas',
         referencia_id: prod.id,
         referencia_label: `Produto ${prod.numero}`,
@@ -242,7 +221,6 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
     }
   }
 
-  // 3b. Produtos em análise há muito tempo
   const dataLimite21 = new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString()
   const { data: produtosParados } = await db
     .from('produtos_entregas')
@@ -257,7 +235,7 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
       dominio: 'produtos',
       severidade: 'medio',
       titulo: `Produto ${prod.numero} em análise há ${diasParado} dias`,
-      descricao: `O produto "${(prod.descricao || '').slice(0, 80)}..." está em análise há ${diasParado} dias sem decisão (aprovação ou devolução).`,
+      descricao: `O produto "${(prod.descricao || '').slice(0, 80)}..." está em análise há ${diasParado} dias sem decisão.`,
       recomendacao: 'Concluir a avaliação do produto. Prazo recomendado: até 15 dias úteis após a submissão.',
       referencia_tabela: 'produtos_entregas',
       referencia_id: prod.id,
@@ -265,7 +243,6 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
     })
   }
 
-  // 3c. Produtos pagos sem lançamento financeiro correspondente
   const { data: produtosPagos } = await db
     .from('produtos_entregas')
     .select('id, numero, descricao, contratos_produtos_entregas(contrato_id)')
@@ -276,13 +253,6 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
     const contratoId = prod.contratos_produtos_entregas?.contrato_id
     if (!contratoId) continue
 
-    const { data: execucoes } = await db
-      .from('execucao_financeira')
-      .select('id, situacao')
-      .eq('situacao', 'pago')
-      .limit(1)
-
-    // Verificação simplificada: se o contrato não tem nenhum pagamento
     const { count } = await db
       .from('lancamentos_financeiros')
       .select('id', { count: 'exact', head: true })
@@ -294,7 +264,7 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
         severidade: 'critico',
         titulo: `Produto ${prod.numero} marcado como PAGO sem lançamento financeiro no contrato`,
         descricao: `O produto "${(prod.descricao || '').slice(0, 80)}..." está com status PAGO mas o contrato associado não possui nenhum lançamento financeiro registrado.`,
-        recomendacao: 'Registrar o lançamento financeiro correspondente ao pagamento deste produto com o respectivo comprovante.',
+        recomendacao: 'Registrar o lançamento financeiro correspondente ao pagamento deste produto.',
         referencia_tabela: 'produtos_entregas',
         referencia_id: prod.id,
         referencia_label: `Produto ${prod.numero}`,
@@ -302,7 +272,7 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
     }
   }
 
-  // 3d. Entregas marcadas como em avaliação/aprovadas sem nenhum documento comprobatório
+  // Entregas marcadas como em avaliação/aprovadas sem nenhum documento comprobatório
   // Rede de segurança para dados anteriores à trigger trg_validar_evidencia_entrega
   // (que bloqueia esse cenário para novos registros) e para eventuais bypass via SQL direto.
   const { data: entregasSemEvidencia } = await db
@@ -323,30 +293,28 @@ async function auditarProdutos(db: any): Promise<Achado[]> {
     const temIndicador = (e.produto_matriz_contribuicao || []).length > 0
     if (temDoc || temFoto || temNota || temIndicador) continue
 
-    const prod = e.contratos_produtos as any
+    const prod2 = e.contratos_produtos as any
     achados.push({
       dominio: 'produtos',
       severidade: 'critico',
-      titulo: `Produto ${prod?.numero_produto ?? '?'} marcado como "${e.situacao}" sem nenhum documento anexado`,
-      descricao: `A entrega nº ${e.numero_entrega} do produto "${(prod?.descricao || '').slice(0, 80)}" está com situação "${e.situacao}" (entregue em ${e.dt_entrega || '?'}) mas não possui documento, foto, nota técnica ou indicador vinculado — provável falha no upload no momento do envio.`,
+      titulo: `Produto ${prod2?.numero_produto ?? '?'} marcado como "${e.situacao}" sem nenhum documento anexado`,
+      descricao: `A entrega nº ${e.numero_entrega} do produto "${(prod2?.descricao || '').slice(0, 80)}" está com situação "${e.situacao}" (entregue em ${e.dt_entrega || '?'}) mas não possui documento, foto, nota técnica ou indicador vinculado — provável falha no upload no momento do envio.`,
       recomendacao: 'Confirmar com o consultor se os arquivos foram de fato enviados. Se não houver evidência, devolver o produto para reenvio com os documentos corretos.',
       referencia_tabela: 'contratos_produtos_entregas',
       referencia_id: e.id,
-      referencia_label: `Produto ${prod?.numero_produto ?? '?'} — Entrega ${e.numero_entrega}`,
+      referencia_label: `Produto ${prod2?.numero_produto ?? '?'} — Entrega ${e.numero_entrega}`,
     })
   }
 
   return achados
 }
 
-// ── AGENTE 4: Viagens ────────────────────────────────────────────
 async function auditarViagens(db: any): Promise<Achado[]> {
   const achados: Achado[] = []
 
-  // 4a. Viagens concluídas sem relatório
   const { data: semRelatorio } = await db
     .from('viagem_protocolos')
-    .select('id, numero, destino, motivo, data_fim, situacao')
+    .select('id, numero, destino_principal, objetivo, dt_retorno, situacao')
     .eq('situacao', 'concluido')
     .is('relatorio_url', null)
     .limit(20)
@@ -356,41 +324,39 @@ async function auditarViagens(db: any): Promise<Achado[]> {
       dominio: 'viagens',
       severidade: 'medio',
       titulo: `Viagem ${viagem.numero} concluída sem relatório de missão`,
-      descricao: `A viagem a ${viagem.destino} (motivo: "${(viagem.motivo || '').slice(0, 60)}...") foi concluída em ${viagem.data_fim ? new Date(viagem.data_fim).toLocaleDateString('pt-BR') : '?'} mas não possui relatório de missão anexado.`,
-      recomendacao: 'Solicitar ao viajante o preenchimento e envio do relatório de missão no prazo máximo de 5 dias úteis após o retorno.',
+      descricao: `A viagem a ${viagem.destino_principal} (objetivo: "${(viagem.objetivo || '').slice(0, 60)}...") foi concluída em ${viagem.dt_retorno ? new Date(viagem.dt_retorno).toLocaleDateString('pt-BR') : '?'} mas não possui relatório de missão anexado.`,
+      recomendacao: 'Solicitar ao viajante o relatório de missão no prazo máximo de 5 dias úteis após o retorno.',
       referencia_tabela: 'viagem_protocolos',
       referencia_id: viagem.id,
-      referencia_label: `Viagem ${viagem.numero} → ${viagem.destino}`,
+      referencia_label: `Viagem ${viagem.numero} → ${viagem.destino_principal}`,
     })
   }
 
-  // 4b. Viagens aprovadas com data fim vencida e não concluídas
   const hoje = new Date().toISOString().split('T')[0]
   const { data: vencidas } = await db
     .from('viagem_protocolos')
-    .select('id, numero, destino, data_fim, situacao')
+    .select('id, numero, destino_principal, dt_retorno, situacao')
     .in('situacao', ['aprovado', 'em_execucao'])
-    .lt('data_fim', hoje)
+    .lt('dt_retorno', hoje)
     .limit(20)
 
   for (const viagem of vencidas || []) {
-    const diasAtraso = Math.floor((Date.now() - new Date(viagem.data_fim).getTime()) / 86400000)
+    const diasAtraso = Math.floor((Date.now() - new Date(viagem.dt_retorno).getTime()) / 86400000)
     achados.push({
       dominio: 'viagens',
       severidade: diasAtraso > 7 ? 'alto' : 'medio',
       titulo: `Viagem ${viagem.numero} com data encerrada há ${diasAtraso} dias e status "${viagem.situacao}"`,
-      descricao: `A viagem a ${viagem.destino} tinha data de retorno ${new Date(viagem.data_fim).toLocaleDateString('pt-BR')} mas ainda está com status "${viagem.situacao}".`,
-      recomendacao: 'Atualizar o status da viagem para "concluído" e solicitar o relatório de missão se ainda não foi enviado.',
+      descricao: `A viagem a ${viagem.destino_principal} tinha data de retorno ${new Date(viagem.dt_retorno).toLocaleDateString('pt-BR')} mas ainda está com status "${viagem.situacao}".`,
+      recomendacao: 'Atualizar o status da viagem para "concluído" e solicitar o relatório de missão.',
       referencia_tabela: 'viagem_protocolos',
       referencia_id: viagem.id,
       referencia_label: `Viagem ${viagem.numero}`,
     })
   }
 
-  // 4c. Viagens sem vínculo com atividade
   const { data: semAtividade } = await db
     .from('viagem_protocolos')
-    .select('id, numero, destino, situacao')
+    .select('id, numero, destino_principal, situacao')
     .is('atividade_id', null)
     .neq('situacao', 'cancelado')
     .limit(15)
@@ -400,8 +366,8 @@ async function auditarViagens(db: any): Promise<Achado[]> {
       dominio: 'viagens',
       severidade: 'baixo',
       titulo: `Viagem ${viagem.numero} sem vínculo com atividade do projeto`,
-      descricao: `A viagem a ${viagem.destino} não está associada a nenhuma atividade do projeto, dificultando a rastreabilidade dos custos.`,
-      recomendacao: 'Vincular a viagem à atividade correspondente do projeto ou justificar como despesa administrativa geral.',
+      descricao: `A viagem a ${viagem.destino_principal} não está associada a nenhuma atividade do projeto.`,
+      recomendacao: 'Vincular a viagem à atividade correspondente ou justificar como despesa administrativa geral.',
       referencia_tabela: 'viagem_protocolos',
       referencia_id: viagem.id,
       referencia_label: `Viagem ${viagem.numero}`,
@@ -411,18 +377,15 @@ async function auditarViagens(db: any): Promise<Achado[]> {
   return achados
 }
 
-// ── AGENTE 5: Matriz de Resultados ───────────────────────────────
 async function auditarMatriz(db: any): Promise<Achado[]> {
   const achados: Achado[] = []
 
-  // 5a. Contribuições pendentes há muito tempo
   const dataLimite14 = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
   const { data: pendentes } = await db
     .from('produto_matriz_contribuicao')
     .select(`
-      id, valor, unidade, status, criado_em,
-      matriz_itens (id, indicador, produto_codigo),
-      contratos_produtos_entregas (id, produto_codigo, descricao_pt)
+      id, valor, status, criado_em,
+      matriz_itens (id, indicador, produto_codigo)
     `)
     .eq('status', 'pendente')
     .lt('criado_em', dataLimite14)
@@ -435,21 +398,17 @@ async function auditarMatriz(db: any): Promise<Achado[]> {
       dominio: 'matriz',
       severidade: diasPendente > 30 ? 'alto' : 'medio',
       titulo: `Contribuição na Matriz pendente de confirmação há ${diasPendente} dias`,
-      descricao: `Uma contribuição de ${contrib.valor} ${contrib.unidade || ''} ao indicador "${indicador.slice(0, 60)}..." está pendente de confirmação há ${diasPendente} dias.`,
-      recomendacao: 'O responsável financeiro ou coordenação deve confirmar ou rejeitar esta contribuição para manter o progresso atualizado.',
+      descricao: `Uma contribuição ao indicador "${indicador.slice(0, 60)}..." está pendente de confirmação há ${diasPendente} dias.`,
+      recomendacao: 'O responsável financeiro ou coordenação deve confirmar ou rejeitar esta contribuição.',
       referencia_tabela: 'produto_matriz_contribuicao',
       referencia_id: contrib.id,
-      referencia_label: `Indicador: ${(indicador).slice(0, 40)}...`,
+      referencia_label: `Indicador: ${indicador.slice(0, 40)}...`,
     })
   }
 
-  // 5b. Indicadores sem nenhuma contribuição (mas com atividades ativas)
   const { data: indicadores } = await db
     .from('matriz_itens')
-    .select(`
-      id, produto_codigo, indicador, meta_numerica, unidade,
-      produto_matriz_contribuicao (id, status)
-    `)
+    .select(`id, produto_codigo, indicador, meta_numerica, produto_matriz_contribuicao (id, status)`)
     .limit(50)
 
   for (const ind of indicadores || []) {
@@ -459,8 +418,8 @@ async function auditarMatriz(db: any): Promise<Achado[]> {
         dominio: 'matriz',
         severidade: 'info',
         titulo: `Indicador ${ind.produto_codigo} sem nenhuma contribuição registrada`,
-        descricao: `O indicador "${(ind.indicador || '').slice(0, 80)}..." (meta: ${ind.meta_numerica} ${ind.unidade || ''}) não possui nenhuma contribuição de produto registrada.`,
-        recomendacao: 'Verificar se há produtos entregues que contribuem para este indicador e registrar as contribuições correspondentes.',
+        descricao: `O indicador "${(ind.indicador || '').slice(0, 80)}..." não possui nenhuma contribuição de produto registrada.`,
+        recomendacao: 'Verificar se há produtos entregues que contribuem para este indicador.',
         referencia_tabela: 'matriz_itens',
         referencia_id: ind.id,
         referencia_label: `Indicador ${ind.produto_codigo}`,
@@ -471,46 +430,15 @@ async function auditarMatriz(db: any): Promise<Achado[]> {
   return achados
 }
 
-// ── AGENTE 6: Qualidade de Dados ─────────────────────────────────
 async function auditarQualidadeDados(db: any): Promise<Achado[]> {
   const achados: Achado[] = []
-
-  // 6a. Fornecedores não homologados com contratos ativos
-  const { data: fornSemHomolog } = await db
-    .from('fornecedores')
-    .select(`
-      id, codigo, nome_razao_social, status_homologacao,
-      contratos (id, numero, status)
-    `)
-    .neq('status_homologacao', 'aprovado')
-    .not('contratos', 'is', null)
-    .limit(20)
-
-  for (const forn of fornSemHomolog || []) {
-    const contratosAtivos = forn.contratos?.filter((c: any) =>
-      ['Contratado', 'Em execução', 'contratado', 'em_execucao'].includes(c.status)
-    ) || []
-
-    if (contratosAtivos.length > 0) {
-      achados.push({
-        dominio: 'qualidade_dados',
-        severidade: 'alto',
-        titulo: `Fornecedor "${forn.nome_razao_social}" não homologado com ${contratosAtivos.length} contrato(s) ativo(s)`,
-        descricao: `O fornecedor ${forn.codigo} — "${forn.nome_razao_social}" possui status de homologação "${forn.status_homologacao}" mas tem ${contratosAtivos.length} contrato(s) ativo(s).`,
-        recomendacao: 'Concluir o processo de homologação do fornecedor ou suspender os contratos até regularização.',
-        referencia_tabela: 'fornecedores',
-        referencia_id: forn.id,
-        referencia_label: `Fornecedor ${forn.codigo}`,
-      })
-    }
-  }
 
   // 6b. Contratos sem fornecedor vinculado
   const { data: contratosSemForn } = await db
     .from('contratos')
-    .select('id, numero, objeto, status')
+    .select('id, numero, objeto_pt, status')
     .is('fornecedor_id', null)
-    .in('status', ['Contratado', 'Em execução', 'contratado', 'em_execucao'])
+    .eq('status', 'vigente')
     .limit(15)
 
   for (const contrato of contratosSemForn || []) {
@@ -518,7 +446,7 @@ async function auditarQualidadeDados(db: any): Promise<Achado[]> {
       dominio: 'qualidade_dados',
       severidade: 'medio',
       titulo: `Contrato ${contrato.numero} sem fornecedor cadastrado`,
-      descricao: `O contrato "${(contrato.objeto || '').slice(0, 60)}..." está ativo mas não possui fornecedor vinculado no sistema.`,
+      descricao: `O contrato "${(contrato.objeto_pt || '').slice(0, 60)}..." está vigente mas não possui fornecedor vinculado no sistema.`,
       recomendacao: 'Cadastrar o fornecedor na plataforma e vinculá-lo ao contrato.',
       referencia_tabela: 'contratos',
       referencia_id: contrato.id,
@@ -526,7 +454,7 @@ async function auditarQualidadeDados(db: any): Promise<Achado[]> {
     })
   }
 
-  // 6c. Atividades com fase CONTRATADO mas sem nenhum contrato
+  // 6c. Atividades com fase CONTRATADO mas sem nenhum contrato (usando atividade_id FK correta)
   const { data: atividadesContratadas } = await db
     .from('atividades')
     .select('id, codigo, nome_pt, fase')
@@ -544,7 +472,7 @@ async function auditarQualidadeDados(db: any): Promise<Achado[]> {
         dominio: 'qualidade_dados',
         severidade: 'medio',
         titulo: `Atividade ${atv.codigo} em fase "Contratado" sem contratos no sistema`,
-        descricao: `A atividade "${atv.nome_pt}" está marcada como CONTRATADA mas não há contratos cadastrados no sistema para ela.`,
+        descricao: `A atividade "${atv.nome_pt}" está marcada como CONTRATADA mas não há contratos cadastrados vinculados a ela.`,
         recomendacao: 'Cadastrar o contrato correspondente ou revisar a fase da atividade.',
         referencia_tabela: 'atividades',
         referencia_id: atv.id,
@@ -556,7 +484,6 @@ async function auditarQualidadeDados(db: any): Promise<Achado[]> {
   return achados
 }
 
-// ── SUPERVISOR: Claude analisa todos os achados ──────────────────
 async function executarSupervisor(
   anthropic: Anthropic,
   achados: Achado[],
@@ -599,7 +526,6 @@ Analise os achados e retorne o JSON de avaliação conforme o formato especifica
     let analise: any = {}
     try { analise = JSON.parse(limpo) } catch { /* usa defaults */ }
 
-    // Enriquecer achados com recomendações da IA
     const achadosEnriquecidos = achados.map((a, i) => {
       const enriquecido = analise.achados_enriquecidos?.find((e: any) => e.indice === i)
       return {
@@ -634,7 +560,6 @@ Analise os achados e retorne o JSON de avaliação conforme o formato especifica
   }
 }
 
-// ── MAIN ─────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -648,21 +573,15 @@ Deno.serve(async (req) => {
     )
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! })
 
-    // Criar registro de execução
     const { data: execucao } = await supabase
       .from('auditoria_execucoes')
-      .insert({
-        disparado_por: usuario_id || null,
-        status: 'rodando',
-      })
+      .insert({ disparado_por: usuario_id || null, status: 'rodando' })
       .select()
       .single()
 
     const execucaoId = execucao?.id
-
     console.log(`[auditor-ia] Execução iniciada: ${execucaoId}`)
 
-    // Executar todos os agentes em paralelo
     const [
       achadosTDR,
       achadosFinanceiro,
@@ -690,12 +609,10 @@ Deno.serve(async (req) => {
 
     console.log(`[auditor-ia] ${todosAchados.length} achados brutos coletados`)
 
-    // Supervisor Claude enriquece e prioriza
     const { resumo, tokens, achadosEnriquecidos } = await executarSupervisor(
       anthropic, todosAchados, execucaoId
     )
 
-    // Salvar achados na tabela
     if (achadosEnriquecidos.length > 0) {
       const registros = achadosEnriquecidos.map(a => ({
         ...a,
@@ -703,11 +620,9 @@ Deno.serve(async (req) => {
         status: 'aberto',
         modelo_ia: 'claude-sonnet-4-6',
       }))
-
       await supabase.from('auditoria_registros').insert(registros)
     }
 
-    // Atualizar execução como concluída
     const criticos = achadosEnriquecidos.filter(a => a.severidade === 'critico').length
     const altos    = achadosEnriquecidos.filter(a => a.severidade === 'alto').length
 
