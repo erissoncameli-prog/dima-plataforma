@@ -191,7 +191,8 @@
       "Bash(cd \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\" && grep -n \"^let _car\\\\|^const _car\" pages/mapa.html js/layout.js js/config.js js/ajuda.js 2>/dev/null)",
       "Bash(cd \"/c/Users/eriss/OneDrive/Documents/OneDrive/Documents/Dima OneDrive/Fundo Onu/Plataforma/Fundo_Brasil_Onu/dima-plataforma\" && grep -n \"let \\\\|const \" js/layout.js | head -30)",
       "mcp__5499839e-86af-4699-b551-2eb3972f3f05__get_project",
-      "Bash(find \"/c/Users/eriss\" -name \"mapa.html\" -not -path \"*/.claude/*\" 2>/dev/null | head -20)"
+      "Bash(find \"/c/Users/eriss\" -name \"mapa.html\" -not -path \"*/.claude/*\" 2>/dev/null | head -20)",
+      "mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__send_later"
     ]
   }
 }
