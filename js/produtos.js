@@ -1167,12 +1167,33 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
     if(fotosErros>0) toast(fotosErros+' foto(s) não puderam ser enviadas. Verifique as permissões do storage.','error');
   }
 
+  // Upload dos documentos ANTES de criar qualquer registro no banco — se algum
+  // arquivo falhar, a entrega inteira é abortada (nada fica salvo pela metade).
+  var docsReais=docsEntrega.filter(function(d){return !d.isGeo&&d.file;});
+  var docsUpload=[];
+  if(docsReais.length){
+    toast('Enviando '+docsReais.length+' documento(s)...','info');
+    for(var j=0;j<docsReais.length;j++){
+      var doc=docsReais[j];
+      var dpath='produtos/'+produtoAtual.id+'/entrega-'+numEntrega+'-'+Date.now()+'_'+doc.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      var dUp=await db.storage.from('entregas-docs').upload(dpath,doc.file,{upsert:true});
+      if(dUp.error){
+        toast('Falha ao enviar o documento "'+doc.nome+'": '+dUp.error.message+'. Nenhuma entrega foi registrada — tente novamente.','error',9000);
+        return;
+      }
+      var dUrl=db.storage.from('entregas-docs').getPublicUrl(dpath);
+      docsUpload.push({tipo_documento:doc.tipo,arquivo_url:dUrl.data.publicUrl,arquivo_nome:doc.nome,arquivo_tamanho:doc.size});
+    }
+  }
+
   var seiSub=(document.getElementById('f-sei-sub')&&document.getElementById('f-sei-sub').value.trim())||null;
+  // Insere como 'pendente' — só vira 'em_analise' depois que os documentos/
+  // contribuições estiverem confirmados no banco (ver trigger trg_validar_evidencia_entrega).
   var insR=await db.from('contratos_produtos_entregas').insert({
     produto_id:produtoAtual.id,contrato_id:produtoAtual.contrato_id,
     numero_entrega:numEntrega,pct_entregue:pctRest,valor_entregue:valorRest,
     dt_entrega:dtEnt,dt_vencimento_orig:produtoAtual.dt_vencimento,
-    situacao:'em_analise',tipo_documento:docsEntrega[0]&&docsEntrega[0].tipo||'Relatório Técnico',
+    situacao:'pendente',tipo_documento:docsEntrega[0]&&docsEntrega[0].tipo||'Relatório Técnico',
     fotos_urls:fotosUrls,fotos_nomes:fotosNomes,fotos_total:fotosUrls.length,
     numero_sei_subprocesso:seiSub,
     criado_por:appState.usuario.id
@@ -1180,30 +1201,44 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
   if(insR.error){toast('Erro: '+insR.error.message,'error');return;}
   var entrega=insR.data;
 
-  toast('Enviando '+docsEntrega.length+' documento(s)...','info');
-  for(var j=0;j<docsEntrega.length;j++){
-    var doc=docsEntrega[j];
-    if(doc.isGeo||!doc.file)continue; // geo docs não têm arquivo para upload
-    var dpath='produtos/'+produtoAtual.id+'/entrega-'+numEntrega+'-'+Date.now()+'_'+doc.file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    var dUp=await db.storage.from('entregas-docs').upload(dpath,doc.file,{upsert:true});
-    if(!dUp.error){
-      var dUrl=db.storage.from('entregas-docs').getPublicUrl(dpath);
-      await db.from('entrega_documentos').insert({entrega_id:entrega.id,tipo_documento:doc.tipo,arquivo_url:dUrl.data.publicUrl,arquivo_nome:doc.nome,arquivo_tamanho:doc.size,inserido_por:appState.usuario.id});
+  if(docsUpload.length){
+    var docRows=docsUpload.map(function(d){return Object.assign({entrega_id:entrega.id,inserido_por:appState.usuario.id},d);});
+    var docsIns=await db.from('entrega_documentos').insert(docRows);
+    if(docsIns.error){
+      await db.from('contratos_produtos_entregas').delete().eq('id',entrega.id);
+      toast('Erro ao registrar os documentos enviados: '+docsIns.error.message+'. Nenhuma entrega foi registrada — tente novamente.','error',9000);
+      return;
     }
   }
 
-  var cpUpd=await db.from('contratos_produtos').update({dt_entrega:dtEnt,situacao:'em_analise',observacoes:obs||produtoAtual.observacoes,atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
-  if(cpUpd.error){toast('Aviso: entrega registrada mas não foi possível atualizar o status do produto. Contate o administrador.','error');}
-
   // Salvar contribuições à Matriz de Resultados (status pendente = aguarda confirmação técnica)
+  // — precisa acontecer ANTES de marcar a entrega como em_analise, pois entregas
+  // só-geolocalização usam a contribuição como evidência de que algo foi de fato entregue.
   var contribs=coletarContribsMatriz();
   if(contribs.length){
     var contribRows=contribs.map(function(c){
       return {produto_id:entrega.id,matriz_item_id:c.matriz_item_id,valor:c.valor,unidade:c.unidade,observacao:c.observacao,status:'pendente',criado_por:appState.usuario.id};
     });
     var cR=await db.from('produto_matriz_contribuicao').insert(contribRows);
-    if(!cR.error){toast(contribs.length+' contribuição(ões) à Matriz de Resultados registrada(s) — aguarda confirmação técnica.','info');}
+    if(cR.error){
+      await db.from('contratos_produtos_entregas').delete().eq('id',entrega.id);
+      toast('Erro ao registrar contribuições da Matriz de Resultados: '+cR.error.message+'. Nenhuma entrega foi registrada — tente novamente.','error',9000);
+      return;
+    }
+    toast(contribs.length+' contribuição(ões) à Matriz de Resultados registrada(s) — aguarda confirmação técnica.','info');
   }
+
+  // Só agora, com os documentos/contribuições já confirmados no banco, a entrega
+  // é enviada para avaliação. O banco recusa essa transição se não houver evidência.
+  var updSit=await db.from('contratos_produtos_entregas').update({situacao:'em_analise'}).eq('id',entrega.id);
+  if(updSit.error){
+    await db.from('contratos_produtos_entregas').delete().eq('id',entrega.id);
+    toast('Não foi possível concluir o registro da entrega: '+updSit.error.message,'error',9000);
+    return;
+  }
+
+  var cpUpd=await db.from('contratos_produtos').update({dt_entrega:dtEnt,situacao:'em_analise',observacoes:obs||produtoAtual.observacoes,atualizado_em:new Date().toISOString()}).eq('id',produtoAtual.id);
+  if(cpUpd.error){toast('Aviso: entrega registrada mas não foi possível atualizar o status do produto. Contate o administrador.','error');}
 
   // Salvar pontos de geolocalização
   var geoDocs=docsEntrega.filter(function(d){return d.isGeo&&d.pontos&&d.pontos.length;});
@@ -1212,9 +1247,8 @@ async function registrarEntrega(numEntrega,pctRest,valorRest){
     // Prioridade: 1º indicador vinculado → produto_titulo do item da matriz
     // Fallback: produto_titulo do produto atual
     var tipoAtividade=null;
-    var contribsSel=coletarContribsMatriz();
-    if(contribsSel.length&&matrizItensCache){
-      var itemSel=matrizItensCache.find(function(x){return x.id===contribsSel[0].matriz_item_id;});
+    if(contribs.length&&matrizItensCache){
+      var itemSel=matrizItensCache.find(function(x){return x.id===contribs[0].matriz_item_id;});
       if(itemSel) tipoAtividade=itemSel.produto_titulo||null;
     }
     if(!tipoAtividade) tipoAtividade=produtoAtual.produto_titulo||null;
