@@ -152,31 +152,32 @@
   .doc-wrap{ box-shadow:none; max-width:100%; border-radius:0; }
   tfoot{ display:table-row-group; }
 
-  /* Cabeçalho fixo — repete em todas as páginas */
-  .doc-header{
-    position:fixed; top:0; left:0; right:0;
-    background:#fff; z-index:100;
-  }
-  /* Rodapé fixo — repete em todas as páginas */
-  .doc-footer{
-    position:fixed; bottom:0; left:0; right:0;
-    z-index:100;
-  }
-  /* Marca d'água fixa — repete em todas as páginas */
+  /* Cabeçalho e rodapé em fluxo normal (aparecem uma vez) — antes eram position:fixed
+     e sobrepunham/cortavam a 1ª linha das páginas seguintes. O cabeçalho DE COLUNA da
+     tabela repete via thead{table-header-group}, que é o que importa para ler a tabela. */
+  .doc-header{ position:static !important; }
+  .doc-footer{ position:static !important; }
+  /* Marca d'água central, decorativa e atrás do conteúdo (não esconde dado) */
   .doc-watermark{
     position:fixed; top:50vh; left:50%;
-    transform:translate(-50%,-50%);
-  }
-  /* Espaço para não sobrepor cabeçalho/rodapé fixos */
-  .doc-body{
-    padding-top:185px !important;
-    padding-bottom:70px !important;
+    transform:translate(-50%,-50%); z-index:0;
   }
   .doc-watermark,
   .rep-tbl th,.rep-stat,.rep-secao-titulo,.doc-header,.doc-footer{
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
+
+  /* Paginação segura — nada é cortado na quebra de página */
+  .rep-tbl thead{ display:table-header-group; }        /* cabeçalho repete em toda página */
+  .rep-tbl tr{ break-inside:avoid; page-break-inside:avoid; }  /* linha nunca parte no meio */
+  .rep-stat{ break-inside:avoid; page-break-inside:avoid; }    /* KPI não parte */
+  .rep-secao-titulo{ break-after:avoid; page-break-after:avoid; } /* título gruda no conteúdo */
 }
+
+/* Modo compacto p/ caber relatório largo em Retrato sem cortar coluna (auto-ajuste) */
+.doc-fit .rep-tbl{ table-layout:fixed; width:100%; font-size:8px; }
+.doc-fit .rep-tbl th,.doc-fit .rep-tbl td{ white-space:normal!important; word-break:break-word; overflow-wrap:anywhere; padding:4px 5px; }
+.doc-fit .rep-tbl .mono,.doc-fit .rep-tbl .mono-sm{ white-space:normal!important; }
 </style>
 </head>
 <body>
@@ -935,7 +936,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharExport
 function exportPDF(orientacao, btn) {
   const wrapper = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
   if (!wrapper) return;
-  if (wrapper.dataset.paisagem === 'true') orientacao = 'landscape';
+  // Orientação segue o botão clicado (paisagem é só recomendação, não obrigação)
   const rel = RELATORIOS.find(r => r.id === relAtivo);
   const nome = (rel?.titulo || 'relatorio').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40);
   const filename = `${relAtivo}_${nome}_${new Date().toISOString().slice(0,10)}.pdf`;
@@ -954,7 +955,7 @@ function exportPDF(orientacao, btn) {
     image: { type: 'jpeg', quality: 0.95 },
     html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: orientacao, compress: true },
-    pagebreak: { mode: 'avoid-all' }
+    pagebreak: { mode: ['css','legacy'], avoid: ['tr','.rep-stat'] }
   }).from(htmlStr).save().finally(() => {
     btn.innerHTML = orig; btn.disabled = false;
   });
@@ -988,9 +989,16 @@ function exportExcel() {
 function exportPrint(orientacao) {
   const el = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
   if (!el) return;
-  if (el.dataset.paisagem === 'true') orientacao = 'landscape';
+  // Orientação segue o botão clicado (paisagem é só recomendação)
+  const ehLargo = el.dataset.paisagem === 'true';
   const printArea = document.getElementById('print-area');
   printArea.innerHTML = el.outerHTML;
+  const wrap = printArea.querySelector('.doc-wrap');
+  // Retrato de relatório largo: compacta a tabela p/ caber na largura sem cortar coluna
+  if (wrap && ehLargo && orientacao === 'portrait') {
+    wrap.classList.remove('doc-paisagem');
+    wrap.classList.add('doc-fit');
+  }
   let s = document.getElementById('_po');
   if (!s) { s = document.createElement('style'); s.id = '_po'; document.head.appendChild(s); }
   s.textContent = `@page { size: A4 ${orientacao}; margin: 0; }`;
