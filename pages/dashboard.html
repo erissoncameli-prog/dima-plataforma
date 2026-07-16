@@ -8,6 +8,7 @@
 <link href="../css/global.css" rel="stylesheet">
 <link href="../css/sidebar.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 .dash-tabs{display:flex;gap:0;border-bottom:1px solid var(--borda);background:var(--branco);padding:0 28px;overflow-x:auto;flex-shrink:0;}
 .dash-tab{padding:10px 20px;font-size:12px;font-weight:500;color:var(--cinza-500);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;transition:all .15s;}
@@ -887,8 +888,14 @@ function renderSaldo(){
   var statCnt={}; statOrder.forEach(function(k){statCnt[k]=0;});
   rows.forEach(function(r){ if(statCnt[r.status]===undefined)statCnt[r.status]=0; statCnt[r.status]++; });
 
+  // ── Barra de ações (imprimir / exportar) ──────────────────
+  var h='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">'
+    +'<button onclick="imprimirSaldo()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--branco);color:var(--cinza-700);border:1px solid var(--borda);border-radius:8px;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer">🖨️ Imprimir</button>'
+    +'<button onclick="exportSaldoExcel()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#1F7A4D;color:#fff;border:none;border-radius:8px;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer">📊 Exportar Excel</button>'
+    +'</div>';
+
   // ── KPIs ──────────────────────────────────────────────────
-  var h='<div class="kpi-row">';
+  h+='<div class="kpi-row">';
   h+='<div class="kpi-card ka"><div class="kpi-lbl">Orçamento total</div><div class="kpi-val" style="color:var(--azul-medio)">'+D_USD(tOrc)+'</div><div class="kpi-sub">'+rows.length+' atividades</div></div>';
   h+='<div class="kpi-card ko"><div class="kpi-lbl">Comprometido (TDRs)</div><div class="kpi-val" style="color:#D97706">'+D_USD(tComp)+'</div><div class="kpi-sub">'+D_PCT(tOrc>0?tComp/tOrc*100:0)+' do orçamento</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+Math.min(100,tOrc>0?tComp/tOrc*100:0)+'%;background:#D97706"></div></div></div>';
   h+='<div class="kpi-card kv"><div class="kpi-lbl">Firmado em contrato</div><div class="kpi-val" style="color:#047857">'+D_USD(tFirm)+'</div><div class="kpi-sub">'+D_PCT(tComp>0?tFirm/tComp*100:0)+' do comprometido · '+nFirmTdrs+' TDRs</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+Math.min(100,tComp>0?tFirm/tComp*100:0)+'%;background:#047857"></div></div></div>';
@@ -998,6 +1005,87 @@ function _popSaldoRow(row){
   }));
   if(tdrsAtv.length>8)html+='<div class="cpop-empty">... e mais '+(tdrsAtv.length-8)+'</div>';
   return {title:row.codigo+(row.nome?' — '+row.nome.substring(0,26):''), html:html, color: row.comp>row.orc?'#DC2626':'#047857'};
+}
+
+// Totais do painel de saldo (reusado por KPI/export/impressão)
+function _saldoTot(){
+  var t={tOrc:0,tComp:0,tFirm:0};
+  _saldoRows.forEach(function(r){ t.tOrc+=r.orc; t.tComp+=r.comp; t.tFirm+=r.firmado; });
+  t.tAfirm=Math.max(0,t.tComp-t.tFirm);
+  t.tLivre=Math.max(0,t.tOrc-t.tComp);
+  t.tExc=Math.max(0,t.tComp-t.tOrc);
+  t.nExtra=_saldoRows.filter(function(r){return r.comp>r.orc;}).length;
+  return t;
+}
+
+function _saldoAviso(msg,tipo){ if(typeof toast==='function')toast(msg,tipo||'info'); else alert(msg); }
+
+// Exporta os dados do painel para Excel (.xlsx) — valores numéricos p/ somar no Excel
+function exportSaldoExcel(){
+  if(typeof XLSX==='undefined'){ _saldoAviso('Biblioteca de exportação ainda carregando, tente novamente em instantes.','warning'); return; }
+  if(!_saldoRows.length){ _saldoAviso('Nenhum dado para exportar.','warning'); return; }
+  var r2=function(v){return Math.round(parseFloat(v||0));};
+  var aoa=[['Código','Atividade','Orçamento (USD)','Comprometido (USD)','Firmado (USD)','A firmar (USD)','Saldo livre (USD)','% Comprometido','Status','TDRs','TDRs firmados']];
+  _saldoRows.forEach(function(r){
+    aoa.push([r.codigo, r.nome, r2(r.orc), r2(r.comp), r2(r.firmado), r2(r.aFirmar), r2(r.orc-r.comp), Math.round(r.pctComp*10)/10, STAT_LBL[r.status]||r.status, r.nTdrs, r.nFirmados]);
+  });
+  var t=_saldoTot();
+  aoa.push([]);
+  aoa.push(['TOTAL GERAL','', r2(t.tOrc), r2(t.tComp), r2(t.tFirm), r2(t.tAfirm), r2(t.tOrc-t.tComp), t.tOrc>0?Math.round(t.tComp/t.tOrc*1000)/10:0,'','','']);
+  var ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:10},{wch:46},{wch:16},{wch:17},{wch:14},{wch:14},{wch:15},{wch:13},{wch:14},{wch:7},{wch:12}];
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Saldo por Atividade');
+  XLSX.writeFile(wb, 'saldo_orcamento_atividade_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// Abre uma versão imprimível do painel (KPIs + gráficos como imagem + tabela)
+function imprimirSaldo(){
+  if(!_saldoRows.length){ _saldoAviso('Nenhum dado para imprimir.','warning'); return; }
+  var t=_saldoTot();
+  var imgAtv = CHARTS['ch-saldo-atv'] ? CHARTS['ch-saldo-atv'].toBase64Image() : '';
+  var imgQuad = CHARTS['ch-saldo-quad'] ? CHARTS['ch-saldo-quad'].toBase64Image() : '';
+  var dt=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  var linhas=_saldoRows.map(function(r){
+    var estour=r.comp>r.orc;
+    return '<tr'+(estour?' style="background:#FEF2F2"':'')+'>'
+      +'<td class="c">'+r.codigo+'</td><td>'+(r.nome||'')+'</td>'
+      +'<td class="n">'+D_USD(r.orc)+'</td><td class="n">'+D_USD(r.comp)+'</td>'
+      +'<td class="n">'+D_USD(r.firmado)+'</td><td class="n">'+D_USD(r.aFirmar)+'</td>'
+      +'<td class="n" style="font-weight:700;color:'+(estour?'#B91C1C':'#065F46')+'">'+D_USD(r.orc-r.comp)+'</td>'
+      +'<td class="c">'+D_PCT(r.pctComp)+'</td><td class="c">'+(STAT_LBL[r.status]||r.status)+'</td></tr>';
+  }).join('');
+  var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Saldo de Orçamento por Atividade</title><style>'
+    +'*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#1F2937;margin:24px}'
+    +'h1{font-size:18px;margin:0 0 2px}.sub{font-size:11px;color:#6B7280;margin-bottom:16px}'
+    +'.kpis{display:flex;gap:10px;margin-bottom:16px}.kpi{flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:9px 12px}'
+    +'.kpi .l{font-size:9px;font-weight:700;text-transform:uppercase;color:#6B7280}.kpi .v{font-size:16px;font-weight:800;margin-top:3px}'
+    +'.imgs{display:flex;gap:14px;margin-bottom:16px}.imgs img{width:49%;border:1px solid #E5E7EB;border-radius:8px}'
+    +'table{width:100%;border-collapse:collapse;font-size:10px}th{background:#1F4E2C;color:#fff;padding:6px 7px;text-align:left;font-size:9px;text-transform:uppercase}'
+    +'td{padding:5px 7px;border-bottom:1px solid #E5E7EB}td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td.c{text-align:center;white-space:nowrap}'
+    +'tfoot td{font-weight:800;border-top:2px solid #1F4E2C;background:#F0F7F2}'
+    +'.foot{margin-top:14px;font-size:9px;color:#9CA3AF}'
+    +'@media print{@page{size:A4 landscape;margin:12mm}body{margin:0}.imgs,tr{page-break-inside:avoid}thead{display:table-header-group}}'
+    +'</style></head><body>'
+    +'<h1>Saldo de Orçamento por Atividade</h1>'
+    +'<div class="sub">Projeto 218BRA2001 · SEMA/AC · UNESCO — gerado em '+dt+' · valores em USD</div>'
+    +'<div class="kpis">'
+    +'<div class="kpi"><div class="l">Orçamento total</div><div class="v" style="color:#2563EB">'+D_USD(t.tOrc)+'</div></div>'
+    +'<div class="kpi"><div class="l">Comprometido (TDRs)</div><div class="v" style="color:#B45309">'+D_USD(t.tComp)+'</div></div>'
+    +'<div class="kpi"><div class="l">Firmado em contrato</div><div class="v" style="color:#047857">'+D_USD(t.tFirm)+'</div></div>'
+    +'<div class="kpi"><div class="l">Saldo livre</div><div class="v" style="color:'+(t.tLivre>0?'#059669':'#DC2626')+'">'+D_USD(t.tLivre)+'</div></div>'
+    +'</div>'
+    +((imgAtv||imgQuad)?'<div class="imgs">'+(imgAtv?'<img src="'+imgAtv+'">':'')+(imgQuad?'<img src="'+imgQuad+'">':'')+'</div>':'')
+    +'<table><thead><tr><th>Cód.</th><th>Atividade</th><th>Orçamento</th><th>Comprometido</th><th>Firmado</th><th>A firmar</th><th>Saldo livre</th><th>% Comp.</th><th>Status</th></tr></thead>'
+    +'<tbody>'+linhas+'</tbody>'
+    +'<tfoot><tr><td class="c">—</td><td>TOTAL GERAL ('+_saldoRows.length+' atividades'+(t.nExtra?' · '+t.nExtra+' estouradas':'')+')</td><td class="n">'+D_USD(t.tOrc)+'</td><td class="n">'+D_USD(t.tComp)+'</td><td class="n">'+D_USD(t.tFirm)+'</td><td class="n">'+D_USD(t.tAfirm)+'</td><td class="n">'+D_USD(t.tLivre)+'</td><td class="c">'+D_PCT(t.tOrc>0?t.tComp/t.tOrc*100:0)+'</td><td></td></tr></tfoot>'
+    +'</table>'
+    +'<div class="foot">Comprometido = soma dos TDRs não cancelados. Firmado = TDRs já com contrato vinculado. Saldo livre = Orçamento − Comprometido.</div>'
+    +'</body></html>';
+  var win=window.open('','_blank');
+  if(!win){ _saldoAviso('Permita pop-ups neste site para gerar o relatório.','warning'); return; }
+  win.document.open(); win.document.write(html); win.document.close(); win.focus();
+  setTimeout(function(){ try{ win.print(); }catch(e){} }, 400);
 }
 
 function renderResultados(){
