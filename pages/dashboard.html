@@ -1039,33 +1039,78 @@ function exportSaldoExcel(){
   XLSX.writeFile(wb, 'saldo_orcamento_atividade_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
-// Abre uma versão imprimível do painel (KPIs + gráficos como imagem + tabela)
+// Abre uma versão imprimível do painel — 100% HTML nativo (sem imagens), pagina sem cortes
 function imprimirSaldo(){
   if(!_saldoRows.length){ _saldoAviso('Nenhum dado para imprimir.','warning'); return; }
   var t=_saldoTot();
-  var imgAtv = CHARTS['ch-saldo-atv'] ? CHARTS['ch-saldo-atv'].toBase64Image() : '';
-  var imgQuad = CHARTS['ch-saldo-quad'] ? CHARTS['ch-saldo-quad'].toBase64Image() : '';
   var dt=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});};
+
+  // Escala absoluta comum p/ as mini-barras (mesma lógica do gráfico da tela)
+  var gmax=Math.max.apply(null,_saldoRows.map(function(r){return Math.max(r.orc,r.comp);}).concat([1]));
+  function miniBar(r){
+    var firmIn=Math.min(r.firmado,r.orc);
+    var afirmIn=Math.max(0,Math.min(r.comp,r.orc)-firmIn);
+    var livre=Math.max(0,r.orc-r.comp);
+    var exc=Math.max(0,r.comp-r.orc);
+    function s(v,c){var w=v/gmax*100;return w>0.1?'<span style="width:'+w.toFixed(2)+'%;background:'+c+'"></span>':'';}
+    return '<span class="mb">'+s(firmIn,'#047857')+s(afirmIn,'#F59E0B')+s(livre,'#94A3B8')+s(exc,'#DC2626')+'</span>';
+  }
+
   var linhas=_saldoRows.map(function(r){
     var estour=r.comp>r.orc;
     return '<tr'+(estour?' style="background:#FEF2F2"':'')+'>'
-      +'<td class="c">'+r.codigo+'</td><td>'+(r.nome||'')+'</td>'
+      +'<td class="c mono">'+esc(r.codigo)+'</td><td>'+esc(r.nome||'')+'</td>'
       +'<td class="n">'+D_USD(r.orc)+'</td><td class="n">'+D_USD(r.comp)+'</td>'
       +'<td class="n">'+D_USD(r.firmado)+'</td><td class="n">'+D_USD(r.aFirmar)+'</td>'
       +'<td class="n" style="font-weight:700;color:'+(estour?'#B91C1C':'#065F46')+'">'+D_USD(r.orc-r.comp)+'</td>'
-      +'<td class="c">'+D_PCT(r.pctComp)+'</td><td class="c">'+(STAT_LBL[r.status]||r.status)+'</td></tr>';
+      +'<td class="c">'+D_PCT(r.pctComp)+'</td><td class="c">'+(STAT_LBL[r.status]||r.status)+'</td>'
+      +'<td>'+miniBar(r)+'</td></tr>';
   }).join('');
+
+  // Termômetro do portfólio (composição do orçamento)
+  var den=Math.max(t.tOrc,t.tComp)||1;
+  function segTop(v,c){var w=v/den*100;return w>0?'<div style="width:'+w.toFixed(2)+'%;background:'+c+'"></div>':'';}
+  var thermo='<div class="bar30">'+segTop(t.tFirm,'#047857')+segTop(t.tAfirm,'#F59E0B')+segTop(t.tLivre,'#94A3B8')+segTop(t.tExc,'#DC2626')+'</div>'
+    +'<div class="leg">'
+    +'<span><i style="background:#047857"></i>Firmado '+D_USD(t.tFirm)+'</span>'
+    +'<span><i style="background:#F59E0B"></i>A firmar '+D_USD(t.tAfirm)+'</span>'
+    +'<span><i style="background:#94A3B8"></i>Saldo livre '+D_USD(t.tLivre)+'</span>'
+    +(t.tExc>0?'<span><i style="background:#DC2626"></i>Excedente '+D_USD(t.tExc)+'</span>':'')
+    +'</div>';
+
+  // Status das atividades
+  var statOrder=['ok','atencao','critico','extrapolado','sem_orcamento'];
+  var statCnt={}; statOrder.forEach(function(k){statCnt[k]=0;});
+  _saldoRows.forEach(function(r){ if(statCnt[r.status]===undefined)statCnt[r.status]=0; statCnt[r.status]++; });
+  var statHtml=statOrder.filter(function(k){return statCnt[k];}).map(function(k){
+    var pct=_saldoRows.length?statCnt[k]/_saldoRows.length*100:0;
+    return '<div class="strow"><span class="stico" style="background:'+STAT_COR[k]+'">'+STAT_ICO[k]+'</span>'
+      +'<span class="stlbl">'+STAT_LBL[k]+'</span>'
+      +'<span class="stbarwrap"><span class="stbar" style="width:'+pct.toFixed(1)+'%;background:'+STAT_COR[k]+'"></span></span>'
+      +'<span class="stn">'+statCnt[k]+'</span></div>';
+  }).join('');
+
   var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Saldo de Orçamento por Atividade</title><style>'
-    +'*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#1F2937;margin:24px}'
+    +'*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#1F2937;margin:22px;font-size:11px}'
+    +'.mono{font-family:"DM Mono",Consolas,monospace}'
     +'h1{font-size:18px;margin:0 0 2px}.sub{font-size:11px;color:#6B7280;margin-bottom:16px}'
-    +'.kpis{display:flex;gap:10px;margin-bottom:16px}.kpi{flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:9px 12px}'
+    +'.kpis{display:flex;gap:10px;margin-bottom:14px}.kpi{flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:9px 12px}'
     +'.kpi .l{font-size:9px;font-weight:700;text-transform:uppercase;color:#6B7280}.kpi .v{font-size:16px;font-weight:800;margin-top:3px}'
-    +'.imgs{display:flex;gap:14px;margin-bottom:16px}.imgs img{width:49%;border:1px solid #E5E7EB;border-radius:8px}'
+    +'.summary{display:flex;gap:14px;margin-bottom:16px}.card{flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:11px 13px}'
+    +'.card h2{font-size:11px;margin:0 0 9px;color:#1F4E2C;text-transform:uppercase;letter-spacing:.04em}'
+    +'.bar30{display:flex;height:22px;border-radius:5px;overflow:hidden;background:#F3F4F6;gap:1px}'
+    +'.leg{display:flex;flex-wrap:wrap;gap:12px;margin-top:9px;font-size:10px}.leg span{display:flex;align-items:center;gap:5px}.leg i{width:11px;height:11px;border-radius:3px;display:inline-block}'
+    +'.strow{display:flex;align-items:center;gap:9px;margin-bottom:7px}.stico{width:17px;height:17px;border-radius:4px;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}'
+    +'.stlbl{width:84px;flex-shrink:0;color:#374151}.stbarwrap{flex:1;height:13px;background:#F3F4F6;border-radius:4px;overflow:hidden}.stbar{display:block;height:100%;border-radius:4px}.stn{width:22px;text-align:right;font-weight:700;flex-shrink:0}'
     +'table{width:100%;border-collapse:collapse;font-size:10px}th{background:#1F4E2C;color:#fff;padding:6px 7px;text-align:left;font-size:9px;text-transform:uppercase}'
-    +'td{padding:5px 7px;border-bottom:1px solid #E5E7EB}td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td.c{text-align:center;white-space:nowrap}'
+    +'td{padding:5px 7px;border-bottom:1px solid #E5E7EB;vertical-align:middle}td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td.c{text-align:center;white-space:nowrap}'
+    +'.mb{display:flex;height:9px;width:150px;border-radius:2px;overflow:hidden;background:#F3F4F6}.mb span{display:block;height:100%}'
     +'tfoot td{font-weight:800;border-top:2px solid #1F4E2C;background:#F0F7F2}'
-    +'.foot{margin-top:14px;font-size:9px;color:#9CA3AF}'
-    +'@media print{@page{size:A4 landscape;margin:12mm}body{margin:0}.imgs,tr{page-break-inside:avoid}thead{display:table-header-group}}'
+    +'.foot{margin-top:12px;font-size:9px;color:#9CA3AF}'
+    +'@media print{@page{size:A4 landscape;margin:11mm}body{margin:0}'
+    +'.kpis,.summary,.card,tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}'
+    +'*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
     +'</style></head><body>'
     +'<h1>Saldo de Orçamento por Atividade</h1>'
     +'<div class="sub">Projeto 218BRA2001 · SEMA/AC · UNESCO — gerado em '+dt+' · valores em USD</div>'
@@ -1075,12 +1120,16 @@ function imprimirSaldo(){
     +'<div class="kpi"><div class="l">Firmado em contrato</div><div class="v" style="color:#047857">'+D_USD(t.tFirm)+'</div></div>'
     +'<div class="kpi"><div class="l">Saldo livre</div><div class="v" style="color:'+(t.tLivre>0?'#059669':'#DC2626')+'">'+D_USD(t.tLivre)+'</div></div>'
     +'</div>'
-    +((imgAtv||imgQuad)?'<div class="imgs">'+(imgAtv?'<img src="'+imgAtv+'">':'')+(imgQuad?'<img src="'+imgQuad+'">':'')+'</div>':'')
-    +'<table><thead><tr><th>Cód.</th><th>Atividade</th><th>Orçamento</th><th>Comprometido</th><th>Firmado</th><th>A firmar</th><th>Saldo livre</th><th>% Comp.</th><th>Status</th></tr></thead>'
+    +'<div class="summary">'
+    +'<div class="card"><h2>Composição do orçamento</h2>'+thermo+'</div>'
+    +'<div class="card"><h2>Atividades por status</h2>'+statHtml+'</div>'
+    +'</div>'
+    +'<table><thead><tr><th>Cód.</th><th>Atividade</th><th>Orçamento</th><th>Comprometido</th><th>Firmado</th><th>A firmar</th><th>Saldo livre</th><th>% Comp.</th><th>Status</th><th>Distribuição</th></tr></thead>'
     +'<tbody>'+linhas+'</tbody>'
-    +'<tfoot><tr><td class="c">—</td><td>TOTAL GERAL ('+_saldoRows.length+' atividades'+(t.nExtra?' · '+t.nExtra+' estouradas':'')+')</td><td class="n">'+D_USD(t.tOrc)+'</td><td class="n">'+D_USD(t.tComp)+'</td><td class="n">'+D_USD(t.tFirm)+'</td><td class="n">'+D_USD(t.tAfirm)+'</td><td class="n">'+D_USD(t.tLivre)+'</td><td class="c">'+D_PCT(t.tOrc>0?t.tComp/t.tOrc*100:0)+'</td><td></td></tr></tfoot>'
+    +'<tfoot><tr><td class="c">—</td><td>TOTAL GERAL ('+_saldoRows.length+' atividades'+(t.nExtra?' · '+t.nExtra+' estouradas':'')+')</td><td class="n">'+D_USD(t.tOrc)+'</td><td class="n">'+D_USD(t.tComp)+'</td><td class="n">'+D_USD(t.tFirm)+'</td><td class="n">'+D_USD(t.tAfirm)+'</td><td class="n">'+D_USD(t.tLivre)+'</td><td class="c">'+D_PCT(t.tOrc>0?t.tComp/t.tOrc*100:0)+'</td><td></td><td></td></tr></tfoot>'
     +'</table>'
-    +'<div class="foot">Comprometido = soma dos TDRs não cancelados. Firmado = TDRs já com contrato vinculado. Saldo livre = Orçamento − Comprometido.</div>'
+    +'<div class="foot">Comprometido = soma dos TDRs não cancelados · Firmado = TDRs já com contrato vinculado · Saldo livre = Orçamento − Comprometido. Distribuição: '
+    +'<span style="color:#047857">■</span> firmado <span style="color:#F59E0B">■</span> a firmar <span style="color:#94A3B8">■</span> saldo livre <span style="color:#DC2626">■</span> excedente — barras em escala comum de valor.</div>'
     +'</body></html>';
   var win=window.open('','_blank');
   if(!win){ _saldoAviso('Permita pop-ups neste site para gerar o relatório.','warning'); return; }
