@@ -888,9 +888,10 @@ function renderSaldo(){
   var statCnt={}; statOrder.forEach(function(k){statCnt[k]=0;});
   rows.forEach(function(r){ if(statCnt[r.status]===undefined)statCnt[r.status]=0; statCnt[r.status]++; });
 
-  // ── Barra de ações (imprimir / exportar) ──────────────────
+  // ── Barra de ações (relatório A4 / imprimir painel / exportar) ──
   var h='<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">'
-    +'<button onclick="imprimirSaldo()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--branco);color:var(--cinza-700);border:1px solid var(--borda);border-radius:8px;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer">🖨️ Imprimir</button>'
+    +'<button onclick="abrirRelatorioA4Saldo()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--branco);color:var(--cinza-700);border:1px solid var(--borda);border-radius:8px;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer">📄 Relatório A4</button>'
+    +'<button onclick="imprimirPainelSaldo()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--branco);color:var(--cinza-700);border:1px solid var(--borda);border-radius:8px;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer">🖨️ Imprimir Painel</button>'
     +'<button onclick="exportSaldoExcel()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#1F7A4D;color:#fff;border:none;border-radius:8px;font-family:var(--font-sans);font-size:12px;font-weight:600;cursor:pointer">📊 Exportar Excel</button>'
     +'</div>';
 
@@ -1039,8 +1040,16 @@ function exportSaldoExcel(){
   XLSX.writeFile(wb, 'saldo_orcamento_atividade_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
-// Abre uma versão imprimível do painel — 100% HTML nativo (sem imagens), pagina sem cortes
-function imprimirSaldo(){
+// Abre o relatório "Saldo de Orçamento por Atividade (TDRs)" (A4) da Central de Relatórios,
+// já gerado e pronto para exportar. Não duplicamos a lógica do A4 aqui — abrimos a página real
+// para garantir que o conteúdo é sempre idêntico ao relatório oficial.
+function abrirRelatorioA4Saldo(){
+  window.open('relatorios.html?rel=A4&auto=1', '_blank');
+}
+window.abrirRelatorioA4Saldo = abrirRelatorioA4Saldo;
+
+// Abre uma versão imprimível do painel (como exibido na tela) — 100% HTML nativo (sem imagens), pagina sem cortes
+function imprimirPainelSaldo(){
   if(!_saldoRows.length){ _saldoAviso('Nenhum dado para imprimir.','warning'); return; }
   var t=_saldoTot();
   var dt=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -1136,6 +1145,8 @@ function imprimirSaldo(){
   win.document.open(); win.document.write(html); win.document.close(); win.focus();
   setTimeout(function(){ try{ win.print(); }catch(e){} }, 400);
 }
+window.imprimirPainelSaldo = imprimirPainelSaldo;
+window.exportSaldoExcel = exportSaldoExcel;
 
 function renderResultados(){
   var rm=resMap(); var rks=Object.keys(rm);

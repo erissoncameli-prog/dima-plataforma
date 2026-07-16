@@ -459,6 +459,17 @@ function getAbasPermitidas(){
   renderTemas('todos');
   renderLista('todos');
   iniciarSino();
+
+  // Auto-abrir um relatório via query string (?rel=A4&auto=1) — usado pelo botão
+  // "Relatório A4" do painel Saldo de Orçamento na Visão Geral, garantindo que
+  // sempre exibe o relatório oficial (sem duplicar a lógica em outra página).
+  const qp = new URLSearchParams(location.search);
+  const autoRel = qp.get('rel');
+  if(autoRel && RELATORIOS.some(r=>r.id===autoRel)){
+    selecionarRel(autoRel);
+    await gerarRelatorio(autoRel);
+    if(qp.get('auto')==='1') abrirExport();
+  }
 })();
 
 // ══════════════════════════════════════════════════════════════
