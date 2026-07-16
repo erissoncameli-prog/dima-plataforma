@@ -374,7 +374,7 @@ function podeEditarFase(status){
 
 async function carregar(){
   try{
-    let tdrQuery=db.from('tdrs').select(`*,atividades(id,codigo,nome_pt,responsavel_id,responsavel:usuarios!atividades_responsavel_id_fkey(id,nome_completo)),fornecedores(nome,tipo),contratos(id,numero,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,status)`)
+    let tdrQuery=db.from('tdrs').select(`*,atividades(id,codigo,nome_pt,responsavel_id,responsavel:usuarios!atividades_responsavel_id_fkey(id,nome_completo)),fornecedores(nome,tipo),contratos(id,numero,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,status,fornecedores(nome,tipo,cpf_cnpj))`)
       .order('criado_em',{ascending:false});
 
     // Técnico: vê TDRs que criou OU cujas atividades ele é responsável OU substituto
@@ -557,7 +557,15 @@ function filtrar(){
           const pctComp=total>0?Math.min(comprometido/total*100,100):0;
           const corSaldo=saldo<0?'var(--erro)':saldo<total*0.1?'var(--aviso)':'#059669';
           const cor=corStatus[c.status]||'#6B7280';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--borda)" onclick="event.stopPropagation()">
+          const forn=c.fornecedores;
+          const iconeForn=forn?(forn.tipo==='PF'?'👤':'🏢'):'';
+          return `<div style="padding:5px 0;border-bottom:1px solid var(--borda)" onclick="event.stopPropagation()">
+            ${forn?`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px" title="${esc((forn.cpf_cnpj||'').toString())}">
+              <span style="font-size:11px;flex-shrink:0">${iconeForn}</span>
+              <span style="font-size:11px;font-weight:700;color:var(--cinza-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(forn.nome||'')}</span>
+              ${forn.tipo?`<span style="font-size:8px;font-weight:700;color:var(--cinza-500);background:var(--cinza-100);border-radius:4px;padding:1px 5px;flex-shrink:0">${forn.tipo}</span>`:''}
+            </div>`:''}
+          <div style="display:flex;align-items:center;gap:8px">
             <!-- número + status -->
             <span style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--cinza-800);white-space:nowrap;min-width:90px">${c.numero}</span>
             <span style="width:6px;height:6px;border-radius:50%;background:${cor};flex-shrink:0" title="${c.status}"></span>
@@ -573,6 +581,7 @@ function filtrar(){
               <span style="font-size:9px;color:var(--cinza-500)" title="Utilizado">U <span style="font-family:var(--font-mono);color:#059669">${fmtBRL(utilizado)}</span></span>
               <span style="font-size:9px;color:var(--cinza-500)" title="Saldo disponível">S <span style="font-family:var(--font-mono);font-weight:700;color:${corSaldo}">${fmtBRL(saldo)}</span></span>
             </div>
+          </div>
           </div>`;
         }).join('');
         return `<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--borda)">

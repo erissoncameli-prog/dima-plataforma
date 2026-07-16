@@ -335,6 +335,9 @@ const RELATORIOS = [
   { id:'A3', tema:'atividades', icone:'👤', titulo:'Concentração por Responsável',
     desc:'Quantidade de atividades e orçamento por técnico responsável.',
     filtros:[] },
+  { id:'A4', tema:'atividades', icone:'⚖️', titulo:'Saldo de Orçamento por Atividade (TDRs)',
+    desc:'Orçamento previsto de cada atividade, os TDRs que o comprometem (destacando os já firmados em contrato) e o saldo livre — individual e total.',
+    filtros:['resultado','atividade'], paisagem:true },
   // ── MATRIZ ────────────────────────────────────────────────
   { id:'M1', tema:'matriz', icone:'🌍', titulo:'Progresso dos Indicadores',
     desc:'% de avanço de cada indicador da matriz em relação à meta.',
@@ -404,9 +407,17 @@ function getAbasPermitidas(){
   const perfil=appState.perfil;
   if(['super_admin','coordenacao'].includes(perfil))
     return TEMAS.filter(t=>t.id!=='todos').map(t=>t.id);
+  // Temas liberados por padrão a certos perfis (além das permissões dinâmicas do super_admin).
+  // Financeiro acompanha o saldo de orçamento por atividade (tema Atividades) — tem RLS de
+  // leitura total em tdrs/contratos, então o comprometido/saldo sai completo. Técnico fica de
+  // fora aqui: sua RLS restringe tdrs/contratos aos que é responsável, o que subestimaria o
+  // comprometido e mostraria saldo maior que o real. Para incluí-lo, liberar via permissão
+  // dinâmica (relatorios_atividades) e/ou ampliar a RLS de leitura.
+  const PADRAO_POR_PERFIL = { financeiro:['atividades'] };
+  const padrao = PADRAO_POR_PERFIL[perfil] || [];
   return TEMAS
     .filter(t=>t.id!=='todos'&&t.id!=='usuarios'&&t.id!=='logs')
-    .filter(t=>appState.permissoes.includes('relatorios_'+t.id))
+    .filter(t=>padrao.includes(t.id)||appState.permissoes.includes('relatorios_'+t.id))
     .map(t=>t.id);
 }
 
@@ -1034,6 +1045,7 @@ async function gerarRelatorio(id){
       case 'T3': html = await relT3(); break;
       case 'A2': html = await relA2(); break;
       case 'A3': html = await relA3(); break;
+      case 'A4': html = await relA4(); break;
       case 'M1': html = await relM1(); break;
       case 'M2': html = await relM2(); break;
       case 'M4': html = await relM4(); break;
@@ -2523,6 +2535,167 @@ async function relA3(){
         <td colspan="3"></td>
       </tr></tfoot>
     </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// A4 — SALDO DE ORÇAMENTO POR ATIVIDADE (TDRs)
+// ══════════════════════════════════════════════════════════════
+async function relA4(){
+  const ativFil = filVal('fil-atividade');
+  const resFil  = filVal('fil-resultado');
+
+  let q = db.from('atividades')
+    .select(`id,codigo,nome_pt,orcamento_usd,
+      resultado:resultados(codigo),
+      tdrs(id,numero,valor_brl,valor_usd,status,
+        contratos(id,numero,valor_total_brl,status))`)
+    .order('codigo');
+  if(ativFil) q = q.eq('id', ativFil);
+
+  const [{data:ativs, error},{data:cotRows}] = await Promise.all([
+    q,
+    db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
+  ]);
+  if(error) throw error;
+  const taxa  = parseFloat(cotRows?.[0]?.cotacao || 0);
+  const toUSD = brl => taxa>0 ? brl/taxa : 0;
+  const toBRL = usd => usd*taxa;
+
+  let rows = (ativs||[]);
+  if(resFil) rows = rows.filter(a => a.resultado?.codigo == resFil);
+
+  // Rótulos de status de TDR + classe de badge (verde = pós-aprovação/firmado)
+  const TDR_LBL = {rascunho:'Rascunho',revisao_interna:'Revisão Interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado',cancelado:'Cancelado',submetido:'Submetido',pendente_correcao:'Pendente Correção',em_avaliacao:'Em Avaliação',em_revisao_unesco:'Em Revisão UNESCO',em_licitacao:'Em Licitação',contratado:'Contratado'};
+  const tdrBadge = st => {
+    const cls = st==='cancelado'?'rb-cinza'
+      : ['aprovado','em_licitacao','contratado'].includes(st)?'rb-verde'
+      : st==='rascunho'?'rb-cinza':'rb-azul';
+    return `<span class="rep-badge ${cls}">${TDR_LBL[st]||st}</span>`;
+  };
+
+  // Processa cada atividade (comprometido = valor do contrato quando firmado, senão valor do TDR)
+  const dados = rows.map(a=>{
+    const seen=new Set();
+    const tdrs=(a.tdrs||[])
+      .filter(t=>{ if(seen.has(t.id))return false; seen.add(t.id); return true; })
+      .filter(t=>t.status!=='cancelado');
+    const orcUSD = parseFloat(a.orcamento_usd||0);
+    let compUSD=0, compBRL=0, firmUSD=0, firmBRL=0;
+    const linhas = tdrs.map(t=>{
+      const conts=(t.contratos||[]);
+      const firmado = conts.length>0;
+      let cBRL, cUSD;
+      if(firmado){
+        cBRL = conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
+        cUSD = toUSD(cBRL);
+        firmUSD+=cUSD; firmBRL+=cBRL;
+      } else {
+        cUSD = parseFloat(t.valor_usd||0) || toUSD(parseFloat(t.valor_brl||0));
+        cBRL = parseFloat(t.valor_brl||0) || toBRL(parseFloat(t.valor_usd||0));
+      }
+      compUSD+=cUSD; compBRL+=cBRL;
+      return { t, firmado, conts, cUSD, cBRL };
+    }).sort((x,y)=>(x.t.numero||'').localeCompare(y.t.numero||'',undefined,{numeric:true}));
+    const saldoUSD = orcUSD - compUSD;
+    const saldoBRL = toBRL(orcUSD) - compBRL;
+    return { a, orcUSD, compUSD, compBRL, firmUSD, firmBRL, saldoUSD, saldoBRL, linhas };
+  }).sort((x,y)=>(x.a.codigo||'').localeCompare(y.a.codigo||'',undefined,{numeric:true}));
+
+  if(!dados.length) return `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Nenhuma atividade encontrada para os filtros selecionados.</div>`;
+
+  // Totais gerais
+  const tOrcUSD   = dados.reduce((s,d)=>s+d.orcUSD,0);
+  const tCompUSD  = dados.reduce((s,d)=>s+d.compUSD,0);
+  const tCompBRL  = dados.reduce((s,d)=>s+d.compBRL,0);
+  const tFirmUSD  = dados.reduce((s,d)=>s+d.firmUSD,0);
+  const tSaldoUSD = dados.reduce((s,d)=>s+d.saldoUSD,0);
+  const tSaldoBRL = dados.reduce((s,d)=>s+d.saldoBRL,0);
+  const totalTDRs = dados.reduce((s,d)=>s+d.linhas.length,0);
+  const firmados  = dados.reduce((s,d)=>s+d.linhas.filter(l=>l.firmado).length,0);
+  const estouros  = dados.filter(d=>d.saldoUSD<0).length;
+
+  // Célula de valor: USD principal + BRL de referência (BRL à cotação atual)
+  const val = (usd,brl,destaque) => `<span class="mono"${destaque&&usd<0?' style="color:var(--erro);font-weight:700"':''}>${fmtUSD(usd)}</span><div class="mono-sm" style="color:var(--cinza-400)">${fmtBRL(brl)}</div>`;
+  const pctOrc = tOrcUSD>0 ? (tSaldoUSD/tOrcUSD*100) : 0;
+
+  const corpo = dados.map(d=>{
+    const estourou = d.saldoUSD < 0;
+    const pctComp = d.orcUSD>0 ? Math.min(100, d.compUSD/d.orcUSD*100) : (d.compUSD>0?100:0);
+    const barCls = estourou?'crit':pctComp>90?'warn':'';
+    // Cabeçalho da atividade
+    let bloco = `<tr style="background:#eef5f0">
+      <td colspan="3" style="border-top:2px solid #c8e6d0">
+        <strong style="color:#1F4E2C">${esc(d.a.codigo||'')}</strong> · ${esc(d.a.nome_pt||'')}
+        ${d.a.resultado?.codigo?`<span class="rep-badge rb-verde" style="margin-left:6px">R${d.a.resultado.codigo}</span>`:''}
+        <span style="font-size:10px;color:var(--cinza-500)"> · ${d.linhas.length} TDR${d.linhas.length!==1?'s':''}</span>
+      </td>
+      <td style="text-align:right;border-top:2px solid #c8e6d0">${val(d.orcUSD, toBRL(d.orcUSD))}</td>
+      <td style="text-align:right;border-top:2px solid #c8e6d0">${val(d.compUSD, d.compBRL)}</td>
+      <td style="text-align:right;border-top:2px solid #c8e6d0"><div class="rep-barra" style="margin-bottom:3px"><div class="rep-barra-fill ${barCls}" style="width:${pctComp.toFixed(0)}%"></div></div></td>
+    </tr>`;
+    // Linhas de TDR
+    if(d.linhas.length){
+      bloco += d.linhas.map(l=>{
+        const numsContrato = l.conts.map(c=>esc(c.numero||'—')).join(', ');
+        return `<tr>
+          <td style="padding-left:22px;color:var(--cinza-600)">↳ <span class="mono">${esc(l.t.numero||'—')}</span></td>
+          <td>${tdrBadge(l.t.status)}</td>
+          <td>${l.firmado
+            ? `<span class="rep-badge rb-teal">🔒 ${numsContrato}</span>`
+            : `<span style="font-size:10px;color:var(--cinza-400)">— sem contrato —</span>`}</td>
+          <td></td>
+          <td style="text-align:right">${val(l.cUSD, l.cBRL)}</td>
+          <td></td>
+        </tr>`;
+      }).join('');
+    } else {
+      bloco += `<tr><td style="padding-left:22px;color:var(--cinza-400)" colspan="4">Nenhum TDR — orçamento totalmente livre</td><td></td><td></td></tr>`;
+    }
+    // Saldo individual da atividade
+    bloco += `<tr style="background:${estourou?'#FEF2F2':'#f8faf8'}">
+      <td colspan="4" style="text-align:right;font-weight:600;color:${estourou?'#991B1B':'#1F4E2C'}">
+        ${estourou?'⚠ Orçamento estourado · ':''}Saldo livre da atividade (orçamento − comprometido)
+      </td>
+      <td></td>
+      <td style="text-align:right">${val(d.saldoUSD, d.saldoBRL, true)}</td>
+    </tr>`;
+    return bloco;
+  }).join('');
+
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento Total (USD)</div><div class="rep-stat-val">${fmtUSD(tOrcUSD)}</div><div class="rep-stat-sub">${dados.length} atividade${dados.length!==1?'s':''}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Comprometido (USD)</div><div class="rep-stat-val">${fmtUSD(tCompUSD)}</div><div class="rep-stat-sub">${totalTDRs} TDR${totalTDRs!==1?'s':''} · ${fmtBRL(tCompBRL)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Firmado em Contrato (USD)</div><div class="rep-stat-val">${fmtUSD(tFirmUSD)}</div><div class="rep-stat-sub">${firmados} TDR${firmados!==1?'s':''} com contrato</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo Livre (USD)</div><div class="rep-stat-val"${tSaldoUSD<0?' style="color:var(--erro)"':''}>${fmtUSD(tSaldoUSD)}</div><div class="rep-stat-sub">${fmtPct1(pctOrc)} do orçamento${estouros?` · ${estouros} estourada${estouros!==1?'s':''}`:''}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">⚖️ Saldo de Orçamento por Atividade · TDRs comprometidos e firmados</div>
+    <table class="rep-tbl">
+      <thead><tr>
+        <th>Atividade / TDR</th>
+        <th>Status TDR</th>
+        <th>Contrato firmado</th>
+        <th style="text-align:right">Orçamento</th>
+        <th style="text-align:right">Comprometido</th>
+        <th style="text-align:right;min-width:110px">Saldo livre</th>
+      </tr></thead>
+      <tbody>
+        ${corpo}
+      </tbody>
+      <tfoot><tr>
+        <td colspan="3"><strong>TOTAL GERAL</strong></td>
+        <td style="text-align:right">${val(tOrcUSD, toBRL(tOrcUSD))}</td>
+        <td style="text-align:right">${val(tCompUSD, tCompBRL)}</td>
+        <td style="text-align:right">${val(tSaldoUSD, tSaldoBRL, true)}</td>
+      </tr></tfoot>
+    </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px;line-height:1.6">
+      Valores em <strong>USD</strong> (moeda do orçamento); linha menor em <strong>BRL</strong> é referência à cotação atual${taxa>0?` de R$ ${taxa.toFixed(4)}`:''}.
+      Comprometido = valor do <strong>contrato</strong> quando o TDR já está firmado (🔒), senão o valor do próprio TDR. TDRs cancelados não entram no cálculo.
+      Saldo livre = Orçamento − Comprometido (o que ainda não está reservado a nenhum TDR).
+    </div>
   </div>`;
 }
 
