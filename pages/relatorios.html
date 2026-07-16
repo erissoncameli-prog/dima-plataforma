@@ -407,9 +407,17 @@ function getAbasPermitidas(){
   const perfil=appState.perfil;
   if(['super_admin','coordenacao'].includes(perfil))
     return TEMAS.filter(t=>t.id!=='todos').map(t=>t.id);
+  // Temas liberados por padrão a certos perfis (além das permissões dinâmicas do super_admin).
+  // Financeiro acompanha o saldo de orçamento por atividade (tema Atividades) — tem RLS de
+  // leitura total em tdrs/contratos, então o comprometido/saldo sai completo. Técnico fica de
+  // fora aqui: sua RLS restringe tdrs/contratos aos que é responsável, o que subestimaria o
+  // comprometido e mostraria saldo maior que o real. Para incluí-lo, liberar via permissão
+  // dinâmica (relatorios_atividades) e/ou ampliar a RLS de leitura.
+  const PADRAO_POR_PERFIL = { financeiro:['atividades'] };
+  const padrao = PADRAO_POR_PERFIL[perfil] || [];
   return TEMAS
     .filter(t=>t.id!=='todos'&&t.id!=='usuarios'&&t.id!=='logs')
-    .filter(t=>appState.permissoes.includes('relatorios_'+t.id))
+    .filter(t=>padrao.includes(t.id)||appState.permissoes.includes('relatorios_'+t.id))
     .map(t=>t.id);
 }
 
