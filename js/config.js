@@ -306,6 +306,9 @@ function fmtUSD(v) {
   if (v == null || v === '') return '—';
   return 'U$ ' + new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 }
+function fmtPct1(v) {
+  return v == null ? '—' : Number(v).toFixed(1) + '%';
+}
 function fmtData(d) {
   if (!d) return '—';
   const s = String(d);
