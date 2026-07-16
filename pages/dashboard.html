@@ -134,12 +134,14 @@ var D_P = function(v,t){ return t>0 ? Math.min(parseFloat(v||0)/parseFloat(t)*10
 var D = {};
 var CHARTS = {};
 var _podeCobertura = false; // definido após carregarUsuario()
+var _podeSaldo = false;     // painel Saldo de Orçamento — só coordenação/super_admin
 
 // ── Init ──────────────────────────────────────────────────
 (async function(){
   var u = await carregarUsuario();
   if(!u){ window.location.href='../index.html'; return; }
   _podeCobertura = ['super_admin','coordenacao'].includes(appState.perfil) || (appState.permissoes||[]).includes('dashboard_cobertura');
+  _podeSaldo = ['super_admin','coordenacao'].includes(appState.perfil);
 
   // Render layout normal
   document.getElementById('app').innerHTML = gerarLayout(
@@ -150,6 +152,7 @@ var _podeCobertura = false; // definido após carregarUsuario()
     <div id="pane-operacional" class="dash-pane"></div>
     <div id="pane-resultados" class="dash-pane"></div>
     <div id="pane-execucao" class="dash-pane"></div>
+    <div id="pane-saldo" class="dash-pane"></div>
     <div id="pane-alertas" class="dash-pane"></div>
     <div id="pane-cobertura" class="dash-pane"></div>
   ` + fecharLayout();
@@ -181,6 +184,7 @@ var _podeCobertura = false; // definido após carregarUsuario()
       ['execucao','Execução financeira'],
       ['alertas','Alertas'],
     ];
+    if(_podeSaldo) _tabDefs.push(['saldo','⚖️ Saldo de Orçamento']);
     if(_podeCobertura) _tabDefs.push(['cobertura','Cobertura de Indicadores']);
     // Aba inicial: técnicos abrem em Tarefas, demais em Financiadores
     var _abaInicial = (appState.perfil === 'tecnico') ? 'tarefas' : 'financiadores';
@@ -229,7 +233,7 @@ async function loadData(){
     db.from('indicadores').select('*,resultados(codigo,nome_pt)').eq('ativo',true),
     db.from('execucao_financeira').select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome),contratos(id,numero)'),
     db.from('fornecedores').select('id,nome,tipo'),
-    db.from('contratos').select('id,numero,objeto_pt,valor_total_brl,status'),
+    db.from('contratos').select('id,numero,objeto_pt,valor_total_brl,status,tdr_id'),
     db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade').eq('ativo',true).order('ordem'),
     db.from('vw_matriz_progresso').select('*'),
     db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
@@ -248,6 +252,7 @@ async function loadData(){
   renderResultados();
   renderExecucao();
   renderAlertas();
+  if(_podeSaldo) renderSaldo();
   if(_podeCobertura) renderCobertura();
 }
 
@@ -836,6 +841,165 @@ function renderOperacional(){
 // ─────────────────────────────────────────────────────────
 // GUIA 3 — RESULTADOS × FINANCEIRO
 // ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// PAINEL — SALDO DE ORÇAMENTO POR ATIVIDADE (coord/super_admin)
+// Orçamento → Comprometido (TDRs) → Firmado (c/ contrato) → Saldo livre
+// ─────────────────────────────────────────────────────────
+var _saldoRows=[], _firmSet={};
+var SALDO_COR={firm:'#047857',afirm:'#F59E0B',livre:'#94A3B8',exc:'#DC2626'};
+var STAT_COR={ok:'#10B981',atencao:'#FACC15',critico:'#F97316',extrapolado:'#B91C1C',sem_orcamento:'#D1D5DB'};
+var STAT_LBL={ok:'OK',atencao:'Atenção',critico:'Crítico',extrapolado:'Estourado',sem_orcamento:'Sem orçamento'};
+var STAT_ICO={ok:'✓',atencao:'!',critico:'▲',extrapolado:'✕',sem_orcamento:'–'};
+
+function renderSaldo(){
+  // TDRs firmados = os que já têm contrato vinculado (contratos.tdr_id)
+  _firmSet={};
+  D.contr.forEach(function(c){ if(c.tdr_id) _firmSet[c.tdr_id]=true; });
+
+  // Uma linha por atividade a partir da view vw_saldo_atividade (comprometido = Σ valor_usd dos TDRs)
+  _saldoRows = D.sal.map(function(s){
+    var tdrsAtv = D.tdrs.filter(function(t){ return t.atividade_id===s.id && t.status!=='cancelado'; });
+    var firmado = tdrsAtv.reduce(function(acc,t){ return acc + (_firmSet[t.id] ? parseFloat(t.valor_usd||0) : 0); }, 0);
+    var orc  = parseFloat(s.orcamento_usd||0);
+    var comp = parseFloat(s.comprometido_usd||0);
+    return {
+      id:s.id, codigo:s.codigo||'—', nome:s.nome_pt||'',
+      orc:orc, comp:comp, firmado:firmado, aFirmar:Math.max(0,comp-firmado),
+      livre:Math.max(0,orc-comp), status:s.status_saldo||'ok',
+      pctComp: orc>0 ? comp/orc*100 : 0,
+      nTdrs: tdrsAtv.length, nFirmados: tdrsAtv.filter(function(t){return _firmSet[t.id];}).length
+    };
+  }).filter(function(r){ return r.orc>0 || r.comp>0; })
+    .sort(function(a,b){ return b.pctComp - a.pctComp; });
+
+  var rows=_saldoRows;
+  var tOrc  = rows.reduce(function(s,r){return s+r.orc;},0);
+  var tComp = rows.reduce(function(s,r){return s+r.comp;},0);
+  var tFirm = rows.reduce(function(s,r){return s+r.firmado;},0);
+  var tAfirm= Math.max(0,tComp-tFirm);
+  var tLivre= Math.max(0,tOrc-tComp);
+  var tExc  = Math.max(0,tComp-tOrc);
+  var nFirmTdrs = rows.reduce(function(s,r){return s+r.nFirmados;},0);
+  var nExtra = rows.filter(function(r){return r.comp>r.orc;}).length;
+
+  // Contagem por status
+  var statOrder=['ok','atencao','critico','extrapolado','sem_orcamento'];
+  var statCnt={}; statOrder.forEach(function(k){statCnt[k]=0;});
+  rows.forEach(function(r){ if(statCnt[r.status]===undefined)statCnt[r.status]=0; statCnt[r.status]++; });
+
+  // ── KPIs ──────────────────────────────────────────────────
+  var h='<div class="kpi-row">';
+  h+='<div class="kpi-card ka"><div class="kpi-lbl">Orçamento total</div><div class="kpi-val" style="color:var(--azul-medio)">'+D_USD(tOrc)+'</div><div class="kpi-sub">'+rows.length+' atividades</div></div>';
+  h+='<div class="kpi-card ko"><div class="kpi-lbl">Comprometido (TDRs)</div><div class="kpi-val" style="color:#D97706">'+D_USD(tComp)+'</div><div class="kpi-sub">'+D_PCT(tOrc>0?tComp/tOrc*100:0)+' do orçamento</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+Math.min(100,tOrc>0?tComp/tOrc*100:0)+'%;background:#D97706"></div></div></div>';
+  h+='<div class="kpi-card kv"><div class="kpi-lbl">Firmado em contrato</div><div class="kpi-val" style="color:#047857">'+D_USD(tFirm)+'</div><div class="kpi-sub">'+D_PCT(tComp>0?tFirm/tComp*100:0)+' do comprometido · '+nFirmTdrs+' TDRs</div><div class="kpi-bar"><div class="kpi-fill" style="width:'+Math.min(100,tComp>0?tFirm/tComp*100:0)+'%;background:#047857"></div></div></div>';
+  h+='<div class="kpi-card '+(tLivre<=0?'ke':'kv')+'"><div class="kpi-lbl">Saldo livre</div><div class="kpi-val" style="color:'+(tLivre<=0?'#DC2626':'#059669')+'">'+D_USD(tLivre)+'</div><div class="kpi-sub">'+D_PCT(tOrc>0?tLivre/tOrc*100:0)+' do orçamento'+(nExtra>0?' · <span style="color:#DC2626">'+nExtra+' estouradas</span>':'')+'</div></div>';
+  h+='</div>';
+
+  // ── Termômetro do portfólio + Status ──────────────────────
+  var den=Math.max(tOrc,tComp)||1;
+  function seg(v,cor,lbl){ var w=v/den*100; if(w<=0)return''; return '<div title="'+lbl+': '+D_USD(v)+'" style="width:'+w+'%;background:'+cor+';display:flex;align-items:center;justify-content:center;overflow:hidden">'+(w>9?'<span style="font-size:10px;font-weight:700;color:#fff;white-space:nowrap;text-shadow:0 1px 1px rgba(0,0,0,.25)">'+Math.round(w)+'%</span>':'')+'</div>'; }
+  h+='<div class="g2" style="margin-bottom:14px">';
+  h+='<div class="ch"><div class="ch-tit">Composição do orçamento do portfólio</div><div class="ch-sub">Como o orçamento total se divide hoje</div>';
+  h+='<div style="display:flex;height:30px;border-radius:6px;overflow:hidden;gap:2px;background:var(--cinza-100);margin:10px 0 12px">';
+  h+=seg(tFirm,SALDO_COR.firm,'Firmado')+seg(tAfirm,SALDO_COR.afirm,'A firmar')+seg(tLivre,SALDO_COR.livre,'Saldo livre')+seg(tExc,SALDO_COR.exc,'Excedente');
+  h+='</div>';
+  h+='<div style="display:flex;flex-wrap:wrap;gap:12px;font-size:11px">'
+    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:'+SALDO_COR.firm+'"></span>Firmado '+D_USD(tFirm)+'</span>'
+    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:'+SALDO_COR.afirm+'"></span>A firmar '+D_USD(tAfirm)+'</span>'
+    +'<span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:'+SALDO_COR.livre+'"></span>Saldo livre '+D_USD(tLivre)+'</span>'
+    +(tExc>0?'<span style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:'+SALDO_COR.exc+'"></span>Excedente '+D_USD(tExc)+'</span>':'')
+    +'</div></div>';
+  // Status das atividades
+  h+='<div class="ch"><div class="ch-tit">Atividades por status de saldo</div><div class="ch-sub">Consumo do orçamento pelos TDRs</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">';
+  statOrder.forEach(function(k){
+    if(!statCnt[k])return;
+    var pct=rows.length>0?statCnt[k]/rows.length*100:0;
+    h+='<div style="display:flex;align-items:center;gap:10px">'
+      +'<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:'+STAT_COR[k]+';color:#fff;font-size:10px;font-weight:800;flex-shrink:0">'+STAT_ICO[k]+'</span>'
+      +'<span style="font-size:11px;color:var(--cinza-700);width:96px;flex-shrink:0">'+STAT_LBL[k]+'</span>'
+      +'<div style="flex:1;height:14px;background:var(--cinza-100);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+STAT_COR[k]+';border-radius:4px"></div></div>'
+      +'<span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cinza-800);width:26px;text-align:right;flex-shrink:0">'+statCnt[k]+'</span>'
+      +'</div>';
+  });
+  h+='<div style="font-size:10px;color:var(--cinza-500);margin-top:6px">Atenção ≥75% · Crítico ≥95% · Estourado &gt;100% do orçamento comprometido</div>';
+  h+='</div></div>';
+
+  // ── Gráfico principal: barras por atividade (USD absoluto) ──
+  h+='<div class="ch" style="margin-bottom:14px"><div class="ch-tit">Saldo de orçamento por atividade</div><div class="ch-sub">Firmado + a firmar + saldo livre, em U$ · ordenado por % comprometido · clique para detalhes</div>';
+  h+='<div style="position:relative;height:'+(rows.length*26+70)+'px;min-height:220px"><canvas id="ch-saldo-atv"></canvas></div></div>';
+
+  // ── Quadrante de risco ────────────────────────────────────
+  h+='<div class="ch"><div class="ch-tit">Quadrante de risco</div><div class="ch-sub">% comprometido × saldo livre (U$) · tamanho da bolha = orçamento · clique para detalhes</div>';
+  h+='<div style="position:relative;height:340px"><canvas id="ch-saldo-quad"></canvas></div>';
+  h+='<div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Direita da linha de 100% = orçamento comprometido além do previsto. Bolhas no alto à esquerda = muito saldo livre ainda a planejar.</div></div>';
+
+  if(!rows.length) h='<div class="empty-state"><div class="empty-state-icon">⚖️</div><div class="empty-state-msg">Nenhuma atividade com orçamento cadastrado.</div></div>';
+  document.getElementById('pane-saldo').innerHTML=h;
+  if(!rows.length)return;
+
+  setTimeout(function(){
+    // Barras horizontais empilhadas por atividade
+    var labels=rows.map(function(r){return r.codigo;});
+    var dsFirm=rows.map(function(r){return Math.min(r.firmado,r.orc);});
+    var dsAfirm=rows.map(function(r){return Math.max(0,Math.min(r.comp,r.orc)-Math.min(r.firmado,r.orc));});
+    var dsLivre=rows.map(function(r){return Math.max(0,r.orc-r.comp);});
+    var dsExc=rows.map(function(r){return Math.max(0,r.comp-r.orc);});
+    mkChart('ch-saldo-atv',{type:'bar',data:{labels:labels,datasets:[
+      {label:'Firmado',data:dsFirm,backgroundColor:SALDO_COR.firm,borderWidth:0,borderRadius:2,stack:'s'},
+      {label:'A firmar',data:dsAfirm,backgroundColor:SALDO_COR.afirm,borderWidth:0,borderRadius:2,stack:'s'},
+      {label:'Saldo livre',data:dsLivre,backgroundColor:SALDO_COR.livre,borderWidth:0,borderRadius:2,stack:'s'},
+      {label:'Excedente',data:dsExc,backgroundColor:SALDO_COR.exc,borderWidth:0,borderRadius:2,stack:'s'},
+    ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': '+D_USD(ctx.parsed.x);},
+          afterBody:function(items){var r=rows[items[0].dataIndex];return ['','Orçamento: '+D_USD(r.orc),'Comprometido: '+D_USD(r.comp)+' ('+D_PCT(r.pctComp)+')'];}}}},
+      scales:{x:{stacked:true,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},callback:function(v){return 'U$'+Math.round(v/1000)+'K';}}},
+        y:{stacked:true,grid:{display:false},ticks:{font:{size:10,family:'var(--font-mono)'},autoSkip:false}}}}});
+    addPopupToChart('ch-saldo-atv',function(idx){return _popSaldoRow(rows[idx]);});
+
+    // Quadrante de risco (bubble) — datasets por status p/ legenda
+    var maxOrc=Math.max.apply(null,rows.map(function(r){return r.orc;}).concat([1]));
+    function bub(r){ return Math.max(6,Math.min(26,Math.sqrt(r.orc/maxOrc)*26)); }
+    var quadDs=statOrder.filter(function(k){return statCnt[k];}).map(function(k){
+      return {label:STAT_LBL[k],
+        data:rows.filter(function(r){return r.status===k;}).map(function(r){return {x:r.pctComp,y:r.orc-r.comp,r:bub(r),_row:r};}),
+        backgroundColor:STAT_COR[k]+'cc',borderColor:STAT_COR[k],borderWidth:1.5};
+    });
+    mkChart('ch-saldo-quad',{type:'bubble',data:{datasets:quadDs},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10,usePointStyle:true}},
+          tooltip:{callbacks:{label:function(ctx){var r=ctx.raw._row;return r.codigo+' — comp '+D_PCT(r.pctComp)+' · saldo '+D_USD(r.orc-r.comp)+' · orç '+D_USD(r.orc);}}}},
+        scales:{x:{title:{display:true,text:'% comprometido',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},callback:function(v){return v+'%';}}},
+          y:{title:{display:true,text:'Saldo livre (U$)',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},callback:function(v){return 'U$'+Math.round(v/1000)+'K';}}}}},
+      plugins:[{id:'quadLines',afterDraw:function(c){var ct=c.ctx,xs=c.scales.x,ys=c.scales.y;
+        function vline(xv,col,dash){var px=xs.getPixelForValue(xv);if(px<xs.left||px>xs.right)return;ct.save();ct.strokeStyle=col;ct.lineWidth=1.5;ct.setLineDash(dash);ct.beginPath();ct.moveTo(px,ys.top);ct.lineTo(px,ys.bottom);ct.stroke();ct.restore();}
+        function hline(yv,col){var py=ys.getPixelForValue(yv);if(py<ys.top||py>ys.bottom)return;ct.save();ct.strokeStyle=col;ct.lineWidth=1;ct.setLineDash([3,3]);ct.beginPath();ct.moveTo(xs.left,py);ct.lineTo(xs.right,py);ct.stroke();ct.restore();}
+        vline(100,'#DC2626',[5,4]);hline(0,'#9CA3AF');}}]});
+    addPopupToChart('ch-saldo-quad',function(idx,ds,chart){var pt=chart.data.datasets[ds].data[idx];return _popSaldoRow(pt._row);});
+  },50);
+}
+
+function _popSaldoRow(row){
+  if(!row)return null;
+  var html=_popRows([
+    ['Orçamento',D_USD(row.orc)],
+    ['Comprometido',D_USD(row.comp)+' ('+D_PCT(row.pctComp)+')'],
+    ['Firmado (contrato)',D_USD(row.firmado)+' · '+row.nFirmados+' TDR(s)'],
+    ['A firmar',D_USD(row.aFirmar)],
+    ['Saldo livre',D_USD(row.orc-row.comp)],
+    ['Status',STAT_LBL[row.status]||row.status]
+  ]);
+  var tdrsAtv=D.tdrs.filter(function(t){return t.atividade_id===row.id && t.status!=='cancelado';})
+    .sort(function(a,b){return parseFloat(b.valor_usd||0)-parseFloat(a.valor_usd||0);});
+  html+=_popSec('TDRs ('+tdrsAtv.length+')');
+  html+=_popList(tdrsAtv.slice(0,8).map(function(t){
+    var firm=_firmSet[t.id];
+    return '<span style="font-family:var(--font-mono);font-size:10px;font-weight:700;color:#6B7280">'+t.numero+'</span> '+D_USD(t.valor_usd||0)+' '+(firm?'<span style="color:#047857;font-weight:700">🔒 firmado</span>':'<span style="color:#9CA3AF">○ a firmar</span>');
+  }));
+  if(tdrsAtv.length>8)html+='<div class="cpop-empty">... e mais '+(tdrsAtv.length-8)+'</div>';
+  return {title:row.codigo+(row.nome?' — '+row.nome.substring(0,26):''), html:html, color: row.comp>row.orc?'#DC2626':'#047857'};
+}
+
 function renderResultados(){
   var rm=resMap(); var rks=Object.keys(rm);
   var pago=D.lanc.filter(function(l){return l.situacao==='pago';}).reduce(function(s,l){return s+parseFloat(l.valor_usd||0);},0);
