@@ -202,7 +202,7 @@ let visaoAtual = 'lancamentos';
           placeholder="Buscar descrição ou NF..." oninput="renderLancamentos()"
           autocomplete="new-password" readonly
           onfocus="this.removeAttribute('readonly')" onblur="if(!this.value)this.setAttribute('readonly','')">
-        <select class="form-control" id="fil-sit" onchange="renderLancamentos()" style="width:130px">
+        <select class="form-control" id="fil-sit" onchange="sincronizarFiltroCardFin()" style="width:130px">
           <option value="">Todas situações</option>
           <option value="pago">Pago</option>
           <option value="a_pagar">A Pagar</option>
