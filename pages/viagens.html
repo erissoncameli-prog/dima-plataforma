@@ -862,6 +862,22 @@ async function marcarLida(id,el){
   el?.remove();
 }
 
+function waterHTML(color,pct){
+  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
+    <div class="wc-wavewrap">
+      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
+      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
+    </div>
+  </div>`;
+}
+function animarAgua(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
+      el.style.height=el.dataset.alvo+'%';
+    });
+  }));
+}
+
 function renderStats(){
   const t=protocolos;
   const totalVal=t.reduce((s,p)=>{
@@ -872,12 +888,14 @@ function renderStats(){
     },0);
   },0);
   const sFilt=document.getElementById('f-sit-filt')?.value||'';
+  const den=t.length||1;
   document.getElementById('stats').innerHTML=`
-    <div class="stat-card sc-b${sFilt===''?'':''}" onclick="filtroCard('')"><div class="stat-lbl">Protocolos</div><div class="stat-val">${t.length}</div><div class="stat-sub">total</div></div>
-    <div class="stat-card sc-a${sFilt==='solicitado'?' ativo':''}" onclick="filtroCard('solicitado')"><div class="stat-lbl">Aguardando</div><div class="stat-val" style="color:var(--aviso)">${t.filter(p=>p.situacao==='solicitado').length}</div><div class="stat-sub">aprovação</div></div>
-    <div class="stat-card sc-g${sFilt==='aprovado'?' ativo':''}" onclick="filtroCard('aprovado')"><div class="stat-lbl">Aprovados</div><div class="stat-val">${t.filter(p=>p.situacao==='aprovado').length}</div><div class="stat-sub">em andamento</div></div>
-    <div class="stat-card sc-t${sFilt==='em_prestacao'?' ativo':''}" onclick="filtroCard('em_prestacao')"><div class="stat-lbl">Prestação</div><div class="stat-val" style="color:#0D9488">${t.filter(p=>p.situacao==='em_prestacao').length}</div><div class="stat-sub">aguardando docs</div></div>
-    <div class="stat-card sc-g${sFilt==='realizado'?' ativo':''}" onclick="filtroCard('realizado')"><div class="stat-lbl">Realizados</div><div class="stat-val" style="color:var(--sucesso)">${t.filter(p=>p.situacao==='realizado').length}</div><div class="stat-sub">lançados</div></div>`;
+    <div class="stat-card sc-b${sFilt===''?'':''}" onclick="filtroCard('')">${waterHTML('var(--azul-medio)',100)}<div class="stat-lbl">Protocolos</div><div class="stat-val">${t.length}</div><div class="stat-sub">total</div></div>
+    <div class="stat-card sc-a${sFilt==='solicitado'?' ativo':''}" onclick="filtroCard('solicitado')">${waterHTML('var(--aviso)',Math.round(t.filter(p=>p.situacao==='solicitado').length/den*100))}<div class="stat-lbl">Aguardando</div><div class="stat-val" style="color:var(--aviso)">${t.filter(p=>p.situacao==='solicitado').length}</div><div class="stat-sub">aprovação</div></div>
+    <div class="stat-card sc-g${sFilt==='aprovado'?' ativo':''}" onclick="filtroCard('aprovado')">${waterHTML('var(--verde-claro)',Math.round(t.filter(p=>p.situacao==='aprovado').length/den*100))}<div class="stat-lbl">Aprovados</div><div class="stat-val">${t.filter(p=>p.situacao==='aprovado').length}</div><div class="stat-sub">em andamento</div></div>
+    <div class="stat-card sc-t${sFilt==='em_prestacao'?' ativo':''}" onclick="filtroCard('em_prestacao')">${waterHTML('#0D9488',Math.round(t.filter(p=>p.situacao==='em_prestacao').length/den*100))}<div class="stat-lbl">Prestação</div><div class="stat-val" style="color:#0D9488">${t.filter(p=>p.situacao==='em_prestacao').length}</div><div class="stat-sub">aguardando docs</div></div>
+    <div class="stat-card sc-g${sFilt==='realizado'?' ativo':''}" onclick="filtroCard('realizado')">${waterHTML('var(--sucesso)',Math.round(t.filter(p=>p.situacao==='realizado').length/den*100))}<div class="stat-lbl">Realizados</div><div class="stat-val" style="color:var(--sucesso)">${t.filter(p=>p.situacao==='realizado').length}</div><div class="stat-sub">lançados</div></div>`;
+  animarAgua();
 }
 
 function filtroCard(status){
