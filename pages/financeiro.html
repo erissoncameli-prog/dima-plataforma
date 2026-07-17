@@ -476,11 +476,12 @@ function clicarCardFin(card){
     if(CARDS_FIN_STATUS_UNICO.includes(filtroCardFin)) selSit.value=filtroCardFin;
     else if(CARDS_FIN_STATUS_UNICO.includes(selSit.value)) selSit.value='';
   }
+  renderStats();
   if(visaoAtual!=='lancamentos'){
     mudarVisao('lancamentos', document.querySelector('.visao-tab'));
+  } else {
+    renderLancamentos();
   }
-  renderStats();
-  renderLancamentos();
 }
 
 function mudarVisao(v, btn) {
