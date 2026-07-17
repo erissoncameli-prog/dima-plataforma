@@ -436,33 +436,51 @@ function renderStats() {
   const totalAPagar = aPagar.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
   const totalGeral = ativos.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
   const vencidos = aPagar.filter(l=>l.dt_vencimento&&new Date(l.dt_vencimento)<new Date()).length;
+  const ativo=c=>filtroCardFin===c?' ativo':'';
 
   document.getElementById('stats').innerHTML = `
-    <div class="stat-card sc-g">
+    <div class="stat-card sc-g${ativo('pago')}" onclick="clicarCardFin('pago')">
       <div class="stat-lbl">Total Executado</div>
       <div class="stat-val">${fmtBRL(totalPago)}</div>
       <div class="stat-sub">${pagos.length} pagamentos</div>
     </div>
-    <div class="stat-card sc-a">
+    <div class="stat-card sc-a${ativo('a_pagar')}" onclick="clicarCardFin('a_pagar')">
       <div class="stat-lbl">A Pagar</div>
       <div class="stat-val">${fmtBRL(totalAPagar)}</div>
       <div class="stat-sub">${aPagar.length} lançamentos</div>
     </div>
-    <div class="stat-card sc-b">
+    <div class="stat-card sc-b${ativo('total')}" onclick="clicarCardFin('total')">
       <div class="stat-lbl">Total Comprometido</div>
       <div class="stat-val">${fmtBRL(totalGeral)}</div>
       <div class="stat-sub">pago + a pagar</div>
     </div>
-    <div class="stat-card sc-t">
+    <div class="stat-card sc-t${ativo('usd')}" onclick="clicarCardFin('usd')">
       <div class="stat-lbl">Em USD (cotação atual)</div>
       <div class="stat-val" style="font-size:14px">${fmtUSD(totalGeral/taxaAtual)}</div>
       <div class="stat-sub">R$ ${taxaAtual.toFixed(2)}/USD</div>
     </div>
-    <div class="stat-card ${vencidos>0?'sc-r':'sc-g'}">
+    <div class="stat-card ${vencidos>0?'sc-r':'sc-g'}${ativo('vencidos')}" onclick="clicarCardFin('vencidos')">
       <div class="stat-lbl">Vencidos</div>
-      <div class="stat-val" style="color:${vencidos>0?'var(--erro)':'var(--sucesso)'}">${vencidos}</div>
+      <div class="stat-val" style="color:${filtroCardFin==='vencidos'?'':(vencidos>0?'var(--erro)':'var(--sucesso)')}">${vencidos}</div>
       <div class="stat-sub">aguardando pagamento</div>
     </div>`;
+}
+
+// ── Filtro por clique nos cards de estatística ───────────────
+let filtroCardFin='';
+const CARDS_FIN_STATUS_UNICO=['pago','a_pagar'];
+function clicarCardFin(card){
+  filtroCardFin=(filtroCardFin===card)?'':card;
+  const selSit=document.getElementById('fil-sit');
+  if(selSit){
+    if(CARDS_FIN_STATUS_UNICO.includes(filtroCardFin)) selSit.value=filtroCardFin;
+    else if(CARDS_FIN_STATUS_UNICO.includes(selSit.value)) selSit.value='';
+  }
+  if(visaoAtual!=='lancamentos'){
+    mudarVisao('lancamentos', document.querySelector('.visao-tab'));
+  }
+  renderStats();
+  renderLancamentos();
 }
 
 function mudarVisao(v, btn) {
