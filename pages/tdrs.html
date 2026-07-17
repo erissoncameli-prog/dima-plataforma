@@ -419,6 +419,22 @@ async function carregar(){
   }catch(e){toast('Erro ao carregar TDRs.','error');}
 }
 
+function waterHTML(color,pct){
+  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
+    <div class="wc-wavewrap">
+      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
+      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
+    </div>
+  </div>`;
+}
+function animarAgua(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
+      el.style.height=el.dataset.alvo+'%';
+    });
+  }));
+}
+
 function renderStats(){
   const t=todosTDRs;
   const soma=arr=>arr.reduce((s,x)=>s+parseFloat(x.valor_brl||0),0);
@@ -429,43 +445,52 @@ function renderStats(){
   const tAtrasados=t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(x.status));
   const tContratado=t.filter(x=>x.status==='contratado');
   const ativo=c=>filtroCard===c?' ativo':'';
+  const den=t.length||1;
+  const pct=n=>Math.round(n/den*100);
   document.getElementById('stats').innerHTML=`
     <div class="stat-card sc-g${ativo('total')}" onclick="clicarCardStat('total')">
+      ${waterHTML('var(--verde-claro)',100)}
       <div class="stat-lbl">Total</div>
       <div class="stat-val">${t.length}</div>
       <div class="stat-sub">${tAprovados.length} aprovados</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--verde-medio);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAtivos))}</div>
     </div>
     <div class="stat-card sc-b${ativo('rascunho')}" onclick="clicarCardStat('rascunho')">
+      ${waterHTML('var(--azul-medio)',pct(tRascunho.length))}
       <div class="stat-lbl">Rascunho</div>
       <div class="stat-val">${tRascunho.length}</div>
       <div class="stat-sub">aguardando revisão</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--azul-medio);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tRascunho))}</div>
     </div>
     <div class="stat-card sc-t${ativo('andamento')}" onclick="clicarCardStat('andamento')">
+      ${waterHTML('#0D9488',pct(tAndamento.length))}
       <div class="stat-lbl">Em andamento</div>
       <div class="stat-val">${tAndamento.length}</div>
       <div class="stat-sub">em fluxo</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#0D9488;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAndamento))}</div>
     </div>
     <div class="stat-card sc-r${ativo('atrasados')}" onclick="clicarCardStat('atrasados')">
+      ${waterHTML('var(--erro)',pct(tAtrasados.length))}
       <div class="stat-lbl">Atrasados</div>
       <div class="stat-val">${tAtrasados.length}</div>
       <div class="stat-sub">prazo vencido</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--erro);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAtrasados))}</div>
     </div>
     <div class="stat-card sc-a${ativo('aprovados')}" onclick="clicarCardStat('aprovados')">
+      ${waterHTML('var(--aviso)',pct(tAprovados.length))}
       <div class="stat-lbl">Aprovados</div>
       <div class="stat-val">${tAprovados.length}</div>
       <div class="stat-sub">TDRs aprovados</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#D97706;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAprovados))}</div>
     </div>
     <div class="stat-card sc-c${ativo('contratado')}" onclick="clicarCardStat('contratado')">
+      ${waterHTML('#7C3AED',pct(tContratado.length))}
       <div class="stat-lbl">Contratado</div>
       <div class="stat-val">${tContratado.length}</div>
       <div class="stat-sub">TDRs contratados</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#7C3AED;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tContratado))}</div>
     </div>`;
+  animarAgua();
 }
 
 // ── Filtro por clique nos cards de estatística ───────────────
