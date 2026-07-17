@@ -218,25 +218,32 @@ async function carregar() {
   } catch(e) { toast('Erro ao carregar fornecedores.','error'); }
 }
 
+let filtroCardForn='';
+function clicarCardForn(card){
+  filtroCardForn=(filtroCardForn===card)?'':card;
+  renderStats();filtrar();
+}
+
 function renderStats() {
   const ativos = todosFornecedores.filter(f=>f.ativo);
+  const ativo=c=>filtroCardForn===c?' ativo':'';
   document.getElementById('stats').innerHTML = `
-    <div class="stat-card sc-g">
+    <div class="stat-card sc-g${ativo('total')}" onclick="clicarCardForn('total')">
       <div class="stat-lbl">Total Fornecedores</div>
       <div class="stat-val">${ativos.length}</div>
       <div class="stat-sub">${todosFornecedores.filter(f=>!f.ativo).length} inativos</div>
     </div>
-    <div class="stat-card sc-b">
+    <div class="stat-card sc-b${ativo('PF')}" onclick="clicarCardForn('PF')">
       <div class="stat-lbl">Pessoas Físicas</div>
       <div class="stat-val">${ativos.filter(f=>f.tipo==='PF').length}</div>
       <div class="stat-sub">consultores individuais</div>
     </div>
-    <div class="stat-card sc-a">
+    <div class="stat-card sc-a${ativo('PJ')}" onclick="clicarCardForn('PJ')">
       <div class="stat-lbl">Pessoas Jurídicas</div>
       <div class="stat-val">${ativos.filter(f=>f.tipo==='PJ').length}</div>
       <div class="stat-sub">empresas e consultorias</div>
     </div>
-    <div class="stat-card sc-r">
+    <div class="stat-card sc-r${ativo('com_contrato')}" onclick="clicarCardForn('com_contrato')">
       <div class="stat-lbl">Com Contrato</div>
       <div class="stat-val">${ativos.filter(f=>f.contrato_url).length}</div>
       <div class="stat-sub">doc assinado carregado</div>
@@ -255,6 +262,9 @@ function filtrar() {
         !(f.nome_fantasia||'').toLowerCase().includes(b)) return false;
     if (tp && f.tipo !== tp) return false;
     if (at !== '' && String(f.ativo) !== at) return false;
+    if (filtroCardForn==='PF' && f.tipo!=='PF') return false;
+    if (filtroCardForn==='PJ' && f.tipo!=='PJ') return false;
+    if (filtroCardForn==='com_contrato' && !f.contrato_url) return false;
     return true;
   });
 
