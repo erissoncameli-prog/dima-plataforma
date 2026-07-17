@@ -414,37 +414,52 @@ function renderStats(){
   const tAprovados=t.filter(x=>FASES_POS_APROVACAO.includes(x.status));
   const tAndamento=t.filter(x=>['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','em_licitacao'].includes(x.status));
   const tAtrasados=t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(x.status));
+  const ativo=c=>filtroCard===c?' ativo':'';
   document.getElementById('stats').innerHTML=`
-    <div class="stat-card sc-g">
+    <div class="stat-card sc-g${ativo('total')}" onclick="clicarCardStat('total')">
       <div class="stat-lbl">Total</div>
       <div class="stat-val">${t.length}</div>
       <div class="stat-sub">${tAprovados.length} aprovados</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--verde-medio);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAtivos))}</div>
     </div>
-    <div class="stat-card sc-b">
+    <div class="stat-card sc-b${ativo('rascunho')}" onclick="clicarCardStat('rascunho')">
       <div class="stat-lbl">Rascunho</div>
       <div class="stat-val">${tRascunho.length}</div>
       <div class="stat-sub">aguardando revisão</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--azul-medio);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tRascunho))}</div>
     </div>
-    <div class="stat-card sc-t">
+    <div class="stat-card sc-t${ativo('andamento')}" onclick="clicarCardStat('andamento')">
       <div class="stat-lbl">Em andamento</div>
       <div class="stat-val">${tAndamento.length}</div>
       <div class="stat-sub">em fluxo</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#0D9488;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAndamento))}</div>
     </div>
-    <div class="stat-card sc-r">
+    <div class="stat-card sc-r${ativo('atrasados')}" onclick="clicarCardStat('atrasados')">
       <div class="stat-lbl">Atrasados</div>
       <div class="stat-val">${tAtrasados.length}</div>
       <div class="stat-sub">prazo vencido</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--erro);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAtrasados))}</div>
     </div>
-    <div class="stat-card sc-a">
+    <div class="stat-card sc-a${ativo('aprovados')}" onclick="clicarCardStat('aprovados')">
       <div class="stat-lbl">Aprovados</div>
       <div class="stat-val">${tAprovados.length}</div>
       <div class="stat-sub">TDRs aprovados</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#D97706;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAprovados))}</div>
     </div>`;
+}
+
+// ── Filtro por clique nos cards de estatística ───────────────
+let filtroCard='';
+function clicarCardStat(card){
+  filtroCard=(filtroCard===card)?'':card;
+  // 'rascunho' já existe como opção do dropdown de status — sincroniza
+  const selSt=document.getElementById('fil-st');
+  if(selSt){
+    if(filtroCard==='rascunho') selSt.value='rascunho';
+    else if(selSt.value==='rascunho') selSt.value='';
+  }
+  renderStats();
+  filtrar();
 }
 
 function getResponsavelTDR(t){
