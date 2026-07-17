@@ -147,20 +147,38 @@ async function renderStats(){
   renderStatsHTML();
 }
 
+function waterHTML(color,pct){
+  return '<div class="wc-inner" data-alvo="'+pct+'" style="background:'+color+'">'
+    +'<div class="wc-wavewrap">'
+    +'<svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:'+color+'"></path></svg>'
+    +'<svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:'+color+'"></path></svg>'
+    +'</div></div>';
+}
+function animarAgua(){
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    document.querySelectorAll('.wc-inner[data-alvo]').forEach(function(el){
+      el.style.height=el.dataset.alvo+'%';
+    });
+  });});
+}
+
 function renderStatsHTML(){
   if(!statsCounts)return;
   var c=statsCounts;
+  var den=c.total||1;
   function card(status,lbl,val,valColor,borderCol,barCol,sub){
     var ativo=filtroStatus===status;
-    var ring=ativo?'box-shadow:0 0 0 2px '+barCol+' inset;border-color:transparent;background:color-mix(in srgb, '+barCol+' 50%, var(--branco));':'';
+    var ring=ativo?'box-shadow:0 0 0 2px '+barCol+' inset;border-color:transparent;':'';
     return '<div class="stat-card" style="cursor:pointer;'+ring+(borderCol&&!ativo?'border-color:'+borderCol+';':'')+'" onclick="setFiltroStatus('+"'"+status+"'"+')"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+barCol+'"></div>'
+      +waterHTML(barCol,Math.round(val/den*100))
       +'<div class="stat-lbl" style="color:'+(ativo?barCol:'')+'">'+lbl+(ativo?' ✕':' ▾')+'</div>'
       +'<div class="stat-val" style="color:'+valColor+'">'+val+'</div>'
       +'<div class="stat-sub">'+sub+'</div></div>';
   }
   var ativoTodo=filtroStatus===null;
   document.getElementById('stats').innerHTML=
-    '<div class="stat-card sc-b" style="cursor:pointer;'+(ativoTodo?'box-shadow:0 0 0 2px var(--verde-medio) inset;border-color:transparent;background:color-mix(in srgb, var(--verde-medio) 50%, var(--branco));':'')+'" onclick="setFiltroStatus(null)">'
+    '<div class="stat-card sc-b" style="cursor:pointer;'+(ativoTodo?'box-shadow:0 0 0 2px var(--verde-medio) inset;border-color:transparent;':'')+'" onclick="setFiltroStatus(null)">'
+    +waterHTML('var(--verde-medio)',100)
     +'<div class="stat-lbl">Total'+(ativoTodo?' (todos)':'')+'</div>'
     +'<div class="stat-val">'+c.total+'</div>'
     +'<div class="stat-sub">todos os contratos</div></div>'
@@ -169,6 +187,7 @@ function renderStatsHTML(){
     +card('aprovado','Aprovados',c.aprov,'#166534','#86EFAC','#059669','aguardando pagamento')
     +card('pago','Pagos',c.pago,'var(--sucesso)','#6EE7B7','#10B981','100% concluídos')
     +card('devolvido','Devolvidos',c.dev,'#991B1B','#FCA5A5','#EF4444','retornados p/ correção');
+  animarAgua();
 }
 
 async function setFiltroStatus(s){
