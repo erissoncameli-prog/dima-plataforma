@@ -309,6 +309,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 10. TDR único status aprovado = `'aprovado'` (não `'aprovado_coordenacao'` nem `'aprovado_diretoria'`)
 11. Modal HTML deve ficar **fora do `#app`** para evitar z-index conflito com sidebar
 12. Sempre fechar `gerarLayout()` com `+ '</div></div></div>'`
+13. `tdr_acoes` tem RULE `tdr_acoes_no_delete` (log de auditoria imutável, `ON DELETE DO INSTEAD NOTHING`). Um `DELETE FROM tdrs` direto falha com "referential integrity query... gave unexpected result" por causa disso. Exclusão de TDR **deve** usar a função RPC `apagar_tdr(p_tdr_id uuid)` (restrita a `super_admin`), que desabilita a regra internamente, apaga registros filhos e reabilita a regra — nunca apagar `tdrs`/`tdr_acoes` manualmente via client.
 
 ---
 

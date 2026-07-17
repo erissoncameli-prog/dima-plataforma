@@ -638,13 +638,14 @@ async function abrirTDR(id){
   const temArquivoStorage=t.arquivo_url&&!t.arquivo_url.includes('drive.google.com')&&!t.arquivo_url.includes('docs.google.com');
   const temDrive=t.arquivo_url&&(t.arquivo_url.includes('drive.google.com')||t.arquivo_url.includes('docs.google.com'));
 
-  const [{data:versoes},{data:comentarios},{data:acoes},{data:matrizLinks}]=await Promise.all([
+  const [{data:versoes},{data:comentarios},{data:acoes},{data:matrizLinks},{data:anexos}]=await Promise.all([
     db.from('tdr_versoes').select('*').eq('tdr_id',id).order('numero_versao',{ascending:false}),
     db.from('tdr_comentarios').select('*,usuarios(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:false}),
     db.from('tdr_acoes').select('*,usuarios(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:true}),
     t.atividades?.id
       ? db.from('atividade_matriz').select('matriz_itens(id,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,meta_descricao)').eq('atividade_id',t.atividades.id)
-      : Promise.resolve({data:[]})
+      : Promise.resolve({data:[]}),
+    db.from('tdr_anexos').select('*,usuarios:enviado_por(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:true})
   ]);
   // Mapear último ação por status_novo para a timeline
   const acaosPorFase={};
@@ -788,6 +789,29 @@ async function abrirTDR(id){
             <input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])">
           </label>`:''}
         </div>`}
+      </div>
+
+      <!-- Seção de anexos complementares (múltiplos arquivos) -->
+      <div style="margin-top:16px;border-top:1px solid var(--borda);padding-top:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em">📎 Anexos complementares</div>
+          ${eCoordenador?`<label class="btn btn-sm btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            ⬆ Adicionar anexos
+            <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.webp,.gif,.zip" style="display:none" onchange="uploadAnexos('${t.id}',this.files)">
+          </label>`:''}
+        </div>
+        ${(anexos&&anexos.length)?`
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${anexos.map(a=>`
+          <div style="display:flex;align-items:center;gap:10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 12px;font-size:12px">
+            <span style="font-size:16px;flex-shrink:0">${iconeAnexo(a.nome,a.mime_type)}</span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cinza-800);font-weight:500" title="${esc(a.nome)}">${esc(a.nome)}</span>
+            <span style="color:var(--cinza-400);flex-shrink:0;font-family:var(--font-mono);font-size:11px">${fmtTamanho(a.tamanho_bytes)}</span>
+            <button class="btn btn-sm btn-secondary" style="flex-shrink:0" onclick="abrirAnexo('${a.arquivo_url}')">Abrir</button>
+            ${eCoordenador?`<button class="btn btn-sm btn-secondary" style="flex-shrink:0;color:var(--erro,#DC2626)" onclick="removerAnexo('${a.id}','${a.arquivo_url}','${esc(a.nome).replace(/'/g,"\\'")}')" title="Excluir anexo">✕</button>`:''}
+          </div>`).join('')}
+        </div>`
+        :`<div style="background:var(--cinza-50);border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:10px 12px;font-size:12px;color:var(--cinza-500)">Nenhum anexo complementar. ${eCoordenador?'Use o botão acima para adicionar (PDF, Word, Excel, TXT, imagens etc. · máx 50 MB cada).':''}</div>`}
       </div>
 
       ${podeEd?`
@@ -953,10 +977,8 @@ async function abrirTDR(id){
     (eCoordenadorModal&&['em_avaliacao','em_revisao_unesco'].includes(t.status))||
     appState.perfil==='super_admin';
 
-  // Permissão de exclusão: super_admin sempre, técnico só no próprio rascunho
-  const podeApagarTDR =
-    appState.perfil==='super_admin' ||
-    (appState.perfil==='tecnico' && t.criado_por===appState.usuario.id && t.status==='rascunho');
+  // Permissão de exclusão: restrita a super_admin
+  const podeApagarTDR = appState.perfil==='super_admin';
 
   document.getElementById('m-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal('modal-tdr')">Fechar</button>
@@ -1928,28 +1950,9 @@ function confirmarApagarTDR(id, numero){
     '⚠ Ação irreversível — o TDR e todos os seus dados serão removidos permanentemente.',
     async () => {
       try {
-        // Apagar registros filhos primeiro (FK constraints)
-        const [r1, r2, r3] = await Promise.all([
-          db.from('tdr_versoes').delete().eq('tdr_id', id),
-          db.from('tdr_comentarios').delete().eq('tdr_id', id),
-          db.from('tdr_acoes').delete().eq('tdr_id', id),
-        ]);
-        if(r1.error) console.warn('[APAGAR] tdr_versoes:', r1.error.message);
-        if(r2.error) console.warn('[APAGAR] tdr_comentarios:', r2.error.message);
-        if(r3.error) console.warn('[APAGAR] tdr_acoes:', r3.error.message);
-
-        // Verificar se ainda há filhos bloqueando (FK)
-        if(r1.error || r3.error){
-          // Tentar de novo individualmente para pegar o erro real
-          const vCheck=await db.from('tdr_versoes').select('id',{count:'exact',head:true}).eq('tdr_id',id);
-          const aCheck=await db.from('tdr_acoes').select('id',{count:'exact',head:true}).eq('tdr_id',id);
-          if((vCheck.count||0)>0||(aCheck.count||0)>0){
-            throw new Error('Não foi possível remover registros filhos. Verifique as permissões RLS no banco.');
-          }
-        }
-
-        // Apagar o TDR
-        const { error } = await db.from('tdrs').delete().eq('id', id);
+        // Exclusão via função RPC (super_admin only) — trata registros filhos e
+        // a regra de imutabilidade de tdr_acoes no servidor
+        const { error } = await db.rpc('apagar_tdr', { p_tdr_id: id });
         if (error) {
           console.error('[APAGAR TDR] Erro:', error);
           throw new Error(error.message||'Erro ao apagar TDR. Verifique as políticas de acesso.');
@@ -2053,6 +2056,81 @@ window.uploadArquivoTDR = async function(tdrId, file) {
     await abrirTDR(tdrId);
   } catch(e) {
     toast('Erro no upload: ' + (e.message || 'Tente novamente.'), 'error');
+  }
+};
+
+// ── ANEXOS COMPLEMENTARES (múltiplos) ────────────────────────
+function iconeAnexo(nome, mime){
+  const ext=(nome||'').split('.').pop().toLowerCase();
+  if(['pdf'].includes(ext))return'📕';
+  if(['doc','docx'].includes(ext))return'📘';
+  if(['xls','xlsx','csv'].includes(ext))return'📗';
+  if(['txt'].includes(ext))return'📄';
+  if(['jpg','jpeg','png','webp','gif'].includes(ext)||(mime||'').startsWith('image/'))return'🖼️';
+  if(['zip'].includes(ext))return'🗜️';
+  return'📎';
+}
+function fmtTamanho(bytes){
+  if(!bytes&&bytes!==0)return'';
+  if(bytes<1024)return bytes+' B';
+  if(bytes<1048576)return(bytes/1024).toFixed(0)+' KB';
+  return(bytes/1048576).toFixed(1)+' MB';
+}
+window.uploadAnexos = async function(tdrId, fileList){
+  const files=Array.from(fileList||[]);
+  if(!files.length)return;
+  const MAX=52428800; // 50 MB
+  let ok=0, falhas=0;
+  toast(`Enviando ${files.length} anexo(s)...`,'info');
+  for(const file of files){
+    if(file.size>MAX){toast(`"${file.name}" excede 50 MB — ignorado.`,'error');falhas++;continue;}
+    try{
+      const ext=file.name.split('.').pop().toLowerCase();
+      const safe=file.name.replace(/[^\w.\-]+/g,'_');
+      const path=`tdr-${tdrId}/anexos/${Date.now()}-${Math.random().toString(36).slice(2,7)}-${safe}`;
+      const {error:upErr}=await db.storage.from('tdrs-arquivos').upload(path,file,{upsert:false});
+      if(upErr)throw upErr;
+      const {data:urlData}=db.storage.from('tdrs-arquivos').getPublicUrl(path);
+      const {error:dbErr}=await db.from('tdr_anexos').insert({
+        tdr_id:tdrId, nome:file.name, arquivo_url:urlData.publicUrl,
+        mime_type:file.type||null, tamanho_bytes:file.size,
+        enviado_por:appState.usuario.id
+      });
+      if(dbErr)throw dbErr;
+      ok++;
+    }catch(e){
+      falhas++;
+      toast(`Erro ao enviar "${file.name}": ${(e.message||e)}`,'error');
+    }
+  }
+  if(ok)toast(`${ok} anexo(s) enviado(s) com sucesso!`,'success');
+  await abrirTDR(tdrId);
+};
+window.abrirAnexo = async function(url){
+  try{
+    const u=new URL(url);
+    const m=u.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
+    if(!m){window.open(url,'_blank');return;}
+    const {data,error}=await db.storage.from('tdrs-arquivos').createSignedUrl(decodeURIComponent(m[1]),3600);
+    if(error||!data){window.open(url,'_blank');return;}
+    window.open(data.signedUrl,'_blank');
+  }catch(e){window.open(url,'_blank');}
+};
+window.removerAnexo = async function(id, url, nome){
+  if(!confirm(`Excluir o anexo "${nome}"? Esta ação não pode ser desfeita.`))return;
+  try{
+    const {error:dbErr}=await db.from('tdr_anexos').delete().eq('id',id);
+    if(dbErr)throw dbErr;
+    // Remover o arquivo do storage (best-effort)
+    try{
+      const u=new URL(url);
+      const m=u.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
+      if(m)await db.storage.from('tdrs-arquivos').remove([decodeURIComponent(m[1])]);
+    }catch(_){}
+    toast('Anexo excluído.','success');
+    if(tdrAtual)await abrirTDR(tdrAtual.id);
+  }catch(e){
+    toast('Erro ao excluir: '+(e.message||e),'error');
   }
 };
 
