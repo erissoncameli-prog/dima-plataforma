@@ -362,6 +362,28 @@ function corPct(pct){
 }
 
 // ── Stats ─────────────────────────────────────────────────────
+function waterHTML(color,pct){
+  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
+    <div class="wc-wavewrap">
+      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
+      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
+    </div>
+  </div>`;
+}
+function animarAgua(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
+      el.style.height=el.dataset.alvo+'%';
+    });
+  }));
+}
+let filtroMatrizCard='';
+function clicarCardMatriz(card){
+  filtroMatrizCard=(filtroMatrizCard===card)?'':card;
+  renderStats();
+  renderMatriz();
+}
+
 function renderStats(){
   const total=matrizItens.length;
   const comMeta=matrizItens.filter(i=>parseFloat(i.meta_numerica||0)>0);
@@ -370,35 +392,43 @@ function renderStats(){
   const pendConf=progresso.reduce((s,p)=>s+parseFloat(p.realizado_pendente||0),0);
   const media=comMeta.length
     ?Math.round(comMeta.reduce((s,i)=>s+calcPct(i).conf,0)/comMeta.length):0;
+  const ativo=c=>filtroMatrizCard===c?' ativo':'';
+  const den=total||1;
 
   document.getElementById('stats-row').innerHTML=`
-    <div class="stat-card sc-b">
+    <div class="stat-card sc-b${ativo('total')}" onclick="clicarCardMatriz('total')">
+      ${waterHTML('#2563EB',100)}
       <div class="stat-lbl">Indicadores</div>
       <div class="stat-val">${total}</div>
       <div class="stat-sub">em 3 Resultados</div>
     </div>
-    <div class="stat-card sc-g">
+    <div class="stat-card sc-g${ativo('atingidos')}" onclick="clicarCardMatriz('atingidos')">
+      ${waterHTML('var(--verde-claro)',Math.round(atingidos/den*100))}
       <div class="stat-lbl">Metas Atingidas</div>
       <div class="stat-val">${atingidos}</div>
       <div class="stat-sub">100% confirmado</div>
     </div>
-    <div class="stat-card sc-t">
+    <div class="stat-card sc-t${ativo('progresso')}" onclick="clicarCardMatriz('progresso')">
+      ${waterHTML('#0D9488',media)}
       <div class="stat-lbl">Progresso Médio</div>
       <div class="stat-val">${media}%</div>
       <div class="stat-sub">confirmado</div>
     </div>
-    <div class="stat-card sc-a">
+    <div class="stat-card sc-a${ativo('risco')}" onclick="clicarCardMatriz('risco')">
+      ${waterHTML('var(--aviso)',Math.round(emRisco/den*100))}
       <div class="stat-lbl">Em Risco</div>
       <div class="stat-val" style="color:${emRisco>0?'var(--aviso)':'#059669'}">${emRisco}</div>
       <div class="stat-sub">abaixo de 40%</div>
     </div>
-    <div class="stat-card sc-r">
+    <div class="stat-card sc-r${ativo('pendente')}" onclick="clicarCardMatriz('pendente')">
+      ${waterHTML('var(--erro)',pendConf>0?100:0)}
       <div class="stat-lbl">Aguardam Conf.</div>
       <div class="stat-val" style="color:${pendConf>0?'var(--aviso)':'var(--cinza-400)'}">
         ${pendConf>0?Math.round(pendConf):0}
       </div>
       <div class="stat-sub">unidades pendentes</div>
     </div>`;
+  animarAgua();
 }
 
 // ── Tab switcher ──────────────────────────────────────────────
