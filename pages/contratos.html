@@ -269,17 +269,34 @@ function clicarCardCont(card){
   renderStats();filtrar();
 }
 
+function waterHTML(color,pct){
+  return '<div class="wc-inner" data-alvo="'+pct+'" style="background:'+color+'">'
+    +'<div class="wc-wavewrap">'
+    +'<svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:'+color+'"></path></svg>'
+    +'<svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:'+color+'"></path></svg>'
+    +'</div></div>';
+}
+function animarAgua(){
+  requestAnimationFrame(function(){requestAnimationFrame(function(){
+    document.querySelectorAll('.wc-inner[data-alvo]').forEach(function(el){
+      el.style.height=el.dataset.alvo+'%';
+    });
+  });});
+}
+
 function renderStats(){
   var vig=todosContratos.filter(function(c){return c.status==='vigente';});
   var totC=vig.reduce(function(s,c){return s+parseFloat(c.valor_total_brl||0);},0);
   var totU=vig.reduce(function(s,c){return s+parseFloat(c.valor_utilizado_brl||0);},0);
   var semPDF=todosContratos.filter(function(c){return !c.contrato_assinado_url;}).length;
   var ativo=function(c){return filtroCardCont===c?' ativo':'';};
+  var denTotal=todosContratos.length||1;
   document.getElementById('stats').innerHTML=
-    '<div class="stat-card sc-g'+ativo('vigente')+'" onclick="clicarCardCont(\'vigente\')"><div class="stat-lbl">Vigentes</div><div class="stat-val">'+vig.length+'</div><div class="stat-sub">de '+todosContratos.length+' totais</div></div>'+
-    '<div class="stat-card sc-b'+ativo('total')+'" onclick="clicarCardCont(\'total\')"><div class="stat-lbl">Total contratado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totC)+'</div></div>'+
-    '<div class="stat-card sc-a'+ativo('utilizado')+'" onclick="clicarCardCont(\'utilizado\')"><div class="stat-lbl">Total utilizado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totU)+'</div><div class="stat-sub">'+(totC>0?Math.round(totU/totC*100):0)+'% do contratado</div></div>'+
-    '<div class="stat-card '+(semPDF>0?'sc-r':'sc-g')+ativo('sem_pdf')+'" onclick="clicarCardCont(\'sem_pdf\')"><div class="stat-lbl">Sem PDF</div><div class="stat-val" style="color:'+(filtroCardCont==='sem_pdf'?'':(semPDF>0?'var(--erro)':'var(--sucesso)'))+'">'+semPDF+'</div><div class="stat-sub">contratos sem documento</div></div>';
+    '<div class="stat-card sc-g'+ativo('vigente')+'" onclick="clicarCardCont(\'vigente\')">'+waterHTML('var(--verde-claro)',Math.round(vig.length/denTotal*100))+'<div class="stat-lbl">Vigentes</div><div class="stat-val">'+vig.length+'</div><div class="stat-sub">de '+todosContratos.length+' totais</div></div>'+
+    '<div class="stat-card sc-b'+ativo('total')+'" onclick="clicarCardCont(\'total\')">'+waterHTML('var(--azul-medio)',100)+'<div class="stat-lbl">Total contratado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totC)+'</div></div>'+
+    '<div class="stat-card sc-a'+ativo('utilizado')+'" onclick="clicarCardCont(\'utilizado\')">'+waterHTML('var(--aviso)',totC>0?Math.round(totU/totC*100):0)+'<div class="stat-lbl">Total utilizado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totU)+'</div><div class="stat-sub">'+(totC>0?Math.round(totU/totC*100):0)+'% do contratado</div></div>'+
+    '<div class="stat-card '+(semPDF>0?'sc-r':'sc-g')+ativo('sem_pdf')+'" onclick="clicarCardCont(\'sem_pdf\')">'+waterHTML(semPDF>0?'var(--erro)':'var(--verde-claro)',Math.round(semPDF/denTotal*100))+'<div class="stat-lbl">Sem PDF</div><div class="stat-val" style="color:'+(filtroCardCont==='sem_pdf'?'':(semPDF>0?'var(--erro)':'var(--sucesso)'))+'">'+semPDF+'</div><div class="stat-sub">contratos sem documento</div></div>';
+  animarAgua();
 }
 
 function filtrar(){
