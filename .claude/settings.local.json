@@ -236,7 +236,8 @@
       "Bash(git fetch *)",
       "mcp__5499839e-86af-4699-b551-2eb3972f3f05__get_deployment",
       "mcp__visualize__read_me",
-      "mcp__visualize__show_widget"
+      "mcp__visualize__show_widget",
+      "Bash(node --check \"C:/Users/eriss/AppData/Local/Temp/claude/tdrcheck/tdrs0.js\")"
     ]
   }
 }
