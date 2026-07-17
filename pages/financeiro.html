@@ -515,6 +515,7 @@ function renderLancamentos() {
     if (ativId && l.atividade_id !== ativId) return false;
     if (fornId && l.fornecedor_id !== fornId) return false;
     if (mes    && !(l.dt_vencimento||'').startsWith(mes)) return false;
+    if (filtroCardFin==='vencidos' && !(l.situacao==='a_pagar' && l.dt_vencimento && new Date(l.dt_vencimento)<new Date())) return false;
     return true;
   });
 
