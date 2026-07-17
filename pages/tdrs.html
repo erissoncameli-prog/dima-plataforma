@@ -462,6 +462,13 @@ function clicarCardStat(card){
   filtrar();
 }
 
+function sincronizarFiltroStatus(){
+  const selSt=document.getElementById('fil-st');
+  filtroCard=(selSt&&selSt.value==='rascunho')?'rascunho':'';
+  renderStats();
+  filtrar();
+}
+
 function getResponsavelTDR(t){
   // Responsável vem da atividade vinculada
   return t.atividades?.responsavel || null;
