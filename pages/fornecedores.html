@@ -230,30 +230,52 @@ function clicarCardForn(card){
   renderStats();filtrar();
 }
 
+function waterHTML(color,pct){
+  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
+    <div class="wc-wavewrap">
+      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
+      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
+    </div>
+  </div>`;
+}
+function animarAgua(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
+      el.style.height=el.dataset.alvo+'%';
+    });
+  }));
+}
+
 function renderStats() {
   const ativos = todosFornecedores.filter(f=>f.ativo);
   const ativo=c=>filtroCardForn===c?' ativo':'';
+  const den=ativos.length||1;
   document.getElementById('stats').innerHTML = `
     <div class="stat-card sc-g${ativo('total')}" onclick="clicarCardForn('total')">
+      ${waterHTML('var(--verde-claro)',100)}
       <div class="stat-lbl">Total Fornecedores</div>
       <div class="stat-val">${ativos.length}</div>
       <div class="stat-sub">${todosFornecedores.filter(f=>!f.ativo).length} inativos</div>
     </div>
     <div class="stat-card sc-b${ativo('PF')}" onclick="clicarCardForn('PF')">
+      ${waterHTML('var(--azul-medio)',Math.round(ativos.filter(f=>f.tipo==='PF').length/den*100))}
       <div class="stat-lbl">Pessoas Físicas</div>
       <div class="stat-val">${ativos.filter(f=>f.tipo==='PF').length}</div>
       <div class="stat-sub">consultores individuais</div>
     </div>
     <div class="stat-card sc-a${ativo('PJ')}" onclick="clicarCardForn('PJ')">
+      ${waterHTML('var(--aviso)',Math.round(ativos.filter(f=>f.tipo==='PJ').length/den*100))}
       <div class="stat-lbl">Pessoas Jurídicas</div>
       <div class="stat-val">${ativos.filter(f=>f.tipo==='PJ').length}</div>
       <div class="stat-sub">empresas e consultorias</div>
     </div>
     <div class="stat-card sc-r${ativo('com_contrato')}" onclick="clicarCardForn('com_contrato')">
+      ${waterHTML('var(--erro)',Math.round(ativos.filter(f=>f.contrato_url).length/den*100))}
       <div class="stat-lbl">Com Contrato</div>
       <div class="stat-val">${ativos.filter(f=>f.contrato_url).length}</div>
       <div class="stat-sub">doc assinado carregado</div>
     </div>`;
+  animarAgua();
 }
 
 function filtrar() {
