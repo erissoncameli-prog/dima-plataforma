@@ -463,7 +463,10 @@ function renderMatriz(){
   el.innerHTML=res.map(r=>{
     let itensR=matrizItens.filter(i=>i.resultado===r);
     if(busca) itensR=itensR.filter(i=>(i.indicador||'').toLowerCase().includes(busca)||(i.produto_titulo||'').toLowerCase().includes(busca)||(i.produto_codigo||'').toLowerCase().includes(busca));
-    if(!itensR.length&&busca)return'';
+    if(filtroMatrizCard==='atingidos') itensR=itensR.filter(i=>calcPct(i).conf>=100);
+    if(filtroMatrizCard==='risco') itensR=itensR.filter(i=>parseFloat(i.meta_numerica||0)>0&&calcPct(i).conf<40);
+    if(filtroMatrizCard==='pendente') itensR=itensR.filter(i=>parseFloat(getProgresso(i.id).realizado_pendente||0)>0);
+    if(!itensR.length&&(busca||filtroMatrizCard))return'';
 
     // Agrupar por produto_codigo
     const produtos=[...new Set(itensR.map(i=>i.produto_codigo))].sort();
