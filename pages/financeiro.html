@@ -484,6 +484,13 @@ function clicarCardFin(card){
   }
 }
 
+function sincronizarFiltroCardFin(){
+  const selSit=document.getElementById('fil-sit');
+  filtroCardFin=(selSit&&CARDS_FIN_STATUS_UNICO.includes(selSit.value))?selSit.value:'';
+  renderStats();
+  renderLancamentos();
+}
+
 function mudarVisao(v, btn) {
   visaoAtual = v;
   document.querySelectorAll('.visao-tab').forEach(b=>b.classList.remove('ativo'));
