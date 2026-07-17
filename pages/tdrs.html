@@ -414,6 +414,7 @@ function renderStats(){
   const tAprovados=t.filter(x=>FASES_POS_APROVACAO.includes(x.status));
   const tAndamento=t.filter(x=>['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','em_licitacao'].includes(x.status));
   const tAtrasados=t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(x.status));
+  const tContratado=t.filter(x=>x.status==='contratado');
   const ativo=c=>filtroCard===c?' ativo':'';
   document.getElementById('stats').innerHTML=`
     <div class="stat-card sc-g${ativo('total')}" onclick="clicarCardStat('total')">
