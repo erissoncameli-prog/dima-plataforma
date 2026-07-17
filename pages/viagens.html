@@ -359,6 +359,7 @@ let protocolos=[], protAtual=null, editandoProtocoloId=null;
 let viajantesForm=[];   // [{id,nome,funcao,cpf,email,temPass,temDiar,trechos:[],diarias:[]}]
 let embarqueFiles={};   // {viajante_idx: [File,...]}
 let relatorioFiles={};  // {viajante_idx: File}
+let comprovanteFiles={};// {trecho_id: File}
 let trechoIdx=0, diariaIdx=0, viajanteIdx=0;
 let benefVindoDeProtocolo=null; // {idx, acao:'novo'|'editar'}
 
@@ -1863,7 +1864,7 @@ async function abrirDetalhe(id){
           <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:6px">Trechos de passagem</div>
           <table style="width:100%;font-size:11px;border-collapse:collapse;margin-bottom:10px">
             <thead><tr style="background:var(--cinza-50)">
-              ${['Trecho','Tipo','Data','Valor R$'].map(h=>`<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda);font-size:9px;text-transform:uppercase;color:var(--cinza-500)">${h}</th>`).join('')}
+              ${['Trecho','Tipo','Data','Valor R$','Comprovante'].map(h=>`<th style="padding:5px 8px;text-align:left;border-bottom:1px solid var(--borda);font-size:9px;text-transform:uppercase;color:var(--cinza-500)">${h}</th>`).join('')}
             </tr></thead>
             <tbody>
               ${(v.trechos||[]).sort((a,b)=>a.ordem-b.ordem).map(tr=>`<tr style="border-bottom:1px solid var(--borda)">
@@ -1871,10 +1872,12 @@ async function abrirDetalhe(id){
                 <td style="padding:6px 8px">${esc(tr.tipo||'—')}</td>
                 <td style="padding:6px 8px">${tr.dt_saida?fmtData(tr.dt_saida):'—'}</td>
                 <td style="padding:6px 8px;font-family:var(--font-mono);font-weight:600;text-align:right">${fmtBRL(tr.valor)}</td>
+                <td style="padding:6px 8px">${tr.comprovante_url?`<a href="${esc(tr.comprovante_url)}" target="_blank" rel="noopener" style="color:#1D4ED8;text-decoration:none;font-size:11px">📄 ${esc(tr.comprovante_nome||'Abrir')}</a>`:'<span style="color:var(--cinza-400)">—</span>'}</td>
               </tr>`).join('')}
               <tr style="background:var(--cinza-50)">
                 <td colspan="3" style="padding:6px 8px;font-weight:600;text-align:right">Total passagens</td>
                 <td style="padding:6px 8px;font-family:var(--font-mono);font-weight:700;text-align:right;color:var(--azul-medio)">${fmtBRL(totalPass)}</td>
+                <td></td>
               </tr>
             </tbody>
           </table>`:''}
@@ -2172,6 +2175,7 @@ async function excluirProtocolo(){
 // ── SPDs + Valores ────────────────────────────────────────────
 function abrirFormSPDs(){
   const p=protAtual;
+  comprovanteFiles={};
   let html=`<div style="font-size:13px;font-weight:600;margin-bottom:14px">SPDs, Valores Reais e Situação</div>`;
   (p.viajantes||[]).forEach((v,i)=>{
     const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
@@ -2189,7 +2193,8 @@ function abrirFormSPDs(){
           <input class="form-control" id="trecho-val-${t.id}" type="number" step="0.01" min="0"
             value="${parseFloat(t.valor||0).toFixed(2)}"
             style="height:28px;font-size:11px;font-family:var(--font-mono);text-align:right">
-        </div>`).join('')}
+        </div>
+        <div style="margin-bottom:8px">${renderUploadComprovante(t)}</div>`).join('')}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
           <div class="form-group" style="margin:0">
             <label class="form-label" style="font-size:10px">SPD Passagem</label>
@@ -2256,6 +2261,8 @@ async function salvarSPDs(){
       }).eq('id',d.id);
     }
   }
+  // Comprovantes de bilhete (PDF) anexados nesta tela
+  await uploadComprovantesTrechos(p);
   const sit=document.getElementById('s-situacao')?.value||p.situacao;
   await db.from('viagem_protocolos').update({situacao:sit,atualizado_em:new Date().toISOString()}).eq('id',p.id);
 
@@ -2328,6 +2335,7 @@ async function _syncFinanceiroSPDs(p){
 function abrirFormValores(){
   const p=protAtual;
   if(!['super_admin','financeiro'].includes(appState.perfil)){toast('Sem permissão.','error');return;}
+  comprovanteFiles={};
   let html=`<div style="font-size:13px;font-weight:600;margin-bottom:14px">💰 Atualizar valores reais</div>`;
   (p.viajantes||[]).forEach(v=>{
     const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
@@ -2344,7 +2352,8 @@ function abrirFormValores(){
           <input class="form-control" id="fv-trecho-${t.id}" type="number" step="0.01" min="0"
             value="${parseFloat(t.valor||0).toFixed(2)}"
             style="height:28px;font-size:11px;font-family:var(--font-mono);text-align:right">
-        </div>`).join('')}
+        </div>
+        <div style="margin-bottom:8px">${renderUploadComprovante(t)}</div>`).join('')}
       </div>`:''}
       ${v.tem_diaria&&diarias.length?`
       <div>
@@ -2385,6 +2394,8 @@ async function salvarFormValores(){
       }).eq('id',d.id);
     }
   }
+  // Comprovantes de bilhete (PDF) anexados nesta tela
+  await uploadComprovantesTrechos(p);
   // Recarregar protAtual atualizado para sync financeiro
   const{data:pAtual}=await db.from('viagem_protocolos')
     .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*))`)
@@ -2521,6 +2532,60 @@ function adicionarEmbarque(visIdx,viajanteId,files){
     </div>`;
   }).join('');
   if(count)count.textContent=embarqueFiles[visIdx].length?`${embarqueFiles[visIdx].length}/6 cartão(s)`:'';
+}
+
+function renderUploadComprovante(t){
+  const selecionado=comprovanteFiles[t.id];
+  if(selecionado){
+    return`<div class="upload-mini tem" id="upload-comp-${t.id}" onclick="document.getElementById('inp-comp-${t.id}').click()">
+      <input type="file" id="inp-comp-${t.id}" style="display:none" accept=".pdf" onchange="selecionarComprovante('${t.id}',this.files[0])">
+      ✓ ${esc(selecionado.name)}
+    </div>`;
+  }
+  if(t.comprovante_url){
+    return`<div style="display:flex;align-items:center;gap:8px">
+      <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:6px 10px;font-size:11px;display:flex;align-items:center;gap:6px;flex:1">
+        📄 <strong>${esc(t.comprovante_nome||'Comprovante')}</strong>
+        <button type="button" class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:10px" onclick="window.open('${esc(t.comprovante_url)}','_blank')">Abrir</button>
+      </div>
+      <div class="upload-mini" id="upload-comp-${t.id}" style="flex:0 0 auto;padding:6px 10px;font-size:10px" onclick="document.getElementById('inp-comp-${t.id}').click()">
+        <input type="file" id="inp-comp-${t.id}" style="display:none" accept=".pdf" onchange="selecionarComprovante('${t.id}',this.files[0])">
+        ↻ Substituir
+      </div>
+    </div>`;
+  }
+  return`<div class="upload-mini" id="upload-comp-${t.id}" onclick="document.getElementById('inp-comp-${t.id}').click()">
+    <input type="file" id="inp-comp-${t.id}" style="display:none" accept=".pdf" onchange="selecionarComprovante('${t.id}',this.files[0])">
+    📎 Anexar comprovante do bilhete (PDF)
+  </div>`;
+}
+
+function selecionarComprovante(trechoId,file){
+  if(!file)return;
+  if(file.type!=='application/pdf'){toast('O comprovante deve ser um arquivo PDF.','error');return;}
+  comprovanteFiles[trechoId]=file;
+  const el=document.getElementById(`upload-comp-${trechoId}`);
+  if(el){
+    el.classList.add('tem');
+    el.style.flex='';el.style.padding='';el.style.fontSize='';
+    el.innerHTML=`✓ ${esc(file.name)}<input type="file" id="inp-comp-${trechoId}" style="display:none" accept=".pdf" onchange="selecionarComprovante('${trechoId}',this.files[0])">`;
+  }
+}
+
+async function uploadComprovantesTrechos(p){
+  for(const v of (p.viajantes||[])){
+    for(const t of (v.trechos||[])){
+      const f=comprovanteFiles[t.id];
+      if(!f)continue;
+      const ext=f.name.split('.').pop()||'pdf';
+      const path=`viagens/${p.id}/viajante-${v.id}/comprovante-trecho-${t.id}-${Date.now()}.${ext}`;
+      const{error}=await db.storage.from('viagens-arquivos').upload(path,f,{upsert:true});
+      if(error){toast(`Erro ao enviar comprovante (${t.origem||''} → ${t.destino||''}): ${error.message}`,'error');continue;}
+      const{data:ud}=db.storage.from('viagens-arquivos').getPublicUrl(path);
+      await db.from('viagem_trechos').update({comprovante_url:ud.publicUrl,comprovante_nome:f.name}).eq('id',t.id);
+    }
+  }
+  comprovanteFiles={};
 }
 
 function selecionarRelatorio(visIdx,viajanteId,file){
