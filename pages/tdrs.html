@@ -353,7 +353,7 @@ function podeEditarFase(status){
       <div class="filter-bar">
         <input class="form-control" type="text" id="busca" style="width:220px"
           placeholder="Buscar número ou objeto..." oninput="filtrar()">
-        <select class="form-control" id="fil-st" onchange="filtrar()" style="width:145px">
+        <select class="form-control" id="fil-st" onchange="sincronizarFiltroStatus()" style="width:145px">
           <option value="">Todos os status</option>
           ${FASES.map(f=>`<option value="${f}">${FASES_LABELS[f]}</option>`).join('')}
           <option value="cancelado">Cancelado</option>
