@@ -257,16 +257,23 @@ async function carregar(){
   renderStats();filtrar();
 }
 
+let filtroCardCont='';
+function clicarCardCont(card){
+  filtroCardCont=(filtroCardCont===card)?'':card;
+  renderStats();filtrar();
+}
+
 function renderStats(){
   var vig=todosContratos.filter(function(c){return c.status==='vigente';});
   var totC=vig.reduce(function(s,c){return s+parseFloat(c.valor_total_brl||0);},0);
   var totU=vig.reduce(function(s,c){return s+parseFloat(c.valor_utilizado_brl||0);},0);
   var semPDF=todosContratos.filter(function(c){return !c.contrato_assinado_url;}).length;
+  var ativo=function(c){return filtroCardCont===c?' ativo':'';};
   document.getElementById('stats').innerHTML=
-    '<div class="stat-card sc-g"><div class="stat-lbl">Vigentes</div><div class="stat-val">'+vig.length+'</div><div class="stat-sub">de '+todosContratos.length+' totais</div></div>'+
-    '<div class="stat-card sc-b"><div class="stat-lbl">Total contratado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totC)+'</div></div>'+
-    '<div class="stat-card sc-a"><div class="stat-lbl">Total utilizado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totU)+'</div><div class="stat-sub">'+(totC>0?Math.round(totU/totC*100):0)+'% do contratado</div></div>'+
-    '<div class="stat-card '+(semPDF>0?'sc-r':'sc-g')+'"><div class="stat-lbl">Sem PDF</div><div class="stat-val" style="color:'+(semPDF>0?'var(--erro)':'var(--sucesso)')+'">'+semPDF+'</div><div class="stat-sub">contratos sem documento</div></div>';
+    '<div class="stat-card sc-g'+ativo('vigente')+'" onclick="clicarCardCont(\'vigente\')"><div class="stat-lbl">Vigentes</div><div class="stat-val">'+vig.length+'</div><div class="stat-sub">de '+todosContratos.length+' totais</div></div>'+
+    '<div class="stat-card sc-b'+ativo('total')+'" onclick="clicarCardCont(\'total\')"><div class="stat-lbl">Total contratado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totC)+'</div></div>'+
+    '<div class="stat-card sc-a'+ativo('utilizado')+'" onclick="clicarCardCont(\'utilizado\')"><div class="stat-lbl">Total utilizado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totU)+'</div><div class="stat-sub">'+(totC>0?Math.round(totU/totC*100):0)+'% do contratado</div></div>'+
+    '<div class="stat-card '+(semPDF>0?'sc-r':'sc-g')+ativo('sem_pdf')+'" onclick="clicarCardCont(\'sem_pdf\')"><div class="stat-lbl">Sem PDF</div><div class="stat-val" style="color:'+(filtroCardCont==='sem_pdf'?'':(semPDF>0?'var(--erro)':'var(--sucesso)'))+'">'+semPDF+'</div><div class="stat-sub">contratos sem documento</div></div>';
 }
 
 function filtrar(){
@@ -282,6 +289,9 @@ function filtrar(){
     if(fa&&c.atividade_id!==fa)return false;
     if(ff&&c.fornecedor_id!==ff)return false;
     if(b&&!((c.numero+' '+(c.objeto_pt||'')+' '+(c.fornecedores?c.fornecedores.nome:'')).toLowerCase()).includes(b))return false;
+    if(filtroCardCont==='vigente'&&c.status!=='vigente')return false;
+    if(filtroCardCont==='utilizado'&&!(parseFloat(c.valor_utilizado_brl||0)>0))return false;
+    if(filtroCardCont==='sem_pdf'&&c.contrato_assinado_url)return false;
     return true;
   });
   document.getElementById('cont').textContent=fil.length+' de '+todosContratos.length+' contratos';
