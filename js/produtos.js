@@ -152,15 +152,15 @@ function renderStatsHTML(){
   var c=statsCounts;
   function card(status,lbl,val,valColor,borderCol,barCol,sub){
     var ativo=filtroStatus===status;
-    var ring=ativo?'box-shadow:0 0 0 2px '+barCol+';border-color:'+borderCol+';':'';
-    return '<div class="stat-card" style="cursor:pointer;'+ring+(barCol?'':'')+(borderCol&&!ativo?'border-color:'+borderCol+';':'')+'" onclick="setFiltroStatus('+"'"+status+"'"+')"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+barCol+'"></div>'
+    var ring=ativo?'box-shadow:0 0 0 2px '+barCol+' inset;border-color:transparent;background:color-mix(in srgb, '+barCol+' 50%, var(--branco));':'';
+    return '<div class="stat-card" style="cursor:pointer;'+ring+(borderCol&&!ativo?'border-color:'+borderCol+';':'')+'" onclick="setFiltroStatus('+"'"+status+"'"+')"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+barCol+'"></div>'
       +'<div class="stat-lbl" style="color:'+(ativo?barCol:'')+'">'+lbl+(ativo?' ✕':' ▾')+'</div>'
       +'<div class="stat-val" style="color:'+valColor+'">'+val+'</div>'
       +'<div class="stat-sub">'+sub+'</div></div>';
   }
   var ativoTodo=filtroStatus===null;
   document.getElementById('stats').innerHTML=
-    '<div class="stat-card sc-b" style="cursor:pointer;'+(ativoTodo?'box-shadow:0 0 0 2px var(--verde-medio);':'')+'" onclick="setFiltroStatus(null)">'
+    '<div class="stat-card sc-b" style="cursor:pointer;'+(ativoTodo?'box-shadow:0 0 0 2px var(--verde-medio) inset;border-color:transparent;background:color-mix(in srgb, var(--verde-medio) 50%, var(--branco));':'')+'" onclick="setFiltroStatus(null)">'
     +'<div class="stat-lbl">Total'+(ativoTodo?' (todos)':'')+'</div>'
     +'<div class="stat-val">'+c.total+'</div>'
     +'<div class="stat-sub">todos os contratos</div></div>'
