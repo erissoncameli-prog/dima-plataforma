@@ -457,13 +457,14 @@ function renderStats(){
 
 // ── Filtro por clique nos cards de estatística ───────────────
 let filtroCard='';
+const CARDS_STATUS_UNICO=['rascunho','contratado']; // cards que mapeiam 1:1 para uma opção do dropdown de status
 function clicarCardStat(card){
   filtroCard=(filtroCard===card)?'':card;
-  // 'rascunho' já existe como opção do dropdown de status — sincroniza
+  // Cards de status único já existem como opção do dropdown de status — sincroniza
   const selSt=document.getElementById('fil-st');
   if(selSt){
-    if(filtroCard==='rascunho') selSt.value='rascunho';
-    else if(selSt.value==='rascunho') selSt.value='';
+    if(CARDS_STATUS_UNICO.includes(filtroCard)) selSt.value=filtroCard;
+    else if(CARDS_STATUS_UNICO.includes(selSt.value)) selSt.value='';
   }
   renderStats();
   filtrar();
@@ -471,7 +472,7 @@ function clicarCardStat(card){
 
 function sincronizarFiltroStatus(){
   const selSt=document.getElementById('fil-st');
-  filtroCard=(selSt&&selSt.value==='rascunho')?'rascunho':'';
+  filtroCard=(selSt&&CARDS_STATUS_UNICO.includes(selSt.value))?selSt.value:'';
   renderStats();
   filtrar();
 }
