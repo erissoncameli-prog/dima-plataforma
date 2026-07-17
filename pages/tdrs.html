@@ -491,11 +491,15 @@ function filtrar(){
   const s=document.getElementById('fil-st').value;
   const tp=document.getElementById('fil-tp').value;
   const resp=document.getElementById('fil-resp')?.value||'';
+  const GRUPO_ANDAMENTO=['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','em_licitacao'];
   const f=todosTDRs.filter(t=>{
     if(b&&!t.numero.toLowerCase().includes(b)&&!(t.objeto_pt||'').toLowerCase().includes(b))return false;
     if(s&&t.status!==s)return false;
     if(tp&&t.tipo!==tp)return false;
     if(resp&&getResponsavelTDR(t)?.id!==resp)return false;
+    if(filtroCard==='andamento'&&!GRUPO_ANDAMENTO.includes(t.status))return false;
+    if(filtroCard==='atrasados'&&!(t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status)))return false;
+    if(filtroCard==='aprovados'&&!FASES_POS_APROVACAO.includes(t.status))return false;
     return true;
   });
   document.getElementById('cont').textContent=`${f.length} de ${todosTDRs.length} TDRs`;
