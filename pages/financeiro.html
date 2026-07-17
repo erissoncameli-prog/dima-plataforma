@@ -434,6 +434,22 @@ function renderCotacaoCard() {
     </div>`;
 }
 
+function waterHTML(color,pct){
+  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
+    <div class="wc-wavewrap">
+      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
+      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
+    </div>
+  </div>`;
+}
+function animarAgua(){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
+      el.style.height=el.dataset.alvo+'%';
+    });
+  }));
+}
+
 function renderStats() {
   const ativos = todosLanc.filter(l=>l.situacao!=='cancelado');
   const pagos = ativos.filter(l=>l.situacao==='pago');
@@ -443,33 +459,41 @@ function renderStats() {
   const totalGeral = ativos.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
   const vencidos = aPagar.filter(l=>l.dt_vencimento&&new Date(l.dt_vencimento)<new Date()).length;
   const ativo=c=>filtroCardFin===c?' ativo':'';
+  const denMoney = totalGeral||1;
+  const denVenc = aPagar.length||1;
 
   document.getElementById('stats').innerHTML = `
     <div class="stat-card sc-g${ativo('pago')}" onclick="clicarCardFin('pago')">
+      ${waterHTML('var(--verde-claro)',Math.round(totalPago/denMoney*100))}
       <div class="stat-lbl">Total Executado</div>
       <div class="stat-val">${fmtBRL(totalPago)}</div>
       <div class="stat-sub">${pagos.length} pagamentos</div>
     </div>
     <div class="stat-card sc-a${ativo('a_pagar')}" onclick="clicarCardFin('a_pagar')">
+      ${waterHTML('var(--aviso)',Math.round(totalAPagar/denMoney*100))}
       <div class="stat-lbl">A Pagar</div>
       <div class="stat-val">${fmtBRL(totalAPagar)}</div>
       <div class="stat-sub">${aPagar.length} lançamentos</div>
     </div>
     <div class="stat-card sc-b${ativo('total')}" onclick="clicarCardFin('total')">
+      ${waterHTML('var(--azul-medio)',100)}
       <div class="stat-lbl">Total Comprometido</div>
       <div class="stat-val">${fmtBRL(totalGeral)}</div>
       <div class="stat-sub">pago + a pagar</div>
     </div>
     <div class="stat-card sc-t${ativo('usd')}" onclick="clicarCardFin('usd')">
+      ${waterHTML('#0D9488',100)}
       <div class="stat-lbl">Em USD (cotação atual)</div>
       <div class="stat-val" style="font-size:14px">${fmtUSD(totalGeral/taxaAtual)}</div>
       <div class="stat-sub">R$ ${taxaAtual.toFixed(2)}/USD</div>
     </div>
     <div class="stat-card ${vencidos>0?'sc-r':'sc-g'}${ativo('vencidos')}" onclick="clicarCardFin('vencidos')">
+      ${waterHTML(vencidos>0?'var(--erro)':'var(--verde-claro)',Math.round(vencidos/denVenc*100))}
       <div class="stat-lbl">Vencidos</div>
       <div class="stat-val" style="color:${filtroCardFin==='vencidos'?'':(vencidos>0?'var(--erro)':'var(--sucesso)')}">${vencidos}</div>
       <div class="stat-sub">aguardando pagamento</div>
     </div>`;
+  animarAgua();
 }
 
 // ── Filtro por clique nos cards de estatística ───────────────
