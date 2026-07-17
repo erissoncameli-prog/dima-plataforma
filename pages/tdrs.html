@@ -446,6 +446,12 @@ function renderStats(){
       <div class="stat-val">${tAprovados.length}</div>
       <div class="stat-sub">TDRs aprovados</div>
       <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#D97706;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAprovados))}</div>
+    </div>
+    <div class="stat-card sc-c${ativo('contratado')}" onclick="clicarCardStat('contratado')">
+      <div class="stat-lbl">Contratado</div>
+      <div class="stat-val">${tContratado.length}</div>
+      <div class="stat-sub">TDRs contratados</div>
+      <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#7C3AED;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tContratado))}</div>
     </div>`;
 }
 
