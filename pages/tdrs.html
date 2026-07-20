@@ -931,6 +931,7 @@ async function abrirTDR(id){
           ${t.valor_brl&&t.cotacao_registro?`<div style="font-size:11px;color:var(--cinza-500)">Pelo câmbio atual: <strong>${fmtUSD(parseFloat(t.valor_brl)/taxaAtual)}</strong></div>`:''}
         </div>
       </div>
+      ${painelEconomiaTDR(t, liberacoes||[], taxaAtual, eCoordenador)}
     </div>
 
     <!-- ABA VERSÕES COM DIFF VISUAL -->
