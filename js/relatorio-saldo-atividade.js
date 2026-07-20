@@ -31,17 +31,24 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     const linhas = tdrs.map(t=>{
       const conts=(t.contratos||[]);
       const firmado = conts.length>0;
-      let cBRL, cUSD;
+      // Economia já LIBERADA (via ledger atividade_saldo_liberacoes) volta ao saldo livre;
+      // o que não foi liberado permanece RESERVADO ao TDR (segue comprometido).
+      const libBRL = (t.liberacoes||[]).filter(l=>l&&l.status==='liberado').reduce((s,l)=>s+parseFloat(l.valor_liberado_brl||0),0);
+      let cBRL, cUSD, reservadaBRL=0;
       if(firmado){
-        cBRL = conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
+        const firmBRL_ = conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
+        const planBRL_ = parseFloat(t.valor_brl||0) || toBRL(parseFloat(t.valor_usd||0));
+        firmBRL+=firmBRL_; firmUSD+=toUSD(firmBRL_);
+        // Comprometido = firmado + economia ainda reservada (planejado − firmado − liberado)
+        cBRL = Math.max(planBRL_, firmBRL_) - libBRL;
         cUSD = toUSD(cBRL);
-        firmUSD+=cUSD; firmBRL+=cBRL;
+        reservadaBRL = Math.max(0, planBRL_ - firmBRL_ - libBRL);
       } else {
         cUSD = parseFloat(t.valor_usd||0) || toUSD(parseFloat(t.valor_brl||0));
         cBRL = parseFloat(t.valor_brl||0) || toBRL(parseFloat(t.valor_usd||0));
       }
       compUSD+=cUSD; compBRL+=cBRL;
-      return { t, firmado, conts, cUSD, cBRL };
+      return { t, firmado, conts, cUSD, cBRL, libBRL, reservadaBRL };
     }).sort((x,y)=>(x.t.numero||'').localeCompare(y.t.numero||'',undefined,{numeric:true}));
     const saldoUSD = orcUSD - compUSD;
     const saldoBRL = toBRL(orcUSD) - compBRL;
