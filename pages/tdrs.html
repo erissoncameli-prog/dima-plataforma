@@ -322,6 +322,55 @@
   </div>
 </div>
 
+<!-- MODAL LIBERAR SALDO (economia do TDR → atividade) -->
+<div class="modal-overlay" id="modal-liberar-saldo">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">Liberar saldo para a atividade</span>
+      <button class="modal-close" onclick="fecharModal('modal-liberar-saldo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info" style="margin-bottom:14px">
+        A economia (planejado − firmado) deixará de ficar reservada a este TDR e voltará ao <strong>saldo livre da atividade</strong>, disponível para novos TDRs. A ação fica registrada no histórico.
+      </div>
+      <div id="liberar-saldo-resumo"></div>
+      <div class="form-group" style="margin-top:14px">
+        <label class="form-label">Justificativa <span class="obrig">*</span></label>
+        <textarea class="form-control" id="liberar-saldo-justificativa" rows="3"
+          placeholder="Ex.: Licitação fechou abaixo do estimado, sem aditivo previsto."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-liberar-saldo')">Cancelar</button>
+      <button class="btn" style="background:var(--sucesso,#059669);color:#fff" onclick="confirmarLiberarSaldo()">✓ Liberar saldo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ESTORNAR LIBERAÇÃO -->
+<div class="modal-overlay" id="modal-estornar-saldo">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <span class="modal-title">Estornar liberação de saldo</span>
+      <button class="modal-close" onclick="fecharModal('modal-estornar-saldo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning" style="margin-bottom:14px">
+        O valor liberado volta a ficar <strong>reservado</strong> a este TDR (ex.: surgiu um aditivo de contrato). A liberação original permanece no histórico como estornada.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Motivo do estorno <span class="obrig">*</span></label>
+        <textarea class="form-control" id="estornar-saldo-motivo" rows="3"
+          placeholder="Ex.: Aditivo de contrato consumiu a economia."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-estornar-saldo')">Cancelar</button>
+      <button class="btn" style="background:var(--aviso,#D97706);color:#fff" onclick="confirmarEstornarSaldo()">↩ Confirmar estorno</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
