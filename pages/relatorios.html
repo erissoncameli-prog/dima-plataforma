@@ -2558,7 +2558,8 @@ async function relA4(){
     .select(`id,codigo,nome_pt,orcamento_usd,
       resultado:resultados(codigo),
       tdrs(id,numero,valor_brl,valor_usd,status,
-        contratos(id,numero,valor_total_brl,status))`)
+        contratos(id,numero,valor_total_brl,status),
+        liberacoes:atividade_saldo_liberacoes(valor_liberado_brl,valor_liberado_usd,status))`)
     .order('codigo');
   if(ativFil) q = q.eq('id', ativFil);
 
