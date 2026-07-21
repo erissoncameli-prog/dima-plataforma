@@ -223,6 +223,37 @@ WHERE c.status = 'vigente'
 | `atividade_id` | uuid FK | |
 | `criado_em` / `atualizado_em` | timestamptz | |
 
+### Saldo por atividade e liberação de economia (⚠️ ler antes de mexer em saldo)
+
+**`vw_saldo_atividade` é a fonte da verdade do saldo** (dashboard/Visão Geral). Fórmula:
+```
+saldo_livre_usd = orcamento_usd
+                − Σ(tdrs.valor_usd de TDRs não-cancelados)      -- COMPROMETIDO = valor PLANEJADO do TDR
+                + Σ(contrato_encerramentos.valor_liberado_usd)  -- só linhas com status='ativo'
+```
+> ⚠️ Comprometido usa o valor **planejado** do TDR, **não** o valor do contrato. A economia entre planejado e contratado fica **reservada por padrão** até ser liberada.
+
+**`contrato_encerramentos`** — tabela-razão única de liberação de saldo (imutável; estorno = mudança de status, nunca DELETE):
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| `id` | uuid PK | |
+| `contrato_id` | uuid FK → `contratos.id` | NOT NULL |
+| `tdr_id` | uuid FK → `tdrs.id` | preenchido só em `economia_contratacao` |
+| `atividade_id` | uuid FK | |
+| `tipo` | text | `encerramento_contrato \| economia_contratacao` |
+| `valor_liberado_brl` / `valor_liberado_usd` | numeric | |
+| `motivo` | text NOT NULL | |
+| `produtos_afetados` | jsonb NOT NULL | `[]` quando não há produtos |
+| `status` | text | `ativo \| revertido` (a view só soma `ativo`) |
+| `autorizado_por` / `revertido_por` | uuid FK → `usuarios.id` | |
+| `criado_em` / `revertido_em` | timestamptz | |
+
+- **`encerramento_contrato`**: encerra contrato com produtos pendentes, cancela produtos, libera o não-executado. UI: `pages/contratos.html` → `confirmarEncerramento()` (insert direto via client).
+- **`economia_contratacao`**: libera a economia planejado−firmado de um TDR contratado. UI: aba Financeiro do modal em `pages/tdrs.html` → `painelEconomiaTDR`. Usa RPCs (restritas a `super_admin`/`coordenacao`):
+  - `fn_liberar_economia_tdr(p_tdr_id uuid, p_justificativa text, p_taxa numeric)` — calcula economia = `tdrs.valor_brl − Σ contratos.valor_total_brl`, grava a liberação e loga em `tdr_acoes`.
+  - `fn_estornar_economia_tdr(p_encerramento_id uuid, p_motivo text)` — marca `status='revertido'` (só `tipo='economia_contratacao'`).
+- O relatório A4 `js/relatorio-saldo-atividade.js` espelha a view; é alimentado por `pages/relatorios.html` e `pages/dashboard.html`, que embedam `encerramentos:contrato_encerramentos(...)` na atividade.
+
 ### Tabela: `produto_matriz_contribuicao`
 | Coluna | Tipo | Obs |
 |--------|------|-----|
