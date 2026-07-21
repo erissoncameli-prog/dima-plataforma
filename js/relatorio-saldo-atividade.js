@@ -104,9 +104,9 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
           <td>${tdrBadge(l.t.status)}</td>
           <td>${l.firmado
             ? `<span class="rep-badge rb-teal">🔒 ${numsContrato}</span>${
-                l.libBRL>0 ? `<span class="rep-badge rb-verde" style="margin-left:4px" title="Economia liberada ao saldo da atividade">↩ ${fmtBRL(l.libBRL)} liberado</span>` : ''
+                l.libTdrBRL>0 ? `<span class="rep-badge rb-verde" style="margin-left:4px" title="Economia liberada ao saldo da atividade">↩ ${fmtBRL(l.libTdrBRL)} liberado</span>` : ''
               }${
-                l.reservadaBRL>0 ? `<span class="rep-badge rb-azul" style="margin-left:4px" title="Economia ainda reservada a este TDR — segue comprometida">⏸ ${fmtBRL(l.reservadaBRL)} reservado</span>` : ''
+                l.reservadaBRL>0 ? `<span class="rep-badge rb-azul" style="margin-left:4px" title="Economia entre planejado e firmado, ainda reservada a este TDR">⏸ ${fmtBRL(l.reservadaBRL)} reservado</span>` : ''
               }`
             : `<span style="font-size:10px;color:var(--cinza-400)">— sem contrato —</span>`}</td>
           <td></td>
