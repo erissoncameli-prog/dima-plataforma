@@ -769,7 +769,7 @@ async function abrirTDR(id){
       ? db.from('atividade_matriz').select('matriz_itens(id,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,meta_descricao)').eq('atividade_id',t.atividades.id)
       : Promise.resolve({data:[]}),
     db.from('tdr_anexos').select('*,usuarios:enviado_por(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:true}),
-    db.from('atividade_saldo_liberacoes').select('*,usuario_liberou:usuarios!atividade_saldo_liberacoes_liberado_por_fkey(nome_completo),usuario_estornou:usuarios!atividade_saldo_liberacoes_estornado_por_fkey(nome_completo)').eq('tdr_id',id).order('liberado_em',{ascending:true})
+    db.from('contrato_encerramentos').select('*,autorizou:usuarios!contrato_encerramentos_autorizado_por_fkey(nome_completo),reverteu:usuarios!contrato_encerramentos_revertido_por_fkey(nome_completo)').eq('tdr_id',id).eq('tipo','economia_contratacao').order('criado_em',{ascending:true})
   ]);
   // Mapear último ação por status_novo para a timeline
   const acaosPorFase={};
