@@ -20,39 +20,47 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     return `<span class="rep-badge ${cls}">${TDR_LBL[st]||st}</span>`;
   };
 
-  // Processa cada atividade (comprometido = valor do contrato quando firmado, senão valor do TDR)
+  // Processa cada atividade — espelha vw_saldo_atividade:
+  // comprometido = valor PLANEJADO do TDR (reservado); economia só sai do comprometido
+  // quando é LIBERADA (contrato_encerramentos, status ativo). Saldo = orçamento − comprometido + liberado.
   const dados = rows.map(a=>{
     const seen=new Set();
     const tdrs=(a.tdrs||[])
       .filter(t=>{ if(seen.has(t.id))return false; seen.add(t.id); return true; })
       .filter(t=>t.status!=='cancelado');
     const orcUSD = parseFloat(a.orcamento_usd||0);
+
+    // Liberações ativas (encerramentos) da atividade — total e por TDR (via tdr_id)
+    const encsAtivos = (a.encerramentos||[]).filter(e=>e && (e.status==='ativo' || e.status==null));
+    const libByTdr = {};
+    let libUSD=0, libBRL=0;
+    encsAtivos.forEach(e=>{
+      const uUSD = parseFloat(e.valor_liberado_usd||0) || toUSD(parseFloat(e.valor_liberado_brl||0));
+      const uBRL = parseFloat(e.valor_liberado_brl||0) || toBRL(parseFloat(e.valor_liberado_usd||0));
+      libUSD+=uUSD; libBRL+=uBRL;
+      if(e.tdr_id){ libByTdr[e.tdr_id]=(libByTdr[e.tdr_id]||0)+uBRL; }
+    });
+
     let compUSD=0, compBRL=0, firmUSD=0, firmBRL=0;
     const linhas = tdrs.map(t=>{
       const conts=(t.contratos||[]);
       const firmado = conts.length>0;
-      // Economia já LIBERADA (via ledger atividade_saldo_liberacoes) volta ao saldo livre;
-      // o que não foi liberado permanece RESERVADO ao TDR (segue comprometido).
-      const libBRL = (t.liberacoes||[]).filter(l=>l&&l.status==='liberado').reduce((s,l)=>s+parseFloat(l.valor_liberado_brl||0),0);
-      let cBRL, cUSD, reservadaBRL=0;
-      if(firmado){
-        const firmBRL_ = conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
-        const planBRL_ = parseFloat(t.valor_brl||0) || toBRL(parseFloat(t.valor_usd||0));
-        firmBRL+=firmBRL_; firmUSD+=toUSD(firmBRL_);
-        // Comprometido = firmado + economia ainda reservada (planejado − firmado − liberado)
-        cBRL = Math.max(planBRL_, firmBRL_) - libBRL;
-        cUSD = toUSD(cBRL);
-        reservadaBRL = Math.max(0, planBRL_ - firmBRL_ - libBRL);
-      } else {
-        cUSD = parseFloat(t.valor_usd||0) || toUSD(parseFloat(t.valor_brl||0));
-        cBRL = parseFloat(t.valor_brl||0) || toBRL(parseFloat(t.valor_usd||0));
-      }
+      const firmBRL_ = conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
+      const planBRL_ = parseFloat(t.valor_brl||0) || toBRL(parseFloat(t.valor_usd||0));
+      // Comprometido = valor planejado do TDR (independe do contrato)
+      const cUSD = parseFloat(t.valor_usd||0) || toUSD(planBRL_);
+      const cBRL = planBRL_;
+      if(firmado){ firmBRL+=firmBRL_; firmUSD+=toUSD(firmBRL_); }
       compUSD+=cUSD; compBRL+=cBRL;
-      return { t, firmado, conts, cUSD, cBRL, libBRL, reservadaBRL };
+      const ecoBRL = firmado ? Math.max(0, planBRL_ - firmBRL_) : 0; // economia potencial
+      const libTdrBRL = Math.min(ecoBRL, libByTdr[t.id]||0);          // já liberada deste TDR
+      const reservadaBRL = Math.max(0, ecoBRL - libTdrBRL);          // ainda reservada
+      return { t, firmado, conts, cUSD, cBRL, ecoBRL, libTdrBRL, reservadaBRL };
     }).sort((x,y)=>(x.t.numero||'').localeCompare(y.t.numero||'',undefined,{numeric:true}));
-    const saldoUSD = orcUSD - compUSD;
-    const saldoBRL = toBRL(orcUSD) - compBRL;
-    return { a, orcUSD, compUSD, compBRL, firmUSD, firmBRL, saldoUSD, saldoBRL, linhas };
+
+    const saldoUSD = orcUSD - compUSD + libUSD;
+    const saldoBRL = toBRL(orcUSD) - compBRL + libBRL;
+    return { a, orcUSD, compUSD, compBRL, firmUSD, firmBRL, libUSD, libBRL, saldoUSD, saldoBRL, linhas };
   }).sort((x,y)=>(x.a.codigo||'').localeCompare(y.a.codigo||'',undefined,{numeric:true}));
 
   if(!dados.length) return `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Nenhuma atividade encontrada para os filtros selecionados.</div>`;
