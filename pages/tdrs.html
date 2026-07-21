@@ -2079,7 +2079,7 @@ async function confirmarEstornarSaldo(){
   const tdrId = tdrAtual?.id, tdrNum = tdrAtual?.numero||'', libId = _estornoLibId;
   pedirSenhaTDR('Estornar liberação',`TDR ${tdrNum} — valor volta a reservado`, async()=>{
     try{
-      const {error} = await db.rpc('fn_estornar_saldo_tdr',{p_liberacao_id:libId,p_motivo:motivo});
+      const {error} = await db.rpc('fn_estornar_economia_tdr',{p_encerramento_id:libId,p_motivo:motivo});
       if(error)throw new Error(error.message);
       toast('Liberação estornada. ✓','success');
       if(tdrId)abrirTDR(tdrId);
