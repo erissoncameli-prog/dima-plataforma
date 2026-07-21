@@ -1964,8 +1964,8 @@ function painelEconomiaTDR(t, liberacoes, taxa, eCoordenador){
   const firmado = conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
   const economia = planejado - firmado;
 
-  const libs = (liberacoes||[]).slice().sort((a,b)=> new Date(a.liberado_em)-new Date(b.liberado_em));
-  const ativa = libs.find(l=>l.status==='liberado');
+  const libs = (liberacoes||[]).slice().sort((a,b)=> new Date(a.criado_em)-new Date(b.criado_em));
+  const ativa = libs.find(l=>l.status==='ativo');
 
   let estadoBadge='', estadoTxt='';
   if(economia<=0){
