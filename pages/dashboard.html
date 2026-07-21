@@ -240,7 +240,7 @@ async function loadData(){
     db.from('vw_matriz_progresso').select('*'),
     db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
     db.from('produto_matriz_contribuicao').select('matriz_item_id,valor,status,contratos_produtos_entregas(dt_entrega)').eq('status','confirmado'),
-    db.from('atividade_saldo_liberacoes').select('tdr_id,valor_liberado_brl,valor_liberado_usd,status'),
+    db.from('contrato_encerramentos').select('atividade_id,tdr_id,valor_liberado_brl,valor_liberado_usd,status'),
   ]);
   D.atv=r[0].data||[]; D.tdrs=r[1].data||[]; D.res=r[2].data||[];
   D.sal=r[3].data||[]; D.ind=r[4].data||[]; D.lanc=r[5].data||[];
