@@ -158,8 +158,8 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     </table>
     <div style="font-size:10px;color:var(--cinza-500);margin-top:8px;line-height:1.6">
       Valores em <strong>USD</strong> (moeda do orçamento); linha menor em <strong>BRL</strong> é referência à cotação atual${taxa>0?` de R$ ${taxa.toFixed(4)}`:''}.
-      Comprometido = valor do <strong>contrato</strong> firmado (🔒) + a <strong>economia ainda reservada</strong> (⏸) ao TDR; sem contrato, o valor do próprio TDR. A economia só sai do comprometido quando é <strong>liberada</strong> (↩) por coordenação/super admin. TDRs cancelados não entram no cálculo.
-      Saldo livre = Orçamento − Comprometido (o que ainda não está reservado a nenhum TDR).
+      Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe). Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> (⏸) ao TDR até coordenação/super admin <strong>liberá-la</strong> (↩) para a atividade. TDRs cancelados não entram no cálculo.
+      Saldo livre = Orçamento − Comprometido + Liberado (espelha a Visão Geral).
     </div>
   </div>`;
 }
