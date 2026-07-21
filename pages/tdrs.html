@@ -1987,14 +1987,14 @@ function painelEconomiaTDR(t, liberacoes, taxa, eCoordenador){
   const hist = libs.length ? `<div style="margin-top:14px">
     <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Histórico de liberações</div>
     ${libs.map(l=>{
-      const estornada = l.status==='estornado';
+      const estornada = l.status==='revertido';
       return `<div style="border:1px solid var(--borda);border-left:3px solid ${estornada?'#D97706':'#059669'};border-radius:var(--raio);padding:10px 12px;margin-bottom:8px;background:var(--branco)">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
           <span style="font-size:12px;font-weight:600;color:${estornada?'#92400E':'#065F46'}">${estornada?'↩ Estornada':'✓ Liberada'} · ${fmtBRL(l.valor_liberado_brl)}</span>
-          <span style="font-size:10px;color:var(--cinza-400)">${fmtData(l.liberado_em)}</span>
+          <span style="font-size:10px;color:var(--cinza-400)">${fmtData(l.criado_em)}</span>
         </div>
-        <div style="font-size:11px;color:var(--cinza-600);margin-top:4px">Por ${esc(l.usuario_liberou?.nome_completo||'—')} · ${esc(l.justificativa||'')}</div>
-        ${estornada?`<div style="font-size:11px;color:#92400E;margin-top:4px;padding-top:4px;border-top:1px dashed var(--borda)">Estorno por ${esc(l.usuario_estornou?.nome_completo||'—')} em ${fmtData(l.estornado_em)} · ${esc(l.motivo_estorno||'')}</div>`:''}
+        <div style="font-size:11px;color:var(--cinza-600);margin-top:4px">Por ${esc(l.autorizou?.nome_completo||'—')} · ${esc(l.motivo||'')}</div>
+        ${estornada?`<div style="font-size:11px;color:#92400E;margin-top:4px;padding-top:4px;border-top:1px dashed var(--borda)">Estorno por ${esc(l.reverteu?.nome_completo||'—')} em ${fmtData(l.revertido_em)} · ${esc(l.motivo_reversao||'')}</div>`:''}
       </div>`;
     }).join('')}
   </div>` : '';
