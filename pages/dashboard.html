@@ -1086,7 +1086,7 @@ async function abrirRelatorioA4Saldo(){
     (D.tdrs||[]).forEach(function(t){ (tdrsByAtv[t.atividade_id]=tdrsByAtv[t.atividade_id]||[]).push({id:t.id,numero:t.numero,valor_brl:t.valor_brl,valor_usd:t.valor_usd,status:t.status,contratos:contrByTdr[t.id]||[]}); });
     var rows = (D.atv||[]).map(function(a){
       var res = (D.res||[]).find(function(r){return r.id===a.resultado_id;});
-      return { codigo:a.codigo, nome_pt:a.nome_pt, orcamento_usd:a.orcamento_usd, resultado: res?{codigo:res.codigo}:null, tdrs: tdrsByAtv[a.id]||[] };
+      return { codigo:a.codigo, nome_pt:a.nome_pt, orcamento_usd:a.orcamento_usd, resultado: res?{codigo:res.codigo}:null, tdrs: tdrsByAtv[a.id]||[], encerramentos: encByAtv[a.id]||[] };
     });
     var cotResp = await db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1);
     var taxa = parseFloat((cotResp.data && cotResp.data[0] && cotResp.data[0].cotacao) || 0);
