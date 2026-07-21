@@ -2053,7 +2053,7 @@ async function confirmarLiberarSaldo(){
     try{
       const cot = await obterCotacao();
       const taxa = cot?.cotacao || null;
-      const {error} = await db.rpc('fn_liberar_saldo_tdr',{p_tdr_id:tdrId,p_justificativa:just,p_taxa:taxa});
+      const {error} = await db.rpc('fn_liberar_economia_tdr',{p_tdr_id:tdrId,p_justificativa:just,p_taxa:taxa});
       if(error)throw new Error(error.message);
       toast('Saldo liberado para a atividade! ✓','success');
       abrirTDR(tdrId);
