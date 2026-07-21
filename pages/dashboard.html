@@ -1080,10 +1080,10 @@ async function abrirRelatorioA4Saldo(){
   try{
     var contrByTdr = {};
     (D.contr||[]).forEach(function(c){ if(!c.tdr_id) return; (contrByTdr[c.tdr_id]=contrByTdr[c.tdr_id]||[]).push({id:c.id,numero:c.numero,valor_total_brl:c.valor_total_brl,status:c.status}); });
-    var libByTdr = {};
-    (D.liberacoes||[]).forEach(function(l){ if(!l.tdr_id) return; (libByTdr[l.tdr_id]=libByTdr[l.tdr_id]||[]).push({valor_liberado_brl:l.valor_liberado_brl,valor_liberado_usd:l.valor_liberado_usd,status:l.status}); });
+    var encByAtv = {};
+    (D.encerr||[]).forEach(function(e){ if(!e.atividade_id) return; (encByAtv[e.atividade_id]=encByAtv[e.atividade_id]||[]).push({tdr_id:e.tdr_id,valor_liberado_brl:e.valor_liberado_brl,valor_liberado_usd:e.valor_liberado_usd,status:e.status}); });
     var tdrsByAtv = {};
-    (D.tdrs||[]).forEach(function(t){ (tdrsByAtv[t.atividade_id]=tdrsByAtv[t.atividade_id]||[]).push({id:t.id,numero:t.numero,valor_brl:t.valor_brl,valor_usd:t.valor_usd,status:t.status,contratos:contrByTdr[t.id]||[],liberacoes:libByTdr[t.id]||[]}); });
+    (D.tdrs||[]).forEach(function(t){ (tdrsByAtv[t.atividade_id]=tdrsByAtv[t.atividade_id]||[]).push({id:t.id,numero:t.numero,valor_brl:t.valor_brl,valor_usd:t.valor_usd,status:t.status,contratos:contrByTdr[t.id]||[]}); });
     var rows = (D.atv||[]).map(function(a){
       var res = (D.res||[]).find(function(r){return r.id===a.resultado_id;});
       return { codigo:a.codigo, nome_pt:a.nome_pt, orcamento_usd:a.orcamento_usd, resultado: res?{codigo:res.codigo}:null, tdrs: tdrsByAtv[a.id]||[] };
