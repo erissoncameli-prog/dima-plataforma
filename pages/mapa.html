@@ -3904,13 +3904,11 @@ let _carAbertoFeat  = null;     // feature do CAR aberto
 let _carDetAba      = 'atributos';
 let _carUltimoEstilo= null;     // último estilo salvo { fill_color, fill_opacity, stroke_color, stroke_width, cod_imovel }
 
-// ── Mascara CPF/CNPJ: exibe 3 primeiros e 2 últimos dígitos ──────────────
-function _mascaraCpfCnpj(v){
-  if(!v) return '—';
-  const d = String(v).replace(/\D/g,'');
-  if(d.length < 6) return d;
-  return d.slice(0,3) + '*'.repeat(d.length - 5) + d.slice(-2);
-}
+// ── CPF/CNPJ do CAR ──────────────────────────────────────────────────────
+// O banco já armazena apenas a versão mascarada e irreversível
+// (car_dados_locais.cpf_cnpj_mascara). Não há mascaramento no cliente:
+// o dado bruto não trafega mais até o navegador. Ver migração
+// 20260727_lgpd_c0_03_car_mascara_cpf.sql.
 
 // ── Badge de classificação ambiental ─────────────────────────────────────
 function _badgeClass(nome_class){
@@ -3930,7 +3928,7 @@ async function _buscarDadosLocais(cod){
   if(!cod) return null;
   if(_carDadosLocais.has(cod)) return _carDadosLocais.get(cod);
   const { data } = await db.from('car_dados_locais')
-    .select('nom_imovel,nome_compl,cpf_cnpj,num_area_i,num_modulo,nom_munici,ind_status,condicao_i,nome_class,tipo_docum,nome_docum,dat_criaca')
+    .select('nom_imovel,nome_compl,cpf_cnpj_mascara,num_area_i,num_modulo,nom_munici,ind_status,condicao_i,nome_class,tipo_docum,nome_docum,dat_criaca')
     .eq('cod_imovel', cod)
     .maybeSingle();
   _carDadosLocais.set(cod, data || null);
@@ -4306,8 +4304,8 @@ function _htmlCarAtributos(f){
         <div class="car-det-value" style="font-size:13px;font-weight:700;color:var(--cinza-900)">${escHtml(local.nom_imovel)}</div></div>` : ''}
       ${local.nome_compl ? `<div class="car-det-field"><div class="car-det-label">Proprietário / Possuidor</div>
         <div class="car-det-value">${escHtml(local.nome_compl)}</div></div>` : ''}
-      ${local.cpf_cnpj ? `<div class="car-det-field"><div class="car-det-label">CPF / CNPJ</div>
-        <div class="car-det-value" style="font-family:monospace">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</div></div>` : ''}
+      ${local.cpf_cnpj_mascara ? `<div class="car-det-field"><div class="car-det-label">CPF / CNPJ</div>
+        <div class="car-det-value" style="font-family:monospace">${escHtml(local.cpf_cnpj_mascara)}</div></div>` : ''}
       ${local.num_area_i ? `<div class="car-det-field"><div class="car-det-label">Área (SICAR)</div>
         <div class="car-det-value" style="font-weight:700;color:var(--verde-escuro)">${Number(local.num_area_i).toLocaleString('pt-BR',{maximumFractionDigits:4})} ha</div></div>` : ''}
       ${local.num_modulo ? `<div class="car-det-field"><div class="car-det-label">Módulos Fiscais (SICAR)</div>
@@ -6191,7 +6189,7 @@ function _htmlFichaCAR(f, imgData){
         <div class="dados-col-title">📋 Dados Cadastrais (SICAR)</div>
         ${local.nom_imovel?`<div class="attr-row"><span class="attr-lbl">Nome do imóvel</span><span class="attr-val">${escHtml(local.nom_imovel)}</span></div>`:''}
         ${local.nome_compl?`<div class="attr-row"><span class="attr-lbl">Proprietário/Possuidor</span><span class="attr-val">${escHtml(local.nome_compl)}</span></div>`:''}
-        ${local.cpf_cnpj?`<div class="attr-row"><span class="attr-lbl">CPF / CNPJ</span><span class="attr-val" style="font-family:monospace;font-size:9.5px">${escHtml(_mascaraCpfCnpj(local.cpf_cnpj))}</span></div>`:''}
+        ${local.cpf_cnpj_mascara?`<div class="attr-row"><span class="attr-lbl">CPF / CNPJ</span><span class="attr-val" style="font-family:monospace;font-size:9.5px">${escHtml(local.cpf_cnpj_mascara)}</span></div>`:''}
         ${cc?`<div class="attr-row"><span class="attr-lbl">Classificação SICAR</span><span class="attr-val"><span style="background:${cc.bg};color:${cc.cor};border:1px solid ${cc.brd};border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">${escHtml(local.nome_class)}</span></span></div>`:''}
         ${local.tipo_docum?`<div class="attr-row"><span class="attr-lbl">Relação jurídica</span><span class="attr-val">${escHtml(local.tipo_docum)}</span></div>`:''}
         ${local.nome_docum?`<div class="attr-row"><span class="attr-lbl">Documento</span><span class="attr-val" style="font-size:9.5px">${escHtml(local.nome_docum)}</span></div>`:''}

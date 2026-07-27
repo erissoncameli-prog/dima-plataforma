@@ -326,6 +326,84 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 
 ---
 
+## Privacidade e LGPD (⚠️ ler antes de mexer em RLS, grants ou dado pessoal)
+
+### Superfície anônima — allowlist fechada
+
+O papel `anon` usa a chave embarcada em `js/config.js`, que é **pública**. Desde
+`20260727_lgpd_c0_01`, o `anon` tem acesso a **exatamente 3 tabelas**, somente
+leitura, nenhuma com dado pessoal:
+
+| Tabela | Por quê |
+|--------|---------|
+| `configuracoes_sistema` | branding do projeto (`publico.html`, `index.html`) |
+| `geometria_fotos` | fotos das geometrias do mapa público |
+| `trilha_metadata` | vídeos de trilhas do mapa público |
+
+**Regras invioláveis:**
+- **Nunca** conceder `GRANT` ao `anon` para expor dado no portal público. Use uma
+  função `SECURITY DEFINER` (padrão `fn_publico_*`) que devolve só o necessário.
+- `ALTER DEFAULT PRIVILEGES` já revoga tudo do `anon` — tabelas novas nascem
+  fechadas. Não desfazer.
+- Policy `TO public` inclui o `anon`. Ao criar policy para usuário logado,
+  escrever sempre `TO authenticated`.
+
+### Policies permissivas somam-se por OR
+
+Uma policy `USING (true)` **anula** todas as outras policies restritivas da mesma
+tabela e comando. Foi assim que `usuarios_update` permitiu que qualquer
+autenticado se promovesse a `super_admin`. Ao adicionar policy, verificar se já
+não existe uma sem predicado:
+
+```sql
+select tablename, policyname, cmd, roles::text, qual
+from pg_policies where schemaname='public' and qual = 'true';
+```
+
+`public.usuarios` ainda tem `usuarios_select USING (true)` — mantida
+deliberadamente porque 6 pontos do frontend fazem `select('*')` para montar
+listas de responsáveis. Substituir por view de diretório está previsto (Camada 1).
+
+### Dado pessoal por tabela
+
+| Tabela | Dado pessoal | Cuidado |
+|--------|--------------|---------|
+| `beneficiarios` | CPF, nascimento, passaporte, **dados bancários** (banco/agência/conta/PIX/IBAN) | policy atual é só `authenticated` — todo perfil lê. Segregar por perfil na Camada 1 |
+| `fornecedores` | CPF/CNPJ, endereço, dados bancários | PF é dado pessoal |
+| `viagem_viajantes` | CPF, e-mail, cartões de embarque | `viaj_sel` (`auth.uid() is not null`) anula a policy restritiva |
+| `car_dados_locais` | nome de proprietário rural (53.594 linhas) | CPF **removido** — ver abaixo |
+| `usuarios` | e-mail, telefone | `perfil`/`ativo` protegidos por trigger |
+| `audit_log` | IP, user-agent, snapshots jsonb | tabela existe mas **não é populada** |
+
+### `car_dados_locais.cpf_cnpj` foi removida
+
+A coluna não existe mais. Use **`cpf_cnpj_mascara`** (text), que guarda só os 2
+últimos dígitos (`***.***.***-89`) de forma irreversível. Copropriedades trazem
+vários documentos separados por vírgula. Em qualquer reimportação do SICAR,
+passar o valor por `fn_mascara_doc(text)` antes de gravar — **nunca** persistir
+CPF do CAR em texto puro.
+
+Não há mascaramento no cliente: `_mascaraCpfCnpj()` foi removida de `mapa.html`.
+Exiba `cpf_cnpj_mascara` diretamente.
+
+### Base legal do projeto
+
+SEMA/AC é a **controladora**; a plataforma trata dado pessoal com fundamento no
+art. 7º, III (execução de políticas públicas) e art. 7º, V (execução de contrato,
+para fornecedores e consultores PF) — **não em consentimento**. Não construir
+fluxo que dependa de consentimento revogável para dado necessário à prestação de
+contas do projeto.
+
+### Pendências conhecidas (Camadas 1–4, ainda não implementadas)
+
+Buckets de Storage (todos os 9) são **públicos** — inclusive `viagens-arquivos`
+(cartões de embarque), `financeiro-docs` e `contratos-docs`. Migrar para buckets
+privados + `createSignedUrl()`. Além disso: `audit_log` inativo, dados bancários
+sem criptografia, sem redação de CPF antes do envio de TDR à Anthropic, e sem
+Política de Privacidade / Termos de Uso / ROPA / Encarregado designado.
+
+---
+
 ## Armadilhas Conhecidas (erros passados)
 
 1. `contratos.atividades` **não existe** — use `contratos.atividade_id` (uuid FK)
@@ -342,6 +420,10 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 12. Sempre fechar `gerarLayout()` com `+ '</div></div></div>'`
 13. `tdr_acoes` tem RULE `tdr_acoes_no_delete` (log de auditoria imutável, `ON DELETE DO INSTEAD NOTHING`). Um `DELETE FROM tdrs` direto falha com "referential integrity query... gave unexpected result" por causa disso. Exclusão de TDR **deve** usar a função RPC `apagar_tdr(p_tdr_id uuid)` (restrita a `super_admin`), que desabilita a regra internamente, apaga registros filhos e reabilita a regra — nunca apagar `tdrs`/`tdr_acoes` manualmente via client.
 14. **Liberação de saldo/economia**: NÃO criar tabela nova. `contrato_encerramentos` + `vw_saldo_atividade` já são o mecanismo único (ver seção "Saldo por atividade e liberação de economia"). Comprometido = valor **planejado** do TDR, não o do contrato; economia é liberada via `fn_liberar_economia_tdr` (tipo `economia_contratacao`). Qualquer novo cálculo de saldo deve espelhar `vw_saldo_atividade`, senão dashboard e relatório divergem.
+15. `car_dados_locais.cpf_cnpj` **não existe mais** — use `cpf_cnpj_mascara` (ver seção "Privacidade e LGPD")
+16. `_mascaraCpfCnpj()` **não existe mais** em `mapa.html` — o dado já vem mascarado do banco
+17. **Nunca** conceder `GRANT` ao papel `anon`. Para expor dado no portal público, criar função `SECURITY DEFINER` no padrão `fn_publico_*`
+18. Policy com `USING (true)` **anula** as policies restritivas da mesma tabela/comando (somam-se por OR). Ao criar policy para usuário logado, usar sempre `TO authenticated`, nunca `TO public` — `public` inclui o `anon`
 
 ---
 
