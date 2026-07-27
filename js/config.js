@@ -387,3 +387,67 @@ const PODE = {
   verAuditoria:     () => ['super_admin','coordenacao'].includes(appState.perfil),
   editarTDR:        () => ['super_admin','coordenacao','tecnico'].includes(appState.perfil),
 };
+
+// ── Storage privado: URLs assinadas ───────────────────────────
+// Os buckets de documentos são PRIVADOS (LGPD art. 46). As tabelas guardam a
+// URL no formato público (…/object/public/<bucket>/<path>) — ela serve apenas
+// como portadora do caminho, não como link acessível. Toda leitura precisa ser
+// assinada. Ver migração 20260727_lgpd_c1_01_buckets_privados.sql.
+//
+// Uso:
+//   · link/botão →  <a href="#" data-arquivo="${esc(url)}">   (delegado, global)
+//   · imagem     →  <img data-arquivo-src="${esc(url)}">  + assinarImagens(el)
+//   · JS direto  →  await abrirDoc(url)  /  await urlAssinada(url)
+const BUCKETS_PRIVADOS = [
+  'tdrs-arquivos', 'contratos-docs', 'financeiro-docs',
+  'entregas-docs', 'viagens-arquivos', 'produtos-evidencias',
+];
+
+// Extrai { bucket, path } de uma URL de storage nos formatos /public/ ou /sign/
+function parseStorageUrl(url) {
+  try {
+    const p = new URL(url).pathname;
+    const m = p.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/);
+    if (!m) return null;
+    return { bucket: m[1], path: decodeURIComponent(m[2].split('?')[0]) };
+  } catch (e) { return null; }
+}
+
+// Devolve URL assinada para bucket privado; devolve a original nos demais casos
+async function urlAssinada(url, expiraEm = 3600) {
+  const ref = parseStorageUrl(url);
+  if (!ref || !BUCKETS_PRIVADOS.includes(ref.bucket)) return url;
+  const { data, error } = await db.storage.from(ref.bucket).createSignedUrl(ref.path, expiraEm);
+  return (!error && data?.signedUrl) ? data.signedUrl : url;
+}
+
+// Abre arquivo em nova aba. A janela é aberta ANTES do await de propósito:
+// abrir depois de um await é bloqueado como popup pelo navegador.
+async function abrirDoc(url, expiraEm = 3600) {
+  if (!url) { toast('Arquivo não disponível.', 'warning'); return; }
+  const janela = window.open('', '_blank');
+  const assinada = await urlAssinada(url, expiraEm);
+  if (janela && !janela.closed) janela.location.href = assinada;
+  else window.open(assinada, '_blank');
+}
+
+// Resolve <img data-arquivo-src> / <a data-arquivo-href> dentro de um container
+async function assinarImagens(root) {
+  const escopo = root || document;
+  const els = escopo.querySelectorAll('[data-arquivo-src],[data-arquivo-href]');
+  await Promise.all(Array.from(els).map(async el => {
+    const bruta = el.dataset.arquivoSrc || el.dataset.arquivoHref;
+    const assinada = await urlAssinada(bruta);
+    if (el.dataset.arquivoSrc) { el.src = assinada; delete el.dataset.arquivoSrc; }
+    else { el.href = assinada; delete el.dataset.arquivoHref; }
+  }));
+}
+
+// Delegação global: qualquer <a data-arquivo="…"> abre via URL assinada.
+// Funciona com HTML injetado depois, sem precisar religar listener.
+document.addEventListener('click', function (ev) {
+  const el = ev.target.closest && ev.target.closest('[data-arquivo]');
+  if (!el) return;
+  ev.preventDefault();
+  abrirDoc(el.dataset.arquivo);
+});

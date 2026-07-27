@@ -1074,6 +1074,9 @@ async function gerarRelatorio(id){
       <div style="display:flex;justify-content:flex-end;margin-top:12px">
         <button class="btn-imprimir" onclick="abrirExport()">📤 Exportar / Imprimir</button>
       </div>`;
+    // Resolve imagens de buckets privados (ex.: cartões de embarque) — os
+    // elementos são renderizados com data-arquivo-src e assinados aqui.
+    assinarImagens(area);
     // Conta páginas aproximadas
     const linhas = area.querySelectorAll('.rep-tbl tbody tr').length;
     const pags = Math.max(1, Math.ceil(linhas/30));
@@ -3231,14 +3234,14 @@ async function relVi4(){
       const secoes = vList.map(v=>{
         const cartoes = v.cartoes_embarque_urls||[];
         const thumbs  = cartoes.map((url,i)=>`
-          <a href="${esc(url)}" target="_blank" rel="noopener"
+          <a href="#" data-arquivo="${esc(url)}"
              style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:56px;border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;text-decoration:none;flex-shrink:0">
-            <img src="${esc(url)}" style="width:100%;height:100%;object-fit:cover"
+            <img data-arquivo-src="${esc(url)}" style="width:100%;height:100%;object-fit:cover"
               onerror="this.parentElement.innerHTML='<span style=\\'font-size:18px\\'>🎫</span>'"
               alt="Cartão ${i+1}">
           </a>`).join('');
         const relHtml = v.relatorio_url
-          ? `<a href="${esc(v.relatorio_url)}" target="_blank" rel="noopener"
+          ? `<a href="#" data-arquivo="${esc(v.relatorio_url)}"
                style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--verde-medio);text-decoration:none;background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:4px 10px">
                📄 ${esc(v.relatorio_nome||'Relatório de viagem')}
              </a>`
@@ -3747,8 +3750,8 @@ function _linksEntrega(e){
   const docs = e.documentos||[];
   const parts = [];
   if(e.despacho_numero) parts.push(`<span style="font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid #BFDBFE;background:#EFF6FF;color:#1E40AF;white-space:nowrap">📋 ${esc(e.despacho_numero)}${e.despacho_data?' · '+fmtDt(e.despacho_data):''}</span>`);
-  if(e.nota_tecnica_url) parts.push(`<a href="${e.nota_tecnica_url}" target="_blank" style="font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;text-decoration:none;white-space:nowrap">📄 ${esc(e.nota_tecnica_nome||'Nota Técnica')}</a>`);
-  docs.forEach(d=>{ if(d.arquivo_url) parts.push(`<a href="${d.arquivo_url}" target="_blank" style="font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--borda);background:#fff;color:var(--cinza-700);text-decoration:none;white-space:nowrap">📎 ${esc(d.tipo_documento||d.arquivo_nome||'Doc')}</a>`); });
+  if(e.nota_tecnica_url) parts.push(`<a href="#" data-arquivo="${esc(e.nota_tecnica_url)}" style="font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;text-decoration:none;white-space:nowrap">📄 ${esc(e.nota_tecnica_nome||'Nota Técnica')}</a>`);
+  docs.forEach(d=>{ if(d.arquivo_url) parts.push(`<a href="#" data-arquivo="${esc(d.arquivo_url)}" style="font-size:9px;padding:1px 6px;border-radius:3px;border:1px solid var(--borda);background:#fff;color:var(--cinza-700);text-decoration:none;white-space:nowrap">📎 ${esc(d.tipo_documento||d.arquivo_nome||'Doc')}</a>`); });
   return parts.length ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:4px">${parts.join('')}</div>` : '';
 }
 
@@ -4035,8 +4038,8 @@ async function relP5(){
         const docs  = e.documentos||[];
         const links = [];
         if(e.despacho_numero) links.push(`<span style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid #BFDBFE;background:#EFF6FF;color:#1E40AF;white-space:nowrap">📋 ${esc(e.despacho_numero)}</span>`);
-        if(e.nota_tecnica_url) links.push(`<a href="${e.nota_tecnica_url}" target="_blank" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;text-decoration:none;white-space:nowrap">📄 NT</a>`);
-        docs.forEach(d=>{ if(d.arquivo_url) links.push(`<a href="${d.arquivo_url}" target="_blank" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--borda);background:#fff;color:var(--cinza-700);text-decoration:none;white-space:nowrap">📎 ${esc(d.tipo_documento||'Doc')}</a>`); });
+        if(e.nota_tecnica_url) links.push(`<a href="#" data-arquivo="${esc(e.nota_tecnica_url)}" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;text-decoration:none;white-space:nowrap">📄 NT</a>`);
+        docs.forEach(d=>{ if(d.arquivo_url) links.push(`<a href="#" data-arquivo="${esc(d.arquivo_url)}" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--borda);background:#fff;color:var(--cinza-700);text-decoration:none;white-space:nowrap">📎 ${esc(d.tipo_documento||'Doc')}</a>`); });
         return `<tr>
           <td class="mono-sm" style="font-weight:600;white-space:nowrap">${esc(cont?.numero||'—')}</td>
           <td style="font-size:10px;max-width:110px">${esc(cont?.fornecedores?.nome||'—')}</td>

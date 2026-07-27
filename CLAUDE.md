@@ -394,13 +394,51 @@ para fornecedores e consultores PF) — **não em consentimento**. Não construi
 fluxo que dependa de consentimento revogável para dado necessário à prestação de
 contas do projeto.
 
-### Pendências conhecidas (Camadas 1–4, ainda não implementadas)
+### Storage — buckets privados e URLs assinadas
 
-Buckets de Storage (todos os 9) são **públicos** — inclusive `viagens-arquivos`
-(cartões de embarque), `financeiro-docs` e `contratos-docs`. Migrar para buckets
-privados + `createSignedUrl()`. Além disso: `audit_log` inativo, dados bancários
-sem criptografia, sem redação de CPF antes do envio de TDR à Anthropic, e sem
-Política de Privacidade / Termos de Uso / ROPA / Encarregado designado.
+| Bucket | Visibilidade | Conteúdo |
+|--------|--------------|----------|
+| `tdrs-arquivos` | 🔒 privado | TDRs (dados de consultores PF) |
+| `contratos-docs` | 🔒 privado | contratos |
+| `financeiro-docs` | 🔒 privado | NFs, comprovantes bancários |
+| `entregas-docs` | 🔒 privado | documentos de entrega |
+| `viagens-arquivos` | 🔒 privado | cartões de embarque (nome, CPF, itinerário) |
+| `produtos-evidencias` | 🔒 privado | evidências de produtos |
+| `plataforma-assets` | 🌐 público | logos institucionais (usados em e-mails) |
+| `pontos-mapa` | 🌐 público | fotos exibidas em `publico.html` |
+| `avatares` | 🌐 público | foto de perfil (caminho por uuid) |
+
+**As tabelas continuam guardando a URL no formato `/object/public/<bucket>/<path>`.**
+Isso é intencional: a string é apenas **portadora do caminho**, não um link
+acessível. Não migrar esses valores. `getPublicUrl()` no upload segue correto.
+
+**Toda leitura precisa ser assinada.** Helpers globais em `js/config.js`:
+
+| Helper | Uso |
+|--------|-----|
+| `<a href="#" data-arquivo="${esc(url)}">` | link/botão — delegação global, funciona com HTML injetado |
+| `<img data-arquivo-src="${esc(url)}">` | imagem — chamar `assinarImagens(container)` após injetar |
+| `await abrirDoc(url)` | abrir em nova aba via JS |
+| `await urlAssinada(url)` | obter a URL assinada (ex.: antes de `fetch`) |
+
+- ⚠️ **Nunca** usar `href="${url}"` direto nem `window.open(url)` para bucket
+  privado — retorna 400. Use os helpers.
+- `abrirDoc()` abre a janela **antes** do `await` de propósito: abrir depois de
+  um `await` é bloqueado como popup.
+- Não criar novo signer ad-hoc: as 8 implementações duplicadas que existiam
+  foram consolidadas nesses helpers.
+
+**Nas Edge Functions**, baixar com `supabase.storage.from(b).download(p)` usando
+o client **service_role** — `fetch()` na URL pública retorna 400. Já aplicado em
+`analisar-tdr`, `sugerir-correcoes-tdr` e `enviar-email-produto`. O fluxo sem
+login de `prestacao-publica` usa `createSignedUploadUrl` e não foi afetado.
+
+### Pendências conhecidas (Camadas 2–4, ainda não implementadas)
+
+`audit_log` inativo (não é populado), dados bancários de `beneficiarios` sem
+criptografia e sem segregação por perfil, sem redação de CPF antes do envio de
+TDR à Anthropic, e nenhum documento produzido — Política de Privacidade, Termos
+de Uso, ROPA, RIPD e designação do Encarregado.
 
 ---
 
@@ -424,6 +462,8 @@ Política de Privacidade / Termos de Uso / ROPA / Encarregado designado.
 16. `_mascaraCpfCnpj()` **não existe mais** em `mapa.html` — o dado já vem mascarado do banco
 17. **Nunca** conceder `GRANT` ao papel `anon`. Para expor dado no portal público, criar função `SECURITY DEFINER` no padrão `fn_publico_*`
 18. Policy com `USING (true)` **anula** as policies restritivas da mesma tabela/comando (somam-se por OR). Ao criar policy para usuário logado, usar sempre `TO authenticated`, nunca `TO public` — `public` inclui o `anon`
+19. Buckets de documentos são **privados** — `href="${url}"` e `window.open(url)` retornam 400. Use `data-arquivo` / `abrirDoc()` / `urlAssinada()` (ver seção "Storage")
+20. Em Edge Function, ler arquivo com `storage.download()` via service_role — `fetch()` na URL pública falha
 
 ---
 

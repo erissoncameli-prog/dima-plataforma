@@ -405,7 +405,7 @@ function buildDet(c){
         +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_assinado_nome||'Contrato EN')+'</div>'
         +'<div class="pdf-card-meta">Original EN'+(c.contrato_assinado_data?' &middot; '+fmtData(c.contrato_assinado_data):'')+'</div></div>'
         +'<div class="pdf-card-btns">'
-        +'<button class="btn-xs" onclick="window.open(\''+c.contrato_assinado_url+'\',\'_blank\')">&#x1F441;</button>'
+        +'<button class="btn-xs" onclick="abrirDoc(\''+c.contrato_assinado_url+'\')">&#x1F441;</button>'
         +'<a href="'+c.contrato_assinado_url+'" download class="btn-xs">&#x2B07;</a>'
         +'</div></div>';
     } else {
@@ -421,7 +421,7 @@ function buildDet(c){
         +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_pt_nome||'Contrato PT')+'</div>'
         +'<div class="pdf-card-meta">Traducao automatica PT'+(c.contrato_pt_data?' &middot; '+new Date(c.contrato_pt_data).toLocaleDateString('pt-BR'):'')+'</div></div>'
         +'<div class="pdf-card-btns">'
-        +'<button class="btn-xs" onclick="window.open(\''+c.contrato_pt_url+'\',\'_blank\')">&#x1F441;</button>'
+        +'<button class="btn-xs" onclick="abrirDoc(\''+c.contrato_pt_url+'\')">&#x1F441;</button>'
         +'<a href="'+c.contrato_pt_url+'" download class="btn-xs">&#x2B07;</a>'
         +'</div></div>';
     } else if(c.contrato_assinado_url){

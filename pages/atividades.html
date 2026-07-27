@@ -547,22 +547,8 @@ async function abrirArquivoTDR(tdrId, url) {
     // Verificar se é arquivo do Storage interno (não é link do Drive)
     const isDrive = url.includes('drive.google.com') || url.includes('docs.google.com');
     if (!isDrive) {
-      // Tentar gerar URL assinada do Storage
-      try {
-        const urlObj = new URL(url);
-        const match = urlObj.pathname.match(/\/object\/(?:public|sign)\/tdrs-arquivos\/(.+)/);
-        if (match) {
-          const filePath = decodeURIComponent(match[1]);
-          const {data, error} = await db.storage.from('tdrs-arquivos').createSignedUrl(filePath, 3600);
-          if (!error && data?.signedUrl) {
-            window.open(data.signedUrl, '_blank');
-            toast('Link gerado — válido por 1 hora.','success');
-            return;
-          }
-        }
-      } catch(e) {}
-      // Fallback: abrir URL direta
-      window.open(url, '_blank');
+      await abrirDoc(url);
+      toast('Link gerado — válido por 1 hora.','success');
     } else {
       // É Drive — abrir direto e orientar o usuário
       window.open(url, '_blank');
