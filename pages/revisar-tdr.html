@@ -459,15 +459,7 @@ async function carregarConteudo(t, podeEditar){
   if(temStorage){
     try{
       toast('Carregando arquivo...','info');
-      let url=t.arquivo_url;
-      try{
-        const urlObj=new URL(t.arquivo_url);
-        const match=urlObj.pathname.match(/\/object\/(?:public|sign)\/tdrs-arquivos\/(.+)/);
-        if(match){
-          const {data}=await db.storage.from('tdrs-arquivos').createSignedUrl(match[1],3600);
-          if(data?.signedUrl)url=data.signedUrl;
-        }
-      }catch(e){}
+      const url=await urlAssinada(t.arquivo_url);
 
       const resp=await fetch(url);
       const blob=await resp.blob();

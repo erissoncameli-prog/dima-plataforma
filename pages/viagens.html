@@ -2031,7 +2031,7 @@ function renderPrestacaoViajante(v){
     h+=`<div style="display:flex;align-items:center;gap:8px">
       <span style="font-size:16px">📄</span>
       <div style="flex:1;font-size:11px"><strong>${esc(v.relatorio_nome||'Relatório')}</strong> — PDF assinado</div>
-      <a class="btn btn-sm btn-secondary" style="font-size:11px" href="${esc(v.relatorio_url)}" target="_blank" rel="noopener">Abrir</a>
+      <a class="btn btn-sm btn-secondary" style="font-size:11px" href="#" data-arquivo="${esc(v.relatorio_url)}">Abrir</a>
     </div>`;
   }
   return h+'</div>';
@@ -2510,7 +2510,7 @@ async function abrirPrestacao(id){
           </div>
           ${v.relatorio_url?`<div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:8px;margin-bottom:8px;font-size:11px;display:flex;align-items:center;gap:8px">
             📄 <strong>${esc(v.relatorio_nome||'Relatório')}</strong> — já enviado
-            <button class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:10px" onclick="window.open('${esc(v.relatorio_url)}','_blank')">Abrir</button>
+            <button class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:10px" onclick="abrirDoc('${esc(v.relatorio_url)}')">Abrir</button>
           </div>`:''}
           <div class="upload-mini" id="upload-rel-${i}" onclick="document.getElementById('inp-rel-${i}').click()">
             <input type="file" id="inp-rel-${i}" style="display:none" accept=".pdf"

@@ -2238,33 +2238,13 @@ function confirmarApagarTDR(id, numero){
 
 // ── ABRIR ARQUIVO (link temporário 1h) ───────────────────────
 async function abrirArquivoCard(url){
-  try{
-    const urlObj=new URL(url);
-    const match=urlObj.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
-    if(match){
-      const{data,error}=await db.storage.from('tdrs-arquivos').createSignedUrl(match[1],3600);
-      if(!error&&data?.signedUrl){window.open(data.signedUrl,'_blank');return;}
-    }
-    window.open(url,'_blank');
-  }catch(e){window.open(url,'_blank');}
+  await abrirDoc(url);
 }
 
 async function abrirArquivo(){
   if(!tdrAtual?.arquivo_url)return;
-  try{
-    // Extrair path do arquivo da URL
-    const url=new URL(tdrAtual.arquivo_url);
-    const pathMatch=url.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
-    if(!pathMatch){window.open(tdrAtual.arquivo_url,'_blank');return;}
-    const filePath=pathMatch[1];
-    const {data,error}=await db.storage.from('tdrs-arquivos').createSignedUrl(filePath,3600);
-    if(error||!data?.signedUrl){toast('Erro ao gerar link. Tente novamente.','error');return;}
-    window.open(data.signedUrl,'_blank');
-    toast('Link gerado — válido por 1 hora.','success');
-  }catch(e){
-    // Fallback: tentar abrir direto
-    window.open(tdrAtual.arquivo_url,'_blank');
-  }
+  await abrirDoc(tdrAtual.arquivo_url);
+  toast('Link gerado — válido por 1 hora.','success');
 }
 
 // ── IMPORTAR ARQUIVO DO GOOGLE DRIVE ─────────────────────────
@@ -2371,14 +2351,7 @@ window.uploadAnexos = async function(tdrId, fileList){
   await abrirTDR(tdrId);
 };
 window.abrirAnexo = async function(url){
-  try{
-    const u=new URL(url);
-    const m=u.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
-    if(!m){window.open(url,'_blank');return;}
-    const {data,error}=await db.storage.from('tdrs-arquivos').createSignedUrl(decodeURIComponent(m[1]),3600);
-    if(error||!data){window.open(url,'_blank');return;}
-    window.open(data.signedUrl,'_blank');
-  }catch(e){window.open(url,'_blank');}
+  await abrirDoc(url);
 };
 window.removerAnexo = async function(id, url, nome){
   if(!confirm(`Excluir o anexo "${nome}"? Esta ação não pode ser desfeita.`))return;

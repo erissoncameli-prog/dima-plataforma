@@ -44,7 +44,17 @@ Retorne APENAS um JSON válido:
 }`
 
 // ── HELPERS: LER DOCUMENTO ───────────────────────────────────────────
-async function lerDocumento(url: string): Promise<string> {
+// Extrai { bucket, path } de uma URL de storage (formato /public/ ou /sign/)
+function extrairPathStorage(url: string): { bucket: string; path: string } | null {
+  try {
+    const p = new URL(url).pathname
+    const m = p.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)$/)
+    if (!m) return null
+    return { bucket: m[1], path: decodeURIComponent(m[2].split('?')[0]) }
+  } catch (_) { return null }
+}
+
+async function lerDocumento(url: string, supabase?: any): Promise<string> {
   if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
     const fileId = extrairGoogleDriveId(url)
     if (fileId) {
@@ -56,6 +66,19 @@ async function lerDocumento(url: string): Promise<string> {
     }
   }
 
+  // Supabase Storage: os buckets de documentos sao PRIVADOS desde
+  // 20260727_lgpd_c1_01. Um fetch() direto na URL publica retorna 400 —
+  // o download precisa passar pelo client service_role.
+  const ref = extrairPathStorage(url)
+  if (ref && supabase) {
+    const { data, error } = await supabase.storage.from(ref.bucket).download(ref.path)
+    if (error || !data) throw new Error(`Falha ao baixar do storage: ${error?.message || 'sem retorno'}`)
+    const buffer = await data.arrayBuffer()
+    if (ref.path.endsWith('.docx')) return await extrairTextoDocx(buffer)
+    return new TextDecoder('utf-8', { fatal: false }).decode(buffer)
+  }
+
+  // URL externa (nao-storage)
   const res = await fetch(url)
   if (!res.ok) throw new Error(`Falha ao baixar documento: ${res.status}`)
   const buffer = await res.arrayBuffer()
@@ -154,7 +177,7 @@ Deno.serve(async (req) => {
     let conteudoDoc = ''
     if (tdr.arquivo_url) {
       try {
-        conteudoDoc = await lerDocumento(tdr.arquivo_url)
+        conteudoDoc = await lerDocumento(tdr.arquivo_url, supabase)
       } catch (e) {
         console.warn('[sugerir-correcoes-tdr] Não foi possível ler documento:', (e as Error).message)
       }

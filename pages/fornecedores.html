@@ -474,15 +474,8 @@ function campo(label, valor, mono=false) {
 
 async function abrirDocForn() {
   if (!fornEditando?.contrato_url) return;
-  try {
-    const url = new URL(fornEditando.contrato_url);
-    const match = url.pathname.match(/\/object\/public\/tdrs-arquivos\/(.+)/);
-    if (!match) { window.open(fornEditando.contrato_url,'_blank'); return; }
-    const {data,error} = await db.storage.from('tdrs-arquivos').createSignedUrl(match[1],3600);
-    if (error) throw error;
-    window.open(data.signedUrl,'_blank');
-    toast('Link gerado — válido por 1 hora.','success');
-  } catch(e) { window.open(fornEditando.contrato_url,'_blank'); }
+  await abrirDoc(fornEditando.contrato_url);
+  toast('Link gerado — válido por 1 hora.','success');
 }
 
 // ── FORMULÁRIO ────────────────────────────────────────────────
