@@ -95,6 +95,19 @@ async function lerDocumento(url: string, supabase?: any): Promise<string> {
   return new TextDecoder('utf-8', { fatal: false }).decode(buffer)
 }
 
+// Redige CPF/CNPJ do texto extraído do documento antes de enviá-lo à
+// Anthropic. TDRs de pessoa física frequentemente trazem o CPF do
+// consultor no corpo do arquivo — o campo não é necessário à sugestão de
+// correções (LGPD art. 6º, III).
+function redigirDadosPessoais(texto: string): string {
+  if (!texto) return texto
+  return texto
+    .replace(/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g, (m) => '***.***.***-' + m.slice(-2))
+    .replace(/\b\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}\b/g, (m) => '**.***.***/****-' + m.slice(-2))
+    .replace(/\b\d{11}\b/g, (m) => '***.***.***-' + m.slice(-2))
+    .replace(/\b\d{14}\b/g, (m) => '**.***.***/****-' + m.slice(-2))
+}
+
 function extrairGoogleDriveId(url: string): string | null {
   const match =
     url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
@@ -177,7 +190,7 @@ Deno.serve(async (req) => {
     let conteudoDoc = ''
     if (tdr.arquivo_url) {
       try {
-        conteudoDoc = await lerDocumento(tdr.arquivo_url, supabase)
+        conteudoDoc = redigirDadosPessoais(await lerDocumento(tdr.arquivo_url, supabase))
       } catch (e) {
         console.warn('[sugerir-correcoes-tdr] Não foi possível ler documento:', (e as Error).message)
       }
