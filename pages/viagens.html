@@ -476,13 +476,23 @@ let todosbenef=[], benefEditando=null;
 let pendentesMap=new Map();
 
 async function carregarBenef(){
-  const[{data:benefs},{data:viaj}]=await Promise.all([
+  // Dados bancários vivem em tabela separada, com RLS restrita a
+  // super_admin/coordenação (ver 20260727_lgpd_c2_01). Para os demais perfis a
+  // consulta simplesmente volta vazia e os campos ficam indefinidos.
+  const[{data:benefs},{data:viaj},{data:bancarios}]=await Promise.all([
     db.from('beneficiarios').select('*').order('nome'),
     db.from('viagem_viajantes')
       .select('cpf,email,relatorio_url,protocolo:viagem_protocolos(numero,situacao,dt_retorno)')
-      .is('relatorio_url',null)
+      .is('relatorio_url',null),
+    db.from('beneficiario_dados_bancarios').select('*')
   ]);
-  todosbenef=benefs||[];
+  const mapaBanc=new Map((bancarios||[]).map(x=>[x.beneficiario_id,x]));
+  todosbenef=(benefs||[]).map(b=>{
+    const k=mapaBanc.get(b.id);
+    if(!k) return b;
+    return {...b, banco:k.banco, agencia:k.agencia, conta:k.conta,
+            tipo_conta:k.tipo_conta, pix:k.pix, iban:k.iban};
+  });
 
   pendentesMap=new Map();
   const hoje=new Date(); hoje.setHours(0,0,0,0);
@@ -606,23 +616,34 @@ async function salvarBenef(){
     passaporte_numero:document.getElementById('benef-pass-num')?.value.trim()||null,
     passaporte_validade:document.getElementById('benef-pass-val')?.value||null,
     passaporte_pais_emissao:document.getElementById('benef-pass-pais')?.value.trim()||null,
+    ativo:document.getElementById('benef-ativo')?.value==='true',
+    atualizado_em:new Date().toISOString(),
+  };
+  // Dados financeiros gravam em tabela própria, de acesso restrito
+  const dadosBanc={
     banco:document.getElementById('benef-banco')?.value.trim()||null,
     agencia:document.getElementById('benef-agencia')?.value.trim()||null,
     conta:document.getElementById('benef-conta')?.value.trim()||null,
     tipo_conta:document.getElementById('benef-tipo-conta')?.value||'corrente',
     pix:document.getElementById('benef-pix')?.value.trim()||null,
     iban:document.getElementById('benef-iban')?.value.trim()||null,
-    ativo:document.getElementById('benef-ativo')?.value==='true',
     atualizado_em:new Date().toISOString(),
   };
-  let error;
+  let error, benefId=benefEditando?.id||null;
   if(benefEditando){
     ({error}=await db.from('beneficiarios').update(dados).eq('id',benefEditando.id));
   } else {
     dados.criado_por=appState.usuario.id;
-    ({error}=await db.from('beneficiarios').insert(dados));
+    const {data:novo,error:errIns}=await db.from('beneficiarios').insert(dados).select('id').single();
+    error=errIns; benefId=novo?.id||null;
   }
   if(error){toast('Erro ao salvar: '+error.message,'error');return;}
+
+  if(benefId){
+    const {error:errBanc}=await db.from('beneficiario_dados_bancarios')
+      .upsert({beneficiario_id:benefId, ...dadosBanc},{onConflict:'beneficiario_id'});
+    if(errBanc){toast('Cadastro salvo, mas os dados bancários falharam: '+errBanc.message,'warning');}
+  }
   toast(benefEditando?'Beneficiário atualizado!':'Beneficiário cadastrado!','success');
   document.getElementById('modal-benef').classList.remove('aberto');
   const contexto=benefVindoDeProtocolo;

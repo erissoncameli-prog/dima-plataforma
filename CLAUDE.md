@@ -368,12 +368,13 @@ listas de responsáveis. Substituir por view de diretório está previsto (Camad
 
 | Tabela | Dado pessoal | Cuidado |
 |--------|--------------|---------|
-| `beneficiarios` | CPF, nascimento, passaporte, **dados bancários** (banco/agência/conta/PIX/IBAN) | policy atual é só `authenticated` — todo perfil lê. Segregar por perfil na Camada 1 |
+| `beneficiarios` | nome, CPF, nascimento, passaporte | identidade lê quem opera Viagens (`super_admin/coordenacao/financeiro/tecnico`); escrita só `super_admin/coordenacao` |
+| `beneficiario_dados_bancarios` | **dados bancários** (banco/agência/conta/PIX/IBAN) | tabela separada 1:1 com `beneficiarios.id`. Leitura e escrita só `super_admin/coordenacao` — ver abaixo |
 | `fornecedores` | CPF/CNPJ, endereço, dados bancários | PF é dado pessoal |
 | `viagem_viajantes` | CPF, e-mail, cartões de embarque | `viaj_sel` (`auth.uid() is not null`) anula a policy restritiva |
 | `car_dados_locais` | nome de proprietário rural (53.594 linhas) | CPF **removido** — ver abaixo |
 | `usuarios` | e-mail, telefone | `perfil`/`ativo` protegidos por trigger |
-| `audit_log` | IP, user-agent, snapshots jsonb | tabela existe mas **não é populada** |
+| `audit_log` | IP, user-agent, snapshots jsonb | **ativo** desde `20260727_lgpd_c2_02` — ver "Trilha de auditoria" |
 
 ### `car_dados_locais.cpf_cnpj` foi removida
 
@@ -385,6 +386,42 @@ CPF do CAR em texto puro.
 
 Não há mascaramento no cliente: `_mascaraCpfCnpj()` foi removida de `mapa.html`.
 Exiba `cpf_cnpj_mascara` diretamente.
+
+### Dados bancários de beneficiários — tabela separada
+
+`beneficiario_dados_bancarios` guarda banco/agência/conta/tipo_conta/PIX/IBAN,
+1:1 com `beneficiarios.id`. RLS é *row-level*, não *column-level* — por isso o
+dado financeiro saiu de `beneficiarios` para uma tabela própria, restrita a
+`super_admin`/`coordenacao`. **Nunca** devolver esses campos numa consulta que
+misture perfis (ex.: `select('*')` em `beneficiarios` sem o join condicional).
+Em `pages/viagens.html`, `carregarBenef()` faz o join manualmente e mescla —
+os campos só populam se a policy permitir a leitura. `salvarBenef()` grava com
+`upsert(..., {onConflict:'beneficiario_id'})`.
+
+### Trilha de auditoria (`audit_log`)
+
+Ativa desde `20260727_lgpd_c2_02` via trigger genérica `fn_trg_audit()`, ligada
+em `usuarios`, `beneficiarios`, `fornecedores`, `viagem_viajantes` e
+`beneficiario_dados_bancarios`. Só grava o que mudou (ignora `UPDATE` sem
+alteração real), e ignora `atualizado_em` como campo de diferença. Leitura
+restrita a `super_admin`/`coordenacao` (policy `audit_select_admin`); não há
+`UPDATE`/`DELETE` — a trilha é imutável por ausência de policy, não por RULE.
+
+`beneficiario_dados_bancarios` audita em modo **redigido** — a trigger recebe o
+argumento `'redigir'` e grava `[redigido]` no lugar de cada valor (via
+`fn_redigir_jsonb`). Sabe-se *que* o PIX mudou e *quem* mudou, nunca o valor
+antigo nem o novo. Ao adicionar auditoria em nova tabela com dado financeiro,
+usar o mesmo padrão — nunca logar valor bancário em claro.
+
+### Redação de CPF antes do envio à Anthropic
+
+`analisar-tdr` e `sugerir-correcoes-tdr` leem o `.docx` do TDR e mandam o texto
+extraído para o Claude. TDRs de PF costumam trazer o CPF do consultor no corpo
+do arquivo. Ambas as functions passam `conteudoDoc` por `redigirDadosPessoais()`
+(regex de CPF/CNPJ, formatado e não formatado) antes de montar o prompt — o
+dado nunca chega à Anthropic. `corrigir-tdr` não lê o documento, não precisa do
+filtro. Ao criar uma nova function que leia `arquivo_url` de TDR, replicar o
+mesmo helper antes de montar qualquer prompt.
 
 ### Base legal do projeto
 
@@ -433,12 +470,15 @@ o client **service_role** — `fetch()` na URL pública retorna 400. Já aplicad
 `analisar-tdr`, `sugerir-correcoes-tdr` e `enviar-email-produto`. O fluxo sem
 login de `prestacao-publica` usa `createSignedUploadUrl` e não foi afetado.
 
-### Pendências conhecidas (Camadas 2–4, ainda não implementadas)
+### Pendências conhecidas (Camadas 3–4, ainda não implementadas)
 
-`audit_log` inativo (não é populado), dados bancários de `beneficiarios` sem
-criptografia e sem segregação por perfil, sem redação de CPF antes do envio de
-TDR à Anthropic, e nenhum documento produzido — Política de Privacidade, Termos
-de Uso, ROPA, RIPD e designação do Encarregado.
+Dados bancários de `beneficiarios` sem criptografia em repouso (estão
+segregados e com RLS restrita, mas em texto puro). Sem redação de CPF nos
+demais campos de texto livre do TDR (`objeto_pt`, `escopo_pt` etc. — hoje só o
+conteúdo extraído do `.docx` é redigido). Nenhum documento produzido — Política
+de Privacidade, Termos de Uso, ROPA, RIPD e designação do Encarregado. Sem
+tratamento formal de transferência internacional (art. 33) para os operadores
+Supabase/Anthropic/Vercel/Google.
 
 ---
 
@@ -464,6 +504,8 @@ de Uso, ROPA, RIPD e designação do Encarregado.
 18. Policy com `USING (true)` **anula** as policies restritivas da mesma tabela/comando (somam-se por OR). Ao criar policy para usuário logado, usar sempre `TO authenticated`, nunca `TO public` — `public` inclui o `anon`
 19. Buckets de documentos são **privados** — `href="${url}"` e `window.open(url)` retornam 400. Use `data-arquivo` / `abrirDoc()` / `urlAssinada()` (ver seção "Storage")
 20. Em Edge Function, ler arquivo com `storage.download()` via service_role — `fetch()` na URL pública falha
+21. `beneficiarios.banco/agencia/conta/tipo_conta/pix/iban` **não existem mais** — use `beneficiario_dados_bancarios` (FK `beneficiario_id`), acesso restrito a `super_admin`/`coordenacao`
+22. Ao ler `beneficiarios` para exibir em tela, lembrar que a policy de SELECT mudou de "qualquer autenticado" para `super_admin/coordenacao/financeiro/tecnico` — perfis fora dessa lista recebem lista vazia, não erro
 
 ---
 
