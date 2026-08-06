@@ -1732,10 +1732,11 @@ async function abrirModalMatrizEdit(prodId){
   document.getElementById('modal-matriz-edit').style.display='flex';
 
   // produto_matriz_contribuicao.produto_id referencia contratos_produtos_entregas.id
-  // (não contratos_produtos.id) — usa a entrega aprovada mais recente do produto.
+  // (não contratos_produtos.id) — usa a última entrega do produto, mesmo critério
+  // usado pelo painel de detalhe em financeiro.html (listaEntregas.slice(-1)[0]).
   var entR=await db.from('contratos_produtos_entregas').select('id,numero_entrega,situacao').eq('produto_id',prodId).order('numero_entrega',{ascending:false});
   var entregas=entR.data||[];
-  var entregaAlvo=entregas.find(function(e){return e.situacao==='aprovada';})||entregas[0]||null;
+  var entregaAlvo=entregas[0]||null;
   if(!entregaAlvo){
     document.getElementById('me-body').innerHTML='<div style="font-size:12px;color:var(--cinza-500);padding:12px 0">Este produto não possui nenhuma entrega registrada.</div>';
     return;
