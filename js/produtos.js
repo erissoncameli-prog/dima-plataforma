@@ -356,6 +356,7 @@ function renderCard(p){
   var onclk=clicavel?' onclick="abrirModal(\''+p.id+'\')"':'';
   var btnMatrizAdmin=(appState.perfil==='super_admin'&&(p.situacao==='aprovado'||p.situacao==='pago'))
     ?'<button class="btn btn-sm btn-secondary" style="font-size:10px;height:22px;padding:0 7px;margin-left:auto" onclick="event.stopPropagation();abrirModalMatrizEdit(\''+p.id+'\')" title="Editar vínculo com a Matriz de Resultados">&#x25CE; Matriz</button>'
+    +'<button class="btn btn-sm btn-secondary" style="font-size:10px;height:22px;padding:0 7px" onclick="event.stopPropagation();abrirModalAnexoEdit(\''+p.id+'\')" title="Anexar documento à entrega">&#x1F4CE; Documento</button>'
     :'';
   var html='<div class="prod-card"'+onclk+' style="'+(clicavel?'':'cursor:default')+'">'
     +'<div class="prod-card-top" style="'+topBg+'">'
@@ -1452,7 +1453,7 @@ function fecharModal(){
   produtoAtual=null;entregaAtual=null;entregaArquivo=null;decisaoSel='';
   docsEntrega=[];notaTecnicaFile=null;fotosNovas=[];geoCSVPontos=[];
 }
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){fecharModal();fecharModalGeoCsv();fecharModalMatrizEdit();}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){fecharModal();fecharModalGeoCsv();fecharModalMatrizEdit();fecharModalAnexoEdit();}});
 
 // ── Planilha de Geolocalização ─────────────────────────────────────────────
 
@@ -1840,4 +1841,117 @@ async function adicionarContribMatrizExistente(){
   if(r.error){toast('Erro ao adicionar: '+r.error.message,'error');return;}
   toast('Indicador vinculado.','success');
   await renderModalMatrizEdit();
+}
+
+// ── Anexar Documento (super_admin — produtos já aprovados/pagos) ──
+
+var _aeProdutoId=null;
+var _aeEntregaId=null;
+var _aeNumeroEntrega=null;
+var _aeArquivo=null;
+
+async function abrirModalAnexoEdit(prodId){
+  if(appState.perfil!=='super_admin'){toast('Apenas super_admin pode anexar documento a um produto já avaliado.','error');return;}
+  _aeProdutoId=prodId;_aeEntregaId=null;_aeArquivo=null;
+  document.getElementById('ae-body').innerHTML='<div style="text-align:center;padding:24px"><div style="animation:spin .7s linear infinite;width:22px;height:22px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;margin:0 auto 8px"></div>Carregando...</div>';
+  document.getElementById('modal-anexo-edit').style.display='flex';
+
+  var [prodR,entR]=await Promise.all([
+    db.from('contratos_produtos').select('numero_produto,descricao,situacao').eq('id',prodId).single(),
+    db.from('contratos_produtos_entregas').select('id,numero_entrega,situacao').eq('produto_id',prodId).order('numero_entrega',{ascending:false})
+  ]);
+  var p=prodR.data||{};
+  var entregas=entR.data||[];
+  var entregaAlvo=entregas[0]||null;
+  if(!entregaAlvo){
+    document.getElementById('ae-body').innerHTML='<div style="font-size:12px;color:var(--cinza-500);padding:12px 0">Este produto não possui nenhuma entrega registrada.</div>';
+    return;
+  }
+  _aeEntregaId=entregaAlvo.id;
+  _aeNumeroEntrega=entregaAlvo.numero_entrega;
+  document.getElementById('ae-sub').textContent='Produto '+(p.numero_produto||'')+' — '+(sitLbl(p.situacao)||'')+' · Entrega '+entregaAlvo.numero_entrega;
+  await renderModalAnexoEdit();
+}
+
+function fecharModalAnexoEdit(){
+  var m=document.getElementById('modal-anexo-edit');
+  if(m)m.style.display='none';
+  _aeProdutoId=null;_aeEntregaId=null;_aeArquivo=null;
+}
+
+async function renderModalAnexoEdit(){
+  if(!_aeEntregaId)return;
+  var docsR=await db.from('entrega_documentos').select('*').eq('entrega_id',_aeEntregaId).order('inserido_em');
+  var docs=docsR.data||[];
+
+  var html='<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:10px 12px;margin-bottom:14px;font-size:11px;color:#92400E;line-height:1.5">'
+    +'&#x26A0;&#xFE0F; Este produto já foi avaliado/pago. O documento é anexado à entrega '+_aeNumeroEntrega+' (a mesma exibida no painel do Financeiro) — não altera o valor pago nem a situação do produto.'
+    +'</div>';
+
+  html+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">';
+  if(!docs.length){
+    html+='<div style="font-size:12px;color:var(--cinza-400);padding:6px 0">Nenhum documento anexado a esta entrega ainda.</div>';
+  } else {
+    docs.forEach(function(d){
+      html+='<div style="display:flex;align-items:center;gap:8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:12px;font-weight:600;color:var(--cinza-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(d.arquivo_nome||'Documento')+'</div>'
+        +'<div style="font-size:10px;color:var(--cinza-500)">'+esc(d.tipo_documento||'')+'</div>'
+        +'</div>'
+        +(d.arquivo_url?'<button class="btn btn-sm btn-secondary" style="flex-shrink:0" onclick="abrirArquivo(\''+esc(d.arquivo_url)+'\')">&#x1F441; Abrir</button>':'')
+        +'</div>';
+    });
+  }
+  html+='</div>';
+
+  html+='<div style="border-top:1px solid var(--borda);padding-top:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">+ Anexar novo documento</div>'
+    +'<div class="form-group" style="margin-bottom:8px">'
+    +'<select class="form-control" id="ae-tipo-doc" style="height:32px;font-size:12px">'
+    +TIPOS_DOC.filter(function(t){return t!==TIPO_GEO;}).map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('')
+    +'</select>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;align-items:center">'
+    +'<input type="file" id="ae-inp-arq" style="flex:1;font-size:12px" accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.jpg,.png">'
+    +'<button class="btn btn-sm btn-primary" id="ae-btn-enviar" onclick="enviarAnexoAdmin()">Enviar</button>'
+    +'</div>'
+    +'<div style="font-size:10px;color:var(--cinza-400);margin-top:4px">PDF, Word, Excel, ZIP, Imagem · até 20MB</div>'
+    +'</div>';
+
+  document.getElementById('ae-body').innerHTML=html;
+}
+
+async function enviarAnexoAdmin(){
+  var tipo=document.getElementById('ae-tipo-doc')&&document.getElementById('ae-tipo-doc').value;
+  var inp=document.getElementById('ae-inp-arq');
+  var file=inp&&inp.files&&inp.files[0];
+  if(!file){toast('Selecione um arquivo.','error');return;}
+  if(file.size>20*1024*1024){toast('Arquivo maior que 20MB.','error');return;}
+
+  var btn=document.getElementById('ae-btn-enviar');
+  if(btn){btn.disabled=true;btn.textContent='Enviando...';}
+
+  var path='produtos/'+_aeProdutoId+'/entrega-'+_aeNumeroEntrega+'-'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  var up=await db.storage.from('entregas-docs').upload(path,file,{upsert:true});
+  if(up.error){
+    toast('Erro ao enviar arquivo: '+up.error.message,'error');
+    if(btn){btn.disabled=false;btn.textContent='Enviar';}
+    return;
+  }
+  var urlR=db.storage.from('entregas-docs').getPublicUrl(path);
+  var ins=await db.from('entrega_documentos').insert({
+    entrega_id:_aeEntregaId,
+    tipo_documento:tipo,
+    arquivo_url:urlR.data.publicUrl,
+    arquivo_nome:file.name,
+    arquivo_tamanho:file.size,
+    inserido_por:appState.usuario.id
+  });
+  if(ins.error){
+    toast('Arquivo enviado, mas houve erro ao registrar: '+ins.error.message,'error');
+    if(btn){btn.disabled=false;btn.textContent='Enviar';}
+    return;
+  }
+  toast('Documento anexado.','success');
+  await renderModalAnexoEdit();
 }
