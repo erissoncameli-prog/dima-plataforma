@@ -1022,13 +1022,13 @@ function buildTabEntregas(c){
               +(e.despacho_data?' · '+fmtData(e.despacho_data):'')+'</span>';
           }
           if(e.nota_tecnica_url){
-            h+='<a href="javascript:void(0)" onclick="abrirArquivoEntrega(\''+encodeURIComponent(e.nota_tecnica_url)+'\')" class="ent-link ent-link-nt">📄 '
+            h+='<a href="javascript:void(0)" onclick="abrirDoc(\''+e.nota_tecnica_url+'\')" class="ent-link ent-link-nt">📄 '
               +escHtml(e.nota_tecnica_nome||'Nota Técnica')+'</a>';
           }
           if(e.documentos&&e.documentos.length){
             e.documentos.forEach(function(d){
               if(d.arquivo_url){
-                h+='<a href="javascript:void(0)" onclick="abrirArquivoEntrega(\''+encodeURIComponent(d.arquivo_url)+'\')" class="ent-link">📎 '
+                h+='<a href="javascript:void(0)" onclick="abrirDoc(\''+d.arquivo_url+'\')" class="ent-link">📎 '
                   +escHtml(d.tipo_documento||d.arquivo_nome||'Documento')+'</a>';
               }
             });
