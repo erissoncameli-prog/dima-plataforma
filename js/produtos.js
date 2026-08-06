@@ -354,6 +354,9 @@ function renderCard(p){
   var clicavel=p.situacao!=='aprovado';
   var acaoCor=p.situacao==='aprovado'?'color:#166534;font-style:italic':'color:var(--cinza-400)';
   var onclk=clicavel?' onclick="abrirModal(\''+p.id+'\')"':'';
+  var btnMatrizAdmin=(appState.perfil==='super_admin'&&(p.situacao==='aprovado'||p.situacao==='pago'))
+    ?'<button class="btn btn-sm btn-secondary" style="font-size:10px;height:22px;padding:0 7px;margin-left:auto" onclick="event.stopPropagation();abrirModalMatrizEdit(\''+p.id+'\')" title="Editar vínculo com a Matriz de Resultados">&#x25CE; Matriz</button>'
+    :'';
   var html='<div class="prod-card"'+onclk+' style="'+(clicavel?'':'cursor:default')+'">'
     +'<div class="prod-card-top" style="'+topBg+'">'
     +'<span class="num-prod">Produto '+p.numero_produto+'</span>'
@@ -368,6 +371,7 @@ function renderCard(p){
     +'<div class="prod-card-foot">'
     +'<span style="font-size:11px;color:var(--cinza-500)">'+(p.dt_entrega?'Entregue: '+fmtData(p.dt_entrega):'Sem entrega')+'</span>'
     +'<span style="font-size:11px;font-weight:600;'+acaoCor+'">'+acaoTxt+'</span>'
+    +btnMatrizAdmin
     +'</div>'
     +'<div style="padding:8px 14px;background:var(--cinza-50);border-top:1px solid var(--borda);display:flex;flex-wrap:wrap;gap:6px;align-items:center">'
     +(p.contratos&&p.contratos.atividades&&p.contratos.atividades.codigo?'<span style="font-family:var(--font-mono);font-size:10px;font-weight:600;background:var(--verde-bg);color:var(--verde-medio);padding:2px 6px;border-radius:3px">'+esc(p.contratos.atividades.codigo)+'</span>':'')
@@ -1448,7 +1452,7 @@ function fecharModal(){
   produtoAtual=null;entregaAtual=null;entregaArquivo=null;decisaoSel='';
   docsEntrega=[];notaTecnicaFile=null;fotosNovas=[];geoCSVPontos=[];
 }
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){fecharModal();fecharModalGeoCsv();}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){fecharModal();fecharModalGeoCsv();fecharModalMatrizEdit();}});
 
 // ── Planilha de Geolocalização ─────────────────────────────────────────────
 
@@ -1712,4 +1716,114 @@ function baixarTemplateGeoExcel(){
 
   XLSX.writeFile(wb,'template_geo_mapa.xlsx');
   toast('Template baixado! Preencha as abas desejadas e importe o .xlsx.','info');
+}
+
+// ── Editar Contribuição à Matriz (super_admin — produtos já aprovados/pagos) ──
+
+var _meProdutoId=null;
+
+async function abrirModalMatrizEdit(prodId){
+  if(appState.perfil!=='super_admin'){toast('Apenas super_admin pode editar a matriz de um produto já avaliado.','error');return;}
+  _meProdutoId=prodId;
+  await carregarMatrizItens();
+  document.getElementById('me-body').innerHTML='<div style="text-align:center;padding:24px"><div style="animation:spin .7s linear infinite;width:22px;height:22px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;margin:0 auto 8px"></div>Carregando...</div>';
+  document.getElementById('modal-matriz-edit').style.display='flex';
+  await renderModalMatrizEdit();
+}
+
+function fecharModalMatrizEdit(){
+  var m=document.getElementById('modal-matriz-edit');
+  if(m)m.style.display='none';
+  _meProdutoId=null;
+}
+
+async function renderModalMatrizEdit(){
+  if(!_meProdutoId)return;
+  var [prodR,contribsR]=await Promise.all([
+    db.from('contratos_produtos').select('numero_produto,descricao,situacao').eq('id',_meProdutoId).single(),
+    db.from('produto_matriz_contribuicao').select('*,matriz_itens(resultado,produto_codigo,produto_titulo,indicador,unidade)').eq('produto_id',_meProdutoId).neq('status','cancelado').order('criado_em')
+  ]);
+  var p=prodR.data||{};
+  var contribs=contribsR.data||[];
+  document.getElementById('me-sub').textContent='Produto '+(p.numero_produto||'')+' — '+(sitLbl(p.situacao)||'');
+
+  var html='<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:10px 12px;margin-bottom:14px;font-size:11px;color:#92400E;line-height:1.5">'
+    +'&#x26A0;&#xFE0F; Este produto já foi avaliado/pago. Alterações aqui corrigem vínculos com a Matriz de Resultados esquecidos na entrega original — não afetam o valor pago nem a situação do produto.'
+    +'</div>';
+
+  html+='<div id="me-lista" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">';
+  if(!contribs.length){
+    html+='<div style="font-size:12px;color:var(--cinza-400);padding:6px 0">Nenhum indicador vinculado ainda.</div>';
+  } else {
+    contribs.forEach(function(c){
+      var mi=c.matriz_itens||{};
+      html+='<div style="display:flex;align-items:center;gap:8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px" data-contrib-id="'+c.id+'">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#5B21B6">R'+mi.resultado+' · '+esc(mi.produto_codigo||'')+'</div>'
+        +'<div style="font-size:12px;font-weight:600;color:var(--cinza-900);line-height:1.3">'+esc(mi.indicador||'')+'</div>'
+        +'</div>'
+        +'<input class="form-control" type="number" step="0.01" min="0" value="'+parseFloat(c.valor||0)+'" style="width:100px;height:30px;font-size:12px" id="me-val-'+c.id+'">'
+        +'<button class="btn btn-sm btn-secondary" style="height:30px" onclick="salvarValorContribMatriz(\''+c.id+'\')">Salvar</button>'
+        +'<button style="border:none;background:none;cursor:pointer;color:var(--cinza-400);font-size:16px;padding:0 4px" onclick="removerContribMatriz(\''+c.id+'\')" title="Remover vínculo">&#x2715;</button>'
+        +'</div>';
+    });
+  }
+  html+='</div>';
+
+  html+='<div style="border-top:1px solid var(--borda);padding-top:12px">'
+    +'<div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">+ Vincular novo indicador</div>'
+    +'<div style="display:flex;gap:6px;align-items:center">'
+    +'<select class="form-control" id="me-novo-ind" style="flex:2;height:32px;font-size:11px">'
+    +'<option value="">Selecione o indicador...</option>'
+    +(matrizItensCache||[]).map(function(i){
+      return '<option value="'+i.id+'">[R'+i.resultado+'/'+i.produto_codigo+'] '+esc((i.indicador||'').substring(0,60))+(i.indicador&&i.indicador.length>60?'…':'')+(i.unidade?' ('+i.unidade+')':'')+'</option>';
+    }).join('')
+    +'</select>'
+    +'<input class="form-control" type="number" step="0.01" min="0" id="me-novo-val" placeholder="Valor" style="width:100px;height:32px;font-size:12px">'
+    +'<button class="btn btn-sm btn-primary" style="height:32px" onclick="adicionarContribMatrizExistente()">Adicionar</button>'
+    +'</div></div>';
+
+  document.getElementById('me-body').innerHTML=html;
+}
+
+async function salvarValorContribMatriz(contribId){
+  var el=document.getElementById('me-val-'+contribId);
+  if(!el)return;
+  var valor=parseFloat(el.value);
+  if(isNaN(valor)||valor<0){toast('Informe um valor válido.','error');return;}
+  var r=await db.from('produto_matriz_contribuicao').update({valor:valor}).eq('id',contribId);
+  if(r.error){toast('Erro ao salvar: '+r.error.message,'error');return;}
+  toast('Valor atualizado.','success');
+  await renderModalMatrizEdit();
+}
+
+async function removerContribMatriz(contribId){
+  if(!confirm('Remover este vínculo com a Matriz de Resultados?'))return;
+  var r=await db.from('produto_matriz_contribuicao').update({status:'cancelado'}).eq('id',contribId);
+  if(r.error){toast('Erro ao remover: '+r.error.message,'error');return;}
+  toast('Vínculo removido.','success');
+  await renderModalMatrizEdit();
+}
+
+async function adicionarContribMatrizExistente(){
+  var sel=document.getElementById('me-novo-ind');
+  var valEl=document.getElementById('me-novo-val');
+  if(!sel||!sel.value){toast('Selecione um indicador.','error');return;}
+  var valor=parseFloat(valEl&&valEl.value);
+  if(isNaN(valor)||valor<=0){toast('Informe um valor válido.','error');return;}
+  var ind=(matrizItensCache||[]).find(function(x){return x.id===sel.value;});
+  var r=await db.from('produto_matriz_contribuicao').insert({
+    produto_id:_meProdutoId,
+    matriz_item_id:sel.value,
+    valor:valor,
+    unidade:ind&&ind.unidade||null,
+    status:'confirmado',
+    confirmado_por:appState.usuario.id,
+    confirmado_em:new Date().toISOString(),
+    criado_por:appState.usuario.id,
+    observacao:'Vínculo adicionado retroativamente por '+(appState.usuario&&appState.usuario.nome_completo||'super_admin')
+  });
+  if(r.error){toast('Erro ao adicionar: '+r.error.message,'error');return;}
+  toast('Indicador vinculado.','success');
+  await renderModalMatrizEdit();
 }
