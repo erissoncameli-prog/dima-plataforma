@@ -946,6 +946,18 @@ async function carregarEntregas(contratoId){
   return entregasPorContrato[contratoId];
 }
 
+window.abrirArquivoEntrega=async function(urlEnc){
+  var url=decodeURIComponent(urlEnc);
+  if(!url){toast('URL não disponível.','error');return;}
+  var match=url.match(/\/object\/(?:public|sign)\/(entregas-docs|tdrs-arquivos|contratos-docs)\/(.+?)(\?.*)?$/);
+  if(!match){window.open(url,'_blank');return;}
+  var bucket=match[1];
+  var path=decodeURIComponent(match[2]);
+  var r=await db.storage.from(bucket).createSignedUrl(path,3600);
+  if(r.error||!r.data||!r.data.signedUrl){toast('Erro ao gerar link.','error');return;}
+  window.open(r.data.signedUrl,'_blank');
+};
+
 function buildTabEntregas(c){
   if(!entregasPorContrato[c.id]){
     setTimeout(async function(){
