@@ -1721,27 +1721,40 @@ function baixarTemplateGeoExcel(){
 // ── Editar Contribuição à Matriz (super_admin — produtos já aprovados/pagos) ──
 
 var _meProdutoId=null;
+var _meEntregaId=null;
 
 async function abrirModalMatrizEdit(prodId){
   if(appState.perfil!=='super_admin'){toast('Apenas super_admin pode editar a matriz de um produto já avaliado.','error');return;}
   _meProdutoId=prodId;
+  _meEntregaId=null;
   await carregarMatrizItens();
   document.getElementById('me-body').innerHTML='<div style="text-align:center;padding:24px"><div style="animation:spin .7s linear infinite;width:22px;height:22px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;margin:0 auto 8px"></div>Carregando...</div>';
   document.getElementById('modal-matriz-edit').style.display='flex';
+
+  // produto_matriz_contribuicao.produto_id referencia contratos_produtos_entregas.id
+  // (não contratos_produtos.id) — usa a entrega aprovada mais recente do produto.
+  var entR=await db.from('contratos_produtos_entregas').select('id,numero_entrega,situacao').eq('produto_id',prodId).order('numero_entrega',{ascending:false});
+  var entregas=entR.data||[];
+  var entregaAlvo=entregas.find(function(e){return e.situacao==='aprovada';})||entregas[0]||null;
+  if(!entregaAlvo){
+    document.getElementById('me-body').innerHTML='<div style="font-size:12px;color:var(--cinza-500);padding:12px 0">Este produto não possui nenhuma entrega registrada.</div>';
+    return;
+  }
+  _meEntregaId=entregaAlvo.id;
   await renderModalMatrizEdit();
 }
 
 function fecharModalMatrizEdit(){
   var m=document.getElementById('modal-matriz-edit');
   if(m)m.style.display='none';
-  _meProdutoId=null;
+  _meProdutoId=null;_meEntregaId=null;
 }
 
 async function renderModalMatrizEdit(){
-  if(!_meProdutoId)return;
+  if(!_meProdutoId||!_meEntregaId)return;
   var [prodR,contribsR]=await Promise.all([
     db.from('contratos_produtos').select('numero_produto,descricao,situacao').eq('id',_meProdutoId).single(),
-    db.from('produto_matriz_contribuicao').select('*,matriz_itens(resultado,produto_codigo,produto_titulo,indicador,unidade)').eq('produto_id',_meProdutoId).neq('status','cancelado').order('criado_em')
+    db.from('produto_matriz_contribuicao').select('*,matriz_itens(resultado,produto_codigo,produto_titulo,indicador,unidade)').eq('produto_id',_meEntregaId).neq('status','cancelado').order('criado_em')
   ]);
   var p=prodR.data||{};
   var contribs=contribsR.data||[];
@@ -1813,7 +1826,7 @@ async function adicionarContribMatrizExistente(){
   if(isNaN(valor)||valor<=0){toast('Informe um valor válido.','error');return;}
   var ind=(matrizItensCache||[]).find(function(x){return x.id===sel.value;});
   var r=await db.from('produto_matriz_contribuicao').insert({
-    produto_id:_meProdutoId,
+    produto_id:_meEntregaId,
     matriz_item_id:sel.value,
     valor:valor,
     unidade:ind&&ind.unidade||null,
