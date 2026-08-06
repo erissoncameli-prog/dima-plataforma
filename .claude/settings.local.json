@@ -238,7 +238,8 @@
       "mcp__visualize__read_me",
       "mcp__visualize__show_widget",
       "Bash(node --check \"C:/Users/eriss/AppData/Local/Temp/claude/tdrcheck/tdrs0.js\")",
-      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__get_advisors"
+      "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__get_advisors",
+      "Bash(git rebase *)"
     ]
   }
 }
