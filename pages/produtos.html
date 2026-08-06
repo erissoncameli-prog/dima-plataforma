@@ -157,6 +157,23 @@
   </div>
 </div>
 
+<!-- Modal: Editar Contribuição à Matriz (super_admin, produtos já aprovados/pagos) -->
+<div class="modal-overlay" id="modal-matriz-edit" style="display:none">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">&#x25CE; Contribuição à Matriz de Resultados</div>
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="me-sub"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModalMatrizEdit()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="me-body" style="max-height:68vh;overflow-y:auto"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalMatrizEdit()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="../js/config.js"></script>
