@@ -337,12 +337,12 @@ function renderCard(p){
     var links=[];
     p.contratos_produtos_entregas.forEach(function(e){
       if(e.nota_tecnica_url){
-        links.push('<a href="'+e.nota_tecnica_url+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#166534;text-decoration:none;font-weight:500;padding:2px 7px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:4px;white-space:nowrap">&#x1F4C4; '+(e.nota_tecnica_nome?esc(e.nota_tecnica_nome):'Nota técnica')+'</a>');
+        links.push('<a href="#" data-arquivo="'+esc(e.nota_tecnica_url)+'" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#166534;text-decoration:none;font-weight:500;padding:2px 7px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:4px;white-space:nowrap">&#x1F4C4; '+(e.nota_tecnica_nome?esc(e.nota_tecnica_nome):'Nota técnica')+'</a>');
       }
       if(e.documentos&&e.documentos.length){
         e.documentos.forEach(function(d){
           if(d.arquivo_url){
-            links.push('<a href="'+d.arquivo_url+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#1D4ED8;text-decoration:none;font-weight:500;padding:2px 7px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;white-space:nowrap">&#x1F4CE; '+esc(d.tipo_documento||d.arquivo_nome||'Documento')+'</a>');
+            links.push('<a href="#" data-arquivo="'+esc(d.arquivo_url)+'" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#1D4ED8;text-decoration:none;font-weight:500;padding:2px 7px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:4px;white-space:nowrap">&#x1F4CE; '+esc(d.tipo_documento||d.arquivo_nome||'Documento')+'</a>');
           }
         });
       }
