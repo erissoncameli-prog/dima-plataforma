@@ -972,13 +972,24 @@ function buildTabEntregas(c){
   prods.forEach(function(p){
     var pe=entregas.filter(function(e){return e.produto_id===p.id;});
     var corProd=COR_PROD[p.situacao]||'background:#F3F4F6;color:#6B7280';
+    var valorTotalProd=parseFloat(p.valor_brl||0);
+    var valorAprovProd=parseFloat(p.valor_aprovado||0);
+    var naoExecProd=Math.max(0,valorTotalProd-valorAprovProd);
+    var ehParcial=p.situacao==='entrega_parcial'&&valorAprovProd>0&&naoExecProd>0;
+    var valorHtml=ehParcial
+      ?'<span class="mono" style="font-size:11px;color:var(--verde-medio);flex-shrink:0">'+fmtBRL(valorAprovProd)+' <span style="color:var(--cinza-400);font-weight:400">de '+fmtBRL(valorTotalProd)+'</span></span>'
+      :'<span class="mono" style="font-size:11px;color:var(--verde-medio);flex-shrink:0">'+fmtBRL(valorTotalProd)+'</span>';
     h+='<div class="ent-bloco">';
     h+='<div class="ent-prod-header">'
       +'<span style="font-size:10px;font-weight:700;color:var(--cinza-400);font-family:var(--font-mono)">#'+p.numero_produto+'</span>'
       +'<span class="ent-prod-title" title="'+escHtml(p.descricao)+'">'+escHtml(p.descricao)+'</span>'
-      +'<span class="mono" style="font-size:11px;color:var(--verde-medio);flex-shrink:0">'+fmtBRL(parseFloat(p.valor_brl||0))+'</span>'
+      +valorHtml
       +'<span class="ent-badge" style="'+corProd+';flex-shrink:0">'+(SIT_PROD[p.situacao]||p.situacao)+'</span>'
       +'</div>';
+    if(ehParcial){
+      h+='<div style="font-size:11px;color:#9A3412;padding:0 0 6px 0">Pago parcialmente: <strong>'+fmtBRL(valorAprovProd)+'</strong> aprovado · <strong>'+fmtBRL(naoExecProd)+'</strong> não executado'
+        +(p.pct_aprovado!=null?' ('+parseFloat(p.pct_aprovado)+'%)':'')+'</div>';
+    }
     if(!pe.length){
       h+='<div class="ent-vazia">Nenhuma entrega registrada.</div>';
     } else {
