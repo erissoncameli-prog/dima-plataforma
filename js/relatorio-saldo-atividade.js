@@ -30,15 +30,22 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
       .filter(t=>t.status!=='cancelado');
     const orcUSD = parseFloat(a.orcamento_usd||0);
 
-    // Liberações ativas (encerramentos) da atividade — total e por TDR (via tdr_id)
+    // Liberações ativas (encerramentos) da atividade — total, e por TDR separadas por origem:
+    // economia_contratacao tem tdr_id direto; encerramento_contrato não tem tdr_id (só contrato_id),
+    // então é associado ao TDR casando contrato_id com os contratos do próprio TDR.
     const encsAtivos = (a.encerramentos||[]).filter(e=>e && (e.status==='ativo' || e.status==null));
-    const libByTdr = {};
+    const libEcoByTdr = {};     // economia planejado×firmado já liberada (abate reservadaBRL)
+    const libEncByContrato = {}; // encerramento de contrato (valor não executado devolvido)
     let libUSD=0, libBRL=0;
     encsAtivos.forEach(e=>{
       const uUSD = parseFloat(e.valor_liberado_usd||0) || toUSD(parseFloat(e.valor_liberado_brl||0));
       const uBRL = parseFloat(e.valor_liberado_brl||0) || toBRL(parseFloat(e.valor_liberado_usd||0));
       libUSD+=uUSD; libBRL+=uBRL;
-      if(e.tdr_id){ libByTdr[e.tdr_id]=(libByTdr[e.tdr_id]||0)+uBRL; }
+      if(e.tipo==='economia_contratacao' && e.tdr_id){
+        libEcoByTdr[e.tdr_id]=(libEcoByTdr[e.tdr_id]||0)+uBRL;
+      } else if(e.contrato_id){
+        libEncByContrato[e.contrato_id]=(libEncByContrato[e.contrato_id]||0)+uBRL;
+      }
     });
 
     let compUSD=0, compBRL=0, firmUSD=0, firmBRL=0;
@@ -53,9 +60,11 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
       if(firmado){ firmBRL+=firmBRL_; firmUSD+=toUSD(firmBRL_); }
       compUSD+=cUSD; compBRL+=cBRL;
       const ecoBRL = firmado ? Math.max(0, planBRL_ - firmBRL_) : 0; // economia potencial
-      const libTdrBRL = Math.min(ecoBRL, libByTdr[t.id]||0);          // já liberada deste TDR
+      const libTdrBRL = Math.min(ecoBRL, libEcoByTdr[t.id]||0);       // economia já liberada deste TDR
       const reservadaBRL = Math.max(0, ecoBRL - libTdrBRL);          // ainda reservada
-      return { t, firmado, conts, cUSD, cBRL, ecoBRL, libTdrBRL, reservadaBRL };
+      // Valor liberado pelo encerramento do(s) contrato(s) deste TDR (produto não entregue/executado)
+      const libEncBRL = conts.reduce((s,c)=>s+(libEncByContrato[c.id]||0),0);
+      return { t, firmado, conts, cUSD, cBRL, ecoBRL, libTdrBRL, reservadaBRL, libEncBRL };
     }).sort((x,y)=>(x.t.numero||'').localeCompare(y.t.numero||'',undefined,{numeric:true}));
 
     const saldoUSD = orcUSD - compUSD + libUSD;
@@ -104,7 +113,9 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
           <td>${tdrBadge(l.t.status)}</td>
           <td>${l.firmado
             ? `<span class="rep-badge rb-teal">🔒 ${numsContrato}</span>${
-                l.libTdrBRL>0 ? `<span class="rep-badge rb-verde" style="margin-left:4px" title="Economia liberada ao saldo da atividade">↩ ${fmtBRL(l.libTdrBRL)} liberado</span>` : ''
+                l.libEncBRL>0 ? `<span class="rep-badge rb-verde" style="margin-left:4px" title="Valor não executado devolvido ao saldo da atividade no encerramento do contrato">↩ ${fmtBRL(l.libEncBRL)} liberado (encerramento)</span>` : ''
+              }${
+                l.libTdrBRL>0 ? `<span class="rep-badge rb-verde" style="margin-left:4px" title="Economia entre planejado e firmado liberada ao saldo da atividade">↩ ${fmtBRL(l.libTdrBRL)} liberado</span>` : ''
               }${
                 l.reservadaBRL>0 ? `<span class="rep-badge rb-azul" style="margin-left:4px" title="Economia entre planejado e firmado, ainda reservada a este TDR">⏸ ${fmtBRL(l.reservadaBRL)} reservado</span>` : ''
               }`
@@ -158,7 +169,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     </table>
     <div style="font-size:10px;color:var(--cinza-500);margin-top:8px;line-height:1.6">
       Valores em <strong>USD</strong> (moeda do orçamento); linha menor em <strong>BRL</strong> é referência à cotação atual${taxa>0?` de R$ ${taxa.toFixed(4)}`:''}.
-      Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe). Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> (⏸) ao TDR até coordenação/super admin <strong>liberá-la</strong> (↩) para a atividade. TDRs cancelados não entram no cálculo.
+      Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe). Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> (⏸) ao TDR até coordenação/super admin <strong>liberá-la</strong> (↩) para a atividade. Se o contrato é encerrado com produto não entregue/executado, o valor não executado também aparece como <strong>liberado (encerramento)</strong> (↩). TDRs cancelados não entram no cálculo.
       Saldo livre = Orçamento − Comprometido + Liberado (espelha a Visão Geral).
     </div>
   </div>`;
