@@ -36,15 +36,17 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     const encsAtivos = (a.encerramentos||[]).filter(e=>e && (e.status==='ativo' || e.status==null));
     const libEcoByTdr = {};     // economia planejado×firmado já liberada (abate reservadaBRL)
     const libEncByContrato = {}; // encerramento de contrato (valor não executado devolvido)
-    let libUSD=0, libBRL=0;
+    let libUSD=0, libBRL=0, libEcoTotalUSD=0, libEcoTotalBRL=0, libEncTotalUSD=0, libEncTotalBRL=0;
     encsAtivos.forEach(e=>{
       const uUSD = parseFloat(e.valor_liberado_usd||0) || toUSD(parseFloat(e.valor_liberado_brl||0));
       const uBRL = parseFloat(e.valor_liberado_brl||0) || toBRL(parseFloat(e.valor_liberado_usd||0));
       libUSD+=uUSD; libBRL+=uBRL;
       if(e.tipo==='economia_contratacao' && e.tdr_id){
         libEcoByTdr[e.tdr_id]=(libEcoByTdr[e.tdr_id]||0)+uBRL;
+        libEcoTotalUSD+=uUSD; libEcoTotalBRL+=uBRL;
       } else if(e.contrato_id){
         libEncByContrato[e.contrato_id]=(libEncByContrato[e.contrato_id]||0)+uBRL;
+        libEncTotalUSD+=uUSD; libEncTotalBRL+=uBRL;
       }
     });
 
@@ -69,7 +71,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
 
     const saldoUSD = orcUSD - compUSD + libUSD;
     const saldoBRL = toBRL(orcUSD) - compBRL + libBRL;
-    return { a, orcUSD, compUSD, compBRL, firmUSD, firmBRL, libUSD, libBRL, saldoUSD, saldoBRL, linhas };
+    return { a, orcUSD, compUSD, compBRL, firmUSD, firmBRL, libUSD, libBRL, libEcoTotalUSD, libEcoTotalBRL, libEncTotalUSD, libEncTotalBRL, saldoUSD, saldoBRL, linhas };
   }).sort((x,y)=>(x.a.codigo||'').localeCompare(y.a.codigo||'',undefined,{numeric:true}));
 
   if(!dados.length) return `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Nenhuma atividade encontrada para os filtros selecionados.</div>`;
@@ -79,6 +81,12 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
   const tCompUSD  = dados.reduce((s,d)=>s+d.compUSD,0);
   const tCompBRL  = dados.reduce((s,d)=>s+d.compBRL,0);
   const tFirmUSD  = dados.reduce((s,d)=>s+d.firmUSD,0);
+  const tLibUSD   = dados.reduce((s,d)=>s+d.libUSD,0);
+  const tLibBRL   = dados.reduce((s,d)=>s+d.libBRL,0);
+  const tLibEcoUSD = dados.reduce((s,d)=>s+d.libEcoTotalUSD,0);
+  const tLibEcoBRL = dados.reduce((s,d)=>s+d.libEcoTotalBRL,0);
+  const tLibEncUSD = dados.reduce((s,d)=>s+d.libEncTotalUSD,0);
+  const tLibEncBRL = dados.reduce((s,d)=>s+d.libEncTotalBRL,0);
   const tSaldoUSD = dados.reduce((s,d)=>s+d.saldoUSD,0);
   const tSaldoBRL = dados.reduce((s,d)=>s+d.saldoBRL,0);
   const totalTDRs = dados.reduce((s,d)=>s+d.linhas.length,0);
@@ -131,7 +139,8 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     // Saldo individual da atividade
     bloco += `<tr style="background:${estourou?'#FEF2F2':'#f8faf8'}">
       <td colspan="4" style="text-align:right;font-weight:600;color:${estourou?'#991B1B':'#1F4E2C'}">
-        ${estourou?'⚠ Orçamento estourado · ':''}Saldo livre da atividade (orçamento − comprometido)
+        ${estourou?'⚠ Orçamento estourado · ':''}Saldo livre da atividade (orçamento − comprometido + liberado)
+        ${d.libUSD>0?`<div style="font-weight:400;font-size:10px;color:var(--cinza-500);margin-top:2px">↳ ${fmtBRL(d.libBRL)} já liberado ao saldo desta atividade</div>`:''}
       </td>
       <td></td>
       <td style="text-align:right">${val(d.saldoUSD, d.saldoBRL, true)}</td>
@@ -165,7 +174,13 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
         <td style="text-align:right">${val(tOrcUSD, toBRL(tOrcUSD))}</td>
         <td style="text-align:right">${val(tCompUSD, tCompBRL)}</td>
         <td style="text-align:right">${val(tSaldoUSD, tSaldoBRL, true)}</td>
-      </tr></tfoot>
+      </tr>${tLibUSD>0?`<tr>
+        <td colspan="6" style="font-weight:400;font-size:10px;color:var(--cinza-500);border-top:none;padding-top:2px">
+          ↳ Do saldo livre acima, <strong>${fmtUSD(tLibUSD)}</strong> (${fmtBRL(tLibBRL)}) já foi <strong>liberado</strong> para as atividades
+          — ${fmtUSD(tLibEncUSD)} (${fmtBRL(tLibEncBRL)}) de <strong>encerramento de contrato</strong> com produto não entregue/executado
+          e ${fmtUSD(tLibEcoUSD)} (${fmtBRL(tLibEcoBRL)}) de <strong>economia</strong> entre valor planejado e firmado do TDR.
+        </td>
+      </tr>`:''}</tfoot>
     </table>
     <div style="font-size:10px;color:var(--cinza-500);margin-top:8px;line-height:1.6">
       Valores em <strong>USD</strong> (moeda do orçamento); linha menor em <strong>BRL</strong> é referência à cotação atual${taxa>0?` de R$ ${taxa.toFixed(4)}`:''}.
