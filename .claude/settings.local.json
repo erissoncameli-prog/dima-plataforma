@@ -241,7 +241,8 @@
       "mcp__8e7e9235-1600-441d-ac01-60977e04a7e4__get_advisors",
       "Bash(git rebase *)",
       "mcp__Claude_Code_Remote__subscribe_pr_activity",
-      "mcp__Claude_Code_Remote__send_later"
+      "mcp__Claude_Code_Remote__send_later",
+      "mcp__Claude_Code_Remote__unsubscribe_pr_activity"
     ]
   }
 }
