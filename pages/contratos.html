@@ -877,9 +877,9 @@ window.confirmarEncerramento=async function(){
   try{
     await executarSalvarContrato(dados);
 
-    if(selecionados.length){
-      var ids=selecionados.map(function(p){return p.id;});
-      var updProd=await db.from('contratos_produtos').update({situacao:'cancelado',atualizado_em:new Date().toISOString()}).in('id',ids);
+    var idsCancelar=selecionados.filter(function(p){return !(parseFloat(p.valor_aprovado||0)>0);}).map(function(p){return p.id;});
+    if(idsCancelar.length){
+      var updProd=await db.from('contratos_produtos').update({situacao:'cancelado',atualizado_em:new Date().toISOString()}).in('id',idsCancelar);
       if(updProd.error)throw updProd.error;
     }
 
