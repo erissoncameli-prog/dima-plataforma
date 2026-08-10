@@ -2560,7 +2560,7 @@ async function relA4(){
   let q = db.from('atividades')
     .select(`id,codigo,nome_pt,orcamento_usd,
       resultado:resultados(codigo),
-      encerramentos:contrato_encerramentos(tdr_id,valor_liberado_brl,valor_liberado_usd,status),
+      encerramentos:contrato_encerramentos(tdr_id,contrato_id,tipo,valor_liberado_brl,valor_liberado_usd,status),
       tdrs(id,numero,valor_brl,valor_usd,status,
         contratos(id,numero,valor_total_brl,status))`)
     .order('codigo');

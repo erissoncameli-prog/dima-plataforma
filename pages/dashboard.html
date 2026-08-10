@@ -240,7 +240,7 @@ async function loadData(){
     db.from('vw_matriz_progresso').select('*'),
     db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
     db.from('produto_matriz_contribuicao').select('matriz_item_id,valor,status,contratos_produtos_entregas(dt_entrega)').eq('status','confirmado'),
-    db.from('contrato_encerramentos').select('atividade_id,tdr_id,valor_liberado_brl,valor_liberado_usd,status'),
+    db.from('contrato_encerramentos').select('atividade_id,tdr_id,contrato_id,tipo,valor_liberado_brl,valor_liberado_usd,status'),
   ]);
   D.atv=r[0].data||[]; D.tdrs=r[1].data||[]; D.res=r[2].data||[];
   D.sal=r[3].data||[]; D.ind=r[4].data||[]; D.lanc=r[5].data||[];
@@ -1081,7 +1081,7 @@ async function abrirRelatorioA4Saldo(){
     var contrByTdr = {};
     (D.contr||[]).forEach(function(c){ if(!c.tdr_id) return; (contrByTdr[c.tdr_id]=contrByTdr[c.tdr_id]||[]).push({id:c.id,numero:c.numero,valor_total_brl:c.valor_total_brl,status:c.status}); });
     var encByAtv = {};
-    (D.encerr||[]).forEach(function(e){ if(!e.atividade_id) return; (encByAtv[e.atividade_id]=encByAtv[e.atividade_id]||[]).push({tdr_id:e.tdr_id,valor_liberado_brl:e.valor_liberado_brl,valor_liberado_usd:e.valor_liberado_usd,status:e.status}); });
+    (D.encerr||[]).forEach(function(e){ if(!e.atividade_id) return; (encByAtv[e.atividade_id]=encByAtv[e.atividade_id]||[]).push({tdr_id:e.tdr_id,contrato_id:e.contrato_id,tipo:e.tipo,valor_liberado_brl:e.valor_liberado_brl,valor_liberado_usd:e.valor_liberado_usd,status:e.status}); });
     var tdrsByAtv = {};
     (D.tdrs||[]).forEach(function(t){ (tdrsByAtv[t.atividade_id]=tdrsByAtv[t.atividade_id]||[]).push({id:t.id,numero:t.numero,valor_brl:t.valor_brl,valor_usd:t.valor_usd,status:t.status,contratos:contrByTdr[t.id]||[]}); });
     var rows = (D.atv||[]).map(function(a){
