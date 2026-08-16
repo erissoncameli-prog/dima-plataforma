@@ -60,6 +60,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     fornecedores: { svg: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',                                             cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'  },
     contratos:    { svg: '<path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L18 5.5"/><path d="M8 18h1"/><path d="M18.42 9.61a2.1 2.1 0 1 1 2.97 2.97L16.95 17 13 18l.99-3.95 4.43-4.44Z"/>',                                                                                                      cor: '#fb7185', bg: 'rgba(251,113,133,0.22)' },
     produtos:     { svg: '<path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 2 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/>',                            cor: '#4ade80', bg: 'rgba(74,222,128,0.22)'  },
+    acervo:       { svg: '<path d="M4 4v16"/><path d="M8 8v12"/><path d="M12 6v14"/><path d="m16 6 4 14"/>',                                                                                                                                                                                              cor: '#f4d35e', bg: 'rgba(244,211,94,0.22)' },
     financeiro:   { svg: '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>',                                                                                                                                                          cor: '#fbbf24', bg: 'rgba(251,191,36,0.22)'  },
     viagens:      { svg: '<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 2c-2-2-4-2-5.5-.5L10 5 1.8 6.2a.27.27 0 0 0-.1.5l1.7 1.7 4.4-1.1L4.3 11l.6.6L9 10l1.1 4.4 1.7 1.7a.27.27 0 0 0 .5-.1z"/>',                                                                                                                   cor: '#67e8f9', bg: 'rgba(103,232,249,0.22)' },
     beneficiarios:{ svg: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',                                                                                                                               cor: '#c084fc', bg: 'rgba(192,132,252,0.22)' },
@@ -93,6 +94,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'fornecedores', href: 'fornecedores.html', perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'contratos',    href: 'contratos.html',    perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'produtos',     href: 'produtos.html',     perfis: ['super_admin','coordenacao','tecnico'] },
+    { id: 'acervo',       href: 'acervo.html',       perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
     { id: 'financeiro',   href: 'financeiro.html',   perfis: ['super_admin','coordenacao','financeiro'] },
     // ── Apoio ────────────────────────────────────────────────
     { id: 'viagens',       href: 'viagens.html',                   perfis: ['super_admin','coordenacao','financeiro','tecnico'] },
@@ -114,7 +116,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   const navGroups = [
     { label: null,           key: null,            ids: ['dashboard'] },
     { label: 'Planejamento', key: 'planejamento',  ids: ['atividades','tdrs','matriz'] },
-    { label: 'Execução',     key: 'execucao',      ids: ['fornecedores','contratos','produtos','financeiro'] },
+    { label: 'Execução',     key: 'execucao',      ids: ['fornecedores','contratos','produtos','acervo','financeiro'] },
     { label: 'Apoio',        key: 'apoio',         ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','ajuda','usuarios'] },
     { label: 'Sistema',      key: 'sistema',       ids: ['configuracoes'] },
   ];

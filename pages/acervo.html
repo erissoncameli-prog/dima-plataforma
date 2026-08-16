@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Acervo de Produtos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+/* ═══ ACERVO — Biblioteca Virtual ═══════════════════════════════════
+   Palco escuro cinematográfico dentro da paleta institucional.
+   Pôsteres são gerados (não há imagem de capa no acervo).
+   ══════════════════════════════════════════════════════════════════ */
+
+.acv-stage{
+  background:linear-gradient(160deg,#12261B 0%,#14293A 55%,#0E1B26 100%);
+  border-radius:var(--raio-xl);
+  padding:0 0 26px;
+  margin:-4px 0 0;
+  overflow:hidden;
+  position:relative;
+}
+.acv-stage::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(1100px 340px at 12% -8%,rgba(82,183,136,.20),transparent 62%),
+             radial-gradient(760px 300px at 96% 4%,rgba(244,211,94,.10),transparent 60%);
+}
+.acv-stage>*{position:relative;z-index:1;}
+
+/* ── Barra de comando ─────────────────────────────────────────── */
+.acv-cmd{
+  position:sticky;top:0;z-index:40;
+  background:rgba(11,23,17,.82);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.10);
+  padding:13px 22px;
+  display:flex;gap:11px;align-items:center;flex-wrap:wrap;
+}
+.acv-busca{position:relative;flex:1 1 300px;min-width:220px;max-width:460px;}
+.acv-busca input{
+  width:100%;background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.17);border-radius:99px;
+  color:#fff;font-family:inherit;font-size:13.5px;
+  padding:9px 76px 9px 36px;outline:none;transition:border-color .15s,background .15s;
+}
+.acv-busca input::placeholder{color:rgba(255,255,255,.48);}
+.acv-busca input:focus{border-color:var(--verde-claro);background:rgba(255,255,255,.14);}
+.acv-busca-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.55;pointer-events:none;}
+.acv-busca-kbd{
+  position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,.42);
+  border:1px solid rgba(255,255,255,.20);border-radius:5px;padding:1px 6px;pointer-events:none;
+}
+.acv-busca input:focus~.acv-busca-kbd{opacity:0;}
+
+.acv-sel{
+  background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.17);
+  border-radius:99px;color:#fff;font-family:inherit;font-size:12.5px;
+  padding:8px 30px 8px 13px;outline:none;cursor:pointer;
+  appearance:none;-webkit-appearance:none;max-width:190px;
+  background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' opacity='.6'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;background-size:13px;
+}
+.acv-sel:focus{border-color:var(--verde-claro);}
+.acv-sel option{background:#14293A;color:#fff;}
+
+.acv-toggle{display:flex;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.17);border-radius:99px;padding:2px;gap:2px;}
+.acv-toggle button{
+  background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;
+  color:rgba(255,255,255,.62);padding:6px 13px;border-radius:99px;transition:background .15s,color .15s;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.acv-toggle button.on{background:var(--verde-claro);color:#0B2818;}
+
+.acv-limpar{
+  background:none;border:1px solid rgba(255,255,255,.20);border-radius:99px;
+  color:rgba(255,255,255,.72);font-family:inherit;font-size:12px;cursor:pointer;
+  padding:8px 13px;transition:background .15s,color .15s;
+}
+.acv-limpar:hover{background:rgba(255,255,255,.13);color:#fff;}
+
+/* ── Chips de tipo de mídia ───────────────────────────────────── */
+.acv-chips{display:flex;gap:7px;flex-wrap:wrap;padding:13px 22px 0;}
+.acv-chip{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:99px;color:rgba(255,255,255,.78);font-family:inherit;
+  font-size:11.5px;font-weight:600;cursor:pointer;padding:6px 13px;
+  display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap;
+}
+.acv-chip:hover{background:rgba(255,255,255,.15);color:#fff;}
+.acv-chip.on{background:var(--verde-claro);border-color:var(--verde-claro);color:#0B2818;}
+.acv-chip-n{font-family:var(--font-mono);font-size:10px;opacity:.75;}
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.acv-hero{display:grid;grid-template-columns:190px 1fr;gap:24px;align-items:center;padding:26px 22px 6px;}
+.acv-hero-poster{width:190px;}
+.acv-hero-tag{
+  display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.13em;color:var(--ouro-claro);margin-bottom:11px;
+}
+.acv-hero-tag::before{content:'';width:22px;height:2px;background:var(--ouro-claro);border-radius:2px;}
+.acv-hero h2{
+  font-family:var(--font-display),Georgia,serif;font-size:29px;line-height:1.2;
+  color:#fff;font-weight:600;margin:0 0 11px;letter-spacing:-.01em;
+}
+.acv-hero-meta{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:13px;}
+.acv-hero-sub{font-size:13.5px;color:rgba(255,255,255,.66);line-height:1.55;max-width:640px;margin-bottom:17px;}
+.acv-hero-acoes{display:flex;gap:9px;flex-wrap:wrap;}
+.acv-btn{
+  border:none;border-radius:99px;font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;padding:10px 21px;display:inline-flex;align-items:center;gap:7px;transition:all .15s;
+}
+.acv-btn-play{background:#fff;color:#12261B;}
+.acv-btn-play:hover{background:var(--verde-bg);transform:translateY(-1px);}
+.acv-btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.22);}
+.acv-btn-ghost:hover{background:rgba(255,255,255,.24);}
+
+/* ── Prateleiras ──────────────────────────────────────────────── */
+.acv-prat{margin-top:26px;}
+.acv-prat-cab{display:flex;align-items:baseline;gap:10px;padding:0 22px 11px;}
+.acv-prat-tit{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.01em;}
+.acv-prat-n{font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,.42);}
+.acv-trilho-wrap{position:relative;}
+.acv-trilho{
+  display:flex;gap:14px;overflow-x:auto;scroll-behavior:smooth;
+  padding:4px 22px 10px;scroll-snap-type:x proximity;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.22) transparent;
+}
+.acv-trilho::-webkit-scrollbar{height:7px;}
+.acv-trilho::-webkit-scrollbar-track{background:transparent;}
+.acv-trilho::-webkit-scrollbar-thumb{background:rgba(255,255,255,.20);border-radius:99px;}
+.acv-trilho::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.34);}
+.acv-trilho>*{scroll-snap-align:start;}
+.acv-seta{
+  position:absolute;top:0;bottom:14px;width:52px;border:none;cursor:pointer;z-index:5;
+  color:#fff;font-size:21px;display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .18s;
+}
+.acv-trilho-wrap:hover .acv-seta{opacity:1;}
+.acv-seta:disabled{opacity:0!important;pointer-events:none;}
+.acv-seta-e{left:0;background:linear-gradient(90deg,rgba(10,22,16,.92),transparent);justify-content:flex-start;padding-left:6px;}
+.acv-seta-d{right:0;background:linear-gradient(270deg,rgba(10,22,16,.92),transparent);justify-content:flex-end;padding-right:6px;}
+
+/* ── Pôster (card) ────────────────────────────────────────────── */
+.acv-card{
+  flex:0 0 168px;width:168px;cursor:pointer;background:none;border:none;
+  padding:0;font-family:inherit;text-align:left;
+  transition:transform .18s cubic-bezier(.4,0,.2,1);
+}
+.acv-card:hover{transform:translateY(-5px);}
+.acv-card:focus-visible{outline:2px solid var(--verde-claro);outline-offset:4px;border-radius:var(--raio-lg);}
+.acv-poster{
+  position:relative;width:100%;aspect-ratio:2/3;border-radius:var(--raio-lg);
+  overflow:hidden;box-shadow:0 5px 18px rgba(0,0,0,.42);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:13px;transition:box-shadow .18s;
+}
+.acv-card:hover .acv-poster{box-shadow:0 12px 34px rgba(0,0,0,.55);}
+.acv-poster::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,transparent 38%,rgba(0,0,0,.62) 100%);
+}
+.acv-poster-num{
+  font-family:var(--font-display),Georgia,serif;font-size:52px;font-weight:600;
+  color:rgba(255,255,255,.24);line-height:.9;letter-spacing:-.04em;
+  position:absolute;right:11px;bottom:8px;z-index:1;
+}
+.acv-poster-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;z-index:2;position:relative;}
+.acv-poster-ativ{
+  font-family:var(--font-mono);font-size:9.5px;font-weight:500;color:#fff;
+  background:rgba(0,0,0,.34);backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,.22);border-radius:5px;padding:2px 6px;white-space:nowrap;
+}
+.acv-poster-ico{opacity:.9;flex-shrink:0;}
+.acv-poster-tit{
+  font-size:12.5px;font-weight:600;color:#fff;line-height:1.34;z-index:2;position:relative;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+  text-shadow:0 1px 3px rgba(0,0,0,.5);padding-right:26px;
+}
+.acv-poster-selo{
+  position:absolute;top:0;left:0;right:0;height:3px;z-index:3;
+}
+.acv-card-pe{padding:8px 2px 0;}
+.acv-card-forn{
+  font-size:11.5px;color:rgba(255,255,255,.80);font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.acv-card-info{font-size:10.5px;color:rgba(255,255,255,.44);margin-top:2px;display:flex;gap:6px;align-items:center;}
+
+/* ── Grade ────────────────────────────────────────────────────── */
+.acv-grade{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
+  gap:20px 14px;padding:22px;
+}
+.acv-grade .acv-card{flex:none;width:100%;}
+
+/* ── Vazio ────────────────────────────────────────────────────── */
+.acv-vazio{text-align:center;padding:64px 22px;color:rgba(255,255,255,.60);}
+.acv-vazio-ico{font-size:40px;opacity:.30;margin-bottom:13px;}
+.acv-vazio-tit{font-size:16px;font-weight:600;color:rgba(255,255,255,.86);margin-bottom:6px;}
+.acv-vazio-sub{font-size:13px;line-height:1.55;max-width:400px;margin:0 auto;}
+
+/* ── Selos de situação ────────────────────────────────────────── */
+.acv-selo{
+  font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:99px;
+  text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;display:inline-block;
+}
+.selo-pago{background:rgba(82,183,136,.22);color:#8FE3B4;border:1px solid rgba(82,183,136,.42);}
+.selo-pendente{background:rgba(245,158,11,.18);color:#FCD34D;border:1px solid rgba(245,158,11,.38);}
+.selo-entrega_parcial{background:rgba(167,139,250,.18);color:#C4B5FD;border:1px solid rgba(167,139,250,.38);}
+.selo-cancelado{background:rgba(239,68,68,.16);color:#FCA5A5;border:1px solid rgba(239,68,68,.34);}
+.selo-devolvido{background:rgba(239,68,68,.16);color:#FCA5A5;border:1px solid rgba(239,68,68,.34);}
+
+/* ── Ficha da obra (modal) ────────────────────────────────────── */
+.acv-ficha{max-width:min(94vw,880px);}
+.acv-ficha-topo{display:grid;grid-template-columns:150px 1fr;gap:20px;margin-bottom:20px;}
+.acv-ficha-tit{font-family:var(--font-display),Georgia,serif;font-size:22px;line-height:1.28;color:var(--cinza-900);font-weight:600;margin-bottom:10px;}
+.acv-ficha-meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px;}
+.acv-ficha-dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin-bottom:6px;}
+.acv-dado-lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--cinza-500);font-weight:600;margin-bottom:2px;}
+.acv-dado-val{
+  font-size:13px;color:var(--cinza-900);font-weight:500;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.acv-secao-tit{
+  font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--cinza-600);
+  font-weight:700;margin:20px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--borda);
+}
+.acv-midia{
+  display:flex;align-items:center;gap:12px;padding:11px 13px;
+  border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:8px;
+  cursor:pointer;transition:border-color .15s,background .15s;background:var(--branco);
+}
+.acv-midia:hover{border-color:var(--verde-medio);background:var(--cinza-50);}
+.acv-midia-ico{
+  width:38px;height:38px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;
+}
+.acv-midia-corpo{flex:1;min-width:0;}
+.acv-midia-nome{font-size:13px;font-weight:500;color:var(--cinza-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.acv-midia-sub{font-size:11px;color:var(--cinza-500);margin-top:2px;display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.acv-midia-rot{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  padding:2px 7px;border-radius:99px;background:var(--azul-bg);color:#1E40AF;white-space:nowrap;
+}
+.acv-midia-acao{font-size:11px;font-weight:600;color:var(--verde-medio);flex-shrink:0;}
+
+/* ── Visualizador ─────────────────────────────────────────────── */
+.acv-viewer-overlay{
+  position:fixed;inset:0;background:rgba(6,12,9,.94);z-index:9998;
+  display:none;flex-direction:column;
+}
+.acv-viewer-overlay.aberto{display:flex;}
+.acv-viewer-barra{
+  display:flex;align-items:center;gap:13px;padding:12px 18px;
+  border-bottom:1px solid rgba(255,255,255,.12);flex-shrink:0;
+}
+.acv-viewer-nome{flex:1;min-width:0;color:#fff;font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.acv-viewer-sub{font-size:11px;color:rgba(255,255,255,.50);margin-top:2px;}
+.acv-viewer-corpo{flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:16px;}
+.acv-viewer-corpo iframe{width:100%;height:100%;border:none;border-radius:var(--raio);background:#fff;}
+.acv-viewer-corpo video{max-width:100%;max-height:100%;border-radius:var(--raio);background:#000;}
+.acv-viewer-corpo img{max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--raio);}
+.acv-viewer-x{
+  background:rgba(255,255,255,.13);border:none;border-radius:99px;color:#fff;
+  width:34px;height:34px;cursor:pointer;font-size:17px;flex-shrink:0;transition:background .15s;
+}
+.acv-viewer-x:hover{background:rgba(255,255,255,.26);}
+
+/* ── Responsivo ───────────────────────────────────────────────── */
+@media(max-width:900px){
+  .acv-hero{grid-template-columns:1fr;gap:18px;}
+  .acv-hero-poster{width:140px;}
+  .acv-hero h2{font-size:23px;}
+  .acv-ficha-topo{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .acv-cmd{padding:11px 14px;}
+  .acv-chips,.acv-hero{padding-left:14px;padding-right:14px;}
+  .acv-prat-cab,.acv-trilho{padding-left:14px;padding-right:14px;}
+  .acv-grade{padding:14px;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));}
+  .acv-card{flex:0 0 136px;width:136px;}
+  .acv-sel{max-width:140px;}
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<!-- Modais FORA do #app (evita conflito de z-index com a sidebar) -->
+<div class="modal-overlay" id="modal-ficha">
+  <div class="modal acv-ficha">
+    <div class="modal-header">
+      <div class="modal-title" id="ficha-cab">Produto</div>
+      <button class="modal-close" onclick="fecharFicha()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="ficha-body" style="max-height:70vh;overflow-y:auto"></div>
+    <div class="modal-footer" id="ficha-footer"></div>
+  </div>
+</div>
+
+<div class="acv-viewer-overlay" id="viewer">
+  <div class="acv-viewer-barra">
+    <div style="min-width:0;flex:1">
+      <div class="acv-viewer-nome" id="viewer-nome"></div>
+      <div class="acv-viewer-sub" id="viewer-sub"></div>
+    </div>
+    <button class="acv-btn acv-btn-ghost" id="viewer-abrir" type="button">Abrir em nova aba</button>
+    <button class="acv-viewer-x" onclick="fecharViewer()" title="Fechar (Esc)">&#x2715;</button>
+  </div>
+  <div class="acv-viewer-corpo" id="viewer-corpo"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/acervo.js"></script>
+</body>
+</html>

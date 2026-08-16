@@ -85,7 +85,7 @@ const res = await fetch(SUPABASE_URL + '/functions/v1/nome-da-funcao', {
 ### Navegação (`layout.js` — `navGroups`)
 Grupos: `'Projeto'`, `'Execução'`, `'Apoio'`
 Cada item: `{ id, icone, href, perfis: [...] }`
-IDs usados: `dashboard`, `atividades`, `tdrs`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `viagens`, `mapa`, `beneficiarios`, `auditoria`
+IDs usados: `dashboard`, `atividades`, `tdrs`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `viagens`, `mapa`, `beneficiarios`, `auditoria`
 Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 
 ---
@@ -253,6 +253,38 @@ saldo_livre_usd = orcamento_usd
   - `fn_liberar_economia_tdr(p_tdr_id uuid, p_justificativa text, p_taxa numeric)` — calcula economia = `tdrs.valor_brl − Σ contratos.valor_total_brl`, grava a liberação e loga em `tdr_acoes`.
   - `fn_estornar_economia_tdr(p_encerramento_id uuid, p_motivo text)` — marca `status='revertido'` (só `tipo='economia_contratacao'`).
 - O relatório A4 `js/relatorio-saldo-atividade.js` espelha a view; é alimentado por `pages/relatorios.html` e `pages/dashboard.html`, que embedam `encerramentos:contrato_encerramentos(...)` na atividade.
+
+### Acervo Digital — biblioteca virtual (⚠️ ler antes de mexer em produtos/arquivos)
+
+`pages/acervo.html` + `js/acervo.js` são a **guia de consulta** do acervo: catálogo
+visual (estante/grade), busca sem acento, filtros facetados e visualizador embutido.
+É camada **somente leitura** — toda escrita continua em `pages/produtos.html`.
+
+Fonte de dados: duas views com `security_invoker = true`
+(migração `20260816_acervo_biblioteca.sql`). **Não criar tabela de acervo** — o
+catálogo é derivado, nunca copiado.
+
+| View | Grão | Observação |
+|------|------|-----------|
+| `vw_acervo_obras` | 1 linha por `contratos_produtos` | inclui produtos sem arquivo (`total_midias = 0`) |
+| `vw_acervo_midias` | 1 linha por **arquivo** | UNION de 5 origens (ver abaixo) |
+
+As 5 origens de arquivo unificadas por `vw_acervo_midias`:
+`entrega_documentos` · `contratos_produtos_entregas.arquivo_url` ·
+`.nota_tecnica_url` · `unnest(.fotos_urls)` · `contratos_produtos.arquivo_entrega_url` (legado).
+Ao criar nova origem de arquivo de produto, **acrescentar um `UNION ALL` na view**,
+senão o arquivo não entra no acervo.
+
+- Visibilidade **não** tem policy própria: a view faz `join contratos`, então
+  `contratos_select` decide quem vê o quê (perfis + responsável pela atividade).
+  Nunca trocar por `security_definer` — vazaria contrato de outra atividade.
+- Classificação de mídia vem de `fn_acervo_tipo_midia(nome, url)` →
+  `documento | planilha | apresentacao | imagem | video | audio | pacote | outro`.
+  Novas extensões entram nessa função, não no JS.
+- Busca/filtro/ordenação são **em memória** (o acervo cabe em 2 consultas). Acima de
+  ~5k obras, mover para o servidor.
+- Buckets privados: o visualizador assina com `urlAssinada()` antes de popular
+  `iframe`/`video`/`img`. Nunca atribuir `arquivo_url` direto.
 
 ### Tabela: `produto_matriz_contribuicao`
 | Coluna | Tipo | Obs |
