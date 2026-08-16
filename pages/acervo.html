@@ -180,9 +180,33 @@
 .acv-poster-selo{
   position:absolute;top:0;left:0;right:0;height:3px;z-index:3;
 }
+/* Capa extraída da 1ª página do PDF, por cima do degradê de fallback */
+.acv-poster-capa{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:top center;
+  opacity:0;transition:opacity .35s ease;z-index:0;
+}
+.acv-poster-capa.on{opacity:1;}
+/* Com capa real, o título impresso na página já aparece: o texto sobreposto
+   vira ruído e sai. O título segue no rodapé do card. O ícone de formato
+   também sai — ficaria branco sobre papel branco, e a capa já diz o que é. */
+.acv-poster.com-capa .acv-poster-tit,
+.acv-poster.com-capa .acv-poster-num,
+.acv-poster.com-capa .acv-poster-ico{display:none;}
+.acv-poster.com-capa::after{
+  background:linear-gradient(180deg,rgba(0,0,0,.26) 0%,transparent 22%);
+  /* filete interno para a página clara não sangrar no palco escuro */
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+  border-radius:var(--raio-lg);
+}
+
 .acv-card-pe{padding:8px 2px 0;}
+.acv-card-tit{
+  font-size:12.5px;font-weight:600;color:#fff;line-height:1.32;margin-bottom:3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
 .acv-card-forn{
-  font-size:11.5px;color:rgba(255,255,255,.80);font-weight:500;
+  font-size:11.5px;color:rgba(255,255,255,.66);font-weight:400;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .acv-card-info{font-size:10.5px;color:rgba(255,255,255,.44);margin-top:2px;display:flex;gap:6px;align-items:center;}
@@ -200,16 +224,57 @@
 .acv-vazio-tit{font-size:16px;font-weight:600;color:rgba(255,255,255,.86);margin-bottom:6px;}
 .acv-vazio-sub{font-size:13px;line-height:1.55;max-width:400px;margin:0 auto;}
 
-/* ── Selos de situação ────────────────────────────────────────── */
+/* ── Selos de estado do acervo ────────────────────────────────── */
 .acv-selo{
   font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:99px;
   text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;display:inline-block;
 }
-.selo-pago{background:rgba(82,183,136,.22);color:#8FE3B4;border:1px solid rgba(82,183,136,.42);}
-.selo-pendente{background:rgba(245,158,11,.18);color:#FCD34D;border:1px solid rgba(245,158,11,.38);}
-.selo-entrega_parcial{background:rgba(167,139,250,.18);color:#C4B5FD;border:1px solid rgba(167,139,250,.38);}
-.selo-cancelado{background:rgba(239,68,68,.16);color:#FCA5A5;border:1px solid rgba(239,68,68,.34);}
-.selo-devolvido{background:rgba(239,68,68,.16);color:#FCA5A5;border:1px solid rgba(239,68,68,.34);}
+/* sobre o palco escuro */
+.selo-aprovado{background:rgba(82,183,136,.22);color:#8FE3B4;border:1px solid rgba(82,183,136,.42);}
+.selo-em_correcao{background:rgba(239,68,68,.16);color:#FCA5A5;border:1px solid rgba(239,68,68,.34);}
+.selo-em_avaliacao{background:rgba(37,99,235,.20);color:#93C5FD;border:1px solid rgba(37,99,235,.40);}
+.selo-sem_entrega{background:rgba(148,163,184,.16);color:#CBD5E1;border:1px solid rgba(148,163,184,.34);}
+/* dentro da ficha, sobre fundo claro */
+.selo-f-aprovado{background:#ECFDF5;color:#166534;border:1px solid #86EFAC;}
+.selo-f-em_correcao{background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5;}
+.selo-f-em_avaliacao{background:#EFF6FF;color:#1E40AF;border:1px solid #93C5FD;}
+.selo-f-sem_entrega{background:var(--cinza-100);color:var(--cinza-700);border:1px solid var(--borda-forte);}
+
+/* Marca de versão no pôster (produto reentregue após correção) */
+.acv-poster-tags{display:flex;gap:4px;flex-wrap:wrap;min-width:0;}
+.acv-poster-ver{
+  font-family:var(--font-mono);font-size:9.5px;font-weight:500;color:#0B2818;
+  background:var(--ouro-claro);border:1px solid rgba(0,0,0,.12);
+  border-radius:5px;padding:2px 6px;white-space:nowrap;
+}
+
+/* ── Avisos na ficha ──────────────────────────────────────────── */
+.acv-aviso{
+  font-size:12.5px;line-height:1.55;padding:11px 14px;border-radius:var(--raio);
+  margin:16px 0 4px;border:1px solid;
+}
+.acv-aviso-alerta{background:var(--aviso-bg);border-color:#FCD34D;color:#92400E;}
+.acv-aviso-info{background:var(--azul-bg);border-color:#BFDBFE;color:#1E40AF;}
+
+/* ── Histórico de versões (recolhível) ────────────────────────── */
+.acv-hist{margin-top:18px;border:1px solid var(--borda);border-radius:var(--raio);background:var(--cinza-50);}
+.acv-hist>summary{
+  cursor:pointer;padding:11px 14px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.07em;color:var(--cinza-600);
+  display:flex;align-items:center;gap:9px;list-style:none;
+}
+.acv-hist>summary::-webkit-details-marker{display:none;}
+.acv-hist>summary::before{content:'▸';font-size:11px;transition:transform .18s;}
+.acv-hist[open]>summary::before{transform:rotate(90deg);}
+.acv-hist>summary:hover{color:var(--cinza-900);}
+.acv-hist-nota{
+  font-size:10px;font-weight:500;text-transform:none;letter-spacing:0;
+  color:var(--cinza-500);margin-left:auto;
+}
+.acv-hist .acv-midia{margin:0 12px 10px;}
+.acv-midia-sup{opacity:.72;}
+.acv-midia-sup .acv-midia-nome{text-decoration:line-through;text-decoration-color:var(--cinza-400);}
+.acv-rot-sup{background:var(--erro-bg)!important;color:#991B1B!important;}
 
 /* ── Ficha da obra (modal) ────────────────────────────────────── */
 .acv-ficha{max-width:min(94vw,880px);}
@@ -315,6 +380,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/acervo-capas.js"></script>
 <script src="../js/acervo.js"></script>
 </body>
 </html>
