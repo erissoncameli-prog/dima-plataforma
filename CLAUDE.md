@@ -296,6 +296,25 @@ Existe caso real de produto **aprovado com `total_vigentes = 0`** (a entrega
 aprovada não teve arquivo anexado). A ficha sinaliza a lacuna em vez de escondê-la
 — não "consertar" promovendo a versão devolvida a vigente.
 
+#### Capa a partir da 1ª página do PDF
+
+`js/acervo-capas.js` renderiza a página 1 com **pdf.js** e guarda a miniatura
+(~400px, JPEG, ~8 KB) para todos. Geração híbrida: o primeiro usuário que rolar
+o pôster até a tela gera; os demais só baixam. Não há renderização no servidor
+(Deno não tem canvas) nem job de backfill — o acervo se completa navegando.
+
+- Bucket **`acervo-capas` é privado**. A página 1 de produto de consultor PF
+  traz nome e às vezes CPF; miniatura em bucket aberto desfaria a migração
+  `20260727_lgpd_c1_01`. Exibição sempre via `urlAssinada()`.
+- Tabela `acervo_capas` (PK `midia_id`): `status='falha'` marca PDF ilegível
+  para **não** ser retentado a cada visita.
+- A view entrega `capa_midia_id` (o que renderizar, só PDF **vigente**) e
+  `capa_url` (se já foi feito) — o frontend não precisa de consulta extra.
+- Fallback é o pôster degradê determinístico; nada quebra se o pdf.js ou o CDN
+  não carregarem.
+- Com capa, título/número/ícone sobrepostos são ocultados (`.com-capa`) — a
+  página já traz o título; o do card fica no rodapé.
+
 As 5 origens de arquivo unificadas por `vw_acervo_midias`:
 `entrega_documentos` · `contratos_produtos_entregas.arquivo_url` ·
 `.nota_tecnica_url` · `unnest(.fotos_urls)` · `contratos_produtos.arquivo_entrega_url` (legado).

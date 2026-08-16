@@ -414,7 +414,10 @@ function posterHtml(o) {
   const tipo = (o._formatos && o._formatos[0]) || 'documento';
   const apagado = o.total_vigentes === 0;
 
-  return '<div class="acv-poster" style="background:linear-gradient(' + ang + 'deg,' + par[0] + ',' + par[1] + ')'
+  // data-capa-obra: âncora para acervo-capas.js trocar o degradê pela 1ª
+  // página do PDF quando o pôster entrar na viewport.
+  return '<div class="acv-poster" data-capa-obra="' + esc(o.obra_id) + '"'
+    + ' style="background:linear-gradient(' + ang + 'deg,' + par[0] + ',' + par[1] + ')'
     + (apagado ? ';opacity:.55' : '') + '">'
     + '<div class="acv-poster-selo" style="background:' + estado(o).cor + '"></div>'
     + '<div class="acv-poster-top">'
@@ -445,6 +448,7 @@ function cardHtml(o) {
   return '<button class="acv-card" type="button" data-obra="' + esc(o.obra_id) + '">'
     + posterHtml(o)
     + '<div class="acv-card-pe">'
+    + '<div class="acv-card-tit">' + esc(o.titulo || 'Produto sem descrição') + '</div>'
     + '<div class="acv-card-forn">' + esc(o.fornecedor_nome || '—') + '</div>'
     + '<div class="acv-card-info">' + info
     + (o._ano ? '<span>&middot; ' + o._ano + '</span>' : '')
@@ -462,6 +466,12 @@ function ligarCards() {
   document.querySelectorAll('[data-obra]').forEach(el => {
     el.onclick = () => abrirFicha(el.dataset.obra);
   });
+  // Capas da 1ª página do PDF (acervo-capas.js), se o módulo estiver presente
+  if (typeof ligarCapas === 'function') {
+    const indice = {};
+    obras.forEach(o => { indice[o.obra_id] = o; });
+    ligarCapas(indice);
+  }
   document.querySelectorAll('.acv-seta').forEach(b => {
     b.onclick = () => {
       const t = document.getElementById(b.dataset.trilho);

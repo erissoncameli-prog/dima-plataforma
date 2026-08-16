@@ -180,9 +180,33 @@
 .acv-poster-selo{
   position:absolute;top:0;left:0;right:0;height:3px;z-index:3;
 }
+/* Capa extraída da 1ª página do PDF, por cima do degradê de fallback */
+.acv-poster-capa{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:top center;
+  opacity:0;transition:opacity .35s ease;z-index:0;
+}
+.acv-poster-capa.on{opacity:1;}
+/* Com capa real, o título impresso na página já aparece: o texto sobreposto
+   vira ruído e sai. O título segue no rodapé do card. O ícone de formato
+   também sai — ficaria branco sobre papel branco, e a capa já diz o que é. */
+.acv-poster.com-capa .acv-poster-tit,
+.acv-poster.com-capa .acv-poster-num,
+.acv-poster.com-capa .acv-poster-ico{display:none;}
+.acv-poster.com-capa::after{
+  background:linear-gradient(180deg,rgba(0,0,0,.26) 0%,transparent 22%);
+  /* filete interno para a página clara não sangrar no palco escuro */
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+  border-radius:var(--raio-lg);
+}
+
 .acv-card-pe{padding:8px 2px 0;}
+.acv-card-tit{
+  font-size:12.5px;font-weight:600;color:#fff;line-height:1.32;margin-bottom:3px;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
 .acv-card-forn{
-  font-size:11.5px;color:rgba(255,255,255,.80);font-weight:500;
+  font-size:11.5px;color:rgba(255,255,255,.66);font-weight:400;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .acv-card-info{font-size:10.5px;color:rgba(255,255,255,.44);margin-top:2px;display:flex;gap:6px;align-items:center;}
@@ -356,6 +380,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/acervo-capas.js"></script>
 <script src="../js/acervo.js"></script>
 </body>
 </html>
