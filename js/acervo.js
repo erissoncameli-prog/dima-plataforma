@@ -8,6 +8,13 @@
 // acontecem em memória — sem round-trip por tecla, sem índice de texto
 // no banco. Se o acervo passar de ~5k obras, mover a busca para o servidor.
 //
+// EDIÇÃO DE REFERÊNCIA: cada arquivo vem classificado pela view em
+// vigente | superada | instrucao. A biblioteca mostra a versão vigente
+// como sendo "o produto"; as superadas ficam no histórico da ficha e os
+// documentos de instrução (nota técnica, comprovante) na trilha de
+// aprovação. Nunca reclassificar isso aqui — a regra é do banco, para
+// que relatórios e auditoria herdem a mesma resposta.
+//
 // Buckets são privados: TODA leitura de arquivo passa por urlAssinada()
 // ou abrirDoc(). Nunca usar href/src direto (ver CLAUDE.md § Storage).
 // ═══════════════════════════════════════════════════════════════════════
@@ -26,9 +33,19 @@ const filtro = {
   resultado: '', ano: '', formato: '', ordem: 'recentes', modo: 'estante',
 };
 
+// ── Estados de acervo ────────────────────────────────────────────────
+// Espelham situacao_acervo da view. `cor` pinta a faixa do pôster.
+const ESTADOS = {
+  aprovado:     { rotulo: 'Aprovado',           cor: '#52B788' },
+  em_correcao:  { rotulo: 'Em correção',        cor: '#EF4444' },
+  em_avaliacao: { rotulo: 'Em avaliação',       cor: '#2563EB' },
+  sem_entrega:  { rotulo: 'Aguardando entrega', cor: '#94A3B8' },
+};
+function estado(o) { return ESTADOS[o.situacao_acervo] || ESTADOS.sem_entrega; }
+
 // ── Paletas de capa ──────────────────────────────────────────────────
-// Não há imagem de capa no acervo. O pôster é gerado deterministicamente
-// a partir do id da obra, então a mesma obra tem sempre a mesma capa.
+// Fallback quando não há capa extraída do PDF. Determinístico a partir do
+// id da obra, então a mesma obra tem sempre a mesma capa.
 const PALETAS = [
   ['#1F4E2C', '#52B788'], ['#1A3A5C', '#2563EB'], ['#134E4A', '#2DD4BF'],
   ['#4C1D95', '#7C3AED'], ['#7C2D12', '#B5860D'], ['#0C4A6E', '#38BDF8'],
@@ -78,6 +95,11 @@ function anoDe(v) {
   if (!v) return null;
   const d = new Date(String(v).length === 10 ? v + 'T12:00:00' : v);
   return isNaN(d) ? null : d.getFullYear();
+}
+
+// Mídias de uma obra numa camada de versão
+function midiasDa(obraId, camada) {
+  return (midiasPorObra[obraId] || []).filter(m => m.versao_status === camada);
 }
 
 function recentes() {
@@ -136,17 +158,22 @@ async function carregarAcervo() {
   midias.forEach(m => {
     (midiasPorObra[m.obra_id] = midiasPorObra[m.obra_id] || []).push(m);
   });
-  // Mídia mais recente primeiro dentro de cada obra
+  // Dentro da obra: vigente antes de superada, e mais recente primeiro
+  const peso = { vigente: 0, instrucao: 1, superada: 2 };
   Object.keys(midiasPorObra).forEach(k => {
-    midiasPorObra[k].sort((a, b) => new Date(b.adicionado_em || 0) - new Date(a.adicionado_em || 0));
+    midiasPorObra[k].sort((a, b) =>
+      (peso[a.versao_status] - peso[b.versao_status])
+      || (new Date(b.adicionado_em || 0) - new Date(a.adicionado_em || 0)));
   });
 
   obras = (rObras.data || []).map(o => {
     const ms = midiasPorObra[o.obra_id] || [];
     o._ano = anoDe(o.publicado_em || o.dt_entrega || o.criado_em);
-    o._formatos = o.tipos_midia || [];
-    o._rotulos = o.rotulos_midia || [];
-    // Índice de busca: tudo que o usuário pode digitar para achar a obra
+    o._formatos = o.tipos_midia || [];        // formatos da edição vigente
+    o._rotulos = o.rotulos_midia || [];       // todos, alimenta o filtro por categoria
+    o._rotulosVig = o.rotulos_vigentes || []; // só vigentes, alimenta as prateleiras
+    // Índice de busca: inclui versões superadas de propósito — quem procura
+    // pelo nome de um arquivo antigo deve chegar à obra e ver a versão que vale.
     o._busca = normalizar([
       o.titulo, o.fornecedor_nome, o.atividade_codigo, o.atividade_nome,
       o.contrato_numero, o.resultado_codigo, o.resultado_nome, o.observacoes,
@@ -158,18 +185,21 @@ async function carregarAcervo() {
   });
 
   // Facetas derivadas do que existe de fato no acervo
-  const unicos = (arr, chave, rot) => {
-    const mapa = new Map();
-    arr.forEach(o => { const v = o[chave]; if (v) mapa.set(v, o[rot] || v); });
-    return Array.from(mapa, ([valor, texto]) => ({ valor, texto })).sort((a, b) => String(a.texto).localeCompare(String(b.texto), 'pt-BR'));
+  const unicos = (arr, chave) => {
+    const vistos = new Set();
+    arr.forEach(o => { if (o[chave]) vistos.add(o[chave]); });
+    return Array.from(vistos, valor => ({ valor, texto: valor }))
+      .sort((a, b) => String(a.texto).localeCompare(String(b.texto), 'pt-BR'));
   };
-  facetas.atividades = unicos(obras, 'atividade_codigo', 'atividade_codigo')
-    .map(f => ({ valor: f.valor, texto: f.valor + ' — ' + ((obras.find(o => o.atividade_codigo === f.valor) || {}).atividade_nome || '').substring(0, 42) }));
-  facetas.fornecedores = unicos(obras, 'fornecedor_nome', 'fornecedor_nome');
-  facetas.resultados = unicos(obras, 'resultado_codigo', 'resultado_codigo');
+  facetas.atividades = unicos(obras, 'atividade_codigo').map(f => ({
+    valor: f.valor,
+    texto: f.valor + ' — ' + ((obras.find(o => o.atividade_codigo === f.valor) || {}).atividade_nome || '').substring(0, 42),
+  }));
+  facetas.fornecedores = unicos(obras, 'fornecedor_nome');
+  facetas.resultados = unicos(obras, 'resultado_codigo');
   facetas.anos = Array.from(new Set(obras.map(o => o._ano).filter(Boolean))).sort((a, b) => b - a);
 
-  // Chips = categorias documentais realmente presentes, mais frequentes antes
+  // Chips = categorias documentais presentes, mais frequentes antes
   const contagem = {};
   midias.forEach(m => { if (m.rotulo) contagem[m.rotulo] = (contagem[m.rotulo] || 0) + 1; });
   facetas.rotulos = Object.keys(contagem).map(r => ({ rotulo: r, n: contagem[r] })).sort((a, b) => b.n - a.n);
@@ -180,7 +210,7 @@ function filtrarObras() {
   const termo = normalizar(filtro.busca).trim();
   const palavras = termo ? termo.split(/\s+/) : [];
 
-  let lista = obras.filter(o => {
+  const lista = obras.filter(o => {
     if (palavras.length && !palavras.every(p => o._busca.includes(p))) return false;
     if (filtro.rotulo && o._rotulos.indexOf(filtro.rotulo) === -1) return false;
     if (filtro.formato && o._formatos.indexOf(filtro.formato) === -1) return false;
@@ -195,7 +225,7 @@ function filtrarObras() {
     recentes: (a, b) => new Date(b.ordenacao_em || 0) - new Date(a.ordenacao_em || 0),
     titulo:   (a, b) => String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR'),
     numero:   (a, b) => (a.numero_produto || 0) - (b.numero_produto || 0),
-    arquivos: (a, b) => (b.total_midias || 0) - (a.total_midias || 0),
+    arquivos: (a, b) => (b.total_vigentes || 0) - (a.total_vigentes || 0),
   };
   return lista.sort(ordens[filtro.ordem] || ordens.recentes);
 }
@@ -256,7 +286,7 @@ function barraComando() {
 
 function chipsHtml() {
   if (!facetas.rotulos.length) return '';
-  const total = obras.filter(o => o.total_midias > 0).length;
+  const total = obras.filter(o => o.total_vigentes > 0).length;
   let h = '<div class="acv-chips">'
     + '<button class="acv-chip' + (filtro.rotulo ? '' : ' on') + '" data-rotulo="">Todo o acervo <span class="acv-chip-n">' + total + '</span></button>';
   facetas.rotulos.forEach(r => {
@@ -295,18 +325,19 @@ function vazioHtml() {
 
 // ── Hero ─────────────────────────────────────────────────────────────
 function heroHtml(lista) {
-  const d = lista.filter(o => o.total_midias > 0)[0];
+  const d = lista.filter(o => o.situacao_acervo === 'aprovado' && o.total_vigentes > 0)[0];
   if (!d) return '';
-  const ms = midiasPorObra[d.obra_id] || [];
+  const pilula = txt => '<span class="acv-selo" style="background:rgba(255,255,255,.13);color:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.2)">' + esc(txt) + '</span>';
   return '<div class="acv-hero">'
     + '<div class="acv-hero-poster">' + posterHtml(d) + '</div>'
     + '<div>'
     + '<div class="acv-hero-tag">Entrada mais recente</div>'
     + '<h2>' + esc(d.titulo || 'Produto ' + d.numero_produto) + '</h2>'
     + '<div class="acv-hero-meta">'
-    + seloHtml(d.situacao_produto)
-    + (d.atividade_codigo ? '<span class="acv-selo" style="background:rgba(255,255,255,.13);color:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.2)">Atividade ' + esc(d.atividade_codigo) + '</span>' : '')
-    + '<span class="acv-selo" style="background:rgba(255,255,255,.13);color:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.2)">' + ms.length + (ms.length === 1 ? ' arquivo' : ' arquivos') + '</span>'
+    + seloHtml(d)
+    + (d.atividade_codigo ? pilula('Atividade ' + d.atividade_codigo) : '')
+    + pilula(d.total_vigentes + (d.total_vigentes === 1 ? ' arquivo' : ' arquivos'))
+    + (d.entrega_ref_numero > 1 ? pilula('Versão ' + d.entrega_ref_numero) : '')
     + '</div>'
     + '<div class="acv-hero-sub">'
     + esc(d.fornecedor_nome || '—') + ' &middot; Contrato ' + esc(d.contrato_numero || '—')
@@ -322,28 +353,28 @@ function heroHtml(lista) {
 
 // ── Prateleiras ──────────────────────────────────────────────────────
 function prateleirasHtml(lista) {
-  const comMidia = lista.filter(o => o.total_midias > 0);
+  const publicadas = lista.filter(o => o.total_vigentes > 0);
   const prats = [];
 
   const vistas = recentes();
-  const continuar = vistas.map(id => comMidia.find(o => o.obra_id === id)).filter(Boolean);
+  const continuar = vistas.map(id => publicadas.find(o => o.obra_id === id)).filter(Boolean);
   if (continuar.length) prats.push({ titulo: 'Continuar de onde parou', itens: continuar });
 
-  prats.push({ titulo: 'Adicionados recentemente', itens: comMidia.slice(0, 20) });
+  prats.push({ titulo: 'Adicionados recentemente', itens: publicadas.slice(0, 20) });
 
-  // Uma prateleira por categoria documental com acervo suficiente
+  // Prateleira temática pelo rótulo da EDIÇÃO VIGENTE — nunca pelo de uma
+  // versão devolvida nem por documento de instrução.
   facetas.rotulos.forEach(r => {
-    const itens = comMidia.filter(o => o._rotulos.indexOf(r.rotulo) !== -1);
+    const itens = publicadas.filter(o => o._rotulosVig.indexOf(r.rotulo) !== -1);
     if (itens.length >= 2) prats.push({ titulo: r.rotulo, itens: itens });
   });
 
-  // Audiovisual só aparece quando existe — hoje o acervo é documental
-  const av = comMidia.filter(o => ['video', 'imagem', 'audio'].some(t => o._formatos.indexOf(t) !== -1));
+  const av = publicadas.filter(o => ['video', 'imagem', 'audio'].some(t => o._formatos.indexOf(t) !== -1));
   if (av.length) prats.push({ titulo: 'Registros audiovisuais', itens: av });
 
   // Coleções por atividade, das mais volumosas para as menores
   const porAtiv = {};
-  comMidia.forEach(o => {
+  publicadas.forEach(o => {
     if (!o.atividade_codigo) return;
     (porAtiv[o.atividade_codigo] = porAtiv[o.atividade_codigo] || []).push(o);
   });
@@ -352,8 +383,13 @@ function prateleirasHtml(lista) {
     prats.push({ titulo: 'Atividade ' + cod + (nome ? ' · ' + nome : ''), itens: porAtiv[cod] });
   });
 
-  // Contratado mas ainda sem arquivo — a "estreia futura" da biblioteca
-  const pendentes = lista.filter(o => o.total_midias === 0 && o.situacao_produto !== 'cancelado');
+  const emCorrecao = lista.filter(o => o.situacao_acervo === 'em_correcao');
+  if (emCorrecao.length) prats.push({ titulo: 'Devolvidos para correção', itens: emCorrecao });
+
+  const emAvaliacao = lista.filter(o => o.situacao_acervo === 'em_avaliacao');
+  if (emAvaliacao.length) prats.push({ titulo: 'Em avaliação', itens: emAvaliacao });
+
+  const pendentes = lista.filter(o => o.situacao_acervo === 'sem_entrega' && o.situacao_produto !== 'cancelado');
   if (pendentes.length) prats.push({ titulo: 'Em produção · aguardando entrega', itens: pendentes });
 
   if (!prats.length) return vazioHtml();
@@ -376,14 +412,17 @@ function posterHtml(o) {
   const par = PALETAS[hashId(o.obra_id) % PALETAS.length];
   const ang = 135 + (hashId(o.obra_id + 'a') % 60);
   const tipo = (o._formatos && o._formatos[0]) || 'documento';
-  const vazia = o.total_midias === 0;
-  const selo = { pago: '#52B788', pendente: '#F59E0B', entrega_parcial: '#A78BFA', cancelado: '#EF4444' }[o.situacao_produto] || '#94A3B8';
+  const apagado = o.total_vigentes === 0;
 
   return '<div class="acv-poster" style="background:linear-gradient(' + ang + 'deg,' + par[0] + ',' + par[1] + ')'
-    + (vazia ? ';opacity:.55' : '') + '">'
-    + '<div class="acv-poster-selo" style="background:' + selo + '"></div>'
+    + (apagado ? ';opacity:.55' : '') + '">'
+    + '<div class="acv-poster-selo" style="background:' + estado(o).cor + '"></div>'
     + '<div class="acv-poster-top">'
-    + (o.atividade_codigo ? '<span class="acv-poster-ativ">' + esc(o.atividade_codigo) + '</span>' : '<span></span>')
+    + '<span class="acv-poster-tags">'
+    + (o.atividade_codigo ? '<span class="acv-poster-ativ">' + esc(o.atividade_codigo) + '</span>' : '')
+    + (o.entrega_ref_numero > 1
+      ? '<span class="acv-poster-ver" title="Versão vigente após correção">v' + esc(o.entrega_ref_numero) + '</span>' : '')
+    + '</span>'
     + '<span class="acv-poster-ico">' + svgIcone(tipo, 17, 'rgba(255,255,255,.92)') + '</span>'
     + '</div>'
     + '<span class="acv-poster-num">' + (o.numero_produto != null ? esc(o.numero_produto) : '') + '</span>'
@@ -392,22 +431,30 @@ function posterHtml(o) {
 }
 
 function cardHtml(o) {
-  const n = o.total_midias || 0;
+  const n = o.total_vigentes || 0;
+  let info;
+  if (n > 0) {
+    info = svgIcone((o._formatos && o._formatos[0]) || 'documento', 11, 'rgba(255,255,255,.5)')
+      + '<span>' + n + (n === 1 ? ' arquivo' : ' arquivos') + '</span>';
+  } else if (o.situacao_acervo === 'aprovado') {
+    // Aprovado sem arquivo na versão vigente: lacuna de dado, não se esconde.
+    info = '<span style="color:#FCD34D">Sem arquivo na versão vigente</span>';
+  } else {
+    info = '<span>' + esc(estado(o).rotulo) + '</span>';
+  }
   return '<button class="acv-card" type="button" data-obra="' + esc(o.obra_id) + '">'
     + posterHtml(o)
     + '<div class="acv-card-pe">'
     + '<div class="acv-card-forn">' + esc(o.fornecedor_nome || '—') + '</div>'
-    + '<div class="acv-card-info">'
-    + (n ? svgIcone((o._formatos && o._formatos[0]) || 'documento', 11, 'rgba(255,255,255,.5)') + '<span>' + n + (n === 1 ? ' arquivo' : ' arquivos') + '</span>'
-         : '<span>Aguardando entrega</span>')
+    + '<div class="acv-card-info">' + info
     + (o._ano ? '<span>&middot; ' + o._ano + '</span>' : '')
     + '</div></div></button>';
 }
 
-function seloHtml(situacao) {
-  if (!situacao) return '';
-  const rot = { pago: 'Aprovado', pendente: 'Pendente', entrega_parcial: 'Entrega parcial', cancelado: 'Cancelado' };
-  return '<span class="acv-selo selo-' + esc(situacao) + '">' + esc(rot[situacao] || situacao) + '</span>';
+function seloHtml(o) {
+  const e = estado(o);
+  return '<span class="acv-selo selo-' + esc(o.situacao_acervo || 'sem_entrega') + '">' + esc(e.rotulo)
+    + (o.aprovacao_parcial ? ' · parcial' : '') + '</span>';
 }
 
 // ═══ Eventos ═════════════════════════════════════════════════════════
@@ -481,13 +528,34 @@ function ligarAtalhos() {
 }
 
 // ═══ Ficha da obra ═══════════════════════════════════════════════════
+function linhaMidia(m, superada) {
+  const ic = icone(m.midia_tipo);
+  return '<div class="acv-midia' + (superada ? ' acv-midia-sup' : '') + '" data-midia="' + esc(m.midia_id) + '">'
+    + '<div class="acv-midia-ico" style="background:' + ic.bg + '">' + svgIcone(m.midia_tipo, 19) + '</div>'
+    + '<div class="acv-midia-corpo">'
+    + '<div class="acv-midia-nome">' + esc(m.arquivo_nome || 'Arquivo') + '</div>'
+    + '<div class="acv-midia-sub">'
+    + (m.rotulo ? '<span class="acv-midia-rot">' + esc(m.rotulo) + '</span>' : '')
+    + (superada ? '<span class="acv-midia-rot acv-rot-sup">Devolvida</span>' : '')
+    + (m.numero_entrega ? '<span>Entrega ' + esc(m.numero_entrega) + '</span>' : '')
+    + (m.extensao ? '<span>' + esc(m.extensao.toUpperCase()) + '</span>' : '')
+    + (m.arquivo_tamanho ? '<span>' + esc(fmtTam(m.arquivo_tamanho)) + '</span>' : '')
+    + (m.adicionado_em ? '<span>' + esc(fmtData(m.adicionado_em)) + '</span>' : '')
+    + (m.despacho_numero ? '<span>Despacho ' + esc(m.despacho_numero) + '</span>' : '')
+    + '</div></div>'
+    + '<span class="acv-midia-acao">Visualizar &rsaquo;</span>'
+    + '</div>';
+}
+
 function abrirFicha(obraId) {
   const o = obras.find(x => x.obra_id === obraId);
   if (!o) { toast('Produto não encontrado no acervo.', 'warning'); return; }
   obraAberta = o;
   registrarRecente(obraId);
 
-  const ms = midiasPorObra[obraId] || [];
+  const vigentes = midiasDa(obraId, 'vigente');
+  const superadas = midiasDa(obraId, 'superada');
+  const instrucao = midiasDa(obraId, 'instrucao');
 
   document.getElementById('ficha-cab').innerHTML =
     'Produto ' + esc(o.numero_produto != null ? o.numero_produto : '—')
@@ -502,9 +570,10 @@ function abrirFicha(obraId) {
     + '<div>'
     + '<div class="acv-ficha-tit">' + esc(o.titulo || 'Produto sem descrição') + '</div>'
     + '<div class="acv-ficha-meta">'
-    + '<span class="acv-selo selo-' + esc(o.situacao_produto || 'pendente') + '" style="filter:brightness(.55) saturate(1.6)">'
-    + esc({ pago: 'Aprovado', pendente: 'Pendente', entrega_parcial: 'Entrega parcial', cancelado: 'Cancelado' }[o.situacao_produto] || o.situacao_produto || '—')
-    + '</span>'
+    + '<span class="acv-selo selo-f-' + esc(o.situacao_acervo || 'sem_entrega') + '">'
+    + esc(estado(o).rotulo) + (o.aprovacao_parcial ? ' · parcial' : '') + '</span>'
+    + (o.entrega_ref_numero > 1
+      ? '<span class="acv-midia-rot">Versão ' + esc(o.entrega_ref_numero) + '</span>' : '')
     + (o.atividade_codigo ? '<span class="acv-midia-rot">Atividade ' + esc(o.atividade_codigo) + '</span>' : '')
     + (o.resultado_codigo ? '<span class="acv-midia-rot" style="background:var(--verde-bg);color:#166534">' + esc(o.resultado_codigo) + '</span>' : '')
     + '</div>'
@@ -512,10 +581,15 @@ function abrirFicha(obraId) {
     + dado('Consultor / Fornecedor', esc(o.fornecedor_nome || '—'))
     + dado('Atividade', esc(o.atividade_nome || '—'), o.atividade_nome)
     + dado('Valor do produto', esc(fmtBRL(o.valor_brl)))
-    + dado('Entrega', esc(fmtData(o.dt_entrega)))
+    + dado('Entrega', esc(fmtData(o.entrega_ref_data || o.dt_entrega)))
     + dado('Prazo contratual', esc(fmtData(o.dt_vencimento)))
     + dado('Última atualização', esc(o.publicado_em ? fmtData(o.publicado_em) : '—'))
     + '</div></div></div>';
+
+  if (o.aprovacao_parcial) {
+    body += '<div class="acv-aviso acv-aviso-info">A entrega de referência foi aprovada '
+      + 'parcialmente. Os arquivos abaixo valem, mas o produto ainda não está completo.</div>';
+  }
 
   if (o.contrato_objeto) {
     body += '<div class="acv-secao-tit">Objeto do contrato</div>'
@@ -526,35 +600,43 @@ function abrirFicha(obraId) {
       + '<div style="font-size:13px;color:var(--cinza-600);line-height:1.6;white-space:pre-wrap">' + esc(o.parecer_avaliador) + '</div>';
   }
 
-  body += '<div class="acv-secao-tit">Arquivos &middot; ' + ms.length + '</div>';
-  if (!ms.length) {
-    body += '<div style="font-size:13px;color:var(--cinza-500);padding:10px 0">'
-      + 'Nenhum arquivo entregue até o momento. O produto consta no contrato e aguarda entrega.</div>';
+  // ── Versão vigente ──
+  body += '<div class="acv-secao-tit">Versão vigente'
+    + (o.entrega_ref_numero ? ' &middot; entrega ' + esc(o.entrega_ref_numero) : '')
+    + ' &middot; ' + vigentes.length + '</div>';
+  if (vigentes.length) {
+    body += vigentes.map(m => linhaMidia(m, false)).join('');
+  } else if (o.situacao_acervo === 'aprovado') {
+    body += '<div class="acv-aviso acv-aviso-alerta">A entrega aprovada não tem arquivo anexado. '
+      + (superadas.length
+        ? 'O único documento no sistema é o da versão devolvida, no histórico abaixo — ele não substitui o produto aprovado.'
+        : 'Não há nenhum documento registrado para este produto.')
+      + ' Confira no módulo de Avaliação de Produtos se falta anexar o documento final.</div>';
   } else {
-    ms.forEach(m => {
-      const ic = icone(m.midia_tipo);
-      body += '<div class="acv-midia" data-midia="' + esc(m.midia_id) + '">'
-        + '<div class="acv-midia-ico" style="background:' + ic.bg + '">' + svgIcone(m.midia_tipo, 19) + '</div>'
-        + '<div class="acv-midia-corpo">'
-        + '<div class="acv-midia-nome">' + esc(m.arquivo_nome || 'Arquivo') + '</div>'
-        + '<div class="acv-midia-sub">'
-        + (m.rotulo ? '<span class="acv-midia-rot">' + esc(m.rotulo) + '</span>' : '')
-        + (m.numero_entrega ? '<span>Entrega ' + esc(m.numero_entrega) + '</span>' : '')
-        + (m.extensao ? '<span>' + esc(m.extensao.toUpperCase()) + '</span>' : '')
-        + (m.arquivo_tamanho ? '<span>' + esc(fmtTam(m.arquivo_tamanho)) + '</span>' : '')
-        + (m.adicionado_em ? '<span>' + esc(fmtData(m.adicionado_em)) + '</span>' : '')
-        + (m.despacho_numero ? '<span>Despacho ' + esc(m.despacho_numero) + '</span>' : '')
-        + '</div></div>'
-        + '<span class="acv-midia-acao">Visualizar &rsaquo;</span>'
-        + '</div>';
-    });
+    body += '<div style="font-size:13px;color:var(--cinza-500);padding:10px 0">'
+      + esc(estado(o).rotulo) + ' — ainda não há arquivo aprovado para este produto.</div>';
   }
+
+  // ── Versões anteriores ──
+  if (superadas.length) {
+    body += '<details class="acv-hist"><summary>Versões anteriores &middot; ' + superadas.length
+      + '<span class="acv-hist-nota">substituídas pela versão vigente</span></summary>'
+      + superadas.map(m => linhaMidia(m, true)).join('')
+      + '</details>';
+  }
+
+  // ── Trilha de aprovação ──
+  if (instrucao.length) {
+    body += '<div class="acv-secao-tit">Trilha de aprovação &middot; ' + instrucao.length + '</div>'
+      + instrucao.map(m => linhaMidia(m, false)).join('');
+  }
+
   document.getElementById('ficha-body').innerHTML = body;
 
-  // Rodapé: atalho para o módulo de avaliação da entrega mais recente
-  const comEntrega = ms.find(m => m.entrega_id);
+  // Rodapé: atalho para o módulo de avaliação da entrega de referência
+  const entregaAlvo = o.entrega_ref_id || (midiasPorObra[obraId] || []).map(m => m.entrega_id).filter(Boolean)[0];
   document.getElementById('ficha-footer').innerHTML =
-    (comEntrega ? '<a class="btn btn-secondary" href="produtos.html?entrega=' + esc(comEntrega.entrega_id) + '">Abrir na avaliação de produtos</a>' : '')
+    (entregaAlvo ? '<a class="btn btn-secondary" href="produtos.html?entrega=' + esc(entregaAlvo) + '">Abrir na avaliação de produtos</a>' : '')
     + '<button class="btn btn-primary" onclick="fecharFicha()">Fechar</button>';
 
   document.getElementById('ficha-body').querySelectorAll('[data-midia]').forEach(el => {
@@ -578,7 +660,8 @@ async function abrirViewer(midiaId) {
   const corpo = document.getElementById('viewer-corpo');
   document.getElementById('viewer-nome').textContent = m.arquivo_nome || 'Arquivo';
   document.getElementById('viewer-sub').textContent =
-    [m.rotulo, m.extensao && m.extensao.toUpperCase(), fmtTam(m.arquivo_tamanho), fmtData(m.adicionado_em)]
+    [m.versao_status === 'superada' ? 'VERSÃO DEVOLVIDA' : null,
+     m.rotulo, m.extensao && m.extensao.toUpperCase(), fmtTam(m.arquivo_tamanho), fmtData(m.adicionado_em)]
       .filter(Boolean).join(' · ');
   corpo.innerHTML = '<div style="color:rgba(255,255,255,.6);font-size:13px">Preparando o arquivo…</div>';
   overlay.classList.add('aberto');

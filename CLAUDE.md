@@ -266,8 +266,35 @@ catálogo é derivado, nunca copiado.
 
 | View | Grão | Observação |
 |------|------|-----------|
+| `vw_acervo_entrega_ref` | 1 linha por produto | a entrega que **vale** hoje |
 | `vw_acervo_obras` | 1 linha por `contratos_produtos` | inclui produtos sem arquivo (`total_midias = 0`) |
 | `vw_acervo_midias` | 1 linha por **arquivo** | UNION de 5 origens (ver abaixo) |
+
+#### Edição de referência (⚠️ nunca reimplementar no frontend)
+
+Produto devolvido e reentregue tem **duas versões do mesmo arquivo**. A regra de
+qual vale mora na view, para que biblioteca, relatórios e auditoria não divirjam:
+
+- **Entrega de referência** (`vw_acervo_entrega_ref`) = a entrega `aprovada` de
+  maior `numero_entrega`; se nenhuma foi aprovada, a última submetida.
+- `vw_acervo_midias.versao_status` ∈ `vigente | superada | instrucao`
+  - `vigente` — arquivos da entrega de referência; é "o produto"
+  - `superada` — versões anteriores; só no histórico recolhido da ficha
+  - `instrucao` — Nota Técnica, Comprovante de Pagamento, Contrato/Aditivo:
+    artefato administrativo, nunca o entregável
+- `vw_acervo_obras.situacao_acervo` ∈ `aprovado | em_correcao | em_avaliacao | sem_entrega`
+
+> ⚠️ **Nota Fiscal e Declaração/Atestado são `produto`, não `instrucao`** — em
+> contrato de fornecimento (coffee-break, bens) não existe relatório técnico e a
+> NF é a própria evidência da entrega. Mudar isso zera o acervo desses contratos.
+
+> ⚠️ Prateleiras e ícone da capa usam `rotulos_vigentes`/`tipos_midia` (só a
+> edição vigente). O filtro por categoria usa `rotulos_midia` (todos os rótulos),
+> senão o chip "Nota Técnica" não acha nada. Contagem do card = `total_vigentes`.
+
+Existe caso real de produto **aprovado com `total_vigentes = 0`** (a entrega
+aprovada não teve arquivo anexado). A ficha sinaliza a lacuna em vez de escondê-la
+— não "consertar" promovendo a versão devolvida a vigente.
 
 As 5 origens de arquivo unificadas por `vw_acervo_midias`:
 `entrega_documentos` · `contratos_produtos_entregas.arquivo_url` ·
