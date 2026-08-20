@@ -1702,21 +1702,33 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
 }
 
 // ── Timeline do fluxo ─────────────────────────────────────────
+const CAMPOS_EDITAVEIS_LABELS={
+  objetivo:'Objetivo',destino_principal:'Destino',dt_saida:'Data de saída',dt_retorno:'Data de retorno',
+  numero_sei:'Nº SEI',email_solicitante:'E-mail do solicitante',atividade_id:'Atividade',
+  observacoes:'Observações',numero:'Número'
+};
+const CAMPOS_TRANSICAO_STATUS=new Set([
+  'situacao','aprovado_por','aprovado_em','rejeitado_por','rejeitado_em','rejeitado_motivo',
+  'realizado_por','realizado_em','cancelado_por','cancelado_em','cancelado_motivo',
+  'notificado_unesco_em','notificado_unesco_conclusao_em','atualizado_em'
+]);
 function renderTimeline(p){
+  const nome=id=>id?(p._nomes?.[id]||'Usuário'):null;
+  const por=id=>id?` — por ${nome(id)}`:'';
   const etapas=[];
   // Criação
   if(p.criado_em) etapas.push({
     icone:'📝', cor:'#6B7280',
     label:'Solicitação criada',
     data:p.criado_em,
-    desc:p.situacao==='rascunho'?'Rascunho salvo':'Enviado para aprovação'
+    desc:(p.situacao==='rascunho'?'Rascunho salvo':'Enviado para aprovação')+por(p.criado_por)
   });
   // Aprovação
   if(p.aprovado_em) etapas.push({
     icone:'✅', cor:'#059669',
     label:'Aprovado',
     data:p.aprovado_em,
-    desc:'Aguardando emissão de SPDs pela UNESCO'
+    desc:'Aguardando emissão de SPDs pela UNESCO'+por(p.aprovado_por)
   });
   // Notificação UNESCO
   if(p.notificado_unesco_em) etapas.push({
@@ -1730,7 +1742,14 @@ function renderTimeline(p){
     icone:'❌', cor:'#DC2626',
     label:'Rejeitado',
     data:p.rejeitado_em,
-    desc:p.rejeitado_motivo?`Motivo: ${p.rejeitado_motivo.substring(0,60)}`:''
+    desc:(p.rejeitado_motivo?`Motivo: ${p.rejeitado_motivo.substring(0,60)}`:'')+por(p.rejeitado_por)
+  });
+  // Cancelamento
+  if(p.cancelado_em) etapas.push({
+    icone:'⛔', cor:'#DC2626',
+    label:'Cancelado',
+    data:p.cancelado_em,
+    desc:(p.cancelado_motivo?`Motivo: ${p.cancelado_motivo.substring(0,60)}`:'')+por(p.cancelado_por)
   });
   // Prestação
   if(p.situacao==='em_prestacao') etapas.push({
@@ -1743,14 +1762,14 @@ function renderTimeline(p){
     icone:'📋', cor:'#059669',
     label:'Prestação confirmada',
     data:p.realizado_em||null,
-    desc:'Documentos validados'
+    desc:'Documentos validados'+por(p.realizado_por)
   });
   // Realizado
   if(p.realizado_em) etapas.push({
     icone:'🏁', cor:'#059669',
     label:'Realizado',
     data:p.realizado_em,
-    desc:'Lançado no financeiro'
+    desc:'Lançado no financeiro'+por(p.realizado_por)
   });
 
   // UNESCO — conclusão
@@ -1768,7 +1787,21 @@ function renderTimeline(p){
       icone:'📧', cor:'#2563EB',
       label:`Notificação — ${NOTIF_LABELS_LOCAL[n.evento]||n.evento}`,
       data:n.enviado_em,
-      desc:`${n.total_enviados} e-mail(s) enviado(s)`
+      desc:`${n.total_enviados} e-mail(s) enviado(s)`+por(n.enviado_por)
+    });
+  });
+
+  // Edições de conteúdo (trilha de auditoria — quem editou o quê)
+  (p._auditLog||[]).forEach(a=>{
+    if(a.operacao!=='UPDATE'||!a.campos_alterados)return;
+    const campos=Object.keys(a.campos_alterados).filter(c=>!CAMPOS_TRANSICAO_STATUS.has(c));
+    if(!campos.length)return;
+    const rotulos=campos.map(c=>CAMPOS_EDITAVEIS_LABELS[c]||c);
+    etapas.push({
+      icone:'✏️', cor:'#B45309',
+      label:'Editado',
+      data:a.criado_em,
+      desc:`${rotulos.join(', ')}`+por(a.usuario_id)
     });
   });
 
@@ -1796,6 +1829,26 @@ async function abrirDetalhe(id){
     .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)),notif_log:viagem_notif_log(*)`)
     .eq('id',id).single();
   if(!p)return;
+
+  // Trilha de auditoria (quem editou o quê) — leitura restrita a super_admin/coordenacao via RLS
+  const{data:auditLog}=await db.from('audit_log')
+    .select('usuario_id,operacao,campos_alterados,criado_em')
+    .eq('tabela','viagem_protocolos').eq('registro_id',p.id)
+    .order('criado_em',{ascending:true});
+  p._auditLog=auditLog||[];
+
+  // Resolver nomes de todos os atores citados no protocolo
+  const idsAtores=[...new Set([
+    p.criado_por,p.aprovado_por,p.rejeitado_por,p.realizado_por,p.cancelado_por,
+    ...(p.notif_log||[]).map(n=>n.enviado_por),
+    ...p._auditLog.map(a=>a.usuario_id)
+  ].filter(Boolean))];
+  p._nomes={};
+  if(idsAtores.length){
+    const{data:usrs}=await db.from('usuarios').select('id,nome_completo').in('id',idsAtores);
+    (usrs||[]).forEach(u=>p._nomes[u.id]=u.nome_completo);
+  }
+
   protAtual=p;
   const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
   const canEditValues=['super_admin','financeiro'].includes(appState.perfil);
