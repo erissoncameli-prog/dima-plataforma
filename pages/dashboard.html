@@ -137,6 +137,7 @@ var D = {};
 var CHARTS = {};
 var _podeCobertura = false; // definido após carregarUsuario()
 var _podeSaldo = false;     // painel Saldo de Orçamento — só coordenação/super_admin
+var FASES_POS_APROVACAO = ['aprovado','em_licitacao','contratado']; // mesmas fases pós-aprovação usadas em tdrs.html
 
 // ── Init ──────────────────────────────────────────────────
 (async function(){
@@ -545,7 +546,7 @@ function renderFinanciadores(){
   var comp=D.sal.reduce(function(s,a){return s+parseFloat(a.comprometido_usd||0);},0);
   var pago=D.sal.reduce(function(s,a){return s+parseFloat(a.pago_usd||0);},0);
   var apagar=D.sal.reduce(function(s,a){return s+parseFloat(a.a_pagar_usd||0);},0);
-  var taprov=D.tdrs.filter(function(t){return t.status==='aprovado';}).length;
+  var taprov=D.tdrs.filter(function(t){return FASES_POS_APROVACAO.includes(t.status);}).length;
   var _mPF=D.matrizProg||[];
   var _cmF=D.matrizItens;
   var metasProg=_cmF.filter(function(i){
@@ -677,7 +678,7 @@ function renderOperacional(){
   var orc=D.atv.reduce(function(s,a){return s+parseFloat(a.orcamento_usd||0);},0);
   var comp=D.sal.reduce(function(s,a){return s+parseFloat(a.comprometido_usd||0);},0);
   var pago=D.lanc.filter(function(l){return l.situacao==='pago';}).reduce(function(s,l){return s+parseFloat(l.valor_usd||0);},0);
-  var taprov=D.tdrs.filter(function(t){return t.status==='aprovado';}).length;
+  var taprov=D.tdrs.filter(function(t){return FASES_POS_APROVACAO.includes(t.status);}).length;
   var fases={A_INICIAR:0,ELABORACAO:0,LICITACAO:0,ELABORADO:0,CONTRATADO:0,CONCLUIDO:0};
   D.atv.forEach(function(a){if(fases[a.fase]!==undefined)fases[a.fase]++;});
 
