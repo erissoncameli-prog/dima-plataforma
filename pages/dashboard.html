@@ -420,7 +420,7 @@ function _popAtvTdrs(idx,ds,chart){
   if(!entry)return null;
   var tdrs=D.tdrs.filter(function(t){return t.atividade_id===entry.atv.id;});
   var sal=D.sal.find(function(s){return s.id===entry.atv.id;})||{};
-  var stCoresPop={rascunho:'#D1D5DB',revisao_interna:'#93C5FD',ajustes:'#FCD34D',enviado_unesco:'#6EE7B7',retorno_unesco:'#F9A8D4',aprovado:'#34D399',cancelado:'#FCA5A5'};
+  var stCoresPop={rascunho:'#D1D5DB',submetido:'#93C5FD',pendente_correcao:'#FCD34D',em_avaliacao:'#5EEAD4',em_revisao_unesco:'#C4B5FD',aprovado:'#34D399',em_licitacao:'#FDBA74',contratado:'#059669',cancelado:'#FCA5A5',revisao_interna:'#93C5FD',ajustes:'#FCD34D',enviado_unesco:'#C4B5FD',retorno_unesco:'#C4B5FD'};
   var html=_popRows([['Orçamento',D_USD(sal.orcamento_usd||0)],['Comprometido',D_USD(sal.comprometido_usd||0)],['TDRs',tdrs.length+' cadastrado(s)']]);
   html+=_popSec('TDRs desta atividade');
   if(!tdrs.length)html+='<div class="cpop-empty" style="color:#EF4444">⚠ Nenhum TDR cadastrado</div>';
@@ -432,8 +432,8 @@ function _popTdrResp(idx,ds,chart){
   var respNomes=_POP_DATA.respNomes||[],nome=respNomes[idx]||chart.data.labels[idx];
   var tdrs=D.tdrs.filter(function(t){var n=(t.atividades&&t.atividades.responsavel&&t.atividades.responsavel.nome_completo)||'Sem responsável';return n===nome;});
   var totalVal=tdrs.reduce(function(s,t){return s+parseFloat(t.valor_usd||0);},0);
-  var stCoresPop={rascunho:'#D1D5DB',revisao_interna:'#93C5FD',aprovado:'#34D399',ajustes:'#FCD34D',cancelado:'#FCA5A5'};
-  var html=_popRows([['Total TDRs',tdrs.length],['Valor total',D_USD(totalVal)],['Aprovados',tdrs.filter(function(t){return t.status==='aprovado';}).length],['Pendentes',tdrs.filter(function(t){return t.status!=='aprovado'&&t.status!=='cancelado';}).length]]);
+  var stCoresPop={rascunho:'#D1D5DB',submetido:'#93C5FD',pendente_correcao:'#FCD34D',em_avaliacao:'#5EEAD4',em_revisao_unesco:'#C4B5FD',aprovado:'#34D399',em_licitacao:'#FDBA74',contratado:'#059669',cancelado:'#FCA5A5',revisao_interna:'#93C5FD',ajustes:'#FCD34D',enviado_unesco:'#C4B5FD',retorno_unesco:'#C4B5FD'};
+  var html=_popRows([['Total TDRs',tdrs.length],['Valor total',D_USD(totalVal)],['Aprovados',tdrs.filter(function(t){return FASES_POS_APROVACAO.includes(t.status);}).length],['Pendentes',tdrs.filter(function(t){return !FASES_POS_APROVACAO.includes(t.status)&&t.status!=='cancelado';}).length]]);
   html+=_popSec('TDRs ('+Math.min(tdrs.length,8)+' de '+tdrs.length+')');
   html+=_popList(tdrs.slice(0,8).map(function(t){var atv=t.atividades?t.atividades.codigo:'—';return '<span style="font-family:var(--font-mono);font-size:10px;font-weight:700">'+t.numero+'</span> '+atv+' <span style="background:'+((stCoresPop[t.status])||'#eee')+';padding:1px 6px;border-radius:99px;font-size:9px">'+t.status+'</span> — '+D_USD(t.valor_usd||0);}));
   return{title:nome,html:html,color:'#2563EB'};
@@ -687,11 +687,15 @@ function renderOperacional(){
     .sort(function(a,b){return parseFloat(b.comprometido_usd)-parseFloat(a.comprometido_usd);}).slice(0,10);
 
   // Atividades × TDRs — cobertura por atividade
-  var _stKeys=['rascunho','revisao_interna','ajustes','enviado_unesco','retorno_unesco','aprovado','cancelado'];
+  // Normaliza nomes antigos de status (revisao_interna/ajustes/enviado_unesco/retorno_unesco)
+  // para os equivalentes atuais — mesmo mapeamento usado em tdrs.html — para que nenhum
+  // status caia fora do conjunto e seja contado incorretamente.
+  var _statusNormOp={enviado_unesco:'em_revisao_unesco',retorno_unesco:'em_revisao_unesco',revisao_interna:'submetido',ajustes:'pendente_correcao'};
+  var _stKeys=['rascunho','submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','aprovado','em_licitacao','contratado','cancelado'];
   var atvTdrs=D.atv.map(function(a){
     var tdrsAtv=D.tdrs.filter(function(t){return t.atividade_id===a.id;});
-    var counts={rascunho:0,revisao_interna:0,ajustes:0,enviado_unesco:0,retorno_unesco:0,aprovado:0,cancelado:0};
-    tdrsAtv.forEach(function(t){if(counts[t.status]!==undefined)counts[t.status]++;});
+    var counts={rascunho:0,submetido:0,pendente_correcao:0,em_avaliacao:0,em_revisao_unesco:0,aprovado:0,em_licitacao:0,contratado:0,cancelado:0};
+    tdrsAtv.forEach(function(t){var sk=_statusNormOp[t.status]||t.status;if(counts[sk]!==undefined)counts[sk]++;});
     return{atv:a,total:tdrsAtv.length,counts:counts};
   });
   atvTdrs.sort(function(a,b){
@@ -739,9 +743,10 @@ function renderOperacional(){
   var respSet=new Map();
   D.tdrs.forEach(function(t){
     var nome=(t.atividades&&t.atividades.responsavel&&t.atividades.responsavel.nome_completo)||'Sem responsável';
-    if(!respSet.has(nome))respSet.set(nome,{rascunho:0,revisao_interna:0,ajustes:0,enviado_unesco:0,retorno_unesco:0,aprovado:0,cancelado:0});
+    if(!respSet.has(nome))respSet.set(nome,{rascunho:0,submetido:0,pendente_correcao:0,em_avaliacao:0,em_revisao_unesco:0,aprovado:0,em_licitacao:0,contratado:0,cancelado:0});
     var r=respSet.get(nome);
-    if(r[t.status]!==undefined)r[t.status]++;else r['rascunho']++;
+    var sk=_statusNormOp[t.status]||t.status;
+    if(r[sk]!==undefined)r[sk]++;
   });
   var respNomes=[...respSet.keys()].sort(function(a,b){
     var ta=Object.values(respSet.get(a)).reduce(function(s,v){return s+v;},0);
@@ -785,8 +790,8 @@ function renderOperacional(){
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:12}}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#6B7280'}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{stepSize:1,font:{size:10},color:'#9CA3AF'},title:{display:true,text:'Qtd',font:{size:10}}},y2:{position:'right',grid:{display:false},ticks:{font:{size:10},color:'#9CA3AF',callback:function(v){return 'U$'+Math.round(v/1000)+'K';}},title:{display:true,text:'Valor',font:{size:10}}}}}});
 
     // Atividades × TDRs — barras empilhadas horizontais
-    var _stCores={rascunho:'#D1D5DB',revisao_interna:'#93C5FD',ajustes:'#FCD34D',enviado_unesco:'#6EE7B7',retorno_unesco:'#F9A8D4',aprovado:'#34D399',cancelado:'#FCA5A5'};
-    var _stLabels={rascunho:'Rascunho',revisao_interna:'Revisão',ajustes:'Ajustes',enviado_unesco:'UNESCO',retorno_unesco:'Retorno',aprovado:'Aprovado',cancelado:'Cancelado'};
+    var _stCores={rascunho:'#D1D5DB',submetido:'#93C5FD',pendente_correcao:'#FCD34D',em_avaliacao:'#5EEAD4',em_revisao_unesco:'#C4B5FD',aprovado:'#34D399',em_licitacao:'#FDBA74',contratado:'#059669',cancelado:'#FCA5A5'};
+    var _stLabels={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente Correção',em_avaliacao:'Em Avaliação',em_revisao_unesco:'Revisão UNESCO',aprovado:'Aprovado',em_licitacao:'Em Licitação',contratado:'Contratado',cancelado:'Cancelado'};
     var atvLabels=atvTdrs.map(function(x){return x.total===0?'⚠ '+x.atv.codigo:x.atv.codigo;});
     var atvDatasets=_stKeys.map(function(sk){
       return{label:_stLabels[sk],data:atvTdrs.map(function(x){return x.counts[sk]||0;}),backgroundColor:_stCores[sk],borderRadius:2,borderSkipped:false};
@@ -809,8 +814,8 @@ function renderOperacional(){
     }});
 
     // TDRs por responsável — barras empilhadas horizontais
-    var stCores={rascunho:'#D1D5DB',revisao_interna:'#93C5FD',ajustes:'#FCD34D',enviado_unesco:'#6EE7B7',retorno_unesco:'#F9A8D4',aprovado:'#34D399',cancelado:'#FCA5A5'};
-    var stLabels={rascunho:'Rascunho',revisao_interna:'Revisão interna',ajustes:'Ajustes',enviado_unesco:'Enviado UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado',cancelado:'Cancelado'};
+    var stCores={rascunho:'#D1D5DB',submetido:'#93C5FD',pendente_correcao:'#FCD34D',em_avaliacao:'#5EEAD4',em_revisao_unesco:'#C4B5FD',aprovado:'#34D399',em_licitacao:'#FDBA74',contratado:'#059669',cancelado:'#FCA5A5'};
+    var stLabels={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente Correção',em_avaliacao:'Em Avaliação',em_revisao_unesco:'Revisão UNESCO',aprovado:'Aprovado',em_licitacao:'Em Licitação',contratado:'Contratado',cancelado:'Cancelado'};
     var stKeys=Object.keys(stCores);
     var respDatasets=stKeys.map(function(sk){
       return{label:stLabels[sk],data:respNomes.map(function(n){return(respSet.get(n)||{})[sk]||0;}),backgroundColor:stCores[sk],borderRadius:2,borderSkipped:false};
