@@ -585,13 +585,17 @@ function renderFinanciadores(){
     {lbl:'TDRs aprovados',     val:taprov+' / '+D.tdrs.length, sub:D_PCT(pTdr)+' do total',          pct:Math.min(pTdr,100),               cor:'#2563EB', bg:'#EFF6FF', bc:'#BFDBFE'},
     {lbl:'Metas com avanço',   val:metasProg+' / '+_cmF.length,  sub:'indicadores com progresso >0',  pct:D_P(metasProg,_cmF.length),       cor:'#7C3AED', bg:'#F5F3FF', bc:'#DDD6FE'},
   ].forEach(function(c){
-    h+='<div style="background:'+c.bg+';border:1px solid '+c.bc+';border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:3px">';
-    h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.05em;text-transform:uppercase">'+c.lbl+'</div>';
-    h+='<div style="font-size:26px;font-weight:800;color:'+c.cor+';font-family:var(--font-mono);line-height:1.15">'+c.val+'</div>';
+    var _cArcFill=(_arcLen*Math.min(c.pct,100)/100).toFixed(2);
+    h+='<div style="background:'+c.bg+';border:1px solid '+c.bc+';border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px">';
+    h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.05em;text-transform:uppercase;align-self:flex-start">'+c.lbl+'</div>';
+    h+='<svg viewBox="0 0 120 68" style="width:100%;max-width:110px;margin-top:2px">'
+      +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="11" stroke-linecap="round"/>'
+      +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+c.cor+'" stroke-width="11" stroke-linecap="round"'
+      +' stroke-dasharray="'+_cArcFill+' '+_arcLen+'"/>'
+      +'</svg>';
+    h+='<div style="font-size:22px;font-weight:800;color:'+c.cor+';font-family:var(--font-mono);line-height:1.15;margin-top:-8px">'+c.val+'</div>';
     h+='<div style="font-size:11px;color:#6B7280">'+c.sub+'</div>';
-    h+='<div style="height:7px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden;margin-top:8px">';
-    h+='<div style="height:100%;background:'+c.cor+';width:'+c.pct+'%;border-radius:4px;transition:width .5s ease"></div>';
-    h+='</div></div>';
+    h+='</div>';
   });
 
   h+='</div>';
