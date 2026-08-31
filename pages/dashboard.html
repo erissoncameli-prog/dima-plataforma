@@ -579,12 +579,12 @@ function renderFinanciadores(){
   // Card hero — gauge (liquid glass)
   h+='<div style="'+_glassStyle(_corExec)+'border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center">';
   h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Taxa de execução</div>';
-  h+='<svg viewBox="0 0 120 68" style="width:100%;max-width:170px">'
+  h+='<svg viewBox="0 0 120 75" style="width:100%;max-width:170px">'
     +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="#F3F4F6" stroke-width="'+_arcW+'" stroke-linecap="round"/>'
     +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+_corExec+'" stroke-width="'+_arcW+'" stroke-linecap="round"'
     +' stroke-dasharray="'+_arcFill+' '+_arcLen+'"/>'
     +'</svg>';
-  h+='<div style="font-size:30px;font-weight:900;color:'+_corExec+';font-family:var(--font-mono);line-height:1;margin-top:-4px">'+pExec.toFixed(1)+'%</div>';
+  h+='<div style="font-size:30px;font-weight:900;color:'+_corExec+';font-family:var(--font-mono);line-height:1;margin-top:6px">'+pExec.toFixed(1)+'%</div>';
   h+='<div style="font-size:11px;color:#6B7280;margin-top:6px;text-align:center">'+D_USD(pago)+' pagos de '+D_USD(orc)+'</div>';
   h+='</div>';
 
@@ -598,12 +598,12 @@ function renderFinanciadores(){
     var _cArcFill=(_arcLen*Math.min(c.pct,100)/100).toFixed(2);
     h+='<div style="'+_glassStyle(c.cor)+'border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px">';
     h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.05em;text-transform:uppercase;align-self:flex-start">'+c.lbl+'</div>';
-    h+='<svg viewBox="0 0 120 68" style="width:100%;max-width:110px;margin-top:2px">'
+    h+='<svg viewBox="0 0 120 75" style="width:100%;max-width:110px;margin-top:2px">'
       +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="'+_arcW+'" stroke-linecap="round"/>'
       +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+c.cor+'" stroke-width="'+_arcW+'" stroke-linecap="round"'
       +' stroke-dasharray="'+_cArcFill+' '+_arcLen+'"/>'
       +'</svg>';
-    h+='<div style="font-size:22px;font-weight:800;color:'+c.cor+';font-family:var(--font-mono);line-height:1.15;margin-top:-8px">'+c.val+'</div>';
+    h+='<div style="font-size:22px;font-weight:800;color:'+c.cor+';font-family:var(--font-mono);line-height:1.15;margin-top:6px">'+c.val+'</div>';
     h+='<div style="font-size:11px;color:#6B7280">'+c.sub+'</div>';
     h+='</div>';
   });
