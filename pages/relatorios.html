@@ -2562,7 +2562,7 @@ async function relA4(){
       resultado:resultados(codigo),
       encerramentos:contrato_encerramentos(tdr_id,contrato_id,tipo,valor_liberado_brl,valor_liberado_usd,status),
       tdrs(id,numero,valor_brl,valor_usd,status,
-        contratos(id,numero,valor_total_brl,status))`)
+        contratos(id,numero,valor_total_brl,status,fornecedor:fornecedores(nome,tipo)))`)
     .order('codigo');
   if(ativFil) q = q.eq('id', ativFil);
 

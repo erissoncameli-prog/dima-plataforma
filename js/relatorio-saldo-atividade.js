@@ -5,7 +5,7 @@
 //
 // rows: array de atividades no formato
 //   { codigo, nome_pt, orcamento_usd, resultado:{codigo}, tdrs:[{id,numero,valor_brl,valor_usd,status,
-//     contratos:[{id,numero,valor_total_brl,status}]}] }
+//     contratos:[{id,numero,valor_total_brl,status,fornecedor:{nome,tipo}}]}] }
 // taxa: cotação USD→BRL atual (0 se indisponível)
 function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
   const toUSD = brl => taxa > 0 ? brl / taxa : 0;
@@ -115,7 +115,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     // Linhas de TDR
     if(d.linhas.length){
       bloco += d.linhas.map(l=>{
-        const numsContrato = l.conts.map(c=>esc(c.numero||'—')).join(', ');
+        const numsContrato = l.conts.map(c=>esc(c.numero||'—')+(c.fornecedor?.nome?' — '+esc(c.fornecedor.nome):'')).join(', ');
         return `<tr>
           <td style="padding-left:22px;color:var(--cinza-600)">↳ <span class="mono">${esc(l.t.numero||'—')}</span></td>
           <td>${tdrBadge(l.t.status)}</td>

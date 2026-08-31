@@ -236,7 +236,7 @@ async function loadData(){
     db.from('indicadores').select('*,resultados(codigo,nome_pt)').eq('ativo',true),
     db.from('execucao_financeira').select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome),contratos(id,numero)'),
     db.from('fornecedores').select('id,nome,tipo'),
-    db.from('contratos').select('id,numero,objeto_pt,valor_total_brl,status,tdr_id'),
+    db.from('contratos').select('id,numero,objeto_pt,valor_total_brl,status,tdr_id,fornecedor_id'),
     db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade').eq('ativo',true).order('ordem'),
     db.from('vw_matriz_progresso').select('*'),
     db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
@@ -1079,8 +1079,10 @@ async function abrirRelatorioA4Saldo(){
   if(!win){ _saldoAviso('Permita pop-ups neste site para gerar o relatório.','warning'); return; }
   win.document.write('<!doctype html><meta charset="utf-8"><title>Gerando relatório…</title><body style="font-family:sans-serif;color:#6B7280;padding:40px;text-align:center">Gerando relatório A4…</body>');
   try{
+    var fornById = {};
+    (D.forns||[]).forEach(function(f){ fornById[f.id]=f; });
     var contrByTdr = {};
-    (D.contr||[]).forEach(function(c){ if(!c.tdr_id) return; (contrByTdr[c.tdr_id]=contrByTdr[c.tdr_id]||[]).push({id:c.id,numero:c.numero,valor_total_brl:c.valor_total_brl,status:c.status}); });
+    (D.contr||[]).forEach(function(c){ if(!c.tdr_id) return; (contrByTdr[c.tdr_id]=contrByTdr[c.tdr_id]||[]).push({id:c.id,numero:c.numero,valor_total_brl:c.valor_total_brl,status:c.status,fornecedor:fornById[c.fornecedor_id]?{nome:fornById[c.fornecedor_id].nome,tipo:fornById[c.fornecedor_id].tipo}:null}); });
     var encByAtv = {};
     (D.encerr||[]).forEach(function(e){ if(!e.atividade_id) return; (encByAtv[e.atividade_id]=encByAtv[e.atividade_id]||[]).push({tdr_id:e.tdr_id,contrato_id:e.contrato_id,tipo:e.tipo,valor_liberado_brl:e.valor_liberado_brl,valor_liberado_usd:e.valor_liberado_usd,status:e.status}); });
     var tdrsByAtv = {};
