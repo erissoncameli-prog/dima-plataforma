@@ -563,34 +563,44 @@ function renderFinanciadores(){
   var _arcLen=157.08; // π × 50 (comprimento da semi-circunferência)
   var _arcFill=(_arcLen*Math.min(pExec,100)/100).toFixed(2);
   var _corExec=pExec>=50?'#059669':pExec>=20?'#D97706':'#EF4444';
+  var _arcW=20; // espessura da rosca (+80% sobre os 11px originais)
+
+  // helper: hex -> rgba, para o efeito "liquid glass" dos cards KPI
+  function _hexRgba(hex,a){var h2=hex.replace('#','');if(h2.length===3)h2=h2.split('').map(function(ch){return ch+ch;}).join('');var r=parseInt(h2.substring(0,2),16),g=parseInt(h2.substring(2,4),16),b=parseInt(h2.substring(4,6),16);return 'rgba('+r+','+g+','+b+','+a+')';}
+  function _glassStyle(cor){
+    return 'background:linear-gradient(135deg,rgba(255,255,255,.7),'+_hexRgba(cor,.14)+');'
+      +'backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);'
+      +'border:1px solid rgba(255,255,255,.6);'
+      +'box-shadow:0 8px 24px '+_hexRgba(cor,.18)+',inset 0 1px 0 rgba(255,255,255,.7);';
+  }
 
   var h='<div style="display:grid;grid-template-columns:minmax(190px,1.3fr) repeat(4,1fr);gap:12px;margin-bottom:16px;align-items:stretch">';
 
-  // Card hero — gauge
-  h+='<div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center">';
+  // Card hero — gauge (liquid glass)
+  h+='<div style="'+_glassStyle(_corExec)+'border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center">';
   h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Taxa de execução</div>';
   h+='<svg viewBox="0 0 120 68" style="width:100%;max-width:170px">'
-    +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="#F3F4F6" stroke-width="11" stroke-linecap="round"/>'
-    +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+_corExec+'" stroke-width="11" stroke-linecap="round"'
+    +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="#F3F4F6" stroke-width="'+_arcW+'" stroke-linecap="round"/>'
+    +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+_corExec+'" stroke-width="'+_arcW+'" stroke-linecap="round"'
     +' stroke-dasharray="'+_arcFill+' '+_arcLen+'"/>'
     +'</svg>';
   h+='<div style="font-size:30px;font-weight:900;color:'+_corExec+';font-family:var(--font-mono);line-height:1;margin-top:-4px">'+pExec.toFixed(1)+'%</div>';
   h+='<div style="font-size:11px;color:#6B7280;margin-top:6px;text-align:center">'+D_USD(pago)+' pagos de '+D_USD(orc)+'</div>';
   h+='</div>';
 
-  // 4 cards modernizados — barra grossa + borda esquerda + fundo semântico suave
+  // 4 cards modernizados — liquid glass + borda esquerda com a cor semântica
   [
-    {lbl:'Comprometido (TDR)', val:D_PCT(pComp),        sub:D_USD(comp)+' em TDRs ativos',          pct:Math.min(pComp,100),              cor:'#D97706', bg:'#FFFBEB', bc:'#FDE68A'},
-    {lbl:'A pagar',            val:D_PCT(pApagar),       sub:D_USD(apagar)+' comprometido financ.',   pct:Math.min(pApagar,100),            cor:'#F59E0B', bg:'#FFFBEB', bc:'#FEF3C7'},
-    {lbl:'TDRs aprovados',     val:taprov+' / '+D.tdrs.length, sub:D_PCT(pTdr)+' do total',          pct:Math.min(pTdr,100),               cor:'#2563EB', bg:'#EFF6FF', bc:'#BFDBFE'},
-    {lbl:'Metas com avanço',   val:metasProg+' / '+_cmF.length,  sub:'indicadores com progresso >0',  pct:D_P(metasProg,_cmF.length),       cor:'#7C3AED', bg:'#F5F3FF', bc:'#DDD6FE'},
+    {lbl:'Comprometido (TDR)', val:D_PCT(pComp),        sub:D_USD(comp)+' em TDRs ativos',          pct:Math.min(pComp,100),              cor:'#D97706'},
+    {lbl:'A pagar',            val:D_PCT(pApagar),       sub:D_USD(apagar)+' comprometido financ.',   pct:Math.min(pApagar,100),            cor:'#F59E0B'},
+    {lbl:'TDRs aprovados',     val:taprov+' / '+D.tdrs.length, sub:D_PCT(pTdr)+' do total',          pct:Math.min(pTdr,100),               cor:'#2563EB'},
+    {lbl:'Metas com avanço',   val:metasProg+' / '+_cmF.length,  sub:'indicadores com progresso >0',  pct:D_P(metasProg,_cmF.length),       cor:'#7C3AED'},
   ].forEach(function(c){
     var _cArcFill=(_arcLen*Math.min(c.pct,100)/100).toFixed(2);
-    h+='<div style="background:'+c.bg+';border:1px solid '+c.bc+';border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px">';
+    h+='<div style="'+_glassStyle(c.cor)+'border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px">';
     h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.05em;text-transform:uppercase;align-self:flex-start">'+c.lbl+'</div>';
     h+='<svg viewBox="0 0 120 68" style="width:100%;max-width:110px;margin-top:2px">'
-      +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="11" stroke-linecap="round"/>'
-      +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+c.cor+'" stroke-width="11" stroke-linecap="round"'
+      +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="'+_arcW+'" stroke-linecap="round"/>'
+      +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+c.cor+'" stroke-width="'+_arcW+'" stroke-linecap="round"'
       +' stroke-dasharray="'+_cArcFill+' '+_arcLen+'"/>'
       +'</svg>';
     h+='<div style="font-size:22px;font-weight:800;color:'+c.cor+';font-family:var(--font-mono);line-height:1.15;margin-top:-8px">'+c.val+'</div>';
