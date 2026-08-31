@@ -604,6 +604,7 @@ function filtrar(){
     if(filtroCard==='aprovados'&&!FASES_POS_APROVACAO.includes(t.status))return false;
     return true;
   });
+  f.sort((a,b)=>(a.numero||'').localeCompare(b.numero||'','pt',{numeric:true}));
   document.getElementById('cont').textContent=`${f.length} de ${todosTDRs.length} TDRs`;
   const el=document.getElementById('lista');
   if(!f.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">◧</div><div class="empty-state-msg">Nenhum TDR encontrado.</div></div>`;return;}
