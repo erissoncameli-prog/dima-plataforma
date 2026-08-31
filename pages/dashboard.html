@@ -29,6 +29,12 @@
 .kpi-sub{font-size:11px;color:var(--cinza-500);margin-top:4px;}
 .kpi-bar{height:3px;background:var(--cinza-100);border-radius:2px;margin-top:10px;overflow:hidden;}
 .kpi-fill{height:100%;border-radius:2px;}
+.kpi-gauge{transition:transform .2s ease,box-shadow .2s ease;}
+.kpi-gauge:hover{transform:translateY(-3px);}
+.kpi-gauge-arc{filter:drop-shadow(0 2px 5px var(--kpi-glow,transparent));}
+.kpi-gauge-val{text-shadow:0 1px 0 rgba(255,255,255,.6);}
+@keyframes kpiArcIn{from{stroke-dashoffset:157.08;}to{stroke-dashoffset:0;}}
+.kpi-gauge-arc{stroke-dashoffset:0;animation:kpiArcIn 1s cubic-bezier(.22,1,.36,1);}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:18px;}
 .g31{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;}
@@ -576,34 +582,34 @@ function renderFinanciadores(){
 
   var h='<div style="display:grid;grid-template-columns:minmax(190px,1.3fr) repeat(4,1fr);gap:12px;margin-bottom:16px;align-items:stretch">';
 
-  // Card hero — gauge (liquid glass)
-  h+='<div style="'+_glassStyle(_corExec)+'border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center">';
-  h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Taxa de execução</div>';
+  // Card hero — gauge (liquid glass + destaque)
+  h+='<div class="kpi-gauge" style="'+_glassStyle(_corExec)+'--kpi-glow:'+_hexRgba(_corExec,.45)+';border-radius:12px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center">';
+  h+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px"><span style="font-size:14px;line-height:1">⚡</span><span style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.06em;text-transform:uppercase">Taxa de execução</span></div>';
   h+='<svg viewBox="0 0 120 75" style="width:100%;max-width:170px">'
     +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="#F3F4F6" stroke-width="'+_arcW+'" stroke-linecap="round"/>'
-    +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+_corExec+'" stroke-width="'+_arcW+'" stroke-linecap="round"'
+    +'<path class="kpi-gauge-arc" d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+_corExec+'" stroke-width="'+_arcW+'" stroke-linecap="round"'
     +' stroke-dasharray="'+_arcFill+' '+_arcLen+'"/>'
     +'</svg>';
-  h+='<div style="font-size:30px;font-weight:900;color:'+_corExec+';font-family:var(--font-mono);line-height:1;margin-top:6px">'+pExec.toFixed(1)+'%</div>';
+  h+='<div class="kpi-gauge-val" style="font-size:32px;font-weight:900;color:'+_corExec+';font-family:var(--font-mono);line-height:1;margin-top:6px">'+pExec.toFixed(1)+'%</div>';
   h+='<div style="font-size:11px;color:#6B7280;margin-top:6px;text-align:center">'+D_USD(pago)+' pagos de '+D_USD(orc)+'</div>';
   h+='</div>';
 
-  // 4 cards modernizados — liquid glass + borda esquerda com a cor semântica
+  // 4 cards modernizados — liquid glass + borda esquerda com a cor semântica + destaque
   [
-    {lbl:'Comprometido (TDR)', val:D_PCT(pComp),        sub:D_USD(comp)+' em TDRs ativos',          pct:Math.min(pComp,100),              cor:'#D97706'},
-    {lbl:'A pagar',            val:D_PCT(pApagar),       sub:D_USD(apagar)+' comprometido financ.',   pct:Math.min(pApagar,100),            cor:'#F59E0B'},
-    {lbl:'TDRs aprovados',     val:taprov+' / '+D.tdrs.length, sub:D_PCT(pTdr)+' do total',          pct:Math.min(pTdr,100),               cor:'#2563EB'},
-    {lbl:'Metas com avanço',   val:metasProg+' / '+_cmF.length,  sub:'indicadores com progresso >0',  pct:D_P(metasProg,_cmF.length),       cor:'#7C3AED'},
+    {lbl:'Comprometido (TDR)', ico:'💰', val:D_PCT(pComp),        sub:D_USD(comp)+' em TDRs ativos',          pct:Math.min(pComp,100),              cor:'#D97706'},
+    {lbl:'A pagar',            ico:'🧾', val:D_PCT(pApagar),       sub:D_USD(apagar)+' comprometido financ.',   pct:Math.min(pApagar,100),            cor:'#F59E0B'},
+    {lbl:'TDRs aprovados',     ico:'✅', val:taprov+' / '+D.tdrs.length, sub:D_PCT(pTdr)+' do total',          pct:Math.min(pTdr,100),               cor:'#2563EB'},
+    {lbl:'Metas com avanço',   ico:'🎯', val:metasProg+' / '+_cmF.length,  sub:'indicadores com progresso >0',  pct:D_P(metasProg,_cmF.length),       cor:'#7C3AED'},
   ].forEach(function(c){
     var _cArcFill=(_arcLen*Math.min(c.pct,100)/100).toFixed(2);
-    h+='<div style="'+_glassStyle(c.cor)+'border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px">';
-    h+='<div style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.05em;text-transform:uppercase;align-self:flex-start">'+c.lbl+'</div>';
+    h+='<div class="kpi-gauge" style="'+_glassStyle(c.cor)+'--kpi-glow:'+_hexRgba(c.cor,.45)+';border-left:4px solid '+c.cor+';border-radius:10px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px">';
+    h+='<div style="display:flex;align-items:center;gap:5px;align-self:flex-start"><span style="font-size:12px;line-height:1">'+c.ico+'</span><span style="font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.05em;text-transform:uppercase">'+c.lbl+'</span></div>';
     h+='<svg viewBox="0 0 120 75" style="width:100%;max-width:110px;margin-top:2px">'
       +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="'+_arcW+'" stroke-linecap="round"/>'
-      +'<path d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+c.cor+'" stroke-width="'+_arcW+'" stroke-linecap="round"'
+      +'<path class="kpi-gauge-arc" d="M 10,65 A 50,50 0 0,1 110,65" fill="none" stroke="'+c.cor+'" stroke-width="'+_arcW+'" stroke-linecap="round"'
       +' stroke-dasharray="'+_cArcFill+' '+_arcLen+'"/>'
       +'</svg>';
-    h+='<div style="font-size:22px;font-weight:800;color:'+c.cor+';font-family:var(--font-mono);line-height:1.15;margin-top:6px">'+c.val+'</div>';
+    h+='<div class="kpi-gauge-val" style="font-size:22px;font-weight:800;color:'+c.cor+';font-family:var(--font-mono);line-height:1.15;margin-top:6px">'+c.val+'</div>';
     h+='<div style="font-size:11px;color:#6B7280">'+c.sub+'</div>';
     h+='</div>';
   });
