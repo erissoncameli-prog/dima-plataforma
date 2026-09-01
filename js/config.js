@@ -400,7 +400,7 @@ const PODE = {
 //   · JS direto  →  await abrirDoc(url)  /  await urlAssinada(url)
 const BUCKETS_PRIVADOS = [
   'tdrs-arquivos', 'contratos-docs', 'financeiro-docs',
-  'entregas-docs', 'viagens-arquivos', 'produtos-evidencias',
+  'entregas-docs', 'viagens-arquivos', 'produtos-evidencias', 'acervo-capas',
 ];
 
 // Extrai { bucket, path } de uma URL de storage nos formatos /public/ ou /sign/
