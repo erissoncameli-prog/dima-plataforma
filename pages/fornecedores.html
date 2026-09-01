@@ -487,7 +487,7 @@ function abrirNovo() {
   renderForm(null);
   document.getElementById('m-footer').innerHTML = `
     <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-primary" onclick="salvar()">Criar fornecedor</button>`;
+    <button class="btn btn-primary" id="btn-salvar-forn" onclick="salvar()">Criar fornecedor</button>`;
   document.getElementById('modal-forn').classList.add('aberto');
 }
 
@@ -501,7 +501,7 @@ function abrirEditar(id) {
   document.getElementById('m-footer').innerHTML = `
     <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
     ${!fornEditando.ativo?`<button class="btn btn-secondary" onclick="alterarAtivo('${fornEditando.id}',true)">Reativar</button>`:`<button class="btn btn-danger" onclick="alterarAtivo('${fornEditando.id}',false)">Desativar</button>`}
-    <button class="btn btn-primary" onclick="salvar()">Salvar alterações</button>`;
+    <button class="btn btn-primary" id="btn-salvar-forn" onclick="salvar()">Salvar alterações</button>`;
   document.getElementById('modal-forn').classList.add('aberto');
 }
 
@@ -761,6 +761,11 @@ function selecionarDocForn(file) {
 }
 
 async function salvar() {
+  const btnSalvar = document.getElementById('btn-salvar-forn');
+  if (btnSalvar?.disabled) return; // evita duplo-clique/duplo-submit
+  if (btnSalvar) btnSalvar.disabled = true;
+
+  try {
   const tipo = document.querySelector('input[name="f-tipo"]:checked')?.value || 'PF';
   const nome = document.getElementById('f-nome')?.value.trim();
   const doc = document.getElementById('f-doc')?.value.replace(/\D/g,'');
@@ -869,6 +874,9 @@ async function salvar() {
     filtrar();
   } catch(e) {
     toast('Erro ao salvar: '+(e.message||''),'error');
+  }
+  } finally {
+    if (btnSalvar) btnSalvar.disabled = false;
   }
 }
 
