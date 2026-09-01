@@ -166,7 +166,9 @@ async function carregarAcervo() {
       || (new Date(b.adicionado_em || 0) - new Date(a.adicionado_em || 0)));
   });
 
-  obras = (rObras.data || []).map(o => {
+  // Acervo mostra só entregas aprovadas — pendente/em avaliação/em correção
+  // ficam no módulo de Avaliação de Produtos, não na biblioteca pública.
+  obras = (rObras.data || []).filter(o => o.situacao_acervo === 'aprovado').map(o => {
     const ms = midiasPorObra[o.obra_id] || [];
     o._ano = anoDe(o.publicado_em || o.dt_entrega || o.criado_em);
     o._formatos = o.tipos_midia || [];        // formatos da edição vigente
@@ -382,15 +384,6 @@ function prateleirasHtml(lista) {
     const nome = (porAtiv[cod][0].atividade_nome || '').substring(0, 60);
     prats.push({ titulo: 'Atividade ' + cod + (nome ? ' · ' + nome : ''), itens: porAtiv[cod] });
   });
-
-  const emCorrecao = lista.filter(o => o.situacao_acervo === 'em_correcao');
-  if (emCorrecao.length) prats.push({ titulo: 'Devolvidos para correção', itens: emCorrecao });
-
-  const emAvaliacao = lista.filter(o => o.situacao_acervo === 'em_avaliacao');
-  if (emAvaliacao.length) prats.push({ titulo: 'Em avaliação', itens: emAvaliacao });
-
-  const pendentes = lista.filter(o => o.situacao_acervo === 'sem_entrega' && o.situacao_produto !== 'cancelado');
-  if (pendentes.length) prats.push({ titulo: 'Em produção · aguardando entrega', itens: pendentes });
 
   if (!prats.length) return vazioHtml();
 
