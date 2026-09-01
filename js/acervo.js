@@ -646,6 +646,14 @@ function abrirFicha(obraId) {
     el.onclick = () => abrirViewer(el.dataset.midia);
   });
 
+  // O pôster da ficha também traz data-capa-obra, mas só ligarCards() (grade/
+  // estante) registra o observer — aqui religamos para este pôster específico.
+  if (typeof ligarCapas === 'function') {
+    const indice = {};
+    obras.forEach(x => { indice[x.obra_id] = x; });
+    ligarCapas(indice);
+  }
+
   document.getElementById('modal-ficha').classList.add('aberto');
 }
 
