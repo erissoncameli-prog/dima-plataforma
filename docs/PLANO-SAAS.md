@@ -3,6 +3,8 @@
 
 > Documento de planejamento estratégico e técnico. **Nenhuma linha de código de produto deve ser escrita antes das decisões da Seção 12 estarem fechadas.**
 > Versão 1.0 · Setembro/2026
+>
+> ⚙️ **Estratégia de execução:** o SaaS **não** é construído transformando este repositório. Ele é construído sobre uma **cópia limpa**, mantendo a instância da SEMA/AC intacta. O como-fazer da cópia e o checklist de bootstrap estão em **[`PLANO-SAAS-COPIA.md`](./PLANO-SAAS-COPIA.md)**. Este documento descreve o *quê* e o *quanto*; o complementar descreve o *como copiar e subir*.
 
 ---
 
