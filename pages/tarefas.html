@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Tarefas</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+/* ── Toolbar ─────────────────────────────────────────────── */
+.tk-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.tk-tabs{display:inline-flex;background:var(--cinza-100);border-radius:var(--raio);padding:3px}
+.tk-tab{border:0;background:transparent;padding:7px 16px;border-radius:6px;font:inherit;font-size:13px;
+  font-weight:600;color:var(--cinza-600);cursor:pointer;transition:all .12s}
+.tk-tab.on{background:var(--branco);color:var(--verde-medio);box-shadow:var(--sombra)}
+.tk-spacer{flex:1}
+.tk-sel{font:inherit;font-size:13px;padding:8px 12px;border:1px solid var(--borda);border-radius:var(--raio);
+  background:var(--branco);color:var(--cinza-800);cursor:pointer}
+.tk-btn{border:0;background:var(--verde-medio);color:#fff;font:inherit;font-size:13px;font-weight:600;
+  padding:9px 16px;border-radius:var(--raio);cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:background .12s}
+.tk-btn:hover{background:var(--verde)}
+.tk-btn svg{width:16px;height:16px}
+
+/* ── Kanban ──────────────────────────────────────────────── */
+.tk-board{display:grid;grid-template-columns:repeat(5,minmax(230px,1fr));gap:12px;align-items:start;overflow-x:auto;padding-bottom:8px}
+.tk-col{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);min-height:120px;display:flex;flex-direction:column}
+.tk-col.drag-over{border-color:var(--verde-claro);background:var(--verde-bg)}
+.tk-col-h{display:flex;align-items:center;gap:8px;padding:12px 14px 10px;position:sticky;top:0}
+.tk-col-h .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.tk-col-h .nm{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--cinza-700)}
+.tk-col-h .ct{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--cinza-500);
+  background:var(--branco);border:1px solid var(--borda);border-radius:6px;padding:1px 7px}
+.tk-col-body{padding:0 10px 12px;display:flex;flex-direction:column;gap:9px}
+.tk-empty{text-align:center;color:var(--cinza-400);font-size:12px;padding:16px 8px}
+
+/* ── Card ────────────────────────────────────────────────── */
+.tk-card{background:var(--branco);border:1px solid var(--borda);border-radius:10px;padding:11px 12px;cursor:pointer;
+  box-shadow:var(--sombra);transition:box-shadow .12s,transform .08s;position:relative}
+.tk-card:hover{box-shadow:var(--sombra-md)}
+.tk-card.dragging{opacity:.5}
+.tk-card .code{font-family:var(--font-mono);font-size:10px;color:var(--cinza-400);letter-spacing:.03em}
+.tk-card .ttl{font-size:13.5px;font-weight:600;color:var(--cinza-900);margin:3px 0 9px;line-height:1.35}
+.tk-card .meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.prio{font-family:var(--font-mono);font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:.03em}
+.prio-urgente{color:#fff;background:var(--erro)}
+.prio-alta{color:#fff;background:#EA580C}
+.prio-media{color:var(--aviso);border:1px solid var(--aviso)}
+.prio-baixa{color:var(--cinza-500);border:1px solid var(--borda-forte)}
+.lnk{font-family:var(--font-mono);font-size:9.5px;color:var(--verde-medio);background:var(--verde-bg);padding:2px 7px;border-radius:5px}
+.frn{font-family:var(--font-mono);font-size:9.5px;color:#7c3aed;background:#f3e8ff;padding:2px 7px;border-radius:5px}
+.due{font-size:10.5px;color:var(--cinza-500);display:inline-flex;align-items:center;gap:3px;margin-left:auto}
+.due.late{color:var(--erro);font-weight:700}
+.due.today{color:var(--aviso);font-weight:700}
+.av{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:#fff;font-family:var(--font-mono);flex-shrink:0;border:1.5px solid var(--branco)}
+.av-stack{display:inline-flex}.av-stack .av+.av{margin-left:-7px}
+
+/* ── Minhas Tarefas (lista) ──────────────────────────────── */
+.tk-group{margin-bottom:22px}
+.tk-group-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.tk-group-h .g-nm{font-size:13px;font-weight:700;color:var(--cinza-800)}
+.tk-group-h .g-ct{font-family:var(--font-mono);font-size:11px;color:var(--cinza-500)}
+.tk-group-h .g-bar{flex:1;height:1px;background:var(--borda)}
+.tk-row{display:flex;align-items:center;gap:12px;background:var(--branco);border:1px solid var(--borda);
+  border-radius:var(--raio);padding:11px 14px;cursor:pointer;transition:box-shadow .12s}
+.tk-row:hover{box-shadow:var(--sombra-md)}
+.tk-row+.tk-row{margin-top:7px}
+.tk-row .st-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.tk-row .r-ttl{font-size:13.5px;font-weight:600;color:var(--cinza-900);flex:1;min-width:0}
+.tk-row .r-code{font-family:var(--font-mono);font-size:10px;color:var(--cinza-400);margin-right:2px}
+
+/* ── Modal (FORA do #app) ────────────────────────────────── */
+.tk-overlay{position:fixed;inset:0;background:rgba(17,24,39,.5);display:none;align-items:flex-start;
+  justify-content:center;z-index:1000;padding:40px 16px;overflow-y:auto}
+.tk-overlay.on{display:flex}
+.tk-modal{background:var(--branco);border-radius:var(--raio-xl);width:100%;max-width:560px;box-shadow:var(--sombra-lg);
+  animation:tkpop .16s ease}
+@keyframes tkpop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.tk-modal-h{display:flex;align-items:center;gap:10px;padding:18px 22px;border-bottom:1px solid var(--borda)}
+.tk-modal-h h3{margin:0;font-size:16px;font-weight:600;color:var(--cinza-900)}
+.tk-modal-h .code{font-family:var(--font-mono);font-size:11px;color:var(--cinza-400)}
+.tk-x{margin-left:auto;border:0;background:transparent;font-size:22px;color:var(--cinza-400);cursor:pointer;line-height:1}
+.tk-modal-b{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.fld label{display:block;font-size:12px;font-weight:600;color:var(--cinza-700);margin-bottom:5px}
+.fld input[type=text],.fld input[type=date],.fld textarea,.fld select{width:100%;font:inherit;font-size:13.5px;
+  padding:9px 11px;border:1px solid var(--borda-forte);border-radius:var(--raio);background:var(--branco);color:var(--cinza-900)}
+.fld textarea{resize:vertical;min-height:64px}
+.fld-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip-t{font:inherit;font-size:12px;padding:6px 11px;border:1px solid var(--borda-forte);border-radius:99px;
+  background:var(--branco);color:var(--cinza-600);cursor:pointer}
+.chip-t.on{background:var(--verde-medio);border-color:var(--verde-medio);color:#fff}
+.multi{border:1px solid var(--borda-forte);border-radius:var(--raio);padding:6px;max-height:132px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.multi label{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 7px;border-radius:6px;cursor:pointer;margin:0;font-weight:400;color:var(--cinza-800)}
+.multi label:hover{background:var(--cinza-50)}
+.multi input{width:15px;height:15px;accent-color:var(--verde-medio)}
+.hint{font-size:11px;color:var(--cinza-500);margin-top:4px}
+.tk-modal-f{padding:16px 22px;border-top:1px solid var(--borda);display:flex;gap:10px;justify-content:flex-end;align-items:center}
+.btn-sec{border:1px solid var(--borda-forte);background:var(--branco);color:var(--cinza-700);font:inherit;font-size:13px;font-weight:600;padding:9px 16px;border-radius:var(--raio);cursor:pointer}
+.btn-pri{border:0;background:var(--verde-medio);color:#fff;font:inherit;font-size:13px;font-weight:600;padding:9px 18px;border-radius:var(--raio);cursor:pointer}
+.btn-pri:hover{background:var(--verde)}
+.btn-ok{border:0;background:var(--sucesso);color:#fff;font:inherit;font-size:13px;font-weight:600;padding:9px 16px;border-radius:var(--raio);cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.btn-danger-ghost{border:0;background:transparent;color:var(--erro);font:inherit;font-size:12.5px;cursor:pointer;margin-right:auto}
+.hist{border-top:1px solid var(--borda);padding-top:12px;margin-top:2px}
+.hist h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500)}
+.hist-i{display:flex;gap:8px;font-size:12px;color:var(--cinza-600);padding:3px 0}
+.hist-i .hi-dot{width:6px;height:6px;border-radius:50%;background:var(--cinza-300);margin-top:6px;flex-shrink:0}
+
+@media(max-width:640px){.fld-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh">
+    <div style="text-align:center">
+      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      Carregando...
+    </div>
+  </div>
+</div>
+
+<!-- Modal fica FORA do #app (evita conflito de z-index com a sidebar) -->
+<div class="tk-overlay" id="tk-overlay" onclick="if(event.target===this)fecharModal()">
+  <div class="tk-modal" id="tk-modal"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/tarefas.js"></script>
+</body>
+</html>
