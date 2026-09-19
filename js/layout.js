@@ -469,11 +469,14 @@ async function carregarNotificacoes() {
   const prodPagIds  = todas.filter(n => n.tipo === 'produto_aguarda_pagamento' && n.entidade_id).map(n => n.entidade_id);
   const viagIds     = todas.filter(n => n.tipo === 'viagem_solicitada'        && n.entidade_id).map(n => n.entidade_id);
   const tdrIds      = todas.filter(n => n.tipo === 'tdr_para_revisar'         && n.entidade_id).map(n => n.entidade_id);
+  // Tarefas: as notificações "acionáveis" (atribuição/prazo) deixam de valer
+  // quando a tarefa é concluída/cancelada/inativada (por este ou outro usuário).
+  const tarIds      = todas.filter(n => (n.tipo === 'tarefa_atribuida' || n.tipo === 'tarefa_prazo') && n.entidade_id).map(n => n.entidade_id);
 
   // IDs únicos de contratos_produtos a consultar
   const cpIds = [...new Set([...prodAvalIds, ...prodPagIds])];
 
-  const statusProd = {}, statusViag = {}, statusTdr = {};
+  const statusProd = {}, statusViag = {}, statusTdr = {}, statusTar = {};
   await Promise.all([
     cpIds.length    && db.from('contratos_produtos').select('id,situacao').in('id', cpIds)
       .then(({ data: d }) => (d || []).forEach(p => statusProd[p.id] = p.situacao)),
@@ -481,6 +484,8 @@ async function carregarNotificacoes() {
       .then(({ data: d }) => (d || []).forEach(v => statusViag[v.id] = v.situacao)),
     tdrIds.length   && db.from('tdrs').select('id,status').in('id', tdrIds)
       .then(({ data: d }) => (d || []).forEach(t => statusTdr[t.id] = t.status)),
+    tarIds.length   && db.from('tarefas').select('id,status,ativo').in('id', tarIds)
+      .then(({ data: d }) => (d || []).forEach(t => statusTar[t.id] = t)),
   ].filter(Boolean));
 
   // Identificar notificações cujo item já foi atendido
@@ -501,6 +506,10 @@ async function carregarNotificacoes() {
       const sit = statusTdr[n.entidade_id];
       const pendentes = ['rascunho','revisao_interna','enviado_unesco','retorno_unesco','submetido'];
       if (sit && !pendentes.includes(sit)) jaAtendidas.push(n.id);
+    } else if ((n.tipo === 'tarefa_atribuida' || n.tipo === 'tarefa_prazo') && n.entidade_id) {
+      const t = statusTar[n.entidade_id];
+      // Órfã (apagada/sem acesso) ou já encerrada → não é mais acionável
+      if (!t || t.ativo === false || t.status === 'concluida' || t.status === 'cancelada') jaAtendidas.push(n.id);
     }
   });
 
