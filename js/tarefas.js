@@ -109,7 +109,7 @@
       ${(S.aba === 'kanban' || S.aba === 'lista') ? `
       <select class="tk-sel" onchange="TK.filtroResp(this.value)">${optUsers}</select>
       <select class="tk-sel" onchange="TK.filtroPrio(this.value)">${optPrio}</select>
-      <button class="tk-tab ${S.fAtraso ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleAtraso()">Só atrasadas</button>
+      <button class="tk-tab ${S.fAtraso ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleAtraso(this)">Só atrasadas</button>
       ` : ''}
       <div class="tk-spacer"></div>
       <button class="tk-btn" onclick="TK.novo()">
@@ -287,7 +287,7 @@
 
   async function mudarStatus (t, novo) {
     const antigo = t.status
-    t.status = novo; if (novo === 'concluida') t.dt_conclusao = new Date().toISOString()
+    t.status = novo; t.dt_conclusao = novo === 'concluida' ? new Date().toISOString() : null
     refreshView()
     const { error } = await db.rpc('fn_mudar_status_tarefa', { p_tarefa_id: t.id, p_status: novo })
     if (error) { t.status = antigo; refreshView(); toast('Não foi possível mover: ' + error.message, 'error'); return }
@@ -486,12 +486,14 @@
       const prazoAntigo = t ? t.dt_prazo : null
       const { error } = await db.rpc('fn_editar_tarefa', {
         p_tarefa_id: S.editId, p_titulo: titulo, p_descricao: desc, p_prioridade: prioridade,
-        p_entidade_tipo: null, p_entidade_id: null, p_atividade_id: atividade_id,
+        p_dt_inicio: dt_inicio, p_entidade_tipo: null, p_entidade_id: null, p_atividade_id: atividade_id,
         p_fornecedor_id: fornecedor_id, p_notificar_fornecedor: notificar,
       })
       if (error) { toast('Erro ao salvar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Salvar' } return }
       // Sincroniza responsáveis/observadores (diferença simples)
-      await sincronizarParticipantes(S.editId, responsaveis, observadores)
+      const addedResp = await sincronizarParticipantes(S.editId, responsaveis, observadores)
+      // Novos responsáveis também recebem e-mail de atribuição
+      if (addedResp) chamarEmail(S.editId, 'atribuicao')
       // Prazo alterado?
       if ((prazoAntigo || null) !== (dt_prazo || null)) {
         await db.rpc('fn_reagendar_tarefa', { p_tarefa_id: S.editId, p_dt_prazo: dt_prazo })
@@ -504,18 +506,23 @@
   }
 
   async function sincronizarParticipantes (id, resp, obs) {
-    const t = S.tarefas.find(x => x.id === id); if (!t) return
+    const t = S.tarefas.find(x => x.id === id); if (!t) return false
     const atuais = t.participantes || []
     const alvo = new Map()
     resp.forEach(u => alvo.set(u, 'responsavel'))
     obs.forEach(u => { if (!alvo.has(u)) alvo.set(u, 'observador') })
+    let novoResp = false
     // adicionar / atualizar
     for (const [uid, papel] of alvo) {
       const cur = atuais.find(p => p.usuario_id === uid)
-      if (!cur || cur.papel !== papel) await db.rpc('fn_atribuir_participante', { p_tarefa_id: id, p_usuario_id: uid, p_papel: papel })
+      if (!cur || cur.papel !== papel) {
+        if (papel === 'responsavel' && (!cur || cur.papel !== 'responsavel')) novoResp = true
+        await db.rpc('fn_atribuir_participante', { p_tarefa_id: id, p_usuario_id: uid, p_papel: papel })
+      }
     }
     // remover os que saíram
     for (const p of atuais) if (!alvo.has(p.usuario_id)) await db.rpc('fn_remover_participante', { p_tarefa_id: id, p_usuario_id: p.usuario_id })
+    return novoResp
   }
 
   async function concluir (id) {
@@ -535,7 +542,7 @@
     aba: a => { S.aba = a; render() },
     filtroResp: v => { S.fResp = v; refreshView() },
     filtroPrio: v => { S.fPrio = v; refreshView() },
-    toggleAtraso: () => { S.fAtraso = !S.fAtraso; render() },
+    toggleAtraso: btn => { S.fAtraso = !S.fAtraso; if (btn) btn.classList.toggle('on', S.fAtraso); refreshView() },
     novo: () => abrirModal(null),
     abrir: id => abrirModal(S.tarefas.find(t => t.id === id)),
     salvar, concluir, cancelar,

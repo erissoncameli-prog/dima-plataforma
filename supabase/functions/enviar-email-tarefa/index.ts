@@ -18,6 +18,8 @@ const PRIORIDADE_LABEL: Record<string, string> = {
 }
 const fmtData = (d: string | null) =>
   d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—'
+const esc = (s: unknown) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): string {
   const linhas = corpo.split('\n')
@@ -145,19 +147,19 @@ Deno.serve(async (req) => {
 
     const corpoInterno =
       `${abertura[evento] || abertura.atribuicao}\n\n` +
-      `TAREFA: ${t.codigo} — ${t.titulo}\n` +
-      (t.descricao ? `DESCRIÇÃO: ${t.descricao}\n` : '') +
-      `PRIORIDADE: ${prioTxt}\n` +
+      `TAREFA: ${esc(t.codigo)} — ${esc(t.titulo)}\n` +
+      (t.descricao ? `DESCRIÇÃO: ${esc(t.descricao)}\n` : '') +
+      `PRIORIDADE: ${esc(prioTxt)}\n` +
       `PRAZO: ${prazoTxt}\n` +
-      (comentTxt ? `COMENTÁRIO: ${comentTxt}\n` : '') +
-      (t.fornecedor ? `FORNECEDOR: ${t.fornecedor.nome}\n` : '')
+      (comentTxt ? `COMENTÁRIO: ${esc(comentTxt)}\n` : '') +
+      (t.fornecedor ? `FORNECEDOR: ${esc(t.fornecedor.nome)}\n` : '')
 
     const envios: any[] = []
     for (const [email, nome] of rec) {
       envios.push({
         to: email,
         assunto: assunto[evento] || assunto.atribuicao,
-        html: wrapHtml(`Olá, ${(nome || '').split(' ')[0] || ''}.\n\n${corpoInterno}`, linkApp),
+        html: wrapHtml(`Olá, ${esc((nome || '').split(' ')[0])}.\n\n${corpoInterno}`, linkApp),
       })
     }
 
@@ -165,13 +167,13 @@ Deno.serve(async (req) => {
     if ((evento === 'atribuicao' || evento === 'prazo_alterado') &&
         t.notificar_fornecedor && t.fornecedor?.email) {
       const saud = t.fornecedor.responsavel_nome
-        ? `Prezado(a) ${t.fornecedor.responsavel_nome}`
-        : `Prezados(as), ${t.fornecedor.nome}`
+        ? `Prezado(a) ${esc(t.fornecedor.responsavel_nome)}`
+        : `Prezados(as), ${esc(t.fornecedor.nome)}`
       const corpoExt =
         `${saud},\n\n` +
         `Registramos no Projeto DIMA uma pendência sob sua responsabilidade:\n\n` +
-        `ITEM: ${t.titulo}\n` +
-        (t.descricao ? `DETALHE: ${t.descricao}\n` : '') +
+        `ITEM: ${esc(t.titulo)}\n` +
+        (t.descricao ? `DETALHE: ${esc(t.descricao)}\n` : '') +
         `PRAZO: ${prazoTxt}\n\n` +
         `Em caso de dúvida, responda a este e-mail ou fale com a equipe de gestão.`
       envios.push({

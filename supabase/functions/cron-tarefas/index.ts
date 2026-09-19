@@ -19,13 +19,15 @@ function addDias(iso: string, n: number): string {
   return d.toISOString().slice(0, 10)
 }
 const fmtBR = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}` }
+const esc = (s: unknown) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 function bloco(titulo: string, cor: string, itens: any[]): string {
   if (!itens.length) return ''
   const linhas = itens.map(t =>
     `<tr>
-      <td style="padding:7px 10px;border-bottom:1px solid #F0F0F0;font-size:12px;color:#9CA3AF;font-family:monospace;white-space:nowrap">${t.codigo || ''}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid #F0F0F0;font-size:13px;color:#111827">${t.titulo}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #F0F0F0;font-size:12px;color:#9CA3AF;font-family:monospace;white-space:nowrap">${esc(t.codigo)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #F0F0F0;font-size:13px;color:#111827">${esc(t.titulo)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid #F0F0F0;font-size:12px;color:#6B7280;white-space:nowrap">${fmtBR(t.dt_prazo)}</td>
     </tr>`).join('')
   return `<p style="margin:18px 0 6px;font-size:13px;font-weight:700;color:${cor}">${titulo} (${itens.length})</p>
@@ -48,7 +50,7 @@ function wrapHtml(nome: string, corpoTabelas: string): string {
     </tr></table>
   </td></tr>
   <tr><td style="background:#ffffff;padding:24px">
-    <p style="margin:0 0 4px;font-size:13px;color:#1F2937">Bom dia, ${nome}.</p>
+    <p style="margin:0 0 4px;font-size:13px;color:#1F2937">Bom dia, ${esc(nome)}.</p>
     <p style="margin:0 0 8px;font-size:13px;color:#6B7280">Resumo das suas tarefas com prazo próximo:</p>
     ${corpoTabelas}
     <div style="margin:24px 0 4px;text-align:center">
