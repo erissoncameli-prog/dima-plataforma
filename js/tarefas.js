@@ -76,7 +76,7 @@
           'Authorization': 'Bearer ' + (session?.access_token || ''),
           'apikey': SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ tarefa_id, evento }),
+        body: JSON.stringify({ tarefa_id, evento, autor_id: usuario.id }),
       })
     } catch (e) { console.error('e-mail tarefa:', e) }
   }

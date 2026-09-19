@@ -1,6 +1,7 @@
-// enviar-email-tarefa — notifica responsáveis internos e, opcionalmente, o
-// fornecedor vinculado (parte externa). Reaproveita o wrapper visual de
-// enviar-email-viagem. verify_jwt = true (chamada pelo frontend logo após a RPC).
+// enviar-email-tarefa — notifica responsáveis/observadores/criador internos e,
+// opcionalmente, o fornecedor vinculado (parte externa). Reaproveita o wrapper
+// visual de enviar-email-viagem. verify_jwt = true (chamada pelo frontend após a RPC).
+// Eventos: atribuicao | prazo_alterado | concluida | comentario.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 
@@ -18,7 +19,6 @@ const PRIORIDADE_LABEL: Record<string, string> = {
 const fmtData = (d: string | null) =>
   d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—'
 
-// ── Wrapper HTML (mesma barra de logos das demais notificações) ──────────
 function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): string {
   const linhas = corpo.split('\n')
   let html = '', emBloco = false
@@ -79,7 +79,7 @@ function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): stri
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
-    const { tarefa_id, evento = 'atribuicao' } = await req.json()
+    const { tarefa_id, evento = 'atribuicao', autor_id = null } = await req.json()
     if (!tarefa_id) throw new Error('tarefa_id obrigatório')
 
     const supabase = createClient(
@@ -87,41 +87,60 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // Tarefa + fornecedor
     const { data: t, error: eT } = await supabase
       .from('tarefas')
-      .select('id,codigo,titulo,descricao,status,prioridade,dt_prazo,fornecedor_id,notificar_fornecedor,' +
-              'fornecedor:fornecedores(nome,email,responsavel_nome)')
+      .select('id,codigo,titulo,descricao,status,prioridade,dt_prazo,criado_por,fornecedor_id,notificar_fornecedor,' +
+              'fornecedor:fornecedores(nome,email,responsavel_nome),' +
+              'criador:usuarios(nome_completo,email)')
       .eq('id', tarefa_id).single()
     if (eT || !t) throw new Error('tarefa não encontrada')
 
-    // Participantes (com e-mail)
     const { data: parts } = await supabase
       .from('tarefa_participantes')
-      .select('papel, usuario:usuarios(nome_completo,email)')
+      .select('papel, usuario_id, usuario:usuarios(nome_completo,email)')
       .eq('tarefa_id', tarefa_id)
-
     const responsaveis = (parts || []).filter((p: any) => p.papel === 'responsavel')
     const observadores = (parts || []).filter((p: any) => p.papel === 'observador')
 
-    // Destinatários internos por evento
-    let internos: any[] = []
-    if (evento === 'concluida') internos = observadores
-    else internos = responsaveis
+    // destinatários internos (dedup por e-mail, excluindo quem originou a ação)
+    const rec = new Map<string, string>()
+    const add = (id: string | null, email?: string, nome?: string) => {
+      if (email && id !== autor_id) rec.set(email, nome || '')
+    }
+    if (evento === 'concluida') {
+      add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
+      observadores.forEach((p: any) => add(p.usuario_id, p.usuario?.email, p.usuario?.nome_completo))
+    } else if (evento === 'comentario') {
+      add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
+      responsaveis.forEach((p: any) => add(p.usuario_id, p.usuario?.email, p.usuario?.nome_completo))
+      observadores.forEach((p: any) => add(p.usuario_id, p.usuario?.email, p.usuario?.nome_completo))
+    } else {
+      responsaveis.forEach((p: any) => add(p.usuario_id, p.usuario?.email, p.usuario?.nome_completo))
+    }
 
     const prazoTxt = fmtData(t.dt_prazo)
     const prioTxt  = PRIORIDADE_LABEL[t.prioridade] || t.prioridade
     const linkApp  = { url: `${SITE_URL}/pages/tarefas.html?tarefa=${t.id}`, label: 'Abrir no painel' }
 
-    const assuntoBase: Record<string, string> = {
+    // texto do último comentário, quando aplicável
+    let comentTxt = ''
+    if (evento === 'comentario') {
+      const { data: c } = await supabase.from('tarefa_comentarios')
+        .select('corpo').eq('tarefa_id', tarefa_id).order('criado_em', { ascending: false }).limit(1).maybeSingle()
+      comentTxt = c?.corpo || ''
+    }
+
+    const assunto: Record<string, string> = {
       atribuicao:     `Nova tarefa ${t.codigo}: ${t.titulo}`,
       prazo_alterado: `Prazo alterado — ${t.codigo}: ${t.titulo}`,
       concluida:      `Tarefa concluída — ${t.codigo}: ${t.titulo}`,
+      comentario:     `Novo comentário — ${t.codigo}: ${t.titulo}`,
     }
     const abertura: Record<string, string> = {
       atribuicao:     'Uma tarefa foi atribuída a você no painel do Projeto DIMA.',
       prazo_alterado: 'O prazo de uma tarefa sob sua responsabilidade mudou.',
       concluida:      'Uma tarefa que você acompanha foi concluída.',
+      comentario:     'Há um novo comentário em uma tarefa que você acompanha.',
     }
 
     const corpoInterno =
@@ -130,20 +149,19 @@ Deno.serve(async (req) => {
       (t.descricao ? `DESCRIÇÃO: ${t.descricao}\n` : '') +
       `PRIORIDADE: ${prioTxt}\n` +
       `PRAZO: ${prazoTxt}\n` +
+      (comentTxt ? `COMENTÁRIO: ${comentTxt}\n` : '') +
       (t.fornecedor ? `FORNECEDOR: ${t.fornecedor.nome}\n` : '')
 
     const envios: any[] = []
-    for (const p of internos) {
-      const email = p.usuario?.email
-      if (!email) continue
+    for (const [email, nome] of rec) {
       envios.push({
         to: email,
-        assunto: assuntoBase[evento] || assuntoBase.atribuicao,
-        html: wrapHtml(`Olá, ${(p.usuario?.nome_completo || '').split(' ')[0] || ''}.\n\n${corpoInterno}`, linkApp),
+        assunto: assunto[evento] || assunto.atribuicao,
+        html: wrapHtml(`Olá, ${(nome || '').split(' ')[0] || ''}.\n\n${corpoInterno}`, linkApp),
       })
     }
 
-    // Fornecedor (parte externa) — só em atribuição / prazo, sem link de login
+    // fornecedor (parte externa) — só em atribuição / prazo, sem link de login
     if ((evento === 'atribuicao' || evento === 'prazo_alterado') &&
         t.notificar_fornecedor && t.fornecedor?.email) {
       const saud = t.fornecedor.responsavel_nome
@@ -159,7 +177,7 @@ Deno.serve(async (req) => {
       envios.push({
         to: t.fornecedor.email,
         assunto: `Projeto DIMA — pendência: ${t.titulo}`,
-        html: wrapHtml(corpoExt), // sem botão de login
+        html: wrapHtml(corpoExt),
       })
     }
 
