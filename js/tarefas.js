@@ -86,7 +86,7 @@
     const html =
       '<div class="fade-in">' +
         toolbar() +
-        `<div id="tk-view">${S.aba === 'kanban' ? viewKanban() : viewMinhas()}</div>` +
+        `<div id="tk-view">${viewAtual()}</div>` +
       '</div>'
     document.getElementById('app').innerHTML =
       gerarLayout('Tarefas', 'tarefas') + html + '</div></div></div>'
@@ -102,9 +102,11 @@
     return `<div class="tk-toolbar">
       <div class="tk-tabs">
         <button class="tk-tab ${S.aba === 'kanban' ? 'on' : ''}" onclick="TK.aba('kanban')">Quadro</button>
+        <button class="tk-tab ${S.aba === 'lista' ? 'on' : ''}" onclick="TK.aba('lista')">Lista</button>
+        <button class="tk-tab ${S.aba === 'calendario' ? 'on' : ''}" onclick="TK.aba('calendario')">Calendário</button>
         <button class="tk-tab ${S.aba === 'minhas' ? 'on' : ''}" onclick="TK.aba('minhas')">Minhas tarefas</button>
       </div>
-      ${S.aba === 'kanban' ? `
+      ${(S.aba === 'kanban' || S.aba === 'lista') ? `
       <select class="tk-sel" onchange="TK.filtroResp(this.value)">${optUsers}</select>
       <select class="tk-sel" onchange="TK.filtroPrio(this.value)">${optPrio}</select>
       <button class="tk-tab ${S.fAtraso ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleAtraso()">Só atrasadas</button>
@@ -204,6 +206,65 @@
     </div>`
   }
 
+  // ── Lista (tabela) ────────────────────────────────────────────────────
+  function viewLista () {
+    const ts = S.tarefas.filter(t => t.status !== 'cancelada' && passaFiltro(t))
+      .sort((a, b) => (a.dt_prazo || '9999').localeCompare(b.dt_prazo || '9999'))
+    if (!ts.length) return `<div class="tk-empty" style="padding:40px">Nenhuma tarefa.</div>`
+    const linhas = ts.map(t => {
+      const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
+      return `<tr onclick="TK.abrir('${t.id}')">
+        <td class="mono-cell">${esc(t.codigo || '')}</td>
+        <td><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span> ${esc(t.titulo)}</td>
+        <td><span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span></td>
+        <td>${ST_NM[t.status] || t.status}</td>
+        <td>${t.atividade ? esc(t.atividade.codigo) : (t.fornecedor ? '🏢 ' + esc((t.fornecedor.nome || '').split(' ')[0]) : '—')}</td>
+        <td><span class="av-stack">${rs || '—'}</span></td>
+        <td>${badgePrazo(t) || '—'}</td>
+      </tr>`
+    }).join('')
+    return `<div class="tk-tbl-wrap"><table class="tk-tbl">
+      <thead><tr><th>Código</th><th>Tarefa</th><th>Prioridade</th><th>Status</th><th>Vínculo</th><th>Resp.</th><th>Prazo</th></tr></thead>
+      <tbody>${linhas}</tbody></table></div>`
+  }
+
+  // ── Calendário (grade mensal) ─────────────────────────────────────────
+  let calRef = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
+  function viewCalendario () {
+    const ano = calRef.getFullYear(), mes = calRef.getMonth()
+    const primeiro = new Date(ano, mes, 1)
+    const inicioGrade = new Date(primeiro); inicioGrade.setDate(1 - ((primeiro.getDay() + 6) % 7)) // semana começa seg
+    const nomeMes = calRef.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    const ts = S.tarefas.filter(t => t.status !== 'cancelada' && t.dt_prazo && passaFiltro(t))
+    const porDia = {}
+    ts.forEach(t => { (porDia[t.dt_prazo] ||= []).push(t) })
+
+    const dows = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+    let celulas = ''
+    const d = new Date(inicioGrade)
+    for (let i = 0; i < 42; i++) {
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const foraMes = d.getMonth() !== mes
+      const isHoje = d.getTime() === hoje.getTime()
+      const its = (porDia[iso] || []).slice(0, 4)
+      const mais = (porDia[iso] || []).length - its.length
+      const chips = its.map(t => `<div class="cal-chip" style="border-left:3px solid ${ST_COR[t.status] || '#9CA3AF'}"
+          onclick="event.stopPropagation();TK.abrir('${t.id}')" title="${esc(t.titulo)}">${esc(t.titulo)}</div>`).join('')
+      celulas += `<div class="cal-cell ${foraMes ? 'fora' : ''} ${isHoje ? 'hoje' : ''}">
+        <div class="cal-dia">${d.getDate()}</div>${chips}${mais > 0 ? `<div class="cal-mais">+${mais}</div>` : ''}
+      </div>`
+      d.setDate(d.getDate() + 1)
+    }
+    return `<div class="cal-head">
+        <button class="cal-nav" onclick="TK.calMes(-1)">‹</button>
+        <span class="cal-titulo">${nomeMes}</span>
+        <button class="cal-nav" onclick="TK.calMes(1)">›</button>
+        <button class="cal-hoje" onclick="TK.calHoje()">Hoje</button>
+      </div>
+      <div class="cal-grid cal-dow">${dows.map(w => `<div class="cal-dowc">${w}</div>`).join('')}</div>
+      <div class="cal-grid">${celulas}</div>`
+  }
+
   // ── Drag & drop ───────────────────────────────────────────────────────
   let dragId = null
   function ligarDragDrop () {
@@ -233,17 +294,97 @@
     if (novo === 'concluida') { toast('Tarefa concluída ✓', 'success'); chamarEmail(t.id, 'concluida') }
   }
 
+  function viewAtual () {
+    if (S.aba === 'lista') return viewLista()
+    if (S.aba === 'calendario') return viewCalendario()
+    if (S.aba === 'minhas') return viewMinhas()
+    return viewKanban()
+  }
+
   function refreshView () {
-    document.getElementById('tk-view').innerHTML = S.aba === 'kanban' ? viewKanban() : viewMinhas()
+    document.getElementById('tk-view').innerHTML = viewAtual()
     if (S.aba === 'kanban') ligarDragDrop()
   }
 
   // ══ MODAL ═════════════════════════════════════════════════════════════
   function abrirModal (t) {
     S.editId = t ? t.id : null
+    S.det = null; S.detAba = 'checklist'
     const ov = document.getElementById('tk-overlay')
     document.getElementById('tk-modal').innerHTML = montarModal(t)
     ov.classList.add('on')
+    if (t) carregarDetalhe(t.id)
+  }
+
+  // ── Detalhe (checklist / comentários / anexos / histórico) ────────────
+  async function carregarDetalhe (id) {
+    const [ck, cm, hi, an] = await Promise.all([
+      db.from('tarefa_checklist').select('*').eq('tarefa_id', id).order('ordem'),
+      db.from('tarefa_comentarios').select('id,corpo,autor_id,criado_em').eq('tarefa_id', id).order('criado_em'),
+      db.from('tarefa_historico').select('*').eq('tarefa_id', id).order('criado_em', { ascending: false }),
+      db.from('tarefa_anexos').select('*').eq('tarefa_id', id).order('criado_em'),
+    ])
+    S.det = { id, checklist: ck.data || [], coment: cm.data || [], hist: hi.data || [], anexos: an.data || [] }
+    renderDetalhe()
+  }
+
+  const HIST_TXT = {
+    criacao: 'criou a tarefa', status: 'mudou o status', prazo: 'alterou o prazo',
+    responsavel: 'atribuiu', conclusao: 'concluiu', reabertura: 'reabriu',
+    comentario: 'comentou', edicao: 'editou', anexo: 'anexou',
+  }
+  const fmtDT = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
+
+  function renderDetalhe () {
+    const el = document.getElementById('tk-detalhe'); if (!el || !S.det) return
+    const d = S.det
+    const feitas = d.checklist.filter(c => c.concluida).length
+    const tabs = [
+      ['checklist', `Subtarefas${d.checklist.length ? ` (${feitas}/${d.checklist.length})` : ''}`],
+      ['coment', `Comentários${d.coment.length ? ` (${d.coment.length})` : ''}`],
+      ['anexos', `Anexos${d.anexos.length ? ` (${d.anexos.length})` : ''}`],
+      ['hist', 'Histórico'],
+    ]
+    let corpo = ''
+    if (S.detAba === 'checklist') {
+      const pct = d.checklist.length ? Math.round(feitas / d.checklist.length * 100) : 0
+      const itens = d.checklist.map(c => `<div class="ck-item">
+        <input type="checkbox" ${c.concluida ? 'checked' : ''} onchange="TK.toggleChk('${c.id}',this.checked)">
+        <span class="${c.concluida ? 'done' : ''}">${esc(c.descricao)}</span>
+        <button class="ck-x" onclick="TK.delChk('${c.id}')" title="Remover">×</button>
+      </div>`).join('')
+      corpo = `${d.checklist.length ? `<div class="ck-bar"><div class="ck-fill" style="width:${pct}%"></div></div>` : ''}
+        ${itens || '<div class="det-empty">Sem subtarefas.</div>'}
+        <div class="ck-add"><input type="text" id="ck-in" placeholder="Nova subtarefa…" onkeydown="if(event.key==='Enter')TK.addChk()">
+          <button onclick="TK.addChk()">Adicionar</button></div>`
+    } else if (S.detAba === 'coment') {
+      const lista = d.coment.map(c => `<div class="cm-item">
+        <span class="av" style="background:${avCor(c.autor_id)}">${esc(iniciais(nomeUsuario(c.autor_id)))}</span>
+        <div><div class="cm-h"><b>${esc(nomeUsuario(c.autor_id))}</b> <span>${fmtDT(c.criado_em)}</span></div>
+          <div class="cm-b">${esc(c.corpo)}</div></div>
+      </div>`).join('')
+      corpo = `${lista || '<div class="det-empty">Nenhum comentário ainda.</div>'}
+        <div class="cm-add"><textarea id="cm-in" placeholder="Escreva um comentário…"></textarea>
+          <button onclick="TK.addComent()">Comentar</button></div>`
+    } else if (S.detAba === 'anexos') {
+      const lista = d.anexos.map(a => `<div class="ax-item">
+        <a href="#" data-arquivo="${esc(a.arquivo_url)}">📎 ${esc(a.arquivo_nome)}</a>
+        <button class="ck-x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover">×</button>
+      </div>`).join('')
+      corpo = `${lista || '<div class="det-empty">Nenhum anexo.</div>'}
+        <label class="ax-add">📎 Anexar arquivo<input type="file" id="ax-in" style="display:none" onchange="TK.uploadAnexo(this)"></label>
+        <span id="ax-status" class="hint"></span>`
+    } else {
+      corpo = d.hist.map(h => `<div class="hist-i"><span class="hi-dot"></span>
+        <div><b>${esc(nomeUsuario(h.autor_id))}</b> ${HIST_TXT[h.tipo] || h.tipo}
+        ${h.de || h.para ? `<span style="color:var(--cinza-500)">${h.de ? esc(h.de) + ' → ' : ''}${esc(h.para || '')}</span>` : ''}
+        <div style="color:var(--cinza-400);font-size:10px">${fmtDT(h.criado_em)}</div></div></div>`).join('')
+        || '<div class="det-empty">Sem histórico.</div>'
+    }
+    el.style.color = 'inherit'
+    el.innerHTML = `<div class="det-tabs">${tabs.map(([k, n]) =>
+      `<button class="det-tab ${S.detAba === k ? 'on' : ''}" onclick="TK.detAba('${k}')">${n}</button>`).join('')}</div>
+      <div class="det-corpo">${corpo}</div>`
   }
   window.fecharModal = () => document.getElementById('tk-overlay').classList.remove('on')
 
@@ -300,6 +441,7 @@
           Enviar e-mail de cobrança ao fornecedor</label>
         <div class="hint">O fornecedor recebe um aviso por e-mail; ele não acessa a plataforma.</div>
       </div>
+      ${t ? '<div id="tk-detalhe" style="border-top:1px solid var(--borda);margin-top:4px;padding-top:14px;color:var(--cinza-400);font-size:12px">Carregando…</div>' : ''}
     </div>
     <div class="tk-modal-f">
       ${t && podeEditar && t.status !== 'cancelada' ? `<button class="btn-danger-ghost" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
@@ -399,6 +541,49 @@
     salvar, concluir, cancelar,
     pickPrio: el => { el.parentElement.querySelectorAll('.chip-t').forEach(c => c.classList.remove('on')); el.classList.add('on') },
     onFrn: () => { const v = document.getElementById('f-frn').value; document.getElementById('f-frn-wrap').style.display = v ? '' : 'none' },
+    // calendário
+    calMes: n => { calRef = new Date(calRef.getFullYear(), calRef.getMonth() + n, 1); refreshView() },
+    calHoje: () => { calRef = new Date(hoje.getFullYear(), hoje.getMonth(), 1); refreshView() },
+    // detalhe
+    detAba: a => { S.detAba = a; renderDetalhe() },
+    addChk: async () => {
+      const inp = document.getElementById('ck-in'); const v = (inp.value || '').trim(); if (!v) return
+      const ordem = S.det.checklist.length ? Math.max(...S.det.checklist.map(c => +c.ordem || 0)) + 1 : 0
+      const { error } = await db.from('tarefa_checklist').insert({ tarefa_id: S.det.id, descricao: v, ordem, criado_por: usuario.id })
+      if (error) { toast(error.message, 'error'); return }
+      await carregarDetalhe(S.det.id)
+    },
+    toggleChk: async (id, val) => {
+      await db.from('tarefa_checklist').update({ concluida: val, concluida_por: val ? usuario.id : null, concluida_em: val ? new Date().toISOString() : null }).eq('id', id)
+      await carregarDetalhe(S.det.id)
+    },
+    delChk: async id => { await db.from('tarefa_checklist').delete().eq('id', id); await carregarDetalhe(S.det.id) },
+    addComent: async () => {
+      const inp = document.getElementById('cm-in'); const v = (inp.value || '').trim(); if (!v) return
+      const { error } = await db.rpc('fn_comentar_tarefa', { p_tarefa_id: S.det.id, p_corpo: v })
+      if (error) { toast(error.message, 'error'); return }
+      chamarEmail(S.det.id, 'comentario')
+      await carregarDetalhe(S.det.id)
+    },
+    uploadAnexo: async inp => {
+      const f = inp.files && inp.files[0]; if (!f) return
+      const st = document.getElementById('ax-status'); if (st) st.textContent = 'Enviando…'
+      const safe = f.name.replace(/[^\w.\-]+/g, '_')
+      const path = `${S.det.id}/${Date.now()}_${safe}`
+      const up = await db.storage.from('tarefas-anexos').upload(path, f, { upsert: false })
+      if (up.error) { if (st) st.textContent = ''; toast('Falha no upload: ' + up.error.message, 'error'); return }
+      const url = db.storage.from('tarefas-anexos').getPublicUrl(path).data.publicUrl
+      const { error } = await db.from('tarefa_anexos').insert({ tarefa_id: S.det.id, arquivo_url: url, arquivo_nome: f.name, mime: f.type || null, tamanho: f.size || null, enviado_por: usuario.id })
+      if (error) { toast(error.message, 'error'); return }
+      await carregarDetalhe(S.det.id)
+    },
+    delAnexo: async (id, url) => {
+      if (!confirm('Remover este anexo?')) return
+      await db.from('tarefa_anexos').delete().eq('id', id)
+      const rel = (url || '').split('/tarefas-anexos/')[1]
+      if (rel) { try { await db.storage.from('tarefas-anexos').remove([decodeURIComponent(rel)]) } catch (e) {} }
+      await carregarDetalhe(S.det.id)
+    },
   }
 
   // ── Boot ──────────────────────────────────────────────────────────────
