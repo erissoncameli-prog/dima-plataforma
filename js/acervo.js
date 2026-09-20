@@ -114,7 +114,7 @@ function registrarRecente(obraId) {
 // ═══ Inicialização ═══════════════════════════════════════════════════
 ;(async function () {
   const usuario = await carregarUsuario();
-  if (!usuario) { window.location.href = '../index.html'; return; }
+  if (!usuario) { localStorage.setItem('dima_redirect', window.location.href); window.location.href = '../index.html'; return; }
 
   document.getElementById('app').innerHTML =
     gerarLayout('Acervo de Produtos', 'acervo')

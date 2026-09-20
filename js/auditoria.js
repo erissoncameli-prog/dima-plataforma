@@ -25,7 +25,7 @@ let _chatEnviando   = false
 // ── Inicialização ──────────────────────────────────────────────
 ;(async function () {
   const usuario = await carregarUsuario()
-  if (!usuario) { window.location.href = '../index.html'; return }
+  if (!usuario) { localStorage.setItem('dima_redirect', window.location.href); window.location.href = '../index.html'; return }
 
   if (!['super_admin', 'coordenacao'].includes(appState.perfil)) {
     document.getElementById('app').innerHTML =
