@@ -48,7 +48,7 @@ const TIPO_GEO='Planilha de Geolocalização';
 
 (async function(){
   var u=await carregarUsuario();
-  if(!u){window.location.href='../index.html';return;}
+  if(!u){localStorage.setItem('dima_redirect',window.location.href);window.location.href='../index.html';return;}
 
   // Ler parâmetros da URL
   var params=new URLSearchParams(window.location.search);

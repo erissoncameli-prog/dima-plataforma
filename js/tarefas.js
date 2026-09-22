@@ -5,7 +5,7 @@
 
 ;(async function () {
   const usuario = await carregarUsuario()
-  if (!usuario) { window.location.href = '../index.html'; return }
+  if (!usuario) { localStorage.setItem('dima_redirect', window.location.href); window.location.href = '../index.html'; return }
 
   // ── Constantes de apresentação ────────────────────────────────────────
   const COLS = [
@@ -24,8 +24,26 @@
 
   // ── Estado ────────────────────────────────────────────────────────────
   const S = {
-    tarefas: [], usuarios: [], atividades: [], fornecedores: [],
+    tarefas: [], usuarios: [], atividades: [], fornecedores: [], progresso: {},
     aba: 'kanban', fResp: '', fPrio: '', fAtraso: false, editId: null,
+  }
+
+  // Fallback de progresso por status quando a tarefa não tem checklist
+  const PCT_STATUS = { a_fazer: 0, em_andamento: 40, em_revisao: 75, bloqueada: 40, concluida: 100, cancelada: 0 }
+  function progressoDe (t) {
+    if (t.status === 'concluida') return { pct: 100, label: '', tem: false }
+    const p = S.progresso[t.id]
+    if (p && p.total > 0) return { pct: p.pct, label: `${p.feitas}/${p.total}`, tem: true }
+    return { pct: PCT_STATUS[t.status] ?? 0, label: '', tem: false }
+  }
+  function barraProgresso (t, ctx) {
+    const pr = progressoDe(t)
+    const cor = pr.pct >= 100 ? 'var(--sucesso)' : (pr.tem ? 'var(--verde-medio)' : 'var(--cinza-300)')
+    const tt = pr.tem ? `Checklist ${pr.label}` : `Progresso ${pr.pct}%`
+    return `<div class="tk-prog ${ctx}" title="${tt}">
+      <div class="tk-prog-bar"><div class="tk-prog-fill" style="width:${pr.pct}%;background:${cor}"></div></div>
+      ${pr.tem ? `<span class="tk-prog-lbl">${pr.label}</span>` : ''}
+    </div>`
   }
 
   // ── Datas ─────────────────────────────────────────────────────────────
@@ -47,7 +65,7 @@
 
   // ── Carregar dados ────────────────────────────────────────────────────
   async function carregarTudo () {
-    const [tj, uj, aj, fj] = await Promise.all([
+    const [tj, uj, aj, fj, pj] = await Promise.all([
       db.from('tarefas').select(
         'id,codigo,titulo,descricao,status,prioridade,dt_inicio,dt_prazo,dt_conclusao,' +
         'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,ordem,criado_por,criado_em,' +
@@ -58,11 +76,14 @@
       db.from('usuarios').select('id,nome_completo,perfil,email').eq('ativo', true).order('nome_completo'),
       db.from('atividades').select('id,codigo,nome_pt').eq('ativo', true).order('codigo'),
       db.from('fornecedores').select('id,nome,email').eq('ativo', true).order('nome'),
+      db.from('vw_tarefa_progresso').select('tarefa_id,total,feitas,pct'),
     ])
     S.tarefas = tj.data || []
     S.usuarios = uj.data || []
     S.atividades = aj.data || []
     S.fornecedores = fj.data || []
+    S.progresso = {}
+    ;(pj.data || []).forEach(p => { S.progresso[p.tarefa_id] = p })
   }
 
   // ── E-mail (Edge Function) ────────────────────────────────────────────
@@ -162,6 +183,7 @@
       <div class="ttl">${esc(t.titulo)}</div>
       <div class="meta">${prio}${atv}${frn}
         <span class="av-stack">${rs}</span>${badgePrazo(t)}</div>
+      ${barraProgresso(t, 'card')}
     </div>`
   }
 
@@ -220,11 +242,12 @@
         <td>${ST_NM[t.status] || t.status}</td>
         <td>${t.atividade ? esc(t.atividade.codigo) : (t.fornecedor ? '🏢 ' + esc((t.fornecedor.nome || '').split(' ')[0]) : '—')}</td>
         <td><span class="av-stack">${rs || '—'}</span></td>
+        <td>${barraProgresso(t, 'lista')}</td>
         <td>${badgePrazo(t) || '—'}</td>
       </tr>`
     }).join('')
     return `<div class="tk-tbl-wrap"><table class="tk-tbl">
-      <thead><tr><th>Código</th><th>Tarefa</th><th>Prioridade</th><th>Status</th><th>Vínculo</th><th>Resp.</th><th>Prazo</th></tr></thead>
+      <thead><tr><th>Código</th><th>Tarefa</th><th>Prioridade</th><th>Status</th><th>Vínculo</th><th>Resp.</th><th>Progresso</th><th>Prazo</th></tr></thead>
       <tbody>${linhas}</tbody></table></div>`
   }
 
@@ -325,6 +348,10 @@
       db.from('tarefa_anexos').select('*').eq('tarefa_id', id).order('criado_em'),
     ])
     S.det = { id, checklist: ck.data || [], coment: cm.data || [], hist: hi.data || [], anexos: an.data || [] }
+    // mantém o cache de progresso em sincronia (barra do card/lista)
+    const total = S.det.checklist.length, feitas = S.det.checklist.filter(c => c.concluida).length
+    if (total > 0) S.progresso[id] = { tarefa_id: id, total, feitas, pct: Math.round(100 * feitas / total) }
+    else delete S.progresso[id]
     renderDetalhe()
   }
 
@@ -558,13 +585,13 @@
       const ordem = S.det.checklist.length ? Math.max(...S.det.checklist.map(c => +c.ordem || 0)) + 1 : 0
       const { error } = await db.from('tarefa_checklist').insert({ tarefa_id: S.det.id, descricao: v, ordem, criado_por: usuario.id })
       if (error) { toast(error.message, 'error'); return }
-      await carregarDetalhe(S.det.id)
+      await carregarDetalhe(S.det.id); refreshView()
     },
     toggleChk: async (id, val) => {
       await db.from('tarefa_checklist').update({ concluida: val, concluida_por: val ? usuario.id : null, concluida_em: val ? new Date().toISOString() : null }).eq('id', id)
-      await carregarDetalhe(S.det.id)
+      await carregarDetalhe(S.det.id); refreshView()
     },
-    delChk: async id => { await db.from('tarefa_checklist').delete().eq('id', id); await carregarDetalhe(S.det.id) },
+    delChk: async id => { await db.from('tarefa_checklist').delete().eq('id', id); await carregarDetalhe(S.det.id); refreshView() },
     addComent: async () => {
       const inp = document.getElementById('cm-in'); const v = (inp.value || '').trim(); if (!v) return
       const { error } = await db.rpc('fn_comentar_tarefa', { p_tarefa_id: S.det.id, p_corpo: v })
