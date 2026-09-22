@@ -34,6 +34,8 @@ function limparCorpo (txt: string): string {
     if (/^-{2,}\s*(Mensagem original|Original Message|Forwarded message)/i.test(l)) break
     if (/^________+/.test(l)) break
     if (/^De:\s|^From:\s/.test(l) && out.length) break
+    if (/^--\s*$/.test(l) && out.length) break                                   // separador de assinatura (RFC 3676)
+    if (/^\s*(enviado (do|de)\s|sent from|get outlook|baixe o outlook)/i.test(l) && out.length) break // rodapé de app de e-mail
     out.push(l)
   }
   return out.join('\n').trim()
