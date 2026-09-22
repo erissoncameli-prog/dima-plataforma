@@ -155,11 +155,15 @@ Deno.serve(async (req) => {
       (t.fornecedor ? `FORNECEDOR: ${esc(t.fornecedor.nome)}\n` : '')
 
     const envios: any[] = []
+    // Reply-To com token da tarefa: a resposta do e-mail vira comentário
+    // (recebido por receber-email-tarefa). Só nos e-mails internos.
+    const replyTo = `fundobrasilonuacre+${t.id}@gmail.com`
     for (const [email, nome] of rec) {
       envios.push({
         to: email,
         assunto: assunto[evento] || assunto.atribuicao,
         html: wrapHtml(`Olá, ${esc((nome || '').split(' ')[0])}.\n\n${corpoInterno}`, linkApp),
+        replyTo,
       })
     }
 
@@ -194,7 +198,7 @@ Deno.serve(async (req) => {
     })
 
     const results = await Promise.allSettled(
-      envios.map(e => transporter.sendMail({ from: REMETENTE, to: e.to, subject: e.assunto, html: e.html })),
+      envios.map(e => transporter.sendMail({ from: REMETENTE, to: e.to, subject: e.assunto, html: e.html, replyTo: e.replyTo })),
     )
     const enviados = results.filter(r => r.status === 'fulfilled').length
     const falhas   = results.length - enviados
