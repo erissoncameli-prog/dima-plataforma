@@ -207,7 +207,7 @@
     const frn = t.fornecedor ? `<span class="frn" title="${esc(t.fornecedor.nome)}">🏢 ${esc((t.fornecedor.nome || '').split(' ')[0])}</span>` : ''
     const hr = horaReuniao(t)
     return `<div class="tk-card" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')" style="border-left:3px solid ${tipoDe(t.tipo).cor}">
-      <div class="code">${iconeTipo(t)} ${esc(t.codigo || '')}${hr ? ` <span class="tk-hora">🕑 ${hr}</span>` : ''}</div>
+      <div class="code">${iconeTipo(t)} <span class="tk-num-s">${esc(t.codigo || '')}</span>${hr ? ` <span class="tk-hora">🕑 ${hr}</span>` : ''}</div>
       <div class="ttl">${cadeado(t)}${esc(t.titulo)}</div>
       <div class="meta">${prio}${atv}${frn}
         <span class="av-stack">${rs}</span>${badgePrazo(t)}</div>
@@ -255,7 +255,7 @@
       const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
       return `<div class="tk-row" onclick="TK.abrir('${t.id}')">
         <span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}" title="${ST_NM[t.status]}"></span>
-        <span class="r-ttl">${iconeTipo(t)} <span class="r-code">${esc(t.codigo || '')}</span> ${cadeado(t)}${esc(t.titulo)}</span>
+        <span class="r-ttl">${iconeTipo(t)} <span class="tk-num-s">${esc(t.codigo || '')}</span> ${cadeado(t)}${esc(t.titulo)}</span>
         <span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>
         ${t.atividade ? `<span class="lnk" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span>` : ''}${chipTdrs(t)}
         <span class="av-stack">${rs}</span>
@@ -276,7 +276,7 @@
     const linhas = ts.map(t => {
       const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
       return `<tr onclick="TK.abrir('${t.id}')">
-        <td class="mono-cell">${esc(t.codigo || '')}</td>
+        <td><span class="tk-num-s">${esc(t.codigo || '')}</span></td>
         <td><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span> ${iconeTipo(t)} ${cadeado(t)}${esc(t.titulo)}</td>
         <td><span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span></td>
         <td>${ST_NM[t.status] || t.status}</td>
@@ -312,7 +312,7 @@
       const its = (porDia[iso] || []).slice(0, 4)
       const mais = (porDia[iso] || []).length - its.length
       const chips = its.map(t => `<div class="cal-chip" style="border-left:3px solid ${ST_COR[t.status] || '#9CA3AF'}"
-          onclick="event.stopPropagation();TK.abrir('${t.id}')" title="${esc(tipoDe(t.tipo).nome + ' · ' + t.titulo)}">${tipoDe(t.tipo).icone} ${horaReuniao(t) ? horaReuniao(t) + ' ' : ''}${t.restrita ? '🔒 ' : ''}${esc(t.titulo)}</div>`).join('')
+          onclick="event.stopPropagation();TK.abrir('${t.id}')" title="${esc((t.codigo || '') + ' · ' + tipoDe(t.tipo).nome + ' · ' + t.titulo)}">${tipoDe(t.tipo).icone} <b class="cal-num">${esc(t.codigo || '')}</b> ${horaReuniao(t) ? horaReuniao(t) + ' ' : ''}${t.restrita ? '🔒 ' : ''}${esc(t.titulo)}</div>`).join('')
       celulas += `<div class="cal-cell ${foraMes ? 'fora' : ''} ${isHoje ? 'hoje' : ''}">
         <div class="cal-dia">${d.getDate()}</div>${chips}${mais > 0 ? `<div class="cal-mais">+${mais}</div>` : ''}
       </div>`
@@ -378,15 +378,29 @@
     S.det = null; S.editChk = null
     if (!manterAba) S.detAba = 'checklist'
     S.podeEditar = !t || podeDelegarGlobal || t.criado_por === usuario.id || souResponsavel(t)
+    S.form = {
+      resp: t ? respsDe(t).map(p => p.usuario_id) : [usuario.id],
+      obs:  t ? obsDe(t).map(p => p.usuario_id) : [],
+      podeDelegar: podeDelegarGlobal || !t, // validação real no servidor
+    }
     const ov = document.getElementById('tk-overlay')
-    document.getElementById('tk-modal').innerHTML = montarModal(t)
+    const md = document.getElementById('tk-modal')
+    md.classList.toggle('estreito', !t)
+    md.innerHTML = montarModal(t)
     ov.classList.add('on')
-    aplicarPrazoDoTipo()
-    TK.onCampoTipo('formato')
+    const emForm = !t || S.modoEdicao
+    if (emForm) {
+      aplicarPrazoDoTipo()
+      TK.onCampoTipo('formato')
+      renderPessoas('resp'); renderPessoas('obs')
+      const ds = document.getElementById('f-desc'); if (ds && ds.value) { ds.style.height = 'auto'; ds.style.height = ds.scrollHeight + 'px' }
+    }
     if (t) {
       carregarDetalhe(t.id)
-      const v = t.vinc_tdrs || []
-      carregarTdrsAtv(t.atividade_id, v.filter(x => x.tdr).map(x => x.tdr_id), v.filter(x => !x.tdr).length)
+      if (emForm) {
+        const v = t.vinc_tdrs || []
+        return carregarTdrsAtv(t.atividade_id, v.filter(x => x.tdr).map(x => x.tdr_id), v.filter(x => !x.tdr).length)
+      }
     }
   }
 
@@ -481,9 +495,7 @@
   async function refletirObservador (uid) {
     if (!uid) return
     await carregarTudo()
-    const resp = document.querySelector(`.chk-resp[value="${uid}"]`)
-    const obs = document.querySelector(`.chk-obs[value="${uid}"]`)
-    if (obs && !(resp && resp.checked)) obs.checked = true
+    if (S.form && !S.form.resp.includes(uid) && !S.form.obs.includes(uid)) { S.form.obs.push(uid); renderPessoas('obs') }
   }
 
   function itemChecklist (c, d) {
@@ -535,7 +547,7 @@
       const itens = d.checklist.map(c => itemChecklist(c, d)).join('')
       corpo = `${d.checklist.length ? `<div class="ck-bar"><div class="ck-fill" style="width:${pct}%"></div></div>` : ''}
         ${itens || '<div class="det-empty">Sem subtarefas.</div>'}
-        ${S.podeEditar && !S.modoEdicao ? '<div class="hint" style="margin-top:10px">Para adicionar, alterar ou concluir subtarefas, clique em <b>✏️ Editar tarefa</b>.</div>' : ''}
+        ${S.podeEditar && !S.modoEdicao ? '<div class="hint" style="margin-top:10px">Para adicionar, alterar ou concluir subtarefas, clique em <b>✏️ Editar</b> (no topo).</div>' : ''}
         ${podeMexerSub() ? `<div class="ck-add">
           <input type="text" id="ck-in" placeholder="Nova subtarefa…" onkeydown="if(event.key==='Enter')TK.addChk()">
           <div class="ck-form-row">
@@ -662,26 +674,30 @@
     pendente_correcao: 'Pendente de correção', em_avaliacao: 'Em avaliação', em_revisao_unesco: 'Em revisão UNESCO',
     em_licitacao: 'Em licitação', contratado: 'Contratado',
   }
-  // selecionados: ids de TDR marcados; ocultos: quantos vínculos o usuário não enxerga
+  // selecionados: ids de TDR marcados; ocultos: quantos vínculos o usuário não
+  // enxerga (viram etiqueta "acesso restrito" e nunca são desvinculados por ele)
   async function carregarTdrsAtv (atvId, selecionados = [], ocultos = 0) {
     const wrap = document.getElementById('f-tdr-wrap'), el = document.getElementById('f-tdr-lista')
     if (!wrap || !el) return
+    S.tdrsAtv = []; S.tdrOcultos = ocultos
     if (!atvId) { wrap.style.display = 'none'; el.innerHTML = ''; return }
     wrap.style.display = ''
-    el.innerHTML = '<div class="det-empty">Carregando TDRs…</div>'
+    el.hidden = true
+    const chips = document.getElementById('f-tdr-chips'); if (chips) chips.innerHTML = '<span class="pp-vazio">carregando…</span>'
     const { data } = await db.from('tdrs').select('id,numero,tipo,status,objeto_pt')
       .eq('atividade_id', atvId).order('numero')
     if (document.getElementById('f-atv').value !== atvId) return // trocou de atividade no meio
     const lista = (data || []).filter(d => d.status !== 'cancelado' || selecionados.includes(d.id))
+    S.tdrsAtv = lista
     const linhas = lista.map(d => `<label class="tdr-it">
-        <input type="checkbox" class="chk-tdr" value="${d.id}" ${selecionados.includes(d.id) ? 'checked' : ''}>
+        <input type="checkbox" class="chk-tdr" value="${d.id}" ${selecionados.includes(d.id) ? 'checked' : ''} onchange="TK.tdrMudou()">
         <div class="tdr-txt"><div><b>${esc(d.numero)}</b> · ${esc(d.tipo || '')} · <span class="tdr-st">${esc(TDR_ST[d.status] || d.status)}</span>
           <a class="tdr-abrir" href="tdrs.html?abrir=${d.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir TDR ↗</a></div>
           ${d.objeto_pt ? `<div class="tdr-obj" title="${esc(d.objeto_pt)}">${esc(d.objeto_pt)}</div>` : ''}</div>
       </label>`).join('')
-    const restritos = ocultos
-      ? `<div class="tdr-it tdr-rest">🔒 ${ocultos > 1 ? ocultos + ' TDRs vinculados' : 'TDR vinculado'} (acesso restrito)</div>` : ''
-    el.innerHTML = (linhas || restritos ? linhas + restritos : '<div class="det-empty">Nenhum TDR disponível para esta atividade.</div>')
+    el.innerHTML = linhas || '<div class="det-empty">Nenhum TDR disponível para esta atividade.</div>'
+    renderTdrChips()
+    if (S.abrirTdrAoCarregar) { S.abrirTdrAoCarregar = false; if (lista.length) TK.tdrPainel(true) }
   }
 
   // ── Tipo da tarefa: seletor + campos próprios ─────────────────────────
@@ -725,9 +741,8 @@
     if (!campos.length) return ''
     const titulo = cod === 'reuniao' ? 'Dados da reunião' : cod === 'diligencia' ? 'Dados da diligência' : 'Dados de ' + tp.nome.toLowerCase()
     return `<div class="tipo-bloco" style="--tc:${tp.cor}">
-      <div class="tipo-bloco-h">${tp.icone} ${esc(titulo)}</div>
+      <div class="tipo-bloco-h">${tp.icone} ${esc(titulo)}${cod === 'reuniao' ? ' <span class="info" title="Os envolvidos recebem um convite de agenda (.ics) por e-mail; mudanças de data, local ou link atualizam o convite e o cancelamento da tarefa cancela o evento.">ⓘ</span>' : ''}</div>
       <div class="tipo-campos">${campos.map(c => campoTipoHtml(c, (dados || {})[c.chave])).join('')}</div>
-      ${cod === 'reuniao' ? '<div class="hint">Os envolvidos recebem um convite de agenda (.ics) por e-mail; mudanças de data, local ou link atualizam o convite e o cancelamento da tarefa cancela o evento.</div>' : ''}
     </div>`
   }
   // lê os campos do tipo no formulário
@@ -756,97 +771,185 @@
   }
   function campoPrazoDoTipo (cod) { return (tipoDe(cod).campos || []).find(c => c.define_prazo) }
   function aplicarPrazoDoTipo () {
-    const cod = document.getElementById('f-tipo').value
+    const ft = document.getElementById('f-tipo'); if (!ft) return
+    const cod = ft.value
     const c = campoPrazoDoTipo(cod)
     const prazo = document.getElementById('f-prazo'), hint = document.getElementById('f-prazo-hint')
     if (!prazo) return
     prazo.readOnly = !!c
     prazo.classList.toggle('ro', !!c)
-    if (hint) hint.textContent = c ? `Definido por "${c.rotulo}".` : ''
+    if (hint) hint.textContent = c ? `= ${c.rotulo.toLowerCase()}` : ''
     if (c) { const el = document.getElementById('ft-' + c.chave); if (el && el.value) prazo.value = el.value.slice(0, 10) }
+  }
+
+  // ── Pessoas (responsáveis / observadores) como campo de adição ────────
+  // Estado do formulário em S.form.resp / S.form.obs; o salvar lê daqui.
+  function campoPessoas (papel, rotulo, bloqueado) {
+    return `<div class="fld"><label>${rotulo}</label>
+      <div class="pp" id="pp-${papel}">
+        <div class="pp-chips" id="pp-${papel}-chips"></div>
+        ${bloqueado ? '' : `<button type="button" class="pp-add" onclick="TK.ppAbrir('${papel}')">＋ adicionar</button>
+        <div class="pk-pop pp-pop" id="pp-${papel}-pop" hidden>
+          <input type="text" class="pk-busca" id="pp-${papel}-busca" placeholder="Buscar pessoa…" autocomplete="off"
+            oninput="TK.ppFiltrar('${papel}',this.value)" onkeydown="TK.ppTecla(event,'${papel}')">
+          <div class="pk-lista" id="pp-${papel}-lista"></div>
+        </div>`}
+      </div></div>`
+  }
+  function renderPessoas (papel) {
+    const el = document.getElementById(`pp-${papel}-chips`); if (!el) return
+    const ids = S.form[papel]
+    const fixo = papel === 'resp' && !S.form.podeDelegar
+    el.innerHTML = ids.map(id => {
+      const nm = nomeUsuario(id)
+      return `<span class="pp-chip">${avatar({ id, nome_completo: nm })}<span>${esc(nm)}</span>${
+        fixo ? '' : `<button type="button" onclick="TK.ppRemover('${papel}','${id}')" title="Remover">×</button>`}</span>`
+    }).join('') || `<span class="pp-vazio">${papel === 'resp' ? 'ninguém' : 'nenhum'}</span>`
+  }
+  const PP = { itens: [], hl: 0 }
+  function ppRender (papel) {
+    const el = document.getElementById(`pp-${papel}-lista`); if (!el) return
+    el.innerHTML = PP.itens.map((u, i) => `<div class="pk-it ${i === PP.hl ? 'hl' : ''}"
+        onmousedown="event.preventDefault();TK.ppAdicionar('${papel}','${u.id}')" onmouseenter="TK.ppHl('${papel}',${i})">
+        ${avatar(u)}<span>${esc(u.nome_completo)} <span style="color:var(--cinza-400);font-size:11px">${esc(u.perfil || '')}</span></span></div>`).join('')
+      || '<div class="det-empty">Ninguém encontrado.</div>'
+  }
+  function ppFecharTodos () { document.querySelectorAll('.pp-pop').forEach(p => { p.hidden = true }) }
+  document.addEventListener('mousedown', e => { if (!e.target.closest('.pp')) ppFecharTodos() })
+
+  // ── TDRs: só os vinculados à vista; a lista abre com "＋ vincular TDR" ─
+  function renderTdrChips () {
+    const el = document.getElementById('f-tdr-chips'); if (!el) return
+    const marcados = [...document.querySelectorAll('.chk-tdr:checked')].map(c => (S.tdrsAtv || []).find(d => d.id === c.value)).filter(Boolean)
+    const oc = S.tdrOcultos || 0
+    el.innerHTML = marcados.map(d => `<span class="pp-chip tdr-chip" title="${esc(d.objeto_pt || '')}">📄 <b>${esc(d.numero)}</b>
+        <span class="tdr-st">${esc(TDR_ST[d.status] || d.status)}</span>
+        <button type="button" onclick="TK.tdrDesmarcar('${d.id}')" title="Desvincular">×</button></span>`).join('') +
+      (oc ? `<span class="pp-chip tdr-chip">🔒 ${oc > 1 ? oc + ' TDRs' : 'TDR'} (acesso restrito)</span>` : '') ||
+      `<span class="pp-vazio">${(S.tdrsAtv || []).length ? 'nenhum vinculado' : 'nenhum TDR nesta atividade'}</span>`
+    const btn = document.getElementById('f-tdr-btn')
+    if (btn) btn.style.display = (S.tdrsAtv || []).length ? '' : 'none'
+  }
+
+  // ── Ficha (modo leitura) — clique numa informação entra em edição nela ─
+  const fmtDataHoraBR = v => { if (!v) return ''; const [d, h] = String(v).split('T'); const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}${h ? ' ' + h.slice(0, 5) : ''}` }
+  function fichaHtml (t) {
+    const ed = S.podeEditar
+    const L = (campo, rotulo, valor, largo) => valor
+      ? `<div class="fi-l${ed ? ' ed' : ''}${largo ? ' largo' : ''}"${ed ? ` onclick="TK.editarCampo('${campo}')" title="Clique para editar"` : ''}>
+          <span class="fi-r">${rotulo}</span><div class="fi-v">${valor}</div></div>` : ''
+    const tp = tipoDe(t.tipo), d = t.dados_tipo || {}
+    const pessoas = ids => ids.map(id => `<span class="pp-chip">${avatar({ id, nome_completo: nomeUsuario(id) })}<span>${esc(nomeUsuario(id))}</span></span>`).join('')
+    const dprazo = diasAte(t.dt_prazo)
+    const prazoTxt = t.dt_prazo ? `${fmtDataHoraBR(t.dt_prazo)}${t.status !== 'concluida' && dprazo !== null
+      ? (dprazo < 0 ? ' <span class="due late" style="margin:0">⚠ atrasada</span>' : dprazo === 0 ? ' <span class="due today" style="margin:0">hoje</span>' : ` <span class="fi-sub">em ${dprazo} dia${dprazo > 1 ? 's' : ''}</span>`) : ''}` : ''
+    // campos do tipo
+    let tipoLinhas = ''
+    if (t.tipo === 'reuniao' && d.inicio) {
+      const quando = fmtDataHoraBR(d.inicio) + (d.fim ? '–' + (d.fim.slice(0, 10) === d.inicio.slice(0, 10) ? d.fim.slice(11, 16) : fmtDataHoraBR(d.fim)) : '')
+      tipoLinhas += L('ft-inicio', 'Reunião', `📅 <b>${esc(quando)}</b>${d.formato ? ' · ' + esc(d.formato) : ''}${d.local ? ' · ' + esc(d.local) : ''}${
+        d.link ? ` · <a href="${esc(d.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir link ↗</a>` : ''}`)
+      tipoLinhas += L('ft-pauta', 'Pauta', d.pauta ? `<div class="fi-txt">${esc(d.pauta)}</div>` : '', true)
+    } else {
+      for (const c of (tp.campos || [])) {
+        const v = d[c.chave]; if (v === undefined || v === null || v === '') continue
+        const txt = c.tipo === 'boolean' ? (v === true || v === 'true' ? 'Sim' : 'Não')
+          : c.tipo === 'date' || c.tipo === 'datetime' ? fmtDataHoraBR(v)
+          : c.tipo === 'url' ? `<a href="${esc(v)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(v)}</a>`
+          : c.tipo === 'textarea' ? `<div class="fi-txt">${esc(v)}</div>` : esc(v)
+        tipoLinhas += L('ft-' + c.chave, esc(c.rotulo), txt, c.tipo === 'textarea')
+      }
+    }
+    const tdrs = (t.vinc_tdrs || []).map(x => x.tdr
+      ? `<a class="pp-chip tdr-chip" href="tdrs.html?abrir=${x.tdr.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${esc(x.tdr.objeto_pt || '')}">📄 <b>${esc(x.tdr.numero)}</b> <span class="tdr-st">${esc(TDR_ST[x.tdr.status] || x.tdr.status)}</span> ↗</a>`
+      : '<span class="pp-chip tdr-chip">🔒 TDR (acesso restrito)</span>').join('')
+    const obs = obsDe(t).map(p => p.usuario_id), resp = respsDe(t).map(p => p.usuario_id)
+    const criado = t.criado_em ? new Date(t.criado_em).toLocaleDateString('pt-BR') : ''
+    return `<div class="ficha">
+      <div class="fi-topo">
+        <span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>
+        <span class="fi-st"><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span>${ST_NM[t.status] || t.status}</span>
+        ${t.restrita ? '<span class="fi-st">🔒 Restrita</span>' : ''}
+        ${ed ? '<span class="fi-dica">clique numa informação para editá-la</span>' : ''}
+      </div>
+      ${L('f-prazo', 'Prazo', prazoTxt)}
+      ${L('f-inicio', 'Início', t.dt_inicio ? fmtDataHoraBR(t.dt_inicio) : '')}
+      ${tipoLinhas}
+      ${L('atividade', 'Atividade', t.atividade ? `<b class="pk-cod">${esc(t.atividade.codigo)}</b> ${esc(t.atividade.nome_pt || '')}` : '', true)}
+      ${L('tdr', 'TDRs', tdrs ? `<div class="pp-chips">${tdrs}</div>` : '')}
+      ${L('resp', 'Responsáveis', resp.length ? `<div class="pp-chips">${pessoas(resp)}</div>` : '')}
+      ${L('obs', 'Observadores', obs.length ? `<div class="pp-chips">${pessoas(obs)}</div>` : '')}
+      ${L('f-frn', 'Fornecedor', t.fornecedor ? `🏢 ${esc(t.fornecedor.nome)}${t.notificar_fornecedor ? ' <span class="fi-sub">· recebe e-mail</span>' : ''}` : '')}
+      ${L('f-desc', 'Descrição', t.descricao ? `<div class="fi-txt">${esc(t.descricao)}</div>` : '', true)}
+      ${ed && !t.descricao ? L('f-desc', 'Descrição', '<span class="fi-sub">+ adicionar descrição</span>') : ''}
+      <div class="fi-rodape">Criada por <b>${esc(nomeUsuario(t.criado_por))}</b>${criado ? ' em ' + criado : ''}</div>
+    </div>`
+  }
+
+  // ── Formulário (criar / editar) ───────────────────────────────────────
+  function formHtml (t) {
+    const novo = !t
+    const podeRestringir = novo || t.criado_por === usuario.id || appState.perfil === 'super_admin'
+    const tipoAtual = t ? (t.tipo || 'outras') : ''
+    const optFrn = ['<option value="">— nenhum —</option>'].concat(
+      S.fornecedores.map(f => `<option value="${f.id}" ${t && t.fornecedor_id === f.id ? 'selected' : ''} data-email="${f.email ? 1 : 0}">${esc(f.nome)}${f.email ? '' : ' (sem e-mail)'}</option>`)).join('')
+    const chipsPrio = PRIOS.map(([k, v]) =>
+      `<button type="button" class="chip-t ${(t ? t.prioridade : 'media') === k ? 'on' : ''}" data-prio="${k}" onclick="TK.pickPrio(this)">${v}</button>`).join('')
+    const info = txt => `<span class="info" title="${esc(txt)}">ⓘ</span>`
+    return `
+      ${!novo ? `<div class="tk-edit-faixa">
+        <div>✏️ <b>Modo edição</b> — as alterações ficarão registradas no histórico da tarefa.</div>
+        <input type="text" id="f-motivo" maxlength="300" placeholder="Motivo da alteração (opcional; obrigatório se o prazo mudar)">
+      </div>` : ''}
+      <fieldset class="tk-campos">
+        <div class="fld"><label>Tipo de tarefa *${novo ? info('Escolha o tipo primeiro: o formulário se ajusta a ele.') : ''}</label>${seletorTipo(tipoAtual)}</div>
+        <div class="fld"><label>Título *</label>
+          <input type="text" id="f-titulo" value="${t ? esc(t.titulo) : ''}" placeholder="O que precisa ser feito?"></div>
+        <div id="f-tipo-bloco">${tipoAtual ? blocoTipo(tipoAtual, t ? t.dados_tipo : {}) : ''}</div>
+        <div class="fld-row3">
+          <div class="fld"><label>Prioridade</label><div class="chips" id="f-prio">${chipsPrio}</div></div>
+          <div class="fld"><label>Início</label><input type="date" id="f-inicio" value="${t && t.dt_inicio ? t.dt_inicio : ''}"></div>
+          <div class="fld"><label>Prazo <span class="hint-in" id="f-prazo-hint"></span></label><input type="date" id="f-prazo" value="${t && t.dt_prazo ? t.dt_prazo : ''}"></div>
+        </div>
+        <div class="fld"><label>Atividade vinculada</label>${pickerAtividade(t ? t.atividade_id : null)}</div>
+        <div class="fld" id="f-tdr-wrap" style="display:none"><label>TDRs vinculados <span class="opc">opcional</span></label>
+          <div class="pp"><div class="pp-chips" id="f-tdr-chips"></div>
+            <button type="button" class="pp-add" id="f-tdr-btn" onclick="TK.tdrPainel()">＋ vincular TDR</button></div>
+          <div class="tdr-lista" id="f-tdr-lista" hidden></div></div>
+        ${campoPessoas('resp', 'Responsáveis' + (S.form.podeDelegar ? '' : ' <span class="opc">só você</span>'), !S.form.podeDelegar)}
+        ${campoPessoas('obs', 'Observadores ' + info('Acompanham a tarefa sem executar; recebem os avisos por e-mail e no sino.'), false)}
+        <div class="fld-row">
+          <div class="fld"><label>Fornecedor ${info('Parte externa: recebe aviso por e-mail, não acessa a plataforma.')}</label>
+            <select id="f-frn" onchange="TK.onFrn()">${optFrn}</select>
+            <label class="inline-ck" id="f-frn-wrap" style="${t && t.fornecedor_id ? '' : 'display:none'}">
+              <input type="checkbox" id="f-notif-frn" ${t && t.notificar_fornecedor ? 'checked' : ''}> enviar e-mail de cobrança</label></div>
+          <div class="fld"><label>Visibilidade ${info('Restrita: só quem criou, responsáveis, observadores e o super admin veem. Coordenação e responsáveis da atividade não veem. Quem entrar como observador ou responsável de subtarefa passa a ver a tarefa inteira.')}</label>
+            <label class="inline-ck tk-restr ${t && t.restrita ? 'on' : ''}" id="f-restr-wrap">
+              <input type="checkbox" id="f-restrita" ${t && t.restrita ? 'checked' : ''} ${podeRestringir ? '' : 'disabled'}
+                onchange="document.getElementById('f-restr-wrap').classList.toggle('on',this.checked)"> 🔒 Tarefa restrita${podeRestringir ? '' : ' <span class="opc">só quem criou altera</span>'}</label></div>
+        </div>
+        <div class="fld"><label>Descrição ${info('Evite colar CPF ou dados pessoais aqui — este campo é interno.')}</label>
+          <textarea id="f-desc" rows="2" placeholder="Contexto, links, critérios de conclusão…"
+            oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${t ? esc(t.descricao || '') : ''}</textarea></div>
+      </fieldset>`
   }
 
   function montarModal (t) {
     const novo = !t
-    const podeEditar = novo || podeDelegarGlobal || (t && t.criado_por === usuario.id) || (t && souResponsavel(t))
-    const respIds = t ? respsDe(t).map(p => p.usuario_id) : [usuario.id]
-    const obsIds  = t ? obsDe(t).map(p => p.usuario_id) : []
-    const podeDelegar = podeDelegarGlobal || novo // validação real no servidor
-    // restrição: qualquer um cria; só o criador (ou super_admin) altera depois
-    const podeRestringir = novo || t.criado_por === usuario.id || appState.perfil === 'super_admin'
-    const bloqueio = podeEditar ? '' : 'pointer-events:none;opacity:.7'
-    const travado = !novo && !S.modoEdicao ? ' disabled' : ''
-    const tipoAtual = t ? (t.tipo || 'outras') : ''
-
-    const optFrn = ['<option value="">— nenhum —</option>'].concat(
-      S.fornecedores.map(f => `<option value="${f.id}" ${t && t.fornecedor_id === f.id ? 'selected' : ''} data-email="${f.email ? 1 : 0}">${esc(f.nome)}${f.email ? '' : ' (sem e-mail)'}</option>`)).join('')
-
-    const chipsPrio = PRIOS.map(([k, v]) =>
-      `<button type="button" class="chip-t ${(t ? t.prioridade : 'media') === k ? 'on' : ''}" data-prio="${k}" onclick="TK.pickPrio(this)">${v}</button>`).join('')
-
-    const listaResp = S.usuarios.map(u =>
-      `<label><input type="checkbox" class="chk-resp" value="${u.id}" ${respIds.includes(u.id) ? 'checked' : ''}> ${esc(u.nome_completo)} <span style="color:var(--cinza-400);font-size:11px">${esc(u.perfil)}</span></label>`).join('')
-    const listaObs = S.usuarios.map(u =>
-      `<label><input type="checkbox" class="chk-obs" value="${u.id}" ${obsIds.includes(u.id) ? 'checked' : ''}> ${esc(u.nome_completo)}</label>`).join('')
-
+    const leitura = !novo && !S.modoEdicao
+    const podeEditar = S.podeEditar
     return `
     <div class="tk-modal-h">
-      <h3>${novo ? 'Nova tarefa' : cadeado(t) + esc(t.titulo)}</h3>
-      ${t ? `<span class="tipo-badge" style="--tc:${tipoDe(t.tipo).cor}">${tipoDe(t.tipo).icone} ${esc(tipoDe(t.tipo).nome)}</span>` : ''}
-      ${t ? `<span class="code">${esc(t.codigo)}</span>` : ''}
+      ${t ? `<span class="tk-num" title="Número da tarefa">${esc(t.codigo || '')}</span>
+        <span class="tipo-badge" style="--tc:${tipoDe(t.tipo).cor}">${tipoDe(t.tipo).icone} ${esc(tipoDe(t.tipo).nome)}</span>` : ''}
+      <h3 class="${leitura && podeEditar ? 'ed' : ''}" ${leitura && podeEditar ? `onclick="TK.editarCampo('f-titulo')" title="Clique para editar"` : ''}>${novo ? 'Nova tarefa' : cadeado(t) + esc(t.titulo)}</h3>
+      <span class="tk-spacer"></span>
+      ${leitura && podeEditar ? '<button class="btn-pri btn-sm" onclick="TK.editar()">✏️ Editar</button>' : ''}
       <button class="tk-x" onclick="fecharModal()">×</button>
     </div>
-    <div class="tk-modal-b" id="tk-form">
-      ${!novo && S.modoEdicao ? `<div class="tk-edit-faixa">
-        <div>✏️ <b>Modo edição</b> — as alterações ficarão registradas no histórico da tarefa.</div>
-        <div class="fld" style="margin:0"><input type="text" id="f-motivo" maxlength="300"
-          placeholder="Motivo da alteração (opcional; obrigatório se o prazo mudar)"></div>
-      </div>` : ''}
-      <div class="tk-mcol">
-        <fieldset class="tk-campos" style="${bloqueio}"${travado}>
-          <div class="fld"><label>Tipo de tarefa *</label>${seletorTipo(tipoAtual)}
-            ${novo ? '<div class="hint">Escolha o tipo primeiro: o formulário se ajusta a ele.</div>' : ''}</div>
-          <div class="fld"><label>Título *</label>
-            <input type="text" id="f-titulo" value="${t ? esc(t.titulo) : ''}" placeholder="O que precisa ser feito?"></div>
-          <div id="f-tipo-bloco">${tipoAtual ? blocoTipo(tipoAtual, t ? t.dados_tipo : {}) : ''}</div>
-          <div class="fld"><label>Descrição</label>
-            <textarea id="f-desc" placeholder="Contexto, links, critérios de conclusão…">${t ? esc(t.descricao || '') : ''}</textarea>
-            <div class="hint">Evite colar CPF ou dados pessoais aqui — este campo é interno.</div></div>
-          <div class="fld"><label>Prioridade</label><div class="chips" id="f-prio">${chipsPrio}</div></div>
-          <div class="fld-row">
-            <div class="fld"><label>Início</label><input type="date" id="f-inicio" value="${t && t.dt_inicio ? t.dt_inicio : ''}"></div>
-            <div class="fld"><label>Prazo</label><input type="date" id="f-prazo" value="${t && t.dt_prazo ? t.dt_prazo : ''}">
-              <div class="hint" id="f-prazo-hint"></div></div>
-          </div>
-          <div class="fld"><label>Atividade vinculada</label>${pickerAtividade(t ? t.atividade_id : null)}</div>
-          <div class="fld" id="f-tdr-wrap" style="display:none"><label>TDRs vinculados <span style="color:var(--cinza-400);font-weight:400">(opcional — objetivo da tarefa)</span></label>
-            <div class="tdr-lista" id="f-tdr-lista"></div></div>
-          <div class="fld"><label>Fornecedor (parte externa)</label><select id="f-frn" onchange="TK.onFrn()">${optFrn}</select></div>
-          <div class="fld" id="f-frn-wrap" style="${t && t.fornecedor_id ? '' : 'display:none'}">
-            <label style="display:flex;align-items:center;gap:8px;font-weight:400;font-size:13px;cursor:pointer">
-              <input type="checkbox" id="f-notif-frn" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.notificar_fornecedor ? 'checked' : ''}>
-              Enviar e-mail de cobrança ao fornecedor</label>
-            <div class="hint">O fornecedor recebe um aviso por e-mail; ele não acessa a plataforma.</div>
-          </div>
-        <div class="fld tk-restr ${t && t.restrita ? 'on' : ''}" id="f-restr-wrap">
-          <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:${podeRestringir ? 'pointer' : 'default'}">
-            <input type="checkbox" id="f-restrita" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.restrita ? 'checked' : ''} ${podeRestringir ? '' : 'disabled'}
-              onchange="document.getElementById('f-restr-wrap').classList.toggle('on',this.checked)">
-            🔒 Tarefa restrita</label>
-          <div class="hint">Visível só para quem criou, responsáveis e observadores (e o super admin). A coordenação e os responsáveis da atividade vinculada não veem.
-            Quem for incluído como observador ou responsável de subtarefa passa a ver a tarefa inteira.${podeRestringir ? '' : ' Só quem criou a tarefa pode alterar.'}</div>
-        </div>
-        </fieldset>
-      </div>
-      <div class="tk-mcol">
-        <fieldset class="tk-campos" style="${bloqueio}"${travado}>
-          <div class="fld"><label>Responsáveis internos ${podeDelegar ? '' : '<span style="color:var(--cinza-400);font-weight:400">(só você)</span>'}</label>
-            <div class="multi" ${podeDelegar ? '' : 'style="opacity:.6;pointer-events:none"'}>${listaResp}</div></div>
-          <div class="fld"><label>Observadores <span style="color:var(--cinza-400);font-weight:400">(acompanham, sem executar)</span></label>
-            <div class="multi">${listaObs}</div></div>
-        </fieldset>
-        ${t ? '<div id="tk-detalhe" style="border-top:1px solid var(--borda);padding-top:14px;color:var(--cinza-400);font-size:12px">Carregando…</div>' : ''}
-      </div>
+    <div class="tk-modal-b${novo ? ' um' : ''}" id="tk-form">
+      <div class="tk-mcol tk-rol">${leitura ? fichaHtml(t) : formHtml(t)}</div>
+      ${t ? '<div class="tk-mcol tk-rol"><div id="tk-detalhe" style="color:var(--cinza-400);font-size:12px">Carregando…</div></div>' : ''}
     </div>
     <div class="tk-modal-f">${novo ? `
       <button class="btn-sec" onclick="fecharModal()">Fechar</button>
@@ -856,8 +959,7 @@
       <button class="btn-pri" onclick="TK.salvar()">Salvar alterações</button>` : `
       ${podeEditar && t.status !== 'cancelada' ? `<button class="btn-danger-ghost" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
       ${podeEditar && t.status !== 'concluida' ? `<button class="btn-ok" onclick="TK.concluir('${t.id}')">✓ Concluir</button>` : ''}
-      <button class="btn-sec" onclick="fecharModal()">Fechar</button>
-      ${podeEditar ? `<button class="btn-pri" onclick="TK.editar()">✏️ Editar tarefa</button>` : ''}`}
+      <button class="btn-sec" onclick="fecharModal()">Fechar</button>`}
     </div>`
   }
 
@@ -880,8 +982,8 @@
     const atividade_id = g('f-atv').value || null
     const fornecedor_id = g('f-frn').value || null
     const notificar = !!(g('f-notif-frn') && g('f-notif-frn').checked && fornecedor_id)
-    const responsaveis = [...document.querySelectorAll('.chk-resp:checked')].map(c => c.value)
-    const observadores = [...document.querySelectorAll('.chk-obs:checked')].map(c => c.value)
+    const responsaveis = [...S.form.resp]
+    const observadores = S.form.obs.filter(u => !S.form.resp.includes(u))
     const restrita = !!(g('f-restrita') && g('f-restrita').checked)
     const tdrsMarcados = atividade_id ? [...document.querySelectorAll('.chk-tdr:checked')].map(c => c.value) : []
 
@@ -1003,7 +1105,8 @@
 
   // ── Gestão dos tipos (super_admin / coordenação) ──────────────────────
   function abrirTipos () {
-    S.editId = null; S.det = null
+    S.editId = null; S.det = null; S.modoEdicao = false
+    document.getElementById('tk-modal').classList.remove('estreito')
     const linhas = S.tipos.map(x => `<tr data-cod="${x.codigo}">
         <td><input type="text" class="tt-ic" value="${esc(x.icone)}" maxlength="4"></td>
         <td><input type="text" class="tt-nm" value="${esc(x.nome)}"></td>
@@ -1114,6 +1217,55 @@
       const t = S.tarefas.find(x => x.id === S.editId); if (!t) return
       S.modoEdicao = false; abrirModal(t, true)
     },
+    editarCampo: campo => {
+      const t = S.tarefas.find(x => x.id === S.editId); if (!t || !S.podeEditar) return
+      S.modoEdicao = true
+      if (campo === 'tdr') S.abrirTdrAoCarregar = true
+      abrirModal(t, true)
+      const foco = id => { const el = document.getElementById(id); if (el) { el.scrollIntoView({ block: 'center' }); el.focus() } }
+      if (campo === 'atividade') { TK.pkAbrir() }
+      else if (campo === 'resp' || campo === 'obs') { const b = document.querySelector(`#pp-${campo} .pp-add`); if (b) { b.scrollIntoView({ block: 'center' }); TK.ppAbrir(campo) } }
+      else if (campo === 'tdr') { const w = document.getElementById('f-tdr-wrap'); if (w) w.scrollIntoView({ block: 'center' }) }
+      else if (campo === 'f-prazo') {
+        const c = campoPrazoDoTipo(t.tipo)
+        foco(c ? 'ft-' + c.chave : 'f-prazo')
+      } else foco(campo)
+    },
+    // pessoas
+    ppAbrir: papel => {
+      const pop = document.getElementById(`pp-${papel}-pop`); if (!pop) return
+      const aberto = !pop.hidden; ppFecharTodos(); if (aberto) return
+      pop.hidden = false
+      const b = document.getElementById(`pp-${papel}-busca`); b.value = ''; TK.ppFiltrar(papel, ''); b.focus()
+    },
+    ppFiltrar: (papel, q) => {
+      const n = semAcento(q).trim()
+      PP.itens = S.usuarios.filter(u => !S.form[papel].includes(u.id) && (!n || semAcento(u.nome_completo).includes(n)))
+      PP.hl = 0; ppRender(papel)
+    },
+    ppHl: (papel, i) => { PP.hl = i; document.querySelectorAll(`#pp-${papel}-lista .pk-it`).forEach((el, j) => el.classList.toggle('hl', j === i)) },
+    ppTecla: (e, papel) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); PP.hl = Math.min(PP.itens.length - 1, PP.hl + 1); ppRender(papel) }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); PP.hl = Math.max(0, PP.hl - 1); ppRender(papel) }
+      else if (e.key === 'Enter') { e.preventDefault(); const u = PP.itens[PP.hl]; if (u) TK.ppAdicionar(papel, u.id) }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ppFecharTodos() }
+    },
+    ppAdicionar: (papel, id) => {
+      const outro = papel === 'resp' ? 'obs' : 'resp'
+      if (!S.form[papel].includes(id)) S.form[papel].push(id)
+      S.form[outro] = S.form[outro].filter(x => x !== id) // um papel por pessoa
+      renderPessoas('resp'); renderPessoas('obs')
+      const b = document.getElementById(`pp-${papel}-busca`); if (b) { b.value = ''; TK.ppFiltrar(papel, ''); b.focus() }
+    },
+    ppRemover: (papel, id) => { S.form[papel] = S.form[papel].filter(x => x !== id); renderPessoas(papel) },
+    // TDRs
+    tdrPainel: forcarAbrir => {
+      const el = document.getElementById('f-tdr-lista'), b = document.getElementById('f-tdr-btn'); if (!el) return
+      el.hidden = forcarAbrir === true ? false : !el.hidden
+      if (b) b.textContent = el.hidden ? '＋ vincular TDR' : 'fechar lista'
+    },
+    tdrMudou: () => renderTdrChips(),
+    tdrDesmarcar: id => { const c = document.querySelector(`.chk-tdr[value="${id}"]`); if (c) c.checked = false; renderTdrChips() },
     histToggle: i => { const el = document.getElementById('hist-det-' + i); if (el) el.hidden = !el.hidden },
     pickPrio: el => { el.parentElement.querySelectorAll('.chip-t').forEach(c => c.classList.remove('on')); el.classList.add('on') },
     pkAbrir: () => {

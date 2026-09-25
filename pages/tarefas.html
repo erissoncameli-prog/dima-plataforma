@@ -294,6 +294,78 @@ fieldset.tk-campos:disabled .pk-seta{visibility:hidden}
 .hd-long{white-space:pre-wrap;font-size:11.5px;margin:3px 0;padding:4px 7px;background:#fff;border:1px solid var(--cinza-100);border-radius:6px;max-height:140px;overflow:auto}
 .hd-long span{display:block;font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase}
 
+/* ── Modal compacto (ficha / formulário) ─────────────────── */
+.tk-overlay{padding:24px 16px}
+.tk-modal{display:flex;flex-direction:column;max-height:calc(100vh - 48px)}
+.tk-modal.estreito{max-width:780px}
+.tk-modal-h{flex-wrap:wrap;padding:14px 20px;gap:8px 10px}
+.tk-modal-h h3{font-size:16px;line-height:1.3;min-width:0}
+.tk-modal-h h3.ed{cursor:pointer;border-radius:6px;padding:2px 4px;margin:-2px -4px}
+.tk-modal-h h3.ed:hover{background:var(--cinza-50,#F9FAFB)}
+.tk-num{font-family:var(--font-mono);font-size:15px;font-weight:700;color:#fff;background:var(--verde);padding:4px 10px;border-radius:7px;letter-spacing:.02em;white-space:nowrap}
+.btn-sm{padding:7px 14px;font-size:12.5px}
+.tk-modal-b{flex:1;min-height:0;padding:14px 20px;grid-template-rows:minmax(0,1fr);align-items:stretch;gap:0 24px}
+.tk-modal-b.um{grid-template-columns:minmax(0,1fr)}
+.tk-rol{overflow-y:auto;min-height:0;padding:2px 6px 6px 2px}
+.tk-rol+.tk-rol{border-left:1px solid var(--borda);padding-left:22px}
+.tk-modal-f{padding:12px 20px}
+@media(max-width:900px){
+  .tk-modal{max-height:none}.tk-modal-b{overflow:visible;grid-template-rows:auto}
+  .tk-rol{overflow:visible}.tk-rol+.tk-rol{border-left:0;padding-left:2px;border-top:1px solid var(--borda);padding-top:14px;margin-top:10px}}
+.tk-campos{gap:12px}
+.fld label{margin-bottom:4px}
+.fld-row3{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.fld-row3 .chips{gap:4px;flex-wrap:nowrap}
+.fld-row3 .chip-t{padding:8px 9px;font-size:11.5px}
+.fld-row3 input[type=date]{padding:8px 8px;font-size:12.5px}
+@media(max-width:640px){.fld-row3{grid-template-columns:minmax(0,1fr)}}
+.fld textarea#f-desc{min-height:0;resize:none;overflow:hidden}
+.info{display:inline-block;color:var(--cinza-400);font-weight:400;cursor:help;margin-left:3px}
+.opc{color:var(--cinza-400);font-weight:400;font-size:11px}
+.hint-in{color:var(--cinza-400);font-weight:400;font-size:10.5px}
+.inline-ck{display:flex!important;align-items:center;gap:7px;font-weight:400!important;font-size:12.5px!important;margin:6px 0 0!important;cursor:pointer;color:var(--cinza-700)!important}
+.inline-ck input{width:15px;height:15px;accent-color:var(--verde-medio)}
+.tk-restr.inline-ck{margin:0!important;padding:8px 10px;border:1px solid var(--borda-forte);border-radius:var(--raio)}
+.tk-edit-faixa{margin-bottom:12px}
+.tk-edit-faixa input{font:inherit;font-size:12.5px;padding:7px 10px;border:1px solid #FCD34D;border-radius:var(--raio);background:#fff;width:100%}
+/* tipo: fileira compacta */
+.tipo-grid{display:flex;flex-wrap:wrap;gap:6px}
+.tipo-op{padding:6px 10px;font-size:12px;border-radius:99px}
+.tipo-op-ic{font-size:14px}
+/* pessoas e TDRs como chips + adicionar */
+.pp{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.pp-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pp-chip{display:inline-flex;align-items:center;gap:6px;background:var(--cinza-50,#F9FAFB);border:1px solid var(--borda);border-radius:99px;padding:3px 8px 3px 3px;font-size:12.5px;color:var(--cinza-800);text-decoration:none}
+.pp-chip .av{width:20px;height:20px;font-size:8px}
+.pp-chip button{border:0;background:transparent;color:var(--cinza-400);font-size:15px;line-height:1;cursor:pointer;padding:0 2px}
+.pp-chip button:hover{color:var(--erro)}
+.tdr-chip{padding:3px 8px}
+a.tdr-chip:hover{border-color:var(--verde-claro)}
+.pp-vazio{font-size:12px;color:var(--cinza-400)}
+.pp-add{border:1px dashed var(--borda-forte);background:transparent;color:var(--verde-medio);font:inherit;font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;cursor:pointer}
+.pp-add:hover{border-color:var(--verde-claro);background:var(--verde-bg)}
+.pp-pop{top:calc(100% + 4px);max-width:420px}
+.pp-pop .pk-it{align-items:center}
+#f-tdr-lista{margin-top:8px}
+/* ficha (leitura) */
+.ficha{display:flex;flex-direction:column;gap:2px}
+.fi-topo{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+.fi-st{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--cinza-700);background:var(--cinza-100);border-radius:99px;padding:2px 9px}
+.fi-dica{margin-left:auto;font-size:11px;color:var(--cinza-400)}
+.fi-l{display:grid;grid-template-columns:104px minmax(0,1fr);gap:10px;padding:7px 8px;border-radius:7px;align-items:start}
+.fi-l.ed{cursor:pointer}
+.fi-l.ed:hover{background:var(--verde-bg)}
+.fi-l.ed:hover .fi-r::after{content:' ✏️';font-size:10px}
+.fi-r{font-size:11.5px;font-weight:600;color:var(--cinza-500);padding-top:2px}
+.fi-v{font-size:13px;color:var(--cinza-900);min-width:0;line-height:1.45}
+.fi-v a{color:var(--verde-medio)}
+.fi-sub{font-size:11.5px;color:var(--cinza-500)}
+.fi-txt{white-space:pre-wrap}
+.fi-rodape{font-size:11px;color:var(--cinza-400);padding:8px 8px 0;border-top:1px dashed var(--cinza-100);margin-top:6px}
+/* número da tarefa nas visões */
+.tk-num-s{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--verde);background:var(--verde-bg);padding:1px 6px;border-radius:5px;white-space:nowrap}
+.cal-num{font-family:var(--font-mono);font-size:9.5px;color:var(--verde)}
+
 /* ── Barra de progresso (card + lista) ───────────────────── */
 .tk-prog{display:flex;align-items:center;gap:6px}
 .tk-prog.card{margin-top:9px}
