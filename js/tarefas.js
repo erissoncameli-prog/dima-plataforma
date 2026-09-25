@@ -212,7 +212,19 @@
       <div class="meta">${prio}${atv}${frn}
         <span class="av-stack">${rs}</span>${badgePrazo(t)}</div>
       ${barraProgresso(t, 'card')}
+      ${linhaCriador(t)}
     </div>`
+  }
+
+  // "Criada por" no rodapé do card: primeiro + último nome
+  function linhaCriador (t) {
+    if (!t.criado_por) return ''
+    const nome = nomeUsuario(t.criado_por)
+    const partes = nome.split(' ').filter(Boolean)
+    const curto = partes.length > 1 ? partes[0] + ' ' + partes[partes.length - 1] : nome
+    const quando = t.criado_em ? new Date(t.criado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''
+    return `<div class="tk-criador" title="Criada por ${esc(nome)}${quando ? ' em ' + quando : ''}">
+      ${avatar({ id: t.criado_por, nome_completo: nome })}<span>Criada por <b>${esc(curto)}</b>${quando ? ' · ' + quando : ''}</span></div>`
   }
 
   // ── Minhas tarefas ────────────────────────────────────────────────────
