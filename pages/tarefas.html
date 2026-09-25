@@ -73,14 +73,16 @@
 .tk-overlay{position:fixed;inset:0;background:rgba(17,24,39,.5);display:none;align-items:flex-start;
   justify-content:center;z-index:1000;padding:40px 16px;overflow-y:auto}
 .tk-overlay.on{display:flex}
-.tk-modal{background:var(--branco);border-radius:var(--raio-xl);width:100%;max-width:560px;box-shadow:var(--sombra-lg);
+.tk-modal{background:var(--branco);border-radius:var(--raio-xl);width:100%;max-width:1120px;box-shadow:var(--sombra-lg);
   animation:tkpop .16s ease}
 @keyframes tkpop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .tk-modal-h{display:flex;align-items:center;gap:10px;padding:18px 22px;border-bottom:1px solid var(--borda)}
 .tk-modal-h h3{margin:0;font-size:16px;font-weight:600;color:var(--cinza-900)}
 .tk-modal-h .code{font-family:var(--font-mono);font-size:11px;color:var(--cinza-400)}
 .tk-x{margin-left:auto;border:0;background:transparent;font-size:22px;color:var(--cinza-400);cursor:pointer;line-height:1}
-.tk-modal-b{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.tk-modal-b{padding:20px 22px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 28px;align-items:start}
+.tk-mcol,.tk-campos{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media(max-width:900px){.tk-modal-b{grid-template-columns:minmax(0,1fr)}}
 .fld label{display:block;font-size:12px;font-weight:600;color:var(--cinza-700);margin-bottom:5px}
 .fld input[type=text],.fld input[type=date],.fld textarea,.fld select{width:100%;font:inherit;font-size:13.5px;
   padding:9px 11px;border:1px solid var(--borda-forte);border-radius:var(--raio);background:var(--branco);color:var(--cinza-900)}
@@ -207,6 +209,34 @@
 .tk-lock{font-size:11px;margin-right:4px}
 .tk-restr{border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px}
 .tk-restr.on{border-color:#D97706;background:#FFFBEB}
+
+/* ── Seletor de atividade (busca + nome completo) ─────────── */
+.pk{position:relative}
+.pk-btn{width:100%;display:flex;align-items:flex-start;gap:8px;text-align:left;font:inherit;font-size:13px;padding:9px 11px;
+  border:1px solid var(--borda-forte);border-radius:var(--raio);background:var(--branco);color:var(--cinza-900);cursor:pointer}
+.pk-btn .pk-nome{flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35}
+.pk-seta{margin-left:auto;color:var(--cinza-400);flex-shrink:0}
+.pk-cod{font-family:var(--font-mono);font-size:11.5px;color:var(--verde-medio);white-space:nowrap;flex-shrink:0;padding-top:1px}
+.pk-ph{color:var(--cinza-400)}
+.pk-pop{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);background:var(--branco);border:1px solid var(--borda-forte);
+  border-radius:var(--raio);box-shadow:var(--sombra-lg);padding:8px}
+.pk-busca{width:100%;font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--borda-forte);border-radius:var(--raio);margin-bottom:6px}
+.pk-lista{max-height:340px;overflow-y:auto}
+.pk-it{display:flex;gap:10px;align-items:flex-start;padding:8px 9px;border-radius:6px;cursor:pointer;font-size:12.5px;line-height:1.4;color:var(--cinza-800)}
+.pk-it.hl{background:var(--verde-bg)}
+.pk-it.sel{box-shadow:inset 3px 0 0 var(--verde-medio);background:var(--cinza-50,#F9FAFB)}
+
+/* ── TDRs vinculados ─────────────────────────────────────── */
+.tdr-lista{border:1px solid var(--borda-forte);border-radius:var(--raio);padding:4px;max-height:260px;overflow-y:auto}
+.tdr-lista .tdr-it{display:flex;gap:9px;align-items:flex-start;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:12.5px;font-weight:400;color:var(--cinza-800);margin:0}
+.tdr-lista .tdr-it:hover{background:var(--cinza-50,#F9FAFB)}
+.tdr-lista .tdr-it input{width:15px;height:15px;margin-top:2px;accent-color:var(--verde-medio);flex-shrink:0}
+.tdr-txt{flex:1;min-width:0}
+.tdr-st{color:var(--cinza-500)}
+.tdr-obj{font-size:11.5px;color:var(--cinza-500);margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tdr-abrir{margin-left:6px;font-size:11px;color:var(--verde-medio);text-decoration:none;pointer-events:auto}
+.tdr-abrir:hover{text-decoration:underline}
+.tdr-rest{cursor:default;color:var(--cinza-500)}
 
 /* ── Barra de progresso (card + lista) ───────────────────── */
 .tk-prog{display:flex;align-items:center;gap:6px}

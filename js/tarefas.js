@@ -63,6 +63,14 @@
   const respsDe = t => (t.participantes || []).filter(p => p.papel === 'responsavel')
   const obsDe   = t => (t.participantes || []).filter(p => p.papel === 'observador')
   const souResponsavel = t => respsDe(t).some(p => p.usuario_id === usuario.id)
+  // TDRs vinculados: t.vinc_tdrs[].tdr é null quando o usuário não enxerga o TDR (RLS)
+  function chipTdrs (t) {
+    const v = t.vinc_tdrs || []; if (!v.length) return ''
+    const vis = v.filter(x => x.tdr).map(x => x.tdr.numero)
+    const txt = vis.length ? vis[0] : 'TDR'
+    const tt = vis.length ? 'TDR: ' + vis.join(', ') + (vis.length < v.length ? ' + vinculado(s) de acesso restrito' : '') : 'TDR vinculado (acesso restrito)'
+    return `<span class="lnk" title="${esc(tt)}">📄 ${esc(txt)}${v.length > 1 ? ' +' + (v.length - 1) : ''}</span>`
+  }
   const LOCK = '<span class="tk-lock" title="Tarefa restrita: visível só para os envolvidos">🔒</span>'
   const cadeado = t => t && t.restrita ? LOCK : ''
 
@@ -74,6 +82,7 @@
         'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,restrita,ordem,criado_por,criado_em,' +
         'participantes:tarefa_participantes(usuario_id,papel),' +
         'atividade:atividades(id,codigo,nome_pt),' +
+        'vinc_tdrs:tarefa_tdrs(tdr_id,tdr:tdrs(id,numero,tipo,status,objeto_pt)),' +
         'fornecedor:fornecedores(id,nome)'
       ).eq('ativo', true).order('ordem', { ascending: true }).order('criado_em', { ascending: false }),
       db.from('usuarios').select('id,nome_completo,perfil,email').eq('ativo', true).order('nome_completo'),
@@ -181,7 +190,7 @@
     const rs = respsDe(t).slice(0, 3)
       .map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
     const prio = `<span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>`
-    const atv = t.atividade ? `<span class="lnk">${esc(t.atividade.codigo)}</span>` : ''
+    const atv = (t.atividade ? `<span class="lnk" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span>` : '') + chipTdrs(t)
     const frn = t.fornecedor ? `<span class="frn" title="${esc(t.fornecedor.nome)}">🏢 ${esc((t.fornecedor.nome || '').split(' ')[0])}</span>` : ''
     return `<div class="tk-card" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')">
       <div class="code">${esc(t.codigo || '')}</div>
@@ -222,7 +231,7 @@
         <span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}" title="${ST_NM[t.status]}"></span>
         <span class="r-ttl"><span class="r-code">${esc(t.codigo || '')}</span> ${cadeado(t)}${esc(t.titulo)}</span>
         <span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>
-        ${t.atividade ? `<span class="lnk">${esc(t.atividade.codigo)}</span>` : ''}
+        ${t.atividade ? `<span class="lnk" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span>` : ''}${chipTdrs(t)}
         <span class="av-stack">${rs}</span>
         ${badgePrazo(t)}
       </div>`
@@ -245,7 +254,7 @@
         <td><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span> ${cadeado(t)}${esc(t.titulo)}</td>
         <td><span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span></td>
         <td>${ST_NM[t.status] || t.status}</td>
-        <td>${t.atividade ? esc(t.atividade.codigo) : (t.fornecedor ? '🏢 ' + esc((t.fornecedor.nome || '').split(' ')[0]) : '—')}</td>
+        <td>${t.atividade ? `<span title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span> ${chipTdrs(t)}` : (t.fornecedor ? '🏢 ' + esc((t.fornecedor.nome || '').split(' ')[0]) : '—')}</td>
         <td><span class="av-stack">${rs || '—'}</span></td>
         <td>${barraProgresso(t, 'lista')}</td>
         <td>${badgePrazo(t) || '—'}</td>
@@ -342,7 +351,11 @@
     const ov = document.getElementById('tk-overlay')
     document.getElementById('tk-modal').innerHTML = montarModal(t)
     ov.classList.add('on')
-    if (t) carregarDetalhe(t.id)
+    if (t) {
+      carregarDetalhe(t.id)
+      const v = t.vinc_tdrs || []
+      carregarTdrsAtv(t.atividade_id, v.filter(x => x.tdr).map(x => x.tdr_id), v.filter(x => !x.tdr).length)
+    }
   }
 
   // ── Detalhe (checklist / comentários / anexos / histórico) ────────────
@@ -367,6 +380,7 @@
     comentario: 'comentou', edicao: 'editou', anexo: 'anexou',
     subtarefa_resp: 'atribuiu a subtarefa', comentario_fornecedor: 'resposta por e-mail de',
     restricao: 'alterou a visibilidade',
+    tdr_vinculo: 'vinculou o TDR', tdr_desvinculo: 'desvinculou o TDR',
   }
   const fmtDT = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
   const primeiroNome = n => (n || '').split(' ')[0]
@@ -552,6 +566,73 @@
   }
   window.fecharModal = () => document.getElementById('tk-overlay').classList.remove('on')
 
+  // ── Seletor de atividade (busca + nome completo) ──────────────────────
+  // O <select> nativo não mostra o nome ao passar o mouse e as atividades têm
+  // nomes de até ~420 caracteres; por isso um seletor próprio com busca.
+  const semAcento = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  const PK = { itens: [], hl: 0 }
+  const rotuloAtv = a => a
+    ? `<b class="pk-cod">${esc(a.codigo)}</b><span class="pk-nome">${esc(a.nome_pt || '')}</span>`
+    : '<span class="pk-ph">— nenhuma —</span>'
+  function pickerAtividade (selId) {
+    const a = S.atividades.find(x => x.id === selId)
+    return `<div class="pk" id="pk-atv">
+      <input type="hidden" id="f-atv" value="${selId || ''}">
+      <button type="button" class="pk-btn" id="pk-atv-btn" onclick="TK.pkAbrir()" title="${a ? esc(a.codigo + ' · ' + (a.nome_pt || '')) : ''}">${rotuloAtv(a)}<span class="pk-seta">▾</span></button>
+      <div class="pk-pop" id="pk-atv-pop" hidden>
+        <input type="text" class="pk-busca" id="pk-atv-busca" placeholder="Buscar por código ou nome…" autocomplete="off"
+          oninput="TK.pkFiltrar(this.value)" onkeydown="TK.pkTecla(event)">
+        <div class="pk-lista" id="pk-atv-lista"></div>
+      </div>
+    </div>`
+  }
+  function pkRender () {
+    const sel = document.getElementById('f-atv').value
+    const el = document.getElementById('pk-atv-lista'); if (!el) return
+    el.innerHTML = PK.itens.map((a, i) => a
+      ? `<div class="pk-it ${a.id === sel ? 'sel' : ''} ${i === PK.hl ? 'hl' : ''}" title="${esc(a.codigo + ' · ' + (a.nome_pt || ''))}"
+          onmousedown="event.preventDefault();TK.pkEscolher('${a.id}')" onmouseenter="TK.pkHl(${i})">
+          <b class="pk-cod">${esc(a.codigo)}</b><span>${esc(a.nome_pt || '')}</span></div>`
+      : `<div class="pk-it ${!sel ? 'sel' : ''} ${i === PK.hl ? 'hl' : ''}" onmousedown="event.preventDefault();TK.pkEscolher('')" onmouseenter="TK.pkHl(${i})">
+          <span class="pk-ph">— nenhuma —</span></div>`).join('')
+      || '<div class="det-empty">Nenhuma atividade encontrada.</div>'
+    const hl = el.querySelector('.pk-it.hl'); if (hl) hl.scrollIntoView({ block: 'nearest' })
+  }
+  function pkFechar () { const p = document.getElementById('pk-atv-pop'); if (p) p.hidden = true }
+  document.addEventListener('mousedown', e => {
+    const pk = document.getElementById('pk-atv')
+    if (pk && !pk.contains(e.target)) pkFechar()
+  })
+
+  // ── TDRs vinculados (aparece ao escolher a atividade) ─────────────────
+  const TDR_ST = {
+    rascunho: 'Rascunho', revisao_interna: 'Revisão interna', ajustes: 'Ajustes', enviado_unesco: 'Enviado à UNESCO',
+    retorno_unesco: 'Retorno UNESCO', aprovado: 'Aprovado', cancelado: 'Cancelado', submetido: 'Submetido',
+    pendente_correcao: 'Pendente de correção', em_avaliacao: 'Em avaliação', em_revisao_unesco: 'Em revisão UNESCO',
+    em_licitacao: 'Em licitação', contratado: 'Contratado',
+  }
+  // selecionados: ids de TDR marcados; ocultos: quantos vínculos o usuário não enxerga
+  async function carregarTdrsAtv (atvId, selecionados = [], ocultos = 0) {
+    const wrap = document.getElementById('f-tdr-wrap'), el = document.getElementById('f-tdr-lista')
+    if (!wrap || !el) return
+    if (!atvId) { wrap.style.display = 'none'; el.innerHTML = ''; return }
+    wrap.style.display = ''
+    el.innerHTML = '<div class="det-empty">Carregando TDRs…</div>'
+    const { data } = await db.from('tdrs').select('id,numero,tipo,status,objeto_pt')
+      .eq('atividade_id', atvId).order('numero')
+    if (document.getElementById('f-atv').value !== atvId) return // trocou de atividade no meio
+    const lista = (data || []).filter(d => d.status !== 'cancelado' || selecionados.includes(d.id))
+    const linhas = lista.map(d => `<label class="tdr-it">
+        <input type="checkbox" class="chk-tdr" value="${d.id}" ${selecionados.includes(d.id) ? 'checked' : ''}>
+        <div class="tdr-txt"><div><b>${esc(d.numero)}</b> · ${esc(d.tipo || '')} · <span class="tdr-st">${esc(TDR_ST[d.status] || d.status)}</span>
+          <a class="tdr-abrir" href="tdrs.html?abrir=${d.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir TDR ↗</a></div>
+          ${d.objeto_pt ? `<div class="tdr-obj" title="${esc(d.objeto_pt)}">${esc(d.objeto_pt)}</div>` : ''}</div>
+      </label>`).join('')
+    const restritos = ocultos
+      ? `<div class="tdr-it tdr-rest">🔒 ${ocultos > 1 ? ocultos + ' TDRs vinculados' : 'TDR vinculado'} (acesso restrito)</div>` : ''
+    el.innerHTML = (linhas || restritos ? linhas + restritos : '<div class="det-empty">Nenhum TDR disponível para esta atividade.</div>')
+  }
+
   function montarModal (t) {
     const novo = !t
     const podeEditar = novo || podeDelegarGlobal || (t && t.criado_por === usuario.id) || (t && souResponsavel(t))
@@ -560,9 +641,8 @@
     const podeDelegar = podeDelegarGlobal || novo // validação real no servidor
     // restrição: qualquer um cria; só o criador (ou super_admin) altera depois
     const podeRestringir = novo || t.criado_por === usuario.id || appState.perfil === 'super_admin'
+    const bloqueio = podeEditar ? '' : 'pointer-events:none;opacity:.7'
 
-    const optAtv = ['<option value="">— nenhuma —</option>'].concat(
-      S.atividades.map(a => `<option value="${a.id}" ${t && t.atividade_id === a.id ? 'selected' : ''}>${esc(a.codigo)} · ${esc((a.nome_pt || '').slice(0, 40))}</option>`)).join('')
     const optFrn = ['<option value="">— nenhum —</option>'].concat(
       S.fornecedores.map(f => `<option value="${f.id}" ${t && t.fornecedor_id === f.id ? 'selected' : ''} data-email="${f.email ? 1 : 0}">${esc(f.nome)}${f.email ? '' : ' (sem e-mail)'}</option>`)).join('')
 
@@ -574,8 +654,6 @@
     const listaObs = S.usuarios.map(u =>
       `<label><input type="checkbox" class="chk-obs" value="${u.id}" ${obsIds.includes(u.id) ? 'checked' : ''}> ${esc(u.nome_completo)}</label>`).join('')
 
-    const histHtml = t ? '' : '' // histórico carregado sob demanda (fase 2)
-
     return `
     <div class="tk-modal-h">
       <h3>${novo ? 'Nova tarefa' : cadeado(t) + esc(t.titulo)}</h3>
@@ -583,41 +661,47 @@
       <button class="tk-x" onclick="fecharModal()">×</button>
     </div>
     <div class="tk-modal-b" id="tk-form">
-      <div id="tk-campos" style="display:flex;flex-direction:column;gap:14px;${podeEditar ? '' : 'pointer-events:none;opacity:.7'}">
-      <div class="fld"><label>Título *</label>
-        <input type="text" id="f-titulo" value="${t ? esc(t.titulo) : ''}" placeholder="O que precisa ser feito?"></div>
-      <div class="fld"><label>Descrição</label>
-        <textarea id="f-desc" placeholder="Contexto, links, critérios de conclusão…">${t ? esc(t.descricao || '') : ''}</textarea>
-        <div class="hint">Evite colar CPF ou dados pessoais aqui — este campo é interno.</div></div>
-      <div class="fld"><label>Prioridade</label><div class="chips" id="f-prio">${chipsPrio}</div></div>
-      <div class="fld-row">
-        <div class="fld"><label>Início</label><input type="date" id="f-inicio" value="${t && t.dt_inicio ? t.dt_inicio : ''}"></div>
-        <div class="fld"><label>Prazo</label><input type="date" id="f-prazo" value="${t && t.dt_prazo ? t.dt_prazo : ''}"></div>
+      <div class="tk-mcol">
+        <div class="tk-campos" style="${bloqueio}">
+          <div class="fld"><label>Título *</label>
+            <input type="text" id="f-titulo" value="${t ? esc(t.titulo) : ''}" placeholder="O que precisa ser feito?"></div>
+          <div class="fld"><label>Descrição</label>
+            <textarea id="f-desc" placeholder="Contexto, links, critérios de conclusão…">${t ? esc(t.descricao || '') : ''}</textarea>
+            <div class="hint">Evite colar CPF ou dados pessoais aqui — este campo é interno.</div></div>
+          <div class="fld"><label>Prioridade</label><div class="chips" id="f-prio">${chipsPrio}</div></div>
+          <div class="fld-row">
+            <div class="fld"><label>Início</label><input type="date" id="f-inicio" value="${t && t.dt_inicio ? t.dt_inicio : ''}"></div>
+            <div class="fld"><label>Prazo</label><input type="date" id="f-prazo" value="${t && t.dt_prazo ? t.dt_prazo : ''}"></div>
+          </div>
+          <div class="fld"><label>Atividade vinculada</label>${pickerAtividade(t ? t.atividade_id : null)}</div>
+          <div class="fld" id="f-tdr-wrap" style="display:none"><label>TDRs vinculados <span style="color:var(--cinza-400);font-weight:400">(opcional — objetivo da tarefa)</span></label>
+            <div class="tdr-lista" id="f-tdr-lista"></div></div>
+          <div class="fld"><label>Fornecedor (parte externa)</label><select id="f-frn" onchange="TK.onFrn()">${optFrn}</select></div>
+          <div class="fld" id="f-frn-wrap" style="${t && t.fornecedor_id ? '' : 'display:none'}">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:400;font-size:13px;cursor:pointer">
+              <input type="checkbox" id="f-notif-frn" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.notificar_fornecedor ? 'checked' : ''}>
+              Enviar e-mail de cobrança ao fornecedor</label>
+            <div class="hint">O fornecedor recebe um aviso por e-mail; ele não acessa a plataforma.</div>
+          </div>
+        </div>
+        <div class="fld tk-restr ${t && t.restrita ? 'on' : ''}" id="f-restr-wrap">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:${podeRestringir ? 'pointer' : 'default'}">
+            <input type="checkbox" id="f-restrita" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.restrita ? 'checked' : ''} ${podeRestringir ? '' : 'disabled'}
+              onchange="document.getElementById('f-restr-wrap').classList.toggle('on',this.checked)">
+            🔒 Tarefa restrita</label>
+          <div class="hint">Visível só para quem criou, responsáveis e observadores (e o super admin). A coordenação e os responsáveis da atividade vinculada não veem.
+            Quem for incluído como observador ou responsável de subtarefa passa a ver a tarefa inteira.${podeRestringir ? '' : ' Só quem criou a tarefa pode alterar.'}</div>
+        </div>
       </div>
-      <div class="fld"><label>Responsáveis internos ${podeDelegar ? '' : '<span style="color:var(--cinza-400);font-weight:400">(só você)</span>'}</label>
-        <div class="multi" ${podeDelegar ? '' : 'style="opacity:.6;pointer-events:none"'}>${listaResp}</div></div>
-      <div class="fld"><label>Observadores <span style="color:var(--cinza-400);font-weight:400">(acompanham, sem executar)</span></label>
-        <div class="multi">${listaObs}</div></div>
-      <div class="fld-row">
-        <div class="fld"><label>Atividade vinculada</label><select id="f-atv">${optAtv}</select></div>
-        <div class="fld"><label>Fornecedor (parte externa)</label><select id="f-frn" onchange="TK.onFrn()">${optFrn}</select></div>
+      <div class="tk-mcol">
+        <div class="tk-campos" style="${bloqueio}">
+          <div class="fld"><label>Responsáveis internos ${podeDelegar ? '' : '<span style="color:var(--cinza-400);font-weight:400">(só você)</span>'}</label>
+            <div class="multi" ${podeDelegar ? '' : 'style="opacity:.6;pointer-events:none"'}>${listaResp}</div></div>
+          <div class="fld"><label>Observadores <span style="color:var(--cinza-400);font-weight:400">(acompanham, sem executar)</span></label>
+            <div class="multi">${listaObs}</div></div>
+        </div>
+        ${t ? '<div id="tk-detalhe" style="border-top:1px solid var(--borda);padding-top:14px;color:var(--cinza-400);font-size:12px">Carregando…</div>' : ''}
       </div>
-      <div class="fld" id="f-frn-wrap" style="${t && t.fornecedor_id ? '' : 'display:none'}">
-        <label style="display:flex;align-items:center;gap:8px;font-weight:400;font-size:13px;cursor:pointer">
-          <input type="checkbox" id="f-notif-frn" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.notificar_fornecedor ? 'checked' : ''}>
-          Enviar e-mail de cobrança ao fornecedor</label>
-        <div class="hint">O fornecedor recebe um aviso por e-mail; ele não acessa a plataforma.</div>
-      </div>
-      </div>
-      <div class="fld tk-restr ${t && t.restrita ? 'on' : ''}" id="f-restr-wrap">
-        <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:${podeRestringir ? 'pointer' : 'default'}">
-          <input type="checkbox" id="f-restrita" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.restrita ? 'checked' : ''} ${podeRestringir ? '' : 'disabled'}
-            onchange="document.getElementById('f-restr-wrap').classList.toggle('on',this.checked)">
-          🔒 Tarefa restrita</label>
-        <div class="hint">Visível só para quem criou, responsáveis e observadores (e o super admin). A coordenação e os responsáveis da atividade vinculada não veem.
-          Quem for incluído como observador ou responsável de subtarefa passa a ver a tarefa inteira.${podeRestringir ? '' : ' Só quem criou a tarefa pode alterar.'}</div>
-      </div>
-      ${t ? '<div id="tk-detalhe" style="border-top:1px solid var(--borda);margin-top:4px;padding-top:14px;color:var(--cinza-400);font-size:12px">Carregando…</div>' : ''}
     </div>
     <div class="tk-modal-f">
       ${t && podeEditar && t.status !== 'cancelada' ? `<button class="btn-danger-ghost" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
@@ -643,6 +727,7 @@
     const responsaveis = [...document.querySelectorAll('.chk-resp:checked')].map(c => c.value)
     const observadores = [...document.querySelectorAll('.chk-obs:checked')].map(c => c.value)
     const restrita = !!(g('f-restrita') && g('f-restrita').checked)
+    const tdrsMarcados = atividade_id ? [...document.querySelectorAll('.chk-tdr:checked')].map(c => c.value) : []
 
     const btn = document.querySelector('.tk-modal-f .btn-pri'); if (btn) { btn.disabled = true; btn.textContent = 'Salvando…' }
 
@@ -657,6 +742,7 @@
         p_restrita: restrita,
       })
       if (error) { toast('Erro ao criar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Criar tarefa' } return }
+      await sincronizarTdrs(data, [], tdrsMarcados)
       toast('Tarefa criada ✓', 'success')
       chamarEmail(data, 'atribuicao')
     } else {
@@ -664,10 +750,14 @@
       const prazoAntigo = t ? t.dt_prazo : null
       const { error } = await db.rpc('fn_editar_tarefa', {
         p_tarefa_id: S.editId, p_titulo: titulo, p_descricao: desc, p_prioridade: prioridade,
-        p_dt_inicio: dt_inicio, p_entidade_tipo: null, p_entidade_id: null, p_atividade_id: atividade_id,
+        p_dt_inicio: dt_inicio, p_entidade_tipo: t ? t.entidade_tipo : null, p_entidade_id: t ? t.entidade_id : null,
+        p_atividade_id: atividade_id,
         p_fornecedor_id: fornecedor_id, p_notificar_fornecedor: notificar,
       })
       if (error) { toast('Erro ao salvar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Salvar' } return }
+      // TDRs: a troca de atividade já remove no banco os vínculos de outra atividade
+      const atuais = t && t.atividade_id === atividade_id ? (t.vinc_tdrs || []).filter(x => x.tdr).map(x => x.tdr_id) : []
+      await sincronizarTdrs(S.editId, atuais, tdrsMarcados)
       if (t && !!t.restrita !== restrita) {
         const { error: eR } = await db.rpc('fn_definir_restricao_tarefa', { p_tarefa_id: S.editId, p_restrita: restrita })
         if (eR) toast('Restrição não alterada: ' + eR.message, 'error')
@@ -685,6 +775,21 @@
     }
     fecharModal()
     await carregarTudo(); render()
+  }
+
+  // Vínculos de TDR que o usuário não enxerga nunca entram em "atuais", então
+  // não são removidos por quem não tem acesso a eles.
+  async function sincronizarTdrs (id, atuais, marcados) {
+    const novos = marcados.filter(x => !atuais.includes(x))
+    const saem  = atuais.filter(x => !marcados.includes(x))
+    if (novos.length) {
+      const { error } = await db.from('tarefa_tdrs').insert(novos.map(tdr_id => ({ tarefa_id: id, tdr_id })))
+      if (error) toast('TDR não vinculado: ' + error.message, 'error')
+    }
+    if (saem.length) {
+      const { error } = await db.from('tarefa_tdrs').delete().eq('tarefa_id', id).in('tdr_id', saem)
+      if (error) toast('TDR não desvinculado: ' + error.message, 'error')
+    }
   }
 
   async function sincronizarParticipantes (id, resp, obs) {
@@ -730,6 +835,46 @@
     abrir: id => abrirModal(S.tarefas.find(t => t.id === id)),
     salvar, concluir, cancelar,
     pickPrio: el => { el.parentElement.querySelectorAll('.chip-t').forEach(c => c.classList.remove('on')); el.classList.add('on') },
+    pkAbrir: () => {
+      const pop = document.getElementById('pk-atv-pop'); if (!pop) return
+      if (!pop.hidden) { pkFechar(); return }
+      pop.hidden = false
+      const b = document.getElementById('pk-atv-busca'); b.value = ''
+      TK.pkFiltrar('')
+      b.focus()
+    },
+    pkFiltrar: q => {
+      const n = semAcento(q).trim()
+      const achou = S.atividades.filter(a => !n || semAcento(a.codigo + ' ' + (a.nome_pt || '')).includes(n))
+      PK.itens = n ? achou : [null, ...achou]
+      const sel = document.getElementById('f-atv').value
+      PK.hl = Math.max(0, PK.itens.findIndex(a => (a ? a.id : '') === sel))
+      if (n) PK.hl = 0
+      pkRender()
+    },
+    pkHl: i => { PK.hl = i; document.querySelectorAll('#pk-atv-lista .pk-it').forEach((el, j) => el.classList.toggle('hl', j === i)) },
+    pkTecla: e => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); PK.hl = Math.min(PK.itens.length - 1, PK.hl + 1); pkRender() }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); PK.hl = Math.max(0, PK.hl - 1); pkRender() }
+      else if (e.key === 'Enter') { e.preventDefault(); const a = PK.itens[PK.hl]; if (a !== undefined) TK.pkEscolher(a ? a.id : '') }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); pkFechar(); document.getElementById('pk-atv-btn').focus() }
+    },
+    pkEscolher: id => {
+      const inp = document.getElementById('f-atv'); const mudou = inp.value !== id
+      inp.value = id
+      const a = S.atividades.find(x => x.id === id)
+      const btn = document.getElementById('pk-atv-btn')
+      btn.innerHTML = rotuloAtv(a) + '<span class="pk-seta">▾</span>'
+      btn.title = a ? a.codigo + ' · ' + (a.nome_pt || '') : ''
+      pkFechar()
+      if (mudou) {
+        // vínculos de TDR que o usuário não vê só permanecem se a atividade for a mesma
+        const t = S.editId ? S.tarefas.find(x => x.id === S.editId) : null
+        const mesma = t && t.atividade_id === id
+        const v = mesma ? (t.vinc_tdrs || []) : []
+        carregarTdrsAtv(id, v.filter(x => x.tdr).map(x => x.tdr_id), v.filter(x => !x.tdr).length)
+      }
+    },
     onFrn: () => { const v = document.getElementById('f-frn').value; document.getElementById('f-frn-wrap').style.display = v ? '' : 'none' },
     // calendário
     calMes: n => { calRef = new Date(calRef.getFullYear(), calRef.getMonth() + n, 1); refreshView() },
