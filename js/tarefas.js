@@ -25,7 +25,7 @@
   // ── Estado ────────────────────────────────────────────────────────────
   const S = {
     tarefas: [], usuarios: [], atividades: [], fornecedores: [], progresso: {},
-    aba: 'kanban', fResp: '', fPrio: '', fAtraso: false, fRestrita: false, editId: null,
+    aba: 'kanban', fResp: '', fPrio: '', fTipo: '', fAtraso: false, fRestrita: false, editId: null, tipos: [],
   }
 
   // Fallback de progresso por status quando a tarefa não tem checklist
@@ -71,15 +71,21 @@
     const tt = vis.length ? 'TDR: ' + vis.join(', ') + (vis.length < v.length ? ' + vinculado(s) de acesso restrito' : '') : 'TDR vinculado (acesso restrito)'
     return `<span class="lnk" title="${esc(tt)}">📄 ${esc(txt)}${v.length > 1 ? ' +' + (v.length - 1) : ''}</span>`
   }
+  // Tipo da tarefa (catálogo em tarefa_tipos)
+  const TIPO_PADRAO = { codigo: 'outras', nome: 'Outras', icone: '📌', cor: '#6B7280', campos: [] }
+  const tipoDe = cod => S.tipos.find(x => x.codigo === cod) || TIPO_PADRAO
+  const podeGerirTipos = ['super_admin', 'coordenacao'].includes(appState.perfil)
+  const iconeTipo = t => { const tp = tipoDe(t.tipo); return `<span class="tk-tipo-ic" title="${esc(tp.nome)}">${tp.icone}</span>` }
+  const horaReuniao = t => t.tipo === 'reuniao' && t.dados_tipo && t.dados_tipo.inicio ? String(t.dados_tipo.inicio).slice(11, 16) : ''
   const LOCK = '<span class="tk-lock" title="Tarefa restrita: visível só para os envolvidos">🔒</span>'
   const cadeado = t => t && t.restrita ? LOCK : ''
 
   // ── Carregar dados ────────────────────────────────────────────────────
   async function carregarTudo () {
-    const [tj, uj, aj, fj, pj] = await Promise.all([
+    const [tj, uj, aj, fj, pj, ttj] = await Promise.all([
       db.from('tarefas').select(
         'id,codigo,titulo,descricao,status,prioridade,dt_inicio,dt_prazo,dt_conclusao,' +
-        'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,restrita,ordem,criado_por,criado_em,' +
+        'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,restrita,tipo,dados_tipo,ordem,criado_por,criado_em,' +
         'participantes:tarefa_participantes(usuario_id,papel),' +
         'atividade:atividades(id,codigo,nome_pt),' +
         'vinc_tdrs:tarefa_tdrs(tdr_id,tdr:tdrs(id,numero,tipo,status,objeto_pt)),' +
@@ -89,7 +95,9 @@
       db.from('atividades').select('id,codigo,nome_pt').eq('ativo', true).order('codigo'),
       db.from('fornecedores').select('id,nome,email').eq('ativo', true).order('nome'),
       db.from('vw_tarefa_progresso').select('tarefa_id,total,feitas,pct'),
+      db.from('tarefa_tipos').select('codigo,nome,icone,cor,ordem,ativo,campos').order('ordem'),
     ])
+    S.tipos = ttj.data || []
     S.tarefas = tj.data || []
     S.usuarios = uj.data || []
     S.atividades = aj.data || []
@@ -130,6 +138,8 @@
   function toolbar () {
     const optUsers = ['<option value="">Todos os responsáveis</option>']
       .concat(S.usuarios.map(u => `<option value="${u.id}" ${S.fResp === u.id ? 'selected' : ''}>${esc(u.nome_completo)}</option>`)).join('')
+    const optTipo = ['<option value="">Todos os tipos</option>']
+      .concat(S.tipos.map(x => `<option value="${x.codigo}" ${S.fTipo === x.codigo ? 'selected' : ''}>${x.icone} ${esc(x.nome)}</option>`)).join('')
     const optPrio = ['<option value="">Toda prioridade</option>']
       .concat(PRIOS.map(([k, v]) => `<option value="${k}" ${S.fPrio === k ? 'selected' : ''}>${v}</option>`)).join('')
     return `<div class="tk-toolbar">
@@ -141,11 +151,13 @@
       </div>
       ${(S.aba === 'kanban' || S.aba === 'lista') ? `
       <select class="tk-sel" onchange="TK.filtroResp(this.value)">${optUsers}</select>
+      <select class="tk-sel" onchange="TK.filtroTipo(this.value)">${optTipo}</select>
       <select class="tk-sel" onchange="TK.filtroPrio(this.value)">${optPrio}</select>
       <button class="tk-tab ${S.fAtraso ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleAtraso(this)">Só atrasadas</button>
       <button class="tk-tab ${S.fRestrita ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleRestrita(this)" title="Tarefas visíveis só para os envolvidos">🔒 Restritas</button>
       ` : ''}
       <div class="tk-spacer"></div>
+      ${podeGerirTipos ? '<button class="tk-tab" style="border:1px solid var(--borda)" onclick="TK.tipos()" title="Tipos de tarefa">⚙ Tipos</button>' : ''}
       <button class="tk-btn" onclick="TK.novo()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         Nova tarefa
@@ -156,6 +168,7 @@
   function passaFiltro (t) {
     if (S.fResp && !respsDe(t).some(p => p.usuario_id === S.fResp)) return false
     if (S.fPrio && t.prioridade !== S.fPrio) return false
+    if (S.fTipo && t.tipo !== S.fTipo) return false
     if (S.fRestrita && !t.restrita) return false
     if (S.fAtraso) { const d = diasAte(t.dt_prazo); if (!(d !== null && d < 0 && t.status !== 'concluida')) return false }
     return true
@@ -192,8 +205,9 @@
     const prio = `<span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>`
     const atv = (t.atividade ? `<span class="lnk" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span>` : '') + chipTdrs(t)
     const frn = t.fornecedor ? `<span class="frn" title="${esc(t.fornecedor.nome)}">🏢 ${esc((t.fornecedor.nome || '').split(' ')[0])}</span>` : ''
-    return `<div class="tk-card" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')">
-      <div class="code">${esc(t.codigo || '')}</div>
+    const hr = horaReuniao(t)
+    return `<div class="tk-card" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')" style="border-left:3px solid ${tipoDe(t.tipo).cor}">
+      <div class="code">${iconeTipo(t)} ${esc(t.codigo || '')}${hr ? ` <span class="tk-hora">🕑 ${hr}</span>` : ''}</div>
       <div class="ttl">${cadeado(t)}${esc(t.titulo)}</div>
       <div class="meta">${prio}${atv}${frn}
         <span class="av-stack">${rs}</span>${badgePrazo(t)}</div>
@@ -229,7 +243,7 @@
       const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
       return `<div class="tk-row" onclick="TK.abrir('${t.id}')">
         <span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}" title="${ST_NM[t.status]}"></span>
-        <span class="r-ttl"><span class="r-code">${esc(t.codigo || '')}</span> ${cadeado(t)}${esc(t.titulo)}</span>
+        <span class="r-ttl">${iconeTipo(t)} <span class="r-code">${esc(t.codigo || '')}</span> ${cadeado(t)}${esc(t.titulo)}</span>
         <span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>
         ${t.atividade ? `<span class="lnk" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span>` : ''}${chipTdrs(t)}
         <span class="av-stack">${rs}</span>
@@ -251,7 +265,7 @@
       const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
       return `<tr onclick="TK.abrir('${t.id}')">
         <td class="mono-cell">${esc(t.codigo || '')}</td>
-        <td><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span> ${cadeado(t)}${esc(t.titulo)}</td>
+        <td><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span> ${iconeTipo(t)} ${cadeado(t)}${esc(t.titulo)}</td>
         <td><span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span></td>
         <td>${ST_NM[t.status] || t.status}</td>
         <td>${t.atividade ? `<span title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span> ${chipTdrs(t)}` : (t.fornecedor ? '🏢 ' + esc((t.fornecedor.nome || '').split(' ')[0]) : '—')}</td>
@@ -286,7 +300,7 @@
       const its = (porDia[iso] || []).slice(0, 4)
       const mais = (porDia[iso] || []).length - its.length
       const chips = its.map(t => `<div class="cal-chip" style="border-left:3px solid ${ST_COR[t.status] || '#9CA3AF'}"
-          onclick="event.stopPropagation();TK.abrir('${t.id}')" title="${esc(t.titulo)}">${t.restrita ? '🔒 ' : ''}${esc(t.titulo)}</div>`).join('')
+          onclick="event.stopPropagation();TK.abrir('${t.id}')" title="${esc(tipoDe(t.tipo).nome + ' · ' + t.titulo)}">${tipoDe(t.tipo).icone} ${horaReuniao(t) ? horaReuniao(t) + ' ' : ''}${t.restrita ? '🔒 ' : ''}${esc(t.titulo)}</div>`).join('')
       celulas += `<div class="cal-cell ${foraMes ? 'fora' : ''} ${isHoje ? 'hoje' : ''}">
         <div class="cal-dia">${d.getDate()}</div>${chips}${mais > 0 ? `<div class="cal-mais">+${mais}</div>` : ''}
       </div>`
@@ -351,6 +365,8 @@
     const ov = document.getElementById('tk-overlay')
     document.getElementById('tk-modal').innerHTML = montarModal(t)
     ov.classList.add('on')
+    aplicarPrazoDoTipo()
+    TK.onCampoTipo('formato')
     if (t) {
       carregarDetalhe(t.id)
       const v = t.vinc_tdrs || []
@@ -381,6 +397,7 @@
     subtarefa_resp: 'atribuiu a subtarefa', comentario_fornecedor: 'resposta por e-mail de',
     restricao: 'alterou a visibilidade',
     tdr_vinculo: 'vinculou o TDR', tdr_desvinculo: 'desvinculou o TDR',
+    tipo: 'mudou o tipo',
   }
   const fmtDT = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
   const primeiroNome = n => (n || '').split(' ')[0]
@@ -633,6 +650,88 @@
     el.innerHTML = (linhas || restritos ? linhas + restritos : '<div class="det-empty">Nenhum TDR disponível para esta atividade.</div>')
   }
 
+  // ── Tipo da tarefa: seletor + campos próprios ─────────────────────────
+  // Os campos vêm de tarefa_tipos.campos; o banco valida os obrigatórios.
+  // Campo com define_prazo (início da reunião, prazo de resposta da
+  // diligência) passa a definir o Prazo da tarefa.
+  function tiposSelecionaveis (atual) {
+    return S.tipos.filter(x => x.ativo || x.codigo === atual)
+  }
+  function seletorTipo (atual) {
+    return `<input type="hidden" id="f-tipo" value="${esc(atual)}">
+      <div class="tipo-grid" id="f-tipo-grid">${tiposSelecionaveis(atual).map(x =>
+        `<button type="button" class="tipo-op ${x.codigo === atual ? 'on' : ''}" data-tipo="${x.codigo}" style="--tc:${x.cor}" onclick="TK.pickTipo('${x.codigo}')">
+          <span class="tipo-op-ic">${x.icone}</span><span>${esc(x.nome)}</span></button>`).join('')}</div>`
+  }
+  function campoTipoHtml (c, v) {
+    const id = 'ft-' + c.chave
+    const req = c.obrigatorio ? ' *' : ''
+    const dica = c.dica ? `<div class="hint">${esc(c.dica)}</div>` : ''
+    const val = v === undefined || v === null ? '' : v
+    const onPrazo = c.define_prazo ? ' onchange="TK.syncPrazoTipo()"' : ''
+    if (c.tipo === 'boolean') {
+      return `<div class="fld tipo-bool"><label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer">
+        <input type="checkbox" id="${id}" ${val === true || val === 'true' ? 'checked' : ''} style="width:15px;height:15px;accent-color:var(--verde-medio)"
+          onchange="TK.onCampoTipo('${c.chave}')"> ${esc(c.rotulo)}</label>${dica}</div>`
+    }
+    let input
+    if (c.tipo === 'textarea') input = `<textarea id="${id}" rows="3">${esc(val)}</textarea>`
+    else if (c.tipo === 'select') input = `<select id="${id}" onchange="TK.onCampoTipo('${c.chave}')"><option value="">— selecione —</option>${
+      (c.opcoes || []).map(o => `<option ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`
+    else {
+      const tp = c.tipo === 'datetime' ? 'datetime-local' : c.tipo === 'date' ? 'date' : c.tipo === 'url' ? 'url' : 'text'
+      input = `<input type="${tp}" id="${id}" value="${esc(val)}"${onPrazo}${tp === 'url' ? ' placeholder="https://…"' : ''}>`
+    }
+    const largo = c.tipo === 'textarea' || c.tipo === 'url' ? ' full' : ''
+    return `<div class="fld${largo}" data-campo="${c.chave}"><label>${esc(c.rotulo)}${req}</label>${input}${dica}</div>`
+  }
+  function blocoTipo (cod, dados) {
+    const tp = tipoDe(cod)
+    const campos = tp.campos || []
+    if (!campos.length) return ''
+    const titulo = cod === 'reuniao' ? 'Dados da reunião' : cod === 'diligencia' ? 'Dados da diligência' : 'Dados de ' + tp.nome.toLowerCase()
+    return `<div class="tipo-bloco" style="--tc:${tp.cor}">
+      <div class="tipo-bloco-h">${tp.icone} ${esc(titulo)}</div>
+      <div class="tipo-campos">${campos.map(c => campoTipoHtml(c, (dados || {})[c.chave])).join('')}</div>
+      ${cod === 'reuniao' ? '<div class="hint">Os envolvidos recebem um convite de agenda (.ics) por e-mail; mudanças de data, local ou link atualizam o convite e o cancelamento da tarefa cancela o evento.</div>' : ''}
+    </div>`
+  }
+  // lê os campos do tipo no formulário
+  function coletarDadosTipo (cod) {
+    const dados = {}
+    for (const c of (tipoDe(cod).campos || [])) {
+      const el = document.getElementById('ft-' + c.chave); if (!el) continue
+      if (c.tipo === 'boolean') dados[c.chave] = el.checked
+      else { const v = (el.value || '').trim(); if (v) dados[c.chave] = v }
+    }
+    return dados
+  }
+  // validações que dependem do tipo (o banco repete as de obrigatoriedade)
+  function validarTipo (cod, d) {
+    for (const c of (tipoDe(cod).campos || [])) {
+      if (c.obrigatorio && (d[c.chave] === undefined || d[c.chave] === '')) return `Preencha "${c.rotulo}".`
+    }
+    if (cod === 'reuniao') {
+      if (d.fim && d.fim <= d.inicio) return 'O término da reunião precisa ser depois do início.'
+      if ((d.formato === 'Presencial' || d.formato === 'Híbrida') && !d.local) return 'Informe o local da reunião presencial.'
+      if ((d.formato === 'Online' || d.formato === 'Híbrida') && !d.link) return 'Informe o link da reunião online.'
+      if (d.link && !/^https?:\/\//i.test(d.link)) return 'O link precisa começar com http:// ou https://'
+    }
+    if (cod === 'diligencia' && d.respondida && !d.dt_resposta) return 'Informe a data da resposta da diligência.'
+    return ''
+  }
+  function campoPrazoDoTipo (cod) { return (tipoDe(cod).campos || []).find(c => c.define_prazo) }
+  function aplicarPrazoDoTipo () {
+    const cod = document.getElementById('f-tipo').value
+    const c = campoPrazoDoTipo(cod)
+    const prazo = document.getElementById('f-prazo'), hint = document.getElementById('f-prazo-hint')
+    if (!prazo) return
+    prazo.readOnly = !!c
+    prazo.classList.toggle('ro', !!c)
+    if (hint) hint.textContent = c ? `Definido por "${c.rotulo}".` : ''
+    if (c) { const el = document.getElementById('ft-' + c.chave); if (el && el.value) prazo.value = el.value.slice(0, 10) }
+  }
+
   function montarModal (t) {
     const novo = !t
     const podeEditar = novo || podeDelegarGlobal || (t && t.criado_por === usuario.id) || (t && souResponsavel(t))
@@ -642,6 +741,7 @@
     // restrição: qualquer um cria; só o criador (ou super_admin) altera depois
     const podeRestringir = novo || t.criado_por === usuario.id || appState.perfil === 'super_admin'
     const bloqueio = podeEditar ? '' : 'pointer-events:none;opacity:.7'
+    const tipoAtual = t ? (t.tipo || 'outras') : ''
 
     const optFrn = ['<option value="">— nenhum —</option>'].concat(
       S.fornecedores.map(f => `<option value="${f.id}" ${t && t.fornecedor_id === f.id ? 'selected' : ''} data-email="${f.email ? 1 : 0}">${esc(f.nome)}${f.email ? '' : ' (sem e-mail)'}</option>`)).join('')
@@ -657,21 +757,26 @@
     return `
     <div class="tk-modal-h">
       <h3>${novo ? 'Nova tarefa' : cadeado(t) + esc(t.titulo)}</h3>
+      ${t ? `<span class="tipo-badge" style="--tc:${tipoDe(t.tipo).cor}">${tipoDe(t.tipo).icone} ${esc(tipoDe(t.tipo).nome)}</span>` : ''}
       ${t ? `<span class="code">${esc(t.codigo)}</span>` : ''}
       <button class="tk-x" onclick="fecharModal()">×</button>
     </div>
     <div class="tk-modal-b" id="tk-form">
       <div class="tk-mcol">
         <div class="tk-campos" style="${bloqueio}">
+          <div class="fld"><label>Tipo de tarefa *</label>${seletorTipo(tipoAtual)}
+            ${novo ? '<div class="hint">Escolha o tipo primeiro: o formulário se ajusta a ele.</div>' : ''}</div>
           <div class="fld"><label>Título *</label>
             <input type="text" id="f-titulo" value="${t ? esc(t.titulo) : ''}" placeholder="O que precisa ser feito?"></div>
+          <div id="f-tipo-bloco">${tipoAtual ? blocoTipo(tipoAtual, t ? t.dados_tipo : {}) : ''}</div>
           <div class="fld"><label>Descrição</label>
             <textarea id="f-desc" placeholder="Contexto, links, critérios de conclusão…">${t ? esc(t.descricao || '') : ''}</textarea>
             <div class="hint">Evite colar CPF ou dados pessoais aqui — este campo é interno.</div></div>
           <div class="fld"><label>Prioridade</label><div class="chips" id="f-prio">${chipsPrio}</div></div>
           <div class="fld-row">
             <div class="fld"><label>Início</label><input type="date" id="f-inicio" value="${t && t.dt_inicio ? t.dt_inicio : ''}"></div>
-            <div class="fld"><label>Prazo</label><input type="date" id="f-prazo" value="${t && t.dt_prazo ? t.dt_prazo : ''}"></div>
+            <div class="fld"><label>Prazo</label><input type="date" id="f-prazo" value="${t && t.dt_prazo ? t.dt_prazo : ''}">
+              <div class="hint" id="f-prazo-hint"></div></div>
           </div>
           <div class="fld"><label>Atividade vinculada</label>${pickerAtividade(t ? t.atividade_id : null)}</div>
           <div class="fld" id="f-tdr-wrap" style="display:none"><label>TDRs vinculados <span style="color:var(--cinza-400);font-weight:400">(opcional — objetivo da tarefa)</span></label>
@@ -714,13 +819,19 @@
   // ── Salvar (criar ou editar) ──────────────────────────────────────────
   async function salvar () {
     const g = id => document.getElementById(id)
+    const tipo = g('f-tipo').value
+    if (!tipo) { toast('Escolha o tipo da tarefa.', 'warning'); return }
     const titulo = g('f-titulo').value.trim()
     if (!titulo) { toast('Informe um título.', 'warning'); return }
+    const dados_tipo = coletarDadosTipo(tipo)
+    const erroTipo = validarTipo(tipo, dados_tipo)
+    if (erroTipo) { toast(erroTipo, 'warning'); return }
+    aplicarPrazoDoTipo()
     const prioBtn = document.querySelector('#f-prio .chip-t.on')
     const prioridade = prioBtn ? prioBtn.dataset.prio : 'media'
     const desc = g('f-desc').value.trim() || null
     const dt_inicio = g('f-inicio').value || null
-    const dt_prazo  = g('f-prazo').value || null
+    const dt_prazo  = g('f-prazo').value || null // já sincronizado com o campo do tipo
     const atividade_id = g('f-atv').value || null
     const fornecedor_id = g('f-frn').value || null
     const notificar = !!(g('f-notif-frn') && g('f-notif-frn').checked && fornecedor_id)
@@ -740,6 +851,7 @@
         p_notificar_fornecedor: notificar,
         p_responsaveis: responsaveis, p_observadores: observadores,
         p_restrita: restrita,
+        p_tipo: tipo, p_dados_tipo: dados_tipo,
       })
       if (error) { toast('Erro ao criar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Criar tarefa' } return }
       await sincronizarTdrs(data, [], tdrsMarcados)
@@ -753,6 +865,7 @@
         p_dt_inicio: dt_inicio, p_entidade_tipo: t ? t.entidade_tipo : null, p_entidade_id: t ? t.entidade_id : null,
         p_atividade_id: atividade_id,
         p_fornecedor_id: fornecedor_id, p_notificar_fornecedor: notificar,
+        p_tipo: tipo, p_dados_tipo: dados_tipo,
       })
       if (error) { toast('Erro ao salvar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Salvar' } return }
       // TDRs: a troca de atividade já remove no banco os vínculos de outra atividade
@@ -764,12 +877,20 @@
       }
       // Sincroniza responsáveis/observadores (diferença simples)
       const novos = await sincronizarParticipantes(S.editId, responsaveis, observadores)
-      // Novos responsáveis e observadores recebem e-mail (cada um com o seu papel)
+      // Novos responsáveis e observadores recebem e-mail (cada um com o seu papel;
+      // numa reunião, o e-mail leva o convite de agenda)
       if (novos.length) chamarEmail(S.editId, 'atribuicao', { destinatarios: novos })
-      // Prazo alterado?
+      // Reunião alterada (tipo, título ou dados) → convite atualizado aos demais
+      const reuniaoMudou = tipo === 'reuniao' && t && (t.tipo !== 'reuniao' || t.titulo !== titulo ||
+        JSON.stringify(t.dados_tipo || {}) !== JSON.stringify(dados_tipo))
+      if (reuniaoMudou) {
+        const demais = [...new Set([t.criado_por, ...responsaveis, ...observadores])].filter(u => !novos.includes(u))
+        if (demais.length) chamarEmail(S.editId, 'reuniao_atualizada', { destinatarios: demais })
+      }
+      // Prazo alterado? (na reunião o aviso já vai no convite atualizado)
       if ((prazoAntigo || null) !== (dt_prazo || null)) {
         await db.rpc('fn_reagendar_tarefa', { p_tarefa_id: S.editId, p_dt_prazo: dt_prazo })
-        chamarEmail(S.editId, 'prazo_alterado')
+        if (!reuniaoMudou) chamarEmail(S.editId, 'prazo_alterado')
       }
       toast('Tarefa atualizada ✓', 'success')
     }
@@ -821,7 +942,43 @@
     if (!confirm('Cancelar esta tarefa? Ela sai do quadro (o histórico é preservado).')) return
     const { error } = await db.rpc('fn_mudar_status_tarefa', { p_tarefa_id: id, p_status: 'cancelada' })
     if (error) { toast(error.message, 'error'); return }
+    if (t.tipo === 'reuniao') chamarEmail(id, 'cancelada') // cancela o evento na agenda
     toast('Tarefa cancelada.', 'info'); fecharModal(); await carregarTudo(); render()
+  }
+
+  // ── Gestão dos tipos (super_admin / coordenação) ──────────────────────
+  function abrirTipos () {
+    S.editId = null; S.det = null
+    const linhas = S.tipos.map(x => `<tr data-cod="${x.codigo}">
+        <td><input type="text" class="tt-ic" value="${esc(x.icone)}" maxlength="4"></td>
+        <td><input type="text" class="tt-nm" value="${esc(x.nome)}"></td>
+        <td><input type="color" class="tt-cor" value="${esc(x.cor)}"></td>
+        <td><input type="number" class="tt-ord" value="${x.ordem}" style="width:64px"></td>
+        <td style="text-align:center"><input type="checkbox" class="tt-at" ${x.ativo ? 'checked' : ''} ${x.codigo === 'outras' ? 'disabled title="Tipo padrão"' : ''}></td>
+        <td class="tt-cp">${(x.campos || []).map(c => esc(c.rotulo)).join(', ') || '—'}</td>
+        <td><button class="btn-sec" style="padding:6px 12px;font-size:12px" onclick="TK.salvarTipo('${x.codigo}')">Salvar</button></td>
+      </tr>`).join('')
+    document.getElementById('tk-modal').innerHTML = `
+      <div class="tk-modal-h"><h3>⚙ Tipos de tarefa</h3><button class="tk-x" onclick="fecharModal()">×</button></div>
+      <div class="tk-modal-b1">
+        <table class="tt-tbl"><thead><tr><th>Ícone</th><th>Nome</th><th>Cor</th><th>Ordem</th><th>Ativo</th><th>Campos próprios</th><th></th></tr></thead>
+          <tbody>${linhas}</tbody></table>
+        <div class="hint">Desativar esconde o tipo na criação de tarefas; as tarefas antigas continuam com ele. "Outras" é o padrão e não pode ser desativado.
+          Campos próprios de um tipo novo são configurados pela equipe técnica.</div>
+        <div class="tt-novo">
+          <input type="text" id="tt-novo-ic" placeholder="Ícone" maxlength="4" value="🏷">
+          <input type="text" id="tt-novo-nm" placeholder="Nome do novo tipo">
+          <input type="color" id="tt-novo-cor" value="#0891B2">
+          <button class="btn-pri" onclick="TK.novoTipo()">Adicionar tipo</button>
+        </div>
+      </div>
+      <div class="tk-modal-f"><button class="btn-sec" onclick="fecharModal()">Fechar</button></div>`
+    document.getElementById('tk-overlay').classList.add('on')
+  }
+  async function recarregarTipos () {
+    const { data } = await db.from('tarefa_tipos').select('codigo,nome,icone,cor,ordem,ativo,campos').order('ordem')
+    S.tipos = data || S.tipos
+    abrirTipos(); render()
   }
 
   // ── API pública (handlers do HTML) ────────────────────────────────────
@@ -829,6 +986,65 @@
     aba: a => { S.aba = a; render() },
     filtroResp: v => { S.fResp = v; refreshView() },
     filtroPrio: v => { S.fPrio = v; refreshView() },
+    filtroTipo: v => { S.fTipo = v; refreshView() },
+    // tipo da tarefa
+    pickTipo: cod => {
+      const atual = document.getElementById('f-tipo').value
+      const dados = atual ? coletarDadosTipo(atual) : {}
+      document.getElementById('f-tipo').value = cod
+      document.querySelectorAll('#f-tipo-grid .tipo-op').forEach(b => b.classList.toggle('on', b.dataset.tipo === cod))
+      document.getElementById('f-tipo-bloco').innerHTML = blocoTipo(cod, dados)
+      TK.onCampoTipo('formato')
+      aplicarPrazoDoTipo()
+      const f = document.querySelector('#f-tipo-bloco input, #f-tipo-bloco select'); if (f) f.focus()
+    },
+    syncPrazoTipo: () => aplicarPrazoDoTipo(),
+    onCampoTipo: chave => {
+      if (chave === 'formato') {
+        // reunião: presencial pede local, online pede link, híbrida pede os dois
+        const el = document.getElementById('ft-formato'); if (!el) return
+        const v = el.value
+        const marca = (campo, obrig) => {
+          const lb = document.querySelector(`[data-campo="${campo}"] label`); if (!lb) return
+          lb.textContent = lb.textContent.replace(/ \*$/, '') + (obrig ? ' *' : '')
+        }
+        marca('local', v === 'Presencial' || v === 'Híbrida')
+        marca('link', v === 'Online' || v === 'Híbrida')
+      }
+      if (chave === 'respondida') {
+        const ck = document.getElementById('ft-respondida'), dt = document.getElementById('ft-dt_resposta')
+        if (ck && dt && ck.checked && !dt.value) {
+          const d = new Date(); dt.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        }
+      }
+    },
+    // gestão dos tipos
+    tipos: () => abrirTipos(),
+    salvarTipo: async cod => {
+      const tr = document.querySelector(`.tt-tbl tr[data-cod="${cod}"]`); if (!tr) return
+      const nome = tr.querySelector('.tt-nm').value.trim()
+      if (!nome) { toast('O tipo precisa de um nome.', 'warning'); return }
+      const { error } = await db.from('tarefa_tipos').update({
+        nome, icone: tr.querySelector('.tt-ic').value.trim() || '📌', cor: tr.querySelector('.tt-cor').value,
+        ordem: parseInt(tr.querySelector('.tt-ord').value, 10) || 0, ativo: tr.querySelector('.tt-at').checked,
+      }).eq('codigo', cod)
+      if (error) { toast(error.message, 'error'); return }
+      toast('Tipo atualizado ✓', 'success'); await recarregarTipos()
+    },
+    novoTipo: async () => {
+      const nome = document.getElementById('tt-novo-nm').value.trim()
+      if (!nome) { toast('Informe o nome do novo tipo.', 'warning'); return }
+      let base = semAcento(nome).replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 36) || 'tipo'
+      let codigo = base, n = 2
+      while (S.tipos.some(x => x.codigo === codigo)) codigo = base + '_' + n++
+      const ordem = S.tipos.length ? Math.max(...S.tipos.filter(x => x.codigo !== 'outras').map(x => x.ordem)) + 10 : 10
+      const { error } = await db.from('tarefa_tipos').insert({
+        codigo, nome, icone: document.getElementById('tt-novo-ic').value.trim() || '🏷',
+        cor: document.getElementById('tt-novo-cor').value, ordem,
+      })
+      if (error) { toast(error.message, 'error'); return }
+      toast('Tipo criado ✓', 'success'); await recarregarTipos()
+    },
     toggleAtraso: btn => { S.fAtraso = !S.fAtraso; if (btn) btn.classList.toggle('on', S.fAtraso); refreshView() },
     toggleRestrita: btn => { S.fRestrita = !S.fRestrita; if (btn) btn.classList.toggle('on', S.fRestrita); refreshView() },
     novo: () => abrirModal(null),

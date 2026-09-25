@@ -238,6 +238,40 @@
 .tdr-abrir:hover{text-decoration:underline}
 .tdr-rest{cursor:default;color:var(--cinza-500)}
 
+/* ── Tipos de tarefa ──────────────────────────────────────── */
+.tipo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.tipo-op{display:flex;align-items:center;gap:8px;text-align:left;font:inherit;font-size:12.5px;font-weight:600;padding:10px 11px;
+  border:1px solid var(--borda-forte);border-radius:var(--raio);background:var(--branco);color:var(--cinza-700);cursor:pointer;line-height:1.25}
+.tipo-op:hover{border-color:var(--tc)}
+.tipo-op.on{border-color:var(--tc);box-shadow:inset 0 0 0 1px var(--tc);background:color-mix(in srgb,var(--tc) 8%,#fff);color:var(--cinza-900)}
+.tipo-op-ic{font-size:18px}
+.tipo-bloco{border:1px solid var(--borda);border-left:4px solid var(--tc);border-radius:var(--raio);padding:12px 14px;
+  background:color-mix(in srgb,var(--tc) 4%,#fff)}
+.tipo-bloco-h{font-size:12.5px;font-weight:700;color:var(--cinza-800);margin-bottom:10px}
+.tipo-campos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 12px}
+.tipo-campos .full{grid-column:1/-1}
+.tipo-campos .fld input[type=datetime-local],.tipo-campos .fld input[type=url]{width:100%;font:inherit;font-size:13.5px;padding:9px 11px;
+  border:1px solid var(--borda-forte);border-radius:var(--raio);background:var(--branco);color:var(--cinza-900)}
+.tipo-bool{align-self:end;padding-bottom:9px}
+@media(max-width:640px){.tipo-campos{grid-template-columns:minmax(0,1fr)}}
+.tipo-badge{font-size:11px;font-weight:600;color:var(--cinza-700);border:1px solid var(--tc);border-radius:99px;padding:2px 9px}
+.tk-tipo-ic{font-size:12px}
+.tk-hora{font-family:var(--font-mono);font-size:10.5px;color:#2563EB;font-weight:600}
+input.ro{background:var(--cinza-50,#F9FAFB);color:var(--cinza-600)}
+.tk-modal-b1{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.tt-tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tt-tbl th{text-align:left;font-size:11px;color:var(--cinza-500);font-weight:600;padding:6px;border-bottom:1px solid var(--borda)}
+.tt-tbl td{padding:6px;border-bottom:1px solid var(--cinza-100);vertical-align:middle}
+.tt-tbl input[type=text],.tt-tbl input[type=number]{font:inherit;font-size:12.5px;padding:6px 8px;border:1px solid var(--borda-forte);border-radius:var(--raio);width:100%}
+.tt-tbl input.tt-ic{width:52px;text-align:center}
+.tt-tbl td:first-child{width:64px}
+.tt-tbl input[type=color],.tt-novo input[type=color]{width:38px;height:30px;border:1px solid var(--borda-forte);border-radius:6px;padding:2px;background:#fff}
+.tt-cp{color:var(--cinza-500);font-size:11.5px;max-width:260px}
+.tt-novo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--borda);padding-top:14px}
+.tt-novo input[type=text]{font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--borda-forte);border-radius:var(--raio)}
+#tt-novo-ic{width:64px;text-align:center}
+#tt-novo-nm{flex:1;min-width:200px}
+
 /* ── Barra de progresso (card + lista) ───────────────────── */
 .tk-prog{display:flex;align-items:center;gap:6px}
 .tk-prog.card{margin-top:9px}

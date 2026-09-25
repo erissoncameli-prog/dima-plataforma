@@ -1,7 +1,10 @@
 // enviar-email-tarefa — notifica responsáveis/observadores/criador internos e,
 // opcionalmente, o fornecedor vinculado (parte externa). Reaproveita o wrapper
 // visual de enviar-email-viagem. verify_jwt = true (chamada pelo frontend após a RPC).
-// Eventos: atribuicao | prazo_alterado | concluida | comentario | subtarefa.
+// Eventos: atribuicao | prazo_alterado | concluida | comentario | subtarefa |
+//          reuniao_atualizada | cancelada.
+// Tarefa do tipo "reuniao" leva convite de agenda (.ics, METHOD REQUEST/CANCEL)
+// com UID fixo por tarefa e SEQUENCE = tarefas.ics_sequencia.
 // "subtarefa" avisa o responsável da subtarefa; se for fornecedor, envia os
 // anexos da subtarefa e Reply-To com o token da subtarefa (resposta → comentário).
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -27,7 +30,7 @@ function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): stri
   const linhas = corpo.split('\n')
   let html = '', emBloco = false
   for (const linha of linhas) {
-    const isItem = /^[A-ZÇÁÉÍÓÚÃÕ\s]{3,16}\s*:/.test(linha)
+    const isItem = /^[A-ZÇÁÉÍÓÚÃÕÂÊÔÀ\s]{3,22}\s*:/.test(linha)
     if (isItem) {
       if (!emBloco) { html += '<table style="width:100%;border-collapse:collapse;margin:12px 0">'; emBloco = true }
       const sep = linha.indexOf(':')
@@ -87,6 +90,74 @@ const pathAnexo = (url: string) => {
 }
 const LIMITE_ANEXOS = 15 * 1024 * 1024 // Gmail aceita 25 MB; margem p/ base64
 
+// ── Campos do tipo e convite de agenda ─────────────────────────────────
+// Datas/horas de reunião são gravadas em hora local do Acre ('YYYY-MM-DDTHH:mm'),
+// que é UTC-5 fixo (sem horário de verão).
+const ACRE_UTC_OFFSET_H = 5
+const fmtDataHora = (v: string) => {
+  const [d, h] = String(v).split('T'); const [y, m, dd] = d.split('-')
+  return `${dd}/${m}/${y}${h ? ' ' + h.slice(0, 5) : ''}`
+}
+function valorCampo (c: any, v: any): string {
+  if (v === undefined || v === null || v === '') return ''
+  if (c.tipo === 'datetime') return fmtDataHora(v)
+  if (c.tipo === 'date') return fmtData(v)
+  if (c.tipo === 'boolean') return v === true || v === 'true' ? 'Sim' : 'Não'
+  if (c.tipo === 'url') return `<a href="${esc(v)}" style="color:#059669">${esc(v)}</a>`
+  return esc(v)
+}
+function linhasTipo (tipo: any, dados: any): string {
+  const campos: any[] = tipo?.campos || []
+  return campos.map(c => {
+    const v = valorCampo(c, dados?.[c.chave]); if (!v) return ''
+    const rot = String(c.rotulo || c.chave).toUpperCase().replace(/[^A-ZÇÁÉÍÓÚÃÕÂÊÔÀ\s]/g, '').slice(0, 22)
+    return `${rot}: ${c.tipo === 'textarea' ? v.replace(/\n/g, '<br>') : v}\n`
+  }).join('')
+}
+function localParaUtc (local: string, somaMin = 0): Date {
+  const [d, h] = local.split('T'); const [Y, M, D] = d.split('-').map(Number)
+  const [hh, mm] = (h || '00:00').split(':').map(Number)
+  return new Date(Date.UTC(Y, M - 1, D, hh + ACRE_UTC_OFFSET_H, mm + somaMin))
+}
+const icsData = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+const icsTxt = (s: unknown) => String(s ?? '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+// RFC 5545: linhas com mais de 75 octetos são dobradas (CRLF + espaço)
+function dobrar (linha: string): string {
+  const enc = new TextEncoder()
+  if (enc.encode(linha).length <= 75) return linha
+  const partes: string[] = []; let cur = '', n = 0
+  for (const ch of linha) {
+    const b = enc.encode(ch).length
+    if (n + b > (partes.length ? 74 : 75)) { partes.push(cur); cur = ''; n = 0 }
+    cur += ch; n += b
+  }
+  partes.push(cur)
+  return partes.join('\r\n ')
+}
+function montarIcs (metodo: 'REQUEST' | 'CANCEL', t: any, participantes: { email: string; nome: string }[]): string {
+  const d = t.dados_tipo || {}
+  const ini = localParaUtc(d.inicio)
+  const fim = d.fim && d.fim > d.inicio ? localParaUtc(d.fim) : localParaUtc(d.inicio, 60)
+  const link = d.link || ''
+  const desc = [d.pauta ? 'Pauta:\n' + d.pauta : '', link ? 'Link: ' + link : '',
+    `Painel: ${SITE_URL}/pages/tarefas.html?tarefa=${t.id}`].filter(Boolean).join('\n\n')
+  const linhas = [
+    'BEGIN:VCALENDAR', 'PRODID:-//Projeto DIMA//Painel de Tarefas//PT', 'VERSION:2.0', 'CALSCALE:GREGORIAN',
+    `METHOD:${metodo}`, 'BEGIN:VEVENT',
+    `UID:${t.id}@dima-plataforma`, `SEQUENCE:${t.ics_sequencia || 0}`,
+    `DTSTAMP:${icsData(new Date())}`, `DTSTART:${icsData(ini)}`, `DTEND:${icsData(fim)}`,
+    `SUMMARY:${icsTxt(t.titulo)}`,
+    (d.local || link) ? `LOCATION:${icsTxt(d.local || link)}` : '',
+    `DESCRIPTION:${icsTxt(desc)}`,
+    link ? `URL:${icsTxt(link)}` : '',
+    'ORGANIZER;CN="Projeto DIMA":mailto:fundobrasilonuacre@gmail.com',
+    ...participantes.map(p => `ATTENDEE;CN="${String(p.nome || p.email).replace(/"/g, '')}";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${p.email}`),
+    `STATUS:${metodo === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED'}`,
+    'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean)
+  return linhas.map(dobrar).join('\r\n') + '\r\n'
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
@@ -115,6 +186,7 @@ Deno.serve(async (req) => {
     const { data: t, error: eT } = await supabase
       .from('tarefas')
       .select('id,codigo,titulo,descricao,status,prioridade,dt_prazo,criado_por,fornecedor_id,notificar_fornecedor,' +
+              'tipo,dados_tipo,ics_sequencia,tipo_info:tarefa_tipos(nome,icone,campos),' +
               'fornecedor:fornecedores(nome,email,responsavel_nome),' +
               'criador:usuarios(nome_completo,email)')
       .eq('id', tarefa_id).single()
@@ -127,11 +199,19 @@ Deno.serve(async (req) => {
     const responsaveis = (parts || []).filter((p: any) => p.papel === 'responsavel')
     const observadores = (parts || []).filter((p: any) => p.papel === 'observador')
 
+    // Reunião com data: leva convite de agenda. Nesse caso quem originou a ação
+    // também recebe (precisa do evento na própria agenda).
+    const reuniao = t.tipo === 'reuniao' && !!t.dados_tipo?.inicio
+    if ((evento === 'reuniao_atualizada' || evento === 'cancelada') && !reuniao) {
+      return new Response(JSON.stringify({ ok: true, enviados: 0, aviso: 'não é reunião' }),
+        { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
+
     // destinatários internos (dedup por e-mail, excluindo quem originou a ação)
     const filtro: string[] | null = Array.isArray(destinatarios) ? destinatarios : null
     const rec = new Map<string, { nome: string; papel: string }>()
     const add = (id: string | null, email?: string, nome?: string, papel = '') => {
-      if (!email || id === autor_id) return
+      if (!email || (id === autor_id && !reuniao)) return
       if (filtro && (!id || !filtro.includes(id))) return
       if (!rec.has(email)) rec.set(email, { nome: nome || '', papel })
     }
@@ -157,7 +237,8 @@ Deno.serve(async (req) => {
       add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
       responsaveis.forEach(addP)
       observadores.forEach(addP)
-    } else if (evento === 'prazo_alterado') {
+    } else if (evento === 'prazo_alterado' || evento === 'reuniao_atualizada' || evento === 'cancelada') {
+      if (evento !== 'prazo_alterado') add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
       responsaveis.forEach(addP)
       observadores.forEach(addP)
     } else if (evento === 'subtarefa') {
@@ -195,7 +276,22 @@ Deno.serve(async (req) => {
       comentario:     `Novo comentário — ${t.codigo}: ${t.titulo}`,
       subtarefa:      `Subtarefa atribuída — ${t.codigo}: ${t.titulo}`,
     }
+    if (reuniao) {
+      const quando = fmtDataHora(t.dados_tipo.inicio)
+      assunto.atribuicao = `📅 Convite: ${t.titulo} — ${quando}`
+      assunto.reuniao_atualizada = `📅 Reunião atualizada: ${t.titulo} — ${quando}`
+      assunto.cancelada = `❌ Reunião cancelada: ${t.titulo} — ${quando}`
+    } else if (t.tipo_info && t.tipo !== 'outras') {
+      assunto.atribuicao = `${t.tipo_info.icone} ${t.tipo_info.nome} — ${t.codigo}: ${t.titulo}`
+    }
     const abertura = (papel: string): string => {
+      if (reuniao && evento === 'atribuicao')
+        return 'Você foi convidado(a) para uma reunião registrada no painel do Projeto DIMA. ' +
+               'O convite de agenda segue anexo — use <b>Sim / Não / Talvez</b> no seu e-mail ou agenda para responder.'
+      if (evento === 'reuniao_atualizada')
+        return 'Os dados de uma reunião da qual você participa foram alterados. O convite na sua agenda será atualizado.'
+      if (evento === 'cancelada')
+        return 'A reunião abaixo foi <b>cancelada</b>. O evento será removido da sua agenda.'
       if (evento === 'atribuicao' && papel === 'observador')
         return 'Você foi incluído(a) como <b>observador(a)</b> de uma tarefa no painel do Projeto DIMA. ' +
                'Você receberá os avisos de comentários, mudança de prazo e conclusão para acompanhar o andamento.'
@@ -213,11 +309,13 @@ Deno.serve(async (req) => {
     const corpoInterno = (papel: string) =>
       `${abertura(papel)}\n\n` +
       `TAREFA: ${esc(t.codigo)} — ${esc(t.titulo)}\n` +
+      (t.tipo_info && t.tipo !== 'outras' ? `TIPO: ${esc(t.tipo_info.icone)} ${esc(t.tipo_info.nome)}\n` : '') +
+      linhasTipo(t.tipo_info, t.dados_tipo) +
       (sub ? `SUBTAREFA: ${esc(sub.descricao)}\n` : '') +
       (sub ? `PRAZO: ${fmtData(sub.dt_prazo)}\n` : '') +
       (!sub && t.descricao ? `DESCRIÇÃO: ${esc(t.descricao)}\n` : '') +
       `PRIORIDADE: ${esc(prioTxt)}\n` +
-      (sub ? `PRAZO DA TAREFA: ${prazoTxt}\n` : `PRAZO: ${prazoTxt}\n`) +
+      (sub ? `PRAZO DA TAREFA: ${prazoTxt}\n` : reuniao ? '' : `PRAZO: ${prazoTxt}\n`) +
       (papel ? `SEU PAPEL: ${papel === 'observador' ? 'Observador(a)' : 'Responsável'}\n` : '') +
       (comentTxt ? `COMENTÁRIO: ${esc(comentTxt)}\n` : '') +
       (comentAnexos.length ? `ANEXOS: ${comentAnexos.map(esc).join(', ')}\n` : '') +
@@ -227,12 +325,23 @@ Deno.serve(async (req) => {
     // Reply-To com token da tarefa: a resposta do e-mail vira comentário
     // (recebido por receber-email-tarefa).
     const replyTo = `fundobrasilonuacre+${t.id}@gmail.com`
+    // convite: todos os envolvidos como convidados, mesmo quem não recebe este e-mail
+    let ics: any = null
+    if (reuniao && ['atribuicao', 'reuniao_atualizada', 'cancelada'].includes(evento)) {
+      const conv = new Map<string, string>()
+      if (t.criador?.email) conv.set(t.criador.email, t.criador.nome_completo || '')
+      for (const p of (parts || []) as any[]) if (p.usuario?.email) conv.set(p.usuario.email, p.usuario.nome_completo || '')
+      const metodo = evento === 'cancelada' ? 'CANCEL' : 'REQUEST'
+      ics = { method: metodo, filename: metodo === 'CANCEL' ? 'cancelamento.ics' : 'convite.ics',
+              content: montarIcs(metodo, t, [...conv].map(([email, nome]) => ({ email, nome }))) }
+    }
     for (const [email, r] of rec) {
       envios.push({
         to: email,
         assunto: assunto[evento] || assunto.atribuicao,
         html: wrapHtml(`Olá, ${esc((r.nome || '').split(' ')[0])}.\n\n${corpoInterno(r.papel)}`, linkApp),
         replyTo,
+        icalEvent: ics || undefined,
       })
     }
 
@@ -307,7 +416,7 @@ Deno.serve(async (req) => {
     const results = await Promise.allSettled(
       envios.map(e => transporter.sendMail({
         from: REMETENTE, to: e.to, subject: e.assunto, html: e.html, replyTo: e.replyTo,
-        attachments: e.attachments,
+        attachments: e.attachments, icalEvent: e.icalEvent,
       })),
     )
     const enviados = results.filter(r => r.status === 'fulfilled').length
