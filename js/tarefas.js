@@ -85,7 +85,7 @@
     const [tj, uj, aj, fj, pj, ttj] = await Promise.all([
       db.from('tarefas').select(
         'id,codigo,titulo,descricao,status,prioridade,dt_inicio,dt_prazo,dt_conclusao,' +
-        'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,restrita,tipo,dados_tipo,ordem,criado_por,criado_em,' +
+        'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,restrita,tipo,dados_tipo,ordem,criado_por,criado_em,atualizado_em,' +
         'participantes:tarefa_participantes(usuario_id,papel),' +
         'atividade:atividades(id,codigo,nome_pt),' +
         'vinc_tdrs:tarefa_tdrs(tdr_id,tdr:tdrs(id,numero,tipo,status,objeto_pt)),' +
@@ -370,9 +370,13 @@
   }
 
   // ══ MODAL ═════════════════════════════════════════════════════════════
-  function abrirModal (t) {
+  // Tarefa existente abre em modo leitura; os campos só liberam com
+  // "Editar tarefa" (S.modoEdicao). O banco registra toda alteração salva.
+  function abrirModal (t, manterAba = false) {
     S.editId = t ? t.id : null
-    S.det = null; S.detAba = 'checklist'; S.editChk = null
+    if (!t) S.modoEdicao = true
+    S.det = null; S.editChk = null
+    if (!manterAba) S.detAba = 'checklist'
     S.podeEditar = !t || podeDelegarGlobal || t.criado_por === usuario.id || souResponsavel(t)
     const ov = document.getElementById('tk-overlay')
     document.getElementById('tk-modal').innerHTML = montarModal(t)
@@ -405,11 +409,13 @@
   const HIST_TXT = {
     criacao: 'criou a tarefa', status: 'mudou o status', prazo: 'alterou o prazo',
     responsavel: 'atribuiu', conclusao: 'concluiu', reabertura: 'reabriu',
-    comentario: 'comentou', edicao: 'editou', anexo: 'anexou',
+    comentario: 'comentou', edicao: 'editou a tarefa ·', anexo: 'anexou',
     subtarefa_resp: 'atribuiu a subtarefa', comentario_fornecedor: 'resposta por e-mail de',
     restricao: 'alterou a visibilidade',
     tdr_vinculo: 'vinculou o TDR', tdr_desvinculo: 'desvinculou o TDR',
-    tipo: 'mudou o tipo',
+    tipo: 'mudou o tipo', remocao: 'removeu', anexo_removido: 'removeu o anexo',
+    subtarefa_criada: 'criou a subtarefa', subtarefa_editada: 'editou a subtarefa', subtarefa_concluida: 'concluiu a subtarefa',
+    subtarefa_reaberta: 'reabriu a subtarefa', subtarefa_excluida: 'excluiu a subtarefa',
   }
   const fmtDT = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
   const primeiroNome = n => (n || '').split(' ')[0]
@@ -503,12 +509,12 @@
     }
     const meta = [chipResp(c), badgePrazoChk(c)].filter(Boolean).join('')
     return `<div class="ck-item">
-      <input type="checkbox" ${c.concluida ? 'checked' : ''} ${S.podeEditar ? '' : 'disabled'} onchange="TK.toggleChk('${c.id}',this.checked)">
+      <input type="checkbox" ${c.concluida ? 'checked' : ''} ${podeMexerSub() ? '' : 'disabled'} onchange="TK.toggleChk('${c.id}',this.checked)">
       <div class="ck-main">
         <span class="ck-desc ${c.concluida ? 'done' : ''}">${esc(c.descricao)}</span>
         ${meta || axs.length ? `<div class="ck-meta">${meta}${chipsAnexos(axs)}</div>` : ''}
       </div>
-      ${S.podeEditar ? `<button class="ck-x ck-ed" onclick="TK.editChk('${c.id}')" title="Editar">✎</button>
+      ${podeMexerSub() ? `<button class="ck-x ck-ed" onclick="TK.editChk('${c.id}')" title="Editar">✎</button>
       <button class="ck-x" onclick="TK.delChk('${c.id}')" title="Remover">×</button>` : ''}
     </div>`
   }
@@ -529,7 +535,8 @@
       const itens = d.checklist.map(c => itemChecklist(c, d)).join('')
       corpo = `${d.checklist.length ? `<div class="ck-bar"><div class="ck-fill" style="width:${pct}%"></div></div>` : ''}
         ${itens || '<div class="det-empty">Sem subtarefas.</div>'}
-        ${S.podeEditar ? `<div class="ck-add">
+        ${S.podeEditar && !S.modoEdicao ? '<div class="hint" style="margin-top:10px">Para adicionar, alterar ou concluir subtarefas, clique em <b>✏️ Editar tarefa</b>.</div>' : ''}
+        ${podeMexerSub() ? `<div class="ck-add">
           <input type="text" id="ck-in" placeholder="Nova subtarefa…" onkeydown="if(event.key==='Enter')TK.addChk()">
           <div class="ck-form-row">
             <select id="ck-resp" title="Responsável (usuário ou fornecedor)">${optRespChk('')}</select>
@@ -582,18 +589,33 @@
         ${S.podeEditar ? `<label class="ax-add">📎 Anexar arquivo<input type="file" id="ax-in" style="display:none" onchange="TK.uploadAnexo(this)"></label>
         <span id="ax-status" class="hint"></span>` : ''}`
     } else {
-      corpo = d.hist.map(h => `<div class="hist-i"><span class="hi-dot"></span>
-        <div><b>${h.autor_id ? esc(nomeUsuario(h.autor_id)) : '🏢'}</b> ${HIST_TXT[h.tipo] || h.tipo}
-        ${h.de || h.para ? `<span style="color:var(--cinza-500)">${h.de ? esc(h.de) + ' → ' : ''}${esc(h.para || '')}</span>` : ''}
-        <div style="color:var(--cinza-400);font-size:10px">${fmtDT(h.criado_em)}</div></div></div>`).join('')
-        || '<div class="det-empty">Sem histórico.</div>'
+      corpo = d.hist.map((h, i) => {
+        const det = Array.isArray(h.detalhes) && h.detalhes.length ? h.detalhes : null
+        const resumo = det
+          ? `<a href="#" class="hist-mais" onclick="event.preventDefault();TK.histToggle(${i})">${esc(h.para || '')} ▸</a>`
+          : (h.de || h.para ? `<span style="color:var(--cinza-500)">${h.de ? esc(h.de) + ' → ' : ''}${esc(h.para || '')}</span>` : '')
+        const lista = det ? `<div class="hist-det" id="hist-det-${i}" hidden>${det.map(x => x.longo
+          ? `<div class="hd-i"><b>${esc(x.campo)}</b><div class="hd-long"><span>Antes</span>${esc(x.de || '—')}</div><div class="hd-long"><span>Depois</span>${esc(x.para || '—')}</div></div>`
+          : `<div class="hd-i"><b>${esc(x.campo)}:</b> <s>${esc(x.de || '—')}</s> → ${esc(x.para || '—')}</div>`).join('')}</div>` : ''
+        return `<div class="hist-i"><span class="hi-dot"></span>
+          <div style="flex:1;min-width:0"><b>${h.autor_id ? esc(nomeUsuario(h.autor_id)) : '🏢'}</b> ${HIST_TXT[h.tipo] || h.tipo} ${resumo}
+          ${h.motivo ? `<div class="hist-motivo">Motivo: ${esc(h.motivo)}</div>` : ''}
+          ${lista}
+          <div style="color:var(--cinza-400);font-size:10px">${fmtDT(h.criado_em)}</div></div></div>`
+      }).join('') || '<div class="det-empty">Sem histórico.</div>'
     }
     el.style.color = 'inherit'
     el.innerHTML = `<div class="det-tabs">${tabs.map(([k, n]) =>
       `<button class="det-tab ${S.detAba === k ? 'on' : ''}" onclick="TK.detAba('${k}')">${n}</button>`).join('')}</div>
       <div class="det-corpo">${corpo}</div>`
   }
-  window.fecharModal = () => document.getElementById('tk-overlay').classList.remove('on')
+  window.fecharModal = () => {
+    if (S.modoEdicao && S.editId && !confirm('Descartar as alterações não salvas?')) return
+    S.modoEdicao = false
+    document.getElementById('tk-overlay').classList.remove('on')
+  }
+  // subtarefas só mudam em modo edição
+  const podeMexerSub = () => S.podeEditar && S.modoEdicao
 
   // ── Seletor de atividade (busca + nome completo) ──────────────────────
   // O <select> nativo não mostra o nome ao passar o mouse e as atividades têm
@@ -753,6 +775,7 @@
     // restrição: qualquer um cria; só o criador (ou super_admin) altera depois
     const podeRestringir = novo || t.criado_por === usuario.id || appState.perfil === 'super_admin'
     const bloqueio = podeEditar ? '' : 'pointer-events:none;opacity:.7'
+    const travado = !novo && !S.modoEdicao ? ' disabled' : ''
     const tipoAtual = t ? (t.tipo || 'outras') : ''
 
     const optFrn = ['<option value="">— nenhum —</option>'].concat(
@@ -774,8 +797,13 @@
       <button class="tk-x" onclick="fecharModal()">×</button>
     </div>
     <div class="tk-modal-b" id="tk-form">
+      ${!novo && S.modoEdicao ? `<div class="tk-edit-faixa">
+        <div>✏️ <b>Modo edição</b> — as alterações ficarão registradas no histórico da tarefa.</div>
+        <div class="fld" style="margin:0"><input type="text" id="f-motivo" maxlength="300"
+          placeholder="Motivo da alteração (opcional; obrigatório se o prazo mudar)"></div>
+      </div>` : ''}
       <div class="tk-mcol">
-        <div class="tk-campos" style="${bloqueio}">
+        <fieldset class="tk-campos" style="${bloqueio}"${travado}>
           <div class="fld"><label>Tipo de tarefa *</label>${seletorTipo(tipoAtual)}
             ${novo ? '<div class="hint">Escolha o tipo primeiro: o formulário se ajusta a ele.</div>' : ''}</div>
           <div class="fld"><label>Título *</label>
@@ -800,7 +828,6 @@
               Enviar e-mail de cobrança ao fornecedor</label>
             <div class="hint">O fornecedor recebe um aviso por e-mail; ele não acessa a plataforma.</div>
           </div>
-        </div>
         <div class="fld tk-restr ${t && t.restrita ? 'on' : ''}" id="f-restr-wrap">
           <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:${podeRestringir ? 'pointer' : 'default'}">
             <input type="checkbox" id="f-restrita" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.restrita ? 'checked' : ''} ${podeRestringir ? '' : 'disabled'}
@@ -809,22 +836,28 @@
           <div class="hint">Visível só para quem criou, responsáveis e observadores (e o super admin). A coordenação e os responsáveis da atividade vinculada não veem.
             Quem for incluído como observador ou responsável de subtarefa passa a ver a tarefa inteira.${podeRestringir ? '' : ' Só quem criou a tarefa pode alterar.'}</div>
         </div>
+        </fieldset>
       </div>
       <div class="tk-mcol">
-        <div class="tk-campos" style="${bloqueio}">
+        <fieldset class="tk-campos" style="${bloqueio}"${travado}>
           <div class="fld"><label>Responsáveis internos ${podeDelegar ? '' : '<span style="color:var(--cinza-400);font-weight:400">(só você)</span>'}</label>
             <div class="multi" ${podeDelegar ? '' : 'style="opacity:.6;pointer-events:none"'}>${listaResp}</div></div>
           <div class="fld"><label>Observadores <span style="color:var(--cinza-400);font-weight:400">(acompanham, sem executar)</span></label>
             <div class="multi">${listaObs}</div></div>
-        </div>
+        </fieldset>
         ${t ? '<div id="tk-detalhe" style="border-top:1px solid var(--borda);padding-top:14px;color:var(--cinza-400);font-size:12px">Carregando…</div>' : ''}
       </div>
     </div>
-    <div class="tk-modal-f">
-      ${t && podeEditar && t.status !== 'cancelada' ? `<button class="btn-danger-ghost" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
-      ${t && podeEditar && t.status !== 'concluida' ? `<button class="btn-ok" onclick="TK.concluir('${t.id}')">✓ Concluir</button>` : ''}
+    <div class="tk-modal-f">${novo ? `
       <button class="btn-sec" onclick="fecharModal()">Fechar</button>
-      ${podeEditar ? `<button class="btn-pri" onclick="TK.salvar()">${novo ? 'Criar tarefa' : 'Salvar'}</button>` : ''}
+      <button class="btn-pri" onclick="TK.salvar()">Criar tarefa</button>` : S.modoEdicao ? `
+      <span class="tk-spacer"></span>
+      <button class="btn-sec" onclick="TK.descartar()">Descartar</button>
+      <button class="btn-pri" onclick="TK.salvar()">Salvar alterações</button>` : `
+      ${podeEditar && t.status !== 'cancelada' ? `<button class="btn-danger-ghost" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
+      ${podeEditar && t.status !== 'concluida' ? `<button class="btn-ok" onclick="TK.concluir('${t.id}')">✓ Concluir</button>` : ''}
+      <button class="btn-sec" onclick="fecharModal()">Fechar</button>
+      ${podeEditar ? `<button class="btn-pri" onclick="TK.editar()">✏️ Editar tarefa</button>` : ''}`}
     </div>`
   }
 
@@ -872,14 +905,23 @@
     } else {
       const t = S.tarefas.find(x => x.id === S.editId)
       const prazoAntigo = t ? t.dt_prazo : null
+      const motivo = (g('f-motivo') ? g('f-motivo').value : '').trim() || null
+      if ((prazoAntigo || null) !== (dt_prazo || null) && !motivo) {
+        toast('O prazo mudou: informe o motivo da alteração.', 'warning')
+        if (g('f-motivo')) g('f-motivo').focus()
+        if (btn) { btn.disabled = false; btn.textContent = 'Salvar alterações' }
+        return
+      }
       const { error } = await db.rpc('fn_editar_tarefa', {
         p_tarefa_id: S.editId, p_titulo: titulo, p_descricao: desc, p_prioridade: prioridade,
         p_dt_inicio: dt_inicio, p_entidade_tipo: t ? t.entidade_tipo : null, p_entidade_id: t ? t.entidade_id : null,
         p_atividade_id: atividade_id,
         p_fornecedor_id: fornecedor_id, p_notificar_fornecedor: notificar,
         p_tipo: tipo, p_dados_tipo: dados_tipo,
+        p_mudar_prazo: true, p_dt_prazo: dt_prazo, p_motivo: motivo,
+        p_versao: t ? t.atualizado_em : null, // trava: recusa se alguém salvou no meio tempo
       })
-      if (error) { toast('Erro ao salvar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Salvar' } return }
+      if (error) { toast(error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Salvar alterações' } return }
       // TDRs: a troca de atividade já remove no banco os vínculos de outra atividade
       const atuais = t && t.atividade_id === atividade_id ? (t.vinc_tdrs || []).filter(x => x.tdr).map(x => x.tdr_id) : []
       await sincronizarTdrs(S.editId, atuais, tdrsMarcados)
@@ -899,13 +941,14 @@
         const demais = [...new Set([t.criado_por, ...responsaveis, ...observadores])].filter(u => !novos.includes(u))
         if (demais.length) chamarEmail(S.editId, 'reuniao_atualizada', { destinatarios: demais })
       }
-      // Prazo alterado? (na reunião o aviso já vai no convite atualizado)
+      // Prazo alterado? (gravado e registrado por fn_editar_tarefa; na reunião
+      // o aviso já vai no convite atualizado)
       if ((prazoAntigo || null) !== (dt_prazo || null)) {
-        await db.rpc('fn_reagendar_tarefa', { p_tarefa_id: S.editId, p_dt_prazo: dt_prazo })
         if (!reuniaoMudou) chamarEmail(S.editId, 'prazo_alterado')
       }
-      toast('Tarefa atualizada ✓', 'success')
+      toast('Tarefa atualizada ✓ (registrado no histórico)', 'success')
     }
+    S.modoEdicao = false
     fecharModal()
     await carregarTudo(); render()
   }
@@ -1060,8 +1103,18 @@
     toggleAtraso: btn => { S.fAtraso = !S.fAtraso; if (btn) btn.classList.toggle('on', S.fAtraso); refreshView() },
     toggleRestrita: btn => { S.fRestrita = !S.fRestrita; if (btn) btn.classList.toggle('on', S.fRestrita); refreshView() },
     novo: () => abrirModal(null),
-    abrir: id => abrirModal(S.tarefas.find(t => t.id === id)),
+    abrir: id => { S.modoEdicao = false; abrirModal(S.tarefas.find(t => t.id === id)) },
     salvar, concluir, cancelar,
+    editar: () => {
+      const t = S.tarefas.find(x => x.id === S.editId); if (!t) return
+      S.modoEdicao = true; abrirModal(t, true)
+      const m = document.getElementById('f-titulo'); if (m) m.focus()
+    },
+    descartar: () => {
+      const t = S.tarefas.find(x => x.id === S.editId); if (!t) return
+      S.modoEdicao = false; abrirModal(t, true)
+    },
+    histToggle: i => { const el = document.getElementById('hist-det-' + i); if (el) el.hidden = !el.hidden },
     pickPrio: el => { el.parentElement.querySelectorAll('.chip-t').forEach(c => c.classList.remove('on')); el.classList.add('on') },
     pkAbrir: () => {
       const pop = document.getElementById('pk-atv-pop'); if (!pop) return

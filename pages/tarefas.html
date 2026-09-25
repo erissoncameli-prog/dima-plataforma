@@ -276,6 +276,24 @@ input.ro{background:var(--cinza-50,#F9FAFB);color:var(--cinza-600)}
 .tk-criador .av{width:16px;height:16px;font-size:7px}
 .tk-criador b{font-weight:600;color:var(--cinza-700)}
 
+/* ── Modo leitura / edição ───────────────────────────────── */
+fieldset.tk-campos{border:0;padding:0;margin:0;min-width:0}
+fieldset.tk-campos:disabled input,fieldset.tk-campos:disabled select,fieldset.tk-campos:disabled textarea,
+fieldset.tk-campos:disabled .pk-btn{background:var(--cinza-50,#F9FAFB);color:var(--cinza-800);cursor:default;opacity:1}
+fieldset.tk-campos:disabled .tipo-op:not(.on){opacity:.45}
+fieldset.tk-campos:disabled .tipo-op,fieldset.tk-campos:disabled .chip-t{cursor:default}
+fieldset.tk-campos:disabled .pk-seta{visibility:hidden}
+.tk-edit-faixa{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;background:#FFFBEB;border:1px solid #F59E0B;
+  border-radius:var(--raio);padding:10px 12px;font-size:12.5px;color:#92400E}
+.hist-mais{color:var(--verde-medio);text-decoration:none;font-weight:600}
+.hist-mais:hover{text-decoration:underline}
+.hist-motivo{font-size:11.5px;color:#92400E;background:#FFFBEB;border-radius:6px;padding:2px 7px;margin:3px 0;display:inline-block}
+.hist-det{margin:5px 0 3px;padding:6px 9px;border-left:2px solid var(--borda-forte);background:var(--cinza-50,#F9FAFB);border-radius:0 6px 6px 0}
+.hd-i{font-size:11.5px;color:var(--cinza-700);padding:2px 0}
+.hd-i s{color:var(--cinza-400)}
+.hd-long{white-space:pre-wrap;font-size:11.5px;margin:3px 0;padding:4px 7px;background:#fff;border:1px solid var(--cinza-100);border-radius:6px;max-height:140px;overflow:auto}
+.hd-long span{display:block;font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase}
+
 /* ── Barra de progresso (card + lista) ───────────────────── */
 .tk-prog{display:flex;align-items:center;gap:6px}
 .tk-prog.card{margin-top:9px}
