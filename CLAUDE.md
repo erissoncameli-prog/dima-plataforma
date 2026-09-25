@@ -339,6 +339,8 @@ senão o arquivo não entra no acervo.
 - `tarefa_comentarios.autor_id` pode ser NULL quando `autor_fornecedor_id` está preenchido; `checklist_id` indica a subtarefa de origem.
 - `tarefa_anexos.comentario_id` / `checklist_id` ligam o arquivo ao comentário (e-mail ou painel) e/ou à subtarefa — **sempre** preencher ao gravar anexo que chega junto com um comentário.
 - Observador é avisado no sino (`tarefa_observador`) e por e-mail ao ser incluído; `enviar-email-tarefa` aceita `destinatarios` (uuid[]) para avisar só os novos.
+- **Tarefa restrita** (`tarefas.restrita`): visível só para criador, participantes e `super_admin` — coordenação e responsáveis da atividade **não** veem. Regra única em `fn_pode_ver_tarefa`/`fn_tarefa_pode_editar` + policy `tarefas_select`; qualquer novo acesso a tarefa deve passar por elas. Só o criador (ou super_admin) muda a marcação (trigger `trg_tarefa_guarda_restrita`, registra `restricao` no histórico); usar `fn_definir_restricao_tarefa`.
+- Bucket `tarefas-anexos`: caminho **sempre** `<tarefa_id>/<arquivo>` — as policies de storage leem a 1ª pasta (`fn_tarefa_id_do_path`) e aplicam o acesso da tarefa (ver/anexar: `fn_pode_ver_tarefa`; apagar: `fn_tarefa_pode_editar`). Arquivo fora desse padrão fica inacessível ao cliente.
 
 ### Tabela: `produto_matriz_contribuicao`
 | Coluna | Tipo | Obs |

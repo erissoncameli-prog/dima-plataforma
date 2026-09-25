@@ -25,7 +25,7 @@
   // ── Estado ────────────────────────────────────────────────────────────
   const S = {
     tarefas: [], usuarios: [], atividades: [], fornecedores: [], progresso: {},
-    aba: 'kanban', fResp: '', fPrio: '', fAtraso: false, editId: null,
+    aba: 'kanban', fResp: '', fPrio: '', fAtraso: false, fRestrita: false, editId: null,
   }
 
   // Fallback de progresso por status quando a tarefa não tem checklist
@@ -63,13 +63,15 @@
   const respsDe = t => (t.participantes || []).filter(p => p.papel === 'responsavel')
   const obsDe   = t => (t.participantes || []).filter(p => p.papel === 'observador')
   const souResponsavel = t => respsDe(t).some(p => p.usuario_id === usuario.id)
+  const LOCK = '<span class="tk-lock" title="Tarefa restrita: visível só para os envolvidos">🔒</span>'
+  const cadeado = t => t && t.restrita ? LOCK : ''
 
   // ── Carregar dados ────────────────────────────────────────────────────
   async function carregarTudo () {
     const [tj, uj, aj, fj, pj] = await Promise.all([
       db.from('tarefas').select(
         'id,codigo,titulo,descricao,status,prioridade,dt_inicio,dt_prazo,dt_conclusao,' +
-        'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,ordem,criado_por,criado_em,' +
+        'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,restrita,ordem,criado_por,criado_em,' +
         'participantes:tarefa_participantes(usuario_id,papel),' +
         'atividade:atividades(id,codigo,nome_pt),' +
         'fornecedor:fornecedores(id,nome)'
@@ -132,6 +134,7 @@
       <select class="tk-sel" onchange="TK.filtroResp(this.value)">${optUsers}</select>
       <select class="tk-sel" onchange="TK.filtroPrio(this.value)">${optPrio}</select>
       <button class="tk-tab ${S.fAtraso ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleAtraso(this)">Só atrasadas</button>
+      <button class="tk-tab ${S.fRestrita ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleRestrita(this)" title="Tarefas visíveis só para os envolvidos">🔒 Restritas</button>
       ` : ''}
       <div class="tk-spacer"></div>
       <button class="tk-btn" onclick="TK.novo()">
@@ -144,6 +147,7 @@
   function passaFiltro (t) {
     if (S.fResp && !respsDe(t).some(p => p.usuario_id === S.fResp)) return false
     if (S.fPrio && t.prioridade !== S.fPrio) return false
+    if (S.fRestrita && !t.restrita) return false
     if (S.fAtraso) { const d = diasAte(t.dt_prazo); if (!(d !== null && d < 0 && t.status !== 'concluida')) return false }
     return true
   }
@@ -181,7 +185,7 @@
     const frn = t.fornecedor ? `<span class="frn" title="${esc(t.fornecedor.nome)}">🏢 ${esc((t.fornecedor.nome || '').split(' ')[0])}</span>` : ''
     return `<div class="tk-card" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')">
       <div class="code">${esc(t.codigo || '')}</div>
-      <div class="ttl">${esc(t.titulo)}</div>
+      <div class="ttl">${cadeado(t)}${esc(t.titulo)}</div>
       <div class="meta">${prio}${atv}${frn}
         <span class="av-stack">${rs}</span>${badgePrazo(t)}</div>
       ${barraProgresso(t, 'card')}
@@ -216,7 +220,7 @@
       const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
       return `<div class="tk-row" onclick="TK.abrir('${t.id}')">
         <span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}" title="${ST_NM[t.status]}"></span>
-        <span class="r-ttl"><span class="r-code">${esc(t.codigo || '')}</span> ${esc(t.titulo)}</span>
+        <span class="r-ttl"><span class="r-code">${esc(t.codigo || '')}</span> ${cadeado(t)}${esc(t.titulo)}</span>
         <span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>
         ${t.atividade ? `<span class="lnk">${esc(t.atividade.codigo)}</span>` : ''}
         <span class="av-stack">${rs}</span>
@@ -238,7 +242,7 @@
       const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
       return `<tr onclick="TK.abrir('${t.id}')">
         <td class="mono-cell">${esc(t.codigo || '')}</td>
-        <td><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span> ${esc(t.titulo)}</td>
+        <td><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span> ${cadeado(t)}${esc(t.titulo)}</td>
         <td><span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span></td>
         <td>${ST_NM[t.status] || t.status}</td>
         <td>${t.atividade ? esc(t.atividade.codigo) : (t.fornecedor ? '🏢 ' + esc((t.fornecedor.nome || '').split(' ')[0]) : '—')}</td>
@@ -273,7 +277,7 @@
       const its = (porDia[iso] || []).slice(0, 4)
       const mais = (porDia[iso] || []).length - its.length
       const chips = its.map(t => `<div class="cal-chip" style="border-left:3px solid ${ST_COR[t.status] || '#9CA3AF'}"
-          onclick="event.stopPropagation();TK.abrir('${t.id}')" title="${esc(t.titulo)}">${esc(t.titulo)}</div>`).join('')
+          onclick="event.stopPropagation();TK.abrir('${t.id}')" title="${esc(t.titulo)}">${t.restrita ? '🔒 ' : ''}${esc(t.titulo)}</div>`).join('')
       celulas += `<div class="cal-cell ${foraMes ? 'fora' : ''} ${isHoje ? 'hoje' : ''}">
         <div class="cal-dia">${d.getDate()}</div>${chips}${mais > 0 ? `<div class="cal-mais">+${mais}</div>` : ''}
       </div>`
@@ -362,6 +366,7 @@
     responsavel: 'atribuiu', conclusao: 'concluiu', reabertura: 'reabriu',
     comentario: 'comentou', edicao: 'editou', anexo: 'anexou',
     subtarefa_resp: 'atribuiu a subtarefa', comentario_fornecedor: 'resposta por e-mail de',
+    restricao: 'alterou a visibilidade',
   }
   const fmtDT = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
   const primeiroNome = n => (n || '').split(' ')[0]
@@ -553,6 +558,8 @@
     const respIds = t ? respsDe(t).map(p => p.usuario_id) : [usuario.id]
     const obsIds  = t ? obsDe(t).map(p => p.usuario_id) : []
     const podeDelegar = podeDelegarGlobal || novo // validação real no servidor
+    // restrição: qualquer um cria; só o criador (ou super_admin) altera depois
+    const podeRestringir = novo || t.criado_por === usuario.id || appState.perfil === 'super_admin'
 
     const optAtv = ['<option value="">— nenhuma —</option>'].concat(
       S.atividades.map(a => `<option value="${a.id}" ${t && t.atividade_id === a.id ? 'selected' : ''}>${esc(a.codigo)} · ${esc((a.nome_pt || '').slice(0, 40))}</option>`)).join('')
@@ -571,7 +578,7 @@
 
     return `
     <div class="tk-modal-h">
-      <h3>${novo ? 'Nova tarefa' : esc(t.titulo)}</h3>
+      <h3>${novo ? 'Nova tarefa' : cadeado(t) + esc(t.titulo)}</h3>
       ${t ? `<span class="code">${esc(t.codigo)}</span>` : ''}
       <button class="tk-x" onclick="fecharModal()">×</button>
     </div>
@@ -602,6 +609,14 @@
         <div class="hint">O fornecedor recebe um aviso por e-mail; ele não acessa a plataforma.</div>
       </div>
       </div>
+      <div class="fld tk-restr ${t && t.restrita ? 'on' : ''}" id="f-restr-wrap">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px;cursor:${podeRestringir ? 'pointer' : 'default'}">
+          <input type="checkbox" id="f-restrita" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.restrita ? 'checked' : ''} ${podeRestringir ? '' : 'disabled'}
+            onchange="document.getElementById('f-restr-wrap').classList.toggle('on',this.checked)">
+          🔒 Tarefa restrita</label>
+        <div class="hint">Visível só para quem criou, responsáveis e observadores (e o super admin). A coordenação e os responsáveis da atividade vinculada não veem.
+          Quem for incluído como observador ou responsável de subtarefa passa a ver a tarefa inteira.${podeRestringir ? '' : ' Só quem criou a tarefa pode alterar.'}</div>
+      </div>
       ${t ? '<div id="tk-detalhe" style="border-top:1px solid var(--borda);margin-top:4px;padding-top:14px;color:var(--cinza-400);font-size:12px">Carregando…</div>' : ''}
     </div>
     <div class="tk-modal-f">
@@ -627,6 +642,7 @@
     const notificar = !!(g('f-notif-frn') && g('f-notif-frn').checked && fornecedor_id)
     const responsaveis = [...document.querySelectorAll('.chk-resp:checked')].map(c => c.value)
     const observadores = [...document.querySelectorAll('.chk-obs:checked')].map(c => c.value)
+    const restrita = !!(g('f-restrita') && g('f-restrita').checked)
 
     const btn = document.querySelector('.tk-modal-f .btn-pri'); if (btn) { btn.disabled = true; btn.textContent = 'Salvando…' }
 
@@ -638,6 +654,7 @@
         p_atividade_id: atividade_id, p_fornecedor_id: fornecedor_id,
         p_notificar_fornecedor: notificar,
         p_responsaveis: responsaveis, p_observadores: observadores,
+        p_restrita: restrita,
       })
       if (error) { toast('Erro ao criar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Criar tarefa' } return }
       toast('Tarefa criada ✓', 'success')
@@ -651,6 +668,10 @@
         p_fornecedor_id: fornecedor_id, p_notificar_fornecedor: notificar,
       })
       if (error) { toast('Erro ao salvar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Salvar' } return }
+      if (t && !!t.restrita !== restrita) {
+        const { error: eR } = await db.rpc('fn_definir_restricao_tarefa', { p_tarefa_id: S.editId, p_restrita: restrita })
+        if (eR) toast('Restrição não alterada: ' + eR.message, 'error')
+      }
       // Sincroniza responsáveis/observadores (diferença simples)
       const novos = await sincronizarParticipantes(S.editId, responsaveis, observadores)
       // Novos responsáveis e observadores recebem e-mail (cada um com o seu papel)
@@ -704,6 +725,7 @@
     filtroResp: v => { S.fResp = v; refreshView() },
     filtroPrio: v => { S.fPrio = v; refreshView() },
     toggleAtraso: btn => { S.fAtraso = !S.fAtraso; if (btn) btn.classList.toggle('on', S.fAtraso); refreshView() },
+    toggleRestrita: btn => { S.fRestrita = !S.fRestrita; if (btn) btn.classList.toggle('on', S.fRestrita); refreshView() },
     novo: () => abrirModal(null),
     abrir: id => abrirModal(S.tarefas.find(t => t.id === id)),
     salvar, concluir, cancelar,
