@@ -59,6 +59,7 @@
   const avatar = u => `<span class="av" style="background:${avCor(u.id)}" title="${esc(u.nome_completo || '')}">${esc(iniciais(u.nome_completo))}</span>`
 
   const nomeUsuario = id => (S.usuarios.find(u => u.id === id) || {}).nome_completo || '—'
+  const nomeFornecedor = id => (S.fornecedores.find(f => f.id === id) || {}).nome || 'Fornecedor'
   const respsDe = t => (t.participantes || []).filter(p => p.papel === 'responsavel')
   const obsDe   = t => (t.participantes || []).filter(p => p.papel === 'observador')
   const souResponsavel = t => respsDe(t).some(p => p.usuario_id === usuario.id)
@@ -87,7 +88,7 @@
   }
 
   // ── E-mail (Edge Function) ────────────────────────────────────────────
-  async function chamarEmail (tarefa_id, evento) {
+  async function chamarEmail (tarefa_id, evento, extra = {}) {
     try {
       const { data: { session } } = await db.auth.getSession()
       await fetch(SUPABASE_URL + '/functions/v1/enviar-email-tarefa', {
@@ -97,7 +98,7 @@
           'Authorization': 'Bearer ' + (session?.access_token || ''),
           'apikey': SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ tarefa_id, evento, autor_id: usuario.id }),
+        body: JSON.stringify({ tarefa_id, evento, autor_id: usuario.id, ...extra }),
       })
     } catch (e) { console.error('e-mail tarefa:', e) }
   }
@@ -332,7 +333,8 @@
   // ══ MODAL ═════════════════════════════════════════════════════════════
   function abrirModal (t) {
     S.editId = t ? t.id : null
-    S.det = null; S.detAba = 'checklist'
+    S.det = null; S.detAba = 'checklist'; S.editChk = null
+    S.podeEditar = !t || podeDelegarGlobal || t.criado_por === usuario.id || souResponsavel(t)
     const ov = document.getElementById('tk-overlay')
     document.getElementById('tk-modal').innerHTML = montarModal(t)
     ov.classList.add('on')
@@ -343,7 +345,7 @@
   async function carregarDetalhe (id) {
     const [ck, cm, hi, an] = await Promise.all([
       db.from('tarefa_checklist').select('*').eq('tarefa_id', id).order('ordem'),
-      db.from('tarefa_comentarios').select('id,corpo,autor_id,criado_em').eq('tarefa_id', id).order('criado_em'),
+      db.from('tarefa_comentarios').select('id,corpo,autor_id,autor_fornecedor_id,checklist_id,origem,criado_em').eq('tarefa_id', id).order('criado_em'),
       db.from('tarefa_historico').select('*').eq('tarefa_id', id).order('criado_em', { ascending: false }),
       db.from('tarefa_anexos').select('*').eq('tarefa_id', id).order('criado_em'),
     ])
@@ -359,8 +361,109 @@
     criacao: 'criou a tarefa', status: 'mudou o status', prazo: 'alterou o prazo',
     responsavel: 'atribuiu', conclusao: 'concluiu', reabertura: 'reabriu',
     comentario: 'comentou', edicao: 'editou', anexo: 'anexou',
+    subtarefa_resp: 'atribuiu a subtarefa', comentario_fornecedor: 'resposta por e-mail de',
   }
   const fmtDT = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
+  const primeiroNome = n => (n || '').split(' ')[0]
+
+  // ── Helpers de subtarefa ──────────────────────────────────────────────
+  // Responsável da subtarefa: "u:<id>" (usuário) ou "f:<id>" (fornecedor)
+  const respKey = c => c.responsavel_usuario_id ? 'u:' + c.responsavel_usuario_id
+    : (c.responsavel_fornecedor_id ? 'f:' + c.responsavel_fornecedor_id : '')
+  const parseResp = v => ({
+    responsavel_usuario_id: v && v.startsWith('u:') ? v.slice(2) : null,
+    responsavel_fornecedor_id: v && v.startsWith('f:') ? v.slice(2) : null,
+  })
+  function optRespChk (sel) {
+    const us = S.usuarios.map(u => `<option value="u:${u.id}" ${sel === 'u:' + u.id ? 'selected' : ''}>${esc(u.nome_completo)}</option>`).join('')
+    const fs = S.fornecedores.map(f => `<option value="f:${f.id}" ${sel === 'f:' + f.id ? 'selected' : ''}>${esc(f.nome)}${f.email ? '' : ' (sem e-mail)'}</option>`).join('')
+    return `<option value="">— responsável —</option><optgroup label="Usuários">${us}</optgroup><optgroup label="Fornecedores">${fs}</optgroup>`
+  }
+  function chipResp (c) {
+    if (c.responsavel_usuario_id) {
+      const nm = nomeUsuario(c.responsavel_usuario_id)
+      return `<span class="ck-resp">${avatar({ id: c.responsavel_usuario_id, nome_completo: nm })} ${esc(primeiroNome(nm))}</span>`
+    }
+    if (c.responsavel_fornecedor_id) {
+      const nm = nomeFornecedor(c.responsavel_fornecedor_id)
+      return `<span class="ck-resp frn" title="${esc(nm)} — recebe e responde por e-mail">🏢 ${esc(nm.length > 24 ? nm.slice(0, 24) + '…' : nm)}</span>`
+    }
+    return ''
+  }
+  function badgePrazoChk (c) {
+    if (!c.dt_prazo) return ''
+    if (c.concluida) return `<span class="due">📅 ${fmtBR(c.dt_prazo)}</span>`
+    const d = diasAte(c.dt_prazo)
+    if (d < 0) return `<span class="due late" style="margin-left:0">⚠ ${fmtBR(c.dt_prazo)}</span>`
+    if (d === 0) return `<span class="due today" style="margin-left:0">📅 hoje</span>`
+    return `<span class="due" style="margin-left:0">📅 ${fmtBR(c.dt_prazo)}</span>`
+  }
+  const chipsAnexos = lista => lista.map(a =>
+    `<a href="#" class="ax-chip" data-arquivo="${esc(a.arquivo_url)}" title="${esc(a.arquivo_nome)}">📎 ${esc(a.arquivo_nome)}</a>`).join('')
+  const lblArquivos = files => !files || !files.length ? '' : files.length === 1 ? files[0].name : `${files.length} arquivos`
+
+  // Envia arquivos para o bucket e registra em tarefa_anexos com os vínculos
+  // informados (checklist_id / comentario_id). Retorna quantos falharam.
+  async function enviarArquivos (files, vinculo = {}) {
+    let falhas = 0
+    for (const f of [...(files || [])]) {
+      const safe = f.name.replace(/[^\w.\-]+/g, '_')
+      const path = `${S.det.id}/${Date.now()}_${safe}`
+      const up = await db.storage.from('tarefas-anexos').upload(path, f, { upsert: false })
+      if (up.error) { falhas++; toast('Falha no upload de ' + f.name + ': ' + up.error.message, 'error'); continue }
+      const url = db.storage.from('tarefas-anexos').getPublicUrl(path).data.publicUrl
+      const { error } = await db.from('tarefa_anexos').insert({
+        tarefa_id: S.det.id, arquivo_url: url, arquivo_nome: f.name, mime: f.type || null,
+        tamanho: f.size || null, enviado_por: usuario.id, ...vinculo,
+      })
+      if (error) { falhas++; toast(error.message, 'error') }
+    }
+    return falhas
+  }
+
+  // Usuário responsável por subtarefa vira observador (trigger no banco).
+  // Recarrega a tarefa e marca o checkbox no formulário aberto, senão um
+  // "Salvar" em seguida removeria o observador recém-incluído.
+  async function refletirObservador (uid) {
+    if (!uid) return
+    await carregarTudo()
+    const resp = document.querySelector(`.chk-resp[value="${uid}"]`)
+    const obs = document.querySelector(`.chk-obs[value="${uid}"]`)
+    if (obs && !(resp && resp.checked)) obs.checked = true
+  }
+
+  function itemChecklist (c, d) {
+    const axs = d.anexos.filter(a => a.checklist_id === c.id)
+    if (S.editChk === c.id) {
+      return `<div class="ck-item ck-edit">
+        <div class="ck-form">
+          <input type="text" id="ck-ed-desc" value="${esc(c.descricao)}">
+          <div class="ck-form-row">
+            <select id="ck-ed-resp">${optRespChk(respKey(c))}</select>
+            <input type="date" id="ck-ed-prazo" value="${c.dt_prazo || ''}">
+          </div>
+          ${axs.length ? `<div class="ck-axs">${axs.map(a => `<span class="ax-chip-w">${chipsAnexos([a])}
+            <button class="ck-x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover anexo">×</button></span>`).join('')}</div>` : ''}
+          <div class="ck-form-row">
+            <label class="ck-file">📎 <span id="ck-ed-file-lbl">Anexar</span><input type="file" id="ck-ed-file" multiple hidden onchange="TK.lblFiles(this,'ck-ed-file-lbl')"></label>
+            <span class="tk-spacer"></span>
+            <button class="btn-sec" onclick="TK.editChk(null)">Cancelar</button>
+            <button class="btn-pri" onclick="TK.saveChk('${c.id}')">Salvar</button>
+          </div>
+        </div>
+      </div>`
+    }
+    const meta = [chipResp(c), badgePrazoChk(c)].filter(Boolean).join('')
+    return `<div class="ck-item">
+      <input type="checkbox" ${c.concluida ? 'checked' : ''} ${S.podeEditar ? '' : 'disabled'} onchange="TK.toggleChk('${c.id}',this.checked)">
+      <div class="ck-main">
+        <span class="ck-desc ${c.concluida ? 'done' : ''}">${esc(c.descricao)}</span>
+        ${meta || axs.length ? `<div class="ck-meta">${meta}${chipsAnexos(axs)}</div>` : ''}
+      </div>
+      ${S.podeEditar ? `<button class="ck-x ck-ed" onclick="TK.editChk('${c.id}')" title="Editar">✎</button>
+      <button class="ck-x" onclick="TK.delChk('${c.id}')" title="Remover">×</button>` : ''}
+    </div>`
+  }
 
   function renderDetalhe () {
     const el = document.getElementById('tk-detalhe'); if (!el || !S.det) return
@@ -375,35 +478,64 @@
     let corpo = ''
     if (S.detAba === 'checklist') {
       const pct = d.checklist.length ? Math.round(feitas / d.checklist.length * 100) : 0
-      const itens = d.checklist.map(c => `<div class="ck-item">
-        <input type="checkbox" ${c.concluida ? 'checked' : ''} onchange="TK.toggleChk('${c.id}',this.checked)">
-        <span class="${c.concluida ? 'done' : ''}">${esc(c.descricao)}</span>
-        <button class="ck-x" onclick="TK.delChk('${c.id}')" title="Remover">×</button>
-      </div>`).join('')
+      const itens = d.checklist.map(c => itemChecklist(c, d)).join('')
       corpo = `${d.checklist.length ? `<div class="ck-bar"><div class="ck-fill" style="width:${pct}%"></div></div>` : ''}
         ${itens || '<div class="det-empty">Sem subtarefas.</div>'}
-        <div class="ck-add"><input type="text" id="ck-in" placeholder="Nova subtarefa…" onkeydown="if(event.key==='Enter')TK.addChk()">
-          <button onclick="TK.addChk()">Adicionar</button></div>`
+        ${S.podeEditar ? `<div class="ck-add">
+          <input type="text" id="ck-in" placeholder="Nova subtarefa…" onkeydown="if(event.key==='Enter')TK.addChk()">
+          <div class="ck-form-row">
+            <select id="ck-resp" title="Responsável (usuário ou fornecedor)">${optRespChk('')}</select>
+            <input type="date" id="ck-prazo" title="Data de entrega">
+            <label class="ck-file" title="Anexar arquivo(s)">📎 <span id="ck-file-lbl">Anexar</span><input type="file" id="ck-file" multiple hidden onchange="TK.lblFiles(this,'ck-file-lbl')"></label>
+            <button onclick="TK.addChk()">Adicionar</button>
+          </div>
+          <div class="hint">Usuário responsável passa a acompanhar a tarefa como observador. Fornecedor recebe a subtarefa (com anexos) por e-mail e responde por e-mail.</div>
+        </div>` : ''}`
     } else if (S.detAba === 'coment') {
-      const lista = d.coment.map(c => `<div class="cm-item">
-        <span class="av" style="background:${avCor(c.autor_id)}">${esc(iniciais(nomeUsuario(c.autor_id)))}</span>
-        <div><div class="cm-h"><b>${esc(nomeUsuario(c.autor_id))}</b> <span>${fmtDT(c.criado_em)}</span></div>
-          <div class="cm-b">${esc(c.corpo)}</div></div>
-      </div>`).join('')
+      const lista = d.coment.map(c => {
+        const frn = !!c.autor_fornecedor_id
+        const nome = frn ? nomeFornecedor(c.autor_fornecedor_id) : nomeUsuario(c.autor_id)
+        const av = frn ? '<span class="av" style="background:var(--cinza-400)">🏢</span>'
+          : `<span class="av" style="background:${avCor(c.autor_id)}">${esc(iniciais(nome))}</span>`
+        const sub = c.checklist_id ? d.checklist.find(x => x.id === c.checklist_id) : null
+        const axs = d.anexos.filter(a => a.comentario_id === c.id)
+        return `<div class="cm-item">
+          ${av}
+          <div style="flex:1;min-width:0"><div class="cm-h"><b>${esc(nome)}</b> <span>${fmtDT(c.criado_em)}</span>
+            ${c.origem === 'email' ? '<em class="cm-tag">✉ via e-mail</em>' : ''}
+            ${sub ? `<em class="cm-tag">☑ ${esc(sub.descricao.length > 30 ? sub.descricao.slice(0, 30) + '…' : sub.descricao)}</em>` : ''}</div>
+            <div class="cm-b">${esc(c.corpo)}</div>
+            ${axs.length ? `<div class="cm-axs">${chipsAnexos(axs)}</div>` : ''}</div>
+        </div>`
+      }).join('')
       corpo = `${lista || '<div class="det-empty">Nenhum comentário ainda.</div>'}
         <div class="cm-add"><textarea id="cm-in" placeholder="Escreva um comentário…"></textarea>
-          <button onclick="TK.addComent()">Comentar</button></div>`
+          <div class="cm-add-acoes">
+            <label class="ck-file" title="Anexar arquivo(s) ao comentário">📎 <span id="cm-file-lbl">Anexar</span><input type="file" id="cm-file" multiple hidden onchange="TK.lblFiles(this,'cm-file-lbl')"></label>
+            <button onclick="TK.addComent()">Comentar</button>
+          </div></div>`
     } else if (S.detAba === 'anexos') {
-      const lista = d.anexos.map(a => `<div class="ax-item">
-        <a href="#" data-arquivo="${esc(a.arquivo_url)}">📎 ${esc(a.arquivo_nome)}</a>
-        <button class="ck-x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover">×</button>
-      </div>`).join('')
+      const lista = d.anexos.map(a => {
+        let origem = ''
+        const cm = a.comentario_id ? d.coment.find(c => c.id === a.comentario_id) : null
+        const sub = a.checklist_id ? d.checklist.find(c => c.id === a.checklist_id) : null
+        if (cm) {
+          const nome = cm.autor_fornecedor_id ? nomeFornecedor(cm.autor_fornecedor_id) : nomeUsuario(cm.autor_id)
+          origem = `↳ ${cm.origem === 'email' ? 'e-mail' : 'comentário'} de ${esc(nome)} · ${fmtDT(cm.criado_em)}`
+        }
+        if (sub) origem += `${origem ? ' · ' : '↳ '}subtarefa: ${esc(sub.descricao)}`
+        return `<div class="ax-item">
+          <div style="flex:1;min-width:0"><a href="#" data-arquivo="${esc(a.arquivo_url)}">📎 ${esc(a.arquivo_nome)}</a>
+            ${origem ? `<div class="ax-orig">${origem}</div>` : ''}</div>
+          ${S.podeEditar ? `<button class="ck-x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover">×</button>` : ''}
+        </div>`
+      }).join('')
       corpo = `${lista || '<div class="det-empty">Nenhum anexo.</div>'}
-        <label class="ax-add">📎 Anexar arquivo<input type="file" id="ax-in" style="display:none" onchange="TK.uploadAnexo(this)"></label>
-        <span id="ax-status" class="hint"></span>`
+        ${S.podeEditar ? `<label class="ax-add">📎 Anexar arquivo<input type="file" id="ax-in" style="display:none" onchange="TK.uploadAnexo(this)"></label>
+        <span id="ax-status" class="hint"></span>` : ''}`
     } else {
       corpo = d.hist.map(h => `<div class="hist-i"><span class="hi-dot"></span>
-        <div><b>${esc(nomeUsuario(h.autor_id))}</b> ${HIST_TXT[h.tipo] || h.tipo}
+        <div><b>${h.autor_id ? esc(nomeUsuario(h.autor_id)) : '🏢'}</b> ${HIST_TXT[h.tipo] || h.tipo}
         ${h.de || h.para ? `<span style="color:var(--cinza-500)">${h.de ? esc(h.de) + ' → ' : ''}${esc(h.para || '')}</span>` : ''}
         <div style="color:var(--cinza-400);font-size:10px">${fmtDT(h.criado_em)}</div></div></div>`).join('')
         || '<div class="det-empty">Sem histórico.</div>'
@@ -443,7 +575,8 @@
       ${t ? `<span class="code">${esc(t.codigo)}</span>` : ''}
       <button class="tk-x" onclick="fecharModal()">×</button>
     </div>
-    <div class="tk-modal-b" id="tk-form" ${podeEditar ? '' : 'style="pointer-events:none;opacity:.7"'}>
+    <div class="tk-modal-b" id="tk-form">
+      <div id="tk-campos" style="display:flex;flex-direction:column;gap:14px;${podeEditar ? '' : 'pointer-events:none;opacity:.7'}">
       <div class="fld"><label>Título *</label>
         <input type="text" id="f-titulo" value="${t ? esc(t.titulo) : ''}" placeholder="O que precisa ser feito?"></div>
       <div class="fld"><label>Descrição</label>
@@ -467,6 +600,7 @@
           <input type="checkbox" id="f-notif-frn" style="width:15px;height:15px;accent-color:var(--verde-medio)" ${t && t.notificar_fornecedor ? 'checked' : ''}>
           Enviar e-mail de cobrança ao fornecedor</label>
         <div class="hint">O fornecedor recebe um aviso por e-mail; ele não acessa a plataforma.</div>
+      </div>
       </div>
       ${t ? '<div id="tk-detalhe" style="border-top:1px solid var(--borda);margin-top:4px;padding-top:14px;color:var(--cinza-400);font-size:12px">Carregando…</div>' : ''}
     </div>
@@ -518,9 +652,9 @@
       })
       if (error) { toast('Erro ao salvar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Salvar' } return }
       // Sincroniza responsáveis/observadores (diferença simples)
-      const addedResp = await sincronizarParticipantes(S.editId, responsaveis, observadores)
-      // Novos responsáveis também recebem e-mail de atribuição
-      if (addedResp) chamarEmail(S.editId, 'atribuicao')
+      const novos = await sincronizarParticipantes(S.editId, responsaveis, observadores)
+      // Novos responsáveis e observadores recebem e-mail (cada um com o seu papel)
+      if (novos.length) chamarEmail(S.editId, 'atribuicao', { destinatarios: novos })
       // Prazo alterado?
       if ((prazoAntigo || null) !== (dt_prazo || null)) {
         await db.rpc('fn_reagendar_tarefa', { p_tarefa_id: S.editId, p_dt_prazo: dt_prazo })
@@ -533,23 +667,23 @@
   }
 
   async function sincronizarParticipantes (id, resp, obs) {
-    const t = S.tarefas.find(x => x.id === id); if (!t) return false
+    const t = S.tarefas.find(x => x.id === id); if (!t) return []
     const atuais = t.participantes || []
     const alvo = new Map()
     resp.forEach(u => alvo.set(u, 'responsavel'))
     obs.forEach(u => { if (!alvo.has(u)) alvo.set(u, 'observador') })
-    let novoResp = false
+    const novos = []
     // adicionar / atualizar
     for (const [uid, papel] of alvo) {
       const cur = atuais.find(p => p.usuario_id === uid)
       if (!cur || cur.papel !== papel) {
-        if (papel === 'responsavel' && (!cur || cur.papel !== 'responsavel')) novoResp = true
+        novos.push(uid)
         await db.rpc('fn_atribuir_participante', { p_tarefa_id: id, p_usuario_id: uid, p_papel: papel })
       }
     }
     // remover os que saíram
     for (const p of atuais) if (!alvo.has(p.usuario_id)) await db.rpc('fn_remover_participante', { p_tarefa_id: id, p_usuario_id: p.usuario_id })
-    return novoResp
+    return novos
   }
 
   async function concluir (id) {
@@ -579,36 +713,76 @@
     calMes: n => { calRef = new Date(calRef.getFullYear(), calRef.getMonth() + n, 1); refreshView() },
     calHoje: () => { calRef = new Date(hoje.getFullYear(), hoje.getMonth(), 1); refreshView() },
     // detalhe
-    detAba: a => { S.detAba = a; renderDetalhe() },
+    detAba: a => { S.detAba = a; S.editChk = null; renderDetalhe() },
+    lblFiles: (inp, lblId) => { const l = document.getElementById(lblId); if (l) l.textContent = lblArquivos(inp.files) || 'Anexar' },
     addChk: async () => {
-      const inp = document.getElementById('ck-in'); const v = (inp.value || '').trim(); if (!v) return
+      const inp = document.getElementById('ck-in'); const v = (inp.value || '').trim()
+      if (!v) { toast('Descreva a subtarefa.', 'warning'); return }
+      const resp = parseResp(document.getElementById('ck-resp').value)
+      const dt_prazo = document.getElementById('ck-prazo').value || null
+      const files = document.getElementById('ck-file').files
       const ordem = S.det.checklist.length ? Math.max(...S.det.checklist.map(c => +c.ordem || 0)) + 1 : 0
-      const { error } = await db.from('tarefa_checklist').insert({ tarefa_id: S.det.id, descricao: v, ordem, criado_por: usuario.id })
+      const { data: novo, error } = await db.from('tarefa_checklist')
+        .insert({ tarefa_id: S.det.id, descricao: v, ordem, criado_por: usuario.id, dt_prazo, ...resp })
+        .select('id').single()
       if (error) { toast(error.message, 'error'); return }
+      if (files && files.length) await enviarArquivos(files, { checklist_id: novo.id })
+      if (resp.responsavel_usuario_id || resp.responsavel_fornecedor_id) {
+        chamarEmail(S.det.id, 'subtarefa', { checklist_id: novo.id })
+        if (resp.responsavel_fornecedor_id) {
+          const f = S.fornecedores.find(x => x.id === resp.responsavel_fornecedor_id)
+          toast(f && f.email ? 'Subtarefa enviada ao fornecedor por e-mail ✓' : 'Fornecedor sem e-mail cadastrado — não foi notificado.', f && f.email ? 'success' : 'warning')
+        }
+      }
+      await refletirObservador(resp.responsavel_usuario_id)
+      await carregarDetalhe(S.det.id); refreshView()
+    },
+    editChk: id => { S.editChk = id; renderDetalhe() },
+    saveChk: async id => {
+      const c = S.det.checklist.find(x => x.id === id); if (!c) return
+      const descricao = (document.getElementById('ck-ed-desc').value || '').trim()
+      if (!descricao) { toast('Descreva a subtarefa.', 'warning'); return }
+      const resp = parseResp(document.getElementById('ck-ed-resp').value)
+      const dt_prazo = document.getElementById('ck-ed-prazo').value || null
+      const files = document.getElementById('ck-ed-file').files
+      const { error } = await db.from('tarefa_checklist').update({ descricao, dt_prazo, ...resp }).eq('id', id)
+      if (error) { toast(error.message, 'error'); return }
+      const novosArq = files && files.length ? files.length - await enviarArquivos(files, { checklist_id: id }) : 0
+      const mudouResp = respKey(c) !== respKey(resp)
+      const temResp = resp.responsavel_usuario_id || resp.responsavel_fornecedor_id
+      // reenvia ao responsável se ele mudou, se o prazo mudou ou se há arquivo novo
+      if (temResp && (mudouResp || (c.dt_prazo || null) !== dt_prazo || novosArq > 0)) {
+        chamarEmail(S.det.id, 'subtarefa', { checklist_id: id })
+      }
+      if (mudouResp) await refletirObservador(resp.responsavel_usuario_id)
+      S.editChk = null
       await carregarDetalhe(S.det.id); refreshView()
     },
     toggleChk: async (id, val) => {
       await db.from('tarefa_checklist').update({ concluida: val, concluida_por: val ? usuario.id : null, concluida_em: val ? new Date().toISOString() : null }).eq('id', id)
       await carregarDetalhe(S.det.id); refreshView()
     },
-    delChk: async id => { await db.from('tarefa_checklist').delete().eq('id', id); await carregarDetalhe(S.det.id); refreshView() },
+    delChk: async id => {
+      const temAx = S.det.anexos.some(a => a.checklist_id === id)
+      if (!confirm('Remover esta subtarefa?' + (temAx ? ' Os anexos dela continuam na aba Anexos.' : ''))) return
+      await db.from('tarefa_checklist').delete().eq('id', id); await carregarDetalhe(S.det.id); refreshView()
+    },
     addComent: async () => {
-      const inp = document.getElementById('cm-in'); const v = (inp.value || '').trim(); if (!v) return
-      const { error } = await db.rpc('fn_comentar_tarefa', { p_tarefa_id: S.det.id, p_corpo: v })
-      if (error) { toast(error.message, 'error'); return }
-      chamarEmail(S.det.id, 'comentario')
+      const inp = document.getElementById('cm-in'); let v = (inp.value || '').trim()
+      const files = document.getElementById('cm-file').files
+      if (!v && !(files && files.length)) return
+      if (!v) v = '📎 Anexo'
+      const btn = document.querySelector('.cm-add button'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…' }
+      const { data: comentarioId, error } = await db.rpc('fn_comentar_tarefa', { p_tarefa_id: S.det.id, p_corpo: v })
+      if (error) { toast(error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Comentar' } return }
+      if (files && files.length) await enviarArquivos(files, { comentario_id: comentarioId })
+      chamarEmail(S.det.id, 'comentario', { comentario_id: comentarioId })
       await carregarDetalhe(S.det.id)
     },
     uploadAnexo: async inp => {
       const f = inp.files && inp.files[0]; if (!f) return
       const st = document.getElementById('ax-status'); if (st) st.textContent = 'Enviando…'
-      const safe = f.name.replace(/[^\w.\-]+/g, '_')
-      const path = `${S.det.id}/${Date.now()}_${safe}`
-      const up = await db.storage.from('tarefas-anexos').upload(path, f, { upsert: false })
-      if (up.error) { if (st) st.textContent = ''; toast('Falha no upload: ' + up.error.message, 'error'); return }
-      const url = db.storage.from('tarefas-anexos').getPublicUrl(path).data.publicUrl
-      const { error } = await db.from('tarefa_anexos').insert({ tarefa_id: S.det.id, arquivo_url: url, arquivo_nome: f.name, mime: f.type || null, tamanho: f.size || null, enviado_por: usuario.id })
-      if (error) { toast(error.message, 'error'); return }
+      await enviarArquivos([f])
       await carregarDetalhe(S.det.id)
     },
     delAnexo: async (id, url) => {

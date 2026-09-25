@@ -1,5 +1,7 @@
-// cron-tarefas — digest diário por responsável: tarefas atrasadas, de hoje e de
-// amanhã (D-1). Um e-mail agregado por pessoa. Agendada via pg_cron (ver
+// cron-tarefas — digest diário por responsável: tarefas e subtarefas atrasadas,
+// de hoje e de amanhã (D-1). Subtarefa vai para o seu responsável (usuário); sem
+// responsável próprio, para os responsáveis da tarefa. Um e-mail agregado por
+// pessoa. Agendada via pg_cron (ver
 // migração 20260919_cron_tarefas.sql). Não cria notificação no sino (essas são
 // event-driven) para não repetir badge todo dia.
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -51,7 +53,7 @@ function wrapHtml(nome: string, corpoTabelas: string): string {
   </td></tr>
   <tr><td style="background:#ffffff;padding:24px">
     <p style="margin:0 0 4px;font-size:13px;color:#1F2937">Bom dia, ${esc(nome)}.</p>
-    <p style="margin:0 0 8px;font-size:13px;color:#6B7280">Resumo das suas tarefas com prazo próximo:</p>
+    <p style="margin:0 0 8px;font-size:13px;color:#6B7280">Resumo das suas tarefas e subtarefas com prazo próximo:</p>
     ${corpoTabelas}
     <div style="margin:24px 0 4px;text-align:center">
       <a href="${SITE_URL}/pages/tarefas.html" style="display:inline-block;background:#166534;color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none">Abrir minhas tarefas</a>
@@ -76,7 +78,7 @@ Deno.serve(async () => {
     const { data: rows, error } = await supabase
       .from('tarefa_participantes')
       .select('usuario_id, usuario:usuarios(nome_completo,email,ativo), ' +
-              'tarefa:tarefas!inner(codigo,titulo,dt_prazo,status,ativo)')
+              'tarefa:tarefas!inner(id,codigo,titulo,dt_prazo,status,ativo)')
       .eq('papel', 'responsavel')
     if (error) throw error
 
@@ -92,6 +94,40 @@ Deno.serve(async () => {
       if (t.dt_prazo < hoje) porUser[k].atras.push(t)
       else if (t.dt_prazo === hoje) porUser[k].hoje.push(t)
       else porUser[k].amanha.push(t)
+    }
+
+    // subtarefas abertas com prazo até amanhã
+    const { data: subs, error: eSub } = await supabase
+      .from('tarefa_checklist')
+      .select('descricao,dt_prazo,responsavel_usuario_id,responsavel_fornecedor_id,' +
+              'resp:usuarios!tarefa_checklist_responsavel_usuario_id_fkey(nome_completo,email,ativo),' +
+              'tarefa:tarefas!inner(id,codigo,titulo,status,ativo)')
+      .eq('concluida', false).not('dt_prazo', 'is', null).lte('dt_prazo', amanha)
+    if (eSub) throw eSub
+
+    // responsáveis da tarefa (para subtarefas sem responsável próprio)
+    const respDaTarefa: Record<string, { id: string; u: any }[]> = {}
+    for (const r of rows || []) {
+      const t: any = r.tarefa
+      if (!t?.id) continue
+      ;(respDaTarefa[t.id] ||= []).push({ id: r.usuario_id as string, u: r.usuario })
+    }
+
+    for (const s of subs || []) {
+      const t: any = s.tarefa
+      if (!t || !t.ativo || t.status === 'concluida' || t.status === 'cancelada') continue
+      if (s.responsavel_fornecedor_id) continue // fornecedor não recebe o digest interno
+      const alvos = s.responsavel_usuario_id
+        ? [{ id: s.responsavel_usuario_id as string, u: s.resp }]
+        : (respDaTarefa[t.id] || [])
+      const item = { codigo: t.codigo, titulo: `☑ ${s.descricao} — ${t.titulo}`, dt_prazo: s.dt_prazo }
+      for (const { id: k, u } of alvos) {
+        if (!u || !u.email || u.ativo === false) continue
+        porUser[k] ||= { nome: (u.nome_completo || '').split(' ')[0] || '', email: u.email, atras: [], hoje: [], amanha: [] }
+        if (s.dt_prazo < hoje) porUser[k].atras.push(item)
+        else if (s.dt_prazo === hoje) porUser[k].hoje.push(item)
+        else porUser[k].amanha.push(item)
+      }
     }
 
     const transporter = nodemailer.createTransport({

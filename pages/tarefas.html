@@ -172,6 +172,37 @@
 .ax-add{display:inline-block;margin-top:12px;border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:9px 14px;font-size:12.5px;font-weight:600;color:var(--cinza-600);cursor:pointer}
 .ax-add:hover{border-color:var(--verde-claro);color:var(--verde-medio)}
 
+/* ── Subtarefa qualificada / anexos em comentários ───────── */
+.ck-item{align-items:flex-start}
+.ck-item>input[type=checkbox]{margin-top:2px}
+.ck-main{flex:1;min-width:0}
+.ck-desc{color:var(--cinza-800)}
+.ck-desc.done{text-decoration:line-through;color:var(--cinza-400)}
+.ck-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:4px}
+.ck-resp{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--cinza-600)}
+.ck-resp .av{width:18px;height:18px;font-size:8px}
+.ck-resp.frn{background:var(--cinza-100);border-radius:99px;padding:1px 8px}
+.ck-ed{font-size:14px}
+.ck-add{flex-direction:column;align-items:stretch}
+.ck-form{flex:1;display:flex;flex-direction:column;gap:8px}
+.ck-form-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ck-form input[type=text],.ck-form-row select,.ck-form-row input[type=date]{font:inherit;font-size:12.5px;padding:7px 9px;border:1px solid var(--borda-forte);border-radius:var(--raio);background:var(--branco)}
+.ck-form-row select{flex:1;min-width:150px}
+.ck-add .ck-form-row button{padding:8px 14px}
+.ck-add .ck-form-row input[type=date]{flex:0 0 auto}
+.ck-edit{background:var(--cinza-50,#F9FAFB);border-radius:var(--raio);padding:10px}
+.ck-edit .btn-sec,.ck-edit .btn-pri{padding:6px 12px;font-size:12px}
+.ck-file{display:inline-flex;align-items:center;gap:4px;border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:6px 10px;font-size:12px;font-weight:600;color:var(--cinza-600);cursor:pointer;max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ck-file:hover{border-color:var(--verde-claro);color:var(--verde-medio)}
+.ck-axs,.cm-axs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ax-chip{display:inline-block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--verde-medio);background:var(--verde-bg);border-radius:99px;padding:2px 9px;text-decoration:none}
+.ax-chip:hover{text-decoration:underline}
+.ax-chip-w{display:inline-flex;align-items:center;gap:2px}
+.ax-orig{font-size:10.5px;color:var(--cinza-500);margin-top:2px}
+.cm-tag{font-style:normal;font-size:10px;font-weight:600;color:var(--cinza-600);background:var(--cinza-100);border-radius:99px;padding:1px 7px;margin-left:6px}
+.cm-add-acoes{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+@media(max-width:640px){.cm-add{flex-direction:column;align-items:stretch}.cm-add-acoes{flex-direction:row;justify-content:space-between}}
+
 /* ── Barra de progresso (card + lista) ───────────────────── */
 .tk-prog{display:flex;align-items:center;gap:6px}
 .tk-prog.card{margin-top:9px}

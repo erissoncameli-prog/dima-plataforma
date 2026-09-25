@@ -332,6 +332,14 @@ senão o arquivo não entra no acervo.
 - Buckets privados: o visualizador assina com `urlAssinada()` antes de popular
   `iframe`/`video`/`img`. Nunca atribuir `arquivo_url` direto.
 
+### Painel de Tarefas — subtarefas, comentários e anexos
+- `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.
+  Trigger `trg_checklist_responsavel` inclui o usuário responsável como **observador** da tarefa + sino (`tarefa_subtarefa`). Ao atribuir pelo painel, chamar `enviar-email-tarefa` com `evento:'subtarefa'` e `checklist_id`.
+- Fornecedor responsável recebe e-mail com os anexos da subtarefa e `Reply-To: fundobrasilonuacre+<checklist_id>@gmail.com`; `receber-email-tarefa` aceita o token de tarefa **ou** de subtarefa e grava a resposta via `fn_comentar_tarefa_fornecedor` (service_role).
+- `tarefa_comentarios.autor_id` pode ser NULL quando `autor_fornecedor_id` está preenchido; `checklist_id` indica a subtarefa de origem.
+- `tarefa_anexos.comentario_id` / `checklist_id` ligam o arquivo ao comentário (e-mail ou painel) e/ou à subtarefa — **sempre** preencher ao gravar anexo que chega junto com um comentário.
+- Observador é avisado no sino (`tarefa_observador`) e por e-mail ao ser incluído; `enviar-email-tarefa` aceita `destinatarios` (uuid[]) para avisar só os novos.
+
 ### Tabela: `produto_matriz_contribuicao`
 | Coluna | Tipo | Obs |
 |--------|------|-----|

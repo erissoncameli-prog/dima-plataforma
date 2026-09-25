@@ -1,9 +1,12 @@
 // receber-email-tarefa — endpoint chamado pela push subscription do Pub/Sub
 // quando chega e-mail em fundobrasilonuacre@gmail.com. Para cada mensagem nova:
-//   1) acha a tarefa pelo endereço fundobrasilonuacre+<tarefa_id>@gmail.com
-//   2) confirma que o remetente é usuário INTERNO (usuarios.email)
-//   3) limpa a citação e vira comentário (fn_comentar_tarefa_sistema)
-//   4) salva anexos no bucket tarefas-anexos
+//   1) acha o alvo pelo endereço fundobrasilonuacre+<uuid>@gmail.com — o uuid é
+//      de uma tarefa OU de uma subtarefa (tarefa_checklist, e-mail ao fornecedor)
+//   2) confirma o remetente: usuário INTERNO (usuarios.email) ou, se o alvo é
+//      subtarefa de fornecedor, o e-mail cadastrado desse fornecedor
+//   3) limpa a citação e vira comentário (fn_comentar_tarefa_sistema /
+//      fn_comentar_tarefa_fornecedor)
+//   4) salva anexos no bucket tarefas-anexos LIGADOS ao comentário (comentario_id)
 //   5) marca a mensagem como lida
 // Autenticação do endpoint: ?key=RECEBER_EMAIL_KEY (segredo compartilhado com a
 // subscription). verify_jwt = false (o Pub/Sub não manda JWT do Supabase).
@@ -65,11 +68,18 @@ function acharParte (payload: any, mime: string): string {
 function coletarAnexos (payload: any, acc: any[] = []): any[] {
   if (!payload) return acc
   if (payload.filename && payload.body?.attachmentId) {
-    acc.push({ nome: payload.filename, mime: payload.mimeType, attachmentId: payload.body.attachmentId })
+    // imagem embutida no corpo (logo de assinatura, print colado) não é anexo
+    const disp = header(payload, 'Content-Disposition').toLowerCase()
+    const inline = /^image\//i.test(payload.mimeType || '') &&
+      (disp.startsWith('inline') || (!disp && !!header(payload, 'Content-ID')))
+    if (!inline) acc.push({ nome: payload.filename, mime: payload.mimeType, attachmentId: payload.body.attachmentId })
   }
   for (const p of payload.parts || []) coletarAnexos(p, acc)
   return acc
 }
+// fornecedores.email pode trazer mais de um endereço (", " ou ";")
+const emailsDe = (s: string | null) =>
+  (s || '').split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean)
 const header = (payload: any, nome: string) =>
   (payload?.headers || []).find((h: any) => h.name.toLowerCase() === nome.toLowerCase())?.value || ''
 
@@ -110,31 +120,52 @@ Deno.serve(async (req) => {
         const to = `${header(payload, 'To')} ${header(payload, 'Delivered-To')} ${header(payload, 'Cc')}`
         const tok = to.match(RE_TOKEN)
         if (!tok) continue
-        const tarefaId = tok[1]
+        const alvoId = tok[1]
         const fromEmail = emailDe(header(payload, 'From'))
         if (!fromEmail || fromEmail === EMAIL_CONTA) continue
 
-        // remetente precisa ser usuário interno ativo
-        const { data: u } = await sb.from('usuarios').select('id,ativo').eq('email', fromEmail).maybeSingle()
-        if (!u || u.ativo === false) continue
+        // o token é de uma tarefa ou de uma subtarefa?
+        let tarefaId = alvoId, checklistId: string | null = null, subFornecedor: string | null = null
+        const { data: ck } = await sb.from('tarefa_checklist')
+          .select('id,tarefa_id,responsavel_fornecedor_id').eq('id', alvoId).maybeSingle()
+        if (ck) { tarefaId = ck.tarefa_id; checklistId = ck.id; subFornecedor = ck.responsavel_fornecedor_id }
 
         // tarefa precisa existir e estar ativa
         const { data: t } = await sb.from('tarefas').select('id,ativo').eq('id', tarefaId).maybeSingle()
         if (!t || t.ativo === false) continue
 
+        // remetente: usuário interno ativo, ou o fornecedor responsável pela subtarefa
+        const { data: u } = await sb.from('usuarios').select('id,ativo').eq('email', fromEmail).maybeSingle()
+        let autorUsuario: string | null = null, autorFornecedor: string | null = null
+        if (u && u.ativo !== false) autorUsuario = u.id
+        else if (subFornecedor) {
+          const { data: f } = await sb.from('fornecedores').select('id,email').eq('id', subFornecedor).maybeSingle()
+          if (f && emailsDe(f.email).includes(fromEmail)) autorFornecedor = f.id
+        }
+        if (!autorUsuario && !autorFornecedor) continue
+
         let corpo = acharParte(payload, 'text/plain')
         if (!corpo) corpo = acharParte(payload, 'text/html').replace(/<[^>]+>/g, ' ')
         corpo = limparCorpo(corpo)
+        const anexos = coletarAnexos(payload)
+        // resposta só com anexo não pode ser descartada
+        if (!corpo && anexos.length) corpo = '📎 Anexo enviado por e-mail'
         if (!corpo) continue
 
-        const { error: eRpc } = await sb.rpc('fn_comentar_tarefa_sistema', {
-          p_tarefa_id: tarefaId, p_autor_id: u.id, p_corpo: corpo, p_origem: 'email',
-        })
+        const { data: comentarioId, error: eRpc } = autorUsuario
+          ? await sb.rpc('fn_comentar_tarefa_sistema', {
+              p_tarefa_id: tarefaId, p_autor_id: autorUsuario, p_corpo: corpo, p_origem: 'email',
+              p_checklist_id: checklistId,
+            })
+          : await sb.rpc('fn_comentar_tarefa_fornecedor', {
+              p_tarefa_id: tarefaId, p_fornecedor_id: autorFornecedor, p_corpo: corpo,
+              p_checklist_id: checklistId,
+            })
         if (eRpc) { console.error('rpc comentar:', eRpc.message); continue }
         comentados++
 
-        // anexos → bucket tarefas-anexos
-        for (const a of coletarAnexos(payload)) {
+        // anexos → bucket tarefas-anexos, ligados ao comentário (e à subtarefa)
+        for (const a of anexos) {
           try {
             const ar = await fetch(`${GMAIL}/messages/${id}/attachments/${a.attachmentId}`, { headers: H })
             const aj = await ar.json()
@@ -145,7 +176,12 @@ Deno.serve(async (req) => {
             const up = await sb.storage.from('tarefas-anexos').upload(path, bytes, { contentType: a.mime || 'application/octet-stream', upsert: false })
             if (up.error) { console.error('upload anexo:', up.error.message); continue }
             const publicUrl = sb.storage.from('tarefas-anexos').getPublicUrl(path).data.publicUrl
-            await sb.from('tarefa_anexos').insert({ tarefa_id: tarefaId, arquivo_url: publicUrl, arquivo_nome: a.nome, mime: a.mime || null, tamanho: bytes.length, enviado_por: u.id })
+            const { error: eAx } = await sb.from('tarefa_anexos').insert({
+              tarefa_id: tarefaId, arquivo_url: publicUrl, arquivo_nome: a.nome, mime: a.mime || null,
+              tamanho: bytes.length, enviado_por: autorUsuario, enviado_por_fornecedor_id: autorFornecedor,
+              comentario_id: comentarioId, checklist_id: checklistId,
+            })
+            if (eAx) console.error('insert anexo:', eAx.message)
           } catch (e) { console.error('anexo:', (e as Error).message) }
         }
 
