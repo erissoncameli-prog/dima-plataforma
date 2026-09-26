@@ -676,3 +676,37 @@ begin
   end;
 end $$;
 reset role;
+
+-- ── T32 coordenação: só modo treino ─────────────────────────────────────
+reset role;
+insert into public.usuarios (id, nome_completo, email, perfil, ativo) values
+ ('00000000-0000-0000-0000-0000000000c1','Coord treino','ct@x','coordenacao',true);
+insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate) values
+ ('00000000-0000-0000-0000-0000000000c1','diagnostico', now()-interval '1 day', null),
+ ('00000000-0000-0000-0000-0000000000c1','diagnostico_treino', now()-interval '1 day', now()+interval '30 days');
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000c1');
+do $$ begin
+  if public.fn_diag_pode_aplicar() then raise exception 'FALHOU T32 coordenação aplica'; end if;
+  if not public.fn_diag_pode_treinar() then raise exception 'FALHOU T32 coordenação com treino não treina'; end if;
+  if not public.fn_diag_foto_pode_enviar('f3200000-0000-0000-0000-000000000001/x.jpg') then raise exception 'FALHOU T32 foto de treino'; end if;
+end $$;
+-- ficha real (mesmo com o módulo diagnostico): recusada
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha('f3200000-0000-0000-0000-000000000002','DSA-XAP-260926-C1AA-01', null, now(),
+  jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q2'))), public.t_mor())$q$, 'diag:nao_autorizado');
+do $$
+declare r jsonb;
+begin
+  r := public.diag_enviar_ficha(public.t_ficha('f3200000-0000-0000-0000-000000000001','TRE-XAP-260926-C1AA-01', null, now(),
+         jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q2'), 'treino', true)),
+       '[{"ordem":1,"idade":40,"sexo_genero":"mulher","escolaridade":"medio_completo","e_entrevistado":true}]');
+  if not (r->>'treino')::boolean then raise exception 'FALHOU T32 treino da coordenação'; end if;
+end $$;
+-- coordenação sem o módulo de treino: nada
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha('f3200000-0000-0000-0000-000000000003','TRE-XAP-260926-C0AA-01', null, now(),
+  jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q2'), 'treino', true)), public.t_mor())$q$, 'diag:sem_permissao_treino');
+do $$ begin
+  if public.fn_diag_foto_pode_enviar('f3200000-0000-0000-0000-000000000009/x.jpg') then raise exception 'FALHOU T32 coord sem treino sobe foto'; end if;
+end $$;
+reset role;

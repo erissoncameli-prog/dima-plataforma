@@ -1041,3 +1041,16 @@ protegidos contra limpeza), questionário/última sincronização, modo treino e
 da página de instalação e o "Verificar atualização" ganham o download do APK,
 como no SIGUC.
 
+### 6.7 Coordenação no app: só modo treino *(26/09)*
+
+Coordenação continua **sem aplicar ficha real** (quem valida não aplica), mas
+com o módulo **"Diagnóstico — modo treino"** entra no app de campo **só em
+treino** (fichas TRE-), para testar e treinar a equipe. Migration
+`20260926_diag_10_coordenacao_treino.sql` (aplicada em produção):
+`fn_diag_pode_treinar` inclui coordenação com `diagnostico_treino`;
+`diag_enviar_ficha` aceita coordenação apenas com ficha de treino;
+`fn_diag_foto_pode_enviar` aceita quem treina. No app, o modo treino fica
+sempre ligado (chave travada) para esse perfil, e o login explica o motivo
+quando a coordenação não tem o módulo de treino (antes dizia "peça a
+liberação", o que não resolvia).
+

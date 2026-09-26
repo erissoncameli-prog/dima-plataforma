@@ -19,7 +19,7 @@ PSQL=(psql -h "$TMP" -p "$PORTA" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -
 
 "${PSQL[@]}" -f "$RAIZ/supabase/tests/diagnostico/00_stub_supabase.sql"
 for f in "$RAIZ"/supabase/migrations/20260926_lgpd_tratamentos.sql \
-         "$RAIZ"/supabase/migrations/20260926_diag_0*.sql; do
+         "$RAIZ"/supabase/migrations/20260926_diag_[0-9][0-9]_*.sql; do
   echo "· aplicando $(basename "$f")"
   "${PSQL[@]}" -f "$f"
 done
