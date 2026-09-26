@@ -1012,3 +1012,32 @@ ex.: dentro da APA São Francisco. Configurável pela coordenação na aba
 15. ~~ROPA no banco~~ — ✅ agora (1ª migration da Fase 1).
 16. ~~Consultor externo~~ — ✅ vê fichas individuais, sem identificação (§4.1).
 17. Retenção — ✅ 2 anos contados da validação; ROPA só com o diagnóstico.
+
+### 6.6 Configurações no padrão dos apps de campo do SIGUC *(26/09)*
+
+⚙ Configurações do app: perfil (nome, perfil, prazo do acesso, aparelho,
+instalado ou navegador), armazenamento (uso, cota e se os dados estão
+protegidos contra limpeza), questionário/última sincronização, modo treino e:
+- **Sincronizar e atualizar listas**;
+- **Alterar PIN de campo**;
+- **Instalar o app neste celular** — Android: prompt de instalação do Chrome
+  (`beforeinstallprompt`); sem ele, e no iPhone, instruções passo a passo
+  (Safari → compartilhar → Adicionar à Tela de Início). Some quando o app já
+  está instalado. Também aparece no login;
+- **Instalar em outro aparelho (QR)** — QR gerado no próprio aparelho
+  (`js/qrcode-generator.js`, MIT, o mesmo do SIGUC) apontando para
+  `pages/instalar-diagnostico.html` (página pública, Android e iPhone, destaca
+  o cartão do sistema de quem abre);
+- **Verificar atualização do app** — força `update()` do service worker e
+  recarrega se houver versão nova; na abertura com internet a checagem é
+  automática e aparece a faixa "Nova versão do app instalada — Recarregar";
+- **Aviso de privacidade** — aviso ao entrevistado, o que fica no aparelho,
+  cuidados e o contato da Encarregada;
+- **Apagar fichas de treino deste aparelho** (só se houver TRE- no aparelho);
+- **Sair deste aparelho**.
+
+Ícones PNG (192/512/maskable e `apple-touch-icon` 180) e metas do iOS para o
+ícone da tela inicial do iPhone. Quando existir APK (Fase 4), o cartão Android
+da página de instalação e o "Verificar atualização" ganham o download do APK,
+como no SIGUC.
+

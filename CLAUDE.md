@@ -383,6 +383,9 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
 - PIN do app = **baralho do SIGUC** (`js/pin-baralho.js`/`css/pin-baralho.css`,
   cópia sem alteração — não editar aqui, copiar de novo do SIGUC). Logos do
   app em `pwa/logos/` (no `SHELL` do service worker).
+- Configurações do app no padrão SIGUC (atualização via service worker,
+  instalar aqui/QR para `pages/instalar-diagnostico.html`, privacidade).
+  QR com `js/qrcode-generator.js` (MIT, cópia do SIGUC), gerado offline.
 - Mesa mínima: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`):
   Visão geral (contagens, apagar treino) e aba Admin (comunidades e sublocalidades).
 - App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +

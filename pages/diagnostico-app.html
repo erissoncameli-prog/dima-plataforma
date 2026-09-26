@@ -7,6 +7,11 @@
 <title>Diagnóstico Socioambiental · DIMA</title>
 <link rel="manifest" href="../pwa/diagnostico.webmanifest">
 <link rel="icon" href="../pwa/diagnostico-icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../pwa/diagnostico-apple-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Diagnóstico">
 <link rel="stylesheet" href="../css/pin-baralho.css">
 <link rel="stylesheet" href="../css/diagnostico-app.css">
 </head>
@@ -43,6 +48,7 @@
     <button class="btn btn-prim btn-bloco" style="margin-top:16px" type="submit" id="btn-login">Entrar</button>
     <p class="dica">O primeiro acesso precisa de internet. Depois, o app abre com um PIN, mesmo sem sinal.</p>
   </form>
+  <button type="button" class="link lg-instalar" id="btn-login-instalar" hidden>📲 Instalar o app neste celular</button>
   </div>
   <footer class="lg-rodape">
     <small>Realização e apoio</small>
@@ -191,23 +197,81 @@
   </div></nav>
 </section>
 
-<!-- configurações -->
+<!-- configurações (mesmo conjunto dos apps de campo do SIGUC, no que cabe aqui) -->
 <section id="t-config" hidden>
   <header class="topo">
     <button type="button" class="btn-icone" data-voltar="t-inicio" aria-label="Voltar">←</button>
     <h1>Configurações</h1>
   </header>
   <div class="tela">
-    <div class="cartao" id="config-info"></div>
+    <div class="cartao cfg-perfil">
+      <span class="cfg-avatar" id="cfg-avatar">?</span>
+      <div><b id="cfg-nome">—</b><span class="sub" id="cfg-perfil"></span><span class="sub" id="cfg-aparelho"></span></div>
+    </div>
+
+    <div class="cartao">
+      <p class="cfg-rot">Armazenamento do aparelho</p>
+      <div class="cfg-barra"><i id="cfg-quota-barra"></i></div>
+      <p class="sub" id="cfg-quota">—</p>
+      <p class="sub" id="cfg-fichas">—</p>
+    </div>
+
+    <div class="cartao">
+      <p class="cfg-rot">Questionário e listas</p>
+      <p class="sub" id="cfg-quest">—</p>
+      <p class="sub" id="cfg-sync">—</p>
+    </div>
+
     <label class="cartao config-treino" id="config-treino-wrap" hidden>
       <input type="checkbox" id="config-treino">
       <span><b>Modo treino</b><br><span class="dica">Para testar e treinar. As entrevistas saem com código TRE-, não entram nos números e a coordenação apaga depois. Nunca use com família de verdade.</span></span>
     </label>
-    <button type="button" class="btn btn-sec btn-bloco" id="btn-trocar-pin">Trocar PIN</button>
-    <button type="button" class="btn btn-perigo btn-bloco" style="margin-top:10px" id="btn-sair">Sair deste aparelho</button>
-    <p class="dica">Sair não apaga fichas que ainda não foram enviadas.</p>
+
+    <div class="cfg-lista">
+      <button type="button" class="cfg-item" id="btn-cfg-listas"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>Sincronizar e atualizar listas</button>
+      <button type="button" class="cfg-item" id="btn-trocar-pin"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg>Alterar PIN de campo</button>
+      <button type="button" class="cfg-item" id="btn-cfg-instalar" hidden><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 7v7"/><path d="M9 11l3 3 3-3"/></svg>Instalar o app neste celular</button>
+      <button type="button" class="cfg-item" id="btn-cfg-qr"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>Instalar em outro aparelho (QR)</button>
+      <button type="button" class="cfg-item" id="btn-cfg-update"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>Verificar atualização do app</button>
+      <button type="button" class="cfg-item" id="btn-cfg-privacidade"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Aviso de privacidade</button>
+      <button type="button" class="cfg-item cfg-perigo-suave" id="btn-cfg-limpar-treino" hidden><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg><span>Apagar fichas de treino deste aparelho <small id="cfg-n-treino"></small></span></button>
+      <button type="button" class="cfg-item cfg-perigo" id="btn-sair"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Sair deste aparelho</button>
+    </div>
+    <p class="dica" style="text-align:center">Sair não apaga fichas que ainda não foram enviadas.</p>
+    <div class="cfg-creditos"><p id="cfg-versao"></p><p>SEMA/AC · Projeto 218BRA2001 · Fundo Brasil-ONU</p></div>
   </div>
 </section>
+
+<!-- sobreposições (fora das <section>: mostrar() não as esconde) -->
+<div class="ov" id="ov-qr" hidden role="dialog" aria-modal="true" aria-labelledby="ov-qr-tit">
+  <div class="ov-cartao">
+    <h3 id="ov-qr-tit">Instalar em outro aparelho</h3>
+    <p>Peça para a pessoa <b>apontar a câmera</b> do celular para o código. Ela cai nas instruções de instalação (Android e iPhone).</p>
+    <img id="ov-qr-img" alt="QR Code da página de instalação">
+    <p class="ov-link" id="ov-qr-link"></p>
+    <p class="dica">O código é gerado aqui mesmo, sem internet. O outro celular precisa de internet para instalar.</p>
+    <button type="button" class="btn btn-sec btn-bloco" data-fechar>Fechar</button>
+  </div>
+</div>
+<div class="ov" id="ov-instalar" hidden role="dialog" aria-modal="true" aria-labelledby="ov-instalar-tit">
+  <div class="ov-cartao">
+    <h3 id="ov-instalar-tit">Instalar o app neste celular</h3>
+    <ol class="ov-passos" id="ov-instalar-passos"></ol>
+    <button type="button" class="btn btn-sec btn-bloco" data-fechar>Entendi</button>
+  </div>
+</div>
+<div class="ov" id="ov-privacidade" hidden role="dialog" aria-modal="true" aria-labelledby="ov-priv-tit">
+  <div class="ov-cartao ov-rolar">
+    <h3 id="ov-priv-tit">Aviso de privacidade</h3>
+    <div id="ov-priv-corpo"></div>
+    <button type="button" class="btn btn-sec btn-bloco" data-fechar>Fechar</button>
+  </div>
+</div>
+<div class="banner-update" id="banner-update" hidden role="status">
+  <span>Nova versão do app instalada</span>
+  <button type="button" class="btn btn-prim" id="btn-update-agora">Recarregar</button>
+  <button type="button" class="btn-x" id="btn-update-depois" aria-label="Depois">✕</button>
+</div>
 
 <!-- Scripts. Sem o CDN (1º acesso sem internet), window.supabase vira um
      stub e o app segue funcionando offline — mesmo padrão do SIGUC. -->
@@ -216,6 +280,7 @@
         onerror="console.warn('[diag-app] Supabase CDN indisponível — modo offline')"></script>
 <script src="../js/config.js"></script>
 <script src="../js/pin-baralho.js"></script>
+<script src="../js/qrcode-generator.js"></script>
 <script src="../js/diag-regras.js"></script>
 <script src="../js/diag-offline.js"></script>
 <script src="../js/diag-sync.js"></script>
