@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Diagnóstico">
 <link rel="stylesheet" href="../css/pin-baralho.css">
+<link rel="stylesheet" href="../css/guia-app.css">
 <link rel="stylesheet" href="../css/diagnostico-app.css">
 </head>
 <body>
@@ -103,6 +104,7 @@
     <button type="button" role="tab" id="aba-painel" aria-selected="false">Meu painel</button>
   </div>
   <div class="tela">
+    <div id="ini-guia"></div>
     <div id="ini-avisos"></div>
     <!-- Meu painel: SÓ as fichas de quem está logado (diag_meu_painel + fila do aparelho) -->
     <div id="ini-painel" hidden></div>
@@ -257,6 +259,7 @@
     </label>
 
     <div class="cfg-lista">
+      <button type="button" class="cfg-item" id="btn-cfg-ajuda"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><path d="M12 17h.01"/></svg>Ajuda e treinamento</button>
       <button type="button" class="cfg-item" id="btn-cfg-listas"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>Sincronizar e atualizar listas</button>
       <button type="button" class="cfg-item" id="btn-trocar-pin"><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg>Alterar PIN de campo</button>
       <button type="button" class="cfg-item" id="btn-cfg-instalar" hidden><svg class="cfg-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 7v7"/><path d="M9 11l3 3 3-3"/></svg>Instalar o app neste celular</button>
@@ -315,6 +318,8 @@
 <script src="../js/diag-sync.js"></script>
 <script src="../js/diag-foto.js"></script>
 <script src="../js/diag-form.js"></script>
+<script src="../js/guia-app.js"></script>
+<script src="../js/diag-guia.js"></script>
 <script src="../js/diag-app.js"></script>
 </body>
 </html>

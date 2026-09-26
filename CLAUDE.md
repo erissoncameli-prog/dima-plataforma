@@ -396,6 +396,9 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   devolve. O painel do app nunca conta ficha de outro entrevistador.
 - **Expurgo**: Edge Function `diag-expurgo` + cron `diag-expurgo-diario`
   drenam `diag_expurgo_arquivos` (só bucket `diagnostico-fotos`).
+- **Guia de treinamento** do app: motor do SIGUC (`js/guia-app.js`/`css/guia-app.css`,
+  cópia sem alteração) + conteúdo em `js/diag-guia.js`. Progresso só no aparelho,
+  sem registro no banco. Texto mudou ⇒ incrementar `versao` do guia.
 - PIN do app = **baralho do SIGUC** (`js/pin-baralho.js`/`css/pin-baralho.css`,
   cópia sem alteração — não editar aqui, copiar de novo do SIGUC). Logos do
   app em `pwa/logos/` (no `SHELL` do service worker).

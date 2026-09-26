@@ -327,3 +327,8 @@ body.treino .topo { top: 28px; background: #7C2D12; }
 /* foto que voltou vazia do armazenamento do celular */
 .foto.perdida { display: flex; align-items: center; justify-content: center; background: var(--aviso-bg); border: 1px dashed #FCD34D; min-height: 90px; }
 .foto-perdida { font-size: 12px; color: #92400E; text-align: center; padding: 8px; }
+
+/* ── Guia de treinamento (motor do SIGUC em css/guia-app.css) ──────── */
+:root { --guia-cor: var(--verde-medio); --font-sans: var(--ff); --font-display: var(--ff);
+        --guia-fab-bottom: calc(96px + env(safe-area-inset-bottom)); }
+#ini-guia .guia-convite { margin-bottom: 12px; }
