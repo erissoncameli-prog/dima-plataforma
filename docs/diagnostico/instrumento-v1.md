@@ -297,7 +297,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
    da comunidade). Perguntas de nível `C` são respondidas por cada domicílio,
    então haverá N respostas por comunidade — o indicador delas é "% dos
    entrevistados que relatam X", não "a comunidade tem X". Ver plano §3.6.
-4. **17 perguntas abertas.** Encarecem a análise (precisam de codificação
+4. **16 perguntas abertas.** Encarecem a análise (precisam de codificação
    posterior) e são onde dado de terceiros vaza. P25 foi fechada ✅; P55 e P31
    ficam abertas com sugestões ✅; manter abertas as do bloco 10 (são o valor qualitativo
    do diagnóstico).
