@@ -152,7 +152,7 @@ async function dSyncEnviarFicha(f) {
 async function dSyncBaixarReferencias(usuarioId) {
   const r = {}
   const COLS_Q = 'id,codigo,versao,titulo,estrutura,aviso_entrevistado,status,hash_sha256'
-  const [q, mun, com, sug, treina, loc] = await Promise.all([
+  const [q, mun, com, sug, treina, loc, painel] = await Promise.all([
     diagDb.from('diag_questionarios').select(COLS_Q)
       .eq('codigo', 'DSA').eq('status', 'publicado').order('versao', { ascending: false }).limit(1),
     diagDb.from('diag_municipios').select('ibge,nome,sigla').order('nome'),
@@ -160,6 +160,8 @@ async function dSyncBaixarReferencias(usuarioId) {
     diagDb.rpc('fn_diag_sugestoes'),
     diagDb.rpc('fn_diag_pode_treinar'),
     diagDb.from('diag_localidades').select('id,comunidade_id,nome').eq('ativo', true).order('nome'),
+    // Meu painel: números SÓ das fichas deste entrevistador (o banco filtra por auth.uid())
+    diagDb.rpc('diag_meu_painel'),
   ])
   if (q.data && q.data[0]) {
     await dCacheSet('questionario', q.data[0])
@@ -186,6 +188,7 @@ async function dSyncBaixarReferencias(usuarioId) {
   if (mun.data) await dCacheSet('municipios', mun.data)
   if (com.data) await dCacheSet('comunidades', com.data)
   if (loc.data) await dCacheSet('localidades', loc.data)
+  if (painel && painel.data) await dConfigSet('painel_' + usuarioId, painel.data)
   if (sug.data) {
     const porChave = {}
     sug.data.forEach(s => { (porChave[s.chave] = porChave[s.chave] || []).push(s.texto) })
