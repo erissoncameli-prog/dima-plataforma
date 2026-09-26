@@ -8,14 +8,15 @@
   if (!usuario) { localStorage.setItem('dima_redirect', window.location.href); window.location.href = '../index.html'; return }
 
   // ── Constantes de apresentação ────────────────────────────────────────
+  // Cores dos status vêm dos tokens de css/tarefas.css (--st-*)
   const COLS = [
-    { k: 'a_fazer',      nm: 'A fazer',      cor: '#6B7280' },
-    { k: 'em_andamento', nm: 'Em andamento', cor: '#2563EB' },
-    { k: 'em_revisao',   nm: 'Em revisão',   cor: '#D97706' },
-    { k: 'bloqueada',    nm: 'Bloqueada',    cor: '#DC2626' },
-    { k: 'concluida',    nm: 'Concluída',    cor: '#059669' },
+    { k: 'a_fazer',      nm: 'A fazer',      v: 'todo' },
+    { k: 'em_andamento', nm: 'Em andamento', v: 'doing' },
+    { k: 'em_revisao',   nm: 'Em revisão',   v: 'review' },
+    { k: 'bloqueada',    nm: 'Bloqueada',    v: 'block' },
+    { k: 'concluida',    nm: 'Concluída',    v: 'done' },
   ]
-  const ST_COR = Object.fromEntries(COLS.map(c => [c.k, c.cor]))
+  const ST_VAR = { ...Object.fromEntries(COLS.map(c => [c.k, c.v])), cancelada: 'todo' }
   const ST_NM  = { ...Object.fromEntries(COLS.map(c => [c.k, c.nm])), cancelada: 'Cancelada' }
   const PRIOS  = [['baixa', 'Baixa'], ['media', 'Média'], ['alta', 'Alta'], ['urgente', 'Urgente']]
   const PRIO_NM = Object.fromEntries(PRIOS)
@@ -25,59 +26,61 @@
   // ── Estado ────────────────────────────────────────────────────────────
   const S = {
     tarefas: [], usuarios: [], atividades: [], fornecedores: [], progresso: {},
-    aba: 'kanban', fResp: '', fPrio: '', fTipo: '', fAtraso: false, fRestrita: false, editId: null, tipos: [],
+    aba: 'kanban', fResp: '', fPrio: '', fTipo: '', fBusca: '', fAtraso: false, fRestrita: false, editId: null, tipos: [],
   }
 
-  // Fallback de progresso por status quando a tarefa não tem checklist
-  const PCT_STATUS = { a_fazer: 0, em_andamento: 40, em_revisao: 75, bloqueada: 40, concluida: 100, cancelada: 0 }
+  // ── Ícones (sprite SVG em pages/tarefas.html) ─────────────────────────
+  const ic = (nome, cls = '') => `<svg class="i ${cls}" aria-hidden="true"><use href="#i-${nome}"/></svg>`
+  const TIPO_IC = { reuniao: 'cal', diligencia: 'send', acao_administrativa: 'clip', analise: 'search', outras: 'pin' }
+  const status = st => `<span class="status st-${ST_VAR[st] || 'todo'}">${ST_NM[st] || st}</span>`
+  const prioTag = p => `<span class="tag prio prio-${p}">${ic('flag')}${PRIO_NM[p] || p}</span>`
+
+  // Progresso: só quando a tarefa tem subtarefas
   function progressoDe (t) {
-    if (t.status === 'concluida') return { pct: 100, label: '', tem: false }
     const p = S.progresso[t.id]
-    if (p && p.total > 0) return { pct: p.pct, label: `${p.feitas}/${p.total}`, tem: true }
-    return { pct: PCT_STATUS[t.status] ?? 0, label: '', tem: false }
+    if (p && p.total > 0) return { pct: p.pct, feitas: p.feitas, total: p.total }
+    return null
   }
-  function barraProgresso (t, ctx) {
-    const pr = progressoDe(t)
-    const cor = pr.pct >= 100 ? 'var(--sucesso)' : (pr.tem ? 'var(--verde-medio)' : 'var(--cinza-300)')
-    const tt = pr.tem ? `Checklist ${pr.label}` : `Progresso ${pr.pct}%`
-    return `<div class="tk-prog ${ctx}" title="${tt}">
-      <div class="tk-prog-bar"><div class="tk-prog-fill" style="width:${pr.pct}%;background:${cor}"></div></div>
-      ${pr.tem ? `<span class="tk-prog-lbl">${pr.label}</span>` : ''}
-    </div>`
-  }
+  const barra = pct => `<span class="bar"><i style="width:${pct}%"></i></span>`
 
   // ── Datas ─────────────────────────────────────────────────────────────
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
   const parseD = s => (s ? new Date(s + 'T00:00:00') : null)
   const diasAte = s => { const d = parseD(s); return d ? Math.round((d - hoje) / 86400000) : null }
-  const fmtBR = s => { const d = parseD(s); return d ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) : '' }
+  const fmtBR = s => { const d = parseD(s); return d ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '').replace(' de ', ' ') : '' }
 
   // ── Avatares ──────────────────────────────────────────────────────────
-  const AV_CORES = ['#166534', '#0891b2', '#7c3aed', '#b45309', '#be123c', '#0d9488', '#4f46e5', '#c2410c']
+  const AV_CORES = ['#2F6E4C', '#0E7490', '#6D4AD8', '#B45309', '#BE123C', '#0E8C80', '#4F46E5', '#C2410C']
   const iniciais = n => (n || '?').split(' ').filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase()
   const avCor = id => AV_CORES[[...String(id || '')].reduce((a, c) => a + c.charCodeAt(0), 0) % AV_CORES.length]
-  const avatar = u => `<span class="av" style="background:${avCor(u.id)}" title="${esc(u.nome_completo || '')}">${esc(iniciais(u.nome_completo))}</span>`
+  const avatar = u => `<span class="av" style="--ac:${avCor(u.id)}" title="${esc(u.nome_completo || '')}">${esc(iniciais(u.nome_completo))}</span>`
 
   const nomeUsuario = id => (S.usuarios.find(u => u.id === id) || {}).nome_completo || '—'
   const nomeFornecedor = id => (S.fornecedores.find(f => f.id === id) || {}).nome || 'Fornecedor'
+  const nomeCurto = n => { const p = (n || '').split(' ').filter(Boolean); return p.length > 1 ? p[0] + ' ' + p[p.length - 1] : (n || '') }
   const respsDe = t => (t.participantes || []).filter(p => p.papel === 'responsavel')
   const obsDe   = t => (t.participantes || []).filter(p => p.papel === 'observador')
   const souResponsavel = t => respsDe(t).some(p => p.usuario_id === usuario.id)
+  const pilhaAvatares = (t, n = 3) => `<span class="avs">${respsDe(t).slice(0, n)
+    .map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')}</span>`
   // TDRs vinculados: t.vinc_tdrs[].tdr é null quando o usuário não enxerga o TDR (RLS)
   function chipTdrs (t) {
     const v = t.vinc_tdrs || []; if (!v.length) return ''
     const vis = v.filter(x => x.tdr).map(x => x.tdr.numero)
     const txt = vis.length ? vis[0] : 'TDR'
     const tt = vis.length ? 'TDR: ' + vis.join(', ') + (vis.length < v.length ? ' + vinculado(s) de acesso restrito' : '') : 'TDR vinculado (acesso restrito)'
-    return `<span class="lnk" title="${esc(tt)}">📄 ${esc(txt)}${v.length > 1 ? ' +' + (v.length - 1) : ''}</span>`
+    return `<span class="tag" title="${esc(tt)}">${ic('doc')}<span class="mono">${esc(txt)}</span>${v.length > 1 ? ' +' + (v.length - 1) : ''}</span>`
   }
-  // Tipo da tarefa (catálogo em tarefa_tipos)
-  const TIPO_PADRAO = { codigo: 'outras', nome: 'Outras', icone: '📌', cor: '#6B7280', campos: [] }
+  // Tipo da tarefa (catálogo em tarefa_tipos). O emoji do catálogo segue nos
+  // e-mails; na tela o tipo usa o ícone SVG do código (ou uma etiqueta).
+  const TIPO_PADRAO = { codigo: 'outras', nome: 'Outras', icone: '📌', cor: '#6B7580', campos: [] }
   const tipoDe = cod => S.tipos.find(x => x.codigo === cod) || TIPO_PADRAO
+  const icTipo = cod => TIPO_IC[cod] || 'tag'
   const podeGerirTipos = ['super_admin', 'coordenacao'].includes(appState.perfil)
-  const iconeTipo = t => { const tp = tipoDe(t.tipo); return `<span class="tk-tipo-ic" title="${esc(tp.nome)}">${tp.icone}</span>` }
+  const iconeTipo = (t, cls = '') => { const tp = tipoDe(t.tipo || t.codigo); return `<span class="tipo-ic ${cls}" style="--tc:${tp.cor}" title="${esc(tp.nome)}">${ic(icTipo(tp.codigo))}</span>` }
+  const chipTipo = cod => { const tp = tipoDe(cod); return `<span class="chip-tipo"><span class="tipo-ic" style="--tc:${tp.cor}">${ic(icTipo(tp.codigo))}</span>${esc(tp.nome)}</span>` }
   const horaReuniao = t => t.tipo === 'reuniao' && t.dados_tipo && t.dados_tipo.inicio ? String(t.dados_tipo.inicio).slice(11, 16) : ''
-  const LOCK = '<span class="tk-lock" title="Tarefa restrita: visível só para os envolvidos">🔒</span>'
+  const LOCK = `<span class="lock" title="Tarefa restrita: visível só para os envolvidos">${ic('lock', 's')}</span>`
   const cadeado = t => t && t.restrita ? LOCK : ''
 
   // ── Carregar dados ────────────────────────────────────────────────────
@@ -123,9 +126,19 @@
   }
 
   // ══ RENDER ════════════════════════════════════════════════════════════
+  function resumoTopo () {
+    const abertas = S.tarefas.filter(t => t.status !== 'concluida' && t.status !== 'cancelada')
+    const atras = abertas.filter(t => { const d = diasAte(t.dt_prazo); return d !== null && d < 0 }).length
+    const semana = abertas.filter(t => { const d = diasAte(t.dt_prazo); return d !== null && d >= 0 && d <= 7 }).length
+    const pl = (n, s, p) => `${n} ${n === 1 ? s : p}`
+    return `${pl(abertas.length, 'aberta', 'abertas')} · ${pl(atras, 'atrasada', 'atrasadas')} · ${pl(semana, 'vence', 'vencem')} esta semana`
+  }
+
   function render () {
     const html =
-      '<div class="fade-in">' +
+      '<div class="tk fade-in">' +
+        `<div class="tk-head"><div><h1>Tarefas</h1><div class="tk-sub" id="tk-sub">${resumoTopo()}</div></div>
+          <button class="btn btn-pri" onclick="TK.novo()">${ic('plus')}Nova tarefa</button></div>` +
         toolbar() +
         `<div id="tk-view">${viewAtual()}</div>` +
       '</div>'
@@ -136,32 +149,25 @@
   }
 
   function toolbar () {
-    const optUsers = ['<option value="">Todos os responsáveis</option>']
+    const optUsers = ['<option value="">Responsável</option>']
       .concat(S.usuarios.map(u => `<option value="${u.id}" ${S.fResp === u.id ? 'selected' : ''}>${esc(u.nome_completo)}</option>`)).join('')
-    const optTipo = ['<option value="">Todos os tipos</option>']
-      .concat(S.tipos.map(x => `<option value="${x.codigo}" ${S.fTipo === x.codigo ? 'selected' : ''}>${x.icone} ${esc(x.nome)}</option>`)).join('')
-    const optPrio = ['<option value="">Toda prioridade</option>']
+    const optTipo = ['<option value="">Tipo</option>']
+      .concat(S.tipos.map(x => `<option value="${x.codigo}" ${S.fTipo === x.codigo ? 'selected' : ''}>${esc(x.nome)}</option>`)).join('')
+    const optPrio = ['<option value="">Prioridade</option>']
       .concat(PRIOS.map(([k, v]) => `<option value="${k}" ${S.fPrio === k ? 'selected' : ''}>${v}</option>`)).join('')
-    return `<div class="tk-toolbar">
-      <div class="tk-tabs">
-        <button class="tk-tab ${S.aba === 'kanban' ? 'on' : ''}" onclick="TK.aba('kanban')">Quadro</button>
-        <button class="tk-tab ${S.aba === 'lista' ? 'on' : ''}" onclick="TK.aba('lista')">Lista</button>
-        <button class="tk-tab ${S.aba === 'calendario' ? 'on' : ''}" onclick="TK.aba('calendario')">Calendário</button>
-        <button class="tk-tab ${S.aba === 'minhas' ? 'on' : ''}" onclick="TK.aba('minhas')">Minhas tarefas</button>
-      </div>
-      ${(S.aba === 'kanban' || S.aba === 'lista') ? `
-      <select class="tk-sel" onchange="TK.filtroResp(this.value)">${optUsers}</select>
-      <select class="tk-sel" onchange="TK.filtroTipo(this.value)">${optTipo}</select>
-      <select class="tk-sel" onchange="TK.filtroPrio(this.value)">${optPrio}</select>
-      <button class="tk-tab ${S.fAtraso ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleAtraso(this)">Só atrasadas</button>
-      <button class="tk-tab ${S.fRestrita ? 'on' : ''}" style="border:1px solid var(--borda)" onclick="TK.toggleRestrita(this)" title="Tarefas visíveis só para os envolvidos">🔒 Restritas</button>
-      ` : ''}
-      <div class="tk-spacer"></div>
-      ${podeGerirTipos ? '<button class="tk-tab" style="border:1px solid var(--borda)" onclick="TK.tipos()" title="Tipos de tarefa">⚙ Tipos</button>' : ''}
-      <button class="tk-btn" onclick="TK.novo()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        Nova tarefa
-      </button>
+    const aba = (k, icone, nm) => `<button class="${S.aba === k ? 'on' : ''}" onclick="TK.aba('${k}')">${ic(icone, 's')}${nm}</button>`
+    const filtrar = S.aba === 'kanban' || S.aba === 'lista' || S.aba === 'calendario'
+    return `<div class="toolbar">
+      <div class="seg" role="tablist">${aba('kanban', 'board', 'Quadro')}${aba('lista', 'list', 'Lista')}${aba('calendario', 'cal', 'Calendário')}${aba('minhas', 'user', 'Minhas')}</div>
+      ${filtrar ? `
+      <label class="search" for="tk-busca">${ic('search', 's')}<input id="tk-busca" placeholder="Buscar por número ou título" value="${esc(S.fBusca)}" oninput="TK.busca(this.value)"></label>
+      <select class="filtro ${S.fResp ? 'on' : ''}" onchange="TK.filtroResp(this.value)" aria-label="Responsável">${optUsers}</select>
+      <select class="filtro ${S.fTipo ? 'on' : ''}" onchange="TK.filtroTipo(this.value)" aria-label="Tipo">${optTipo}</select>
+      <select class="filtro ${S.fPrio ? 'on' : ''}" onchange="TK.filtroPrio(this.value)" aria-label="Prioridade">${optPrio}</select>
+      <button class="filtro ${S.fAtraso ? 'on' : ''}" onclick="TK.toggleAtraso(this)">${ic('alert', 's')}Atrasadas</button>
+      <button class="filtro ${S.fRestrita ? 'on' : ''}" onclick="TK.toggleRestrita(this)" title="Tarefas visíveis só para os envolvidos">${ic('lock', 's')}Restritas</button>` : ''}
+      <span class="sp"></span>
+      ${podeGerirTipos ? `<button class="btn btn-ghost btn-icon" onclick="TK.tipos()" title="Tipos de tarefa">${ic('sliders')}</button>` : ''}
     </div>`
   }
 
@@ -171,124 +177,103 @@
     if (S.fTipo && t.tipo !== S.fTipo) return false
     if (S.fRestrita && !t.restrita) return false
     if (S.fAtraso) { const d = diasAte(t.dt_prazo); if (!(d !== null && d < 0 && t.status !== 'concluida')) return false }
+    if (S.fBusca) {
+      const q = semAcento(S.fBusca).trim()
+      if (q && !semAcento((t.codigo || '') + ' ' + t.titulo).includes(q)) return false
+    }
     return true
   }
 
   // ── Kanban ────────────────────────────────────────────────────────────
   function viewKanban () {
     const ts = S.tarefas.filter(t => t.status !== 'cancelada' && passaFiltro(t))
-    return '<div class="tk-board">' + COLS.map(c => {
+    return '<div class="board">' + COLS.map(c => {
       const nesta = ts.filter(t => t.status === c.k)
-      const cards = nesta.length
-        ? nesta.map(cardKanban).join('')
-        : '<div class="tk-empty">—</div>'
-      return `<div class="tk-col" data-status="${c.k}">
-        <div class="tk-col-h"><span class="dot" style="background:${c.cor}"></span>
-          <span class="nm">${c.nm}</span><span class="ct">${nesta.length}</span></div>
-        <div class="tk-col-body">${cards}</div>
+      return `<div class="col" data-status="${c.k}">
+        <div class="col-h">${status(c.k)}<span class="ct">${nesta.length}</span>
+          <button class="add" onclick="TK.novo()" title="Nova tarefa">${ic('plus', 's')}</button></div>
+        <div class="col-b">${nesta.map(cardKanban).join('') || '<div class="col-vazia">Arraste tarefas para cá</div>'}</div>
       </div>`
     }).join('') + '</div>'
   }
 
   function badgePrazo (t) {
-    if (t.status === 'concluida') return `<span class="due">✓ ${fmtBR(t.dt_conclusao ? t.dt_conclusao.slice(0, 10) : t.dt_prazo)}</span>`
+    if (t.status === 'concluida') {
+      const d = t.dt_conclusao ? t.dt_conclusao.slice(0, 10) : t.dt_prazo
+      return d ? `<span class="tag ok">${ic('check')}${fmtBR(d)}</span>` : ''
+    }
     const d = diasAte(t.dt_prazo)
     if (d === null) return ''
-    if (d < 0)  return `<span class="due late">⚠ atrasada</span>`
-    if (d === 0) return `<span class="due today">📅 hoje</span>`
-    return `<span class="due">📅 ${fmtBR(t.dt_prazo)}</span>`
+    if (d < 0) return `<span class="tag late">${ic('alert')}${-d === 1 ? '1 dia atrasada' : -d + ' dias atrasada'}</span>`
+    if (d === 0) return `<span class="tag today">${ic('cal')}Hoje</span>`
+    if (d === 1) return `<span class="tag">${ic('cal')}Amanhã</span>`
+    return `<span class="tag">${ic('cal')}${fmtBR(t.dt_prazo)}</span>`
   }
 
   function cardKanban (t) {
-    const rs = respsDe(t).slice(0, 3)
-      .map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
-    const prio = `<span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>`
-    const atv = (t.atividade ? `<span class="lnk" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span>` : '') + chipTdrs(t)
-    const frn = t.fornecedor ? `<span class="frn" title="${esc(t.fornecedor.nome)}">🏢 ${esc((t.fornecedor.nome || '').split(' ')[0])}</span>` : ''
     const hr = horaReuniao(t)
-    return `<div class="tk-card" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')" style="border-left:3px solid ${tipoDe(t.tipo).cor}">
-      <div class="code">${iconeTipo(t)} <span class="tk-num-s">${esc(t.codigo || '')}</span>${hr ? ` <span class="tk-hora">🕑 ${hr}</span>` : ''}</div>
-      <div class="ttl">${cadeado(t)}${esc(t.titulo)}</div>
-      <div class="meta">${prio}${atv}${frn}
-        <span class="av-stack">${rs}</span>${badgePrazo(t)}</div>
-      ${barraProgresso(t, 'card')}
+    const pr = progressoDe(t)
+    const frn = t.fornecedor ? `<span class="tag" title="${esc(t.fornecedor.nome)}">${ic('build')}${esc(nomeCurto(t.fornecedor.nome))}</span>` : ''
+    const atv = t.atividade ? `<span class="tag" title="${esc(t.atividade.nome_pt || '')}"><span class="mono">${esc(t.atividade.codigo)}</span></span>` : ''
+    return `<article class="card${t.status === 'concluida' ? ' feito' : ''}" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')">
+      <div class="c-top">${iconeTipo(t)}<span class="num">${esc(t.codigo || '')}</span>${hr ? `<span class="hora">${hr}</span>` : ''}${cadeado(t)}</div>
+      <h3 class="c-tit">${esc(t.titulo)}</h3>
+      <div class="c-meta">${prioTag(t.prioridade)}${badgePrazo(t)}${atv}${chipTdrs(t)}${frn}</div>
+      <div class="c-foot">${pilhaAvatares(t)}${pr ? `<span class="cnt">${ic('checks', 's')}${pr.feitas}/${pr.total}</span>${barra(pr.pct)}` : ''}</div>
       ${linhaCriador(t)}
-    </div>`
+    </article>`
   }
 
   // "Criada por" no rodapé do card: primeiro + último nome
   function linhaCriador (t) {
     if (!t.criado_por) return ''
     const nome = nomeUsuario(t.criado_por)
-    const partes = nome.split(' ').filter(Boolean)
-    const curto = partes.length > 1 ? partes[0] + ' ' + partes[partes.length - 1] : nome
     const quando = t.criado_em ? new Date(t.criado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : ''
-    return `<div class="tk-criador" title="Criada por ${esc(nome)}${quando ? ' em ' + quando : ''}">
-      ${avatar({ id: t.criado_por, nome_completo: nome })}<span>Criada por <b>${esc(curto)}</b>${quando ? ' · ' + quando : ''}</span></div>`
+    return `<div class="criador" title="Criada por ${esc(nome)}${quando ? ' em ' + quando : ''}">por ${esc(nomeCurto(nome))}${quando ? ' · ' + quando : ''}</div>`
   }
 
-  // ── Minhas tarefas ────────────────────────────────────────────────────
-  function viewMinhas () {
-    const minhas = S.tarefas.filter(t => souResponsavel(t) && t.status !== 'cancelada')
-    if (!minhas.length) return `<div class="tk-empty" style="padding:48px">Nenhuma tarefa atribuída a você. 🎉</div>`
-
-    const ativas = minhas.filter(t => t.status !== 'concluida')
-    const feitas = minhas.filter(t => t.status === 'concluida')
-    const grupos = [
-      ['Atrasadas',    t => { const d = diasAte(t.dt_prazo); return d !== null && d < 0 }],
-      ['Hoje',         t => diasAte(t.dt_prazo) === 0],
-      ['Esta semana',  t => { const d = diasAte(t.dt_prazo); return d !== null && d > 0 && d <= 7 }],
-      ['Depois',       t => { const d = diasAte(t.dt_prazo); return d !== null && d > 7 }],
-      ['Sem prazo',    t => diasAte(t.dt_prazo) === null],
-    ]
-    let out = ''
-    grupos.forEach(([nm, fn]) => {
-      const g = ativas.filter(fn)
-      if (g.length) out += grupoLista(nm, g)
-    })
-    if (feitas.length) out += grupoLista('Concluídas', feitas)
-    return out
+  // ── Tabela agrupada (Lista e Minhas tarefas) ──────────────────────────
+  function linhaTabela (t) {
+    const pr = progressoDe(t)
+    const vinc = t.atividade
+      ? `<span class="mono" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span> ${chipTdrs(t)}`
+      : (t.fornecedor ? `<span class="tag">${ic('build')}${esc(nomeCurto(t.fornecedor.nome))}</span>` : '<span class="fraco">—</span>')
+    return `<tr onclick="TK.abrir('${t.id}')">
+      <td><div class="t-tit">${iconeTipo(t)}<span class="num">${esc(t.codigo || '')}</span><span class="t-txt">${esc(t.titulo)}</span>${cadeado(t)}</div></td>
+      <td>${pilhaAvatares(t) || '<span class="fraco">—</span>'}</td>
+      <td>${prioTag(t.prioridade)}</td>
+      <td>${badgePrazo(t) || '<span class="fraco">—</span>'}</td>
+      <td>${vinc}</td>
+      <td>${pr ? `<div class="t-prog">${barra(pr.pct)}<span class="mono">${pr.feitas}/${pr.total}</span></div>` : '<span class="fraco">—</span>'}</td>
+    </tr>`
   }
-
-  function grupoLista (nm, arr) {
-    const rows = arr.map(t => {
-      const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
-      return `<div class="tk-row" onclick="TK.abrir('${t.id}')">
-        <span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}" title="${ST_NM[t.status]}"></span>
-        <span class="r-ttl">${iconeTipo(t)} <span class="tk-num-s">${esc(t.codigo || '')}</span> ${cadeado(t)}${esc(t.titulo)}</span>
-        <span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>
-        ${t.atividade ? `<span class="lnk" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span>` : ''}${chipTdrs(t)}
-        <span class="av-stack">${rs}</span>
-        ${badgePrazo(t)}
-      </div>`
-    }).join('')
-    return `<div class="tk-group">
-      <div class="tk-group-h"><span class="g-nm">${nm}</span><span class="g-ct">${arr.length}</span><span class="g-bar"></span></div>
-      ${rows}
-    </div>`
+  function tabelaAgrupada (grupos, vazio) {
+    const corpo = grupos.filter(g => g.itens.length).map(g =>
+      `<tr class="grp"><td colspan="6">${g.rotulo}<span class="g-ct">${g.itens.length}</span></td></tr>${g.itens.map(linhaTabela).join('')}`).join('')
+    if (!corpo) return `<div class="vazio">${ic('checks')}<p>${vazio}</p></div>`
+    return `<div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Tarefa</th><th>Responsável</th><th>Prioridade</th><th>Prazo</th><th>Vínculo</th><th>Progresso</th></tr></thead>
+      <tbody>${corpo}</tbody></table></div>`
   }
+  const porPrazo = (a, b) => (a.dt_prazo || '9999').localeCompare(b.dt_prazo || '9999')
 
-  // ── Lista (tabela) ────────────────────────────────────────────────────
   function viewLista () {
-    const ts = S.tarefas.filter(t => t.status !== 'cancelada' && passaFiltro(t))
-      .sort((a, b) => (a.dt_prazo || '9999').localeCompare(b.dt_prazo || '9999'))
-    if (!ts.length) return `<div class="tk-empty" style="padding:40px">Nenhuma tarefa.</div>`
-    const linhas = ts.map(t => {
-      const rs = respsDe(t).slice(0, 3).map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')
-      return `<tr onclick="TK.abrir('${t.id}')">
-        <td><span class="tk-num-s">${esc(t.codigo || '')}</span></td>
-        <td><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span> ${iconeTipo(t)} ${cadeado(t)}${esc(t.titulo)}</td>
-        <td><span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span></td>
-        <td>${ST_NM[t.status] || t.status}</td>
-        <td>${t.atividade ? `<span title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span> ${chipTdrs(t)}` : (t.fornecedor ? '🏢 ' + esc((t.fornecedor.nome || '').split(' ')[0]) : '—')}</td>
-        <td><span class="av-stack">${rs || '—'}</span></td>
-        <td>${barraProgresso(t, 'lista')}</td>
-        <td>${badgePrazo(t) || '—'}</td>
-      </tr>`
-    }).join('')
-    return `<div class="tk-tbl-wrap"><table class="tk-tbl">
-      <thead><tr><th>Código</th><th>Tarefa</th><th>Prioridade</th><th>Status</th><th>Vínculo</th><th>Resp.</th><th>Progresso</th><th>Prazo</th></tr></thead>
-      <tbody>${linhas}</tbody></table></div>`
+    const ts = S.tarefas.filter(t => t.status !== 'cancelada' && passaFiltro(t)).sort(porPrazo)
+    return tabelaAgrupada(COLS.map(c => ({ rotulo: status(c.k), itens: ts.filter(t => t.status === c.k) })), 'Nenhuma tarefa com esses filtros.')
+  }
+
+  function viewMinhas () {
+    const minhas = S.tarefas.filter(t => souResponsavel(t) && t.status !== 'cancelada').sort(porPrazo)
+    const ativas = minhas.filter(t => t.status !== 'concluida')
+    const g = (rotulo, fn) => ({ rotulo: `<span class="g-nm">${rotulo}</span>`, itens: ativas.filter(fn) })
+    return tabelaAgrupada([
+      g('Atrasadas',   t => { const d = diasAte(t.dt_prazo); return d !== null && d < 0 }),
+      g('Hoje',        t => diasAte(t.dt_prazo) === 0),
+      g('Esta semana', t => { const d = diasAte(t.dt_prazo); return d !== null && d > 0 && d <= 7 }),
+      g('Depois',      t => { const d = diasAte(t.dt_prazo); return d !== null && d > 7 }),
+      g('Sem prazo',   t => diasAte(t.dt_prazo) === null),
+      { rotulo: '<span class="g-nm">Concluídas</span>', itens: minhas.filter(t => t.status === 'concluida') },
+    ], 'Nenhuma tarefa atribuída a você.')
   }
 
   // ── Calendário (grade mensal) ─────────────────────────────────────────
@@ -311,35 +296,36 @@
       const isHoje = d.getTime() === hoje.getTime()
       const its = (porDia[iso] || []).slice(0, 4)
       const mais = (porDia[iso] || []).length - its.length
-      const chips = its.map(t => `<div class="cal-chip" style="border-left:3px solid ${ST_COR[t.status] || '#9CA3AF'}"
-          onclick="event.stopPropagation();TK.abrir('${t.id}')" title="${esc((t.codigo || '') + ' · ' + tipoDe(t.tipo).nome + ' · ' + t.titulo)}">${tipoDe(t.tipo).icone} <b class="cal-num">${esc(t.codigo || '')}</b> ${horaReuniao(t) ? horaReuniao(t) + ' ' : ''}${t.restrita ? '🔒 ' : ''}${esc(t.titulo)}</div>`).join('')
+      const chips = its.map(t => `<div class="cal-chip st-${ST_VAR[t.status] || 'todo'}" onclick="event.stopPropagation();TK.abrir('${t.id}')"
+          title="${esc((t.codigo || '') + ' · ' + tipoDe(t.tipo).nome + ' · ' + t.titulo)}">${iconeTipo(t, 'xs')}<b class="mono">${esc(t.codigo || '')}</b>${horaReuniao(t) ? `<span class="mono">${horaReuniao(t)}</span>` : ''}<span class="cal-txt">${esc(t.titulo)}</span></div>`).join('')
       celulas += `<div class="cal-cell ${foraMes ? 'fora' : ''} ${isHoje ? 'hoje' : ''}">
         <div class="cal-dia">${d.getDate()}</div>${chips}${mais > 0 ? `<div class="cal-mais">+${mais}</div>` : ''}
       </div>`
       d.setDate(d.getDate() + 1)
     }
-    return `<div class="cal-head">
-        <button class="cal-nav" onclick="TK.calMes(-1)">‹</button>
+    return `<div class="cal">
+      <div class="cal-head">
+        <button class="btn btn-ghost btn-icon" onclick="TK.calMes(-1)" title="Mês anterior">${ic('left')}</button>
         <span class="cal-titulo">${nomeMes}</span>
-        <button class="cal-nav" onclick="TK.calMes(1)">›</button>
-        <button class="cal-hoje" onclick="TK.calHoje()">Hoje</button>
+        <button class="btn btn-ghost btn-icon" onclick="TK.calMes(1)" title="Próximo mês">${ic('right')}</button>
+        <button class="btn btn-sec" onclick="TK.calHoje()">Hoje</button>
       </div>
-      <div class="cal-grid cal-dow">${dows.map(w => `<div class="cal-dowc">${w}</div>`).join('')}</div>
-      <div class="cal-grid">${celulas}</div>`
+      <div class="cal-grid cal-dow">${dows.map(w => `<div>${w}</div>`).join('')}</div>
+      <div class="cal-grid">${celulas}</div></div>`
   }
 
   // ── Drag & drop ───────────────────────────────────────────────────────
   let dragId = null
   function ligarDragDrop () {
-    document.querySelectorAll('.tk-card').forEach(el => {
-      el.addEventListener('dragstart', e => { dragId = el.dataset.id; el.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move' })
-      el.addEventListener('dragend', () => { dragId = null; el.classList.remove('dragging') })
+    document.querySelectorAll('.card').forEach(el => {
+      el.addEventListener('dragstart', e => { dragId = el.dataset.id; el.classList.add('arrastando'); e.dataTransfer.effectAllowed = 'move' })
+      el.addEventListener('dragend', () => { dragId = null; el.classList.remove('arrastando') })
     })
-    document.querySelectorAll('.tk-col').forEach(col => {
-      col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over') })
-      col.addEventListener('dragleave', () => col.classList.remove('drag-over'))
+    document.querySelectorAll('.board .col').forEach(col => {
+      col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('alvo') })
+      col.addEventListener('dragleave', () => col.classList.remove('alvo'))
       col.addEventListener('drop', async e => {
-        e.preventDefault(); col.classList.remove('drag-over')
+        e.preventDefault(); col.classList.remove('alvo')
         const novo = col.dataset.status
         const t = S.tarefas.find(x => x.id === dragId)
         if (!t || t.status === novo) return
@@ -354,7 +340,7 @@
     refreshView()
     const { error } = await db.rpc('fn_mudar_status_tarefa', { p_tarefa_id: t.id, p_status: novo })
     if (error) { t.status = antigo; refreshView(); toast('Não foi possível mover: ' + error.message, 'error'); return }
-    if (novo === 'concluida') { toast('Tarefa concluída ✓', 'success'); chamarEmail(t.id, 'concluida') }
+    if (novo === 'concluida') { toast('Tarefa concluída', 'success'); chamarEmail(t.id, 'concluida') }
   }
 
   function viewAtual () {
@@ -366,6 +352,7 @@
 
   function refreshView () {
     document.getElementById('tk-view').innerHTML = viewAtual()
+    const sub = document.getElementById('tk-sub'); if (sub) sub.textContent = resumoTopo()
     if (S.aba === 'kanban') ligarDragDrop()
   }
 
@@ -450,25 +437,27 @@
   function chipResp (c) {
     if (c.responsavel_usuario_id) {
       const nm = nomeUsuario(c.responsavel_usuario_id)
-      return `<span class="ck-resp">${avatar({ id: c.responsavel_usuario_id, nome_completo: nm })} ${esc(primeiroNome(nm))}</span>`
+      return `<span class="pill">${avatar({ id: c.responsavel_usuario_id, nome_completo: nm })}${esc(primeiroNome(nm))}</span>`
     }
     if (c.responsavel_fornecedor_id) {
       const nm = nomeFornecedor(c.responsavel_fornecedor_id)
-      return `<span class="ck-resp frn" title="${esc(nm)} — recebe e responde por e-mail">🏢 ${esc(nm.length > 24 ? nm.slice(0, 24) + '…' : nm)}</span>`
+      return `<span class="tag" title="${esc(nm)} — recebe e responde por e-mail">${ic('build')}${esc(nm.length > 24 ? nm.slice(0, 24) + '…' : nm)}</span>`
     }
     return ''
   }
   function badgePrazoChk (c) {
     if (!c.dt_prazo) return ''
-    if (c.concluida) return `<span class="due">📅 ${fmtBR(c.dt_prazo)}</span>`
+    if (c.concluida) return `<span class="tag">${ic('cal')}${fmtBR(c.dt_prazo)}</span>`
     const d = diasAte(c.dt_prazo)
-    if (d < 0) return `<span class="due late" style="margin-left:0">⚠ ${fmtBR(c.dt_prazo)}</span>`
-    if (d === 0) return `<span class="due today" style="margin-left:0">📅 hoje</span>`
-    return `<span class="due" style="margin-left:0">📅 ${fmtBR(c.dt_prazo)}</span>`
+    if (d < 0) return `<span class="tag late">${ic('alert')}${fmtBR(c.dt_prazo)}</span>`
+    if (d === 0) return `<span class="tag today">${ic('cal')}Hoje</span>`
+    return `<span class="tag">${ic('cal')}${fmtBR(c.dt_prazo)}</span>`
   }
   const chipsAnexos = lista => lista.map(a =>
-    `<a href="#" class="ax-chip" data-arquivo="${esc(a.arquivo_url)}" title="${esc(a.arquivo_nome)}">📎 ${esc(a.arquivo_nome)}</a>`).join('')
+    `<a href="#" class="tag anexo" data-arquivo="${esc(a.arquivo_url)}" title="${esc(a.arquivo_nome)}">${ic('attach')}<span class="anexo-nm">${esc(a.arquivo_nome)}</span></a>`).join('')
   const lblArquivos = files => !files || !files.length ? '' : files.length === 1 ? files[0].name : `${files.length} arquivos`
+  const botaoArquivo = (id, lblId, rotulo = 'Anexar') => `<label class="btn btn-ghost btn-sm arq" title="Anexar arquivo(s)">${ic('attach', 's')}<span id="${lblId}">${rotulo}</span>
+      <input type="file" id="${id}" multiple hidden onchange="TK.lblFiles(this,'${lblId}')"></label>`
 
   // Envia arquivos para o bucket e registra em tarefa_anexos com os vínculos
   // informados (checklist_id / comentario_id). Retorna quantos falharam.
@@ -490,7 +479,7 @@
   }
 
   // Usuário responsável por subtarefa vira observador (trigger no banco).
-  // Recarrega a tarefa e marca o checkbox no formulário aberto, senão um
+  // Recarrega a tarefa e marca o observador no formulário aberto, senão um
   // "Salvar" em seguida removeria o observador recém-incluído.
   async function refletirObservador (uid) {
     if (!uid) return
@@ -501,33 +490,33 @@
   function itemChecklist (c, d) {
     const axs = d.anexos.filter(a => a.checklist_id === c.id)
     if (S.editChk === c.id) {
-      return `<div class="ck-item ck-edit">
-        <div class="ck-form">
-          <input type="text" id="ck-ed-desc" value="${esc(c.descricao)}">
-          <div class="ck-form-row">
-            <select id="ck-ed-resp">${optRespChk(respKey(c))}</select>
-            <input type="date" id="ck-ed-prazo" value="${c.dt_prazo || ''}">
+      return `<div class="sub editando">
+        <div class="sub-form">
+          <input type="text" class="inp" id="ck-ed-desc" value="${esc(c.descricao)}">
+          <div class="sub-linha">
+            <select class="inp" id="ck-ed-resp">${optRespChk(respKey(c))}</select>
+            <input type="date" class="inp" id="ck-ed-prazo" value="${c.dt_prazo || ''}">
           </div>
-          ${axs.length ? `<div class="ck-axs">${axs.map(a => `<span class="ax-chip-w">${chipsAnexos([a])}
-            <button class="ck-x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover anexo">×</button></span>`).join('')}</div>` : ''}
-          <div class="ck-form-row">
-            <label class="ck-file">📎 <span id="ck-ed-file-lbl">Anexar</span><input type="file" id="ck-ed-file" multiple hidden onchange="TK.lblFiles(this,'ck-ed-file-lbl')"></label>
-            <span class="tk-spacer"></span>
-            <button class="btn-sec" onclick="TK.editChk(null)">Cancelar</button>
-            <button class="btn-pri" onclick="TK.saveChk('${c.id}')">Salvar</button>
+          ${axs.length ? `<div class="pills">${axs.map(a => `<span class="pill-x">${chipsAnexos([a])}
+            <button class="x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover anexo">${ic('x', 's')}</button></span>`).join('')}</div>` : ''}
+          <div class="sub-linha">
+            ${botaoArquivo('ck-ed-file', 'ck-ed-file-lbl')}
+            <span class="sp"></span>
+            <button class="btn btn-sec btn-sm" onclick="TK.editChk(null)">Cancelar</button>
+            <button class="btn btn-pri btn-sm" onclick="TK.saveChk('${c.id}')">Salvar</button>
           </div>
         </div>
       </div>`
     }
-    const meta = [chipResp(c), badgePrazoChk(c)].filter(Boolean).join('')
-    return `<div class="ck-item">
-      <input type="checkbox" ${c.concluida ? 'checked' : ''} ${podeMexerSub() ? '' : 'disabled'} onchange="TK.toggleChk('${c.id}',this.checked)">
-      <div class="ck-main">
-        <span class="ck-desc ${c.concluida ? 'done' : ''}">${esc(c.descricao)}</span>
-        ${meta || axs.length ? `<div class="ck-meta">${meta}${chipsAnexos(axs)}</div>` : ''}
+    const meta = [chipResp(c), badgePrazoChk(c), chipsAnexos(axs)].filter(Boolean).join('')
+    return `<div class="sub">
+      <input type="checkbox" class="ck" ${c.concluida ? 'checked' : ''} ${podeMexerSub() ? '' : 'disabled'} onchange="TK.toggleChk('${c.id}',this.checked)" aria-label="Concluir subtarefa">
+      <div class="sub-main">
+        <span class="sub-t ${c.concluida ? 'feito' : ''}">${esc(c.descricao)}</span>
+        ${meta ? `<div class="sub-meta">${meta}</div>` : ''}
       </div>
-      ${podeMexerSub() ? `<button class="ck-x ck-ed" onclick="TK.editChk('${c.id}')" title="Editar">✎</button>
-      <button class="ck-x" onclick="TK.delChk('${c.id}')" title="Remover">×</button>` : ''}
+      ${podeMexerSub() ? `<span class="sub-acoes"><button class="x" onclick="TK.editChk('${c.id}')" title="Editar">${ic('pencil', 's')}</button>
+      <button class="x" onclick="TK.delChk('${c.id}')" title="Remover">${ic('x', 's')}</button></span>` : ''}
     </div>`
   }
 
@@ -535,52 +524,50 @@
     const el = document.getElementById('tk-detalhe'); if (!el || !S.det) return
     const d = S.det
     const feitas = d.checklist.filter(c => c.concluida).length
+    const n = v => `<span class="n">${v}</span>`
     const tabs = [
-      ['checklist', `Subtarefas${d.checklist.length ? ` (${feitas}/${d.checklist.length})` : ''}`],
-      ['coment', `Comentários${d.coment.length ? ` (${d.coment.length})` : ''}`],
-      ['anexos', `Anexos${d.anexos.length ? ` (${d.anexos.length})` : ''}`],
-      ['hist', 'Histórico'],
+      ['checklist', 'checks', 'Subtarefas', d.checklist.length ? n(`${feitas}/${d.checklist.length}`) : ''],
+      ['coment', 'msg', 'Comentários', d.coment.length ? n(d.coment.length) : ''],
+      ['anexos', 'attach', 'Anexos', d.anexos.length ? n(d.anexos.length) : ''],
+      ['hist', 'hist', 'Histórico', ''],
     ]
     let corpo = ''
     if (S.detAba === 'checklist') {
       const pct = d.checklist.length ? Math.round(feitas / d.checklist.length * 100) : 0
       const itens = d.checklist.map(c => itemChecklist(c, d)).join('')
-      corpo = `${d.checklist.length ? `<div class="ck-bar"><div class="ck-fill" style="width:${pct}%"></div></div>` : ''}
-        ${itens || '<div class="det-empty">Sem subtarefas.</div>'}
-        ${S.podeEditar && !S.modoEdicao ? '<div class="hint" style="margin-top:10px">Para adicionar, alterar ou concluir subtarefas, clique em <b>✏️ Editar</b> (no topo).</div>' : ''}
-        ${podeMexerSub() ? `<div class="ck-add">
-          <input type="text" id="ck-in" placeholder="Nova subtarefa…" onkeydown="if(event.key==='Enter')TK.addChk()">
-          <div class="ck-form-row">
-            <select id="ck-resp" title="Responsável (usuário ou fornecedor)">${optRespChk('')}</select>
-            <input type="date" id="ck-prazo" title="Data de entrega">
-            <label class="ck-file" title="Anexar arquivo(s)">📎 <span id="ck-file-lbl">Anexar</span><input type="file" id="ck-file" multiple hidden onchange="TK.lblFiles(this,'ck-file-lbl')"></label>
-            <button onclick="TK.addChk()">Adicionar</button>
+      corpo = `${d.checklist.length ? `<div class="prog">${barra(pct)}<span class="mono">${pct}%</span></div>` : ''}
+        <div>${itens || `<div class="vazio pq">${ic('checks')}<p>Sem subtarefas.</p></div>`}</div>
+        ${S.podeEditar && !S.modoEdicao ? `<p class="dica">Para adicionar, alterar ou concluir subtarefas, clique em <b>Editar</b> no topo.</p>` : ''}
+        ${podeMexerSub() ? `<div class="sub-nova">
+          <input type="text" class="inp" id="ck-in" placeholder="Nova subtarefa" onkeydown="if(event.key==='Enter')TK.addChk()">
+          <div class="sub-linha">
+            <select class="inp" id="ck-resp" title="Responsável (usuário ou fornecedor)">${optRespChk('')}</select>
+            <input type="date" class="inp" id="ck-prazo" title="Data de entrega">
+            ${botaoArquivo('ck-file', 'ck-file-lbl')}
+            <button class="btn btn-pri btn-sm" onclick="TK.addChk()">${ic('plus', 's')}Adicionar</button>
           </div>
-          <div class="hint">Usuário responsável passa a acompanhar a tarefa como observador. Fornecedor recebe a subtarefa (com anexos) por e-mail e responde por e-mail.</div>
+          <p class="dica">Usuário responsável passa a acompanhar a tarefa como observador. Fornecedor recebe a subtarefa com os anexos por e-mail e responde por e-mail.</p>
         </div>` : ''}`
     } else if (S.detAba === 'coment') {
       const lista = d.coment.map(c => {
         const frn = !!c.autor_fornecedor_id
         const nome = frn ? nomeFornecedor(c.autor_fornecedor_id) : nomeUsuario(c.autor_id)
-        const av = frn ? '<span class="av" style="background:var(--cinza-400)">🏢</span>'
-          : `<span class="av" style="background:${avCor(c.autor_id)}">${esc(iniciais(nome))}</span>`
+        const av = frn ? `<span class="av av-frn">${ic('build', 's')}</span>` : avatar({ id: c.autor_id, nome_completo: nome })
         const sub = c.checklist_id ? d.checklist.find(x => x.id === c.checklist_id) : null
         const axs = d.anexos.filter(a => a.comentario_id === c.id)
-        return `<div class="cm-item">
+        return `<div class="cm">
           ${av}
-          <div style="flex:1;min-width:0"><div class="cm-h"><b>${esc(nome)}</b> <span>${fmtDT(c.criado_em)}</span>
-            ${c.origem === 'email' ? '<em class="cm-tag">✉ via e-mail</em>' : ''}
-            ${sub ? `<em class="cm-tag">☑ ${esc(sub.descricao.length > 30 ? sub.descricao.slice(0, 30) + '…' : sub.descricao)}</em>` : ''}</div>
+          <div class="cm-c"><div class="cm-h"><b>${esc(nome)}</b><span>${fmtDT(c.criado_em)}</span>
+            ${c.origem === 'email' ? `<span class="tag mini">${ic('mail')}via e-mail</span>` : ''}
+            ${sub ? `<span class="tag mini">${ic('checks')}${esc(sub.descricao.length > 30 ? sub.descricao.slice(0, 30) + '…' : sub.descricao)}</span>` : ''}</div>
             <div class="cm-b">${esc(c.corpo)}</div>
-            ${axs.length ? `<div class="cm-axs">${chipsAnexos(axs)}</div>` : ''}</div>
+            ${axs.length ? `<div class="pills">${chipsAnexos(axs)}</div>` : ''}</div>
         </div>`
       }).join('')
-      corpo = `${lista || '<div class="det-empty">Nenhum comentário ainda.</div>'}
-        <div class="cm-add"><textarea id="cm-in" placeholder="Escreva um comentário…"></textarea>
-          <div class="cm-add-acoes">
-            <label class="ck-file" title="Anexar arquivo(s) ao comentário">📎 <span id="cm-file-lbl">Anexar</span><input type="file" id="cm-file" multiple hidden onchange="TK.lblFiles(this,'cm-file-lbl')"></label>
-            <button onclick="TK.addComent()">Comentar</button>
-          </div></div>`
+      corpo = `<div class="cms">${lista || `<div class="vazio pq">${ic('msg')}<p>Nenhum comentário ainda.</p></div>`}</div>
+        <div class="cm-nova"><textarea class="inp" id="cm-in" rows="2" placeholder="Escreva um comentário"></textarea>
+          <div class="sub-linha">${botaoArquivo('cm-file', 'cm-file-lbl')}<span class="sp"></span>
+            <button class="btn btn-pri btn-sm" onclick="TK.addComent()">Comentar</button></div></div>`
     } else if (S.detAba === 'anexos') {
       const lista = d.anexos.map(a => {
         let origem = ''
@@ -588,37 +575,37 @@
         const sub = a.checklist_id ? d.checklist.find(c => c.id === a.checklist_id) : null
         if (cm) {
           const nome = cm.autor_fornecedor_id ? nomeFornecedor(cm.autor_fornecedor_id) : nomeUsuario(cm.autor_id)
-          origem = `↳ ${cm.origem === 'email' ? 'e-mail' : 'comentário'} de ${esc(nome)} · ${fmtDT(cm.criado_em)}`
+          origem = `${cm.origem === 'email' ? 'E-mail' : 'Comentário'} de ${esc(nome)} · ${fmtDT(cm.criado_em)}`
         }
-        if (sub) origem += `${origem ? ' · ' : '↳ '}subtarefa: ${esc(sub.descricao)}`
-        return `<div class="ax-item">
-          <div style="flex:1;min-width:0"><a href="#" data-arquivo="${esc(a.arquivo_url)}">📎 ${esc(a.arquivo_nome)}</a>
+        if (sub) origem += `${origem ? ' · ' : ''}Subtarefa: ${esc(sub.descricao)}`
+        return `<div class="ax">
+          <span class="ax-ic">${ic('doc')}</span>
+          <div class="ax-c"><a href="#" data-arquivo="${esc(a.arquivo_url)}">${esc(a.arquivo_nome)}</a>
             ${origem ? `<div class="ax-orig">${origem}</div>` : ''}</div>
-          ${S.podeEditar ? `<button class="ck-x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover">×</button>` : ''}
+          ${S.podeEditar ? `<button class="x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover">${ic('x', 's')}</button>` : ''}
         </div>`
       }).join('')
-      corpo = `${lista || '<div class="det-empty">Nenhum anexo.</div>'}
-        ${S.podeEditar ? `<label class="ax-add">📎 Anexar arquivo<input type="file" id="ax-in" style="display:none" onchange="TK.uploadAnexo(this)"></label>
-        <span id="ax-status" class="hint"></span>` : ''}`
+      corpo = `<div class="axs">${lista || `<div class="vazio pq">${ic('attach')}<p>Nenhum anexo.</p></div>`}</div>
+        ${S.podeEditar ? `<label class="btn btn-sec btn-sm arq">${ic('plus', 's')}Anexar arquivo<input type="file" id="ax-in" hidden onchange="TK.uploadAnexo(this)"></label>
+        <span id="ax-status" class="dica"></span>` : ''}`
     } else {
-      corpo = d.hist.map((h, i) => {
+      corpo = `<div class="hists">${d.hist.map((h, i) => {
         const det = Array.isArray(h.detalhes) && h.detalhes.length ? h.detalhes : null
         const resumo = det
-          ? `<a href="#" class="hist-mais" onclick="event.preventDefault();TK.histToggle(${i})">${esc(h.para || '')} ▸</a>`
-          : (h.de || h.para ? `<span style="color:var(--cinza-500)">${h.de ? esc(h.de) + ' → ' : ''}${esc(h.para || '')}</span>` : '')
+          ? `<a href="#" class="hist-mais" onclick="event.preventDefault();TK.histToggle(${i})">${esc(h.para || '')}${ic('chev', 's')}</a>`
+          : (h.de || h.para ? `<span class="hist-dp">${h.de ? esc(h.de) + ' → ' : ''}${esc(h.para || '')}</span>` : '')
         const lista = det ? `<div class="hist-det" id="hist-det-${i}" hidden>${det.map(x => x.longo
           ? `<div class="hd-i"><b>${esc(x.campo)}</b><div class="hd-long"><span>Antes</span>${esc(x.de || '—')}</div><div class="hd-long"><span>Depois</span>${esc(x.para || '—')}</div></div>`
           : `<div class="hd-i"><b>${esc(x.campo)}:</b> <s>${esc(x.de || '—')}</s> → ${esc(x.para || '—')}</div>`).join('')}</div>` : ''
-        return `<div class="hist-i"><span class="hi-dot"></span>
-          <div style="flex:1;min-width:0"><b>${h.autor_id ? esc(nomeUsuario(h.autor_id)) : '🏢'}</b> ${HIST_TXT[h.tipo] || h.tipo} ${resumo}
+        return `<div class="hist"><span class="dot${i === 0 ? ' on' : ''}"></span>
+          <div class="hist-c"><b>${h.autor_id ? esc(nomeUsuario(h.autor_id)) : 'Fornecedor'}</b> ${HIST_TXT[h.tipo] || h.tipo} ${resumo}
           ${h.motivo ? `<div class="hist-motivo">Motivo: ${esc(h.motivo)}</div>` : ''}
           ${lista}
-          <div style="color:var(--cinza-400);font-size:10px">${fmtDT(h.criado_em)}</div></div></div>`
-      }).join('') || '<div class="det-empty">Sem histórico.</div>'
+          <div class="quando">${fmtDT(h.criado_em)}</div></div></div>`
+      }).join('') || `<div class="vazio pq">${ic('hist')}<p>Sem histórico.</p></div>`}</div>`
     }
-    el.style.color = 'inherit'
-    el.innerHTML = `<div class="det-tabs">${tabs.map(([k, n]) =>
-      `<button class="det-tab ${S.detAba === k ? 'on' : ''}" onclick="TK.detAba('${k}')">${n}</button>`).join('')}</div>
+    el.innerHTML = `<div class="tabs">${tabs.map(([k, icone, nm, cont]) =>
+      `<button class="${S.detAba === k ? 'on' : ''}" onclick="TK.detAba('${k}')">${ic(icone, 's')}${nm}${cont}</button>`).join('')}</div>
       <div class="det-corpo">${corpo}</div>`
   }
   window.fecharModal = () => {
@@ -636,14 +623,14 @@
   const PK = { itens: [], hl: 0 }
   const rotuloAtv = a => a
     ? `<b class="pk-cod">${esc(a.codigo)}</b><span class="pk-nome">${esc(a.nome_pt || '')}</span>`
-    : '<span class="pk-ph">— nenhuma —</span>'
+    : '<span class="pk-ph">Nenhuma</span>'
   function pickerAtividade (selId) {
     const a = S.atividades.find(x => x.id === selId)
     return `<div class="pk" id="pk-atv">
       <input type="hidden" id="f-atv" value="${selId || ''}">
-      <button type="button" class="pk-btn" id="pk-atv-btn" onclick="TK.pkAbrir()" title="${a ? esc(a.codigo + ' · ' + (a.nome_pt || '')) : ''}">${rotuloAtv(a)}<span class="pk-seta">▾</span></button>
+      <button type="button" class="pk-btn" id="pk-atv-btn" onclick="TK.pkAbrir()" title="${a ? esc(a.codigo + ' · ' + (a.nome_pt || '')) : ''}">${rotuloAtv(a)}${ic('chev', 's pk-seta')}</button>
       <div class="pk-pop" id="pk-atv-pop" hidden>
-        <input type="text" class="pk-busca" id="pk-atv-busca" placeholder="Buscar por código ou nome…" autocomplete="off"
+        <input type="text" class="pk-busca" id="pk-atv-busca" placeholder="Buscar por código ou nome" autocomplete="off"
           oninput="TK.pkFiltrar(this.value)" onkeydown="TK.pkTecla(event)">
         <div class="pk-lista" id="pk-atv-lista"></div>
       </div>
@@ -657,8 +644,8 @@
           onmousedown="event.preventDefault();TK.pkEscolher('${a.id}')" onmouseenter="TK.pkHl(${i})">
           <b class="pk-cod">${esc(a.codigo)}</b><span>${esc(a.nome_pt || '')}</span></div>`
       : `<div class="pk-it ${!sel ? 'sel' : ''} ${i === PK.hl ? 'hl' : ''}" onmousedown="event.preventDefault();TK.pkEscolher('')" onmouseenter="TK.pkHl(${i})">
-          <span class="pk-ph">— nenhuma —</span></div>`).join('')
-      || '<div class="det-empty">Nenhuma atividade encontrada.</div>'
+          <span class="pk-ph">Nenhuma</span></div>`).join('')
+      || '<div class="pk-vazio">Nenhuma atividade encontrada</div>'
     const hl = el.querySelector('.pk-it.hl'); if (hl) hl.scrollIntoView({ block: 'nearest' })
   }
   function pkFechar () { const p = document.getElementById('pk-atv-pop'); if (p) p.hidden = true }
@@ -683,7 +670,7 @@
     if (!atvId) { wrap.style.display = 'none'; el.innerHTML = ''; return }
     wrap.style.display = ''
     el.hidden = true
-    const chips = document.getElementById('f-tdr-chips'); if (chips) chips.innerHTML = '<span class="pp-vazio">carregando…</span>'
+    const chips = document.getElementById('f-tdr-chips'); if (chips) chips.innerHTML = '<span class="fraco">Carregando…</span>'
     const { data } = await db.from('tdrs').select('id,numero,tipo,status,objeto_pt')
       .eq('atividade_id', atvId).order('numero')
     if (document.getElementById('f-atv').value !== atvId) return // trocou de atividade no meio
@@ -692,10 +679,10 @@
     const linhas = lista.map(d => `<label class="tdr-it">
         <input type="checkbox" class="chk-tdr" value="${d.id}" ${selecionados.includes(d.id) ? 'checked' : ''} onchange="TK.tdrMudou()">
         <div class="tdr-txt"><div><b>${esc(d.numero)}</b> · ${esc(d.tipo || '')} · <span class="tdr-st">${esc(TDR_ST[d.status] || d.status)}</span>
-          <a class="tdr-abrir" href="tdrs.html?abrir=${d.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir TDR ↗</a></div>
+          <a class="tdr-abrir" href="tdrs.html?abrir=${d.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir TDR${ic('ext', 's')}</a></div>
           ${d.objeto_pt ? `<div class="tdr-obj" title="${esc(d.objeto_pt)}">${esc(d.objeto_pt)}</div>` : ''}</div>
       </label>`).join('')
-    el.innerHTML = linhas || '<div class="det-empty">Nenhum TDR disponível para esta atividade.</div>'
+    el.innerHTML = linhas || '<div class="pk-vazio">Nenhum TDR disponível para esta atividade</div>'
     renderTdrChips()
     if (S.abrirTdrAoCarregar) { S.abrirTdrAoCarregar = false; if (lista.length) TK.tdrPainel(true) }
   }
@@ -711,7 +698,7 @@
     return `<input type="hidden" id="f-tipo" value="${esc(atual)}">
       <div class="tipo-grid" id="f-tipo-grid">${tiposSelecionaveis(atual).map(x =>
         `<button type="button" class="tipo-op ${x.codigo === atual ? 'on' : ''}" data-tipo="${x.codigo}" style="--tc:${x.cor}" onclick="TK.pickTipo('${x.codigo}')">
-          <span class="tipo-op-ic">${x.icone}</span><span>${esc(x.nome)}</span></button>`).join('')}</div>`
+          <span class="tipo-ic" style="--tc:${x.cor}">${ic(icTipo(x.codigo))}</span><span>${esc(x.nome)}</span></button>`).join('')}</div>`
   }
   function campoTipoHtml (c, v) {
     const id = 'ft-' + c.chave
@@ -720,13 +707,13 @@
     const val = v === undefined || v === null ? '' : v
     const onPrazo = c.define_prazo ? ' onchange="TK.syncPrazoTipo()"' : ''
     if (c.tipo === 'boolean') {
-      return `<div class="fld tipo-bool"><label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer">
-        <input type="checkbox" id="${id}" ${val === true || val === 'true' ? 'checked' : ''} style="width:15px;height:15px;accent-color:var(--verde-medio)"
+      return `<div class="fld tipo-bool"><label class="inline-ck">
+        <input type="checkbox" class="sw" id="${id}" ${val === true || val === 'true' ? 'checked' : ''}
           onchange="TK.onCampoTipo('${c.chave}')"> ${esc(c.rotulo)}</label>${dica}</div>`
     }
     let input
     if (c.tipo === 'textarea') input = `<textarea id="${id}" rows="3">${esc(val)}</textarea>`
-    else if (c.tipo === 'select') input = `<select id="${id}" onchange="TK.onCampoTipo('${c.chave}')"><option value="">— selecione —</option>${
+    else if (c.tipo === 'select') input = `<select id="${id}" onchange="TK.onCampoTipo('${c.chave}')"><option value="">Selecione</option>${
       (c.opcoes || []).map(o => `<option ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`
     else {
       const tp = c.tipo === 'datetime' ? 'datetime-local' : c.tipo === 'date' ? 'date' : c.tipo === 'url' ? 'url' : 'text'
@@ -741,7 +728,7 @@
     if (!campos.length) return ''
     const titulo = cod === 'reuniao' ? 'Dados da reunião' : cod === 'diligencia' ? 'Dados da diligência' : 'Dados de ' + tp.nome.toLowerCase()
     return `<div class="tipo-bloco" style="--tc:${tp.cor}">
-      <div class="tipo-bloco-h">${tp.icone} ${esc(titulo)}${cod === 'reuniao' ? ' <span class="info" title="Os envolvidos recebem um convite de agenda (.ics) por e-mail; mudanças de data, local ou link atualizam o convite e o cancelamento da tarefa cancela o evento.">ⓘ</span>' : ''}</div>
+      <div class="tipo-bloco-h"><span class="tipo-ic xs" style="--tc:${tp.cor}">${ic(icTipo(cod))}</span>${esc(titulo)}${cod === 'reuniao' ? ` <span class="info" title="Os envolvidos recebem um convite de agenda (.ics) por e-mail; mudanças de data, local ou link atualizam o convite e o cancelamento da tarefa cancela o evento.">${ic('info', 's')}</span>` : ''}</div>
       <div class="tipo-campos">${campos.map(c => campoTipoHtml(c, (dados || {})[c.chave])).join('')}</div>
     </div>`
   }
@@ -788,9 +775,9 @@
     return `<div class="fld"><label>${rotulo}</label>
       <div class="pp" id="pp-${papel}">
         <div class="pp-chips" id="pp-${papel}-chips"></div>
-        ${bloqueado ? '' : `<button type="button" class="pp-add" onclick="TK.ppAbrir('${papel}')">＋ adicionar</button>
+        ${bloqueado ? '' : `<button type="button" class="pp-add" onclick="TK.ppAbrir('${papel}')">${ic('plus', 's')}Adicionar</button>
         <div class="pk-pop pp-pop" id="pp-${papel}-pop" hidden>
-          <input type="text" class="pk-busca" id="pp-${papel}-busca" placeholder="Buscar pessoa…" autocomplete="off"
+          <input type="text" class="pk-busca" id="pp-${papel}-busca" placeholder="Buscar pessoa" autocomplete="off"
             oninput="TK.ppFiltrar('${papel}',this.value)" onkeydown="TK.ppTecla(event,'${papel}')">
           <div class="pk-lista" id="pp-${papel}-lista"></div>
         </div>`}
@@ -802,31 +789,30 @@
     const fixo = papel === 'resp' && !S.form.podeDelegar
     el.innerHTML = ids.map(id => {
       const nm = nomeUsuario(id)
-      return `<span class="pp-chip">${avatar({ id, nome_completo: nm })}<span>${esc(nm)}</span>${
-        fixo ? '' : `<button type="button" onclick="TK.ppRemover('${papel}','${id}')" title="Remover">×</button>`}</span>`
-    }).join('') || `<span class="pp-vazio">${papel === 'resp' ? 'ninguém' : 'nenhum'}</span>`
+      return `<span class="pill">${avatar({ id, nome_completo: nm })}<span>${esc(nm)}</span>${
+        fixo ? '' : `<button type="button" class="x" onclick="TK.ppRemover('${papel}','${id}')" title="Remover">${ic('x', 's')}</button>`}</span>`
+    }).join('') || `<span class="fraco">${papel === 'resp' ? 'Ninguém' : 'Nenhum'}</span>`
   }
   const PP = { itens: [], hl: 0 }
   function ppRender (papel) {
     const el = document.getElementById(`pp-${papel}-lista`); if (!el) return
     el.innerHTML = PP.itens.map((u, i) => `<div class="pk-it ${i === PP.hl ? 'hl' : ''}"
         onmousedown="event.preventDefault();TK.ppAdicionar('${papel}','${u.id}')" onmouseenter="TK.ppHl('${papel}',${i})">
-        ${avatar(u)}<span>${esc(u.nome_completo)} <span style="color:var(--cinza-400);font-size:11px">${esc(u.perfil || '')}</span></span></div>`).join('')
-      || '<div class="det-empty">Ninguém encontrado.</div>'
+        ${avatar(u)}<span>${esc(u.nome_completo)} <small class="fraco">${esc(u.perfil || '')}</small></span></div>`).join('')
+      || '<div class="pk-vazio">Ninguém encontrado</div>'
   }
   function ppFecharTodos () { document.querySelectorAll('.pp-pop').forEach(p => { p.hidden = true }) }
   document.addEventListener('mousedown', e => { if (!e.target.closest('.pp')) ppFecharTodos() })
 
-  // ── TDRs: só os vinculados à vista; a lista abre com "＋ vincular TDR" ─
+  // ── TDRs: só os vinculados à vista; a lista abre com "Vincular TDR" ─
   function renderTdrChips () {
     const el = document.getElementById('f-tdr-chips'); if (!el) return
     const marcados = [...document.querySelectorAll('.chk-tdr:checked')].map(c => (S.tdrsAtv || []).find(d => d.id === c.value)).filter(Boolean)
     const oc = S.tdrOcultos || 0
-    el.innerHTML = marcados.map(d => `<span class="pp-chip tdr-chip" title="${esc(d.objeto_pt || '')}">📄 <b>${esc(d.numero)}</b>
-        <span class="tdr-st">${esc(TDR_ST[d.status] || d.status)}</span>
-        <button type="button" onclick="TK.tdrDesmarcar('${d.id}')" title="Desvincular">×</button></span>`).join('') +
-      (oc ? `<span class="pp-chip tdr-chip">🔒 ${oc > 1 ? oc + ' TDRs' : 'TDR'} (acesso restrito)</span>` : '') ||
-      `<span class="pp-vazio">${(S.tdrsAtv || []).length ? 'nenhum vinculado' : 'nenhum TDR nesta atividade'}</span>`
+    el.innerHTML = marcados.map(d => `<span class="pill doc" title="${esc(d.objeto_pt || '')}">${ic('doc', 's')}<b>${esc(d.numero)}</b>${esc(TDR_ST[d.status] || d.status)}
+        <button type="button" class="x" onclick="TK.tdrDesmarcar('${d.id}')" title="Desvincular">${ic('x', 's')}</button></span>`).join('') +
+      (oc ? `<span class="pill doc">${ic('lock', 's')}${oc > 1 ? oc + ' TDRs' : 'TDR'} (acesso restrito)</span>` : '') ||
+      `<span class="fraco">${(S.tdrsAtv || []).length ? 'Nenhum vinculado' : 'Nenhum TDR nesta atividade'}</span>`
     const btn = document.getElementById('f-tdr-btn')
     if (btn) btn.style.display = (S.tdrsAtv || []).length ? '' : 'none'
   }
@@ -835,54 +821,56 @@
   const fmtDataHoraBR = v => { if (!v) return ''; const [d, h] = String(v).split('T'); const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}${h ? ' ' + h.slice(0, 5) : ''}` }
   function fichaHtml (t) {
     const ed = S.podeEditar
-    const L = (campo, rotulo, valor, largo) => valor
-      ? `<div class="fi-l${ed ? ' ed' : ''}${largo ? ' largo' : ''}"${ed ? ` onclick="TK.editarCampo('${campo}')" title="Clique para editar"` : ''}>
-          <span class="fi-r">${rotulo}</span><div class="fi-v">${valor}</div></div>` : ''
+    const vazio = ed ? '<span class="fraco">Adicionar</span>' : ''
+    // linha de lista agrupada; sem valor, só aparece para quem pode editar
+    const R = (campo, rotulo, valor, alto) => {
+      if (!valor && !ed) return ''
+      return `<div class="row${ed ? ' ed' : ''}${alto ? ' alto' : ''}"${ed ? ` onclick="TK.editarCampo('${campo}')" title="Clique para editar"` : ''}>
+        <span class="k">${rotulo}</span><span class="v">${valor || vazio}</span>${ed ? ic('right', 's chev') : ''}</div>`
+    }
+    const grupo = (titulo, linhas) => linhas.trim() ? `<div class="grupo"><h4>${titulo}</h4><div class="lista">${linhas}</div></div>` : ''
     const tp = tipoDe(t.tipo), d = t.dados_tipo || {}
-    const pessoas = ids => ids.map(id => `<span class="pp-chip">${avatar({ id, nome_completo: nomeUsuario(id) })}<span>${esc(nomeUsuario(id))}</span></span>`).join('')
+    const pessoas = ids => ids.length ? `<span class="pills">${ids.map(id => `<span class="pill">${avatar({ id, nome_completo: nomeUsuario(id) })}${esc(nomeUsuario(id))}</span>`).join('')}</span>` : ''
     const dprazo = diasAte(t.dt_prazo)
-    const prazoTxt = t.dt_prazo ? `${fmtDataHoraBR(t.dt_prazo)}${t.status !== 'concluida' && dprazo !== null
-      ? (dprazo < 0 ? ' <span class="due late" style="margin:0">⚠ atrasada</span>' : dprazo === 0 ? ' <span class="due today" style="margin:0">hoje</span>' : ` <span class="fi-sub">em ${dprazo} dia${dprazo > 1 ? 's' : ''}</span>`) : ''}` : ''
+    const prazoTxt = t.dt_prazo ? `<span class="mono">${fmtDataHoraBR(t.dt_prazo)}</span>${t.status !== 'concluida' && dprazo !== null
+      ? (dprazo < 0 ? ` <span class="tag late">${ic('alert')}${-dprazo} dia${dprazo < -1 ? 's' : ''} de atraso</span>` : dprazo === 0 ? ` <span class="tag today">Hoje</span>` : ` <small>em ${dprazo} dia${dprazo > 1 ? 's' : ''}</small>`) : ''}` : ''
     // campos do tipo
     let tipoLinhas = ''
     if (t.tipo === 'reuniao' && d.inicio) {
       const quando = fmtDataHoraBR(d.inicio) + (d.fim ? '–' + (d.fim.slice(0, 10) === d.inicio.slice(0, 10) ? d.fim.slice(11, 16) : fmtDataHoraBR(d.fim)) : '')
-      tipoLinhas += L('ft-inicio', 'Reunião', `📅 <b>${esc(quando)}</b>${d.formato ? ' · ' + esc(d.formato) : ''}${d.local ? ' · ' + esc(d.local) : ''}${
-        d.link ? ` · <a href="${esc(d.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">abrir link ↗</a>` : ''}`)
-      tipoLinhas += L('ft-pauta', 'Pauta', d.pauta ? `<div class="fi-txt">${esc(d.pauta)}</div>` : '', true)
+      tipoLinhas += R('ft-inicio', 'Quando', `<span class="mono">${esc(quando)}</span>`)
+      tipoLinhas += R('ft-formato', 'Formato', `${esc(d.formato || '')}${d.local ? ' · ' + esc(d.local) : ''}${
+        d.link ? ` · <a class="link" href="${esc(d.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Abrir link${ic('ext', 's')}</a>` : ''}`)
+      tipoLinhas += R('ft-pauta', 'Pauta', d.pauta ? `<div class="txt">${esc(d.pauta)}</div>` : '', true)
     } else {
       for (const c of (tp.campos || [])) {
         const v = d[c.chave]; if (v === undefined || v === null || v === '') continue
         const txt = c.tipo === 'boolean' ? (v === true || v === 'true' ? 'Sim' : 'Não')
-          : c.tipo === 'date' || c.tipo === 'datetime' ? fmtDataHoraBR(v)
-          : c.tipo === 'url' ? `<a href="${esc(v)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(v)}</a>`
-          : c.tipo === 'textarea' ? `<div class="fi-txt">${esc(v)}</div>` : esc(v)
-        tipoLinhas += L('ft-' + c.chave, esc(c.rotulo), txt, c.tipo === 'textarea')
+          : c.tipo === 'date' || c.tipo === 'datetime' ? `<span class="mono">${fmtDataHoraBR(v)}</span>`
+          : c.tipo === 'url' ? `<a class="link" href="${esc(v)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${esc(v)}</a>`
+          : c.tipo === 'textarea' ? `<div class="txt">${esc(v)}</div>` : esc(v)
+        tipoLinhas += R('ft-' + c.chave, esc(c.rotulo), txt, c.tipo === 'textarea')
       }
     }
     const tdrs = (t.vinc_tdrs || []).map(x => x.tdr
-      ? `<a class="pp-chip tdr-chip" href="tdrs.html?abrir=${x.tdr.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${esc(x.tdr.objeto_pt || '')}">📄 <b>${esc(x.tdr.numero)}</b> <span class="tdr-st">${esc(TDR_ST[x.tdr.status] || x.tdr.status)}</span> ↗</a>`
-      : '<span class="pp-chip tdr-chip">🔒 TDR (acesso restrito)</span>').join('')
+      ? `<a class="pill doc" href="tdrs.html?abrir=${x.tdr.id}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${esc(x.tdr.objeto_pt || '')}">${ic('doc', 's')}<b>${esc(x.tdr.numero)}</b>${esc(TDR_ST[x.tdr.status] || x.tdr.status)}</a>`
+      : `<span class="pill doc">${ic('lock', 's')}Acesso restrito</span>`).join('')
     const obs = obsDe(t).map(p => p.usuario_id), resp = respsDe(t).map(p => p.usuario_id)
     const criado = t.criado_em ? new Date(t.criado_em).toLocaleDateString('pt-BR') : ''
     return `<div class="ficha">
-      <div class="fi-topo">
-        <span class="prio prio-${t.prioridade}">${PRIO_NM[t.prioridade]}</span>
-        <span class="fi-st"><span class="st-dot" style="background:${ST_COR[t.status] || '#9CA3AF'}"></span>${ST_NM[t.status] || t.status}</span>
-        ${t.restrita ? '<span class="fi-st">🔒 Restrita</span>' : ''}
-        ${ed ? '<span class="fi-dica">clique numa informação para editá-la</span>' : ''}
-      </div>
-      ${L('f-prazo', 'Prazo', prazoTxt)}
-      ${L('f-inicio', 'Início', t.dt_inicio ? fmtDataHoraBR(t.dt_inicio) : '')}
-      ${tipoLinhas}
-      ${L('atividade', 'Atividade', t.atividade ? `<b class="pk-cod">${esc(t.atividade.codigo)}</b> ${esc(t.atividade.nome_pt || '')}` : '', true)}
-      ${L('tdr', 'TDRs', tdrs ? `<div class="pp-chips">${tdrs}</div>` : '')}
-      ${L('resp', 'Responsáveis', resp.length ? `<div class="pp-chips">${pessoas(resp)}</div>` : '')}
-      ${L('obs', 'Observadores', obs.length ? `<div class="pp-chips">${pessoas(obs)}</div>` : '')}
-      ${L('f-frn', 'Fornecedor', t.fornecedor ? `🏢 ${esc(t.fornecedor.nome)}${t.notificar_fornecedor ? ' <span class="fi-sub">· recebe e-mail</span>' : ''}` : '')}
-      ${L('f-desc', 'Descrição', t.descricao ? `<div class="fi-txt">${esc(t.descricao)}</div>` : '', true)}
-      ${ed && !t.descricao ? L('f-desc', 'Descrição', '<span class="fi-sub">+ adicionar descrição</span>') : ''}
-      <div class="fi-rodape">Criada por <b>${esc(nomeUsuario(t.criado_por))}</b>${criado ? ' em ' + criado : ''}</div>
+      ${grupo('Resumo',
+        R('f-prio', 'Prioridade', prioTag(t.prioridade)) +
+        R('f-prazo', 'Prazo', prazoTxt) +
+        (t.dt_inicio ? R('f-inicio', 'Início', `<span class="mono">${fmtDataHoraBR(t.dt_inicio)}</span>`) : '') +
+        R('f-restrita', 'Restrita', `<small>${t.restrita ? 'Só envolvidos e super admin' : 'Visível pelas regras normais'}</small><span class="switch${t.restrita ? '' : ' off'}"></span>`))}
+      ${tipoLinhas ? grupo(esc(t.tipo === 'reuniao' ? 'Reunião' : tp.nome), tipoLinhas) : ''}
+      ${grupo('Vínculos',
+        R('atividade', 'Atividade', t.atividade ? `<span class="mono cod">${esc(t.atividade.codigo)}</span> ${esc(t.atividade.nome_pt || '')}` : '', true) +
+        (t.atividade || tdrs ? R('tdr', 'TDRs', tdrs ? `<span class="pills">${tdrs}</span>` : '') : '') +
+        R('f-frn', 'Fornecedor', t.fornecedor ? `${esc(t.fornecedor.nome)}${t.notificar_fornecedor ? ' <small>· recebe e-mail</small>' : ''}` : ''))}
+      ${grupo('Pessoas', R('resp', 'Responsáveis', pessoas(resp)) + R('obs', 'Observadores', pessoas(obs)))}
+      ${grupo('Descrição', R('f-desc', 'Texto', t.descricao ? `<div class="txt">${esc(t.descricao)}</div>` : '', true))}
+      <div class="rodape">Criada por ${esc(nomeUsuario(t.criado_por))}${criado ? ' em ' + criado : ''}</div>
     </div>`
   }
 
@@ -891,14 +879,14 @@
     const novo = !t
     const podeRestringir = novo || t.criado_por === usuario.id || appState.perfil === 'super_admin'
     const tipoAtual = t ? (t.tipo || 'outras') : ''
-    const optFrn = ['<option value="">— nenhum —</option>'].concat(
+    const optFrn = ['<option value="">Nenhum</option>'].concat(
       S.fornecedores.map(f => `<option value="${f.id}" ${t && t.fornecedor_id === f.id ? 'selected' : ''} data-email="${f.email ? 1 : 0}">${esc(f.nome)}${f.email ? '' : ' (sem e-mail)'}</option>`)).join('')
     const chipsPrio = PRIOS.map(([k, v]) =>
       `<button type="button" class="chip-t ${(t ? t.prioridade : 'media') === k ? 'on' : ''}" data-prio="${k}" onclick="TK.pickPrio(this)">${v}</button>`).join('')
-    const info = txt => `<span class="info" title="${esc(txt)}">ⓘ</span>`
+    const info = txt => `<span class="info" title="${esc(txt)}">${ic('info', 's')}</span>`
     return `
       ${!novo ? `<div class="tk-edit-faixa">
-        <div>✏️ <b>Modo edição</b> — as alterações ficarão registradas no histórico da tarefa.</div>
+        <div>${ic('pencil', 's')}<b>Modo edição</b> — as alterações ficarão registradas no histórico da tarefa.</div>
         <input type="text" id="f-motivo" maxlength="300" placeholder="Motivo da alteração (opcional; obrigatório se o prazo mudar)">
       </div>` : ''}
       <fieldset class="tk-campos">
@@ -914,7 +902,7 @@
         <div class="fld"><label>Atividade vinculada</label>${pickerAtividade(t ? t.atividade_id : null)}</div>
         <div class="fld" id="f-tdr-wrap" style="display:none"><label>TDRs vinculados <span class="opc">opcional</span></label>
           <div class="pp"><div class="pp-chips" id="f-tdr-chips"></div>
-            <button type="button" class="pp-add" id="f-tdr-btn" onclick="TK.tdrPainel()">＋ vincular TDR</button></div>
+            <button type="button" class="pp-add" id="f-tdr-btn" onclick="TK.tdrPainel()">${ic('plus', 's')}Vincular TDR</button></div>
           <div class="tdr-lista" id="f-tdr-lista" hidden></div></div>
         ${campoPessoas('resp', 'Responsáveis' + (S.form.podeDelegar ? '' : ' <span class="opc">só você</span>'), !S.form.podeDelegar)}
         ${campoPessoas('obs', 'Observadores ' + info('Acompanham a tarefa sem executar; recebem os avisos por e-mail e no sino.'), false)}
@@ -922,14 +910,14 @@
           <div class="fld"><label>Fornecedor ${info('Parte externa: recebe aviso por e-mail, não acessa a plataforma.')}</label>
             <select id="f-frn" onchange="TK.onFrn()">${optFrn}</select>
             <label class="inline-ck" id="f-frn-wrap" style="${t && t.fornecedor_id ? '' : 'display:none'}">
-              <input type="checkbox" id="f-notif-frn" ${t && t.notificar_fornecedor ? 'checked' : ''}> enviar e-mail de cobrança</label></div>
+              <input type="checkbox" class="sw" id="f-notif-frn" ${t && t.notificar_fornecedor ? 'checked' : ''}> Enviar e-mail de cobrança</label></div>
           <div class="fld"><label>Visibilidade ${info('Restrita: só quem criou, responsáveis, observadores e o super admin veem. Coordenação e responsáveis da atividade não veem. Quem entrar como observador ou responsável de subtarefa passa a ver a tarefa inteira.')}</label>
             <label class="inline-ck tk-restr ${t && t.restrita ? 'on' : ''}" id="f-restr-wrap">
-              <input type="checkbox" id="f-restrita" ${t && t.restrita ? 'checked' : ''} ${podeRestringir ? '' : 'disabled'}
-                onchange="document.getElementById('f-restr-wrap').classList.toggle('on',this.checked)"> 🔒 Tarefa restrita${podeRestringir ? '' : ' <span class="opc">só quem criou altera</span>'}</label></div>
+              <input type="checkbox" class="sw" id="f-restrita" ${t && t.restrita ? 'checked' : ''} ${podeRestringir ? '' : 'disabled'}
+                onchange="document.getElementById('f-restr-wrap').classList.toggle('on',this.checked)"> ${ic('lock', 's')}Tarefa restrita${podeRestringir ? '' : ' <span class="opc">só quem criou altera</span>'}</label></div>
         </div>
         <div class="fld"><label>Descrição ${info('Evite colar CPF ou dados pessoais aqui — este campo é interno.')}</label>
-          <textarea id="f-desc" rows="2" placeholder="Contexto, links, critérios de conclusão…"
+          <textarea id="f-desc" rows="2" placeholder="Contexto, links, critérios de conclusão"
             oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${t ? esc(t.descricao || '') : ''}</textarea></div>
       </fieldset>`
   }
@@ -940,26 +928,29 @@
     const podeEditar = S.podeEditar
     return `
     <div class="tk-modal-h">
-      ${t ? `<span class="tk-num" title="Número da tarefa">${esc(t.codigo || '')}</span>
-        <span class="tipo-badge" style="--tc:${tipoDe(t.tipo).cor}">${tipoDe(t.tipo).icone} ${esc(tipoDe(t.tipo).nome)}</span>` : ''}
-      <h3 class="${leitura && podeEditar ? 'ed' : ''}" ${leitura && podeEditar ? `onclick="TK.editarCampo('f-titulo')" title="Clique para editar"` : ''}>${novo ? 'Nova tarefa' : cadeado(t) + esc(t.titulo)}</h3>
-      <span class="tk-spacer"></span>
-      ${leitura && podeEditar ? '<button class="btn-pri btn-sm" onclick="TK.editar()">✏️ Editar</button>' : ''}
-      <button class="tk-x" onclick="fecharModal()">×</button>
+      ${t ? `<span class="num-lg">${esc(t.codigo || '')}</span>${chipTipo(t.tipo)}${status(t.status)}${t.restrita ? `<span class="tag">${ic('lock')}Restrita</span>` : ''}` : ''}
+      <span class="acoes">
+        ${leitura && podeEditar ? `<button class="btn btn-sec" onclick="TK.editar()">${ic('pencil', 's')}Editar</button>` : ''}
+        ${t && S.modoEdicao ? `<span class="modo">${ic('pencil', 's')}Modo edição</span>` : ''}
+        <button class="btn btn-ghost btn-icon" onclick="fecharModal()" title="Fechar">${ic('x')}</button>
+      </span>
+      <h3 class="${novo ? 'em-linha' : leitura && podeEditar ? 'ed' : ''}" ${leitura && podeEditar ? `onclick="TK.editarCampo('f-titulo')" title="Clique para editar"` : ''}>${novo ? 'Nova tarefa' : esc(t.titulo)}</h3>
     </div>
-    <div class="tk-modal-b${novo ? ' um' : ''}" id="tk-form">
+    <div class="tk-modal-b${novo ? ' um' : ''}${leitura ? ' leitura' : ''}" id="tk-form">
       <div class="tk-mcol tk-rol">${leitura ? fichaHtml(t) : formHtml(t)}</div>
-      ${t ? '<div class="tk-mcol tk-rol"><div id="tk-detalhe" style="color:var(--cinza-400);font-size:12px">Carregando…</div></div>' : ''}
+      ${t ? `<div class="tk-mcol tk-rol lado"><div id="tk-detalhe"><div class="vazio pq"><p>Carregando…</p></div></div></div>` : ''}
     </div>
     <div class="tk-modal-f">${novo ? `
-      <button class="btn-sec" onclick="fecharModal()">Fechar</button>
-      <button class="btn-pri" onclick="TK.salvar()">Criar tarefa</button>` : S.modoEdicao ? `
-      <span class="tk-spacer"></span>
-      <button class="btn-sec" onclick="TK.descartar()">Descartar</button>
-      <button class="btn-pri" onclick="TK.salvar()">Salvar alterações</button>` : `
-      ${podeEditar && t.status !== 'cancelada' ? `<button class="btn-danger-ghost" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
-      ${podeEditar && t.status !== 'concluida' ? `<button class="btn-ok" onclick="TK.concluir('${t.id}')">✓ Concluir</button>` : ''}
-      <button class="btn-sec" onclick="fecharModal()">Fechar</button>`}
+      <span class="sp"></span>
+      <button class="btn btn-sec" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-pri" onclick="TK.salvar()">Criar tarefa</button>` : S.modoEdicao ? `
+      <span class="sp"></span>
+      <button class="btn btn-sec" onclick="TK.descartar()">Descartar</button>
+      <button class="btn btn-pri" onclick="TK.salvar()">Salvar alterações</button>` : `
+      ${podeEditar && t.status !== 'cancelada' ? `<button class="btn btn-danger" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
+      <span class="sp"></span>
+      <button class="btn btn-sec" onclick="fecharModal()">Fechar</button>
+      ${podeEditar && t.status !== 'concluida' ? `<button class="btn btn-ok" onclick="TK.concluir('${t.id}')">${ic('check', 's')}Concluir</button>` : ''}`}
     </div>`
   }
 
@@ -1002,7 +993,7 @@
       })
       if (error) { toast('Erro ao criar: ' + error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Criar tarefa' } return }
       await sincronizarTdrs(data, [], tdrsMarcados)
-      toast('Tarefa criada ✓', 'success')
+      toast('Tarefa criada', 'success')
       chamarEmail(data, 'atribuicao')
     } else {
       const t = S.tarefas.find(x => x.id === S.editId)
@@ -1048,7 +1039,7 @@
       if ((prazoAntigo || null) !== (dt_prazo || null)) {
         if (!reuniaoMudou) chamarEmail(S.editId, 'prazo_alterado')
       }
-      toast('Tarefa atualizada ✓ (registrado no histórico)', 'success')
+      toast('Tarefa atualizada e registrada no histórico', 'success')
     }
     S.modoEdicao = false
     fecharModal()
@@ -1108,29 +1099,29 @@
     S.editId = null; S.det = null; S.modoEdicao = false
     document.getElementById('tk-modal').classList.remove('estreito')
     const linhas = S.tipos.map(x => `<tr data-cod="${x.codigo}">
-        <td><input type="text" class="tt-ic" value="${esc(x.icone)}" maxlength="4"></td>
+        <td><span class="tipo-ic" style="--tc:${esc(x.cor)}">${ic(icTipo(x.codigo))}</span><input type="hidden" class="tt-ic" value="${esc(x.icone)}"></td>
         <td><input type="text" class="tt-nm" value="${esc(x.nome)}"></td>
         <td><input type="color" class="tt-cor" value="${esc(x.cor)}"></td>
         <td><input type="number" class="tt-ord" value="${x.ordem}" style="width:64px"></td>
         <td style="text-align:center"><input type="checkbox" class="tt-at" ${x.ativo ? 'checked' : ''} ${x.codigo === 'outras' ? 'disabled title="Tipo padrão"' : ''}></td>
         <td class="tt-cp">${(x.campos || []).map(c => esc(c.rotulo)).join(', ') || '—'}</td>
-        <td><button class="btn-sec" style="padding:6px 12px;font-size:12px" onclick="TK.salvarTipo('${x.codigo}')">Salvar</button></td>
+        <td><button class="btn btn-sec btn-sm" onclick="TK.salvarTipo('${x.codigo}')">Salvar</button></td>
       </tr>`).join('')
     document.getElementById('tk-modal').innerHTML = `
-      <div class="tk-modal-h"><h3>⚙ Tipos de tarefa</h3><button class="tk-x" onclick="fecharModal()">×</button></div>
+      <div class="tk-modal-h"><span class="tipo-ic">${ic('sliders')}</span><h3 class="em-linha">Tipos de tarefa</h3><span class="acoes"><button class="btn btn-ghost btn-icon" onclick="fecharModal()" title="Fechar">${ic('x')}</button></span></div>
       <div class="tk-modal-b1">
-        <table class="tt-tbl"><thead><tr><th>Ícone</th><th>Nome</th><th>Cor</th><th>Ordem</th><th>Ativo</th><th>Campos próprios</th><th></th></tr></thead>
+        <table class="tt-tbl"><thead><tr><th></th><th>Nome</th><th>Cor</th><th>Ordem</th><th>Ativo</th><th>Campos próprios</th><th></th></tr></thead>
           <tbody>${linhas}</tbody></table>
         <div class="hint">Desativar esconde o tipo na criação de tarefas; as tarefas antigas continuam com ele. "Outras" é o padrão e não pode ser desativado.
           Campos próprios de um tipo novo são configurados pela equipe técnica.</div>
         <div class="tt-novo">
-          <input type="text" id="tt-novo-ic" placeholder="Ícone" maxlength="4" value="🏷">
+          <input type="hidden" id="tt-novo-ic" value="🏷">
           <input type="text" id="tt-novo-nm" placeholder="Nome do novo tipo">
           <input type="color" id="tt-novo-cor" value="#0891B2">
-          <button class="btn-pri" onclick="TK.novoTipo()">Adicionar tipo</button>
+          <button class="btn btn-pri" onclick="TK.novoTipo()">${ic('plus', 's')}Adicionar tipo</button>
         </div>
       </div>
-      <div class="tk-modal-f"><button class="btn-sec" onclick="fecharModal()">Fechar</button></div>`
+      <div class="tk-modal-f"><span class="sp"></span><button class="btn btn-sec" onclick="fecharModal()">Fechar</button></div>`
     document.getElementById('tk-overlay').classList.add('on')
   }
   async function recarregarTipos () {
@@ -1187,7 +1178,7 @@
         ordem: parseInt(tr.querySelector('.tt-ord').value, 10) || 0, ativo: tr.querySelector('.tt-at').checked,
       }).eq('codigo', cod)
       if (error) { toast(error.message, 'error'); return }
-      toast('Tipo atualizado ✓', 'success'); await recarregarTipos()
+      toast('Tipo atualizado', 'success'); await recarregarTipos()
     },
     novoTipo: async () => {
       const nome = document.getElementById('tt-novo-nm').value.trim()
@@ -1201,10 +1192,11 @@
         cor: document.getElementById('tt-novo-cor').value, ordem,
       })
       if (error) { toast(error.message, 'error'); return }
-      toast('Tipo criado ✓', 'success'); await recarregarTipos()
+      toast('Tipo criado', 'success'); await recarregarTipos()
     },
     toggleAtraso: btn => { S.fAtraso = !S.fAtraso; if (btn) btn.classList.toggle('on', S.fAtraso); refreshView() },
     toggleRestrita: btn => { S.fRestrita = !S.fRestrita; if (btn) btn.classList.toggle('on', S.fRestrita); refreshView() },
+    busca: v => { S.fBusca = v; refreshView() },
     novo: () => abrirModal(null),
     abrir: id => { S.modoEdicao = false; abrirModal(S.tarefas.find(t => t.id === id)) },
     salvar, concluir, cancelar,
@@ -1262,7 +1254,7 @@
     tdrPainel: forcarAbrir => {
       const el = document.getElementById('f-tdr-lista'), b = document.getElementById('f-tdr-btn'); if (!el) return
       el.hidden = forcarAbrir === true ? false : !el.hidden
-      if (b) b.textContent = el.hidden ? '＋ vincular TDR' : 'fechar lista'
+      if (b) b.innerHTML = el.hidden ? ic('plus', 's') + 'Vincular TDR' : ic('x', 's') + 'Fechar lista'
     },
     tdrMudou: () => renderTdrChips(),
     tdrDesmarcar: id => { const c = document.querySelector(`.chk-tdr[value="${id}"]`); if (c) c.checked = false; renderTdrChips() },
@@ -1297,7 +1289,7 @@
       inp.value = id
       const a = S.atividades.find(x => x.id === id)
       const btn = document.getElementById('pk-atv-btn')
-      btn.innerHTML = rotuloAtv(a) + '<span class="pk-seta">▾</span>'
+      btn.innerHTML = rotuloAtv(a) + ic('chev', 's pk-seta')
       btn.title = a ? a.codigo + ' · ' + (a.nome_pt || '') : ''
       pkFechar()
       if (mudou) {
@@ -1331,7 +1323,7 @@
         chamarEmail(S.det.id, 'subtarefa', { checklist_id: novo.id })
         if (resp.responsavel_fornecedor_id) {
           const f = S.fornecedores.find(x => x.id === resp.responsavel_fornecedor_id)
-          toast(f && f.email ? 'Subtarefa enviada ao fornecedor por e-mail ✓' : 'Fornecedor sem e-mail cadastrado — não foi notificado.', f && f.email ? 'success' : 'warning')
+          toast(f && f.email ? 'Subtarefa enviada ao fornecedor por e-mail' : 'Fornecedor sem e-mail cadastrado — não foi notificado.', f && f.email ? 'success' : 'warning')
         }
       }
       await refletirObservador(resp.responsavel_usuario_id)
@@ -1371,7 +1363,7 @@
       const inp = document.getElementById('cm-in'); let v = (inp.value || '').trim()
       const files = document.getElementById('cm-file').files
       if (!v && !(files && files.length)) return
-      if (!v) v = '📎 Anexo'
+      if (!v) v = 'Anexo'
       const btn = document.querySelector('.cm-add button'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…' }
       const { data: comentarioId, error } = await db.rpc('fn_comentar_tarefa', { p_tarefa_id: S.det.id, p_corpo: v })
       if (error) { toast(error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Comentar' } return }
