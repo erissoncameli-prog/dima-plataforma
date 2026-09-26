@@ -64,8 +64,15 @@ function pgRpc(nome, args) {
     return { data: null, error: { message: m ? m[1] : 'erro' } }
   }
 }
-function pgUpload(bucket, caminho) {
+// bytes recebidos pelo "Storage" ficam aqui para o teste conferir (tamanho, EXIF)
+const DIR_FOTOS = require('node:path').join(require('node:os').tmpdir(), 'diag-e2e-fotos-' + process.pid)
+function pgUpload(bucket, caminho, b64) {
+  // igual ao Storage real: corpo vazio é recusado ("No content provided")
+  if (!b64) return { error: { message: 'No content provided', statusCode: '400' } }
   try {
+    const destino = require('node:path').join(DIR_FOTOS, caminho)
+    fs.mkdirSync(require('node:path').dirname(destino), { recursive: true })
+    fs.writeFileSync(destino, Buffer.from(b64, 'base64'))
     psql('insert into storage.objects (bucket_id, name) values (' + lit(bucket) + ', ' + lit(caminho) + ')', usuarioLogado)
     return { error: null }
   } catch (e) {
@@ -95,7 +102,15 @@ window.supabase = { createClient: function () {
     },
     from: function (t) { return new Q(t) },
     rpc: function (n, a) { return window.__pgRpc(n, a || {}) },
-    storage: { from: function (b) { return { upload: function (p) { return window.__pgUpload(b, p) } } } },
+    storage: { from: function (b) { return { upload: function (p, corpo) {
+      // o app manda ArrayBuffer (bytes); Blob também é aceito aqui, para testar o legado
+      var ler = corpo instanceof Blob ? corpo.arrayBuffer() : Promise.resolve(corpo)
+      return ler.then(function (ab) {
+        var u8 = new Uint8Array(ab || new ArrayBuffer(0)), s = ''
+        for (var i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192))
+        return window.__pgUpload(b, p, u8.length ? btoa(s) : '')
+      })
+    } } } },
   }
 } }
 `
@@ -111,7 +126,8 @@ function png1x1() {
 
 ;(async () => {
   const browser = await chromium.launch({ executablePath: fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined })
-  const context = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 390, height: 844 } })
+  const context = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 390, height: 844 },
+    geolocation: { latitude: -9.973102, longitude: -67.810245, accuracy: 8 }, permissions: ['geolocation'] })
   const page = await context.newPage()
   const errosJs = []
   page.on('pageerror', e => errosJs.push(String(e)))
@@ -120,7 +136,7 @@ function png1x1() {
   await context.route(SUPA + '/**', r => online ? r.fulfill({ status: 200, body: '' }) : r.abort())
   await page.exposeFunction('__pgSelect', q => online ? pgSelect(q) : { data: null, error: { message: 'Failed to fetch' } })
   await page.exposeFunction('__pgRpc', (n, a) => online ? pgRpc(n, a) : { data: null, error: { message: 'Failed to fetch' } })
-  await page.exposeFunction('__pgUpload', (b, p) => online ? pgUpload(b, p) : { error: { message: 'Failed to fetch' } })
+  await page.exposeFunction('__pgUpload', (b, p, b64) => online ? pgUpload(b, p, b64) : { error: { message: 'Failed to fetch' } })
   await page.exposeFunction('__login', (email, senha) => {
     const uid = { 'tec@x': UID_TEC, 'coord@x': '00000000-0000-0000-0000-0000000000c1', 'coord2@x': '00000000-0000-0000-0000-0000000000c2' }[email]
     if (!uid || senha !== 'senha') return { data: {}, error: { message: 'Invalid login credentials' } }
@@ -222,9 +238,17 @@ function png1x1() {
 
   // até as fotos
   while (!/Fotos/.test(await page.textContent('#ficha-bloco'))) await clicar('#btn-proximo')
-  await page.setInputFiles('input[data-acao="foto"]', { name: 'casa.png', mimeType: 'image/png', buffer: png1x1() })
-  await page.locator('.foto img').first().waitFor()
-  ok('foto comprimida e guardada no aparelho')
+  // foto de verdade (paisagem 2560×1440, ~665 KB) do acervo do projeto
+  await page.setInputFiles('input[data-acao="foto"]', { name: 'casa.jpg', mimeType: 'image/jpeg',
+    buffer: fs.readFileSync(require('node:path').join(__dirname, '../../assets/foto7.jpeg')) })
+  await page.locator('.foto img').first().waitFor({ timeout: 20000 })
+  const guardada = await page.evaluate(async u => { const l = await dFotosDaFicha(u); const f = l[0]
+    return { bytes: f.bytes ? f.bytes.byteLength : 0, blob: !!f.blob, mime: f.mime, lat: f.lat, origem: f.gps_origem } },
+    await page.evaluate(() => App.ficha.uuid_cliente))
+  if (!guardada.bytes || guardada.blob) falhar('foto deveria ficar guardada como bytes, não Blob: ' + JSON.stringify(guardada))
+  if (guardada.bytes > 350 * 1024) falhar('foto acima do teto de 350 KB: ' + guardada.bytes)
+  if (guardada.origem !== 'foto' || Math.abs(guardada.lat - -9.973102) > 1e-6) falhar('GPS da foto: ' + JSON.stringify(guardada))
+  ok('foto com carimbo e EXIF guardada como bytes (' + Math.round(guardada.bytes / 1024) + ' KB, GPS da foto)')
 
   // revisão: pendências avisam, não travam
   await clicar('#btn-proximo')
@@ -301,15 +325,44 @@ function png1x1() {
   if (mor.length !== 3 || !mor[0].e_entrevistado || mor[0].idade !== 40 || mor[1].nome !== 'João' || mor[1].escolaridade !== 'doutorado_completo' || mor[2].escolaridade !== 'fundamental_incompleto') falhar('moradores no banco: ' + JSON.stringify(mor))
   const ident = consulta("select i.entrevistado_nome from diag_fichas_identificacao i join diag_fichas f on f.id = i.ficha_id where f.codigo = " + lit(codigo))[0]
   if (!ident || ident.entrevistado_nome !== 'Maria da Silva') falhar('nome do entrevistado não foi para a identificação')
-  const fotos = consulta("select ft.arquivo_url from diag_fotos ft join diag_fichas f on f.id = ft.ficha_id where f.codigo = " + lit(codigo))
+  const fotos = consulta("select ft.arquivo_url, ft.lat, ft.gps_origem, f.fotos_registradas from diag_fotos ft join diag_fichas f on f.id = ft.ficha_id where f.codigo = " + lit(codigo))
   if (fotos.length !== 1) falhar('foto não registrada no banco')
+  if (fotos[0].gps_origem !== 'foto' || Math.abs(fotos[0].lat - -9.973102) > 1e-6 || fotos[0].fotos_registradas !== 1) falhar('GPS/contagem da foto no banco: ' + JSON.stringify(fotos[0]))
+  // arquivo recebido: JPEG ≤ 350 KB, lado maior ≤ 1280, EXIF com GPS, data e entrevistador
+  const arq = require('node:path').join(DIR_FOTOS, fotos[0].arquivo_url.replace(/^.*\/diagnostico-fotos\//, ''))
+  const exif = JSON.parse(execFileSync('python3', ['-c', `
+import sys, json
+from PIL import Image, ExifTags
+im = Image.open(sys.argv[1]); ex = im.getexif()
+gps = ex.get_ifd(0x8825); sub = ex.get_ifd(0x8769)
+def dec(v, ref): d = float(v[0]) + float(v[1]) / 60 + float(v[2]) / 3600; return -d if ref in ('S', 'W') else d
+print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.get(0x013B), 'desc': ex.get(0x010E),
+  'dt': sub.get(0x9003), 'lat': dec(gps[2], gps[1]), 'lon': dec(gps[4], gps[3])}))`, arq], { encoding: 'utf8' }))
+  const kb = fs.statSync(arq).size / 1024
+  if (exif.fmt !== 'JPEG' || Math.max(exif.w, exif.h) > 1280 || kb > 350) falhar('arquivo da foto: ' + JSON.stringify(exif) + ' ' + kb + ' KB')
+  if (exif.artist !== 'Tecnica de Campo' || !/ - (Fonte de agua|Moradia|Esgoto|Lixo|Producao|Acesso|Problema ambiental|Outro)$/.test(exif.desc || '') || !exif.dt ||
+      Math.abs(exif.lat - -9.973102) > 1e-5 || Math.abs(exif.lon - -67.810245) > 1e-5) falhar('EXIF da foto: ' + JSON.stringify(exif))
   const obj = consulta("select name from storage.objects where bucket_id = 'diagnostico-fotos'")
   if (obj.length !== 1 || !fotos[0].arquivo_url.endsWith(obj[0].name)) falhar('arquivo da foto × registro')
   const alertasBanco = f.alertas.map(a => a.tipo + ':' + (a.chave || '')).sort().join('|')
   const alertasApp = (await page.evaluate(([c, u]) => dFichasDoUsuario(u).then(l => l.find(x => x.codigo === c).alertas), [codigo, UID_TEC]))
     .map(a => a.tipo + ':' + (a.chave || '')).sort().join('|')
   if (alertasBanco !== alertasApp) falhar('alertas do banco × app divergem')
-  ok('ficha no banco: sublocalidade, respostas normalizadas, 3 moradores, identificação separada, foto no bucket')
+  ok('ficha no banco: sublocalidade, respostas normalizadas, 3 moradores, identificação separada, foto no bucket (JPEG ' + Math.round(kb) + ' KB, EXIF com GPS/data/entrevistador)')
+
+  // legado: foto guardada como Blob (app ≤ 1.6) — a legível vira bytes, a vazia vira "perdida"
+  const leg = await page.evaluate(async () => {
+    await dFotoSalvar({ uuid_cliente: 'leg00000-0000-0000-0000-000000000001', ficha_uuid: 'leg-ficha', blob: new Blob([new Uint8Array([255, 216, 255, 217])], { type: 'image/jpeg' }), tema: 'moradia', enviada: false })
+    await dFotoSalvar({ uuid_cliente: 'leg00000-0000-0000-0000-000000000002', ficha_uuid: 'leg-ficha', blob: new Blob([], { type: 'image/jpeg' }), tema: 'agua', enviada: false })
+    const r = await dFotosMigrarLegado()
+    const l = await dFotosDaFicha('leg-ficha')
+    const out = { r, boa: l.find(x => x.tema === 'moradia'), ruim: l.find(x => x.tema === 'agua') }
+    const res = { r: out.r, boaBytes: out.boa.bytes && out.boa.bytes.byteLength, boaBlob: !!out.boa.blob, ruimPerdida: !!out.ruim.perdida }
+    for (const x of l) await dFotoApagar(x.uuid_cliente)
+    return res
+  })
+  if (leg.r.convertidas !== 1 || leg.r.perdidas !== 1 || leg.boaBytes !== 4 || leg.boaBlob || !leg.ruimPerdida) falhar('migração de fotos antigas: ' + JSON.stringify(leg))
+  ok('fotos antigas (Blob): legível convertida para bytes, vazia marcada como perdida')
 
   // reenviar não duplica
   await page.evaluate(async c => { const l = await dFichasDoUsuario('00000000-0000-0000-0000-0000000000e1'); const x = l.find(y => y.codigo === c); x.estado = 'pronta'; await dFichaSalvar(x) }, codigo)

@@ -868,3 +868,46 @@ reset role;
 do $$ begin
   if has_function_privilege('anon', 'public.diag_meu_painel()', 'execute') then raise exception 'FALHOU T35 anon'; end if;
 end $$;
+
+-- ── T36 fotos com GPS e contagem de fotos registradas ───────────────────
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$
+declare r jsonb; f uuid := 'f3600000-0000-0000-0000-000000000001';
+begin
+  r := public.diag_enviar_ficha(
+         public.t_ficha(f, 'DSA-XAP-260926-T36A-01', null, now(),
+           jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q3'), 'fotos_registradas', 2)),
+         '[{"ordem":1,"idade":40,"sexo_genero":"mulher","escolaridade":"medio_completo","e_entrevistado":true}]',
+         jsonb_build_array(jsonb_build_object('uuid_cliente', 'f3600000-0000-0000-0000-0000000000f1', 'tema', 'moradia',
+           'arquivo_url', 'https://x/storage/v1/object/public/diagnostico-fotos/' || f || '/f3600000-0000-0000-0000-0000000000f1.jpg',
+           'tirada_em', now(), 'lat', -9.973102, 'lon', -67.810245, 'gps_precisao_m', 8, 'gps_origem', 'foto')));
+  -- reenvio (ex.: 2ª foto subiu depois) atualiza, não duplica
+  r := public.diag_enviar_ficha(
+         public.t_ficha(f, 'DSA-XAP-260926-T36A-01', null, now(),
+           jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q3'), 'fotos_registradas', 2)),
+         '[{"ordem":1,"idade":40,"sexo_genero":"mulher","escolaridade":"medio_completo","e_entrevistado":true}]',
+         jsonb_build_array(jsonb_build_object('uuid_cliente', 'f3600000-0000-0000-0000-0000000000f1', 'tema', 'moradia',
+           'arquivo_url', 'https://x/storage/v1/object/public/diagnostico-fotos/' || f || '/f3600000-0000-0000-0000-0000000000f1.jpg',
+           'tirada_em', now(), 'lat', -9.973102, 'lon', -67.810245, 'gps_precisao_m', 8, 'gps_origem', 'foto'),
+           jsonb_build_object('uuid_cliente', 'f3600000-0000-0000-0000-0000000000f2', 'tema', 'agua',
+           'arquivo_url', 'https://x/storage/v1/object/public/diagnostico-fotos/' || f || '/f3600000-0000-0000-0000-0000000000f2.jpg',
+           'tirada_em', now(), 'lat', -9.9, 'lon', -67.8, 'gps_precisao_m', 30, 'gps_origem', 'ficha')));
+end $$;
+reset role;
+do $$ begin
+  if (select fotos_registradas from public.diag_fichas where codigo = 'DSA-XAP-260926-T36A-01') <> 2 then raise exception 'FALHOU T36 fotos_registradas'; end if;
+  if (select count(*) from public.diag_fotos ft join public.diag_fichas f on f.id = ft.ficha_id where f.codigo = 'DSA-XAP-260926-T36A-01') <> 2 then raise exception 'FALHOU T36 fotos'; end if;
+  if (select lat from public.diag_fotos where uuid_cliente = 'f3600000-0000-0000-0000-0000000000f1') <> -9.973102
+     or (select gps_origem from public.diag_fotos where uuid_cliente = 'f3600000-0000-0000-0000-0000000000f2') <> 'ficha'
+     then raise exception 'FALHOU T36 gps da foto'; end if;
+  if (select file_size_limit from storage.buckets where id = 'diagnostico-fotos') <> 1048576 then raise exception 'FALHOU T36 limite do bucket'; end if;
+  if not exists (select 1 from public.lgpd_tratamentos where codigo = 'TRAT-001' and exists (select 1 from unnest(categorias_dados) c where c like '%carimbo%')) then raise exception 'FALHOU T36 ROPA'; end if;
+end $$;
+-- consultor externo continua sem ver fotos (nem o GPS delas)
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000ce');
+do $$ begin
+  if exists (select 1 from public.diag_fotos) then raise exception 'FALHOU T36 consultor vê fotos'; end if;
+end $$;
+reset role;

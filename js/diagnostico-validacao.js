@@ -30,7 +30,7 @@ async function dgValCarregar(forcar) {
   if (dgVal.carregado && !forcar) { dgValDesenhar(); return }
   el.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--cinza-500)">Carregando fichas…</p></div>'
   const [fic, mun, com, loc] = await Promise.all([
-    db.from('diag_fichas').select('id,codigo,status,treino,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,entrevistador_id,alertas,aceitou_participar,enviado_em,questionario_id,motivo_devolucao,validado_em')
+    db.from('diag_fichas').select('id,codigo,status,treino,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,entrevistador_id,alertas,aceitou_participar,enviado_em,questionario_id,motivo_devolucao,validado_em,fotos_registradas')
       .order('enviado_em', { ascending: false }),
     db.from('diag_municipios').select('ibge,nome'),
     db.from('diag_comunidades').select('id,nome'),
@@ -140,7 +140,7 @@ async function dgValAbrir(id) {
     db.from('diag_fichas').select('respostas').eq('id', id).single(),
     db.from('diag_moradores').select('id,ordem,idade,sexo_genero,sexo_genero_outro,parentesco,escolaridade,atividade_principal,e_entrevistado').eq('ficha_id', id).order('ordem'),
     db.from('diag_fichas_identificacao').select('entrevistado_nome,lat,lon,gps_precisao_m,obs_localizacao').eq('ficha_id', id).maybeSingle(),
-    db.from('diag_fotos').select('id,tema,legenda,arquivo_url').eq('ficha_id', id),
+    db.from('diag_fotos').select('id,tema,legenda,arquivo_url,lat,lon,gps_precisao_m,gps_origem').eq('ficha_id', id),
     db.from('diag_fichas_historico').select('status_de,status_para,motivo,por,em').eq('ficha_id', id).order('em'),
   ])
   if (dgVal.aberta !== f) return
@@ -221,8 +221,11 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist) {
           (ident.obs_localizacao ? '<br>' + esc(ident.obs_localizacao) : '')
         : 'Sem nome e sem GPS registrados.'}</div>` : ''}
       ${blocos || '<p style="color:var(--cinza-500);font-size:13px">Sem respostas.</p>'}
-      ${dgPodeGerir ? `<div class="dgv-bloco"><h3>Fotos (${fotos.length})</h3>${fotos.length ? `<div class="dgv-fotos">${fotos.map(ft =>
-          `<figure class="dgv-foto"><img data-arquivo-src="${esc(ft.arquivo_url)}" alt="Foto: ${esc(ft.tema)}"><figcaption>${esc(ft.tema)}${ft.legenda ? ' · ' + esc(ft.legenda) : ''}</figcaption>
+      ${dgPodeGerir ? `<div class="dgv-bloco"><h3>Fotos (${fotos.length}${f.fotos_registradas != null ? ' de ' + f.fotos_registradas + ' registrada' + (f.fotos_registradas === 1 ? '' : 's') : ''})</h3>
+        ${f.fotos_registradas != null && fotos.length < f.fotos_registradas ? `<div class="dgv-avisos dgv-fotos-faltam">⚠ O técnico registrou <b>${f.fotos_registradas}</b> foto${f.fotos_registradas === 1 ? '' : 's'}; chegaram <b>${fotos.length}</b>.
+          As demais ainda estão no celular (sobem na próxima sincronização) ou se perderam no aparelho.</div>` : ''}
+        ${fotos.length ? `<div class="dgv-fotos">${fotos.map(ft =>
+          `<figure class="dgv-foto"><img data-arquivo-src="${esc(ft.arquivo_url)}" alt="Foto: ${esc(ft.tema)}"><figcaption>${esc(ft.tema)}${ft.legenda ? ' · ' + esc(ft.legenda) : ''}${ft.lat != null ? ' · GPS ' + (ft.gps_origem === 'ficha' ? 'da ficha' : '±' + Math.round(ft.gps_precisao_m || 0) + ' m') : ' · sem GPS'}</figcaption>
            <button type="button" onclick="dgValApagarFoto('${ft.id}')">Apagar</button></figure>`).join('')}</div>
          <p class="dgv-nota">Foto com pessoa: apague antes de validar (RIPD). A exclusão fica registrada.</p>` : '<p class="dgv-nota">Nenhuma foto.</p>'}</div>` : ''}
       <div class="dgv-bloco"><h3>Histórico</h3><ul class="dgv-hist">${hist.map(h =>

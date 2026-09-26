@@ -71,7 +71,7 @@ sai da SEMA são números agregados (indicadores), sem identificação.
 | Perfil | sexo/gênero, idade, tempo na comunidade | pessoal |
 | Composição do domicílio | idade, sexo/gênero, parentesco, escolaridade e ocupação de cada morador | pessoal; **inclui menores** |
 | Localização | comunidade, município, coordenada GPS da casa | pessoal (identifica a família) |
-| Fotos | moradia e entorno (água, esgoto, lixo, produção, acesso) — **nunca pessoas** | pessoal (localiza a família) |
+| Fotos | moradia e entorno (água, esgoto, lixo, produção, acesso) — **nunca pessoas**. Desde 26/09 com **carimbo visível e EXIF**: GPS, data/hora e nome do entrevistador | pessoal (localiza a família; o próprio arquivo carrega a localização) |
 | Condição socioeconômica | fontes de renda, suficiência da renda, benefícios sociais, crédito, assistência técnica, produção | pessoal |
 | Dinâmica familiar | quem decide sobre dinheiro e produção | pessoal |
 | Participação social | participação em organizações, **inclusive sindicato** (P54/P55) | **sensível** (art. 5º, II) |
@@ -141,7 +141,7 @@ Escala: **P** = probabilidade, **I** = impacto (Baixo / Médio / Alto).
 | R3 | Números por comunidade só aparecem com **5 fichas ou mais**; abaixo disso, o número é suprimido ou agregado ao município. Sublocalidade (bairro, ramal) não entra em indicador |
 | R4 | Dado sensível nunca aparece em agregado de célula pequena nem em sugestão com autor; acesso nominal, com prazo e registrado |
 | R5 | Nome do morador **opcional** (aceita só iniciais); fica em tabela separada, fora de indicadores, sugestões e exportação padrão; apagado em 2 anos |
-| R6 | Regra "nunca pessoas" no treinamento e na tela da câmera; coordenação apaga foto com pessoa na validação; localização embutida na foto é removida; fotos em repositório privado; apagadas em 2 anos |
+| R6 | Regra "nunca pessoas" no treinamento e na tela da câmera; coordenação apaga foto com pessoa na validação; ~~localização embutida na foto é removida~~ (revisto em 26/09: a foto leva carimbo e EXIF com GPS — por isso nunca sai em exportação nem para o consultor, e o arquivo baixado deve ficar só na SEMA); fotos em repositório privado; apagadas em 2 anos |
 | R7 | Bloco 9 aplicado **em privado** (lembrete no app); botão "Não respondeu" em toda pergunta |
 | R8 | Técnico vê só as próprias fichas; consultor externo vê fichas **sem nome, sem localização e sem fotos**; acesso concedido com prazo pelo super_admin; trilha de auditoria |
 | R9 | **Prazo de 2 anos** após a validação para nome, nomes de moradores, GPS e fotos; apagamento automático |
