@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.2.0'
+const DIAG_APP_VERSAO = '1.3.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -135,31 +135,59 @@ async function entrar(ev) {
 }
 
 // ── PIN (abre o app offline) ───────────────────────────────────────────
+// Mesmo PIN dos apps de campo do SIGUC: js/pin-baralho.js troca as bolinhas
+// por cartas que viram um monte enquanto confere (verde = certo; abre de
+// volta e treme = errado). Todo uso guarda com typeof: sem o módulo, as
+// bolinhas do HTML continuam funcionando.
+const pinEl = () => document.getElementById('pin-casas')
 function abrirPin(modo) {
-  App.pin = ''; App.pinModo = modo; App.pinPrimeiro = null
-  document.getElementById('pin-titulo').textContent = modo === 'entrar' ? 'Digite seu PIN' : 'Crie um PIN de 4 números'
+  App.pin = ''; App.pinModo = modo; App.pinPrimeiro = null; App.pinOcupado = false
+  document.getElementById('pin-titulo').textContent = modo === 'entrar' ? 'Digite seu PIN de campo' : 'Crie um PIN de 4 números'
   document.getElementById('pin-sub').textContent = App.usuario ? App.usuario.nome_completo : ''
   document.getElementById('pin-erro').hidden = true
+  if (typeof pinBaralhoMontar === 'function') pinBaralhoMontar(pinEl())
   desenharPin(); mostrar('t-pin')
 }
 function desenharPin() {
-  document.querySelectorAll('#pin-casas i').forEach((el, i) => el.classList.toggle('cheia', i < App.pin.length))
+  if (typeof pinBaralhoPintar === 'function' && pinBaralhoPintar(pinEl(), App.pin)) return
+  pinEl().querySelectorAll('.pin-dot').forEach((el, i) => el.classList.toggle('cheia', i < App.pin.length))
+}
+async function pinResultado(certo) {
+  if (typeof pinBaralhoAprovar !== 'function') return
+  await (certo ? pinBaralhoAprovar(pinEl()) : pinBaralhoRecusar(pinEl()))
 }
 async function teclaPin(d) {
+  if (App.pinOcupado) return
   const erro = document.getElementById('pin-erro')
   if (d === 'apagar') { App.pin = App.pin.slice(0, -1); desenharPin(); return }
-  if (App.pin.length >= DIAG_PIN_TAMANHO) return
-  App.pin += d; desenharPin()
-  if (App.pin.length < DIAG_PIN_TAMANHO) return
+  if (d === 'ok') { if (App.pin.length < DIAG_PIN_TAMANHO) return }
+  else {
+    if (App.pin.length >= DIAG_PIN_TAMANHO) return
+    App.pin += d; desenharPin()
+    if (App.pin.length < DIAG_PIN_TAMANHO) return
+  }
+  erro.hidden = true
+  App.pinOcupado = true
+  try {
+    // o monte é o próprio indicador de espera (nada muda de tamanho na tela)
+    if (typeof pinBaralhoFechar === 'function') await pinBaralhoFechar(pinEl())
+    await conferirPin(erro)
+  } finally {
+    App.pinOcupado = false
+  }
+}
+async function conferirPin(erro) {
   const uid = App.usuario.id
   if (App.pinModo === 'entrar') {
     const reg = await dConfigGet('pin_' + uid)
     if (reg && await sha256(reg.sal + App.pin) === reg.hash) {
       await dConfigSet('pin_tentativas_' + uid, 0)
+      await pinResultado(true)
       irInicio(); return
     }
     const n = (await dConfigGet('pin_tentativas_' + uid) || 0) + 1
     await dConfigSet('pin_tentativas_' + uid, n)
+    await pinResultado(false)
     App.pin = ''; desenharPin()
     if (n >= DIAG_PIN_TENTATIVAS) {
       await dConfigSet('pin_' + uid, null)
@@ -171,11 +199,14 @@ async function teclaPin(d) {
   }
   // criar / trocar: pede duas vezes
   if (!App.pinPrimeiro) {
-    App.pinPrimeiro = App.pin; App.pin = ''; desenharPin()
+    App.pinPrimeiro = App.pin; App.pin = ''
+    if (typeof pinBaralhoLimpar === 'function') pinBaralhoLimpar(pinEl())
+    desenharPin()
     document.getElementById('pin-titulo').textContent = 'Repita o PIN'
     return
   }
   if (App.pin !== App.pinPrimeiro) {
+    await pinResultado(false)
     App.pinPrimeiro = null; App.pin = ''; desenharPin()
     document.getElementById('pin-titulo').textContent = 'Crie um PIN de 4 números'
     erro.textContent = 'Os PINs não conferem. Tente de novo.'; erro.hidden = false
@@ -184,6 +215,7 @@ async function teclaPin(d) {
   const sal = uuid()
   await dConfigSet('pin_' + uid, { sal, hash: await sha256(sal + App.pin) })
   await dConfigSet('pin_tentativas_' + uid, 0)
+  await pinResultado(true)
   aviso('PIN criado.', 'ok')
   irInicio()
 }
@@ -431,8 +463,11 @@ function desenharBloco(destacar) {
   const corpo = document.getElementById('ficha-corpo')
   corpo.innerHTML = DiagForm.renderBloco(App.bloco, destacar)
   corpo.querySelectorAll('.foto img').forEach((img, i) => { if (App.fotos[i] && App.fotos[i]._url) img.src = App.fotos[i]._url })
+  // botões ficam no FIM do bloco (depois da última pergunta), não fixos
+  document.getElementById('fim-bloco-txt').textContent = 'Fim do bloco ' + (App.bloco + 1) + ' de ' + bs.length + ' · ' + b.titulo
   document.getElementById('btn-anterior').disabled = App.bloco === 0
-  document.getElementById('btn-proximo').textContent = App.bloco === bs.length - 1 ? 'Revisar' : 'Próximo'
+  document.getElementById('btn-proximo').innerHTML = App.bloco === bs.length - 1
+    ? 'Revisar a ficha →' : 'Próximo →<small>' + esc(bs[App.bloco + 1].titulo) + '</small>'
   if (destacar) {
     const el = document.getElementById('perg-' + destacar)
     if (el) setTimeout(() => el.scrollIntoView({ block: 'center' }), 50)

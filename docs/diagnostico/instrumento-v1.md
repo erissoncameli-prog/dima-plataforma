@@ -70,6 +70,8 @@
   como **texto livre**.
   Consequência: indicador por escolaridade ou ocupação vai exigir codificação
   posterior das respostas.
+- **Escolaridade virou lista fechada na v2** *(26/09)*: ver plano §6.5. Parentesco e
+  Atividade principal seguem texto livre com sugestões.
 - **Sugestões ✅** *(decidido em 26/09)*: Parentesco, Escolaridade e Atividade
   principal usam o mesmo mecanismo da P55 (plano §3.10). As respostas repetidas
   aparecem como sugestão e a grafia converge sem virar lista fechada.

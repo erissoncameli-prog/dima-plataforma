@@ -7,6 +7,7 @@
 <title>Diagnóstico Socioambiental · DIMA</title>
 <link rel="manifest" href="../pwa/diagnostico.webmanifest">
 <link rel="icon" href="../pwa/diagnostico-icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/pin-baralho.css">
 <link rel="stylesheet" href="../css/diagnostico-app.css">
 </head>
 <body>
@@ -26,9 +27,14 @@
 </section>
 
 <!-- login (precisa de internet no 1º acesso) -->
-<section class="tela tela-centro" id="t-login" hidden>
-  <div class="marca-app"><b>Diagnóstico Socioambiental</b>SEMA/AC · Projeto 218BRA2001</div>
-  <form id="form-login" class="cartao" novalidate>
+<section class="tela-marca" id="t-login" hidden>
+  <div class="lg-cabeca">
+    <div class="lg-topo"><img class="gov" src="../pwa/logos/acre.png" alt="Governo do Acre"><span class="sep"></span><img class="sema" src="../pwa/logos/sema.png" alt="SEMA/AC"></div>
+    <img class="lg-resil" src="../pwa/logos/resiliencia.png" alt="Resiliência Socioambiental">
+    <b>Diagnóstico Socioambiental</b><span>SEMA/AC · Projeto 218BRA2001</span>
+  </div>
+  <div class="lg-meio">
+  <form id="form-login" class="cartao lg-cartao" novalidate>
     <label class="rot" for="login-email">E-mail</label>
     <input class="campo" id="login-email" type="email" autocomplete="username" required>
     <label class="rot" for="login-senha">Senha</label>
@@ -37,20 +43,45 @@
     <button class="btn btn-prim btn-bloco" style="margin-top:16px" type="submit" id="btn-login">Entrar</button>
     <p class="dica">O primeiro acesso precisa de internet. Depois, o app abre com um PIN, mesmo sem sinal.</p>
   </form>
+  </div>
+  <footer class="lg-rodape">
+    <small>Realização e apoio</small>
+    <div class="lg-parc">
+      <img src="../pwa/logos/unesco.png" alt="UNESCO">
+      <img src="../pwa/logos/onu-brasil.png" alt="ONU Brasil">
+      <img class="alto" src="../pwa/logos/fundo-brasil-onu.png" alt="Fundo Brasil-ONU">
+      <img class="alto" src="../pwa/logos/consorcio-amazonia.png" alt="Consórcio Interestadual Amazônia Legal">
+    </div>
+  </footer>
 </section>
 
 <!-- PIN (criar e entrar usam a mesma tela) -->
-<section class="tela tela-centro" id="t-pin" hidden>
-  <div class="marca-app"><b id="pin-titulo">Digite seu PIN</b><span id="pin-sub"></span></div>
-  <div class="pin-casas" id="pin-casas" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-  <p class="erro-msg" id="pin-erro" role="alert" style="text-align:center" hidden></p>
-  <div class="teclado" id="teclado" role="group" aria-label="Teclado do PIN">
-    <button type="button" data-d="1">1</button><button type="button" data-d="2">2</button><button type="button" data-d="3">3</button>
-    <button type="button" data-d="4">4</button><button type="button" data-d="5">5</button><button type="button" data-d="6">6</button>
-    <button type="button" data-d="7">7</button><button type="button" data-d="8">8</button><button type="button" data-d="9">9</button>
-    <span></span><button type="button" data-d="0">0</button><button type="button" data-d="apagar" aria-label="Apagar">⌫</button>
+<section class="tela-marca lock" id="t-pin" hidden>
+  <div class="lock-faixa"><div class="lg-topo"><img class="gov" src="../pwa/logos/acre.png" alt="Governo do Acre"><span class="sep"></span><img class="sema" src="../pwa/logos/sema.png" alt="SEMA/AC"></div></div>
+  <div class="lock-meio">
+    <img class="lock-resil" src="../pwa/logos/resiliencia.png" alt="Resiliência Socioambiental">
+    <p class="lock-nome" id="pin-sub"></p>
+    <p class="lock-dica" id="pin-titulo">Digite seu PIN de campo</p>
+    <!-- sem js/pin-baralho.js as bolinhas abaixo continuam valendo -->
+    <div class="pin-casas" id="pin-casas" aria-hidden="true"><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span></div>
+    <p class="erro-msg lock-erro" id="pin-erro" role="alert" hidden></p>
+    <div class="teclado" id="teclado" role="group" aria-label="Teclado do PIN">
+      <button type="button" class="pin-key" data-d="1">1</button><button type="button" class="pin-key" data-d="2">2</button><button type="button" class="pin-key" data-d="3">3</button>
+      <button type="button" class="pin-key" data-d="4">4</button><button type="button" class="pin-key" data-d="5">5</button><button type="button" class="pin-key" data-d="6">6</button>
+      <button type="button" class="pin-key" data-d="7">7</button><button type="button" class="pin-key" data-d="8">8</button><button type="button" class="pin-key" data-d="9">9</button>
+      <button type="button" class="pin-key limpa" data-d="apagar" aria-label="Apagar">⌫</button><button type="button" class="pin-key" data-d="0">0</button><button type="button" class="pin-key ok" data-d="ok" aria-label="Confirmar">✓</button>
+    </div>
+    <button type="button" class="link lock-link" id="btn-pin-login">Entrar com e-mail e senha</button>
   </div>
-  <p style="text-align:center"><button type="button" class="link" id="btn-pin-login">Entrar com e-mail e senha</button></p>
+  <footer class="lg-rodape">
+    <small>Realização e apoio</small>
+    <div class="lg-parc">
+      <img src="../pwa/logos/unesco.png" alt="UNESCO">
+      <img src="../pwa/logos/onu-brasil.png" alt="ONU Brasil">
+      <img class="alto" src="../pwa/logos/fundo-brasil-onu.png" alt="Fundo Brasil-ONU">
+      <img class="alto" src="../pwa/logos/consorcio-amazonia.png" alt="Consórcio Interestadual Amazônia Legal">
+    </div>
+  </footer>
 </section>
 
 <!-- início -->
@@ -129,15 +160,20 @@
     <button type="button" class="btn-icone" id="btn-ficha-sair" aria-label="Voltar ao início">←</button>
     <h1><span id="ficha-codigo"></span><small id="ficha-bloco"></small>
       <div class="progresso" aria-hidden="true"><i id="ficha-prog" style="width:0"></i></div></h1>
+    <span class="mini-marca" aria-hidden="true"><img class="p" src="../pwa/logos/resiliencia-simbolo.png" alt=""><img class="s" src="../pwa/logos/sema.png" alt=""></span>
   </header>
   <div class="tela">
     <div id="ficha-devolvida"></div>
     <div id="ficha-corpo"></div>
+    <!-- navegação só depois da última pergunta do bloco (não fixa: decisão de 26/09) -->
+    <nav class="fim-bloco" aria-label="Navegação entre blocos">
+      <p id="fim-bloco-txt"></p>
+      <div class="linha">
+        <button type="button" class="btn btn-sec" id="btn-anterior">← Anterior</button>
+        <button type="button" class="btn btn-prim" id="btn-proximo">Próximo →</button>
+      </div>
+    </nav>
   </div>
-  <nav class="rodape"><div class="rodape-inner">
-    <button type="button" class="btn btn-sec" id="btn-anterior">Anterior</button>
-    <button type="button" class="btn btn-prim" id="btn-proximo">Próximo</button>
-  </div></nav>
 </section>
 
 <!-- revisão antes de salvar -->
@@ -179,6 +215,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
         onerror="console.warn('[diag-app] Supabase CDN indisponível — modo offline')"></script>
 <script src="../js/config.js"></script>
+<script src="../js/pin-baralho.js"></script>
 <script src="../js/diag-regras.js"></script>
 <script src="../js/diag-offline.js"></script>
 <script src="../js/diag-sync.js"></script>

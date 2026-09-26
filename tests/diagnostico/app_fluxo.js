@@ -143,7 +143,10 @@ function png1x1() {
   await page.fill('#login-senha', 'senha'); await page.evaluate(() => window.__marcarSessao()); await clicar('#btn-login')
   await page.locator('#t-pin').waitFor({ state: 'visible' })
   await foto('pin')
-  await pin('1234'); await pin('1234')
+  await pin('1234')
+  await page.waitForFunction(() => /Repita/.test(document.getElementById('pin-titulo').textContent))   // baralho confere antes
+  if (await page.locator('#pin-casas .pin-carta').count() !== 4) falhar('baralho de PIN (SIGUC) não montou')
+  await pin('1234')
   await page.locator('#t-inicio').waitFor({ state: 'visible' })
   await foto('inicio')
   ok('login + criação de PIN')
@@ -185,7 +188,10 @@ function png1x1() {
   await page.fill('[data-acao="mor"][data-i="2"][data-campo="idade"]', '10')
   await page.selectOption('[data-acao="mor"][data-i="2"][data-campo="sexo_genero"]', 'mulher')
   await page.fill('[data-acao="mor"][data-i="2"][data-campo="parentesco"]', 'filha')
+  // v2: escolaridade em lista fechada
+  await page.selectOption('[data-acao="mor"][data-i="2"][data-campo="escolaridade"]', 'fundamental_incompleto')
   await foto('bloco1')
+  if (process.env.SHOTS) { await page.waitForTimeout(3900); await page.locator('.fim-bloco').scrollIntoViewIfNeeded(); await foto('fim_bloco') }
   ok('P4–P9 com a 1ª linha sincronizada')
 
   // bloco 2 (moradia) → 3 (água)
@@ -250,8 +256,8 @@ function png1x1() {
   if (f.respostas.agua_falta !== '_nr') falhar('"Não respondeu" não chegou')
   if (f.respostas.tem_escolar !== 'sim') falhar('P26 derivada no banco')
   if (JSON.stringify(f.respostas.comunicacao_meios) !== '["nenhum"]') falhar('exclusiva no banco')
-  const mor = consulta("select m.ordem, m.idade, m.e_entrevistado, mi.nome from diag_moradores m join diag_fichas f on f.id = m.ficha_id left join diag_moradores_identificacao mi on mi.morador_id = m.id where f.codigo = " + lit(codigo) + ' order by m.ordem')
-  if (mor.length !== 3 || !mor[0].e_entrevistado || mor[0].idade !== 40 || mor[1].nome !== 'João') falhar('moradores no banco: ' + JSON.stringify(mor))
+  const mor = consulta("select m.ordem, m.idade, m.e_entrevistado, m.escolaridade, mi.nome from diag_moradores m join diag_fichas f on f.id = m.ficha_id left join diag_moradores_identificacao mi on mi.morador_id = m.id where f.codigo = " + lit(codigo) + ' order by m.ordem')
+  if (mor.length !== 3 || !mor[0].e_entrevistado || mor[0].idade !== 40 || mor[1].nome !== 'João' || mor[2].escolaridade !== 'fundamental_incompleto') falhar('moradores no banco: ' + JSON.stringify(mor))
   const ident = consulta("select i.entrevistado_nome from diag_fichas_identificacao i join diag_fichas f on f.id = i.ficha_id where f.codigo = " + lit(codigo))[0]
   if (!ident || ident.entrevistado_nome !== 'Maria da Silva') falhar('nome do entrevistado não foi para a identificação')
   const fotos = consulta("select ft.arquivo_url from diag_fotos ft join diag_fichas f on f.id = ft.ficha_id where f.codigo = " + lit(codigo))
@@ -302,8 +308,8 @@ function png1x1() {
   await clicar('#btn-config'); await page.locator('#t-config').waitFor({ state: 'visible' })
   if (await page.isVisible('#config-treino-wrap')) falhar('modo treino visível sem a permissão diagnostico_treino')
   await clicar('#t-config [data-voltar]'); await page.locator('#t-inicio').waitFor({ state: 'visible' })
-  // v2 em RASCUNHO + permissão de treino: o treino usa a v2, a ficha real continua na v1
-  psql("insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado) select codigo, 2, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1")
+  // v3 em RASCUNHO + permissão de treino: o treino usa a mais nova (v3); a ficha real continua na v2 publicada
+  psql("insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado) select codigo, 3, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 2")
   psql("insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate) values ('00000000-0000-0000-0000-0000000000e1','diagnostico_treino', now()-interval '1 day', now()+interval '10 days')")
   await clicar('#btn-sync'); await page.waitForTimeout(800)
   await clicar('#btn-config'); await page.locator('#config-treino-wrap').waitFor({ state: 'visible' })
@@ -325,7 +331,7 @@ function png1x1() {
   await page.locator('#ini-lista .selo-treino').waitFor({ timeout: 15000 })
   await page.waitForFunction(() => document.getElementById('c-fila').textContent === '0', null, { timeout: 15000 })
   const tr = consulta("select f.codigo, f.treino, q.versao, q.status as q_status from diag_fichas f join diag_questionarios q on q.id = f.questionario_id where f.treino")
-  if (tr.length !== 1 || !/^TRE-XAP-\d{6}-[A-Z0-9]{4}-\d{2}$/.test(tr[0].codigo) || tr[0].versao !== 2 || tr[0].q_status !== 'rascunho')
+  if (tr.length !== 1 || !/^TRE-XAP-\d{6}-[A-Z0-9]{4}-\d{2}$/.test(tr[0].codigo) || tr[0].versao !== 3 || tr[0].q_status !== 'rascunho')
     falhar('ficha de treino no banco: ' + JSON.stringify(tr))
   if (consulta("select ficha_id from vw_diag_respostas r join diag_fichas f on f.id = r.ficha_id where f.treino").length) falhar('treino entrou nos números')
   // coordenação apaga o treino; as reais ficam
@@ -337,7 +343,7 @@ function png1x1() {
   await clicar('#t-config [data-voltar]'); await page.locator('#t-inicio').waitFor({ state: 'visible' })
   await page.waitForTimeout(300)
   if (await page.isVisible('#faixa-treino')) falhar('faixa MODO TREINO ficou com o modo desligado')
-  ok('modo treino: TRE- na v2 em rascunho, faixa, fora dos números, apagado pela coordenação')
+  ok('modo treino: TRE- na v3 em rascunho, faixa, fora dos números, apagado pela coordenação')
 
   // reabrir o app: PIN (errado, depois certo)
   await page.reload()

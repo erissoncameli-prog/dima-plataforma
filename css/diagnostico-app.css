@@ -142,12 +142,74 @@ textarea.campo { min-height: 96px; resize: vertical; }
 .rodape-inner .btn { flex: 1; }
 
 /* ── PIN ──────────────────────────────────────────────────────────── */
-.pin-casas { display: flex; justify-content: center; gap: 14px; margin: 18px 0; }
-.pin-casas i { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--verde-medio); }
-.pin-casas i.cheia { background: var(--verde-medio); }
-.teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 320px; margin: 0 auto; }
-.teclado button { min-height: 64px; font-size: 26px; font-weight: 600; border-radius: 14px; border: 1px solid var(--cinza-300); background: var(--branco); }
-.teclado button:active { background: var(--verde-bg); }
+/* Tela de bloqueio no padrão dos apps de campo do SIGUC (Água, Brigadas,
+   Frota, Biomonitor): fundo escuro, teclado de vidro e o "baralho" de PIN
+   (css/pin-baralho.css + js/pin-baralho.js, copiados do SIGUC). Aqui entra
+   só a cor do projeto (--pin-cor). */
+.lock { background: radial-gradient(120% 70% at 50% 0%, #2D6A4F 0%, #163A28 45%, #0B1F15 100%); color: #fff; }
+.lock-faixa { text-align: center; padding: calc(14px + env(safe-area-inset-top)) 16px 0; }
+.lock-meio { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 24px 16px; }
+.lock-resil { height: 54px; width: auto; margin-bottom: 6px; animation: lock-respira 3.4s ease-in-out infinite; }
+@keyframes lock-respira { 50% { transform: scale(1.03); } }
+.lock-nome { font-size: 20px; font-weight: 700; margin: 4px 0 0; text-align: center; text-shadow: 0 1px 6px rgba(0,0,0,.45); }
+.lock-dica { font-size: 14px; color: rgba(255,255,255,.65); margin: 4px 0 20px; }
+.lock-erro { color: #FCA5A5; text-align: center; margin: -8px 0 12px; }
+.lock-link { color: rgba(255,255,255,.75); margin-top: 16px; }
+.pin-casas { display: flex; justify-content: center; gap: 14px; margin-bottom: 26px; --pin-cor: #95D5B2; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.35); }
+.pin-dot.cheia { background: #95D5B2; border-color: #95D5B2; }
+.teclado { display: grid; grid-template-columns: repeat(3, 72px); gap: 14px; touch-action: manipulation; }
+.pin-key {
+  height: 66px; border-radius: 24px; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.10);
+  color: #F2FBF6; font-size: 26px; font-weight: 500; -webkit-user-select: none; user-select: none;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 2px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.08);
+  transition: transform .14s cubic-bezier(.2,1.5,.4,1), background .15s;
+}
+.pin-key:active { transform: scale(.93); background: rgba(255,255,255,.16); }
+.pin-key.limpa { background: transparent; border-color: rgba(255,255,255,.06); color: rgba(255,255,255,.7); box-shadow: none; font-size: 22px; }
+.pin-key.ok { background: #2D6A4F; border-color: #52B788; font-size: 22px; }
+@media (max-height: 640px) { .lock-resil { height: 40px; } .pin-key { height: 56px; } .teclado { gap: 10px; } }
+@media (prefers-reduced-motion: reduce) { .lock-resil { animation: none; } }
+
+/* ── Login e PIN com a identidade do projeto ─────────────────────────
+   Logos em pwa/logos/ (cópias reduzidas e recortadas de assets/, no
+   cache offline do service worker). Brasão do Acre e Resiliência têm
+   letras BRANCAS: só funcionam sobre o verde escuro. */
+.tela-marca { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.lg-cabeca { background: linear-gradient(160deg, #1F4E2C 0%, #16382A 60%, #12301F 100%); color: #fff;
+  padding: calc(14px + env(safe-area-inset-top)) 16px 46px; text-align: center; border-radius: 0 0 22px 22px; }
+.lg-topo { display: inline-flex; align-items: center; gap: 10px; padding: 5px 14px 5px 10px;
+  background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.12); border-radius: 99px; }
+.lg-topo .gov { height: 26px; width: auto; }
+.lg-topo .sep { width: 1px; height: 18px; background: rgba(255,255,255,.25); }
+.lg-topo .sema { height: 12px; width: auto; filter: brightness(0) invert(1); opacity: .85; }
+.lg-resil { display: block; height: 62px; width: auto; margin: 18px auto 12px; }
+.lg-cabeca b { display: block; font-size: clamp(18px, 5.4vw, 21px); line-height: 1.2; }
+.lg-cabeca span { font-size: 13px; opacity: .75; }
+.lg-meio { flex: 1; width: 100%; max-width: 640px; margin: -30px auto 0; padding: 0 16px 16px; }
+.lg-cartao { box-shadow: 0 6px 20px rgba(0,0,0,.08); }
+.lg-rodape { background: var(--branco); border-top: 1px solid var(--cinza-200); color: var(--cinza-900);
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom)); }
+.lg-rodape small { display: block; text-align: center; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--cinza-500); margin-bottom: 8px; }
+.lg-parc { display: flex; align-items: center; justify-content: space-evenly; gap: 10px; max-width: 520px; margin: 0 auto; }
+.lg-parc img { height: 22px; width: auto; max-width: 80px; object-fit: contain; }
+.lg-parc img.alto { height: 30px; }
+
+/* ── Ficha: marca mínima no cabeçalho, navegação no fim do bloco ──── */
+.mini-marca { display: flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 99px; background: rgba(0,0,0,.18); flex: none; }
+.mini-marca .p { height: 18px; width: auto; }
+.mini-marca .s { height: 8px; width: auto; filter: brightness(0) invert(1); opacity: .85; }
+#t-ficha .topo h1 { min-width: 0; }
+#ficha-codigo { display: block; font-size: 13px; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#t-ficha .tela { padding-bottom: 40px; }
+.fim-bloco { margin: 22px 0 8px; padding: 14px; border: 1px dashed var(--cinza-300); border-radius: var(--raio); background: var(--cinza-50); text-align: center; }
+.fim-bloco p { margin: 0 0 10px; font-size: 13px; color: var(--cinza-500); }
+.fim-bloco .linha { display: flex; gap: 10px; }
+.fim-bloco .btn { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; white-space: nowrap; line-height: 1.2; }
+.fim-bloco #btn-proximo { flex: 2; }
+.fim-bloco .btn small { display: block; font-size: 12px; font-weight: 500; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fim-bloco .btn:disabled { opacity: .45; }
 .marca-app { text-align: center; color: var(--verde); }
 .marca-app b { display: block; font-size: 24px; }
 
