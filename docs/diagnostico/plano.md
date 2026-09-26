@@ -955,6 +955,32 @@ ex.: dentro da APA São Francisco. Configurável pela coordenação na aba
   como "Outra") com botão Cadastrar. Mudança chega ao técnico na próxima
   sincronização.
 
+
+### 6.5 Identidade visual, PIN do SIGUC e questionário v2 *(26/09)*
+
+- **Login e PIN** com os logos do projeto: Acre + SEMA no topo, Resiliência
+  no centro, barra "Realização e apoio" (UNESCO, ONU Brasil, Fundo Brasil-ONU,
+  Consórcio Amazônia Legal) no rodapé. Logos em `pwa/logos/` (recortados e
+  reduzidos a partir de `assets/`, ~32 KB no total) e no cache offline do
+  service worker. Brasão do Acre e Resiliência têm letras brancas: só sobre o
+  verde escuro.
+- **PIN no padrão dos apps de campo do SIGUC**: `js/pin-baralho.js` +
+  `css/pin-baralho.css` copiados do SIGUC-AC sem alteração (cartas, filete na
+  borda, dígito que vira ponto, monte que pulsa ao conferir, visto verde,
+  tremor no erro, vibração, respeita "reduzir movimento"). Correção lá →
+  copiar de novo aqui.
+- **Questionário**: cabeçalho com o símbolo do Resiliência + SEMA (18 px/8 px).
+  Anterior/Próximo **não são mais fixos**: aparecem no fim do bloco, depois da
+  última pergunta ("Próximo →" + nome do bloco seguinte).
+- **v2 do questionário** (`20260926_diag_09_questionario_v2_escolaridade.sql`,
+  publicada em 26/09; v1 arquivada): cópia fiel da v1 com a **Escolaridade** da
+  P9 em lista fechada — Não se aplica (menor de 4 anos), Não alfabetizado(a),
+  Alfabetizado(a) sem estudo formal, Educação infantil, Fundamental, Médio,
+  Superior, Especialização e Mestrado (cada um incompleto/completo), Não sabe
+  informar. `fn_diag_validar_moradores` passou a conferir qualquer coluna
+  `unica` da P9 contra as opções da versão da ficha. Ficha começada na v1 no
+  aparelho continua aceita.
+
 ---
 
 ## 7. Perguntas para fechar a Fase 0

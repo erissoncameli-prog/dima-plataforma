@@ -33,7 +33,9 @@ insert into public.usuarios (id, nome_completo, email, perfil, ativo) values
  ('00000000-0000-0000-0000-0000000000e1','Técnica de Campo','tec@x','tecnico',true);
 insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate)
  values ('00000000-0000-0000-0000-0000000000e1','diagnostico', now()-interval '1 day', now()+interval '60 days');
-update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao = 1;
+-- como em produção: v1 publicada e depois arquivada; v2 (escolaridade fechada) publicada
+update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao in (1, 2);
+update public.diag_questionarios set status = 'arquivado' where codigo = 'DSA' and versao = 1;
 insert into public.diag_comunidades (id, municipio_ibge, nome)
  values ('11111111-1111-1111-1111-111111111111', 1200708, 'Seringal Cachoeira');
 insert into public.diag_localidades (id, comunidade_id, nome)

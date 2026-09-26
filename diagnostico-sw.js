@@ -6,11 +6,21 @@
 //
 // Ao mudar QUALQUER arquivo do shell abaixo, incremente VERSAO — é o que faz
 // o aparelho baixar a versão nova.
-const VERSAO = 3
+const VERSAO = 4
 const CACHE = 'dima-diag-v' + VERSAO
 const SHELL = [
   '/pages/diagnostico-app.html',
   '/css/diagnostico-app.css',
+  '/css/pin-baralho.css',
+  '/js/pin-baralho.js',
+  '/pwa/logos/acre.png',
+  '/pwa/logos/sema.png',
+  '/pwa/logos/resiliencia.png',
+  '/pwa/logos/resiliencia-simbolo.png',
+  '/pwa/logos/unesco.png',
+  '/pwa/logos/onu-brasil.png',
+  '/pwa/logos/fundo-brasil-onu.png',
+  '/pwa/logos/consorcio-amazonia.png',
   '/js/config.js',
   '/js/diag-regras.js',
   '/js/diag-offline.js',

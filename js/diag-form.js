@@ -159,9 +159,22 @@ const DiagForm = (function () {
           : '')
       ;['parentesco', 'escolaridade', 'atividade_principal'].forEach(c => {
         const col = cols.find(x => x.chave === c)
-        html += '<label class="rot">' + h(col.rotulo) + '</label>' +
-          '<input class="campo" data-acao="mor" data-i="' + i + '" data-campo="' + c + '" maxlength="80" value="' + h(m[c] || '') + '">' +
-          renderChips('moradores.' + c, 'morador', i)
+        html += '<label class="rot">' + h(col.rotulo) + '</label>'
+        if (col.tipo === 'unica') {
+          // lista fechada (escolaridade a partir da v2), agrupada por "g"
+          const grupos = []
+          col.opcoes.forEach(o => {
+            const g = grupos.find(x => x.g === (o.g || ''))
+            if (g) g.os.push(o); else grupos.push({ g: o.g || '', os: [o] })
+          })
+          const opt = o => '<option value="' + h(o.v) + '"' + (m[c] === o.v ? ' selected' : '') + '>' + h(o.r) + '</option>'
+          html += '<select class="campo" data-acao="mor" data-i="' + i + '" data-campo="' + c + '"><option value="">—</option>' +
+            grupos.map(g => g.g ? '<optgroup label="' + h(g.g) + '">' + g.os.map(opt).join('') + '</optgroup>' : g.os.map(opt).join('')).join('') +
+            '</select>'
+        } else {
+          html += '<input class="campo" data-acao="mor" data-i="' + i + '" data-campo="' + c + '" maxlength="80" value="' + h(m[c] || '') + '">' +
+            renderChips('moradores.' + c, 'morador', i)
+        }
       })
       html += '</div>'
     })

@@ -424,16 +424,16 @@ select public.t_erro($q$insert into public.diag_questionarios (codigo, versao, t
 -- ── T25b coordenação cria versão nova e comunidade; publica ─────────────
 select public.t_como('00000000-0000-0000-0000-0000000000c0');
 insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado)
-  select codigo, 2, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
-update public.diag_questionarios set status = 'publicado' where versao = 2;
+  select codigo, 4, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
+update public.diag_questionarios set status = 'publicado' where versao = 4;
 insert into public.diag_comunidades (municipio_ibge, nome) values (1200401, 'Comunidade Nova da Coordenação');
 do $$ begin
-  if (select publicado_em from public.diag_questionarios where versao = 2) is null then raise exception 'FALHOU T25b publicado_em'; end if;
-  if (select hash_sha256 from public.diag_questionarios where versao = 2)
+  if (select publicado_em from public.diag_questionarios where versao = 4) is null then raise exception 'FALHOU T25b publicado_em'; end if;
+  if (select hash_sha256 from public.diag_questionarios where versao = 4)
      <> (select hash_sha256 from public.diag_questionarios where versao = 1) then raise exception 'FALHOU T25b hash de conteúdo igual'; end if;
-  if length((select hash_sha256 from public.diag_questionarios where versao = 2)) <> 64 then raise exception 'FALHOU T25b hash'; end if;
+  if length((select hash_sha256 from public.diag_questionarios where versao = 4)) <> 64 then raise exception 'FALHOU T25b hash'; end if;
 end $$;
-select public.t_erro($q$update public.diag_questionarios set status = 'publicado' where versao = 2 and false; update public.diag_questionarios set status='arquivado' where versao=2; update public.diag_questionarios set status='publicado' where versao=2$q$,
+select public.t_erro($q$update public.diag_questionarios set status = 'publicado' where versao = 4 and false; update public.diag_questionarios set status='arquivado' where versao=4; update public.diag_questionarios set status='publicado' where versao=4$q$,
   'diag:questionario_arquivado');
 select public.t_como('00000000-0000-0000-0000-0000000000e1');
 select public.t_erro($q$insert into public.diag_comunidades (municipio_ibge, nome) values (1200401, 'Tentativa do técnico')$q$,
@@ -634,3 +634,45 @@ do $$ begin
      then raise exception 'FALHOU T30 policy'; end if;
   if has_table_privilege('anon', 'public.diag_localidades', 'select') then raise exception 'FALHOU T30 anon'; end if;
 end $$;
+
+-- ── T31 v2: escolaridade em lista fechada ────────────────────────────────
+reset role;
+do $$ begin
+  if (select c->>'tipo' from public.diag_questionarios q, jsonb_array_elements(q.estrutura->'moradores'->'colunas') c
+      where q.versao = 2 and c->>'chave' = 'escolaridade') <> 'unica' then raise exception 'FALHOU T31 v2 sem lista fechada'; end if;
+  if (select c->>'tipo' from public.diag_questionarios q, jsonb_array_elements(q.estrutura->'moradores'->'colunas') c
+      where q.versao = 1 and c->>'chave' = 'escolaridade') <> 'texto' then raise exception 'FALHOU T31 v1 alterada'; end if;
+  if (select aviso_entrevistado from public.diag_questionarios where versao = 2)
+     <> (select aviso_entrevistado from public.diag_questionarios where versao = 1) then raise exception 'FALHOU T31 aviso'; end if;
+  if (select count(*) from public.diag_questionarios where versao = 2) <> 1 then raise exception 'FALHOU T31 v2 duplicada'; end if;
+end $$;
+update public.diag_questionarios set status = 'publicado' where versao = 2;
+insert into public.t_ctx select 'q2', id::text from public.diag_questionarios where versao = 2;
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha('f3100000-0000-0000-0000-000000000001','DSA-XAP-260926-T2ES-01', null, now(),
+  jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q2'))),
+  '[{"ordem":1,"idade":40,"sexo_genero":"mulher","escolaridade":"fundamental incompleto","e_entrevistado":true}]')$q$, 'diag:morador_invalido');
+do $$
+declare r jsonb;
+begin
+  r := public.diag_enviar_ficha(public.t_ficha('f3100000-0000-0000-0000-000000000001','DSA-XAP-260926-T2ES-01', null, now(),
+         jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q2'))),
+       '[{"ordem":1,"idade":40,"sexo_genero":"mulher","escolaridade":"medio_completo","e_entrevistado":true},
+         {"ordem":2,"idade":2,"sexo_genero":"homem","escolaridade":"nao_se_aplica_menor_4"},
+         {"ordem":3,"idade":9,"escolaridade":"_nr"}]');
+  if (select m.escolaridade from public.diag_moradores m join public.diag_fichas f on f.id = m.ficha_id
+      where f.codigo = 'DSA-XAP-260926-T2ES-01' and m.ordem = 1) <> 'medio_completo' then raise exception 'FALHOU T31 gravação'; end if;
+  -- v1 (texto livre) continua aceitando o que aceitava
+  r := public.diag_enviar_ficha(public.t_ficha('f3100000-0000-0000-0000-000000000002','DSA-XAP-260926-T2ES-02'),
+       '[{"ordem":1,"idade":40,"sexo_genero":"mulher","escolaridade":"fundamental incompleto","e_entrevistado":true}]');
+  -- sexo/gênero continua conferido pelo validador genérico
+  begin
+    r := public.diag_enviar_ficha(public.t_ficha('f3100000-0000-0000-0000-000000000003','DSA-XAP-260926-T2ES-03'),
+         '[{"ordem":1,"idade":40,"sexo_genero":"xyz"}]');
+    raise exception 'FALHOU T31 sexo inválido aceito';
+  exception when others then
+    if sqlerrm not like 'diag:morador_invalido%' then raise; end if;
+  end;
+end $$;
+reset role;

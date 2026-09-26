@@ -377,6 +377,12 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,
   validados em `diag_enviar_ficha`. Fora de indicadores (risco de
   reidentificação) até existir recorte com supressão.
+- **Questionário vigente = v2** (escolaridade da P9 em lista fechada; v1
+  arquivada). Coluna `unica` da P9 é validada por `fn_diag_validar_moradores`
+  contra as opções da versão da ficha.
+- PIN do app = **baralho do SIGUC** (`js/pin-baralho.js`/`css/pin-baralho.css`,
+  cópia sem alteração — não editar aqui, copiar de novo do SIGUC). Logos do
+  app em `pwa/logos/` (no `SHELL` do service worker).
 - Mesa mínima: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`):
   Visão geral (contagens, apagar treino) e aba Admin (comunidades e sublocalidades).
 - App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +
