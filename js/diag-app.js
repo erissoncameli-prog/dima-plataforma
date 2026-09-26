@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.6.1'
+const DIAG_APP_VERSAO = '1.6.2'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -424,7 +424,7 @@ async function decidirAviso(aceitou) {
 }
 
 // ── Ficha ──────────────────────────────────────────────────────────────
-async function abrirFicha(uuidFicha, irParaChave) {
+async function abrirFicha(uuidFicha, irParaChave, irParaRevisao) {
   const f = await dFichaObter(uuidFicha)
   let qs = (await dCacheGet('questionarios')) || {}
   if (!qs[f.questionario_id] && diagDb && await dSyncTemConexao()) {
@@ -447,6 +447,8 @@ async function abrirFicha(uuidFicha, irParaChave) {
   document.getElementById('ficha-devolvida').innerHTML = f.status_servidor === 'devolvida' && f.motivo_devolucao
     ? '<div class="faixa faixa-aviso"><b>Devolvida pela coordenação:</b> ' + esc(f.motivo_devolucao) + '</div>' : ''
   if (irParaChave) App.bloco = blocoDaChave(irParaChave)
+  // devolvida: abre na revisão (motivo + pendências agrupadas), não no bloco 1
+  if (irParaRevisao) { abrirRevisao(); return }
   mostrar('t-ficha')
   desenharBloco(irParaChave)
 }
@@ -564,6 +566,8 @@ function abrirRevisao() {
     alertas = DiagRegras.alertas(App.estrutura, norm, f.moradores || [], { comunidade_nova: !f.comunidade_id })
   } catch (e) { erroEstrutura = e.message }
   document.getElementById('revisao-codigo').textContent = f.codigo
+  document.getElementById('revisao-devolvida').innerHTML = f.status_servidor === 'devolvida' && f.motivo_devolucao
+    ? '<div class="faixa faixa-aviso"><b>Devolvida pela coordenação:</b> ' + esc(f.motivo_devolucao) + '</div>' : ''
   const pend = alertas.filter(a => a.tipo === 'pendente').length
   document.getElementById('revisao-resumo').innerHTML = erroEstrutura
     ? '<div class="faixa faixa-erro">Há uma resposta em formato inválido (' + esc(erroEstrutura) + '). Volte à pergunta e responda de novo.</div>'
@@ -1009,7 +1013,7 @@ function ligarEventos() {
   document.getElementById('ini-lista').addEventListener('click', async ev => {
     const b = ev.target.closest('[data-uuid]'); if (!b) return
     const f = await dFichaObter(b.dataset.uuid)
-    if (f.estado === 'rascunho') abrirFicha(f.uuid_cliente)
+    if (f.estado === 'rascunho') abrirFicha(f.uuid_cliente, null, f.status_servidor === 'devolvida')
     else if (f.estado === 'erro' || f.estado === 'conflito' || f.estado === 'aguardando_permissao') {
       if (f.estado === 'erro' && f.aceitou_participar && confirm((f.erro_msg || 'Problema no envio') + '\n\nAbrir a ficha para corrigir?')) {
         f.estado = 'rascunho'; await dFichaSalvar(f); abrirFicha(f.uuid_cliente)

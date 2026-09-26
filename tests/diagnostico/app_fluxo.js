@@ -365,6 +365,12 @@ function png1x1() {
   await clicar('#btn-sync')
   await page.locator('#ini-lista .selo-devolvida').waitFor({ timeout: 15000 })
   await clicar('#ini-lista .item-ficha:has(.selo-devolvida)')
+  // devolvida abre na revisão: motivo no topo e pendências agrupadas
+  await page.locator('#t-revisao').waitFor({ state: 'visible' })
+  if (!/Conferir a P9/.test(await page.textContent('#revisao-devolvida'))) falhar('motivo da devolução não apareceu na revisão')
+  if (await page.isHidden('#btn-pendencias')) falhar('revisão da devolvida sem o botão de pendências')
+  await foto('devolvida_revisao')
+  await clicar('#btn-revisao-voltar')
   await page.locator('#t-ficha').waitFor({ state: 'visible' })
   if (!/Conferir a P9/.test(await page.textContent('#ficha-devolvida'))) falhar('motivo da devolução não apareceu na ficha')
   // versão da ficha fora do aparelho (ex.: treino devolvido na v1 arquivada): a sincronização baixa…
@@ -379,9 +385,10 @@ function png1x1() {
   // …e, se ainda faltar, abrir a ficha baixa na hora
   await semVersao()
   await clicar('#ini-lista .item-ficha:has(.selo-devolvida)')
-  await page.locator('#t-ficha').waitFor({ state: 'visible' })
+  await page.locator('#t-revisao').waitFor({ state: 'visible' })
   if (!(await page.evaluate(async q => !!((await dCacheGet('questionarios')) || {})[q], qidDev))) falhar('abrir a ficha não baixou a versão que faltava')
   ok('ficha devolvida em versão que não estava no aparelho: baixada na sincronização e ao abrir')
+  await clicar('#btn-revisao-voltar'); await page.locator('#t-ficha').waitFor({ state: 'visible' })
   await clicar('#btn-ficha-sair')
   ok('ficha devolvida voltou ao aparelho com o motivo')
 
