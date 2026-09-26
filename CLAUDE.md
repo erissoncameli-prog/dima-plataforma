@@ -372,7 +372,10 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   `lgpd_tratamentos` (TRAT-001). Arquivo de foto removido entra em
   `diag_expurgo_arquivos`, drenada pela Edge Function `diag-expurgo` (cron diário).
 - **ROPA vivo** em `lgpd_tratamentos`: tabela nova com dado pessoal = linha nova
-  lá na mesma entrega.
+  lá na mesma entrega. Tela só leitura em `pages/ropa.html` (Configurações ›
+  Privacidade; super_admin/coordenação) — `tabelas` é conferida contra o schema
+  por `fn_lgpd_conferir_tabelas()`; nome errado vira pendência na tela.
+  Correção do registro é por migration, nunca pela tela (retenção lê dali).
 - **Modo treino** (`diag_fichas.treino`, código `TRE-`): aceita questionário
   em rascunho, fica fora de `vw_diag_respostas`/sugestões, apagado por
   `diag_apagar_treino()` (gerir). Permissão `fn_diag_pode_treinar()` =

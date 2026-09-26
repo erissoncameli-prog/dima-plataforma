@@ -70,7 +70,7 @@ function pgQuery(q) {
 }
 function pgRpc(nome, args) {
   const params = Object.entries(args || {}).map(([k, v]) => k + ' := ' + lit(v)).join(', ')
-  const sql = nome === 'fn_diag_agregados'   // setof
+  const sql = ['fn_diag_agregados', 'fn_lgpd_conferir_tabelas'].includes(nome)   // setof
     ? "select coalesce(jsonb_agg(t), '[]') from public." + nome + '(' + params + ') t'
     : 'select to_json(public.' + nome + '(' + params + '))'
   try { return { data: JSON.parse(psql(sql, usuarioLogado)), error: null } }
@@ -312,6 +312,32 @@ function semear() {
   if (!xInd.abas.includes('Indicadores') || !/Seringal Cachoeira/.test(xInd.texto)) falhar('planilha de indicadores')
   ok('indicadores: supressão abaixo de 5, números do banco, recorte por comunidade e por sexo, planilha')
   psql("delete from public.diag_fichas where codigo like 'DSA-XAP-261002-IND%'")
+
+  // ── Privacidade · ROPA (pages/ropa.html): leitura + conferência no banco ──
+  usuarioLogado = COORD
+  await page.goto(BASE + '/pages/ropa.html')
+  await page.locator('.rp-card[data-codigo="TRAT-001"]').waitFor({ timeout: 15000 })
+  const nTab = +psql("select cardinality(tabelas) from public.lgpd_tratamentos where codigo = 'TRAT-001'")
+  if (await page.locator('.rp-card[data-codigo="TRAT-001"] .rp-tb.ok').count() !== nTab) falhar('ROPA: tabelas do TRAT-001 não conferidas')
+  const pendTxt = await page.textContent('#rp-pendencias')
+  if (!/base legal a definir/.test(pendTxt) || !/RIPD ainda em rascunho/.test(pendTxt)) falhar('ROPA: pendências não derivadas do registro')
+  if (!/2 anos/.test(await page.textContent('.rp-card[data-codigo="TRAT-001"]'))) falhar('ROPA: prazo de retenção')
+  const navCfg = await page.locator('#nav-children-configuracoes a').allTextContents()
+  if (navCfg.length !== 1 || !/ROPA/.test(navCfg[0])) falhar('ROPA: coordenação deveria ver só "Privacidade (ROPA)" em Configurações: ' + navCfg.join(' / '))
+  await foto('mesa_ropa')
+  // tabela declarada que some do banco vira pendência
+  psql("update public.lgpd_tratamentos set tabelas = tabelas || array['diag_tabela_renomeada'] where codigo = 'TRAT-001'")
+  await page.reload()
+  await page.locator('.rp-tb.falta', { hasText: 'diag_tabela_renomeada' }).waitFor({ timeout: 15000 })
+  if (!/não existe no banco: diag_tabela_renomeada/.test(await page.textContent('#rp-pendencias'))) falhar('ROPA: tabela ausente não entrou nas pendências')
+  psql("update public.lgpd_tratamentos set tabelas = array_remove(tabelas, 'diag_tabela_renomeada') where codigo = 'TRAT-001'")
+  // técnico não entra (a tela manda para o painel; o banco também nega)
+  await page.route('**/pages/dashboard.html', r => r.fulfill({ contentType: 'text/html', body: '<p>painel</p>' }))
+  usuarioLogado = TEC
+  await page.goto(BASE + '/pages/ropa.html')
+  await page.waitForURL('**/dashboard.html', { timeout: 15000 })
+  usuarioLogado = COORD
+  ok('ROPA: registro, tabelas conferidas no banco, pendências, nav da coordenação, técnico barrado')
 
   if (errosJs.length) falhar('erros de JavaScript: ' + errosJs.join(' | '))
   await browser.close()

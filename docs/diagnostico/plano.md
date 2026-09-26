@@ -242,7 +242,7 @@ pessoal ganha entrada no ROPA na mesma entrega. Desenho proposto:
 | `ativo`, `criado_em`, `atualizado_em` | | |
 
 - Leitura: `super_admin`/`coordenacao` (`TO authenticated`). Escrita: `super_admin`.
-- Tela: aba em Configurações, só leitura para a coordenação. Pode ficar para a Fase 3.
+- Tela: ✅ `pages/ropa.html` em Configurações (super_admin e coordenação), só leitura — ver §6.13.
 - ✅ A Fase 1 carrega **só a linha do diagnóstico** *(26/09)*. Os demais
   tratamentos do DIMA (viagens, beneficiários, fornecedores, CAR) ficam fora do
   escopo deste módulo e entram quando cada um for revisado.
@@ -1162,3 +1162,20 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
   `diag-guia.js` fornece um cliente que responde "ok" sem ir à rede.
 - Texto novo de guia = incrementar `versao` do guia (volta a aparecer como
   novidade). Service worker v12, app 1.8.0.
+
+### 6.13 Tela do ROPA *(26/09)*
+
+- `pages/ropa.html` + `js/ropa.js`, menu Configurações › **Privacidade (ROPA)**.
+  Leem `super_admin` e `coordenacao` (mesma regra de `lgpd_trat_select`); para
+  a coordenação, Configurações mostra só esse item.
+- **Somente leitura para todos.** `retencao_prazo` do TRAT-001 é lido por
+  `fn_diag_aplicar_retencao`; edição pela tela mudaria o apagamento sem rastro.
+  Correção continua por migration.
+- `fn_lgpd_conferir_tabelas()` (migration `diag_14`, SECURITY DEFINER, mesma
+  regra de leitura) confere cada nome de `tabelas` contra o schema —
+  `storage:<bucket>` em `storage.buckets`. Tabela ausente aparece riscada e
+  entra nas pendências.
+- Pendências derivadas do registro, nunca digitadas: base legal `a_definir`,
+  transferência internacional marcada como pendência, RIPD ausente (com dado
+  sensível/de menor) ou em rascunho, tabela ausente.
+- Botão Imprimir / PDF (CSS de impressão sem menu nem barra).
