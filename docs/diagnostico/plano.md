@@ -33,7 +33,7 @@
 
 ### 1.1 O que o PDF traz
 
-10 blocos, 81 perguntas: 35 de escolha única, 21 múltiplas, 17 abertas, 3
+10 blocos, 81 perguntas: 34 de escolha única, 23 múltiplas, 16 abertas, 3
 numéricas, 1 data, 3 de identificação e 1 tabela de moradores (6 colunas).
 Detalhe pergunta a pergunta, com chave, tipo, nível de análise e marcação LGPD,
 em [`instrumento-v1.md`](instrumento-v1.md).
@@ -44,8 +44,9 @@ O PDF é um roteiro de entrevista, não um formulário. Para virar app faltam
 decisões que **só a equipe do diagnóstico pode tomar** — o sistema não deve
 inventar:
 
-1. **Única ou múltipla** em 7 perguntas ambíguas — ✅ P16 única, P18 e P21
-   múltipla *(26/09)*. Faltam P25, P50, P56 e as listas da P9.
+1. **Única ou múltipla** em 7 perguntas ambíguas — ✅ P16 única; P18, P21, P50
+   e P56 múltipla; P25 vira lista fechada múltipla *(26/09)*. Faltam as listas
+   da P9 e confirmar os itens da lista da P25.
 2. ~~**Saltos**~~ — ✅ S1–S10 aceitos *(26/09)*, incluindo a opção nova
    "Nenhuma" (exclusiva) na P30. "Não se aplica" sai da P18 e da P68.
 3. **Listas fechadas da P9** (parentesco, escolaridade, atividade principal).
@@ -53,7 +54,8 @@ inventar:
 5. **"Outro" sem especifique** em 30 perguntas.
 6. **Código de não resposta** (hoje só a P5 tem).
 7. **Assimetria P61 × P62** (listas diferentes para mulheres e homens).
-8. **Domicílio sem mulher/sem homem** no bloco 9.
+8. ~~**Domicílio sem mulher/sem homem**~~ — ✅ resolvido pela derivação D2 *(26/09)*.
+   Derivações e avisos D1, D2, V1 e V2 também aceitos.
 9. **P54/P55 (sindicato)** — trocar por lista fechada por tipo (ver §2.2).
 10. ~~**Nome do instrumento**~~ — ✅ decidido: **Diagnóstico Socioambiental**.
 
@@ -115,7 +117,7 @@ conjunto de casos** (fixture única usada pelo teste do JS e pelo teste SQL).
 | Fontes de renda, suficiência, benefícios sociais | P28, P29 | pessoal (vulnerabilidade) | família |
 | Quem decide sobre dinheiro/produção | P63, P64 | pessoal (dinâmica doméstica) | família |
 | **Filiação a sindicato** / organizações | P54, P55 | **sensível** (art. 5º, II) | entrevistado |
-| Problemas de saúde | P25 | **sensível** se ligado a pessoa | terceiros |
+| Problemas de saúde | P25 | lista fechada ✅; **sensível** só se o "Outro" citar pessoa | terceiros |
 | Caça, uso de madeira | P41 | pessoal; autodeclaração de conduta com implicação legal | família |
 | 17 respostas abertas | ver inventário | podem conter nome de terceiros | terceiros |
 
@@ -144,7 +146,8 @@ nominal de famílias vulneráveis.
    nome da entidade. Continua sendo dado sensível (a opção "sindicato rural"
    revela filiação), mas deixa de ser texto livre com nome de sindicato, igreja
    ou partido.
-4. **P25** — lista fechada de problemas de saúde + orientação "sem citar nomes".
+4. **P25 — ✅ decidido:** lista fechada de problemas de saúde; orientação "sem
+   citar nomes" mantida no "Outro".
 5. **GPS** — coordenada precisa só para quem aplica e para a coordenação;
    qualquer saída para fora (painel agregado, mapa, relatório, exportação para
    consultor) usa **nível de comunidade**, nunca o ponto da casa.
@@ -558,7 +561,7 @@ final.
 **LGPD (jurídico)**
 3. Base legal (§2.3) e se o executor se enquadra como órgão de pesquisa.
 4. ~~Manter o nome do entrevistado (P4)?~~ — ✅ **opcional**. Resta ao jurídico: prazo de retenção do nome (entra na pergunta 6).
-5. P54/P55 (sindicato) e P25 (saúde): manter como sensível, fechar em lista, ou retirar?
+5. P54/P55 (sindicato): manter como sensível, fechar em lista, ou retirar? (P25 já foi fechada em lista ✅)
 6. Prazo de retenção do nome (quando informado), da ficha identificada e do GPS preciso.
 7. RIPD antes do campo?
 

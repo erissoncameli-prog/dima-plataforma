@@ -11,15 +11,15 @@
 |------|-----------|
 | Blocos | 10 |
 | Perguntas numeradas | 81 |
-| Escolha única (inferida) | 35 |
-| Escolha múltipla (inferida) | 21 |
-| Texto aberto longo | 17 |
+| Escolha única | 34 |
+| Escolha múltipla | 23 |
+| Texto aberto longo | 16 |
 | Número (inteiro/decimal) | 3 (P6, P8, P38) |
 | Data | 1 (P1) |
 | Texto curto de identificação | 3 (P2, P3, P4) |
 | Tabela repetível (moradores) | 1 (P9, 6 colunas) |
 | Saltos implícitos identificados | 10 regras |
-| Perguntas com "Outro/Outra/Outros" | 30 |
+| Perguntas com "Outro/Outra/Outros" | 31 |
 
 > ⚠️ O PDF **não marca** se a escolha é única ou múltipla, **não tem saltos
 > explícitos** e **não tem campo "especifique"** após "Outro". A tipagem abaixo é
@@ -107,19 +107,25 @@
 | 22 | `saude_onde` | Onde procura atendimento de saúde, principalmente | unica | Unidade de saúde · Hospital · Particular · Farmácia · Medicina tradicional/caseira · Outro | D | — |
 | 23 | `saude_dificuldade` | Principal dificuldade de acesso à saúde | unica | Distância · Transporte · Custo · Falta de atendimento · Tempo de espera · Não há dificuldade · Outro | D | — |
 | 24 | `saude_problemas_freq` | Problemas de saúde frequentes na comunidade? | unica | Sim · Não | C | — |
-| 25 | `saude_problemas_quais` | Quais são esses problemas | texto_longo | — | C | **S?, L** |
-| 26 | `tem_escolar` | Há crianças/jovens em idade escolar no domicílio? | unica | Sim · Não | D | M |
+| 25 | `saude_problemas_quais` | Quais são esses problemas | multipla ✅ | **lista fechada** (proposta abaixo) · Outro | C | S? (só no "Outro") |
+| 26 | `tem_escolar` | Há crianças/jovens em idade escolar no domicílio? | unica — **derivada da P9** ✅ (D1) | Sim · Não | D | M |
 | 27 | `educacao_dificuldades` | Dificuldades de educação na comunidade | multipla | Distância · Transporte · Falta de escola · Falta de professores · Falta de internet/material · Outra · **Nenhuma (excl.)** | C | — |
 
 - **Salto S2 ✅:** P24 = Não → pula P25.
-- **P25 é o ponto mais delicado do bloco:** a pergunta é sobre a comunidade, mas
-  resposta aberta tende a virar "o filho do vizinho tem…". Dado de saúde ligado a
-  pessoa identificável é **sensível**. Proposta: orientação no próprio campo
-  ("descreva problemas da comunidade, sem citar nomes") + lista de sugestões
-  (diarreia, malária, dengue, doenças respiratórias, verminose…) em vez de texto
-  puro. ❓ Transformar P25 em múltipla com "Outro" resolve a maior parte.
-- **❓ P26 não controla P27** (P27 é da comunidade). P26 pode ser **derivada** da
-  P9 (morador de 4–17 anos) em vez de perguntada — evita contradição.
+- **P25 ✅ lista fechada, múltipla** *(decidido em 26/09)*. Era o ponto mais
+  delicado do bloco: resposta aberta tende a virar "o filho do vizinho tem…", e
+  dado de saúde ligado a pessoa identificável é **sensível**. Com a lista, o
+  risco fica só no "Outro", que mantém a orientação "problemas da comunidade,
+  sem citar nomes".
+  **❓ Lista proposta (confirmar com a equipe):** Diarreia/verminoses ·
+  Malária · Dengue/chikungunya/zika · Doenças respiratórias · Doenças de pele ·
+  Hipertensão/diabetes · Desnutrição · Acidentes com animais peçonhentos ·
+  Outro.
+- **P26 ✅ derivada da P9 (D1)** *(decidido em 26/09)*. Não é mais perguntada: o
+  app mostra a resposta calculada a partir dos moradores (há morador de 4–17
+  anos → Sim; nenhum → Não), sem campo para editar, e o banco calcula com a
+  mesma função. Se a resposta parecer errada, corrige-se a P9, não a P26. P26
+  não controla P27 (P27 é da comunidade).
 
 ## Bloco 5 — Trabalho, renda e produção (P28–P37)
 
@@ -175,14 +181,13 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 | 47 | `agua_qualidade_problema` | Problemas de qualidade da água? | unica | Sim · Não | C | — |
 | 48 | `agua_qualidade_quais` | Quais problemas | texto_longo | — | C | L |
 | 49 | `clima_eventos_afeta` | Problemas com seca, enchente, eventos climáticos? | unica | Sim · Não | C | — |
-| 50 | `clima_eventos_quais` | Eventos de maior impacto | multipla ❓ | Seca · Enchente · Chuvas intensas · Calor excessivo · Ventos/tempestades · Outro | C | — |
+| 50 | `clima_eventos_quais` | Eventos de maior impacto | multipla ✅ | Seca · Enchente · Chuvas intensas · Calor excessivo · Ventos/tempestades · Outro | C | — |
 | 51 | `clima_atividades_afetadas` | Atividades afetadas | multipla | Agricultura · Criação · Pesca · Extrativismo · Transporte · Saúde · Abastecimento de água · Outra | C | — |
 | 52 | `amb_percepcao_mudanca` | O ambiente mudou nos últimos anos? | unica | Melhorou · Piorou · Não mudou · Não sabe | R | — |
 | 53 | `amb_o_que_fazer` | O que fazer para melhorar as condições ambientais | texto_longo | — | R | L |
 
 - **Saltos S6 e S7 ✅:** P47 = Não → pula P48. P49 = Não → pula P50 e P51.
-- **❓ P50** "quais eventos causam **mais** impacto" pode ser única ou múltipla
-  (ou múltipla limitada a 2). Proposta: múltipla.
+- **P50 ✅ múltipla**, sem limite de marcações *(decidido em 26/09)*.
 
 ## Bloco 8 — Organização social e participação (P54–P59)
 
@@ -190,7 +195,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 |----|-------|----------|------|--------|-------|------|
 | 54 | `participa_org` | Participa de associação, cooperativa, **sindicato**, grupo…? | unica | Sim · Não | R | **S** |
 | 55 | `participa_org_quais` | De quais organizações participa | texto_longo | — | R | **S, L** |
-| 56 | `decisoes_como` | Como são tomadas as decisões da comunidade | unica ❓ | Reuniões comunitárias · Associação/liderança · Famílias individualmente · Lideranças formais · Outro | C | — |
+| 56 | `decisoes_como` | Como são tomadas as decisões da comunidade | multipla ✅ | Reuniões comunitárias · Associação/liderança · Famílias individualmente · Lideranças formais · Outro | C | — |
 | 57 | `moradores_participam` | Moradores participam das decisões? | unica | Sim · Parcialmente · Não | R | — |
 | 58 | `grupos_participam_menos` | Grupos que participam menos | multipla | Mulheres · Jovens · Idosos · PcD · Comunidades tradicionais · Outros · **Não percebe diferença (excl.)** | R | — |
 | 59 | `instituicoes_contribuem` | Organizações/instituições que mais contribuem | texto_longo | — | C | L |
@@ -230,8 +235,9 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
   P62 não diz "da família" e **não tem** "Cuidado com crianças". Para um
   indicador de divisão sexual do trabalho as duas listas precisam ser
   **idênticas**. Proposta: mesma lista e mesmo recorte ("da família") nas duas.
-- **❓ Domicílio sem mulher / sem homem:** P61–P64 não têm saída. Proposta: o app
-  deriva da P9 e oferece "Não há mulheres/homens no domicílio".
+- **Domicílio sem mulher / sem homem ✅ (D2)** *(decidido em 26/09)*: o app
+  deriva da P9 e oferece "Não há mulheres no domicílio" na P61 e "Não há homens
+  no domicílio" na P62 (opção exclusiva, só aparece quando a P9 confirma).
 - **❓ Quem responde o bloco 9:** percepção muda muito conforme o respondente.
   Recomendação metodológica: registrar o sexo do respondente (já está na P5) e
   **sempre desagregar** os indicadores do bloco por ele. Opcional: o bloco ser
@@ -256,7 +262,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 
 ## Pontos transversais do instrumento
 
-1. **"Outro" sem especificação (30 perguntas).** Sem o texto, "Outro" não é
+1. **"Outro" sem especificação (31 perguntas).** Sem o texto, "Outro" não é
    analisável. Proposta: toda opção "Outro/Outra/Outros" abre campo curto
    `<chave>_outro` (até 120 caracteres), gravado no mesmo jsonb.
 2. **Não resposta.** O PDF só tem "Prefere não responder" na P5. Sem um código
@@ -271,8 +277,8 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
    então haverá N respostas por comunidade — o indicador delas é "% dos
    entrevistados que relatam X", não "a comunidade tem X". Ver plano §3.6.
 4. **17 perguntas abertas.** Encarecem a análise (precisam de codificação
-   posterior) e são onde dado de terceiros vaza. Considerar fechar P25, P31, P55
-   com listas + "Outro"; manter abertas as do bloco 10 (são o valor qualitativo
+   posterior) e são onde dado de terceiros vaza. P25 já foi fechada ✅; considerar
+   fazer o mesmo com P31 e P55 (listas + "Outro"); manter abertas as do bloco 10 (são o valor qualitativo
    do diagnóstico).
 5. **Duração estimada.** 81 perguntas + tabela de moradores ≈ 45–70 min por
    domicílio. Recomenda-se piloto com 5 questionários antes de congelar a v1.
@@ -281,7 +287,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 
 ## Saltos (regras de exibição) — consolidado
 
-> ✅ **S1–S10 aceitos em 26/09.** D1, D2, V1 e V2 continuam como proposta.
+> ✅ **S1–S10, D1, D2, V1 e V2 aceitos em 26/09.**
 
 | # | Condição | Efeito |
 |---|----------|--------|
@@ -295,8 +301,8 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 | S8 | P54 = Não | oculta P55 |
 | S9 | P67 = Não | oculta P68 |
 | S10 | P30 = Nenhuma (opção nova, exclusiva) | oculta P31–P34 |
-| D1 ❓ | P9 sem morador de 4–17 anos | P26 = Não (derivada) |
-| D2 ❓ | P9 sem mulher / sem homem | P61/P62 oferecem "não há" |
+| D1 | P9 com/sem morador de 4–17 anos | P26 = Sim/Não (derivada, não editável) |
+| D2 | P9 sem mulher / sem homem | P61/P62 oferecem "não há" (exclusiva) |
 | V1 | P8 ≠ nº de linhas da P9 | aviso na revisão (não trava) |
 | V2 | P6 < 18 | aviso: respondente menor de idade |
 
