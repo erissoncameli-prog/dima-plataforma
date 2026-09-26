@@ -54,14 +54,23 @@ function dUrlFoto(caminho) {
   return SUPABASE_URL + '/storage/v1/object/public/' + DIAG_BUCKET + '/' + caminho
 }
 
+// Sobe os BYTES (não Blob: no iPhone o Blob guardado volta vazio e o Storage
+// recebia 0 byte). Foto vazia não é reenviada para sempre: vira "perdida".
 async function _dSubirFotos(f) {
   const fotos = await dFotosDaFicha(f.uuid_cliente)
-  let falhas = 0
+  let falhas = 0, perdidas = 0
   for (const ft of fotos) {
-    if (ft.enviada || !ft.blob) continue
+    if (ft.enviada) continue
+    if (ft.perdida) { perdidas++; continue }
+    let bytes = ft.bytes || null
+    if (!bytes && ft.blob) { try { bytes = await ft.blob.arrayBuffer() } catch (e) { bytes = null } }
+    if (!bytes || !bytes.byteLength) {
+      ft.perdida = true; delete ft.blob; await dFotoSalvar(ft); perdidas++
+      continue
+    }
     const caminho = f.uuid_cliente + '/' + ft.uuid_cliente + '.jpg'
     const { error } = await diagDb.storage.from(DIAG_BUCKET)
-      .upload(caminho, ft.blob, { contentType: 'image/jpeg', upsert: false })
+      .upload(caminho, bytes, { contentType: ft.mime || 'image/jpeg', upsert: false })
     // reenvio de foto que já subiu: o servidor responde "já existe" — é sucesso
     if (!error || /exist|duplicate|409/i.test(String(error.message || error.statusCode || ''))) {
       ft.enviada = true
@@ -72,10 +81,11 @@ async function _dSubirFotos(f) {
       console.warn('[diag-sync] foto não subiu (fica pendente):', error.message || error)
     }
   }
-  const enviadas = (await dFotosDaFicha(f.uuid_cliente)).filter(ft => ft.enviada)
-  return { falhas, payload: enviadas.map(ft => ({
+  const todas = await dFotosDaFicha(f.uuid_cliente)
+  return { falhas, perdidas, registradas: todas.length, payload: todas.filter(ft => ft.enviada).map(ft => ({
     uuid_cliente: ft.uuid_cliente, tema: ft.tema, pergunta_chave: ft.pergunta_chave || null,
     legenda: ft.legenda || null, arquivo_url: ft.arquivo_url, tirada_em: ft.tirada_em,
+    lat: ft.lat ?? null, lon: ft.lon ?? null, gps_precisao_m: ft.gps_precisao_m ?? null, gps_origem: ft.gps_origem || null,
   })) }
 }
 
@@ -91,6 +101,7 @@ function _dPayloadFicha(f) {
     entrevistado_nome: f.entrevistado_nome || null, obs_localizacao: f.obs_localizacao || null,
     lat: f.lat ?? null, lon: f.lon ?? null, gps_precisao_m: f.gps_precisao_m ?? null, gps_em: f.gps_em || null,
     app_versao: DIAG_APP_VERSAO, dispositivo_id: f.dispositivo_id || null, treino: !!f.treino,
+    fotos_registradas: f.aceitou_participar ? (f._fotos_registradas || 0) : 0,
   }
 }
 
@@ -105,6 +116,7 @@ async function dSyncEnviarFicha(f) {
     f.estado = 'pronta'; await dFichaSalvar(f)
     return 'rede'
   }
+  f._fotos_registradas = fotos.registradas
   for (let tentativa = 0; tentativa < 2; tentativa++) {
     let resp
     try {
@@ -121,6 +133,8 @@ async function dSyncEnviarFicha(f) {
       f.alertas = (resp.data && resp.data.alertas) || []
       f.enviada_em = new Date().toISOString()
       f.fotos_pendentes = fotos.falhas > 0
+      f.fotos_nao_enviadas = fotos.falhas
+      f.fotos_perdidas = fotos.perdidas
       f.erro_msg = null
       f.motivo_devolucao = null
       await dFichaSalvar(f)

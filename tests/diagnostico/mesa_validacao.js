@@ -129,6 +129,8 @@ function semear() {
   const rpc = (f, m, ft) => psql('select public.diag_enviar_ficha($a$' + f + '$a$::jsonb, $b$' + m + '$b$::jsonb, $c$' + ft + '$c$::jsonb)', TEC)
   rpc(ficha(u1, 'DSA-XAP-261002-MESA-01', { sexo_genero: 'mulher', idade: 40, qtd_moradores: 2, agua_fonte: 'outro', agua_fonte_outro: 'cacimba', agua_falta: '_nr' }), mor, fotos)
   rpc(ficha(u2, 'DSA-XAP-261002-MESA-02', { sexo_genero: 'mulher', idade: 55, qtd_moradores: 2 }), mor, '[]')
+  // o celular registrou 2 fotos, só 1 chegou (a outra ficou no aparelho)
+  psql("update public.diag_fichas set fotos_registradas = 2 where codigo = 'DSA-XAP-261002-MESA-01'")
   psql("insert into public.usuarios values ('" + COORD + "','Coord','co@x','coordenacao',true) on conflict do nothing")
   // consultor externo precisa da permissão do módulo
   psql("insert into public.usuarios values ('" + CONS + "','Consultora','ce@x','consultor_externo',true) on conflict do nothing")
@@ -172,6 +174,7 @@ function semear() {
   if (!/aviso\(s\) da revisão/.test(corpo)) falhar('avisos da revisão ausentes')
   if (!(await page.locator('.dgv-resp.aviso', { hasText: 'Não respondeu' }).count())) falhar('"Não respondeu" sem destaque')
   await page.waitForFunction(() => /^data:image/.test((document.querySelector('.dgv-foto img') || {}).src || ''))
+  if (!/registrou 2 fotos; chegaram 1/.test(await page.textContent('.dgv-fotos-faltam'))) falhar('mesa sem o aviso de fotos que não chegaram')
   await foto('mesa_ficha')
   ok('ficha: avisos, identificação, moradores (v2), "especifique" e foto assinada')
 

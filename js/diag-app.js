@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.6.3'
+const DIAG_APP_VERSAO = '1.7.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -98,6 +98,8 @@ async function boot() {
   atualizarBotoesInstalar()
   await dOfflineInit()
   dPersistir()
+  // fotos antigas (Blob) → bytes; as que voltarem vazias ficam marcadas como perdidas
+  dFotosMigrarLegado().catch(e => console.warn('[diag-app] migração de fotos:', e))
   ligarEventos()
   App.usuario = await dConfigGet('usuario_atual')
   if (App.usuario && await dConfigGet('pin_' + App.usuario.id)) abrirPin('entrar')
@@ -298,6 +300,9 @@ async function desenharInicio() {
         '<span class="meio"><span class="cod">' + esc(f.codigo) + (f.treino ? ' <span class="selo selo-treino">treino</span>' : '') + '</span>' +
         '<span class="sub">' + esc([loc ? com + ' / ' + loc : com, mun, f.aceitou_participar ? '' : 'recusa'].filter(Boolean).join(' · ')) + '</span>' +
         (f.erro_msg ? '<span class="sub" style="color:var(--erro)">' + esc(f.erro_msg) + '</span>' : '') +
+        (f.estado === 'enviada' && (f.fotos_nao_enviadas || f.fotos_perdidas)
+          ? '<span class="sub" style="color:var(--aviso)">⚠ ' + [f.fotos_nao_enviadas ? f.fotos_nao_enviadas + ' foto(s) ainda não enviada(s) — toque em Sincronizar' : '',
+              f.fotos_perdidas ? f.fotos_perdidas + ' foto(s) perdida(s) no celular' : ''].filter(Boolean).join(' · ') + '</span>' : '') +
         (f.motivo_devolucao && f.status_servidor === 'devolvida' ? '<span class="sub" style="color:var(--aviso)">' + esc(f.motivo_devolucao) + '</span>' : '') +
         '</span><span class="selo selo-' + esc(selo) + '">' + esc(rot) + '</span></button>'
     }).join('')).join('') || '<p class="dica" style="text-align:center;margin-top:24px">Nenhuma entrevista neste aparelho.</p>'
@@ -485,6 +490,7 @@ function desenharBloco(destacar) {
   document.getElementById('ficha-prog').style.width = Math.round(100 * (App.bloco + 1) / bs.length) + '%'
   const corpo = document.getElementById('ficha-corpo')
   corpo.innerHTML = DiagForm.renderBloco(App.bloco, destacar)
+  if (b.id === '_fotos') DiagFoto.aquecerGps()   // GPS esquenta enquanto a pessoa enquadra
   corpo.querySelectorAll('.foto img').forEach((img, i) => { if (App.fotos[i] && App.fotos[i]._url) img.src = App.fotos[i]._url })
   // botões ficam no FIM do bloco (depois da última pergunta), não fixos
   document.getElementById('fim-bloco-txt').textContent = 'Fim do bloco ' + (App.bloco + 1) + ' de ' + bs.length + ' · ' + b.titulo
@@ -529,26 +535,41 @@ async function carregarFotos() {
   App.fotos.forEach(ft => { if (ft._url && ft._url.startsWith('blob:')) URL.revokeObjectURL(ft._url) })
   App.fotos.length = 0
   const lista = await dFotosDaFicha(App.ficha.uuid_cliente)
-  lista.forEach(ft => { ft._url = ft.blob ? URL.createObjectURL(ft.blob) : '' ; App.fotos.push(ft) })
+  lista.forEach(ft => {
+    const dados = ft.bytes ? new Blob([ft.bytes], { type: ft.mime || 'image/jpeg' }) : ft.blob
+    ft._url = dados && dados.size ? URL.createObjectURL(dados) : ''
+    App.fotos.push(ft)
+  })
 }
-async function comprimir(arquivo) {
-  const img = await createImageBitmap(arquivo)
-  const escala = Math.min(1, 1600 / Math.max(img.width, img.height))
-  const c = document.createElement('canvas')
-  c.width = Math.round(img.width * escala); c.height = Math.round(img.height * escala)
-  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
-  return new Promise(res => c.toBlob(res, 'image/jpeg', 0.8))
-}
+// Foto: GPS do momento (ou da ficha), carimbo, 1280 px, JPEG ≤ 350 KB, EXIF —
+// tudo em js/diag-foto.js. Guardada como BYTES e relida na hora: se não voltar
+// íntegra do armazenamento, avisa já (é o único momento de tirar de novo).
 async function adicionarFoto(arquivo, tema, legenda) {
   if (App.fotos.length >= 8) { aviso('Limite de 8 fotos por ficha.', 'aviso'); return }
+  const f = App.ficha
   try {
-    const blob = await comprimir(arquivo)
-    const ft = { uuid_cliente: uuid(), ficha_uuid: App.ficha.uuid_cliente, blob, tema,
-                 legenda: legenda || null, tirada_em: new Date().toISOString(), enviada: false }
+    aviso('Processando a foto…', 'info')
+    let gps = await DiagFoto.lerGps(10000), origem = gps ? 'foto' : null
+    if (!gps && f.lat != null && f.lon != null) { gps = { lat: +f.lat, lon: +f.lon, precisao: f.gps_precisao_m != null ? +f.gps_precisao_m : null }; origem = 'ficha' }
+    const quando = new Date()
+    const r = await DiagFoto.processar(arquivo, {
+      codigo: f.codigo, tema: DiagForm.ROTULO_TEMA[tema] || tema, entrevistador: App.usuario && App.usuario.nome_completo,
+      gps, gpsOrigem: origem, quando, appVersao: DIAG_APP_VERSAO })
+    const ft = { uuid_cliente: uuid(), ficha_uuid: f.uuid_cliente, bytes: r.bytes, mime: r.mime, tamanho: r.tamanho,
+                 tema, legenda: legenda || null, tirada_em: quando.toISOString(), enviada: false,
+                 lat: gps ? gps.lat : null, lon: gps ? gps.lon : null,
+                 gps_precisao_m: gps && gps.precisao != null ? Math.round(gps.precisao * 10) / 10 : null, gps_origem: origem }
     await dFotoSalvar(ft)
+    const volta = await dFotoObter(ft.uuid_cliente)
+    if (!volta || !volta.bytes || volta.bytes.byteLength !== r.tamanho) {
+      await dFotoApagar(ft.uuid_cliente)
+      aviso('A foto não foi guardada no celular. Tire de novo.', 'erro')
+      return
+    }
     await carregarFotos(); desenharBloco()
+    aviso('Foto guardada (' + Math.round(r.tamanho / 1024) + ' KB' + (gps ? '' : ', sem GPS') + ').', gps ? 'ok' : 'aviso')
   } catch (e) {
-    console.warn(e); aviso('Não foi possível guardar a foto.', 'erro')
+    console.warn(e); aviso('Não foi possível guardar a foto. Tire de novo.', 'erro')
   }
 }
 async function removerFoto(uuidFoto) {

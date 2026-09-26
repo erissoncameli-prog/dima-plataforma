@@ -203,9 +203,11 @@ const DiagForm = (function () {
     const n = (ctx.fotos || []).length
     let html = '<div class="faixa faixa-aviso"><b>Nunca fotografe pessoas.</b> Só a casa, a fonte de água, o esgoto, o lixo, a área de produção, o acesso ou o problema ambiental. A família pode recusar.</div>'
     html += '<div class="fotos">' + (ctx.fotos || []).map(ft =>
-      '<div class="foto"><img alt="Foto: ' + h(ft.tema) + '" src="' + h(ft._url || '') + '">' +
+      '<div class="foto' + (ft.perdida ? ' perdida' : '') + '">' + (ft.perdida
+        ? '<span class="foto-perdida">Foto perdida no celular — tire de novo</span>'
+        : '<img alt="Foto: ' + h(ft.tema) + '" src="' + h(ft._url || '') + '">') +
       '<span class="rot-foto">' + h(ROTULO_TEMA[ft.tema] || ft.tema) + (ft.legenda ? ' · ' + h(ft.legenda) : '') + '</span>' +
-      (ft.enviada ? '' : '<button type="button" class="remover" data-acao="foto-remover" data-uuid="' + h(ft.uuid_cliente) + '" aria-label="Remover foto">✕</button>') +
+      (ft.enviada && !ft.perdida ? '' : '<button type="button" class="remover" data-acao="foto-remover" data-uuid="' + h(ft.uuid_cliente) + '" aria-label="Remover foto">✕</button>') +
       '</div>').join('') + '</div>'
     if (n < 8) {
       html += '<label class="rot" for="foto-tema">O que vai fotografar?</label><select class="campo" id="foto-tema">' +

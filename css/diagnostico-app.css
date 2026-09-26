@@ -323,3 +323,7 @@ body.treino .topo { top: 28px; background: #7C2D12; }
 #t-inicio > .tela { flex: 1; width: 100%; }
 #t-inicio .topo h1 { min-width: 0; }
 #t-inicio .lg-rodape { margin-top: 16px; }
+
+/* foto que voltou vazia do armazenamento do celular */
+.foto.perdida { display: flex; align-items: center; justify-content: center; background: var(--aviso-bg); border: 1px dashed #FCD34D; min-height: 90px; }
+.foto-perdida { font-size: 12px; color: #92400E; text-align: center; padding: 8px; }

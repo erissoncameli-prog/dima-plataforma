@@ -355,6 +355,11 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   consultor externo NÃO lê. Fotos (`diag_fotos`, bucket privado
   `diagnostico-fotos`, caminho `<uuid_cliente da ficha>/<uuid_foto>.jpg`) seguem
   a mesma regra. Nunca mover esses campos para `diag_fichas`.
+- **Foto de campo** (`js/diag-foto.js`): carimbo visível + EXIF (GPS, data/hora
+  -05:00, Artist), 1280 px, JPEG ≤ 350 KB, bucket ≤ 1 MB. **Guardar como bytes
+  (ArrayBuffer), nunca Blob** — Blob no IndexedDB volta vazio no iPhone (fotos
+  chegaram com 0 byte). `diag_fotos.lat/lon/gps_precisao_m/gps_origem` e
+  `diag_fichas.fotos_registradas` (mesa: "registrou N; chegaram X").
 - **Acesso** (regra única em `fn_diag_pode_aplicar/gerir/consultar/ver_numeros`):
   técnico + `tem_permissao('diagnostico')` aplica e vê só as próprias;
   coordenação/super_admin gerem (coordenação NÃO aplica); consultor externo +

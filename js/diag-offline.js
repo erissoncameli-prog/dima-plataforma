@@ -98,6 +98,7 @@ async function dFichaApagarLocal(uuid) {
 
 // ── Fotos (blob comprimido no aparelho) ─────────────────────────────────
 function dFotoSalvar(ft) { return _dTx('fotos', 'readwrite', s => s.put(ft)).then(() => ft) }
+function dFotoObter(uuid) { return _dTx('fotos', 'readonly', s => s.get(uuid)) }
 function dFotoApagar(uuid) { return _dTx('fotos', 'readwrite', s => s.delete(uuid)) }
 function dFotosDaFicha(fichaUuid) {
   return _dTx('fotos', 'readonly', s => s.index('ficha_uuid').getAll(fichaUuid)).then(l => l || [])
@@ -138,7 +139,8 @@ async function dLimparConfirmadas() {
   const limite = Date.now() - DIAG_RETENCAO_CONFIRMADAS_MS
   let n = 0
   for (const f of todas || []) {
-    if (f.estado === 'enviada' && f.enviada_em && Date.parse(f.enviada_em) < limite) {
+    // foto que ainda não subiu segura a ficha no aparelho (senão se perderia)
+    if (f.estado === 'enviada' && f.enviada_em && Date.parse(f.enviada_em) < limite && !f.fotos_pendentes) {
       const fotos = await dFotosDaFicha(f.uuid_cliente)
       for (const ft of fotos) await dFotoApagar(ft.uuid_cliente)
       await _dTx('fichas', 'readwrite', s => s.delete(f.uuid_cliente))
@@ -151,4 +153,22 @@ async function dLimparConfirmadas() {
 async function dPersistir() {
   try { return navigator.storage && navigator.storage.persist ? await navigator.storage.persist() : false }
   catch (e) { return false }
+}
+
+// Fotos guardadas até a 1.6.x eram Blob — no iPhone o Blob volta VAZIO do
+// IndexedDB (fotos chegaram com 0 byte). Converte para bytes as que ainda
+// puderem ser lidas; as vazias ficam marcadas como perdidas (com aviso).
+async function dFotosMigrarLegado() {
+  const todas = (await _dTx('fotos', 'readonly', s => s.getAll())) || []
+  let convertidas = 0, perdidas = 0
+  for (const ft of todas) {
+    if (ft.bytes || !ft.blob || ft.enviada) continue
+    let buf = null
+    try { buf = await ft.blob.arrayBuffer() } catch (e) { buf = null }
+    if (buf && buf.byteLength > 0) { ft.bytes = buf; ft.mime = ft.blob.type || 'image/jpeg'; ft.tamanho = buf.byteLength; convertidas++ }
+    else { ft.perdida = true; perdidas++ }
+    delete ft.blob
+    await dFotoSalvar(ft)
+  }
+  return { convertidas, perdidas }
 }

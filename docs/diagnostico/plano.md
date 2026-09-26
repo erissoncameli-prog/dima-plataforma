@@ -598,9 +598,11 @@ validação, a foto que tiver pessoa.
   `uuid_cliente` porque a ficha ainda não tem `id` do servidor quando a foto é
   tirada offline. A policy do bucket lê a 1ª pasta e aplica o acesso da ficha,
   mesmo padrão de `tarefas-anexos`.
-- Compressão no aparelho antes de entrar na fila (`foto-otimizar.js`, ~1600 px,
-  JPEG). Reencodar pelo canvas **remove o EXIF**, inclusive o GPS embutido na
-  foto. Isso é desejado: a localização oficial é a da ficha.
+- ~~Compressão sem EXIF~~ — **revisto em 26/09 (§6.11)**: a foto sai com
+  **carimbo visível** (código · tema, data/hora do Acre, GPS, entrevistador) e
+  **EXIF** (GPS, data/hora, Artist). O arquivo passa a carregar a localização
+  da casa; continua dado de identificação (mesmo acesso, nunca em exportação,
+  apagado em 2 anos). Compressão em `js/diag-foto.js`: 1280 px, JPEG ≤ 350 KB.
 
 **Envio:** a fila sobe as fotos primeiro e depois chama a RPC da ficha (ordem do
 `agua-sync.js`). Foto que falhar não segura a ficha: a ficha vai, e a foto fica
@@ -1114,3 +1116,27 @@ Migração `20260926_diag_12_v3_doutorado_painel.sql`:
 - **Questionário v3**: escolaridade com "Doutorado incompleto/completo". v2
   arquivada (nenhuma ficha real nela).
 
+
+### 6.11 Fotos com carimbo, EXIF e envio confiável *(26/09)*
+
+Problema real: a TRE-BUJ-260926-PVRQ-01 chegou sem fotos — o iPhone enviou
+os arquivos com **0 byte** ("No content provided"). A foto era guardada como
+*Blob* no IndexedDB e o WebKit a devolve vazia. A falha era silenciosa.
+
+Migração `20260926_diag_13_fotos_carimbo.sql` + `js/diag-foto.js`:
+- foto guardada como **bytes** (ArrayBuffer), relida logo após tirar; se não
+  voltar íntegra, o app avisa na hora ("tire de novo"). Envio dos bytes
+  direto (sem multipart). Foto vazia vira "perdida" (não é reenviada para
+  sempre); fotos antigas (Blob) são convertidas ao abrir a versão 1.7.0;
+- **carimbo** no pé da foto e **EXIF** (GPS, DateTimeOriginal com fuso -05:00,
+  Artist, ImageDescription; campos EXIF sem acento — ASCII); GPS lido no
+  momento da foto (até 10 s, funciona sem internet), senão o da ficha
+  ("local da ficha"), senão "GPS indisponível" — nunca bloqueia;
+- 1280 px, JPEG 0,72, teto 350 KB (reduz qualidade e depois tamanho);
+  bucket limitado a 1 MB. Foto de teste 2560×1440 (665 KB) → 197 KB;
+- `diag_fotos.lat/lon/gps_precisao_m/gps_origem` e
+  `diag_fichas.fotos_registradas`: a mesa mostra "registrou N; chegaram X";
+  o app mostra fotos não enviadas/perdidas na lista; ficha com foto pendente
+  não sai do aparelho na limpeza de 7 dias;
+- **LGPD**: a foto baixada carrega a localização exata da casa. Registrado no
+  ROPA (TRAT-001) e no RIPD; dar ciência ao Encarregado.
