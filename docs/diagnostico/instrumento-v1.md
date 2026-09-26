@@ -74,9 +74,11 @@
   principal usam o mesmo mecanismo da P55 (plano §3.10). As respostas repetidas
   aparecem como sugestão e a grafia converge sem virar lista fechada.
   **O nome do morador nunca entra nas sugestões.**
-- **❓ O entrevistado entra na P9?** Proposta: sim, na 1ª linha, marcado como
-  `e_entrevistado` — evita dupla contagem e permite recortar por posição no domicílio.
-- **❓ Sexo/gênero na P9** usa as mesmas 4 opções da P5.
+- **Entrevistado na 1ª linha ✅** *(decidido em 26/09)*: o app preenche a 1ª
+  linha com idade e sexo/gênero já respondidos na P5/P6, marcada como
+  `e_entrevistado`. Evita dupla contagem e permite recortar por posição no domicílio.
+- **Sexo/gênero na P9 ✅** *(decidido em 26/09)*: mesmas 4 opções da P5 (Mulher ·
+  Homem · Outro · Prefere não responder), com "especifique" no Outro.
 
 ## Bloco 2 — Moradia e infraestrutura (P10–P15)
 

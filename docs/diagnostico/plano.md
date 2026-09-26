@@ -565,19 +565,22 @@ lê-los.
 | Perfil | Aplicar | Ver fichas | Identificação (nome) | Validar/devolver | Exportar identificado | Agregados |
 |--------|---------|-----------|----------------------|------------------|----------------------|-----------|
 | `super_admin` | ✅ | todas | ✅ | ✅ | ✅ | ✅ |
-| `coordenacao` | ✅¹ | todas | ✅ | ✅ | ✅ | ✅ |
-| `tecnico` + `tem_permissao('diagnostico')` | ✅ | **só as próprias** | só as próprias | — | — | ✅² |
+| `coordenacao` | — *(26/09)* | todas | ✅ | ✅ | ✅ | ✅ |
+| `tecnico` + `tem_permissao('diagnostico')` | ✅ | **só as próprias** | só as próprias | — | — | ✅ gerais, com supressão *(26/09)* |
 | `tecnico` sem permissão | — | — | — | — | — | — |
 | `financeiro` | — | — | — | — | — | — *(26/09)* |
 | `consultor_externo` + `tem_permissao('diagnostico')` | — | **todas, só leitura** *(26/09)* | **não** | — | — (só exportação padrão, sem identificação) | ✅ |
 | `visualizador` | — | — | — | — | — | ✅ (com supressão) |
 
-¹ ❓ Coordenação aplica questionário? Se sim, entra no mesmo fluxo de ficha.
-² ❓ Técnico vê o agregado geral ou só o das próprias fichas?
+- **Coordenação não aplica questionário** *(26/09)*: valida, devolve e exporta.
+  Quem aplica é o técnico com permissão. O `super_admin` mantém o "tudo".
+- **Técnico vê os números gerais** *(26/09)*: indicadores de todo o diagnóstico,
+  pela mesma função de agregados com supressão do `visualizador` (§4.4). Fichas
+  individuais continua vendo só as próprias.
 
-**Consultor externo (26/09):** vê a ficha individual (respostas, moradores sem
+**Consultor externo (26/09, confirmado):** vê a ficha individual (respostas, moradores sem
 nome, comunidade, alertas), mas **não** os dados de identificação (nome do
-entrevistado, nomes dos moradores, GPS preciso). Proposta: o acesso depende da
+entrevistado, nomes dos moradores, GPS preciso). O acesso depende da
 mesma concessão com prazo (`tem_permissao('diagnostico')`) dada pelo
 `super_admin`, porque nem todo consultor externo trabalha no diagnóstico. A P55
 (sindicato) e os textos abertos ficam visíveis na ficha, por isso o acesso é
@@ -596,7 +599,7 @@ mesmo padrão de `fn_pode_ver_tarefa` no Painel de Tarefas:
 
 ```
 fn_diag_pode_aplicar() = usuário ativo
-                         AND (perfil IN ('super_admin','coordenacao')
+                         AND (perfil = 'super_admin'
                               OR (perfil = 'tecnico' AND tem_permissao('diagnostico')))
 fn_diag_pode_gerir()   = usuário ativo AND perfil IN ('super_admin','coordenacao')
 fn_diag_pode_consultar() = usuário ativo AND perfil = 'consultor_externo'
@@ -620,28 +623,28 @@ volta à cidade no dia 12. Com a regra acima o envio é recusado e o trabalho de
 campo fica preso no aparelho — viola "nada bloqueia o trabalho de campo".
 
 Proposta: a RPC aceita o envio se a permissão estava válida em `finalizada_em`
-**e** o envio ocorre até **N dias** (sugestão: 15) depois do `valido_ate`. A
+**e** o envio ocorre até **15 dias** *(decidido em 26/09)* depois do `valido_ate`. A
 data do aparelho não é confiável sozinha, por isso a tolerância é limitada e a
 ficha que usar a carência ganha um `alerta` para a coordenação conferir. Fora da
 carência: a ficha fica no aparelho como "aguardando renovação de acesso", nunca
 é apagada, e o `super_admin` renova o prazo.
 
-### 4.4 Agregados para `visualizador`
+### 4.4 Agregados para `visualizador` e `tecnico`
 
-(O `consultor_externo` com permissão lê as fichas e usa as views diretamente;
-esta seção vale para o `visualizador`.) Esse perfil **não lê linha nenhuma** das tabelas `diag_*` — então uma view
-`security_invoker` devolveria vazio para eles. A saída é uma função
+(O `consultor_externo` com permissão lê as fichas e usa as views diretamente.)
+O `visualizador` **não lê linha nenhuma** das tabelas `diag_*`, e o `tecnico` só
+lê as próprias fichas. Uma view `security_invoker` devolveria vazio ou só a
+parte dele. A saída é uma função
 `fn_diag_agregados(p_municipio, p_comunidade, …)` SECURITY DEFINER que:
 
 - confere o perfil do chamador;
 - lê `vw_diag_indicadores` (a mesma fonte do painel da coordenação — nunca um
   segundo cálculo);
-- **suprime células com menos de 5 fichas** (ou agrega para o município), porque
+- **suprime células com menos de 5 fichas** *(limite decidido em 26/09)* (ou agrega para o município), porque
   numa comunidade de 3 famílias "33% relatam filiação a sindicato" identifica a família;
 - nunca devolve texto aberto, nome, GPS nem moradores.
 
 É a mesma lógica das funções `fn_publico_*` do DIMA, aplicada a perfis logados.
-❓ Limite de supressão (5 é o usual) a confirmar.
 
 ### 4.5 Integração com o que já existe
 
@@ -730,13 +733,14 @@ Dois "salvar" diferentes, para não confundir:
 5. P54/P55 (sindicato): ✅ mantidas, P55 com sugestões. Resta ao jurídico
    confirmar a base legal para esse dado sensível (art. 11).
 6. ~~Prazo de retenção~~ — ✅ **2 anos** para nome, nomes de moradores e GPS preciso *(26/09)*.
-7. RIPD antes do campo?
+7. RIPD (Relatório de Impacto à Proteção de Dados, art. 38) antes do campo? Recomendado:
+   dado sensível (P55), nomes de crianças (P9) e população vulnerável.
 
 **Acesso e produto (você)**
-8. Coordenação aplica questionário? Técnico vê agregado geral ou só o seu?
+8. ~~Coordenação aplica? Agregado do técnico?~~ — ✅ coordenação não aplica; técnico vê os números gerais.
 9. ~~`financeiro`~~ — ✅ sem acesso.
-10. Limite de supressão para agregados (5 fichas?).
-11. Carência de envio após vencimento da permissão (15 dias?).
+10. ~~Supressão~~ — ✅ mínimo de 5 fichas.
+11. ~~Carência~~ — ✅ 15 dias.
 12. Foto entra na v1?
 13. ~~Matriz~~ — ✅ alimenta; itens definidos depois, em etapa própria (§3.11).
 14. ~~Hospedagem~~ — ✅ DIMA inteiro na Vercel.
