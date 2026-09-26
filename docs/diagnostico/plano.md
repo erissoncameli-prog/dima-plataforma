@@ -53,7 +53,8 @@ inventar:
    com sugestões; o nome do morador é aceito (não só iniciais) *(26/09)*.
 4. ~~**Unidade da P38**~~: ✅ hectares *(26/09)*.
 5. ~~**"Outro" sem especifique**~~: ✅ campo "especifique" incluído em todas *(26/09)*.
-6. **Código de não resposta** (hoje só a P5 tem).
+6. ~~**Código de não resposta**~~: ✅ botão "Não respondeu" em toda pergunta +
+   tela de revisão antes de salvar a ficha *(26/09)*.
 7. ~~**Assimetria P61 × P62**~~: ✅ mantidas as listas diferentes, ambas múltiplas
    *(26/09)*. O comparativo usa só as opções comuns.
 8. ~~**Domicílio sem mulher/sem homem**~~ — ✅ resolvido pela derivação D2 *(26/09)*.
@@ -582,6 +583,15 @@ Diferença do SIGUC Água: aqui há **rascunho longo** (entrevista de 45–70 mi
 pode ser interrompida). O rascunho precisa ser salvo a cada resposta, não só ao
 final.
 
+Dois "salvar" diferentes, para não confundir:
+- **Rascunho automático** — cada resposta é gravada no aparelho na hora, sem
+  botão. Se o app fechar, a bateria acabar ou o técnico interromper a
+  entrevista, nada se perde.
+- **Salvar a ficha (concluir)** — passa pela **tela de revisão** (decidido em
+  26/09; ver inventário, "Pontos transversais" item 2). Só depois dela a ficha
+  entra na fila de envio. A revisão avisa e não trava: a ficha pode ser
+  concluída com pendências, que seguem em `alertas`.
+
 ### 5.3 Decisões em aberto de segurança do aparelho
 
 - ❓ **Cifrar a fila local** com chave derivada do PIN: protege aparelho
@@ -609,7 +619,8 @@ final.
 ## 7. Perguntas para fechar a Fase 0
 
 **Instrumento (equipe do diagnóstico)**
-1. O que resta da §1.2: código de "não respondeu".
+1. ✅ Todas as lacunas da §1.2 fechadas *(26/09)*. Próximo passo: piloto com 5
+   questionários antes de publicar a v1.
 2. ~~Nome oficial~~ — ✅ **Diagnóstico Socioambiental**.
 
 **LGPD (jurídico)**

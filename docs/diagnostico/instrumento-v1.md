@@ -285,14 +285,23 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
    - O "especifique" de Sexo/gênero (P5 e P9) **nunca** entra nas sugestões.
      Nos demais, as sugestões ficam **desligadas** por enquanto e podem ser
      ligadas pergunta a pergunta na estrutura (`"sugestoes": true`).
-2. **❓ Não resposta (ainda não decidido).** O PDF só tem "Prefere não responder" na P5. Sem um código
-   de não resposta, pergunta em branco fica ambígua (pulou por salto? esqueceu?
-   recusou?). Proposta: toda pergunta aceita "Não respondeu" (botão discreto,
-   não é uma opção da lista), gravado como valor especial. **Exceção: P4**
-   (nome), o nome do morador na P9 e os campos "especifique", que são
-   opcionais: em branco é resposta válida. Assim o app pode
-   exigir que toda pergunta **aplicável** tenha resposta ou "Não respondeu" —
-   controle de qualidade sem obrigar o entrevistado a responder.
+2. **Botão "Não respondeu" + revisão antes de salvar ✅** *(decidido em 26/09)*.
+   O PDF só tem "Prefere não responder" na P5. Sem distinção, pergunta em branco
+   fica ambígua: recusa, esquecimento ou salto?
+   - Toda pergunta tem um botão discreto **"Não respondeu"**, separado das
+     opções da lista e gravado como valor especial.
+   - Pergunta pulada por salto é marcada pelo app como "não se aplica", sem
+     ação do técnico.
+   - **Revisão antes de salvar:** ao concluir a entrevista, o app mostra uma
+     tela de revisão com as perguntas aplicáveis que ficaram em branco, os
+     "Outro" sem especificação e os avisos V1/V2. O técnico volta à pergunta ou
+     marca "Não respondeu". A revisão **avisa, não trava**: é possível concluir
+     com pendências, e elas vão para `alertas` da ficha.
+   - **Exceções** (em branco é válido e não aparece na revisão): P4, nome do
+     morador na P9 e campos "especifique". O "especifique" vazio aparece na
+     revisão só como lembrete.
+   - Indicador: quem marcou "Não respondeu" sai do denominador e é informado à
+     parte ("2 não responderam").
 3. **Três níveis de análise misturados** (domicílio, percepção individual e fato
    da comunidade). Perguntas de nível `C` são respondidas por cada domicílio,
    então haverá N respostas por comunidade — o indicador delas é "% dos
