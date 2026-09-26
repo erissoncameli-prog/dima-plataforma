@@ -387,8 +387,11 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
 - Configurações do app no padrão SIGUC (atualização via service worker,
   instalar aqui/QR para `pages/instalar-diagnostico.html`, privacidade).
   QR com `js/qrcode-generator.js` (MIT, cópia do SIGUC), gerado offline.
-- Mesa mínima: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`):
-  Visão geral (contagens, apagar treino) e aba Admin (comunidades e sublocalidades).
+- Mesa: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`): Visão geral
+  (contagens, apagar treino), aba **Validação** (`js/diagnostico-validacao.js`: lista,
+  ficha aberta, validar/devolver/descartar/reabrir **só pela RPC `diag_mudar_status`**,
+  apagar foto; consultor externo vê a aba "Fichas" só leitura, sem identificação) e
+  aba Admin (comunidades e sublocalidades).
 - App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +
   `gerarLayout`; não chama `carregarUsuario()`), service worker na raiz
   `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.
