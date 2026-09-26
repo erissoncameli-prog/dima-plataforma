@@ -13,7 +13,7 @@ Este arquivo é lido automaticamente pelo Claude Code a cada sessão. Contém o 
 | Backend / Banco | Supabase (PostgreSQL + Auth + RLS + Edge Functions) |
 | Edge Functions | Deno + TypeScript (`npm:@anthropic-ai/sdk`, `npm:@supabase/supabase-js`) |
 | IA | Claude (`claude-sonnet-4-5` ou `claude-sonnet-4-6`) via Anthropic SDK |
-| Hospedagem | GitHub Pages (branch `main`) |
+| Hospedagem | Vercel (deploy a partir da branch `main`) |
 | Project ID Supabase | `wfymnmlinonvdqfucjya` (Projeto-SEMA-UNESCO) |
 
 ---

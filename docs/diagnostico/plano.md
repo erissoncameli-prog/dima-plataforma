@@ -26,6 +26,12 @@
 | LGPD | entrada no ROPA, aviso ao entrevistado, base legal a definir com o jurídico |
 | Nome | **Diagnóstico Socioambiental** (rótulo de tela, ROPA e relatórios); módulo `diagnostico` no código *(decidido em 26/09)* |
 | P4 — nome do entrevistado | **opcional** *(decidido em 26/09)* — ver §2.2 e §3.3 |
+| Uso do dado | **apenas uso interno da SEMA** *(26/09)*. Ficha, moradores e textos não saem da SEMA; para fora vão só os valores de indicador da Matriz (§3.11) |
+| Retenção | **2 anos** para os dados identificados *(26/09)* — ver §2.5 |
+| `financeiro` | **sem acesso** ao módulo *(26/09)* |
+| Matriz de Resultados | o diagnóstico **alimenta a Matriz** *(26/09)* — ver §3.11 |
+| Hospedagem | **o DIMA inteiro está na Vercel** *(26/09)* |
+| ROPA | **passa a viver no banco agora** (`lgpd_tratamentos`) *(26/09)* — ver §2.5 |
 
 ---
 
@@ -141,8 +147,8 @@ nominal de famílias vulneráveis.
    - fica fora de `vw_diag_respostas`/`vw_diag_indicadores`, de `fn_diag_agregados`
      e das sugestões, e só é lido por quem lê a ficha (entrevistador e coordenação);
    - sai só na exportação identificada da coordenação, nunca na padrão;
-   - entra na regra de retenção junto com a P4, sendo zerado quando o prazo
-     vencer (§2.5).
+   - entra na regra de retenção junto com a P4, sendo zerado depois de **2 anos**
+     (§2.5).
 2. **P4 (nome do entrevistado) — ✅ decidido: opcional.** Consequências:
    - o campo fica em branco por padrão e o app **não cobra** preenchimento nem
      "Não respondeu" nele (é a única pergunta de identificação fora dessa regra);
@@ -178,7 +184,7 @@ diagnóstico, as hipóteses candidatas são:
 |------|-----------|------------|
 | Dados pessoais comuns | art. 7º, III (política pública) ou art. 7º, IV (estudo por órgão de pesquisa, com anonimização sempre que possível) | IV só se aplica se o executor for órgão de pesquisa — confirmar |
 | Dado sensível (sindicato, saúde) | art. 11, II, "b" (política pública) ou art. 11, II, "c" (estudo por órgão de pesquisa) | se nenhuma couber, **retirar** o dado do instrumento em vez de pedir consentimento |
-| Menores (P9) | art. 14 — melhor interesse | o nome é coletado (decisão de 26/09); precisa de justificativa no RIPD e prazo curto de retenção |
+| Menores (P9) | art. 14 — melhor interesse | o nome é coletado (decisão de 26/09); precisa de justificativa no RIPD; zerado após 2 anos |
 
 **Por que não consentimento:** consentimento dá direito de revogação a qualquer
 tempo. Revogar depois da consolidação exigiria apagar a ficha e recalcular
@@ -211,13 +217,33 @@ qualquer pergunta.
 como pendentes, e a consulta ao banco confirmou que não existe `lgpd_tratamentos`
 nem equivalente. O SIGUC tem ROPA vivo no banco (`lgpd_tratamentos`, migration 211).
 
-Proposta em dois passos:
+**✅ Decidido (26/09): o ROPA passa a viver no banco.** Molde: `lgpd_tratamentos`
+do SIGUC (migration 211). Entra como a **primeira migration da Fase 1**, antes
+das tabelas `diag_*`, porque a regra do SIGUC vale aqui: tabela nova com dado
+pessoal ganha entrada no ROPA na mesma entrega. Desenho proposto:
 
-1. **Agora (Fase 0):** o rascunho abaixo, em Markdown, é suficiente para levar
-   ao jurídico. Depois de revisado, vira `docs/diagnostico/ropa-diagnostico.md`.
-2. **Decisão separada (fora deste módulo):** trazer o padrão `lgpd_tratamentos`
-   do SIGUC para o DIMA, com a coluna `tabelas` apontando as tabelas reais. Se
-   aprovado, o diagnóstico vira a primeira linha.
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| `id` | uuid PK | |
+| `codigo` | text UNIQUE | `TRAT-001`… |
+| `nome` / `finalidade` | text NOT NULL | |
+| `modulo` | text | `diagnostico`, `viagens`… |
+| `base_legal` / `base_legal_detalhe` | text NOT NULL | `text` + `CHECK`, não enum. `a_definir` é permitido e fica visível como pendência |
+| `categorias_titulares` / `categorias_dados` | text[] | |
+| `dado_sensivel` / `dado_de_menor` | boolean | |
+| `tabelas` | text[] | tabelas reais que materializam o tratamento. É o que permite auditar o ROPA contra o schema |
+| `compartilhamento` | text | |
+| `retencao_criterio` | text NOT NULL | texto obrigatório; `NULL` em prazo ≠ "sem política" |
+| `retencao_prazo` | interval | |
+| `ativo`, `criado_em`, `atualizado_em` | | |
+
+- Leitura: `super_admin`/`coordenacao` (`TO authenticated`). Escrita: `super_admin`.
+- Tela: aba em Configurações, só leitura para a coordenação. Pode ficar para a Fase 3.
+- A Fase 1 carrega a linha do diagnóstico (abaixo). Os demais tratamentos do DIMA
+  (viagens, beneficiários, fornecedores, CAR) entram aos poucos e ficam fora do
+  escopo deste módulo. ❓ Carregar agora os que já estão mapeados no CLAUDE.md?
+
+Entrada do diagnóstico (primeira linha da tabela):
 
 Rascunho da entrada:
 
@@ -230,9 +256,9 @@ Rascunho da entrada:
 | Titulares | Entrevistados; moradores dos domicílios (inclui crianças e adolescentes); técnicos entrevistadores |
 | Categorias | Identificação mínima, composição domiciliar, localização, condições socioeconômicas, percepções; **sensíveis**: filiação sindical, saúde |
 | Base legal | a definir (§2.3) |
-| Compartilhamento | UNESCO e financiador **somente agregado**, com supressão de célula pequena (§4.4) |
+| Compartilhamento | **nenhum** — uso interno da SEMA *(26/09)*. Para UNESCO/financiador vão só os valores de indicador lançados na Matriz de Resultados (§3.11), agregados e sem dado individual |
 | Transferência internacional | Supabase/Vercel (art. 33) — pendência já conhecida do DIMA |
-| Retenção | ficha identificada até validação + prazo X; nome e GPS preciso descartados/pseudonimizados depois; agregados pelo prazo de prestação de contas do projeto |
+| Retenção | **2 anos** *(26/09)* para os dados identificados: nome do entrevistado (P4), nomes dos moradores (P9), GPS preciso, `diag_fichas_identificacao`, contados da **data da entrevista** (❓ ou da validação?). Depois, zerados por rotina agendada (pseudonimização); ficha, respostas e indicadores permanecem |
 | Segurança | RLS por perfil + permissão com prazo, identidade em tabela separada, trilha em `audit_log` em modo redigido, aparelho com PIN |
 | RIPD | **recomendado** — dado sensível + menores + população vulnerável |
 
@@ -365,8 +391,8 @@ o app gera um sufixo novo e reenvia. **A identidade real da ficha é o
 - **Bloco 9 sempre desagregado** pelo sexo do respondente (P5).
 - Só entram fichas `validada`; `enviada` aparece marcada ("em conferência"), nunca
   escondida — mesma cautela da quarentena do SIGUC Água.
-- ❓ Se o diagnóstico alimenta indicadores da Matriz de Resultados
-  (`matriz_itens`), o vínculo é feito **a partir desta view**, não de cálculo novo.
+- ✅ O diagnóstico alimenta a Matriz de Resultados *(26/09)*, sempre **a partir
+  desta view**, nunca de cálculo novo. Ver §3.11.
 
 Lista inicial de indicadores sugerida (para validar com a equipe): acesso a
 energia (P12), água tratada (P17), falta sazonal de água (P19), destino adequado
@@ -467,6 +493,45 @@ Decisão (26/09): a P55 continua em texto livre, e o que se repete vira sugestã
   conforme a recomendação)*. Na fase de campo quase nada estará validado ainda,
   e a ocultação cobre os erros. Fichas `devolvida` e `descartada` ficam de fora.
 
+
+### 3.11 Alimentar a Matriz de Resultados
+
+Decisão (26/09): o diagnóstico alimenta a Matriz. Achado no banco que define o
+desenho: `produto_matriz_contribuicao.produto_id` é FK para
+**`contratos_produtos_entregas`**, e o dashboard soma só essa tabela
+(`pages/dashboard.html`, `status = 'confirmado'`). Uma ficha de diagnóstico não é
+entrega de produto, então **não cabe** nessa tabela sem inventar uma entrega falsa.
+
+Proposta:
+1. **`diag_matriz_vinculo`**: qual indicador do diagnóstico alimenta qual
+   `matriz_itens.id`, com qual recorte (projeto todo, município, comunidade) e
+   qual medida (contagem de fichas/pessoas ou percentual). É dado, editado pela
+   coordenação, e não exige deploy.
+2. **`diag_matriz_contribuicao`**: fotografia do valor, com o mesmo ciclo da
+   contribuição de produto (`pendente → confirmado | rejeitado | cancelado`,
+   `confirmado_por/em`). O valor sai de `vw_diag_indicadores` no momento da
+   fotografia, junto com o nº de fichas e a data de corte. A coordenação
+   confirma; nada entra na Matriz sozinho. A fotografia é necessária porque o
+   indicador ao vivo muda a cada ficha, e a Matriz reportada à UNESCO não pode
+   mudar depois de confirmada.
+3. **Uma soma só:** a view `vw_matriz_contribuicoes` (`UNION ALL` de produto +
+   diagnóstico) passa a ser a fonte do dashboard. Assim a Matriz não tem duas
+   contas paralelas que possam divergir, a mesma lição do `vw_saldo_atividade`.
+   Mexer no dashboard é pequeno, mas toca uma tela em produção: entra na Fase 3,
+   com teste comparando o total antes e depois.
+
+**❓ Quais itens da Matriz?** Nenhum item ativo cita diagnóstico. Os mais próximos
+falam de pessoas capacitadas e de mulheres (1.1, 1.3, 3.1, 3.3, 3.x), mas não são
+medidos por um questionário domiciliar. Duas saídas:
+- o diagnóstico serve de **linha de base** (situação de referência) para itens
+  existentes. Exemplo: "% de mulheres com renda própria" (P65/P71) como
+  referência do item 3.x;
+- ou a coordenação **cria itens novos** na Matriz, por exemplo "Nº de famílias
+  diagnosticadas" (meta 200) ou "Comunidades com diagnóstico concluído".
+
+Preciso da lista de itens e do indicador de cada um para fechar a Fase 1. O
+desenho acima serve para as duas saídas.
+
 ---
 
 ## 4. Acesso
@@ -479,7 +544,7 @@ Decisão (26/09): a P55 continua em texto livre, e o que se repete vira sugestã
 | `coordenacao` | ✅¹ | todas | ✅ | ✅ | ✅ | ✅ |
 | `tecnico` + `tem_permissao('diagnostico')` | ✅ | **só as próprias** | só as próprias | — | — | ✅² |
 | `tecnico` sem permissão | — | — | — | — | — | — |
-| `financeiro` | — | — | — | — | — | ❓ |
+| `financeiro` | — | — | — | — | — | — *(26/09)* |
 | `consultor_externo` | — | — | — | — | — | ✅ (com supressão) |
 | `visualizador` | — | — | — | — | — | ✅ (com supressão) |
 
@@ -563,12 +628,13 @@ Esses perfis **não leem linha nenhuma** das tabelas `diag_*` — então uma vie
 
 ### 5.1 Hospedagem
 
-O CLAUDE.md diz "GitHub Pages (branch `main`)"; a decisão é Vercel. O
-repositório ainda não tem `vercel.json` nem `api/`. Para PWA isso importa já na
-Fase 2: o service worker precisa do header `Service-Worker-Allowed` e o download
-do APK depende de `api/apk-latest.js` (padrão SIGUC). ❓ Confirmar se a migração
-de hospedagem do DIMA inteiro para a Vercel já aconteceu ou se é só para o app.
-Atualizar o CLAUDE.md quando for o caso.
+✅ **O DIMA inteiro está na Vercel** *(26/09)*; o CLAUDE.md foi corrigido nesta
+entrega (dizia "GitHub Pages"). O repositório ainda não tem `vercel.json` nem
+`api/`. Para PWA isso importa já na Fase 2: o service worker precisa do header
+`Service-Worker-Allowed` e o download do APK depende de `api/apk-latest.js`
+(padrão SIGUC). O `vercel.json` novo vale para o site todo, por isso entra
+testado contra as páginas atuais, sem mudar cabeçalhos de segurança de nenhuma
+delas às cegas.
 
 ### 5.2 Offline
 
@@ -607,8 +673,8 @@ Dois "salvar" diferentes, para não confundir:
 
 | Fase | Entrega |
 |------|---------|
-| **0** | Este plano + instrumento v1 congelado + ROPA rascunho *(em andamento)* |
-| 1 | Migrations: tabelas, funções de acesso, RPC de envio, views de indicador, questionário v1 carregado; testes SQL (inclusive a fixture de saltos) |
+| **0** | Este plano + instrumento v1 congelado + entrada de ROPA *(em andamento)* |
+| 1 | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, vínculo com a Matriz, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL (inclusive a fixture de saltos) |
 | 2 | App PWA offline: login + PIN, lista de fichas, formulário renderizado da estrutura, rascunho contínuo, GPS pontual, fila de envio |
 | 3 | Mesa: validação/devolução, painel de indicadores, exportação `.xlsx` (ExcelJS, regra SIGUC), exportação pseudonimizada |
 | 4 | APK Capacitor (`app-diagnostico/`), workflow de build com action pinada em SHA, `api/apk-latest.js`, `vercel.json` |
@@ -628,15 +694,17 @@ Dois "salvar" diferentes, para não confundir:
 4. ~~Manter o nome do entrevistado (P4)?~~ — ✅ **opcional**. Resta ao jurídico: prazo de retenção do nome (entra na pergunta 6).
 5. P54/P55 (sindicato): ✅ mantidas, P55 com sugestões. Resta ao jurídico
    confirmar a base legal para esse dado sensível (art. 11).
-6. Prazo de retenção do nome (quando informado), da ficha identificada e do GPS preciso.
+6. ~~Prazo de retenção~~ — ✅ **2 anos** para nome, nomes de moradores e GPS preciso *(26/09)*.
 7. RIPD antes do campo?
 
 **Acesso e produto (você)**
 8. Coordenação aplica questionário? Técnico vê agregado geral ou só o seu?
-9. `financeiro` tem algum acesso?
+9. ~~`financeiro`~~ — ✅ sem acesso.
 10. Limite de supressão para agregados (5 fichas?).
 11. Carência de envio após vencimento da permissão (15 dias?).
 12. Foto entra na v1?
-13. O diagnóstico alimenta indicadores da Matriz de Resultados?
-14. Hospedagem: DIMA inteiro já está na Vercel ou só o app vai estar?
-15. Trazer o ROPA vivo no banco (`lgpd_tratamentos`) do SIGUC para o DIMA agora ou depois?
+13. ~~Matriz~~ — ✅ alimenta. **Falta:** quais itens da Matriz e com qual indicador (§3.11).
+14. ~~Hospedagem~~ — ✅ DIMA inteiro na Vercel.
+15. ~~ROPA no banco~~ — ✅ agora (1ª migration da Fase 1).
+16. "Uso interno da SEMA": `consultor_externo` (hoje 2 usuários) mantém o acesso
+    a agregados com supressão (§4.4), ou fica sem acesso ao módulo?
