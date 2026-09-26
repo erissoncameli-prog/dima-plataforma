@@ -115,7 +115,7 @@
 | 22 | `saude_onde` | Onde procura atendimento de saúde, principalmente | unica | Unidade de saúde · Hospital · Particular · Farmácia · Medicina tradicional/caseira · Outro | D | — |
 | 23 | `saude_dificuldade` | Principal dificuldade de acesso à saúde | unica | Distância · Transporte · Custo · Falta de atendimento · Tempo de espera · Não há dificuldade · Outro | D | — |
 | 24 | `saude_problemas_freq` | Problemas de saúde frequentes na comunidade? | unica | Sim · Não | C | — |
-| 25 | `saude_problemas_quais` | Quais são esses problemas (**só se P24 = Sim**) | multipla ✅ | **lista fechada** (proposta abaixo) · Outro | C | S? (só no "Outro") |
+| 25 | `saude_problemas_quais` | Quais são esses problemas (**só se P24 = Sim**) | multipla ✅ | **lista fechada** (abaixo) · Outro + especifique | C | S? (só no "Outro") |
 | 26 | `tem_escolar` | Há crianças/jovens em idade escolar no domicílio? | unica — **derivada da P9** ✅ (D1) | Sim · Não | D | M |
 | 27 | `educacao_dificuldades` | Dificuldades de educação na comunidade | multipla | Distância · Transporte · Falta de escola · Falta de professores · Falta de internet/material · Outra · **Nenhuma (excl.)** | C | — |
 
@@ -126,7 +126,7 @@
   dado de saúde ligado a pessoa identificável é **sensível**. Com a lista, o
   risco fica só no "Outro", que mantém a orientação "problemas da comunidade,
   sem citar nomes".
-  **❓ Lista proposta (confirmar com a equipe):** Diarreia/verminoses ·
+  **✅ Lista confirmada (26/09):** Diarreia/verminoses ·
   Malária · Dengue/chikungunya/zika · Doenças respiratórias · Doenças de pele ·
   Hipertensão/diabetes · Desnutrição · Acidentes com animais peçonhentos ·
   Outro.

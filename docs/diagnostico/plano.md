@@ -46,7 +46,7 @@ inventar:
 
 1. **Única ou múltipla** em 7 perguntas ambíguas — ✅ P16 única; P18, P21, P50
    e P56 múltipla; P25 vira lista fechada múltipla, só quando P24 = Sim; P61 e
-   P62 múltiplas *(26/09)*. Falta confirmar os itens da lista da P25.
+   P62 múltiplas; itens da lista da P25 confirmados *(26/09)*.
 2. ~~**Saltos**~~ — ✅ S1–S10 aceitos *(26/09)*, incluindo a opção nova
    "Nenhuma" (exclusiva) na P30. "Não se aplica" sai da P18 e da P68.
 3. ~~**Listas fechadas da P9**~~: ✅ ficam as colunas do questionário, em texto livre
@@ -609,7 +609,7 @@ final.
 ## 7. Perguntas para fechar a Fase 0
 
 **Instrumento (equipe do diagnóstico)**
-1. O que resta da §1.2: itens da lista da P25 e código de "não respondeu".
+1. O que resta da §1.2: código de "não respondeu".
 2. ~~Nome oficial~~ — ✅ **Diagnóstico Socioambiental**.
 
 **LGPD (jurídico)**
