@@ -1054,3 +1054,26 @@ sempre ligado (chave travada) para esse perfil, e o login explica o motivo
 quando a coordenação não tem o módulo de treino (antes dizia "peça a
 liberação", o que não resolvia).
 
+### 6.8 Validação na mesa *(Fase 3 — 1ª entrega)*
+
+Aba **Validação** em `pages/diagnostico.html` (`js/diagnostico-validacao.js`),
+sem mudança de banco — usa o que a Fase 1 já tinha:
+- **Lista** com contadores por situação, filtros (comunidade, técnico,
+  período, código, mostrar treino) e nº de avisos por ficha.
+- **Ficha aberta** (painel lateral): avisos da revisão (os "em branco"
+  agrupados numa linha recolhível), identificação (nome e GPS), respostas por
+  bloco a partir da `estrutura` da versão da ficha, moradores (rótulos da v2),
+  fotos por URL assinada com **Apagar** (foto com pessoa → fila de expurgo),
+  histórico.
+- **Ações** só pela RPC `diag_mudar_status`: validar (confirma se houver
+  avisos; grava `validado_em`, que conta os 2 anos), devolver ao técnico e
+  descartar (motivo obrigatório), reabrir ficha validada.
+- **Acesso**: coordenação/super_admin completo; consultor externo com
+  permissão vê a aba **"Fichas"** só leitura — sem identificação, fotos e
+  botões (o RLS não devolve essas linhas). Técnico, visualizador e financeiro
+  não veem a aba.
+- Teste: `tests/diagnostico/mesa_validacao.js` (rodado por `rodar_app.sh`).
+
+Ainda da Fase 3: exportação, indicadores na mesa e a Edge Function que drena
+`diag_expurgo_arquivos`.
+

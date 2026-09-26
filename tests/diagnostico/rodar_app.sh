@@ -52,4 +52,5 @@ SQL
 
 (cd "$RAIZ" && python3 -m http.server "$PORTA_HTTP" --bind 127.0.0.1 >/dev/null 2>&1) & HTTP_PID=$!
 sleep 1
-BASE="http://127.0.0.1:$PORTA_HTTP" node "$RAIZ/tests/diagnostico/app_fluxo.js"
+[ -n "${SO_MESA:-}" ] || BASE="http://127.0.0.1:$PORTA_HTTP" node "$RAIZ/tests/diagnostico/app_fluxo.js"
+BASE="http://127.0.0.1:$PORTA_HTTP" node "$RAIZ/tests/diagnostico/mesa_validacao.js"

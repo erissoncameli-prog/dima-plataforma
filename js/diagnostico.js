@@ -18,6 +18,7 @@ const DG_STATUS = [
   ['validada', 'Validadas'], ['descartada', 'Descartadas'],
 ]
 let dgPodeGerir = false
+let dgPodeConsultar = false   // consultor externo: lê fichas SEM identificação (regra do banco)
 let dgAba = 'geral'
 const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: [], ibge: null }
 
@@ -25,11 +26,13 @@ const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: []
   const usuario = await carregarUsuario()
   if (!usuario) { window.location.href = '../index.html'; return }
   dgPodeGerir = ['super_admin', 'coordenacao'].includes(appState.perfil)
+  dgPodeConsultar = appState.perfil === 'consultor_externo'
 
   const html = `<div class="fade-in">
-    ${dgPodeGerir ? `<div class="dg-abas">
+    ${dgPodeGerir || dgPodeConsultar ? `<div class="dg-abas">
       <button type="button" class="dg-aba ativa" data-aba="geral" onclick="dgTrocarAba('geral')">Visão geral</button>
-      <button type="button" class="dg-aba" data-aba="admin" onclick="dgTrocarAba('admin')">Admin · comunidades e sublocalidades</button>
+      <button type="button" class="dg-aba" data-aba="validacao" onclick="dgTrocarAba('validacao')">${dgPodeGerir ? 'Validação' : 'Fichas'}</button>
+      ${dgPodeGerir ? `<button type="button" class="dg-aba" data-aba="admin" onclick="dgTrocarAba('admin')">Admin · comunidades e sublocalidades</button>` : ''}
     </div>` : ''}
     <div id="dg-geral">
     <div class="card" style="margin-bottom:16px">
@@ -54,12 +57,16 @@ const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: []
     </div>
     ${dgPodeGerir ? `<div class="card"><h3 style="margin:0 0 8px">Versões do questionário</h3><div id="dg-versoes"></div></div>` : ''}
     </div>
+    ${dgPodeGerir || dgPodeConsultar ? `<div id="dg-validacao" hidden></div>` : ''}
     ${dgPodeGerir ? `<div id="dg-admin" hidden></div>` : ''}
   </div>`
 
   document.getElementById('app').innerHTML =
     gerarLayout('Diagnóstico Socioambiental', 'diagnostico') + html + '</div></div></div>'
   carregarLogosSidebar()
+  // ?aba=validacao abre direto na validação (link de aviso/e-mail)
+  const abaUrl = new URLSearchParams(location.search).get('aba')
+  if (abaUrl && document.querySelector('.dg-aba[data-aba="' + abaUrl + '"]')) dgTrocarAba(abaUrl)
   await dgCarregar()
 })()
 
@@ -112,9 +119,9 @@ async function dgApagarTreino(n) {
 function dgTrocarAba(aba) {
   dgAba = aba
   document.querySelectorAll('.dg-aba').forEach(b => b.classList.toggle('ativa', b.dataset.aba === aba))
-  document.getElementById('dg-geral').hidden = aba !== 'geral'
-  document.getElementById('dg-admin').hidden = aba !== 'admin'
+  ;['geral', 'validacao', 'admin'].forEach(a => { const el = document.getElementById('dg-' + a); if (el) el.hidden = aba !== a })
   if (aba === 'admin') dgAdminCarregar()
+  if (aba === 'validacao') dgValCarregar()
 }
 
 // ── Admin: comunidades/UCs e sublocalidades ────────────────────────────
