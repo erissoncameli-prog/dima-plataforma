@@ -122,9 +122,10 @@ function png1x1() {
   await page.exposeFunction('__pgRpc', (n, a) => online ? pgRpc(n, a) : { data: null, error: { message: 'Failed to fetch' } })
   await page.exposeFunction('__pgUpload', (b, p) => online ? pgUpload(b, p) : { error: { message: 'Failed to fetch' } })
   await page.exposeFunction('__login', (email, senha) => {
-    if (email !== 'tec@x' || senha !== 'senha') return { data: {}, error: { message: 'Invalid login credentials' } }
-    usuarioLogado = UID_TEC
-    return { data: { user: { id: UID_TEC } }, error: null }
+    const uid = { 'tec@x': UID_TEC, 'coord@x': '00000000-0000-0000-0000-0000000000c1', 'coord2@x': '00000000-0000-0000-0000-0000000000c2' }[email]
+    if (!uid || senha !== 'senha') return { data: {}, error: { message: 'Invalid login credentials' } }
+    usuarioLogado = uid
+    return { data: { user: { id: uid } }, error: null }
   })
   await page.addInitScript(() => { window.__marcarSessao = () => localStorage.setItem('stub-sessao', '1') })
   const clicar = sel => page.locator(sel).first().click()
@@ -385,6 +386,35 @@ function png1x1() {
   await pin('1234')
   await page.locator('#t-inicio').waitFor({ state: 'visible' })
   ok('reabrir com PIN (errado recusado)')
+
+  // coordenação: sem "modo treino" não entra; com ele, entra SÓ em treino
+  page.on('dialog', d => d.accept())
+  await clicar('#btn-config'); await page.locator('#t-config').waitFor({ state: 'visible' })
+  await clicar('#btn-sair'); await page.locator('#t-login').waitFor({ state: 'visible' })
+  await page.fill('#login-email', 'coord2@x'); await page.fill('#login-senha', 'senha'); await clicar('#btn-login')
+  await page.locator('#login-erro').waitFor({ state: 'visible' })
+  if (!/coordenação não aplica.*modo treino/.test(await page.textContent('#login-erro'))) falhar('mensagem para coordenação sem treino: ' + await page.textContent('#login-erro'))
+  await page.fill('#login-email', 'coord@x'); await page.fill('#login-senha', 'senha'); await page.evaluate(() => window.__marcarSessao()); await clicar('#btn-login')
+  await page.locator('#t-pin').waitFor({ state: 'visible' })
+  await pin('2468')
+  await page.waitForFunction(() => /Repita/.test(document.getElementById('pin-titulo').textContent))
+  await pin('2468')
+  await page.locator('#t-inicio').waitFor({ state: 'visible' }); await page.waitForTimeout(400)
+  if (await page.isHidden('#faixa-treino')) falhar('coordenação entrou fora do modo treino')
+  if (!/só em modo treino/.test(await page.textContent('#ini-avisos'))) falhar('aviso de "só treino" ausente')
+  await clicar('#btn-nova')
+  await page.selectOption('#nova-municipio', '1200708'); await page.waitForTimeout(300)
+  await page.selectOption('#nova-comunidade', '11111111-1111-1111-1111-111111111111'); await page.waitForTimeout(200)
+  await clicar('#btn-nova-continuar'); await page.locator('#t-aviso').waitFor({ state: 'visible' })
+  await page.check('#aviso-lido'); await clicar('#btn-recusou')
+  await page.locator('#t-inicio').waitFor({ state: 'visible' })
+  await clicar('#btn-sync')
+  await page.waitForFunction(() => document.getElementById('c-fila').textContent === '0', null, { timeout: 15000 })
+  const fc = consulta("select codigo, treino from diag_fichas where entrevistador_id = '00000000-0000-0000-0000-0000000000c1'")
+  if (fc.length !== 1 || !fc[0].treino || !/^TRE-/.test(fc[0].codigo)) falhar('ficha da coordenação: ' + JSON.stringify(fc))
+  await clicar('#btn-config'); await page.locator('#t-config').waitFor({ state: 'visible' })
+  if (!(await page.isDisabled('#config-treino')) || !(await page.isChecked('#config-treino'))) falhar('coordenação conseguiu desligar o treino')
+  ok('coordenação: sem "modo treino" não entra; com ele, entra só em treino (TRE-)')
 
   if (errosJs.length) falhar('erros de JavaScript na página: ' + errosJs.join(' | '))
   await browser.close()

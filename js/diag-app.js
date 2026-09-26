@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.4.0'
+const DIAG_APP_VERSAO = '1.5.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -48,7 +48,9 @@ function mostrar(id) {
 async function carregarTreino() {
   const uid = App.usuario && App.usuario.id
   App.podeTreinar = !!(uid && await dConfigGet('pode_treinar_' + uid))
-  App.treinoAtivo = App.podeTreinar && !!(await dConfigGet('modo_treino_' + uid))
+  // perfil que não aplica ficha real (coordenação) usa o app SÓ em treino
+  App.soTreino = !!(App.usuario && App.usuario.so_treino)
+  App.treinoAtivo = App.podeTreinar && (App.soTreino || !!(await dConfigGet('modo_treino_' + uid)))
   aplicarFaixaTreino()
 }
 function aplicarFaixaTreino() {
@@ -117,15 +119,22 @@ async function entrar(ev) {
     const { data: u } = await diagDb.from('usuarios').select('id,nome_completo,perfil,ativo').eq('id', uid).single()
     if (!u || !u.ativo) throw new Error('Usuário inativo. Procure a coordenação.')
     const { data: pode } = await diagDb.rpc('fn_diag_pode_aplicar')
+    // coordenação não aplica ficha real; com o módulo "modo treino" entra só para treinar
+    const { data: treina } = pode ? { data: false } : await diagDb.rpc('fn_diag_pode_treinar')
     const pendentes = (await dFichasNaoEnviadas(uid)).length
-    if (!pode && !pendentes) {
+    if (!pode && !treina && !pendentes) {
       await diagDb.auth.signOut()
-      throw new Error('Seu usuário não tem acesso ao Diagnóstico. Peça a liberação ao super_admin.')
+      throw new Error(u.perfil === 'coordenacao'
+        ? 'A coordenação não aplica questionários pelo app. Para testar e treinar, peça ao super_admin a permissão "Diagnóstico — modo treino". A gestão das fichas fica na página Diagnóstico da plataforma.'
+        : u.perfil === 'tecnico'
+          ? 'Seu usuário não tem acesso ao Diagnóstico. Peça a liberação ao super_admin.'
+          : 'Seu perfil não aplica questionários pelo app. A consulta fica na página Diagnóstico da plataforma.')
     }
+    if (!pode && treina) await dConfigSet('pode_treinar_' + uid, true)
     const { data: perm } = await diagDb.from('usuario_permissoes').select('valido_ate,ativo')
       .eq('usuario_id', uid).eq('modulo', 'diagnostico').maybeSingle()
     App.usuario = { id: u.id, nome_completo: u.nome_completo, perfil: u.perfil,
-                    acesso_ate: perm && perm.ativo ? perm.valido_ate : null }
+                    acesso_ate: perm && perm.ativo ? perm.valido_ate : null, so_treino: !pode && !!treina }
     await dConfigSet('usuario_atual', App.usuario)
     await dSyncBaixarReferencias(uid).catch(e => console.warn('[diag-app] referências:', e))
     if (await dConfigGet('pin_' + uid)) irInicio()
@@ -256,7 +265,8 @@ async function desenharInicio() {
   document.getElementById('c-enviada').textContent = cont.enviada
 
   let avisos = ''
-  if (App.treinoAtivo) avisos += '<div class="faixa faixa-treino-info">Modo treino ligado: as entrevistas novas saem com código TRE-, usam a versão mais nova do questionário (mesmo em rascunho) e não contam nos números. Desligue em ⚙ Configurações.</div>'
+  if (App.soTreino) avisos += '<div class="faixa faixa-treino-info">Seu perfil (' + esc(ROTULO_PERFIL[u.perfil] || u.perfil) + ') usa o app só em <b>modo treino</b>: as entrevistas saem com código TRE-, não contam nos números e a coordenação apaga depois.</div>'
+  else if (App.treinoAtivo) avisos += '<div class="faixa faixa-treino-info">Modo treino ligado: as entrevistas novas saem com código TRE-, usam a versão mais nova do questionário (mesmo em rascunho) e não contam nos números. Desligue em ⚙ Configurações.</div>'
   else if (!q) avisos += '<div class="faixa faixa-aviso">Nenhum questionário publicado neste aparelho. Conecte à internet e sincronize. Se continuar assim, a coordenação ainda não publicou a versão do questionário.</div>'
   if (u.acesso_ate && Date.parse(u.acesso_ate) < Date.now())
     avisos += '<div class="faixa faixa-aviso">Seu acesso ao Diagnóstico venceu em ' + new Date(u.acesso_ate).toLocaleDateString('pt-BR') +
@@ -608,6 +618,8 @@ async function abrirConfig() {
   await carregarTreino()
   document.getElementById('config-treino-wrap').hidden = !App.podeTreinar
   document.getElementById('config-treino').checked = !!App.treinoAtivo
+  document.getElementById('config-treino').disabled = App.soTreino
+  document.getElementById('config-treino-so').hidden = !App.soTreino
   atualizarBotoesInstalar()
   mostrar('t-config')
 }

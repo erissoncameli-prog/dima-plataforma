@@ -25,7 +25,7 @@ su postgres -c "$BIN/pg_ctl -D $TMP/data -o '-p $PORTA_PG -k $TMP' -l $TMP/log -
 export PGHOST="$TMP" PGPORT="$PORTA_PG" PGUSER=postgres PGDATABASE=postgres PGOPTIONS="-c client_min_messages=warning"
 PSQL=(psql -v ON_ERROR_STOP=1 -q -X)
 "${PSQL[@]}" -f "$RAIZ/supabase/tests/diagnostico/00_stub_supabase.sql"
-for f in "$RAIZ"/supabase/migrations/20260926_lgpd_tratamentos.sql "$RAIZ"/supabase/migrations/20260926_diag_0*.sql; do
+for f in "$RAIZ"/supabase/migrations/20260926_lgpd_tratamentos.sql "$RAIZ"/supabase/migrations/20260926_diag_[0-9][0-9]_*.sql; do
   "${PSQL[@]}" -f "$f"
 done
 "${PSQL[@]}" <<'SQL'
@@ -33,6 +33,14 @@ insert into public.usuarios (id, nome_completo, email, perfil, ativo) values
  ('00000000-0000-0000-0000-0000000000e1','Técnica de Campo','tec@x','tecnico',true);
 insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate)
  values ('00000000-0000-0000-0000-0000000000e1','diagnostico', now()-interval '1 day', now()+interval '60 days');
+-- coordenação: uma com "modo treino", outra sem (só entra a primeira, e só em treino)
+insert into public.usuarios (id, nome_completo, email, perfil, ativo) values
+ ('00000000-0000-0000-0000-0000000000c1','Coordenadora Treino','coord@x','coordenacao',true),
+ ('00000000-0000-0000-0000-0000000000c2','Coordenadora Sem Treino','coord2@x','coordenacao',true);
+insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate) values
+ ('00000000-0000-0000-0000-0000000000c1','diagnostico', now()-interval '1 day', null),
+ ('00000000-0000-0000-0000-0000000000c1','diagnostico_treino', now()-interval '1 day', now()+interval '30 days'),
+ ('00000000-0000-0000-0000-0000000000c2','diagnostico', now()-interval '1 day', null);
 -- como em produção: v1 publicada e depois arquivada; v2 (escolaridade fechada) publicada
 update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao in (1, 2);
 update public.diag_questionarios set status = 'arquivado' where codigo = 'DSA' and versao = 1;

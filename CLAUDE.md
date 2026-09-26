@@ -371,7 +371,8 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
 - **Modo treino** (`diag_fichas.treino`, código `TRE-`): aceita questionário
   em rascunho, fica fora de `vw_diag_respostas`/sugestões, apagado por
   `diag_apagar_treino()` (gerir). Permissão `fn_diag_pode_treinar()` =
-  super_admin ou técnico com `diagnostico` + `diagnostico_treino`. Nova view ou
+  super_admin, técnico com `diagnostico` + `diagnostico_treino`, ou **coordenação
+  com `diagnostico_treino` (só treino — coordenação nunca aplica ficha real)**. Nova view ou
   agregado sobre `diag_fichas` **deve** filtrar `not treino`.
 - **Sublocalidades** (`diag_localidades`, filha de `diag_comunidades`; sem
   DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,
