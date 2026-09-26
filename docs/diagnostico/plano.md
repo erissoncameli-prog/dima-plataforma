@@ -106,8 +106,9 @@ Esboço do formato (ilustrativo, não definitivo):
 }
 ```
 
-A linguagem de salto é **deliberadamente mínima** (`=`, `in`, `contem` sobre uma
-única pergunta anterior). Ela precisa ser avaliada em dois lugares — no app (para
+A linguagem de salto é **deliberadamente mínima** (`=`, `!=`, `in`, `contem`,
+`nao_contem` sobre uma única pergunta anterior, e `{"todas": [...]}` para
+combinar; implementada em `fn_diag_cond`). Ela precisa ser avaliada em dois lugares — no app (para
 esconder a pergunta) e no banco (para validar) — e só se mantém "cálculo num
 lugar só" se as duas implementações forem triviais e testadas contra o **mesmo
 conjunto de casos** (fixture única usada pelo teste do JS e pelo teste SQL).
@@ -429,9 +430,13 @@ crianças/idosos.
 
 ### 3.7 Envio: uma transação, sem duplicar
 
-RPC `diag_enviar_ficha(p_ficha jsonb, p_moradores jsonb)`, **SECURITY INVOKER**
-(padrão `frota_solicitar_viagem`: o RLS do chamador continua autorizando; a RPC
-não é uma porta privilegiada):
+RPC `diag_enviar_ficha(p_ficha jsonb, p_moradores jsonb, p_fotos jsonb)`.
+**Mudança na Fase 1:** a RPC é **SECURITY DEFINER**, e não INVOKER como o padrão
+`frota_solicitar_viagem`. As tabelas `diag_*` ficaram **sem policy de escrita**
+para o cliente, então a validação e as derivadas não podem ser contornadas por
+INSERT direto. A carência de 15 dias também exige ler a permissão já vencida, o
+que `tem_permissao()` não faz. A função confere tudo explicitamente: usuário
+ativo, perfil, permissão, dono da ficha e status. Passos:
 
 1. `INSERT … ON CONFLICT (uuid_cliente) DO UPDATE` na ficha — reenvio da mesma
    ficha atualiza, não duplica;
@@ -769,12 +774,51 @@ Dois "salvar" diferentes, para não confundir:
 
 | Fase | Entrega |
 |------|---------|
-| **0** | Este plano + instrumento v1 congelado + entrada de ROPA *(em andamento)* |
-| 1 | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL (inclusive a fixture de saltos) |
+| **0** | Este plano + instrumento v1 + entrada de ROPA + rascunho do RIPD ✅ |
+| **1** | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL ✅ **escrita e testada localmente — ver §6.1; falta aplicar em produção** |
 | 2 | App PWA offline: login + PIN, lista de fichas, formulário renderizado da estrutura, rascunho contínuo, GPS pontual, fotos, fila de envio |
 | 3 | Mesa: validação/devolução, painel de indicadores, exportação `.xlsx` (ExcelJS, regra SIGUC), exportação pseudonimizada |
 | 4 | APK Capacitor (`app-diagnostico/`), workflow de build com action pinada em SHA, `api/apk-latest.js`, `vercel.json` |
 | 5 | Piloto (5 fichas), guia de treinamento no app (`guia-app.js`), aplicação |
+
+### 6.1 Fase 1 — o que foi entregue
+
+Migrations (ordem de aplicação):
+
+| Arquivo | Conteúdo |
+|---------|----------|
+| `20260926_lgpd_tratamentos.sql` | ROPA no banco + entrada `TRAT-001` (diagnóstico). `retencao_prazo` é lido pela rotina de retenção |
+| `20260926_diag_01_estrutura.sql` | catálogos (22 municípios com código IBGE e sigla; comunidades), questionário versionado (publicado = imutável, hash SHA-256 gerado), fichas, identificação separada, moradores, fotos, histórico de status, sugestões ocultas, fila de expurgo; funções de acesso; RLS; auditoria redigida |
+| `20260926_diag_02_envio.sql` | interpretador da estrutura (saltos, derivadas, validação, alertas); `diag_enviar_ficha` (idempotente, uma transação); `diag_mudar_status` (validar, devolver, descartar, reabrir) |
+| `20260926_diag_03_indicadores.sql` | `vw_diag_respostas`, `vw_diag_indicadores` (contagens aditivas), `fn_diag_agregados` (supressão abaixo de 5), `fn_diag_sugestoes` |
+| `20260926_diag_04_fotos_retencao.sql` | bucket privado `diagnostico-fotos` + policies por caminho; `fn_diag_aplicar_retencao` + cron diário 06:17 UTC |
+| `20260926_diag_05_questionario_v1.sql` | questionário v1 (81 perguntas) como **rascunho** |
+
+Testes: `supabase/tests/diagnostico/rodar.sh` sobe um Postgres 16 descartável,
+aplica um stub do Supabase + as migrations e roda `10_testes.sql`: 28 blocos
+cobrindo anon, cada perfil (técnico, técnico sem permissão, inativo, carência
+de 5 e de 20 dias, coordenação, consultor com e sem permissão, visualizador,
+financeiro), idempotência do reenvio, saltos S1/S10, derivada P26, validação,
+"especifique", "Não respondeu", alertas V1/V2/D2, recusa, fotos e Storage,
+agregados e supressão (inclusive por sexo), sugestões, versão imutável,
+retenção de 2 anos, auditoria sem nome em claro e ausência de `USING (true)` e de
+grant ao anon. **Todos passam.**
+
+Decisões de implementação que o plano não tinha:
+- **Escrita só pela RPC** (DEFINER, §3.7). Leitura continua por RLS.
+- **Recusa** (`aceitou_participar = false`) grava só comunidade, data e
+  entrevistador: respostas, moradores, nome, GPS e fotos são descartados.
+- **Questionário em rascunho não recebe fichas.** Para o piloto, a coordenação
+  publica a v1. Se o piloto pedir mudança, a correção vira v2.
+- **Reabrir** ficha validada é permitido (volta a `devolvida`, com motivo).
+- **Arquivo de foto não é apagado pelo banco:** a remoção (pela coordenação ou
+  pela retenção) põe o caminho em `diag_expurgo_arquivos`. Falta a Edge
+  Function que drena a fila pela API do Storage (Fase 3).
+- O aviso ao entrevistado da v1 tem o canal do Encarregado marcado **A DEFINIR**.
+
+Ainda **não** feito na Fase 1: o item `diagnostico` em `MODULOS_LISTA`
+(`pages/usuarios.html`) para conceder a permissão pela tela. Até lá, a concessão
+é por SQL. Entra com a Fase 2/3.
 
 ---
 
