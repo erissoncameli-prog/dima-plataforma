@@ -77,6 +77,12 @@ create table public.usuario_permissoes (
   concedido_por uuid, unique (usuario_id, modulo)
 );
 
+-- em produção: uperm_self_select (cada um lê as próprias permissões)
+alter table public.usuario_permissoes enable row level security;
+create policy uperm_self_select on public.usuario_permissoes for select to authenticated
+  using (usuario_id = auth.uid());
+grant select on public.usuario_permissoes to authenticated;
+
 create function public.tem_permissao(p_modulo text) returns boolean
 language sql stable security definer set search_path to 'public' as $$
   select exists (

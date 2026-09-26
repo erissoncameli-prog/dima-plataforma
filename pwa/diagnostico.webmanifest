@@ -1,0 +1,15 @@
+{
+  "name": "Diagnóstico Socioambiental · DIMA",
+  "short_name": "Diagnóstico",
+  "description": "App de campo do Diagnóstico Socioambiental — SEMA/AC, Projeto 218BRA2001",
+  "lang": "pt-BR",
+  "start_url": "/pages/diagnostico-app.html",
+  "scope": "/pages/diagnostico-app.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F9FAFB",
+  "theme_color": "#1F4E2C",
+  "icons": [
+    { "src": "/pwa/diagnostico-icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -332,6 +332,46 @@ senão o arquivo não entra no acervo.
 - Buckets privados: o visualizador assina com `urlAssinada()` antes de popular
   `iframe`/`video`/`img`. Nunca atribuir `arquivo_url` direto.
 
+### Diagnóstico Socioambiental — app de campo (⚠️ ler antes de mexer em `diag_*`)
+
+Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
+`docs/diagnostico/instrumento-v1.md`; RIPD (rascunho) em `docs/diagnostico/ripd-rascunho.md`.
+
+- **O questionário é dado**, não código: `diag_questionarios.estrutura` (jsonb
+  versionado). Versão `publicado` é **imutável** (trigger); correção = nova versão.
+  Hash SHA-256 gerado prova qual versão foi aplicada.
+- **Interpretador em dois lugares, idênticos**: SQL (`fn_diag_aplicaveis`,
+  `fn_diag_normalizar_respostas`, `fn_diag_calcular_alertas`, `fn_diag_derivar`)
+  e JS (`js/diag-regras.js`). Operador de salto novo ou regra nova entra nos
+  DOIS e passa em `supabase/tests/diagnostico/rodar.sh` (teste cruzado).
+- Valores especiais em `respostas`: `"_nr"` = Não respondeu; chave ausente = não
+  se aplica ou em branco; `<chave>_outro` = especifique.
+- **Escrita só pela RPC** `diag_enviar_ficha` (SECURITY DEFINER, idempotente por
+  `uuid_cliente`, ficha+moradores+identificação+fotos numa transação) e
+  `diag_mudar_status` (coordenação). As tabelas `diag_*` não têm policy de
+  escrita para o cliente — não criar.
+- **Identificação separada**: nome do entrevistado, GPS e nomes dos moradores
+  ficam em `diag_fichas_identificacao` / `diag_moradores_identificacao`, que o
+  consultor externo NÃO lê. Fotos (`diag_fotos`, bucket privado
+  `diagnostico-fotos`, caminho `<uuid_cliente da ficha>/<uuid_foto>.jpg`) seguem
+  a mesma regra. Nunca mover esses campos para `diag_fichas`.
+- **Acesso** (regra única em `fn_diag_pode_aplicar/gerir/consultar/ver_numeros`):
+  técnico + `tem_permissao('diagnostico')` aplica e vê só as próprias;
+  coordenação/super_admin gerem (coordenação NÃO aplica); consultor externo +
+  permissão lê fichas sem identificação; visualizador e técnico veem números via
+  `fn_diag_agregados` (supressão abaixo de 5 fichas); financeiro sem acesso.
+- **Indicadores** saem de `vw_diag_indicadores` (contagens aditivas) → nunca
+  recalcular no cliente. Denominador exclui `_nr` e perguntas puladas.
+- **Retenção**: identificação e fotos apagadas 2 anos após a validação por
+  `fn_diag_aplicar_retencao` (cron `diag-retencao-diaria`), prazo lido de
+  `lgpd_tratamentos` (TRAT-001). Arquivo de foto removido entra em
+  `diag_expurgo_arquivos` (a Edge Function que drena a fila é pendência da Fase 3).
+- **ROPA vivo** em `lgpd_tratamentos`: tabela nova com dado pessoal = linha nova
+  lá na mesma entrega.
+- App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +
+  `gerarLayout`; não chama `carregarUsuario()`), service worker na raiz
+  `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.
+
 ### Painel de Tarefas — subtarefas, comentários e anexos
 - `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.
   Trigger `trg_checklist_responsavel` inclui o usuário responsável como **observador** da tarefa + sino (`tarefa_subtarefa`). Ao atribuir pelo painel, chamar `enviar-email-tarefa` com `evento:'subtarefa'` e `checklist_id`.
@@ -536,6 +576,7 @@ contas do projeto.
 | `plataforma-assets` | 🌐 público | logos institucionais (usados em e-mails) |
 | `pontos-mapa` | 🌐 público | fotos exibidas em `publico.html` |
 | `avatares` | 🌐 público | foto de perfil (caminho por uuid) |
+| `diagnostico-fotos` | 🔒 privado | fotos de moradia/entorno do Diagnóstico (identificação — consultor não vê) |
 
 **As tabelas continuam guardando a URL no formato `/object/public/<bucket>/<path>`.**
 Isso é intencional: a string é apenas **portadora do caminho**, não um link

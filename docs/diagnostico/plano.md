@@ -775,8 +775,8 @@ Dois "salvar" diferentes, para não confundir:
 | Fase | Entrega |
 |------|---------|
 | **0** | Este plano + instrumento v1 + entrada de ROPA + rascunho do RIPD ✅ |
-| **1** | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL ✅ **escrita e testada localmente — ver §6.1; falta aplicar em produção** |
-| 2 | App PWA offline: login + PIN, lista de fichas, formulário renderizado da estrutura, rascunho contínuo, GPS pontual, fotos, fila de envio |
+| **1** | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL ✅ **aplicada em produção em 26/09 (hash do questionário conferido) — ver §6.1** |
+| **2** | App PWA offline: login + PIN, lista de fichas, formulário renderizado da estrutura, rascunho contínuo, GPS pontual, fotos, fila de envio ✅ **ver §6.2** |
 | 3 | Mesa: validação/devolução, painel de indicadores, exportação `.xlsx` (ExcelJS, regra SIGUC), exportação pseudonimizada |
 | 4 | APK Capacitor (`app-diagnostico/`), workflow de build com action pinada em SHA, `api/apk-latest.js`, `vercel.json` |
 | 5 | Piloto (5 fichas), guia de treinamento no app (`guia-app.js`), aplicação |
@@ -819,6 +819,77 @@ Decisões de implementação que o plano não tinha:
 Ainda **não** feito na Fase 1: o item `diagnostico` em `MODULOS_LISTA`
 (`pages/usuarios.html`) para conceder a permissão pela tela. Até lá, a concessão
 é por SQL. Entra com a Fase 2/3.
+
+
+### 6.2 Fase 2 — o que foi entregue
+
+App de campo em `pages/diagnostico-app.html`, instalável como PWA. Não usa
+`gerarLayout` nem `carregarUsuario()`: é um app de uma coluna para celular, e
+`carregarUsuario()` desloga após 30 minutos sem uso.
+
+| Arquivo | Papel |
+|---------|-------|
+| `js/diag-regras.js` | Espelho em JS do interpretador do banco: saltos, derivadas, normalização, alertas, código da ficha. Funções puras, que rodam no navegador e no Node |
+| `js/diag-offline.js` | IndexedDB `dima_diag_v1`: fichas, fotos (blob), cache de referência, configuração. Pendente nunca é apagada; enviada sai do aparelho em 7 dias |
+| `js/diag-sync.js` | Fila de envio: teste real de conexão, renovação de sessão, fotos antes da ficha, `diag_enviar_ficha` idempotente, tratamento por código de erro `diag:*`, retorno das devolvidas e do status do servidor |
+| `js/diag-form.js` | Formulário montado a partir de `diag_questionarios.estrutura`: única, múltipla (com exclusiva), número, texto, "especifique", "Não respondeu", P26 calculada, tabela de moradores com a 1ª linha ligada à P5/P6, sugestões, fotos |
+| `js/diag-app.js` | Telas e fluxo: login, PIN, início, nova entrevista, aviso ao entrevistado, ficha, revisão, configurações |
+| `css/diagnostico-app.css` | Visual para celular, com alvos de toque de 48 px e contraste alto |
+| `diagnostico-sw.js` (raiz) + `pwa/diagnostico.webmanifest` + ícone | Service worker com escopo restrito à página do app: guarda o shell para abrir sem internet e nunca guarda chamadas ao Supabase |
+
+**Fluxo em campo:**
+1. **Primeiro acesso, com internet:** e-mail e senha, depois cria um PIN de 4
+   dígitos. O app baixa o questionário publicado, os municípios, as comunidades
+   e as sugestões.
+2. **Aberturas seguintes, mesmo sem sinal:** entra com o PIN. Depois de 5 erros,
+   pede e-mail e senha de novo, sem apagar nada.
+3. **Nova entrevista:** data, município, comunidade (ou "Outra"), aviso lido em
+   voz alta e a decisão de participar. A recusa vai direto para a fila, só com
+   comunidade, data e entrevistador.
+4. **Ficha:** um bloco por tela, gravado no aparelho a cada toque. GPS opcional
+   numa leitura só. Até 8 fotos, comprimidas e sem os metadados (EXIF).
+5. **Revisão:** lista as perguntas em branco e os avisos; tocar leva à pergunta.
+   A revisão só avisa: sempre dá para salvar.
+6. **Fila:** envia quando há sinal (ao abrir o app, pelo botão ou quando a rede
+   volta). Ficha devolvida pela coordenação volta ao aparelho com o motivo.
+
+**Testes:**
+- `supabase/tests/diagnostico/rodar.sh` passou a incluir o **teste cruzado**:
+  1.000 casos com semente fixa, com resultado idêntico entre JS e SQL. Uma
+  mutação introduzida de propósito foi detectada.
+- `tests/diagnostico/rodar_app.sh`: Chromium abre o app de verdade; as chamadas
+  ao Supabase vão para o Postgres local, com RLS e as funções reais, como o
+  usuário logado. O teste cobre:
+  - login e PIN;
+  - ficha completa com saltos, "especifique", opção exclusiva e "Não respondeu";
+  - P26 calculada;
+  - foto;
+  - revisão;
+  - salvar sem sinal e enviar quando o sinal volta;
+  - conferência no banco (respostas normalizadas, moradores, identificação
+    separada, foto no bucket, alertas iguais aos do app);
+  - reenvio sem duplicar;
+  - recusa;
+  - devolução voltando ao aparelho;
+  - reabrir com PIN.
+
+  Precisa do pacote `playwright` (via `NODE_PATH`) e do Chromium em
+  `/opt/pw-browsers`. O service worker fica bloqueado no teste; o cache offline
+  do shell não é exercitado aqui.
+
+**Mesa:** `diagnostico` entrou em `MODULOS_LISTA` (`pages/usuarios.html`). O
+super_admin já concede o acesso com prazo pela tela de Usuários.
+
+**Para usar em campo:**
+1. **Publicar a v1:** a coordenação publica a v1 (`status = 'publicado'`).
+   Enquanto ela for rascunho, o app mostra "Nenhum questionário publicado".
+2. **Cadastrar comunidades:** pelo menos as do piloto, em `diag_comunidades`.
+   A tela de mesa para isso é da Fase 3; por enquanto, por SQL.
+3. **Liberar o acesso:** conceder o módulo `diagnostico` aos técnicos do piloto.
+4. **Publicar o app:** a branch precisa entrar na `main`, que é o que a Vercel
+   publica.
+5. **Canal do Encarregado:** definir o canal no aviso ao entrevistado. Ele está
+   marcado A DEFINIR, e o aviso publicado fica imutável.
 
 ---
 

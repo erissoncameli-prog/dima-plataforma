@@ -401,6 +401,7 @@ const PODE = {
 const BUCKETS_PRIVADOS = [
   'tdrs-arquivos', 'contratos-docs', 'financeiro-docs',
   'entregas-docs', 'viagens-arquivos', 'produtos-evidencias', 'acervo-capas',
+  'diagnostico-fotos',
 ];
 
 // Extrai { bucket, path } de uma URL de storage nos formatos /public/ ou /sign/
