@@ -498,12 +498,12 @@ insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate
  ('00000000-0000-0000-0000-0000000000e2','diagnostico_treino', now()-interval '1 day', now()+interval '30 days');
 -- versão em rascunho (a v1 em produção ainda é rascunho no piloto)
 insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado)
-  select codigo, 3, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
-insert into public.t_ctx select 'q3', id::text from public.diag_questionarios where versao = 3;
+  select codigo, 7, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
+insert into public.t_ctx select 'qr', id::text from public.diag_questionarios where versao = 7;
 create function public.t_ficha_q3(p_uuid uuid, p_codigo text, p_treino boolean, p_resp jsonb default null)
 returns jsonb language sql stable as $$
   select public.t_ficha(p_uuid, p_codigo, p_resp) || jsonb_build_object(
-    'questionario_id', (select v from public.t_ctx where k = 'q3'), 'treino', p_treino)
+    'questionario_id', (select v from public.t_ctx where k = 'qr'), 'treino', p_treino)
 $$;
 set role authenticated;
 
@@ -710,3 +710,161 @@ do $$ begin
   if public.fn_diag_foto_pode_enviar('f3200000-0000-0000-0000-000000000009/x.jpg') then raise exception 'FALHOU T32 coord sem treino sobe foto'; end if;
 end $$;
 reset role;
+
+-- ── T33 exportação registrada ───────────────────────────────────────────
+reset role;
+create function public.t_exp_ficha(r jsonb, p_codigo text) returns jsonb language sql immutable as $$
+  select e from jsonb_array_elements(r->'fichas') e where e->>'codigo' = p_codigo
+$$;
+create function public.t_exp_mor(r jsonb, p_codigo text, p_ordem int) returns jsonb language sql immutable as $$
+  select e from jsonb_array_elements(r->'moradores') e where e->>'codigo' = p_codigo and (e->>'ordem')::int = p_ordem
+$$;
+grant execute on function public.t_exp_ficha(jsonb, text), public.t_exp_mor(jsonb, text, int) to authenticated;
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$
+declare r jsonb;
+begin
+  r := public.diag_enviar_ficha(public.t_ficha('f3300000-0000-0000-0000-000000000001','DSA-XAP-260926-T33A-01',
+         public.t_resp() || '{"moradia_situacao":"outro","moradia_situacao_outro":"barraco"}'), public.t_mor());
+end $$;
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+select public.diag_mudar_status((select id from public.diag_fichas where codigo = 'DSA-XAP-260926-T33A-01'), 'validada', null);
+do $$
+declare r jsonb; f jsonb;
+begin
+  -- coordenação, padrão: sem identificação, com texto aberto
+  r := public.diag_exportar();
+  f := public.t_exp_ficha(r, 'DSA-XAP-260926-T33A-01');
+  if f is null then raise exception 'FALHOU T33 ficha validada fora da exportação'; end if;
+  if f ? 'entrevistado_nome' or f ? 'lat' or f ? 'lon' then raise exception 'FALHOU T33 padrão com identificação'; end if;
+  if f->'respostas'->>'participa_org_quais' is null then raise exception 'FALHOU T33 coordenação sem texto aberto'; end if;
+  if f->'respostas'->>'moradia_situacao_outro' <> 'barraco' then raise exception 'FALHOU T33 coordenação sem especifique'; end if;
+  if f->>'entrevistador' is null then raise exception 'FALHOU T33 coordenação sem entrevistador'; end if;
+  if public.t_exp_mor(r, 'DSA-XAP-260926-T33A-01', 1) ? 'nome' then raise exception 'FALHOU T33 padrão com nome de morador'; end if;
+  if jsonb_array_length(r->'questionarios') < 1 or r->'questionarios'->0->'estrutura' is null then raise exception 'FALHOU T33 sem estrutura'; end if;
+  -- treino nunca sai, nem pedindo todos os status
+  r := public.diag_exportar(false, array['enviada','devolvida','validada','descartada']);
+  if exists (select 1 from jsonb_array_elements(r->'fichas') e where e->>'codigo' like 'TRE-%') then raise exception 'FALHOU T33 treino exportado'; end if;
+  if public.t_exp_ficha(r, 'DSA-XAP-260926-T2ES-01') is null then raise exception 'FALHOU T33 filtro de status'; end if;
+  -- identificada: nome, GPS e nomes dos moradores
+  r := public.diag_exportar(true);
+  f := public.t_exp_ficha(r, 'DSA-XAP-260926-T33A-01');
+  if f->>'entrevistado_nome' <> 'Maria Teste' or f->>'lat' is null then raise exception 'FALHOU T33 identificada sem identificação'; end if;
+  if public.t_exp_mor(r, 'DSA-XAP-260926-T33A-01', 2)->>'nome' <> 'João' then raise exception 'FALHOU T33 identificada sem nome de morador'; end if;
+  if not (r->>'identificada')::boolean then raise exception 'FALHOU T33 marca identificada'; end if;
+end $$;
+select public.t_erro($q$select public.diag_exportar(false, array['xyz'])$q$, 'diag:parametro_invalido');
+-- consultor externo: sem identificação e sem texto aberto
+select public.t_como('00000000-0000-0000-0000-0000000000ce');
+select public.t_erro($q$select public.diag_exportar(true)$q$, 'diag:nao_autorizado');
+do $$
+declare r jsonb; f jsonb;
+begin
+  r := public.diag_exportar();
+  f := public.t_exp_ficha(r, 'DSA-XAP-260926-T33A-01');
+  if f is null then raise exception 'FALHOU T33 consultor sem ficha'; end if;
+  if f->'respostas' ? 'participa_org_quais' then raise exception 'FALHOU T33 P55 exportada para consultor'; end if;
+  if f->'respostas' ? 'moradia_situacao_outro' then raise exception 'FALHOU T33 especifique exportado para consultor'; end if;
+  if f->'respostas' ? 'producao_produtos' then raise exception 'FALHOU T33 texto aberto exportado para consultor'; end if;
+  if f->'respostas'->>'participa_org' <> 'sim' or f->'respostas'->>'moradia_situacao' <> 'outro' then raise exception 'FALHOU T33 consultor perdeu resposta fechada'; end if;
+  if f ? 'entrevistador' or f ? 'entrevistado_nome' or f ? 'lat' then raise exception 'FALHOU T33 consultor com identificação'; end if;
+  if (r->>'com_texto')::boolean then raise exception 'FALHOU T33 consultor com_texto'; end if;
+  if exists (select 1 from public.diag_exportacoes) then raise exception 'FALHOU T33 consultor lê o registro'; end if;
+end $$;
+select public.t_erro($q$insert into public.diag_exportacoes (usuario_id, perfil, identificada, com_texto, n_fichas, n_moradores)
+  values (auth.uid(), 'x', false, false, 0, 0)$q$, 'permission denied');
+-- sem acesso a ficha individual: sem exportação
+select public.t_como('00000000-0000-0000-0000-0000000000cf');
+select public.t_erro($q$select public.diag_exportar()$q$, 'diag:nao_autorizado');
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+select public.t_erro($q$select public.diag_exportar()$q$, 'diag:nao_autorizado');
+select public.t_como('00000000-0000-0000-0000-0000000000b1');
+select public.t_erro($q$select public.diag_exportar()$q$, 'diag:nao_autorizado');
+-- a coordenação lê o registro
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$ begin
+  if (select count(*) from public.diag_exportacoes) <> 4 then raise exception 'FALHOU T33 registro (esperado 4, veio %)', (select count(*) from public.diag_exportacoes); end if;
+  if (select count(*) from public.diag_exportacoes where identificada) <> 1 then raise exception 'FALHOU T33 registro identificada'; end if;
+  if (select count(*) from public.diag_exportacoes where perfil = 'consultor_externo' and not com_texto) <> 1 then raise exception 'FALHOU T33 registro consultor'; end if;
+end $$;
+reset role;
+do $$ begin
+  if has_table_privilege('anon', 'public.diag_exportacoes', 'select') then raise exception 'FALHOU T33 anon lê registro'; end if;
+  if has_function_privilege('anon', 'public.diag_exportar(boolean, text[], integer, uuid, uuid)', 'execute') then raise exception 'FALHOU T33 anon exporta'; end if;
+  if not exists (select 1 from cron.job where jobname = 'diag-expurgo-diario' and command like '%/functions/v1/diag-expurgo%') then raise exception 'FALHOU T33 cron expurgo'; end if;
+  if not exists (select 1 from public.lgpd_tratamentos where codigo = 'TRAT-001' and 'diag_exportacoes' = any(tabelas)) then raise exception 'FALHOU T33 ROPA'; end if;
+end $$;
+
+-- ── T34 v3: doutorado na escolaridade ───────────────────────────────────
+reset role;
+do $$ begin
+  if not exists (select 1 from public.diag_questionarios q, jsonb_array_elements(q.estrutura->'moradores'->'colunas') c,
+                 jsonb_array_elements(c->'opcoes') o where q.versao = 3 and c->>'chave' = 'escolaridade' and o->>'v' = 'doutorado_completo')
+     then raise exception 'FALHOU T34 v3 sem doutorado'; end if;
+  if exists (select 1 from public.diag_questionarios q, jsonb_array_elements(q.estrutura->'moradores'->'colunas') c,
+             jsonb_array_elements(c->'opcoes') o where q.versao = 2 and o->>'v' like 'doutorado%')
+     then raise exception 'FALHOU T34 v2 alterada'; end if;
+  -- ordem: doutorado logo depois de mestrado completo, "não sabe" continua por último
+  if (select string_agg(o->>'v', ',' order by i) from public.diag_questionarios q,
+        jsonb_array_elements(q.estrutura->'moradores'->'colunas') c, jsonb_array_elements(c->'opcoes') with ordinality o(o, i)
+      where q.versao = 3 and c->>'chave' = 'escolaridade') not like '%mestrado_completo,doutorado_incompleto,doutorado_completo,nao_sabe'
+     then raise exception 'FALHOU T34 ordem das opções'; end if;
+  if (select estrutura->>'versao' from public.diag_questionarios where versao = 3) <> '3' then raise exception 'FALHOU T34 versao na estrutura'; end if;
+  if (select aviso_entrevistado from public.diag_questionarios where versao = 3)
+     <> (select aviso_entrevistado from public.diag_questionarios where versao = 2) then raise exception 'FALHOU T34 aviso'; end if;
+end $$;
+update public.diag_questionarios set status = 'publicado' where versao = 3;
+insert into public.t_ctx select 'q3', id::text from public.diag_questionarios where versao = 3;
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha('f3400000-0000-0000-0000-000000000001','DSA-XAP-260926-T34A-01', null, now(),
+  jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q2'))),
+  '[{"ordem":1,"idade":40,"sexo_genero":"mulher","escolaridade":"doutorado_completo","e_entrevistado":true}]')$q$, 'diag:morador_invalido');
+do $$
+declare r jsonb;
+begin
+  r := public.diag_enviar_ficha(public.t_ficha('f3400000-0000-0000-0000-000000000001','DSA-XAP-260926-T34A-01', null, now(),
+         jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q3'))),
+       '[{"ordem":1,"idade":40,"sexo_genero":"mulher","escolaridade":"doutorado_completo","e_entrevistado":true}]');
+end $$;
+reset role;
+
+-- ── T35 Meu painel: só as fichas do próprio entrevistador ───────────────
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$
+declare p jsonb;
+begin
+  p := public.diag_meu_painel();
+  if (p->>'total')::int <> (select count(*) from public.diag_fichas where entrevistador_id = '00000000-0000-0000-0000-0000000000e2' and not treino and status <> 'descartada')
+     then raise exception 'FALHOU T35 total (veio %)', p->>'total'; end if;
+  if (p->>'total')::int = 0 then raise exception 'FALHOU T35 cenário sem fichas'; end if;
+  if (p->'por_status'->>'validada')::int <> (select count(*) from public.diag_fichas where entrevistador_id = '00000000-0000-0000-0000-0000000000e2' and not treino and status = 'validada')
+     then raise exception 'FALHOU T35 validadas'; end if;
+  if (p->>'pessoas')::int <> (select count(*) from public.diag_moradores m join public.diag_fichas f on f.id = m.ficha_id
+                              where f.entrevistador_id = '00000000-0000-0000-0000-0000000000e2' and not f.treino and f.status <> 'descartada')
+     then raise exception 'FALHOU T35 pessoas'; end if;
+  if (p->>'aceitas')::int + (p->>'recusas')::int <> (p->>'total')::int then raise exception 'FALHOU T35 aceitas+recusas'; end if;
+  if jsonb_array_length(p->'por_comunidade') < 1 or jsonb_array_length(p->'por_dia') < 1 then raise exception 'FALHOU T35 séries'; end if;
+end $$;
+-- super_admin enxerga TODAS as fichas no RLS, mas o painel é só dele
+select public.t_como('00000000-0000-0000-0000-00000000005a');
+do $$ begin
+  if (public.diag_meu_painel()->>'total')::int <> (select count(*) from public.diag_fichas where entrevistador_id = '00000000-0000-0000-0000-00000000005a' and not treino and status <> 'descartada')
+     then raise exception 'FALHOU T35 super_admin conta fichas dos outros'; end if;
+end $$;
+-- coordenação só-treino: nada real, treino à parte
+select public.t_como('00000000-0000-0000-0000-0000000000c1');
+do $$
+declare p jsonb := public.diag_meu_painel();
+begin
+  if (p->>'total')::int <> 0 then raise exception 'FALHOU T35 coordenação com fichas reais'; end if;
+  if (p->>'treino')::int < 1 then raise exception 'FALHOU T35 treino não contado à parte'; end if;
+end $$;
+select public.t_como(null);
+select public.t_erro($q$select public.diag_meu_painel()$q$, 'diag:nao_autorizado');
+reset role;
+do $$ begin
+  if has_function_privilege('anon', 'public.diag_meu_painel()', 'execute') then raise exception 'FALHOU T35 anon'; end if;
+end $$;

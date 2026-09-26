@@ -54,6 +54,23 @@ const DiagForm = (function () {
     return html
   }
 
+  // ── Modo pendências: UMA pergunta (ou a tabela da P9) fora do bloco ──
+  // Usado pela revisão para ir direto ao que falta, sem passar pelos blocos
+  // já respondidos. Mesmo render e mesmos eventos do bloco inteiro.
+  function renderPendencia(chave) {
+    const bs = blocos()
+    const der = R.derivar(ctx.ficha.moradores || [])
+    for (let i = 0; i < bs.length; i++) {
+      const b = bs[i]
+      const p = b.perguntas.find(x => chave === 'moradores' ? x.tipo === 'tabela' : x.chave === chave)
+      if (!p) continue
+      return '<p class="pend-contexto">Bloco ' + (i + 1) + ' · ' + h(b.titulo) + '</p>' +
+        (b.lembrete ? '<div class="lembrete">' + h(b.lembrete) + '</div>' : '') +
+        (p.tipo === 'tabela' ? renderMoradores(p) : renderPergunta(p, der, true))
+    }
+    return ''
+  }
+
   function cabecalhoPergunta(p) {
     return '<div class="p-num">P' + p.n + (p.opcional ? ' · opcional' : '') + '</div>' +
            '<div class="p-texto" id="lbl-' + h(p.chave) + '">' + h(p.texto) + '</div>' +
@@ -334,5 +351,5 @@ const DiagForm = (function () {
     }
   }
 
-  return { iniciar, blocos, renderBloco, tratarClique, tratarEntrada, tratarArquivo, sincronizarEntrevistado, ROTULO_TEMA }
+  return { iniciar, blocos, renderBloco, renderPendencia, tratarClique, tratarEntrada, tratarArquivo, sincronizarEntrevistado, ROTULO_TEMA }
 })()

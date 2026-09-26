@@ -97,8 +97,15 @@
     <span class="rede" id="ini-rede">…</span>
     <button type="button" class="btn-icone" id="btn-config" aria-label="Configurações">⚙</button>
   </header>
+  <div class="abas-ini" role="tablist">
+    <button type="button" role="tab" id="aba-entrevistas" aria-selected="true">Entrevistas</button>
+    <button type="button" role="tab" id="aba-painel" aria-selected="false">Meu painel</button>
+  </div>
   <div class="tela">
     <div id="ini-avisos"></div>
+    <!-- Meu painel: SÓ as fichas de quem está logado (diag_meu_painel + fila do aparelho) -->
+    <div id="ini-painel" hidden></div>
+    <div id="ini-entrevistas">
     <div class="contadores">
       <div class="contador"><b id="c-rascunho">0</b><span>em andamento</span></div>
       <div class="contador"><b id="c-fila">0</b><span>na fila</span></div>
@@ -108,6 +115,7 @@
     <button type="button" class="btn btn-sec btn-bloco" style="margin-top:10px" id="btn-sync">⟳ Sincronizar</button>
     <p class="dica" id="ini-ultima-sync" style="text-align:center"></p>
     <div id="ini-lista"></div>
+    </div>
   </div>
 </section>
 
@@ -170,14 +178,23 @@
   </header>
   <div class="tela">
     <div id="ficha-devolvida"></div>
+    <!-- modo pendências (vindo da revisão): só as perguntas que faltam, uma por vez -->
+    <div id="pend-barra" class="pend-barra" hidden></div>
     <div id="ficha-corpo"></div>
     <!-- navegação só depois da última pergunta do bloco (não fixa: decisão de 26/09) -->
-    <nav class="fim-bloco" aria-label="Navegação entre blocos">
+    <nav class="fim-bloco" id="bloco-nav" aria-label="Navegação entre blocos">
       <p id="fim-bloco-txt"></p>
       <div class="linha">
         <button type="button" class="btn btn-sec" id="btn-anterior">← Anterior</button>
         <button type="button" class="btn btn-prim" id="btn-proximo">Próximo →</button>
       </div>
+    </nav>
+    <nav class="fim-bloco pend-nav" id="pend-nav" aria-label="Navegação entre pendências" hidden>
+      <div class="linha">
+        <button type="button" class="btn btn-sec" id="btn-pend-anterior">← Anterior</button>
+        <button type="button" class="btn btn-prim" id="btn-pend-proxima">Próxima pendência →</button>
+      </div>
+      <button type="button" class="btn-link" id="btn-pend-revisao">Voltar à revisão</button>
     </nav>
   </div>
 </section>
@@ -190,6 +207,7 @@
   </header>
   <div class="tela">
     <div id="revisao-resumo"></div>
+    <button type="button" class="btn btn-prim btn-bloco" id="btn-pendencias" hidden></button>
     <div id="revisao-lista"></div>
   </div>
   <nav class="rodape"><div class="rodape-inner">

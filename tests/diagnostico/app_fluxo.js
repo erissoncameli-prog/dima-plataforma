@@ -189,10 +189,11 @@ function png1x1() {
   await page.fill('[data-acao="mor"][data-i="2"][data-campo="idade"]', '10')
   await page.selectOption('[data-acao="mor"][data-i="2"][data-campo="sexo_genero"]', 'mulher')
   await page.fill('[data-acao="mor"][data-i="2"][data-campo="parentesco"]', 'filha')
-  // v2: escolaridade em lista fechada
+  // escolaridade em lista fechada (v2); doutorado a partir da v3
   await page.selectOption('[data-acao="mor"][data-i="2"][data-campo="escolaridade"]', 'fundamental_incompleto')
+  await page.selectOption('[data-acao="mor"][data-i="1"][data-campo="escolaridade"]', 'doutorado_completo')
   await foto('bloco1')
-  if (process.env.SHOTS) { await page.waitForTimeout(3900); await page.locator('.fim-bloco').scrollIntoViewIfNeeded(); await foto('fim_bloco') }
+  if (process.env.SHOTS) { await page.waitForTimeout(3900); await page.locator('#bloco-nav').scrollIntoViewIfNeeded(); await foto('fim_bloco') }
   ok('P4–P9 com a 1ª linha sincronizada')
 
   // bloco 2 (moradia) → 3 (água)
@@ -233,9 +234,48 @@ function png1x1() {
   if (await page.isDisabled('#btn-concluir')) falhar('revisão travou o salvamento')
   await clicar('#revisao-lista [data-ir="saude_onde"]')
   await page.locator('.pergunta.destaque[data-chave="saude_onde"]').waitFor()
-  await page.evaluate(() => abrirRevisao())
+  await page.evaluate(() => { sairModoPendencias(); abrirRevisao() })
   await foto('revisao')
   ok('revisão lista ' + itens + ' avisos e leva até a pergunta')
+
+  // modo pendências: uma pergunta por vez, direto ao que falta
+  const nPend = await page.evaluate(() => pendentesAgora().length)
+  if (!new RegExp('Resolver as ' + nPend + ' pendências').test(await page.textContent('#btn-pendencias'))) falhar('botão de pendências com contagem errada')
+  await clicar('#btn-pendencias')
+  await page.locator('#pend-barra').waitFor({ state: 'visible' })
+  if (!new RegExp('Pendência 1 de ' + nPend).test(await page.textContent('#pend-barra'))) falhar('barra de pendências: ' + await page.textContent('#pend-barra'))
+  if (await page.locator('#ficha-corpo .pergunta').count() !== 1) falhar('modo pendências mostrou mais de uma pergunta')
+  if (await page.isVisible('#bloco-nav')) falhar('navegação de blocos visível no modo pendências')
+  const p1 = await page.getAttribute('#ficha-corpo .pergunta', 'data-chave')
+  await clicar('#ficha-corpo [data-acao="nr"]')
+  await clicar('#btn-pend-proxima')
+  const p2 = await page.getAttribute('#ficha-corpo .pergunta', 'data-chave')
+  if (p2 === p1 || !/Pendência 2 de/.test(await page.textContent('#pend-barra'))) falhar('próxima pendência não avançou')
+  // muitas pendências: contagem de resolvidas no lugar dos pontos
+  if (!/1 resolvida/.test(await page.textContent('#pend-barra'))) falhar('pendência resolvida não contou: ' + await page.textContent('#pend-barra'))
+  await clicar('#btn-pend-anterior')
+  if (await page.getAttribute('#ficha-corpo .pergunta', 'data-chave') !== p1) falhar('anterior não voltou')
+  await clicar('#btn-pend-revisao')
+  await page.locator('#t-revisao').waitFor({ state: 'visible' })
+  if (await page.evaluate(() => pendentesAgora().length) !== nPend - 1) falhar('"Não respondeu" no modo pendências não resolveu')
+  // salto: responder P24 = Sim abre a P25, que entra na fila na hora
+  await clicar('#revisao-lista [data-ir="saude_problemas_freq"]')
+  await page.locator('.pergunta[data-chave="saude_problemas_freq"]').waitFor()
+  const antes = await page.textContent('#pend-barra b')
+  await clicar('[data-chave="saude_problemas_freq"][data-v="sim"]')
+  const totalDe = t => +/de (\d+)/.exec(t)[1]
+  if (totalDe(await page.textContent('#pend-barra b')) !== totalDe(antes) + 1) falhar('pergunta aberta pelo salto não entrou na fila: ' + antes + ' → ' + await page.textContent('#pend-barra'))
+  if (!/P25/.test(await page.textContent('#btn-pend-proxima'))) falhar('próxima deveria ser a P25: ' + await page.textContent('#btn-pend-proxima'))
+  await foto('pendencias')
+  await clicar('#btn-pend-proxima')
+  await page.locator('.pergunta[data-chave="saude_problemas_quais"]').waitFor()
+  // "Concluir" na última volta à revisão
+  await page.evaluate(() => { App.pend.atual = App.pend.seq[App.pend.seq.length - 1].chave; desenharPendencia() })
+  if (!/Concluir/.test(await page.textContent('#btn-pend-proxima'))) falhar('última pendência deveria oferecer Concluir')
+  await clicar('#btn-pend-proxima')
+  await page.locator('#t-revisao').waitFor({ state: 'visible' })
+  if (await page.isVisible('#pend-barra')) falhar('barra de pendências ficou ligada')
+  ok('modo pendências: uma por vez, anterior/próxima, salto entra na fila, concluir volta à revisão')
 
   // salvar SEM sinal: fica na fila
   online = false
@@ -258,7 +298,7 @@ function png1x1() {
   if (f.respostas.tem_escolar !== 'sim') falhar('P26 derivada no banco')
   if (JSON.stringify(f.respostas.comunicacao_meios) !== '["nenhum"]') falhar('exclusiva no banco')
   const mor = consulta("select m.ordem, m.idade, m.e_entrevistado, m.escolaridade, mi.nome from diag_moradores m join diag_fichas f on f.id = m.ficha_id left join diag_moradores_identificacao mi on mi.morador_id = m.id where f.codigo = " + lit(codigo) + ' order by m.ordem')
-  if (mor.length !== 3 || !mor[0].e_entrevistado || mor[0].idade !== 40 || mor[1].nome !== 'João' || mor[2].escolaridade !== 'fundamental_incompleto') falhar('moradores no banco: ' + JSON.stringify(mor))
+  if (mor.length !== 3 || !mor[0].e_entrevistado || mor[0].idade !== 40 || mor[1].nome !== 'João' || mor[1].escolaridade !== 'doutorado_completo' || mor[2].escolaridade !== 'fundamental_incompleto') falhar('moradores no banco: ' + JSON.stringify(mor))
   const ident = consulta("select i.entrevistado_nome from diag_fichas_identificacao i join diag_fichas f on f.id = i.ficha_id where f.codigo = " + lit(codigo))[0]
   if (!ident || ident.entrevistado_nome !== 'Maria da Silva') falhar('nome do entrevistado não foi para a identificação')
   const fotos = consulta("select ft.arquivo_url from diag_fotos ft join diag_fichas f on f.id = ft.ficha_id where f.codigo = " + lit(codigo))
@@ -294,6 +334,31 @@ function png1x1() {
   if (!rec || JSON.stringify(rec.respostas) !== '{}' || rec.comunidade_nova !== 'Colocação Nova Esperança') falhar('recusa no banco')
   ok('recusa enviada só com comunidade/data/entrevistador')
 
+  // Meu painel: só as fichas desta técnica (outra pessoa com ficha no banco não conta)
+  psql("insert into public.usuarios values ('00000000-0000-0000-0000-0000000000e9','Outro Técnico','o@x','tecnico',true)")
+  psql("insert into public.diag_fichas (uuid_cliente, codigo, questionario_id, municipio_ibge, comunidade_id, dt_entrevista, finalizada_em, entrevistador_id, aviso_lido, aceitou_participar, respostas, status) " +
+       "select gen_random_uuid(), 'DSA-XAP-260926-OUTR-01', questionario_id, municipio_ibge, comunidade_id, dt_entrevista, finalizada_em, '00000000-0000-0000-0000-0000000000e9', true, true, respostas, 'enviada' from public.diag_fichas where codigo = " + lit(codigo))
+  await clicar('#btn-sync'); await page.waitForTimeout(800)
+  await clicar('#aba-painel')
+  await page.locator('#ini-painel .pn-total').waitFor()
+  if (await page.textContent('#ini-painel .pn-total b') !== '2') falhar('painel contou ' + await page.textContent('#ini-painel .pn-total b') + ' (esperado 2: só as da técnica)')
+  if (!/1\s*recusa/.test(await page.textContent('#ini-painel'))) falhar('painel sem a recusa')
+  if (!/3\s*pessoas/.test(await page.textContent('#ini-painel'))) falhar('painel: pessoas nos domicílios')
+  if (!/Seringal Cachoeira/.test(await page.textContent('#ini-painel')) || !/Nova Esperança/.test(await page.textContent('#ini-painel'))) falhar('painel por comunidade')
+  if (await page.locator('#ini-painel .pn-barras .col').count() !== 14) falhar('gráfico de 14 dias')
+  if (await page.isVisible('#ini-lista')) falhar('lista de entrevistas visível na aba painel')
+  await foto('painel')
+  // sem sinal, o painel abre com a última foto do servidor + a fila do aparelho
+  online = false
+  await page.evaluate(async u => { const f = (await dFichasDoUsuario(u))[0]; await dFichaSalvar(Object.assign({}, f, { uuid_cliente: 'ffffffff-0000-0000-0000-000000000001', codigo: 'DSA-XAP-TESTE-FILA-01', estado: 'pronta', status_servidor: null, servidor_id: null, treino: false })) }, UID_TEC)
+  await page.evaluate(() => desenharPainel())
+  if (await page.textContent('#ini-painel .pn-total b') !== '3' || !/1 no aparelho/.test(await page.textContent('#ini-painel'))) falhar('painel offline não somou a fila do aparelho')
+  await page.evaluate(() => dFichaApagarLocal('ffffffff-0000-0000-0000-000000000001'))
+  online = true
+  psql("delete from public.diag_fichas where codigo = 'DSA-XAP-260926-OUTR-01'")
+  await clicar('#aba-entrevistas')
+  ok('Meu painel: só as fichas da técnica, com recusa, pessoas, comunidades, 14 dias e fila offline')
+
   // devolução pela coordenação volta para o aparelho
   psql("insert into public.usuarios values ('00000000-0000-0000-0000-0000000000c0','Coord','co@x','coordenacao',true)")
   psql("select public.diag_mudar_status((select id from diag_fichas where codigo = " + lit(codigo) + "), 'devolvida', 'Conferir a P9')", '00000000-0000-0000-0000-0000000000c0')
@@ -309,8 +374,8 @@ function png1x1() {
   await clicar('#btn-config'); await page.locator('#t-config').waitFor({ state: 'visible' })
   if (await page.isVisible('#config-treino-wrap')) falhar('modo treino visível sem a permissão diagnostico_treino')
   await clicar('#t-config [data-voltar]'); await page.locator('#t-inicio').waitFor({ state: 'visible' })
-  // v3 em RASCUNHO + permissão de treino: o treino usa a mais nova (v3); a ficha real continua na v2 publicada
-  psql("insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado) select codigo, 3, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 2")
+  // v8 em RASCUNHO + permissão de treino: o treino usa a mais nova (v8); a ficha real continua na v3 publicada
+  psql("insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado) select codigo, 8, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 3")
   psql("insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate) values ('00000000-0000-0000-0000-0000000000e1','diagnostico_treino', now()-interval '1 day', now()+interval '10 days')")
   await clicar('#btn-sync'); await page.waitForTimeout(800)
   await clicar('#btn-config'); await page.locator('#config-treino-wrap').waitFor({ state: 'visible' })
@@ -332,7 +397,7 @@ function png1x1() {
   await page.locator('#ini-lista .selo-treino').waitFor({ timeout: 15000 })
   await page.waitForFunction(() => document.getElementById('c-fila').textContent === '0', null, { timeout: 15000 })
   const tr = consulta("select f.codigo, f.treino, q.versao, q.status as q_status from diag_fichas f join diag_questionarios q on q.id = f.questionario_id where f.treino")
-  if (tr.length !== 1 || !/^TRE-XAP-\d{6}-[A-Z0-9]{4}-\d{2}$/.test(tr[0].codigo) || tr[0].versao !== 3 || tr[0].q_status !== 'rascunho')
+  if (tr.length !== 1 || !/^TRE-XAP-\d{6}-[A-Z0-9]{4}-\d{2}$/.test(tr[0].codigo) || tr[0].versao !== 8 || tr[0].q_status !== 'rascunho')
     falhar('ficha de treino no banco: ' + JSON.stringify(tr))
   if (consulta("select ficha_id from vw_diag_respostas r join diag_fichas f on f.id = r.ficha_id where f.treino").length) falhar('treino entrou nos números')
   // coordenação apaga o treino; as reais ficam
@@ -344,13 +409,13 @@ function png1x1() {
   await clicar('#t-config [data-voltar]'); await page.locator('#t-inicio').waitFor({ state: 'visible' })
   await page.waitForTimeout(300)
   if (await page.isVisible('#faixa-treino')) falhar('faixa MODO TREINO ficou com o modo desligado')
-  ok('modo treino: TRE- na v3 em rascunho, faixa, fora dos números, apagado pela coordenação')
+  ok('modo treino: TRE- na versão em rascunho, faixa, fora dos números, apagado pela coordenação')
 
   // configurações (padrão SIGUC): perfil, QR de instalação, privacidade
   await clicar('#btn-config'); await page.locator('#t-config').waitFor({ state: 'visible' })
   await page.waitForTimeout(300)
   if (!/Técnica de Campo/.test(await page.textContent('#cfg-nome'))) falhar('config sem o nome do usuário')
-  if (!/DSA v2/.test(await page.textContent('#cfg-quest'))) falhar('config sem a versão do questionário: ' + await page.textContent('#cfg-quest'))
+  if (!/DSA v3/.test(await page.textContent('#cfg-quest'))) falhar('config sem a versão do questionário: ' + await page.textContent('#cfg-quest'))
   if (await page.isHidden('#btn-cfg-instalar')) falhar('"Instalar neste celular" escondido fora do app instalado')
   await clicar('#btn-cfg-qr'); await page.locator('#ov-qr').waitFor({ state: 'visible' })
   const qrSrc = await page.getAttribute('#ov-qr-img', 'src')

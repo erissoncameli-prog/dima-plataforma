@@ -1074,6 +1074,43 @@ sem mudança de banco — usa o que a Fase 1 já tinha:
   não veem a aba.
 - Teste: `tests/diagnostico/mesa_validacao.js` (rodado por `rodar_app.sh`).
 
-Ainda da Fase 3: exportação, indicadores na mesa e a Edge Function que drena
-`diag_expurgo_arquivos`.
+### 6.9 Fase 3 — exportação, indicadores, expurgo *(26/09)*
+
+Migração `20260926_diag_11_exportacao_expurgo.sql` + Edge Function `diag-expurgo`:
+- **Exportação `.xlsx`** (botão na aba Validação, `js/diagnostico-exportar.js`,
+  ExcelJS vendorizado em `js/vendor/`, regra do SIGUC — nunca SheetJS). O
+  recorte é montado no banco por `diag_exportar()`, que grava
+  `diag_exportacoes` **na mesma transação**: não existe exportação sem
+  registro. Padrão = sem nome, GPS e nomes dos moradores; **identificada** só
+  para coordenação/super_admin, com confirmação de uso interno; **consultor
+  externo** recebe também sem texto aberto e sem "especifique" (a P55 nunca
+  sai para ele). Treino nunca sai. Planilha com 4 abas (Fichas, Moradores,
+  Dicionário, Sobre com versão e hash). "Últimas exportações" na aba, só para
+  a coordenação (policy de `diag_exportacoes`). ROPA TRAT-001 atualizado.
+- **Indicadores** (aba nova, todos os perfis que acessam a mesa,
+  `js/diagnostico-indicadores.js`): só desenha o que `fn_diag_agregados`
+  devolve — nada recalculado. Recorte geral/município/comunidade, por versão
+  do questionário (versões não se somam), por sexo (bloco Gênero sempre),
+  "incluir em conferência". Célula < 5 fichas aparece oculta. Planilha dos
+  indicadores com a mesma tabela do banco.
+- **Expurgo de fotos**: `diag-expurgo` (service_role) drena
+  `diag_expurgo_arquivos` pela API do Storage — só bucket `diagnostico-fotos`,
+  só caminho `<ficha>/<foto>`, nunca arquivo ainda referenciado em
+  `diag_fotos` (fica na fila com `ultimo_erro`). Cron `diag-expurgo-diario`
+  às 06:37 UTC, depois da retenção.
+
+### 6.10 App: pendências uma a uma, Meu painel, v3 *(26/09)*
+
+Migração `20260926_diag_12_v3_doutorado_painel.sql`:
+- **Revisão → "Resolver as N pendências, uma por vez"**: mostra só a pergunta
+  em branco (ou a tabela da P9), com anterior/próxima; a lista é recalculada a
+  cada resposta pela mesma regra da revisão (salto que abre pergunta nova
+  entra na fila). Tocar numa pendência da lista entra no modo a partir dela.
+- **Meu painel** (aba no início do app): `diag_meu_painel()` conta **só as
+  fichas de `auth.uid()`**, qualquer que seja o perfil (coordenação e
+  super_admin enxergam todas no RLS, mas o painel é pessoal). A foto do
+  servidor vem na sincronização e fica no aparelho; as concluídas ainda na
+  fila são somadas na hora. Treino à parte.
+- **Questionário v3**: escolaridade com "Doutorado incompleto/completo". v2
+  arquivada (nenhuma ficha real nela).
 

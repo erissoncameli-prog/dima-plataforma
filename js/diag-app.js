@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.5.0'
+const DIAG_APP_VERSAO = '1.6.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -29,6 +29,8 @@ const App = {
   estrutura: null,      // estrutura da versão da ficha aberta
   bloco: 0,
   fotos: [],
+  pend: null,           // modo pendências: { seq: [{chave, n}], atual, vistas: Set }
+  abaIni: 'entrevistas',
   pin: '', pinModo: 'entrar', pinPrimeiro: null,
 }
 
@@ -273,6 +275,7 @@ async function desenharInicio() {
       '. Fichas concluídas até essa data ainda são aceitas por 15 dias. Peça a renovação ao super_admin.</div>'
   document.getElementById('ini-avisos').innerHTML = avisos
   document.getElementById('btn-nova').disabled = !q
+  trocarAbaInicio(App.abaIni, true)
 
   const grupos = [
     ['Para corrigir (devolvidas pela coordenação)', fichas.filter(f => f.status_servidor === 'devolvida' && f.estado !== 'enviada')],
@@ -428,10 +431,11 @@ async function abrirFicha(uuidFicha, irParaChave) {
   if (!q || q.id !== f.questionario_id) { aviso('A versão do questionário desta ficha não está no aparelho. Sincronize com internet.', 'erro'); return }
   App.ficha = f; App.estrutura = q.estrutura
   App.bloco = f.bloco_atual || 0
+  sairModoPendencias()
   await carregarFotos()
   DiagForm.iniciar({
     ficha: f, estrutura: q.estrutura, sugestoes: await sugestoesCombinadas(), fotos: App.fotos,
-    aoMudar: redesenhar => { salvarFichaAtual(); if (redesenhar) desenharBloco() },
+    aoMudar: redesenhar => { salvarFichaAtual(); if (redesenhar) redesenharFicha() },
     aoPedirGps: capturarGps, aoFoto: adicionarFoto, aoRemoverFoto: removerFoto,
   })
   DiagForm.sincronizarEntrevistado()
@@ -568,7 +572,204 @@ function abrirRevisao() {
     '<span class="meio">' + esc(DiagRegras.descreverAlerta(a, App.estrutura)) + '</span>' +
     (a.chave || a.n === 9 ? '<span class="selo selo-pronta">ir</span>' : '') + '</button>').join('')
   document.getElementById('btn-concluir').disabled = !!erroEstrutura
+  const btnPend = document.getElementById('btn-pendencias')
+  const nPend = erroEstrutura ? 0 : pendentesAgora().length
+  btnPend.hidden = nPend === 0
+  btnPend.textContent = nPend === 1 ? 'Resolver a pendência →' : 'Resolver as ' + nPend + ' pendências, uma por vez →'
   mostrar('t-revisao')
+}
+
+// ── Modo pendências ────────────────────────────────────────────────────
+// Da revisão, vai direto a cada pergunta em branco, uma por vez, sem passar
+// pelos blocos já respondidos. A lista é recalculada a cada resposta (mesma
+// regra da revisão, DiagRegras.alertas): pergunta que passa a valer por salto
+// entra na fila; a que deixa de valer sai (se ainda não foi vista).
+function pendentesAgora() {
+  const f = App.ficha
+  try {
+    const norm = DiagRegras.normalizar(App.estrutura, f.respostas || {}, f.moradores || [])
+    return DiagRegras.alertas(App.estrutura, norm, f.moradores || [], { comunidade_nova: !f.comunidade_id })
+      .filter(a => a.tipo === 'pendente' && a.chave)
+      .map(a => ({ chave: a.chave, n: a.n }))
+      .sort((a, b) => a.n - b.n)
+  } catch (e) { return [] }
+}
+
+function abrirPendencias(chaveInicial) {
+  const lista = pendentesAgora()
+  if (!lista.length) { abrirRevisao(); return }
+  const ini = lista.find(p => p.chave === chaveInicial) || lista[0]
+  App.pend = { seq: lista, atual: ini.chave, vistas: new Set([ini.chave]) }
+  document.getElementById('bloco-nav').hidden = true
+  document.getElementById('pend-nav').hidden = false
+  document.getElementById('pend-barra').hidden = false
+  mostrar('t-ficha')
+  desenharPendencia()
+}
+
+function sairModoPendencias() {
+  App.pend = null
+  document.getElementById('bloco-nav').hidden = false
+  document.getElementById('pend-nav').hidden = true
+  document.getElementById('pend-barra').hidden = true
+}
+
+// a sequência só cresce com o que o salto abriu; o que já foi visto fica
+// (para o "Anterior" continuar funcionando e o ponto ficar verde)
+function atualizarSeqPendencias() {
+  const agora = pendentesAgora()
+  const emAberto = new Set(agora.map(p => p.chave))
+  const pd = App.pend
+  pd.seq = pd.seq.filter(p => emAberto.has(p.chave) || pd.vistas.has(p.chave))
+  agora.forEach(p => { if (!pd.seq.some(x => x.chave === p.chave)) pd.seq.push(p) })
+  pd.seq.sort((a, b) => a.n - b.n)
+  return emAberto
+}
+
+function proximaPendencia(emAberto) {
+  const pd = App.pend
+  const i = pd.seq.findIndex(p => p.chave === pd.atual)
+  return pd.seq.slice(i + 1).find(p => emAberto.has(p.chave)) || null
+}
+
+function desenharPendencia() {
+  const pd = App.pend
+  const emAberto = atualizarSeqPendencias()
+  const i = pd.seq.findIndex(p => p.chave === pd.atual)
+  document.getElementById('ficha-bloco').textContent = 'Corrigindo pendências'
+  document.getElementById('ficha-prog').style.width = Math.round(100 * (i + 1) / pd.seq.length) + '%'
+  const feitas = pd.seq.filter(p => !emAberto.has(p.chave)).length
+  // pontos só enquanto cabem numa linha; com muitas, só a contagem de resolvidas
+  document.getElementById('pend-barra').innerHTML = '<b>Pendência ' + (i + 1) + ' de ' + pd.seq.length + '</b>' +
+    (pd.seq.length <= 15
+      ? '<span class="pend-pontos" aria-hidden="true">' + pd.seq.map(p =>
+          '<i class="' + (p.chave === pd.atual ? 'atual' : emAberto.has(p.chave) ? '' : 'feita') + '"></i>').join('') + '</span>'
+      : ' <span class="pend-feitas">' + feitas + ' resolvida' + (feitas === 1 ? '' : 's') + '</span>')
+  const corpo = document.getElementById('ficha-corpo')
+  corpo.innerHTML = DiagForm.renderPendencia(pd.atual)
+  corpo.querySelectorAll('.foto img').forEach((img, k) => { if (App.fotos[k] && App.fotos[k]._url) img.src = App.fotos[k]._url })
+  document.getElementById('btn-pend-anterior').disabled = i <= 0
+  const prox = proximaPendencia(emAberto)
+  const perg = prox && prox.chave !== 'moradores' ? DiagRegras.porChave(App.estrutura)[prox.chave] : null
+  document.getElementById('btn-pend-proxima').innerHTML = prox
+    ? 'Próxima →<small>P' + prox.n + (perg ? ' · ' + esc(perg.texto) : ' · Moradores') + '</small>'
+    : 'Concluir →<small>voltar à revisão</small>'
+}
+
+function navegarPendencia(delta) {
+  const pd = App.pend
+  salvarFichaAtual()
+  if (delta > 0) {
+    const prox = proximaPendencia(atualizarSeqPendencias())
+    if (!prox) { sairModoPendencias(); abrirRevisao(); return }
+    pd.atual = prox.chave
+  } else {
+    const i = pd.seq.findIndex(p => p.chave === pd.atual)
+    if (i <= 0) return
+    pd.atual = pd.seq[i - 1].chave
+  }
+  pd.vistas.add(pd.atual)
+  desenharPendencia()
+  window.scrollTo(0, 0)
+}
+
+function redesenharFicha() {
+  if (App.pend) desenharPendencia(); else desenharBloco()
+}
+
+// ── Meu painel ─────────────────────────────────────────────────────────
+// Só as fichas de quem está logado. Base = foto do servidor
+// (diag_meu_painel, trazida na sincronização e guardada no aparelho, abre
+// sem sinal) + as concluídas que ainda estão na fila deste aparelho (ainda
+// não chegaram ao servidor). Treino fica sempre à parte.
+function trocarAbaInicio(aba, soDesenhar) {
+  App.abaIni = aba
+  document.getElementById('aba-entrevistas').setAttribute('aria-selected', aba === 'entrevistas')
+  document.getElementById('aba-painel').setAttribute('aria-selected', aba === 'painel')
+  document.getElementById('ini-entrevistas').hidden = aba !== 'entrevistas'
+  document.getElementById('ini-painel').hidden = aba !== 'painel'
+  if (aba === 'painel') desenharPainel()
+  if (!soDesenhar) window.scrollTo(0, 0)
+}
+
+const _fmtN = n => Number(n || 0).toLocaleString('pt-BR')
+function _diaIso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+
+async function desenharPainel() {
+  const u = App.usuario
+  const el = document.getElementById('ini-painel')
+  const srv = (await dConfigGet('painel_' + u.id)) || null
+  const fichas = await dFichasDoUsuario(u.id)
+  // concluídas que ainda não estão no servidor (nunca enviadas)
+  const naFila = fichas.filter(f => !f.servidor_id && !f.status_servidor &&
+    ['pronta', 'enviando', 'erro', 'aguardando_permissao'].includes(f.estado))
+  const locais = naFila.filter(f => !f.treino)
+  const treino = ((srv && srv.treino) || 0) + naFila.filter(f => f.treino).length
+  const rodape = '<p class="dica" style="text-align:center">' + (srv
+    ? 'Atualizado em ' + new Date(srv.gerado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+    : 'Sincronize com internet para trazer os números do servidor.') +
+    (treino ? ' · treino fora da conta (' + treino + ' ficha' + (treino > 1 ? 's' : '') + ' TRE-)' : '') + '</p>'
+
+  if (App.soTreino) {
+    el.innerHTML = '<div class="pn-total"><b>' + _fmtN(treino) + '</b><span>fichas de treino feitas por você</span></div>' +
+      '<div class="faixa faixa-treino-info">Seu perfil usa o app só em modo treino. Fichas de treino não contam nos números do diagnóstico.</div>' + rodape
+    return
+  }
+
+  const st = (srv && srv.por_status) || {}
+  const total = ((srv && srv.total) || 0) + locais.length
+  const aceitasLoc = locais.filter(f => f.aceitou_participar)
+  const recusas = ((srv && srv.recusas) || 0) + (locais.length - aceitasLoc.length)
+  const pessoas = ((srv && srv.pessoas) || 0) + aceitasLoc.reduce((s, f) => s + (f.moradores || []).length, 0)
+  const porDia = {}
+  ;((srv && srv.por_dia) || []).forEach(d => { porDia[d.dia] = (porDia[d.dia] || 0) + d.n })
+  locais.forEach(f => { porDia[f.dt_entrevista] = (porDia[f.dt_entrevista] || 0) + 1 })
+  const hoje = new Date(); hoje.setHours(12, 0, 0, 0)
+  const dias = []
+  for (let k = 13; k >= 0; k--) { const d = new Date(hoje); d.setDate(d.getDate() - k); dias.push(_diaIso(d)) }
+  const nHoje = porDia[dias[13]] || 0
+  const nSemana = dias.slice(7).reduce((s, d) => s + (porDia[d] || 0), 0)
+  const max = Math.max(1, ...dias.map(d => porDia[d] || 0))
+  const ddmm = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7)
+
+  const comunidades = (await dCacheGet('comunidades')) || []
+  const porCom = {}
+  ;((srv && srv.por_comunidade) || []).forEach(c => { porCom[c.nome] = (porCom[c.nome] || 0) + c.n })
+  locais.forEach(f => {
+    const nome = f.comunidade_nova || (comunidades.find(c => c.id === f.comunidade_id) || {}).nome || '—'
+    porCom[nome] = (porCom[nome] || 0) + 1
+  })
+  const coms = Object.entries(porCom).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+
+  const selo = (cls, txt, n) => n ? '<span class="selo ' + cls + '">' + txt.replace('#', _fmtN(n)) + '</span>' : ''
+  el.innerHTML =
+    '<div class="pn-total"><b>' + _fmtN(total) + '</b><span>entrevista' + (total === 1 ? '' : 's') + ' feita' + (total === 1 ? '' : 's') + ' por você</span></div>' +
+    '<div class="pn-status">' +
+      selo('selo-validada', '✓ # validada' + ((st.validada || 0) === 1 ? '' : 's'), st.validada) +
+      selo('selo-pronta', '● # em conferência', st.enviada) +
+      selo('selo-devolvida', '↺ # para corrigir', st.devolvida) +
+      selo('selo-rascunho', '# no aparelho', locais.length) +
+      selo('selo-rascunho', '# descartada' + ((st.descartada || 0) === 1 ? '' : 's'), st.descartada) +
+    '</div>' +
+    '<div class="pn-kpis">' +
+      '<div class="pn-kpi"><b>' + _fmtN(nHoje) + '</b><span>hoje · ' + _fmtN(nSemana) + ' em 7 dias</span></div>' +
+      '<div class="pn-kpi"><b>' + _fmtN(pessoas) + '</b><span>pessoas nos domicílios</span></div>' +
+      '<div class="pn-kpi"><b>' + (srv && srv.tempo_medio_min != null ? _fmtN(srv.tempo_medio_min) + ' min' : '—') + '</b><span>tempo médio de entrevista</span></div>' +
+      '<div class="pn-kpi"><b>' + _fmtN(recusas) + '</b><span>recusa' + (recusas === 1 ? '' : 's') +
+        (total ? ' · ' + Math.round(100 * (total - recusas) / total) + '% aceitaram' : '') + '</span></div>' +
+    '</div>' +
+    '<div class="pn-cartao"><h3>Entrevistas por dia · últimos 14 dias</h3>' +
+      '<div class="pn-barras" role="img" aria-label="' + esc(dias.map(d => ddmm(d) + ': ' + (porDia[d] || 0)).join('; ')) + '">' +
+      dias.map((d, k) => {
+        const n = porDia[d] || 0
+        return '<span class="col' + (k === 13 ? ' hoje' : '') + '" title="' + ddmm(d) + ': ' + n + '">' +
+          (n && n === max ? '<em style="bottom:calc(' + Math.round(100 * n / max) + '% + 2px)">' + n + '</em>' : '') +
+          '<i style="height:' + (n ? Math.max(4, Math.round(100 * n / max)) : 0) + '%"></i></span>'
+      }).join('') + '</div>' +
+      '<div class="pn-eixo"><span>' + ddmm(dias[0]) + '</span><span>hoje</span></div></div>' +
+    (coms.length ? '<div class="pn-cartao"><h3>Por comunidade</h3>' +
+      coms.map(([nome, n]) => '<div class="pn-com"><span>' + esc(nome) + '</span><b>' + _fmtN(n) + '</b></div>').join('') + '</div>' : '') +
+    rodape
 }
 
 async function concluirFicha() {
@@ -763,8 +964,17 @@ function ligarEventos() {
   document.getElementById('btn-recusou').addEventListener('click', () => decidirAviso(false))
   document.getElementById('btn-anterior').addEventListener('click', () => navegar(-1))
   document.getElementById('btn-proximo').addEventListener('click', () => navegar(1))
-  document.getElementById('btn-ficha-sair').addEventListener('click', async () => { if (App.ficha) await dFichaSalvar(App.ficha); irInicio() })
-  document.getElementById('btn-revisao-voltar').addEventListener('click', () => { mostrar('t-ficha'); desenharBloco() })
+  document.getElementById('btn-ficha-sair').addEventListener('click', async () => {
+    if (App.ficha) await dFichaSalvar(App.ficha)
+    if (App.pend) { sairModoPendencias(); abrirRevisao() } else irInicio()
+  })
+  document.getElementById('btn-revisao-voltar').addEventListener('click', () => { sairModoPendencias(); mostrar('t-ficha'); desenharBloco() })
+  document.getElementById('btn-pendencias').addEventListener('click', () => abrirPendencias())
+  document.getElementById('btn-pend-anterior').addEventListener('click', () => navegarPendencia(-1))
+  document.getElementById('btn-pend-proxima').addEventListener('click', () => navegarPendencia(1))
+  document.getElementById('btn-pend-revisao').addEventListener('click', () => { salvarFichaAtual(); sairModoPendencias(); abrirRevisao() })
+  document.getElementById('aba-entrevistas').addEventListener('click', () => trocarAbaInicio('entrevistas'))
+  document.getElementById('aba-painel').addEventListener('click', () => trocarAbaInicio('painel'))
   document.getElementById('btn-concluir').addEventListener('click', concluirFicha)
   document.getElementById('btn-trocar-pin').addEventListener('click', () => abrirPin('criar'))
   document.getElementById('btn-sair').addEventListener('click', sairDoAparelho)
@@ -790,7 +1000,7 @@ function ligarEventos() {
   // número mexe na 1ª linha da P9 e em avisos: redesenha ao sair do campo
   corpo.addEventListener('change', ev => {
     if (ev.target.type === 'file') DiagForm.tratarArquivo(ev)
-    else if (ev.target.type === 'number' && ev.target.dataset.acao === 'numero') desenharBloco()
+    else if (ev.target.type === 'number' && ev.target.dataset.acao === 'numero') redesenharFicha()
   })
   document.getElementById('ini-lista').addEventListener('click', async ev => {
     const b = ev.target.closest('[data-uuid]'); if (!b) return
@@ -804,6 +1014,8 @@ function ligarEventos() {
   })
   document.getElementById('revisao-lista').addEventListener('click', ev => {
     const b = ev.target.closest('[data-ir]'); if (!b || !b.dataset.ir) return
+    // pergunta em branco: entra no modo pendências a partir dela
+    if (pendentesAgora().some(p => p.chave === b.dataset.ir)) { abrirPendencias(b.dataset.ir); return }
     App.bloco = blocoDaChave(b.dataset.ir)
     mostrar('t-ficha'); desenharBloco(b.dataset.ir)
   })

@@ -23,6 +23,7 @@ function falhar(msg) { console.error('FALHOU: ' + msg); process.exit(1) }
 function ok(msg) { console.log('  ✓ ' + msg) }
 function lit(v) {
   if (v === null || v === undefined) return 'null'
+  if (Array.isArray(v)) return 'array[' + v.map(lit).join(',') + ']::text[]'
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
   return "'" + String(v).replace(/'/g, "''") + "'"
 }
@@ -31,12 +32,28 @@ function psql(sql, como) {
   return execFileSync('psql', ['-v', 'ON_ERROR_STOP=1', '-qAtX'], { input: pre + sql, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim().split('\n').pop()
 }
 function consulta(sql) { return JSON.parse(psql("select coalesce(jsonb_agg(t), '[]') from (" + sql + ') t')) }
+// planilha baixada → nomes das abas + todo o texto (sharedStrings e células inline)
+async function xlsxTexto(download) {
+  const caminho = require('node:path').join(require('node:os').tmpdir(), 'dg-' + Date.now() + '.xlsx')
+  await download.saveAs(caminho)
+  const out = execFileSync('python3', ['-c', `
+import sys, zipfile, re
+z = zipfile.ZipFile(sys.argv[1])
+wb = z.read('xl/workbook.xml').decode()
+print('|'.join(re.findall(r'<sheet [^>]*name="([^"]+)"', wb)))
+txt = ''.join(z.read(n).decode() for n in z.namelist() if n.startswith('xl/sharedStrings') or n.startswith('xl/worksheets/sheet'))
+print(txt)`, caminho], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+  fs.unlinkSync(caminho)
+  const i = out.indexOf('\n')
+  return { abas: out.slice(0, i).split('|').map(a => a.replace(/&amp;/g, '&')), texto: out.slice(i + 1) }
+}
 function erroPg(e) { const m = /ERROR:\s+(.*)/.exec(String(e.stderr || e.message)); return { message: m ? m[1] : 'erro' } }
 
 // supabase-js → SQL (só o que a mesa usa)
 function where(filtros) {
   const w = filtros.map(f => f.op === 'eq' ? f.col + ' = ' + lit(f.val)
     : f.op === 'lte' ? f.col + ' <= ' + lit(f.val)
+    : f.op === 'neq' ? f.col + ' <> ' + lit(f.val)
     : f.col + ' in (' + (f.val.length ? f.val.map(lit).join(',') : 'null') + ')')
   return w.length ? ' where ' + w.join(' and ') : ''
 }
@@ -44,6 +61,7 @@ function pgQuery(q) {
   try {
     if (q.acao === 'update') return { data: null, error: null }          // registrar acesso: irrelevante aqui
     if (q.acao === 'delete') { psql('delete from public.' + q.tabela + where(q.filtros), usuarioLogado); return { data: null, error: null } }
+    if (q.contar) return { data: null, count: +psql('select count(*) from public.' + q.tabela + where(q.filtros), usuarioLogado), error: null }
     let sql = 'select ' + q.cols + ' from public.' + q.tabela + where(q.filtros)
     if (q.ordem) sql += ' order by ' + q.ordem.col + (q.ordem.asc ? ' asc' : ' desc')
     const linhas = JSON.parse(psql("select coalesce(jsonb_agg(t), '[]') from (" + sql + ') t', usuarioLogado))
@@ -52,7 +70,10 @@ function pgQuery(q) {
 }
 function pgRpc(nome, args) {
   const params = Object.entries(args || {}).map(([k, v]) => k + ' := ' + lit(v)).join(', ')
-  try { return { data: JSON.parse(psql('select to_json(public.' + nome + '(' + params + '))', usuarioLogado)), error: null } }
+  const sql = nome === 'fn_diag_agregados'   // setof
+    ? "select coalesce(jsonb_agg(t), '[]') from public." + nome + '(' + params + ') t'
+    : 'select to_json(public.' + nome + '(' + params + '))'
+  try { return { data: JSON.parse(psql(sql, usuarioLogado)), error: null } }
   catch (e) { return { data: null, error: erroPg(e) } }
 }
 // URL assinada: só se o RLS do storage deixar este usuário ler o objeto
@@ -65,7 +86,8 @@ function pgAssinar(bucket, caminho) {
 const STUB = `
 window.supabase = { createClient: function () {
   function Q(t) { this.q = { tabela: t, cols: '*', filtros: [], unico: false, acao: 'select' } }
-  Q.prototype.select = function (c) { this.q.cols = c || '*'; return this }
+  Q.prototype.select = function (c, o) { this.q.cols = c || '*'; if (o && o.head) this.q.contar = true; return this }
+  Q.prototype.neq = function (c, v) { this.q.filtros.push({ op: 'neq', col: c, val: v }); return this }
   Q.prototype.eq = function (c, v) { this.q.filtros.push({ op: 'eq', col: c, val: v }); return this }
   Q.prototype.in = function (c, v) { this.q.filtros.push({ op: 'in', col: c, val: v }); return this }
   Q.prototype.lte = function (c, v) { this.q.filtros.push({ op: 'lte', col: c, val: v }); return this }
@@ -199,6 +221,32 @@ function semear() {
   if (temTreino && !(await page.locator('.dgv-tab tbody tr', { hasText: 'TRE-' }).count())) falhar('"mostrar treino" não mostrou o treino')
   ok('filtros: todas e mostrar treino')
 
+  // exportação identificada (coordenação): confirmação obrigatória, registro no banco
+  await page.click('#dgv-btn-exportar')
+  await page.locator('#dge-ov .dge-modal').waitFor()
+  await page.check('#dge-ov label:has-text("Devolvidas") input')
+  await page.check('#dge-ov .dge-ident input[type=radio]')
+  if (!(await page.isDisabled('#dge-exportar'))) falhar('exportação identificada sem a confirmação de uso interno')
+  await page.check('#dge-ciente')
+  await foto('mesa_exportar')
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dge-exportar')])
+  const xIdent = await xlsxTexto(dl)
+  if (!['Fichas', 'Moradores', 'Dicionário', 'Sobre'].every(a => xIdent.abas.includes(a))) falhar('abas da planilha: ' + xIdent.abas)
+  if (!/Maria da Silva/.test(xIdent.texto) || !/cacimba/.test(xIdent.texto) || !/Médio completo/.test(xIdent.texto) || !/IDENTIFICADA/.test(xIdent.texto))
+    falhar('planilha identificada sem nome/especifique/rótulos')
+  if (/TRE-[A-Z]{3}-\d/.test(xIdent.texto)) falhar('treino na planilha')
+  await page.locator('#dgv-exportacoes .dge-tag.i').waitFor()
+  const regs = consulta('select perfil, identificada, com_texto, n_fichas from diag_exportacoes order by id')
+  if (regs.length !== 1 || !regs[0].identificada || !regs[0].com_texto || regs[0].n_fichas < 1) falhar('registro da exportação: ' + JSON.stringify(regs))
+  // padrão: sem identificação, com texto aberto
+  await page.click('#dgv-btn-exportar')
+  await page.check('#dge-ov label:has-text("Devolvidas") input')
+  const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('#dge-exportar')])
+  const xPad = await xlsxTexto(dl2)
+  if (/Maria da Silva/.test(xPad.texto) || /-9[.,]97/.test(xPad.texto)) falhar('planilha padrão com nome ou GPS')
+  if (!/cacimba/.test(xPad.texto)) falhar('planilha padrão da coordenação sem o especifique')
+  ok('exportação .xlsx: identificada só com confirmação, padrão sem nome/GPS, 4 abas, registrada')
+
   // consultor externo: lê sem identificação, fotos e botões
   usuarioLogado = CONS
   await page.goto(BASE + '/pages/diagnostico.html?aba=validacao')
@@ -214,6 +262,53 @@ function semear() {
   if (!/Médio completo/.test(c)) falhar('consultor não vê as respostas')
   await foto('mesa_consultor')
   ok('consultor externo: lê respostas sem nome, GPS, fotos e botões')
+  await page.click('.dgv-g-topo button')
+  await page.click('#dgv-btn-exportar')
+  await page.locator('#dge-ov .dge-modal').waitFor()
+  if (await page.locator('#dge-ov .dge-ident').count()) falhar('consultor vê a opção identificada')
+  await page.check('#dge-ov label:has-text("Devolvidas") input')
+  const [dl3] = await Promise.all([page.waitForEvent('download'), page.click('#dge-exportar')])
+  const xCons = await xlsxTexto(dl3)
+  if (/Maria da Silva/.test(xCons.texto) || /cacimba/.test(xCons.texto)) falhar('planilha do consultor com nome ou texto aberto')
+  if (!/Médio completo/.test(xCons.texto)) falhar('planilha do consultor sem as respostas fechadas')
+  if (await page.locator('#dgv-exportacoes .card').count()) falhar('consultor vê o registro de exportações')
+  if (consulta("select 1 from diag_exportacoes where perfil = 'consultor_externo' and not com_texto and not identificada").length !== 1) falhar('exportação do consultor não registrada')
+  ok('consultor: exportação só padrão, sem texto aberto, registrada')
+
+  // Indicadores: menos de 5 fichas → oculto; com 5, números do banco
+  usuarioLogado = COORD
+  const validadas = () => consulta("select 1 from diag_fichas where status = 'validada' and not treino and aceitou_participar").length
+  const copiar = n => psql("insert into public.diag_fichas (uuid_cliente, codigo, questionario_id, municipio_ibge, comunidade_id, dt_entrevista, finalizada_em, entrevistador_id, aviso_lido, aceitou_participar, respostas, status, validado_em) " +
+    "select gen_random_uuid(), 'DSA-XAP-261002-IND' || lpad(g::text, 2, '0') || '-01', questionario_id, municipio_ibge, comunidade_id, dt_entrevista, finalizada_em, entrevistador_id, true, true, respostas || '{\"genero_oportunidades_iguais\": \"sim\"}'::jsonb, 'validada', now() " +
+    "from public.diag_fichas, generate_series(" + n + ") g where codigo = 'DSA-XAP-261002-MESA-01'")
+  const faltam = 4 - validadas()
+  if (faltam > 0) copiar('1, ' + faltam)
+  await page.goto(BASE + '/pages/diagnostico.html?aba=indicadores')
+  await page.locator('#dg-indicadores .dgi-card').first().waitFor({ timeout: 15000 })
+  if (!(await page.locator('#dg-indicadores .dgi-oculto').count())) falhar('com 4 fichas os números deveriam estar ocultos')
+  if (/100,0%/.test(await page.textContent('#dg-indicadores'))) falhar('número apareceu com menos de 5 fichas')
+  copiar('11, 11')
+  await page.click('.dgi-seg button:has-text("Por município")'); await page.click('.dgi-seg button:has-text("Geral")')
+  // P5 (todas responderam) sai com número; P19 (todas "Não respondeu" → 0 válidas) continua oculta
+  await page.waitForFunction(() => [...document.querySelectorAll('#dg-indicadores .dgi-card')].some(c => /Sexo\/gênero/.test(c.textContent) && /100,0%/.test(c.textContent)), null, { timeout: 15000 })
+  if (!(await page.locator('.dgi-card', { hasText: 'falta água' }).locator('.dgi-oculto').count())) falhar('pergunta com 0 respostas válidas deveria ficar oculta')
+  const n5 = validadas()
+  if (!new RegExp('^' + n5 + '\\b').test((await page.textContent('#dg-indicadores .dgi-nums .dg-num b')).trim())) falhar('fichas no cálculo: ' + await page.textContent('#dg-indicadores .dgi-nums'))
+  const cartaoSexo = page.locator('.dgi-card', { hasText: 'Sexo/gênero' }).first()
+  if (!/Mulher[\s\S]*100,0%/.test(await cartaoSexo.textContent())) falhar('P5 sem 100% de mulheres: ' + await cartaoSexo.textContent())
+  if (await page.locator('.dgi-card', { hasText: 'Nome do entrevistado' }).count()) falhar('pergunta de identificação virou indicador')
+  if (!/sempre por sexo/.test(await page.textContent('#dg-indicadores'))) falhar('bloco de gênero sem o recorte por sexo')
+  if (!/Mulheres/.test(await page.locator('.dgi-card', { hasText: 'mesmas oportunidades' }).textContent())) falhar('P60 não veio por sexo')
+  await foto('mesa_indicadores')
+  await page.click('.dgi-seg button:has-text("Por comunidade")')
+  await page.locator('.dgi-tab td', { hasText: 'Seringal Cachoeira' }).first().waitFor({ timeout: 15000 })
+  await page.check('.dgi-ctrl label:has-text("Separar por sexo") input')
+  await page.locator('.dgi-tab th', { hasText: 'Sexo' }).first().waitFor()
+  const [dl4] = await Promise.all([page.waitForEvent('download'), page.click('.dgi-ctrl button:has-text("Baixar indicadores")')])
+  const xInd = await xlsxTexto(dl4)
+  if (!xInd.abas.includes('Indicadores') || !/Seringal Cachoeira/.test(xInd.texto)) falhar('planilha de indicadores')
+  ok('indicadores: supressão abaixo de 5, números do banco, recorte por comunidade e por sexo, planilha')
+  psql("delete from public.diag_fichas where codigo like 'DSA-XAP-261002-IND%'")
 
   if (errosJs.length) falhar('erros de JavaScript: ' + errosJs.join(' | '))
   await browser.close()

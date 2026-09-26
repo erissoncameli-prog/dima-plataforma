@@ -4,8 +4,9 @@
 // Aba "Visão geral": atalho para o app de campo, contagem de fichas e a
 // limpeza do MODO TREINO. Aba "Admin" (coordenação/super_admin): catálogo
 // de comunidades/UCs e suas SUBLOCALIDADES, que o app baixa para uso
-// offline. Validação, exportação e indicadores são da Fase 3
-// (docs/diagnostico/plano.md).
+// offline. Aba "Validação" (js/diagnostico-validacao.js, com a exportação
+// em js/diagnostico-exportar.js) e aba "Indicadores"
+// (js/diagnostico-indicadores.js, todos os perfis que acessam a mesa).
 //
 // Tudo passa pelo RLS: cada perfil vê aqui só o que já pode ver no banco
 // (técnico, as próprias fichas; visualizador, nenhuma ficha). Catálogo:
@@ -29,11 +30,12 @@ const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: []
   dgPodeConsultar = appState.perfil === 'consultor_externo'
 
   const html = `<div class="fade-in">
-    ${dgPodeGerir || dgPodeConsultar ? `<div class="dg-abas">
+    <div class="dg-abas">
       <button type="button" class="dg-aba ativa" data-aba="geral" onclick="dgTrocarAba('geral')">Visão geral</button>
-      <button type="button" class="dg-aba" data-aba="validacao" onclick="dgTrocarAba('validacao')">${dgPodeGerir ? 'Validação' : 'Fichas'}</button>
+      ${dgPodeGerir || dgPodeConsultar ? `<button type="button" class="dg-aba" data-aba="validacao" onclick="dgTrocarAba('validacao')">${dgPodeGerir ? 'Validação' : 'Fichas'}</button>` : ''}
+      <button type="button" class="dg-aba" data-aba="indicadores" onclick="dgTrocarAba('indicadores')">Indicadores</button>
       ${dgPodeGerir ? `<button type="button" class="dg-aba" data-aba="admin" onclick="dgTrocarAba('admin')">Admin · comunidades e sublocalidades</button>` : ''}
-    </div>` : ''}
+    </div>
     <div id="dg-geral">
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -58,6 +60,7 @@ const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: []
     ${dgPodeGerir ? `<div class="card"><h3 style="margin:0 0 8px">Versões do questionário</h3><div id="dg-versoes"></div></div>` : ''}
     </div>
     ${dgPodeGerir || dgPodeConsultar ? `<div id="dg-validacao" hidden></div>` : ''}
+    <div id="dg-indicadores" hidden></div>
     ${dgPodeGerir ? `<div id="dg-admin" hidden></div>` : ''}
   </div>`
 
@@ -119,8 +122,9 @@ async function dgApagarTreino(n) {
 function dgTrocarAba(aba) {
   dgAba = aba
   document.querySelectorAll('.dg-aba').forEach(b => b.classList.toggle('ativa', b.dataset.aba === aba))
-  ;['geral', 'validacao', 'admin'].forEach(a => { const el = document.getElementById('dg-' + a); if (el) el.hidden = aba !== a })
+  ;['geral', 'validacao', 'indicadores', 'admin'].forEach(a => { const el = document.getElementById('dg-' + a); if (el) el.hidden = aba !== a })
   if (aba === 'admin') dgAdminCarregar()
+  if (aba === 'indicadores') dgIndCarregar()
   if (aba === 'validacao') dgValCarregar()
 }
 

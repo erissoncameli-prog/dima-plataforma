@@ -41,9 +41,9 @@ insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate
  ('00000000-0000-0000-0000-0000000000c1','diagnostico', now()-interval '1 day', null),
  ('00000000-0000-0000-0000-0000000000c1','diagnostico_treino', now()-interval '1 day', now()+interval '30 days'),
  ('00000000-0000-0000-0000-0000000000c2','diagnostico', now()-interval '1 day', null);
--- como em produção: v1 publicada e depois arquivada; v2 (escolaridade fechada) publicada
-update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao in (1, 2);
-update public.diag_questionarios set status = 'arquivado' where codigo = 'DSA' and versao = 1;
+-- como em produção: v1 e v2 publicadas e depois arquivadas; v3 (com doutorado) publicada
+update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao in (1, 2, 3);
+update public.diag_questionarios set status = 'arquivado' where codigo = 'DSA' and versao in (1, 2);
 insert into public.diag_comunidades (id, municipio_ibge, nome)
  values ('11111111-1111-1111-1111-111111111111', 1200708, 'Seringal Cachoeira');
 insert into public.diag_localidades (id, comunidade_id, nome)
