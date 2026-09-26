@@ -814,7 +814,7 @@ Decisões de implementação que o plano não tinha:
 - **Arquivo de foto não é apagado pelo banco:** a remoção (pela coordenação ou
   pela retenção) põe o caminho em `diag_expurgo_arquivos`. Falta a Edge
   Function que drena a fila pela API do Storage (Fase 3).
-- O aviso ao entrevistado da v1 tem o canal do Encarregado marcado **A DEFINIR**.
+- ✅ Aviso da v1 com a Encarregada de Dados (Luciana Rôla) e contato **só por e-mail**, divbioac@gmail.com (migration `20260926_diag_06_aviso_encarregado.sql`, aplicada em produção em 26/09).
 
 Ainda **não** feito na Fase 1: o item `diagnostico` em `MODULOS_LISTA`
 (`pages/usuarios.html`) para conceder a permissão pela tela. Até lá, a concessão
@@ -888,7 +888,7 @@ super_admin já concede o acesso com prazo pela tela de Usuários.
 3. **Liberar o acesso:** conceder o módulo `diagnostico` aos técnicos do piloto.
 4. **Publicar o app:** a branch precisa entrar na `main`, que é o que a Vercel
    publica.
-5. **Canal do Encarregado:** definir o canal no aviso ao entrevistado. Ele está
+5. ~~**Canal do Encarregado**~~ — ✅ definido (e-mail). Ele estava
    marcado A DEFINIR, e o aviso publicado fica imutável.
 
 ---

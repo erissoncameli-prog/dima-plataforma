@@ -156,7 +156,7 @@ function png1x1() {
   await page.selectOption('#nova-comunidade', '11111111-1111-1111-1111-111111111111')
   await clicar('#btn-nova-continuar')
   await page.locator('#t-aviso').waitFor({ state: 'visible' })
-  if (!/Encarregado/.test(await page.textContent('#aviso-texto'))) falhar('aviso ao entrevistado não carregou')
+  if (!/Encarregada de Dados da SEMA\/AC, pelo e-mail divbioac@gmail\.com/.test(await page.textContent('#aviso-texto'))) falhar('aviso ao entrevistado não carregou')
   await clicar('#btn-aceitou')
   if (await page.isHidden('#aviso-erro')) falhar('deixou começar sem marcar o aviso como lido')
   await page.check('#aviso-lido'); await clicar('#btn-aceitou')

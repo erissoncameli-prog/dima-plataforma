@@ -32,7 +32,7 @@ que os riscos foram avaliados antes.
 | Item | Conteúdo |
 |------|----------|
 | Controlador | Secretaria de Estado de Meio Ambiente do Acre — SEMA/AC |
-| Encarregado (DPO) | **[A DEFINIR]** — nome e canal de contato |
+| Encarregado (DPO) | Luciana Cristina Rôla de Souza — contato para titulares: **somente e-mail**, divbioac@gmail.com *(decidido em 26/09)*. **[A DEFINIR]** ato formal de designação pela SEMA (LGPD art. 41) |
 | Tratamento | Diagnóstico Socioambiental de comunidades: questionário domiciliar aplicado em campo |
 | Projeto | 218BRA2001 — SEMA/AC · Fundo Brasil-ONU · UNESCO |
 | Sistema | DIMA (módulo `diagnostico`): app de campo (PWA/Android) + tela de gestão |
@@ -190,7 +190,14 @@ base legal (§1.4) e ao treinamento dos técnicos antes do campo."
    Hoje é opcional; o risco R5 cai se o padrão for iniciais.
 3. **Celular do técnico** (R1): aceitar o risco residual ou exigir bloqueio de
    tela / criptografia do aparelho como condição para usar o app?
-4. **Encarregado (DPO):** quem é, e qual canal vai no aviso ao entrevistado.
+4. **Encarregado (DPO):** ✅ Luciana Rôla, contato só por e-mail *(26/09)*. Pendências:
+   - **ato formal de designação** (portaria da SEMA; LGPD art. 41);
+   - **conflito de interesse**: ela é responsável pela atividade que aplica o
+     questionário e tem perfil super_admin. A regulamentação da ANPD pede que
+     isso seja avaliado e registrado. Se mantido, considerar um substituto para
+     pedidos ligados às atividades dela;
+   - **só e-mail** é pouco acessível para comunidades com pouca internet.
+     Mitigação: o técnico anota o pedido feito em campo e o encaminha ao e-mail.
 5. **Transferência internacional** (R11): tratamento conjunto com o restante do DIMA.
 6. **Treinamento:** conteúdo mínimo (aviso, fotos sem pessoas, bloco 9 em
    privado, campos abertos sem nomes, cuidado com o aparelho).
