@@ -24,6 +24,8 @@
 | Envio | fila que não duplica ao reenviar (padrão `agua-sync.js`/`brigada-sync.js`); ficha + moradores numa transação só (padrão `frota_solicitar_viagem`) |
 | Regras | nada bloqueia o trabalho de campo · cálculo num lugar só · toda coluna gravada pelo formulário está no `select` que o carrega |
 | LGPD | entrada no ROPA, aviso ao entrevistado, base legal a definir com o jurídico |
+| Nome | **Diagnóstico Socioambiental** (rótulo de tela, ROPA e relatórios); módulo `diagnostico` no código *(decidido em 26/09)* |
+| P4 — nome do entrevistado | **opcional** *(decidido em 26/09)* — ver §2.2 e §3.3 |
 
 ---
 
@@ -52,7 +54,7 @@ inventar:
 7. **Assimetria P61 × P62** (listas diferentes para mulheres e homens).
 8. **Domicílio sem mulher/sem homem** no bloco 9.
 9. **P54/P55 (sindicato)** — trocar por lista fechada por tipo (ver §2.2).
-10. **Nome do instrumento**: "Socioambiental" (PDF) × "Socioeconômico" (pedido).
+10. ~~**Nome do instrumento**~~ — ✅ decidido: **Diagnóstico Socioambiental**.
 
 **Proposta de rito:** esta lista vira uma reunião curta com quem elaborou o
 questionário → v1 congelada → piloto com 5 questionários no papel ou no protótipo
@@ -126,10 +128,17 @@ nominal de famílias vulneráveis.
 ### 2.2 Minimização proposta (antes de publicar a v1)
 
 1. **P9 só com iniciais** — nunca nome de morador. Idade em anos (não data de nascimento).
-2. **P4 (nome do entrevistado)** — manter só se houver finalidade (retorno à
-   família, conferência de duplicidade, supervisão por amostragem). Se mantido,
-   vai para **tabela separada** com leitura restrita (§3.3), no mesmo padrão de
-   `beneficiario_dados_bancarios`. ❓ Decidir: manter, tornar opcional ou retirar.
+2. **P4 (nome do entrevistado) — ✅ decidido: opcional.** Consequências:
+   - o campo fica em branco por padrão e o app **não cobra** preenchimento nem
+     "Não respondeu" nele (é a única pergunta de identificação fora dessa regra);
+   - o aviso ao entrevistado (§2.4) diz explicitamente que dar o nome é opcional
+     e que ele não aparece em relatório;
+   - quando informado, vai para **tabela separada** com leitura restrita (§3.3),
+     no mesmo padrão de `beneficiario_dados_bancarios`; sem nome, a linha nem é criada;
+   - a ficha é sempre identificada pelo `codigo`, nunca pelo nome — nada no
+     fluxo (conferência, devolução, duplicidade) pode depender da P4;
+   - exportação padrão sai sem nome; só a exportação identificada da
+     coordenação o inclui.
 3. **P55** — trocar texto livre por múltipla por **tipo** de organização, sem
    nome da entidade. Continua sendo dado sensível (a opção "sindicato rural"
    revela filiação), mas deixa de ser texto livre com nome de sindicato, igreja
@@ -166,7 +175,8 @@ qualquer pergunta.
 
 - **Roteiro de leitura** no início da ficha, curto (≤ 1 minuto falado): quem
   coleta, para quê, que ninguém é obrigado a responder, que nomes não aparecem
-  em relatório, a quem procurar (canal do Encarregado).
+  em relatório, que informar o próprio nome é opcional, a quem procurar
+  (canal do Encarregado).
 - Campo fixo `aviso_lido` (boolean) + `aceitou_participar` (boolean). Recusa
   encerra a ficha sem coletar nada além de comunidade, data e entrevistador — o
   que permite medir taxa de recusa sem dado pessoal.
@@ -282,8 +292,8 @@ enum novo exige migration própria a cada valor acrescentado).
 `rascunho` **não existe no servidor** — enquanto a ficha está sendo preenchida ela
 vive só no aparelho. O servidor recebe fichas finalizadas.
 
-**`diag_fichas_identificacao`** (1:1 com `diag_fichas.id`) — `entrevistado_nome`
-e, se decidido, observação de localização ("casa azul depois da ponte"). Tabela
+**`diag_fichas_identificacao`** (1:1 com `diag_fichas.id`, **só existe quando a
+P4 foi respondida**, pois o nome é opcional) — `entrevistado_nome` e, se decidido, observação de localização ("casa azul depois da ponte"). Tabela
 separada porque RLS é por linha, não por coluna — mesma razão de
 `beneficiario_dados_bancarios`. Leitura: o próprio entrevistador e
 `coordenacao`/`super_admin`. Nunca entra em view de agregado.
@@ -542,13 +552,13 @@ final.
 
 **Instrumento (equipe do diagnóstico)**
 1. As 10 lacunas da §1.2 — especialmente única × múltipla, saltos e unidade da P38.
-2. Nome oficial: Socioambiental ou Socioeconômico?
+2. ~~Nome oficial~~ — ✅ **Diagnóstico Socioambiental**.
 
 **LGPD (jurídico)**
 3. Base legal (§2.3) e se o executor se enquadra como órgão de pesquisa.
-4. Manter o nome do entrevistado (P4)? Com qual finalidade?
+4. ~~Manter o nome do entrevistado (P4)?~~ — ✅ **opcional**. Resta ao jurídico: prazo de retenção do nome (entra na pergunta 6).
 5. P54/P55 (sindicato) e P25 (saúde): manter como sensível, fechar em lista, ou retirar?
-6. Prazo de retenção da ficha identificada e do GPS preciso.
+6. Prazo de retenção do nome (quando informado), da ficha identificada e do GPS preciso.
 7. RIPD antes do campo?
 
 **Acesso e produto (você)**

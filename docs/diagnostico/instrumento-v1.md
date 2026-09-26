@@ -48,7 +48,7 @@
 | 1 | `data_entrevista` | Data da entrevista | data | vira **coluna fixa** `dt_entrevista`; padrão = hoje | — | — |
 | 2 | `municipio` | Município | catalogo | vira coluna fixa; 22 municípios do AC | C | — |
 | 3 | `comunidade` | Comunidade/localidade | catalogo | vira coluna fixa; catálogo + "nova comunidade" | C | P¹ |
-| 4 | `entrevistado_nome` | Nome do entrevistado | texto | **tabela separada restrita** (plano §3.3) | — | **P** |
+| 4 | `entrevistado_nome` | Nome do entrevistado | texto | **opcional** ✅; se informado, vai para tabela separada restrita (plano §3.3) | — | **P** |
 | 5 | `sexo_genero` | Sexo/gênero | unica | Mulher · Homem · Outro · Prefere não responder | R | P |
 | 6 | `idade` | Idade | inteiro | 0–120; aviso se < 18 (respondente menor) | R | P, M |
 | 7 | `tempo_comunidade` | Há quanto tempo mora na comunidade | unica | <1 · 1–5 · 6–10 · 11–20 · >20 anos · Nasceu na comunidade | R | P |
@@ -260,7 +260,8 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 2. **Não resposta.** O PDF só tem "Prefere não responder" na P5. Sem um código
    de não resposta, pergunta em branco fica ambígua (pulou por salto? esqueceu?
    recusou?). Proposta: toda pergunta aceita "Não respondeu" (botão discreto,
-   não é uma opção da lista), gravado como valor especial. Assim o app pode
+   não é uma opção da lista), gravado como valor especial. **Exceção: P4**
+   (nome), que é opcional — em branco é resposta válida. Assim o app pode
    exigir que toda pergunta **aplicável** tenha resposta ou "Não respondeu" —
    controle de qualidade sem obrigar o entrevistado a responder.
 3. **Três níveis de análise misturados** (domicílio, percepção individual e fato
@@ -273,9 +274,8 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
    do diagnóstico).
 5. **Duração estimada.** 81 perguntas + tabela de moradores ≈ 45–70 min por
    domicílio. Recomenda-se piloto com 5 questionários antes de congelar a v1.
-6. **Título.** O PDF chama o instrumento de **Diagnóstico Socioambiental**; o
-   pedido fala em Diagnóstico Socioeconômico. O nome do módulo no código pode ser
-   só `diagnostico`, mas o rótulo exibido e o do ROPA precisam de um nome só.
+6. **Título — ✅ decidido:** **Diagnóstico Socioambiental** (o mesmo do PDF) em
+   tela, ROPA e relatórios; `diagnostico` como id do módulo no código.
 
 ## Saltos (regras de exibição) — consolidado
 
