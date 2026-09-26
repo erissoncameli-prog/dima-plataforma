@@ -149,9 +149,26 @@ async function dSyncEnviarFicha(f) {
 }
 
 // ── Referências para trabalhar offline ─────────────────────────────────
+const _D_COLS_Q = 'id,codigo,versao,titulo,estrutura,aviso_entrevistado,status,hash_sha256'
+
+// Ficha devolvida (ou começada) numa versão que não é mais a vigente — ex.:
+// treino na v1 já arquivada, ou ficha reconstruída de outro aparelho — precisa
+// da estrutura DAQUELA versão para abrir. Baixa as que faltam no aparelho.
+async function dSyncGarantirVersoes(usuarioId) {
+  const todas = (await dCacheGet('questionarios')) || {}
+  const faltam = [...new Set((await dFichasDoUsuario(usuarioId)).map(f => f.questionario_id))]
+    .filter(id => id && !todas[id])
+  if (!faltam.length || !diagDb) return 0
+  const { data, error } = await diagDb.from('diag_questionarios').select(_D_COLS_Q).in('id', faltam)
+  if (error || !data) return 0
+  data.forEach(q => { todas[q.id] = q })
+  await dCacheSet('questionarios', todas)
+  return data.length
+}
+
 async function dSyncBaixarReferencias(usuarioId) {
   const r = {}
-  const COLS_Q = 'id,codigo,versao,titulo,estrutura,aviso_entrevistado,status,hash_sha256'
+  const COLS_Q = _D_COLS_Q
   const [q, mun, com, sug, treina, loc, painel] = await Promise.all([
     diagDb.from('diag_questionarios').select(COLS_Q)
       .eq('codigo', 'DSA').eq('status', 'publicado').order('versao', { ascending: false }).limit(1),
@@ -195,6 +212,7 @@ async function dSyncBaixarReferencias(usuarioId) {
     await dCacheSet('sugestoes', porChave)
   }
   await _dSyncStatusDoServidor(usuarioId)
+  await dSyncGarantirVersoes(usuarioId)   // depois: a devolução pode ter trazido ficha de versão antiga
   return r
 }
 
