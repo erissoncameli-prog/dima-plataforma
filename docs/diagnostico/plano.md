@@ -171,9 +171,10 @@ nominal de famílias vulneráveis.
 5. **GPS** — coordenada precisa só para quem aplica e para a coordenação;
    qualquer saída para fora (painel agregado, mapa, relatório, exportação para
    consultor) usa **nível de comunidade**, nunca o ponto da casa.
-6. **Sem foto** na v1. Se a equipe quiser foto (moradia, infraestrutura), entra
-   como decisão própria, com regra de "nunca rosto" e bucket privado desde o
-   nascimento (padrão SIGUC `fotos-privadas.js`).
+6. **Foto ✅ entra na v1** *(decidido em 26/09)*. Desenho e cuidados em §3.12.
+   Em resumo: foto de moradia, infraestrutura e ambiente, **nunca de pessoas**;
+   opcional; bucket privado; tratada como dado de identificação, porque a foto
+   da casa localiza a família.
 
 ### 2.3 Base legal (a definir com o jurídico)
 
@@ -199,8 +200,9 @@ qualquer pergunta.
 
 - **Roteiro de leitura** no início da ficha, curto (≤ 1 minuto falado): quem
   coleta, para quê, que ninguém é obrigado a responder, que nomes não aparecem
-  em relatório, que informar o próprio nome é opcional, a quem procurar
-  (canal do Encarregado).
+  em relatório, que informar o próprio nome é opcional, que o técnico pode
+  pedir para fotografar a casa e o entorno (sem pessoas) e a família pode
+  recusar, a quem procurar (canal do Encarregado).
 - Campo fixo `aviso_lido` (boolean) + `aceitou_participar` (boolean). Recusa
   encerra a ficha sem coletar nada além de comunidade, data e entrevistador — o
   que permite medir taxa de recusa sem dado pessoal.
@@ -255,12 +257,12 @@ Rascunho da entrada:
 | Operadores | Supabase (banco/hospedagem), Vercel (hospedagem do app), Google/Apple (loja/instalação do APK, se aplicável) |
 | Finalidade | Subsidiar planejamento e prestação de contas do Projeto 218BRA2001 (Fundo Brasil-ONU/UNESCO) |
 | Titulares | Entrevistados; moradores dos domicílios (inclui crianças e adolescentes); técnicos entrevistadores |
-| Quem acessa | equipe da SEMA (técnicos, coordenação, super_admin) e **consultores externos a serviço da SEMA**, estes sem acesso aos dados de identificação (§4.1). ❓ Confirmar com o jurídico se o contrato do consultor tem cláusula de confidencialidade/LGPD (consultor como operador) |
-| Categorias | Identificação mínima, composição domiciliar, localização, condições socioeconômicas, percepções; **sensíveis**: filiação sindical, saúde |
+| Quem acessa | equipe da SEMA (técnicos, coordenação, super_admin) e **consultores externos a serviço da SEMA**, estes sem acesso aos dados de identificação nem às fotos (§4.1). ✅ Contrato do consultor terá **termo de confidencialidade e de proteção de dados (LGPD)** *(26/09)*: consultor como operador |
+| Categorias | Identificação mínima, composição domiciliar, localização, **fotos da moradia e do entorno**, condições socioeconômicas, percepções; **sensíveis**: filiação sindical, saúde |
 | Base legal | a definir (§2.3) |
 | Compartilhamento | **nenhum** — uso interno da SEMA *(26/09)*. Para UNESCO/financiador vão só os valores de indicador lançados na Matriz de Resultados (§3.11), agregados e sem dado individual |
 | Transferência internacional | Supabase/Vercel (art. 33) — pendência já conhecida do DIMA |
-| Retenção | **2 anos** *(26/09)* para os dados identificados: nome do entrevistado (P4), nomes dos moradores (P9), GPS preciso, `diag_fichas_identificacao`, contados da **data de validação da ficha** *(26/09)*. Ficha descartada conta da data do descarte. Ficha nunca validada nem descartada não expira; ela aparece para a coordenação como pendência. Depois do prazo, apagados por rotina agendada (pseudonimização); ficha, respostas e indicadores permanecem |
+| Retenção | **2 anos** *(26/09)* para os dados identificados: nome do entrevistado (P4), nomes dos moradores (P9), GPS preciso, **fotos**, `diag_fichas_identificacao`, contados da **data de validação da ficha** *(26/09)*. Ficha descartada conta da data do descarte. Ficha nunca validada nem descartada não expira; ela aparece para a coordenação como pendência. Depois do prazo, apagados por rotina agendada (pseudonimização); ficha, respostas e indicadores permanecem |
 | Segurança | RLS por perfil + permissão com prazo, identidade em tabela separada, trilha em `audit_log` em modo redigido, aparelho com PIN |
 | RIPD | **recomendado** — dado sensível + menores + população vulnerável |
 
@@ -556,6 +558,60 @@ própria, feita quando os itens forem definidos. Nada no modelo de fichas depend
 dela: `vw_diag_indicadores` já produz os números, e o vínculo só passa a
 lê-los.
 
+
+### 3.12 Fotos (v1)
+
+Decisão (26/09): a foto entra na v1. Molde: SIGUC (`brigada-captura.js`,
+`foto-otimizar.js`, `fotos-privadas.js`, bucket privado desde o nascimento).
+
+**O que fotografar:** moradia, fonte de água, destino do esgoto e do lixo,
+área produtiva, acesso à comunidade, problema ambiental citado. **Nunca
+pessoas.** O app não consegue impedir um rosto na imagem, por isso a regra vai
+no treinamento e numa frase fixa na tela da câmera. A coordenação apaga, na
+validação, a foto que tiver pessoa.
+
+**Opcional e sem travar:** nenhuma pergunta exige foto. A família pode recusar
+(§2.4). Limite sugerido: até 8 fotos por ficha.
+
+**Tabela `diag_fotos`:**
+
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| `id` | uuid PK | |
+| `ficha_id` | uuid FK NOT NULL | `ON DELETE CASCADE` |
+| `uuid_cliente` | uuid UNIQUE | idempotência da fila, mesmo padrão da ficha |
+| `tema` | text | `moradia \| agua \| esgoto \| lixo \| producao \| acesso \| ambiental \| outro` (CHECK) |
+| `pergunta_chave` | text | opcional: a pergunta a que a foto se refere (ex.: `agua_fonte`) |
+| `legenda` | text | curta, opcional |
+| `arquivo_url` | text | formato `/object/public/<bucket>/<path>`, só como portador do caminho (regra do DIMA) |
+| `tirada_em` | timestamptz | |
+
+**Storage:**
+- Bucket **`diagnostico-fotos`, privado**. Leitura sempre por `urlAssinada()` e
+  `data-arquivo-src`. Nunca `href` direto (regra de Storage do CLAUDE.md).
+- Caminho `<uuid_cliente da ficha>/<uuid_cliente da foto>.jpg`. Usa o
+  `uuid_cliente` porque a ficha ainda não tem `id` do servidor quando a foto é
+  tirada offline. A policy do bucket lê a 1ª pasta e aplica o acesso da ficha,
+  mesmo padrão de `tarefas-anexos`.
+- Compressão no aparelho antes de entrar na fila (`foto-otimizar.js`, ~1600 px,
+  JPEG). Reencodar pelo canvas **remove o EXIF**, inclusive o GPS embutido na
+  foto. Isso é desejado: a localização oficial é a da ficha.
+
+**Envio:** a fila sobe as fotos primeiro e depois chama a RPC da ficha (ordem do
+`agua-sync.js`). Foto que falhar não segura a ficha: a ficha vai, e a foto fica
+pendente na fila e é reenviada depois.
+
+**Acesso e retenção:** a foto da casa localiza a família, então segue a regra da
+**identificação**:
+- vê: o entrevistador (só as próprias), a coordenação e o super_admin;
+- **não vê:** consultor externo nem visualizador;
+- nunca entra em exportação padrão;
+- é **apagada 2 anos após a validação**, junto com nome e GPS (arquivo e linha).
+
+Volume: 200 fichas × 8 fotos × ~300 KB ≈ 480 MB no bucket e, no aparelho, só as
+pendentes. Isso muda a conta de armazenamento offline da §5.2: foto confirmada
+sai do aparelho junto com a ficha (7 dias).
+
 ---
 
 ## 4. Acesso
@@ -615,6 +671,7 @@ Policies (todas `TO authenticated`, nenhuma `USING (true)`):
 | `diag_fichas` | `entrevistador_id = auth.uid() AND fn_diag_pode_aplicar()` OR gerir OR `fn_diag_pode_consultar()` | `entrevistador_id = auth.uid()` AND aplicar | próprio + status `enviada/devolvida`, OR gerir | — (`descartada`) |
 | `diag_fichas_identificacao` / `diag_moradores_identificacao` | próprio entrevistador OR gerir (**sem** consultar) | igual à ficha | igual à ficha | só a rotina de retenção |
 | `diag_moradores` | via ficha (inclui consultar) | via ficha | via ficha | via ficha (RPC regrava) |
+| `diag_fotos` (+ bucket `diagnostico-fotos`) | igual à identificação (**sem** consultar) | entrevistador da ficha | — | gerir (foto com pessoa) e rotina de retenção |
 
 ### 4.3 Permissão que vence com fichas na fila
 
@@ -676,7 +733,8 @@ delas às cegas.
 
 ### 5.2 Offline
 
-Volume é pequeno: 200 fichas × ~20 KB ≈ 4 MB — IndexedDB sobra. O que vai para o
+Volume é pequeno: 200 fichas × ~20 KB ≈ 4 MB — IndexedDB sobra. Com fotos, o
+que pesa são as pendentes (~300 KB cada, §3.12); confirmadas saem em 7 dias. O que vai para o
 aparelho: a versão publicada do questionário, o catálogo de comunidades e o
 perfil/permissão do técnico. Molde: `agua-offline.js` (fila `pendente → enviando
 → confirmado`, confirmados retidos 7 dias, pendentes nunca apagados,
@@ -713,7 +771,7 @@ Dois "salvar" diferentes, para não confundir:
 |------|---------|
 | **0** | Este plano + instrumento v1 congelado + entrada de ROPA *(em andamento)* |
 | 1 | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL (inclusive a fixture de saltos) |
-| 2 | App PWA offline: login + PIN, lista de fichas, formulário renderizado da estrutura, rascunho contínuo, GPS pontual, fila de envio |
+| 2 | App PWA offline: login + PIN, lista de fichas, formulário renderizado da estrutura, rascunho contínuo, GPS pontual, fotos, fila de envio |
 | 3 | Mesa: validação/devolução, painel de indicadores, exportação `.xlsx` (ExcelJS, regra SIGUC), exportação pseudonimizada |
 | 4 | APK Capacitor (`app-diagnostico/`), workflow de build com action pinada em SHA, `api/apk-latest.js`, `vercel.json` |
 | 5 | Piloto (5 fichas), guia de treinamento no app (`guia-app.js`), aplicação |
@@ -741,7 +799,9 @@ Dois "salvar" diferentes, para não confundir:
 9. ~~`financeiro`~~ — ✅ sem acesso.
 10. ~~Supressão~~ — ✅ mínimo de 5 fichas.
 11. ~~Carência~~ — ✅ 15 dias.
-12. Foto entra na v1?
+12. ~~Foto~~ — ✅ entra na v1 (§3.12).
+18. ~~Bloco 9~~ — ✅ aplicado em privado.
+19. ~~Contrato do consultor~~ — ✅ termo de confidencialidade e LGPD.
 13. ~~Matriz~~ — ✅ alimenta; itens definidos depois, em etapa própria (§3.11).
 14. ~~Hospedagem~~ — ✅ DIMA inteiro na Vercel.
 15. ~~ROPA no banco~~ — ✅ agora (1ª migration da Fase 1).

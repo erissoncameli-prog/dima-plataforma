@@ -257,9 +257,11 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
   Recomendação metodológica: registrar o sexo do respondente (já está na P5) e
   **sempre desagregar** os indicadores do bloco por ele. Opcional: o bloco ser
   respondido preferencialmente por uma mulher do domicílio — decisão da equipe.
-- **Privacidade da entrevista:** P63/P64/P69 podem expor conflito doméstico se
-  respondidas na frente de outros moradores. Incluir no roteiro do entrevistador
-  a orientação de aplicar o bloco 9 em privado, quando possível.
+- **Bloco 9 em privado ✅** *(decidido em 26/09)*: P63/P64/P69 podem expor
+  conflito doméstico se respondidas na frente de outros moradores. O roteiro do
+  entrevistador orienta aplicar o bloco em privado, e o app mostra esse lembrete
+  ao abrir o bloco. Não é trava: se não houver como ficar a sós, a entrevista
+  segue.
 
 ## Bloco 10 — Problemas, potencialidades e futuro (P75–P81)
 
