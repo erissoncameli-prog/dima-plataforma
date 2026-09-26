@@ -45,18 +45,21 @@ decisões que **só a equipe do diagnóstico pode tomar** — o sistema não dev
 inventar:
 
 1. **Única ou múltipla** em 7 perguntas ambíguas — ✅ P16 única; P18, P21, P50
-   e P56 múltipla; P25 vira lista fechada múltipla *(26/09)*. Faltam as listas
-   da P9 e confirmar os itens da lista da P25.
+   e P56 múltipla; P25 vira lista fechada múltipla, só quando P24 = Sim; P61 e
+   P62 múltiplas *(26/09)*. Falta confirmar os itens da lista da P25.
 2. ~~**Saltos**~~ — ✅ S1–S10 aceitos *(26/09)*, incluindo a opção nova
    "Nenhuma" (exclusiva) na P30. "Não se aplica" sai da P18 e da P68.
-3. **Listas fechadas da P9** (parentesco, escolaridade, atividade principal).
-4. **Unidade da P38** (área) — sem ela o número não serve para indicador.
+3. ~~**Listas fechadas da P9**~~: ✅ ficam as colunas do questionário, em texto livre
+   *(26/09)*. Falta confirmar se o nome do morador fica só em iniciais.
+4. ~~**Unidade da P38**~~: ✅ hectares *(26/09)*.
 5. **"Outro" sem especifique** em 30 perguntas.
 6. **Código de não resposta** (hoje só a P5 tem).
-7. **Assimetria P61 × P62** (listas diferentes para mulheres e homens).
+7. ~~**Assimetria P61 × P62**~~: ✅ mantidas as listas diferentes, ambas múltiplas
+   *(26/09)*. O comparativo usa só as opções comuns.
 8. ~~**Domicílio sem mulher/sem homem**~~ — ✅ resolvido pela derivação D2 *(26/09)*.
    Derivações e avisos D1, D2, V1 e V2 também aceitos.
-9. **P54/P55 (sindicato)** — trocar por lista fechada por tipo (ver §2.2).
+9. ~~**P54/P55 (sindicato)**~~: ✅ mantidas; P55 em texto livre com sugestões das
+   respostas repetidas *(26/09)*. Ver §3.10.
 10. ~~**Nome do instrumento**~~ — ✅ decidido: **Diagnóstico Socioambiental**.
 
 **Proposta de rito:** esta lista vira uma reunião curta com quem elaborou o
@@ -142,10 +145,11 @@ nominal de famílias vulneráveis.
      fluxo (conferência, devolução, duplicidade) pode depender da P4;
    - exportação padrão sai sem nome; só a exportação identificada da
      coordenação o inclui.
-3. **P55** — trocar texto livre por múltipla por **tipo** de organização, sem
-   nome da entidade. Continua sendo dado sensível (a opção "sindicato rural"
-   revela filiação), mas deixa de ser texto livre com nome de sindicato, igreja
-   ou partido.
+3. **P55 — ✅ decidido: texto livre com sugestões** (§3.10). O dado continua
+   **sensível** (filiação sindical e, eventualmente, religiosa ou política). Por
+   isso: a P55 nunca sai em exportação para consultor nem em agregado com
+   célula pequena (§4.4); a sugestão mostra só o nome da organização, nunca
+   quem respondeu; e o texto é revisado na validação.
 4. **P25 — ✅ decidido:** lista fechada de problemas de saúde; orientação "sem
    citar nomes" mantida no "Outro".
 5. **GPS** — coordenada precisa só para quem aplica e para a coordenação;
@@ -312,7 +316,7 @@ separada porque RLS é por linha, não por coluna — mesma razão de
 | `iniciais` | text | `CHECK (length ≤ 6)` — impede nome completo |
 | `idade` | smallint | 0–120 |
 | `sexo_genero` | text | mesmo vocabulário da P5 |
-| `parentesco` / `escolaridade` / `atividade_principal` | text | valores validados contra as listas da versão do questionário |
+| `parentesco` / `escolaridade` / `atividade_principal` | text | texto livre (colunas do questionário); limite de tamanho, sem lista fechada |
 | `e_entrevistado` | boolean | no máximo 1 por ficha |
 
 ### 3.5 Código da ficha gerado no aparelho
@@ -344,7 +348,7 @@ o app gera um sufixo novo e reenvia. **A identidade real da ficha é o
   com numerador, denominador e percentual — o denominador é **fichas em que a
   pergunta se aplicava** (salto e "Não respondeu" fora), nunca o total de fichas.
 - **Derivações** (tamanho do domicílio pela P9, presença de criança em idade
-  escolar, área em hectares a partir da P38) são funções SQL chamadas pela view —
+  escolar) são funções SQL chamadas pela view —
   inclusive as usadas pelo app para sugerir resposta (D1/D2 do inventário). O app
   **exibe**, não recalcula.
 - Perguntas de nível `C` (fato da comunidade, respondido por cada domicílio)
@@ -411,6 +415,46 @@ conteúdo (V1, V2) **nunca** é rejeição — vira `alertas`.
 4. Toda coluna gravada pelo formulário está no `select` que o carrega (regra
    já decidida) — vale também para o cache offline: o que o app grava no
    IndexedDB precisa ter as mesmas chaves que a RPC recebe.
+
+### 3.10 Sugestões a partir de respostas repetidas (P55)
+
+Decisão (26/09): a P55 continua em texto livre, e o que se repete vira sugestão.
+
+**Como funciona**
+- O banco normaliza cada resposta: sem acento, minúsculas, espaços colapsados.
+  É a mesma normalização da busca do Acervo.
+- Uma resposta vira sugestão quando aparece em **pelo menos 2 fichas
+  diferentes**. Isso é o "se repetem"; uma resposta única nunca é sugerida.
+- A sugestão exibida é a grafia **mais frequente** do grupo normalizado.
+- O técnico digita e vê as sugestões que casam com o que está escrevendo. Pode
+  escolher uma ou seguir com o próprio texto. **Nada é obrigatório nem trava.**
+
+**Onde mora (um lugar só)**
+- Função `fn_diag_sugestoes(p_chave text)` SECURITY DEFINER, restrita a quem
+  pode aplicar. Ela é necessária porque o técnico só lê as próprias fichas pelo
+  RLS, e as repetições estão nas fichas dos outros. A função devolve **só o
+  texto da sugestão**, sem ficha, sem entrevistador, sem comunidade e sem
+  contagem.
+- Recebe a chave da pergunta porque o mesmo mecanismo serve depois para a P31, o
+  "Outro" das múltiplas e, se aprovado, as colunas de texto da P9. Só entram as
+  chaves marcadas na estrutura do questionário (`"sugestoes": true`), para que
+  a função não sirva para ler texto livre qualquer.
+
+**Offline**
+- A lista vem junto com o questionário e o catálogo de comunidades a cada
+  sincronização e fica no IndexedDB. Em campo, o app sugere a partir desse cache
+  e das fichas do próprio aparelho. Sem rede, as sugestões ficam só um pouco
+  desatualizadas; nada deixa de funcionar.
+
+**Cuidados (dado sensível)**
+- A sugestão revela que *alguém* citou aquela organização, nunca *quem*.
+- A coordenação pode **ocultar** uma sugestão (erro de digitação, nome de
+  pessoa digitado por engano). Fica numa tabela pequena
+  `diag_sugestoes_ocultas(chave, texto_normalizado, ocultado_por, ocultado_em)`,
+  sem apagar a resposta original.
+- ❓ Só fichas `validada` entram na base de sugestões, ou também `enviada`?
+  Recomendação: também `enviada`, porque na fase de campo quase nada estará
+  validado ainda; a ocultação cobre os erros.
 
 ---
 
@@ -555,13 +599,15 @@ final.
 ## 7. Perguntas para fechar a Fase 0
 
 **Instrumento (equipe do diagnóstico)**
-1. As 10 lacunas da §1.2 — especialmente única × múltipla, saltos e unidade da P38.
+1. O que resta da §1.2: itens da lista da P25, iniciais × nome na P9, "especifique"
+   no "Outro" e código de "não respondeu".
 2. ~~Nome oficial~~ — ✅ **Diagnóstico Socioambiental**.
 
 **LGPD (jurídico)**
 3. Base legal (§2.3) e se o executor se enquadra como órgão de pesquisa.
 4. ~~Manter o nome do entrevistado (P4)?~~ — ✅ **opcional**. Resta ao jurídico: prazo de retenção do nome (entra na pergunta 6).
-5. P54/P55 (sindicato): manter como sensível, fechar em lista, ou retirar? (P25 já foi fechada em lista ✅)
+5. P54/P55 (sindicato): ✅ mantidas, P55 com sugestões. Resta ao jurídico
+   confirmar a base legal para esse dado sensível (art. 11).
 6. Prazo de retenção do nome (quando informado), da ficha identificada e do GPS preciso.
 7. RIPD antes do campo?
 
