@@ -911,3 +911,27 @@ do $$ begin
   if exists (select 1 from public.diag_fotos) then raise exception 'FALHOU T36 consultor vê fotos'; end if;
 end $$;
 reset role;
+
+-- ── T37 · ROPA: conferência das tabelas declaradas contra o schema ───────
+insert into public.lgpd_tratamentos (codigo, nome, finalidade, base_legal, base_legal_detalhe,
+  compartilhamento, retencao_criterio, tabelas)
+values ('TRAT-T37', 'teste', 'teste', 'a_definir', 'teste', 'nenhum', 'teste',
+  array['diag_fichas', 'tabela_que_nao_existe', 'storage:diagnostico-fotos', 'storage:bucket_fantasma', 'public.diag_fotos']);
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$ begin
+  if exists (select 1 from public.fn_lgpd_conferir_tabelas() where codigo = 'TRAT-001' and not existe)
+    then raise exception 'FALHOU T37 TRAT-001 com tabela inexistente: %',
+      (select string_agg(tabela, ',') from public.fn_lgpd_conferir_tabelas() where codigo = 'TRAT-001' and not existe); end if;
+  if (select string_agg(tabela || '=' || existe, ',' order by ordem) from public.fn_lgpd_conferir_tabelas() where codigo = 'TRAT-T37')
+     <> 'diag_fichas=true,tabela_que_nao_existe=false,storage:diagnostico-fotos=true,storage:bucket_fantasma=false,public.diag_fotos=true'
+    then raise exception 'FALHOU T37 conferência'; end if;
+end $$;
+select public.t_como('00000000-0000-0000-0000-0000000000e1');
+do $$ begin
+  perform public.fn_lgpd_conferir_tabelas();
+  raise exception 'FALHOU T37 técnico conferiu o ROPA';
+exception when insufficient_privilege then null;
+end $$;
+reset role;
+delete from public.lgpd_tratamentos where codigo = 'TRAT-T37';
