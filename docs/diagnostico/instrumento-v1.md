@@ -57,18 +57,23 @@
 
 ¹ Comunidade + GPS do domicílio identificam a família em localidade pequena.
 
-**P9 — decisões pendentes**
-- **❓ Nome ou iniciais?** O PDF permite os dois. Continua recomendado **só
-  iniciais**, porque a tabela inclui crianças (art. 14). Falta confirmar se isso vale
-  mesmo com a decisão de manter as colunas do questionário.
+**P9 — decisões**
+- **Nome ✅** *(decidido em 26/09)*: a coluna segue o questionário ("Nome/iniciais")
+  e aceita o nome do morador. A decisão contraria a recomendação de só usar
+  iniciais, então o nome recebe as proteções do plano §2.2: fica fora de views
+  de indicador, de agregados e da exportação padrão, e entra na regra de
+  retenção. O campo não é obrigatório: se a família preferir, o técnico registra
+  só as iniciais.
 - **Colunas ✅ como estão no questionário** *(decidido em 26/09)*: Nome/iniciais ·
   Idade · Sexo/gênero · Parentesco · Escolaridade · Atividade principal. Não serão
   criadas listas fechadas: Parentesco, Escolaridade e Atividade principal ficam
   como **texto livre**.
   Consequência: indicador por escolaridade ou ocupação vai exigir codificação
-  posterior das respostas. **Proposta** (não decidida): usar nesses três campos o
-  mesmo mecanismo de sugestão da P55 (plano §3.10). As respostas repetidas
+  posterior das respostas.
+- **Sugestões ✅** *(decidido em 26/09)*: Parentesco, Escolaridade e Atividade
+  principal usam o mesmo mecanismo da P55 (plano §3.10). As respostas repetidas
   aparecem como sugestão e a grafia converge sem virar lista fechada.
+  **O nome do morador nunca entra nas sugestões.**
 - **❓ O entrevistado entra na P9?** Proposta: sim, na 1ª linha, marcado como
   `e_entrevistado` — evita dupla contagem e permite recortar por posição no domicílio.
 - **❓ Sexo/gênero na P9** usa as mesmas 4 opções da P5.
@@ -138,7 +143,7 @@
 | 28 | `renda_fontes` | Fontes de renda da família | multipla | Agricultura · Pecuária · Extrativismo · Pesca · Assalariado · Comércio · Benefícios sociais · Aposentadoria/pensão · Prestação de serviços · Outra | D | P² |
 | 29 | `renda_suficiente` | Renda suficiente para necessidades básicas? | unica | Sim · Parcialmente · Não | D | P² |
 | 30 | `producao_atividades` | Atividades produtivas da família | multipla | Agricultura · Criação de animais · Pesca · Extrativismo · Artesanato · Comércio · Prestação de serviços · Outra · **Nenhuma (excl.)** ✅ | D | — |
-| 31 | `producao_produtos` | Principais produtos produzidos | texto_longo | ❓ lista de sugestões (mandioca/farinha, banana, açaí, castanha…) | D | — |
+| 31 | `producao_produtos` | Principais produtos produzidos | texto_longo ✅ + **sugestões** | respostas repetidas viram sugestão (plano §3.10) | D | — |
 | 32 | `producao_destino` | Produção destinada a | unica | Consumo próprio · Venda · Ambos | D | — |
 | 33 | `comercializa_onde` | Onde comercializa | multipla | Na comunidade · Feira · Mercado local · Intermediário · Cooperativa/associação · Outro · **Não comercializa (excl.)** | D | — |
 | 34 | `producao_dificuldades` | Dificuldades para produzir | multipla | Recursos financeiros · ATER · Transporte · Mercado · Mão de obra · Insumos · Clima · Acesso à terra · Outra | D | — |
@@ -270,14 +275,22 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 
 ## Pontos transversais do instrumento
 
-1. **"Outro" sem especificação (31 perguntas).** Sem o texto, "Outro" não é
-   analisável. Proposta: toda opção "Outro/Outra/Outros" abre campo curto
-   `<chave>_outro` (até 120 caracteres), gravado no mesmo jsonb.
-2. **Não resposta.** O PDF só tem "Prefere não responder" na P5. Sem um código
+1. **Campo "especifique" ✅** *(decidido em 26/09)*. Nas 31 perguntas com
+   "Outro/Outra/Outros", e também no Sexo/gênero da P9, marcar essa opção abre
+   o campo curto `<chave>_outro` (até 120 caracteres), gravado no mesmo jsonb.
+   - Preencher é esperado, mas **não trava**: "Outro" sem texto vira aviso na
+     revisão da ficha e entra em `alertas`.
+   - Se a opção "Outro" for desmarcada, o texto é descartado junto. O banco
+     recusa `_outro` sem "Outro" marcado, e o app nunca envia esse caso.
+   - O "especifique" de Sexo/gênero (P5 e P9) **nunca** entra nas sugestões.
+     Nos demais, as sugestões ficam **desligadas** por enquanto e podem ser
+     ligadas pergunta a pergunta na estrutura (`"sugestoes": true`).
+2. **❓ Não resposta (ainda não decidido).** O PDF só tem "Prefere não responder" na P5. Sem um código
    de não resposta, pergunta em branco fica ambígua (pulou por salto? esqueceu?
    recusou?). Proposta: toda pergunta aceita "Não respondeu" (botão discreto,
    não é uma opção da lista), gravado como valor especial. **Exceção: P4**
-   (nome), que é opcional — em branco é resposta válida. Assim o app pode
+   (nome), o nome do morador na P9 e os campos "especifique", que são
+   opcionais: em branco é resposta válida. Assim o app pode
    exigir que toda pergunta **aplicável** tenha resposta ou "Não respondeu" —
    controle de qualidade sem obrigar o entrevistado a responder.
 3. **Três níveis de análise misturados** (domicílio, percepção individual e fato
@@ -285,8 +298,8 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
    então haverá N respostas por comunidade — o indicador delas é "% dos
    entrevistados que relatam X", não "a comunidade tem X". Ver plano §3.6.
 4. **17 perguntas abertas.** Encarecem a análise (precisam de codificação
-   posterior) e são onde dado de terceiros vaza. P25 foi fechada ✅; P55 fica
-   aberta com sugestões ✅; P31 pode ganhar o mesmo mecanismo de sugestão; manter abertas as do bloco 10 (são o valor qualitativo
+   posterior) e são onde dado de terceiros vaza. P25 foi fechada ✅; P55 e P31
+   ficam abertas com sugestões ✅; manter abertas as do bloco 10 (são o valor qualitativo
    do diagnóstico).
 5. **Duração estimada.** 81 perguntas + tabela de moradores ≈ 45–70 min por
    domicílio. Recomenda-se piloto com 5 questionários antes de congelar a v1.

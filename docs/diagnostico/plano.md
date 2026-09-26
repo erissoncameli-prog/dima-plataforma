@@ -50,9 +50,9 @@ inventar:
 2. ~~**Saltos**~~ — ✅ S1–S10 aceitos *(26/09)*, incluindo a opção nova
    "Nenhuma" (exclusiva) na P30. "Não se aplica" sai da P18 e da P68.
 3. ~~**Listas fechadas da P9**~~: ✅ ficam as colunas do questionário, em texto livre
-   *(26/09)*. Falta confirmar se o nome do morador fica só em iniciais.
+   com sugestões; o nome do morador é aceito (não só iniciais) *(26/09)*.
 4. ~~**Unidade da P38**~~: ✅ hectares *(26/09)*.
-5. **"Outro" sem especifique** em 30 perguntas.
+5. ~~**"Outro" sem especifique**~~: ✅ campo "especifique" incluído em todas *(26/09)*.
 6. **Código de não resposta** (hoje só a P5 tem).
 7. ~~**Assimetria P61 × P62**~~: ✅ mantidas as listas diferentes, ambas múltiplas
    *(26/09)*. O comparativo usa só as opções comuns.
@@ -115,7 +115,7 @@ conjunto de casos** (fixture única usada pelo teste do JS e pelo teste SQL).
 |------|-----------|--------|---------|
 | Nome do entrevistado | P4 | pessoal | entrevistado |
 | Sexo/gênero, idade, tempo na comunidade | P5–P7 | pessoal | entrevistado |
-| Composição do domicílio (iniciais, idade, sexo, parentesco, escolaridade, ocupação) | P9 | pessoal, **inclui menores** | terceiros (moradores) |
+| Composição do domicílio (**nome**, idade, sexo, parentesco, escolaridade, ocupação) | P9 | pessoal, **inclui nome de menores** | terceiros (moradores) |
 | Localização do domicílio (GPS) | coluna fixa | pessoal (identifica a casa) | família |
 | Fontes de renda, suficiência, benefícios sociais | P28, P29 | pessoal (vulnerabilidade) | família |
 | Quem decide sobre dinheiro/produção | P63, P64 | pessoal (dinâmica doméstica) | família |
@@ -133,7 +133,15 @@ nominal de famílias vulneráveis.
 
 ### 2.2 Minimização proposta (antes de publicar a v1)
 
-1. **P9 só com iniciais** — nunca nome de morador. Idade em anos (não data de nascimento).
+1. **P9 — ✅ decidido: aceita o nome do morador** (a recomendação era só
+   iniciais). Idade continua em anos, nunca data de nascimento. Como agora há
+   **nome de crianças** na base, o nome do morador:
+   - não é obrigatório: o técnico pode registrar só as iniciais;
+   - fica fora de `vw_diag_respostas`/`vw_diag_indicadores`, de `fn_diag_agregados`
+     e das sugestões, e só é lido por quem lê a ficha (entrevistador e coordenação);
+   - sai só na exportação identificada da coordenação, nunca na padrão;
+   - entra na regra de retenção junto com a P4, sendo zerado quando o prazo
+     vencer (§2.5).
 2. **P4 (nome do entrevistado) — ✅ decidido: opcional.** Consequências:
    - o campo fica em branco por padrão e o app **não cobra** preenchimento nem
      "Não respondeu" nele (é a única pergunta de identificação fora dessa regra);
@@ -169,7 +177,7 @@ diagnóstico, as hipóteses candidatas são:
 |------|-----------|------------|
 | Dados pessoais comuns | art. 7º, III (política pública) ou art. 7º, IV (estudo por órgão de pesquisa, com anonimização sempre que possível) | IV só se aplica se o executor for órgão de pesquisa — confirmar |
 | Dado sensível (sindicato, saúde) | art. 11, II, "b" (política pública) ou art. 11, II, "c" (estudo por órgão de pesquisa) | se nenhuma couber, **retirar** o dado do instrumento em vez de pedir consentimento |
-| Menores (P9) | art. 14 — melhor interesse; dado mínimo, sem nome | iniciais + idade atendem |
+| Menores (P9) | art. 14 — melhor interesse | o nome é coletado (decisão de 26/09); precisa de justificativa no RIPD e prazo curto de retenção |
 
 **Por que não consentimento:** consentimento dá direito de revogação a qualquer
 tempo. Revogar depois da consolidação exigiria apagar a ficha e recalcular
@@ -313,7 +321,7 @@ separada porque RLS é por linha, não por coluna — mesma razão de
 | `id` | uuid PK | |
 | `ficha_id` | uuid FK NOT NULL | `ON DELETE CASCADE` |
 | `ordem` | smallint NOT NULL | `UNIQUE (ficha_id, ordem)` |
-| `iniciais` | text | `CHECK (length ≤ 6)` — impede nome completo |
+| `nome` | text | nome ou iniciais (opcional); nunca selecionado por view de indicador; zerado ao fim da retenção |
 | `idade` | smallint | 0–120 |
 | `sexo_genero` | text | mesmo vocabulário da P5 |
 | `parentesco` / `escolaridade` / `atividade_principal` | text | texto livre (colunas do questionário); limite de tamanho, sem lista fechada |
@@ -435,10 +443,12 @@ Decisão (26/09): a P55 continua em texto livre, e o que se repete vira sugestã
   RLS, e as repetições estão nas fichas dos outros. A função devolve **só o
   texto da sugestão**, sem ficha, sem entrevistador, sem comunidade e sem
   contagem.
-- Recebe a chave da pergunta porque o mesmo mecanismo serve depois para a P31, o
-  "Outro" das múltiplas e, se aprovado, as colunas de texto da P9. Só entram as
-  chaves marcadas na estrutura do questionário (`"sugestoes": true`), para que
-  a função não sirva para ler texto livre qualquer.
+- Recebe a chave da pergunta porque o mesmo mecanismo serve a várias perguntas.
+  **Ligado (26/09):** P55, P31 e as colunas Parentesco, Escolaridade e Atividade
+  principal da P9. **Nunca ligado:** nome do morador, P4 e "especifique" de
+  Sexo/gênero. **Desligado por padrão:** os demais campos "especifique". Só
+  entram as chaves marcadas na estrutura do questionário (`"sugestoes": true`),
+  para que a função não sirva para ler texto livre qualquer.
 
 **Offline**
 - A lista vem junto com o questionário e o catálogo de comunidades a cada
@@ -452,9 +462,9 @@ Decisão (26/09): a P55 continua em texto livre, e o que se repete vira sugestã
   pessoa digitado por engano). Fica numa tabela pequena
   `diag_sugestoes_ocultas(chave, texto_normalizado, ocultado_por, ocultado_em)`,
   sem apagar a resposta original.
-- ❓ Só fichas `validada` entram na base de sugestões, ou também `enviada`?
-  Recomendação: também `enviada`, porque na fase de campo quase nada estará
-  validado ainda; a ocultação cobre os erros.
+- **✅ Fichas `enviada` e `validada` entram na base de sugestões** *(26/09,
+  conforme a recomendação)*. Na fase de campo quase nada estará validado ainda,
+  e a ocultação cobre os erros. Fichas `devolvida` e `descartada` ficam de fora.
 
 ---
 
@@ -599,8 +609,7 @@ final.
 ## 7. Perguntas para fechar a Fase 0
 
 **Instrumento (equipe do diagnóstico)**
-1. O que resta da §1.2: itens da lista da P25, iniciais × nome na P9, "especifique"
-   no "Outro" e código de "não respondeu".
+1. O que resta da §1.2: itens da lista da P25 e código de "não respondeu".
 2. ~~Nome oficial~~ — ✅ **Diagnóstico Socioambiental**.
 
 **LGPD (jurídico)**
