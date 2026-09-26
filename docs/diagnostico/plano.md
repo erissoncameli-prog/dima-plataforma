@@ -17,7 +17,7 @@
 | Entrega | PWA primeiro, depois APK Capacitor com o **mesmo código web** |
 | Quem aplica | técnicos que já são (ou serão) usuários do DIMA |
 | Acesso | módulo novo `diagnostico` em `usuario_permissoes` / `tem_permissao()`, concedido com prazo pelo `super_admin` |
-| Perfis | `tecnico`+permissão aplica e vê os próprios · `coordenacao` valida/exporta · `super_admin` tudo · `visualizador`/`consultor_externo` só agregados |
+| Perfis | `tecnico`+permissão aplica e vê os próprios · `coordenacao` valida/exporta · `super_admin` tudo · `consultor_externo`+permissão **vê fichas individuais, sem identificação** *(26/09)* · `visualizador` só agregados |
 | Policies | sempre `TO authenticated`, nunca `USING (true)` |
 | Dados | híbrido: colunas fixas + respostas `jsonb` validadas por questionário versionado no banco + tabela própria de moradores; indicadores calculados no banco |
 | Código da ficha | gerado no aparelho (padrão `numero_ninho` do Biomonitor) |
@@ -26,12 +26,12 @@
 | LGPD | entrada no ROPA, aviso ao entrevistado, base legal a definir com o jurídico |
 | Nome | **Diagnóstico Socioambiental** (rótulo de tela, ROPA e relatórios); módulo `diagnostico` no código *(decidido em 26/09)* |
 | P4 — nome do entrevistado | **opcional** *(decidido em 26/09)* — ver §2.2 e §3.3 |
-| Uso do dado | **apenas uso interno da SEMA** *(26/09)*. Ficha, moradores e textos não saem da SEMA; para fora vão só os valores de indicador da Matriz (§3.11) |
-| Retenção | **2 anos** para os dados identificados *(26/09)* — ver §2.5 |
+| Uso do dado | **apenas uso interno da SEMA** *(26/09)*. Ficha, moradores e textos não saem da SEMA; para fora vão só os valores de indicador da Matriz (§3.11). Consultor externo com acesso ao módulo atua para a SEMA (§4.1) |
+| Retenção | **2 anos a partir da validação da ficha** para os dados identificados *(26/09)* — ver §2.5 |
 | `financeiro` | **sem acesso** ao módulo *(26/09)* |
-| Matriz de Resultados | o diagnóstico **alimenta a Matriz** *(26/09)* — ver §3.11 |
+| Matriz de Resultados | o diagnóstico **alimenta a Matriz**; **quais itens fica para depois** *(26/09)* — ver §3.11 |
 | Hospedagem | **o DIMA inteiro está na Vercel** *(26/09)* |
-| ROPA | **passa a viver no banco agora** (`lgpd_tratamentos`) *(26/09)* — ver §2.5 |
+| ROPA | **passa a viver no banco agora** (`lgpd_tratamentos`), **só com a entrada do diagnóstico** *(26/09)* — ver §2.5 |
 
 ---
 
@@ -145,10 +145,11 @@ nominal de famílias vulneráveis.
    **nome de crianças** na base, o nome do morador:
    - não é obrigatório: o técnico pode registrar só as iniciais;
    - fica fora de `vw_diag_respostas`/`vw_diag_indicadores`, de `fn_diag_agregados`
-     e das sugestões, e só é lido por quem lê a ficha (entrevistador e coordenação);
+     e das sugestões; fica em `diag_moradores_identificacao` (§3.3), lida só pelo
+     entrevistador e pela coordenação, **nunca pelo consultor externo**;
    - sai só na exportação identificada da coordenação, nunca na padrão;
-   - entra na regra de retenção junto com a P4, sendo zerado depois de **2 anos**
-     (§2.5).
+   - entra na regra de retenção junto com a P4 e é apagado **2 anos após a
+     validação** da ficha (§2.5).
 2. **P4 (nome do entrevistado) — ✅ decidido: opcional.** Consequências:
    - o campo fica em branco por padrão e o app **não cobra** preenchimento nem
      "Não respondeu" nele (é a única pergunta de identificação fora dessa regra);
@@ -184,7 +185,7 @@ diagnóstico, as hipóteses candidatas são:
 |------|-----------|------------|
 | Dados pessoais comuns | art. 7º, III (política pública) ou art. 7º, IV (estudo por órgão de pesquisa, com anonimização sempre que possível) | IV só se aplica se o executor for órgão de pesquisa — confirmar |
 | Dado sensível (sindicato, saúde) | art. 11, II, "b" (política pública) ou art. 11, II, "c" (estudo por órgão de pesquisa) | se nenhuma couber, **retirar** o dado do instrumento em vez de pedir consentimento |
-| Menores (P9) | art. 14 — melhor interesse | o nome é coletado (decisão de 26/09); precisa de justificativa no RIPD; zerado após 2 anos |
+| Menores (P9) | art. 14 — melhor interesse | o nome é coletado (decisão de 26/09); precisa de justificativa no RIPD; apagado 2 anos após a validação |
 
 **Por que não consentimento:** consentimento dá direito de revogação a qualquer
 tempo. Revogar depois da consolidação exigiria apagar a ficha e recalcular
@@ -239,9 +240,9 @@ pessoal ganha entrada no ROPA na mesma entrega. Desenho proposto:
 
 - Leitura: `super_admin`/`coordenacao` (`TO authenticated`). Escrita: `super_admin`.
 - Tela: aba em Configurações, só leitura para a coordenação. Pode ficar para a Fase 3.
-- A Fase 1 carrega a linha do diagnóstico (abaixo). Os demais tratamentos do DIMA
-  (viagens, beneficiários, fornecedores, CAR) entram aos poucos e ficam fora do
-  escopo deste módulo. ❓ Carregar agora os que já estão mapeados no CLAUDE.md?
+- ✅ A Fase 1 carrega **só a linha do diagnóstico** *(26/09)*. Os demais
+  tratamentos do DIMA (viagens, beneficiários, fornecedores, CAR) ficam fora do
+  escopo deste módulo e entram quando cada um for revisado.
 
 Entrada do diagnóstico (primeira linha da tabela):
 
@@ -254,11 +255,12 @@ Rascunho da entrada:
 | Operadores | Supabase (banco/hospedagem), Vercel (hospedagem do app), Google/Apple (loja/instalação do APK, se aplicável) |
 | Finalidade | Subsidiar planejamento e prestação de contas do Projeto 218BRA2001 (Fundo Brasil-ONU/UNESCO) |
 | Titulares | Entrevistados; moradores dos domicílios (inclui crianças e adolescentes); técnicos entrevistadores |
+| Quem acessa | equipe da SEMA (técnicos, coordenação, super_admin) e **consultores externos a serviço da SEMA**, estes sem acesso aos dados de identificação (§4.1). ❓ Confirmar com o jurídico se o contrato do consultor tem cláusula de confidencialidade/LGPD (consultor como operador) |
 | Categorias | Identificação mínima, composição domiciliar, localização, condições socioeconômicas, percepções; **sensíveis**: filiação sindical, saúde |
 | Base legal | a definir (§2.3) |
 | Compartilhamento | **nenhum** — uso interno da SEMA *(26/09)*. Para UNESCO/financiador vão só os valores de indicador lançados na Matriz de Resultados (§3.11), agregados e sem dado individual |
 | Transferência internacional | Supabase/Vercel (art. 33) — pendência já conhecida do DIMA |
-| Retenção | **2 anos** *(26/09)* para os dados identificados: nome do entrevistado (P4), nomes dos moradores (P9), GPS preciso, `diag_fichas_identificacao`, contados da **data da entrevista** (❓ ou da validação?). Depois, zerados por rotina agendada (pseudonimização); ficha, respostas e indicadores permanecem |
+| Retenção | **2 anos** *(26/09)* para os dados identificados: nome do entrevistado (P4), nomes dos moradores (P9), GPS preciso, `diag_fichas_identificacao`, contados da **data de validação da ficha** *(26/09)*. Ficha descartada conta da data do descarte. Ficha nunca validada nem descartada não expira; ela aparece para a coordenação como pendência. Depois do prazo, apagados por rotina agendada (pseudonimização); ficha, respostas e indicadores permanecem |
 | Segurança | RLS por perfil + permissão com prazo, identidade em tabela separada, trilha em `audit_log` em modo redigido, aparelho com PIN |
 | RIPD | **recomendado** — dado sensível + menores + população vulnerável |
 
@@ -321,7 +323,6 @@ enum novo exige migration própria a cada valor acrescentado).
 | `municipio_ibge` | int NOT NULL | 22 municípios do AC |
 | `dt_entrevista` | date NOT NULL | |
 | `iniciada_em` / `finalizada_em` | timestamptz | relógio do aparelho |
-| `lat` / `lon` / `gps_precisao_m` / `gps_em` | numeric / timestamptz | leitura pontual (padrão Água: `bGpsUmaLeitura`), NULL se sem sinal — **nunca trava** |
 | `entrevistador_id` | uuid FK → `usuarios` NOT NULL | `DEFAULT auth.uid()`; policy exige `= auth.uid()` no insert |
 | `aviso_lido` / `aceitou_participar` | boolean NOT NULL | |
 | `respostas` | jsonb NOT NULL DEFAULT '{}' | chave → valor, validado contra `estrutura` |
@@ -335,11 +336,32 @@ enum novo exige migration própria a cada valor acrescentado).
 `rascunho` **não existe no servidor** — enquanto a ficha está sendo preenchida ela
 vive só no aparelho. O servidor recebe fichas finalizadas.
 
-**`diag_fichas_identificacao`** (1:1 com `diag_fichas.id`, **só existe quando a
-P4 foi respondida**, pois o nome é opcional) — `entrevistado_nome` e, se decidido, observação de localização ("casa azul depois da ponte"). Tabela
-separada porque RLS é por linha, não por coluna — mesma razão de
-`beneficiario_dados_bancarios`. Leitura: o próprio entrevistador e
-`coordenacao`/`super_admin`. Nunca entra em view de agregado.
+**Identificação separada da ficha.** Com a decisão de 26/09, o consultor externo lê
+a ficha individual, mas não os dados de identificação. RLS é por **linha**, não
+por coluna, então tudo o que identifica a família sai de `diag_fichas`/
+`diag_moradores` e vai para tabelas próprias, que o consultor não lê. É a mesma
+razão de `beneficiario_dados_bancarios`.
+
+`diag_fichas_identificacao` (1:1 com `diag_fichas.id`; só existe quando há nome
+**ou** GPS):
+
+| Coluna | Tipo | Obs |
+|--------|------|-----|
+| `ficha_id` | uuid PK/FK | `ON DELETE CASCADE` |
+| `entrevistado_nome` | text | P4, opcional |
+| `lat` / `lon` / `gps_precisao_m` / `gps_em` | numeric / timestamptz | leitura pontual (padrão Água: `bGpsUmaLeitura`), NULL se sem sinal — **nunca trava** |
+| `obs_localizacao` | text | ex.: "casa azul depois da ponte", opcional |
+
+`diag_moradores_identificacao` (1:1 com `diag_moradores.id`): `morador_id`
+PK/FK, `nome`.
+
+- Leitura: o próprio entrevistador e `coordenacao`/`super_admin`. **Nunca**
+  `consultor_externo` nem `visualizador`, e nunca entram em view de indicador.
+- A RPC de envio (§3.7) grava ficha, moradores e as duas identificações na
+  **mesma transação**.
+- **Retenção vira `DELETE`** nessas duas tabelas, por rotina agendada, 2 anos
+  após a validação (§2.5). A ficha e os moradores ficam, já sem identificação.
+  A trilha de auditoria registra a exclusão em modo redigido.
 
 ### 3.4 `diag_moradores` — tabela da P9
 
@@ -348,7 +370,6 @@ separada porque RLS é por linha, não por coluna — mesma razão de
 | `id` | uuid PK | |
 | `ficha_id` | uuid FK NOT NULL | `ON DELETE CASCADE` |
 | `ordem` | smallint NOT NULL | `UNIQUE (ficha_id, ordem)` |
-| `nome` | text | nome ou iniciais (opcional); nunca selecionado por view de indicador; zerado ao fim da retenção |
 | `idade` | smallint | 0–120 |
 | `sexo_genero` | text | mesmo vocabulário da P5 |
 | `parentesco` / `escolaridade` / `atividade_principal` | text | texto livre (colunas do questionário); limite de tamanho, sem lista fechada |
@@ -529,8 +550,11 @@ medidos por um questionário domiciliar. Duas saídas:
 - ou a coordenação **cria itens novos** na Matriz, por exemplo "Nº de famílias
   diagnosticadas" (meta 200) ou "Comunidades com diagnóstico concluído".
 
-Preciso da lista de itens e do indicador de cada um para fechar a Fase 1. O
-desenho acima serve para as duas saídas.
+✅ **Decidido (26/09): a escolha dos itens fica para depois.** Por isso a
+integração com a Matriz (os passos 1–3 acima) **sai da Fase 1** e vira uma etapa
+própria, feita quando os itens forem definidos. Nada no modelo de fichas depende
+dela: `vw_diag_indicadores` já produz os números, e o vínculo só passa a
+lê-los.
 
 ---
 
@@ -545,11 +569,19 @@ desenho acima serve para as duas saídas.
 | `tecnico` + `tem_permissao('diagnostico')` | ✅ | **só as próprias** | só as próprias | — | — | ✅² |
 | `tecnico` sem permissão | — | — | — | — | — | — |
 | `financeiro` | — | — | — | — | — | — *(26/09)* |
-| `consultor_externo` | — | — | — | — | — | ✅ (com supressão) |
+| `consultor_externo` + `tem_permissao('diagnostico')` | — | **todas, só leitura** *(26/09)* | **não** | — | — (só exportação padrão, sem identificação) | ✅ |
 | `visualizador` | — | — | — | — | — | ✅ (com supressão) |
 
 ¹ ❓ Coordenação aplica questionário? Se sim, entra no mesmo fluxo de ficha.
 ² ❓ Técnico vê o agregado geral ou só o das próprias fichas?
+
+**Consultor externo (26/09):** vê a ficha individual (respostas, moradores sem
+nome, comunidade, alertas), mas **não** os dados de identificação (nome do
+entrevistado, nomes dos moradores, GPS preciso). Proposta: o acesso depende da
+mesma concessão com prazo (`tem_permissao('diagnostico')`) dada pelo
+`super_admin`, porque nem todo consultor externo trabalha no diagnóstico. A P55
+(sindicato) e os textos abertos ficam visíveis na ficha, por isso o acesso é
+nominal, com prazo, e registrado.
 
 Estado atual do banco (consulta de 26/09): 8 `tecnico`, 5 `coordenacao`,
 5 `super_admin`, 2 `consultor_externo`, 2 `financeiro`, 0 `visualizador` ativos.
@@ -567,6 +599,8 @@ fn_diag_pode_aplicar() = usuário ativo
                          AND (perfil IN ('super_admin','coordenacao')
                               OR (perfil = 'tecnico' AND tem_permissao('diagnostico')))
 fn_diag_pode_gerir()   = usuário ativo AND perfil IN ('super_admin','coordenacao')
+fn_diag_pode_consultar() = usuário ativo AND perfil = 'consultor_externo'
+                           AND tem_permissao('diagnostico')
 ```
 
 Policies (todas `TO authenticated`, nenhuma `USING (true)`):
@@ -575,9 +609,9 @@ Policies (todas `TO authenticated`, nenhuma `USING (true)`):
 |--------|--------|--------|--------|--------|
 | `diag_questionarios` | `fn_diag_pode_aplicar() OR fn_diag_pode_gerir()` | gerir | gerir (trigger protege publicada) | — |
 | `diag_comunidades` | aplicar ou gerir | gerir | gerir | — (desativar) |
-| `diag_fichas` | `entrevistador_id = auth.uid() AND fn_diag_pode_aplicar()` OR gerir | `entrevistador_id = auth.uid()` AND aplicar | próprio + status `enviada/devolvida`, OR gerir | — (`descartada`) |
-| `diag_fichas_identificacao` | igual à ficha | igual | igual | — |
-| `diag_moradores` | via ficha | via ficha | via ficha | via ficha (RPC regrava) |
+| `diag_fichas` | `entrevistador_id = auth.uid() AND fn_diag_pode_aplicar()` OR gerir OR `fn_diag_pode_consultar()` | `entrevistador_id = auth.uid()` AND aplicar | próprio + status `enviada/devolvida`, OR gerir | — (`descartada`) |
+| `diag_fichas_identificacao` / `diag_moradores_identificacao` | próprio entrevistador OR gerir (**sem** consultar) | igual à ficha | igual à ficha | só a rotina de retenção |
+| `diag_moradores` | via ficha (inclui consultar) | via ficha | via ficha | via ficha (RPC regrava) |
 
 ### 4.3 Permissão que vence com fichas na fila
 
@@ -592,9 +626,10 @@ ficha que usar a carência ganha um `alerta` para a coordenação conferir. Fora
 carência: a ficha fica no aparelho como "aguardando renovação de acesso", nunca
 é apagada, e o `super_admin` renova o prazo.
 
-### 4.4 Agregados para `visualizador`/`consultor_externo`
+### 4.4 Agregados para `visualizador`
 
-Esses perfis **não leem linha nenhuma** das tabelas `diag_*` — então uma view
+(O `consultor_externo` com permissão lê as fichas e usa as views diretamente;
+esta seção vale para o `visualizador`.) Esse perfil **não lê linha nenhuma** das tabelas `diag_*` — então uma view
 `security_invoker` devolveria vazio para eles. A saída é uma função
 `fn_diag_agregados(p_municipio, p_comunidade, …)` SECURITY DEFINER que:
 
@@ -674,7 +709,7 @@ Dois "salvar" diferentes, para não confundir:
 | Fase | Entrega |
 |------|---------|
 | **0** | Este plano + instrumento v1 congelado + entrada de ROPA *(em andamento)* |
-| 1 | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, vínculo com a Matriz, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL (inclusive a fixture de saltos) |
+| 1 | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL (inclusive a fixture de saltos) |
 | 2 | App PWA offline: login + PIN, lista de fichas, formulário renderizado da estrutura, rascunho contínuo, GPS pontual, fila de envio |
 | 3 | Mesa: validação/devolução, painel de indicadores, exportação `.xlsx` (ExcelJS, regra SIGUC), exportação pseudonimizada |
 | 4 | APK Capacitor (`app-diagnostico/`), workflow de build com action pinada em SHA, `api/apk-latest.js`, `vercel.json` |
@@ -703,8 +738,8 @@ Dois "salvar" diferentes, para não confundir:
 10. Limite de supressão para agregados (5 fichas?).
 11. Carência de envio após vencimento da permissão (15 dias?).
 12. Foto entra na v1?
-13. ~~Matriz~~ — ✅ alimenta. **Falta:** quais itens da Matriz e com qual indicador (§3.11).
+13. ~~Matriz~~ — ✅ alimenta; itens definidos depois, em etapa própria (§3.11).
 14. ~~Hospedagem~~ — ✅ DIMA inteiro na Vercel.
 15. ~~ROPA no banco~~ — ✅ agora (1ª migration da Fase 1).
-16. "Uso interno da SEMA": `consultor_externo` (hoje 2 usuários) mantém o acesso
-    a agregados com supressão (§4.4), ou fica sem acesso ao módulo?
+16. ~~Consultor externo~~ — ✅ vê fichas individuais, sem identificação (§4.1).
+17. Retenção — ✅ 2 anos contados da validação; ROPA só com o diagnóstico.
