@@ -882,12 +882,13 @@ App de campo em `pages/diagnostico-app.html`, instalável como PWA. Não usa
 super_admin já concede o acesso com prazo pela tela de Usuários.
 
 **Para usar em campo:**
-1. **Publicar a v1:** a coordenação publica a v1 (`status = 'publicado'`).
-   Enquanto ela for rascunho, o app mostra "Nenhum questionário publicado".
+1. ~~**Publicar a v1**~~ — ✅ publicada em 26/09 (a partir daqui é imutável;
+   ajuste = v2).
 2. ~~**Cadastrar comunidades**~~ — ✅ *(26/09)* piloto nas duas APAs de Rio Branco,
    cadastradas em `diag_comunidades`: **APA São Francisco** e **APA Lago do Amapá**.
    Outras UCs entram depois pelo mesmo cadastro.
-3. **Liberar o acesso:** conceder o módulo `diagnostico` aos técnicos do piloto.
+3. **Liberar o acesso:** Usuários → Permissões → "Diagnóstico Socioambiental"
+   (e "Diagnóstico — modo treino" para quem vai treinar), com data em "Válido até".
 4. **Publicar o app:** a branch precisa entrar na `main`, que é o que a Vercel
    publica.
 5. ~~**Canal do Encarregado**~~ — ✅ definido (e-mail). Ele estava
@@ -930,6 +931,29 @@ de treino**.
 legível só por quem o enviou e pela coordenação (que pode apagá-lo no painel
 do Storage, pela lista da fila). Usar poucas fotos no treino, e nunca
 fotografar pessoas.
+
+
+### 6.4 Sublocalidades e aba Admin da mesa *(26/09)*
+
+Uma comunidade/UC pode ter **sublocalidades** (bairros, ramais, colocações) —
+ex.: dentro da APA São Francisco. Configurável pela coordenação na aba
+**Admin** de `pages/diagnostico.html`. Migration
+`20260926_diag_08_sublocalidades.sql` (aplicada em produção em 26/09).
+
+- `diag_localidades(comunidade_id, nome, ativo)`: select para quem vê números,
+  insert/update só gerir, **sem DELETE** (desativar).
+- `diag_fichas.localidade_id` / `localidade_nova`: **opcional**. O app só
+  mostra o campo quando a comunidade tem sublocalidade cadastrada; opções:
+  lista, "Outra (não está na lista)" ou "Não informar".
+- `diag_enviar_ficha` recusa sublocalidade de outra comunidade; aceita
+  sublocalidade desativada (ficha começada antes).
+- **Fora dos indicadores nesta versão**: célula menor que a comunidade aumenta o
+  risco de reidentificação (RIPD R3). Recorte por sublocalidade, se vier, entra
+  com a mesma supressão de 5 fichas.
+- Aba Admin: cadastrar/renomear/desativar comunidade e sublocalidade por
+  município, e lista **"Escritos em campo, sem cadastro"** (nomes digitados
+  como "Outra") com botão Cadastrar. Mudança chega ao técnico na próxima
+  sincronização.
 
 ---
 

@@ -154,6 +154,11 @@ function png1x1() {
 
   await page.selectOption('#nova-municipio', '1200708'); await page.waitForTimeout(300)   // comunidades recarregam (async)
   await page.selectOption('#nova-comunidade', '11111111-1111-1111-1111-111111111111')
+  await page.locator('#nova-loc-wrap').waitFor({ state: 'visible' })   // sublocalidade cadastrada pela coordenação
+  await page.selectOption('#nova-localidade', '_nova')
+  await clicar('#btn-nova-continuar')
+  if (!/sublocalidade/.test(await page.textContent('#nova-erro'))) falhar('aceitou "Outra" sublocalidade sem nome')
+  await page.selectOption('#nova-localidade', '22222222-2222-2222-2222-222222222221')
   await clicar('#btn-nova-continuar')
   await page.locator('#t-aviso').waitFor({ state: 'visible' })
   if (!/Encarregada de Dados da SEMA\/AC, pelo e-mail divbioac@gmail\.com/.test(await page.textContent('#aviso-texto'))) falhar('aviso ao entrevistado não carregou')
@@ -237,8 +242,9 @@ function png1x1() {
   online = true
   await clicar('#btn-sync')
   await page.waitForFunction(() => document.getElementById('c-enviada').textContent === '1', null, { timeout: 15000 })
-  const f = consulta("select codigo, respostas, alertas, status from diag_fichas where codigo = " + lit(codigo))[0]
+  const f = consulta("select codigo, respostas, alertas, status, localidade_id from diag_fichas where codigo = " + lit(codigo))[0]
   if (!f) falhar('ficha não chegou ao banco')
+  if (f.localidade_id !== '22222222-2222-2222-2222-222222222221') falhar('sublocalidade não chegou ao banco')
   if (f.respostas.agua_tratamento) falhar('resposta de pergunta pulada (P18) chegou ao banco')
   if (f.respostas.agua_fonte_outro !== 'cacimba') falhar('especifique não chegou')
   if (f.respostas.agua_falta !== '_nr') falhar('"Não respondeu" não chegou')
@@ -256,7 +262,7 @@ function png1x1() {
   const alertasApp = (await page.evaluate(([c, u]) => dFichasDoUsuario(u).then(l => l.find(x => x.codigo === c).alertas), [codigo, UID_TEC]))
     .map(a => a.tipo + ':' + (a.chave || '')).sort().join('|')
   if (alertasBanco !== alertasApp) falhar('alertas do banco × app divergem')
-  ok('ficha no banco: respostas normalizadas, 3 moradores, identificação separada, foto no bucket')
+  ok('ficha no banco: sublocalidade, respostas normalizadas, 3 moradores, identificação separada, foto no bucket')
 
   // reenviar não duplica
   await page.evaluate(async c => { const l = await dFichasDoUsuario('00000000-0000-0000-0000-0000000000e1'); const x = l.find(y => y.codigo === c); x.estado = 'pronta'; await dFichaSalvar(x) }, codigo)

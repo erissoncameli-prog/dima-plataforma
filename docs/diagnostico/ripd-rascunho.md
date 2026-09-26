@@ -138,7 +138,7 @@ Escala: **P** = probabilidade, **I** = impacto (Baixo / Médio / Alto).
 |-------|---------|
 | R1 | App com PIN próprio; fichas enviadas saem do aparelho em 7 dias; sessão expira; nome e fotos são opcionais |
 | R2 | Exportação com identificação só para coordenação e super_admin; exportação padrão sai **sem nome, sem GPS e sem fotos** |
-| R3 | Números por comunidade só aparecem com **5 fichas ou mais**; abaixo disso, o número é suprimido ou agregado ao município |
+| R3 | Números por comunidade só aparecem com **5 fichas ou mais**; abaixo disso, o número é suprimido ou agregado ao município. Sublocalidade (bairro, ramal) não entra em indicador |
 | R4 | Dado sensível nunca aparece em agregado de célula pequena nem em sugestão com autor; acesso nominal, com prazo e registrado |
 | R5 | Nome do morador **opcional** (aceita só iniciais); fica em tabela separada, fora de indicadores, sugestões e exportação padrão; apagado em 2 anos |
 | R6 | Regra "nunca pessoas" no treinamento e na tela da câmera; coordenação apaga foto com pessoa na validação; localização embutida na foto é removida; fotos em repositório privado; apagadas em 2 anos |

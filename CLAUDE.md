@@ -373,7 +373,12 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   `diag_apagar_treino()` (gerir). Permissão `fn_diag_pode_treinar()` =
   super_admin ou técnico com `diagnostico` + `diagnostico_treino`. Nova view ou
   agregado sobre `diag_fichas` **deve** filtrar `not treino`.
-- Mesa mínima: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`).
+- **Sublocalidades** (`diag_localidades`, filha de `diag_comunidades`; sem
+  DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,
+  validados em `diag_enviar_ficha`. Fora de indicadores (risco de
+  reidentificação) até existir recorte com supressão.
+- Mesa mínima: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`):
+  Visão geral (contagens, apagar treino) e aba Admin (comunidades e sublocalidades).
 - App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +
   `gerarLayout`; não chama `carregarUsuario()`), service worker na raiz
   `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.

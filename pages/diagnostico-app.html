@@ -92,6 +92,15 @@
       <input class="campo" id="nova-com-outra" maxlength="150">
       <p class="dica">A coordenação cadastra a comunidade nova depois.</p>
     </div>
+    <!-- sublocalidade: só aparece se a coordenação cadastrou alguma para a comunidade -->
+    <div id="nova-loc-wrap" hidden>
+      <label class="rot" for="nova-localidade">Sublocalidade (opcional)</label>
+      <select class="campo" id="nova-localidade"></select>
+      <div id="nova-loc-outra-wrap" hidden>
+        <label class="rot" for="nova-loc-outra">Nome da sublocalidade</label>
+        <input class="campo" id="nova-loc-outra" maxlength="150">
+      </div>
+    </div>
     <p class="erro-msg" id="nova-erro" role="alert" hidden></p>
     <button type="button" class="btn btn-prim btn-bloco" style="margin-top:20px" id="btn-nova-continuar">Continuar</button>
   </div>

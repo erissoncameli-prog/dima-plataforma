@@ -36,6 +36,8 @@ insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate
 update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao = 1;
 insert into public.diag_comunidades (id, municipio_ibge, nome)
  values ('11111111-1111-1111-1111-111111111111', 1200708, 'Seringal Cachoeira');
+insert into public.diag_localidades (id, comunidade_id, nome)
+ values ('22222222-2222-2222-2222-222222222221', '11111111-1111-1111-1111-111111111111', 'Colocação Rio Branco');
 SQL
 
 (cd "$RAIZ" && python3 -m http.server "$PORTA_HTTP" --bind 127.0.0.1 >/dev/null 2>&1) & HTTP_PID=$!

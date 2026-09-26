@@ -584,3 +584,53 @@ begin
      then raise exception 'FALHOU T29 exclusão não auditada'; end if;
   set role authenticated;
 end $$;
+
+-- ── T30 sublocalidades ──────────────────────────────────────────────────
+reset role;
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+select public.t_erro($q$insert into public.diag_localidades (comunidade_id, nome) values ('11111111-1111-1111-1111-111111111111', 'Ramal do técnico')$q$,
+  'new row violates row-level security');
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+insert into public.diag_localidades (id, comunidade_id, nome) values
+  ('22222222-2222-2222-2222-222222222221', '11111111-1111-1111-1111-111111111111', 'Ramal do Pica-Pau');
+-- sublocalidade de OUTRA comunidade
+insert into public.diag_localidades (id, comunidade_id, nome)
+  select '22222222-2222-2222-2222-222222222229', id, 'Bairro de outra UC' from public.diag_comunidades
+  where nome = 'Comunidade Nova da Coordenação';
+select public.t_erro($q$insert into public.diag_localidades (comunidade_id, nome) values ('11111111-1111-1111-1111-111111111111', ' ramal do pica-pau ')$q$,
+  'duplicate key');
+update public.diag_localidades set nome = 'Ramal do Pica-Pau (km 12)' where id = '22222222-2222-2222-2222-222222222221';
+
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$ begin
+  if not exists (select 1 from public.diag_localidades where nome like 'Ramal do Pica-Pau%') then raise exception 'FALHOU T30 técnico não lê o catálogo'; end if;
+end $$;
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha('f0000000-0000-0000-0000-000000000001','DSA-XAP-260926-T2LC-01',
+  null, now(), '{"localidade_id":"22222222-2222-2222-2222-222222222229"}'), public.t_mor())$q$, 'diag:ficha_invalida');
+do $$
+declare r jsonb;
+begin
+  r := public.diag_enviar_ficha(public.t_ficha('f0000000-0000-0000-0000-000000000001','DSA-XAP-260926-T2LC-01',
+         null, now(), '{"localidade_id":"22222222-2222-2222-2222-222222222221","localidade_nova":"ignorado"}'), public.t_mor());
+  r := public.diag_enviar_ficha(public.t_ficha('f0000000-0000-0000-0000-000000000002','DSA-XAP-260926-T2LC-02',
+         null, now(), '{"localidade_nova":"Colocação Boa Vista"}'), public.t_mor());
+  if (select localidade_id from public.diag_fichas where codigo = 'DSA-XAP-260926-T2LC-01') <> '22222222-2222-2222-2222-222222222221'
+     then raise exception 'FALHOU T30 localidade_id'; end if;
+  if (select localidade_nova from public.diag_fichas where codigo = 'DSA-XAP-260926-T2LC-01') is not null
+     then raise exception 'FALHOU T30 localidade_nova junto com localidade_id'; end if;
+  if (select localidade_nova from public.diag_fichas where codigo = 'DSA-XAP-260926-T2LC-02') <> 'Colocação Boa Vista'
+     then raise exception 'FALHOU T30 localidade_nova'; end if;
+end $$;
+-- desativar não quebra reenvio de ficha começada antes
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+update public.diag_localidades set ativo = false where id = '22222222-2222-2222-2222-222222222221';
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+select public.diag_enviar_ficha(public.t_ficha('f0000000-0000-0000-0000-000000000001','DSA-XAP-260926-T2LC-01',
+  null, now(), '{"localidade_id":"22222222-2222-2222-2222-222222222221"}'), public.t_mor());
+reset role;
+do $$ begin
+  if exists (select 1 from pg_policies where tablename = 'diag_localidades' and (qual = 'true' or not ('authenticated' = any(roles))))
+     then raise exception 'FALHOU T30 policy'; end if;
+  if has_table_privilege('anon', 'public.diag_localidades', 'select') then raise exception 'FALHOU T30 anon'; end if;
+end $$;

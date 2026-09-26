@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.1.0'
+const DIAG_APP_VERSAO = '1.2.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -238,15 +238,17 @@ async function desenharInicio() {
   ]
   const municipios = (await dCacheGet('municipios')) || []
   const comunidades = (await dCacheGet('comunidades')) || []
+  const localidades = (await dCacheGet('localidades')) || []
   document.getElementById('ini-lista').innerHTML = grupos.filter(g => g[1].length).map(([tit, l]) =>
     '<h2 class="secao-titulo">' + esc(tit) + ' (' + l.length + ')</h2>' + l.map(f => {
       const com = f.comunidade_nova || (comunidades.find(c => c.id === f.comunidade_id) || {}).nome || ''
+      const loc = f.localidade_nova || (localidades.find(l => l.id === f.localidade_id) || {}).nome || ''
       const mun = (municipios.find(m => m.ibge === f.municipio_ibge) || {}).nome || ''
       const selo = f.status_servidor === 'validada' ? 'validada' : f.status_servidor === 'devolvida' && f.estado !== 'enviada' ? 'devolvida' : f.estado
       const rot = selo === 'validada' ? 'validada' : selo === 'devolvida' ? 'devolvida' : ROTULO_ESTADO[f.estado]
       return '<button type="button" class="item-ficha" data-uuid="' + esc(f.uuid_cliente) + '">' +
         '<span class="meio"><span class="cod">' + esc(f.codigo) + (f.treino ? ' <span class="selo selo-treino">treino</span>' : '') + '</span>' +
-        '<span class="sub">' + esc([com, mun, f.aceitou_participar ? '' : 'recusa'].filter(Boolean).join(' · ')) + '</span>' +
+        '<span class="sub">' + esc([loc ? com + ' / ' + loc : com, mun, f.aceitou_participar ? '' : 'recusa'].filter(Boolean).join(' · ')) + '</span>' +
         (f.erro_msg ? '<span class="sub" style="color:var(--erro)">' + esc(f.erro_msg) + '</span>' : '') +
         (f.motivo_devolucao && f.status_servidor === 'devolvida' ? '<span class="sub" style="color:var(--aviso)">' + esc(f.motivo_devolucao) + '</span>' : '') +
         '</span><span class="selo selo-' + esc(selo) + '">' + esc(rot) + '</span></button>'
@@ -290,6 +292,7 @@ async function abrirNova() {
     '<option value="' + m.ibge + '"' + (m.ibge === ultimo ? ' selected' : '') + '>' + esc(m.nome) + '</option>').join('')
   await preencherComunidades()
   document.getElementById('nova-erro').hidden = true
+  document.getElementById('nova-loc-outra').value = ''
   mostrar('t-nova')
 }
 async function preencherComunidades() {
@@ -299,10 +302,23 @@ async function preencherComunidades() {
   document.getElementById('nova-comunidade').innerHTML = '<option value="">Escolha…</option>' +
     comunidades.map(c => '<option value="' + esc(c.id) + '"' + (c.id === ultima ? ' selected' : '') + '>' + esc(c.nome) + '</option>').join('') +
     '<option value="_nova">Outra (não está na lista)</option>'
-  mudouComunidade()
+  await mudouComunidade()
 }
-function mudouComunidade() {
-  document.getElementById('nova-com-outra-wrap').hidden = document.getElementById('nova-comunidade').value !== '_nova'
+async function mudouComunidade() {
+  const com = document.getElementById('nova-comunidade').value
+  document.getElementById('nova-com-outra-wrap').hidden = com !== '_nova'
+  // sublocalidades cadastradas pela coordenação (aba Admin da mesa)
+  const locs = com && com !== '_nova'
+    ? ((await dCacheGet('localidades')) || []).filter(l => l.comunidade_id === com) : []
+  const ultima = await dConfigGet('ultima_localidade')
+  document.getElementById('nova-loc-wrap').hidden = !locs.length
+  document.getElementById('nova-localidade').innerHTML = '<option value="">Não informar</option>' +
+    locs.map(l => '<option value="' + esc(l.id) + '"' + (l.id === ultima ? ' selected' : '') + '>' + esc(l.nome) + '</option>').join('') +
+    '<option value="_nova">Outra (não está na lista)</option>'
+  mudouLocalidade()
+}
+function mudouLocalidade() {
+  document.getElementById('nova-loc-outra-wrap').hidden = document.getElementById('nova-localidade').value !== '_nova'
 }
 async function continuarNova() {
   const erro = document.getElementById('nova-erro')
@@ -310,8 +326,14 @@ async function continuarNova() {
   const com = document.getElementById('nova-comunidade').value
   const outra = document.getElementById('nova-com-outra').value.trim()
   const data = document.getElementById('nova-data').value
+  const temLoc = !document.getElementById('nova-loc-wrap').hidden
+  const loc = temLoc ? document.getElementById('nova-localidade').value : ''
+  const locOutra = document.getElementById('nova-loc-outra').value.trim()
   if (!data || !ibge || !com || (com === '_nova' && outra.length < 2)) {
     erro.textContent = 'Preencha data, município e comunidade.'; erro.hidden = false; return
+  }
+  if (loc === '_nova' && locOutra.length < 2) {
+    erro.textContent = 'Escreva o nome da sublocalidade ou escolha "Não informar".'; erro.hidden = false; return
   }
   const treino = !!App.treinoAtivo
   const q = await questionarioAtual()
@@ -323,12 +345,14 @@ async function continuarNova() {
     codigo: DiagRegras.gerarCodigo(mun.sigla, data, disp, await dProximoSeq(data), treino ? 'TRE' : 'DSA'),
     questionario_id: q.id, municipio_ibge: ibge,
     comunidade_id: com === '_nova' ? null : com, comunidade_nova: com === '_nova' ? outra : null,
+    localidade_id: loc && loc !== '_nova' ? loc : null, localidade_nova: loc === '_nova' ? locOutra : null,
     dt_entrevista: data, iniciada_em: new Date().toISOString(), finalizada_em: null,
     aviso_lido: false, aceitou_participar: null, respostas: {}, moradores: [],
     entrevistado_nome: '', obs_localizacao: '', lat: null, lon: null, dispositivo_id: disp, bloco_atual: 0,
   }
   await dConfigSet('ultimo_municipio', ibge)
   if (com !== '_nova') await dConfigSet('ultima_comunidade', com)
+  if (temLoc) await dConfigSet('ultima_localidade', loc && loc !== '_nova' ? loc : null)
   document.getElementById('aviso-texto').textContent = q.aviso_entrevistado
   document.getElementById('aviso-lido').checked = false
   document.getElementById('aviso-erro').hidden = true
@@ -548,6 +572,7 @@ function ligarEventos() {
   document.getElementById('btn-config').addEventListener('click', abrirConfig)
   document.getElementById('nova-municipio').addEventListener('change', preencherComunidades)
   document.getElementById('nova-comunidade').addEventListener('change', mudouComunidade)
+  document.getElementById('nova-localidade').addEventListener('change', mudouLocalidade)
   document.getElementById('btn-nova-continuar').addEventListener('click', continuarNova)
   document.getElementById('btn-aceitou').addEventListener('click', () => decidirAviso(true))
   document.getElementById('btn-recusou').addEventListener('click', () => decidirAviso(false))

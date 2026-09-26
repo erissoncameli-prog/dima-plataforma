@@ -83,7 +83,8 @@ function _dPayloadFicha(f) {
   return {
     uuid_cliente: f.uuid_cliente, codigo: f.codigo, questionario_id: f.questionario_id,
     municipio_ibge: f.municipio_ibge, comunidade_id: f.comunidade_id || null,
-    comunidade_nova: f.comunidade_nova || null, dt_entrevista: f.dt_entrevista,
+    comunidade_nova: f.comunidade_nova || null,
+    localidade_id: f.localidade_id || null, localidade_nova: f.localidade_nova || null, dt_entrevista: f.dt_entrevista,
     iniciada_em: f.iniciada_em, finalizada_em: f.finalizada_em,
     aviso_lido: !!f.aviso_lido, aceitou_participar: !!f.aceitou_participar,
     respostas: f.aceitou_participar ? (f.respostas || {}) : {},
@@ -151,13 +152,14 @@ async function dSyncEnviarFicha(f) {
 async function dSyncBaixarReferencias(usuarioId) {
   const r = {}
   const COLS_Q = 'id,codigo,versao,titulo,estrutura,aviso_entrevistado,status,hash_sha256'
-  const [q, mun, com, sug, treina] = await Promise.all([
+  const [q, mun, com, sug, treina, loc] = await Promise.all([
     diagDb.from('diag_questionarios').select(COLS_Q)
       .eq('codigo', 'DSA').eq('status', 'publicado').order('versao', { ascending: false }).limit(1),
     diagDb.from('diag_municipios').select('ibge,nome,sigla').order('nome'),
     diagDb.from('diag_comunidades').select('id,municipio_ibge,nome').eq('ativo', true).order('nome'),
     diagDb.rpc('fn_diag_sugestoes'),
     diagDb.rpc('fn_diag_pode_treinar'),
+    diagDb.from('diag_localidades').select('id,comunidade_id,nome').eq('ativo', true).order('nome'),
   ])
   if (q.data && q.data[0]) {
     await dCacheSet('questionario', q.data[0])
@@ -183,6 +185,7 @@ async function dSyncBaixarReferencias(usuarioId) {
   }
   if (mun.data) await dCacheSet('municipios', mun.data)
   if (com.data) await dCacheSet('comunidades', com.data)
+  if (loc.data) await dCacheSet('localidades', loc.data)
   if (sug.data) {
     const porChave = {}
     sug.data.forEach(s => { (porChave[s.chave] = porChave[s.chave] || []).push(s.texto) })
@@ -196,7 +199,7 @@ async function dSyncBaixarReferencias(usuarioId) {
 // atualiza o status das já enviadas (validada/descartada).
 async function _dSyncStatusDoServidor(usuarioId) {
   const { data: minhas, error } = await diagDb.from('diag_fichas')
-    .select('id,uuid_cliente,codigo,questionario_id,municipio_ibge,comunidade_id,comunidade_nova,dt_entrevista,iniciada_em,finalizada_em,aviso_lido,aceitou_participar,respostas,status,motivo_devolucao,dispositivo_id,treino')
+    .select('id,uuid_cliente,codigo,questionario_id,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,iniciada_em,finalizada_em,aviso_lido,aceitou_participar,respostas,status,motivo_devolucao,dispositivo_id,treino')
     .eq('entrevistador_id', usuarioId)
   if (error || !minhas) return
   for (const s of minhas) {
@@ -234,6 +237,7 @@ async function _dSyncReconstruir(s, usuarioId) {
   return {
     uuid_cliente: s.uuid_cliente, usuario_id: usuarioId, codigo: s.codigo, questionario_id: s.questionario_id,
     municipio_ibge: s.municipio_ibge, comunidade_id: s.comunidade_id, comunidade_nova: s.comunidade_nova,
+    localidade_id: s.localidade_id, localidade_nova: s.localidade_nova,
     dt_entrevista: s.dt_entrevista, iniciada_em: s.iniciada_em, finalizada_em: s.finalizada_em,
     aviso_lido: s.aviso_lido, aceitou_participar: s.aceitou_participar, respostas: s.respostas || {},
     moradores: (mor.data || []).map(m => { const o = Object.assign({}, m, { nome: nomePor[m.id] || '' }); delete o.id; return o }),
