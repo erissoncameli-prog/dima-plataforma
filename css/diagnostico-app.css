@@ -317,3 +317,9 @@ body.treino .topo { top: 28px; background: #7C2D12; }
 .pn-com { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; padding: 7px 0; border-bottom: 1px solid var(--cinza-100); }
 .pn-com:last-child { border-bottom: 0; }
 .pn-com b { font-variant-numeric: tabular-nums; }
+
+/* ── Início: logos (projeto + SEMA no topo; apoio no rodapé, no fim da tela) ── */
+#t-inicio:not([hidden]) { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+#t-inicio > .tela { flex: 1; width: 100%; }
+#t-inicio .topo h1 { min-width: 0; }
+#t-inicio .lg-rodape { margin-top: 16px; }
