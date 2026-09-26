@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.7.0'
+const DIAG_APP_VERSAO = '1.8.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -39,6 +39,12 @@ function mostrar(id) {
   document.querySelectorAll('body > section').forEach(s => { s.hidden = s.id !== id })
   App.tela = id
   aplicarFaixaTreino()
+  // Guia: o botão "?" só na tela inicial e em Configurações — nas telas da
+  // ficha ele cobriria a navegação do fim do bloco. Trocar de tela fecha o guia.
+  if (typeof guiaBotaoFlutuanteVisivel === 'function') {
+    guiaBotaoFlutuanteVisivel(id === 't-inicio' || id === 't-config')
+    if (id !== 't-inicio') guiaFechar()
+  }
   window.scrollTo(0, 0)
 }
 
@@ -245,6 +251,7 @@ const ROTULO_ESTADO = {
 async function irInicio() {
   mostrar('t-inicio')
   await desenharInicio()
+  diagGuiaIniciar()
   sincronizar(true)
 }
 
@@ -985,6 +992,7 @@ function ligarEventos() {
   document.getElementById('btn-nova').addEventListener('click', abrirNova)
   document.getElementById('btn-sync').addEventListener('click', () => sincronizar(false))
   document.getElementById('btn-config').addEventListener('click', abrirConfig)
+  document.getElementById('btn-cfg-ajuda').addEventListener('click', () => guiaAbrirCentral())
   document.getElementById('nova-municipio').addEventListener('change', preencherComunidades)
   document.getElementById('nova-comunidade').addEventListener('change', mudouComunidade)
   document.getElementById('nova-localidade').addEventListener('change', mudouLocalidade)

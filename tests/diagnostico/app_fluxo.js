@@ -168,6 +168,33 @@ function png1x1() {
   await foto('inicio')
   ok('login + criação de PIN')
 
+  // guia de treinamento (motor do SIGUC): convite + botão "?" na 1ª vez
+  await page.locator('#ini-guia #guia-convite').waitFor({ state: 'visible' })
+  if (await page.locator('#guia-fab').isHidden()) falhar('botão de ajuda não apareceu na tela inicial')
+  await clicar('#guia-convite [data-guia-abrir]')
+  await page.locator('#guia-raiz .guia-painel').waitFor({ state: 'visible' })
+  let passosVistos = 0, destacou = false
+  for (;;) {
+    passosVistos++
+    if (/sincronize/i.test(await page.textContent('#guia-raiz .guia-titulo'))) {
+      destacou = await page.locator('#guia-raiz .guia-spot').isVisible()
+      if (process.env.SHOTS) { await page.waitForTimeout(500); await foto('guia_passo') }
+    }
+    const prox = page.locator('#guia-raiz [data-guia-prox]')
+    const fim = /Concluir/.test(await prox.textContent())
+    await prox.click()
+    if (fim) break
+    if (passosVistos > 10) falhar('guia não terminou')
+  }
+  if (passosVistos !== 4) falhar('guia "Primeiros passos" mostrou ' + passosVistos + ' passos (esperado 4)')
+  if (!destacou) falhar('passo "sincronize" não destacou o botão real')
+  if (!/1 de 7 guias/.test(await page.textContent('#guia-raiz .guia-progresso'))) falhar('central não contou o guia concluído')
+  await foto('guia_central')
+  if (await page.evaluate(() => localStorage.getItem('siguc_guia_pendentes')) !== '[]') falhar('conclusão do guia ficou na fila de envio ao banco')
+  await clicar('#guia-raiz [data-guia-fechar]')
+  if (await page.locator('#guia-raiz').isVisible()) falhar('guia não fechou')
+  ok('guia de treinamento: convite, 4 passos com destaque, progresso na central')
+
   // nova entrevista
   if (await page.isDisabled('#btn-nova')) falhar('botão Nova entrevista desabilitado (questionário não baixado)')
   await clicar('#btn-nova')
@@ -186,6 +213,7 @@ function png1x1() {
   if (await page.isHidden('#aviso-erro')) falhar('deixou começar sem marcar o aviso como lido')
   await page.check('#aviso-lido'); await clicar('#btn-aceitou')
   await page.locator('#t-ficha').waitFor({ state: 'visible' })
+  if (await page.locator('#guia-fab').isVisible()) falhar('botão de ajuda cobrindo a ficha')
   const codigo = await page.textContent('#ficha-codigo')
   if (!/^DSA-XAP-\d{6}-[A-Z0-9]{4}-01$/.test(codigo)) falhar('código da ficha fora do padrão: ' + codigo)
   ok('nova ficha ' + codigo)

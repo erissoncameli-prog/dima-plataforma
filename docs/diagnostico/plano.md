@@ -779,9 +779,9 @@ Dois "salvar" diferentes, para não confundir:
 | **0** | Este plano + instrumento v1 + entrada de ROPA + rascunho do RIPD ✅ |
 | **1** | Migrations: **ROPA no banco (`lgpd_tratamentos`) primeiro**; depois tabelas, funções de acesso, RPC de envio, views de indicador, rotina de retenção de 2 anos, questionário v1 carregado; testes SQL ✅ **aplicada em produção em 26/09 (hash do questionário conferido) — ver §6.1** |
 | **2** | App PWA offline: login + PIN, lista de fichas, formulário renderizado da estrutura, rascunho contínuo, GPS pontual, fotos, fila de envio ✅ **ver §6.2** |
-| 3 | Mesa: validação/devolução, painel de indicadores, exportação `.xlsx` (ExcelJS, regra SIGUC), exportação pseudonimizada |
+| **3** | Mesa: validação/devolução, painel de indicadores, exportação `.xlsx` (ExcelJS, regra SIGUC), exportação pseudonimizada ✅ **ver §6.8–§6.11** |
 | 4 | APK Capacitor (`app-diagnostico/`), workflow de build com action pinada em SHA, `api/apk-latest.js`, `vercel.json` |
-| 5 | Piloto (5 fichas), guia de treinamento no app (`guia-app.js`), aplicação |
+| 5 | Piloto (5 fichas), guia de treinamento no app (`guia-app.js`) ✅ **§6.12**, aplicação |
 
 ### 6.1 Fase 1 — o que foi entregue
 
@@ -1140,3 +1140,25 @@ Migração `20260926_diag_13_fotos_carimbo.sql` + `js/diag-foto.js`:
   não sai do aparelho na limpeza de 7 dias;
 - **LGPD**: a foto baixada carrega a localização exata da casa. Registrado no
   ROPA (TRAT-001) e no RIPD; dar ciência ao Encarregado.
+
+### 6.12 Guia de treinamento no app *(Fase 5 — 26/09)*
+
+Feito **antes** do piloto e antes do APK (Fase 4): as 25 fichas DEMO testaram a
+mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
+
+- **Motor do SIGUC sem alteração**: `js/guia-app.js` + `css/guia-app.css`
+  (copiar de novo do SIGUC, nunca editar aqui — mesma regra do PIN). O app só
+  declara o conteúdo em `js/diag-guia.js` (`DIAG_GUIA`, `diagGuiaIniciar()`).
+- 7 guias: Primeiros passos, Fazer uma entrevista, Moradores, Fotos, Revisar e
+  enviar, Ficha devolvida, Modo treino e Meu painel. Passo com `alvo` destaca o
+  botão real quando está na tela; fora dela vira cartão de texto.
+- Entradas: convite "Primeira vez por aqui?" (`#ini-guia`, dispensável, some
+  após o 1º guia concluído), botão flutuante **?** só na tela inicial e em
+  Configurações (nas telas da ficha cobriria a navegação), e item "Ajuda e
+  treinamento" em Configurações. Nada bloqueia; trocar de tela fecha o guia.
+- **Progresso só no aparelho** (localStorage do motor). Sem registro no banco
+  de quem concluiu — sem tabela nova com dado pessoal. A RPC
+  `capacitacao_registrar_conclusao` que o motor chama não existe no DIMA;
+  `diag-guia.js` fornece um cliente que responde "ok" sem ir à rede.
+- Texto novo de guia = incrementar `versao` do guia (volta a aparecer como
+  novidade). Service worker v12, app 1.8.0.
