@@ -365,7 +365,7 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
 - **Retenção**: identificação e fotos apagadas 2 anos após a validação por
   `fn_diag_aplicar_retencao` (cron `diag-retencao-diaria`), prazo lido de
   `lgpd_tratamentos` (TRAT-001). Arquivo de foto removido entra em
-  `diag_expurgo_arquivos` (a Edge Function que drena a fila é pendência da Fase 3).
+  `diag_expurgo_arquivos`, drenada pela Edge Function `diag-expurgo` (cron diário).
 - **ROPA vivo** em `lgpd_tratamentos`: tabela nova com dado pessoal = linha nova
   lá na mesma entrega.
 - **Modo treino** (`diag_fichas.treino`, código `TRE-`): aceita questionário
@@ -378,16 +378,27 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,
   validados em `diag_enviar_ficha`. Fora de indicadores (risco de
   reidentificação) até existir recorte com supressão.
-- **Questionário vigente = v2** (escolaridade da P9 em lista fechada; v1
-  arquivada). Coluna `unica` da P9 é validada por `fn_diag_validar_moradores`
-  contra as opções da versão da ficha.
+- **Questionário vigente = v3** (escolaridade da P9 em lista fechada desde a
+  v2, com doutorado na v3; v1 e v2 arquivadas). Coluna `unica` da P9 é
+  validada por `fn_diag_validar_moradores` contra as opções da versão da ficha.
+- **Exportação** só por `diag_exportar()` (registra em `diag_exportacoes` na
+  mesma transação). Padrão sem nome/GPS/nomes; identificada só gerir;
+  consultor sem texto aberto nem `_outro`. Planilha com ExcelJS
+  (`js/vendor/`), nunca SheetJS. Nova coluna com dado pessoal/sensível em
+  `diag_fichas` ⇒ decidir em `diag_exportar` se sai e para quem.
+- **Indicadores na mesa** (`js/diagnostico-indicadores.js`) e **Meu painel**
+  do app (`diag_meu_painel()`, só `auth.uid()`) só desenham o que o banco
+  devolve. O painel do app nunca conta ficha de outro entrevistador.
+- **Expurgo**: Edge Function `diag-expurgo` + cron `diag-expurgo-diario`
+  drenam `diag_expurgo_arquivos` (só bucket `diagnostico-fotos`).
 - PIN do app = **baralho do SIGUC** (`js/pin-baralho.js`/`css/pin-baralho.css`,
   cópia sem alteração — não editar aqui, copiar de novo do SIGUC). Logos do
   app em `pwa/logos/` (no `SHELL` do service worker).
 - Configurações do app no padrão SIGUC (atualização via service worker,
   instalar aqui/QR para `pages/instalar-diagnostico.html`, privacidade).
   QR com `js/qrcode-generator.js` (MIT, cópia do SIGUC), gerado offline.
-- Mesa: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`): Visão geral
+- Mesa: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`): Indicadores (todos),
+  exportação na aba Validação, Visão geral
   (contagens, apagar treino), aba **Validação** (`js/diagnostico-validacao.js`: lista,
   ficha aberta, validar/devolver/descartar/reabrir **só pela RPC `diag_mudar_status`**,
   apagar foto; consultor externo vê a aba "Fichas" só leitura, sem identificação) e
@@ -468,6 +479,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `dynamic-endpoint` | Endpoint genérico com roteamento | ✅ |
 | `cron-prestacao` | Cron de prestação de contas | ✅ |
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
+| `diag-expurgo` | Diagnóstico: remove do Storage as fotos da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 
 ---
 

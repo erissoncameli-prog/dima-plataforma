@@ -49,6 +49,7 @@ async function dgValCarregar(forcar) {
   }
   dgVal.carregado = true
   dgValDesenhar()
+  dgExpHistorico()
 }
 
 function dgValComunidade(f) {
@@ -93,6 +94,7 @@ function dgValDesenhar() {
       <label>Código<input id="dgv-busca" placeholder="DSA-…" value="${esc(fl.busca)}" oninput="dgValFiltro('busca',this.value,true)"></label>
       <label class="dgv-check"><input type="checkbox" ${fl.treino ? 'checked' : ''} onchange="dgValFiltro('treino',this.checked)"> mostrar treino</label>
       <button type="button" class="btn btn-secondary btn-sm" onclick="dgValCarregar(true)">↻ Atualizar</button>
+      <button type="button" class="btn btn-primary btn-sm" id="dgv-btn-exportar" onclick="dgExpAbrir()">⤓ Exportar planilha</button>
     </div>
     ${lista.length ? `<div style="overflow-x:auto"><table class="dgv-tab"><thead><tr><th>Código</th><th>Comunidade</th><th>Técnico(a)</th><th>Entrevista</th><th>Avisos</th><th>Situação</th></tr></thead><tbody>
       ${lista.map(f => {
@@ -107,7 +109,7 @@ function dgValDesenhar() {
           <td><span class="dgv-st dgv-st-${f.status}">${DGV_CURTO[f.status]}</span></td></tr>`
       }).join('')}</tbody></table></div>`
       : '<p style="font-size:13px;color:var(--cinza-500);margin:12px 0 0">Nenhuma ficha com esses filtros.</p>'}
-  </div>`
+  </div><div id="dgv-exportacoes">${dgExp.histHtml || ''}</div>`
   if (fl._foco) { const i = document.getElementById('dgv-busca'); i.focus(); i.setSelectionRange(i.value.length, i.value.length) }
 }
 function dgValFiltro(k, v, foco) { dgVal.filtro[k] = v; dgVal.filtro._foco = !!foco; dgValDesenhar() }
