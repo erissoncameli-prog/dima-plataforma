@@ -883,8 +883,9 @@ super_admin já concede o acesso com prazo pela tela de Usuários.
 **Para usar em campo:**
 1. **Publicar a v1:** a coordenação publica a v1 (`status = 'publicado'`).
    Enquanto ela for rascunho, o app mostra "Nenhum questionário publicado".
-2. **Cadastrar comunidades:** pelo menos as do piloto, em `diag_comunidades`.
-   A tela de mesa para isso é da Fase 3; por enquanto, por SQL.
+2. ~~**Cadastrar comunidades**~~ — ✅ *(26/09)* piloto nas duas APAs de Rio Branco,
+   cadastradas em `diag_comunidades`: **APA São Francisco** e **APA Lago do Amapá**.
+   Outras UCs entram depois pelo mesmo cadastro.
 3. **Liberar o acesso:** conceder o módulo `diagnostico` aos técnicos do piloto.
 4. **Publicar o app:** a branch precisa entrar na `main`, que é o que a Vercel
    publica.
