@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.6.0'
+const DIAG_APP_VERSAO = '1.6.1'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -426,9 +426,13 @@ async function decidirAviso(aceitou) {
 // ── Ficha ──────────────────────────────────────────────────────────────
 async function abrirFicha(uuidFicha, irParaChave) {
   const f = await dFichaObter(uuidFicha)
-  const qs = (await dCacheGet('questionarios')) || {}
+  let qs = (await dCacheGet('questionarios')) || {}
+  if (!qs[f.questionario_id] && diagDb && await dSyncTemConexao()) {
+    await dSyncGarantirVersoes(App.usuario.id)          // versão antiga (ex.: devolvida na v1)
+    qs = (await dCacheGet('questionarios')) || {}
+  }
   const q = qs[f.questionario_id] || await dCacheGet('questionario')
-  if (!q || q.id !== f.questionario_id) { aviso('A versão do questionário desta ficha não está no aparelho. Sincronize com internet.', 'erro'); return }
+  if (!q || q.id !== f.questionario_id) { aviso('A versão do questionário desta ficha não está no aparelho. Conecte à internet e toque em Sincronizar.', 'erro'); return }
   App.ficha = f; App.estrutura = q.estrutura
   App.bloco = f.bloco_atual || 0
   sairModoPendencias()

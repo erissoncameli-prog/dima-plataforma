@@ -367,6 +367,21 @@ function png1x1() {
   await clicar('#ini-lista .item-ficha:has(.selo-devolvida)')
   await page.locator('#t-ficha').waitFor({ state: 'visible' })
   if (!/Conferir a P9/.test(await page.textContent('#ficha-devolvida'))) falhar('motivo da devolução não apareceu na ficha')
+  // versão da ficha fora do aparelho (ex.: treino devolvido na v1 arquivada): a sincronização baixa…
+  const qidDev = await page.evaluate(() => App.ficha.questionario_id)
+  const semVersao = () => page.evaluate(async q => { const t = (await dCacheGet('questionarios')) || {}; delete t[q]; await dCacheSet('questionarios', t) }, qidDev)
+  await clicar('#btn-ficha-sair'); await page.locator('#t-inicio').waitFor({ state: 'visible' })
+  await semVersao()
+  await clicar('#btn-sync'); await page.waitForTimeout(1000)
+  if (!(await page.evaluate(async q => !!((await dCacheGet('questionarios')) || {})[q], qidDev))) falhar('sincronização não baixou a versão da ficha devolvida')
+  // motivo da devolução em linha própria (não por cima do selo)
+  if (await page.$eval('#ini-lista .item-ficha:has(.selo-devolvida) .sub', e => getComputedStyle(e).display) !== 'block') falhar('linhas da ficha na lista não quebram')
+  // …e, se ainda faltar, abrir a ficha baixa na hora
+  await semVersao()
+  await clicar('#ini-lista .item-ficha:has(.selo-devolvida)')
+  await page.locator('#t-ficha').waitFor({ state: 'visible' })
+  if (!(await page.evaluate(async q => !!((await dCacheGet('questionarios')) || {})[q], qidDev))) falhar('abrir a ficha não baixou a versão que faltava')
+  ok('ficha devolvida em versão que não estava no aparelho: baixada na sincronização e ao abrir')
   await clicar('#btn-ficha-sair')
   ok('ficha devolvida voltou ao aparelho com o motivo')
 

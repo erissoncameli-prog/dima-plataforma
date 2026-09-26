@@ -78,7 +78,7 @@ textarea.campo { min-height: 96px; resize: vertical; }
   background: var(--branco); border: 1px solid var(--cinza-200); border-radius: 10px; padding: 12px; margin: 8px 0; min-height: 64px; }
 .item-ficha .meio { flex: 1; min-width: 0; }
 .item-ficha .cod { font-weight: 700; font-family: ui-monospace, monospace; font-size: 15px; }
-.item-ficha .sub { color: var(--cinza-500); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-ficha .sub { display: block; color: var(--cinza-500); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .selo { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
 .selo-rascunho { background: var(--cinza-100); color: var(--cinza-700); }
 .selo-pronta { background: var(--azul-bg); color: var(--azul-medio); }
