@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.3.0'
+const DIAG_APP_VERSAO = '1.4.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -87,8 +87,11 @@ async function sha256(txt) {
 // ── Boot ───────────────────────────────────────────────────────────────
 async function boot() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('../diagnostico-sw.js', { scope: './diagnostico-app.html' }).catch(e => console.warn(e))
+    navigator.serviceWorker.register('../diagnostico-sw.js', { scope: './diagnostico-app.html' })
+      .then(reg => { App.swReg = reg; vigiarAtualizacao(reg) })
+      .catch(e => console.warn(e))
   }
+  atualizarBotoesInstalar()
   await dOfflineInit()
   dPersistir()
   ligarEventos()
@@ -571,17 +574,152 @@ async function concluirFicha() {
 }
 
 // ── Configurações ──────────────────────────────────────────────────────
+// Mesmo conjunto dos apps de campo do SIGUC (Água, Brigadas, Frota,
+// Biomonitor), no que cabe aqui: perfil, armazenamento, listas, PIN,
+// instalar (aqui e em outro aparelho por QR), atualização, privacidade.
+const ROTULO_PERFIL = { super_admin: 'Super admin', coordenacao: 'Coordenação', tecnico: 'Técnico(a) de campo',
+  consultor_externo: 'Consultor externo', visualizador: 'Visualizador', financeiro: 'Financeiro' }
 async function abrirConfig() {
-  const naoEnv = (await dFichasNaoEnviadas(App.usuario.id)).length
-  let uso = ''
-  try { const e = await navigator.storage.estimate(); uso = Math.round((e.usage || 0) / 1048576) + ' MB usados' } catch (e) { /* opcional */ }
-  document.getElementById('config-info').innerHTML =
-    '<b>' + esc(App.usuario.nome_completo) + '</b><br>Aparelho: ' + esc(await dDispositivoId()) +
-    '<br>Fichas não enviadas: ' + naoEnv + (uso ? '<br>' + uso : '') + '<br>Versão do app: ' + DIAG_APP_VERSAO
+  const u = App.usuario
+  const fichas = await dFichasDoUsuario(u.id)
+  const naoEnv = (await dFichasNaoEnviadas(u.id)).length
+  document.getElementById('cfg-avatar').textContent = (u.nome_completo || '?').trim().charAt(0).toUpperCase()
+  document.getElementById('cfg-nome').textContent = u.nome_completo
+  document.getElementById('cfg-perfil').textContent = (ROTULO_PERFIL[u.perfil] || u.perfil || '') +
+    (u.acesso_ate ? ' · acesso até ' + new Date(u.acesso_ate).toLocaleDateString('pt-BR') : '')
+  document.getElementById('cfg-aparelho').textContent = 'Aparelho ' + (await dDispositivoId()) + (ehInstalado() ? ' · app instalado' : ' · aberto no navegador')
+  document.getElementById('cfg-versao').textContent = 'Versão do app ' + DIAG_APP_VERSAO
+  document.getElementById('cfg-fichas').textContent = fichas.length + ' ficha(s) neste aparelho · ' + naoEnv + ' ainda não enviada(s)'
+  try {
+    const e = await navigator.storage.estimate()
+    const pct = e.quota ? Math.min(100, Math.round(100 * e.usage / e.quota)) : 0
+    document.getElementById('cfg-quota-barra').style.width = Math.max(pct, 1) + '%'
+    const prot = navigator.storage.persisted ? await navigator.storage.persisted() : false
+    document.getElementById('cfg-quota').textContent = (e.usage / 1048576).toFixed(1) + ' MB usados de ' +
+      Math.round((e.quota || 0) / 1048576) + ' MB · ' + (prot ? 'dados protegidos contra limpeza automática' : 'o sistema pode limpar se faltar espaço')
+  } catch (e) { document.getElementById('cfg-quota').textContent = 'Não disponível neste navegador' }
+  const q = await questionarioAtual()
+  document.getElementById('cfg-quest').textContent = q ? 'Questionário ' + q.codigo + ' v' + q.versao + (q.status === 'rascunho' ? ' (rascunho — treino)' : '') : 'Nenhum questionário baixado'
+  const ult = await dConfigGet('ultima_sync_' + u.id)
+  document.getElementById('cfg-sync').textContent = ult ? 'Última sincronização: ' + new Date(ult).toLocaleString('pt-BR') : 'Ainda não sincronizado neste aparelho'
+  const nTreino = fichas.filter(f => f.treino).length
+  document.getElementById('btn-cfg-limpar-treino').hidden = !nTreino
+  document.getElementById('cfg-n-treino').textContent = nTreino + ' ficha(s) TRE-'
   await carregarTreino()
   document.getElementById('config-treino-wrap').hidden = !App.podeTreinar
   document.getElementById('config-treino').checked = !!App.treinoAtivo
+  atualizarBotoesInstalar()
   mostrar('t-config')
+}
+
+function abrirOv(id) { document.getElementById(id).hidden = false }
+function fecharOv(el) { el.closest('.ov').hidden = true }
+
+// QR com o endereço da página de instalação (gerado no aparelho, sem internet)
+function abrirQRInstalacao() {
+  const url = new URL('instalar-diagnostico.html', location.href).href
+  const img = document.getElementById('ov-qr-img')
+  try {
+    const qr = qrcode(0, 'M'); qr.addData(url); qr.make()
+    img.src = qr.createDataURL(8, 4); img.hidden = false
+  } catch (e) { img.hidden = true }
+  document.getElementById('ov-qr-link').textContent = url
+  abrirOv('ov-qr')
+}
+
+// ── Instalar neste aparelho (Android: prompt do Chrome; iPhone: Safari) ──
+let _pedidoInstalar = null
+window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); _pedidoInstalar = ev; atualizarBotoesInstalar() })
+window.addEventListener('appinstalled', () => { _pedidoInstalar = null; atualizarBotoesInstalar(); aviso('App instalado. Use sempre pelo ícone.', 'ok') })
+function ehIOS() { return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) }
+function ehInstalado() {
+  try { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true } catch (e) { return false }
+}
+function atualizarBotoesInstalar() {
+  const mostrar = !ehInstalado()
+  ;['btn-cfg-instalar', 'btn-login-instalar'].forEach(id => { const b = document.getElementById(id); if (b) b.hidden = !mostrar })
+}
+async function instalarAqui() {
+  if (_pedidoInstalar) {
+    _pedidoInstalar.prompt()
+    try { await _pedidoInstalar.userChoice } catch (e) { /* ignorado */ }
+    _pedidoInstalar = null; atualizarBotoesInstalar(); return
+  }
+  const passos = ehIOS()
+    ? ['Abra esta página no <b>Safari</b> (no Chrome do iPhone não funciona).',
+       'Toque em <b>compartilhar</b> (quadrado com seta para cima).',
+       'Toque em <b>Adicionar à Tela de Início</b> → <b>Adicionar</b>.',
+       'Use sempre pelo ícone: aberto pelo Safari, o iPhone pode apagar os dados guardados.']
+    : ['Abra esta página no <b>Google Chrome</b>.',
+       'Toque no menu <b>⋮</b> (canto de cima).',
+       'Toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b> → <b>Instalar</b>.',
+       'Use sempre pelo ícone <b>Diagnóstico</b> da tela inicial.']
+  document.getElementById('ov-instalar-passos').innerHTML = passos.map(p => '<li>' + p + '</li>').join('')
+  abrirOv('ov-instalar')
+}
+
+// ── Atualização do app (service worker) ──────────────────────────────
+// O SW novo se instala sozinho (skipWaiting) quando VERSAO muda; aqui só
+// avisamos e recarregamos. Recarregar não perde nada: a ficha já está
+// gravada no aparelho a cada toque.
+function vigiarAtualizacao(reg) {
+  const tinhaControle = !!navigator.serviceWorker.controller
+  reg.addEventListener('updatefound', () => {
+    const nw = reg.installing
+    if (!nw) return
+    nw.addEventListener('statechange', () => {
+      if (nw.state !== 'activated') return
+      if (App.atualizandoManual) { aviso('Atualização encontrada — recarregando…', 'ok'); setTimeout(() => location.reload(), 900) }
+      else if (tinhaControle) document.getElementById('banner-update').hidden = false
+    })
+  })
+  if (navigator.onLine) reg.update().catch(() => {})
+}
+async function verificarAtualizacao() {
+  if (!navigator.onLine || !(await dSyncTemConexao().catch(() => false))) { aviso('Sem internet para verificar agora.', 'aviso'); return }
+  const reg = App.swReg || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration('./diagnostico-app.html'))
+  if (!reg) { location.reload(); return }
+  aviso('Verificando atualização…', 'info')
+  App.atualizandoManual = true
+  let achou = false
+  const marca = () => { achou = true }
+  reg.addEventListener('updatefound', marca, { once: true })
+  try { await reg.update() } catch (e) { /* segue */ }
+  setTimeout(() => {
+    if (!achou && !reg.installing && !reg.waiting) { App.atualizandoManual = false; aviso('O app já está atualizado (versão ' + DIAG_APP_VERSAO + ').', 'ok') }
+  }, 3000)
+}
+
+// ── Aviso de privacidade (o que o app coleta e guarda) ────────────────
+async function abrirPrivacidade() {
+  const q = await questionarioAtual()
+  document.getElementById('ov-priv-corpo').innerHTML =
+    '<h4>Aviso lido ao entrevistado</h4><div class="aviso-txt">' + esc(q ? q.aviso_entrevistado : 'Sincronize para baixar o questionário.') + '</div>' +
+    '<h4>O que fica neste celular</h4><ul>' +
+      '<li>Fichas ainda não enviadas e as fotos delas (apagadas do aparelho 7 dias depois de enviadas).</li>' +
+      '<li>Seu nome, o questionário e as listas de municípios e comunidades, para funcionar sem internet.</li>' +
+      '<li>O PIN, guardado só como código cifrado (não dá para ler o número).</li></ul>' +
+    '<h4>Cuidados</h4><ul>' +
+      '<li>Não fotografe pessoas. Nome do entrevistado e dos moradores é opcional (iniciais bastam).</li>' +
+      '<li>Mantenha o bloqueio de tela do celular ligado. "Sair deste aparelho" não apaga fichas pendentes.</li>' +
+      '<li>Nome, localização e fotos são apagados do sistema 2 anos após a validação da ficha.</li></ul>' +
+    '<h4>Dúvidas e pedidos sobre dados pessoais</h4>' +
+    '<p>Encarregada de Dados da SEMA/AC: Luciana Rôla — <b>divbioac@gmail.com</b>. Pedido feito em campo: anote e encaminhe a esse e-mail.</p>'
+  abrirOv('ov-privacidade')
+}
+
+async function limparTreinoLocal() {
+  const lista = (await dFichasDoUsuario(App.usuario.id)).filter(f => f.treino)
+  if (!lista.length) return
+  if (!confirm('Apagar deste celular ' + lista.length + ' ficha(s) de TREINO (TRE-)?\n\nFichas reais não são tocadas. As que já foram enviadas continuam no sistema até a coordenação apagar o treino.')) return
+  for (const f of lista) await dFichaApagarLocal(f.uuid_cliente)
+  aviso(lista.length + ' ficha(s) de treino apagada(s) do aparelho.', 'ok')
+  abrirConfig()
+}
+
+async function sincronizarPelaConfig() {
+  await sincronizar(false)
+  if (!document.getElementById('t-config').hidden) abrirConfig()
 }
 async function mudarModoTreino(ev) {
   await dConfigSet('modo_treino_' + App.usuario.id, ev.target.checked)
@@ -619,6 +757,18 @@ function ligarEventos() {
   document.getElementById('btn-trocar-pin').addEventListener('click', () => abrirPin('criar'))
   document.getElementById('btn-sair').addEventListener('click', sairDoAparelho)
   document.getElementById('config-treino').addEventListener('change', mudarModoTreino)
+  document.getElementById('btn-cfg-listas').addEventListener('click', sincronizarPelaConfig)
+  document.getElementById('btn-cfg-instalar').addEventListener('click', instalarAqui)
+  document.getElementById('btn-login-instalar').addEventListener('click', instalarAqui)
+  document.getElementById('btn-cfg-qr').addEventListener('click', abrirQRInstalacao)
+  document.getElementById('btn-cfg-update').addEventListener('click', verificarAtualizacao)
+  document.getElementById('btn-cfg-privacidade').addEventListener('click', abrirPrivacidade)
+  document.getElementById('btn-cfg-limpar-treino').addEventListener('click', limparTreinoLocal)
+  document.getElementById('btn-update-agora').addEventListener('click', () => location.reload())
+  document.getElementById('btn-update-depois').addEventListener('click', () => { document.getElementById('banner-update').hidden = true })
+  document.querySelectorAll('.ov').forEach(ov => ov.addEventListener('click', ev => {
+    if (ev.target === ov || ev.target.closest('[data-fechar]')) fecharOv(ev.target)
+  }))
   document.querySelectorAll('[data-voltar]').forEach(b => b.addEventListener('click', () => {
     if (b.dataset.voltar === 't-inicio') irInicio(); else mostrar(b.dataset.voltar)
   }))

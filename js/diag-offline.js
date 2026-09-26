@@ -88,6 +88,14 @@ async function dFichaDescartarRascunho(uuid) {
   await _dTx('fichas', 'readwrite', s => s.delete(uuid))
 }
 
+// Apaga do aparelho uma ficha QUALQUER (e as fotos). Só para treino: ficha
+// real nunca é apagada pelo app (pendente espera; enviada sai em 7 dias).
+async function dFichaApagarLocal(uuid) {
+  const fotos = await dFotosDaFicha(uuid)
+  await Promise.all(fotos.map(ft => _dTx('fotos', 'readwrite', s => s.delete(ft.uuid_cliente))))
+  await _dTx('fichas', 'readwrite', s => s.delete(uuid))
+}
+
 // ── Fotos (blob comprimido no aparelho) ─────────────────────────────────
 function dFotoSalvar(ft) { return _dTx('fotos', 'readwrite', s => s.put(ft)).then(() => ft) }
 function dFotoApagar(uuid) { return _dTx('fotos', 'readwrite', s => s.delete(uuid)) }
