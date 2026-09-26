@@ -213,12 +213,13 @@
 
   // Código legível gerado no aparelho (padrão numero_ninho do Biomonitor):
   //   DSA-<MUN>-<AAMMDD>-<DISP>-<NN>
-  function gerarCodigo(sigla, data, dispositivo, seq) {
+  // prefixo 'TRE' = ficha do modo treino (o banco exige TRE- ⇔ treino)
+  function gerarCodigo(sigla, data, dispositivo, seq, prefixo) {
     const d = data instanceof Date ? data : new Date(data + 'T12:00:00')
     const aa = String(d.getFullYear()).slice(2)
     const mm = String(d.getMonth() + 1).padStart(2, '0')
     const dd = String(d.getDate()).padStart(2, '0')
-    return ['DSA', sigla, aa + mm + dd, dispositivo, String(seq).padStart(2, '0')].join('-')
+    return [prefixo || 'DSA', sigla, aa + mm + dd, dispositivo, String(seq).padStart(2, '0')].join('-')
   }
 
   const api = { NR, perguntas, porChave, foraDeRespostas, cond, aplicaveis, derivar, comDerivadas,

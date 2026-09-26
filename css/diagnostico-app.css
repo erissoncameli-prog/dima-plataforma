@@ -159,3 +159,15 @@ textarea.campo { min-height: 96px; resize: vertical; }
   .aviso-flutuante { animation: sobe .18s ease-out; }
   @keyframes sobe { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
 }
+
+/* ── Modo treino: faixa laranja em todas as telas de trabalho ──────── */
+.faixa-treino {
+  position: sticky; top: 0; z-index: 30; background: #C2410C; color: #fff;
+  font-size: 13px; font-weight: 700; letter-spacing: .03em; text-align: center;
+  padding: 5px 12px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body.treino .topo { top: 28px; background: #7C2D12; }
+.faixa-treino-info { background: #FFF7ED; color: #7C2D12; border: 1px solid #FDBA74; }
+.selo-treino { background: #FFEDD5; color: #C2410C; font-size: 11px; vertical-align: middle; }
+.config-treino { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+.config-treino input { width: 24px; height: 24px; margin-top: 2px; flex: none; }

@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.0.0'
+const DIAG_APP_VERSAO = '1.1.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -35,7 +35,31 @@ const App = {
 // ── Utilidades de tela ─────────────────────────────────────────────────
 function mostrar(id) {
   document.querySelectorAll('body > section').forEach(s => { s.hidden = s.id !== id })
+  App.tela = id
+  aplicarFaixaTreino()
   window.scrollTo(0, 0)
+}
+
+// ── Modo treino ────────────────────────────────────────────────────────
+// Fichas TRE-… vão para o servidor de verdade, mas ficam fora de números e
+// sugestões e são apagadas pela coordenação (diag_apagar_treino). Só com a
+// permissão 'diagnostico_treino' (ou super_admin). A faixa laranja aparece
+// com o modo ligado e em qualquer ficha de treino aberta.
+async function carregarTreino() {
+  const uid = App.usuario && App.usuario.id
+  App.podeTreinar = !!(uid && await dConfigGet('pode_treinar_' + uid))
+  App.treinoAtivo = App.podeTreinar && !!(await dConfigGet('modo_treino_' + uid))
+  aplicarFaixaTreino()
+}
+function aplicarFaixaTreino() {
+  const naFicha = ['t-aviso', 't-ficha', 't-revisao'].includes(App.tela)
+  const on = naFicha ? !!(App.ficha && App.ficha.treino)
+           : !['t-carregando', 't-login', 't-pin'].includes(App.tela) && !!App.treinoAtivo
+  document.body.classList.toggle('treino', on)
+  document.getElementById('faixa-treino').hidden = !on
+}
+async function questionarioAtual() {
+  return App.treinoAtivo ? dCacheGet('questionario_treino') : dCacheGet('questionario')
 }
 function aviso(msg, tipo) {
   const cores = { ok: '#047857', erro: '#B91C1C', info: '#1D4ED8', aviso: '#B45309' }
@@ -177,11 +201,12 @@ async function irInicio() {
 }
 
 async function desenharInicio() {
+  await carregarTreino()
   const u = App.usuario
   document.getElementById('ini-usuario').textContent = u.nome_completo
   atualizarRede()
   const fichas = await dFichasDoUsuario(u.id)
-  const q = await dCacheGet('questionario')
+  const q = await questionarioAtual()
   const ult = await dConfigGet('ultima_sync_' + u.id)
   document.getElementById('ini-ultima-sync').textContent = ult
     ? 'Última sincronização: ' + new Date(ult).toLocaleString('pt-BR') : 'Ainda não sincronizado neste aparelho'
@@ -196,7 +221,8 @@ async function desenharInicio() {
   document.getElementById('c-enviada').textContent = cont.enviada
 
   let avisos = ''
-  if (!q) avisos += '<div class="faixa faixa-aviso">Nenhum questionário publicado neste aparelho. Conecte à internet e sincronize. Se continuar assim, a coordenação ainda não publicou a versão do questionário.</div>'
+  if (App.treinoAtivo) avisos += '<div class="faixa faixa-treino-info">Modo treino ligado: as entrevistas novas saem com código TRE-, usam a versão mais nova do questionário (mesmo em rascunho) e não contam nos números. Desligue em ⚙ Configurações.</div>'
+  else if (!q) avisos += '<div class="faixa faixa-aviso">Nenhum questionário publicado neste aparelho. Conecte à internet e sincronize. Se continuar assim, a coordenação ainda não publicou a versão do questionário.</div>'
   if (u.acesso_ate && Date.parse(u.acesso_ate) < Date.now())
     avisos += '<div class="faixa faixa-aviso">Seu acesso ao Diagnóstico venceu em ' + new Date(u.acesso_ate).toLocaleDateString('pt-BR') +
       '. Fichas concluídas até essa data ainda são aceitas por 15 dias. Peça a renovação ao super_admin.</div>'
@@ -219,7 +245,7 @@ async function desenharInicio() {
       const selo = f.status_servidor === 'validada' ? 'validada' : f.status_servidor === 'devolvida' && f.estado !== 'enviada' ? 'devolvida' : f.estado
       const rot = selo === 'validada' ? 'validada' : selo === 'devolvida' ? 'devolvida' : ROTULO_ESTADO[f.estado]
       return '<button type="button" class="item-ficha" data-uuid="' + esc(f.uuid_cliente) + '">' +
-        '<span class="meio"><span class="cod">' + esc(f.codigo) + '</span>' +
+        '<span class="meio"><span class="cod">' + esc(f.codigo) + (f.treino ? ' <span class="selo selo-treino">treino</span>' : '') + '</span>' +
         '<span class="sub">' + esc([com, mun, f.aceitou_participar ? '' : 'recusa'].filter(Boolean).join(' · ')) + '</span>' +
         (f.erro_msg ? '<span class="sub" style="color:var(--erro)">' + esc(f.erro_msg) + '</span>' : '') +
         (f.motivo_devolucao && f.status_servidor === 'devolvida' ? '<span class="sub" style="color:var(--aviso)">' + esc(f.motivo_devolucao) + '</span>' : '') +
@@ -287,12 +313,14 @@ async function continuarNova() {
   if (!data || !ibge || !com || (com === '_nova' && outra.length < 2)) {
     erro.textContent = 'Preencha data, município e comunidade.'; erro.hidden = false; return
   }
-  const q = await dCacheGet('questionario')
+  const treino = !!App.treinoAtivo
+  const q = await questionarioAtual()
+  if (!q) { erro.textContent = 'Questionário não disponível neste aparelho. Sincronize.'; erro.hidden = false; return }
   const mun = ((await dCacheGet('municipios')) || []).find(m => m.ibge === ibge)
   const disp = await dDispositivoId()
   App.ficha = {
-    uuid_cliente: uuid(), usuario_id: App.usuario.id, estado: 'rascunho',
-    codigo: DiagRegras.gerarCodigo(mun.sigla, data, disp, await dProximoSeq(data)),
+    uuid_cliente: uuid(), usuario_id: App.usuario.id, estado: 'rascunho', treino,
+    codigo: DiagRegras.gerarCodigo(mun.sigla, data, disp, await dProximoSeq(data), treino ? 'TRE' : 'DSA'),
     questionario_id: q.id, municipio_ibge: ibge,
     comunidade_id: com === '_nova' ? null : com, comunidade_nova: com === '_nova' ? outra : null,
     dt_entrevista: data, iniciada_em: new Date().toISOString(), finalizada_em: null,
@@ -491,7 +519,15 @@ async function abrirConfig() {
   document.getElementById('config-info').innerHTML =
     '<b>' + esc(App.usuario.nome_completo) + '</b><br>Aparelho: ' + esc(await dDispositivoId()) +
     '<br>Fichas não enviadas: ' + naoEnv + (uso ? '<br>' + uso : '') + '<br>Versão do app: ' + DIAG_APP_VERSAO
+  await carregarTreino()
+  document.getElementById('config-treino-wrap').hidden = !App.podeTreinar
+  document.getElementById('config-treino').checked = !!App.treinoAtivo
   mostrar('t-config')
+}
+async function mudarModoTreino(ev) {
+  await dConfigSet('modo_treino_' + App.usuario.id, ev.target.checked)
+  await carregarTreino()
+  aviso(App.treinoAtivo ? 'Modo treino ligado. Entrevistas novas serão de teste (TRE-).' : 'Modo treino desligado.', App.treinoAtivo ? 'aviso' : 'info')
 }
 async function sairDoAparelho() {
   const naoEnv = (await dFichasNaoEnviadas(App.usuario.id)).length
@@ -522,6 +558,7 @@ function ligarEventos() {
   document.getElementById('btn-concluir').addEventListener('click', concluirFicha)
   document.getElementById('btn-trocar-pin').addEventListener('click', () => abrirPin('criar'))
   document.getElementById('btn-sair').addEventListener('click', sairDoAparelho)
+  document.getElementById('config-treino').addEventListener('change', mudarModoTreino)
   document.querySelectorAll('[data-voltar]').forEach(b => b.addEventListener('click', () => {
     if (b.dataset.voltar === 't-inicio') irInicio(); else mostrar(b.dataset.voltar)
   }))

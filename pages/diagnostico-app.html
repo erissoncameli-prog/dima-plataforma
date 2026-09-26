@@ -18,6 +18,8 @@
   Plano: docs/diagnostico/plano.md (§4.5, §5).
 -->
 
+<div class="faixa-treino" id="faixa-treino" role="status" hidden>MODO TREINO · dados de teste</div>
+
 <!-- carregando -->
 <section class="tela tela-centro" id="t-carregando">
   <div class="marca-app"><b>Diagnóstico Socioambiental</b>Carregando…</div>
@@ -152,6 +154,10 @@
   </header>
   <div class="tela">
     <div class="cartao" id="config-info"></div>
+    <label class="cartao config-treino" id="config-treino-wrap" hidden>
+      <input type="checkbox" id="config-treino">
+      <span><b>Modo treino</b><br><span class="dica">Para testar e treinar. As entrevistas saem com código TRE-, não entram nos números e a coordenação apaga depois. Nunca use com família de verdade.</span></span>
+    </label>
     <button type="button" class="btn btn-sec btn-bloco" id="btn-trocar-pin">Trocar PIN</button>
     <button type="button" class="btn btn-perigo btn-bloco" style="margin-top:10px" id="btn-sair">Sair deste aparelho</button>
     <p class="dica">Sair não apaga fichas que ainda não foram enviadas.</p>

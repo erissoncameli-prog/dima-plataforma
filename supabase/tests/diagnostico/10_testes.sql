@@ -491,3 +491,96 @@ do $$ begin
              and (p.proname like 'fn_diag_%' or p.proname like 'diag_%') and has_function_privilege('anon', p.oid, 'execute'))
      then raise exception 'FALHOU T28 anon executa função do módulo'; end if;
 end $$;
+
+-- ── T29 modo treino ─────────────────────────────────────────────────────
+reset role;
+insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate) values
+ ('00000000-0000-0000-0000-0000000000e2','diagnostico_treino', now()-interval '1 day', now()+interval '30 days');
+-- versão em rascunho (a v1 em produção ainda é rascunho no piloto)
+insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado)
+  select codigo, 3, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
+insert into public.t_ctx select 'q3', id::text from public.diag_questionarios where versao = 3;
+create function public.t_ficha_q3(p_uuid uuid, p_codigo text, p_treino boolean, p_resp jsonb default null)
+returns jsonb language sql stable as $$
+  select public.t_ficha(p_uuid, p_codigo, p_resp) || jsonb_build_object(
+    'questionario_id', (select v from public.t_ctx where k = 'q3'), 'treino', p_treino)
+$$;
+set role authenticated;
+
+
+-- permissão: técnico só com diagnostico_treino; super_admin sempre; coordenação nunca
+select public.t_como('00000000-0000-0000-0000-0000000000e1');
+do $$ begin if public.fn_diag_pode_treinar() then raise exception 'FALHOU T29 e1 treina sem permissão'; end if; end $$;
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha_q3('eeeeeeee-0000-0000-0000-000000000009','TRE-XAP-260926-T1AA-01',true), public.t_mor())$q$,
+  'diag:sem_permissao_treino');
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$ begin if public.fn_diag_pode_treinar() then raise exception 'FALHOU T29 coordenação treina'; end if; end $$;
+select public.t_como('00000000-0000-0000-0000-00000000005a');
+do $$ begin if not public.fn_diag_pode_treinar() then raise exception 'FALHOU T29 super_admin não treina'; end if; end $$;
+
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+-- ficha real em rascunho: recusada
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha_q3('eeeeeeee-0000-0000-0000-000000000008','DSA-XAP-260926-T2TR-08',false), public.t_mor())$q$,
+  'diag:questionario_invalido');
+-- prefixo: treino sem TRE- e real com TRE- recusados
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha_q3('eeeeeeee-0000-0000-0000-000000000007','DSA-XAP-260926-T2TR-07',true), public.t_mor())$q$,
+  'diag:ficha_invalida');
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha('eeeeeeee-0000-0000-0000-000000000006','TRE-XAP-260926-T2TR-06'), public.t_mor())$q$,
+  'diag:ficha_invalida');
+
+-- duas fichas de treino em rascunho, com texto que só existe nelas + foto
+do $$
+declare r jsonb; i int;
+begin
+  for i in 1..2 loop
+    r := public.diag_enviar_ficha(
+      public.t_ficha_q3(('eeeeeeee-0000-0000-0000-00000000000' || i)::uuid, 'TRE-XAP-260926-T2TR-0' || i, true,
+        public.t_resp() || '{"participa_org_quais":"Clube do Treino Exclusivo"}'::jsonb),
+      public.t_mor(),
+      case when i = 1 then jsonb_build_array(jsonb_build_object(
+        'uuid_cliente','dddddddd-0000-0000-0000-000000000001','tema','moradia',
+        'arquivo_url','https://x/storage/v1/object/public/diagnostico-fotos/eeeeeeee-0000-0000-0000-000000000001/dddddddd-0000-0000-0000-000000000001.jpg',
+        'tirada_em', now())) else '[]'::jsonb end);
+    if not (r->>'treino')::boolean then raise exception 'FALHOU T29 retorno sem treino'; end if;
+  end loop;
+  -- reenvio idempotente
+  r := public.diag_enviar_ficha(public.t_ficha_q3('eeeeeeee-0000-0000-0000-000000000001','TRE-XAP-260926-T2TR-01',true), public.t_mor());
+  if (select count(*) from public.diag_fichas where codigo like 'TRE-%') <> 2 then raise exception 'FALHOU T29 contagem'; end if;
+end $$;
+-- treino não vira real
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha_q3('eeeeeeee-0000-0000-0000-000000000001','DSA-XAP-260926-T2TR-01',false), public.t_mor())$q$,
+  'diag:');
+
+-- fora dos números e das sugestões
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$ begin
+  if exists (select 1 from public.vw_diag_respostas r join public.diag_fichas f on f.id = r.ficha_id where f.treino)
+     then raise exception 'FALHOU T29 treino em vw_diag_respostas'; end if;
+  if exists (select 1 from public.fn_diag_sugestoes('participa_org_quais') where texto ilike '%treino exclusivo%')
+     then raise exception 'FALHOU T29 treino nas sugestões'; end if;
+end $$;
+
+-- apagar: só gestão
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+select public.t_erro('select public.diag_apagar_treino()', 'diag:nao_autorizado');
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$
+declare n int; v_reais int;
+begin
+  reset role;
+  select count(*) into v_reais from public.diag_fichas where not treino;
+  set role authenticated;
+  n := public.diag_apagar_treino();
+  if n <> 2 then raise exception 'FALHOU T29 apagou % fichas de treino', n; end if;
+  reset role;
+  if exists (select 1 from public.diag_fichas where treino) then raise exception 'FALHOU T29 sobrou treino'; end if;
+  if (select count(*) from public.diag_fichas where not treino) <> v_reais then raise exception 'FALHOU T29 apagou ficha real'; end if;
+  if exists (select 1 from public.diag_moradores m left join public.diag_fichas f on f.id = m.ficha_id where f.id is null)
+     then raise exception 'FALHOU T29 morador órfão'; end if;
+  if not exists (select 1 from public.diag_expurgo_arquivos where motivo = 'treino_apagado'
+                 and caminho = 'eeeeeeee-0000-0000-0000-000000000001/dddddddd-0000-0000-0000-000000000001.jpg')
+     then raise exception 'FALHOU T29 foto do treino fora da fila de expurgo'; end if;
+  if not exists (select 1 from public.audit_log where tabela = 'diag_fichas' and operacao = 'DELETE')
+     then raise exception 'FALHOU T29 exclusão não auditada'; end if;
+  set role authenticated;
+end $$;

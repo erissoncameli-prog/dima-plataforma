@@ -808,8 +808,9 @@ Decisões de implementação que o plano não tinha:
 - **Escrita só pela RPC** (DEFINER, §3.7). Leitura continua por RLS.
 - **Recusa** (`aceitou_participar = false`) grava só comunidade, data e
   entrevistador: respostas, moradores, nome, GPS e fotos são descartados.
-- **Questionário em rascunho não recebe fichas.** Para o piloto, a coordenação
-  publica a v1. Se o piloto pedir mudança, a correção vira v2.
+- **Questionário em rascunho não recebe fichas reais.** Para o piloto, a
+  coordenação publica a v1. Se o piloto pedir mudança, a correção vira v2.
+  Exceção: ficha de **treino** (§6.3) aceita rascunho.
 - **Reabrir** ficha validada é permitido (volta a `devolvida`, com motivo).
 - **Arquivo de foto não é apagado pelo banco:** a remoção (pela coordenação ou
   pela retenção) põe o caminho em `diag_expurgo_arquivos`. Falta a Edge
@@ -891,6 +892,44 @@ super_admin já concede o acesso com prazo pela tela de Usuários.
    publica.
 5. ~~**Canal do Encarregado**~~ — ✅ definido (e-mail). Ele estava
    marcado A DEFINIR, e o aviso publicado fica imutável.
+
+### 6.3 Modo treino — testar em produção com dados descartáveis *(26/09)*
+
+Para testar o app de ponta a ponta **no ambiente real** (Vercel + Supabase de
+produção) e treinar a equipe **antes de publicar a v1**, sem sujar números.
+Migration `20260926_diag_07_modo_treino.sql` (aplicada em produção em 26/09).
+
+| Regra | Onde |
+|-------|------|
+| `diag_fichas.treino` marca a ficha; código `TRE-…` ⇔ treino | check `ck_diag_ficha_treino_codigo` + `diag_enviar_ficha` |
+| Treino aceita questionário em **rascunho**; ficha real, só publicado | `diag_enviar_ficha` |
+| Treino nunca vira real, nem o contrário (mesmo `uuid_cliente`) | `diag_enviar_ficha` |
+| Fora de `vw_diag_respostas` (logo de `vw_diag_indicadores` e `fn_diag_agregados`) e de `fn_diag_sugestoes` | views/funções |
+| Quem treina: super_admin, ou técnico com `diagnostico` **e** `diagnostico_treino` (com prazo, tela de Usuários) | `fn_diag_pode_treinar()` |
+| Apagar tudo: `diag_apagar_treino()` (coordenação/super_admin) — cascata em moradores, identificação e fotos; arquivos entram em `diag_expurgo_arquivos` com motivo `treino_apagado`; exclusão fica no `audit_log` redigido | RPC |
+
+**No app:** ⚙ Configurações → "Modo treino" (só aparece com a permissão). Com o
+modo ligado: faixa laranja em todas as telas, cabeçalho em outra cor, código
+`TRE-`, versão mais nova do questionário (mesmo rascunho) e selo "treino" na
+lista. A ficha de treino mantém a faixa quando reaberta, mesmo com o modo
+desligado. **Mesa:** `pages/diagnostico.html` (item "Diagnóstico
+Socioambiental" no menu Execução) mostra as contagens e o botão **Apagar fichas
+de treino**.
+
+**Roteiro de teste em produção:**
+1. super_admin (ou técnico com `diagnostico_treino`) abre
+   `/pages/diagnostico-app.html` no celular, entra, cria o PIN.
+2. ⚙ → liga o Modo treino → Sincronizar (baixa a v1 em rascunho).
+3. Aplica fichas de teste (inclusive sem sinal, recusa, fotos).
+4. Coordenação devolve uma ficha pelo SQL/mesa para testar a volta ao aparelho.
+5. Ao fim: Diagnóstico → **Apagar fichas de treino**; técnicos desligam o modo.
+
+**Limitação conhecida:** os **arquivos** das fotos de treino continuam no bucket
+`diagnostico-fotos` até existir a Edge Function que drena
+`diag_expurgo_arquivos` (Fase 3). O registro some; o arquivo continua
+legível só por quem o enviou e pela coordenação (que pode apagá-lo no painel
+do Storage, pela lista da fila). Usar poucas fotos no treino, e nunca
+fotografar pessoas.
 
 ---
 

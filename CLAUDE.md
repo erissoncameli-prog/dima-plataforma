@@ -85,7 +85,7 @@ const res = await fetch(SUPABASE_URL + '/functions/v1/nome-da-funcao', {
 ### Navegação (`layout.js` — `navGroups`)
 Grupos: `'Projeto'`, `'Execução'`, `'Apoio'`
 Cada item: `{ id, icone, href, perfis: [...] }`
-IDs usados: `dashboard`, `atividades`, `tdrs`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `viagens`, `mapa`, `beneficiarios`, `auditoria`
+IDs usados: `dashboard`, `atividades`, `tdrs`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`
 Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 
 ---
@@ -368,6 +368,12 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   `diag_expurgo_arquivos` (a Edge Function que drena a fila é pendência da Fase 3).
 - **ROPA vivo** em `lgpd_tratamentos`: tabela nova com dado pessoal = linha nova
   lá na mesma entrega.
+- **Modo treino** (`diag_fichas.treino`, código `TRE-`): aceita questionário
+  em rascunho, fica fora de `vw_diag_respostas`/sugestões, apagado por
+  `diag_apagar_treino()` (gerir). Permissão `fn_diag_pode_treinar()` =
+  super_admin ou técnico com `diagnostico` + `diagnostico_treino`. Nova view ou
+  agregado sobre `diag_fichas` **deve** filtrar `not treino`.
+- Mesa mínima: `pages/diagnostico.html` + `js/diagnostico.js` (nav `diagnostico`).
 - App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +
   `gerarLayout`; não chama `carregarUsuario()`), service worker na raiz
   `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.

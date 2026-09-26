@@ -136,6 +136,8 @@ const MODULOS_LISTA = [
   { id:'usuarios',     icone:'◍', label:'Usuários',             perfis:['super_admin'] },
   // App de campo do Diagnóstico Socioambiental: técnico e consultor externo só com concessão (com prazo)
   { id:'diagnostico',  icone:'📋', label:'Diagnóstico Socioambiental', perfis:['super_admin','coordenacao'] },
+  // Modo treino do app (fichas TRE-, fora dos números): exige também 'diagnostico'; super_admin sempre pode
+  { id:'diagnostico_treino', icone:'🧪', label:'Diagnóstico — modo treino', perfis:['super_admin'] },
   // Sub-módulos da Central de Relatórios (prefixo relatorios_)
   // perfis: super_admin e coordenacao têm acesso nativo; demais precisam de concessão explícita
   { id:'relatorios_financeiro',   icone:'💰', label:'Financeiro',        grupo:'relatorios', grupoLabel:'📊 Central de Relatórios', perfis:['super_admin','coordenacao'] },

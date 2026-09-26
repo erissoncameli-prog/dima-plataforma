@@ -89,7 +89,7 @@ function _dPayloadFicha(f) {
     respostas: f.aceitou_participar ? (f.respostas || {}) : {},
     entrevistado_nome: f.entrevistado_nome || null, obs_localizacao: f.obs_localizacao || null,
     lat: f.lat ?? null, lon: f.lon ?? null, gps_precisao_m: f.gps_precisao_m ?? null, gps_em: f.gps_em || null,
-    app_versao: DIAG_APP_VERSAO, dispositivo_id: f.dispositivo_id || null,
+    app_versao: DIAG_APP_VERSAO, dispositivo_id: f.dispositivo_id || null, treino: !!f.treino,
   }
 }
 
@@ -130,7 +130,7 @@ async function dSyncEnviarFicha(f) {
       // colisão do código legível (reinstalação etc.): gera outro e reenvia
       const mun = ((await dCacheGet('municipios')) || []).find(m => m.ibge === f.municipio_ibge)
       f.codigo = DiagRegras.gerarCodigo(mun ? mun.sigla : 'XXX', f.dt_entrevista, await dDispositivoId(),
-                                         await dProximoSeq(f.dt_entrevista))
+                                         await dProximoSeq(f.dt_entrevista), f.treino ? 'TRE' : 'DSA')
       continue
     }
     if (!cod) {                        // rede, 503 do SW, timeout: tenta de novo depois
@@ -138,7 +138,7 @@ async function dSyncEnviarFicha(f) {
       return 'rede'
     }
     if (cod === 'sem_sessao') { f.estado = 'pronta'; await dFichaSalvar(f); return 'sessao' }
-    f.estado = cod === 'sem_permissao' ? 'aguardando_permissao'
+    f.estado = cod === 'sem_permissao' || cod === 'sem_permissao_treino' ? 'aguardando_permissao'
              : /^ja_/.test(cod) ? 'conflito' : 'erro'
     f.erro_msg = String(resp.error.message || resp.error).replace(/^diag:[a-z_]+:\s*/, '')
     await dFichaSalvar(f)
@@ -150,12 +150,14 @@ async function dSyncEnviarFicha(f) {
 // ── Referências para trabalhar offline ─────────────────────────────────
 async function dSyncBaixarReferencias(usuarioId) {
   const r = {}
-  const [q, mun, com, sug] = await Promise.all([
-    diagDb.from('diag_questionarios').select('id,codigo,versao,titulo,estrutura,aviso_entrevistado,status,hash_sha256')
-      .eq('status', 'publicado').order('versao', { ascending: false }).limit(1),
+  const COLS_Q = 'id,codigo,versao,titulo,estrutura,aviso_entrevistado,status,hash_sha256'
+  const [q, mun, com, sug, treina] = await Promise.all([
+    diagDb.from('diag_questionarios').select(COLS_Q)
+      .eq('codigo', 'DSA').eq('status', 'publicado').order('versao', { ascending: false }).limit(1),
     diagDb.from('diag_municipios').select('ibge,nome,sigla').order('nome'),
     diagDb.from('diag_comunidades').select('id,municipio_ibge,nome').eq('ativo', true).order('nome'),
     diagDb.rpc('fn_diag_sugestoes'),
+    diagDb.rpc('fn_diag_pode_treinar'),
   ])
   if (q.data && q.data[0]) {
     await dCacheSet('questionario', q.data[0])
@@ -164,6 +166,20 @@ async function dSyncBaixarReferencias(usuarioId) {
     todas[q.data[0].id] = q.data[0]
     await dCacheSet('questionarios', todas)
     r.questionario = q.data[0].versao
+  }
+  // modo treino: usa a versão mais nova, mesmo em rascunho (testar antes de publicar)
+  if (!treina.error) {
+    await dConfigSet('pode_treinar_' + usuarioId, !!treina.data)
+    if (treina.data) {
+      const qt = await diagDb.from('diag_questionarios').select(COLS_Q).eq('codigo', 'DSA')
+        .in('status', ['rascunho', 'publicado']).order('versao', { ascending: false }).limit(1)
+      if (qt.data && qt.data[0]) {
+        await dCacheSet('questionario_treino', qt.data[0])
+        const todas = (await dCacheGet('questionarios')) || {}
+        todas[qt.data[0].id] = qt.data[0]
+        await dCacheSet('questionarios', todas)
+      }
+    }
   }
   if (mun.data) await dCacheSet('municipios', mun.data)
   if (com.data) await dCacheSet('comunidades', com.data)
@@ -180,7 +196,7 @@ async function dSyncBaixarReferencias(usuarioId) {
 // atualiza o status das já enviadas (validada/descartada).
 async function _dSyncStatusDoServidor(usuarioId) {
   const { data: minhas, error } = await diagDb.from('diag_fichas')
-    .select('id,uuid_cliente,codigo,questionario_id,municipio_ibge,comunidade_id,comunidade_nova,dt_entrevista,iniciada_em,finalizada_em,aviso_lido,aceitou_participar,respostas,status,motivo_devolucao,dispositivo_id')
+    .select('id,uuid_cliente,codigo,questionario_id,municipio_ibge,comunidade_id,comunidade_nova,dt_entrevista,iniciada_em,finalizada_em,aviso_lido,aceitou_participar,respostas,status,motivo_devolucao,dispositivo_id,treino')
     .eq('entrevistador_id', usuarioId)
   if (error || !minhas) return
   for (const s of minhas) {
@@ -223,7 +239,7 @@ async function _dSyncReconstruir(s, usuarioId) {
     moradores: (mor.data || []).map(m => { const o = Object.assign({}, m, { nome: nomePor[m.id] || '' }); delete o.id; return o }),
     entrevistado_nome: id.entrevistado_nome || '', obs_localizacao: id.obs_localizacao || '',
     lat: id.lat ?? null, lon: id.lon ?? null, gps_precisao_m: id.gps_precisao_m ?? null, gps_em: id.gps_em || null,
-    dispositivo_id: s.dispositivo_id, servidor_id: s.id,
+    dispositivo_id: s.dispositivo_id, servidor_id: s.id, treino: !!s.treino,
   }
 }
 
