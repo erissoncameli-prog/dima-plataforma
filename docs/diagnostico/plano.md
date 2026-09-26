@@ -44,9 +44,10 @@ O PDF é um roteiro de entrevista, não um formulário. Para virar app faltam
 decisões que **só a equipe do diagnóstico pode tomar** — o sistema não deve
 inventar:
 
-1. **Única ou múltipla** em 7 perguntas ambíguas (P16, P18, P21, P25, P50, P56 e
-   as listas da P9).
-2. **Saltos**: 9 regras implícitas identificadas (S1–S9) + 1 sugerida (S10).
+1. **Única ou múltipla** em 7 perguntas ambíguas — ✅ P16 única, P18 e P21
+   múltipla *(26/09)*. Faltam P25, P50, P56 e as listas da P9.
+2. ~~**Saltos**~~ — ✅ S1–S10 aceitos *(26/09)*, incluindo a opção nova
+   "Nenhuma" (exclusiva) na P30. "Não se aplica" sai da P18 e da P68.
 3. **Listas fechadas da P9** (parentesco, escolaridade, atividade principal).
 4. **Unidade da P38** (área) — sem ela o número não serve para indicador.
 5. **"Outro" sem especifique** em 30 perguntas.

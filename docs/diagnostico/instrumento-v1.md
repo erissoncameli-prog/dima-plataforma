@@ -85,18 +85,19 @@
 
 | Nº | Chave | Pergunta | Tipo | Opções | Nível | LGPD |
 |----|-------|----------|------|--------|-------|------|
-| 16 | `agua_fonte` | Fonte principal de água | unica ❓ | Poço · Rio/igarapé · Açude · Nascente · Chuva · Rede pública · Outra | D | — |
+| 16 | `agua_fonte` | Fonte principal de água | unica ✅ | Poço · Rio/igarapé · Açude · Nascente · Chuva · Rede pública · Outra | D | — |
 | 17 | `agua_tratada` | Água de consumo recebe tratamento? | unica | Sim · Não | D | — |
-| 18 | `agua_tratamento` | Qual tratamento | multipla ❓ | Filtração · Cloração · Fervura · Outro · ~~Não se aplica~~ | D | — |
+| 18 | `agua_tratamento` | Qual tratamento | multipla ✅ | Filtração · Cloração · Fervura · Outro ("Não se aplica" removida — S1) | D | — |
 | 19 | `agua_falta` | Há períodos em que falta água? | unica | Sim · Não | D | — |
 | 20 | `esgoto_destino` | Destino principal do esgoto | unica | Fossa · Céu aberto · Rio/igarapé · Sistema coletivo · Outro | D | — |
-| 21 | `lixo_destino` | Destino do lixo | multipla ❓ | Coleta pública · Queimado · Enterrado · Céu aberto · Reciclado/reaproveitado · Outro | D | — |
+| 21 | `lixo_destino` | Destino do lixo | multipla ✅ | Coleta pública · Queimado · Enterrado · Céu aberto · Reciclado/reaproveitado · Outro | D | — |
 
-- **Salto:** P17 = Não → pula P18. Com o salto, a opção "Não se aplica" da P18 fica
-  redundante; proposta: removê-la (o salto registra a não aplicação).
-- **❓ P16** — muita família usa mais de uma fonte (poço no verão, chuva no inverno).
-  Manter "principal" (única) é mais simples para indicador; confirmar.
-- **❓ P21** — queimar e enterrar costumam coexistir; proposta: múltipla.
+- **Salto S1 ✅:** P17 = Não → pula P18. Com o salto, a opção "Não se aplica" da
+  P18 ficou redundante e sai da lista (o salto registra a não aplicação).
+- **P16 ✅ única** — fonte **principal**, mesmo quando a família alterna fontes ao
+  longo do ano *(decidido em 26/09)*.
+- **P18 ✅ múltipla** — filtrar e ferver costumam coexistir *(decidido em 26/09)*.
+- **P21 ✅ múltipla** — queimar e enterrar costumam coexistir *(decidido em 26/09)*.
 - **❓ Sugestão de melhoria** — P19 poderia ter "em quais meses" (ligação com P49/P50).
 
 ## Bloco 4 — Saúde e educação (P22–P27)
@@ -110,7 +111,7 @@
 | 26 | `tem_escolar` | Há crianças/jovens em idade escolar no domicílio? | unica | Sim · Não | D | M |
 | 27 | `educacao_dificuldades` | Dificuldades de educação na comunidade | multipla | Distância · Transporte · Falta de escola · Falta de professores · Falta de internet/material · Outra · **Nenhuma (excl.)** | C | — |
 
-- **Salto:** P24 = Não → pula P25.
+- **Salto S2 ✅:** P24 = Não → pula P25.
 - **P25 é o ponto mais delicado do bloco:** a pergunta é sobre a comunidade, mas
   resposta aberta tende a virar "o filho do vizinho tem…". Dado de saúde ligado a
   pessoa identificável é **sensível**. Proposta: orientação no próprio campo
@@ -126,7 +127,7 @@
 |----|-------|----------|------|--------|-------|------|
 | 28 | `renda_fontes` | Fontes de renda da família | multipla | Agricultura · Pecuária · Extrativismo · Pesca · Assalariado · Comércio · Benefícios sociais · Aposentadoria/pensão · Prestação de serviços · Outra | D | P² |
 | 29 | `renda_suficiente` | Renda suficiente para necessidades básicas? | unica | Sim · Parcialmente · Não | D | P² |
-| 30 | `producao_atividades` | Atividades produtivas da família | multipla | Agricultura · Criação de animais · Pesca · Extrativismo · Artesanato · Comércio · Prestação de serviços · Outra | D | — |
+| 30 | `producao_atividades` | Atividades produtivas da família | multipla | Agricultura · Criação de animais · Pesca · Extrativismo · Artesanato · Comércio · Prestação de serviços · Outra · **Nenhuma (excl.)** ✅ | D | — |
 | 31 | `producao_produtos` | Principais produtos produzidos | texto_longo | ❓ lista de sugestões (mandioca/farinha, banana, açaí, castanha…) | D | — |
 | 32 | `producao_destino` | Produção destinada a | unica | Consumo próprio · Venda · Ambos | D | — |
 | 33 | `comercializa_onde` | Onde comercializa | multipla | Na comunidade · Feira · Mercado local · Intermediário · Cooperativa/associação · Outro · **Não comercializa (excl.)** | D | — |
@@ -138,10 +139,11 @@
 ² O instrumento **não pergunta valor de renda nem CPF** — só fonte e percepção de
 suficiência. Isso é bom para minimização; ver plano §2.1.
 
-- **Salto:** P32 = Consumo próprio → pula P33.
-- **❓ P30 não tem "Nenhuma".** Família que vive só de benefício/aposentadoria não
-  tem como responder P30–P34. Proposta: incluir "Nenhuma (excl.)" na P30 e saltar
-  P31–P34 quando marcada.
+- **Salto S3 ✅:** P32 = Consumo próprio → pula P33.
+- **Salto S10 ✅ + opção nova na P30:** o PDF não tinha "Nenhuma", e família que
+  vive só de benefício/aposentadoria não tinha como responder P30–P34. A P30
+  ganha **"Nenhuma" (exclusiva)**, e marcá-la pula P31–P34. Como S10 esconde a
+  P32, S3 não se aplica nesse caso.
 
 ## Bloco 6 — Uso da terra e recursos naturais (P38–P45)
 
@@ -156,7 +158,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 | 44 | `recursos_mudanca` | Disponibilidade mudou nos últimos anos? | unica | Aumentou · Diminuiu · Não mudou · Não sabe | R | — |
 | 45 | `recursos_mudanca_causas` | Causas dessas mudanças | multipla | Desmatamento · Mudanças climáticas · Queimadas · Exploração excessiva · Poluição · Mudança no uso da terra · Outra · **Não sabe (excl.)** | R | — |
 
-- **Saltos:** P40 = Não → pula P41 e P42. P44 ∈ {Não mudou, Não sabe} → pula P45.
+- **Saltos S4 e S5 ✅:** P40 = Não → pula P41 e P42. P44 ∈ {Não mudou, Não sabe} → pula P45.
 - **❓ P38 não tem unidade** no PDF. Sem unidade o número é inutilizável para
   indicador. Proposta: valor + unidade, com conversão para hectare **no banco**
   (uma função, um lugar). Confirmar quais unidades locais usar e o fator de
@@ -178,7 +180,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 | 52 | `amb_percepcao_mudanca` | O ambiente mudou nos últimos anos? | unica | Melhorou · Piorou · Não mudou · Não sabe | R | — |
 | 53 | `amb_o_que_fazer` | O que fazer para melhorar as condições ambientais | texto_longo | — | R | L |
 
-- **Saltos:** P47 = Não → pula P48. P49 = Não → pula P50 e P51.
+- **Saltos S6 e S7 ✅:** P47 = Não → pula P48. P49 = Não → pula P50 e P51.
 - **❓ P50** "quais eventos causam **mais** impacto" pode ser única ou múltipla
   (ou múltipla limitada a 2). Proposta: múltipla.
 
@@ -193,7 +195,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 | 58 | `grupos_participam_menos` | Grupos que participam menos | multipla | Mulheres · Jovens · Idosos · PcD · Comunidades tradicionais · Outros · **Não percebe diferença (excl.)** | R | — |
 | 59 | `instituicoes_contribuem` | Organizações/instituições que mais contribuem | texto_longo | — | C | L |
 
-- **Salto:** P54 = Não → pula P55.
+- **Salto S8 ✅:** P54 = Não → pula P55.
 - **⚠️ P54/P55 coletam filiação a sindicato** — dado **sensível** pelo art. 5º, II
   ("filiação a sindicato ou a organização de caráter religioso, filosófico ou
   político"). Texto aberto na P55 pode também revelar filiação religiosa ou
@@ -215,7 +217,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 | 65 | `mulheres_renda_propria` | Mulheres da comunidade têm renda própria? | unica | Sim, a maioria · Algumas · Poucas · Não | C | — |
 | 66 | `mulheres_participam` | Mulheres participam das organizações/decisões? | unica | Frequentemente · Às vezes · Raramente · Não participam | C | — |
 | 67 | `grupo_mulheres_existe` | Existem grupos de mulheres na comunidade? | unica | Sim · Não | C | — |
-| 68 | `grupo_mulheres_atividades` | Atividades desses grupos | multipla | Produção · Artesanato · Comercialização · Capacitação · Organização comunitária · Apoio social · Outras · ~~Não se aplica~~ | C | — |
+| 68 | `grupo_mulheres_atividades` | Atividades desses grupos | multipla | Produção · Artesanato · Comercialização · Capacitação · Organização comunitária · Apoio social · Outras ("Não se aplica" removida — S9) | C | — |
 | 69 | `mulheres_dificuldades` | O que dificulta a participação das mulheres | multipla | Falta de tempo · Doméstico/cuidado · Recursos · Transporte · Oportunidades · Preconceito/discriminação · Falta de interesse · Outro · **Não existem dificuldades (excl.)** | R | — |
 | 70 | `mulheres_acesso_oportunidades` | Acesso a capacitação, ATER, crédito | unica | Sim · Parcialmente · Não | C | — |
 | 71 | `mulheres_independencia` | Mulheres se sentem financeiramente independentes? | unica | Sim · Parcialmente · Não | R | — |
@@ -223,7 +225,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 | 73 | `grupos_mulheres_falta` | O que falta para os grupos de mulheres | texto_longo | — | R | L |
 | 74 | `mulheres_necessidades` | Principais necessidades das mulheres | texto_longo | — | R | L |
 
-- **Salto:** P67 = Não → pula P68 ("Não se aplica" vira redundante — remover).
+- **Salto S9 ✅:** P67 = Não → pula P68 ("Não se aplica" sai da lista).
 - **❓ Assimetria P61 × P62:** P61 fala "da família" e tem "Cuidado com crianças";
   P62 não diz "da família" e **não tem** "Cuidado com crianças". Para um
   indicador de divisão sexual do trabalho as duas listas precisam ser
@@ -279,6 +281,8 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 
 ## Saltos (regras de exibição) — consolidado
 
+> ✅ **S1–S10 aceitos em 26/09.** D1, D2, V1 e V2 continuam como proposta.
+
 | # | Condição | Efeito |
 |---|----------|--------|
 | S1 | P17 = Não | oculta P18 |
@@ -290,7 +294,7 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 | S7 | P49 = Não | oculta P50, P51 |
 | S8 | P54 = Não | oculta P55 |
 | S9 | P67 = Não | oculta P68 |
-| S10 ❓ | P30 = Nenhuma (opção a criar) | oculta P31–P34 |
+| S10 | P30 = Nenhuma (opção nova, exclusiva) | oculta P31–P34 |
 | D1 ❓ | P9 sem morador de 4–17 anos | P26 = Não (derivada) |
 | D2 ❓ | P9 sem mulher / sem homem | P61/P62 oferecem "não há" |
 | V1 | P8 ≠ nº de linhas da P9 | aviso na revisão (não trava) |
