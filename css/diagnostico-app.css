@@ -339,3 +339,22 @@ body.treino .topo { top: 28px; background: #7C2D12; }
 .aviso-fotos legend { float: left; width: 100%; font-weight: 700; padding: 0; margin-bottom: 4px; font-size: 16px; }
 .aviso-fotos legend + * { clear: both; }
 .aviso-fotos .opcao { margin-top: 6px; }
+
+/* ── Gravação de áudio (js/diag-audio.js) ── */
+.gr { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.btn-gravar { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #B91C1C; color: #B91C1C; background: var(--branco); border-radius: 999px; padding: 8px 14px; min-height: 44px; font-size: 15px; font-weight: 600; }
+.btn-gravar .pt { width: 12px; height: 12px; border-radius: 50%; background: #DC2626; }
+.btn-gravar[disabled] { opacity: .45; }
+.btn-gravar-sec { margin-top: 8px; font-size: 14px; min-height: 40px; }
+.gravando { display: flex; align-items: center; gap: 10px; background: var(--erro-bg); border: 1px solid #FECACA; border-radius: 12px; padding: 10px 12px; margin-top: 10px; color: #7F1D1D; font-weight: 600; }
+.gravando .pt { width: 14px; height: 14px; border-radius: 50%; background: #DC2626; animation: grav-pisca 1s infinite; flex: none; }
+@keyframes grav-pisca { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .gravando .pt { animation: none; } }
+.gravando .t { font-variant-numeric: tabular-nums; font-size: 18px; }
+.gravando .lim { font-weight: 400; font-size: 12px; color: #991B1B; }
+.gravando button { margin-left: auto; background: #B91C1C; color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font-size: 15px; font-weight: 700; min-height: 44px; }
+.clip { display: flex; align-items: center; gap: 8px; border: 1px solid var(--cinza-300); border-radius: 12px; padding: 6px 8px; margin-top: 10px; background: var(--branco); }
+.clip audio { flex: 1; min-width: 0; height: 40px; }
+.clip .x { border: 0; background: none; font-size: 18px; min-width: 40px; min-height: 40px; }
+.clip-enviado { flex: 1; font-size: 14px; color: var(--cinza-700); padding: 8px 4px; }
+.selo-audio { display: inline-block; font-size: 11px; font-weight: 700; background: var(--azul-bg); color: #1D4ED8; border-radius: 99px; padding: 2px 8px; margin-bottom: 6px; }

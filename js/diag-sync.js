@@ -16,6 +16,7 @@
 // SUPABASE_ANON_KEY (js/config.js), js/diag-offline.js, js/diag-regras.js.
 
 const DIAG_BUCKET = 'diagnostico-fotos'
+const DIAG_BUCKET_AUDIO = 'diagnostico-audios'
 let _dSyncRodando = false
 
 async function dSyncTemConexao() {
@@ -89,6 +90,33 @@ async function _dSubirFotos(f) {
   })) }
 }
 
+// Áudios: mesmo transporte das fotos (bytes; reenvio de arquivo que já subiu
+// = sucesso). Caminho <uuid_cliente da ficha>/<uuid do áudio>.<ext>.
+async function _dSubirAudios(f) {
+  const audios = await dAudiosDaFicha(f.uuid_cliente)
+  let falhas = 0
+  for (const a of audios) {
+    if (a.enviada) continue
+    if (!a.bytes || !a.bytes.byteLength) { a.perdida = true; await dAudioSalvar(a); continue }
+    const caminho = f.uuid_cliente + '/' + a.uuid_cliente + '.' + DiagAudio.extensao(a.mime)
+    const { error } = await diagDb.storage.from(DIAG_BUCKET_AUDIO)
+      .upload(caminho, a.bytes, { contentType: DiagAudio.tipoBase(a.mime), upsert: false })
+    if (!error || /exist|duplicate|409/i.test(String(error.message || error.statusCode || ''))) {
+      a.enviada = true
+      a.arquivo_url = SUPABASE_URL + '/storage/v1/object/public/' + DIAG_BUCKET_AUDIO + '/' + caminho
+      await dAudioSalvar(a)
+    } else {
+      falhas++
+      console.warn('[diag-sync] áudio não subiu (fica pendente):', error.message || error)
+    }
+  }
+  const todas = await dAudiosDaFicha(f.uuid_cliente)
+  return { falhas, payload: todas.filter(a => a.enviada && a.arquivo_url).map(a => ({
+    uuid_cliente: a.uuid_cliente, pergunta_chave: a.pergunta_chave, arquivo_url: a.arquivo_url,
+    mime: DiagAudio.tipoBase(a.mime), duracao_s: a.duracao_s ?? null, bytes: a.tamanho ?? null, gravado_em: a.gravado_em || null,
+  })) }
+}
+
 function _dPayloadFicha(f) {
   return {
     uuid_cliente: f.uuid_cliente, codigo: f.codigo, questionario_id: f.questionario_id,
@@ -103,6 +131,7 @@ function _dPayloadFicha(f) {
     app_versao: DIAG_APP_VERSAO, dispositivo_id: f.dispositivo_id || null, treino: !!f.treino,
     fotos_registradas: f.aceitou_participar ? (f._fotos_registradas || 0) : 0,
     fotos_autorizadas: f.aceitou_participar && typeof f.fotos_autorizadas === 'boolean' ? f.fotos_autorizadas : null,
+    audio_autorizado: f.aceitou_participar && typeof f.audio_autorizado === 'boolean' ? f.audio_autorizado : null,
   }
 }
 
@@ -110,9 +139,10 @@ function _dPayloadFicha(f) {
 async function dSyncEnviarFicha(f) {
   f.estado = 'enviando'
   await dFichaSalvar(f)
-  let fotos
+  let fotos, audios
   try {
     fotos = await _dSubirFotos(f)
+    audios = f.aceitou_participar && f.audio_autorizado === true ? await _dSubirAudios(f) : { falhas: 0, payload: [] }
   } catch (e) {
     f.estado = 'pronta'; await dFichaSalvar(f)
     return 'rede'
@@ -122,7 +152,7 @@ async function dSyncEnviarFicha(f) {
     let resp
     try {
       resp = await diagDb.rpc('diag_enviar_ficha', {
-        p_ficha: _dPayloadFicha(f), p_moradores: f.aceitou_participar ? (f.moradores || []) : [], p_fotos: fotos.payload,
+        p_ficha: Object.assign(_dPayloadFicha(f), { audios: audios.payload }), p_moradores: f.aceitou_participar ? (f.moradores || []) : [], p_fotos: fotos.payload,
       })
     } catch (e) {
       resp = { error: e }
@@ -136,6 +166,7 @@ async function dSyncEnviarFicha(f) {
       f.fotos_pendentes = fotos.falhas > 0
       f.fotos_nao_enviadas = fotos.falhas
       f.fotos_perdidas = fotos.perdidas
+      f.audios_pendentes = audios.falhas > 0
       f.erro_msg = null
       f.motivo_devolucao = null
       await dFichaSalvar(f)
@@ -235,7 +266,7 @@ async function dSyncBaixarReferencias(usuarioId) {
 // atualiza o status das já enviadas (validada/descartada).
 async function _dSyncStatusDoServidor(usuarioId) {
   const { data: minhas, error } = await diagDb.from('diag_fichas')
-    .select('id,uuid_cliente,codigo,questionario_id,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,iniciada_em,finalizada_em,aviso_lido,aceitou_participar,fotos_autorizadas,respostas,status,motivo_devolucao,dispositivo_id,treino')
+    .select('id,uuid_cliente,codigo,questionario_id,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,iniciada_em,finalizada_em,aviso_lido,aceitou_participar,fotos_autorizadas,audio_autorizado,respostas,status,motivo_devolucao,dispositivo_id,treino')
     .eq('entrevistador_id', usuarioId)
   if (error || !minhas) return
   for (const s of minhas) {
@@ -256,10 +287,11 @@ async function _dSyncStatusDoServidor(usuarioId) {
 
 // ficha devolvida que não está mais no aparelho (limpeza de 7 dias, outro celular)
 async function _dSyncReconstruir(s, usuarioId) {
-  const [mor, ident, fotos] = await Promise.all([
+  const [mor, ident, fotos, auds] = await Promise.all([
     diagDb.from('diag_moradores').select('id,ordem,idade,sexo_genero,sexo_genero_outro,parentesco,escolaridade,atividade_principal,e_entrevistado').eq('ficha_id', s.id).order('ordem'),
     diagDb.from('diag_fichas_identificacao').select('entrevistado_nome,lat,lon,gps_precisao_m,gps_em,obs_localizacao').eq('ficha_id', s.id).maybeSingle(),
     diagDb.from('diag_fotos').select('uuid_cliente,tema,pergunta_chave,legenda,arquivo_url,tirada_em').eq('ficha_id', s.id),
+    diagDb.from('diag_audios').select('uuid_cliente,pergunta_chave,arquivo_url,mime,duracao_s,bytes,gravado_em').eq('ficha_id', s.id),
   ])
   const ids = (mor.data || []).map(m => m.id)
   const nomes = ids.length
@@ -270,12 +302,16 @@ async function _dSyncReconstruir(s, usuarioId) {
   for (const ft of fotos.data || []) {
     await dFotoSalvar(Object.assign({}, ft, { ficha_uuid: s.uuid_cliente, enviada: true, blob: null }))
   }
+  // áudio já no servidor: só o registro (sem bytes); a pergunta não volta como "em branco"
+  for (const a of auds.data || []) {
+    await dAudioSalvar(Object.assign({}, a, { ficha_uuid: s.uuid_cliente, enviada: true, bytes: null, tamanho: a.bytes }))
+  }
   return {
     uuid_cliente: s.uuid_cliente, usuario_id: usuarioId, codigo: s.codigo, questionario_id: s.questionario_id,
     municipio_ibge: s.municipio_ibge, comunidade_id: s.comunidade_id, comunidade_nova: s.comunidade_nova,
     localidade_id: s.localidade_id, localidade_nova: s.localidade_nova,
     dt_entrevista: s.dt_entrevista, iniciada_em: s.iniciada_em, finalizada_em: s.finalizada_em,
-    aviso_lido: s.aviso_lido, aceitou_participar: s.aceitou_participar, fotos_autorizadas: s.fotos_autorizadas, respostas: s.respostas || {},
+    aviso_lido: s.aviso_lido, aceitou_participar: s.aceitou_participar, fotos_autorizadas: s.fotos_autorizadas, audio_autorizado: s.audio_autorizado, respostas: s.respostas || {},
     moradores: (mor.data || []).map(m => { const o = Object.assign({}, m, { nome: nomePor[m.id] || '' }); delete o.id; return o }),
     entrevistado_nome: id.entrevistado_nome || '', obs_localizacao: id.obs_localizacao || '',
     lat: id.lat ?? null, lon: id.lon ?? null, gps_precisao_m: id.gps_precisao_m ?? null, gps_em: id.gps_em || null,
@@ -295,7 +331,7 @@ async function dSyncRodar(usuarioId, aoProgredir) {
 
     const fila = (await dFichasDoUsuario(usuarioId)).filter(f =>
       f.estado === 'pronta' || f.estado === 'enviando' || f.estado === 'aguardando_permissao' ||
-      (f.estado === 'enviada' && f.fotos_pendentes && f.status_servidor !== 'validada' && f.status_servidor !== 'descartada'))
+      (f.estado === 'enviada' && (f.fotos_pendentes || f.audios_pendentes) && f.status_servidor !== 'validada' && f.status_servidor !== 'descartada'))
     for (let i = 0; i < fila.length; i++) {
       if (aoProgredir) aoProgredir({ atual: i + 1, total: fila.length, codigo: fila[i].codigo })
       const r = await dSyncEnviarFicha(fila[i])

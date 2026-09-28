@@ -125,9 +125,11 @@ function png1x1() {
 }
 
 ;(async () => {
-  const browser = await chromium.launch({ executablePath: fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined })
+  // microfone falso (tom de teste) para a gravação de áudio das respostas abertas
+  const browser = await chromium.launch({ executablePath: fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined,
+    args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] })
   const context = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 390, height: 844 },
-    geolocation: { latitude: -9.973102, longitude: -67.810245, accuracy: 8 }, permissions: ['geolocation'] })
+    geolocation: { latitude: -9.973102, longitude: -67.810245, accuracy: 8 }, permissions: ['geolocation', 'microphone'] })
   const page = await context.newPage()
   const errosJs = []
   page.on('pageerror', e => errosJs.push(String(e)))
@@ -217,6 +219,8 @@ function png1x1() {
   if (!/autoriza ou não as fotos/.test(await page.textContent('#aviso-erro'))) falhar('deixou começar sem a resposta sobre as fotos')
   await foto('aviso')
   await page.check('input[name="aviso-fotos"][value="sim"]'); await clicar('#btn-aceitou')
+  if (!/gravar em áudio/.test(await page.textContent('#aviso-erro'))) falhar('deixou começar sem a resposta sobre a gravação de áudio')
+  await page.check('input[name="aviso-audio"][value="sim"]'); await clicar('#btn-aceitou')
   await page.locator('#t-ficha').waitFor({ state: 'visible' })
   if (await page.locator('#guia-fab').isVisible()) falhar('botão de ajuda cobrindo a ficha')
   const codigo = await page.textContent('#ficha-codigo')
@@ -269,8 +273,36 @@ function png1x1() {
   if (!/Sim — calculado/.test(await page.textContent('[data-chave="tem_escolar"]'))) falhar('P26 derivada (criança de 10 anos) não mostrou Sim')
   ok('P26 calculada pelos moradores')
 
-  // até as fotos
-  while (!/Fotos/.test(await page.textContent('#ficha-bloco'))) await clicar('#btn-proximo')
+  // até as fotos — no caminho, grava a resposta de uma pergunta aberta (v5)
+  let gravou = false
+  while (!/Fotos/.test(await page.textContent('#ficha-bloco'))) {
+    const btnGr = page.locator('[data-acao="audio-gravar"][data-chave="comunidade_problemas"]')
+    if (!gravou && await btnGr.count()) {
+      if (await page.locator('[data-acao="audio-gravar"][data-chave="sexo_genero"]').count()) falhar('gravação oferecida em pergunta fechada')
+      await btnGr.click()
+      await page.locator('.gravando #grav-tempo').waitFor()
+      await page.waitForTimeout(2300)
+      if (!/^0:0[1-9]/.test(await page.textContent('#grav-tempo'))) falhar('cronômetro da gravação parado: ' + await page.textContent('#grav-tempo'))
+      await foto('audio_gravando')
+      await page.click('[data-acao="audio-parar"]')
+      await page.locator('[data-chave="comunidade_problemas"] .clip audio').waitFor({ timeout: 10000 })
+      if (!/a transcrever/.test(await page.textContent('.pergunta[data-chave="comunidade_problemas"]'))) falhar('selo "a transcrever" ausente')
+      await foto('audio_gravado')
+      const ga = await page.evaluate(async u => (await dAudiosDaFicha(u)).map(a => ({ bytes: a.bytes ? a.bytes.byteLength : 0, blob: !!a.blob, mime: a.mime, dur: a.duracao_s, chave: a.pergunta_chave })),
+        await page.evaluate(() => App.ficha.uuid_cliente))
+      if (ga.length !== 1 || !ga[0].bytes || ga[0].blob || !/^audio\//.test(ga[0].mime) || !(ga[0].dur >= 1)) falhar('áudio no aparelho: ' + JSON.stringify(ga))
+      // "Gravar de novo" substitui (uma gravação por pergunta)
+      await page.click('[data-acao="audio-gravar"][data-chave="comunidade_problemas"]')
+      await page.waitForTimeout(1300)
+      await page.click('[data-acao="audio-parar"]')
+      await page.locator('[data-chave="comunidade_problemas"] .clip audio').waitFor({ timeout: 10000 })
+      if ((await page.evaluate(async u => (await dAudiosDaFicha(u)).length, await page.evaluate(() => App.ficha.uuid_cliente))) !== 1) falhar('regravar deixou duas gravações')
+      ok('áudio: só em pergunta aberta, cronômetro, guardado como bytes (' + ga[0].mime + ', ' + ga[0].dur + ' s), regravar substitui')
+      gravou = true
+    }
+    await clicar('#btn-proximo')
+  }
+  if (!gravou) falhar('botão de gravar não apareceu na P77')
   // foto de verdade (paisagem 2560×1440, ~665 KB) do acervo do projeto
   await page.setInputFiles('input[data-acao="foto"]', { name: 'casa.jpg', mimeType: 'image/jpeg',
     buffer: fs.readFileSync(require('node:path').join(__dirname, '../../assets/foto7.jpeg')) })
@@ -288,6 +320,7 @@ function png1x1() {
   await page.locator('#t-revisao').waitFor({ state: 'visible' })
   const itens = await page.locator('#revisao-lista .item-ficha').count()
   if (itens < 10) falhar('revisão deveria listar pendências (veio ' + itens + ')')
+  if (await page.locator('#revisao-lista [data-ir="comunidade_problemas"]').count()) falhar('pergunta gravada contou como em branco')
   if (await page.isDisabled('#btn-concluir')) falhar('revisão travou o salvamento')
   await clicar('#revisao-lista [data-ir="saude_onde"]')
   await page.locator('.pergunta.destaque[data-chave="saude_onde"]').waitFor()
@@ -381,6 +414,11 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   const alertasApp = (await page.evaluate(([c, u]) => dFichasDoUsuario(u).then(l => l.find(x => x.codigo === c).alertas), [codigo, UID_TEC]))
     .map(a => a.tipo + ':' + (a.chave || '')).sort().join('|')
   if (alertasBanco !== alertasApp) falhar('alertas do banco × app divergem')
+  const aud = consulta("select a.pergunta_chave, a.mime, a.duracao_s, a.arquivo_url, f.audio_autorizado from diag_audios a join diag_fichas f on f.id = a.ficha_id where f.codigo = " + lit(codigo))
+  const objA = consulta("select name from storage.objects where bucket_id = 'diagnostico-audios'")
+  if (aud.length !== 1 || aud[0].pergunta_chave !== 'comunidade_problemas' || !aud[0].audio_autorizado || !(aud[0].duracao_s > 0) ||
+      objA.length !== 1 || !aud[0].arquivo_url.endsWith(objA[0].name)) falhar('áudio no banco: ' + JSON.stringify({ aud, objA }))
+  if (!/audio_sem_transcricao:comunidade_problemas/.test(alertasBanco) || /pendente:comunidade_problemas/.test(alertasBanco)) falhar('alerta do áudio: ' + alertasBanco)
   ok('ficha no banco: sublocalidade, respostas normalizadas, 3 moradores, identificação separada, foto no bucket (JPEG ' + Math.round(kb) + ' KB, EXIF com GPS/data/entrevistador)')
 
   // legado: foto guardada como Blob (app ≤ 1.6) — a legível vira bytes, a vazia vira "perdida"
@@ -483,8 +521,8 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   await clicar('#btn-config'); await page.locator('#t-config').waitFor({ state: 'visible' })
   if (await page.isVisible('#config-treino-wrap')) falhar('modo treino visível sem a permissão diagnostico_treino')
   await clicar('#t-config [data-voltar]'); await page.locator('#t-inicio').waitFor({ state: 'visible' })
-  // v8 em RASCUNHO + permissão de treino: o treino usa a mais nova (v8); a ficha real continua na v4 publicada
-  psql("insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado) select codigo, 8, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 4")
+  // v8 em RASCUNHO + permissão de treino: o treino usa a mais nova (v8); a ficha real continua na v5 publicada
+  psql("insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado) select codigo, 8, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 5")
   psql("insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate) values ('00000000-0000-0000-0000-0000000000e1','diagnostico_treino', now()-interval '1 day', now()+interval '10 days')")
   await clicar('#btn-sync'); await page.waitForTimeout(800)
   await clicar('#btn-config'); await page.locator('#config-treino-wrap').waitFor({ state: 'visible' })
@@ -524,7 +562,7 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   await clicar('#btn-config'); await page.locator('#t-config').waitFor({ state: 'visible' })
   await page.waitForTimeout(300)
   if (!/Técnica de Campo/.test(await page.textContent('#cfg-nome'))) falhar('config sem o nome do usuário')
-  if (!/DSA v4/.test(await page.textContent('#cfg-quest'))) falhar('config sem a versão do questionário: ' + await page.textContent('#cfg-quest'))
+  if (!/DSA v5/.test(await page.textContent('#cfg-quest'))) falhar('config sem a versão do questionário: ' + await page.textContent('#cfg-quest'))
   if (await page.isHidden('#btn-cfg-instalar')) falhar('"Instalar neste celular" escondido fora do app instalado')
   await clicar('#btn-cfg-qr'); await page.locator('#ov-qr').waitFor({ state: 'visible' })
   const qrSrc = await page.getAttribute('#ov-qr-img', 'src')
@@ -596,13 +634,15 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   await page.selectOption('#nova-municipio', '1200708'); await page.waitForTimeout(300)
   await page.selectOption('#nova-comunidade', '11111111-1111-1111-1111-111111111111'); await page.waitForTimeout(200)
   await clicar('#btn-nova-continuar'); await page.locator('#t-aviso').waitFor({ state: 'visible' })
-  await page.check('#aviso-lido'); await page.check('input[name="aviso-fotos"][value="nao"]'); await clicar('#btn-aceitou')
+  await page.check('#aviso-lido'); await page.check('input[name="aviso-fotos"][value="nao"]'); await page.check('input[name="aviso-audio"][value="nao"]'); await clicar('#btn-aceitou')
   await page.locator('#t-ficha').waitFor({ state: 'visible' })
   await page.evaluate(() => { App.bloco = DiagForm.blocos().length - 1; desenharBloco() })
   await page.locator('#ficha-corpo', { hasText: 'não autorizou fotos' }).waitFor({ timeout: 5000 })
   if (await page.locator('#ficha-corpo input[type=file]').count()) falhar('câmera disponível sem autorização das fotos')
+  await page.evaluate(() => { App.bloco = DiagForm.blocos().findIndex(b => b.perguntas.some(p => p.chave === 'comunidade_problemas')); desenharBloco() })
+  if (await page.locator('[data-acao="audio-gravar"]').count()) falhar('gravação disponível sem autorização do áudio')
   await foto('fotos_nao_autorizadas')
-  ok('fotos: autorização separada obrigatória ao aceitar; "Não" deixa a ficha sem câmera')
+  ok('fotos e áudio: autorizações separadas obrigatórias ao aceitar; "Não" deixa a ficha sem câmera e sem gravação')
 
   if (errosJs.length) falhar('erros de JavaScript na página: ' + errosJs.join(' | '))
   await browser.close()

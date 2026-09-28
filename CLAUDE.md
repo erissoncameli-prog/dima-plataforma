@@ -386,15 +386,27 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,
   validados em `diag_enviar_ficha`. Fora de indicadores (risco de
   reidentificação) até existir recorte com supressão.
-- **Questionário vigente = v4** (escolaridade da P9 em lista fechada desde a
+- **Questionário vigente = v5** (escolaridade da P9 em lista fechada desde a
   v2, com doutorado na v3; na v4 aviso novo em parágrafos, P55 `participa_org_tipos`
   (múltipla, **sensível**) e P56 = `participa_org_quais` (mesma chave, pede o nome);
-  demais +1; v1–v3 arquivadas). Coluna `unica` da P9 é
+  demais +1; na v5 o aviso ganha a gravação de áudio e `estrutura.audio_max_s = 180`;
+  v1–v4 arquivadas). Coluna `unica` da P9 é
   validada por `fn_diag_validar_moradores` contra as opções da versão da ficha.
 - **Autorização das fotos** é separada da participação: `diag_fichas.fotos_autorizadas`
   (pergunta na tela do aviso, app 1.9.0; NULL = ficha anterior ou recusa).
   `false` ⇒ app sem câmera e `diag_enviar_ficha` recusa qualquer foto
   (`diag:fotos_nao_autorizadas`). Sai na exportação e na ficha da mesa.
+- **Áudio das respostas abertas** (`js/diag-audio.js`, app 2.0.0): só `texto_longo`, só com
+  `diag_fichas.audio_autorizado = true` (pergunta separada no aviso), 1 gravação por
+  pergunta, ≤ 3 min, guardado como **bytes**. Tabela `diag_audios` + bucket privado
+  `diagnostico-audios` = **identificação** (consultor não ouve, nunca sai na exportação,
+  apagado com a retenção pelo trigger `trg_diag_audios_retencao`, arquivo via
+  `diag_expurgo_arquivos`). A **transcrição é a resposta de texto**: pergunta com áudio e
+  sem texto vira alerta `audio_sem_transcricao` (não `pendente`), e `validada` é
+  recusada pelo trigger `trg_diag_valida_audios`. Mesa transcreve por
+  `diag_transcrever_audio()` (gerir; registra quem/quando). Escrita de áudio só por
+  `diag_enviar_ficha` (`p_ficha.audios`). Transcrição por IA: não — a voz não sai da
+  SEMA; IA local só depois do piloto (plano §6.15).
 - **Exportação** só por `diag_exportar()` (registra em `diag_exportacoes` na
   mesma transação). Padrão sem nome/GPS/nomes; identificada só gerir;
   consultor sem texto aberto nem `_outro`. Planilha com ExcelJS
@@ -496,7 +508,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `dynamic-endpoint` | Endpoint genérico com roteamento | ✅ |
 | `cron-prestacao` | Cron de prestação de contas | ✅ |
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
-| `diag-expurgo` | Diagnóstico: remove do Storage as fotos da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
+| `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 
 ---
 
@@ -631,6 +643,7 @@ contas do projeto.
 | `pontos-mapa` | 🌐 público | fotos exibidas em `publico.html` |
 | `avatares` | 🌐 público | foto de perfil (caminho por uuid) |
 | `diagnostico-fotos` | 🔒 privado | fotos de moradia/entorno do Diagnóstico (identificação — consultor não vê) |
+| `diagnostico-audios` | 🔒 privado | gravações de voz das respostas abertas do Diagnóstico (identificação — consultor não ouve) |
 
 **As tabelas continuam guardando a URL no formato `/object/public/<bucket>/<path>`.**
 Isso é intencional: a string é apenas **portadora do caminho**, não um link

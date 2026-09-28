@@ -135,13 +135,16 @@ async function dgValAbrir(id) {
   }
   ov.hidden = false
   ov.innerHTML = '<div class="dgv-gaveta"><div class="dgv-g-corpo"><p style="color:var(--cinza-500)">Abrindo ficha…</p></div></div>'
-  const [q, fic, mor, ident, fotos, hist] = await Promise.all([
+  const [q, fic, mor, ident, fotos, hist, auds] = await Promise.all([
     dgValQuestionario(f.questionario_id),
     db.from('diag_fichas').select('respostas').eq('id', id).single(),
     db.from('diag_moradores').select('id,ordem,idade,sexo_genero,sexo_genero_outro,parentesco,escolaridade,atividade_principal,e_entrevistado').eq('ficha_id', id).order('ordem'),
     db.from('diag_fichas_identificacao').select('entrevistado_nome,lat,lon,gps_precisao_m,obs_localizacao').eq('ficha_id', id).maybeSingle(),
     db.from('diag_fotos').select('id,tema,legenda,arquivo_url,lat,lon,gps_precisao_m,gps_origem').eq('ficha_id', id),
     db.from('diag_fichas_historico').select('status_de,status_para,motivo,por,em').eq('ficha_id', id).order('em'),
+    // áudio = identificação: o RLS já esconde do consultor; a mesa só desenha para quem gere
+    dgPodeGerir ? db.from('diag_audios').select('id,pergunta_chave,arquivo_url,mime,duracao_s,transcrito_por,transcrito_em').eq('ficha_id', id)
+                : Promise.resolve({ data: [] }),
   ])
   if (dgVal.aberta !== f) return
   const moradores = mor.data || []
@@ -150,12 +153,13 @@ async function dgValAbrir(id) {
     const { data } = await db.from('diag_moradores_identificacao').select('morador_id,nome').in('morador_id', moradores.map(m => m.id))
     ;(data || []).forEach(n => { nomes[n.morador_id] = n.nome })
   }
-  const porIds = [...new Set((hist.data || []).map(h => h.por).filter(p => p && !dgVal.usuarios[p]))]
+  const porIds = [...new Set((hist.data || []).map(h => h.por).concat((auds.data || []).map(a => a.transcrito_por))
+    .filter(p => p && !dgVal.usuarios[p]))]
   if (porIds.length) {
     const { data } = await db.from('usuarios').select('id,nome_completo').in('id', porIds)
     ;(data || []).forEach(u => { dgVal.usuarios[u.id] = u.nome_completo })
   }
-  dgValDesenharFicha(f, q, (fic.data || {}).respostas || {}, moradores, nomes, ident.data, fotos.data || [], hist.data || [])
+  dgValDesenharFicha(f, q, (fic.data || {}).respostas || {}, moradores, nomes, ident.data, fotos.data || [], hist.data || [], auds.data || [])
 }
 
 function dgValFechar() {
@@ -175,7 +179,7 @@ function dgValValor(p, resp) {
   return { txt: String(v) }
 }
 
-function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist) {
+function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, audios) {
   const est = q ? q.estrutura : { blocos: [] }
   const alertas = f.alertas || []
   const chavesAlerta = new Set(alertas.map(a => a.chave).filter(Boolean))
@@ -221,6 +225,7 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist) {
           (ident.obs_localizacao ? '<br>' + esc(ident.obs_localizacao) : '')
         : 'Sem nome e sem GPS registrados.'}</div>` : ''}
       ${blocos || '<p style="color:var(--cinza-500);font-size:13px">Sem respostas.</p>'}
+      ${dgValAudios(f, est, resp, audios || [])}
       ${dgPodeGerir ? `<div class="dgv-bloco"><h3>Fotos (${fotos.length}${f.fotos_registradas != null ? ' de ' + f.fotos_registradas + ' registrada' + (f.fotos_registradas === 1 ? '' : 's') : ''})</h3>
         ${f.fotos_autorizadas === false ? '<p class="dgv-nota dgv-fotos-nao">A família <b>não autorizou</b> fotos.</p>' : f.fotos_autorizadas === true ? '<p class="dgv-nota">Fotos autorizadas pela família.</p>' : ''}
         ${f.fotos_registradas != null && fotos.length < f.fotos_registradas ? `<div class="dgv-avisos dgv-fotos-faltam">⚠ O técnico registrou <b>${f.fotos_registradas}</b> foto${f.fotos_registradas === 1 ? '' : 's'}; chegaram <b>${fotos.length}</b>.
@@ -235,6 +240,50 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist) {
     ${acoes ? `<div class="dgv-g-acoes" id="dgv-acoes">${acoes}</div>` : ''}
   </div>`
   if (typeof assinarImagens === 'function') assinarImagens(document.getElementById('dgv-ov'))
+  // áudio de bucket privado: só com URL assinada (nunca a URL gravada direto)
+  document.querySelectorAll('#dgv-ov audio[data-arquivo-audio]').forEach(async el => {
+    try { const u = await urlAssinada(el.dataset.arquivoAudio); if (u) el.src = u } catch (e) { /* segue sem tocar */ }
+  })
+}
+
+// ── Áudios (v5): ouvir e transcrever. A transcrição É a resposta de texto;
+// validar só com tudo transcrito (o banco confere — trigger trg_diag_valida_audios).
+function dgValAudios(f, est, resp, audios) {
+  if (!dgPodeGerir || !audios.length) return ''
+  const porChave = typeof DiagRegras !== 'undefined' ? DiagRegras.porChave(est) : {}
+  const texto = k => { const v = resp[k]; return typeof v === 'string' && v !== '_nr' ? v : '' }
+  const pend = audios.filter(a => !texto(a.pergunta_chave).trim()).length
+  const editavel = f.status === 'enviada' || f.status === 'devolvida'
+  const max = est.texto_max_len || 2000
+  const dur = s => s ? Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0') : ''
+  return `<div class="dgv-bloco" id="dgv-audios"><h3>Áudios (${audios.length})</h3>
+    ${pend ? `<div class="dgv-avisos dgv-audio-pend">⚠ ${pend} resposta(s) gravada(s) sem transcrição. A validação pede a transcrição antes (os números só leem texto).</div>` : ''}
+    ${audios.sort((a, b) => ((porChave[a.pergunta_chave] || {}).n || 0) - ((porChave[b.pergunta_chave] || {}).n || 0)).map(a => {
+      const p = porChave[a.pergunta_chave] || { texto: a.pergunta_chave }
+      const t = texto(a.pergunta_chave)
+      return `<div class="dgv-audio" data-chave="${esc(a.pergunta_chave)}">
+        <div class="dgv-audio-q">${p.n ? 'P' + p.n + ' · ' : ''}${esc(p.texto)}</div>
+        <div class="dgv-audio-player"><audio controls preload="none" data-arquivo-audio="${esc(a.arquivo_url)}"></audio><small>${dur(a.duracao_s)}</small></div>
+        <textarea id="dgv-tr-${a.id}" rows="3" maxlength="${max}" placeholder="Escreva o que a pessoa disse"${editavel ? '' : ' disabled'}>${esc(t)}</textarea>
+        ${editavel ? `<div class="dgv-audio-acoes"><button type="button" class="btn btn-primary btn-sm" onclick="dgValTranscrever('${a.id}')">Salvar transcrição</button></div>` : ''}
+        ${a.transcrito_em ? `<p class="dgv-nota">✓ Transcrito por ${esc(dgVal.usuarios[a.transcrito_por] || '—')} · ${dgValDataHora(a.transcrito_em)}</p>`
+          : t.trim() ? '<p class="dgv-nota">Transcrito pelo técnico no app.</p>' : ''}
+      </div>`
+    }).join('')}
+    <p class="dgv-nota">Consultor externo não ouve os áudios. Áudio nunca sai na exportação.</p></div>`
+}
+
+async function dgValTranscrever(audioId) {
+  const f = dgVal.aberta
+  const el = document.getElementById('dgv-tr-' + audioId)
+  const txt = (el && el.value || '').trim()
+  if (!txt) { toast('Escreva a transcrição.', 'warning'); return }
+  const { error } = await db.rpc('diag_transcrever_audio', { p_audio_id: audioId, p_texto: txt })
+  if (error) { toast(error.message.replace(/^diag:[a-z_]+:\s*/, ''), 'error'); return }
+  const { data } = await db.from('diag_fichas').select('alertas').eq('id', f.id).single()
+  if (data) f.alertas = data.alertas
+  toast('Transcrição salva.', 'success')
+  dgValAbrir(f.id)
 }
 
 // "Em branco" vira UMA linha recolhível (numa ficha incompleta seriam dezenas);

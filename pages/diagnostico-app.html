@@ -179,6 +179,12 @@
       <label class="opcao"><input type="radio" name="aviso-fotos" value="nao" style="width:24px;height:24px"> <span>Não autoriza fotos</span></label>
       <p class="dica">Pergunta separada: recusar as fotos não impede a entrevista.</p>
     </fieldset>
+    <fieldset class="aviso-fotos" id="aviso-audio">
+      <legend>Autoriza gravar respostas em áudio?</legend>
+      <label class="opcao"><input type="radio" name="aviso-audio" value="sim" style="width:24px;height:24px"> <span>Sim, autoriza gravar</span></label>
+      <label class="opcao"><input type="radio" name="aviso-audio" value="nao" style="width:24px;height:24px"> <span>Não autoriza gravação</span></label>
+      <p class="dica">Também separada: recusar a gravação não impede a entrevista.</p>
+    </fieldset>
     <p class="erro-msg" id="aviso-erro" role="alert" hidden></p>
     <button type="button" class="btn btn-prim btn-bloco" style="margin-top:16px" id="btn-aceitou">Aceitou participar — começar</button>
     <button type="button" class="btn btn-perigo btn-bloco" style="margin-top:10px" id="btn-recusou">Recusou participar</button>
@@ -323,6 +329,7 @@
 <script src="../js/diag-offline.js"></script>
 <script src="../js/diag-sync.js"></script>
 <script src="../js/diag-foto.js"></script>
+<script src="../js/diag-audio.js"></script>
 <script src="../js/diag-form.js"></script>
 <script src="../js/guia-app.js"></script>
 <script src="../js/diag-guia.js"></script>

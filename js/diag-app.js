@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.9.0'
+const DIAG_APP_VERSAO = '2.0.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -29,6 +29,8 @@ const App = {
   estrutura: null,      // estrutura da versão da ficha aberta
   bloco: 0,
   fotos: [],
+  audios: {},           // chave da pergunta → gravação (bytes + _url para ouvir)
+  gravacao: null,       // { chave, ctrl } enquanto grava
   pend: null,           // modo pendências: { seq: [{chave, n}], atual, vistas: Set }
   abaIni: 'entrevistas',
   pin: '', pinModo: 'entrar', pinPrimeiro: null,
@@ -37,6 +39,7 @@ const App = {
 // ── Utilidades de tela ─────────────────────────────────────────────────
 function mostrar(id) {
   document.querySelectorAll('body > section').forEach(s => { s.hidden = s.id !== id })
+  if (App.gravacao && id !== 't-ficha') App.gravacao.ctrl.parar()   // sair da ficha encerra a gravação (e guarda)
   App.tela = id
   aplicarFaixaTreino()
   // Guia: o botão "?" só na tela inicial e em Configurações — nas telas da
@@ -415,7 +418,7 @@ async function continuarNova() {
   if (temLoc) await dConfigSet('ultima_localidade', loc && loc !== '_nova' ? loc : null)
   document.getElementById('aviso-texto').textContent = q.aviso_entrevistado
   document.getElementById('aviso-lido').checked = false
-  document.querySelectorAll('input[name="aviso-fotos"]').forEach(r => { r.checked = false })
+  document.querySelectorAll('input[name="aviso-fotos"], input[name="aviso-audio"]').forEach(r => { r.checked = false })
   document.getElementById('aviso-erro').hidden = true
   mostrar('t-aviso')
 }
@@ -430,9 +433,15 @@ async function decidirAviso(aceitou) {
   if (aceitou && !fotosSel) {
     const e = document.getElementById('aviso-erro'); e.textContent = 'Marque se a família autoriza ou não as fotos.'; e.hidden = false; return
   }
+  // Gravação de áudio: mesma lógica, pergunta própria (aviso v5)
+  const audioSel = document.querySelector('input[name="aviso-audio"]:checked')
+  if (aceitou && !audioSel) {
+    const e = document.getElementById('aviso-erro'); e.textContent = 'Marque se a família autoriza ou não gravar em áudio.'; e.hidden = false; return
+  }
   const f = App.ficha
   f.aviso_lido = true; f.aceitou_participar = aceitou
   f.fotos_autorizadas = aceitou ? fotosSel.value === 'sim' : null
+  f.audio_autorizado = aceitou ? audioSel.value === 'sim' : null
   if (!aceitou) {
     f.estado = 'pronta'; f.finalizada_em = new Date().toISOString()
     await dFichaSalvar(f)
@@ -457,10 +466,13 @@ async function abrirFicha(uuidFicha, irParaChave, irParaRevisao) {
   App.bloco = f.bloco_atual || 0
   sairModoPendencias()
   await carregarFotos()
+  await carregarAudios()
   DiagForm.iniciar({
-    ficha: f, estrutura: q.estrutura, sugestoes: await sugestoesCombinadas(), fotos: App.fotos,
+    ficha: f, estrutura: q.estrutura, sugestoes: await sugestoesCombinadas(), fotos: App.fotos, audios: App.audios,
     aoMudar: redesenhar => { salvarFichaAtual(); if (redesenhar) redesenharFicha() },
     aoPedirGps: capturarGps, aoFoto: adicionarFoto, aoRemoverFoto: removerFoto,
+    gravando: () => App.gravacao && App.gravacao.chave,
+    aoGravarAudio: gravarAudio, aoPararAudio: () => App.gravacao && App.gravacao.ctrl.parar(), aoApagarAudio: apagarAudio,
   })
   DiagForm.sincronizarEntrevistado()
   document.getElementById('ficha-codigo').textContent = f.codigo
@@ -588,6 +600,63 @@ async function adicionarFoto(arquivo, tema, legenda) {
     console.warn(e); aviso('Não foi possível guardar a foto. Tire de novo.', 'erro')
   }
 }
+// ── Áudio (js/diag-audio.js): uma gravação por pergunta de texto aberto ──
+async function carregarAudios() {
+  Object.values(App.audios).forEach(a => { if (a._url) URL.revokeObjectURL(a._url) })
+  Object.keys(App.audios).forEach(k => { delete App.audios[k] })
+  for (const a of await dAudiosDaFicha(App.ficha.uuid_cliente)) {
+    a._url = a.bytes && a.bytes.byteLength ? URL.createObjectURL(new Blob([a.bytes], { type: a.mime || 'audio/webm' })) : ''
+    App.audios[a.pergunta_chave] = a
+  }
+}
+async function gravarAudio(chave) {
+  const f = App.ficha
+  if (f.audio_autorizado !== true) { aviso('A família não autorizou gravar em áudio.', 'aviso'); return }
+  if (App.gravacao) { aviso('Pare a gravação em andamento primeiro.', 'aviso'); return }
+  const maxS = (App.estrutura && App.estrutura.audio_max_s) || 180
+  try {
+    const ctrl = await DiagAudio.iniciar({
+      maxS,
+      aoTick: s => { const el = document.getElementById('grav-tempo'); if (el) el.textContent = DiagAudio.fmt(s) },
+      aoFim: r => guardarAudio(chave, r),
+    })
+    App.gravacao = { chave, ctrl }
+    redesenharFicha()
+  } catch (e) {
+    console.warn(e)
+    aviso(/Permission|NotAllowed|denied/i.test(String(e && (e.name || e.message)))
+      ? 'Permita o uso do microfone para gravar (configurações do navegador).' : 'Não foi possível usar o microfone.', 'erro')
+  }
+}
+async function guardarAudio(chave, r) {
+  App.gravacao = null
+  if (r.erro || !r.tamanho) { aviso('A gravação não foi guardada. Grave de novo.', 'erro'); redesenharFicha(); return }
+  const f = App.ficha
+  const anterior = App.audios[chave]
+  const a = { uuid_cliente: uuid(), ficha_uuid: f.uuid_cliente, pergunta_chave: chave, bytes: r.bytes, mime: r.mime,
+              tamanho: r.tamanho, duracao_s: r.duracao_s, gravado_em: new Date().toISOString(), enviada: false }
+  await dAudioSalvar(a)
+  const volta = await dAudioObter(a.uuid_cliente)
+  if (!volta || !volta.bytes || volta.bytes.byteLength !== r.tamanho) {
+    await dAudioApagar(a.uuid_cliente)
+    aviso('A gravação não foi guardada no celular. Grave de novo.', 'erro'); redesenharFicha(); return
+  }
+  // regravar: a anterior sai do aparelho (se já subiu, o servidor a troca ao reenviar)
+  if (anterior) await dAudioApagar(anterior.uuid_cliente)
+  await carregarAudios(); redesenharFicha()
+  aviso('Gravação guardada (' + DiagAudio.fmt(r.duracao_s) + ').', 'ok')
+}
+async function apagarAudio(uuidAudio) {
+  const a = await dAudioObter(uuidAudio)
+  if (!a || a.enviada) return
+  await dAudioApagar(uuidAudio)
+  await carregarAudios(); redesenharFicha()
+}
+// pergunta com gravação não é "em branco" (a transcrição pode vir depois)
+function comAudioNaoPendente(alertas) {
+  return alertas.filter(a => !(a.tipo === 'pendente' && a.chave && App.audios[a.chave]))
+}
+
 async function removerFoto(uuidFoto) {
   await dFotoApagar(uuidFoto)
   await carregarFotos(); desenharBloco()
@@ -600,7 +669,7 @@ function abrirRevisao() {
   let erroEstrutura = null
   try {
     const norm = DiagRegras.normalizar(App.estrutura, f.respostas || {}, f.moradores || [])
-    alertas = DiagRegras.alertas(App.estrutura, norm, f.moradores || [], { comunidade_nova: !f.comunidade_id })
+    alertas = comAudioNaoPendente(DiagRegras.alertas(App.estrutura, norm, f.moradores || [], { comunidade_nova: !f.comunidade_id }))
   } catch (e) { erroEstrutura = e.message }
   document.getElementById('revisao-codigo').textContent = f.codigo
   document.getElementById('revisao-devolvida').innerHTML = f.status_servidor === 'devolvida' && f.motivo_devolucao
@@ -633,7 +702,7 @@ function pendentesAgora() {
   const f = App.ficha
   try {
     const norm = DiagRegras.normalizar(App.estrutura, f.respostas || {}, f.moradores || [])
-    return DiagRegras.alertas(App.estrutura, norm, f.moradores || [], { comunidade_nova: !f.comunidade_id })
+    return comAudioNaoPendente(DiagRegras.alertas(App.estrutura, norm, f.moradores || [], { comunidade_nova: !f.comunidade_id }))
       .filter(a => a.tipo === 'pendente' && a.chave)
       .map(a => ({ chave: a.chave, n: a.n }))
       .sort((a, b) => a.n - b.n)
