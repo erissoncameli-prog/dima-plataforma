@@ -170,13 +170,8 @@ textarea.campo { min-height: 96px; resize: vertical; }
 .pin-key.limpa { background: transparent; border-color: rgba(255,255,255,.06); color: rgba(255,255,255,.7); box-shadow: none; font-size: 22px; }
 .pin-key.ok { background: #2D6A4F; border-color: #52B788; font-size: 22px; }
 @media (max-height: 640px) { .lock-resil { height: 40px; } .pin-key { height: 56px; } .teclado { gap: 10px; } }
-/* O cartão do topo (Acre · Questionário Socioeconômico · SEMA) cresceu: em tela
-   mais baixa, a Resiliência encolhe e depois sai do PIN, e o teclado aperta. */
-@media (max-height: 860px) { .lock-resil { height: 40px; } }
-@media (max-height: 760px) { .lock-resil { display: none; } .pin-key { height: 56px; } .teclado { gap: 10px; } .lock-dica { margin-bottom: 14px; } .pin-casas { margin-bottom: 18px; } }
-@media (max-height: 700px) { .lock .lg-topo { gap: 6px; padding: 8px 16px 10px; } .lock .lg-topo .fio { display: none; }
-  .lock-dica { margin-bottom: 10px; } .pin-casas { margin-bottom: 12px; } .lock-link { margin-top: 8px; } .pin-key { height: 50px; }
-  .lock-faixa { padding-top: calc(8px + env(safe-area-inset-top)); } }
+/* logos do topo em dobro: no celular mais baixo a Resiliência sai do PIN */
+@media (max-height: 680px) { .lock-resil { display: none; } }
 @media (prefers-reduced-motion: reduce) { .lock-resil { animation: none; } }
 
 /* ── Login e PIN com a identidade do projeto ─────────────────────────
@@ -186,18 +181,14 @@ textarea.campo { min-height: 96px; resize: vertical; }
 .tela-marca { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
 .lg-cabeca { background: linear-gradient(160deg, #1F4E2C 0%, #16382A 60%, #12301F 100%); color: #fff;
   padding: calc(14px + env(safe-area-inset-top)) 16px 46px; text-align: center; border-radius: 0 0 22px 22px; }
-/* Cartão do topo: brasão do Acre, nome do questionário e SEMA, empilhados
-   (lado a lado não cabe em 360 px com as logos neste tamanho). Logos em 3x. */
-.lg-topo { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 420px;
-  margin: 0 auto; padding: 12px 20px 14px; background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.12); border-radius: 18px; }
-.lg-topo .gov { height: 52px; width: auto; }
-.lg-topo .fio { width: 56px; height: 2px; border-radius: 2px; background: rgba(149,213,178,.6); }
-.lg-topo .sema { height: 24px; width: auto; filter: brightness(0) invert(1); opacity: .85; }
-.lg-titulo { font-size: clamp(19px, 5.6vw, 23px); font-weight: 800; line-height: 1.15; color: #fff; }
-.lg-titulo em { display: block; font-style: normal; color: #95D5B2; }
-.lg-resil { display: block; height: 62px; width: auto; margin: 18px auto 12px; }
-.lg-cabeca b { display: block; font-size: 15px; font-weight: 600; line-height: 1.2; opacity: .9; }
+/* Logos do Acre e da SEMA lado a lado, no dobro do tamanho original (em 3x). */
+.lg-topo { display: inline-flex; align-items: center; gap: 14px; padding: 8px 18px 8px 12px; max-width: 100%;
+  box-sizing: border-box; background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.12); border-radius: 99px; }
+.lg-topo .gov { height: 52px; width: auto; min-width: 0; }
+.lg-topo .sep { width: 1px; height: 36px; background: rgba(255,255,255,.25); flex: none; }
+.lg-topo .sema { height: 24px; width: auto; min-width: 0; filter: brightness(0) invert(1); opacity: .85; }
+.lg-resil { display: block; height: 62px; width: auto; margin: 16px auto 12px; }
+.lg-cabeca b { display: block; font-size: clamp(18px, 5.4vw, 21px); line-height: 1.2; }
 .lg-cabeca > span { font-size: 13px; opacity: .75; }
 .lg-meio { flex: 1; width: 100%; max-width: 640px; margin: -30px auto 0; padding: 0 16px 16px; }
 .lg-cartao { box-shadow: 0 6px 20px rgba(0,0,0,.08); }
