@@ -334,10 +334,15 @@ function semear() {
   if (!/1 resposta\(s\) gravada\(s\) sem transcrição/.test(await page.textContent('#dgv-audios'))) falhar('mesa sem o aviso de áudio sem transcrição')
   if (!/P77 · Quais são os principais problemas/.test(await page.textContent('#dgv-audios')) && !/problemas da comunidade/.test(await page.textContent('#dgv-audios'))) falhar('pergunta do áudio não identificada')
   await page.waitForFunction(() => /^data:/.test((document.querySelector('#dgv-audios audio') || {}).src || ''))
-  await page.click('#dgv-acoes .btn-primary')                      // Validar (sem transcrição)
-  await page.waitForTimeout(600)
-  if (consulta("select status from diag_fichas where codigo = 'DSA-XAP-261002-MESA-03'")[0].status !== 'enviada') falhar('validou com áudio sem transcrição')
+  // Validar fica bloqueado; atalhos levam ao áudio; controles de transcrição
+  if (!(await page.isDisabled('#dgv-btn-validar'))) falhar('Validar liberado com áudio sem transcrição')
+  if (!/Transcreva P\d+ antes de validar/.test(await page.textContent('#dgv-acoes'))) falhar('dica de validação bloqueada ausente')
+  if (!(await page.locator('.dgv-g-corpo .dgv-gravada.pend', { hasText: 'Gravada em áudio — transcrever' }).count())) falhar('pergunta gravada aparece como "Em branco"')
   await foto('mesa_audio')
+  await page.click('.dgv-audio-barra button')
+  await page.waitForFunction(() => document.activeElement && document.activeElement.matches('#dgv-audios textarea'), null, { timeout: 5000 })
+  await page.click('#dgv-audios .dgv-vel button[data-vel="0.75"]')
+  if (await page.evaluate(() => document.querySelector('#dgv-audios audio').playbackRate) !== 0.75) falhar('velocidade 0,75× não aplicada')
   await page.locator('#dgv-audios').scrollIntoViewIfNeeded(); await foto('mesa_audio_secao')
   await page.fill('#dgv-audios textarea', 'Estrada ruim no inverno; falta posto de saúde')
   await page.click('#dgv-audios .btn-primary')
@@ -345,7 +350,9 @@ function semear() {
   await page.locator('#dgv-audios').scrollIntoViewIfNeeded(); await foto('mesa_audio_transcrito')
   const tr = consulta("select respostas->>'comunidade_problemas' as txt, alertas from diag_fichas where codigo = 'DSA-XAP-261002-MESA-03'")[0]
   if (tr.txt !== 'Estrada ruim no inverno; falta posto de saúde' || JSON.stringify(tr.alertas).includes('audio_sem_transcricao')) falhar('transcrição no banco: ' + JSON.stringify(tr))
-  await page.click('#dgv-acoes .btn-primary')
+  if (await page.isDisabled('#dgv-btn-validar')) falhar('Validar continuou bloqueado depois da transcrição')
+  if (!(await page.locator('.dgv-g-corpo .dgv-gravada', { hasText: 'gravada · ouvir' }).count())) falhar('resposta transcrita sem o atalho para o áudio')
+  await page.click('#dgv-btn-validar')
   await page.locator('.dgv-g-topo .dgv-st-validada').waitFor({ timeout: 15000 })
   // consultor externo: ficha sem a seção de áudios
   usuarioLogado = CONS
@@ -356,7 +363,7 @@ function semear() {
   await page.locator('.dgv-g-corpo .dgv-bloco').first().waitFor()
   if (await page.locator('#dgv-audios').count()) falhar('consultor viu os áudios')
   usuarioLogado = COORD
-  ok('áudio: validar barrado sem transcrição, coordenação ouve (URL assinada) e transcreve, consultor não vê')
+  ok('áudio: Validar bloqueado até transcrever, atalho e controles (0,75×), coordenação ouve (URL assinada) e transcreve, consultor não vê')
 
   // ── Privacidade · ROPA (pages/ropa.html): leitura + conferência no banco ──
   usuarioLogado = COORD

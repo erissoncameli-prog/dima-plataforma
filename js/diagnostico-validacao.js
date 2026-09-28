@@ -185,6 +185,12 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, au
   const chavesAlerta = new Set(alertas.map(a => a.chave).filter(Boolean))
   const { com, loc } = dgValComunidade(f)
   const tec = dgVal.usuarios[f.entrevistador_id] || '—'
+  // áudios: quais perguntas têm gravação e quais ainda estão sem texto
+  const textoDe = k => { const v = resp[k]; return typeof v === 'string' && v !== '_nr' ? v.trim() : '' }
+  const chavesAudio = new Set((audios || []).map(a => a.pergunta_chave))
+  const porChaveEst = typeof DiagRegras !== 'undefined' ? DiagRegras.porChave(est) : {}
+  const audiosPend = (audios || []).filter(a => !textoDe(a.pergunta_chave))
+  const rotPend = audiosPend.map(a => 'P' + ((porChaveEst[a.pergunta_chave] || {}).n || '?')).join(', ')
 
   // respostas por bloco: só o que foi respondido; em branco aparece se gerou aviso
   const blocos = (est.blocos || []).map((b, i) => {
@@ -192,6 +198,13 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, au
       if (p.tipo === 'tabela') return dgValMoradores(est, moradores, nomes, p)
       if (typeof DiagRegras !== 'undefined' && DiagRegras.foraDeRespostas(p)) return ''
       const tem = Object.prototype.hasOwnProperty.call(resp, p.chave)
+      if (chavesAudio.has(p.chave)) {
+        const t = textoDe(p.chave)
+        return `<div class="dgv-resp ${t ? '' : 'aviso'}"><span class="n">P${p.n}</span><span><span class="q">${esc(p.texto)}</span><br>` +
+          (t ? `<span class="v">${esc(t)}</span> <a href="#" class="dgv-gravada" onclick="dgValIrAudio('${esc(p.chave)}');return false">gravada · ouvir</a>`
+             : `<a href="#" class="dgv-gravada pend" onclick="dgValIrAudio('${esc(p.chave)}');return false">Gravada em áudio — transcrever</a>`) +
+          `</span></div>`
+      }
       if (!tem && !chavesAlerta.has(p.chave)) return ''
       const val = tem ? dgValValor(p, resp) : { txt: 'Em branco', nr: true }
       const destaque = val.nr || chavesAlerta.has(p.chave)
@@ -201,7 +214,8 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, au
   }).join('')
 
   const acoes = !dgPodeGerir ? '' : {
-    enviada: `<button type="button" class="btn btn-primary" onclick="dgValAcao('validada')">✓ Validar</button>
+    enviada: `${audiosPend.length ? `<p class="dgv-info dgv-val-bloq">Transcreva ${esc(rotPend)} antes de validar.</p>` : ''}
+              <button type="button" class="btn btn-primary" id="dgv-btn-validar" onclick="dgValAcao('validada')"${audiosPend.length ? ' disabled title="Transcreva as respostas gravadas antes de validar"' : ''}>✓ Validar</button>
               <button type="button" class="btn btn-secondary dgv-dev" onclick="dgValMotivo('devolvida')">↩ Devolver ao técnico</button>
               <button type="button" class="btn btn-secondary dgv-desc" onclick="dgValMotivo('descartada')">Descartar</button>`,
     devolvida: `<p class="dgv-info">Com o técnico para correção${f.motivo_devolucao ? ': “' + esc(f.motivo_devolucao) + '”' : ''}.</p>
@@ -218,6 +232,8 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, au
       <button type="button" class="btn btn-secondary btn-sm" onclick="dgValFechar()" aria-label="Fechar">✕</button></div>
     <div class="dgv-g-corpo">
       ${!f.aceitou_participar ? '<div class="dgv-avisos"><b>Recusa</b> — a família não aceitou participar. Só comunidade, data e entrevistador foram registrados.</div>' : ''}
+      ${dgPodeGerir && audiosPend.length ? `<div class="dgv-audio-barra">${audiosPend.length} resposta(s) gravada(s) para transcrever (${esc(rotPend)})
+        <button type="button" class="btn btn-secondary btn-sm" onclick="dgValIrAudio()">Ir para os áudios</button></div>` : ''}
       ${dgValAvisos(alertas, est)}
       ${dgPodeGerir ? `<div class="dgv-ident"><small>IDENTIFICAÇÃO · só coordenação e super_admin</small><br>${ident
         ? 'Entrevistado(a): <b>' + esc(ident.entrevistado_nome || 'não informado') + '</b>' +
@@ -263,8 +279,13 @@ function dgValAudios(f, est, resp, audios) {
       const t = texto(a.pergunta_chave)
       return `<div class="dgv-audio" data-chave="${esc(a.pergunta_chave)}">
         <div class="dgv-audio-q">${p.n ? 'P' + p.n + ' · ' : ''}${esc(p.texto)}</div>
-        <div class="dgv-audio-player"><audio controls preload="none" data-arquivo-audio="${esc(a.arquivo_url)}"></audio><small>${dur(a.duracao_s)}</small></div>
-        <textarea id="dgv-tr-${a.id}" rows="3" maxlength="${max}" placeholder="Escreva o que a pessoa disse"${editavel ? '' : ' disabled'}>${esc(t)}</textarea>
+        <div class="dgv-audio-player"><audio controls preload="none" id="dgv-au-${a.id}" data-arquivo-audio="${esc(a.arquivo_url)}"></audio><small>${dur(a.duracao_s)}</small></div>
+        <div class="dgv-audio-ctl" role="group" aria-label="Controles de transcrição">
+          <button type="button" class="dgv-ctl" onclick="dgValAudioVoltar('${a.id}')" title="Voltar 5 segundos">↺ 5 s</button>
+          <span class="dgv-vel">${[0.75, 1, 1.25].map(v => `<button type="button" class="dgv-ctl${v === 1 ? ' on' : ''}" data-vel="${v}" onclick="dgValAudioVel('${a.id}', ${v}, this)">${String(v).replace('.', ',')}×</button>`).join('')}</span>
+          <span class="dgv-nota">Ctrl+Espaço no texto: tocar/pausar</span>
+        </div>
+        <textarea id="dgv-tr-${a.id}" data-audio="${a.id}" rows="3" maxlength="${max}" placeholder="Escreva o que a pessoa disse"${editavel ? '' : ' disabled'}>${esc(t)}</textarea>
         ${editavel ? `<div class="dgv-audio-acoes"><button type="button" class="btn btn-primary btn-sm" onclick="dgValTranscrever('${a.id}')">Salvar transcrição</button></div>` : ''}
         ${a.transcrito_em ? `<p class="dgv-nota">✓ Transcrito por ${esc(dgVal.usuarios[a.transcrito_por] || '—')} · ${dgValDataHora(a.transcrito_em)}</p>`
           : t.trim() ? '<p class="dgv-nota">Transcrito pelo técnico no app.</p>' : ''}
@@ -272,6 +293,33 @@ function dgValAudios(f, est, resp, audios) {
     }).join('')}
     <p class="dgv-nota">Consultor externo não ouve os áudios. Áudio nunca sai na exportação.</p></div>`
 }
+
+// ── Controles de transcrição ──
+function dgValIrAudio(chave) {
+  const alvo = chave ? document.querySelector('#dgv-audios .dgv-audio[data-chave="' + CSS.escape(chave) + '"]') : document.getElementById('dgv-audios')
+  if (!alvo) return
+  alvo.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const card = chave ? alvo : alvo.querySelector('.dgv-audio')
+  const ta = card && card.querySelector('textarea:not([disabled])')
+  if (ta) setTimeout(() => ta.focus({ preventScroll: true }), 350)
+}
+function dgValAudioVoltar(id) {
+  const au = document.getElementById('dgv-au-' + id); if (!au) return
+  au.currentTime = Math.max(0, (au.currentTime || 0) - 5)
+}
+function dgValAudioVel(id, v, btn) {
+  const au = document.getElementById('dgv-au-' + id); if (!au) return
+  au.playbackRate = v
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn))
+}
+// Ctrl+Espaço no campo de transcrição toca/pausa o áudio da mesma pergunta, sem tirar o cursor
+document.addEventListener('keydown', ev => {
+  const ta = ev.target
+  if (!(ev.ctrlKey && (ev.code === 'Space' || ev.key === ' ')) || !ta || !ta.dataset || !ta.dataset.audio) return
+  const au = document.getElementById('dgv-au-' + ta.dataset.audio); if (!au) return
+  ev.preventDefault()
+  if (au.paused) au.play().catch(() => {}); else au.pause()
+})
 
 async function dgValTranscrever(audioId) {
   const f = dgVal.aberta

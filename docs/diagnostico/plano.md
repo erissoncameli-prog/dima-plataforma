@@ -1215,6 +1215,10 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
   fora da exportação, retenção de 2 anos por trigger, arquivo pela fila de expurgo;
   Edge `diag-expurgo` agora drena os dois buckets). ROPA TRAT-001 e RIPD atualizados.
 - ✅ **Validado no iPhone (28/09):** gravação feita no app chegou à mesa e tocou.
+- Mesa (28/09): barra "N resposta(s) gravada(s) para transcrever · Ir para os áudios"; na lista de
+  respostas a pergunta gravada aparece como "Gravada em áudio — transcrever" (link ao player);
+  controles ↺ 5 s e velocidade 0,75×/1×/1,25×; Ctrl+Espaço no campo toca/pausa; **Validar
+  desabilitado** até transcrever (o trigger do banco continua sendo a trava real).
 - **Transcrição por IA — decisão de 28/09:** o Claude (já usado no DIMA) não recebe áudio;
   serviço de nuvem mandaria a voz para fora (art. 33) e tornaria falsa a frase do aviso.
   **Etapa 2, depois do piloto:** testar IA local no navegador da mesa (a voz não sai do
