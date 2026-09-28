@@ -61,6 +61,10 @@
   const respsDe = t => (t.participantes || []).filter(p => p.papel === 'responsavel')
   const obsDe   = t => (t.participantes || []).filter(p => p.papel === 'observador')
   const souResponsavel = t => respsDe(t).some(p => p.usuario_id === usuario.id)
+  // Quem aprova, conclui e reabre é o criador; super_admin só se o criador saiu
+  // (espelha fn_tarefa_aprovador — o banco decide, a tela só orienta).
+  const souAprovador = t => t.criado_por === usuario.id ||
+    (appState.perfil === 'super_admin' && !S.usuarios.some(u => u.id === t.criado_por))
   const pilhaAvatares = (t, n = 3) => `<span class="avs">${respsDe(t).slice(0, n)
     .map(p => avatar({ id: p.usuario_id, nome_completo: nomeUsuario(p.usuario_id) })).join('')}</span>`
   // TDRs vinculados: t.vinc_tdrs[].tdr é null quando o usuário não enxerga o TDR (RLS)
@@ -218,7 +222,7 @@
     return `<article class="card${t.status === 'concluida' ? ' feito' : ''}" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')">
       <div class="c-top">${iconeTipo(t)}<span class="num">${esc(t.codigo || '')}</span>${hr ? `<span class="hora">${hr}</span>` : ''}${cadeado(t)}</div>
       <h3 class="c-tit">${esc(t.titulo)}</h3>
-      <div class="c-meta">${prioTag(t.prioridade)}${badgePrazo(t)}${atv}${chipTdrs(t)}${frn}</div>
+      <div class="c-meta">${t.status === 'em_revisao' && souAprovador(t) ? `<span class="tag aguarda-voce">${ic('clock')}Aguardando você</span>` : ''}${prioTag(t.prioridade)}${badgePrazo(t)}${atv}${chipTdrs(t)}${frn}</div>
       <div class="c-foot">${pilhaAvatares(t)}${pr ? `<span class="cnt">${ic('checks', 's')}${pr.feitas}/${pr.total}</span>${barra(pr.pct)}` : ''}</div>
       ${linhaCriador(t)}
     </article>`
@@ -334,13 +338,117 @@
     })
   }
 
+  // Transições com checagem (enviar, concluir, aprovar, devolver, reabrir)
+  // passam pela conferência; as demais mudam direto.
+  function acaoDaTransicao (t, novo) {
+    const de = t.status
+    if (novo === 'cancelada') return null
+    if (novo === 'concluida') return souAprovador(t) ? (de === 'em_revisao' ? 'aprovar' : 'concluir') : 'revisao'
+    if (novo === 'em_revisao') return de === 'concluida' ? 'reabrir' : 'revisao'
+    if (de === 'concluida') return 'reabrir'
+    if (de === 'em_revisao' && souAprovador(t)) return 'devolver'
+    return null
+  }
   async function mudarStatus (t, novo) {
+    const acao = acaoDaTransicao(t, novo)
+    if (acao) { abrirConferencia(t, acao, novo); return }
     const antigo = t.status
     t.status = novo; t.dt_conclusao = novo === 'concluida' ? new Date().toISOString() : null
     refreshView()
     const { error } = await db.rpc('fn_mudar_status_tarefa', { p_tarefa_id: t.id, p_status: novo })
     if (error) { t.status = antigo; refreshView(); toast('Não foi possível mover: ' + error.message, 'error'); return }
-    if (novo === 'concluida') { toast('Tarefa concluída', 'success'); chamarEmail(t.id, 'concluida') }
+  }
+
+  // ── Conferência de conclusão ──────────────────────────────────────────
+  // revisao: responsável entrega (nota obrigatória) · concluir: criador conclui
+  // direto · aprovar/devolver: criador decide a entrega · reabrir: criador.
+  const CONF = {
+    revisao:  { tit: 'Enviar para revisão', btn: 'Enviar para revisão', cls: 'btn-pri', para: 'em_revisao', rot: 'O que foi entregue', obrig: true, subs: true, arq: true,
+                ph: 'Descreva o que foi feito e onde está a evidência (anexe os arquivos abaixo)' },
+    concluir: { tit: 'Concluir tarefa', btn: 'Concluir', cls: 'btn-ok', para: 'concluida', rot: 'O que foi feito', obrig: true, subs: true, arq: true,
+                ph: 'Registre o que foi feito e onde está a evidência' },
+    aprovar:  { tit: 'Aprovar e concluir', btn: 'Aprovar e concluir', cls: 'btn-ok', para: 'concluida', rot: 'Parecer', obrig: false, subs: true, arq: false,
+                ph: 'Opcional' },
+    devolver: { tit: 'Devolver entrega', btn: 'Devolver', cls: 'btn-danger-sol', para: 'em_andamento', rot: 'Motivo da devolução', obrig: true, subs: false, arq: false,
+                ph: 'O que precisa ser corrigido ou completado' },
+    reabrir:  { tit: 'Reabrir tarefa', btn: 'Reabrir', cls: 'btn-pri', para: 'em_andamento', rot: 'Motivo da reabertura', obrig: true, subs: false, arq: false,
+                ph: 'Por que a tarefa volta a ficar aberta' },
+  }
+  const EVENTO_EMAIL = { revisao: 'revisao', concluir: 'concluida', aprovar: 'concluida', devolver: 'devolvida', reabrir: 'reaberta' }
+  let CF = null
+  async function abrirConferencia (t, acao, para) {
+    const cf = CONF[acao]
+    if ((acao === 'reabrir' || acao === 'devolver' || acao === 'aprovar' || acao === 'concluir') && !souAprovador(t)) {
+      toast(acao === 'reabrir' ? 'Só quem criou a tarefa pode reabri-la.' : 'Só quem criou a tarefa conclui. Envie para revisão.', 'warning'); return
+    }
+    const [ck, cm, ax] = await Promise.all([
+      db.from('tarefa_checklist').select('id,descricao,concluida').eq('tarefa_id', t.id).order('ordem'),
+      db.from('tarefa_comentarios').select('id,corpo,autor_id,criado_em').eq('tarefa_id', t.id).order('criado_em', { ascending: false }),
+      db.from('tarefa_anexos').select('id,arquivo_nome,arquivo_url,comentario_id').eq('tarefa_id', t.id),
+    ])
+    const subs = ck.data || [], coms = cm.data || [], anexos = ax.data || []
+    const pend = subs.filter(c => !c.concluida)
+    const bloqueia = cf.subs && pend.length > 0
+    const linha = (ok, txt, extra = '') => `<div class="cf-l ${ok === null ? 'info' : ok ? 'ok' : 'nok'}">
+      <span class="cf-ic">${ic(ok === null ? 'info' : ok ? 'check' : 'x', 's')}</span><div><div>${txt}</div>${extra}</div></div>`
+    let conf = ''
+    if (cf.subs) {
+      conf += linha(!pend.length, subs.length ? `Subtarefas concluídas: <b>${subs.length - pend.length}/${subs.length}</b>` : 'Sem subtarefas',
+        pend.length ? `<ul class="cf-pend">${pend.map(c => `<li>${esc(c.descricao)}</li>`).join('')}</ul>` : '')
+    }
+    // a entrega do responsável (último envio) com os arquivos ligados a ela
+    const entrega = coms.find(c => c.corpo.startsWith('Entrega para revisão:'))
+    if (acao === 'aprovar' || acao === 'devolver') {
+      const axE = entrega ? anexos.filter(a => a.comentario_id === entrega.id) : []
+      conf += linha(entrega ? true : false, entrega ? `Entrega de <b>${esc(nomeUsuario(entrega.autor_id))}</b> · ${fmtDT(entrega.criado_em)}` : 'Nenhuma nota de entrega encontrada',
+        entrega ? `<div class="cf-nota">${esc(entrega.corpo.replace(/^Entrega para revisão:\s*/, ''))}</div>${axE.length ? `<div class="pills">${chipsAnexos(axE)}</div>` : ''}` : '')
+    }
+    conf += linha(null, `Na tarefa: <b>${coms.length}</b> comentário${coms.length === 1 ? '' : 's'} · <b>${anexos.length}</b> anexo${anexos.length === 1 ? '' : 's'}`,
+      acao === 'aprovar' || acao === 'devolver' ? '<div class="cf-dica">Confira os comentários e anexos na tarefa antes de decidir.</div>' : '')
+    CF = { t, acao, para: acao === 'revisao' || acao === 'concluir' || acao === 'aprovar' ? cf.para : (para && para !== 'concluida' && para !== 'em_revisao' ? para : cf.para) }
+    let dlg = document.getElementById('tk-dlg')
+    if (!dlg) { dlg = document.createElement('div'); dlg.id = 'tk-dlg'; dlg.className = 'tk-overlay tk-dlg-ov'; document.body.appendChild(dlg) }
+    dlg.innerHTML = `<div class="tk-dlg" role="dialog" aria-modal="true" aria-labelledby="cf-tit">
+      <div class="tk-dlg-h"><div><h3 id="cf-tit">${cf.tit}</h3><div class="cf-sub"><span class="num">${esc(t.codigo || '')}</span> ${esc(t.titulo)}</div></div>
+        <button class="btn btn-ghost btn-icon" onclick="TK.confFechar()" title="Fechar">${ic('x')}</button></div>
+      <div class="tk-dlg-b">
+        <div class="conf">${conf}</div>
+        <div class="fld"><label for="cf-nota">${cf.rot}${cf.obrig ? ' *' : ' <span class="opc">opcional</span>'}</label>
+          <textarea id="cf-nota" rows="3" placeholder="${esc(cf.ph)}" oninput="TK.confValidar()"></textarea></div>
+        ${cf.arq ? `<div class="sub-linha">${botaoArquivo('cf-file', 'cf-file-lbl', 'Anexar evidência')}</div>` : ''}
+        ${acao === 'revisao' ? `<p class="dica">${ic('info', 's')} Quem criou a tarefa (<b>${esc(nomeUsuario(t.criado_por))}</b>) recebe o aviso e aprova ou devolve.</p>` : ''}
+        ${bloqueia ? `<p class="dica cf-bloq">${ic('alert', 's')} Conclua as subtarefas pendentes antes de continuar.</p>` : ''}
+      </div>
+      <div class="tk-modal-f"><span class="sp"></span>
+        <button class="btn btn-sec" onclick="TK.confFechar()">Cancelar</button>
+        <button class="btn ${cf.cls}" id="cf-ok" onclick="TK.confConfirmar()" ${bloqueia || cf.obrig ? 'disabled' : ''} data-bloq="${bloqueia ? 1 : ''}">${cf.btn}</button>
+      </div></div>`
+    dlg.classList.add('on')
+    dlg.onclick = e => { if (e.target === dlg) TK.confFechar() }
+    const n = document.getElementById('cf-nota'); if (n) n.focus()
+  }
+  function fecharConferencia () { const d = document.getElementById('tk-dlg'); if (d) d.classList.remove('on'); CF = null }
+  async function confirmarConferencia () {
+    if (!CF) return
+    const { t, acao, para } = CF, cf = CONF[acao]
+    const nota = (document.getElementById('cf-nota').value || '').trim()
+    if (cf.obrig && !nota) { toast(cf.rot + ' é obrigatório.', 'warning'); return }
+    const btn = document.getElementById('cf-ok'); btn.disabled = true; btn.textContent = 'Salvando…'
+    const { data: comentId, error } = await db.rpc('fn_mudar_status_tarefa', { p_tarefa_id: t.id, p_status: para, p_nota: nota || null })
+    if (error) { toast(error.message, 'error'); btn.disabled = false; btn.textContent = cf.btn; return }
+    const inp = document.getElementById('cf-file')
+    if (inp && inp.files && inp.files.length) {
+      const f = await enviarArquivos(inp.files, comentId ? { comentario_id: comentId } : {}, t.id)
+      if (f) toast(`${f} arquivo(s) não foram anexados.`, 'warning')
+    }
+    chamarEmail(t.id, EVENTO_EMAIL[acao], comentId ? { comentario_id: comentId } : {})
+    fecharConferencia()
+    toast({ revisao: 'Enviada para revisão', concluir: 'Tarefa concluída', aprovar: 'Entrega aprovada e tarefa concluída',
+            devolver: 'Entrega devolvida ao responsável', reabrir: 'Tarefa reaberta' }[acao], 'success')
+    await carregarTudo()
+    const aberto = document.getElementById('tk-overlay').classList.contains('on') && S.editId === t.id
+    render()
+    if (aberto) abrirModal(S.tarefas.find(x => x.id === t.id), true)
   }
 
   function viewAtual () {
@@ -417,6 +525,7 @@
     tipo: 'mudou o tipo', remocao: 'removeu', anexo_removido: 'removeu o anexo',
     subtarefa_criada: 'criou a subtarefa', subtarefa_editada: 'editou a subtarefa', subtarefa_concluida: 'concluiu a subtarefa',
     subtarefa_reaberta: 'reabriu a subtarefa', subtarefa_excluida: 'excluiu a subtarefa',
+    envio_revisao: 'enviou para revisão', aprovacao: 'aprovou a entrega e concluiu', devolucao: 'devolveu a entrega',
   }
   const fmtDT = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
   const primeiroNome = n => (n || '').split(' ')[0]
@@ -461,16 +570,16 @@
 
   // Envia arquivos para o bucket e registra em tarefa_anexos com os vínculos
   // informados (checklist_id / comentario_id). Retorna quantos falharam.
-  async function enviarArquivos (files, vinculo = {}) {
+  async function enviarArquivos (files, vinculo = {}, tarefaId = S.det && S.det.id) {
     let falhas = 0
     for (const f of [...(files || [])]) {
       const safe = f.name.replace(/[^\w.\-]+/g, '_')
-      const path = `${S.det.id}/${Date.now()}_${safe}`
+      const path = `${tarefaId}/${Date.now()}_${safe}`
       const up = await db.storage.from('tarefas-anexos').upload(path, f, { upsert: false })
       if (up.error) { falhas++; toast('Falha no upload de ' + f.name + ': ' + up.error.message, 'error'); continue }
       const url = db.storage.from('tarefas-anexos').getPublicUrl(path).data.publicUrl
       const { error } = await db.from('tarefa_anexos').insert({
-        tarefa_id: S.det.id, arquivo_url: url, arquivo_nome: f.name, mime: f.type || null,
+        tarefa_id: tarefaId, arquivo_url: url, arquivo_nome: f.name, mime: f.type || null,
         tamanho: f.size || null, enviado_por: usuario.id, ...vinculo,
       })
       if (error) { falhas++; toast(error.message, 'error') }
@@ -599,7 +708,7 @@
           : `<div class="hd-i"><b>${esc(x.campo)}:</b> <s>${esc(x.de || '—')}</s> → ${esc(x.para || '—')}</div>`).join('')}</div>` : ''
         return `<div class="hist"><span class="dot${i === 0 ? ' on' : ''}"></span>
           <div class="hist-c"><b>${h.autor_id ? esc(nomeUsuario(h.autor_id)) : 'Fornecedor'}</b> ${HIST_TXT[h.tipo] || h.tipo} ${resumo}
-          ${h.motivo ? `<div class="hist-motivo">Motivo: ${esc(h.motivo)}</div>` : ''}
+          ${h.motivo ? `<div class="hist-motivo">${['envio_revisao', 'conclusao', 'aprovacao'].includes(h.tipo) ? 'Nota' : 'Motivo'}: ${esc(h.motivo)}</div>` : ''}
           ${lista}
           <div class="quando">${fmtDT(h.criado_em)}</div></div></div>`
       }).join('') || `<div class="vazio pq">${ic('hist')}<p>Sem histórico.</p></div>`}</div>`
@@ -922,6 +1031,21 @@
       </fieldset>`
   }
 
+  // Botões do fluxo de conclusão conforme status e papel
+  function rodapeFluxo (t, podeEditar) {
+    const b = (acao, cls, icone, txt) => `<button class="btn ${cls}" onclick="TK.fluxo('${t.id}','${acao}')">${icone ? ic(icone, 's') : ''}${txt}</button>`
+    const fechar = '<button class="btn btn-sec" onclick="fecharModal()">Fechar</button>'
+    const aprov = souAprovador(t)
+    if (t.status === 'cancelada') return fechar
+    if (t.status === 'concluida') return fechar + (aprov ? b('reabrir', 'btn-sec', 'hist', 'Reabrir') : '')
+    if (t.status === 'em_revisao') {
+      if (aprov) return fechar + b('devolver', 'btn-sec', 'left', 'Devolver') + b('aprovar', 'btn-ok', 'check', 'Aprovar e concluir')
+      return `<span class="aguarda">${ic('clock', 's')}Aguardando aprovação de <b>${esc(nomeUsuario(t.criado_por))}</b></span>` + fechar
+    }
+    if (aprov) return fechar + b('concluir', 'btn-ok', 'check', 'Concluir')
+    return fechar + (podeEditar ? b('revisao', 'btn-pri', 'send', 'Enviar para revisão') : '')
+  }
+
   function montarModal (t) {
     const novo = !t
     const leitura = !novo && !S.modoEdicao
@@ -947,10 +1071,9 @@
       <span class="sp"></span>
       <button class="btn btn-sec" onclick="TK.descartar()">Descartar</button>
       <button class="btn btn-pri" onclick="TK.salvar()">Salvar alterações</button>` : `
-      ${podeEditar && t.status !== 'cancelada' ? `<button class="btn btn-danger" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
+      ${podeEditar && !['cancelada', 'concluida'].includes(t.status) ? `<button class="btn btn-danger" onclick="TK.cancelar('${t.id}')">Cancelar tarefa</button>` : ''}
       <span class="sp"></span>
-      <button class="btn btn-sec" onclick="fecharModal()">Fechar</button>
-      ${podeEditar && t.status !== 'concluida' ? `<button class="btn btn-ok" onclick="TK.concluir('${t.id}')">${ic('check', 's')}Concluir</button>` : ''}`}
+      ${rodapeFluxo(t, podeEditar)}`}
     </div>`
   }
 
@@ -1081,10 +1204,6 @@
     return novos
   }
 
-  async function concluir (id) {
-    const t = S.tarefas.find(x => x.id === id); if (!t) return
-    await mudarStatus(t, 'concluida'); fecharModal(); render()
-  }
   async function cancelar (id) {
     const t = S.tarefas.find(x => x.id === id); if (!t) return
     if (!confirm('Cancelar esta tarefa? Ela sai do quadro (o histórico é preservado).')) return
@@ -1199,7 +1318,14 @@
     busca: v => { S.fBusca = v; refreshView() },
     novo: () => abrirModal(null),
     abrir: id => { S.modoEdicao = false; abrirModal(S.tarefas.find(t => t.id === id)) },
-    salvar, concluir, cancelar,
+    salvar, cancelar,
+    fluxo: (id, acao) => { const t = S.tarefas.find(x => x.id === id); if (t) abrirConferencia(t, acao) },
+    confFechar: fecharConferencia,
+    confConfirmar: confirmarConferencia,
+    confValidar: () => {
+      const b = document.getElementById('cf-ok'); if (!b || !CF) return
+      b.disabled = !!b.dataset.bloq || (CONF[CF.acao].obrig && !document.getElementById('cf-nota').value.trim())
+    },
     editar: () => {
       const t = S.tarefas.find(x => x.id === S.editId); if (!t) return
       S.modoEdicao = true; abrirModal(t, true)

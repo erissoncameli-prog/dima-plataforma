@@ -2,7 +2,10 @@
 // opcionalmente, o fornecedor vinculado (parte externa). Reaproveita o wrapper
 // visual de enviar-email-viagem. verify_jwt = true (chamada pelo frontend após a RPC).
 // Eventos: atribuicao | prazo_alterado | concluida | comentario | subtarefa |
-//          reuniao_atualizada | cancelada.
+//          reuniao_atualizada | cancelada | revisao | devolvida | reaberta.
+// Fluxo de conclusão: "revisao" pede aprovação ao criador; "devolvida" e
+// "reaberta" avisam os responsáveis; "concluida" vai a todos os envolvidos.
+// Nesses eventos, comentario_id aponta a nota/motivo (e os anexos ligados a ela).
 // Tarefa do tipo "reuniao" leva convite de agenda (.ics, METHOD REQUEST/CANCEL)
 // com UID fixo por tarefa e SEQUENCE = tarefas.ics_sequencia.
 // "subtarefa" avisa o responsável da subtarefa; se for fornecedor, envia os
@@ -232,7 +235,12 @@ Deno.serve(async (req) => {
 
     if (evento === 'concluida') {
       add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
+      responsaveis.forEach(addP)
       observadores.forEach(addP)
+    } else if (evento === 'revisao') {
+      add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
+    } else if (evento === 'devolvida' || evento === 'reaberta') {
+      responsaveis.forEach(addP)
     } else if (evento === 'comentario') {
       add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
       responsaveis.forEach(addP)
@@ -258,7 +266,7 @@ Deno.serve(async (req) => {
 
     // comentário (o indicado, ou o último) + nomes dos anexos ligados a ele
     let comentTxt = '', comentAnexos: string[] = []
-    if (evento === 'comentario') {
+    if (evento === 'comentario' || (comentario_id && ['revisao', 'devolvida', 'reaberta', 'concluida'].includes(evento))) {
       let q = supabase.from('tarefa_comentarios').select('id,corpo').eq('tarefa_id', tarefa_id)
       q = comentario_id ? q.eq('id', comentario_id) : q.order('criado_em', { ascending: false }).limit(1)
       const { data: c } = await q.maybeSingle()
@@ -275,6 +283,9 @@ Deno.serve(async (req) => {
       concluida:      `Tarefa concluída — ${t.codigo}: ${t.titulo}`,
       comentario:     `Novo comentário — ${t.codigo}: ${t.titulo}`,
       subtarefa:      `Subtarefa atribuída — ${t.codigo}: ${t.titulo}`,
+      revisao:        `Aguardando sua aprovação — ${t.codigo}: ${t.titulo}`,
+      devolvida:      `Entrega devolvida — ${t.codigo}: ${t.titulo}`,
+      reaberta:       `Tarefa reaberta — ${t.codigo}: ${t.titulo}`,
     }
     if (reuniao) {
       const quando = fmtDataHora(t.dados_tipo.inicio)
@@ -302,6 +313,9 @@ Deno.serve(async (req) => {
         atribuicao:     'Uma tarefa foi atribuída a você no painel do Projeto DIMA.',
         prazo_alterado: 'O prazo de uma tarefa que você acompanha mudou.',
         concluida:      'Uma tarefa que você acompanha foi concluída.',
+        revisao:        'Uma tarefa que você criou foi <b>entregue para revisão</b>. Confira a entrega, os comentários e os anexos no painel e <b>aprove</b> ou <b>devolva</b>.',
+        devolvida:      'A entrega de uma tarefa sob sua responsabilidade foi <b>devolvida</b> por quem a criou. Veja o motivo abaixo.',
+        reaberta:       'Uma tarefa sob sua responsabilidade foi <b>reaberta</b> por quem a criou. Veja o motivo abaixo.',
         comentario:     'Há um novo comentário em uma tarefa que você acompanha.',
       } as Record<string, string>)[evento] || 'Atualização em uma tarefa do painel do Projeto DIMA.'
     }
@@ -317,7 +331,7 @@ Deno.serve(async (req) => {
       `PRIORIDADE: ${esc(prioTxt)}\n` +
       (sub ? `PRAZO DA TAREFA: ${prazoTxt}\n` : reuniao ? '' : `PRAZO: ${prazoTxt}\n`) +
       (papel ? `SEU PAPEL: ${papel === 'observador' ? 'Observador(a)' : 'Responsável'}\n` : '') +
-      (comentTxt ? `COMENTÁRIO: ${esc(comentTxt)}\n` : '') +
+      (comentTxt ? `${evento === 'comentario' ? 'COMENTÁRIO' : evento === 'revisao' ? 'ENTREGA' : evento === 'concluida' ? 'NOTA' : 'MOTIVO'}: ${esc(comentTxt.replace(/^(Entrega para revisão|Entrega aprovada|Conclusão|Devolvida|Reaberta):\s*/, ''))}\n` : '') +
       (comentAnexos.length ? `ANEXOS: ${comentAnexos.map(esc).join(', ')}\n` : '') +
       (t.fornecedor ? `FORNECEDOR: ${esc(t.fornecedor.nome)}\n` : '')
 

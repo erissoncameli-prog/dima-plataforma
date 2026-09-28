@@ -477,7 +477,7 @@ async function carregarNotificacoes() {
   const tdrIds      = todas.filter(n => n.tipo === 'tdr_para_revisar'         && n.entidade_id).map(n => n.entidade_id);
   // Tarefas: as notificações "acionáveis" (atribuição/prazo) deixam de valer
   // quando a tarefa é concluída/cancelada/inativada (por este ou outro usuário).
-  const TIPOS_TAREFA_ACAO = ['tarefa_atribuida', 'tarefa_prazo', 'tarefa_subtarefa', 'tarefa_observador'];
+  const TIPOS_TAREFA_ACAO = ['tarefa_atribuida', 'tarefa_prazo', 'tarefa_subtarefa', 'tarefa_observador', 'tarefa_revisao', 'tarefa_devolvida', 'tarefa_reaberta'];
   const tarIds      = todas.filter(n => TIPOS_TAREFA_ACAO.includes(n.tipo) && n.entidade_id).map(n => n.entidade_id);
 
   // IDs únicos de contratos_produtos a consultar
@@ -517,6 +517,8 @@ async function carregarNotificacoes() {
       const t = statusTar[n.entidade_id];
       // Órfã (apagada/sem acesso) ou já encerrada → não é mais acionável
       if (!t || t.ativo === false || t.status === 'concluida' || t.status === 'cancelada') jaAtendidas.push(n.id);
+      // pedido de aprovação: vale só enquanto a tarefa está em revisão
+      else if (n.tipo === 'tarefa_revisao' && t.status !== 'em_revisao') jaAtendidas.push(n.id);
     }
   });
 
@@ -587,6 +589,9 @@ function renderListaNotif() {
     tarefa_subtarefa:     '☑️',
     tarefa_observador:    '👁',
     tarefa_comentario:    '💬',
+    tarefa_revisao:       '🔎',
+    tarefa_devolvida:     '↩',
+    tarefa_reaberta:      '🔄',
   };
 
   lista.innerHTML = notifCache.map(n => {

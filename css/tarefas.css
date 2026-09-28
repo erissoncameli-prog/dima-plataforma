@@ -28,6 +28,7 @@
 .tk-overlay{position:fixed;inset:0;background:rgba(15,25,20,.42);backdrop-filter:blur(2px);display:none;align-items:flex-start;
   justify-content:center;z-index:1000;padding:24px 16px;overflow-y:auto;font-size:13px;line-height:1.45}
 .tk-overlay.on{display:flex}
+.tk-dlg-ov{z-index:1010;background:rgba(15,25,20,.3)}
 @keyframes tkpop{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.tk *,.tk-overlay *{transition:none!important;animation:none!important}}
 
@@ -386,6 +387,35 @@
 :is(.tk,.tk-overlay) .tt-cp{color:var(--muted);font-size:11.5px;max-width:260px}
 :is(.tk,.tk-overlay) .tt-novo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
 :is(.tk,.tk-overlay) #tt-novo-nm{flex:1;min-width:200px;width:auto}
+
+/* ── Conclusão: conferência, aprovação ─────────────────── */
+:is(.tk,.tk-overlay) .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+:is(.tk,.tk-overlay) .btn-danger-sol{background:var(--st-block);color:#fff}
+:is(.tk,.tk-overlay) .btn-danger-sol:hover{background:#C02F2F}
+:is(.tk,.tk-overlay) .aguarda{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--st-review);background:var(--st-review-bg);height:30px;padding:0 12px;border-radius:99px}
+:is(.tk,.tk-overlay) .aguarda b{font-weight:600}
+:is(.tk,.tk-overlay) .tag.aguarda-voce{color:#fff;background:var(--st-review);border-color:transparent;font-weight:600}
+:is(.tk,.tk-overlay) .tk-dlg{background:var(--surface);border-radius:var(--r-l);width:100%;max-width:560px;margin-top:8vh;box-shadow:0 24px 60px rgba(15,25,20,.32),0 2px 8px rgba(15,25,20,.12);display:flex;flex-direction:column;overflow:hidden;animation:tkpop .16s ease}
+:is(.tk,.tk-overlay) .tk-dlg-h{display:flex;align-items:flex-start;gap:10px;padding:16px 20px 12px}
+:is(.tk,.tk-overlay) .tk-dlg-h>div{flex:1;min-width:0}
+:is(.tk,.tk-overlay) .tk-dlg-h h3{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
+:is(.tk,.tk-overlay) .cf-sub{font-size:12.5px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
+:is(.tk,.tk-overlay) .tk-dlg-b{padding:4px 20px 18px;display:flex;flex-direction:column;gap:14px;max-height:62vh;overflow-y:auto}
+:is(.tk,.tk-overlay) .conf{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+:is(.tk,.tk-overlay) .cf-l{display:flex;gap:10px;padding:10px 12px;font-size:13px;color:var(--text)}
+:is(.tk,.tk-overlay) .cf-l+.cf-l{border-top:1px solid var(--line-2)}
+:is(.tk,.tk-overlay) .cf-l>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+:is(.tk,.tk-overlay) .cf-ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;color:#fff}
+:is(.tk,.tk-overlay) .cf-ic svg.i{width:12px;height:12px;stroke-width:2.6}
+:is(.tk,.tk-overlay) .cf-l.ok .cf-ic{background:var(--st-done)}
+:is(.tk,.tk-overlay) .cf-l.nok .cf-ic{background:var(--st-block)}
+:is(.tk,.tk-overlay) .cf-l.info .cf-ic{background:transparent;color:var(--muted)}
+:is(.tk,.tk-overlay) .cf-l.info .cf-ic svg.i{width:16px;height:16px;stroke-width:1.8}
+:is(.tk,.tk-overlay) .cf-pend{margin:0;padding-left:16px;font-size:12.5px;color:var(--st-block);display:flex;flex-direction:column;gap:2px}
+:is(.tk,.tk-overlay) .cf-nota{white-space:pre-wrap;font-size:13px;line-height:1.5;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px}
+:is(.tk,.tk-overlay) .cf-dica{font-size:11.5px;color:var(--muted)}
+:is(.tk,.tk-overlay) .dica.cf-bloq{color:var(--st-block);display:flex;align-items:center;gap:6px;margin:0}
+:is(.tk,.tk-overlay) .tk-dlg-b .dica{display:flex;align-items:flex-start;gap:6px;margin:0}
 
 @media (max-width:900px){
   :is(.tk,.tk-overlay) .tk-modal{max-height:none}
