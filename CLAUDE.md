@@ -648,6 +648,7 @@ contas do projeto.
 | `avatares` | 🌐 público | foto de perfil (caminho por uuid) |
 | `diagnostico-fotos` | 🔒 privado | fotos de moradia/entorno do Diagnóstico (identificação — consultor não vê) |
 | `diagnostico-audios` | 🔒 privado | gravações de voz das respostas abertas do Diagnóstico (identificação — consultor não ouve) |
+| `tarefas-anexos` | 🔒 privado | anexos do Painel de Tarefas (caminho `<tarefa_id>/<arquivo>`) |
 
 **As tabelas continuam guardando a URL no formato `/object/public/<bucket>/<path>`.**
 Isso é intencional: a string é apenas **portadora do caminho**, não um link
@@ -666,6 +667,7 @@ acessível. Não migrar esses valores. `getPublicUrl()` no upload segue correto.
   privado — retorna 400. Use os helpers.
 - `abrirDoc()` abre a janela **antes** do `await` de propósito: abrir depois de
   um `await` é bloqueado como popup.
+- Bucket privado novo **entra em `BUCKETS_PRIVADOS`** (`js/config.js`), senão o link abre sem assinatura e o Supabase responde "Bucket not found".
 - Não criar novo signer ad-hoc: as 8 implementações duplicadas que existiam
   foram consolidadas nesses helpers.
 

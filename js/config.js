@@ -403,6 +403,7 @@ const BUCKETS_PRIVADOS = [
   'entregas-docs', 'viagens-arquivos', 'produtos-evidencias', 'acervo-capas',
   'diagnostico-fotos',
   'diagnostico-audios',
+  'tarefas-anexos',
 ];
 
 // Extrai { bucket, path } de uma URL de storage nos formatos /public/ ou /sign/
