@@ -338,9 +338,11 @@ function semear() {
   await page.waitForTimeout(600)
   if (consulta("select status from diag_fichas where codigo = 'DSA-XAP-261002-MESA-03'")[0].status !== 'enviada') falhar('validou com áudio sem transcrição')
   await foto('mesa_audio')
+  await page.locator('#dgv-audios').scrollIntoViewIfNeeded(); await foto('mesa_audio_secao')
   await page.fill('#dgv-audios textarea', 'Estrada ruim no inverno; falta posto de saúde')
   await page.click('#dgv-audios .btn-primary')
   await page.locator('#dgv-audios .dgv-nota', { hasText: 'Transcrito por Coord' }).waitFor({ timeout: 15000 })
+  await page.locator('#dgv-audios').scrollIntoViewIfNeeded(); await foto('mesa_audio_transcrito')
   const tr = consulta("select respostas->>'comunidade_problemas' as txt, alertas from diag_fichas where codigo = 'DSA-XAP-261002-MESA-03'")[0]
   if (tr.txt !== 'Estrada ruim no inverno; falta posto de saúde' || JSON.stringify(tr.alertas).includes('audio_sem_transcricao')) falhar('transcrição no banco: ' + JSON.stringify(tr))
   await page.click('#dgv-acoes .btn-primary')
