@@ -1132,3 +1132,38 @@ do $$ begin
                  and caminho like '%a3900000-0000-0000-0000-0000000000a2.webm' and motivo = 'retencao_2_anos')
     then raise exception 'FALHOU T39 retenção sem expurgo do arquivo'; end if;
 end $$;
+
+-- ── T40 · transcrição assistida por IA local: origem registrada ─────────
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$
+declare f uuid := 'f4000000-0000-0000-0000-000000000001';
+begin
+  perform public.diag_enviar_ficha(public.t_ficha(f, 'DSA-XAP-260928-T40A-01', public.t_resp() - 'comunidade_problemas' - 'prioridades', now(),
+    jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q5'), 'audio_autorizado', true,
+      'audios', jsonb_build_array(public.t_audio(f, 'a4000000-0000-0000-0000-0000000000a1', 'comunidade_problemas'),
+                                  public.t_audio(f, 'a4000000-0000-0000-0000-0000000000a2', 'prioridades')))), '[]', '[]');
+end $$;
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$
+declare r jsonb;
+begin
+  r := public.diag_transcrever_audio((select id from public.diag_audios where uuid_cliente = 'a4000000-0000-0000-0000-0000000000a1'),
+         'Estrada ruim', 'ia_local', 'onnx-community/whisper-small');
+  r := public.diag_transcrever_audio((select id from public.diag_audios where uuid_cliente = 'a4000000-0000-0000-0000-0000000000a2'), 'Posto de saúde');
+  begin
+    r := public.diag_transcrever_audio((select id from public.diag_audios where uuid_cliente = 'a4000000-0000-0000-0000-0000000000a2'), 'x', 'nuvem');
+    raise exception 'FALHOU T40 aceitou origem inválida';
+  exception when raise_exception then
+    if sqlerrm not like 'diag:parametro_invalido%' then raise; end if;
+  end;
+end $$;
+reset role;
+do $$ begin
+  if (select transcricao_origem || '|' || transcricao_modelo from public.diag_audios where uuid_cliente = 'a4000000-0000-0000-0000-0000000000a1')
+     <> 'ia_local|onnx-community/whisper-small' then raise exception 'FALHOU T40 origem ia_local'; end if;
+  if (select transcricao_origem from public.diag_audios where uuid_cliente = 'a4000000-0000-0000-0000-0000000000a2') <> 'manual'
+     or (select transcricao_modelo from public.diag_audios where uuid_cliente = 'a4000000-0000-0000-0000-0000000000a2') is not null
+    then raise exception 'FALHOU T40 origem manual'; end if;
+  if (select count(*) from pg_proc where proname = 'diag_transcrever_audio') <> 1 then raise exception 'FALHOU T40 duas versões da função'; end if;
+end $$;

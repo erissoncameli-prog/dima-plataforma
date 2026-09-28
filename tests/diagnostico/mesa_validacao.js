@@ -344,10 +344,24 @@ function semear() {
   await page.click('#dgv-audios .dgv-vel button[data-vel="0.75"]')
   if (await page.evaluate(() => document.querySelector('#dgv-audios audio').playbackRate) !== 0.75) falhar('velocidade 0,75× não aplicada')
   await page.locator('#dgv-audios').scrollIntoViewIfNeeded(); await foto('mesa_audio_secao')
+  // IA local: o motor real (Whisper no navegador) precisa baixar o modelo — no teste
+  // entra um motor falso pelo gancho _testar; o que se testa é o fluxo da tela
+  await page.evaluate(() => DiagTranscricaoIA._testar({
+    decodificar: async () => new Float32Array(16000),
+    motor: async () => { await new Promise(r => setTimeout(r, 300)); return 'Estrada ruim no inverno falta posto de saude' } }))
+  await page.click('#dgv-audios .dgv-ia-btn')
+  await page.waitForFunction(() => /Estrada ruim/.test((document.querySelector('#dgv-audios textarea') || {}).value || ''), null, { timeout: 10000 })
+  if (!(await page.locator('#dgv-audios textarea.dgv-ia').count()) || !/Rascunho da IA/.test(await page.textContent('.dgv-ia-status'))) falhar('sugestão da IA sem a marca de rascunho')
+  if (consulta("select a.transcricao_origem from diag_audios a join diag_fichas f on f.id = a.ficha_id where f.codigo = 'DSA-XAP-261002-MESA-03'")[0].transcricao_origem) falhar('sugestão da IA salvou sozinha')
+  await foto('mesa_audio_ia')
+  // a pessoa ouve e corrige antes de salvar
   await page.fill('#dgv-audios textarea', 'Estrada ruim no inverno; falta posto de saúde')
   await page.click('#dgv-audios .btn-primary')
   await page.locator('#dgv-audios .dgv-nota', { hasText: 'Transcrito por Coord' }).waitFor({ timeout: 15000 })
   await page.locator('#dgv-audios').scrollIntoViewIfNeeded(); await foto('mesa_audio_transcrito')
+  const org = consulta("select a.transcricao_origem, a.transcricao_modelo from diag_audios a join diag_fichas f on f.id = a.ficha_id where f.codigo = 'DSA-XAP-261002-MESA-03'")[0]
+  if (org.transcricao_origem !== 'ia_local' || !/whisper/.test(org.transcricao_modelo || '')) falhar('origem da transcrição: ' + JSON.stringify(org))
+  if (!/sugestão da IA local, conferida/.test(await page.textContent('#dgv-audios'))) falhar('mesa sem a marca "sugestão da IA local, conferida"')
   const tr = consulta("select respostas->>'comunidade_problemas' as txt, alertas from diag_fichas where codigo = 'DSA-XAP-261002-MESA-03'")[0]
   if (tr.txt !== 'Estrada ruim no inverno; falta posto de saúde' || JSON.stringify(tr.alertas).includes('audio_sem_transcricao')) falhar('transcrição no banco: ' + JSON.stringify(tr))
   if (await page.isDisabled('#dgv-btn-validar')) falhar('Validar continuou bloqueado depois da transcrição')
@@ -363,7 +377,7 @@ function semear() {
   await page.locator('.dgv-g-corpo .dgv-bloco').first().waitFor()
   if (await page.locator('#dgv-audios').count()) falhar('consultor viu os áudios')
   usuarioLogado = COORD
-  ok('áudio: Validar bloqueado até transcrever, atalho e controles (0,75×), coordenação ouve (URL assinada) e transcreve, consultor não vê')
+  ok('áudio: Validar bloqueado até transcrever, atalho e controles (0,75×), sugestão da IA local como rascunho conferido, consultor não vê')
 
   // ── Privacidade · ROPA (pages/ropa.html): leitura + conferência no banco ──
   usuarioLogado = COORD

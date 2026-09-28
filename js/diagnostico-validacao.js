@@ -143,7 +143,7 @@ async function dgValAbrir(id) {
     db.from('diag_fotos').select('id,tema,legenda,arquivo_url,lat,lon,gps_precisao_m,gps_origem').eq('ficha_id', id),
     db.from('diag_fichas_historico').select('status_de,status_para,motivo,por,em').eq('ficha_id', id).order('em'),
     // áudio = identificação: o RLS já esconde do consultor; a mesa só desenha para quem gere
-    dgPodeGerir ? db.from('diag_audios').select('id,pergunta_chave,arquivo_url,mime,duracao_s,transcrito_por,transcrito_em').eq('ficha_id', id)
+    dgPodeGerir ? db.from('diag_audios').select('id,pergunta_chave,arquivo_url,mime,duracao_s,transcrito_por,transcrito_em,transcricao_origem').eq('ficha_id', id)
                 : Promise.resolve({ data: [] }),
   ])
   if (dgVal.aberta !== f) return
@@ -272,7 +272,10 @@ function dgValAudios(f, est, resp, audios) {
   const editavel = f.status === 'enviada' || f.status === 'devolvida'
   const max = est.texto_max_len || 2000
   const dur = s => s ? Math.floor(s / 60) + ':' + String(Math.round(s % 60)).padStart(2, '0') : ''
+  const ia = editavel && typeof DiagTranscricaoIA !== 'undefined' && DiagTranscricaoIA.ativa()
   return `<div class="dgv-bloco" id="dgv-audios"><h3>Áudios (${audios.length})</h3>
+    ${ia && pend ? `<div class="dgv-ia-barra"><span>Rascunho automático com IA que roda <b>neste computador</b> (a voz não sai daqui). Confira ouvindo antes de salvar.</span>
+      ${pend > 1 ? `<button type="button" class="btn btn-secondary btn-sm" id="dgv-ia-todas" onclick="dgValSugerirTodas()">Sugerir todas (${pend})</button>` : ''}</div>` : ''}
     ${pend ? `<div class="dgv-avisos dgv-audio-pend">⚠ ${pend} resposta(s) gravada(s) sem transcrição. A validação pede a transcrição antes (os números só leem texto).</div>` : ''}
     ${audios.sort((a, b) => ((porChave[a.pergunta_chave] || {}).n || 0) - ((porChave[b.pergunta_chave] || {}).n || 0)).map(a => {
       const p = porChave[a.pergunta_chave] || { texto: a.pergunta_chave }
@@ -286,8 +289,11 @@ function dgValAudios(f, est, resp, audios) {
           <span class="dgv-nota">Ctrl+Espaço no texto: tocar/pausar</span>
         </div>
         <textarea id="dgv-tr-${a.id}" data-audio="${a.id}" rows="3" maxlength="${max}" placeholder="Escreva o que a pessoa disse"${editavel ? '' : ' disabled'}>${esc(t)}</textarea>
-        ${editavel ? `<div class="dgv-audio-acoes"><button type="button" class="btn btn-primary btn-sm" onclick="dgValTranscrever('${a.id}')">Salvar transcrição</button></div>` : ''}
-        ${a.transcrito_em ? `<p class="dgv-nota">✓ Transcrito por ${esc(dgVal.usuarios[a.transcrito_por] || '—')} · ${dgValDataHora(a.transcrito_em)}</p>`
+        ${editavel ? `<div class="dgv-audio-acoes">
+          ${ia ? `<button type="button" class="btn btn-secondary btn-sm dgv-ia-btn" data-audio="${a.id}" onclick="dgValSugerir('${a.id}')">Sugerir transcrição (IA local)</button>
+                  <span class="dgv-ia-status" id="dgv-ia-${a.id}" role="status"></span>` : ''}
+          <button type="button" class="btn btn-primary btn-sm" onclick="dgValTranscrever('${a.id}')">Salvar transcrição</button></div>` : ''}
+        ${a.transcrito_em ? `<p class="dgv-nota">✓ Transcrito por ${esc(dgVal.usuarios[a.transcrito_por] || '—')} · ${dgValDataHora(a.transcrito_em)}${a.transcricao_origem === 'ia_local' ? ' · sugestão da IA local, conferida' : ''}</p>`
           : t.trim() ? '<p class="dgv-nota">Transcrito pelo técnico no app.</p>' : ''}
       </div>`
     }).join('')}
@@ -321,12 +327,55 @@ document.addEventListener('keydown', ev => {
   if (au.paused) au.play().catch(() => {}); else au.pause()
 })
 
+// ── Sugestão por IA local (js/diagnostico-transcricao-ia.js) ──
+// Preenche o campo como RASCUNHO; nada é salvo sem o clique da pessoa.
+let dgValIaOcupada = false
+async function dgValSugerir(audioId) {
+  const el = document.getElementById('dgv-tr-' + audioId)
+  const st = document.getElementById('dgv-ia-' + audioId)
+  const au = document.getElementById('dgv-au-' + audioId)
+  if (!el || !au || dgValIaOcupada) return false
+  if (el.value.trim() && !confirm('O campo já tem texto. Substituir pela sugestão da IA?')) return false
+  dgValIaOcupada = true
+  document.querySelectorAll('.dgv-ia-btn, #dgv-ia-todas').forEach(b => { b.disabled = true })
+  const fases = { decodificando: 'Preparando o áudio…', transcrevendo: 'Transcrevendo neste computador…' }
+  try {
+    const r = await DiagTranscricaoIA.transcrever(au.dataset.arquivoAudio, ev => {
+      if (!st) return
+      if (ev.fase === 'baixando') {
+        const p = ev.p || {}
+        if (p.status === 'progress' && p.total) st.textContent = 'Baixando o modelo (só na 1ª vez): ' + Math.round((p.loaded / p.total) * 100) + '% de ' + String(p.file || '').split('/').pop()
+        else if (p.status === 'ready') st.textContent = 'Modelo pronto.'
+      } else st.textContent = fases[ev.fase] || ''
+    })
+    if (!r.texto) { if (st) st.textContent = 'A IA não reconheceu fala neste áudio. Transcreva à mão.'; return false }
+    el.value = r.texto
+    el.dataset.ia = '1'; el.dataset.modelo = r.modelo || ''
+    el.classList.add('dgv-ia')
+    if (st) st.textContent = 'Rascunho da IA — ouça e corrija antes de salvar.'
+    return true
+  } catch (e) {
+    console.warn('[transcrição IA]', e)
+    if (st) st.textContent = 'Não foi possível sugerir (' + String(e.message || e).slice(0, 120) + '). Transcreva à mão.'
+    return false
+  } finally {
+    dgValIaOcupada = false
+    document.querySelectorAll('.dgv-ia-btn, #dgv-ia-todas').forEach(b => { b.disabled = false })
+  }
+}
+async function dgValSugerirTodas() {
+  const ids = [...document.querySelectorAll('#dgv-audios textarea[data-audio]')].filter(t => !t.value.trim()).map(t => t.dataset.audio)
+  for (const id of ids) await dgValSugerir(id)
+}
+
 async function dgValTranscrever(audioId) {
   const f = dgVal.aberta
   const el = document.getElementById('dgv-tr-' + audioId)
   const txt = (el && el.value || '').trim()
   if (!txt) { toast('Escreva a transcrição.', 'warning'); return }
-  const { error } = await db.rpc('diag_transcrever_audio', { p_audio_id: audioId, p_texto: txt })
+  const deIA = el.dataset.ia === '1'
+  const { error } = await db.rpc('diag_transcrever_audio', { p_audio_id: audioId, p_texto: txt,
+    p_origem: deIA ? 'ia_local' : 'manual', p_modelo: deIA ? (el.dataset.modelo || null) : null })
   if (error) { toast(error.message.replace(/^diag:[a-z_]+:\s*/, ''), 'error'); return }
   const { data } = await db.from('diag_fichas').select('alertas').eq('id', f.id).single()
   if (data) f.alertas = data.alertas
