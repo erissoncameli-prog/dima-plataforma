@@ -1225,3 +1225,21 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
   computador) com gravações reais; se servir, botão "Sugerir transcrição" que a
   coordenação confere. Se não servir, discutir nuvem com o jurídico.
 
+### 6.16 Transcrição assistida por IA local *(etapa 2 antecipada — 28/09)*
+
+- Mesa: botão **"Sugerir transcrição (IA local)"** em cada áudio e **"Sugerir todas"**.
+  `js/diagnostico-transcricao-ia.js`: transformers.js 4.3.0 (CDN jsdelivr) num **Web Worker**;
+  modelo Whisper `onnx-community/whisper-small` (reserva `Xenova/whisper-small`), WebGPU
+  (encoder fp16, decoder q4) quando existe, senão WASM q8. Áudio decodificado e reamostrado
+  para 16 kHz mono no navegador (`AudioContext`/`OfflineAudioContext`); `language: portuguese`,
+  janelas de 30 s.
+- **A voz não sai do computador.** Só o *modelo* é baixado (Hugging Face, uma vez; fica no
+  cache do navegador). Nenhum serviço de transcrição em nuvem.
+- A IA preenche um **rascunho** (campo lilás, "Rascunho da IA — ouça e corrija"); nada é salvo
+  sem o clique. `diag_audios.transcricao_origem = 'ia_local'` + `transcricao_modelo`
+  (migration `diag_17`), e a mesa mostra "sugestão da IA local, conferida".
+- **Não testado com fala real do Acre** neste desenvolvimento (o ambiente não baixa o modelo);
+  o teste automatizado usa um motor falso. Avaliar no computador da mesa com áudios de treino:
+  qualidade (sotaque, nomes locais, invenção em silêncio) e tempo (sem WebGPU ≈ 2–3× a duração).
+  Se não servir: `ATIVA = false` (o botão some) ou trocar o modelo em `MODELOS`.
+

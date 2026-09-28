@@ -405,8 +405,11 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   sem texto vira alerta `audio_sem_transcricao` (não `pendente`), e `validada` é
   recusada pelo trigger `trg_diag_valida_audios`. Mesa transcreve por
   `diag_transcrever_audio()` (gerir; registra quem/quando). Escrita de áudio só por
-  `diag_enviar_ficha` (`p_ficha.audios`). Transcrição por IA: não — a voz não sai da
-  SEMA; IA local só depois do piloto (plano §6.15).
+  `diag_enviar_ficha` (`p_ficha.audios`). **Transcrição assistida por IA LOCAL**
+  (`js/diagnostico-transcricao-ia.js`): Whisper via transformers.js num Web Worker, no
+  navegador da mesa — a voz **nunca** vai para serviço de nuvem (frase do aviso). A IA só
+  preenche rascunho; `diag_transcrever_audio(p_origem='ia_local', p_modelo)` registra
+  `diag_audios.transcricao_origem/_modelo`. Desligar: `ATIVA = false` no módulo.
 - **Exportação** só por `diag_exportar()` (registra em `diag_exportacoes` na
   mesma transação). Padrão sem nome/GPS/nomes; identificada só gerir;
   consultor sem texto aberto nem `_outro`. Planilha com ExcelJS
