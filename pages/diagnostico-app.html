@@ -171,8 +171,14 @@
   </header>
   <div class="tela">
     <p class="dica">Leia em voz alta antes de começar.</p>
-    <div class="cartao" id="aviso-texto" style="font-size:18px"></div>
+    <div class="cartao aviso-texto" id="aviso-texto"></div>
     <label class="opcao" style="margin-top:8px"><input type="checkbox" id="aviso-lido" style="width:24px;height:24px"> <span>Li o aviso para o(a) entrevistado(a)</span></label>
+    <fieldset class="aviso-fotos" id="aviso-fotos">
+      <legend>Autoriza fotografar a casa e o entorno (sem pessoas)?</legend>
+      <label class="opcao"><input type="radio" name="aviso-fotos" value="sim" style="width:24px;height:24px"> <span>Sim, autoriza as fotos</span></label>
+      <label class="opcao"><input type="radio" name="aviso-fotos" value="nao" style="width:24px;height:24px"> <span>Não autoriza fotos</span></label>
+      <p class="dica">Pergunta separada: recusar as fotos não impede a entrevista.</p>
+    </fieldset>
     <p class="erro-msg" id="aviso-erro" role="alert" hidden></p>
     <button type="button" class="btn btn-prim btn-bloco" style="margin-top:16px" id="btn-aceitou">Aceitou participar — começar</button>
     <button type="button" class="btn btn-perigo btn-bloco" style="margin-top:10px" id="btn-recusou">Recusou participar</button>

@@ -424,16 +424,16 @@ select public.t_erro($q$insert into public.diag_questionarios (codigo, versao, t
 -- ── T25b coordenação cria versão nova e comunidade; publica ─────────────
 select public.t_como('00000000-0000-0000-0000-0000000000c0');
 insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado)
-  select codigo, 4, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
-update public.diag_questionarios set status = 'publicado' where versao = 4;
+  select codigo, 9, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
+update public.diag_questionarios set status = 'publicado' where versao = 9;
 insert into public.diag_comunidades (municipio_ibge, nome) values (1200401, 'Comunidade Nova da Coordenação');
 do $$ begin
-  if (select publicado_em from public.diag_questionarios where versao = 4) is null then raise exception 'FALHOU T25b publicado_em'; end if;
-  if (select hash_sha256 from public.diag_questionarios where versao = 4)
+  if (select publicado_em from public.diag_questionarios where versao = 9) is null then raise exception 'FALHOU T25b publicado_em'; end if;
+  if (select hash_sha256 from public.diag_questionarios where versao = 9)
      <> (select hash_sha256 from public.diag_questionarios where versao = 1) then raise exception 'FALHOU T25b hash de conteúdo igual'; end if;
-  if length((select hash_sha256 from public.diag_questionarios where versao = 4)) <> 64 then raise exception 'FALHOU T25b hash'; end if;
+  if length((select hash_sha256 from public.diag_questionarios where versao = 9)) <> 64 then raise exception 'FALHOU T25b hash'; end if;
 end $$;
-select public.t_erro($q$update public.diag_questionarios set status = 'publicado' where versao = 4 and false; update public.diag_questionarios set status='arquivado' where versao=4; update public.diag_questionarios set status='publicado' where versao=4$q$,
+select public.t_erro($q$update public.diag_questionarios set status = 'publicado' where versao = 9 and false; update public.diag_questionarios set status='arquivado' where versao=9; update public.diag_questionarios set status='publicado' where versao=9$q$,
   'diag:questionario_arquivado');
 select public.t_como('00000000-0000-0000-0000-0000000000e1');
 select public.t_erro($q$insert into public.diag_comunidades (municipio_ibge, nome) values (1200401, 'Tentativa do técnico')$q$,
@@ -935,3 +935,76 @@ exception when insufficient_privilege then null;
 end $$;
 reset role;
 delete from public.lgpd_tratamentos where codigo = 'TRAT-T37';
+
+-- ── T38 · v4: aviso novo, P55 tipos de organização, P56 nome, fotos autorizadas ──
+do $$
+declare e jsonb; nums text;
+begin
+  select estrutura into e from public.diag_questionarios where codigo = 'DSA' and versao = 4;
+  if e is null or e->>'versao' <> '4' then raise exception 'FALHOU T38 v4 ausente'; end if;
+  if (select aviso_entrevistado from public.diag_questionarios where versao = 4) not like '%solicitar, separadamente, sua autorização para fotografar%'
+     or (select aviso_entrevistado from public.diag_questionarios where versao = 4) not like E'%UNESCO.\n\nO objetivo%'
+     or (select aviso_entrevistado from public.diag_questionarios where versao = 4) like '%[%'
+    then raise exception 'FALHOU T38 aviso'; end if;
+  select string_agg((p.pergunta->>'n') || ':' || (p.pergunta->>'chave'), ',' order by (p.pergunta->>'n')::int) into nums
+    from public.fn_diag_perguntas(e) p where (p.pergunta->>'n')::int between 54 and 57;
+  if nums <> '54:participa_org,55:participa_org_tipos,56:participa_org_quais,57:decisoes_como' then raise exception 'FALHOU T38 numeração %', nums; end if;
+  if (select max((p.pergunta->>'n')::int) from public.fn_diag_perguntas(e) p) <> 82 then raise exception 'FALHOU T38 última pergunta'; end if;
+  if (select count(*) from public.fn_diag_perguntas(e) p) <> (select count(*) + 1 from public.fn_diag_perguntas((select estrutura from public.diag_questionarios where versao = 3)) p)
+    then raise exception 'FALHOU T38 total de perguntas'; end if;
+  if not exists (select 1 from public.fn_diag_perguntas(e) p where p.pergunta->>'chave' = 'participa_org_tipos'
+                 and p.pergunta->>'tipo' = 'multipla' and (p.pergunta->>'sensivel')::boolean
+                 and p.pergunta->'mostrar_se'->>'se' = 'participa_org') then raise exception 'FALHOU T38 P55'; end if;
+  -- P54 = Não pula P55 e P56
+  if public.fn_diag_aplicaveis(e, '{"participa_org":"nao"}'::jsonb) && array['participa_org_tipos', 'participa_org_quais']
+     or not public.fn_diag_aplicaveis(e, '{"participa_org":"sim"}'::jsonb) @> array['participa_org_tipos', 'participa_org_quais'] then raise exception 'FALHOU T38 salto S8'; end if;
+  if not exists (select 1 from public.lgpd_tratamentos where codigo = 'TRAT-001'
+                 and exists (select 1 from unnest(categorias_dados) c where c like '%organização indígena/tradicional%')) then raise exception 'FALHOU T38 ROPA'; end if;
+end $$;
+update public.diag_questionarios set status = 'publicado' where versao = 4;
+insert into public.t_ctx select 'q4', id::text from public.diag_questionarios where versao = 4;
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$
+declare r jsonb; f uuid := 'f3800000-0000-0000-0000-000000000001'; g uuid := 'f3800000-0000-0000-0000-000000000002';
+  foto jsonb;
+begin
+  -- não autorizou: ficha sem foto passa, com foto é recusada
+  r := public.diag_enviar_ficha(public.t_ficha(f, 'DSA-XAP-260928-T38A-01',
+         '{"participa_org":"sim","participa_org_tipos":["sindicato","outro"],"participa_org_tipos_outro":"clube de mães","participa_org_quais":"STR de Xapuri"}'::jsonb,
+         now(), jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q4'), 'fotos_autorizadas', false)), '[]', '[]');
+  foto := jsonb_build_array(jsonb_build_object('uuid_cliente', 'f3800000-0000-0000-0000-0000000000f1', 'tema', 'moradia',
+           'arquivo_url', 'https://x/storage/v1/object/public/diagnostico-fotos/' || f || '/f3800000-0000-0000-0000-0000000000f1.jpg', 'tirada_em', now()));
+  begin
+    r := public.diag_enviar_ficha(public.t_ficha(f, 'DSA-XAP-260928-T38A-01', null, now(),
+           jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q4'), 'fotos_autorizadas', false)), '[]', foto);
+    raise exception 'FALHOU T38 aceitou foto sem autorização';
+  exception when raise_exception then
+    if sqlerrm not like 'diag:fotos_nao_autorizadas%' then raise; end if;
+  end;
+  -- autorizou: foto aceita
+  r := public.diag_enviar_ficha(public.t_ficha(g, 'DSA-XAP-260928-T38B-01', null, now(),
+         jsonb_build_object('questionario_id', (select v from public.t_ctx where k = 'q4'), 'fotos_autorizadas', true)), '[]',
+         jsonb_build_array(jsonb_build_object('uuid_cliente', 'f3800000-0000-0000-0000-0000000000f2', 'tema', 'moradia',
+           'arquivo_url', 'https://x/storage/v1/object/public/diagnostico-fotos/' || g || '/f3800000-0000-0000-0000-0000000000f2.jpg', 'tirada_em', now())));
+end $$;
+reset role;
+do $$ begin
+  if (select fotos_autorizadas from public.diag_fichas where codigo = 'DSA-XAP-260928-T38A-01') is distinct from false
+     or (select fotos_autorizadas from public.diag_fichas where codigo = 'DSA-XAP-260928-T38B-01') is distinct from true
+    then raise exception 'FALHOU T38 fotos_autorizadas gravado'; end if;
+  if exists (select 1 from public.diag_fotos ft join public.diag_fichas f on f.id = ft.ficha_id where f.codigo = 'DSA-XAP-260928-T38A-01')
+    then raise exception 'FALHOU T38 foto sem autorização gravada'; end if;
+  if (select respostas->'participa_org_tipos' from public.diag_fichas where codigo = 'DSA-XAP-260928-T38A-01') <> '["sindicato","outro"]'::jsonb
+     or (select respostas->>'participa_org_tipos_outro' from public.diag_fichas where codigo = 'DSA-XAP-260928-T38A-01') <> 'clube de mães'
+    then raise exception 'FALHOU T38 respostas P55'; end if;
+end $$;
+-- exportação traz a autorização das fotos
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$ declare x jsonb; begin
+  x := public.diag_exportar(false, array['enviada'], null, null, null);
+  if not exists (select 1 from jsonb_array_elements(x->'fichas') f where f->>'codigo' = 'DSA-XAP-260928-T38A-01' and f->>'fotos_autorizadas' = 'false')
+    then raise exception 'FALHOU T38 exportação sem fotos_autorizadas'; end if;
+end $$;
+reset role;

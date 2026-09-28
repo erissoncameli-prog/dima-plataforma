@@ -1179,3 +1179,22 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
   transferência internacional marcada como pendência, RIPD ausente (com dado
   sensível/de menor) ou em rascunho, tabela ausente.
 - Botão Imprimir / PDF (CSS de impressão sem menu nem barra).
+
+### 6.14 Questionário v4: aviso novo, autorização das fotos, P55/P56 *(28/09)*
+
+- **Aviso** reescrito pela coordenação (parágrafos, exibidos com `white-space:
+  pre-line`), pedindo **separadamente** a autorização para fotos. Aviso faz parte
+  da versão (hash) → v4; v3 arquivada; ficha começada na v3 termina na v3.
+- **`diag_fichas.fotos_autorizadas`** (migration `diag_15`): pergunta "Autoriza
+  fotografar…? Sim/Não" na tela do aviso, obrigatória ao aceitar. `false` ⇒ bloco
+  de fotos sem câmera e `diag_enviar_ficha` recusa foto (`diag:fotos_nao_autorizadas`),
+  inclusive de app antigo. Mesa mostra; exportação ganha a coluna "Fotos autorizadas".
+- **P55 `participa_org_tipos`** (múltipla, sensível) e **P56 `participa_org_quais`**
+  (mesma chave da antiga P55 → respostas e sugestões antigas continuam valendo);
+  demais perguntas +1 (última = P82). "Não sabe/Não respondeu" = botão `_nr`.
+  ROPA TRAT-001 atualizado (tipo de organização, sensível).
+- App 1.9.0, service worker v13; guias "Fazer uma entrevista" e "Fotos" na versão 2.
+- **Próxima etapa (pendente de decisão):** gravação de áudio nas 17 perguntas de
+  texto aberto — voz identifica (mesma proteção das fotos), exige frase no aviso e
+  autorização separada (→ v5). Decidir duração máxima (sugestão 3 min) e quem transcreve.
+

@@ -386,9 +386,15 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,
   validados em `diag_enviar_ficha`. Fora de indicadores (risco de
   reidentificação) até existir recorte com supressão.
-- **Questionário vigente = v3** (escolaridade da P9 em lista fechada desde a
-  v2, com doutorado na v3; v1 e v2 arquivadas). Coluna `unica` da P9 é
+- **Questionário vigente = v4** (escolaridade da P9 em lista fechada desde a
+  v2, com doutorado na v3; na v4 aviso novo em parágrafos, P55 `participa_org_tipos`
+  (múltipla, **sensível**) e P56 = `participa_org_quais` (mesma chave, pede o nome);
+  demais +1; v1–v3 arquivadas). Coluna `unica` da P9 é
   validada por `fn_diag_validar_moradores` contra as opções da versão da ficha.
+- **Autorização das fotos** é separada da participação: `diag_fichas.fotos_autorizadas`
+  (pergunta na tela do aviso, app 1.9.0; NULL = ficha anterior ou recusa).
+  `false` ⇒ app sem câmera e `diag_enviar_ficha` recusa qualquer foto
+  (`diag:fotos_nao_autorizadas`). Sai na exportação e na ficha da mesa.
 - **Exportação** só por `diag_exportar()` (registra em `diag_exportacoes` na
   mesma transação). Padrão sem nome/GPS/nomes; identificada só gerir;
   consultor sem texto aberto nem `_outro`. Planilha com ExcelJS
