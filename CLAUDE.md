@@ -416,7 +416,7 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   do app (`diag_meu_painel()`, só `auth.uid()`) só desenham o que o banco
   devolve. O painel do app nunca conta ficha de outro entrevistador.
 - **Expurgo**: Edge Function `diag-expurgo` + cron `diag-expurgo-diario`
-  drenam `diag_expurgo_arquivos` (só bucket `diagnostico-fotos`).
+  drenam `diag_expurgo_arquivos` (buckets `diagnostico-fotos` e `diagnostico-audios`).
 - **Guia de treinamento** do app: motor do SIGUC (`js/guia-app.js`/`css/guia-app.css`,
   cópia sem alteração) + conteúdo em `js/diag-guia.js`. Progresso só no aparelho,
   sem registro no banco. Texto mudou ⇒ incrementar `versao` do guia.

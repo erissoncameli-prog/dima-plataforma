@@ -1214,6 +1214,7 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
 - LGPD: voz = identificação → `diag_audios` com a mesma regra das fotos (consultor não lê,
   fora da exportação, retenção de 2 anos por trigger, arquivo pela fila de expurgo;
   Edge `diag-expurgo` agora drena os dois buckets). ROPA TRAT-001 e RIPD atualizados.
+- ✅ **Validado no iPhone (28/09):** gravação feita no app chegou à mesa e tocou.
 - **Transcrição por IA — decisão de 28/09:** o Claude (já usado no DIMA) não recebe áudio;
   serviço de nuvem mandaria a voz para fora (art. 33) e tornaria falsa a frase do aviso.
   **Etapa 2, depois do piloto:** testar IA local no navegador da mesa (a voz não sai do
