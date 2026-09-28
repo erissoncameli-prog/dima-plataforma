@@ -1008,3 +1008,127 @@ do $$ declare x jsonb; begin
     then raise exception 'FALHOU T38 exportação sem fotos_autorizadas'; end if;
 end $$;
 reset role;
+
+-- ── T39 · áudio nas respostas abertas (v5) ───────────────────────────────
+do $$
+declare v5 public.diag_questionarios;
+begin
+  select * into v5 from public.diag_questionarios where codigo = 'DSA' and versao = 5;
+  if v5.id is null or (v5.estrutura->>'audio_max_s')::int <> 180 then raise exception 'FALHOU T39 v5'; end if;
+  if v5.aviso_entrevistado not like E'%interfira na sua participação na entrevista.\n\nCom a sua autorização, algumas respostas poderão ser gravadas em áudio%'
+    then raise exception 'FALHOU T39 aviso da v5'; end if;
+  if (select count(*) from public.fn_diag_perguntas(v5.estrutura)) <> (select count(*) from public.fn_diag_perguntas((select estrutura from public.diag_questionarios where versao = 4)))
+    then raise exception 'FALHOU T39 perguntas da v5'; end if;
+  if (select public from storage.buckets where id = 'diagnostico-audios') is distinct from false then raise exception 'FALHOU T39 bucket'; end if;
+  if not exists (select 1 from public.lgpd_tratamentos where codigo = 'TRAT-001' and 'diag_audios' = any(tabelas)
+                 and 'storage:diagnostico-audios' = any(tabelas)) then raise exception 'FALHOU T39 ROPA'; end if;
+end $$;
+update public.diag_questionarios set status = 'publicado' where versao = 5;
+insert into public.t_ctx select 'q5', id::text from public.diag_questionarios where versao = 5;
+create function public.t_audio(p_ficha uuid, p_uuid uuid, p_chave text, p_dur numeric default 42)
+returns jsonb language sql immutable as $$
+  select jsonb_build_object('uuid_cliente', p_uuid, 'pergunta_chave', p_chave, 'mime', 'audio/webm',
+    'duracao_s', p_dur, 'bytes', 90000, 'gravado_em', now(),
+    'arquivo_url', 'https://x/storage/v1/object/public/diagnostico-audios/' || p_ficha || '/' || p_uuid || '.webm')
+$$;
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$
+declare r jsonb; f uuid := 'f3900000-0000-0000-0000-000000000001';
+  q5 text := (select v from public.t_ctx where k = 'q5');
+  resp jsonb := public.t_resp() - 'comunidade_problemas';
+  err text;
+begin
+  -- sem autorização: recusado
+  begin
+    r := public.diag_enviar_ficha(public.t_ficha(f, 'DSA-XAP-260928-T39A-01', resp, now(),
+           jsonb_build_object('questionario_id', q5, 'audio_autorizado', false,
+             'audios', jsonb_build_array(public.t_audio(f, 'a3900000-0000-0000-0000-0000000000a1', 'comunidade_problemas')))), '[]', '[]');
+    raise exception 'FALHOU T39 áudio sem autorização';
+  exception when raise_exception then
+    if sqlerrm not like 'diag:audio_nao_autorizado%' then raise; end if;
+  end;
+  -- pergunta que não é texto aberto / acima de 3 min: recusados
+  foreach err in array array['sexo_genero', 'comunidade_problemas'] loop
+    begin
+      r := public.diag_enviar_ficha(public.t_ficha(f, 'DSA-XAP-260928-T39A-01', resp, now(),
+             jsonb_build_object('questionario_id', q5, 'audio_autorizado', true,
+               'audios', jsonb_build_array(public.t_audio(f, 'a3900000-0000-0000-0000-0000000000a1', err,
+                 case when err = 'sexo_genero' then 30 else 200 end)))), '[]', '[]');
+      raise exception 'FALHOU T39 aceitou áudio inválido (%)', err;
+    exception when raise_exception then
+      if sqlerrm not like 'diag:audio_invalido%' then raise; end if;
+    end;
+  end loop;
+  -- válido: pergunta gravada sem texto não é "pendente", é "audio_sem_transcricao"
+  r := public.diag_enviar_ficha(public.t_ficha(f, 'DSA-XAP-260928-T39A-01', resp, now(),
+         jsonb_build_object('questionario_id', q5, 'audio_autorizado', true,
+           'audios', jsonb_build_array(public.t_audio(f, 'a3900000-0000-0000-0000-0000000000a1', 'comunidade_problemas')))), '[]', '[]');
+  if exists (select 1 from jsonb_array_elements(r->'alertas') a where a->>'tipo' = 'pendente' and a->>'chave' = 'comunidade_problemas')
+     or not exists (select 1 from jsonb_array_elements(r->'alertas') a where a->>'tipo' = 'audio_sem_transcricao' and a->>'chave' = 'comunidade_problemas')
+    then raise exception 'FALHOU T39 alertas %', r->'alertas'; end if;
+  -- regravação: nova gravação da mesma pergunta substitui a anterior
+  r := public.diag_enviar_ficha(public.t_ficha(f, 'DSA-XAP-260928-T39A-01', resp, now(),
+         jsonb_build_object('questionario_id', q5, 'audio_autorizado', true,
+           'audios', jsonb_build_array(public.t_audio(f, 'a3900000-0000-0000-0000-0000000000a2', 'comunidade_problemas', 61)))), '[]', '[]');
+end $$;
+reset role;
+do $$ begin
+  if (select count(*) from public.diag_audios a join public.diag_fichas f on f.id = a.ficha_id where f.codigo = 'DSA-XAP-260928-T39A-01') <> 1
+     or (select uuid_cliente::text from public.diag_audios where pergunta_chave = 'comunidade_problemas'
+         and ficha_id = (select id from public.diag_fichas where codigo = 'DSA-XAP-260928-T39A-01')) <> 'a3900000-0000-0000-0000-0000000000a2'
+    then raise exception 'FALHOU T39 regravação'; end if;
+  if not exists (select 1 from public.diag_expurgo_arquivos where bucket = 'diagnostico-audios'
+                 and caminho = 'f3900000-0000-0000-0000-000000000001/a3900000-0000-0000-0000-0000000000a1.webm' and motivo = 'audio_regravado')
+    then raise exception 'FALHOU T39 expurgo da gravação substituída'; end if;
+  if (select audio_autorizado from public.diag_fichas where codigo = 'DSA-XAP-260928-T39A-01') is not true then raise exception 'FALHOU T39 audio_autorizado'; end if;
+end $$;
+-- consultor externo não ouve; técnico não transcreve pela mesa
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000ce');
+do $$ begin
+  if exists (select 1 from public.diag_audios) then raise exception 'FALHOU T39 consultor vê áudio'; end if;
+end $$;
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$ begin
+  if not exists (select 1 from public.diag_audios) then raise exception 'FALHOU T39 técnico não vê o próprio áudio'; end if;
+  perform public.diag_transcrever_audio((select id from public.diag_audios limit 1), 'texto');
+  raise exception 'FALHOU T39 técnico transcreveu pela mesa';
+exception when raise_exception then
+  if sqlerrm like 'FALHOU%' or sqlerrm not like 'diag:nao_autorizado%' then raise; end if;
+end $$;
+-- coordenação: validar sem transcrição é recusado; transcreve e valida
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$
+declare fid uuid := (select id from public.diag_fichas where codigo = 'DSA-XAP-260928-T39A-01');
+  aid uuid := (select id from public.diag_audios where pergunta_chave = 'comunidade_problemas'
+               and ficha_id = (select id from public.diag_fichas where codigo = 'DSA-XAP-260928-T39A-01'));
+  r jsonb;
+begin
+  begin
+    perform public.diag_mudar_status(fid, 'validada');
+    raise exception 'FALHOU T39 validou com áudio sem transcrição';
+  exception when raise_exception then
+    if sqlerrm not like 'diag:audio_sem_transcricao%' then raise; end if;
+  end;
+  r := public.diag_transcrever_audio(aid, '  Estrada ruim no inverno e posto de saúde longe  ');
+  if r->>'texto' <> 'Estrada ruim no inverno e posto de saúde longe' or jsonb_array_length(r->'pendentes') <> 0 then raise exception 'FALHOU T39 transcrever %', r; end if;
+  if (select respostas->>'comunidade_problemas' from public.diag_fichas where id = fid) <> 'Estrada ruim no inverno e posto de saúde longe'
+    then raise exception 'FALHOU T39 resposta não gravada'; end if;
+  if exists (select 1 from public.diag_fichas f, jsonb_array_elements(f.alertas) a where f.id = fid and a->>'chave' = 'comunidade_problemas')
+    then raise exception 'FALHOU T39 alerta ficou'; end if;
+  if (select transcrito_por from public.diag_audios where id = aid) is distinct from '00000000-0000-0000-0000-0000000000c0'::uuid
+    then raise exception 'FALHOU T39 transcrito_por'; end if;
+  perform public.diag_mudar_status(fid, 'validada');
+end $$;
+reset role;
+-- retenção: validada há mais de 2 anos → áudio sai e o arquivo vai para a fila
+update public.diag_fichas set validado_em = now() - interval '3 years' where codigo = 'DSA-XAP-260928-T39A-01';
+select public.fn_diag_aplicar_retencao();
+do $$ begin
+  if exists (select 1 from public.diag_audios a join public.diag_fichas f on f.id = a.ficha_id where f.codigo = 'DSA-XAP-260928-T39A-01')
+    then raise exception 'FALHOU T39 retenção não apagou o áudio'; end if;
+  if not exists (select 1 from public.diag_expurgo_arquivos where bucket = 'diagnostico-audios'
+                 and caminho like '%a3900000-0000-0000-0000-0000000000a2.webm' and motivo = 'retencao_2_anos')
+    then raise exception 'FALHOU T39 retenção sem expurgo do arquivo'; end if;
+end $$;

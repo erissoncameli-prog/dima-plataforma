@@ -18,7 +18,7 @@
 //   conflito              servidor já validou/descartou (não reenviar)
 
 const DIAG_DB_NOME = 'dima_diag_v1'
-const DIAG_DB_VERSAO = 1
+const DIAG_DB_VERSAO = 2          // 2: store 'audios' (app 2.0.0)
 const DIAG_RETENCAO_CONFIRMADAS_MS = 7 * 24 * 3600 * 1000
 let _diagDb = null
 
@@ -35,6 +35,10 @@ function dOfflineInit() {
       }
       if (!db.objectStoreNames.contains('fotos')) {
         const s = db.createObjectStore('fotos', { keyPath: 'uuid_cliente' })
+        s.createIndex('ficha_uuid', 'ficha_uuid')
+      }
+      if (!db.objectStoreNames.contains('audios')) {
+        const s = db.createObjectStore('audios', { keyPath: 'uuid_cliente' })
         s.createIndex('ficha_uuid', 'ficha_uuid')
       }
       if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'chave' })
@@ -85,6 +89,8 @@ async function dFichaDescartarRascunho(uuid) {
   if (!f || f.estado !== 'rascunho') throw new Error('Só é possível descartar rascunho.')
   const fotos = await dFotosDaFicha(uuid)
   await Promise.all(fotos.map(ft => _dTx('fotos', 'readwrite', s => s.delete(ft.uuid_cliente))))
+  const audios = await dAudiosDaFicha(uuid)
+  await Promise.all(audios.map(a => dAudioApagar(a.uuid_cliente)))
   await _dTx('fichas', 'readwrite', s => s.delete(uuid))
 }
 
@@ -93,6 +99,8 @@ async function dFichaDescartarRascunho(uuid) {
 async function dFichaApagarLocal(uuid) {
   const fotos = await dFotosDaFicha(uuid)
   await Promise.all(fotos.map(ft => _dTx('fotos', 'readwrite', s => s.delete(ft.uuid_cliente))))
+  const audios = await dAudiosDaFicha(uuid)
+  await Promise.all(audios.map(a => dAudioApagar(a.uuid_cliente)))
   await _dTx('fichas', 'readwrite', s => s.delete(uuid))
 }
 
@@ -102,6 +110,14 @@ function dFotoObter(uuid) { return _dTx('fotos', 'readonly', s => s.get(uuid)) }
 function dFotoApagar(uuid) { return _dTx('fotos', 'readwrite', s => s.delete(uuid)) }
 function dFotosDaFicha(fichaUuid) {
   return _dTx('fotos', 'readonly', s => s.index('ficha_uuid').getAll(fichaUuid)).then(l => l || [])
+}
+
+// ── Áudios (bytes, nunca Blob — ver js/diag-audio.js) ──────────────────
+function dAudioSalvar(a) { return _dTx('audios', 'readwrite', s => s.put(a)).then(() => a) }
+function dAudioObter(uuid) { return _dTx('audios', 'readonly', s => s.get(uuid)) }
+function dAudioApagar(uuid) { return _dTx('audios', 'readwrite', s => s.delete(uuid)) }
+function dAudiosDaFicha(fichaUuid) {
+  return _dTx('audios', 'readonly', s => s.index('ficha_uuid').getAll(fichaUuid)).then(l => l || [])
 }
 
 // ── Cache de referência (questionário, municípios, comunidades, sugestões) ─
@@ -139,10 +155,11 @@ async function dLimparConfirmadas() {
   const limite = Date.now() - DIAG_RETENCAO_CONFIRMADAS_MS
   let n = 0
   for (const f of todas || []) {
-    // foto que ainda não subiu segura a ficha no aparelho (senão se perderia)
-    if (f.estado === 'enviada' && f.enviada_em && Date.parse(f.enviada_em) < limite && !f.fotos_pendentes) {
+    // foto ou áudio que ainda não subiu segura a ficha no aparelho (senão se perderia)
+    if (f.estado === 'enviada' && f.enviada_em && Date.parse(f.enviada_em) < limite && !f.fotos_pendentes && !f.audios_pendentes) {
       const fotos = await dFotosDaFicha(f.uuid_cliente)
       for (const ft of fotos) await dFotoApagar(ft.uuid_cliente)
+      for (const a of await dAudiosDaFicha(f.uuid_cliente)) await dAudioApagar(a.uuid_cliente)
       await _dTx('fichas', 'readwrite', s => s.delete(f.uuid_cliente))
       n++
     }

@@ -117,6 +117,7 @@ const DiagForm = (function () {
         (longo ? '>' + h(typeof v === 'string' && !nr ? v : '') + '</textarea>'
                : ' value="' + h(typeof v === 'string' && !nr ? v : '') + '">')
       if (p.sugestoes) corpo += renderChips(p.chave, 'resposta')
+      if (longo) corpo = renderAudio(p, v, nr, corpo)
     }
     return '<div class="pergunta' + (nr ? ' nr' : '') + (destacar ? ' destaque' : '') + '" data-chave="' + h(p.chave) + '" id="perg-' + h(p.chave) + '">' +
       cabecalhoPergunta(p) + corpo +
@@ -197,6 +198,37 @@ const DiagForm = (function () {
     })
     html += '<button type="button" class="btn btn-sec btn-bloco" data-acao="mor-adicionar">＋ Adicionar pessoa</button></div>'
     return html
+  }
+
+  // Gravação (v5): só pergunta de texto aberto, só com a autorização da família.
+  // A transcrição é o próprio campo de texto; o áudio é o apoio.
+  function renderAudio(p, v, nr, corpo) {
+    if (ctx.ficha.audio_autorizado !== true || !ctx.audios) return corpo
+    const a = ctx.audios[p.chave]
+    const semTexto = !(typeof v === 'string' && v.trim() && !nr)
+    if (a && semTexto) {
+      corpo = '<span class="selo-audio">áudio · a transcrever</span>' +
+        corpo.replace('<textarea class="campo"', '<textarea class="campo" placeholder="Transcrição (pode ser feita depois)"')
+    }
+    if (typeof window === 'undefined' || !window.DiagAudio || !DiagAudio.suportado()) {
+      return corpo + (a ? '<p class="dica">Gravação registrada.</p>' : '')
+    }
+    const maxS = ctx.estrutura.audio_max_s || 180
+    if (ctx.gravando && ctx.gravando() === p.chave) {
+      return corpo + '<div class="gravando" role="status"><span class="pt" aria-hidden="true"></span>' +
+        '<span><span class="t" id="grav-tempo">0:00</span><br><span class="lim">máx. ' + DiagAudio.fmt(maxS) + '</span></span>' +
+        '<button type="button" data-acao="audio-parar" data-chave="' + h(p.chave) + '">■ Parar</button></div>'
+    }
+    if (a) {
+      return corpo + '<div class="clip">' +
+        (a._url ? '<audio controls preload="metadata" src="' + h(a._url) + '"></audio>'
+                : '<span class="clip-enviado">Gravação enviada' + (a.duracao_s ? ' · ' + DiagAudio.fmt(a.duracao_s) : '') + '</span>') +
+        (a.enviada ? '' : '<button type="button" class="x" data-acao="audio-apagar" data-uuid="' + h(a.uuid_cliente) + '" aria-label="Apagar gravação">🗑</button>') +
+        '</div><button type="button" class="btn-gravar btn-gravar-sec" data-acao="audio-gravar" data-chave="' + h(p.chave) + '">' +
+        '<span class="pt" aria-hidden="true"></span>Gravar de novo</button>'
+    }
+    return corpo + '<div class="gr"><button type="button" class="btn-gravar" data-acao="audio-gravar" data-chave="' + h(p.chave) + '"' +
+      (nr ? ' disabled' : '') + '><span class="pt" aria-hidden="true"></span>Gravar resposta</button></div>'
   }
 
   function renderFotos() {
@@ -287,6 +319,15 @@ const DiagForm = (function () {
         break
       case 'foto-remover':
         ctx.aoRemoverFoto(el.dataset.uuid)
+        break
+      case 'audio-gravar':
+        ctx.aoGravarAudio(chave)
+        break
+      case 'audio-parar':
+        ctx.aoPararAudio()
+        break
+      case 'audio-apagar':
+        ctx.aoApagarAudio(el.dataset.uuid)
         break
     }
   }

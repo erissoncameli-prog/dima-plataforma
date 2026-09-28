@@ -402,6 +402,7 @@ const BUCKETS_PRIVADOS = [
   'tdrs-arquivos', 'contratos-docs', 'financeiro-docs',
   'entregas-docs', 'viagens-arquivos', 'produtos-evidencias', 'acervo-capas',
   'diagnostico-fotos',
+  'diagnostico-audios',
 ];
 
 // Extrai { bucket, path } de uma URL de storage nos formatos /public/ ou /sign/

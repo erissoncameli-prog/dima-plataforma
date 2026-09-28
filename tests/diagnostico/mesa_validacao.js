@@ -313,6 +313,49 @@ function semear() {
   ok('indicadores: supressão abaixo de 5, números do banco, recorte por comunidade e por sexo, planilha')
   psql("delete from public.diag_fichas where codigo like 'DSA-XAP-261002-IND%'")
 
+  // ── Áudio (v5): ouvir, transcrever; validar só com tudo transcrito ──
+  usuarioLogado = COORD
+  {
+    const q2 = psql("select id from public.diag_questionarios where codigo = 'DSA' and versao = 2")
+    const u3 = 'aaaa1111-0000-0000-0000-000000000003', a3 = 'a0000000-0000-0000-0000-0000000000a3'
+    psql("insert into storage.objects (bucket_id, name, owner) values ('diagnostico-audios', '" + u3 + "/" + a3 + ".webm', '" + TEC + "')")
+    const ficha = JSON.stringify({ uuid_cliente: u3, codigo: 'DSA-XAP-261002-MESA-03', questionario_id: q2, municipio_ibge: 1200708,
+      comunidade_id: '11111111-1111-1111-1111-111111111111', dt_entrevista: '2026-10-02', finalizada_em: new Date().toISOString(),
+      aviso_lido: true, aceitou_participar: true, audio_autorizado: true, respostas: { sexo_genero: 'mulher', idade: 50, qtd_moradores: 1 },
+      audios: [{ uuid_cliente: a3, pergunta_chave: 'comunidade_problemas', mime: 'audio/webm', duracao_s: 74, bytes: 120000,
+        arquivo_url: 'https://x.supabase.co/storage/v1/object/public/diagnostico-audios/' + u3 + '/' + a3 + '.webm' }] })
+    const mor = JSON.stringify([{ ordem: 1, idade: 50, sexo_genero: 'mulher', escolaridade: 'medio_completo', e_entrevistado: true }])
+    psql('select public.diag_enviar_ficha($a$' + ficha + '$a$::jsonb, $b$' + mor + '$b$::jsonb, $c$[]$c$::jsonb)', TEC)
+  }
+  await page.goto(BASE + '/pages/diagnostico.html?aba=validacao')
+  await page.locator('.dgv-tab').waitFor({ timeout: 15000 })
+  await linha('MESA-03').click()
+  await page.locator('#dgv-audios').waitFor({ timeout: 15000 })
+  if (!/1 resposta\(s\) gravada\(s\) sem transcrição/.test(await page.textContent('#dgv-audios'))) falhar('mesa sem o aviso de áudio sem transcrição')
+  if (!/P77 · Quais são os principais problemas/.test(await page.textContent('#dgv-audios')) && !/problemas da comunidade/.test(await page.textContent('#dgv-audios'))) falhar('pergunta do áudio não identificada')
+  await page.waitForFunction(() => /^data:/.test((document.querySelector('#dgv-audios audio') || {}).src || ''))
+  await page.click('#dgv-acoes .btn-primary')                      // Validar (sem transcrição)
+  await page.waitForTimeout(600)
+  if (consulta("select status from diag_fichas where codigo = 'DSA-XAP-261002-MESA-03'")[0].status !== 'enviada') falhar('validou com áudio sem transcrição')
+  await foto('mesa_audio')
+  await page.fill('#dgv-audios textarea', 'Estrada ruim no inverno; falta posto de saúde')
+  await page.click('#dgv-audios .btn-primary')
+  await page.locator('#dgv-audios .dgv-nota', { hasText: 'Transcrito por Coord' }).waitFor({ timeout: 15000 })
+  const tr = consulta("select respostas->>'comunidade_problemas' as txt, alertas from diag_fichas where codigo = 'DSA-XAP-261002-MESA-03'")[0]
+  if (tr.txt !== 'Estrada ruim no inverno; falta posto de saúde' || JSON.stringify(tr.alertas).includes('audio_sem_transcricao')) falhar('transcrição no banco: ' + JSON.stringify(tr))
+  await page.click('#dgv-acoes .btn-primary')
+  await page.locator('.dgv-g-topo .dgv-st-validada').waitFor({ timeout: 15000 })
+  // consultor externo: ficha sem a seção de áudios
+  usuarioLogado = CONS
+  await page.goto(BASE + '/pages/diagnostico.html?aba=validacao')
+  await page.locator('.dgv-chips').waitFor({ timeout: 15000 })
+  await page.click('.dgv-chip:has-text("Todas")')
+  await linha('MESA-03').click()
+  await page.locator('.dgv-g-corpo .dgv-bloco').first().waitFor()
+  if (await page.locator('#dgv-audios').count()) falhar('consultor viu os áudios')
+  usuarioLogado = COORD
+  ok('áudio: validar barrado sem transcrição, coordenação ouve (URL assinada) e transcreve, consultor não vê')
+
   // ── Privacidade · ROPA (pages/ropa.html): leitura + conferência no banco ──
   usuarioLogado = COORD
   await page.goto(BASE + '/pages/ropa.html')

@@ -1198,3 +1198,25 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
   texto aberto — voz identifica (mesma proteção das fotos), exige frase no aviso e
   autorização separada (→ v5). Decidir duração máxima (sugestão 3 min) e quem transcreve.
 
+### 6.15 Gravação de áudio nas respostas abertas *(etapa 1 — 28/09)*
+
+- **v5** do questionário: o aviso ganha o parágrafo da gravação; pergunta separada
+  "Autoriza gravar respostas em áudio?" (`diag_fichas.audio_autorizado`). Áudio só com `true`.
+- App 2.0.0 (`js/diag-audio.js`): botão **Gravar resposta** nas perguntas `texto_longo`,
+  cronômetro, limite `estrutura.audio_max_s` (180 s), uma gravação por pergunta
+  (gravar de novo substitui), ouvir/apagar antes de enviar. MediaRecorder mono
+  ~32 kbit/s (Android webm/opus, iPhone mp4/aac); guardado como **bytes** (store
+  `audios`, IndexedDB v2); sobe para o bucket privado `diagnostico-audios` como as fotos.
+- **A transcrição é a resposta de texto.** Pergunta gravada e sem texto não é pendência no
+  app; no banco vira alerta `audio_sem_transcricao`, e **validar é recusado** até transcrever
+  (trigger). Mesa: seção **Áudios** com player (URL assinada) e "Salvar transcrição"
+  (`diag_transcrever_audio`, registra quem/quando). Técnico também pode escrever no app.
+- LGPD: voz = identificação → `diag_audios` com a mesma regra das fotos (consultor não lê,
+  fora da exportação, retenção de 2 anos por trigger, arquivo pela fila de expurgo;
+  Edge `diag-expurgo` agora drena os dois buckets). ROPA TRAT-001 e RIPD atualizados.
+- **Transcrição por IA — decisão de 28/09:** o Claude (já usado no DIMA) não recebe áudio;
+  serviço de nuvem mandaria a voz para fora (art. 33) e tornaria falsa a frase do aviso.
+  **Etapa 2, depois do piloto:** testar IA local no navegador da mesa (a voz não sai do
+  computador) com gravações reais; se servir, botão "Sugerir transcrição" que a
+  coordenação confere. Se não servir, discutir nuvem com o jurídico.
+

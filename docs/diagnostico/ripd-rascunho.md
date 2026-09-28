@@ -72,6 +72,7 @@ sai da SEMA são números agregados (indicadores), sem identificação.
 | Composição do domicílio | idade, sexo/gênero, parentesco, escolaridade e ocupação de cada morador | pessoal; **inclui menores** |
 | Localização | comunidade, município, coordenada GPS da casa | pessoal (identifica a família) |
 | Fotos | moradia e entorno (água, esgoto, lixo, produção, acesso) — **nunca pessoas**. Desde 26/09 com **carimbo visível e EXIF**: GPS, data/hora e nome do entrevistador | pessoal (localiza a família; o próprio arquivo carrega a localização) |
+| Áudio | gravação de voz das respostas de texto aberto (até 3 min, uma por pergunta), **só com autorização separada** (v5, 28/09) | pessoal (a voz identifica a pessoa); pode conter o que a pessoa disser, inclusive dado sensível — mesma proteção das fotos: repositório privado, consultor não ouve, fora da exportação, apagado em 2 anos; transcrição digitada, **sem IA externa** |
 | Condição socioeconômica | fontes de renda, suficiência da renda, benefícios sociais, crédito, assistência técnica, produção | pessoal |
 | Dinâmica familiar | quem decide sobre dinheiro e produção | pessoal |
 | Participação social | participação em organizações, **inclusive sindicato** (P54/P55) | **sensível** (art. 5º, II) |

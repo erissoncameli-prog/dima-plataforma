@@ -1,9 +1,9 @@
 // diag-expurgo — drena a fila diag_expurgo_arquivos (Diagnóstico Socioambiental).
 //
-// Foto apagada pela coordenação, pela retenção de 2 anos ou pela limpeza do
-// modo treino some da tabela diag_fotos na hora; o ARQUIVO vai para a fila,
-// porque SQL não apaga objeto do Storage. Esta função remove os arquivos pela
-// API do Storage (service_role) e marca removido_em.
+// Foto (ou áudio) apagado pela coordenação, pela retenção de 2 anos, por
+// regravação ou pela limpeza do modo treino some da tabela na hora; o ARQUIVO
+// vai para a fila, porque SQL não apaga objeto do Storage. Esta função remove
+// os arquivos pela API do Storage (service_role) e marca removido_em.
 //
 // Agendada via pg_cron 'diag-expurgo-diario' (migração
 // 20260926_diag_11_exportacao_expurgo.sql), depois da rotina de retenção.
@@ -11,13 +11,14 @@
 // não apaga nada que não devesse.
 //
 // Travas:
-//   · só o bucket 'diagnostico-fotos';
-//   · só caminho no formato <uuid da ficha>/<uuid da foto>.<ext>;
-//   · caminho ainda referenciado por uma linha de diag_fotos NÃO é apagado
+//   · só os buckets 'diagnostico-fotos' e 'diagnostico-audios';
+//   · só caminho no formato <uuid da ficha>/<uuid do arquivo>.<ext>;
+//   · caminho ainda referenciado por uma linha de diag_fotos / diag_audios NÃO é apagado
 //     (fica na fila com o erro registrado para a coordenação conferir).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const BUCKET = 'diagnostico-fotos'
+// bucket → tabela que ainda pode apontar para o arquivo
+const TABELA: Record<string, string> = { 'diagnostico-fotos': 'diag_fotos', 'diagnostico-audios': 'diag_audios' }
 const LOTE = 50        // o filtro .or() de "ainda em uso" vai na URL: lote pequeno
 const MAX_LOTES = 40
 const CAMINHO_OK = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{2,5}$/i
@@ -53,42 +54,48 @@ Deno.serve(async () => {
 
     const validos: Item[] = []
     for (const it of fila as Item[]) {
-      if (it.bucket !== BUCKET) { await recusar(it, 'bucket fora do Diagnóstico'); continue }
-      if (!CAMINHO_OK.test(it.caminho)) { await recusar(it, 'caminho fora do padrão <ficha>/<foto>'); continue }
+      if (!TABELA[it.bucket]) { await recusar(it, 'bucket fora do Diagnóstico'); continue }
+      if (!CAMINHO_OK.test(it.caminho)) { await recusar(it, 'caminho fora do padrão <ficha>/<arquivo>'); continue }
       validos.push(it)
     }
-    if (!validos.length) continue
 
-    // arquivo ainda apontado por uma foto viva não sai
-    const { data: vivas, error: eViva } = await supabase
-      .from('diag_fotos').select('arquivo_url')
-      .or(validos.map(it => `arquivo_url.like.*/${BUCKET}/${it.caminho}`).join(','))
-    if (eViva) return json({ ok: false, erro: eViva.message, ...res }, 500)
-    const emUso = new Set((vivas || []).map(v => String(v.arquivo_url).replace(/^.*\/diagnostico-fotos\//, '')))
+    for (const bucket of Object.keys(TABELA)) {
+      const doBucket = validos.filter(it => it.bucket === bucket)
+      if (!doBucket.length) continue
+      const tabela = TABELA[bucket]
 
-    const apagar: Item[] = []
-    for (const it of validos) {
-      if (emUso.has(it.caminho)) await recusar(it, 'arquivo ainda referenciado em diag_fotos')
-      else apagar.push(it)
-    }
-    if (!apagar.length) continue
+      // arquivo ainda apontado por uma linha viva não sai
+      const { data: vivas, error: eViva } = await supabase
+        .from(tabela).select('arquivo_url')
+        .or(doBucket.map(it => `arquivo_url.like.*/${bucket}/${it.caminho}`).join(','))
+      if (eViva) return json({ ok: false, erro: eViva.message, ...res }, 500)
+      const prefixo = new RegExp('^.*/' + bucket + '/')
+      const emUso = new Set((vivas || []).map(v => String(v.arquivo_url).replace(prefixo, '')))
 
-    // remove() não falha para arquivo que já não existe (ex.: foto que nunca
-    // subiu): o objetivo — o arquivo não estar no bucket — está cumprido.
-    const { error: eRem } = await supabase.storage.from(BUCKET).remove(apagar.map(it => it.caminho))
-    if (eRem) {
-      res.erros += apagar.length
-      for (const it of apagar) {
-        await supabase.from('diag_expurgo_arquivos')
-          .update({ tentativas: it.tentativas + 1, ultimo_erro: eRem.message }).eq('id', it.id)
+      const apagar: Item[] = []
+      for (const it of doBucket) {
+        if (emUso.has(it.caminho)) await recusar(it, 'arquivo ainda referenciado em ' + tabela)
+        else apagar.push(it)
       }
-      continue
+      if (!apagar.length) continue
+
+      // remove() não falha para arquivo que já não existe (ex.: foto que nunca
+      // subiu): o objetivo — o arquivo não estar no bucket — está cumprido.
+      const { error: eRem } = await supabase.storage.from(bucket).remove(apagar.map(it => it.caminho))
+      if (eRem) {
+        res.erros += apagar.length
+        for (const it of apagar) {
+          await supabase.from('diag_expurgo_arquivos')
+            .update({ tentativas: it.tentativas + 1, ultimo_erro: eRem.message }).eq('id', it.id)
+        }
+        continue
+      }
+      const { error: eUpd } = await supabase.from('diag_expurgo_arquivos')
+        .update({ removido_em: agora(), ultimo_erro: null })
+        .in('id', apagar.map(it => it.id))
+      if (eUpd) return json({ ok: false, erro: eUpd.message, ...res }, 500)
+      res.removidos += apagar.length
     }
-    const { error: eUpd } = await supabase.from('diag_expurgo_arquivos')
-      .update({ removido_em: agora(), ultimo_erro: null })
-      .in('id', apagar.map(it => it.id))
-    if (eUpd) return json({ ok: false, erro: eUpd.message, ...res }, 500)
-    res.removidos += apagar.length
   }
 
   return json({ ok: true, ...res })

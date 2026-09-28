@@ -207,6 +207,7 @@
       case 'incoerente_com_moradores': return q + ': "não há" marcado, mas a P9 lista essa pessoa'
       case 'enviada_na_carencia': return 'Enviada após o vencimento do acesso (carência)'
       case 'comunidade_nova': return 'Comunidade nova — a coordenação vai cadastrar'
+      case 'audio_sem_transcricao': return q + ': resposta gravada em áudio, falta transcrever'
       default: return a.tipo
     }
   }
