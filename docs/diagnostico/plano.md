@@ -1243,3 +1243,15 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
   qualidade (sotaque, nomes locais, invenção em silêncio) e tempo (sem WebGPU ≈ 2–3× a duração).
   Se não servir: `ATIVA = false` (o botão some) ou trocar o modelo em `MODELOS`.
 
+
+### 6.17 Identidade do app: "Questionário Socioeconômico" *(28/09)*
+
+- Login e PIN: cartão do topo empilhado — brasão do Acre, **Questionário
+  Socioeconômico** em destaque, SEMA — com as logos no dobro do tamanho
+  (52 px e 24 px). Lado a lado não cabe em 360 px com esse tamanho.
+- "Diagnóstico Socioambiental" segue abaixo da Resiliência, menor, como nome
+  do projeto (e no aviso e na mesa).
+- `pwa/logos/acre.png` e `sema.png` regerados em 3x a partir de
+  `assets/brasao-acre.png` e `assets/sema-branco.png` (antes borravam).
+- PIN sem rolagem até 360×640: Resiliência encolhe (≤ 860 px de altura) e sai
+  (≤ 760 px); teclado aperta. App 2.0.1, service worker VERSAO 15.
