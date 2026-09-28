@@ -25,7 +25,7 @@ su postgres -c "$BIN/pg_ctl -D $TMP/data -o '-p $PORTA_PG -k $TMP' -l $TMP/log -
 export PGHOST="$TMP" PGPORT="$PORTA_PG" PGUSER=postgres PGDATABASE=postgres PGOPTIONS="-c client_min_messages=warning"
 PSQL=(psql -v ON_ERROR_STOP=1 -q -X)
 "${PSQL[@]}" -f "$RAIZ/supabase/tests/diagnostico/00_stub_supabase.sql"
-for f in "$RAIZ"/supabase/migrations/20260926_lgpd_tratamentos.sql "$RAIZ"/supabase/migrations/20260926_diag_[0-9][0-9]_*.sql; do
+for f in "$RAIZ"/supabase/migrations/20260926_lgpd_tratamentos.sql "$RAIZ"/supabase/migrations/2026????_diag_[0-9][0-9]_*.sql; do
   "${PSQL[@]}" -f "$f"
 done
 "${PSQL[@]}" <<'SQL'
@@ -42,8 +42,8 @@ insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate
  ('00000000-0000-0000-0000-0000000000c1','diagnostico_treino', now()-interval '1 day', now()+interval '30 days'),
  ('00000000-0000-0000-0000-0000000000c2','diagnostico', now()-interval '1 day', null);
 -- como em produção: v1 e v2 publicadas e depois arquivadas; v3 (com doutorado) publicada
-update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao in (1, 2, 3);
-update public.diag_questionarios set status = 'arquivado' where codigo = 'DSA' and versao in (1, 2);
+update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao in (1, 2, 3, 4);
+update public.diag_questionarios set status = 'arquivado' where codigo = 'DSA' and versao in (1, 2, 3);
 insert into public.diag_comunidades (id, municipio_ibge, nome)
  values ('11111111-1111-1111-1111-111111111111', 1200708, 'Seringal Cachoeira');
 insert into public.diag_localidades (id, comunidade_id, nome)

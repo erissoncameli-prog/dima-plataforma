@@ -200,6 +200,9 @@ const DiagForm = (function () {
   }
 
   function renderFotos() {
+    if (ctx.ficha.fotos_autorizadas === false) {
+      return '<div class="faixa faixa-aviso"><b>A família não autorizou fotos.</b> Nenhuma foto é registrada nesta ficha. Siga para a revisão.</div>'
+    }
     const n = (ctx.fotos || []).length
     let html = '<div class="faixa faixa-aviso"><b>Nunca fotografe pessoas.</b> Só a casa, a fonte de água, o esgoto, o lixo, a área de produção, o acesso ou o problema ambiental. A família pode recusar.</div>'
     html += '<div class="fotos">' + (ctx.fotos || []).map(ft =>

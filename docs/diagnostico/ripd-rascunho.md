@@ -95,6 +95,10 @@ A plataforma **não usa consentimento** como base legal: ele pode ser revogado a
 qualquer momento, e a revogação obrigaria a apagar fichas e a refazer indicadores
 já reportados. Isso não elimina o direito de informação: o entrevistado ouve um
 aviso antes de começar e pode recusar a entrevista, qualquer pergunta ou as fotos.
+Desde a v4 (28/09) a autorização das fotos é pedida **separadamente** e fica
+registrada na ficha (`fotos_autorizadas`); com "Não", o app não abre a câmera e o
+banco recusa foto daquela ficha. Uma coisa não depende da outra: não autorizar as
+fotos não impede a entrevista.
 
 **Ponto para o jurídico:** se nenhuma hipótese do art. 11 couber para a
 filiação sindical (P54/P55), a alternativa é **retirar** a pergunta, e não pedir

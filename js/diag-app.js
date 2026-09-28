@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '1.8.0'
+const DIAG_APP_VERSAO = '1.9.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -415,6 +415,7 @@ async function continuarNova() {
   if (temLoc) await dConfigSet('ultima_localidade', loc && loc !== '_nova' ? loc : null)
   document.getElementById('aviso-texto').textContent = q.aviso_entrevistado
   document.getElementById('aviso-lido').checked = false
+  document.querySelectorAll('input[name="aviso-fotos"]').forEach(r => { r.checked = false })
   document.getElementById('aviso-erro').hidden = true
   mostrar('t-aviso')
 }
@@ -423,8 +424,15 @@ async function decidirAviso(aceitou) {
   if (!lido) {
     const e = document.getElementById('aviso-erro'); e.textContent = 'Marque que o aviso foi lido.'; e.hidden = false; return
   }
+  // Fotos: autorização pedida SEPARADAMENTE (aviso v4). Só vale se aceitou;
+  // "Não" desliga a câmera e o banco recusa foto da ficha.
+  const fotosSel = document.querySelector('input[name="aviso-fotos"]:checked')
+  if (aceitou && !fotosSel) {
+    const e = document.getElementById('aviso-erro'); e.textContent = 'Marque se a família autoriza ou não as fotos.'; e.hidden = false; return
+  }
   const f = App.ficha
   f.aviso_lido = true; f.aceitou_participar = aceitou
+  f.fotos_autorizadas = aceitou ? fotosSel.value === 'sim' : null
   if (!aceitou) {
     f.estado = 'pronta'; f.finalizada_em = new Date().toISOString()
     await dFichaSalvar(f)
@@ -552,6 +560,7 @@ async function carregarFotos() {
 // tudo em js/diag-foto.js. Guardada como BYTES e relida na hora: se não voltar
 // íntegra do armazenamento, avisa já (é o único momento de tirar de novo).
 async function adicionarFoto(arquivo, tema, legenda) {
+  if (App.ficha.fotos_autorizadas === false) { aviso('A família não autorizou fotos nesta ficha.', 'aviso'); return }
   if (App.fotos.length >= 8) { aviso('Limite de 8 fotos por ficha.', 'aviso'); return }
   const f = App.ficha
   try {

@@ -102,6 +102,7 @@ function _dPayloadFicha(f) {
     lat: f.lat ?? null, lon: f.lon ?? null, gps_precisao_m: f.gps_precisao_m ?? null, gps_em: f.gps_em || null,
     app_versao: DIAG_APP_VERSAO, dispositivo_id: f.dispositivo_id || null, treino: !!f.treino,
     fotos_registradas: f.aceitou_participar ? (f._fotos_registradas || 0) : 0,
+    fotos_autorizadas: f.aceitou_participar && typeof f.fotos_autorizadas === 'boolean' ? f.fotos_autorizadas : null,
   }
 }
 
@@ -234,7 +235,7 @@ async function dSyncBaixarReferencias(usuarioId) {
 // atualiza o status das já enviadas (validada/descartada).
 async function _dSyncStatusDoServidor(usuarioId) {
   const { data: minhas, error } = await diagDb.from('diag_fichas')
-    .select('id,uuid_cliente,codigo,questionario_id,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,iniciada_em,finalizada_em,aviso_lido,aceitou_participar,respostas,status,motivo_devolucao,dispositivo_id,treino')
+    .select('id,uuid_cliente,codigo,questionario_id,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,iniciada_em,finalizada_em,aviso_lido,aceitou_participar,fotos_autorizadas,respostas,status,motivo_devolucao,dispositivo_id,treino')
     .eq('entrevistador_id', usuarioId)
   if (error || !minhas) return
   for (const s of minhas) {
@@ -274,7 +275,7 @@ async function _dSyncReconstruir(s, usuarioId) {
     municipio_ibge: s.municipio_ibge, comunidade_id: s.comunidade_id, comunidade_nova: s.comunidade_nova,
     localidade_id: s.localidade_id, localidade_nova: s.localidade_nova,
     dt_entrevista: s.dt_entrevista, iniciada_em: s.iniciada_em, finalizada_em: s.finalizada_em,
-    aviso_lido: s.aviso_lido, aceitou_participar: s.aceitou_participar, respostas: s.respostas || {},
+    aviso_lido: s.aviso_lido, aceitou_participar: s.aceitou_participar, fotos_autorizadas: s.fotos_autorizadas, respostas: s.respostas || {},
     moradores: (mor.data || []).map(m => { const o = Object.assign({}, m, { nome: nomePor[m.id] || '' }); delete o.id; return o }),
     entrevistado_nome: id.entrevistado_nome || '', obs_localizacao: id.obs_localizacao || '',
     lat: id.lat ?? null, lon: id.lon ?? null, gps_precisao_m: id.gps_precisao_m ?? null, gps_em: id.gps_em || null,

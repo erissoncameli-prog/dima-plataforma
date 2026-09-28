@@ -173,7 +173,7 @@ async function dgExpPlanilha(d, status) {
   const colF = [
     { h: 'Código', k: 'codigo', w: 26 }, { h: 'Versão', k: 'versao', w: 8 }, { h: 'Situação', k: 'status', w: 14 },
     { h: 'Município', k: 'municipio' }, { h: 'Comunidade', k: 'comunidade', w: 26 }, { h: 'Comunidade nova (não cadastrada)', k: 'com_nova', w: 12 },
-    { h: 'Sublocalidade', k: 'localidade', w: 22 }, { h: 'Data da entrevista', k: 'dt', w: 12 }, { h: 'Aceitou participar', k: 'aceitou', w: 10 },
+    { h: 'Sublocalidade', k: 'localidade', w: 22 }, { h: 'Data da entrevista', k: 'dt', w: 12 }, { h: 'Aceitou participar', k: 'aceitou', w: 10 }, { h: 'Fotos autorizadas', k: 'fotos_aut', w: 10 },
     { h: 'Enviada em', k: 'enviado', w: 16 }, { h: 'Validada em', k: 'validado', w: 16 }, { h: 'Avisos', k: 'avisos', w: 8 },
   ]
   if (gerir) colF.push({ h: 'Entrevistador(a)', k: 'entrevistador', w: 22 }, { h: 'Motivo da devolução', k: 'motivo', w: 30 })
@@ -193,7 +193,7 @@ async function dgExpPlanilha(d, status) {
     const lin = {
       codigo: f.codigo, versao: q.versao, status: ROT[f.status] || f.status, municipio: f.municipio, comunidade: f.comunidade,
       com_nova: f.comunidade_nova ? 'Sim' : 'Não', localidade: f.localidade || '', dt: data(f.dt_entrevista),
-      aceitou: f.aceitou_participar ? 'Sim' : 'Não', enviado: data(f.enviado_em), validado: data(f.validado_em),
+      aceitou: f.aceitou_participar ? 'Sim' : 'Não', fotos_aut: f.fotos_autorizadas === true ? 'Sim' : f.fotos_autorizadas === false ? 'Não' : '', enviado: data(f.enviado_em), validado: data(f.validado_em),
       avisos: (f.alertas || []).length, entrevistador: f.entrevistador || '', motivo: f.motivo_devolucao || '',
       nome: f.entrevistado_nome || '', lat: f.lat ?? '', lon: f.lon ?? '', gps: f.gps_precisao_m ?? '', obs: f.obs_localizacao || '',
       apagada: f.identificacao_apagada ? 'Sim' : '',

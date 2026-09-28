@@ -205,6 +205,16 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 
 ## Bloco 8 — Organização social e participação (P54–P59)
 
+> **Mudou na v4 (28/09/2026):** entrou a **P55 `participa_org_tipos`** (múltipla:
+> Associação comunitária · Cooperativa · Sindicato · Grupo de mulheres · Grupo de
+> jovens · Grupo de produtores rurais · Organização indígena ou tradicional · Grupo
+> religioso · Outro (especificar)) — **sensível** (sindicato, religião, origem
+> étnica). A antiga P55 virou **P56** com a mesma chave `participa_org_quais`,
+> agora pedindo o **nome** da organização (texto, mais de uma separada por
+> vírgula, com sugestões). Da antiga P56 em diante, todas sobem um número (a
+> tabela abaixo é a numeração da v1–v3). S8: P54 = Não pula P55 e P56.
+> "Não sabe / Não respondeu" = botão **Não respondeu** (`_nr`), não é opção.
+
 | Nº | Chave | Pergunta | Tipo | Opções | Nível | LGPD |
 |----|-------|----------|------|--------|-------|------|
 | 54 | `participa_org` | Participa de associação, cooperativa, **sindicato**, grupo…? | unica | Sim · Não | R | **S** |

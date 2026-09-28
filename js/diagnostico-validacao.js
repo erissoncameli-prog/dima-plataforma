@@ -30,7 +30,7 @@ async function dgValCarregar(forcar) {
   if (dgVal.carregado && !forcar) { dgValDesenhar(); return }
   el.innerHTML = '<div class="card"><p style="font-size:13px;color:var(--cinza-500)">Carregando fichas…</p></div>'
   const [fic, mun, com, loc] = await Promise.all([
-    db.from('diag_fichas').select('id,codigo,status,treino,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,entrevistador_id,alertas,aceitou_participar,enviado_em,questionario_id,motivo_devolucao,validado_em,fotos_registradas')
+    db.from('diag_fichas').select('id,codigo,status,treino,municipio_ibge,comunidade_id,comunidade_nova,localidade_id,localidade_nova,dt_entrevista,entrevistador_id,alertas,aceitou_participar,enviado_em,questionario_id,motivo_devolucao,validado_em,fotos_registradas,fotos_autorizadas')
       .order('enviado_em', { ascending: false }),
     db.from('diag_municipios').select('ibge,nome'),
     db.from('diag_comunidades').select('id,nome'),
@@ -222,6 +222,7 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist) {
         : 'Sem nome e sem GPS registrados.'}</div>` : ''}
       ${blocos || '<p style="color:var(--cinza-500);font-size:13px">Sem respostas.</p>'}
       ${dgPodeGerir ? `<div class="dgv-bloco"><h3>Fotos (${fotos.length}${f.fotos_registradas != null ? ' de ' + f.fotos_registradas + ' registrada' + (f.fotos_registradas === 1 ? '' : 's') : ''})</h3>
+        ${f.fotos_autorizadas === false ? '<p class="dgv-nota dgv-fotos-nao">A família <b>não autorizou</b> fotos.</p>' : f.fotos_autorizadas === true ? '<p class="dgv-nota">Fotos autorizadas pela família.</p>' : ''}
         ${f.fotos_registradas != null && fotos.length < f.fotos_registradas ? `<div class="dgv-avisos dgv-fotos-faltam">⚠ O técnico registrou <b>${f.fotos_registradas}</b> foto${f.fotos_registradas === 1 ? '' : 's'}; chegaram <b>${fotos.length}</b>.
           As demais ainda estão no celular (sobem na próxima sincronização) ou se perderam no aparelho.</div>` : ''}
         ${fotos.length ? `<div class="dgv-fotos">${fotos.map(ft =>

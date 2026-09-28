@@ -332,3 +332,10 @@ body.treino .topo { top: 28px; background: #7C2D12; }
 :root { --guia-cor: var(--verde-medio); --font-sans: var(--ff); --font-display: var(--ff);
         --guia-fab-bottom: calc(96px + env(safe-area-inset-bottom)); }
 #ini-guia .guia-convite { margin-bottom: 12px; }
+
+/* ── Aviso ao entrevistado: parágrafos + autorização separada das fotos ── */
+.aviso-texto { font-size: 18px; white-space: pre-line; line-height: 1.5; }
+.aviso-fotos { border: 1px solid var(--cinza-200); border-radius: var(--raio); padding: 12px 12px 4px; margin: 12px 0 0; background: var(--branco); }
+.aviso-fotos legend { float: left; width: 100%; font-weight: 700; padding: 0; margin-bottom: 4px; font-size: 16px; }
+.aviso-fotos legend + * { clear: both; }
+.aviso-fotos .opcao { margin-top: 6px; }
