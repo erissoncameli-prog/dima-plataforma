@@ -248,7 +248,7 @@ const DiagForm = (function () {
       html += '<label class="rot" for="foto-tema">O que vai fotografar?</label><select class="campo" id="foto-tema">' +
         Object.keys(ROTULO_TEMA).map(k => '<option value="' + k + '">' + ROTULO_TEMA[k] + '</option>').join('') + '</select>' +
         '<label class="rot" for="foto-legenda">Legenda (opcional)</label><input class="campo" id="foto-legenda" maxlength="200">' +
-        '<label class="btn btn-prim btn-bloco" style="margin-top:12px">📷 Tirar foto<input type="file" accept="image/*" capture="environment" data-acao="foto" hidden></label>'
+        '<label class="btn btn-prim btn-bloco" style="margin-top:12px"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg>Tirar foto<input type="file" accept="image/*" capture="environment" data-acao="foto" hidden></label>'
     } else {
       html += '<p class="dica">Limite de 8 fotos por ficha.</p>'
     }

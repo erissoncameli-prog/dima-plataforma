@@ -1253,3 +1253,27 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
   `assets/brasao-acre.png` e `assets/sema-branco.png` (antes borravam).
 - PIN sem rolagem até 360×640: em tela ≤ 680 px de altura a Resiliência sai
   do PIN. App 2.0.2, service worker VERSAO 16.
+
+### 6.18 Redesign visual do app de campo + tema claro/escuro *(29/09)*
+
+- Proposta aprovada a partir de telas-modelo (antes × depois). Só visual: regras,
+  banco, envio, offline e permissões intocados.
+- **Design system** em tokens (`css/diagnostico-app.css`): paleta do projeto
+  modernizada, estados (ok/alerta/erro/info/treino), escala 4/8, raios
+  (10/12/14/18/24), tipografia do sistema (SF/Roboto, sem download), sombras leves,
+  movimento curto (160–320 ms, easing .22,1,.36,1) e `prefers-reduced-motion`.
+  Contraste AA conferido nos dois temas.
+- **Tema** claro/escuro: escolha na 1ª abertura (antes do login) e em
+  Configurações › Aparência; só no aparelho (`diag_tema`). Barra de status do
+  iPhone segue o tema; se o iOS mantiver a translúcida, a faixa da área segura do
+  topo é verde-escura e a hora continua legível.
+- Telas: topo de vidro (grande no início, com o título da aba e seletor
+  segmentado), contadores num só cartão, lista com ícone de situação e estado
+  vazio, opções com 52 px de toque, "Não respondeu" discreto, revisão agrupada por
+  bloco, Meu painel com números em destaque e barras animadas, Configurações em
+  lista agrupada, aviso (toast) em pílula no topo, modais como folha de baixo no
+  celular. Ícones num sprite SVG único (sem emoji).
+- Navegação do bloco continua **no fim do bloco, não fixa** (decisão de 26/09).
+- App 2.1.0, service worker VERSAO 17 (`js/diag-tema.js` no shell offline).
+- Teste e2e cobre a escolha do tema e a troca em Configurações; `TEMA=escuro`
+  roda o fluxo inteiro no escuro (capturas com `SHOTS`).

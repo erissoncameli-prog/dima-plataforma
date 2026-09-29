@@ -435,6 +435,14 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   ficha aberta, validar/devolver/descartar/reabrir **só pela RPC `diag_mudar_status`**,
   apagar foto; consultor externo vê a aba "Fichas" só leitura, sem identificação) e
   aba Admin (comunidades e sublocalidades).
+- **Visual do app de campo** (2.1.0): design system em tokens no topo de
+  `css/diagnostico-app.css` (cores, escala 4/8, raios, tipografia, movimento) —
+  valor novo entra como token, nunca solto. Tema **claro/escuro** escolhido pela
+  pessoa na 1ª abertura (`#ov-tema`) e em Configurações, guardado só no aparelho
+  (`localStorage diag_tema`, `js/diag-tema.js`) e aplicado no `<head>` antes de
+  pintar. Ícones: sprite SVG no HTML via `ic(nome)` — sem emoji. Login e PIN ficam
+  no verde da marca nos dois temas. O motor do guia (SIGUC) não é editado: o escuro
+  dele é sobrescrito em `diagnostico-app.css`.
 - App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +
   `gerarLayout`; não chama `carregarUsuario()`), service worker na raiz
   `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.
