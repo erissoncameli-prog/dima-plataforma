@@ -390,7 +390,12 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   v2, com doutorado na v3; na v4 aviso novo em parágrafos, P55 `participa_org_tipos`
   (múltipla, **sensível**) e P56 = `participa_org_quais` (mesma chave, pede o nome);
   demais +1; na v5 o aviso ganha a gravação de áudio e `estrutura.audio_max_s = 180`;
-  v1–v4 arquivadas). Coluna `unica` da P9 é
+  v1–v4 arquivadas). **v6 em rascunho** (migração `20260929_diag_18_v6_apa`): bloco 7
+  "A APA e a situação da terra" (P46–P53, demais +8, 90 perguntas) — testar no modo
+  treino; publicar só com o texto da APA aprovado (publicada = imutável). Textos para
+  **ler ao entrevistado** ficam em `estrutura.leituras` (ex.: `apa`) e aparecem como
+  botão na pergunta com `"leitura": "<id>"` (`js/diag-form.js`, `#ov-leitura`); são
+  só exibição, fora do interpretador. Coluna `unica` da P9 é
   validada por `fn_diag_validar_moradores` contra as opções da versão da ficha.
 - **Autorização das fotos** é separada da participação: `diag_fichas.fotos_autorizadas`
   (pergunta na tela do aviso, app 1.9.0; NULL = ficha anterior ou recusa).
