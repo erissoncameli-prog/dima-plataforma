@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1F4E2C">
+<meta name="theme-color" content="#F3F5F3">
 <title>Diagnóstico Socioambiental · DIMA</title>
 <link rel="manifest" href="../pwa/diagnostico.webmanifest">
 <link rel="icon" href="../pwa/diagnostico-icone.svg" type="image/svg+xml">
@@ -12,6 +12,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Diagnóstico">
+<!-- tema escolhido pela pessoa, aplicado antes de pintar (js/diag-tema.js tem a mesma regra) -->
+<script>(function(){var t='claro';try{t=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){}
+document.documentElement.dataset.tema=t;var m=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(m)m.content=t==='escuro'?'black-translucent':'default';
+m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'?'#0B120E':'#F3F5F3'})()</script>
 <link rel="stylesheet" href="../css/pin-baralho.css">
 <link rel="stylesheet" href="../css/guia-app.css">
 <link rel="stylesheet" href="../css/diagnostico-app.css">
@@ -24,6 +28,25 @@
   — que desloga após 30 min sem uso, certo para a mesa e fatal no campo.
   Plano: docs/diagnostico/plano.md (§4.5, §5).
 -->
+
+<!-- ícones do app: um só traço (1.8), usados com <svg class="ic"><use href="#i-…"/></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-voltar" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+<symbol id="i-config" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-sync" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-ficha" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></symbol>
+<symbol id="i-subir" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+<symbol id="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-devolvida" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+<symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+<symbol id="i-vazio" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+<symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-lua" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+</defs></svg>
 
 <div class="faixa-treino" id="faixa-treino" role="status" hidden>MODO TREINO · dados de teste</div>
 
@@ -49,7 +72,7 @@
     <button class="btn btn-prim btn-bloco" style="margin-top:16px" type="submit" id="btn-login">Entrar</button>
     <p class="dica">O primeiro acesso precisa de internet. Depois, o app abre com um PIN, mesmo sem sinal.</p>
   </form>
-  <button type="button" class="link lg-instalar" id="btn-login-instalar" hidden>📲 Instalar o app neste celular</button>
+  <button type="button" class="link lg-instalar" id="btn-login-instalar" hidden>Instalar o app neste celular</button>
   </div>
   <footer class="lg-rodape">
     <small>Realização e apoio</small>
@@ -93,16 +116,19 @@
 
 <!-- início -->
 <section id="t-inicio" hidden>
-  <header class="topo">
-    <h1>Diagnóstico<small id="ini-usuario"></small></h1>
-    <span class="mini-marca" aria-hidden="true"><img class="p" src="../pwa/logos/resiliencia-simbolo.png" alt=""><img class="s" src="../pwa/logos/sema.png" alt=""></span>
-    <span class="rede" id="ini-rede">…</span>
-    <button type="button" class="btn-icone" id="btn-config" aria-label="Configurações">⚙</button>
+  <header class="topo topo-ini">
+    <div class="topo-linha">
+      <span class="mini-marca" aria-hidden="true"><img class="p" src="../pwa/logos/resiliencia-simbolo.png" alt=""><img class="s" src="../pwa/logos/sema.png" alt=""></span>
+      <span class="esp"></span>
+      <span class="rede" id="ini-rede">…</span>
+      <button type="button" class="btn-icone" id="btn-config" aria-label="Configurações"><svg class="ic"><use href="#i-config"/></svg></button>
+    </div>
+    <div class="topo-tit"><small id="ini-usuario"></small><h1 id="ini-titulo">Entrevistas</h1></div>
+    <div class="abas-ini seg" role="tablist" aria-label="Seções do início">
+      <button type="button" role="tab" id="aba-entrevistas" aria-selected="true">Entrevistas</button>
+      <button type="button" role="tab" id="aba-painel" aria-selected="false">Meu painel</button>
+    </div>
   </header>
-  <div class="abas-ini" role="tablist">
-    <button type="button" role="tab" id="aba-entrevistas" aria-selected="true">Entrevistas</button>
-    <button type="button" role="tab" id="aba-painel" aria-selected="false">Meu painel</button>
-  </div>
   <div class="tela">
     <div id="ini-guia"></div>
     <div id="ini-avisos"></div>
@@ -114,8 +140,8 @@
       <div class="contador"><b id="c-fila">0</b><span>na fila</span></div>
       <div class="contador"><b id="c-enviada">0</b><span>enviadas</span></div>
     </div>
-    <button type="button" class="btn btn-prim btn-bloco" id="btn-nova">＋ Nova entrevista</button>
-    <button type="button" class="btn btn-sec btn-bloco" style="margin-top:10px" id="btn-sync">⟳ Sincronizar</button>
+    <button type="button" class="btn btn-prim btn-bloco" id="btn-nova"><svg class="ic"><use href="#i-mais"/></svg>Nova entrevista</button>
+    <button type="button" class="btn btn-sec btn-bloco" id="btn-sync"><svg class="ic"><use href="#i-sync"/></svg>Sincronizar</button>
     <p class="dica" id="ini-ultima-sync" style="text-align:center"></p>
     <div id="ini-lista"></div>
     </div>
@@ -134,7 +160,7 @@
 <!-- nova entrevista: local -->
 <section id="t-nova" hidden>
   <header class="topo">
-    <button type="button" class="btn-icone" data-voltar="t-inicio" aria-label="Voltar">←</button>
+    <button type="button" class="btn-icone" data-voltar="t-inicio" aria-label="Voltar"><svg class="ic"><use href="#i-voltar"/></svg></button>
     <h1>Nova entrevista</h1>
   </header>
   <div class="tela">
@@ -166,7 +192,7 @@
 <!-- aviso ao entrevistado -->
 <section id="t-aviso" hidden>
   <header class="topo">
-    <button type="button" class="btn-icone" data-voltar="t-nova" aria-label="Voltar">←</button>
+    <button type="button" class="btn-icone" data-voltar="t-nova" aria-label="Voltar"><svg class="ic"><use href="#i-voltar"/></svg></button>
     <h1>Aviso ao entrevistado</h1>
   </header>
   <div class="tela">
@@ -195,7 +221,7 @@
 <!-- ficha -->
 <section id="t-ficha" hidden>
   <header class="topo">
-    <button type="button" class="btn-icone" id="btn-ficha-sair" aria-label="Voltar ao início">←</button>
+    <button type="button" class="btn-icone" id="btn-ficha-sair" aria-label="Voltar ao início"><svg class="ic"><use href="#i-voltar"/></svg></button>
     <h1><span id="ficha-codigo"></span><small id="ficha-bloco"></small>
       <div class="progresso" aria-hidden="true"><i id="ficha-prog" style="width:0"></i></div></h1>
     <span class="mini-marca" aria-hidden="true"><img class="p" src="../pwa/logos/resiliencia-simbolo.png" alt=""><img class="s" src="../pwa/logos/sema.png" alt=""></span>
@@ -209,14 +235,14 @@
     <nav class="fim-bloco" id="bloco-nav" aria-label="Navegação entre blocos">
       <p id="fim-bloco-txt"></p>
       <div class="linha">
-        <button type="button" class="btn btn-sec" id="btn-anterior">← Anterior</button>
-        <button type="button" class="btn btn-prim" id="btn-proximo">Próximo →</button>
+        <button type="button" class="btn btn-sec" id="btn-anterior">Anterior</button>
+        <button type="button" class="btn btn-prim" id="btn-proximo">Próximo</button>
       </div>
     </nav>
     <nav class="fim-bloco pend-nav" id="pend-nav" aria-label="Navegação entre pendências" hidden>
       <div class="linha">
-        <button type="button" class="btn btn-sec" id="btn-pend-anterior">← Anterior</button>
-        <button type="button" class="btn btn-prim" id="btn-pend-proxima">Próxima pendência →</button>
+        <button type="button" class="btn btn-sec" id="btn-pend-anterior">Anterior</button>
+        <button type="button" class="btn btn-prim" id="btn-pend-proxima">Próxima pendência</button>
       </div>
       <button type="button" class="btn-link" id="btn-pend-revisao">Voltar à revisão</button>
     </nav>
@@ -226,7 +252,7 @@
 <!-- revisão antes de salvar -->
 <section id="t-revisao" hidden>
   <header class="topo">
-    <button type="button" class="btn-icone" id="btn-revisao-voltar" aria-label="Voltar à ficha">←</button>
+    <button type="button" class="btn-icone" id="btn-revisao-voltar" aria-label="Voltar à ficha"><svg class="ic"><use href="#i-voltar"/></svg></button>
     <h1>Revisão<small id="revisao-codigo"></small></h1>
   </header>
   <div class="tela">
@@ -243,13 +269,22 @@
 <!-- configurações (mesmo conjunto dos apps de campo do SIGUC, no que cabe aqui) -->
 <section id="t-config" hidden>
   <header class="topo">
-    <button type="button" class="btn-icone" data-voltar="t-inicio" aria-label="Voltar">←</button>
+    <button type="button" class="btn-icone" data-voltar="t-inicio" aria-label="Voltar"><svg class="ic"><use href="#i-voltar"/></svg></button>
     <h1>Configurações</h1>
   </header>
   <div class="tela">
     <div class="cartao cfg-perfil">
       <span class="cfg-avatar" id="cfg-avatar">?</span>
       <div><b id="cfg-nome">—</b><span class="sub" id="cfg-perfil"></span><span class="sub" id="cfg-aparelho"></span></div>
+    </div>
+
+    <div class="cartao">
+      <p class="cfg-rot" id="cfg-tema-rot">Aparência</p>
+      <div class="seg" role="group" aria-labelledby="cfg-tema-rot">
+        <button type="button" id="cfg-tema-claro" data-cfg-tema="claro" aria-pressed="false"><svg class="ic"><use href="#i-sol"/></svg>Claro</button>
+        <button type="button" id="cfg-tema-escuro" data-cfg-tema="escuro" aria-pressed="false"><svg class="ic"><use href="#i-lua"/></svg>Escuro</button>
+      </div>
+      <p class="sub" style="margin-top:8px">Vale só neste aparelho. O claro lê melhor sob sol forte.</p>
     </div>
 
     <div class="cartao">
@@ -287,6 +322,22 @@
 </section>
 
 <!-- sobreposições (fora das <section>: mostrar() não as esconde) -->
+<!-- 1ª abertura: escolha do tema (js/diag-tema.js → perguntar) -->
+<div class="ov" id="ov-tema" hidden role="dialog" aria-modal="true" aria-labelledby="ov-tema-tit">
+  <div class="ov-cartao">
+    <h3 id="ov-tema-tit">Como prefere ver o app?</h3>
+    <p class="dica" style="margin:0">Dá para trocar depois em Configurações.</p>
+    <div class="tema-opcoes">
+      <button type="button" class="tema-op" data-tema="claro" id="tema-op-claro" aria-pressed="true">
+        <span class="tema-mini claro" aria-hidden="true"><i class="t1"></i><i class="t2"></i><i class="t3"></i><i class="t4"></i></span>
+        Claro<small>melhor sob sol forte</small></button>
+      <button type="button" class="tema-op" data-tema="escuro" id="tema-op-escuro" aria-pressed="false">
+        <span class="tema-mini escuro" aria-hidden="true"><i class="t1"></i><i class="t2"></i><i class="t3"></i><i class="t4"></i></span>
+        Escuro<small>descansa a vista à noite</small></button>
+    </div>
+    <button type="button" class="btn btn-prim btn-bloco" id="btn-tema-ok">Continuar</button>
+  </div>
+</div>
 <div class="ov" id="ov-qr" hidden role="dialog" aria-modal="true" aria-labelledby="ov-qr-tit">
   <div class="ov-cartao">
     <h3 id="ov-qr-tit">Instalar em outro aparelho</h3>
@@ -333,6 +384,7 @@
 <script src="../js/diag-form.js"></script>
 <script src="../js/guia-app.js"></script>
 <script src="../js/diag-guia.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script src="../js/diag-app.js"></script>
 </body>
 </html>

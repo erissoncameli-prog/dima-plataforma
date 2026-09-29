@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '2.0.2'
+const DIAG_APP_VERSAO = '2.1.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -74,13 +74,18 @@ function aplicarFaixaTreino() {
 async function questionarioAtual() {
   return App.treinoAtivo ? dCacheGet('questionario_treino') : dCacheGet('questionario')
 }
+// ícone do sprite de pages/diagnostico-app.html
+function ic(nome) { return '<svg class="ic" aria-hidden="true"><use href="#i-' + nome + '"/></svg>' }
+// aviso (toast): pílula no topo que some sozinha; um de cada vez
 function aviso(msg, tipo) {
-  const cores = { ok: '#047857', erro: '#B91C1C', info: '#1D4ED8', aviso: '#B45309' }
+  tipo = tipo || 'info'
+  document.querySelectorAll('.aviso-flutuante').forEach(a => a.remove())
   const el = document.createElement('div')
-  el.className = 'aviso-flutuante'; el.setAttribute('role', 'status')
-  el.style.background = cores[tipo || 'info']; el.textContent = msg
+  el.className = 'aviso-flutuante ' + tipo; el.setAttribute('role', tipo === 'erro' ? 'alert' : 'status')
+  el.innerHTML = '<span class="pt">' + ic({ ok: 'ok', erro: 'alerta', aviso: 'alerta', info: 'info' }[tipo] || 'info') + '</span><span></span>'
+  el.lastChild.textContent = msg
   document.body.appendChild(el)
-  setTimeout(() => el.remove(), 3800)
+  setTimeout(() => { el.classList.add('saindo'); setTimeout(() => el.remove(), 260) }, 3500)
 }
 function uuid() {
   if (crypto.randomUUID) return crypto.randomUUID()
@@ -110,6 +115,8 @@ async function boot() {
   // fotos antigas (Blob) → bytes; as que voltarem vazias ficam marcadas como perdidas
   dFotosMigrarLegado().catch(e => console.warn('[diag-app] migração de fotos:', e))
   ligarEventos()
+  // 1ª abertura neste aparelho: a pessoa escolhe o tema antes de tudo
+  if (!DiagTema.escolhido()) await DiagTema.perguntar()
   App.usuario = await dConfigGet('usuario_atual')
   if (App.usuario && await dConfigGet('pin_' + App.usuario.id)) abrirPin('entrar')
   else mostrar('t-login')
@@ -261,7 +268,7 @@ async function irInicio() {
 async function desenharInicio() {
   await carregarTreino()
   const u = App.usuario
-  document.getElementById('ini-usuario').textContent = u.nome_completo
+  document.getElementById('ini-usuario').textContent = 'Olá, ' + String(u.nome_completo || '').trim().split(/\s+/)[0]
   atualizarRede()
   const fichas = await dFichasDoUsuario(u.id)
   const q = await questionarioAtual()
@@ -306,31 +313,34 @@ async function desenharInicio() {
       const mun = (municipios.find(m => m.ibge === f.municipio_ibge) || {}).nome || ''
       const selo = f.status_servidor === 'validada' ? 'validada' : f.status_servidor === 'devolvida' && f.estado !== 'enviada' ? 'devolvida' : f.estado
       const rot = selo === 'validada' ? 'validada' : selo === 'devolvida' ? 'devolvida' : ROTULO_ESTADO[f.estado]
+      const icEst = { rascunho: 'ficha', pronta: 'subir', enviando: 'subir', enviada: 'ok', validada: 'ok', devolvida: 'devolvida' }[selo] || 'alerta'
       return '<button type="button" class="item-ficha" data-uuid="' + esc(f.uuid_cliente) + '">' +
+        '<span class="est est-' + esc(selo) + '">' + ic(icEst) + '</span>' +
         '<span class="meio"><span class="cod">' + esc(f.codigo) + (f.treino ? ' <span class="selo selo-treino">treino</span>' : '') + '</span>' +
         '<span class="sub">' + esc([loc ? com + ' / ' + loc : com, mun, f.aceitou_participar ? '' : 'recusa'].filter(Boolean).join(' · ')) + '</span>' +
         (f.erro_msg ? '<span class="sub" style="color:var(--erro)">' + esc(f.erro_msg) + '</span>' : '') +
         (f.estado === 'enviada' && (f.fotos_nao_enviadas || f.fotos_perdidas)
-          ? '<span class="sub" style="color:var(--aviso)">⚠ ' + [f.fotos_nao_enviadas ? f.fotos_nao_enviadas + ' foto(s) ainda não enviada(s) — toque em Sincronizar' : '',
+          ? '<span class="sub" style="color:var(--aviso)">' + [f.fotos_nao_enviadas ? f.fotos_nao_enviadas + ' foto(s) ainda não enviada(s) — toque em Sincronizar' : '',
               f.fotos_perdidas ? f.fotos_perdidas + ' foto(s) perdida(s) no celular' : ''].filter(Boolean).join(' · ') + '</span>' : '') +
         (f.motivo_devolucao && f.status_servidor === 'devolvida' ? '<span class="sub" style="color:var(--aviso)">' + esc(f.motivo_devolucao) + '</span>' : '') +
         '</span><span class="selo selo-' + esc(selo) + '">' + esc(rot) + '</span></button>'
-    }).join('')).join('') || '<p class="dica" style="text-align:center;margin-top:24px">Nenhuma entrevista neste aparelho.</p>'
+    }).join('')).join('') ||
+    '<div class="vazio"><span class="est">' + ic('vazio') + '</span><b>Nenhuma entrevista neste aparelho</b>As fichas que você fizer aqui aparecem nesta lista.</div>'
 }
 
 async function atualizarRede() {
   const el = document.getElementById('ini-rede')
   const on = diagDb && await dSyncTemConexao()
-  el.textContent = on ? 'online' : 'sem sinal'
+  el.textContent = on ? 'Online' : 'Sem sinal'
   el.classList.toggle('off', !on)
   return on
 }
 
 async function sincronizar(silencioso) {
   const btn = document.getElementById('btn-sync')
-  btn.disabled = true; btn.textContent = '⟳ Sincronizando…'
+  btn.disabled = true; btn.innerHTML = ic('sync') + 'Sincronizando…'
   try {
-    const r = await dSyncRodar(App.usuario.id, p => { btn.textContent = '⟳ Enviando ' + p.atual + ' de ' + p.total + '…' })
+    const r = await dSyncRodar(App.usuario.id, p => { btn.innerHTML = ic('sync') + 'Enviando ' + p.atual + ' de ' + p.total + '…' })
     if (r.situacao === 'sem_conexao') { if (!silencioso) aviso('Sem sinal. As fichas ficam guardadas e vão depois.', 'aviso') }
     else if (r.situacao === 'sem_sessao') { if (!silencioso) aviso('Sessão expirada. Entre com e-mail e senha para enviar.', 'aviso'); if (!silencioso) mostrar('t-login') }
     else if (r.situacao === 'ok') {
@@ -340,7 +350,7 @@ async function sincronizar(silencioso) {
     console.warn('[diag-app] sincronização:', e)
     if (!silencioso) aviso('Não foi possível sincronizar agora.', 'erro')
   } finally {
-    btn.disabled = false; btn.textContent = '⟳ Sincronizar'
+    btn.disabled = false; btn.innerHTML = ic('sync') + 'Sincronizar'
     if (!document.getElementById('t-inicio').hidden) desenharInicio()
   }
 }
@@ -523,7 +533,7 @@ function desenharBloco(destacar) {
   document.getElementById('fim-bloco-txt').textContent = 'Fim do bloco ' + (App.bloco + 1) + ' de ' + bs.length + ' · ' + b.titulo
   document.getElementById('btn-anterior').disabled = App.bloco === 0
   document.getElementById('btn-proximo').innerHTML = App.bloco === bs.length - 1
-    ? 'Revisar a ficha →' : 'Próximo →<small>' + esc(bs[App.bloco + 1].titulo) + '</small>'
+    ? 'Revisar a ficha' : 'Próximo<small>' + esc(bs[App.bloco + 1].titulo) + '</small>'
   if (destacar) {
     const el = document.getElementById('perg-' + destacar)
     if (el) setTimeout(() => el.scrollIntoView({ block: 'center' }), 50)
@@ -681,15 +691,28 @@ function abrirRevisao() {
       ? '<div class="faixa faixa-ok">Tudo respondido. Pode salvar.</div>'
       : '<div class="faixa faixa-aviso">' + (pend ? pend + ' pergunta(s) em branco. ' : '') +
         'Toque para voltar à pergunta e completar, ou marque "Não respondeu". Você pode salvar mesmo assim — a coordenação verá os avisos.</div>'
-  document.getElementById('revisao-lista').innerHTML = alertas.map(a =>
-    '<button type="button" class="item-ficha" data-ir="' + esc(a.chave || (a.n === 9 ? 'moradores' : '')) + '">' +
-    '<span class="meio">' + esc(DiagRegras.descreverAlerta(a, App.estrutura)) + '</span>' +
-    (a.chave || a.n === 9 ? '<span class="selo selo-pronta">ir</span>' : '') + '</button>').join('')
+  // agrupadas por bloco, na ordem do questionário; aviso sem pergunta vai em "Geral"
+  const bs = DiagForm.blocos()
+  const grupos = new Map()
+  alertas.forEach(a => {
+    const ir = a.chave || (a.n === 9 ? 'moradores' : '')
+    const k = ir ? blocoDaChave(ir) : -1
+    if (!grupos.has(k)) grupos.set(k, [])
+    grupos.get(k).push(a)
+  })
+  document.getElementById('revisao-lista').innerHTML = [...grupos.keys()].sort((x, y) => x - y).map(k =>
+    '<h2 class="rev-grupo">' + (k < 0 ? 'Geral' : 'Bloco ' + (k + 1) + ' · ' + esc(bs[k].titulo)) + '</h2><div class="rev-lista">' +
+    grupos.get(k).map(a => {
+      const ir = a.chave || (a.n === 9 ? 'moradores' : '')
+      return '<button type="button" class="item-ficha" data-ir="' + esc(ir) + '">' +
+        '<span class="meio">' + esc(DiagRegras.descreverAlerta(a, App.estrutura)) + '</span>' +
+        (ir ? '<span class="chev">' + ic('chev') + '</span>' : '') + '</button>'
+    }).join('') + '</div>').join('')
   document.getElementById('btn-concluir').disabled = !!erroEstrutura
   const btnPend = document.getElementById('btn-pendencias')
   const nPend = erroEstrutura ? 0 : pendentesAgora().length
   btnPend.hidden = nPend === 0
-  btnPend.textContent = nPend === 1 ? 'Resolver a pendência →' : 'Resolver as ' + nPend + ' pendências, uma por vez →'
+  btnPend.textContent = nPend === 1 ? 'Resolver a pendência' : 'Resolver as ' + nPend + ' pendências, uma por vez'
   mostrar('t-revisao')
 }
 
@@ -766,8 +789,8 @@ function desenharPendencia() {
   const prox = proximaPendencia(emAberto)
   const perg = prox && prox.chave !== 'moradores' ? DiagRegras.porChave(App.estrutura)[prox.chave] : null
   document.getElementById('btn-pend-proxima').innerHTML = prox
-    ? 'Próxima →<small>P' + prox.n + (perg ? ' · ' + esc(perg.texto) : ' · Moradores') + '</small>'
-    : 'Concluir →<small>voltar à revisão</small>'
+    ? 'Próxima<small>P' + prox.n + (perg ? ' · ' + esc(perg.texto) : ' · Moradores') + '</small>'
+    : 'Concluir<small>voltar à revisão</small>'
 }
 
 function navegarPendencia(delta) {
@@ -802,6 +825,7 @@ function trocarAbaInicio(aba, soDesenhar) {
   document.getElementById('aba-painel').setAttribute('aria-selected', aba === 'painel')
   document.getElementById('ini-entrevistas').hidden = aba !== 'entrevistas'
   document.getElementById('ini-painel').hidden = aba !== 'painel'
+  document.getElementById('ini-titulo').textContent = aba === 'painel' ? 'Meu painel' : 'Entrevistas'
   if (aba === 'painel') desenharPainel()
   if (!soDesenhar) window.scrollTo(0, 0)
 }
@@ -878,7 +902,7 @@ async function desenharPainel() {
         const n = porDia[d] || 0
         return '<span class="col' + (k === 13 ? ' hoje' : '') + '" title="' + ddmm(d) + ': ' + n + '">' +
           (n && n === max ? '<em style="bottom:calc(' + Math.round(100 * n / max) + '% + 2px)">' + n + '</em>' : '') +
-          '<i style="height:' + (n ? Math.max(4, Math.round(100 * n / max)) : 0) + '%"></i></span>'
+          '<i' + (n ? ' style="height:' + Math.max(4, Math.round(100 * n / max)) + '%"' : ' class="zero"') + '></i></span>'
       }).join('') + '</div>' +
       '<div class="pn-eixo"><span>' + ddmm(dias[0]) + '</span><span>hoje</span></div></div>' +
     (coms.length ? '<div class="pn-cartao"><h3>Por comunidade</h3>' +
@@ -935,8 +959,13 @@ async function abrirConfig() {
   document.getElementById('config-treino').checked = !!App.treinoAtivo
   document.getElementById('config-treino').disabled = App.soTreino
   document.getElementById('config-treino-so').hidden = !App.soTreino
+  marcarTemaConfig()
   atualizarBotoesInstalar()
   mostrar('t-config')
+}
+
+function marcarTemaConfig() {
+  document.querySelectorAll('[data-cfg-tema]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cfgTema === DiagTema.atual())))
 }
 
 function abrirOv(id) { document.getElementById(id).hidden = false }
@@ -1071,6 +1100,11 @@ function ligarEventos() {
   document.getElementById('btn-sync').addEventListener('click', () => sincronizar(false))
   document.getElementById('btn-config').addEventListener('click', abrirConfig)
   document.getElementById('btn-cfg-ajuda').addEventListener('click', () => guiaAbrirCentral())
+  // troca na hora (as cores são variáveis); a barra de status do iPhone acompanha na próxima abertura
+  document.querySelectorAll('[data-cfg-tema]').forEach(b => b.addEventListener('click', () => {
+    if (DiagTema.definir(b.dataset.cfgTema)) aviso(b.dataset.cfgTema === 'escuro' ? 'Tema escuro ligado' : 'Tema claro ligado', 'ok')
+    marcarTemaConfig()
+  }))
   document.getElementById('nova-municipio').addEventListener('change', preencherComunidades)
   document.getElementById('nova-comunidade').addEventListener('change', mudouComunidade)
   document.getElementById('nova-localidade').addEventListener('change', mudouLocalidade)

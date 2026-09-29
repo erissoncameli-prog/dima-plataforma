@@ -35,6 +35,7 @@ const SHELL = [
   '/js/diag-form.js',
   '/js/guia-app.js',
   '/js/diag-guia.js',
+  '/js/diag-tema.js',
   '/js/diag-app.js',
   '/pwa/diagnostico.webmanifest',
   '/pwa/diagnostico-icone.svg',

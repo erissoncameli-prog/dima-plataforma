@@ -148,12 +148,24 @@ function png1x1() {
   await page.addInitScript(() => { window.__marcarSessao = () => localStorage.setItem('stub-sessao', '1') })
   const clicar = sel => page.locator(sel).first().click()
   // SHOTS=<pasta>: salva capturas das telas principais (conferência visual)
-  const foto = async nome => { if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/' + nome + '.png', fullPage: false }) }
+  const foto = async nome => { if (process.env.SHOTS) { await page.waitForTimeout(450); await page.screenshot({ path: process.env.SHOTS + '/' + nome + '.png', fullPage: false }) } }
   const pin = async d => { for (const x of d) await page.click('#teclado button[data-d="' + x + '"]') }
 
   console.log('· app de campo — ponta a ponta')
   await page.goto(BASE + '/pages/diagnostico-app.html')
+  // 1ª abertura: a pessoa escolhe o tema antes do login (claro vem marcado)
+  await page.locator('#ov-tema').waitFor({ state: 'visible' })
+  if (await page.getAttribute('#tema-op-claro', 'aria-pressed') !== 'true') falhar('tema claro não veio marcado na 1ª abertura')
+  await clicar('#tema-op-escuro')
+  if (await page.evaluate(() => document.documentElement.dataset.tema) !== 'escuro') falhar('prévia do tema escuro não aplicou')
+  await foto('tema_escolha')
+  // TEMA=escuro roda o fluxo todo no escuro (conferência visual com SHOTS)
+  const TEMA = process.env.TEMA === 'escuro' ? 'escuro' : 'claro'
+  await clicar('#tema-op-' + TEMA); await clicar('#btn-tema-ok')
+  await page.locator('#ov-tema').waitFor({ state: 'hidden' })
+  if (await page.evaluate(() => localStorage.getItem('diag_tema')) !== TEMA) falhar('tema escolhido não ficou guardado')
   await page.locator('#t-login').waitFor({ state: 'visible' })
+  ok('1ª abertura: escolha do tema (claro/escuro) antes do login')
 
   // login errado, depois certo
   await page.fill('#login-email', 'tec@x'); await page.fill('#login-senha', 'errada'); await clicar('#btn-login')
@@ -576,6 +588,17 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   if (!/Chrome|Safari/.test(await page.textContent('#ov-instalar-passos'))) falhar('instruções de instalação vazias')
   await foto('config_instalar')
   await clicar('#ov-instalar [data-fechar]')
+  // aparência: troca na hora, fica guardada e não volta a perguntar ao reabrir
+  if (await page.getAttribute('#cfg-tema-' + TEMA, 'aria-pressed') !== 'true') falhar('config não marca o tema atual')
+  await clicar('#cfg-tema-escuro')
+  if (await page.evaluate(() => document.documentElement.dataset.tema + '|' + localStorage.getItem('diag_tema')) !== 'escuro|escuro') falhar('troca para o escuro não aplicou')
+  if (await page.getAttribute('#cfg-tema-escuro', 'aria-pressed') !== 'true') falhar('botão do tema escuro não ficou marcado')
+  await page.evaluate(() => document.getElementById('t-config').scrollIntoView())
+  await foto('config_escuro')
+  await clicar('#cfg-tema-claro')
+  if (await page.evaluate(() => document.documentElement.dataset.tema) !== 'claro') falhar('volta para o claro não aplicou')
+  await clicar('#cfg-tema-' + TEMA)
+  ok('configurações: tema claro/escuro troca na hora e fica guardado')
   await page.evaluate(() => document.getElementById('t-config').scrollIntoView())
   await foto('config')
   await clicar('#t-config [data-voltar]'); await page.locator('#t-inicio').waitFor({ state: 'visible' })
