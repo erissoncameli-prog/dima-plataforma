@@ -1167,3 +1167,46 @@ do $$ begin
     then raise exception 'FALHOU T40 origem manual'; end if;
   if (select count(*) from pg_proc where proname = 'diag_transcrever_audio') <> 1 then raise exception 'FALHOU T40 duas versões da função'; end if;
 end $$;
+
+-- ── T41 · v6: bloco "A APA e a situação da terra" (rascunho) ─────────────
+do $$
+declare
+  q    diag_questionarios;
+  est  jsonb;
+  ns   int[];
+  apl  text[];
+  r    jsonb;
+  base jsonb := public.t_resp();
+begin
+  select * into q from public.diag_questionarios where codigo = 'DSA' and versao = 6;
+  if q.id is null or q.status <> 'rascunho' then raise exception 'FALHOU T41 v6 deve nascer em rascunho'; end if;
+  est := q.estrutura;
+  if jsonb_array_length(est->'blocos') <> 10 + 1 or est->'blocos'->6->>'id' <> 'apa' or est->'blocos'->5->>'id' <> 'terra'
+    then raise exception 'FALHOU T41 posição do bloco apa'; end if;
+  select array_agg((p->>'n')::int order by bo, po) into ns
+    from jsonb_array_elements(est->'blocos') with ordinality b(b, bo), jsonb_array_elements(b->'perguntas') with ordinality p(p, po);
+  if ns <> (select array_agg(i) from generate_series(1, 90) i) then raise exception 'FALHOU T41 numeração 1..90: %', ns; end if;
+  if (select p->>'n' from jsonb_array_elements(est->'blocos') b, jsonb_array_elements(b->'perguntas') p where p->>'chave' = 'amb_problemas') <> '54'
+     or (select p->>'n' from jsonb_array_elements(est->'blocos') b, jsonb_array_elements(b->'perguntas') p where p->>'chave' = 'info_adicional') <> '90'
+    then raise exception 'FALHOU T41 renumeração +8'; end if;
+  if est->'leituras'->'apa'->>'titulo' <> 'O que é uma APA?' or length(est->'leituras'->'apa'->>'texto') < 200
+    then raise exception 'FALHOU T41 texto da APA'; end if;
+  -- P47 só com Sim/Já ouviu falar; P48 e P49 para todos; P53 só com conflito = sim
+  apl := public.fn_diag_aplicaveis(est, base || '{"apa_sabe":"nao","terra_conflitos":"nao"}');
+  if 'apa_regras' = any(apl) or not ('apa_percepcao' = any(apl)) or not ('apa_conselho' = any(apl)) or 'terra_conflitos_tipos' = any(apl)
+    then raise exception 'FALHOU T41 saltos com Não'; end if;
+  apl := public.fn_diag_aplicaveis(est, base || '{"apa_sabe":"ouviu_falar","terra_conflitos":"sim"}');
+  if not ('apa_regras' = any(apl)) or not ('terra_conflitos_tipos' = any(apl)) then raise exception 'FALHOU T41 saltos com Sim'; end if;
+  -- opções validadas pelo interpretador; "outro" pede especifique
+  r := public.fn_diag_normalizar_respostas(est, base || '{"apa_sabe":"sim","apa_regras":"conhece_pouco","terra_situacao":"outro","terra_situacao_outro":"herança","terra_car":"em_andamento","terra_conflitos":"sim","terra_conflitos_tipos":["invasao","pesca_caca"]}', public.t_mor());
+  if r->>'terra_car' <> 'em_andamento' or r->'terra_conflitos_tipos' <> '["invasao","pesca_caca"]'::jsonb then raise exception 'FALHOU T41 normalizar'; end if;
+  begin
+    r := public.fn_diag_normalizar_respostas(est, base || '{"terra_car":"talvez"}', public.t_mor());
+    raise exception 'FALHOU T41 aceitou opção inexistente';
+  exception when raise_exception then
+    if sqlerrm like 'FALHOU%' then raise; end if;
+  end;
+  if not exists (select 1 from public.lgpd_tratamentos where codigo = 'TRAT-001'
+                 and exists (select 1 from unnest(categorias_dados) c where c like 'conhecimento sobre a APA%'))
+    then raise exception 'FALHOU T41 ROPA'; end if;
+end $$;

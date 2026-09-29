@@ -74,7 +74,27 @@ const DiagForm = (function () {
   function cabecalhoPergunta(p) {
     return '<div class="p-num">P' + p.n + (p.opcional ? ' · opcional' : '') + '</div>' +
            '<div class="p-texto" id="lbl-' + h(p.chave) + '">' + h(p.texto) + '</div>' +
-           (p.ajuda ? '<p class="dica">' + h(p.ajuda) + '</p>' : '')
+           (p.ajuda ? '<p class="dica">' + h(p.ajuda) + '</p>' : '') +
+           botaoLeitura(p)
+  }
+
+  // Texto para o entrevistador LER em voz alta (estrutura.leituras, v6: "O que é uma APA?").
+  // Só exibição: não é resposta e não passa pelo interpretador.
+  function botaoLeitura(p) {
+    const l = p.leitura && (ctx.estrutura.leituras || {})[p.leitura]
+    if (!l) return ''
+    return '<button type="button" class="btn-leitura" data-acao="leitura" data-leitura="' + h(p.leitura) + '">' +
+      '<svg class="ic" aria-hidden="true"><use href="#i-ler"/></svg><span>Ler ao entrevistado: <b>' + h(l.titulo) + '</b></span></button>'
+  }
+  function abrirLeitura(id) {
+    const l = (ctx.estrutura.leituras || {})[id]
+    const ov = document.getElementById('ov-leitura')
+    if (!l || !ov) return
+    document.getElementById('ov-leitura-tit').textContent = l.titulo
+    document.getElementById('ov-leitura-txt').textContent = l.texto
+    ov.hidden = false
+    const cartao = ov.querySelector('.ov-cartao'); cartao.scrollTop = 0   // começa do início do texto
+    ov.querySelector('[data-fechar]').focus({ preventScroll: true })
   }
 
   function renderPergunta(p, der, destacar) {
@@ -267,6 +287,9 @@ const DiagForm = (function () {
     const chave = el.dataset.chave
     const perg = chave && R.porChave(ctx.estrutura)[chave]
     switch (el.dataset.acao) {
+      case 'leitura':
+        abrirLeitura(el.dataset.leitura)
+        return
       case 'opcao': {
         const v = el.dataset.v
         if (perg.tipo === 'unica') {

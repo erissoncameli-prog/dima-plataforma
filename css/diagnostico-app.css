@@ -520,6 +520,17 @@ html[data-tema="escuro"] .guia-nota { background: var(--alerta-bg); color: var(-
 .aviso-fotos .opcao { margin-top: var(--s2); }
 .aviso-fotos input, #aviso-lido { accent-color: var(--pri-600); }
 
+/* ── Texto para ler ao entrevistado (estrutura.leituras) ── */
+.btn-leitura { display: flex; align-items: center; gap: var(--s2); width: 100%; margin: 0 0 var(--s3); padding: 10px 14px; min-height: 44px;
+  border: 1px solid var(--info-bg); border-radius: var(--r-in); background: var(--info-bg); color: var(--info-txt); font-size: 14px; text-align: left;
+  transition: transform var(--dur-1) var(--ease); }
+.btn-leitura:active { transform: scale(.985); }
+.btn-leitura .ic { color: var(--info); }
+.btn-leitura b { font-weight: 650; }
+.ov-leitura { text-align: left; }
+.ov-leitura .cfg-rot { margin-bottom: 4px; }
+.leitura-txt { white-space: pre-line; font-size: 19px; line-height: 1.55; margin: var(--s2) 0 var(--s5); color: var(--txt); }
+
 /* ── Gravação de áudio (js/diag-audio.js) ── */
 .gr { display: flex; gap: var(--s2); align-items: center; margin-top: var(--s3); flex-wrap: wrap; }
 .btn-gravar { display: inline-flex; align-items: center; gap: var(--s2); border: 0; color: var(--erro); background: var(--erro-bg); border-radius: var(--r-pill);

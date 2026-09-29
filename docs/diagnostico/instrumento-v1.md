@@ -355,3 +355,22 @@ suficiência. Isso é bom para minimização; ver plano §2.1.
 Todas as regras cabem numa linguagem mínima: `{"se": "<chave>", "op": "=" | "in" | "contem", "valor": …}`.
 Regras que dependem da tabela de moradores (D1, D2) são **derivações**, não saltos, e
 devem ser calculadas pela mesma função que produz o indicador (plano §3.6).
+
+## v6 — bloco 7 "A APA e a situação da terra" *(rascunho, 29/09)*
+
+Entra depois de "Uso da terra e recursos naturais"; as perguntas a partir da
+antiga P46 andam **+8** (P46→P54 … P82→P90). Total: 11 blocos, 90 perguntas.
+
+| Nº | Chave | Pergunta | Tipo | Regra |
+|----|-------|----------|------|-------|
+| P46 | `apa_sabe` | Sabe que a área faz parte de uma APA? (Sim / Não / Já ouviu falar, mas não sabe o que é) | única | botão "O que é uma APA?" |
+| P47 | `apa_regras` | Conhece as regras ou restrições de uso dentro da APA? | única | só se P46 ∈ {Sim, Já ouviu falar} |
+| P48 | `apa_percepcao` | Estar na APA traz mais benefícios ou dificuldades? | única | para todos; botão da APA |
+| P49 | `apa_conselho` | Conhece ou participou do conselho gestor da APA? | única | para todos; botão da APA |
+| P50 | `terra_situacao` | Situação da terra onde a família mora ou produz | única + especifique | |
+| P51 | `terra_car` | A propriedade tem CAR? | única | |
+| P52 | `terra_conflitos` | Existem conflitos pelo uso da terra ou dos recursos? | única | |
+| P53 | `terra_conflitos_tipos` | Quais são esses conflitos? | múltipla + especifique | só se P52 = Sim |
+
+Texto "O que é uma APA?" (estrutura.leituras.apa) — **rascunho para aprovação da
+coordenação** antes de publicar a v6; está na migração 18.

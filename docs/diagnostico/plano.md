@@ -1292,3 +1292,16 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
 - Fonte continua a da plataforma (DM Sans), para não destoar do menu.
 - Teste e2e da mesa cobre a escolha do tema, o seletor do topo e o carregamento
   do design system; roda nos dois temas (`TEMA=escuro`).
+
+### 6.20 v6 — bloco da APA e da situação da terra *(29/09, rascunho)*
+
+- Bloco 7 novo (P46–P53), demais +8; P47 só com Sim/Já ouviu falar; P48 e P49 para
+  todos (o entrevistador explica a APA); P53 múltipla só com conflito = Sim.
+- Botão **"Ler ao entrevistado: O que é uma APA?"** em P46, P48 e P49: abre o texto
+  em letra grande (folha de baixo). O texto é dado da versão (`estrutura.leituras`),
+  não código — muda com nova versão, como o aviso.
+- v6 nasce em **rascunho**: a equipe testa no modo treino; a coordenação aprova o
+  texto; uma migração publica a v6 e arquiva a v5 (fichas da v5 seguem na v5).
+- ROPA TRAT-001: "conhecimento sobre a APA, situação da terra, CAR e conflitos".
+- Testes: T41 (numeração 1–90, posição do bloco, saltos, opções, ROPA) e e2e do app
+  (bloco no treino, botão e texto, saltos). App 2.2.0, service worker VERSAO 18.
