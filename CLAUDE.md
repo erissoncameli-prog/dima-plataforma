@@ -443,6 +443,13 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   pintar. Ícones: sprite SVG no HTML via `ic(nome)` — sem emoji. Login e PIN ficam
   no verde da marca nos dois temas. O motor do guia (SIGUC) não é editado: o escuro
   dele é sobrescrito em `diagnostico-app.css`.
+- **Visual da mesa** (29/09): mesmo design system em `css/diagnostico-mesa.css`,
+  escopado em `body.dgm` (só `pages/diagnostico.html`; menu lateral e demais páginas
+  não mudam). Redefine no escopo os nomes do `global.css` (`--branco`, `--cinza-*`,
+  `--borda`…), então `.card/.btn`/inputs seguem o tema. Tema = mesmo `diag_tema` do
+  app (seletor no topo + pergunta no 1º acesso, `dgmTema()` em `js/diagnostico.js`).
+  Janela nova da mesa fora do `.main-content` (anexada ao `body`) precisa entrar no
+  seletor de escopo dos tokens, senão fica sem cor.
 - App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +
   `gerarLayout`; não chama `carregarUsuario()`), service worker na raiz
   `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.

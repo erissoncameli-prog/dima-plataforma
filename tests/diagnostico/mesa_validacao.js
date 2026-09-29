@@ -153,11 +153,26 @@ function semear() {
   await page.exposeFunction('__pgRpc', pgRpc)
   await page.exposeFunction('__assinar', pgAssinar)
   await page.exposeFunction('__uid', () => usuarioLogado)
-  const foto = async n => { if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/' + n + '.png' }) }
+  const foto = async n => { if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: process.env.SHOTS + '/' + n + '.png' }) } }
   const linha = cod => page.locator('.dgv-tab tbody tr', { hasText: cod })
 
   console.log('· mesa — aba Validação')
   await page.goto(BASE + '/pages/diagnostico.html?aba=validacao')
+  // 1º acesso: escolha do tema; depois, seletor no topo (mesmo 'diag_tema' do app)
+  await page.locator('#dgm-escolha').waitFor({ timeout: 15000 })
+  if (await page.getAttribute('#dgm-op-claro', 'aria-pressed') !== 'true') falhar('mesa: claro não veio marcado no 1º acesso')
+  const TEMA = process.env.TEMA === 'escuro' ? 'escuro' : 'claro'
+  await page.click('#dgm-op-escuro')
+  if (await page.evaluate(() => document.documentElement.dataset.tema) !== 'escuro') falhar('mesa: prévia do escuro não aplicou')
+  await page.click('#dgm-op-' + TEMA); await page.click('#dgm-tema-ok')
+  await page.locator('#dgm-escolha').waitFor({ state: 'detached' })
+  if (await page.evaluate(() => localStorage.getItem('diag_tema')) !== TEMA) falhar('mesa: tema escolhido não ficou guardado')
+  const outro = TEMA === 'claro' ? 'escuro' : 'claro'
+  await page.click('.dgm-tema [data-dgm-tema="' + outro + '"]')
+  if (await page.evaluate(() => document.documentElement.dataset.tema + '|' + localStorage.getItem('diag_tema')) !== outro + '|' + outro) falhar('mesa: seletor do topo não trocou o tema')
+  await page.click('.dgm-tema [data-dgm-tema="' + TEMA + '"]')
+  if (!(await page.evaluate(() => document.body.classList.contains('dgm') && !!getComputedStyle(document.querySelector('.main-content')).getPropertyValue('--pri-600')))) falhar('mesa: design system não carregou')
+  ok('tema: escolha no 1º acesso, seletor no topo, design system só nesta página')
   await page.locator('.dgv-tab').waitFor({ timeout: 15000 })
   if (!(await linha('MESA-01').count()) || !(await linha('MESA-02').count())) falhar('fichas aguardando não listadas')
   if (await page.locator('.dgv-tab tbody tr', { hasText: 'TRE-' }).count()) falhar('treino apareceu sem "mostrar treino"')

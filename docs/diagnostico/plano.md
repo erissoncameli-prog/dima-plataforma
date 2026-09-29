@@ -1277,3 +1277,18 @@ mesa, não o campo; o piloto (5 entrevistas reais) precisa da equipe treinada.
 - App 2.1.0, service worker VERSAO 17 (`js/diag-tema.js` no shell offline).
 - Teste e2e cobre a escolha do tema e a troca em Configurações; `TEMA=escuro`
   roda o fluxo inteiro no escuro (capturas com `SHOTS`).
+
+### 6.19 Mesa com o mesmo visual e tema claro/escuro *(29/09)*
+
+- Proposta aplicada por CSS de teste sobre a mesa real (antes × claro × escuro),
+  aprovada. `css/diagnostico-mesa.css`, escopo `body.dgm`: só a página do
+  Diagnóstico muda; o menu lateral e as outras páginas da plataforma seguem iguais.
+- Abas em controle segmentado, filtros de situação em pílula, tabela com cabeçalho
+  discreto e destaque ao passar o mouse, ficha aberta com um cartão por bloco e
+  ações no rodapé de vidro, indicadores com números grandes e barras arredondadas
+  animadas, faixa da IA local em lilás.
+- Tema: seletor Claro/Escuro no topo e pergunta no 1º acesso; mesma chave
+  `diag_tema` do app (quem usa os dois no mesmo navegador vê o mesmo tema).
+- Fonte continua a da plataforma (DM Sans), para não destoar do menu.
+- Teste e2e da mesa cobre a escolha do tema, o seletor do topo e o carregamento
+  do design system; roda nos dois temas (`TEMA=escuro`).
