@@ -67,6 +67,7 @@ const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: []
   document.getElementById('app').innerHTML =
     gerarLayout('Diagnóstico Socioambiental', 'diagnostico') + html + '</div></div></div>'
   carregarLogosSidebar()
+  dgmTema()
   // ?aba=validacao abre direto na validação (link de aviso/e-mail)
   const abaUrl = new URLSearchParams(location.search).get('aba')
   if (abaUrl && document.querySelector('.dg-aba[data-aba="' + abaUrl + '"]')) dgTrocarAba(abaUrl)
@@ -256,4 +257,56 @@ async function dgAtivar(tabela, id, ativo) {
   const { error } = await db.from(tabela).update({ ativo }).eq('id', id)
   if (error) { toast(error.message, 'error'); return }
   dgAdminCarregar()
+}
+
+// ── Tema claro/escuro da mesa ─────────────────────────────────────────
+// Só nesta página (css/diagnostico-mesa.css, escopo body.dgm). A escolha é a
+// mesma do app de campo ('diag_tema' no navegador, js/diag-tema.js): seletor
+// no topo e, no 1º acesso, a pergunta "Como prefere ver a mesa?".
+const DGM_IC = {
+  claro: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  escuro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+}
+function dgmTema() {
+  const tb = document.querySelector('.topbar')
+  if (tb && !tb.querySelector('.dgm-tema')) {
+    const d = document.createElement('div')
+    d.className = 'dgm-tema'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Tema da mesa')
+    d.innerHTML = ['claro', 'escuro'].map(t => '<button type="button" data-dgm-tema="' + t + '" aria-pressed="false">' +
+      DGM_IC[t] + (t === 'claro' ? 'Claro' : 'Escuro') + '</button>').join('')
+    const bc = tb.querySelector('.topbar-breadcrumb')   // grupo da direita do topo
+    if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d)
+    d.addEventListener('click', ev => {
+      const b = ev.target.closest('[data-dgm-tema]'); if (!b) return
+      DiagTema.definir(b.dataset.dgmTema); dgmMarcarTema()
+    })
+  }
+  dgmMarcarTema()
+  if (!DiagTema.escolhido()) dgmPerguntarTema()
+}
+function dgmMarcarTema() {
+  document.querySelectorAll('[data-dgm-tema]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.dgmTema === DiagTema.atual())))
+}
+function dgmPerguntarTema() {
+  const mini = t => '<span class="dgm-mini ' + t + '" aria-hidden="true"><i class="sb"></i><span class="ct"><b></b><span></span><span></span></span></span>'
+  const ov = document.createElement('div')
+  ov.className = 'dgm-escolha'; ov.id = 'dgm-escolha'
+  ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'dgm-escolha-tit')
+  ov.innerHTML = '<div><h2 id="dgm-escolha-tit">Como prefere ver a mesa?</h2>' +
+    '<p>Vale para a mesa e o app neste navegador. Dá para trocar no topo da página.</p><div class="dgm-ops">' +
+    '<button type="button" class="dgm-op" data-op="claro" id="dgm-op-claro">' + mini('claro') + 'Claro<small>padrão</small></button>' +
+    '<button type="button" class="dgm-op" data-op="escuro" id="dgm-op-escuro">' + mini('escuro') + 'Escuro<small>descansa a vista</small></button>' +
+    '</div><button type="button" class="btn btn-primary" id="dgm-tema-ok">Continuar</button></div>'
+  document.body.appendChild(ov)
+  const marcar = t => ov.querySelectorAll('[data-op]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.op === t)))
+  marcar(DiagTema.atual())
+  ov.addEventListener('click', ev => {
+    const op = ev.target.closest('[data-op]')
+    if (op) { DiagTema.aplicar(op.dataset.op); marcar(op.dataset.op); return }
+    if (ev.target.closest('#dgm-tema-ok')) {
+      DiagTema.definir(document.documentElement.dataset.tema === 'escuro' ? 'escuro' : 'claro')
+      dgmMarcarTema(); ov.remove()
+    }
+  })
+  ov.querySelector('#dgm-tema-ok').focus()
 }
