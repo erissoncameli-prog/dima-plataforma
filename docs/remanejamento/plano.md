@@ -273,7 +273,7 @@ cadastrado.
 
 ## 6. Cotação do dia
 
-- Tabela `cotacoes_usd(data PK, ptax_compra, ptax_venda, fonte, obtida_em)`.
+- Tabela `cotacoes_ptax(data PK, ptax_compra, ptax_venda, data_hora_cotacao, fonte, obtida_em)` — **não** `cotacoes_usd`, que é a cotação AwesomeAPI de referência já existente. Consulta: `fn_cotacao_usd(data)`. ✅ em produção (03/10/2026).
 - Edge Function `cotacao-ptax` + cron diário (dias úteis, após o fechamento da
   PTAX): busca no Banco Central (API Olinda) e grava. Backfill na implantação.
 - Contrato e aditivo gravam `cotacao_usd`, `cotacao_data` e `valor_total_usd`

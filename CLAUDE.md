@@ -256,8 +256,8 @@ saldo_livre_usd = orcamento_usd
 
 ### Razão orçamentário e remanejamento (⚠️ ler antes de mexer em orçamento)
 
-Especificação completa: `docs/remanejamento/plano.md`. Fases 0–1 em produção (03/10/2026);
-remanejamento com cadeia de 5 assinaturas, cobertura de contrato e PTAX ainda por fazer.
+Especificação completa: `docs/remanejamento/plano.md`. Fases 0–2 em produção (03/10/2026);
+remanejamento com cadeia de 5 assinaturas e cobertura de contrato ainda por fazer.
 
 - **`atividades.orcamento_usd` é cache** de Σ `orcamento_fontes` orçamentárias. UPDATE direto é
   recusado para todos, inclusive super_admin (`trg_atividade_guarda_orcamento`, `ORCAMENTO_PROTEGIDO`).
@@ -276,6 +276,12 @@ remanejamento com cadeia de 5 assinaturas, cobertura de contrato e PTAX ainda po
 - `fn_conferir_orcamento()` (super_admin/coordenação/financeiro): toda linha não `info_*` deve ter `ok`.
 - Views de saldo são **somente leitura**: `vw_saldo_atividade` tinha GRANT de escrita e, por ser
   auto-atualizável com dono postgres, deixava qualquer logado alterar atividade ignorando RLS.
+- **Cotação oficial = PTAX** em `cotacoes_ptax` (imutável, 1 linha por dia útil desde 02/01/2025),
+  gravada só pela Edge Function `cotacao-ptax` (cron `cotacao-ptax-diaria`, dias úteis 17:20/22:20 UTC).
+  Consultar com `fn_cotacao_usd(data)`: devolve a PTAX da data ou do último dia útil e a data usada;
+  erro `COTACAO_DESATUALIZADA` se a última tiver mais de 7 dias (cron parado).
+  ⚠️ **`cotacoes_usd` é outra tabela** (AwesomeAPI, cotação de referência gravada pelo financeiro e lida
+  por viagens/dashboard/relatórios) — não serve para converter contrato e não deve ser alterada pelo razão.
 - Testes locais: `supabase/tests/remanejamento/rodar.sh`.
 - Migração com `DROP` trava o `apply_migration` (pede confirmação). Use `create or replace trigger`
   e policy condicional (`if not exists … pg_policies`).
@@ -559,6 +565,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `cron-prestacao` | Cron de prestação de contas | ✅ |
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
+| `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
 
 ---
 
@@ -760,6 +767,7 @@ Supabase/Anthropic/Vercel/Google.
 22. Ao ler `beneficiarios` para exibir em tela, lembrar que a policy de SELECT mudou de "qualquer autenticado" para `super_admin/coordenacao/financeiro/tecnico` — perfis fora dessa lista recebem lista vazia, não erro
 23. `atividades.orcamento_usd` **não se altera direto** (nem por super_admin) — é cache do razão `orcamento_fontes`. Ver "Razão orçamentário e remanejamento"
 24. Nenhuma view de saldo pode ter GRANT de escrita: view simples com dono postgres é auto-atualizável e ignora RLS
+25. `cotacoes_usd` (AwesomeAPI, colunas `cotacao`/`data_ref`) **≠** `cotacoes_ptax` (PTAX oficial, `ptax_venda`/`data`). Antes de criar tabela, conferir se o nome já existe — `create table if not exists` pula em silêncio e os GRANT/trigger seguintes caem na tabela antiga
 
 ---
 

@@ -190,3 +190,26 @@ create view public.vw_saldo_atividade as
       + coalesce((select sum(ce.valor_liberado_usd) from contrato_encerramentos ce where ce.atividade_id = a.id and ce.status = 'ativo'), 0::numeric) as saldo_livre_usd
    from atividades a;
 grant all on public.vw_saldo_atividade to authenticated;
+
+-- pg_cron / pg_net (só registram)
+create schema cron;
+create table cron.job (jobid serial primary key, jobname text unique, schedule text, command text);
+create function cron.schedule(p_nome text, p_sched text, p_cmd text) returns bigint
+language sql as $$
+  insert into cron.job(jobname, schedule, command) values (p_nome, p_sched, p_cmd)
+  on conflict (jobname) do update set schedule = excluded.schedule, command = excluded.command
+  returning jobid::bigint
+$$;
+create schema net;
+create function net.http_post(url text, headers jsonb, body jsonb) returns bigint language sql as $$ select 1::bigint $$;
+
+-- Tabela de cotação AwesomeAPI que JÁ EXISTE em produção (não confundir com cotacoes_ptax)
+create table public.cotacoes_usd (
+  id uuid primary key default gen_random_uuid(), cotacao numeric, fonte text default 'AwesomeAPI',
+  data_ref date default current_date, criado_em timestamptz default now(),
+  cotacao_anterior numeric, variacao_pct numeric
+);
+alter table public.cotacoes_usd enable row level security;
+create policy cotacoes_select_all on public.cotacoes_usd for select using (auth.uid() is not null);
+create policy cotacoes_insert_admin on public.cotacoes_usd for insert
+  with check ((select fn_perfil_atual()) = 'super_admin');

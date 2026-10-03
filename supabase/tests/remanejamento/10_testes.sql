@@ -65,9 +65,11 @@ insert into public.execucao_financeira (atividade_id, descricao, valor_brl, valo
 \echo '· aplicando migrations'
 \ir ../../migrations/20261003_rem_00_contencao.sql
 \ir ../../migrations/20261003_rem_01_razao_fontes.sql
+\ir ../../migrations/20261003_rem_02_cotacao_ptax.sql
 \echo '· reaplicando (idempotência)'
 \ir ../../migrations/20261003_rem_00_contencao.sql
 \ir ../../migrations/20261003_rem_01_razao_fontes.sql
+\ir ../../migrations/20261003_rem_02_cotacao_ptax.sql
 
 \echo '· T1 carga inicial'
 do $$ begin
@@ -238,4 +240,48 @@ do $$ begin
   perform t_erro($q$select * from fn_conferir_orcamento()$q$, 'permission denied');
 end $$;
 
-\echo '✔ todos os testes do remanejamento (fases 0–1) passaram'
+\echo '· T11 cotação PTAX'
+do $$ begin
+  -- só service_role grava; quinta e sexta, sem fim de semana
+  set local role service_role;
+  insert into cotacoes_ptax (data, ptax_compra, ptax_venda) values
+    ('2026-10-01', 5.3001, 5.3007), ('2026-10-02', 5.3101, 5.3107);
+  insert into cotacoes_ptax (data, ptax_compra, ptax_venda) values ('2026-10-02', 9, 9)
+    on conflict (data) do nothing;                         -- o que a Edge Function faz
+  reset role;
+  perform t_igual('PTAX do dia', (select ptax_venda from fn_cotacao_usd('2026-10-02')), 5.3107);
+  perform t_igual('sábado usa sexta', (select ptax_venda from fn_cotacao_usd('2026-10-03')), 5.3107);
+  perform t_igual('defasagem informada', (select defasagem_dias from fn_cotacao_usd('2026-10-04')), 2);
+  if (select data_cotacao from fn_cotacao_usd('2026-10-04')) <> '2026-10-02' then
+    raise exception 'FALHOU: data usada';
+  end if;
+  perform t_erro($q$select * from fn_cotacao_usd('2026-10-20')$q$, 'COTACAO_DESATUALIZADA');
+  perform t_erro($q$select * from fn_cotacao_usd('2026-09-01')$q$, 'COTACAO_INDISPONIVEL');
+  perform t_erro($q$update cotacoes_ptax set ptax_venda = 1$q$, 'imutável');
+  perform t_erro($q$delete from cotacoes_ptax$q$, 'imutável');
+  if not exists (select 1 from cron.job where jobname = 'cotacao-ptax-diaria' and schedule = '20 17,22 * * 1-5') then
+    raise exception 'FALHOU: cron';
+  end if;
+end $$;
+do $$ begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-00000000005a', true);
+  perform t_erro($q$insert into cotacoes_ptax (data, ptax_compra, ptax_venda) values ('2026-10-05', 1, 1)$q$, 'permission denied');
+  perform t_igual('logado lê', (select count(*) from cotacoes_ptax), 2);
+  perform t_igual('logado consulta', (select ptax_venda from fn_cotacao_usd('2026-10-01')), 5.3007);
+  reset role;
+  set local role anon;
+  perform t_erro($q$select * from cotacoes_ptax$q$, 'permission denied');
+  perform t_erro($q$select * from fn_cotacao_usd('2026-10-01')$q$, 'permission denied');
+end $$;
+
+do $$ begin
+  -- a PTAX não pode tocar a tabela antiga da AwesomeAPI
+  if not has_table_privilege('authenticated', 'public.cotacoes_usd', 'INSERT')
+     or exists (select 1 from pg_trigger where tgrelid = 'public.cotacoes_usd'::regclass and not tgisinternal) then
+    raise exception 'FALHOU: rem_02 alterou cotacoes_usd (AwesomeAPI)';
+  end if;
+  update cotacoes_usd set cotacao = cotacao where false;
+end $$;
+
+\echo '✔ todos os testes do remanejamento (fases 0–2) passaram'
