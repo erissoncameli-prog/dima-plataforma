@@ -582,11 +582,15 @@ begin
   values ('10000000-0000-0000-0000-000000000001', c, v) returning id into v_id;
   return v_id;
 end $$;
+-- crédito exato em US$ = carga/manutenção (sem usuário): a rem_09 converte pela PTAX só liberação de usuário
 create function public.t_credito(c text, v numeric) returns void language plpgsql as $$
+declare v_sub text := current_setting('request.jwt.claim.sub', true);
 begin
+  perform set_config('request.jwt.claim.sub', '', true);
   insert into contrato_encerramentos (contrato_id, atividade_id, tipo, valor_liberado_usd, motivo)
   values ((select id from contratos where numero = 'CT-1'), (select id from atividades where codigo = c),
           'encerramento_contrato', v, 'crédito de teste');
+  perform set_config('request.jwt.claim.sub', coalesce(v_sub, ''), true);
 end $$;
 
 \echo '· T13a carga inicial: nada travado, conferência fecha'
@@ -887,4 +891,33 @@ do $$ declare r record; begin
   perform t_erro($q$update vw_saldo_atividade set orcamento_usd = 1$q$, 'cannot update view');
 end $$;
 
-\echo '✔ todos os testes do remanejamento (fases 0–8) passaram'
+
+\echo '· aplicando rem_09 (liberações pela PTAX)'
+reset role;
+\ir ../../migrations/20261003_rem_09_ptax_liberacoes.sql
+\ir ../../migrations/20261003_rem_09_ptax_liberacoes.sql
+
+\echo '· T17 liberação de usuário é convertida pela PTAX do dia'
+do $$ declare e contrato_encerramentos; v_ptax numeric := (select ptax_venda from fn_cotacao_usd(null)); begin
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  -- o navegador manda US$ 999 com outra cotação: o banco ignora e usa a PTAX
+  insert into contrato_encerramentos (contrato_id, atividade_id, tipo, valor_liberado_brl, valor_liberado_usd, motivo)
+  values ((select id from contratos where numero = 'CT-1'), t_id('a111'), 'encerramento_contrato', 531.07, 999, 'teste PTAX')
+  returning * into e;
+  perform t_igual('USD pela PTAX', e.valor_liberado_usd, round(531.07 / v_ptax, 2));
+  perform t_igual('cotação gravada', e.cotacao, v_ptax);
+  if e.cotacao_data is null then raise exception 'FALHOU: data da PTAX'; end if;
+  perform t_igual('crédito no razão = USD convertido',
+    (select valor_usd from orcamento_fontes where encerramento_id = e.id), round(531.07 / v_ptax, 2));
+  perform t_erro($q$insert into contrato_encerramentos (contrato_id, atividade_id, tipo, valor_liberado_usd, motivo)
+                    values ((select id from contratos where numero = 'CT-1'), (select id from atividades where codigo = '1.1.1'),
+                            'encerramento_contrato', 10, 'só US$')$q$, 'informe o valor liberado em R$');
+  perform t_erro(format('update contrato_encerramentos set cotacao = 1 where id = %L', e.id), 'imutáveis');
+  insert into contrato_encerramentos (contrato_id, atividade_id, tipo, valor_liberado_brl, motivo)
+  values ((select id from contratos where numero = 'CT-1'), t_id('a111'), 'encerramento_contrato', 0, 'encerramento sem saldo a liberar')
+  returning * into e;
+  perform t_igual('encerramento sem liberação não credita', (select count(*) from orcamento_fontes where encerramento_id = e.id), 0);
+  perform t_conferencia_ok('após rem_09');
+end $$;
+
+\echo '✔ todos os testes do remanejamento (fases 0–9) passaram'

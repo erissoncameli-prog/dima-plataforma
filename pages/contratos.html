@@ -885,8 +885,7 @@ window.confirmarEncerramento=async function(){
   });
 
   var valorLiberadoBrl=selecionados.reduce(function(s,p){return s+calcNaoExecutado(p);},0);
-  var cot=await obterCotacao();
-  var valorLiberadoUsd=cot&&cot.cotacao?valorLiberadoBrl/parseFloat(cot.cotacao):null;
+  // US$ = R$ ÷ PTAX do dia, calculado no banco (trg_encerramento_ptax, rem_09) — cotação nunca vem do navegador
 
   var dados=dadosEncerramentoPendente;
   var atividadeId=dados.atividade_id;
@@ -906,7 +905,7 @@ window.confirmarEncerramento=async function(){
     });
     var insEnc=await db.from('contrato_encerramentos').insert({
       contrato_id:contratoId,atividade_id:atividadeId||null,
-      valor_liberado_brl:valorLiberadoBrl,valor_liberado_usd:valorLiberadoUsd,
+      valor_liberado_brl:valorLiberadoBrl,
       motivo:motivo,produtos_afetados:snapshot,autorizado_por:appState.usuario.id
     });
     if(insEnc.error)throw insEnc.error;

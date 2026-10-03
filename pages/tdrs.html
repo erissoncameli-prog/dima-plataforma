@@ -2052,9 +2052,8 @@ async function confirmarLiberarSaldo(){
   const tdrId = tdrAtual.id, tdrNum = tdrAtual.numero;
   pedirSenhaTDR('Liberar saldo',`TDR ${tdrNum} — economia → atividade`, async()=>{
     try{
-      const cot = await obterCotacao();
-      const taxa = cot?.cotacao || null;
-      const {error} = await db.rpc('fn_liberar_economia_tdr',{p_tdr_id:tdrId,p_justificativa:just,p_taxa:taxa});
+      // US$ = R$ ÷ PTAX do dia, calculado no banco (trg_encerramento_ptax, rem_09) — cotação nunca vem do navegador
+      const {error} = await db.rpc('fn_liberar_economia_tdr',{p_tdr_id:tdrId,p_justificativa:just,p_taxa:null});
       if(error)throw new Error(error.message);
       toast('Saldo liberado para a atividade! ✓','success');
       abrirTDR(tdrId);
