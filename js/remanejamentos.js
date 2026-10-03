@@ -10,6 +10,9 @@
 //   · titulares: fn_rem_designar_titular (super_admin)
 //   · contrato travado (aguardando_cobertura): o banco trava e libera sozinho;
 //     aqui só se monta o pedido tipo 'cobertura_contrato' para a atividade dele
+//   · estorno: fn_rem_criar_estorno monta o espelho do pedido efetivado (itens e
+//     fontes não se editam); segue a mesma cadeia e, efetivado, marca o original
+//     'estornado'. Só cabe se o destino não gastou nem repassou o que recebeu.
 // "Aguardando minha análise" é calculado aqui só para a fila; quem pode
 // assinar de fato é decidido por fn_rem_assinar.
 // ═══════════════════════════════════════════════════════════════════════
@@ -44,6 +47,7 @@ const REM_EVENTO = {
   criado: 'Pedido criado', rascunho_salvo: 'Rascunho salvo', enviado: 'Enviado para a cadeia',
   aprovado_etapa: 'Aprovou a etapa', devolvido: 'Devolveu', recusado: 'Recusou', cancelado: 'Cancelou',
   editado_apos_devolucao: 'Editou após devolução (nova versão)', efetivado: 'Efetivado no razão',
+  estorno_solicitado: 'Pediu o estorno', estornado: 'Estornado (lançamentos espelhados)',
 }
 const REM_ERRO = {
   SENHA_INVALIDA: 'Senha incorreta.',
@@ -270,8 +274,9 @@ function remPedidosHTML() {
     const orig = (p.itens || []).filter(i => i.valor_usd < 0).map(i => cod(i.atividade_id)).join(', ')
     const dest = (p.itens || []).filter(i => i.valor_usd > 0).map(i => cod(i.atividade_id)).join(', ')
     const total = (p.itens || []).filter(i => i.valor_usd > 0).reduce((s, i) => s + Number(i.valor_usd), 0)
-    const ct = p.tipo === 'cobertura_contrato'
-      ? ' <span class="badge badge-blue">cobertura ' + esc(REM.travados.find(c => c.id === p.contrato_id)?.numero || 'de contrato') + '</span>' : ''
+    const ct = (p.tipo === 'cobertura_contrato'
+      ? ' <span class="badge badge-blue">cobertura ' + esc(REM.travados.find(c => c.id === p.contrato_id)?.numero || 'de contrato') + '</span>' : '')
+      + (p.estorno_de ? ' <span class="badge badge-ouro">estorno de ' + esc(REM.pedidos.find(x => x.id === p.estorno_de)?.numero || '?') + '</span>' : '')
     h += `<tr class="rm-atv" onclick="remAbrirPedido('${p.id}')"><td><b>${esc(p.numero)}</b>${ct}${remMinhaVez(p) ? ' <span class="badge badge-ouro">sua vez</span>' : ''}</td>
       <td><span class="badge ${cls}">${st}</span></td><td>${quem}</td><td>${orig || '—'} → ${dest || '—'}</td>
       <td class="n">${usd2(total)}</td><td>${dataHora(p.criado_em)}</td></tr>`
@@ -497,7 +502,12 @@ async function remAbrirPedido(id) {
 
   const hist = D.hist.map(h => `<div>${dataHora(h.criado_em)} · <b>${esc(nomeU(h.usuario_id))}</b> — ${esc(REM_EVENTO[h.evento] || h.evento)}${h.etapa_ordem ? ' (etapa ' + h.etapa_ordem + ')' : ''}${h.motivo ? ': ' + esc(h.motivo) : ''}</div>`).join('')
 
+  const orig = P.estorno_de && REM.pedidos.find(x => x.id === P.estorno_de)
+  const estornos = REM.pedidos.filter(x => x.estorno_de === P.id && x.status !== 'cancelado' && x.status !== 'recusado')
+  const vinc = (x, txt) => `<a href="#" onclick="event.preventDefault();remAbrirPedido('${x.id}')">${esc(x.numero)}</a>${txt}`
   document.getElementById('rm-mp-corpo').innerHTML = `
+    ${orig ? `<div class="rm-aviso"><b>Estorno de ${vinc(orig, '')}.</b> Devolve o que foi recebido às fontes de onde saiu; itens e fontes espelham o original e não se editam.</div>` : ''}
+    ${estornos.length ? `<div class="rm-aviso">Estorno: ${estornos.map(x => vinc(x, ' (' + esc((REM_STATUS[x.status] || [x.status])[0]) + ')')).join(', ')}</div>` : ''}
     ${P.motivo_encerramento ? `<div class="rm-aviso"><b>Motivo do encerramento:</b> ${esc(P.motivo_encerramento)}</div>` : ''}
     <p style="font-size:13px;line-height:1.55;margin:0 0 12px"><b>Justificativa:</b> ${esc(P.justificativa)}</p>
     <div class="rm-grid2">
@@ -509,10 +519,13 @@ async function remAbrirPedido(id) {
 
   const eu = appState.usuario.id
   const ac = []
+  const editar = P.estorno_de ? 'remEditarJustificativa()' : 'remEditar()'
   if (P.status === 'rascunho' && (P.criado_por === eu || appState.perfil === 'super_admin'))
-    ac.push(`<button class="btn btn-secondary" onclick="remEditar()">Editar</button>`)
+    ac.push(`<button class="btn btn-secondary" onclick="${editar}">${P.estorno_de ? 'Editar justificativa' : 'Editar'}</button>`)
   if (P.status === 'em_aprovacao' && P.etapa_atual === 1 && (P.criado_por === eu || appState.perfil === 'super_admin'))
-    ac.push(`<button class="btn btn-secondary" onclick="remEditar()">Editar (abre nova versão)</button>`)
+    ac.push(`<button class="btn btn-secondary" onclick="${editar}">Editar (abre nova versão)</button>`)
+  if (P.status === 'efetivado' && !P.estorno_de && !estornos.length && podeMontar())
+    ac.push(`<button class="btn btn-secondary" onclick="remPedirEstorno()">Pedir estorno</button>`)
   if (remMinhaVez(P)) {
     if (P.status === 'rascunho') {
       ac.push(`<button class="btn btn-ghost" onclick="remPedirAssinatura('cancelar')">Cancelar pedido</button>`)
@@ -534,6 +547,45 @@ function remFecharPedido() {
   document.getElementById('rm-modal-pedido').classList.remove('aberto')
   REM.detalhe = null
   if (location.search.includes('id=')) history.replaceState(null, '', location.pathname)
+}
+// Estorno: o banco monta o espelho; aqui só se pede a justificativa
+function remCaixaTexto(titulo, ajuda, rotulo, acao) {
+  const corpo = document.getElementById('rm-mp-corpo')
+  if (document.getElementById('rm-caixa')) return
+  corpo.insertAdjacentHTML('beforeend', `<div id="rm-caixa" class="rm-aviso" style="margin-top:12px">
+    <b>${titulo}</b><p class="rm-sub" style="margin:4px 0 6px">${ajuda}</p>
+    <textarea class="form-control" id="rm-caixa-txt" rows="3"></textarea>
+    <div class="rm-acoes" style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="${acao}">${rotulo}</button>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rm-caixa').remove()">Voltar</button></div></div>`)
+  document.getElementById('rm-caixa-txt').focus()
+}
+function remPedirEstorno() {
+  remCaixaTexto('Pedir estorno deste remanejamento',
+    'Cria um rascunho que devolve às atividades de origem tudo o que foi recebido, para as mesmas fontes de onde saiu. ' +
+    'Passa pela mesma cadeia de assinaturas. Só é possível se o destino ainda não usou nem repassou o valor.',
+    'Criar rascunho do estorno', 'remConfirmarEstorno()')
+}
+async function remConfirmarEstorno() {
+  const j = (document.getElementById('rm-caixa-txt').value || '').trim()
+  if (j.length < 15) { toast('Escreva a justificativa do estorno (mínimo 15 caracteres).', 'error'); return }
+  const { data, error } = await db.rpc('fn_rem_criar_estorno', { p_rem: REM.detalhe.P.id, p_justificativa: j })
+  if (error) { toast(remMsg(error.message), 'error'); return }
+  toast('Rascunho do estorno criado. Confira e envie para aprovação.', 'success')
+  await remCarregar()
+  remAbrirPedido(data)
+}
+function remEditarJustificativa() {
+  remCaixaTexto('Editar justificativa do estorno', 'Itens e fontes do estorno espelham o original e não mudam.',
+    'Salvar justificativa', 'remSalvarJustificativa()')
+  document.getElementById('rm-caixa-txt').value = REM.detalhe.P.justificativa === '(rascunho)' ? '' : REM.detalhe.P.justificativa
+}
+async function remSalvarJustificativa() {
+  const j = (document.getElementById('rm-caixa-txt').value || '').trim()
+  const { error } = await db.rpc('fn_rem_salvar', { p_id: REM.detalhe.P.id, p_dados: { justificativa: j } })
+  if (error) { toast(remMsg(error.message), 'error'); return }
+  toast('Justificativa salva.', 'success')
+  await remCarregar()
+  remAbrirPedido(REM.detalhe.P.id)
 }
 function remEditar() {
   const D = REM.detalhe

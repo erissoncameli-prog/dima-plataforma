@@ -743,4 +743,86 @@ do $$ declare a uuid; begin
   perform t_conferencia_ok('final da fase 5');
 end $$;
 
-\echo '✔ todos os testes do remanejamento (fases 0–3 e 5) passaram'
+
+-- ════════════════════════════════════════════════════════════════════════
+-- Fase 4b — estorno de remanejamento
+-- ════════════════════════════════════════════════════════════════════════
+\echo '· aplicando rem_06 (duas vezes)'
+reset role;
+\ir ../../migrations/20261003_rem_06_estorno.sql
+\ir ../../migrations/20261003_rem_06_estorno.sql
+insert into public.usuarios (id, nome_completo, email, perfil) values
+ ('00000000-0000-0000-0000-0000000000e7','Resp 2.1.7','e7@x','tecnico');
+insert into public.atividade_responsaveis (atividade_id, usuario_id, papel)
+select id, '00000000-0000-0000-0000-0000000000e7'::uuid, 'responsavel' from atividades where codigo = '2.1.7';
+
+\echo '· T14a estorno nasce como espelho do original'
+do $$ declare v uuid; v2 uuid; begin
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  perform t_erro(format('select fn_rem_criar_estorno(%L, %L)', (select id from remanejamentos where status = 'recusado' limit 1), 'x'),
+                 'só se estorna remanejamento efetivado');
+  v := fn_rem_criar_estorno(t_id('rem1'), 'Estorno do REM: destino desistiu da ação, recurso volta às origens');
+  insert into t_ids values ('est1', v);
+  v2 := fn_rem_criar_estorno(t_id('rem1'), 'de novo');
+  if v2 <> v then raise exception 'FALHOU: estorno deve ser idempotente'; end if;
+  perform t_igual('itens invertidos', (select count(*) from remanejamento_itens i where i.remanejamento_id = v and i.ativo
+     and exists (select 1 from remanejamento_itens o where o.remanejamento_id = t_id('rem1') and o.ativo
+                  and o.atividade_id = i.atividade_id and o.valor_usd = -i.valor_usd)), 3);
+  perform t_igual('aloca os 2 recebidos inteiros', (select sum(valor_usd) from remanejamento_alocacoes where remanejamento_id = v and ativo), 150);
+  perform fn_rem_validar(v);
+  perform t_erro(format($q$select fn_rem_salvar(%L, '{"itens":[]}'::jsonb)$q$, v), 'só a justificativa');
+  perform t_erro(format('select fn_rem_criar_estorno(%L, %L)', v, 'x'), 'já é um estorno');
+end $$;
+
+\echo '· T14b destino comprometido não estorna; liberado, estorna'
+do $$ declare v uuid := t_id('est1'); v_tdr uuid; begin
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c0', false);
+  insert into tdrs (atividade_id, numero, status, valor_usd)
+  values (t_id('a217'), '2.1.7-099', 'aprovado', fn_cob_livre(t_id('a217'))) returning id into v_tdr;
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000c0', v, 'aprovar'), 'SALDO_INSUFICIENTE');
+  update tdrs set status = 'cancelado' where id = v_tdr;
+  perform t_ass('00000000-0000-0000-0000-0000000000c0', v, 'aprovar');
+  perform t_igual('reserva no recebido do destino',
+    (select sum(reservado_usd) from vw_orcamento_fontes_saldo where tipo = 'remanejamento_recebido' and remanejamento_id = t_id('rem1')), 150);
+  perform t_igual('liberação é do responsável de quem devolve',
+    (select count(*) from remanejamento_etapas where remanejamento_id = v and papel = 'liberacao_origem' and atividade_id = t_id('a217')), 1);
+  -- com o estorno tramitando, o destino não usa o dinheiro reservado
+  perform t_erro(format($q$insert into tdrs (atividade_id, numero, status, valor_usd) values (%L, '2.1.7-098', 'aprovado', %s)$q$,
+                        t_id('a217'), fn_cob_livre(t_id('a217')) + 1), 'SALDO_INSUFICIENTE');
+end $$;
+
+\echo '· T14c cadeia completa: lançamentos espelhados, original estornado'
+do $$ declare v uuid := t_id('est1'); o111 numeric; o311 numeric; o217 numeric; begin
+  o111 := (select orcamento_usd from atividades where id = t_id('a111'));
+  o311 := (select orcamento_usd from atividades where id = t_id('a311'));
+  o217 := (select orcamento_usd from atividades where id = t_id('a217'));
+  perform t_ass('00000000-0000-0000-0000-0000000000e7', v, 'aprovar');
+  perform t_ass('00000000-0000-0000-0000-0000000000f1', v, 'aprovar');
+  perform t_ass('00000000-0000-0000-0000-0000000000d1', v, 'aprovar');
+  perform t_ass('00000000-0000-0000-0000-0000000000a1', v, 'aprovar');
+  if (select status from remanejamentos where id = v) <> 'efetivado' then raise exception 'FALHOU: estorno efetivado'; end if;
+  if (select status from remanejamentos where id = t_id('rem1')) <> 'estornado' then raise exception 'FALHOU: original estornado'; end if;
+  perform t_igual('1.1.1 recebe de volta', (select orcamento_usd from atividades where id = t_id('a111')), o111 + 100);
+  perform t_igual('3.1.1 recebe de volta', (select orcamento_usd from atividades where id = t_id('a311')), o311 + 50);
+  perform t_igual('2.1.7 devolve', (select orcamento_usd from atividades where id = t_id('a217')), o217 - 150);
+  perform t_igual('volta à MESMA fonte (dotação da 1.1.1)',
+    (select liquido_usd from vw_orcamento_fontes_saldo where fonte_id = t_id('f111')),
+    (select valor_usd from orcamento_fontes where id = t_id('f111'))
+      + coalesce((select sum(valor_usd) from orcamento_fontes where ajusta_fonte_id = t_id('f111')
+                   and remanejamento_id is distinct from t_id('rem1') and remanejamento_id is distinct from v), 0));
+  perform t_igual('4 lançamentos espelhados', (select count(*) from orcamento_fontes where remanejamento_id = v and estorno_de is not null), 4);
+  perform t_igual('recebidos zerados', (select sum(liquido_usd) from vw_orcamento_fontes_saldo
+                                         where tipo = 'remanejamento_recebido' and remanejamento_id = t_id('rem1')), 0);
+  perform t_igual('conferência do estorno', (select count(*) from vw_rem_conferencia
+                                              where id = v and destinos_usd = 150 and recebido_usd = 150 and cedido_usd = 150), 1);
+  perform t_igual('original segue na conferência', (select count(*) from vw_rem_conferencia where id = t_id('rem1')), 1);
+  perform t_conferencia_ok('após estorno');
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  perform t_erro(format('select fn_rem_criar_estorno(%L, %L)', t_id('rem1'), 'x'), 'está estornado');
+  perform t_erro(format($q$insert into orcamento_fontes (atividade_id, tipo, valor_usd, ajusta_fonte_id, estorno_de, descricao)
+                         select atividade_id, tipo, -valor_usd, coalesce(ajusta_fonte_id, id), id, 'x'
+                           from orcamento_fontes where remanejamento_id = %L limit 1$q$, t_id('rem1')), 'duplicate key');
+end $$;
+
+\echo '✔ todos os testes do remanejamento (fases 0–5 e estorno) passaram'

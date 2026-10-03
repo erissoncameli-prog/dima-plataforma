@@ -155,6 +155,14 @@ Só se as fontes `remanejamento_recebido` do destino ainda estiverem
 disponíveis no valor integral; gera lançamentos inversos. Exige a mesma
 cadeia de assinaturas.
 
+✅ **Implementado em 03/10/2026** (`rem_06_estorno`): pedido com
+`remanejamentos.estorno_de`, criado por `fn_rem_criar_estorno` como espelho
+exato (itens invertidos; alocações = recebidos inteiros, que ficam reservados
+enquanto tramita). Recebido já repassado/ajustado ou consumido pelo destino ⇒
+recusa. Efetivação espelha cada lançamento (`orcamento_fontes.estorno_de`):
+o cedido volta à mesma fonte de origem, preservando a procedência; o original
+fica `estornado`. Estorno de estorno não existe (desfazer = novo remanejamento).
+
 ---
 
 ## 4. Cadeia de aprovação — nominal, sequencial, com senha
@@ -340,7 +348,7 @@ Relatório A4 do remanejamento: itens, linhagem, cadeia com nome/cargo/data/hash
 | 1 | Razão: `orcamento_fontes`, carga, débitos (inclui despesas sem TDR), PEPS, eventos de TDR, conferência |
 | 2 | Cotação PTAX: tabela, Edge Function, cron, backfill |
 | 3 | Cargos/titulares, Edge Function `assinar-remanejamento`, cadeia sequencial, e-mails — ✅ 03/10/2026 (com reserva e efetivação da fase 4; `fn_rem_salvar` via `rem_03g` no SQL Editor) |
-| 4 | Remanejamento livre: reserva, alocações e efetivação ✅ (na fase 3); **estorno pendente** |
+| 4 | Remanejamento livre: reserva, alocações e efetivação ✅ (na fase 3); estorno ✅ 03/10/2026 (`rem_06`) |
 | 5 | Cobertura de contrato: enum, excedente em USD, travas, liberação automática — ✅ 03/10/2026 (`rem_05*`) |
 | 6 | Telas: quadro por resultado, montagem, fila, extrato — ✅ 03/10/2026 (`pages/remanejamentos.html`) |
 | 7 | Relatório A4, extrato no relatório de saldo, domínio no `auditor-ia`, CLAUDE.md |

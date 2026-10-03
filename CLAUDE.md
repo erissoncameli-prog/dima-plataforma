@@ -256,9 +256,9 @@ saldo_livre_usd = orcamento_usd
 
 ### Razão orçamentário e remanejamento (⚠️ ler antes de mexer em orçamento)
 
-Especificação completa: `docs/remanejamento/plano.md`. Fases 0–3 e 5 em produção (03/10/2026);
+Especificação completa: `docs/remanejamento/plano.md`. Fases 0–6 em produção (03/10/2026, inclusive estorno);
 tela em `pages/remanejamentos.html` + `js/remanejamentos.js` (nav `remanejamentos`, grupo Planejamento, todos os
-perfis — signatários podem ter qualquer perfil). Falta o estorno de remanejamento e a Fase 7 (relatório/auditor).
+perfis — signatários podem ter qualquer perfil). Falta a Fase 7 (relatório A4, extrato, domínio no auditor).
 - **Tela**: abas Saldos por resultado (procedência por fonte), Pedidos (fila "aguardando minha análise"),
   Novo pedido (coordenação/super_admin; escolhe as fontes que cedem) e Signatários (super_admin designa).
   A tela não decide nada: assinar = `fetch` à Edge Function com a senha; a fila "minha vez" é só exibição.
@@ -320,6 +320,14 @@ perfis — signatários podem ter qualquer perfil). Falta o estorno de remanejam
   antigo não é regularizado: `piso_usd` = livre antes do 1º contrato da fila. Liberado ⇒ pedido de cobertura aberto
   é cancelado sozinho. Pedido `tipo='cobertura_contrato'` (`fn_rem_salvar` com `contrato_id`) tem destino = atividade
   do contrato. Nunca mudar `status` para/de `aguardando_cobertura` por fora (só com `dima.cobertura='liberar'`).
+- **Estorno de remanejamento** (`rem_06`): pedido novo com `remanejamentos.estorno_de` → original (o `tipo` segue
+  `livre`; mudar o check exigiria DROP). Nasce só por `fn_rem_criar_estorno(p_rem, p_justificativa)` (coordenação,
+  idempotente) como espelho: itens invertidos, alocações = as fontes `remanejamento_recebido` do original, inteiras.
+  Itens não se editam (só justificativa). Mesma cadeia (`fn_rem_assinar` sem mudança; liberação = responsáveis de
+  quem devolve). `fn_rem_validar_estorno` exige original `efetivado`, recebidos sem ajuste posterior e livres
+  (destino que gastou/repassou não estorna). Efetivar (`fn_rem_efetivar_estorno`) espelha cada lançamento com
+  `orcamento_fontes.estorno_de` (cedido volta à MESMA fonte de origem) e marca o original `estornado`. Estorno de
+  estorno não existe: desfazer = remanejamento novo.
 - `apply_migration` com `DELETE`/`DROP`/`TRUNCATE` no texto (até dentro de corpo de função) fica esperando uma
   confirmação que não chega à sessão e expira. Preferir desenho sem apagar (flag `ativo`, `create or replace`,
   policy condicional); o que exigir DROP vai num `*_sql_editor.sql` para colar no SQL Editor.
