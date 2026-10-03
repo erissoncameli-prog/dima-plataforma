@@ -80,7 +80,7 @@ async function remCarregar() {
     db.from('vw_orcamento_atividade').select('*').order('codigo'),
     db.from('resultados').select('id,codigo,nome_pt').order('codigo'),
     db.from('vw_orcamento_fontes_saldo').select('*'),
-    db.from('remanejamentos').select('*, itens:remanejamento_itens(atividade_id, valor_usd)').order('criado_em', { ascending: false }),
+    db.from('remanejamentos').select('*, itens:remanejamento_itens(atividade_id, valor_usd, ativo)').order('criado_em', { ascending: false }),
     db.from('remanejamento_etapas').select('id, remanejamento_id, versao, ordem, papel, cargo, atividade_id, assinatura_id'),
     db.from('atividade_responsaveis').select('atividade_id, usuario_id, papel, ativo').eq('ativo', true).eq('papel', 'responsavel'),
     db.from('rem_cargos').select('*').order('ordem'),
@@ -94,6 +94,8 @@ async function remCarregar() {
     return
   }
   ;[REM.ativs, REM.resultados, REM.fontes, REM.pedidos, REM.etapas, REM.resp, REM.cargos, REM.titulares] = r.map(x => x.data || [])
+  // itens retirados do rascunho ficam guardados com ativo = false; não entram na conta
+  for (const p of REM.pedidos) p.itens = (p.itens || []).filter(i => i.ativo !== false)
   REM.usuarios = Object.fromEntries((r[8].data || []).map(u => [u.id, u]))
   remRender()
 }
@@ -401,8 +403,8 @@ async function remConfirmarDesignacao(cargo) {
 async function remAbrirPedido(id) {
   const [p, it, al, et, as, hi, hs] = await Promise.all([
     db.from('remanejamentos').select('*').eq('id', id).maybeSingle(),
-    db.from('remanejamento_itens').select('id, atividade_id, valor_usd').eq('remanejamento_id', id),
-    db.from('remanejamento_alocacoes').select('item_id, fonte_id, valor_usd').eq('remanejamento_id', id),
+    db.from('remanejamento_itens').select('id, atividade_id, valor_usd').eq('remanejamento_id', id).eq('ativo', true),
+    db.from('remanejamento_alocacoes').select('item_id, fonte_id, valor_usd').eq('remanejamento_id', id).eq('ativo', true),
     db.from('remanejamento_etapas').select('*').eq('remanejamento_id', id).order('ordem'),
     db.from('vw_remanejamento_assinaturas').select('*').eq('remanejamento_id', id).order('criado_em'),
     db.from('remanejamento_historico').select('*').eq('remanejamento_id', id).order('criado_em'),

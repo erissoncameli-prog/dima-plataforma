@@ -301,10 +301,15 @@ perfis — signatários podem ter qualquer perfil). Falta a cobertura obrigatór
   Pedido em aprovação **reserva** as fontes (`vw_orcamento_fontes_saldo.reservado_usd/livre_usd`); efetivação
   revalida sob `FOR UPDATE` e lança `remanejamento_cedido` (−) e `remanejamento_recebido` (+, `fonte_origem_id`).
   Assinaturas/etapas/histórico imutáveis; pedido não se apaga (cancelar). `vw_remanejamento_assinaturas` = sem IP.
+- **Rascunho nunca apaga**: `fn_rem_salvar` marca o que sai com `remanejamento_itens/alocacoes.ativo = false`
+  e reativa o que volta (`on conflict do update`). **Toda leitura de itens/alocações filtra `ativo`** (hash,
+  reservas, validação, efetivação, cadeia, conferência, e-mail, tela) — consulta nova sem o filtro soma lixo.
 - E-mails: fila `remanejamento_notificacoes`, enviada pela Edge Function (Gmail SMTP) e reenviada pelo cron
-  `remanejamento-emails` (15 min). Sino com tipos `remanejamento_*` (liberados pela `rem_03g`).
-- Migração com `DELETE`/`DROP` (mesmo dentro de corpo de função) trava o `apply_migration`: separar num arquivo
-  `*_sql_editor.sql` para colar no SQL Editor (ex.: `20261003_rem_03g_sql_editor.sql`).
+  `remanejamento-emails` (15 min). Sino com tipos `remanejamento_*` depende da `rem_03g` (troca o check de
+  `notificacoes`, exige DROP CONSTRAINT → SQL Editor); sem ela só o sino fica mudo, o e-mail sai.
+- `apply_migration` com `DELETE`/`DROP`/`TRUNCATE` no texto (até dentro de corpo de função) fica esperando uma
+  confirmação que não chega à sessão e expira. Preferir desenho sem apagar (flag `ativo`, `create or replace`,
+  policy condicional); o que exigir DROP vai num `*_sql_editor.sql` para colar no SQL Editor.
 - Testes locais: `supabase/tests/remanejamento/rodar.sh`.
 - Migração com `DROP` trava o `apply_migration` (pede confirmação). Use `create or replace trigger`
   e policy condicional (`if not exists … pg_policies`).

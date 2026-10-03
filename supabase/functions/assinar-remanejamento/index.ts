@@ -122,7 +122,7 @@ async function drenarEmails(admin: any, remanejamentoId: string | null) {
   const [{ data: rems }, { data: usus }, { data: itens }, { data: etapas }] = await Promise.all([
     admin.from('remanejamentos').select('id, numero, justificativa, status, etapa_atual, versao').in('id', remIds),
     admin.from('usuarios').select('id, nome_completo, email, ativo').in('id', usuIds),
-    admin.from('remanejamento_itens').select('remanejamento_id, valor_usd, atividades(codigo, nome_pt)').in('remanejamento_id', remIds),
+    admin.from('remanejamento_itens').select('remanejamento_id, valor_usd, atividades(codigo, nome_pt)').in('remanejamento_id', remIds).eq('ativo', true),
     admin.from('remanejamento_etapas').select('remanejamento_id, versao, ordem, papel, atividades(codigo)').in('remanejamento_id', remIds),
   ])
   const remPor = new Map((rems || []).map((r: any) => [r.id, r]))

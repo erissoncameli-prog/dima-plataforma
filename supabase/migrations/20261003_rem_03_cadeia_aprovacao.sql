@@ -1,6 +1,6 @@
 -- ════════════════════════════════════════════════════════════════════════
 -- Aplicada em produção (03/10/2026) em partes, mesmo conteúdo: 20261003_rem_03a…03f;
--- fn_rem_salvar (§6) tem DELETE e vai pelo SQL Editor em 20261003_rem_03g_sql_editor.sql.
+-- fn_rem_salvar e o filtro `ativo` (rascunho sem DELETE) entraram em 20261003_rem_04_rascunho_sem_delete.
 -- Remanejamento · Fase 3 — Pedido, cadeia de aprovação e efetivação
 -- (docs/remanejamento/plano.md §3 e §4)
 --
@@ -150,6 +150,7 @@ create table if not exists public.remanejamento_itens (
   remanejamento_id uuid not null references public.remanejamentos(id),
   atividade_id     uuid not null references public.atividades(id),
   valor_usd        numeric(14,2) not null check (valor_usd <> 0),
+  ativo            boolean not null default true,   -- false = retirado do rascunho (nada é apagado)
   unique (remanejamento_id, atividade_id)
 );
 create table if not exists public.remanejamento_alocacoes (
@@ -158,6 +159,7 @@ create table if not exists public.remanejamento_alocacoes (
   item_id          uuid not null references public.remanejamento_itens(id),
   fonte_id         uuid not null references public.orcamento_fontes(id),
   valor_usd        numeric(14,2) not null check (valor_usd > 0),
+  ativo            boolean not null default true,   -- false = retirada do rascunho (nada é apagado)
   unique (item_id, fonte_id)
 );
 create index if not exists idx_rem_alocacoes_fonte on public.remanejamento_alocacoes (fonte_id);
@@ -306,12 +308,12 @@ returns text language sql stable security definer set search_path to 'public' as
     'justificativa', r.justificativa, 'versao', r.versao,
     'itens', (select coalesce(jsonb_agg(jsonb_build_object('atividade_id', i.atividade_id, 'valor_usd', i.valor_usd)
                                         order by i.atividade_id), '[]'::jsonb)
-                from public.remanejamento_itens i where i.remanejamento_id = r.id),
+                from public.remanejamento_itens i where i.remanejamento_id = r.id and i.ativo),
     'alocacoes', (select coalesce(jsonb_agg(jsonb_build_object('atividade_id', i.atividade_id, 'fonte_id', a.fonte_id,
                                                                'valor_usd', a.valor_usd)
                                             order by i.atividade_id, a.fonte_id), '[]'::jsonb)
                     from public.remanejamento_alocacoes a join public.remanejamento_itens i on i.id = a.item_id
-                   where a.remanejamento_id = r.id)
+                   where a.remanejamento_id = r.id and a.ativo)
   )::text, 'UTF8'), 'sha256'), 'hex')
   from public.remanejamentos r where r.id = p_id
 $$;
@@ -320,6 +322,7 @@ create or replace view public.vw_rem_reservas as
 select a.fonte_id, a.remanejamento_id, sum(a.valor_usd)::numeric(14,2) as reservado_usd
   from public.remanejamento_alocacoes a
   join public.remanejamentos r on r.id = a.remanejamento_id and r.status = 'em_aprovacao'
+ where a.ativo
  group by a.fonte_id, a.remanejamento_id;
 
 -- Saldo por fonte ganha reservado e livre (colunas novas no fim; demais iguais à rem_01)
@@ -467,7 +470,7 @@ begin
   end if;
   select coalesce(sum(valor_usd), 0), count(*) filter (where valor_usd < 0), count(*) filter (where valor_usd > 0)
     into v_soma, v_n_or, v_n_de
-    from public.remanejamento_itens where remanejamento_id = p_rem;
+    from public.remanejamento_itens where remanejamento_id = p_rem and ativo;
   if v_n_or = 0 or v_n_de = 0 then
     raise exception 'REM_INVALIDO: o pedido precisa de ao menos uma origem (valor negativo) e um destino (positivo).';
   end if;
@@ -477,9 +480,9 @@ begin
 
   for r in
     select i.id, i.atividade_id, a.codigo, a.ativo, i.valor_usd,
-           coalesce((select sum(x.valor_usd) from public.remanejamento_alocacoes x where x.item_id = i.id), 0) as alocado
+           coalesce((select sum(x.valor_usd) from public.remanejamento_alocacoes x where x.item_id = i.id and x.ativo), 0) as alocado
       from public.remanejamento_itens i join public.atividades a on a.id = i.atividade_id
-     where i.remanejamento_id = p_rem
+     where i.remanejamento_id = p_rem and i.ativo
   loop
     if not r.ativo then raise exception 'REM_INVALIDO: atividade % inativa.', r.codigo; end if;
     if r.valor_usd > 0 and r.alocado <> 0 then
@@ -500,7 +503,7 @@ begin
       join public.remanejamento_itens i on i.id = x.item_id
       join public.atividades a on a.id = i.atividade_id
       join public.orcamento_fontes f on f.id = x.fonte_id
-     where x.remanejamento_id = p_rem
+     where x.remanejamento_id = p_rem and x.ativo
   loop
     if r.fonte_atividade <> r.atividade_id or r.ajusta_fonte_id is not null then
       raise exception 'REM_INVALIDO: a fonte % não é um crédito da atividade %.', r.fonte_id, r.codigo;
@@ -568,21 +571,27 @@ begin
      where id = v_rem.id;
   end if;
 
+  -- Nada é apagado: o que sai do rascunho fica com ativo = false (histórico do rascunho);
+  -- o que volta é reativado com o valor novo.
   if p_dados ? 'itens' then
-    delete from public.remanejamento_alocacoes where remanejamento_id = v_rem.id;
-    delete from public.remanejamento_itens where remanejamento_id = v_rem.id;
+    update public.remanejamento_alocacoes set ativo = false where remanejamento_id = v_rem.id and ativo;
+    update public.remanejamento_itens     set ativo = false where remanejamento_id = v_rem.id and ativo;
     for v_it in select * from jsonb_array_elements(p_dados->'itens') loop
       insert into public.remanejamento_itens (remanejamento_id, atividade_id, valor_usd)
-      values (v_rem.id, (v_it->>'atividade_id')::uuid, round((v_it->>'valor_usd')::numeric, 2));
+      values (v_rem.id, (v_it->>'atividade_id')::uuid, round((v_it->>'valor_usd')::numeric, 2))
+      on conflict (remanejamento_id, atividade_id)
+        do update set valor_usd = excluded.valor_usd, ativo = true;
     end loop;
     for v_it in select * from jsonb_array_elements(coalesce(p_dados->'alocacoes', '[]'::jsonb)) loop
       select id into v_item from public.remanejamento_itens
-       where remanejamento_id = v_rem.id and atividade_id = (v_it->>'atividade_id')::uuid and valor_usd < 0;
+       where remanejamento_id = v_rem.id and atividade_id = (v_it->>'atividade_id')::uuid and valor_usd < 0 and ativo;
       if v_item is null then
         raise exception 'Alocação para atividade que não é origem do pedido: %', v_it->>'atividade_id';
       end if;
       insert into public.remanejamento_alocacoes (remanejamento_id, item_id, fonte_id, valor_usd)
-      values (v_rem.id, v_item, (v_it->>'fonte_id')::uuid, round((v_it->>'valor_usd')::numeric, 2));
+      values (v_rem.id, v_item, (v_it->>'fonte_id')::uuid, round((v_it->>'valor_usd')::numeric, 2))
+      on conflict (item_id, fonte_id)
+        do update set valor_usd = excluded.valor_usd, ativo = true;
     end loop;
   end if;
 
@@ -605,7 +614,7 @@ begin
 
   -- trava as atividades envolvidas em ordem fixa (evita corrida e deadlock)
   perform 1 from public.atividades
-   where id in (select atividade_id from public.remanejamento_itens where remanejamento_id = p_rem)
+   where id in (select atividade_id from public.remanejamento_itens where remanejamento_id = p_rem and ativo)
    order by id for update;
 
   perform fn_rem_validar(p_rem);   -- revalida saldo/reservas sob a trava
@@ -617,7 +626,7 @@ begin
       join public.remanejamento_itens i on i.id = x.item_id
       join public.atividades a on a.id = i.atividade_id
       join public.orcamento_fontes f on f.id = x.fonte_id
-     where x.remanejamento_id = p_rem
+     where x.remanejamento_id = p_rem and x.ativo
      order by a.codigo, f.criado_em, f.id
   loop
     insert into public.orcamento_fontes (atividade_id, tipo, valor_usd, ajusta_fonte_id, remanejamento_id, descricao, criado_por)
@@ -629,7 +638,7 @@ begin
   for d in
     select i.atividade_id, a.codigo, i.valor_usd
       from public.remanejamento_itens i join public.atividades a on a.id = i.atividade_id
-     where i.remanejamento_id = p_rem and i.valor_usd > 0
+     where i.remanejamento_id = p_rem and i.valor_usd > 0 and i.ativo
      order by a.codigo
   loop
     v_destinos := v_destinos || jsonb_build_object('atividade_id', d.atividade_id, 'codigo', d.codigo, 'valor', d.valor_usd);
@@ -729,7 +738,7 @@ begin
     v_ordem := 1;
     for o in
       select i.atividade_id, a.codigo from public.remanejamento_itens i join public.atividades a on a.id = i.atividade_id
-       where i.remanejamento_id = v_rem.id and i.valor_usd < 0 order by a.codigo
+       where i.remanejamento_id = v_rem.id and i.valor_usd < 0 and i.ativo order by a.codigo
     loop
       v_ordem := v_ordem + 1;
       insert into public.remanejamento_etapas (remanejamento_id, versao, ordem, papel, atividade_id)
@@ -874,7 +883,7 @@ $$;
 create or replace view public.vw_rem_conferencia as
 select r.id, r.numero,
        coalesce((select sum(i.valor_usd) from public.remanejamento_itens i
-                  where i.remanejamento_id = r.id and i.valor_usd > 0), 0)::numeric(14,2)          as destinos_usd,
+                  where i.remanejamento_id = r.id and i.valor_usd > 0 and i.ativo), 0)::numeric(14,2) as destinos_usd,
        coalesce((select sum(f.valor_usd) from public.orcamento_fontes f
                   where f.remanejamento_id = r.id and f.tipo = 'remanejamento_recebido'), 0)::numeric(14,2) as recebido_usd,
        coalesce((select -sum(f.valor_usd) from public.orcamento_fontes f

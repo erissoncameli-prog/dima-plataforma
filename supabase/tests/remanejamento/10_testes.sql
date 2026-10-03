@@ -72,6 +72,7 @@ insert into public.execucao_financeira (atividade_id, descricao, valor_brl, valo
 \ir ../../migrations/20261003_rem_02_cotacao_ptax.sql
 \ir ../../migrations/20261003_rem_03_cadeia_aprovacao.sql
 \ir ../../migrations/20261003_rem_03g_sql_editor.sql
+\ir ../../migrations/20261003_rem_04_rascunho_sem_delete.sql
 
 \echo '· T1 carga inicial'
 do $$ begin
@@ -518,6 +519,33 @@ do $$ begin
   set local role anon;
   perform t_erro($q$select * from remanejamentos$q$, 'permission denied');
   perform t_erro($q$select fn_rem_hash(null)$q$, 'permission denied');
+end $$;
+
+\echo '· T12k rascunho editado não apaga nada (ativo = false)'
+do $$ declare v uuid; h1 text; begin
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  v := fn_rem_salvar(null, jsonb_build_object('justificativa','Rascunho para testar edição sem DELETE',
+     'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -5),
+                                jsonb_build_object('atividade_id', t_id('a217'), 'valor_usd', 5)),
+     'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', 5))));
+  h1 := fn_rem_hash(v);
+  -- troca o destino 2.1.7 → 1.1.1
+  perform fn_rem_salvar(v, jsonb_build_object('justificativa','Rascunho para testar edição sem DELETE',
+     'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -5),
+                                jsonb_build_object('atividade_id', t_id('a111'), 'valor_usd', 5)),
+     'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', 5))));
+  perform t_igual('itens guardados (nenhum apagado)', (select count(*) from remanejamento_itens where remanejamento_id = v), 3);
+  perform t_igual('2.1.7 inativo', (select count(*) from remanejamento_itens where remanejamento_id = v and atividade_id = t_id('a217') and not ativo), 1);
+  perform t_igual('ativos', (select count(*) from remanejamento_itens where remanejamento_id = v and ativo), 2);
+  if fn_rem_hash(v) = h1 then raise exception 'FALHOU: hash deve mudar com o destino'; end if;
+  -- volta ao destino original: reativa a mesma linha
+  perform fn_rem_salvar(v, jsonb_build_object('justificativa','Rascunho para testar edição sem DELETE',
+     'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -5),
+                                jsonb_build_object('atividade_id', t_id('a217'), 'valor_usd', 5)),
+     'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', 5))));
+  perform t_igual('reativou sem duplicar', (select count(*) from remanejamento_itens where remanejamento_id = v), 3);
+  if fn_rem_hash(v) <> h1 then raise exception 'FALHOU: hash ignora o que está inativo'; end if;
+  perform fn_rem_validar(v);   -- inativos não entram na validação (soma fecha)
 end $$;
 
 do $$ begin
