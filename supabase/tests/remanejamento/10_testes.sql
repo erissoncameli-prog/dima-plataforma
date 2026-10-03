@@ -866,4 +866,25 @@ do $$ declare n int; begin
   perform t_erro('select * from fn_auditoria_orcamento()', 'permission denied');
 end $$;
 
-\echo '✔ todos os testes do remanejamento (fases 0–7) passaram'
+
+\echo '· aplicando rem_08 (painel desconta o excedente)'
+reset role;
+\ir ../../migrations/20261003_rem_08_painel_excedente.sql
+\ir ../../migrations/20261003_rem_08_painel_excedente.sql
+
+\echo '· T16 painel = razão quando não há execução direta nem contrato sem TDR'
+do $$ declare r record; begin
+  for r in select o.codigo, o.saldo_usd, v.saldo_livre_usd, v.excedente_contrato_usd, o.contratos_excedente_usd,
+                  o.execucao_direta_realizada_usd, o.reserva_execucao_direta_usd, o.pagamentos_contrato_sem_tdr_usd
+             from vw_orcamento_atividade o join vw_saldo_atividade v on v.id = o.atividade_id loop
+    perform t_igual('excedente igual ' || r.codigo, r.excedente_contrato_usd, r.contratos_excedente_usd);
+    if r.execucao_direta_realizada_usd <= r.reserva_execucao_direta_usd and r.pagamentos_contrato_sem_tdr_usd = 0 then
+      perform t_igual('painel = razão em ' || r.codigo, round(r.saldo_livre_usd, 2), r.saldo_usd);
+    end if;
+  end loop;
+  perform t_conferencia_ok('após rem_08');
+  set local role authenticated;
+  perform t_erro($q$update vw_saldo_atividade set orcamento_usd = 1$q$, 'cannot update view');
+end $$;
+
+\echo '✔ todos os testes do remanejamento (fases 0–8) passaram'

@@ -6,6 +6,8 @@
 // rows: array de atividades no formato
 //   { codigo, nome_pt, orcamento_usd, resultado:{codigo}, tdrs:[{id,numero,valor_brl,valor_usd,status,
 //     contratos:[{id,numero,valor_total_brl,status,fornecedor:{nome,tipo}}]}] }
+//   excedente_contrato_usd (opcional): contrato acima do TDR já debitado no razão (vw_saldo_atividade,
+//   rem_08) — entra no comprometido, como na Visão Geral.
 //   orcamento_original_usd (opcional): dotação congelada; se ≠ orcamento_usd, a diferença
 //   veio de remanejamento/revisão (razão orcamento_fontes) e aparece sob o orçamento.
 // taxa: cotação USD→BRL atual (0 se indisponível)
@@ -71,9 +73,12 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
       return { t, firmado, conts, cUSD, cBRL, ecoBRL, libTdrBRL, reservadaBRL, libEncBRL };
     }).sort((x,y)=>(x.t.numero||'').localeCompare(y.t.numero||'',undefined,{numeric:true}));
 
+    // contrato acima do TDR: comprometido além do planejado (USD congelado pela PTAX do cadastro)
+    const excUSD = parseFloat(a.excedente_contrato_usd||0);
+    compUSD += excUSD; compBRL += toBRL(excUSD);
     const saldoUSD = orcUSD - compUSD + libUSD;
     const saldoBRL = toBRL(orcUSD) - compBRL + libBRL;
-    return { a, orcUSD, compUSD, compBRL, firmUSD, firmBRL, libUSD, libBRL, libEcoTotalUSD, libEcoTotalBRL, libEncTotalUSD, libEncTotalBRL, saldoUSD, saldoBRL, linhas };
+    return { a, excUSD, orcUSD, compUSD, compBRL, firmUSD, firmBRL, libUSD, libBRL, libEcoTotalUSD, libEcoTotalBRL, libEncTotalUSD, libEncTotalBRL, saldoUSD, saldoBRL, linhas };
   }).sort((x,y)=>(x.a.codigo||'').localeCompare(y.a.codigo||'',undefined,{numeric:true}));
 
   if(!dados.length) return `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Nenhuma atividade encontrada para os filtros selecionados.</div>`;
@@ -147,6 +152,12 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     } else {
       bloco += `<tr><td style="padding-left:22px;color:var(--cinza-400)" colspan="4">Nenhum TDR — orçamento totalmente livre</td><td></td><td></td></tr>`;
     }
+    if(d.excUSD){
+      bloco += `<tr>
+        <td style="padding-left:22px;color:var(--cinza-600)" colspan="3">↳ Contrato acima do valor do TDR
+          <div style="font-size:10px;color:var(--cinza-500)">excedente convertido pela PTAX do cadastro e debitado no razão orçamentário</div></td>
+        <td></td><td style="text-align:right">${val(d.excUSD, toBRL(d.excUSD))}</td><td></td></tr>`;
+    }
     // Saldo individual da atividade
     bloco += `<tr style="background:${estourou?'#FEF2F2':'#f8faf8'}">
       <td colspan="4" style="text-align:right;font-weight:600;color:${estourou?'#991B1B':'#1F4E2C'}">
@@ -195,7 +206,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
     </table>
     <div style="font-size:10px;color:var(--cinza-500);margin-top:8px;line-height:1.6">
       Valores em <strong>USD</strong> (moeda do orçamento); linha menor em <strong>BRL</strong> é referência à cotação atual${taxa>0?` de R$ ${taxa.toFixed(4)}`:''}.
-      Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe). Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> (⏸) ao TDR até coordenação/super admin <strong>liberá-la</strong> (↩) para a atividade. Se o contrato é encerrado com produto não entregue/executado, o valor não executado também aparece como <strong>liberado (encerramento)</strong> (↩). TDRs cancelados não entram no cálculo.
+      Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe), mais o que o contrato passar do TDR. Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> (⏸) ao TDR até coordenação/super admin <strong>liberá-la</strong> (↩) para a atividade. Se o contrato é encerrado com produto não entregue/executado, o valor não executado também aparece como <strong>liberado (encerramento)</strong> (↩). TDRs cancelados não entram no cálculo.
       Saldo livre = Orçamento − Comprometido + Liberado (espelha a Visão Geral).
       ${nRem?`Orçamento = orçamento <strong>vigente</strong>: ${nRem} atividade${nRem!==1?'s':''} com remanejamento efetivado (saldo líquido ${fmtUSD(tRemUSD)} entre elas; o total do projeto não muda). Cada centavo tem procedência no extrato da atividade, em Remanejamento.`:''}
     </div>

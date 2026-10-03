@@ -229,9 +229,14 @@ WHERE c.status = 'vigente'
 ```
 saldo_livre_usd = orcamento_usd
                 − Σ(tdrs.valor_usd de TDRs não-cancelados)      -- COMPROMETIDO = valor PLANEJADO do TDR
+                − Σ(contrato_coberturas.delta_usd)              -- + contrato ACIMA do TDR (rem_08, coluna excedente_contrato_usd)
                 + Σ(contrato_encerramentos.valor_liberado_usd)  -- só linhas com status='ativo'
 ```
-> ⚠️ Comprometido usa o valor **planejado** do TDR, **não** o valor do contrato. A economia entre planejado e contratado fica **reservada por padrão** até ser liberada.
+> ⚠️ Comprometido usa o valor **planejado** do TDR, **não** o valor do contrato — salvo o que o contrato passar do
+> TDR, que entra como excedente (`comprometido_usd` = TDRs + excedente). A economia entre planejado e contratado
+> fica **reservada por padrão** até ser liberada. Painel e razão (`vw_orcamento_atividade.saldo_usd`) dão o mesmo
+> saldo; só divergem por execução direta acima da reserva ou pagamento de contrato sem TDR (conferido em
+> `fn_conferir_orcamento`). A view não é auto-atualizável (join lateral) e só tem SELECT.
 
 **`contrato_encerramentos`** — tabela-razão única de liberação de saldo (imutável; estorno = mudança de status, nunca DELETE):
 | Coluna | Tipo | Obs |
@@ -338,9 +343,9 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
   cargo sem titular, PTAX parada, e-mail sem envio, déficit (info), TDR sem USD. Grava como domínio `financeiro`
   com título "Orçamento: …" (o check de `auditoria_registros.dominio` não tem `orcamento`). Regra nova de
   auditoria do orçamento entra na função SQL, não no TypeScript.
-- ⚠️ **Painel × razão**: `vw_saldo_atividade` (dashboard) não desconta o excedente de contrato sobre o TDR; o razão
-  (`vw_orcamento_atividade`, travas, remanejamento) desconta. A diferença é explicada em `fn_conferir_orcamento`
-  (`diferenca_painel_explicada`). Hoje: 1.1.1, US$ 190,93.
+- **Painel × razão** (`rem_08`): `vw_saldo_atividade` desconta o excedente de contrato como o razão. O painel da
+  Visão Geral conta o excedente como **firmado**; `js/relatorio-saldo-atividade.js` recebe `excedente_contrato_usd`
+  por atividade (dashboard e `relatorios.html` leem da view) e mostra a linha "Contrato acima do valor do TDR".
 - `apply_migration` com `DELETE`/`DROP`/`TRUNCATE` no texto (até dentro de corpo de função) fica esperando uma
   confirmação que não chega à sessão e expira. Preferir desenho sem apagar (flag `ativo`, `create or replace`,
   policy condicional); o que exigir DROP vai num `*_sql_editor.sql` para colar no SQL Editor.
@@ -819,7 +824,7 @@ Supabase/Anthropic/Vercel/Google.
 11. Modal HTML deve ficar **fora do `#app`** para evitar z-index conflito com sidebar
 12. Sempre fechar `gerarLayout()` com `+ '</div></div></div>'`
 13. `tdr_acoes` tem RULE `tdr_acoes_no_delete` (log de auditoria imutável, `ON DELETE DO INSTEAD NOTHING`). Um `DELETE FROM tdrs` direto falha com "referential integrity query... gave unexpected result" por causa disso. Exclusão de TDR **deve** usar a função RPC `apagar_tdr(p_tdr_id uuid)` (restrita a `super_admin`), que desabilita a regra internamente, apaga registros filhos e reabilita a regra — nunca apagar `tdrs`/`tdr_acoes` manualmente via client.
-14. **Liberação de saldo/economia**: NÃO criar tabela nova. `contrato_encerramentos` + `vw_saldo_atividade` já são o mecanismo único (ver seção "Saldo por atividade e liberação de economia"). Comprometido = valor **planejado** do TDR, não o do contrato; economia é liberada via `fn_liberar_economia_tdr` (tipo `economia_contratacao`). Qualquer novo cálculo de saldo deve espelhar `vw_saldo_atividade`, senão dashboard e relatório divergem.
+14. **Liberação de saldo/economia**: NÃO criar tabela nova. `contrato_encerramentos` + `vw_saldo_atividade` já são o mecanismo único (ver seção "Saldo por atividade e liberação de economia"). Comprometido = valor **planejado** do TDR (+ excedente de contrato acima do TDR), não o do contrato; economia é liberada via `fn_liberar_economia_tdr` (tipo `economia_contratacao`). Qualquer novo cálculo de saldo deve espelhar `vw_saldo_atividade`, senão dashboard e relatório divergem.
 15. `car_dados_locais.cpf_cnpj` **não existe mais** — use `cpf_cnpj_mascara` (ver seção "Privacidade e LGPD")
 16. `_mascaraCpfCnpj()` **não existe mais** em `mapa.html` — o dado já vem mascarado do banco
 17. **Nunca** conceder `GRANT` ao papel `anon`. Para expor dado no portal público, criar função `SECURITY DEFINER` no padrão `fn_publico_*`

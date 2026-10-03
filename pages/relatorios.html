@@ -2566,14 +2566,17 @@ async function relA4(){
     .order('codigo');
   if(ativFil) q = q.eq('id', ativFil);
 
-  const [{data:ativs, error},{data:cotRows}] = await Promise.all([
+  const [{data:ativs, error},{data:cotRows},{data:sal}] = await Promise.all([
     q,
-    db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
+    db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1),
+    db.from('vw_saldo_atividade').select('id,excedente_contrato_usd'),
   ]);
   if(error) throw error;
   const taxa = parseFloat(cotRows?.[0]?.cotacao || 0);
+  // contrato acima do TDR (razão, rem_08) entra no comprometido, como na Visão Geral
+  const excPorAtv = Object.fromEntries((sal||[]).map(s => [s.id, s.excedente_contrato_usd]));
 
-  let rows = (ativs||[]);
+  let rows = (ativs||[]).map(a => ({ ...a, excedente_contrato_usd: excPorAtv[a.id] || 0 }));
   if(resFil) rows = rows.filter(a => a.resultado?.codigo == resFil);
 
   // Lógica de cálculo e montagem do HTML fica em js/relatorio-saldo-atividade.js,

@@ -193,9 +193,13 @@ create view public.vw_saldo_atividade as
     coalesce((select sum(t.valor_usd) from tdrs t where t.atividade_id = a.id and t.status <> 'cancelado'), 0::numeric) as comprometido_usd,
     coalesce((select sum(ef.valor_usd) from execucao_financeira ef where ef.atividade_id = a.id and ef.situacao = 'pago'), 0::numeric) as pago_usd,
     coalesce((select sum(ef.valor_usd) from execucao_financeira ef where ef.atividade_id = a.id and ef.situacao = 'a_pagar'), 0::numeric) as a_pagar_usd,
+    coalesce((select count(*) from tdrs t where t.atividade_id = a.id and t.status <> 'cancelado'), 0::bigint) as tdrs_count,
     orcamento_usd
       - coalesce((select sum(t.valor_usd) from tdrs t where t.atividade_id = a.id and t.status <> 'cancelado'), 0::numeric)
-      + coalesce((select sum(ce.valor_liberado_usd) from contrato_encerramentos ce where ce.atividade_id = a.id and ce.status = 'ativo'), 0::numeric) as saldo_livre_usd
+      + coalesce((select sum(ce.valor_liberado_usd) from contrato_encerramentos ce where ce.atividade_id = a.id and ce.status = 'ativo'), 0::numeric) as saldo_livre_usd,
+    orcamento_usd - 0::numeric as saldo_disponivel_usd,
+    0::numeric as pct_comprometido, 0::numeric as pct_pago, 0::numeric as pct_a_pagar, 'ok'::text as status_saldo,
+    coalesce((select sum(ce.valor_liberado_usd) from contrato_encerramentos ce where ce.atividade_id = a.id and ce.status = 'ativo'), 0::numeric) as liberado_usd
    from atividades a;
 grant all on public.vw_saldo_atividade to authenticated;
 
