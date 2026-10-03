@@ -130,7 +130,15 @@ create table public.contratos (
   tdr_id uuid references public.tdrs(id), fornecedor_id uuid,
   atividade_id uuid references public.atividades(id),
   valor_total_brl numeric, status public.status_contrato default 'vigente',
+  contrato_assinado_url text, valor_utilizado_brl numeric default 0,
   criado_em timestamptz default now()
+);
+
+create table public.contratos_produtos (
+  id uuid primary key default gen_random_uuid(),
+  contrato_id uuid not null references public.contratos(id),
+  numero_produto integer, descricao text not null, valor_brl numeric,
+  situacao text default 'pendente'
 );
 
 create table public.contrato_encerramentos (

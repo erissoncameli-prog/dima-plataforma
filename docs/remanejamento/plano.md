@@ -22,8 +22,10 @@ migrações `2026xxxx_rem_*`.
 
 ## 1. Princípios
 
-1. **O TDR prevê, o contrato formaliza.** TDR pode ultrapassar o saldo (é
-   expectativa). Contrato e aditivo **não**: acima do saldo exigem cobertura.
+1. **O TDR compromete, o contrato deriva do TDR** (revisto em 03/10/2026).
+   TDR só nasce/aumenta se couber no saldo livre. Contrato até o valor do TDR
+   já está comprometido; o que exceder (ou o contrato inteiro, sem TDR) acima
+   do saldo livre exige cobertura.
 2. **Todo dólar tem procedência.** O saldo de uma atividade é a soma de
    *fontes* identificadas; remanejar é transferir de fontes específicas.
 3. **Remanejamento não cria dinheiro.** Σ orçamento vigente de todas as
@@ -219,6 +221,21 @@ Function **`assinar-remanejamento`** (`verify_jwt`):
 
 ## 5. Cobertura obrigatória do contrato
 
+> ✅ **Implementado em 03/10/2026 com a regra revista** (`rem_05a`, `rem_05`, `rem_05b`) —
+> esta seção prevalece sobre o texto original abaixo, mantido como histórico:
+> - TDR compromete o planejado e é travado no saldo livre (`fn_trg_verificar_saldo` sobre `fn_cob_livre`).
+> - Comparação TDR × contrato em **R$**; só o **excedente** (Σ contratos do TDR − TDR) é convertido pela PTAX
+>   do dia e congelado em `contrato_coberturas`; entra no débito. Contrato sem TDR: excedente = valor inteiro.
+> - Excedente acima do livre ⇒ `aguardando_cobertura`, travado (produto, pagamento, PDF assinado, status).
+>   Déficit = excedente − max(0, livre). Fila por atividade em ordem de chegada; `piso` = livre antes do 1º
+>   contrato da fila (negativo antigo não é regularizado).
+> - Liberação automática por `fn_cob_reavaliar` após crédito no razão, redução/cancelamento de contrato,
+>   alteração de TDR ou reserva liberada. Pedido de cobertura nasce pelo botão "Pedir cobertura" (não
+>   automático) e é cancelado sozinho se o contrato for liberado por outro caminho ou cancelado.
+> - Novo status `cancelado` (terminal; recusado se houver lançamento financeiro).
+> - Carga: o único excedente existente (contrato do TDR 1.1.1-001, R$ 1.000 → US$ 190,93 pela PTAX de
+>   27/03/2026) entrou sem travar. Pendente: e-mail à coordenação na trava/liberação (hoje só tela).
+
 ### 5.1 Quando dispara
 
 Trigger em `contratos` no INSERT e em todo UPDATE que **aumente**
@@ -324,6 +341,6 @@ Relatório A4 do remanejamento: itens, linhagem, cadeia com nome/cargo/data/hash
 | 2 | Cotação PTAX: tabela, Edge Function, cron, backfill |
 | 3 | Cargos/titulares, Edge Function `assinar-remanejamento`, cadeia sequencial, e-mails — ✅ 03/10/2026 (com reserva e efetivação da fase 4; `fn_rem_salvar` via `rem_03g` no SQL Editor) |
 | 4 | Remanejamento livre: reserva, alocações e efetivação ✅ (na fase 3); **estorno pendente** |
-| 5 | Cobertura de contrato: enum, USD no contrato, travas, liberação automática |
+| 5 | Cobertura de contrato: enum, excedente em USD, travas, liberação automática — ✅ 03/10/2026 (`rem_05*`) |
 | 6 | Telas: quadro por resultado, montagem, fila, extrato — ✅ 03/10/2026 (`pages/remanejamentos.html`) |
 | 7 | Relatório A4, extrato no relatório de saldo, domínio no `auditor-ia`, CLAUDE.md |

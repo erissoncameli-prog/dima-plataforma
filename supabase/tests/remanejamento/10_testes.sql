@@ -554,4 +554,193 @@ do $$ begin
   end if;
 end $$;
 
-\echo '✔ todos os testes do remanejamento (fases 0–3) passaram'
+
+-- ════════════════════════════════════════════════════════════════════════
+-- Fase 5 — cobertura obrigatória do contrato
+-- ════════════════════════════════════════════════════════════════════════
+\echo '· aplicando rem_05 (duas vezes: idempotência)'
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update public.tdrs set valor_brl = 3000 where numero = '1.1.1-001';   -- CT-1 (2.500) cabe no TDR
+\ir ../../migrations/20261003_rem_05a_status_contrato.sql
+\ir ../../migrations/20261003_rem_05_cobertura_contrato.sql
+\ir ../../migrations/20261003_rem_05b_cobertura_pedido.sql
+\ir ../../migrations/20261003_rem_05a_status_contrato.sql
+\ir ../../migrations/20261003_rem_05_cobertura_contrato.sql
+\ir ../../migrations/20261003_rem_05b_cobertura_pedido.sql
+
+create function public.t_ptax() returns numeric language sql as $$ select ptax_venda from fn_cotacao_usd(null) $$;
+create function public.t_livre(c text) returns numeric language sql as
+  $$ select fn_cob_livre((select id from atividades where codigo = c)) $$;
+create function public.t_status(n text) returns text language sql as
+  $$ select status::text from contratos where numero = n $$;
+create function public.t_ativ(c text, v numeric) returns uuid language plpgsql as $$
+declare v_id uuid;
+begin
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-00000000005a', true);
+  insert into atividades (resultado_id, codigo, orcamento_usd)
+  values ('10000000-0000-0000-0000-000000000001', c, v) returning id into v_id;
+  return v_id;
+end $$;
+create function public.t_credito(c text, v numeric) returns void language plpgsql as $$
+begin
+  insert into contrato_encerramentos (contrato_id, atividade_id, tipo, valor_liberado_usd, motivo)
+  values ((select id from contratos where numero = 'CT-1'), (select id from atividades where codigo = c),
+          'encerramento_contrato', v, 'crédito de teste');
+end $$;
+
+\echo '· T13a carga inicial: nada travado, conferência fecha'
+do $$ begin
+  perform t_igual('sem excedente na carga', (select count(*) from contrato_coberturas), 0);
+  perform t_igual('nenhum contrato travado', (select count(*) from contratos where status = 'aguardando_cobertura'), 0);
+  perform t_conferencia_ok('após rem_05');
+end $$;
+
+\echo '· T13b TDR compromete: só nasce se couber no saldo livre'
+do $$ declare a uuid; begin
+  a := t_ativ('9.9.1', 1000);
+  insert into tdrs (id, atividade_id, numero, status, valor_brl, valor_usd)
+  values ('d0000000-0000-0000-0000-000000000991', a, '9.9.1-001', 'aprovado', 500 * t_ptax(), 500);
+  perform t_igual('livre após TDR', t_livre('9.9.1'), 500);
+  perform t_erro(format($q$insert into tdrs (atividade_id, numero, status, valor_usd) values (%L, '9.9.1-002', 'rascunho', 600)$q$, a),
+                 'SALDO_INSUFICIENTE');
+  perform t_erro($q$update tdrs set valor_usd = 1001 where numero = '9.9.1-001'$q$, 'SALDO_INSUFICIENTE');
+  update tdrs set valor_usd = 1000, valor_brl = 1000 * t_ptax() where numero = '9.9.1-001';   -- cabe exatamente
+  update tdrs set valor_usd = 500, valor_brl = 500 * t_ptax() where numero = '9.9.1-001';     -- reduzir sempre pode
+end $$;
+
+\echo '· T13c contrato dentro do TDR não pede nada; aditivo que cabe no saldo também não'
+do $$ declare a uuid := (select id from atividades where codigo = '9.9.1'); begin
+  insert into contratos (numero, tdr_id, atividade_id, valor_total_brl)
+  values ('CT-991', 'd0000000-0000-0000-0000-000000000991', a, 500 * t_ptax());
+  perform t_igual('sem lançamento', (select count(*) from contrato_coberturas), 0);
+  perform t_igual('livre igual', t_livre('9.9.1'), 500);
+  update contratos set valor_total_brl = 600 * t_ptax() where numero = 'CT-991';   -- aditivo de US$ 100
+  perform t_igual('excedente congelado', (select delta_usd from contrato_coberturas where evento = 'aditivo'), 100);
+  perform t_igual('livre após aditivo', t_livre('9.9.1'), 400);
+  if t_status('CT-991') <> 'vigente' then raise exception 'FALHOU: aditivo que cabe não trava'; end if;
+end $$;
+
+\echo '· T13d contrato acima do saldo fica aguardando cobertura e totalmente travado'
+do $$ declare a uuid := (select id from atividades where codigo = '9.9.1'); begin
+  insert into contratos (numero, tdr_id, atividade_id, valor_total_brl)
+  values ('CT-992', 'd0000000-0000-0000-0000-000000000991', a, 450 * t_ptax());
+  if t_status('CT-992') <> 'aguardando_cobertura' then raise exception 'FALHOU: deveria travar (%)', t_status('CT-992'); end if;
+  perform t_igual('déficit = só o que falta', (select deficit_usd from contrato_coberturas where evento = 'cadastro'), 50);
+  perform t_igual('piso 0 (atividade não era negativa)', (select piso_usd from contrato_coberturas where evento = 'cadastro'), 0);
+  perform t_igual('livre negativo', t_livre('9.9.1'), -50);
+  perform t_igual('view: aguardando', (select contratos_aguardando from vw_orcamento_atividade where codigo = '9.9.1'), 1);
+  perform t_erro($q$insert into contratos_produtos (contrato_id, descricao) values ((select id from contratos where numero='CT-992'), 'P1')$q$,
+                 'CONTRATO_AGUARDANDO_COBERTURA');
+  perform t_erro($q$insert into execucao_financeira (atividade_id, contrato_id, valor_brl, valor_usd)
+                    values ((select id from atividades where codigo='9.9.1'), (select id from contratos where numero='CT-992'), 10, 2)$q$,
+                 'CONTRATO_AGUARDANDO_COBERTURA');
+  perform t_erro($q$update contratos set status = 'vigente' where numero = 'CT-992'$q$, 'CONTRATO_AGUARDANDO_COBERTURA');
+  perform t_erro($q$update contratos set contrato_assinado_url = 'x' where numero = 'CT-992'$q$, 'CONTRATO_AGUARDANDO_COBERTURA');
+  perform t_erro($q$update contratos set status = 'aguardando_cobertura' where numero = 'CT-991'$q$, 'definido pelo sistema');
+  perform t_erro($q$update contrato_coberturas set deficit_usd = 0$q$, 'imutável');
+  perform t_conferencia_ok('com contrato travado');
+end $$;
+
+\echo '· T13e reduzir não basta; crédito de US$ 50 libera'
+do $$ begin
+  update contratos set valor_total_brl = 420 * t_ptax() where numero = 'CT-992';   -- −30
+  if t_status('CT-992') <> 'aguardando_cobertura' then raise exception 'FALHOU: ainda falta US$ 20'; end if;
+  perform t_igual('redução proporcional', (select delta_usd from contrato_coberturas where evento = 'reducao'), -30);
+  perform t_credito('9.9.1', 19.99);
+  if t_status('CT-992') <> 'aguardando_cobertura' then raise exception 'FALHOU: faltava 1 centavo'; end if;
+  perform t_credito('9.9.1', 0.01);
+  if t_status('CT-992') <> 'vigente' then raise exception 'FALHOU: crédito deveria liberar (%)', t_status('CT-992'); end if;
+  perform t_igual('pendência resolvida', (select count(*) from contrato_coberturas where situacao = 'aguardando'), 0);
+  insert into contratos_produtos (contrato_id, descricao) values ((select id from contratos where numero='CT-992'), 'P1');
+  perform t_conferencia_ok('após liberação');
+end $$;
+
+\echo '· T13f negativo antigo não é regularizado: contrato espera só o que acrescentou'
+do $$ declare a uuid; begin
+  a := t_ativ('9.9.2', 100);
+  alter table tdrs disable trigger trg_tdr_saldo;
+  insert into tdrs (id, atividade_id, numero, status, valor_brl, valor_usd)
+  values ('d0000000-0000-0000-0000-000000000992', a, '9.9.2-001', 'aprovado', 300 * t_ptax(), 300);
+  alter table tdrs enable trigger trg_tdr_saldo;
+  perform t_igual('já negativo', t_livre('9.9.2'), -200);
+  insert into contratos (numero, tdr_id, atividade_id, valor_total_brl)
+  values ('CT-993', 'd0000000-0000-0000-0000-000000000992', a, 350 * t_ptax());
+  perform t_igual('déficit do contrato', (select deficit_usd from contrato_coberturas c join contratos k on k.id = c.contrato_id where k.numero = 'CT-993'), 50);
+  perform t_igual('piso = negativo antigo', (select piso_usd from contrato_coberturas c join contratos k on k.id = c.contrato_id where k.numero = 'CT-993'), -200);
+  perform t_credito('9.9.2', 50);
+  if t_status('CT-993') <> 'vigente' then raise exception 'FALHOU: cobriu o que acrescentou'; end if;
+  perform t_igual('negativo antigo continua', t_livre('9.9.2'), -200);
+end $$;
+
+\echo '· T13g fila: dois contratos, liberação em ordem de chegada'
+do $$ declare a uuid; begin
+  a := t_ativ('9.9.3', 100);
+  insert into tdrs (id, atividade_id, numero, status, valor_brl, valor_usd)
+  values ('d0000000-0000-0000-0000-000000000993', a, '9.9.3-001', 'aprovado', 100 * t_ptax(), 100);
+  insert into contratos (numero, tdr_id, atividade_id, valor_total_brl)
+  values ('CT-994', 'd0000000-0000-0000-0000-000000000993', a, 130 * t_ptax());
+  insert into contratos (numero, tdr_id, atividade_id, valor_total_brl)
+  values ('CT-995', 'd0000000-0000-0000-0000-000000000993', a, 20 * t_ptax());
+  if t_status('CT-994') <> 'aguardando_cobertura' or t_status('CT-995') <> 'aguardando_cobertura' then
+    raise exception 'FALHOU: os dois deveriam travar';
+  end if;
+  perform t_igual('piso herdado', (select piso_usd from contrato_coberturas c join contratos k on k.id = c.contrato_id where k.numero = 'CT-995'), 0);
+  perform t_credito('9.9.3', 20);   -- cobre o tamanho do 2º, mas a fila é do 1º
+  if t_status('CT-994') <> 'aguardando_cobertura' or t_status('CT-995') <> 'aguardando_cobertura' then
+    raise exception 'FALHOU: ordem de chegada';
+  end if;
+  perform t_credito('9.9.3', 10);
+  if t_status('CT-994') <> 'vigente' or t_status('CT-995') <> 'aguardando_cobertura' then
+    raise exception 'FALHOU: 1º liberado, 2º espera (% / %)', t_status('CT-994'), t_status('CT-995');
+  end if;
+  perform t_credito('9.9.3', 20);
+  if t_status('CT-995') <> 'vigente' then raise exception 'FALHOU: 2º liberado'; end if;
+  perform t_erro($q$update tdrs set status = 'cancelado' where numero = '9.9.3-001'$q$, 'TDR_COM_CONTRATO');
+end $$;
+
+\echo '· T13h pedido de cobertura: só para contrato travado; cancelar o contrato cancela o pedido'
+do $$ declare a uuid; v uuid; begin
+  a := t_ativ('9.9.4', 100);
+  insert into tdrs (id, atividade_id, numero, status, valor_brl, valor_usd)
+  values ('d0000000-0000-0000-0000-000000000994', a, '9.9.4-001', 'aprovado', 100 * t_ptax(), 100);
+  insert into contratos (id, numero, tdr_id, atividade_id, valor_total_brl)
+  values ('c0000000-0000-0000-0000-000000000996', 'CT-996', 'd0000000-0000-0000-0000-000000000994', a, 140 * t_ptax());
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  perform t_erro(format($q$select fn_rem_salvar(null, '{"tipo":"cobertura_contrato","contrato_id":"%s","justificativa":"x"}'::jsonb)$q$,
+                        (select id from contratos where numero = 'CT-991')), 'não está aguardando cobertura');
+  v := fn_rem_salvar(null, jsonb_build_object('tipo','cobertura_contrato','contrato_id','c0000000-0000-0000-0000-000000000996',
+       'justificativa','Cobertura do contrato CT-996 acima do TDR',
+       'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -40),
+                                  jsonb_build_object('atividade_id', t_id('a111'), 'valor_usd', 40)),
+       'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', 40))));
+  perform t_erro(format('select fn_rem_validar(%L)', v), 'destino a atividade do contrato');
+  perform fn_rem_salvar(v, jsonb_build_object('justificativa','Cobertura do contrato CT-996 acima do TDR',
+       'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -40),
+                                  jsonb_build_object('atividade_id', a, 'valor_usd', 40)),
+       'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', 40))));
+  perform fn_rem_validar(v);
+  update contratos set status = 'cancelado' where numero = 'CT-996';
+  if (select status from remanejamentos where id = v) <> 'cancelado' then
+    raise exception 'FALHOU: pedido de cobertura deveria ser cancelado junto';
+  end if;
+  perform t_igual('excedente saiu do débito', (select contratos_excedente_usd from vw_orcamento_atividade where codigo = '9.9.4'), 0);
+  perform t_igual('pendência cancelada', (select count(*) from contrato_coberturas c join contratos k on k.id = c.contrato_id
+                                           where k.numero = 'CT-996' and situacao = 'cancelado'), 1);
+  perform t_erro($q$update contratos set status = 'vigente' where numero = 'CT-996'$q$, 'CONTRATO_CANCELADO');
+  perform t_conferencia_ok('após cancelamento');
+end $$;
+
+\echo '· T13i contrato sem TDR: o valor inteiro é excedente'
+do $$ declare a uuid; begin
+  a := t_ativ('9.9.5', 100);
+  insert into contratos (numero, atividade_id, valor_total_brl) values ('CT-997', a, 80 * t_ptax());
+  perform t_igual('livre', t_livre('9.9.5'), 20);
+  insert into execucao_financeira (atividade_id, contrato_id, valor_brl, valor_usd, situacao)
+  values (a, (select id from contratos where numero = 'CT-997'), 50 * t_ptax(), 50, 'pago');
+  perform t_igual('pagamento não conta duas vezes', t_livre('9.9.5'), 20);
+  perform t_erro($q$insert into contratos (numero, valor_total_brl) values ('CT-998', 10)$q$, 'CONTRATO_SEM_ATIVIDADE');
+  perform t_conferencia_ok('final da fase 5');
+end $$;
+
+\echo '✔ todos os testes do remanejamento (fases 0–3 e 5) passaram'

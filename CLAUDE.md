@@ -98,7 +98,7 @@ Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 
 | Enum | Valores |
 |------|---------|
-| `status_contrato` | `vigente`, `encerrado`, `suspenso` |
+| `status_contrato` | `vigente`, `encerrado`, `suspenso`, `aguardando_cobertura` (só o sistema põe/tira), `cancelado` (terminal) |
 | `status_tdr` | `rascunho`, `revisao_interna`, `ajustes`, `enviado_unesco`, `retorno_unesco`, `aprovado`, `cancelado`, `submetido`, `pendente_correcao`, `em_avaliacao`, `em_revisao_unesco`, `em_licitacao`, `contratado` |
 | `status_produto` | `submetido`, `em_revisao`, `aprovado_tecnico`, `aprovado_coordenacao`, `aprovado_diretoria`, `recusado` |
 | `situacao_financeiro` | `pago`, `a_pagar`, `cancelado` |
@@ -256,9 +256,9 @@ saldo_livre_usd = orcamento_usd
 
 ### Razão orçamentário e remanejamento (⚠️ ler antes de mexer em orçamento)
 
-Especificação completa: `docs/remanejamento/plano.md`. Fases 0–3 em produção (03/10/2026);
+Especificação completa: `docs/remanejamento/plano.md`. Fases 0–3 e 5 em produção (03/10/2026);
 tela em `pages/remanejamentos.html` + `js/remanejamentos.js` (nav `remanejamentos`, grupo Planejamento, todos os
-perfis — signatários podem ter qualquer perfil). Falta a cobertura obrigatória de contrato e o estorno de remanejamento.
+perfis — signatários podem ter qualquer perfil). Falta o estorno de remanejamento e a Fase 7 (relatório/auditor).
 - **Tela**: abas Saldos por resultado (procedência por fonte), Pedidos (fila "aguardando minha análise"),
   Novo pedido (coordenação/super_admin; escolhe as fontes que cedem) e Signatários (super_admin designa).
   A tela não decide nada: assinar = `fetch` à Edge Function com a senha; a fila "minha vez" é só exibição.
@@ -307,6 +307,19 @@ perfis — signatários podem ter qualquer perfil). Falta a cobertura obrigatór
 - E-mails: fila `remanejamento_notificacoes`, enviada pela Edge Function (Gmail SMTP) e reenviada pelo cron
   `remanejamento-emails` (15 min). Sino com tipos `remanejamento_*` depende da `rem_03g` (troca o check de
   `notificacoes`, exige DROP CONSTRAINT → SQL Editor); sem ela só o sino fica mudo, o e-mail sai.
+- **TDR compromete, contrato deriva do TDR** (fase 5, `rem_05*`): `trg_tdr_saldo` (`fn_trg_verificar_saldo`)
+  só deixa TDR nascer/aumentar até o **saldo livre com sinal** `fn_cob_livre()` = créditos − débitos − reservas
+  (inclui rascunho, excedente de contrato, execução direta). TDR com contrato ativo não cancela nem muda de atividade.
+- **Excedente de contrato** = Σ contratos do TDR (R$, não cancelados) − `tdrs.valor_brl`; sem TDR, o contrato inteiro.
+  Vira USD pela PTAX do dia (`fn_cotacao_usd`), congelado em `contrato_coberturas` (razão imutável; Σ `delta_usd`
+  entra em `vw_orcamento_debitos.contratos_excedente_usd`). Escrita só pelos triggers de `contratos`/`tdrs`.
+- **Trava**: excedente que não cabe no livre ⇒ `contratos.status = 'aguardando_cobertura'` (guarda o anterior em
+  `status_antes_cobertura`). Travado recusa produto (`contratos_produtos`), lançamento (`execucao_financeira`),
+  PDF assinado e qualquer status além de cancelar; reduzir valor pode. Libera sozinho (`fn_cob_reavaliar`, em ordem
+  de chegada) a cada crédito no razão, redução/cancelamento de contrato, TDR reduzido ou reserva liberada. Negativo
+  antigo não é regularizado: `piso_usd` = livre antes do 1º contrato da fila. Liberado ⇒ pedido de cobertura aberto
+  é cancelado sozinho. Pedido `tipo='cobertura_contrato'` (`fn_rem_salvar` com `contrato_id`) tem destino = atividade
+  do contrato. Nunca mudar `status` para/de `aguardando_cobertura` por fora (só com `dima.cobertura='liberar'`).
 - `apply_migration` com `DELETE`/`DROP`/`TRUNCATE` no texto (até dentro de corpo de função) fica esperando uma
   confirmação que não chega à sessão e expira. Preferir desenho sem apagar (flag `ativo`, `create or replace`,
   policy condicional); o que exigir DROP vai num `*_sql_editor.sql` para colar no SQL Editor.
@@ -798,6 +811,7 @@ Supabase/Anthropic/Vercel/Google.
 24. Nenhuma view de saldo pode ter GRANT de escrita: view simples com dono postgres é auto-atualizável e ignora RLS
 25. `cotacoes_usd` (AwesomeAPI, colunas `cotacao`/`data_ref`) **≠** `cotacoes_ptax` (PTAX oficial, `ptax_venda`/`data`). Antes de criar tabela, conferir se o nome já existe — `create table if not exists` pula em silêncio e os GRANT/trigger seguintes caem na tabela antiga
 26. Assinatura de remanejamento **só** pela Edge Function `assinar-remanejamento` (senha reconfirmada no servidor). `fn_rem_assinar` é service_role-only — não expor a `authenticated`
+27. Saldo livre de atividade para decidir trava = `fn_cob_livre()` (com sinal). `vw_orcamento_atividade.remanejavel_usd` é Σ de fontes livres e **nunca fica negativo** — não serve para comparar déficit
 
 ---
 

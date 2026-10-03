@@ -8,6 +8,8 @@
 //     assinar-remanejamento, que reconfirma a senha NO SERVIDOR e chama
 //     fn_rem_assinar (service_role). Nunca verificar senha aqui.
 //   · titulares: fn_rem_designar_titular (super_admin)
+//   · contrato travado (aguardando_cobertura): o banco trava e libera sozinho;
+//     aqui só se monta o pedido tipo 'cobertura_contrato' para a atividade dele
 // "Aguardando minha análise" é calculado aqui só para a fila; quem pode
 // assinar de fato é decidido por fn_rem_assinar.
 // ═══════════════════════════════════════════════════════════════════════
@@ -16,6 +18,7 @@ const REM = {
   aba: 'saldos', filtro: 'minha',
   ativs: [], fontes: [], resultados: [], pedidos: [], etapas: [], resp: [],
   cargos: [], titulares: [], usuarios: {},
+  travados: [], pendencias: [],  // contratos aguardando cobertura (fase 5) e o déficit de cada um
   abertos: new Set(),           // atividades expandidas no quadro
   editando: null,               // id do rascunho em edição (null = novo)
   form: null,                   // { justificativa, ceder: {fonte_id: valor}, destinos: [{atividade_id, valor}] }
@@ -71,8 +74,9 @@ const podeMontar = () => ['coordenacao', 'super_admin'].includes(appState.perfil
   carregarLogosSidebar()
 
   await remCarregar()
-  const id = new URLSearchParams(location.search).get('id')
-  if (id) remAbrirPedido(id)
+  const qs = new URLSearchParams(location.search)
+  if (qs.get('id')) remAbrirPedido(qs.get('id'))
+  else if (qs.get('cobertura')) remCobertura(qs.get('cobertura'))
 })()
 
 async function remCarregar() {
@@ -86,6 +90,8 @@ async function remCarregar() {
     db.from('rem_cargos').select('*').order('ordem'),
     db.from('rem_cargo_titulares').select('*').is('vigencia_fim', null),
     db.from('usuarios').select('id, nome_completo, perfil, ativo'),
+    db.from('contratos').select('id, numero, valor_total_brl, tdr_id, atividade_id, tdrs(numero, atividade_id)').eq('status', 'aguardando_cobertura'),
+    db.from('contrato_coberturas').select('contrato_id, atividade_id, deficit_usd, delta_usd, evento, criado_em').eq('situacao', 'aguardando').order('seq'),
   ])
   const erro = r.find(x => x.error)
   if (erro) {
@@ -97,6 +103,8 @@ async function remCarregar() {
   // itens retirados do rascunho ficam guardados com ativo = false; não entram na conta
   for (const p of REM.pedidos) p.itens = (p.itens || []).filter(i => i.ativo !== false)
   REM.usuarios = Object.fromEntries((r[8].data || []).map(u => [u.id, u]))
+  REM.travados = r[9].data || []
+  REM.pendencias = r[10].data || []
   remRender()
 }
 
@@ -152,7 +160,9 @@ function remSaldosHTML() {
     <div class="rm-kpi"><b>${usd2(soma('reservado_usd'))}</b><span>reservado por pedidos em aprovação</span></div>
     <div class="rm-kpi ${deficits.length ? 'al' : ''}"><b>${deficits.length}</b><span>atividades com déficit (${usd2(deficits.reduce((s, a) => s + Number(a.deficit_usd), 0))})</span></div>
     <div class="rm-kpi"><b>${usd2(soma('orcamento_vigente_usd'))}</b><span>orçamento vigente total</span></div>
+    <div class="rm-kpi ${REM.travados.length ? 'al' : ''}"><b>${REM.travados.length}</b><span>contratos aguardando cobertura</span></div>
   </div>
+  ${remTravadosHTML()}
   <p class="rm-sub" style="margin:-4px 0 10px">Clique numa atividade para ver de onde vem cada dólar (fontes do razão, na ordem de consumo).</p>
   <div class="card"><div class="table-wrap"><table class="rm-tab">
     <thead><tr><th>Atividade</th><th class="n">Orçamento vigente</th><th class="n">Comprometido</th>
@@ -181,6 +191,42 @@ function remSaldosHTML() {
   }
   return h + '</tbody></table></div></div>'
 }
+// Contratos travados: o valor acima do TDR não coube no saldo livre da atividade.
+// Liberam sozinhos quando o saldo cobrir (o banco reavalia a cada crédito).
+function remDeficitContrato(cid) {
+  return num(REM.pendencias.filter(x => x.contrato_id === cid).reduce((s, x) => s + Number(x.deficit_usd), 0))
+}
+function remAtivContrato(c) { return c.tdrs?.atividade_id || c.atividade_id }
+function remTravadosHTML() {
+  if (!REM.travados.length) return ''
+  let h = `<div class="card" style="margin-bottom:14px;border-left:4px solid #EA580C"><div style="padding:10px 14px 4px">
+    <b>Contratos travados aguardando cobertura</b>
+    <p class="rm-sub" style="margin:2px 0 6px">O valor acima do TDR não coube no saldo livre da atividade. Sem produtos, pagamentos nem PDF assinado
+    até a cobertura; o contrato libera sozinho quando o saldo cobrir (remanejamento efetivado, economia, encerramento ou redução do contrato).</p></div>
+    <div class="table-wrap"><table class="rm-tab"><thead><tr><th>Contrato</th><th>TDR</th><th>Atividade</th>
+    <th class="n">Falta cobrir</th><th>Pedido</th><th></th></tr></thead><tbody>`
+  for (const c of REM.travados) {
+    const a = REM.ativs.find(x => x.atividade_id === remAtivContrato(c))
+    const ped = REM.pedidos.find(p => p.contrato_id === c.id && ['rascunho', 'em_aprovacao'].includes(p.status))
+    h += `<tr><td><b>${esc(c.numero)}</b></td><td>${esc(c.tdrs?.numero || 'sem TDR')}</td>
+      <td><span class="rm-cod">${esc(a?.codigo || '?')}</span></td><td class="n"><b>${usd2(remDeficitContrato(c.id))}</b></td>
+      <td>${ped ? `<a href="#" onclick="event.preventDefault();remAbrirPedido('${ped.id}')">${esc(ped.numero)}</a> · ${esc((REM_STATUS[ped.status] || [ped.status])[0])}` : '—'}</td>
+      <td>${!ped && podeMontar() ? `<button class="btn btn-primary btn-sm" onclick="remCobertura('${c.id}')">Pedir cobertura</button>` : ''}</td></tr>`
+  }
+  return h + '</tbody></table></div></div>'
+}
+function remCobertura(cid) {
+  const c = REM.travados.find(x => x.id === cid)
+  if (!c) { toast('Este contrato não está aguardando cobertura (pode já ter sido liberado).', 'info'); return }
+  if (!podeMontar()) { toast('Só a coordenação monta o pedido de cobertura.', 'warning'); return }
+  remNovoForm(null)
+  REM.form.cobertura = { contrato_id: c.id, numero: c.numero }
+  REM.form.destinos = [{ atividade_id: remAtivContrato(c), valor: remDeficitContrato(c.id) }]
+  REM.form.justificativa = `Cobertura do contrato ${c.numero}${c.tdrs?.numero ? ' (TDR ' + c.tdrs.numero + ')' : ''}: o valor contratado excede o TDR e o saldo livre da atividade.`
+  REM.aba = 'novo'
+  remRender()
+}
+
 function remAlternar(id) {
   REM.abertos.has(id) ? REM.abertos.delete(id) : REM.abertos.add(id)
   remRender()
@@ -224,7 +270,9 @@ function remPedidosHTML() {
     const orig = (p.itens || []).filter(i => i.valor_usd < 0).map(i => cod(i.atividade_id)).join(', ')
     const dest = (p.itens || []).filter(i => i.valor_usd > 0).map(i => cod(i.atividade_id)).join(', ')
     const total = (p.itens || []).filter(i => i.valor_usd > 0).reduce((s, i) => s + Number(i.valor_usd), 0)
-    h += `<tr class="rm-atv" onclick="remAbrirPedido('${p.id}')"><td><b>${esc(p.numero)}</b>${remMinhaVez(p) ? ' <span class="badge badge-ouro">sua vez</span>' : ''}</td>
+    const ct = p.tipo === 'cobertura_contrato'
+      ? ' <span class="badge badge-blue">cobertura ' + esc(REM.travados.find(c => c.id === p.contrato_id)?.numero || 'de contrato') + '</span>' : ''
+    h += `<tr class="rm-atv" onclick="remAbrirPedido('${p.id}')"><td><b>${esc(p.numero)}</b>${ct}${remMinhaVez(p) ? ' <span class="badge badge-ouro">sua vez</span>' : ''}</td>
       <td><span class="badge ${cls}">${st}</span></td><td>${quem}</td><td>${orig || '—'} → ${dest || '—'}</td>
       <td class="n">${usd2(total)}</td><td>${dataHora(p.criado_em)}</td></tr>`
   }
@@ -235,6 +283,8 @@ function remPedidosHTML() {
 function remNovoForm(pedido, itens, alocs) {
   REM.editando = pedido?.id || null
   REM.form = { justificativa: pedido?.justificativa === '(rascunho)' ? '' : (pedido?.justificativa || ''), ceder: {}, destinos: [] }
+  if (pedido?.tipo === 'cobertura_contrato')
+    REM.form.cobertura = { contrato_id: pedido.contrato_id, numero: REM.travados.find(c => c.id === pedido.contrato_id)?.numero || '' }
   for (const a of alocs || []) REM.form.ceder[a.fonte_id] = num(a.valor_usd)
   for (const i of (itens || []).filter(i => i.valor_usd > 0)) REM.form.destinos.push({ atividade_id: i.atividade_id, valor: num(i.valor_usd) })
   if (!REM.form.destinos.length) REM.form.destinos.push({ atividade_id: '', valor: 0 })
@@ -253,7 +303,11 @@ function remNovoHTML() {
   const aviso = !remTitular('coordenacao_solicitante')
     ? '<div class="rm-aviso">O cargo de coordenação solicitante ainda não tem titular designado: o rascunho pode ser salvo, mas só será enviado depois da designação (aba Signatários).</div>' : ''
 
-  let h = `<div class="rm-form">${aviso}
+  const cob = F.cobertura
+    ? `<div class="rm-aviso" style="background:#FFF7ED;border-color:#FED7AA;color:#9A3412">Pedido de <b>cobertura do contrato ${esc(F.cobertura.numero)}</b>.
+       O destino precisa ser a atividade do contrato; quando o pedido for efetivado, o contrato é liberado automaticamente.
+       Se o saldo for coberto antes por outro caminho, este pedido é cancelado sozinho.</div>` : ''
+  let h = `<div class="rm-form">${aviso}${cob}
     <h3>1. De onde sai o recurso</h3>
     <p class="rm-ajuda">Informe quanto cada fonte cede. Só aparece saldo realmente livre: já descontados TDRs, despesas, outras reservas e déficits.</p>`
   if (!ativOrd.length) h += '<p class="rm-vazio">Nenhuma atividade com saldo livre para ceder.</p>'
@@ -340,6 +394,7 @@ async function remSalvarRascunho() {
     ...destinos.map(d => ({ atividade_id: d.atividade_id, valor_usd: d.valor })),
   ]
   const dados = { justificativa: F.justificativa || '', itens, alocacoes }
+  if (!REM.editando && F.cobertura) Object.assign(dados, { tipo: 'cobertura_contrato', contrato_id: F.cobertura.contrato_id })
   if (!REM.editando) dados.uuid_cliente = REM.uuidNovo || (REM.uuidNovo = crypto.randomUUID())
   const { data, error } = await db.rpc('fn_rem_salvar', { p_id: REM.editando, p_dados: dados })
   if (error) { toast(remMsg(error.message), 'error'); return }

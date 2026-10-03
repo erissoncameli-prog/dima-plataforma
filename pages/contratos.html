@@ -40,7 +40,7 @@
 .xbtn:hover{background:var(--verde-bg);border-color:var(--verde-medio);color:var(--verde-medio);}
 .xbtn.aberto{background:var(--verde-bg);border-color:var(--verde-medio);color:var(--verde-medio);}
 .badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;}
-.b-vigente{background:#ECFDF5;color:#065F46}.b-encerrado{background:#F3F4F6;color:#374151}.b-suspenso{background:#FEF2F2;color:#991B1B}
+.b-vigente{background:#ECFDF5;color:#065F46}.b-encerrado{background:#F3F4F6;color:#374151}.b-suspenso{background:#FEF2F2;color:#991B1B}.b-aguardando_cobertura{background:#FFF7ED;color:#9A3412}.b-cancelado{background:#F3F4F6;color:#6B7280;text-decoration:line-through}
 .mono{font-family:var(--font-mono);font-size:11px;}
 .pdf-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
 .detail-inner{padding:14px 16px;background:var(--cinza-50);}
@@ -162,7 +162,7 @@
 var todosContratos=[],atividades=[],fornecedores=[],tdrs=[];
 var contratoEditando=null,filePDF=null;
 var expandidos={};
-var SL={vigente:'Vigente',encerrado:'Encerrado',suspenso:'Suspenso'};
+var SL={vigente:'Vigente',encerrado:'Encerrado',suspenso:'Suspenso',aguardando_cobertura:'Aguardando cobertura',cancelado:'Cancelado'};
 var TIPOS=['Servico','Consultoria','Consumo','Diaria','Passagens','Obra'];
 
 (async function(){
@@ -178,6 +178,8 @@ var TIPOS=['Servico','Consultoria','Consumo','Diaria','Passagens','Obra'];
   '<option value="vigente">Vigente</option>'+
   '<option value="encerrado">Encerrado</option>'+
   '<option value="suspenso">Suspenso</option>'+
+  '<option value="aguardando_cobertura">Aguardando cobertura</option>'+
+  '<option value="cancelado">Cancelado</option>'+
   '</select>'+
   '<select class="form-control" id="fil-pdf" onchange="filtrar()" style="width:150px">'+
   '<option value="">Todos</option>'+
@@ -509,7 +511,8 @@ window.uploadDireto=async function(id,file,lang){
   var upd=lang==='en'
     ?{contrato_assinado_url:url,contrato_assinado_nome:file.name,contrato_assinado_data:new Date().toISOString().split('T')[0]}
     :{contrato_pt_url:url,contrato_pt_nome:file.name,contrato_pt_data:new Date().toISOString()};
-  await db.from('contratos').update(upd).eq('id',id);
+  var rUp=await db.from('contratos').update(upd).eq('id',id);
+  if(rUp.error){toast('Erro: '+rUp.error.message,'error',8000);return;}
   var c=todosContratos.find(function(x){return x.id===id;});
   if(c)Object.assign(c,upd);
   toast('PDF enviado!','success');
@@ -678,8 +681,16 @@ function renderForm(c){
     '<input class="form-control" id="f-elem" value="'+(c&&c.elemento_despesa||'')+'" placeholder="Ex: 33903900"></div>'+
     '<div class="form-group"><label class="form-label">Status</label>'+
     '<select class="form-control" id="f-status">'+
-    ['vigente','encerrado','suspenso'].map(function(s){return '<option value="'+s+'" '+((c?c.status:'vigente')===s?'selected':'')+'>'+SL[s]+'</option>';}).join('')+
+    // aguardando_cobertura é do sistema (trigger trg_contrato_cobertura): travado só reduz valor ou cancela
+    (c&&c.status==='aguardando_cobertura'?['aguardando_cobertura','cancelado']
+      :c&&c.status==='cancelado'?['cancelado']
+      :c?['vigente','encerrado','suspenso','cancelado']:['vigente','encerrado','suspenso'])
+      .map(function(s){return '<option value="'+s+'" '+((c?c.status:'vigente')===s?'selected':'')+'>'+SL[s]+'</option>';}).join('')+
     '</select></div></div>'+
+    (c&&c.status==='aguardando_cobertura'?'<div style="background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;border-radius:6px;padding:8px 10px;font-size:12px;margin-bottom:10px">'+
+      '<b>Contrato travado aguardando cobertura.</b> O valor acima do TDR não cabe no saldo livre da atividade. '+
+      'Sem produtos, pagamentos ou PDF assinado até a cobertura. Libera sozinho quando o saldo cobrir (remanejamento, economia, encerramento) — '+
+      '<a href="remanejamentos.html?cobertura='+c.id+'">pedir cobertura em Remanejamento</a>, reduzir o valor ou cancelar.</div>':'')+
     '<div class="form-group"><label class="form-label">Número SEI <span class="obrig">*</span>'+
     '<span style="font-size:10px;font-weight:400;color:var(--cinza-400);margin-left:6px">Processo no Sistema Eletrônico de Informações</span></label>'+
     '<div style="display:flex;align-items:center;gap:8px">'+
@@ -767,15 +778,22 @@ async function executarSalvarContrato(dados){
       var ins=await db.from('contratos').insert(Object.assign({},dados,{criado_por:appState.usuario.id})).select('*,fornecedores(id,nome,tipo),atividades(id,codigo,nome_pt),tdrs(id,numero)').single();
       if(ins.error)throw ins.error;
       todosContratos.unshift(ins.data);cId=ins.data.id;
-      toast('Contrato '+ins.data.numero+' criado!','success');
+      if(ins.data.status==='aguardando_cobertura'){
+        toast('Contrato '+ins.data.numero+' criado, mas TRAVADO: o valor acima do TDR não cabe no saldo da atividade. Peça cobertura em Remanejamento.','warning',10000);
+        if(filePDF){toast('PDF assinado não anexado: só após a cobertura.','warning',8000);filePDF=null;}
+      } else toast('Contrato '+ins.data.numero+' criado!','success');
     } else {
-      var upd2=await db.from('contratos').update(dados).eq('id',contratoEditando.id);
+      var upd2=await db.from('contratos').update(dados).eq('id',contratoEditando.id).select('status').single();
       if(upd2.error)throw upd2.error;
       cId=contratoEditando.id;
       var f2=fornecedores.find(function(f){return f.id===dados.fornecedor_id;});
       var a2=atividades.find(function(a){return a.id===dados.atividade_id;});
-      Object.assign(contratoEditando,dados,{fornecedores:f2||null,atividades:a2||null});
-      toast('Contrato atualizado!','success');
+      // o status final vem do banco (aditivo acima do saldo trava; cobertura libera)
+      Object.assign(contratoEditando,dados,{status:upd2.data.status,fornecedores:f2||null,atividades:a2||null});
+      if(upd2.data.status==='aguardando_cobertura'){
+        toast('Contrato salvo, mas TRAVADO aguardando cobertura do orçamento. Peça cobertura em Remanejamento.','warning',10000);
+        if(filePDF){toast('PDF assinado não anexado: só após a cobertura.','warning',8000);filePDF=null;}
+      } else toast('Contrato atualizado!','success');
     }
     if(fill)fill.style.width='60%';
     if(filePDF&&cId){
