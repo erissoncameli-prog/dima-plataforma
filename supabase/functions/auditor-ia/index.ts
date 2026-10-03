@@ -61,65 +61,43 @@ Responda APENAS com JSON válido neste formato:
 async function auditarTDRContratos(db: any): Promise<Achado[]> {
   const achados: Achado[] = []
 
-  // 1a. Atividades em fase CONTRATADO mas sem TDR aprovado
-  const { data: semTDRAprovado } = await db.rpc('exec_sql_audit', {
-    query: `
-      SELECT a.id, a.codigo, a.nome_pt,
-             COUNT(t.id) FILTER (WHERE t.status = 'aprovado') as tdrs_aprovados,
-             COUNT(t.id) as total_tdrs
-      FROM atividades a
-      LEFT JOIN tdrs t ON t.atividades->>'id' = a.id::text
-        OR (t.atividades IS NOT NULL AND t.atividades::jsonb ? 'id' AND (t.atividades->>'id')::uuid = a.id)
-      WHERE a.fase = 'CONTRATADO'
-      GROUP BY a.id, a.codigo, a.nome_pt
-      HAVING COUNT(t.id) FILTER (WHERE t.status = 'aprovado') = 0
-      LIMIT 20
-    `
-  }).then((r: any) => r, () => ({ data: null }))
-
-  // Fallback: query direta sem RPC
+  // 1a. Atividades em fase CONTRATADO sem TDR em fase pós-aprovação.
+  // Vínculo é tdrs.atividade_id (não existe tdrs.atividades). "Aprovado" inclui as
+  // fases seguintes: aprovado → em_licitacao → contratado (FASES_POS_APROVACAO em tdrs.html).
+  const POS_APROVACAO = ['aprovado', 'em_licitacao', 'contratado']
   const { data: atividadesContratadas } = await db
     .from('atividades')
-    .select('id, codigo, nome_pt, fase')
+    .select('id, codigo, nome_pt, fase, tdrs(id, numero, status)')
     .eq('fase', 'CONTRATADO')
     .limit(50)
 
-  if (atividadesContratadas?.length) {
-    for (const atv of atividadesContratadas) {
-      // Verificar se tem TDR aprovado vinculado
-      const { data: tdrs } = await db
-        .from('tdrs')
-        .select('id, status, numero')
-        .or(`atividade_id.eq.${atv.id}`)
-        .in('status', ['aprovado', 'em_avaliacao', 'submetido', 'rascunho', 'pendente_correcao'])
+  for (const atv of atividadesContratadas || []) {
+    const tdrs = (atv.tdrs || []).filter((t: any) => t.status !== 'cancelado')
+    const temAprovado = tdrs.some((t: any) => POS_APROVACAO.includes(t.status))
 
-      const temAprovado = tdrs?.some((t: any) => t.status === 'aprovado')
-      const temAlgum = tdrs && tdrs.length > 0
-
-      if (!temAlgum) {
-        achados.push({
-          dominio: 'tdr_contrato',
-          severidade: 'alto',
-          titulo: `Atividade contratada sem nenhum TDR vinculado`,
-          descricao: `A atividade ${atv.codigo} — "${atv.nome_pt}" está em fase CONTRATADO mas não possui nenhum TDR associado no sistema. Isso indica que o contrato pode ter sido feito sem o processo formal de elaboração do Termo de Referência.`,
-          recomendacao: 'Verificar se o TDR existe físicamente e cadastrá-lo no sistema com o status correto.',
-          referencia_tabela: 'atividades',
-          referencia_id: atv.id,
-          referencia_label: `Atividade ${atv.codigo}`,
-        })
-      } else if (!temAprovado) {
-        const tdrEmAberto = tdrs!.find((t: any) => t.status !== 'aprovado')
-        achados.push({
-          dominio: 'tdr_contrato',
-          severidade: 'critico',
-          titulo: `Contrato firmado com TDR não aprovado (${tdrEmAberto?.status})`,
-          descricao: `A atividade ${atv.codigo} — "${atv.nome_pt}" está em fase CONTRATADO mas o TDR vinculado está com status "${tdrEmAberto?.status}". O fluxo correto exige TDR aprovado antes da contratação.`,
-          recomendacao: 'Concluir o processo de aprovação do TDR imediatamente para regularizar o fluxo. Se o contrato já está em execução, registrar justificativa formal.',
-          referencia_tabela: 'tdrs',
-          referencia_id: tdrEmAberto?.id,
-          referencia_label: `TDR ${tdrEmAberto?.numero} / Atividade ${atv.codigo}`,
-        })
-      }
+    if (tdrs.length === 0) {
+      achados.push({
+        dominio: 'tdr_contrato',
+        severidade: 'alto',
+        titulo: `Atividade contratada sem nenhum TDR vinculado`,
+        descricao: `A atividade ${atv.codigo} — "${atv.nome_pt}" está em fase CONTRATADO mas não possui nenhum TDR associado no sistema. Isso indica que o contrato pode ter sido feito sem o processo formal de elaboração do Termo de Referência.`,
+        recomendacao: 'Verificar se o TDR existe físicamente e cadastrá-lo no sistema com o status correto.',
+        referencia_tabela: 'atividades',
+        referencia_id: atv.id,
+        referencia_label: `Atividade ${atv.codigo}`,
+      })
+    } else if (!temAprovado) {
+      const tdrEmAberto = tdrs[0]
+      achados.push({
+        dominio: 'tdr_contrato',
+        severidade: 'critico',
+        titulo: `Contrato firmado com TDR não aprovado (${tdrEmAberto?.status})`,
+        descricao: `A atividade ${atv.codigo} — "${atv.nome_pt}" está em fase CONTRATADO mas nenhum TDR vinculado passou da aprovação (o TDR ${tdrEmAberto?.numero} está "${tdrEmAberto?.status}"). O fluxo correto exige TDR aprovado antes da contratação.`,
+        recomendacao: 'Concluir o processo de aprovação do TDR imediatamente para regularizar o fluxo. Se o contrato já está em execução, registrar justificativa formal.',
+        referencia_tabela: 'tdrs',
+        referencia_id: tdrEmAberto?.id,
+        referencia_label: `TDR ${tdrEmAberto?.numero} / Atividade ${atv.codigo}`,
+      })
     }
   }
 
