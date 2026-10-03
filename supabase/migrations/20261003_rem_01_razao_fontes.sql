@@ -1,4 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════
+-- Aplicada em produção (03/10/2026) em partes, mesmo conteúdo: 20261003_rem_01a_razao_tabela, _01b_liberacoes_eventos, _01c_views_conferencia, _01d_carga_inicial
 -- Remanejamento · Fase 1 — Razão de fontes (docs/remanejamento/plano.md §2)
 --
 -- Todo dólar do saldo de uma atividade tem PROCEDÊNCIA: uma linha "crédito"
@@ -75,9 +76,12 @@ create unique index if not exists uq_orcamento_fontes_encerramento
   on public.orcamento_fontes (encerramento_id) where encerramento_id is not null and ajusta_fonte_id is null;
 
 alter table public.orcamento_fontes enable row level security;
-drop policy if exists orcamento_fontes_select on public.orcamento_fontes;
-create policy orcamento_fontes_select on public.orcamento_fontes
+do $pol$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'orcamento_fontes' and policyname = 'orcamento_fontes_select') then
+    create policy orcamento_fontes_select on public.orcamento_fontes
   for select to authenticated using (auth.uid() is not null);
+  end if;
+end $pol$;
 revoke all on public.orcamento_fontes from anon, authenticated, public;
 grant select on public.orcamento_fontes to authenticated;
 
@@ -148,14 +152,11 @@ begin
   return null;
 end $$;
 
-drop trigger if exists trg_orcamento_fontes_valida on public.orcamento_fontes;
-create trigger trg_orcamento_fontes_valida before insert on public.orcamento_fontes
+create or replace trigger trg_orcamento_fontes_valida before insert on public.orcamento_fontes
   for each row execute function public.fn_trg_orcamento_fontes_valida();
-drop trigger if exists trg_orcamento_fontes_imutavel on public.orcamento_fontes;
-create trigger trg_orcamento_fontes_imutavel before update or delete on public.orcamento_fontes
+create or replace trigger trg_orcamento_fontes_imutavel before update or delete on public.orcamento_fontes
   for each row execute function public.fn_trg_orcamento_fontes_imutavel();
-drop trigger if exists trg_orcamento_fontes_cache on public.orcamento_fontes;
-create trigger trg_orcamento_fontes_cache after insert on public.orcamento_fontes
+create or replace trigger trg_orcamento_fontes_cache after insert on public.orcamento_fontes
   for each row execute function public.fn_trg_orcamento_fontes_cache();
 
 -- ── 3. Atividade nova: dotação original vira fonte ─────────────────────
@@ -169,8 +170,7 @@ begin
   end if;
   return null;
 end $$;
-drop trigger if exists trg_atividade_dotacao on public.atividades;
-create trigger trg_atividade_dotacao after insert on public.atividades
+create or replace trigger trg_atividade_dotacao after insert on public.atividades
   for each row execute function public.fn_trg_atividade_dotacao();
 
 -- ── 4. Liberações (contrato_encerramentos) entram no razão ─────────────
@@ -224,11 +224,9 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_encerramento_guarda on public.contrato_encerramentos;
-create trigger trg_encerramento_guarda before update or delete on public.contrato_encerramentos
+create or replace trigger trg_encerramento_guarda before update or delete on public.contrato_encerramentos
   for each row execute function public.fn_trg_encerramento_guarda();
-drop trigger if exists trg_encerramento_razao on public.contrato_encerramentos;
-create trigger trg_encerramento_razao after insert or update of status on public.contrato_encerramentos
+create or replace trigger trg_encerramento_razao after insert or update of status on public.contrato_encerramentos
   for each row execute function public.fn_trg_encerramento_razao();
 
 -- ── 5. Eventos de TDR (extrato da atividade) ───────────────────────────
@@ -254,14 +252,16 @@ comment on table public.orcamento_eventos is
 create index if not exists idx_orcamento_eventos_atividade on public.orcamento_eventos (atividade_id, criado_em);
 
 alter table public.orcamento_eventos enable row level security;
-drop policy if exists orcamento_eventos_select on public.orcamento_eventos;
-create policy orcamento_eventos_select on public.orcamento_eventos
+do $pol$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'orcamento_eventos' and policyname = 'orcamento_eventos_select') then
+    create policy orcamento_eventos_select on public.orcamento_eventos
   for select to authenticated using (auth.uid() is not null);
+  end if;
+end $pol$;
 revoke all on public.orcamento_eventos from anon, authenticated, public;
 grant select on public.orcamento_eventos to authenticated;
 
-drop trigger if exists trg_orcamento_eventos_imutavel on public.orcamento_eventos;
-create trigger trg_orcamento_eventos_imutavel before update or delete on public.orcamento_eventos
+create or replace trigger trg_orcamento_eventos_imutavel before update or delete on public.orcamento_eventos
   for each row execute function public.fn_trg_orcamento_fontes_imutavel();
 
 create or replace function public.fn_trg_tdr_evento_orcamento()
@@ -316,8 +316,7 @@ begin
   return null;
 end $$;
 
-drop trigger if exists trg_tdr_evento_orcamento on public.tdrs;
-create trigger trg_tdr_evento_orcamento after insert or update or delete on public.tdrs
+create or replace trigger trg_tdr_evento_orcamento after insert or update or delete on public.tdrs
   for each row execute function public.fn_trg_tdr_evento_orcamento();
 
 -- ── 6. Débitos, saldo por fonte (PEPS) e resumo ────────────────────────

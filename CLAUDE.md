@@ -254,6 +254,32 @@ saldo_livre_usd = orcamento_usd
   - `fn_estornar_economia_tdr(p_encerramento_id uuid, p_motivo text)` — marca `status='revertido'` (só `tipo='economia_contratacao'`).
 - O relatório A4 `js/relatorio-saldo-atividade.js` espelha a view; é alimentado por `pages/relatorios.html` e `pages/dashboard.html`, que embedam `encerramentos:contrato_encerramentos(...)` na atividade.
 
+### Razão orçamentário e remanejamento (⚠️ ler antes de mexer em orçamento)
+
+Especificação completa: `docs/remanejamento/plano.md`. Fases 0–1 em produção (03/10/2026);
+remanejamento com cadeia de 5 assinaturas, cobertura de contrato e PTAX ainda por fazer.
+
+- **`atividades.orcamento_usd` é cache** de Σ `orcamento_fontes` orçamentárias. UPDATE direto é
+  recusado para todos, inclusive super_admin (`trg_atividade_guarda_orcamento`, `ORCAMENTO_PROTEGIDO`).
+  Só o razão grava (chave `dima.razao_orcamento` + `pg_trigger_depth() > 1`). `orcamento_original_usd`
+  = dotação congelada. Nunca reabrir o campo no modal de `atividades.html`.
+- **`orcamento_fontes`** (imutável): crédito = linha sem `ajusta_fonte_id` (dotacao_original,
+  revisao_orcamentaria, economia_contratacao, encerramento_contrato, remanejamento_recebido);
+  ajuste/estorno/cessão aponta para o crédito. Correção = estorno, nunca UPDATE/DELETE. Escrita só por
+  função SECURITY DEFINER (sem policy de escrita para o cliente — não criar).
+- `contrato_encerramentos` entra no razão por trigger; valores imutáveis, sem DELETE, `revertido` não volta.
+- **Débito** (`vw_orcamento_debitos`) = TDRs não cancelados + max(reserva de TDRs `execucao_direta`,
+  despesas sem contrato) + pagamentos de contrato sem TDR. Viagens (diárias/passagens) são execução
+  direta UNESCO: consomem o TDR guarda-chuva (2.1.7-001/002), não são débito extra.
+- **Procedência**: `vw_orcamento_fontes_saldo` aplica PEPS (dotação primeiro, depois por `criado_em`) e
+  dá o disponível de cada fonte. Resumo em `vw_orcamento_atividade`. `orcamento_eventos` = extrato de TDR.
+- `fn_conferir_orcamento()` (super_admin/coordenação/financeiro): toda linha não `info_*` deve ter `ok`.
+- Views de saldo são **somente leitura**: `vw_saldo_atividade` tinha GRANT de escrita e, por ser
+  auto-atualizável com dono postgres, deixava qualquer logado alterar atividade ignorando RLS.
+- Testes locais: `supabase/tests/remanejamento/rodar.sh`.
+- Migração com `DROP` trava o `apply_migration` (pede confirmação). Use `create or replace trigger`
+  e policy condicional (`if not exists … pg_policies`).
+
 ### Acervo Digital — biblioteca virtual (⚠️ ler antes de mexer em produtos/arquivos)
 
 `pages/acervo.html` + `js/acervo.js` são a **guia de consulta** do acervo: catálogo
@@ -732,6 +758,8 @@ Supabase/Anthropic/Vercel/Google.
 20. Em Edge Function, ler arquivo com `storage.download()` via service_role — `fetch()` na URL pública falha
 21. `beneficiarios.banco/agencia/conta/tipo_conta/pix/iban` **não existem mais** — use `beneficiario_dados_bancarios` (FK `beneficiario_id`), acesso restrito a `super_admin`/`coordenacao`
 22. Ao ler `beneficiarios` para exibir em tela, lembrar que a policy de SELECT mudou de "qualquer autenticado" para `super_admin/coordenacao/financeiro/tecnico` — perfis fora dessa lista recebem lista vazia, não erro
+23. `atividades.orcamento_usd` **não se altera direto** (nem por super_admin) — é cache do razão `orcamento_fontes`. Ver "Razão orçamentário e remanejamento"
+24. Nenhuma view de saldo pode ter GRANT de escrita: view simples com dono postgres é auto-atualizável e ignora RLS
 
 ---
 

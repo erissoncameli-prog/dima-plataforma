@@ -1,4 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════
+-- Aplicada em produção (03/10/2026) em partes, mesmo conteúdo: 20261003_rem_00a_coluna_original, _00b_view_saldo_somente_leitura, _00c_audit_atividades, _00d_guarda_orcamento
 -- Remanejamento · Fase 0 — Contenção (docs/remanejamento/plano.md §8)
 --
 -- 1. vw_saldo_atividade tinha GRANT de INSERT/UPDATE/DELETE para
@@ -20,8 +21,7 @@ revoke all on public.vw_saldo_atividade from anon, authenticated, public;
 grant select on public.vw_saldo_atividade to authenticated, service_role;
 
 -- ── 2. Auditoria de atividades ─────────────────────────────────────────
-drop trigger if exists trg_audit_atividades on public.atividades;
-create trigger trg_audit_atividades
+create or replace trigger trg_audit_atividades
   after insert or update or delete on public.atividades
   for each row execute function public.fn_trg_audit();
 
@@ -67,8 +67,7 @@ begin
   return new;
 end $$;
 
-drop trigger if exists trg_atividade_guarda_orcamento on public.atividades;
-create trigger trg_atividade_guarda_orcamento
+create or replace trigger trg_atividade_guarda_orcamento
   before insert or update on public.atividades
   for each row execute function public.fn_trg_atividade_guarda_orcamento();
 
