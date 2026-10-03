@@ -256,9 +256,9 @@ saldo_livre_usd = orcamento_usd
 
 ### Razão orçamentário e remanejamento (⚠️ ler antes de mexer em orçamento)
 
-Especificação completa: `docs/remanejamento/plano.md`. Fases 0–6 em produção (03/10/2026, inclusive estorno);
+Especificação completa: `docs/remanejamento/plano.md`. Fases 0–7 em produção (03/10/2026: razão, PTAX, cadeia, cobertura, estorno, relatórios e auditor);
 tela em `pages/remanejamentos.html` + `js/remanejamentos.js` (nav `remanejamentos`, grupo Planejamento, todos os
-perfis — signatários podem ter qualquer perfil). Falta a Fase 7 (relatório A4, extrato, domínio no auditor).
+perfis — signatários podem ter qualquer perfil). Plano completo implementado.
 - **Tela**: abas Saldos por resultado (procedência por fonte), Pedidos (fila "aguardando minha análise"),
   Novo pedido (coordenação/super_admin; escolhe as fontes que cedem) e Signatários (super_admin designa).
   A tela não decide nada: assinar = `fetch` à Edge Function com a senha; a fila "minha vez" é só exibição.
@@ -328,6 +328,19 @@ perfis — signatários podem ter qualquer perfil). Falta a Fase 7 (relatório A
   (destino que gastou/repassou não estorna). Efetivar (`fn_rem_efetivar_estorno`) espelha cada lançamento com
   `orcamento_fontes.estorno_de` (cedido volta à MESMA fonte de origem) e marca o original `estornado`. Estorno de
   estorno não existe: desfazer = remanejamento novo.
+- **Relatórios (fase 7, `rem_07`)**: `js/relatorio-remanejamento.js` — `relAbrirPedidoA4` (itens, procedência,
+  cadeia com nome/cargo/data/SHA-256, histórico) pelo botão "Relatório A4" do pedido; `relAbrirExtratoA4(atividade)`
+  ("Extrato (A4)" nas fontes da atividade) desenha `fn_orcamento_extrato(uuid)` (jsonb: créditos com procedência,
+  débitos de hoje, fontes PEPS, remanejamentos, eventos de TDR; campo `fecha` = Σ créditos − Σ débitos = saldo do
+  razão). O relatório A4 de saldo mostra "original · ±remanejado" quando `orcamento_original_usd` ≠ vigente.
+- **Auditor** (`auditor-ia` v19): agente de orçamento lê `fn_auditoria_orcamento()` (service_role) — falha de
+  `fn_conferir_orcamento`/`vw_rem_conferencia` (crítico, a IA não rebaixa), contrato travado, pedido parado,
+  cargo sem titular, PTAX parada, e-mail sem envio, déficit (info), TDR sem USD. Grava como domínio `financeiro`
+  com título "Orçamento: …" (o check de `auditoria_registros.dominio` não tem `orcamento`). Regra nova de
+  auditoria do orçamento entra na função SQL, não no TypeScript.
+- ⚠️ **Painel × razão**: `vw_saldo_atividade` (dashboard) não desconta o excedente de contrato sobre o TDR; o razão
+  (`vw_orcamento_atividade`, travas, remanejamento) desconta. A diferença é explicada em `fn_conferir_orcamento`
+  (`diferenca_painel_explicada`). Hoje: 1.1.1, US$ 190,93.
 - `apply_migration` com `DELETE`/`DROP`/`TRUNCATE` no texto (até dentro de corpo de função) fica esperando uma
   confirmação que não chega à sessão e expira. Preferir desenho sem apagar (flag `ativo`, `create or replace`,
   policy condicional); o que exigir DROP vai num `*_sql_editor.sql` para colar no SQL Editor.
@@ -600,7 +613,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 
 | Slug | Propósito | `verify_jwt` |
 |------|-----------|-------------|
-| `auditor-ia` | Auditoria automática em 6 domínios + supervisor Claude | ✅ |
+| `auditor-ia` | Auditoria automática em 6 domínios + agente de orçamento (`fn_auditoria_orcamento`) + supervisor Claude | ✅ |
 | `chat-auditor` | Chat interativo sobre achados de auditoria (stateful) | ✅ |
 | `analisar-tdr` | Análise IA de TDR submetido | ❌ |
 | `corrigir-tdr` | Correção automática de TDR | ❌ |

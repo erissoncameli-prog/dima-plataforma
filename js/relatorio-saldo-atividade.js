@@ -6,6 +6,8 @@
 // rows: array de atividades no formato
 //   { codigo, nome_pt, orcamento_usd, resultado:{codigo}, tdrs:[{id,numero,valor_brl,valor_usd,status,
 //     contratos:[{id,numero,valor_total_brl,status,fornecedor:{nome,tipo}}]}] }
+//   orcamento_original_usd (opcional): dotação congelada; se ≠ orcamento_usd, a diferença
+//   veio de remanejamento/revisão (razão orcamento_fontes) e aparece sob o orçamento.
 // taxa: cotação USD→BRL atual (0 se indisponível)
 function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
   const toUSD = brl => taxa > 0 ? brl / taxa : 0;
@@ -96,6 +98,15 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
   // Célula de valor: USD principal + BRL de referência (BRL à cotação atual)
   const val = (usd,brl,destaque) => `<span class="mono"${destaque&&usd<0?' style="color:var(--erro);font-weight:700"':''}>${fmtUSD(usd)}</span><div class="mono-sm" style="color:var(--cinza-400)">${fmtBRL(brl)}</div>`;
   const pctOrc = tOrcUSD>0 ? (tSaldoUSD/tOrcUSD*100) : 0;
+  // Orçamento vigente ≠ dotação original ⇒ houve remanejamento/revisão (detalhe no extrato da atividade)
+  const remNota = (a, orcUSD) => {
+    if (a.orcamento_original_usd == null) return '';
+    const dif = Math.round((orcUSD - parseFloat(a.orcamento_original_usd)) * 100) / 100;
+    if (!dif) return '';
+    return `<div class="mono-sm" style="color:${dif>0?'#065F46':'#991B1B'}" title="Dotação original ${fmtUSD(a.orcamento_original_usd)}; diferença por remanejamento/revisão (ver extrato da atividade em Remanejamento)">original ${fmtUSD(a.orcamento_original_usd)} · ${dif>0?'+':''}${fmtUSD(dif)} remanejado</div>`;
+  };
+  const tRemUSD = dados.reduce((s,d)=>s+(d.a.orcamento_original_usd==null?0:d.orcUSD-parseFloat(d.a.orcamento_original_usd)),0);
+  const nRem = dados.filter(d=>d.a.orcamento_original_usd!=null && Math.abs(d.orcUSD-parseFloat(d.a.orcamento_original_usd))>=0.01).length;
 
   const corpo = dados.map(d=>{
     const estourou = d.saldoUSD < 0;
@@ -108,7 +119,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
         ${d.a.resultado?.codigo?`<span class="rep-badge rb-verde" style="margin-left:6px">R${d.a.resultado.codigo}</span>`:''}
         <span style="font-size:10px;color:var(--cinza-500)"> · ${d.linhas.length} TDR${d.linhas.length!==1?'s':''}</span>
       </td>
-      <td style="text-align:right;border-top:2px solid #c8e6d0">${val(d.orcUSD, toBRL(d.orcUSD))}</td>
+      <td style="text-align:right;border-top:2px solid #c8e6d0">${val(d.orcUSD, toBRL(d.orcUSD))}${remNota(d.a, d.orcUSD)}</td>
       <td style="text-align:right;border-top:2px solid #c8e6d0">${val(d.compUSD, d.compBRL)}</td>
       <td style="text-align:right;border-top:2px solid #c8e6d0"><div class="rep-barra" style="margin-bottom:3px"><div class="rep-barra-fill ${barCls}" style="width:${pctComp.toFixed(0)}%"></div></div></td>
     </tr>`;
@@ -186,6 +197,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
       Valores em <strong>USD</strong> (moeda do orçamento); linha menor em <strong>BRL</strong> é referência à cotação atual${taxa>0?` de R$ ${taxa.toFixed(4)}`:''}.
       Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe). Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> (⏸) ao TDR até coordenação/super admin <strong>liberá-la</strong> (↩) para a atividade. Se o contrato é encerrado com produto não entregue/executado, o valor não executado também aparece como <strong>liberado (encerramento)</strong> (↩). TDRs cancelados não entram no cálculo.
       Saldo livre = Orçamento − Comprometido + Liberado (espelha a Visão Geral).
+      ${nRem?`Orçamento = orçamento <strong>vigente</strong>: ${nRem} atividade${nRem!==1?'s':''} com remanejamento efetivado (saldo líquido ${fmtUSD(tRemUSD)} entre elas; o total do projeto não muda). Cada centavo tem procedência no extrato da atividade, em Remanejamento.`:''}
     </div>
   </div>`;
 }

@@ -825,4 +825,45 @@ do $$ declare v uuid := t_id('est1'); o111 numeric; o311 numeric; o217 numeric; 
                            from orcamento_fontes where remanejamento_id = %L limit 1$q$, t_id('rem1')), 'duplicate key');
 end $$;
 
-\echo '✔ todos os testes do remanejamento (fases 0–5 e estorno) passaram'
+
+-- ════════════════════════════════════════════════════════════════════════
+-- Fase 7 — extrato e auditoria
+-- ════════════════════════════════════════════════════════════════════════
+\echo '· aplicando rem_07'
+reset role;
+\ir ../../migrations/20261003_rem_07_extrato_auditoria.sql
+
+\echo '· T15a extrato fecha com o saldo em todas as atividades'
+do $$ declare r record; e jsonb; begin
+  perform t_login('00000000-0000-0000-0000-0000000000b1');   -- visualizador também lê
+  for r in select atividade_id, codigo from vw_orcamento_atividade loop
+    e := fn_orcamento_extrato(r.atividade_id);
+    if not (e->>'fecha')::boolean then
+      raise exception 'FALHOU: extrato de % não fecha (créditos % − débitos % ≠ saldo %)', r.codigo,
+        e->>'total_creditos_usd', e->>'total_debitos_usd', e->'resumo'->>'saldo_usd';
+    end if;
+  end loop;
+  e := fn_orcamento_extrato(t_id('a111'));
+  if jsonb_array_length(e->'remanejamentos') < 2 then raise exception 'FALHOU: extrato lista o remanejamento e o estorno'; end if;
+  if not exists (select 1 from jsonb_array_elements(e->'creditos') c where c->>'remanejamento' is not null and c->>'estorno_de' is not null) then
+    raise exception 'FALHOU: extrato mostra o lançamento de estorno';
+  end if;
+  if (select count(*) from jsonb_array_elements(fn_orcamento_extrato(t_id('a217'))->'debitos') d where d->>'tipo' = 'execucao_direta') <> 1 then
+    raise exception 'FALHOU: execução direta da 2.1.7 no extrato';
+  end if;
+end $$;
+
+\echo '· T15b auditoria do orçamento'
+do $$ declare n int; begin
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', false);
+  select count(*) into n from fn_auditoria_orcamento() where severidade = 'critico';
+  perform t_igual('sem achado crítico com razão íntegro', n, 0);
+  if not exists (select 1 from fn_auditoria_orcamento() where titulo like '%saldo livre negativo%') then
+    raise exception 'FALHOU: déficit (9.9.2) deveria aparecer como info';
+  end if;
+  set local role authenticated;
+  perform t_erro('select * from fn_auditoria_orcamento()', 'permission denied');
+end $$;
+
+\echo '✔ todos os testes do remanejamento (fases 0–7) passaram'

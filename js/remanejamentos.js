@@ -252,7 +252,8 @@ function remFontesHTML(atvId) {
     fs.map(f => `<tr><td>${f.ordem_consumo}</td><td>${esc(REM_FONTE[f.tipo] || f.tipo)}</td><td>${remProcedencia(f)}</td>
       <td class="n">${usd2(f.liquido_usd)}</td><td class="n">${usd2(f.consumido_usd)}</td><td class="n">${usd2(f.disponivel_usd)}</td>
       <td class="n">${usd2(f.reservado_usd)}</td><td class="n"><b>${usd2(f.livre_usd)}</b></td></tr>`).join('') +
-    '</tbody></table><p class="rm-sub" style="margin:6px 0 0">Os compromissos consomem primeiro a dotação original e depois as demais fontes na ordem em que entraram.</p>'
+    '</tbody></table><p class="rm-sub" style="margin:6px 0 0">Os compromissos consomem primeiro a dotação original e depois as demais fontes na ordem em que entraram.' +
+    ` <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="event.stopPropagation();relAbrirExtratoA4('${atvId}')">Extrato (A4)</button></p>`
 }
 
 // ── 2. Pedidos ─────────────────────────────────────────────────────────
@@ -539,9 +540,20 @@ async function remAbrirPedido(id) {
       ac.push(`<button class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">Aprovar e assinar</button>`)
     }
   }
+  ac.push(`<button class="btn btn-secondary" onclick="remRelatorioA4()">Relatório A4</button>`)
   ac.push(`<button class="btn btn-ghost" onclick="remFecharPedido()">Fechar</button>`)
   document.getElementById('rm-mp-acoes').innerHTML = ac.join('')
   document.getElementById('rm-modal-pedido').classList.add('aberto')
+}
+function remRelatorioA4() {
+  relAbrirPedidoA4(REM.detalhe, {
+    atv: id => REM.ativs.find(a => a.atividade_id === id),
+    fonte: id => REM.fontes.find(f => f.fonte_id === id),
+    procedencia: f => remProcedencia(f).replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'"),
+    nome: nomeU,
+    evento: e => REM_EVENTO[e] || e,
+    pedido: id => REM.pedidos.find(p => p.id === id),
+  })
 }
 function remFecharPedido() {
   document.getElementById('rm-modal-pedido').classList.remove('aberto')

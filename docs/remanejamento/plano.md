@@ -351,4 +351,4 @@ Relatório A4 do remanejamento: itens, linhagem, cadeia com nome/cargo/data/hash
 | 4 | Remanejamento livre: reserva, alocações e efetivação ✅ (na fase 3); estorno ✅ 03/10/2026 (`rem_06`) |
 | 5 | Cobertura de contrato: enum, excedente em USD, travas, liberação automática — ✅ 03/10/2026 (`rem_05*`) |
 | 6 | Telas: quadro por resultado, montagem, fila, extrato — ✅ 03/10/2026 (`pages/remanejamentos.html`) |
-| 7 | Relatório A4, extrato no relatório de saldo, domínio no `auditor-ia`, CLAUDE.md |
+| 7 | Relatório A4, extrato no relatório de saldo, domínio no `auditor-ia`, CLAUDE.md — ✅ 03/10/2026 (`rem_07`, `js/relatorio-remanejamento.js`, `auditor-ia` v19) |
