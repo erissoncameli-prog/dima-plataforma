@@ -89,9 +89,9 @@ coordenação revisar e enviar. 2.1.6 (US$ 54,93) e 1.5.3 (US$ 0,01) são resolv
 
 | # | Item | Depende de decisão? | Esforço |
 |---|------|---------------------|---------|
-| 1 | A1 economia pela PTAX | não | pequeno |
-| 2 | A3 auditor (verificações quebradas) | não | pequeno |
-| 3 | A2 audit_log em contratos/titulares | não | pequeno |
+| 1 | A1 economia pela PTAX — ✅ 03/10 (`rem_09`; vale também para encerramento de contrato) | não | pequeno |
+| 2 | A3 auditor (verificações quebradas) — ✅ 03/10 (`auditor-ia` v20) | não | pequeno |
+| 3 | A2 audit_log em contratos/titulares — ✅ 03/10 (`rem_10`) | não | pequeno |
 | 4 | D3 teste real (com D1 feito) | — | acompanhamento |
 | 5 | B2 aviso de contrato travado/liberado | não (SQL Editor p/ o sino) | médio |
 | 6 | B1 revisão orçamentária UNESCO | **sim** (quem assina) | médio |

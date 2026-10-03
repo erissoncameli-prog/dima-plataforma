@@ -279,6 +279,9 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
   ajuste/estorno/cessão aponta para o crédito. Correção = estorno, nunca UPDATE/DELETE. Escrita só por
   função SECURITY DEFINER (sem policy de escrita para o cliente — não criar).
 - `contrato_encerramentos` entra no razão por trigger; valores imutáveis, sem DELETE, `revertido` não volta.
+  **US$ da liberação = R$ ÷ PTAX do dia**, calculado no banco (`trg_encerramento_ptax`, rem_09) para economia e
+  encerramento feitos por usuário; o USD enviado pela tela é ignorado; `cotacao`/`cotacao_data` gravadas.
+  `p_taxa` de `fn_liberar_economia_tdr` ficou sem efeito (a tela manda `null`).
 - **Débito** (`vw_orcamento_debitos`) = TDRs não cancelados + max(reserva de TDRs `execucao_direta`,
   despesas sem contrato) + pagamentos de contrato sem TDR. Viagens (diárias/passagens) são execução
   direta UNESCO: consomem o TDR guarda-chuva (2.1.7-001/002), não são débito extra.
@@ -727,7 +730,8 @@ os campos só populam se a policy permitir a leitura. `salvarBenef()` grava com
 
 Ativa desde `20260727_lgpd_c2_02` via trigger genérica `fn_trg_audit()`, ligada
 em `usuarios`, `beneficiarios`, `fornecedores`, `viagem_viajantes` e
-`beneficiario_dados_bancarios`. Só grava o que mudou (ignora `UPDATE` sem
+`beneficiario_dados_bancarios` — e, pelo razão orçamentário, em `atividades` (rem_00),
+`contratos` e `rem_cargo_titulares` (rem_10). Só grava o que mudou (ignora `UPDATE` sem
 alteração real), e ignora `atualizado_em` como campo de diferença. Leitura
 restrita a `super_admin`/`coordenacao` (policy `audit_select_admin`); não há
 `UPDATE`/`DELETE` — a trilha é imutável por ausência de policy, não por RULE.
