@@ -53,6 +53,32 @@
 .rm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .rm-acoes{display:flex;gap:8px;flex-wrap:wrap}
 .modal-lg{max-width:980px;width:100%}
+/* Ajuda: botão "?" e guia "Como funciona" (js/remanejamentos-ajuda.js) */
+.rm-q{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;border:1px solid var(--borda-forte);
+  background:var(--branco);color:var(--cinza-500);font:700 10px var(--font-sans);cursor:pointer;padding:0;vertical-align:middle;margin-left:3px;text-transform:none;letter-spacing:0;line-height:1}
+.rm-q:hover,.rm-q:focus-visible{border-color:var(--verde-medio);color:var(--verde);background:var(--verde-bg);outline:none}
+.rg{display:grid;grid-template-columns:220px 1fr;gap:24px;align-items:start}
+.rg-indice{position:sticky;top:12px;display:flex;flex-direction:column;gap:2px;background:var(--branco);border:1px solid var(--borda);border-radius:10px;padding:12px}
+.rg-indice b{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:4px}
+.rg-indice a{font-size:13px;color:var(--cinza-700);text-decoration:none;padding:4px 6px;border-radius:6px}
+.rg-indice a:hover{background:var(--cinza-50);color:var(--verde)}
+.rg-corpo{max-width:820px}
+.rg-sec{background:var(--branco);border:1px solid var(--borda);border-radius:10px;padding:16px 20px;margin-bottom:14px;scroll-margin-top:12px}
+.rg-sec h3{margin:0 0 10px;font-size:16px;color:var(--verde)}
+.rg-sec p{font-size:13.5px;line-height:1.65;color:var(--cinza-700);margin:0 0 10px}
+.rg-regras{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rg-regras div{border:1px solid var(--cinza-100);background:var(--cinza-50);border-radius:8px;padding:10px 12px}
+.rg-regras b{display:block;font-size:13px;color:var(--cinza-800)}.rg-regras span{font-size:12.5px;color:var(--cinza-600);line-height:1.5}
+.rg-passos,.rg-cadeia{list-style:none;margin:0 0 10px;padding:0}
+.rg-passos li,.rg-cadeia li{display:grid;grid-template-columns:30px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--cinza-100);font-size:13.5px}
+.rg-cadeia span:not(.rg-n){display:block;font-size:12.5px;color:var(--cinza-500)}
+.rg-n{width:24px;height:24px;border-radius:50%;background:var(--verde-bg);color:var(--verde);display:flex;align-items:center;justify-content:center;font:700 12px var(--font-sans)}
+.rg-lista{margin:0 0 6px;padding-left:18px;font-size:13.5px;line-height:1.7;color:var(--cinza-700)}
+.rg-tab{margin:6px 0 12px}.rg-tab td:first-child{white-space:nowrap}
+.rg-faq{border-bottom:1px solid var(--cinza-100);padding:10px 0}
+.rg-faq summary{cursor:pointer;font-weight:600;font-size:13.5px;color:var(--cinza-800)}
+.rg-faq div{font-size:13.5px;line-height:1.65;color:var(--cinza-700);margin-top:6px}
+@media (max-width:860px){.rg{grid-template-columns:1fr}.rg-indice{position:static}.rg-regras{grid-template-columns:1fr}}
 @media (max-width:860px){.rm-kpis{grid-template-columns:repeat(2,1fr)}.rm-grid2{grid-template-columns:1fr}.rm-cab{flex-direction:column}}
 </style>
 </head>
@@ -84,11 +110,13 @@
         <textarea class="form-control" id="rm-as-motivo" rows="3"></textarea>
       </div>
       <div class="form-group">
-        <label class="form-label" for="rm-as-senha">Sua senha de acesso</label>
+        <label class="form-label" for="rm-as-senha">Sua senha de acesso <button type="button" class="rm-q" aria-label="Ajuda: por que pedir a senha" onclick="remAjuda('senha')">?</button></label>
         <input class="form-control" id="rm-as-senha" type="password" autocomplete="current-password">
         <div class="rm-sub" style="margin-top:6px">A senha é conferida no servidor e não é guardada. Cinco erros seguidos bloqueiam a assinatura por 30 minutos.</div>
       </div>
       <div class="rm-hash" id="rm-as-hash"></div>
+      <div class="rm-sub" style="margin-top:4px">O que estou assinando? <button type="button" class="rm-q" aria-label="Ajuda: impressão digital" onclick="remAjuda('hash')">?</button>
+        Decisões possíveis <button type="button" class="rm-q" aria-label="Ajuda: aprovar, devolver, recusar" onclick="remAjuda('decisoes')">?</button></div>
       <div id="rm-as-erro" style="display:none;margin-top:10px;color:var(--erro);font-size:13px"></div>
     </div>
     <div class="modal-footer">
@@ -102,6 +130,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/relatorio-remanejamento.js"></script>
+<script src="../js/remanejamentos-ajuda.js"></script>
 <script src="../js/remanejamentos.js"></script>
 </body>
 </html>

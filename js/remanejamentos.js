@@ -142,11 +142,12 @@ function remRender() {
     ['pedidos', 'Pedidos' + (minhas ? ` <span class="rm-cont">${minhas}</span>` : '')],
     ...(podeMontar() ? [['novo', REM.editando ? 'Editar rascunho' : 'Novo pedido']] : []),
     ['titulares', 'Signatários'],
+    ['guia', 'Como funciona'],
   ]
   document.getElementById('rm-abas').innerHTML = abas.map(([k, l]) =>
     `<button class="rm-aba ${REM.aba === k ? 'ativa' : ''}" onclick="remAba('${k}')">${l}</button>`).join('')
   const el = document.getElementById('rm-corpo')
-  el.innerHTML = { saldos: remSaldosHTML, pedidos: remPedidosHTML, novo: remNovoHTML, titulares: remTitularesHTML }[REM.aba]()
+  el.innerHTML = { saldos: remSaldosHTML, pedidos: remPedidosHTML, novo: remNovoHTML, titulares: remTitularesHTML, guia: remGuiaHTML }[REM.aba]()
 }
 function remAba(k) {
   if (k === 'novo' && !REM.form) remNovoForm(null)
@@ -160,17 +161,17 @@ function remSaldosHTML() {
   const soma = k => A.reduce((s, a) => s + Number(a[k] || 0), 0)
   const deficits = A.filter(a => Number(a.deficit_usd) > 0)
   let h = `<div class="rm-kpis">
-    <div class="rm-kpi"><b>${usd2(soma('remanejavel_usd'))}</b><span>remanejável (livre de TDR, despesa e reserva)</span></div>
-    <div class="rm-kpi"><b>${usd2(soma('reservado_usd'))}</b><span>reservado por pedidos em aprovação</span></div>
-    <div class="rm-kpi ${deficits.length ? 'al' : ''}"><b>${deficits.length}</b><span>atividades com déficit (${usd2(deficits.reduce((s, a) => s + Number(a.deficit_usd), 0))})</span></div>
+    <div class="rm-kpi"><b>${usd2(soma('remanejavel_usd'))}</b><span>remanejável (livre de TDR, despesa e reserva) ${remQ('remanejavel')}</span></div>
+    <div class="rm-kpi"><b>${usd2(soma('reservado_usd'))}</b><span>reservado por pedidos em aprovação ${remQ('reservado')}</span></div>
+    <div class="rm-kpi ${deficits.length ? 'al' : ''}"><b>${deficits.length}</b><span>atividades com déficit (${usd2(deficits.reduce((s, a) => s + Number(a.deficit_usd), 0))}) ${remQ('deficit')}</span></div>
     <div class="rm-kpi"><b>${usd2(soma('orcamento_vigente_usd'))}</b><span>orçamento vigente total</span></div>
-    <div class="rm-kpi ${REM.travados.length ? 'al' : ''}"><b>${REM.travados.length}</b><span>contratos aguardando cobertura</span></div>
+    <div class="rm-kpi ${REM.travados.length ? 'al' : ''}"><b>${REM.travados.length}</b><span>contratos aguardando cobertura ${remQ('cobertura')}</span></div>
   </div>
   ${remTravadosHTML()}
-  <p class="rm-sub" style="margin:-4px 0 10px">Clique numa atividade para ver de onde vem cada dólar (fontes do razão, na ordem de consumo).</p>
+  <p class="rm-sub" style="margin:-4px 0 10px">Clique numa atividade para ver de onde vem cada dólar (fontes do razão, na ordem de consumo). ${remQ('fontes')} Dúvidas? Veja a aba <a href="#" onclick="event.preventDefault();remIrGuia('visao')">Como funciona</a>.</p>
   <div class="card"><div class="table-wrap"><table class="rm-tab">
-    <thead><tr><th>Atividade</th><th class="n">Orçamento vigente</th><th class="n">Comprometido</th>
-      <th class="n">Saldo</th><th class="n">Reservado</th><th class="n">Remanejável</th></tr></thead><tbody>`
+    <thead><tr><th>Atividade</th><th class="n">Orçamento vigente ${remQ('orcamento_vigente')}</th><th class="n">Comprometido ${remQ('comprometido')}</th>
+      <th class="n">Saldo ${remQ('saldo')}</th><th class="n">Reservado ${remQ('reservado')}</th><th class="n">Remanejável ${remQ('remanejavel')}</th></tr></thead><tbody>`
   for (const r of REM.resultados) {
     const as = A.filter(a => a.resultado_id === r.id)
     if (!as.length) continue
@@ -204,11 +205,11 @@ function remAtivContrato(c) { return c.tdrs?.atividade_id || c.atividade_id }
 function remTravadosHTML() {
   if (!REM.travados.length) return ''
   let h = `<div class="card" style="margin-bottom:14px;border-left:4px solid #EA580C"><div style="padding:10px 14px 4px">
-    <b>Contratos travados aguardando cobertura</b>
+    <b>Contratos travados aguardando cobertura</b> ${remQ('cobertura')}
     <p class="rm-sub" style="margin:2px 0 6px">O valor acima do TDR não coube no saldo livre da atividade. Sem produtos, pagamentos nem PDF assinado
     até a cobertura; o contrato libera sozinho quando o saldo cobrir (remanejamento efetivado, economia, encerramento ou redução do contrato).</p></div>
     <div class="table-wrap"><table class="rm-tab"><thead><tr><th>Contrato</th><th>TDR</th><th>Atividade</th>
-    <th class="n">Falta cobrir</th><th>Pedido</th><th></th></tr></thead><tbody>`
+    <th class="n">Falta cobrir ${remQ('falta_cobrir')}</th><th>Pedido</th><th></th></tr></thead><tbody>`
   for (const c of REM.travados) {
     const a = REM.ativs.find(x => x.atividade_id === remAtivContrato(c))
     const ped = REM.pedidos.find(p => p.contrato_id === c.id && ['rascunho', 'em_aprovacao'].includes(p.status))
@@ -247,13 +248,13 @@ function remProcedencia(f) {
 function remFontesHTML(atvId) {
   const fs = REM.fontes.filter(f => f.atividade_id === atvId).sort((a, b) => a.ordem_consumo - b.ordem_consumo)
   if (!fs.length) return '<p class="rm-vazio">Sem fontes no razão.</p>'
-  return `<table class="rm-tab"><thead><tr><th>#</th><th>Fonte</th><th>Procedência</th><th class="n">Valor líquido</th>
-    <th class="n">Consumido</th><th class="n">Disponível</th><th class="n">Reservado</th><th class="n">Livre</th></tr></thead><tbody>` +
+  return `<table class="rm-tab"><thead><tr><th>#</th><th>Fonte ${remQ('fontes')}</th><th>Procedência</th><th class="n">Valor líquido</th>
+    <th class="n">Consumido ${remQ('consumido')}</th><th class="n">Disponível</th><th class="n">Reservado ${remQ('reservado')}</th><th class="n">Livre ${remQ('consumido')}</th></tr></thead><tbody>` +
     fs.map(f => `<tr><td>${f.ordem_consumo}</td><td>${esc(REM_FONTE[f.tipo] || f.tipo)}</td><td>${remProcedencia(f)}</td>
       <td class="n">${usd2(f.liquido_usd)}</td><td class="n">${usd2(f.consumido_usd)}</td><td class="n">${usd2(f.disponivel_usd)}</td>
       <td class="n">${usd2(f.reservado_usd)}</td><td class="n"><b>${usd2(f.livre_usd)}</b></td></tr>`).join('') +
     '</tbody></table><p class="rm-sub" style="margin:6px 0 0">Os compromissos consomem primeiro a dotação original e depois as demais fontes na ordem em que entraram.' +
-    ` <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="event.stopPropagation();relAbrirExtratoA4('${atvId}')">Extrato (A4)</button></p>`
+    ` <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="event.stopPropagation();relAbrirExtratoA4('${atvId}')">Extrato (A4)</button> ${remQ('extrato')}</p>`
 }
 
 // ── 2. Pedidos ─────────────────────────────────────────────────────────
@@ -262,7 +263,7 @@ function remPedidosHTML() {
   const lista = REM.pedidos.filter(p => f === 'todos' ? true : f === 'minha' ? remMinhaVez(p) : p.status === 'em_aprovacao')
   const chip = (k, l) => `<button class="rm-chip ${f === k ? 'ativo' : ''}" onclick="REM.filtro='${k}';remRender()">${l}</button>`
   let h = `<div class="rm-chips">${chip('minha', 'Aguardando minha análise (' + REM.pedidos.filter(remMinhaVez).length + ')')}
-    ${chip('andamento', 'Em aprovação')}${chip('todos', 'Todos')}</div>`
+    ${chip('andamento', 'Em aprovação')}${chip('todos', 'Todos')} ${remQ('minha_vez')} ${remQ('cadeia')}</div>`
   if (!lista.length) return h + '<p class="rm-vazio">Nenhum pedido aqui.</p>'
   h += `<div class="card"><div class="table-wrap"><table class="rm-tab"><thead><tr><th>Pedido</th><th>Situação</th>
     <th>Etapa atual</th><th>Origem → destino</th><th class="n">Valor</th><th>Criado</th></tr></thead><tbody>`
@@ -314,12 +315,12 @@ function remNovoHTML() {
        O destino precisa ser a atividade do contrato; quando o pedido for efetivado, o contrato é liberado automaticamente.
        Se o saldo for coberto antes por outro caminho, este pedido é cancelado sozinho.</div>` : ''
   let h = `<div class="rm-form">${aviso}${cob}
-    <h3>1. De onde sai o recurso</h3>
+    <h3>1. De onde sai o recurso ${remQ('pedido_origem')}</h3>
     <p class="rm-ajuda">Informe quanto cada fonte cede. Só aparece saldo realmente livre: já descontados TDRs, despesas, outras reservas e déficits.</p>`
   if (!ativOrd.length) h += '<p class="rm-vazio">Nenhuma atividade com saldo livre para ceder.</p>'
   else {
     h += `<div class="card"><div class="table-wrap"><table class="rm-tab"><thead><tr><th>Atividade</th><th>Fonte</th>
-      <th>Procedência</th><th class="n">Livre</th><th class="n">Ceder (US$)</th></tr></thead><tbody>`
+      <th>Procedência</th><th class="n">Livre ${remQ('consumido')}</th><th class="n">Ceder (US$) ${remQ('pedido_ceder')}</th></tr></thead><tbody>`
     for (const a of ativOrd) for (const f of porAtv[a.atividade_id]) {
       const v = F.ceder[f.fonte_id] || ''
       h += `<tr><td><span class="rm-cod">${esc(a.codigo)}</span></td><td>${esc(REM_FONTE[f.tipo] || f.tipo)}</td>
@@ -329,7 +330,7 @@ function remNovoHTML() {
     }
     h += '</tbody></table></div></div>'
   }
-  h += `<h3>2. Para onde vai</h3><p class="rm-ajuda">A soma dos destinos precisa ser igual ao total cedido. Uma atividade não pode ceder e receber no mesmo pedido.</p>`
+  h += `<h3>2. Para onde vai ${remQ('pedido_destino')}</h3><p class="rm-ajuda">A soma dos destinos precisa ser igual ao total cedido. Uma atividade não pode ceder e receber no mesmo pedido.</p>`
   F.destinos.forEach((d, i) => {
     h += `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
       <select class="form-control rm-dest-atv" style="flex:1" onchange="remDestino(${i}, 'atividade_id', this.value)">
@@ -341,13 +342,13 @@ function remNovoHTML() {
   })
   h += `<button class="btn btn-secondary btn-sm" onclick="REM.form.destinos.push({atividade_id:'',valor:0});remRender()">+ Outro destino</button>
     <div class="rm-tot" id="rm-tot">${remTotaisHTML()}</div>
-    <h3>3. Justificativa</h3>
+    <h3>3. Justificativa ${remQ('pedido_justificativa')}</h3>
     <textarea class="form-control" rows="4" oninput="REM.form.justificativa=this.value" placeholder="Por que remanejar, o que deixa de ser feito na origem e o que o recurso viabiliza no destino.">${esc(F.justificativa)}</textarea>
     <div class="rm-acoes" style="margin-top:14px">
       <button class="btn btn-primary" onclick="remSalvarRascunho()">${REM.editando ? 'Salvar alterações' : 'Salvar rascunho'}</button>
       <button class="btn btn-ghost" onclick="REM.form=null;REM.editando=null;remAba('pedidos')">Descartar</button>
     </div>
-    <p class="rm-sub" style="margin-top:8px">Salvar não compromete saldo. O valor só fica reservado depois que o pedido é enviado (com sua senha) a partir da aba Pedidos.</p>
+    <p class="rm-sub" style="margin-top:8px">${remQ('rascunho')} Salvar não compromete saldo. O valor só fica reservado depois que o pedido é enviado (com sua senha) a partir da aba Pedidos.</p>
   </div>`
   return h
 }
@@ -416,7 +417,7 @@ async function remSalvarRascunho() {
 // ── 4. Signatários (titulares) ─────────────────────────────────────────
 function remTitularesHTML() {
   const sa = appState.perfil === 'super_admin'
-  let h = `<p class="rm-ajuda" style="font-size:13px;color:var(--cinza-600);margin:0 0 12px">Cada cargo tem um titular nominal, sem substituto.
+  let h = `<p class="rm-ajuda" style="font-size:13px;color:var(--cinza-600);margin:0 0 12px">${remQ('signatarios')} Cada cargo tem um titular nominal, sem substituto.
     Quem ocupa um cargo não pode ser o único responsável pela atividade que cede. A liberação da origem é assinada pelo
     responsável cadastrado na atividade (não pelo substituto).</p>
     <div class="card"><div class="table-wrap"><table class="rm-tab"><thead><tr><th>Etapa</th><th>Cargo</th><th>Titular</th><th>Desde</th><th>Ato</th>${sa ? '<th></th>' : ''}</tr></thead><tbody>`
@@ -507,16 +508,16 @@ async function remAbrirPedido(id) {
   const estornos = REM.pedidos.filter(x => x.estorno_de === P.id && x.status !== 'cancelado' && x.status !== 'recusado')
   const vinc = (x, txt) => `<a href="#" onclick="event.preventDefault();remAbrirPedido('${x.id}')">${esc(x.numero)}</a>${txt}`
   document.getElementById('rm-mp-corpo').innerHTML = `
-    ${orig ? `<div class="rm-aviso"><b>Estorno de ${vinc(orig, '')}.</b> Devolve o que foi recebido às fontes de onde saiu; itens e fontes espelham o original e não se editam.</div>` : ''}
+    ${orig ? `<div class="rm-aviso">${remQ('estorno')} <b>Estorno de ${vinc(orig, '')}.</b> Devolve o que foi recebido às fontes de onde saiu; itens e fontes espelham o original e não se editam.</div>` : ''}
     ${estornos.length ? `<div class="rm-aviso">Estorno: ${estornos.map(x => vinc(x, ' (' + esc((REM_STATUS[x.status] || [x.status])[0]) + ')')).join(', ')}</div>` : ''}
     ${P.motivo_encerramento ? `<div class="rm-aviso"><b>Motivo do encerramento:</b> ${esc(P.motivo_encerramento)}</div>` : ''}
     <p style="font-size:13px;line-height:1.55;margin:0 0 12px"><b>Justificativa:</b> ${esc(P.justificativa)}</p>
     <div class="rm-grid2">
       <div><h4 style="margin:0 0 6px;font-size:13px">Movimentação</h4><table class="rm-tab"><tbody>${itensH || '<tr><td class="rm-sub">Sem itens.</td></tr>'}</tbody></table></div>
-      <div><h4 style="margin:0 0 6px;font-size:13px">Cadeia de aprovação</h4><ul class="rm-cadeia">${cadeia}</ul></div>
+      <div><h4 style="margin:0 0 6px;font-size:13px">Cadeia de aprovação ${remQ('cadeia')} ${remQ('decisoes')}</h4><ul class="rm-cadeia">${cadeia}</ul></div>
     </div>
     <h4 style="margin:16px 0 6px;font-size:13px">Histórico</h4><div class="rm-hist">${hist || '<div class="rm-sub">—</div>'}</div>
-    <p class="rm-hash" style="margin-top:12px" title="SHA-256 do conteúdo do pedido">Impressão digital do documento (SHA-256): ${esc(D.hash || '')}</p>`
+    <p class="rm-hash" style="margin-top:12px" title="SHA-256 do conteúdo do pedido">${remQ('hash')} Impressão digital do documento (SHA-256): ${esc(D.hash || '')}</p>`
 
   const eu = appState.usuario.id
   const ac = []
@@ -572,7 +573,7 @@ function remCaixaTexto(titulo, ajuda, rotulo, acao) {
   document.getElementById('rm-caixa-txt').focus()
 }
 function remPedirEstorno() {
-  remCaixaTexto('Pedir estorno deste remanejamento',
+  remCaixaTexto('Pedir estorno deste remanejamento ' + remQ('estorno'),
     'Cria um rascunho que devolve às atividades de origem tudo o que foi recebido, para as mesmas fontes de onde saiu. ' +
     'Passa pela mesma cadeia de assinaturas. Só é possível se o destino ainda não usou nem repassou o valor.',
     'Criar rascunho do estorno', 'remConfirmarEstorno()')

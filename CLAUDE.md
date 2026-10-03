@@ -267,6 +267,8 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
 - **Tela**: abas Saldos por resultado (procedência por fonte), Pedidos (fila "aguardando minha análise"),
   Novo pedido (coordenação/super_admin; escolhe as fontes que cedem) e Signatários (super_admin designa).
   A tela não decide nada: assinar = `fetch` à Edge Function com a senha; a fila "minha vez" é só exibição.
+  Aba **Como funciona** + botões **"?"** (`js/remanejamentos-ajuda.js`: `REM_AJUDA` verbetes, `remQ('chave')` botão,
+  `remGuiaHTML()` guia + perguntas frequentes). Regra mudou no banco ⇒ atualizar o texto do guia junto.
 
 - **`atividades.orcamento_usd` é cache** de Σ `orcamento_fontes` orçamentárias. UPDATE direto é
   recusado para todos, inclusive super_admin (`trg_atividade_guarda_orcamento`, `ORCAMENTO_PROTEGIDO`).
