@@ -627,8 +627,10 @@ function abrirModal(id, somenteLeitura = false) {
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Orçamento U$</label>
-        <input class="form-control" id="ed-orc" type="number" step="0.01" value="${a.orcamento_usd||0}">
+        <label class="form-label">Orçamento vigente U$</label>
+        <input class="form-control" id="ed-orc" type="number" step="0.01" value="${a.orcamento_usd||0}" readonly disabled
+          title="O orçamento só muda por remanejamento ou revisão orçamentária registrados no razão">
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:4px">Só muda por remanejamento/revisão orçamentária${a.orcamento_original_usd!=null && parseFloat(a.orcamento_original_usd)!==parseFloat(a.orcamento_usd||0) ? ` · original ${fmtUSD(a.orcamento_original_usd)}` : ''}</div>
       </div>
     </div>
     <div class="grid-2">
@@ -806,7 +808,6 @@ async function salvarAtividade() {
   const getChecked = (name) => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el=>el.value);
   const updates = {
     fase: document.getElementById('ed-fase')?.value,
-    orcamento_usd: parseFloat(document.getElementById('ed-orc')?.value)||0,
     ano1_usd: parseFloat(document.getElementById('ed-ano1')?.value)||0,
     ano2_usd: parseFloat(document.getElementById('ed-ano2')?.value)||0,
     nome_pt: document.getElementById('ed-nome-pt')?.value.trim(),
