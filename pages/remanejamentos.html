@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Remanejamento de recursos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+/* Remanejamento de recursos (js/remanejamentos.js). Regras no banco — a tela só exibe. */
+.rm{max-width:1240px}
+.rm-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+.rm-cab p{margin:4px 0 0;color:var(--cinza-500);font-size:13px;max-width:760px;line-height:1.5}
+.rm-abas{display:flex;gap:4px;border-bottom:1px solid var(--borda);margin-bottom:16px;flex-wrap:wrap}
+.rm-aba{border:0;background:none;padding:10px 14px;font:600 13px var(--font-sans);color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;gap:6px;align-items:center}
+.rm-aba.ativa{color:var(--verde);border-bottom-color:var(--verde-medio)}
+.rm-cont{font-size:11px;background:var(--erro);color:#fff;border-radius:99px;padding:1px 7px}
+.rm-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.rm-kpi{background:var(--branco);border:1px solid var(--borda);border-radius:10px;padding:12px 14px}
+.rm-kpi b{font-size:20px;color:var(--cinza-900);display:block;line-height:1.25;font-variant-numeric:tabular-nums}
+.rm-kpi span{font-size:12px;color:var(--cinza-500)}
+.rm-kpi.al b{color:#B45309}
+.rm-aviso{background:var(--aviso-bg);border:1px solid #FCD34D;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#78350F;line-height:1.5}
+.rm-tab{width:100%;border-collapse:collapse;font-size:13px}
+.rm-tab th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--cinza-500);padding:8px 10px;border-bottom:1px solid var(--borda);background:var(--cinza-50);white-space:nowrap}
+.rm-tab td{padding:8px 10px;border-bottom:1px solid var(--cinza-100);vertical-align:top}
+.rm-tab .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rm-res td{background:#F0F7F2;font-weight:700;color:var(--verde)}
+.rm-atv{cursor:pointer}.rm-atv:hover td{background:var(--cinza-50)}
+.rm-cod{font:600 12px var(--font-mono);color:var(--cinza-700)}
+.rm-neg{color:#B91C1C}.rm-pos{color:#166534}.rm-mut{color:var(--cinza-400)}
+.rm-fontes td{background:#FBFCFD;font-size:12.5px}
+.rm-fontes .rm-tab th{background:#fff}
+.rm-chips{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.rm-chip{border:1px solid var(--borda-forte);background:var(--branco);border-radius:99px;padding:5px 12px;font:600 12px var(--font-sans);color:var(--cinza-600);cursor:pointer}
+.rm-chip.ativo{background:var(--verde-bg);border-color:var(--verde-claro);color:var(--verde)}
+.rm-vazio{color:var(--cinza-500);font-size:13px;padding:18px 4px}
+.rm-form h3{font-size:14px;margin:18px 0 8px;color:var(--cinza-800)}
+.rm-form .rm-ajuda{font-size:12px;color:var(--cinza-500);margin:0 0 8px;line-height:1.5}
+.rm-in{width:120px;text-align:right;font-variant-numeric:tabular-nums}
+.rm-tot{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;border-radius:10px;background:var(--cinza-50);border:1px solid var(--borda);margin:14px 0;font-size:13px}
+.rm-tot b{font-variant-numeric:tabular-nums}
+.rm-tot .ok{color:var(--sucesso)}.rm-tot .erro{color:var(--erro)}
+.rm-cadeia{list-style:none;margin:0;padding:0}
+.rm-cadeia li{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--cinza-100);font-size:13px}
+.rm-bola{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 11px var(--font-sans);background:var(--cinza-100);color:var(--cinza-500)}
+.rm-bola.ok{background:var(--sucesso);color:#fff}
+.rm-bola.atual{background:var(--azul-medio);color:#fff;box-shadow:0 0 0 3px #BFDBFE}
+.rm-sub{font-size:12px;color:var(--cinza-500)}
+.rm-hist{font-size:12.5px;color:var(--cinza-700)}
+.rm-hist div{padding:5px 0;border-bottom:1px dashed var(--cinza-200)}
+.rm-hash{font:500 11px var(--font-mono);color:var(--cinza-500);word-break:break-all}
+.rm-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rm-acoes{display:flex;gap:8px;flex-wrap:wrap}
+.modal-lg{max-width:980px;width:100%}
+@media (max-width:860px){.rm-kpis{grid-template-columns:repeat(2,1fr)}.rm-grid2{grid-template-columns:1fr}.rm-cab{flex-direction:column}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<!-- Modais fora do #app (armadilha 11) -->
+<div class="modal-overlay" id="rm-modal-pedido">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div><div class="modal-title" id="rm-mp-titulo">Pedido</div><div class="rm-sub" id="rm-mp-sub"></div></div>
+      <button class="modal-close" onclick="remFecharPedido()">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="rm-mp-corpo"></div>
+    <div class="modal-footer" id="rm-mp-acoes"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rm-modal-assinar">
+  <div class="modal" style="max-width:520px;width:100%">
+    <div class="modal-header">
+      <div class="modal-title" id="rm-as-titulo">Assinar</div>
+      <button class="modal-close" onclick="remFecharAssinar()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p id="rm-as-texto" style="font-size:13px;color:var(--cinza-700);line-height:1.5;margin:0 0 12px"></p>
+      <div class="form-group" id="rm-as-motivo-grp">
+        <label class="form-label" for="rm-as-motivo" id="rm-as-motivo-lbl">Motivo</label>
+        <textarea class="form-control" id="rm-as-motivo" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="rm-as-senha">Sua senha de acesso</label>
+        <input class="form-control" id="rm-as-senha" type="password" autocomplete="current-password">
+        <div class="rm-sub" style="margin-top:6px">A senha é conferida no servidor e não é guardada. Cinco erros seguidos bloqueiam a assinatura por 30 minutos.</div>
+      </div>
+      <div class="rm-hash" id="rm-as-hash"></div>
+      <div id="rm-as-erro" style="display:none;margin-top:10px;color:var(--erro);font-size:13px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="remFecharAssinar()">Voltar</button>
+      <button class="btn btn-primary" id="rm-as-ok" onclick="remConfirmarAssinatura()">Assinar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/remanejamentos.js"></script>
+</body>
+</html>

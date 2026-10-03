@@ -325,5 +325,5 @@ Relatório A4 do remanejamento: itens, linhagem, cadeia com nome/cargo/data/hash
 | 3 | Cargos/titulares, Edge Function `assinar-remanejamento`, cadeia sequencial, e-mails — ✅ 03/10/2026 (com reserva e efetivação da fase 4; `fn_rem_salvar` via `rem_03g` no SQL Editor) |
 | 4 | Remanejamento livre: reserva, alocações e efetivação ✅ (na fase 3); **estorno pendente** |
 | 5 | Cobertura de contrato: enum, USD no contrato, travas, liberação automática |
-| 6 | Telas: quadro por resultado, montagem, fila, extrato |
+| 6 | Telas: quadro por resultado, montagem, fila, extrato — ✅ 03/10/2026 (`pages/remanejamentos.html`) |
 | 7 | Relatório A4, extrato no relatório de saldo, domínio no `auditor-ia`, CLAUDE.md |

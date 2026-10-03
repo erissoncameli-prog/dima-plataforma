@@ -85,7 +85,7 @@ const res = await fetch(SUPABASE_URL + '/functions/v1/nome-da-funcao', {
 ### Navegação (`layout.js` — `navGroups`)
 Grupos: `'Projeto'`, `'Execução'`, `'Apoio'`
 Cada item: `{ id, icone, href, perfis: [...] }`
-IDs usados: `dashboard`, `atividades`, `tdrs`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`
+IDs usados: `dashboard`, `atividades`, `tdrs`, `remanejamentos`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`
 Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 
 ---
@@ -257,7 +257,11 @@ saldo_livre_usd = orcamento_usd
 ### Razão orçamentário e remanejamento (⚠️ ler antes de mexer em orçamento)
 
 Especificação completa: `docs/remanejamento/plano.md`. Fases 0–3 em produção (03/10/2026);
-falta a tela (`pages/remanejamentos.html`), a cobertura obrigatória de contrato e o estorno de remanejamento.
+tela em `pages/remanejamentos.html` + `js/remanejamentos.js` (nav `remanejamentos`, grupo Planejamento, todos os
+perfis — signatários podem ter qualquer perfil). Falta a cobertura obrigatória de contrato e o estorno de remanejamento.
+- **Tela**: abas Saldos por resultado (procedência por fonte), Pedidos (fila "aguardando minha análise"),
+  Novo pedido (coordenação/super_admin; escolhe as fontes que cedem) e Signatários (super_admin designa).
+  A tela não decide nada: assinar = `fetch` à Edge Function com a senha; a fila "minha vez" é só exibição.
 
 - **`atividades.orcamento_usd` é cache** de Σ `orcamento_fontes` orçamentárias. UPDATE direto é
   recusado para todos, inclusive super_admin (`trg_atividade_guarda_orcamento`, `ORCAMENTO_PROTEGIDO`).

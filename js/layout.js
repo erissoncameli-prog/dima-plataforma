@@ -57,6 +57,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     atividades:   { svg: '<path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>',                                                                                                                                                                                  cor: '#34d399', bg: 'rgba(52,211,153,0.22)'  },
     tarefas:      { svg: '<rect width="8" height="18" x="3" y="3" rx="1.5"/><rect width="8" height="11" x="13" y="3" rx="1.5"/><path d="M6 8h2"/><path d="M16 8h2"/>',                                                                                                                                                     cor: '#f472b6', bg: 'rgba(244,114,182,0.22)' },
     tdrs:         { svg: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',                                                                                                                       cor: '#a78bfa', bg: 'rgba(167,139,250,0.22)' },
+    remanejamentos:{ svg: '<path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/><path d="M18 7v4"/><path d="M6 17v-4"/>', cor: '#22d3ee', bg: 'rgba(34,211,238,0.22)' },
     matriz:       { svg: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',                                                                                                                                                                                                 cor: '#f59e0b', bg: 'rgba(245,158,11,0.22)'  },
     fornecedores: { svg: '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',                                             cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'  },
     contratos:    { svg: '<path d="M20 19.5v.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8.5L18 5.5"/><path d="M8 18h1"/><path d="M18.42 9.61a2.1 2.1 0 1 1 2.97 2.97L16.95 17 13 18l.99-3.95 4.43-4.44Z"/>',                                                                                                      cor: '#fb7185', bg: 'rgba(251,113,133,0.22)' },
@@ -94,6 +95,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'atividades',   href: 'atividades.html',   perfis: null },
     { id: 'tdrs',         href: 'tdrs.html',         perfis: null },
     { id: 'matriz',       href: 'matriz.html',       perfis: null },
+    { id: 'remanejamentos', href: 'remanejamentos.html', perfis: null },
     // ── Execução ─────────────────────────────────────────────
     { id: 'fornecedores', href: 'fornecedores.html', perfis: ['super_admin','coordenacao','financeiro'] },
     { id: 'contratos',    href: 'contratos.html',    perfis: ['super_admin','coordenacao','financeiro'] },
@@ -123,7 +125,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
 
   const navGroups = [
     { label: null,           key: null,            ids: ['dashboard','tarefas'] },
-    { label: 'Planejamento', key: 'planejamento',  ids: ['atividades','tdrs','matriz'] },
+    { label: 'Planejamento', key: 'planejamento',  ids: ['atividades','tdrs','matriz','remanejamentos'] },
     { label: 'Execução',     key: 'execucao',      ids: ['fornecedores','contratos','produtos','acervo','financeiro','diagnostico'] },
     { label: 'Apoio',        key: 'apoio',         ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','ajuda','usuarios'] },
     { label: 'Sistema',      key: 'sistema',       ids: ['configuracoes'] },
