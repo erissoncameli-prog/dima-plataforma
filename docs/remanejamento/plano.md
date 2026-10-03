@@ -322,8 +322,8 @@ Relatório A4 do remanejamento: itens, linhagem, cadeia com nome/cargo/data/hash
 | 0 | Contenção: guarda do orçamento + `audit_log` em atividades |
 | 1 | Razão: `orcamento_fontes`, carga, débitos (inclui despesas sem TDR), PEPS, eventos de TDR, conferência |
 | 2 | Cotação PTAX: tabela, Edge Function, cron, backfill |
-| 3 | Cargos/titulares, Edge Function `assinar-remanejamento`, cadeia sequencial, e-mails |
-| 4 | Remanejamento livre: reserva, alocações, efetivação, estorno |
+| 3 | Cargos/titulares, Edge Function `assinar-remanejamento`, cadeia sequencial, e-mails — ✅ 03/10/2026 (com reserva e efetivação da fase 4; `fn_rem_salvar` via `rem_03g` no SQL Editor) |
+| 4 | Remanejamento livre: reserva, alocações e efetivação ✅ (na fase 3); **estorno pendente** |
 | 5 | Cobertura de contrato: enum, USD no contrato, travas, liberação automática |
 | 6 | Telas: quadro por resultado, montagem, fila, extrato |
 | 7 | Relatório A4, extrato no relatório de saldo, domínio no `auditor-ia`, CLAUDE.md |

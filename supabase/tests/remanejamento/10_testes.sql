@@ -66,10 +66,12 @@ insert into public.execucao_financeira (atividade_id, descricao, valor_brl, valo
 \ir ../../migrations/20261003_rem_00_contencao.sql
 \ir ../../migrations/20261003_rem_01_razao_fontes.sql
 \ir ../../migrations/20261003_rem_02_cotacao_ptax.sql
-\echo '· reaplicando (idempotência)'
+\ir ../../migrations/20261003_rem_03_cadeia_aprovacao.sql
+\echo '· reaplicando (idempotência; rem_01 não, porque a rem_03 estende as views dela)'
 \ir ../../migrations/20261003_rem_00_contencao.sql
-\ir ../../migrations/20261003_rem_01_razao_fontes.sql
 \ir ../../migrations/20261003_rem_02_cotacao_ptax.sql
+\ir ../../migrations/20261003_rem_03_cadeia_aprovacao.sql
+\ir ../../migrations/20261003_rem_03g_sql_editor.sql
 
 \echo '· T1 carga inicial'
 do $$ begin
@@ -284,4 +286,244 @@ do $$ begin
   update cotacoes_usd set cotacao = cotacao where false;
 end $$;
 
-\echo '✔ todos os testes do remanejamento (fases 0–2) passaram'
+\echo '· T12 cadeia de aprovação — cenário'
+insert into public.usuarios (id, nome_completo, email, perfil) values
+ ('00000000-0000-0000-0000-0000000000c1','Coord 2','c1@x','coordenacao'),
+ ('00000000-0000-0000-0000-0000000000d1','Diretor','d1@x','visualizador'),
+ ('00000000-0000-0000-0000-0000000000a1','Secretário','s1@x','visualizador'),
+ ('00000000-0000-0000-0000-0000000000e3','Resp 3.1.1','e3@x','tecnico'),
+ ('00000000-0000-0000-0000-0000000000f2','Financeiro 2','f2@x','financeiro');
+insert into public.atividade_responsaveis (atividade_id, usuario_id, papel)
+select id, '00000000-0000-0000-0000-0000000000e1'::uuid, 'responsavel' from atividades where codigo = '1.1.1'
+union all select id, '00000000-0000-0000-0000-0000000000e3', 'responsavel' from atividades where codigo = '3.1.1'
+union all select id, '00000000-0000-0000-0000-0000000000b1', 'substituto'  from atividades where codigo = '1.1.1';
+
+create function public.t_login(p uuid) returns void language sql as $$ select set_config('request.jwt.claim.sub', p::text, false) $$;
+create function public.t_ass(u uuid, r uuid, d text, m text default null) returns jsonb language sql as
+  $$ select fn_rem_assinar(u, r, d, m, fn_rem_hash(r), '127.0.0.1', 'teste') $$;
+create table public.t_ids (k text primary key, v uuid);
+insert into public.t_ids
+select 'a111', id from atividades where codigo='1.1.1' union all
+select 'a217', id from atividades where codigo='2.1.7' union all
+select 'a311', id from atividades where codigo='3.1.1' union all
+select 'f111', id from orcamento_fontes where tipo='dotacao_original' and atividade_id=(select id from atividades where codigo='1.1.1') union all
+select 'f311', id from orcamento_fontes where tipo='dotacao_original' and atividade_id=(select id from atividades where codigo='3.1.1');
+create function public.t_id(k text) returns uuid language sql as $$ select v from t_ids where t_ids.k = $1 $$;
+create function public.t_dados(j text, o111 numeric, o311 numeric, d217 numeric, a111 numeric, a311 numeric) returns jsonb language sql as $$
+  select jsonb_build_object('justificativa', j,
+    'itens', jsonb_build_array(
+       jsonb_build_object('atividade_id', t_id('a111'), 'valor_usd', -o111),
+       jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -o311),
+       jsonb_build_object('atividade_id', t_id('a217'), 'valor_usd', d217)),
+    'alocacoes', jsonb_build_array(
+       jsonb_build_object('atividade_id', t_id('a111'), 'fonte_id', t_id('f111'), 'valor_usd', a111),
+       jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', a311)))
+$$;
+
+\echo '· T12a titulares'
+do $$ begin
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  perform t_erro($q$select fn_rem_designar_titular('diretor','00000000-0000-0000-0000-0000000000d1','x')$q$, 'só super_admin');
+  perform t_login('00000000-0000-0000-0000-00000000005a');
+  perform t_erro($q$select fn_rem_designar_titular('unesco_financeiro','00000000-0000-0000-0000-0000000000d1','Portaria 1')$q$, 'exige perfil');
+  perform fn_rem_designar_titular('coordenacao_solicitante','00000000-0000-0000-0000-0000000000c0','Portaria 1/2026');
+  perform fn_rem_designar_titular('unesco_financeiro','00000000-0000-0000-0000-0000000000f1','Ofício UNESCO 10');
+  perform fn_rem_designar_titular('diretor','00000000-0000-0000-0000-0000000000d1','Portaria 2/2026');
+  perform t_erro($q$select fn_rem_designar_titular('secretario','00000000-0000-0000-0000-0000000000d1','x')$q$, 'uq_rem_titular_pessoa');
+  perform fn_rem_designar_titular('secretario','00000000-0000-0000-0000-0000000000a1','Decreto 3/2026');
+  -- troca de titular encerra a vigência anterior (histórico preservado)
+  perform fn_rem_designar_titular('unesco_financeiro','00000000-0000-0000-0000-0000000000f2','Ofício UNESCO 11');
+  perform fn_rem_designar_titular('unesco_financeiro','00000000-0000-0000-0000-0000000000f1','Ofício UNESCO 12');
+  perform t_igual('histórico de titulares UNESCO', (select count(*) from rem_cargo_titulares where cargo='unesco_financeiro'), 3);
+  perform t_erro($q$update rem_cargo_titulares set ato='x'$q$, 'só admite encerrar');
+  perform t_erro($q$delete from rem_cargo_titulares$q$, 'não é apagada');
+end $$;
+
+\echo '· T12b rascunho e validação'
+do $$ declare v_rem uuid; begin
+  perform t_login('00000000-0000-0000-0000-0000000000e1');
+  perform t_erro($q$select fn_rem_salvar(null, '{}'::jsonb)$q$, 'só a coordenação');
+  perform t_login('00000000-0000-0000-0000-0000000000c1');           -- coordenação, mas não titular
+  v_rem := fn_rem_salvar(null, t_dados('Recompor a 2.1.7 com saldo livre das outras atividades', 100, 50, 150, 100, 50)
+                                || '{"uuid_cliente":"99999999-0000-0000-0000-000000000001"}');
+  insert into t_ids values ('rem1', v_rem);
+  perform t_igual('idempotente por uuid_cliente',
+    (select count(*) from remanejamentos where uuid_cliente='99999999-0000-0000-0000-000000000001'), 1);
+  if fn_rem_salvar(null, '{"uuid_cliente":"99999999-0000-0000-0000-000000000001"}') <> v_rem then
+    raise exception 'FALHOU: idempotência devolve o mesmo pedido';
+  end if;
+  if (select numero from remanejamentos where id=v_rem) !~ '^REM-\d{4}-001$' then raise exception 'FALHOU: numeração'; end if;
+  -- não titular não envia
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000c1', v_rem, 'aprovar'), 'Só o titular');
+  -- soma ≠ 0
+  perform fn_rem_salvar(v_rem, t_dados('Recompor a 2.1.7 com saldo livre das outras atividades', 100, 50, 140, 100, 50));
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000c0', v_rem, 'aprovar'), 'soma dos itens');
+  -- alocação diferente da cessão
+  perform fn_rem_salvar(v_rem, t_dados('Recompor a 2.1.7 com saldo livre das outras atividades', 100, 50, 150, 90, 50));
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000c0', v_rem, 'aprovar'), 'somam US$');
+  -- mais do que o disponível da fonte (1.1.1 tem US$ 450 de dotação livre)
+  perform fn_rem_salvar(v_rem, t_dados('Recompor a 2.1.7 com saldo livre das outras atividades', 500, 50, 550, 500, 50));
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000c0', v_rem, 'aprovar'), 'SALDO_INSUFICIENTE');
+  -- justificativa vazia
+  perform fn_rem_salvar(v_rem, t_dados('curta', 100, 50, 150, 100, 50));
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000c0', v_rem, 'aprovar'), 'justificativa');
+  perform fn_rem_salvar(v_rem, t_dados('Recompor a 2.1.7 com saldo livre das outras atividades', 100, 50, 150, 100, 50));
+  -- hash diferente do que a pessoa viu
+  perform t_erro(format('select fn_rem_assinar(%L, %L, %L, null, %L)', '00000000-0000-0000-0000-0000000000c0', v_rem, 'aprovar', 'abc'), 'DOCUMENTO_ALTERADO');
+end $$;
+
+\echo '· T12c envio, reserva e só o próximo é avisado'
+do $$ declare v_rem uuid := t_id('rem1'); begin
+  perform t_ass('00000000-0000-0000-0000-0000000000c0', v_rem, 'aprovar');
+  perform t_igual('etapa 2', (select etapa_atual from remanejamentos where id=v_rem), 2);
+  perform t_igual('6 etapas (1 solic + 2 liberações + 3 cargos)', (select count(*) from remanejamento_etapas where remanejamento_id=v_rem), 6);
+  perform t_igual('reserva na fonte', (select reservado_usd from vw_orcamento_fontes_saldo where fonte_id=t_id('f111')), 100);
+  perform t_igual('livre desconta a reserva', (select livre_usd from vw_orcamento_fontes_saldo where fonte_id=t_id('f111')), 350);
+  perform t_igual('avisado só o responsável da 1.1.1 (não o substituto)',
+    (select count(*) from remanejamento_notificacoes where remanejamento_id=v_rem), 1);
+  if (select usuario_id from remanejamento_notificacoes where remanejamento_id=v_rem) <> '00000000-0000-0000-0000-0000000000e1' then
+    raise exception 'FALHOU: destinatário do aviso';
+  end if;
+  -- itens congelados fora do rascunho
+  perform t_erro(format('update remanejamento_itens set valor_usd = -1 where remanejamento_id = %L', v_rem), 'só mudam com o pedido em rascunho');
+  -- fora da vez / substituto não assina
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000f1', v_rem, 'aprovar'), 'NAO_E_SUA_VEZ');
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000b1', v_rem, 'aprovar'), 'NAO_E_SUA_VEZ');
+end $$;
+
+\echo '· T12d outro pedido não usa o dinheiro reservado'
+do $$ declare v2 uuid; begin
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  v2 := fn_rem_salvar(null, jsonb_build_object('justificativa','Segundo pedido disputando a mesma fonte',
+     'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a111'), 'valor_usd', -400),
+                                jsonb_build_object('atividade_id', t_id('a217'), 'valor_usd', 400)),
+     'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a111'), 'fonte_id', t_id('f111'), 'valor_usd', 400))));
+  insert into t_ids values ('rem2', v2);
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000c0', v2, 'aprovar'), 'SALDO_INSUFICIENTE');
+end $$;
+
+\echo '· T12e devolução volta UMA etapa e avisa só o anterior'
+do $$ declare v_rem uuid := t_id('rem1'); begin
+  perform t_ass('00000000-0000-0000-0000-0000000000e1', v_rem, 'aprovar');            -- libera 1.1.1
+  perform t_igual('etapa 3', (select etapa_atual from remanejamentos where id=v_rem), 3);
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000e3', v_rem, 'devolver'), 'motivo');
+  delete from remanejamento_notificacoes;
+  perform t_ass('00000000-0000-0000-0000-0000000000e3', v_rem, 'devolver', 'Confirmar o valor da 1.1.1');
+  perform t_igual('voltou à etapa 2', (select etapa_atual from remanejamentos where id=v_rem), 2);
+  perform t_igual('só o anterior avisado', (select count(*) from remanejamento_notificacoes where evento='devolvido'), 1);
+  if (select usuario_id from remanejamento_notificacoes where evento='devolvido') <> '00000000-0000-0000-0000-0000000000e1' then
+    raise exception 'FALHOU: devolução deve avisar quem assinou a etapa anterior';
+  end if;
+  perform t_igual('próximo NÃO avisado', (select count(*) from remanejamento_notificacoes where evento='analisar'), 0);
+  perform t_igual('assinatura anterior reaberta',
+    (select count(*) from remanejamento_assinaturas where remanejamento_id=v_rem and decisao='aprovar' and invalidada_em is not null), 1);
+  -- reaprova e segue
+  perform t_ass('00000000-0000-0000-0000-0000000000e1', v_rem, 'aprovar');
+  perform t_ass('00000000-0000-0000-0000-0000000000e3', v_rem, 'aprovar');
+  perform t_igual('etapa UNESCO', (select etapa_atual from remanejamentos where id=v_rem), 4);
+  if not exists (select 1 from remanejamento_notificacoes where evento='analisar' and usuario_id='00000000-0000-0000-0000-0000000000f1') then
+    raise exception 'FALHOU: UNESCO deve ser avisada'; end if;
+  perform t_igual('diretor ainda não avisado',
+    (select count(*) from remanejamento_notificacoes where usuario_id='00000000-0000-0000-0000-0000000000d1'), 0);
+end $$;
+
+\echo '· T12f efetivação no razão com linhagem'
+do $$ declare v_rem uuid := t_id('rem1'); v_orc217 numeric; begin
+  v_orc217 := (select orcamento_usd from atividades where id=t_id('a217'));
+  perform t_ass('00000000-0000-0000-0000-0000000000f1', v_rem, 'aprovar');
+  perform t_ass('00000000-0000-0000-0000-0000000000d1', v_rem, 'aprovar');
+  perform t_igual('ainda não efetivado', (select count(*) from orcamento_fontes where remanejamento_id=v_rem), 0);
+  perform t_ass('00000000-0000-0000-0000-0000000000a1', v_rem, 'aprovar');
+  if (select status from remanejamentos where id=v_rem) <> 'efetivado' then raise exception 'FALHOU: efetivação'; end if;
+  perform t_igual('origem 1.1.1 −100', (select orcamento_usd from atividades where id=t_id('a111')), 900);
+  perform t_igual('origem 3.1.1 −50',  (select orcamento_usd from atividades where id=t_id('a311')), 200);
+  perform t_igual('destino 2.1.7 +150', (select orcamento_usd from atividades where id=t_id('a217')), v_orc217 + 150);
+  perform t_igual('2 recebimentos', (select count(*) from orcamento_fontes where remanejamento_id=v_rem and tipo='remanejamento_recebido'), 2);
+  perform t_igual('linhagem: recebido aponta a fonte da 1.1.1',
+    (select valor_usd from orcamento_fontes where remanejamento_id=v_rem and tipo='remanejamento_recebido' and fonte_origem_id=t_id('f111')), 100);
+  perform t_igual('reserva liberada', (select reservado_usd from vw_orcamento_fontes_saldo where fonte_id=t_id('f111')), 0);
+  perform t_igual('conferência do pedido', (select count(*) from vw_rem_conferencia where id=v_rem and destinos_usd=150 and recebido_usd=150 and cedido_usd=150), 1);
+  perform t_igual('avisados: quem montou + 6 signatários', (select count(distinct usuario_id) from remanejamento_notificacoes where evento='efetivado'), 7);
+  perform t_conferencia_ok('após remanejamento efetivado');
+  -- encerrado não muda; assinatura imutável; pedido não se apaga
+  perform t_erro(format('update remanejamentos set justificativa = %L where id = %L', 'x', v_rem), 'não muda');
+  perform t_erro($q$update remanejamento_assinaturas set motivo = 'x'$q$, 'imutável');
+  perform t_erro(format('delete from remanejamentos where id = %L', v_rem), 'não é apagado');
+end $$;
+
+\echo '· T12g devolvido ao solicitante, edição abre nova versão; recusa libera reserva'
+do $$ declare v uuid; begin
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  v := fn_rem_salvar(null, jsonb_build_object('justificativa','Terceiro pedido, para devolver e recusar',
+     'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -20),
+                                jsonb_build_object('atividade_id', t_id('a217'), 'valor_usd', 20)),
+     'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', 20))));
+  perform t_ass('00000000-0000-0000-0000-0000000000c0', v, 'aprovar');
+  perform t_ass('00000000-0000-0000-0000-0000000000e3', v, 'devolver', 'Rever o valor');
+  perform t_igual('com o solicitante', (select etapa_atual from remanejamentos where id=v), 1);
+  perform t_erro(format('select t_ass(%L, %L, %L, %L)', '00000000-0000-0000-0000-0000000000c0', v, 'devolver', 'x'), 'não devolve');
+  perform fn_rem_salvar(v, jsonb_build_object('justificativa','Terceiro pedido, valor revisto para 25',
+     'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -25),
+                                jsonb_build_object('atividade_id', t_id('a217'), 'valor_usd', 25)),
+     'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', 25))));
+  perform t_igual('versão 2', (select versao from remanejamentos where id=v), 2);
+  perform t_igual('assinaturas da v1 invalidadas',
+    (select count(*) from remanejamento_assinaturas where remanejamento_id=v and versao=1 and decisao='aprovar' and invalidada_em is null), 0);
+  perform t_ass('00000000-0000-0000-0000-0000000000c0', v, 'aprovar');
+  perform t_igual('reservado', (select reservado_usd from vw_orcamento_fontes_saldo where fonte_id=t_id('f311')), 25);
+  perform t_ass('00000000-0000-0000-0000-0000000000e3', v, 'aprovar');
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000f1', v, 'recusar'), 'motivo');
+  perform t_ass('00000000-0000-0000-0000-0000000000f1', v, 'recusar', 'Sem respaldo da UNESCO');
+  perform t_igual('recusa libera a reserva', (select reservado_usd from vw_orcamento_fontes_saldo where fonte_id=t_id('f311')), 0);
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000d1', v, 'aprovar'), 'nada a assinar');
+end $$;
+
+\echo '· T12h segregação: sem responsável independente, não envia'
+do $$ declare v uuid; begin
+  -- a única responsável da 3.1.1 passa a ser a UNESCO (que já ocupa cargo da cadeia)
+  update atividade_responsaveis set ativo = false where usuario_id = '00000000-0000-0000-0000-0000000000e3';
+  insert into atividade_responsaveis (atividade_id, usuario_id, papel) values (t_id('a311'), '00000000-0000-0000-0000-0000000000f1', 'responsavel');
+  perform t_login('00000000-0000-0000-0000-0000000000c0');
+  v := fn_rem_salvar(null, jsonb_build_object('justificativa','Pedido sem liberação independente',
+     'itens', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'valor_usd', -10),
+                                jsonb_build_object('atividade_id', t_id('a217'), 'valor_usd', 10)),
+     'alocacoes', jsonb_build_array(jsonb_build_object('atividade_id', t_id('a311'), 'fonte_id', t_id('f311'), 'valor_usd', 10))));
+  perform t_erro(format('select t_ass(%L, %L, %L)', '00000000-0000-0000-0000-0000000000c0', v, 'aprovar'), 'SEM_SIGNATARIO');
+  perform t_igual('continua rascunho', (select count(*) from remanejamentos where id=v and status='rascunho'), 1);
+  perform t_ass('00000000-0000-0000-0000-0000000000c0', v, 'cancelar', 'Sem liberação independente');
+  perform t_igual('cancelado', (select count(*) from remanejamentos where id=v and status='cancelado'), 1);
+end $$;
+
+\echo '· T12i senha: bloqueio após 5 erros'
+do $$ begin
+  perform fn_rem_registrar_tentativa('00000000-0000-0000-0000-0000000000d1', false) from generate_series(1,4);
+  if fn_rem_senha_bloqueada_ate('00000000-0000-0000-0000-0000000000d1') is not null then raise exception 'FALHOU: 4 erros não bloqueiam'; end if;
+  perform fn_rem_registrar_tentativa('00000000-0000-0000-0000-0000000000d1', false);
+  if fn_rem_senha_bloqueada_ate('00000000-0000-0000-0000-0000000000d1') is null then raise exception 'FALHOU: 5 erros bloqueiam'; end if;
+end $$;
+
+\echo '· T12j acesso'
+do $$ begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-00000000005a', true);
+  perform t_erro(format('select fn_rem_assinar(%L, %L, %L, null, %L)', '00000000-0000-0000-0000-0000000000c0', t_id('rem2'), 'aprovar', 'x'), 'permission denied');
+  perform t_erro($q$select fn_rem_registrar_tentativa('00000000-0000-0000-0000-0000000000d1', true)$q$, 'permission denied');
+  perform t_erro($q$select * from remanejamento_notificacoes$q$, 'permission denied');
+  perform t_erro($q$select * from rem_tentativas_senha$q$, 'permission denied');
+  perform t_erro($q$insert into remanejamentos (numero, justificativa, criado_por) values ('X','x','00000000-0000-0000-0000-00000000005a')$q$, 'permission denied');
+  if (select count(*) from vw_remanejamento_assinaturas) = 0 then raise exception 'FALHOU: leitura das assinaturas'; end if;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+  perform t_igual('visualizador não vê IP das assinaturas de outros', (select count(*) from remanejamento_assinaturas), 0);
+  reset role;
+  set local role anon;
+  perform t_erro($q$select * from remanejamentos$q$, 'permission denied');
+  perform t_erro($q$select fn_rem_hash(null)$q$, 'permission denied');
+end $$;
+
+do $$ begin
+  if not exists (select 1 from notificacoes where tipo = 'remanejamento_efetivado') then
+    raise exception 'FALHOU: sino não recebeu o aviso (rem_03g)';
+  end if;
+end $$;
+
+\echo '✔ todos os testes do remanejamento (fases 0–3) passaram'

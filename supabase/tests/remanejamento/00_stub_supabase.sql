@@ -213,3 +213,17 @@ alter table public.cotacoes_usd enable row level security;
 create policy cotacoes_select_all on public.cotacoes_usd for select using (auth.uid() is not null);
 create policy cotacoes_insert_admin on public.cotacoes_usd for insert
   with check ((select fn_perfil_atual()) = 'super_admin');
+
+-- Responsáveis por atividade e sino (formato de produção, conferido em 03/10/2026)
+create table public.atividade_responsaveis (
+  id uuid primary key default gen_random_uuid(),
+  atividade_id uuid not null references public.atividades(id),
+  usuario_id uuid not null references public.usuarios(id),
+  papel text not null default 'responsavel', ativo boolean not null default true
+);
+create table public.notificacoes (
+  id uuid primary key default gen_random_uuid(), usuario_id uuid, tipo varchar not null,
+  titulo text, mensagem text, lida boolean default false, link text,
+  entidade_tipo varchar, entidade_id uuid, criado_em timestamptz default now(),
+  constraint notificacoes_tipo_check check (tipo::text = any (array['tarefa_atribuida','remanejamento_analise_placeholder']))
+);

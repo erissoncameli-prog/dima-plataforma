@@ -256,8 +256,8 @@ saldo_livre_usd = orcamento_usd
 
 ### Razão orçamentário e remanejamento (⚠️ ler antes de mexer em orçamento)
 
-Especificação completa: `docs/remanejamento/plano.md`. Fases 0–2 em produção (03/10/2026);
-remanejamento com cadeia de 5 assinaturas e cobertura de contrato ainda por fazer.
+Especificação completa: `docs/remanejamento/plano.md`. Fases 0–3 em produção (03/10/2026);
+falta a tela (`pages/remanejamentos.html`), a cobertura obrigatória de contrato e o estorno de remanejamento.
 
 - **`atividades.orcamento_usd` é cache** de Σ `orcamento_fontes` orçamentárias. UPDATE direto é
   recusado para todos, inclusive super_admin (`trg_atividade_guarda_orcamento`, `ORCAMENTO_PROTEGIDO`).
@@ -282,6 +282,25 @@ remanejamento com cadeia de 5 assinaturas e cobertura de contrato ainda por faze
   erro `COTACAO_DESATUALIZADA` se a última tiver mais de 7 dias (cron parado).
   ⚠️ **`cotacoes_usd` é outra tabela** (AwesomeAPI, cotação de referência gravada pelo financeiro e lida
   por viagens/dashboard/relatórios) — não serve para converter contrato e não deve ser alterada pelo razão.
+- **Pedido de remanejamento** (`remanejamentos` → `remanejamento_itens` (− origem/+ destino, Σ = 0) →
+  `remanejamento_alocacoes` (de QUAL fonte sai cada centavo)). Rascunho só por `fn_rem_salvar` (coordenação);
+  tudo o mais por `fn_rem_assinar`, que **só tem EXECUTE para service_role** e é chamada pela Edge Function
+  `assinar-remanejamento` depois de **reconfirmar a senha de login no servidor** (5 erros/30 min ⇒ bloqueio).
+  Nunca dar EXECUTE de `fn_rem_assinar` a `authenticated` nem verificar senha no navegador.
+- **Cadeia sequencial por pessoa, sem substituto**: 1 titular `coordenacao_solicitante` → 2 responsável
+  (`atividade_responsaveis.papel='responsavel'`, não substituto) de cada origem → 3 `unesco_financeiro` →
+  4 `diretor` → 5 `secretario` ⇒ efetiva. Titulares em `rem_cargo_titulares` (vigência + ato; um por cargo,
+  uma pessoa por cargo), designados só por `fn_rem_designar_titular` (super_admin). Aprovar avisa SÓ o próximo;
+  devolver volta UMA etapa, reabre a assinatura dela e avisa SÓ o anterior; só o solicitante edita (nova
+  versão invalida todas as assinaturas). Mesma pessoa não aprova duas etapas (exceto liberar 2 origens).
+- Assinatura grava o `fn_rem_hash` (SHA-256 do pedido) que a pessoa viu; documento mudou ⇒ `DOCUMENTO_ALTERADO`.
+  Pedido em aprovação **reserva** as fontes (`vw_orcamento_fontes_saldo.reservado_usd/livre_usd`); efetivação
+  revalida sob `FOR UPDATE` e lança `remanejamento_cedido` (−) e `remanejamento_recebido` (+, `fonte_origem_id`).
+  Assinaturas/etapas/histórico imutáveis; pedido não se apaga (cancelar). `vw_remanejamento_assinaturas` = sem IP.
+- E-mails: fila `remanejamento_notificacoes`, enviada pela Edge Function (Gmail SMTP) e reenviada pelo cron
+  `remanejamento-emails` (15 min). Sino com tipos `remanejamento_*` (liberados pela `rem_03g`).
+- Migração com `DELETE`/`DROP` (mesmo dentro de corpo de função) trava o `apply_migration`: separar num arquivo
+  `*_sql_editor.sql` para colar no SQL Editor (ex.: `20261003_rem_03g_sql_editor.sql`).
 - Testes locais: `supabase/tests/remanejamento/rodar.sh`.
 - Migração com `DROP` trava o `apply_migration` (pede confirmação). Use `create or replace trigger`
   e policy condicional (`if not exists … pg_policies`).
@@ -566,6 +585,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
+| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`); envia/reenvia os e-mails da cadeia (`{acao:'drenar'}` pelo cron) | ✅ |
 
 ---
 
@@ -768,6 +788,7 @@ Supabase/Anthropic/Vercel/Google.
 23. `atividades.orcamento_usd` **não se altera direto** (nem por super_admin) — é cache do razão `orcamento_fontes`. Ver "Razão orçamentário e remanejamento"
 24. Nenhuma view de saldo pode ter GRANT de escrita: view simples com dono postgres é auto-atualizável e ignora RLS
 25. `cotacoes_usd` (AwesomeAPI, colunas `cotacao`/`data_ref`) **≠** `cotacoes_ptax` (PTAX oficial, `ptax_venda`/`data`). Antes de criar tabela, conferir se o nome já existe — `create table if not exists` pula em silêncio e os GRANT/trigger seguintes caem na tabela antiga
+26. Assinatura de remanejamento **só** pela Edge Function `assinar-remanejamento` (senha reconfirmada no servidor). `fn_rem_assinar` é service_role-only — não expor a `authenticated`
 
 ---
 
