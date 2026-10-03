@@ -11,7 +11,7 @@ migrações `2026xxxx_rem_*`.
 | Achado | Consequência |
 |---|---|
 | `atividades.orcamento_usd` editável pelo modal de `pages/atividades.html`; policy `atividades_write` inclui `tecnico`; sem `audit_log` | hoje qualquer técnico "remaneja" trocando um número, sem rastro |
-| `vw_saldo_atividade.saldo_livre_usd` ignora `execucao_financeira` | **30 despesas sem TDR (US$ 55.598,26)** não reduzem o saldo livre |
+| 30 despesas sem TDR/contrato (US$ 55.598,26) — **todas viagens** (VGM, diárias e passagens) da 2.1.7, execução direta UNESCO | já estão cobertas pelos TDRs "guarda-chuva" 2.1.7-001 (passagens) e 2.1.7-002 (diárias), US$ 38.095,24 cada; **não** são débito extra (seria contagem dupla). Lançamentos têm `tdr_id` nulo — §2.2 |
 | `contratos` só tem `valor_total_brl` | não há como comparar contrato com orçamento (USD) |
 | Aditivo = `update` de `valor_total_brl` (`pages/contratos.html`) | aumento de contrato passa sem nenhuma checagem |
 | Cotação vem do navegador (`awesomeapi`, `pages/financeiro.html`) | taxa não é confiável nem registrada |
@@ -61,10 +61,19 @@ migrações `2026xxxx_rem_*`.
 ### 2.2 Débitos
 
 ```
-débito_atividade = Σ tdrs.valor_usd (não cancelados)            -- como a view já faz
-                 + Σ execucao_financeira.valor_usd (≠ cancelado)
-                   cujo contrato_id é nulo ou sem TDR            -- NOVO: despesas sem TDR
+débito_atividade = Σ tdrs.valor_usd (não cancelados, exceto execução direta)
+                 + max( Σ tdrs de execução direta (não cancelados),
+                        Σ despesas diretas (execucao_financeira ≠ cancelado, sem contrato)
+                        + viagens aprovadas ainda não lançadas )
 ```
+
+**Execução direta UNESCO** (viagens: diárias e passagens) não tem contrato nem
+TDR por despesa. O TDR "guarda-chuva" da atividade (`tdrs.execucao_direta =
+true`, novo; marcados 2.1.7-001 e 2.1.7-002) é a **reserva**; as viagens
+consomem essa reserva. Só o que passar da reserva vira débito adicional
+(e alerta). Na 2.1.7 hoje: reserva US$ 76.190,48 − executado US$ 55.598,26 =
+**US$ 20.592,22 ainda reservados para viagens** (não remanejáveis enquanto o
+TDR guarda-chuva não for reduzido — redução vira saldo livre pelo §2.3).
 
 TDR cancelado ou reduzido **diminui o débito** — o dinheiro volta
 automaticamente à fonte que ele consumia (§2.3). Cada mudança de valor/status
@@ -217,11 +226,23 @@ Trigger em `contratos` no INSERT e em todo UPDATE que **aumente**
 
 ```
 necessidade_usd  = valor do contrato (ou do acréscimo) em USD, cotação do dia
-disponível_usd   = orçamento vigente − débitos das OUTRAS demandas
-                   (TDR não contratado: planejado; contratado: max(planejado, firmado))
-                   − despesas sem TDR + liberações ativas
+disponível_usd   = orçamento vigente
+                   − Σ contratos já firmados da atividade (USD congelado no cadastro)
+                     líquidos do que foi liberado por encerramento
+                   − execução direta realizada (despesas diretas + viagens aprovadas)
 déficit          = necessidade − disponível
 ```
+
+**Quem contrata primeiro não pede cobertura**, desde que caiba no disponível.
+TDR ainda não contratado é expectativa e **não** conta contra o contrato
+(nem o TDR guarda-chuva — conta só o que já foi executado com ele).
+
+Contratos já existentes recebem `valor_total_usd` por backfill com a PTAX da
+data do cadastro (`criado_em`), registrada em `cotacao_data`.
+
+Note a diferença deliberada: **remanejar** só usa saldo livre (planejado dos
+TDRs conta — não se tira dinheiro de quem ainda vai contratar); **contratar**
+só olha o que está formalizado.
 
 Déficit > 0 ⇒ contrato fica `aguardando_cobertura` (valor novo do enum
 `status_contrato`) e nasce automaticamente um remanejamento
