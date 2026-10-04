@@ -49,7 +49,8 @@ const REM_AJUDA = {
   cobertura: { t: 'Contrato aguardando cobertura', secao: 'cobertura', h: `
     O TDR já reservou o valor planejado. Se o contrato (ou um aditivo) passar do valor do TDR e essa
     diferença não couber no saldo livre da atividade, o contrato fica <b>travado</b>: sem produtos, sem
-    pagamentos e sem PDF assinado. Ele <b>libera sozinho</b> quando o saldo cobrir — por um remanejamento de
+    pagamentos e sem PDF assinado. A coordenação, os responsáveis da atividade e quem cadastrou o contrato
+    recebem aviso no sino e por e-mail quando ele trava e quando libera. Ele <b>libera sozinho</b> quando o saldo cobrir — por um remanejamento de
     cobertura, uma economia, um encerramento ou a redução do próprio contrato. Enquanto isso, só dá para reduzir o valor ou cancelar.` },
   falta_cobrir: { t: 'Falta cobrir', secao: 'cobertura', h: `
     Quanto falta de saldo livre para liberar o contrato. É o valor que o botão "Pedir cobertura" já preenche como destino do pedido.` },

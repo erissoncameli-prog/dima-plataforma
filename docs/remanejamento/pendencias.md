@@ -93,7 +93,7 @@ coordenação revisar e enviar. 2.1.6 (US$ 54,93) e 1.5.3 (US$ 0,01) são resolv
 | 2 | A3 auditor (verificações quebradas) — ✅ 03/10 (`auditor-ia` v20) | não | pequeno |
 | 3 | A2 audit_log em contratos/titulares — ✅ 03/10 (`rem_10`) | não | pequeno |
 | 4 | D3 teste real (com D1 feito) | — | acompanhamento |
-| 5 | B2 aviso de contrato travado/liberado | não (SQL Editor p/ o sino) | médio |
+| 5 | B2 aviso de contrato travado/liberado — ✅ 03/10 (`rem_11`, `rem_11b`, `assinar-remanejamento` v3) | não | médio |
 | 6 | B1 revisão orçamentária UNESCO | **sim** (quem assina) | médio |
 | 7 | C2 rascunhos de cobertura dos déficits | **sim** (aprovar fontes) | pequeno |
 | 8 | C1 orçamento do resultado derivado | **sim** (qual número vale) | pequeno |

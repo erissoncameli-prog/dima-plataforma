@@ -920,4 +920,35 @@ do $$ declare e contrato_encerramentos; v_ptax numeric := (select ptax_venda fro
   perform t_conferencia_ok('após rem_09');
 end $$;
 
-\echo '✔ todos os testes do remanejamento (fases 0–9) passaram'
+
+\echo '· aplicando rem_11 (aviso de contrato travado/liberado)'
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+\ir ../../migrations/20261003_rem_11_aviso_cobertura.sql
+\ir ../../migrations/20261003_rem_11b_sino_cobertura.sql
+\ir ../../migrations/20261003_rem_11_aviso_cobertura.sql
+
+\echo '· T18 trava e liberação avisam coordenação, responsáveis e quem cadastrou'
+do $$ declare a uuid; c uuid; n_coord int; begin
+  a := t_ativ('9.9.8', 100);
+  insert into atividade_responsaveis (atividade_id, usuario_id, papel) values (a, '00000000-0000-0000-0000-0000000000e1', 'responsavel');
+  insert into tdrs (atividade_id, numero, status, valor_brl, valor_usd) values (a, '9.9.8-001', 'aprovado', 100 * t_ptax(), 100)
+  returning id into c;
+  select count(*) into n_coord from usuarios where perfil = 'coordenacao' and ativo;
+  insert into contratos (numero, tdr_id, atividade_id, valor_total_brl) values ('CT-998', c, a, 130 * t_ptax()) returning id into c;
+  if t_status('CT-998') <> 'aguardando_cobertura' then raise exception 'FALHOU: deveria travar'; end if;
+  perform t_igual('e-mails de trava (coordenação + responsável)',
+    (select count(*) from cobertura_notificacoes where contrato_id = c and evento = 'travado'), n_coord + 1);
+  perform t_igual('déficit no aviso', (select max(deficit_usd) from cobertura_notificacoes where contrato_id = c), 30);
+  perform t_igual('sino de trava', (select count(*) from notificacoes where entidade_id = c and tipo = 'contrato_travado'), n_coord + 1);
+  update contratos set valor_total_brl = 131 * t_ptax() where id = c;   -- aditivo com o contrato já travado: não repete
+  perform t_igual('sem aviso repetido', (select count(*) from cobertura_notificacoes where contrato_id = c and evento = 'travado'), n_coord + 1);
+  perform t_credito('9.9.8', 31);
+  if t_status('CT-998') <> 'vigente' then raise exception 'FALHOU: deveria liberar'; end if;
+  perform t_igual('e-mails de liberação', (select count(*) from cobertura_notificacoes where contrato_id = c and evento = 'liberado'), n_coord + 1);
+  perform t_igual('sino de liberação', (select count(*) from notificacoes where entidade_id = c and tipo = 'contrato_liberado'), n_coord + 1);
+  set local role authenticated;
+  perform t_erro('select * from cobertura_notificacoes', 'permission denied');
+end $$;
+
+\echo '✔ todos os testes do remanejamento (fases 0–11) passaram'

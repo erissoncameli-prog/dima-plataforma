@@ -767,6 +767,16 @@ window.salvar=async function(){
   await executarSalvarContrato(dados);
 };
 
+// Contrato travado: dispara já o e-mail do aviso (rem_11); o cron reenvia o que falhar.
+async function enviarAvisoCobertura(){
+  try{
+    const {data:{session}}=await db.auth.getSession();
+    fetch(SUPABASE_URL+'/functions/v1/assinar-remanejamento',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||''),'apikey':SUPABASE_ANON_KEY},
+      body:JSON.stringify({acao:'drenar'})}).catch(function(){});
+  }catch(e){}
+}
+
 async function executarSalvarContrato(dados){
   var prog=document.getElementById('prog-bar');
   var fill=document.getElementById('prog-fill');
@@ -780,6 +790,7 @@ async function executarSalvarContrato(dados){
       todosContratos.unshift(ins.data);cId=ins.data.id;
       if(ins.data.status==='aguardando_cobertura'){
         toast('Contrato '+ins.data.numero+' criado, mas TRAVADO: o valor acima do TDR não cabe no saldo da atividade. Peça cobertura em Remanejamento.','warning',10000);
+        enviarAvisoCobertura();
         if(filePDF){toast('PDF assinado não anexado: só após a cobertura.','warning',8000);filePDF=null;}
       } else toast('Contrato '+ins.data.numero+' criado!','success');
     } else {
@@ -792,6 +803,7 @@ async function executarSalvarContrato(dados){
       Object.assign(contratoEditando,dados,{status:upd2.data.status,fornecedores:f2||null,atividades:a2||null});
       if(upd2.data.status==='aguardando_cobertura'){
         toast('Contrato salvo, mas TRAVADO aguardando cobertura do orçamento. Peça cobertura em Remanejamento.','warning',10000);
+        enviarAvisoCobertura();
         if(filePDF){toast('PDF assinado não anexado: só após a cobertura.','warning',8000);filePDF=null;}
       } else toast('Contrato atualizado!','success');
     }

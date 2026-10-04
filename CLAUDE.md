@@ -330,6 +330,9 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
   antigo não é regularizado: `piso_usd` = livre antes do 1º contrato da fila. Liberado ⇒ pedido de cobertura aberto
   é cancelado sozinho. Pedido `tipo='cobertura_contrato'` (`fn_rem_salvar` com `contrato_id`) tem destino = atividade
   do contrato. Nunca mudar `status` para/de `aguardando_cobertura` por fora (só com `dima.cobertura='liberar'`).
+  **Aviso** (rem_11): travar/liberar avisa coordenação + responsáveis da atividade + quem cadastrou, por sino
+  (`contrato_travado`/`contrato_liberado`, check trocado na rem_11b) e e-mail (fila `cobertura_notificacoes`,
+  drenada pela `assinar-remanejamento` v3 no `drenar`, no fim de cada assinatura e pela tela de Contratos ao travar).
 - **Estorno de remanejamento** (`rem_06`): pedido novo com `remanejamentos.estorno_de` → original (o `tipo` segue
   `livre`; mudar o check exigiria DROP). Nasce só por `fn_rem_criar_estorno(p_rem, p_justificativa)` (coordenação,
   idempotente) como espelho: itens invertidos, alocações = as fontes `remanejamento_recebido` do original, inteiras.
@@ -638,7 +641,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
-| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`); envia/reenvia os e-mails da cadeia (`{acao:'drenar'}` pelo cron) | ✅ |
+| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`); envia/reenvia os e-mails da cadeia e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 
 ---
 

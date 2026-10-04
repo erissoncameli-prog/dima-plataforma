@@ -12,7 +12,8 @@
 //      fn_rem_hash que a pessoa viu na tela: documento alterado ⇒ recusa;
 //   5. envia os e-mails da fila remanejamento_notificacoes deste pedido.
 //
-// { acao: 'drenar' }   (cron 'remanejamento-emails') — reenvia a fila pendente.
+// { acao: 'drenar' }   (cron 'remanejamento-emails') — reenvia a fila pendente,
+//   inclusive os avisos de contrato travado/liberado (cobertura_notificacoes, rem_11).
 //
 // A aprovação nunca depende do e-mail: ele sai da fila depois do COMMIT e o
 // que falhar fica pendente para o cron.
@@ -46,7 +47,9 @@ Deno.serve(async (req) => {
 
   if (corpo.acao === 'drenar') {
     const r = await drenarEmails(admin, null)
-    return resp({ ok: true, ...r })
+    let cobertura = { enviados: 0, falhas: 0 }
+    try { cobertura = await drenarCobertura(admin) } catch (e) { console.error('cobertura:', (e as Error).message) }
+    return resp({ ok: true, ...r, cobertura })
   }
   if (corpo.acao !== 'assinar') return resp({ ok: false, erro: 'acao inválida' }, 400)
 
@@ -83,6 +86,8 @@ Deno.serve(async (req) => {
   // 5. e-mails (não derruba a assinatura se falhar)
   let emails = { enviados: 0, falhas: 0 }
   try { emails = await drenarEmails(admin, remanejamento_id) } catch (e) { console.error('emails:', (e as Error).message) }
+  // efetivar pode liberar contrato travado (cobertura): manda o aviso já
+  try { await drenarCobertura(admin) } catch (e) { console.error('cobertura:', (e as Error).message) }
   return resp({ ok: true, resultado: res, emails })
 })
 
@@ -156,6 +161,100 @@ async function drenarEmails(admin: any, remanejamentoId: string | null) {
     }
   }
   return { enviados, falhas }
+}
+
+// ── Aviso de contrato travado / liberado (cobertura_notificacoes, rem_11) ──
+async function drenarCobertura(admin: any) {
+  const { data: fila, error } = await admin.from('cobertura_notificacoes')
+    .select('id, contrato_id, atividade_id, usuario_id, evento, deficit_usd, tentativas')
+    .is('enviado_em', null).lt('tentativas', MAX_TENTATIVAS_EMAIL).order('criado_em').limit(50)
+  if (error) throw error
+  if (!fila?.length) return { enviados: 0, falhas: 0 }
+
+  const ctIds = [...new Set(fila.map((f: any) => f.contrato_id))]
+  const usuIds = [...new Set(fila.map((f: any) => f.usuario_id))]
+  const atvIds = [...new Set(fila.map((f: any) => f.atividade_id).filter(Boolean))]
+  const [{ data: cts }, { data: usus }, { data: atvs }] = await Promise.all([
+    admin.from('contratos').select('id, numero, objeto_pt, valor_total_brl, status, tdrs(numero), fornecedores(nome)').in('id', ctIds),
+    admin.from('usuarios').select('id, nome_completo, email, ativo').in('id', usuIds),
+    admin.from('atividades').select('id, codigo, nome_pt').in('id', atvIds.length ? atvIds : ['00000000-0000-0000-0000-000000000000']),
+  ])
+  const ctPor = new Map((cts || []).map((c: any) => [c.id, c]))
+  const usuPor = new Map((usus || []).map((u: any) => [u.id, u]))
+  const atvPor = new Map((atvs || []).map((a: any) => [a.id, a]))
+
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com', port: 587, secure: false,
+    auth: { user: 'fundobrasilonuacre@gmail.com', pass: Deno.env.get('GMAIL_APP_PASSWORD')! },
+  })
+  let enviados = 0, falhas = 0
+  for (const n of fila as any[]) {
+    const c: any = ctPor.get(n.contrato_id)
+    const u: any = usuPor.get(n.usuario_id)
+    if (!c || !u?.email || !u.ativo) {
+      await admin.from('cobertura_notificacoes')
+        .update({ tentativas: MAX_TENTATIVAS_EMAIL, ultimo_erro: 'destinatário sem e-mail ou inativo' }).eq('id', n.id)
+      falhas++; continue
+    }
+    const { assunto, html } = montarEmailCobertura(n, c, u, atvPor.get(n.atividade_id))
+    try {
+      await transporter.sendMail({ from: REMETENTE, to: u.email, subject: assunto, html })
+      await admin.from('cobertura_notificacoes').update({ enviado_em: new Date().toISOString(), ultimo_erro: null }).eq('id', n.id)
+      enviados++
+    } catch (e) {
+      await admin.from('cobertura_notificacoes')
+        .update({ tentativas: n.tentativas + 1, ultimo_erro: (e as Error).message?.slice(0, 300) }).eq('id', n.id)
+      falhas++
+    }
+  }
+  return { enviados, falhas }
+}
+
+function montarEmailCobertura(n: any, c: any, u: any, a: any) {
+  const travado = n.evento === 'travado'
+  const link = travado ? `${SITE_URL}/pages/remanejamentos.html?cobertura=${c.id}` : `${SITE_URL}/pages/contratos.html`
+  const brl = (v: number) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const assunto = travado
+    ? `Contrato ${c.numero} travado: aguarda cobertura de orçamento`
+    : `Contrato ${c.numero} liberado: o saldo da atividade cobriu o valor`
+  const intro = travado
+    ? `O contrato passou do valor do TDR e a diferença <strong>não coube no saldo livre</strong> da atividade. Ele fica
+       <strong>travado</strong> — sem produtos, pagamentos nem PDF assinado — até o saldo cobrir${n.deficit_usd ? ` os <strong>${usd(n.deficit_usd)}</strong> que faltam` : ''}.
+       Ele libera sozinho quando houver saldo (remanejamento de cobertura, economia, encerramento ou redução do contrato).`
+    : `O saldo da atividade passou a cobrir o valor do contrato. Ele voltou ao status <strong>${esc(c.status)}</strong> e já pode receber produtos e pagamentos.`
+  const corpo = `
+    <p style="margin:0 0 10px;font-size:13px;color:#1F2937">Olá, ${esc(u.nome_completo)}.</p>
+    <p style="margin:0 0 14px;font-size:13px;color:#1F2937;line-height:1.6">${intro}</p>
+    <table style="width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:13px;color:#111827">
+      <tr><td style="padding:4px 10px 4px 0;color:#6B7280">Contrato</td><td style="padding:4px 0"><strong>${esc(c.numero)}</strong>${c.fornecedores?.nome ? ' — ' + esc(c.fornecedores.nome) : ''}</td></tr>
+      <tr><td style="padding:4px 10px 4px 0;color:#6B7280">TDR</td><td style="padding:4px 0">${esc(c.tdrs?.numero || 'sem TDR')}</td></tr>
+      <tr><td style="padding:4px 10px 4px 0;color:#6B7280">Atividade</td><td style="padding:4px 0">${esc(a?.codigo || '')} ${a?.nome_pt ? '— ' + esc(a.nome_pt) : ''}</td></tr>
+      <tr><td style="padding:4px 10px 4px 0;color:#6B7280">Valor do contrato</td><td style="padding:4px 0">${brl(c.valor_total_brl)}</td></tr>
+    </table>
+    <div style="margin:24px 0 8px;text-align:center">
+      <a href="${link}" style="display:inline-block;background:#166534;color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none">${travado ? 'Ver e pedir cobertura' : 'Abrir contratos'}</a>
+    </div>`
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0"><tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
+    <table width="100%"><tr>
+      <td style="vertical-align:middle"><img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0"></td>
+      <td style="vertical-align:middle;text-align:right">
+        <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Cobertura de contrato</span><br>
+        <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
+        <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
+      </td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="background:#ffffff;padding:28px 24px 20px">${corpo}</td></tr>
+  <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
+    <p style="margin:0;font-size:11px;color:#6B7280">Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
+      Mensagem automática do razão orçamentário.</p>
+  </td></tr>
+</table></td></tr></table></body></html>`
+  return { assunto, html }
 }
 
 function montarEmail(n: any, r: any, u: any, itens: any[], etapa: any) {
