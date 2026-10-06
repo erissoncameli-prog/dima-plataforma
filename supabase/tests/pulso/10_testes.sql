@@ -94,6 +94,19 @@ select pg_temp.como('00000000-0000-0000-0000-000000000001', 'authenticated');
 select public.fn_publico_pulso_responder(current_setting('t.tok'), pg_temp.resp(5,5,5,5,5,10), null);
 select pg_temp.falha($q$select public.fn_publico_pulso_responder(current_setting('t.tok'), pg_temp.resp(5,5,5,5,5,10), 'outro-aparelho-xxxxxxx')$q$, 'pulso:ja_respondeu');
 reset role;
+-- respondeu logado no aparelho X ⇒ não volta como convidado no mesmo aparelho
+select pg_temp.como('00000000-0000-0000-0000-000000000003', 'authenticated');
+select public.fn_publico_pulso_responder(current_setting('t.tok'), pg_temp.resp(3,3,3,3,3,8), 'aparelho-compartilhado');
+reset role;
+update public.pulso_ciclos set limite_convidados = null;
+select pg_temp.como(null, 'anon');
+select pg_temp.falha($q$select public.fn_publico_pulso_responder(current_setting('t.tok'), pg_temp.resp(1,1,1,1,1,1), 'aparelho-compartilhado')$q$, 'pulso:ja_respondeu');
+reset role;
+update public.pulso_ciclos set limite_convidados = 3;
+-- outro cadastrado no mesmo aparelho segue podendo
+select pg_temp.como('00000000-0000-0000-0000-000000000002', 'authenticated');
+select public.fn_publico_pulso_responder(current_setting('t.tok'), pg_temp.resp(4,4,4,4,4,8), 'aparelho-compartilhado');
+reset role;
 -- inativo responde como convidado (ciclo lotado de convidados ⇒ recusa)
 select pg_temp.como('00000000-0000-0000-0000-000000000009', 'authenticated');
 select pg_temp.falha($q$select public.fn_publico_pulso_responder(current_setting('t.tok'), pg_temp.resp(5,5,5,5,5,10), 'aparelho-inativo-xxxx')$q$, 'pulso:limite_convidados');
@@ -103,7 +116,7 @@ do $$ begin
   if exists (select 1 from information_schema.columns where table_name = 'pulso_respostas'
              and column_name in ('usuario_id','criado_em','dispositivo_hash'))
     then raise exception 'pulso_respostas não pode ter coluna identificadora'; end if;
-  if (select count(*) from public.pulso_respostas where perfil_grupo = 'coordenacao') <> 1 then raise exception 'super_admin deveria contar como coordenacao'; end if;
+  if (select count(*) from public.pulso_respostas where perfil_grupo = 'coordenacao') <> 2 then raise exception 'super_admin deveria contar como coordenacao'; end if;
   if (select count(*) from public.pulso_respostas where perfil_grupo = 'tecnico') <> 6 then raise exception 'esperava 6 técnicos'; end if;
 end $$;
 
@@ -112,22 +125,24 @@ select pg_temp.como('00000000-0000-0000-0000-000000000002', 'authenticated');
 select public.fn_pulso_salvar_espelho(:'ciclo', '{"q1":4,"q2":4,"q3":4,"q4":4,"q5":4}');
 do $$ declare r jsonb; g jsonb; begin
   r := public.fn_pulso_resultado(current_setting('t.ciclo')::uuid);
-  if (r->>'suprimido')::boolean or (r->>'n')::int <> 10 then raise exception 'geral errado: %', r->>'n'; end if;
-  -- técnico (6) sai próprio; convidado (3) + coordenação (1) = 4 < 5 ⇒ sem "demais"
-  if jsonb_array_length(r->'grupos') <> 1 or r->'grupos'->0->>'grupo' <> 'tecnico'
+  if (r->>'suprimido')::boolean or (r->>'n')::int <> 12 then raise exception 'geral errado: %', r->>'n'; end if;
+  -- técnico (6) sai próprio; convidado 3 + coordenação 2 + financeiro 1 = 6 ⇒ "demais"
+  if jsonb_array_length(r->'grupos') <> 2
+     or not exists (select 1 from jsonb_array_elements(r->'grupos') e where e->>'grupo' = 'tecnico' and (e->>'n')::int = 6)
+     or not exists (select 1 from jsonb_array_elements(r->'grupos') e where e->>'grupo' = 'demais' and (e->>'n')::int = 6)
     then raise exception 'grupos errados: %', r->'grupos'; end if;
   if jsonb_array_length(r->'textos') <> 7 then raise exception 'textos: %', r->'textos'; end if;
   if r->'espelho'->>'n_gestores' <> '1' then raise exception 'espelho: %', r->'espelho'; end if;
-  if (r->'participacao'->>'cadastrados')::int <> 7 or (r->'participacao'->>'convidados')::int <> 3
+  if (r->'participacao'->>'cadastrados')::int <> 9 or (r->'participacao'->>'convidados')::int <> 3
     then raise exception 'participação: %', r->'participacao'; end if;
   g := r->'geral';
   if (g->>'comprometimento')::int not between 0 and 100 or (g->>'sintonia')::int not between 0 and 100
     then raise exception 'índices fora da faixa: %', g; end if;
-  -- eNPS: promotores (9,10×6,10) = 8, detratores (5) = 1, n = 10 ⇒ 70
-  if (g->>'enps')::int <> 70 then raise exception 'eNPS esperado 70, veio %', g->>'enps'; end if;
+  -- eNPS: promotores 8, detratores 1, n = 12 ⇒ 58
+  if (g->>'enps')::int <> 58 then raise exception 'eNPS esperado 58, veio %', g->>'enps'; end if;
   if jsonb_array_length(g->'distribuicao'->5) <> 11 then raise exception 'distribuição de Q6 deve ter 11 posições'; end if;
   if jsonb_array_length(public.fn_pulso_ciclos()) <> 1 then raise exception 'lista de ciclos'; end if;
-  if public.fn_pulso_contagem(current_setting('t.ciclo')::uuid) <> 10 then raise exception 'contagem'; end if;
+  if public.fn_pulso_contagem(current_setting('t.ciclo')::uuid) <> 12 then raise exception 'contagem'; end if;
 end $$;
 
 -- 7. encerrar ⇒ ninguém mais responde
