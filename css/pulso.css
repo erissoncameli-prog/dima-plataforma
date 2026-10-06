@@ -287,3 +287,66 @@ html[data-tema="escuro"] .pu-pilha :is(.d2, .d4) { color: #FFFFFF; } html[data-t
 /* o conteúdo do modal fica num #pu-modal-c: cabeçalho e rodapé fixos, corpo rola */
 .pu-ov #pu-modal-c { display: flex; flex-direction: column; max-height: 90vh; min-height: 0; }
 .pu-ov #pu-modal-c .modal-body { overflow-y: auto; min-height: 0; flex: 1; }
+
+/* ── Abas, painel de ciclos e exportação ─────────────────────────────── */
+.pu-abas { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 18px; background: var(--bg-2); border-radius: var(--r-ctl); }
+.pu-abas button { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 8px; background: transparent; padding: 8px 16px; font: inherit; font-size: 13px; font-weight: 600; color: var(--txt-2); cursor: pointer;
+  transition: background-color var(--dur-2) var(--ease), color var(--dur-2) var(--ease); }
+.pu-abas button[aria-selected="true"] { background: var(--sup); color: var(--txt); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+html[data-tema="escuro"] .pu-abas button[aria-selected="true"] { background: #2A3830; }
+.pu-kpis.pu-kpis5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.pu-kpi-ab .pu-kpi-val { color: var(--ok); }
+.pu-avisos { display: flex; gap: 12px; align-items: flex-start; background: var(--alerta-bg); border: 1px solid var(--alerta-borda); color: var(--alerta-txt); border-radius: var(--r-card); padding: 14px 16px; margin-bottom: 16px; font-size: 13px; }
+.pu-avisos > .pu-ic { color: var(--alerta); width: 20px; height: 20px; margin-top: 1px; }
+.pu-avisos ul { margin: 4px 0 0; padding-left: 18px; } .pu-avisos li { margin: 2px 0; }
+.pu-link { background: none; border: 0; padding: 0; font: inherit; color: var(--pri-600); font-weight: 650; cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: transparent; }
+.pu-link:hover { text-decoration-color: currentColor; }
+.pu-filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.pu-seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--bg-2); border-radius: var(--r-ctl); }
+.pu-chip { border: 0; border-radius: 8px; background: transparent; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--txt-2); cursor: pointer; }
+.pu-chip[aria-pressed="true"] { background: var(--sup); color: var(--txt); box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+html[data-tema="escuro"] .pu-chip[aria-pressed="true"] { background: #2A3830; }
+.pu-busca { flex: 1; min-width: 180px; max-width: 320px; min-height: 38px; }
+.pu-filtros .btn { margin-left: auto; }
+.pu-painel-tab td { vertical-align: top; }
+.pu-ord button { background: none; border: 0; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+.pu-ord[aria-sort="ascending"] button, .pu-ord[aria-sort="descending"] button { color: var(--txt); }
+.pu-t-tit { white-space: normal !important; min-width: 200px; }
+.pu-t-al { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+.pu-t-ac { white-space: nowrap; }
+.pu-t-ac .btn-icon { min-height: 32px; width: 32px; justify-content: center; color: var(--txt-2); padding: 0; }
+.pu-t-ac .btn-icon:hover:not(:disabled) { color: var(--pri-600); background: var(--pri-50); }
+.pu-t-ac .btn-icon:disabled { opacity: .35; cursor: not-allowed; }
+/* evolução: 2 séries (verde = comprometimento, azul = sintonia), eixo 0–100 */
+.pu-ev { width: 100%; height: auto; display: block; margin: 6px 0 10px; }
+.pu-ev polyline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.pu-ev circle { stroke: var(--sup); stroke-width: 2; }
+.pu-ev .pu-ev-c { stroke: var(--pri-600); } .pu-ev circle.pu-ev-c { fill: var(--pri-600); }
+.pu-ev .pu-ev-s { stroke: var(--info); } .pu-ev circle.pu-ev-s { fill: var(--info); }
+.pu-ev text.pu-ev-rot { stroke: none; font-size: 12px; font-weight: 700; } .pu-ev text.pu-ev-c { fill: var(--pri-600); } .pu-ev text.pu-ev-s { fill: var(--info); }
+.pu-ev-grade { stroke: var(--lin); stroke-width: 1; }
+.pu-ev-eixo { fill: var(--txt-3); font-size: 11px; }
+.pu-leg i.pu-ev-c { background: var(--pri-600); } .pu-leg i.pu-ev-s { background: var(--info); }
+.pu-exp { display: grid; gap: 10px; }
+.pu-exp-op { display: flex; gap: 14px; align-items: center; text-align: left; width: 100%; padding: 14px; border-radius: var(--r-card); border: 1.5px solid var(--lin); background: var(--sup); color: var(--txt); font: inherit; cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease), transform var(--dur-1) var(--ease); }
+.pu-exp-op:hover:not(:disabled) { border-color: var(--pri-600); background: var(--pri-50); }
+.pu-exp-op:active:not(:disabled) { transform: scale(.99); }
+.pu-exp-op:disabled { opacity: .55; cursor: progress; }
+.pu-exp-op.gerando { opacity: 1; border-color: var(--pri-600); }
+.pu-exp-op.gerando b::after { content: " · gerando…"; font-weight: 400; color: var(--txt-2); }
+.pu-exp-op b { display: block; font-size: 14.5px; }
+.pu-exp-op small { display: block; color: var(--txt-2); font-size: 12.5px; margin-top: 2px; line-height: 1.4; }
+.pu-exp-ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--pri-100); color: var(--pri-600); flex-shrink: 0; }
+.pu-exp-ic .pu-ic { width: 22px; height: 22px; }
+@media (max-width: 1100px) { .pu-kpis.pu-kpis5 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .pu-kpis.pu-kpis5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pu-filtros .btn { margin-left: 0; }
+  .pu-busca { max-width: none; }
+}
+/* abas: [hidden] vence o display do componente; painel em grade minmax(0) para a tabela rolar dentro do cartão */
+.pu-lay[hidden], #pu-painel[hidden] { display: none; }
+#pu-painel, #pu-painel > .pu-anim { display: grid; grid-template-columns: minmax(0, 1fr); }
+.pu-t-meta { font-size: 11.5px; color: var(--txt-3); align-self: center; }
+.pu-painel-tab td, .pu-painel-tab th { padding-left: 8px; padding-right: 8px; }

@@ -40,6 +40,11 @@ const PU_IC = {
   lixo: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
   cadeado: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
   escolha: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/>',
+  baixar: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  planilha: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/>',
+  documento: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/>',
+  slides: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M12 17v4M8 21h8M7 13l3-3 2 2 4-4"/>',
+  seta_dir: '<path d="m9 18 6-6-6-6"/>',
 }
 function pIc(n) { return '<svg class="pu-ic" viewBox="0 0 24 24" aria-hidden="true">' + (PU_IC[n] || '') + '</svg>' }
 
@@ -55,13 +60,18 @@ function pIc(n) { return '<svg class="pu-ic" viewBox="0 0 24 24" aria-hidden="tr
       '<p>Questionário rápido e anônimo aberto por QR Code. Comece pelas perguntas padrão ou monte as suas. Mede <b>comprometimento</b> (o nível) e <b>sintonia</b> (o quanto a equipe enxerga o trabalho do mesmo jeito). ' +
       'Cadastrados contam no grupo do perfil, os demais como convidados. Nada aparece com menos de 5 respostas.</p></div>' +
       '<button class="btn btn-primary" onclick="PU.novo()">' + pIc('mais') + 'Novo ciclo</button></div>' +
-      '<div class="pu-lay"><nav class="pu-lista" id="pu-lista" aria-label="Ciclos">' + esqueleto(3, 64) + '</nav>' +
-      '<section id="pu-det" aria-live="polite">' + esqueleto(1, 120) + esqueleto(1, 280) + '</section></div>' +
+      '<div class="pu-abas" role="tablist" aria-label="Seções do Pulso">' +
+        '<button type="button" role="tab" id="pu-tab-painel" aria-selected="true" aria-controls="pu-painel" onclick="PU.aba(\'painel\')">' + pIc('barras') + 'Painel</button>' +
+        '<button type="button" role="tab" id="pu-tab-ciclo" aria-selected="false" aria-controls="pu-aba-ciclo" onclick="PU.aba(\'ciclo\')">' + pIc('lista') + 'Ciclo</button></div>' +
+      '<section id="pu-painel" role="tabpanel" aria-labelledby="pu-tab-painel">' + esqueleto(1, 90) + esqueleto(1, 260) + '</section>' +
+      '<div class="pu-lay" id="pu-aba-ciclo" role="tabpanel" aria-labelledby="pu-tab-ciclo" hidden><nav class="pu-lista" id="pu-lista" aria-label="Ciclos"></nav>' +
+      '<section id="pu-det" aria-live="polite"></section></div>' +
     '</div>' + '</div></div></div>'
   carregarLogosSidebar()
   seletorTema()
 
-  const S = { ciclos: [], sel: null, res: null, timer: null, ultimoN: null, ed: null }
+  const S = { ciclos: [], sel: null, res: null, timer: null, ultimoN: null, ed: null, aba: 'painel',
+    f: { sit: 'todos', escopo: 'todos', busca: '', ord: 'criado_em', dir: -1 } }
   const fmt = (v, d = 1) => v == null ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d })
   const sinal = v => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('pt-BR', { maximumFractionDigits: 1 })
   const urlResposta = c => new URL('pulso-responder.html?c=' + encodeURIComponent(c.token), location.href).href
@@ -90,14 +100,12 @@ function pIc(n) { return '<svg class="pu-ic" viewBox="0 0 24 24" aria-hidden="tr
   async function carregarLista(manterSel) {
     const { data, error } = await db.rpc('fn_pulso_ciclos')
     const el = document.getElementById('pu-lista')
-    if (error) { el.innerHTML = '<p class="pu-erro">' + esc(pulsoErro(error)) + '</p>'; document.getElementById('pu-det').innerHTML = ''; return }
+    if (error) { document.getElementById('pu-painel').innerHTML = '<p class="pu-erro">' + esc(pulsoErro(error)) + '</p>'; return }
     S.ciclos = data || []
+    desenharPainel()
     if (!S.ciclos.length) {
-      el.innerHTML = ''
-      document.getElementById('pu-det').innerHTML = '<div class="pu-anim">' +
-        '<div class="pu-box pu-vazio">' + pIc('pulso') + '<b>Nenhum ciclo ainda</b>Crie o primeiro, ajuste as perguntas se quiser e projete o QR Code na próxima reunião.' +
-        '<div style="margin-top:14px"><button class="btn btn-primary" onclick="PU.novo()">' + pIc('mais') + 'Criar o primeiro ciclo</button></div></div>' +
-        guiaHTML() + '</div>'
+      el.innerHTML = ''; document.getElementById('pu-det').innerHTML = ''
+      if (S.aba !== 'painel') mostrarAba('painel')
       return
     }
     if (!manterSel || !S.ciclos.find(c => c.id === S.sel)) S.sel = S.ciclos[0].id
@@ -114,7 +122,7 @@ function pIc(n) { return '<svg class="pu-ic" viewBox="0 0 24 24" aria-hidden="tr
       (meus.length ? '<div class="pu-lista-tit">Meus ciclos</div>' + meus.map(cartao).join('') : '') +
       (outros.length ? '<div class="pu-lista-tit"' + (meus.length ? ' style="margin-top:8px"' : '') + '>Outros ciclos (acompanhamento)</div>' + outros.map(cartao).join('') : '') +
       historicoHTML()
-    await abrir(S.sel)
+    if (S.aba === 'ciclo') await abrir(S.sel)
   }
 
   function selo(c) { return c.aberto ? '<span class="pu-st ab">Aberto</span>' : '<span class="pu-st en">Encerrado</span>' }
@@ -128,7 +136,22 @@ function pIc(n) { return '<svg class="pu-ic" viewBox="0 0 24 24" aria-hidden="tr
       '</tbody></table></div></div>'
   }
 
+  function mostrarAba(a) {
+    S.aba = a
+    document.getElementById('pu-painel').hidden = a !== 'painel'
+    document.getElementById('pu-aba-ciclo').hidden = a !== 'ciclo'
+    document.getElementById('pu-tab-painel').setAttribute('aria-selected', String(a === 'painel'))
+    document.getElementById('pu-tab-ciclo').setAttribute('aria-selected', String(a === 'ciclo'))
+  }
+  function aba(a) {
+    if (a === 'ciclo' && !S.ciclos.length) { toast('Crie um ciclo primeiro.', 'info'); return }
+    mostrarAba(a)
+    if (a === 'ciclo') abrir(S.sel || S.ciclos[0].id)
+    else desenharPainel()
+  }
+
   async function abrir(id) {
+    if (S.aba !== 'ciclo') mostrarAba('ciclo')
     S.sel = id
     document.querySelectorAll('.pu-ci').forEach(b => b.setAttribute('aria-current', String(b.dataset.id === id)))
     const det = document.getElementById('pu-det')
@@ -153,6 +176,7 @@ function pIc(n) { return '<svg class="pu-ic" viewBox="0 0 24 24" aria-hidden="tr
       '<div class="pu-acoes">' +
         (c.aberto ? '<button class="btn btn-primary btn-sm" onclick="PU.qr()">' + pIc('qr') + 'Projetar QR Code</button>' : '') +
         '<button class="btn btn-secondary btn-sm" onclick="PU.copiar()">' + pIc('link') + 'Copiar link</button>' +
+        '<button class="btn btn-secondary btn-sm" onclick="PU.exportarMenu(\'' + c.id + '\')"' + (r.suprimido ? ' disabled title="Disponível a partir de ' + r.minimo + ' respostas"' : '') + '>' + pIc('baixar') + 'Exportar</button>' +
         (r.pode_editar_perguntas
           ? '<button class="btn btn-secondary btn-sm" onclick="PU.editarPerguntas()">' + pIc('editar') + 'Editar perguntas</button>'
           : '<button class="btn btn-secondary btn-sm" onclick="PU.verPerguntas()">' + pIc('lista') + 'Ver perguntas</button>') +
@@ -366,6 +390,7 @@ function pIc(n) { return '<svg class="pu-ic" viewBox="0 0 24 24" aria-hidden="tr
     fecharModal(); toast('Ciclo criado', 'success')
     S.sel = data
     await carregarLista(true)
+    await abrir(data)
     if (editar) editarPerguntas()
   }
 
@@ -571,7 +596,157 @@ function pIc(n) { return '<svg class="pu-ic" viewBox="0 0 24 24" aria-hidden="tr
     location.href = 'tarefas.html?nova=1&titulo=' + encodeURIComponent(titulo) + '&desc=' + encodeURIComponent(desc)
   }
 
-  window.PU = { abrir, novo, criar, status, espelho, salvarEspelho, qr, fecharQR, copiar, tarefa, fecharModal,
+  // ── Painel de ciclos ────────────────────────────────────────────────
+  const DIA = 864e5
+  function alertas(c) {
+    const a = []
+    if (!c.aberto) return a
+    if (c.n_respostas === 0) a.push(['dv', 'Aberto sem respostas'])
+    else if (c.n_respostas < 5) a.push(['md', 'Faltam ' + (5 - c.n_respostas) + ' para o resultado'])
+    if (c.fecha_em) { const h = (new Date(c.fecha_em) - Date.now()) / 36e5; if (h > 0 && h <= 24) a.push(['md', 'Fecha em ' + Math.max(1, Math.round(h)) + 'h']) }
+    if ((Date.now() - new Date(c.criado_em)) / DIA > 15) a.push(['md', 'Aberto há ' + Math.floor((Date.now() - new Date(c.criado_em)) / DIA) + ' dias'])
+    return a
+  }
+
+  function filtrados() {
+    const f = S.f, b = f.busca.trim().toLowerCase()
+    const val = c => f.ord === 'titulo' ? c.titulo.toLowerCase() : f.ord === 'autor' ? (c.autor || '').toLowerCase()
+      : f.ord === 'n_respostas' ? c.n_respostas : f.ord === 'comprometimento' ? (c.indices?.comprometimento ?? -1)
+      : f.ord === 'fecha_em' ? (c.fecha_em ? +new Date(c.fecha_em) : Infinity) : +new Date(c.criado_em)
+    return S.ciclos.filter(c => (f.sit === 'todos' || (f.sit === 'abertos') === c.aberto) &&
+        (f.escopo === 'todos' || c.meu) && (!b || (c.titulo + ' ' + (c.autor || '')).toLowerCase().includes(b)))
+      .sort((x, y) => (val(x) > val(y) ? 1 : val(x) < val(y) ? -1 : 0) * f.dir)
+  }
+
+  function desenharPainel() {
+    const el = document.getElementById('pu-painel'); if (!el) return
+    if (!S.ciclos.length) {
+      el.innerHTML = '<div class="pu-anim"><div class="pu-box pu-vazio">' + pIc('pulso') + '<b>Nenhum ciclo ainda</b>Crie o primeiro, ajuste as perguntas se quiser e projete o QR Code na próxima reunião.' +
+        '<div style="margin-top:14px"><button class="btn btn-primary" onclick="PU.novo()">' + pIc('mais') + 'Criar o primeiro ciclo</button></div></div>' + guiaHTML() + '</div>'
+      return
+    }
+    const C = S.ciclos, abertos = C.filter(c => c.aberto), resp = C.reduce((a, c) => a + c.n_respostas, 0)
+    const comRes = C.filter(c => c.indices && c.indices.comprometimento != null)
+    const mediaComp = comRes.length ? Math.round(comRes.reduce((a, c) => a + c.indices.comprometimento, 0) / comRes.length) : null
+    const avisos = C.map(c => ({ c, a: alertas(c) })).filter(x => x.a.some(y => y[0] === 'dv' || /Fecha em/.test(y[1])))
+    const temOutros = C.some(c => !c.meu)
+    const chip = (grupo, v, rot) => '<button type="button" class="pu-chip" aria-pressed="' + (S.f[grupo] === v) + '" onclick="PU.filtro(\'' + grupo + '\',\'' + v + '\')">' + rot + '</button>'
+    const th = (k, rot, n) => '<th class="' + (n ? 'n ' : '') + 'pu-ord" aria-sort="' + (S.f.ord === k ? (S.f.dir > 0 ? 'ascending' : 'descending') : 'none') + '"><button type="button" onclick="PU.ordenar(\'' + k + '\')">' + rot + (S.f.ord === k ? (S.f.dir > 0 ? ' ↑' : ' ↓') : '') + '</button></th>'
+    const lista = filtrados()
+    el.innerHTML = '<div class="pu-anim">' +
+      '<div class="pu-kpis pu-kpis5">' +
+        kpiP('Ciclos', C.length, (C.filter(c => c.meu).length) + ' meus') +
+        kpiP('Abertos', abertos.length, abertos.length ? 'recebendo respostas' : 'nenhum no momento', abertos.length ? 'ab' : '') +
+        kpiP('Encerrados', C.length - abertos.length, '') +
+        kpiP('Respostas', resp, C.length ? 'média de ' + Math.round(resp / C.length) + ' por ciclo' : '') +
+        kpiP('Comprometimento médio', mediaComp ?? '—', comRes.length ? 'em ' + comRes.length + ' ciclo' + (comRes.length === 1 ? '' : 's') + ' com resultado' : 'sem ciclos com 5+ respostas') +
+      '</div>' +
+      (avisos.length ? '<div class="pu-avisos" role="status">' + pIc('alerta') + '<div><b>Atenção</b><ul>' +
+        avisos.map(x => '<li><button type="button" class="pu-link" onclick="PU.abrir(\'' + x.c.id + '\')">' + esc(x.c.titulo) + '</button> — ' + x.a.map(y => y[1]).join(' · ') + '</li>').join('') + '</ul></div></div>' : '') +
+      '<div class="pu-box"><div class="pu-filtros">' +
+        '<div class="pu-seg" role="group" aria-label="Situação">' + chip('sit', 'todos', 'Todos') + chip('sit', 'abertos', 'Abertos (' + abertos.length + ')') + chip('sit', 'encerrados', 'Encerrados') + '</div>' +
+        (temOutros ? '<div class="pu-seg" role="group" aria-label="De quem">' + chip('escopo', 'todos', 'Todos os ciclos') + chip('escopo', 'meus', 'Só os meus') + '</div>' : '') +
+        '<input type="search" class="form-control pu-busca" placeholder="Buscar ciclo ou criador…" aria-label="Buscar" value="' + esc(S.f.busca) + '" oninput="PU.buscar(this.value)">' +
+        '<button type="button" class="btn btn-secondary btn-sm" onclick="PU.exportarLista()">' + pIc('baixar') + 'Exportar lista</button>' +
+      '</div>' +
+      (lista.length ? '<div class="pu-tabw"><table class="pu-tab pu-painel-tab"><thead><tr>' +
+        th('titulo', 'Ciclo') + th('autor', 'Criador') + th('criado_em', 'Criado') + th('fecha_em', 'Fecha') +
+        th('n_respostas', 'Resp.', true) + '<th class="n" title="Cadastrados / convidados">Cad./Conv.</th>' + th('comprometimento', 'Compr.', true) + '<th class="n">Sint.</th><th class="n">eNPS</th><th class="n">Ações</th>' +
+        '</tr></thead><tbody>' + lista.map(linhaPainel).join('') + '</tbody></table></div>'
+        : '<p class="pu-sub" style="margin:8px 0 0">Nenhum ciclo com esses filtros.</p>') +
+      '</div>' + evolucaoHTML() + '</div>'
+    const busca = el.querySelector('.pu-busca'); if (busca && S._focoBusca) { busca.focus(); busca.setSelectionRange(busca.value.length, busca.value.length) }
+  }
+
+  function kpiP(rot, v, sub, cls) {
+    return '<div class="pu-kpi' + (cls ? ' pu-kpi-' + cls : '') + '"><div class="pu-kpi-rot"><span>' + rot + '</span></div><div class="pu-kpi-val">' + esc(String(v)) + '</div><div class="pu-kpi-sub">' + esc(sub || '') + '</div></div>'
+  }
+
+  function linhaPainel(c) {
+    const al = alertas(c), i = c.indices
+    const podeStatus = c.meu || ehAdmin
+    return '<tr><td class="pu-t-tit"><button type="button" class="pu-link" onclick="PU.abrir(\'' + c.id + '\')">' + esc(c.titulo) + '</button>' +
+        '<div class="pu-t-al">' + selo(c) + '<span class="pu-t-meta">' + c.n_perguntas + ' pergunta' + (c.n_perguntas === 1 ? '' : 's') + '</span>' + al.map(y => '<span class="pu-nivel ' + y[0] + '">' + esc(y[1]) + '</span>').join('') + '</div></td>' +
+      '<td>' + (c.meu ? 'Você' : esc(c.autor || '—')) + '</td><td>' + dataBR(c.criado_em) + '</td>' +
+      '<td>' + (c.fecha_em ? new Date(c.fecha_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—') + '</td>' +
+      '<td class="n"><b>' + c.n_respostas + '</b></td><td class="n">' + c.n_cadastrados + ' / ' + c.n_convidados + '</td>' +
+      '<td class="n">' + (i?.comprometimento ?? '—') + '</td><td class="n">' + (i?.sintonia ?? '—') + '</td><td class="n">' + (i ? sinal(i.enps) : '—') + '</td>' +
+      '<td class="n pu-t-ac">' +
+        (c.aberto ? '<button type="button" class="btn btn-ghost btn-icon" title="Projetar QR Code" aria-label="Projetar QR Code de ' + esc(c.titulo) + '" onclick="PU.qrDe(\'' + c.id + '\')">' + pIc('qr') + '</button>' : '') +
+        '<button type="button" class="btn btn-ghost btn-icon" ' + (c.n_respostas < 5 ? 'disabled title="Exportar: disponível com 5 respostas ou mais"' : 'title="Exportar"') + ' aria-label="Exportar ' + esc(c.titulo) + '" onclick="PU.exportarMenu(\'' + c.id + '\')">' + pIc('baixar') + '</button>' +
+        (podeStatus ? '<button type="button" class="btn btn-ghost btn-icon" title="' + (c.aberto ? 'Encerrar' : 'Reabrir') + '" aria-label="' + (c.aberto ? 'Encerrar ' : 'Reabrir ') + esc(c.titulo) + '" onclick="PU.statusDe(\'' + c.id + '\',\'' + (c.aberto ? 'encerrado' : 'aberto') + '\')">' + pIc(c.aberto ? 'parar' : 'reabrir') + '</button>' : '') +
+        '<button type="button" class="btn btn-ghost btn-icon" title="Abrir" aria-label="Abrir ' + esc(c.titulo) + '" onclick="PU.abrir(\'' + c.id + '\')">' + pIc('seta_dir') + '</button>' +
+      '</td></tr>'
+  }
+
+  // Comprometimento e Sintonia ao longo dos ciclos com resultado (2 séries, eixo 0–100).
+  function evolucaoHTML() {
+    const h = S.ciclos.filter(c => c.indices && c.indices.comprometimento != null && (S.f.escopo === 'todos' || c.meu)).slice().sort((a, b) => new Date(a.criado_em) - new Date(b.criado_em))
+    if (h.length < 2) return '<div class="pu-box"><h3>' + pIc('pulso') + 'Evolução</h3><p class="pu-sub" style="margin:0">Aparece quando houver 2 ou mais ciclos com resultado (5+ respostas). Use “Novo ciclo com estas perguntas” para comparar ciclos.</p></div>'
+    // largura real do cartão: texto do gráfico em 1:1 (sem escalar a fonte)
+    const W = Math.max(300, Math.min(1100, (document.getElementById('pu-painel')?.clientWidth || 760) - 42)), H = 220, pl = 34, pr = 16, pt = 18, pb = 34
+    const x = i => pl + (h.length === 1 ? 0 : i * (W - pl - pr) / (h.length - 1)), y = v => pt + (100 - v) * (H - pt - pb) / 100
+    const serie = (k, cls, rot, abaixo) => {
+      const pts = h.map((c, i) => [x(i), y(c.indices[k])])
+      return '<polyline class="' + cls + '" points="' + pts.map(p => p.join(',')).join(' ') + '"/>' +
+        pts.map((p, i) => '<circle class="' + cls + '" cx="' + p[0] + '" cy="' + p[1] + '" r="5"><title>' + esc(h[i].titulo) + ' — ' + rot + ': ' + h[i].indices[k] + '</title></circle>').join('') +
+        '<text class="pu-ev-rot ' + cls + '" x="' + (pts[pts.length - 1][0] - 8) + '" y="' + (pts[pts.length - 1][1] + (abaixo ? 20 : -10)) + '" text-anchor="end">' + rot + ' ' + h[h.length - 1].indices[k] + '</text>'
+    }
+    const grade = [0, 50, 100].map(v => '<line class="pu-ev-grade" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + y(v) + '" y2="' + y(v) + '"/><text class="pu-ev-eixo" x="' + (pl - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + '</text>').join('')
+    const rot = h.map((c, i) => '<text class="pu-ev-eixo" x="' + x(i) + '" y="' + (H - 12) + '" text-anchor="' + (i === 0 ? 'start' : i === h.length - 1 ? 'end' : 'middle') + '">' + esc(dataBR(c.criado_em)) + '</text>').join('')
+    return '<div class="pu-box"><h3>' + pIc('pulso') + 'Evolução</h3>' +
+      '<div class="pu-leg"><span><i class="pu-ev-c"></i>Comprometimento</span><span><i class="pu-ev-s"></i>Sintonia</span></div>' +
+      '<svg class="pu-ev" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Evolução de comprometimento e sintonia em ' + h.length + ' ciclos">' + grade + rot + serie('sintonia', 'pu-ev-s', 'Sintonia', h[h.length - 1].indices.sintonia <= h[h.length - 1].indices.comprometimento) + serie('comprometimento', 'pu-ev-c', 'Compr.', h[h.length - 1].indices.comprometimento < h[h.length - 1].indices.sintonia) + '</svg>' +
+      '<div class="pu-tabw"><table class="pu-tab"><thead><tr><th>Ciclo</th><th>Data</th><th class="n">Compr.</th><th class="n">Sint.</th><th class="n">eNPS</th></tr></thead><tbody>' +
+      h.map(c => '<tr><td>' + esc(c.titulo) + '</td><td>' + dataBR(c.criado_em) + '</td><td class="n">' + c.indices.comprometimento + '</td><td class="n">' + c.indices.sintonia + '</td><td class="n">' + sinal(c.indices.enps) + '</td></tr>').join('') +
+      '</tbody></table></div></div>'
+  }
+
+  function filtro(g, v) { S.f[g] = v; desenharPainel() }
+  function ordenar(k) { if (S.f.ord === k) S.f.dir = -S.f.dir; else { S.f.ord = k; S.f.dir = ['titulo', 'autor', 'fecha_em'].includes(k) ? 1 : -1 } desenharPainel() }
+  let tBusca = null
+  function buscar(v) { S.f.busca = v; clearTimeout(tBusca); tBusca = setTimeout(() => { S._focoBusca = true; desenharPainel(); S._focoBusca = false }, 200) }
+  function qrDe(id) { S.sel = id; qr() }
+  async function statusDe(id, st) { S.sel = id; await status(st) }
+
+  // ── Exportar ────────────────────────────────────────────────────────
+  function exportarMenu(id) {
+    const c = S.ciclos.find(x => x.id === id); if (!c) return
+    S.expId = id
+    const op = (fmt, ic, tit, desc) => '<button type="button" class="pu-exp-op" onclick="PU.exportar(\'' + fmt + '\')"><span class="pu-exp-ic">' + pIc(ic) + '</span><span><b>' + tit + '</b><small>' + desc + '</small></span></button>'
+    modal(cabModal('Exportar resultado') + '<div class="modal-body">' +
+      '<p class="pu-sub" style="margin:0 0 12px"><b>' + esc(c.titulo) + '</b> · ' + c.n_respostas + ' respostas</p>' +
+      '<div class="pu-exp">' +
+        op('xlsx', 'planilha', 'Planilha (Excel)', 'Resumo, perguntas, escolhas, perfis e comentários em abas — para análise e arquivo.') +
+        op('a4', 'documento', 'Relatório A4 (PDF)', 'Abre pronto para imprimir ou “Salvar como PDF” — para prestação de contas.') +
+        op('pptx', 'slides', 'Apresentação (PowerPoint)', 'Capa, resultado geral, uma lâmina por pergunta (gráficos editáveis) e roteiro da devolutiva.') +
+      '</div>' +
+      '<div class="pu-dica" style="margin-top:14px">' + pIc('escudo') + '<div>Só números agregados — <b>nenhuma resposta individual</b> sai do sistema. Cada exportação fica registrada (quem, quando e formato).</div></div>' +
+      '<p class="pu-erro" id="pu-exp-erro" hidden role="alert"></p>' +
+      '</div><div class="modal-footer"><button class="btn btn-secondary" onclick="PU.fecharModal()">Fechar</button></div>')
+  }
+
+  async function exportar(fmt) {
+    const err = document.getElementById('pu-exp-erro'), bts = document.querySelectorAll('.pu-exp-op')
+    bts.forEach(b => b.disabled = true); err.hidden = true
+    const alvo = [...bts].find(b => b.getAttribute('onclick').includes("'" + fmt + "'")); if (alvo) alvo.classList.add('gerando')
+    try {
+      await pulsoExportar(S.expId, fmt)
+      fecharModal(); toast(fmt === 'a4' ? 'Relatório aberto em nova janela' : 'Arquivo gerado', 'success')
+      const c = S.ciclos.find(x => x.id === S.expId); if (c) c.n_exportacoes = (c.n_exportacoes || 0) + 1
+    } catch (e) {
+      err.hidden = false; err.textContent = e.message || 'Não foi possível exportar.'
+      bts.forEach(b => { b.disabled = false; b.classList.remove('gerando') })
+    }
+  }
+
+  async function exportarLista() {
+    try { await pulsoExportarLista(); toast('Lista exportada', 'success') }
+    catch (e) { toast(e.message || 'Não foi possível exportar.', 'error') }
+  }
+
+  window.PU = { aba, filtro, ordenar, buscar, qrDe, statusDe, exportarMenu, exportar, exportarLista,
+    abrir, novo, criar, status, espelho, salvarEspelho, qr, fecharQR, copiar, tarefa, fecharModal,
     verPerguntas, editarPerguntas, edAdd, edMover, edRemover, edTipo, edRisco, edPadrao, edSalvar }
   await carregarLista()
 })()

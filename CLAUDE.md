@@ -597,8 +597,18 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   textos por pergunta, embaralhados e sem perfil. `fn_pulso_metricas`: comprometimento = média ajustada (invertida =
   6 − média) das escalas com `indice` em 0–100; sintonia = 100 − dp médio ÷ 2 × 100; eNPS = 1ª pergunta `nps`
   (índice ausente ⇒ `null`, a tela esconde o cartão). Nunca recalcular no cliente.
+- **Painel** (aba inicial de `pages/pulso.html`): indicadores, avisos (aberto sem resposta, faltam N para o resultado,
+  fecha em < 24h, aberto há > 15 dias), tabela filtrável/ordenável (situação, meus/todos, busca) com ações por linha
+  (QR, exportar, encerrar/reabrir, abrir) e evolução Comprometimento × Sintonia (SVG). Dados de `fn_pulso_ciclos`
+  (inclui `ultima_resposta` = só o dia, e `n_exportacoes`). Aba **Ciclo** = detalhe.
+- **Exportação** (`js/pulso-exportar.js`, migração `_d_exportacao`): **só agregados** via `fn_pulso_exportar(ciclo, formato)`
+  (`xlsx` | `a4` | `pptx`; recusa com < 5 respostas, `pulso:exportacao_suprimida`) e `fn_pulso_exportar_lista()`
+  (planilha dos ciclos visíveis). Cada chamada grava em `pulso_exportacoes` (quem, ciclo, formato, quando) na mesma
+  transação. **Nunca exportar resposta individual.** Planilha = ExcelJS; A4 = janela + imprimir; PowerPoint =
+  PptxGenJS 3.12.0 vendorizado (`js/vendor/pptxgenjs-3.12.0.bundle.js`, MIT), gráficos nativos editáveis. Bibliotecas
+  carregadas só no clique (`puxLib`). Leitura/quadrante compartilhados em `pulsoLeitura()` (`js/pulso-perguntas.js`).
 - ROPA: `TRAT-002`. ⚠️ O UPDATE do TRAT-002 da migração c está em `20261006_pulso_equipe_c_ropa_sql_editor.sql`
-  (o `apply_migration` expira nele) — colar no SQL Editor.
+  (o `apply_migration` expira nele) — colar no SQL Editor; idem `20261006_pulso_equipe_d_ropa_sql_editor.sql` (inclui `pulso_exportacoes`).
 - **Visual**: o painel usa o design system da mesa do Diagnóstico (`body.dgm` + `css/diagnostico-mesa.css`, tema
   `diag_tema` com seletor Claro/Escuro no topo) e componentes em `css/pulso.css` (cor nova = token no topo do arquivo;
   escala divergente `--pu-d1..5` validada para daltonismo nos dois temas). Ícones SVG por `pIc()`/`prIc()`, sem emoji.

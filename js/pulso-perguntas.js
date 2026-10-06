@@ -47,3 +47,24 @@ function pulsoErro(e) {
 // numa equipe pequena. O editor avisa (não bloqueia).
 const PULSO_RISCO = /\b(idade|anos|tempo de casa|tempo no projeto|h[aá] quanto tempo|cargo|fun[cç][aã]o|g[eê]nero|sexo|ra[cç]a|cor da pele|etnia|religi[aã]o|escolaridade|forma[cç][aã]o|setor|lota[cç][aã]o|munic[ií]pio|cidade|v[ií]nculo|contrato|sal[aá]rio|defici[eê]ncia|orienta[cç][aã]o)\b/i
 function pulsoRisco(texto, opcoes) { return PULSO_RISCO.test(String(texto || '') + ' ' + (opcoes || []).join(' ')) }
+
+// Leitura do resultado (quadrante + destaques), igual na tela e nas exportações.
+// Recebe o que o banco devolve (geral.por_pergunta) — não recalcula índice.
+function pulsoLeitura(g, perguntas) {
+  if (!g || g.comprometimento == null) return null
+  const c = g.comprometimento >= 70, s = g.sintonia >= 60
+  const q = c && s ? ['Equipe de alta performance', 'Comprometida e na mesma frequência. Proteja o que funciona e reconheça publicamente.']
+    : c ? ['Esforço disperso', 'As pessoas estão dedicadas, mas enxergam o trabalho de formas diferentes. Realinhe prioridades e o “porquê” de cada entrega.']
+    : s ? ['Apatia coletiva', 'A equipe concorda — num patamar baixo. Revise propósito, condições de trabalho e reconhecimento.']
+    : ['Fragmentação', 'Baixo comprometimento e visões divergentes. Converse com franqueza, em grupos pequenos, antes de cobrar resultado.']
+  const pp = g.por_pergunta || {}
+  const esc_ = (perguntas || []).filter(x => x.tipo === 'escala' && pp[x.chave] && pp[x.chave].n > 0)
+  const pior = esc_.reduce((a, x) => !a || pp[x.chave].media_ajustada < pp[a.chave].media_ajustada ? x : a, null)
+  const div = esc_.length > 1 ? esc_.reduce((a, x) => !a || pp[x.chave].dp > pp[a.chave].dp ? x : a, null) : null
+  return { titulo: q[0], texto: q[1], alto_comp: c, alta_sint: s,
+    pior: pior ? { tema: pior.tema, valor: pp[pior.chave].media_ajustada } : null,
+    dividida: div ? { tema: div.tema, valor: pp[div.chave].dp } : null }
+}
+
+// dispersão (desvio-padrão na escala 1–5)
+function pulsoDispersao(d) { return d == null ? '' : d < 0.8 ? 'Alinhada' : d <= 1.2 ? 'Moderada' : 'Dividida' }
