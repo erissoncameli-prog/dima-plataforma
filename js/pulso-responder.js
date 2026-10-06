@@ -5,7 +5,9 @@
 // (login aqui mesmo) ou seguir como convidado. O banco decide o perfil e
 // barra resposta repetida (por usuário; convidado, por aparelho).
 // A resposta não leva usuário nem hora — ver 20261006_pulso_equipe.sql.
-// Teclado: 1–5 (escala) e 0–9 (recomendação; "1" e "0" seguidos = 10).
+// As perguntas vêm do ciclo (fn_publico_pulso_ciclo → perguntas); o banco
+// valida tudo de novo ao gravar. Teclado: 1–5 (escala), 1–9 (escolha) e
+// 0–9 (nota; "1" e "0" seguidos = 10).
 // ═══════════════════════════════════════════════════════════════════════
 
 const PR_IC = {
@@ -112,67 +114,85 @@ function prIc(n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true
     }
   }
 
-  // ── 2. Perguntas (uma por tela) ────────────────────────────────────
+  // ── 2. Perguntas (uma por tela) — vêm do ciclo (S.info.perguntas) ────
+  const perguntas = () => (S.info && S.info.perguntas) || []
+  const ehEscolha = p => p.tipo === 'escala' || p.tipo === 'nps' || p.tipo === 'escolha'
+
   function telaPergunta(dir) {
-    const p = PULSO_PERGUNTAS[S.passo]
-    const total = PULSO_PERGUNTAS.length
+    const lista = perguntas()
+    const p = lista[S.passo]
+    const total = lista.length
     const v = S.resp[p.chave]
     let corpo = ''
-    if (p.escala === 'livre') {
-      corpo = '<label class="sr" for="pr-txt">Sua resposta</label><textarea id="pr-txt" maxlength="1000" placeholder="Opcional. Escreva com suas palavras.">' + esc(v || '') + '</textarea>' +
+    if (p.tipo === 'texto') {
+      corpo = '<label class="sr" for="pr-txt">Sua resposta</label><textarea id="pr-txt" maxlength="1000" placeholder="' + (p.obrigatoria ? 'Escreva com suas palavras.' : 'Opcional. Escreva com suas palavras.') + '">' + esc(v || '') + '</textarea>' +
         '<div class="cont"><span id="pr-cont">' + (v || '').length + '</span>/1000</div>' +
         '<p class="dica">Evite citar nomes ou detalhes que identifiquem você ou colegas.</p>'
-    } else if (p.escala === 'nps') {
+    } else if (p.tipo === 'nps') {
       corpo = '<div class="nps" role="group" aria-label="Nota de 0 a 10">' + Array.from({ length: 11 }, (_, n) =>
         '<button type="button" class="op" data-v="' + n + '" aria-pressed="' + (v === n) + '">' + n + '</button>').join('') + '</div>' +
         '<div class="nps-leg" aria-hidden="true"><span>0 · nada provável</span><span>10 · muito provável</span></div>'
+    } else if (p.tipo === 'escolha') {
+      corpo = '<div class="opcoes" role="group" aria-label="Escolha uma opção">' + p.opcoes.map((r, k) =>
+        '<button type="button" class="op" data-v="' + k + '" aria-pressed="' + (v === k) + '"><b>' + (k < 9 ? k + 1 : '•') + '</b>' + esc(r) + '</button>').join('') + '</div>'
     } else {
       corpo = '<div class="opcoes" role="group" aria-label="Escala de concordância">' + PULSO_LIKERT.map((r, k) =>
         '<button type="button" class="op" data-v="' + (k + 1) + '" aria-pressed="' + (v === k + 1) + '"><b>' + (k + 1) + '</b>' + esc(r) + '</button>').join('') + '</div>'
     }
     const ultimo = S.passo === total - 1
     const pct = Math.round((S.passo + 1) / total * 100)
+    // botão de avançar: texto, pergunta opcional ou a última
+    const mostraProx = p.tipo === 'texto' || !p.obrigatoria || ultimo
     cartao(
-      '<div class="prog-l"><span>' + esc(p.tema) + '</span><span>' + (S.passo + 1) + ' de ' + total + '</span></div>' +
+      '<div class="prog-l"><span>' + esc(p.tema || '') + (p.obrigatoria ? '' : ' · opcional') + '</span><span>' + (S.passo + 1) + ' de ' + total + '</span></div>' +
       '<div class="progresso" role="progressbar" aria-valuemin="0" aria-valuemax="' + total + '" aria-valuenow="' + (S.passo + 1) + '" aria-label="Progresso"><i style="width:' + pct + '%"></i></div>' +
       '<h2 class="pergunta">' + esc(p.texto) + '</h2>' + corpo +
       '<div id="pr-erro"></div>' +
       '<div class="nav">' +
         (S.passo > 0 ? '<button type="button" class="btn sec" id="pr-ant" aria-label="Pergunta anterior">' + prIc('voltar') + '</button>' : '') +
-        (p.escala === 'livre' || ultimo ? '<button type="button" class="btn" id="pr-prox">' + (ultimo ? prIc('enviar') + 'Enviar respostas' : 'Avançar') + '</button>' : '') +
+        (mostraProx ? '<button type="button" class="btn" id="pr-prox">' + (ultimo ? prIc('enviar') + 'Enviar respostas' : (ehEscolha(p) && v == null ? 'Pular' : 'Avançar')) + '</button>' : '') +
       '</div>', dir === 'volta' ? 'volta' : 'entra')
 
     el.querySelectorAll('.op').forEach(b => b.onclick = () => escolher(Number(b.dataset.v)))
     const txt = document.getElementById('pr-txt')
-    if (txt) { txt.oninput = () => { S.resp.texto = txt.value; document.getElementById('pr-cont').textContent = txt.value.length }; txt.focus() }
+    if (txt) { txt.oninput = () => { S.resp[p.chave] = txt.value; document.getElementById('pr-cont').textContent = txt.value.length }; txt.focus() }
     const ant = document.getElementById('pr-ant'); if (ant) ant.onclick = () => { S.passo--; telaPergunta('volta') }
-    const prox = document.getElementById('pr-prox'); if (prox) prox.onclick = enviar
+    const prox = document.getElementById('pr-prox')
+    if (prox) prox.onclick = () => {
+      if (ultimo) { enviar(); return }
+      if (p.obrigatoria && (S.resp[p.chave] == null || String(S.resp[p.chave]).trim() === '')) {
+        document.getElementById('pr-erro').innerHTML = erroHTML('Esta pergunta é obrigatória.'); return
+      }
+      S.passo++; telaPergunta()
+    }
     const sel = el.querySelector('.op[aria-pressed="true"]') || el.querySelector('.op'); if (sel && !txt) sel.focus({ preventScroll: true })
   }
 
   function escolher(n) {
-    const p = PULSO_PERGUNTAS[S.passo]
+    const lista = perguntas(), p = lista[S.passo]
     S.resp[p.chave] = n
     el.querySelectorAll('.op').forEach(x => x.setAttribute('aria-pressed', String(Number(x.dataset.v) === n)))
-    // escolha avança sozinha (menos toques no celular)
-    clearTimeout(S._av); S._av = setTimeout(() => { S.passo++; telaPergunta() }, 220)
+    // escolha avança sozinha (menos toques no celular); na última, espera o "Enviar"
+    if (S.passo < lista.length - 1) { clearTimeout(S._av); S._av = setTimeout(() => { S.passo++; telaPergunta() }, 220) }
   }
 
   // atalhos de teclado nas perguntas objetivas
   document.addEventListener('keydown', ev => {
-    const p = PULSO_PERGUNTAS[S.passo]
-    if (!p || !el.querySelector('.op') || ev.ctrlKey || ev.metaKey || ev.altKey || !/^[0-9]$/.test(ev.key)) return
+    const p = perguntas()[S.passo]
+    if (!p || !ehEscolha(p) || !el.querySelector('.op') || ev.ctrlKey || ev.metaKey || ev.altKey || !/^[0-9]$/.test(ev.key)) return
     const d = Number(ev.key)
-    if (p.escala === 'nps') {
+    if (p.tipo === 'nps') {
       if (S.tecla === 1 && d === 0) { S.tecla = null; escolher(10); return }
       S.tecla = d; clearTimeout(S._t); S._t = setTimeout(() => { if (S.tecla === d) { S.tecla = null; escolher(d) } }, d === 1 ? 600 : 0)
-    } else if (d >= 1 && d <= 5) escolher(d)
+    } else if (p.tipo === 'escolha') { if (d >= 1 && d <= Math.min(9, p.opcoes.length)) escolher(d - 1) }
+    else if (d >= 1 && d <= 5) escolher(d)
   })
 
   // ── 3. Envio ───────────────────────────────────────────────────────
   async function enviar() {
     if (S.enviando) return
-    const falta = PULSO_PERGUNTAS.findIndex(p => p.escala !== 'livre' && S.resp[p.chave] == null)
+    const lista = perguntas()
+    const falta = lista.findIndex(p => p.obrigatoria && (S.resp[p.chave] == null || String(S.resp[p.chave]).trim() === ''))
     if (falta >= 0) { S.passo = falta; telaPergunta('volta'); document.getElementById('pr-erro').innerHTML = erroHTML('Responda esta pergunta para enviar.'); return }
     S.enviando = true
     const b = document.getElementById('pr-prox'); if (b) { b.disabled = true; b.textContent = 'Enviando…' }

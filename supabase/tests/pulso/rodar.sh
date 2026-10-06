@@ -19,4 +19,8 @@ PSQL=(psql -h "$TMP" -p "$PORTA" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -
 "${PSQL[@]}" -f "$DIR/00_stub.sql"
 "${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261006_pulso_equipe.sql"
 "${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261006_pulso_equipe_b_aparelho.sql"
-"${PSQL[@]}" -f "$DIR/10_testes.sql"
+# v1 (colunas fixas) roda antes da migração c e deixa respostas "legadas" para a cópia
+"${PSQL[@]}" -f "$DIR/05_testes_v1.sql"
+"${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261006_pulso_equipe_c_perguntas.sql"
+"${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261006_pulso_equipe_c_ropa_sql_editor.sql"
+"${PSQL[@]}" -f "$DIR/20_testes_perguntas.sql"

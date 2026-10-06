@@ -568,29 +568,42 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
 
 ### Pulso da Equipe — questionário de engajamento por QR (⚠️ ler antes de mexer em `pulso_*`)
 
-Migração `20261006_pulso_equipe.sql`; testes locais `supabase/tests/pulso/rodar.sh`.
-6 perguntas objetivas (Q1–Q5 escala 1–5, Q6 0–10 = eNPS) + 1 livre; texto em `js/pulso-perguntas.js`
-(mudar o sentido de uma pergunta quebra a série — abrir ciclo novo).
-- **Gestão**: `pages/pulso.html` + `js/pulso.js` (nav `pulso`, grupo Apoio, super_admin/coordenação): cria ciclo,
-  projeta o QR em tela cheia com contador (`fn_pulso_contagem`), resultado, expectativa da coordenação
-  (`pulso_espelho`), comentário → "Criar tarefa" (`tarefas.html?nova=1&titulo=&desc=`).
-- **Resposta**: `pages/pulso-responder.html?c=<token>` — **pública** (exceção ao padrão `#app`, sem `carregarUsuario()`).
-  Com sessão ⇒ perfil do cadastro; sem ⇒ entra (login na própria página, sai sozinho ao enviar) ou responde como
-  **convidado**. O grupo de perfil é decidido no banco (`fn_pulso_grupo_atual`; super_admin conta como coordenação),
-  nunca enviado pelo navegador.
-- **Anonimato**: `pulso_respostas` **não tem usuário nem hora** (só `perfil_grupo` e `dia`) — não acrescentar coluna
-  identificadora. Quem respondeu fica em `pulso_participacoes` (usuário, ou hash do id aleatório do aparelho p/ convidado),
-  só para barrar duplicidade. **Nenhuma tabela `pulso_*` tem policy nem grant** — tudo por RPC SECURITY DEFINER:
-  anon só executa `fn_publico_pulso_ciclo`/`fn_publico_pulso_responder`; gestão usa `fn_pulso_*` (checa `fn_pulso_gestor`).
-- **Supressão**: `fn_pulso_resultado` não devolve nada com < 5 respostas; grupo de perfil < 5 vai para "demais" (se somar 5);
-  texto livre sai embaralhado e sem perfil. Índices (`fn_pulso_metricas`): comprometimento = média Q1–Q5 em 0–100;
-  sintonia = 100 − desvio-padrão médio ÷ 2 × 100; eNPS = %9–10 − %0–6. Nunca recalcular no cliente.
-- ROPA: `TRAT-002` em `lgpd_tratamentos`.
+Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas personalizáveis); testes locais
+`supabase/tests/pulso/rodar.sh` (v1 → migração c → testes das perguntas, inclusive a cópia do legado).
+- **Quem faz o quê**: qualquer usuário ativo cria ciclo (`fn_pulso_criar_ciclo`, nav `pulso` para todos os perfis).
+  Vê o resultado o **criador**; super_admin/coordenação veem todos (só leitura). **Perguntas: só o criador edita**
+  (`fn_pulso_salvar_perguntas`) e só **até a 1ª resposta** (`pulso:perguntas_travadas`). Encerrar/reabrir: criador
+  ou super_admin (só status). Regras em `fn_pulso_pode_ver` / `fn_pulso_dono`.
+- **Perguntas são dado do ciclo**: `pulso_ciclos.perguntas` (jsonb), padrão = `fn_pulso_perguntas_padrao()` (as 7
+  originais, chaves q1…q6 + `texto`). Novo ciclo pode copiar as perguntas de outro que a pessoa enxerga
+  (`p_copiar_de`) — mesma `chave` = mesma pergunta (série). Tipos: `escala` (1–5; `indice`, `invertida`), `nps` (0–10),
+  `escolha` (única, 2–10 opções; grava o **índice** da opção) e `texto`; `obrigatoria`. Número livre (teto 40).
+  Validação só no banco (`fn_pulso_validar_perguntas`). `js/pulso-perguntas.js` tem só rótulos e o alerta do editor.
+- **Escolha única** que pede dado de perfil (idade, cargo, tempo, gênero…) pode reidentificar: o editor alerta
+  (`pulsoRisco`), não bloqueia. Escolha e texto não são recortados por perfil.
+- **Gestão**: `pages/pulso.html` + `js/pulso.js`: ciclos "Meus" e "Outros (acompanhamento)", editor de perguntas
+  (tipo, tema, texto, opções, ordem, obrigatória/índice/invertida, restaurar padrão), QR em tela cheia com contador,
+  resultado por tipo, expectativa (`pulso_espelho_v2`, só escalas), comentário → "Criar tarefa"
+  (`tarefas.html?nova=1&titulo=&desc=`).
+- **Resposta**: `pages/pulso-responder.html?c=<token>` — **pública** (exceção ao padrão `#app`, sem `carregarUsuario()`),
+  desenha as perguntas que `fn_publico_pulso_ciclo` devolve. Com sessão ⇒ perfil do cadastro; sem ⇒ entra (login na
+  página, sai sozinho ao enviar) ou **convidado**. Grupo de perfil decidido no banco (`fn_pulso_grupo_atual`).
+- **Anonimato**: respostas em `pulso_respostas_v2` (`respostas` jsonb `{chave: valor}`) **sem usuário nem hora** — não
+  acrescentar coluna identificadora. Quem respondeu fica em `pulso_participacoes`, só para barrar duplicidade.
+  `pulso_respostas`/`pulso_espelho` (colunas fixas) são **legado**: copiadas para as v2 com o mesmo id, não escrever.
+  **Nenhuma tabela `pulso_*` tem policy nem grant** — tudo por RPC SECURITY DEFINER; anon só executa
+  `fn_publico_pulso_ciclo`/`fn_publico_pulso_responder`.
+- **Supressão**: `fn_pulso_resultado` não devolve nada com < 5 respostas; grupo < 5 vai para "demais" (se somar 5);
+  textos por pergunta, embaralhados e sem perfil. `fn_pulso_metricas`: comprometimento = média ajustada (invertida =
+  6 − média) das escalas com `indice` em 0–100; sintonia = 100 − dp médio ÷ 2 × 100; eNPS = 1ª pergunta `nps`
+  (índice ausente ⇒ `null`, a tela esconde o cartão). Nunca recalcular no cliente.
+- ROPA: `TRAT-002`. ⚠️ O UPDATE do TRAT-002 da migração c está em `20261006_pulso_equipe_c_ropa_sql_editor.sql`
+  (o `apply_migration` expira nele) — colar no SQL Editor.
 - **Visual**: o painel usa o design system da mesa do Diagnóstico (`body.dgm` + `css/diagnostico-mesa.css`, tema
   `diag_tema` com seletor Claro/Escuro no topo) e componentes em `css/pulso.css` (cor nova = token no topo do arquivo;
   escala divergente `--pu-d1..5` validada para daltonismo nos dois temas). Ícones SVG por `pIc()`/`prIc()`, sem emoji.
-  A página do QR segue `prefers-color-scheme` (público sem conta não tem tema salvo). ⚠️ Em comentário CSS não escrever
-  `--x-*/` — o `*/` fecha o comentário e engole a regra seguinte (os tokens do tema claro sumiram por isso).
+  A página do QR segue `prefers-color-scheme`. ⚠️ Em comentário CSS não escrever `--x-*/` — o `*/` fecha o comentário
+  e engole a regra seguinte (os tokens do tema claro sumiram por isso).
 
 ### Painel de Tarefas — subtarefas, comentários e anexos
 - `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.
