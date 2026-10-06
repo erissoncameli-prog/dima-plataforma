@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1F4E2C">
+<title>Pulso da Equipe</title>
+<!--
+  Página PÚBLICA aberta pelo QR Code do Pulso da Equipe (exceção ao padrão
+  #app + gerarLayout, como o app de campo). Sem login obrigatório:
+  com sessão ⇒ conta no perfil do cadastro; sem sessão ⇒ convidado.
+  O perfil é decidido no banco (fn_publico_pulso_*), nunca aqui.
+-->
+<style>
+  :root {
+    --verde:#1F4E2C; --verde-m:#2D6A4F; --verde-bg:#E7F3EC; --fundo:#F6FAF7; --cartao:#fff;
+    --texto:#16241B; --suave:#5B6E62; --borda:#DCE6DF; --erro:#B42318; --erro-bg:#FEF3F2;
+    --raio:14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --verde-bg:#16301F; --fundo:#0F1712; --cartao:#17221B; --texto:#E6EFE8; --suave:#A3B5A9; --borda:#2A3A2F; --erro:#FDA29B; --erro-bg:#3A1714; --verde-m:#52B788; }
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:var(--fundo); color:var(--texto); line-height:1.5; min-height:100vh; }
+  .topo { background:linear-gradient(160deg,#1F4E2C 0%,#16382A 60%,#12301F 100%); color:#fff; padding:16px 16px 22px; text-align:center; }
+  .topo .marca { display:inline-flex; align-items:center; gap:10px; }
+  .topo .marca img { height:24px } .topo .marca .sema { height:12px; filter:brightness(0) invert(1); opacity:.85 }
+  .topo h1 { font-size:1.25rem; margin-top:10px }
+  .topo p { opacity:.85; font-size:.9rem }
+  main { max-width:560px; margin:0 auto; padding:16px 16px 40px; }
+  .cartao { background:var(--cartao); border:1px solid var(--borda); border-radius:var(--raio); padding:20px 18px; margin-top:14px; }
+  .cartao h2 { font-size:1.1rem; margin-bottom:6px }
+  .suave { color:var(--suave); font-size:.92rem }
+  .selo { display:inline-block; background:var(--verde-bg); color:var(--verde-m); border-radius:99px; padding:3px 11px; font-size:.82rem; font-weight:700; margin:8px 0 }
+  .btn { display:block; width:100%; border:0; border-radius:12px; padding:14px; font:600 1rem inherit; font-family:inherit; cursor:pointer; margin-top:10px; background:var(--verde); color:#fff; }
+  .btn.sec { background:transparent; color:var(--texto); border:1.5px solid var(--borda) }
+  .btn:disabled { opacity:.5; cursor:default }
+  .lnk { background:none; border:0; color:var(--verde-m); font:600 .9rem inherit; font-family:inherit; cursor:pointer; text-decoration:underline; margin-top:12px }
+  label { display:block; font-size:.85rem; font-weight:600; margin:12px 0 4px }
+  input, textarea { width:100%; border:1.5px solid var(--borda); border-radius:10px; padding:12px; font:1rem inherit; font-family:inherit; background:var(--cartao); color:var(--texto) }
+  textarea { min-height:130px; resize:vertical }
+  .erro { background:var(--erro-bg); color:var(--erro); border-radius:10px; padding:10px 12px; font-size:.9rem; margin-top:12px }
+  .progresso { height:6px; background:var(--borda); border-radius:99px; overflow:hidden; margin-bottom:14px }
+  .progresso i { display:block; height:100%; background:var(--verde-m); transition:width .25s }
+  .tema { font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--verde-m) }
+  .pergunta { font-size:1.15rem; font-weight:600; margin:6px 0 16px }
+  .opcoes { display:grid; gap:8px }
+  .op { display:flex; align-items:center; gap:12px; text-align:left; border:1.5px solid var(--borda); background:var(--cartao); color:var(--texto); border-radius:12px; padding:13px 14px; font:1rem inherit; font-family:inherit; cursor:pointer; min-height:52px }
+  .op b { display:inline-flex; width:30px; height:30px; border-radius:50%; align-items:center; justify-content:center; background:var(--verde-bg); color:var(--verde-m); flex-shrink:0 }
+  .op[aria-pressed="true"] { border-color:var(--verde-m); background:var(--verde-bg) }
+  .op[aria-pressed="true"] b { background:var(--verde-m); color:#fff }
+  .nps { display:grid; grid-template-columns:repeat(6,1fr); gap:6px }
+  .nps .op { justify-content:center; padding:0; min-height:48px; font-weight:700 }
+  .nps-leg { display:flex; justify-content:space-between; font-size:.8rem; color:var(--suave); margin-top:6px }
+  .nav { display:flex; gap:10px; margin-top:16px } .nav .btn { margin-top:0 }
+  .cont { text-align:right; font-size:.8rem; color:var(--suave); margin-top:4px }
+  .ok { text-align:center } .ok .ic { font-size:0; margin:4px auto 10px; width:56px; height:56px; border-radius:50%; background:var(--verde-bg); display:flex; align-items:center; justify-content:center }
+</style>
+</head>
+<body>
+<header class="topo">
+  <span class="marca"><img src="../pwa/logos/acre.png" alt="Governo do Acre"><img class="sema" src="../pwa/logos/sema.png" alt="SEMA"></span>
+  <h1>Pulso da Equipe</h1>
+  <p id="pr-sub">Questionário rápido · cerca de 3 minutos</p>
+</header>
+<main id="pr"><div class="cartao"><p class="suave">Carregando…</p></div></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/pulso-perguntas.js"></script>
+<script src="../js/pulso-responder.js"></script>
+</body>
+</html>

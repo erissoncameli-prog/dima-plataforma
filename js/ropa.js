@@ -20,7 +20,7 @@ const ROPA_BASE_LEGAL = {
   art11_ii_b_politica_publica: 'Art. 11, II, "b" — políticas públicas (dado sensível)',
   art11_ii_c_estudo_pesquisa: 'Art. 11, II, "c" — estudo por órgão de pesquisa (dado sensível)',
 }
-const ROPA_MODULO = { diagnostico: 'Diagnóstico', viagens: 'Viagens', fornecedores: 'Fornecedores' }
+const ROPA_MODULO = { diagnostico: 'Diagnóstico', viagens: 'Viagens', fornecedores: 'Fornecedores', pulso: 'Pulso da Equipe' }
 
 ;(async function () {
   const usuario = await carregarUsuario()

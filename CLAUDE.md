@@ -85,7 +85,7 @@ const res = await fetch(SUPABASE_URL + '/functions/v1/nome-da-funcao', {
 ### Navegação (`layout.js` — `navGroups`)
 Grupos: `'Projeto'`, `'Execução'`, `'Apoio'`
 Cada item: `{ id, icone, href, perfis: [...] }`
-IDs usados: `dashboard`, `atividades`, `tdrs`, `remanejamentos`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`
+IDs usados: `dashboard`, `atividades`, `tdrs`, `remanejamentos`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`, `pulso`
 Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 
 ---
@@ -565,6 +565,27 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
 - App de campo: `pages/diagnostico-app.html` (exceção ao padrão `#app` +
   `gerarLayout`; não chama `carregarUsuario()`), service worker na raiz
   `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.
+
+### Pulso da Equipe — questionário de engajamento por QR (⚠️ ler antes de mexer em `pulso_*`)
+
+Migração `20261006_pulso_equipe.sql`; testes locais `supabase/tests/pulso/rodar.sh`.
+6 perguntas objetivas (Q1–Q5 escala 1–5, Q6 0–10 = eNPS) + 1 livre; texto em `js/pulso-perguntas.js`
+(mudar o sentido de uma pergunta quebra a série — abrir ciclo novo).
+- **Gestão**: `pages/pulso.html` + `js/pulso.js` (nav `pulso`, grupo Apoio, super_admin/coordenação): cria ciclo,
+  projeta o QR em tela cheia com contador (`fn_pulso_contagem`), resultado, expectativa da coordenação
+  (`pulso_espelho`), comentário → "Criar tarefa" (`tarefas.html?nova=1&titulo=&desc=`).
+- **Resposta**: `pages/pulso-responder.html?c=<token>` — **pública** (exceção ao padrão `#app`, sem `carregarUsuario()`).
+  Com sessão ⇒ perfil do cadastro; sem ⇒ entra (login na própria página, sai sozinho ao enviar) ou responde como
+  **convidado**. O grupo de perfil é decidido no banco (`fn_pulso_grupo_atual`; super_admin conta como coordenação),
+  nunca enviado pelo navegador.
+- **Anonimato**: `pulso_respostas` **não tem usuário nem hora** (só `perfil_grupo` e `dia`) — não acrescentar coluna
+  identificadora. Quem respondeu fica em `pulso_participacoes` (usuário, ou hash do id aleatório do aparelho p/ convidado),
+  só para barrar duplicidade. **Nenhuma tabela `pulso_*` tem policy nem grant** — tudo por RPC SECURITY DEFINER:
+  anon só executa `fn_publico_pulso_ciclo`/`fn_publico_pulso_responder`; gestão usa `fn_pulso_*` (checa `fn_pulso_gestor`).
+- **Supressão**: `fn_pulso_resultado` não devolve nada com < 5 respostas; grupo de perfil < 5 vai para "demais" (se somar 5);
+  texto livre sai embaralhado e sem perfil. Índices (`fn_pulso_metricas`): comprometimento = média Q1–Q5 em 0–100;
+  sintonia = 100 − desvio-padrão médio ÷ 2 × 100; eNPS = %9–10 − %0–6. Nunca recalcular no cliente.
+- ROPA: `TRAT-002` em `lgpd_tratamentos`.
 
 ### Painel de Tarefas — subtarefas, comentários e anexos
 - `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.

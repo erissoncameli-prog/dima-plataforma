@@ -1519,4 +1519,11 @@
   // Abrir tarefa direto pela URL (?tarefa=<id>) — vindo do sino/e-mail
   const alvo = new URLSearchParams(location.search).get('tarefa')
   if (alvo) { const t = S.tarefas.find(x => x.id === alvo); if (t) abrirModal(t) }
+  // Nova tarefa pré-preenchida (?nova=1&titulo=&desc=) — vindo do Pulso da Equipe
+  const qs = new URLSearchParams(location.search)
+  if (!alvo && qs.get('nova')) {
+    abrirModal(null)
+    const ft = document.getElementById('f-titulo'); if (ft) ft.value = qs.get('titulo') || ''
+    const fd = document.getElementById('f-desc'); if (fd) { fd.value = qs.get('desc') || ''; fd.style.height = 'auto'; fd.style.height = fd.scrollHeight + 'px' }
+  }
 })()

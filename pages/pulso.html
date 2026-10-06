@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Pulso da Equipe</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<style>
+/* Pulso da Equipe (js/pulso.js) — gestão: ciclos, QR e resultado agregado */
+.pu{max-width:1150px;
+  /* escala divergente da concordância: laranja ← cinza → azul (segura para daltonismo) */
+  --pu-d1:#B4532A;--pu-d2:#E6A483;--pu-d3:#C4C9CF;--pu-d4:#8DB4DA;--pu-d5:#2F68A8}
+.pu-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.pu-cab h2{margin:0;font-size:20px;color:var(--cinza-900)}
+.pu-cab p{margin:4px 0 0;color:var(--cinza-500);font-size:13px;max-width:680px;line-height:1.5}
+.pu-lay{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px;align-items:start}
+.pu-lay>*,.pu-kpi{min-width:0}
+.pu-lista{display:flex;flex-direction:column;gap:8px}
+.pu-ci{background:var(--branco);border:1px solid var(--borda);border-radius:10px;padding:11px 13px;cursor:pointer;text-align:left;font-family:inherit;width:100%}
+.pu-ci:hover{border-color:var(--borda-forte)}
+.pu-ci.sel{border-color:var(--verde-medio);box-shadow:0 0 0 2px var(--verde-bg)}
+.pu-ci b{display:block;color:var(--cinza-900);font-size:13.5px}
+.pu-ci small{color:var(--cinza-500);font-size:12px}
+.pu-st{font-size:10.5px;font-weight:700;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+.pu-st.ab{background:var(--sucesso-bg);color:var(--sucesso)}.pu-st.en{background:var(--cinza-100);color:var(--cinza-600)}
+.pu-box{background:var(--branco);border:1px solid var(--borda);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.pu-box h3{margin:0 0 10px;font-size:14.5px;color:var(--cinza-900)}
+.pu-acoes{display:flex;gap:8px;flex-wrap:wrap}
+.pu-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.pu-kpi{background:var(--branco);border:1px solid var(--borda);border-radius:12px;padding:13px 15px}
+.pu-kpi span{font-size:12px;color:var(--cinza-500);display:block}
+.pu-kpi b{font-size:26px;color:var(--cinza-900);line-height:1.25;display:block;font-variant-numeric:tabular-nums}
+.pu-kpi small{font-size:12px;color:var(--cinza-600)}
+.pu-quad{border-left:4px solid var(--verde-medio);background:var(--cinza-50);border-radius:8px;padding:10px 14px;font-size:13.5px;color:var(--cinza-700);line-height:1.5}
+.pu-q{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:6px 18px;padding:12px 0;border-top:1px solid var(--cinza-100);align-items:center}
+.pu-q:first-of-type{border-top:0}
+.pu-q .tx{font-size:13px;color:var(--cinza-800);line-height:1.4}
+.pu-q .tx em{font-style:normal;font-weight:700;color:var(--cinza-500);font-size:11px;letter-spacing:.05em;text-transform:uppercase;display:block}
+.pu-q .num{font-size:12.5px;color:var(--cinza-600);text-align:right;font-variant-numeric:tabular-nums}
+.pu-q .num b{font-size:16px;color:var(--cinza-900)}
+.pu-pilha{grid-column:1/-1;display:flex;gap:2px;height:14px}
+.pu-pilha i{display:block;height:100%;min-width:0}
+.pu-pilha i:first-child{border-radius:4px 0 0 4px}.pu-pilha i:last-child{border-radius:0 4px 4px 0}
+.pu-tag{font-size:11px;font-weight:700;border-radius:99px;padding:2px 8px;margin-left:6px;white-space:nowrap}
+.pu-tag.ok{background:var(--sucesso-bg);color:#065F46}.pu-tag.md{background:var(--aviso-bg);color:#92400E}.pu-tag.dv{background:var(--erro-bg);color:#B91C1C}
+.pu-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--cinza-600);margin-bottom:6px}
+.pu-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.pu-tab{width:100%;border-collapse:collapse;font-size:13px}
+.pu-tab th{text-align:left;color:var(--cinza-500);font-weight:600;font-size:12px;padding:7px 8px;border-bottom:1px solid var(--borda)}
+.pu-tab td{padding:8px;border-bottom:1px solid var(--cinza-100);font-variant-numeric:tabular-nums}
+.pu-tab td.n,.pu-tab th.n{text-align:right}
+.pu-txt{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--cinza-100);font-size:13.5px;color:var(--cinza-800);line-height:1.5}
+.pu-txt p{flex:1;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.pu-vazio{color:var(--cinza-500);font-size:13.5px;line-height:1.5}
+.pu-sup{background:var(--aviso-bg);border:1px solid #FCD34D;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#78350F}
+/* QR em tela cheia (projetar na reunião) */
+.pu-qr{position:fixed;inset:0;background:#10261A;color:#fff;z-index:3000;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.pu-qr.aberto{display:flex}
+.pu-qr h2{font-size:clamp(20px,3.4vw,34px);margin:0 0 6px}
+.pu-qr p{opacity:.8;margin:0 0 18px;font-size:clamp(13px,1.6vw,17px)}
+.pu-qr img{background:#fff;padding:14px;border-radius:16px;width:min(62vh,82vw);height:auto;image-rendering:pixelated}
+.pu-qr .cont{margin-top:18px;font-size:clamp(16px,2.4vw,24px)}
+.pu-qr .cont b{font-size:clamp(32px,5vw,54px);display:block;line-height:1.1;font-variant-numeric:tabular-nums}
+.pu-qr .url{font-family:var(--font-mono);font-size:12px;opacity:.65;margin-top:10px;word-break:break-all}
+.pu-qr .fechar{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;font:600 13px var(--font-sans)}
+.pu-esp-l{display:grid;grid-template-columns:1fr 70px;gap:8px 12px;align-items:center;font-size:13px;margin-top:6px}
+.pu-esp-l input[type=range]{width:100%}
+@media (max-width:900px){.pu-lay{grid-template-columns:minmax(0,1fr)}.pu-kpis{grid-template-columns:repeat(2,1fr)}.pu-q{grid-template-columns:1fr}.pu-q .num{text-align:left}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<!-- modais fora do #app (z-index da sidebar) -->
+<div class="pu-qr" id="pu-qr" role="dialog" aria-modal="true" aria-label="QR Code do questionário">
+  <button class="fechar" onclick="PU.fecharQR()">Fechar</button>
+  <h2 id="pu-qr-tit"></h2>
+  <p>Aponte a câmera do celular para responder · anônimo · cerca de 3 minutos</p>
+  <img id="pu-qr-img" alt="QR Code do questionário">
+  <div class="cont"><b id="pu-qr-n">0</b>respostas recebidas</div>
+  <div class="url" id="pu-qr-url"></div>
+</div>
+<div class="modal-overlay" id="pu-modal"><div class="modal" style="max-width:520px"><div id="pu-modal-c"></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/qrcode-generator.js"></script>
+<script src="../js/pulso-perguntas.js"></script>
+<script src="../js/pulso.js"></script>
+</body>
+</html>

@@ -76,6 +76,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     dados_sistema:{ svg: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
     ropa:         { svg: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M9 12h6M9 15h4M9 9h6"/>', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
     banco_dados:  { svg: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>',                                                                                                                                                                                cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'  },
+    pulso:        { svg: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>', cor: '#f472b6', bg: 'rgba(244,114,182,0.22)' },
     ajuda:        { svg: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',                                                                                                                                                                                           cor: '#a3e635', bg: 'rgba(163,230,53,0.22)'  },
   };
 
@@ -111,6 +112,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'mapa',          href: 'mapa.html',                      perfis: null },
     { id: 'repositorio',   href: 'repositorio.html',               perfis: null },
     { id: 'auditoria',     href: 'auditoria.html',                 perfis: ['super_admin','coordenacao'] },
+    { id: 'pulso',         href: 'pulso.html',                     perfis: ['super_admin','coordenacao'] },
     { id: 'ajuda',         href: 'ajuda.html',                     perfis: null },
     { id: 'usuarios',      href: 'usuarios.html',                  perfis: ['super_admin'] },
     // coordenação vê Configurações só pelo ROPA (os demais filhos seguem super_admin)
@@ -127,7 +129,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { label: null,           key: null,            ids: ['dashboard','tarefas'] },
     { label: 'Planejamento', key: 'planejamento',  ids: ['atividades','tdrs','matriz','remanejamentos'] },
     { label: 'Execução',     key: 'execucao',      ids: ['fornecedores','contratos','produtos','acervo','financeiro','diagnostico'] },
-    { label: 'Apoio',        key: 'apoio',         ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','ajuda','usuarios'] },
+    { label: 'Apoio',        key: 'apoio',         ids: ['viagens','beneficiarios','relatorios','mapa','repositorio','auditoria','pulso','ajuda','usuarios'] },
     { label: 'Sistema',      key: 'sistema',       ids: ['configuracoes'] },
   ];
 
