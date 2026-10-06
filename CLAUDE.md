@@ -586,6 +586,11 @@ Migração `20261006_pulso_equipe.sql`; testes locais `supabase/tests/pulso/roda
   texto livre sai embaralhado e sem perfil. Índices (`fn_pulso_metricas`): comprometimento = média Q1–Q5 em 0–100;
   sintonia = 100 − desvio-padrão médio ÷ 2 × 100; eNPS = %9–10 − %0–6. Nunca recalcular no cliente.
 - ROPA: `TRAT-002` em `lgpd_tratamentos`.
+- **Visual**: o painel usa o design system da mesa do Diagnóstico (`body.dgm` + `css/diagnostico-mesa.css`, tema
+  `diag_tema` com seletor Claro/Escuro no topo) e componentes em `css/pulso.css` (cor nova = token no topo do arquivo;
+  escala divergente `--pu-d1..5` validada para daltonismo nos dois temas). Ícones SVG por `pIc()`/`prIc()`, sem emoji.
+  A página do QR segue `prefers-color-scheme` (público sem conta não tem tema salvo). ⚠️ Em comentário CSS não escrever
+  `--x-*/` — o `*/` fecha o comentário e engole a regra seguinte (os tokens do tema claro sumiram por isso).
 
 ### Painel de Tarefas — subtarefas, comentários e anexos
 - `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.
