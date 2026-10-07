@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
+<title data-i18n="res.titulo_pagina">Resultados — Resiliência Socioambiental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+/* Cores de status e dos resultados usadas como TEXTO — versão escura no
+   tema claro e clara no tema escuro, sempre com contraste mínimo de 4.5:1
+   (WCAG 2.1 AA). Fundos sólidos com texto branco seguem com a cor fixa. */
+:root{--st-ok:#04815a;--st-med:#a95d05;--st-alto:#da2626;--res-1:#177e5d;--res-2:#2563eb;--res-3:#655fb0;}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--st-ok:#369d7d;--st-med:#d97706;--st-alto:#e66363;--res-1:#4c9c82;--res-2:#5c8af0;--res-3:#8c87c4;}
+}
+:root[data-theme="dark"]{--st-ok:#369d7d;--st-med:#d97706;--st-alto:#e66363;--res-1:#4c9c82;--res-2:#5c8af0;--res-3:#8c87c4;}
+
+.pagina-topo{padding-block:var(--espaco-6) var(--espaco-5);border-bottom:1px solid var(--linha);}
+.pagina-topo h1{font-size:clamp(22px,3vw,30px);margin-bottom:6px;}
+.pagina-topo p{font-size:14.5px;color:var(--tinta-suave);max-width:70ch;}
+
+.miolo{padding-block:var(--espaco-6) var(--espaco-9);}
+
+/* ── Stats ────────────────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--espaco-4);margin-bottom:var(--espaco-6);}
+.stat-card{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);padding:var(--espaco-4);box-shadow:var(--sombra);border-top:3px solid transparent;}
+.stat-lbl{font-size:12px;color:var(--tinta-suave);margin-bottom:6px;}
+.stat-val{font-family:var(--fonte-titulo);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;}
+.stat-sub{font-size:11.5px;color:var(--tinta-suave);margin-top:2px;}
+.sc-g{border-top-color:var(--verde-escuro);}
+.sc-b{border-top-color:var(--azul);}
+.sc-a{border-top-color:#D97706;}
+.sc-r{border-top-color:var(--st-alto);}
+@media(max-width:820px){.stat-row{grid-template-columns:1fr 1fr;}}
+
+/* ── Blocos de resultado (colapsáveis) ───────────────────────── */
+.res-bloco{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);margin-bottom:var(--espaco-4);overflow:hidden;box-shadow:var(--sombra);}
+.res-header{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;user-select:none;}
+.res-header:hover{background:var(--papel);}
+.res-codigo{font-family:var(--fonte-titulo);font-size:12px;font-weight:700;padding:4px 11px;border-radius:6px;color:#fff;flex-shrink:0;}
+.res-nome{font-size:14.5px;font-weight:700;color:var(--tinta);flex:1;}
+.res-body{border-top:1px solid var(--linha);}
+.chevron{font-size:12px;color:var(--tinta-suave);transition:transform .2s;}
+
+.prod-label{display:flex;align-items:center;gap:9px;padding:8px 18px;background:var(--papel);border-bottom:1px solid var(--linha);}
+.prod-cod{font-family:'Montserrat',monospace;font-size:11px;font-weight:700;color:var(--azul-texto);background:var(--azul-tint);padding:2px 9px;border-radius:4px;flex-shrink:0;}
+.prod-titulo{font-size:12.5px;font-weight:500;color:var(--tinta-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.ind-card{padding:13px 18px;border-bottom:1px solid var(--linha);border-left:4px solid transparent;}
+.ind-card:last-child{border-bottom:none;}
+.ind-card.ok{border-left-color:var(--st-ok);}.ind-card.med{border-left-color:var(--st-med);}.ind-card.alto{border-left-color:var(--st-alto);}.ind-card.sem{border-left-color:var(--linha);}
+.ind-header{display:flex;align-items:flex-start;gap:9px;}
+.ind-num{font-family:'Montserrat',monospace;font-size:10.5px;font-weight:700;background:var(--papel);padding:2px 7px;border-radius:4px;color:var(--tinta-suave);flex-shrink:0;margin-top:1px;}
+.ind-nome{font-size:13px;font-weight:500;color:var(--tinta);flex:1;line-height:1.4;}
+.ind-bdg{display:flex;flex-direction:column;gap:3px;align-items:flex-end;flex-shrink:0;}
+.bdg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;}
+.bdg-ok{background:#D1FAE5;color:#065F46}.bdg-med{background:#FEF3C7;color:#92400E}.bdg-alto{background:#FEE2E2;color:#991B1B}.bdg-sem{background:var(--papel);color:var(--tinta-suave)}
+.pend-chip{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#FEF3C7;color:#92400E;}
+.ods-chip{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--azul-tint);color:var(--azul-texto);}
+.km-chip{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#EDE9FE;color:#5B21B6;}
+.ind-prog{margin-top:9px;display:flex;align-items:center;gap:11px;}
+.prog-wrap{flex:1;height:5px;background:var(--linha);border-radius:3px;overflow:hidden;position:relative;}
+.prog-conf{position:absolute;left:0;top:0;height:100%;background:#04855D;border-radius:3px;}
+.prog-pend{position:absolute;top:0;height:100%;background:#FCD34D;border-radius:3px;}
+.ind-nums{font-size:11px;color:var(--tinta-suave);white-space:nowrap;min-width:84px;text-align:right;}
+.ind-pct{font-family:'Montserrat',monospace;font-size:14px;font-weight:700;min-width:38px;text-align:right;}
+
+.empty{text-align:center;padding:48px 20px;color:var(--tinta-suave);font-size:13px;}
+.spinner{width:28px;height:28px;border:3px solid var(--linha);border-top-color:var(--verde-escuro);border-radius:50%;animation:spin .7s linear infinite;margin:48px auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div id="site-header-slot" data-pagina="resultados"></div>
+</header>
+
+<main>
+  <div class="pagina-topo container">
+    <h1 data-i18n="nav.resultados">Resultados</h1>
+    <p data-i18n="res.intro">Indicadores da matriz de contribuição monitorados pelo Programa, organizados por resultado esperado.</p>
+  </div>
+  <div class="miolo container" id="miolo-resultados">
+    <div class="spinner"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div id="site-footer-slot"></div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n-es.js"></script>
+<script src="js/layout.js"></script>
+<script>
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+window.toggleRes = function(hdr) {
+  const body = hdr.nextElementSibling;
+  const chevron = hdr.querySelector('.chevron');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  if (chevron) chevron.style.transform = open ? 'rotate(-90deg)' : '';
+};
+
+// Dados guardados pra redesenhar na troca de idioma sem consultar o banco de novo
+let _itensResultados = null;
+
+async function carregarResultados() {
+  const el = document.getElementById('miolo-resultados');
+  const { data, error } = await db.rpc('fn_publico_resultados');
+  if (error || !data) { el.innerHTML = `<div class="empty">${t('res.erro')}</div>`; return; }
+  _itensResultados = data;
+  desenharResultados();
+}
+
+// Nomes de indicadores, produtos e unidades vêm do banco e ficam em português
+function desenharResultados() {
+  const el = document.getElementById('miolo-resultados');
+  const items = _itensResultados;
+  const comMeta = items.filter(i => parseFloat(i.meta_numerica || 0) > 0);
+  const atingidos = comMeta.filter(i => parseFloat(i.pct_confirmado || 0) >= 100).length;
+  const emRisco   = comMeta.filter(i => parseFloat(i.pct_confirmado || 0) < 40).length;
+  const pendentes = items.filter(i => parseFloat(i.realizado_pendente || 0) > 0).length;
+  const media = comMeta.length
+    ? Math.round(comMeta.reduce((s, i) => s + Math.min(parseFloat(i.pct_confirmado || 0), 100), 0) / comMeta.length)
+    : 0;
+
+  const porRes = {};
+  items.forEach(i => { if (!porRes[i.resultado]) porRes[i.resultado] = []; porRes[i.resultado].push(i); });
+  const resCors = { 1:'#177e5d', 2:'#2563EB', 3:'#655fb0' };
+
+  let h = `
+    <div class="stat-row">
+      <div class="stat-card sc-g"><div class="stat-lbl">${t('res.progresso_medio')}</div><div class="stat-val" style="color:var(--st-ok)">${media}%</div><div class="stat-sub">${t('res.contrib_confirmadas')}</div></div>
+      <div class="stat-card sc-b"><div class="stat-lbl">${t('res.metas_atingidas')}</div><div class="stat-val" style="color:var(--azul-texto)">${atingidos}</div><div class="stat-sub">${t('res.de_com_meta', { n: comMeta.length })}</div></div>
+      <div class="stat-card sc-a"><div class="stat-lbl">${t('res.aguardam')}</div><div class="stat-val" style="color:var(--st-med)">${pendentes}</div><div class="stat-sub">${t('res.com_pendencias')}</div></div>
+      <div class="stat-card sc-r"><div class="stat-lbl">${t('res.em_risco')}</div><div class="stat-val" style="color:var(--st-alto)">${emRisco}</div><div class="stat-sub">${t('res.de_indicadores', { n: items.length })}</div></div>
+    </div>
+  `;
+
+  Object.keys(porRes).sort().forEach(rk => {
+    const itens = porRes[rk];
+    const cor = resCors[rk] || '#6B7280';
+    const comMetaR = itens.filter(i => parseFloat(i.meta_numerica || 0) > 0);
+    const mediaR = comMetaR.length
+      ? Math.round(comMetaR.reduce((s, i) => s + Math.min(parseFloat(i.pct_confirmado || 0), 100), 0) / comMetaR.length)
+      : 0;
+
+    h += `<div class="res-bloco">
+      <div class="res-header" onclick="toggleRes(this)">
+        <span class="res-codigo" style="background:${cor}">R${rk}</span>
+        <span class="res-nome">${t('res.resultado', { n: rk })}</span>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+          <div style="width:80px;height:5px;background:var(--linha);border-radius:3px;overflow:hidden">
+            <div style="height:100%;background:${cor};width:${mediaR}%;border-radius:3px;transition:width .5s"></div>
+          </div>
+          <span style="font-family:'Montserrat',monospace;font-size:12px;font-weight:700;color:var(--res-${rk}, ${cor})">${mediaR}%</span>
+          <span style="font-size:11px;color:var(--tinta-suave)">${t('res.ind_abrev', { n: itens.length })}</span>
+          <span class="chevron">▾</span>
+        </div>
+      </div>
+      <div class="res-body">`;
+
+    const porProd = {};
+    itens.forEach(i => { const pk = i.produto_codigo || 'SEM'; if (!porProd[pk]) porProd[pk] = { titulo: i.produto_titulo || '', itens: [] }; porProd[pk].itens.push(i); });
+
+    Object.entries(porProd).forEach(([pk, pv]) => {
+      h += `<div><div class="prod-label"><span class="prod-cod">${esc(pk)}</span><span class="prod-titulo">${esc((pv.titulo || '').substring(0, 80))}</span></div>`;
+
+      pv.itens.forEach((ind, idx) => {
+        const meta = parseFloat(ind.meta_numerica || 0);
+        const conf = parseFloat(ind.realizado_confirmado || 0);
+        const pend = parseFloat(ind.realizado_pendente || 0);
+        const pct = meta > 0 ? Math.min(conf / meta * 100, 100) : 0;
+        const pctP = meta > 0 ? Math.min(pend / meta * 100, 100 - Math.min(pct, 100)) : 0;
+        const riscoClass = pct >= 70 ? 'ok' : pct >= 40 ? 'med' : meta > 0 ? 'alto' : 'sem';
+        const bdgCls = pct >= 100 ? 'bdg-ok' : pct >= 70 ? 'bdg-ok' : pct >= 40 ? 'bdg-med' : meta > 0 ? 'bdg-alto' : 'bdg-sem';
+        const bdgTxt = t(pct >= 100 ? 'res.meta_atingida' : pct >= 70 ? 'res.em_dia' : pct >= 40 ? 'res.atencao' : meta > 0 ? 'res.risco' : 'res.sem_meta');
+        const corPct = pct >= 70 ? 'var(--st-ok)' : pct >= 40 ? 'var(--st-med)' : 'var(--st-alto)';
+        const ods = (ind.ods || []).slice(0, 3);
+        const km = (ind.metas_km || []).slice(0, 2);
+
+        h += `<div class="ind-card ${riscoClass}">
+          <div class="ind-header">
+            <span class="ind-num">${idx + 1}</span>
+            <span class="ind-nome">${esc(ind.indicador)}</span>
+            <div class="ind-bdg"><span class="bdg ${bdgCls}">${bdgTxt}</span>${pend > 0 ? `<span class="pend-chip">${t('res.pendente')}</span>` : ''}</div>
+          </div>
+          <div class="ind-prog">
+            <div class="prog-wrap">${pctP > 0 ? `<div class="prog-pend" style="left:${Math.min(pct,100)}%;width:${pctP}%"></div>` : ''}<div class="prog-conf" style="width:${Math.min(pct,100)}%"></div></div>
+            <div class="ind-nums">${meta > 0 ? `${fmtNum(Math.round(conf))} / ${fmtNum(meta)} ${esc(ind.unidade || '')}` : (ind.meta_descricao || '').substring(0,30) || '—'}</div>
+            <div class="ind-pct" style="color:${corPct}">${meta > 0 ? Math.round(pct) + '%' : '—'}</div>
+          </div>
+          ${ods.length || km.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">${ods.map(o => `<span class="ods-chip">${t('res.ods')} ${esc(o)}</span>`).join('')}${km.map(m => `<span class="km-chip">KM ${esc(m)}</span>`).join('')}</div>` : ''}
+        </div>`;
+      });
+      h += '</div>';
+    });
+    h += '</div></div>';
+  });
+
+  if (!items.length) h += `<div class="empty">${t('res.vazio')}</div>`;
+  el.innerHTML = h;
+}
+
+carregarResultados();
+document.addEventListener('idioma', () => { if (_itensResultados) desenharResultados(); });
+</script>
+</body>
+</html>

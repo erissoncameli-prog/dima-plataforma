@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Camada_2" data-name="Camada 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 37.1 49.25">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#Gradiente_sem_nome_55);
+      }
+
+      .cls-2 {
+        fill: url(#Gradiente_sem_nome_56);
+      }
+
+      .cls-3 {
+        fill: url(#Gradiente_sem_nome_69);
+      }
+
+      .cls-4 {
+        fill: url(#Gradiente_sem_nome_255);
+      }
+
+      .cls-5 {
+        fill: #fff;
+      }
+
+      .cls-6 {
+        fill: url(#Gradiente_sem_nome_255-2);
+      }
+
+      .cls-7 {
+        fill: #e7c559;
+      }
+
+      .cls-8 {
+        fill: url(#Gradiente_sem_nome_55-2);
+      }
+
+      .cls-9 {
+        fill: url(#Gradiente_sem_nome_55-3);
+      }
+
+      .cls-10 {
+        fill: url(#Gradiente_sem_nome_69-2);
+      }
+    </style>
+    <linearGradient id="Gradiente_sem_nome_55" data-name="Gradiente sem nome 55" x1="18.51" y1="11.46" x2="18.51" y2="4.96" gradientTransform="translate(0 25.14) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3a6639"/>
+      <stop offset="1" stop-color="#7cae40"/>
+    </linearGradient>
+    <linearGradient id="Gradiente_sem_nome_255" data-name="Gradiente sem nome 255" x1="14.58" y1="1.42" x2="3.28" y2="15.2" gradientUnits="userSpaceOnUse">
+      <stop offset=".38" stop-color="#375c31"/>
+      <stop offset=".49" stop-color="#7dae40"/>
+    </linearGradient>
+    <linearGradient id="Gradiente_sem_nome_55-2" data-name="Gradiente sem nome 55" x1="12.84" y1="10.16" x2="-1.67" y2="-1.41" gradientTransform="matrix(1,0,0,1,0,0)" xlink:href="#Gradiente_sem_nome_55"/>
+    <linearGradient id="Gradiente_sem_nome_69" data-name="Gradiente sem nome 69" x1="17.4" y1="10.68" x2="2.75" y2="-.71" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4e8b41"/>
+      <stop offset="1" stop-color="#dbda33"/>
+    </linearGradient>
+    <linearGradient id="Gradiente_sem_nome_255-2" data-name="Gradiente sem nome 255" x1="536.73" y1="1.42" x2="525.43" y2="15.2" gradientTransform="translate(559.25) scale(-1 1)" xlink:href="#Gradiente_sem_nome_255"/>
+    <linearGradient id="Gradiente_sem_nome_55-3" data-name="Gradiente sem nome 55" x1="534.99" y1="10.16" x2="520.48" y2="-1.41" gradientTransform="translate(559.25) scale(-1 1)" xlink:href="#Gradiente_sem_nome_55"/>
+    <linearGradient id="Gradiente_sem_nome_69-2" data-name="Gradiente sem nome 69" x1="539.55" y1="10.68" x2="524.9" y2="-.71" gradientTransform="translate(559.25) scale(-1 1)" xlink:href="#Gradiente_sem_nome_69"/>
+    <linearGradient id="Gradiente_sem_nome_56" data-name="Gradiente sem nome 56" x1="11" y1="49.25" x2="11" y2="19.07" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e6b041"/>
+      <stop offset="1" stop-color="#f7e939"/>
+    </linearGradient>
+  </defs>
+  <g id="TEXTO">
+    <rect class="cls-1" x="17.8" y="13.68" width="1.43" height="6.5" rx=".71" ry=".71"/>
+    <path class="cls-4" d="M.76.68s7.16-.44,12.14,3.83c4.98,4.26,5.68,9.62,5.68,9.62,0,0-7.7-.6-12.41-4.03C.49,5.97.76.68.76.68Z"/>
+    <path class="cls-8" d="M4.56,3.77c4.63,4.55,7.81,6.74,13.86,10.34-5.52-.25-11.23-.54-14.78-5.95C2.06,5.75,1.04,4.2,0,0c4.64-.14,9.16,1.14,13.17,4.3,3.01,2.53,4.68,5.95,5.38,9.65-3.72-3.85-10.02-8.29-13.99-10.19Z"/>
+    <path class="cls-3" d="M4.56,3.77c3.57,2.14,9.39,5.47,13.99,10.19-.7-3.7-2.37-7.12-5.38-9.65C9.16,1.15,4.64-.13,0,0c1.37,1.18,3.47,2.87,4.56,3.76Z"/>
+    <path class="cls-6" d="M36.33.68s-7.16-.44-12.14,3.83c-4.98,4.26-5.68,9.62-5.68,9.62,0,0,7.7-.6,12.41-4.03,5.68-4.13,5.41-9.42,5.41-9.42Z"/>
+    <path class="cls-9" d="M32.54,3.77c-4.63,4.55-7.81,6.74-13.86,10.34,5.52-.25,11.23-.54,14.78-5.95,1.58-2.41,2.6-3.96,3.64-8.15-4.64-.14-9.16,1.14-13.17,4.3-3.01,2.53-4.68,5.95-5.38,9.65,3.72-3.85,10.02-8.29,13.99-10.19Z"/>
+    <path class="cls-10" d="M32.54,3.77c-3.57,2.14-9.39,5.47-13.99,10.19.7-3.7,2.37-7.12,5.38-9.65C27.93,1.15,32.46-.13,37.1,0c-1.37,1.18-3.47,2.87-4.56,3.76Z"/>
+  </g>
+  <g id="Camada_12" data-name="Camada 12">
+    <path class="cls-7" d="M33.63,34.15c0,8.34-6.75,15.09-15.08,15.09v-30.18c8.33,0,15.08,6.75,15.08,15.08Z"/>
+    <path class="cls-2" d="M18.55,19.07v30.18c-8.34,0-15.09-6.75-15.09-15.09s6.75-15.08,15.09-15.08Z"/>
+    <path class="cls-5" d="M24.33,35.21c-.55-.67-1.19-1.16-1.94-1.46-.74-.3-1.75-.61-3.05-.94v-4.86c.5.15.9.42,1.21.79.29.37.47.8.52,1.29h3.88c-.13-1.51-.67-2.69-1.66-3.54-.98-.86-2.3-1.36-3.95-1.5v-2.08h-1.64v2.08c-1.7.14-3.08.69-4.15,1.62-1.08.94-1.61,2.16-1.61,3.64,0,1.19.28,2.12.83,2.81.55.69,1.19,1.18,1.96,1.5.75.3,1.75.61,2.98.93v4.9c-1.17-.25-1.8-.99-1.9-2.23h-3.86c.04,1.51.57,2.7,1.62,3.59,1.04.88,2.42,1.4,4.14,1.55v2.11h1.64v-2.08c1.21-.08,2.25-.38,3.12-.89.89-.5,1.56-1.14,2.01-1.92.46-.79.69-1.62.69-2.51,0-1.18-.28-2.11-.83-2.79ZM17.7,32.32c-.66-.22-1.16-.51-1.5-.85-.34-.36-.51-.81-.51-1.38,0-.63.18-1.13.53-1.51.37-.38.85-.61,1.47-.7v4.44ZM20.88,39.66c-.37.41-.88.67-1.54.79v-4.49c.67.23,1.19.51,1.55.85.36.34.53.8.53,1.36s-.18,1.08-.55,1.5Z"/>
+  </g>
+</svg>

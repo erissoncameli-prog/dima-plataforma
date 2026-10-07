@@ -1,0 +1,93 @@
+/* ════════════════════════════════════════════════════════════════
+   LAYOUT — componentes compartilhados (header, nav, footer)
+   Site Público da DIMA — Produto 2
+════════════════════════════════════════════════════════════════ */
+
+/* ── Header ───────────────────────────────────────────────────── */
+.site-header{
+  position:sticky;top:0;z-index:200;
+  height:var(--altura-header);
+  background:var(--papel-elevado);
+  border-bottom:1px solid var(--linha);
+  display:flex;align-items:center;
+}
+/* O header é injetado dentro de #site-header-slot (item do flex do <header>) — sem isso ele encolhe até o conteúdo e o login não chega na borda */
+#site-header-slot{width:100%;height:100%;}
+.site-header .container{display:flex;align-items:center;gap:var(--espaco-4);height:100%;width:100%;max-width:none;}
+.site-brand{display:flex;align-items:center;gap:var(--espaco-3);text-decoration:none;flex-shrink:0;}
+.site-brand img{height:44px;width:auto;}
+
+.site-nav{display:flex;align-items:center;gap:2px;overflow-x:auto;flex-shrink:1;min-width:0;}
+.site-nav a{
+  font-size:13px;font-weight:600;color:var(--tinta-suave);text-decoration:none;
+  padding:7px 10px;border-radius:99px;white-space:nowrap;transition:all .15s;flex-shrink:0;
+}
+.site-nav a:hover{color:var(--verde-texto);background:var(--verde-tint);}
+.site-nav a.ativo{color:var(--verde-texto);background:var(--verde-tint);}
+/* Seletor de idioma (PT · EN · ES) — header, menu do celular e rodapé */
+.seletor-idioma{display:inline-flex;flex-shrink:0;border:1px solid var(--linha);border-radius:99px;padding:2px;gap:2px;background:var(--papel-elevado);}
+.seletor-idioma button{background:none;border:none;border-radius:99px;padding:4px 9px;font-family:var(--fonte-corpo);font-size:11.5px;font-weight:700;letter-spacing:.03em;color:var(--tinta-suave);cursor:pointer;line-height:1.2;}
+.seletor-idioma button:hover{color:var(--verde-texto);}
+.seletor-idioma button[aria-pressed="true"]{background:var(--verde-tint);color:var(--verde-texto);}
+.seletor-idioma button:focus-visible{outline:2px solid var(--verde-texto);outline-offset:1px;}
+/* O seletor do header empurra seletor + login pro canto direito */
+.seletor-idioma-header{margin-left:auto;}
+/* Versão dentro do menu só aparece no celular */
+.seletor-idioma-menu{display:none;}
+
+/* Login fica fora do menu, no canto direito do header */
+.site-login{
+  flex-shrink:0;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;
+  color:var(--verde-texto);border:1px solid var(--verde-texto);border-radius:99px;
+  padding:6px 14px;transition:all .15s;
+}
+.site-login:hover{background:var(--verde-botao);color:#fff;}
+
+/* Versão do login que só aparece dentro do menu, em tela de celular */
+.site-nav-login{display:none;}
+
+.site-nav-toggle{display:none;background:none;border:1px solid var(--linha);border-radius:8px;width:38px;height:38px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+
+/* Menu recolhido (botão ☰): o layout.js liga a classe quando os links não
+   cabem na linha do header — o ponto de corte varia com o idioma (espanhol
+   é mais longo), por isso é medido e não fixo num @media */
+.site-header.menu-recolhido .site-nav{
+  display:none;position:absolute;top:var(--altura-header);left:0;right:0;
+  flex-direction:column;align-items:stretch;background:var(--papel-elevado);border-bottom:1px solid var(--linha);
+  padding:var(--espaco-3) var(--espaco-4);gap:2px;box-shadow:var(--sombra);
+}
+.site-header.menu-recolhido .site-nav.aberto{display:flex;}
+.site-header.menu-recolhido .site-nav a{padding:11px 14px;}
+.site-header.menu-recolhido .site-nav-toggle{display:flex;}
+/* No celular não cabe marca + idioma + login na mesma linha: idioma e login saem do header e viram os últimos itens do menu */
+@media(max-width:560px){
+  .site-header .container{gap:var(--espaco-3);}
+  .site-login,.seletor-idioma-header{display:none;}
+  .site-nav-toggle{margin-left:auto;}
+  .site-nav .seletor-idioma-menu{display:inline-flex;align-self:flex-start;margin:var(--espaco-2) 14px 0;}
+  .site-nav a.site-nav-login{display:block;margin-top:var(--espaco-2);border-top:1px solid var(--linha);border-radius:0;padding-top:14px;color:var(--verde-texto);}
+  .site-brand img{height:36px;}
+}
+
+/* ── Footer ───────────────────────────────────────────────────── */
+.site-footer{border-top:1px solid var(--linha);background:var(--papel-elevado);margin-top:var(--espaco-9);}
+.site-footer .container{padding:var(--espaco-7) var(--espaco-5) var(--espaco-6);display:flex;flex-direction:column;gap:var(--espaco-6);max-width:1440px;}
+/* Faixa com o grafismo do manual (padrão de folhas, curvas e círculos), repetida na largura toda */
+.footer-grafismo{height:28px;background:url('../assets/identidade/grafismo.svg') repeat-x left center/auto 100%;}
+.footer-logos img{width:100%;max-width:880px;height:auto;}
+/* No tema escuro o <picture> do rodapé troca para a barra monocromática branca */
+.footer-linha{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--espaco-3);padding-top:var(--espaco-5);border-top:1px solid var(--linha);}
+.footer-texto{font-size:12px;color:var(--tinta-suave);max-width:60ch;}
+
+/* ── Placeholder de página em construção ─────────────────────── */
+.em-construcao{
+  max-width:var(--largura-conteudo);margin:0 auto;padding:var(--espaco-9) var(--espaco-5);
+  text-align:center;
+}
+.em-construcao .selo{
+  display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--laranja-texto);background:var(--laranja-tint);padding:5px 14px;border-radius:99px;margin-bottom:var(--espaco-4);
+}
+.em-construcao h1{font-size:clamp(24px,4vw,32px);margin-bottom:var(--espaco-3);}
+.em-construcao p{color:var(--tinta-suave);max-width:56ch;margin:0 auto;font-size:15px;}
+.footer-texto .footer-link{color:var(--verde-texto);font-weight:600;white-space:nowrap;}

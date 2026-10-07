@@ -1,0 +1,236 @@
+/* ════════════════════════════════════════════════════════════════
+   APRESENTAÇÃO — animação "Assistir apresentação" da página Sobre
+   Motion design em HTML/CSS (não é arquivo de vídeo): cenas montadas
+   por js/apresentacao.js, textos traduzidos pelo i18n do site.
+   Cada elemento animado tem .ap-el + uma variante (.ap-sobe, .ap-pop…)
+   e o atraso em --d; a animação só roda na cena .ativa.
+════════════════════════════════════════════════════════════════ */
+
+.ap-fundo{
+  position:fixed;inset:0;z-index:1000;background:rgba(10,16,12,.86);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.ap-fundo[hidden]{display:none;}
+
+.ap-janela{
+  width:min(1100px,100%);display:flex;flex-direction:column;gap:10px;
+}
+
+/* Barra de progresso em segmentos (um por cena), clicável */
+.ap-progresso{display:flex;gap:5px;}
+.ap-seg{
+  flex:1;height:5px;border:none;padding:0;border-radius:99px;cursor:pointer;
+  background:rgba(255,255,255,.25);position:relative;overflow:hidden;
+}
+.ap-seg span{position:absolute;inset:0 auto 0 0;width:0;background:#fff;border-radius:99px;}
+.ap-seg.feita span{width:100%;}
+.ap-seg:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+
+/* Palco 16:9 (no celular em pé, ocupa a altura disponível) */
+.ap-palco{
+  position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;
+  background:var(--papel-elevado);color:var(--tinta);border-radius:var(--raio-lg);
+  border:1px solid var(--linha);box-shadow:0 20px 60px rgba(0,0,0,.45);
+}
+@media (max-aspect-ratio:4/5){
+  .ap-palco{aspect-ratio:auto;height:min(72vh,640px);}
+}
+
+.ap-controles{display:flex;align-items:center;gap:8px;color:#fff;}
+.ap-controles .ap-rotulo{flex:1;font-size:12.5px;opacity:.8;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ap-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:38px;min-width:38px;padding:0 12px;border-radius:99px;cursor:pointer;
+  background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);
+  font-family:var(--fonte-corpo);font-size:13px;font-weight:600;
+}
+.ap-btn:hover{background:rgba(255,255,255,.22);}
+.ap-btn:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.ap-btn svg{width:16px;height:16px;}
+
+/* ── Cena ─────────────────────────────────────────────────────── */
+.ap-cena{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:clamp(16px,4vw,48px);gap:clamp(8px,1.6vw,18px);
+  transition:opacity .45s ease;
+}
+.ap-cena.saindo{opacity:0;}
+/* Grafismo do manual como faixa no rodapé de toda cena */
+.ap-palco::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:18px;opacity:.5;pointer-events:none;
+  background:url('../assets/identidade/grafismo.svg') repeat-x left center/auto 100%;
+}
+
+.ap-titulo{font-family:var(--fonte-titulo);font-weight:700;font-size:clamp(20px,3.4vw,40px);line-height:1.15;max-width:22ch;letter-spacing:-.01em;}
+.ap-sub{font-size:clamp(13px,1.7vw,20px);color:var(--tinta-suave);max-width:40ch;}
+.ap-destaque-verde{color:var(--verde-texto);}
+.ap-destaque-azul{color:var(--azul-texto);}
+.ap-destaque-laranja{color:var(--laranja-texto);}
+
+/* Números grandes que contam até o valor */
+.ap-num{font-family:var(--fonte-titulo);font-weight:700;font-size:clamp(34px,6.4vw,76px);line-height:1;font-variant-numeric:tabular-nums;}
+.ap-unid{font-size:clamp(12px,1.5vw,17px);color:var(--tinta-suave);font-weight:600;}
+
+/* Cena 1 — símbolo montado com as peças da marca */
+.ap-simbolo{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:clamp(90px,14vw,160px);}
+.ap-simbolo .folhas{grid-column:1/-1;width:100%;}
+
+/* Cena 1 — parceiros que caem girando e pousam em fila (logos recortados
+   da barra oficial; o do Acre tem brasão, por isso é mais alto) */
+.ap-parceiros-cai{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:clamp(8px,1.5vw,20px);width:100%;margin-top:clamp(6px,1.4vw,16px);}
+.ap-parceiros-cai>span{display:block;} /* transform não age em inline */
+.ap-parceiro{display:block;height:clamp(14px,2.4vw,28px);width:auto;}
+.ap-parceiro-acre{height:clamp(24px,4.4vw,52px);}
+.ap-parceiro-onu,.ap-parceiro-cal,.ap-parceiro-resiliencia{height:clamp(17px,3vw,34px);}
+
+/* Cena 2 — mapa de fundo (mesmo SVG e cores da página Sobre, classe
+   .mapa-svg do cinema.css) e os dados num cartão à esquerda; no palco em
+   pé, o mapa fica em cima e os dados embaixo */
+.ap-mapa-cena{position:absolute;inset:0;text-align:left;}
+.ap-mapa{position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%,var(--verde-tint),var(--papel-elevado) 70%);}
+.ap-mapa-texto{position:absolute;z-index:1;top:0;bottom:0;left:clamp(14px,3vw,36px);width:min(400px,40%);display:flex;flex-direction:column;justify-content:center;gap:clamp(8px,1.4vw,14px);}
+.ap-mapa-cartao{background:color-mix(in srgb,var(--papel-elevado) 88%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--linha);border-radius:var(--raio-lg);padding:clamp(10px,1.8vw,20px);box-shadow:var(--sombra);}
+.ap-mapa-cartao .ap-titulo{font-size:clamp(17px,2.6vw,30px);max-width:none;}
+.ap-mapa-cartao .ap-sub{font-size:clamp(12px,1.5vw,17px);margin-top:4px;}
+.ap-mapa-texto .ap-apas{flex-direction:column;gap:clamp(6px,1vw,12px);flex-wrap:nowrap;}
+.ap-mapa-texto .ap-apa{min-width:0;background:color-mix(in srgb,var(--papel-elevado) 92%,transparent);box-shadow:var(--sombra);padding:clamp(8px,1.4vw,16px) clamp(12px,2vw,22px);}
+.ap-mapa-texto .ap-num{font-size:clamp(26px,4.2vw,50px);}
+@media (max-aspect-ratio:4/5){
+  .ap-mapa-texto{left:12px;right:12px;width:auto;top:auto;bottom:22px;justify-content:flex-end;}
+  .ap-mapa-texto .ap-apas{flex-direction:row;}
+  .ap-mapa-texto .ap-apa{flex:1;}
+  .ap-mapa-texto .ap-num{font-size:26px;}
+}
+
+/* Cena 2 — as duas APAs lado a lado */
+.ap-apas{display:flex;gap:clamp(12px,3vw,40px);flex-wrap:wrap;justify-content:center;}
+.ap-apa{
+  border-top:5px solid var(--verde-escuro);background:var(--papel);border-radius:var(--raio);
+  padding:clamp(10px,2vw,22px) clamp(14px,2.6vw,30px);min-width:min(260px,40vw);
+}
+.ap-apa + .ap-apa{border-top-color:var(--azul);}
+.ap-apa-nome{font-weight:700;font-size:clamp(12px,1.5vw,17px);margin-bottom:6px;}
+
+/* Cena 4 — desafios em etiquetas */
+.ap-chips{display:flex;flex-wrap:wrap;gap:clamp(6px,1vw,12px);justify-content:center;max-width:780px;}
+.ap-chip{
+  font-weight:700;font-size:clamp(13px,1.9vw,22px);padding:.35em .9em;border-radius:99px;
+  background:var(--laranja-tint);color:var(--laranja-texto);border:2px solid var(--laranja);
+}
+
+/* Cena 5 — três verbos */
+.ap-verbos{display:flex;gap:clamp(10px,2.6vw,36px);flex-wrap:wrap;justify-content:center;}
+.ap-verbo{font-family:var(--fonte-titulo);font-weight:700;font-size:clamp(24px,4.6vw,56px);line-height:1.1;}
+
+/* Cena 6 — eixos */
+.ap-eixos{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(8px,2vw,24px);width:min(900px,100%);}
+.ap-eixo{display:flex;flex-direction:column;align-items:center;gap:8px;font-weight:700;font-size:clamp(11px,1.5vw,16px);}
+.ap-eixo img{width:clamp(38px,6vw,72px);height:clamp(38px,6vw,72px);object-fit:contain;}
+.ap-transversal{
+  display:inline-flex;align-items:center;gap:10px;background:var(--verde-tint);color:var(--verde-texto);
+  padding:.5em 1.1em;border-radius:99px;font-weight:700;font-size:clamp(11px,1.4vw,16px);max-width:60ch;
+}
+.ap-transversal img{width:26px;height:26px;background:#5f8f45;border-radius:6px;padding:3px;flex-shrink:0;}
+@media (max-aspect-ratio:4/5){.ap-eixos{grid-template-columns:1fr 1fr;}}
+
+/* Cena 7 — grade de ODS + números */
+/* 15 ODS em 5×3, como na cartilha e na página Sobre */
+.ap-ods{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(3px,.6vw,8px);width:min(400px,62%);}
+.ap-ods img{width:100%;aspect-ratio:1/1;border-radius:4px;}
+.ap-metricas{display:flex;gap:clamp(14px,4vw,56px);flex-wrap:wrap;justify-content:center;align-items:flex-start;}
+.ap-metrica{display:flex;flex-direction:column;align-items:center;max-width:24ch;}
+.ap-metrica .ap-num{font-size:clamp(28px,4.8vw,58px);}
+
+/* Cena 8 — barra de parceiros */
+.ap-parceiros{width:min(860px,96%);}
+.ap-parceiros img{width:100%;height:auto;}
+
+/* Cena 9 — encerramento */
+.ap-logo-final{width:clamp(150px,22vw,260px);height:auto;}
+.ap-acoes{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
+.ap-acao{
+  display:inline-flex;align-items:center;gap:8px;font-family:var(--fonte-corpo);font-weight:600;font-size:14px;
+  padding:10px 18px;border-radius:99px;text-decoration:none;cursor:pointer;border:1px solid transparent;
+}
+.ap-acao-primaria{background:var(--verde-botao);color:#fff;}
+.ap-acao-secundaria{background:var(--papel);color:var(--tinta);border-color:var(--linha);}
+.ap-acao:focus-visible{outline:2px solid var(--verde-texto);outline-offset:2px;}
+
+/* ── Movimentos ───────────────────────────────────────────────── */
+.ap-el{opacity:0;}
+.ap-cena.ativa .ap-el{animation-duration:.8s;animation-delay:var(--d,0s);animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.75,.25,1);}
+.ap-cena.ativa .ap-sobe{animation-name:ap-sobe;}
+.ap-cena.ativa .ap-pop{animation-name:ap-pop;animation-timing-function:cubic-bezier(.3,1.5,.5,1);}
+.ap-cena.ativa .ap-esq{animation-name:ap-esq;}
+.ap-cena.ativa .ap-dir{animation-name:ap-dir;}
+.ap-cena.ativa .ap-cai{animation-name:ap-cai;}
+.ap-cena.ativa .ap-gira-cai{animation-name:ap-gira-cai;animation-duration:1.1s;animation-timing-function:cubic-bezier(.3,.9,.35,1);}
+.ap-cena.ativa .ap-revela{animation-name:ap-revela;animation-duration:1.4s;}
+.ap-cena.ativa .ap-marca{animation-name:ap-marca;animation-duration:.6s;}
+
+@keyframes ap-sobe{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:none;}}
+@keyframes ap-pop{from{opacity:0;transform:scale(.6);}to{opacity:1;transform:none;}}
+@keyframes ap-esq{from{opacity:0;transform:translateX(-60px) rotate(-8deg);}to{opacity:1;transform:none;}}
+@keyframes ap-dir{from{opacity:0;transform:translateX(60px) rotate(8deg);}to{opacity:1;transform:none;}}
+/* Cai do alto do palco girando (sentido em --giro) e quica de leve ao pousar */
+@keyframes ap-gira-cai{
+  0%{opacity:0;transform:translateY(-55vh) rotate(calc(var(--giro,1) * 300deg)) scale(.7);}
+  15%{opacity:1;}
+  72%{transform:translateY(10px) rotate(calc(var(--giro,1) * -6deg)) scale(1);}
+  88%{transform:translateY(-4px) rotate(calc(var(--giro,1) * 2deg));}
+  100%{opacity:1;transform:none;}
+}
+@keyframes ap-cai{from{opacity:0;transform:translateY(-50px) scale(.8);}to{opacity:1;transform:none;}}
+/* Cortina da esquerda pra direita (barra de logos) */
+@keyframes ap-revela{from{opacity:1;clip-path:inset(0 100% 0 0);}to{opacity:1;clip-path:inset(0 0 0 0);}}
+/* Palavra que "acende" na cor da marca depois de aparecer */
+@keyframes ap-marca{from{opacity:0;transform:translateY(10px);filter:blur(4px);}to{opacity:1;transform:none;filter:none;}}
+
+/* Pausa congela todas as animações do palco */
+.ap-palco.pausado *{animation-play-state:paused !important;}
+
+/* Quem pede menos movimento vê cada cena pronta, sem deslocamento */
+@media (prefers-reduced-motion: reduce){
+  .ap-el{opacity:1;}
+  .ap-cena.ativa .ap-el{animation:none !important;}
+  .ap-cena{transition:none;}
+}
+
+/* Botão de abrir no topo da página Sobre */
+.btn-apresentacao{cursor:pointer;}
+.btn-apresentacao svg{width:14px;height:14px;}
+
+/* ── Modo contínuo (sobre.html?modo=continuo) ────────────────────
+   Palco 16:9 ocupando a tela; barra de cenas e controles por cima, só
+   enquanto o mouse se mexe (body.ap-mouse); legenda da fala e selo do
+   idioma; escurece na troca de idioma (.trocando). */
+.ap-selo-idioma,.ap-legenda{display:none;}
+.ap-modo-continuo .ap-fundo{background:#0b120d;padding:0;}
+.ap-modo-continuo .ap-janela{position:relative;width:min(100vw,calc(100vh * 16 / 9));}
+.ap-modo-continuo .ap-palco{border-radius:0;border:0;box-shadow:none;transition:opacity .6s ease;}
+.ap-modo-continuo .ap-progresso,.ap-modo-continuo .ap-controles{position:absolute;left:16px;right:16px;z-index:4;opacity:0;transition:opacity .4s;pointer-events:none;}
+.ap-modo-continuo .ap-progresso{top:12px;}
+.ap-modo-continuo .ap-controles{bottom:12px;}
+.ap-modo-continuo.ap-mouse .ap-progresso,.ap-modo-continuo.ap-mouse .ap-controles{opacity:1;pointer-events:auto;}
+.ap-modo-continuo:not(.ap-mouse) .ap-fundo{cursor:none;}
+.ap-modo-continuo .ap-acoes{display:none;}  /* "Assistir de novo" não faz sentido em loop */
+.ap-modo-continuo .ap-fundo.trocando .ap-palco{opacity:0;}
+.ap-modo-continuo .ap-selo-idioma{display:flex;gap:4px;position:absolute;z-index:3;top:clamp(10px,2vw,22px);right:clamp(10px,2vw,22px);
+  font:700 clamp(11px,1.1vw,14px)/1 var(--fonte-corpo);letter-spacing:.06em;background:color-mix(in srgb,var(--papel-elevado) 85%,transparent);
+  border:1px solid var(--linha);border-radius:99px;padding:4px;}
+.ap-selo-idioma span{padding:.35em .7em;border-radius:99px;color:var(--tinta-suave);}
+.ap-selo-idioma span.atual{background:var(--verde-botao);color:#fff;}
+.ap-modo-continuo .ap-legenda{display:block;position:absolute;z-index:3;left:50%;bottom:clamp(26px,3.6vw,46px);transform:translateX(-50%);
+  width:max-content;max-width:min(86%,62ch);text-align:center;font:500 clamp(13px,1.7vw,22px)/1.4 var(--fonte-corpo);
+  color:#fff;background:rgba(11,18,13,.8);padding:.4em .9em;border-radius:10px;}
+
+/* Tela de início (sem permissão de som automático, espera um clique) */
+.ap-inicio{position:fixed;inset:0;z-index:1100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+  background:radial-gradient(ellipse at 50% 40%,#173a22,#0b120d 70%);color:#fff;text-align:center;padding:24px;}
+.ap-inicio img{width:min(280px,60vw);height:auto;}
+.ap-inicio-btn{display:inline-flex;align-items:center;gap:12px;font:700 clamp(18px,2.4vw,26px)/1 var(--fonte-corpo);color:#fff;
+  background:var(--verde-botao);border:0;border-radius:99px;padding:.8em 1.6em;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.35);}
+.ap-inicio-btn svg{width:1em;height:1em;}
+.ap-inicio-btn:focus-visible{outline:3px solid #9fe0b4;outline-offset:4px;}
+.ap-inicio p{font-size:14px;opacity:.75;max-width:46ch;}
+

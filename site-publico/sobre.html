@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Versão cinematográfica da página Sobre (aprovada em 2026-10-06).
+     A versão anterior ficou como backup em sobre-antigo.html. -->
+<link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
+<title data-i18n="sobre.titulo_pagina">Sobre o Projeto — Resiliência Socioambiental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/apresentacao.css">
+<link rel="stylesheet" href="css/cinema.css">
+<style>
+/* Conteúdo desta página vem da cartilha oficial do Programa, versão final
+   de out/2026 (assets/cartilha/cartilha-programa-resiliencia-socioambiental.pdf)
+   — textos, mapa, números das APAs, eixos com objetivo e principais ações,
+   ODS (com o 18, igualdade étnico-racial), metas de Kunming-Montreal e
+   expediente. Fotos e mapas vêm da pasta entregue pela comunicação
+   (assets/cinema/eixos, fotos, faixa e mapa — fotografia de Gaio
+   Nogueira); logos, ícones dos eixos e elementos gráficos dos arquivos
+   originais da identidade visual (assets/identidade/); ícones das metas
+   KM (assets/cartilha/km/) dos PNGs originais. O eixo Restauração
+   Florestal é o mesmo desenho das folhas da marca (identidade/folhas.svg),
+   igual na cartilha. */
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero-sobre{padding:var(--espaco-8) 0 var(--espaco-7);border-bottom:1px solid var(--linha);position:relative;overflow:hidden;}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:var(--espaco-7);align-items:center;}
+.hero-sobre .eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--verde-texto);margin-bottom:var(--espaco-3);}
+.hero-sobre h1{font-size:clamp(28px,3.8vw,40px);margin-bottom:var(--espaco-4);}
+.hero-sobre .lede{font-size:16px;color:var(--tinta-suave);max-width:58ch;}
+.hero-sobre .tricolor{display:flex;height:5px;border-radius:99px;overflow:hidden;max-width:260px;margin:var(--espaco-5) 0;}
+.hero-sobre .tricolor span{flex:1;}
+.hero-foto{border-radius:50%;overflow:hidden;aspect-ratio:1/1;box-shadow:var(--sombra);}
+.hero-foto img{width:100%;height:100%;object-fit:cover;}
+.cta-row{display:flex;gap:var(--espaco-3);flex-wrap:wrap;}
+@media(max-width:860px){.hero-grid{grid-template-columns:1fr;}.hero-foto{max-width:360px;}}
+
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--fonte-corpo);font-weight:600;font-size:14px;padding:11px 20px;border-radius:99px;text-decoration:none;transition:all .15s;border:1px solid transparent;}
+.btn-primario{background:var(--verde-botao);color:#fff;}
+.btn-primario:hover{background:#00752c;}
+.btn-secundario{background:var(--papel-elevado);color:var(--tinta);border-color:var(--linha);}
+.btn-secundario:hover{border-color:var(--verde-texto);color:var(--verde-texto);}
+
+/* ── Blocos ───────────────────────────────────────────────────── */
+.bloco-sobre{padding:var(--espaco-8) 0;}
+.bloco-sobre + .bloco-sobre{border-top:1px solid var(--linha);}
+.bloco-sobre .kicker{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:4px 12px;border-radius:99px;display:inline-block;margin-bottom:var(--espaco-4);
+}
+.kicker-portal{background:var(--linha);color:var(--tinta-suave);}
+.kicker-programa{background:var(--verde-tint);color:var(--verde-texto);}
+.kicker-agua{background:var(--azul-tint);color:var(--azul-texto);}
+.kicker-marca{background:var(--laranja-tint);color:var(--laranja-texto);}
+.bloco-sobre h2{font-size:clamp(22px,3vw,28px);margin-bottom:var(--espaco-4);}
+.bloco-sobre p{font-size:16px;color:var(--tinta);max-width:68ch;}
+.bloco-sobre p + p{margin-top:var(--espaco-4);}
+.bloco-tint{background:var(--verde-tint);}
+
+.duas-colunas{display:grid;grid-template-columns:1fr 1fr;gap:var(--espaco-7);align-items:start;}
+@media(max-width:860px){.duas-colunas{grid-template-columns:1fr;gap:var(--espaco-5);}}
+
+/* Quem realiza */
+.parceiros{list-style:none;margin:0;padding:0;display:grid;gap:var(--espaco-3);}
+.parceiros li{display:flex;gap:var(--espaco-3);align-items:baseline;padding:var(--espaco-3) var(--espaco-4);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);font-size:14.5px;}
+.parceiros .papel{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-suave);min-width:96px;flex-shrink:0;}
+
+/* Faixa de foto */
+.faixa-foto{height:clamp(200px,32vw,400px);background-size:cover;background-position:center;position:relative;}
+/* Legenda de local e data das fotos (informados pela coordenação) */
+.legenda-foto{position:absolute;left:12px;bottom:10px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(15,24,17,.7);padding:3px 10px;border-radius:99px;line-height:1.5;}
+.legenda-abaixo{display:block;text-align:center;font-size:12px;color:var(--tinta-suave);margin-top:var(--espaco-3);}
+
+/* Definição */
+.definicao{max-width:760px;margin:0 auto;text-align:center;}
+/* Sem flex: o .rolagem-palavras quebra o título em <span> por palavra, e como itens flex elas não quebravam linha no mobile */
+.definicao h2{text-wrap:balance;}
+.definicao p{margin:0 auto;font-size:17px;}
+
+/* Desafios */
+.desafios{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--espaco-4);margin-top:var(--espaco-6);}
+.desafio{background:var(--papel-elevado);border:1px solid var(--linha);border-left:4px solid var(--laranja);border-radius:var(--raio);padding:var(--espaco-4);font-size:14px;}
+@media(max-width:900px){.desafios{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.desafios{grid-template-columns:1fr;}}
+
+/* APAs */
+.apas{display:grid;grid-template-columns:1fr 1fr;gap:var(--espaco-4);margin-top:var(--espaco-6);}
+.apa{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);overflow:hidden;box-shadow:var(--sombra);display:flex;flex-direction:column;}
+.apa{border-top:4px solid var(--verde-escuro);}
+.apa + .apa{border-top-color:var(--azul);}
+/* Fotos das APAs em cards próprios, separadas dos números, cada uma com
+   local e data — assim nenhuma foto parece ser da APA do card ao lado */
+.fotos-apas{display:grid;grid-template-columns:1fr 1fr;gap:var(--espaco-4);margin-top:var(--espaco-4);}
+.foto-card{margin:0;background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);overflow:hidden;box-shadow:var(--sombra);}
+.foto-card img{width:100%;aspect-ratio:16/9;object-fit:cover;}
+.foto-card figcaption{padding:var(--espaco-3) var(--espaco-4);font-size:13px;color:var(--tinta-suave);}
+.foto-card figcaption strong{color:var(--tinta);font-weight:600;}
+@media(max-width:760px){.fotos-apas{grid-template-columns:1fr;}}
+.apa-corpo{padding:var(--espaco-5);}
+.apa h3{font-size:18px;margin-bottom:var(--espaco-1);}
+.apa .local{font-size:13px;color:var(--tinta-suave);margin-bottom:var(--espaco-4);}
+.apa-numeros{display:flex;gap:var(--espaco-6);flex-wrap:wrap;}
+.apa-numeros .valor{font-family:var(--fonte-titulo);font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+.apa-numeros .rotulo{font-size:12.5px;color:var(--tinta-suave);margin-top:4px;}
+.apa-total{margin-top:var(--espaco-4);display:flex;justify-content:space-between;align-items:center;gap:var(--espaco-4);flex-wrap:wrap;padding:var(--espaco-4) var(--espaco-5);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);}
+.apa-total p{font-size:15px;}
+.apa-total a{font-size:14px;font-weight:600;color:var(--verde-texto);text-decoration:none;white-space:nowrap;}
+.apa-total a:hover{text-decoration:underline;}
+@media(max-width:760px){.apas{grid-template-columns:1fr;}}
+
+/* Eixos */
+.eixos{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--espaco-4);margin-top:var(--espaco-6);}
+.eixo{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);padding:var(--espaco-5);display:flex;flex-direction:column;gap:var(--espaco-3);}
+.eixo .icone{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;}
+.eixo .icone img{max-width:100%;max-height:100%;}
+.eixo h3{font-size:16px;}
+.eixo p{font-size:13.5px;color:var(--tinta-suave);}
+.eixo-transversal{grid-column:1/-1;flex-direction:row;align-items:flex-start;gap:var(--espaco-4);background:var(--verde-tint);border-color:transparent;}
+.eixo-transversal .tag{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--verde-texto);margin-bottom:2px;}
+.eixo-transversal p{max-width:none;}
+@media(max-width:900px){.eixos{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.eixos{grid-template-columns:1fr;}.eixo-transversal{flex-direction:column;}}
+
+/* ODS — ícones oficiais em português da ONU Brasil (kit "ODS - Ícones"
+   do quadro público da ONU Brasil no Trello, ligado a partir de
+   brasil.un.org/pt-br/80916-uso-de-logomarcas-da-onu). Uso não
+   comercial por governo é permitido; o ícone não pode ser alterado. */
+.ods-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--espaco-3);margin-top:var(--espaco-6);list-style:none;padding:0;max-width:820px;}
+.ods-grid img{width:100%;height:auto;aspect-ratio:1/1;border-radius:4px;}
+@media(max-width:560px){.ods-grid{grid-template-columns:repeat(3,1fr);}}
+/* ODS 18 (igualdade étnico-racial, objetivo nacional do Brasil): ícone
+   entregue pela comunicação, o mesmo da cartilha */
+
+/* Kunming-Montreal */
+.km-grupo{margin-top:var(--espaco-6);}
+.km-grupo h3{font-size:16px;margin-bottom:var(--espaco-4);}
+.km-metas{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--espaco-4);}
+.km-metas li{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--espaco-2);}
+.km-metas img{height:110px;width:auto;object-fit:contain;}
+.km-metas span{font-size:13px;}
+.km-metas b{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-suave);}
+
+.link-secao{display:inline-block;margin-top:var(--espaco-5);font-size:14px;font-weight:600;color:var(--verde-texto);text-decoration:none;}
+.link-secao:hover{text-decoration:underline;}
+
+/* Expediente da cartilha */
+.expediente{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:var(--espaco-5) var(--espaco-6);margin-top:var(--espaco-6);}
+.expediente div{border-top:3px solid var(--verde-escuro);padding-top:var(--espaco-3);}
+.expediente h3{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-suave);margin-bottom:var(--espaco-2);}
+.expediente ul{list-style:none;margin:0;padding:0;font-size:15px;line-height:1.6;}
+
+/* Marca */
+.marca-grid{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:var(--espaco-7);align-items:center;margin-top:var(--espaco-5);}
+.marca-logo img{width:100%;height:auto;}
+@media(max-width:760px){.marca-grid{grid-template-columns:1fr;}.marca-logo{max-width:240px;}}
+.elementos{list-style:none;margin:0;padding:0;display:grid;gap:var(--espaco-4);max-width:640px;}
+.elementos li{display:flex;gap:var(--espaco-4);align-items:center;padding:var(--espaco-4);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);box-shadow:var(--sombra);}
+.elementos .el{width:40px;height:40px;object-fit:contain;flex-shrink:0;}
+.elementos strong{font-weight:700;}
+.elementos span{font-size:15px;}
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div id="site-header-slot" data-pagina="sobre"></div>
+</header>
+
+<main>
+  <!-- ── Abertura: o logo se monta com a rolagem (quadros do vídeo do logo) ── -->
+  <section class="cine" data-cine="logo" data-quadros="83" data-ajuste="miolo" data-carregar="ja" data-rolagem="3.4" data-recua="0.6" data-fim-quadros="0.68" aria-labelledby="cine-titulo">
+    <div class="cine-palco">
+      <div class="cine-cena" aria-hidden="true">
+        <canvas class="cine-canvas"></canvas>
+        <!-- Peças da marca soltas em profundidades diferentes (parallax do mouse) -->
+        <img class="cine-camada" data-profundidade="70" src="assets/identidade/folhas.svg" alt="" style="width:70px;left:9%;top:16%;transform:rotate(-18deg)">
+        <img class="cine-camada" data-profundidade="35" src="assets/identidade/folhas.svg" alt="" style="width:42px;right:12%;top:22%;transform:rotate(24deg)">
+        <img class="cine-camada" data-profundidade="-50" src="assets/identidade/curva-azul.svg" alt="" style="width:64px;left:14%;bottom:20%">
+        <img class="cine-camada" data-profundidade="-80" src="assets/identidade/curva-laranja.svg" alt="" style="width:56px;right:9%;bottom:26%">
+        <img class="cine-camada" data-profundidade="25" src="assets/identidade/folhas.svg" alt="" style="width:30px;left:44%;top:9%;transform:rotate(40deg)">
+      </div>
+      <div class="cine-texto embaixo" data-entra="0" data-sai="0.1">
+        <div class="cine-dica">
+          <span data-i18n="cine.dica">Role para descobrir</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        </div>
+      </div>
+      <div class="cine-texto embaixo" data-entra="0.64">
+        <!-- Parceiros (barra oficial recortada) caem girando, um a um, com a rolagem -->
+        <div class="cine-parceiros" role="img" aria-label="Governo do Canadá, Nações Unidas Brasil, Fundo Brasil-ONU, Consórcio Interestadual Amazônia Legal, UNESCO, Resiliência Socioambiental, SEMA e Governo do Acre" data-i18n-attr="aria-label:rodape.logos_alt">
+          <img class="cine-cai cine-parceiro-canada" data-entra="0.660" src="assets/identidade/parceiros/canada.webp" alt="">
+          <img class="cine-cai cine-parceiro-onu" data-entra="0.678" src="assets/identidade/parceiros/onu.webp" alt="">
+          <img class="cine-cai cine-parceiro-fundo" data-entra="0.696" src="assets/identidade/parceiros/fundo.webp" alt="">
+          <img class="cine-cai cine-parceiro-cal" data-entra="0.714" src="assets/identidade/parceiros/cal.webp" alt="">
+          <img class="cine-cai cine-parceiro-unesco" data-entra="0.732" src="assets/identidade/parceiros/unesco.webp" alt="">
+          <img class="cine-cai cine-parceiro-resiliencia" data-entra="0.750" src="assets/identidade/parceiros/resiliencia.webp" alt="">
+          <img class="cine-cai cine-parceiro-sema" data-entra="0.768" src="assets/identidade/parceiros/sema.webp" alt="">
+          <img class="cine-cai cine-parceiro-acre" data-entra="0.786" src="assets/identidade/parceiros/acre.webp" alt="">
+        </div>
+        <div class="cine-eyebrow" data-entra="0.84" data-i18n="sobre.eyebrow">Sobre o projeto</div>
+        <h1 class="cine-titulo cine-palavras" id="cine-titulo" data-de="0.85" data-ate="0.95" data-i18n="sobre.h1">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</h1>
+        <div class="cine-acoes">
+          <button type="button" class="btn btn-primario" data-entra="0.95" onclick="event.shiftKey ? _apIniciarContinuo() : abrirApresentacao()" title="Shift + clique: apresentação contínua (PT, EN, ES)"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg><span data-i18n="sobre.assistir">Assistir apresentação</span></button>
+          <a href="assets/cartilha/cartilha-programa-resiliencia-socioambiental.pdf" class="btn btn-secundario" data-entra="0.97" download data-i18n="sobre.baixar_cartilha">Baixar cartilha (PDF, 4,1 MB)</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Onde fica: zoom no mapa guiado pela rolagem (Brasil → Amazônia
+       Legal → Acre → Rio Branco e Bujari → APAs), como a pág. 2 da cartilha ── -->
+  <section class="mapa-zoom" data-rolagem="3.4" aria-labelledby="mapa-titulo">
+    <div class="mapa-palco">
+      <div class="mapa-svg" data-src="assets/cinema/mapa/territorio.svg" aria-hidden="true"></div>
+      <div class="mapa-textos">
+        <div class="mapa-etapa" data-entra="0" data-sai="0.2">
+          <div class="cine-eyebrow" data-i18n="sobre.k_territorio">O território</div>
+          <h2 class="mapa-titulo" id="mapa-titulo" data-i18n="sobre.mapa_amz">Estados da Amazônia Legal</h2>
+        </div>
+        <div class="mapa-etapa" data-entra="0.26" data-sai="0.44">
+          <div class="cine-eyebrow" data-i18n="sobre.k_territorio">O território</div>
+          <h2 class="mapa-titulo">Acre</h2>
+        </div>
+        <div class="mapa-etapa" data-entra="0.5" data-sai="0.68">
+          <div class="cine-eyebrow" data-i18n="sobre.k_territorio">O território</div>
+          <h2 class="mapa-titulo" data-i18n="sobre.mapa_mun">Rio Branco e Bujari</h2>
+        </div>
+        <div class="mapa-etapa" data-entra="0.74">
+          <div class="cine-eyebrow" data-i18n="sobre.k_territorio">O território</div>
+          <h2 class="mapa-titulo" data-i18n="sobre.mapa_apas">Áreas de Proteção Ambiental Igarapé São Francisco e Lago do Amapá</h2>
+          <p class="mapa-lede" data-i18n="sobre.lede">Uma iniciativa de cooperação internacional que reúne instituições nacionais e internacionais para fortalecer a conservação ambiental, promover o desenvolvimento sustentável e ampliar a capacidade das comunidades das Áreas de Proteção Ambiental (APAs) Igarapé São Francisco e Lago do Amapá de enfrentar desafios ambientais, climáticos e sociais.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── O Programa ───────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container duas-colunas">
+      <div>
+        <span class="kicker kicker-programa" data-i18n="sobre.k_programa">O Programa</span>
+        <h2 class="rolagem-palavras" data-i18n="sobre.programa_h2">Conservação, desenvolvimento sustentável e inclusão social</h2>
+        <p class="rolagem-palavras" data-i18n="sobre.programa_p1">O Programa foi criado para fortalecer a conservação ambiental e aumentar a resiliência socioambiental de dois territórios estratégicos para Rio Branco, capital do Acre, e parte do município de Bujari: as APAs Igarapé São Francisco e Lago do Amapá. Essas unidades de conservação são essenciais para a proteção dos recursos hídricos, da biodiversidade e da qualidade de vida das comunidades que vivem em seu entorno.</p>
+        <p class="rolagem-palavras" data-i18n="sobre.programa_p2">A proposta integra proteção ambiental, desenvolvimento sustentável e inclusão social, com ações voltadas à redução de vulnerabilidades, ao fortalecimento da gestão das APAs, à recuperação de áreas degradadas, à ampliação da segurança hídrica, ao incentivo a atividades econômicas sustentáveis e à maior participação das comunidades na gestão do território.</p>
+      </div>
+      <div>
+        <span class="kicker kicker-portal" data-i18n="sobre.k_quem">Quem realiza</span>
+        <h2 class="rolagem-palavras" style="font-size:18px" data-i18n="sobre.quem_h2">Uma parceria entre governo, ONU e cooperação internacional</h2>
+        <ul class="parceiros rolagem-itens">
+          <li><span class="papel" data-i18n="sobre.papel_execucao">Execução</span><span data-i18n="sobre.quem_execucao">Governo do Acre, por meio da Secretaria de Estado do Meio Ambiente (Sema)</span></li>
+          <li><span class="papel" data-i18n="sobre.papel_parceria">Parceria</span><span data-i18n="sobre.quem_parceria">Organização das Nações Unidas (ONU), por meio da UNESCO</span></li>
+          <li><span class="papel" data-i18n="sobre.papel_financiamento">Financiamento</span><span data-i18n="sobre.quem_financiamento">Fundo Brasil-ONU para o Desenvolvimento Sustentável da Amazônia</span></li>
+          <li><span class="papel" data-i18n="sobre.papel_apoio">Apoio</span><span data-i18n="sobre.quem_apoio">Consórcio Interestadual de Desenvolvimento Sustentável da Amazônia Legal (CAL)</span></li>
+          <li><span class="papel" data-i18n="sobre.papel_doacao">Doação</span><span data-i18n="sobre.quem_doacao">Governo do Canadá</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── O território: voo de drone guiado pela rolagem ── -->
+  <section class="cine cine-escuro" data-cine="territorio" data-quadros="83" data-rolagem="3.2" data-inclinacao="3" aria-labelledby="cine-territorio">
+    <div class="cine-palco">
+      <div class="cine-cena" aria-hidden="true"><canvas class="cine-canvas"></canvas></div>
+      <div class="cine-texto no-meio" data-entra="0.02" data-sai="0.28">
+        <div class="cine-eyebrow" data-i18n="sobre.k_territorio">O território</div>
+        <h2 class="cine-titulo" id="cine-territorio" data-i18n="sobre.apas_h2">As APAs e sua importância</h2>
+        <p class="cine-lede" data-i18n="sobre.apas_p">As APAs Igarapé São Francisco e Lago do Amapá são territórios estratégicos para a proteção dos recursos hídricos, da biodiversidade e da qualidade de vida de milhares de pessoas que vivem em Rio Branco. O Programa conecta a conservação desses territórios ao fortalecimento das condições sociais e econômicas das comunidades e à sua capacidade de responder às mudanças ambientais e climáticas.</p>
+      </div>
+      <div class="cine-texto no-meio" data-entra="0.33" data-sai="0.62">
+        <div class="cine-numeros">
+          <div class="cine-cartao">
+            <h3 data-i18n="apres.apa_sf">APA Igarapé São Francisco</h3>
+            <div class="local" data-i18n="sobre.local_sf">Rio Branco e parte de Bujari</div>
+            <div class="linha">
+              <div><span class="cine-num" data-alvo="30004" data-de="0.35" data-ate="0.5">0</span><span class="cine-unid" data-i18n="sobre.hectares">hectares</span></div>
+              <div><span class="cine-num" data-alvo="6114" data-de="0.37" data-ate="0.52">0</span><span class="cine-unid" data-i18n="sobre.pessoas">pessoas (estimativa)</span></div>
+            </div>
+          </div>
+          <div class="cine-cartao">
+            <h3 data-i18n="apres.apa_la">APA Lago do Amapá</h3>
+            <div class="local">Rio Branco</div>
+            <div class="linha">
+              <div><span class="cine-num" data-alvo="5208" data-de="0.39" data-ate="0.54">0</span><span class="cine-unid" data-i18n="sobre.hectares">hectares</span></div>
+              <div><span class="cine-num" data-alvo="5215" data-de="0.41" data-ate="0.56">0</span><span class="cine-unid" data-i18n="sobre.pessoas">pessoas (estimativa)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cine-texto no-meio" data-entra="0.68">
+        <p class="cine-lede" data-i18n="apres.c3_pre">onde vivem cerca de</p>
+        <span class="cine-num cine-num-grande" data-alvo="11329" data-de="0.7" data-ate="0.88">0</span>
+        <div class="cine-titulo" data-i18n="apres.c3_unid">moradores</div>
+        <p class="cine-lede" data-i18n="apres.c3_sub">que dependem dessas águas e florestas</p>
+        <p style="margin-top:18px"><a class="cine-link" href="mapa.html" data-i18n="sobre.ver_entregas_mapa">Ver as entregas no mapa →</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── O que é resiliência ──────────────────────────────────── -->
+  <section class="bloco-sobre bloco-tint">
+    <div class="container definicao">
+      <h2 class="rolagem-palavras" data-i18n="sobre.def_h2">O que é resiliência socioambiental?</h2>
+      <p class="rolagem-palavras" data-i18n="sobre.def_p">É a capacidade de um território, de suas comunidades, instituições e ecossistemas de enfrentar desafios, adaptar-se às mudanças e recuperar-se de impactos ambientais e sociais sem perder sua capacidade de gerar qualidade de vida. Isso significa proteger os recursos naturais, fortalecer as comunidades e preparar os territórios para responder melhor a situações como queimadas, enchentes, secas, desmatamento e mudanças climáticas.</p>
+    </div>
+  </section>
+
+  <!-- ── O desafio: o rio, com os desafios aparecendo um a um ── -->
+  <section class="cine cine-escuro" data-cine="rio" data-quadros="40" data-rolagem="2.4" data-inclinacao="3" aria-labelledby="cine-desafio">
+    <div class="cine-palco">
+      <div class="cine-cena" aria-hidden="true"><canvas class="cine-canvas"></canvas></div>
+      <div class="cine-texto no-meio" data-entra="0.02">
+        <div class="cine-eyebrow" data-i18n="sobre.k_desafio">O desafio</div>
+        <h2 class="cine-titulo" id="cine-desafio" data-i18n="sobre.desafio_h2">Vulnerabilidade socioambiental: o que o Programa busca enfrentar</h2>
+        <div class="cine-desafios">
+          <div class="cine-desafio" data-entra="0.16" data-i18n="sobre.desafio_1">Pressão urbana, desmatamento, queimadas e atividades econômicas predatórias.</div>
+          <div class="cine-desafio" data-entra="0.32" data-i18n="sobre.desafio_2">Inundações e secas extremas do Rio Acre, com impactos sobre o abastecimento e a segurança das comunidades.</div>
+          <div class="cine-desafio" data-entra="0.48" data-i18n="sobre.desafio_3">Mudanças climáticas e intensificação de eventos extremos, aumentando a vulnerabilidade de pessoas e ecossistemas.</div>
+          <div class="cine-desafio" data-entra="0.64" data-i18n="sobre.desafio_4">Consequências sobre segurança hídrica, produção, modos de vida e qualidade de vida.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Como atua: fotos do Programa flutuando, eixos se revezando no centro ── -->
+  <section class="flutua" data-rolagem="3" aria-labelledby="flutua-titulo">
+    <div class="flutua-palco">
+        <figure class="flutua-foto" data-profundidade="50" style="left:3%;top:7%;width:min(260px,29vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/danca-roda.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="70" style="right:4%;top:9%;width:min(240px,27vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/mata.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="70" style="left:6%;bottom:7%;width:min(230px,26vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/bolsas.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="50" style="right:6%;bottom:6%;width:min(270px,30vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/rio-drone.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="30" style="left:23%;top:2%;width:min(170px,19vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/cocar.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="15" style="right:25%;top:3%;width:min(160px,18vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/trilha.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="30" style="left:26%;bottom:3%;width:min(150px,17vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/criancas.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="15" style="right:26%;bottom:2%;width:min(190px,21vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/mulheres.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="15" style="left:1%;top:44%;width:min(180px,20vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/visita.webp" alt="" loading="lazy"></figure>
+        <figure class="flutua-foto" data-profundidade="30" style="right:1%;top:41%;width:min(190px,21vw);aspect-ratio:4/3"><img src="assets/cinema/fotos/danca-fila.webp" alt="" loading="lazy"></figure>
+      <div class="flutua-conteudo">
+        <div class="flutua-intro">
+          <span class="kicker" data-i18n="sobre.k_atua">Como atua</span>
+          <h2 id="flutua-titulo" class="cine-palavras" data-de="0.03" data-ate="0.17" data-i18n="sobre.eixos_h2">Os quatro eixos do Programa + eixo transversal</h2>
+        </div>
+        <div class="flutua-eixos">
+          <a class="flutua-eixo" href="#eixo-gov">
+            <img class="icone" src="assets/identidade/eixo-governanca.svg" alt="">
+            <h3 data-i18n="sobre.eixo_gov">Governança</h3>
+            <p data-i18n="sobre.eixo_gov_lema">Pessoas no centro da gestão</p>
+          </a>
+          <a class="flutua-eixo" href="#eixo-rest">
+            <img class="icone" src="assets/identidade/folhas.svg" alt="">
+            <h3 data-i18n="sobre.eixo_rest">Restauração Florestal</h3>
+            <p data-i18n="sobre.eixo_rest_lema">Regenerando a vida e o solo</p>
+          </a>
+          <a class="flutua-eixo" href="#eixo-bio">
+            <img class="icone" src="assets/identidade/eixo-bioeconomia.svg" alt="">
+            <h3 data-i18n="sobre.eixo_bio">Bioeconomia</h3>
+            <p data-i18n="sobre.eixo_bio_lema">Gerando renda em harmonia com a natureza</p>
+          </a>
+          <a class="flutua-eixo" href="#eixo-hid">
+            <img class="icone" src="assets/identidade/eixo-seguranca-hidrica.svg" alt="">
+            <h3 data-i18n="sobre.eixo_hid">Segurança Hídrica</h3>
+            <p data-i18n="sobre.eixo_hid_lema">Água limpa para as pessoas e o ecossistema</p>
+          </a>
+        </div>
+        <a class="flutua-transversal" href="#eixo-ig">
+          <img class="icone icone-transversal" src="assets/identidade/eixo-igualdade-genero.svg" alt="">
+          <div>
+            <span class="kicker" data-i18n="sobre.eixo_transversal">Eixo transversal</span>
+            <h3 data-i18n="sobre.eixo_ig">Igualdade de gênero, equidade étnico-racial e inclusão social</h3>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Os eixos, um por cena: fotos do eixo se abrindo e as ações
+       entrando com a rolagem (objetivo e principais ações da cartilha) ── -->
+  <section class="eixo-cena" id="eixo-gov" style="--eixo-cor:var(--amarelo-verde)" aria-labelledby="eixo-gov-t">
+    <div class="eixo-palco">
+      <div class="eixo-fotos" aria-hidden="true">
+        <figure class="eixo-foto f1"><img src="assets/cinema/eixos/gov-1-g.webp" srcset="assets/cinema/eixos/gov-1-p.webp 720w, assets/cinema/eixos/gov-1-g.webp 1400w" sizes="(max-width:900px) 100vw, 50vw" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f2"><img src="assets/cinema/eixos/gov-2-p.webp" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f3"><img src="assets/cinema/eixos/gov-3-p.webp" alt="" loading="lazy"></figure>
+      </div>
+      <div class="eixo-texto">
+        <div class="eixo-cab">
+          <img class="eixo-icone" src="assets/identidade/eixo-governanca.svg" alt="">
+          <div>
+            <h2 id="eixo-gov-t" data-i18n="sobre.eixo_gov">Governança</h2>
+            <p class="eixo-lema" data-i18n="sobre.eixo_gov_lema">Pessoas no centro da gestão</p>
+          </div>
+        </div>
+        <p class="eixo-obj"><strong data-i18n="sobre.objetivo">Objetivo</strong> <span data-i18n="sobre.eixo_gov_obj">Fortalecer a participação social, a gestão das APAs e a capacitação das comunidades, promovendo governança ambiental com foco na igualdade de gênero e na inclusão social.</span></p>
+        <h3 class="eixo-acoes-t" data-i18n="sobre.principais_acoes">Principais ações</h3>
+        <ul class="eixo-acoes">
+          <li data-i18n="sobre.eixo_gov_a1">Fortalecimento dos Conselhos Gestores</li>
+          <li data-i18n="sobre.eixo_gov_a2">Capacitações</li>
+          <li data-i18n="sobre.eixo_gov_a3">Educação ambiental</li>
+          <li data-i18n="sobre.eixo_gov_a4">Campanhas educativas</li>
+          <li data-i18n="sobre.eixo_gov_a5">Participação comunitária</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="eixo-cena eixo-inverso" id="eixo-rest" style="--eixo-cor:var(--verde-escuro)" aria-labelledby="eixo-rest-t">
+    <div class="eixo-palco">
+      <div class="eixo-fotos" aria-hidden="true">
+        <figure class="eixo-foto f1"><img src="assets/cinema/eixos/rest-1-g.webp" srcset="assets/cinema/eixos/rest-1-p.webp 720w, assets/cinema/eixos/rest-1-g.webp 1400w" sizes="(max-width:900px) 100vw, 50vw" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f2"><img src="assets/cinema/eixos/rest-2-p.webp" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f3"><img src="assets/cinema/eixos/rest-3-p.webp" alt="" loading="lazy"></figure>
+      </div>
+      <div class="eixo-texto">
+        <div class="eixo-cab">
+          <img class="eixo-icone" src="assets/identidade/folhas.svg" alt="">
+          <div>
+            <h2 id="eixo-rest-t" data-i18n="sobre.eixo_rest">Restauração Florestal</h2>
+            <p class="eixo-lema" data-i18n="sobre.eixo_rest_lema">Regenerando a vida e o solo</p>
+          </div>
+        </div>
+        <p class="eixo-obj"><strong data-i18n="sobre.objetivo">Objetivo</strong> <span data-i18n="sobre.eixo_rest_obj">Recuperar áreas degradadas, proteger nascentes e ampliar a cobertura vegetal para fortalecer a segurança hídrica e reduzir riscos ambientais.</span></p>
+        <h3 class="eixo-acoes-t" data-i18n="sobre.principais_acoes">Principais ações</h3>
+        <ul class="eixo-acoes">
+          <li data-i18n="sobre.eixo_rest_a1">Implantar Áreas de Preservação Permanente (APPs)</li>
+          <li data-i18n="sobre.eixo_rest_a2">Mapeamento, catalogação e proteção de nascentes</li>
+          <li data-i18n="sobre.eixo_rest_a3">Fomentar o Cadastro Ambiental Rural (CAR) nas APAs</li>
+          <li data-i18n="sobre.eixo_rest_a4">Recuperação florestal</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="eixo-cena" id="eixo-bio" style="--eixo-cor:var(--laranja)" aria-labelledby="eixo-bio-t">
+    <div class="eixo-palco">
+      <div class="eixo-fotos" aria-hidden="true">
+        <figure class="eixo-foto f1"><img src="assets/cinema/eixos/bio-1-g.webp" srcset="assets/cinema/eixos/bio-1-p.webp 720w, assets/cinema/eixos/bio-1-g.webp 1400w" sizes="(max-width:900px) 100vw, 50vw" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f2"><img src="assets/cinema/eixos/bio-2-p.webp" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f3"><img src="assets/cinema/eixos/bio-3-p.webp" alt="" loading="lazy"></figure>
+      </div>
+      <div class="eixo-texto">
+        <div class="eixo-cab">
+          <img class="eixo-icone" src="assets/identidade/eixo-bioeconomia.svg" alt="">
+          <div>
+            <h2 id="eixo-bio-t" data-i18n="sobre.eixo_bio">Bioeconomia</h2>
+            <p class="eixo-lema" data-i18n="sobre.eixo_bio_lema">Gerando renda em harmonia com a natureza</p>
+          </div>
+        </div>
+        <p class="eixo-obj"><strong data-i18n="sobre.objetivo">Objetivo</strong> <span data-i18n="sobre.eixo_bio_obj">Incentivar atividades econômicas sustentáveis, fortalecer a agricultura familiar, valorizar produtos da sociobiodiversidade e estimular o turismo de base comunitária.</span></p>
+        <h3 class="eixo-acoes-t" data-i18n="sobre.principais_acoes">Principais ações</h3>
+        <ul class="eixo-acoes eixo-acoes-longa">
+          <li data-i18n="sobre.eixo_bio_a1">Fortalecimento de unidades produtivas e de organizações comunitárias</li>
+          <li data-i18n="sobre.eixo_bio_a2">Desenvolvimento de produtos e serviços da sociobiodiversidade</li>
+          <li data-i18n="sobre.eixo_bio_a3">Capacitação e assistência técnica para comunidades locais</li>
+          <li data-i18n="sobre.eixo_bio_a4">Incentivo à agricultura familiar e a práticas produtivas sustentáveis</li>
+          <li data-i18n="sobre.eixo_bio_a5">Apoio ao turismo de base comunitária por meio de trilhas e infraestrutura social para valorização das APAs</li>
+          <li data-i18n="sobre.eixo_bio_a6">Implantação de estruturas e iniciativas de uso público e educação ambiental</li>
+          <li data-i18n="sobre.eixo_bio_a7">Elaboração de materiais técnicos e orientadores</li>
+          <li data-i18n="sobre.eixo_bio_a8">Realização de oficinas e participações em eventos</li>
+          <li data-i18n="sobre.eixo_bio_a9">Fortalecimento de redes, parcerias e cooperação institucional</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="eixo-cena eixo-inverso" id="eixo-hid" style="--eixo-cor:var(--azul)" aria-labelledby="eixo-hid-t">
+    <div class="eixo-palco">
+      <div class="eixo-fotos" aria-hidden="true">
+        <figure class="eixo-foto f1"><img src="assets/cinema/eixos/hid-1-g.webp" srcset="assets/cinema/eixos/hid-1-p.webp 720w, assets/cinema/eixos/hid-1-g.webp 1400w" sizes="(max-width:900px) 100vw, 50vw" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f2"><img src="assets/cinema/eixos/hid-2-p.webp" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f3"><img src="assets/cinema/eixos/hid-3-p.webp" alt="" loading="lazy"></figure>
+      </div>
+      <div class="eixo-texto">
+        <div class="eixo-cab">
+          <img class="eixo-icone" src="assets/identidade/eixo-seguranca-hidrica.svg" alt="">
+          <div>
+            <h2 id="eixo-hid-t" data-i18n="sobre.eixo_hid">Segurança Hídrica</h2>
+            <p class="eixo-lema" data-i18n="sobre.eixo_hid_lema">Água limpa para as pessoas e o ecossistema</p>
+          </div>
+        </div>
+        <p class="eixo-obj"><strong data-i18n="sobre.objetivo">Objetivo</strong> <span data-i18n="sobre.eixo_hid_obj">Fortalecer a segurança hídrica das comunidades por meio de infraestrutura, gestão de riscos, monitoramento ambiental e soluções sustentáveis para adaptação e mitigação de eventos extremos.</span></p>
+        <h3 class="eixo-acoes-t" data-i18n="sobre.principais_acoes">Principais ações</h3>
+        <ul class="eixo-acoes">
+          <li data-i18n="sobre.eixo_hid_a1">Construção de fossas sépticas para saneamento básico</li>
+          <li data-i18n="sobre.eixo_hid_a2">Aquisição e instalação de plataforma para monitoramento hidrometeorológico nas APAs</li>
+          <li data-i18n="sobre.eixo_hid_a3">Ampliação da área protegida e dos serviços ecossistêmicos</li>
+          <li data-i18n="sobre.eixo_hid_a4">Elaboração de plano de adaptação e mitigação aos eventos extremos específicos para as APAs</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="eixo-cena" id="eixo-ig" data-rolagem="1.2" style="--eixo-cor:var(--terracota)" aria-labelledby="eixo-ig-t">
+    <div class="eixo-palco">
+      <div class="eixo-fotos" aria-hidden="true">
+        <figure class="eixo-foto f1"><img src="assets/cinema/eixos/ig-1-g.webp" srcset="assets/cinema/eixos/ig-1-p.webp 720w, assets/cinema/eixos/ig-1-g.webp 1400w" sizes="(max-width:900px) 100vw, 50vw" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f2"><img src="assets/cinema/eixos/ig-2-p.webp" alt="" loading="lazy"></figure>
+        <figure class="eixo-foto f3"><img src="assets/cinema/eixos/ig-3-p.webp" alt="" loading="lazy"></figure>
+      </div>
+      <div class="eixo-texto">
+        <div class="eixo-cab">
+          <img class="eixo-icone icone-transversal" src="assets/identidade/eixo-igualdade-genero.svg" alt="">
+          <div>
+            <span class="eixo-tag" data-i18n="sobre.eixo_transversal">Eixo transversal</span>
+            <h2 id="eixo-ig-t" data-i18n="sobre.eixo_ig">Igualdade de gênero, equidade étnico-racial e inclusão social</h2>
+          </div>
+        </div>
+        <p class="eixo-obj" data-i18n="sobre.eixo_ig_p">Princípios presentes nas ações do Programa, ampliando a participação, o acesso a oportunidades e a inclusão nos processos de decisão relacionados à gestão e ao desenvolvimento do território.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ODS ──────────────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-agua" data-i18n="sobre.k_agenda">Agenda 2030</span>
+      <h2 class="rolagem-palavras" data-i18n="sobre.ods_h2">Contribuição para os Objetivos de Desenvolvimento Sustentável (ODS)</h2>
+      <p class="rolagem-palavras" data-i18n="sobre.ods_p1">Ao integrar conservação ambiental, segurança hídrica, restauração de ecossistemas, desenvolvimento econômico sustentável, inclusão social e fortalecimento da governança, o Programa contribui para o alcance dos Objetivos de Desenvolvimento Sustentável (ODS) da Agenda 2030.</p>
+      <p class="rolagem-palavras" data-i18n="sobre.ods_p2">As ações desenvolvidas nas APAs estão relacionadas a diferentes metas dos ODS, especialmente aquelas voltadas à água e saneamento, redução das vulnerabilidades, conservação dos ecossistemas, enfrentamento das mudanças climáticas, trabalho e geração de renda, igualdade de gênero, participação social e fortalecimento de parcerias.</p>
+      <p class="rolagem-palavras" data-i18n="sobre.ods_p3">Dessa forma, os ODS funcionam como uma referência para conectar as ações realizadas nos territórios a compromissos mais amplos de desenvolvimento sustentável, reforçando a integração entre conservação ambiental, qualidade de vida e desenvolvimento das comunidades. Confira abaixo quais objetivos as ações do Programa contemplam:</p>
+      <ul class="ods-grid rolagem-itens" aria-label="ODS para os quais o Programa contribui" data-i18n-attr="aria-label:sobre.ods_lista">
+        <li><img src="assets/ods/ods-01.webp" data-i18n-attr="alt:sobre.ods_01" alt="ODS 1 — Erradicação da pobreza" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-02.webp" data-i18n-attr="alt:sobre.ods_02" alt="ODS 2 — Fome zero e agricultura sustentável" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-03.webp" data-i18n-attr="alt:sobre.ods_03" alt="ODS 3 — Saúde e bem-estar" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-04.webp" data-i18n-attr="alt:sobre.ods_04" alt="ODS 4 — Educação de qualidade" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-05.webp" data-i18n-attr="alt:sobre.ods_05" alt="ODS 5 — Igualdade de gênero" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-06.webp" data-i18n-attr="alt:sobre.ods_06" alt="ODS 6 — Água potável e saneamento" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-08.webp" data-i18n-attr="alt:sobre.ods_08" alt="ODS 8 — Trabalho decente e crescimento econômico" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-10.webp" data-i18n-attr="alt:sobre.ods_10" alt="ODS 10 — Redução das desigualdades" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-11.webp" data-i18n-attr="alt:sobre.ods_11" alt="ODS 11 — Cidades e comunidades sustentáveis" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-12.webp" data-i18n-attr="alt:sobre.ods_12" alt="ODS 12 — Consumo e produção responsáveis" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-13.webp" data-i18n-attr="alt:sobre.ods_13" alt="ODS 13 — Ação contra a mudança global do clima" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-15.webp" data-i18n-attr="alt:sobre.ods_15" alt="ODS 15 — Vida terrestre" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-16.webp" data-i18n-attr="alt:sobre.ods_16" alt="ODS 16 — Paz, justiça e instituições eficazes" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-17.webp" data-i18n-attr="alt:sobre.ods_17" alt="ODS 17 — Parcerias e meios de implementação" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-18.svg" data-i18n-attr="alt:sobre.ods_18" alt="ODS 18 — Igualdade étnico-racial" width="426" height="426" loading="lazy"></li>
+      </ul>
+      <a href="resultados.html" class="link-secao" data-i18n="sobre.ver_indicadores">Ver os indicadores do Programa e seus ODS →</a>
+    </div>
+  </section>
+
+  <!-- ── Kunming-Montreal ─────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-programa" data-i18n="sobre.k_bio">Biodiversidade</span>
+      <h2 class="rolagem-palavras" data-i18n="sobre.km_h2">Contribuição para o Marco Global de Biodiversidade de Kunming-Montreal</h2>
+      <p class="rolagem-palavras" data-i18n="sobre.km_p">O Marco Global de Biodiversidade de Kunming-Montreal, adotado em 2022 no âmbito da Convenção sobre Diversidade Biológica (CDB), estabelece uma agenda global para deter e reverter a perda de biodiversidade, com 23 metas orientadas à ação para 2030. O Programa contribui para esse compromisso ao integrar a conservação e a restauração de ecossistemas, a proteção de nascentes e recursos hídricos, a resiliência às mudanças climáticas, atividades produtivas sustentáveis e a valorização das contribuições da natureza para as comunidades. Também fortalece a governança, a participação social, a produção e a disponibilização de informações, a capacitação, a igualdade de gênero e a inclusão social na gestão e conservação do território.</p>
+
+      <div class="km-grupo">
+        <h3 class="rolagem-palavras" data-i18n="sobre.km_g1">Reduzir ameaças à biodiversidade</h3>
+        <ul class="km-metas rolagem-itens">
+          <li><img src="assets/cartilha/km/meta-02.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="2">Meta 2</b><span data-i18n="sobre.km_2">Restauração de ecossistemas</span></span></li>
+          <li><img src="assets/cartilha/km/meta-03.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="3">Meta 3</b><span data-i18n="sobre.km_3">Conservação de áreas</span></span></li>
+          <li><img src="assets/cartilha/km/meta-07.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="7">Meta 7</b><span data-i18n="sobre.km_7">Redução da poluição</span></span></li>
+          <li><img src="assets/cartilha/km/meta-08.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="8">Meta 8</b><span data-i18n="sobre.km_8">Resiliência às mudanças climáticas</span></span></li>
+        </ul>
+      </div>
+      <div class="km-grupo">
+        <h3 class="rolagem-palavras" data-i18n="sobre.km_g2b">Atender às necessidades das pessoas por meio do uso sustentável e da repartição de benefícios</h3>
+        <ul class="km-metas rolagem-itens">
+          <li><img src="assets/cartilha/km/meta-09.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="9">Meta 9</b><span data-i18n="sobre.km_9">Uso sustentável da biodiversidade</span></span></li>
+          <li><img src="assets/cartilha/km/meta-10.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="10">Meta 10</b><span data-i18n="sobre.km_10">Sistemas produtivos sustentáveis</span></span></li>
+          <li><img src="assets/cartilha/km/meta-11.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="11">Meta 11</b><span data-i18n="sobre.km_11">Contribuições da natureza para as pessoas</span></span></li>
+        </ul>
+      </div>
+      <div class="km-grupo">
+        <h3 class="rolagem-palavras" data-i18n="sobre.km_g3">Ferramentas e soluções para implementação e integração</h3>
+        <ul class="km-metas rolagem-itens">
+          <li><img src="assets/cartilha/km/meta-14.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="14">Meta 14</b><span data-i18n="sobre.km_14">Biodiversidade nas políticas e no planejamento</span></span></li>
+          <li><img src="assets/cartilha/km/meta-20.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="20">Meta 20</b><span data-i18n="sobre.km_20">Capacitação, cooperação e inovação</span></span></li>
+          <li><img src="assets/cartilha/km/meta-21.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="21">Meta 21</b><span data-i18n="sobre.km_21">Dados, informação e conhecimento</span></span></li>
+          <li><img src="assets/cartilha/km/meta-22.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="22">Meta 22</b><span data-i18n="sobre.km_22">Participação e tomada de decisão</span></span></li>
+          <li><img src="assets/cartilha/km/meta-23.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="23">Meta 23</b><span data-i18n="sobre.km_23">Igualdade de gênero</span></span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Faixa: dança tradicional Huni Kuin (foto que fecha a cartilha) ── -->
+  <section class="faixa-cine" aria-labelledby="faixa-legenda">
+    <img src="assets/cinema/faixa/danca-g.webp" srcset="assets/cinema/faixa/danca-p.webp 900w, assets/cinema/faixa/danca-g.webp 1920w" sizes="100vw" alt="Abertura da festividade com a dança tradicional Huni Kuin (Kaxinawá)" data-i18n-attr="alt:sobre.alt_danca" loading="lazy">
+    <p class="faixa-legenda" id="faixa-legenda" data-i18n="sobre.leg_danca">Abertura da festividade · dança tradicional Huni Kuin (Kaxinawá)</p>
+  </section>
+
+  <!-- ── Expediente (créditos da cartilha) ───────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-programa" data-i18n="sobre.k_creditos">Créditos</span>
+      <h2 data-i18n="sobre.exp_h2">Expediente</h2>
+      <div class="expediente rolagem-itens">
+        <div><h3 data-i18n="sobre.exp_governadora">Governadora</h3><ul><li>Mailza Assis</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_secretario">Secretário de Meio Ambiente do Acre</h3><ul><li>Leonardo das Neves Carvalho</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_adjunta">Secretária Adjunta de Meio Ambiente do Acre</h3><ul><li>Renata Souza</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_diretor">Diretor de Meio Ambiente</h3><ul><li>Erisson Cameli Santiago</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_focais">Pontos focais na SEMA</h3><ul><li>Erisson Cameli Santiago</li><li>Luciana Cristina Rôla de Souza</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_coord_unesco">Coordenadores do Programa pela UNESCO</h3><ul><li>Elielton da Silva Ferreira</li><li>Larisse Cristine Sá Costa Cruz</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_coord_eixos">Coordenadores dos Eixos</h3><ul><li>Raco Tanomaru Junior</li><li>Silvia Maria Machado Uszacki</li><li>Cláudio Roberto da Silva Cavalcante</li><li>Tayna Neri de Souza Bortoloso</li><li>Maria Antonia Zabala de Almeida Nobre</li><li>Daniele Lima de Castro Bezerra</li><li>Luciana Cristina Rola de Souza</li><li>Clarice Oliveira Farias</li><li>Marilene Vasconcelos da Silva Brazil</li><li>Tiffany Maia Dimas</li><li>Madalena Ferreira da Silva</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_conteudo">Conteúdo</h3><ul><li>Evander Freitas</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_revisao">Revisão de texto</h3><ul><li>Ana Thaís Cordeiro</li><li>Evander Freitas</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_projeto">Projeto gráfico e diagramação</h3><ul><li>Ellem Jady</li></ul></div>
+        <div><h3 data-i18n="sobre.exp_foto">Fotografia</h3><ul><li>Gaio Nogueira</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sobre este portal ────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-portal" data-i18n="sobre.k_portal">Sobre este portal</span>
+      <h2 class="rolagem-palavras" data-i18n="sobre.portal_h2">Transparência para quem protege o Lago do Amapá e o Igarapé São Francisco</h2>
+      <p class="rolagem-palavras" data-i18n="sobre.portal_p">Este site é o portal público de transparência do Programa — reúne, num só lugar, o mapa das entregas realizadas, os resultados alcançados, a execução financeira agregada e a linha do tempo das principais ações, para que qualquer pessoa possa acompanhar o andamento do trabalho nas APAs do Lago do Amapá e do Igarapé São Francisco.</p>
+    </div>
+  </section>
+
+  <!-- ── Marca ────────────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-marca" data-i18n="sobre.k_marca">Por trás da marca</span>
+      <h2 class="rolagem-palavras" data-i18n="sobre.k_marca">Por trás da marca</h2>
+      <p class="rolagem-palavras" data-i18n="sobre.marca_p">A identidade visual do Programa nasce da paisagem que ele protege.</p>
+      <div class="marca-grid">
+      <div class="marca-logo">
+        <picture>
+          <source srcset="assets/identidade/logo-vertical-branca.svg" media="(prefers-color-scheme: dark)">
+          <img src="assets/identidade/logo-vertical.svg" alt="Logotipo Resiliência Socioambiental — Áreas de Proteção Ambiental Igarapé São Francisco e Lago do Amapá" data-i18n-attr="alt:sobre.alt_logo" width="178" height="77" loading="lazy">
+        </picture>
+      </div>
+      <ul class="elementos rolagem-itens">
+        <li><img class="el" src="assets/identidade/folhas.svg" alt="" loading="lazy"><span data-i18n="sobre.el_folhas"><strong>As folhas verdes</strong> representam a biodiversidade e a recuperação ambiental das APAs.</span></li>
+        <li><img class="el" src="assets/identidade/curva-azul.svg" alt="" loading="lazy"><span data-i18n="sobre.el_azul"><strong>As formas curvas em azul</strong> remetem aos igarapés e rios que o Programa trabalha para proteger.</span></li>
+        <li><img class="el" src="assets/identidade/curva-laranja.svg" alt="" loading="lazy"><span data-i18n="sobre.el_laranja"><strong>O laranja</strong> simboliza a transformação social e o fortalecimento das comunidades que vivem nesses territórios.</span></li>
+      </ul>
+      </div>
+      <p class="rolagem-palavras" style="margin-top:24px" data-i18n="sobre.marca_fim">Juntos, os três elementos traduzem o que o próprio nome do Programa propõe: resiliência entre natureza, água e as pessoas do território.</p>
+    </div>
+  </section>
+
+  <!-- ── Cartilha: a foto da capa ocupa a tela (recua do zoom com a rolagem),
+       a faixa verde do título entra como na capa e o cartão de download sobe ── -->
+  <section class="capa-cine" id="cartilha" data-rolagem="1.4" aria-labelledby="cartilha-titulo">
+    <div class="capa-palco">
+      <picture class="capa-foto">
+        <source media="(max-width: 760px)" srcset="assets/cartilha/capa-foto-p.webp">
+        <img src="assets/cartilha/capa-foto-g.webp" alt="Lago do Amapá margeado por floresta, sob céu azul, na APA Lago do Amapá" data-i18n-attr="alt:sobre.alt_capa" loading="lazy">
+      </picture>
+      <div class="capa-conteudo">
+        <h2 class="capa-faixa" id="cartilha-titulo"><span data-i18n="sobre.cartilha_h2">Cartilha do Programa</span></h2>
+        <div class="capa-cartao">
+          <div class="cartilha-capa"><img src="assets/cartilha/capa.webp" alt="" loading="lazy"></div>
+          <div>
+            <p data-i18n="sobre.cartilha_p">Todo o conteúdo desta página em formato de cartilha, em português e inglês, para ler offline, imprimir ou compartilhar.</p>
+            <a href="assets/cartilha/cartilha-programa-resiliencia-socioambiental.pdf" class="btn btn-primario" download data-i18n="sobre.baixar_pdf">Baixar PDF (4,1 MB)</a>
+          </div>
+        </div>
+      </div>
+      <p class="capa-credito" data-i18n="sobre.leg_capa">Lago do Amapá · APA Lago do Amapá · maio 2026 · foto da capa da cartilha (Gaio Nogueira)</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div id="site-footer-slot"></div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n-es.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/apresentacao.js"></script>
+<script src="js/cinema.js"></script>
+</body>
+</html>

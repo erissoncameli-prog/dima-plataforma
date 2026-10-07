@@ -1,0 +1,298 @@
+/* ════════════════════════════════════════════════════════════════
+   CINEMA — seções guiadas pela rolagem e pelo mouse (js/cinema.js)
+   As cenas têm fundo próprio (quadros do vídeo), então o texto usa cores
+   fixas em vez dos tokens: escuro sobre o logo (fundo claro), branco
+   sobre o drone (.cine-escuro) — não invertem no tema escuro.
+════════════════════════════════════════════════════════════════ */
+
+/* ── 1) Sequência de quadros ─────────────────────────────────── */
+.cine{position:relative;}
+.cine-palco{
+  position:relative;height:calc(100vh - var(--altura-header));height:calc(100svh - var(--altura-header));
+  overflow:hidden;perspective:1200px;background:#0f1811;
+}
+.cine-miolo .cine-palco{background:#eef1f2;}
+/* miolo: fundo = 1º quadro do vídeo (só o desfocado), atrás do canvas —
+   quando a cena recua, a borda da imagem some nesse mesmo desfocado */
+.cine-miolo .cine-palco::before{content:'';position:absolute;inset:0;background:var(--cine-fundo) center/cover no-repeat;}
+/* Cena um pouco maior que o palco: ao inclinar com o mouse, as bordas não aparecem */
+.cine-cena{position:absolute;inset:-4%;transform-style:preserve-3d;will-change:transform;}
+/* O canvas recua (scale) a partir do centro-topo */
+.cine-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;transform-origin:50% 40%;}
+/* Bordas esfumadas (elipse que termina nas bordas do canvas) */
+.cine-miolo .cine-canvas{-webkit-mask-image:radial-gradient(closest-side,#000 78%,transparent 100%);mask-image:radial-gradient(closest-side,#000 78%,transparent 100%);}
+/* Drone: escurece as bordas e o rodapé pra o texto branco ler bem */
+.cine-escuro .cine-cena::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 45%,rgba(8,14,10,.05) 30%,rgba(8,14,10,.6) 100%),linear-gradient(to top,rgba(8,14,10,.75),rgba(8,14,10,0) 55%);
+}
+
+/* Camadas decorativas que se movem com o mouse (profundidade em data-profundidade) */
+.cine-camada{position:absolute;pointer-events:none;will-change:transform;opacity:.55;filter:blur(.5px);}
+
+/* Textos sobre a cena */
+.cine-texto{
+  position:absolute;left:0;right:0;text-align:center;padding:0 var(--espaco-5);
+  color:#17241c;opacity:0;visibility:hidden;pointer-events:none;
+}
+.cine-texto a,.cine-texto button{pointer-events:auto;}
+.cine-escuro .cine-texto{color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.45);}
+.cine-texto.no-topo{top:12%;}
+.cine-texto.no-meio{top:50%;margin-top:-6vh;transform:translateY(-50%);}
+.cine-texto.embaixo{bottom:9%;}
+.cine-eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#007e30;}
+.cine-escuro .cine-eyebrow{color:#9fe0b4;}
+.cine-titulo{font-family:var(--fonte-titulo);font-weight:700;font-size:clamp(20px,3vw,34px);line-height:1.2;max-width:28ch;margin:8px auto 0;}
+.cine-lede{font-size:clamp(14px,1.5vw,17px);color:#4b5b4f;max-width:62ch;margin:10px auto 0;}
+.cine-escuro .cine-lede{color:rgba(255,255,255,.9);}
+.cine-acoes{display:flex;gap:var(--espaco-3);justify-content:center;flex-wrap:wrap;margin-top:var(--espaco-5);}
+.cine-acoes .btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--fonte-corpo);font-weight:600;font-size:14px;padding:11px 20px;border-radius:99px;text-decoration:none;border:1px solid transparent;cursor:pointer;}
+.cine-acoes .btn-primario{background:var(--verde-botao);color:#fff;}
+.cine-acoes .btn-secundario{background:#fff;color:#17241c;border-color:#d8dccf;}
+.cine-acoes .btn svg{width:14px;height:14px;}
+.cine-escuro .cine-link{color:#fff;font-weight:600;font-size:14px;}
+
+/* Parceiros que caem girando na abertura (logos coloridos: o fundo da cena
+   do logo é sempre claro) */
+.cine-parceiros{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:clamp(8px,1.6vw,22px);margin:0 auto var(--espaco-5);max-width:980px;}
+.cine-cai{display:block;height:clamp(14px,2vw,26px);width:auto;opacity:0;visibility:hidden;will-change:transform;}
+.cine-parceiro-onu,.cine-parceiro-cal,.cine-parceiro-resiliencia{height:clamp(17px,2.5vw,32px);}
+.cine-parceiro-acre{height:clamp(24px,3.6vw,46px);}
+@media (prefers-reduced-motion: reduce){.cine-cai{opacity:1;visibility:visible;}}
+
+/* Título que cai palavra por palavra (inline-block: o transform age e a
+   linha quebra entre as palavras normalmente) */
+.cine-palavras .cp{display:inline-block;will-change:transform;}
+/* Os eixos caem de fora do palco: o conteúdo central não corta a queda */
+.flutua-eixo,.flutua-transversal{will-change:transform;}
+
+/* Números grandes (contam com a rolagem) */
+.cine-numeros{display:flex;gap:clamp(14px,4vw,40px);justify-content:center;flex-wrap:wrap;margin-top:var(--espaco-5);}
+.cine-cartao{
+  background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.25);border-radius:var(--raio-lg);padding:clamp(12px,2vw,22px) clamp(16px,2.6vw,30px);
+  min-width:min(300px,82vw);text-shadow:none;
+}
+.cine-cartao h3{font-size:clamp(13px,1.4vw,16px);font-weight:700;}
+.cine-cartao .local{font-size:12px;opacity:.8;margin-bottom:10px;}
+.cine-cartao .linha{display:flex;gap:24px;justify-content:center;}
+.cine-num{font-family:var(--fonte-titulo);font-weight:700;font-size:clamp(28px,4.2vw,52px);line-height:1;font-variant-numeric:tabular-nums;display:block;}
+.cine-unid{font-size:12.5px;opacity:.85;margin-top:4px;display:block;}
+.cine-num-grande{font-size:clamp(48px,9vw,110px);}
+
+/* Cartões dos desafios */
+.cine-desafios{display:grid;grid-template-columns:repeat(2,minmax(0,360px));gap:var(--espaco-3);justify-content:center;margin-top:var(--espaco-5);text-align:left;}
+.cine-desafio{
+  background:rgba(15,24,17,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border-left:4px solid var(--laranja);border-radius:var(--raio);padding:12px 16px;font-size:14px;line-height:1.5;text-shadow:none;
+}
+@media(max-width:760px){.cine-desafios{grid-template-columns:1fr;}.cine-desafio{font-size:13px;padding:9px 12px;}}
+
+/* Dica de rolagem (some quando a pessoa começa a rolar) */
+.cine-dica{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#4b5b4f;letter-spacing:.04em;}
+.cine-dica svg{width:22px;height:22px;animation:cine-quica 1.6s ease-in-out infinite;}
+@keyframes cine-quica{0%,100%{transform:translateY(0);}50%{transform:translateY(6px);}}
+
+/* ── 2) Fotos flutuando ──────────────────────────────────────── */
+.flutua-palco{
+  position:relative;height:calc(100vh - var(--altura-header));height:calc(100svh - var(--altura-header));
+  overflow:hidden;background:radial-gradient(ellipse at 50% 40%,var(--verde-tint),var(--papel) 70%);
+}
+.flutua-foto{
+  position:absolute;margin:0;border-radius:14px;overflow:hidden;will-change:transform;
+  box-shadow:0 10px 30px -10px rgba(23,36,28,.35);background:#ddd;
+}
+.flutua-foto img{width:100%;height:100%;object-fit:cover;}
+/* Profundidade visual: as do fundo mais apagadas e desfocadas */
+.flutua-foto[data-profundidade="15"]{filter:blur(2px) saturate(.8);}
+.flutua-foto[data-profundidade="30"]{filter:blur(.6px);}
+/* Conteúdo no centro: título, os 4 eixos lado a lado e o transversal embaixo */
+.flutua-conteudo{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(12px,2vh,22px);padding:var(--espaco-5);pointer-events:none;
+}
+.flutua-intro{text-align:center;max-width:640px;}
+.flutua-intro .kicker,.flutua-transversal .kicker{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--verde-texto);margin-bottom:6px;display:block;}
+.flutua-intro h2{font-size:clamp(20px,2.6vw,30px);}
+.flutua-intro p{color:var(--tinta-suave);font-size:15px;margin-top:8px;}
+.flutua-eixos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(10px,1.4vw,18px);width:min(1080px,100%);}
+.flutua-eixo,.flutua-transversal{
+  background:color-mix(in srgb,var(--papel-elevado) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--linha);border-radius:var(--raio-lg);box-shadow:var(--sombra);
+}
+.flutua-eixo{padding:clamp(14px,1.8vw,22px);text-align:center;}
+.flutua-eixo .icone{width:clamp(40px,4vw,56px);height:clamp(40px,4vw,56px);margin:0 auto 8px;display:block;}
+.flutua-eixo h3{font-size:clamp(14px,1.3vw,17px);margin-bottom:6px;}
+.flutua-eixo p{color:var(--tinta-suave);font-size:13px;line-height:1.5;}
+.flutua-transversal{display:flex;gap:16px;align-items:center;text-align:left;width:min(1080px,100%);padding:clamp(12px,1.6vw,18px) clamp(14px,2vw,24px);background:color-mix(in srgb,var(--verde-tint) 92%,transparent);}
+.flutua-transversal .icone{width:48px;height:48px;flex-shrink:0;}
+/* Cartões dos eixos são atalhos para a cena de cada eixo */
+.flutua-eixo,.flutua-transversal{pointer-events:auto;color:inherit;text-decoration:none;transition:border-color .2s,transform .2s;}
+.flutua-eixo:hover,.flutua-transversal:hover{border-color:var(--verde-texto);}
+.flutua-eixo:focus-visible,.flutua-transversal:focus-visible{outline:3px solid var(--verde-texto);outline-offset:3px;}
+.flutua-transversal h3{font-size:clamp(14px,1.3vw,17px);margin-bottom:4px;}
+.flutua-transversal p{color:var(--tinta-suave);font-size:13px;line-height:1.5;}
+.icone-transversal{background:#5f8f45;border-radius:12px;padding:8px;}
+@media(max-width:900px){.flutua-eixos{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:760px){
+  .flutua-conteudo{padding:var(--espaco-3);justify-content:flex-start;padding-top:var(--espaco-5);}
+  .flutua-eixo{padding:10px;}
+  .flutua-eixo p,.flutua-transversal p{font-size:11.5px;line-height:1.4;}
+  .flutua-transversal{align-items:flex-start;}
+  .flutua-transversal .icone{width:36px;height:36px;}
+}
+@media(max-width:760px){.flutua-foto{opacity:.5;}}
+
+/* Parado (movimento reduzido): painéis em sequência, sem fotos soltas */
+.flutua-parado .flutua-palco{height:auto;padding:var(--espaco-6) 0;}
+.flutua-parado .flutua-foto{display:none;}
+.flutua-parado .flutua-conteudo{position:static;}
+
+/* ── Movimento reduzido: cenas paradas, textos em fluxo normal ── */
+@media (prefers-reduced-motion: reduce){
+  .cine-palco{height:auto;}
+  .cine-cena{position:relative;inset:auto;aspect-ratio:16/9;}
+  .cine-texto{position:relative;top:auto;bottom:auto;margin-top:0;transform:none;padding:var(--espaco-5);opacity:1;visibility:visible;}
+  .cine-dica{display:none;}
+  .cine-dica svg{animation:none;}
+}
+
+@media (max-width:760px){
+  .cine-camada{display:none;}
+  .cine-texto.no-topo{top:8%;}
+}
+
+/* ── 7) Mapa com zoom (js/cinema.js montarMapa) ─────────────────
+   Cores do mapa da cartilha (MATERIAL GRÁFICO/MAPAS): Amazônia Legal e
+   Acre em verde escuro, Rio Branco #c3cb71, Bujari #5fb980, APAs #ff7122. */
+.mapa-palco{
+  position:relative;height:calc(100vh - var(--altura-header));height:calc(100svh - var(--altura-header));
+  overflow:hidden;background:radial-gradient(ellipse at 70% 50%,var(--verde-tint),var(--papel) 70%);
+}
+/* O mapa ocupa a cena inteira (a câmera põe o alvo à direita do texto) */
+.mapa-svg{position:absolute;inset:0;}
+.mapa-svg svg{display:block;width:100%;height:100%;}
+.mapa-svg .m-brasil>*{fill:#dfe5d3;stroke:#fff;stroke-width:1px;vector-effect:non-scaling-stroke;}
+.mapa-svg .m-amz path,.mapa-svg .m-acre{fill:#00611e;stroke:#fff;stroke-width:1px;vector-effect:non-scaling-stroke;}
+.mapa-svg .m-local{opacity:0;}
+.mapa-svg .m-bujari{fill:#5fb980;}
+.mapa-svg .m-rb{fill:#c3cb71;}
+.mapa-svg .m-apa{fill:#ff7122;stroke:#fff;stroke-width:1.2px;vector-effect:non-scaling-stroke;}
+.mapa-svg .m-rio{fill:none;stroke:#ff7122;stroke-width:.5px;}
+.mapa-svg .m-rotulo{font-family:var(--fonte-titulo);font-weight:700;fill:#17241c;paint-order:stroke;stroke:#fff;stroke-linejoin:round;opacity:0;}
+.mapa-svg .m-rotulo-apa{fill:#a3420a;}
+.mapa-svg .m-chamada{stroke:#fff;stroke-width:2px;vector-effect:non-scaling-stroke;opacity:0;}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .mapa-svg .m-brasil>*{fill:#26332a;stroke:#101a13;}
+  :root:not([data-theme="light"]) .mapa-svg .m-amz path,:root:not([data-theme="light"]) .mapa-svg .m-acre{fill:#2f8a4a;stroke:#101a13;}
+}
+/* Textos das etapas num cartão à esquerda, legível sobre qualquer parte do mapa */
+.mapa-textos{position:absolute;top:0;bottom:0;left:max(var(--espaco-5),calc((100vw - 1240px) / 2));width:min(460px,38vw);pointer-events:none;display:flex;align-items:center;}
+.mapa-etapa{
+  /* Sem top: o absoluto se alinha pelo align-items do pai (o GSAP anima o
+     transform e desfaria um translateY(-50%)) */
+  position:absolute;left:0;right:0;opacity:0;visibility:hidden;
+  background:color-mix(in srgb,var(--papel-elevado) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid var(--linha);border-radius:var(--raio-lg);box-shadow:var(--sombra);padding:clamp(18px,2.4vw,32px);
+}
+.mapa-titulo{font-family:var(--fonte-titulo);font-weight:700;font-size:clamp(22px,2.8vw,38px);line-height:1.15;color:var(--tinta);margin-top:8px;}
+.mapa-lede{font-size:clamp(14px,1.2vw,16px);color:var(--tinta-suave);margin-top:var(--espaco-4);}
+.mapa-zoom .cine-eyebrow{color:var(--verde-texto);}
+@media(max-width:760px){
+  .mapa-textos{left:var(--espaco-4);right:var(--espaco-4);width:auto;top:auto;bottom:var(--espaco-4);height:45%;align-items:flex-end;}
+  .mapa-etapa{padding:var(--espaco-4);}
+  .mapa-titulo{font-size:21px;}
+  .mapa-lede{font-size:13px;margin-top:var(--espaco-2);}
+}
+/* Parado: textos em sequência e o mapa na escala dos municípios embaixo */
+.mapa-parado .mapa-palco{height:auto;padding:var(--espaco-7) var(--espaco-4);}
+.mapa-parado .mapa-textos{position:static;display:block;width:auto;max-width:640px;margin:0 auto;}
+.mapa-parado .mapa-etapa{position:static;opacity:1;visibility:visible;margin-bottom:var(--espaco-4);}
+.mapa-parado .mapa-svg{position:relative;height:60vh;}
+.mapa-parado .mapa-svg .m-local,.mapa-parado .mapa-svg .m-rotulo,.mapa-parado .mapa-svg .m-chamada{opacity:1;}
+
+/* ── 8) Cena de cada eixo (js/cinema.js montarEixos) ─────────────
+   --eixo-cor (no style da seção) tinge o fundo e marca os itens; o
+   fundo mistura a cor com o papel, então segue o tema claro/escuro. */
+.eixo-cena{background:color-mix(in srgb,var(--eixo-cor) 13%,var(--papel));scroll-margin-top:var(--altura-header);}
+.eixo-palco{
+  min-height:calc(100vh - var(--altura-header));min-height:calc(100svh - var(--altura-header));
+  display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(24px,4vw,64px);align-items:center;
+  padding:clamp(24px,5vh,56px) max(var(--espaco-5),calc((100vw - 1240px) / 2));overflow:hidden;
+}
+.eixo-inverso .eixo-fotos{order:2;}
+.eixo-fotos{position:relative;height:min(70vh,600px);}
+.eixo-foto{position:absolute;margin:0;overflow:hidden;border-radius:var(--raio-lg);box-shadow:0 18px 40px -18px rgba(23,36,28,.45);background:#ccd3c4;}
+.eixo-foto img{width:100%;height:100%;object-fit:cover;display:block;}
+.eixo-foto.f1{inset:6% 16% 14% 0;}
+.eixo-foto.f2{width:44%;aspect-ratio:4/3;right:0;bottom:0;border:6px solid var(--papel);}
+.eixo-foto.f3{width:28%;aspect-ratio:1/1;right:3%;top:0;border:5px solid var(--papel);}
+.eixo-inverso .eixo-foto.f1{inset:6% 0 14% 16%;}
+.eixo-inverso .eixo-foto.f2{right:auto;left:0;}
+.eixo-inverso .eixo-foto.f3{right:auto;left:3%;}
+.eixo-texto{max-width:580px;}
+.eixo-cab{display:flex;gap:var(--espaco-4);align-items:center;margin-bottom:var(--espaco-5);}
+.eixo-icone{width:clamp(52px,5vw,72px);height:clamp(52px,5vw,72px);flex-shrink:0;object-fit:contain;}
+.eixo-cab h2{font-size:clamp(24px,2.8vw,36px);line-height:1.15;}
+.eixo-lema{font-size:clamp(15px,1.5vw,19px);color:var(--tinta-suave);margin-top:4px;}
+.eixo-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--verde-texto);display:block;margin-bottom:4px;}
+.eixo-obj{font-size:15.5px;line-height:1.6;color:var(--tinta);padding-left:var(--espaco-4);border-left:4px solid var(--eixo-cor);}
+.eixo-obj strong{font-weight:700;margin-right:4px;}
+.eixo-acoes-t{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-suave);margin:var(--espaco-5) 0 var(--espaco-3);}
+.eixo-acoes{list-style:none;margin:0;padding:0;display:grid;gap:var(--espaco-2);}
+.eixo-acoes li{position:relative;padding:8px 12px 8px 30px;font-size:14.5px;line-height:1.45;background:color-mix(in srgb,var(--papel-elevado) 80%,transparent);border-radius:var(--raio);}
+.eixo-acoes li::before{content:'';position:absolute;left:12px;top:15px;width:8px;height:8px;border-radius:50%;background:var(--eixo-cor);}
+.eixo-acoes-longa{grid-template-columns:1fr 1fr;}
+.eixo-acoes-longa li{font-size:13.5px;}
+@media(max-width:900px){
+  .eixo-palco{grid-template-columns:1fr;min-height:0;padding:var(--espaco-7) var(--espaco-4);}
+  .eixo-inverso .eixo-fotos{order:0;}
+  .eixo-fotos{height:auto;aspect-ratio:4/3;}
+  .eixo-acoes-longa{grid-template-columns:1fr;}
+}
+
+/* ── 9) Faixa larga com a foto em parallax ────────────────────── */
+.faixa-cine{position:relative;height:clamp(280px,62vh,640px);overflow:hidden;background:#0f1811;}
+.faixa-cine img{position:absolute;left:0;top:-12%;width:100%;height:124%;object-fit:cover;will-change:transform;}
+.faixa-legenda{position:absolute;left:var(--espaco-4);bottom:var(--espaco-3);font-size:12.5px;font-weight:600;color:#fff;background:rgba(15,24,17,.7);padding:4px 12px;border-radius:99px;}
+
+/* ── 10) Cartilha: foto da capa em tela cheia (js/cinema.js montarCapa) ──
+   A faixa do título imita a capa: texto branco em itálico sobre verde. */
+.capa-palco{position:relative;height:calc(100vh - var(--altura-header));height:calc(100svh - var(--altura-header));overflow:hidden;background:#0f1811;}
+.capa-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;will-change:transform;}
+.capa-palco::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(to top,rgba(8,14,10,.55),rgba(8,14,10,0) 55%);}
+.capa-conteudo{position:absolute;z-index:1;left:max(var(--espaco-5),calc((100vw - 1120px) / 2));right:max(var(--espaco-5),calc((100vw - 1120px) / 2));top:12%;display:flex;flex-direction:column;align-items:flex-start;gap:var(--espaco-5);height:76%;justify-content:space-between;}
+.capa-faixa{margin:0;font-size:clamp(28px,4.4vw,58px);line-height:1.1;}
+.capa-faixa span{display:inline;background:#00611e;color:#fff;font-style:italic;font-weight:800;padding:.08em .35em;-webkit-box-decoration-break:clone;box-decoration-break:clone;}
+.capa-cartao{
+  display:grid;grid-template-columns:auto 1fr;gap:var(--espaco-5);align-items:center;max-width:620px;
+  background:color-mix(in srgb,var(--papel-elevado) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border:1px solid var(--linha);border-radius:var(--raio-lg);box-shadow:0 20px 50px -20px rgba(0,0,0,.5);padding:var(--espaco-5);
+}
+.capa-cartao p{font-size:15px;color:var(--tinta);margin-bottom:var(--espaco-4);}
+.capa-cartao .cartilha-capa{width:110px;aspect-ratio:3/4;border-radius:6px;overflow:hidden;box-shadow:var(--sombra);}
+.capa-cartao .cartilha-capa img{width:100%;height:100%;object-fit:cover;}
+.capa-credito{position:absolute;z-index:1;left:var(--espaco-4);bottom:var(--espaco-3);font-size:11.5px;color:rgba(255,255,255,.85);}
+@media(max-width:760px){
+  .capa-conteudo{top:6%;height:84%;}
+  .capa-cartao{grid-template-columns:1fr;}
+  .capa-cartao .cartilha-capa{display:none;}
+}
+
+/* ── 6) Trilha sonora: botão fixo no canto (criado em js/cinema.js) ── */
+.cine-som{
+  position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:900;
+  width:48px;height:48px;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  background:rgba(15,24,17,.72);color:#fff;border:1px solid rgba(255,255,255,.25);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 18px rgba(0,0,0,.25);
+  transition:background .2s,transform .2s;
+}
+.cine-som:hover{background:rgba(0,126,48,.9);transform:scale(1.06);}
+.cine-som:focus-visible{outline:3px solid #9fe0b4;outline-offset:3px;}
+.cine-som svg{width:22px;height:22px;}
+/* Desligada: alto-falante com X; ligada: ondas pulsando */
+.cine-som .cine-som-ondas{display:none;}
+.cine-som.ligada .cine-som-mudo{display:none;}
+.cine-som.ligada .cine-som-ondas{display:inline;animation:cine-som-pulsa 1.8s ease-in-out infinite;}
+@keyframes cine-som-pulsa{50%{opacity:.35;}}
+@media (prefers-reduced-motion: reduce){.cine-som.ligada .cine-som-ondas{animation:none;}}
