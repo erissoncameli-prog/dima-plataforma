@@ -1,0 +1,101 @@
+/* ════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — Site Público da DIMA
+   Produto 2, Artigo ii, Contrato UNESCO 4500573698
+
+   Paleta e tipografia derivadas do Manual Prático de Identidade
+   Visual do Programa de Resiliência Socioambiental (Ellem Jady,
+   contrato 4500563243, 25/06/2026) — ver hex/CMYK na página 7.
+
+   Distinto de propósito do sistema de gestão interno (js/config.js):
+   este arquivo serve só o site público novo, nunca o painel de gestão.
+════════════════════════════════════════════════════════════════ */
+
+:root{
+  /* ── Cores institucionais (oficiais, do manual) ──────────────── */
+  --verde-escuro:#008d36;   /* conservação e sustentabilidade */
+  --azul:#2daae1;           /* recursos hídricos, igarapés */
+  --laranja:#f29100;        /* transformação social, energia comunitária */
+
+  /* Variantes escurecidas das 3 cores acima, SÓ para texto/ícone sobre
+     fundo claro ou botão sólido — as cores oficiais puras, checadas com
+     a fórmula de contraste do WCAG 2.1 (Art. 2.2), não passam de 4.5:1
+     em texto pequeno (verde 4.32:1, azul 2.64:1, laranja 2.07:1 contra
+     branco). Mantém o mesmo matiz, só mais escuro. Cor pura continua
+     valendo pra preenchimento sólido, swatch, borda decorativa e ícone
+     grande (limite de 3:1, que a cor pura já cumpre nesses casos). */
+  --verde-texto:#007e30;    /* verde-escuro × 0.9 — 5.21:1 no branco */
+  --azul-texto:#1d6e92;     /* azul × 0.65 — 5.68:1 no branco */
+  --laranja-texto:#915700;  /* laranja × 0.6 — 5.89:1 no branco */
+  /* Fundo de botão sólido com texto branco — não muda no tema escuro
+     (as variantes *-texto clareiam lá e deixariam o branco ilegível) */
+  --verde-botao:#007e30;
+
+  /* secundárias (paleta estendida do manual) */
+  --amarelo-verde:#dddb00;
+  --azul-profundo:#1d70b7;
+  --terracota:#c06c28;
+
+  /* ── Neutros (escolha própria do site — nunca usados no sistema interno) ── */
+  --tinta:#17241c;
+  --tinta-suave:#4b5b4f;
+  --papel:#faf9f4;
+  --papel-elevado:#ffffff;
+  --linha:#e2ded0;
+  --papel-escuro:#0f1811;
+
+  /* tons derivados p/ fundos e estados, sem fugir da paleta oficial */
+  --verde-tint:#e5f4ea;
+  --azul-tint:#e6f4fb;
+  --laranja-tint:#fdedd6;
+
+  /* ── Tipografia ───────────────────────────────────────────────
+     Só Montserrat (fonte de apoio OFICIAL do manual, livre), em títulos
+     e corpo — orientação da autora do manual (Ellem Jady, out/2026):
+     a Clother, fonte principal do manual, tem licença paga e fica só
+     nos materiais gráficos impressos; o site usa a Montserrat e suas
+     variações de peso. */
+  --fonte-titulo:'Montserrat', system-ui, sans-serif;
+  --fonte-corpo:'Montserrat', system-ui, sans-serif;
+
+  /* ── Espaçamento e grid ───────────────────────────────────────── */
+  --espaco-1:4px; --espaco-2:8px; --espaco-3:12px; --espaco-4:16px;
+  --espaco-5:24px; --espaco-6:32px; --espaco-7:48px; --espaco-8:64px; --espaco-9:96px;
+  --largura-conteudo:1120px;
+  --raio:10px; --raio-lg:16px;
+  --sombra:0 1px 2px rgba(23,36,28,.04),0 8px 24px -12px rgba(23,36,28,.16);
+
+  /* header fixo (mesma convenção de altura do resto do projeto) */
+  --altura-header:72px;
+}
+
+/* ── Tema escuro: segue o mesmo espírito institucional, nunca herda
+   cor do sistema interno ─────────────────────────────────────── */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --tinta:#eef1ec; --tinta-suave:#aab6ac;
+    --papel:#101a13; --papel-elevado:#16211a; --linha:#26332a;
+    --verde-tint:#132a1d; --azul-tint:#122733; --laranja-tint:#332210;
+    /* Texto colorido sobre fundo escuro: azul e laranja oficiais já passam
+       de 4.5:1; o verde precisa de um tom mais claro (mín. 4.7:1) */
+    --verde-texto:#47ad6e; --azul-texto:#2daae1; --laranja-texto:#f29100;
+  }
+}
+:root[data-theme="dark"]{
+  --tinta:#eef1ec; --tinta-suave:#aab6ac;
+  --papel:#101a13; --papel-elevado:#16211a; --linha:#26332a;
+  --verde-tint:#132a1d; --azul-tint:#122733; --laranja-tint:#332210;
+  --verde-texto:#47ad6e; --azul-texto:#2daae1; --laranja-texto:#f29100;
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;background:var(--papel);color:var(--tinta);
+  font-family:var(--fonte-corpo);line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--fonte-titulo);text-wrap:balance;letter-spacing:-.01em;margin:0;}
+p{margin:0;}
+img{max-width:100%;display:block;}
+a{color:inherit;}
+.container{max-width:var(--largura-conteudo);width:100%;margin:0 auto;padding:0 var(--espaco-5);}
+@media(max-width:640px){.container{padding:0 var(--espaco-4);}}

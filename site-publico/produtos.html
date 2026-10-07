@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
+<title data-i18n="prod.titulo_pagina">Produtos — Resiliência Socioambiental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+.pagina-topo{padding-block:var(--espaco-6) var(--espaco-5);border-bottom:1px solid var(--linha);}
+.pagina-topo h1{font-size:clamp(22px,3vw,30px);margin-bottom:6px;}
+.pagina-topo p{font-size:14.5px;color:var(--tinta-suave);max-width:70ch;}
+
+.aviso-exemplo{display:flex;gap:10px;align-items:flex-start;background:var(--laranja-tint);border:1px solid var(--laranja);border-radius:var(--raio);padding:13px 16px;margin:var(--espaco-5) 0;font-size:13px;color:var(--tinta);}
+.aviso-exemplo strong{display:block;margin-bottom:2px;}
+
+.miolo{padding-block:var(--espaco-6) var(--espaco-9);}
+
+.filtros-produtos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:var(--espaco-6);}
+.filtro-pill{font-family:var(--fonte-corpo);font-size:12.5px;font-weight:600;color:var(--tinta-suave);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:99px;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+.filtro-pill:hover{border-color:var(--verde-texto);}
+.filtro-pill.ativo{color:var(--verde-texto);background:var(--verde-tint);border-color:var(--verde-texto);}
+.filtro-pill img{width:16px;height:16px;object-fit:contain;}
+
+.grid-produtos{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--espaco-4);}
+@media(max-width:900px){.grid-produtos{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.grid-produtos{grid-template-columns:1fr;}}
+
+.card-produto{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);overflow:hidden;box-shadow:var(--sombra);display:flex;flex-direction:column;}
+.card-produto[hidden]{display:none;}
+/* Só a capa do produto (decisão da coordenação: sem download do arquivo original).
+   Enquanto não há capas reais, desenha uma capa genérica com a marca do Programa. */
+.card-produto-capa{height:200px;display:flex;align-items:center;justify-content:center;position:relative;background:var(--verde-tint);}
+.capa-doc{width:118px;aspect-ratio:3/4;background:#fff;border-radius:3px;box-shadow:0 2px 6px rgba(23,36,28,.12),0 12px 24px -10px rgba(23,36,28,.3);display:flex;flex-direction:column;padding:10px 9px;gap:6px;overflow:hidden;}
+.capa-doc .capa-logo{width:100%;height:auto;}
+.capa-doc .capa-faixa{height:4px;border-radius:2px;}
+.capa-doc .capa-titulo{font-family:var(--fonte-titulo);font-size:8.5px;font-weight:700;line-height:1.25;color:#17241c;}
+.capa-doc .capa-linhas{margin-top:auto;display:grid;gap:3px;}
+.capa-doc .capa-linhas i{display:block;height:3px;border-radius:2px;background:#e2ded0;}
+.card-produto-selo{position:absolute;top:8px;right:8px;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(0,0,0,.55);color:#fff;padding:3px 8px;border-radius:99px;}
+.card-produto-corpo{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1;}
+.card-produto-eixo{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-suave);}
+.card-produto-eixo img{width:16px;height:16px;object-fit:contain;}
+.card-produto-titulo{font-size:14px;font-weight:600;color:var(--tinta);line-height:1.4;}
+.card-produto-autor{font-size:12.5px;color:var(--tinta-suave);flex:1;}
+.card-produto-rodape{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--tinta-suave);padding-top:8px;margin-top:4px;border-top:1px solid var(--linha);}
+.card-produto-resultado{font-family:var(--fonte-corpo);font-weight:700;padding:1px 7px;border-radius:4px;color:#fff;}
+.sem-resultado{grid-column:1/-1;text-align:center;color:var(--tinta-suave);font-size:14px;padding:var(--espaco-7) 0;}
+
+.nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-6);}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div id="site-header-slot" data-pagina="produtos"></div>
+</header>
+
+<main>
+  <div class="pagina-topo container">
+    <h1 data-i18n="nav.produtos">Produtos</h1>
+    <p data-i18n="prod.intro">Relatórios, planos e materiais técnicos produzidos pelo Programa, autorizados para divulgação pública.</p>
+    <div class="aviso-exemplo">
+      <span>⚠️</span>
+      <div data-i18n="prod.aviso"><strong>Conteúdo de exemplo — não são produtos reais.</strong>Cada produto só aparece aqui depois de autorizado pela coordenação, caso a caso — inclusive os já entregues, que vão passar por revisão. Produtos marcados como contendo dados pessoais (LGPD) no recebimento nunca vêm para o site. O controle dessa autorização é criado no banco de dados no Produto 3; os cartões abaixo mostram como a página vai se comportar.</div>
+    </div>
+  </div>
+
+  <div class="miolo container">
+    <div class="filtros-produtos" id="filtros-produtos" role="group" aria-label="Filtrar por resultado" data-i18n-attr="aria-label:prod.filtrar">
+      <button class="filtro-pill ativo" data-filtro="todos" data-i18n="prod.todos">Todos</button>
+      <button class="filtro-pill" data-filtro="R1"><img src="assets/identidade/eixo-bioeconomia.svg" alt="">R1 · <span data-i18n="prod.eixo_r1">Bioeconomia</span></button>
+      <button class="filtro-pill" data-filtro="R2"><img src="assets/identidade/eixo-seguranca-hidrica.svg" alt="">R2 · <span data-i18n="prod.eixo_r2">Segurança Hídrica</span></button>
+      <button class="filtro-pill" data-filtro="R3"><img src="assets/identidade/eixo-governanca.svg" alt="">R3 · <span data-i18n="prod.eixo_r3">Governança</span></button>
+      <button class="filtro-pill" data-filtro="R4">R4 · <span data-i18n="prod.eixo_r4">Gestão do Programa</span></button>
+    </div>
+
+    <div class="grid-produtos" id="grid-produtos"></div>
+
+    <p class="nota-dados" data-i18n="prod.nota">Cartões de exemplo — no site publicado, virão da função pública fn_publico_galeria_produtos(), que depende da autorização de divulgação por produto (Produto 3). O site mostra só a capa e a ficha do produto; o arquivo original não fica disponível para download.</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div id="site-footer-slot"></div>
+</footer>
+
+<script src="js/i18n.js"></script>
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n-es.js"></script>
+<script src="js/layout.js"></script>
+<script>
+// Resultados do Programa e o eixo da cartilha a que cada um corresponde
+// (nome do eixo traduzido em prod.eixo_r1..r4)
+const RESULTADOS = {
+  R1: { cor: '#188462', icone: 'assets/identidade/eixo-bioeconomia.svg' },
+  R2: { cor: '#2563EB', icone: 'assets/identidade/eixo-seguranca-hidrica.svg' },
+  R3: { cor: '#7169C4', icone: 'assets/identidade/eixo-governanca.svg' },
+  R4: { cor: '#6B7280', icone: null },
+};
+
+// Exemplos — no Produto 3 vêm de fn_publico_galeria_produtos(). Título e
+// autor são conteúdo do banco: ficam em português em todos os idiomas.
+const PRODUTOS_EXEMPLO = [
+  { titulo: 'Diagnóstico das cadeias produtivas sustentáveis', autor: 'Nome da consultora (exemplo)', resultado: 'R1', data: '2026-08' },
+  { titulo: 'Plano de proteção de nascentes',                  autor: 'Nome do consultor (exemplo)',  resultado: 'R2', data: '2026-07' },
+  { titulo: 'Relatório das oficinas dos Conselhos Gestores',   autor: 'Nome da empresa (exemplo)',    resultado: 'R3', data: '2026-06' },
+  { titulo: 'Estudo de equidade de gênero nas APAs',           autor: 'Nome da consultora (exemplo)', resultado: 'R2', data: '2026-08' },
+  { titulo: 'Mapeamento do turismo de base comunitária',       autor: 'Nome do consultor (exemplo)',  resultado: 'R1', data: '2026-05' },
+  { titulo: 'Relatório de auditoria independente',             autor: 'Nome da empresa (exemplo)',    resultado: 'R4', data: '2026-07' },
+];
+
+// "ago 2026" / "Aug 2026" / "ago 2026"
+function mesAno(aaaaMm) {
+  const d = new Date(aaaaMm + '-15T12:00');
+  return new Intl.DateTimeFormat(localeAtual(), { month: 'short' }).format(d).replace('.', '') + ' ' + d.getFullYear();
+}
+
+function cardProduto(p) {
+  const r = RESULTADOS[p.resultado];
+  const icone = r.icone ? `<img src="${r.icone}" alt="">` : '';
+  return `
+    <article class="card-produto" data-resultado="${p.resultado}">
+      <div class="card-produto-capa">
+        <div class="capa-doc" aria-hidden="true">
+          <img class="capa-logo" src="assets/identidade/logo-horizontal.svg" alt="">
+          <span class="capa-faixa" style="background:${r.cor}"></span>
+          <span class="capa-titulo">${p.titulo}</span>
+          <span class="capa-linhas"><i></i><i></i><i style="width:60%"></i></span>
+        </div>
+        <span class="card-produto-selo">${t('prod.exemplo')}</span>
+      </div>
+      <div class="card-produto-corpo">
+        <span class="card-produto-eixo">${icone}${t('prod.eixo_' + p.resultado.toLowerCase())}</span>
+        <span class="card-produto-titulo">${p.titulo}</span>
+        <span class="card-produto-autor">${p.autor}</span>
+        <div class="card-produto-rodape"><span class="card-produto-resultado" style="background:${r.cor}">${p.resultado}</span><span>${mesAno(p.data)}</span></div>
+      </div>
+    </article>`;
+}
+
+let _filtroProdutos = 'todos';
+
+function filtrarProdutos(filtro) {
+  _filtroProdutos = filtro;
+  let visiveis = 0;
+  document.querySelectorAll('.card-produto').forEach(c => {
+    const mostra = filtro === 'todos' || c.dataset.resultado === filtro;
+    c.hidden = !mostra;
+    if (mostra) visiveis++;
+  });
+  document.getElementById('sem-resultado')?.remove();
+  if (!visiveis) document.getElementById('grid-produtos').insertAdjacentHTML('beforeend', `<p class="sem-resultado" id="sem-resultado">${t('prod.nenhum')}</p>`);
+  document.querySelectorAll('.filtro-pill').forEach(b => b.classList.toggle('ativo', b.dataset.filtro === filtro));
+}
+
+function desenharProdutos() {
+  document.getElementById('grid-produtos').innerHTML = PRODUTOS_EXEMPLO.map(cardProduto).join('');
+  filtrarProdutos(_filtroProdutos);
+}
+desenharProdutos();
+document.addEventListener('idioma', desenharProdutos);
+document.getElementById('filtros-produtos').addEventListener('click', e => {
+  const b = e.target.closest('.filtro-pill');
+  if (b) filtrarProdutos(b.dataset.filtro);
+});
+</script>
+</body>
+</html>

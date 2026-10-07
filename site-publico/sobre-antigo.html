@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Backup da página Sobre anterior, fora do menu; a oficial agora é sobre.html (cinematográfica) -->
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
+<title data-i18n="sobre.titulo_pagina">Sobre o Projeto — Resiliência Socioambiental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/apresentacao.css">
+<style>
+/* Conteúdo desta página vem da cartilha oficial do Programa
+   (assets/cartilha/cartilha-programa-resiliencia-socioambiental.pdf) —
+   textos, números das APAs, eixos, ODS e metas de Kunming-Montreal.
+   Fotos, logos, ícones dos eixos e elementos gráficos vêm dos arquivos
+   originais da identidade visual (assets/fotos/ e assets/identidade/);
+   ícones das metas KM (assets/cartilha/km/) dos PNGs originais. O eixo
+   Restauração Florestal é o mesmo desenho das folhas da marca
+   (identidade/folhas.svg), igual na cartilha. */
+
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero-sobre{padding:var(--espaco-8) 0 var(--espaco-7);border-bottom:1px solid var(--linha);position:relative;overflow:hidden;}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:var(--espaco-7);align-items:center;}
+.hero-sobre .eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--verde-texto);margin-bottom:var(--espaco-3);}
+.hero-sobre h1{font-size:clamp(28px,3.8vw,40px);margin-bottom:var(--espaco-4);}
+.hero-sobre .lede{font-size:16px;color:var(--tinta-suave);max-width:58ch;}
+.hero-sobre .tricolor{display:flex;height:5px;border-radius:99px;overflow:hidden;max-width:260px;margin:var(--espaco-5) 0;}
+.hero-sobre .tricolor span{flex:1;}
+.hero-foto{border-radius:50%;overflow:hidden;aspect-ratio:1/1;box-shadow:var(--sombra);}
+.hero-foto img{width:100%;height:100%;object-fit:cover;}
+.cta-row{display:flex;gap:var(--espaco-3);flex-wrap:wrap;}
+@media(max-width:860px){.hero-grid{grid-template-columns:1fr;}.hero-foto{max-width:360px;}}
+
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--fonte-corpo);font-weight:600;font-size:14px;padding:11px 20px;border-radius:99px;text-decoration:none;transition:all .15s;border:1px solid transparent;}
+.btn-primario{background:var(--verde-botao);color:#fff;}
+.btn-primario:hover{background:#00752c;}
+.btn-secundario{background:var(--papel-elevado);color:var(--tinta);border-color:var(--linha);}
+.btn-secundario:hover{border-color:var(--verde-texto);color:var(--verde-texto);}
+
+/* ── Blocos ───────────────────────────────────────────────────── */
+.bloco-sobre{padding:var(--espaco-8) 0;}
+.bloco-sobre + .bloco-sobre{border-top:1px solid var(--linha);}
+.bloco-sobre .kicker{
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:4px 12px;border-radius:99px;display:inline-block;margin-bottom:var(--espaco-4);
+}
+.kicker-portal{background:var(--linha);color:var(--tinta-suave);}
+.kicker-programa{background:var(--verde-tint);color:var(--verde-texto);}
+.kicker-agua{background:var(--azul-tint);color:var(--azul-texto);}
+.kicker-marca{background:var(--laranja-tint);color:var(--laranja-texto);}
+.bloco-sobre h2{font-size:clamp(22px,3vw,28px);margin-bottom:var(--espaco-4);}
+.bloco-sobre p{font-size:16px;color:var(--tinta);max-width:68ch;}
+.bloco-sobre p + p{margin-top:var(--espaco-4);}
+.bloco-tint{background:var(--verde-tint);}
+
+.duas-colunas{display:grid;grid-template-columns:1fr 1fr;gap:var(--espaco-7);align-items:start;}
+@media(max-width:860px){.duas-colunas{grid-template-columns:1fr;gap:var(--espaco-5);}}
+
+/* Quem realiza */
+.parceiros{list-style:none;margin:0;padding:0;display:grid;gap:var(--espaco-3);}
+.parceiros li{display:flex;gap:var(--espaco-3);align-items:baseline;padding:var(--espaco-3) var(--espaco-4);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);font-size:14.5px;}
+.parceiros .papel{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-suave);min-width:96px;flex-shrink:0;}
+
+/* Faixa de foto */
+.faixa-foto{height:clamp(200px,32vw,400px);background-size:cover;background-position:center;position:relative;}
+/* Legenda de local e data das fotos (informados pela coordenação) */
+.legenda-foto{position:absolute;left:12px;bottom:10px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(15,24,17,.7);padding:3px 10px;border-radius:99px;line-height:1.5;}
+.legenda-abaixo{display:block;text-align:center;font-size:12px;color:var(--tinta-suave);margin-top:var(--espaco-3);}
+
+/* Definição */
+.definicao{max-width:760px;margin:0 auto;text-align:center;}
+.definicao h2{display:flex;align-items:center;justify-content:center;gap:var(--espaco-3);}
+.definicao p{margin:0 auto;font-size:17px;}
+
+/* Desafios */
+.desafios{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--espaco-4);margin-top:var(--espaco-6);}
+.desafio{background:var(--papel-elevado);border:1px solid var(--linha);border-left:4px solid var(--laranja);border-radius:var(--raio);padding:var(--espaco-4);font-size:14px;}
+@media(max-width:900px){.desafios{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.desafios{grid-template-columns:1fr;}}
+
+/* APAs */
+.apas{display:grid;grid-template-columns:1fr 1fr;gap:var(--espaco-4);margin-top:var(--espaco-6);}
+.apa{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);overflow:hidden;box-shadow:var(--sombra);display:flex;flex-direction:column;}
+.apa{border-top:4px solid var(--verde-escuro);}
+.apa + .apa{border-top-color:var(--azul);}
+/* Fotos das APAs em cards próprios, separadas dos números, cada uma com
+   local e data — assim nenhuma foto parece ser da APA do card ao lado */
+.fotos-apas{display:grid;grid-template-columns:1fr 1fr;gap:var(--espaco-4);margin-top:var(--espaco-4);}
+.foto-card{margin:0;background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);overflow:hidden;box-shadow:var(--sombra);}
+.foto-card img{width:100%;aspect-ratio:16/9;object-fit:cover;}
+.foto-card figcaption{padding:var(--espaco-3) var(--espaco-4);font-size:13px;color:var(--tinta-suave);}
+.foto-card figcaption strong{color:var(--tinta);font-weight:600;}
+@media(max-width:760px){.fotos-apas{grid-template-columns:1fr;}}
+.apa-corpo{padding:var(--espaco-5);}
+.apa h3{font-size:18px;margin-bottom:var(--espaco-1);}
+.apa .local{font-size:13px;color:var(--tinta-suave);margin-bottom:var(--espaco-4);}
+.apa-numeros{display:flex;gap:var(--espaco-6);flex-wrap:wrap;}
+.apa-numeros .valor{font-family:var(--fonte-titulo);font-size:28px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+.apa-numeros .rotulo{font-size:12.5px;color:var(--tinta-suave);margin-top:4px;}
+.apa-total{margin-top:var(--espaco-4);display:flex;justify-content:space-between;align-items:center;gap:var(--espaco-4);flex-wrap:wrap;padding:var(--espaco-4) var(--espaco-5);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);}
+.apa-total p{font-size:15px;}
+.apa-total a{font-size:14px;font-weight:600;color:var(--verde-texto);text-decoration:none;white-space:nowrap;}
+.apa-total a:hover{text-decoration:underline;}
+@media(max-width:760px){.apas{grid-template-columns:1fr;}}
+
+/* Eixos */
+.eixos{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--espaco-4);margin-top:var(--espaco-6);}
+.eixo{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);padding:var(--espaco-5);display:flex;flex-direction:column;gap:var(--espaco-3);}
+.eixo .icone{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;}
+.eixo .icone img{max-width:100%;max-height:100%;}
+.eixo h3{font-size:16px;}
+.eixo p{font-size:13.5px;color:var(--tinta-suave);}
+.eixo-transversal{grid-column:1/-1;flex-direction:row;align-items:flex-start;gap:var(--espaco-4);background:var(--verde-tint);border-color:transparent;}
+.eixo-transversal .tag{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--verde-texto);margin-bottom:2px;}
+.eixo-transversal p{max-width:none;}
+@media(max-width:900px){.eixos{grid-template-columns:1fr 1fr;}}
+@media(max-width:520px){.eixos{grid-template-columns:1fr;}.eixo-transversal{flex-direction:column;}}
+
+/* ODS — ícones oficiais em português da ONU Brasil (kit "ODS - Ícones"
+   do quadro público da ONU Brasil no Trello, ligado a partir de
+   brasil.un.org/pt-br/80916-uso-de-logomarcas-da-onu). Uso não
+   comercial por governo é permitido; o ícone não pode ser alterado. */
+.ods-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:var(--espaco-3);margin-top:var(--espaco-6);list-style:none;padding:0;}
+.ods-grid img{width:100%;height:auto;aspect-ratio:1/1;border-radius:4px;}
+@media(max-width:1000px){.ods-grid{grid-template-columns:repeat(5,1fr);}}
+@media(max-width:560px){.ods-grid{grid-template-columns:repeat(3,1fr);}}
+
+/* Kunming-Montreal */
+.km-grupo{margin-top:var(--espaco-6);}
+.km-grupo h3{font-size:16px;margin-bottom:var(--espaco-4);}
+.km-metas{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--espaco-4);}
+.km-metas li{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--espaco-2);}
+.km-metas img{height:110px;width:auto;object-fit:contain;}
+.km-metas span{font-size:13px;}
+.km-metas b{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-suave);}
+
+.link-secao{display:inline-block;margin-top:var(--espaco-5);font-size:14px;font-weight:600;color:var(--verde-texto);text-decoration:none;}
+.link-secao:hover{text-decoration:underline;}
+
+/* Marca */
+.marca-grid{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:var(--espaco-7);align-items:center;margin-top:var(--espaco-5);}
+.marca-logo img{width:100%;height:auto;}
+@media(max-width:760px){.marca-grid{grid-template-columns:1fr;}.marca-logo{max-width:240px;}}
+.elementos{list-style:none;margin:0;padding:0;display:grid;gap:var(--espaco-4);max-width:640px;}
+.elementos li{display:flex;gap:var(--espaco-4);align-items:center;padding:var(--espaco-4);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);box-shadow:var(--sombra);}
+.elementos .el{width:40px;height:40px;object-fit:contain;flex-shrink:0;}
+.elementos strong{font-weight:700;}
+.elementos span{font-size:15px;}
+
+/* Download da cartilha */
+.cartilha-box{display:grid;grid-template-columns:auto 1fr auto;gap:var(--espaco-6);align-items:center;background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);padding:var(--espaco-6);box-shadow:var(--sombra);}
+.cartilha-capa{width:120px;aspect-ratio:3/4;border-radius:6px;overflow:hidden;box-shadow:var(--sombra);background:var(--verde-escuro);}
+.cartilha-capa img{width:100%;height:100%;object-fit:cover;}
+.cartilha-box h2{font-size:22px;margin-bottom:var(--espaco-2);}
+.cartilha-box p{font-size:14.5px;color:var(--tinta-suave);}
+@media(max-width:760px){.cartilha-box{grid-template-columns:1fr;text-align:left;}.cartilha-capa{display:none;}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div id="site-header-slot" data-pagina="sobre"></div>
+</header>
+
+<main>
+  <!-- ── Hero ─────────────────────────────────────────────────── -->
+  <section class="hero-sobre">
+    <div class="container hero-grid">
+      <div>
+        <div class="eyebrow" data-i18n="sobre.eyebrow">Sobre o projeto</div>
+        <h1 data-i18n="sobre.h1">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</h1>
+        <p class="lede" data-i18n="sobre.lede">Uma iniciativa de cooperação internacional que reúne instituições nacionais e internacionais para fortalecer a conservação ambiental, promover o desenvolvimento sustentável e ampliar a capacidade das comunidades das Áreas de Proteção Ambiental (APAs) Igarapé São Francisco e Lago do Amapá de enfrentar desafios ambientais, climáticos e sociais.</p>
+        <div class="tricolor">
+          <span style="background:var(--verde-escuro)"></span>
+          <span style="background:var(--azul)"></span>
+          <span style="background:var(--laranja)"></span>
+        </div>
+        <div class="cta-row">
+          <button type="button" class="btn btn-primario btn-apresentacao" onclick="abrirApresentacao()"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg><span data-i18n="sobre.assistir">Assistir apresentação</span></button>
+          <a href="assets/cartilha/cartilha-programa-resiliencia-socioambiental.pdf" class="btn btn-secundario" download data-i18n="sobre.baixar_cartilha">Baixar cartilha (PDF, 3,8 MB)</a>
+        </div>
+      </div>
+      <figure style="margin:0">
+        <div class="hero-foto">
+          <img src="assets/fotos/foto-floresta-900.webp" data-i18n-attr="alt:sobre.alt_trilha" alt="Trilha em meio à floresta densa da APA Igarapé São Francisco">
+        </div>
+        <figcaption class="legenda-abaixo" data-i18n="sobre.leg_trilha">APA Igarapé São Francisco · jun/2026</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ── O Programa ───────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container duas-colunas">
+      <div>
+        <span class="kicker kicker-programa" data-i18n="sobre.k_programa">O Programa</span>
+        <h2 data-i18n="sobre.programa_h2">Conservação, desenvolvimento sustentável e inclusão social</h2>
+        <p data-i18n="sobre.programa_p1">O Programa foi criado para fortalecer a conservação ambiental e aumentar a resiliência socioambiental de dois territórios estratégicos para Rio Branco, capital do Acre, e parte do município de Bujari: as APAs Igarapé São Francisco e Lago do Amapá. Essas unidades de conservação são essenciais para a proteção dos recursos hídricos, da biodiversidade e da qualidade de vida das comunidades que vivem em seu entorno.</p>
+        <p data-i18n="sobre.programa_p2">A proposta integra proteção ambiental, desenvolvimento sustentável e inclusão social, com ações voltadas à redução de vulnerabilidades, ao fortalecimento da gestão das APAs, à recuperação de áreas degradadas, à ampliação da segurança hídrica, ao incentivo a atividades econômicas sustentáveis e à maior participação das comunidades na gestão do território.</p>
+      </div>
+      <div>
+        <span class="kicker kicker-portal" data-i18n="sobre.k_quem">Quem realiza</span>
+        <h2 style="font-size:18px" data-i18n="sobre.quem_h2">Uma parceria entre governo, ONU e cooperação internacional</h2>
+        <ul class="parceiros">
+          <li><span class="papel" data-i18n="sobre.papel_execucao">Execução</span><span data-i18n="sobre.quem_execucao">Governo do Acre, por meio da Secretaria de Estado do Meio Ambiente (Sema)</span></li>
+          <li><span class="papel" data-i18n="sobre.papel_parceria">Parceria</span><span data-i18n="sobre.quem_parceria">Organização das Nações Unidas (ONU), por meio da UNESCO</span></li>
+          <li><span class="papel" data-i18n="sobre.papel_financiamento">Financiamento</span><span data-i18n="sobre.quem_financiamento">Fundo Brasil-ONU para o Desenvolvimento Sustentável da Amazônia</span></li>
+          <li><span class="papel" data-i18n="sobre.papel_apoio">Apoio</span><span data-i18n="sobre.quem_apoio">Consórcio Interestadual de Desenvolvimento Sustentável da Amazônia Legal (CAL)</span></li>
+          <li><span class="papel" data-i18n="sobre.papel_doacao">Doação</span><span data-i18n="sobre.quem_doacao">Governo do Canadá</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="faixa-foto" style="background-image:url('assets/fotos/foto-aerea-rio.webp')" role="img" aria-label="Vista aérea de drone do igarapé cercado por floresta na APA Igarapé São Francisco" data-i18n-attr="aria-label:sobre.alt_aerea"><span class="legenda-foto" data-i18n="sobre.leg_aerea">APA Igarapé São Francisco · vista aérea (drone) · jun/2026</span></div>
+
+  <!-- ── O que é resiliência ──────────────────────────────────── -->
+  <section class="bloco-sobre bloco-tint">
+    <div class="container definicao">
+      <h2 data-i18n="sobre.def_h2">O que é resiliência socioambiental?</h2>
+      <p data-i18n="sobre.def_p">É a capacidade de um território, de suas comunidades, instituições e ecossistemas de enfrentar desafios, adaptar-se às mudanças e recuperar-se de impactos ambientais e sociais sem perder sua capacidade de gerar qualidade de vida. Isso significa proteger os recursos naturais, fortalecer as comunidades e preparar os territórios para responder melhor a situações como queimadas, enchentes, secas, desmatamento e mudanças climáticas.</p>
+    </div>
+  </section>
+
+  <!-- ── O desafio ────────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-marca" data-i18n="sobre.k_desafio">O desafio</span>
+      <h2 data-i18n="sobre.desafio_h2">Vulnerabilidade socioambiental: o que o Programa busca enfrentar</h2>
+      <div class="desafios">
+        <div class="desafio" data-i18n="sobre.desafio_1">Pressão urbana, desmatamento, queimadas e atividades econômicas predatórias.</div>
+        <div class="desafio" data-i18n="sobre.desafio_2">Inundações e secas extremas do Rio Acre, com impactos sobre o abastecimento e a segurança das comunidades.</div>
+        <div class="desafio" data-i18n="sobre.desafio_3">Mudanças climáticas e intensificação de eventos extremos, aumentando a vulnerabilidade de pessoas e ecossistemas.</div>
+        <div class="desafio" data-i18n="sobre.desafio_4">Consequências sobre segurança hídrica, produção, modos de vida e qualidade de vida.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── As APAs ──────────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-agua" data-i18n="sobre.k_territorio">O território</span>
+      <h2 data-i18n="sobre.apas_h2">As APAs e sua importância</h2>
+      <p data-i18n="sobre.apas_p">As APAs Igarapé São Francisco e Lago do Amapá são territórios estratégicos para a proteção dos recursos hídricos, da biodiversidade e da qualidade de vida de milhares de pessoas que vivem em Rio Branco. O Programa conecta a conservação desses territórios ao fortalecimento das condições sociais e econômicas das comunidades e à sua capacidade de responder às mudanças ambientais e climáticas.</p>
+      <div class="apas">
+        <article class="apa">
+          <div class="apa-corpo">
+            <h3>APA Igarapé São Francisco</h3>
+            <div class="local" data-i18n="sobre.local_sf">Rio Branco e parte de Bujari</div>
+            <div class="apa-numeros">
+              <div><div class="valor" data-num="30004">30.004</div><div class="rotulo" data-i18n="sobre.hectares">hectares</div></div>
+              <div><div class="valor" data-num="6114">6.114</div><div class="rotulo" data-i18n="sobre.pessoas">pessoas (estimativa)</div></div>
+            </div>
+          </div>
+        </article>
+        <article class="apa">
+          <div class="apa-corpo">
+            <h3>APA Lago do Amapá</h3>
+            <div class="local">Rio Branco</div>
+            <div class="apa-numeros">
+              <div><div class="valor" data-num="5208">5.208</div><div class="rotulo" data-i18n="sobre.hectares">hectares</div></div>
+              <div><div class="valor" data-num="5215">5.215</div><div class="rotulo" data-i18n="sobre.pessoas">pessoas (estimativa)</div></div>
+            </div>
+          </div>
+        </article>
+      </div>
+      <div class="apa-total">
+        <p data-i18n="sobre.apas_total">Juntas, as duas APAs representam um território de atuação com impacto direto sobre aproximadamente <strong>11.329 moradores</strong>.</p>
+        <a href="mapa.html" data-i18n="sobre.ver_entregas_mapa">Ver as entregas no mapa →</a>
+      </div>
+      <div class="fotos-apas">
+        <figure class="foto-card">
+          <img src="assets/fotos/foto-flor-900.webp" alt="Flor lilás do gênero Ipomoea em meio à vegetação, na APA Lago do Amapá" data-i18n-attr="alt:sobre.alt_flor" loading="lazy">
+          <figcaption data-i18n="sobre.leg_flor"><strong>Flor do gênero Ipomoea</strong> (família Convolvulaceae) · APA Lago do Amapá · mai/2026</figcaption>
+        </figure>
+        <figure class="foto-card">
+          <img src="assets/fotos/foto-lago-900.webp" alt="Lago com mata ciliar sob céu azul na APA Lago do Amapá" data-i18n-attr="alt:sobre.alt_lago" loading="lazy">
+          <figcaption data-i18n="sobre.leg_lago"><strong>Lago do Amapá</strong> · APA Lago do Amapá · mai/2026</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Eixos ────────────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-programa" data-i18n="sobre.k_atua">Como atua</span>
+      <h2 data-i18n="sobre.eixos_h2">Os quatro eixos do Programa + eixo transversal</h2>
+      <p data-i18n="sobre.eixos_p">O Programa promove a resiliência socioambiental por meio de ações integradas que fortalecem os territórios, protegem os recursos naturais e ampliam a capacidade das comunidades de enfrentar os desafios ambientais e sociais. Isso é feito por meio de quatro eixos estruturantes, além de um eixo transversal.</p>
+      <div class="eixos">
+        <div class="eixo">
+          <div class="icone"><img src="assets/identidade/eixo-governanca.svg" alt=""></div>
+          <h3 data-i18n="sobre.eixo_gov">Governança</h3>
+          <p data-i18n="sobre.eixo_gov_p">Fortalecimento da participação social, da gestão das APAs, da educação ambiental e da atuação dos Conselhos Gestores.</p>
+        </div>
+        <div class="eixo">
+          <div class="icone"><img src="assets/identidade/folhas.svg" alt=""></div>
+          <h3 data-i18n="sobre.eixo_rest">Restauração Florestal</h3>
+          <p data-i18n="sobre.eixo_rest_p">Recuperação de áreas degradadas, proteção de nascentes e restauração de Áreas de Preservação Permanente (APPs).</p>
+        </div>
+        <div class="eixo">
+          <div class="icone"><img src="assets/identidade/eixo-bioeconomia.svg" alt=""></div>
+          <h3 data-i18n="sobre.eixo_bio">Bioeconomia</h3>
+          <p data-i18n="sobre.eixo_bio_p">Incentivo às cadeias produtivas sustentáveis, à agricultura familiar, ao turismo de base comunitária e à geração de renda.</p>
+        </div>
+        <div class="eixo">
+          <div class="icone"><img src="assets/identidade/eixo-seguranca-hidrica.svg" alt=""></div>
+          <h3 data-i18n="sobre.eixo_hid">Segurança Hídrica</h3>
+          <p data-i18n="sobre.eixo_hid_p">Proteção dos recursos hídricos, melhoria da infraestrutura, gestão de riscos e fortalecimento da adaptação às mudanças climáticas.</p>
+        </div>
+        <div class="eixo eixo-transversal">
+          <!-- Ícone oficial é branco/cinza, desenhado pra ficar sobre o verde (como na cartilha) -->
+          <div class="icone" style="background:#5f8f45;padding:8px;flex-shrink:0"><img src="assets/identidade/eixo-igualdade-genero.svg" alt=""></div>
+          <div>
+            <div class="tag" data-i18n="sobre.eixo_transversal">Eixo transversal</div>
+            <h3 data-i18n="sobre.eixo_ig">Igualdade de gênero, equidade étnico-racial e inclusão social</h3>
+            <p style="margin-top:6px" data-i18n="sobre.eixo_ig_p">Princípios presentes nas ações do Programa, ampliando a participação, o acesso a oportunidades e a inclusão nos processos de decisão relacionados à gestão e ao desenvolvimento do território.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ODS ──────────────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-agua" data-i18n="sobre.k_agenda">Agenda 2030</span>
+      <h2 data-i18n="sobre.ods_h2">Contribuição para os Objetivos de Desenvolvimento Sustentável (ODS)</h2>
+      <p data-i18n="sobre.ods_p">A Agenda 2030 das Nações Unidas estabelece 17 Objetivos de Desenvolvimento Sustentável, voltados à promoção do desenvolvimento sustentável em suas dimensões social, econômica e ambiental. O Programa contribui para essa agenda ao integrar conservação ambiental, segurança hídrica, restauração de ecossistemas, fortalecimento das comunidades, inclusão social, igualdade de gênero e oportunidades econômicas sustentáveis, fortalecendo também a governança, a participação social e a cooperação entre instituições e comunidades.</p>
+      <ul class="ods-grid" aria-label="ODS para os quais o Programa contribui" data-i18n-attr="aria-label:sobre.ods_lista">
+        <li><img src="assets/ods/ods-01.webp" data-i18n-attr="alt:sobre.ods_01" alt="ODS 1 — Erradicação da pobreza" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-02.webp" data-i18n-attr="alt:sobre.ods_02" alt="ODS 2 — Fome zero e agricultura sustentável" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-03.webp" data-i18n-attr="alt:sobre.ods_03" alt="ODS 3 — Saúde e bem-estar" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-04.webp" data-i18n-attr="alt:sobre.ods_04" alt="ODS 4 — Educação de qualidade" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-05.webp" data-i18n-attr="alt:sobre.ods_05" alt="ODS 5 — Igualdade de gênero" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-06.webp" data-i18n-attr="alt:sobre.ods_06" alt="ODS 6 — Água potável e saneamento" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-08.webp" data-i18n-attr="alt:sobre.ods_08" alt="ODS 8 — Trabalho decente e crescimento econômico" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-10.webp" data-i18n-attr="alt:sobre.ods_10" alt="ODS 10 — Redução das desigualdades" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-11.webp" data-i18n-attr="alt:sobre.ods_11" alt="ODS 11 — Cidades e comunidades sustentáveis" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-12.webp" data-i18n-attr="alt:sobre.ods_12" alt="ODS 12 — Consumo e produção responsáveis" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-13.webp" data-i18n-attr="alt:sobre.ods_13" alt="ODS 13 — Ação contra a mudança global do clima" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-15.webp" data-i18n-attr="alt:sobre.ods_15" alt="ODS 15 — Vida terrestre" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-16.webp" data-i18n-attr="alt:sobre.ods_16" alt="ODS 16 — Paz, justiça e instituições eficazes" width="426" height="426" loading="lazy"></li>
+        <li><img src="assets/ods/ods-17.webp" data-i18n-attr="alt:sobre.ods_17" alt="ODS 17 — Parcerias e meios de implementação" width="426" height="426" loading="lazy"></li>
+      </ul>
+      <a href="resultados.html" class="link-secao" data-i18n="sobre.ver_indicadores">Ver os indicadores do Programa e seus ODS →</a>
+    </div>
+  </section>
+
+  <!-- ── Kunming-Montreal ─────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-programa" data-i18n="sobre.k_bio">Biodiversidade</span>
+      <h2 data-i18n="sobre.km_h2">Contribuição para o Marco Global de Biodiversidade de Kunming-Montreal</h2>
+      <p data-i18n="sobre.km_p">O Marco Global de Biodiversidade de Kunming-Montreal, adotado em 2022 no âmbito da Convenção sobre Diversidade Biológica (CDB), estabelece uma agenda global para deter e reverter a perda de biodiversidade, com 23 metas orientadas à ação para 2030. O Programa contribui para esse compromisso ao integrar a conservação e a restauração de ecossistemas, a proteção de nascentes e recursos hídricos, a resiliência às mudanças climáticas, atividades produtivas sustentáveis e a valorização das contribuições da natureza para as comunidades. Também fortalece a governança, a participação social, a produção e a disponibilização de informações, a capacitação, a igualdade de gênero e a inclusão social na gestão e conservação do território.</p>
+
+      <div class="km-grupo">
+        <h3 data-i18n="sobre.km_g1">Reduzir ameaças à biodiversidade</h3>
+        <ul class="km-metas">
+          <li><img src="assets/cartilha/km/meta-02.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="2">Meta 2</b><span data-i18n="sobre.km_2">Restauração de ecossistemas</span></span></li>
+          <li><img src="assets/cartilha/km/meta-03.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="3">Meta 3</b><span data-i18n="sobre.km_3">Conservação de áreas</span></span></li>
+          <li><img src="assets/cartilha/km/meta-07.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="7">Meta 7</b><span data-i18n="sobre.km_7">Redução da poluição</span></span></li>
+          <li><img src="assets/cartilha/km/meta-08.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="8">Meta 8</b><span data-i18n="sobre.km_8">Resiliência às mudanças climáticas</span></span></li>
+        </ul>
+      </div>
+      <div class="km-grupo">
+        <h3 data-i18n="sobre.km_g2">Atender às necessidades das pessoas por meio do uso sustentável</h3>
+        <ul class="km-metas">
+          <li><img src="assets/cartilha/km/meta-09.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="9">Meta 9</b><span data-i18n="sobre.km_9">Uso sustentável da biodiversidade</span></span></li>
+          <li><img src="assets/cartilha/km/meta-10.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="10">Meta 10</b><span data-i18n="sobre.km_10">Sistemas produtivos sustentáveis</span></span></li>
+          <li><img src="assets/cartilha/km/meta-11.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="11">Meta 11</b><span data-i18n="sobre.km_11">Contribuições da natureza para as pessoas</span></span></li>
+        </ul>
+      </div>
+      <div class="km-grupo">
+        <h3 data-i18n="sobre.km_g3">Ferramentas e soluções para implementação e integração</h3>
+        <ul class="km-metas">
+          <li><img src="assets/cartilha/km/meta-14.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="14">Meta 14</b><span data-i18n="sobre.km_14">Biodiversidade nas políticas e no planejamento</span></span></li>
+          <li><img src="assets/cartilha/km/meta-20.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="20">Meta 20</b><span data-i18n="sobre.km_20">Capacitação, cooperação e inovação</span></span></li>
+          <li><img src="assets/cartilha/km/meta-21.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="21">Meta 21</b><span data-i18n="sobre.km_21">Dados, informação e conhecimento</span></span></li>
+          <li><img src="assets/cartilha/km/meta-22.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="22">Meta 22</b><span data-i18n="sobre.km_22">Participação e tomada de decisão</span></span></li>
+          <li><img src="assets/cartilha/km/meta-23.webp" alt="" loading="lazy"><span><b data-i18n="sobre.km_meta" data-i18n-n="23">Meta 23</b><span data-i18n="sobre.km_23">Igualdade de gênero</span></span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Sobre este portal ────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-portal" data-i18n="sobre.k_portal">Sobre este portal</span>
+      <h2 data-i18n="sobre.portal_h2">Transparência para quem protege o Lago do Amapá e o Igarapé São Francisco</h2>
+      <p data-i18n="sobre.portal_p">Este site é o portal público de transparência do Programa — reúne, num só lugar, o mapa das entregas realizadas, os resultados alcançados, a execução financeira agregada e a linha do tempo das principais ações, para que qualquer pessoa possa acompanhar o andamento do trabalho nas APAs do Lago do Amapá e do Igarapé São Francisco.</p>
+    </div>
+  </section>
+
+  <!-- ── Marca ────────────────────────────────────────────────── -->
+  <section class="bloco-sobre">
+    <div class="container">
+      <span class="kicker kicker-marca" data-i18n="sobre.k_marca">Por trás da marca</span>
+      <h2 data-i18n="sobre.k_marca">Por trás da marca</h2>
+      <p data-i18n="sobre.marca_p">A identidade visual do Programa nasce da paisagem que ele protege.</p>
+      <div class="marca-grid">
+      <div class="marca-logo">
+        <picture>
+          <source srcset="assets/identidade/logo-vertical-branca.svg" media="(prefers-color-scheme: dark)">
+          <img src="assets/identidade/logo-vertical.svg" alt="Logotipo Resiliência Socioambiental — Áreas de Proteção Ambiental Igarapé São Francisco e Lago do Amapá" data-i18n-attr="alt:sobre.alt_logo" width="178" height="77" loading="lazy">
+        </picture>
+      </div>
+      <ul class="elementos">
+        <li><img class="el" src="assets/identidade/folhas.svg" alt="" loading="lazy"><span data-i18n="sobre.el_folhas"><strong>As folhas verdes</strong> representam a biodiversidade e a recuperação ambiental das APAs.</span></li>
+        <li><img class="el" src="assets/identidade/curva-azul.svg" alt="" loading="lazy"><span data-i18n="sobre.el_azul"><strong>As formas curvas em azul</strong> remetem aos igarapés e rios que o Programa trabalha para proteger.</span></li>
+        <li><img class="el" src="assets/identidade/curva-laranja.svg" alt="" loading="lazy"><span data-i18n="sobre.el_laranja"><strong>O laranja</strong> simboliza a transformação social e o fortalecimento das comunidades que vivem nesses territórios.</span></li>
+      </ul>
+      </div>
+      <p style="margin-top:24px" data-i18n="sobre.marca_fim">Juntos, os três elementos traduzem o que o próprio nome do Programa propõe: resiliência entre natureza, água e as pessoas do território.</p>
+    </div>
+  </section>
+
+  <!-- ── Download da cartilha ─────────────────────────────────── -->
+  <section class="bloco-sobre" id="cartilha">
+    <div class="container">
+      <div class="cartilha-box">
+        <div class="cartilha-capa"><img src="assets/fotos/foto-floresta-900.webp" alt="" loading="lazy"></div>
+        <div>
+          <h2 data-i18n="sobre.cartilha_h2">Cartilha do Programa</h2>
+          <p data-i18n="sobre.cartilha_p">Todo o conteúdo desta página em formato de cartilha, em português e inglês, para ler offline, imprimir ou compartilhar.</p>
+        </div>
+        <a href="assets/cartilha/cartilha-programa-resiliencia-socioambiental.pdf" class="btn btn-primario" download data-i18n="sobre.baixar_pdf">Baixar PDF (3,8 MB)</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div id="site-footer-slot"></div>
+</footer>
+
+<script src="js/i18n.js"></script>
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n-es.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/apresentacao.js"></script>
+</body>
+</html>

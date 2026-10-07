@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
+<title data-i18n="fin.titulo_pagina">Transparência Financeira — Resiliência Socioambiental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+.pagina-topo{padding-block:var(--espaco-6) var(--espaco-5);border-bottom:1px solid var(--linha);}
+.pagina-topo h1{font-size:clamp(22px,3vw,30px);margin-bottom:6px;}
+.pagina-topo p{font-size:14.5px;color:var(--tinta-suave);max-width:70ch;}
+.aviso-agregado{display:flex;gap:10px;align-items:flex-start;background:var(--azul-tint);border:1px solid var(--azul);border-radius:var(--raio);padding:12px 16px;margin-top:var(--espaco-4);font-size:13px;color:var(--tinta);max-width:70ch;}
+
+.miolo{padding-block:var(--espaco-6) var(--espaco-9);}
+
+.kpi-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--espaco-4);margin-bottom:var(--espaco-7);}
+.kpi-tile{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);padding:var(--espaco-4);box-shadow:var(--sombra);}
+.kpi-tile .rotulo{font-size:12px;color:var(--tinta-suave);margin-bottom:6px;}
+.kpi-tile .valor{font-family:var(--fonte-titulo);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;}
+@media(max-width:720px){.kpi-row3{grid-template-columns:1fr;}}
+
+.bloco{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);box-shadow:var(--sombra);margin-bottom:var(--espaco-5);overflow:hidden;}
+.bloco-hdr{padding:16px 20px;border-bottom:1px solid var(--linha);}
+.bloco-hdr h2{font-size:16px;}
+.bloco-hdr p{font-size:12.5px;color:var(--tinta-suave);margin-top:2px;}
+
+/* ── Barras por resultado ─────────────────────────────────────── */
+.barra-res{padding:16px 20px;border-bottom:1px solid var(--linha);}
+.barra-res:last-child{border-bottom:none;}
+.barra-res-topo{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:12px;}
+.barra-res-nome{font-size:13.5px;font-weight:600;color:var(--tinta);}
+.barra-res-nome .cod{font-family:'Montserrat',monospace;font-size:11px;font-weight:700;color:var(--tinta-suave);margin-right:6px;}
+.barra-res-valor{font-family:'Montserrat',monospace;font-size:13px;font-weight:700;white-space:nowrap;}
+.barra-trilho{height:10px;background:var(--linha);border-radius:99px;overflow:hidden;display:flex;}
+.barra-trilho .seg{height:100%;}
+.barra-legenda{display:flex;gap:16px;margin-top:6px;font-size:11px;color:var(--tinta-suave);}
+.barra-legenda .lg{display:flex;align-items:center;gap:5px;}
+.barra-legenda .dot{width:8px;height:8px;border-radius:2px;}
+
+/* ── Tabela de atividades ─────────────────────────────────────── */
+.ativ-linha{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--linha);}
+.ativ-linha:last-child{border-bottom:none;}
+.ativ-res{font-family:'Montserrat',monospace;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:4px;color:#fff;flex-shrink:0;}
+.ativ-nome{flex:1;font-size:12.5px;color:var(--tinta);line-height:1.4;}
+.ativ-valor{font-family:'Montserrat',monospace;font-size:12.5px;font-weight:700;color:var(--verde-texto);white-space:nowrap;flex-shrink:0;}
+
+.nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-5);}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div id="site-header-slot" data-pagina="financeiro"></div>
+</header>
+
+<main>
+  <div class="pagina-topo container">
+    <h1 data-i18n="nav.financeiro">Transparência Financeira</h1>
+    <p data-i18n="fin.intro">Execução financeira do Programa, agregada por resultado e atividade.</p>
+    <div class="aviso-agregado">
+      <span>ℹ️</span>
+      <span data-i18n="fin.aviso">Os valores aqui são sempre agregados por resultado e atividade — nunca por contrato ou fornecedor individual, para preservar a privacidade de quem presta serviço ao Programa.</span>
+    </div>
+  </div>
+
+  <div class="miolo container">
+    <div class="kpi-row3">
+      <div class="kpi-tile"><div class="rotulo" data-i18n="fin.total_pago">Total pago</div><div class="valor" style="color:var(--verde-texto)"><span data-num="994781" data-moeda="BRL">R$ 994.781</span></div></div>
+      <div class="kpi-tile"><div class="rotulo" data-i18n="fin.a_pagar">A pagar (comprometido)</div><div class="valor" style="color:var(--laranja-texto)"><span data-num="0" data-moeda="BRL">R$ 0</span></div></div>
+      <div class="kpi-tile"><div class="rotulo" data-i18n="fin.orcamento">Orçamento total</div><div class="valor"><span data-num="2382297" data-moeda="USD">US$ 2.382.297</span></div></div>
+    </div>
+
+    <div class="bloco">
+      <div class="bloco-hdr">
+        <h2 data-i18n="fin.por_resultado">Execução por resultado</h2>
+        <p data-i18n="fin.por_resultado_p">Valor pago sobre o orçamento planejado de cada resultado esperado do Programa.</p>
+      </div>
+
+      <div class="barra-res">
+        <div class="barra-res-topo">
+          <span class="barra-res-nome"><span class="cod">R1</span>Práticas Inovadoras para uma Bioeconomia Sustentável</span>
+          <span class="barra-res-valor"><span data-num="473400" data-moeda="BRL">R$ 473.400</span> <span style="color:var(--tinta-suave);font-weight:500">/ <span data-num="1862446" data-moeda="USD">US$ 1.862.446</span></span></span>
+        </div>
+        <div class="barra-trilho"><div class="seg" style="width:25%;background:#188462"></div></div>
+      </div>
+
+      <div class="barra-res">
+        <div class="barra-res-topo">
+          <span class="barra-res-nome"><span class="cod">R2</span>Resiliência, Segurança Hídrica e Equidade de Gênero</span>
+          <span class="barra-res-valor"><span data-num="521381" data-moeda="BRL">R$ 521.381</span> <span style="color:var(--tinta-suave);font-weight:500">/ <span data-num="519850" data-moeda="USD">US$ 519.850</span></span></span>
+        </div>
+        <div class="barra-trilho"><div class="seg" style="width:100%;background:#2563EB"></div></div>
+      </div>
+
+      <div class="barra-res">
+        <div class="barra-res-topo">
+          <span class="barra-res-nome"><span class="cod">R3</span>Fortalecimento da Governança e Capacitação com Equidade de Gênero</span>
+          <span class="barra-res-valor" style="color:var(--tinta-suave)" data-i18n="fin.sem_execucao">Sem execução registrada</span>
+        </div>
+        <div class="barra-trilho"><div class="seg" style="width:0%;background:#7169C4"></div></div>
+      </div>
+
+      <div class="barra-res">
+        <div class="barra-res-topo">
+          <span class="barra-res-nome"><span class="cod">R4</span>Gestão do Projeto / Programa</span>
+          <span class="barra-res-valor" style="color:var(--tinta-suave)" data-i18n="fin.sem_execucao">Sem execução registrada</span>
+        </div>
+        <div class="barra-trilho"><div class="seg" style="width:0%;background:#9CA3AF"></div></div>
+      </div>
+    </div>
+
+    <div class="bloco">
+      <div class="bloco-hdr">
+        <h2 data-i18n="fin.por_atividade">Maiores execuções por atividade</h2>
+        <p data-i18n="fin.por_atividade_p">Sempre agregado — o nome do fornecedor ou consultor não é exibido.</p>
+      </div>
+      <div class="ativ-linha"><span class="ativ-res" style="background:#188462">R1</span><span class="ativ-nome">Apoio técnico na análise do CAR e elaboração de PRADAs (eixo restauração)</span><span class="ativ-valor"><span data-num="334600" data-moeda="BRL">R$ 334.600</span></span></div>
+      <div class="ativ-linha"><span class="ativ-res" style="background:#2563EB">R2</span><span class="ativ-nome">Participação em eventos nacionais e internacionais — passagens e diárias</span><span class="ativ-valor"><span data-num="255381" data-moeda="BRL">R$ 255.381</span></span></div>
+      <div class="ativ-linha"><span class="ativ-res" style="background:#2563EB">R2</span><span class="ativ-nome">Elaboração, planejamento e execução do Plano de Comunicação</span><span class="ativ-valor"><span data-num="171000" data-moeda="BRL">R$ 171.000</span></span></div>
+      <div class="ativ-linha"><span class="ativ-res" style="background:#188462">R1</span><span class="ativ-nome">Serviço de ATER para fortalecimento de práticas sustentáveis</span><span class="ativ-valor"><span data-num="100000" data-moeda="BRL">R$ 100.000</span></span></div>
+      <div class="ativ-linha"><span class="ativ-res" style="background:#2563EB">R2</span><span class="ativ-nome">Consultoria especialista em gênero — coordenação do plano de ação</span><span class="ativ-valor"><span data-num="95000" data-moeda="BRL">R$ 95.000</span></span></div>
+      <div class="ativ-linha"><span class="ativ-res" style="background:#188462">R1</span><span class="ativ-nome">Auditoria independente de meio termo e final</span><span class="ativ-valor"><span data-num="38800" data-moeda="BRL">R$ 38.800</span></span></div>
+    </div>
+
+    <p class="nota-dados" data-i18n="fin.nota">Valores de um recorte atual do banco de dados do Programa (soma de execucao_financeira por resultado/atividade) — no site publicado, virão da função pública fn_publico_financeiro_agregado(), ainda a ser criada no Produto 3.</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div id="site-footer-slot"></div>
+</footer>
+
+<script src="js/i18n.js"></script>
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n-es.js"></script>
+<script src="js/layout.js"></script>
+</body>
+</html>

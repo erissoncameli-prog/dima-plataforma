@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
+<title data-i18n="inicio.titulo_pagina">Resiliência Socioambiental — Portal Público</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero{padding:var(--espaco-8) 0 var(--espaco-7);position:relative;overflow:hidden;background:
+  radial-gradient(1200px 480px at 15% -10%, var(--verde-tint), transparent 60%),
+  radial-gradient(900px 420px at 100% 0%, var(--azul-tint), transparent 55%);}
+/* Elementos gráficos oficiais do Manual de Identidade Visual (folhas
+   verdes, curva azul da água, curva laranja das comunidades), montados
+   como no símbolo da marca — arquivos em assets/identidade/ */
+.hero-decor{position:absolute;top:var(--espaco-7);right:max(var(--espaco-5),calc((100% - var(--largura-conteudo))/2 + var(--espaco-5)));width:132px;display:grid;grid-template-columns:1fr 1fr;gap:6px;pointer-events:none;z-index:0;}
+.hero-decor .folhas{grid-column:1/-1;width:100%;}
+@media(max-width:1100px){.hero-decor{display:none;}}
+.hero .container>*{position:relative;z-index:1;}
+/* Título em cima, carrossel na largura toda, texto e botões embaixo */
+.hero-topo{margin-bottom:var(--espaco-6);}
+.hero-rodape{display:flex;justify-content:space-between;align-items:center;gap:var(--espaco-6);flex-wrap:wrap;margin-top:var(--espaco-6);}
+.hero-rodape p.lede{margin-bottom:0;}
+
+.hero .eyebrow{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--verde-texto);margin-bottom:var(--espaco-4);}
+.hero .eyebrow .ponto{width:7px;height:7px;border-radius:50%;background:var(--verde-escuro);animation:pulso 2s ease-in-out infinite;}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.35}}
+.hero h1{font-size:clamp(28px,4vw,42px);margin-bottom:var(--espaco-4);}
+.hero p.lede{font-size:16px;color:var(--tinta-suave);max-width:56ch;margin-bottom:var(--espaco-6);}
+.hero .cta-row{display:flex;gap:var(--espaco-3);flex-wrap:wrap;}
+
+/* ── Painel de mídia do hero (fotos/vídeos — mesma fonte do login) ── */
+.hero-media{position:relative;width:100%;aspect-ratio:21/9;max-height:520px;border-radius:var(--raio-lg);overflow:hidden;box-shadow:var(--sombra);background:var(--verde-escuro);}
+@media(max-width:900px){.hero-media{aspect-ratio:16/9;max-height:320px;}}
+.heroslide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transform:scale(1.06);transition:opacity 1.8s ease,transform 9s ease-out;}
+.heroslide.ativo{opacity:1;transform:scale(1);}
+.heroslide-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.8s ease;}
+.heroslide-video.ativo{opacity:1;}
+.hero-media-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(15,24,17,.75) 0%,rgba(15,24,17,.1) 45%,rgba(15,24,17,.05) 100%);pointer-events:none;}
+.hero-media-legenda{position:absolute;left:16px;bottom:14px;color:#fff;font-size:12px;font-weight:600;letter-spacing:.02em;text-shadow:0 1px 3px rgba(0,0,0,.5);}
+.hero-media-dots{position:absolute;right:16px;bottom:16px;display:flex;gap:5px;}
+.hero-media-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45);border:none;cursor:pointer;padding:0;transition:all .2s;}
+.hero-media-dot.ativo{background:#fff;width:16px;border-radius:3px;}
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--fonte-corpo);font-weight:600;font-size:14px;padding:11px 20px;border-radius:99px;text-decoration:none;transition:all .15s;border:1px solid transparent;}
+.btn-primario{background:var(--verde-botao);color:#fff;}
+.btn-primario:hover{background:#00752c;}
+.btn-secundario{background:var(--papel-elevado);color:var(--tinta);border-color:var(--linha);}
+.btn-secundario:hover{border-color:var(--verde-texto);color:var(--verde-texto);}
+
+/* ── KPIs ─────────────────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--espaco-4);margin-top:var(--espaco-7);}
+.kpi-tile{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);padding:var(--espaco-4) var(--espaco-4) var(--espaco-3);box-shadow:var(--sombra);}
+.kpi-tile .valor{font-family:var(--fonte-titulo);font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
+.kpi-tile .rotulo{font-size:12.5px;color:var(--tinta-suave);margin-top:6px;}
+.kpi-tile .barra{height:4px;border-radius:99px;background:var(--linha);margin-top:var(--espaco-3);overflow:hidden;}
+.kpi-tile .barra span{display:block;height:100%;border-radius:99px;}
+@media(max-width:820px){.kpi-row{grid-template-columns:1fr 1fr;}}
+
+/* ── Seção de destaques (3 cards) ─────────────────────────────── */
+.secao{padding:var(--espaco-8) 0;border-top:1px solid var(--linha);}
+.secao-cabecalho{display:flex;align-items:baseline;justify-content:space-between;gap:var(--espaco-4);margin-bottom:var(--espaco-6);flex-wrap:wrap;}
+.secao-cabecalho h2{font-size:clamp(20px,2.6vw,26px);}
+.secao-cabecalho a{font-size:13.5px;font-weight:600;color:var(--verde-texto);text-decoration:none;white-space:nowrap;}
+.secao-cabecalho a:hover{text-decoration:underline;}
+
+.grid-destaques{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--espaco-4);}
+.card-destaque{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);padding:var(--espaco-5);text-decoration:none;color:var(--tinta);display:flex;flex-direction:column;gap:var(--espaco-3);transition:box-shadow .2s,transform .15s;box-shadow:var(--sombra);}
+.card-destaque:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(23,36,28,.06),0 16px 32px -14px rgba(23,36,28,.22);}
+.card-destaque .icone{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+.card-destaque h3{font-size:16px;}
+.card-destaque .num{font-family:var(--fonte-titulo);font-size:26px;font-weight:700;}
+.card-destaque p{font-size:13.5px;color:var(--tinta-suave);}
+@media(max-width:820px){.grid-destaques{grid-template-columns:1fr;}}
+
+/* ── Faixa de duas colunas (financeiro + produtos) ────────────── */
+.grid-dupla{display:grid;grid-template-columns:1fr 1fr;gap:var(--espaco-4);}
+.card-largo{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);padding:var(--espaco-6);text-decoration:none;color:var(--tinta);display:block;box-shadow:var(--sombra);transition:box-shadow .2s,transform .15s;}
+.card-largo:hover{transform:translateY(-2px);}
+.card-largo .kicker{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 11px;border-radius:99px;display:inline-block;margin-bottom:var(--espaco-3);}
+.card-largo h3{font-size:19px;margin-bottom:var(--espaco-2);}
+.card-largo p{font-size:14px;color:var(--tinta-suave);max-width:44ch;}
+.card-largo .seta{margin-top:var(--espaco-4);font-size:13px;font-weight:600;color:var(--verde-texto);}
+@media(max-width:720px){.grid-dupla{grid-template-columns:1fr;}}
+
+.nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-6);}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div id="site-header-slot" data-pagina="inicio"></div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero-decor" aria-hidden="true">
+      <img class="folhas" src="assets/identidade/folhas.svg" alt="">
+      <img src="assets/identidade/curva-azul.svg" alt="">
+      <img src="assets/identidade/curva-laranja.svg" alt="">
+    </div>
+    <div class="container">
+      <div class="hero-topo">
+        <div class="eyebrow"><span class="ponto"></span><span data-i18n="inicio.eyebrow">Dados públicos · atualizados continuamente</span></div>
+        <h1 data-i18n="inicio.h1">Resiliência Socioambiental nas APAs do Lago do Amapá e Igarapé São Francisco</h1>
+      </div>
+
+      <div class="hero-media" id="hero-media">
+        <div class="hero-media-overlay"></div>
+        <div class="hero-media-legenda" id="hero-media-legenda"></div>
+        <div class="hero-media-dots" id="hero-media-dots"></div>
+      </div>
+
+      <div class="hero-rodape">
+        <p class="lede" data-i18n="inicio.lede">Acompanhe as entregas, os resultados e a execução financeira do Programa conduzido pela SEMA/AC, com apoio da UNESCO, nas Áreas de Proteção Ambiental de Rio Branco.</p>
+        <div class="cta-row">
+          <a href="mapa.html" class="btn btn-primario" data-i18n="inicio.cta_mapa">Ver mapa interativo →</a>
+          <a href="sobre.html" class="btn btn-secundario" data-i18n="inicio.cta_sobre">Sobre o projeto</a>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-tile">
+          <div class="valor">27</div>
+          <div class="rotulo" data-i18n="inicio.kpi_atividades">Atividades em execução</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="valor">10<span style="font-size:16px;color:var(--tinta-suave);font-weight:500"> / 62</span></div>
+          <div class="rotulo" data-i18n="inicio.kpi_tdrs">TDRs aprovados</div>
+          <div class="barra"><span style="width:16%;background:var(--azul)"></span></div>
+        </div>
+        <div class="kpi-tile">
+          <div class="valor">43</div>
+          <div class="rotulo" data-i18n="inicio.kpi_produtos">Produtos técnicos entregues</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="valor">72</div>
+          <div class="rotulo" data-i18n="inicio.kpi_pontos">Pontos registrados no mapa</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="container">
+      <div class="secao-cabecalho">
+        <h2 data-i18n="inicio.explore">Explore os dados do Programa</h2>
+      </div>
+      <div class="grid-destaques">
+        <a href="resultados.html" class="card-destaque">
+          <div class="icone" style="background:var(--verde-tint);color:var(--verde-escuro)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          </div>
+          <div class="num">29</div>
+          <h3 data-i18n="nav.resultados">Resultados</h3>
+          <p data-i18n="inicio.card_resultados">Indicadores da matriz de contribuição monitorados, por resultado esperado do Programa.</p>
+        </a>
+        <a href="mapa.html" class="card-destaque">
+          <div class="icone" style="background:var(--azul-tint);color:var(--azul-texto)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div class="num">72</div>
+          <h3 data-i18n="nav.mapa">Mapa Interativo</h3>
+          <p data-i18n="inicio.card_mapa">Onde as ações do Programa acontecem nas APAs do Lago do Amapá e Igarapé São Francisco.</p>
+        </a>
+        <a href="linha-do-tempo.html" class="card-destaque">
+          <div class="icone" style="background:var(--laranja-tint);color:var(--laranja-texto)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          </div>
+          <h3 data-i18n="nav.tempo">Linha do Tempo</h3>
+          <p data-i18n="inicio.card_tempo">Os principais marcos do Programa, na ordem em que foram acontecendo.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="secao">
+    <div class="container">
+      <div class="grid-dupla">
+        <a href="transparencia-financeira.html" class="card-largo">
+          <span class="kicker" style="background:var(--verde-tint);color:var(--verde-texto)" data-i18n="nav.financeiro">Transparência Financeira</span>
+          <h3 data-i18n="inicio.fin_titulo">Como os recursos estão sendo investidos</h3>
+          <p data-i18n="inicio.fin_texto">Execução financeira agregada por resultado e atividade — nunca por contrato ou fornecedor individual.</p>
+          <div class="seta" data-i18n="inicio.fin_seta">Ver execução financeira →</div>
+        </a>
+        <a href="produtos.html" class="card-largo">
+          <span class="kicker" style="background:var(--laranja-tint);color:var(--laranja-texto)" data-i18n="nav.produtos">Produtos</span>
+          <h3 data-i18n="inicio.prod_titulo">43 produtos técnicos entregues</h3>
+          <p data-i18n="inicio.prod_texto">Relatórios, planos e materiais produzidos pelo Programa, autorizados para divulgação pública.</p>
+          <div class="seta" data-i18n="inicio.prod_seta">Ver galeria de produtos →</div>
+        </a>
+      </div>
+      <p class="nota-dados" data-i18n="inicio.nota">Números de um recorte atual do banco de dados do Programa — no site publicado, virão em tempo real das mesmas funções públicas que já sustentam o painel interno.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div id="site-footer-slot"></div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n-es.js"></script>
+<script src="js/layout.js"></script>
+<script>
+// ── Painel de mídia do hero (mesma fonte de fotos/vídeos do login:
+// configuracoes_sistema.fotos, já pública pro anon) ────────────
+// Mesmas fotos padrão do slideshow do login (assets/ da raiz do sistema) —
+// entram quando o banco não responde ou ainda não tem fotos cadastradas,
+// pra o hero nunca ficar vazio nem divergir do login
+const FOTOS_PADRAO = ['foto1.jpg', 'foto2.jpg', 'foto3.jpg', 'foto4.jpeg', 'foto5.jpeg',
+  'foto6.jpeg', 'foto7.jpeg', 'foto8.jpeg', 'foto9.jpeg', 'foto10.jpeg']
+  .map((arq, i) => ({ url: 'assets/' + arq, ordem: i, legenda: 'APAs · Rio Branco, Acre' }));
+
+// As URLs cadastradas no login são relativas à raiz do sistema (ex.:
+// "assets/foto7.jpeg"); daqui de /site-publico/ precisam subir um nível
+function urlMidia(url) {
+  return /^(https?:|data:|blob:|\/)/i.test(url) ? url : '../' + url;
+}
+
+async function carregarHeroMedia() {
+  const wrap = document.getElementById('hero-media');
+  if (!wrap) return;
+  let fotos = [];
+  try {
+    const { data } = await db.from('configuracoes_sistema').select('fotos').eq('projeto_id', 'default').single();
+    fotos = [...(data?.fotos || [])].sort((a, b) => a.ordem - b.ordem);
+  } catch (e) { /* sem banco: cai nas fotos padrão */ }
+  if (!fotos.length) fotos = FOTOS_PADRAO;
+
+  const overlay = wrap.querySelector('.hero-media-overlay');
+  const dotsEl = document.getElementById('hero-media-dots');
+  const legendaEl = document.getElementById('hero-media-legenda');
+  let atual = 0, timer = null;
+
+  fotos.forEach((f, i) => {
+    let el;
+    if (f.tipo === 'video') {
+      el = document.createElement('video');
+      el.className = 'heroslide-video' + (i === 0 ? ' ativo' : '');
+      el.src = urlMidia(f.url); el.muted = true; el.playsInline = true; el.preload = 'auto';
+    } else {
+      el = document.createElement('div');
+      el.className = 'heroslide' + (i === 0 ? ' ativo' : '');
+      el.style.backgroundImage = `url('${urlMidia(f.url)}')`;
+    }
+    el.id = 'heroslide-' + i;
+    wrap.insertBefore(el, overlay);
+    const dot = document.createElement('button');
+    dot.className = 'hero-media-dot' + (i === 0 ? ' ativo' : '');
+    dot.setAttribute('aria-label', t('inicio.foto_n_de', { n: i + 1, total: fotos.length }));
+    dot.onclick = () => irPara(i);
+    dotsEl.appendChild(dot);
+  });
+
+  legendaEl.textContent = fotos[0].legenda || 'APAs · Rio Branco, Acre';
+  document.addEventListener('idioma', () => {
+    dotsEl.querySelectorAll('.hero-media-dot').forEach((d, i) =>
+      d.setAttribute('aria-label', t('inicio.foto_n_de', { n: i + 1, total: fotos.length })));
+  });
+  if (fotos[0].tipo === 'video') tocarVideo(0);
+  else iniciarTimer();
+
+  function iniciarTimer() { clearTimeout(timer); timer = setTimeout(() => irPara(atual + 1), 6000); }
+  function tocarVideo(i) {
+    const v = document.getElementById('heroslide-' + i);
+    v.currentTime = 0; v.play().catch(() => {});
+    v.addEventListener('ended', () => irPara(atual + 1), { once: true });
+  }
+  function irPara(n) {
+    clearTimeout(timer);
+    const antigo = document.getElementById('heroslide-' + atual);
+    if (antigo?.tagName === 'VIDEO') antigo.pause();
+    antigo?.classList.remove('ativo');
+    document.querySelectorAll('.hero-media-dot')[atual]?.classList.remove('ativo');
+    atual = (n + fotos.length) % fotos.length;
+    const novo = document.getElementById('heroslide-' + atual);
+    novo?.classList.add('ativo');
+    document.querySelectorAll('.hero-media-dot')[atual]?.classList.add('ativo');
+    legendaEl.textContent = fotos[atual].legenda || 'APAs · Rio Branco, Acre';
+    if (novo?.tagName === 'VIDEO') tocarVideo(atual);
+    else iniciarTimer();
+  }
+}
+
+carregarHeroMedia();
+</script>
+</body>
+</html>

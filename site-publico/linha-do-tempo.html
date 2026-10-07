@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
+<title data-i18n="tempo.titulo_pagina">Linha do Tempo — Resiliência Socioambiental</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/layout.css">
+<style>
+.pagina-topo{padding-block:var(--espaco-6) var(--espaco-5);border-bottom:1px solid var(--linha);}
+.pagina-topo h1{font-size:clamp(22px,3vw,30px);margin-bottom:6px;}
+.pagina-topo p{font-size:14.5px;color:var(--tinta-suave);max-width:70ch;}
+
+.miolo{padding-block:var(--espaco-7) var(--espaco-9);max-width:760px;}
+
+.legenda-tipos{display:flex;gap:var(--espaco-5);flex-wrap:wrap;margin-bottom:var(--espaco-7);font-size:12.5px;color:var(--tinta-suave);}
+.legenda-tipos .lg{display:flex;align-items:center;gap:6px;}
+.legenda-tipos .ic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+
+.tempo-linha{position:relative;padding-left:44px;}
+.tempo-linha::before{content:'';position:absolute;left:15px;top:6px;bottom:6px;width:2px;background:var(--linha);}
+
+.evento{position:relative;padding-bottom:var(--espaco-6);}
+.evento:last-child{padding-bottom:0;}
+.evento-marcador{position:absolute;left:-44px;top:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:3px solid var(--papel);box-shadow:0 0 0 1px var(--linha);}
+.evento-data{font-family:'Montserrat',monospace;font-size:11.5px;font-weight:700;color:var(--tinta-suave);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.evento-card{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);padding:14px 18px;box-shadow:var(--sombra);}
+.evento-tipo{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 9px;border-radius:99px;margin-bottom:7px;}
+.evento-titulo{font-size:13.5px;font-weight:600;color:var(--tinta);line-height:1.4;margin-bottom:3px;}
+.evento-atividade{font-size:12px;color:var(--tinta-suave);}
+
+.tipo-tdr{background:var(--azul-tint);color:var(--azul-texto);}
+.tipo-contrato{background:var(--verde-tint);color:var(--verde-texto);}
+.tipo-produto{background:var(--laranja-tint);color:var(--laranja-texto);}
+
+.nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-6);}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div id="site-header-slot" data-pagina="tempo"></div>
+</header>
+
+<main>
+  <div class="pagina-topo container">
+    <h1 data-i18n="nav.tempo">Linha do Tempo</h1>
+    <p data-i18n="tempo.intro">Os principais marcos do Programa, na ordem em que foram acontecendo — TDRs aprovados, contratos assinados e produtos entregues.</p>
+  </div>
+
+  <div class="miolo container">
+    <div class="legenda-tipos">
+      <span class="lg"><span class="ic" style="background:var(--azul-tint);color:var(--azul-texto)">📋</span><span data-i18n="tempo.tdr">TDR aprovado</span></span>
+      <span class="lg"><span class="ic" style="background:var(--verde-tint);color:var(--verde-texto)">✍️</span><span data-i18n="tempo.contrato">Contrato assinado</span></span>
+      <span class="lg"><span class="ic" style="background:var(--laranja-tint);color:var(--laranja-texto)">📦</span><span data-i18n="tempo.produto">Produto entregue</span></span>
+    </div>
+
+    <div class="tempo-linha">
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
+        <div class="evento-data" data-data="2025-09-01">01 set 2025</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
+          <div class="evento-titulo">Serviço de ATER para fortalecimento de práticas sustentáveis</div>
+          <div class="evento-atividade">Eixo Bioeconomia · Práticas Inovadoras</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
+        <div class="evento-data" data-data="2025-09-01">01 set 2025</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
+          <div class="evento-titulo">Participação em eventos nacionais e internacionais — passagens e diárias</div>
+          <div class="evento-atividade">Eixo Segurança Hídrica e Equidade de Gênero</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
+        <div class="evento-data" data-data="2026-05-05">05 mai 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
+          <div class="evento-titulo">Elaboração, planejamento e execução do Plano de Comunicação</div>
+          <div class="evento-atividade">Eixo Segurança Hídrica e Equidade de Gênero</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
+        <div class="evento-data" data-data="2026-05-05">05 mai 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
+          <div class="evento-titulo">Auditoria independente de meio termo e final</div>
+          <div class="evento-atividade">Eixo Bioeconomia · Práticas Inovadoras</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
+        <div class="evento-data" data-data="2026-06-27">27 jun 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
+          <div class="evento-titulo">Produto 04 — Consultoria especialista em gênero</div>
+          <div class="evento-atividade">Coordenação do plano de ação de gênero</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
+        <div class="evento-data" data-data="2026-07-10">10 jul 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
+          <div class="evento-titulo">Documento técnico — Auditoria independente</div>
+          <div class="evento-atividade">Eixo Bioeconomia · Práticas Inovadoras</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
+        <div class="evento-data" data-data="2026-07-22">22 jul 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
+          <div class="evento-titulo">Produto 5 — Serviço de ATER</div>
+          <div class="evento-atividade">Fortalecimento de práticas sustentáveis</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
+        <div class="evento-data" data-data="2026-08-20">20 ago 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
+          <div class="evento-titulo">Conteúdos jornalísticos, institucionais e educativos do Programa</div>
+          <div class="evento-atividade">Plano de Comunicação</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
+        <div class="evento-data" data-data="2026-08-21">21 ago 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
+          <div class="evento-titulo">Produto 04 — Análise do CAR e elaboração de PRADAs</div>
+          <div class="evento-atividade">Eixo Restauração Florestal</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
+        <div class="evento-data" data-data="2026-08-28">28 ago 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
+          <div class="evento-titulo">Consultoria especialista em gênero — coordenação do plano de ação</div>
+          <div class="evento-atividade">Eixo Segurança Hídrica e Equidade de Gênero</div>
+        </div>
+      </div>
+
+      <div class="evento">
+        <div class="evento-marcador" style="background:var(--verde-tint)">✍️</div>
+        <div class="evento-data" data-data="2026-08-31">31 ago 2026</div>
+        <div class="evento-card">
+          <span class="evento-tipo tipo-contrato" data-i18n="tempo.contrato">Contrato assinado</span>
+          <div class="evento-titulo">Apoio técnico na análise do CAR e elaboração de PRADAs</div>
+          <div class="evento-atividade">Eixo Restauração Florestal</div>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="nota-dados" data-i18n="tempo.nota">Eventos e datas reais, de um recorte atual do banco de dados do Programa — no site publicado, virão da função pública fn_publico_linha_tempo(), ainda a ser criada no Produto 3.</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div id="site-footer-slot"></div>
+</footer>
+
+<script src="js/i18n.js"></script>
+<script src="js/i18n-en.js"></script>
+<script src="js/i18n-es.js"></script>
+<script src="js/layout.js"></script>
+</body>
+</html>
