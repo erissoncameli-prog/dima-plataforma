@@ -74,7 +74,8 @@
 .site-footer .container{padding:var(--espaco-7) var(--espaco-5) var(--espaco-6);display:flex;flex-direction:column;gap:var(--espaco-6);max-width:1440px;}
 /* Faixa com o grafismo do manual (padrão de folhas, curvas e círculos), repetida na largura toda */
 .footer-grafismo{height:28px;background:url('../assets/identidade/grafismo.svg') repeat-x left center/auto 100%;}
-.footer-logos img{width:100%;max-width:880px;height:auto;}
+/* Barra de logos centralizada no rodapé */
+.footer-logos img{width:100%;max-width:880px;height:auto;margin-inline:auto;}
 /* No tema escuro o <picture> do rodapé troca para a barra monocromática branca */
 .footer-linha{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--espaco-3);padding-top:var(--espaco-5);border-top:1px solid var(--linha);}
 .footer-texto{font-size:12px;color:var(--tinta-suave);max-width:60ch;}
