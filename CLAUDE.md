@@ -699,6 +699,21 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Editar não envia `ativo` nem `criado_por` (só no cadastro novo) — desativar/reativar só pelos botões da janela.
 - Janela: classe **`fo-ov`** (no seletor de escopo de `diagnostico-mesa.css`), `foAbrir`/`fecharModal` (foco, Esc, Tab).
 
+### Produtos Entregues — visual, fila e restrição de visualização
+- `pages/produtos.html` + `js/produtos.js` usam o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`,
+  seletor Claro/Escuro no topo) e componentes em `css/produtos.css` (prefixo `pr-`; as classes antigas da janela de avaliação —
+  `eval-*`, `decisao-*`, `album-*`, `fotos-*`, `despacho-box` — são tematizadas lá). Sem `<style>` próprio; ícones SVG por `prIc()`,
+  sem emoji; cor no JS só por token (`var(--ok)`, `var(--erro-bg)`…), nunca hex.
+- **Restrição**: só aparecem produtos dos contratos das atividades de `get_minhas_atividades()` (super_admin/coordenação = todas;
+  demais = responsável ou substituto). Toda consulta de `contratos_produtos` da tela filtra por `idsVisiveis()` e `abrirModal`
+  recusa contrato fora da lista (`contratoVisivel`). ⚠️ A RLS de `contratos_produtos` (`cp_readonly`) ainda deixa qualquer logado
+  ler pela API — a restrição hoje é da tela.
+- Abre com a **fila "precisa de ação"** (em avaliação + devolvidos); os números do topo e os filtros trocam a lista. Aprovado e
+  pago abrem em leitura (histórico). Título da página = "Produtos Entregues" (igual ao menu).
+- Fotos das entregas ficam em `entregas-docs` (privado): `<img data-arquivo-src>` + `assinarImagens()`, ampliação por `urlAssinada()`.
+- Janelas: classe **`pr-ov`** (no seletor de escopo de `diagnostico-mesa.css`); abrir/fechar só por `prAbrir`/`prFechar` (pilha:
+  Esc fecha a de cima, Tab preso, foco volta).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
