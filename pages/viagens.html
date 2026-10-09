@@ -6,115 +6,70 @@
 <title>SEMA/AC — Viagens e Diárias</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;cursor:pointer;user-select:none;transition:box-shadow .15s,border-color .15s,transform .08s;}
-.stat-card:hover{border-color:var(--cinza-400);box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px);}
-.stat-card:active{transform:scale(.95);box-shadow:0 1px 2px rgba(0,0,0,.12) inset;}
-.stat-card.ativo{border-color:transparent;box-shadow:0 0 0 2px currentColor inset;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;}
-.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
-.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
-.sc-g.ativo{color:var(--verde-claro)}
-.sc-b.ativo{color:var(--azul-medio)}
-.sc-a.ativo{color:var(--aviso)}
-.sc-r.ativo{color:var(--erro)}
-.sc-t.ativo{color:#0D9488}
-.stat-lbl{font-size:10px;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
-.stat-val{font-size:20px;font-weight:700;color:var(--cinza-900);}
-.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
-.stat-card>*{position:relative;z-index:2;}
-.wc-inner{position:absolute;left:0;right:0;bottom:0;height:0%;transition:height 1.1s cubic-bezier(.4,0,.2,1);z-index:0;overflow:visible;opacity:.5;}
-.wc-wavewrap{position:absolute;left:0;right:0;bottom:100%;height:14px;overflow:hidden;}
-.wc-wave-svg{position:absolute;top:0;left:0;width:200%;height:100%;animation:wcwave 4.5s linear infinite;}
-.wc-wave-svg.w2{animation-duration:6.5s;animation-direction:reverse;opacity:.6;}
-@keyframes wcwave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-/* Status badges */
-.sit-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
-.sb-solicitado{background:#EFF6FF;color:#1E40AF}
-.sb-aprovado{background:#FEF3C7;color:#92400E}
-.sb-em_prestacao{background:#F5F3FF;color:#6D28D9}
-.sb-realizado{background:#D1FAE5;color:#065F46}
-.sb-cancelado{background:#F3F4F6;color:#6B7280}
-.sb-rejeitado{background:#FEE2E2;color:#991B1B}
-.sb-rascunho{background:#F3F4F6;color:#374151}
-.item-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;}
-.ib-solicitado{background:#EFF6FF;color:#1E40AF}
-.ib-aprovado{background:#D1FAE5;color:#065F46}
-.ib-rejeitado{background:#FEE2E2;color:#991B1B}
-.ib-nao{background:#F3F4F6;color:#9CA3AF}
-/* Cards */
-.prot-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
-.prot-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 10px rgba(45,106,79,.08);}
-.prot-card.cancelado,.prot-card.rejeitado{opacity:.55;}
-.proto-num{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--verde-medio);background:var(--verde-bg);padding:2px 10px;border-radius:4px;border:1px solid var(--borda-verde);}
-.rota{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:var(--cinza-900);}
-.rota-sep{color:var(--cinza-400);font-size:18px;}
-/* Formulário */
-.form-secao{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden;}
-.form-secao-header{padding:12px 16px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;}
-.form-secao-titulo{font-size:13px;font-weight:600;color:var(--cinza-800);flex:1;}
-.form-secao-body{padding:16px;}
-/* Viajante card no form */
-.viajante-form-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden;}
-.viajante-form-header{padding:10px 16px;background:var(--azul-bg);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:8px;}
-.viajante-form-body{padding:14px 16px;}
-/* Toggle */
-.toggle-group{display:inline-flex;border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;}
-.toggle-btn{padding:4px 12px;cursor:pointer;border:none;background:var(--branco);color:var(--cinza-600);font-family:var(--font-sans);font-size:11px;transition:all .12s;}
-.toggle-btn.ativo{background:var(--verde-medio);color:#fff;font-weight:600;}
-/* Trechos */
-.trecho-row{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;margin-bottom:6px;}
-/* Diárias */
-.diaria-row{display:grid;grid-template-columns:1fr 70px 110px 90px 34px;gap:6px;align-items:center;margin-bottom:6px;}
-/* Embarque */
-.embarque-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
-.embarque-thumb{position:relative;aspect-ratio:4/3;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);cursor:pointer;}
-.embarque-thumb img{width:100%;height:100%;object-fit:cover;}
-.embarque-del{position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
-.upload-mini{border:2px dashed var(--borda-forte);border-radius:var(--raio);padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--cinza-500);transition:all .15s;}
-.upload-mini:hover,.upload-mini.drag{border-color:var(--verde-claro);color:var(--verde-medio);}
-.upload-mini.tem{border-color:var(--verde-claro);background:var(--sucesso-bg);color:var(--sucesso);}
-.aviso-pdf{background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio);padding:10px 14px;font-size:11px;color:#92400E;line-height:1.5;}
-/* Footer botões — quebra linha quando há muitos */
-.modal-footer{flex-wrap:wrap;gap:6px;}
-/* Timeline */
-.tl-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda);}
-.tl-item:last-child{border-bottom:none;}
-.tl-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
-/* Lightbox */
-#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;}
-#lightbox.aberto{display:flex;}
-</style>
+<link href="../css/sidebar.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Viagens -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/viagens.css" rel="stylesheet">
 </head>
-<body>
-<div id="app">
-  <div style="display:flex;align-items:center;justify-content:center;height:100vh">
-    <div style="text-align:center">
-      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      Carregando viagens...
-    </div>
-  </div>
-</div>
-<div class="modal-overlay" id="modal-prot">
+<body class="dgm">
+<!-- ícones (SVG, sem emoji): viIc(nome) ou <svg class="vi-ic"><use href="#vi-nome"/></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="vi-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="vi-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="vi-aviao" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></symbol>
+  <symbol id="vi-email" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+  <symbol id="vi-prancheta" viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="M9 12h6M9 16h4"/></symbol>
+  <symbol id="vi-lapis" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="vi-bloq" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></symbol>
+  <symbol id="vi-cama" viewBox="0 0 24 24"><path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8M2 16h20M6 10V7a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></symbol>
+  <symbol id="vi-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="vi-salvar" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></symbol>
+  <symbol id="vi-alerta" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="vi-volta" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></symbol>
+  <symbol id="vi-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="vi-moeda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></symbol>
+  <symbol id="vi-doc" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="vi-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+  <symbol id="vi-bilhete" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 6v12"/></symbol>
+  <symbol id="vi-voltar" viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></symbol>
+  <symbol id="vi-baixar" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></symbol>
+  <symbol id="vi-sino" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
+  <symbol id="vi-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="vi-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="vi-bandeira" viewBox="0 0 24 24"><path d="M4 22V4M4 4h12l-2 4 2 4H4"/></symbol>
+  <symbol id="vi-lixo" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></symbol>
+  <symbol id="vi-refazer" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="vi-imagem" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L5 20"/></symbol>
+  <symbol id="vi-camera" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="vi-clipe" viewBox="0 0 24 24"><path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/></symbol>
+  <symbol id="vi-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+  <symbol id="vi-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="vi-lua" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="vi-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="vi-globo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+  <symbol id="vi-cadeado" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+</svg>
+<div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando viagens…</div></div></div>
+<div class="modal-overlay vi-ov" id="modal-prot" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:1025px">
     <div class="modal-header">
       <div><div class="modal-title" id="mp-titulo">Protocolo de Viagem</div>
       <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="mp-sub"></div></div>
-      <button class="modal-close" onclick="fecharModal()">✕</button>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="fecharModal()"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
     <div class="modal-body" id="mp-body" style="padding:20px 24px;max-height:74vh;overflow-y:auto"></div>
     <div class="modal-footer" id="mp-footer"></div>
   </div>
 </div>
 <!-- Modal e-mail UNESCO -->
-<div class="modal-overlay" id="modal-email">
+<div class="modal-overlay vi-ov" id="modal-email" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:640px">
     <div class="modal-header">
-      <div><div class="modal-title">📧 Notificar UNESCO</div>
+      <div><div class="modal-title"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar UNESCO</div>
       <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Minuta de solicitação de passagens e diárias</div></div>
-      <button class="modal-close" onclick="document.getElementById('modal-email').classList.remove('aberto')">✕</button>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-email').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
     <div class="modal-body" style="padding:16px 24px">
       <div class="grid-2" style="margin-bottom:10px">
@@ -138,18 +93,18 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="document.getElementById('modal-email').classList.remove('aberto')">Cancelar</button>
-      <button class="btn btn-secondary" style="margin-left:8px" onclick="copiarEmail()">📋 Copiar texto</button>
-      <button class="btn btn-primary" style="margin-left:auto" onclick="enviarEmailUnesco()">✉ Abrir no e-mail →</button>
+      <button class="btn btn-secondary" style="margin-left:8px" onclick="copiarEmail()"><svg class="vi-ic p"><use href="#vi-prancheta"/></svg> Copiar texto</button>
+      <button class="btn btn-primary" style="margin-left:auto" onclick="enviarEmailUnesco()"><svg class="vi-ic p"><use href="#vi-email"/></svg> Abrir no e-mail</button>
     </div>
   </div>
 </div>
 <!-- Modal beneficiário -->
-<div class="modal-overlay" id="modal-benef">
+<div class="modal-overlay vi-ov" id="modal-benef" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:640px">
     <div class="modal-header">
       <div><div class="modal-title" id="modal-benef-titulo">Novo Beneficiário</div>
       <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Dados exigidos pela UNESCO para processamento de SPDs</div></div>
-      <button class="modal-close" onclick="document.getElementById('modal-benef').classList.remove('aberto')">✕</button>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-benef').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
     <div class="modal-body" style="max-height:72vh;overflow-y:auto;padding:20px 24px">
       <!-- Identificação -->
@@ -246,17 +201,17 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="document.getElementById('modal-benef').classList.remove('aberto')">Cancelar</button>
-      <button class="btn btn-primary" style="margin-left:auto" onclick="salvarBenef()">💾 Salvar</button>
+      <button class="btn btn-primary" style="margin-left:auto" onclick="salvarBenef()"><svg class="vi-ic p"><use href="#vi-salvar"/></svg> Salvar</button>
     </div>
   </div>
 </div>
 <!-- Modal devolução -->
-<div class="modal-overlay" id="modal-devolver">
+<div class="modal-overlay vi-ov" id="modal-devolver" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
-      <div><div class="modal-title">↩ Devolver para correção</div>
+      <div><div class="modal-title"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Devolver para correção</div>
       <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">O técnico poderá corrigir e reenviar para aprovação</div></div>
-      <button class="modal-close" onclick="document.getElementById('modal-devolver').classList.remove('aberto')">✕</button>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-devolver').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
     <div class="modal-body" style="padding:20px 24px">
       <div class="form-group">
@@ -267,17 +222,17 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="document.getElementById('modal-devolver').classList.remove('aberto')">Cancelar</button>
-      <button class="btn" style="margin-left:auto;background:#D97706;color:#fff;border:1px solid #D97706" onclick="confirmarDevolver()">↩ Confirmar devolução</button>
+      <button class="btn" style="margin-left:auto;background:var(--alerta);color:#fff;border:1px solid var(--alerta)" onclick="confirmarDevolver()"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Confirmar devolução</button>
     </div>
   </div>
 </div>
 <!-- Modal rejeição -->
-<div class="modal-overlay" id="modal-rejeitar">
+<div class="modal-overlay vi-ov" id="modal-rejeitar" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <div><div class="modal-title">Rejeitar protocolo</div>
       <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Informe o motivo da rejeição ao solicitante</div></div>
-      <button class="modal-close" onclick="document.getElementById('modal-rejeitar').classList.remove('aberto')">✕</button>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-rejeitar').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
     <div class="modal-body" style="padding:20px 24px">
       <div class="form-group">
@@ -288,17 +243,17 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="document.getElementById('modal-rejeitar').classList.remove('aberto')">Cancelar</button>
-      <button class="btn" style="margin-left:auto;background:#DC2626;color:#fff;border:1px solid #DC2626" onclick="confirmarRejeitar()">✕ Confirmar rejeição</button>
+      <button class="btn" style="margin-left:auto;background:var(--erro);color:#fff;border:1px solid var(--erro)" onclick="confirmarRejeitar()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Confirmar rejeição</button>
     </div>
   </div>
 </div>
 <!-- Modal cancelamento com despacho + senha -->
-<div class="modal-overlay" id="modal-cancelar">
+<div class="modal-overlay vi-ov" id="modal-cancelar" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
-      <div><div class="modal-title">⛔ Cancelar protocolo</div>
+      <div><div class="modal-title"><svg class="vi-ic p"><use href="#vi-bloq"/></svg> Cancelar protocolo</div>
       <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Esta ação não pode ser desfeita — os viajantes serão notificados por e-mail</div></div>
-      <button class="modal-close" onclick="fecharModalCancelar()">✕</button>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="fecharModalCancelar()"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
     <div class="modal-body" style="padding:20px 24px">
       <div class="form-group" style="margin-bottom:14px">
@@ -313,31 +268,31 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModalCancelar()">Voltar</button>
-      <button class="btn" id="cancelar-btn-confirmar" style="margin-left:auto;background:#DC2626;color:#fff;border:1px solid #DC2626" onclick="confirmarCancelamento()">⛔ Cancelar protocolo</button>
+      <button class="btn" id="cancelar-btn-confirmar" style="margin-left:auto;background:var(--erro);color:#fff;border:1px solid var(--erro)" onclick="confirmarCancelamento()"><svg class="vi-ic p"><use href="#vi-bloq"/></svg> Cancelar protocolo</button>
     </div>
   </div>
 </div>
 <!-- Modal notificação por e-mail -->
-<div class="modal-overlay" id="modal-notif-email">
+<div class="modal-overlay vi-ov" id="modal-notif-email" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <div>
-        <div class="modal-title">📧 Enviar notificações por e-mail</div>
+        <div class="modal-title"><svg class="vi-ic p"><use href="#vi-email"/></svg> Enviar notificações por e-mail</div>
         <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Remetente: fundobrasilonuacre@gmail.com</div>
       </div>
-      <button class="modal-close" onclick="fecharModalNotif()">✕</button>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="fecharModalNotif()"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
     <div class="modal-body" style="padding:16px 24px">
       <!-- Fase + protocolo -->
       <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:16px">
-        <span style="font-size:20px">📋</span>
+        <span style="font-size:20px"><svg class="vi-ic p"><use href="#vi-prancheta"/></svg></span>
         <div>
           <div style="font-size:11px;color:var(--cinza-500)">Protocolo</div>
           <div style="font-size:13px;font-weight:700" id="notif-protocolo-num">—</div>
         </div>
         <div style="margin-left:auto;text-align:right">
           <div style="font-size:11px;color:var(--cinza-500)">Fase</div>
-          <div style="font-size:12px;font-weight:600;color:#1E40AF" id="notif-evento-label">—</div>
+          <div style="font-size:12px;font-weight:600;color:var(--info-txt)" id="notif-evento-label">—</div>
         </div>
       </div>
       <!-- Lista de destinatários -->
@@ -346,18 +301,19 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModalNotif()">Cancelar</button>
-      <button class="btn btn-primary" style="margin-left:auto" id="notif-btn-enviar" onclick="confirmarEnvioEmails()">📧 Enviar e-mails</button>
+      <button class="btn btn-primary" style="margin-left:auto" id="notif-btn-enviar" onclick="confirmarEnvioEmails()"><svg class="vi-ic p"><use href="#vi-email"/></svg> Enviar e-mails</button>
     </div>
   </div>
 </div>
-<div id="lightbox" onclick="fecharLightbox()">
-  <button onclick="fecharLightbox()" style="position:absolute;top:16px;right:20px;color:#fff;font-size:28px;cursor:pointer;background:none;border:none">✕</button>
+<div id="lightbox" class="vi-ov" role="dialog" aria-modal="true" aria-label="Imagem ampliada" onclick="fecharLightbox()">
+  <button type="button" aria-label="Fechar" onclick="fecharLightbox()" style="position:absolute;top:16px;right:20px;color:#fff;cursor:pointer;background:none;border:none"><svg class="vi-ic g"><use href="#vi-x"/></svg></button>
   <img id="lb-img" src="" alt="" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px">
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────
 const SIT_LABELS={rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
@@ -365,6 +321,48 @@ const ITEM_LABELS={solicitado:'Aguarda aprovação',aprovado:'Aprovado',rejeitad
 const TIPOS_TRECHO=['Aérea','Rodoviária','Fluvial','Ferroviária','Outro'];
 const FUNCOES=['Servidor SEMA','Consultor','Pesquisador','Coordenador','Convidado','Outro'];
 const ATIV_217='44b7a6fc-dab6-49ba-bc1f-9764a99bb9d0';
+// grupos do filtro de situação (a lista abre em "Em andamento")
+const SIT_GRUPOS={_and:['rascunho','solicitado','aprovado','em_prestacao'],realizado:['realizado'],_enc:['cancelado','rejeitado'],'':null};
+let filtroSit='_and', filtroBenefAtivo='true';
+
+// ── Ícones (sprite SVG no HTML, sem emoji) ─────────────────────
+function viIc(n,cls){return '<svg class="vi-ic'+(cls?' '+cls:'')+'" aria-hidden="true"><use href="#vi-'+n+'"/></svg>';}
+
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico e das demais guias (componente .dgm-tema)
+function seletorTema(){
+  const tb=document.querySelector('.topbar'); if(!tb||tb.querySelector('.dgm-tema')||typeof DiagTema==='undefined')return;
+  const d=document.createElement('div');
+  d.className='dgm-tema'; d.setAttribute('role','group'); d.setAttribute('aria-label','Tema');
+  d.innerHTML=[['claro','sol','Claro'],['escuro','lua','Escuro']].map(x=>`<button type="button" data-tema="${x[0]}" aria-pressed="${DiagTema.atual()===x[0]}">${viIc(x[1])}${x[2]}</button>`).join('');
+  const bc=tb.querySelector('.topbar-breadcrumb');
+  if(bc)bc.parentNode.insertBefore(d,bc); else tb.appendChild(d);
+  d.addEventListener('click',ev=>{const b=ev.target.closest('[data-tema]');if(!b)return;DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
+}
+
+// ── Janelas: a classe .aberto é observada — pilha (Esc fecha a de cima), foco, Tab preso, foco volta ──
+const VI_FOCAVEIS='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]):not([type=file]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const viPilha=[];
+const VI_FECHAR={'modal-prot':()=>fecharModal(),'modal-cancelar':()=>fecharModalCancelar(),'modal-notif-email':()=>fecharModalNotif(),lightbox:()=>fecharLightbox()};
+function viFechar(id){(VI_FECHAR[id]||(()=>document.getElementById(id)?.classList.remove('aberto')))();}
+const viObs=new MutationObserver(ms=>ms.forEach(m=>{
+  const el=m.target, aberto=el.classList.contains('aberto'), k=viPilha.findIndex(x=>x.el===el);
+  if(aberto&&k<0){viPilha.push({el,volta:document.activeElement});requestAnimationFrame(()=>{const f=el.querySelector('.modal-close')||el.querySelector(VI_FOCAVEIS);if(f)f.focus({preventScroll:true});});}
+  else if(!aberto&&k>=0){const {volta}=viPilha.splice(k,1)[0];if(volta&&document.contains(volta))volta.focus({preventScroll:true});}
+}));
+document.querySelectorAll('.vi-ov').forEach(el=>viObs.observe(el,{attributes:true,attributeFilter:['class']}));
+document.addEventListener('keydown',e=>{
+  const topo=viPilha[viPilha.length-1]; if(!topo)return;
+  if(e.key==='Escape'){e.preventDefault();viFechar(topo.el.id);}
+  else if(e.key==='Tab'){
+    const f=[...topo.el.querySelectorAll(VI_FOCAVEIS)].filter(x=>x.offsetParent!==null); if(!f.length)return;
+    const pri=f[0],ult=f[f.length-1];
+    if(!topo.el.contains(document.activeElement)){e.preventDefault();pri.focus();}
+    else if(e.shiftKey&&document.activeElement===pri){e.preventDefault();ult.focus();}
+    else if(!e.shiftKey&&document.activeElement===ult){e.preventDefault();pri.focus();}
+  }
+});
+document.querySelectorAll('.modal-overlay.vi-ov').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)viFechar(el.id);}));
 
 // ── Estado ────────────────────────────────────────────────────
 let protocolos=[], protAtual=null, editandoProtocoloId=null;
@@ -386,50 +384,41 @@ let benefVindoDeProtocolo=null; // {idx, acao:'novo'|'editar'}
 
   const paginaNavAtiva = abaInicial==='beneficiarios' ? 'beneficiarios' : 'viagens';
   document.getElementById('app').innerHTML=gerarLayout('Viagens e Diárias', paginaNavAtiva)+`
-    <div class="fade-in">
+    <div class="fade-in vi-pagina">
       <div id="notif-banner"></div>
-      <!-- Abas -->
-      <div style="display:flex;gap:0;border-bottom:2px solid var(--borda);margin-bottom:18px">
-        <button id="aba-btn-protocolos" onclick="mudarAba('protocolos')"
-          style="padding:8px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;font-family:var(--font-sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s">
-          ✈ Protocolos
-        </button>
-        ${isAdmin?`<button id="aba-btn-beneficiarios" onclick="mudarAba('beneficiarios')"
-          style="padding:8px 20px;font-size:13px;font-weight:500;border:none;background:none;cursor:pointer;font-family:var(--font-sans);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s">
-          👤 Beneficiários
-        </button>`:''}
+      <div class="vi-tabs" role="tablist" aria-label="Viagens">
+        <button type="button" class="vi-tab" role="tab" id="aba-btn-protocolos" onclick="mudarAba('protocolos')">${viIc('aviao')}Protocolos <span class="n" id="n-prot"></span></button>
+        ${isAdmin?`<button type="button" class="vi-tab" role="tab" id="aba-btn-beneficiarios" onclick="mudarAba('beneficiarios')">${viIc('pessoa')}Beneficiários <span class="n" id="n-benef"></span></button>`:''}
       </div>
       <!-- Aba Protocolos -->
-      <div id="aba-protocolos">
-        <div class="stat-row" id="stats"></div>
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-          <input class="form-control" id="f-busca" style="width:240px" placeholder="🔍 Buscar protocolo, viajante, destino..."
-            oninput="filtrar()">
-          <select class="form-control" id="f-sit-filt" style="width:160px" onchange="filtrar()">
-            <option value="">Todas as situações</option>
-            ${Object.entries(SIT_LABELS).map(([k,v])=>`<option value="${k}" ${k==='rascunho'?'selected':''}>${v}</option>`).join('')}
-          </select>
-          ${isTecnico?`<span style="font-size:11px;color:var(--cinza-500);background:var(--cinza-50);border:1px solid var(--borda);padding:4px 10px;border-radius:99px">👤 Meus protocolos</span>`:''}
-          <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormNovo()">+ Novo protocolo</button>
-          ${isAdmin?`<button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>`:''}
+      <div id="aba-protocolos" class="vi-pagina">
+        <div class="vi-kpis" id="stats"></div>
+        <div class="vi-filtros" role="group" aria-label="Filtros">
+          <label class="vi-busca">${viIc('busca','p')}<input type="search" id="f-busca" placeholder="Protocolo, viajante, destino ou SEI" aria-label="Buscar protocolo" oninput="filtrar()"></label>
+          <div class="vi-seg" id="seg-sit" role="group" aria-label="Situação"></div>
+          ${isTecnico?`<span class="vi-meus">${viIc('pessoa','p')}Meus protocolos</span>`:''}
+          <span class="vi-acoes">
+            ${isAdmin?`<button type="button" class="btn btn-secondary btn-sm" onclick="exportarCSV()">${viIc('baixar','p')}CSV</button>`:''}
+            <button type="button" class="btn btn-primary btn-sm" onclick="abrirFormNovo()">${viIc('mais','p')}Novo protocolo</button>
+          </span>
         </div>
-        <div id="lista-protocolos"></div>
+        <div id="lista-protocolos" class="vi-lista"></div>
       </div>
       <!-- Aba Beneficiários -->
-      <div id="aba-beneficiarios" style="display:none">
-        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
-          <input class="form-control" id="f-benef-busca" style="width:260px" placeholder="🔍 Buscar por nome ou CPF..." oninput="filtrarBenef()">
-          <select class="form-control" id="f-benef-ativo" style="width:140px" onchange="filtrarBenef()">
-            <option value="">Todos</option>
-            <option value="true" selected>Ativos</option>
-            <option value="false">Inativos</option>
-          </select>
-          <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="abrirFormBenef(null)">+ Novo beneficiário</button>
+      <div id="aba-beneficiarios" class="vi-pagina" hidden>
+        <div class="vi-filtros" role="group" aria-label="Filtros de beneficiários">
+          <label class="vi-busca">${viIc('busca','p')}<input type="search" id="f-benef-busca" placeholder="Nome ou CPF" aria-label="Buscar beneficiário" oninput="filtrarBenef()"></label>
+          <div class="vi-seg" id="seg-benef" role="group" aria-label="Cadastro"></div>
+          <span class="vi-acoes"><button type="button" class="btn btn-primary btn-sm" onclick="abrirFormBenef(null)">${viIc('mais','p')}Novo beneficiário</button></span>
         </div>
         <div id="lista-benef"></div>
       </div>
     </div>`+`</div></div></div>`;
 
+  carregarLogosSidebar();
+  seletorTema();
+  document.getElementById('seg-sit').addEventListener('click',ev=>{const b=ev.target.closest('[data-f]');if(!b)return;filtroSit=b.dataset.f;renderStats();filtrar();});
+  document.getElementById('seg-benef')?.addEventListener('click',ev=>{const b=ev.target.closest('[data-f]');if(!b)return;filtroBenefAtivo=b.dataset.f;filtrarBenef();});
   mudarAba(abaInicial, false);
   await Promise.all([carregar(), carregarNotificacoes()]);
 })();
@@ -457,12 +446,8 @@ function mudarAba(aba, pushState=true){
   ['protocolos','beneficiarios'].forEach(a=>{
     const el=document.getElementById('aba-'+a);
     const btn=document.getElementById('aba-btn-'+a);
-    if(el) el.style.display=a===aba?'':'none';
-    if(btn){
-      btn.style.color=a===aba?'#2563EB':'var(--cinza-500)';
-      btn.style.borderBottomColor=a===aba?'#2563EB':'transparent';
-      btn.style.fontWeight=a===aba?'600':'500';
-    }
+    if(el) el.hidden=a!==aba;
+    if(btn) btn.setAttribute('aria-selected',String(a===aba));
   });
   if(aba==='beneficiarios') carregarBenef();
   if(pushState) history.replaceState(null,'',aba==='beneficiarios'?'?aba=beneficiarios':'viagens.html');
@@ -534,54 +519,51 @@ function infoPrestacaoPendente(b){
 
 function filtrarBenef(){
   const q=(document.getElementById('f-benef-busca')?.value||'').toLowerCase();
-  const ativo=document.getElementById('f-benef-ativo')?.value;
+  const qd=q.replace(/\D/g,'');
   let lista=todosbenef;
-  if(q) lista=lista.filter(b=>(b.nome||'').toLowerCase().includes(q)||(b.cpf||'').includes(q));
-  if(ativo!=='') lista=lista.filter(b=>String(b.ativo)===ativo);
+  if(q) lista=lista.filter(b=>(b.nome||'').toLowerCase().includes(q)||(qd&&(b.cpf||'').replace(/\D/g,'').includes(qd)));
+  const nb=document.getElementById('n-benef');if(nb)nb.textContent=todosbenef.length;
+  const seg=document.getElementById('seg-benef');
+  if(seg)seg.innerHTML=[['true','Ativos',todosbenef.filter(b=>b.ativo!==false).length],['false','Inativos',todosbenef.filter(b=>b.ativo===false).length],['','Todos',todosbenef.length]]
+    .map(([f,r,n])=>`<button type="button" data-f="${f}" aria-pressed="${filtroBenefAtivo===f}">${r} <span class="mono">${n}</span></button>`).join('');
+  if(filtroBenefAtivo!=='') lista=lista.filter(b=>String(b.ativo!==false)===filtroBenefAtivo);
   renderBenef(lista);
+}
+// CPF na lista sempre mascarado (só os 2 últimos dígitos); o número inteiro fica na janela de edição
+function mascaraCPF(cpf){const d=(cpf||'').replace(/\D/g,'');return d.length>=2?'***.***.***-'+d.slice(-2):'—';}
+function selePassaporte(b){
+  if(!b.passaporte_numero)return '<span style="color:var(--txt-3)">—</span>';
+  if(!b.passaporte_validade)return `<span class="vi-chip">${viIc('globo','p')}sem validade</span>`;
+  const v=new Date(b.passaporte_validade+'T12:00'),hoje=new Date();hoje.setHours(12,0,0,0);
+  const dias=Math.round((v-hoje)/86400000);
+  if(dias<0)return `<span class="vi-chip er">${viIc('alerta','p')}vencido em ${fmtData(b.passaporte_validade)}</span>`;
+  if(dias<=180)return `<span class="vi-chip al">${viIc('alerta','p')}vence em ${dias} dia${dias===1?'':'s'}</span>`;
+  return `<span class="vi-chip ok">${viIc('check','p')}válido até ${fmtData(b.passaporte_validade)}</span>`;
 }
 
 function renderBenef(lista){
   const el=document.getElementById('lista-benef');
   if(!el)return;
-  if(!lista.length){el.innerHTML=`<div style="text-align:center;padding:40px;color:var(--cinza-400)">Nenhum beneficiário cadastrado.</div>`;return;}
-  el.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead><tr style="background:var(--cinza-50);border-bottom:2px solid var(--borda)">
-      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">Nome</th>
-      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">CPF</th>
-      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">Cargo / Instituição</th>
-      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">Passaporte</th>
-      <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--cinza-600)">Banco / IBAN</th>
-      <th style="padding:8px 12px;text-align:center;font-weight:600;color:var(--cinza-600)">Prestação</th>
-      <th style="padding:8px 12px;text-align:center;font-weight:600;color:var(--cinza-600)">Status</th>
-      <th style="padding:8px 12px"></th>
-    </tr></thead>
+  if(!lista.length){el.innerHTML=`<div class="vi-vazio"><span class="ic-g">${viIc('pessoa','g')}</span><b>${todosbenef.length?'Nenhum beneficiário com esse filtro':'Nenhum beneficiário cadastrado'}</b></div>`;return;}
+  el.innerHTML=`<div class="vi-card"><div class="vi-tbl-w"><table class="vi-tbl">
+    <thead><tr><th>Nome</th><th>CPF</th><th>Cargo / instituição</th><th>Passaporte</th><th>Prestação</th><th>Cadastro</th><th></th></tr></thead>
     <tbody>
     ${lista.map(b=>{
       const pend=infoPrestacaoPendente(b);
-      return`<tr style="border-bottom:1px solid var(--borda);transition:background .1s" onmouseover="this.style.background='var(--cinza-50)'" onmouseout="this.style.background=''">
-      <td style="padding:9px 12px;font-weight:500;color:var(--cinza-900)">${esc(b.nome)}</td>
-      <td style="padding:9px 12px;font-family:var(--font-mono);color:var(--cinza-700)">${esc(b.cpf||'—')}</td>
-      <td style="padding:9px 12px;color:var(--cinza-600)">${esc(b.cargo||'—')}${b.instituicao?`<br><span style="font-size:10px;color:var(--cinza-400)">${esc(b.instituicao)}</span>`:''}</td>
-      <td style="padding:9px 12px;font-family:var(--font-mono);color:var(--cinza-600)">${esc(b.passaporte_numero||'—')}${b.passaporte_validade?`<br><span style="font-size:10px;color:var(--cinza-400)">Val: ${fmtData(b.passaporte_validade)}</span>`:''}</td>
-      <td style="padding:9px 12px;color:var(--cinza-600)">${esc(b.banco||'—')}${b.iban?`<br><span style="font-size:10px;font-family:var(--font-mono);color:var(--cinza-400)">${esc(b.iban)}</span>`:''}</td>
-      <td style="padding:9px 12px;text-align:center">
-        ${pend
-          ? `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:2px">
-               <span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:#FEF2F2;color:#991B1B;white-space:nowrap" title="Protocolo ${esc(pend.numero)}">⚠ Pendente</span>
-               <span style="font-size:10px;color:#B91C1C;font-weight:600">${pend.dias} dia${pend.dias!==1?'s':''}</span>
-             </div>`
-          : `<span style="font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;background:#D1FAE5;color:#065F46;white-space:nowrap">✓ OK</span>`}
-      </td>
-      <td style="padding:9px 12px;text-align:center">
-        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;${b.ativo?'background:#EFF6FF;color:#1E40AF':'background:#F3F4F6;color:#6B7280'}">${b.ativo?'Ativo':'Inativo'}</span>
-      </td>
-      <td style="padding:9px 12px;text-align:right">
-        <button class="btn btn-sm btn-secondary" style="font-size:11px" onclick="abrirFormBenef('${b.id}')">✎ Editar</button>
-      </td>
+      return`<tr class="${b.ativo===false?'inativo':''}">
+      <td class="nm">${esc(b.nome)}</td>
+      <td class="mono" title="CPF mascarado; o número completo fica na janela de edição">${esc(mascaraCPF(b.cpf))}</td>
+      <td>${esc(b.cargo||'—')}${b.instituicao?`<div class="sub">${esc(b.instituicao)}</div>`:''}</td>
+      <td>${selePassaporte(b)}</td>
+      <td>${pend
+          ? `<span class="vi-chip er" title="Protocolo ${esc(pend.numero)}">${viIc('relogio','p')}pendente · ${pend.dias} dia${pend.dias!==1?'s':''}</span>`
+          : `<span class="vi-chip ok">${viIc('check','p')}em dia</span>`}</td>
+      <td><span class="vi-chip ${b.ativo!==false?'':'er'}">${b.ativo!==false?'Ativo':'Inativo'}</span></td>
+      <td style="text-align:right"><button type="button" class="btn btn-sm btn-secondary" onclick="abrirFormBenef('${b.id}')">${viIc('lapis','p')}Editar</button></td>
     </tr>`;}).join('')}
     </tbody>
-  </table>`;
+  </table></div></div>
+  <p class="vi-nota" style="margin-top:10px">${viIc('cadeado','p')}Dados bancários (banco, agência, conta, PIX, IBAN) e o CPF completo ficam só na janela de edição, para super_admin e coordenação.</p>`;
 }
 
 function abrirFormBenef(id){
@@ -721,17 +703,17 @@ async function selecionarBenefViajante(idx, benefId){
   // Verificar bloqueio por prestação de contas pendente
   if(benef.cpf || benef.email){
     const statusEl=document.getElementById(`vn-benef-status-${idx}`);
-    if(statusEl) statusEl.innerHTML=`<div style="font-size:11px;color:var(--cinza-500)">⏳ Verificando pendências...</div>`;
+    if(statusEl) statusEl.innerHTML=`<div style="font-size:11px;color:var(--cinza-500)"><svg class="vi-ic p"><use href="#vi-relogio"/></svg> Verificando pendências...</div>`;
     const bloqueio=await verificarBloqueioPrestacao(benef);
     if(bloqueio){
       const buscaEl=document.getElementById(`vn-busca-${idx}`);
       if(buscaEl) buscaEl.value='';
       const hidEl=document.getElementById(`vn-benef-id-${idx}`);
       if(hidEl) hidEl.value='';
-      if(statusEl) statusEl.innerHTML=`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--raio);padding:10px 12px;font-size:11px;color:#991B1B">
-        <div style="font-weight:700;margin-bottom:4px">⛔ Beneficiário bloqueado</div>
+      if(statusEl) statusEl.innerHTML=`<div style="background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent);border-radius:var(--raio);padding:10px 12px;font-size:11px;color:var(--erro-txt)">
+        <div style="font-weight:700;margin-bottom:4px"><svg class="vi-ic p"><use href="#vi-bloq"/></svg> Beneficiário bloqueado</div>
         <div>${esc(benef.nome)} não pode ser adicionado(a) pois está com prestação de contas pendente do Protocolo <strong>${esc(bloqueio.numero)}</strong> (retorno em ${bloqueio.dtRetornoFmt}, vencido há ${bloqueio.dias} dias).</div>
-        <div style="margin-top:6px;color:#7F1D1D">Para desbloquear: peça ao beneficiário que submeta os documentos no protocolo pendente.</div>
+        <div style="margin-top:6px;color:var(--erro-txt)">Para desbloquear: peça ao beneficiário que submeta os documentos no protocolo pendente.</div>
       </div>`;
       return;
     }
@@ -793,14 +775,14 @@ function mostrarStatusBenef(idx, benef, isIntl){
   if(!statusEl) return;
   const faltando=verificarCompletudeViajante(benef,isIntl);
   if(!faltando.length){
-    statusEl.innerHTML=`<div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:var(--raio);padding:6px 12px;font-size:11px;color:#065F46;display:flex;align-items:center;gap:6px">
-      ✅ Beneficiário encontrado com dados completos
+    statusEl.innerHTML=`<div style="background:var(--ok-bg);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent);border-radius:var(--raio);padding:6px 12px;font-size:11px;color:var(--ok-txt);display:flex;align-items:center;gap:6px">
+      <svg class="vi-ic p"><use href="#vi-check"/></svg> Beneficiário encontrado com dados completos
     </div>`;
   } else {
-    statusEl.innerHTML=`<div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio);padding:8px 12px;font-size:11px;color:#92400E">
-      <div style="font-weight:600;margin-bottom:6px">⚠️ Dados incompletos — ausentes: ${faltando.join(', ')}</div>
-      <button class="btn btn-sm" style="font-size:11px;background:#D97706;color:#fff;border-color:#D97706"
-        onclick="abrirEdicaoBenefFromProt('${benef.id}',${idx})">✎ Completar dados do beneficiário</button>
+    statusEl.innerHTML=`<div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:8px 12px;font-size:11px;color:var(--alerta-txt)">
+      <div style="font-weight:600;margin-bottom:6px"><svg class="vi-ic p"><use href="#vi-alerta"/></svg> Dados incompletos — ausentes: ${faltando.join(', ')}</div>
+      <button class="btn btn-sm" style="font-size:11px;background:var(--alerta);color:#fff;border-color:var(--alerta)"
+        onclick="abrirEdicaoBenefFromProt('${benef.id}',${idx})"><svg class="vi-ic p"><use href="#vi-lapis"/></svg> Completar dados do beneficiário</button>
     </div>`;
   }
 }
@@ -866,14 +848,14 @@ async function carregarNotificacoes(){
     const el=document.getElementById('notif-banner');
     if(!el)return;
     el.innerHTML=data.map(n=>`
-      <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
-        <span style="font-size:18px;flex-shrink:0">${n.tipo==='viagem_aprovada'?'✅':n.tipo==='viagem_rejeitada'?'❌':n.tipo==='viagem_prestacao'?'📋':'🔔'}</span>
+      <div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+        <span style="font-size:18px;flex-shrink:0">${n.tipo==='viagem_aprovada'?'<svg class="vi-ic p"><use href="#vi-check"/></svg>':n.tipo==='viagem_rejeitada'?'<svg class="vi-ic p"><use href="#vi-x"/></svg>':n.tipo==='viagem_prestacao'?'<svg class="vi-ic p"><use href="#vi-prancheta"/></svg>':'<svg class="vi-ic p"><use href="#vi-sino"/></svg>'}</span>
         <div style="flex:1">
           <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">${n.titulo}</div>
           ${n.mensagem?`<div style="font-size:11px;color:var(--cinza-600);margin-top:2px">${n.mensagem}</div>`:''}
           <div style="font-size:10px;color:var(--cinza-400);margin-top:3px">${new Date(n.criado_em).toLocaleString('pt-BR')}</div>
         </div>
-        <button onclick="marcarLida('${n.id}',this.parentNode)" style="font-size:10px;color:var(--cinza-400);background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0">✕ marcar lida</button>
+        <button onclick="marcarLida('${n.id}',this.parentNode)" style="font-size:10px;color:var(--cinza-400);background:none;border:none;cursor:pointer;padding:2px 6px;flex-shrink:0"><svg class="vi-ic p"><use href="#vi-x"/></svg> marcar lida</button>
       </div>`).join('');
   }catch(e){}
 }
@@ -883,48 +865,36 @@ async function marcarLida(id,el){
   el?.remove();
 }
 
-function waterHTML(color,pct){
-  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
-    <div class="wc-wavewrap">
-      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
-      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
-    </div>
-  </div>`;
-}
-function animarAgua(){
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
-      el.style.height=el.dataset.alvo+'%';
-    });
-  }));
+// prazo da prestação de contas = retorno + 5 dias (mesma regra do aviso no detalhe)
+function prazoPrestacao(p){
+  if(!p.dt_retorno)return null;
+  const prazo=new Date(p.dt_retorno+'T12:00');prazo.setDate(prazo.getDate()+5);
+  const hoje=new Date();hoje.setHours(12,0,0,0);
+  return {prazo,dias:Math.round((prazo-hoje)/86400000)};
 }
 
+
+
 function renderStats(){
-  const t=protocolos;
-  const totalVal=t.reduce((s,p)=>{
-    return s+(p.viajantes||[]).reduce((sv,v)=>{
-      const tp=(v.trechos||[]).reduce((st,tr)=>st+parseFloat(tr.valor||0),0);
-      const td=(v.diarias||[]).reduce((sd,d)=>sd+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
-      return sv+tp+td;
-    },0);
-  },0);
-  const sFilt=document.getElementById('f-sit-filt')?.value||'';
-  const den=t.length||1;
-  document.getElementById('stats').innerHTML=`
-    <div class="stat-card sc-b${sFilt===''?'':''}" onclick="filtroCard('')">${waterHTML('var(--azul-medio)',100)}<div class="stat-lbl">Protocolos</div><div class="stat-val">${t.length}</div><div class="stat-sub">total</div></div>
-    <div class="stat-card sc-a${sFilt==='solicitado'?' ativo':''}" onclick="filtroCard('solicitado')">${waterHTML('var(--aviso)',Math.round(t.filter(p=>p.situacao==='solicitado').length/den*100))}<div class="stat-lbl">Aguardando</div><div class="stat-val" style="color:var(--aviso)">${t.filter(p=>p.situacao==='solicitado').length}</div><div class="stat-sub">aprovação</div></div>
-    <div class="stat-card sc-g${sFilt==='aprovado'?' ativo':''}" onclick="filtroCard('aprovado')">${waterHTML('var(--verde-claro)',Math.round(t.filter(p=>p.situacao==='aprovado').length/den*100))}<div class="stat-lbl">Aprovados</div><div class="stat-val">${t.filter(p=>p.situacao==='aprovado').length}</div><div class="stat-sub">em andamento</div></div>
-    <div class="stat-card sc-t${sFilt==='em_prestacao'?' ativo':''}" onclick="filtroCard('em_prestacao')">${waterHTML('#0D9488',Math.round(t.filter(p=>p.situacao==='em_prestacao').length/den*100))}<div class="stat-lbl">Prestação</div><div class="stat-val" style="color:#0D9488">${t.filter(p=>p.situacao==='em_prestacao').length}</div><div class="stat-sub">aguardando docs</div></div>
-    <div class="stat-card sc-g${sFilt==='realizado'?' ativo':''}" onclick="filtroCard('realizado')">${waterHTML('var(--sucesso)',Math.round(t.filter(p=>p.situacao==='realizado').length/den*100))}<div class="stat-lbl">Realizados</div><div class="stat-val" style="color:var(--sucesso)">${t.filter(p=>p.situacao==='realizado').length}</div><div class="stat-sub">lançados</div></div>`;
-  animarAgua();
+  const t=protocolos, n=st=>t.filter(p=>p.situacao===st).length;
+  const atrasados=t.filter(p=>p.situacao==='em_prestacao'&&(prazoPrestacao(p)?.dias??0)<0).length;
+  const kpi=(f,ic,l,v,sub,cor,subCls)=>`<button type="button" class="vi-kpi" style="--c:var(${cor})" aria-pressed="${filtroSit===f}" onclick="filtroCard('${f}')">
+    <span class="vi-kpi-l">${viIc(ic)}${l}</span><span class="vi-kpi-v">${v}</span><span class="vi-kpi-s ${subCls||''}">${sub}</span></button>`;
+  document.getElementById('stats').innerHTML=
+      kpi('solicitado','relogio','Aguardando aprovação',n('solicitado'),'solicitados','--vi-sol')
+    + kpi('aprovado','check','Aprovados',n('aprovado'),'aguardando a viagem e as SPDs','--vi-apr')
+    + kpi('em_prestacao','prancheta','Em prestação',n('em_prestacao'),atrasados?`${atrasados} com prazo vencido`:'nenhum com prazo vencido','--vi-pre',atrasados?'er':'')
+    + kpi('realizado','check','Realizados',n('realizado'),'lançados no financeiro','--vi-rea');
+  const np=document.getElementById('n-prot');if(np)np.textContent=t.length;
+  const cnt=g=>SIT_GRUPOS[g]?t.filter(p=>SIT_GRUPOS[g].includes(p.situacao)).length:t.length;
+  document.getElementById('seg-sit').innerHTML=[['_and','Em andamento'],['realizado','Realizados'],['_enc','Cancelados e rejeitados'],['','Todos']]
+    .map(([f,r])=>`<button type="button" data-f="${f}" aria-pressed="${filtroSit===f}">${r} <span class="mono">${cnt(f)}</span></button>`).join('');
 }
 
 function filtroCard(status){
-  const sel=document.getElementById('f-sit-filt');
-  if(!sel)return;
-  sel.value=(sel.value===status&&status!=='')?'':status;
-  filtrar();
+  filtroSit=(filtroSit===status)?'_and':status;
   renderStats();
+  filtrar();
 }
 
 function calcTotalProtocolo(p){
@@ -937,9 +907,9 @@ function calcTotalProtocolo(p){
 
 function filtrar(){
   const b=(document.getElementById('f-busca')?.value||'').toLowerCase();
-  const s=document.getElementById('f-sit-filt')?.value||'';
+  const grupo=filtroSit in SIT_GRUPOS?SIT_GRUPOS[filtroSit]:[filtroSit];
   const fil=protocolos.filter(p=>{
-    if(s&&p.situacao!==s)return false;
+    if(grupo&&!grupo.includes(p.situacao))return false;
     if(b){
       const nomes=(p.viajantes||[]).map(v=>v.nome||'').join(' ');
       const txt=[(p.numero||''),(p.destino_principal||''),(p.numero_sei||''),nomes].join(' ').toLowerCase();
@@ -949,10 +919,10 @@ function filtrar(){
   });
   const el=document.getElementById('lista-protocolos');
   if(!fil.length){
-    el.innerHTML=`<div style="text-align:center;padding:60px;color:var(--cinza-400)">
-      <div style="font-size:40px;margin-bottom:10px">✈</div>
-      <div>Nenhum protocolo encontrado.</div>
-      <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="abrirFormNovo()">+ Novo protocolo</button>
+    el.innerHTML=`<div class="vi-vazio"><span class="ic-g">${viIc('aviao','g')}</span>
+      <b>${protocolos.length?'Nenhum protocolo com esse filtro':'Nenhum protocolo de viagem ainda'}</b>
+      ${protocolos.length&&filtroSit!==''?`<button type="button" class="btn btn-secondary btn-sm" onclick="filtroSit='';renderStats();filtrar()">Ver todos (${protocolos.length})</button>`:''}
+      <button type="button" class="btn btn-primary btn-sm" onclick="abrirFormNovo()">${viIc('mais','p')}Novo protocolo</button>
     </div>`;return;
   }
   el.innerHTML=fil.map(renderCard).join('');
@@ -963,25 +933,22 @@ function renderCard(p){
   const viajantes=p.viajantes||[];
   const v0=viajantes[0];
   const extras=viajantes.length-1;
-  const numDias=p.dt_retorno&&p.dt_saida?Math.ceil((new Date(p.dt_retorno)-new Date(p.dt_saida))/(1000*60*60*24)):null;
   const podEditar=(p.situacao==='rascunho'||p.situacao==='solicitado')&&(p.criado_por===appState.usuario?.id||['super_admin','coordenacao'].includes(appState.perfil));
-  return`<div class="prot-card ${p.situacao}" onclick="abrirDetalhe('${p.id}')" style="padding:10px 14px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="proto-num" style="flex-shrink:0">${esc(p.numero||'—')}</span>
-      <span class="sit-badge sb-${p.situacao}" style="flex-shrink:0">${SIT_LABELS[p.situacao]||p.situacao}</span>
-      <span style="font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📍 ${esc(p.destino_principal||'—')}</span>
-      ${numDias?`<span style="font-size:11px;color:var(--cinza-500);flex-shrink:0">📅 ${fmtData(p.dt_saida)}→${fmtData(p.dt_retorno)}</span>`:''}
-      ${total>0?`<span style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--verde-medio);flex-shrink:0">${fmtBRL(total)}</span>`:''}
-      ${podEditar?`<button class="btn btn-secondary btn-sm" style="font-size:11px;flex-shrink:0;white-space:nowrap" onclick="event.stopPropagation();abrirFormEdicao('${p.id}')">✎ Editar</button>`:''}
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap">
-      ${v0?`<div style="display:flex;align-items:center;gap:4px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:99px;padding:2px 8px">
-        <span style="font-size:11px;font-weight:500">👤 ${esc(v0.nome)}</span>
-        ${v0.tem_passagem?`<span class="item-badge ib-${v0.sit_passagem||'solicitado'}" style="font-size:9px">✈</span>`:''}
-        ${v0.tem_diaria?`<span class="item-badge ib-${v0.sit_diaria||'solicitado'}" style="font-size:9px">🏨</span>`:''}
-      </div>`:''}
-      ${extras>0?`<span style="font-size:11px;color:var(--cinza-500);cursor:pointer" onclick="event.stopPropagation();abrirDetalhe('${p.id}')">+${extras} viajante${extras>1?'s':''} →</span>`:''}
-      ${p.numero_sei?`<span style="font-family:var(--font-mono);font-size:10px;background:var(--cinza-100);padding:1px 6px;border-radius:3px;margin-left:auto">SEI ${esc(p.numero_sei)}</span>`:''}
+  const pass=viajantes.reduce((s,v)=>s+(v.trechos||[]).reduce((st,tr)=>st+parseFloat(tr.valor||0),0),0);
+  const diar=viajantes.reduce((s,v)=>s+(v.diarias||[]).reduce((sd,d)=>sd+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0),0);
+  const pz=p.situacao==='em_prestacao'?prazoPrestacao(p):null;
+  return`<div class="vi-pc pc-${p.situacao}" role="button" tabindex="0" onclick="abrirDetalhe('${p.id}')" onkeydown="if(event.key==='Enter'){event.preventDefault();abrirDetalhe('${p.id}')}">
+    <span class="proto-num">${esc(p.numero||'—')}</span>
+    <span class="dest">${viIc('pin','p')}<span class="t">${esc(p.destino_principal||'—')}</span><span class="sit-badge sb-${p.situacao}">${SIT_LABELS[p.situacao]||esc(p.situacao)}</span></span>
+    <span class="val">${total>0?fmtBRL(total):'<span style="color:var(--txt-3);font-family:var(--font-sans);font-size:12px">sem valor</span>'}</span>
+    <span>${podEditar?`<button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirFormEdicao('${p.id}')">${viIc('lapis','p')}Editar</button>`:''}</span>
+    <div class="meta">
+      ${p.dt_saida?`<span>${viIc('cal','p')}${fmtData(p.dt_saida)}${p.dt_retorno?' → '+fmtData(p.dt_retorno):''}</span>`:''}
+      ${v0?`<span>${viIc('pessoa','p')}${esc(v0.nome)}${extras>0?` <span style="color:var(--txt-3)">+${extras}</span>`:''}</span>`:''}
+      ${pass>0?`<span class="vi-chip">${viIc('aviao','p')}passagens ${fmtBRL(pass)}</span>`:''}
+      ${diar>0?`<span class="vi-chip">${viIc('cama','p')}diárias ${fmtBRL(diar)}</span>`:''}
+      ${pz?`<span class="vi-chip ${pz.dias<0?'er':'al'}">${viIc('relogio','p')}${pz.dias<0?'prestação vencida em '+pz.prazo.toLocaleDateString('pt-BR'):'prestação até '+pz.prazo.toLocaleDateString('pt-BR')}</span>`:''}
+      ${p.numero_sei?`<span class="sei mono" style="font-size:11px">SEI ${esc(p.numero_sei)}</span>`:(['aprovado','em_prestacao','realizado'].includes(p.situacao)?'<span class="sei vi-chip al">sem SEI</span>':'')}
     </div>
   </div>`;
 }
@@ -998,8 +965,8 @@ async function abrirFormNovo(){
   document.getElementById('mp-body').innerHTML=buildFormProtocolo();
   document.getElementById('mp-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-secondary" id="btn-salvar-rasc" style="margin-left:8px" onclick="salvarProtocolo('rascunho')">💾 Salvar rascunho</button>
-    <button class="btn btn-primary" id="btn-enviar-aprov" style="margin-left:auto;opacity:.4;cursor:not-allowed" disabled title="Salve o rascunho primeiro">✈ Enviar para aprovação →</button>`;
+    <button class="btn btn-secondary" id="btn-salvar-rasc" style="margin-left:8px" onclick="salvarProtocolo('rascunho')"><svg class="vi-ic p"><use href="#vi-salvar"/></svg> Salvar rascunho</button>
+    <button class="btn btn-primary" id="btn-enviar-aprov" style="margin-left:auto;opacity:.4;cursor:not-allowed" disabled title="Salve o rascunho primeiro"><svg class="vi-ic p"><use href="#vi-aviao"/></svg> Enviar para aprovação</button>`;
   document.getElementById('modal-prot').classList.add('aberto');
   addViajante(); // iniciar com 1 viajante
 }
@@ -1020,13 +987,13 @@ async function abrirFormEdicao(id){
   viajantesForm=[];trechoIdx=0;diariaIdx=0;viajanteIdx=0;
   embarqueFiles={};relatorioFiles={};
 
-  document.getElementById('mp-titulo').innerHTML=`✎ Editar rascunho <span class="proto-num" style="margin-left:6px">${esc(p.numero||'')}</span>`;
+  document.getElementById('mp-titulo').innerHTML=`<svg class="vi-ic p"><use href="#vi-lapis"/></svg> Editar rascunho <span class="proto-num" style="margin-left:6px">${esc(p.numero||'')}</span>`;
   document.getElementById('mp-sub').textContent='Rascunho — salve novamente antes de enviar para aprovação';
   document.getElementById('mp-body').innerHTML=buildFormProtocolo();
   document.getElementById('mp-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-secondary" id="btn-salvar-rasc" style="margin-left:8px" onclick="salvarProtocolo('rascunho')">💾 Salvar rascunho</button>
-    <button class="btn btn-primary" id="btn-enviar-aprov" style="margin-left:auto" onclick="salvarProtocolo('solicitado')">✈ Enviar para aprovação →</button>`;
+    <button class="btn btn-secondary" id="btn-salvar-rasc" style="margin-left:8px" onclick="salvarProtocolo('rascunho')"><svg class="vi-ic p"><use href="#vi-salvar"/></svg> Salvar rascunho</button>
+    <button class="btn btn-primary" id="btn-enviar-aprov" style="margin-left:auto" onclick="salvarProtocolo('solicitado')"><svg class="vi-ic p"><use href="#vi-aviao"/></svg> Enviar para aprovação</button>`;
   document.getElementById('modal-prot').classList.add('aberto');
 
   // Pré-preencher campos do evento
@@ -1083,7 +1050,7 @@ function addViajantePreenchido(v){
       mostrarStatusBenef(idx,benef,false);
     } else {
       const statusEl=document.getElementById(`vn-benef-status-${idx}`);
-      if(statusEl) statusEl.innerHTML=`<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:6px 12px;font-size:11px;color:#1E40AF">ℹ️ Viajante salvo anteriormente (não vinculado ao cadastro de beneficiários)</div>`;
+      if(statusEl) statusEl.innerHTML=`<div style="background:var(--info-bg);border:1px solid color-mix(in srgb,var(--info) 35%,transparent);border-radius:var(--raio);padding:6px 12px;font-size:11px;color:var(--info-txt)">ℹ️ Viajante salvo anteriormente (não vinculado ao cadastro de beneficiários)</div>`;
     }
   }
 
@@ -1120,16 +1087,16 @@ function addViajantePreenchido(v){
 function periodoDia(hr){
   if(!hr) return '';
   const h=parseInt(hr.split(':')[0]);
-  if(h>=6&&h<12) return '🌅 Manhã';
-  if(h>=12&&h<18) return '☀️ Tarde';
-  return '🌙 Noite';
+  if(h>=6&&h<12) return 'Manhã';
+  if(h>=12&&h<18) return 'Tarde';
+  return 'Noite';
 }
 function periodoCor(hr){
-  if(!hr) return '#6B7280';
+  if(!hr) return 'var(--txt-3)';
   const h=parseInt(hr.split(':')[0]);
-  if(h>=6&&h<12) return '#0369A1';
-  if(h>=12&&h<18) return '#B45309';
-  return '#4C1D95';
+  if(h>=6&&h<12) return 'var(--info-txt)';
+  if(h>=12&&h<18) return 'var(--alerta-txt)';
+  return 'var(--ia)';
 }
 function atualizarPeriodo(tidx){
   const hr=document.querySelector(`[name="tr-hr-saida-${tidx}"]`)?.value||'';
@@ -1161,7 +1128,7 @@ function addTrechoPreenchido(vidx,tr){
         <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" value="${tr.valor||''}"
           style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
       <button onclick="document.getElementById('tr-${tidx}').remove();calcTotalPassViajante(${vidx});calcTotalForm()"
-        style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px;margin-top:14px">✕</button>
+        style="height:30px;width:28px;border:1px solid color-mix(in srgb,var(--erro) 35%,transparent);border-radius:var(--raio);background:var(--erro-bg);color:var(--erro);cursor:pointer;font-size:12px;margin-top:14px"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
   </div>`;
   document.getElementById(`vn-trechos-${vidx}`).appendChild(el.firstChild);
@@ -1180,7 +1147,7 @@ function addDiariaPreenchida(vidx,d){
       style="height:30px;font-size:11px;text-align:right" oninput="calcSubDiariaViajante(${didx},${vidx})">
     <div id="di-sub-${didx}" style="font-family:var(--font-mono);font-size:11px;font-weight:600;text-align:right;padding:0 2px">${fmtBRL(qtd*unit)}</div>
     <button onclick="document.getElementById('di-${didx}').remove();calcTotalDiarViajante(${vidx});calcTotalForm()"
-      style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px">✕</button>
+      style="height:30px;width:28px;border:1px solid color-mix(in srgb,var(--erro) 35%,transparent);border-radius:var(--raio);background:var(--erro-bg);color:var(--erro);cursor:pointer;font-size:12px"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
   </div>`;
   document.getElementById(`vn-diarias-${vidx}`).appendChild(el.firstChild);
 }
@@ -1189,7 +1156,7 @@ function buildFormProtocolo(){
   return`
   <!-- DADOS DO EVENTO -->
   <div class="form-secao">
-    <div class="form-secao-header"><span style="font-size:18px">📋</span><span class="form-secao-titulo">Dados do evento</span></div>
+    <div class="form-secao-header"><span style="font-size:18px"><svg class="vi-ic p"><use href="#vi-prancheta"/></svg></span><span class="form-secao-titulo">Dados do evento</span></div>
     <div class="form-secao-body">
       <div class="form-group">
         <label class="form-label">Objetivo / Evento <span class="obrig">*</span></label>
@@ -1230,7 +1197,7 @@ function buildFormProtocolo(){
   <div id="viajantes-container"></div>
 
   <!-- TOTAL -->
-  <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio-lg);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+  <div style="background:var(--verde-bg);border:1px solid var(--lin);border-radius:var(--raio-lg);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
     <div>
       <div style="font-size:11px;color:var(--cinza-600);margin-bottom:2px">Total estimado do protocolo</div>
       <div id="total-protocolo" style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--verde-medio)">R$ 0,00</div>
@@ -1257,14 +1224,14 @@ function addViajante(){
 function renderViajanteForm(idx,dest,saida,retorno){
   return`<div class="viajante-form-card">
     <div class="viajante-form-header">
-      <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:#2563EB;color:#fff;padding:1px 8px;border-radius:3px">Viajante ${idx+1}</span>
-      <span class="form-secao-titulo" style="color:#1E40AF">Dados do viajante</span>
+      <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:var(--info);color:#fff;padding:1px 8px;border-radius:3px">Viajante ${idx+1}</span>
+      <span class="form-secao-titulo" style="color:var(--info-txt)">Dados do viajante</span>
       <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
         <div class="toggle-group">
           <button class="toggle-btn ativo" id="vn-nac-btn-${idx}" onclick="toggleIntl(${idx},false)">Nacional</button>
           <button class="toggle-btn" id="vn-intl-btn-${idx}" onclick="toggleIntl(${idx},true)">Internacional</button>
         </div>
-        <button onclick="removerViajante(${idx})" style="width:24px;height:24px;border:1px solid #FCA5A5;border-radius:50%;background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">✕</button>
+        <button onclick="removerViajante(${idx})" style="width:24px;height:24px;border:1px solid color-mix(in srgb,var(--erro) 35%,transparent);border-radius:50%;background:var(--erro-bg);color:var(--erro);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
       </div>
     </div>
     <div class="viajante-form-body">
@@ -1301,7 +1268,7 @@ function renderViajanteForm(idx,dest,saida,retorno){
       <!-- PASSAGEM -->
       <div style="border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:10px;overflow:hidden">
         <div style="padding:8px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px">
-          <span style="font-size:15px">🎫</span>
+          <span style="font-size:15px"><svg class="vi-ic p"><use href="#vi-bilhete"/></svg></span>
           <span style="font-size:12px;font-weight:600;flex:1">Passagem</span>
           <div class="toggle-group">
             <button class="toggle-btn" id="vn-pass-sim-${idx}" onclick="toggleViajante(${idx},'pass',true)">Sim</button>
@@ -1325,7 +1292,7 @@ function renderViajanteForm(idx,dest,saida,retorno){
       <!-- DIÁRIAS -->
       <div style="border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden">
         <div style="padding:8px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px">
-          <span style="font-size:15px">🏨</span>
+          <span style="font-size:15px"><svg class="vi-ic p"><use href="#vi-cama"/></svg></span>
           <span style="font-size:12px;font-weight:600;flex:1">Diárias</span>
           <div class="toggle-group">
             <button class="toggle-btn" id="vn-diar-sim-${idx}" onclick="toggleViajante(${idx},'diar',true)">Sim</button>
@@ -1439,13 +1406,13 @@ function addTrechoViajante(vidx, sentido){
         <input class="form-control" name="tr-hr-saida-${tidx}" type="time" style="height:30px;font-size:11px" oninput="atualizarPeriodo(${tidx})"></div>
       <div style="display:flex;flex-direction:column;justify-content:flex-end">
         <label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Período</label>
-        <span id="tr-periodo-${tidx}" style="height:30px;display:flex;align-items:center;font-size:11px;font-weight:600;color:#6B7280">—</span>
+        <span id="tr-periodo-${tidx}" style="height:30px;display:flex;align-items:center;font-size:11px;font-weight:600;color:var(--txt-3)">—</span>
       </div>
       <div><label style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Valor R$</label>
         <input class="form-control" name="tr-val-${tidx}" type="number" step="0.01" placeholder="UNESCO"
           style="height:30px;font-size:11px" oninput="calcTotalPassViajante(${vidx})"></div>
       <button onclick="document.getElementById('tr-${tidx}').remove();calcTotalPassViajante(${vidx});calcTotalForm()"
-        style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px;margin-top:14px">✕</button>
+        style="height:30px;width:28px;border:1px solid color-mix(in srgb,var(--erro) 35%,transparent);border-radius:var(--raio);background:var(--erro-bg);color:var(--erro);cursor:pointer;font-size:12px;margin-top:14px"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
   </div>`;
   document.getElementById(`vn-trechos-${vidx}`).appendChild(el.firstChild);
@@ -1479,7 +1446,7 @@ function addDiariaViajante(vidx){
       style="height:30px;font-size:11px;text-align:right" oninput="calcSubDiariaViajante(${didx},${vidx})">
     <div id="di-sub-${didx}" style="font-family:var(--font-mono);font-size:11px;font-weight:600;text-align:right;padding:0 2px">R$ 0,00</div>
     <button onclick="document.getElementById('di-${didx}').remove();calcTotalDiarViajante(${vidx});calcTotalForm()"
-      style="height:30px;width:28px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:12px">✕</button>
+      style="height:30px;width:28px;border:1px solid color-mix(in srgb,var(--erro) 35%,transparent);border-radius:var(--raio);background:var(--erro-bg);color:var(--erro);cursor:pointer;font-size:12px"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
   </div>`;
   document.getElementById(`vn-diarias-${vidx}`).appendChild(el.firstChild);
 }
@@ -1509,7 +1476,7 @@ function calcDiariasViajante(vidx){
   const info=document.getElementById(`vn-dias-info-${vidx}`);
   if(!saida||!retorno){if(info)info.textContent='';return;}
   const dias=Math.ceil((new Date(retorno)-new Date(saida))/(1000*60*60*24));
-  if(dias<=0){if(info)info.textContent='⚠ Retorno deve ser após saída.';return;}
+  if(dias<=0){if(info)info.textContent='Retorno deve ser após saída.';return;}
   document.querySelectorAll(`#vn-diarias-${vidx} [name^="di-qtd-"]`).forEach(el=>{
     el.value=dias;
     calcSubDiariaViajante(el.name.split('-').pop(),vidx);
@@ -1712,61 +1679,79 @@ const CAMPOS_TRANSICAO_STATUS=new Set([
   'realizado_por','realizado_em','cancelado_por','cancelado_em','cancelado_motivo',
   'notificado_unesco_em','notificado_unesco_conclusao_em','atualizado_em'
 ]);
+// Etapas do protocolo (só exibição): solicitado → aprovado → UNESCO avisada → prestação → realizado
+function viEtapas(p){
+  const fim=['cancelado','rejeitado'].includes(p.situacao);
+  const ordem=['rascunho','solicitado','aprovado','em_prestacao','realizado'];
+  const at=Math.max(0,ordem.indexOf(p.situacao));
+  const dt=d=>d?new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):'';
+  const pz=prazoPrestacao(p);
+  const E=[
+    ['Solicitado','pessoa',at>=1||fim,at===0&&!fim,dt(p.criado_em)],
+    ['Aprovado','check',at>=2,at===1&&!fim,dt(p.aprovado_em)],
+    ['UNESCO avisada','email',!!p.notificado_unesco_em,at===2&&!p.notificado_unesco_em&&!fim,dt(p.notificado_unesco_em)],
+    ['Prestação','prancheta',at>=4,at===3,at===3&&pz?'até '+pz.prazo.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):''],
+    ['Realizado','bandeira',at>=4,false,dt(p.realizado_em)]];
+  let h=E.map(([r,ic,ok,atual,d])=>`<li class="${ok?'ok':atual?'atual':''}"><span class="b">${viIc(ok?'check':ic,'p')}</span><span class="e">${r}</span><span class="d">${d||'—'}</span></li>`).join('');
+  if(fim)h+=`<li class="fim"><span class="b">${viIc(p.situacao==='cancelado'?'bloq':'x','p')}</span><span class="e">${SIT_LABELS[p.situacao]}</span><span class="d">${dt(p.cancelado_em||p.rejeitado_em)||'—'}</span></li>`;
+  return `<ol class="vi-etapas" style="--c:var(--vi-${{rascunho:'ras',solicitado:'sol',aprovado:'apr',em_prestacao:'pre'}[p.situacao]||'rea'})" aria-label="Etapas do protocolo">${h}</ol>`;
+}
+
 function renderTimeline(p){
   const nome=id=>id?(p._nomes?.[id]||'Usuário'):null;
   const por=id=>id?` — por ${nome(id)}`:'';
   const etapas=[];
   // Criação
   if(p.criado_em) etapas.push({
-    icone:'📝', cor:'#6B7280',
+    icone:'<svg class="vi-ic p"><use href="#vi-lapis"/></svg>', cor:'var(--txt-3)',
     label:'Solicitação criada',
     data:p.criado_em,
     desc:(p.situacao==='rascunho'?'Rascunho salvo':'Enviado para aprovação')+por(p.criado_por)
   });
   // Aprovação
   if(p.aprovado_em) etapas.push({
-    icone:'✅', cor:'#059669',
+    icone:'<svg class="vi-ic p"><use href="#vi-check"/></svg>', cor:'var(--ok)',
     label:'Aprovado',
     data:p.aprovado_em,
     desc:'Aguardando emissão de SPDs pela UNESCO'+por(p.aprovado_por)
   });
   // Notificação UNESCO
   if(p.notificado_unesco_em) etapas.push({
-    icone:'📧', cor:'#2563EB',
+    icone:'<svg class="vi-ic p"><use href="#vi-email"/></svg>', cor:'var(--info)',
     label:'UNESCO notificada',
     data:p.notificado_unesco_em,
     desc:'E-mail de solicitação enviado'
   });
   // Rejeição
   if(p.rejeitado_em) etapas.push({
-    icone:'❌', cor:'#DC2626',
+    icone:'<svg class="vi-ic p"><use href="#vi-x"/></svg>', cor:'var(--erro)',
     label:'Rejeitado',
     data:p.rejeitado_em,
     desc:(p.rejeitado_motivo?`Motivo: ${p.rejeitado_motivo.substring(0,60)}`:'')+por(p.rejeitado_por)
   });
   // Cancelamento
   if(p.cancelado_em) etapas.push({
-    icone:'⛔', cor:'#DC2626',
+    icone:'<svg class="vi-ic p"><use href="#vi-bloq"/></svg>', cor:'var(--erro)',
     label:'Cancelado',
     data:p.cancelado_em,
     desc:(p.cancelado_motivo?`Motivo: ${p.cancelado_motivo.substring(0,60)}`:'')+por(p.cancelado_por)
   });
   // Prestação
   if(p.situacao==='em_prestacao') etapas.push({
-    icone:'📋', cor:'#7C3AED',
+    icone:'<svg class="vi-ic p"><use href="#vi-prancheta"/></svg>', cor:'var(--ia)',
     label:'Prestação enviada',
     data:null,
     desc:'Documentos aguardando confirmação pelo coordenador/admin'
   });
   if(p.situacao==='realizado') etapas.push({
-    icone:'📋', cor:'#059669',
+    icone:'<svg class="vi-ic p"><use href="#vi-prancheta"/></svg>', cor:'var(--ok)',
     label:'Prestação confirmada',
     data:p.realizado_em||null,
     desc:'Documentos validados'+por(p.realizado_por)
   });
   // Realizado
   if(p.realizado_em) etapas.push({
-    icone:'🏁', cor:'#059669',
+    icone:'<svg class="vi-ic p"><use href="#vi-bandeira"/></svg>', cor:'var(--ok)',
     label:'Realizado',
     data:p.realizado_em,
     desc:'Lançado no financeiro'+por(p.realizado_por)
@@ -1774,7 +1759,7 @@ function renderTimeline(p){
 
   // UNESCO — conclusão
   if(p.notificado_unesco_conclusao_em) etapas.push({
-    icone:'📧', cor:'#1D4ED8',
+    icone:'<svg class="vi-ic p"><use href="#vi-email"/></svg>', cor:'var(--info-txt)',
     label:'UNESCO notificada — conclusão',
     data:p.notificado_unesco_conclusao_em,
     desc:'E-mail com documentos de prestação enviado para projetounesco.acre@gmail.com'
@@ -1784,7 +1769,7 @@ function renderTimeline(p){
   const NOTIF_LABELS_LOCAL={solicitado:'Solicitação registrada',aprovado:'Aprovação',rejeitado:'Não aprovado',em_prestacao:'Prestação de contas',realizado:'Conclusão',conclusao_unesco:'UNESCO — conclusão (reenvio)'};
   (p.notif_log||[]).forEach(n=>{
     etapas.push({
-      icone:'📧', cor:'#2563EB',
+      icone:'<svg class="vi-ic p"><use href="#vi-email"/></svg>', cor:'var(--info)',
       label:`Notificação — ${NOTIF_LABELS_LOCAL[n.evento]||n.evento}`,
       data:n.enviado_em,
       desc:`${n.total_enviados} e-mail(s) enviado(s)`+por(n.enviado_por)
@@ -1798,7 +1783,7 @@ function renderTimeline(p){
     if(!campos.length)return;
     const rotulos=campos.map(c=>CAMPOS_EDITAVEIS_LABELS[c]||c);
     etapas.push({
-      icone:'✏️', cor:'#B45309',
+      icone:'<svg class="vi-ic p"><use href="#vi-lapis"/></svg>', cor:'var(--alerta-txt)',
       label:'Editado',
       data:a.criado_em,
       desc:`${rotulos.join(', ')}`+por(a.usuario_id)
@@ -1811,7 +1796,7 @@ function renderTimeline(p){
   if(!etapas.length) return '<div style="font-size:11px;color:var(--cinza-400)">Nenhum evento registrado.</div>';
 
   return etapas.map((e,i)=>`
-    <div style="display:flex;gap:8px;align-items:flex-start;${i<etapas.length-1?'padding-bottom:8px;border-left:2px solid #D1FAE5;margin-left:9px;padding-left:12px;':'margin-left:9px;padding-left:12px;'}">
+    <div style="display:flex;gap:8px;align-items:flex-start;${i<etapas.length-1?'padding-bottom:8px;border-left:2px solid var(--ok-bg);margin-left:9px;padding-left:12px;':'margin-left:9px;padding-left:12px;'}">
       <div style="width:20px;height:20px;border-radius:50%;background:${e.cor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-left:-21px">${e.icone}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${e.label}</div>
@@ -1867,37 +1852,26 @@ async function abrirDetalhe(id){
     cotacaoAtual=parseFloat(cotRows?.[0]?.cotacao||1);
   }
 
-  document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span style="font-size:14px;font-weight:500;color:var(--cinza-700);margin-left:8px">${esc(p.destino_principal||'—')}</span>`;
-  document.getElementById('mp-sub').textContent=`${SIT_LABELS[p.situacao]||p.situacao} · ${viajantes.length} viajante${viajantes.length!==1?'s':''}`;
+  document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span>${esc(p.destino_principal||'—')}</span> <span class="sit-badge sb-${p.situacao}">${SIT_LABELS[p.situacao]||esc(p.situacao)}</span>`;
+  document.getElementById('mp-sub').textContent=`${viajantes.length} viajante${viajantes.length!==1?'s':''}${p.numero_sei?' · SEI '+p.numero_sei:''}`;
 
   // Banner devolvido (rascunho com motivo)
   const bannerDevolvido = p.situacao==='rascunho' && p.rejeitado_motivo
-    ? `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:10px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:flex-start">
-        <span style="font-size:16px">↩</span>
-        <div><div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:2px">Protocolo devolvido para correção</div>
-        <div style="font-size:12px;color:#78350F">${esc(p.rejeitado_motivo)}</div></div>
-      </div>` : '';
+    ? `<div class="vi-banner al">${viIc('volta')}<div><b>Protocolo devolvido para correção</b><div>${esc(p.rejeitado_motivo)}</div></div></div>` : '';
 
-  // Banner prazo prestação
+  // Banner prazo prestação (retorno + 5 dias)
   let bannerPrestacao = '';
-  if(p.situacao==='em_prestacao' && p.dt_retorno){
-    const prazo=new Date(p.dt_retorno);prazo.setDate(prazo.getDate()+5);
-    const hoje2=new Date();hoje2.setHours(0,0,0,0);
-    const diasRestantes=Math.ceil((prazo-hoje2)/(1000*60*60*24));
-    const vencido=diasRestantes<0;
-    const cor=vencido?'#FEE2E2':'#EFF6FF';const borda=vencido?'#FECACA':'#BFDBFE';const txt=vencido?'#991B1B':'#1E40AF';
-    bannerPrestacao=`<div style="background:${cor};border:1px solid ${borda};border-radius:var(--raio);padding:10px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:center">
-      <span style="font-size:16px">${vencido?'⚠️':'📋'}</span>
-      <div style="font-size:12px;color:${txt}">
-        ${vencido?`<strong>Prazo encerrado</strong> — prestação de contas atrasada (venceu em ${prazo.toLocaleDateString('pt-BR')})`
-                 :`<strong>Prazo para prestação de contas:</strong> ${prazo.toLocaleDateString('pt-BR')} (${diasRestantes} dia${diasRestantes!==1?'s':''} restante${diasRestantes!==1?'s':''})`}
-      </div>
-    </div>`;
+  const pz=p.situacao==='em_prestacao'?prazoPrestacao(p):null;
+  if(pz){
+    const pd=pz.prazo.toLocaleDateString('pt-BR');
+    bannerPrestacao=pz.dias<0
+      ? `<div class="vi-banner er">${viIc('alerta')}<span><b>Prazo encerrado:</b> prestação de contas atrasada (venceu em ${pd}).</span></div>`
+      : `<div class="vi-banner in">${viIc('relogio')}<span><b>Prazo da prestação de contas: ${pd}</b> (${pz.dias} dia${pz.dias!==1?'s':''}). Cartões de embarque e relatório de viagem de cada viajante.</span></div>`;
   }
 
-  let html=`${bannerDevolvido}${bannerPrestacao}
+  let html=`${viEtapas(p)}${bannerDevolvido}${bannerPrestacao}
   <!-- Cabeçalho -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+  <div class="vi-g2" style="margin-bottom:16px">
     <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px">
       ${[
         ['Objetivo',p.objetivo],['Destino',p.destino_principal],
@@ -1912,11 +1886,11 @@ async function abrirDetalhe(id){
           <span style="color:var(--cinza-900)">${esc(v)}</span>
         </div>`).join('')}
     </div>
-    <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:12px;display:flex;flex-direction:column;gap:10px">
+    <div style="background:var(--verde-bg);border:1px solid var(--lin);border-radius:var(--raio);padding:12px;display:flex;flex-direction:column;gap:10px">
       <div>
         <div style="font-size:10px;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total do protocolo</div>
         <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--verde-medio)">${fmtBRL(total)}</div>
-        ${isAdmin&&saldoAtiv?`<div style="margin-top:6px;padding:6px 8px;background:${total>(saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual?'#FEF2F2':'#ECFDF5'};border-radius:var(--raio);border:1px solid ${total>(saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual?'#FECACA':'#86EFAC'}">
+        ${isAdmin&&saldoAtiv?`<div style="margin-top:6px;padding:6px 8px;background:${total>(saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual?'var(--erro-bg)':'var(--ok-bg)'};border-radius:var(--raio);border:1px solid ${total>(saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual?'color-mix(in srgb,var(--erro) 35%,transparent)':'color-mix(in srgb,var(--ok) 40%,transparent)'}">
           <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:var(--cinza-500);margin-bottom:2px">Saldo da atividade</div>
           <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${fmtBRL((saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual)} disponível</div>
           <div style="font-size:10px;color:var(--cinza-500)">U$ ${Number(saldoAtiv.saldo_disponivel_usd||0).toFixed(2)}</div>
@@ -1924,11 +1898,11 @@ async function abrirDetalhe(id){
       </div>
       <!-- Aviso de ação pendente para admins -->
       ${isAdmin&&p.situacao==='em_prestacao'?`
-      <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--raio);padding:8px 12px;display:flex;align-items:center;gap:8px">
-        <span style="font-size:16px">⏳</span>
+      <div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:8px 12px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px"><svg class="vi-ic p"><use href="#vi-relogio"/></svg></span>
         <div>
-          <div style="font-size:11px;font-weight:700;color:#92400E">Aguarda sua confirmação</div>
-          <div style="font-size:10px;color:#B45309">Clique em <strong>"✓ Confirmar realizado"</strong> abaixo para validar a prestação e lançar no financeiro.</div>
+          <div style="font-size:11px;font-weight:700;color:var(--alerta-txt)">Aguarda sua confirmação</div>
+          <div style="font-size:10px;color:var(--alerta-txt)">Clique em <strong>"<svg class="vi-ic p"><use href="#vi-check"/></svg> Confirmar realizado"</strong> abaixo para validar a prestação e lançar no financeiro.</div>
         </div>
       </div>`:''}
       <!-- Timeline do fluxo -->
@@ -1947,21 +1921,21 @@ async function abrirDetalhe(id){
     const totalDiar=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
     html+=`
     <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:12px;overflow:hidden">
-      <div style="padding:10px 14px;background:var(--azul-bg);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:#2563EB;color:#fff;padding:1px 8px;border-radius:3px">Viajante ${vi+1}</span>
+      <div style="padding:10px 14px;background:var(--azul-bg);border-bottom:1px solid color-mix(in srgb,var(--info) 35%,transparent);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:var(--info);color:#fff;padding:1px 8px;border-radius:3px">Viajante ${vi+1}</span>
         <span style="font-size:13px;font-weight:600;color:var(--cinza-900)">${esc(v.nome)}</span>
         ${v.funcao?`<span style="font-size:11px;color:var(--cinza-600)">${esc(v.funcao)}</span>`:''}
         ${v.cpf?`<span style="font-size:11px;font-family:var(--font-mono);color:var(--cinza-500)">${esc(v.cpf)}</span>`:''}
         <div style="margin-left:auto;display:flex;gap:6px">
-          ${v.tem_passagem?`<span class="item-badge ib-${v.sit_passagem||'solicitado'}">✈ Passagem: ${ITEM_LABELS[v.sit_passagem||'solicitado']}</span>`:`<span class="item-badge ib-nao">✈ Sem passagem</span>`}
-          ${v.tem_diaria?`<span class="item-badge ib-${v.sit_diaria||'solicitado'}">🏨 Diária: ${ITEM_LABELS[v.sit_diaria||'solicitado']}</span>`:`<span class="item-badge ib-nao">🏨 Sem diária</span>`}
+          ${v.tem_passagem?`<span class="item-badge ib-${v.sit_passagem||'solicitado'}"><svg class="vi-ic p"><use href="#vi-aviao"/></svg> Passagem: ${ITEM_LABELS[v.sit_passagem||'solicitado']}</span>`:`<span class="item-badge ib-nao"><svg class="vi-ic p"><use href="#vi-aviao"/></svg> Sem passagem</span>`}
+          ${v.tem_diaria?`<span class="item-badge ib-${v.sit_diaria||'solicitado'}"><svg class="vi-ic p"><use href="#vi-cama"/></svg> Diária: ${ITEM_LABELS[v.sit_diaria||'solicitado']}</span>`:`<span class="item-badge ib-nao"><svg class="vi-ic p"><use href="#vi-cama"/></svg> Sem diária</span>`}
           <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--verde-medio)">${fmtBRL(totalPass+totalDiar)}</span>
         </div>
       </div>
       <div style="padding:12px 14px">
         ${v.spd_passagem||v.spd_diaria?`<div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
-          ${v.spd_passagem?`<span style="font-family:var(--font-mono);font-size:11px;background:#EFF6FF;color:#1E40AF;padding:2px 8px;border-radius:3px">SPD Pass: ${esc(v.spd_passagem)}</span>`:''}
-          ${v.spd_diaria?`<span style="font-family:var(--font-mono);font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:3px">SPD Diár: ${esc(v.spd_diaria)}</span>`:''}
+          ${v.spd_passagem?`<span style="font-family:var(--font-mono);font-size:11px;background:var(--info-bg);color:var(--info-txt);padding:2px 8px;border-radius:3px">SPD Pass: ${esc(v.spd_passagem)}</span>`:''}
+          ${v.spd_diaria?`<span style="font-family:var(--font-mono);font-size:11px;background:var(--alerta-bg);color:var(--alerta-txt);padding:2px 8px;border-radius:3px">SPD Diár: ${esc(v.spd_diaria)}</span>`:''}
         </div>`:''}
         ${v.tem_passagem&&v.trechos?.length?`
           <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:6px">Trechos de passagem</div>
@@ -2017,7 +1991,7 @@ async function abrirDetalhe(id){
 
   // Notificar por e-mail: admin ou dono, em qualquer fase notificável
   if(p.situacao!=='rascunho'&&p.situacao!=='cancelado'&&(ehDono||isAdmin))
-    footer+=`<button class="btn" style="margin-left:8px;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="abrirModalNotif('${p.id}','${p.situacao}')">📧 Notificar</button>`;
+    footer+=`<button class="btn" style="margin-left:8px;background:var(--info-bg);color:var(--info-txt);border:1px solid color-mix(in srgb,var(--info) 35%,transparent)" onclick="abrirModalNotif('${p.id}','${p.situacao}')"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar</button>`;
 
   // Cancelar: dono só em rascunho/solicitado; super_admin em qualquer fase não-paga
   const podeCancelar=!pago&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(
@@ -2025,59 +1999,59 @@ async function abrirDetalhe(id){
     appState.perfil==='super_admin'
   );
   if(podeCancelar)
-    footer+=`<button class="btn" style="margin-left:8px;background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="cancelarProtocolo()">✕ Cancelar</button>`;
+    footer+=`<button class="btn" style="margin-left:8px;background:var(--erro-bg);color:var(--erro-txt);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent)" onclick="cancelarProtocolo()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Cancelar</button>`;
 
   // Excluir: apenas admin, qualquer fase não-paga
   if(!pago && isAdmin)
-    footer+=`<button class="btn" style="margin-left:8px;background:#7F1D1D;color:#fff;border:1px solid #991B1B" onclick="excluirProtocolo()">🗑 Excluir</button>`;
+    footer+=`<button class="btn" style="margin-left:8px;background:var(--erro-txt);color:#fff;border:1px solid var(--erro-txt)" onclick="excluirProtocolo()"><svg class="vi-ic p"><use href="#vi-lixo"/></svg> Excluir</button>`;
 
   // Técnico: editar se solicitado e for dono
   if(ehDono && p.situacao==='solicitado' && !isAdmin)
-    footer+=`<button class="btn btn-secondary" style="margin-left:8px" onclick="abrirFormEdicao('${p.id}')">✎ Editar</button>`;
+    footer+=`<button class="btn btn-secondary" style="margin-left:8px" onclick="abrirFormEdicao('${p.id}')"><svg class="vi-ic p"><use href="#vi-lapis"/></svg> Editar</button>`;
 
   // Admin: aprovar/rejeitar/SPDs/realizar
   if(isAdmin){
     if(p.situacao==='solicitado')
       footer+=`<div style="display:flex;gap:8px;margin-left:auto">
-        <button class="btn" style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A" onclick="abrirModalDevolver()">↩ Devolver</button>
-        <button class="btn" style="background:#FEF2F2;color:#991B1B;border:1px solid #FECACA" onclick="abrirModalRejeitar()">✕ Rejeitar</button>
-        <button class="btn btn-primary" onclick="aprovarProtocolo()">✓ Aprovar →</button></div>`;
+        <button class="btn" style="background:var(--alerta-bg);color:var(--alerta-txt);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent)" onclick="abrirModalDevolver()"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Devolver</button>
+        <button class="btn" style="background:var(--erro-bg);color:var(--erro-txt);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent)" onclick="abrirModalRejeitar()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Rejeitar</button>
+        <button class="btn btn-primary" onclick="aprovarProtocolo()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Aprovar</button></div>`;
     if(p.situacao==='aprovado')
       footer+=`<div style="display:flex;gap:8px;margin-left:auto">
-        ${!p.notificado_unesco_em?`<button class="btn" style="background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="notificarUnescoDireto('${p.id}')">📧 Notificar UNESCO</button>`:`<span style="font-size:11px;color:#059669;display:flex;align-items:center;gap:4px">✉ UNESCO notificada em ${fmtData(p.notificado_unesco_em.split('T')[0])}</span>`}
-        <button class="btn btn-primary" onclick="abrirFormSPDs()">✎ SPDs / Atualizar</button>
+        ${!p.notificado_unesco_em?`<button class="btn" style="background:var(--info-bg);color:var(--info-txt);border:1px solid color-mix(in srgb,var(--info) 35%,transparent)" onclick="notificarUnescoDireto('${p.id}')"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar UNESCO</button>`:`<span style="font-size:11px;color:var(--ok);display:flex;align-items:center;gap:4px"><svg class="vi-ic p"><use href="#vi-email"/></svg> UNESCO notificada em ${fmtData(p.notificado_unesco_em.split('T')[0])}</span>`}
+        <button class="btn btn-primary" onclick="abrirFormSPDs()"><svg class="vi-ic p"><use href="#vi-lapis"/></svg> SPDs / Atualizar</button>
       </div>`;
     if(p.situacao==='em_prestacao')
-      footer+=`<button class="btn btn-primary" style="margin-left:auto;background:#059669" onclick="realizarProtocolo()">✓ Confirmar realizado → lançar financeiro</button>`;
+      footer+=`<button class="btn btn-primary" style="margin-left:auto;background:var(--ok)" onclick="realizarProtocolo()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Confirmar realizado → lançar financeiro</button>`;
     if(p.situacao==='realizado'){
       if(p.notificado_unesco_conclusao_em){
         footer+=`<div style="display:flex;align-items:center;gap:8px;margin-left:auto">
-          <span style="font-size:11px;color:#059669;display:flex;align-items:center;gap:4px">✉ UNESCO notificada (conclusão) em ${fmtData(p.notificado_unesco_conclusao_em.split('T')[0])}</span>
-          <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})">↺ Reenviar</button>
+          <span style="font-size:11px;color:var(--ok);display:flex;align-items:center;gap:4px"><svg class="vi-ic p"><use href="#vi-email"/></svg> UNESCO notificada (conclusão) em ${fmtData(p.notificado_unesco_conclusao_em.split('T')[0])}</span>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})"><svg class="vi-ic p"><use href="#vi-refazer"/></svg> Reenviar</button>
         </div>`;
       }else{
-        footer+=`<button class="btn" style="margin-left:auto;background:#EFF6FF;color:#1E40AF;border:1px solid #BFDBFE" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})">📧 Notificar UNESCO — conclusão</button>`;
+        footer+=`<button class="btn" style="margin-left:auto;background:var(--info-bg);color:var(--info-txt);border:1px solid color-mix(in srgb,var(--info) 35%,transparent)" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar UNESCO — conclusão</button>`;
       }
     }
   }
 
   // Rascunho: dono pode editar e enviar para aprovação
   if(p.situacao==='rascunho'&&(ehDono||isAdmin)){
-    footer+=`<button class="btn btn-secondary" style="margin-left:auto" onclick="abrirFormEdicao('${p.id}')">✎ Editar rascunho</button>`;
-    footer+=`<button class="btn btn-primary" style="margin-left:8px" onclick="enviarParaAprovacao('${p.id}')">✈ Enviar para aprovação →</button>`;
+    footer+=`<button class="btn btn-secondary" style="margin-left:auto" onclick="abrirFormEdicao('${p.id}')"><svg class="vi-ic p"><use href="#vi-lapis"/></svg> Editar rascunho</button>`;
+    footer+=`<button class="btn btn-primary" style="margin-left:8px" onclick="enviarParaAprovacao('${p.id}')"><svg class="vi-ic p"><use href="#vi-aviao"/></svg> Enviar para aprovação</button>`;
   }
 
   // Atualizar valores (diárias/passagens): super_admin e financeiro
   // em_prestacao: isAdmin não tem outro botão de valores nessa fase, então mostra aqui
   // aprovado: financeiro não tem acesso ao SPDs, então mostra aqui; isAdmin já tem via SPDs
   if(canEditValues&&p.situacao==='em_prestacao')
-    footer+=`<button class="btn btn-secondary" style="margin-left:8px" onclick="abrirFormValores()">💰 Atualizar valores</button>`;
+    footer+=`<button class="btn btn-secondary" style="margin-left:8px" onclick="abrirFormValores()"><svg class="vi-ic p"><use href="#vi-moeda"/></svg> Atualizar valores</button>`;
   if(canEditValues&&!isAdmin&&p.situacao==='aprovado')
-    footer+=`<button class="btn btn-secondary" style="margin-left:auto" onclick="abrirFormValores()">💰 Atualizar valores</button>`;
+    footer+=`<button class="btn btn-secondary" style="margin-left:auto" onclick="abrirFormValores()"><svg class="vi-ic p"><use href="#vi-moeda"/></svg> Atualizar valores</button>`;
 
   // Prestação: disponível apenas quando o protocolo está em prestação (a partir da data de retorno)
   if(p.situacao==='em_prestacao'&&(isAdmin||ehDono))
-    footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="abrirPrestacao('${p.id}')">📋 ${(p.viajantes||[]).some(v=>v.relatorio_url)?'✎ Atualizar prestação':'📋 Prestação de contas'}</button>`;
+    footer+=`<button class="btn btn-secondary" style="margin-left:${isAdmin?'8px':'auto'}" onclick="abrirPrestacao('${p.id}')"><svg class="vi-ic p"><use href="#vi-prancheta"/></svg> ${(p.viajantes||[]).some(v=>v.relatorio_url)?'<svg class="vi-ic p"><use href="#vi-lapis"/></svg> Atualizar prestação':'<svg class="vi-ic p"><use href="#vi-prancheta"/></svg> Prestação de contas'}</button>`;
 
   document.getElementById('mp-footer').innerHTML=footer;
   document.getElementById('modal-prot').classList.add('aberto');
@@ -2088,7 +2062,7 @@ function renderPrestacaoViajante(v){
   const temRelatorio=!!v.relatorio_url;
   if(!temCartoes&&!temRelatorio)return'';
   let h=`<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;margin-top:8px">
-    <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:8px">📋 Prestação de contas</div>`;
+    <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:8px"><svg class="vi-ic p"><use href="#vi-prancheta"/></svg> Prestação de contas</div>`;
   if(temCartoes){
     h+=`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:6px">Cartões de embarque (${v.cartoes_embarque_urls.length})</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
@@ -2097,13 +2071,13 @@ function renderPrestacaoViajante(v){
           onclick="abrirLightbox('${esc(url)}')">
           <img src="${esc(url)}" alt="Cartão ${i+1}" loading="lazy"
             style="width:100%;height:100%;object-fit:cover"
-            onerror="this.parentNode.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;font-size:20px;color:var(--cinza-400)\'>🖼</div>'">
+            onerror="this.parentNode.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;font-size:20px;color:var(--cinza-400)\'></div>'">
         </div>`).join('')}
     </div>`;
   }
   if(temRelatorio){
     h+=`<div style="display:flex;align-items:center;gap:8px">
-      <span style="font-size:16px">📄</span>
+      <span style="font-size:16px"><svg class="vi-ic p"><use href="#vi-doc"/></svg></span>
       <div style="flex:1;font-size:11px"><strong>${esc(v.relatorio_nome||'Relatório')}</strong> — PDF assinado</div>
       <a class="btn btn-sm btn-secondary" style="font-size:11px" href="#" data-arquivo="${esc(v.relatorio_url)}">Abrir</a>
     </div>`;
@@ -2201,7 +2175,7 @@ function cancelarProtocolo(){
   document.getElementById('cancelar-senha').value='';
   document.getElementById('cancelar-erro').style.display='none';
   document.getElementById('cancelar-btn-confirmar').disabled=false;
-  document.getElementById('cancelar-btn-confirmar').textContent='⛔ Cancelar protocolo';
+  document.getElementById('cancelar-btn-confirmar').textContent='Cancelar protocolo';
   document.getElementById('modal-cancelar').classList.add('aberto');
 }
 
@@ -2219,7 +2193,7 @@ async function confirmarCancelamento(){
   if(!senha){erroEl.textContent='Digite sua senha para confirmar.';erroEl.style.display='block';return;}
 
   erroEl.style.display='none';
-  btn.disabled=true;btn.textContent='⏳ Verificando…';
+  btn.disabled=true;btn.textContent='Verificando…';
 
   // Reautenticar com a senha do usuário logado
   const{data:{session}}=await db.auth.getSession();
@@ -2228,7 +2202,7 @@ async function confirmarCancelamento(){
   if(authErr){
     erroEl.textContent='Senha incorreta. Tente novamente.';
     erroEl.style.display='block';
-    btn.disabled=false;btn.textContent='⛔ Cancelar protocolo';
+    btn.disabled=false;btn.textContent='Cancelar protocolo';
     return;
   }
 
@@ -2243,7 +2217,7 @@ async function confirmarCancelamento(){
   if(error){
     erroEl.textContent='Erro ao cancelar: '+error.message;
     erroEl.style.display='block';
-    btn.disabled=false;btn.textContent='⛔ Cancelar protocolo';
+    btn.disabled=false;btn.textContent='Cancelar protocolo';
     return;
   }
 
@@ -2281,11 +2255,11 @@ function abrirFormSPDs(){
     const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
     const diarias=(v.diarias||[]);
     html+=`<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--cinza-800)">👤 ${esc(v.nome)}</div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--cinza-800)"><svg class="vi-ic p"><use href="#vi-pessoa"/></svg> ${esc(v.nome)}</div>
 
       ${v.tem_passagem&&trechos.length?`
       <div style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">✈ Passagens — Valores Reais</div>
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px"><svg class="vi-ic p"><use href="#vi-aviao"/></svg> Passagens — Valores Reais</div>
         ${trechos.map(t=>`
         <div style="display:grid;grid-template-columns:1fr 1fr 140px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
           <span style="color:var(--cinza-700)">${esc(t.origem||'—')} → ${esc(t.destino||'—')}</span>
@@ -2304,7 +2278,7 @@ function abrirFormSPDs(){
 
       ${v.tem_diaria&&diarias.length?`
       <div style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">🏨 Diárias — Valores Reais</div>
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px"><svg class="vi-ic p"><use href="#vi-cama"/></svg> Diárias — Valores Reais</div>
         ${diarias.map(d=>`
         <div style="display:grid;grid-template-columns:1fr 80px 140px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
           <span style="color:var(--cinza-700)">${esc(d.tipo_diaria||'—')}</span>
@@ -2331,8 +2305,8 @@ function abrirFormSPDs(){
     </select></div>`;
   document.getElementById('mp-body').innerHTML=html;
   document.getElementById('mp-footer').innerHTML=`
-    <button class="btn btn-secondary" onclick="abrirDetalhe('${p.id}')">← Voltar</button>
-    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarSPDs()">💾 Salvar</button>`;
+    <button class="btn btn-secondary" onclick="abrirDetalhe('${p.id}')"><svg class="vi-ic p"><use href="#vi-voltar"/></svg> Voltar</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarSPDs()"><svg class="vi-ic p"><use href="#vi-salvar"/></svg> Salvar</button>`;
 }
 
 async function salvarSPDs(){
@@ -2432,15 +2406,15 @@ async function _syncFinanceiroSPDs(p){
 function abrirFormValores(){
   const p=protAtual;
   if(!['super_admin','financeiro'].includes(appState.perfil)){toast('Sem permissão.','error');return;}
-  let html=`<div style="font-size:13px;font-weight:600;margin-bottom:14px">💰 Atualizar valores reais</div>`;
+  let html=`<div style="font-size:13px;font-weight:600;margin-bottom:14px"><svg class="vi-ic p"><use href="#vi-moeda"/></svg> Atualizar valores reais</div>`;
   (p.viajantes||[]).forEach(v=>{
     const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
     const diarias=(v.diarias||[]);
     html+=`<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--cinza-800)">👤 ${esc(v.nome)}</div>
+      <div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--cinza-800)"><svg class="vi-ic p"><use href="#vi-pessoa"/></svg> ${esc(v.nome)}</div>
       ${v.tem_passagem&&trechos.length?`
       <div style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">✈ Passagens — Valores Reais</div>
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px"><svg class="vi-ic p"><use href="#vi-aviao"/></svg> Passagens — Valores Reais</div>
         ${trechos.map(t=>`
         <div style="display:grid;grid-template-columns:1fr 1fr 140px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
           <span style="color:var(--cinza-700)">${esc(t.origem||'—')} → ${esc(t.destino||'—')}</span>
@@ -2452,7 +2426,7 @@ function abrirFormValores(){
       </div>`:''}
       ${v.tem_diaria&&diarias.length?`
       <div>
-        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">🏨 Diárias — Valores Reais</div>
+        <div style="font-size:11px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px"><svg class="vi-ic p"><use href="#vi-cama"/></svg> Diárias — Valores Reais</div>
         ${diarias.map(d=>`
         <div style="display:grid;grid-template-columns:1fr 80px 140px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
           <span style="color:var(--cinza-700)">${esc(d.tipo_diaria||'—')}</span>
@@ -2468,8 +2442,8 @@ function abrirFormValores(){
   });
   document.getElementById('mp-body').innerHTML=html;
   document.getElementById('mp-footer').innerHTML=`
-    <button class="btn btn-secondary" onclick="abrirDetalhe('${p.id}')">← Voltar</button>
-    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarFormValores()">💾 Salvar valores</button>`;
+    <button class="btn btn-secondary" onclick="abrirDetalhe('${p.id}')"><svg class="vi-ic p"><use href="#vi-voltar"/></svg> Voltar</button>
+    <button class="btn btn-primary" style="margin-left:auto" onclick="salvarFormValores()"><svg class="vi-ic p"><use href="#vi-salvar"/></svg> Salvar valores</button>`;
 }
 
 async function salvarFormValores(){
@@ -2517,11 +2491,11 @@ async function abrirPrestacao(id){
     const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
     const diarias=(v.diarias||[]);
     const secaoValores=canEditValues?`
-      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:12px;margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:10px;display:flex;align-items:center;gap:6px">💰 Valores reais <span style="font-weight:400;color:#B45309">(super_admin / financeiro)</span></div>
+      <div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:12px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--alerta-txt);margin-bottom:10px;display:flex;align-items:center;gap:6px"><svg class="vi-ic p"><use href="#vi-moeda"/></svg> Valores reais <span style="font-weight:400;color:var(--alerta-txt)">(super_admin / financeiro)</span></div>
         ${v.tem_passagem&&trechos.length?`
         <div style="margin-bottom:10px">
-          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">✈ Passagens</div>
+          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px"><svg class="vi-ic p"><use href="#vi-aviao"/></svg> Passagens</div>
           ${trechos.map(t=>`
           <div style="display:grid;grid-template-columns:1fr 1fr 130px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
             <span style="color:var(--cinza-700)">${esc(t.origem||'—')} → ${esc(t.destino||'—')}</span>
@@ -2533,7 +2507,7 @@ async function abrirPrestacao(id){
         </div>`:''}
         ${v.tem_diaria&&diarias.length?`
         <div>
-          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">🏨 Diárias</div>
+          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px"><svg class="vi-ic p"><use href="#vi-cama"/></svg> Diárias</div>
           ${diarias.map(d=>`
           <div style="display:grid;grid-template-columns:1fr 80px 130px;gap:6px;align-items:center;margin-bottom:4px;font-size:11px">
             <span style="color:var(--cinza-700)">${esc(d.tipo_diaria||'—')}</span>
@@ -2548,8 +2522,8 @@ async function abrirPrestacao(id){
       </div>`:'';
     html+=`
     <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:14px;overflow:hidden">
-      <div style="padding:10px 14px;background:var(--azul-bg);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:8px">
-        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:#2563EB;color:#fff;padding:1px 8px;border-radius:3px">Viajante ${i+1}</span>
+      <div style="padding:10px 14px;background:var(--azul-bg);border-bottom:1px solid color-mix(in srgb,var(--info) 35%,transparent);display:flex;align-items:center;gap:8px">
+        <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;background:var(--info);color:#fff;padding:1px 8px;border-radius:3px">Viajante ${i+1}</span>
         <span style="font-size:13px;font-weight:600;color:var(--cinza-900)">${esc(v.nome)}</span>
       </div>
       <div style="padding:14px">
@@ -2557,39 +2531,39 @@ async function abrirPrestacao(id){
         ${v.tem_passagem?`
         <div style="margin-bottom:14px">
           <div style="font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px">
-            🎫 Cartões de embarque
-            <span style="font-size:10px;font-weight:700;background:#FEF2F2;color:#DC2626;padding:1px 6px;border-radius:99px">obrigatório</span>
+            <svg class="vi-ic p"><use href="#vi-bilhete"/></svg> Cartões de embarque
+            <span style="font-size:10px;font-weight:700;background:var(--erro-bg);color:var(--erro);padding:1px 6px;border-radius:99px">obrigatório</span>
           </div>
           <div class="upload-mini" onclick="document.getElementById('inp-emb-${i}').click()">
             <input type="file" id="inp-emb-${i}" style="display:none" accept=".jpg,.jpeg,.png,.pdf" multiple
               onchange="adicionarEmbarque(${i},'${v.id}',this.files)">
-            📷 Clique para adicionar cartões de embarque · JPEG/PNG/PDF · até 6
+            <svg class="vi-ic p"><use href="#vi-camera"/></svg> Clique para adicionar cartões de embarque · JPEG/PNG/PDF · até 6
           </div>
           <div id="emb-grid-${i}" class="embarque-grid" style="grid-template-columns:repeat(4,1fr)"></div>
           <div id="emb-count-${i}" style="font-size:11px;color:var(--cinza-500);margin-top:4px"></div>
         </div>`:''}
         <div>
           <div style="font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-            📄 Relatório de viagem
-            <span style="font-size:10px;font-weight:700;background:#FEF2F2;color:#DC2626;padding:1px 6px;border-radius:99px">obrigatório</span>
+            <svg class="vi-ic p"><use href="#vi-doc"/></svg> Relatório de viagem
+            <span style="font-size:10px;font-weight:700;background:var(--erro-bg);color:var(--erro);padding:1px 6px;border-radius:99px">obrigatório</span>
           </div>
           <div class="aviso-pdf" style="margin-bottom:8px">
             ℹ️ PDF assinado com <strong>fotos do evento</strong>, lista de participantes e resultados.
           </div>
           <div style="margin-bottom:10px">
             <a href="../assets/template-relatorio-missao.docx" download="Relatorio-de-Missao-Unesco.docx"
-              style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#1D4ED8;text-decoration:none;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;padding:5px 10px">
-              📥 Baixar modelo de relatório (Word)
+              style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--info-txt);text-decoration:none;background:var(--info-bg);border:1px solid color-mix(in srgb,var(--info) 35%,transparent);border-radius:6px;padding:5px 10px">
+              <svg class="vi-ic p"><use href="#vi-baixar"/></svg> Baixar modelo de relatório (Word)
             </a>
           </div>
-          ${v.relatorio_url?`<div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:8px;margin-bottom:8px;font-size:11px;display:flex;align-items:center;gap:8px">
-            📄 <strong>${esc(v.relatorio_nome||'Relatório')}</strong> — já enviado
+          ${v.relatorio_url?`<div style="background:var(--verde-bg);border:1px solid var(--lin);border-radius:var(--raio);padding:8px;margin-bottom:8px;font-size:11px;display:flex;align-items:center;gap:8px">
+            <svg class="vi-ic p"><use href="#vi-doc"/></svg> <strong>${esc(v.relatorio_nome||'Relatório')}</strong> — já enviado
             <button class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:10px" onclick="abrirDoc('${esc(v.relatorio_url)}')">Abrir</button>
           </div>`:''}
           <div class="upload-mini" id="upload-rel-${i}" onclick="document.getElementById('inp-rel-${i}').click()">
             <input type="file" id="inp-rel-${i}" style="display:none" accept=".pdf"
               onchange="selecionarRelatorio(${i},'${v.id}',this.files[0])">
-            📎 ${v.relatorio_url?'Substituir relatório (PDF)':'Clique para anexar relatório em PDF'}
+            <svg class="vi-ic p"><use href="#vi-clipe"/></svg> ${v.relatorio_url?'Substituir relatório (PDF)':'Clique para anexar relatório em PDF'}
           </div>
         </div>
       </div>
@@ -2599,7 +2573,7 @@ async function abrirPrestacao(id){
   document.getElementById('mp-body').innerHTML=html;
   document.getElementById('mp-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-primary" style="margin-left:auto" onclick="enviarPrestacao()">📤 Enviar prestação de contas</button>`;
+    <button class="btn btn-primary" style="margin-left:auto" onclick="enviarPrestacao()"><svg class="vi-ic p"><use href="#vi-upload"/></svg> Enviar prestação de contas</button>`;
   document.getElementById('modal-prot').classList.add('aberto');
 }
 
@@ -2617,11 +2591,11 @@ function adicionarEmbarque(visIdx,viajanteId,files){
   if(grid)grid.innerHTML=embarqueFiles[visIdx].map((item,i)=>{
     const isPdf=item.file.type==='application/pdf';
     const thumb=isPdf
-      ?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:#FEF2F2;font-size:22px;gap:4px">📄<span style="font-size:9px;color:#991B1B;word-break:break-all;padding:0 4px;text-align:center">${esc(item.file.name)}</span></div>`
+      ?`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:var(--erro-bg);font-size:22px;gap:4px"><svg class="vi-ic p"><use href="#vi-doc"/></svg><span style="font-size:9px;color:var(--erro-txt);word-break:break-all;padding:0 4px;text-align:center">${esc(item.file.name)}</span></div>`
       :`<img src="${URL.createObjectURL(item.file)}" alt="Cartão ${i+1}">`;
     return`<div class="embarque-thumb">
       ${thumb}
-      <button class="embarque-del" onclick="embarqueFiles[${visIdx}].splice(${i},1);adicionarEmbarque(${visIdx},'${viajanteId}',[])">✕</button>
+      <button class="embarque-del" onclick="embarqueFiles[${visIdx}].splice(${i},1);adicionarEmbarque(${visIdx},'${viajanteId}',[])"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>`;
   }).join('');
   if(count)count.textContent=embarqueFiles[visIdx].length?`${embarqueFiles[visIdx].length}/6 cartão(s)`:'';
@@ -2631,7 +2605,7 @@ function selecionarRelatorio(visIdx,viajanteId,file){
   if(!file)return;
   relatorioFiles[visIdx]={file,viajanteId};
   const el=document.getElementById(`upload-rel-${visIdx}`);
-  if(el){el.classList.add('tem');el.innerHTML='✓ '+esc(file.name)+'<input type="file" id="inp-rel-'+visIdx+'" style="display:none" accept=".pdf" onchange="selecionarRelatorio('+visIdx+',\''+viajanteId+'\',this.files[0])">';}
+  if(el){el.classList.add('tem');el.innerHTML='<svg class="vi-ic p"><use href="#vi-check"/></svg> '+esc(file.name)+'<input type="file" id="inp-rel-'+visIdx+'" style="display:none" accept=".pdf" onchange="selecionarRelatorio('+visIdx+',\''+viajanteId+'\',this.files[0])">';}
 }
 
 async function enviarPrestacao(){
@@ -2900,30 +2874,30 @@ async function abrirModalNotif(protId,evento){
   const isCriador=p.criado_por===appState.usuario.id;
   const criadorEmail=isCriador?appState.usuario.email:null;
   html+=`<div style="padding:9px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;display:flex;align-items:center;gap:10px">
-    <span style="font-size:16px">👤</span>
+    <span style="font-size:16px"><svg class="vi-ic p"><use href="#vi-pessoa"/></svg></span>
     <div style="flex:1">
       <div style="font-size:12px;font-weight:600">${esc(p.criado_por_nome||'Criador do protocolo')}</div>
       <div style="font-size:11px;color:var(--cinza-500)">${criadorEmail?esc(criadorEmail):'e-mail buscado automaticamente'}</div>
     </div>
-    <span style="font-size:10px;background:#EFF6FF;color:#1E40AF;padding:2px 7px;border-radius:99px;white-space:nowrap">Msg detalhada</span>
+    <span style="font-size:10px;background:var(--info-bg);color:var(--info-txt);padding:2px 7px;border-radius:99px;white-space:nowrap">Msg detalhada</span>
   </div>`;
 
   // Viajantes com e-mail
   comEmail.forEach(v=>{
     if(v.email===criadorEmail)return; // já incluído acima
     html+=`<div style="padding:9px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;display:flex;align-items:center;gap:10px">
-      <span style="font-size:16px">✈</span>
+      <span style="font-size:16px"><svg class="vi-ic p"><use href="#vi-aviao"/></svg></span>
       <div style="flex:1">
         <div style="font-size:12px;font-weight:600">${esc(v.nome||'—')}</div>
         <div style="font-size:11px;color:var(--cinza-500)">${esc(v.email)}</div>
       </div>
-      <span style="font-size:10px;background:#F0FDF4;color:#166534;padding:2px 7px;border-radius:99px;white-space:nowrap">Msg simplificada</span>
+      <span style="font-size:10px;background:var(--ok-bg);color:var(--ok-txt);padding:2px 7px;border-radius:99px;white-space:nowrap">Msg simplificada</span>
     </div>`;
   });
 
   if(semEmail.length>0)
-    html+=`<div style="margin-top:4px;font-size:11px;color:#92400E;background:#FFFBEB;padding:7px 10px;border-radius:var(--raio);border:1px solid #FDE68A">
-      ⚠ ${semEmail.length} viajante(s) sem e-mail cadastrado não receberão notificação:
+    html+=`<div style="margin-top:4px;font-size:11px;color:var(--alerta-txt);background:var(--alerta-bg);padding:7px 10px;border-radius:var(--raio);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent)">
+      <svg class="vi-ic p"><use href="#vi-alerta"/></svg> ${semEmail.length} viajante(s) sem e-mail cadastrado não receberão notificação:
       ${semEmail.map(v=>esc(v.nome||'—')).join(', ')}
     </div>`;
 
@@ -2933,7 +2907,7 @@ async function abrirModalNotif(protId,evento){
   btn.dataset.protocolo=protId;
   btn.dataset.evento=evento;
   btn.disabled=false;
-  btn.textContent='📧 Enviar e-mails';
+  btn.textContent='Enviar e-mails';
 
   document.getElementById('modal-notif-email').classList.add('aberto');
 }
@@ -2946,7 +2920,7 @@ async function confirmarEnvioEmails(){
   const btn=document.getElementById('notif-btn-enviar');
   const protocolo_id=btn.dataset.protocolo;
   const evento=btn.dataset.evento;
-  btn.disabled=true;btn.textContent='⏳ Enviando...';
+  btn.disabled=true;btn.textContent='Enviando...';
   try{
     const {data:{session}}=await db.auth.getSession();
     const resp=await fetch(`${SUPABASE_URL}/functions/v1/enviar-email-viagem`,{
@@ -2956,7 +2930,7 @@ async function confirmarEnvioEmails(){
     });
     const result=await resp.json();
     if(result.ok){
-      toast(`✉ ${result.enviados} e-mail(s) enviado(s) com sucesso!`,'success');
+      toast(`${result.enviados} e-mail(s) enviado(s) com sucesso!`,'success');
       await db.from('viagem_notif_log').insert({
         protocolo_id,evento,
         total_enviados:result.enviados,
@@ -2969,7 +2943,7 @@ async function confirmarEnvioEmails(){
     }
   }catch(e){
     toast(`Erro: ${e.message}`,'error');
-    btn.disabled=false;btn.textContent='📧 Enviar e-mails';
+    btn.disabled=false;btn.textContent='Enviar e-mails';
   }
 }
 

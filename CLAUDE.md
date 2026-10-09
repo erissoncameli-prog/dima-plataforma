@@ -751,6 +751,21 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Janelas: classe **`mz-ov`** (no seletor de escopo de `diagnostico-mesa.css`); `mzAbrir`/`mzFechar` (pilha: Esc fecha a de cima,
   Tab preso, foco volta).
 
+### Viagens e Diárias + Beneficiários — visual, filtros e privacidade da lista
+- `pages/viagens.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e componentes em `css/viagens.css` (prefixo `vi-`; as classes antigas — `sit-badge`, `item-badge`,
+  `form-secao`, `viajante-form-*`, `trecho-row`, `embarque-*`, `upload-mini` — são tematizadas lá). Sem `<style>` próprio.
+  Ícones: sprite SVG no topo do `<body>` (`<symbol id="vi-…">`) usado por `viIc(nome)`; sem emoji na tela. **O texto do e-mail
+  à UNESCO** (`abrirModalEmail`) é conteúdo enviado e fica como está. Cor no JS só por token (`var(--erro-bg)` etc.).
+- Situação do protocolo = token `--vi-*` (selo `sb-*`, borda do cartão `pc-*`, número do topo, etapas). A lista **abre em
+  "Em andamento"** (`filtroSit='_and'` = rascunho, solicitado, aprovado, em prestação; grupos em `SIT_GRUPOS`); os números do
+  topo filtram por situação. Prazo da prestação = retorno + 5 dias (`prazoPrestacao`), usado no cartão, no topo e no aviso.
+- Janela do protocolo: etapas `viEtapas(p)` (solicitado → aprovado → UNESCO avisada → prestação → realizado) acima do histórico.
+- **Lista de beneficiários**: CPF sempre mascarado (`mascaraCPF`, 2 últimos dígitos) e **sem dado bancário**; passaporte como
+  "válido até" / "vence em N dias" (`selePassaporte`). CPF completo e dados bancários só na janela de edição.
+- Janelas: classe **`vi-ov`** (no seletor de escopo de `diagnostico-mesa.css`); a classe `.aberto` é observada (`viObs`): pilha,
+  Esc fecha a de cima (`VI_FECHAR` para as que têm função própria), Tab preso, foco volta.
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
