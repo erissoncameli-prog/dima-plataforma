@@ -11,9 +11,16 @@
 // EDIÇÃO DE REFERÊNCIA: cada arquivo vem classificado pela view em
 // vigente | superada | instrucao. A biblioteca mostra a versão vigente
 // como sendo "o produto"; as superadas ficam no histórico da ficha e os
-// documentos de instrução (nota técnica, comprovante) na trilha de
+// documentos de instrução (comprovante, contrato) na trilha de
 // aprovação. Nunca reclassificar isso aqui — a regra é do banco, para
 // que relatórios e auditoria herdem a mesma resposta.
+//
+// A Nota Técnica NÃO entra na biblioteca (fica só em Produtos) e o valor
+// do produto não é exibido.
+//
+// PORTAL PÚBLICO: o super_admin marca arquivo a arquivo o que poderá ir ao
+// portal público (fn_acervo_definir_publico). A situação efetiva vem de
+// vw_acervo_publicacoes.valida — marcado E ainda vigente/aprovado.
 //
 // Buckets são privados: TODA leitura de arquivo passa por urlAssinada()
 // ou abrirDoc(). Nunca usar href/src direto (ver CLAUDE.md § Storage).
@@ -23,6 +30,8 @@ let obras = [];              // vw_acervo_obras enriquecida
 let midiasPorObra = {};      // obra_id → [midias]
 let facetas = { atividades: [], fornecedores: [], resultados: [], anos: [], rotulos: [] };
 let obraAberta = null;
+let publicos = {};           // midia_id → linha de vw_acervo_publicacoes (publico = true)
+let podePublicar = false;    // só super_admin marca para o portal público
 let viewerUrlAtual = null;
 
 const CHAVE_RECENTES = 'dima_acervo_recentes';
@@ -30,8 +39,10 @@ const CHAVE_RECENTES = 'dima_acervo_recentes';
 // Estado de navegação da biblioteca
 const filtro = {
   busca: '', rotulo: '', atividade: '', fornecedor: '',
-  resultado: '', ano: '', formato: '', ordem: 'recentes', modo: 'estante',
+  resultado: '', ano: '', formato: '', publico: '', ordem: 'recentes', modo: 'estante',
 };
+
+const ROTULO_NOTA_TECNICA = 'Nota Técnica';
 
 // ── Estados de acervo ────────────────────────────────────────────────
 // Espelham situacao_acervo da view. `cor` pinta a faixa do pôster.
@@ -124,6 +135,7 @@ function registrarRecente(obraId) {
     + '</div></div></div>';
 
   carregarLogosSidebar();
+  podePublicar = appState.perfil === 'super_admin';
 
   try {
     await carregarAcervo();
@@ -146,12 +158,18 @@ function registrarRecente(obraId) {
 
 // ═══ Carga ═══════════════════════════════════════════════════════════
 async function carregarAcervo() {
-  const [rObras, rMidias] = await Promise.all([
+  const [rObras, rMidias, rPub] = await Promise.all([
     db.from('vw_acervo_obras').select('*'),
-    db.from('vw_acervo_midias').select('*'),
+    // Nota Técnica fica fora da biblioteca (consulta só em Produtos)
+    db.from('vw_acervo_midias').select('*').neq('origem', 'nota_tecnica'),
+    db.from('vw_acervo_publicacoes').select('*').eq('publico', true),
   ]);
   if (rObras.error) throw rObras.error;
   if (rMidias.error) throw rMidias.error;
+  if (rPub.error) throw rPub.error;
+
+  publicos = {};
+  (rPub.data || []).forEach(p => { publicos[p.midia_id] = p; });
 
   const midias = rMidias.data || [];
   midiasPorObra = {};
@@ -172,8 +190,9 @@ async function carregarAcervo() {
     const ms = midiasPorObra[o.obra_id] || [];
     o._ano = anoDe(o.publicado_em || o.dt_entrega || o.criado_em);
     o._formatos = o.tipos_midia || [];        // formatos da edição vigente
-    o._rotulos = o.rotulos_midia || [];       // todos, alimenta o filtro por categoria
+    o._rotulos = (o.rotulos_midia || []).filter(r => r !== ROTULO_NOTA_TECNICA); // filtro por categoria
     o._rotulosVig = o.rotulos_vigentes || []; // só vigentes, alimenta as prateleiras
+    o._publicos = contarPublicos(o.obra_id);
     // Índice de busca: inclui versões superadas de propósito — quem procura
     // pelo nome de um arquivo antigo deve chegar à obra e ver a versão que vale.
     o._busca = normalizar([
@@ -207,6 +226,11 @@ async function carregarAcervo() {
   facetas.rotulos = Object.keys(contagem).map(r => ({ rotulo: r, n: contagem[r] })).sort((a, b) => b.n - a.n);
 }
 
+// Arquivos da obra que irão ao portal público (marcados e ainda válidos)
+function contarPublicos(obraId) {
+  return Object.values(publicos).filter(p => p.obra_id === obraId && p.valida).length;
+}
+
 // ═══ Filtro e ordenação ══════════════════════════════════════════════
 function filtrarObras() {
   const termo = normalizar(filtro.busca).trim();
@@ -220,6 +244,8 @@ function filtrarObras() {
     if (filtro.fornecedor && o.fornecedor_nome !== filtro.fornecedor) return false;
     if (filtro.resultado && o.resultado_codigo !== filtro.resultado) return false;
     if (filtro.ano && String(o._ano) !== String(filtro.ano)) return false;
+    if (filtro.publico === 'sim' && !o._publicos) return false;
+    if (filtro.publico === 'nao' && o._publicos) return false;
     return true;
   });
 
@@ -234,7 +260,7 @@ function filtrarObras() {
 
 function filtroAtivo() {
   return !!(filtro.busca.trim() || filtro.rotulo || filtro.formato || filtro.atividade
-    || filtro.fornecedor || filtro.resultado || filtro.ano);
+    || filtro.fornecedor || filtro.resultado || filtro.ano || filtro.publico);
 }
 
 // ═══ Render — palco completo ═════════════════════════════════════════
@@ -269,6 +295,10 @@ function barraComando() {
 
     + '<select class="acv-sel" id="acv-ano" title="Ano"><option value="">Todos os anos</option>'
     + opc(facetas.anos, filtro.ano) + '</select>'
+
+    + '<select class="acv-sel" id="acv-pub" title="Portal público">'
+    + opc([{ v: '', t: 'Público e interno' }, { v: 'sim', t: 'Com arquivo público' },
+           { v: 'nao', t: 'Só interno' }], filtro.publico, 'v', 't') + '</select>'
 
     + '<select class="acv-sel" id="acv-ordem" title="Ordenar">'
     + opc([{ v: 'recentes', t: 'Mais recentes' }, { v: 'titulo', t: 'Título A–Z' },
@@ -445,6 +475,7 @@ function cardHtml(o) {
     + '<div class="acv-card-forn">' + esc(o.fornecedor_nome || '—') + '</div>'
     + '<div class="acv-card-info">' + info
     + (o._ano ? '<span>&middot; ' + o._ano + '</span>' : '')
+    + (o._publicos ? '<span class="acv-card-pub" title="Arquivo marcado para o portal público">&middot; Público</span>' : '')
     + '</div></div></button>';
 }
 
@@ -486,7 +517,7 @@ function religarComando(focoBusca) {
   };
   bind('acv-ativ', 'atividade'); bind('acv-forn', 'fornecedor');
   bind('acv-res', 'resultado');  bind('acv-ano', 'ano');
-  bind('acv-ordem', 'ordem');
+  bind('acv-ordem', 'ordem');      bind('acv-pub', 'publico');
 
   const est = document.getElementById('acv-m-estante');
   const gra = document.getElementById('acv-m-grade');
@@ -495,7 +526,7 @@ function religarComando(focoBusca) {
 
   const limpar = document.getElementById('acv-limpar');
   if (limpar) limpar.onclick = () => {
-    Object.assign(filtro, { busca: '', rotulo: '', atividade: '', fornecedor: '', resultado: '', ano: '', formato: '' });
+    Object.assign(filtro, { busca: '', rotulo: '', atividade: '', fornecedor: '', resultado: '', ano: '', formato: '', publico: '' });
     redesenhar(false);
   };
 
@@ -546,8 +577,60 @@ function linhaMidia(m, superada) {
     + (m.adicionado_em ? '<span>' + esc(fmtData(m.adicionado_em)) + '</span>' : '')
     + (m.despacho_numero ? '<span>Despacho ' + esc(m.despacho_numero) + '</span>' : '')
     + '</div></div>'
+    + controlePublico(m)
     + '<span class="acv-midia-acao">Visualizar &rsaquo;</span>'
     + '</div>';
+}
+
+// Portal público: super_admin marca/desmarca; os demais só veem o selo.
+// Só arquivo vigente pode ser marcado — o banco recusa o resto.
+// Marcado que deixou de valer (produto reentregue) aparece para ser
+// desmarcado, mas não vai ao portal (vw_acervo_publicacoes.valida).
+function controlePublico(m) {
+  const pub = publicos[m.midia_id];
+  const vigente = m.versao_status === 'vigente';
+  if (pub && !pub.valida) {
+    return '<span class="acv-pub-selo acv-pub-invalido" title="Marcado para o portal público, mas deixou de ser a versão vigente — não será exibido">Público (sem efeito)</span>'
+      + (podePublicar ? '<button type="button" class="acv-pub-btn" data-pub="' + esc(m.midia_id) + '">Desmarcar</button>' : '');
+  }
+  if (!vigente) return '';
+  if (podePublicar) {
+    return '<button type="button" class="acv-pub-btn' + (pub ? ' on' : '') + '" data-pub="' + esc(m.midia_id) + '"'
+      + ' title="' + (pub ? 'Clique para tirar do portal público' : 'Clique para liberar no portal público') + '">'
+      + (pub ? '&#10003; Público' : 'Marcar como público') + '</button>';
+  }
+  return pub ? '<span class="acv-pub-selo" title="Marcado para o portal público">Público</span>' : '';
+}
+
+async function alternarPublico(midiaId) {
+  const m = (midiasPorObra[obraAberta && obraAberta.obra_id] || []).find(x => x.midia_id === midiaId);
+  const marcar = !publicos[midiaId];
+  if (marcar && !confirm('Liberar "' + ((m && m.arquivo_nome) || 'este arquivo') + '" para o portal público?\n\n'
+      + 'Confira antes se o documento não traz CPF, dados bancários ou outro dado pessoal além da autoria.')) return;
+
+  const { error } = await db.rpc('fn_acervo_definir_publico', { p_midia_id: midiaId, p_publico: marcar });
+  if (error) {
+    const msgs = {
+      'acervo:sem_permissao': 'Só super_admin marca arquivos para o portal público.',
+      'acervo:arquivo_administrativo': 'Documento administrativo não vai ao portal público.',
+      'acervo:arquivo_nao_vigente': 'Só a versão vigente do produto pode ser marcada.',
+      'acervo:produto_nao_aprovado': 'O produto precisa estar aprovado.',
+      'acervo:arquivo_inexistente': 'Arquivo não encontrado no acervo.',
+    };
+    toast(msgs[error.message] || ('Não foi possível salvar: ' + error.message), 'error');
+    return;
+  }
+
+  // Relê a situação efetiva (valida) da marcação no banco
+  const { data } = await db.from('vw_acervo_publicacoes').select('*').eq('midia_id', midiaId).eq('publico', true);
+  if (data && data.length) publicos[midiaId] = data[0]; else delete publicos[midiaId];
+
+  const obraId = obraAberta.obra_id;
+  const o = obras.find(x => x.obra_id === obraId);
+  if (o) o._publicos = contarPublicos(obraId);
+  toast(marcar ? 'Arquivo liberado para o portal público.' : 'Arquivo retirado do portal público.', 'success');
+  redesenhar(false);
+  abrirFicha(obraId);
 }
 
 function abrirFicha(obraId) {
@@ -583,7 +666,6 @@ function abrirFicha(obraId) {
     + '<div class="acv-ficha-dados">'
     + dado('Consultor / Fornecedor', esc(o.fornecedor_nome || '—'))
     + dado('Atividade', esc(o.atividade_nome || '—'), o.atividade_nome)
-    + dado('Valor do produto', esc(fmtBRL(o.valor_brl)))
     + dado('Entrega', esc(fmtData(o.entrega_ref_data || o.dt_entrega)))
     + dado('Prazo contratual', esc(fmtData(o.dt_vencimento)))
     + dado('Última atualização', esc(o.publicado_em ? fmtData(o.publicado_em) : '—'))
@@ -606,7 +688,12 @@ function abrirFicha(obraId) {
   // ── Versão vigente ──
   body += '<div class="acv-secao-tit">Versão vigente'
     + (o.entrega_ref_numero ? ' &middot; entrega ' + esc(o.entrega_ref_numero) : '')
-    + ' &middot; ' + vigentes.length + '</div>';
+    + ' &middot; ' + vigentes.length
+    + (o._publicos ? ' &middot; ' + o._publicos + ' no portal público' : '') + '</div>';
+  if (podePublicar && vigentes.length) {
+    body += '<div class="acv-pub-dica">Marque os arquivos que poderão aparecer no portal público. '
+      + 'Só arquivos marcados serão exibidos lá.</div>';
+  }
   if (vigentes.length) {
     body += vigentes.map(m => linhaMidia(m, false)).join('');
   } else if (o.situacao_acervo === 'aprovado') {
@@ -644,6 +731,9 @@ function abrirFicha(obraId) {
 
   document.getElementById('ficha-body').querySelectorAll('[data-midia]').forEach(el => {
     el.onclick = () => abrirViewer(el.dataset.midia);
+  });
+  document.getElementById('ficha-body').querySelectorAll('[data-pub]').forEach(el => {
+    el.onclick = ev => { ev.stopPropagation(); el.disabled = true; alternarPublico(el.dataset.pub).finally(() => { el.disabled = false; }); };
   });
 
   // O pôster da ficha também traz data-capa-obra, mas só ligarCards() (grade/

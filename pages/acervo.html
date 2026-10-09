@@ -310,6 +310,23 @@
 }
 .acv-midia-acao{font-size:11px;font-weight:600;color:var(--verde-medio);flex-shrink:0;}
 
+/* ── Portal público (marcação por arquivo; só super_admin altera) ── */
+.acv-pub-btn{
+  font-size:11px;font-weight:600;padding:5px 10px;border-radius:99px;flex-shrink:0;cursor:pointer;
+  border:1px solid var(--borda-forte);background:var(--branco);color:var(--cinza-700);
+  transition:background .15s,border-color .15s,color .15s;
+}
+.acv-pub-btn:hover{border-color:var(--verde-medio);color:var(--verde-medio);}
+.acv-pub-btn.on{background:var(--verde-bg);border-color:#86EFAC;color:#166534;}
+.acv-pub-btn:disabled{opacity:.6;cursor:wait;}
+.acv-pub-selo{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0;
+  padding:3px 8px;border-radius:99px;background:var(--verde-bg);color:#166534;border:1px solid #86EFAC;
+}
+.acv-pub-invalido{background:var(--aviso-bg);color:#92400E;border-color:#FCD34D;}
+.acv-pub-dica{font-size:12px;color:var(--cinza-500);margin:-4px 0 10px;}
+.acv-card-pub{color:#8FE3B4;}
+
 /* ── Visualizador ─────────────────────────────────────────────── */
 .acv-viewer-overlay{
   position:fixed;inset:0;background:rgba(6,12,9,.94);z-index:9998;

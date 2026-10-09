@@ -396,8 +396,30 @@ qual vale mora na view, para que biblioteca, relatórios e auditoria não divirj
 > NF é a própria evidência da entrega. Mudar isso zera o acervo desses contratos.
 
 > ⚠️ Prateleiras e ícone da capa usam `rotulos_vigentes`/`tipos_midia` (só a
-> edição vigente). O filtro por categoria usa `rotulos_midia` (todos os rótulos),
-> senão o chip "Nota Técnica" não acha nada. Contagem do card = `total_vigentes`.
+> edição vigente). O filtro por categoria usa `rotulos_midia` (todos os rótulos,
+> menos "Nota Técnica"). Contagem do card = `total_vigentes`.
+
+**Fora da tela do acervo** (09/10/2026): a **Nota Técnica** (`origem = 'nota_tecnica'`) não é
+carregada (`.neq('origem','nota_tecnica')`, rótulo tirado de `_rotulos`) — consulta só em Produtos;
+e o **valor do produto** não é exibido. As views seguem com esses dados (outros usos).
+
+#### Portal público — marcação por arquivo (migração `20261009_acervo_publicacao.sql`)
+
+O portal público do acervo **ainda não existe**; quando existir, mostra **só** os
+arquivos marcados. A marcação já está na ficha da obra.
+- **Só super_admin ativo** marca/desmarca, arquivo a arquivo, pela RPC
+  `fn_acervo_definir_publico(p_midia_id text, p_publico boolean)` (SECURITY DEFINER).
+  Tabela `acervo_publicacoes` (1 linha por `midia_id`, `publico`, quem/quando marcou e
+  desmarcou; `fn_trg_audit`) **sem policy nem grant de escrita** — não criar.
+  Desmarcar = `publico = false`, a linha fica.
+- Só entra arquivo **vigente** de classe `produto` de produto **aprovado** — Nota Técnica,
+  comprovante, contrato e versão devolvida são recusados no banco.
+- `vw_acervo_publicacoes.valida` = marcado **e** ainda vigente/aprovado. Produto reentregue ⇒
+  a marcação antiga perde efeito sozinha (a ficha mostra "Público (sem efeito)"). **A futura
+  página pública lê só `where valida`**, por `fn_publico_*` ou Edge Function (nunca GRANT ao
+  `anon`; arquivos em bucket privado ⇒ URL assinada curta, sem copiar para bucket público).
+- Autoria (nome do consultor/fornecedor) **será exibida** no portal; valor e Nota Técnica não.
+  Ao criar o portal, registrar o tratamento em `lgpd_tratamentos` (ROPA).
 
 Existe caso real de produto **aprovado com `total_vigentes = 0`** (a entrega
 aprovada não teve arquivo anexado). A ficha sinaliza a lacuna em vez de escondê-la
