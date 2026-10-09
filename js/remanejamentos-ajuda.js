@@ -151,22 +151,21 @@ function remAjuda(k) {
   if (!el) {
     el = document.createElement('div')
     el.id = 'rm-ajuda-pop'
-    el.className = 'modal-overlay'
+    el.className = 'modal-overlay rm-ov'
+    el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'rm-ajuda-t')
     el.onclick = e => { if (e.target === el) remAjudaFechar() }
     document.body.appendChild(el)
   }
-  el.innerHTML = `<div class="modal" style="max-width:480px;width:100%" role="dialog" aria-modal="true" aria-labelledby="rm-ajuda-t">
-    <div class="modal-header"><div class="modal-title" id="rm-ajuda-t">${a.t}</div>
-      <button class="modal-close" onclick="remAjudaFechar()" aria-label="Fechar">&#x2715;</button></div>
-    <div class="modal-body" style="font-size:13.5px;line-height:1.6;color:var(--cinza-700)">${a.h}</div>
-    <div class="modal-footer"><button class="btn btn-ghost" onclick="remAjudaFechar()">Entendi</button>
-      <button class="btn btn-secondary" onclick="remAjudaFechar();remIrGuia('${a.secao}')">Ver no guia completo</button></div></div>`
-  el.classList.add('aberto')
+  el.innerHTML = `<div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title" id="rm-ajuda-t" style="flex:1;min-width:0">${a.t}</div>
+      <button type="button" class="modal-close" onclick="remAjudaFechar()" aria-label="Fechar">${rmIc('x', 'p')}</button></div>
+    <div class="modal-body rm-ajuda-txt">${a.h}</div>
+    <div class="modal-footer"><button type="button" class="btn btn-ghost" onclick="remAjudaFechar()">Entendi</button>
+      <button type="button" class="btn btn-secondary" onclick="remAjudaFechar();remIrGuia('${a.secao}')">Ver no guia completo</button></div></div>`
+  rmAbrir('rm-ajuda-pop')
 }
-function remAjudaFechar() {
-  document.getElementById('rm-ajuda-pop')?.classList.remove('aberto')
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') remAjudaFechar() })
+// Esc e Tab presos vêm da pilha de janelas (rmAbrir/rmFechar em js/remanejamentos.js)
+function remAjudaFechar() { rmFechar('rm-ajuda-pop') }
 
 function remIrGuia(secao) {
   // fecha o pedido aberto, se houver, e vai à seção do guia

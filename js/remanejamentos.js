@@ -54,6 +54,74 @@ const REM_ERRO = {
   SENHA_BLOQUEADA: 'Assinatura bloqueada por excesso de tentativas. Tente de novo mais tarde.',
 }
 
+// ── Ícones (SVG, sem emoji) ───────────────────────────────────────────
+const RM_IC = {
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+  troca:'<path d="M7 7h13l-4-4M17 17H4l4 4"/>',
+  cadeado:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  alerta:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  doc:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  mais:'<path d="M12 5v14M5 12h14"/>',
+  volta:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
+  livro:'<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7"/>',
+  relogio:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+}
+function rmIc(n, cls) { return '<svg class="rm-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (RM_IC[n] || '') + '</svg>' }
+document.querySelectorAll('i[data-ic]').forEach(e => { e.outerHTML = rmIc(e.dataset.ic, 'p') })
+
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico e das demais guias (componente .dgm-tema)
+function seletorTema() {
+  const tb = document.querySelector('.topbar'); if (!tb || tb.querySelector('.dgm-tema') || typeof DiagTema === 'undefined') return
+  const d = document.createElement('div')
+  d.className = 'dgm-tema'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Tema')
+  d.innerHTML = [['claro', 'sol', 'Claro'], ['escuro', 'lua', 'Escuro']].map(x =>
+    `<button type="button" data-tema="${x[0]}" aria-pressed="${DiagTema.atual() === x[0]}">${rmIc(x[1])}${x[2]}</button>`).join('')
+  const bc = tb.querySelector('.topbar-breadcrumb')
+  if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d)
+  d.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tema]'); if (!b) return
+    DiagTema.definir(b.dataset.tema)
+    d.querySelectorAll('[data-tema]').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
+  })
+}
+
+// ── Janelas: pilha (Esc fecha a de cima), foco no primeiro controle, Tab preso, foco volta ──
+const RM_FOCAVEIS = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]):not([type=file]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+const rmPilha = []
+function rmAbrir(id, alvo) {
+  const el = document.getElementById(id)
+  if (!el.classList.contains('aberto')) { rmPilha.push({ id, volta: document.activeElement }); el.classList.add('aberto') }
+  requestAnimationFrame(() => {
+    const f = (alvo && document.getElementById(alvo)) || el.querySelector('.modal-close')
+    if (f) f.focus({ preventScroll: true })
+  })
+}
+function rmFechar(id) {
+  const el = document.getElementById(id); if (!el) return
+  el.classList.remove('aberto')
+  const k = rmPilha.findIndex(x => x.id === id)
+  if (k >= 0) { const { volta } = rmPilha.splice(k, 1)[0]; if (volta && document.contains(volta)) volta.focus({ preventScroll: true }) }
+}
+const RM_FECHAR = { 'rm-modal-pedido': () => remFecharPedido(), 'rm-modal-assinar': () => remFecharAssinar(), 'rm-ajuda-pop': () => remAjudaFechar() }
+document.addEventListener('keydown', e => {
+  const topo = rmPilha[rmPilha.length - 1]; if (!topo) return
+  const el = document.getElementById(topo.id)
+  if (e.key === 'Escape') { e.preventDefault(); (RM_FECHAR[topo.id] || (() => rmFechar(topo.id)))() }
+  else if (e.key === 'Tab') {
+    const f = [...el.querySelectorAll(RM_FOCAVEIS)].filter(x => x.offsetParent !== null)
+    if (!f.length) return
+    const pri = f[0], ult = f[f.length - 1]
+    if (!el.contains(document.activeElement)) { e.preventDefault(); pri.focus() }
+    else if (e.shiftKey && document.activeElement === pri) { e.preventDefault(); ult.focus() }
+    else if (!e.shiftKey && document.activeElement === ult) { e.preventDefault(); pri.focus() }
+  }
+})
+;['rm-modal-pedido', 'rm-modal-assinar'].forEach(id => document.getElementById(id)?.addEventListener('click', e => { if (e.target.id === id) RM_FECHAR[id]() }))
+
 const usd2 = v => 'US$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const num = v => Math.round(Number(v || 0) * 100) / 100
 const dataHora = d => d ? new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—'
@@ -72,11 +140,14 @@ const podeMontar = () => ['coordenacao', 'super_admin'].includes(appState.perfil
         pelo responsável de cada atividade que cede, pela UNESCO, pela diretoria e pela secretaria, nessa ordem, cada um
         assinando com a própria senha. Só depois da última assinatura o valor muda no orçamento.</p>
       </div></div>
-      <div class="rm-abas" id="rm-abas"></div>
+      <div class="rm-kpis" id="rm-kpis"></div>
+      <div class="rm-abas" id="rm-abas" role="tablist" aria-label="Remanejamento"></div>
       <div id="rm-corpo"><p class="rm-vazio">Carregando…</p></div>
     </div>` + '</div></div></div>'
   carregarLogosSidebar()
+  seletorTema()
 
+  REM.inicio = true
   await remCarregar()
   const qs = new URLSearchParams(location.search)
   if (qs.get('id')) remAbrirPedido(qs.get('id'))
@@ -109,6 +180,7 @@ async function remCarregar() {
   REM.usuarios = Object.fromEntries((r[8].data || []).map(u => [u.id, u]))
   REM.travados = r[9].data || []
   REM.pendencias = r[10].data || []
+  if (REM.inicio) { REM.inicio = false; if (REM.pedidos.some(remMinhaVez)) { REM.aba = 'pedidos'; REM.filtro = 'minha' } }
   remRender()
 }
 
@@ -139,13 +211,14 @@ function remRender() {
   const minhas = REM.pedidos.filter(remMinhaVez).length
   const abas = [
     ['saldos', 'Saldos por resultado'],
-    ['pedidos', 'Pedidos' + (minhas ? ` <span class="rm-cont">${minhas}</span>` : '')],
+    ['pedidos', 'Pedidos' + ` <span class="rm-cont${minhas ? ' vez' : ''}" title="${minhas ? 'aguardando sua análise' : 'pedidos'}">${minhas || REM.pedidos.length}</span>`],
     ...(podeMontar() ? [['novo', REM.editando ? 'Editar rascunho' : 'Novo pedido']] : []),
     ['titulares', 'Signatários'],
     ['guia', 'Como funciona'],
   ]
   document.getElementById('rm-abas').innerHTML = abas.map(([k, l]) =>
-    `<button class="rm-aba ${REM.aba === k ? 'ativa' : ''}" onclick="remAba('${k}')">${l}</button>`).join('')
+    `<button type="button" role="tab" aria-selected="${REM.aba === k}" class="rm-aba ${REM.aba === k ? 'ativa' : ''}" onclick="remAba('${k}')">${l}</button>`).join('')
+  remKpis()
   const el = document.getElementById('rm-corpo')
   el.innerHTML = { saldos: remSaldosHTML, pedidos: remPedidosHTML, novo: remNovoHTML, titulares: remTitularesHTML, guia: remGuiaHTML }[REM.aba]()
 }
@@ -156,44 +229,62 @@ function remAba(k) {
 }
 
 // ── 1. Saldos por resultado ────────────────────────────────────────────
+// Diferença de arredondamento (déficit abaixo de US$ 1) não é déficit de verdade: fica em cinza
+const RM_CENTAVOS = 1
+function remKpis() {
+  const A = REM.ativs
+  const soma = k => A.reduce((s, a) => s + Number(a[k] || 0), 0)
+  const defs = A.filter(a => Number(a.deficit_usd) >= RM_CENTAVOS)
+  const vDef = defs.reduce((s, a) => s + Number(a.deficit_usd), 0)
+  const kpi = (ic, l, q, v, s, cls) => `<div class="rm-kpi"><div class="rm-kpi-l">${rmIc(ic)}${l} ${remQ(q)}</div><div class="rm-kpi-v ${cls || ''}">${v}</div><div class="rm-kpi-s">${s}</div></div>`
+  const el = document.getElementById('rm-kpis'); if (!el) return
+  el.innerHTML =
+      kpi('troca', 'Remanejável', 'remanejavel', usd2(soma('remanejavel_usd')), 'livre de TDR, despesa e reserva')
+    + kpi('cadeado', 'Reservado', 'reservado', usd2(soma('reservado_usd')), 'por pedidos em aprovação')
+    + kpi('alerta', 'Déficit', 'deficit', usd2(vDef), defs.length ? `em ${defs.length} atividade${defs.length === 1 ? '' : 's'} (${defs.map(a => esc(a.codigo)).join(', ')})` : 'nenhuma atividade', defs.length ? 'erro' : '')
+    + kpi('doc', 'Contratos travados', 'cobertura', REM.travados.length, 'aguardando cobertura', REM.travados.length ? 'al' : '')
+}
+function remBarra(comp, vig, res) {
+  const v = Number(vig || 0), c = Number(comp || 0), pct = v > 0 ? c / v * 100 : (c > 0 ? 101 : 0)
+  const acima = c - v >= RM_CENTAVOS   // centavos de arredondamento não pintam a barra de vermelho
+  const rot = acima ? Math.max(101, Math.round(pct)) : Math.min(100, Math.round(pct))
+  return `<div class="rm-bar"><div class="tr"><i class="${acima && !res ? 'acima' : ''}" style="width:${Math.min(pct, 100)}%"></i></div>
+    <div class="lg"><span><b>${usd2(c)}</b> de ${usd2(v)}</span>${res ? '' : `<span>${rot}%</span>`}</div></div>`
+}
 function remSaldosHTML() {
   const A = REM.ativs
   const soma = k => A.reduce((s, a) => s + Number(a[k] || 0), 0)
-  const deficits = A.filter(a => Number(a.deficit_usd) > 0)
-  let h = `<div class="rm-kpis">
-    <div class="rm-kpi"><b>${usd2(soma('remanejavel_usd'))}</b><span>remanejável (livre de TDR, despesa e reserva) ${remQ('remanejavel')}</span></div>
-    <div class="rm-kpi"><b>${usd2(soma('reservado_usd'))}</b><span>reservado por pedidos em aprovação ${remQ('reservado')}</span></div>
-    <div class="rm-kpi ${deficits.length ? 'al' : ''}"><b>${deficits.length}</b><span>atividades com déficit (${usd2(deficits.reduce((s, a) => s + Number(a.deficit_usd), 0))}) ${remQ('deficit')}</span></div>
-    <div class="rm-kpi"><b>${usd2(soma('orcamento_vigente_usd'))}</b><span>orçamento vigente total</span></div>
-    <div class="rm-kpi ${REM.travados.length ? 'al' : ''}"><b>${REM.travados.length}</b><span>contratos aguardando cobertura ${remQ('cobertura')}</span></div>
-  </div>
-  ${remTravadosHTML()}
-  <p class="rm-sub" style="margin:-4px 0 10px">Clique numa atividade para ver de onde vem cada dólar (fontes do razão, na ordem de consumo). ${remQ('fontes')} Dúvidas? Veja a aba <a href="#" onclick="event.preventDefault();remIrGuia('visao')">Como funciona</a>.</p>
-  <div class="card"><div class="table-wrap"><table class="rm-tab">
-    <thead><tr><th>Atividade</th><th class="n">Orçamento vigente ${remQ('orcamento_vigente')}</th><th class="n">Comprometido ${remQ('comprometido')}</th>
-      <th class="n">Saldo ${remQ('saldo')}</th><th class="n">Reservado ${remQ('reservado')}</th><th class="n">Remanejável ${remQ('remanejavel')}</th></tr></thead><tbody>`
-  for (const r of REM.resultados) {
+  let h = `${remTravadosHTML()}
+  <p class="rm-sub" style="margin:0">Clique numa atividade para ver de onde vem cada dólar (fontes do razão, na ordem de consumo). ${remQ('fontes')} Dúvidas? Veja a aba <a href="#" onclick="event.preventDefault();remIrGuia('visao')">Como funciona</a>.</p>
+  <div class="card"><div class="table-wrap"><table class="rm-tab larga">
+    <thead><tr><th>Atividade</th><th>Comprometido ${remQ('comprometido')} × vigente ${remQ('orcamento_vigente')}</th>
+      <th class="n">Saldo ${remQ('saldo')}</th><th class="n">Reservado ${remQ('reservado')}</th><th class="n">Remanejável ${remQ('remanejavel')}</th><th></th></tr></thead><tbody>`
+  REM.resultados.forEach((r, ir) => {
     const as = A.filter(a => a.resultado_id === r.id)
-    if (!as.length) continue
+    if (!as.length) return
     const s = k => as.reduce((t, a) => t + Number(a[k] || 0), 0)
-    h += `<tr class="rm-res"><td>${esc(r.codigo)} · ${esc(r.nome_pt || '')}</td><td class="n">${usd2(s('orcamento_vigente_usd'))}</td>
-      <td class="n">${usd2(s('debito_usd'))}</td><td class="n">${usd2(s('saldo_usd'))}</td>
-      <td class="n">${usd2(s('reservado_usd'))}</td><td class="n">${usd2(s('remanejavel_usd'))}</td></tr>`
+    h += `<tr class="rm-res" style="--c:var(--rm-r${Math.min(ir + 1, 4)})"><td><span class="rm-rtag">${esc(r.codigo)}</span>${esc(r.nome_pt || '')}</td>
+      <td>${remBarra(s('debito_usd'), s('orcamento_vigente_usd'), true)}</td><td class="n">${usd2(s('saldo_usd'))}</td>
+      <td class="n">${usd2(s('reservado_usd'))}</td><td class="n">${usd2(s('remanejavel_usd'))}</td><td></td></tr>`
     for (const a of as) {
-      const saldo = Number(a.saldo_usd)
+      const saldo = Number(a.saldo_usd), def = Number(a.deficit_usd), aberto = REM.abertos.has(a.atividade_id)
       const orig = a.orcamento_original_usd != null && num(a.orcamento_original_usd) !== num(a.orcamento_vigente_usd)
         ? `<div class="rm-sub">original ${usd2(a.orcamento_original_usd)}</div>` : ''
-      h += `<tr class="rm-atv" onclick="remAlternar('${a.atividade_id}')">
-        <td><span class="rm-cod">${esc(a.codigo)}</span> ${esc(a.nome_pt || '')}
-          ${Number(a.deficit_usd) > 0 ? ' <span class="badge badge-erro">déficit ' + usd2(a.deficit_usd) + '</span>' : ''}
-          ${Number(a.tdrs_sem_valor_usd) > 0 ? ' <span class="badge badge-ouro">TDR sem valor em US$</span>' : ''}</td>
-        <td class="n">${usd2(a.orcamento_vigente_usd)}${orig}</td><td class="n">${usd2(a.debito_usd)}</td>
-        <td class="n ${saldo < 0 ? 'rm-neg' : ''}">${usd2(saldo)}</td>
+      const selo = def >= RM_CENTAVOS ? ` <span class="badge badge-erro">${rmIc('alerta', 'p')}déficit ${usd2(def)}</span>`
+        : def > 0 ? ` <span class="badge badge-cinza" title="Diferença de arredondamento: ${usd2(def)}">diferença de centavos</span>` : ''
+      h += `<tr class="rm-atv${aberto ? ' aberta' : ''}" tabindex="0" aria-expanded="${aberto}" onclick="remAlternar('${a.atividade_id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();remAlternar('${a.atividade_id}')}">
+        <td><div class="nm"><span class="rm-cod">${esc(a.codigo)}</span> ${esc(a.nome_pt || '')}${selo}
+          ${Number(a.tdrs_sem_valor_usd) > 0 ? ' <span class="badge badge-ouro">TDR sem valor em US$</span>' : ''}</div>${orig}</td>
+        <td>${remBarra(a.debito_usd, a.orcamento_vigente_usd)}</td>
+        <td class="n ${saldo < 0 && def >= RM_CENTAVOS ? 'rm-neg' : ''}">${usd2(saldo)}</td>
         <td class="n ${Number(a.reservado_usd) ? '' : 'rm-mut'}">${usd2(a.reservado_usd)}</td>
-        <td class="n ${Number(a.remanejavel_usd) > 0 ? 'rm-pos' : 'rm-mut'}"><b>${usd2(a.remanejavel_usd)}</b></td></tr>`
-      if (REM.abertos.has(a.atividade_id)) h += `<tr class="rm-fontes"><td colspan="6">${remFontesHTML(a.atividade_id)}</td></tr>`
+        <td class="n ${Number(a.remanejavel_usd) > 0 ? 'rm-pos' : 'rm-mut'}"><b>${usd2(a.remanejavel_usd)}</b></td>
+        <td>${rmIc('chev', 'chev')}</td></tr>`
+      if (aberto) h += `<tr class="rm-fontes"><td colspan="6"><div class="rm-fontes-in">${remFontesHTML(a.atividade_id)}</div></td></tr>`
     }
-  }
+  })
+  h += `<tr class="rm-tot"><td>Total do projeto · ${A.length} atividades</td><td>${remBarra(soma('debito_usd'), soma('orcamento_vigente_usd'), true)}<div class="rm-sub">orçamento vigente total</div></td>
+    <td class="n">${usd2(soma('saldo_usd'))}</td><td class="n">${usd2(soma('reservado_usd'))}</td><td class="n">${usd2(soma('remanejavel_usd'))}</td><td></td></tr>`
   return h + '</tbody></table></div></div>'
 }
 // Contratos travados: o valor acima do TDR não coube no saldo livre da atividade.
@@ -204,11 +295,11 @@ function remDeficitContrato(cid) {
 function remAtivContrato(c) { return c.tdrs?.atividade_id || c.atividade_id }
 function remTravadosHTML() {
   if (!REM.travados.length) return ''
-  let h = `<div class="card" style="margin-bottom:14px;border-left:4px solid #EA580C"><div style="padding:10px 14px 4px">
-    <b>Contratos travados aguardando cobertura</b> ${remQ('cobertura')}
-    <p class="rm-sub" style="margin:2px 0 6px">O valor acima do TDR não coube no saldo livre da atividade. Sem produtos, pagamentos nem PDF assinado
+  let h = `<div class="card rm-travados"><div class="cab">
+    <b>${rmIc('alerta', 'p')} Contratos travados aguardando cobertura</b> ${remQ('cobertura')}
+    <p class="rm-sub" style="margin:0 0 6px">O valor acima do TDR não coube no saldo livre da atividade. Sem produtos, pagamentos nem PDF assinado
     até a cobertura; o contrato libera sozinho quando o saldo cobrir (remanejamento efetivado, economia, encerramento ou redução do contrato).</p></div>
-    <div class="table-wrap"><table class="rm-tab"><thead><tr><th>Contrato</th><th>TDR</th><th>Atividade</th>
+    <div class="table-wrap"><table class="rm-tab larga"><thead><tr><th>Contrato</th><th>TDR</th><th>Atividade</th>
     <th class="n">Falta cobrir ${remQ('falta_cobrir')}</th><th>Pedido</th><th></th></tr></thead><tbody>`
   for (const c of REM.travados) {
     const a = REM.ativs.find(x => x.atividade_id === remAtivContrato(c))
@@ -216,7 +307,7 @@ function remTravadosHTML() {
     h += `<tr><td><b>${esc(c.numero)}</b></td><td>${esc(c.tdrs?.numero || 'sem TDR')}</td>
       <td><span class="rm-cod">${esc(a?.codigo || '?')}</span></td><td class="n"><b>${usd2(remDeficitContrato(c.id))}</b></td>
       <td>${ped ? `<a href="#" onclick="event.preventDefault();remAbrirPedido('${ped.id}')">${esc(ped.numero)}</a> · ${esc((REM_STATUS[ped.status] || [ped.status])[0])}` : '—'}</td>
-      <td>${!ped && podeMontar() ? `<button class="btn btn-primary btn-sm" onclick="remCobertura('${c.id}')">Pedir cobertura</button>` : ''}</td></tr>`
+      <td>${!ped && podeMontar() ? `<button type="button" class="btn btn-primary btn-sm" onclick="remCobertura('${c.id}')">Pedir cobertura</button>` : ''}</td></tr>`
   }
   return h + '</tbody></table></div></div>'
 }
@@ -254,18 +345,22 @@ function remFontesHTML(atvId) {
       <td class="n">${usd2(f.liquido_usd)}</td><td class="n">${usd2(f.consumido_usd)}</td><td class="n">${usd2(f.disponivel_usd)}</td>
       <td class="n">${usd2(f.reservado_usd)}</td><td class="n"><b>${usd2(f.livre_usd)}</b></td></tr>`).join('') +
     '</tbody></table><p class="rm-sub" style="margin:6px 0 0">Os compromissos consomem primeiro a dotação original e depois as demais fontes na ordem em que entraram.' +
-    ` <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="event.stopPropagation();relAbrirExtratoA4('${atvId}')">Extrato (A4)</button> ${remQ('extrato')}</p>`
+    ` <button type="button" class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="event.stopPropagation();relAbrirExtratoA4('${atvId}')">${rmIc('livro', 'p')}Extrato (A4)</button> ${remQ('extrato')}</p>`
 }
 
 // ── 2. Pedidos ─────────────────────────────────────────────────────────
 function remPedidosHTML() {
   const f = REM.filtro
   const lista = REM.pedidos.filter(p => f === 'todos' ? true : f === 'minha' ? remMinhaVez(p) : p.status === 'em_aprovacao')
-  const chip = (k, l) => `<button class="rm-chip ${f === k ? 'ativo' : ''}" onclick="REM.filtro='${k}';remRender()">${l}</button>`
+  const chip = (k, l) => `<button type="button" class="rm-chip ${f === k ? 'ativo' : ''}" aria-pressed="${f === k}" onclick="REM.filtro='${k}';remRender()">${l}</button>`
   let h = `<div class="rm-chips">${chip('minha', 'Aguardando minha análise (' + REM.pedidos.filter(remMinhaVez).length + ')')}
     ${chip('andamento', 'Em aprovação')}${chip('todos', 'Todos')} ${remQ('minha_vez')} ${remQ('cadeia')}</div>`
-  if (!lista.length) return h + '<p class="rm-vazio">Nenhum pedido aqui.</p>'
-  h += `<div class="card"><div class="table-wrap"><table class="rm-tab"><thead><tr><th>Pedido</th><th>Situação</th>
+  if (!REM.pedidos.length) return h + `<div class="card"><div class="rm-vazio-g"><span class="ic-g">${rmIc('troca')}</span><b>Nenhum pedido de remanejamento ainda</b>
+    <span>Um pedido tira saldo livre de uma ou mais atividades e leva para outras. Ele fica reservado enquanto passa pelas cinco assinaturas e só muda o orçamento depois da última.</span>
+    ${podeMontar() ? `<button type="button" class="btn btn-primary" onclick="remAba('novo')">${rmIc('mais', 'p')}Novo pedido</button>` : ''}</div></div>`
+  if (!lista.length) return h + `<div class="card"><div class="rm-vazio-g"><b>${f === 'minha' ? 'Nenhum pedido aguardando a sua análise' : 'Nenhum pedido em aprovação'}</b>
+    <span>Veja a lista completa em "Todos".</span></div></div>`
+  h += `<div class="card"><div class="table-wrap"><table class="rm-tab larga"><thead><tr><th>Pedido</th><th>Situação</th>
     <th>Etapa atual</th><th>Origem → destino</th><th class="n">Valor</th><th>Criado</th></tr></thead><tbody>`
   for (const p of lista) {
     const [st, cls] = REM_STATUS[p.status] || [p.status, 'badge-cinza']
@@ -279,9 +374,9 @@ function remPedidosHTML() {
     const ct = (p.tipo === 'cobertura_contrato'
       ? ' <span class="badge badge-blue">cobertura ' + esc(REM.travados.find(c => c.id === p.contrato_id)?.numero || 'de contrato') + '</span>' : '')
       + (p.estorno_de ? ' <span class="badge badge-ouro">estorno de ' + esc(REM.pedidos.find(x => x.id === p.estorno_de)?.numero || '?') + '</span>' : '')
-    h += `<tr class="rm-atv" onclick="remAbrirPedido('${p.id}')"><td><b>${esc(p.numero)}</b>${ct}${remMinhaVez(p) ? ' <span class="badge badge-ouro">sua vez</span>' : ''}</td>
+    h += `<tr class="rm-atv" tabindex="0" onclick="remAbrirPedido('${p.id}')" onkeydown="if(event.key==='Enter'){event.preventDefault();remAbrirPedido('${p.id}')}"><td><b>${esc(p.numero)}</b>${ct}${remMinhaVez(p) ? ' <span class="badge badge-ouro">sua vez</span>' : ''}</td>
       <td><span class="badge ${cls}">${st}</span></td><td>${quem}</td><td>${orig || '—'} → ${dest || '—'}</td>
-      <td class="n">${usd2(total)}</td><td>${dataHora(p.criado_em)}</td></tr>`
+      <td class="n">${usd2(total)}</td><td style="white-space:nowrap">${dataHora(p.criado_em)}</td></tr>`
   }
   return h + '</tbody></table></div></div>'
 }
@@ -311,7 +406,7 @@ function remNovoHTML() {
     ? '<div class="rm-aviso">O cargo de coordenação solicitante ainda não tem titular designado: o rascunho pode ser salvo, mas só será enviado depois da designação (aba Signatários).</div>' : ''
 
   const cob = F.cobertura
-    ? `<div class="rm-aviso" style="background:#FFF7ED;border-color:#FED7AA;color:#9A3412">Pedido de <b>cobertura do contrato ${esc(F.cobertura.numero)}</b>.
+    ? `<div class="rm-aviso trava">Pedido de <b>cobertura do contrato ${esc(F.cobertura.numero)}</b>.
        O destino precisa ser a atividade do contrato; quando o pedido for efetivado, o contrato é liberado automaticamente.
        Se o saldo for coberto antes por outro caminho, este pedido é cancelado sozinho.</div>` : ''
   let h = `<div class="rm-form">${aviso}${cob}
@@ -319,36 +414,36 @@ function remNovoHTML() {
     <p class="rm-ajuda">Informe quanto cada fonte cede. Só aparece saldo realmente livre: já descontados TDRs, despesas, outras reservas e déficits.</p>`
   if (!ativOrd.length) h += '<p class="rm-vazio">Nenhuma atividade com saldo livre para ceder.</p>'
   else {
-    h += `<div class="card"><div class="table-wrap"><table class="rm-tab"><thead><tr><th>Atividade</th><th>Fonte</th>
+    h += `<div class="card"><div class="table-wrap"><table class="rm-tab larga"><thead><tr><th>Atividade</th><th>Fonte</th>
       <th>Procedência</th><th class="n">Livre ${remQ('consumido')}</th><th class="n">Ceder (US$) ${remQ('pedido_ceder')}</th></tr></thead><tbody>`
     for (const a of ativOrd) for (const f of porAtv[a.atividade_id]) {
       const v = F.ceder[f.fonte_id] || ''
       h += `<tr><td><span class="rm-cod">${esc(a.codigo)}</span></td><td>${esc(REM_FONTE[f.tipo] || f.tipo)}</td>
         <td class="rm-sub">${remProcedencia(f)}</td><td class="n">${usd2(f.livre_usd)}</td>
         <td class="n"><input class="form-control rm-in" type="number" min="0" step="0.01" value="${v}"
-          oninput="remCeder('${f.fonte_id}', this.value)"></td></tr>`
+          aria-label="Ceder da fonte ${esc(REM_FONTE[f.tipo] || f.tipo)} de ${esc(a.codigo)}" oninput="remCeder('${f.fonte_id}', this.value)"></td></tr>`
     }
     h += '</tbody></table></div></div>'
   }
   h += `<h3>2. Para onde vai ${remQ('pedido_destino')}</h3><p class="rm-ajuda">A soma dos destinos precisa ser igual ao total cedido. Uma atividade não pode ceder e receber no mesmo pedido.</p>`
   F.destinos.forEach((d, i) => {
-    h += `<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-      <select class="form-control rm-dest-atv" style="flex:1" onchange="remDestino(${i}, 'atividade_id', this.value)">
+    h += `<div class="rm-dest">
+      <select class="form-control rm-dest-atv" aria-label="Atividade de destino ${i + 1}" onchange="remDestino(${i}, 'atividade_id', this.value)">
         <option value="">Selecione a atividade de destino…</option>
         ${REM.ativs.map(a => `<option value="${a.atividade_id}" ${a.atividade_id === d.atividade_id ? 'selected' : ''}>${esc(a.codigo)} — ${esc(a.nome_pt || '')}${Number(a.deficit_usd) > 0 ? ' (déficit ' + usd2(a.deficit_usd) + ')' : ''}</option>`).join('')}
       </select>
-      <input class="form-control rm-in rm-dest-valor" type="number" min="0" step="0.01" value="${d.valor || ''}" oninput="remDestino(${i}, 'valor', this.value)">
-      <button class="btn btn-ghost btn-sm" onclick="remTirarDestino(${i})" title="Remover">&#x2715;</button></div>`
+      <input class="form-control rm-in rm-dest-valor" type="number" min="0" step="0.01" value="${d.valor || ''}" aria-label="Valor do destino ${i + 1} (US$)" oninput="remDestino(${i}, 'valor', this.value)">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="remTirarDestino(${i})" title="Remover destino" aria-label="Remover destino ${i + 1}">${rmIc('x', 'p')}</button></div>`
   })
-  h += `<button class="btn btn-secondary btn-sm" onclick="REM.form.destinos.push({atividade_id:'',valor:0});remRender()">+ Outro destino</button>
-    <div class="rm-tot" id="rm-tot">${remTotaisHTML()}</div>
+  h += `<div><button type="button" class="btn btn-secondary btn-sm" onclick="REM.form.destinos.push({atividade_id:'',valor:0});remRender()">${rmIc('mais', 'p')}Outro destino</button></div>
+    <div class="rm-tot-b" id="rm-tot" aria-live="polite">${remTotaisHTML()}</div>
     <h3>3. Justificativa ${remQ('pedido_justificativa')}</h3>
-    <textarea class="form-control" rows="4" oninput="REM.form.justificativa=this.value" placeholder="Por que remanejar, o que deixa de ser feito na origem e o que o recurso viabiliza no destino.">${esc(F.justificativa)}</textarea>
-    <div class="rm-acoes" style="margin-top:14px">
-      <button class="btn btn-primary" onclick="remSalvarRascunho()">${REM.editando ? 'Salvar alterações' : 'Salvar rascunho'}</button>
-      <button class="btn btn-ghost" onclick="REM.form=null;REM.editando=null;remAba('pedidos')">Descartar</button>
+    <textarea class="form-control" rows="4" aria-label="Justificativa" oninput="REM.form.justificativa=this.value" placeholder="Por que remanejar, o que deixa de ser feito na origem e o que o recurso viabiliza no destino.">${esc(F.justificativa)}</textarea>
+    <div class="rm-acoes" style="margin-top:6px">
+      <button type="button" class="btn btn-primary" onclick="remSalvarRascunho()">${REM.editando ? 'Salvar alterações' : 'Salvar rascunho'}</button>
+      <button type="button" class="btn btn-ghost" onclick="REM.form=null;REM.editando=null;remAba('pedidos')">Descartar</button>
     </div>
-    <p class="rm-sub" style="margin-top:8px">${remQ('rascunho')} Salvar não compromete saldo. O valor só fica reservado depois que o pedido é enviado (com sua senha) a partir da aba Pedidos.</p>
+    <p class="rm-sub" style="margin:0">${remQ('rascunho')} Salvar não compromete saldo. O valor só fica reservado depois que o pedido é enviado (com sua senha) a partir da aba Pedidos.</p>
   </div>`
   return h
 }
@@ -417,20 +512,20 @@ async function remSalvarRascunho() {
 // ── 4. Signatários (titulares) ─────────────────────────────────────────
 function remTitularesHTML() {
   const sa = appState.perfil === 'super_admin'
-  let h = `<p class="rm-ajuda" style="font-size:13px;color:var(--cinza-600);margin:0 0 12px">${remQ('signatarios')} Cada cargo tem um titular nominal, sem substituto.
+  let h = `<p class="rm-sub" style="font-size:13px;color:var(--txt-2);margin:0;line-height:1.55">${remQ('signatarios')} Cada cargo tem um titular nominal, sem substituto.
     Quem ocupa um cargo não pode ser o único responsável pela atividade que cede. A liberação da origem é assinada pelo
     responsável cadastrado na atividade (não pelo substituto).</p>
-    <div class="card"><div class="table-wrap"><table class="rm-tab"><thead><tr><th>Etapa</th><th>Cargo</th><th>Titular</th><th>Desde</th><th>Ato</th>${sa ? '<th></th>' : ''}</tr></thead><tbody>`
+    <div class="card"><div class="table-wrap"><table class="rm-tab larga"><thead><tr><th>Etapa</th><th>Cargo</th><th>Titular</th><th>Desde</th><th>Ato</th>${sa ? '<th></th>' : ''}</tr></thead><tbody>`
   for (const c of REM.cargos) {
     const t = REM.titulares.find(x => x.cargo === c.codigo)
-    h += `<tr><td>${c.ordem}</td><td><b>${esc(c.nome)}</b>${c.perfis_exigidos ? `<div class="rm-sub">perfil: ${esc(c.perfis_exigidos.join(', '))}</div>` : ''}</td>
-      <td>${t ? esc(nomeU(t.usuario_id)) : '<span class="badge badge-erro">sem titular</span>'}</td>
+    h += `<tr><td class="mono">${c.ordem}</td><td><b>${esc(c.nome)}</b>${c.perfis_exigidos ? `<div class="rm-sub">perfil: ${esc(c.perfis_exigidos.join(', '))}</div>` : ''}</td>
+      <td>${t ? esc(nomeU(t.usuario_id)) : `<span class="badge badge-erro">${rmIc('alerta', 'p')}sem titular</span>`}</td>
       <td>${t ? dataHora(t.vigencia_inicio) : '—'}</td><td>${t ? esc(t.ato) : '—'}</td>
-      ${sa ? `<td><button class="btn btn-secondary btn-sm" onclick="remDesignar('${c.codigo}')">Designar</button></td>` : ''}</tr>`
-    if (c.ordem === 1) h += `<tr><td>2</td><td><b>Responsável pela atividade de origem</b></td><td colspan="${sa ? 4 : 3}" class="rm-sub">Definido no cadastro de cada atividade (Atividades › Responsáveis).</td></tr>`
+      ${sa ? `<td><button type="button" class="btn btn-secondary btn-sm" onclick="remDesignar('${c.codigo}')">Designar</button></td>` : ''}</tr>`
+    if (c.ordem === 1) h += `<tr><td class="mono">2</td><td><b>Responsável pela atividade de origem</b></td><td colspan="${sa ? 4 : 3}" class="rm-sub">Definido no cadastro de cada atividade (Atividades › Responsáveis).</td></tr>`
   }
   h += '</tbody></table></div></div>'
-  if (sa) h += `<div id="rm-designar" style="margin-top:14px"></div>`
+  if (sa) h += `<div id="rm-designar"></div>`
   return h
 }
 function remDesignar(cargo) {
@@ -439,17 +534,18 @@ function remDesignar(cargo) {
   const cand = Object.values(REM.usuarios)
     .filter(u => u.ativo && !ocupados.has(u.id) && (!c.perfis_exigidos || c.perfis_exigidos.includes(u.perfil)))
     .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo))
-  document.getElementById('rm-designar').innerHTML = `<div class="card"><div class="card-body">
-    <b>Designar titular — ${esc(c.nome)}</b>
-    <div class="rm-grid2" style="margin-top:10px">
-      <div class="form-group"><label class="form-label">Pessoa</label><select class="form-control" id="rm-dg-u">
+  document.getElementById('rm-designar').innerHTML = `<div class="card"><div class="rm-designar">
+    <b>Designar titular · ${esc(c.nome)}</b>
+    <div class="rm-grid2">
+      <div class="form-group"><label class="form-label" for="rm-dg-u">Pessoa</label><select class="form-control" id="rm-dg-u">
         <option value="">(deixar o cargo vago)</option>${cand.map(u => `<option value="${u.id}">${esc(u.nome_completo)} · ${esc(u.perfil)}</option>`).join('')}</select></div>
-      <div class="form-group"><label class="form-label">Ato de designação (portaria, SEI…)</label><input class="form-control" id="rm-dg-ato"></div>
+      <div class="form-group"><label class="form-label" for="rm-dg-ato">Ato de designação (portaria, SEI…)</label><input class="form-control" id="rm-dg-ato"></div>
     </div>
-    <div class="rm-acoes"><button class="btn btn-primary" onclick="remConfirmarDesignacao('${cargo}')">Confirmar</button>
-      <button class="btn btn-ghost" onclick="document.getElementById('rm-designar').innerHTML=''">Cancelar</button></div>
-    <p class="rm-sub" style="margin-top:8px">A designação anterior é encerrada e fica no histórico. Pedidos em andamento passam a aguardar o novo titular.</p>
+    <div class="rm-acoes"><button type="button" class="btn btn-primary" onclick="remConfirmarDesignacao('${cargo}')">Confirmar</button>
+      <button type="button" class="btn btn-ghost" onclick="document.getElementById('rm-designar').innerHTML=''">Cancelar</button></div>
+    <p class="rm-sub" style="margin:0">A designação anterior é encerrada e fica no histórico. Pedidos em andamento passam a aguardar o novo titular.</p>
   </div></div>`
+  document.getElementById('rm-dg-u').focus()
 }
 async function remConfirmarDesignacao(cargo) {
   const u = document.getElementById('rm-dg-u').value || null
@@ -479,7 +575,7 @@ async function remAbrirPedido(id) {
   const D = REM.detalhe
   const atv = idA => REM.ativs.find(a => a.atividade_id === idA)
   const [st, cls] = REM_STATUS[P.status] || [P.status, 'badge-cinza']
-  document.getElementById('rm-mp-titulo').innerHTML = `${esc(P.numero)} <span class="badge ${cls}">${st}</span>`
+  document.getElementById('rm-mp-titulo').innerHTML = `${esc(P.numero)} <span class="badge ${cls}">${st}</span>${remMinhaVez(P) ? ' <span class="badge badge-ouro">sua vez</span>' : ''}`
   document.getElementById('rm-mp-sub').textContent = `Versão ${P.versao} · criado por ${nomeU(P.criado_por)} em ${dataHora(P.criado_em)}`
 
   const itensH = D.itens.slice().sort((a, b) => a.valor_usd - b.valor_usd).map(i => {
@@ -488,8 +584,8 @@ async function remAbrirPedido(id) {
       const f = REM.fontes.find(y => y.fonte_id === x.fonte_id)
       return `<div class="rm-sub">${usd2(x.valor_usd)} de ${esc(REM_FONTE[f?.tipo] || 'fonte')}${f ? ' — ' + remProcedencia(f) : ''}</div>`
     }).join('')
-    return `<tr><td><span class="rm-cod">${esc(a?.codigo || '?')}</span> ${esc(a?.nome_pt || '')}${fontes}</td>
-      <td class="n ${i.valor_usd < 0 ? 'rm-neg' : 'rm-pos'}">${i.valor_usd < 0 ? 'cede ' : 'recebe '}${usd2(Math.abs(i.valor_usd))}</td></tr>`
+    return `<div class="rm-mov"><div style="min-width:0"><div><span class="rm-cod">${esc(a?.codigo || '?')}</span> ${esc(a?.nome_pt || '')}</div>${fontes}</div>
+      <span class="v ${i.valor_usd < 0 ? 'rm-neg' : 'rm-pos'}">${i.valor_usd < 0 ? 'cede ' : 'recebe '}${usd2(Math.abs(i.valor_usd))}</span></div>`
   }).join('')
 
   const cadeia = D.etapas.length ? D.etapas.map(e => {
@@ -499,7 +595,7 @@ async function remAbrirPedido(id) {
     const nomeEt = REM_PAPEL[e.papel] + (e.atividade_id ? ' — ' + esc(atv(e.atividade_id)?.codigo || '') : '')
     const quem = ok ? `Aprovado por ${esc(a?.nome_completo || '')} em ${dataHora(a?.criado_em)}`
       : `${atual ? 'Aguardando' : 'Pendente'}: ${remSignatarios(e).map(nomeU).map(esc).join(', ') || '<b>sem signatário</b>'}`
-    return `<li><div class="rm-bola ${ok ? 'ok' : atual ? 'atual' : ''}">${e.ordem}</div><div><b>${nomeEt}</b><div class="rm-sub">${quem}</div></div></li>`
+    return `<li class="${ok ? 'ok' : atual ? 'atual' : ''}"><div class="rm-bola">${ok ? rmIc('check', 'p') : e.ordem}</div><div><b>${nomeEt}</b><div class="rm-sub">${quem}</div></div></li>`
   }).join('') : '<li><div class="rm-bola">–</div><div class="rm-sub">A cadeia é montada quando o pedido é enviado.</div></li>'
 
   const hist = D.hist.map(h => `<div>${dataHora(h.criado_em)} · <b>${esc(nomeU(h.usuario_id))}</b> — ${esc(REM_EVENTO[h.evento] || h.evento)}${h.etapa_ordem ? ' (etapa ' + h.etapa_ordem + ')' : ''}${h.motivo ? ': ' + esc(h.motivo) : ''}</div>`).join('')
@@ -511,40 +607,41 @@ async function remAbrirPedido(id) {
     ${orig ? `<div class="rm-aviso">${remQ('estorno')} <b>Estorno de ${vinc(orig, '')}.</b> Devolve o que foi recebido às fontes de onde saiu; itens e fontes espelham o original e não se editam.</div>` : ''}
     ${estornos.length ? `<div class="rm-aviso">Estorno: ${estornos.map(x => vinc(x, ' (' + esc((REM_STATUS[x.status] || [x.status])[0]) + ')')).join(', ')}</div>` : ''}
     ${P.motivo_encerramento ? `<div class="rm-aviso"><b>Motivo do encerramento:</b> ${esc(P.motivo_encerramento)}</div>` : ''}
-    <p style="font-size:13px;line-height:1.55;margin:0 0 12px"><b>Justificativa:</b> ${esc(P.justificativa)}</p>
+    <p class="rm-just"><b>Justificativa:</b> ${esc(P.justificativa)}</p>
     <div class="rm-grid2">
-      <div><h4 style="margin:0 0 6px;font-size:13px">Movimentação</h4><table class="rm-tab"><tbody>${itensH || '<tr><td class="rm-sub">Sem itens.</td></tr>'}</tbody></table></div>
-      <div><h4 style="margin:0 0 6px;font-size:13px">Cadeia de aprovação ${remQ('cadeia')} ${remQ('decisoes')}</h4><ul class="rm-cadeia">${cadeia}</ul></div>
+      <div><h4>Movimentação</h4>${itensH || '<p class="rm-sub">Sem itens.</p>'}</div>
+      <div><h4>Cadeia de aprovação ${remQ('cadeia')} ${remQ('decisoes')}</h4><ol class="rm-cadeia">${cadeia}</ol></div>
     </div>
-    <h4 style="margin:16px 0 6px;font-size:13px">Histórico</h4><div class="rm-hist">${hist || '<div class="rm-sub">—</div>'}</div>
-    <p class="rm-hash" style="margin-top:12px" title="SHA-256 do conteúdo do pedido">${remQ('hash')} Impressão digital do documento (SHA-256): ${esc(D.hash || '')}</p>`
+    <div><h4>Histórico</h4><div class="rm-hist">${hist || '<div class="rm-sub">—</div>'}</div></div>
+    <p class="rm-hash" title="SHA-256 do conteúdo do pedido">${remQ('hash')} Impressão digital do documento (SHA-256): ${esc(D.hash || '')}</p>`
 
   const eu = appState.usuario.id
   const ac = []
   const editar = P.estorno_de ? 'remEditarJustificativa()' : 'remEditar()'
   if (P.status === 'rascunho' && (P.criado_por === eu || appState.perfil === 'super_admin'))
-    ac.push(`<button class="btn btn-secondary" onclick="${editar}">${P.estorno_de ? 'Editar justificativa' : 'Editar'}</button>`)
+    ac.push(`<button type="button" class="btn btn-secondary" onclick="${editar}">${P.estorno_de ? 'Editar justificativa' : 'Editar'}</button>`)
   if (P.status === 'em_aprovacao' && P.etapa_atual === 1 && (P.criado_por === eu || appState.perfil === 'super_admin'))
-    ac.push(`<button class="btn btn-secondary" onclick="${editar}">Editar (abre nova versão)</button>`)
+    ac.push(`<button type="button" class="btn btn-secondary" onclick="${editar}">Editar (abre nova versão)</button>`)
   if (P.status === 'efetivado' && !P.estorno_de && !estornos.length && podeMontar())
-    ac.push(`<button class="btn btn-secondary" onclick="remPedirEstorno()">Pedir estorno</button>`)
+    ac.push(`<button type="button" class="btn btn-secondary" onclick="remPedirEstorno()">${rmIc('volta', 'p')}Pedir estorno</button>`)
   if (remMinhaVez(P)) {
     if (P.status === 'rascunho') {
-      ac.push(`<button class="btn btn-ghost" onclick="remPedirAssinatura('cancelar')">Cancelar pedido</button>`)
-      if (remTitular('coordenacao_solicitante') === eu) ac.push(`<button class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">Enviar para aprovação</button>`)
+      ac.push(`<button type="button" class="btn btn-ghost" onclick="remPedirAssinatura('cancelar')">Cancelar pedido</button>`)
+      if (remTitular('coordenacao_solicitante') === eu) ac.push(`<button type="button" class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">Enviar para aprovação</button>`)
     } else if (P.etapa_atual === 1) {
       ac.push(`<button class="btn btn-ghost" onclick="remPedirAssinatura('cancelar')">Cancelar pedido</button>`)
-      ac.push(`<button class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">Reenviar sem alterar</button>`)
+      ac.push(`<button type="button" class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">Reenviar sem alterar</button>`)
     } else {
-      ac.push(`<button class="btn btn-danger" onclick="remPedirAssinatura('recusar')">Recusar</button>`)
-      ac.push(`<button class="btn btn-secondary" onclick="remPedirAssinatura('devolver')">Devolver à etapa anterior</button>`)
-      ac.push(`<button class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">Aprovar e assinar</button>`)
+      ac.push(`<button type="button" class="btn btn-danger" onclick="remPedirAssinatura('recusar')">Recusar</button>`)
+      ac.push(`<button type="button" class="btn btn-secondary" onclick="remPedirAssinatura('devolver')">${rmIc('volta', 'p')}Devolver à etapa anterior</button>`)
+      ac.push(`<button type="button" class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">${rmIc('check', 'p')}Aprovar e assinar</button>`)
     }
   }
-  ac.push(`<button class="btn btn-secondary" onclick="remRelatorioA4()">Relatório A4</button>`)
-  ac.push(`<button class="btn btn-ghost" onclick="remFecharPedido()">Fechar</button>`)
+  ac.push(`<button type="button" class="btn btn-secondary" onclick="remRelatorioA4()">${rmIc('livro', 'p')}Relatório A4</button>`)
+  ac.push(`<button type="button" class="btn btn-ghost" onclick="remFecharPedido()">Fechar</button>`)
   document.getElementById('rm-mp-acoes').innerHTML = ac.join('')
-  document.getElementById('rm-modal-pedido').classList.add('aberto')
+  document.getElementById('rm-mp-corpo').scrollTop = 0
+  rmAbrir('rm-modal-pedido')
 }
 function remRelatorioA4() {
   relAbrirPedidoA4(REM.detalhe, {
@@ -557,7 +654,7 @@ function remRelatorioA4() {
   })
 }
 function remFecharPedido() {
-  document.getElementById('rm-modal-pedido').classList.remove('aberto')
+  rmFechar('rm-modal-pedido')
   REM.detalhe = null
   if (location.search.includes('id=')) history.replaceState(null, '', location.pathname)
 }
@@ -565,11 +662,11 @@ function remFecharPedido() {
 function remCaixaTexto(titulo, ajuda, rotulo, acao) {
   const corpo = document.getElementById('rm-mp-corpo')
   if (document.getElementById('rm-caixa')) return
-  corpo.insertAdjacentHTML('beforeend', `<div id="rm-caixa" class="rm-aviso" style="margin-top:12px">
+  corpo.insertAdjacentHTML('beforeend', `<div id="rm-caixa" class="rm-aviso">
     <b>${titulo}</b><p class="rm-sub" style="margin:4px 0 6px">${ajuda}</p>
-    <textarea class="form-control" id="rm-caixa-txt" rows="3"></textarea>
-    <div class="rm-acoes" style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="${acao}">${rotulo}</button>
-    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rm-caixa').remove()">Voltar</button></div></div>`)
+    <textarea class="form-control" id="rm-caixa-txt" rows="3" aria-label="${esc(rotulo)}"></textarea>
+    <div class="rm-acoes" style="margin-top:8px"><button type="button" class="btn btn-primary btn-sm" onclick="${acao}">${rotulo}</button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('rm-caixa').remove()">Voltar</button></div></div>`)
   document.getElementById('rm-caixa-txt').focus()
 }
 function remPedirEstorno() {
@@ -624,26 +721,26 @@ function remPedirAssinatura(decisao) {
   document.getElementById('rm-as-titulo').textContent = `${titulos[decisao]} — ${D.P.numero}`
   document.getElementById('rm-as-texto').textContent = textos[decisao]
   const comMotivo = decisao !== 'aprovar'
-  document.getElementById('rm-as-motivo-grp').style.display = ''
+  document.getElementById('rm-as-motivo-grp').hidden = false
   document.getElementById('rm-as-motivo-lbl').textContent = comMotivo ? 'Motivo (obrigatório)' : 'Observação (opcional)'
   document.getElementById('rm-as-motivo').value = ''
   document.getElementById('rm-as-senha').value = ''
-  document.getElementById('rm-as-erro').style.display = 'none'
+  document.getElementById('rm-as-erro').hidden = true
   document.getElementById('rm-as-hash').textContent = 'Você assina este conteúdo: ' + (D.hash || '')
   const b = document.getElementById('rm-as-ok'); b.disabled = false; b.textContent = titulos[decisao]
   b.className = 'btn ' + (decisao === 'recusar' ? 'btn-danger' : 'btn-primary')
-  document.getElementById('rm-modal-assinar').classList.add('aberto')
-  setTimeout(() => document.getElementById(comMotivo ? 'rm-as-motivo' : 'rm-as-senha').focus(), 80)
+  rmAbrir('rm-modal-assinar', comMotivo ? 'rm-as-motivo' : 'rm-as-senha')
 }
 function remFecharAssinar() {
-  document.getElementById('rm-modal-assinar').classList.remove('aberto')
+  rmFechar('rm-modal-assinar')
+  document.getElementById('rm-as-senha').value = ''
   REM.assinar = null
 }
 async function remConfirmarAssinatura() {
   const D = REM.detalhe, decisao = REM.assinar?.decisao
   const motivo = document.getElementById('rm-as-motivo').value.trim()
   const senha = document.getElementById('rm-as-senha').value
-  const erro = m => { const e = document.getElementById('rm-as-erro'); e.textContent = m; e.style.display = 'block' }
+  const erro = m => { const e = document.getElementById('rm-as-erro'); e.textContent = m; e.hidden = false }
   if (decisao !== 'aprovar' && !motivo) { erro('Informe o motivo.'); return }
   if (!senha) { erro('Digite sua senha.'); return }
   const b = document.getElementById('rm-as-ok'); b.disabled = true; b.textContent = 'Conferindo…'
