@@ -11,120 +11,32 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes da lista de TDRs -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/tdrs.css" rel="stylesheet">
-<style>
-
-/* Timeline */
-.fase-timeline{display:flex;align-items:flex-start;gap:0;margin:8px 0;max-width:100%;overflow:hidden;}
-
-/* Botão devolver */
-.btn-devolver{background:var(--erro-bg);color:var(--erro);border:1px solid var(--erro);border-radius:var(--raio);padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-sans);transition:all .15s;}
-.btn-devolver:hover{background:var(--erro);color:#fff;}
-
-/* Log de auditoria */
-.audit-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda);}
-.audit-item:last-child{border-bottom:none;}
-.audit-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:2px;}
-.ad-ok{background:#E1F5EE;}.ad-warn{background:#FEF3C7;}.ad-err{background:#FEE2E2;}.ad-info{background:#E6F1FB;}
-.audit-corpo{flex:1;}
-.audit-titulo{font-size:12px;font-weight:500;color:var(--cinza-900);}
-.audit-meta{font-size:11px;color:var(--cinza-500);margin-top:2px;}
-.audit-comentario{font-size:11px;color:var(--cinza-700);background:var(--cinza-50);padding:6px 8px;border-radius:var(--raio);margin-top:5px;border-left:3px solid var(--borda-forte);}
-
-/* Responsáveis no modal TDR */
-.resp-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--borda);}
-.resp-row:last-child{border-bottom:none;}
-.resp-av{width:28px;height:28px;border-radius:50%;background:var(--verde-medio);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
-
-/* Modal senha */
-.senha-overlay{display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);align-items:center;justify-content:center;}
-.senha-overlay.aberto{display:flex;}
-.senha-box{background:var(--branco);border-radius:var(--raio-xl);box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:380px;margin:20px;overflow:hidden;}
-.fase-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;min-width:0;}
-.fase-step:not(:last-child)::after{content:'';position:absolute;top:10px;left:50%;right:-50%;height:2px;background:var(--borda);z-index:0;}
-.fase-step.concluido::after{background:var(--verde-medio);}
-.fase-step.ativo::after{background:var(--verde-claro);}
-.fase-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--borda);background:var(--branco);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;position:relative;z-index:1;flex-shrink:0;}
-.fase-step.concluido .fase-dot{background:var(--verde-medio);border-color:var(--verde-medio);color:#fff;}
-.fase-step.ativo .fase-dot{background:var(--verde-claro);border-color:var(--verde-claro);color:#fff;}
-.fase-step.pendente .fase-dot{background:var(--cinza-100);color:var(--cinza-400,#9CA3AF);}
-.fase-lbl{font-size:8px;color:var(--cinza-500);margin-top:3px;text-align:center;line-height:1.1;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-/* Abas */
-.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:20px;overflow-x:auto;}
-.tab-btn{padding:8px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
-.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
-.tab-content{display:none;}
-.tab-content.ativo{display:block;animation:fadeIn .2s ease;}
-
-/* Versões e diff */
-.versao-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;margin-bottom:10px;}
-.versao-header{padding:12px 14px;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;background:var(--cinza-50);}
-.versao-badge{font-family:var(--font-mono);font-size:12px;font-weight:700;background:var(--verde-medio);color:#fff;padding:2px 10px;border-radius:4px;}
-.versao-body{padding:12px 14px;}
-.diff-campo{margin-bottom:10px;}
-.diff-campo-nome{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:flex;align-items:center;gap:6px;}
-.diff-linha{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.diff-antes{background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--raio);padding:8px 10px;font-size:11px;color:var(--erro);line-height:1.5;position:relative;}
-.diff-depois{background:#ECFDF5;border:1px solid #A7F3D0;border-radius:var(--raio);padding:8px 10px;font-size:11px;color:var(--sucesso);line-height:1.5;position:relative;}
-.diff-label{font-size:9px;font-weight:700;position:absolute;top:4px;right:6px;opacity:.7;}
-.diff-igual{font-size:11px;color:var(--cinza-500);font-style:italic;padding:6px 0;}
-.versao-autor{display:flex;align-items:center;gap:8px;}
-.versao-avatar{width:26px;height:26px;border-radius:50%;background:var(--azul-bg);color:var(--azul-medio);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-
-/* Permissão por fase */
-.fase-permissao{background:var(--aviso-bg);border:1px solid #FDE68A;border-radius:var(--raio);padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:14px;display:flex;gap:8px;align-items:center;}
-
-/* Campos editáveis */
-.campo-edit{position:relative;}
-.campo-edit-label{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
-.campo-alterado{border-color:var(--aviso)!important;background:var(--aviso-bg)!important;}
-.campo-tag-novo{font-size:9px;font-weight:700;color:var(--aviso);background:var(--aviso-bg);padding:1px 5px;border-radius:3px;}
-
-/* Upload zone */
-.upload-zone{border:2px dashed var(--borda-forte);border-radius:var(--raio-lg);padding:28px 20px;text-align:center;transition:all .2s;cursor:pointer;background:var(--cinza-50);}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--verde-claro);background:var(--sucesso-bg);}
-.upload-zone.tem-arquivo{border-color:var(--verde-claro);background:var(--sucesso-bg);}
-
-/* Notificação badge */
-.notif-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;background:var(--erro);color:#fff;border-radius:99px;font-size:9px;font-weight:700;padding:0 4px;margin-left:5px;}
-
-@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pulso{0%,100%{opacity:1}50%{opacity:.5}}
-.extracting{animation:pulso 1s ease-in-out infinite;color:var(--azul-medio);}
-</style>
 </head>
 <body class="dgm">
-<div id="app">
-  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
-    <div style="text-align:center">
-      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.12)}}</style>
-      Carregando TDRs...
-    </div>
-  </div>
-</div>
+<div id="app"><div class="td-inicio" role="status">Carregando TDRs…</div></div>
 
+<!-- Modais: classe .td-ov = escopo do tema (css/tdrs.css). <i data-ic> vira ícone SVG no carregamento. -->
 <!-- MODAL PRINCIPAL -->
-<div class="modal-overlay dgm-claro" id="modal-tdr">
+<div class="modal-overlay td-ov" id="modal-tdr" role="dialog" aria-modal="true" aria-labelledby="m-titulo">
   <div class="modal" style="max-width:1055px">
     <div class="modal-header">
-      <div>
-        <div class="modal-title" id="m-titulo">TDR</div>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="m-sub"></div>
+      <div style="min-width:0">
+        <h2 class="modal-title" id="m-titulo" style="margin:0">TDR</h2>
+        <div class="td-sub" id="m-sub"></div>
       </div>
-      <button class="modal-close" onclick="fecharModal('modal-tdr')">✕</button>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-tdr')"><i data-ic="fechar"></i></button>
     </div>
-    <div class="modal-body" id="m-body" style="padding:16px 24px"></div>
+    <div class="modal-body" id="m-body"></div>
     <div class="modal-footer" id="m-footer"></div>
   </div>
 </div>
 
 <!-- MODAL NOVO TDR -->
-<div class="modal-overlay dgm-claro" id="modal-novo">
+<div class="modal-overlay td-ov" id="modal-novo" role="dialog" aria-modal="true" aria-labelledby="novo-tit">
   <div class="modal" style="max-width:660px">
     <div class="modal-header">
-      <span class="modal-title">Novo TDR</span>
-      <button class="modal-close" onclick="fecharModal('modal-novo')">✕</button>
+      <h2 class="modal-title" id="novo-tit" style="margin:0">Novo TDR</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-novo')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body" id="novo-body"></div>
     <div class="modal-footer">
@@ -135,49 +47,48 @@
 </div>
 
 <!-- MODAL SALVAR EDIÇÃO -->
-<div class="modal-overlay dgm-claro" id="modal-salvar">
-  <div class="modal" style="max-width:480px">
+<div class="modal-overlay td-ov" id="modal-salvar" role="dialog" aria-modal="true" aria-labelledby="salvar-tit">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <span class="modal-title">Salvar nova versão</span>
-      <button class="modal-close" onclick="fecharModal('modal-salvar')">✕</button>
+      <h2 class="modal-title" id="salvar-tit" style="margin:0">Salvar nova versão</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-salvar')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-info" style="margin-bottom:14px">
-        Você alterou campos neste TDR. Descreva o que foi modificado — isso ficará registrado no histórico de versões para todos os usuários.
-      </div>
+      <div class="alert alert-info"><i data-ic="info"></i><div>
+        Descreva o que foi modificado. O comentário fica no histórico de versões, visível para todos.
+      </div></div>
       <div id="resumo-alteracoes" style="margin-bottom:14px"></div>
       <div class="form-group">
-        <label class="form-label">Comentário sobre as alterações <span class="obrig">*</span></label>
+        <label class="form-label" for="inp-comentario-salvar">Comentário sobre as alterações <span class="obrig">*</span></label>
         <textarea class="form-control" id="inp-comentario-salvar" rows="3"
-          placeholder="Ex: Ajustei o valor total e corrigi a qualificação exigida conforme solicitação da coordenação..."></textarea>
+          placeholder="Ex.: ajustei o valor total e corrigi a qualificação exigida, conforme pedido da coordenação."></textarea>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-salvar')">Voltar</button>
-      <button class="btn btn-primary" onclick="confirmarSalvar()">💾 Confirmar e salvar v<span id="prox-versao"></span></button>
+      <button class="btn btn-primary" onclick="confirmarSalvar()"><i data-ic="salvar"></i>Confirmar e salvar v<span id="prox-versao"></span></button>
     </div>
   </div>
 </div>
 
 <!-- MODAL SENHA TDR -->
-<div class="senha-overlay dgm-claro" id="modal-senha-tdr">
+<div class="senha-overlay td-ov" id="modal-senha-tdr" role="dialog" aria-modal="true" aria-labelledby="senha-tdr-titulo" aria-describedby="senha-tdr-sub">
   <div class="senha-box">
-    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--borda)">
-      <div style="font-size:14px;font-weight:600;color:var(--cinza-900)" id="senha-tdr-titulo">Confirmar ação</div>
-      <div style="font-size:12px;color:var(--cinza-500);margin-top:3px">Digite sua senha para confirmar esta operação.</div>
+    <div class="modal-header" style="display:block">
+      <h2 class="modal-title" id="senha-tdr-titulo" style="margin:0">Confirmar ação</h2>
+      <div class="td-sub" id="senha-tdr-sub">Digite sua senha para confirmar esta operação.</div>
     </div>
-    <div style="padding:16px 20px">
-      <div class="form-group">
-        <label class="form-label">Senha <span class="obrig">*</span></label>
-        <input class="form-control" id="senha-tdr-input" type="password"
-          placeholder="••••••••"
+    <div class="modal-body">
+      <div class="form-group" style="margin:0">
+        <label class="form-label" for="senha-tdr-input">Senha <span class="obrig">*</span></label>
+        <input class="form-control" id="senha-tdr-input" type="password" autocomplete="current-password"
           onkeydown="if(event.key==='Enter')confirmarSenhaTDR()">
       </div>
-      <div id="senha-tdr-erro" style="font-size:12px;color:var(--erro);display:none;margin-top:4px">
-        ✗ Senha incorreta. Tente novamente.
+      <div id="senha-tdr-erro" class="alert alert-danger" role="alert" style="display:none;margin:12px 0 0">
+        <i data-ic="xcirc"></i><div>Senha incorreta. Tente novamente.</div>
       </div>
     </div>
-    <div style="padding:12px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end">
+    <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharSenhaTDR()">Cancelar</button>
       <button class="btn btn-primary" id="senha-tdr-btn" onclick="confirmarSenhaTDR()">Confirmar</button>
     </div>
@@ -185,142 +96,144 @@
 </div>
 
 <!-- MODAL DEVOLVER TDR -->
-<div class="modal-overlay dgm-claro" id="modal-devolver">
-  <div class="modal" style="max-width:460px">
+<div class="modal-overlay td-ov" id="modal-devolver" role="dialog" aria-modal="true" aria-labelledby="devolver-tit">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header">
-      <span class="modal-title">Devolver para ajustes</span>
-      <button class="modal-close" onclick="fecharModal('modal-devolver')">✕</button>
+      <h2 class="modal-title" id="devolver-tit" style="margin:0">Devolver para ajustes</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-devolver')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-warning" style="margin-bottom:14px">
-        O TDR será devolvido ao elaborador com o motivo indicado. O responsável será notificado.
-      </div>
+      <div class="alert alert-warning"><i data-ic="alerta"></i><div>
+        O TDR volta ao elaborador com o motivo indicado. O responsável é notificado.
+      </div></div>
       <div class="form-group">
-        <label class="form-label">Motivo da devolução <span class="obrig">*</span></label>
+        <label class="form-label" for="devolver-motivo">Motivo da devolução <span class="obrig">*</span></label>
         <textarea class="form-control" id="devolver-motivo" rows="4"
-          placeholder="Descreva o que precisa ser corrigido ou ajustado..."></textarea>
+          placeholder="Descreva o que precisa ser corrigido ou ajustado."></textarea>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-devolver')">Cancelar</button>
-      <button class="btn-devolver" onclick="executarDevolucao()">↩ Confirmar devolução</button>
+      <button class="btn td-btn-perigo" onclick="executarDevolucao()"><i data-ic="desfazer"></i>Confirmar devolução</button>
     </div>
   </div>
 </div>
 
 <!-- MODAL ENVIAR PARA LICITAÇÃO -->
-<div class="modal-overlay dgm-claro" id="modal-licitacao">
-  <div class="modal" style="max-width:480px">
+<div class="modal-overlay td-ov" id="modal-licitacao" role="dialog" aria-modal="true" aria-labelledby="lic-tit">
+  <div class="modal" style="max-width:500px">
     <div class="modal-header">
-      <span class="modal-title">Enviar para licitação</span>
-      <button class="modal-close" onclick="fecharModal('modal-licitacao')">✕</button>
+      <h2 class="modal-title" id="lic-tit" style="margin:0">Enviar para licitação</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-licitacao')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-info" style="margin-bottom:14px">
-        O TDR aprovado avançará para a fase <strong>Em Licitação</strong>. Registre os dados do processo licitatório.
-      </div>
+      <div class="alert alert-info"><i data-ic="info"></i><div>
+        O TDR aprovado avança para a fase <strong>Em Licitação</strong>. Registre os dados do processo licitatório.
+      </div></div>
       <div class="form-group">
-        <label class="form-label">Modalidade <span class="obrig">*</span></label>
+        <label class="form-label" for="lic-modalidade">Modalidade <span class="obrig">*</span></label>
         <select class="form-control" id="lic-modalidade" onchange="toggleModalidadeOutro()">
-          <option value="">Selecionar modalidade...</option>
+          <option value="">Selecionar modalidade…</option>
           <option value="Pregão Eletrônico">Pregão Eletrônico</option>
           <option value="Concorrência">Concorrência</option>
           <option value="Dispensa de Licitação">Dispensa de Licitação</option>
           <option value="Inexigibilidade">Inexigibilidade</option>
           <option value="Carta-Convite">Carta-Convite</option>
           <option value="Cotação/Shopping (ONU)">Cotação/Shopping (ONU)</option>
-          <option value="__outro">Outro...</option>
+          <option value="__outro">Outro…</option>
         </select>
       </div>
       <div class="form-group" id="lic-outro-wrap" style="display:none">
-        <label class="form-label">Especifique a modalidade <span class="obrig">*</span></label>
+        <label class="form-label" for="lic-modalidade-outro">Especifique a modalidade <span class="obrig">*</span></label>
         <input class="form-control" type="text" id="lic-modalidade-outro" placeholder="Digite a modalidade">
       </div>
-      <div class="form-group">
-        <label class="form-label">Nº do processo licitatório</label>
-        <input class="form-control" type="text" id="lic-processo" placeholder="Ex: 0001/2026">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Data de abertura</label>
-        <input class="form-control" type="date" id="lic-data">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" for="lic-processo">Nº do processo licitatório</label>
+          <input class="form-control" type="text" id="lic-processo" placeholder="Ex.: 0001/2026">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="lic-data">Data de abertura</label>
+          <input class="form-control" type="date" id="lic-data">
+        </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-licitacao')">Cancelar</button>
-      <button class="btn" style="background:var(--aviso);color:#fff" onclick="salvarLicitacao()">→ Confirmar licitação</button>
+      <button class="btn td-btn-cor td-c-em_licitacao" onclick="salvarLicitacao()"><i data-ic="seta"></i>Confirmar licitação</button>
     </div>
   </div>
 </div>
 
 <!-- MODAL REGISTRAR CONTRATAÇÃO -->
-<div class="modal-overlay dgm-claro" id="modal-contratado">
-  <div class="modal" style="max-width:520px">
+<div class="modal-overlay td-ov" id="modal-contratado" role="dialog" aria-modal="true" aria-labelledby="contr-tit">
+  <div class="modal" style="max-width:540px">
     <div class="modal-header">
-      <span class="modal-title">Registrar contratação</span>
-      <button class="modal-close" onclick="fecharModal('modal-contratado')">✕</button>
+      <h2 class="modal-title" id="contr-tit" style="margin:0">Registrar contratação</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-contratado')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-info" style="margin-bottom:14px">
-        Vincule o contrato deste TDR. O contrato é cadastrado na aba <strong>Contratos</strong> (com o TDR selecionado lá). Ao confirmar, o TDR avança para <strong>Contratado</strong>.
-      </div>
+      <div class="alert alert-info"><i data-ic="info"></i><div>
+        Vincule o contrato deste TDR. O contrato é cadastrado em <strong>Contratos</strong>, com este TDR selecionado. Ao confirmar, o TDR avança para <strong>Contratado</strong>.
+      </div></div>
       <div id="contratado-conteudo"></div>
       <div class="form-group" style="margin-top:14px">
-        <label class="form-label">Data da contratação <span class="obrig">*</span></label>
+        <label class="form-label" for="contratado-data">Data da contratação <span class="obrig">*</span></label>
         <input class="form-control" type="date" id="contratado-data">
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-contratado')">Cancelar</button>
-      <button class="btn" id="btn-confirmar-contratado" style="background:#0D9488;color:#fff" onclick="confirmarContratado()">✓ Confirmar contratação</button>
+      <button class="btn td-btn-cor td-c-contratado" id="btn-confirmar-contratado" onclick="confirmarContratado()"><i data-ic="check"></i>Confirmar contratação</button>
     </div>
   </div>
 </div>
 
 <!-- MODAL LIBERAR SALDO (economia do TDR → atividade) -->
-<div class="modal-overlay dgm-claro" id="modal-liberar-saldo">
-  <div class="modal" style="max-width:480px">
+<div class="modal-overlay td-ov" id="modal-liberar-saldo" role="dialog" aria-modal="true" aria-labelledby="lib-tit">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <span class="modal-title">Liberar saldo para a atividade</span>
-      <button class="modal-close" onclick="fecharModal('modal-liberar-saldo')">✕</button>
+      <h2 class="modal-title" id="lib-tit" style="margin:0">Liberar saldo para a atividade</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-liberar-saldo')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-info" style="margin-bottom:14px">
-        A economia (planejado − firmado) deixará de ficar reservada a este TDR e voltará ao <strong>saldo livre da atividade</strong>, disponível para novos TDRs. A ação fica registrada no histórico.
-      </div>
+      <div class="alert alert-info"><i data-ic="info"></i><div>
+        A economia (planejado − firmado) deixa de ficar reservada a este TDR e volta ao <strong>saldo livre da atividade</strong>, disponível para novos TDRs. A ação fica registrada no histórico.
+      </div></div>
       <div id="liberar-saldo-resumo"></div>
       <div class="form-group" style="margin-top:14px">
-        <label class="form-label">Justificativa <span class="obrig">*</span></label>
+        <label class="form-label" for="liberar-saldo-justificativa">Justificativa <span class="obrig">*</span></label>
         <textarea class="form-control" id="liberar-saldo-justificativa" rows="3"
-          placeholder="Ex.: Licitação fechou abaixo do estimado, sem aditivo previsto."></textarea>
+          placeholder="Ex.: licitação fechou abaixo do estimado, sem aditivo previsto."></textarea>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-liberar-saldo')">Cancelar</button>
-      <button class="btn" style="background:var(--sucesso,#059669);color:#fff" onclick="confirmarLiberarSaldo()">✓ Liberar saldo</button>
+      <button class="btn td-btn-cor td-c-ok" onclick="confirmarLiberarSaldo()"><i data-ic="check"></i>Liberar saldo</button>
     </div>
   </div>
 </div>
 
 <!-- MODAL ESTORNAR LIBERAÇÃO -->
-<div class="modal-overlay dgm-claro" id="modal-estornar-saldo">
-  <div class="modal" style="max-width:460px">
+<div class="modal-overlay td-ov" id="modal-estornar-saldo" role="dialog" aria-modal="true" aria-labelledby="est-tit">
+  <div class="modal" style="max-width:480px">
     <div class="modal-header">
-      <span class="modal-title">Estornar liberação de saldo</span>
-      <button class="modal-close" onclick="fecharModal('modal-estornar-saldo')">✕</button>
+      <h2 class="modal-title" id="est-tit" style="margin:0">Estornar liberação de saldo</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-estornar-saldo')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-warning" style="margin-bottom:14px">
-        O valor liberado volta a ficar <strong>reservado</strong> a este TDR (ex.: surgiu um aditivo de contrato). A liberação original permanece no histórico como estornada.
-      </div>
+      <div class="alert alert-warning"><i data-ic="alerta"></i><div>
+        O valor liberado volta a ficar <strong>reservado</strong> a este TDR (ex.: surgiu um aditivo de contrato). A liberação original fica no histórico como estornada.
+      </div></div>
       <div class="form-group">
-        <label class="form-label">Motivo do estorno <span class="obrig">*</span></label>
+        <label class="form-label" for="estornar-saldo-motivo">Motivo do estorno <span class="obrig">*</span></label>
         <textarea class="form-control" id="estornar-saldo-motivo" rows="3"
-          placeholder="Ex.: Aditivo de contrato consumiu a economia."></textarea>
+          placeholder="Ex.: aditivo de contrato consumiu a economia."></textarea>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-estornar-saldo')">Cancelar</button>
-      <button class="btn" style="background:var(--aviso,#D97706);color:#fff" onclick="confirmarEstornarSaldo()">↩ Confirmar estorno</button>
+      <button class="btn td-btn-cor td-c-alerta" onclick="confirmarEstornarSaldo()"><i data-ic="desfazer"></i>Confirmar estorno</button>
     </div>
   </div>
 </div>
@@ -371,9 +284,87 @@ const TD_IC={
   clipe:'<path d="M21 11.5 12.5 20a5 5 0 0 1-7-7L14 4.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3L15 7.5"/>',
   link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  fechar:'<path d="M18 6 6 18M6 6l12 12"/>',
+  editar:'<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  cadeado:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/>',
+  alerta:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',
+  alvo:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  moeda:'<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.8 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/>',
+  relogio:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  balao:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+  robo:'<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01M9.5 16.5h5"/>',
+  salvar:'<path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8V3M7 21v-7h10v7"/>',
+  desfazer:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
+  seta:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  lixeira:'<path d="M3 6h18M8 6V4h8v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/>',
+  documento:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/>',
+  baixar:'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  subir:'<path d="M12 21V9M7 14l5-5 5 5M5 3h14"/>',
+  brilho:'<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/><path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z"/>',
+  balanca:'<path d="M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/>',
+  xcirc:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/>',
+  okcirc:'<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>'
 };
 function tdIc(n){return '<svg class="td-ic" viewBox="0 0 24 24" aria-hidden="true">'+(TD_IC[n]||'')+'</svg>';}
+
+// Ícones dos modais fixos do HTML (<i data-ic="nome">)
+document.querySelectorAll('i[data-ic]').forEach(e=>{e.outerHTML=tdIc(e.dataset.ic);});
+
+// ── Modais: foco, Esc e Tab ficam no modal de cima ────────────
+// Os modais abrem/fecham pela classe .aberto (vários caminhos no código) ou são
+// criados/removidos na hora; o observador cuida do foco sem mexer em cada um.
+const TD_FOCAVEIS='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const tdPilha=[]; // modais abertos, o último é o de cima: {el, volta}
+function tdModalAbriu(el){
+  if(tdPilha.some(x=>x.el===el))return;
+  tdPilha.push({el,volta:document.activeElement});
+  requestAnimationFrame(()=>{
+    const alvo=el.id==='modal-tdr'
+      ? el.querySelector('.modal-close')
+      : el.querySelector('.modal-body :is(input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]))')||el.querySelector('.modal-close')||el.querySelector(TD_FOCAVEIS);
+    alvo?.focus({preventScroll:true});
+  });
+}
+function tdModalFechou(el){
+  const i=tdPilha.findIndex(x=>x.el===el); if(i<0)return;
+  const [{volta}]=tdPilha.splice(i,1);
+  if(volta&&document.contains(volta)&&!volta.closest('.td-ov:not(.aberto)'))volta.focus({preventScroll:true});
+}
+new MutationObserver(ms=>ms.forEach(m=>{
+  if(m.type==='attributes'){
+    const el=m.target; if(!el.classList?.contains('td-ov'))return;
+    el.classList.contains('aberto')?tdModalAbriu(el):tdModalFechou(el);
+  }else{
+    m.addedNodes.forEach(n=>{if(n.classList?.contains('td-ov')&&n.classList.contains('aberto'))tdModalAbriu(n);});
+    m.removedNodes.forEach(n=>{if(n.classList?.contains('td-ov'))tdModalFechou(n);});
+  }
+})).observe(document.body,{attributes:true,attributeFilter:['class'],subtree:true,childList:true});
+
+document.addEventListener('keydown',e=>{
+  const topo=tdPilha[tdPilha.length-1]?.el;
+  // Enter/Espaço em <label class="btn" tabindex="0"> abre o seletor de arquivo
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('label.btn[tabindex]')){
+    e.preventDefault();e.target.querySelector('input[type=file]')?.click();return;
+  }
+  if(!topo)return;
+  if(e.key==='Escape'){
+    if(document.getElementById('agente-overlay'))return; // análise em andamento
+    e.preventDefault();
+    if(topo.id==='modal-senha-tdr')fecharSenhaTDR();
+    else if(topo.id==='modal-coment-tmp')topo.remove();
+    else fecharModal(topo.id);
+  }else if(e.key==='Tab'){
+    const f=[...topo.querySelectorAll(TD_FOCAVEIS)].filter(x=>x.offsetParent!==null);
+    if(!f.length)return;
+    const pri=f[0], ult=f[f.length-1];
+    if(!topo.contains(document.activeElement)){e.preventDefault();pri.focus();}
+    else if(e.shiftKey&&document.activeElement===pri){e.preventDefault();ult.focus();}
+    else if(!e.shiftKey&&document.activeElement===ult){e.preventDefault();pri.focus();}
+  }
+});
 
 (async()=>{
   const u=await carregarUsuario();
@@ -416,7 +407,7 @@ function tdIc(n){return '<svg class="td-ic" viewBox="0 0 24 24" aria-hidden="tru
 })();
 
 // Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico e do Pulso (componente .dgm-tema).
-// Vale para a lista; os modais seguem claros (.dgm-claro) até a revisão deles.
+// Vale para a lista e para os modais (.td-ov).
 function seletorTema(){
   const tb=document.querySelector('.topbar'); if(!tb||tb.querySelector('.dgm-tema'))return;
   const d=document.createElement('div');
@@ -702,78 +693,135 @@ async function abrirTDR(id){
   dadosEditados={...dadosOriginais};
 
   const comsAbertos=(comentarios||[]).filter(c=>!c.resolvido).length;
+  const stN=TD_STATUS_NORM[t.status]||t.status;
   document.getElementById('m-titulo').textContent=t.numero;
-  document.getElementById('m-sub').textContent=`${t.tipo} · v${t.versao_atual||1} · ${t.atividades?.codigo||''} · ${podeEd?'✏ Você pode editar':'🔒 Somente leitura nesta fase'}`;
+  document.getElementById('m-sub').innerHTML=
+    `<span class="td-selo td-c-${stN}">${esc(FASES_LABELS[stN]||t.status)}</span>`+
+    `<span>${esc(t.tipo||'')} · versão ${t.versao_atual||1}${t.atividades?.codigo?' · '+esc(t.atividades.codigo):''}</span>`+
+    `<span class="td-lin" style="gap:4px">${podeEd?tdIc('editar')+'Você pode editar':tdIc('cadeado')+'Somente leitura nesta fase'}</span>`;
 
   // Mensagem de permissão por fase
   const msgPerm=()=>{
-    if(bloqueado)return`<div class="fase-permissao">🔒 TDR em status "${FASES_LABELS[t.status]}" — campos bloqueados para edição. Avance para uma fase editável para fazer alterações.</div>`;
-    if(!podeEd)return`<div class="fase-permissao">ℹ Seu perfil (${_i18n('perfis',appState.perfil)}) não tem permissão para editar na fase "${FASES_LABELS[t.status]}". Aguarde o responsável desta fase.</div>`;
+    if(bloqueado)return`<div class="alert alert-warning">${tdIc('cadeado')}<div>TDR em <strong>${esc(FASES_LABELS[t.status]||t.status)}</strong>: campos bloqueados para edição.</div></div>`;
+    if(!podeEd)return`<div class="alert alert-info">${tdIc('info')}<div>Seu perfil (${esc(_i18n('perfis',appState.perfil))}) não edita na fase <strong>${esc(FASES_LABELS[t.status]||t.status)}</strong>. Aguarde o responsável desta fase.</div></div>`;
     return'';
   };
 
+  // Linha do tempo: fase, data e quem fez
+  const fiN=FASES.indexOf(stN);
+  const linhaTempo=`<ol class="td-fases td-c-${stN}" aria-label="Fases do TDR">${FASES.map((f,i)=>{
+    const feito=i<fiN, atual=i===fiN;
+    const acao=acaosPorFase[f];
+    const dataAcao=acao?.criado_em?new Date(acao.criado_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
+    const quem=acao?.usuarios?.nome_completo||'';
+    const dica=[FASES_LABELS[f],quem,dataAcao].filter(Boolean).join(' · ');
+    return `<li class="td-fp${feito?' feito':atual?' atual':''}" title="${esc(dica)}"${atual?' aria-current="step"':''}>
+      <span class="td-fp-dot">${feito?tdIc('check'):i+1}</span>
+      <span class="td-fp-lbl">${esc(FASES_LABELS[f])}</span>
+      ${(feito||atual)&&dataAcao?`<span class="td-fp-data">${dataAcao}</span>`:''}
+    </li>`;
+  }).join('')}</ol>`;
+
+  // Indicadores da Matriz de Resultados
+  const itensMatriz=(matrizLinks||[]).map(l=>l.matriz_itens).filter(Boolean);
+  const matriz=!itensMatriz.length
+    ?`<div class="alert alert-warning">${tdIc('alerta')}<div>Esta atividade não está vinculada a nenhum indicador da Matriz de Resultados. Configure em <strong>Atividades</strong> antes de submeter.</div></div>`
+    :`<div class="td-matriz"><h4>${tdIc('alvo')}Indicadores da Matriz de Resultados</h4>${itensMatriz.map(mi=>{
+        const meta=mi.meta_numerica?`${mi.meta_numerica} ${mi.unidade||''}`:mi.meta_descricao||'qualitativa';
+        return `<div class="td-matriz-item"><b>${esc(mi.produto_codigo)} — ${esc(mi.produto_titulo)}</b><span>${esc(mi.indicador)} · Meta: ${esc(meta)}</span></div>`;
+      }).join('')}</div>`;
+
+  // Arquivo principal do TDR
+  const btnArq=(texto,acao,multi,cls)=>`<label class="btn btn-sm ${cls}" tabindex="0" role="button">${tdIc('subir')}${texto}
+      <input type="file" ${multi?'multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.webp,.gif,.zip"':'accept=".docx,.doc,.pdf"'} hidden onchange="${acao}"></label>`;
+  const arquivo=temArquivoStorage
+    ?`<div class="td-item">${tdIc('documento')}<span class="td-cresce" title="${esc(t.arquivo_nome||'')}">${esc(t.arquivo_nome||'Arquivo')}</span>
+        <button class="btn btn-sm btn-secondary" onclick="abrirArquivo()">Abrir</button>
+        ${eCoordenador?btnArq('Substituir',`uploadArquivoTDR('${t.id}',this.files[0])`,false,'btn-secondary'):''}
+      </div>`
+    :temDrive
+    ?`<div class="td-box info">
+        <div class="td-lin">${tdIc('link')}<strong>Google Drive</strong>
+          <a class="td-cresce" href="${esc(t.arquivo_url)}" target="_blank" rel="noopener">${esc(t.arquivo_url)}</a></div>
+        ${eCoordenador?`<p class="td-peq" style="margin:8px 0">Para garantir acesso permanente, traga o arquivo para o sistema:</p>
+        <div class="td-lin">
+          <button class="btn btn-sm btn-primary" onclick="importarDoDrive('${t.id}',${esc(JSON.stringify(t.arquivo_url))})">${tdIc('baixar')}Importar do Drive</button>
+          ${btnArq('Enviar arquivo do computador',`uploadArquivoTDR('${t.id}',this.files[0])`,false,'btn-secondary')}
+        </div>`:''}
+      </div>`
+    :`<div class="td-box tracejada td-lin"><span class="td-mudo td-cresce">${tdIc('documento')} Nenhum arquivo anexado</span>
+        ${eCoordenador?btnArq('Enviar arquivo do TDR',`uploadArquivoTDR('${t.id}',this.files[0])`,false,'btn-primary'):''}
+      </div>`;
+
+  // Anexos complementares
+  const anexosHtml=(anexos&&anexos.length)
+    ?`<div class="td-lista">${anexos.map(a=>`<div class="td-item">
+        <span class="td-ext">${esc(extAnexo(a.nome))}</span>
+        <span class="td-cresce" title="${esc(a.nome)}">${esc(a.nome)}</span>
+        <span class="td-peq td-mono">${fmtTamanho(a.tamanho_bytes)}</span>
+        <button class="btn btn-sm btn-secondary" onclick="abrirAnexo(${esc(JSON.stringify(a.arquivo_url))})">Abrir</button>
+        ${eCoordenador?`<button class="btn btn-sm td-btn-perigo td-btn-ic" aria-label="Excluir anexo ${esc(a.nome)}" title="Excluir anexo"
+          data-anexo-id="${a.id}" data-anexo-url="${esc(a.arquivo_url)}" data-anexo-nome="${esc(a.nome)}" onclick="removerAnexo(this.dataset.anexoId,this.dataset.anexoUrl,this.dataset.anexoNome)">${tdIc('lixeira')}</button>`:''}
+      </div>`).join('')}</div>`
+    :`<div class="td-box tracejada td-peq">Nenhum anexo complementar.${eCoordenador?' Use “Adicionar anexos” (PDF, Word, Excel, TXT, imagens etc. · até 50 MB cada).':''}</div>`;
+
+  // Versões
+  const iniciais=n=>(n||'?').split(' ').filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+  const versoesHtml=(versoes||[]).length?versoes.map((v,idx)=>{
+    const campos=v.campos_alterados?Object.entries(v.campos_alterados):[];
+    const fv=TD_STATUS_NORM[v.fase]||v.fase;
+    return `<article class="td-ver">
+      <div class="td-ver-cab">
+        <span class="td-ver-n">v${esc(v.numero_versao)}</span>
+        ${v.fase?`<span class="td-selo td-c-${fv}">${esc(FASES_LABELS[fv]||v.fase)}</span>`:''}
+        ${idx===0?`<span class="td-selo td-c-ok">Versão atual</span>`:''}
+        <span class="td-ver-autor"><span class="td-av" aria-hidden="true">${esc(iniciais(v.autor_nome))}</span>${esc(v.autor_nome||'Sistema')} · ${fmtData(v.criado_em)}</span>
+      </div>
+      <div class="td-ver-corpo">
+        ${v.comentario?`<div class="td-nota">${esc(v.comentario)}</div>`:''}
+        ${campos.length?campos.map(([campo,vals])=>`<div>
+            <div class="td-diff-nome">${esc(nomeCampo(campo))}</div>
+            <div class="td-diff">
+              <div class="antes"><small>ANTES</small>${esc(String(vals?.antes??'—').substring(0,400))}</div>
+              <div class="depois"><small>DEPOIS</small>${esc(String(vals?.depois??'—').substring(0,400))}</div>
+            </div></div>`).join('')
+          :`<p class="td-peq" style="margin:0">Versão inicial, sem alterações de campos registradas.</p>`}
+      </div>
+    </article>`;
+  }).join(''):`<div class="td-vazio">${tdIc('relogio')}<b>Nenhuma versão registrada ainda</b></div>`;
+
+  // Comentários de revisão
+  const comentHtml=(comentarios||[]).length?(comentarios||[]).map(c=>`<article class="td-com${c.resolvido?' resolvido':''}">
+      <div class="td-lin">
+        <span class="td-av" aria-hidden="true">${esc(iniciais(c.usuarios?.nome_completo))}</span>
+        <strong style="font-size:13px">${esc(c.usuarios?.nome_completo||'Usuário')}</strong>
+        ${c.campo?`<span class="td-selo td-c-info">${esc(c.campo)}</span>`:''}
+        <span class="td-peq" style="margin-left:auto">${fmtData(c.criado_em)}</span>
+        ${c.resolvido?`<span class="td-selo td-c-ok">Resolvido</span>`:
+          podeEd?`<button class="btn btn-sm btn-secondary" onclick="resolverComent('${c.id}')">${tdIc('check')}Resolver</button>`:''}
+      </div>
+      <div class="td-com-tx">${esc(c.comentario)}</div>
+    </article>`).join(''):`<div class="td-vazio">${tdIc('balao')}<b>Nenhum comentário ainda</b></div>`;
+
+  const subiu=t.cotacao_registro&&taxaAtual>parseFloat(t.cotacao_registro);
+
   document.getElementById('m-body').innerHTML=`
-    <!-- Timeline com data e tooltip de usuario -->
-    <div style="display:flex;align-items:flex-start;gap:0;margin-bottom:16px;padding:12px 14px;background:var(--cinza-50);border-radius:var(--raio-lg);border:1px solid var(--borda)">
-      ${FASES.map((f,i)=>{
-        const concluido=i<fi, ativo=i===fi;
-        const bg=concluido?'var(--verde-medio)':ativo?'var(--verde-claro)':'var(--cinza-100)';
-        const col=concluido||ativo?'#fff':'var(--cinza-400,#9CA3AF)';
-        const lineColor=concluido?'var(--verde-medio)':ativo?'var(--verde-claro)':'var(--borda)';
-        const lblColor=ativo?'var(--verde-medio)':concluido?'var(--verde-medio)':'var(--cinza-400,#9CA3AF)';
-        const acao=acaosPorFase[f];
-        const dataAcao=acao&&acao.criado_em ? new Date(acao.criado_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '';
-        const nomeUsuario=acao&&acao.usuarios ? (acao.usuarios.nome_completo||'') : '';
-        const titleAttr=nomeUsuario&&dataAcao ? ('title="'+nomeUsuario+' — '+dataAcao+'"') : '';
-        const linha=i<FASES.length-1 ? '<div style="position:absolute;top:11px;left:50%;right:-50%;height:2px;background:'+lineColor+';z-index:0"></div>' : '';
-        const dataSpan=(concluido||ativo)&&dataAcao ? '<span style="font-size:7px;color:var(--cinza-400,#9CA3AF);margin-top:1px;text-align:center">'+dataAcao+'</span>' : '';
-        return '<div style="display:flex;flex-direction:column;align-items:center;flex:1;position:relative">'
-          +linha
-          +'<div '+titleAttr+' style="width:22px;height:22px;border-radius:50%;background:'+bg+';color:'+col+';display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;position:relative;z-index:1;flex-shrink:0;cursor:'+(concluido?'help':'default')+'">'+(concluido?'✓':(i+1))+'</div>'
-          +'<span style="font-size:8px;color:'+lblColor+';margin-top:3px;text-align:center;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:'+(ativo?'600':'400')+'">'+FASES_LABELS[f]+'</span>'
-          +dataSpan
-          +'</div>';
-      }).join('')}
-    </div>
+    ${linhaTempo}
     ${msgPerm()}
-    ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status)?`<div class="alert alert-danger" style="margin-bottom:10px">⚠ Prazo vencido em ${fmtData(t.prazo_limite)}</div>`:''}
+    ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status)?`<div class="alert alert-danger">${tdIc('alerta')}<div>Prazo vencido em ${fmtData(t.prazo_limite)}.</div></div>`:''}
+    ${matriz}
 
-    <!-- Painel de indicadores da Matriz de Resultados -->
-    ${(()=>{
-      const itens=(matrizLinks||[]).map(l=>l.matriz_itens).filter(Boolean);
-      if(!itens.length) return`<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio-lg);margin-bottom:12px;font-size:12px;color:#92400E">
-        ⚠ Esta atividade não está vinculada a nenhum indicador da Matriz de Resultados. Configure em <strong>Atividades</strong> antes de submeter.
-      </div>`;
-      return`<div style="padding:10px 14px;background:#F0FDF4;border:1px solid var(--verde-claro);border-radius:var(--raio-lg);margin-bottom:12px">
-        <div style="font-size:10px;font-weight:700;color:var(--verde-escuro,#085041);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Indicadores da Matriz de Resultados</div>
-        ${itens.map(mi=>{
-          const meta=mi.meta_numerica?`${mi.meta_numerica} ${mi.unidade}`:mi.meta_descricao||'qualitativa';
-          return`<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:5px;padding:6px 8px;background:var(--branco);border:1px solid #BBF7D0;border-radius:var(--raio)">
-            <span style="font-size:14px;flex-shrink:0">🎯</span>
-            <div>
-              <div style="font-size:11px;font-weight:600;color:var(--cinza-800)">${mi.produto_codigo} — ${mi.produto_titulo}</div>
-              <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">${mi.indicador} · <em>Meta: ${meta}</em></div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>`;
-    })()}
-
-    <!-- Abas -->
-    <div class="tab-bar">
-      <button class="tab-btn ativo" onclick="aba('campos',this)">📝 ${podeEd?'Editar campos':'Ver campos'}</button>
-      <button class="tab-btn" onclick="aba('financeiro',this)">💰 Financeiro</button>
-      <button class="tab-btn" id="tab-btn-versoes" onclick="aba('versoes',this)">🕐 Versões (${(versoes||[]).length})</button>
-      <button class="tab-btn" onclick="aba('comentarios',this)">💬 Revisão${comsAbertos>0?`<span class="notif-badge">${comsAbertos}</span>`:` (${(comentarios||[]).length})`}</button>
-      ${t.arquivo_url?`<button class="tab-btn" onclick="abrirArquivo()">📎 Arquivo</button>`:''}
-      <button class="tab-btn" id="tab-btn-ia" onclick="aba('ia',this);if(!_iaFeito)analisarComIA()">🤖 Análise do Agente</button>
+    <div class="tab-bar" role="tablist" aria-label="Seções do TDR">
+      <button class="tab-btn ativo" role="tab" aria-selected="true" aria-controls="tab-campos" onclick="aba('campos',this)">${tdIc(podeEd?'editar':'documento')}${podeEd?'Editar campos':'Campos'}</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-financeiro" onclick="aba('financeiro',this)">${tdIc('moeda')}Financeiro</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-versoes" id="tab-btn-versoes" onclick="aba('versoes',this)">${tdIc('relogio')}Versões (${(versoes||[]).length})</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-comentarios" onclick="aba('comentarios',this)">${tdIc('balao')}Revisão${comsAbertos>0?`<span class="notif-badge" aria-label="${comsAbertos} em aberto">${comsAbertos}</span>`:` (${(comentarios||[]).length})`}</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-ia" id="tab-btn-ia" onclick="aba('ia',this);if(!_iaFeito)analisarComIA()">${tdIc('robo')}Análise do agente</button>
     </div>
 
     <!-- ABA CAMPOS (EDIÇÃO RASTREADA) -->
-    <div class="tab-content ativo" id="tab-campos">
-      <div id="alerta-mudancas" style="display:none" class="alert alert-warning" style="margin-bottom:14px">
-        ⚠ Você tem alterações não salvas. Clique em "Salvar nova versão" quando terminar.
-      </div>
+    <div class="tab-content ativo" id="tab-campos" role="tabpanel">
+      <div id="alerta-mudancas" class="alert alert-warning" style="display:none">${tdIc('alerta')}<div>Você tem alterações não salvas. Clique em “Salvar nova versão” quando terminar.</div></div>
 
       ${campoEditavel('objeto_pt','Objeto / Escopo','textarea',t.objeto_pt,podeEd,3)}
       ${campoEditavel('escopo_pt','Descrição detalhada','textarea',t.escopo_pt,podeEd,2)}
@@ -788,189 +836,70 @@ async function abrirTDR(id){
       ${t.status==='pendente_correcao'||t.motivo_recusa?campoEditavel('motivo_recusa','Correções solicitadas','textarea',t.motivo_recusa,podeEd,3):''}
       ${campoEditavel('observacao','Observações gerais','textarea',t.observacao,podeEd,2)}
 
-      <!-- Seção de arquivo do TDR -->
-      <div style="margin-top:16px;border-top:1px solid var(--borda);padding-top:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">📎 Arquivo do TDR</div>
-        ${temArquivoStorage?`
-        <div style="display:flex;align-items:center;gap:10px;background:var(--sucesso-bg);border:1px solid #86EFAC;border-radius:var(--raio);padding:10px 12px;font-size:12px">
-          <span style="color:#059669;font-weight:600">✓ Arquivo no sistema</span>
-          <span style="color:var(--cinza-500);flex:1">${t.arquivo_nome||'Arquivo'}</span>
-          <button class="btn btn-sm btn-secondary" onclick="abrirArquivo()">Abrir</button>
-          ${eCoordenador?`<label class="btn btn-sm btn-secondary" style="cursor:pointer;margin-left:4px">Substituir<input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])"></label>`:''}
-        </div>`
-        :temDrive?`
-        <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:10px 12px;font-size:12px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="color:#1D4ED8;font-weight:600">🔗 Google Drive</span>
-            <a href="${t.arquivo_url}" target="_blank" rel="noopener" style="color:#1D4ED8;font-size:11px">${t.arquivo_url.substring(0,60)}…</a>
-          </div>
-          ${eCoordenador?`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:8px">Para garantir acesso permanente, importe o arquivo direto do Drive:</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-sm btn-primary" style="display:inline-flex;align-items:center;gap:6px" onclick="importarDoDrive('${t.id}','${t.arquivo_url}')">
-              📥 Importar do Drive automaticamente
-            </button>
-            <label class="btn btn-sm btn-secondary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="Ou faça upload manual de um arquivo local">
-              ⬆ Upload manual
-              <input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])">
-            </label>
-          </div>`:''}
-        </div>`
-        :`
-        <div style="background:var(--cinza-50);border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:10px 12px;font-size:12px">
-          <div style="color:var(--cinza-500);margin-bottom:8px">📄 Nenhum arquivo anexado</div>
-          ${eCoordenador?`<label class="btn btn-sm btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            ⬆ Fazer upload do TDR
-            <input type="file" accept=".docx,.doc,.pdf" style="display:none" onchange="uploadArquivoTDR('${t.id}',this.files[0])">
-          </label>`:''}
-        </div>`}
-      </div>
+      <section class="td-sec">
+        <div class="td-sec-cab"><h3 class="td-sec-tit">${tdIc('documento')}Arquivo do TDR</h3></div>
+        ${arquivo}
+      </section>
 
-      <!-- Seção de anexos complementares (múltiplos arquivos) -->
-      <div style="margin-top:16px;border-top:1px solid var(--borda);padding-top:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em">📎 Anexos complementares</div>
-          ${eCoordenador?`<label class="btn btn-sm btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            ⬆ Adicionar anexos
-            <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.webp,.gif,.zip" style="display:none" onchange="uploadAnexos('${t.id}',this.files)">
-          </label>`:''}
+      <section class="td-sec">
+        <div class="td-sec-cab"><h3 class="td-sec-tit">${tdIc('clipe')}Anexos complementares</h3>
+          ${eCoordenador?btnArq('Adicionar anexos',`uploadAnexos('${t.id}',this.files)`,true,'btn-primary'):''}
         </div>
-        ${(anexos&&anexos.length)?`
-        <div style="display:flex;flex-direction:column;gap:6px">
-          ${anexos.map(a=>`
-          <div style="display:flex;align-items:center;gap:10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 12px;font-size:12px">
-            <span style="font-size:16px;flex-shrink:0">${iconeAnexo(a.nome,a.mime_type)}</span>
-            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cinza-800);font-weight:500" title="${esc(a.nome)}">${esc(a.nome)}</span>
-            <span style="color:var(--cinza-400);flex-shrink:0;font-family:var(--font-mono);font-size:11px">${fmtTamanho(a.tamanho_bytes)}</span>
-            <button class="btn btn-sm btn-secondary" style="flex-shrink:0" onclick="abrirAnexo('${a.arquivo_url}')">Abrir</button>
-            ${eCoordenador?`<button class="btn btn-sm btn-secondary" style="flex-shrink:0;color:var(--erro,#DC2626)" onclick="removerAnexo('${a.id}','${a.arquivo_url}','${esc(a.nome).replace(/'/g,"\\'")}')" title="Excluir anexo">✕</button>`:''}
-          </div>`).join('')}
-        </div>`
-        :`<div style="background:var(--cinza-50);border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:10px 12px;font-size:12px;color:var(--cinza-500)">Nenhum anexo complementar. ${eCoordenador?'Use o botão acima para adicionar (PDF, Word, Excel, TXT, imagens etc. · máx 50 MB cada).':''}</div>`}
-      </div>
+        ${anexosHtml}
+      </section>
 
-      ${podeEd?`
-      <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
-        <button class="btn btn-primary" id="btn-salvar-ed" onclick="abrirSalvar(${taxaAtual})" disabled>
-          💾 Salvar nova versão
-        </button>
-        <button class="btn btn-secondary btn-sm" onclick="descartarAlteracoes()">↩ Descartar alterações</button>
-        <span id="txt-mudancas" style="font-size:11px;color:var(--cinza-500)"></span>
+      ${podeEd?`<div class="td-lin" style="margin-top:20px">
+        <button class="btn btn-primary" id="btn-salvar-ed" onclick="abrirSalvar(${taxaAtual})" disabled>${tdIc('salvar')}Salvar nova versão</button>
+        <button class="btn btn-secondary btn-sm" onclick="descartarAlteracoes()">${tdIc('desfazer')}Descartar alterações</button>
+        <span id="txt-mudancas" class="td-peq" aria-live="polite"></span>
       </div>`:''}
     </div>
 
     <!-- ABA FINANCEIRO -->
-    <div class="tab-content" id="tab-financeiro">
-      <div class="grid-2" style="gap:12px;margin-bottom:14px">
-        <div style="background:var(--cinza-50);border-radius:var(--raio);padding:16px;border:1px solid var(--borda);text-align:center">
-          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Valor R$ (no registro)</div>
-          <div style="font-size:24px;font-weight:600;color:var(--cinza-900)">${fmtBRL(t.valor_brl)}</div>
-          <div style="font-size:12px;color:var(--cinza-500);margin-top:4px">≈ ${fmtUSD(t.valor_usd)}</div>
-          ${podeEd?`
-          <div style="margin-top:10px">
-            <label style="font-size:11px;color:var(--cinza-500);display:block;margin-bottom:4px">Atualizar valor R$</label>
-            <input class="form-control" id="ed-brl" type="number" step="0.01" value="${t.valor_brl||''}"
-              data-campo="valor_brl"
-              style="height:34px;font-size:12px;text-align:right" oninput="atualizarBRL(${taxaAtual},this.value)">
-            <div style="font-size:10px;color:var(--cinza-500);margin-top:3px">U$ calculado: <span id="usd-calc">—</span></div>
+    <div class="tab-content" id="tab-financeiro" role="tabpanel">
+      <div class="td-fin">
+        <div class="td-box">
+          <span class="td-rot">Valor do TDR (no registro)</span>
+          <div class="td-grande">${fmtBRL(t.valor_brl)}</div>
+          <div class="td-peq td-mono" style="margin-top:2px">≈ ${fmtUSD(t.valor_usd)}</div>
+          ${podeEd?`<div style="margin-top:14px">
+            <label class="form-label" for="ed-brl">Atualizar valor (R$)</label>
+            <input class="form-control td-mono" id="ed-brl" type="number" step="0.01" value="${esc(t.valor_brl??'')}" data-campo="valor_brl"
+              style="text-align:right" oninput="atualizarBRL(${taxaAtual},this.value)">
+            <div class="td-peq" style="margin-top:4px">Em dólar: <span id="usd-calc" class="td-mono">—</span></div>
           </div>
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--borda);display:flex;align-items:center;gap:10px">
-            <button class="btn btn-primary btn-sm" id="btn-salvar-fin" onclick="abrirSalvar(${taxaAtual})" disabled>
-              💾 Salvar alteração de valor
-            </button>
-            <span id="txt-mudancas-fin" style="font-size:11px;color:var(--cinza-500)"></span>
+          <div class="td-lin" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--lin)">
+            <button class="btn btn-primary btn-sm" id="btn-salvar-fin" onclick="abrirSalvar(${taxaAtual})" disabled>${tdIc('salvar')}Salvar alteração de valor</button>
+            <span id="txt-mudancas-fin" class="td-peq" aria-live="polite"></span>
           </div>`:''}
         </div>
-        <div style="background:var(--cinza-50);border-radius:var(--raio);padding:16px;border:1px solid var(--borda)">
-          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Cotação USD/BRL</div>
-          <div style="font-size:13px;margin-bottom:5px">Registro: <strong style="font-family:var(--font-mono)">R$ ${t.cotacao_registro?parseFloat(t.cotacao_registro).toFixed(2):'—'}</strong></div>
-          <div style="font-size:13px;margin-bottom:5px;color:${taxaAtual>parseFloat(t.cotacao_registro||0)?'var(--erro)':'var(--sucesso)'}">
-            Atual: <strong style="font-family:var(--font-mono)">R$ ${taxaAtual.toFixed(2)}</strong>
-            ${t.cotacao_registro?`<span style="font-size:10px">(${taxaAtual>parseFloat(t.cotacao_registro)?'▲':'▼'} ${Math.abs(taxaAtual-parseFloat(t.cotacao_registro)).toFixed(2)})</span>`:''}
-          </div>
-          ${t.valor_brl&&t.cotacao_registro?`<div style="font-size:11px;color:var(--cinza-500)">Pelo câmbio atual: <strong>${fmtUSD(parseFloat(t.valor_brl)/taxaAtual)}</strong></div>`:''}
+        <div class="td-box">
+          <span class="td-rot">Cotação USD/BRL</span>
+          <div style="font-size:14px;margin-bottom:6px">No registro: <strong class="td-mono">R$ ${t.cotacao_registro?parseFloat(t.cotacao_registro).toFixed(2):'—'}</strong></div>
+          <div style="font-size:14px;margin-bottom:6px">Hoje: <strong class="td-mono ${t.cotacao_registro?(subiu?'td-sobe':'td-desce'):''}">R$ ${taxaAtual.toFixed(2)}</strong>
+            ${t.cotacao_registro?`<span class="td-peq">(${subiu?'subiu':'caiu'} ${Math.abs(taxaAtual-parseFloat(t.cotacao_registro)).toFixed(2)})</span>`:''}</div>
+          ${t.valor_brl&&t.cotacao_registro?`<div class="td-peq">Pelo câmbio de hoje: <strong class="td-mono">${fmtUSD(parseFloat(t.valor_brl)/taxaAtual)}</strong></div>`:''}
         </div>
       </div>
       ${painelEconomiaTDR(t, liberacoes||[], taxaAtual, eCoordenador)}
     </div>
 
-    <!-- ABA VERSÕES COM DIFF VISUAL -->
-    <div class="tab-content" id="tab-versoes">
-      ${(versoes||[]).length?versoes.map((v,idx)=>{
-        const campos=v.campos_alterados?Object.entries(v.campos_alterados):[];
-        const isUltima=idx===0;
-        return`<div class="versao-card">
-          <div class="versao-header">
-            <span class="versao-badge">v${v.numero_versao}</span>
-            ${badgeStatusTDR(v.fase)}
-            ${isUltima?`<span class="badge" style="background:var(--verde-medio)">Versão atual</span>`:''}
-            <div class="versao-autor" style="margin-left:auto">
-              <div class="versao-avatar">${(v.autor_nome||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</div>
-              <span style="font-size:11px;color:var(--cinza-700)">${v.autor_nome||'Sistema'}</span>
-              <span style="font-size:10px;color:var(--cinza-400,#9CA3AF)">${fmtData(v.criado_em)}</span>
-            </div>
-          </div>
-          <div class="versao-body">
-            ${v.comentario?`<div style="font-size:12px;color:var(--cinza-700);margin-bottom:10px;padding:8px 10px;background:var(--azul-bg);border-radius:var(--raio);border-left:3px solid var(--azul-medio)">
-              💬 "${v.comentario}"
-            </div>`:''}
-            ${campos.length?campos.map(([campo,vals])=>`
-              <div class="diff-campo">
-                <div class="diff-campo-nome">
-                  <span style="background:var(--cinza-100);padding:1px 6px;border-radius:3px">${nomeCampo(campo)}</span>
-                  <span style="font-size:9px;color:var(--cinza-400,#9CA3AF)">campo alterado</span>
-                </div>
-                <div class="diff-linha">
-                  <div class="diff-antes">
-                    <span class="diff-label">ANTES</span>
-                    ${String(vals.antes||'—').substring(0,200)}
-                  </div>
-                  <div class="diff-depois">
-                    <span class="diff-label">DEPOIS</span>
-                    ${String(vals.depois||'—').substring(0,200)}
-                  </div>
-                </div>
-              </div>`).join('') :
-              `<div class="diff-igual">Versão inicial — sem alterações de campos registradas.</div>`}
-          </div>
-        </div>`;
-      }).join('') :`<div class="empty-state"><div class="empty-state-msg">Nenhuma versão registrada ainda.</div></div>`}
+    <!-- ABA VERSÕES COM DIFF -->
+    <div class="tab-content" id="tab-versoes" role="tabpanel">${versoesHtml}</div>
+
+    <!-- ABA ANÁLISE DO AGENTE -->
+    <div class="tab-content" id="tab-ia" role="tabpanel">
+      <div style="margin-bottom:14px">
+        <h3 class="td-sec-tit">${tdIc('robo')}Histórico de análises do agente</h3>
+        <p class="td-peq" style="margin:4px 0 0">Resultado de cada análise feita pelo agente a cada submissão do TDR.</p>
+      </div>
+      <div id="ia-resultado" aria-live="polite"><div class="td-carrega"><span class="td-giro"></span>Carregando análises…</div></div>
     </div>
 
-    <!-- ABA IA -->
-    <div class="tab-content" id="tab-ia">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--cinza-900)">🤖 Histórico de Análises do Agente</div>
-          <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Resultados das análises realizadas pelo agente a cada submissão do TDR.</div>
-        </div>
-      </div>
-      <div id="ia-resultado" style="min-height:120px">
-        <div style="display:flex;align-items:center;gap:10px;padding:20px;background:var(--cinza-50);border-radius:var(--raio-lg);border:1px solid var(--borda)">
-          <div style="width:28px;height:28px;border:3px solid var(--borda);border-top-color:var(--verde-claro);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
-          <div>
-            <div style="font-size:12px;font-weight:500;color:var(--cinza-700)" class="extracting">Carregando análises...</div>
-            <div style="font-size:11px;color:var(--cinza-500);margin-top:2px"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ABA COMENTÁRIOS -->
-    <div class="tab-content" id="tab-comentarios">
-      ${podeEd?`<button class="btn btn-secondary btn-sm" style="margin-bottom:14px" onclick="abrirComentario()">+ Adicionar comentário de revisão</button>`:''}
-      ${(comentarios||[]).length?(comentarios||[]).map(c=>`
-        <div style="padding:12px;background:${c.resolvido?'var(--cinza-50)':'var(--branco)'};border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:8px;opacity:${c.resolvido?.6:1}">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div class="versao-avatar">${(c.usuarios?.nome_completo||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</div>
-            <span style="font-size:11px;font-weight:500;color:var(--cinza-700)">${c.usuarios?.nome_completo||'Usuário'}</span>
-            ${c.campo?`<span style="font-size:10px;font-weight:600;color:var(--azul-medio);background:var(--azul-bg);padding:1px 6px;border-radius:3px">${c.campo}</span>`:''}
-            <span style="font-size:10px;color:var(--cinza-400,#9CA3AF);margin-left:auto">${fmtData(c.criado_em)}</span>
-            ${c.resolvido?`<span class="badge" style="background:var(--sucesso)">✓ Resolvido</span>`:
-              podeEd?`<button class="btn btn-sm btn-secondary" style="padding:2px 8px;font-size:10px" onclick="resolverComent('${c.id}')">✓ Resolver</button>`:''}
-          </div>
-          <div style="font-size:12px;color:var(--cinza-700);line-height:1.5">${c.comentario}</div>
-        </div>`).join('') :
-        `<div class="empty-state"><div class="empty-state-msg">Nenhum comentário ainda.</div></div>`}
+    <!-- ABA REVISÃO (COMENTÁRIOS) -->
+    <div class="tab-content" id="tab-comentarios" role="tabpanel">
+      ${podeEd?`<button class="btn btn-secondary btn-sm" style="margin-bottom:14px" onclick="abrirComentario()">${tdIc('mais')}Adicionar comentário de revisão</button>`:''}
+      ${comentHtml}
     </div>
   `;
 
@@ -980,7 +909,7 @@ async function abrirTDR(id){
 
   const acoesFase={
     rascunho:{
-      avancar: eTecnicoModal?{s:'submetido',l:'→ Submeter para análise do agente'}:null,
+      avancar: eTecnicoModal?{s:'submetido',l:'Submeter para análise do agente'}:null,
       devolver: null,
     },
     submetido:{
@@ -988,15 +917,15 @@ async function abrirTDR(id){
       devolver: null,
     },
     pendente_correcao:{
-      avancar: eTecnicoModal?{s:'submetido',l:'→ Resubmeter após correções'}:null,
+      avancar: eTecnicoModal?{s:'submetido',l:'Submeter de novo após correções'}:null,
       devolver: null,
     },
     em_avaliacao:{
-      avancar: eCoordenadorModal?{s:'em_revisao_unesco',l:'→ Enviar à UNESCO'}:null,
+      avancar: eCoordenadorModal?{s:'em_revisao_unesco',l:'Enviar à UNESCO'}:null,
       devolver: eCoordenadorModal,
     },
     em_revisao_unesco:{
-      avancar: eCoordenadorModal?{s:'aprovado',l:'✓ Aprovar'}:null,
+      avancar: eCoordenadorModal?{s:'aprovado',l:'Aprovar'}:null,
       devolver: eCoordenadorModal,
     },
     aprovado:{
@@ -1018,19 +947,15 @@ async function abrirTDR(id){
   document.getElementById('m-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal('modal-tdr')">Fechar</button>
     ${podeApagarTDR?`
-      <button class="btn" id="btn-apagar-tdr" style="background:var(--erro-bg);color:var(--erro);border:1px solid var(--erro);margin-left:8px"
-        data-id="${t.id}" data-numero="${(t.numero||'').replace(/"/g,'&quot;')}">
-        🗑 Apagar TDR
-      </button>`:''
+      <button class="btn td-btn-perigo" id="btn-apagar-tdr" data-id="${t.id}" data-numero="${esc(t.numero||'')}">${tdIc('lixeira')}Apagar TDR</button>`:''
     }
-    <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;align-items:center">
-      ${fa.devolver?`<button class="btn-devolver" onclick="abrirDevolver()">↩ Devolver</button>`:''}
-      ${podeAbrirEditorModal?`<a href="revisar-tdr.html?id=${t.id}" class="btn btn-secondary" style="text-decoration:none">✏ Editor</a>`:''}
-      ${fa.avancar?`<button class="btn btn-primary" id="btn-avancar-fase" data-status="${fa.avancar.s}" data-label="${(fa.avancar.l||'').replace(/"/g,'&quot;')}">${fa.avancar.l}</button>`:''}
-      ${fa.aprovar?`<button class="btn" id="btn-aprovar-fase" style="background:var(--verde-medio);color:#fff" data-status="${fa.aprovar.s}" data-label="${(fa.aprovar.l||'').replace(/"/g,'&quot;')}">${fa.aprovar.l}</button>`:''}
-      ${fa.licitacao?`<button class="btn" id="btn-licitacao-fase" style="background:var(--aviso);color:#fff">→ Enviar para licitação</button>`:''}
-      ${fa.contratar?`<button class="btn" id="btn-contratado-fase" style="background:#0D9488;color:#fff">✓ Registrar contratação</button>`:''}
-      ${FASES_POS_APROVACAO.includes(t.status)?`<button class="btn btn-secondary" onclick="gerarPDF()">📄 PDF</button>`:''}
+    <div class="td-lin" style="margin-left:auto">
+      ${FASES_POS_APROVACAO.includes(t.status)?`<button class="btn btn-secondary" onclick="gerarPDF()">${tdIc('documento')}PDF</button>`:''}
+      ${podeAbrirEditorModal?`<a href="revisar-tdr.html?id=${t.id}" class="btn btn-secondary" style="text-decoration:none">${tdIc('editar')}Editor</a>`:''}
+      ${fa.devolver?`<button class="btn td-btn-perigo" onclick="abrirDevolver()">${tdIc('desfazer')}Devolver</button>`:''}
+      ${fa.avancar?`<button class="btn btn-primary" id="btn-avancar-fase" data-status="${fa.avancar.s}" data-label="${esc(fa.avancar.l)}">${tdIc(fa.avancar.s==='aprovado'?'check':'seta')}${esc(fa.avancar.l)}</button>`:''}
+      ${fa.licitacao?`<button class="btn td-btn-cor td-c-em_licitacao" id="btn-licitacao-fase">${tdIc('seta')}Enviar para licitação</button>`:''}
+      ${fa.contratar?`<button class="btn td-btn-cor td-c-contratado" id="btn-contratado-fase">${tdIc('check')}Registrar contratação</button>`:''}
     </div>`;
 
   // Listeners seguros para botões de ação (evita quebra por caracteres especiais no onclick inline)
@@ -1045,13 +970,6 @@ async function abrirTDR(id){
     btnAvancar.addEventListener('click', ()=>{
       pedirSenhaTDR(btnAvancar.dataset.label,'Confirmar — ação registrada no log',
         ()=>avancarFase(btnAvancar.dataset.status));
-    });
-  }
-  const btnAprovar = document.getElementById('btn-aprovar-fase');
-  if(btnAprovar){
-    btnAprovar.addEventListener('click', ()=>{
-      pedirSenhaTDR(btnAprovar.dataset.label,'Ação irreversível — Super Admin',
-        ()=>avancarFase(btnAprovar.dataset.status));
     });
   }
   const btnLicitacao = document.getElementById('btn-licitacao-fase');
@@ -1081,23 +999,20 @@ async function abrirTDR(id){
 }
 
 function campoEditavel(id,label,tipo,valor,podeEd,rows=1){
-  const val=valor||'';
-  const isTextarea=tipo==='textarea';
+  const val=valor??'';
   if(podeEd){
     return`<div class="form-group campo-edit">
-      <label class="form-label">${label}</label>
-      ${isTextarea
-        ?`<textarea class="form-control" data-campo="${id}" id="campo-${id}" rows="${rows}">${val}</textarea>`
-        :`<input class="form-control" type="${tipo}" data-campo="${id}" id="campo-${id}" value="${val}">`}
-    </div>`;
-  } else {
-    return`<div class="form-group">
-      <label class="form-label" style="color:var(--cinza-400,#9CA3AF)">${label}</label>
-      <div style="font-size:13px;color:${val?'var(--cinza-700)':'var(--cinza-400,#9CA3AF)'};background:var(--cinza-50);padding:8px 12px;border-radius:var(--raio);border:1px solid var(--borda);line-height:1.5;min-height:36px">
-        ${val||'—'}
-      </div>
+      <label class="form-label" for="campo-${id}">${label}</label>
+      ${tipo==='textarea'
+        ?`<textarea class="form-control" data-campo="${id}" id="campo-${id}" rows="${rows}">${esc(val)}</textarea>`
+        :`<input class="form-control" type="${tipo}" data-campo="${id}" id="campo-${id}" value="${esc(val)}">`}
     </div>`;
   }
+  const txt=tipo==='date'&&val?fmtData(val):val;
+  return`<div class="form-group">
+    <div class="form-label">${label}</div>
+    <div class="td-ro${txt?'':' vazio'}">${txt?esc(txt):'—'}</div>
+  </div>`;
 }
 
 function nomeCampo(campo){
@@ -1158,13 +1073,13 @@ function abrirSalvar(taxa){
   const proxV=(parseFloat(tdrAtual.versao_atual||1)+0.1).toFixed(1);
   document.getElementById('prox-versao').textContent=proxV;
   document.getElementById('resumo-alteracoes').innerHTML=`
-    <div style="font-size:11px;font-weight:600;color:var(--cinza-700);margin-bottom:8px">Campos alterados:</div>
-    ${Object.entries(diff).map(([k,v])=>`
-      <div style="display:flex;gap:8px;font-size:11px;margin-bottom:5px;padding:6px 8px;background:var(--cinza-50);border-radius:var(--raio)">
-        <span style="font-weight:600;color:var(--cinza-700);min-width:100px">${nomeCampo(k)}</span>
-        <span style="color:var(--erro);text-decoration:line-through;flex:1">${String(v.antes||'vazio').substring(0,60)}</span>
-        <span style="color:var(--sucesso);flex:1">→ ${String(v.depois||'vazio').substring(0,60)}</span>
-      </div>`).join('')}`;
+    <div class="td-rot">Campos alterados</div>
+    <div class="td-lista">${Object.entries(diff).map(([k,v])=>`<div>
+      <div class="td-diff-nome">${esc(nomeCampo(k))}</div>
+      <div class="td-diff">
+        <div class="antes"><small>ANTES</small>${esc(String(v.antes||'vazio').substring(0,120))}</div>
+        <div class="depois"><small>DEPOIS</small>${esc(String(v.depois||'vazio').substring(0,120))}</div>
+      </div></div>`).join('')}</div>`;
   document.getElementById('inp-comentario-salvar').value='';
   document.getElementById('modal-salvar').classList.add('aberto');
 }
@@ -1239,15 +1154,16 @@ function atualizarBRL(taxa,val){
 // ── COMENTÁRIOS ───────────────────────────────────────────────
 function abrirComentario(){
   const modal=document.createElement('div');
-  modal.className='modal-overlay dgm-claro aberto';modal.id='modal-coment-tmp';
-  modal.innerHTML=`<div class="modal" style="max-width:460px">
-    <div class="modal-header"><span class="modal-title">Adicionar comentário de revisão</span>
-      <button class="modal-close" onclick="document.getElementById('modal-coment-tmp').remove()">✕</button></div>
+  modal.className='modal-overlay td-ov aberto';modal.id='modal-coment-tmp';
+  modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-labelledby','coment-tit');
+  modal.innerHTML=`<div class="modal" style="max-width:480px">
+    <div class="modal-header"><h2 class="modal-title" id="coment-tit" style="margin:0">Adicionar comentário de revisão</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="document.getElementById('modal-coment-tmp').remove()">${tdIc('fechar')}</button></div>
     <div class="modal-body">
-      <div class="form-group"><label class="form-label">Campo / Seção</label>
-        <input class="form-control" id="coment-campo" placeholder="Ex: Objeto, Qualificação, Valor..."></div>
-      <div class="form-group"><label class="form-label">Comentário <span class="obrig">*</span></label>
-        <textarea class="form-control" id="coment-texto" rows="4" placeholder="Descreva o ajuste necessário..."></textarea></div>
+      <div class="form-group"><label class="form-label" for="coment-campo">Campo ou seção</label>
+        <input class="form-control" id="coment-campo" placeholder="Ex.: Objeto, Qualificação, Valor"></div>
+      <div class="form-group"><label class="form-label" for="coment-texto">Comentário <span class="obrig">*</span></label>
+        <textarea class="form-control" id="coment-texto" rows="4" placeholder="Descreva o ajuste necessário."></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="document.getElementById('modal-coment-tmp').remove()">Cancelar</button>
@@ -1427,7 +1343,7 @@ function _mostrarProgressoAgente(){
       <!-- copa baixa e arredondada -->
       <rect x="42" y="14" width="106" height="33" rx="14" fill="#222240"/>
       <!-- costura central -->
-      <path d="M 95 14 Q 95 47" stroke="#2d2d50" stroke-width="2" opacity="0.6"/>
+      <path d="M 95 14 L 95 47" stroke="#2d2d50" stroke-width="2" opacity="0.6"/>
       <ellipse cx="95" cy="14" rx="53" ry="6" fill="#2a2a45"/>
       <!-- faixa dourada -->
       <rect x="42" y="41" width="106" height="7" rx="0" fill="#9B7316"/>
@@ -1714,7 +1630,7 @@ async function avancarFase(novoStatus){
 
     fecharModal('modal-tdr');
     renderStats();filtrar();
-    toast(`Fase avançada para "${FASES_LABELS[novoStatus]}"! ✓`,'success');
+    toast(`Fase avançada para "${FASES_LABELS[novoStatus]}".`,'success');
   }catch(e){
     console.error('[AVANÇAR] Erro:',e);
     toast('Erro ao avançar fase: '+(e.message||JSON.stringify(e)),'error');
@@ -1766,7 +1682,7 @@ async function salvarLicitacao(){
 
       fecharModal('modal-tdr');
       renderStats();filtrar();
-      toast('TDR enviado para licitação! ✓','success');
+      toast('TDR enviado para licitação.','success');
     }catch(e){
       console.error('[LICITAÇÃO] Erro:',e);
       toast('Erro ao enviar para licitação: '+(e.message||JSON.stringify(e)),'error');
@@ -1779,7 +1695,7 @@ async function abrirContratado(){
   if(!tdrAtual)return;
   const cont=document.getElementById('contratado-conteudo');
   document.getElementById('contratado-data').value=new Date().toISOString().slice(0,10);
-  cont.innerHTML='<div style="font-size:12px;color:var(--cinza-500)">Carregando contratos...</div>';
+  cont.innerHTML='<div class="td-carrega"><span class="td-giro"></span>Carregando contratos…</div>';
   document.getElementById('modal-contratado').classList.add('aberto');
 
   try{
@@ -1792,30 +1708,28 @@ async function abrirContratado(){
 
     let html='';
     if(vinc.length){
-      html+=`<div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Contrato vinculado a este TDR</div>`;
-      html+=vinc.map(c=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--sucesso-bg);border:1px solid var(--verde-claro);border-radius:var(--raio);margin-bottom:6px">
-        <span style="font-family:var(--font-mono);font-size:12px;font-weight:600">${c.numero}</span>
-        <span style="font-size:11px;color:var(--cinza-600)">${fmtBRL(c.valor_total_brl||0)}</span>
-        <span style="font-size:10px;color:var(--cinza-500);margin-left:auto">${c.status||''}</span>
-      </div>`).join('');
+      html+=`<div class="td-rot">Contrato vinculado a este TDR</div><div class="td-lista">`;
+      html+=vinc.map(c=>`<div class="td-item">
+        <span class="td-mono" style="font-weight:600">${esc(c.numero)}</span>
+        <span class="td-cresce td-mono">${fmtBRL(c.valor_total_brl||0)}</span>
+        <span class="td-peq">${esc(c.status||'')}</span>
+      </div>`).join('')+`</div>`;
       html+=`<input type="hidden" id="contratado-contrato-id" value="">`;
     } else {
       html+=`<div class="form-group">
-        <label class="form-label">Vincular contrato existente</label>
+        <label class="form-label" for="contratado-contrato-id">Vincular contrato existente</label>
         <select class="form-control" id="contratado-contrato-id">
-          <option value="">— selecionar contrato cadastrado —</option>
-          ${disp.map(c=>`<option value="${c.id}">${c.numero} · ${c.fornecedores?.nome||'sem fornecedor'} · ${fmtBRL(c.valor_total_brl||0)}</option>`).join('')}
+          <option value="">Selecionar contrato cadastrado…</option>
+          ${disp.map(c=>`<option value="${c.id}">${esc(c.numero)} · ${esc(c.fornecedores?.nome||'sem fornecedor')} · ${fmtBRL(c.valor_total_brl||0)}</option>`).join('')}
         </select>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:6px">
-          Nenhum contrato vinculado ainda. Selecione um já cadastrado ou cadastre na aba
-          <a href="contratos.html" style="color:var(--verde-medio)">Contratos</a> escolhendo este TDR.
-        </div>
+        <div class="form-hint">Nenhum contrato vinculado ainda. Selecione um já cadastrado ou cadastre em
+          <a href="contratos.html">Contratos</a> escolhendo este TDR.</div>
       </div>`;
     }
     cont.innerHTML=html;
   }catch(e){
     console.error('[CONTRATADO] Erro ao carregar contratos:',e);
-    cont.innerHTML='<div class="alert alert-warning">Erro ao carregar contratos.</div>';
+    cont.innerHTML=`<div class="alert alert-warning">${tdIc('alerta')}<div>Erro ao carregar contratos.</div></div>`;
   }
 }
 
@@ -1853,7 +1767,7 @@ async function confirmarContratado(){
 
       fecharModal('modal-tdr');
       renderStats();filtrar();
-      toast('Contratação registrada! ✓','success');
+      toast('Contratação registrada.','success');
     }catch(e){
       console.error('[CONTRATADO] Erro:',e);
       toast('Erro ao registrar contratação: '+(e.message||JSON.stringify(e)),'error');
@@ -1879,32 +1793,27 @@ function painelEconomiaTDR(t, liberacoes, taxa, eCoordenador){
 
   let estadoBadge='', estadoTxt='';
   if(economia<=0){
-    estadoBadge = `<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px">Sem economia</span>`;
-    estadoTxt = economia<0 ? 'O contrato ficou acima do valor planejado do TDR — não há saldo a liberar.' : 'Contrato firmado no valor exato do planejado.';
+    estadoBadge = `<span class="td-selo td-c-alerta">Sem economia</span>`;
+    estadoTxt = economia<0 ? 'O contrato ficou acima do valor planejado do TDR: não há saldo a liberar.' : 'Contrato firmado no valor exato do planejado.';
   } else if(ativa){
-    estadoBadge = `<span style="background:#D1FAE5;color:#065F46;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px">Liberada</span>`;
+    estadoBadge = `<span class="td-selo td-c-ok">Liberada</span>`;
     estadoTxt = 'Economia liberada para o saldo livre da atividade.';
   } else {
-    estadoBadge = `<span style="background:#E0E7FF;color:#3730A3;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px">Reservada</span>`;
-    estadoTxt = 'Economia ainda reservada a este TDR — não conta no saldo livre da atividade.';
+    estadoBadge = `<span class="td-selo td-c-info">Reservada</span>`;
+    estadoTxt = 'Economia ainda reservada a este TDR: não conta no saldo livre da atividade.';
   }
 
-  const card = (lbl,val,cor)=>`<div style="flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;text-align:center">
-    <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${lbl}</div>
-    <div style="font-size:16px;font-weight:600;font-family:var(--font-mono)${cor?';color:'+cor:''}">${fmtBRL(val)}</div>
-  </div>`;
-
-  const hist = libs.length ? `<div style="margin-top:14px">
-    <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Histórico de liberações</div>
+  const hist = libs.length ? `<div style="margin-top:16px">
+    <div class="td-rot">Histórico de liberações</div>
     ${libs.map(l=>{
       const estornada = l.status==='revertido';
-      return `<div style="border:1px solid var(--borda);border-left:3px solid ${estornada?'#D97706':'#059669'};border-radius:var(--raio);padding:10px 12px;margin-bottom:8px;background:var(--branco)">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
-          <span style="font-size:12px;font-weight:600;color:${estornada?'#92400E':'#065F46'}">${estornada?'↩ Estornada':'✓ Liberada'} · ${fmtBRL(l.valor_liberado_brl)}</span>
-          <span style="font-size:10px;color:var(--cinza-400)">${fmtData(l.criado_em)}</span>
+      return `<div class="td-lib ${estornada?'td-c-alerta':'td-c-ok'}">
+        <div class="td-lin" style="justify-content:space-between">
+          <span class="td-lib-tit">${estornada?'Estornada':'Liberada'} · <span class="td-mono">${fmtBRL(l.valor_liberado_brl)}</span></span>
+          <span class="td-peq">${fmtData(l.criado_em)}</span>
         </div>
-        <div style="font-size:11px;color:var(--cinza-600);margin-top:4px">Por ${esc(l.autorizou?.nome_completo||'—')} · ${esc(l.motivo||'')}</div>
-        ${estornada?`<div style="font-size:11px;color:#92400E;margin-top:4px;padding-top:4px;border-top:1px dashed var(--borda)">Estorno por ${esc(l.reverteu?.nome_completo||'—')} em ${fmtData(l.revertido_em)} · ${esc(l.motivo_reversao||'')}</div>`:''}
+        <div class="td-peq" style="margin-top:4px">Por ${esc(l.autorizou?.nome_completo||'—')} · ${esc(l.motivo||'')}</div>
+        ${estornada?`<div class="td-lib-est">Estorno por ${esc(l.reverteu?.nome_completo||'—')} em ${fmtData(l.revertido_em)} · ${esc(l.motivo_reversao||'')}</div>`:''}
       </div>`;
     }).join('')}
   </div>` : '';
@@ -1912,28 +1821,25 @@ function painelEconomiaTDR(t, liberacoes, taxa, eCoordenador){
   let acoes='';
   if(eCoordenador && isContratado){
     if(economia>0 && !ativa){
-      acoes = `<button class="btn btn-sm" style="background:var(--sucesso,#059669);color:#fff;margin-top:12px" onclick="abrirLiberarSaldo()">✓ Liberar saldo para a atividade</button>`;
+      acoes = `<button class="btn btn-sm td-btn-cor td-c-ok" style="margin-top:12px" onclick="abrirLiberarSaldo()">${tdIc('check')}Liberar saldo para a atividade</button>`;
     } else if(ativa){
-      acoes = `<button class="btn btn-sm btn-secondary" style="margin-top:12px" onclick="abrirEstornarSaldo('${ativa.id}')">↩ Estornar liberação</button>`;
+      acoes = `<button class="btn btn-sm btn-secondary" style="margin-top:12px" onclick="abrirEstornarSaldo('${ativa.id}')">${tdIc('desfazer')}Estornar liberação</button>`;
     }
   } else if(!eCoordenador && economia>0 && !ativa && isContratado){
-    acoes = `<div style="font-size:11px;color:var(--cinza-500);margin-top:10px">Somente coordenação/super admin podem liberar o saldo.</div>`;
+    acoes = `<p class="td-peq" style="margin:10px 0 0">Somente coordenação ou super admin liberam o saldo.</p>`;
   }
 
-  return `<div style="margin-top:16px;border-top:1px solid var(--borda);padding-top:14px">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <div style="font-size:11px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em">⚖️ Economia do processo</div>
-      ${estadoBadge}
+  return `<section class="td-sec">
+    <div class="td-sec-cab"><h3 class="td-sec-tit">${tdIc('balanca')}Economia do processo</h3>${estadoBadge}</div>
+    <div class="td-tres">
+      <div><small>Planejado (TDR)</small><b>${fmtBRL(planejado)}</b></div>
+      <div><small>Firmado (contrato)</small><b>${fmtBRL(firmado)}</b></div>
+      <div class="${economia>0?'pos':economia<0?'neg':''}"><small>Economia</small><b>${fmtBRL(economia)}</b></div>
     </div>
-    <div style="display:flex;gap:10px">
-      ${card('Planejado (TDR)', planejado)}
-      ${card('Firmado (contrato)', firmado)}
-      ${card('Economia', economia, economia>0?'#059669':(economia<0?'var(--erro)':''))}
-    </div>
-    <div style="font-size:11px;color:var(--cinza-500);margin-top:8px">${estadoTxt}</div>
+    <p class="td-peq" style="margin:8px 0 0">${estadoTxt}</p>
     ${acoes}
     ${hist}
-  </div>`;
+  </section>`;
 }
 
 function abrirLiberarSaldo(){
@@ -1945,10 +1851,10 @@ function abrirLiberarSaldo(){
   if(economia<=0){toast('Não há economia a liberar.','warning');return;}
   document.getElementById('liberar-saldo-justificativa').value='';
   document.getElementById('liberar-saldo-resumo').innerHTML=`
-    <div style="display:flex;gap:8px;text-align:center">
-      <div style="flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px"><div style="font-size:10px;color:var(--cinza-500)">Planejado</div><div style="font-family:var(--font-mono);font-weight:600">${fmtBRL(planejado)}</div></div>
-      <div style="flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px"><div style="font-size:10px;color:var(--cinza-500)">Firmado</div><div style="font-family:var(--font-mono);font-weight:600">${fmtBRL(firmado)}</div></div>
-      <div style="flex:1;background:#D1FAE5;border:1px solid #6EE7B7;border-radius:var(--raio);padding:8px"><div style="font-size:10px;color:#065F46">A liberar</div><div style="font-family:var(--font-mono);font-weight:700;color:#065F46">${fmtBRL(economia)}</div></div>
+    <div class="td-tres">
+      <div><small>Planejado</small><b>${fmtBRL(planejado)}</b></div>
+      <div><small>Firmado</small><b>${fmtBRL(firmado)}</b></div>
+      <div class="pos"><small>A liberar</small><b>${fmtBRL(economia)}</b></div>
     </div>`;
   document.getElementById('modal-liberar-saldo').classList.add('aberto');
 }
@@ -1964,7 +1870,7 @@ async function confirmarLiberarSaldo(){
       // US$ = R$ ÷ PTAX do dia, calculado no banco (trg_encerramento_ptax, rem_09) — cotação nunca vem do navegador
       const {error} = await db.rpc('fn_liberar_economia_tdr',{p_tdr_id:tdrId,p_justificativa:just,p_taxa:null});
       if(error)throw new Error(error.message);
-      toast('Saldo liberado para a atividade! ✓','success');
+      toast('Saldo liberado para a atividade.','success');
       abrirTDR(tdrId);
     }catch(e){
       console.error('[LIBERAR SALDO] Erro:',e);
@@ -1990,7 +1896,7 @@ async function confirmarEstornarSaldo(){
     try{
       const {error} = await db.rpc('fn_estornar_economia_tdr',{p_encerramento_id:libId,p_motivo:motivo});
       if(error)throw new Error(error.message);
-      toast('Liberação estornada. ✓','success');
+      toast('Liberação estornada.','success');
       if(tdrId)abrirTDR(tdrId);
     }catch(e){
       console.error('[ESTORNAR SALDO] Erro:',e);
@@ -2052,11 +1958,11 @@ async function executarDevolucao(){
 // ── SISTEMA DE SENHA PARA TDRs ───────────────────────────────
 function pedirSenhaTDR(titulo,subtitulo,callback){
   document.getElementById('senha-tdr-titulo').textContent=titulo;
+  document.getElementById('senha-tdr-sub').textContent=(subtitulo?subtitulo+' · ':'')+'Digite sua senha para confirmar.';
   document.getElementById('senha-tdr-input').value='';
   document.getElementById('senha-tdr-erro').style.display='none';
   senhaTDRCallback=callback;
   document.getElementById('modal-senha-tdr').classList.add('aberto');
-  setTimeout(()=>document.getElementById('senha-tdr-input').focus(),100);
 }
 
 async function confirmarSenhaTDR(){
@@ -2077,7 +1983,7 @@ async function confirmarSenhaTDR(){
     const {data:authData,error:authErr}=await db.auth.signInWithPassword({email,password:senha});
 
     if(authErr||!authData?.session){
-      document.getElementById('senha-tdr-erro').style.display='block';
+      document.getElementById('senha-tdr-erro').style.display='flex';
       document.getElementById('senha-tdr-input').value='';
       document.getElementById('senha-tdr-input').focus();
       btn.textContent='Confirmar';btn.disabled=false;
@@ -2120,7 +2026,7 @@ function fecharSenhaTDR(){
 function confirmarApagarTDR(id, numero){
   pedirSenhaTDR(
     `Apagar TDR ${numero}`,
-    '⚠ Ação irreversível — o TDR e todos os seus dados serão removidos permanentemente.',
+    'Ação irreversível: o TDR e todos os seus dados serão removidos permanentemente',
     async () => {
       try {
         // Exclusão via função RPC (super_admin only) — trata registros filhos e
@@ -2178,7 +2084,7 @@ window.importarDoDrive = async function(tdrId, driveUrl) {
     if (tdr) { tdr.arquivo_url = json.arquivo_url; tdr.arquivo_nome = json.arquivo_nome; }
     if (tdrAtual && tdrAtual.id === tdrId) { tdrAtual.arquivo_url = json.arquivo_url; tdrAtual.arquivo_nome = json.arquivo_nome; }
     const kb = json.tamanho_bytes ? ` (${(json.tamanho_bytes/1024).toFixed(0)} KB)` : '';
-    toast(`✓ "${json.arquivo_nome}" importado com sucesso${kb}`, 'success');
+    toast(`"${json.arquivo_nome}" importado com sucesso${kb}.`, 'success');
     filtrar();          // atualiza o badge no card da lista
     await abrirTDR(tdrId);
   } catch(e) {
@@ -2213,15 +2119,9 @@ window.uploadArquivoTDR = async function(tdrId, file) {
 };
 
 // ── ANEXOS COMPLEMENTARES (múltiplos) ────────────────────────
-function iconeAnexo(nome, mime){
-  const ext=(nome||'').split('.').pop().toLowerCase();
-  if(['pdf'].includes(ext))return'📕';
-  if(['doc','docx'].includes(ext))return'📘';
-  if(['xls','xlsx','csv'].includes(ext))return'📗';
-  if(['txt'].includes(ext))return'📄';
-  if(['jpg','jpeg','png','webp','gif'].includes(ext)||(mime||'').startsWith('image/'))return'🖼️';
-  if(['zip'].includes(ext))return'🗜️';
-  return'📎';
+function extAnexo(nome){
+  const ext=(nome||'').split('.').pop();
+  return ext&&ext!==nome&&ext.length<=5?ext:'arq';
 }
 function fmtTamanho(bytes){
   if(!bytes&&bytes!==0)return'';
@@ -2290,7 +2190,7 @@ function abrirNovo(){
         <label class="form-label">Atividade <span class="obrig">*</span></label>
         <select class="form-control" id="n-ativ">
           <option value="">Selecione...</option>
-          ${atividades.map(a=>`<option value="${a.id}">${a.codigo} — ${a.nome_pt?.substring(0,50)}</option>`).join('')}
+          ${atividades.map(a=>`<option value="${a.id}">${esc(a.codigo)} — ${esc((a.nome_pt||'').substring(0,50))}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
@@ -2414,9 +2314,11 @@ function gerarPDF(){
 }
 
 function aba(id,btn){
-  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('ativo'));
-  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('ativo'));
-  document.getElementById('tab-'+id)?.classList.add('ativo');btn.classList.add('ativo');
+  btn=btn||document.querySelector(`.tab-btn[aria-controls="tab-${id}"]`);
+  document.querySelectorAll('#m-body .tab-content').forEach(e=>e.classList.remove('ativo'));
+  document.querySelectorAll('#m-body .tab-btn').forEach(e=>{e.classList.remove('ativo');e.setAttribute('aria-selected','false');});
+  document.getElementById('tab-'+id)?.classList.add('ativo');
+  if(btn){btn.classList.add('ativo');btn.setAttribute('aria-selected','true');}
 }
 
 function fecharModal(id){
@@ -2441,10 +2343,7 @@ async function analisarComIA(forcar=false){
   const el=document.getElementById('ia-resultado');
   if(!el)return;
 
-  el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:20px;background:var(--cinza-50);border-radius:var(--raio-lg);border:1px solid var(--borda)">
-    <div style="width:22px;height:22px;border:3px solid var(--borda);border-top-color:var(--verde-claro);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
-    <div style="font-size:12px;color:var(--cinza-500)">Carregando histórico de análises...</div>
-  </div>`;
+  el.innerHTML=`<div class="td-carrega"><span class="td-giro"></span>Carregando histórico de análises…</div>`;
 
   try{
     const{data:analises}=await db.from('agente_analises')
@@ -2454,83 +2353,63 @@ async function analisarComIA(forcar=false){
       .order('criado_em',{ascending:false});
 
     if(!analises||analises.length===0){
-      el.innerHTML=`<div style="text-align:center;padding:32px 20px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg)">
-        <div style="font-size:28px;margin-bottom:8px">🤖</div>
-        <div style="font-size:13px;font-weight:500;color:var(--cinza-700);margin-bottom:4px">Nenhuma análise realizada ainda</div>
-        <div style="font-size:11px;color:var(--cinza-500)">Clique em <strong>"→ Submeter para análise do agente"</strong> para iniciar.</div>
-      </div>`;
+      el.innerHTML=`<div class="td-vazio">${tdIc('robo')}<b>Nenhuma análise realizada ainda</b>
+        Use <strong>Submeter para análise do agente</strong> para começar.</div>`;
       _iaFeito=true;
       return;
     }
 
-    const corStatus={aprovado:'var(--sucesso)',alerta:'var(--aviso)',reprovado:'var(--erro)'};
-    const bgStatus={aprovado:'#ECFDF5',alerta:'#FFFBEB',reprovado:'#FEF2F2'};
-    const iconeStatus={aprovado:'✅',alerta:'⚠️',reprovado:'❌'};
-    const labelStatus={aprovado:'Aprovado',alerta:'Aprovado com alertas',reprovado:'Pendente de correção'};
+    const IA_ST={
+      aprovado:{c:'td-c-ok',ic:'okcirc',l:'Aprovado'},
+      alerta:{c:'td-c-alerta',ic:'alerta',l:'Aprovado com alertas'},
+      reprovado:{c:'td-c-erro',ic:'xcirc',l:'Pendente de correção'},
+    };
 
     el.innerHTML=analises.map((a,idx)=>{
       const det=a.detalhes||{};
       const criterios=det.criterios||[];
       const sugestoes=det.sugestoes||[];
-      const data=new Date(a.criado_em).toLocaleString('pt-BR');
-      const isUltima=idx===0;
-
-      return`<div style="border:1px solid ${isUltima?corStatus[a.status]:'var(--borda)'};border-radius:var(--raio-lg);margin-bottom:12px;overflow:hidden;${isUltima?`box-shadow:0 2px 8px rgba(0,0,0,.06)`:'opacity:.75'}">
-        <!-- Cabeçalho -->
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:${isUltima?bgStatus[a.status]:'var(--cinza-50)'};border-bottom:1px solid var(--borda)">
-          <span style="font-size:20px">${iconeStatus[a.status]}</span>
-          <div style="flex:1">
-            <div style="font-size:12px;font-weight:600;color:${corStatus[a.status]}">${labelStatus[a.status]}${isUltima?' · Análise mais recente':''}</div>
-            <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">${data} · ${a.modelo_ia||'agente'} · ${a.tokens_usados||0} tokens</div>
-          </div>
+      const st=IA_ST[a.status]||{c:'',ic:'info',l:a.status||'—'};
+      const atual=idx===0;
+      return`<article class="td-ia ${st.c}${atual?' atual':''}">
+        <div class="td-ia-cab">${tdIc(st.ic)}
+          <div><b>${esc(st.l)}${atual?' · análise mais recente':''}</b>
+            <span class="td-peq">${new Date(a.criado_em).toLocaleString('pt-BR')} · ${esc(a.modelo_ia||'agente')} · ${a.tokens_usados||0} tokens</span></div>
         </div>
-        <!-- Resumo -->
-        <div style="padding:12px 14px;font-size:12px;color:var(--cinza-800);border-bottom:1px solid var(--borda)">${a.resumo||''}</div>
-        <!-- Critérios -->
-        ${criterios.length?`<div style="padding:10px 14px;border-bottom:1px solid var(--borda)">
-          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Critérios avaliados</div>
-          ${criterios.map(c=>`<div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:4px">
-            <span style="font-size:13px;flex-shrink:0;margin-top:1px">${c.ok?'✅':'❌'}</span>
-            <div>
-              <span style="font-size:11px;font-weight:500;color:var(--cinza-800)">${c.nome.replace(/_/g,' ')}</span>
-              ${c.observacao?`<span style="font-size:11px;color:var(--cinza-500)"> — ${c.observacao}</span>`:''}
-            </div>
+        ${a.resumo?`<div class="td-ia-sec">${esc(a.resumo)}</div>`:''}
+        ${criterios.length?`<div class="td-ia-sec"><h5>Critérios avaliados</h5>
+          ${criterios.map(c=>`<div class="td-ia-crit ${c.ok?'ok':'nao'}">${tdIc(c.ok?'okcirc':'xcirc')}
+            <div><strong>${esc(String(c.nome||'').replace(/_/g,' '))}</strong>${c.observacao?` <span class="td-mudo">— ${esc(c.observacao)}</span>`:''}</div>
+            <span class="sr-only">${c.ok?'atende':'não atende'}</span>
           </div>`).join('')}
         </div>`:''}
-        <!-- Sugestões -->
-        ${sugestoes.length?`<div style="padding:10px 14px">
-          <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Sugestões</div>
-          ${sugestoes.map(s=>`<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;font-size:11px;color:var(--cinza-700)">
-            <span style="flex-shrink:0;color:var(--azul-medio)">→</span>${s}
-          </div>`).join('')}
+        ${sugestoes.length?`<div class="td-ia-sec"><h5>Sugestões</h5>
+          ${sugestoes.map(x=>`<div class="td-ia-crit">${tdIc('seta')}<div>${esc(x)}</div></div>`).join('')}
         </div>`:''}
-      </div>`;
+      </article>`;
     }).join('');
 
     // Botões de ação após análise
     document.getElementById('btn-corrigir-ia-wrap')?.remove();
     const wrap=document.createElement('div');
     wrap.id='btn-corrigir-ia-wrap';
-    wrap.style.cssText='margin-top:12px;display:flex;gap:8px;justify-content:flex-end';
+    wrap.className='td-lin';
+    wrap.style.cssText='margin-top:12px;justify-content:flex-end';
     wrap.innerHTML=`
-      <button onclick="corrigirComIA()" style="background:#F9FAFB;border:1px solid var(--borda);border-radius:var(--raio-md);padding:8px 14px;font-size:12px;font-weight:600;color:var(--cinza-700);cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-        ✨ Corrigir direto com IA
-      </button>
-      <button onclick="abrirRevisor()" style="background:var(--azul-medio);color:#fff;border:none;border-radius:var(--raio-md);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-        🔍 Iniciar Revisão Guiada
-      </button>`;
+      <button class="btn btn-secondary" id="btn-corrigir-ia" onclick="corrigirComIA()">${tdIc('brilho')}Corrigir direto com IA</button>
+      <button class="btn btn-primary" onclick="abrirRevisor()">${tdIc('busca')}Iniciar revisão guiada</button>`;
     el.parentElement.appendChild(wrap);
 
     _iaFeito=true;
   }catch(e){
-    el.innerHTML=`<div class="alert alert-danger">Erro ao carregar análises: ${e.message}</div>`;
+    el.innerHTML=`<div class="alert alert-danger">${tdIc('alerta')}<div>Erro ao carregar análises: ${esc(e.message)}</div></div>`;
   }
 }
 
 async function corrigirComIA(){
   if(!tdrAtual)return;
-  const btn=document.querySelector('#btn-corrigir-ia-wrap button');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Corrigindo...';}
+  const btn=document.getElementById('btn-corrigir-ia');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="td-giro" style="width:14px;height:14px;border-width:2px"></span>Corrigindo…';}
 
   try{
     const SUPABASE_URL=db.supabaseUrl||window._env?.SUPABASE_URL;
@@ -2555,7 +2434,7 @@ async function corrigirComIA(){
       if(idx>=0)Object.assign(todosTDRs[idx],tdrAtual);
     }
 
-    toast(`✅ Correção aplicada! ${campos.length} campo(s) ajustado(s). Versão ${data.numero_versao} criada.`,'success');
+    toast(`Correção aplicada: ${campos.length} campo(s) ajustado(s). Versão ${data.numero_versao} criada.`,'success');
 
     // Reabrir modal para recarregar versões e ir direto para aba Versões
     const tdrId=tdrAtual.id;
@@ -2565,7 +2444,7 @@ async function corrigirComIA(){
 
   }catch(e){
     toast(`Erro ao corrigir: ${e.message}`,'error');
-    if(btn){btn.disabled=false;btn.textContent='✨ Corrigir com IA';}
+    if(btn){btn.disabled=false;btn.innerHTML=tdIc('brilho')+'Corrigir direto com IA';}
   }
 }
 
@@ -2596,9 +2475,6 @@ function abrirRevisor(){
   }
 })();
 
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')['modal-tdr','modal-novo','modal-salvar'].forEach(fecharModal);
-});
 </script>
 </body>
 </html>
