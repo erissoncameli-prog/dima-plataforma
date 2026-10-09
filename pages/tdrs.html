@@ -6,10 +6,12 @@
 <title>SEMA/AC — TDRs</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes da lista de TDRs -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/tdrs.css" rel="stylesheet">
 <style>
-.tdr-numero{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-700);background:var(--cinza-100);padding:2px 8px;border-radius:4px;}
-.tipo-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;text-transform:uppercase;}
-.tb-pf{background:#E1F5EE;color:#085041}.tb-pj{background:#E6F1FB;color:#0C447C}
 
 /* Timeline */
 .fase-timeline{display:flex;align-items:flex-start;gap:0;margin:8px 0;max-width:100%;overflow:hidden;}
@@ -47,30 +49,6 @@
 .fase-step.pendente .fase-dot{background:var(--cinza-100);color:var(--cinza-400,#9CA3AF);}
 .fase-lbl{font-size:8px;color:var(--cinza-500);margin-top:3px;text-align:center;line-height:1.1;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-/* TDR Cards */
-/* Cards — layout limpo e responsivo */
-#lista{width:100%;display:grid;grid-template-columns:1fr;gap:10px;}
-.fade-in{width:100%;overflow-x:hidden;}
-.tdr-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;cursor:pointer;position:relative;transition:all .15s;box-sizing:border-box;overflow:hidden;}
-.tdr-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 10px rgba(45,106,79,.08);}
-.tdr-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:var(--raio-lg) 0 0 var(--raio-lg);}
-.tdr-card.st-rascunho::before{background:var(--cinza-300);}
-.tdr-card.st-submetido::before{background:var(--azul-medio);}
-.tdr-card.st-pendente_correcao::before{background:var(--aviso);}
-.tdr-card.st-em_avaliacao::before{background:#0D9488;}
-.tdr-card.st-em_revisao_unesco::before{background:#7C3AED;}
-.tdr-card.st-aprovado::before{background:var(--sucesso);}
-.tdr-card.st-em_licitacao::before{background:var(--aviso);}
-.tdr-card.st-contratado::before{background:#0D9488;}
-.tdr-card.st-cancelado::before{background:var(--cinza-400,#9CA3AF);}
-/* Objeto truncado em 2 linhas */
-.tdr-obj{font-size:13px;font-weight:500;color:var(--cinza-900);line-height:1.4;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.tdr-meta{font-size:11px;color:var(--cinza-500);display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;align-items:center;}
-/* Valores em linha compacta */
-.tdr-vals{display:flex;gap:16px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--borda);margin-top:8px;}
-.tdr-val-lbl{font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
-.tdr-val-num{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-900);}
-
 /* Abas */
 .tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:20px;overflow-x:auto;}
 .tab-btn{padding:8px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
@@ -102,30 +80,6 @@
 .campo-alterado{border-color:var(--aviso)!important;background:var(--aviso-bg)!important;}
 .campo-tag-novo{font-size:9px;font-weight:700;color:var(--aviso);background:var(--aviso-bg);padding:1px 5px;border-radius:3px;}
 
-/* Stats */
-.stat-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;position:relative;overflow:hidden;cursor:pointer;user-select:none;transition:box-shadow .15s,border-color .15s,transform .08s;}
-.stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px);}
-.stat-card:active{transform:scale(.95);box-shadow:0 1px 2px rgba(0,0,0,.12) inset;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;}
-.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}.sc-c::after{background:#7C3AED}
-.stat-card.ativo{border-color:transparent;box-shadow:0 0 0 2px currentColor inset;}
-.sc-g.ativo{color:var(--verde-claro)}
-.sc-b.ativo{color:var(--azul-medio)}
-.sc-a.ativo{color:var(--aviso)}
-.sc-r.ativo{color:var(--erro)}
-.sc-t.ativo{color:#0D9488}
-.sc-c.ativo{color:#7C3AED}
-.stat-lbl{font-size:10px;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
-.stat-val{font-size:20px;font-weight:700;color:var(--cinza-900);}
-.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:2px;}
-.stat-card>*{position:relative;z-index:2;}
-.wc-inner{position:absolute;left:0;right:0;bottom:0;height:0%;transition:height 1.1s cubic-bezier(.4,0,.2,1);z-index:0;overflow:visible;opacity:.5;}
-.wc-wavewrap{position:absolute;left:0;right:0;bottom:100%;height:14px;overflow:hidden;}
-.wc-wave-svg{position:absolute;top:0;left:0;width:200%;height:100%;animation:wcwave 4.5s linear infinite;}
-.wc-wave-svg.w2{animation-duration:6.5s;animation-direction:reverse;opacity:.6;}
-@keyframes wcwave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-
 /* Upload zone */
 .upload-zone{border:2px dashed var(--borda-forte);border-radius:var(--raio-lg);padding:28px 20px;text-align:center;transition:all .2s;cursor:pointer;background:var(--cinza-50);}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--verde-claro);background:var(--sucesso-bg);}
@@ -139,7 +93,7 @@
 .extracting{animation:pulso 1s ease-in-out infinite;color:var(--azul-medio);}
 </style>
 </head>
-<body>
+<body class="dgm">
 <div id="app">
   <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
     <div style="text-align:center">
@@ -151,7 +105,7 @@
 </div>
 
 <!-- MODAL PRINCIPAL -->
-<div class="modal-overlay" id="modal-tdr">
+<div class="modal-overlay dgm-claro" id="modal-tdr">
   <div class="modal" style="max-width:1055px">
     <div class="modal-header">
       <div>
@@ -166,7 +120,7 @@
 </div>
 
 <!-- MODAL NOVO TDR -->
-<div class="modal-overlay" id="modal-novo">
+<div class="modal-overlay dgm-claro" id="modal-novo">
   <div class="modal" style="max-width:660px">
     <div class="modal-header">
       <span class="modal-title">Novo TDR</span>
@@ -181,7 +135,7 @@
 </div>
 
 <!-- MODAL SALVAR EDIÇÃO -->
-<div class="modal-overlay" id="modal-salvar">
+<div class="modal-overlay dgm-claro" id="modal-salvar">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <span class="modal-title">Salvar nova versão</span>
@@ -206,7 +160,7 @@
 </div>
 
 <!-- MODAL SENHA TDR -->
-<div class="senha-overlay" id="modal-senha-tdr">
+<div class="senha-overlay dgm-claro" id="modal-senha-tdr">
   <div class="senha-box">
     <div style="padding:18px 20px 14px;border-bottom:1px solid var(--borda)">
       <div style="font-size:14px;font-weight:600;color:var(--cinza-900)" id="senha-tdr-titulo">Confirmar ação</div>
@@ -231,7 +185,7 @@
 </div>
 
 <!-- MODAL DEVOLVER TDR -->
-<div class="modal-overlay" id="modal-devolver">
+<div class="modal-overlay dgm-claro" id="modal-devolver">
   <div class="modal" style="max-width:460px">
     <div class="modal-header">
       <span class="modal-title">Devolver para ajustes</span>
@@ -255,7 +209,7 @@
 </div>
 
 <!-- MODAL ENVIAR PARA LICITAÇÃO -->
-<div class="modal-overlay" id="modal-licitacao">
+<div class="modal-overlay dgm-claro" id="modal-licitacao">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <span class="modal-title">Enviar para licitação</span>
@@ -299,7 +253,7 @@
 </div>
 
 <!-- MODAL REGISTRAR CONTRATAÇÃO -->
-<div class="modal-overlay" id="modal-contratado">
+<div class="modal-overlay dgm-claro" id="modal-contratado">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <span class="modal-title">Registrar contratação</span>
@@ -323,7 +277,7 @@
 </div>
 
 <!-- MODAL LIBERAR SALDO (economia do TDR → atividade) -->
-<div class="modal-overlay" id="modal-liberar-saldo">
+<div class="modal-overlay dgm-claro" id="modal-liberar-saldo">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <span class="modal-title">Liberar saldo para a atividade</span>
@@ -348,7 +302,7 @@
 </div>
 
 <!-- MODAL ESTORNAR LIBERAÇÃO -->
-<div class="modal-overlay" id="modal-estornar-saldo">
+<div class="modal-overlay dgm-claro" id="modal-estornar-saldo">
   <div class="modal" style="max-width:460px">
     <div class="modal-header">
       <span class="modal-title">Estornar liberação de saldo</span>
@@ -377,6 +331,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script>
 let todosTDRs=[], atividades=[], tdrAtual=null;
 let dadosOriginais={}, dadosEditados={}, arquivoSelecionado=null;
@@ -405,36 +360,77 @@ function podeEditarFase(status){
 }
 
 // ── INIT ──────────────────────────────────────────────────────
+// Ícones da lista (SVG, sem emoji — padrão Tarefas/Pulso/Diagnóstico)
+const TD_IC={
+  busca:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  mais:'<path d="M12 5v14M5 12h14"/>',
+  atividade:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+  pessoa:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  empresa:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3"/>',
+  calendario:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  clipe:'<path d="M21 11.5 12.5 20a5 5 0 0 1-7-7L14 4.5a3.5 3.5 0 0 1 5 5L10.5 18a2 2 0 0 1-3-3L15 7.5"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+};
+function tdIc(n){return '<svg class="td-ic" viewBox="0 0 24 24" aria-hidden="true">'+(TD_IC[n]||'')+'</svg>';}
+
 (async()=>{
   const u=await carregarUsuario();
   if(!u){window.location.href='../index.html';return;}
   document.getElementById('app').innerHTML=
     gerarLayout('TDRs — Termos de Referência','tdrs')+`
     <div class="fade-in">
-      <div class="stat-row" id="stats"></div>
-      <div class="filter-bar">
-        <input class="form-control" type="text" id="busca" style="width:220px"
-          placeholder="Buscar número ou objeto..." oninput="filtrar()">
-        <select class="form-control" id="fil-st" onchange="sincronizarFiltroStatus()" style="width:145px">
+      <div class="td-kpis" id="stats" role="group" aria-label="Filtrar por situação"></div>
+      <div class="td-filtros">
+        <label class="td-busca">${tdIc('busca')}
+          <input class="form-control" type="search" id="busca" aria-label="Buscar TDR"
+            placeholder="Buscar número ou objeto" oninput="filtrar()">
+        </label>
+        <select class="form-control" id="fil-st" aria-label="Status" onchange="sincronizarFiltroStatus()">
           <option value="">Todos os status</option>
           ${FASES.map(f=>`<option value="${f}">${FASES_LABELS[f]}</option>`).join('')}
           <option value="cancelado">Cancelado</option>
         </select>
-        <select class="form-control" id="fil-tp" onchange="filtrar()" style="width:110px">
-          <option value="">PF + PJ</option>
+        <select class="form-control" id="fil-tp" aria-label="Tipo" onchange="filtrar()">
+          <option value="">PF e PJ</option>
           <option value="PF">Pessoa Física</option>
           <option value="PJ">Pessoa Jurídica</option>
         </select>
-        <select class="form-control" id="fil-resp" onchange="filtrar()" style="width:180px">
+        <select class="form-control" id="fil-resp" aria-label="Responsável" onchange="filtrar()">
           <option value="">Todos os responsáveis</option>
         </select>
-        <span id="cont" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
-        ${PODE.editarTDR()?`<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo TDR</button>`:''}
+        ${PODE.editarTDR()?`<button class="btn btn-primary btn-sm" onclick="abrirNovo()">${tdIc('mais')}Novo TDR</button>`:''}
       </div>
-      <div id="lista" style="overflow-x:hidden;width:100%"></div>
+      <p class="td-cont" id="cont" aria-live="polite"></p>
+      <div id="lista"></div>
     </div>`+`</div></div></div>`;
+  seletorTema();
+  // Cartão abre com Enter/Espaço (é role=button)
+  document.getElementById('lista').addEventListener('keydown',ev=>{
+    const c=ev.target.closest?.('.td-card');
+    if(!c||ev.target!==c||(ev.key!=='Enter'&&ev.key!==' '))return;
+    ev.preventDefault();abrirTDR(c.dataset.id);
+  });
   await carregar();
 })();
+
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico e do Pulso (componente .dgm-tema).
+// Vale para a lista; os modais seguem claros (.dgm-claro) até a revisão deles.
+function seletorTema(){
+  const tb=document.querySelector('.topbar'); if(!tb||tb.querySelector('.dgm-tema'))return;
+  const d=document.createElement('div');
+  d.className='dgm-tema td-tema-wrap'; d.setAttribute('role','group'); d.setAttribute('aria-label','Tema');
+  d.innerHTML=[['claro','sol','Claro'],['escuro','lua','Escuro']].map(([t,ic,r])=>
+    `<button type="button" data-tema="${t}" aria-pressed="${DiagTema.atual()===t}">${tdIc(ic)}${r}</button>`).join('');
+  const bc=tb.querySelector('.topbar-breadcrumb');
+  if(bc)bc.parentNode.insertBefore(d,bc); else tb.appendChild(d);
+  d.addEventListener('click',ev=>{
+    const b=ev.target.closest('[data-tema]'); if(!b)return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  });
+}
 
 async function carregar(){
   try{
@@ -468,22 +464,6 @@ async function carregar(){
   }catch(e){toast('Erro ao carregar TDRs.','error');}
 }
 
-function waterHTML(color,pct){
-  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
-    <div class="wc-wavewrap">
-      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
-      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
-    </div>
-  </div>`;
-}
-function animarAgua(){
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
-      el.style.height=el.dataset.alvo+'%';
-    });
-  }));
-}
-
 function renderStats(){
   const t=todosTDRs;
   const soma=arr=>arr.reduce((s,x)=>s+parseFloat(x.valor_brl||0),0);
@@ -493,53 +473,26 @@ function renderStats(){
   const tAndamento=t.filter(x=>['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','em_licitacao'].includes(x.status));
   const tAtrasados=t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(x.status));
   const tContratado=t.filter(x=>x.status==='contratado');
-  const ativo=c=>filtroCard===c?' ativo':'';
   const den=t.length||1;
-  const pct=n=>Math.round(n/den*100);
-  document.getElementById('stats').innerHTML=`
-    <div class="stat-card sc-g${ativo('total')}" onclick="clicarCardStat('total')">
-      ${waterHTML('var(--verde-claro)',100)}
-      <div class="stat-lbl">Total</div>
-      <div class="stat-val">${t.length}</div>
-      <div class="stat-sub">${tAprovados.length} aprovados</div>
-      <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--verde-medio);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAtivos))}</div>
-    </div>
-    <div class="stat-card sc-b${ativo('rascunho')}" onclick="clicarCardStat('rascunho')">
-      ${waterHTML('var(--azul-medio)',pct(tRascunho.length))}
-      <div class="stat-lbl">Rascunho</div>
-      <div class="stat-val">${tRascunho.length}</div>
-      <div class="stat-sub">aguardando revisão</div>
-      <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--azul-medio);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tRascunho))}</div>
-    </div>
-    <div class="stat-card sc-t${ativo('andamento')}" onclick="clicarCardStat('andamento')">
-      ${waterHTML('#0D9488',pct(tAndamento.length))}
-      <div class="stat-lbl">Em andamento</div>
-      <div class="stat-val">${tAndamento.length}</div>
-      <div class="stat-sub">em fluxo</div>
-      <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#0D9488;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAndamento))}</div>
-    </div>
-    <div class="stat-card sc-r${ativo('atrasados')}" onclick="clicarCardStat('atrasados')">
-      ${waterHTML('var(--erro)',pct(tAtrasados.length))}
-      <div class="stat-lbl">Atrasados</div>
-      <div class="stat-val">${tAtrasados.length}</div>
-      <div class="stat-sub">prazo vencido</div>
-      <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--erro);margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAtrasados))}</div>
-    </div>
-    <div class="stat-card sc-a${ativo('aprovados')}" onclick="clicarCardStat('aprovados')">
-      ${waterHTML('var(--aviso)',pct(tAprovados.length))}
-      <div class="stat-lbl">Aprovados</div>
-      <div class="stat-val">${tAprovados.length}</div>
-      <div class="stat-sub">TDRs aprovados</div>
-      <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#D97706;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tAprovados))}</div>
-    </div>
-    <div class="stat-card sc-c${ativo('contratado')}" onclick="clicarCardStat('contratado')">
-      ${waterHTML('#7C3AED',pct(tContratado.length))}
-      <div class="stat-lbl">Contratado</div>
-      <div class="stat-val">${tContratado.length}</div>
-      <div class="stat-sub">TDRs contratados</div>
-      <div style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:#7C3AED;margin-top:5px;border-top:1px solid var(--borda);padding-top:5px">${fmtBRL(soma(tContratado))}</div>
-    </div>`;
-  animarAgua();
+  // [chave do filtro, classe de cor, rótulo, lista, valor em R$, mostra barra de proporção]
+  const cards=[
+    ['total','td-c-total','Total',t,soma(tAtivos),false],
+    ['rascunho','td-c-rascunho','Rascunho',tRascunho,soma(tRascunho),true],
+    ['andamento','td-c-andamento','Em andamento',tAndamento,soma(tAndamento),true],
+    ['atrasados','td-c-atrasados','Atrasados',tAtrasados,soma(tAtrasados),true],
+    ['aprovados','td-c-aprovado','Aprovados',tAprovados,soma(tAprovados),true],
+    ['contratado','td-c-contratado','Contratados',tContratado,soma(tContratado),true],
+  ];
+  document.getElementById('stats').innerHTML=cards.map(([k,cls,lbl,lista,val,barra])=>{
+    const pct=Math.round(lista.length/den*100);
+    const titulo=k==='total'?`${t.length} TDRs, ${tAprovados.length} aprovados · valor sem cancelados`:`${pct}% do total`;
+    return `<button type="button" class="td-kpi ${cls}" aria-pressed="${filtroCard===k}" title="${titulo}" onclick="clicarCardStat('${k}')">
+      <span class="td-kpi-lbl">${lbl}</span>
+      <span class="td-kpi-num">${lista.length}</span>
+      <span class="td-kpi-val">${fmtBRL(val)}</span>
+      ${barra?`<span class="td-kpi-barra" aria-hidden="true"><span style="width:${pct}%"></span></span>`:''}
+    </button>`;
+  }).join('');
 }
 
 // ── Filtro por clique nos cards de estatística ───────────────
@@ -588,6 +541,9 @@ function popularFiltroResp(){
   if(atual)sel.value=atual;
 }
 
+// Status antigos → fase atual da linha do tempo
+const TD_STATUS_NORM={enviado_unesco:'em_revisao_unesco',retorno_unesco:'em_revisao_unesco',revisao_interna:'submetido',ajustes:'pendente_correcao'};
+
 function filtrar(){
   const b=document.getElementById('busca').value.toLowerCase();
   const s=document.getElementById('fil-st').value;
@@ -605,144 +561,97 @@ function filtrar(){
     return true;
   });
   f.sort((a,b)=>(a.numero||'').localeCompare(b.numero||'','pt',{numeric:true}));
-  document.getElementById('cont').textContent=`${f.length} de ${todosTDRs.length} TDRs`;
+  document.getElementById('cont').textContent=`${f.length} de ${todosTDRs.length} TDRs · ordenados por número`;
   const el=document.getElementById('lista');
   if(!f.length){el.innerHTML=`<div class="empty-state"><div class="empty-state-icon">◧</div><div class="empty-state-msg">Nenhum TDR encontrado.</div></div>`;return;}
-  el.innerHTML=f.map(t=>{
-    const _statusNorm={enviado_unesco:'em_revisao_unesco',retorno_unesco:'em_revisao_unesco',revisao_interna:'submetido',ajustes:'pendente_correcao'};
-    const fi=FASES.indexOf(_statusNorm[t.status]||t.status);
-    const atr=t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status);
-    const podeEd=podeEditarFase(t.status);
-    const eCoordenador=['super_admin','coordenacao'].includes(appState.perfil);
+  el.innerHTML=f.map(cardTDR).join('');
+}
 
-    // Detectar tipo de arquivo
-    const temArquivoStorage = t.arquivo_url && !t.arquivo_url.includes('drive.google.com') && !t.arquivo_url.includes('docs.google.com');
-    const temDrive = t.arquivo_url && (t.arquivo_url.includes('drive.google.com') || t.arquivo_url.includes('docs.google.com'));
-    const semArquivo = !t.arquivo_url;
+function cardTDR(t){
+  const st=TD_STATUS_NORM[t.status]||t.status;
+  const fi=FASES.indexOf(st);
+  const rotulo=FASES_LABELS[st]||st;
+  const atr=t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status);
+  const diasAtraso=atr?Math.max(1,Math.floor((Date.now()-new Date(String(t.prazo_limite).slice(0,10)+'T23:59:59'))/864e5)+1):0;
 
-    // Botão Revisar — lógica por fase e perfil
-    const podeAbrirEditor =
-      (podeEd && ['rascunho','pendente_correcao'].includes(t.status)) ||
-      (eCoordenador && ['em_avaliacao','em_revisao_unesco'].includes(t.status)) ||
-      (appState.perfil==='super_admin');
+  // Documento do TDR
+  const ehDrive=t.arquivo_url&&(t.arquivo_url.includes('drive.google.com')||t.arquivo_url.includes('docs.google.com'));
+  const doc=!t.arquivo_url?`<span class="td-mudo">${tdIc('clipe')}Sem documento</span>`
+    :ehDrive?`<span class="td-info">${tdIc('link')}Google Drive</span>`
+    :`<span class="td-ok">${tdIc('clipe')}Documento no sistema</span>`;
 
-    // Labels abreviadas para timeline
-    const FASES_ABREV={rascunho:'Rascunho',submetido:'Submetido',pendente_correcao:'Pendente',em_avaliacao:'Avaliação',em_revisao_unesco:'UNESCO',aprovado:'Aprovado',em_licitacao:'Licitação',contratado:'Contratado'};
+  // Fase: "Fase N de 8 · Rótulo" + barra segmentada
+  const fase=fi<0
+    ?`<div class="td-fase"><div class="td-fase-tx"><span><b>${esc(rotulo)}</b></span></div></div>`
+    :`<div class="td-fase" title="${FASES.map(x=>FASES_LABELS[x]).join(' → ')}">
+        <div class="td-fase-tx"><span>Fase <b>${fi+1} de ${FASES.length} · ${esc(rotulo)}</b></span>
+          ${fi<FASES.length-1?`<span>próxima: ${FASES_LABELS[FASES[fi+1]]}</span>`:''}</div>
+        <div class="td-seg" aria-hidden="true">${FASES.map((_,i)=>`<span class="${i<fi?'feito':i===fi?'atual':''}"></span>`).join('')}</div>
+      </div>`;
 
-    return `<div class="tdr-card st-${t.status}" onclick="abrirTDR('${t.id}')">
-      <!-- Linha 1: badges -->
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <span class="tdr-numero">${t.numero}</span>
-        <span class="tipo-badge ${t.tipo==='PF'?'tb-pf':'tb-pj'}">${t.tipo}</span>
-        ${badgeStatusTDR(t.status)}
-        ${atr?`<span class="badge" style="background:var(--erro)">⚠ Atrasado</span>`:''}
-        <span style="font-size:10px;color:var(--cinza-400,#9CA3AF);margin-left:auto">v${t.versao_atual||1}</span>
+  // Valores: TDR, dólar, cotação e diferença TDR × contratos
+  const conts=t.contratos||[];
+  let dif='';
+  if(conts.length){
+    const totalContratos=conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
+    const delta=parseFloat(t.valor_brl||0)-totalContratos;
+    dif=delta<0
+      ?`<div class="td-acima" title="Contratos somam mais que o valor do TDR — o excedente entra no razão como compromisso da atividade"><small>Contrato acima do TDR</small><b>${fmtBRL(-delta)}</b></div>`
+      :`<div class="td-sobra" title="Valor do TDR menos o total dos contratos"><small>Saldo do TDR</small><b>${fmtBRL(delta)}</b></div>`;
+  }
+  const valores=`<div class="td-din">
+      <div><small>Valor do TDR</small><b>${t.valor_brl?fmtBRL(t.valor_brl):'—'}</b></div>
+      <div><small>Em dólar</small><b>${t.valor_usd?fmtUSD(t.valor_usd):'—'}</b></div>
+      ${t.cotacao_registro?`<div><small>Cotação</small><b>R$ ${parseFloat(t.cotacao_registro).toFixed(2)}</b></div>`:''}
+      ${dif}
+    </div>`;
+
+  // Contratos vinculados
+  const ctrs=!conts.length?'':`<div class="td-ctrs" onclick="event.stopPropagation()">${conts.map(c=>{
+    const total=parseFloat(c.valor_total_brl||0);
+    const utilizado=parseFloat(c.valor_utilizado_brl||0);
+    const comprometido=parseFloat(c.valor_comprometido_brl||0);
+    const saldo=c.saldo_brl!=null?parseFloat(c.saldo_brl):(total-utilizado);
+    const pctUtil=total>0?Math.min(utilizado/total*100,100):0;
+    const pctComp=total>0?Math.min(comprometido/total*100,100):0;
+    const clSaldo=saldo<0?'neg':saldo<total*0.1?'baixo':'';
+    const forn=c.fornecedores;
+    return `<div class="td-ctr">
+      <div class="td-ctr-cab">
+        <span><b>Contrato ${esc(c.numero)}</b>${forn?` · <span class="td-forn" title="${esc((forn.cpf_cnpj||'').toString())}">${esc(forn.nome||'')}${forn.tipo?` (${esc(forn.tipo)})`:''}</span>`:''}</span>
+        <span class="td-ctr-tot">${fmtBRL(total)} · ${esc(c.status||'')}</span>
       </div>
-      <!-- Linha 2: objeto (2 linhas max) -->
-      <div class="tdr-obj">${t.objeto_pt||'— objeto não preenchido —'}</div>
-      <!-- Linha 3: meta -->
-      <div class="tdr-meta">
-        ${t.atividades?`<span>📋 ${t.atividades.codigo}</span>`:''}
-        ${t.fornecedores?`<span>👤 ${t.fornecedores.nome}</span>`:''}
-        ${t.prazo_limite?`<span>📅 ${fmtData(t.prazo_limite)}</span>`:''}
-        ${temArquivoStorage?`<span style="color:var(--sucesso);font-weight:500">📎 Arquivo no sistema</span>`:''}
-        ${temDrive?`<span style="color:var(--azul-medio);font-weight:500">🔗 Google Drive</span>`:''}
-        ${semArquivo?`<span style="color:var(--cinza-400,#9CA3AF)">📄 Sem arquivo</span>`:''}
+      <div class="td-barra" role="img" aria-label="Utilizado ${Math.round(pctUtil)}%, comprometido ${Math.round(pctComp)}% do contrato">
+        <span class="comp" style="width:${pctComp.toFixed(1)}%"></span><span class="util" style="width:${pctUtil.toFixed(1)}%"></span>
       </div>
-      <!-- Timeline legível -->
-      <div style="display:flex;align-items:center;margin:10px 0;gap:0">
-        ${FASES.map((f,i)=>{
-          const concluido=i<fi, ativo=i===fi;
-          const bg=concluido?'var(--verde-medio)':ativo?'var(--verde-claro)':'var(--cinza-100)';
-          const col=concluido||ativo?'#fff':'var(--cinza-400,#9CA3AF)';
-          const lblCol=concluido?'var(--verde-medio)':ativo?'var(--verde-claro)':'var(--cinza-400,#9CA3AF)';
-          const lineBg=concluido?'var(--verde-medio)':ativo?'var(--verde-claro)':'var(--borda)';
-          return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0;position:relative">
-            <div style="display:flex;align-items:center;width:100%">
-              ${i>0?`<div style="flex:1;height:2px;background:${i<=fi?'var(--verde-medio)':'var(--borda)'}"></div>`:'<div style="flex:1"></div>'}
-              <div style="width:22px;height:22px;border-radius:50%;background:${bg};color:${col};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;z-index:1">${concluido?'✓':i+1}</div>
-              ${i<FASES.length-1?`<div style="flex:1;height:2px;background:${concluido?'var(--verde-medio)':'var(--borda)'}"></div>`:'<div style="flex:1"></div>'}
-            </div>
-            <span style="font-size:9px;color:${lblCol};font-weight:${ativo?'600':'400'};text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px">${FASES_ABREV[f]}</span>
-          </div>`;
-        }).join('')}
-      </div>
-      <!-- Contratos vinculados (compacto) -->
-      ${(()=>{
-        const conts=(t.contratos||[]);
-        if(!conts.length) return '';
-        const corStatus={vigente:'#059669',encerrado:'#6B7280',suspenso:'#D97706',rescindido:'#DC2626'};
-        const html=conts.map(c=>{
-          const total=parseFloat(c.valor_total_brl||0);
-          const utilizado=parseFloat(c.valor_utilizado_brl||0);
-          const comprometido=parseFloat(c.valor_comprometido_brl||0);
-          const saldo=c.saldo_brl!=null?parseFloat(c.saldo_brl):(total-utilizado);
-          const pctUtil=total>0?Math.min(utilizado/total*100,100):0;
-          const pctComp=total>0?Math.min(comprometido/total*100,100):0;
-          const corSaldo=saldo<0?'var(--erro)':saldo<total*0.1?'var(--aviso)':'#059669';
-          const cor=corStatus[c.status]||'#6B7280';
-          const forn=c.fornecedores;
-          const iconeForn=forn?(forn.tipo==='PF'?'👤':'🏢'):'';
-          return `<div style="padding:5px 0;border-bottom:1px solid var(--borda)" onclick="event.stopPropagation()">
-            ${forn?`<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px" title="${esc((forn.cpf_cnpj||'').toString())}">
-              <span style="font-size:11px;flex-shrink:0">${iconeForn}</span>
-              <span style="font-size:11px;font-weight:700;color:var(--cinza-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(forn.nome||'')}</span>
-              ${forn.tipo?`<span style="font-size:8px;font-weight:700;color:var(--cinza-500);background:var(--cinza-100);border-radius:4px;padding:1px 5px;flex-shrink:0">${forn.tipo}</span>`:''}
-            </div>`:''}
-          <div style="display:flex;align-items:center;gap:8px">
-            <!-- número + status -->
-            <span style="font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--cinza-800);white-space:nowrap;min-width:90px">${c.numero}</span>
-            <span style="width:6px;height:6px;border-radius:50%;background:${cor};flex-shrink:0" title="${c.status}"></span>
-            <!-- barra de progresso -->
-            <div style="flex:1;height:4px;background:var(--cinza-200);border-radius:2px;overflow:hidden;position:relative;min-width:40px">
-              <div style="position:absolute;left:0;top:0;height:100%;width:${pctComp.toFixed(1)}%;background:#FCD34D"></div>
-              <div style="position:absolute;left:0;top:0;height:100%;width:${pctUtil.toFixed(1)}%;background:#059669"></div>
-            </div>
-            <!-- valores inline -->
-            <div style="display:flex;gap:10px;flex-shrink:0;align-items:baseline">
-              <span style="font-size:9px;color:var(--cinza-500)" title="Total contratado">T <span style="font-family:var(--font-mono);color:var(--cinza-800)">${fmtBRL(total)}</span></span>
-              <span style="font-size:9px;color:var(--cinza-500)" title="Comprometido">C <span style="font-family:var(--font-mono);color:#D97706">${fmtBRL(comprometido)}</span></span>
-              <span style="font-size:9px;color:var(--cinza-500)" title="Utilizado">U <span style="font-family:var(--font-mono);color:#059669">${fmtBRL(utilizado)}</span></span>
-              <span style="font-size:9px;color:var(--cinza-500)" title="Saldo disponível">S <span style="font-family:var(--font-mono);font-weight:700;color:${corSaldo}">${fmtBRL(saldo)}</span></span>
-            </div>
-          </div>
-          </div>`;
-        }).join('');
-        return `<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--borda)">
-          <div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📄 Contrato${conts.length>1?'s':''} (${conts.length}) · <span style="color:var(--cinza-400);font-weight:400">T=total  C=comprometido  U=utilizado  S=saldo</span></div>
-          ${html}
-        </div>`;
-      })()}
-      <!-- Rodapé: valores + botões -->
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px solid var(--borda)">
-        <div class="tdr-vals">
-          <div style="background:#F0F9FF;border-radius:6px;padding:4px 10px;display:flex;flex-direction:column;align-items:center;gap:1px;border:1px solid #BAE6FD">
-            <div style="font-size:9px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">Valor TDR</div>
-            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#0369a1;white-space:nowrap">${t.valor_brl?fmtBRL(t.valor_brl):'—'}</div>
-          </div>
-          <div><div class="tdr-val-lbl">U$</div><div class="tdr-val-num">${t.valor_usd?fmtUSD(t.valor_usd):'—'}</div></div>
-          ${t.cotacao_registro?`<div><div class="tdr-val-lbl">Cotação</div><div class="tdr-val-num">R$ ${parseFloat(t.cotacao_registro).toFixed(2)}</div></div>`:''}
-          ${(()=>{
-            const conts=t.contratos||[];
-            if(!conts.length)return '';
-            const totalContratos=conts.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
-            const valorTDR=parseFloat(t.valor_brl||0);
-            const delta=valorTDR-totalContratos;
-            const corDelta=delta<0?'#DC2626':delta===0?'#059669':'#0369a1';
-            const bgDelta=delta<0?'#FEE2E2':delta===0?'#D1FAE5':'#DBEAFE';
-            const sinal=delta<0?'−':delta>0?'+':'';
-            const icone=delta<0?'⚠':'✓';
-            return `<div style="background:${bgDelta};border-radius:6px;padding:4px 10px;display:flex;flex-direction:column;align-items:center;gap:1px;border:1px solid ${corDelta}22">
-              <div style="font-size:9px;font-weight:700;color:${corDelta};text-transform:uppercase;letter-spacing:.05em;white-space:nowrap">${icone} Saldo TDR</div>
-              <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${corDelta};white-space:nowrap">${sinal}${fmtBRL(Math.abs(delta))}</div>
-            </div>`;
-          })()}
-        </div>
-        <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
-        </div>
+      <div class="td-leg">
+        <span><i style="background:var(--ok)"></i>Utilizado <b>${fmtBRL(utilizado)}</b></span>
+        <span><i style="background:var(--alerta);opacity:.5"></i>Comprometido <b>${fmtBRL(comprometido)}</b></span>
+        <span class="${clSaldo}"><i style="background:var(--bg-2);box-shadow:inset 0 0 0 1px var(--lin-forte)"></i>Saldo <b>${fmtBRL(saldo)}</b></span>
       </div>
     </div>`;
-  }).join('');
+  }).join('')}</div>`;
+
+  return `<article class="td-card td-c-${st}" data-id="${t.id}" tabindex="0" role="button"
+      aria-label="Abrir ${esc(t.numero)} · ${esc(rotulo)}" onclick="abrirTDR('${t.id}')">
+    <div class="td-cab">
+      <span class="td-num">${esc(t.numero)}</span>
+      ${t.tipo?`<span class="td-tag">${esc(t.tipo)}</span>`:''}
+      <span class="td-selo">${esc(rotulo)}</span>
+      ${atr?`<span class="td-selo td-atraso">Atrasado ${diasAtraso} dia${diasAtraso>1?'s':''}</span>`:''}
+      <span class="td-versao">versão ${t.versao_atual||1}</span>
+    </div>
+    <h3 class="td-obj${t.objeto_pt?'':' vazio'}">${t.objeto_pt?esc(t.objeto_pt):'Objeto não preenchido'}</h3>
+    <div class="td-meta">
+      ${t.atividades?`<span title="${esc(t.atividades.nome_pt||'')}">${tdIc('atividade')}${esc(t.atividades.codigo)}</span>`:''}
+      ${t.fornecedores?`<span>${tdIc(t.fornecedores.tipo==='PF'?'pessoa':'empresa')}${esc(t.fornecedores.nome)}</span>`:''}
+      ${t.prazo_limite?`<span>${tdIc('calendario')}Prazo ${fmtData(t.prazo_limite)}</span>`:''}
+      ${doc}
+    </div>
+    ${fase}
+    ${valores}
+    ${ctrs}
+  </article>`;
 }
 
 // ── ABRIR TDR ─────────────────────────────────────────────────
@@ -1330,7 +1239,7 @@ function atualizarBRL(taxa,val){
 // ── COMENTÁRIOS ───────────────────────────────────────────────
 function abrirComentario(){
   const modal=document.createElement('div');
-  modal.className='modal-overlay aberto';modal.id='modal-coment-tmp';
+  modal.className='modal-overlay dgm-claro aberto';modal.id='modal-coment-tmp';
   modal.innerHTML=`<div class="modal" style="max-width:460px">
     <div class="modal-header"><span class="modal-title">Adicionar comentário de revisão</span>
       <button class="modal-close" onclick="document.getElementById('modal-coment-tmp').remove()">✕</button></div>

@@ -7,9 +7,11 @@
    plataforma seguem o tema sem regra própria.
    Tema: html[data-tema="claro|escuro"], o mesmo 'diag_tema' do app.
    Também usado pelo Pulso da Equipe (pages/pulso.html + css/pulso.css):
-   .pu-ov entra no seletor de escopo abaixo. */
+   .pu-ov entra no seletor de escopo abaixo.
+   .dgm-claro = ilha sempre clara (só os tokens do tema claro): modais de
+   página que adotou a mesa mas ainda não revisou o modal (TDRs). */
 
-body.dgm :is(.main-content, .dgv-ov, .dgm-escolha, .pu-ov) {
+body.dgm :is(.main-content, .dgv-ov, .dgm-escolha, .pu-ov, .dgm-claro) {
   --pri-900: #123A26; --pri-700: #1D5A3C; --pri-600: #24704A; --pri-400: #52B788;
   --pri-100: #E3F1E8; --pri-50: #F1F8F3; --no-pri: #FFFFFF;
   --bg: #F3F5F3; --bg-2: #E9EDEA; --sup: #FFFFFF; --sup-2: #F7F9F7;
