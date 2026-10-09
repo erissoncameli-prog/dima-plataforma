@@ -1,138 +1,47 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Atividades</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-.atv-codigo{font-family:var(--font-mono);font-size:12px;font-weight:500;color:var(--cinza-700);background:var(--cinza-100);padding:2px 7px;border-radius:4px;}
-.resultado-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;}
-.r1{background:#E1F5EE;color:#085041}.r2{background:#E6F1FB;color:#0C447C}
-.r3{background:#EEEDFE;color:#3C3489}.r4{background:#F1EFE8;color:#444441}
-.fase-select{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;border:none;cursor:pointer;font-family:var(--font-sans);appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B7280'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;padding-right:20px;}
-.fs-A_INICIAR{background:#F3F4F6;color:#374151}.fs-ELABORACAO{background:#EFF6FF;color:#1E40AF}
-.fs-LICITACAO{background:#FFFBEB;color:#92400E}.fs-ELABORADO{background:#F0FDF4;color:#065F46}
-.fs-CONTRATADO{background:#ECFDF5;color:#065F46}.fs-CONCLUIDO{background:#1F2937;color:#F9FAFB}
-.saldo-bar{height:5px;background:var(--cinza-100);border-radius:2px;overflow:hidden;min-width:70px;position:relative;}
-.saldo-fill{height:100%;border-radius:2px;transition:width .4s;position:absolute;left:0;top:0;}
-.saldo-fill-pago{height:100%;border-radius:2px;position:absolute;left:0;top:0;background:var(--sucesso);z-index:2;}
-.saldo-fill-comp{height:100%;border-radius:2px;position:absolute;left:0;top:0;z-index:1;}
-.sf-ok{background:var(--verde-claro)}.sf-warn{background:var(--aviso)}.sf-red{background:var(--erro)}
-
-/* TDR count badge */
-.tdr-count{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;background:#E6F1FB;color:#0C447C;font-family:var(--font-mono);cursor:pointer;transition:all .15s;}
-
-/* Forçar tabela a respeitar largura do container */
-.card{overflow-x:auto;}
-.table-wrap{overflow-x:auto;width:100%;}
-.table-scroll{overflow-x:auto;}
-table{table-layout:fixed;width:100%;min-width:700px;}
-th{overflow:hidden;text-overflow:ellipsis;}
-td{overflow:visible;white-space:normal;word-break:break-word;vertical-align:top;padding-top:10px;padding-bottom:10px;}
-.tdr-count:hover{background:#BFDBFE;}.tdr-count.zero{background:#FEF2F2;color:#991B1B;}
-.tdr-count.ok{background:#ECFDF5;color:#065F46;}
-.tdr-count.alerta{background:#FEF3C7;color:#92400E;animation:pulso .8s ease-in-out infinite;}
-@keyframes pulso{0%,100%{opacity:1}50%{opacity:.6}}
-
-/* Painel TDRs da atividade (linha expansível) */
-.tdr-painel{display:none;background:var(--cinza-50);border-top:1px solid var(--borda);}
-.tdr-painel.aberto{display:table-row;}
-.tdr-painel-inner{padding:12px 16px;}
-
-/* Card TDR inline */
-.tdr-inline-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;transition:all .15s;}
-.tdr-inline-card:hover{border-color:var(--verde-claro);box-shadow:0 1px 6px rgba(45,106,79,.08);}
-.tdr-inline-card:last-child{margin-bottom:0;}
-.tdr-inline-card.sem-arquivo{border-left:3px solid var(--aviso);}
-.alerta-sem-arquivo{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--aviso);background:var(--aviso-bg);padding:2px 7px;border-radius:99px;}
-
-/* Responsáveis */
-.resp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--cinza-100);border:1px solid var(--borda);border-radius:99px;padding:3px 8px;font-size:11px;color:var(--cinza-700);margin:2px;}
-.resp-chip.principal{background:#E1F5EE;border-color:#9FE1CB;color:#085041;}
-.resp-chip.substituto{background:#FEF3C7;border-color:#FDE68A;color:#92400E;}
-.resp-avatar{width:20px;height:20px;border-radius:50%;background:var(--verde-medio);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
-.sem-resp{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--erro);background:var(--erro-bg);padding:2px 7px;border-radius:99px;animation:pulso .8s infinite;}
-
-/* Modal senha */
-.senha-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.6);align-items:center;justify-content:center;}
-.senha-overlay.aberto{display:flex;}
-.senha-box{background:var(--branco);border-radius:var(--raio-xl);box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:380px;margin:20px;overflow:hidden;}
-.senha-header{padding:18px 20px 14px;border-bottom:1px solid var(--borda);}
-.senha-title{font-size:14px;font-weight:600;color:var(--cinza-900);}
-.senha-sub{font-size:12px;color:var(--cinza-500);margin-top:3px;}
-.senha-body{padding:16px 20px;}
-.senha-footer{padding:12px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;}
-
-/* Modal */
-.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);align-items:center;justify-content:center;}
-.modal-overlay.aberto{display:flex;}
-.modal{background:var(--branco);border-radius:var(--raio-xl);box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:640px;max-height:90vh;overflow-y:auto;margin:20px;}
-.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;}
-.modal-title{font-size:16px;font-weight:600;color:var(--cinza-900)}
-.modal-close{width:28px;height:28px;border-radius:var(--raio);border:none;background:var(--cinza-100);color:var(--cinza-500);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
-.modal-close:hover{background:var(--cinza-300);}
-.modal-body{padding:20px 24px;}
-.modal-footer{padding:16px 24px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;}
-
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:18px 20px;position:relative;overflow:hidden;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
-.stat-card.verde::after{background:var(--verde-claro)}.stat-card.ouro::after{background:var(--ouro)}
-.stat-card.azul::after{background:var(--azul-medio)}.stat-card.roxo::after{background:#7F77DD}
-.stat-lbl{font-size:11px;color:var(--cinza-500);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
-.stat-val{font-size:24px;font-weight:600;color:var(--cinza-900);letter-spacing:-.02em;line-height:1;}
-.stat-sub{font-size:11px;color:var(--cinza-500);margin-top:5px;}
-</style>
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Atividades -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/atividades.css" rel="stylesheet">
 </head>
-<body>
-<div id="app">
-  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
-    <div style="text-align:center">
-      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      Carregando atividades...
+<body class="dgm">
+<div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando atividades…</div></div></div>
+
+<!-- Janelas fora do #app; .at-ov = escopo do tema (css/atividades.css) -->
+<div class="at-ov senha" id="modal-senha" role="dialog" aria-modal="true" aria-labelledby="senha-titulo">
+  <div class="at-modal">
+    <div class="at-mh"><div><span class="at-eyebrow">Confirmação</span><h2 id="senha-titulo">Confirmar ação</h2><p id="senha-sub">Digite sua senha para confirmar</p></div></div>
+    <div class="at-mb">
+      <label class="at-f" for="senha-input">Sua senha
+        <input id="senha-input" type="password" autocomplete="current-password" placeholder="Digite sua senha" onkeydown="if(event.key==='Enter')confirmarSenha()">
+      </label>
+      <div class="at-erro" id="senha-erro" role="alert" hidden><i data-ic="alerta"></i>Senha incorreta. Tente novamente.</div>
+    </div>
+    <div class="at-mf">
+      <button type="button" class="at-btn" onclick="fecharSenha()">Cancelar</button>
+      <button type="button" class="at-btn pri" id="senha-btn-ok" onclick="confirmarSenha()">Confirmar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL CONFIRMAÇÃO DE SENHA -->
-<div class="senha-overlay" id="modal-senha">
-  <div class="senha-box">
-    <div class="senha-header">
-      <div class="senha-title" id="senha-titulo">Confirmar ação</div>
-      <div class="senha-sub" id="senha-sub">Digite sua senha para confirmar</div>
+<div class="at-ov" id="modal-atividade" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+  <div class="at-modal">
+    <div class="at-mh">
+      <div><span class="at-eyebrow" id="modal-eyebrow">Editar</span><h2 id="modal-titulo">Atividade</h2></div>
+      <button type="button" class="at-btn ic" onclick="fecharModal()" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
-    <div class="senha-body">
-      <div class="form-group">
-        <label class="form-label">Sua senha <span class="obrig">*</span></label>
-        <input class="form-control" id="senha-input" type="password"
-          placeholder="Digite sua senha"
-          onkeydown="if(event.key==='Enter')confirmarSenha()">
-      </div>
-      <div id="senha-erro" style="font-size:12px;color:var(--erro);display:none;margin-top:4px">
-        ✗ Senha incorreta. Tente novamente.
-      </div>
-    </div>
-    <div class="senha-footer">
-      <button class="btn btn-secondary" onclick="fecharSenha()">Cancelar</button>
-      <button class="btn btn-primary" id="senha-btn-ok" onclick="confirmarSenha()">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL EDITAR ATIVIDADE -->
-<div class="modal-overlay" id="modal-atividade">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-titulo">Editar Atividade</span>
-      <button class="modal-close" onclick="fecharModal()">✕</button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-      <button id="btn-salvar-atividade" class="btn btn-primary" onclick="salvarAtividade()">Salvar alterações</button>
+    <div class="at-mb" id="modal-body"></div>
+    <div class="at-mf">
+      <button type="button" class="at-btn" onclick="fecharModal()">Cancelar</button>
+      <button type="button" id="btn-salvar-atividade" class="at-btn pri" onclick="salvarAtividade()">Salvar alterações</button>
     </div>
   </div>
 </div>
@@ -141,6 +50,7 @@ td{overflow:visible;white-space:normal;word-break:break-word;vertical-align:top;
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script>
 let todasAtividades = [];
 let ativFiltradas = [];
@@ -154,6 +64,47 @@ let respPorAtividade = {};
 let senhaCallback = null;
 let todosMatrizItens = []; // cache dos indicadores da matriz
 let matrizPorAtividade = {}; // cache de vínculos atividade_matriz
+let filtroResultado = '';
+
+// ── Ícones (SVG, sem emoji) ───────────────────────────────
+const AT_IC = {
+  lista:'<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+  moeda:'<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/>',
+  doc:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  play:'<circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/>',
+  alerta:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  busca:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  lapis:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  olho:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+  clipe:'<path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/>',
+  seta:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  mais:'<path d="M12 5v14M5 12h14"/>',
+  cadeado:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  pessoa:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  alvo:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+};
+function atIc(n, cls){ return `<svg class="at-ic${cls?' '+cls:''}" viewBox="0 0 24 24" aria-hidden="true">${AT_IC[n]||''}</svg>`; }
+document.querySelectorAll('i[data-ic]').forEach(e => { e.outerHTML = atIc(e.dataset.ic); });
+
+// ── Vocabulário (cores = tokens de css/atividades.css) ────
+const FASES_ATV = ['A_INICIAR','ELABORACAO','LICITACAO','ELABORADO','CONTRATADO','CONCLUIDO'];
+function pillFase(f){ return `<span class="at-pill at-pf" style="--c:var(--at-f-${String(f||'a_iniciar').toLowerCase()})">${esc(t('fases',f)||f||'—')}</span>`; }
+// Nomes antigos de status de TDR → atuais (mesmo mapeamento de tdrs.html)
+const TDR_NORM = {enviado_unesco:'em_revisao_unesco',retorno_unesco:'em_revisao_unesco',revisao_interna:'submetido',ajustes:'pendente_correcao'};
+const TDR_FASE = {
+  rascunho:['Rascunho','rascunho'], submetido:['Submetido','submetido'], pendente_correcao:['Pendente de correção','pendente'],
+  em_avaliacao:['Em avaliação','avaliacao'], em_revisao_unesco:['Revisão UNESCO','unesco'], aprovado:['Aprovado','aprovado'],
+  em_licitacao:['Em licitação','licitacao'], contratado:['Contratado','contratado'], cancelado:['Cancelado','cancelado']
+};
+function pillTDR(s){ const f = TDR_FASE[TDR_NORM[s]||s] || [s||'—','rascunho']; return `<span class="at-pill at-pf" style="--c:var(--at-t-${f[1]})">${esc(f[0])}</span>`; }
+function resTok(cod){ const m=/^R([1-4])$/.exec(cod||''); return m ? `--at-r${m[1]}` : '--at-rx'; }
+function usdc(v){ v=parseFloat(v||0); const a=Math.abs(v); if(a>=1e6) return 'US$ '+(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2})+' mi'; if(a>=1e3) return 'US$ '+Math.round(v/1e3)+' mil'; return 'US$ '+Math.round(v); }
+function usd(v){ return (v==null||v==='') ? '—' : 'US$ '+Number(v).toLocaleString('pt-BR',{maximumFractionDigits:0}); }
+function iniciais(nome){ return (nome||'?').split(' ').filter(Boolean).slice(0,2).map(n=>n[0]).join('').toUpperCase(); }
 
 (async () => {
   const usuario = await carregarUsuario();
@@ -161,68 +112,73 @@ let matrizPorAtividade = {}; // cache de vínculos atividade_matriz
 
   document.getElementById('app').innerHTML =
     gerarLayout('Atividades', 'atividades') +
-    `<div class="fade-in">
-      <div class="stat-row" id="stats-row"></div>
+    `<div class="fade-in at-pagina">
+      <div class="at-kpis" id="stats-row"></div>
+      <div id="aviso-resp"></div>
 
-      <div class="filter-bar" style="margin-bottom:14px">
-        <input class="form-control search-input" type="text" id="busca"
-          placeholder="Buscar por código ou nome..." oninput="filtrar()">
-        <select class="form-control" id="fil-resultado" onchange="filtrar()" style="width:160px">
-          <option value="">Todos os Resultados</option>
-          <option value="R1">Resultado 1</option>
-          <option value="R2">Resultado 2</option>
-          <option value="R3">Resultado 3</option>
-          <option value="R4">Resultado 4</option>
+      <div class="at-filtros" role="group" aria-label="Filtros">
+        <label class="at-busca">${atIc('busca','p')}<input type="search" id="busca" placeholder="Código ou nome da atividade" aria-label="Buscar atividade" oninput="filtrar()"></label>
+        <div class="at-seg" role="group" aria-label="Resultado" id="fil-resultado">
+          ${['','R1','R2','R3','R4'].map(r=>`<button type="button" data-r="${r}" aria-pressed="${r===''}" onclick="filtrarResultado('${r}')">${r||'Todos'}</button>`).join('')}
+        </div>
+        <select id="fil-fase" onchange="filtrar()" aria-label="Fase">
+          <option value="">Todas as fases</option>
+          ${FASES_ATV.map(f=>`<option value="${f}">${t('fases',f)}</option>`).join('')}
         </select>
-        <select class="form-control" id="fil-fase" onchange="filtrar()" style="width:160px">
-          <option value="">Todas as Fases</option>
-          <option value="A_INICIAR">A Iniciar</option>
-          <option value="ELABORACAO">Elaboração</option>
-          <option value="LICITACAO">Licitação</option>
-          <option value="ELABORADO">Elaborado</option>
-          <option value="CONTRATADO">Contratado</option>
-          <option value="CONCLUIDO">Concluído</option>
-        </select>
-        <select class="form-control" id="fil-tdr-sit" onchange="filtrar()" style="width:150px">
-          <option value="">TDRs: Todos</option>
+        <select id="fil-tdr-sit" onchange="filtrar()" aria-label="Situação dos TDRs e responsáveis">
+          <option value="">TDRs: todos</option>
           <option value="com">Com TDR cadastrado</option>
           <option value="sem">Sem TDR</option>
-          <option value="alerta">⚠ Sem arquivo</option>
+          <option value="alerta">TDR sem arquivo</option>
+          <option value="semresp">Sem responsável</option>
         </select>
-        <span id="contador" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
-        ${PODE.editarAtividade() ? `<button class="btn btn-primary btn-sm" onclick="novaAtividade()">+ Nova atividade</button>` : ''}
+        <span id="contador" class="at-cont"></span>
+        ${PODE.editarAtividade() ? `<button type="button" class="at-btn pri" onclick="novaAtividade()">${atIc('mais','p')}Nova atividade</button>` : ''}
       </div>
 
-      <div class="card">
-        <div class="table-wrap">
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th style="width:90px">Código</th>
-                  <th>Nome da Atividade</th>
-                  <th style="width:60px">Result.</th>
-                  <th style="width:130px">Fase</th>
-                  <th style="width:110px">Orçamento U$</th>
-                  <th style="width:120px">Comprometido U$<div style="font-size:9px;font-weight:400;color:var(--cinza-400,#9CA3AF)">(TDRs ativos)</div></th>
-                  <th style="width:110px">Pago U$<div style="font-size:9px;font-weight:400;color:var(--cinza-400,#9CA3AF)">(financeiro)</div></th>
-                  <th style="width:140px">Responsável(is)</th>
-                  <th style="width:120px">TDRs</th>
-                  ${PODE.editarAtividade() || PODE.verAtividade?.() ? `<th style="width:60px">Ações</th>` : ''}
-                </tr>
-              </thead>
-              <tbody id="tbody-atividades">
-                <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--cinza-500)">Carregando...</td></tr>
-              </tbody>
-            </table>
-          </div>
+      <div class="at-card">
+        <div class="at-tbl-w">
+          <table class="at-tbl">
+            <thead>
+              <tr>
+                <th style="width:84px">Código</th>
+                <th>Atividade</th>
+                <th style="width:130px">Fase</th>
+                <th class="n" style="width:120px">Orçamento</th>
+                <th style="width:210px">Execução <span style="font-weight:400;text-transform:none;letter-spacing:0">(pago · comprometido)</span></th>
+                <th style="width:150px">Responsáveis</th>
+                <th style="width:120px">TDRs</th>
+                ${PODE.editarAtividade() || PODE.verAtividade?.() ? `<th style="width:52px"><span class="sr-only">Ações</span></th>` : ''}
+              </tr>
+            </thead>
+            <tbody id="tbody-atividades">
+              <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--txt-3)">Carregando…</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>` +
     `</div></div></div>`;
-
+  carregarLogosSidebar();
+  seletorTema();
   await carregarDados();
 })();
+
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico, de TDRs e da Visão Geral (componente .dgm-tema)
+function seletorTema(){
+  const tb=document.querySelector('.topbar'); if(!tb||tb.querySelector('.dgm-tema')||typeof DiagTema==='undefined')return;
+  const d=document.createElement('div');
+  d.className='dgm-tema'; d.setAttribute('role','group'); d.setAttribute('aria-label','Tema');
+  d.innerHTML=[['claro','sol','Claro'],['escuro','lua','Escuro']].map(([tm,ic,r])=>
+    `<button type="button" data-tema="${tm}" aria-pressed="${DiagTema.atual()===tm}">${atIc(ic)}${r}</button>`).join('');
+  const bc=tb.querySelector('.topbar-breadcrumb');
+  if(bc)bc.parentNode.insertBefore(d,bc); else tb.appendChild(d);
+  d.addEventListener('click',ev=>{
+    const b=ev.target.closest('[data-tema]'); if(!b)return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  });
+}
 
 async function carregarDados() {
   try {
@@ -241,6 +197,7 @@ async function carregarDados() {
       db.from('usuarios').select('id,nome_completo,perfil,email').eq('ativo',true).order('nome_completo'),
       db.from('atividade_responsaveis').select('*').eq('ativo',true)
     ]);
+
     todosUsuarios = usuarios || [];
 
     // Carregar indicadores da matriz e vínculos existentes em paralelo
@@ -255,14 +212,11 @@ async function carregarDados() {
       matrizPorAtividade[l.atividade_id].push(l.matriz_item_id);
     });
 
-    // Mapear resultados
     resultados?.forEach(r => { resultadosMap[r.id] = r; });
 
-    // Mapear saldos
     const saldoMap = {};
     (saldos||[]).forEach(s => { saldoMap[s.id] = s; });
 
-    // Mapear TDRs por atividade
     tdrsPorAtividade = {};
     (tdrsData||[]).filter(t=>t.status!=='cancelado').forEach(t => {
       if (!tdrsPorAtividade[t.atividade_id]) tdrsPorAtividade[t.atividade_id] = [];
@@ -270,7 +224,6 @@ async function carregarDados() {
       if (t.arquivo_url) tdrsAbertos[t.id] = t.arquivo_url;
     });
 
-    // Mapear responsáveis por atividade
     respPorAtividade = {};
     (respData||[]).forEach(r => {
       if (!respPorAtividade[r.atividade_id]) respPorAtividade[r.atividade_id] = [];
@@ -278,7 +231,6 @@ async function carregarDados() {
       respPorAtividade[r.atividade_id].push({...r, usuario: u});
     });
 
-    // Enriquecer atividades
     todasAtividades = (atividades||[]).map(a => {
       const tdrs = tdrsPorAtividade[a.id] || [];
       const semArquivo = tdrs.filter(t => !t.arquivo_url).length;
@@ -305,47 +257,51 @@ async function carregarDados() {
 function renderStats() {
   const total = todasAtividades.length;
   const contratadas = todasAtividades.filter(a => a.fase === 'CONTRATADO').length;
+  const concluidas = todasAtividades.filter(a => a.fase === 'CONCLUIDO').length;
   const comTdr = todasAtividades.filter(a => a.tdrs_count > 0).length;
+  const semArq = todasAtividades.filter(a => a.tdrs_sem_arquivo > 0).length;
   const orcTotal = todasAtividades.reduce((s,a)=>s+parseFloat(a.orcamento_usd||0),0);
+  const compTotal = todasAtividades.reduce((s,a)=>s+parseFloat(a.saldo?.comprometido_usd||0),0);
+  const pagoTotal = todasAtividades.reduce((s,a)=>s+parseFloat(a.saldo?.pago_usd||0),0);
   const emExecucao = todasAtividades.filter(a=>['ELABORADO','CONTRATADO'].includes(a.fase)).length;
   const semResp = todasAtividades.filter(a => !a.tem_responsavel).length;
+  const pPago = orcTotal>0 ? pagoTotal/orcTotal*100 : 0;
+  const pComp = orcTotal>0 ? Math.min(compTotal/orcTotal*100,100) : 0;
+  const nRes = new Set(todasAtividades.map(a=>a.resultado_codigo).filter(Boolean)).size;
 
   document.getElementById('stats-row').innerHTML = `
-    <div class="stat-card verde">
-      <div class="stat-lbl">Total de Atividades</div>
-      <div class="stat-val">${total}</div>
-      <div class="stat-sub">${contratadas} contratadas</div>
-    </div>
-    <div class="stat-card ouro">
-      <div class="stat-lbl">Orçamento Total</div>
-      <div class="stat-val" style="font-size:18px">${fmtUSD(orcTotal)}</div>
-      <div class="stat-sub">4 Resultados</div>
-    </div>
-    <div class="stat-card azul">
-      <div class="stat-lbl">Ativ. com TDR</div>
-      <div class="stat-val">${comTdr}</div>
-      <div class="stat-sub">de ${total} atividades</div>
-    </div>
-    <div class="stat-card roxo">
-      <div class="stat-lbl">Em Execução</div>
-      <div class="stat-val">${emExecucao}</div>
-      <div class="stat-sub">elaborado + contratado</div>
-    </div>
-    ${semResp>0?`<div class="stat-card" style="grid-column:span 4;background:var(--erro-bg);border-color:var(--erro)">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:20px">⚠</span>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:var(--erro)">${semResp} atividade(s) sem responsável cadastrado</div>
-          <div style="font-size:11px;color:var(--erro);opacity:.8">Atividades sem responsável não podem ter TDRs cadastrados</div>
-        </div>
-        <button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="document.getElementById('fil-tdr-sit').value='';document.getElementById('busca').value='';filtrar()">Ver todas</button>
-      </div>
-    </div>`:''}`;
+    <div class="at-kpi"><div class="at-kpi-l">${atIc('lista')}Atividades</div><div class="at-kpi-v">${total}</div><div class="at-kpi-s">${contratadas} contratadas · ${concluidas} concluídas</div></div>
+    <div class="at-kpi"><div class="at-kpi-l">${atIc('moeda')}Orçamento</div><div class="at-kpi-v">${usdc(orcTotal)}</div>
+      <div class="at-meter"><i style="width:${Math.min(pPago,100).toFixed(1)}%;background:var(--at-pago)"></i><i style="width:${Math.max(0,pComp-pPago).toFixed(1)}%;background:var(--at-comp)"></i></div>
+      <div class="at-kpi-s">${Math.round(pPago)}% pago · ${Math.round(orcTotal>0?compTotal/orcTotal*100:0)}% comprometido · ${nRes} resultados</div></div>
+    <div class="at-kpi"><div class="at-kpi-l">${atIc('doc')}Com TDR</div><div class="at-kpi-v">${comTdr} / ${total}</div>
+      <div class="at-meter"><i style="width:${total?(comTdr/total*100).toFixed(1):0}%;background:var(--pri-600)"></i></div>
+      <div class="at-kpi-s">${semArq ? semArq+' com TDR sem arquivo' : 'todos os TDRs com arquivo'}</div></div>
+    <div class="at-kpi"><div class="at-kpi-l">${atIc('play')}Em execução</div><div class="at-kpi-v">${emExecucao}</div><div class="at-kpi-s">elaborado + contratado</div></div>`;
+
+  document.getElementById('aviso-resp').innerHTML = semResp>0 ? `
+    <div class="at-aviso" role="status">
+      ${atIc('alerta')}
+      <div class="tx"><b>${semResp} atividade${semResp>1?'s':''} sem responsável</b>Sem responsável a atividade não pode ter TDR cadastrado.</div>
+      <button type="button" class="at-btn perigo peq" onclick="mostrarSemResponsavel()">Mostrar só essas</button>
+    </div>` : '';
+}
+
+function mostrarSemResponsavel(){
+  document.getElementById('busca').value='';
+  document.getElementById('fil-fase').value='';
+  document.getElementById('fil-tdr-sit').value='semresp';
+  filtrarResultado('');
+}
+function filtrarResultado(r){
+  filtroResultado = r;
+  document.querySelectorAll('#fil-resultado button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.r===r)));
+  filtrar();
 }
 
 function filtrar() {
   const busca = document.getElementById('busca').value.toLowerCase();
-  const res = document.getElementById('fil-resultado').value;
+  const res = filtroResultado;
   const fase = document.getElementById('fil-fase').value;
   const tdrSit = document.getElementById('fil-tdr-sit').value;
 
@@ -357,168 +313,103 @@ function filtrar() {
     if (tdrSit === 'com' && a.tdrs_count === 0) return false;
     if (tdrSit === 'sem' && a.tdrs_count > 0) return false;
     if (tdrSit === 'alerta' && a.tdrs_sem_arquivo === 0) return false;
+    if (tdrSit === 'semresp' && a.tem_responsavel) return false;
     return true;
   });
 
   document.getElementById('contador').textContent =
     `${ativFiltradas.length} de ${todasAtividades.length} atividades`;
-
   renderTabela();
+}
+
+// Coluna Execução: pago em destaque, barra (pago + comprometido) e saldo livre
+function celExecucao(a){
+  const s = a.saldo;
+  const orc = parseFloat(s?.orcamento_usd ?? a.orcamento_usd ?? 0);
+  const comp = parseFloat(s?.comprometido_usd||0);
+  const pago = parseFloat(s?.pago_usd||0);
+  const pct = s ? parseFloat(s.pct_comprometido||0) : 0;
+  const pPago = orc>0 ? Math.min(pago/orc*100,100) : 0;
+  const pComp = Math.min(pct,100);
+  const livre = s?.saldo_livre_usd ?? orc;
+  const acima = livre < 0;
+  return `<div class="at-exec">
+    <div class="pago"><span>Pago</span><b>${pago>0?usdc(pago):'—'}</b><span>${pago>0?Math.round(pPago)+'% do orçamento':''}</span></div>
+    <div class="at-meter" role="img" aria-label="${Math.round(pPago)}% pago, ${Math.round(pct)}% comprometido">
+      <i style="width:${pPago.toFixed(1)}%;background:var(--at-pago)"></i><i style="width:${Math.max(0,pComp-pPago).toFixed(1)}%;background:var(${acima?'--at-exc':'--at-comp'})"></i>
+    </div>
+    <div class="ln"><span>comp. <b>${comp>0?usdc(comp):'—'}</b></span><b>${Math.round(pct)}%</b></div>
+    <div class="ln">${acima ? `<span class="acima">${atIc('alerta','p')} ${usdc(Math.abs(livre))} acima do orçamento</span>` : `<span>${usdc(livre)} livre</span>`}</div>
+  </div>`;
+}
+
+function celResponsaveis(a){
+  if (!a.responsaveis.length) return `<span class="at-pill at-p-er">${atIc('alerta','p')}Sem responsável</span>`;
+  const r0 = a.responsaveis[0];
+  return `<div class="at-av">${a.responsaveis.slice(0,3).map(r=>`<span class="at-ini${r.papel==='substituto'?' sub':''}" title="${esc((r.usuario?.nome_completo||'')+(r.papel==='substituto'?' (substituto)':' (responsável)'))}">${esc(iniciais(r.usuario?.nome_completo))}</span>`).join('')}
+    <em>${esc((r0.usuario?.nome_completo||'').split(' ')[0])}${a.responsaveis.length>1?' +'+(a.responsaveis.length-1):''}</em></div>`;
 }
 
 function renderTabela() {
   const tbody = document.getElementById('tbody-atividades');
+  const podEditar = PODE.editarAtividade();
+  const podVer = PODE.verAtividade?.() ?? false;
+  const nCols = (podEditar||podVer) ? 8 : 7;
   if (!ativFiltradas.length) {
-    tbody.innerHTML = `<tr><td colspan="8">
-      <div class="empty-state"><div class="empty-state-icon">◈</div>
-      <div class="empty-state-msg">Nenhuma atividade encontrada.</div></div>
-    </td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${nCols}"><div class="at-vazio">Nenhuma atividade encontrada com esses filtros.</div></td></tr>`;
     return;
   }
 
   tbody.innerHTML = ativFiltradas.map(a => {
-    const s = a.saldo;
-    const pct = s ? parseFloat(s.pct_comprometido||0) : 0;
-    const pctPago = s ? parseFloat(s.pct_pago||0) : 0;
-    const corBarra = pct>100?'sf-red':pct>80?'sf-warn':'sf-ok';
-    const corCompBg = pct>100?'var(--erro)':pct>80?'var(--aviso)':'var(--azul-medio)';
     const rCod = a.resultado_codigo||'';
-    const nomeAtv = campo(a,'nome');
-    const faseClasse = `fs-${a.fase}`;
-    const podEditar = PODE.editarAtividade();
-    const podVer = PODE.verAtividade?.() ?? false;
     const tdrsAtiv = tdrsPorAtividade[a.id]||[];
     const temAlerta = a.tdrs_sem_arquivo > 0;
     const painelId = `painel-${a.id}`;
+    const aberto = !!painelAberto[a.id];
+    const tdrClass = a.tdrs_count===0?'zero':temAlerta?'al':'';
+    const tdrTxt = a.tdrs_count===0 ? 'Sem TDR' : `${a.tdrs_count} TDR${a.tdrs_count!==1?'s':''}`;
 
-    const faseOptions = ['A_INICIAR','ELABORACAO','LICITACAO','ELABORADO','CONTRATADO','CONCLUIDO']
-      .map(f=>`<option value="${f}" ${a.fase===f?'selected':''}>${t('fases',f)}</option>`)
-      .join('');
-
-    // Badge TDR
-    let tdrClass = a.tdrs_count===0?'zero':temAlerta?'alerta':'ok';
-    let tdrTxt = a.tdrs_count===0
-      ? '0 TDRs'
-      : `${a.tdrs_count} TDR${a.tdrs_count!==1?'s':''}${temAlerta?' ⚠':''}`;
-
-    const linhaAtiv = `<tr id="row-${a.id}">
-      <td><span class="atv-codigo">${a.codigo}</span></td>
-      <td>
-        <div style="font-size:12px;font-weight:500;color:var(--cinza-900);line-height:1.4;word-break:break-word;white-space:normal;">
-          ${nomeAtv}
-        </div>
-        ${a.wbs_unesco?`<div style="font-size:10px;color:var(--cinza-500);font-family:var(--font-mono);margin-top:2px">${a.wbs_unesco}</div>`:''}
+    const linhaAtiv = `<tr class="at-lin${aberto?' aberta':''}" id="row-${a.id}">
+      <td><span class="at-cod">${esc(a.codigo)}</span></td>
+      <td class="c-nome">
+        <div class="at-nm">${rCod?`<span class="at-rtag" style="background:var(${resTok(rCod)})">${esc(rCod)}</span>`:''}${esc(campo(a,'nome'))}</div>
+        ${a.wbs_unesco?`<div class="at-wbs">${esc(a.wbs_unesco)}</div>`:''}
       </td>
-      <td><span class="resultado-tag ${rCod.toLowerCase()}">${rCod}</span></td>
+      <td>${pillFase(a.fase)}</td>
+      <td class="c-orc"><div class="at-num">${usd(a.orcamento_usd)}</div></td>
+      <td class="c-exec">${celExecucao(a)}</td>
+      <td>${celResponsaveis(a)}</td>
       <td>
-        ${podEditar
-          ?`<select class="fase-select ${faseClasse}" onchange="alterarFase('${a.id}',this)">${faseOptions}</select>`
-          :`<span class="badge" style="background:var(--badge-gray)">${t('fases',a.fase)}</span>`}
+        <button type="button" class="at-tdrb ${tdrClass}" aria-expanded="${aberto}" aria-controls="${painelId}" onclick="togglePainel('${a.id}')"
+          title="${temAlerta?a.tdrs_sem_arquivo+' TDR(s) sem arquivo':'Ver os TDRs da atividade'}">${temAlerta?atIc('alerta','p'):''}${tdrTxt}${atIc('chev','p chev')}</button>
+        ${a.tdrs_valor_usd>0?`<div class="at-tdrv">${usdc(a.tdrs_valor_usd)}</div>`:''}
       </td>
-      <td><div style="font-family:var(--font-mono);font-size:12px;font-weight:500">${fmtUSD(a.orcamento_usd)}</div></td>
-      <td>
-        <div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:${pct>100?'var(--erro)':pct>80?'var(--aviso)':'var(--cinza-900)'}">
-          ${s?.comprometido_usd>0 ? fmtUSD(s.comprometido_usd) : '—'}
-        </div>
-        <div class="saldo-bar" style="margin-top:4px;margin-bottom:3px">
-          <div class="saldo-fill-comp" style="width:${Math.min(pct,100)}%;background:${corCompBg}"></div>
-          <div class="saldo-fill-pago" style="width:${Math.min(parseFloat(s?.pct_pago||0),100)}%"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:10px">
-          ${(()=>{
-            const saldoVal = s?.saldo_livre_usd ?? a.orcamento_usd;
-            const isNeg = saldoVal < 0;
-            const corSaldo = isNeg ? 'var(--erro)' : 'var(--cinza-500)';
-            const labelSaldo = isNeg ? 'extrapolado' : 'livre';
-            const valorAbs = Math.abs(saldoVal);
-            return `<span style="color:${corSaldo};font-weight:${isNeg?'600':'400'}">
-              ${isNeg ? '⚠ ' : ''}${fmtUSD(valorAbs)} ${labelSaldo}
-            </span>`;
-          })()}
-          <span style="color:${pct>100?'var(--erro)':pct>80?'var(--aviso)':'var(--cinza-500)'}">${Math.round(pct)}%</span>
-        </div>
-      </td>
-      <td>
-        <div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:${s?.pago_usd>0?'var(--sucesso)':'var(--cinza-400,#9CA3AF)'}">
-          ${s?.pago_usd>0 ? fmtUSD(s.pago_usd) : '—'}
-        </div>
-        ${s?.pago_usd>0 ? `<div style="font-size:10px;color:var(--cinza-500);margin-top:2px">${Math.round(s?.pct_pago||0)}% do orçamento</div>` : ''}
-      </td>
-      <td>
-        ${a.responsaveis.length>0
-          ? a.responsaveis.slice(0,2).map(r=>{
-              const iniciais=(r.usuario?.nome_completo||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
-              return`<span class="resp-chip ${r.papel==='substituto'?'substituto':'principal'}" title="${r.usuario?.nome_completo||''}">
-                <span class="resp-avatar">${iniciais}</span>
-                ${(r.usuario?.nome_completo||'').split(' ')[0]}
-                ${r.papel==='substituto'?'<span style="font-size:9px">(sub.)</span>':''}
-              </span>`;
-            }).join('')+(a.responsaveis.length>2?`<span class="resp-chip" style="cursor:pointer" onclick="abrirModal('${a.id}')">+${a.responsaveis.length-2}</span>`:'')
-          : `<span class="sem-resp">⚠ Sem responsável</span>`}
-      </td>
-      <td>
-        <div style="display:flex;flex-direction:column;gap:3px">
-          <span class="tdr-count ${tdrClass}" onclick="togglePainel('${a.id}')" title="Clique para ver os TDRs">
-            ${tdrTxt} ▾
-          </span>
-          ${a.tdrs_valor_usd>0?`<span style="font-family:var(--font-mono);font-size:10px;color:var(--cinza-500)">${fmtUSD(a.tdrs_valor_usd)}</span>`:''}
-        </div>
-      </td>
-      ${podEditar?`<td>
-        <button class="btn btn-sm btn-secondary btn-icon" title="Editar" onclick="abrirModal('${a.id}')">✏️</button>
-      </td>`:podVer?`<td>
-        <button class="btn btn-sm btn-secondary btn-icon" title="Visualizar" onclick="abrirModal('${a.id}',true)">👁</button>
-      </td>`:''}
+      ${podEditar?`<td><button type="button" class="at-btn ic" aria-label="Editar ${esc(a.codigo)}" title="Editar" onclick="abrirModal('${a.id}')">${atIc('lapis')}</button></td>`
+        :podVer?`<td><button type="button" class="at-btn ic" aria-label="Ver ${esc(a.codigo)}" title="Ver" onclick="abrirModal('${a.id}',true)">${atIc('olho')}</button></td>`:''}
     </tr>`;
 
-    // Painel expansível com TDRs
-    const painelTdrs = `<tr class="tdr-painel" id="${painelId}">
-      <td colspan="${(podEditar||podVer)?10:9}" style="padding:0">
-        <div class="tdr-painel-inner">
-          <div style="font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px">
-            TDRs vinculados à atividade ${a.codigo}
-            ${temAlerta?`<span style="font-size:10px;font-weight:600;color:var(--aviso);background:var(--aviso-bg);padding:2px 8px;border-radius:99px">⚠ ${a.tdrs_sem_arquivo} sem arquivo carregado</span>`:''}
-            <a href="tdrs.html" class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:11px">Ver todos os TDRs →</a>
+    const painelTdrs = `<tr class="at-painel" id="${painelId}"${aberto?'':' hidden'}>
+      <td colspan="${nCols}">
+        <div class="at-painel-in">
+          <div class="at-painel-hd">TDRs da atividade ${esc(a.codigo)}
+            ${temAlerta?`<span class="at-pill at-p-al">${atIc('alerta','p')}${a.tdrs_sem_arquivo} sem arquivo</span>`:''}
+            <a href="tdrs.html" class="at-btn peq">Abrir em TDRs${atIc('seta','p')}</a>
           </div>
           ${tdrsAtiv.length ? tdrsAtiv.map(tdr => {
             const semArq = !tdr.arquivo_url;
-            return `<div class="tdr-inline-card ${semArq?'sem-arquivo':''}">
-              <div style="flex:1;min-width:0">
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
-                  <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--cinza-100);padding:2px 8px;border-radius:3px">${tdr.numero}</span>
-                  <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;background:${tdr.tipo==='PF'?'#E1F5EE':'#E6F1FB'};color:${tdr.tipo==='PF'?'#085041':'#0C447C'}">${tdr.tipo}</span>
-                  ${badgeStatusTDR(tdr.status)}
-                  ${semArq?`<span class="alerta-sem-arquivo">⚠ Sem arquivo no sistema</span>`:''}
-                </div>
-                <div style="font-size:12px;color:var(--cinza-700);line-height:1.4;margin-bottom:6px">
-                  ${(tdr.objeto_pt||'—').substring(0,120)}${(tdr.objeto_pt||'').length>120?'…':''}
-                </div>
-                <div style="display:flex;gap:16px;flex-wrap:wrap">
-                  <div>
-                    <span style="font-size:10px;color:var(--cinza-500)">Valor R$</span>
-                    <div style="font-family:var(--font-mono);font-size:12px;font-weight:600">${fmtBRL(tdr.valor_brl)}</div>
-                  </div>
-                  <div>
-                    <span style="font-size:10px;color:var(--cinza-500)">Valor U$</span>
-                    <div style="font-family:var(--font-mono);font-size:12px;font-weight:600">${fmtUSD(tdr.valor_usd)}</div>
-                  </div>
-                  ${tdr.prioridade?`<div>
-                    <span style="font-size:10px;color:var(--cinza-500)">Prioridade</span>
-                    <div style="font-size:12px;font-weight:500">${tdr.prioridade}</div>
-                  </div>`:''}
-                </div>
+            return `<div class="at-tdrc${semArq?' sem':''}">
+              <div style="min-width:0">
+                <div class="tp"><span class="at-cod">${esc(tdr.numero)}</span>${tdr.tipo?`<span class="at-pill at-p-ne">${esc(tdr.tipo)}</span>`:''}${pillTDR(tdr.status)}${semArq?`<span class="at-pill at-p-al">${atIc('alerta','p')}Sem arquivo no sistema</span>`:''}</div>
+                <div class="ob">${esc((tdr.objeto_pt||'—').substring(0,140))}${(tdr.objeto_pt||'').length>140?'…':''}</div>
+                <div class="vs"><span>R$ <b>${fmtBRL(tdr.valor_brl).replace('R$','').trim()}</b></span><span>US$ <b>${tdr.valor_usd!=null?Number(tdr.valor_usd).toLocaleString('pt-BR',{maximumFractionDigits:0}):'—'}</b></span>${tdr.prioridade?`<span>Prioridade <b>${esc(tdr.prioridade)}</b></span>`:''}</div>
               </div>
-              <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end">
-                ${tdr.arquivo_url
-                  ?`<button class="btn btn-sm btn-primary" onclick="abrirArquivoTDR('${tdr.id}',tdrsAbertos['${tdr.id}'])">📎 Abrir TDR</button>`
-                  :`<button class="btn btn-sm btn-secondary" style="opacity:.5;cursor:not-allowed" disabled>📎 Sem arquivo</button>`}
-                <a href="tdrs.html" class="btn btn-sm btn-secondary" style="font-size:11px">Ver detalhes</a>
-              </div>
+              <div class="ac">${tdr.arquivo_url
+                ? `<button type="button" class="at-btn pri peq" onclick="abrirArquivoTDR('${tdr.id}',tdrsAbertos['${tdr.id}'])">${atIc('clipe','p')}Abrir TDR</button>`
+                : `<button type="button" class="at-btn peq" disabled>${atIc('clipe','p')}Sem arquivo</button>`}</div>
             </div>`;
           }).join('') :
-          `<div style="text-align:center;padding:20px;color:var(--cinza-500);font-size:13px">
-            Nenhum TDR cadastrado para esta atividade.
-            ${PODE.editarTDR()?`<a href="tdrs.html" class="btn btn-sm btn-primary" style="margin-left:10px">+ Criar TDR</a>`:''}
+          `<div class="at-vazio">Nenhum TDR cadastrado para esta atividade.
+            ${PODE.editarTDR()?`<a href="tdrs.html" class="at-btn pri peq">${atIc('mais','p')}Criar TDR</a>`:''}
           </div>`}
         </div>
       </td>
@@ -531,14 +422,11 @@ function renderTabela() {
 function togglePainel(ativId) {
   const el = document.getElementById(`painel-${ativId}`);
   if (!el) return;
-  const aberto = el.classList.toggle('aberto');
+  const aberto = el.hidden;
+  el.hidden = !aberto;
   painelAberto[ativId] = aberto;
-  // Atualizar ícone do badge
-  const badge = document.querySelector(`#row-${ativId} .tdr-count`);
-  if (badge) {
-    const txt = badge.textContent.replace('▾','').replace('▴','').trim();
-    badge.textContent = txt + (aberto?' ▴':' ▾');
-  }
+  document.getElementById(`row-${ativId}`)?.classList.toggle('aberta', aberto);
+  document.querySelector(`#row-${ativId} .at-tdrb`)?.setAttribute('aria-expanded', String(aberto));
 }
 
 async function abrirArquivoTDR(tdrId, url) {
@@ -550,209 +438,126 @@ async function abrirArquivoTDR(tdrId, url) {
       await abrirDoc(url);
       toast('Link gerado — válido por 1 hora.','success');
     } else {
-      // É Drive — abrir direto e orientar o usuário
       window.open(url, '_blank');
       toast('Arquivo no Google Drive — para editar no sistema, abra o editor e faça o upload do .docx.','info');
     }
   } catch(e) { window.open(url,'_blank'); }
 }
 
-async function alterarFase(id, sel) {
-  const novaFase = sel.value;
-  sel.className = `fase-select fs-${novaFase}`;
-  try {
-    const { error } = await db.from('atividades').update({ fase: novaFase }).eq('id', id);
-    if (error) throw error;
-    const atv = todasAtividades.find(a => a.id === id);
-    if (atv) atv.fase = novaFase;
-    toast('Fase atualizada!', 'success');
-  } catch(e) { toast('Erro ao atualizar fase.', 'error'); }
-}
+// ── Janela de edição ──────────────────────────────────────
+const ODS = [
+  ['1','Erradicação da pobreza','#E5243B'],['2','Fome zero','#DDA63A'],['3','Saúde','#4C9F38'],['4','Educação','#C5192D'],
+  ['5','Igualdade de gênero','#FF3A21'],['6','Água potável','#26BDE2'],['7','Energia limpa','#FCC30B'],['8','Trabalho decente','#A21942'],
+  ['9','Indústria','#FD6925'],['10','Desigualdades','#DD1367'],['11','Cidades','#FD9D24'],['12','Consumo responsável','#BF8B2E'],
+  ['13','Clima','#3F7E44'],['14','Vida na água','#0A97D9'],['15','Vida terrestre','#56C02B'],['16','Paz','#00689D'],['17','Parcerias','#19486A']
+]; // cores oficiais dos ODS (identidade da ONU, iguais nos dois temas)
+const KM_PROJETO = ['2','4','10','11','21','22','23'];
 
 function abrirModal(id, somenteLeitura = false) {
   ativEditando = todasAtividades.find(a => a.id === id);
   if (!ativEditando) return;
   const a = ativEditando;
   const nome = campo(a,'nome');
+  const semResp = a.responsaveis.length === 0;
 
-  document.getElementById('modal-titulo').textContent = `${somenteLeitura ? 'Visualizar' : 'Editar'} — ${a.codigo}`;
+  document.getElementById('modal-eyebrow').textContent = `${somenteLeitura ? 'Ver' : 'Editar'} · ${a.codigo}${a.wbs_unesco ? ' · '+a.wbs_unesco : ''}`;
+  document.getElementById('modal-titulo').textContent = nome || a.codigo;
+
+  const vinculados = matrizPorAtividade[a.id] || [];
+  const porResultado = {};
+  todosMatrizItens.forEach(mi => { const r = mi.resultado || 'Outros'; (porResultado[r] = porResultado[r] || []).push(mi); });
+
   document.getElementById('modal-body').innerHTML = `
-    <div style="margin-bottom:14px;padding:10px 14px;background:var(--cinza-50);border-radius:var(--raio);border:1px solid var(--borda)">
-      <div style="font-size:11px;color:var(--cinza-500);margin-bottom:2px">${a.wbs_unesco||a.codigo}</div>
-      <div style="font-size:13px;font-weight:600;color:var(--cinza-900)">${nome}</div>
-    </div>
-
-    <!-- Responsáveis — campo obrigatório -->
-    <div style="background:${a.responsaveis.length===0?'var(--erro-bg)':'var(--cinza-50)'};border:1px solid ${a.responsaveis.length===0?'var(--erro)':'var(--borda)'};border-radius:var(--raio-lg);padding:14px;margin-bottom:14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div>
-          <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">Responsáveis <span class="obrig">*</span></div>
-          <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">Campo obrigatório — ao menos 1 responsável</div>
+    <div class="at-sec">
+      <div class="at-sec-h">${atIc('pessoa','p')}Responsáveis <span class="at-pill at-p-er">obrigatório</span><span class="op">ao menos 1 responsável</span></div>
+      <div class="at-box${semResp?' req':''}">
+        <div class="at-pessoas" id="resp-lista">
+          ${!semResp
+            ? a.responsaveis.map(r=>`
+              <span class="at-pessoa">
+                <span class="at-ini${r.papel==='substituto'?' sub':''}">${esc(iniciais(r.usuario?.nome_completo))}</span>
+                <span><b>${esc(r.usuario?.nome_completo||'—')}</b><small>${r.papel==='substituto'?'Substituto':'Responsável'}</small></span>
+                ${PODE.gerirUsuarios()?`<button type="button" class="x" onclick="removerResponsavel('${r.id}','${a.id}')" aria-label="Remover ${esc(r.usuario?.nome_completo||'')}" title="Remover">${atIc('x','p')}</button>`:''}
+              </span>`).join('')
+            : `<span class="at-erro">${atIc('alerta','p')}Nenhum responsável cadastrado</span>`}
+        </div>
+        <div class="at-add">
+          <select id="novo-resp-usuario" aria-label="Pessoa">
+            <option value="">Escolha a pessoa…</option>
+            ${todosUsuarios.map(u=>`<option value="${u.id}">${esc(u.nome_completo)} (${esc(t('perfis',u.perfil))})</option>`).join('')}
+          </select>
+          <select id="novo-resp-papel" aria-label="Papel">
+            <option value="responsavel">Responsável</option>
+            <option value="substituto">Substituto</option>
+          </select>
+          <button type="button" class="at-btn" onclick="adicionarResponsavel('${a.id}')">${atIc('mais','p')}Adicionar</button>
         </div>
       </div>
-      <!-- Lista de responsáveis atuais -->
-      <div id="resp-lista" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-        ${a.responsaveis.length>0
-          ? a.responsaveis.map(r=>`
-              <div style="display:flex;align-items:center;gap:6px;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:6px 10px">
-                <span class="resp-avatar" style="width:24px;height:24px;font-size:10px">${(r.usuario?.nome_completo||'?').split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}</span>
-                <div>
-                  <div style="font-size:12px;font-weight:500">${r.usuario?.nome_completo||'—'}</div>
-                  <div style="font-size:10px;color:var(--cinza-500)">${r.papel==='substituto'?'Substituto':'Responsável'}</div>
-                </div>
-                ${PODE.gerirUsuarios()?`<button onclick="removerResponsavel('${r.id}','${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--cinza-400,#9CA3AF);font-size:14px;padding:0 2px;margin-left:4px">✕</button>`:''}
-              </div>`).join('')
-          : `<div style="font-size:12px;color:var(--erro);font-weight:500">⚠ Nenhum responsável cadastrado</div>`}
+    </div>
+
+    <div class="at-sec">
+      <div class="at-sec-h">Dados da atividade</div>
+      <label class="at-f" for="ed-nome-pt">Nome<input id="ed-nome-pt" type="text" value="${esc(a.nome_pt||'')}"></label>
+      <div class="at-g3">
+        <label class="at-f" for="ed-fase">Fase
+          <select id="ed-fase">${FASES_ATV.map(f=>`<option value="${f}" ${a.fase===f?'selected':''}>${t('fases',f)}</option>`).join('')}</select>
+        </label>
+        <label class="at-f" for="ed-ano1">Ano 1 (US$)<input class="mono" id="ed-ano1" type="number" step="0.01" value="${a.ano1_usd||0}"></label>
+        <label class="at-f" for="ed-ano2">Ano 2 (US$)<input class="mono" id="ed-ano2" type="number" step="0.01" value="${a.ano2_usd||0}"></label>
       </div>
-      <!-- Adicionar responsável -->
-      <div style="display:flex;gap:8px;align-items:center">
-        <select class="form-control" id="novo-resp-usuario" style="flex:1;height:34px;font-size:12px">
-          <option value="">Selecionar usuário...</option>
-          ${todosUsuarios.map(u=>`<option value="${u.id}">${u.nome_completo} (${t('perfis',u.perfil)})</option>`).join('')}
-        </select>
-        <select class="form-control" id="novo-resp-papel" style="width:130px;height:34px;font-size:12px">
-          <option value="responsavel">Responsável</option>
-          <option value="substituto">Substituto</option>
-        </select>
-        <button class="btn btn-sm btn-primary" onclick="adicionarResponsavel('${a.id}')">+ Adicionar</button>
+      <div class="at-g2">
+        <label class="at-f" for="ed-orc">Orçamento vigente (US$)
+          <input class="mono" id="ed-orc" type="text" value="${Number(a.orcamento_usd||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}" readonly aria-describedby="ed-orc-dica">
+          <span class="at-dica" id="ed-orc-dica">${atIc('cadeado','p')}Muda só pelo razão: remanejamento ou liberação de saldo</span>
+        </label>
+        <label class="at-f" for="ed-eixo">Eixo<input id="ed-eixo" type="text" value="${esc(a.eixo||'')}" placeholder="Ex.: Governança"></label>
       </div>
     </div>
 
-    <div class="grid-2">
-      <div class="form-group">
-        <label class="form-label">Fase</label>
-        <select class="form-control" id="ed-fase">
-          ${['A_INICIAR','ELABORACAO','LICITACAO','ELABORADO','CONTRATADO','CONCLUIDO']
-            .map(f=>`<option value="${f}" ${a.fase===f?'selected':''}>${t('fases',f)}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Orçamento vigente U$</label>
-        <input class="form-control" id="ed-orc" type="number" step="0.01" value="${a.orcamento_usd||0}" readonly disabled
-          title="O orçamento só muda por remanejamento ou revisão orçamentária registrados no razão">
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:4px">Só muda por remanejamento/revisão orçamentária${a.orcamento_original_usd!=null && parseFloat(a.orcamento_original_usd)!==parseFloat(a.orcamento_usd||0) ? ` · original ${fmtUSD(a.orcamento_original_usd)}` : ''}</div>
-      </div>
-    </div>
-    <div class="grid-2">
-      <div class="form-group">
-        <label class="form-label">Ano 1 U$</label>
-        <input class="form-control" id="ed-ano1" type="number" step="0.01" value="${a.ano1_usd||0}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Ano 2 U$</label>
-        <input class="form-control" id="ed-ano2" type="number" step="0.01" value="${a.ano2_usd||0}">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Nome (PT)</label>
-      <input class="form-control" id="ed-nome-pt" type="text" value="${a.nome_pt||''}">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Eixo</label>
-      <input class="form-control" id="ed-eixo" type="text" value="${a.eixo||''}" placeholder="Ex: Governança">
-    </div>
-
-    <!-- ODS vinculados -->
-    <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px;margin-top:4px">
-      <div style="font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">ODS Vinculados <span style="font-weight:400;color:var(--cinza-400)">(opcional)</span></div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px" id="ods-checks">
-        ${[
-          ['1','Erradicação da Pobreza','#E5243B'],
-          ['2','Fome Zero','#DDA63A'],
-          ['3','Saúde','#4C9F38'],
-          ['4','Educação','#C5192D'],
-          ['5','Igualdade de Gênero','#FF3A21'],
-          ['6','Água Potável','#26BDE2'],
-          ['7','Energia Limpa','#FCC30B'],
-          ['8','Trabalho Decente','#A21942'],
-          ['9','Indústria','#FD6925'],
-          ['10','Desigualdades','#DD1367'],
-          ['11','Cidades','#FD9D24'],
-          ['12','Consumo Resp.','#BF8B2E'],
-          ['13','Clima','#3F7E44'],
-          ['14','Vida na Água','#0A97D9'],
-          ['15','Vida Terrestre','#56C02B'],
-          ['16','Paz','#00689D'],
-          ['17','Parcerias','#19486A']
-        ].map(([num,label,cor])=>{
-          const checked=(a.ods||[]).includes(num)?'checked':'';
-          return `<label style="display:flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid ${(a.ods||[]).includes(num)?cor:'var(--borda)'};border-radius:4px;cursor:pointer;font-size:11px;background:${(a.ods||[]).includes(num)?cor+'18':'transparent'};transition:all .1s" title="ODS ${num} — ${label}">
-            <input type="checkbox" name="ed-ods" value="${num}" ${checked} style="accent-color:${cor};width:12px;height:12px">
-            <span style="font-weight:600;color:${cor}">ODS ${num}</span>
-          </label>`;
-        }).join('')}
+    <div class="at-sec">
+      <div class="at-sec-h">ODS vinculados <span class="op">opcional</span></div>
+      <div class="at-chips" id="ods-checks">
+        ${ODS.map(([num,label,cor])=>`<label class="at-chip" style="--c:${cor}"><input type="checkbox" name="ed-ods" value="${num}" ${(a.ods||[]).includes(num)?'checked':''}><i class="dot"></i>ODS ${num} ${esc(label)}</label>`).join('')}
       </div>
     </div>
 
-    <!-- Metas Kunming-Montreal -->
-    <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px;margin-top:8px">
-      <div style="font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Metas Kunming-Montreal <span style="font-weight:400;color:var(--cinza-400)">(opcional — destaque: 2, 4, 10, 11, 21, 22, 23)</span></div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px">
-        ${Array.from({length:23},(_,i)=>{
-          const num=String(i+1);
-          const isProj=['2','4','10','11','21','22','23'].includes(num);
-          const checked=(a.metas_km||[]).includes(num)?'checked':'';
-          return `<label style="display:flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid ${(a.metas_km||[]).includes(num)?'#5B21B6':'var(--borda)'};border-radius:4px;cursor:pointer;font-size:11px;background:${(a.metas_km||[]).includes(num)?'#EDE9FE':'transparent'};transition:all .1s">
-            <input type="checkbox" name="ed-km" value="${num}" ${checked} style="accent-color:#5B21B6;width:12px;height:12px">
-            <span style="font-weight:600;color:${(a.metas_km||[]).includes(num)||isProj?'#5B21B6':'var(--cinza-500)'}">KM ${num}${isProj?' ★':''}</span>
-          </label>`;
-        }).join('')}
+    <div class="at-sec">
+      <div class="at-sec-h">Metas Kunming-Montreal <span class="op">opcional · ★ = metas do projeto</span></div>
+      <div class="at-chips">
+        ${Array.from({length:23},(_,i)=>{ const num=String(i+1);
+          return `<label class="at-chip" style="--c:var(--at-km)"><input type="checkbox" name="ed-km" value="${num}" ${(a.metas_km||[]).includes(num)?'checked':''}>KM ${num}${KM_PROJETO.includes(num)?' ★':''}</label>`; }).join('')}
       </div>
     </div>
 
-    <!-- Indicadores da Matriz de Resultados -->
-    <div style="border:1px solid var(--verde-claro);border-radius:var(--raio-lg);padding:12px;margin-top:8px;background:#F0FDF4">
-      <div style="font-size:11px;font-weight:600;color:var(--verde-escuro,#085041);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">
-        Indicadores da Matriz de Resultados
-        <span style="font-weight:400;color:var(--cinza-500)">(define quais metas esta atividade contribui)</span>
-      </div>
-      <div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px">Selecione os indicadores que os TDRs desta atividade devem entregar.</div>
-      ${(() => {
-        const vinculados = matrizPorAtividade[a.id] || [];
-        const porResultado = {};
-        todosMatrizItens.forEach(mi => {
-          const r = mi.resultado || 'Outros';
-          if (!porResultado[r]) porResultado[r] = [];
-          porResultado[r].push(mi);
-        });
-        if (todosMatrizItens.length === 0) return '<div style="font-size:12px;color:var(--cinza-400)">Nenhum indicador cadastrado na Matriz de Resultados.</div>';
-        return Object.entries(porResultado).map(([res, itens]) => `
-          <div style="margin-bottom:10px">
-            <div style="font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Resultado ${res}</div>
-            ${itens.map(mi => {
-              const checked = vinculados.includes(mi.id) ? 'checked' : '';
-              const meta = mi.meta_numerica ? `${mi.meta_numerica} ${mi.unidade}` : mi.meta_descricao || 'qualitativa';
-              return `<label style="display:flex;align-items:flex-start;gap:7px;padding:6px 8px;border:1px solid ${checked?'var(--verde-claro)':'var(--borda)'};border-radius:var(--raio);cursor:pointer;margin-bottom:4px;background:${checked?'#ECFDF5':'var(--branco)'};transition:all .1s">
-                <input type="checkbox" name="ed-matriz" value="${mi.id}" ${checked} style="accent-color:var(--verde-claro);margin-top:2px;flex-shrink:0">
-                <div>
-                  <div style="font-size:11px;font-weight:600;color:var(--cinza-800)">${mi.produto_codigo} — ${mi.produto_titulo}</div>
-                  <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">${mi.indicador} · <em>Meta: ${meta}</em></div>
-                </div>
-              </label>`;
-            }).join('')}
-          </div>`).join('');
-      })()}
+    <div class="at-sec">
+      <div class="at-sec-h">${atIc('alvo','p')}Indicadores da Matriz de Resultados <span class="op">metas que os TDRs desta atividade entregam</span></div>
+      ${todosMatrizItens.length === 0
+        ? '<div class="at-dica">Nenhum indicador cadastrado na Matriz de Resultados.</div>'
+        : Object.entries(porResultado).map(([res, itens]) => `
+          <span class="at-eyebrow">Resultado ${esc(String(res))}</span>
+          ${itens.map(mi => {
+            const meta = mi.meta_numerica ? `${mi.meta_numerica} ${mi.unidade||''}` : mi.meta_descricao || 'qualitativa';
+            return `<label class="at-ind"><input type="checkbox" name="ed-matriz" value="${mi.id}" ${vinculados.includes(mi.id)?'checked':''}>
+              <span><b>${esc(mi.produto_codigo)} — ${esc(mi.produto_titulo||'')}</b><small>${esc(mi.indicador||'')} · meta ${esc(String(meta))}</small></span></label>`;
+          }).join('')}`).join('')}
     </div>`;
 
-  document.getElementById('modal-atividade').classList.add('aberto');
-
-  const btnSalvar = document.getElementById('btn-salvar-atividade');
-  btnSalvar.style.display = somenteLeitura ? 'none' : '';
+  const ov = document.getElementById('modal-atividade');
+  ov.classList.add('aberto');
+  document.getElementById('btn-salvar-atividade').hidden = somenteLeitura;
   if (somenteLeitura) {
-    document.getElementById('modal-body').querySelectorAll('input,select,textarea,button').forEach(el => {
-      el.disabled = true;
-    });
+    document.getElementById('modal-body').querySelectorAll('input,select,textarea,button').forEach(el => { el.disabled = true; });
   }
+  atModalAbriu(ov);
 }
 
 async function adicionarResponsavel(ativId) {
   const usuarioId = document.getElementById('novo-resp-usuario').value;
   const papel = document.getElementById('novo-resp-papel').value;
-  if (!usuarioId) { toast('Selecione um usuário.','error'); return; }
+  if (!usuarioId) { toast('Escolha a pessoa.','error'); return; }
 
-  // Verificar se já existe
   const jaExiste = (respPorAtividade[ativId]||[]).find(r=>r.usuario_id===usuarioId&&r.ativo);
-  if (jaExiste) { toast('Este usuário já é responsável por esta atividade.','warning'); return; }
+  if (jaExiste) { toast('Esta pessoa já é responsável por esta atividade.','warning'); return; }
 
   try {
     const { data, error } = await db.from('atividade_responsaveis').insert({
@@ -770,8 +575,9 @@ async function adicionarResponsavel(ativId) {
     const atv = todasAtividades.find(a=>a.id===ativId);
     if (atv) { atv.responsaveis = respPorAtividade[ativId]; atv.tem_responsavel=true; }
 
-    toast('Responsável adicionado!','success');
-    abrirModal(ativId); // Reabrir modal atualizado
+    toast('Responsável adicionado.','success');
+    renderStats(); filtrar();
+    abrirModal(ativId);
   } catch(e) { toast('Erro ao adicionar: '+(e.message||''),'error'); }
 }
 
@@ -785,22 +591,24 @@ async function removerResponsavel(respId, ativId) {
     const atv = todasAtividades.find(a=>a.id===ativId);
     if (atv) { atv.responsaveis=respPorAtividade[ativId]||[]; atv.tem_responsavel=atv.responsaveis.length>0; }
     toast('Responsável removido.','info');
+    renderStats(); filtrar();
     abrirModal(ativId);
   } catch(e) { toast('Erro ao remover.','error'); }
 }
 
 function fecharModal() {
-  document.getElementById('modal-atividade').classList.remove('aberto');
+  const ov = document.getElementById('modal-atividade');
+  ov.classList.remove('aberto');
+  atModalFechou(ov);
   ativEditando = null;
 }
 
 async function salvarAtividade() {
   if (!ativEditando) return;
 
-  // Validar responsável obrigatório
   const resps = respPorAtividade[ativEditando.id]||[];
   if (resps.length === 0) {
-    toast('⚠ Adicione ao menos um responsável antes de salvar.','error');
+    toast('Adicione ao menos um responsável antes de salvar.','error');
     return;
   }
 
@@ -835,24 +643,27 @@ async function salvarAtividade() {
       const atv = todasAtividades.find(a=>a.id===ativId);
       if (atv) Object.assign(atv, updates);
       fecharModal();
+      renderStats();
       filtrar();
-      toast('Atividade atualizada com sucesso!', 'success');
+      toast('Atividade atualizada.', 'success');
     } catch(e) { toast('Erro ao salvar: '+(e.message||''), 'error'); }
   });
 }
 
-// ── SISTEMA DE CONFIRMAÇÃO POR SENHA ──────────────────────────
+// ── Confirmação por senha ─────────────────────────────────
 function pedirSenha(titulo, subtitulo, callback) {
   document.getElementById('senha-titulo').textContent = titulo;
   document.getElementById('senha-sub').textContent = subtitulo;
   document.getElementById('senha-input').value = '';
-  document.getElementById('senha-erro').style.display = 'none';
-  // Sempre resetar o botão ao abrir — evita ficar travado em "Verificando..."
+  document.getElementById('senha-erro').hidden = true;
+  // Sempre resetar o botão ao abrir — evita ficar travado em "Verificando…"
   const btn = document.getElementById('senha-btn-ok');
   btn.textContent = 'Confirmar';
   btn.disabled = false;
   senhaCallback = callback;
-  document.getElementById('modal-senha').classList.add('aberto');
+  const ov = document.getElementById('modal-senha');
+  ov.classList.add('aberto');
+  atModalAbriu(ov);
   setTimeout(()=>document.getElementById('senha-input').focus(), 100);
 }
 
@@ -861,7 +672,7 @@ async function confirmarSenha() {
   if (!senha) { toast('Digite sua senha.','error'); return; }
 
   const btn = document.getElementById('senha-btn-ok');
-  btn.textContent = 'Verificando...';
+  btn.textContent = 'Verificando…';
   btn.disabled = true;
 
   try {
@@ -872,7 +683,7 @@ async function confirmarSenha() {
     });
 
     if (error) {
-      document.getElementById('senha-erro').style.display = 'block';
+      document.getElementById('senha-erro').hidden = false;
       document.getElementById('senha-input').value = '';
       document.getElementById('senha-input').focus();
       btn.textContent = 'Confirmar';
@@ -880,7 +691,6 @@ async function confirmarSenha() {
       return;
     }
 
-    // Senha correta — fechar modal de senha e executar callback
     const cb = senhaCallback;
     fecharSenha();
     if (cb) await cb();
@@ -892,10 +702,11 @@ async function confirmarSenha() {
 }
 
 function fecharSenha() {
-  document.getElementById('modal-senha').classList.remove('aberto');
+  const ov = document.getElementById('modal-senha');
+  ov.classList.remove('aberto');
+  atModalFechou(ov);
   document.getElementById('senha-input').value = '';
-  document.getElementById('senha-erro').style.display = 'none';
-  // Resetar botão sempre ao fechar
+  document.getElementById('senha-erro').hidden = true;
   const btn = document.getElementById('senha-btn-ok');
   if (btn) { btn.textContent = 'Confirmar'; btn.disabled = false; }
   senhaCallback = null;
@@ -903,7 +714,31 @@ function fecharSenha() {
 
 function novaAtividade() { toast('Cadastro de nova atividade — em breve!','info'); }
 
-document.addEventListener('keydown', e => { if(e.key==='Escape') fecharModal(); });
+// ── Foco nas janelas: Esc fecha a de cima, Tab fica preso nela, o foco volta ao sair ──
+const AT_FOCAVEIS='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const atPilha=[];
+function atModalAbriu(el){
+  if(atPilha.some(x=>x.el===el))return;
+  atPilha.push({el,volta:document.activeElement});
+  requestAnimationFrame(()=>{ (el.querySelector('.at-mb :is(input:not([type=checkbox]):not([disabled]),select:not([disabled]))')||el.querySelector(AT_FOCAVEIS))?.focus({preventScroll:true}); });
+}
+function atModalFechou(el){
+  const i=atPilha.findIndex(x=>x.el===el); if(i<0)return;
+  const [{volta}]=atPilha.splice(i,1);
+  if(volta&&document.contains(volta))volta.focus({preventScroll:true});
+}
+document.addEventListener('keydown', e => {
+  const topo=atPilha[atPilha.length-1]?.el; if(!topo)return;
+  if(e.key==='Escape'){ e.preventDefault(); topo.id==='modal-senha'?fecharSenha():fecharModal(); }
+  else if(e.key==='Tab'){
+    const f=[...topo.querySelectorAll(AT_FOCAVEIS)].filter(x=>x.offsetParent!==null);
+    if(!f.length)return;
+    const pri=f[0], ult=f[f.length-1];
+    if(!topo.contains(document.activeElement)){e.preventDefault();pri.focus();}
+    else if(e.shiftKey&&document.activeElement===pri){e.preventDefault();ult.focus();}
+    else if(!e.shiftKey&&document.activeElement===ult){e.preventDefault();pri.focus();}
+  }
+});
 </script>
 </body>
 </html>
