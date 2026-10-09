@@ -474,8 +474,8 @@ async function carregarOperacional() {
       </div>
       <div class="kpi-card kv">
         <div class="kpi-lbl">Produtos entregues</div>
-        <div class="kpi-val" style="color:var(--sucesso)">${d.produtos_total}</div>
-        <div class="kpi-sub">registrados no sistema</div>
+        <div class="kpi-val" style="color:var(--sucesso)">${d.produtos_entregues ?? d.produtos_total}</div>
+        <div class="kpi-sub">com entrega aprovada</div>
       </div>
       <div class="kpi-card ko">
         <div class="kpi-lbl">Indicadores com progresso</div>
