@@ -1,96 +1,32 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Fornecedores</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-.tipo-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;}
-.tb-pf{background:#E1F5EE;color:#085041}
-.tb-pj{background:#E6F1FB;color:#0C447C}
-
-.forn-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 18px;margin-bottom:10px;transition:all .15s;display:flex;gap:14px;align-items:flex-start;}
-.forn-card:hover{border-color:var(--verde-claro);box-shadow:0 2px 10px rgba(45,106,79,.08);}
-.forn-card.inativo{opacity:.55;}
-
-.forn-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;background:#E6F1FB;color:#0C447C;}
-.forn-avatar.pf{background:#E1F5EE;color:#085041;}
-
-.forn-info{flex:1;min-width:0;}
-.forn-nome{font-size:14px;font-weight:600;color:var(--cinza-900);margin-bottom:2px;}
-.forn-fantasia{font-size:12px;color:var(--cinza-500);margin-bottom:3px;}
-.forn-doc{font-family:var(--font-mono);font-size:11px;color:var(--cinza-700);background:var(--cinza-100);padding:1px 7px;border-radius:3px;display:inline-block;}
-.forn-meta{font-size:11px;color:var(--cinza-500);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;}
-
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;cursor:pointer;user-select:none;transition:box-shadow .15s,border-color .15s,transform .08s;}
-.stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px);}
-.stat-card:active{transform:scale(.95);box-shadow:0 1px 2px rgba(0,0,0,.12) inset;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;}
-.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}
-.stat-card.ativo{border-color:transparent;box-shadow:0 0 0 2px currentColor inset;}
-.sc-g.ativo{color:var(--verde-claro)}
-.sc-b.ativo{color:var(--azul-medio)}
-.sc-a.ativo{color:var(--aviso)}
-.sc-r.ativo{color:var(--erro)}
-.stat-lbl{font-size:10px;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
-.stat-val{font-size:22px;font-weight:700;color:var(--cinza-900);}
-.stat-sub{font-size:11px;color:var(--cinza-500);margin-top:3px;}
-.stat-card>*{position:relative;z-index:2;}
-.wc-inner{position:absolute;left:0;right:0;bottom:0;height:0%;transition:height 1.1s cubic-bezier(.4,0,.2,1);z-index:0;overflow:visible;opacity:.5;}
-.wc-wavewrap{position:absolute;left:0;right:0;bottom:100%;height:14px;overflow:hidden;}
-.wc-wave-svg{position:absolute;top:0;left:0;width:200%;height:100%;animation:wcwave 4.5s linear infinite;}
-.wc-wave-svg.w2{animation-duration:6.5s;animation-direction:reverse;opacity:.6;}
-@keyframes wcwave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-
-/* Abas do modal */
-.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:20px;overflow-x:auto;}
-.tab-btn{padding:8px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
-.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
-.tab-content{display:none;}
-.tab-content.ativo{display:block;animation:fadeIn .2s ease;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-
-/* Validação CPF/CNPJ */
-.doc-valid{border-color:var(--sucesso)!important;background:var(--sucesso-bg)!important;}
-.doc-invalid{border-color:var(--erro)!important;background:var(--erro-bg)!important;}
-.doc-status{font-size:11px;margin-top:4px;display:flex;align-items:center;gap:4px;}
-.ds-ok{color:var(--sucesso)}.ds-err{color:var(--erro)}.ds-wait{color:var(--cinza-500)}
-
-/* Upload contrato */
-.upload-zone{border:2px dashed var(--borda-forte);border-radius:var(--raio-lg);padding:20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--cinza-50);}
-.upload-zone:hover{border-color:var(--verde-claro);background:var(--sucesso-bg);}
-.upload-zone.tem-arquivo{border-color:var(--verde-claro);background:var(--sucesso-bg);}
-
-/* Secção interna */
-.form-section{margin-bottom:20px;}
-.form-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--cinza-500);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--borda);}
-</style>
+<link href="../css/sidebar.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Fornecedores -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/fornecedores.css" rel="stylesheet">
 </head>
-<body>
-<div id="app">
-  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
-    <div style="text-align:center">
-      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      Carregando fornecedores...
-    </div>
-  </div>
-</div>
+<body class="dgm">
+<div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando fornecedores…</div></div></div>
 
-<!-- MODAL FORNECEDOR -->
-<div class="modal-overlay" id="modal-forn">
-  <div class="modal" style="max-width:720px">
+<!-- Janela fora do #app; .fo-ov = escopo do tema (css/fornecedores.css). <i data-ic> vira ícone SVG. -->
+<div class="modal-overlay fo-ov" id="modal-forn" role="dialog" aria-modal="true" aria-labelledby="m-titulo">
+  <div class="modal" style="max-width:760px">
     <div class="modal-header">
-      <div>
-        <div class="modal-title" id="m-titulo">Fornecedor</div>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="m-sub"></div>
+      <div class="fo-mh">
+        <span id="m-av"></span>
+        <div><div class="modal-title" id="m-titulo">Fornecedor</div><div class="modal-sub" id="m-sub"></div></div>
       </div>
-      <button class="modal-close" onclick="fecharModal()">✕</button>
+      <button type="button" class="modal-close" onclick="fecharModal()" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
-    <div class="modal-body" id="m-body" style="padding:16px 24px"></div>
+    <div class="modal-body" id="m-body"></div>
     <div class="modal-footer" id="m-footer"></div>
   </div>
 </div>
@@ -99,10 +35,49 @@
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script>
 let todosFornecedores = [];
 let fornEditando = null;
 let arquivoContrato = null;
+let contratosPorForn = {};   // fornecedor_id → { total, vigentes, valorVigente }
+let pagoPorForn = {};        // fornecedor_id → R$ pago
+let filtroCardForn = '';
+let filtroTipo = '';
+// contrato "em vigor" = vigente ou travado aguardando cobertura (segue valendo)
+const EM_VIGOR = ['vigente', 'aguardando_cobertura'];
+
+// ── Ícones (SVG, sem emoji) ───────────────────────────────────
+const FO_IC = {
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  alerta:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  pessoa:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  predio:'<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M8 7h4M8 11h4M8 15h4M2 21h20"/>',
+  contrato:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h6M8 17h4"/>',
+  doc:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  clipe:'<path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/>',
+  busca:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  lapis:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  olho:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  mais:'<path d="M12 5v14M5 12h14"/>',
+  seta:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  cadeado:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  relogio:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  pausa:'<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',
+  sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+};
+function foIc(n, cls) { return '<svg class="fo-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (FO_IC[n] || '') + '</svg>'; }
+document.querySelectorAll('i[data-ic]').forEach(e => { e.outerHTML = foIc(e.dataset.ic); });
+
+function brlc(v) { v = parseFloat(v || 0); const a = Math.abs(v); if (a >= 1e6) return 'R$ ' + (v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' mi'; if (a >= 1e4) return 'R$ ' + Math.round(v/1e3) + ' mil'; return fmtBRL(v); }
+function iniciais(nome) { return (nome || '?').trim().split(/\s+/).slice(0,2).map(n => n[0] || '').join('').toUpperCase(); }
+function avatar(f) { return `<span class="fo-av${f.tipo==='PF'?' pf':''}" aria-hidden="true">${esc(iniciais(f.nome))}</span>`; }
+function pillTipo(t) { return `<span class="fo-pill ${t==='PF'?'fo-p-ok':'fo-p-in'}" title="${t==='PF'?'Pessoa física':'Pessoa jurídica'}">${esc(t||'—')}</span>`; }
+const PODE_EDITAR = () => PODE.verFinanceiro() || PODE.editarAtividade();
 
 // ── VALIDAÇÃO CPF ─────────────────────────────────────────────
 function validarCPF(cpf) {
@@ -154,16 +129,19 @@ function mascaraCEP(val) {
   return val.replace(/\D/g,'').substring(0,8).replace(/(\d{5})(\d{3})/,'$1-$2');
 }
 
+function tipoAtual() { return document.querySelector('input[name="f-tipo"]:checked')?.value || 'PF'; }
+
 function verificarDoc(val, tipo) {
   const num = val.replace(/\D/g,'');
   const el = document.getElementById('doc-status');
   if (!el) return;
-  if (!num) { el.innerHTML=''; return; }
-  const ok = tipo === 'PF' ? validarCPF(num) : validarCNPJ(num);
-  el.innerHTML = ok
-    ? `<span class="ds-ok">✓ ${tipo === 'PF'?'CPF':'CNPJ'} válido</span>`
-    : `<span class="ds-err">✗ ${tipo === 'PF'?'CPF':'CNPJ'} inválido</span>`;
   const inp = document.getElementById('f-doc');
+  if (!num) { el.innerHTML=''; inp?.classList.remove('doc-valid','doc-invalid'); return; }
+  const ok = tipo === 'PF' ? validarCPF(num) : validarCNPJ(num);
+  const rot = tipo === 'PF' ? 'CPF' : 'CNPJ';
+  el.innerHTML = ok
+    ? `<span class="ds-ok">${foIc('check','p')}${rot} válido</span>`
+    : `<span class="ds-err">${foIc('x','p')}${rot} inválido</span>`;
   if (inp) { inp.classList.toggle('doc-valid', ok); inp.classList.toggle('doc-invalid', !ok && num.length >= (tipo==='PF'?11:14)); }
 }
 
@@ -191,108 +169,135 @@ async function buscarCEP() {
 
   document.getElementById('app').innerHTML =
     gerarLayout('Fornecedores', 'fornecedores') + `
-    <div class="fade-in">
-      <div class="stat-row" id="stats"></div>
-      <div class="filter-bar">
-        <input class="form-control" type="text" id="busca" style="width:260px"
-          placeholder="Buscar nome, CPF/CNPJ ou e-mail..." oninput="filtrar()">
-        <select class="form-control" id="fil-tipo" onchange="filtrar()" style="width:140px">
-          <option value="">PF + PJ</option>
-          <option value="PF">Pessoa Física</option>
-          <option value="PJ">Pessoa Jurídica</option>
-        </select>
-        <select class="form-control" id="fil-ativo" onchange="filtrar()" style="width:140px">
+    <div class="fade-in fo-pagina">
+      <div class="fo-kpis" id="stats"></div>
+      <div class="fo-filtros" role="group" aria-label="Filtros">
+        <label class="fo-busca">${foIc('busca','p')}<input type="search" id="busca" placeholder="Nome, CPF/CNPJ ou e-mail" aria-label="Buscar fornecedor" oninput="filtrar()"></label>
+        <div class="fo-seg" role="group" aria-label="Tipo de pessoa" id="seg-tipo">
+          <button type="button" data-tipo="" aria-pressed="true">PF + PJ</button>
+          <button type="button" data-tipo="PF" aria-pressed="false">PF</button>
+          <button type="button" data-tipo="PJ" aria-pressed="false">PJ</button>
+        </div>
+        <select id="fil-ativo" onchange="filtrar()" aria-label="Situação do cadastro">
           <option value="true">Somente ativos</option>
-          <option value="">Ativos + Inativos</option>
+          <option value="">Ativos + inativos</option>
+          <option value="false">Somente inativos</option>
         </select>
-        <span id="cont" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
-        ${PODE.verFinanceiro()||PODE.editarAtividade()?`<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo fornecedor</button>`:''}
+        <span id="cont" class="fo-cont" aria-live="polite"></span>
+        ${PODE_EDITAR()?`<button type="button" class="fo-btn pri" onclick="abrirNovo()">${foIc('mais','p')}Novo fornecedor</button>`:''}
       </div>
       <div id="lista"></div>
     </div>` + `</div></div></div>`;
 
+  carregarLogosSidebar();
+  seletorTema();
+  document.getElementById('seg-tipo').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tipo]'); if (!b) return;
+    definirTipo(b.dataset.tipo);
+  });
   await carregar();
 })();
 
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico e das demais guias (componente .dgm-tema)
+function seletorTema() {
+  const tb = document.querySelector('.topbar'); if (!tb || tb.querySelector('.dgm-tema') || typeof DiagTema === 'undefined') return;
+  const d = document.createElement('div');
+  d.className = 'dgm-tema'; d.setAttribute('role','group'); d.setAttribute('aria-label','Tema');
+  d.innerHTML = [['claro','sol','Claro'],['escuro','lua','Escuro']].map(x =>
+    `<button type="button" data-tema="${x[0]}" aria-pressed="${DiagTema.atual()===x[0]}">${foIc(x[1])}${x[2]}</button>`).join('');
+  const bc = tb.querySelector('.topbar-breadcrumb');
+  if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d);
+  d.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tema]'); if (!b) return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+}
+
 async function carregar() {
   try {
-    const { data } = await db.from('fornecedores')
-      .select('*').order('nome');
+    const [{ data }, { data: conts }, { data: pagos }] = await Promise.all([
+      db.from('fornecedores').select('*').order('nome'),
+      db.from('contratos').select('fornecedor_id,status,valor_total_brl'),
+      db.from('execucao_financeira').select('fornecedor_id,valor_brl').eq('situacao','pago'),
+    ]);
     todosFornecedores = data || [];
+    contratosPorForn = {};
+    (conts || []).forEach(c => {
+      if (!c.fornecedor_id || c.status === 'cancelado') return;
+      const x = contratosPorForn[c.fornecedor_id] || (contratosPorForn[c.fornecedor_id] = { total:0, vigentes:0, valorVigente:0 });
+      x.total++;
+      if (EM_VIGOR.includes(c.status)) { x.vigentes++; x.valorVigente += parseFloat(c.valor_total_brl || 0); }
+    });
+    pagoPorForn = {};
+    (pagos || []).forEach(l => { if (l.fornecedor_id) pagoPorForn[l.fornecedor_id] = (pagoPorForn[l.fornecedor_id] || 0) + parseFloat(l.valor_brl || 0); });
     renderStats();
     filtrar();
-  } catch(e) { toast('Erro ao carregar fornecedores.','error'); }
+  } catch(e) { console.error(e); toast('Erro ao carregar fornecedores.','error'); }
 }
 
-let filtroCardForn='';
 function clicarCardForn(card){
-  filtroCardForn=(filtroCardForn===card)?'':card;
-  renderStats();filtrar();
+  filtroCardForn = (filtroCardForn===card) ? '' : card;
+  // PF/PJ do topo = mesmo filtro do seletor de tipo
+  if (card === 'PF' || card === 'PJ') { definirTipo(filtroCardForn ? card : '', true); }
+  else if (filtroCardForn === 'total') { definirTipo('', true); }
+  renderStats(); filtrar();
 }
 
-function waterHTML(color,pct){
-  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
-    <div class="wc-wavewrap">
-      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
-      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
-    </div>
-  </div>`;
-}
-function animarAgua(){
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
-      el.style.height=el.dataset.alvo+'%';
-    });
-  }));
+function definirTipo(t, semRender) {
+  filtroTipo = t;
+  document.querySelectorAll('#seg-tipo [data-tipo]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tipo === t)));
+  if (!semRender) {
+    if (['PF','PJ'].includes(filtroCardForn) && filtroCardForn !== t) filtroCardForn = t || '';
+    renderStats(); filtrar();
+  }
 }
 
 function renderStats() {
   const ativos = todosFornecedores.filter(f=>f.ativo);
-  const ativo=c=>filtroCardForn===c?' ativo':'';
-  const den=ativos.length||1;
+  const nPF = ativos.filter(f=>f.tipo==='PF').length;
+  const nPJ = ativos.filter(f=>f.tipo==='PJ').length;
+  const comVig = ativos.filter(f => contratosPorForn[f.id]?.vigentes);
+  const valorVig = comVig.reduce((s,f) => s + contratosPorForn[f.id].valorVigente, 0);
+  const inativos = todosFornecedores.length - ativos.length;
+  const ap = c => String(filtroCardForn===c);
   document.getElementById('stats').innerHTML = `
-    <div class="stat-card sc-g${ativo('total')}" onclick="clicarCardForn('total')">
-      ${waterHTML('var(--verde-claro)',100)}
-      <div class="stat-lbl">Total Fornecedores</div>
-      <div class="stat-val">${ativos.length}</div>
-      <div class="stat-sub">${todosFornecedores.filter(f=>!f.ativo).length} inativos</div>
-    </div>
-    <div class="stat-card sc-b${ativo('PF')}" onclick="clicarCardForn('PF')">
-      ${waterHTML('var(--azul-medio)',Math.round(ativos.filter(f=>f.tipo==='PF').length/den*100))}
-      <div class="stat-lbl">Pessoas Físicas</div>
-      <div class="stat-val">${ativos.filter(f=>f.tipo==='PF').length}</div>
-      <div class="stat-sub">consultores individuais</div>
-    </div>
-    <div class="stat-card sc-a${ativo('PJ')}" onclick="clicarCardForn('PJ')">
-      ${waterHTML('var(--aviso)',Math.round(ativos.filter(f=>f.tipo==='PJ').length/den*100))}
-      <div class="stat-lbl">Pessoas Jurídicas</div>
-      <div class="stat-val">${ativos.filter(f=>f.tipo==='PJ').length}</div>
-      <div class="stat-sub">empresas e consultorias</div>
-    </div>
-    <div class="stat-card sc-r${ativo('com_contrato')}" onclick="clicarCardForn('com_contrato')">
-      ${waterHTML('var(--erro)',Math.round(ativos.filter(f=>f.contrato_url).length/den*100))}
-      <div class="stat-lbl">Com Contrato</div>
-      <div class="stat-val">${ativos.filter(f=>f.contrato_url).length}</div>
-      <div class="stat-sub">doc assinado carregado</div>
-    </div>`;
-  animarAgua();
+    <button type="button" class="fo-kpi" aria-pressed="${ap('total')}" onclick="clicarCardForn('total')">
+      <span class="fo-kpi-l">${foIc('pessoa','p')}Ativos</span>
+      <span class="fo-kpi-v">${ativos.length}</span>
+      <span class="fo-kpi-s">${inativos} inativo${inativos!==1?'s':''}</span>
+    </button>
+    <button type="button" class="fo-kpi" aria-pressed="${ap('PF')}" onclick="clicarCardForn('PF')">
+      <span class="fo-kpi-l">${foIc('pessoa','p')}Pessoa física</span>
+      <span class="fo-kpi-v">${nPF}</span>
+      <span class="fo-kpi-s">consultores individuais</span>
+    </button>
+    <button type="button" class="fo-kpi" aria-pressed="${ap('PJ')}" onclick="clicarCardForn('PJ')">
+      <span class="fo-kpi-l">${foIc('predio','p')}Pessoa jurídica</span>
+      <span class="fo-kpi-v">${nPJ}</span>
+      <span class="fo-kpi-s">empresas e cooperativas</span>
+    </button>
+    <button type="button" class="fo-kpi" aria-pressed="${ap('com_contrato')}" onclick="clicarCardForn('com_contrato')">
+      <span class="fo-kpi-l">${foIc('contrato','p')}Com contrato vigente</span>
+      <span class="fo-kpi-v ok">${comVig.length}</span>
+      <span class="fo-kpi-s">${brlc(valorVig)} contratados</span>
+    </button>`;
 }
 
 function filtrar() {
-  const b = document.getElementById('busca').value.toLowerCase();
-  const tp = document.getElementById('fil-tipo').value;
+  const b = (document.getElementById('busca').value || '').toLowerCase().trim();
+  const bDig = b.replace(/\D/g,'');
   const at = document.getElementById('fil-ativo').value;
 
   const fil = todosFornecedores.filter(f => {
-    if (b && !f.nome.toLowerCase().includes(b) &&
+    if (b && !(f.nome||'').toLowerCase().includes(b) &&
         !(f.cpf_cnpj||'').includes(b) &&
+        !(bDig && (f.cpf_cnpj||'').replace(/\D/g,'').includes(bDig)) &&
         !(f.email||'').toLowerCase().includes(b) &&
         !(f.nome_fantasia||'').toLowerCase().includes(b)) return false;
-    if (tp && f.tipo !== tp) return false;
-    if (at !== '' && String(f.ativo) !== at) return false;
-    if (filtroCardForn==='PF' && f.tipo!=='PF') return false;
-    if (filtroCardForn==='PJ' && f.tipo!=='PJ') return false;
-    if (filtroCardForn==='com_contrato' && !f.contrato_url) return false;
+    if (filtroTipo && f.tipo !== filtroTipo) return false;
+    if (at !== '' && String(!!f.ativo) !== at) return false;
+    if (filtroCardForn==='com_contrato' && !contratosPorForn[f.id]?.vigentes) return false;
     return true;
   });
 
@@ -300,46 +305,70 @@ function filtrar() {
 
   const el = document.getElementById('lista');
   if (!fil.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👤</div><div class="empty-state-msg">Nenhum fornecedor encontrado.</div></div>`;
+    el.innerHTML = `<div class="fo-card"><div class="fo-vazio" role="status">${foIc('busca')}Nenhum fornecedor encontrado.</div></div>`;
     return;
   }
 
-  el.innerHTML = fil.map(f => {
-    const iniciais = f.nome.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
-    return `<div class="forn-card ${f.ativo?'':'inativo'}">
-      <div class="forn-avatar ${f.tipo==='PF'?'pf':''}">${iniciais}</div>
-      <div class="forn-info">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="forn-nome">${f.nome}</span>
-          <span class="tipo-badge ${f.tipo==='PF'?'tb-pf':'tb-pj'}">${f.tipo}</span>
-          ${!f.ativo?`<span class="badge" style="background:var(--cinza-500)">Inativo</span>`:''}
-          ${f.contrato_url?`<span class="badge" style="background:var(--azul-medio)">📎 Contrato</span>`:''}
-        </div>
-        ${f.nome_fantasia?`<div class="forn-fantasia">${f.nome_fantasia}</div>`:''}
-        ${f.cpf_cnpj?`<span class="forn-doc">${f.cpf_cnpj}</span>`:''}
-        <div class="forn-meta">
-          ${f.telefone?`<span>📞 ${f.telefone}</span>`:''}
-          ${f.email?`<span>✉️ ${f.email}</span>`:''}
-          ${f.cidade&&f.estado?`<span>📍 ${f.cidade}/${f.estado}</span>`:''}
-          ${f.responsavel_nome?`<span>👤 ${f.responsavel_nome}</span>`:''}
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
-        <button class="btn btn-sm btn-secondary" onclick="abrirDetalhe('${f.id}')">Ver detalhes</button>
-        ${PODE.verFinanceiro()||PODE.editarAtividade()?`<button class="btn btn-sm btn-secondary" onclick="abrirEditar('${f.id}')">✏️ Editar</button>`:''}
-      </div>
-    </div>`;
-  }).join('');
+  const podeEditar = PODE_EDITAR();
+  el.innerHTML = `<div class="fo-card"><div class="fo-tbl-w"><table class="fo-tbl">
+    <thead><tr><th>Fornecedor</th><th>CPF / CNPJ</th><th>Contato</th><th>Cidade</th><th>Contratos</th><th class="dir">Pago</th><th><span class="sr-only">Ações</span></th></tr></thead>
+    <tbody>${fil.map(f => {
+      const c = contratosPorForn[f.id];
+      const pago = pagoPorForn[f.id] || 0;
+      const cidade = f.cidade || f.municipio;
+      const uf = f.estado || f.uf;
+      const fone = f.telefone || f.whatsapp;
+      return `<tr class="${f.ativo?'':'inativo'}">
+        <td class="c-quem"><div class="fo-quem">${avatar(f)}<div style="min-width:0">
+          <div class="fo-nome">${esc(f.nome)}</div>
+          ${f.nome_fantasia?`<div class="fo-fant">${esc(f.nome_fantasia)}</div>`:''}
+          <div class="fo-selos">${pillTipo(f.tipo)}
+            ${f.contrato_url?`<span class="fo-pill fo-p-ne" title="${esc(f.contrato_nome||'Documento anexado ao cadastro')}">${foIc('clipe','p')}Documento</span>`:''}
+            ${f.ativo?'':`<span class="fo-pill fo-p-ne">Inativo</span>`}</div>
+        </div></div></td>
+        <td class="c-doc">${f.cpf_cnpj?`<span class="fo-doc">${esc(f.cpf_cnpj)}</span>`:'<span class="fo-traco">—</span>'}</td>
+        <td class="c-cont"><div class="fo-ct">${f.email?`<span>${esc(f.email)}</span>`:''}${fone?`<small>${esc(fone)}</small>`:''}${!f.email&&!fone?'<span class="fo-traco">—</span>':''}</div></td>
+        <td class="c-cid fo-cid">${cidade?esc(cidade + (uf ? '/' + uf : '')):'<span class="fo-traco">—</span>'}</td>
+        <td class="c-ctr">${c?`<span class="fo-pill ${c.vigentes?'fo-p-ok':'fo-p-ne'}">${c.vigentes} vigente${c.vigentes!==1?'s':''}</span><div class="fo-sub">de ${c.total} contrato${c.total!==1?'s':''}</div>`:'<span class="fo-traco">—</span>'}</td>
+        <td class="c-pago dir"><span class="fo-val${pago?'':' zero'}">${pago?brlc(pago):'R$ 0'}</span></td>
+        <td class="c-acoes"><div class="fo-acoes">
+          <button type="button" class="fo-btn peq" onclick="abrirDetalhe('${f.id}')" aria-label="Detalhes de ${esc(f.nome)}">${foIc('olho','p')}Detalhes</button>
+          ${podeEditar?`<button type="button" class="fo-btn ic" onclick="abrirEditar('${f.id}')" aria-label="Editar ${esc(f.nome)}" title="Editar">${foIc('lapis','p')}</button>`:''}
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody></table></div></div>`;
+}
+
+// ── Abas da janela ────────────────────────────────────────────
+function abasHTML(abas) {
+  return `<div class="fo-tabs" role="tablist">${abas.map((a,i) =>
+    `<button type="button" class="fo-tab" role="tab" data-aba="${a[0]}" aria-selected="${i===0}" onclick="aba('${a[0]}')">${a[1]}</button>`).join('')}</div>`;
+}
+function aba(id) {
+  document.querySelectorAll('#m-body .fo-painel').forEach(e => e.classList.toggle('ativo', e.id === 'tab-' + id));
+  document.querySelectorAll('#m-body .fo-tab').forEach(e => e.setAttribute('aria-selected', String(e.dataset.aba === id)));
 }
 
 // ── DETALHE ───────────────────────────────────────────────────
+const ST_CONTRATO = { vigente:['fo-p-ok','check','Vigente'], encerrado:['fo-p-ne','check','Encerrado'], suspenso:['fo-p-al','pausa','Suspenso'],
+  aguardando_cobertura:['fo-p-er','cadeado','Aguardando cobertura'], cancelado:['fo-p-riscado','x','Cancelado'] };
+function pillContrato(s) { const p = ST_CONTRATO[s] || ['fo-p-ne','info', s || '—']; return `<span class="fo-pill ${p[0]}">${foIc(p[1],'p')}${esc(p[2])}</span>`; }
+const SIT_LANC = { pago:['fo-p-ok','check'], a_pagar:['fo-p-al','relogio'], cancelado:['fo-p-ne','x'] };
+function pillSit(s) { const p = SIT_LANC[s] || ['fo-p-ne','info']; return `<span class="fo-pill ${p[0]}">${foIc(p[1],'p')}${esc(t('situacao', s) || s || '—')}</span>`; }
+
 async function abrirDetalhe(id) {
   try {
   const f = todosFornecedores.find(x=>x.id===id);
   if (!f) return;
   fornEditando = f;
+  document.getElementById('m-av').innerHTML = avatar(f);
+  document.getElementById('m-titulo').textContent = f.nome;
+  document.getElementById('m-sub').textContent = `${f.tipo} · ${f.cpf_cnpj||'—'}${(f.cidade||f.municipio)?' · '+(f.cidade||f.municipio)+((f.estado||f.uf)?'/'+(f.estado||f.uf):''):''}`;
+  document.getElementById('m-body').innerHTML = `<div class="fo-carregando" role="status">Carregando…</div>`;
+  document.getElementById('m-footer').innerHTML = '';
+  foAbrir();
 
-  // Buscar contratos base
+  // Contratos base
   const {data:contratosBase, error:cErr} = await db.from('contratos')
     .select('id,numero,objeto_pt,status,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,dt_inicio,dt_fim,tdr_id,atividade_id')
     .eq('fornecedor_id',id).order('dt_inicio',{ascending:false});
@@ -359,295 +388,292 @@ async function abrirDetalhe(id) {
     contratos=contratos.map(c=>({...c,tdr:tdrMap[c.tdr_id]||null,atividade:atMap[c.atividade_id]||null}));
   }
 
-  // Buscar lançamentos
+  // Lançamentos: totais com TODOS; a tabela mostra os 10 mais recentes
   const {data:lancamentos} = await db.from('execucao_financeira')
-    .select('valor_brl,situacao,dt_pagamento,descricao,numero_nf')
-    .eq('fornecedor_id',id).order('criado_em',{ascending:false}).limit(10);
+    .select('valor_brl,situacao,dt_pagamento,descricao,numero_nf,criado_em')
+    .eq('fornecedor_id',id).order('criado_em',{ascending:false});
+  if (fornEditando !== f) return; // janela fechada/trocada enquanto carregava
+  const lancs = lancamentos || [];
+  const soma = arr => arr.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
+  const totalPago = soma(lancs.filter(l=>l.situacao==='pago'));
+  const totalAPagar = soma(lancs.filter(l=>l.situacao==='a_pagar'));
+  const notasCount = lancs.filter(l=>l.numero_nf).length;
+  const recentes = lancs.slice(0, 10);
 
-  const totalPago = (lancamentos||[]).filter(l=>l.situacao==='pago').reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
-  const totalAPagar = (lancamentos||[]).filter(l=>l.situacao==='a_pagar').reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
-  const notasCount = (lancamentos||[]).filter(l=>l.numero_nf).length;
-
-  document.getElementById('m-titulo').textContent = f.nome;
-  document.getElementById('m-sub').textContent = `${f.tipo} · ${f.cpf_cnpj||'—'}`;
+  const c = (label, valor, mono) => valor ? `<div class="fo-campo"><span>${label}</span><b class="${mono?'mono':''}">${esc(valor)}</b></div>` : '';
+  const cidadeUf = (f.cidade||f.municipio) && (f.estado||f.uf) ? `${f.cidade||f.municipio} / ${f.estado||f.uf}` : (f.cidade||f.municipio||f.estado||f.uf);
 
   document.getElementById('m-body').innerHTML = `
-    <div class="tab-bar">
-      <button class="tab-btn ativo" onclick="aba('dados',this)">Dados cadastrais</button>
-      <button class="tab-btn" onclick="aba('financeiro',this)">Financeiro</button>
-      <button class="tab-btn" onclick="aba('contratos',this)">Contratos (${(contratos||[]).length})</button>
-      ${f.contrato_url?`<button class="tab-btn" onclick="abrirDocForn()">📎 Documento</button>`:''}
-    </div>
+    ${abasHTML([
+      ['dados','Dados cadastrais'],
+      ['financeiro','Financeiro'],
+      ['contratos',`Contratos <span class="n">${contratos.length}</span>`],
+    ])}
 
-    <!-- ABA DADOS -->
-    <div class="tab-content ativo" id="tab-dados">
-      <div class="grid-2" style="gap:16px">
+    <div class="fo-painel ativo" id="tab-dados" role="tabpanel">
+      <div class="fo-dados">
         <div>
-          <div class="form-section-title">Identificação</div>
-          ${campo('Razão Social / Nome', f.nome)}
-          ${campo('Nome Fantasia', f.nome_fantasia)}
-          ${campo('CPF/CNPJ', f.cpf_cnpj, true)}
-          ${f.tipo==='PJ'?campo('Inscrição Estadual', f.inscricao_estadual):''}
-          ${f.tipo==='PJ'?campo('Inscrição Municipal', f.inscricao_municipal):''}
-          <div class="form-section-title" style="margin-top:14px">Contato</div>
-          ${campo('Telefone', f.telefone)}
-          ${campo('WhatsApp', f.whatsapp)}
-          ${campo('E-mail', f.email)}
+          <div class="fo-sec">Identificação</div>
+          ${c(f.tipo==='PJ'?'Razão social':'Nome', f.nome)}
+          ${c('Nome fantasia', f.nome_fantasia)}
+          ${c(f.tipo==='PJ'?'CNPJ':'CPF', f.cpf_cnpj, true)}
+          ${f.tipo==='PJ'?c('Inscrição estadual', f.inscricao_estadual, true):''}
+          ${f.tipo==='PJ'?c('Inscrição municipal', f.inscricao_municipal, true):''}
+          <div class="fo-sec">Contato</div>
+          ${c('Telefone', f.telefone)}
+          ${c('WhatsApp', f.whatsapp)}
+          ${c('E-mail', f.email)}
         </div>
         <div>
-          <div class="form-section-title">Endereço</div>
-          ${campo('CEP', f.cep, true)}
-          ${campo('Logradouro', f.logradouro)}
-          ${campo('Número', f.numero_end)}
-          ${campo('Complemento', f.complemento)}
-          ${campo('Bairro', f.bairro)}
-          ${campo('Cidade / UF', f.cidade&&f.estado?`${f.cidade} / ${f.estado}`:f.cidade||f.estado)}
-          <div class="form-section-title" style="margin-top:14px">Responsável</div>
-          ${campo('Nome', f.responsavel_nome)}
-          ${campo('Cargo', f.responsavel_cargo)}
+          <div class="fo-sec">Endereço</div>
+          ${c('CEP', f.cep, true)}
+          ${c('Logradouro', f.logradouro)}
+          ${c('Número', f.numero_end)}
+          ${c('Complemento', f.complemento)}
+          ${c('Bairro', f.bairro)}
+          ${c('Cidade / UF', cidadeUf)}
+          <div class="fo-sec">Responsável</div>
+          ${c('Nome', f.responsavel_nome)}
+          ${c('Cargo', f.responsavel_cargo)}
         </div>
       </div>
-      <div class="form-section-title" style="margin-top:14px">Dados Bancários</div>
-      <div class="grid-2" style="gap:12px">
-        ${campo('Banco', f.banco)}
-        ${campo('Agência', f.agencia, true)}
-        ${campo('Conta', f.conta, true)}
-        ${campo('Tipo de Conta', f.tipo_conta)}
-        ${campo('PIX', f.pix)}
+      <div class="fo-sec">Dados bancários</div>
+      <div class="fo-dados">
+        <div>${c('Banco', f.banco)}${c('Agência', f.agencia, true)}${c('Conta', f.conta, true)}</div>
+        <div>${c('Tipo de conta', f.tipo_conta)}${c('PIX', f.pix, true)}</div>
       </div>
-      ${f.observacoes?`<div style="margin-top:14px"><div class="form-section-title">Observações</div>
-        <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);border:1px solid var(--borda)">${f.observacoes}</div>
-      </div>`:''}
+      ${f.contrato_url?`<div class="fo-sec">Documento do cadastro</div>
+        <div class="fo-anexo">${foIc('clipe','p')}<b>${esc(f.contrato_nome||'Documento')}</b>
+          <a href="#" class="fo-btn peq" data-arquivo="${esc(f.contrato_url)}">${foIc('olho','p')}Abrir</a></div>`:''}
+      ${f.observacoes?`<div class="fo-sec">Observações</div><div class="fo-obs">${esc(f.observacoes)}</div>`:''}
     </div>
 
-    <!-- ABA FINANCEIRO -->
-    <div class="tab-content" id="tab-financeiro">
-      <div class="grid-2" style="gap:12px;margin-bottom:16px">
-        <div style="background:var(--sucesso-bg);border:1px solid #A7F3D0;border-radius:var(--raio-lg);padding:16px;text-align:center">
-          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Total Pago</div>
-          <div style="font-size:22px;font-weight:600;color:var(--sucesso)">${fmtBRL(totalPago)}</div>
-        </div>
-        <div style="background:var(--aviso-bg);border:1px solid #FDE68A;border-radius:var(--raio-lg);padding:16px;text-align:center">
-          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">A Pagar</div>
-          <div style="font-size:22px;font-weight:600;color:var(--aviso)">${fmtBRL(totalAPagar)}</div>
-        </div>
+    <div class="fo-painel" id="tab-financeiro" role="tabpanel">
+      <div class="fo-resumo">
+        <div><span>Pago</span><b class="ok">${fmtBRL(totalPago)}</b></div>
+        <div><span>A pagar</span><b>${fmtBRL(totalAPagar)}</b></div>
+        <div><span>Notas fiscais registradas</span><b>${notasCount}</b></div>
       </div>
-      <div style="font-size:12px;color:var(--cinza-500);margin-bottom:10px">
-        ${notasCount} nota(s) fiscal(is) registrada(s)
-      </div>
-      ${(lancamentos||[]).length ?
-        `<table><thead><tr><th>Descrição</th><th>NF</th><th>Pagamento</th><th style="text-align:right">Valor</th><th>Status</th></tr></thead>
-        <tbody>${(lancamentos||[]).map(l=>`<tr>
-          <td style="font-size:12px">${l.descricao||'—'}</td>
-          <td class="mono">${l.numero_nf||'—'}</td>
-          <td style="font-size:12px">${l.dt_pagamento?fmtData(l.dt_pagamento):'—'}</td>
-          <td style="text-align:right;font-family:var(--font-mono);font-size:12px">${fmtBRL(l.valor_brl)}</td>
-          <td>${badgeSituacao(l.situacao)}</td>
-        </tr>`).join('')}</tbody></table>` :
-        `<div class="empty-state"><div class="empty-state-msg">Nenhum lançamento registrado.</div></div>`}
+      ${recentes.length ? `
+        <div class="fo-nota">${lancs.length > 10 ? `Mostrando os 10 lançamentos mais recentes de ${lancs.length}. Os totais acima somam todos.` : `${lancs.length} lançamento${lancs.length!==1?'s':''}.`}
+          <a href="financeiro.html">Ver todos no Financeiro</a></div>
+        <div style="overflow-x:auto"><table class="fo-mini">
+          <thead><tr><th>Descrição</th><th>NF</th><th>Pagamento</th><th class="dir">Valor</th><th>Situação</th></tr></thead>
+          <tbody>${recentes.map(l=>`<tr>
+            <td>${esc(l.descricao||'—')}</td>
+            <td class="mono">${esc(l.numero_nf||'—')}</td>
+            <td>${l.dt_pagamento?fmtData(l.dt_pagamento):'—'}</td>
+            <td class="dir mono">${fmtBRL(l.valor_brl)}</td>
+            <td>${pillSit(l.situacao)}</td>
+          </tr>`).join('')}</tbody></table></div>` :
+        `<div class="fo-vazio">${foIc('doc')}Nenhum lançamento registrado.</div>`}
     </div>
 
-    <!-- ABA CONTRATOS -->
-    <div class="tab-content" id="tab-contratos">
-      ${renderContratos(contratos||[])}
+    <div class="fo-painel" id="tab-contratos" role="tabpanel">
+      ${renderContratos(contratos)}
     </div>
   `;
 
   document.getElementById('m-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
-    ${PODE.verFinanceiro()||PODE.editarAtividade()?`<button class="btn btn-primary" onclick="abrirEditar('${f.id}')">✏️ Editar cadastro</button>`:''}`;
-
-  document.getElementById('modal-forn').classList.add('aberto');
+    <button type="button" class="fo-btn" onclick="fecharModal()">Fechar</button>
+    ${PODE_EDITAR()?`<button type="button" class="fo-btn pri" onclick="abrirEditar('${f.id}')">${foIc('lapis','p')}Editar cadastro</button>`:''}`;
   } catch(e) {
     console.error('abrirDetalhe error:',e);
     toast('Erro ao carregar detalhes do fornecedor.','error');
   }
 }
 
-function campo(label, valor, mono=false) {
-  if (!valor) return '';
-  return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--borda)">
-    <span style="color:var(--cinza-500)">${label}</span>
-    <span style="font-weight:500;color:var(--cinza-900);${mono?'font-family:var(--font-mono)':''}">${valor}</span>
-  </div>`;
-}
+function renderContratos(contratos){
+  const rodape = `<div class="fo-nota">${foIc('info','p')}Para cadastrar um contrato, use a guia <a href="contratos.html">Contratos</a>.</div>`;
+  if(!contratos.length) return `<div class="fo-vazio">${foIc('contrato')}Nenhum contrato vinculado.</div>` + rodape;
 
-async function abrirDocForn() {
-  if (!fornEditando?.contrato_url) return;
-  await abrirDoc(fornEditando.contrato_url);
-  toast('Link gerado — válido por 1 hora.','success');
+  const ativos = contratos.filter(c => c.status !== 'cancelado');
+  const totTotal = ativos.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
+  const totPago = ativos.reduce((s,c)=>s+parseFloat(c.valor_utilizado_brl||0),0);
+  const totComp = ativos.reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||c.valor_utilizado_brl||0),0);
+
+  const cards = contratos.map(c => {
+    const total = parseFloat(c.valor_total_brl||0);
+    const pago = parseFloat(c.valor_utilizado_brl||0);            // só o pago
+    const comp = parseFloat(c.valor_comprometido_brl||pago);       // pago + a pagar
+    const livre = total - comp;
+    const pp = total>0 ? Math.min(100, pago/total*100) : 0;
+    const pc = total>0 ? Math.min(100 - pp, Math.max(0, comp-pago)/total*100) : 0;
+    return `<div class="fo-ccard">
+      <div class="t"><span class="fo-cod">${esc(c.numero||'—')}</span>${pillContrato(c.status)}
+        ${c.dt_inicio&&c.dt_fim?`<span class="dt">${fmtData(c.dt_inicio)} → ${fmtData(c.dt_fim)}</span>`:''}
+        <a href="contratos.html" class="fo-btn peq">${foIc('seta','p')}Abrir em Contratos</a></div>
+      ${c.objeto_pt?`<div class="obj">${esc(c.objeto_pt)}</div>`:''}
+      ${c.atividade||c.tdr?`<div class="fo-selos">
+        ${c.atividade?`<span class="fo-pill fo-p-ne" title="${esc(c.atividade.nome_pt||'')}">Atividade ${esc(c.atividade.codigo)}</span>`:''}
+        ${c.tdr?`<span class="fo-pill fo-p-ne">TDR ${esc(c.tdr.numero)}</span>`:''}</div>`:''}
+      ${total>0?`<div class="fo-exec">
+        <div class="fo-meter" role="img" aria-label="Pago ${fmtBRL(pago)}, comprometido ${fmtBRL(comp)} de ${fmtBRL(total)}"><i class="pago" style="width:${pp}%"></i><i class="comp" style="width:${pc}%"></i></div>
+        <div class="ln"><span>de <b>${fmtBRL(total)}</b></span><span>Pago <b class="ok">${fmtBRL(pago)}</b> · a pagar <b>${fmtBRL(Math.max(0,comp-pago))}</b> · livre <b>${fmtBRL(livre)}</b></span></div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  const resumo = contratos.length > 1 ? `<div class="fo-resumo">
+      <div><span>Contratado (${ativos.length} contrato${ativos.length!==1?'s':''})</span><b>${fmtBRL(totTotal)}</b></div>
+      <div><span>Pago</span><b class="ok">${fmtBRL(totPago)}</b></div>
+      <div><span>A pagar</span><b>${fmtBRL(Math.max(0, totComp - totPago))}</b></div>
+    </div>` : '';
+  return resumo + cards + rodape;
 }
 
 // ── FORMULÁRIO ────────────────────────────────────────────────
 function abrirNovo() {
   fornEditando = null;
   arquivoContrato = null;
-  document.getElementById('m-titulo').textContent = 'Novo Fornecedor';
+  document.getElementById('m-av').innerHTML = '';
+  document.getElementById('m-titulo').textContent = 'Novo fornecedor';
   document.getElementById('m-sub').textContent = '';
   renderForm(null);
   document.getElementById('m-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-primary" id="btn-salvar-forn" onclick="salvar()">Criar fornecedor</button>`;
-  document.getElementById('modal-forn').classList.add('aberto');
+    <button type="button" class="fo-btn" onclick="fecharModal()">Cancelar</button>
+    <button type="button" class="fo-btn pri" id="btn-salvar-forn" onclick="salvar()">${foIc('check','p')}Criar fornecedor</button>`;
+  foAbrir();
 }
 
 function abrirEditar(id) {
   fornEditando = todosFornecedores.find(f=>f.id===id);
   if (!fornEditando) return;
   arquivoContrato = null;
-  document.getElementById('m-titulo').textContent = `Editar — ${fornEditando.nome}`;
-  document.getElementById('m-sub').textContent = fornEditando.cpf_cnpj||'';
+  document.getElementById('m-av').innerHTML = avatar(fornEditando);
+  document.getElementById('m-titulo').textContent = 'Editar fornecedor';
+  document.getElementById('m-sub').textContent = fornEditando.nome + (fornEditando.cpf_cnpj ? ' · ' + fornEditando.cpf_cnpj : '');
   renderForm(fornEditando);
   document.getElementById('m-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    ${!fornEditando.ativo?`<button class="btn btn-secondary" onclick="alterarAtivo('${fornEditando.id}',true)">Reativar</button>`:`<button class="btn btn-danger" onclick="alterarAtivo('${fornEditando.id}',false)">Desativar</button>`}
-    <button class="btn btn-primary" id="btn-salvar-forn" onclick="salvar()">Salvar alterações</button>`;
-  document.getElementById('modal-forn').classList.add('aberto');
+    ${!fornEditando.ativo
+      ? `<button type="button" class="fo-btn esq" onclick="alterarAtivo('${fornEditando.id}',true)">${foIc('check','p')}Reativar</button>`
+      : `<button type="button" class="fo-btn perigo esq" onclick="alterarAtivo('${fornEditando.id}',false)">${foIc('x','p')}Desativar</button>`}
+    <button type="button" class="fo-btn" onclick="fecharModal()">Cancelar</button>
+    <button type="button" class="fo-btn pri" id="btn-salvar-forn" onclick="salvar()">${foIc('check','p')}Salvar alterações</button>`;
+  foAbrir();
 }
 
 function renderForm(f) {
   const tipo = f?.tipo || 'PF';
+  const v = x => esc(x || '');
   document.getElementById('m-body').innerHTML = `
-    <div class="tab-bar">
-      <button class="tab-btn ativo" onclick="aba('identificacao',this)">Identificação</button>
-      <button class="tab-btn" onclick="aba('endereco',this)">Endereço</button>
-      <button class="tab-btn" onclick="aba('bancario',this)">Dados Bancários</button>
-      <button class="tab-btn" onclick="aba('documento',this)">Documento</button>
-    </div>
+    ${abasHTML([['identificacao','Identificação'],['endereco','Endereço'],['bancario','Dados bancários'],['documento','Documento']])}
 
-    <!-- IDENTIFICAÇÃO -->
-    <div class="tab-content ativo" id="tab-identificacao">
+    <div class="fo-painel ativo" id="tab-identificacao" role="tabpanel">
       <div class="form-group">
-        <label class="form-label">Tipo de pessoa <span class="obrig">*</span></label>
-        <div style="display:flex;gap:14px;margin-top:4px">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-            <input type="radio" name="f-tipo" value="PF" ${tipo==='PF'?'checked':''} onchange="trocarTipo('PF')"> Pessoa Física (PF)
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-            <input type="radio" name="f-tipo" value="PJ" ${tipo==='PJ'?'checked':''} onchange="trocarTipo('PJ')"> Pessoa Jurídica (PJ)
-          </label>
+        <span class="form-label">Tipo de pessoa <span class="obrig">*</span></span>
+        <div class="fo-radio" role="radiogroup" aria-label="Tipo de pessoa">
+          <label><input type="radio" name="f-tipo" value="PF" ${tipo==='PF'?'checked':''} onchange="trocarTipo('PF')">Pessoa física (PF)</label>
+          <label><input type="radio" name="f-tipo" value="PJ" ${tipo==='PJ'?'checked':''} onchange="trocarTipo('PJ')">Pessoa jurídica (PJ)</label>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Razão Social / Nome completo <span class="obrig">*</span></label>
-        <input class="form-control" id="f-nome" type="text" value="${f?.nome||''}"
-          placeholder="${tipo==='PJ'?'Razão Social da empresa':'Nome completo do consultor'}">
+        <label class="form-label" for="f-nome" id="lbl-nome">${tipo==='PJ'?'Razão social':'Nome completo'} <span class="obrig">*</span></label>
+        <input class="form-control" id="f-nome" type="text" value="${v(f?.nome)}"
+          placeholder="${tipo==='PJ'?'Razão social da empresa':'Nome completo do consultor'}">
       </div>
 
-      <div class="form-group" id="grp-fantasia" style="${tipo==='PF'?'display:none':''}">
-        <label class="form-label">Nome Fantasia</label>
-        <input class="form-control" id="f-fantasia" type="text" value="${f?.nome_fantasia||''}"
-          placeholder="Nome comercial">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label" id="lbl-doc" for="f-doc">${tipo==='PF'?'CPF':'CNPJ'} <span class="obrig">*</span></label>
+          <input class="form-control mono" id="f-doc" type="text" value="${v(f?.cpf_cnpj)}"
+            placeholder="${tipo==='PF'?'000.000.000-00':'00.000.000/0000-00'}"
+            oninput="this.value=mascaraDoc(this.value,tipoAtual());verificarDoc(this.value,tipoAtual())" aria-describedby="doc-status">
+          <div id="doc-status" class="doc-status" aria-live="polite"></div>
+        </div>
+        <div class="form-group" id="grp-fantasia"${tipo==='PF'?' hidden':''}>
+          <label class="form-label" for="f-fantasia">Nome fantasia</label>
+          <input class="form-control" id="f-fantasia" type="text" value="${v(f?.nome_fantasia)}" placeholder="Nome comercial">
+        </div>
       </div>
 
-      <div class="form-group">
-        <label class="form-label" id="lbl-doc">${tipo==='PF'?'CPF':'CNPJ'} <span class="obrig">*</span></label>
-        <input class="form-control" id="f-doc" type="text"
-          value="${f?.cpf_cnpj||''}"
-          placeholder="${tipo==='PF'?'000.000.000-00':'00.000.000/0000-00'}"
-          style="font-family:var(--font-mono)"
-          oninput="this.value=mascaraDoc(this.value,'${tipo}');verificarDoc(this.value,'${tipo}')">
-        <div id="doc-status" class="doc-status"></div>
-      </div>
-
-      <div id="grp-ie" style="${tipo==='PF'?'display:none':''}">
+      <div id="grp-ie"${tipo==='PF'?' hidden':''}>
         <div class="grid-2">
           <div class="form-group">
-            <label class="form-label">Inscrição Estadual</label>
-            <input class="form-control" id="f-ie" type="text" value="${f?.inscricao_estadual||''}" style="font-family:var(--font-mono)">
+            <label class="form-label" for="f-ie">Inscrição estadual</label>
+            <input class="form-control mono" id="f-ie" type="text" value="${v(f?.inscricao_estadual)}">
           </div>
           <div class="form-group">
-            <label class="form-label">Inscrição Municipal</label>
-            <input class="form-control" id="f-im" type="text" value="${f?.inscricao_municipal||''}" style="font-family:var(--font-mono)">
+            <label class="form-label" for="f-im">Inscrição municipal</label>
+            <input class="form-control mono" id="f-im" type="text" value="${v(f?.inscricao_municipal)}">
           </div>
         </div>
       </div>
 
-      <div class="form-section-title" style="margin-top:4px">Contato</div>
+      <div class="fo-sec">Contato</div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Telefone</label>
-          <input class="form-control" id="f-tel" type="tel" value="${f?.telefone||''}"
-            placeholder="(68) 00000-0000"
-            oninput="this.value=mascaraFone(this.value)">
+          <label class="form-label" for="f-tel">Telefone</label>
+          <input class="form-control" id="f-tel" type="tel" value="${v(f?.telefone)}" placeholder="(68) 00000-0000" oninput="this.value=mascaraFone(this.value)">
         </div>
         <div class="form-group">
-          <label class="form-label">WhatsApp</label>
-          <input class="form-control" id="f-wpp" type="tel" value="${f?.whatsapp||''}"
-            placeholder="(68) 00000-0000"
-            oninput="this.value=mascaraFone(this.value)">
+          <label class="form-label" for="f-wpp">WhatsApp</label>
+          <input class="form-control" id="f-wpp" type="tel" value="${v(f?.whatsapp)}" placeholder="(68) 00000-0000" oninput="this.value=mascaraFone(this.value)">
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">E-mail <span style="color:#DC2626">*</span></label>
-        <input class="form-control" id="f-email" type="email" value="${f?.email||''}"
-          placeholder="contato@empresa.com.br" required>
+        <label class="form-label" for="f-email">E-mail <span class="obrig">*</span></label>
+        <input class="form-control" id="f-email" type="email" value="${v(f?.email)}" placeholder="contato@empresa.com.br" required>
+        <div class="form-hint">Usado para as notificações de produto e pagamento.</div>
       </div>
 
-      <div class="form-section-title">Responsável pelo contrato</div>
+      <div class="fo-sec">Responsável pelo contrato</div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Nome do responsável</label>
-          <input class="form-control" id="f-resp-nome" type="text" value="${f?.responsavel_nome||''}">
+          <label class="form-label" for="f-resp-nome">Nome do responsável</label>
+          <input class="form-control" id="f-resp-nome" type="text" value="${v(f?.responsavel_nome)}">
         </div>
         <div class="form-group">
-          <label class="form-label">Cargo</label>
-          <input class="form-control" id="f-resp-cargo" type="text" value="${f?.responsavel_cargo||''}"
-            placeholder="Ex: Diretor, Representante Legal">
+          <label class="form-label" for="f-resp-cargo">Cargo</label>
+          <input class="form-control" id="f-resp-cargo" type="text" value="${v(f?.responsavel_cargo)}" placeholder="Ex.: Diretor, representante legal">
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Observações</label>
-        <textarea class="form-control" id="f-obs" rows="2">${f?.observacoes||''}</textarea>
+        <label class="form-label" for="f-obs">Observações</label>
+        <textarea class="form-control" id="f-obs" rows="2">${v(f?.observacoes)}</textarea>
       </div>
     </div>
 
-    <!-- ENDEREÇO -->
-    <div class="tab-content" id="tab-endereco">
+    <div class="fo-painel" id="tab-endereco" role="tabpanel">
       <div class="form-group">
-        <label class="form-label">CEP</label>
-        <div style="display:flex;gap:8px">
-          <input class="form-control" id="f-cep" type="text" value="${f?.cep||''}"
-            placeholder="00000-000" style="max-width:160px;font-family:var(--font-mono)"
-            oninput="this.value=mascaraCEP(this.value)"
-            onblur="buscarCEP()">
-          <button class="btn btn-secondary btn-sm" onclick="buscarCEP()">🔍 Buscar</button>
+        <label class="form-label" for="f-cep">CEP</label>
+        <div class="fo-cep">
+          <input class="form-control mono" id="f-cep" type="text" value="${v(f?.cep)}" placeholder="00000-000"
+            oninput="this.value=mascaraCEP(this.value)" onblur="buscarCEP()">
+          <button type="button" class="fo-btn" onclick="buscarCEP()">${foIc('busca','p')}Buscar</button>
         </div>
-        <div class="form-hint">Digite o CEP e clique em Buscar para preencher automaticamente.</div>
+        <div class="form-hint">Digite o CEP e clique em Buscar para preencher o endereço.</div>
       </div>
       <div class="form-group">
-        <label class="form-label">Logradouro</label>
-        <input class="form-control" id="f-logradouro" type="text" value="${f?.logradouro||''}"
-          placeholder="Rua, Avenida, Travessa...">
+        <label class="form-label" for="f-logradouro">Logradouro</label>
+        <input class="form-control" id="f-logradouro" type="text" value="${v(f?.logradouro)}" placeholder="Rua, avenida, travessa…">
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Número</label>
-          <input class="form-control" id="f-numero" type="text" value="${f?.numero_end||''}"
-            placeholder="Ex: 123, S/N">
+          <label class="form-label" for="f-numero">Número</label>
+          <input class="form-control" id="f-numero" type="text" value="${v(f?.numero_end)}" placeholder="Ex.: 123, S/N">
         </div>
         <div class="form-group">
-          <label class="form-label">Complemento</label>
-          <input class="form-control" id="f-complemento" type="text" value="${f?.complemento||''}"
-            placeholder="Apto, Sala, Bloco...">
+          <label class="form-label" for="f-complemento">Complemento</label>
+          <input class="form-control" id="f-complemento" type="text" value="${v(f?.complemento)}" placeholder="Apto, sala, bloco…">
         </div>
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Bairro</label>
-          <input class="form-control" id="f-bairro" type="text" value="${f?.bairro||''}">
+          <label class="form-label" for="f-bairro">Bairro</label>
+          <input class="form-control" id="f-bairro" type="text" value="${v(f?.bairro)}">
         </div>
         <div class="form-group">
-          <label class="form-label">Município</label>
-          <input class="form-control" id="f-municipio" type="text" value="${f?.municipio||f?.cidade||''}">
+          <label class="form-label" for="f-municipio">Município</label>
+          <input class="form-control" id="f-municipio" type="text" value="${v(f?.municipio||f?.cidade)}">
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Estado (UF)</label>
+        <label class="form-label" for="f-uf">Estado (UF)</label>
         <select class="form-control" id="f-uf" style="max-width:140px">
-          <option value="">Selecione...</option>
+          <option value="">Selecione…</option>
           ${['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf=>
             `<option value="${uf}" ${(f?.uf||f?.estado)===uf?'selected':''}>${uf}</option>`
           ).join('')}
@@ -655,92 +681,69 @@ function renderForm(f) {
       </div>
     </div>
 
-    <!-- DADOS BANCÁRIOS -->
-    <div class="tab-content" id="tab-bancario">
-      <div class="alert alert-info" style="margin-bottom:16px">
-        ℹ Dados bancários são usados para referência interna. Nunca compartilhe estas informações externamente.
-      </div>
+    <div class="fo-painel" id="tab-bancario" role="tabpanel">
+      <div class="fo-aviso">${foIc('cadeado','p')}<span>Dados bancários são de uso interno. Nunca compartilhe estas informações fora da plataforma.</span></div>
       <div class="form-group">
-        <label class="form-label">Banco</label>
-        <input class="form-control" id="f-banco" type="text" value="${f?.banco||''}"
-          placeholder="Ex: Banco do Brasil, Caixa Econômica, Sicoob...">
+        <label class="form-label" for="f-banco">Banco</label>
+        <input class="form-control" id="f-banco" type="text" value="${v(f?.banco)}" placeholder="Ex.: Banco do Brasil, Caixa, Sicoob…">
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Agência</label>
-          <input class="form-control" id="f-agencia" type="text" value="${f?.agencia||''}"
-            placeholder="0000-0" style="font-family:var(--font-mono)">
+          <label class="form-label" for="f-agencia">Agência</label>
+          <input class="form-control mono" id="f-agencia" type="text" value="${v(f?.agencia)}" placeholder="0000-0">
         </div>
         <div class="form-group">
-          <label class="form-label">Conta</label>
-          <input class="form-control" id="f-conta" type="text" value="${f?.conta||''}"
-            placeholder="00000-0" style="font-family:var(--font-mono)">
+          <label class="form-label" for="f-conta">Conta</label>
+          <input class="form-control mono" id="f-conta" type="text" value="${v(f?.conta)}" placeholder="00000-0">
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Tipo de conta</label>
+        <label class="form-label" for="f-tipo-conta">Tipo de conta</label>
         <select class="form-control" id="f-tipo-conta" style="max-width:200px">
-          <option value="">Selecione...</option>
+          <option value="">Selecione…</option>
           ${['Corrente','Poupança','Pagamento'].map(t=>`<option value="${t}" ${f?.tipo_conta===t?'selected':''}>${t}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Chave PIX</label>
-        <input class="form-control" id="f-pix" type="text" value="${f?.pix||''}"
-          placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
-          style="font-family:var(--font-mono)">
+        <label class="form-label" for="f-pix">Chave PIX</label>
+        <input class="form-control mono" id="f-pix" type="text" value="${v(f?.pix)}" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória">
       </div>
     </div>
 
-    <!-- DOCUMENTO -->
-    <div class="tab-content" id="tab-documento">
-      <div style="margin-bottom:16px">
-        <label class="form-label" style="margin-bottom:8px">Documento / Contrato assinado (.pdf ou .docx)</label>
-        ${f?.contrato_url ? `
-          <div class="alert alert-info" style="margin-bottom:12px">
-            📎 Arquivo atual: <strong>${f.contrato_nome||'Documento'}</strong>
-            <button class="btn btn-sm btn-secondary" style="margin-left:8px" onclick="abrirDocForn()">Abrir arquivo</button>
-          </div>` : ''}
-        <div class="upload-zone ${f?.contrato_url?'tem-arquivo':''}" id="upload-doc-forn"
-          onclick="document.getElementById('inp-doc-forn').click()"
-          ondragover="event.preventDefault();this.classList.add('drag')"
-          ondragleave="this.classList.remove('drag')"
-          ondrop="onDropForn(event)">
-          <div style="font-size:28px;margin-bottom:6px">📄</div>
-          <div style="font-size:13px;font-weight:500;color:var(--cinza-700);margin-bottom:3px" id="doc-forn-txt">
-            ${f?.contrato_url?`Substituir arquivo atual (${f.contrato_nome||'documento'})`:
-              'Arraste o arquivo ou clique para selecionar'}
-          </div>
-          <div style="font-size:11px;color:var(--cinza-500)">.pdf · .docx · .doc — máximo 10MB</div>
-          <input type="file" id="inp-doc-forn" accept=".pdf,.docx,.doc" style="display:none"
-            onchange="selecionarDocForn(this.files[0])">
-        </div>
-      </div>
+    <div class="fo-painel" id="tab-documento" role="tabpanel">
+      <span class="form-label">Documento / contrato assinado (.pdf ou .docx)</span>
+      ${f?.contrato_url ? `<div class="fo-anexo" style="margin-top:8px">${foIc('clipe','p')}<b>${esc(f.contrato_nome||'Documento')}</b>
+          <a href="#" class="fo-btn peq" data-arquivo="${esc(f.contrato_url)}">${foIc('olho','p')}Abrir</a></div>` : ''}
+      <button type="button" class="upload-zone ${f?.contrato_url?'tem-arquivo':''}" id="upload-doc-forn" style="margin-top:8px"
+        onclick="document.getElementById('inp-doc-forn').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="onDropForn(event)">
+        ${foIc('upload')}
+        <b id="doc-forn-txt">${f?.contrato_url?'Substituir o arquivo atual':'Arraste o arquivo ou clique para selecionar'}</b>
+        <span>.pdf · .docx · .doc — até 10 MB</span>
+      </button>
+      <input type="file" id="inp-doc-forn" accept=".pdf,.docx,.doc" hidden onchange="selecionarDocForn(this.files[0])">
     </div>
   `;
 
-  // Verificar doc se já preenchido
-  if (f?.cpf_cnpj) {
-    setTimeout(() => verificarDoc(f.cpf_cnpj, f.tipo), 100);
-  }
+  if (f?.cpf_cnpj) setTimeout(() => verificarDoc(f.cpf_cnpj, f.tipo), 100);
 }
 
 function trocarTipo(tipo) {
   const grpF = document.getElementById('grp-fantasia');
   const grpIe = document.getElementById('grp-ie');
   const lblDoc = document.getElementById('lbl-doc');
+  const lblNome = document.getElementById('lbl-nome');
   const inpDoc = document.getElementById('f-doc');
-  if (grpF) grpF.style.display = tipo==='PJ'?'':'none';
-  if (grpIe) grpIe.style.display = tipo==='PJ'?'':'none';
+  if (grpF) grpF.hidden = tipo !== 'PJ';
+  if (grpIe) grpIe.hidden = tipo !== 'PJ';
   if (lblDoc) lblDoc.innerHTML = `${tipo==='PF'?'CPF':'CNPJ'} <span class="obrig">*</span>`;
+  if (lblNome) lblNome.innerHTML = `${tipo==='PJ'?'Razão social':'Nome completo'} <span class="obrig">*</span>`;
   if (inpDoc) {
     inpDoc.placeholder = tipo==='PF'?'000.000.000-00':'00.000.000/0000-00';
-    inpDoc.oninput = function() {
-      this.value = mascaraDoc(this.value, tipo);
-      verificarDoc(this.value, tipo);
-    };
     inpDoc.value = '';
-    document.getElementById('doc-status').innerHTML = '';
+    verificarDoc('', tipo);
   }
 }
 
@@ -756,7 +759,7 @@ function selecionarDocForn(file) {
   const zone = document.getElementById('upload-doc-forn');
   const txt = document.getElementById('doc-forn-txt');
   zone.classList.add('tem-arquivo');
-  if (txt) txt.textContent = `✓ ${file.name} (${(file.size/1024/1024).toFixed(2)}MB)`;
+  if (txt) txt.textContent = `${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`;
   toast('Arquivo selecionado. Salve o formulário para fazer upload.','info');
 }
 
@@ -766,18 +769,17 @@ async function salvar() {
   if (btnSalvar) btnSalvar.disabled = true;
 
   try {
-  const tipo = document.querySelector('input[name="f-tipo"]:checked')?.value || 'PF';
+  const tipo = tipoAtual();
   const nome = document.getElementById('f-nome')?.value.trim();
   const doc = document.getElementById('f-doc')?.value.replace(/\D/g,'');
 
-  if (!nome) { toast('Preencha o nome/razão social.','error'); return; }
+  if (!nome) { aba('identificacao'); toast('Preencha o nome/razão social.','error'); return; }
   const emailVal = document.getElementById('f-email')?.value.trim();
-  if (!emailVal) { toast('O campo e-mail é obrigatório para envio de notificações.','error'); document.getElementById('f-email')?.focus(); return; }
+  if (!emailVal) { aba('identificacao'); toast('O campo e-mail é obrigatório para envio de notificações.','error'); document.getElementById('f-email')?.focus(); return; }
   if (doc) {
     const ok = tipo === 'PF' ? validarCPF(doc) : validarCNPJ(doc);
-    if (!ok) { toast(`${tipo==='PF'?'CPF':'CNPJ'} inválido. Verifique antes de salvar.`,'error'); return; }
+    if (!ok) { aba('identificacao'); toast(`${tipo==='PF'?'CPF':'CNPJ'} inválido. Verifique antes de salvar.`,'error'); return; }
     // Verificar duplicata antes de tentar inserir
-    const docFmt = document.getElementById('f-doc')?.value||'';
     const duplicata = todosFornecedores.find(f =>
       f.id !== fornEditando?.id &&
       (f.cpf_cnpj||'').replace(/\D/g,'') === doc
@@ -818,15 +820,14 @@ async function salvar() {
     conta: document.getElementById('f-conta')?.value.trim()||null,
     tipo_conta: document.getElementById('f-tipo-conta')?.value||null,
     pix: document.getElementById('f-pix')?.value.trim()||null,
-    ativo: true,
-    criado_por: appState.usuario.id,
   };
 
   try {
     let id = fornEditando?.id;
 
     if (!fornEditando) {
-      const {data,error} = await db.from('fornecedores').insert(dados).select().single();
+      // ativo e criado_por só no cadastro novo (editar não reativa nem troca o autor)
+      const {data,error} = await db.from('fornecedores').insert({ ...dados, ativo: true, criado_por: appState.usuario.id }).select().single();
       if (error) {
         if (error.code==='23505') {
           const docNum = doc||'';
@@ -843,6 +844,7 @@ async function salvar() {
       }
       id = data.id;
       todosFornecedores.push(data);
+      todosFornecedores.sort((a,b) => (a.nome||'').localeCompare(b.nome||''));
       toast(`Fornecedor ${dados.nome} cadastrado!`,'success');
     } else {
       const {error} = await db.from('fornecedores').update(dados).eq('id',fornEditando.id);
@@ -881,7 +883,8 @@ async function salvar() {
 }
 
 async function alterarAtivo(id, ativo) {
-  await db.from('fornecedores').update({ativo}).eq('id',id);
+  const { error } = await db.from('fornecedores').update({ativo}).eq('id',id);
+  if (error) { toast('Erro: '+(error.message||''),'error'); return; }
   const f = todosFornecedores.find(x=>x.id===id);
   if (f) f.ativo = ativo;
   fecharModal();
@@ -889,140 +892,38 @@ async function alterarAtivo(id, ativo) {
   toast(ativo?'Fornecedor reativado.':'Fornecedor desativado.','success');
 }
 
-function escH(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-function renderContratos(contratos){
-  if(!contratos.length) return`
-    <div class="empty-state" style="padding:24px"><div class="empty-state-msg">Nenhum contrato vinculado.</div></div>
-    <div style="margin-top:8px;background:var(--cinza-50);border-radius:var(--raio);padding:9px 12px;font-size:11px;color:var(--cinza-500)">
-      Para cadastrar acesse o módulo <a href="contratos.html" style="color:var(--azul-medio)">Contratos</a>.
-    </div>`;
-
-  const STATUS_COR={
-    vigente:{bg:'#ECFDF5',color:'#065F46'},
-    encerrado:{bg:'#F3F4F6',color:'#374151'},
-    suspenso:{bg:'#FEF3C7',color:'#92400E'},
-    rescindido:{bg:'#FEE2E2',color:'#991B1B'},
-  };
-
-  const cards=contratos.map(c=>{
-    const cor=STATUS_COR[c.status]||{bg:'#F3F4F6',color:'#374151'};
-    const total=parseFloat(c.valor_total_brl||0);
-    const utilizado=parseFloat(c.valor_utilizado_brl||0);
-    const comprometido=parseFloat(c.valor_comprometido_brl||0);
-    const saldo=parseFloat(c.saldo_brl||0);
-    const pct=total>0?Math.min(100,Math.round((utilizado/total)*100)):0;
-    const pctComp=total>0?Math.min(100,Math.round(((utilizado+comprometido)/total)*100)):0;
-
-    return`
-    <div style="border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:12px;overflow:hidden">
-      <!-- Cabeçalho do contrato -->
-      <div style="padding:10px 14px;background:var(--cinza-50);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cinza-900)">${escH(c.numero||'—')}</span>
-        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:${cor.bg};color:${cor.color}">${c.status||'—'}</span>
-        ${c.dt_inicio&&c.dt_fim?`<span style="font-size:11px;color:var(--cinza-500)">📅 ${fmtData(c.dt_inicio)} → ${fmtData(c.dt_fim)}</span>`:''}
-        <a href="contratos.html" style="margin-left:auto;font-size:11px;color:var(--azul-medio);text-decoration:none;white-space:nowrap">↗ Ver contrato</a>
-      </div>
-
-      <div style="padding:12px 14px">
-        <!-- Objeto -->
-        ${c.objeto_pt?`<div style="font-size:12px;color:var(--cinza-700);line-height:1.5;margin-bottom:10px">${escH(c.objeto_pt)}</div>`:''}
-
-        <!-- Atividade e TDR -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-          ${c.atividade?`<div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:4px 10px">
-            <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);display:block;margin-bottom:1px">Atividade</span>
-            <span style="font-size:11px;font-weight:600;color:var(--verde-medio)">${escH(c.atividade.codigo)}</span>
-            <span style="font-size:11px;color:var(--cinza-600);margin-left:4px">${escH((c.atividade.nome_pt||'').substring(0,60))}${(c.atividade.nome_pt||'').length>60?'…':''}</span>
-          </div>`:''}
-          ${c.tdr?`<div style="background:var(--azul-bg);border:1px solid #BFDBFE;border-radius:var(--raio);padding:4px 10px">
-            <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);display:block;margin-bottom:1px">TDR</span>
-            <span style="font-size:11px;font-weight:600;color:var(--azul-medio)">${escH(c.tdr.numero)}</span>
-          </div>`:''}
-        </div>
-
-        <!-- Valores em grade -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
-          <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px;text-align:center">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);margin-bottom:3px">Valor total</div>
-            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--cinza-900)">${fmtBRL(total)}</div>
-          </div>
-          <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:8px;text-align:center">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);margin-bottom:3px">Utilizado</div>
-            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#1E40AF">${fmtBRL(utilizado)}</div>
-          </div>
-          <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:var(--raio);padding:8px;text-align:center">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);margin-bottom:3px">Comprometido</div>
-            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#92400E">${fmtBRL(comprometido)}</div>
-          </div>
-          <div style="background:${saldo>0?'#ECFDF5':'#FEE2E2'};border:1px solid ${saldo>0?'#A7F3D0':'#FECACA'};border-radius:var(--raio);padding:8px;text-align:center">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--cinza-500);margin-bottom:3px">Saldo livre</div>
-            <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${saldo>0?'#065F46':'#991B1B'}">${fmtBRL(saldo)}</div>
-          </div>
-        </div>
-
-        <!-- Barra de progresso -->
-        ${total>0?`<div>
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cinza-500);margin-bottom:3px">
-            <span>Execução</span><span>${pct}% utilizado${comprometido>0?' · '+pctComp+'% comprometido':''}</span>
-          </div>
-          <div style="height:6px;background:var(--cinza-100);border-radius:99px;overflow:hidden;position:relative">
-            <div style="position:absolute;left:0;top:0;height:100%;width:${pctComp}%;background:#FDE68A;border-radius:99px"></div>
-            <div style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:var(--azul-medio);border-radius:99px"></div>
-          </div>
-        </div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-
-  // Totalizador
-  const totTotal=contratos.reduce((s,c)=>s+parseFloat(c.valor_total_brl||0),0);
-  const totUtil=contratos.reduce((s,c)=>s+parseFloat(c.valor_utilizado_brl||0),0);
-  const totComp=contratos.reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0);
-  const totSaldo=contratos.reduce((s,c)=>s+parseFloat(c.saldo_brl||0),0);
-
-  const totalizador=contratos.length>1?`
-    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:12px 14px;margin-top:4px">
-      <div style="font-size:11px;font-weight:700;color:var(--cinza-700);margin-bottom:8px">Totais — ${contratos.length} contrato(s)</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-        <div style="text-align:center">
-          <div style="font-size:9px;text-transform:uppercase;color:var(--cinza-500);margin-bottom:2px">Valor total</div>
-          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--cinza-900)">${fmtBRL(totTotal)}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:9px;text-transform:uppercase;color:var(--cinza-500);margin-bottom:2px">Utilizado</div>
-          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#1E40AF">${fmtBRL(totUtil)}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:9px;text-transform:uppercase;color:var(--cinza-500);margin-bottom:2px">Comprometido</div>
-          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:#92400E">${fmtBRL(totComp)}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:9px;text-transform:uppercase;color:var(--cinza-500);margin-bottom:2px">Saldo livre</div>
-          <div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:${totSaldo>0?'#065F46':'#991B1B'}">${fmtBRL(totSaldo)}</div>
-        </div>
-      </div>
-    </div>`:'';
-
-  return cards+totalizador+`
-    <div style="margin-top:10px;background:var(--cinza-50);border-radius:var(--raio);padding:8px 12px;font-size:11px;color:var(--cinza-500)">
-      Para cadastrar um novo contrato acesse o módulo <a href="contratos.html" style="color:var(--azul-medio)">Contratos</a>.
-    </div>`;
+// ── Janela: foco no primeiro campo, Esc fecha, Tab preso, foco volta ao sair ──
+const FO_FOCAVEIS = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]):not([type=file]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+let foVolta = null;
+function foAbrir() {
+  const el = document.getElementById('modal-forn');
+  if (!el.classList.contains('aberto')) foVolta = document.activeElement;
+  el.classList.add('aberto');
+  requestAnimationFrame(() => {
+    const alvo = el.querySelector('.modal-body .fo-painel.ativo :is(input:not([type=radio]):not([type=file]):not([hidden]),select,textarea)') || el.querySelector('.modal-close');
+    if (alvo) alvo.focus({ preventScroll: true });
+  });
 }
-
-function aba(id,btn) {
-  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('ativo'));
-  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('ativo'));
-  document.getElementById('tab-'+id)?.classList.add('ativo');
-  btn.classList.add('ativo');
-}
-
 function fecharModal() {
-  document.getElementById('modal-forn').classList.remove('aberto');
+  const el = document.getElementById('modal-forn');
+  el.classList.remove('aberto');
   fornEditando = null; arquivoContrato = null;
+  if (foVolta && document.contains(foVolta)) foVolta.focus({ preventScroll: true });
+  foVolta = null;
 }
-
-document.addEventListener('keydown', e => { if(e.key==='Escape') fecharModal(); });
+document.addEventListener('keydown', e => {
+  const el = document.getElementById('modal-forn');
+  if (!el.classList.contains('aberto')) return;
+  if (e.key === 'Escape') { e.preventDefault(); fecharModal(); }
+  else if (e.key === 'Tab') {
+    const f = [...el.querySelectorAll(FO_FOCAVEIS)].filter(x => x.offsetParent !== null);
+    if (!f.length) return;
+    const pri = f[0], ult = f[f.length - 1];
+    if (!el.contains(document.activeElement)) { e.preventDefault(); pri.focus(); }
+    else if (e.shiftKey && document.activeElement === pri) { e.preventDefault(); ult.focus(); }
+    else if (!e.shiftKey && document.activeElement === ult) { e.preventDefault(); pri.focus(); }
+  }
+});
 </script>
 </body>
 </html>

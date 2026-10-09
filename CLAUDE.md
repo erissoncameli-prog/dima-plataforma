@@ -688,6 +688,17 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Comprovante e documentos da entrega abrem por `data-arquivo` (bucket `financeiro-docs` é privado). Janelas: classe **`fi-ov`**
   (no seletor de escopo de `diagnostico-mesa.css`), `fiAbrir`/`fiFechar` (foco, Esc fecha a de cima, Tab).
 
+### Fornecedores — visual da lista, do detalhe e do cadastro
+- `pages/fornecedores.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e componentes em `css/fornecedores.css` (prefixo `fo-`; dinheiro = tokens `--fo-*`). Sem `<style>`
+  próprio; ícones SVG por `foIc()`, sem emoji. Texto do usuário sempre por `esc()`.
+- Lista = tabela com **Contratos** (vigentes de total, sem cancelados) e **Pago** (Σ `execucao_financeira` pagos), carregados
+  junto com os fornecedores. "Com contrato vigente" conta contrato `vigente` ou `aguardando_cobertura` (segue valendo); o
+  arquivo anexado ao cadastro (`fornecedores.contrato_url`, bucket `tdrs-arquivos`) é só o selo "Documento".
+- Aba Financeiro do detalhe: totais somam **todos** os lançamentos; a tabela mostra os 10 mais recentes.
+- Editar não envia `ativo` nem `criado_por` (só no cadastro novo) — desativar/reativar só pelos botões da janela.
+- Janela: classe **`fo-ov`** (no seletor de escopo de `diagnostico-mesa.css`), `foAbrir`/`fecharModal` (foco, Esc, Tab).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
