@@ -726,6 +726,23 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Janelas: classe **`pr-ov`** (no seletor de escopo de `diagnostico-mesa.css`); abrir/fechar só por `prAbrir`/`prFechar` (pilha:
   Esc fecha a de cima, Tab preso, foco volta).
 
+### Matriz de Resultados — visual, situação e referências
+- `pages/matriz.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e componentes em `css/matriz.css` (prefixo `mz-`; situação e resultados = tokens `--mz-*`). Sem
+  `<style>` próprio; ícones SVG por `mzIc()`, sem emoji. Exceção: cores oficiais dos ODS (`ods_refs.cor`/`ODS_COR`) e imagens
+  `assets/sdg/`. Texto do usuário (indicador, meta, meios de verificação, observação) sempre por `esc()`.
+- **Situação do indicador** (`sitItem`): Atingida (confirmado ≥ meta), Em andamento (algo confirmado ou pendente), Sem registro,
+  Qualitativa (sem `meta_numerica`). Não há "em risco" — não existe prazo por indicador; vermelho só quando houver prazo.
+- Progresso médio = média do % confirmado com **teto de 100%** por indicador. "Aguardando confirmação" = nº de contribuições
+  `pendente` de entrega aprovada (`vw_matriz_contribuicoes`), nunca soma de unidades diferentes.
+- Código exibido = `produto_codigo·posição` (pela `ordem` dentro do produto). Nome do grupo de produto = título mais comum do
+  produto; indicador com outro `produto_titulo` mostra o dele na linha (o dado **não** é corrigido pela tela).
+- Nomes dos resultados vêm da tabela `resultados` (`codigo = 'R' || matriz_itens.resultado`, `nome_pt/en/es`), não de texto fixo.
+- Abas ODS e Kunming-Montreal destacam o que **tem indicador** no cadastro (contado de `matriz_itens.ods/metas_km`), não a
+  marcação `no_projeto` das tabelas de referência.
+- Janelas: classe **`mz-ov`** (no seletor de escopo de `diagnostico-mesa.css`); `mzAbrir`/`mzFechar` (pilha: Esc fecha a de cima,
+  Tab preso, foco volta).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
