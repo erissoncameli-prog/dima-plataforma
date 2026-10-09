@@ -27,14 +27,3 @@ body.dima-saindo {
 .page-body {
   animation: dima-entrada 0.28s ease forwards;
 }
-
-/* Efeito decorativo adicional */
-.sidebar::after {
-  content: '';
-  position: absolute;
-  bottom: 80px; left: -30px;
-  width: 140px; height: 140px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(82,183,136,.06) 0%, transparent 70%);
-  pointer-events: none;
-}

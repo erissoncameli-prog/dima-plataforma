@@ -161,14 +161,14 @@ function gerarLayout(tituloPagina, paginaAtiva) {
           const siAtivo = (paginaAtiva === si.id || (si.id === 'dados_sistema' && paginaAtiva === 'configuracoes')) ? 'ativo' : '';
           return `<a class="nav-item ${siAtivo}" href="${si.href}"
             style="display:flex;align-items:center;gap:8px;padding-left:22px;font-size:12.5px">
-            <span style="color:rgba(255,255,255,.25);font-size:10px;flex-shrink:0">└</span>
+            <span style="color:var(--sb-tx-3);font-size:10px;flex-shrink:0">└</span>
             ${renderPill(si.id, 24)}
             <span style="flex:1">${t('nav', si.id)}</span>
           </a>`;
         }).join('');
         return `
           <button class="nav-item" onclick="toggleNavGroup('${item.id}')"
-            style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit;color:rgba(255,255,255,.75);">
+            style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit;color:var(--sb-tx);">
             ${renderPill(item.id)}
             <span style="flex:1">${t('nav', item.id)}</span>
             <span id="nav-chevron-${item.id}"
@@ -183,7 +183,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
       // ── Item normal ───────────────────────────────────────────
       const ativo = paginaAtiva === item.id ? 'ativo' : '';
       const extraTag = (!temPerfil && temPermissao)
-        ? `<span style="font-size:8px;background:rgba(255,255,255,.18);color:rgba(255,255,255,.8);padding:1px 5px;border-radius:99px;margin-left:auto;flex-shrink:0" title="Acesso extra concedido pelo administrador">extra</span>`
+        ? `<span style="font-size:8px;background:var(--sb-hover);color:var(--sb-tx-2);padding:1px 5px;border-radius:99px;margin-left:auto;flex-shrink:0" title="Acesso extra concedido pelo administrador">extra</span>`
         : '';
       return `<a class="nav-item ${ativo}" href="${item.href}" style="display:flex;align-items:center;gap:8px">
         ${renderPill(item.id)}
@@ -198,11 +198,11 @@ function gerarLayout(tituloPagina, paginaAtiva) {
       <button onclick="toggleGrupoNav('${group.key}')"
         style="display:flex;align-items:center;width:100%;text-align:left;background:none;border:none;
                cursor:pointer;padding:14px 14px 5px;gap:6px;font-family:inherit;
-               border-top:1px solid rgba(255,255,255,.08);margin-top:4px;">
-        <span style="flex:1;font-size:11px;font-weight:700;letter-spacing:0.8px;
-                     color:rgba(255,255,255,.7)">${group.label}</span>
+               border-top:1px solid var(--sb-borda);margin-top:4px;">
+        <span style="flex:1;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+                     color:var(--sb-tx-3)">${group.label}</span>
         <span id="nav-group-chevron-${group.key}"
-          style="font-size:9px;color:rgba(255,255,255,.45);transition:transform .2s;
+          style="font-size:9px;color:var(--sb-tx-3);transition:transform .2s;
                  ${aberto ? '' : 'transform:rotate(-90deg)'}">▼</span>
       </button>
       <div id="nav-group-${group.key}"
@@ -213,8 +213,8 @@ function gerarLayout(tituloPagina, paginaAtiva) {
 
   return `
   <div class="app-layout">
-    <aside class="sidebar" id="sidebar" style="background:linear-gradient(175deg,#2a7a50 0%,#1F4E2C 40%,#143520 75%,#0a1f12 100%);">
-      <div class="sidebar-brand" style="background:linear-gradient(180deg,#020d06 0%,#0d2318 55%,#1a3d22 100%);margin:-0px;padding:18px 14px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand" style="padding:18px 14px 14px;">
         <div id="sidebar-logos-topo" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:40px;margin-bottom:10px;">
           <img src="../assets/brasao-acre.png" alt="Governo do Acre" style="height:48px;width:auto;object-fit:contain;flex-shrink:0;">
           <div style="width:1px;height:36px;background:rgba(255,255,255,.25);flex-shrink:0;"></div>
