@@ -1038,11 +1038,14 @@ window.abrirModalProd=async function(contratoId){
   document.getElementById('mp-footer').innerHTML='<button type="button" class="ct-btn" onclick="fecharModalProd()">Fechar</button><button type="button" class="ct-btn pri" onclick="salvarProdutos()">Salvar produtos</button>';
   var prods=produtosPorContrato[contratoId];
   if(!prods)prods=await carregarProdutos(contratoId);
+  var pa=await db.rpc('fn_pode_avaliar_contrato',{p_contrato_id:contratoId});
+  podeAvaliarProd=!pa.error&&pa.data===true;
   renderFormProd(c,prods);
   ctAbrir('modal-produtos');
 };
 
 var linhasProd=[];
+var podeAvaliarProd=false; // fn_pode_avaliar_contrato: responsável/substituto da atividade ou super_admin
 
 function renderFormProd(c,prods){
   linhasProd=prods.length
@@ -1065,8 +1068,9 @@ function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 function renderLinhasProd(){
   var container=document.getElementById('prod-linhas');
   if(!container)return;
-  var SIT=['pendente','em_analise','aprovado','cancelado'];
-  var SLBL={pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado'};
+  // registrar entrega/aprovar é do responsável da atividade (o banco recusa os demais: trg_cp_guarda_situacao)
+  var SIT0=podeAvaliarProd?['pendente','em_analise','aprovado','cancelado']:['pendente','cancelado'];
+  var SLBL={pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado',devolvido:'Devolvido',entrega_parcial:'Entrega parcial'};
 
   container.innerHTML=linhasProd.map(function(p,i){
     var isPago    = p.sit==='pago';
@@ -1083,6 +1087,7 @@ function renderLinhasProd(){
         +(p.venc?'<div style="font-size:12px;color:var(--txt-3)">Vencimento '+fmtData(p.venc)+'</div>':'<div></div>')
         +'</div></div>';
     }
+    var SIT=SIT0.indexOf(p.sit)<0&&SLBL[p.sit]?SIT0.concat([p.sit]):SIT0;
     return '<div class="ct-prod-ed'+(p.sit==='cancelado'?' cancel':'')+'">'
       +'<div class="ct-prod-g1">'
       +'<div><label class="form-label" for="pp-num-'+i+'">Nº</label><input class="form-control" id="pp-num-'+i+'" type="number" min="1" value="'+esc(p.num)+'" oninput="updProd('+i+',\'num\',this.value)" style="font-family:var(--font-mono)"></div>'
