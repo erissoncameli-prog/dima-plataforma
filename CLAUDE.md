@@ -656,6 +656,15 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Texto do usuário (objeto, comentário, diff de versão, análise do agente, nome de anexo) sempre por `esc()`.
 - Cartão do TDR = `cardTDR(t)`; diferença negativa TDR × contratos aparece como "Contrato acima do TDR" (mesmo termo do razão).
 
+### Atividades — visual da lista e das janelas
+- `pages/atividades.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e componentes em `css/atividades.css` (prefixo `at-`; cores de fase, resultado e dinheiro = tokens
+  `--at-*`). Sem `<style>` próprio; ícones SVG por `atIc()`, sem emoji. Exceção: cores oficiais dos ODS (identidade ONU) no JS.
+- Coluna **Execução** = pago em destaque + barra (pago + comprometido; acima do orçamento em vermelho) + livre.
+- **Fase muda só pela janela de edição** (não há mais select na lista). Orçamento vigente fica com cadeado (só o razão grava).
+- Janelas: classe **`at-ov`** (no seletor de escopo de `diagnostico-mesa.css`) + `role="dialog"`; foco, Esc e Tab presos por
+  `atModalAbriu`/`atModalFechou`. No celular a tabela vira cartões (CSS, `max-width: 760px`).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
