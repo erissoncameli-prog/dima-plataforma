@@ -79,6 +79,21 @@
 }
 .acv-limpar:hover{background:rgba(255,255,255,.13);color:#fff;}
 
+/* ── Filtro do portal público (Todos · Publicados · Não publicados) ── */
+.acv-pubf{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:13px 22px 0;}
+.acv-pubf-lbl{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:rgba(255,255,255,.55);margin-right:4px;
+}
+.acv-pubf-btn{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:99px;color:rgba(255,255,255,.78);font-family:inherit;
+  font-size:11.5px;font-weight:600;cursor:pointer;padding:6px 13px;
+  display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap;
+}
+.acv-pubf-btn:hover{background:rgba(255,255,255,.15);color:#fff;}
+.acv-pubf-btn.on{background:#8FE3B4;border-color:#8FE3B4;color:#0B2818;}
+
 /* ── Chips de tipo de mídia ───────────────────────────────────── */
 .acv-chips{display:flex;gap:7px;flex-wrap:wrap;padding:13px 22px 0;}
 .acv-chip{
@@ -358,7 +373,7 @@
 }
 @media(max-width:640px){
   .acv-cmd{padding:11px 14px;}
-  .acv-chips,.acv-hero{padding-left:14px;padding-right:14px;}
+  .acv-chips,.acv-pubf,.acv-hero{padding-left:14px;padding-right:14px;}
   .acv-prat-cab,.acv-trilho{padding-left:14px;padding-right:14px;}
   .acv-grade{padding:14px;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));}
   .acv-card{flex:0 0 136px;width:136px;}

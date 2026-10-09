@@ -296,10 +296,6 @@ function barraComando() {
     + '<select class="acv-sel" id="acv-ano" title="Ano"><option value="">Todos os anos</option>'
     + opc(facetas.anos, filtro.ano) + '</select>'
 
-    + '<select class="acv-sel" id="acv-pub" title="Portal público">'
-    + opc([{ v: '', t: 'Público e interno' }, { v: 'sim', t: 'Com arquivo público' },
-           { v: 'nao', t: 'Só interno' }], filtro.publico, 'v', 't') + '</select>'
-
     + '<select class="acv-sel" id="acv-ordem" title="Ordenar">'
     + opc([{ v: 'recentes', t: 'Mais recentes' }, { v: 'titulo', t: 'Título A–Z' },
            { v: 'numero', t: 'Nº do produto' }, { v: 'arquivos', t: 'Mais arquivos' }],
@@ -316,10 +312,27 @@ function barraComando() {
     + '</div>';
 }
 
+// Filtro do portal público: obra "publicada" = tem ao menos 1 arquivo
+// marcado e ainda válido (vw_acervo_publicacoes.valida).
+function pubFiltroHtml() {
+  const nPub = obras.filter(o => o._publicos).length;
+  const opcoes = [
+    { v: '', t: 'Todos', n: obras.length },
+    { v: 'sim', t: 'Publicados', n: nPub },
+    { v: 'nao', t: 'Não publicados', n: obras.length - nPub },
+  ];
+  return '<div class="acv-pubf" role="group" aria-label="Portal público">'
+    + '<span class="acv-pubf-lbl">Portal público</span>'
+    + opcoes.map(op => '<button type="button" class="acv-pubf-btn' + (filtro.publico === op.v ? ' on' : '')
+      + '" data-pubf="' + op.v + '" aria-pressed="' + (filtro.publico === op.v) + '">'
+      + esc(op.t) + ' <span class="acv-chip-n">' + op.n + '</span></button>').join('')
+    + '</div>';
+}
+
 function chipsHtml() {
-  if (!facetas.rotulos.length) return '';
+  if (!facetas.rotulos.length) return pubFiltroHtml();
   const total = obras.filter(o => o.total_vigentes > 0).length;
-  let h = '<div class="acv-chips">'
+  let h = pubFiltroHtml() + '<div class="acv-chips">'
     + '<button class="acv-chip' + (filtro.rotulo ? '' : ' on') + '" data-rotulo="">Todo o acervo <span class="acv-chip-n">' + total + '</span></button>';
   facetas.rotulos.forEach(r => {
     h += '<button class="acv-chip' + (filtro.rotulo === r.rotulo ? ' on' : '') + '" data-rotulo="' + esc(r.rotulo) + '">'
@@ -517,7 +530,7 @@ function religarComando(focoBusca) {
   };
   bind('acv-ativ', 'atividade'); bind('acv-forn', 'fornecedor');
   bind('acv-res', 'resultado');  bind('acv-ano', 'ano');
-  bind('acv-ordem', 'ordem');      bind('acv-pub', 'publico');
+  bind('acv-ordem', 'ordem');
 
   const est = document.getElementById('acv-m-estante');
   const gra = document.getElementById('acv-m-grade');
@@ -530,6 +543,9 @@ function religarComando(focoBusca) {
     redesenhar(false);
   };
 
+  document.querySelectorAll('[data-pubf]').forEach(b => {
+    b.onclick = () => { filtro.publico = b.dataset.pubf || ''; redesenhar(false); };
+  });
   document.querySelectorAll('.acv-chip').forEach(c => {
     c.onclick = () => { filtro.rotulo = c.dataset.rotulo || ''; redesenhar(false); };
   });
