@@ -706,8 +706,14 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   sem emoji; cor no JS só por token (`var(--ok)`, `var(--erro-bg)`…), nunca hex.
 - **Restrição**: só aparecem produtos dos contratos das atividades de `get_minhas_atividades()` (super_admin/coordenação = todas;
   demais = responsável ou substituto). Toda consulta de `contratos_produtos` da tela filtra por `idsVisiveis()` e `abrirModal`
-  recusa contrato fora da lista (`contratoVisivel`). ⚠️ A RLS de `contratos_produtos` (`cp_readonly`) ainda deixa qualquer logado
-  ler pela API — a restrição hoje é da tela.
+  recusa contrato fora da lista (`contratoVisivel`).
+- **RLS** (migração `20261009_produtos_rls_leitura`): `contratos_produtos`, `contratos_produtos_entregas` e `entrega_documentos`
+  só são legíveis por quem vê o contrato — as policies (`cp_readonly`, `cp_registrar_entrega`, `cpe_all`, `ed_sel`, `ed_ins`) usam
+  `exists (select … from contratos …)`, que herda `contratos_select` (super_admin/coordenação/financeiro, `tem_permissao('contratos')`
+  ou responsável ativo da atividade). Nova policy nessas tabelas: mesma forma, `TO authenticated`, nunca `auth.uid() is not null`.
+- A **Matriz** é aberta a todos e não lê a entrega direto: `vw_matriz_progresso` testa "entrega aprovada" por `fn_entrega_aprovada()`
+  (SECURITY DEFINER) e Matriz/Visão Geral leem a contribuição por `vw_matriz_contribuicoes` (dono postgres, só SELECT; expõe só
+  nº, data, situação e tipo da entrega). Nunca embutir `contratos_produtos_entregas(...)` em consulta de tela aberta a todos.
 - Abre com a **fila "precisa de ação"** (em avaliação + devolvidos); os números do topo e os filtros trocam a lista. Aprovado e
   pago abrem em leitura (histórico). Título da página = "Produtos Entregues" (igual ao menu).
 - Fotos das entregas ficam em `entregas-docs` (privado): `<img data-arquivo-src>` + `assinarImagens()`, ampliação por `urlAssinada()`.

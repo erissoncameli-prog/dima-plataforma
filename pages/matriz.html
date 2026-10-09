@@ -762,11 +762,14 @@ async function abrirIndicador(id){
   document.getElementById('mi-sub').textContent=`Resultado ${i.resultado} → Produto ${i.produto_codigo} · ${i.unidade||'qualitativo'}`;
 
   // Carregar contribuições
-  const{data:contribs}=await db.from('produto_matriz_contribuicao')
-    .select('*,contratos_produtos_entregas(numero_entrega,dt_entrega,situacao,tipo_documento)')
+  // entrega pela view: só nº, data, situação e tipo (a entrega em si só é legível por quem vê o contrato)
+  const{data:contribRows}=await db.from('vw_matriz_contribuicoes')
+    .select('*')
     .eq('matriz_item_id',id)
     .order('criado_em',{ascending:false})
     .limit(30);
+  const contribs=(contribRows||[]).map(c=>({...c,contratos_produtos_entregas:c.entrega_numero==null&&c.entrega_dt==null?null:
+    {numero_entrega:c.entrega_numero,dt_entrega:c.entrega_dt,situacao:c.entrega_situacao,tipo_documento:c.entrega_tipo_documento}}));
 
   const pendentes=(contribs||[]).filter(c=>c.status==='pendente');
   const podeAprovar=PODE.aprovarProduto();
