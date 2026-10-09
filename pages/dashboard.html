@@ -344,14 +344,15 @@ async function loadData(){
     db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade').eq('ativo',true).order('ordem'),
     db.from('vw_matriz_progresso').select('*'),
     db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
-    db.from('produto_matriz_contribuicao').select('matriz_item_id,valor,status,contratos_produtos_entregas(dt_entrega)').eq('status','confirmado'),
+    // data da entrega pela view (a entrega em si só é legível por quem vê o contrato)
+    db.from('vw_matriz_contribuicoes').select('matriz_item_id,valor,status,entrega_dt').eq('status','confirmado'),
     db.from('contrato_encerramentos').select('atividade_id,tdr_id,contrato_id,tipo,valor_liberado_brl,valor_liberado_usd,status'),
   ]);
   D.atv=r[0].data||[]; D.tdrs=r[1].data||[]; D.res=r[2].data||[];
   D.sal=r[3].data||[]; D.ind=r[4].data||[]; D.lanc=r[5].data||[];
   D.forns=r[6].data||[]; D.contr=r[7].data||[];
   D.matrizItens=r[8].data||[]; D.matrizProg=r[9].data||[];
-  D.atvMatriz=r[10].data||[]; D.contribs=r[11].data||[];
+  D.atvMatriz=r[10].data||[]; D.contribs=(r[11].data||[]).map(function(c){c.contratos_produtos_entregas=c.entrega_dt?{dt_entrega:c.entrega_dt}:null;return c;});
   D.encerr=r[12].data||[];
   D.lancFilt = D.lanc.slice(); // cópia para filtros
 
