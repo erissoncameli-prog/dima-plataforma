@@ -645,6 +645,14 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   A página do QR segue `prefers-color-scheme`. ⚠️ Em comentário CSS não escrever `--x-*/` — o `*/` fecha o comentário
   e engole a regra seguinte (os tokens do tema claro sumiram por isso).
 
+### TDRs — visual da lista (etapa 1 da revisão)
+- `pages/tdrs.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo via `seletorTema()`) e componentes em `css/tdrs.css` (prefixo `td-`; cor de cada fase = token
+  `--td-*` no topo do arquivo, igual no indicador, no selo e na barra). Ícones SVG por `tdIc()`, sem emoji.
+- Só a lista/indicadores seguem o tema. Os modais ficam na **ilha clara** `.dgm-claro` (tokens do tema claro) até a
+  etapa 2 — modal novo nesta página precisa da classe `dgm-claro`, senão `.btn-primary` fica sem cor.
+- Cartão do TDR = `cardTDR(t)`; diferença negativa TDR × contratos aparece como "Contrato acima do TDR" (mesmo termo do razão).
+
 ### Painel de Tarefas — subtarefas, comentários e anexos
 - `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.
   Trigger `trg_checklist_responsavel` inclui o usuário responsável como **observador** da tarefa + sino (`tarefa_subtarefa`). Ao atribuir pelo painel, chamar `enviar-email-tarefa` com `evento:'subtarefa'` e `checklist_id`.

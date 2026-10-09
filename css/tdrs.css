@@ -1,0 +1,160 @@
+/* ── TDRs · lista e indicadores ──────────────────────────────────────────
+   Usa o design system da mesa do Diagnóstico (css/diagnostico-mesa.css,
+   escopo body.dgm, tema html[data-tema]). Aqui ficam só os componentes da
+   lista de TDRs e a cor de cada fase. Tudo sob body.dgm .main-content:
+   nada vaza para o menu lateral nem para os modais (que seguem claros,
+   classe .dgm-claro, até a etapa 2 da revisão).
+   Cor nova = token no bloco abaixo, nunca solta no JS. */
+
+body.dgm .main-content {
+  /* uma cor por fase — igual no indicador, no selo e na barra */
+  --td-neutro: #56655C;  --td-neutro-bg: #EEF1EF;
+  --td-submetido: #1F5FBF; --td-submetido-bg: #E8F0FC;
+  --td-pendente: #A86200; --td-pendente-bg: #FFF4DE;
+  --td-avaliacao: #0F766E; --td-avaliacao-bg: #E1F5F2;
+  --td-unesco: #3F4FC4;  --td-unesco-bg: #ECEEFC;
+  --td-aprovado: #1E8A55; --td-aprovado-bg: #E4F4EB;
+  --td-licitacao: #0E7490; --td-licitacao-bg: #E2F4F8;
+  --td-contratado: #6D28D9; --td-contratado-bg: #F3EEFF;
+  --td-cancelado: #8C9A92; --td-cancelado-bg: #F1F3F2;
+  --td-marca: var(--pri-600);
+}
+html[data-tema="escuro"] body.dgm .main-content {
+  --td-neutro: #A3B2A9;  --td-neutro-bg: rgba(255, 255, 255, .07);
+  --td-submetido: #7FAEF5; --td-submetido-bg: rgba(127, 174, 245, .14);
+  --td-pendente: #F2B54A; --td-pendente-bg: rgba(242, 181, 74, .13);
+  --td-avaliacao: #5EC8BC; --td-avaliacao-bg: rgba(94, 200, 188, .13);
+  --td-unesco: #A5B0F7;  --td-unesco-bg: rgba(165, 176, 247, .14);
+  --td-aprovado: #4CC389; --td-aprovado-bg: rgba(76, 195, 137, .14);
+  --td-licitacao: #5CC6DE; --td-licitacao-bg: rgba(92, 198, 222, .13);
+  --td-contratado: #B79BF7; --td-contratado-bg: rgba(183, 155, 247, .14);
+  --td-cancelado: #6E7D74; --td-cancelado-bg: rgba(255, 255, 255, .05);
+}
+
+/* cor da fase em --c / --c-bg */
+body.dgm .main-content .td-c-rascunho { --c: var(--td-neutro);     --c-bg: var(--td-neutro-bg); }
+body.dgm .main-content .td-c-submetido { --c: var(--td-submetido);  --c-bg: var(--td-submetido-bg); }
+body.dgm .main-content .td-c-pendente_correcao { --c: var(--td-pendente);   --c-bg: var(--td-pendente-bg); }
+body.dgm .main-content .td-c-em_avaliacao { --c: var(--td-avaliacao);  --c-bg: var(--td-avaliacao-bg); }
+body.dgm .main-content .td-c-em_revisao_unesco { --c: var(--td-unesco);     --c-bg: var(--td-unesco-bg); }
+body.dgm .main-content .td-c-aprovado { --c: var(--td-aprovado);   --c-bg: var(--td-aprovado-bg); }
+body.dgm .main-content .td-c-em_licitacao { --c: var(--td-licitacao);  --c-bg: var(--td-licitacao-bg); }
+body.dgm .main-content .td-c-contratado { --c: var(--td-contratado); --c-bg: var(--td-contratado-bg); }
+body.dgm .main-content .td-c-cancelado { --c: var(--td-cancelado);  --c-bg: var(--td-cancelado-bg); }
+body.dgm .main-content .td-c-total     { --c: var(--td-marca);  --c-bg: var(--pri-100); }
+body.dgm .main-content .td-c-andamento { --c: var(--td-submetido); --c-bg: var(--td-submetido-bg); }
+body.dgm .main-content .td-c-atrasados { --c: var(--erro);      --c-bg: var(--erro-bg); }
+
+body.dgm .td-ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── Indicadores (botões de filtro) ─────────────────────────────────── */
+body.dgm .td-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+body.dgm .td-kpi {
+  appearance: none; font: inherit; text-align: left; cursor: pointer; color: var(--txt);
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  background: var(--sup); border: 1px solid var(--lin); border-radius: var(--r-card); padding: 14px 16px;
+  box-shadow: var(--sh-1);
+  transition: border-color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+body.dgm .td-kpi:hover { border-color: var(--lin-forte); }
+body.dgm .td-kpi:active { transform: scale(.98); }
+body.dgm .td-kpi:focus-visible { outline: none; box-shadow: var(--anel); }
+body.dgm .td-kpi[aria-pressed="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); background: var(--c-bg); }
+body.dgm .td-kpi-lbl { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--txt-2); }
+body.dgm .td-kpi-lbl::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+body.dgm .td-kpi-num { font-size: 26px; font-weight: 700; line-height: 1.2; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+body.dgm .td-kpi-val { font: 500 12px var(--font-mono); color: var(--txt-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.dgm .td-kpi-barra { height: 4px; border-radius: 2px; background: var(--bg-2); overflow: hidden; margin-top: 8px; }
+body.dgm .td-kpi-barra span { display: block; height: 100%; background: var(--c); border-radius: 2px; }
+
+/* ── Filtros ────────────────────────────────────────────────────────── */
+body.dgm .td-filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+body.dgm .td-filtros .form-control { height: 38px; font-size: 13px; width: auto; }
+body.dgm .td-busca { position: relative; flex: 1 1 240px; max-width: 360px; }
+body.dgm .td-busca .td-ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--txt-3); pointer-events: none; }
+body.dgm .td-busca .form-control { width: 100%; padding-left: 36px; }
+body.dgm .td-filtros .btn-primary { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 38px; }
+body.dgm .td-cont { font-size: 13px; color: var(--txt-2); margin: 0 0 12px; }
+
+/* ── Cartão do TDR ──────────────────────────────────────────────────── */
+body.dgm #lista { display: grid; gap: 12px; }
+body.dgm .td-card {
+  display: grid; gap: 12px; min-width: 0; cursor: pointer;
+  background: var(--sup); border: 1px solid var(--lin); border-radius: var(--r-card); padding: 16px 20px;
+  box-shadow: var(--sh-1);
+  transition: border-color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+body.dgm .td-card:hover { border-color: var(--lin-forte); }
+body.dgm .td-card:focus-visible { outline: none; box-shadow: var(--anel); border-color: var(--pri-600); }
+body.dgm .td-card.td-c-cancelado { opacity: .75; }
+
+body.dgm .td-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+body.dgm .td-num { font: 500 13px var(--font-mono); color: var(--txt); }
+body.dgm .td-tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: var(--r-pill); color: var(--txt-2); background: var(--sup-2); border: 1px solid var(--lin); }
+body.dgm .td-selo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: var(--r-pill); color: var(--c, var(--txt-2)); background: var(--c-bg, var(--sup-2)); }
+body.dgm .td-selo::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+body.dgm .td-selo.td-atraso { --c: var(--erro); --c-bg: var(--erro-bg); }
+body.dgm .td-versao { margin-left: auto; font-size: 12px; color: var(--txt-3); }
+
+body.dgm .td-obj { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--txt);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+body.dgm .td-obj.vazio { color: var(--txt-3); font-weight: 500; font-style: italic; }
+
+body.dgm .td-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--txt-2); }
+body.dgm .td-meta > span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+body.dgm .td-meta .td-ok { color: var(--ok); }
+body.dgm .td-meta .td-info { color: var(--info); }
+body.dgm .td-meta .td-mudo { color: var(--txt-3); }
+
+/* fase: texto + barra segmentada */
+body.dgm .td-fase { display: grid; gap: 6px; }
+body.dgm .td-fase-tx { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--txt-2); }
+body.dgm .td-fase-tx b { color: var(--txt); font-weight: 600; }
+body.dgm .td-seg { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+body.dgm .td-seg span { height: 6px; border-radius: 3px; background: var(--bg-2); }
+body.dgm .td-seg span.feito { background: var(--pri-600); }
+body.dgm .td-seg span.atual { background: var(--c, var(--pri-400)); }
+
+/* valores */
+body.dgm .td-din { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+body.dgm .td-din > div { background: var(--sup-2); border: 1px solid var(--lin); border-radius: var(--r-ctl); padding: 8px 12px; min-width: 0; }
+body.dgm .td-din small { display: block; font-size: 12px; color: var(--txt-2); }
+body.dgm .td-din b { display: block; font: 600 15px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.dgm .td-din .td-acima { background: var(--alerta-bg); border-color: var(--alerta-borda); }
+body.dgm .td-din .td-acima :is(small, b) { color: var(--alerta-txt); }
+html[data-tema="escuro"] body.dgm .td-din .td-acima :is(small, b) { color: var(--alerta); }
+body.dgm .td-din .td-sobra b { color: var(--ok); }
+
+/* contratos vinculados */
+body.dgm .td-ctrs { display: grid; gap: 12px; border-top: 1px solid var(--lin); padding-top: 12px; cursor: default; }
+body.dgm .td-ctr { display: grid; gap: 6px; min-width: 0; }
+body.dgm .td-ctr-cab { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; font-size: 13px; }
+body.dgm .td-ctr-cab b { font-weight: 600; color: var(--txt); }
+body.dgm .td-ctr-cab .td-forn { color: var(--txt-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.dgm .td-ctr-cab .td-ctr-tot { color: var(--txt-2); font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+body.dgm .td-barra { position: relative; height: 8px; border-radius: 4px; background: var(--bg-2); overflow: hidden; }
+body.dgm .td-barra span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+body.dgm .td-barra .comp { background: var(--alerta); opacity: .5; }
+body.dgm .td-barra .util { background: var(--ok); }
+body.dgm .td-leg { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12px; color: var(--txt-2); }
+body.dgm .td-leg span { display: inline-flex; align-items: center; gap: 6px; }
+body.dgm .td-leg i { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+body.dgm .td-leg b { font: 500 12px var(--font-mono); color: var(--txt); }
+body.dgm .td-leg .neg b { color: var(--erro); }
+body.dgm .td-leg .baixo b { color: var(--alerta); }
+
+/* seletor de tema no topo (componente .dgm-tema da mesa) */
+.td-tema-wrap { display: inline-flex; margin-right: 10px; }
+
+@media (max-width: 640px) {
+  body.dgm .td-kpis { grid-template-columns: repeat(2, 1fr); }
+  body.dgm .td-card { padding: 14px 16px; }
+  body.dgm .td-busca { max-width: none; flex-basis: 100%; }
+  body.dgm .td-filtros .form-control:not(#busca) { flex: 1 1 140px; }
+  body.dgm .td-filtros .btn-primary { margin-left: 0; width: 100%; justify-content: center; }
+  .td-tema-wrap button { font-size: 0; gap: 0; padding: 6px 8px; }
+  .td-tema-wrap { margin-right: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.dgm :is(.td-kpi, .td-card) { transition: none; }
+}
