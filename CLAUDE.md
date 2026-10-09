@@ -656,6 +656,20 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Texto do usuário (objeto, comentário, diff de versão, análise do agente, nome de anexo) sempre por `esc()`.
 - Cartão do TDR = `cardTDR(t)`; diferença negativa TDR × contratos aparece como "Contrato acima do TDR" (mesmo termo do razão).
 
+### Visão Geral (dashboard) — visual das abas e dos gráficos
+- `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
+  `<style>` próprio: estilo novo vai no CSS, nunca cor solta no JS. Ícones SVG por `vgIc()`, sem emoji.
+- **Cores dos gráficos = tokens** `--vg-*` no topo de `css/visao-geral.css`. No Chart.js o dataset guarda o token em
+  `_bg`/`_bd`/`_pt` e `mkChart()` resolve por `vgCor()`; trocar o tema redesenha tudo (`vgRetemar`, observa `data-tema`).
+  Dinheiro em uma rampa só: livre → comprometido (TDR) → a pagar → pago. Fases do TDR = mesmas cores de `css/tdrs.css`
+  (`TDR_FASES`; nomes antigos normalizados por `tdrFase()`). Situação do saldo = `SAL_ST` (selo com ícone e rótulo).
+- Sem pizza, radar, área polar nem eixo duplo. Gráfico novo entra por `vgCardGraf()` (traz "Ver como tabela");
+  plugins `vgRef` (linha de 100% + zona de risco), `vgFim` (total no fim da barra), `vgCentro` (texto da rosca).
+- Popup de detalhe (`#chart-popup`, classe `.vg-ov` no seletor de escopo da mesa): clique no gráfico (`addPopupToChart`)
+  ou num trecho de barra de composição (`vgCompBar(..., 'nome')` + `VG_SEG.nome = idx => {title,html,color}`).
+- Guias com contador (`vgContador`): Minhas tarefas, Alertas, Cobertura. Os números gerais ficam só em Financiadores.
+
 ### Painel de Tarefas — subtarefas, comentários e anexos
 - `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.
   Trigger `trg_checklist_responsavel` inclui o usuário responsável como **observador** da tarefa + sino (`tarefa_subtarefa`). Ao atribuir pelo painel, chamar `enviar-email-tarefa` com `evento:'subtarefa'` e `checklist_id`.
