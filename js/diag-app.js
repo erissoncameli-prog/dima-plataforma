@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '2.2.0'
+const DIAG_APP_VERSAO = '2.3.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -483,6 +483,7 @@ async function abrirFicha(uuidFicha, irParaChave, irParaRevisao) {
     aoPedirGps: capturarGps, aoFoto: adicionarFoto, aoRemoverFoto: removerFoto,
     gravando: () => App.gravacao && App.gravacao.chave,
     aoGravarAudio: gravarAudio, aoPararAudio: () => App.gravacao && App.gravacao.ctrl.parar(), aoApagarAudio: apagarAudio,
+    aoAviso: msg => aviso(msg, 'aviso'),
   })
   DiagForm.sincronizarEntrevistado()
   document.getElementById('ficha-codigo').textContent = f.codigo
@@ -516,8 +517,8 @@ function salvarFichaAtual() {
 }
 
 function blocoDaChave(chave) {
-  if (chave === 'moradores' || chave === 'entrevistado_nome') return 0
-  return Math.max(0, DiagForm.blocos().findIndex(b => b.perguntas.some(p => p.chave === chave)))
+  // a lista de moradores era do 1º bloco até a v6; na v7 o 1º é o controle da entrevista
+  return Math.max(0, DiagForm.blocos().findIndex(b => b.perguntas.some(p => chave === 'moradores' ? p.tipo === 'tabela' : p.chave === chave)))
 }
 
 function desenharBloco(destacar) {
@@ -695,7 +696,7 @@ function abrirRevisao() {
   const bs = DiagForm.blocos()
   const grupos = new Map()
   alertas.forEach(a => {
-    const ir = a.chave || (a.n === 9 ? 'moradores' : '')
+    const ir = a.chave || (a.tipo === 'entrevistado_fora_da_1a_linha' ? 'moradores' : '')
     const k = ir ? blocoDaChave(ir) : -1
     if (!grupos.has(k)) grupos.set(k, [])
     grupos.get(k).push(a)
@@ -703,7 +704,7 @@ function abrirRevisao() {
   document.getElementById('revisao-lista').innerHTML = [...grupos.keys()].sort((x, y) => x - y).map(k =>
     '<h2 class="rev-grupo">' + (k < 0 ? 'Geral' : 'Bloco ' + (k + 1) + ' · ' + esc(bs[k].titulo)) + '</h2><div class="rev-lista">' +
     grupos.get(k).map(a => {
-      const ir = a.chave || (a.n === 9 ? 'moradores' : '')
+      const ir = a.chave || (a.tipo === 'entrevistado_fora_da_1a_linha' ? 'moradores' : '')
       return '<button type="button" class="item-ficha" data-ir="' + esc(ir) + '">' +
         '<span class="meio">' + esc(DiagRegras.descreverAlerta(a, App.estrutura)) + '</span>' +
         (ir ? '<span class="chev">' + ic('chev') + '</span>' : '') + '</button>'
@@ -1056,7 +1057,7 @@ async function abrirPrivacidade() {
       '<li>Seu nome, o questionário e as listas de municípios e comunidades, para funcionar sem internet.</li>' +
       '<li>O PIN, guardado só como código cifrado (não dá para ler o número).</li></ul>' +
     '<h4>Cuidados</h4><ul>' +
-      '<li>Não fotografe pessoas. Nome do entrevistado e dos moradores é opcional (iniciais bastam).</li>' +
+      '<li>Não fotografe pessoas. Não anote nomes além do que o questionário pede (iniciais bastam); no questionário novo o nome fica só no Termo.</li>' +
       '<li>Mantenha o bloqueio de tela do celular ligado. "Sair deste aparelho" não apaga fichas pendentes.</li>' +
       '<li>Nome, localização e fotos são apagados do sistema 2 anos após a validação da ficha.</li></ul>' +
     '<h4>Dúvidas e pedidos sobre dados pessoais</h4>' +

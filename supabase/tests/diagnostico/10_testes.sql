@@ -498,8 +498,8 @@ insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate
  ('00000000-0000-0000-0000-0000000000e2','diagnostico_treino', now()-interval '1 day', now()+interval '30 days');
 -- versão em rascunho (a v1 em produção ainda é rascunho no piloto)
 insert into public.diag_questionarios (codigo, versao, titulo, estrutura, aviso_entrevistado)
-  select codigo, 7, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
-insert into public.t_ctx select 'qr', id::text from public.diag_questionarios where versao = 7;
+  select codigo, 99, titulo, estrutura, aviso_entrevistado from public.diag_questionarios where versao = 1;
+insert into public.t_ctx select 'qr', id::text from public.diag_questionarios where versao = 99;
 create function public.t_ficha_q3(p_uuid uuid, p_codigo text, p_treino boolean, p_resp jsonb default null)
 returns jsonb language sql stable as $$
   select public.t_ficha(p_uuid, p_codigo, p_resp) || jsonb_build_object(

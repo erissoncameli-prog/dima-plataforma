@@ -72,7 +72,8 @@ const DiagForm = (function () {
   }
 
   function cabecalhoPergunta(p) {
-    return '<div class="p-num">P' + p.n + (p.opcional ? ' · opcional' : '') + '</div>' +
+    return '<div class="p-num">P' + h(R.numero(p)) + (p.opcional ? ' · opcional' : '') +
+             (p.max_marcar ? ' · marque até ' + p.max_marcar : '') + '</div>' +
            '<div class="p-texto" id="lbl-' + h(p.chave) + '">' + h(p.texto) + '</div>' +
            (p.ajuda ? '<p class="dica">' + h(p.ajuda) + '</p>' : '') +
            botaoLeitura(p)
@@ -103,9 +104,13 @@ const DiagForm = (function () {
     const nr = v === R.NR
     let corpo = ''
     if (p.derivada) {
-      const d = der[p.derivada] === 'sim' ? 'Sim' : 'Não'
+      // valor calculado (tem_escolar até a v6; maior escolaridade na v7)
+      const dv = respostasComDerivadas()[p.chave]
+      const o = (p.opcoes || []).find(x => x.v === dv)
+      const d = o ? h(o.r) + ' — calculado pela lista de moradores'
+                  : 'Preencha a escolaridade na lista de moradores'
       return '<div class="pergunta" data-chave="' + h(p.chave) + '">' + cabecalhoPergunta(p) +
-             '<div class="derivada" role="status">' + d + ' — calculado pela lista de moradores</div></div>'
+             '<div class="derivada" role="status">' + d + '</div></div>'
     }
     if (p.tipo === 'unica' || p.tipo === 'multipla') {
       const ops = R.opcoesVisiveis(p, der)
@@ -154,16 +159,19 @@ const DiagForm = (function () {
       (indice !== undefined ? ' data-i="' + indice + '"' : '') + ' data-texto="' + h(t) + '">' + h(t) + '</button>').join('') + '</div>'
   }
 
-  // P4 (nome, opcional) + localização: vão para a tabela de identificação
+  // Identificação (tabela separada): até a v6, P4 = nome (opcional) + localização;
+  // na v7 o nome sai do formulário ("fica só no Termo") e a 0.7 é só a localização
   function renderIdentificacao(p) {
     const f = ctx.ficha
     const gps = f.lat != null
       ? 'Localização registrada (±' + Math.round(f.gps_precisao_m || 0) + ' m)'
       : 'Localização não registrada'
-    return '<div class="pergunta" id="perg-' + h(p.chave) + '">' + cabecalhoPergunta(p) +
+    const comNome = p.chave === 'entrevistado_nome'
+    return (comNome ? '<div class="pergunta" id="perg-' + h(p.chave) + '">' + cabecalhoPergunta(p) +
       '<input class="campo" data-acao="ident" data-campo="entrevistado_nome" maxlength="150" autocomplete="off"' +
-      ' aria-labelledby="lbl-' + h(p.chave) + '" value="' + h(f.entrevistado_nome || '') + '"></div>' +
-      '<div class="pergunta"><div class="p-texto">Localização da casa</div>' +
+      ' aria-labelledby="lbl-' + h(p.chave) + '" value="' + h(f.entrevistado_nome || '') + '"></div>' : '') +
+      '<div class="pergunta"' + (comNome ? '' : ' id="perg-' + h(p.chave) + '"') + '>' +
+      (comNome ? '<div class="p-texto">Localização da casa</div>' : cabecalhoPergunta(p)) +
       '<p class="dica">' + h(gps) + '. Não é obrigatório.</p>' +
       '<button type="button" class="btn btn-sec" data-acao="gps">📍 Registrar localização agora</button>' +
       '<label class="rot" for="obs-loc">Referência (opcional)</label>' +
@@ -171,22 +179,38 @@ const DiagForm = (function () {
       ' placeholder="Ex.: casa azul depois da ponte" value="' + h(f.obs_localizacao || '') + '"></div>'
   }
 
-  // P9 — tabela de moradores. 1ª linha = o entrevistado (decisão de 26/09)
+  // Grade do formulário em papel (v7, P7): faixa de idade × sexo, somada da lista
+  const FAIXAS = [['0 a 14 anos', 0, 14], ['15 a 29 anos', 15, 29], ['30 a 59 anos', 30, 59], ['60 anos ou mais', 60, 999]]
+  function renderGrade(ms) {
+    if (!ms.length) return ''
+    const conta = (sx, a, b) => ms.filter(m => m.sexo_genero === sx && m.idade != null && m.idade >= a && m.idade <= b).length
+    const fora = ms.filter(m => m.idade == null || !['homem', 'mulher'].includes(m.sexo_genero)).length
+    return '<table class="grade-mor" aria-label="Composição da família por idade e sexo"><thead><tr><th></th><th>Masculino</th><th>Feminino</th></tr></thead><tbody>' +
+      FAIXAS.map(([r, a, b]) => '<tr><th>' + r + '</th><td>' + conta('homem', a, b) + '</td><td>' + conta('mulher', a, b) + '</td></tr>').join('') +
+      '</tbody></table>' +
+      '<p class="dica">' + ms.length + ' pessoa' + (ms.length === 1 ? '' : 's') + ' na lista' +
+      (fora ? ' · ' + fora + ' fora da grade (sem idade, outro gênero ou não informado)' : '') + '.</p>'
+  }
+
+  // Tabela de moradores (P9 até a v6; P7 na v7). 1ª linha = o entrevistado (decisão de 26/09)
   function renderMoradores(p) {
     const f = ctx.ficha
     const cols = ctx.estrutura.moradores.colunas
     const sexo = cols.find(c => c.chave === 'sexo_genero')
+    const temNome = cols.some(c => c.chave === 'nome')
     const ms = f.moradores || []
-    let html = '<div class="pergunta" id="perg-moradores"><div class="p-num">P' + p.n + '</div>' +
+    let html = '<div class="pergunta" id="perg-moradores"><div class="p-num">P' + h(R.numero(p)) + '</div>' +
       '<div class="p-texto">' + h(p.texto) + '</div>' +
-      '<p class="dica">A 1ª pessoa é o(a) entrevistado(a). Nome é opcional — pode usar só as iniciais.</p>'
+      '<p class="dica">A 1ª pessoa é o(a) entrevistado(a). ' +
+      (temNome ? 'Nome é opcional — pode usar só as iniciais.' : 'Não anote nomes: uma linha por pessoa.') + '</p>' +
+      (temNome ? '' : renderGrade(ms))
     ms.forEach((m, i) => {
       html += '<div class="morador" data-i="' + i + '"><div class="morador-topo"><span>' +
         (m.e_entrevistado ? 'Entrevistado(a)' : 'Pessoa ' + (i + 1)) + '</span>' +
         (m.e_entrevistado ? '' : '<button type="button" class="btn-icone" data-acao="mor-remover" data-i="' + i + '" aria-label="Remover pessoa ' + (i + 1) + '">✕</button>') +
         '</div>' +
-        '<label class="rot">Nome ou iniciais (opcional)</label>' +
-        '<input class="campo" data-acao="mor" data-i="' + i + '" data-campo="nome" maxlength="150" autocomplete="off" value="' + h(m.nome || '') + '">' +
+        (temNome ? '<label class="rot">Nome ou iniciais (opcional)</label>' +
+          '<input class="campo" data-acao="mor" data-i="' + i + '" data-campo="nome" maxlength="150" autocomplete="off" value="' + h(m.nome || '') + '">' : '') +
         '<div class="grade-2"><div><label class="rot">Idade</label>' +
         '<input class="campo" type="number" inputmode="numeric" min="0" max="120" data-acao="mor" data-i="' + i + '" data-campo="idade" value="' + (m.idade ?? '') + '"></div>' +
         '<div><label class="rot">Sexo/gênero</label><select class="campo" data-acao="mor" data-i="' + i + '" data-campo="sexo_genero">' +
@@ -197,6 +221,7 @@ const DiagForm = (function () {
           : '')
       ;['parentesco', 'escolaridade', 'atividade_principal'].forEach(c => {
         const col = cols.find(x => x.chave === c)
+        if (!col) return
         html += '<label class="rot">' + h(col.rotulo) + '</label>'
         if (col.tipo === 'unica') {
           // lista fechada (escolaridade a partir da v2), agrupada por "g"
@@ -299,7 +324,14 @@ const DiagForm = (function () {
           const excl = (perg.opcoes || []).filter(o => o.exclusiva).map(o => o.v)
           if (atual.includes(v)) atual = atual.filter(x => x !== v)
           else if (excl.includes(v)) atual = [v]                       // exclusiva desmarca as outras
-          else atual = atual.filter(x => !excl.includes(x)).concat(v)  // e vice-versa
+          else {
+            atual = atual.filter(x => !excl.includes(x))               // e vice-versa
+            if (perg.max_marcar && atual.length >= perg.max_marcar) {  // "(até 3)": o banco também recusa
+              if (ctx.aoAviso) ctx.aoAviso('Marque no máximo ' + perg.max_marcar + '. Desmarque uma opção para trocar.')
+              return
+            }
+            atual = atual.concat(v)
+          }
           f.respostas[chave] = atual.length ? atual : undefined
         }
         if (f.respostas[chave] === undefined) delete f.respostas[chave]

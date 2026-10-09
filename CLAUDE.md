@@ -493,6 +493,15 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,
   validados em `diag_enviar_ficha`. Fora de indicadores (risco de
   reidentificação) até existir recorte com supressão.
+- **v7 = questionário FINAL da equipe técnica** (migração `20261008_diag_19_v7_final`, em **rascunho** até publicar;
+  substitui a v6, que não será publicada): seção 0 + P1–P91 em 13 blocos (EBIA 8 itens, juventude), observação final.
+  Número exibido pode ser texto: `rotulo` ("0.6", "32.1", "42 (a)"); `n` segue inteiro — exibir com
+  `DiagRegras.numero(p)` / `p.rotulo || p.n`. `max_marcar` (múltipla "até 3") é regra do interpretador (SQL + JS).
+  Lista de moradores (P7) **sem nome**; o app desenha a grade idade × sexo; P8 = derivada `maior_nivel`
+  (`coluna: escolaridade`; cada opção da coluna tem `nivel` = opção da P8; derivada sem valor sai das respostas;
+  SQL em `fn_diag_maior_nivel`). Alertas da lista usam o `n` da tabela na estrutura (não mais P9 fixo).
+  Nome do entrevistado fora do formulário (0.7 = só GPS). Botão "O que é uma APA?" nas P51/53/55 com o texto
+  ainda em rascunho — aprovar antes de publicar. Publicar = migração própria (v5 → arquivada, v6 → arquivada).
 - **Questionário vigente = v5** (escolaridade da P9 em lista fechada desde a
   v2, com doutorado na v3; na v4 aviso novo em parágrafos, P55 `participa_org_tipos`
   (múltipla, **sensível**) e P56 = `participa_org_quais` (mesma chave, pede o nome);

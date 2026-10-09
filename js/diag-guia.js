@@ -65,11 +65,11 @@ const DIAG_GUIA = {
         { titulo: 'Localização da casa', icone: 'gps',
           texto: 'Toque em **Registrar localização agora** em frente à casa. O app mostra a precisão (±m). Não é obrigatório.' },
       ] },
-    { slug: 'moradores', titulo: 'Moradores', icone: 'casa', versao: 1,
+    { slug: 'moradores', titulo: 'Moradores', icone: 'casa', versao: 2,
       resumo: 'Quem mora na casa, idade e escolaridade',
       passos: [
         { titulo: 'Um por um', icone: 'casa',
-          texto: 'Inclua cada morador da casa. O nome fica protegido e não aparece para consultores.' },
+          texto: 'Inclua cada morador da casa, uma linha por pessoa. No questionário novo não há nome: só idade, sexo, parentesco, escolaridade e atividade. O app soma a grade por idade e sexo e calcula a maior escolaridade da casa.' },
         { titulo: 'Escolaridade', icone: 'casa',
           texto: 'Escolha a etapa **mais alta que a pessoa frequentou**, completa ou incompleta.' },
       ] },

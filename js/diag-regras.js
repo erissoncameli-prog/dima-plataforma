@@ -81,13 +81,36 @@
     }
   }
 
-  // aplica as derivadas sobre as respostas (o valor do banco/cálculo prevalece)
+  // v7: "maior_nivel" = a opção da pergunta mais alta entre os moradores. Cada opção
+  // da coluna (estrutura.moradores) diz a que `nivel` da pergunta corresponde; a
+  // ordem das opções da pergunta é a escala. Ninguém com nível → sem valor.
+  function maiorNivel(estrutura, p, moradores) {
+    const col = (((estrutura.moradores || {}).colunas) || []).find(c => c.chave === p.coluna)
+    const escala = (p.opcoes || []).map(o => o.v)
+    let melhor = -1
+    ;(moradores || []).forEach(m => {
+      const o = col && (col.opcoes || []).find(x => x.v === m[p.coluna])
+      const i = o && o.nivel ? escala.indexOf(o.nivel) : -1
+      if (i > melhor) melhor = i
+    })
+    return melhor >= 0 ? escala[melhor] : undefined
+  }
+
+  // aplica as derivadas sobre as respostas (o valor do banco/cálculo prevalece);
+  // derivada sem valor sai das respostas
   function comDerivadas(estrutura, resp, moradores) {
     const der = derivar(moradores)
     const out = Object.assign({}, resp)
-    perguntas(estrutura).forEach(({ p }) => { if (p.derivada) out[p.chave] = der[p.derivada] })
+    perguntas(estrutura).forEach(({ p }) => {
+      if (!p.derivada) return
+      const v = p.derivada === 'maior_nivel' ? maiorNivel(estrutura, p, moradores) : der[p.derivada]
+      if (v === undefined || v === null) delete out[p.chave]; else out[p.chave] = v
+    })
     return out
   }
+
+  // número exibido da pergunta: "P0.6", "P32.1"… (v7) ou o n de sempre
+  function numero(p) { return p ? String(p.rotulo || p.n) : '' }
 
   // opções que aparecem na tela (D2: "não há mulheres/homens" só quando a P9 confirma)
   function opcoesVisiveis(p, derivados) {
@@ -135,6 +158,7 @@
               new Set(v).size !== v.length) throw erro('diag:resposta_invalida: ' + k + ' fora das opções')
           const excl = (p.opcoes || []).filter(o => o.exclusiva).map(o => o.v)
           if (v.length > 1 && v.some(x => excl.includes(x))) throw erro('diag:resposta_invalida: ' + k + ' tem opção exclusiva junto com outras')
+          if (p.max_marcar && v.length > p.max_marcar) throw erro('diag:resposta_invalida: ' + k + ' passa do limite de ' + p.max_marcar + ' opções')
           break
         }
         case 'inteiro': case 'decimal':
@@ -179,15 +203,20 @@
         if (p.aviso_max !== undefined && v > p.aviso_max) al.push({ tipo: 'acima_do_esperado', chave: p.chave, n: p.n })
       }
     })
+    // números vêm da estrutura (a tabela de moradores era a P9 até a v6 e é a P7 na v7)
+    const pc = porChave(estrutura)
+    const nDe = (k, padrao) => pc[k] ? pc[k].n : padrao
+    const tab = perguntas(estrutura).find(({ p }) => p.tipo === 'tabela')
+    const nTab = tab ? tab.p.n : 9
     const ms = moradores || []
-    if (ms.length === 0) al.push({ tipo: 'pendente', chave: 'moradores', n: 9 })
-    else if (!ms.some(m => +m.ordem === 1 && m.e_entrevistado)) al.push({ tipo: 'entrevistado_fora_da_1a_linha', n: 9 })
+    if (ms.length === 0) al.push({ tipo: 'pendente', chave: 'moradores', n: nTab })
+    else if (!ms.some(m => +m.ordem === 1 && m.e_entrevistado)) al.push({ tipo: 'entrevistado_fora_da_1a_linha', chave: 'moradores', n: nTab })
     if (typeof respostas.qtd_moradores === 'number' && respostas.qtd_moradores !== der.total_moradores)
-      al.push({ tipo: 'qtd_moradores_diverge', n: 8, informado: respostas.qtd_moradores, listados: der.total_moradores })
+      al.push({ tipo: 'qtd_moradores_diverge', n: nDe('qtd_moradores', 8), informado: respostas.qtd_moradores, listados: der.total_moradores })
     if (Array.isArray(respostas.atividades_mulheres) && respostas.atividades_mulheres.includes('nao_ha_mulheres') && !der.sem_mulheres)
-      al.push({ tipo: 'incoerente_com_moradores', chave: 'atividades_mulheres', n: 61 })
+      al.push({ tipo: 'incoerente_com_moradores', chave: 'atividades_mulheres', n: nDe('atividades_mulheres', 61) })
     if (Array.isArray(respostas.atividades_homens) && respostas.atividades_homens.includes('nao_ha_homens') && !der.sem_homens)
-      al.push({ tipo: 'incoerente_com_moradores', chave: 'atividades_homens', n: 62 })
+      al.push({ tipo: 'incoerente_com_moradores', chave: 'atividades_homens', n: nDe('atividades_homens', 62) })
     if (opts.usou_carencia) al.push({ tipo: 'enviada_na_carencia' })
     if (opts.comunidade_nova) al.push({ tipo: 'comunidade_nova' })
     return al
@@ -196,15 +225,17 @@
   // Texto curto para a tela de revisão (o técnico lê isto em campo)
   function descreverAlerta(a, estrutura) {
     const p = a.chave && porChave(estrutura)[a.chave]
-    const q = a.n ? 'P' + a.n : ''
+    const q = p && p.rotulo ? 'P' + p.rotulo : a.n ? 'P' + a.n : ''
+    const tab = perguntas(estrutura).find(({ p: x }) => x.tipo === 'tabela')
+    const qTab = 'P' + (tab ? tab.p.n : 9)
     switch (a.tipo) {
       case 'pendente': return q + ' em branco' + (p ? ' — ' + p.texto : a.chave === 'moradores' ? ' — ninguém listado em "Quem mora no domicílio"' : '')
       case 'outro_sem_texto': return q + ': marcou "Outro" sem especificar'
       case 'abaixo_do_esperado': return q + ': entrevistado(a) menor de 18 anos'
       case 'acima_do_esperado': return q + ': valor muito alto — confira'
-      case 'entrevistado_fora_da_1a_linha': return 'P9: o entrevistado deve ser a 1ª linha'
-      case 'qtd_moradores_diverge': return 'P8 diz ' + a.informado + ' pessoas, mas a P9 lista ' + a.listados
-      case 'incoerente_com_moradores': return q + ': "não há" marcado, mas a P9 lista essa pessoa'
+      case 'entrevistado_fora_da_1a_linha': return qTab + ': o entrevistado deve ser a 1ª linha'
+      case 'qtd_moradores_diverge': return q + ' diz ' + a.informado + ' pessoas, mas a ' + qTab + ' lista ' + a.listados
+      case 'incoerente_com_moradores': return q + ': "não há" marcado, mas a ' + qTab + ' lista essa pessoa'
       case 'enviada_na_carencia': return 'Enviada após o vencimento do acesso (carência)'
       case 'comunidade_nova': return 'Comunidade nova — a coordenação vai cadastrar'
       case 'audio_sem_transcricao': return q + ': resposta gravada em áudio, falta transcrever'
@@ -223,7 +254,7 @@
     return [prefixo || 'DSA', sigla, aa + mm + dd, dispositivo, String(seq).padStart(2, '0')].join('-')
   }
 
-  const api = { NR, perguntas, porChave, foraDeRespostas, cond, aplicaveis, derivar, comDerivadas,
+  const api = { NR, perguntas, porChave, foraDeRespostas, cond, aplicaveis, derivar, comDerivadas, maiorNivel, numero,
                 opcoesVisiveis, normalizar, alertas, descreverAlerta, gerarCodigo, igualJson }
   if (typeof module !== 'undefined' && module.exports) module.exports = api
   else raiz.DiagRegras = api

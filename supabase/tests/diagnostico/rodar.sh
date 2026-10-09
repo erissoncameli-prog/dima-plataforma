@@ -33,6 +33,8 @@ echo "· rodando testes"
 "${PSQL[@]}" -f "$RAIZ/supabase/tests/diagnostico/10_testes.sql"
 echo "· teste cruzado das regras (js/diag-regras.js × SQL)"
 DIR="$(cd "$(dirname "$0")" && pwd)"
+"${PSQL[@]}" -At -c "select estrutura from public.diag_questionarios where codigo = 'DSA' and versao = 7" > "$TMP/est_v7.json"
+export DIAG_EST_V7="$TMP/est_v7.json"
 node "$DIR/regras_cruzadas.js" gerar "$TMP/casos.jsonl"
 # carrega linha a linha (sem \copy: o formato texto do COPY mexeria nas barras invertidas do JSON)
 python3 - "$TMP/casos.jsonl" > "$TMP/casos.sql" <<'PY'
@@ -44,7 +46,8 @@ PY
 { echo "create temp table casos (l jsonb);"; cat "$TMP/casos.sql";
   cat <<'SQL'
 create function pg_temp.t_resultado(c jsonb) returns jsonb language plpgsql as $$
-declare est jsonb := (select estrutura from public.diag_questionarios where codigo = 'DSA' and versao = 1);
+declare est jsonb := (select estrutura from public.diag_questionarios
+                      where codigo = 'DSA' and versao = coalesce((c->>'v')::int, 1));
         n jsonb;
 begin
   n := public.fn_diag_normalizar_respostas(est, c->'resp', c->'mor');

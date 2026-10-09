@@ -190,7 +190,7 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, au
   const chavesAudio = new Set((audios || []).map(a => a.pergunta_chave))
   const porChaveEst = typeof DiagRegras !== 'undefined' ? DiagRegras.porChave(est) : {}
   const audiosPend = (audios || []).filter(a => !textoDe(a.pergunta_chave))
-  const rotPend = audiosPend.map(a => 'P' + ((porChaveEst[a.pergunta_chave] || {}).n || '?')).join(', ')
+  const rotPend = audiosPend.map(a => { const p = porChaveEst[a.pergunta_chave] || {}; return 'P' + (p.rotulo || p.n || '?') }).join(', ')
 
   // respostas por bloco: só o que foi respondido; em branco aparece se gerou aviso
   const blocos = (est.blocos || []).map((b, i) => {
@@ -200,7 +200,7 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, au
       const tem = Object.prototype.hasOwnProperty.call(resp, p.chave)
       if (chavesAudio.has(p.chave)) {
         const t = textoDe(p.chave)
-        return `<div class="dgv-resp ${t ? '' : 'aviso'}"><span class="n">P${p.n}</span><span><span class="q">${esc(p.texto)}</span><br>` +
+        return `<div class="dgv-resp ${t ? '' : 'aviso'}"><span class="n">P${esc(String(p.rotulo || p.n))}</span><span><span class="q">${esc(p.texto)}</span><br>` +
           (t ? `<span class="v">${esc(t)}</span> <a href="#" class="dgv-gravada" onclick="dgValIrAudio('${esc(p.chave)}');return false">gravada · ouvir</a>`
              : `<a href="#" class="dgv-gravada pend" onclick="dgValIrAudio('${esc(p.chave)}');return false">Gravada em áudio — transcrever</a>`) +
           `</span></div>`
@@ -208,7 +208,7 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, au
       if (!tem && !chavesAlerta.has(p.chave)) return ''
       const val = tem ? dgValValor(p, resp) : { txt: 'Em branco', nr: true }
       const destaque = val.nr || chavesAlerta.has(p.chave)
-      return `<div class="dgv-resp ${destaque ? 'aviso' : ''}"><span class="n">P${p.n}</span><span><span class="q">${esc(p.texto)}</span><br><span class="v">${esc(val.txt)}</span></span></div>`
+      return `<div class="dgv-resp ${destaque ? 'aviso' : ''}"><span class="n">P${esc(String(p.rotulo || p.n))}</span><span><span class="q">${esc(p.texto)}</span><br><span class="v">${esc(val.txt)}</span></span></div>`
     }).join('')
     return linhas ? `<div class="dgv-bloco"><h3>${i + 1} · ${esc(b.titulo)}</h3>${linhas}</div>` : ''
   }).join('')
@@ -281,7 +281,7 @@ function dgValAudios(f, est, resp, audios) {
       const p = porChave[a.pergunta_chave] || { texto: a.pergunta_chave }
       const t = texto(a.pergunta_chave)
       return `<div class="dgv-audio" data-chave="${esc(a.pergunta_chave)}">
-        <div class="dgv-audio-q">${p.n ? 'P' + p.n + ' · ' : ''}${esc(p.texto)}</div>
+        <div class="dgv-audio-q">${p.n || p.rotulo ? 'P' + esc(String(p.rotulo || p.n)) + ' · ' : ''}${esc(p.texto)}</div>
         <div class="dgv-audio-player"><audio controls preload="none" id="dgv-au-${a.id}" data-arquivo-audio="${esc(a.arquivo_url)}"></audio><small>${dur(a.duracao_s)}</small></div>
         <div class="dgv-audio-ctl" role="group" aria-label="Controles de transcrição">
           <button type="button" class="dgv-ctl" onclick="dgValAudioVoltar('${a.id}')" title="Voltar 5 segundos">↺ 5 s</button>
@@ -392,15 +392,15 @@ function dgValAvisos(alertas, est) {
   const outros = alertas.filter(a => a.tipo !== 'pendente')
   return `<div class="dgv-avisos"><b>⚠ ${alertas.length} aviso(s) da revisão</b><ul>
     ${outros.map(a => '<li>' + esc(desc(a)) + '</li>').join('')}
-    ${brancos.length ? `<li><details><summary>${brancos.length} pergunta(s) em branco: ${esc(brancos.map(a => a.n ? 'P' + a.n : 'P9').join(', '))}</summary>
+    ${brancos.length ? `<li><details><summary>${brancos.length} pergunta(s) em branco: ${esc(brancos.map(a => { const p = a.chave && typeof DiagRegras !== 'undefined' && DiagRegras.porChave(est)[a.chave]; return 'P' + (p && p.rotulo ? p.rotulo : a.n != null ? a.n : '?') }).join(', '))}</summary>
       <ul>${brancos.map(a => '<li>' + esc(desc(a)) + '</li>').join('')}</ul></details></li>` : ''}</ul></div>`
 }
 
 function dgValMoradores(est, moradores, nomes, p) {
   const cols = (est.moradores && est.moradores.colunas) || []
   const rot = (chave, v) => { const c = cols.find(x => x.chave === chave); const o = c && (c.opcoes || []).find(o => o.v === v); return o ? o.r : (v || '') }
-  const mostrarNome = dgPodeGerir
-  return `<div class="dgv-resp"><span class="n">P${p.n}</span><span><span class="q">${esc(p.texto)} (${moradores.length})</span>
+  const mostrarNome = dgPodeGerir && cols.some(c => c.chave === 'nome')   // v7: lista sem nome
+  return `<div class="dgv-resp"><span class="n">P${esc(String(p.rotulo || p.n))}</span><span><span class="q">${esc(p.texto)} (${moradores.length})</span>
     ${moradores.length ? `<table class="dgv-mor"><tr><th>#</th>${mostrarNome ? '<th>Nome</th>' : ''}<th>Idade</th><th>Sexo/gênero</th><th>Parentesco</th><th>Escolaridade</th><th>Atividade</th></tr>
     ${moradores.map(m => `<tr><td>${m.ordem}${m.e_entrevistado ? '*' : ''}</td>${mostrarNome ? '<td>' + esc(nomes[m.id] || '') + '</td>' : ''}
       <td>${m.idade ?? ''}</td><td>${esc(rot('sexo_genero', m.sexo_genero) + (m.sexo_genero_outro ? ': ' + m.sexo_genero_outro : ''))}</td>

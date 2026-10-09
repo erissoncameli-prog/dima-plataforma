@@ -226,6 +226,11 @@ html[data-tema="escuro"] .derivada { color: var(--pri-400); }
 .morador { border: 1px solid var(--borda); border-radius: var(--r-card); padding: var(--s4); margin: var(--s3) 0; background: var(--sup-2); }
 .morador-topo { display: flex; align-items: center; justify-content: space-between; font-weight: 650; }
 .grade-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+.grade-mor { width: 100%; border-collapse: collapse; margin: var(--s3) 0 var(--s1); font-size: var(--t-leg); background: var(--pri-50); border-radius: var(--r-in); overflow: hidden; }
+.grade-mor th, .grade-mor td { padding: var(--s2) var(--s3); text-align: center; border-bottom: 1px solid var(--borda); }
+.grade-mor tbody th { text-align: left; font-weight: 600; color: var(--txt-2); }
+.grade-mor thead th { color: var(--txt-2); font-weight: 650; }
+.grade-mor td { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--txt); }
 
 /* ── Fotos ────────────────────────────────────────────────────────── */
 .fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--s3); }

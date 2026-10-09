@@ -182,8 +182,8 @@ async function dgExpPlanilha(d, status) {
     { h: 'Identificação apagada (retenção)', k: 'apagada', w: 12 })
   perguntas.forEach(p => {
     if (!comTexto && (p.tipo === 'texto' || p.tipo === 'texto_longo')) return
-    colF.push({ h: 'P' + p.n + ' · ' + p.texto, k: 'q_' + p.chave, w: p.tipo === 'texto_longo' ? 40 : 22 })
-    if (comTexto && temEspecifique(p)) colF.push({ h: 'P' + p.n + ' · especifique', k: 'q_' + p.chave + '_outro', w: 20 })
+    colF.push({ h: 'P' + (p.rotulo || p.n) + ' · ' + p.texto, k: 'q_' + p.chave, w: p.tipo === 'texto_longo' ? 40 : 22 })
+    if (comTexto && temEspecifique(p)) colF.push({ h: 'P' + (p.rotulo || p.n) + ' · especifique', k: 'q_' + p.chave + '_outro', w: 20 })
   })
   cabecalho(wsF, colF)
   const ROT = { enviada: 'Aguardando validação', devolvida: 'Devolvida', validada: 'Validada', descartada: 'Descartada' }
@@ -234,12 +234,15 @@ async function dgExpPlanilha(d, status) {
   const TIPO = { unica: 'única', multipla: 'múltipla (;)', inteiro: 'número', decimal: 'número', texto: 'texto', texto_longo: 'texto', data: 'data' }
   perguntas.forEach(p => {
     const txt = p.tipo === 'texto' || p.tipo === 'texto_longo'
-    wsD.addRow({ n: p.n, chave: p.chave, bloco: p._bloco, texto: p.texto, tipo: TIPO[p.tipo] || p.tipo,
+    wsD.addRow({ n: p.rotulo || p.n, chave: p.chave, bloco: p._bloco, texto: p.texto, tipo: TIPO[p.tipo] || p.tipo,
       opcoes: (p.opcoes || []).map(o => o.v + ' = ' + o.r).join(' | '), versoes: p._versoes.sort().join(', '),
       na: !comTexto && txt ? 'não (texto aberto)' : p.derivada ? 'sim (calculada pelos moradores)' : 'sim' })
   })
-  const colsMor = qs.length ? [...qs].sort((a, b) => b.versao - a.versao)[0].estrutura.moradores.colunas : []
-  colsMor.filter(c => c.destino !== 'identificacao' || ident).forEach(c => wsD.addRow({ n: 9, chave: 'moradores.' + c.chave, bloco: 'Moradores (P9)',
+  const estNova = qs.length ? [...qs].sort((a, b) => b.versao - a.versao)[0].estrutura : null
+  const colsMor = estNova ? estNova.moradores.colunas : []
+  const tabMor = estNova ? [].concat(...estNova.blocos.map(b => b.perguntas)).find(p => p.tipo === 'tabela') : null
+  const nMor = tabMor ? tabMor.n : 9   // P9 até a v6, P7 na v7
+  colsMor.filter(c => c.destino !== 'identificacao' || ident).forEach(c => wsD.addRow({ n: nMor, chave: 'moradores.' + c.chave, bloco: 'Moradores (P' + nMor + ')',
     texto: c.rotulo, tipo: TIPO[c.tipo] || c.tipo, opcoes: (c.opcoes || []).map(o => o.v + ' = ' + o.r).join(' | '), versoes: '', na: 'aba Moradores' }))
   wsD.addRow({})
   wsD.addRow({ texto: '"Não respondeu" = o(a) entrevistado(a) não respondeu. Célula vazia = a pergunta não se aplicava (salto) ou ficou em branco.' })

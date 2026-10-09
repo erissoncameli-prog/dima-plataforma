@@ -149,7 +149,7 @@ function dgIndCartao(p, sempreSexo) {
   })
   const ordSx = s => DGI_SEXO.findIndex(x => x[0] === s)
   grupos.sort((a, b) => String(a.nome).localeCompare(String(b.nome)) || ordSx(a.sx) - ordSx(b.sx))
-  const cab = `<h4><span>P${p.n}</span>${esc(p.texto)}</h4>`
+  const cab = `<h4><span>P${esc(String(p.rotulo || p.n))}</span>${esc(p.texto)}</h4>`
   const rotSx = s => (DGI_SEXO.find(x => x[0] === s) || [s, s])[1]
 
   if (dgInd.nivel === 'geral') {

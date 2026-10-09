@@ -15,7 +15,11 @@ const path = require('node:path')
 const R = require(path.join(__dirname, '../../../js/diag-regras.js'))
 
 const MIG = path.join(__dirname, '../../migrations/20260926_diag_05_questionario_v1.sql')
-const est = JSON.parse(/\$estrutura\$([\s\S]*)\$estrutura\$/.exec(fs.readFileSync(MIG, 'utf8'))[1])
+const EST = { 1: JSON.parse(/\$estrutura\$([\s\S]*)\$estrutura\$/.exec(fs.readFileSync(MIG, 'utf8'))[1]) }
+// v7 (max_marcar, derivada maior_nivel, P7 sem nome): a estrutura é montada pela
+// migração a partir da v6, então rodar.sh a exporta do banco de teste
+if (process.env.DIAG_EST_V7) EST[7] = JSON.parse(fs.readFileSync(process.env.DIAG_EST_V7, 'utf8'))
+const N_V1 = 1000, N_V7 = 600
 
 // PRNG com semente (mulberry32) — casos reprodutíveis
 let s = 20260926
@@ -31,7 +35,7 @@ function respostaAleatoria(p) {
     case 'multipla': {
       const excl = (p.opcoes || []).filter(o => o.exclusiva).map(o => o.v)
       if (excl.length && chance(0.2)) return [pick(excl)]
-      const n = 1 + Math.floor(rnd() * 3)
+      const n = p.max_marcar && chance(0.02) ? 4 : 1 + Math.floor(rnd() * 3)   // 4 = passa do limite (raro)
       const livres = ops.filter(o => !excl.includes(o))
       return [...new Set(Array.from({ length: n }, () => pick(livres)))]
     }
@@ -41,7 +45,8 @@ function respostaAleatoria(p) {
   }
 }
 
-function caso(i) {
+function caso(i, v) {
+  const est = EST[v]
   const resp = {}
   R.perguntas(est).forEach(({ p }) => {
     if (R.foraDeRespostas(p) || chance(0.12)) return
@@ -58,13 +63,16 @@ function caso(i) {
   if (tipoErro === 4) { resp.agua_fonte = 'poco'; resp.agua_fonte_outro = 'x' }
   if (tipoErro === 5) resp.idade = 30.5
   if (tipoErro === 6) resp.entrevistado_nome = 'não pode estar aqui'
+  if (v === 7 && tipoErro === 7) resp.maior_escolaridade = 'pos_completa'   // derivada: o banco recalcula
+  if (v === 7 && tipoErro === 8) resp.infra_dificuldades = ['estradas', 'transporte', 'energia', 'habitacao']
+  const esc = v === 7 ? est.moradores.colunas.find(c => c.chave === 'escolaridade').opcoes.map(o => o.v).concat(['_nr', null]) : null
   const nm = Math.floor(rnd() * 6)
-  const mor = Array.from({ length: nm }, (_, k) => ({
+  const mor = Array.from({ length: nm }, (_, k) => Object.assign({
     ordem: k + 1, idade: chance(0.9) ? Math.floor(rnd() * 90) : null,
     sexo_genero: pick(['mulher', 'homem', 'outro', 'prefere_nao_responder', null]),
     e_entrevistado: k === 0 && chance(0.8),
-  }))
-  return { id: i, resp, mor }
+  }, esc ? { escolaridade: pick(esc) } : {}))
+  return { id: i, v, resp, mor }
 }
 
 function ordenar(v) {
@@ -74,6 +82,7 @@ function ordenar(v) {
 }
 
 function resultadoJs(c) {
+  const est = EST[c.v || 1]
   try {
     const norm = R.normalizar(est, c.resp, c.mor)
     return { resp: norm, alertas: R.alertas(est, norm, c.mor), apl: R.aplicaveis(est, norm) }
@@ -84,9 +93,10 @@ function resultadoJs(c) {
 
 const [, , modo, a1, a2] = process.argv
 if (modo === 'gerar') {
-  const N = 1000
-  fs.writeFileSync(a1, Array.from({ length: N }, (_, i) => JSON.stringify(caso(i))).join('\n') + '\n')
-  console.log('· ' + N + ' casos gerados')
+  const casos = Array.from({ length: N_V1 }, (_, i) => caso(i, 1))
+  if (EST[7]) for (let i = 0; i < N_V7; i++) casos.push(caso(N_V1 + i, 7))
+  fs.writeFileSync(a1, casos.map(c => JSON.stringify(c)).join('\n') + '\n')
+  console.log('· ' + casos.length + ' casos gerados' + (EST[7] ? ' (v1 e v7)' : ''))
 } else if (modo === 'comparar') {
   const casos = fs.readFileSync(a1, 'utf8').trim().split('\n').map(l => JSON.parse(l))
   const sql = {}
