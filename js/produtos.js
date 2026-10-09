@@ -75,7 +75,8 @@ var PR_IC={
   predio:'<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M8 7h4M8 11h4M8 15h4M2 21h20"/>',
   upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
   sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  cadeado:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
 };
 function prIc(n,cls){return '<svg class="pr-ic'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+(PR_IC[n]||'')+'</svg>';}
 // situação do produto: rótulo, classe do selo, cor do cartão (token) e ícone
@@ -479,6 +480,11 @@ async function abrirModal(prodId){
   var isPend=p.situacao==='pendente'||p.situacao==='entrega_parcial'||p.situacao==='devolvido';
   var isAnalise=p.situacao==='em_analise';
   var isDevolvido=p.situacao==='devolvido';
+  // registrar/avaliar só o responsável/substituto da atividade ou super_admin (banco: fn_pode_avaliar_contrato);
+  // coordenação e demais que veem o contrato abrem em leitura
+  var pa=(isPend||isAnalise)?await db.rpc('fn_pode_avaliar_contrato',{p_contrato_id:p.contrato_id}):{data:true};
+  var soLeitura=(isPend||isAnalise)&&!(pa&&!pa.error&&pa.data===true);
+  if(soLeitura){isPend=false;isAnalise=false;isDevolvido=false;}
 
   // Totais financeiros do contrato + docs devolvida em paralelo quando possível
   var totaisR=await db.from('contratos_produtos').select('valor_brl,valor_aprovado,situacao').eq('contrato_id',p.contrato_id);
@@ -551,6 +557,11 @@ async function abrirModal(prodId){
         +'</div></div>';
     });
     html+='</div></details>';
+  }
+
+  if(soLeitura){
+    html+='<div class="pr-aviso" role="note" style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;margin-bottom:12px;border-radius:var(--raio);background:var(--info-bg);color:var(--info);font-size:12.5px">'
+      +prIc('cadeado','p')+'<span>Somente leitura: registrar entrega e avaliar este produto cabe ao responsável ou substituto da atividade (ou super_admin).</span></div>';
   }
 
   // FORMULÁRIO DE ENTREGA

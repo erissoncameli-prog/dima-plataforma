@@ -711,6 +711,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   só são legíveis por quem vê o contrato — as policies (`cp_readonly`, `cp_registrar_entrega`, `cpe_all`, `ed_sel`, `ed_ins`) usam
   `exists (select … from contratos …)`, que herda `contratos_select` (super_admin/coordenação/financeiro, `tem_permissao('contratos')`
   ou responsável ativo da atividade). Nova policy nessas tabelas: mesma forma, `TO authenticated`, nunca `auth.uid() is not null`.
+- **Escrita** (migração `20261009_produtos_escrita_responsavel`): registrar entrega, anexar documento de entrega e aprovar/devolver
+  só **responsável/substituto da atividade ou super_admin** — `fn_pode_avaliar_contrato(contrato_id)`. Coordenação/financeiro
+  leem (policy `cpe_select`) mas `cpe_all`, `ed_ins` e `cp_registrar_entrega` exigem a função; o trigger `trg_cp_guarda_situacao`
+  recusa (`PRODUTO_SO_RESPONSAVEL`) levar `contratos_produtos.situacao` a `em_analise/aprovado/entrega_parcial/devolvido` por outro
+  usuário (vale para o editor de produtos de Contratos). Triggers aninhados (pagamento, avaliação) e service_role passam.
+  Na tela: Produtos abre em leitura para quem não pode avaliar; o editor de Contratos só oferece Pendente/Cancelado.
 - A **Matriz** é aberta a todos e não lê a entrega direto: `vw_matriz_progresso` testa "entrega aprovada" por `fn_entrega_aprovada()`
   (SECURITY DEFINER) e Matriz/Visão Geral leem a contribuição por `vw_matriz_contribuicoes` (dono postgres, só SELECT; expõe só
   nº, data, situação e tipo da entrega). Nunca embutir `contratos_produtos_entregas(...)` em consulta de tela aberta a todos.
