@@ -645,12 +645,15 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   A página do QR segue `prefers-color-scheme`. ⚠️ Em comentário CSS não escrever `--x-*/` — o `*/` fecha o comentário
   e engole a regra seguinte (os tokens do tema claro sumiram por isso).
 
-### TDRs — visual da lista (etapa 1 da revisão)
+### TDRs — visual da lista e dos modais
 - `pages/tdrs.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/tdrs.css` (prefixo `td-`; cor de cada fase = token
-  `--td-*` no topo do arquivo, igual no indicador, no selo e na barra). Ícones SVG por `tdIc()`, sem emoji.
-- Só a lista/indicadores seguem o tema. Os modais ficam na **ilha clara** `.dgm-claro` (tokens do tema claro) até a
-  etapa 2 — modal novo nesta página precisa da classe `dgm-claro`, senão `.btn-primary` fica sem cor.
+  `--td-*` no topo do arquivo, igual no indicador, no selo e na barra). Ícones SVG por `tdIc()` (e `<i data-ic>` no HTML
+  fixo), sem emoji. A página não tem mais `<style>` próprio: estilo novo vai em `css/tdrs.css`, nunca cor solta no JS.
+- Modais: classe **`td-ov`** (escopo do tema, está no seletor de `diagnostico-mesa.css`) + `role="dialog"`/`aria-modal`.
+  Modal novo sem `td-ov` fica sem cor no `.btn-primary`. Foco, Esc (fecha só o de cima) e Tab presos no modal vêm de um
+  observador da classe `.aberto` (`tdModalAbriu`/`tdModalFechou`) — não precisa código por modal.
+- Texto do usuário (objeto, comentário, diff de versão, análise do agente, nome de anexo) sempre por `esc()`.
 - Cartão do TDR = `cardTDR(t)`; diferença negativa TDR × contratos aparece como "Contrato acima do TDR" (mesmo termo do razão).
 
 ### Painel de Tarefas — subtarefas, comentários e anexos
