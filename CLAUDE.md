@@ -269,6 +269,14 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
   A tela não decide nada: assinar = `fetch` à Edge Function com a senha; a fila "minha vez" é só exibição.
   Aba **Como funciona** + botões **"?"** (`js/remanejamentos-ajuda.js`: `REM_AJUDA` verbetes, `remQ('chave')` botão,
   `remGuiaHTML()` guia + perguntas frequentes). Regra mudou no banco ⇒ atualizar o texto do guia junto.
+- **Visual da tela**: design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor Claro/Escuro
+  no topo) e componentes em `css/remanejamentos.css` (prefixos `rm-`/`rg-`; `badge-*` tematizados lá). Sem `<style>` próprio;
+  ícones SVG por `rmIc()`, sem emoji. Números do topo (`remKpis`): remanejável, reservado, déficit, contratos travados; o
+  orçamento vigente total fica na linha de total da tabela. Barra comprometido × vigente por atividade (`remBarra`).
+  **Déficit abaixo de US$ 1 (`RM_CENTAVOS`) = "diferença de centavos"** em cinza, sem selo vermelho nem contagem no topo
+  (o banco segue igual). Abre na aba **Pedidos** quando há pedido aguardando a pessoa. Janelas (pedido, assinatura, ajuda
+  "?") com classe **`rm-ov`** (no seletor de escopo de `diagnostico-mesa.css`) e pilha `rmAbrir`/`rmFechar` (Esc fecha a de
+  cima, Tab preso, foco volta).
 
 - **`atividades.orcamento_usd` é cache** de Σ `orcamento_fontes` orçamentárias. UPDATE direto é
   recusado para todos, inclusive super_admin (`trg_atividade_guarda_orcamento`, `ORCAMENTO_PROTEGIDO`).
