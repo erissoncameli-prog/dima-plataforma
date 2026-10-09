@@ -1,155 +1,64 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Contratos</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
 <link href="../css/sidebar.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Contratos -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/contratos.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;cursor:pointer;user-select:none;transition:box-shadow .15s,border-color .15s,transform .08s;}
-.stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px);}
-.stat-card:active{transform:scale(.95);box-shadow:0 1px 2px rgba(0,0,0,.12) inset;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;}
-.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}
-.stat-card.ativo{border-color:transparent;box-shadow:0 0 0 2px currentColor inset;}
-.sc-g.ativo{color:var(--verde-claro)}
-.sc-b.ativo{color:var(--azul-medio)}
-.sc-a.ativo{color:var(--aviso)}
-.sc-r.ativo{color:var(--erro)}
-.stat-lbl{font-size:10px;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
-.stat-val{font-size:20px;font-weight:700;color:var(--cinza-900);}
-.stat-sub{font-size:11px;color:var(--cinza-500);margin-top:3px;}
-.stat-card>*{position:relative;z-index:2;}
-.wc-inner{position:absolute;left:0;right:0;bottom:0;height:0%;transition:height 1.1s cubic-bezier(.4,0,.2,1);z-index:0;overflow:visible;opacity:.5;}
-.wc-wavewrap{position:absolute;left:0;right:0;bottom:100%;height:14px;overflow:hidden;}
-.wc-wave-svg{position:absolute;top:0;left:0;width:200%;height:100%;animation:wcwave 4.5s linear infinite;}
-.wc-wave-svg.w2{animation-duration:6.5s;animation-direction:reverse;opacity:.6;}
-@keyframes wcwave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.tbl-wrap{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
-.tbl{width:100%;border-collapse:collapse;font-size:12px;}
-.tbl th{padding:9px 10px;font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--borda);background:var(--cinza-50);text-align:left;white-space:nowrap;}
-.tbl td{padding:9px 10px;border-bottom:1px solid var(--borda);color:var(--cinza-700);vertical-align:middle;}
-.tbl tbody tr.main-row:hover td{background:var(--cinza-50);}
-.tbl tbody tr.main-row.aberto td{background:#F0FDF4;}
-.tbl tbody tr.detail-row td{padding:0;border-bottom:1px solid var(--borda);}
-.xbtn{width:22px;height:22px;border-radius:4px;border:1px solid var(--borda);background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--cinza-400,#9CA3AF);transition:all .15s;}
-.xbtn:hover{background:var(--verde-bg);border-color:var(--verde-medio);color:var(--verde-medio);}
-.xbtn.aberto{background:var(--verde-bg);border-color:var(--verde-medio);color:var(--verde-medio);}
-.badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;}
-.b-vigente{background:#ECFDF5;color:#065F46}.b-encerrado{background:#F3F4F6;color:#374151}.b-suspenso{background:#FEF2F2;color:#991B1B}.b-aguardando_cobertura{background:#FFF7ED;color:#9A3412}.b-cancelado{background:#F3F4F6;color:#6B7280;text-decoration:line-through}
-.mono{font-family:var(--font-mono);font-size:11px;}
-.pdf-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
-.detail-inner{padding:14px 16px;background:var(--cinza-50);}
-.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
-.detail-item{display:flex;flex-direction:column;gap:2px;}
-.detail-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;}
-.detail-val{font-size:12px;color:var(--cinza-900);font-weight:500;}
-.pdf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.pdf-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;display:flex;align-items:center;gap:10px;}
-.pdf-card-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.pdf-card-info{flex:1;min-width:0;}
-.pdf-card-nome{font-size:12px;font-weight:500;color:var(--cinza-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.pdf-card-meta{font-size:10px;color:var(--cinza-500);margin-top:1px;}
-.pdf-card-btns{display:flex;gap:4px;flex-shrink:0;}
-.btn-xs{height:26px;padding:0 8px;font-size:10px;border-radius:4px;border:1px solid var(--borda);background:none;cursor:pointer;color:var(--cinza-600,#4B5563);white-space:nowrap;font-family:var(--font-sans);text-decoration:none;display:inline-flex;align-items:center;}
-.btn-xs:hover{background:var(--cinza-50);}
-.btn-xs-prim{background:var(--verde-bg);color:var(--verde-escuro);border-color:#9FE1CB;}
-.btn-xs-prim:hover{background:#9FE1CB;}
-.saldo-bar{height:4px;background:var(--cinza-100);border-radius:2px;overflow:hidden;margin-top:3px;}
-.saldo-fill{height:100%;border-radius:2px;}
-.modal-lg{max-width:700px;}
-.upload-zone{border:1.5px dashed var(--borda-forte);border-radius:var(--raio);padding:18px;text-align:center;cursor:pointer;transition:all .15s;}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--verde-medio);background:var(--verde-bg);}
-.upload-zone input{display:none;}
-.traduz-info{background:var(--azul-bg);border:1px solid #B5D4F4;border-radius:var(--raio);padding:10px 12px;font-size:11px;color:var(--azul-medio);display:flex;align-items:flex-start;gap:8px;margin-top:8px;line-height:1.5;}
-.sec-label{font-size:11px;font-weight:600;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--borda);}
-.prog-bar{height:3px;background:var(--cinza-100);border-radius:2px;overflow:hidden;margin-top:6px;display:none;}
-.prog-fill{height:100%;background:var(--verde-medio);border-radius:2px;transition:width .3s;}
-.det-tabs{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:12px;}
-.det-tab{padding:6px 14px;font-size:11px;font-weight:600;color:var(--cinza-500);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font-sans);transition:all .15s;}
-.det-tab.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
-.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:4px;}
-.prod-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;}
-.prod-card.pend{border-left:3px solid var(--aviso);}
-.prod-card.pago{border-left:3px solid var(--sucesso);}
-.prod-card.venc{border-left:3px solid var(--erro);}
-.prod-card.cancel{border-left:3px solid var(--cinza-300);opacity:.65;}
-.prod-num{font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
-.prod-desc{font-size:12px;font-weight:500;color:var(--cinza-900);margin-bottom:5px;line-height:1.35;}
-.prod-valor{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--verde-medio);}
-.prod-venc{font-size:10px;color:var(--cinza-500);margin-top:2px;}
-.prod-sit{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;display:inline-block;margin-top:5px;}
-.ps-pendente{background:#FFFBEB;color:#92400E}.ps-em_analise{background:#EFF6FF;color:#1E40AF}
-.ps-aprovado{background:#F0FDF4;color:#166534;border:1px solid #86EFAC}
-.ps-pago{background:#ECFDF5;color:#065F46}.ps-cancelado{background:#F3F4F6;color:#6B7280}
-/* ── Histórico de Entregas ── */
-.ent-bloco{margin-bottom:12px;border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;}
-.ent-prod-header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);}
-.ent-prod-title{font-size:12px;font-weight:600;color:var(--cinza-900);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ent-item{background:var(--branco);padding:10px 12px;border-top:1px solid var(--borda);}
-.ent-item:first-child{border-top:none;}
-.ent-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
-.ent-num{font-size:10px;font-weight:700;color:var(--cinza-400);font-family:var(--font-mono);}
-.ent-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;}
-.ent-quem{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
-.ent-quem-item{display:flex;align-items:baseline;gap:4px;font-size:11px;color:var(--cinza-700);}
-.ent-quem-lbl{font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.04em;}
-.ent-quem-data{font-size:10px;color:var(--cinza-400);}
-.ent-links{display:flex;flex-wrap:wrap;gap:4px;}
-.ent-link{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--borda);background:var(--branco);color:var(--cinza-700);text-decoration:none;white-space:nowrap;}
-.ent-link:hover{background:var(--cinza-50);}
-.ent-link-desp{border-color:#BFDBFE;background:#EFF6FF;color:#1E40AF;}
-.ent-link-nt{border-color:#BBF7D0;background:#F0FDF4;color:#166534;}
-.ent-vazia{padding:10px 12px;font-size:11px;color:var(--cinza-400);font-style:italic;}
-</style>
 </head>
-<body>
-<div id="app"></div>
-<div class="modal-overlay" id="modal-contrato">
-  <div class="modal modal-lg">
+<body class="dgm">
+<div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando contratos…</div></div></div>
+
+<!-- Janelas fora do #app; .ct-ov = escopo do tema (css/contratos.css). <i data-ic> vira ícone SVG. -->
+<div class="modal-overlay ct-ov" id="modal-contrato" role="dialog" aria-modal="true" aria-labelledby="m-titulo">
+  <div class="modal" style="max-width:720px">
     <div class="modal-header">
       <div>
         <div class="modal-title" id="m-titulo">Contrato</div>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="m-sub"></div>
+        <div class="modal-sub" id="m-sub"></div>
       </div>
-      <button class="modal-close" onclick="fecharModal()">&#x2715;</button>
+      <button type="button" class="modal-close" onclick="fecharModal()" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
     <div class="modal-body" id="m-body"></div>
     <div class="modal-footer" id="m-footer"></div>
   </div>
 </div>
-<!-- MODAL PRODUTOS DO CONTRATO -->
-<div class="modal-overlay" id="modal-produtos">
-  <div class="modal" style="max-width:680px">
+<!-- PRODUTOS DO CONTRATO -->
+<div class="modal-overlay ct-ov" id="modal-produtos" role="dialog" aria-modal="true" aria-labelledby="mp-titulo">
+  <div class="modal" style="max-width:720px">
     <div class="modal-header">
       <div>
         <div class="modal-title" id="mp-titulo">Produtos / Entregas</div>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="mp-sub"></div>
+        <div class="modal-sub" id="mp-sub"></div>
       </div>
-      <button class="modal-close" onclick="fecharModalProd()"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>#x2715;</button>
+      <button type="button" class="modal-close" onclick="fecharModalProd()" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
     <div class="modal-body" id="mp-body"></div>
     <div class="modal-footer" id="mp-footer"></div>
   </div>
 </div>
-<!-- MODAL ENCERRAMENTO COM SALDO NÃO EXECUTADO -->
-<div class="modal-overlay" id="modal-encerramento">
+<!-- ENCERRAMENTO COM SALDO NÃO EXECUTADO -->
+<div class="modal-overlay ct-ov" id="modal-encerramento" role="dialog" aria-modal="true" aria-labelledby="me-titulo">
   <div class="modal" style="max-width:640px">
     <div class="modal-header">
       <div>
-        <div class="modal-title">&#x26A0; Encerrar contrato com saldo não executado</div>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="me-sub"></div>
+        <div class="modal-title" id="me-titulo" style="color:var(--erro-txt)"><i data-ic="alerta"></i>Encerrar contrato com saldo não executado</div>
+        <div class="modal-sub" id="me-sub"></div>
       </div>
-      <button class="modal-close" onclick="fecharModalEncerramento()">&#x2715;</button>
+      <button type="button" class="modal-close" onclick="fecharModalEncerramento()" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
     <div class="modal-body" id="me-body"></div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="fecharModalEncerramento()">Cancelar</button>
-      <button class="btn" style="background:#DC2626;color:#fff" onclick="confirmarEncerramento()">&#x26A0; Confirmar encerramento e liberar saldo</button>
+      <button type="button" class="ct-btn" onclick="fecharModalEncerramento()">Cancelar</button>
+      <button type="button" class="ct-btn perigo" id="me-btn" onclick="confirmarEncerramento()">Encerrar e liberar saldo</button>
     </div>
   </div>
 </div>
@@ -157,6 +66,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script>
 (function(){
 var todosContratos=[],atividades=[],fornecedores=[],tdrs=[];
@@ -164,52 +74,109 @@ var contratoEditando=null,filePDF=null;
 var expandidos={};
 var SL={vigente:'Vigente',encerrado:'Encerrado',suspenso:'Suspenso',aguardando_cobertura:'Aguardando cobertura',cancelado:'Cancelado'};
 var TIPOS=['Servico','Consultoria','Consumo','Diaria','Passagens','Obra'];
+// ── Ícones (SVG, sem emoji) ───────────────────────────────
+var CT_IC={
+  contrato:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h6M8 17h4"/>',
+  moeda:'<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .8-3 2s1.3 1.7 3 2 3 .8 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  alerta:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  cadeado:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  relogio:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  pausa:'<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',
+  doc:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  globo:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  olho:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  busca:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  lapis:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+  seta:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  externo:'<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  mais:'<path d="M12 5v14M5 12h14"/>',
+  lixo:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  clipe:'<path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/>',
+  despacho:'<path d="M9 4h6v3H9z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2M9 12h6M9 16h4"/>',
+  sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+};
+function ctIc(n,cls){return '<svg class="ct-ic'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+(CT_IC[n]||'')+'</svg>';}
+document.querySelectorAll('i[data-ic]').forEach(function(e){e.outerHTML=ctIc(e.dataset.ic);});
+// situação do contrato: selo + ícone
+var ST_PILL={vigente:['ct-p-ok','check'],encerrado:['ct-p-ne','check'],suspenso:['ct-p-al','pausa'],aguardando_cobertura:['ct-p-er','cadeado'],cancelado:['ct-p-riscado','x']};
+function pillStatus(s){var p=ST_PILL[s]||['ct-p-ne','check'];return '<span class="ct-pill '+p[0]+'">'+ctIc(p[1],'p')+esc(SL[s]||s||'—')+'</span>';}
+// situação do produto: selo + cor da borda do cartão (tokens)
+var PROD_SIT={pendente:['Pendente','ct-p-al','--alerta'],em_analise:['Em análise','ct-p-in','--info'],aprovado:['Aprovado','ct-p-ok','--ok'],pago:['Pago','ct-p-ok','--ok'],
+  cancelado:['Cancelado','ct-p-ne','--txt-3'],entrega_parcial:['Parcial','ct-p-se','--ct-serio'],devolvido:['Devolvido','ct-p-er','--erro']};
+function pillProd(s){var p=PROD_SIT[s]||[s||'—','ct-p-ne'];return '<span class="ct-pill '+p[1]+'">'+esc(p[0])+'</span>';}
+var ENT_SIT={pendente:['Pendente','ct-p-al'],em_analise:['Em análise','ct-p-in'],aprovada:['Aprovada','ct-p-ok'],devolvida:['Devolvida','ct-p-er']};
+function brlc(v){v=parseFloat(v||0);var a=Math.abs(v);if(a>=1e6)return 'R$ '+(v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2})+' mi';if(a>=1e3)return 'R$ '+Math.round(v/1e3)+' mil';return fmtBRL(v);}
+function diasAte(d){if(!d)return null;var h=new Date();h.setHours(0,0,0,0);return Math.round((new Date(d+'T00:00:00')-h)/86400000);}
 
 (async function(){
   var u=await carregarUsuario();
   if(!u){window.location.href='../index.html';return;}
   document.getElementById('app').innerHTML=gerarLayout('Contratos','contratos')+
-  '<div class="fade-in">'+
-  '<div class="stat-row" id="stats"></div>'+
-  '<div class="filter-bar" style="margin-bottom:14px">'+
-  '<input class="form-control" type="text" id="busca" style="width:240px" placeholder="Buscar numero, objeto ou fornecedor..." oninput="filtrar()">'+
-  '<select class="form-control" id="fil-status" onchange="filtrar()" style="width:140px">'+
-  '<option value="">Todos os status</option>'+
+  '<div class="fade-in ct-pagina">'+
+  '<div class="ct-kpis" id="stats"></div>'+
+  '<div id="ct-travados"></div>'+
+  '<div class="ct-filtros" role="group" aria-label="Filtros">'+
+  '<label class="ct-busca">'+ctIc('busca','p')+'<input type="search" id="busca" placeholder="Número, objeto ou fornecedor" aria-label="Buscar contrato" oninput="filtrar()"></label>'+
+  '<select id="fil-status" onchange="filtrar()" aria-label="Situação">'+
+  '<option value="">Todas as situações</option>'+
   '<option value="vigente">Vigente</option>'+
   '<option value="encerrado">Encerrado</option>'+
   '<option value="suspenso">Suspenso</option>'+
   '<option value="aguardando_cobertura">Aguardando cobertura</option>'+
   '<option value="cancelado">Cancelado</option>'+
   '</select>'+
-  '<select class="form-control" id="fil-pdf" onchange="filtrar()" style="width:150px">'+
-  '<option value="">Todos</option>'+
+  '<select id="fil-pdf" onchange="filtrar()" aria-label="PDF assinado">'+
+  '<option value="">PDF: todos</option>'+
   '<option value="com">Com PDF</option>'+
   '<option value="sem">Sem PDF</option>'+
   '</select>'+
-  '<select class="form-control" id="fil-ativ" onchange="filtrar()" style="width:180px">'+
+  '<select id="fil-ativ" onchange="filtrar()" aria-label="Atividade">'+
   '<option value="">Todas as atividades</option>'+
   '</select>'+
-  '<select class="form-control" id="fil-forn" onchange="filtrar()" style="width:170px">'+
+  '<select id="fil-forn" onchange="filtrar()" aria-label="Fornecedor">'+
   '<option value="">Todos os fornecedores</option>'+
   '</select>'+
-  '<span id="cont" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>'+
-  (PODE.verFinanceiro()?'<button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo contrato</button>':'')+
+  '<span id="cont" class="ct-cont"></span>'+
+  (PODE.verFinanceiro()?'<button type="button" class="ct-btn pri" onclick="abrirNovo()">'+ctIc('mais','p')+'Novo contrato</button>':'')+
   '</div>'+
-  '<div class="tbl-wrap">'+
+  '<div class="tbl-wrap"><div class="ct-tbl-w">'+
   '<table class="tbl">'+
   '<thead><tr>'+
-  '<th style="width:32px"></th>'+
-  '<th>Numero</th><th>Objeto</th><th>Fornecedor</th>'+
-  '<th>Valor total</th><th>Vigencia</th><th>Status</th>'+
-  '<th style="width:50px" title="PDF: verde=presente, vermelho=ausente, azul=traducao PT">PDF</th>'+
-  '<th style="width:60px">Acoes</th>'+
+  '<th style="width:40px"><span class="sr-only">Detalhes</span></th>'+
+  '<th>Número</th><th>Objeto</th><th>Fornecedor</th>'+
+  '<th>Valor e execução</th><th>Vigência</th><th>Situação</th>'+
+  '<th>Documentos</th>'+
+  '<th style="width:52px"><span class="sr-only">Ações</span></th>'+
   '</tr></thead>'+
   '<tbody id="tbody"></tbody>'+
   '</table>'+
   '<div id="tbl-empty"></div>'+
-  '</div></div>'+fecharLayout();
+  '</div></div></div>'+fecharLayout();
+  carregarLogosSidebar();
+  seletorTema();
   await carregar();
 })();
+
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico, de TDRs, Atividades e Visão Geral (componente .dgm-tema)
+function seletorTema(){
+  var tb=document.querySelector('.topbar'); if(!tb||tb.querySelector('.dgm-tema')||typeof DiagTema==='undefined')return;
+  var d=document.createElement('div');
+  d.className='dgm-tema'; d.setAttribute('role','group'); d.setAttribute('aria-label','Tema');
+  d.innerHTML=[['claro','sol','Claro'],['escuro','lua','Escuro']].map(function(x){
+    return '<button type="button" data-tema="'+x[0]+'" aria-pressed="'+(DiagTema.atual()===x[0])+'">'+ctIc(x[1])+x[2]+'</button>';}).join('');
+  var bc=tb.querySelector('.topbar-breadcrumb');
+  if(bc)bc.parentNode.insertBefore(d,bc); else tb.appendChild(d);
+  d.addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-tema]'); if(!b)return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+  });
+}
 
 async function carregar(){
   var rs=await Promise.all([
@@ -270,35 +237,35 @@ function clicarCardCont(card){
   filtroCardCont=(filtroCardCont===card)?'':card;
   renderStats();filtrar();
 }
-
-function waterHTML(color,pct){
-  return '<div class="wc-inner" data-alvo="'+pct+'" style="background:'+color+'">'
-    +'<div class="wc-wavewrap">'
-    +'<svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:'+color+'"></path></svg>'
-    +'<svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:'+color+'"></path></svg>'
-    +'</div></div>';
-}
-function animarAgua(){
-  requestAnimationFrame(function(){requestAnimationFrame(function(){
-    document.querySelectorAll('.wc-inner[data-alvo]').forEach(function(el){
-      el.style.height=el.dataset.alvo+'%';
-    });
-  });});
-}
+window.clicarCardCont=clicarCardCont;
 
 function renderStats(){
   var vig=todosContratos.filter(function(c){return c.status==='vigente';});
   var totC=vig.reduce(function(s,c){return s+parseFloat(c.valor_total_brl||0);},0);
   var totU=vig.reduce(function(s,c){return s+parseFloat(c.valor_utilizado_brl||0);},0);
+  var totComp=vig.reduce(function(s,c){return s+parseFloat(c.valor_comprometido_brl||c.valor_utilizado_brl||0);},0);
   var semPDF=todosContratos.filter(function(c){return !c.contrato_assinado_url;}).length;
-  var ativo=function(c){return filtroCardCont===c?' ativo':'';};
-  var denTotal=todosContratos.length||1;
+  var trav=todosContratos.filter(function(c){return c.status==='aguardando_cobertura';});
+  var pPago=totC>0?Math.min(totU/totC*100,100):0, pApagar=totC>0?Math.max(0,Math.min(totComp/totC*100,100)-pPago):0;
+  function kpi(chave,ic,lbl,val,sub,extra,cls,vcls){
+    return '<button type="button" class="ct-kpi'+(cls?' '+cls:'')+'" aria-pressed="'+(filtroCardCont===chave)+'" onclick="clicarCardCont(\''+chave+'\')" title="Clique para filtrar a lista">'
+      +'<span class="ct-kpi-l">'+ctIc(ic)+lbl+'</span><span class="ct-kpi-v'+(vcls?' '+vcls:'')+'">'+val+'</span>'+(extra||'')+'<span class="ct-kpi-s">'+sub+'</span></button>';
+  }
   document.getElementById('stats').innerHTML=
-    '<div class="stat-card sc-g'+ativo('vigente')+'" onclick="clicarCardCont(\'vigente\')">'+waterHTML('var(--verde-claro)',Math.round(vig.length/denTotal*100))+'<div class="stat-lbl">Vigentes</div><div class="stat-val">'+vig.length+'</div><div class="stat-sub">de '+todosContratos.length+' totais</div></div>'+
-    '<div class="stat-card sc-b'+ativo('total')+'" onclick="clicarCardCont(\'total\')">'+waterHTML('var(--azul-medio)',100)+'<div class="stat-lbl">Total contratado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totC)+'</div></div>'+
-    '<div class="stat-card sc-a'+ativo('utilizado')+'" onclick="clicarCardCont(\'utilizado\')">'+waterHTML('var(--aviso)',totC>0?Math.round(totU/totC*100):0)+'<div class="stat-lbl">Total utilizado</div><div class="stat-val" style="font-size:15px">'+fmtBRL(totU)+'</div><div class="stat-sub">'+(totC>0?Math.round(totU/totC*100):0)+'% do contratado</div></div>'+
-    '<div class="stat-card '+(semPDF>0?'sc-r':'sc-g')+ativo('sem_pdf')+'" onclick="clicarCardCont(\'sem_pdf\')">'+waterHTML(semPDF>0?'var(--erro)':'var(--verde-claro)',Math.round(semPDF/denTotal*100))+'<div class="stat-lbl">Sem PDF</div><div class="stat-val" style="color:'+(filtroCardCont==='sem_pdf'?'':(semPDF>0?'var(--erro)':'var(--sucesso)'))+'">'+semPDF+'</div><div class="stat-sub">contratos sem documento</div></div>';
-  animarAgua();
+    kpi('vigente','contrato','Vigentes',vig.length,'de '+todosContratos.length+' contratos')+
+    kpi('total','moeda','Contratado (vigentes)',brlc(totC),'soma dos valores totais')+
+    kpi('utilizado','check','Pago',brlc(totU),Math.round(pPago)+'% pago · '+Math.round(pApagar)+'% a pagar',
+      '<span class="ct-meter"><i style="width:'+pPago.toFixed(1)+'%;background:var(--ct-pago)"></i><i style="width:'+pApagar.toFixed(1)+'%;background:var(--ct-comp)"></i></span>','','ok')+
+    kpi('sem_pdf','alerta','Sem PDF assinado',semPDF,semPDF?'clique para ver quais':'todos com PDF',null,semPDF?'alerta':'',semPDF?'erro':'');
+
+  // Faixa dos contratos travados aguardando cobertura do orçamento
+  var el=document.getElementById('ct-travados');
+  if(el) el.innerHTML=trav.length?'<div class="ct-travado" role="status">'+ctIc('cadeado')
+    +'<div class="tx"><b>'+trav.length+' contrato'+(trav.length>1?'s':'')+' aguardando cobertura</b>'
+    +esc(trav.slice(0,4).map(function(c){return c.numero;}).join(', ')+(trav.length>4?' e mais '+(trav.length-4):''))
+    +(trav.length>1?' passaram':' passou')+' do TDR e o saldo livre da atividade não cobre. Sem produtos, pagamentos ou PDF até liberar.</div>'
+    +'<div class="acoes"><button type="button" class="ct-btn peq" onclick="clicarCardCont(\'travado\')" aria-pressed="'+(filtroCardCont==='travado')+'">'+(filtroCardCont==='travado'?'Mostrar todos':'Mostrar')+'</button>'
+    +'<a class="ct-btn pri peq" href="remanejamentos.html'+(trav.length===1?'?cobertura='+encodeURIComponent(trav[0].id):'')+'">Pedir cobertura'+ctIc('seta','p')+'</a></div></div>':'';
 }
 
 function filtrar(){
@@ -317,6 +284,7 @@ function filtrar(){
     if(filtroCardCont==='vigente'&&c.status!=='vigente')return false;
     if(filtroCardCont==='utilizado'&&!(parseFloat(c.valor_utilizado_brl||0)>0))return false;
     if(filtroCardCont==='sem_pdf'&&c.contrato_assinado_url)return false;
+    if(filtroCardCont==='travado'&&c.status!=='aguardando_cobertura')return false;
     return true;
   });
   document.getElementById('cont').textContent=fil.length+' de '+todosContratos.length+' contratos';
@@ -324,7 +292,7 @@ function filtrar(){
   var empty=document.getElementById('tbl-empty');
   if(!fil.length){
     tbody.innerHTML='';
-    empty.innerHTML='<div class="empty-state"><div class="empty-state-icon">&#x25EA;</div><div class="empty-state-msg">Nenhum contrato encontrado.</div></div>';
+    empty.innerHTML='<div class="ct-vazio">Nenhum contrato encontrado com esses filtros.</div>';
     return;
   }
   empty.innerHTML='';
@@ -334,38 +302,50 @@ window.filtrar=filtrar;
 
 function renderLinha(c){
   var total=parseFloat(c.valor_total_brl||0);
-  var usado=parseFloat(c.valor_utilizado_brl||0);
-  var pct=total>0?Math.min(usado/total*100,100):0;
-  var critico=pct>90;
-  var vencido=c.dt_fim&&new Date(c.dt_fim)<new Date()&&c.status==='vigente';
+  var usado=parseFloat(c.valor_utilizado_brl||0);          // apenas PAGO
+  var comp=parseFloat(c.valor_comprometido_brl||usado);     // pago + a pagar
+  var pPago=total>0?Math.min(usado/total*100,100):0;
+  var pComp=total>0?Math.min(comp/total*100,100):0;
+  var dias=diasAte(c.dt_fim);
+  var vencido=dias!==null&&dias<0&&c.status==='vigente';
   var temPDF=!!c.contrato_assinado_url;
   var temTrad=!!c.contrato_pt_url;
   var aberto=!!expandidos[c.id];
-  var obj=(c.objeto_pt||'').substring(0,55)+(c.objeto_pt&&c.objeto_pt.length>55?'...':'');
+  var vigTxt=c.status!=='vigente'||dias===null?'':(vencido?'vencido há '+Math.abs(dias)+' dia'+(Math.abs(dias)!==1?'s':''):dias===0?'vence hoje':'vence em '+dias+' dia'+(dias!==1?'s':''));
+  var vigCls=vencido?'vencido':(dias!==null&&dias<=30&&c.status==='vigente'?'perto':'');
 
-  var main='<tr class="main-row '+(aberto?'aberto':'')+'">'
-    +'<td><button class="xbtn '+(aberto?'aberto':'')+'" id="xb-'+c.id+'" onclick="toggleDet(\''+c.id+'\')">'+(aberto?'&#9660;':'&#9658;')+'</button></td>'
-    +'<td><span class="mono" style="font-weight:600">'+c.numero+'</span></td>'
-    +'<td style="max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(c.objeto_pt||'')+'" >'+obj+'</div>'
-      +(vencido?'<span style="font-size:9px;background:var(--erro-bg);color:var(--erro);padding:1px 5px;border-radius:3px;font-weight:600">Vencido</span>':critico?'<span style="font-size:9px;background:var(--aviso-bg);color:var(--aviso);padding:1px 5px;border-radius:3px;font-weight:600">Critico</span>':'')
+  var main='<tr class="main-row'+(aberto?' aberto':'')+'">'
+    +'<td><button type="button" class="xbtn'+(aberto?' aberto':'')+'" id="xb-'+c.id+'" onclick="toggleDet(\''+c.id+'\')" aria-expanded="'+aberto+'" aria-controls="det-'+c.id+'" aria-label="Detalhes do contrato '+esc(c.numero)+'">'+ctIc('chev')+'</button></td>'
+    +'<td><span class="ct-cod">'+esc(c.numero)+'</span>'+(c.numero_sei?'<div class="ct-sei" title="Processo SEI">SEI '+esc(c.numero_sei)+'</div>':'')+'</td>'
+    +'<td class="c-obj"><div class="ct-obj" title="'+esc(c.objeto_pt||'')+'">'+esc(c.objeto_pt||'—')+'</div>'
+      +(vencido||pPago>90?'<div class="ct-selos">'+(vencido?'<span class="ct-pill ct-p-er">'+ctIc('relogio','p')+'Vencido</span>':'')
+        +(pPago>90&&!vencido?'<span class="ct-pill ct-p-al">'+ctIc('alerta','p')+'Uso acima de 90%</span>':'')+'</div>':'')
     +'</td>'
-    +'<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(c.fornecedores?c.fornecedores.nome:'--')+'</td>'
-    +'<td><div class="mono" style="font-weight:600">'+fmtBRL(total)+'</div>'
-      +'<div class="saldo-bar"><div class="saldo-fill" style="width:'+pct+'%;background:'+(critico?'var(--erro)':'var(--verde-claro)')+'"></div></div></td>'
-    +'<td style="white-space:nowrap;font-size:11px">'+(c.dt_inicio?fmtData(c.dt_inicio):'--')+' &#x2192; '+(c.dt_fim?fmtData(c.dt_fim):'--')+'</td>'
-    +'<td><span class="badge b-'+c.status+'">'+(SL[c.status]||c.status)+'</span></td>'
-    +'<td style="text-align:center">'
-      +'<span class="pdf-dot" style="background:'+(temPDF?'#059669':'#EF4444')+'" title="'+(temPDF?'PDF EN presente':'PDF ausente')+'"></span>'
-      +(temTrad?'<span class="pdf-dot" style="background:#2563EB;margin-left:3px" title="Traducao PT disponivel"></span>':'')
-    +'</td>'
-    +'<td>'+(PODE.verFinanceiro()?'<button class="btn-xs" onclick="event.stopPropagation();abrirEditar(\''+c.id+'\')" title="Editar">&#x270F;</button>':'')+'</td>'
+    +'<td class="c-forn"><div class="ct-forn">'+esc(c.fornecedores?c.fornecedores.nome:'—')+'</div>'+(c.fornecedores&&c.fornecedores.tipo?'<div class="ct-selos"><span class="ct-pill ct-p-ne">'+esc(c.fornecedores.tipo)+'</span></div>':'')+'</td>'
+    +'<td class="c-exec"><div class="ct-exec"><span class="tot">'+fmtBRL(total)+'</span>'
+      +'<span class="ct-meter" role="img" aria-label="'+Math.round(pPago)+'% pago, '+Math.round(pComp)+'% comprometido"><i style="width:'+pPago.toFixed(1)+'%;background:var(--ct-pago)"></i><i style="width:'+Math.max(0,pComp-pPago).toFixed(1)+'%;background:var(--ct-comp)"></i></span>'
+      +'<span class="ln"><span>Pago <b class="pago">'+brlc(usado)+'</b></span><b>'+Math.round(pPago)+'%</b></span></div></td>'
+    +'<td class="c-vig"><div class="ct-vig">'+(c.dt_inicio?fmtData(c.dt_inicio):'—')+' → '+(c.dt_fim?fmtData(c.dt_fim):'—')+(vigTxt?'<small class="'+vigCls+'">'+vigTxt+'</small>':'')+'</div></td>'
+    +'<td>'+pillStatus(c.status)+'</td>'
+    +'<td class="c-docs"><div class="ct-docs">'
+      +(temPDF?'<span class="ct-pill ct-p-ok" title="PDF assinado (EN) no sistema">'+ctIc('doc','p')+'PDF EN</span>':'<span class="ct-pill ct-p-er" title="Falta o PDF assinado">'+ctIc('alerta','p')+'Sem PDF</span>')
+      +(temTrad?'<span class="ct-pill ct-p-in" title="Tradução para o português disponível">'+ctIc('globo','p')+'PT</span>':'')
+    +'</div></td>'
+    +'<td>'+(PODE.verFinanceiro()?'<button type="button" class="ct-btn ic" onclick="event.stopPropagation();abrirEditar(\''+c.id+'\')" title="Editar" aria-label="Editar contrato '+esc(c.numero)+'">'+ctIc('lapis')+'</button>':'')+'</td>'
     +'</tr>';
 
-  var det='<tr class="detail-row" id="det-'+c.id+'" style="display:'+(aberto?'table-row':'none')+'">'
+  var det='<tr class="detail-row" id="det-'+c.id+'"'+(aberto?'':' hidden')+'>'
     +'<td colspan="9"><div class="detail-inner" id="inner-'+c.id+'">'+(aberto?buildDet(c):'')+'</div></td>'
     +'</tr>';
 
   return main+det;
+}
+
+// cartão de documento (abrir pelo link assinado: data-arquivo, bucket privado)
+function cardDoc(cls,ic,nome,meta,url){
+  return '<div class="pdf-card"><div class="pdf-card-icon '+cls+'">'+ctIc(ic)+'</div>'
+    +'<div style="min-width:0"><div class="pdf-card-nome" title="'+esc(nome)+'">'+esc(nome)+'</div><div class="pdf-card-meta">'+meta+'</div></div>'
+    +'<div class="pdf-card-btns"><a href="#" class="ct-btn ic" data-arquivo="'+esc(url)+'" title="Abrir" aria-label="Abrir '+esc(nome)+'">'+ctIc('olho','p')+'</a></div></div>';
 }
 
 function buildDet(c){
@@ -377,105 +357,82 @@ function buildDet(c){
   var qtdProd=prods.length;
   var qtdPend=prods.filter(function(p){return p.situacao==='pendente'||p.situacao==='em_analise';}).length;
   var tabAtiva=detTabAtiva[c.id]||'docs';
-
   var qtdEnt=(entregasPorContrato[c.id]||[]).length;
-  var h='<div class="det-tabs">'
-    +'<button class="det-tab '+(tabAtiva==='docs'?'ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'docs\')">Detalhes &amp; Documentos</button>'
-    +'<button class="det-tab '+(tabAtiva==='prods'?'ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'prods\')">'
-    +'Produtos'+(qtdProd?' <span style="background:var(--verde-medio);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px;margin-left:4px">'+qtdProd+'</span>':'')
-    +'</button>'
-    +'<button class="det-tab '+(tabAtiva==='entregas'?'ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'entregas\')">'
-    +'Histórico de Entregas'+(qtdEnt?' <span style="background:var(--azul-medio);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px;margin-left:4px">'+qtdEnt+'</span>':'')
-    +'</button></div>';
+
+  var h='<div class="det-tabs" role="tablist">'
+    +'<button type="button" role="tab" aria-selected="'+(tabAtiva==='docs')+'" class="det-tab'+(tabAtiva==='docs'?' ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'docs\')">Detalhes e documentos</button>'
+    +'<button type="button" role="tab" aria-selected="'+(tabAtiva==='prods')+'" class="det-tab'+(tabAtiva==='prods'?' ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'prods\')">Produtos'+(qtdProd?' <span class="n">'+qtdProd+'</span>':'')+'</button>'
+    +'<button type="button" role="tab" aria-selected="'+(tabAtiva==='entregas')+'" class="det-tab'+(tabAtiva==='entregas'?' ativo':'')+'" onclick="mudarDetTab(\''+c.id+'\',\'entregas\')">Histórico de entregas'+(qtdEnt?' <span class="n">'+qtdEnt+'</span>':'')+'</button>'
+    +'</div>';
 
   if(tabAtiva==='entregas'){
     h+=buildTabEntregas(c);
   } else if(tabAtiva==='docs'){
-    h+='<div class="detail-grid">';
-    h+='<div class="detail-item"><span class="detail-lbl">TDR vinculado</span><span class="detail-val">'+(c.tdrs?c.tdrs.numero:'--')+'</span></div>';
-    h+='<div class="detail-item"><span class="detail-lbl">Atividade</span><span class="detail-val">'+(c.atividades?c.atividades.codigo:'--')+'</span></div>';
-    h+='<div class="detail-item"><span class="detail-lbl">Tipo</span><span class="detail-val">'+(c.tipo||'--')+'</span></div>';
-    h+='<div class="detail-item"><span class="detail-lbl">Pago (efetivado)</span><span class="detail-val" style="color:var(--sucesso)">'+fmtBRL(usado)+'</span></div>';
-    h+='<div class="detail-item"><span class="detail-lbl">Comprometido</span><span class="detail-val" style="color:var(--aviso)" title="Pago + A pagar">'+fmtBRL(comprometido)+'</span></div>';
-    h+='<div class="detail-item"><span class="detail-lbl">Saldo disponível</span><span class="detail-val" style="color:'+(saldo<0?'var(--erro)':'var(--cinza-800)')+'">'+fmtBRL(saldo)+'</span></div>';
-    h+='<div class="detail-item"><span class="detail-lbl">Elemento despesa</span><span class="detail-val">'+(c.elemento_despesa||'--')+'</span></div>';
-    h+='</div>';
-    h+='<div style="font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Documentos</div>';
-    h+='<div class="pdf-row">';
+    h+='<div class="detail-grid">'
+      +'<div class="detail-item"><span class="detail-lbl">TDR vinculado</span><span class="detail-val">'+esc(c.tdrs?c.tdrs.numero:'—')+'</span></div>'
+      +'<div class="detail-item"><span class="detail-lbl">Atividade</span><span class="detail-val">'+esc(c.atividades?c.atividades.codigo:'—')+'</span></div>'
+      +'<div class="detail-item"><span class="detail-lbl">Tipo</span><span class="detail-val" style="font-family:var(--font-sans)">'+esc(c.tipo||'—')+'</span></div>'
+      +'<div class="detail-item"><span class="detail-lbl">Pago (efetivado)</span><span class="detail-val ok">'+fmtBRL(usado)+'</span></div>'
+      +'<div class="detail-item"><span class="detail-lbl" title="Pago + a pagar">Comprometido (pago + a pagar)</span><span class="detail-val">'+fmtBRL(comprometido)+'</span></div>'
+      +'<div class="detail-item"><span class="detail-lbl">Saldo disponível</span><span class="detail-val'+(saldo<0?' erro':'')+'">'+fmtBRL(saldo)+'</span></div>'
+      +'<div class="detail-item"><span class="detail-lbl">Elemento de despesa</span><span class="detail-val">'+esc(c.elemento_despesa||'—')+'</span></div>'
+      +'</div>';
+    h+='<div class="ct-eyebrow">Documentos</div><div class="pdf-row">';
     if(c.contrato_assinado_url){
-      h+='<div class="pdf-card"><div class="pdf-card-icon" style="background:#FEF2F2">&#x1F4C4;</div>'
-        +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_assinado_nome||'Contrato EN')+'</div>'
-        +'<div class="pdf-card-meta">Original EN'+(c.contrato_assinado_data?' &middot; '+fmtData(c.contrato_assinado_data):'')+'</div></div>'
-        +'<div class="pdf-card-btns">'
-        +'<button class="btn-xs" onclick="abrirDoc(\''+c.contrato_assinado_url+'\')">&#x1F441;</button>'
-        +'<a href="'+c.contrato_assinado_url+'" download class="btn-xs">&#x2B07;</a>'
-        +'</div></div>';
+      h+=cardDoc('en','doc',c.contrato_assinado_nome||'Contrato EN','Original EN'+(c.contrato_assinado_data?' · '+fmtData(c.contrato_assinado_data):''),c.contrato_assinado_url);
     } else {
-      h+='<div class="pdf-card" style="border-style:dashed">'
-        +'<div class="pdf-card-icon" style="background:var(--cinza-50)">&#x1F4C4;</div>'
-        +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">PDF original (EN) ausente</div>'
-        +'<div class="pdf-card-meta">Contrato assinado pela UNESCO</div></div>'
-        +'<label class="btn-xs btn-xs-prim" style="cursor:pointer">&#x2B06; Upload<input type="file" accept=".pdf" style="display:none" onchange="uploadDireto(\''+c.id+'\',this.files[0],\'en\')"></label>'
+      h+='<div class="pdf-card falta"><div class="pdf-card-icon vazio">'+ctIc('doc')+'</div>'
+        +'<div style="min-width:0"><div class="pdf-card-nome">PDF original (EN) ausente</div><div class="pdf-card-meta">Contrato assinado pela UNESCO</div></div>'
+        +(c.status==='aguardando_cobertura'
+          ?'<span class="ct-pill ct-p-er" title="Só depois da cobertura">'+ctIc('cadeado','p')+'Travado</span>'
+          :'<label class="ct-btn peq" tabindex="0" style="cursor:pointer">'+ctIc('upload','p')+'Enviar<input type="file" accept=".pdf" style="display:none" onchange="uploadDireto(\''+c.id+'\',this.files[0],\'en\')"></label>')
         +'</div>';
     }
     if(c.contrato_pt_url){
-      h+='<div class="pdf-card"><div class="pdf-card-icon" style="background:#E1F5EE">&#x1F4C4;</div>'
-        +'<div class="pdf-card-info"><div class="pdf-card-nome">'+(c.contrato_pt_nome||'Contrato PT')+'</div>'
-        +'<div class="pdf-card-meta">Traducao automatica PT'+(c.contrato_pt_data?' &middot; '+new Date(c.contrato_pt_data).toLocaleDateString('pt-BR'):'')+'</div></div>'
-        +'<div class="pdf-card-btns">'
-        +'<button class="btn-xs" onclick="abrirDoc(\''+c.contrato_pt_url+'\')">&#x1F441;</button>'
-        +'<a href="'+c.contrato_pt_url+'" download class="btn-xs">&#x2B07;</a>'
-        +'</div></div>';
+      h+=cardDoc('pt','globo',c.contrato_pt_nome||'Contrato PT','Tradução automática PT'+(c.contrato_pt_data?' · '+new Date(c.contrato_pt_data).toLocaleDateString('pt-BR'):''),c.contrato_pt_url);
     } else if(c.contrato_assinado_url){
-      h+='<div class="pdf-card" style="border-style:dashed">'
-        +'<div class="pdf-card-icon" style="background:var(--azul-bg)">&#x1F310;</div>'
-        +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">Traducao PT nao gerada</div>'
-        +'<div class="pdf-card-meta">IA traduz o contrato EN para portugues</div></div>'
-        +'<button class="btn-xs btn-xs-prim" id="btn-tr-'+c.id+'" onclick="traduzir(\''+c.id+'\')">&#x1F310; Traduzir</button>'
+      h+='<div class="pdf-card falta"><div class="pdf-card-icon pt">'+ctIc('globo')+'</div>'
+        +'<div style="min-width:0"><div class="pdf-card-nome">Tradução PT não gerada</div><div class="pdf-card-meta">A IA traduz o contrato do inglês para o português</div></div>'
+        +'<button type="button" class="ct-btn pri peq" id="btn-tr-'+c.id+'" onclick="traduzir(\''+c.id+'\')">'+ctIc('globo','p')+'Traduzir</button>'
         +'</div>';
     } else {
-      h+='<div class="pdf-card" style="border-style:dashed;opacity:.5">'
-        +'<div class="pdf-card-icon" style="background:var(--azul-bg)">&#x1F310;</div>'
-        +'<div class="pdf-card-info"><div class="pdf-card-nome" style="color:var(--cinza-500)">Traducao PT</div>'
-        +'<div class="pdf-card-meta">Disponivel apos upload do PDF EN</div></div>'
-        +'</div>';
+      h+='<div class="pdf-card falta apagado"><div class="pdf-card-icon vazio">'+ctIc('globo')+'</div>'
+        +'<div style="min-width:0"><div class="pdf-card-nome">Tradução PT</div><div class="pdf-card-meta">Disponível depois do envio do PDF em inglês</div></div><span></span></div>';
     }
     h+='</div>';
-    if(c.objeto_pt)h+='<div style="font-size:11px;color:var(--cinza-700);background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;line-height:1.5"><strong>Objeto:</strong> '+c.objeto_pt+'</div>';
+    if(c.objeto_pt)h+='<div class="ct-objeto"><strong>Objeto:</strong> '+esc(c.objeto_pt)+'</div>';
   } else {
     // ABA PRODUTOS
-    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-    h+='<div style="font-size:12px;color:var(--cinza-600)">';
+    h+='<div class="ct-prods-hd"><div>';
     if(qtdProd){
       var totProd=prods.reduce(function(s,p){return s+parseFloat(p.valor_brl||0);},0);
       var totPago=prods.filter(function(p){return p.situacao==='pago';}).reduce(function(s,p){return s+parseFloat(p.valor_brl||0);},0);
-      h+='<span style="font-weight:600">'+qtdProd+' produto(s)</span> &middot; Total: <span class="mono">'+fmtBRL(totProd)+'</span> &middot; Pago: <span class="mono" style="color:var(--sucesso)">'+fmtBRL(totPago)+'</span>';
-      if(qtdPend) h+=' &middot; <span style="color:var(--aviso);font-weight:600">'+qtdPend+' pendente(s)</span>';
+      h+='<strong>'+qtdProd+' produto(s)</strong> · Total <span class="mono">'+fmtBRL(totProd)+'</span> · Pago <span class="mono" style="color:var(--ok)">'+fmtBRL(totPago)+'</span>';
+      if(qtdPend) h+=' · <span class="ct-pill ct-p-al">'+qtdPend+' pendente(s)</span>';
     } else {
       h+='Nenhum produto cadastrado ainda.';
     }
     h+='</div>';
-    if(PODE.verFinanceiro()) h+='<button class="btn btn-primary btn-sm" onclick="abrirModalProd(\''+c.id+'\')">+ Gerenciar produtos</button>';
+    if(PODE.verFinanceiro()) h+='<button type="button" class="ct-btn pri peq" onclick="abrirModalProd(\''+c.id+'\')">'+ctIc('lapis','p')+'Gerenciar produtos</button>';
     h+='</div>';
 
     if(qtdProd){
       h+='<div class="prod-grid">';
       prods.forEach(function(p){
         var vencido=p.situacao==='pendente'&&p.dt_vencimento&&new Date(p.dt_vencimento)<new Date();
-        var cls=vencido?'venc':(p.situacao==='pago'?'pago':(p.situacao==='cancelado'?'cancel':'pend'));
-        var sitLabel={pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado'};
-        h+='<div class="prod-card '+cls+'">'
-          +'<div class="prod-num">Produto '+p.numero_produto+'</div>'
-          +'<div class="prod-desc">'+p.descricao+'</div>'
-          +'<div class="prod-valor">'+fmtBRL(parseFloat(p.valor_brl||0))+'</div>'
-          +(p.dt_vencimento?'<div class="prod-venc">Venc: '+fmtData(p.dt_vencimento)+(vencido?' <span style="color:var(--erro);font-weight:700">Vencido</span>':'')+'</div>':'')
-          +(p.dt_entrega?'<div class="prod-venc">Entregue: '+fmtData(p.dt_entrega)+'</div>':'')
-          +'<span class="prod-sit ps-'+p.situacao+'">'+(sitLabel[p.situacao]||p.situacao)+'</span>'
+        var cor=vencido?'--erro':((PROD_SIT[p.situacao]||[])[2]||'--lin-forte');
+        h+='<div class="prod-card'+(p.situacao==='cancelado'?' cancel':'')+'" style="--c:var('+cor+')">'
+          +'<span class="prod-num">Produto '+esc(p.numero_produto)+'</span>'
+          +'<span class="prod-desc">'+esc(p.descricao)+'</span>'
+          +'<span class="prod-valor">'+fmtBRL(parseFloat(p.valor_brl||0))+'</span>'
+          +(p.dt_vencimento?'<span class="prod-venc">Vencimento '+fmtData(p.dt_vencimento)+'</span>':'')
+          +(p.dt_entrega?'<span class="prod-venc">Entregue '+fmtData(p.dt_entrega)+'</span>':'')
+          +(vencido?'<span class="ct-pill ct-p-er">'+ctIc('relogio','p')+'Vencido</span>':pillProd(p.situacao))
           +'</div>';
       });
       h+='</div>';
     } else {
-      h+='<div class="empty-state" style="padding:20px 0"><div class="empty-state-msg">Clique em "Gerenciar produtos" para cadastrar as entregas previstas neste contrato.</div></div>';
+      h+='<div class="ct-vazio">Use "Gerenciar produtos" para cadastrar as entregas previstas neste contrato.</div>';
     }
   }
   return h;
@@ -488,17 +445,13 @@ window.toggleDet=function(id){
   var xb=document.getElementById('xb-'+id);
   var mainRow=det?det.previousElementSibling:null;
   if(!det){expandidos[id]=!expandidos[id];return;}
+  det.hidden=!expandidos[id];
   if(expandidos[id]){
-    det.style.display='table-row';
     var c=todosContratos.find(function(x){return x.id===id;});
     if(inner&&c)inner.innerHTML=buildDet(c);
-    if(xb){xb.className='xbtn aberto';xb.innerHTML='&#9660;';}
-    if(mainRow)mainRow.classList.add('aberto');
-  } else {
-    det.style.display='none';
-    if(xb){xb.className='xbtn';xb.innerHTML='&#9658;';}
-    if(mainRow)mainRow.classList.remove('aberto');
   }
+  if(xb){xb.classList.toggle('aberto',!!expandidos[id]);xb.setAttribute('aria-expanded',String(!!expandidos[id]));}
+  if(mainRow)mainRow.classList.toggle('aberto',!!expandidos[id]);
 };
 
 window.uploadDireto=async function(id,file,lang){
@@ -631,84 +584,87 @@ window.abrirNovo=function(){
   document.getElementById('m-sub').textContent='';
   renderForm(null);
   document.getElementById('m-footer').innerHTML=
-    '<button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>'+
-    '<button class="btn btn-primary" onclick="salvar()">Criar contrato</button>';
-  document.getElementById('modal-contrato').classList.add('aberto');
+    '<button type="button" class="ct-btn" onclick="fecharModal()">Cancelar</button>'+
+    '<button type="button" class="ct-btn pri" onclick="salvar()">Criar contrato</button>';
+  ctAbrir('modal-contrato');
 };
 
 window.abrirEditar=function(id){
   contratoEditando=todosContratos.find(function(c){return c.id===id;})||null;
   if(!contratoEditando)return;
   filePDF=null;
-  document.getElementById('m-titulo').textContent='Editar -- '+contratoEditando.numero;
+  document.getElementById('m-titulo').textContent='Editar contrato '+contratoEditando.numero;
   document.getElementById('m-sub').textContent=contratoEditando.fornecedores?contratoEditando.fornecedores.nome:'';
   renderForm(contratoEditando);
   document.getElementById('m-footer').innerHTML=
-    '<button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>'+
-    '<button class="btn btn-primary" onclick="salvar()">Salvar alteracoes</button>';
-  document.getElementById('modal-contrato').classList.add('aberto');
+    '<button type="button" class="ct-btn" onclick="fecharModal()">Cancelar</button>'+
+    '<button type="button" class="ct-btn pri" onclick="salvar()">Salvar alterações</button>';
+  ctAbrir('modal-contrato');
 };
 
 function renderForm(c){
-  var fOpts=fornecedores.map(function(f){return '<option value="'+f.id+'" '+(c&&c.fornecedor_id===f.id?'selected':'')+'>'+f.nome+' ('+f.tipo+')</option>';}).join('');
-  var aOpts=atividades.map(function(a){return '<option value="'+a.id+'" '+(c&&c.atividade_id===a.id?'selected':'')+'>'+a.codigo+' -- '+a.nome_pt.substring(0,50)+'</option>';}).join('');
-  var tOpts=tdrs.map(function(t){return '<option value="'+t.id+'" '+(c&&c.tdr_id===t.id?'selected':'')+'>'+t.numero+' -- '+(t.objeto_pt||'').substring(0,45)+'</option>';}).join('');
+  var fOpts=fornecedores.map(function(f){return '<option value="'+f.id+'" '+(c&&c.fornecedor_id===f.id?'selected':'')+'>'+esc(f.nome)+' ('+esc(f.tipo)+')</option>';}).join('');
+  var aOpts=atividades.map(function(a){return '<option value="'+a.id+'" '+(c&&c.atividade_id===a.id?'selected':'')+'>'+esc(a.codigo+' — '+(a.nome_pt||'').substring(0,50))+'</option>';}).join('');
+  var tOpts=tdrs.map(function(t){return '<option value="'+t.id+'" '+(c&&c.tdr_id===t.id?'selected':'')+'>'+esc(t.numero+' — '+(t.objeto_pt||'').substring(0,45))+'</option>';}).join('');
+  var travado=c&&c.status==='aguardando_cobertura';
   document.getElementById('m-body').innerHTML=
-    '<div class="grid-2"><div class="form-group"><label class="form-label">Numero do contrato <span class="obrig">*</span></label>'+
-    '<input class="form-control" id="f-num" type="text" value="'+(c&&c.numero||'')+'" placeholder="Ex: CTR-2025-001" style="font-family:var(--font-mono)"></div>'+
-    '<div class="form-group"><label class="form-label">Tipo</label>'+
-    '<select class="form-control" id="f-tipo"><option value="">Selecione...</option>'+
+    (travado?'<div class="ct-aviso-trava">'+ctIc('cadeado','p')+' <b>Contrato travado aguardando cobertura.</b> O valor acima do TDR não cabe no saldo livre da atividade. '+
+      'Sem produtos, pagamentos ou PDF assinado até a cobertura. Libera sozinho quando o saldo cobrir (remanejamento, economia, encerramento): '+
+      '<a href="remanejamentos.html?cobertura='+encodeURIComponent(c.id)+'">pedir cobertura em Remanejamento</a>, reduzir o valor ou cancelar.</div>':'')+
+    '<div class="sec-label">Identificação</div>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label" for="f-num">Número do contrato <span class="obrig">*</span></label>'+
+    '<input class="form-control" id="f-num" type="text" value="'+esc(c&&c.numero||'')+'" placeholder="Ex.: CTR-2025-001" style="font-family:var(--font-mono)"></div>'+
+    '<div class="form-group"><label class="form-label" for="f-tipo">Tipo</label>'+
+    '<select class="form-control" id="f-tipo"><option value="">Selecione…</option>'+
     TIPOS.map(function(t){return '<option value="'+t+'" '+(c&&c.tipo===t?'selected':'')+'>'+t+'</option>';}).join('')+
     '</select></div></div>'+
-    '<div class="form-group"><label class="form-label">Fornecedor <span class="obrig">*</span></label>'+
-    '<select class="form-control" id="f-forn"><option value="">Selecione o fornecedor...</option>'+fOpts+'</select></div>'+
-    '<div class="grid-2"><div class="form-group"><label class="form-label">TDR vinculado</label>'+
-    '<select class="form-control" id="f-tdr" onchange="preencherAtiv()"><option value="">Selecionar TDR...</option>'+tOpts+'</select></div>'+
-    '<div class="form-group"><label class="form-label">Atividade</label>'+
-    '<select class="form-control" id="f-ativ"><option value="">Selecione...</option>'+aOpts+'</select></div></div>'+
-    '<div class="form-group"><label class="form-label">Objeto do contrato</label>'+
-    '<textarea class="form-control" id="f-objeto" rows="2">'+(c&&c.objeto_pt||'')+'</textarea></div>'+
-    '<div class="grid-2"><div class="form-group"><label class="form-label">Valor total R$ <span class="obrig">*</span></label>'+
+    '<div class="form-group"><label class="form-label" for="f-sei">Número SEI <span class="obrig">*</span></label>'+
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+    '<input class="form-control" id="f-sei" type="text" value="'+esc(c&&c.numero_sei||'')+'" placeholder="0000.000000.00000/0000-00" maxlength="25" style="font-family:var(--font-mono);max-width:290px" oninput="this.value=maskSEI(this.value)">'+
+    (c&&c.numero_sei?'<a class="ct-link" href="'+SEI_BASE_URL+encodeURIComponent(c.numero_sei)+'" target="_blank" rel="noopener">Abrir no SEI '+ctIc('externo','p')+'</a>':'')+
+    '</div><div class="ct-dica">Processo no Sistema Eletrônico de Informações</div></div>'+
+    '<div class="sec-label">Vínculos</div>'+
+    '<div class="form-group"><label class="form-label" for="f-forn">Fornecedor <span class="obrig">*</span></label>'+
+    '<select class="form-control" id="f-forn"><option value="">Selecione o fornecedor…</option>'+fOpts+'</select></div>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label" for="f-tdr">TDR vinculado</label>'+
+    '<select class="form-control" id="f-tdr" onchange="preencherAtiv()"><option value="">Selecionar TDR…</option>'+tOpts+'</select>'+
+    '<div class="ct-dica">Preenche a atividade sozinho</div></div>'+
+    '<div class="form-group"><label class="form-label" for="f-ativ">Atividade</label>'+
+    '<select class="form-control" id="f-ativ"><option value="">Selecione…</option>'+aOpts+'</select></div></div>'+
+    '<div class="form-group"><label class="form-label" for="f-objeto">Objeto do contrato</label>'+
+    '<textarea class="form-control" id="f-objeto" rows="2">'+esc(c&&c.objeto_pt||'')+'</textarea></div>'+
+    '<div class="sec-label">Valores e prazo</div>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label" for="f-total">Valor total (R$) <span class="obrig">*</span></label>'+
     '<input class="form-control" id="f-total" type="number" step="0.01" value="'+(c&&c.valor_total_brl||'')+'" placeholder="0,00"></div>'+
-    '<div class="form-group"><label class="form-label">Valor utilizado R$</label>'+
-    '<input class="form-control" id="f-usado" type="number" step="0.01" value="'+(c&&c.valor_utilizado_brl||0)+'">'+
-    '<div class="form-hint">Atualizado pelos lancamentos financeiros.</div></div></div>'+
-    '<div class="grid-2"><div class="form-group"><label class="form-label">Data de inicio</label>'+
+    '<div class="form-group"><label class="form-label" for="f-usado">Valor utilizado (R$)</label>'+
+    '<input class="form-control" id="f-usado" type="text" readonly value="'+fmtBRL(c&&c.valor_utilizado_brl||0)+'" aria-describedby="f-usado-dica">'+
+    '<div class="ct-dica" id="f-usado-dica">'+ctIc('cadeado','p')+'Vem dos lançamentos do Financeiro; não se digita aqui</div></div></div>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label" for="f-inicio">Data de início</label>'+
     '<input class="form-control" id="f-inicio" type="date" value="'+(c&&c.dt_inicio||'')+'"></div>'+
-    '<div class="form-group"><label class="form-label">Data de termino</label>'+
+    '<div class="form-group"><label class="form-label" for="f-fim">Data de término</label>'+
     '<input class="form-control" id="f-fim" type="date" value="'+(c&&c.dt_fim||'')+'"></div></div>'+
-    '<div class="grid-2"><div class="form-group"><label class="form-label">Elemento de despesa</label>'+
-    '<input class="form-control" id="f-elem" value="'+(c&&c.elemento_despesa||'')+'" placeholder="Ex: 33903900"></div>'+
-    '<div class="form-group"><label class="form-label">Status</label>'+
+    '<div class="grid-2"><div class="form-group"><label class="form-label" for="f-elem">Elemento de despesa</label>'+
+    '<input class="form-control" id="f-elem" value="'+esc(c&&c.elemento_despesa||'')+'" placeholder="Ex.: 33903900"></div>'+
+    '<div class="form-group"><label class="form-label" for="f-status">Situação</label>'+
     '<select class="form-control" id="f-status">'+
     // aguardando_cobertura é do sistema (trigger trg_contrato_cobertura): travado só reduz valor ou cancela
-    (c&&c.status==='aguardando_cobertura'?['aguardando_cobertura','cancelado']
+    (travado?['aguardando_cobertura','cancelado']
       :c&&c.status==='cancelado'?['cancelado']
       :c?['vigente','encerrado','suspenso','cancelado']:['vigente','encerrado','suspenso'])
       .map(function(s){return '<option value="'+s+'" '+((c?c.status:'vigente')===s?'selected':'')+'>'+SL[s]+'</option>';}).join('')+
-    '</select></div></div>'+
-    (c&&c.status==='aguardando_cobertura'?'<div style="background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;border-radius:6px;padding:8px 10px;font-size:12px;margin-bottom:10px">'+
-      '<b>Contrato travado aguardando cobertura.</b> O valor acima do TDR não cabe no saldo livre da atividade. '+
-      'Sem produtos, pagamentos ou PDF assinado até a cobertura. Libera sozinho quando o saldo cobrir (remanejamento, economia, encerramento) — '+
-      '<a href="remanejamentos.html?cobertura='+c.id+'">pedir cobertura em Remanejamento</a>, reduzir o valor ou cancelar.</div>':'')+
-    '<div class="form-group"><label class="form-label">Número SEI <span class="obrig">*</span>'+
-    '<span style="font-size:10px;font-weight:400;color:var(--cinza-400);margin-left:6px">Processo no Sistema Eletrônico de Informações</span></label>'+
-    '<div style="display:flex;align-items:center;gap:8px">'+
-    '<input class="form-control" id="f-sei" type="text" value="'+(c&&c.numero_sei||'')+'" placeholder="0000.000000.00000/0000-00" maxlength="25" style="font-family:var(--font-mono);max-width:290px" oninput="this.value=maskSEI(this.value)">'+
-    (c&&c.numero_sei?'<a href="'+SEI_BASE_URL+encodeURIComponent(c.numero_sei)+'" target="_blank" rel="noopener" style="font-size:12px;color:#1E40AF;white-space:nowrap">Abrir no SEI ↗</a>':'')+
-    '</div></div>'+
-    '<div class="sec-label">Documento do contrato (PDF assinado)</div>'+
-    '<div class="upload-zone" id="zone-pdf" onclick="document.getElementById(\'inp-pdf\').click()" '+
+    '</select><div class="ct-dica">"Aguardando cobertura" é posto e tirado só pelo sistema</div></div></div>'+
+    '<div class="sec-label">PDF do contrato assinado</div>'+
+    '<div class="upload-zone" id="zone-pdf" role="button" tabindex="0" onclick="document.getElementById(\'inp-pdf\').click()" '+
+    'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();document.getElementById(\'inp-pdf\').click()}" '+
     'ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" '+
     'ondrop="event.preventDefault();this.classList.remove(\'drag\');dropPDF(event)">'+
     '<input type="file" id="inp-pdf" accept=".pdf" onchange="selPDF(this.files)">'+
-    '<div style="font-size:24px;margin-bottom:6px">&#x1F4C4;</div>'+
-    '<div style="font-size:13px;font-weight:500;color:var(--cinza-700)">'+(c&&c.contrato_assinado_nome?'&#x1F4CE; '+c.contrato_assinado_nome+' (substituir)':'Arraste o PDF ou clique para selecionar')+'</div>'+
-    '<div style="font-size:11px;color:var(--cinza-500);margin-top:3px">PDF do contrato assinado pela UNESCO -- ate 20MB</div>'+
-    '<div id="pdf-prev" style="margin-top:8px"></div></div>'+
-    '<div class="traduz-info">'+
-    '<span style="font-size:16px;flex-shrink:0">&#x1F310;</span>'+
-    '<div>Apos salvar, clique em "Traduzir" na linha do contrato -- a IA traduz o PDF do ingles para o portugues e salva as duas versoes no sistema.</div>'+
+    ctIc('upload')+
+    '<b>'+(c&&c.contrato_assinado_nome?esc(c.contrato_assinado_nome)+' (substituir)':'Arraste o PDF ou clique para escolher')+'</b>'+
+    '<span style="font-size:12px;color:var(--txt-3)">PDF do contrato assinado pela UNESCO · até 20 MB</span>'+
+    '<div id="pdf-prev" style="width:100%"></div></div>'+
+    '<div class="traduz-info">'+ctIc('globo')+
+    '<div>Depois de salvar, use "Traduzir" no contrato aberto: a IA traduz o PDF do inglês para o português e guarda as duas versões.</div>'+
     '</div>'+
     '<div class="prog-bar" id="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>';
 }
@@ -724,9 +680,8 @@ window.selPDF=function(files){
   if(!files||!files[0])return;
   filePDF=files[0];
   document.getElementById('pdf-prev').innerHTML=
-    '<div style="background:var(--verde-bg);border:1px solid #9FE1CB;border-radius:var(--raio);padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12px">'+
-    '<span style="font-size:16px">&#x1F4C4;</span><span style="font-weight:500">'+filePDF.name+'</span>'+
-    '<span style="color:var(--cinza-500)">('+Math.round(filePDF.size/1024)+'KB)</span></div>';
+    '<div class="ct-arq">'+ctIc('doc','p')+'<span style="font-weight:600">'+esc(filePDF.name)+'</span>'+
+    '<span>('+Math.round(filePDF.size/1024)+' KB)</span></div>';
 };
 window.dropPDF=function(e){selPDF(e.dataTransfer.files);};
 
@@ -744,7 +699,6 @@ window.salvar=async function(){
     objeto_pt:document.getElementById('f-objeto').value.trim()||null,
     tipo:document.getElementById('f-tipo').value||null,
     valor_total_brl:total,
-    valor_utilizado_brl:parseFloat(document.getElementById('f-usado').value)||0,
     dt_inicio:document.getElementById('f-inicio').value||null,
     dt_fim:document.getElementById('f-fim').value||null,
     elemento_despesa:document.getElementById('f-elem').value.trim()||null,
@@ -752,6 +706,8 @@ window.salvar=async function(){
     numero_sei:sei||null,
   };
   // saldo_brl é GENERATED ALWAYS no banco, não enviar
+  // valor_utilizado_brl vem dos lançamentos do Financeiro: a tela não grava (só leitura); contrato novo nasce com 0
+  if(!contratoEditando)dados.valor_utilizado_brl=0;
 
   // Encerrando um contrato que ainda tem produtos não entregues/aprovados:
   // exige justificativa formal antes de liberar o saldo não executado para a atividade.
@@ -839,35 +795,32 @@ function calcNaoExecutado(p){
 window.abrirModalEncerramento=function(dados,afetados){
   dadosEncerramentoPendente=dados;
   produtosEncerramentoPendente=afetados;
-  document.getElementById('me-sub').textContent='Contrato '+contratoEditando.numero+' -- '+(contratoEditando.fornecedores?contratoEditando.fornecedores.nome:'');
+  document.getElementById('me-sub').textContent='Contrato '+contratoEditando.numero+(contratoEditando.fornecedores?' · '+contratoEditando.fornecedores.nome:'');
+  var atv=atividades.find(function(a){return a.id===dados.atividade_id;});
 
-  var SIT_LBL={pendente:'Pendente',em_analise:'Em avaliação',entrega_parcial:'Parcial',devolvido:'Devolvido'};
   var linhas=afetados.map(function(p,i){
     var naoExec=calcNaoExecutado(p);
-    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--borda)">'
-      +'<input type="checkbox" class="chk-prod-enc" data-idx="'+i+'" checked onchange="recalcLiberado()" style="margin-top:3px">'
-      +'<div style="flex:1;min-width:0">'
-      +'<div style="font-size:12px;font-weight:600;color:var(--cinza-900)">Produto '+(p.numero_produto||'?')+' -- '+esc((p.descricao||'').substring(0,70))+'</div>'
-      +'<div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Situação atual: '+(SIT_LBL[p.situacao]||p.situacao)+' · Não executado: <strong style="color:#DC2626">'+fmtBRL(naoExec)+'</strong></div>'
-      +'</div></div>';
+    return '<label class="ct-enc-it"><input type="checkbox" class="chk-prod-enc" data-idx="'+i+'" checked onchange="recalcLiberado()">'
+      +'<span><b>Produto '+esc(p.numero_produto||'?')+' — '+esc((p.descricao||'').substring(0,70))+'</b><br>'+pillProd(p.situacao)+'</span>'
+      +'<b class="mono" title="Não executado">'+fmtBRL(naoExec)+'</b></label>';
   }).join('');
 
   document.getElementById('me-body').innerHTML=
-    '<div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:10px 12px;margin-bottom:14px;font-size:12px;color:#991B1B">'
-    +'Este contrato está sendo encerrado com <strong>'+afetados.length+' produto(s)</strong> ainda não entregue(s)/aprovado(s). '
-    +'Desmarque abaixo os que <u>não</u> devem ser cancelados. O valor não executado dos itens marcados será liberado de volta para o saldo da atividade vinculada, permitindo nova contratação.'
-    +'</div>'
-    +'<div style="margin-bottom:14px">'+linhas+'</div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;background:var(--cinza-50);border-radius:var(--raio);padding:10px 12px;margin-bottom:14px">'
-    +'<span style="font-size:12px;font-weight:600;color:var(--cinza-700)">Valor total a liberar para a atividade</span>'
-    +'<span id="me-valor-liberado" style="font-size:15px;font-weight:700;font-family:var(--font-mono);color:#DC2626"></span>'
-    +'</div>'
-    +'<div class="form-group"><label class="form-label">Justificativa do encerramento <span class="obrig">*</span></label>'
-    +'<textarea class="form-control" id="me-motivo" rows="3" placeholder="Ex: Fornecedor não entregou os produtos 03, 04 e 05 dentro do prazo contratual (encerrado em DD/MM/AAAA). Saldo remanescente liberado para nova contratação na mesma atividade."></textarea>'
-    +'<div class="form-hint">Mínimo 20 caracteres -- fica registrado permanentemente no histórico do contrato.</div></div>';
+    '<p class="ct-enc-intro"><strong>'+afetados.length+' produto(s)</strong> ainda não foram entregues ou aprovados. Os marcados serão cancelados e o que não foi executado volta para o saldo da atividade, permitindo nova contratação. Desmarque os que <u>não</u> devem ser cancelados.</p>'
+    +'<div>'+linhas+'</div>'
+    +'<div class="ct-lib"><span>Volta para a atividade'+(atv?' '+esc(atv.codigo):'')+'</span><b id="me-valor-liberado"></b></div>'
+    +'<div class="form-group"><label class="form-label" for="me-motivo">Justificativa do encerramento <span class="obrig">*</span></label>'
+    +'<textarea class="form-control" id="me-motivo" rows="3" oninput="contarMotivo()" placeholder="Ex.: Fornecedor não entregou os produtos 03, 04 e 05 no prazo contratual (encerrado em DD/MM/AAAA). Saldo remanescente devolvido para nova contratação."></textarea>'
+    +'<div class="ct-contador" id="me-contador"></div></div>';
 
-  recalcLiberado();
-  document.getElementById('modal-encerramento').classList.add('aberto');
+  recalcLiberado();contarMotivo();
+  ctAbrir('modal-encerramento');
+};
+
+window.contarMotivo=function(){
+  var n=(document.getElementById('me-motivo').value||'').trim().length;
+  var el=document.getElementById('me-contador');
+  if(el){el.textContent=n+' caractere'+(n!==1?'s':'')+' · mínimo 20 · fica no histórico do contrato';el.classList.toggle('curto',n<20);}
 };
 
 window.recalcLiberado=function(){
@@ -880,10 +833,12 @@ window.recalcLiberado=function(){
   });
   var el=document.getElementById('me-valor-liberado');
   if(el)el.textContent=fmtBRL(total);
+  var b=document.getElementById('me-btn');
+  if(b)b.textContent='Encerrar e liberar '+fmtBRL(total);
 };
 
 window.fecharModalEncerramento=function(){
-  document.getElementById('modal-encerramento').classList.remove('aberto');
+  ctFechar('modal-encerramento');
   dadosEncerramentoPendente=null;produtosEncerramentoPendente=null;
 };
 
@@ -983,56 +938,48 @@ function buildTabEntregas(c){
       var inner=document.getElementById('inner-'+c.id);
       if(inner)inner.innerHTML=buildDet(c);
     },0);
-    return '<div style="padding:20px;text-align:center;font-size:12px;color:var(--cinza-400)">Carregando entregas...</div>';
+    return '<div class="ct-vazio" role="status">Carregando entregas…</div>';
   }
   var prods=produtosPorContrato[c.id]||[];
   var entregas=entregasPorContrato[c.id]||[];
-  var SIT_PROD={pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado',entrega_parcial:'Parcial',devolvido:'Devolvido'};
-  var COR_PROD={pendente:'background:#FFFBEB;color:#92400E',em_analise:'background:#EFF6FF;color:#1E40AF',aprovado:'background:#F0FDF4;color:#166534',pago:'background:#ECFDF5;color:#065F46',cancelado:'background:#F3F4F6;color:#6B7280',entrega_parcial:'background:#FFF7ED;color:#9A3412',devolvido:'background:#FEF2F2;color:#991B1B'};
-  var SIT_ENT={pendente:'Pendente',em_analise:'Em análise',aprovada:'Aprovada',devolvida:'Devolvida'};
-  var COR_ENT={pendente:'background:#FFFBEB;color:#92400E',em_analise:'background:#EFF6FF;color:#1E40AF',aprovada:'background:#F0FDF4;color:#166534',devolvida:'background:#FEF2F2;color:#991B1B'};
 
   if(!prods.length)return '<div class="ent-vazia">Nenhum produto cadastrado.</div>';
 
-  var h='<div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px">'+
+  var h='<div class="ct-prods-hd"><div>'+
     (entregas.length?'<strong>'+entregas.length+'</strong> entrega(s) registrada(s) neste contrato.':'Nenhuma entrega registrada ainda.')+
-    '</div>';
+    '</div></div>';
 
   prods.forEach(function(p){
     var pe=entregas.filter(function(e){return e.produto_id===p.id;});
-    var corProd=COR_PROD[p.situacao]||'background:#F3F4F6;color:#6B7280';
     var valorTotalProd=parseFloat(p.valor_brl||0);
     var valorAprovProd=parseFloat(p.valor_aprovado||0);
     var naoExecProd=Math.max(0,valorTotalProd-valorAprovProd);
     var ehParcial=p.situacao==='entrega_parcial'&&valorAprovProd>0&&naoExecProd>0;
     var valorHtml=ehParcial
-      ?'<span class="mono" style="font-size:11px;color:var(--verde-medio);flex-shrink:0">'+fmtBRL(valorAprovProd)+' <span style="color:var(--cinza-400);font-weight:400">de '+fmtBRL(valorTotalProd)+'</span></span>'
-      :'<span class="mono" style="font-size:11px;color:var(--verde-medio);flex-shrink:0">'+fmtBRL(valorTotalProd)+'</span>';
+      ?'<span class="mono">'+fmtBRL(valorAprovProd)+' <span style="color:var(--txt-3)">de '+fmtBRL(valorTotalProd)+'</span></span>'
+      :'<span class="mono">'+fmtBRL(valorTotalProd)+'</span>';
     h+='<div class="ent-bloco">';
     h+='<div class="ent-prod-header">'
-      +'<span style="font-size:10px;font-weight:700;color:var(--cinza-400);font-family:var(--font-mono)">#'+p.numero_produto+'</span>'
+      +'<span class="ent-num">#'+esc(p.numero_produto)+'</span>'
       +'<span class="ent-prod-title" title="'+escHtml(p.descricao)+'">'+escHtml(p.descricao)+'</span>'
-      +valorHtml
-      +'<span class="ent-badge" style="'+corProd+';flex-shrink:0">'+(SIT_PROD[p.situacao]||p.situacao)+'</span>'
+      +valorHtml+pillProd(p.situacao)
       +'</div>';
     if(ehParcial){
-      h+='<div style="font-size:11px;color:#9A3412;padding:0 0 6px 0">Pago parcialmente: <strong>'+fmtBRL(valorAprovProd)+'</strong> aprovado · <strong>'+fmtBRL(naoExecProd)+'</strong> não executado'
+      h+='<div class="ent-parcial">Pago parcialmente: <strong>'+fmtBRL(valorAprovProd)+'</strong> aprovado · <strong>'+fmtBRL(naoExecProd)+'</strong> não executado'
         +(p.pct_aprovado!=null?' ('+parseFloat(p.pct_aprovado)+'%)':'')+'</div>';
     }
     if(!pe.length){
       h+='<div class="ent-vazia">Nenhuma entrega registrada.</div>';
     } else {
       pe.forEach(function(e,ei){
-        var corEnt=COR_ENT[e.situacao]||'background:#F3F4F6;color:#6B7280';
+        var se=ENT_SIT[e.situacao]||[e.situacao||'—','ct-p-ne'];
         h+='<div class="ent-item">';
-        // Linha topo: número, data, status, pct
         h+='<div class="ent-row">'
           +'<span class="ent-num">Entrega '+(ei+1)+'</span>'
-          +(e.dt_entrega?'<span style="font-size:11px;color:var(--cinza-700)">'+fmtData(e.dt_entrega)+'</span>':'')
-          +'<span class="ent-badge" style="'+corEnt+'">'+(SIT_ENT[e.situacao]||e.situacao)+'</span>'
-          +(e.pct_entregue&&e.pct_entregue<100?'<span style="font-size:10px;color:var(--cinza-500)">'+e.pct_entregue+'%</span>':'')
+          +(e.dt_entrega?'<span>'+fmtData(e.dt_entrega)+'</span>':'')
+          +'<span class="ct-pill '+se[1]+'">'+esc(se[0])+'</span>'
+          +(e.pct_entregue&&e.pct_entregue<100?'<span style="color:var(--txt-3)">'+esc(e.pct_entregue)+'%</span>':'')
           +'</div>';
-        // Quem fez o quê
         var temQuem=e.criado_por_u||e.despachado_por_u||(e.lancamento&&e.lancamento.dt_pagamento);
         if(temQuem){
           h+='<div class="ent-quem">';
@@ -1053,22 +1000,21 @@ function buildTabEntregas(c){
           }
           h+='</div>';
         }
-        // Links
         var temLinks=e.despacho_numero||e.nota_tecnica_url||(e.documentos&&e.documentos.length);
         if(temLinks){
           h+='<div class="ent-links">';
           if(e.despacho_numero){
-            h+='<span class="ent-link ent-link-desp">📋 Despacho '+escHtml(e.despacho_numero)
+            h+='<span class="ent-link ent-link-desp">'+ctIc('despacho','p')+'Despacho '+escHtml(e.despacho_numero)
               +(e.despacho_data?' · '+fmtData(e.despacho_data):'')+'</span>';
           }
           if(e.nota_tecnica_url){
-            h+='<a href="javascript:void(0)" onclick="abrirDoc(\''+e.nota_tecnica_url+'\')" class="ent-link ent-link-nt">📄 '
+            h+='<a href="#" data-arquivo="'+esc(e.nota_tecnica_url)+'" class="ent-link ent-link-nt">'+ctIc('doc','p')
               +escHtml(e.nota_tecnica_nome||'Nota Técnica')+'</a>';
           }
           if(e.documentos&&e.documentos.length){
             e.documentos.forEach(function(d){
               if(d.arquivo_url){
-                h+='<a href="javascript:void(0)" onclick="abrirDoc(\''+d.arquivo_url+'\')" class="ent-link">📎 '
+                h+='<a href="#" data-arquivo="'+esc(d.arquivo_url)+'" class="ent-link">'+ctIc('clipe','p')
                   +escHtml(d.tipo_documento||d.arquivo_nome||'Documento')+'</a>';
               }
             });
@@ -1087,13 +1033,13 @@ window.abrirModalProd=async function(contratoId){
   contratoModalProdId=contratoId;
   var c=todosContratos.find(function(x){return x.id===contratoId;});
   if(!c)return;
-  document.getElementById('mp-titulo').textContent='Produtos / Entregas — '+c.numero;
-  document.getElementById('mp-sub').textContent=(c.fornecedores?c.fornecedores.nome:'')+(c.objeto_pt?' | '+c.objeto_pt.substring(0,60):'');
-  document.getElementById('mp-footer').innerHTML='<button class="btn btn-secondary" onclick="fecharModalProd()">Fechar</button><button class="btn btn-primary" onclick="salvarProdutos()">Salvar produtos</button>';
+  document.getElementById('mp-titulo').textContent='Produtos do contrato '+c.numero;
+  document.getElementById('mp-sub').textContent=(c.fornecedores?c.fornecedores.nome:'')+(c.objeto_pt?' · '+c.objeto_pt.substring(0,60):'');
+  document.getElementById('mp-footer').innerHTML='<button type="button" class="ct-btn" onclick="fecharModalProd()">Fechar</button><button type="button" class="ct-btn pri" onclick="salvarProdutos()">Salvar produtos</button>';
   var prods=produtosPorContrato[contratoId];
   if(!prods)prods=await carregarProdutos(contratoId);
   renderFormProd(c,prods);
-  document.getElementById('modal-produtos').classList.add('aberto');
+  ctAbrir('modal-produtos');
 };
 
 var linhasProd=[];
@@ -1104,17 +1050,17 @@ function renderFormProd(c,prods){
     :[{id:null,num:1,desc:'',val:'',venc:'',entrega:'',sit:'pendente',obs:''}];
   var total=parseFloat(c.valor_total_brl||0);
   document.getElementById('mp-body').innerHTML=
-    '<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 14px;margin-bottom:14px;display:flex;gap:24px;font-size:12px">'
+    '<div class="ct-somas">'
     +'<span>Valor do contrato: <strong class="mono">'+fmtBRL(total)+'</strong></span>'
-    +'<span id="mp-soma">Soma dos produtos: <strong class="mono">--</strong></span>'
+    +'<span id="mp-soma">Soma dos produtos: <strong class="mono">—</strong></span>'
     +'<span id="mp-diff"></span></div>'
     +'<div id="prod-linhas"></div>'
-    +'<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addLinhaProd()">+ Adicionar produto</button>';
+    +'<button type="button" class="ct-btn" style="margin-top:8px" onclick="addLinhaProd()">'+ctIc('mais','p')+'Adicionar produto</button>';
   renderLinhasProd();
   calcSoma(total);
 }
 
-function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+function escHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 function renderLinhasProd(){
   var container=document.getElementById('prod-linhas');
@@ -1125,40 +1071,31 @@ function renderLinhasProd(){
   container.innerHTML=linhasProd.map(function(p,i){
     var isPago    = p.sit==='pago';
     var isAprovado= p.sit==='aprovado';
-    var travado   = isPago || isAprovado;
-
-    if(travado){
-      var bgCard = isPago ? 'background:#ECFDF5;border-color:#86EFAC' : 'background:#F0FDF4;border-color:#BBF7D0';
-      var icone  = isPago ? '&#x1F512;' : '&#x2705;';
-      var txtSit = isPago ? 'Pago &#8212; bloqueado para edição' : 'Aprovado &#8212; aguardando pagamento no financeiro';
-      var corSit = isPago ? '#065F46' : '#166534';
-      return '<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:8px;'+bgCard+'">'
-        +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
-        +'<span style="font-family:var(--font-mono);font-size:12px;font-weight:700;background:var(--verde-medio);color:#fff;padding:2px 8px;border-radius:4px">Produto '+p.num+'</span>'
-        +'<span style="font-size:11px;font-weight:600;color:'+corSit+'">'+icone+' '+txtSit+'</span>'
+    if(isPago||isAprovado){
+      return '<div class="ct-prod-ed travado">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
+        +'<span class="ct-cod">Produto '+esc(p.num)+'</span>'
+        +(isPago?'<span class="ct-pill ct-p-ok">'+ctIc('cadeado','p')+'Pago · bloqueado para edição</span>':'<span class="ct-pill ct-p-ok">'+ctIc('check','p')+'Aprovado · aguardando pagamento no Financeiro</span>')
         +'</div>'
-        +'<div style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center">'
-        +'<div style="font-size:13px;font-weight:500;color:var(--cinza-900)">'+escHtml(p.desc)+'</div>'
-        +'<div style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--verde-medio)">'+fmtBRL(parseFloat(p.val||0))+'</div>'
-        +(p.venc?'<div style="font-size:11px;color:var(--cinza-500)">Venc: '+fmtData(p.venc)+'</div>':'<div></div>')
+        +'<div class="ct-prod-trav">'
+        +'<div class="d">'+escHtml(p.desc)+'</div>'
+        +'<div class="mono" style="font-size:13px;font-weight:500">'+fmtBRL(parseFloat(p.val||0))+'</div>'
+        +(p.venc?'<div style="font-size:12px;color:var(--txt-3)">Vencimento '+fmtData(p.venc)+'</div>':'<div></div>')
         +'</div></div>';
     }
-
-    var bgCard=p.sit==='cancelado'?'background:var(--cinza-50);opacity:.7':'';
-    return '<div style="border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:8px;'+bgCard+'">'
-      +'<div style="display:grid;grid-template-columns:52px 1fr 140px 140px 32px;gap:8px;align-items:end;margin-bottom:8px">'
-      +'<div><label class="form-label" style="font-size:10px">N\u00ba</label><input class="form-control" type="number" min="1" value="'+p.num+'" oninput="updProd('+i+',\'num\',this.value)" style="font-family:var(--font-mono);text-align:center"></div>'
-      +'<div><label class="form-label" style="font-size:10px">Descri\u00e7\u00e3o <span class="obrig">*</span></label><input class="form-control" type="text" value="'+escHtml(p.desc)+'" placeholder="Ex: Relat\u00f3rio t\u00e9cnico" oninput="updProd('+i+',\'desc\',this.value)"></div>'
-      +'<div><label class="form-label" style="font-size:10px">Valor R$ <span class="obrig">*</span></label><input class="form-control" type="number" step="0.01" value="'+p.val+'" placeholder="0,00" oninput="updProd('+i+',\'val\',this.value);calcSoma()"></div>'
-      +'<div><label class="form-label" style="font-size:10px">Situa\u00e7\u00e3o</label><select class="form-control" onchange="updProd('+i+',\'sit\',this.value);renderLinhasProd()">'
+    return '<div class="ct-prod-ed'+(p.sit==='cancelado'?' cancel':'')+'">'
+      +'<div class="ct-prod-g1">'
+      +'<div><label class="form-label" for="pp-num-'+i+'">Nº</label><input class="form-control" id="pp-num-'+i+'" type="number" min="1" value="'+esc(p.num)+'" oninput="updProd('+i+',\'num\',this.value)" style="font-family:var(--font-mono)"></div>'
+      +'<div><label class="form-label" for="pp-desc-'+i+'">Descrição <span class="obrig">*</span></label><input class="form-control" id="pp-desc-'+i+'" type="text" value="'+escHtml(p.desc)+'" placeholder="Ex.: Relatório técnico final" oninput="updProd('+i+',\'desc\',this.value)"></div>'
+      +'<div><label class="form-label" for="pp-val-'+i+'">Valor R$ <span class="obrig">*</span></label><input class="form-control" id="pp-val-'+i+'" type="number" step="0.01" value="'+esc(p.val)+'" placeholder="0,00" oninput="updProd('+i+',\'val\',this.value);calcSoma()" style="font-family:var(--font-mono)"></div>'
+      +'<div><label class="form-label" for="pp-sit-'+i+'">Situação</label><select class="form-control" id="pp-sit-'+i+'" onchange="updProd('+i+',\'sit\',this.value);renderLinhasProd()">'
       +SIT.map(function(s){return '<option value="'+s+'" '+(p.sit===s?'selected':'')+'>'+SLBL[s]+'</option>';}).join('')+'</select></div>'
-      +'<div><label class="form-label" style="font-size:10px">&nbsp;</label>'
-      +(linhasProd.length>1?'<button onclick="remLinhaProd('+i+')" style="width:32px;height:36px;border:1px solid #FCA5A5;border-radius:var(--raio);background:#FEF2F2;color:var(--erro);cursor:pointer;font-size:14px">&#x2715;</button>':'<div style="width:32px"></div>')
-      +'</div></div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
-      +'<div><label class="form-label" style="font-size:10px">Vencimento previsto</label><input class="form-control" type="date" value="'+p.venc+'" oninput="updProd('+i+',\'venc\',this.value)"></div>'
-      +'<div><label class="form-label" style="font-size:10px">Data de entrega</label><input class="form-control" type="date" value="'+p.entrega+'" oninput="updProd('+i+',\'entrega\',this.value)"></div>'
-      +'<div><label class="form-label" style="font-size:10px">Observa\u00e7\u00f5es</label><input class="form-control" type="text" value="'+escHtml(p.obs)+'" placeholder="Opcional" oninput="updProd('+i+',\'obs\',this.value)"></div>'
+      +'<div>'+(linhasProd.length>1?'<button type="button" class="ct-rem" onclick="remLinhaProd('+i+')" title="Remover produto" aria-label="Remover produto '+esc(p.num)+'">'+ctIc('lixo','p')+'</button>':'')+'</div>'
+      +'</div>'
+      +'<div class="ct-prod-g2">'
+      +'<div><label class="form-label" for="pp-venc-'+i+'">Vencimento previsto</label><input class="form-control" id="pp-venc-'+i+'" type="date" value="'+esc(p.venc)+'" oninput="updProd('+i+',\'venc\',this.value)"></div>'
+      +'<div><label class="form-label" for="pp-ent-'+i+'">Data de entrega</label><input class="form-control" id="pp-ent-'+i+'" type="date" value="'+esc(p.entrega)+'" oninput="updProd('+i+',\'entrega\',this.value)"></div>'
+      +'<div><label class="form-label" for="pp-obs-'+i+'">Observações</label><input class="form-control" id="pp-obs-'+i+'" type="text" value="'+escHtml(p.obs)+'" placeholder="Opcional" oninput="updProd('+i+',\'obs\',this.value)"></div>'
       +'</div></div>';
   }).join('');
 }
@@ -1180,8 +1117,8 @@ function calcSoma(){
   if(el)el.innerHTML='Soma dos produtos: <strong class="mono">'+fmtBRL(soma)+'</strong>';
   if(elD){
     var diff=total-soma;
-    if(Math.abs(diff)<0.01){elD.innerHTML='<span style="color:var(--sucesso);font-weight:600">&#x2714; Valores conferem</span>';}
-    else{elD.innerHTML='<span style="color:'+(diff<0?'var(--erro)':'var(--aviso)')+';font-weight:600">'+(diff<0?'Excedido':'Restante')+': '+fmtBRL(Math.abs(diff))+'</span>';}
+    if(Math.abs(diff)<0.01){elD.innerHTML='<span class="ct-dif ok">'+ctIc('check','p')+' Valores conferem</span>';}
+    else{elD.innerHTML='<span class="ct-dif '+(diff<0?'er':'al')+'">'+(diff<0?'Excedido':'Restante')+': '+fmtBRL(Math.abs(diff))+'</span>';}
   }
 }
 
@@ -1210,15 +1147,50 @@ window.salvarProdutos=async function(){
 };
 
 window.fecharModalProd=function(){
-  document.getElementById('modal-produtos').classList.remove('aberto');
+  ctFechar('modal-produtos');
   contratoModalProdId=null;
 };
 
 window.fecharModal=function(){
-  document.getElementById('modal-contrato').classList.remove('aberto');
+  ctFechar('modal-contrato');
   contratoEditando=null;filePDF=null;
 };
-document.addEventListener('keydown',function(e){if(e.key==='Escape')fecharModal();});
+
+// ── Janelas: foco no primeiro campo, Esc fecha a de cima, Tab preso, foco volta ao sair ──
+var CT_FOCAVEIS='a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]):not([type=file]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+var ctPilha=[];
+function ctAbrir(id){
+  var el=document.getElementById(id); if(!el)return;
+  el.classList.add('aberto');
+  if(!ctPilha.some(function(x){return x.el===el;})) ctPilha.push({el:el,volta:document.activeElement});
+  requestAnimationFrame(function(){
+    var alvo=el.querySelector('.modal-body :is(input:not([readonly]):not([type=checkbox]):not([type=file]),select,textarea)')||el.querySelector(CT_FOCAVEIS);
+    if(alvo)alvo.focus({preventScroll:true});
+  });
+}
+function ctFechar(id){
+  var el=document.getElementById(id); if(!el)return;
+  el.classList.remove('aberto');
+  var i=ctPilha.findIndex(function(x){return x.el===el;}); if(i<0)return;
+  var volta=ctPilha.splice(i,1)[0].volta;
+  if(volta&&document.contains(volta))volta.focus({preventScroll:true});
+}
+document.addEventListener('keydown',function(e){
+  var topo=ctPilha.length?ctPilha[ctPilha.length-1].el:null; if(!topo)return;
+  if(e.key==='Escape'){
+    e.preventDefault();
+    if(topo.id==='modal-encerramento')fecharModalEncerramento();
+    else if(topo.id==='modal-produtos')fecharModalProd();
+    else fecharModal();
+  }else if(e.key==='Tab'){
+    var f=[].slice.call(topo.querySelectorAll(CT_FOCAVEIS)).filter(function(x){return x.offsetParent!==null;});
+    if(!f.length)return;
+    var pri=f[0],ult=f[f.length-1];
+    if(!topo.contains(document.activeElement)){e.preventDefault();pri.focus();}
+    else if(e.shiftKey&&document.activeElement===pri){e.preventDefault();ult.focus();}
+    else if(!e.shiftKey&&document.activeElement===ult){e.preventDefault();pri.focus();}
+  }
+});
 })();
 </script>
 </body>

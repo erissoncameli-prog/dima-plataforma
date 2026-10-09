@@ -665,6 +665,17 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Janelas: classe **`at-ov`** (no seletor de escopo de `diagnostico-mesa.css`) + `role="dialog"`; foco, Esc e Tab presos por
   `atModalAbriu`/`atModalFechou`. No celular a tabela vira cartões (CSS, `max-width: 760px`).
 
+### Contratos — visual da lista, do detalhe e das janelas
+- `pages/contratos.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e componentes em `css/contratos.css` (prefixo `ct-`; as classes antigas da página — `tbl`, `pdf-card`,
+  `prod-card`, `ent-*` — são tematizadas lá). Sem `<style>` próprio; ícones SVG por `ctIc()`, sem emoji.
+- **Valor utilizado é só leitura** na janela (vem dos lançamentos do Financeiro); `salvar()` não envia o campo, contrato novo
+  nasce com 0. Coluna **Valor e execução** = mesma barra de Atividades (pago em verde + comprometido = pago + a pagar).
+- Faixa **"aguardando cobertura"** no topo (contratos travados) com "Mostrar" (filtro `travado`) e "Pedir cobertura"
+  (`remanejamentos.html?cobertura=<id>` quando é só um). Os números do topo filtram a lista ao clicar.
+- Documentos abrem por `data-arquivo` (link assinado; bucket `contratos-docs` é privado). Janelas: classe **`ct-ov`** (no seletor
+  de escopo de `diagnostico-mesa.css`), `ctAbrir`/`ctFechar` (foco, Esc, Tab).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
