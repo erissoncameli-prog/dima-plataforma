@@ -124,20 +124,20 @@
 
       <div class="kpi-row">
         <div class="kpi-tile">
-          <div class="valor">27</div>
+          <div class="valor" id="kpi-atividades">27</div>
           <div class="rotulo" data-i18n="inicio.kpi_atividades">Atividades em execução</div>
         </div>
         <div class="kpi-tile">
-          <div class="valor">10<span style="font-size:16px;color:var(--tinta-suave);font-weight:500"> / 62</span></div>
+          <div class="valor"><span id="kpi-tdrs">41</span><span style="font-size:16px;color:var(--tinta-suave);font-weight:500"> / <span id="kpi-tdrs-total">63</span></span></div>
           <div class="rotulo" data-i18n="inicio.kpi_tdrs">TDRs aprovados</div>
-          <div class="barra"><span style="width:16%;background:var(--azul)"></span></div>
+          <div class="barra"><span id="kpi-tdrs-barra" style="width:65%;background:var(--azul)"></span></div>
         </div>
         <div class="kpi-tile">
-          <div class="valor">43</div>
+          <div class="valor" id="kpi-produtos">61</div>
           <div class="rotulo" data-i18n="inicio.kpi_produtos">Produtos técnicos entregues</div>
         </div>
         <div class="kpi-tile">
-          <div class="valor">72</div>
+          <div class="valor" id="kpi-pontos">72</div>
           <div class="rotulo" data-i18n="inicio.kpi_pontos">Pontos registrados no mapa</div>
         </div>
       </div>
@@ -290,6 +290,27 @@ async function carregarHeroMedia() {
 }
 
 carregarHeroMedia();
+
+// ── Indicadores: contagens do banco (fn_publico_operacional). Os números
+// escritos no HTML ficam como reserva se o banco não responder ─────────
+async function carregarKpis() {
+  if (!db) return;
+  try {
+    const { data: d, error } = await db.rpc('fn_publico_operacional');
+    if (error || !d) return;
+    const por = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+    por('kpi-atividades', d.atividades_ativas);
+    por('kpi-tdrs', d.tdrs_aprovados);
+    por('kpi-tdrs-total', d.tdrs_total);
+    por('kpi-produtos', d.produtos_entregues);
+    por('kpi-pontos', d.pontos_mapa);
+    const barra = document.getElementById('kpi-tdrs-barra');
+    if (barra && d.tdrs_total > 0)
+      barra.style.width = Math.round(d.tdrs_aprovados / d.tdrs_total * 100) + '%';
+  } catch (e) { /* sem banco: ficam os números do HTML */ }
+}
+
+carregarKpis();
 </script>
 </body>
 </html>
