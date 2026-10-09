@@ -1,153 +1,65 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Financeiro</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;cursor:pointer;user-select:none;transition:box-shadow .15s,border-color .15s,transform .08s;}
-.stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px);}
-.stat-card:active{transform:scale(.95);box-shadow:0 1px 2px rgba(0,0,0,.12) inset;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;}
-.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
-.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
-.stat-card.ativo{border-color:transparent;box-shadow:0 0 0 2px currentColor inset;}
-.sc-g.ativo{color:var(--verde-claro)}
-.sc-b.ativo{color:var(--azul-medio)}
-.sc-a.ativo{color:var(--aviso)}
-.sc-r.ativo{color:var(--erro)}
-.sc-t.ativo{color:#0D9488}
-.stat-lbl{font-size:10px;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
-.stat-val{font-size:18px;font-weight:700;color:var(--cinza-900);letter-spacing:-.01em;}
-.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
-.stat-card>*{position:relative;z-index:2;}
-.wc-inner{position:absolute;left:0;right:0;bottom:0;height:0%;transition:height 1.1s cubic-bezier(.4,0,.2,1);z-index:0;overflow:visible;opacity:.5;}
-.wc-wavewrap{position:absolute;left:0;right:0;bottom:100%;height:14px;overflow:hidden;}
-.wc-wave-svg{position:absolute;top:0;left:0;width:200%;height:100%;animation:wcwave 4.5s linear infinite;}
-.wc-wave-svg.w2{animation-duration:6.5s;animation-direction:reverse;opacity:.6;}
-@keyframes wcwave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-
-/* Abas de visão */
-.visao-tabs{display:flex;gap:0;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:4px;margin-bottom:16px;width:fit-content;}
-.visao-tab{padding:7px 18px;border-radius:var(--raio);font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;transition:all .15s;border:none;background:none;font-family:var(--font-sans);}
-.visao-tab.ativo{background:var(--branco);color:var(--verde-medio);box-shadow:0 1px 4px rgba(0,0,0,.08);font-weight:600;}
-
-/* Visão por resultado */
-.resultado-bloco{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;margin-bottom:12px;}
-.resultado-header{padding:14px 18px;border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:12px;background:var(--cinza-50);}
-.resultado-codigo{font-family:var(--font-mono);font-size:12px;font-weight:700;background:var(--verde-medio);color:#fff;padding:2px 10px;border-radius:4px;}
-.resultado-nome{font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;}
-.resultado-body{padding:14px 18px;}
-
-/* Visão por atividade */
-.ativ-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--borda);}
-.ativ-row:last-child{border-bottom:none;}
-.ativ-cod{font-family:var(--font-mono);font-size:11px;font-weight:500;background:var(--cinza-100);padding:2px 7px;border-radius:3px;color:var(--cinza-700);min-width:70px;}
-.ativ-nome{font-size:12px;color:var(--cinza-700);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ativ-barra{flex:1;max-width:160px;}
-.ativ-barra-bg{height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;}
-.ativ-barra-fill{height:100%;border-radius:3px;background:var(--verde-claro);transition:width .4s;}
-.ativ-barra-fill.warn{background:var(--aviso);}
-.ativ-barra-fill.crit{background:var(--erro);}
-.ativ-valor{font-family:var(--font-mono);font-size:11px;color:var(--cinza-700);text-align:right;min-width:90px;}
-.ativ-pct{font-family:var(--font-mono);font-size:11px;font-weight:600;min-width:36px;text-align:right;}
-
-/* Tabela de lançamentos */
-.nf-num{font-family:var(--font-mono);font-size:11px;background:var(--cinza-100);padding:1px 6px;border-radius:3px;}
-.sit-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;}
-.sit-pago{background:#ECFDF5;color:#065F46}
-.sit-a_pagar{background:#FFFBEB;color:#92400E}
-.sit-cancelado{background:#F3F4F6;color:#6B7280}
-
-/* Upload comprovante */
-.upload-mini{border:1px dashed var(--borda-forte);border-radius:var(--raio);padding:10px;text-align:center;cursor:pointer;font-size:11px;color:var(--cinza-500);transition:all .15s;}
-.upload-mini:hover{border-color:var(--verde-claro);color:var(--verde-medio);}
-.upload-mini.tem{border-color:var(--verde-claro);background:var(--sucesso-bg);color:var(--sucesso);}
-
-.cotacao-card{display:inline-flex;align-items:center;gap:14px;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:10px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
-.cotacao-valor{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--cinza-900);letter-spacing:-.02em;}
-.cotacao-label{font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
-.cotacao-var{font-size:12px;font-weight:700;padding:2px 7px;border-radius:99px;}
-.cotacao-var.up{background:#FEF2F2;color:#DC2626;}
-.cotacao-var.down{background:#ECFDF5;color:#059669;}
-.cotacao-var.flat{background:var(--cinza-100);color:var(--cinza-500);}
-.cotacao-sep{width:1px;height:36px;background:var(--borda);}
-
-/* Modal pagamento */
-.pgto-resumo{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px 24px;}
-.pgto-resumo-item{display:flex;flex-direction:column;gap:2px;}
-.pgto-resumo-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);font-weight:600;}
-.pgto-resumo-val{font-size:13px;font-weight:600;color:var(--cinza-900);}
-/* Timeline histórico */
-.timeline{padding:4px 0;margin-bottom:16px;}
-.tl-item{display:flex;gap:12px;position:relative;padding-bottom:14px;}
-.tl-item:last-child{padding-bottom:0;}
-.tl-item:not(:last-child)::before{content:'';position:absolute;left:11px;top:24px;bottom:0;width:2px;background:var(--borda);}
-.tl-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--borda);}
-.tl-dot.ok{background:#ECFDF5;border-color:#6EE7B7;}
-.tl-dot.warn{background:#FEF9C3;border-color:#FDE047;}
-.tl-dot.pend{background:var(--cinza-50);border-color:var(--cinza-200);}
-.tl-dot.dev{background:#FEF2F2;border-color:#FCA5A5;}
-.tl-body{flex:1;padding-top:2px;}
-.tl-titulo{font-size:12px;font-weight:600;color:var(--cinza-800);}
-.tl-data{font-size:11px;color:var(--cinza-400);margin-top:1px;}
-.tl-parecer{font-size:11px;color:var(--cinza-600);margin-top:4px;font-style:italic;background:var(--cinza-50);border-radius:var(--raio);padding:6px 10px;border-left:3px solid var(--verde-claro);}
-/* Cotação travada chip */
-.cotacao-trava{display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:8px 14px;font-size:12px;color:#1E40AF;font-weight:500;}
-</style>
+<link href="../css/sidebar.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Financeiro -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/financeiro.css" rel="stylesheet">
 </head>
-<body>
-<div id="app">
-  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
-    <div style="text-align:center">
-      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      Carregando financeiro...
-    </div>
-  </div>
-</div>
+<body class="dgm">
+<div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando financeiro…</div></div></div>
 
-<!-- MODAL EFETIVAR PAGAMENTO -->
-<div class="modal-overlay" id="modal-pgto">
-  <div class="modal" style="max-width:min(1200px,calc(100vw - 32px))">
+<!-- Janelas fora do #app; .fi-ov = escopo do tema (css/financeiro.css). <i data-ic> vira ícone SVG. -->
+<!-- EFETIVAR PAGAMENTO -->
+<div class="modal-overlay fi-ov" id="modal-pgto" role="dialog" aria-modal="true" aria-labelledby="pgto-titulo">
+  <div class="modal" style="max-width:min(1120px,calc(100vw - 32px))">
     <div class="modal-header">
       <div>
-        <div class="modal-title">💳 Efetivar Pagamento</div>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="pgto-subtitulo"></div>
+        <div class="modal-title" id="pgto-titulo"><i data-ic="cartao"></i>Efetivar pagamento</div>
+        <div class="modal-sub" id="pgto-subtitulo"></div>
       </div>
-      <button class="modal-close" onclick="fecharModalPgto()">✕</button>
+      <button type="button" class="modal-close" onclick="fecharModalPgto()" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
-    <div class="modal-body" id="pgto-body" style="padding:20px 24px;max-height:72vh;overflow-y:auto"></div>
+    <div class="modal-body" id="pgto-body"></div>
     <div class="modal-footer" id="pgto-footer"></div>
   </div>
 </div>
 
-<!-- MODAL CONFIRMAÇÃO DE SENHA — PAGAMENTO -->
-<div id="modal-senha-pgto" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1200;align-items:center;justify-content:center">
-  <div style="background:#fff;border-radius:14px;padding:28px 24px;width:340px;box-shadow:0 24px 64px rgba(0,0,0,.25)">
-    <div style="font-size:15px;font-weight:700;color:var(--cinza-900);margin-bottom:4px">🔐 Confirmar identidade</div>
-    <div style="font-size:13px;font-weight:600;color:var(--cinza-800);margin-bottom:2px" id="senha-pgto-nome"></div>
-    <div style="font-size:12px;color:var(--cinza-500);margin-bottom:18px" id="senha-pgto-email"></div>
-    <input type="password" id="inp-senha-pgto" class="inp" placeholder="Sua senha" autocomplete="current-password"
-      style="width:100%;margin-bottom:10px"
-      onkeydown="if(event.key==='Enter')verificarSenhaEPagar()" />
-    <div id="senha-pgto-erro" style="display:none;font-size:12px;color:#DC2626;margin-bottom:10px;padding:8px 10px;background:#FEF2F2;border-radius:6px;border-left:3px solid #FCA5A5"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
-      <button class="btn btn-secondary" onclick="fecharSenhaPgto()">Cancelar</button>
-      <button class="btn btn-primary" id="btn-conf-senha" style="background:#059669;border-color:#059669" onclick="verificarSenhaEPagar()">🔑 Confirmar</button>
+<!-- CONFIRMAÇÃO DE SENHA — PAGAMENTO -->
+<div class="modal-overlay fi-ov fi-senha" id="modal-senha-pgto" role="dialog" aria-modal="true" aria-labelledby="senha-titulo">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="senha-titulo"><i data-ic="cadeado"></i>Confirmar identidade</div>
+        <div class="modal-sub"><span id="senha-pgto-nome"></span> · <span id="senha-pgto-email"></span></div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <label class="form-label" for="inp-senha-pgto">Sua senha</label>
+      <input type="password" id="inp-senha-pgto" class="form-control" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')verificarSenhaEPagar()">
+      <div id="senha-pgto-erro" class="fi-erro" role="alert" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="fi-btn" onclick="fecharSenhaPgto()">Cancelar</button>
+      <button type="button" class="fi-btn pri" id="btn-conf-senha" onclick="verificarSenhaEPagar()"></button>
     </div>
   </div>
 </div>
 
-<!-- MODAL LANÇAMENTO -->
-<div class="modal-overlay" id="modal-lanc">
-  <div class="modal" style="max-width:660px">
+<!-- LANÇAMENTO -->
+<div class="modal-overlay fi-ov" id="modal-lanc" role="dialog" aria-modal="true" aria-labelledby="ml-titulo">
+  <div class="modal" style="max-width:680px">
     <div class="modal-header">
-      <span class="modal-title" id="ml-titulo">Novo Lançamento</span>
-      <button class="modal-close" onclick="fecharModal()">✕</button>
+      <div><div class="modal-title" id="ml-titulo">Novo lançamento</div></div>
+      <button type="button" class="modal-close" onclick="fecharModal()" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
     <div class="modal-body" id="ml-body"></div>
     <div class="modal-footer" id="ml-footer"></div>
@@ -158,6 +70,7 @@
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script>
 let todosLanc = [];
 let atividades = [], contratos = [], fornecedores = [], resultados = [];
@@ -168,6 +81,67 @@ let taxaVariacaoPct = null;
 let taxaDataRef = null;
 let taxaEHoje = false;
 let visaoAtual = 'lancamentos';
+let prodsPendentes = [];
+const PERFIS_PAGAM = ['super_admin', 'financeiro'];
+
+// ── Ícones (SVG, sem emoji) ───────────────────────────────────
+const FI_IC = {
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  alerta:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  cadeado:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  relogio:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  globo:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  doc:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  olho:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  baixar:'<path d="M12 4v12M7 11l5 5 5-5M4 20h16"/>',
+  busca:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  lapis:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  mais:'<path d="M12 5v14M5 12h14"/>',
+  clipe:'<path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/>',
+  lista:'<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>',
+  alvo:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  grafico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  cartao:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+  cambio:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+  predio:'<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M8 7h4M8 11h4M8 15h4M2 21h20"/>',
+  aviao:'<path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>',
+  chave:'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M15 8l2 2"/>',
+  volta:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
+  caixa:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+  pin:'<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  sobe:'<path d="m6 15 6-6 6 6"/>',
+  desce:'<path d="m6 9 6 6 6-6"/>',
+  igual:'<path d="M5 12h14"/>',
+  sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
+};
+function fiIc(n, cls) { return '<svg class="fi-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (FI_IC[n] || '') + '</svg>'; }
+document.querySelectorAll('i[data-ic]').forEach(e => { e.outerHTML = fiIc(e.dataset.ic); });
+document.getElementById('btn-conf-senha').innerHTML = fiIc('chave', 'p') + 'Confirmar';
+
+// situação do lançamento: selo + ícone + rótulo
+const SIT_PILL = { pago:['fi-p-ok','check'], a_pagar:['fi-p-al','relogio'], cancelado:['fi-p-ne','x'] };
+function pillSit(s) { const p = SIT_PILL[s] || ['fi-p-ne','info']; return `<span class="fi-pill ${p[0]}">${fiIc(p[1],'p')}${esc(t('situacao', s) || s || '—')}</span>`; }
+function brlc(v) { v = parseFloat(v || 0); const a = Math.abs(v); if (a >= 1e6) return 'R$ ' + (v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' mi'; if (a >= 1e4) return 'R$ ' + Math.round(v/1e3) + ' mil'; return fmtBRL(v); }
+function usdc(v) { v = parseFloat(v || 0); const a = Math.abs(v); if (a >= 1e6) return 'US$ ' + (v/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' mi'; if (a >= 1e4) return 'US$ ' + Math.round(v/1e3) + ' mil'; return fmtUSD(v); }
+function diasAte(d) { if (!d) return null; const h = new Date(); h.setHours(0,0,0,0); return Math.round((new Date(d + 'T00:00:00') - h) / 86400000); }
+function estaVencido(l) { return l.situacao === 'a_pagar' && l.dt_vencimento && new Date(l.dt_vencimento) < new Date(); }
+function fmtTaxa(v) { return 'R$ ' + parseFloat(v || 0).toLocaleString('pt-BR', {minimumFractionDigits:4, maximumFractionDigits:4}); }
+
+// US$ de um lançamento: pago = câmbio UNESCO gravado no pagamento (travado);
+// a pagar = estimado pela cotação de hoje (muda até ser pago).
+function usdLanc(l) {
+  const brl = parseFloat(l.valor_brl || 0);
+  if (l.situacao === 'pago') {
+    const u = parseFloat(l.valor_usd_unesco || l.valor_usd || 0);
+    if (u > 0) return u;
+    return brl / parseFloat(l.cotacao_uso || taxaAtual);
+  }
+  return brl / taxaAtual;
+}
 
 (async () => {
   const usuario = await carregarUsuario();
@@ -175,66 +149,81 @@ let visaoAtual = 'lancamentos';
   if (!PODE.verFinanceiro()) {
     document.getElementById('app').innerHTML =
       gerarLayout('Financeiro','financeiro') +
-      `<div class="alert alert-danger" style="max-width:500px">🔒 Acesso restrito ao perfil financeiro.</div>` +
+      `<div class="fi-nota" style="max-width:500px">${fiIc('cadeado','p')}Acesso restrito ao perfil financeiro.</div>` +
       `</div></div></div>`;
+    carregarLogosSidebar(); seletorTema();
     return;
   }
 
   document.getElementById('app').innerHTML =
     gerarLayout('Execução Financeira','financeiro') + `
-    <div class="fade-in">
-      <!-- KPIs -->
-      <div class="stat-row" id="stats"></div>
+    <div class="fade-in fi-pagina">
+      <div class="fi-kpis" id="stats"></div>
 
-      <!-- Cotação + Controles -->
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div class="fi-barra">
         <div id="cotacao-chip"></div>
-        <div class="visao-tabs">
-          <button class="visao-tab ativo" onclick="mudarVisao('lancamentos',this)">📋 Lançamentos</button>
-          <button class="visao-tab" onclick="mudarVisao('atividades',this)">◈ Por Atividade</button>
-          <button class="visao-tab" onclick="mudarVisao('resultados',this)">◎ Por Resultado</button>
+        <div class="fi-tabs" role="tablist" aria-label="Visão">
+          <button type="button" class="fi-tab" role="tab" data-v="lancamentos" aria-selected="true" onclick="mudarVisao('lancamentos')">${fiIc('lista','p')}Lançamentos <span class="n" id="n-lanc">0</span></button>
+          <button type="button" class="fi-tab" role="tab" data-v="atividades" aria-selected="false" onclick="mudarVisao('atividades')">${fiIc('alvo','p')}Por atividade</button>
+          <button type="button" class="fi-tab" role="tab" data-v="resultados" aria-selected="false" onclick="mudarVisao('resultados')">${fiIc('grafico','p')}Por resultado</button>
         </div>
-        <div style="margin-left:auto;display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ Exportar CSV</button>
-          <button class="btn btn-primary btn-sm" onclick="abrirNovo()">+ Novo lançamento</button>
+        <div class="dir">
+          <button type="button" class="fi-btn" onclick="exportarCSV()">${fiIc('baixar','p')}Exportar CSV</button>
+          <button type="button" class="fi-btn pri" onclick="abrirNovo()">${fiIc('mais','p')}Novo lançamento</button>
         </div>
       </div>
 
-      <!-- Filtros (visão lançamentos) -->
-      <div id="filtros-lanc" class="filter-bar" style="margin-bottom:14px">
-        <input type="text" name="email" style="display:none" aria-hidden="true">
-        <input type="password" name="password" style="display:none" aria-hidden="true">
-        <input class="form-control" type="text" id="busca" style="width:200px"
-          placeholder="Buscar descrição ou NF..." oninput="renderLancamentos()"
+      <div id="filtros-lanc" class="fi-filtros" role="group" aria-label="Filtros">
+        <input type="text" name="email" style="display:none" aria-hidden="true" tabindex="-1">
+        <input type="password" name="password" style="display:none" aria-hidden="true" tabindex="-1">
+        <label class="fi-busca">${fiIc('busca','p')}<input type="text" id="busca" aria-label="Buscar descrição ou NF"
+          placeholder="Buscar descrição ou NF" oninput="renderLancamentos()"
           autocomplete="new-password" readonly
-          onfocus="this.removeAttribute('readonly')" onblur="if(!this.value)this.setAttribute('readonly','')">
-        <select class="form-control" id="fil-sit" onchange="sincronizarFiltroCardFin()" style="width:130px">
-          <option value="">Todas situações</option>
+          onfocus="this.removeAttribute('readonly')" onblur="if(!this.value)this.setAttribute('readonly','')"></label>
+        <select id="fil-sit" onchange="sincronizarFiltroCardFin()" aria-label="Situação">
+          <option value="">Todas as situações</option>
           <option value="pago">Pago</option>
-          <option value="a_pagar">A Pagar</option>
+          <option value="a_pagar">A pagar</option>
           <option value="cancelado">Cancelado</option>
         </select>
-        <select class="form-control" id="fil-ativ" onchange="renderLancamentos()" style="width:170px">
+        <select id="fil-ativ" onchange="renderLancamentos()" aria-label="Atividade">
           <option value="">Todas as atividades</option>
         </select>
-        <select class="form-control" id="fil-forn" onchange="renderLancamentos()" style="width:170px">
+        <select id="fil-forn" onchange="renderLancamentos()" aria-label="Fornecedor">
           <option value="">Todos os fornecedores</option>
         </select>
-        <select class="form-control" id="fil-mes" onchange="renderLancamentos()" style="width:130px">
+        <select id="fil-mes" onchange="renderLancamentos()" aria-label="Mês de vencimento">
           <option value="">Todos os meses</option>
         </select>
-        <span id="cont-lanc" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
+        <span id="cont-lanc" class="fi-cont" aria-live="polite"></span>
       </div>
 
-      <!-- Conteúdo dinâmico -->
       <div id="conteudo-financeiro"></div>
     </div>` + `</div></div></div>`;
 
+  carregarLogosSidebar();
+  seletorTema();
   // Garante que o browser não preencha o campo de busca com dados salvos
   setTimeout(() => { const b = document.getElementById('busca'); if (b) b.value = ''; }, 50);
 
   await carregar();
 })();
+
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico, de TDRs, Atividades, Contratos e Visão Geral (componente .dgm-tema)
+function seletorTema() {
+  const tb = document.querySelector('.topbar'); if (!tb || tb.querySelector('.dgm-tema') || typeof DiagTema === 'undefined') return;
+  const d = document.createElement('div');
+  d.className = 'dgm-tema'; d.setAttribute('role','group'); d.setAttribute('aria-label','Tema');
+  d.innerHTML = [['claro','sol','Claro'],['escuro','lua','Escuro']].map(x =>
+    `<button type="button" data-tema="${x[0]}" aria-pressed="${DiagTema.atual()===x[0]}">${fiIc(x[1])}${x[2]}</button>`).join('');
+  const bc = tb.querySelector('.topbar-breadcrumb');
+  if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d);
+  d.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tema]'); if (!b) return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+}
 
 // ── Cotação USD — busca e persiste diariamente ────────────────
 async function sincronizarCotacao() {
@@ -328,21 +317,24 @@ async function carregar() {
     taxaDataRef      = cotacao?.data_ref      || null;
     taxaEHoje        = cotacao?.data_ref === new Date().toISOString().split('T')[0];
 
-    // Preencher filtro de atividades — só as que têm pelo menos um contrato
+    // Filtro de atividades — as que têm contrato ou lançamento (o "Ver" da aba Por atividade usa este filtro)
     const filAtiv = document.getElementById('fil-ativ');
     if (filAtiv) {
-      const atvsComContrato = new Set((conts||[]).map(c => c.atividade_id).filter(Boolean));
+      const comVinculo = new Set([
+        ...(conts||[]).map(c => c.atividade_id),
+        ...todosLanc.map(l => l.atividade_id)
+      ].filter(Boolean));
       atividades
-        .filter(a => atvsComContrato.has(a.id))
+        .filter(a => comVinculo.has(a.id))
         .forEach(a => {
           const opt = document.createElement('option');
           opt.value = a.id;
-          opt.textContent = `${a.codigo} — ${a.nome_pt?.substring(0,38)}`;
+          opt.textContent = `${a.codigo} — ${(a.nome_pt||'').substring(0,38)}`;
           filAtiv.appendChild(opt);
         });
     }
 
-    // Preencher filtro de fornecedores — só os que aparecem nos lançamentos
+    // Filtro de fornecedores — só os que aparecem nos lançamentos
     const filForn = document.getElementById('fil-forn');
     if (filForn) {
       const fornsVistos = new Map();
@@ -361,23 +353,20 @@ async function carregar() {
         });
     }
 
-    // Preencher filtro de meses
+    // Filtro de meses
     const meses = [...new Set(todosLanc.map(l => l.dt_vencimento?.substring(0,7)).filter(Boolean))].sort().reverse();
     const filMes = document.getElementById('fil-mes');
     if (filMes) {
+      const nomes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       meses.forEach(m => {
         const opt = document.createElement('option');
         const [ano,mes] = m.split('-');
-        const nomes = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
         opt.value = m; opt.textContent = `${nomes[parseInt(mes)]}/${ano}`;
         filMes.appendChild(opt);
       });
     }
 
-    // Cotação chip
-    // Card de cotação
     renderCotacaoCard();
-
     renderStats();
     renderConteudo();
   } catch(e) {
@@ -397,106 +386,69 @@ function renderCotacaoCard() {
         ? parseFloat(((taxaAtual - taxaAnterior) / taxaAnterior * 100).toFixed(4))
         : null);
 
-  const varDir  = varPct === null ? 'flat' : varPct > 0.005 ? 'up' : varPct < -0.005 ? 'down' : 'flat';
-  const varSeta = varDir === 'up' ? '↑' : varDir === 'down' ? '↓' : '→';
-  const varTxt  = varPct !== null ? `${varSeta} ${Math.abs(varPct).toFixed(2)}%` : '—';
-  const varLbl  = varDir === 'up' ? 'Alta' : varDir === 'down' ? 'Baixa' : 'Estável';
+  const varDir = varPct === null ? 'flat' : varPct > 0.005 ? 'up' : varPct < -0.005 ? 'down' : 'flat';
+  const VAR = { up:['fi-p-er','sobe','Alta'], down:['fi-p-ok','desce','Baixa'], flat:['fi-p-ne','igual','Estável'] }[varDir];
+  const varTxt = varPct !== null ? Math.abs(varPct).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%' : '—';
 
   const dataFmt = taxaDataRef
     ? new Date(taxaDataRef + 'T12:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'short'})
     : '—';
-
-  // Badge: verde "Hoje" se for do dia, laranja com data se for fallback
-  const statusBadge = taxaEHoje
-    ? `<span style="font-size:9px;background:#D1FAE5;color:#065F46;border-radius:99px;padding:1px 7px;font-weight:700">● Hoje</span>`
-    : `<span style="font-size:9px;background:#FEF3C7;color:#92400E;border-radius:99px;padding:1px 7px;font-weight:700" title="Cotação mais recente disponível">⚠ ${dataFmt}</span>`;
+  const selo = taxaEHoje
+    ? `<span class="fi-pill fi-p-ok" style="padding:0 7px">Hoje</span>`
+    : `<span class="fi-pill fi-p-al" style="padding:0 7px" title="Cotação mais recente disponível">${fiIc('alerta','p')}${esc(dataFmt)}</span>`;
 
   el.innerHTML = `
-    <div class="cotacao-card">
-      <div>
-        <div class="cotacao-label" style="display:flex;align-items:center;gap:6px">
-          Dólar Comercial ${statusBadge}
-        </div>
-        <div class="cotacao-valor">R$ ${taxaAtual.toFixed(4)}</div>
-      </div>
-      <div class="cotacao-sep"></div>
-      <div style="text-align:center">
-        <div class="cotacao-label">Variação vs ontem</div>
-        <span class="cotacao-var ${varDir}">${varTxt}</span>
-        <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">${varLbl}</div>
-      </div>
-      <div class="cotacao-sep"></div>
-      <div style="text-align:center">
-        <div class="cotacao-label">Fonte</div>
-        <div style="font-size:11px;font-weight:600;color:var(--cinza-700)">AwesomeAPI</div>
-        <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">USD · Comercial</div>
-      </div>
+    <div class="fi-cot" aria-label="Cotação do dólar">
+      <div><small>Dólar comercial ${selo}</small><div class="v">${fmtTaxa(taxaAtual)}</div></div>
+      <div class="sep"></div>
+      <div><small>vs ontem</small><span class="fi-pill ${VAR[0]}" title="${VAR[2]}">${fiIc(VAR[1],'p')}${varTxt}<span class="sr-only"> ${VAR[2]}</span></span></div>
+      <div class="sep"></div>
+      <div><small>Fonte</small><span class="fonte">AwesomeAPI</span></div>
     </div>`;
-}
-
-function waterHTML(color,pct){
-  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
-    <div class="wc-wavewrap">
-      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
-      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
-    </div>
-  </div>`;
-}
-function animarAgua(){
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
-      el.style.height=el.dataset.alvo+'%';
-    });
-  }));
 }
 
 function renderStats() {
   const ativos = todosLanc.filter(l=>l.situacao!=='cancelado');
   const pagos = ativos.filter(l=>l.situacao==='pago');
   const aPagar = ativos.filter(l=>l.situacao==='a_pagar');
-  const totalPago = pagos.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
-  const totalAPagar = aPagar.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
-  const totalGeral = ativos.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
-  const vencidos = aPagar.filter(l=>l.dt_vencimento&&new Date(l.dt_vencimento)<new Date()).length;
-  const ativo=c=>filtroCardFin===c?' ativo':'';
-  const denMoney = totalGeral||1;
-  const denVenc = aPagar.length||1;
+  const soma = arr => arr.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
+  const totalPago = soma(pagos);
+  const totalAPagar = soma(aPagar);
+  const totalGeral = totalPago + totalAPagar;
+  const vencidosArr = aPagar.filter(estaVencido);
+  const vencidos = vencidosArr.length;
+  const usdPago = pagos.reduce((s,l)=>s+usdLanc(l),0);
+  const usdAPagar = aPagar.reduce((s,l)=>s+usdLanc(l),0);
+  const pp = totalGeral > 0 ? totalPago/totalGeral*100 : 0;
+  const pa = totalGeral > 0 ? totalAPagar/totalGeral*100 : 0;
+  const ativo = c => String(filtroCardFin===c);
 
   document.getElementById('stats').innerHTML = `
-    <div class="stat-card sc-g${ativo('pago')}" onclick="clicarCardFin('pago')">
-      ${waterHTML('var(--verde-claro)',Math.round(totalPago/denMoney*100))}
-      <div class="stat-lbl">Total Executado</div>
-      <div class="stat-val">${fmtBRL(totalPago)}</div>
-      <div class="stat-sub">${pagos.length} pagamentos</div>
-    </div>
-    <div class="stat-card sc-a${ativo('a_pagar')}" onclick="clicarCardFin('a_pagar')">
-      ${waterHTML('var(--aviso)',Math.round(totalAPagar/denMoney*100))}
-      <div class="stat-lbl">A Pagar</div>
-      <div class="stat-val">${fmtBRL(totalAPagar)}</div>
-      <div class="stat-sub">${aPagar.length} lançamentos</div>
-    </div>
-    <div class="stat-card sc-b${ativo('total')}" onclick="clicarCardFin('total')">
-      ${waterHTML('var(--azul-medio)',100)}
-      <div class="stat-lbl">Total Comprometido</div>
-      <div class="stat-val">${fmtBRL(totalGeral)}</div>
-      <div class="stat-sub">pago + a pagar</div>
-    </div>
-    <div class="stat-card sc-t${ativo('usd')}" onclick="clicarCardFin('usd')">
-      ${waterHTML('#0D9488',100)}
-      <div class="stat-lbl">Em USD (cotação atual)</div>
-      <div class="stat-val" style="font-size:14px">${fmtUSD(totalGeral/taxaAtual)}</div>
-      <div class="stat-sub">R$ ${taxaAtual.toFixed(2)}/USD</div>
-    </div>
-    <div class="stat-card ${vencidos>0?'sc-r':'sc-g'}${ativo('vencidos')}" onclick="clicarCardFin('vencidos')">
-      ${waterHTML(vencidos>0?'var(--erro)':'var(--verde-claro)',Math.round(vencidos/denVenc*100))}
-      <div class="stat-lbl">Vencidos</div>
-      <div class="stat-val" style="color:${filtroCardFin==='vencidos'?'':(vencidos>0?'var(--erro)':'var(--sucesso)')}">${vencidos}</div>
-      <div class="stat-sub">aguardando pagamento</div>
+    <button type="button" class="fi-kpi" aria-pressed="${ativo('pago')}" onclick="clicarCardFin('pago')">
+      <span class="fi-kpi-l">${fiIc('check','p')}Pago</span>
+      <span class="fi-kpi-v ok">${brlc(totalPago)}</span>
+      <span class="fi-meter" aria-hidden="true"><i class="pago" style="width:${pp}%"></i><i class="comp" style="width:${pa}%"></i></span>
+      <span class="fi-kpi-s">${Math.round(pp)}% do lançado · ${pagos.length} pagamento${pagos.length!==1?'s':''}</span>
+    </button>
+    <button type="button" class="fi-kpi" aria-pressed="${ativo('a_pagar')}" onclick="clicarCardFin('a_pagar')">
+      <span class="fi-kpi-l">${fiIc('relogio','p')}A pagar</span>
+      <span class="fi-kpi-v">${brlc(totalAPagar)}</span>
+      <span class="fi-kpi-s">${aPagar.length} lançamento${aPagar.length!==1?'s':''}</span>
+    </button>
+    <button type="button" class="fi-kpi${vencidos?' alerta':''}" aria-pressed="${ativo('vencidos')}" onclick="clicarCardFin('vencidos')">
+      <span class="fi-kpi-l">${fiIc('alerta','p')}Vencidos</span>
+      <span class="fi-kpi-v${vencidos?' erro':' ok'}">${vencidos}</span>
+      <span class="fi-kpi-s">${vencidos ? brlc(soma(vencidosArr)) + ' · clique para ver' : 'nenhum a pagar vencido'}</span>
+    </button>
+    <div class="fi-kpi">
+      <span class="fi-kpi-l">${fiIc('globo','p')}Em US$</span>
+      <span class="fi-kpi-v">${usdc(usdPago + usdAPagar)}</span>
+      <span class="fi-kpi-s"><b class="ok">${usdc(usdPago)}</b> pago (câmbio UNESCO) · ${usdc(usdAPagar)} a pagar (estimado a ${fmtTaxa(taxaAtual)})</span>
     </div>`;
-  animarAgua();
+  const n = document.getElementById('n-lanc'); if (n) n.textContent = todosLanc.length;
 }
 
-// ── Filtro por clique nos cards de estatística ───────────────
+// ── Filtro por clique nos números do topo ─────────────────────
 let filtroCardFin='';
 const CARDS_FIN_STATUS_UNICO=['pago','a_pagar'];
 function clicarCardFin(card){
@@ -507,11 +459,8 @@ function clicarCardFin(card){
     else if(CARDS_FIN_STATUS_UNICO.includes(selSit.value)) selSit.value='';
   }
   renderStats();
-  if(visaoAtual!=='lancamentos'){
-    mudarVisao('lancamentos', document.querySelector('.visao-tab'));
-  } else {
-    renderLancamentos();
-  }
+  if(visaoAtual!=='lancamentos') mudarVisao('lancamentos');
+  else renderLancamentos();
 }
 
 function sincronizarFiltroCardFin(){
@@ -521,12 +470,11 @@ function sincronizarFiltroCardFin(){
   renderLancamentos();
 }
 
-function mudarVisao(v, btn) {
+function mudarVisao(v) {
   visaoAtual = v;
-  document.querySelectorAll('.visao-tab').forEach(b=>b.classList.remove('ativo'));
-  btn.classList.add('ativo');
+  document.querySelectorAll('.fi-tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.v === v)));
   const filtros = document.getElementById('filtros-lanc');
-  if (filtros) filtros.style.display = v==='lancamentos'?'flex':'none';
+  if (filtros) filtros.hidden = v !== 'lancamentos';
   renderConteudo();
 }
 
@@ -552,7 +500,7 @@ function renderLancamentos() {
     if (ativId && l.atividade_id !== ativId) return false;
     if (fornId && l.fornecedor_id !== fornId) return false;
     if (mes    && !(l.dt_vencimento||'').startsWith(mes)) return false;
-    if (filtroCardFin==='vencidos' && !(l.situacao==='a_pagar' && l.dt_vencimento && new Date(l.dt_vencimento)<new Date())) return false;
+    if (filtroCardFin==='vencidos' && !estaVencido(l)) return false;
     return true;
   });
 
@@ -560,184 +508,156 @@ function renderLancamentos() {
 
   if (!fil.length) {
     document.getElementById('conteudo-financeiro').innerHTML =
-      `<div class="empty-state"><div class="empty-state-icon">◉</div><div class="empty-state-msg">Nenhum lançamento encontrado.</div></div>`;
+      `<div class="fi-card"><div class="fi-vazio" role="status">${fiIc('busca')}Nenhum lançamento encontrado.</div></div>`;
     return;
   }
 
+  const podePagar = PERFIS_PAGAM.includes(appState.perfil);
+  const soma = arr => arr.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
+
   document.getElementById('conteudo-financeiro').innerHTML = `
-    <div class="card">
-      <div class="table-wrap">
-        <div class="table-scroll">
-          <table>
-            <thead><tr>
-              <th>Descrição</th>
-              <th style="width:80px">NF</th>
-              <th style="width:90px">Atividade</th>
-              <th style="width:150px">Fornecedor</th>
-              <th style="width:90px">Vencimento</th>
-              <th style="width:90px">Pagamento</th>
-              <th style="width:110px;text-align:right">Valor R$</th>
-              <th style="width:90px;text-align:right">Valor U$</th>
-              <th style="width:90px">Situação</th>
-              <th style="width:60px">Comp.</th>
-              <th style="width:60px"></th>
-            </tr></thead>
-            <tbody>
-              ${fil.map(l => {
-                const vencido = l.situacao==='a_pagar'&&l.dt_vencimento&&new Date(l.dt_vencimento)<new Date();
-                const taxaLanc = parseFloat(l.cotacao_uso || taxaAtual);
-                const usd = parseFloat(l.valor_brl||0) / taxaLanc;
-                return `<tr style="${vencido?'background:var(--erro-bg)':''}">
-                  <td style="min-width:240px">
-                    <div style="font-size:12px;font-weight:500;color:var(--cinza-900)">${l.descricao||'—'}</div>
-                    ${l.elemento_despesa?`<div style="font-size:10px;color:var(--cinza-500)">${l.elemento_despesa}</div>`:''}
-                    ${vencido?`<div style="font-size:10px;color:var(--erro);font-weight:600">⚠ Vencido</div>`:''}
-                  </td>
-                  <td><span class="nf-num">${l.numero_nf||'—'}</span></td>
-                  <td><span style="font-family:var(--font-mono);font-size:11px">${l.atividades?.codigo||'—'}</span></td>
-                  <td style="font-size:12px">${l.fornecedores?.nome?.substring(0,22)||l.contratos?.numero||'—'}</td>
-                  <td style="font-size:12px">${fmtData(l.dt_vencimento)}</td>
-                  <td style="font-size:12px;color:${l.dt_pagamento?'var(--sucesso)':'var(--cinza-400,#9CA3AF)'}">${l.dt_pagamento?fmtData(l.dt_pagamento):'—'}</td>
-                  <td style="text-align:right;font-family:var(--font-mono);font-size:12px;font-weight:500">${fmtBRL(l.valor_brl)}</td>
-                  <td style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--cinza-500)">${fmtUSD(usd)}</td>
-                  <td><span class="sit-badge sit-${l.situacao}">${t('situacao',l.situacao)}</span></td>
-                  <td style="text-align:center">
-                    ${l.comprovante_url
-                      ?`<button class="btn btn-sm btn-secondary" style="padding:3px 6px;font-size:10px" onclick="abrirComp('${l.id}','${l.comprovante_url}')">📎</button>`
-                      :`<span style="font-size:11px;color:var(--cinza-300)">—</span>`}
-                  </td>
-                  <td style="white-space:nowrap;display:flex;gap:4px">
-                    ${l.situacao==='a_pagar'
-                      ? `<button class="btn btn-sm" style="background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;font-size:11px;padding:3px 9px;font-weight:600" onclick="abrirPagamento('${l.id}')" title="Efetivar pagamento">💳 Pagar</button>`
-                      : ''}
-                    <button class="btn btn-sm btn-secondary btn-icon" onclick="abrirEditar('${l.id}')" title="Editar">✏️</button>
-                  </td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
+    <div class="fi-card">
+      <div class="fi-tbl-w">
+        <table class="fi-tbl">
+          <thead><tr>
+            <th>Descrição</th><th>NF</th><th>Atividade</th><th>Fornecedor / contrato</th>
+            <th>Vencimento</th><th>Pagamento</th><th class="dir">Valor</th><th>Situação</th><th>Comprovante</th>
+            <th><span class="sr-only">Ações</span></th>
+          </tr></thead>
+          <tbody>
+            ${fil.map(l => {
+              const vencido = estaVencido(l);
+              const dias = vencido ? -diasAte(l.dt_vencimento) : 0;
+              const usd = usdLanc(l);
+              const travado = l.situacao === 'pago';
+              const forn = l.fornecedores?.nome || '';
+              const cont = l.contratos?.numero || '';
+              return `<tr class="${vencido?'venc':''}${l.situacao==='cancelado'?' cancel':''}">
+                <td class="c-desc">
+                  <div class="fi-desc">${esc(l.descricao||'—')}</div>
+                  ${l.elemento_despesa?`<div class="fi-sub">${esc(l.elemento_despesa)}</div>`:''}
+                  ${vencido?`<span class="fi-pill fi-p-er vencido">${fiIc('alerta','p')}Vencido há ${dias} dia${dias!==1?'s':''}</span>`:''}
+                </td>
+                <td class="c-nf">${l.numero_nf?`<span class="fi-nf">${esc(l.numero_nf)}</span>`:'<span class="fi-traco">—</span>'}</td>
+                <td class="c-ativ">${l.atividades?.codigo?`<span class="fi-cod" title="${esc(l.atividades.nome_pt||'')}">${esc(l.atividades.codigo)}</span>`:'<span class="fi-traco">—</span>'}</td>
+                <td class="c-forn"><div class="fi-forn">${esc(forn || (cont ? '' : '—'))}</div>${cont?`<div class="fi-sub">Contrato ${esc(cont)}</div>`:''}</td>
+                <td class="c-venc fi-data">${fmtData(l.dt_vencimento)}</td>
+                <td class="c-pgto fi-data ${l.dt_pagamento?'pago':'vazio'}">${l.dt_pagamento?fmtData(l.dt_pagamento):'—'}</td>
+                <td class="c-val dir"><div class="fi-val">${fmtBRL(l.valor_brl)}</div>
+                  <div class="fi-usd" title="${travado?'Câmbio UNESCO travado no pagamento':'Estimado pela cotação de hoje'}">${travado?fiIc('cadeado','p'):'≈ '}${fmtUSD(usd)}</div></td>
+                <td class="c-sit">${pillSit(l.situacao)}</td>
+                <td class="c-comp">${l.comprovante_url
+                  ?`<a href="#" class="fi-comp" data-arquivo="${esc(l.comprovante_url)}" title="${esc(l.comprovante_nome||'Comprovante')}">${fiIc('clipe','p')}Abrir</a>`
+                  :'<span class="fi-traco">—</span>'}</td>
+                <td class="c-acoes"><div class="fi-acoes">
+                  ${l.situacao==='a_pagar' && podePagar
+                    ? `<button type="button" class="fi-btn peq pagar" onclick="abrirPagamento('${l.id}')">${fiIc('cartao','p')}Pagar</button>` : ''}
+                  <button type="button" class="fi-btn ic" onclick="abrirEditar('${l.id}')" aria-label="Editar lançamento" title="Editar">${fiIc('lapis','p')}</button>
+                </div></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
       </div>
-      <div class="card-footer" style="display:flex;justify-content:flex-end;gap:16px;font-size:12px">
-        <span>Total filtrado: <strong>${fmtBRL(fil.filter(l=>l.situacao!=='cancelado').reduce((s,l)=>s+parseFloat(l.valor_brl||0),0))}</strong></span>
-        <span style="color:var(--sucesso)">Pago: <strong>${fmtBRL(fil.filter(l=>l.situacao==='pago').reduce((s,l)=>s+parseFloat(l.valor_brl||0),0))}</strong></span>
-        <span style="color:var(--aviso)">A pagar: <strong>${fmtBRL(fil.filter(l=>l.situacao==='a_pagar').reduce((s,l)=>s+parseFloat(l.valor_brl||0),0))}</strong></span>
+      <div class="fi-rodape">
+        <span>Total filtrado <b>${fmtBRL(soma(fil.filter(l=>l.situacao!=='cancelado')))}</b></span>
+        <span>Pago <b class="ok">${fmtBRL(soma(fil.filter(l=>l.situacao==='pago')))}</b></span>
+        <span>A pagar <b>${fmtBRL(soma(fil.filter(l=>l.situacao==='a_pagar')))}</b></span>
       </div>
     </div>`;
 }
 
-// ── VISÃO POR ATIVIDADE ───────────────────────────────────────
+// Barra de execução (mesma de Atividades): pago em destaque + a pagar; acima do orçamento em vermelho
+function barraExec(orc, pago, aPagar) {
+  const tot = pago + aPagar;
+  const base = Math.max(orc, tot) || 1;
+  const pp = pago / base * 100, pa = aPagar / base * 100;
+  const acima = orc > 0 && tot > orc;
+  const pct = orc > 0 ? Math.round(tot / orc * 100) : null;
+  return `<div class="fi-exec">
+    <div class="fi-meter" role="img" aria-label="Pago ${usdc(pago)}, a pagar ${usdc(aPagar)}${orc>0?' de '+usdc(orc):''}">
+      <i class="pago" style="width:${pp}%"></i><i class="${acima?'exc':'comp'}" style="width:${pa}%"></i></div>
+    <div class="ln"><span>${orc>0?'de <b>'+usdc(orc)+'</b>':'sem orçamento'}</span>
+      ${acima?`<b class="exc">${pct}% · acima</b>`:`<b class="pago">${orc>0?Math.round(pago/orc*100)+'% pago':usdc(pago)+' pago'}</b>`}</div>
+  </div>`;
+}
+
+function notaSoLanc() { return `<div class="fi-nota">${fiIc('info','p')}<span>Só o que passou pelo Financeiro (pago pelo câmbio UNESCO + a pagar estimado a ${fmtTaxa(taxaAtual)}).
+  O saldo oficial, com TDRs e contratos, está na <a href="dashboard.html">Visão Geral</a>.</span></div>`; }
+
+// ── VISÃO POR ATIVIDADE (em US$, como o orçamento) ────────────
 function renderPorAtividade() {
-  // Agrupar lançamentos por atividade
   const porAtiv = {};
   todosLanc.filter(l=>l.situacao!=='cancelado').forEach(l => {
     const id = l.atividade_id || '__sem__';
-    if (!porAtiv[id]) porAtiv[id] = { lancs:[], total:0, pago:0 };
-    porAtiv[id].lancs.push(l);
-    porAtiv[id].total += parseFloat(l.valor_brl||0);
-    if (l.situacao==='pago') porAtiv[id].pago += parseFloat(l.valor_brl||0);
+    if (!porAtiv[id]) porAtiv[id] = { pago:0, aPagar:0, n:0 };
+    porAtiv[id].n++;
+    if (l.situacao==='pago') porAtiv[id].pago += usdLanc(l);
+    else porAtiv[id].aPagar += usdLanc(l);
   });
 
   const linhas = atividades.map(a => {
-    const dados = porAtiv[a.id] || { total:0, pago:0, lancs:[] };
-    const orc = parseFloat(a.orcamento_usd||0) * taxaAtual;
-    const pct = orc > 0 ? Math.min(dados.total/orc*100,100) : 0;
-    const corBarra = pct>90?'crit':pct>70?'warn':'';
-    return { a, dados, orc, pct, corBarra };
-  }).filter(x => x.dados.total > 0 || x.orc > 0);
+    const d = porAtiv[a.id] || { pago:0, aPagar:0, n:0 };
+    return { a, d, orc: parseFloat(a.orcamento_usd||0) };
+  }).filter(x => x.d.n > 0 || x.orc > 0);
 
   document.getElementById('conteudo-financeiro').innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Execução por Atividade</span>
-        <span style="font-size:11px;color:var(--cinza-500)">Cotação: R$ ${taxaAtual.toFixed(2)}/USD</span>
-      </div>
-      <div class="card-body" style="padding:8px 16px">
-        ${linhas.length ? linhas.map(({a,dados,orc,pct,corBarra}) => `
-          <div class="ativ-row">
-            <span class="ativ-cod">${a.codigo}</span>
-            <span class="ativ-nome" title="${a.nome_pt||''}">${(a.nome_pt||'').substring(0,50)}</span>
-            <div class="ativ-barra">
-              <div class="ativ-barra-bg">
-                <div class="ativ-barra-fill ${corBarra}" style="width:${pct}%"></div>
-              </div>
-              <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cinza-500);margin-top:2px">
-                <span>Orç: ${fmtBRL(orc)}</span>
-                <span>${Math.round(pct)}%</span>
-              </div>
-            </div>
-            <div class="ativ-valor">${fmtBRL(dados.total)}</div>
-            <div class="ativ-pct" style="color:${pct>90?'var(--erro)':pct>70?'var(--aviso)':'var(--cinza-700)'}">
-              ${Math.round(pct)}%
-            </div>
-            <button class="btn btn-sm btn-secondary" style="font-size:10px;padding:3px 8px"
-              onclick="filtrarPorAtiv('${a.id}')">Ver</button>
+    <div class="fi-pagina" style="gap:12px">
+      ${notaSoLanc()}
+      <div class="fi-card">
+        <div class="fi-hd"><h3>Execução por atividade</h3><span class="fi-pill fi-p-ne">em US$</span></div>
+        ${linhas.length ? linhas.map(({a,d,orc}) => `
+          <div class="fi-alin">
+            <span class="fi-cod">${esc(a.codigo)}</span>
+            <span class="nm" title="${esc(a.nome_pt||'')}">${esc(a.nome_pt||'')}</span>
+            ${barraExec(orc, d.pago, d.aPagar)}
+            <button type="button" class="fi-btn peq" onclick="filtrarPorAtiv('${a.id}')" aria-label="Ver lançamentos de ${esc(a.codigo)}">Ver</button>
           </div>`).join('') :
-          `<div class="empty-state"><div class="empty-state-msg">Nenhum lançamento registrado.</div></div>`}
+          `<div class="fi-vazio">${fiIc('lista')}Nenhum lançamento registrado.</div>`}
       </div>
     </div>`;
 }
 
-// ── VISÃO POR RESULTADO ───────────────────────────────────────
+// ── VISÃO POR RESULTADO (em US$) ──────────────────────────────
 function renderPorResultado() {
   const resMap = {};
-  resultados.forEach(r => { resMap[r.id] = { res:r, total:0, pago:0, aPagar:0 }; });
+  resultados.forEach(r => { resMap[r.id] = { pago:0, aPagar:0 }; });
 
   todosLanc.filter(l=>l.situacao!=='cancelado').forEach(l => {
     const ativ = atividades.find(a=>a.id===l.atividade_id);
     const rId = ativ?.resultado_id;
     if (rId && resMap[rId]) {
-      resMap[rId].total += parseFloat(l.valor_brl||0);
-      if (l.situacao==='pago') resMap[rId].pago += parseFloat(l.valor_brl||0);
-      else resMap[rId].aPagar += parseFloat(l.valor_brl||0);
+      if (l.situacao==='pago') resMap[rId].pago += usdLanc(l);
+      else resMap[rId].aPagar += usdLanc(l);
     }
   });
 
-  const cores = ['#1D9E75','#2563EB','#7F77DD','#BA7517'];
-
   document.getElementById('conteudo-financeiro').innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="fi-pagina" style="gap:12px">
+      ${notaSoLanc()}
+      ${resultados.length ? `<div class="fi-rgrid">
       ${resultados.map((r,i) => {
-        const d = resMap[r.id] || {total:0,pago:0,aPagar:0};
-        const orc = parseFloat(r.orcamento_usd||0)*taxaAtual;
-        const pct = orc>0?Math.min(d.total/orc*100,100):0;
-        const nome = campo(r,'nome');
+        const d = resMap[r.id];
+        const orc = parseFloat(r.orcamento_usd||0);
+        const livre = orc - d.pago - d.aPagar;
+        const cor = i < 4 ? `var(--fi-r${i+1})` : 'var(--fi-rx)';
         return `
-        <div class="resultado-bloco">
-          <div class="resultado-header" style="border-left:4px solid ${cores[i%4]}">
-            <span class="resultado-codigo">${r.codigo}</span>
-            <span class="resultado-nome">${nome.substring(0,55)}${nome.length>55?'…':''}</span>
-          </div>
-          <div class="resultado-body">
-            <div style="margin-bottom:10px">
-              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cinza-500);margin-bottom:4px">
-                <span>Executado: ${fmtBRL(d.total)}</span>
-                <span>Orçamento: ${fmtBRL(orc)}</span>
-              </div>
-              <div style="height:8px;background:var(--cinza-100);border-radius:4px;overflow:hidden">
-                <div style="height:100%;background:${cores[i%4]};width:${pct}%;border-radius:4px;transition:width .4s"></div>
-              </div>
-              <div style="text-align:right;font-size:10px;color:var(--cinza-500);margin-top:2px">${Math.round(pct)}% executado</div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-              ${[
-                ['Pago',fmtBRL(d.pago),'var(--sucesso)'],
-                ['A Pagar',fmtBRL(d.aPagar),'var(--aviso)'],
-                ['Em USD',fmtUSD(d.total/taxaAtual),'var(--cinza-700)'],
-              ].map(([l,v,c])=>`
-                <div style="text-align:center;background:var(--cinza-50);border-radius:var(--raio);padding:8px">
-                  <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">${l}</div>
-                  <div style="font-size:12px;font-weight:600;font-family:var(--font-mono);color:${c}">${v}</div>
-                </div>`).join('')}
-            </div>
+        <div class="fi-rcard" style="--c:${cor}">
+          <div class="hd"><span class="fi-rtag">${esc(r.codigo)}</span><b>${esc(campo(r,'nome')||'')}</b></div>
+          ${barraExec(orc, d.pago, d.aPagar)}
+          <div class="fi-tri">
+            <div><span>Pago</span><b class="ok">${usdc(d.pago)}</b></div>
+            <div><span>A pagar</span><b>${usdc(d.aPagar)}</b></div>
+            <div><span>${livre<0?'Acima do orçamento':'Livre (só lançamentos)'}</span><b class="${livre<0?'exc':''}">${usdc(Math.abs(livre))}</b></div>
           </div>
         </div>`;
       }).join('')}
+      </div>` : `<div class="fi-card"><div class="fi-vazio">${fiIc('grafico')}Nenhum resultado cadastrado.</div></div>`}
     </div>`;
 }
 
 function filtrarPorAtiv(id) {
-  mudarVisao('lancamentos', document.querySelector('.visao-tab'));
+  mudarVisao('lancamentos');
   document.getElementById('fil-ativ').value = id;
   renderLancamentos();
 }
@@ -745,25 +665,25 @@ function filtrarPorAtiv(id) {
 // ── NOVO / EDITAR LANÇAMENTO ──────────────────────────────────
 function abrirNovo() {
   lancEditando = null; arquivoComp = null;
-  document.getElementById('ml-titulo').textContent = 'Novo Lançamento';
+  document.getElementById('ml-titulo').textContent = 'Novo lançamento';
   renderFormLanc(null);
   document.getElementById('ml-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-primary" onclick="salvarLanc()">Registrar lançamento</button>`;
-  document.getElementById('modal-lanc').classList.add('aberto');
+    <button type="button" class="fi-btn" onclick="fecharModal()">Cancelar</button>
+    <button type="button" class="fi-btn pri" onclick="salvarLanc()">${fiIc('check','p')}Registrar lançamento</button>`;
+  fiAbrir('modal-lanc');
 }
 
 function abrirEditar(id) {
   lancEditando = todosLanc.find(l=>l.id===id);
   if (!lancEditando) return;
   arquivoComp = null;
-  document.getElementById('ml-titulo').textContent = 'Editar Lançamento';
+  document.getElementById('ml-titulo').textContent = 'Editar lançamento';
   renderFormLanc(lancEditando);
   document.getElementById('ml-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-danger btn-sm" onclick="cancelarLanc('${id}')">Cancelar lançamento</button>
-    <button class="btn btn-primary" onclick="salvarLanc()">Salvar alterações</button>`;
-  document.getElementById('modal-lanc').classList.add('aberto');
+    ${lancEditando.situacao!=='cancelado'?`<button type="button" class="fi-btn perigo esq" onclick="cancelarLanc('${id}')">${fiIc('x','p')}Cancelar lançamento</button>`:''}
+    <button type="button" class="fi-btn" onclick="fecharModal()">Fechar</button>
+    <button type="button" class="fi-btn pri" onclick="salvarLanc()">${fiIc('check','p')}Salvar alterações</button>`;
+  fiAbrir('modal-lanc');
 }
 
 function _optsContratos(atividadeId, contratoSelId) {
@@ -773,8 +693,14 @@ function _optsContratos(atividadeId, contratoSelId) {
   return `<option value="">— Sem contrato —</option>` +
     lista.map(c => {
       const obj = c.objeto_pt ? ` — ${c.objeto_pt.substring(0,38)}` : '';
-      return `<option value="${c.id}" ${c.id===contratoSelId?'selected':''}>${c.numero}${obj}</option>`;
+      return `<option value="${c.id}" ${c.id===contratoSelId?'selected':''}>${esc(c.numero + obj)}</option>`;
     }).join('');
+}
+
+function _hintCont(atividadeId, qtd) {
+  if (!atividadeId) return { cls:'', html:'Selecione uma atividade para filtrar os contratos' };
+  if (!qtd) return { cls:'al', html: fiIc('alerta','p') + 'Nenhum contrato vinculado a esta atividade' };
+  return { cls:'ok', html: fiIc('check','p') + `${qtd} contrato(s) vinculado(s) à atividade` };
 }
 
 function _renderPainelSaldo(contrato) {
@@ -783,31 +709,13 @@ function _renderPainelSaldo(contrato) {
   const utilizado= parseFloat(contrato.valor_utilizado_brl || 0);
   const saldo    = parseFloat(contrato.saldo_brl ?? (total - utilizado));
   const pct      = total > 0 ? Math.min(utilizado / total * 100, 100) : 0;
-  const corBarra = pct >= 90 ? '#DC2626' : pct >= 70 ? '#D97706' : '#059669';
-  const corSaldo = saldo < 0 ? 'var(--erro)' : saldo === 0 ? 'var(--cinza-500)' : 'var(--sucesso)';
   return `
-    <div id="painel-saldo" style="background:var(--cinza-50);border:1px solid var(--borda);
-      border-radius:var(--raio);padding:12px 14px;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
-        color:var(--cinza-500);margin-bottom:10px;">📋 Saldo do Contrato: ${contrato.numero}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-        <div style="text-align:center;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 4px">
-          <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Valor Total</div>
-          <div style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--cinza-800)">${fmtBRL(total)}</div>
-        </div>
-        <div style="text-align:center;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 4px">
-          <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Utilizado</div>
-          <div style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--aviso)">${fmtBRL(utilizado)}</div>
-        </div>
-        <div style="text-align:center;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 4px">
-          <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Saldo</div>
-          <div style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:${corSaldo}">${fmtBRL(saldo)}</div>
-        </div>
-      </div>
-      <div style="height:6px;background:var(--cinza-200);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${corBarra};border-radius:3px;transition:width .4s"></div>
-      </div>
-      <div style="font-size:10px;color:var(--cinza-500);margin-top:4px;text-align:right">${Math.round(pct)}% utilizado</div>
+    <div id="painel-saldo" class="fi-resumo tres fi-saldo">
+      <div class="tit">${fiIc('doc','p')}Saldo do contrato ${esc(contrato.numero)}</div>
+      <div><span>Valor total</span><b>${fmtBRL(total)}</b></div>
+      <div><span>Utilizado</span><b>${fmtBRL(utilizado)}</b></div>
+      <div><span>Saldo</span><b class="${saldo<0?'erro':saldo>0?'ok':''}">${fmtBRL(saldo)}</b></div>
+      <div class="fi-meter" aria-hidden="true"><i class="${pct>=100?'exc':'pago'}" style="width:${pct}%"></i></div>
     </div>`;
 }
 
@@ -819,148 +727,107 @@ function renderFormLanc(l) {
   const fornAutoId   = contratoSel?.fornecedor_id || '';
   const fornAtivo    = fornecedorId || fornAutoId;
   const contsFiltrados = atividadeId ? contratos.filter(c=>c.atividade_id===atividadeId) : contratos;
-  const qtdConts = contsFiltrados.length;
+  const hint = _hintCont(atividadeId, contsFiltrados.length);
+  const sit = l?.situacao || 'a_pagar';
+  const travada = l?.cotacao_travada_em && sit === 'pago';
+  prodsPendentes = [];
+
+  const sitHtml = !l
+    ? `${pillSit('a_pagar')}<span>Novo lançamento sempre começa como A pagar</span>`
+    : sit === 'pago'
+      ? `${pillSit('pago')}<span>Não muda depois do pagamento</span>`
+      : sit === 'a_pagar'
+        ? `${pillSit('a_pagar')}<span>Use "Pagar" na lista para efetivar</span>`
+        : pillSit('cancelado');
 
   document.getElementById('ml-body').innerHTML = `
     <div class="form-group">
-      <label class="form-label">Descrição <span class="obrig">*</span></label>
-      <input class="form-control" id="f-desc" type="text" value="${l?.descricao||''}"
-        placeholder="Ex: Pagamento consultoria — Produto 1">
+      <label class="form-label" for="f-desc">Descrição <span class="obrig">*</span></label>
+      <input class="form-control" id="f-desc" type="text" value="${esc(l?.descricao||'')}"
+        placeholder="Ex.: Pagamento consultoria — Produto 1">
     </div>
 
     <div class="grid-2">
-      <!-- 1. ATIVIDADE -->
       <div class="form-group">
-        <label class="form-label">Atividade <span class="obrig">*</span></label>
+        <label class="form-label" for="f-ativ">Atividade <span class="obrig">*</span></label>
         <select class="form-control" id="f-ativ" onchange="cascataAtividade(this.value)">
-          <option value="">Selecione a atividade...</option>
-          ${atividades.map(a=>`<option value="${a.id}" ${atividadeId===a.id?'selected':''}>${a.codigo} — ${(a.nome_pt||'').substring(0,38)}</option>`).join('')}
+          <option value="">Selecione a atividade…</option>
+          ${atividades.map(a=>`<option value="${a.id}" ${atividadeId===a.id?'selected':''}>${esc(a.codigo + ' — ' + (a.nome_pt||'').substring(0,38))}</option>`).join('')}
         </select>
       </div>
-      <!-- 2. CONTRATO filtrado -->
       <div class="form-group">
-        <label class="form-label">Contrato</label>
+        <label class="form-label" for="f-cont">Contrato</label>
         <select class="form-control" id="f-cont" onchange="cascataContrato(this.value)">
           ${_optsContratos(atividadeId, contratoId)}
         </select>
-        <div id="hint-cont" class="form-hint" style="color:${atividadeId?(qtdConts?'var(--verde-600)':'var(--aviso)'):'var(--cinza-400)'};margin-top:3px">
-          ${atividadeId
-            ? (qtdConts ? `✓ ${qtdConts} contrato(s) vinculado(s) à atividade` : '⚠ Nenhum contrato vinculado a esta atividade')
-            : 'Selecione uma atividade para filtrar os contratos'}
-        </div>
+        <div id="hint-cont" class="fi-dica ${hint.cls}">${hint.html}</div>
       </div>
     </div>
 
-    <!-- 3. PAINEL DE SALDO (visível apenas se contrato selecionado) -->
     <div id="wrap-saldo">${contratoSel ? _renderPainelSaldo(contratoSel) : ''}</div>
+    <div id="wrap-prod-pendentes">${contratoId ? '<div class="fi-carregando" role="status">Carregando produtos…</div>' : ''}</div>
 
-    <!-- 3b. PRODUTOS PENDENTES DO CONTRATO -->
-    <div id="wrap-prod-pendentes">${contratoId ? '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Carregando produtos...</div>' : ''}</div>
-
-    <!-- 4. FORNECEDOR automático -->
     <div class="form-group">
-      <label class="form-label">Fornecedor</label>
-      <select class="form-control" id="f-forn"
-        style="${fornAutoId?'background:var(--sucesso-bg);border-color:#6EE7B7':''}">
+      <label class="form-label" for="f-forn">Fornecedor</label>
+      <select class="form-control${fornAutoId?' auto':''}" id="f-forn">
         <option value="">— Sem fornecedor —</option>
-        ${fornecedores.map(f=>`<option value="${f.id}" ${f.id===fornAtivo?'selected':''}>${f.nome} (${f.tipo})</option>`).join('')}
+        ${fornecedores.map(f=>`<option value="${f.id}" ${f.id===fornAtivo?'selected':''}>${esc(f.nome + ' (' + (f.tipo||'') + ')')}</option>`).join('')}
       </select>
-      <div id="hint-forn" class="form-hint" style="color:var(--verde-600);margin-top:3px;${fornAutoId?'':'display:none'}">
-        ✓ Fornecedor preenchido automaticamente pelo contrato selecionado
-      </div>
+      <div id="hint-forn" class="fi-dica ok"${fornAutoId?'':' hidden'}>${fiIc('check','p')}Preenchido pelo contrato selecionado</div>
     </div>
 
     <div class="grid-2">
       <div class="form-group">
-        <label class="form-label">Valor R$ <span class="obrig">*</span></label>
-        <input class="form-control" id="f-brl" type="number" step="0.01"
-          value="${l?.valor_brl||''}" placeholder="0,00"
-          oninput="calcUSD(this.value)">
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:4px">
-          ≈ <span id="usd-preview" style="font-family:var(--font-mono);font-weight:600">${l?.valor_brl?fmtUSD(parseFloat(l.valor_brl)/(l?.cotacao_uso||taxaAtual)):'—'}</span>
-          ${l?.cotacao_travada_em
-            ? `<span style="margin-left:6px;font-size:10px;background:#ECFDF5;color:#065F46;padding:1px 7px;border-radius:99px;font-weight:700">
-                🔒 cotação travada R$ ${parseFloat(l.cotacao_uso).toFixed(4)} · ${new Date(l.cotacao_travada_em).toLocaleDateString('pt-BR')}
-               </span>`
-            : `<span style="color:var(--cinza-400)">(cotação estimada R$ ${taxaAtual.toFixed(4)}/USD · trava ao pagar)</span>`
-          }
+        <label class="form-label" for="f-brl">Valor R$ <span class="obrig">*</span></label>
+        <input class="form-control mono" id="f-brl" type="number" step="0.01"
+          value="${esc(l?.valor_brl??'')}" placeholder="0,00" oninput="calcUSD(this.value)">
+        <div class="fi-dica">≈ <b class="mono" id="usd-preview">${l?.valor_brl?fmtUSD(parseFloat(l.valor_brl)/(travada?parseFloat(l.cotacao_uso):taxaAtual)):'—'}</b>
+          ${travada
+            ? `<span class="fi-pill fi-p-ok">${fiIc('cadeado','p')}câmbio travado ${fmtTaxa(l.cotacao_uso)} · ${new Date(l.cotacao_travada_em).toLocaleDateString('pt-BR')}</span>`
+            : `<span>estimado a ${fmtTaxa(taxaAtual)} · trava ao pagar</span>`}
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">Número da Nota Fiscal</label>
-        <input class="form-control" id="f-nf" type="text"
-          value="${l?.numero_nf||''}" placeholder="Ex: NF-12345"
-          style="font-family:var(--font-mono)">
+        <label class="form-label" for="f-nf">Número da nota fiscal</label>
+        <input class="form-control mono" id="f-nf" type="text" value="${esc(l?.numero_nf||'')}" placeholder="Ex.: NF-12345">
       </div>
     </div>
     <div class="grid-2">
       <div class="form-group">
-        <label class="form-label">Data de vencimento</label>
-        <input class="form-control" id="f-venc" type="date" value="${l?.dt_vencimento||''}">
+        <label class="form-label" for="f-venc">Data de vencimento</label>
+        <input class="form-control" id="f-venc" type="date" value="${esc(l?.dt_vencimento||'')}">
       </div>
       <div class="form-group">
-        <label class="form-label">Data de pagamento</label>
-        <input class="form-control" id="f-pgto" type="date" value="${l?.dt_pagamento||''}">
-        <div class="form-hint">Preencha apenas quando efetivamente pago.</div>
+        <span class="form-label">Data de pagamento</span>
+        <div class="fi-fixo">${l?.dt_pagamento
+          ? `<span class="fi-pill fi-p-ok">${fiIc('cadeado','p')}${fmtData(l.dt_pagamento)}</span><span>Registrada no pagamento</span>`
+          : `${fiIc('cadeado','p')}<span>Preenchida ao efetivar o pagamento (com senha)</span>`}</div>
       </div>
     </div>
     <div class="grid-2">
       <div class="form-group">
-        <label class="form-label">Situação</label>
-        ${(() => {
-          const sit = l?.situacao || 'a_pagar';
-          if (!l) {
-            // Novo lançamento: sempre A Pagar, sem seleção
-            return `<div style="display:flex;align-items:center;gap:8px;height:36px">
-              <span class="sit-badge sit-a_pagar">A Pagar</span>
-              <span style="font-size:11px;color:var(--cinza-400)">Novo lançamento sempre inicia como A Pagar</span>
-            </div>
-            <input type="hidden" id="f-sit" value="a_pagar">`;
-          }
-          if (sit === 'pago') {
-            return `<div style="display:flex;align-items:center;gap:8px;height:36px">
-              <span class="sit-badge sit-pago">✓ Pago</span>
-              <span style="font-size:11px;color:var(--cinza-400)">Situação não pode ser alterada após pagamento</span>
-            </div>
-            <input type="hidden" id="f-sit" value="pago">`;
-          }
-          if (sit === 'a_pagar') {
-            return `<div style="display:flex;align-items:center;gap:8px;height:36px">
-              <span class="sit-badge sit-a_pagar">A Pagar</span>
-              <span style="font-size:11px;color:var(--cinza-400)">Use o botão 💳 Pagar para efetivar</span>
-            </div>
-            <input type="hidden" id="f-sit" value="a_pagar">`;
-          }
-          // Cancelado: exibe informativo
-          return `<div style="display:flex;align-items:center;gap:8px;height:36px">
-            <span class="sit-badge sit-cancelado">Cancelado</span>
-          </div>
-          <input type="hidden" id="f-sit" value="cancelado">`;
-        })()}
+        <span class="form-label">Situação</span>
+        <div class="fi-fixo">${sitHtml}</div>
+        <input type="hidden" id="f-sit" value="${!l ? 'a_pagar' : esc(sit)}">
       </div>
       <div class="form-group">
-        <label class="form-label">Elemento de despesa</label>
-        <input class="form-control" id="f-elem" type="text"
-          value="${l?.elemento_despesa||''}" placeholder="Ex: 33903900">
+        <label class="form-label" for="f-elem">Elemento de despesa</label>
+        <input class="form-control mono" id="f-elem" type="text" value="${esc(l?.elemento_despesa||'')}" placeholder="Ex.: 33903900">
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Observações</label>
-      <textarea class="form-control" id="f-obs" rows="2">${l?.observacoes||''}</textarea>
+      <label class="form-label" for="f-obs">Observações</label>
+      <textarea class="form-control" id="f-obs" rows="2">${esc(l?.observacoes||'')}</textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Comprovante de transferência / pagamento</label>
-      <div style="font-size:11px;color:var(--cinza-400);margin-bottom:6px">Recibo bancário, ordem de pagamento ou extrato — <strong>não</strong> é a Nota Fiscal do fornecedor (a NF vai em Produtos → Registrar entrega)</div>
-      ${l?.comprovante_url?`<div class="alert alert-info" style="margin-bottom:8px;font-size:12px">
-        📎 Comprovante já carregado.
-        <button class="btn btn-sm btn-secondary" style="margin-left:8px" onclick="abrirComp('${l.id}','${l.comprovante_url}')">Abrir</button>
-      </div>`:''}
-      <div class="upload-mini ${l?.comprovante_url?'tem':''}" id="upload-comp"
-        onclick="document.getElementById('inp-comp').click()">
-        ${l?.comprovante_url?'✓ Substituir comprovante':'📎 Clique para anexar comprovante de pagamento (.pdf, .jpg, .png)'}
-        <input type="file" id="inp-comp" accept=".pdf,.jpg,.jpeg,.png" style="display:none"
-          onchange="selecionarComp(this.files[0])">
-      </div>
+      <span class="form-label">Comprovante de transferência / pagamento</span>
+      <div class="fi-dica" style="margin:0 0 8px">Recibo bancário, ordem de pagamento ou extrato — não é a nota fiscal (a NF vai em Produtos → Registrar entrega).</div>
+      ${l?.comprovante_url?`<div class="fi-anexado">${fiIc('clipe','p')}<span style="flex:1">Comprovante já anexado</span>
+        <a href="#" class="fi-btn peq" data-arquivo="${esc(l.comprovante_url)}">${fiIc('olho','p')}Abrir</a></div>`:''}
+      <button type="button" class="upload-mini" id="upload-comp" onclick="document.getElementById('inp-comp').click()">
+        ${fiIc('upload')}<b>${l?.comprovante_url?'Substituir comprovante':'Anexar comprovante de pagamento'}</b><span>PDF, JPG ou PNG</span>
+      </button>
+      <input type="file" id="inp-comp" accept=".pdf,.jpg,.jpeg,.png" hidden onchange="selecionarComp(this.files[0])">
     </div>`;
 
   // Se já tem contrato (edição), carregar produtos pendentes
@@ -971,7 +838,6 @@ function renderFormLanc(l) {
 
 // ── CASCATA INTELIGENTE ───────────────────────────────────────
 function cascataAtividade(atividadeId) {
-  // Refiltrar contratos
   const contsFiltrados = atividadeId
     ? contratos.filter(c => c.atividade_id === atividadeId)
     : contratos;
@@ -981,16 +847,9 @@ function cascataAtividade(atividadeId) {
 
   const hintCont = document.getElementById('hint-cont');
   if (hintCont) {
-    if (!atividadeId) {
-      hintCont.style.color = 'var(--cinza-400)';
-      hintCont.textContent = 'Selecione uma atividade para filtrar os contratos';
-    } else if (contsFiltrados.length === 0) {
-      hintCont.style.color = 'var(--aviso)';
-      hintCont.textContent = '⚠ Nenhum contrato vinculado a esta atividade';
-    } else {
-      hintCont.style.color = 'var(--verde-600,#059669)';
-      hintCont.textContent = `✓ ${contsFiltrados.length} contrato(s) vinculado(s) à atividade`;
-    }
+    const h = _hintCont(atividadeId, contsFiltrados.length);
+    hintCont.className = 'fi-dica ' + h.cls;
+    hintCont.innerHTML = h.html;
   }
 
   // Limpar saldo e fornecedor ao mudar atividade
@@ -1000,34 +859,25 @@ function cascataAtividade(atividadeId) {
 function cascataContrato(contratoId) {
   const contrato = contratos.find(c => c.id === contratoId);
 
-  // Painel de saldo
   const wrapSaldo = document.getElementById('wrap-saldo');
-  if (wrapSaldo) {
-    wrapSaldo.innerHTML = contrato ? _renderPainelSaldo(contrato) : '';
-  }
+  if (wrapSaldo) wrapSaldo.innerHTML = contrato ? _renderPainelSaldo(contrato) : '';
 
   // Fornecedor automático
   const selForn = document.getElementById('f-forn');
   const hintForn = document.getElementById('hint-forn');
   if (selForn) {
-    if (contrato?.fornecedor_id) {
-      selForn.value = contrato.fornecedor_id;
-      selForn.style.background = 'var(--sucesso-bg)';
-      selForn.style.borderColor = '#6EE7B7';
-      if (hintForn) hintForn.style.display = '';
-    } else {
-      selForn.value = '';
-      selForn.style.background = '';
-      selForn.style.borderColor = '';
-      if (hintForn) hintForn.style.display = 'none';
-    }
+    const auto = !!contrato?.fornecedor_id;
+    selForn.value = auto ? contrato.fornecedor_id : '';
+    selForn.classList.toggle('auto', auto);
+    if (hintForn) hintForn.hidden = !auto;
   }
 
-  // Painel de produtos pendentes
+  // Produtos pendentes
   const wrapProd = document.getElementById('wrap-prod-pendentes');
   if (wrapProd) {
+    prodsPendentes = [];
     if (contratoId) {
-      wrapProd.innerHTML = '<div style="font-size:11px;color:var(--cinza-400);padding:6px 0">Buscando produtos pendentes...</div>';
+      wrapProd.innerHTML = '<div class="fi-carregando" role="status">Buscando produtos pendentes…</div>';
       carregarProdutosPendentes(contratoId);
     } else {
       wrapProd.innerHTML = '';
@@ -1045,34 +895,22 @@ async function carregarProdutosPendentes(contratoId) {
       .in('situacao', ['pendente','em_analise'])
       .order('numero_produto', {ascending: true});
 
-    if (!data || !data.length) {
-      wrap.innerHTML = '<div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Nenhum produto pendente neste contrato.</div>';
+    prodsPendentes = data || [];
+    if (!prodsPendentes.length) {
+      wrap.innerHTML = '<div class="fi-carregando">Nenhum produto pendente neste contrato.</div>';
       return;
     }
 
     wrap.innerHTML = `
-      <div style="margin-top:4px">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:6px">
-          Produtos pendentes — clique para preencher automaticamente
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          ${data.map(p => {
+      <div class="form-group">
+        <span class="form-label">Produtos pendentes <span style="font-weight:400;color:var(--txt-3)">— clique para preencher</span></span>
+        <div class="fi-prods" id="fi-prods">
+          ${prodsPendentes.map((p, i) => {
             const vencido = p.dt_vencimento && new Date(p.dt_vencimento) < new Date();
-            const corBorda = vencido ? '#FCA5A5' : '#9FE1CB';
-            const corFundo = vencido ? '#FEF2F2' : 'var(--sucesso-bg)';
-            const corNum   = vencido ? 'var(--erro)' : 'var(--verde-medio)';
-            return `<button type="button"
-              onclick="preencherDeProduto('${p.id}',${p.numero_produto},'${(p.descricao||'').replace(/'/g,"\\'")}',${parseFloat(p.valor_brl||0)},'${p.dt_vencimento||''}')"
-              style="border:1px solid ${corBorda};background:${corFundo};border-radius:var(--raio);
-                padding:6px 10px;cursor:pointer;text-align:left;font-family:var(--font-sans)">
-              <div style="font-size:9px;font-weight:700;color:${corNum};text-transform:uppercase;letter-spacing:.05em">
-                Produto ${p.numero_produto}${vencido?' ⚠ Vencido':''}
-              </div>
-              <div style="font-size:11px;font-weight:500;color:var(--cinza-800);max-width:200px;
-                overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.descricao}</div>
-              <div style="font-size:11px;font-family:var(--font-mono);color:var(--verde-medio);font-weight:700">
-                ${fmtBRL(parseFloat(p.valor_brl||0))}
-              </div>
+            return `<button type="button" class="fi-prod${vencido?' vencido':''}" aria-pressed="false" onclick="preencherDeProduto(${i})">
+              <small>Produto ${esc(p.numero_produto)}${vencido?' · '+fiIc('alerta','p')+'vencido':''}</small>
+              <span title="${esc(p.descricao||'')}">${esc(p.descricao||'')}</span>
+              <b>${fmtBRL(parseFloat(p.valor_brl||0))}</b>
             </button>`;
           }).join('')}
         </div>
@@ -1082,39 +920,40 @@ async function carregarProdutosPendentes(contratoId) {
   }
 }
 
-function preencherDeProduto(prodId, numProd, desc, valor, dtVenc) {
+function preencherDeProduto(i) {
+  const p = prodsPendentes[i];
+  if (!p) return;
   const fDesc = document.getElementById('f-desc');
   const fBrl  = document.getElementById('f-brl');
   const fVenc = document.getElementById('f-venc');
-  if (fDesc && !fDesc.value) fDesc.value = desc;
+  const valor = parseFloat(p.valor_brl || 0);
+  if (fDesc && !fDesc.value) fDesc.value = p.descricao || '';
   if (fBrl  && !fBrl.value)  { fBrl.value = valor; calcUSD(valor); }
-  if (fVenc && !fVenc.value && dtVenc) fVenc.value = dtVenc;
+  if (fVenc && !fVenc.value && p.dt_vencimento) fVenc.value = p.dt_vencimento;
 
-  // Guardar referência oculta do produto selecionado para o salvarLanc usar
+  // Referências ocultas do produto selecionado para o salvarLanc usar
   let hidden = document.getElementById('f-num-produto');
   if (!hidden) {
     hidden = document.createElement('input');
     hidden.type = 'hidden'; hidden.id = 'f-num-produto';
     document.getElementById('ml-body').appendChild(hidden);
   }
-  hidden.value = numProd;
+  hidden.value = p.numero_produto;
 
-  // Guardar também o id do produto para vincular lancamento_id depois
   let hiddenProdId = document.getElementById('f-prod-id');
   if (!hiddenProdId) {
     hiddenProdId = document.createElement('input');
     hiddenProdId.type = 'hidden'; hiddenProdId.id = 'f-prod-id';
     document.getElementById('ml-body').appendChild(hiddenProdId);
   }
-  hiddenProdId.value = prodId;
+  hiddenProdId.value = p.id;
 
-  // Marcar produto selecionado visualmente
-  document.querySelectorAll('#wrap-prod-pendentes button').forEach(b => {
-    const match = b.getAttribute('onclick')?.includes(`'${prodId}'`);
-    b.style.opacity = match ? '1' : '0.4';
-    b.style.outline = match ? '2px solid var(--verde-medio)' : 'none';
-  });
-  toast('Campos preenchidos com os dados do Produto '+numProd+'. Confira e salve.','info');
+  const box = document.getElementById('fi-prods');
+  if (box) {
+    box.classList.add('escolhido');
+    box.querySelectorAll('.fi-prod').forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
+  }
+  toast('Campos preenchidos com os dados do Produto '+p.numero_produto+'. Confira e salve.','info');
 }
 
 function calcUSD(val) {
@@ -1130,8 +969,7 @@ function selecionarComp(file) {
   if (!file) return;
   arquivoComp = file;
   const el = document.getElementById('upload-comp');
-  if (el) { el.classList.add('tem'); el.querySelector('input').style.display='none';
-    el.textContent = `✓ ${file.name} selecionado`; }
+  if (el) { el.classList.add('tem'); el.innerHTML = fiIc('check') + `<b>${esc(file.name)}</b><span>selecionado · clique para trocar</span>`; }
 }
 
 async function salvarLanc() {
@@ -1148,6 +986,7 @@ async function salvarLanc() {
   const numProduto = parseInt(document.getElementById('f-num-produto')?.value) || null;
   const produtoId  = document.getElementById('f-prod-id')?.value || null;
 
+  // dt_pagamento não vai daqui: só a janela "Efetivar pagamento" (com senha) grava o pagamento.
   const dados = {
     descricao: desc,
     atividade_id: ativId,
@@ -1161,9 +1000,8 @@ async function salvarLanc() {
       ? lancEditando.cotacao_uso
       : taxaAtual,
     numero_nf: document.getElementById('f-nf').value.trim()||null,
-    numero_produto: numProduto,
+    numero_produto: numProduto ?? (lancEditando?.numero_produto ?? null),
     dt_vencimento: document.getElementById('f-venc').value||null,
-    dt_pagamento: document.getElementById('f-pgto').value||null,
     situacao: document.getElementById('f-sit').value,
     elemento_despesa: document.getElementById('f-elem').value.trim()||null,
     observacoes: document.getElementById('f-obs').value.trim()||null,
@@ -1184,6 +1022,13 @@ async function salvarLanc() {
       const {error} = await db.from('execucao_financeira').update(dados).eq('id',lancEditando.id);
       if (error) throw error;
       Object.assign(lancEditando, dados);
+      // embeds usados na lista
+      const a = atividades.find(x => x.id === dados.atividade_id);
+      if (a) lancEditando.atividades = { id:a.id, codigo:a.codigo, nome_pt:a.nome_pt, resultado_id:a.resultado_id };
+      const c = contratos.find(x => x.id === dados.contrato_id);
+      lancEditando.contratos = c ? { id:c.id, numero:c.numero, objeto_pt:c.objeto_pt } : null;
+      const f = fornecedores.find(x => x.id === dados.fornecedor_id);
+      lancEditando.fornecedores = f ? { id:f.id, nome:f.nome, tipo:f.tipo } : null;
       toast('Lançamento atualizado!','success');
     }
 
@@ -1217,7 +1062,8 @@ async function salvarLanc() {
 
 async function cancelarLanc(id) {
   if (!confirm('Cancelar este lançamento?')) return;
-  await db.from('execucao_financeira').update({situacao:'cancelado'}).eq('id',id);
+  const { error } = await db.from('execucao_financeira').update({situacao:'cancelado'}).eq('id',id);
+  if (error) { toast('Erro ao cancelar: '+(error.message||''),'error'); return; }
   const l = todosLanc.find(x=>x.id===id);
   if (l) l.situacao = 'cancelado';
   fecharModal();
@@ -1241,13 +1087,13 @@ function exportarCSV() {
     l.dt_vencimento||'',
     l.dt_pagamento||'',
     (l.valor_brl||0).toString().replace('.',','),
-    ((parseFloat(l.valor_brl||0)/taxaAtual).toFixed(2)).replace('.',','),
+    usdLanc(l).toFixed(2).replace('.',','),
     l.situacao||'',
     l.elemento_despesa||''
   ]);
 
   const csv = [headers.join(';'), ...rows.map(r=>r.join(';'))].join('\n');
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `financeiro-dima-${new Date().toISOString().split('T')[0]}.csv`;
@@ -1255,7 +1101,7 @@ function exportarCSV() {
   toast('CSV exportado com sucesso!','success');
 }
 
-// ── MODAL EFETIVAR PAGAMENTO ──────────────────────────────────
+// ── JANELA EFETIVAR PAGAMENTO ─────────────────────────────────
 let lancPagando = null;
 let arquivoPgto = null;
 let taxaUnescoUltima = null; // lembra a última cotação UNESCO usada
@@ -1270,12 +1116,10 @@ async function abrirPagamento(id) {
   const hoje = new Date().toISOString().split('T')[0];
 
   document.getElementById('pgto-subtitulo').textContent = l.descricao || '';
-  document.getElementById('modal-pgto').classList.add('aberto');
+  document.getElementById('pgto-footer').innerHTML = '';
   document.getElementById('pgto-body').innerHTML =
-    `<div style="text-align:center;padding:24px;color:var(--cinza-400)">
-      <div style="width:24px;height:24px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 8px"></div>
-      Carregando histórico...
-    </div>`;
+    `<div class="fi-vazio" role="status"><div class="fi-spin"></div>Carregando histórico…</div>`;
+  fiAbrir('modal-pgto');
 
   // Buscar produto vinculado, dados do fornecedor e totais do contrato
   let produto = null, fornData = {nome:'—',cpf_cnpj:'',email:''};
@@ -1314,7 +1158,7 @@ async function abrirPagamento(id) {
   }
   const ctSaldo = ctTotais.total - ctTotais.pago;
 
-  // ── Painel de atividade (lançamentos sem contrato, ex: viagens) ──
+  // ── Painel de atividade (lançamentos sem contrato, ex.: viagens) ──
   const semContrato = !l.contrato_id;
   let atTotais = { orcamento: 0, pago: 0, aPagar: 0 };
   if (semContrato && l.atividade_id) {
@@ -1327,7 +1171,7 @@ async function abrirPagamento(id) {
   const atSaldo = atTotais.orcamento - atTotais.pago - atTotais.aPagar;
 
   // ── Resumo do lançamento ──
-  const ativNome = l.atividades ? `${l.atividades.codigo} · ${l.atividades.nome_pt?.substring(0,40)}` : '—';
+  const ativNome = l.atividades ? `${l.atividades.codigo} · ${(l.atividades.nome_pt||'').substring(0,40)}` : '—';
   const fornNome = fornData.nome || l.fornecedores?.nome || '—';
   const contNum  = l.contratos?.numero  || '—';
   const venc     = l.dt_vencimento ? fmtData(l.dt_vencimento) : '—';
@@ -1356,233 +1200,166 @@ async function abrirPagamento(id) {
       entregaContribs = contribsR.data || [];
     }
   }
+  // a janela pode ter sido fechada enquanto carregava
+  if (lancPagando !== l) return;
 
-  // ── Timeline histórico do produto ──
+  // ── Histórico do produto ──
   let timelineHtml = '';
   if (produto) {
     const itens = [];
+    itens.push({ cls:'t-ne', ic:'doc', titulo:`Produto ${produto.numero_produto} — ${(produto.descricao||'').substring(0,60)}`,
+      data: contNum !== '—' ? `Contrato ${contNum}${produto.dt_vencimento ? ' · vence ' + fmtData(produto.dt_vencimento) : ''}` : '' });
 
-    // 1. Contrato vinculado
-    itens.push({ dot:'ok', ico:'📄', titulo:`Produto ${produto.numero_produto} — ${produto.descricao?.substring(0,60)||''}`, data: contNum ? `Contrato nº ${contNum}` : '' });
-
-    // 2. Prazo de entrega
     if (produto.dt_vencimento) {
-      const prazoOk = produto.dt_entrega && produto.dt_entrega <= produto.dt_vencimento;
-      itens.push({ dot: produto.dt_entrega ? 'ok' : 'warn', ico: produto.dt_entrega ? '📦' : '⏳',
-        titulo: produto.dt_entrega ? 'Produto entregue' : 'Aguardando entrega',
-        data: produto.dt_entrega
-          ? `Entregue em ${fmtData(produto.dt_entrega)}${entregaInfo?.criado_por_u?.nome_completo ? ' · '+entregaInfo.criado_por_u.nome_completo : ''}${produto.arquivo_entrega_nome ? ' · 📎 '+produto.arquivo_entrega_nome : ''}`
-          : `Prazo: ${fmtData(produto.dt_vencimento)}` });
+      itens.push(produto.dt_entrega
+        ? { cls:'t-in', ic:'caixa', titulo:'Entregue',
+            data:`${fmtData(produto.dt_entrega)}${entregaInfo?.criado_por_u?.nome_completo ? ' · '+entregaInfo.criado_por_u.nome_completo : ''}${produto.arquivo_entrega_nome ? ' · '+produto.arquivo_entrega_nome : ''}` }
+        : { cls:'t-al', ic:'relogio', titulo:'Aguardando entrega', data:`Prazo: ${fmtData(produto.dt_vencimento)}` });
     }
 
-    // 2.5 Devoluções registradas em contratos_produtos_entregas
     entDevolvidas.forEach(e => {
       const dtDev = e.despacho_data ? fmtData(e.despacho_data)
         : e.despachado_em ? fmtData(e.despachado_em.split('T')[0])
         : `Entrega ${e.numero_entrega}`;
       const userDev = e.despachado_por_u?.nome_completo;
-      itens.push({ dot:'dev', ico:'↩️', titulo:'Devolvido para ajustes', data:`Devolvido em ${dtDev}${userDev ? ' · '+userDev : ''}`, parecer: e.despacho_texto });
+      itens.push({ cls:'t-al', ic:'volta', titulo:'Devolvido para ajustes', data:`${dtDev}${userDev ? ' · '+userDev : ''}`, parecer: e.despacho_texto });
     });
 
-    // 3. Avaliação — considera situacao do produto quando avaliado_em não foi preenchido
+    // Avaliação — considera a situação do produto quando avaliado_em não foi preenchido
     const situacaoAprovada = ['aprovado', 'entrega_parcial', 'pago'].includes(produto.situacao);
     if (produto.avaliado_em || situacaoAprovada) {
       const avaliador = produto.usuarios?.nome_completo || entAprovada?.despachado_por_u?.nome_completo || 'Avaliador';
       const dtAprov = produto.avaliado_em
         || entAprovada?.despacho_data
         || (entAprovada?.despachado_em ? entAprovada.despachado_em.split('T')[0] : null);
-      itens.push({ dot:'ok', ico:'✅',
-        titulo: `Avaliado — ${produto.pct_aprovado != null ? produto.pct_aprovado+'% aprovado' : 'Aprovado'}`,
+      itens.push({ cls:'t-ok', ic:'check',
+        titulo: `Avaliado — ${produto.pct_aprovado != null ? produto.pct_aprovado+'% aprovado' : 'aprovado'}`,
         data: `${dtAprov ? fmtData(dtAprov)+' · ' : ''}${avaliador}`,
         parecer: produto.parecer_avaliador });
     } else if (produto.dt_entrega) {
-      itens.push({ dot:'warn', ico:'🔍', titulo:'Aguardando avaliação', data:'Produto entregue, pendente de avaliação' });
+      itens.push({ cls:'t-al', ic:'busca', titulo:'Aguardando avaliação', data:'Produto entregue, pendente de avaliação' });
     }
 
     timelineHtml = `
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:10px">📋 Histórico do Produto</div>
-      <div class="timeline">
+      <div class="fi-sec">${fiIc('relogio','p')}Histórico do produto</div>
+      <ul class="fi-tl">
         ${itens.map(i => `
-          <div class="tl-item">
-            <div class="tl-dot ${i.dot}">${i.ico}</div>
-            <div class="tl-body">
-              <div class="tl-titulo">${i.titulo}</div>
-              ${i.data ? `<div class="tl-data">${i.data}</div>` : ''}
-              ${i.parecer ? `<div class="tl-parecer">"${i.parecer}"</div>` : ''}
-            </div>
-          </div>`).join('')}
-      </div>`;
+          <li class="${i.cls}"><span class="d">${fiIc(i.ic,'p')}</span><div>
+            <b>${esc(i.titulo)}</b>
+            ${i.data ? `<small>${esc(i.data)}</small>` : ''}
+            ${i.parecer ? `<q>${esc(i.parecer)}</q>` : ''}
+          </div></li>`).join('')}
+      </ul>`;
   }
 
-  // ── Cotação ──
-  const usdEstimado = (parseFloat(l.valor_brl||0) / taxaLanc).toFixed(2);
+  const CONTRIB_ST = { pendente:['fi-p-al','Pendente'], confirmado:['fi-p-ok','Confirmado'], rejeitado:['fi-p-er','Rejeitado'] };
 
   document.getElementById('pgto-body').innerHTML = `
-    <!-- Painel de contrato ou atividade -->
-    <div style="background:#F8FAFC;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;margin-bottom:14px">
+    <div class="fi-pg-topo">
       ${semContrato ? `
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:#EFF6FF;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">✈️</div>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--cinza-900)">${esc(l.descricao||'—')}</div>
-            <div style="font-size:11px;color:var(--cinza-500)">Recurso executado diretamente pela UNESCO</div>
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em">Atividade</div>
-          <div style="font-size:13px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono)">${l.atividades?.codigo||'—'}</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:12px;border-top:1px solid var(--borda)">
-        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Orçamento</div>
-          <div style="font-size:12px;font-weight:700;color:var(--cinza-800);font-family:var(--font-mono)">${fmtBRL(atTotais.orcamento)}</div>
-          <div style="font-size:10px;color:var(--cinza-400)">cotação estimada</div></div>
-        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Pago</div>
-          <div style="font-size:12px;font-weight:700;color:#059669;font-family:var(--font-mono)">${fmtBRL(atTotais.pago)}</div></div>
-        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">A Pagar</div>
-          <div style="font-size:12px;font-weight:700;color:#D97706;font-family:var(--font-mono)">${fmtBRL(atTotais.aPagar)}</div></div>
-        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Saldo</div>
-          <div style="font-size:12px;font-weight:700;color:${atSaldo>=0?'#1D4ED8':'#DC2626'};font-family:var(--font-mono)">${fmtBRL(atSaldo)}</div></div>
-      </div>
+        <div class="fi-quem"><span class="ico info">${fiIc('aviao')}</span><div><b>${esc(l.descricao||'—')}</b><small>Recurso executado diretamente pela UNESCO</small></div></div>
+        <div class="fi-pg-ref"><span>Atividade</span><b>${esc(l.atividades?.codigo||'—')}</b></div>
       ` : `
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏢</div>
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--cinza-900)">${esc(fornNome)}</div>
-            ${fornData.cpf_cnpj ? `<div style="font-size:11px;color:var(--cinza-500);font-family:var(--font-mono)">${esc(fornData.cpf_cnpj)}</div>` : ''}
-            ${fornData.email    ? `<div style="font-size:11px;color:var(--cinza-500)">${esc(fornData.email)}</div>` : ''}
-          </div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em">Contrato</div>
-          <div style="font-size:13px;font-weight:700;color:var(--cinza-900);font-family:var(--font-mono)">${esc(contNum)}</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-top:12px;border-top:1px solid var(--borda)">
-        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Total contrato</div>
-          <div style="font-size:12px;font-weight:700;color:var(--cinza-800);font-family:var(--font-mono)">${fmtBRL(ctTotais.total)}</div></div>
-        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Aprovado</div>
-          <div style="font-size:12px;font-weight:700;color:#7C3AED;font-family:var(--font-mono)">${fmtBRL(ctTotais.aprovado)}</div></div>
-        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Pago</div>
-          <div style="font-size:12px;font-weight:700;color:#059669;font-family:var(--font-mono)">${fmtBRL(ctTotais.pago)}</div></div>
-        <div><div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">Saldo</div>
-          <div style="font-size:12px;font-weight:700;color:${ctSaldo>=0?'#1D4ED8':'#DC2626'};font-family:var(--font-mono)">${fmtBRL(ctSaldo)}</div></div>
-      </div>
+        <div class="fi-quem"><span class="ico">${fiIc('predio')}</span><div><b>${esc(fornNome)}</b>
+          ${fornData.cpf_cnpj ? `<small class="mono">${esc(fornData.cpf_cnpj)}</small>` : ''}
+          ${fornData.email ? `<small>${esc(fornData.email)}</small>` : ''}</div></div>
+        <div class="fi-pg-ref"><span>Contrato</span><b>${esc(contNum)}</b></div>
       `}
     </div>
+    ${semContrato ? `
+      <div class="fi-resumo">
+        <div><span>Orçamento (estimado a ${fmtTaxa(taxaAtual)})</span><b>${fmtBRL(atTotais.orcamento)}</b></div>
+        <div><span>Pago</span><b class="ok">${fmtBRL(atTotais.pago)}</b></div>
+        <div><span>A pagar</span><b>${fmtBRL(atTotais.aPagar)}</b></div>
+        <div><span>Saldo</span><b class="${atSaldo<0?'erro':''}">${fmtBRL(atSaldo)}</b></div>
+      </div>` : `
+      <div class="fi-resumo">
+        <div><span>Total do contrato</span><b>${fmtBRL(ctTotais.total)}</b></div>
+        <div><span>Aprovado</span><b>${fmtBRL(ctTotais.aprovado)}</b></div>
+        <div><span>Pago</span><b class="ok">${fmtBRL(ctTotais.pago)}</b></div>
+        <div><span>Saldo</span><b class="${ctSaldo<0?'erro':''}">${fmtBRL(ctSaldo)}</b></div>
+      </div>`}
 
-    <!-- Layout 2 colunas -->
-    <div style="display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start">
-
-      <!-- Coluna esquerda: histórico e evidências -->
+    <div class="fi-pg2">
       <div>
-        <!-- Resumo do lançamento -->
-        <div class="pgto-resumo" style="margin-bottom:16px">
-          <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Atividade</span><span class="pgto-resumo-val">${ativNome}</span></div>
-          <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Vencimento</span>
-            <span class="pgto-resumo-val" style="color:${vencido?'var(--erro)':'inherit'}">${venc}${vencido?' ⚠ Vencido':''}</span></div>
-          <div class="pgto-resumo-item"><span class="pgto-resumo-lbl">Valor lançamento</span>
-            <span class="pgto-resumo-val" style="color:var(--verde-medio)">${fmtBRL(l.valor_brl)}</span></div>
+        <div class="fi-linhas">
+          <div><span>Atividade</span><b>${esc(ativNome)}</b></div>
+          <div><span>Vencimento</span><b class="${vencido?'erro':''}">${venc}${vencido?' · vencido':''}</b></div>
+          <div><span>Valor do lançamento</span><b class="ok mono">${fmtBRL(l.valor_brl)}</b></div>
         </div>
 
         ${timelineHtml}
 
-        ${(entregaDocs.length || entregaContribs.length) ? `
-        <div style="margin-top:16px">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:10px">
-            📎 Documentos e Indicadores — Entrega ${entregaInfo?.numero_entrega||''}${entregaInfo?.dt_entrega?' · '+fmtData(entregaInfo.dt_entrega):''}
-          </div>
-          ${entregaDocs.length ? `
-          <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:10px 12px;margin-bottom:8px">
-            <div style="font-size:10px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📄 Documentos entregues</div>
+        ${entregaDocs.length ? `
+          <div class="fi-sec">${fiIc('clipe','p')}Documentos da entrega ${esc(entregaInfo?.numero_entrega||'')}${entregaInfo?.dt_entrega?' · '+fmtData(entregaInfo.dt_entrega):''}</div>
+          <div class="fi-docs">
             ${entregaDocs.map(d => `
-              <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #BFDBFE">
-                <span>${d.tipo_documento==='Planilha de Geolocalização'?'📍':'📄'}</span>
-                <div style="flex:1;min-width:0">
-                  <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.arquivo_nome)}</div>
-                  <div style="font-size:10px;color:#3B82F6">${esc(d.tipo_documento)}</div>
-                </div>
-                ${d.arquivo_url ? `<button class="btn btn-sm btn-secondary" style="font-size:11px;flex-shrink:0" onclick="abrirDoc('${esc(d.arquivo_url)}')">👁 Abrir</button>` : ''}
+              <div class="fi-doc"><span class="ico">${fiIc(d.tipo_documento==='Planilha de Geolocalização'?'pin':'doc')}</span>
+                <div style="min-width:0"><b title="${esc(d.arquivo_nome||'')}">${esc(d.arquivo_nome||'Documento')}</b><small>${esc(d.tipo_documento||'')}</small></div>
+                ${d.arquivo_url ? `<a href="#" class="fi-btn peq" data-arquivo="${esc(d.arquivo_url)}">${fiIc('olho','p')}Abrir</a>` : '<span></span>'}
               </div>`).join('')}
           </div>` : ''}
-          ${entregaContribs.length ? `
-          <div style="background:#F5F3FF;border:1px solid #DDD6FE;border-radius:var(--raio);padding:10px 12px">
-            <div style="font-size:10px;font-weight:700;color:#4C1D95;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">◎ Contribuição à Matriz de Resultados</div>
+        ${entregaContribs.length ? `
+          <div class="fi-sec">${fiIc('alvo','p')}Contribuição à Matriz de Resultados</div>
+          <div class="fi-docs">
             ${entregaContribs.map(c => {
               const mi = c.matriz_itens || {};
-              const stBg  = {pendente:'#FEF3C7',confirmado:'#D1FAE5',rejeitado:'#FEE2E2'}[c.status]||'#F3F4F6';
-              const stCor = {pendente:'#92400E',confirmado:'#065F46',rejeitado:'#991B1B'}[c.status]||'#374151';
-              const stLbl = {pendente:'Pendente',confirmado:'Confirmado',rejeitado:'Rejeitado'}[c.status]||c.status;
-              return `<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:#fff;border:1px solid #DDD6FE;border-radius:var(--raio);margin-bottom:5px">
-                <div style="flex:1;min-width:0">
-                  <div style="font-size:10px;font-family:var(--font-mono);font-weight:700;color:#5B21B6;margin-bottom:2px">R${mi.resultado} · ${esc(mi.produto_codigo||'')}</div>
-                  <div style="font-size:12px;font-weight:600;color:var(--cinza-900);line-height:1.3;margin-bottom:3px">${esc(mi.indicador||'')}</div>
-                  <div style="font-size:11px;color:var(--cinza-600)">Valor declarado: <strong style="font-family:var(--font-mono)">${parseFloat(c.valor||0).toLocaleString('pt-BR')}</strong>${c.unidade?' '+esc(c.unidade):''}</div>
-                </div>
-                <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;background:${stBg};color:${stCor}">${stLbl}</span>
-              </div>`;
+              const st = CONTRIB_ST[c.status] || ['fi-p-ne', c.status || '—'];
+              return `<div class="fi-contrib"><div style="min-width:0">
+                  <small>R${esc(mi.resultado??'')} · ${esc(mi.produto_codigo||'')}</small>
+                  <b>${esc(mi.indicador||'')}</b>
+                  <span>Valor declarado: <b class="mono" style="display:inline">${parseFloat(c.valor||0).toLocaleString('pt-BR')}</b>${c.unidade?' '+esc(c.unidade):''}</span>
+                </div><span class="fi-pill ${st[0]}">${esc(st[1])}</span></div>`;
             }).join('')}
           </div>` : ''}
-        </div>` : ''}
       </div>
 
-      <!-- Coluna direita: formulário de pagamento -->
       <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:12px">💳 Dados do Pagamento</div>
-
-        <div class="form-group">
-          <label class="form-label">Data do pagamento <span class="obrig">*</span></label>
-          <input class="form-control" type="date" id="pgto-data" value="${hoje}">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nº NF / Recibo</label>
-          <input class="form-control" type="text" id="pgto-nf" placeholder="Ex: NF-001234" value="${l.numero_nf||''}">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Comprovante de transferência / pagamento</label>
-          <div style="font-size:11px;color:var(--cinza-400);margin-bottom:6px">Recibo bancário, ordem de pagamento ou extrato — <strong>não</strong> é a Nota Fiscal (a NF vai em Produtos → Registrar entrega)</div>
-          <div class="upload-mini ${l.comprovante_url?'tem':''}" id="pgto-upload-wrap"
-            onclick="document.getElementById('pgto-arquivo').click()">
-            <input type="file" id="pgto-arquivo" style="display:none" accept=".pdf,.jpg,.jpeg,.png"
-              onchange="selecionarArquivoPgto(this.files[0])">
-            ${l.comprovante_url ? `✓ Comprovante já anexado · clique para substituir` : `📎 Clique para anexar comprovante de pagamento (PDF, JPG, PNG)`}
+        <div class="fi-sec">${fiIc('cartao','p')}Dados do pagamento</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label" for="pgto-data">Data do pagamento <span class="obrig">*</span></label>
+            <input class="form-control" type="date" id="pgto-data" value="${hoje}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pgto-nf">Nº NF / recibo</label>
+            <input class="form-control mono" type="text" id="pgto-nf" placeholder="Ex.: NF-001234" value="${esc(l.numero_nf||'')}">
           </div>
         </div>
-        <div class="form-group" style="margin-bottom:14px">
-          <label class="form-label">Observações</label>
-          <textarea class="form-control" id="pgto-obs" rows="2" style="font-size:12px"
-            placeholder="Ex: Pago via TED, banco XXXX">${l.observacoes||''}</textarea>
+        <div class="form-group">
+          <span class="form-label">Comprovante de transferência / pagamento</span>
+          <button type="button" class="upload-mini${l.comprovante_url?' tem':''}" id="pgto-upload-wrap" onclick="document.getElementById('pgto-arquivo').click()">
+            ${fiIc(l.comprovante_url?'check':'upload')}<b>${l.comprovante_url?'Comprovante já anexado · clique para substituir':'Anexar comprovante de pagamento'}</b>
+            <span>Recibo bancário ou extrato — a NF vai em Produtos</span>
+          </button>
+          <input type="file" id="pgto-arquivo" hidden accept=".pdf,.jpg,.jpeg,.png" onchange="selecionarArquivoPgto(this.files[0])">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="pgto-obs">Observações</label>
+          <textarea class="form-control" id="pgto-obs" rows="2" placeholder="Ex.: Pago via TED, banco XXXX">${esc(l.observacoes||'')}</textarea>
         </div>
 
-        <!-- Cotação UNESCO -->
-        <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:var(--raio);padding:14px 16px">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#0369A1;margin-bottom:12px">💱 Câmbio do Pagamento</div>
-          <div class="form-group" style="margin-bottom:10px">
-            <label class="form-label">Cotação UNESCO (UNORE) <span class="obrig">*</span></label>
-            <input class="form-control" type="number" id="pgto-cotacao-unesco" step="0.0001" min="0.01"
-              placeholder="Ex: 5.6500"
-              value="${taxaUnescoUltima ? taxaUnescoUltima.toFixed(4) : ''}"
-              oninput="atualizarComparativoCotacao()"
-              style="font-family:var(--font-mono)">
+        <div class="fi-cambio">
+          <div class="fi-sec">${fiIc('cambio','p')}Câmbio do pagamento</div>
+          <div class="form-group">
+            <label class="form-label" for="pgto-cotacao-unesco">Cotação UNESCO (UNORE) <span class="obrig">*</span></label>
+            <input class="form-control mono" type="number" id="pgto-cotacao-unesco" step="0.0001" min="0.01"
+              placeholder="Ex.: 5.6500" value="${taxaUnescoUltima ? taxaUnescoUltima.toFixed(4) : ''}"
+              oninput="atualizarComparativoCotacao()">
             <div class="form-hint">Taxa operacional do período (UNORE)</div>
           </div>
-          <div style="font-size:11px;color:#0369A1;line-height:1.7;margin-bottom:8px">
-            <div>📊 Cotação mercado (hoje): <strong style="font-family:var(--font-mono)">R$ ${taxaLanc.toFixed(4)}</strong></div>
-            <div id="pgto-usd-unesco" style="margin-top:4px">Informe a cotação UNESCO</div>
-          </div>
-          <div id="pgto-comparativo" style="display:none;padding-top:10px;border-top:1px solid #BAE6FD"></div>
+          <div class="fi-ref">Cotação de mercado hoje: <b class="mono">${fmtTaxa(taxaLanc)}</b></div>
+          <div id="pgto-usd-unesco" class="fi-ref">Informe a cotação UNESCO</div>
+          <div id="pgto-comparativo" hidden></div>
         </div>
       </div>
-
     </div>`;
 
   document.getElementById('pgto-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="fecharModalPgto()">Cancelar</button>
-    <button class="btn btn-primary" style="background:#059669;border-color:#059669" onclick="confirmarPagamento()">
-      ✓ Confirmar Pagamento
-    </button>`;
+    <button type="button" class="fi-btn" onclick="fecharModalPgto()">Cancelar</button>
+    <button type="button" class="fi-btn pri" onclick="confirmarPagamento()">${fiIc('check','p')}Confirmar pagamento</button>`;
+  atualizarComparativoCotacao();
+  const foco = document.getElementById('pgto-data'); if (foco) foco.focus({preventScroll:true});
 }
 
 function atualizarComparativoCotacao() {
@@ -1593,8 +1370,8 @@ function atualizarComparativoCotacao() {
   const elUSD     = document.getElementById('pgto-usd-unesco');
   const elComp    = document.getElementById('pgto-comparativo');
   if (!cotUNESCO || cotUNESCO <= 0) {
-    if (elUSD)  elUSD.textContent  = 'Informe a cotação UNESCO';
-    if (elComp) elComp.style.display = 'none';
+    if (elUSD) { elUSD.hidden = false; elUSD.textContent = 'Informe a cotação UNESCO'; }
+    if (elComp) elComp.hidden = true;
     return;
   }
   const usdUnesco  = valorBRL / cotUNESCO;
@@ -1602,41 +1379,23 @@ function atualizarComparativoCotacao() {
   const difUSD     = usdUnesco - usdMercado;
   const difPct     = (difUSD / usdMercado) * 100;
   const positivo   = difUSD >= 0;
+  const f2 = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 
-  if (elUSD) elUSD.innerHTML =
-    `Valor oficial UNESCO: <strong style="font-family:var(--font-mono);color:#0369A1">USD ${usdUnesco.toFixed(2)}</strong>`;
-
+  if (elUSD) elUSD.hidden = true;
   if (elComp) {
-    elComp.style.display = 'block';
+    elComp.hidden = false;
     elComp.innerHTML = `
-      <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">
-        <div>
-          <div style="font-size:10px;color:#0369A1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Valor pelo câmbio UNESCO</div>
-          <div style="font-family:var(--font-mono);font-weight:700;font-size:14px;color:#0369A1">USD ${usdUnesco.toFixed(2)}</div>
-          <div style="font-size:10px;color:#6B7280">R$ ${valorBRL.toLocaleString('pt-BR',{minimumFractionDigits:2})} ÷ ${cotUNESCO.toFixed(4)}</div>
-        </div>
-        <div style="color:var(--cinza-300);display:flex;align-items:center;font-size:20px">vs</div>
-        <div>
-          <div style="font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Valor pelo câmbio de mercado</div>
-          <div style="font-family:var(--font-mono);font-weight:700;font-size:14px;color:var(--cinza-700)">USD ${usdMercado.toFixed(2)}</div>
-          <div style="font-size:10px;color:#6B7280">R$ ${valorBRL.toLocaleString('pt-BR',{minimumFractionDigits:2})} ÷ ${taxaAtual.toFixed(4)}</div>
-        </div>
-        <div style="margin-left:auto;text-align:right">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;color:var(--cinza-500)">Impacto financeiro</div>
-          <div style="font-family:var(--font-mono);font-weight:700;font-size:14px;color:${positivo?'#059669':'#DC2626'}">
-            ${positivo?'+':''}USD ${difUSD.toFixed(2)}
-          </div>
-          <div style="font-size:10px;color:${positivo?'#059669':'#DC2626'}">
-            ${positivo?'▲':'▼'} ${Math.abs(difPct).toFixed(2)}% ${positivo?'a mais pelo câmbio UNESCO':'a menos pelo câmbio UNESCO'}
-          </div>
-        </div>
-      </div>`;
+      <div class="fi-cmp">
+        <div><span>Pelo câmbio UNESCO (${fmtTaxa(cotUNESCO)})</span><b>US$ ${f2(usdUnesco)}</b></div>
+        <div><span>Pelo mercado (${fmtTaxa(taxaAtual)})</span><b>US$ ${f2(usdMercado)}</b></div>
+      </div>
+      <div class="fi-imp"><span>Impacto do câmbio</span>
+        <b class="${positivo?'ok':'erro'}">${positivo?'+':'−'}US$ ${f2(Math.abs(difUSD))} · ${f2(Math.abs(difPct))}% ${positivo?'a mais':'a menos'}</b></div>`;
   }
 }
 
 function abrirSenhaPgto() {
-  const perfisAutorizados = ['super_admin', 'financeiro'];
-  if (!perfisAutorizados.includes(appState.perfil)) {
+  if (!PERFIS_PAGAM.includes(appState.perfil)) {
     toast('Acesso negado. Apenas Super Admin e Financeiro podem efetivar pagamentos.', 'error');
     return;
   }
@@ -1645,42 +1404,44 @@ function abrirSenhaPgto() {
   document.getElementById('senha-pgto-nome').textContent  = nome;
   document.getElementById('senha-pgto-email').textContent = email;
   document.getElementById('inp-senha-pgto').value = '';
-  document.getElementById('senha-pgto-erro').style.display = 'none';
-  const el = document.getElementById('modal-senha-pgto');
-  el.style.display = 'flex';
-  setTimeout(() => document.getElementById('inp-senha-pgto').focus(), 80);
+  document.getElementById('senha-pgto-erro').hidden = true;
+  fiAbrir('modal-senha-pgto');
+}
+
+function _btnSenha(txt, desab) {
+  const btn = document.getElementById('btn-conf-senha');
+  if (btn) { btn.disabled = !!desab; btn.innerHTML = desab ? txt : fiIc('chave','p') + txt; }
+}
+function _erroSenha(msg) {
+  const el = document.getElementById('senha-pgto-erro');
+  el.innerHTML = fiIc('alerta','p') + esc(msg); el.hidden = false;
 }
 
 function fecharSenhaPgto() {
-  document.getElementById('modal-senha-pgto').style.display = 'none';
-  const btn = document.getElementById('btn-conf-senha');
-  if (btn) { btn.disabled = false; btn.textContent = '🔑 Confirmar'; }
+  fiFechar('modal-senha-pgto');
+  _btnSenha('Confirmar', false);
   const inp = document.getElementById('inp-senha-pgto');
   if (inp) inp.value = '';
   const erroEl = document.getElementById('senha-pgto-erro');
-  if (erroEl) erroEl.style.display = 'none';
+  if (erroEl) erroEl.hidden = true;
 }
 
 async function verificarSenhaEPagar() {
   const senha  = document.getElementById('inp-senha-pgto').value;
-  const erroEl = document.getElementById('senha-pgto-erro');
-  const btn    = document.getElementById('btn-conf-senha');
-  erroEl.style.display = 'none';
-  if (!senha) { erroEl.textContent = 'Informe sua senha.'; erroEl.style.display = 'block'; return; }
-  btn.disabled = true; btn.textContent = 'Verificando…';
+  document.getElementById('senha-pgto-erro').hidden = true;
+  if (!senha) { _erroSenha('Informe sua senha.'); return; }
+  _btnSenha('Verificando…', true);
   const email = appState.sessao?.user?.email || appState.usuario?.email || '';
   if (!email) {
-    erroEl.textContent = 'Não foi possível identificar o e-mail da sessão. Recarregue a página.';
-    erroEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = '🔑 Confirmar';
+    _erroSenha('Não foi possível identificar o e-mail da sessão. Recarregue a página.');
+    _btnSenha('Confirmar', false);
     return;
   }
   try {
     const { error } = await db.auth.signInWithPassword({ email, password: senha });
     if (error) {
-      erroEl.textContent = 'Senha incorreta. Tente novamente.';
-      erroEl.style.display = 'block';
-      btn.disabled = false; btn.textContent = '🔑 Confirmar';
+      _erroSenha('Senha incorreta. Tente novamente.');
+      _btnSenha('Confirmar', false);
       document.getElementById('inp-senha-pgto').select();
       return;
     }
@@ -1688,9 +1449,8 @@ async function verificarSenhaEPagar() {
     await executarPagamento();
   } catch(e) {
     console.error('[verificarSenhaEPagar]', e);
-    erroEl.textContent = 'Erro de conexão. Verifique a internet e tente novamente.';
-    erroEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = '🔑 Confirmar';
+    _erroSenha('Erro de conexão. Verifique a internet e tente novamente.');
+    _btnSenha('Confirmar', false);
   }
 }
 
@@ -1794,22 +1554,52 @@ function selecionarArquivoPgto(file) {
   if (!file) return;
   arquivoPgto = file;
   const wrap = document.getElementById('pgto-upload-wrap');
-  if (wrap) { wrap.classList.add('tem'); wrap.innerHTML = `✓ ${file.name} selecionado`; }
+  if (wrap) { wrap.classList.add('tem'); wrap.innerHTML = fiIc('check') + `<b>${esc(file.name)}</b><span>selecionado · clique para trocar</span>`; }
 }
 
 function fecharModalPgto() {
-  document.getElementById('modal-pgto').classList.remove('aberto');
+  fiFechar('modal-pgto');
   lancPagando = null; arquivoPgto = null;
 }
 
 function fecharModal() {
-  document.getElementById('modal-lanc').classList.remove('aberto');
+  fiFechar('modal-lanc');
   lancEditando = null; arquivoComp = null;
 }
+
+// ── Janelas: foco no primeiro campo, Esc fecha a de cima, Tab preso, foco volta ao sair ──
+const FI_FOCAVEIS = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]):not([type=file]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const fiPilha = [];
+function fiAbrir(id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.classList.add('aberto');
+  if (!fiPilha.some(x => x.el === el)) fiPilha.push({ el, volta: document.activeElement });
+  requestAnimationFrame(() => {
+    const alvo = el.querySelector('.modal-body :is(input:not([readonly]):not([type=checkbox]):not([type=file]):not([hidden]),select,textarea)') || el.querySelector(FI_FOCAVEIS);
+    if (alvo) alvo.focus({ preventScroll: true });
+  });
+}
+function fiFechar(id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.classList.remove('aberto');
+  const i = fiPilha.findIndex(x => x.el === el); if (i < 0) return;
+  const volta = fiPilha.splice(i, 1)[0].volta;
+  if (volta && document.contains(volta)) volta.focus({ preventScroll: true });
+}
 document.addEventListener('keydown', e => {
+  const topo = fiPilha.length ? fiPilha[fiPilha.length - 1].el : null; if (!topo) return;
   if (e.key === 'Escape') {
-    if (document.getElementById('modal-pgto').classList.contains('aberto')) fecharModalPgto();
+    e.preventDefault();
+    if (topo.id === 'modal-senha-pgto') fecharSenhaPgto();
+    else if (topo.id === 'modal-pgto') fecharModalPgto();
     else fecharModal();
+  } else if (e.key === 'Tab') {
+    const f = [...topo.querySelectorAll(FI_FOCAVEIS)].filter(x => x.offsetParent !== null);
+    if (!f.length) return;
+    const pri = f[0], ult = f[f.length - 1];
+    if (!topo.contains(document.activeElement)) { e.preventDefault(); pri.focus(); }
+    else if (e.shiftKey && document.activeElement === pri) { e.preventDefault(); ult.focus(); }
+    else if (!e.shiftKey && document.activeElement === ult) { e.preventDefault(); pri.focus(); }
   }
 });
 </script>

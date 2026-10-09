@@ -676,6 +676,18 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Documentos abrem por `data-arquivo` (link assinado; bucket `contratos-docs` é privado). Janelas: classe **`ct-ov`** (no seletor
   de escopo de `diagnostico-mesa.css`), `ctAbrir`/`ctFechar` (foco, Esc, Tab).
 
+### Financeiro — visual da lista, das abas e das janelas
+- `pages/financeiro.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e componentes em `css/financeiro.css` (prefixo `fi-`; dinheiro e resultados = tokens `--fi-*`). Sem
+  `<style>` próprio; ícones SVG por `fiIc()`, sem emoji. Texto do usuário sempre por `esc()`.
+- **US$ de lançamento = `usdLanc(l)`**: pago = câmbio UNESCO gravado no pagamento (`valor_usd_unesco`, travado); a pagar =
+  estimado pela cotação de hoje (`cotacoes_usd`). Cartão "Em US$", abas Por atividade/Por resultado (em US$ contra
+  `orcamento_usd`) e CSV usam o mesmo cálculo. Essas abas mostram só lançamentos — o saldo oficial é a `vw_saldo_atividade`.
+- **Data de pagamento é só leitura** em "Editar lançamento" (`salvarLanc()` não envia `dt_pagamento`); só a janela
+  "Efetivar pagamento" grava o pagamento, depois da senha (super_admin/financeiro). O botão "Pagar" só aparece para esses perfis.
+- Comprovante e documentos da entrega abrem por `data-arquivo` (bucket `financeiro-docs` é privado). Janelas: classe **`fi-ov`**
+  (no seletor de escopo de `diagnostico-mesa.css`), `fiAbrir`/`fiFechar` (foco, Esc fecha a de cima, Tab).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
