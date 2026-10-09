@@ -1,170 +1,46 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Matriz de Resultados</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-/* ── Stats ── */
-.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;cursor:pointer;user-select:none;transition:box-shadow .15s,border-color .15s,transform .08s;}
-.stat-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px);}
-.stat-card:active{transform:scale(.95);box-shadow:0 1px 2px rgba(0,0,0,.12) inset;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;}
-.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:#2563EB}
-.sc-a::after{background:var(--aviso)}.sc-r::after{background:var(--erro)}.sc-t::after{background:#0D9488}
-.stat-card.ativo{border-color:transparent;box-shadow:0 0 0 2px currentColor inset;}
-.sc-g.ativo{color:var(--verde-claro)}
-.sc-b.ativo{color:#2563EB}
-.sc-a.ativo{color:var(--aviso)}
-.sc-r.ativo{color:var(--erro)}
-.sc-t.ativo{color:#0D9488}
-.stat-lbl{font-size:10px;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600;}
-.stat-val{font-size:20px;font-weight:700;color:var(--cinza-900);}
-.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
-.stat-card>*{position:relative;z-index:2;}
-.wc-inner{position:absolute;left:0;right:0;bottom:0;height:0%;transition:height 1.1s cubic-bezier(.4,0,.2,1);z-index:0;overflow:visible;opacity:.5;}
-.wc-wavewrap{position:absolute;left:0;right:0;bottom:100%;height:14px;overflow:hidden;}
-.wc-wave-svg{position:absolute;top:0;left:0;width:200%;height:100%;animation:wcwave 4.5s linear infinite;}
-.wc-wave-svg.w2{animation-duration:6.5s;animation-direction:reverse;opacity:.6;}
-@keyframes wcwave{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-
-/* ── Main tabs ── */
-.main-tabs{display:flex;gap:0;border-bottom:2px solid var(--borda);margin-bottom:18px;}
-.main-tab{padding:10px 18px;font-size:13px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
-.main-tab.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);font-weight:600;}
-.main-tab-content{display:none;}
-.main-tab-content.ativo{display:block;animation:fadeIn .2s ease;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── Resultado accordion ── */
-.resultado-bloco{margin-bottom:12px;border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
-.resultado-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--cinza-50);cursor:pointer;user-select:none;}
-.resultado-header:hover{background:var(--cinza-100);}
-.resultado-codigo{font-family:var(--font-mono);font-size:12px;font-weight:700;padding:3px 10px;border-radius:4px;color:#fff;flex-shrink:0;}
-.rc-1{background:#1D9E75}.rc-2{background:#2563EB}.rc-3{background:#7F77DD}
-.resultado-nome-txt{font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;line-height:1.3;}
-
-/* ── Produto group ── */
-.produto-group{border-top:1px solid var(--borda);background:var(--branco);}
-.produto-label{display:flex;align-items:center;gap:8px;padding:8px 16px;background:#F8FAFF;border-top:1px solid var(--borda);cursor:pointer;}
-.produto-label:hover{background:#F0F4FF;}
-.produto-cod{font-family:var(--font-mono);font-size:11px;font-weight:700;color:#2563EB;background:#EFF6FF;padding:2px 8px;border-radius:3px;}
-.produto-titulo-txt{font-size:12px;font-weight:500;color:var(--cinza-700);flex:1;}
-
-/* ── Indicador card ── */
-.ind-card{padding:12px 16px;border-top:1px solid var(--borda);border-left:4px solid transparent;cursor:pointer;transition:background .1s;}
-.ind-card:hover{background:var(--cinza-50);}
-.ind-card.risco-ok{border-left-color:#059669;}
-.ind-card.risco-med{border-left-color:#D97706;}
-.ind-card.risco-alto{border-left-color:#DC2626;}
-.ind-card.risco-sem{border-left-color:var(--cinza-300);}
-.ind-header{display:flex;align-items:flex-start;gap:10px;}
-.ind-num{font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:2px 7px;border-radius:3px;color:var(--cinza-600);flex-shrink:0;margin-top:2px;}
-.ind-nome{font-size:12px;font-weight:500;color:var(--cinza-900);flex:1;line-height:1.4;}
-.ind-badges{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;align-items:flex-start;}
-
-.ind-prog{margin-top:8px;display:flex;align-items:center;gap:10px;}
-.prog-bar-wrap{flex:1;height:6px;background:var(--cinza-100);border-radius:3px;overflow:hidden;position:relative;}
-.prog-fill-conf{height:100%;background:#059669;border-radius:3px;transition:width .5s;position:absolute;left:0;}
-.prog-fill-pend{height:100%;background:#FCD34D;border-radius:3px;transition:width .5s;position:absolute;}
-.ind-prog-nums{font-size:10px;color:var(--cinza-500);white-space:nowrap;text-align:right;min-width:90px;}
-.ind-pct{font-family:var(--font-mono);font-size:13px;font-weight:700;min-width:38px;text-align:right;}
-
-/* ── Chips ── */
-.ods-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#EFF6FF;color:#1D4ED8;}
-.km-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#EDE9FE;color:#5B21B6;}
-.pend-chip{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:#FEF3C7;color:#92400E;}
-.conf-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
-.cb-ok{background:#D1FAE5;color:#065F46}
-.cb-med{background:#FEF3C7;color:#92400E}
-.cb-alto{background:#FEE2E2;color:#991B1B}
-.cb-sem{background:#F3F4F6;color:#6B7280}
-
-/* ── ODS grid ── */
-.ods-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
-.ods-card{border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;text-align:center;cursor:pointer;transition:all .2s;opacity:.35;filter:grayscale(.8);background:#fff;}
-.ods-card.ativo{opacity:1;filter:none;box-shadow:0 4px 18px rgba(0,0,0,.13);}
-.ods-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.15);opacity:1;filter:none;}
-.ods-img-wrap{width:100%;aspect-ratio:1/1;overflow:hidden;}
-.ods-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s;}
-.ods-card:hover .ods-img-wrap img{transform:scale(1.04);}
-.ods-card-foot{padding:6px 8px 8px;min-height:36px;}
-.ods-badge-cnt{font-size:9px;font-weight:700;margin-top:4px;padding:2px 8px;border-radius:99px;display:inline-block;}
-
-/* ── KM list ── */
-.km-item{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;cursor:pointer;transition:all .15s;opacity:.5;}
-.km-item.ativo{opacity:1;background:var(--branco);box-shadow:0 1px 6px rgba(0,0,0,.07);}
-.km-item.ativo:hover{background:var(--cinza-50);}
-.km-num{font-family:var(--font-mono);font-size:14px;font-weight:700;min-width:32px;text-align:center;padding:4px 0;}
-.km-body{flex:1;}
-.km-titulo{font-size:12px;font-weight:600;color:var(--cinza-900);margin-bottom:3px;}
-.km-resumo{font-size:11px;color:var(--cinza-600);line-height:1.4;}
-.km-inds{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px;}
-
-/* ── Tabs dentro do modal ── */
-.tab-bar{display:flex;gap:0;border-bottom:1px solid var(--borda);margin-bottom:14px;overflow-x:auto;}
-.tab-btn{padding:7px 14px;font-size:12px;font-weight:500;color:var(--cinza-500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-sans);white-space:nowrap;}
-.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
-.tab-content{display:none;}
-.tab-content.ativo{display:block;}
-
-/* ── Contribuição item ── */
-.contrib-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;background:var(--branco);}
-.contrib-status{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;}
-.cs-pend{background:#FEF3C7;color:#92400E}
-.cs-conf{background:#D1FAE5;color:#065F46}
-.cs-rej{background:#FEE2E2;color:#991B1B}
-
-/* ── ODS/KM seletores no formulário ── */
-.fi-ods-sel{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);min-height:44px;}
-.fi-ods-chip{display:inline-flex;align-items:center;gap:3px;padding:5px 9px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .12s;background:#F3F4F6;color:var(--cinza-500);user-select:none;}
-.fi-ods-chip:hover{filter:brightness(.94);}
-.fi-ods-chip.sel{border-color:currentColor;}
-.fi-km-sel{display:flex;flex-direction:column;gap:3px;padding:8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);max-height:220px;overflow-y:auto;}
-.fi-km-chip{display:flex;align-items:flex-start;gap:8px;padding:6px 10px;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:all .12s;background:var(--branco);user-select:none;}
-.fi-km-chip:hover{background:#EDE9FE33;}
-.fi-km-chip.sel{background:#EDE9FE;border-color:#7C3AED;}
-.fi-km-chip-num{font-family:var(--font-mono);font-size:11px;font-weight:700;min-width:22px;color:#5B21B6;margin-top:1px;}
-.fi-km-chip-txt{font-size:11px;color:var(--cinza-700);line-height:1.35;}
-</style>
+<link href="../css/sidebar.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes da Matriz -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/matriz.css" rel="stylesheet">
 </head>
-<body>
-<div id="app">
-  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
-    <div style="text-align:center">
-      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      Carregando Matriz de Resultados…
-    </div>
-  </div>
-</div>
+<body class="dgm">
+<div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando Matriz de Resultados…</div></div></div>
 
-<!-- MODAL INDICADOR -->
-<div class="modal-overlay" id="modal-ind" style="display:none">
-  <div class="modal" style="max-width:720px">
+<!-- Janelas fora do #app; .mz-ov = escopo do tema (css/matriz.css). <i data-ic> vira ícone SVG. -->
+<div class="modal-overlay mz-ov" id="modal-ind" role="dialog" aria-modal="true" aria-labelledby="mi-titulo">
+  <div class="modal" style="max-width:740px">
     <div class="modal-header">
-      <div>
+      <div style="flex:1;min-width:0">
+        <div class="modal-sub" id="mi-sub"></div>
         <div class="modal-title" id="mi-titulo">Indicador</div>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="mi-sub"></div>
       </div>
-      <button class="modal-close" onclick="fecharModal()">✕</button>
+      <button type="button" class="modal-close" onclick="mzFechar('modal-ind')" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
-    <div class="modal-body" id="mi-body" style="padding:16px 24px;max-height:70vh;overflow-y:auto"></div>
+    <div class="modal-body" id="mi-body"></div>
     <div class="modal-footer" id="mi-footer"></div>
   </div>
 </div>
 
-<!-- MODAL ODS/KM detalhes -->
-<div class="modal-overlay" id="modal-ref" style="display:none">
-  <div class="modal" style="max-width:560px">
+<div class="modal-overlay mz-ov" id="modal-ref" role="dialog" aria-modal="true" aria-labelledby="mr-titulo">
+  <div class="modal" style="max-width:580px">
     <div class="modal-header">
-      <div class="modal-title" id="mr-titulo">Referência</div>
-      <button class="modal-close" onclick="document.getElementById('modal-ref').style.display='none'">✕</button>
+      <div style="flex:1;min-width:0">
+        <div class="modal-sub" id="mr-sub"></div>
+        <div class="modal-title" id="mr-titulo">Referência</div>
+      </div>
+      <button type="button" class="modal-close" onclick="mzFechar('modal-ref')" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
-    <div class="modal-body" id="mr-body" style="padding:16px 24px"></div>
+    <div class="modal-body" id="mr-body"></div>
   </div>
 </div>
 
@@ -172,949 +48,589 @@
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script>
 // ── Dados globais ─────────────────────────────────────────────
-let matrizItens=[], progresso=[], odsRefs=[], kmRefs=[];
-let indAtual=null;
+let matrizItens = [], progresso = [], odsRefs = [], kmRefs = [], resultadosRef = [], pendPorItem = {};
+let indAtual = null;
+let filtroSit = '', abaAtual = 'matriz';
+const resFechados = new Set();
 
-// ── Traduções dos modais ──────────────────────────────────────
-const i18nM={
-  pt:{
-    ods_info:'<strong>9 ODS</strong> estão vinculados a este projeto. Os demais são exibidos de forma desbotada para referência.',
-    km_info:'<strong>7 Metas de Kunming-Montreal</strong> aparecem neste projeto (metas 2, 4, 10, 11, 21, 22 e 23). Destaques em roxo.',
-    presente:'✓ Presente neste projeto', nao_vinc:'Não vinculado ao projeto',
-    ind_vinc:'indicador(es) vinculado(s)', sem_ind:'Nenhum indicador diretamente vinculado.',
-    conf_lbl:'Confirmado', pend_lbl:'Pendente', meta_lbl:'Meta', conf_sub:'confirmado',
-    ind_qual:'Indicador qualitativo — progresso acompanhado por registros',
-    tab_det:'Detalhes', tab_contrib:'Contribuições', tab_conf:'⏳ Confirmar',
-    f_resultado:'Resultado', f_produto:'Produto', f_meta:'Meta', f_meta_num:'Meta numérica',
-    meios:'Meios de Verificação', hip:'Hipóteses / Riscos',
-    total_conf:'Total confirmado',
-    s_pend:'Pendente', s_conf:'Confirmado', s_rej:'Rejeitado',
-    sem_contrib:'Nenhuma contribuição registrada ainda.',
-    aguardam:'contribuição(ões) aguardam confirmação técnica para contabilizar no progresso.',
-    btn_conf:'✓ Confirmar', btn_rej:'✕ Rejeitar',
-    btn_edit:'✎ Editar indicador', btn_fechar:'Fechar',
-  },
-  en:{
-    ods_info:'<strong>9 SDGs</strong> are linked to this project. Others are shown faded for reference.',
-    km_info:'<strong>7 Kunming-Montreal Targets</strong> appear in this project (targets 2, 4, 10, 11, 21, 22 and 23). Highlighted in purple.',
-    presente:'✓ Present in this project', nao_vinc:'Not linked to this project',
-    ind_vinc:'linked indicator(s)', sem_ind:'No indicators directly linked.',
-    conf_lbl:'Confirmed', pend_lbl:'Pending', meta_lbl:'Target', conf_sub:'confirmed',
-    ind_qual:'Qualitative indicator — progress tracked by records',
-    tab_det:'Details', tab_contrib:'Contributions', tab_conf:'⏳ Confirm',
-    f_resultado:'Result', f_produto:'Product', f_meta:'Target', f_meta_num:'Numeric target',
-    meios:'Means of Verification', hip:'Assumptions / Risks',
-    total_conf:'Total confirmed',
-    s_pend:'Pending', s_conf:'Confirmed', s_rej:'Rejected',
-    sem_contrib:'No contributions recorded yet.',
-    aguardam:'contribution(s) awaiting technical confirmation to count toward progress.',
-    btn_conf:'✓ Confirm', btn_rej:'✕ Reject',
-    btn_edit:'✎ Edit indicator', btn_fechar:'Close',
-  },
-  es:{
-    ods_info:'<strong>9 ODS</strong> están vinculados a este proyecto. Los demás se muestran atenuados como referencia.',
-    km_info:'<strong>7 Metas de Kunming-Montreal</strong> aparecen en este proyecto (metas 2, 4, 10, 11, 21, 22 y 23). Destacadas en morado.',
-    presente:'✓ Presente en este proyecto', nao_vinc:'No vinculado al proyecto',
-    ind_vinc:'indicador(es) vinculado(s)', sem_ind:'Ningún indicador directamente vinculado.',
-    conf_lbl:'Confirmado', pend_lbl:'Pendiente', meta_lbl:'Meta', conf_sub:'confirmado',
-    ind_qual:'Indicador cualitativo — progreso seguido por registros',
-    tab_det:'Detalles', tab_contrib:'Contribuciones', tab_conf:'⏳ Confirmar',
-    f_resultado:'Resultado', f_produto:'Producto', f_meta:'Meta', f_meta_num:'Meta numérica',
-    meios:'Medios de Verificación', hip:'Hipótesis / Riesgos',
-    total_conf:'Total confirmado',
-    s_pend:'Pendiente', s_conf:'Confirmado', s_rej:'Rechazado',
-    sem_contrib:'Ninguna contribución registrada aún.',
-    aguardam:'contribución(es) esperan confirmación técnica para contar en el progreso.',
-    btn_conf:'✓ Confirmar', btn_rej:'✕ Rechazar',
-    btn_edit:'✎ Editar indicador', btn_fechar:'Cerrar',
-  }
+// ── Ícones (SVG, sem emoji) ───────────────────────────────────
+const MZ_IC = {
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  alerta:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  alvo:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  grafico:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  relogio:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  busca:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  mais:'<path d="M12 5v14M5 12h14"/>',
+  baixar:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
+  lapis:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  globo:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  folha:'<path d="M5 21c0-9 5-15 15-16-1 10-7 15-15 16z"/><path d="M5 21 14 12"/>',
+  salvar:'<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/>',
+  sol:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'
 };
-function mT(k){return(i18nM[appState.idioma||'pt']||i18nM.pt)[k]||i18nM.pt[k]||k;}
+function mzIc(n, cls) { return '<svg class="mz-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (MZ_IC[n] || '') + '</svg>'; }
+document.querySelectorAll('i[data-ic]').forEach(e => { e.outerHTML = mzIc(e.dataset.ic); });
 
-(async()=>{
-  const usuario=await carregarUsuario();
-  if(!usuario){window.location.href='../index.html';return;}
+// Situação do indicador (sem prazo por indicador, não há "atrasado": nada fica vermelho)
+const SIT = {
+  ating: { rot:'Atingida',      cor:'--mz-ating', pill:'mz-p-ok', ic:'check' },
+  and:   { rot:'Em andamento',  cor:'--mz-and',   pill:'mz-p-in', ic:'grafico' },
+  sem:   { rot:'Sem registro',  cor:'--mz-sem',   pill:'mz-p-ne', ic:'relogio' },
+  qual:  { rot:'Qualitativa',   cor:'--mz-qual',  pill:'mz-p-ia', ic:'info' },
+};
+const COR_RES = { 1:'--mz-r1', 2:'--mz-r2', 3:'--mz-r3' };
+const ODS_COR = {1:'#E5243B',2:'#DDA63A',3:'#4C9F38',4:'#C5192D',5:'#FF3A21',6:'#26BDE2',7:'#FCC30B',8:'#A21942',9:'#FD6925',10:'#DD1367',11:'#FD9D24',12:'#BF8B2E',13:'#3F7E44',14:'#0A97D9',15:'#56C02B',16:'#00689D',17:'#19486A'};
+const num = v => parseFloat(v || 0);
+const fmtN = v => num(v).toLocaleString('pt-BR');
 
-  document.getElementById('app').innerHTML=
-    gerarLayout('Matriz de Resultados','matriz')+`
-    <div class="fade-in">
-      <!-- Stats row -->
-      <div class="stat-row" id="stats-row"></div>
+(async () => {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+  const podeEditar = PODE.editarAtividade() || PODE.aprovarProduto();
 
-      <!-- Toolbar -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-        <input class="form-control" type="text" id="busca-ind" style="width:230px;height:34px"
-          placeholder="🔍 Buscar indicador..." oninput="renderTabAtual()">
-        <div style="margin-left:auto;display:flex;gap:8px">
-          ${PODE.editarAtividade()||PODE.aprovarProduto()?`<button class="btn btn-secondary btn-sm" onclick="abrirModalNovoInd()">＋ Indicador</button>`:''}
-          <button class="btn btn-secondary btn-sm" onclick="exportarCSV()">⬇ CSV</button>
+  document.getElementById('app').innerHTML =
+    gerarLayout('Matriz de Resultados', 'matriz') + `
+    <div class="fade-in mz-pagina">
+      <div class="mz-kpis" id="stats-row"></div>
+      <div class="mz-tabs" role="tablist" aria-label="Visões da Matriz">
+        <button type="button" class="mz-tab" role="tab" data-aba="matriz" aria-selected="true">${mzIc('alvo','p')}Matriz <span class="n" id="n-mz"></span></button>
+        <button type="button" class="mz-tab" role="tab" data-aba="ods" aria-selected="false">${mzIc('globo','p')}ODS <span class="n" id="n-ods"></span></button>
+        <button type="button" class="mz-tab" role="tab" data-aba="km" aria-selected="false">${mzIc('folha','p')}Kunming-Montreal <span class="n" id="n-km"></span></button>
+      </div>
+
+      <div class="mz-painel" id="tc-matriz" role="tabpanel">
+        <div class="mz-filtros" role="group" aria-label="Filtros">
+          <label class="mz-busca">${mzIc('busca','p')}<input type="search" id="busca-ind" placeholder="Indicador, produto ou código" aria-label="Buscar indicador" oninput="renderMatriz()"></label>
+          <div class="mz-seg" id="seg-sit" role="group" aria-label="Situação"></div>
+          <span class="mz-cont" id="cont" aria-live="polite"></span>
+          <button type="button" class="mz-btn" onclick="exportarCSV()">${mzIc('baixar','p')}Exportar CSV</button>
+          ${podeEditar ? `<button type="button" class="mz-btn pri" onclick="abrirModalNovoInd()">${mzIc('mais','p')}Indicador</button>` : ''}
         </div>
+        <div class="mz-leg"><span><i style="background:var(--mz-ating)"></i>Confirmado</span><span><i class="pd"></i>Pendente de confirmação</span><span>Progresso médio com teto de 100% por indicador</span></div>
+        <div id="conteudo-matriz" style="display:flex;flex-direction:column;gap:12px"></div>
       </div>
 
-      <!-- Main tabs -->
-      <div class="main-tabs">
-        <button class="main-tab ativo" id="tab-btn-matriz" onclick="mudarAba('matriz',this)">◎ Matriz de Resultados</button>
-        <button class="main-tab" id="tab-btn-ods" onclick="mudarAba('ods',this)">🌐 ODS</button>
-        <button class="main-tab" id="tab-btn-km" onclick="mudarAba('km',this)">🌿 Kunming-Montreal</button>
+      <div class="mz-painel" id="tc-ods" role="tabpanel" hidden>
+        <p class="mz-nota" id="ods-info-txt"></p>
+        <div class="mz-odsg" id="ods-grid"></div>
       </div>
 
-      <!-- Tab Matriz -->
-      <div class="main-tab-content ativo" id="tc-matriz">
-        <div id="conteudo-matriz">
-          <div style="text-align:center;padding:40px;color:var(--cinza-400)">Carregando…</div>
-        </div>
+      <div class="mz-painel" id="tc-km" role="tabpanel" hidden>
+        <p class="mz-nota" id="km-info-txt"></p>
+        <div class="mz-kml" id="km-lista"></div>
       </div>
+    </div>` + `</div></div></div>`;
 
-      <!-- Tab ODS -->
-      <div class="main-tab-content" id="tc-ods">
-        <div id="ods-info-txt" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1E40AF"></div>
-        <div class="ods-grid" id="ods-grid"></div>
-      </div>
-
-      <!-- Tab KM -->
-      <div class="main-tab-content" id="tc-km">
-        <div id="km-info-txt" style="background:#EDE9FE;border:1px solid #C4B5FD;border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#4C1D95">
-          <strong>7 Metas de Kunming-Montreal</strong> aparecem neste projeto (metas 2, 4, 10, 11, 21, 22 e 23). Destaques em roxo.
-        </div>
-        <div id="km-lista"></div>
-      </div>
-    </div>`+`</div></div></div>`;
-
+  carregarLogosSidebar();
+  seletorTema();
+  document.querySelector('.mz-tabs').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-aba]'); if (b) mudarAba(b.dataset.aba);
+  });
+  document.getElementById('seg-sit').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-sit]'); if (!b) return;
+    filtroSit = b.dataset.sit; renderSeg(); renderMatriz();
+  });
   await carregar();
 })();
 
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico e das demais guias (componente .dgm-tema)
+function seletorTema() {
+  const tb = document.querySelector('.topbar'); if (!tb || tb.querySelector('.dgm-tema') || typeof DiagTema === 'undefined') return;
+  const d = document.createElement('div');
+  d.className = 'dgm-tema'; d.setAttribute('role','group'); d.setAttribute('aria-label','Tema');
+  d.innerHTML = [['claro','sol','Claro'],['escuro','lua','Escuro']].map(x =>
+    `<button type="button" data-tema="${x[0]}" aria-pressed="${DiagTema.atual()===x[0]}">${mzIc(x[1])}${x[2]}</button>`).join('');
+  const bc = tb.querySelector('.topbar-breadcrumb');
+  if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d);
+  d.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tema]'); if (!b) return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+}
+
 // ── Carregar dados ────────────────────────────────────────────
-async function carregar(){
-  try{
-    const [
-      {data:itens,  error:eItens},
-      {data:prog,   error:eProg},
-      {data:ods,    error:eOds},
-      {data:km,     error:eKm}
-    ] = await Promise.all([
-      db.from('matriz_itens').select('*').eq('ativo',true).order('ordem'),
+async function carregar() {
+  try {
+    const [rItens, rProg, rOds, rKm, rRes, rPend] = await Promise.all([
+      db.from('matriz_itens').select('*').eq('ativo', true).order('ordem'),
       db.from('vw_matriz_progresso').select('*'),
-      db.from('ods_refs').select('*'),        // ordenação feita no cliente
-      db.from('metas_km_refs').select('*')    // ordenação feita no cliente
+      db.from('ods_refs').select('*'),
+      db.from('metas_km_refs').select('*'),
+      db.from('resultados').select('codigo,nome_pt,nome_en,nome_es'),
+      // pendente que já conta na barra (entrega aprovada) = aguardando confirmação
+      db.from('vw_matriz_contribuicoes').select('matriz_item_id').eq('status', 'pendente').eq('entrega_situacao', 'aprovada'),
     ]);
+    [['matriz_itens', rItens], ['vw_matriz_progresso', rProg], ['ods_refs', rOds], ['metas_km_refs', rKm], ['resultados', rRes], ['vw_matriz_contribuicoes', rPend]]
+      .forEach(([n, r]) => { if (r.error) console.warn('[matriz] ' + n + ':', r.error.message); });
 
-    if(eItens) console.warn('[matriz] matriz_itens:', eItens.message);
-    if(eProg)  console.warn('[matriz] vw_matriz_progresso:', eProg.message);
-    if(eOds)   console.warn('[matriz] ods_refs:', eOds.message);
-    if(eKm)    console.warn('[matriz] metas_km_refs:', eKm.message);
-
-    matrizItens = itens||[];
-    progresso   = prog||[];
-    odsRefs     = ods||[];
-    kmRefs      = km||[];
+    matrizItens = rItens.data || [];
+    progresso = rProg.data || [];
+    odsRefs = (rOds.data || []).sort((a, b) => parseInt(a.numero, 10) - parseInt(b.numero, 10));
+    kmRefs = (rKm.data || []).sort((a, b) => parseInt(a.numero, 10) - parseInt(b.numero, 10));
+    resultadosRef = rRes.data || [];
+    pendPorItem = {};
+    (rPend.data || []).forEach(c => { pendPorItem[c.matriz_item_id] = (pendPorItem[c.matriz_item_id] || 0) + 1; });
+    prepararItens();
 
     renderStats();
+    renderSeg();
     renderMatriz();
     renderODS();
     renderKM();
-  }catch(e){
+  } catch (e) {
     console.error('[matriz] erro geral:', e);
-    document.getElementById('conteudo-matriz').innerHTML=
-      `<div class="empty-state"><div class="empty-state-msg">Erro ao carregar dados. Verifique se o SQL de migração foi executado no Supabase.</div></div>`;
+    document.getElementById('conteudo-matriz').innerHTML = '<div class="mz-vazio">Erro ao carregar a Matriz. Recarregue a página.</div>';
   }
+}
+
+// Código do indicador = produto · posição dentro do produto (pela ordem); título do grupo = o mais comum do produto
+let tituloProduto = {};
+function prepararItens() {
+  const pos = {}, titulos = {};
+  matrizItens.forEach(i => {
+    pos[i.produto_codigo] = (pos[i.produto_codigo] || 0) + 1;
+    i._cod = (i.produto_codigo || '?') + '·' + pos[i.produto_codigo];
+    const t = (titulos[i.produto_codigo] = titulos[i.produto_codigo] || {});
+    t[i.produto_titulo || ''] = (t[i.produto_titulo || ''] || 0) + 1;
+  });
+  tituloProduto = {};
+  Object.keys(titulos).forEach(cod => {
+    tituloProduto[cod] = Object.entries(titulos[cod]).sort((a, b) => b[1] - a[1])[0][0];
+  });
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-function getProgresso(id){
-  return progresso.find(p=>p.id===id)||{realizado_confirmado:0,realizado_pendente:0,realizado_total:0,pct_confirmado:0};
+function getProgresso(id) {
+  return progresso.find(p => p.id === id) || { realizado_confirmado: 0, realizado_pendente: 0 };
+}
+function calcPct(item) {
+  const p = getProgresso(item.id), meta = num(item.meta_numerica);
+  if (!meta) return { real: null, conf: 0, pend: 0 };
+  const real = Math.round(num(p.realizado_confirmado) / meta * 100);
+  const conf = Math.min(real, 100);
+  const pend = Math.round(Math.min(num(p.realizado_pendente) / meta * 100, 100 - conf));
+  return { real, conf, pend };
+}
+function sitItem(item) {
+  if (!num(item.meta_numerica)) return 'qual';
+  const p = getProgresso(item.id);
+  if (calcPct(item).real >= 100) return 'ating';
+  return (num(p.realizado_confirmado) > 0 || num(p.realizado_pendente) > 0) ? 'and' : 'sem';
+}
+function mediaConf(itens) {
+  const c = itens.filter(i => num(i.meta_numerica) > 0);
+  return c.length ? Math.round(c.reduce((s, i) => s + calcPct(i).conf, 0) / c.length) : 0;
+}
+function pillSit(s) { const S = SIT[s]; return `<span class="mz-pill ${S.pill}">${mzIc(S.ic,'p')}${S.rot}</span>`; }
+function nomeResultado(r) {
+  const x = resultadosRef.find(z => z.codigo === 'R' + r);
+  if (!x) return 'Resultado ' + r;
+  const l = appState.idioma || 'pt';
+  return (l === 'en' && x.nome_en) || (l === 'es' && x.nome_es) || x.nome_pt || ('Resultado ' + r);
+}
+function odsRef(n) { return odsRefs.find(o => String(o.numero) === String(n)); }
+function odsCor(n) { const o = odsRef(n); return (o && o.cor) || ODS_COR[parseInt(n, 10)] || '#1F4E2C'; }
+function odsTitulo(o) {
+  const l = appState.idioma || 'pt';
+  return (l === 'en' && o.titulo_en) || (l === 'es' && o.titulo_es) || o.titulo || '';
+}
+const temOds = (i, n) => (i.ods || []).some(x => String(parseInt(x, 10)) === String(parseInt(n, 10)));
+const temKm = (i, n) => (i.metas_km || []).some(x => String(x) === String(n));
+function chipsRef(i) {
+  return (i.ods || []).map(o => `<span class="mz-ods" style="--c:${odsCor(o)}">ODS ${esc(o)}</span>`).join('')
+    + (i.metas_km || []).map(k => `<span class="mz-km">KM ${esc(k)}</span>`).join('');
+}
+function barra(i, grande) {
+  const meta = num(i.meta_numerica), p = getProgresso(i.id), { conf, pend } = calcPct(i);
+  return `<div class="mz-bar"><div class="mz-tr"${grande ? ' style="height:10px"' : ''}><i class="cf" style="width:${conf}%"></i>${pend ? `<i class="pd" style="width:${pend}%"></i>` : ''}</div>
+    <div class="nm"><span><b>${fmtN(p.realizado_confirmado)}</b> / ${fmtN(meta)} ${esc(i.unidade || '')}</span>${num(p.realizado_pendente) > 0 ? `<span>+ ${fmtN(p.realizado_pendente)} pendente</span>` : ''}</div></div>`;
 }
 
-function calcPct(item){
-  const p=getProgresso(item.id);
-  const meta=parseFloat(item.meta_numerica||0);
-  if(!meta)return{conf:0,pend:0,total:0};
-  const conf=Math.min(parseFloat(p.realizado_confirmado||0)/meta*100,100);
-  const pend=Math.min(parseFloat(p.realizado_pendente||0)/meta*100,100);
-  return{conf:Math.round(conf),pend:Math.round(Math.min(conf+pend,100)-conf),total:Math.round(Math.min(conf+pend,100))};
+// ── Números do topo ───────────────────────────────────────────
+function renderStats() {
+  const total = matrizItens.length;
+  const comMeta = matrizItens.filter(i => num(i.meta_numerica) > 0);
+  const ating = comMeta.filter(i => sitItem(i) === 'ating').length;
+  const media = mediaConf(matrizItens);
+  const pend = Object.values(pendPorItem).reduce((s, n) => s + n, 0);
+  const kpi = (ic, l, v, s, m) => `<div class="mz-kpi"><div class="mz-kpi-l">${mzIc(ic)}${l}</div><div class="mz-kpi-v">${v}</div>${m || ''}<div class="mz-kpi-s">${s}</div></div>`;
+  document.getElementById('stats-row').innerHTML =
+      kpi('alvo', 'Indicadores', total, `${comMeta.length} com meta numérica · ${total - comMeta.length} qualitativo${total - comMeta.length === 1 ? '' : 's'}`)
+    + kpi('check', 'Metas atingidas', `${ating} <small>de ${comMeta.length}</small>`, 'confirmado ≥ 100% da meta',
+        `<div class="mz-meter"><i style="width:${comMeta.length ? ating / comMeta.length * 100 : 0}%;background:var(--mz-ating)"></i></div>`)
+    + kpi('grafico', 'Progresso médio', media + '%', 'confirmado, teto de 100% por indicador',
+        `<div class="mz-meter"><i style="width:${media}%;background:var(--mz-and)"></i></div>`)
+    + kpi('relogio', 'Aguardando confirmação', pend, pend === 1 ? 'contribuição pendente' : 'contribuições pendentes');
+  document.getElementById('n-mz').textContent = total;
 }
 
-function classeRisco(item){
-  const meta=parseFloat(item.meta_numerica||0);
-  if(!meta)return'risco-sem';
-  const{conf}=calcPct(item);
-  if(conf>=100)return'risco-ok';
-  if(conf>=40)return'risco-med';
-  return'risco-alto';
+function renderSeg() {
+  const cnt = {}; matrizItens.forEach(i => { const s = sitItem(i); cnt[s] = (cnt[s] || 0) + 1; });
+  const pend = matrizItens.filter(i => pendPorItem[i.id]).length;
+  const ops = [['', 'Todos', matrizItens.length]].concat(Object.keys(SIT).map(s => [s, SIT[s].rot, cnt[s] || 0]));
+  if (pend) ops.push(['pend', 'Aguarda confirmação', pend]);
+  document.getElementById('seg-sit').innerHTML = ops.map(([k, r, n]) =>
+    `<button type="button" data-sit="${k}" aria-pressed="${filtroSit === k}">${SIT[k] ? `<span class="dt" style="--c:var(${SIT[k].cor})"></span>` : ''}${r} <span class="mono">${n}</span></button>`).join('');
 }
 
-function badgeConf(item){
-  const meta=parseFloat(item.meta_numerica||0);
-  if(!meta)return`<span class="conf-badge cb-sem">Sem meta</span>`;
-  const{conf}=calcPct(item);
-  if(conf>=100)return`<span class="conf-badge cb-ok">✓ Atingida</span>`;
-  if(conf>=70)return`<span class="conf-badge cb-ok">Em dia</span>`;
-  if(conf>=40)return`<span class="conf-badge cb-med">⚠ Atenção</span>`;
-  return`<span class="conf-badge cb-alto">🔴 Risco</span>`;
+// ── Abas ──────────────────────────────────────────────────────
+function mudarAba(aba) {
+  abaAtual = aba;
+  document.querySelectorAll('.mz-tab[data-aba]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.aba === aba)));
+  ['matriz', 'ods', 'km'].forEach(a => { document.getElementById('tc-' + a).hidden = a !== aba; });
 }
-
-function corPct(pct){
-  if(pct>=100)return'#059669';
-  if(pct>=70)return'#059669';
-  if(pct>=40)return'#D97706';
-  return'#DC2626';
-}
-
-// ── Stats ─────────────────────────────────────────────────────
-function waterHTML(color,pct){
-  return `<div class="wc-inner" data-alvo="${pct}" style="background:${color}">
-    <div class="wc-wavewrap">
-      <svg class="wc-wave-svg" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 12 Q25 4 50 12 T100 12 T150 12 T200 12 V20 H0 Z" style="fill:${color}"></path></svg>
-      <svg class="wc-wave-svg w2" viewBox="0 0 200 20" preserveAspectRatio="none"><path d="M0 10 Q25 18 50 10 T100 10 T150 10 T200 10 V20 H0 Z" style="fill:${color}"></path></svg>
-    </div>
-  </div>`;
-}
-function animarAgua(){
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    document.querySelectorAll('.wc-inner[data-alvo]').forEach(el=>{
-      el.style.height=el.dataset.alvo+'%';
-    });
-  }));
-}
-let filtroMatrizCard='';
-function clicarCardMatriz(card){
-  filtroMatrizCard=(filtroMatrizCard===card)?'':card;
-  renderStats();
-  renderMatriz();
-}
-
-function renderStats(){
-  const total=matrizItens.length;
-  const comMeta=matrizItens.filter(i=>parseFloat(i.meta_numerica||0)>0);
-  const atingidos=comMeta.filter(i=>calcPct(i).conf>=100).length;
-  const emRisco=comMeta.filter(i=>calcPct(i).conf<40).length;
-  const pendConf=progresso.reduce((s,p)=>s+parseFloat(p.realizado_pendente||0),0);
-  const media=comMeta.length
-    ?Math.round(comMeta.reduce((s,i)=>s+calcPct(i).conf,0)/comMeta.length):0;
-  const ativo=c=>filtroMatrizCard===c?' ativo':'';
-  const den=total||1;
-
-  document.getElementById('stats-row').innerHTML=`
-    <div class="stat-card sc-b${ativo('total')}" onclick="clicarCardMatriz('total')">
-      ${waterHTML('#2563EB',100)}
-      <div class="stat-lbl">Indicadores</div>
-      <div class="stat-val">${total}</div>
-      <div class="stat-sub">em 3 Resultados</div>
-    </div>
-    <div class="stat-card sc-g${ativo('atingidos')}" onclick="clicarCardMatriz('atingidos')">
-      ${waterHTML('var(--verde-claro)',Math.round(atingidos/den*100))}
-      <div class="stat-lbl">Metas Atingidas</div>
-      <div class="stat-val">${atingidos}</div>
-      <div class="stat-sub">100% confirmado</div>
-    </div>
-    <div class="stat-card sc-t${ativo('progresso')}" onclick="clicarCardMatriz('progresso')">
-      ${waterHTML('#0D9488',media)}
-      <div class="stat-lbl">Progresso Médio</div>
-      <div class="stat-val">${media}%</div>
-      <div class="stat-sub">confirmado</div>
-    </div>
-    <div class="stat-card sc-a${ativo('risco')}" onclick="clicarCardMatriz('risco')">
-      ${waterHTML('var(--aviso)',Math.round(emRisco/den*100))}
-      <div class="stat-lbl">Em Risco</div>
-      <div class="stat-val" style="color:${emRisco>0?'var(--aviso)':'#059669'}">${emRisco}</div>
-      <div class="stat-sub">abaixo de 40%</div>
-    </div>
-    <div class="stat-card sc-r${ativo('pendente')}" onclick="clicarCardMatriz('pendente')">
-      ${waterHTML('var(--erro)',pendConf>0?100:0)}
-      <div class="stat-lbl">Aguardam Conf.</div>
-      <div class="stat-val" style="color:${pendConf>0?'var(--aviso)':'var(--cinza-400)'}">
-        ${pendConf>0?Math.round(pendConf):0}
-      </div>
-      <div class="stat-sub">unidades pendentes</div>
-    </div>`;
-  animarAgua();
-}
-
-// ── Tab switcher ──────────────────────────────────────────────
-let abaAtual='matriz';
-function mudarAba(aba,btn){
-  abaAtual=aba;
-  document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('ativo'));
-  btn.classList.add('ativo');
-  document.querySelectorAll('.main-tab-content').forEach(c=>c.classList.remove('ativo'));
-  document.getElementById('tc-'+aba).classList.add('ativo');
-  if(aba==='matriz')renderMatriz();
-}
-function renderTabAtual(){if(abaAtual==='matriz')renderMatriz();}
 
 // ── MATRIZ ────────────────────────────────────────────────────
-function renderMatriz(){
-  const busca=(document.getElementById('busca-ind')?.value||'').toLowerCase();
-  const el=document.getElementById('conteudo-matriz');
-  if(!matrizItens.length){
-    el.innerHTML=`<div class="empty-state"><div class="empty-state-msg">Nenhum indicador cadastrado. Execute o SQL de migração 04 no Supabase.</div></div>`;
-    return;
-  }
+function renderMatriz() {
+  const el = document.getElementById('conteudo-matriz');
+  if (!matrizItens.length) { el.innerHTML = '<div class="mz-vazio">Nenhum indicador cadastrado.</div>'; document.getElementById('cont').textContent = ''; return; }
+  const busca = (document.getElementById('busca-ind')?.value || '').toLowerCase();
+  const vis = matrizItens.filter(i => {
+    if (filtroSit === 'pend') { if (!pendPorItem[i.id]) return false; }
+    else if (filtroSit && sitItem(i) !== filtroSit) return false;
+    if (!busca) return true;
+    return [i.indicador, i.produto_titulo, i.produto_codigo, i._cod, i.meta_descricao].some(t => (t || '').toLowerCase().includes(busca));
+  });
+  document.getElementById('cont').textContent = vis.length + ' de ' + matrizItens.length + ' indicadores';
+  const resultados = [...new Set(matrizItens.map(i => i.resultado))].sort((a, b) => a - b);
 
-  const res=[1,2,3];
-  const nomes={
-    1:'Fortalecimento do uso sustentável dos recursos naturais e da sociobiodiversidade',
-    2:'Mitigação da vulnerabilidade ambiental e aumento da resiliência das APAs',
-    3:'Fortalecimento da governança e equidade de gênero'
-  };
-  const coresRes={1:'#1D9E75',2:'#2563EB',3:'#7F77DD'};
-
-  el.innerHTML=res.map(r=>{
-    let itensR=matrizItens.filter(i=>i.resultado===r);
-    if(busca) itensR=itensR.filter(i=>(i.indicador||'').toLowerCase().includes(busca)||(i.produto_titulo||'').toLowerCase().includes(busca)||(i.produto_codigo||'').toLowerCase().includes(busca));
-    if(filtroMatrizCard==='atingidos') itensR=itensR.filter(i=>calcPct(i).conf>=100);
-    if(filtroMatrizCard==='risco') itensR=itensR.filter(i=>parseFloat(i.meta_numerica||0)>0&&calcPct(i).conf<40);
-    if(filtroMatrizCard==='pendente') itensR=itensR.filter(i=>parseFloat(getProgresso(i.id).realizado_pendente||0)>0);
-    if(!itensR.length&&(busca||filtroMatrizCard))return'';
-
-    // Agrupar por produto_codigo
-    const produtos=[...new Set(itensR.map(i=>i.produto_codigo))].sort();
-
-    // Progresso geral do resultado
-    const comMeta=itensR.filter(i=>parseFloat(i.meta_numerica||0)>0);
-    const mediaR=comMeta.length?Math.round(comMeta.reduce((s,i)=>s+calcPct(i).conf,0)/comMeta.length):0;
-
-    const corR=coresRes[r];
-
-    return`<div class="resultado-bloco">
-      <div class="resultado-header" onclick="toggleResultado('rb-${r}','icon-${r}')">
-        <span class="resultado-codigo rc-${r}">R${r}</span>
-        <span class="resultado-nome-txt">${nomes[r]}</span>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <div style="width:80px;height:5px;background:var(--cinza-200);border-radius:3px;overflow:hidden">
-            <div style="height:100%;background:${corR};width:${mediaR}%;border-radius:3px;transition:width .5s"></div>
-          </div>
-          <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corR}">${mediaR}%</span>
-          <span style="font-size:11px;color:var(--cinza-400)">${itensR.length} ind.</span>
-          <span id="icon-${r}" style="font-size:12px;color:var(--cinza-400);transition:transform .2s">▾</span>
-        </div>
-      </div>
-      <div id="rb-${r}">
-        ${produtos.map(cod=>{
-          const itensP=itensR.filter(i=>i.produto_codigo===cod);
-          const titulo=itensP[0]?.produto_titulo||cod;
-          const comMetaP=itensP.filter(i=>parseFloat(i.meta_numerica||0)>0);
-          const mediaP=comMetaP.length?Math.round(comMetaP.reduce((s,i)=>s+calcPct(i).conf,0)/comMetaP.length):0;
-          const hasPend=itensP.some(i=>parseFloat(getProgresso(i.id).realizado_pendente||0)>0);
-
-          return`<div class="produto-group">
-            <div class="produto-label" onclick="toggleProduto('pg-${r}-${cod.replace('.','-')}','pig-${r}-${cod.replace('.','-')}')">
-              <span class="produto-cod">${cod}</span>
-              <span class="produto-titulo-txt">${titulo}</span>
-              ${hasPend?`<span class="pend-chip">Aguarda confirmação</span>`:''}
-              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-                <div style="width:60px;height:4px;background:var(--cinza-200);border-radius:2px;overflow:hidden">
-                  <div style="height:100%;background:#2563EB;width:${mediaP}%;border-radius:2px"></div>
-                </div>
-                <span style="font-size:10px;color:var(--cinza-500);font-family:var(--font-mono)">${mediaP}%</span>
-                <span id="pig-${r}-${cod.replace('.','-')}" style="font-size:10px;color:var(--cinza-400);transition:transform .2s">▾</span>
-              </div>
-            </div>
-            <div id="pg-${r}-${cod.replace('.','-')}">
-              ${itensP.map(i=>renderIndCard(i)).join('')}
-            </div>
-          </div>`;
+  el.innerHTML = resultados.map(r => {
+    const ir = vis.filter(i => i.resultado === r);
+    if (!ir.length) return '';
+    const todosR = matrizItens.filter(i => i.resultado === r);
+    const mR = mediaConf(todosR);
+    const cnt = {}; todosR.forEach(i => { const s = sitItem(i); cnt[s] = (cnt[s] || 0) + 1; });
+    const resumo = Object.keys(SIT).filter(s => cnt[s]).map(s => cnt[s] + ' ' + SIT[s].rot.toLowerCase()).join(' · ');
+    const aberto = !resFechados.has(r);
+    const produtos = [...new Set(ir.map(i => i.produto_codigo))];
+    return `<div class="mz-res" style="--c:var(${COR_RES[r] || '--mz-sem'})">
+      <button type="button" class="mz-res-h" aria-expanded="${aberto}" onclick="toggleResultado(${r})">
+        <span class="mz-res-c">R${r}</span>
+        <span class="mz-res-n">${esc(nomeResultado(r))}<small>${resumo}</small></span>
+        <span class="mz-res-r"><span class="mz-mini"><i style="width:${mR}%"></i></span><span class="mz-pct">${mR}%</span>${mzIc('chev','chev')}</span>
+      </button>
+      <div${aberto ? '' : ' hidden'}>
+        ${produtos.map(cod => {
+          const ip = ir.filter(i => i.produto_codigo === cod);
+          const nTot = matrizItens.filter(i => i.produto_codigo === cod).length;
+          return `<div class="mz-prod-h"><span class="mz-cod">${esc(cod)}</span><span class="t">${esc(tituloProduto[cod] || cod)}</span><span class="s">${nTot} indicador${nTot === 1 ? '' : 'es'}</span></div>`
+            + ip.map(renderIndCard).join('');
         }).join('')}
       </div>
     </div>`;
-  }).join('');
+  }).join('') || '<div class="mz-vazio">Nenhum indicador com esse filtro.</div>';
 }
 
-function toggleResultado(id,iconId){
-  const el=document.getElementById(id);
-  const ic=document.getElementById(iconId);
-  if(!el)return;
-  const hidden=el.style.display==='none';
-  el.style.display=hidden?'':'none';
-  if(ic)ic.style.transform=hidden?'':'rotate(-90deg)';
-}
-function toggleProduto(id,iconId){
-  const el=document.getElementById(id);
-  const ic=document.getElementById(iconId);
-  if(!el)return;
-  const hidden=el.style.display==='none';
-  el.style.display=hidden?'':'none';
-  if(ic)ic.style.transform=hidden?'':'rotate(-90deg)';
+function toggleResultado(r) {
+  if (resFechados.has(r)) resFechados.delete(r); else resFechados.add(r);
+  renderMatriz();
 }
 
-function renderIndCard(i){
-  const meta=parseFloat(i.meta_numerica||0);
-  const{conf,pend}=calcPct(i);
-  const temMeta=meta>0;
-  const p=getProgresso(i.id);
-  const risco=classeRisco(i);
-
-  const ods=(i.ods||[]).slice(0,4).map(o=>`<span class="ods-chip">ODS${o}</span>`).join('');
-  const km=(i.metas_km||[]).slice(0,3).map(k=>`<span class="km-chip">KM${k}</span>`).join('');
-  const hasPend=parseFloat(p.realizado_pendente||0)>0;
-
-  return`<div class="ind-card ${risco}" onclick="abrirIndicador('${i.id}')">
-    <div class="ind-header">
-      <span class="ind-num">${i.produto_codigo}.${(i.ods||[''])[0]||'?'}</span>
-      <div style="flex:1;min-width:0">
-        <div class="ind-nome">${(i.indicador||'').substring(0,110)}${(i.indicador||'').length>110?'…':''}</div>
-        <div style="font-size:10px;color:var(--cinza-400);margin-top:2px">Meta: ${i.meta_descricao||'—'}</div>
-      </div>
-      <div class="ind-badges" style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px">
-        ${badgeConf(i)}
-        ${hasPend?`<span class="pend-chip">⏳ Pend.</span>`:''}
-        <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end">${ods}${km}</div>
-      </div>
+function renderIndCard(i) {
+  const s = sitItem(i), S = SIT[s], { real } = calcPct(i);
+  const outroTitulo = (i.produto_titulo || '') !== (tituloProduto[i.produto_codigo] || '');
+  const bar = num(i.meta_numerica) ? barra(i) : `<div class="mz-bar q">Meta qualitativa, sem valor numérico</div>`;
+  return `<div class="mz-ind" role="button" tabindex="0" onclick="abrirIndicador('${i.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();abrirIndicador('${i.id}')}">
+    <span class="ic-c">${esc(i._cod)}</span>
+    <div style="min-width:0">
+      <div class="tx">${esc(i.indicador || '—')}</div>
+      <div class="mt">Meta: ${esc(i.meta_descricao || '—')}${outroTitulo && i.produto_titulo ? ' · Produto: ' + esc(i.produto_titulo) : ''}</div>
+      <div class="mz-rf">${chipsRef(i)}</div>
     </div>
-    ${temMeta?`<div class="ind-prog">
-      <div class="prog-bar-wrap">
-        <div class="prog-fill-conf" style="width:${conf}%"></div>
-        <div class="prog-fill-pend" style="width:${pend}%;left:${conf}%"></div>
-      </div>
-      <div class="ind-prog-nums">
-        ${parseFloat(p.realizado_confirmado||0).toLocaleString('pt-BR')} / ${meta.toLocaleString('pt-BR')} ${i.unidade||''}
-      </div>
-      <div class="ind-pct" style="color:${corPct(conf)}">${conf}%</div>
-    </div>`:`<div style="margin-top:6px;font-size:10px;color:var(--cinza-400)">Meta qualitativa — sem valor numérico</div>`}
+    ${bar}
+    <div class="mz-st" style="--c:var(${S.cor})"><span class="mz-pct">${real == null ? '—' : real + '%'}</span>${pillSit(s)}${pendPorItem[i.id] ? `<span class="mz-pill mz-p-al">${mzIc('relogio','p')}${pendPorItem[i.id]} a confirmar</span>` : ''}</div>
   </div>`;
 }
 
 // ── ODS ───────────────────────────────────────────────────────
-// Fallback quando imagem local não carrega
-function odsImgFalhou(img, num, cor){
-  img.onerror=null;
-  var wrap=img.parentNode;
-  var d=document.createElement('div');
-  d.style.cssText='width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:'+cor;
-  d.innerHTML='<span style="font-size:30px;font-weight:800;color:#fff;font-family:sans-serif">'+num+'</span>';
-  wrap.innerHTML='';
-  wrap.appendChild(d);
+// Destaque = ODS com indicador no cadastro (não a marcação fixa de ods_refs)
+function odsImgFalhou(img) {
+  const wrap = img.parentNode; wrap.textContent = wrap.dataset.n;
 }
-
-// Retorna o título da ODS no idioma ativo
-function odsTitulo(o){
-  const lang=appState.idioma||'pt';
-  if(lang==='en'&&o.titulo_en) return o.titulo_en;
-  if(lang==='es'&&o.titulo_es) return o.titulo_es;
-  return o.titulo; // fallback PT
-}
-
-function renderODS(){
-  const el=document.getElementById('ods-grid');
-  if(!el)return;
-  const infoEl=document.getElementById('ods-info-txt');
-  if(infoEl) infoEl.innerHTML=mT('ods_info');
-  if(!odsRefs.length){el.innerHTML='<div style="color:var(--cinza-400);font-size:12px">Execute o SQL de migração.</div>';return;}
-
-  const sorted=[...odsRefs].sort((a,b)=>parseInt(a.numero,10)-parseInt(b.numero,10));
-  el.innerHTML=sorted.map(o=>{
-    const num=parseInt(o.numero,10);
-    const cor=o.cor||'#1F4E2C';
-    const titulo=odsTitulo(o);
-    const cnt=matrizItens.filter(i=>{
-      const arr=i.ods||[];
-      return arr.includes(o.numero)||arr.includes(num)||arr.includes(String(num));
-    }).length;
-    const localUrl=`../assets/sdg/sdg-${num}.jpg`;
-    const borderStyle=cnt>0?`border:2px solid ${cor}88`:`border:1px solid var(--borda)`;
-    return`<div class="ods-card${cnt>0?' ativo':''}"
-      style="${borderStyle}"
-      onclick="abrirRefODS('${o.numero}')">
-      <div class="ods-img-wrap">
-        <img src="${localUrl}" alt="ODS ${num}"
-          onerror="odsImgFalhou(this,${num},'${cor}')">
-      </div>
-      <div class="ods-card-foot">
-        <div class="ods-card-titulo" style="font-size:9px;color:var(--cinza-600);line-height:1.3;padding:0 2px 2px;text-align:center">${titulo}</div>
-        ${cnt>0?`<div class="ods-badge-cnt" style="background:${cor}22;color:${cor}">${cnt} indicador${cnt!==1?'es':''}</div>`:''}
-      </div>
-    </div>`;
+function renderODS() {
+  const el = document.getElementById('ods-grid'); if (!el) return;
+  if (!odsRefs.length) { el.innerHTML = '<div class="mz-vazio">Referências de ODS não encontradas.</div>'; return; }
+  const comInd = odsRefs.filter(o => matrizItens.some(i => temOds(i, o.numero))).length;
+  document.getElementById('n-ods').textContent = comInd;
+  document.getElementById('ods-info-txt').innerHTML = `<b>${comInd} ODS</b> têm indicador neste projeto. Os demais aparecem esmaecidos, para referência.`;
+  el.innerHTML = odsRefs.map(o => {
+    const n = parseInt(o.numero, 10), cnt = matrizItens.filter(i => temOds(i, o.numero)).length;
+    return `<button type="button" class="mz-odsc${cnt ? '' : ' fora'}" style="--c:${odsCor(o.numero)}" onclick="abrirRefODS('${esc(o.numero)}')">
+      <span class="img" data-n="${n}"><img src="../assets/sdg/sdg-${n}.jpg" alt="ODS ${n}" onerror="odsImgFalhou(this)"></span>
+      <span class="b"><span>${esc(odsTitulo(o))}</span><span class="n">${cnt ? cnt + ' indicador' + (cnt === 1 ? '' : 'es') : 'Sem indicador'}</span></span>
+    </button>`;
   }).join('');
 }
 
-function abrirRefODS(num){
-  const o=odsRefs.find(x=>String(x.numero)===String(num));
-  if(!o)return;
-  const inds=matrizItens.filter(i=>{const a=i.ods||[];return a.includes(num)||a.includes(o.numero)||a.includes(String(num));});
-  const numInt=parseInt(num,10);
-  const titulo=odsTitulo(o);
-  const presenteTxt={pt:'✓ Presente neste projeto',en:'✓ Present in this project',es:'✓ Presente en este proyecto'}[appState.idioma||'pt'];
-  const ausente={pt:'Não vinculado ao projeto',en:'Not linked to this project',es:'No vinculado al proyecto'}[appState.idioma||'pt'];
-  const semInd={pt:'Nenhum indicador diretamente vinculado.',en:'No indicators directly linked.',es:'Sin indicadores directamente vinculados.'}[appState.idioma||'pt'];
-  const vinculados={pt:'indicador(es) vinculado(s)',en:'linked indicator(s)',es:'indicador(es) vinculado(s)'}[appState.idioma||'pt'];
-  document.getElementById('mr-titulo').textContent=`SDG ${num} — ${titulo}`;
-  document.getElementById('mr-body').innerHTML=`
-    <div style="text-align:center;margin-bottom:16px">
-      <img src="../assets/sdg/sdg-${numInt}.jpg" alt="ODS ${num}"
-        style="width:80px;height:80px;object-fit:cover;border-radius:12px;margin-bottom:8px"
-        onerror="this.style.display='none'">
-      <br>
-      ${o.no_projeto
-        ?`<span style="background:${o.cor}22;color:${o.cor};font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px">${presenteTxt}</span>`
-        :`<span style="background:var(--cinza-100);color:var(--cinza-500);font-size:11px;padding:2px 10px;border-radius:99px">${ausente}</span>`}
-    </div>
-    ${inds.length
-      ?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${inds.length} ${vinculados}</div>
-        ${inds.map(i=>{
-          const{conf,pend}=calcPct(i);
-          const p=getProgresso(i.id);
-          const meta=parseFloat(i.meta_numerica||0);
-          const realConf=parseFloat(p.realizado_confirmado||0);
-          const realPend=parseFloat(p.realizado_pendente||0);
-          const temMeta=meta>0;
-          return`<div style="padding:8px 10px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:5px;cursor:pointer" onclick="document.getElementById('modal-ref').style.display='none';abrirIndicador('${i.id}')">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:${temMeta?'6px':'0'}">
-              <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:1px 6px;border-radius:3px;flex-shrink:0">${i.produto_codigo}</span>
-              <span style="font-size:12px;color:var(--cinza-800);flex:1">${(i.indicador||'').substring(0,75)}${(i.indicador||'').length>75?'…':''}</span>
-              ${temMeta?`<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corPct(conf)};flex-shrink:0">${conf}%</span>`:''}
-            </div>
-            ${temMeta?`
-            <div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;position:relative;margin-bottom:4px">
-              <div style="position:absolute;height:100%;background:#059669;width:${conf}%;border-radius:3px"></div>
-              <div style="position:absolute;height:100%;background:#FCD34D;width:${pend}%;left:${conf}%;border-radius:3px"></div>
-            </div>
-            <div style="font-size:10px;color:var(--cinza-500);display:flex;gap:10px">
-              ${realConf>0?`<span style="color:#059669">✓ ${realConf.toLocaleString('pt-BR')} conf.</span>`:''}
-              ${realPend>0?`<span style="color:#D97706">⏳ ${realPend.toLocaleString('pt-BR')} pend.</span>`:''}
-              <span style="margin-left:auto">Meta: <strong>${meta.toLocaleString('pt-BR')} ${i.unidade||''}</strong></span>
-            </div>`:''}
-          </div>`;
-        }).join('')}`
-      :`<div style="text-align:center;padding:16px;color:var(--cinza-400);font-size:12px">${semInd}</div>`}`;
-  document.getElementById('modal-ref').style.display='flex';
+function listaRefInd(inds) {
+  if (!inds.length) return '<div class="mz-vazio" style="padding:16px">Nenhum indicador vinculado.</div>';
+  return `<div class="eyebrow" style="font-size:11px;font-weight:600;color:var(--txt-3);text-transform:uppercase;letter-spacing:.06em">${inds.length} indicador${inds.length === 1 ? '' : 'es'} vinculado${inds.length === 1 ? '' : 's'}</div>`
+    + inds.map(i => {
+      const s = sitItem(i), { real } = calcPct(i);
+      return `<button type="button" class="mz-ref-ind" onclick="mzFechar('modal-ref');abrirIndicador('${i.id}')">
+        <span class="l"><span class="mz-cod">${esc(i._cod)}</span><span class="tx">${esc(i.indicador || '')}</span><span class="mono" style="color:var(${SIT[s].cor})">${real == null ? '—' : real + '%'}</span></span>
+        ${num(i.meta_numerica) ? barra(i) : ''}
+      </button>`;
+    }).join('');
+}
+
+function abrirRefODS(numero) {
+  const o = odsRef(numero); if (!o) return;
+  const n = parseInt(o.numero, 10);
+  const inds = matrizItens.filter(i => temOds(i, o.numero));
+  document.getElementById('mr-sub').textContent = 'ODS ' + n;
+  document.getElementById('mr-titulo').textContent = odsTitulo(o);
+  document.getElementById('mr-body').innerHTML = `
+    <div class="mz-ref-topo" style="--c:${odsCor(o.numero)}">
+      <span class="img" data-n="${n}"><img src="../assets/sdg/sdg-${n}.jpg" alt="ODS ${n}" onerror="odsImgFalhou(this)"></span>
+      <span>${inds.length ? `<span class="mz-pill mz-p-ok">${mzIc('check','p')}Tem indicador neste projeto</span>` : `<span class="mz-pill mz-p-ne">Sem indicador neste projeto</span>`}</span>
+    </div>` + listaRefInd(inds);
+  mzAbrir('modal-ref');
 }
 
 // ── KM ────────────────────────────────────────────────────────
-function renderKM(){
-  const el=document.getElementById('km-lista');
-  if(!kmRefs.length){el.innerHTML='<div style="color:var(--cinza-400);font-size:12px">Execute o SQL de migração.</div>';return;}
-
-  el.innerHTML=kmRefs.map(k=>{
-    const inds=matrizItens.filter(i=>(i.metas_km||[]).includes(k.numero));
-    const{conf}=inds.reduce((acc,i)=>{const p=calcPct(i);return{conf:acc.conf+p.conf};},{conf:0});
-    const mediaKM=inds.filter(i=>parseFloat(i.meta_numerica||0)>0).length
-      ?Math.round(conf/(inds.filter(i=>parseFloat(i.meta_numerica||0)>0).length)):0;
-
-    return`<div class="km-item${k.no_projeto?' ativo':''}" onclick="abrirRefKM('${k.numero}')">
-      <div class="km-num" style="color:${k.no_projeto?'#5B21B6':'var(--cinza-300)'}">
-        <div style="font-size:16px;font-weight:700">${k.numero}</div>
-        ${k.no_projeto?`<div style="font-size:8px;font-weight:700;background:#EDE9FE;color:#5B21B6;padding:1px 5px;border-radius:3px;margin-top:2px;text-align:center">✓</div>`:''}
-      </div>
-      <div class="km-body">
-        <div class="km-titulo">${k.titulo}</div>
-        <div class="km-resumo">${(k.resumo||'').substring(0,120)}${(k.resumo||'').length>120?'…':''}</div>
-        ${k.no_projeto&&inds.length?`<div class="km-inds">
-          ${inds.slice(0,4).map(i=>`<span style="font-size:9px;background:var(--cinza-100);color:var(--cinza-600);padding:1px 6px;border-radius:3px">${i.produto_codigo}</span>`).join('')}
-          ${inds.length>4?`<span style="font-size:9px;color:var(--cinza-400)">+${inds.length-4}</span>`:''}
-          ${parseFloat(mediaKM)>0?`<span style="margin-left:auto;font-size:9px;font-weight:700;color:${corPct(mediaKM)}">${mediaKM}%</span>`:''}
-        </div>`:''}
-      </div>
-    </div>`;
+function renderKM() {
+  const el = document.getElementById('km-lista'); if (!el) return;
+  if (!kmRefs.length) { el.innerHTML = '<div class="mz-vazio">Referências de Kunming-Montreal não encontradas.</div>'; return; }
+  const comInd = kmRefs.filter(k => matrizItens.some(i => temKm(i, k.numero)));
+  document.getElementById('n-km').textContent = comInd.length;
+  document.getElementById('km-info-txt').innerHTML = `<b>${comInd.length} metas de Kunming-Montreal</b> têm indicador neste projeto (${comInd.map(k => esc(k.numero)).join(', ')}). As demais aparecem esmaecidas.`;
+  el.innerHTML = kmRefs.map(k => {
+    const inds = matrizItens.filter(i => temKm(i, k.numero));
+    return `<button type="button" class="mz-kmi${inds.length ? '' : ' fora'}" onclick="abrirRefKM('${esc(k.numero)}')">
+      <span class="n">${esc(k.numero)}</span>
+      <span style="min-width:0"><span class="t">${esc(k.titulo || '')}</span>
+        ${k.resumo ? `<span class="r" style="display:block">${esc(k.resumo.length > 140 ? k.resumo.substring(0, 138) + '…' : k.resumo)}</span>` : ''}
+        ${inds.length ? `<span class="c">${inds.slice(0, 6).map(i => `<span class="mz-cod">${esc(i._cod)}</span>`).join('')}${inds.length > 6 ? `<span class="mz-muted" style="font-size:11px">+${inds.length - 6}</span>` : ''}</span>` : ''}
+      </span>
+      <span class="mz-pill ${inds.length ? 'mz-p-in' : 'mz-p-ne'}">${inds.length ? inds.length + ' ind. · ' + mediaConf(inds) + '%' : 'Sem indicador'}</span>
+    </button>`;
   }).join('');
 }
 
-function abrirRefKM(num){
-  const k=kmRefs.find(x=>x.numero===num);
-  if(!k)return;
-  const inds=matrizItens.filter(i=>(i.metas_km||[]).includes(num));
-  document.getElementById('mr-titulo').textContent=`Meta KM ${num} — ${k.titulo}`;
-  document.getElementById('mr-body').innerHTML=`
-    <div style="padding:12px;background:${k.no_projeto?'#EDE9FE':'var(--cinza-50)'};border-radius:var(--raio);margin-bottom:14px">
-      <div style="font-size:12px;color:${k.no_projeto?'#4C1D95':'var(--cinza-600)'};line-height:1.5">${k.resumo||k.titulo}</div>
-      ${k.no_projeto?`<div style="margin-top:6px"><span style="background:#5B21B6;color:#fff;font-size:9px;font-weight:700;padding:1px 8px;border-radius:99px">✓ Presente neste projeto</span></div>`:''}
-    </div>
-    ${inds.length?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${inds.length} indicador(es) vinculado(s)</div>
-    ${inds.map(i=>{
-      const{conf,pend}=calcPct(i);
-      const p=getProgresso(i.id);
-      const meta=parseFloat(i.meta_numerica||0);
-      const realConf=parseFloat(p.realizado_confirmado||0);
-      const realPend=parseFloat(p.realizado_pendente||0);
-      const temMeta=meta>0;
-      return`<div style="padding:8px 10px;border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:5px;cursor:pointer" onclick="document.getElementById('modal-ref').style.display='none';abrirIndicador('${i.id}')">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:${temMeta?'6px':'0'}">
-          <span style="font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--cinza-100);padding:1px 6px;border-radius:3px;flex-shrink:0">${i.produto_codigo}</span>
-          <span style="flex:1;font-size:12px;color:var(--cinza-800)">${(i.indicador||'').substring(0,75)}${(i.indicador||'').length>75?'…':''}</span>
-          ${temMeta?`<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${corPct(conf)};flex-shrink:0">${conf}%</span>`:''}
-        </div>
-        ${temMeta?`
-        <div style="height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;position:relative;margin-bottom:4px">
-          <div style="position:absolute;height:100%;background:#059669;width:${conf}%;border-radius:3px"></div>
-          <div style="position:absolute;height:100%;background:#FCD34D;width:${pend}%;left:${conf}%;border-radius:3px"></div>
-        </div>
-        <div style="font-size:10px;color:var(--cinza-500);display:flex;gap:10px">
-          ${realConf>0?`<span style="color:#059669">✓ ${realConf.toLocaleString('pt-BR')} conf.</span>`:''}
-          ${realPend>0?`<span style="color:#D97706">⏳ ${realPend.toLocaleString('pt-BR')} pend.</span>`:''}
-          <span style="margin-left:auto">Meta: <strong>${meta.toLocaleString('pt-BR')} ${i.unidade||''}</strong></span>
-        </div>`:''}
-      </div>`;
-    }).join('')}`:`<div style="text-align:center;padding:16px;color:var(--cinza-400);font-size:12px">Nenhum indicador diretamente vinculado.</div>`}`;
-  document.getElementById('modal-ref').style.display='flex';
+function abrirRefKM(numero) {
+  const k = kmRefs.find(x => String(x.numero) === String(numero)); if (!k) return;
+  const inds = matrizItens.filter(i => temKm(i, numero));
+  document.getElementById('mr-sub').textContent = 'Meta ' + k.numero + ' · Kunming-Montreal';
+  document.getElementById('mr-titulo').textContent = k.titulo || '';
+  document.getElementById('mr-body').innerHTML =
+    (k.resumo ? `<div class="mz-txt">${esc(k.resumo)}</div>` : '')
+    + `<div>${inds.length ? `<span class="mz-pill mz-p-ok">${mzIc('check','p')}Tem indicador neste projeto</span>` : `<span class="mz-pill mz-p-ne">Sem indicador neste projeto</span>`}</div>`
+    + listaRefInd(inds);
+  mzAbrir('modal-ref');
 }
 
-// ── MODAL INDICADOR ───────────────────────────────────────────
-async function abrirIndicador(id){
-  indAtual=matrizItens.find(i=>i.id===id);
-  if(!indAtual)return;
-  const i=indAtual;
-  const meta=parseFloat(i.meta_numerica||0);
-  const{conf,pend}=calcPct(i);
-  const p=getProgresso(id);
-  const temMeta=meta>0;
+// ── JANELA DO INDICADOR ───────────────────────────────────────
+async function abrirIndicador(id) {
+  indAtual = matrizItens.find(i => i.id === id);
+  if (!indAtual) return;
+  const i = indAtual, meta = num(i.meta_numerica), p = getProgresso(id), s = sitItem(i), { real } = calcPct(i);
+  document.getElementById('mi-sub').textContent = `R${i.resultado} · Produto ${i.produto_codigo || '—'} · ${i._cod}`;
+  document.getElementById('mi-titulo').textContent = i.indicador || 'Indicador';
 
-  document.getElementById('mi-titulo').textContent=`${i.produto_codigo} · Indicador`;
-  document.getElementById('mi-sub').textContent=`Resultado ${i.resultado} → Produto ${i.produto_codigo} · ${i.unidade||'qualitativo'}`;
-
-  // Carregar contribuições
   // entrega pela view: só nº, data, situação e tipo (a entrega em si só é legível por quem vê o contrato)
-  const{data:contribRows}=await db.from('vw_matriz_contribuicoes')
-    .select('*')
-    .eq('matriz_item_id',id)
-    .order('criado_em',{ascending:false})
-    .limit(30);
-  const contribs=(contribRows||[]).map(c=>({...c,contratos_produtos_entregas:c.entrega_numero==null&&c.entrega_dt==null?null:
-    {numero_entrega:c.entrega_numero,dt_entrega:c.entrega_dt,situacao:c.entrega_situacao,tipo_documento:c.entrega_tipo_documento}}));
-
-  const pendentes=(contribs||[]).filter(c=>c.status==='pendente');
-  const podeAprovar=PODE.aprovarProduto();
-
-  document.getElementById('mi-body').innerHTML=`
-    <!-- Progresso visual -->
-    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px;margin-bottom:14px">
-      <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:8px;line-height:1.4">${i.indicador||'—'}</div>
-      ${temMeta?`
-      <div style="display:flex;align-items:center;gap:12px">
-        <div style="flex:1">
-          <div style="height:10px;background:var(--cinza-100);border-radius:5px;overflow:hidden;position:relative">
-            <div style="position:absolute;height:100%;background:#059669;width:${conf}%;border-radius:5px"></div>
-            <div style="position:absolute;height:100%;background:#FCD34D;width:${pend}%;left:${conf}%;border-radius:5px"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cinza-500);margin-top:4px">
-            <span>Confirmado: <strong>${parseFloat(p.realizado_confirmado||0).toLocaleString('pt-BR')} ${i.unidade||''}</strong></span>
-            ${parseFloat(p.realizado_pendente||0)>0?`<span style="color:#D97706">Pendente: +${parseFloat(p.realizado_pendente||0).toLocaleString('pt-BR')}</span>`:''}
-            <span>Meta: <strong>${meta.toLocaleString('pt-BR')} ${i.unidade||''}</strong></span>
-          </div>
-        </div>
-        <div style="text-align:center;min-width:60px">
-          <div style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:${corPct(conf)};line-height:1">${conf}%</div>
-          <div style="font-size:9px;color:var(--cinza-400);margin-top:2px">confirmado</div>
-        </div>
-      </div>`:`<div style="font-size:11px;color:var(--cinza-500);background:#FFF;border:1px solid var(--borda);border-radius:var(--raio);padding:8px 12px">Indicador qualitativo — progresso acompanhado por registros</div>`}
-      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-        ${(i.ods||[]).map(o=>{const r=odsRefs.find(x=>x.numero===o);return`<span class="ods-chip" style="background:${r?.cor||'#2563EB'}22;color:${r?.cor||'#2563EB'}" title="${r?.titulo||''}">${r?.emoji||''} ODS ${o}</span>`;}).join('')}
-        ${(i.metas_km||[]).map(k=>`<span class="km-chip">KM ${k}</span>`).join('')}
-      </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tab-bar">
-      <button class="tab-btn ativo" onclick="abaModal('det',this)">Detalhes</button>
-      <button class="tab-btn" onclick="abaModal('contrib',this)">Contribuições (${(contribs||[]).length})</button>
-      ${pendentes.length&&podeAprovar?`<button class="tab-btn" style="color:#D97706" onclick="abaModal('aprovar',this)">⏳ Confirmar (${pendentes.length})</button>`:''}
-    </div>
-
-    <!-- DETALHES -->
-    <div class="tab-content ativo" id="mtab-det">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div>
-          ${[
-            ['Resultado',`R${i.resultado}`],
-            ['Produto',`${i.produto_codigo} — ${i.produto_titulo}`],
-            ['Meta',i.meta_descricao],
-            ['Meta numérica',temMeta?`${meta.toLocaleString('pt-BR')} ${i.unidade||''}`:null],
-          ].filter(([,v])=>v).map(([l,v])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--borda)">
-            <span style="color:var(--cinza-500)">${l}</span>
-            <span style="font-weight:500;color:var(--cinza-900);text-align:right;max-width:200px">${v}</span>
-          </div>`).join('')}
-        </div>
-        <div>
-          ${i.meios_verificacao?`<div style="font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Meios de Verificação</div>
-          <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:8px 10px;border-radius:var(--raio);border:1px solid var(--borda)">${i.meios_verificacao}</div>`:''}
-          ${i.hipoteses_riscos?`<div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hipóteses / Riscos</div>
-          <div style="font-size:12px;color:var(--cinza-700);line-height:1.5;background:var(--cinza-50);padding:8px 10px;border-radius:var(--raio);border:1px solid var(--borda)">${i.hipoteses_riscos}</div>`:''}
-        </div>
-      </div>
-    </div>
-
-    <!-- CONTRIBUIÇÕES -->
-    <div class="tab-content" id="mtab-contrib">
-      ${(contribs||[]).length?`
-        <div style="font-size:11px;color:var(--cinza-500);margin-bottom:10px">
-          Total confirmado: <strong>${parseFloat(p.realizado_confirmado||0).toLocaleString('pt-BR')} ${i.unidade||''}</strong>
-          ${parseFloat(p.realizado_pendente||0)>0?` · Pendente: <strong style="color:#D97706">${parseFloat(p.realizado_pendente||0).toLocaleString('pt-BR')}</strong>`:''}
-        </div>
-        ${(contribs||[]).map(c=>{
-          const ent=c.contratos_produtos_entregas;
-          const nomeProduto='Entrega '+(ent?.numero_entrega||'—')+(ent?.dt_entrega?' · '+new Date(ent.dt_entrega+'T12:00').toLocaleDateString('pt-BR'):'');
-          const statusMap={pendente:'Pendente',confirmado:'Confirmado',rejeitado:'Rejeitado'};
-          const cssMap={pendente:'cs-pend',confirmado:'cs-conf',rejeitado:'cs-rej'};
-          return`<div class="contrib-item">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:12px;font-weight:500;color:var(--cinza-900)">${nomeProduto.substring(0,60)}</div>
-              <div style="font-size:10px;color:var(--cinza-500);margin-top:1px">${c.observacao||''}</div>
-            </div>
-            <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--cinza-900)">${parseFloat(c.valor||0).toLocaleString('pt-BR')} <span style="font-size:10px;font-weight:400;color:var(--cinza-400)">${c.unidade||i.unidade||''}</span></div>
-            <span class="contrib-status ${cssMap[c.status]||'cs-pend'}">${statusMap[c.status]||c.status}</span>
-            ${c.status==='pendente'&&podeAprovar?`
-            <div style="display:flex;gap:4px">
-              <button class="btn btn-sm" style="background:#D1FAE5;color:#065F46;border:none;padding:3px 8px;font-size:11px" onclick="confirmarContrib('${c.id}','confirmado')">✓</button>
-              <button class="btn btn-sm" style="background:#FEE2E2;color:#991B1B;border:none;padding:3px 8px;font-size:11px" onclick="confirmarContrib('${c.id}','rejeitado')">✕</button>
-            </div>`:''}
-          </div>`;
-        }).join('')}`:`<div class="empty-state"><div class="empty-state-msg">Nenhuma contribuição registrada ainda.</div></div>`}
-    </div>
-
-    <!-- APROVAR (somente para pending + podeAprovar) -->
-    ${pendentes.length&&podeAprovar?`
-    <div class="tab-content" id="mtab-aprovar">
-      <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:var(--raio);padding:10px 12px;margin-bottom:12px;font-size:12px;color:#92400E">
-        ⏳ <strong>${pendentes.length} contribuição(ões)</strong> aguardam confirmação técnica para contabilizar no progresso.
-      </div>
-      ${pendentes.map(c=>{
-        const ent=c.contratos_produtos_entregas;
-        const nomeProduto=ent?.descricao||('Entrega '+(ent?.numero_entrega||''));
-        return`<div class="contrib-item" style="border-color:#FCD34D;background:#FFFBEB">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:12px;font-weight:500;color:var(--cinza-900)">${nomeProduto.substring(0,60)}</div>
-            <div style="font-size:10px;color:var(--cinza-500)">${c.observacao||''}</div>
-          </div>
-          <div style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:#92400E">${parseFloat(c.valor||0).toLocaleString('pt-BR')} ${c.unidade||i.unidade||''}</div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-sm" style="background:#059669;color:#fff;border:none;padding:4px 12px;font-size:11px;border-radius:6px" onclick="confirmarContrib('${c.id}','confirmado')">✓ Confirmar</button>
-            <button class="btn btn-sm" style="background:#DC2626;color:#fff;border:none;padding:4px 12px;font-size:11px;border-radius:6px" onclick="confirmarContrib('${c.id}','rejeitado')">✕ Rejeitar</button>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`:''}
-  `;
-
-  document.getElementById('mi-footer').innerHTML=`
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      ${PODE.editarAtividade()||PODE.aprovarProduto()?`<button class="btn btn-secondary" onclick="abrirEditarInd('${id}')">✎ Editar indicador</button>`:''}
-      <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
+  const { data: contribs } = await db.from('vw_matriz_contribuicoes')
+    .select('*').eq('matriz_item_id', id).order('criado_em', { ascending: false }).limit(30);
+  const lista = contribs || [];
+  const pendentes = lista.filter(c => c.status === 'pendente');
+  const podeAprovar = PODE.aprovarProduto();
+  const ST = { pendente: ['Pendente', 'mz-p-al', 'relogio'], confirmado: ['Confirmado', 'mz-p-ok', 'check'], rejeitado: ['Rejeitado', 'mz-p-er', 'x'] };
+  const nomeEnt = c => 'Entrega ' + (c.entrega_numero || '—') + (c.entrega_dt ? ' · ' + fmtData(c.entrega_dt) : '');
+  const subEnt = c => [c.entrega_tipo_documento, c.observacao].filter(Boolean).map(esc).join(' · ')
+    + (c.status === 'pendente' && c.entrega_situacao !== 'aprovada' ? (c.observacao || c.entrega_tipo_documento ? ' · ' : '') + 'entrega ainda não aprovada' : '');
+  const linhaC = (c, acoes) => {
+    const st = ST[c.status] || [c.status, 'mz-p-ne', 'info'];
+    return `<div class="mz-ctb${acoes ? ' pend' : ''}"><div style="min-width:0"><div class="t">${esc(nomeEnt(c))}</div><div class="o">${subEnt(c)}</div></div>
+      <div class="v">${fmtN(c.valor)} <small>${esc(c.unidade || i.unidade || '')}</small></div>
+      <span class="mz-pill ${st[1]}">${mzIc(st[2],'p')}${st[0]}</span>
+      ${acoes ? `<div class="ac"><button type="button" class="mz-btn peq perigo" onclick="confirmarContrib('${c.id}','rejeitado')">${mzIc('x','p')}Rejeitar</button><button type="button" class="mz-btn peq ok" onclick="confirmarContrib('${c.id}','confirmado')">${mzIc('check','p')}Confirmar</button></div>` : ''}
     </div>`;
+  };
 
-  document.getElementById('modal-ind').style.display='flex';
-}
+  document.getElementById('mi-body').innerHTML = `
+    <div class="mz-prog" style="--c:var(${SIT[s].cor})">
+      ${meta ? barra(i, true) : '<div class="mz-bar q">Indicador qualitativo: progresso acompanhado pelos registros.</div>'}
+      <div class="mz-big">${real == null ? '—' : real + '%'}<small>${SIT[s].rot}</small></div>
+    </div>
+    ${(i.ods || []).length || (i.metas_km || []).length ? `<div class="mz-rf" style="margin-top:0">${chipsRef(i)}</div>` : ''}
+    <div class="mz-mtabs" role="tablist">
+      <button type="button" class="mz-tab" role="tab" data-mt="det" aria-selected="true">Detalhes</button>
+      <button type="button" class="mz-tab" role="tab" data-mt="contrib" aria-selected="false">Contribuições <span class="n">${lista.length}</span></button>
+      ${pendentes.length && podeAprovar ? `<button type="button" class="mz-tab" role="tab" data-mt="aprovar" aria-selected="false">Confirmar <span class="n">${pendentes.length}</span></button>` : ''}
+    </div>
+    <div class="mz-mp ativo" id="mtab-det">
+      <dl class="mz-dl">
+        <div><dt>Resultado</dt><dd>R${i.resultado} · ${esc(nomeResultado(i.resultado))}</dd></div>
+        <div><dt>Produto</dt><dd>${esc(i.produto_codigo || '—')} · ${esc(i.produto_titulo || '—')}</dd></div>
+        <div><dt>Meta</dt><dd>${esc(i.meta_descricao || '—')}</dd></div>
+        <div><dt>Meta numérica</dt><dd>${meta ? fmtN(meta) + ' ' + esc(i.unidade || '') : 'Qualitativa'}</dd></div>
+      </dl>
+      ${i.meios_verificacao ? `<div class="form-label" style="margin-top:6px">Meios de verificação</div><div class="mz-txt">${esc(i.meios_verificacao)}</div>` : ''}
+      ${i.hipoteses_riscos ? `<div class="form-label" style="margin-top:6px">Hipóteses e riscos</div><div class="mz-txt">${esc(i.hipoteses_riscos)}</div>` : ''}
+    </div>
+    <div class="mz-mp" id="mtab-contrib">
+      ${lista.length
+        ? `<div class="mz-muted" style="font-size:12px">Confirmado: <b class="mono" style="color:var(--txt)">${fmtN(p.realizado_confirmado)} ${esc(i.unidade || '')}</b>${num(p.realizado_pendente) > 0 ? ` · Pendente: <b class="mono" style="color:var(--alerta-txt)">${fmtN(p.realizado_pendente)}</b>` : ''}</div>`
+          + lista.map(c => linhaC(c, false)).join('')
+        : '<div class="mz-vazio" style="padding:20px">Nenhuma contribuição registrada ainda.</div>'}
+    </div>
+    ${pendentes.length && podeAprovar ? `<div class="mz-mp" id="mtab-aprovar">
+      <div class="mz-aviso">${mzIc('relogio','p')}<span><b>${pendentes.length} contribuição${pendentes.length === 1 ? '' : 'ões'}</b> aguardam confirmação técnica para contar no progresso.</span></div>
+      ${pendentes.map(c => linhaC(c, true)).join('')}
+    </div>` : ''}`;
+  document.querySelector('#mi-body .mz-mtabs').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-mt]'); if (!b) return;
+    document.querySelectorAll('#mi-body .mz-mtabs [data-mt]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+    document.querySelectorAll('#mi-body .mz-mp').forEach(x => x.classList.toggle('ativo', x.id === 'mtab-' + b.dataset.mt));
+  });
 
-function fecharModal(){
-  document.getElementById('modal-ind').style.display='none';
-}
-
-function abaModal(id,btn){
-  document.querySelectorAll('#mi-body .tab-btn').forEach(b=>b.classList.remove('ativo'));
-  btn.classList.add('ativo');
-  document.querySelectorAll('#mi-body .tab-content').forEach(c=>c.classList.remove('ativo'));
-  const el=document.getElementById('mtab-'+id);
-  if(el)el.classList.add('ativo');
+  document.getElementById('mi-footer').innerHTML =
+    ((PODE.editarAtividade() || PODE.aprovarProduto()) ? `<button type="button" class="mz-btn" onclick="abrirEditarInd('${id}')">${mzIc('lapis','p')}Editar indicador</button>` : '')
+    + `<button type="button" class="mz-btn" onclick="mzFechar('modal-ind')">Fechar</button>`;
+  mzAbrir('modal-ind');
 }
 
 // ── Confirmar contribuição ────────────────────────────────────
-async function confirmarContrib(contribId, novoStatus){
-  const{error}=await db.from('produto_matriz_contribuicao')
-    .update({
-      status:novoStatus,
-      confirmado_por:appState.usuario.id,
-      confirmado_em:new Date().toISOString()
-    })
-    .eq('id',contribId);
-
-  if(error){toast('Erro ao atualizar contribuição.','error');return;}
-  toast(novoStatus==='confirmado'?'Contribuição confirmada!':'Contribuição rejeitada.', novoStatus==='confirmado'?'success':'info');
-
-  // Recarregar progresso e reabrir modal
-  const{data:prog}=await db.from('vw_matriz_progresso').select('*');
-  progresso=prog||[];
-  renderStats();
-  renderMatriz();
-  if(indAtual)await abrirIndicador(indAtual.id);
+async function confirmarContrib(contribId, novoStatus) {
+  const { error } = await db.from('produto_matriz_contribuicao')
+    .update({ status: novoStatus, confirmado_por: appState.usuario.id, confirmado_em: new Date().toISOString() })
+    .eq('id', contribId);
+  if (error) { toast('Não foi possível atualizar a contribuição: ' + error.message, 'error'); return; }
+  toast(novoStatus === 'confirmado' ? 'Contribuição confirmada.' : 'Contribuição rejeitada.', novoStatus === 'confirmado' ? 'success' : 'info');
+  const id = indAtual && indAtual.id;
+  await carregar();
+  if (id) await abrirIndicador(id);
 }
 
-// ── Editar/Criar indicador ────────────────────────────────────
-function abrirModalNovoInd(){
-  indAtual=null;
-  abrirFormInd(null);
-}
-function abrirEditarInd(id){
-  const i=matrizItens.find(x=>x.id===id);
-  fecharModal();
-  setTimeout(()=>abrirFormInd(i),150);
+// ── Criar/editar indicador ────────────────────────────────────
+function abrirModalNovoInd() { indAtual = null; abrirFormInd(null); }
+function abrirEditarInd(id) { abrirFormInd(matrizItens.find(x => x.id === id)); }
+
+function abrirFormInd(i) {
+  const v = (x) => esc(x == null ? '' : x);
+  const resOps = [1, 2, 3].map(r => `<option value="${r}" ${i?.resultado === r ? 'selected' : ''}>R${r} · ${esc(nomeResultado(r))}</option>`).join('');
+  document.getElementById('mi-sub').textContent = i ? `${i.produto_codigo || ''} · ${i._cod || ''}` : 'Preencha os campos abaixo';
+  document.getElementById('mi-titulo').textContent = i ? 'Editar indicador' : 'Novo indicador';
+  document.getElementById('mi-body').innerHTML = `<div class="mz-form">
+    <div class="mz-g2">
+      <div class="form-group"><label class="form-label" for="fi-resultado">Resultado *</label><select class="form-control" id="fi-resultado">${resOps}</select></div>
+      <div class="form-group"><label class="form-label" for="fi-produto-cod">Código do produto *</label><input class="form-control" id="fi-produto-cod" placeholder="ex.: 1.1" value="${v(i?.produto_codigo)}"></div>
+    </div>
+    <div class="form-group"><label class="form-label" for="fi-produto-titulo">Título do produto *</label><input class="form-control" id="fi-produto-titulo" placeholder="ex.: Desenvolvimento de Produtos Sustentáveis" value="${v(i?.produto_titulo)}"></div>
+    <div class="form-group"><label class="form-label" for="fi-indicador">Indicador *</label><textarea class="form-control" id="fi-indicador" rows="2" placeholder="Descreva o indicador">${v(i?.indicador)}</textarea></div>
+    <div class="mz-g2">
+      <div class="form-group"><label class="form-label" for="fi-meta-desc">Meta (descrição)</label><input class="form-control" id="fi-meta-desc" placeholder="ex.: 200 unidades produtivas" value="${v(i?.meta_descricao)}"></div>
+      <div class="form-group"><label class="form-label" for="fi-meta-num">Meta numérica <span class="mz-dica">vazio = qualitativa</span></label><input class="form-control" type="number" id="fi-meta-num" step="0.01" placeholder="200" value="${v(i?.meta_numerica)}"></div>
+    </div>
+    <div class="mz-g2">
+      <div class="form-group"><label class="form-label" for="fi-unidade">Unidade de medida</label><input class="form-control" id="fi-unidade" placeholder="ex.: pessoas, hectares" value="${v(i?.unidade)}"></div>
+      <div class="form-group"><label class="form-label" for="fi-ordem">Ordem</label><input class="form-control" type="number" id="fi-ordem" value="${v(i?.ordem || 0)}"></div>
+    </div>
+    <div class="form-group"><div class="form-label">ODS vinculados</div><div class="mz-chips" id="fi-ods-grid" role="group" aria-label="ODS vinculados"></div></div>
+    <div class="form-group"><div class="form-label">Metas Kunming-Montreal</div><div class="mz-kmsel" id="fi-km-grid" role="group" aria-label="Metas Kunming-Montreal"></div></div>
+    <div class="form-group"><label class="form-label" for="fi-meios">Meios de verificação</label><textarea class="form-control" id="fi-meios" rows="2" placeholder="Como será medido">${v(i?.meios_verificacao)}</textarea></div>
+  </div>`;
+  document.getElementById('mi-footer').innerHTML =
+    `<button type="button" class="mz-btn" onclick="mzFechar('modal-ind')">Cancelar</button>`
+    + `<button type="button" class="mz-btn pri" onclick="salvarIndicador('${i?.id || ''}')">${mzIc('salvar','p')}Salvar</button>`;
+
+  const selOds = new Set((i?.ods || []).map(x => String(parseInt(x, 10))));
+  document.getElementById('fi-ods-grid').innerHTML = odsRefs.map(o => {
+    const n = String(parseInt(o.numero, 10));
+    return `<button type="button" class="mz-chip" data-ods="${esc(o.numero)}" aria-pressed="${selOds.has(n)}" style="--c:${odsCor(o.numero)}" title="${esc(odsTitulo(o))}"><span class="dot"></span>ODS ${esc(o.numero)}</button>`;
+  }).join('') || '<span class="mz-muted" style="font-size:12px">Referências de ODS não encontradas.</span>';
+  const selKm = new Set((i?.metas_km || []).map(String));
+  document.getElementById('fi-km-grid').innerHTML = kmRefs.map(k =>
+    `<button type="button" class="mz-chip" data-km="${esc(k.numero)}" aria-pressed="${selKm.has(String(k.numero))}"><span class="mono">${esc(k.numero)}</span>${esc(k.titulo || k.resumo || '')}</button>`).join('')
+    || '<span class="mz-muted" style="font-size:12px">Referências de Kunming-Montreal não encontradas.</span>';
+  document.querySelectorAll('#fi-ods-grid .mz-chip, #fi-km-grid .mz-chip').forEach(b =>
+    b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
+  mzAbrir('modal-ind');
 }
 
-function abrirFormInd(i){
-  const titulo=i?'Editar Indicador':'Novo Indicador';
-  document.getElementById('mi-titulo').textContent=titulo;
-  document.getElementById('mi-sub').textContent=i?`${i.produto_codigo} — ${i.produto_titulo}`:'Preencha os campos abaixo';
-  document.getElementById('mi-body').innerHTML=`
-    <div class="grid-2" style="gap:12px">
-      <div class="form-group">
-        <label class="form-label">Resultado *</label>
-        <select class="form-control" id="fi-resultado" style="height:36px">
-          <option value="1" ${i?.resultado===1?'selected':''}>1 — Uso sustentável</option>
-          <option value="2" ${i?.resultado===2?'selected':''}>2 — Mitigação ambiental</option>
-          <option value="3" ${i?.resultado===3?'selected':''}>3 — Governança e gênero</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Código Produto *</label>
-        <input class="form-control" id="fi-produto-cod" placeholder="ex: 1.1" value="${i?.produto_codigo||''}">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Título do Produto *</label>
-      <input class="form-control" id="fi-produto-titulo" placeholder="ex: Desenvolvimento de Produtos Sustentáveis" value="${i?.produto_titulo||''}">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Indicador *</label>
-      <textarea class="form-control" id="fi-indicador" rows="2" placeholder="Descreva o indicador...">${i?.indicador||''}</textarea>
-    </div>
-    <div class="grid-2" style="gap:12px">
-      <div class="form-group">
-        <label class="form-label">Meta (descrição)</label>
-        <input class="form-control" id="fi-meta-desc" placeholder="ex: 200 unidades produtivas" value="${i?.meta_descricao||''}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Meta numérica</label>
-        <input class="form-control" type="number" id="fi-meta-num" step="0.01" placeholder="200" value="${i?.meta_numerica||''}">
-      </div>
-    </div>
-    <div class="grid-2" style="gap:12px">
-      <div class="form-group">
-        <label class="form-label">Unidade de medida</label>
-        <input class="form-control" id="fi-unidade" placeholder="ex: pessoas, hectares" value="${i?.unidade||''}">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Ordem</label>
-        <input class="form-control" type="number" id="fi-ordem" value="${i?.ordem||0}">
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">ODS vinculados <span style="font-size:10px;color:var(--cinza-400);font-weight:400">(selecione quantos forem necessários)</span></label>
-      <div class="fi-ods-sel" id="fi-ods-grid"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Metas Kunming-Montreal <span style="font-size:10px;color:var(--cinza-400);font-weight:400">(selecione quantas forem necessárias)</span></label>
-      <div class="fi-km-sel" id="fi-km-grid"></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Meios de Verificação</label>
-      <textarea class="form-control" id="fi-meios" rows="2" placeholder="Como será medido...">${i?.meios_verificacao||''}</textarea>
-    </div>
-  `;
-  document.getElementById('mi-footer').innerHTML=`
-    <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarIndicador('${i?.id||''}')">💾 Salvar</button>
-    </div>`;
-  renderOdsSel(i?.ods||[]);
-  renderKmSel(i?.metas_km||[]);
-  document.getElementById('modal-ind').style.display='flex';
-}
-
-function renderOdsSel(selecionados){
-  const cont=document.getElementById('fi-ods-grid');
-  if(!cont)return;
-  const sel=new Set((selecionados||[]).map(String));
-  const sorted=[...odsRefs].sort((a,b)=>parseInt(a.numero,10)-parseInt(b.numero,10));
-  if(!sorted.length){cont.innerHTML='<span style="font-size:11px;color:var(--cinza-400)">Carregando ODS…</span>';return;}
-  cont.innerHTML=sorted.map(o=>{
-    const isSel=sel.has(String(o.numero));
-    const cor=o.cor||'#2563EB';
-    const st=isSel?`background:${cor}22;color:${cor};border-color:${cor}`:'';
-    return `<label class="fi-ods-chip${isSel?' sel':''}" style="${st}" title="${o.titulo||''}">
-      <input type="checkbox" value="${o.numero}" ${isSel?'checked':''} style="display:none" onchange="toggleOdsSel(this)">
-      ${o.emoji||''} ODS ${o.numero}
-    </label>`;
-  }).join('');
-}
-
-function toggleOdsSel(cb){
-  const label=cb.closest('.fi-ods-chip');
-  const o=odsRefs.find(x=>String(x.numero)===String(cb.value));
-  const cor=o?.cor||'#2563EB';
-  if(cb.checked){
-    label.classList.add('sel');
-    label.style.cssText=`background:${cor}22;color:${cor};border-color:${cor}`;
-  }else{
-    label.classList.remove('sel');
-    label.style.cssText='';
-  }
-}
-
-function renderKmSel(selecionados){
-  const cont=document.getElementById('fi-km-grid');
-  if(!cont)return;
-  const sel=new Set((selecionados||[]).map(String));
-  const sorted=[...kmRefs].sort((a,b)=>parseInt(a.numero,10)-parseInt(b.numero,10));
-  if(!sorted.length){cont.innerHTML='<span style="font-size:11px;color:var(--cinza-400)">Carregando metas KM…</span>';return;}
-  cont.innerHTML=sorted.map(k=>{
-    const isSel=sel.has(String(k.numero));
-    return `<label class="fi-km-chip${isSel?' sel':''}">
-      <input type="checkbox" value="${k.numero}" ${isSel?'checked':''} style="display:none" onchange="toggleKmSel(this)">
-      <span class="fi-km-chip-num">${k.numero}</span>
-      <span class="fi-km-chip-txt">${k.titulo||k.resumo||''}</span>
-    </label>`;
-  }).join('');
-}
-
-function toggleKmSel(cb){
-  cb.closest('.fi-km-chip').classList.toggle('sel',cb.checked);
-}
-
-async function salvarIndicador(id){
-  const payload={
-    resultado:parseInt(document.getElementById('fi-resultado').value)||1,
-    produto_codigo:(document.getElementById('fi-produto-cod').value||'').trim(),
-    produto_titulo:(document.getElementById('fi-produto-titulo').value||'').trim(),
-    indicador:(document.getElementById('fi-indicador').value||'').trim(),
-    meta_descricao:(document.getElementById('fi-meta-desc').value||'').trim(),
-    meta_numerica:parseFloat(document.getElementById('fi-meta-num').value)||null,
-    unidade:(document.getElementById('fi-unidade').value||'').trim()||null,
-    ordem:parseInt(document.getElementById('fi-ordem').value)||0,
-    ods:[...document.querySelectorAll('#fi-ods-grid input:checked')].map(x=>x.value),
-    metas_km:[...document.querySelectorAll('#fi-km-grid input:checked')].map(x=>x.value),
-    meios_verificacao:(document.getElementById('fi-meios').value||'').trim()||null,
-    atualizado_em:new Date().toISOString()
+async function salvarIndicador(id) {
+  const val = x => (document.getElementById(x).value || '').trim();
+  const payload = {
+    resultado: parseInt(val('fi-resultado'), 10) || 1,
+    produto_codigo: val('fi-produto-cod'),
+    produto_titulo: val('fi-produto-titulo'),
+    indicador: val('fi-indicador'),
+    meta_descricao: val('fi-meta-desc'),
+    meta_numerica: parseFloat(val('fi-meta-num')) || null,
+    unidade: val('fi-unidade') || null,
+    ordem: parseInt(val('fi-ordem'), 10) || 0,
+    ods: [...document.querySelectorAll('#fi-ods-grid [aria-pressed="true"]')].map(x => x.dataset.ods),
+    metas_km: [...document.querySelectorAll('#fi-km-grid [aria-pressed="true"]')].map(x => x.dataset.km),
+    meios_verificacao: val('fi-meios') || null,
+    atualizado_em: new Date().toISOString()
   };
-
-  if(!payload.indicador||!payload.produto_codigo||!payload.produto_titulo){
-    toast('Preencha os campos obrigatórios.','warning');return;
-  }
-
-  let error;
-  if(id){
-    ({error}=await db.from('matriz_itens').update(payload).eq('id',id));
-  }else{
-    ({error}=await db.from('matriz_itens').insert(payload));
-  }
-  if(error){toast('Erro ao salvar: '+error.message,'error');return;}
-  toast(id?'Indicador atualizado!':'Indicador criado!','success');
-  fecharModal();
+  if (!payload.indicador || !payload.produto_codigo || !payload.produto_titulo) { toast('Preencha resultado, código e título do produto e o indicador.', 'warning'); return; }
+  const { error } = id
+    ? await db.from('matriz_itens').update(payload).eq('id', id)
+    : await db.from('matriz_itens').insert(payload);
+  if (error) { toast('Não foi possível salvar: ' + error.message, 'error'); return; }
+  toast(id ? 'Indicador atualizado.' : 'Indicador criado.', 'success');
+  mzFechar('modal-ind');
   await carregar();
 }
 
 // ── Exportar CSV ──────────────────────────────────────────────
-function exportarCSV(){
-  const rows=[['Resultado','Produto','Indicador','Meta','Meta Numérica','Unidade','Confirmado','% Confirmado','ODS','KM','Meios de Verificação']];
-  matrizItens.forEach(i=>{
-    const p=getProgresso(i.id);
-    const meta=parseFloat(i.meta_numerica||0);
-    const conf=parseFloat(p.realizado_confirmado||0);
-    const pct=meta>0?Math.round(conf/meta*100):0;
-    rows.push([
-      `R${i.resultado}`,i.produto_codigo,i.indicador,
-      i.meta_descricao,i.meta_numerica||'',i.unidade||'',
-      conf,pct+'%',
-      (i.ods||[]).join(';'),(i.metas_km||[]).join(';'),
-      (i.meios_verificacao||'').replace(/[\n\r,]/g,' ')
-    ]);
+function exportarCSV() {
+  const rows = [['Resultado', 'Produto', 'Código', 'Indicador', 'Meta', 'Meta numérica', 'Unidade', 'Confirmado', 'Pendente', '% confirmado', 'Situação', 'ODS', 'KM', 'Meios de verificação']];
+  matrizItens.forEach(i => {
+    const p = getProgresso(i.id), { real } = calcPct(i);
+    rows.push([`R${i.resultado}`, i.produto_codigo, i._cod, i.indicador, i.meta_descricao, i.meta_numerica || '', i.unidade || '',
+      num(p.realizado_confirmado), num(p.realizado_pendente), real == null ? '' : real + '%', SIT[sitItem(i)].rot,
+      (i.ods || []).join(';'), (i.metas_km || []).join(';'), (i.meios_verificacao || '').replace(/[\n\r]+/g, ' ')]);
   });
-  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
-  a.download='matriz_resultados_'+new Date().toISOString().slice(0,10)+'.csv';
+  const csv = rows.map(r => r.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,﻿' + encodeURIComponent(csv);
+  a.download = 'matriz_resultados_' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
 }
 
-// Fechar modais clicando fora
-document.getElementById('modal-ind').addEventListener('click',e=>{if(e.target===document.getElementById('modal-ind'))fecharModal();});
-document.getElementById('modal-ref').addEventListener('click',e=>{if(e.target===document.getElementById('modal-ref'))document.getElementById('modal-ref').style.display='none';});
+// ── Janelas: pilha (Esc fecha a de cima), foco no primeiro controle, Tab preso, foco volta ──
+const MZ_FOCAVEIS = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]):not([type=file]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const mzPilha = [];
+function mzAbrir(id) {
+  const el = document.getElementById(id);
+  if (!el.classList.contains('aberto')) { mzPilha.push({ id, volta: document.activeElement }); el.classList.add('aberto'); }
+  requestAnimationFrame(() => {
+    const alvo = el.querySelector('.modal-body :is(input:not([type=file]),select,textarea)') || el.querySelector('.modal-close');
+    if (alvo) alvo.focus({ preventScroll: true });
+    el.querySelector('.modal-body').scrollTop = 0;
+  });
+}
+function mzFechar(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('aberto');
+  const k = mzPilha.findIndex(x => x.id === id);
+  if (k >= 0) { const { volta } = mzPilha.splice(k, 1)[0]; if (volta && document.contains(volta)) volta.focus({ preventScroll: true }); }
+}
+document.addEventListener('keydown', e => {
+  const topo = mzPilha[mzPilha.length - 1]; if (!topo) return;
+  const el = document.getElementById(topo.id);
+  if (e.key === 'Escape') { e.preventDefault(); mzFechar(topo.id); }
+  else if (e.key === 'Tab') {
+    const f = [...el.querySelectorAll(MZ_FOCAVEIS)].filter(x => x.offsetParent !== null);
+    if (!f.length) return;
+    const pri = f[0], ult = f[f.length - 1];
+    if (!el.contains(document.activeElement)) { e.preventDefault(); pri.focus(); }
+    else if (e.shiftKey && document.activeElement === pri) { e.preventDefault(); ult.focus(); }
+    else if (!e.shiftKey && document.activeElement === ult) { e.preventDefault(); pri.focus(); }
+  }
+});
+['modal-ind', 'modal-ref'].forEach(id => document.getElementById(id).addEventListener('click', e => { if (e.target.id === id) mzFechar(id); }));
 </script>
 </body>
 </html>
