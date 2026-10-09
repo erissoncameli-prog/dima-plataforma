@@ -493,22 +493,21 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,
   validados em `diag_enviar_ficha`. Fora de indicadores (risco de
   reidentificação) até existir recorte com supressão.
-- **v7 = questionário FINAL da equipe técnica** (migração `20261008_diag_19_v7_final`, em **rascunho** até publicar;
-  substitui a v6, que não será publicada): seção 0 + P1–P91 em 13 blocos (EBIA 8 itens, juventude), observação final.
+- **Questionário vigente = v7 = FINAL da equipe técnica** (migração `20261008_diag_19_v7_final`; **publicada em
+  09/10/2026** pela `20261009_diag_20_publica_v7`, que arquivou a v5 e a v6 — v7 agora é imutável): seção 0 + P1–P91 em 13 blocos (EBIA 8 itens, juventude), observação final.
   Número exibido pode ser texto: `rotulo` ("0.6", "32.1", "42 (a)"); `n` segue inteiro — exibir com
   `DiagRegras.numero(p)` / `p.rotulo || p.n`. `max_marcar` (múltipla "até 3") é regra do interpretador (SQL + JS).
   Lista de moradores (P7) **sem nome**; o app desenha a grade idade × sexo; P8 = derivada `maior_nivel`
   (`coluna: escolaridade`; cada opção da coluna tem `nivel` = opção da P8; derivada sem valor sai das respostas;
   SQL em `fn_diag_maior_nivel`). Alertas da lista usam o `n` da tabela na estrutura (não mais P9 fixo).
-  Nome do entrevistado fora do formulário (0.7 = só GPS). Botão "O que é uma APA?" nas P51/53/55 com o texto
-  ainda em rascunho — aprovar antes de publicar. Publicar = migração própria (v5 → arquivada, v6 → arquivada).
-- **Questionário vigente = v5** (escolaridade da P9 em lista fechada desde a
+  Nome do entrevistado fora do formulário (0.7 = só GPS). Botão "O que é uma APA?" nas P51/53/55
+  (`estrutura.leituras.apa`, publicado junto — mudar o texto = nova versão).
+- **Histórico até a v6**: v5 (escolaridade da P9 em lista fechada desde a
   v2, com doutorado na v3; na v4 aviso novo em parágrafos, P55 `participa_org_tipos`
   (múltipla, **sensível**) e P56 = `participa_org_quais` (mesma chave, pede o nome);
   demais +1; na v5 o aviso ganha a gravação de áudio e `estrutura.audio_max_s = 180`;
-  v1–v4 arquivadas). **v6 em rascunho** (migração `20260929_diag_18_v6_apa`): bloco 7
-  "A APA e a situação da terra" (P46–P53, demais +8, 90 perguntas) — testar no modo
-  treino; publicar só com o texto da APA aprovado (publicada = imutável). Textos para
+  v1–v6 arquivadas). v6 (migração `20260929_diag_18_v6_apa`, nunca publicada): bloco 7
+  "A APA e a situação da terra" (P46–P53, demais +8, 90 perguntas). Textos para
   **ler ao entrevistado** ficam em `estrutura.leituras` (ex.: `apa`) e aparecem como
   botão na pergunta com `"leitura": "<id>"` (`js/diag-form.js`, `#ov-leitura`); são
   só exibição, fora do interpretador. Coluna `unica` da P9 é
