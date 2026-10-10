@@ -887,8 +887,11 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   Remover foto/logo pede confirmação; "Alterações não salvas" + aviso ao sair (`marcarSujo`/`beforeunload`). Cor só
   `#RRGGBB` (`corValida`); legenda, nome de arquivo e URLs passam por `esc()`. Arquivos removidos seguem no bucket público
   `plataforma-assets` (limpeza exigiria apagar — fica para depois).
-- **Armazenamento** (`banco-dados.html`, super_admin): só leitura de `get_monitoramento_banco()`; medidores com faixa (âmbar ≥ 80%,
-  vermelho ≥ 95%), pastas por tamanho, 15 maiores tabelas com "Mostrar todas". Plano em `planoAtual`.
+- **Armazenamento** (`banco-dados.html`, super_admin ativo): só leitura de `get_monitoramento_banco()`; medidores com faixa (âmbar ≥ 80%,
+  vermelho ≥ 95%), pastas por tamanho (todas de `storage.buckets`, vazias com 0, limite por arquivo e se é pública), 15 maiores
+  tabelas com "Mostrar todas". Plano em `planoAtual` = **`'pro'`** (8 GB de banco, 100 GB de arquivos = cota incluída; excedente é
+  cobrado, não bloqueia). Na função, agrupar numa subconsulta: `jsonb_agg(... count(*) ...)` com `GROUP BY` dá "aggregate function
+  calls cannot be nested" (a lista vinha vazia porque o EXCEPTION engolia o erro).
 - **ROPA**: a ficha de cada tratamento (`.ad-trat`) é **papel: branca nos dois temas e na impressão**; na impressão do tema escuro
   o resto volta aos valores claros. Regras de leitura/conferência seguem as de "ROPA vivo" (Diagnóstico).
 

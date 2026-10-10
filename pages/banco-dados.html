@@ -24,13 +24,14 @@
 <script>
 // ── Armazenamento (super_admin) ─────────────────────────────────────────
 // Só leitura: get_monitoramento_banco() (SECURITY DEFINER, confere super_admin no banco).
-// Limites do plano Supabase: para migrar para Pro, troque planoAtual para 'pro'.
+// Plano Supabase da organização (Pro desde 10/2026). No Pro os números são a cota incluída na mensalidade:
+// passar dela é cobrado como excedente (salvo se o limite de gastos estiver ligado), não bloqueia.
 const PLANOS = {
   free: { nome: 'Free', db_bytes: 500 * 1024 * 1024, storage_bytes: 1 * 1024 * 1024 * 1024 },
   pro:  { nome: 'Pro',  db_bytes: 8 * 1024 * 1024 * 1024, storage_bytes: 100 * 1024 * 1024 * 1024 },
   team: { nome: 'Team', db_bytes: 8 * 1024 * 1024 * 1024, storage_bytes: 100 * 1024 * 1024 * 1024 },
 };
-let planoAtual = 'free';
+let planoAtual = 'pro';
 let monitoramento = null, monCarregando = false, todasTabelas = false;
 
 (async () => {
@@ -61,7 +62,7 @@ function renderPagina() {
 }
 
 function renderConteudo() {
-  const topo = (extra) => `<div class="ad-topo"><div><h2>Armazenamento</h2><p>Quanto o banco de dados e os arquivos ocupam no Supabase, contra o limite do plano.</p></div>${extra || ''}</div>`;
+  const topo = (extra) => `<div class="ad-topo"><div><h2>Armazenamento</h2><p>Quanto o banco de dados e os arquivos ocupam no Supabase, contra a cota do plano.</p></div>${extra || ''}</div>`;
   if (monCarregando) return topo() + `<div class="ad-carrega" style="min-height:30vh" role="status"><span class="ad-spin"></span>Consultando o banco…</div>`;
   if (!monitoramento) return topo() + '<div class="ad-card ad-vazio">Nenhum dado carregado.</div>';
   if (monitoramento.erro) return topo(botaoAtualizar()) + `<div class="ad-aviso er">${adIc('alerta', 'p')}<span>Erro ao consultar: ${esc(monitoramento.erro)}</span></div>`;
@@ -69,8 +70,8 @@ function renderConteudo() {
   const plano = PLANOS[planoAtual];
   const { db_size_bytes, storage_buckets, tabelas, consultado_em } = monitoramento;
   const storageTotal = (storage_buckets || []).reduce((s, b) => s + (b.tamanho_bytes || 0), 0);
-  const dbPct = Math.min(Math.round(db_size_bytes / plano.db_bytes * 100), 100);
-  const stPct = Math.min(Math.round(storageTotal / plano.storage_bytes * 100), 100);
+  const dbPct = Math.min(db_size_bytes / plano.db_bytes * 100, 100);
+  const stPct = Math.min(storageTotal / plano.storage_bytes * 100, 100);
   const hora = consultado_em ? new Date(consultado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
 
   return topo(`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -91,20 +92,22 @@ const faixa = pct => pct >= 95 ? 'er' : pct >= 80 ? 'al' : '';
 function medidor(ic, rotulo, usado, total, pct) {
   return `<div class="ad-card ad-med">
     <div class="ad-med-l"><b>${adIc(ic, 'p')}${rotulo}</b><span class="ad-mono">${fmtBytes(usado)} de ${fmtBytes(total)}</span></div>
-    <div class="ad-med-v">${pct}% <small>usado</small></div>
-    <div class="ad-trilho ${faixa(pct)}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${rotulo}: ${pct}% usado"><i style="width:${pct}%"></i></div>
+    <div class="ad-med-v">${fmtPct(pct)}% <small>da cota</small></div>
+    <div class="ad-trilho ${faixa(pct)}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct.toFixed(1)}" aria-label="${rotulo}: ${fmtPct(pct)}% da cota"><i style="width:${Math.max(pct, pct > 0 ? 0.5 : 0)}%"></i></div>
   </div>`;
 }
 function alerta(pct, recurso, plano) {
   const crit = pct >= 95;
-  return `<div class="ad-aviso ${crit ? 'er' : ''}">${adIc('alerta', 'p')}<span><b>${pct}% ${recurso}</b> ${crit ? '— limite quase atingido. Planeje limpeza ou a mudança para o plano Pro.' : `— acima de 80% do plano ${esc(plano)}.`}</span></div>`;
+  return `<div class="ad-aviso ${crit ? 'er' : ''}">${adIc('alerta', 'p')}<span><b>${fmtPct(pct)}% ${recurso}</b> ${crit ? `— perto da cota do plano ${esc(plano)}. O que passar dela é cobrado como excedente; planeje limpeza ou confira o limite de gastos no painel do Supabase.` : `— acima de 80% da cota do plano ${esc(plano)}.`}</span></div>`;
 }
 function pastas(buckets, total) {
   const ord = buckets.slice().sort((a, b) => (b.tamanho_bytes || 0) - (a.tamanho_bytes || 0));
   const max = ord.length ? (ord[0].tamanho_bytes || 0) : 0;
   const itens = ord.length ? ord.map(b => {
     const pct = max > 0 ? Math.round((b.tamanho_bytes || 0) / max * 100) : 0;
-    return `<div class="ad-bk"><span class="ad-mono" style="text-align:left;color:var(--txt)">${esc(b.bucket_id)}</span>
+    const lim = b.limite_arquivo_bytes ? `até ${fmtBytes(b.limite_arquivo_bytes)} por arquivo` : 'sem limite por arquivo';
+    return `<div class="ad-bk"><span class="ad-bk-n"><span class="ad-mono" style="color:var(--txt)">${esc(b.bucket_id)}</span>
+        <small>${b.publico ? 'pública · ' : ''}${lim}</small></span>
       <div class="ad-trilho fino"><i style="width:${pct}%;background:var(--pri-600)"></i></div>
       <span class="ad-mono">${fmtBytes(b.tamanho_bytes)}</span><span class="ad-mono ad-n-arq">${Number(b.total_arquivos || 0).toLocaleString('pt-BR')} arq.</span></div>`;
   }).join('') : '<div class="ad-vazio">Nenhuma pasta encontrada.</div>';
@@ -121,6 +124,7 @@ function tabelasHtml(tabelas, dbTotal) {
       ${tabelas.length > 15 ? `<button type="button" class="btn btn-secondary" onclick="todasTabelas=!todasTabelas;renderPagina()">${todasTabelas ? 'Mostrar só as 15 maiores' : 'Mostrar todas (' + tabelas.length + ')'}</button>` : ''}</div>
     <div class="ad-tab-wrap"><table class="ad-tab ad-tab-num"><thead><tr><th>Tabela</th><th>Linhas</th><th>Tamanho</th><th>% do banco</th></tr></thead><tbody>${linhas}</tbody></table></div></div>`;
 }
+function fmtPct(p) { return (p > 0 && p < 10 ? p.toFixed(1) : Math.round(p).toString()).replace('.', ','); }
 function fmtBytes(bytes) {
   if (!bytes) return '0 B';
   const u = ['B', 'KB', 'MB', 'GB', 'TB']; let i = 0, v = bytes;
