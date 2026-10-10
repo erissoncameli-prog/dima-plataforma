@@ -1,5 +1,7 @@
-﻿import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
+import { Buffer } from 'node:buffer'
+import { logosEmail } from '../_shared/logos-email.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -7,13 +9,10 @@ const CORS = {
 }
 
 const REMETENTE  = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
-const UNESCO_EMAIL = 'projetounesco.acre@gmail.com'
+const UNESCO_EMAILS = ['projetounesco.acre@gmail.com', 'm.lang@unesco.org']
 const SITE_URL   = 'https://fundobrasilonu-plataforma.vercel.app'
-const ASSETS     = `${SITE_URL}/assets`
 
-// ── Wrapper HTML com barra de logos ──────────────────────────────────────────
-function wrapHtml(corpo: string): string {
-  // Converte o texto plano em HTML: blocos "CHAVE : valor" viram tabela, resto em parágrafos
+function wrapHtml(corpo: string, logos: { cabecalho: string; faixa: string }): string {
   const linhas = corpo.split('\n')
   let html = ''
   let emBloco = false
@@ -52,13 +51,11 @@ function wrapHtml(corpo: string): string {
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0">
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
-
-  <!-- Cabeçalho verde -->
   <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td style="vertical-align:middle">
-          <img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0">
+          ${logos.cabecalho}
         </td>
         <td style="vertical-align:middle;text-align:right">
           <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Plataforma de Gestão</span><br>
@@ -68,26 +65,16 @@ function wrapHtml(corpo: string): string {
       </tr>
     </table>
   </td></tr>
-
-  <!-- Barra de logos parceiros -->
-  <tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
+  ${logos.faixa ? `<tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/1695134345-1-horizontal-verde-solo.png"        alt="SEMA/AC"               height="32" style="display:block;border:0"></td>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNESCO_logo_hor_blue_transparent.png.png"      alt="UNESCO"                height="28" style="display:block;border:0"></td>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil"           height="28" style="display:block;border:0"></td>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-fundo-brasil-onu.png"                     alt="Fundo Brasil-ONU"     height="32" style="display:block;border:0"></td>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-consorcio-amazonia.png"                   alt="Consórcio Amazônia"   height="36" style="display:block;border:0"></td>
+        ${logos.faixa}
       </tr>
     </table>
-  </td></tr>
-
-  <!-- Corpo -->
+  </td></tr>` : ''}
   <tr><td style="background:#ffffff;padding:28px 24px 20px">
     ${html}
   </td></tr>
-
-  <!-- Rodapé -->
   <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
     <p style="margin:0;font-size:11px;color:#6B7280">
       Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
@@ -96,7 +83,6 @@ function wrapHtml(corpo: string): string {
       <a href="${SITE_URL}" style="color:#059669;text-decoration:none">Acessar Plataforma</a>
     </p>
   </td></tr>
-
 </table>
 </td></tr>
 </table>
@@ -116,7 +102,6 @@ function fmtBRL(v: number): string {
 
 const ASS = `\n\nAtenciosamente,\nEquipe de Gestão – Projeto DIMA\nUNESCO / SEMA-AC\nfundobrasilonuacre@gmail.com`
 
-// ── Template para responsáveis da atividade (evento: aprovado / aprovado_parcial) ─
 function tplResponsavelAprovado(evento: string, p: any, entrega: any): { assunto: string; corpo: string } {
   const numProd  = p.numero_produto || '—'
   const desc     = p.descricao || '—'
@@ -135,27 +120,12 @@ function tplResponsavelAprovado(evento: string, p: any, entrega: any): { assunto
     assunto: parcial
       ? `[DIMA | ${forn}] Produto Nº ${numProd} — Aprovação parcial registrada (${pct}%)`
       : `[DIMA | ${forn}] Produto Nº ${numProd} — Aprovação registrada ✓`,
-    corpo: `Prezado(a) responsável,
-
-${parcial
-  ? `A aprovação parcial (${pct}%) do Produto Nº ${numProd} foi registrada com sucesso na Plataforma DIMA.`
-  : `A aprovação integral do Produto Nº ${numProd} foi registrada com sucesso na Plataforma DIMA.`}
-
-PRODUTO   : Nº ${numProd} — ${desc}
-ATIVIDADE : ${ativDesc}
-CONTRATO  : ${cont}
-FORNECEDOR: ${forn}
-DESPACHO  : ${numDesp} (${dtDesp})
-VALOR     : ${valor > 0 ? fmtBRL(valor) : '—'}
-
-PARECER TÉCNICO:
-${despacho}
-
-O fornecedor foi notificado e o processo foi encaminhado para pagamento.${ASS}`,
+    corpo: `Prezado(a) responsável,\n\n${parcial
+      ? `A aprovação parcial (${pct}%) do Produto Nº ${numProd} foi registrada com sucesso na Plataforma DIMA.`
+      : `A aprovação integral do Produto Nº ${numProd} foi registrada com sucesso na Plataforma DIMA.`}\n\nPRODUTO   : Nº ${numProd} — ${desc}\nATIVIDADE : ${ativDesc}\nCONTRATO  : ${cont}\nFORNECEDOR: ${forn}\nDESPACHO  : ${numDesp} (${dtDesp})\nVALOR     : ${valor > 0 ? fmtBRL(valor) : '—'}\n\nPARECER TÉCNICO:\n${despacho}\n\nO fornecedor foi notificado e o processo foi encaminhado para pagamento.${ASS}`,
   }
 }
 
-// ── Template para responsáveis da atividade (evento: pago) ───────────────────
 function tplResponsavelPago(p: any, entrega: any): { assunto: string; corpo: string } {
   const numProd  = p.numero_produto || '—'
   const desc     = p.descricao || '—'
@@ -167,15 +137,7 @@ function tplResponsavelPago(p: any, entrega: any): { assunto: string; corpo: str
 
   return {
     assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Pagamento confirmado ✓`,
-    corpo: `Prezado(a) responsável,
-
-Informamos que o pagamento referente ao Produto Nº ${numProd} foi confirmado e registrado no módulo financeiro da Plataforma DIMA.
-
-PRODUTO   : Nº ${numProd} — ${desc}
-ATIVIDADE : ${ativDesc}
-CONTRATO  : ${cont}
-FORNECEDOR: ${forn}
-VALOR PAGO: ${valor > 0 ? fmtBRL(valor) : '—'}${ASS}`,
+    corpo: `Prezado(a) responsável,\n\nInformamos que o pagamento referente ao Produto Nº ${numProd} foi confirmado e registrado no módulo financeiro da Plataforma DIMA.\n\nPRODUTO   : Nº ${numProd} — ${desc}\nATIVIDADE : ${ativDesc}\nCONTRATO  : ${cont}\nFORNECEDOR: ${forn}\nVALOR PAGO: ${valor > 0 ? fmtBRL(valor) : '—'}${ASS}`,
   }
 }
 
@@ -191,22 +153,10 @@ function tplResponsavel(p: any, entrega: any): { assunto: string; corpo: string 
 
   return {
     assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Entrega recebida, aguarda avaliação`,
-    corpo: `Prezado(a) responsável,
-
-Uma nova entrega foi registrada e aguarda sua avaliação na Plataforma DIMA.
-
-PRODUTO   : Nº ${numProd} — ${desc}
-ATIVIDADE : ${ativDesc}
-CONTRATO  : ${cont}
-FORNECEDOR: ${forn}
-ENTREGA   : ${dtEnt}
-
-Acesse a plataforma para avaliar:
-${link}${ASS}`,
+    corpo: `Prezado(a) responsável,\n\nUma nova entrega foi registrada e aguarda sua avaliação na Plataforma DIMA.\n\nPRODUTO   : Nº ${numProd} — ${desc}\nATIVIDADE : ${ativDesc}\nCONTRATO  : ${cont}\nFORNECEDOR: ${forn}\nENTREGA   : ${dtEnt}\n\nAcesse a plataforma para avaliar:\n${link}${ASS}`,
   }
 }
 
-// ── Templates para fornecedor/consultor ──────────────────────────────────────
 function tplFornecedor(evento: string, p: any, entrega: any): { assunto: string; corpo: string } | null {
   const numProd  = p.numero_produto || '—'
   const desc     = p.descricao || '—'
@@ -220,71 +170,27 @@ function tplFornecedor(evento: string, p: any, entrega: any): { assunto: string;
 
   if (evento === 'aprovado') return {
     assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Aprovado ✓`,
-    corpo: `Prezado(a),
-
-Informamos que o Produto Nº ${numProd} foi APROVADO integralmente.
-
-PRODUTO  : ${desc}
-CONTRATO : ${cont}
-DESPACHO : ${numDesp} (${dtDesp})
-VALOR    : ${fmtBRL(valor)}
-
-PARECER TÉCNICO:
-${despacho}
-
-O produto será encaminhado para processamento do pagamento pela equipe financeira.${ASS}`,
+    corpo: `Prezado(a),\n\nInformamos que o Produto Nº ${numProd} foi APROVADO integralmente.\n\nPRODUTO  : ${desc}\nCONTRATO : ${cont}\nDESPACHO : ${numDesp} (${dtDesp})\nVALOR    : ${fmtBRL(valor)}\n\nPARECER TÉCNICO:\n${despacho}\n\nO produto será encaminhado para processamento do pagamento pela equipe financeira.${ASS}`,
   }
 
   if (evento === 'aprovado_parcial') return {
     assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Aprovação parcial (${pct}%)`,
-    corpo: `Prezado(a),
-
-Informamos que o Produto Nº ${numProd} recebeu APROVAÇÃO PARCIAL.
-
-PRODUTO   : ${desc}
-CONTRATO  : ${cont}
-DESPACHO  : ${numDesp} (${dtDesp})
-APROVADO  : ${pct}%
-VALOR     : ${fmtBRL(valor)}
-
-PARECER TÉCNICO:
-${despacho}
-
-Uma nova entrega poderá ser realizada para o percentual restante. Acesse a Plataforma DIMA para mais informações.${ASS}`,
+    corpo: `Prezado(a),\n\nInformamos que o Produto Nº ${numProd} recebeu APROVAÇÃO PARCIAL.\n\nPRODUTO   : ${desc}\nCONTRATO  : ${cont}\nDESPACHO  : ${numDesp} (${dtDesp})\nAPROVADO  : ${pct}%\nVALOR     : ${fmtBRL(valor)}\n\nPARECER TÉCNICO:\n${despacho}\n\nUma nova entrega poderá ser realizada para o percentual restante. Acesse a Plataforma DIMA para mais informações.${ASS}`,
   }
 
   if (evento === 'devolvido') return {
     assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Devolvido para correção`,
-    corpo: `Prezado(a),
-
-Informamos que o Produto Nº ${numProd} foi DEVOLVIDO para correção.
-
-PRODUTO  : ${desc}
-CONTRATO : ${cont}
-DESPACHO : ${numDesp} (${dtDesp})
-
-MOTIVO DA DEVOLUÇÃO:
-${despacho}
-
-Por favor, realize os ajustes indicados e registre uma nova entrega na Plataforma DIMA.${ASS}`,
+    corpo: `Prezado(a),\n\nInformamos que o Produto Nº ${numProd} foi DEVOLVIDO para correção.\n\nPRODUTO  : ${desc}\nCONTRATO : ${cont}\nDESPACHO : ${numDesp} (${dtDesp})\n\nMOTIVO DA DEVOLUÇÃO:\n${despacho}\n\nPor favor, realize os ajustes indicados e registre uma nova entrega na Plataforma DIMA.${ASS}`,
   }
 
   if (evento === 'pago') return {
     assunto: `[DIMA | ${forn}] Produto Nº ${numProd} — Pagamento confirmado ✓`,
-    corpo: `Prezado(a),
-
-Informamos que o pagamento referente ao Produto Nº ${numProd} foi confirmado.
-
-PRODUTO  : ${desc}
-CONTRATO : ${cont}
-
-O processo de pagamento foi registrado no módulo financeiro da Plataforma DIMA.${ASS}`,
+    corpo: `Prezado(a),\n\nInformamos que o pagamento referente ao Produto Nº ${numProd} foi confirmado.\n\nPRODUTO  : ${desc}\nCONTRATO : ${cont}\n\nO processo de pagamento foi registrado no módulo financeiro da Plataforma DIMA.${ASS}`,
   }
 
   return null
 }
 
-// ── Template para UNESCO (com anexos) ────────────────────────────────────────
 function tplUnesco(evento: string, p: any, entrega: any): { assunto: string; corpo: string } {
   const numProd  = p.numero_produto || '—'
   const desc     = p.descricao || '—'
@@ -301,35 +207,16 @@ function tplUnesco(evento: string, p: any, entrega: any): { assunto: string; cor
 
   return {
     assunto: `[DIMA | ${forn}] Produto Nº ${numProd} aprovado — Encaminhamento de documentos`,
-    corpo: `Prezados,
-
-Informamos que o Produto Nº ${numProd} foi avaliado e aprovado na Plataforma DIMA.
-
-PRODUTO   : ${numProd} — ${desc}
-ATIVIDADE : ${ativDesc}
-CONTRATO  : ${cont}
-FORNECEDOR: ${forn}
-TIPO      : ${tipo}
-VALOR     : ${fmtBRL(valor)}
-DESPACHO  : ${numDesp} (${dtDesp})
-
-PARECER TÉCNICO:
-${despacho}
-
-Seguem em anexo os documentos da entrega aprovada e a nota técnica de avaliação.${ASS}`,
+    corpo: `Prezados,\n\nInformamos que o Produto Nº ${numProd} foi avaliado e aprovado na Plataforma DIMA.\n\nPRODUTO   : ${numProd} — ${desc}\nATIVIDADE : ${ativDesc}\nCONTRATO  : ${cont}\nFORNECEDOR: ${forn}\nTIPO      : ${tipo}\nVALOR     : ${fmtBRL(valor)}\nDESPACHO  : ${numDesp} (${dtDesp})\n\nPARECER TÉCNICO:\n${despacho}\n\nSeguem em anexo os documentos da entrega aprovada e a nota técnica de avaliação.${ASS}`,
   }
 }
 
-// ── Extrair bucket + path a partir da URL pública/assinada ───────────────────
-// Suporta entregas-docs (novo) e tdrs-arquivos (legado)
 function extrairPathStorage(url: string): { bucket: string; path: string } | null {
   const m = url.match(/\/object\/(?:public|sign)\/(entregas-docs|tdrs-arquivos)\/(.+?)(\?.*)?$/)
   if (!m) return null
   return { bucket: m[1], path: decodeURIComponent(m[2]) }
 }
 
-// ── Baixar arquivo via Supabase Storage (bucket privado) ──────────────────────
-// Usa o cliente com service_role para contornar RLS/bucket privado
 async function baixarAnexo(supabase: any, url: string, nome: string): Promise<any | null> {
   try {
     const parsed = extrairPathStorage(url)
@@ -343,7 +230,6 @@ async function baixarAnexo(supabase: any, url: string, nome: string): Promise<an
   }
 }
 
-// ── Handler principal ─────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -359,7 +245,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Buscar produto com contrato, fornecedor e atividade
     const { data: p, error: errP } = await supabase
       .from('contratos_produtos')
       .select(`
@@ -375,7 +260,6 @@ Deno.serve(async (req) => {
 
     if (errP || !p) throw new Error('Produto não encontrado')
 
-    // Buscar entrega relevante
     let entrega: any = null
     if (entrega_id) {
       const { data: e } = await supabase
@@ -396,8 +280,15 @@ Deno.serve(async (req) => {
       entrega = e
     }
 
-    // Buscar responsáveis da atividade (entregue, aprovado, aprovado_parcial, pago)
-    // Duas queries separadas — o join implícito usuarios(...) pode falhar silenciosamente
+    // O corpo do e-mail deve refletir sempre o percentual REAL aprovado na entrega,
+    // não apenas o `evento` recebido — evita divergência caso o percentual gravado
+    // não corresponda ao rótulo total/parcial informado pelo chamador.
+    let eventoEfetivo = evento
+    if (['aprovado', 'aprovado_parcial'].includes(evento) && entrega) {
+      const pctEntrega = parseFloat(entrega.pct_entregue ?? 100)
+      eventoEfetivo = pctEntrega >= 100 ? 'aprovado' : 'aprovado_parcial'
+    }
+
     let responsaveis: any[] = []
     if (['entregue', 'aprovado', 'aprovado_parcial', 'pago'].includes(evento) && p.contratos?.atividades?.id) {
       const { data: resps } = await supabase
@@ -413,7 +304,6 @@ Deno.serve(async (req) => {
           .select('id, nome_completo, email')
           .in('id', userIds)
 
-        // Combinar: cada resp recebe o objeto usuario correspondente
         responsaveis = resps.map((r: any) => ({
           ...r,
           usuario: (users || []).find((u: any) => u.id === r.usuario_id) || null,
@@ -423,64 +313,58 @@ Deno.serve(async (req) => {
 
     const envios: Array<{ to: string; assunto: string; corpo: string; attachments?: any[] }> = []
 
-    // E-mail #1 — entregue → todos os responsáveis da atividade
-    if (evento === 'entregue') {
-      for (const r of responsaveis) {
-        const email = r.usuario?.email
-        if (!email) continue
-        const tpl = tplResponsavel(p, entrega)
-        envios.push({ to: email, ...tpl })
-      }
-    }
-
-    // aprovado / aprovado_parcial → responsáveis da atividade (confirmação)
-    if (['aprovado', 'aprovado_parcial'].includes(evento)) {
-      for (const r of responsaveis) {
-        const email = r.usuario?.email
-        if (!email) continue
-        const tpl = tplResponsavelAprovado(evento, p, entrega)
-        envios.push({ to: email, ...tpl })
-      }
-    }
-
-    // E-mail pago → responsáveis da atividade
-    if (evento === 'pago') {
-      for (const r of responsaveis) {
-        const email = r.usuario?.email
-        if (!email) continue
-        const tpl = tplResponsavelPago(p, entrega)
-        envios.push({ to: email, ...tpl })
-      }
-    }
-
-    // E-mails #2 e #4 — aprovado / aprovado_parcial / devolvido / pago → fornecedor
-    if (['aprovado', 'aprovado_parcial', 'devolvido', 'pago'].includes(evento)) {
-      const emailForn = p.contratos?.fornecedores?.email
-      if (emailForn) {
-        const tpl = tplFornecedor(evento, p, entrega)
-        if (tpl) envios.push({ to: emailForn, ...tpl })
-      }
-    }
-
-    // E-mail #3 — aprovado / aprovado_parcial → UNESCO com anexos
-    if (['aprovado', 'aprovado_parcial'].includes(evento)) {
-      const tpl = tplUnesco(evento, p, entrega)
+    const montarAnexos = async () => {
       const attachments: any[] = []
-
-      // Nota técnica
       if (entrega?.nota_tecnica_url) {
         const anx = await baixarAnexo(supabase, entrega.nota_tecnica_url, entrega.nota_tecnica_nome || 'nota-tecnica.pdf')
         if (anx) attachments.push(anx)
       }
-
-      // Documentos da entrega aprovada (excluindo geo — sem arquivo_url real)
       for (const doc of (entrega?.documentos || [])) {
         if (!doc.arquivo_url) continue
         const anx = await baixarAnexo(supabase, doc.arquivo_url, doc.arquivo_nome || 'documento')
         if (anx) attachments.push(anx)
       }
+      return attachments
+    }
 
-      envios.push({ to: UNESCO_EMAIL, ...tpl, attachments })
+    if (evento === 'entregue') {
+      for (const r of responsaveis) {
+        const email = r.usuario?.email
+        if (!email) continue
+        envios.push({ to: email, ...tplResponsavel(p, entrega) })
+      }
+    }
+
+    if (['aprovado', 'aprovado_parcial'].includes(evento)) {
+      for (const r of responsaveis) {
+        const email = r.usuario?.email
+        if (!email) continue
+        envios.push({ to: email, ...tplResponsavelAprovado(eventoEfetivo, p, entrega) })
+      }
+    }
+
+    if (evento === 'pago') {
+      for (const r of responsaveis) {
+        const email = r.usuario?.email
+        if (!email) continue
+        envios.push({ to: email, ...tplResponsavelPago(p, entrega) })
+      }
+    }
+
+    if (['aprovado', 'aprovado_parcial', 'devolvido', 'pago'].includes(evento)) {
+      const emailForn = p.contratos?.fornecedores?.email
+      if (emailForn) {
+        const tpl = tplFornecedor(eventoEfetivo, p, entrega)
+        if (tpl) envios.push({ to: emailForn, ...tpl })
+      }
+    }
+
+    if (['aprovado', 'aprovado_parcial'].includes(evento)) {
+      const tpl = tplUnesco(eventoEfetivo, p, entrega)
+      const attachments = await montarAnexos()
+      for (const emailUnesco of UNESCO_EMAILS) {
+        envios.push({ to: emailUnesco, ...tpl, attachments })
+      }
     }
 
     if (envios.length === 0) {
@@ -490,7 +374,6 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Envio via Gmail SMTP
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
@@ -501,6 +384,7 @@ Deno.serve(async (req) => {
       },
     })
 
+    const logos = await logosEmail(supabase)
     const results = await Promise.allSettled(
       envios.map(e =>
         transporter.sendMail({
@@ -508,7 +392,7 @@ Deno.serve(async (req) => {
           to: e.to,
           subject: e.assunto,
           text: e.corpo,
-          html: wrapHtml(e.corpo),
+          html: wrapHtml(e.corpo, logos),
           attachments: e.attachments,
         })
       )

@@ -1,6 +1,7 @@
 ﻿import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { Buffer } from 'node:buffer'
+import { logosEmail } from '../_shared/logos-email.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +15,6 @@ function corsHeaders(_req: Request): Record<string, string> {
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 const UNESCO_EMAIL = 'm.lang@unesco.org'
 const SITE_URL = 'https://fundobrasilonu-plataforma.vercel.app'
-const ASSETS   = `${SITE_URL}/assets`
 
 // Limite de tamanho total de anexos (20 MB, abaixo do limite de 25 MB do Gmail)
 const MAX_TOTAL_BYTES = 20 * 1024 * 1024
@@ -22,7 +22,7 @@ const MAX_TOTAL_BYTES = 20 * 1024 * 1024
 const FILE_TIMEOUT_MS = 20_000
 
 // ── Wrapper HTML com barra de logos (mesmo padrão dos demais e-mails do sistema) ──
-function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): string {
+function wrapHtml(corpo: string, linkBtn: { url: string; label: string } | undefined, logos: { cabecalho: string; faixa: string }): string {
   const linhas = corpo.split('\n')
   let html = ''
   let emBloco = false
@@ -70,7 +70,7 @@ function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): stri
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td style="vertical-align:middle">
-          <img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0">
+          ${logos.cabecalho}
         </td>
         <td style="vertical-align:middle;text-align:right">
           <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Plataforma de Gestão</span><br>
@@ -82,17 +82,13 @@ function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): stri
   </td></tr>
 
   <!-- Barra de logos parceiros -->
-  <tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
+  ${logos.faixa ? `<tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/1695134345-1-horizontal-verde-solo.png"          alt="SEMA/AC"             height="32" style="display:block;border:0"></td>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNESCO_logo_hor_blue_transparent.png.png"        alt="UNESCO"              height="28" style="display:block;border:0"></td>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil"          height="28" style="display:block;border:0"></td>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-fundo-brasil-onu.png"                       alt="Fundo Brasil-ONU"   height="32" style="display:block;border:0"></td>
-        <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-consorcio-amazonia.png"                     alt="Consórcio Amazônia" height="36" style="display:block;border:0"></td>
+        ${logos.faixa}
       </tr>
     </table>
-  </td></tr>
+  </td></tr>` : ''}
 
   <!-- Corpo -->
   <tr><td style="background:#ffffff;padding:28px 24px 20px">
@@ -275,7 +271,7 @@ fundobrasilonuacre@gmail.com`
       to: UNESCO_EMAIL,
       subject: `[DIMA] Protocolo ${num} — Conclusão e Prestação de Contas`,
       text: corpo,
-      html: wrapHtml(corpo, { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Ver na Plataforma' }),
+      html: wrapHtml(corpo, { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Ver na Plataforma' }, await logosEmail(supabase)),
       attachments,
     })
 

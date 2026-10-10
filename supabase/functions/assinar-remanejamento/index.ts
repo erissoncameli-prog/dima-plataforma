@@ -19,6 +19,7 @@
 // que falhar fica pendente para o cron.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
+import { logosEmail } from '../_shared/logos-email.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -26,7 +27,6 @@ const CORS = {
 }
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 const SITE_URL  = 'https://fundobrasilonu-plataforma.vercel.app'
-const ASSETS    = `${SITE_URL}/assets`
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const ANON_KEY     = Deno.env.get('SUPABASE_ANON_KEY')!
 const SERVICE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -121,6 +121,7 @@ async function drenarEmails(admin: any, remanejamentoId: string | null) {
   const { data: fila, error } = await q
   if (error) throw error
   if (!fila?.length) return { enviados: 0, falhas: 0 }
+  const logos = await logosEmail(admin)
 
   const remIds = [...new Set(fila.map((f: any) => f.remanejamento_id))]
   const usuIds = [...new Set(fila.map((f: any) => f.usuario_id))]
@@ -149,7 +150,7 @@ async function drenarEmails(admin: any, remanejamentoId: string | null) {
     }
     const its = (itens || []).filter((i: any) => i.remanejamento_id === r.id)
     const et = (etapas || []).filter((e: any) => e.remanejamento_id === r.id && e.versao === r.versao && e.ordem === r.etapa_atual)[0]
-    const { assunto, html } = montarEmail(n, r, u, its, et)
+    const { assunto, html } = montarEmail(n, r, u, its, et, logos)
     try {
       await transporter.sendMail({ from: REMETENTE, to: u.email, subject: assunto, html })
       await admin.from('remanejamento_notificacoes').update({ enviado_em: new Date().toISOString(), ultimo_erro: null }).eq('id', n.id)
@@ -170,6 +171,7 @@ async function drenarCobertura(admin: any) {
     .is('enviado_em', null).lt('tentativas', MAX_TENTATIVAS_EMAIL).order('criado_em').limit(50)
   if (error) throw error
   if (!fila?.length) return { enviados: 0, falhas: 0 }
+  const logos = await logosEmail(admin)
 
   const ctIds = [...new Set(fila.map((f: any) => f.contrato_id))]
   const usuIds = [...new Set(fila.map((f: any) => f.usuario_id))]
@@ -196,7 +198,7 @@ async function drenarCobertura(admin: any) {
         .update({ tentativas: MAX_TENTATIVAS_EMAIL, ultimo_erro: 'destinatário sem e-mail ou inativo' }).eq('id', n.id)
       falhas++; continue
     }
-    const { assunto, html } = montarEmailCobertura(n, c, u, atvPor.get(n.atividade_id))
+    const { assunto, html } = montarEmailCobertura(n, c, u, atvPor.get(n.atividade_id), logos)
     try {
       await transporter.sendMail({ from: REMETENTE, to: u.email, subject: assunto, html })
       await admin.from('cobertura_notificacoes').update({ enviado_em: new Date().toISOString(), ultimo_erro: null }).eq('id', n.id)
@@ -210,7 +212,7 @@ async function drenarCobertura(admin: any) {
   return { enviados, falhas }
 }
 
-function montarEmailCobertura(n: any, c: any, u: any, a: any) {
+function montarEmailCobertura(n: any, c: any, u: any, a: any, logos: { cabecalho: string }) {
   const travado = n.evento === 'travado'
   const link = travado ? `${SITE_URL}/pages/remanejamentos.html?cobertura=${c.id}` : `${SITE_URL}/pages/contratos.html`
   const brl = (v: number) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -240,7 +242,7 @@ function montarEmailCobertura(n: any, c: any, u: any, a: any) {
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
   <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
     <table width="100%"><tr>
-      <td style="vertical-align:middle"><img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0"></td>
+      <td style="vertical-align:middle">${logos.cabecalho}</td>
       <td style="vertical-align:middle;text-align:right">
         <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Cobertura de contrato</span><br>
         <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
@@ -257,7 +259,7 @@ function montarEmailCobertura(n: any, c: any, u: any, a: any) {
   return { assunto, html }
 }
 
-function montarEmail(n: any, r: any, u: any, itens: any[], etapa: any) {
+function montarEmail(n: any, r: any, u: any, itens: any[], etapa: any, logos: { cabecalho: string }) {
   const link = `${SITE_URL}/pages/remanejamentos.html?id=${r.id}`
   const linhasItens = itens
     .sort((a, b) => a.valor_usd - b.valor_usd)
@@ -297,7 +299,7 @@ function montarEmail(n: any, r: any, u: any, itens: any[], etapa: any) {
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
   <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
     <table width="100%"><tr>
-      <td style="vertical-align:middle"><img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0"></td>
+      <td style="vertical-align:middle">${logos.cabecalho}</td>
       <td style="vertical-align:middle;text-align:right">
         <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Remanejamento de recursos</span><br>
         <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
