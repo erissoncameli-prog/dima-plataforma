@@ -1059,7 +1059,7 @@ listas de responsáveis. Substituir por view de diretório está previsto (Camad
 |--------|--------------|---------|
 | `beneficiarios` | nome, CPF, nascimento, passaporte | identidade lê quem opera Viagens (`super_admin/coordenacao/financeiro/tecnico`); escrita só `super_admin/coordenacao` |
 | `beneficiario_dados_bancarios` | **dados bancários** (banco/agência/conta/PIX/IBAN) | tabela separada 1:1 com `beneficiarios.id`. Leitura e escrita só `super_admin/coordenacao` — ver abaixo |
-| `fornecedores` | CPF/CNPJ, endereço, e-mail, telefone | PF é dado pessoal; leitura de qualquer logado (nome/documento usados em Contratos, TDRs, Produtos, e-mails) |
+| `fornecedores` | CPF/CNPJ, endereço, e-mail, telefone | PF é dado pessoal. Linha legível só por super_admin/coordenação/financeiro, acesso extra `fornecedores`/`financeiro`/`contratos`/`relatorios_fornecedores`, ou quem enxerga contrato, TDR, lançamento, tarefa ou subtarefa ligados a ele (`forn_select_all`, migração `20261010_seg_fornecedores_leitura`). Lista de escolha para todos = `fn_fornecedores_diretorio()` (id, nome, tipo, ativo, `tem_email`) — nunca `from('fornecedores')` em tela aberta a todos |
 | `fornecedor_dados_bancarios` | **dados bancários** (banco/agência/conta/tipo/PIX) | 1:1 com `fornecedores.id`; leitura e escrita só `super_admin/coordenacao/financeiro`; auditoria redigida. As colunas antigas de `fornecedores` ficam vazias e o trigger `trg_fornecedor_sem_banco` recusa gravar nelas |
 | `viagem_viajantes` | CPF, e-mail, cartões de embarque | `viaj_sel` (`auth.uid() is not null`) anula a policy restritiva |
 | `car_dados_locais` | nome de proprietário rural (53.594 linhas) | CPF **removido** — ver abaixo |
@@ -1208,6 +1208,7 @@ Supabase/Anthropic/Vercel/Google.
 27. Saldo livre de atividade para decidir trava = `fn_cob_livre()` (com sinal). `vw_orcamento_atividade.remanejavel_usd` é Σ de fontes livres e **nunca fica negativo** — não serve para comparar déficit
 28. `fornecedores.banco/agencia/conta/tipo_conta/pix` **estão sempre vazias** — use `fornecedor_dados_bancarios` (FK `fornecedor_id`); `pages/fornecedores.html` mescla na leitura e grava com `upsert(..., {onConflict:'fornecedor_id'})`
 29. Conta desativada não lê nada por perfil (`fn_perfil_atual()` devolve NULL) e não entra (banida no Auth). Não reativar por UPDATE de `auth.users`: mudar `usuarios.ativo` já desbane
+30. Lista de fornecedores para escolher (tela aberta a todos) = `db.rpc('fn_fornecedores_diretorio')`; `from('fornecedores')` só devolve os fornecedores que a pessoa já enxerga por contrato/TDR/lançamento/tarefa
 
 ---
 

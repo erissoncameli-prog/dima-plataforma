@@ -100,7 +100,7 @@
       ).eq('ativo', true).order('ordem', { ascending: true }).order('criado_em', { ascending: false }),
       db.from('usuarios').select('id,nome_completo,perfil,email').eq('ativo', true).order('nome_completo'),
       db.from('atividades').select('id,codigo,nome_pt').eq('ativo', true).order('codigo'),
-      db.from('fornecedores').select('id,nome,email').eq('ativo', true).order('nome'),
+      db.rpc('fn_fornecedores_diretorio'),
       db.from('vw_tarefa_progresso').select('tarefa_id,total,feitas,pct'),
       db.from('tarefa_tipos').select('codigo,nome,icone,cor,ordem,ativo,campos').order('ordem'),
     ])
@@ -108,7 +108,7 @@
     S.tarefas = tj.data || []
     S.usuarios = uj.data || []
     S.atividades = aj.data || []
-    S.fornecedores = fj.data || []
+    S.fornecedores = (fj.data || []).filter(f => f.ativo)
     S.progresso = {}
     ;(pj.data || []).forEach(p => { S.progresso[p.tarefa_id] = p })
   }
@@ -564,7 +564,7 @@
   })
   function optRespChk (sel) {
     const us = S.usuarios.map(u => `<option value="u:${u.id}" ${sel === 'u:' + u.id ? 'selected' : ''}>${esc(u.nome_completo)}</option>`).join('')
-    const fs = S.fornecedores.map(f => `<option value="f:${f.id}" ${sel === 'f:' + f.id ? 'selected' : ''}>${esc(f.nome)}${f.email ? '' : ' (sem e-mail)'}</option>`).join('')
+    const fs = S.fornecedores.map(f => `<option value="f:${f.id}" ${sel === 'f:' + f.id ? 'selected' : ''}>${esc(f.nome)}${f.tem_email ? '' : ' (sem e-mail)'}</option>`).join('')
     return `<option value="">— responsável —</option><optgroup label="Usuários">${us}</optgroup><optgroup label="Fornecedores">${fs}</optgroup>`
   }
   function chipResp (c) {
@@ -1039,7 +1039,7 @@
     const podeRestringir = novo || t.criado_por === usuario.id || appState.perfil === 'super_admin'
     const tipoAtual = t ? (t.tipo || 'outras') : ''
     const optFrn = ['<option value="">Nenhum</option>'].concat(
-      S.fornecedores.map(f => `<option value="${f.id}" ${t && t.fornecedor_id === f.id ? 'selected' : ''} data-email="${f.email ? 1 : 0}">${esc(f.nome)}${f.email ? '' : ' (sem e-mail)'}</option>`)).join('')
+      S.fornecedores.map(f => `<option value="${f.id}" ${t && t.fornecedor_id === f.id ? 'selected' : ''} data-email="${f.tem_email ? 1 : 0}">${esc(f.nome)}${f.tem_email ? '' : ' (sem e-mail)'}</option>`)).join('')
     const chipsPrio = PRIOS.map(([k, v]) =>
       `<button type="button" class="chip-t ${(t ? t.prioridade : 'media') === k ? 'on' : ''}" data-prio="${k}" onclick="TK.pickPrio(this)">${v}</button>`).join('')
     const info = txt => `<span class="info" title="${esc(txt)}">${ic('info', 's')}</span>`
@@ -1500,7 +1500,7 @@
         chamarEmail(S.det.id, 'subtarefa', { checklist_id: novo.id })
         if (resp.responsavel_fornecedor_id) {
           const f = S.fornecedores.find(x => x.id === resp.responsavel_fornecedor_id)
-          toast(f && f.email ? 'Subtarefa enviada ao fornecedor por e-mail' : 'Fornecedor sem e-mail cadastrado — não foi notificado.', f && f.email ? 'success' : 'warning')
+          toast(f && f.tem_email ? 'Subtarefa enviada ao fornecedor por e-mail' : 'Fornecedor sem e-mail cadastrado — não foi notificado.', f && f.tem_email ? 'success' : 'warning')
         }
       }
       await refletirObservador(resp.responsavel_usuario_id)

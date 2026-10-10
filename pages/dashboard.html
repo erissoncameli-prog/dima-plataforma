@@ -339,7 +339,7 @@ async function loadData(){
     db.from('vw_saldo_atividade').select('*'),
     db.from('indicadores').select('*,resultados(codigo,nome_pt)').eq('ativo',true),
     db.from('execucao_financeira').select('*,atividades(id,codigo,nome_pt),fornecedores(id,nome),contratos(id,numero)'),
-    db.from('fornecedores').select('id,nome,tipo'),
+    db.rpc('fn_fornecedores_diretorio'),
     db.from('contratos').select('id,numero,objeto_pt,valor_total_brl,status,tdr_id,fornecedor_id'),
     db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade').eq('ativo',true).order('ordem'),
     db.from('vw_matriz_progresso').select('*'),
