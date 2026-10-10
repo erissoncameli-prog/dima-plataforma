@@ -1,225 +1,82 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Auditoria IA</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-/* ── Layout ── */
-.aud-grid{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start;}
-
-/* ── Topbar da página ── */
-.aud-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
-.aud-topbar-left h2{font-size:17px;font-weight:700;color:var(--cinza-900);margin:0 0 2px;}
-.aud-topbar-left p{font-size:12px;color:var(--cinza-500);margin:0;}
-
-/* ── Botão rodar auditoria ── */
-.btn-auditar{display:inline-flex;align-items:center;gap:8px;background:var(--verde-medio);color:#fff;border:none;border-radius:var(--raio);padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:all .15s;white-space:nowrap;}
-.btn-auditar:hover{background:var(--verde-escuro);}
-.btn-auditar:disabled{opacity:.6;cursor:not-allowed;}
-.btn-auditar .spin{width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── Banner execução ── */
-.exec-banner{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:18px 22px;margin-bottom:16px;display:flex;align-items:flex-start;gap:16px;}
-.exec-icon{width:48px;height:48px;border-radius:var(--raio-lg);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
-.exec-icon.ok{background:#ECFDF5;}
-.exec-icon.warn{background:#FFFBEB;}
-.exec-icon.crit{background:#FEF2F2;}
-.exec-icon.idle{background:var(--cinza-50);}
-.exec-meta{flex:1;min-width:0;}
-.exec-titulo{font-size:14px;font-weight:600;color:var(--cinza-900);margin-bottom:3px;}
-.exec-sub{font-size:12px;color:var(--cinza-500);}
-.exec-resumo{font-size:12px;color:var(--cinza-700);line-height:1.6;margin-top:10px;padding:10px 14px;background:var(--cinza-50);border-radius:var(--raio);border-left:3px solid var(--verde-claro);white-space:pre-line;}
-
-/* ── Stats pills ── */
-.stats-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
-.stat-pill{display:flex;align-items:center;gap:6px;background:var(--branco);border:1px solid var(--borda);border-radius:99px;padding:5px 12px 5px 7px;font-size:11px;font-weight:500;color:var(--cinza-700);}
-.stat-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-.dot-critico{background:#DC2626;}.dot-alto{background:#F97316;}.dot-medio{background:#EAB308;}.dot-baixo{background:#3B82F6;}.dot-info{background:var(--cinza-400);}
-.stat-num{font-weight:700;font-size:13px;}
-
-/* ── Filtros ── */
-.filtros{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
-.filtro-btn{padding:4px 11px;border-radius:99px;border:1px solid var(--borda);background:var(--branco);font-size:11px;font-weight:500;color:var(--cinza-600);cursor:pointer;font-family:var(--font-sans);transition:all .12s;}
-.filtro-btn:hover{border-color:var(--verde-claro);color:var(--verde-medio);}
-.filtro-btn.ativo{background:var(--verde-medio);border-color:var(--verde-medio);color:#fff;}
-.filtros-sep{width:1px;background:var(--borda);height:18px;align-self:center;}
-
-/* ── Cards de achados ── */
-.achado-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:8px;overflow:hidden;transition:box-shadow .15s;}
-.achado-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08);}
-.achado-header{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer;}
-.sev-strip{width:4px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:18px;}
-.sev-critico{background:#DC2626;}.sev-alto{background:#F97316;}.sev-medio{background:#EAB308;}.sev-baixo{background:#3B82F6;}.sev-info{background:var(--cinza-300);}
-.achado-titulo{font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;line-height:1.4;}
-.achado-meta{display:flex;align-items:center;gap:7px;margin-top:4px;flex-wrap:wrap;}
-.sev-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;}
-.sev-badge.critico{background:#FEF2F2;color:#991B1B;}.sev-badge.alto{background:#FFF7ED;color:#9A3412;}.sev-badge.medio{background:#FEFCE8;color:#854D0E;}.sev-badge.baixo{background:#EFF6FF;color:#1E40AF;}.sev-badge.info{background:var(--cinza-100);color:var(--cinza-600);}
-.dom-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px;background:var(--cinza-100);color:var(--cinza-600);}
-.achado-ref{font-family:var(--font-mono);font-size:10px;color:var(--cinza-500);}
-.achado-chevron{color:var(--cinza-400);font-size:13px;flex-shrink:0;transition:transform .2s;margin-top:2px;}
-.achado-card.aberto .achado-chevron{transform:rotate(180deg);}
-.achado-body{padding:0 14px 14px 28px;border-top:1px solid var(--borda);display:none;}
-.achado-card.aberto .achado-body{display:block;}
-.achado-desc{font-size:12px;color:var(--cinza-700);line-height:1.6;margin:10px 0 8px;}
-.achado-rec{font-size:12px;color:var(--cinza-800);line-height:1.6;padding:9px 13px;background:#F0FDF4;border-radius:var(--raio);border-left:3px solid #4ADE80;}
-.achado-rec strong{color:#166534;display:block;margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;}
-.achado-acoes{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
-.btn-acao{padding:5px 12px;border-radius:var(--raio);border:1px solid var(--borda);background:var(--branco);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font-sans);color:var(--cinza-700);transition:all .12s;}
-.btn-acao:hover{background:var(--cinza-50);}
-.btn-acao.resolver{border-color:var(--verde-claro);color:var(--verde-medio);}
-.btn-acao.resolver:hover{background:#ECFDF5;}
-.achado-status-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;}
-.tag-aberto{background:#FEF2F2;color:#991B1B;}.tag-em_analise{background:#FFFBEB;color:#854D0E;}.tag-resolvido{background:#ECFDF5;color:#065F46;}.tag-ignorado{background:var(--cinza-100);color:var(--cinza-500);}
-
-/* ── Painel lateral ── */
-.painel-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px;margin-bottom:12px;}
-.painel-titulo{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:12px;}
-.dom-row{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
-.dom-row:last-child{margin-bottom:0;}
-.dom-nome{font-size:11px;color:var(--cinza-700);font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.dom-barra-bg{height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;width:70px;flex-shrink:0;}
-.dom-barra-fill{height:100%;border-radius:3px;}
-.dom-count{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--cinza-700);min-width:18px;text-align:right;}
-.exec-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--borda);font-size:11px;cursor:pointer;transition:color .1s;}
-.exec-row:last-child{border-bottom:none;}
-.exec-row:hover{color:var(--verde-medio);}
-.exec-row-data{color:var(--cinza-500);min-width:88px;flex-shrink:0;}
-.exec-row-crit{color:#DC2626;font-weight:600;}
-
-/* ── Empty state ── */
-.empty{text-align:center;padding:60px 20px;color:var(--cinza-400);}
-.empty-icon{font-size:44px;margin-bottom:10px;}
-.empty-msg{font-size:14px;font-weight:500;color:var(--cinza-600);}
-.empty-sub{font-size:12px;margin-top:6px;}
-
-/* ── Modal resolução ── */
-.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;}
-.modal-box{background:var(--branco);border-radius:var(--raio-lg);padding:28px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.25);}
-.modal-titulo{font-size:15px;font-weight:700;color:var(--cinza-900);margin-bottom:6px;}
-.modal-sub{font-size:12px;color:var(--cinza-500);margin-bottom:16px;}
-.modal-label{font-size:11px;font-weight:600;color:var(--cinza-700);margin-bottom:6px;display:block;}
-.modal-textarea{width:100%;border:1px solid var(--borda);border-radius:var(--raio);padding:10px;font-size:12px;font-family:var(--font-sans);color:var(--cinza-900);resize:vertical;min-height:80px;box-sizing:border-box;}
-.modal-acoes{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
-.btn-modal-cancel{padding:8px 18px;border:1px solid var(--borda);background:var(--branco);border-radius:var(--raio);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-sans);color:var(--cinza-700);}
-.btn-modal-ok{padding:8px 18px;border:none;background:var(--verde-medio);color:#fff;border-radius:var(--raio);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);}
-
-/* ── Chat panel ── */
-.chat-panel{position:fixed;right:0;top:0;bottom:0;width:360px;background:var(--branco);border-left:1px solid var(--borda);box-shadow:-4px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;z-index:950;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);}
-.chat-panel.aberto{transform:translateX(0);}
-.chat-header{display:flex;align-items:center;gap:10px;padding:15px 16px;border-bottom:1px solid var(--borda);flex-shrink:0;background:var(--branco);}
-.chat-header-icon{width:34px;height:34px;border-radius:var(--raio-lg);background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
-.chat-header-info{flex:1;min-width:0;}
-.chat-header-title{font-size:13px;font-weight:700;color:var(--cinza-900);}
-.chat-header-sub{font-size:10px;color:var(--cinza-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.chat-close{width:28px;height:28px;border:none;background:var(--cinza-100);border-radius:var(--raio);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--cinza-600);flex-shrink:0;}
-.chat-close:hover{background:var(--cinza-200);}
-.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
-.chat-msg{max-width:88%;}
-.chat-msg.user{align-self:flex-end;}
-.chat-msg.assistant{align-self:flex-start;}
-.chat-bubble{padding:9px 12px;border-radius:12px;font-size:12px;line-height:1.65;word-break:break-word;}
-.chat-msg.user .chat-bubble{background:var(--verde-medio);color:#fff;border-bottom-right-radius:3px;}
-.chat-msg.assistant .chat-bubble{background:var(--cinza-100);color:var(--cinza-900);border-bottom-left-radius:3px;}
-.chat-thinking{display:flex;gap:4px;align-items:center;padding:4px 0;}
-.chat-dot{width:6px;height:6px;border-radius:50%;background:var(--cinza-400);animation:cBounce .9s ease-in-out infinite;}
-.chat-dot:nth-child(2){animation-delay:.15s;}
-.chat-dot:nth-child(3){animation-delay:.3s;}
-@keyframes cBounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);}}
-.chat-input-area{padding:10px 12px;border-top:1px solid var(--borda);flex-shrink:0;background:var(--branco);}
-.chat-input-row{display:flex;gap:7px;align-items:flex-end;}
-.chat-input{flex:1;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:8px 11px;font-size:12px;font-family:var(--font-sans);color:var(--cinza-900);resize:none;max-height:96px;min-height:36px;line-height:1.5;outline:none;overflow-y:auto;}
-.chat-input:focus{border-color:var(--verde-claro);}
-.chat-send{width:34px;height:34px;border:none;background:var(--verde-medio);border-radius:var(--raio-lg);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;flex-shrink:0;transition:background .15s;align-self:flex-end;}
-.chat-send:hover{background:var(--verde-escuro);}
-.chat-send:disabled{opacity:.5;cursor:not-allowed;}
-.chat-welcome{text-align:center;padding:18px 10px 10px;}
-.chat-welcome-icon{font-size:30px;margin-bottom:7px;}
-.chat-welcome-title{font-size:13px;font-weight:700;color:var(--cinza-800);margin-bottom:5px;}
-.chat-welcome-text{font-size:11px;color:var(--cinza-500);line-height:1.6;margin-bottom:14px;}
-.chat-sugestoes{display:flex;flex-direction:column;gap:5px;text-align:left;}
-.chat-sugestao{padding:7px 11px;border:1px solid var(--borda);border-radius:var(--raio-lg);font-size:11px;background:var(--branco);cursor:pointer;color:var(--cinza-700);text-align:left;font-family:var(--font-sans);transition:all .12s;line-height:1.4;}
-.chat-sugestao:hover{border-color:var(--verde-claro);color:var(--verde-medio);background:#F0FDF4;}
-.chat-sugestao.cmd{font-family:var(--font-mono);font-size:11px;background:#EEF2FF;border-color:#C7D2FE;color:#4338CA;}
-.chat-sugestao.cmd:hover{background:#E0E7FF;border-color:#818CF8;color:#3730A3;}
-/* Chips bar — sempre visível acima do input */
-.chat-chips-bar{display:flex;gap:5px;padding:7px 12px 0;overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
-.chat-chips-bar::-webkit-scrollbar{display:none;}
-.chat-chip{white-space:nowrap;flex-shrink:0;padding:4px 10px;border-radius:99px;border:1px solid var(--borda);background:var(--branco);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font-sans);color:var(--cinza-600);transition:all .12s;}
-.chat-chip:hover{background:var(--cinza-100);border-color:var(--cinza-300);}
-.chat-chip.cmd{font-family:var(--font-mono);background:#EEF2FF;border-color:#C7D2FE;color:#4338CA;}
-.chat-chip.cmd:hover{background:#E0E7FF;border-color:#818CF8;color:#3730A3;}
-/* Chat toggle button */
-.btn-chat{display:inline-flex;align-items:center;gap:7px;background:var(--cinza-50);color:var(--cinza-700);border:1px solid var(--borda);border-radius:var(--raio);padding:9px 15px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-sans);transition:all .15s;white-space:nowrap;}
-.btn-chat:hover{background:var(--cinza-100);border-color:var(--cinza-300);}
-.btn-chat.ativo{background:#EEF2FF;border-color:#818CF8;color:#4F46E5;}
-</style>
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes da Auditoria IA (js/auditoria.js) -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/auditoria.css" rel="stylesheet">
 </head>
-<body>
+<body class="dgm">
 <div id="app"></div>
 
-<!-- Modal de resolução (fora do #app para evitar sobreposição) -->
-<div class="modal-overlay" id="modal-resolucao" style="display:none" onclick="fecharModal(event)">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-titulo" id="modal-titulo">Resolver achado</div>
-    <div class="modal-sub">Informe o que foi feito para corrigir esta inconsistência.</div>
-    <label class="modal-label">Comentário / ação realizada *</label>
-    <textarea class="modal-textarea" id="modal-comentario" placeholder="Ex: TDR aprovado em reunião de coordenação em 10/05/2026..."></textarea>
-    <div class="modal-acoes">
-      <button class="btn-modal-cancel" onclick="document.getElementById('modal-resolucao').style.display='none'">Cancelar</button>
-      <button class="btn-modal-ok" id="modal-btn-ok" onclick="confirmarResolucao()">Confirmar resolução</button>
+<!-- Janela de resolver/ignorar — fora do #app (armadilha 11); .au-ov = escopo do tema. <i data-ic> vira ícone SVG. -->
+<div class="modal-overlay au-ov" id="au-modal" role="dialog" aria-modal="true" aria-labelledby="au-modal-tit">
+  <div class="modal au-modal">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0"><div class="modal-title" id="au-modal-tit">Resolver achado</div><div class="au-modal-sub" id="au-modal-sub"></div></div>
+      <button type="button" class="modal-close" onclick="fecharModal()" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <label class="au-lbl" for="au-modal-txt" id="au-modal-lbl">O que foi feito para corrigir? *</label>
+      <textarea class="au-txt" id="au-modal-txt"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="au-modal-ok" onclick="confirmarModal()">Confirmar</button>
     </div>
   </div>
 </div>
 
-<!-- Chat panel (fora do #app para z-index correto) -->
-<div class="chat-panel" id="chat-panel">
-  <div class="chat-header">
-    <div class="chat-header-icon">🤖</div>
-    <div class="chat-header-info">
-      <div class="chat-header-title">Assistente de Auditoria</div>
-      <div class="chat-header-sub" id="chat-header-sub">Powered by Claude — sem contexto ainda</div>
-    </div>
-    <button class="chat-close" onclick="toggleChat()" title="Fechar">✕</button>
+<!-- Painel do assistente (não bloqueia a página; Esc fecha) -->
+<aside class="au-chat au-ov" id="chat-panel" aria-label="Assistente de auditoria" aria-hidden="true">
+  <div class="au-chat-h">
+    <span class="au-chat-av"><i data-ic="ia"></i></span>
+    <div class="au-chat-t"><b>Assistente de auditoria</b><span id="chat-header-sub">Sem auditoria carregada</span></div>
+    <button type="button" class="au-x" onclick="toggleChat(false)" aria-label="Fechar o assistente"><i data-ic="x"></i></button>
   </div>
-  <div class="chat-msgs" id="chat-msgs">
+  <div class="chat-msgs" id="chat-msgs" aria-live="polite">
     <div class="chat-welcome" id="chat-welcome">
-      <div class="chat-welcome-icon">🤖</div>
-      <div class="chat-welcome-title">Assistente de Auditoria IA</div>
-      <div class="chat-welcome-text">Faça perguntas sobre os achados, rode uma nova auditoria ou peça ajuda para resolver inconsistências.</div>
+      <span class="au-chat-av"><i data-ic="ia"></i></span>
+      <b>Assistente de auditoria</b>
+      <p>Pergunte sobre os achados, rode uma nova auditoria ou peça ajuda para resolver uma inconsistência.</p>
       <div class="chat-sugestoes">
-        <button class="chat-sugestao cmd" onclick="enviarSugestao('/auditar')">/auditar — Rodar auditoria completa agora</button>
-        <button class="chat-sugestao" onclick="enviarSugestao('Quais são os achados mais críticos e o que devo resolver primeiro?')">🚨 O que resolver primeiro?</button>
-        <button class="chat-sugestao" onclick="enviarSugestao('Resuma os problemas encontrados na auditoria por domínio')">📋 Resumo por domínio</button>
-        <button class="chat-sugestao" onclick="enviarSugestao('Quais contratos têm problemas com TDR ou documentação?')">📄 Contratos com problemas</button>
-        <button class="chat-sugestao" onclick="enviarSugestao('Há algum risco financeiro imediato que precise de atenção urgente?')">💰 Riscos financeiros</button>
+        <button type="button" class="chat-sugestao cmd" data-sug="/auditar">/auditar — rodar a auditoria completa agora</button>
+        <button type="button" class="chat-sugestao" data-sug="Quais são os achados mais críticos e o que devo resolver primeiro?">O que resolver primeiro?</button>
+        <button type="button" class="chat-sugestao" data-sug="Resuma os problemas encontrados na auditoria por domínio">Resumo por domínio</button>
+        <button type="button" class="chat-sugestao" data-sug="Quais contratos têm problemas com TDR ou documentação?">Contratos com problemas</button>
+        <button type="button" class="chat-sugestao" data-sug="Há algum problema no orçamento (saldo, cobertura de contrato, remanejamento) que precise de atenção?">Orçamento</button>
       </div>
     </div>
   </div>
   <div class="chat-chips-bar">
-    <button class="chat-chip cmd" onclick="enviarSugestao('/auditar')" title="Rodar auditoria completa">/auditar</button>
-    <button class="chat-chip" onclick="enviarSugestao('Quais são os achados mais críticos e o que devo resolver primeiro?')">🚨 Prioridade</button>
-    <button class="chat-chip" onclick="enviarSugestao('Resuma os problemas encontrados na auditoria por domínio')">📋 Por domínio</button>
-    <button class="chat-chip" onclick="enviarSugestao('Quais contratos têm problemas com TDR ou documentação?')">📄 Contratos</button>
-    <button class="chat-chip" onclick="enviarSugestao('Há algum risco financeiro imediato que precise de atenção urgente?')">💰 Financeiro</button>
-    <button class="chat-chip" onclick="enviarSugestao('Quais produtos ainda estão pendentes de aprovação ou com prazo vencido?')">📦 Produtos</button>
-    <button class="chat-chip" onclick="enviarSugestao('Há viagens com retorno vencido sem conclusão registrada?')">✈️ Viagens</button>
-    <button class="chat-chip" onclick="enviarSugestao('Me ajude a redigir um comentário de resolução para um achado')">✏️ Redigir resolução</button>
+    <button type="button" class="chat-chip cmd" data-sug="/auditar" title="Rodar auditoria completa">/auditar</button>
+    <button type="button" class="chat-chip" data-sug="Quais são os achados mais críticos e o que devo resolver primeiro?">Prioridade</button>
+    <button type="button" class="chat-chip" data-sug="Resuma os problemas encontrados na auditoria por domínio">Por domínio</button>
+    <button type="button" class="chat-chip" data-sug="Quais contratos têm problemas com TDR ou documentação?">Contratos</button>
+    <button type="button" class="chat-chip" data-sug="Há algum risco financeiro imediato que precise de atenção urgente?">Financeiro</button>
+    <button type="button" class="chat-chip" data-sug="Há algum problema no orçamento (saldo, cobertura de contrato, remanejamento) que precise de atenção?">Orçamento</button>
+    <button type="button" class="chat-chip" data-sug="Quais produtos ainda estão pendentes de aprovação ou com prazo vencido?">Produtos</button>
+    <button type="button" class="chat-chip" data-sug="Há viagens com retorno vencido sem conclusão registrada?">Viagens</button>
+    <button type="button" class="chat-chip" data-sug="Me ajude a redigir um comentário de resolução para um achado">Redigir resolução</button>
   </div>
   <div class="chat-input-area">
     <div class="chat-input-row">
-      <textarea class="chat-input" id="chat-input" placeholder="Pergunte sobre os achados ou use /auditar..." rows="1" onkeydown="chatKeydown(event)" oninput="autoResizeTextarea(this)"></textarea>
-      <button class="chat-send" id="chat-send" onclick="enviarMensagemChat()" title="Enviar">➤</button>
+      <textarea class="chat-input" id="chat-input" placeholder="Pergunte sobre os achados ou use /auditar…" aria-label="Mensagem ao assistente" rows="1"></textarea>
+      <button type="button" class="chat-send" id="chat-send" onclick="enviarMensagemChat()" aria-label="Enviar"><i data-ic="enviar"></i></button>
     </div>
   </div>
-</div>
+</aside>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/auditoria.js"></script>
 </body>
