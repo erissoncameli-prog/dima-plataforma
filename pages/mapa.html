@@ -10,407 +10,19 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css"/>
-<style>
-/* ── Layout ─────────────────────────────────────────────────── */
-.mapa-wrapper{display:flex;flex-direction:column;gap:10px;height:calc(100vh - 108px);min-height:500px;}
-.mapa-topbar{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
-.mapa-container{display:flex;gap:12px;flex:1;min-height:0;}
-#mapa{flex:1;border-radius:var(--raio-lg);border:1px solid var(--borda);z-index:0;min-height:0;}
-.mapa-painel{width:268px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding-right:2px;scrollbar-width:none;-ms-overflow-style:none;}
-.mapa-painel::-webkit-scrollbar{display:none;}
-.mapa-painel-wrap{display:flex;flex-direction:row;gap:5px;flex-shrink:0;min-height:0;}
-#mapa-scrollbar-outer{width:8px;flex-shrink:0;position:relative;border-radius:6px;background:var(--cinza-100);cursor:pointer;}
-#mapa-scrollbar-thumb{position:absolute;left:1px;right:1px;background:#2D6A4F;border-radius:5px;cursor:pointer;min-height:24px;transition:top .06s linear;opacity:.75;}
-#mapa-scrollbar-thumb:hover{opacity:1;}
-
-/* ── Blocos de filtro ───────────────────────────────────────── */
-.filtro-bloco{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
-.filtro-bloco-header{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid var(--borda);cursor:pointer;user-select:none;}
-.filtro-bloco-header h4{margin:0;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;flex:1;}
-.filtro-bloco-body{padding:8px 12px 10px;}
-#bloco-tipos{max-height:260px;overflow-y:auto;}
-#bloco-camadas-lista{max-height:190px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2D6A4F #f3f4f6;}
-.filtro-item{display:flex;align-items:flex-start;gap:7px;padding:4px 0;font-size:12px;color:var(--cinza-700);}
-.filtro-item input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;margin-top:2px;}
-.filtro-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;}
-
-/* APA row */
-.apa-row{display:flex;align-items:center;gap:6px;padding:4px 0;}
-.apa-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
-.btn-geojson{font-size:10px;padding:2px 7px;border:1px dashed var(--borda);border-radius:4px;background:transparent;color:var(--cinza-500);cursor:pointer;white-space:nowrap;transition:all .15s;margin-left:auto;}
-.btn-geojson:hover{border-color:var(--verde-escuro);color:var(--verde-escuro);}
-.btn-geojson.carregado{border-color:#16a34a;color:#16a34a;background:#f0fdf4;}
-
-/* Botão admin ⚙ */
-.btn-admin-filtros{border:none;background:none;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:4px;transition:background .15s;flex-shrink:0;}
-.btn-admin-filtros:hover{background:var(--cinza-100);}
-
-/* ── Lista de pontos ───────────────────────────────────────── */
-.pontos-lista{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;flex:1;min-height:60px;display:flex;flex-direction:column;}
-.pontos-lista-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 8px;border-bottom:1px solid var(--borda);flex-shrink:0;}
-.pontos-lista-header h4{margin:0;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;}
-.pontos-scroll{overflow-y:auto;flex:1;min-height:0;}
-.ponto-item{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;border-bottom:1px solid var(--cinza-100);cursor:pointer;transition:background .12s;}
-.ponto-item:last-child{border-bottom:none;}
-.ponto-item:hover{background:var(--cinza-50);}
-.ponto-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
-.ponto-nome{font-size:12px;font-weight:500;color:var(--cinza-800);line-height:1.3;}
-.ponto-sub{font-size:10px;color:var(--cinza-500);margin-top:1px;}
-
-/* ── Modais genéricos ──────────────────────────────────────── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;}
-.modal-box{background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);}
-.modal-box.lg{max-width:680px;}
-.modal-header{padding:16px 20px 12px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.modal-header h3{margin:0;font-size:15px;font-weight:600;color:var(--cinza-900);}
-.modal-body{padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
-.modal-footer{padding:12px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
-
-/* Formulário */
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.form-group{display:flex;flex-direction:column;gap:4px;}
-.form-group.full{grid-column:1/-1;}
-.form-group label{font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;}
-.form-group input,.form-group select,.form-group textarea{font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);color:var(--cinza-900);background:#fff;width:100%;box-sizing:border-box;}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--verde-escuro);box-shadow:0 0 0 3px rgba(31,78,44,.1);}
-.form-group textarea{resize:vertical;min-height:60px;}
-.geo-row{display:flex;gap:8px;align-items:flex-end;}
-.geo-row .form-group{flex:1;}
-.btn-geo{padding:7px 10px;border:1px dashed var(--verde-escuro);background:rgba(31,78,44,.06);color:var(--verde-escuro);border-radius:var(--raio);cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:5px;}
-.btn-geo:hover{background:rgba(31,78,44,.12);}
-.foto-upload-area{border:2px dashed var(--borda);border-radius:var(--raio);padding:16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;}
-.foto-upload-area:hover,.foto-upload-area.drag{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
-.foto-upload-area .ico{font-size:24px;margin-bottom:4px;}
-.foto-upload-area p{margin:0;font-size:12px;color:var(--cinza-500);}
-.foto-preview{width:100%;max-height:140px;object-fit:cover;border-radius:var(--raio);margin-top:8px;display:none;}
-.geo-foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:4px;}
-.geo-foto-item{position:relative;aspect-ratio:1;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);}
-.geo-foto-item img{width:100%;height:100%;object-fit:cover;cursor:zoom-in;display:block;}
-.geo-foto-item .geo-foto-rm{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
-.geo-foto-add{aspect-ratio:1;border:2px dashed var(--borda);border-radius:var(--raio);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--cinza-400);gap:4px;transition:border-color .15s,color .15s;min-height:80px;}
-.geo-foto-add:hover{border-color:var(--verde-escuro);color:var(--verde-escuro);}
-
-/* Popup */
-.mapa-popup{min-width:200px;max-width:260px;font-family:'DM Sans',sans-serif;}
-.mapa-popup h4{margin:0 0 6px;font-size:13px;font-weight:600;color:#1F4E2C;}
-.mapa-popup .pp-foto{width:100%;height:120px;object-fit:cover;border-radius:6px;margin-bottom:8px;}
-.mapa-popup .pp-linha{display:flex;gap:6px;font-size:11px;color:#555;margin-bottom:3px;align-items:flex-start;}
-.mapa-popup .pp-linha strong{color:#222;min-width:64px;flex-shrink:0;}
-
-/* Import modal */
-.imp-drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cinza-50);}
-.imp-drop:hover,.imp-drop.drag{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
-.imp-stats{display:flex;gap:10px;margin-bottom:12px;}
-.imp-stat{flex:1;padding:10px 12px;text-align:center;border-radius:var(--raio);border:1px solid;}
-.imp-stat.ok{background:#F0FDF4;border-color:#86EFAC;}
-.imp-stat.err{background:#FEF2F2;border-color:#FCA5A5;}
-.imp-stat-val{font-size:20px;font-weight:700;}
-.imp-stat.ok .imp-stat-val{color:#166534;}
-.imp-stat.err .imp-stat-val{color:#DC2626;}
-.imp-stat-lbl{font-size:11px;margin-top:2px;}
-.imp-stat.ok .imp-stat-lbl{color:#15803D;}
-.imp-stat.err .imp-stat-lbl{color:#B91C1C;}
-
-/* Camada row — expandable style panel */
-.camada-row{display:flex;align-items:center;gap:6px;padding:5px 0;}
-.camada-row-outer{border-bottom:1px solid var(--cinza-100);}
-.camada-row-outer:last-child{border-bottom:none;}
-.camada-expand-body{background:var(--cinza-50);border-top:1px solid var(--cinza-100);padding:10px 12px;display:flex;flex-direction:column;gap:10px;}
-.camada-expand-section{display:flex;flex-direction:column;gap:5px;}
-.camada-expand-section-title{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:4px;padding-bottom:5px;border-bottom:1px solid var(--cinza-200);}
-.camada-link-btn{font-size:9px;color:var(--verde-escuro);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;margin-left:auto;}
-.camada-link-btn+.camada-link-btn{margin-left:4px;}
-.camada-feat-row{display:flex;align-items:center;gap:6px;padding:3px 0;}
-.camada-feat-nome{font-size:11px;color:var(--cinza-700);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.camada-color-mini{width:22px;height:22px;padding:1px;border:1px solid var(--borda);border-radius:3px;cursor:pointer;flex-shrink:0;background:none;}
-.camada-style-row{display:flex;align-items:center;gap:8px;padding:2px 0;}
-.camada-style-lbl{font-size:10px;font-weight:600;color:var(--cinza-500);width:86px;flex-shrink:0;}
-.camada-style-val{font-size:10px;font-weight:700;color:var(--cinza-700);width:34px;text-align:right;flex-shrink:0;}
-.camada-slider{flex:1;height:4px;accent-color:var(--verde-escuro);cursor:pointer;min-width:0;}
-.btn-camada-exp{font-size:12px;padding:2px 6px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;flex-shrink:0;transition:background .15s;line-height:1.4;}
-.btn-camada-exp:hover,.btn-camada-exp.ativo{background:#f0fdf4;border-color:#86efac;}
-.camada-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
-
-/* ── Barra de camadas superior ──────────────────────────────────────── */
-.mapa-layerbar{position:relative;flex-shrink:0;}
-.mlb-tabs{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
-.mlb-tab{display:flex;align-items:center;gap:5px;padding:5px 12px;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;background:#fff;border:1px solid var(--borda);border-radius:6px;cursor:pointer;color:var(--cinza-600);transition:all .15s;white-space:nowrap;line-height:1;}
-.mlb-tab:hover{background:var(--cinza-50);border-color:var(--cinza-300);}
-.mlb-tab.ativo{background:var(--verde-escuro);color:#fff;border-color:var(--verde-escuro);}
-.mlb-tab .mlb-badge{font-size:9px;background:rgba(255,255,255,.25);border-radius:99px;padding:1px 5px;font-weight:700;}
-.mlb-tab:not(.ativo) .mlb-badge{background:#eff6ff;color:#1d4ed8;}
-.mlb-dropdown{position:absolute;top:calc(100% + 4px);left:0;z-index:500;background:#fff;border:1px solid var(--borda);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:340px;max-width:680px;overflow:hidden;animation:mlb-in .15s ease;}
-@keyframes mlb-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
-.mlb-dropdown-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);}
-.mlb-dropdown-title{font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;}
-.mlb-close{background:none;border:none;cursor:pointer;font-size:14px;color:var(--cinza-400);padding:0 2px;line-height:1;}
-.mlb-close:hover{color:var(--cinza-700);}
-.mlb-dropdown-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;}
-/* Grid horizontal p/ cobertura vegetal */
-.mlb-veg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.mlb-veg-card{border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;}
-/* CAR horizontal */
-.mlb-car-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;}
-.mlb-car-col{flex:1;min-width:140px;}
-
-/* Controle de modo do mapa — Basemap Gallery */
-.mapa-modo-ctrl{background:#fff;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.26);width:230px;overflow:hidden;font-family:'DM Sans',sans-serif;}
-.bmg-header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 6px;border-bottom:1px solid #e5e7eb;cursor:pointer;user-select:none;}
-.bmg-header-title{font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:5px;}
-.bmg-toggle-icon{font-size:11px;color:#9ca3af;transition:transform .2s;}
-.bmg-body{padding:6px 8px 8px;}
-.bmg-group-title{font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.08em;padding:5px 2px 4px;margin-top:2px;}
-.bmg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:2px;}
-.bmg-tile{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-radius:6px;padding:4px 2px;transition:background .15s;border:2px solid transparent;}
-.bmg-tile:hover{background:#f3f4f6;}
-.bmg-tile.ativo{border-color:var(--verde-escuro);background:#f0fdf4;}
-.bmg-thumb{width:56px;height:40px;border-radius:4px;overflow:hidden;border:1px solid #e5e7eb;position:relative;flex-shrink:0;}
-.bmg-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-.bmg-thumb-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;}
-.bmg-label{font-size:9px;font-weight:500;color:#374151;text-align:center;line-height:1.2;max-width:60px;}
-.bmg-tile.ativo .bmg-label{color:var(--verde-escuro);font-weight:700;}
-.bmg-check{position:absolute;bottom:2px;right:2px;width:13px;height:13px;background:var(--verde-escuro);border-radius:50%;display:flex;align-items:center;justify-content:center;display:none;}
-.bmg-tile.ativo .bmg-check{display:flex;}
-.bmg-check::after{content:'✓';font-size:8px;color:#fff;line-height:1;}
-.mapa-poi-ctrl{border-top:1px solid #e5e7eb;margin-top:5px;padding-top:5px;}
-.mapa-poi-ctrl-titulo{font-size:10px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;padding:0 0 3px;}
-.mapa-poi-label{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:11px;color:#374151;cursor:pointer;white-space:nowrap;}
-.mapa-poi-label input{accent-color:var(--verde-escuro);cursor:pointer;}
-
-/* Abas do modal de geometria */
-.geo-tab{padding:8px 16px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);font-family:'DM Sans',sans-serif;transition:all .15s;}
-.geo-tab.ativo{color:var(--verde-escuro);border-bottom-color:var(--verde-escuro);}
-.geo-tab:hover:not(.ativo){background:var(--cinza-50);}
-
-/* Admin modal — lista de itens */
-.admin-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--cinza-100);transition:background .12s;}
-.admin-item:last-child{border-bottom:none;}
-.admin-item:hover{background:var(--cinza-50);}
-.admin-item input[type=checkbox]{accent-color:var(--verde-escuro);width:15px;height:15px;cursor:pointer;flex-shrink:0;margin-top:2px;}
-.admin-item-nome{font-size:12px;font-weight:500;color:var(--cinza-800);line-height:1.3;}
-.admin-item-sub{font-size:10px;color:var(--cinza-500);margin-top:1px;}
-.admin-resultado-label{font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;padding:6px 12px 3px;background:var(--cinza-50);border-bottom:1px solid var(--cinza-100);}
-
-/* Modal editor ícone/cor do tipo */
-.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:6px;}
-.emoji-btn{font-size:18px;padding:4px 2px;border:2px solid transparent;border-radius:6px;cursor:pointer;text-align:center;background:none;transition:all .12s;line-height:1.3;width:100%;}
-.emoji-btn:hover{background:var(--cinza-100);}
-.emoji-btn.sel{border-color:var(--verde-escuro);background:#f0fdf4;}
-/* Badge de ponto especial no popup */
-.pe-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;border-radius:99px;white-space:nowrap;font-weight:500;}
-/* Vídeo no popup */
-.pp-video{width:100%;aspect-ratio:16/9;border-radius:6px;margin-top:2px;border:none;}
-/* Coluna ponto especial na tabela de vértices */
-.pe-select{font-size:11px;padding:2px 4px;border:1px solid var(--borda);border-radius:4px;width:100%;font-family:inherit;}
-/* Badge de vídeo flutuante na trilha */
-@keyframes trilhaPulse{
-  0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 0 rgba(30,58,95,.5);}
-  60%{box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 8px rgba(30,58,95,0);}
-}
-/* Modal de vídeo (overlay escuro tela cheia) */
-#modal-video{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;}
-#modal-video.aberto{display:flex;}
-#modal-video-iframe{width:min(880px,96vw);aspect-ratio:16/9;border:none;border-radius:10px;display:block;}
-/* Lightbox de foto */
-#modal-foto{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;}
-#modal-foto.aberto{display:flex;}
-#modal-foto img{max-width:min(1100px,96vw);max-height:92vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);object-fit:contain;cursor:default;}
-.pp-foto-click,.pe-foto-click{cursor:zoom-in;transition:opacity .15s;}
-.pp-foto-click:hover,.pe-foto-click:hover{opacity:.88;}
-
-/* ── Rosa dos ventos ───────────────────────────────────────── */
-.rosa-norte{width:52px;height:52px;background:rgba(255,255,255,.92);border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
-.rosa-norte svg{width:44px;height:44px;}
-
-/* ── Mini-mapa: ajustes visuais ─────────────────────────────── */
-.leaflet-control-minimap{border-radius:8px!important;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.32)!important;border:2px solid rgba(255,255,255,.85)!important;}
-.leaflet-control-minimap a.minimized{border-radius:0 0 6px 6px!important;}
-
-/* ── Labels de sub-bacias ────────────────────────────────────── */
-.subbacia-label{background:rgba(255,255,255,.82)!important;border:1px solid rgba(0,0,0,.12)!important;border-radius:4px!important;box-shadow:0 1px 4px rgba(0,0,0,.18)!important;font-size:11px!important;font-weight:700!important;color:#1a3c2a!important;padding:2px 7px!important;white-space:nowrap!important;pointer-events:none!important;}
-.subbacia-label::before{display:none!important;}
-
-/* ── Popup de clique em camadas de delimitação ───────────────── */
-.leaflet-popup.camada-popup-wrap .leaflet-popup-content-wrapper{padding:0;border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.22);}
-.leaflet-popup.camada-popup-wrap .leaflet-popup-content{margin:0;min-width:200px;max-width:300px;}
-.camada-popup{font-family:'DM Sans',sans-serif;font-size:12px;color:#374151;}
-.camada-popup .cp-header{background:#1F4E2C;color:#fff;padding:8px 13px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
-.camada-popup .cp-layer{padding:9px 13px 10px;}
-.camada-popup .cp-layer-nome{font-size:10px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid #e5e7eb;}
-.camada-popup .cp-row{display:flex;gap:5px;font-size:11px;color:#374151;margin-bottom:3px;line-height:1.4;align-items:flex-start;}
-.camada-popup .cp-row strong{color:#111827;min-width:72px;flex-shrink:0;font-weight:600;}
-.camada-popup .cp-row span{word-break:break-word;}
-.camada-popup .cp-divider{height:1px;background:#e5e7eb;}
-.camada-popup .cp-badge{display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;margin-top:5px;}
-
-/* ── Mobile: botão de filtros + painel deslizante ──────────── */
-.btn-filtros-mobile{display:none;position:fixed;bottom:76px;right:16px;z-index:302;background:#2D6A4F;color:#fff;border:none;border-radius:50px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;align-items:center;gap:7px;box-shadow:0 4px 18px rgba(0,0,0,.28);font-family:var(--font-sans);-webkit-tap-highlight-color:transparent;transition:background .15s;}
-.btn-filtros-mobile:hover{background:#245c42;}
-.btn-filtros-mobile svg{flex-shrink:0;}
-@media(max-width:768px){
-  .mapa-wrapper{height:calc(100vh - 94px);}
-  .mapa-painel-wrap{display:none;}
-  .mapa-painel-wrap.mobile-aberto{display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;height:62vh;z-index:300;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.18);overflow:hidden;}
-  .mapa-painel-wrap.mobile-aberto::before{content:'';display:block;width:36px;height:4px;background:#d1d5db;border-radius:2px;margin:10px auto 6px;flex-shrink:0;}
-  .mapa-painel-wrap.mobile-aberto .mapa-painel{width:100%;flex:1;padding:0 14px 20px;overflow-y:auto;height:auto;}
-  .mapa-painel-wrap.mobile-aberto #mapa-scrollbar-outer{display:none;}
-  .btn-filtros-mobile{display:flex;}
-  .mapa-backdrop{display:none;position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.38);-webkit-tap-highlight-color:transparent;}
-  .mapa-backdrop.ativo{display:block;}
-}
-
-/* ── CAR — Imóveis Rurais ────────────────────────────────────────────────── */
-.car-det-panel{position:fixed;top:0;right:-420px;width:360px;height:100vh;background:#fff;z-index:600;display:flex;flex-direction:column;box-shadow:-4px 0 32px rgba(0,0,0,.22);transition:right .28s cubic-bezier(.4,0,.2,1);overflow:hidden;min-width:280px;max-width:680px;}
-.car-det-panel.aberto{right:0;}
-.car-det-resize-handle{position:absolute;top:0;left:0;width:5px;height:100%;cursor:ew-resize;z-index:10;background:transparent;transition:background .15s;}
-.car-det-resize-handle:hover,.car-det-resize-handle.dragging{background:rgba(45,106,79,.35);}
-.car-det-resize-handle::after{content:'';position:absolute;top:50%;left:1px;transform:translateY(-50%);width:3px;height:36px;border-radius:2px;background:#d1d5db;transition:background .15s;}
-.car-det-resize-handle:hover::after,.car-det-resize-handle.dragging::after{background:#2D6A4F;}
-.car-det-header{padding:14px 16px 12px;border-bottom:1px solid var(--borda);flex-shrink:0;background:linear-gradient(135deg,#1a3c2a,#2D6A4F);}
-.car-det-header h4{margin:0;font-size:14px;font-weight:700;color:#fff;}
-.car-det-header p{margin:3px 0 0;font-size:11px;color:rgba(255,255,255,.7);}
-.car-det-body{flex:1;overflow-y:auto;padding:14px 16px;}
-.car-det-field{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--cinza-100);}
-.car-det-field:last-child{border-bottom:none;}
-.car-det-label{font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;}
-.car-det-value{font-size:13px;color:var(--cinza-800);font-weight:500;line-height:1.4;}
-.car-det-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid;}
-.car-status-ativo{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
-.car-status-aguardando{background:#fffbeb;color:#d97706;border-color:#fde68a;}
-.car-status-analise{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;}
-.car-status-outro{background:var(--cinza-100);color:var(--cinza-600);border-color:var(--borda);}
-.car-legenda-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--cinza-700);padding:3px 0;}
-.car-legenda-cor{width:22px;height:10px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,.12);}
-.car-stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--cinza-100);font-size:12px;}
-.car-stat-row:last-child{border-bottom:none;}
-.car-stat-val{font-weight:700;color:var(--cinza-900);}
-/* Abas do painel CAR */
-.car-det-tab{padding:9px 14px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;flex:1;text-align:center;}
-.car-det-tab.ativo{color:var(--verde-escuro);border-bottom-color:var(--verde-escuro);background:#fff;}
-.car-det-tab:hover:not(.ativo){background:var(--cinza-50);}
-/* Linha de marcado na lista */
-.car-pin-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--cinza-100);cursor:pointer;transition:background .12s;border-radius:var(--raio);}
-.car-pin-item:hover{background:var(--cinza-50);}
-.car-pin-item:last-child{border-bottom:none;}
-/* Botão marcar ativo */
-.btn-car-marcado{background:#f5f3ff!important;border-color:#7c3aed!important;color:#7c3aed!important;}
-/* Slider de estilo no painel */
-.car-style-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
-.car-style-lbl{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;width:80px;flex-shrink:0;}
-.car-style-val{font-size:10px;font-weight:700;color:var(--cinza-700);width:36px;text-align:right;flex-shrink:0;}
-.car-style-slider{flex:1;height:4px;accent-color:#7c3aed;cursor:pointer;min-width:0;}
-
-/* ── Unidades de Conservação / Terras Indígenas ─────────────────────────── */
-.uc-secao-titulo{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;padding:6px 0 4px;border-bottom:1px solid var(--cinza-100);margin-bottom:4px;}
-.uc-filtro-grupo{display:flex;flex-direction:column;gap:3px;}
-.uc-filtro-label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:2px 0;}
-.uc-filtro-label input{accent-color:var(--verde-escuro);width:12px;height:12px;cursor:pointer;flex-shrink:0;}
-.uc-tipo-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,.12);}
-.uc-esfera-badge{font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid;font-weight:600;margin-left:auto;white-space:nowrap;}
-.uc-loading{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--cinza-500);padding:8px 0;}
-.uc-stat{font-size:10px;color:var(--cinza-400);text-align:right;margin-top:4px;}
-.uc-grupo-header{display:flex;align-items:center;gap:6px;padding:5px 0 3px;cursor:pointer;}
-.uc-grupo-header-lbl{font-size:10px;font-weight:700;color:var(--cinza-700);flex:1;}
-.uc-grupo-toggle{font-size:10px;color:var(--cinza-400);}
-.uc-grupo-body{padding-left:4px;}
-.uc-select-all{font-size:9px;color:var(--verde-escuro);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;margin-left:4px;}
-.uc-esfera-oculta{display:none!important;}
-/* UCs: fundo verde escuro, texto branco, caixa alta + sombra de texto suave */
-.uc-label-tt{background:rgba(26,95,56,.88)!important;border:1px solid rgba(26,95,56,.5)!important;border-radius:3px!important;box-shadow:0 1px 5px rgba(0,0,0,.35)!important;font-size:11px!important;font-weight:700!important;color:#fff!important;padding:3px 8px!important;white-space:nowrap!important;pointer-events:none!important;max-width:190px!important;overflow:hidden!important;text-overflow:ellipsis!important;text-transform:uppercase!important;letter-spacing:.04em!important;text-shadow:0 1px 2px rgba(0,0,0,.6),-1px 0 1px rgba(0,0,0,.3),1px 0 1px rgba(0,0,0,.3)!important;}
-.uc-label-tt::before{display:none!important;}
-
-/* ── Card flutuante de estatísticas das UCs ─────────────────────────────── */
-#uc-stats-card{
-  position:absolute;top:auto;bottom:28px;left:10px;z-index:500;
-  width:272px;background:#fff;border-radius:12px;
-  box-shadow:0 4px 24px rgba(0,0,0,.22);overflow:hidden;
-  font-family:'DM Sans',sans-serif;display:none;
-}
-#uc-stats-card.visivel{display:block;}
-#uc-stats-card.dragging{box-shadow:0 8px 40px rgba(0,0,0,.35);transition:none;}
-.usc-header{
-  background:linear-gradient(135deg,#1a3c2a,#2D6A4F);
-  padding:10px 13px;display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;
-}
-.usc-header:active{cursor:grabbing;}
-.usc-header-txt{flex:1;}
-.usc-header-titulo{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.06em;}
-.usc-header-sub{font-size:10px;color:rgba(255,255,255,.65);margin-top:1px;}
-.usc-collapse-btn{font-size:13px;color:rgba(255,255,255,.7);background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;transition:color .15s;}
-.usc-collapse-btn:hover{color:#fff;}
-.usc-body{padding:10px 13px 12px;display:flex;flex-direction:column;gap:10px;}
-.usc-totais{display:flex;gap:8px;}
-.usc-total-bloco{flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:8px;padding:7px 10px;text-align:center;}
-.usc-total-val{font-size:17px;font-weight:700;color:var(--verde-escuro);line-height:1;}
-.usc-total-lbl{font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
-.usc-pct-badge{font-size:10px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:99px;padding:1px 7px;text-align:center;align-self:center;}
-.usc-secao-titulo{font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.07em;padding-bottom:5px;border-bottom:1px solid var(--cinza-100);}
-.usc-tipo-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--cinza-50);}
-.usc-tipo-row:last-child{border-bottom:none;}
-.usc-tipo-sigla{font-size:10px;font-weight:700;color:var(--cinza-700);width:38px;flex-shrink:0;}
-.usc-tipo-bar-wrap{flex:1;height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;}
-.usc-tipo-bar{height:100%;border-radius:3px;transition:width .4s ease;}
-.usc-tipo-info{font-size:10px;color:var(--cinza-500);white-space:nowrap;text-align:right;min-width:62px;}
-.usc-gestao-row{display:flex;align-items:center;gap:7px;padding:3px 0;}
-.usc-gestao-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.usc-gestao-nome{font-size:11px;color:var(--cinza-700);flex:1;}
-.usc-gestao-qtd{font-size:10px;font-weight:700;color:var(--cinza-800);min-width:18px;text-align:right;}
-.usc-gestao-ha{font-size:10px;color:var(--cinza-400);min-width:76px;text-align:right;}
-.usc-gestao-pct{font-size:9px;font-weight:700;color:var(--cinza-500);min-width:28px;text-align:right;}
-/* Municípios: pílula branca, borda cinza-azul, texto escuro + sombra clara de contorno */
-.mun-label-tt{background:rgba(255,255,255,.97)!important;border:1.5px solid #64748b!important;border-radius:99px!important;box-shadow:0 1px 6px rgba(0,0,0,.32)!important;font-size:12px!important;font-weight:700!important;color:#1e293b!important;padding:3px 11px!important;white-space:nowrap!important;pointer-events:none!important;max-width:200px!important;overflow:hidden!important;text-overflow:ellipsis!important;text-shadow:0 1px 3px rgba(255,255,255,.9),0 0 4px rgba(255,255,255,.8)!important;}
-.mun-label-tt::before{display:none!important;}
-/* Terras Indígenas: fundo terracota, texto amarelo claro, itálico + sombra escura */
-.ti-label-tt{background:rgba(120,53,15,.85)!important;border:1px solid rgba(217,119,6,.5)!important;border-radius:3px!important;box-shadow:0 1px 5px rgba(0,0,0,.35)!important;font-size:11px!important;font-weight:700!important;color:#fef3c7!important;padding:3px 8px!important;white-space:nowrap!important;pointer-events:none!important;max-width:190px!important;overflow:hidden!important;text-overflow:ellipsis!important;font-style:italic!important;letter-spacing:.02em!important;text-shadow:0 1px 2px rgba(0,0,0,.7),-1px 0 1px rgba(0,0,0,.4),1px 0 1px rgba(0,0,0,.4)!important;}
-.ti-label-tt::before{display:none!important;}
-
-/* ── Relatório Analítico Ambiental ──────────────────────────────────────── */
-.rel-tab{padding:10px 18px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
-.rel-tab.ativo{color:var(--verde-escuro);border-bottom-color:var(--verde-escuro);background:#fff;}
-.rel-tab:hover:not(.ativo){background:var(--cinza-100);}
-.rel-section{background:#fff;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 20px;}
-.rel-section-title{font-size:13px;font-weight:700;color:var(--cinza-800);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--cinza-100);}
-.rel-kpi-grid{display:grid;gap:12px;}
-.rel-kpi{background:#fff;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;}
-.rel-kpi-val{font-size:22px;font-weight:700;color:var(--cinza-900);line-height:1.2;}
-.rel-kpi-lbl{font-size:11px;color:var(--cinza-500);margin-top:3px;font-weight:500;}
-.rel-kpi-sub{font-size:10px;color:var(--cinza-400);margin-top:2px;}
-.rel-kpi-danger{border-color:#fca5a5;background:#fef2f2;}.rel-kpi-danger .rel-kpi-val{color:#dc2626;}
-.rel-kpi-green{border-color:#86efac;background:#f0fdf4;}.rel-kpi-green .rel-kpi-val{color:#16a34a;}
-.rel-kpi-warn{border-color:#fde68a;background:#fffbeb;}.rel-kpi-warn .rel-kpi-val{color:#d97706;}
-.rel-kpi-info{border-color:#bfdbfe;background:#eff6ff;}.rel-kpi-info .rel-kpi-val{color:#1d4ed8;}
-.rel-table{width:100%;border-collapse:collapse;font-size:12px;}
-.rel-table th{background:var(--cinza-100);padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--borda);white-space:nowrap;}
-.rel-table td{padding:7px 10px;border-bottom:1px solid var(--cinza-100);color:var(--cinza-700);}
-.rel-table tr:last-child td{border-bottom:none;}
-.rel-table tr:hover td{background:var(--cinza-50);}
-.rel-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid;}
-.rel-badge-danger{background:#fef2f2;color:#dc2626;border-color:#fca5a5;}
-.rel-badge-warn{background:#fffbeb;color:#d97706;border-color:#fde68a;}
-.rel-badge-ok{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
-.rel-text-block{background:#fff;border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 20px;margin-bottom:12px;}
-.rel-text-block h4{margin:0 0 10px;font-size:13px;font-weight:700;color:#1F4E2C;border-bottom:1px solid var(--cinza-100);padding-bottom:8px;}
-.rel-text-block p{margin:0 0 8px;font-size:13px;color:var(--cinza-700);line-height:1.7;}
-.rel-text-block p:last-child{margin-bottom:0;}
-.rel-text-block ol{font-size:13px;line-height:1.9;padding-left:20px;color:var(--cinza-700);margin:0;}
-
-@media print{
-  body>*:not(#modal-relatorio){display:none!important;}
-  #modal-relatorio{position:relative!important;z-index:auto!important;background:#fff!important;padding:0!important;overflow:visible!important;}
-  #modal-relatorio>div{box-shadow:none!important;max-height:none!important;height:auto!important;border-radius:0!important;overflow:visible!important;}
-  #rel-body{overflow:visible!important;max-height:none!important;background:#fff!important;padding:16px!important;}
-  .rel-tab,.btn-close,.rel-header-btns{display:none!important;}
-  .rel-section,.rel-text-block{page-break-inside:avoid;break-inside:avoid;}
-  canvas{max-width:100%!important;}
-}
-</style>
+<!-- tema claro/escuro (mesmo 'diag_tema' das demais guias), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + estilos do mapa (moldura no tema; mapa e relatório sempre claros) -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/mapa.css" rel="stylesheet">
 </head>
-<body>
+<body class="dgm">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
-<div id="app"><div style="display:flex;align-items:center;justify-content:center;height:100vh"><div style="text-align:center"><div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>Carregando mapa...</div></div></div>
+<div id="app"><div class="mp-carrega" role="status"><span class="mp-spin"></span>Carregando mapa…</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -636,7 +248,7 @@ let _geoCarTimer   = null;
 let matrizByTipo = {};
 
 // Verifica se o usuário pode adicionar/editar/excluir pontos
-function _ehEditor(){ return appState.perfil === 'super_admin' || appState.perfil === 'coordenador'; }
+function _ehEditor(){ return appState.perfil === 'super_admin' || appState.perfil === 'coordenacao'; }
 
 // Agrega ODS e metas_km por produto_titulo (vários itens podem ter o mesmo título)
 function _buildMatrizByTipo(itens){
@@ -658,22 +270,22 @@ function _htmlOdsKm(tipo_atividade){
   const ods = (dados.ods||[]).slice().sort((a,b)=>a-b);
   const km  = (dados.metas_km||[]).slice().sort((a,b)=>a-b);
   if(!ods.length && !km.length) return '';
-  let html = '<div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:8px">';
+  let html = '<div style="margin-top:8px;border-top:1px solid var(--borda);padding-top:8px">';
   if(ods.length){
-    html += '<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">ODS Atendidos</div>';
+    html += '<div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">ODS Atendidos</div>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px">';
     ods.forEach(n => {
       html += `<img src="../assets/sdg/sdg-${n}.jpg" title="ODS ${n}" alt="ODS ${n}" `
-            + `style="width:38px;height:38px;border-radius:5px;object-fit:cover;border:1px solid #e5e7eb" `
+            + `style="width:38px;height:38px;border-radius:5px;object-fit:cover;border:1px solid var(--borda)" `
             + `onerror="this.outerHTML='<span style=\\'font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0\\'>ODS&nbsp;${n}</span>'">`;
     });
     html += '</div>';
   }
   if(km.length){
-    html += '<div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Metas Kunming-Montreal</div>';
+    html += '<div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Metas Kunming-Montreal</div>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
     km.forEach(n => {
-      html += `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:#ede9fe;color:#5B21B6;border:1px solid #c4b5fd;white-space:nowrap">Meta ${n}</span>`;
+      html += `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--ia-bg);color:var(--ia);border:1px solid color-mix(in srgb,var(--ia) 45%,transparent);white-space:nowrap">Meta ${n}</span>`;
     });
     html += '</div>';
   }
@@ -700,6 +312,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('app').innerHTML =
     gerarLayout('Mapa de Entregas','mapa') + renderPagina() + fecharLayout();
+  seletorTema();
+  mpVigiarJanelas();
 
   setTimeout(async () => {
     iniciarMapa();
@@ -710,10 +324,85 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 0);
 });
 
+// ── Ícones da moldura (SVG, sem emoji) ─────────────────────────────────
+const MP_IC = {
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  busca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  grafico: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+  upload: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  mais: '<path d="M12 5v14M5 12h14"/>',
+  folha: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/>',
+  casa: '<path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  escudo: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/>',
+  pena: '<path d="M20.2 3.8a6 6 0 0 0-8.5 0L5 10.5V19h8.5l6.7-6.7a6 6 0 0 0 0-8.5z"/><path d="M16 8 2 22M17.5 15H9"/>',
+  pin: '<path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>',
+  engrenagem: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  pasta: '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9l-.8-1.2A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/>',
+  lixo: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/>',
+  video: '<path d="m22 8-6 4 6 4V8Z"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
+  sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+};
+function mpIc(n) { return '<svg class="mp-ic" viewBox="0 0 24 24" aria-hidden="true">' + (MP_IC[n] || '') + '</svg>'; }
+
+// Tema claro/escuro: mesmo 'diag_tema' das demais guias (componente .dgm-tema). Só a moldura muda;
+// o mapa e o Relatório Ambiental ficam claros (css/mapa.css).
+function seletorTema() {
+  const tb = document.querySelector('.topbar'); if (!tb || tb.querySelector('.dgm-tema') || typeof DiagTema === 'undefined') return;
+  const d = document.createElement('div');
+  d.className = 'dgm-tema'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Tema');
+  d.innerHTML = [['claro','sol','Claro'],['escuro','lua','Escuro']].map(x =>
+    `<button type="button" data-tema="${x[0]}" aria-pressed="${DiagTema.atual() === x[0]}">${mpIc(x[1])}${x[2]}</button>`).join('');
+  const bc = tb.querySelector('.topbar-breadcrumb');
+  if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d);
+  d.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tema]'); if (!b) return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+}
+
+// ── Janelas: as .modal-overlay abrem por style.display. Um observador mantém a pilha:
+// Esc fecha a de cima (pelo seu botão de fechar), Tab fica preso, foco volta ao sair.
+const mpPilha = [];
+const MP_FOCAVEIS = 'a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+function mpVigiarJanelas() {
+  const aberta = el => el.style.display && el.style.display !== 'none';
+  const obs = new MutationObserver(ms => ms.forEach(m => {
+    const el = m.target, k = mpPilha.findIndex(x => x.el === el);
+    if (aberta(el) && k < 0) {
+      mpPilha.push({ el, volta: document.activeElement });
+      requestAnimationFrame(() => { const f = el.querySelector('input:not([type=hidden]),select,textarea') || el.querySelector('.btn-close'); if (f) f.focus({ preventScroll: true }); });
+    } else if (!aberta(el) && k >= 0) {
+      const { volta } = mpPilha.splice(k, 1)[0];
+      if (volta && document.contains(volta)) volta.focus({ preventScroll: true });
+    }
+  }));
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
+    obs.observe(el, { attributes: true, attributeFilter: ['style'] });
+  });
+}
+document.addEventListener('keydown', e => {
+  const topo = mpPilha[mpPilha.length - 1]; if (!topo) return;
+  if (e.key === 'Escape') {
+    const fechar = topo.el.querySelector('.btn-close, [onclick*="cancelar" i]');
+    if (fechar) { e.preventDefault(); fechar.click(); }
+  } else if (e.key === 'Tab') {
+    const f = [...topo.el.querySelectorAll(MP_FOCAVEIS)].filter(x => x.offsetParent !== null);
+    if (!f.length) return;
+    const pri = f[0], ult = f[f.length - 1];
+    if (!topo.el.contains(document.activeElement)) { e.preventDefault(); pri.focus(); }
+    else if (e.shiftKey && document.activeElement === pri) { e.preventDefault(); ult.focus(); }
+    else if (!e.shiftKey && document.activeElement === ult) { e.preventDefault(); pri.focus(); }
+  }
+});
+
 // ── Render ────────────────────────────────────────────────────────────────
 function renderPagina(){
   const ehAdmin  = appState.perfil === 'super_admin';
-  const ehEditor = ehAdmin || appState.perfil === 'coordenador';
+  const ehEditor = ehAdmin || appState.perfil === 'coordenacao';
 
   // Tipos visíveis no mapa — exibir cada item individualmente (igual ao modal de configuração)
   const tiposHtml = _renderTiposHtml();
@@ -721,10 +410,10 @@ function renderPagina(){
   return `
   <div class="mapa-wrapper">
     ${filtroProdutoId ? `
-    <div style="display:flex;align-items:center;gap:10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:9px 14px;flex-shrink:0">
-      <span style="font-size:15px">🔍</span>
-      <div style="flex:1;font-size:12px;color:#1E40AF"><strong>Filtrando por entrega específica.</strong> Exibindo apenas os pontos vinculados a esta entrega.</div>
-      <a href="mapa.html" style="font-size:11px;color:#1E40AF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:3px 10px;text-decoration:none;white-space:nowrap">Ver todos</a>
+    <div style="display:flex;align-items:center;gap:10px;background:var(--azul-bg);border:1px solid color-mix(in srgb,var(--azul-medio) 35%,transparent);border-radius:var(--raio);padding:9px 14px;flex-shrink:0">
+      ${mpIc('busca')}
+      <div style="flex:1;font-size:12px;color:var(--azul-medio)"><strong>Filtrando por entrega específica.</strong> Exibindo apenas os pontos vinculados a esta entrega.</div>
+      <a href="mapa.html" style="font-size:11px;color:var(--azul-medio);border:1px solid color-mix(in srgb,var(--azul-medio) 35%,transparent);border-radius:var(--raio);padding:3px 10px;text-decoration:none;white-space:nowrap">Ver todos</a>
     </div>` : ''}
 
     <!-- Barra acima do mapa -->
@@ -733,14 +422,14 @@ function renderPagina(){
         <h2 style="margin:0;font-size:17px;font-weight:600;color:var(--cinza-900)">Mapa de Entregas</h2>
         <p style="margin:2px 0 0;font-size:11px;color:var(--cinza-500)">APAs Igarapé São Francisco e Lago do Amapá · Rio Branco, Acre</p>
       </div>
-      <button class="btn btn-outline" onclick="abrirRelatorioAmbiental()" style="font-size:12px;display:flex;align-items:center;gap:5px;border-color:#2D6A4F;color:#2D6A4F;font-weight:600">
-        📊 Relatório
+      <button class="btn btn-outline" onclick="abrirRelatorioAmbiental()" style="font-size:12px;display:flex;align-items:center;gap:5px;border-color:var(--verde-medio);color:var(--verde-medio);font-weight:600">
+        ${mpIc('grafico')}Relatório
       </button>
       ${ehEditor ? `<button class="btn btn-outline" onclick="abrirModalCSV()" style="font-size:12px;display:flex;align-items:center;gap:5px;">
-        📂 Importar .xlsx
+        ${mpIc('upload')}Importar .xlsx
       </button>
       <button class="btn btn-primary" onclick="abrirModalNovo()" style="font-size:12px;display:flex;align-items:center;gap:5px;">
-        ＋ Adicionar ponto
+        ${mpIc('mais')}Adicionar ponto
       </button>` : ''}
     </div>
 
@@ -748,18 +437,18 @@ function renderPagina(){
     <div class="mapa-layerbar" id="mapa-layerbar">
       <div class="mlb-tabs">
         <button class="mlb-tab" id="mlb-btn-veg" onclick="toggleLayerBar('veg')">
-          🌿 Cobertura Vegetal
+          ${mpIc('folha')}Cobertura Vegetal
         </button>
         <button class="mlb-tab" id="mlb-btn-car" onclick="toggleLayerBar('car')">
-          🏡 CAR — Imóveis Rurais
+          ${mpIc('casa')}CAR — Imóveis Rurais
           <span class="mlb-badge" id="car-count-badge" style="display:none">0</span>
         </button>
         <button class="mlb-tab" id="mlb-btn-uc" onclick="toggleLayerBar('uc')">
-          🌿 Unidades de Conservação
+          ${mpIc('escudo')}Unidades de Conservação
           <span class="mlb-badge" id="uc-count-badge" style="display:none">0</span>
         </button>
         <button class="mlb-tab" id="mlb-btn-ti" onclick="toggleLayerBar('ti')">
-          🪶 Terras Indígenas
+          ${mpIc('pena')}Terras Indígenas
           <span class="mlb-badge" id="ti-count-badge" style="display:none">0</span>
         </button>
       </div>
@@ -767,18 +456,18 @@ function renderPagina(){
       <!-- Painel: Cobertura Vegetal -->
       <div class="mlb-dropdown" id="mlb-panel-veg" style="display:none">
         <div class="mlb-dropdown-header">
-          <span class="mlb-dropdown-title">🌿 Cobertura Vegetal</span>
-          <button class="mlb-close" onclick="fecharLayerBar('veg')">✕</button>
+          <span class="mlb-dropdown-title">${mpIc('folha')}Cobertura Vegetal</span>
+          <button class="mlb-close" onclick="fecharLayerBar('veg')" aria-label="Fechar">${mpIc('x')}</button>
         </div>
         <div class="mlb-dropdown-body">
           <div class="mlb-veg-grid">
 
             <!-- PRODES Anual -->
             <div class="mlb-veg-card">
-              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fef2f2;border-bottom:1px solid #fecaca">
-                <input type="checkbox" id="veg-prodes-toggle" style="accent-color:#dc2626;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('prodes',this.checked)">
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--erro-bg);border-bottom:1px solid color-mix(in srgb,var(--erro) 35%,transparent)">
+                <input type="checkbox" id="veg-prodes-toggle" style="accent-color:var(--erro);width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('prodes',this.checked)">
                 <span style="font-size:11px;font-weight:600;color:var(--cinza-800);flex:1">PRODES Anual</span>
-                <span style="font-size:9px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:99px;padding:1px 5px;font-weight:600">INPE</span>
+                <span style="font-size:9px;background:var(--erro-bg);color:var(--erro);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:99px;padding:1px 5px;font-weight:600">INPE</span>
               </div>
               <div style="padding:7px 8px;display:flex;flex-direction:column;gap:5px">
                 <div style="font-size:9px;color:var(--cinza-500);line-height:1.3">Desmatamento 2008–hoje via satélite.</div>
@@ -796,10 +485,10 @@ function renderPagina(){
 
             <!-- PRODES Pré-2008 -->
             <div class="mlb-veg-card">
-              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:#fff7ed;border-bottom:1px solid #fed7aa">
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--treino-bg);border-bottom:1px solid color-mix(in srgb,var(--treino) 35%,transparent)">
                 <input type="checkbox" id="veg-prodes-hist-toggle" style="accent-color:#c2410c;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('prodes_hist',this.checked)">
                 <span style="font-size:11px;font-weight:600;color:var(--cinza-800);flex:1">PRODES Pré-2008</span>
-                <span style="font-size:9px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:99px;padding:1px 5px;font-weight:600">INPE</span>
+                <span style="font-size:9px;background:var(--treino-bg);color:var(--treino);border:1px solid color-mix(in srgb,var(--treino) 35%,transparent);border-radius:99px;padding:1px 5px;font-weight:600">INPE</span>
               </div>
               <div style="padding:7px 8px;display:flex;flex-direction:column;gap:5px">
                 <div style="font-size:9px;color:var(--cinza-500);line-height:1.3">Acumulado histórico até 2007.</div>
@@ -809,7 +498,7 @@ function renderPagina(){
                   <span id="veg-prodes-hist-opacity-val" style="font-size:9px;font-weight:700;color:var(--cinza-700);width:24px;text-align:right">75%</span>
                 </div>
                 <div id="veg-prodes-hist-legenda" style="display:none">
-                  <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700)"><div style="width:8px;height:8px;background:#c2410c;border-radius:2px;flex-shrink:0"></div>Acumulado ≤ 2007</div>
+                  <div style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--cinza-700)"><div style="width:8px;height:8px;background:var(--treino);border-radius:2px;flex-shrink:0"></div>Acumulado ≤ 2007</div>
                 </div>
               </div>
             </div>
@@ -817,9 +506,9 @@ function renderPagina(){
             <!-- MapBiomas -->
             <div class="mlb-veg-card">
               <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--cinza-50);border-bottom:1px solid var(--borda)">
-                <input type="checkbox" id="veg-mapbiomas-toggle" style="accent-color:#16a34a;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('mapbiomas',this.checked)">
+                <input type="checkbox" id="veg-mapbiomas-toggle" style="accent-color:var(--sucesso);width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('mapbiomas',this.checked)">
                 <span style="font-size:11px;font-weight:600;color:var(--cinza-800);flex:1">MapBiomas 2023</span>
-                <span style="font-size:9px;background:#eff6ff;color:#1d4ed8;border-radius:99px;padding:1px 5px;font-weight:600">BR</span>
+                <span style="font-size:9px;background:var(--azul-bg);color:var(--azul-medio);border-radius:99px;padding:1px 5px;font-weight:600">BR</span>
               </div>
               <div style="padding:7px 8px;display:flex;flex-direction:column;gap:5px">
                 <div style="font-size:9px;color:var(--cinza-500);line-height:1.3">Uso e cobertura do solo. Resolução 30m.</div>
@@ -846,8 +535,8 @@ function renderPagina(){
       <!-- Painel: CAR -->
       <div class="mlb-dropdown" id="mlb-panel-car" style="display:none;left:auto;min-width:480px">
         <div class="mlb-dropdown-header">
-          <span class="mlb-dropdown-title">🏡 CAR — Imóveis Rurais</span>
-          <button class="mlb-close" onclick="fecharLayerBar('car')">✕</button>
+          <span class="mlb-dropdown-title">${mpIc('casa')}CAR — Imóveis Rurais</span>
+          <button class="mlb-close" onclick="fecharLayerBar('car')" aria-label="Fechar">${mpIc('x')}</button>
         </div>
         <div class="mlb-dropdown-body">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--cinza-700)">
@@ -855,7 +544,7 @@ function renderPagina(){
             <strong>Exibir imóveis CAR</strong>
           </label>
           <div id="car-loading" style="display:none;font-size:11px;color:var(--cinza-400);align-items:center;gap:6px;padding:4px 0">
-            <div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+            <div style="width:12px;height:12px;border:2px solid var(--borda);border-top-color:var(--verde-medio);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
             Carregando imóveis…
           </div>
           <div id="car-filtros-wrap" style="display:none;flex-direction:column;gap:8px">
@@ -875,17 +564,17 @@ function renderPagina(){
               </div>
               <div class="mlb-car-col" style="min-width:120px;max-width:160px">
                 <div style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Situação</div>
-                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="ativo" style="accent-color:#16a34a;cursor:pointer" onchange="aplicarFiltrosCAR()"> Ativo</label>
-                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="aguardando" style="accent-color:#d97706;cursor:pointer" onchange="aplicarFiltrosCAR()"> Aguardando</label>
-                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="analise" style="accent-color:#1d4ed8;cursor:pointer" onchange="aplicarFiltrosCAR()"> Em análise</label>
-                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="outro" style="accent-color:#9ca3af;cursor:pointer" onchange="aplicarFiltrosCAR()"> Outros</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="ativo" style="accent-color:var(--sucesso);cursor:pointer" onchange="aplicarFiltrosCAR()"> Ativo</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="aguardando" style="accent-color:var(--aviso);cursor:pointer" onchange="aplicarFiltrosCAR()"> Aguardando</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="analise" style="accent-color:var(--azul-medio);cursor:pointer" onchange="aplicarFiltrosCAR()"> Em análise</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:1px 0"><input type="checkbox" checked data-car-status="outro" style="accent-color:var(--cinza-400);cursor:pointer" onchange="aplicarFiltrosCAR()"> Outros</label>
               </div>
               <div class="mlb-car-col" style="min-width:120px">
                 <div style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Legenda</div>
-                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#16a34a33;border-color:#16a34a"></div>Ativo</div>
-                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#d9770633;border-color:#d97706"></div>Aguardando</div>
-                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#2563eb22;border-color:#2563eb"></div>Em análise</div>
-                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#9ca3af22;border-color:#9ca3af"></div>Outros</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#16a34a33;border-color:var(--sucesso)"></div>Ativo</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#d9770633;border-color:var(--aviso)"></div>Aguardando</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#2563eb22;border-color:var(--azul-medio)"></div>Em análise</div>
+                <div class="car-legenda-item"><div class="car-legenda-cor" style="background:#9ca3af22;border-color:var(--cinza-400)"></div>Outros</div>
               </div>
             </div>
             <div id="car-stats-bloco" style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;font-size:11px"></div>
@@ -896,8 +585,8 @@ function renderPagina(){
       <!-- Painel: Unidades de Conservação -->
       <div class="mlb-dropdown" id="mlb-panel-uc" style="display:none;min-width:400px;max-width:500px">
         <div class="mlb-dropdown-header">
-          <span class="mlb-dropdown-title">🌿 Unidades de Conservação — Acre</span>
-          <button class="mlb-close" onclick="fecharLayerBar('uc')">✕</button>
+          <span class="mlb-dropdown-title">${mpIc('escudo')}Unidades de Conservação — Acre</span>
+          <button class="mlb-close" onclick="fecharLayerBar('uc')" aria-label="Fechar">${mpIc('x')}</button>
         </div>
         <div class="mlb-dropdown-body" style="gap:10px">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--cinza-700)">
@@ -905,7 +594,7 @@ function renderPagina(){
             <strong>Exibir Unidades de Conservação</strong>
           </label>
           <div id="uc-loading" class="uc-loading" style="display:none">
-            <div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+            <div style="width:12px;height:12px;border:2px solid var(--borda);border-top-color:var(--verde-medio);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
             Carregando dados do ICMBio…
           </div>
           <div id="uc-controles" style="display:none;flex-direction:column;gap:10px">
@@ -921,15 +610,15 @@ function renderPagina(){
               <div class="uc-filtro-grupo" style="flex-direction:row;gap:10px;flex-wrap:wrap;padding-top:4px">
                 <label class="uc-filtro-label">
                   <input type="checkbox" id="uc-esfera-federal" checked onchange="filtrarUC()">
-                  <span class="uc-esfera-badge" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">Federal</span>
+                  <span class="uc-esfera-badge" style="background:var(--azul-bg);color:var(--azul-medio);border-color:color-mix(in srgb,var(--azul-medio) 35%,transparent)">Federal</span>
                 </label>
                 <label class="uc-filtro-label">
                   <input type="checkbox" id="uc-esfera-estadual" checked onchange="filtrarUC()">
-                  <span class="uc-esfera-badge" style="background:#fefce8;color:#854d0e;border-color:#fde68a">Estadual</span>
+                  <span class="uc-esfera-badge" style="background:var(--aviso-bg);color:var(--aviso);border-color:color-mix(in srgb,var(--aviso) 40%,transparent)">Estadual</span>
                 </label>
                 <label class="uc-filtro-label">
                   <input type="checkbox" id="uc-esfera-municipal" checked onchange="filtrarUC()">
-                  <span class="uc-esfera-badge" style="background:#f0fdf4;color:#166534;border-color:#86efac">Municipal</span>
+                  <span class="uc-esfera-badge" style="background:var(--sucesso-bg);color:var(--sucesso);border-color:color-mix(in srgb,var(--sucesso) 40%,transparent)">Municipal</span>
                 </label>
               </div>
             </div>
@@ -944,7 +633,7 @@ function renderPagina(){
               <!-- Proteção Integral -->
               <div style="margin-top:6px">
                 <div class="uc-grupo-header" onclick="ucToggleGrupo('pi')">
-                  <div style="width:12px;height:12px;border-radius:2px;background:#dc2626;flex-shrink:0;border:1px solid rgba(0,0,0,.12)"></div>
+                  <div style="width:12px;height:12px;border-radius:2px;background:var(--erro);flex-shrink:0;border:1px solid rgba(0,0,0,.12)"></div>
                   <span class="uc-grupo-header-lbl">Proteção Integral</span>
                   <span id="uc-chevron-pi" class="uc-grupo-toggle">▾</span>
                 </div>
@@ -957,7 +646,7 @@ function renderPagina(){
               <!-- Uso Sustentável -->
               <div style="margin-top:4px">
                 <div class="uc-grupo-header" onclick="ucToggleGrupo('us')">
-                  <div style="width:12px;height:12px;border-radius:2px;background:#2563eb;flex-shrink:0;border:1px solid rgba(0,0,0,.12)"></div>
+                  <div style="width:12px;height:12px;border-radius:2px;background:var(--azul-medio);flex-shrink:0;border:1px solid rgba(0,0,0,.12)"></div>
                   <span class="uc-grupo-header-lbl">Uso Sustentável</span>
                   <span id="uc-chevron-us" class="uc-grupo-toggle">▾</span>
                 </div>
@@ -976,23 +665,23 @@ function renderPagina(){
       <!-- Painel: Terras Indígenas -->
       <div class="mlb-dropdown" id="mlb-panel-ti" style="display:none;min-width:340px">
         <div class="mlb-dropdown-header">
-          <span class="mlb-dropdown-title">🪶 Terras Indígenas — Acre</span>
-          <button class="mlb-close" onclick="fecharLayerBar('ti')">✕</button>
+          <span class="mlb-dropdown-title">${mpIc('pena')}Terras Indígenas — Acre</span>
+          <button class="mlb-close" onclick="fecharLayerBar('ti')" aria-label="Fechar">${mpIc('x')}</button>
         </div>
         <div class="mlb-dropdown-body" style="gap:10px">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--cinza-700)">
-            <input type="checkbox" id="ti-toggle" style="accent-color:#d97706;width:13px;height:13px;cursor:pointer" onchange="toggleCamadaTI(this.checked)">
+            <input type="checkbox" id="ti-toggle" style="accent-color:var(--aviso);width:13px;height:13px;cursor:pointer" onchange="toggleCamadaTI(this.checked)">
             <strong>Exibir Terras Indígenas</strong>
           </label>
           <div id="ti-loading" class="uc-loading" style="display:none">
-            <div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#d97706;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+            <div style="width:12px;height:12px;border:2px solid var(--borda);border-top-color:var(--aviso);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
             Carregando dados da FUNAI…
           </div>
           <div id="ti-controles" style="display:none;flex-direction:column;gap:10px">
             <!-- Opacidade -->
             <div style="display:flex;align-items:center;gap:8px">
               <span style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;width:52px;flex-shrink:0">Opac.</span>
-              <input type="range" min="10" max="100" value="40" class="camada-slider" id="ti-opacity" oninput="setOpacidadeTI(this.value)" style="accent-color:#d97706">
+              <input type="range" min="10" max="100" value="40" class="camada-slider" id="ti-opacity" oninput="setOpacidadeTI(this.value)" style="accent-color:var(--aviso)">
               <span id="ti-opacity-val" style="font-size:9px;font-weight:700;color:var(--cinza-700);width:26px;text-align:right">40%</span>
             </div>
             <!-- Filtro por fase -->
@@ -1016,11 +705,11 @@ function renderPagina(){
         <div id="uc-stats-card">
           <div class="usc-header" id="usc-drag-handle">
             <div class="usc-header-txt">
-              <div class="usc-header-titulo">🌿 Unidades de Conservação</div>
+              <div class="usc-header-titulo">${mpIc('escudo')}Unidades de Conservação</div>
               <div class="usc-header-sub" id="usc-header-sub">Acre</div>
             </div>
             <button class="usc-collapse-btn" id="usc-collapse-btn" onclick="ucStatsToggleCollapse()" title="Recolher/Expandir">▾</button>
-            <button class="usc-collapse-btn" onclick="ucStatsFechar()" title="Fechar" style="margin-left:2px">✕</button>
+            <button class="usc-collapse-btn" onclick="ucStatsFechar()" title="Fechar" style="margin-left:2px" aria-label="Fechar">${mpIc('x')}</button>
           </div>
           <div id="usc-body" class="usc-body">
             <div class="usc-totais" id="usc-totais"></div>
@@ -1059,10 +748,10 @@ function renderPagina(){
         <div class="filtro-bloco" style="overflow:visible">
           <div class="filtro-bloco-header" onclick="toggleBloco('bloco-camadas')" style="border-radius:var(--raio-lg) var(--raio-lg) 0 0">
             <h4>Camadas de delimitação</h4>
-            ${ehAdmin ? `<button class="btn-admin-filtros" onclick="event.stopPropagation();abrirModalNovaCamada()" title="Adicionar nova camada" style="font-size:15px;font-weight:700;line-height:1">＋</button>` : ''}
+            ${ehAdmin ? `<button class="btn-admin-filtros" onclick="event.stopPropagation();abrirModalNovaCamada()" title="Adicionar nova camada" style="font-size:15px;font-weight:700;line-height:1">${mpIc('mais')}</button>` : ''}
             <span id="chevron-bloco-camadas" style="font-size:10px;color:var(--cinza-400)">▾</span>
           </div>
-          <div id="bloco-camadas" style="padding:8px 12px 10px;max-height:200px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#2D6A4F #f3f4f6">
+          <div id="bloco-camadas" style="padding:8px 12px 10px;max-height:200px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--verde-medio) var(--cinza-100)">
             <div id="bloco-camadas-lista">
               <div style="font-size:11px;color:var(--cinza-400);padding:4px 0">Carregando…</div>
             </div>
@@ -1073,7 +762,7 @@ function renderPagina(){
         <div class="filtro-bloco">
           <div class="filtro-bloco-header" onclick="toggleBloco('bloco-tipos')">
             <h4>Tipos de entrega</h4>
-            ${ehAdmin ? `<button class="btn-admin-filtros" onclick="event.stopPropagation();abrirModalAdminFiltros()" title="Configurar quais tipos aparecem aqui">⚙️</button>` : ''}
+            ${ehAdmin ? `<button class="btn-admin-filtros" onclick="event.stopPropagation();abrirModalAdminFiltros()" title="Configurar quais tipos aparecem aqui">${mpIc('engrenagem')}</button>` : ''}
             <span id="chevron-bloco-tipos" style="font-size:10px;color:var(--cinza-400)">▾</span>
           </div>
           <div class="filtro-bloco-body" id="bloco-tipos">
@@ -1109,7 +798,7 @@ function renderPagina(){
     <div class="modal-box">
       <div class="modal-header">
         <h3 id="modal-ponto-titulo">Adicionar ponto</h3>
-        <button class="btn-close" onclick="fecharModalPonto()">✕</button>
+        <button class="btn-close" onclick="fecharModalPonto()" aria-label="Fechar">${mpIc('x')}</button>
       </div>
       <div class="modal-body" id="modal-ponto-body"></div>
       <div class="modal-footer">
@@ -1124,7 +813,7 @@ function renderPagina(){
     <div class="modal-box" style="max-width:660px">
       <div class="modal-header">
         <div>
-          <div style="font-size:15px;font-weight:600;color:var(--cinza-900)">📍 Importar Geolocalização</div>
+          <div style="font-size:15px;font-weight:600;color:var(--cinza-900)">${mpIc('pin')}Importar geolocalização</div>
           <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Importe pontos, polígonos de área ou trilhas</div>
         </div>
         <button class="btn-close" onclick="fecharModalCSV()">&#x2715;</button>
@@ -1138,8 +827,8 @@ function renderPagina(){
   <div class="modal-overlay" id="modal-admin-filtros" style="display:none">
     <div class="modal-box lg">
       <div class="modal-header">
-        <h3>⚙️ Configurar tipos de entrega no mapa</h3>
-        <button class="btn-close" onclick="fecharModalAdminFiltros()">✕</button>
+        <h3>${mpIc('engrenagem')}Configurar tipos de entrega no mapa</h3>
+        <button class="btn-close" onclick="fecharModalAdminFiltros()" aria-label="Fechar">${mpIc('x')}</button>
       </div>
       <div class="modal-body" style="padding:0">
         <div style="padding:14px 20px 10px;border-bottom:1px solid var(--borda)">
@@ -1163,7 +852,7 @@ function renderPagina(){
     <div class="modal-box lg">
       <div class="modal-header">
         <h3 id="modal-geo-titulo">Editar polígono</h3>
-        <button class="btn-close" onclick="fecharModalGeometria()">✕</button>
+        <button class="btn-close" onclick="fecharModalGeometria()" aria-label="Fechar">${mpIc('x')}</button>
       </div>
       <div style="display:flex;border-bottom:1px solid var(--borda);flex-shrink:0">
         <button class="geo-tab ativo" data-aba="dados" onclick="abaGeometria('dados')">Dados</button>
@@ -1172,7 +861,7 @@ function renderPagina(){
       </div>
       <div class="modal-body" id="modal-geo-body"></div>
       <div class="modal-footer">
-        <button class="btn btn-outline" onclick="excluirGeometria(_geoEditando?.group,_geoEditando?.tipo)" style="color:#dc2626;border-color:#fca5a5;margin-right:auto">🗑 Excluir</button>
+        <button class="btn btn-outline" onclick="excluirGeometria(_geoEditando?.group,_geoEditando?.tipo)" style="color:var(--erro);border-color:color-mix(in srgb,var(--erro) 40%,transparent);margin-right:auto">${mpIc('lixo')}Excluir</button>
         <button class="btn btn-outline" onclick="fecharModalGeometria()">Cancelar</button>
         <button class="btn btn-primary" id="btn-salvar-geo" onclick="salvarGeometria()">Salvar</button>
       </div>
@@ -1184,7 +873,7 @@ function renderPagina(){
     <div class="modal-box">
       <div class="modal-header">
         <h3>Nova camada de delimitação</h3>
-        <button class="btn-close" onclick="fecharModalNovaCamada()">✕</button>
+        <button class="btn-close" onclick="fecharModalNovaCamada()" aria-label="Fechar">${mpIc('x')}</button>
       </div>
       <div class="modal-body">
         <div class="form-row">
@@ -1207,7 +896,7 @@ function renderPagina(){
           <div class="form-group full">
             <label>Arquivo (GeoJSON ou Shapefile .zip) *</label>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button class="btn btn-outline" style="font-size:12px;flex-shrink:0" onclick="document.getElementById('nc-arquivo').click()">📁 Selecionar arquivo</button>
+              <button class="btn btn-outline" style="font-size:12px;flex-shrink:0" onclick="document.getElementById('nc-arquivo').click()">${mpIc('pasta')}Selecionar arquivo</button>
               <span id="nc-arquivo-status" style="font-size:12px;color:var(--cinza-400)">Nenhum arquivo selecionado</span>
             </div>
             <input type="file" id="nc-arquivo" accept=".geojson,.json,.zip" style="display:none" onchange="onNovaCamadaArquivo(this.files[0])">
@@ -1224,7 +913,7 @@ function renderPagina(){
   <!-- Modal: Confirmação por senha -->
   <!-- Lightbox de foto -->
   <div id="modal-foto" onclick="fecharFotoModal()">
-    <button onclick="fecharFotoModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer;line-height:1;z-index:2">✕</button>
+    <button onclick="fecharFotoModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer;line-height:1;z-index:2" aria-label="Fechar">${mpIc('x')}</button>
     <button id="modal-foto-prev" onclick="event.stopPropagation();_fotoModalNav(-1)"
       style="position:absolute;left:16px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);backdrop-filter:blur(4px);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:26px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:2;transition:background .15s"
       onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">‹</button>
@@ -1237,7 +926,7 @@ function renderPagina(){
 
   <!-- Modal: Vídeo em tela cheia -->
   <div id="modal-video">
-    <button onclick="fecharVideoModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer;line-height:1;z-index:1">✕</button>
+    <button onclick="fecharVideoModal()" style="position:absolute;top:14px;right:18px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer;line-height:1;z-index:1" aria-label="Fechar">${mpIc('x')}</button>
     <iframe id="modal-video-iframe" src="" allowfullscreen allow="autoplay; fullscreen"></iframe>
     <a id="modal-video-link" href="#" target="_blank" rel="noopener" style="color:#93c5fd;font-size:12px;margin-top:12px;display:none;text-decoration:underline">Abrir no serviço original ↗</a>
   </div>
@@ -1247,7 +936,7 @@ function renderPagina(){
     <div class="modal-box" style="max-width:440px">
       <div class="modal-header">
         <h3 id="modal-pe-titulo">Detalhes do ponto</h3>
-        <button class="btn-close" onclick="fecharModalPeDetalhes()">✕</button>
+        <button class="btn-close" onclick="fecharModalPeDetalhes()" aria-label="Fechar">${mpIc('x')}</button>
       </div>
       <div class="modal-body" style="gap:12px">
         <div class="form-group full">
@@ -1257,13 +946,13 @@ function renderPagina(){
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <input id="pe-foto-url" type="url" placeholder="URL da foto ou faça upload →" style="flex:1" oninput="atualizarPreviaPe()">
-            <label for="pe-foto-file" style="display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px dashed var(--verde-escuro);border-radius:var(--raio);cursor:pointer;font-size:11px;color:var(--verde-escuro);white-space:nowrap;flex-shrink:0">📷 Upload</label>
+            <label for="pe-foto-file" style="display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px dashed var(--verde-escuro);border-radius:var(--raio);cursor:pointer;font-size:11px;color:var(--verde-escuro);white-space:nowrap;flex-shrink:0">${mpIc('camera')}Upload</label>
             <input type="file" id="pe-foto-file" accept="image/*" style="display:none" onchange="uploadFotoPe(this)">
           </div>
           <div id="pe-foto-status" style="font-size:10px;color:var(--cinza-400);margin-top:3px"></div>
         </div>
         <div class="form-group full">
-          <label>🎬 Vídeo do local (YouTube, Vimeo…)</label>
+          <label>${mpIc('video')}Vídeo do local (YouTube, Vimeo…)</label>
           <input id="pe-video-url" type="url" placeholder="https://www.youtube.com/watch?v=...">
         </div>
         <div class="form-group full">
@@ -1283,11 +972,11 @@ function renderPagina(){
     <div class="modal-box" style="max-width:460px">
       <div class="modal-header">
         <h3 id="modal-tipo-titulo">Editar tipo de entrega</h3>
-        <button class="btn-close" onclick="fecharModalEditarTipo()">✕</button>
+        <button class="btn-close" onclick="fecharModalEditarTipo()" aria-label="Fechar">${mpIc('x')}</button>
       </div>
       <div class="modal-body" style="gap:12px">
         <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio)">
-          <div id="tipo-preview-icone" style="width:40px;height:40px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"></div>
+          <div id="tipo-preview-icone" style="width:40px;height:40px;border-radius:50%;border:2px solid var(--branco);box-shadow:0 1px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"></div>
           <div style="flex:1;min-width:0">
             <div id="tipo-preview-nome" style="font-size:12px;font-weight:600;color:var(--cinza-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
             <div style="font-size:10px;color:var(--cinza-400);margin-top:2px">Prévia do marcador no mapa</div>
@@ -1324,7 +1013,7 @@ function renderPagina(){
 
   <!-- Modal: Relatório Analítico Ambiental -->
   <div class="modal-overlay" id="modal-relatorio" style="display:none;z-index:9998;padding:12px">
-    <div style="display:flex;flex-direction:column;width:100%;max-width:1200px;margin:0 auto;background:#fff;border-radius:16px;height:100%;max-height:calc(100vh - 24px);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+    <div style="display:flex;flex-direction:column;width:100%;max-width:1200px;margin:0 auto;background:var(--branco);border-radius:16px;height:100%;max-height:calc(100vh - 24px);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)">
       <!-- Header -->
       <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--borda);flex-shrink:0" class="rel-header-btns">
         <div style="flex:1;min-width:0">
@@ -1355,7 +1044,7 @@ function renderPagina(){
     <div class="modal-box" style="max-width:400px">
       <div class="modal-header">
         <h3 id="modal-senha-titulo">Confirmar alteração</h3>
-        <button class="btn-close" onclick="_cancelarSenha()">✕</button>
+        <button class="btn-close" onclick="_cancelarSenha()" aria-label="Fechar">${mpIc('x')}</button>
       </div>
       <div class="modal-body" style="gap:10px">
         <div id="modal-senha-desc" style="font-size:13px;color:var(--cinza-700);line-height:1.5;padding:10px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio)"></div>
@@ -1363,8 +1052,8 @@ function renderPagina(){
           <label>Sua senha *</label>
           <input id="modal-senha-input" type="password" placeholder="Digite sua senha para confirmar" onkeydown="if(event.key==='Enter')_submitSenha()">
         </div>
-        <div id="modal-senha-erro" style="display:none;font-size:12px;color:#dc2626;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio);padding:8px 10px">
-          ❌ Senha incorreta. Tente novamente.
+        <div id="modal-senha-erro" style="display:none;font-size:12px;color:var(--erro);background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio);padding:8px 10px">
+          Senha incorreta. Tente novamente.
         </div>
       </div>
       <div class="modal-footer">
@@ -1772,7 +1461,7 @@ function renderCamadasHtml(){
         ${ehAdmin?`<button id="btn-exp-${c.id}" class="btn-camada-exp" title="Configurar estilo"
           onclick="toggleExpandirCamada('${c.id}')">⚙</button>`:''}
         ${ehAdmin?`<button onclick="removerCamada('${c.id}')" title="Remover"
-          style="font-size:11px;padding:2px 6px;border:1px solid #FCA5A5;border-radius:4px;background:#FEF2F2;color:#DC2626;cursor:pointer;flex-shrink:0">✕</button>`:''}
+          style="font-size:11px;padding:2px 6px;border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:4px;background:var(--erro-bg);color:var(--erro);cursor:pointer;flex-shrink:0">✕</button>`:''}
       </div>
       ${ehAdmin?`<div id="camada-expand-${c.id}" class="camada-expand-body" style="display:none">
         ${featRowsHtml}${styleHtml}
@@ -2062,7 +1751,7 @@ function criarIcone(p){
     : `<span style="font-size:${Math.round(sz*.5)}px;font-weight:700;color:#fff;font-family:sans-serif">${(p.tipo_atividade||'?')[0].toUpperCase()}</span>`;
   return L.divIcon({
     className:'',
-    html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${cor};border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;transition:all .2s">${conteudo}</div>`,
+    html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${cor};border:2px solid var(--branco);box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;transition:all .2s">${conteudo}</div>`,
     iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]
   });
 }
@@ -2158,15 +1847,15 @@ function renderizarMarcadores(){
     // Marcador de início — 🚶 verde
     const _divIcone = (emoji, bg, sz) => L.divIcon({
       className:'',
-      html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${bg};border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz*.55)}px">${emoji}</div>`,
+      html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:${bg};border:2px solid var(--branco);box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:${Math.round(sz*.55)}px">${emoji}</div>`,
       iconSize:[sz,sz], iconAnchor:[sz/2,sz/2], popupAnchor:[0,-sz/2]
     });
     const mIni = L.marker(latlngs[0], { icon: _divIcone('🚶','#16a34a',28) });
-    mIni.bindPopup(`<div style="font-size:12px;font-weight:600;color:#166534">▶ Início: ${escHtml(nome)}</div>`, {maxWidth:200});
+    mIni.bindPopup(`<div style="font-size:12px;font-weight:600;color:var(--sucesso)">▶ Início: ${escHtml(nome)}</div>`, {maxWidth:200});
 
     // Marcador de fim — 🏁 vermelho
     const mFim = L.marker(latlngs[latlngs.length-1], { icon: _divIcone('🏁','#dc2626',24) });
-    mFim.bindPopup(`<div style="font-size:12px;font-weight:600;color:#dc2626">🏁 Fim: ${escHtml(nome)}</div>`, {maxWidth:200});
+    mFim.bindPopup(`<div style="font-size:12px;font-weight:600;color:var(--erro)">🏁 Fim: ${escHtml(nome)}</div>`, {maxWidth:200});
 
     [line, mIni, mFim].forEach(l => { l.addTo(mapaL); geometryLayers.push(l); });
 
@@ -2185,7 +1874,7 @@ function renderizarMarcadores(){
 
       const _badgeIconHover = () => L.divIcon({
         className:'',
-        html:`<div style="height:32px;padding:0 14px;border-radius:99px;background:rgba(30,58,95,.96);border:2px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,.5);display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;animation:trilhaPulse 1.6s ease-in-out infinite">🎬 <span>Assistir vídeo</span></div>`,
+        html:`<div style="height:32px;padding:0 14px;border-radius:99px;background:rgba(30,58,95,.96);border:2px solid var(--branco);box-shadow:0 2px 12px rgba(0,0,0,.5);display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;animation:trilhaPulse 1.6s ease-in-out infinite">🎬 <span>Assistir vídeo</span></div>`,
         iconSize:[140,32], iconAnchor:[70,16], popupAnchor:[0,-20]
       });
 
@@ -2222,7 +1911,7 @@ function renderizarMarcadores(){
       let popHtml = '<div class="mapa-popup" style="min-width:180px">';
       if(p.foto_url)
         popHtml += `<img src="${escHtml(p.foto_url)}" alt="foto" class="pe-foto-click" onclick="abrirFotoModal('${escHtml(p.foto_url)}')" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin-bottom:7px;display:block">`;
-      popHtml += `<div style="font-size:12px;font-weight:700;color:#1f4e2c">${pe.emoji} ${pe.label}</div>`;
+      popHtml += `<div style="font-size:12px;font-weight:700;color:var(--verde)">${pe.emoji} ${pe.label}</div>`;
       if(p.observacao)
         popHtml += `<div style="font-size:11px;color:#555;margin-top:4px;line-height:1.4">${escHtml(p.observacao)}</div>`;
       if(p.video_url)
@@ -2250,8 +1939,8 @@ function renderPopup(p){
     ${p.observacao?`<div class="pp-linha"><strong>Obs.:</strong>${escHtml(p.observacao)}</div>`:''}
     ${_htmlOdsKm(p.tipo_atividade)}
     ${_ehEditor() ? `<div style="margin-top:8px;display:flex;gap:6px">
-      <button onclick="abrirModalEditar('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
-      <button onclick="excluirPonto('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
+      <button onclick="abrirModalEditar('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--borda-forte);border-radius:6px;cursor:pointer;background:var(--branco)">✏ Editar</button>
+      <button onclick="excluirPonto('${p.id}')" style="font-size:11px;padding:3px 10px;border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:6px;cursor:pointer;background:var(--branco);color:var(--erro)">🗑</button>
     </div>` : ''}
   </div>`;
 }
@@ -2324,8 +2013,8 @@ function _popupGeometria(nome, pts, tipo){
     }
     const especiais = pts.filter(p => p.ponto_especial && PONTOS_ESPECIAIS[p.ponto_especial]);
     if(especiais.length){
-      badgesPE = `<div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:7px">
-        <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Pontos de interesse</div>
+      badgesPE = `<div style="margin-top:8px;border-top:1px solid var(--borda);padding-top:7px">
+        <div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Pontos de interesse</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px">`;
       especiais.forEach(p => {
         const pe = PONTOS_ESPECIAIS[p.ponto_especial];
@@ -2353,8 +2042,8 @@ function _popupGeometria(nome, pts, tipo){
     ${_htmlOdsKm(p0.tipo_atividade)}
     ${badgesPE}
     ${_ehEditor() ? `<div style="margin-top:8px;display:flex;gap:6px">
-      <button onclick="abrirModalEditarGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">✏ Editar</button>
-      <button onclick="excluirGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;background:#fff;color:#dc2626">🗑</button>
+      <button onclick="abrirModalEditarGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid var(--borda-forte);border-radius:6px;cursor:pointer;background:var(--branco)">✏ Editar</button>
+      <button onclick="excluirGeometria('${escHtml(nome)}','${tipo}')" style="font-size:11px;padding:3px 10px;border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:6px;cursor:pointer;background:var(--branco);color:var(--erro)">🗑</button>
     </div>` : ''}
   </div>`;
 }
@@ -2434,7 +2123,7 @@ function _renderTiposHtml(){
         <input type="checkbox" ${marcado?'checked':''} data-tipo="${escHtml(tipo)}" onchange="toggleFiltroTipo(this)">
         ${dot}
         <span style="flex:1;line-height:1.3">${escHtml(item.indicador||tipo)}<span style="display:block;font-size:9px;color:var(--cinza-400)">${escHtml(sub)}</span></span>
-        ${ehAdmin?`<button onclick="event.stopPropagation();abrirModalEditarTipo('${item.id}')" title="Editar ícone e cor" style="font-size:11px;padding:1px 5px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;flex-shrink:0;color:var(--cinza-500);margin-top:1px">✏</button>`:''}
+        ${ehAdmin?`<button onclick="event.stopPropagation();abrirModalEditarTipo('${item.id}')" title="Editar ícone e cor" style="font-size:11px;padding:1px 5px;border:1px solid var(--borda);border-radius:4px;background:var(--branco);cursor:pointer;flex-shrink:0;color:var(--cinza-500);margin-top:1px">✏</button>`:''}
       </div>`;
     }).join('');
 }
@@ -2829,7 +2518,7 @@ function htmlFormPonto(p={}){
     <div class="geo-row">
       <div class="form-group"><label>Latitude</label><input id="f-lat" type="number" step="any" value="${p.lat||''}" placeholder="-9.9748"></div>
       <div class="form-group"><label>Longitude</label><input id="f-lng" type="number" step="any" value="${p.lng||''}" placeholder="-67.8072"></div>
-      <button class="btn-geo" onclick="usarGeolocalizacao()">📍 GPS</button>
+      <button class="btn-geo" onclick="usarGeolocalizacao()">${mpIc('pin')}GPS</button>
     </div>
   </div>
   <div class="form-group">
@@ -2839,7 +2528,7 @@ function htmlFormPonto(p={}){
       ondragover="event.preventDefault();this.classList.add('drag')"
       ondragleave="this.classList.remove('drag')"
       ondrop="onFotoDrop(event)">
-      <div class="ico">📷</div>
+      <div class="ico">${mpIc('camera')}</div>
       <p>${p.foto_url?'Substituir foto':'Clique ou arraste para adicionar foto'}</p>
       ${p.foto_url?`<img id="foto-preview" class="foto-preview" src="${escHtml(p.foto_url)}" style="display:block">`:`<img id="foto-preview" class="foto-preview">`}
     </div>
@@ -3017,7 +2706,7 @@ function _htmlGeoFotos(){
   const podAdicionar = _geoFotos.length < MAX;
   const addBtn = podAdicionar ? `
     <label class="geo-foto-add" for="geo-foto-input" title="Adicionar fotos (até ${MAX - _geoFotos.length} restantes)">
-      <span style="font-size:22px">📷</span>
+      <span style="font-size:22px">${mpIc('camera')}</span>
       <span>Adicionar</span>
     </label>
     <input type="file" id="geo-foto-input" accept="image/*" multiple style="display:none" onchange="_geoAdicionarFotos(this)">
@@ -3080,15 +2769,15 @@ function _htmlGeoVertices(){
               ${peOptions.replace(`value="${p.ponto_especial||''}"`,`value="${p.ponto_especial||''}" selected`)}
             </select>
             ${p.ponto_especial ? `<button onclick="abrirModalPeDetalhes(${i})" title="Foto e vídeo deste ponto"
-              style="font-size:11px;padding:2px 5px;border:1px solid var(--verde-escuro);border-radius:3px;background:#f0fdf4;color:var(--verde-escuro);cursor:pointer;flex-shrink:0;white-space:nowrap">
-              ${p.foto_url||p.video_url ? '📷✓' : '📷'}
+              style="font-size:11px;padding:2px 5px;border:1px solid var(--verde-escuro);border-radius:3px;background:var(--sucesso-bg);color:var(--verde-escuro);cursor:pointer;flex-shrink:0;white-space:nowrap">
+              ${p.foto_url||p.video_url ? mpIc('camera')+'✓' : mpIc('camera')}
             </button>` : ''}
           </div>
         </td>`:''}
         <td style="padding:3px 4px;white-space:nowrap;text-align:center">
-          ${i>0?`<button onclick="_moverVertex(${i},-1)" title="Subir" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:#fff;cursor:pointer">↑</button>`:'<span style="display:inline-block;width:24px"></span>'}
-          ${i<pts.length-1?`<button onclick="_moverVertex(${i},1)" title="Descer" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:#fff;cursor:pointer">↓</button>`:'<span style="display:inline-block;width:24px"></span>'}
-          ${pts.length>minPts?`<button onclick="_removerVertex(${i})" title="Remover" style="font-size:10px;padding:2px 5px;border:1px solid #fca5a5;border-radius:3px;background:#fff;color:#dc2626;cursor:pointer">✕</button>`:''}
+          ${i>0?`<button onclick="_moverVertex(${i},-1)" title="Subir" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:var(--branco);cursor:pointer">↑</button>`:'<span style="display:inline-block;width:24px"></span>'}
+          ${i<pts.length-1?`<button onclick="_moverVertex(${i},1)" title="Descer" style="font-size:10px;padding:2px 5px;border:1px solid var(--borda);border-radius:3px;background:var(--branco);cursor:pointer">↓</button>`:'<span style="display:inline-block;width:24px"></span>'}
+          ${pts.length>minPts?`<button onclick="_removerVertex(${i})" title="Remover" style="font-size:10px;padding:2px 5px;border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:3px;background:var(--branco);color:var(--erro);cursor:pointer">✕</button>`:''}
         </td>
       </tr>`).join('')}</tbody>
     </table>
@@ -3270,9 +2959,9 @@ function fecharModalCSV(){ document.getElementById('modal-csv').style.display='n
 
 function _impEtapa1(){
   document.getElementById('imp-body').innerHTML=''
-    +'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:var(--raio);padding:12px 14px">'
-    +'<div style="font-size:12px;font-weight:600;color:#1E40AF;margin-bottom:4px">📋 Como usar</div>'
-    +'<ol style="margin:0;padding-left:18px;font-size:12px;color:#1E40AF;line-height:1.8">'
+    +'<div style="background:var(--azul-bg);border:1px solid color-mix(in srgb,var(--azul-medio) 35%,transparent);border-radius:var(--raio);padding:12px 14px">'
+    +'<div style="font-size:12px;font-weight:600;color:var(--azul-medio);margin-bottom:4px">📋 Como usar</div>'
+    +'<ol style="margin:0;padding-left:18px;font-size:12px;color:var(--azul-medio);line-height:1.8">'
     +'<li>Baixe o template Excel com as 3 abas: <strong>Pontos</strong>, <strong>Polígono</strong> e <strong>Trilha</strong>.</li>'
     +'<li>Preencha as abas desejadas. As colunas <strong>lat</strong> e <strong>lng</strong> aceitam <strong>vírgula ou ponto</strong> como decimal (ex: <code>-9,972</code> ou <code>-9.972</code>).</li>'
     +'<li><strong>Importe o próprio arquivo .xlsx</strong> — não é necessário converter para CSV.</li>'
@@ -3428,7 +3117,7 @@ function _impEtapa2(erros){
   const seletorHtml = `
     <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:10px">
       <div style="font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Tipo de atividade</div>
-      <select id="imp-tipo-sel" style="font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);color:var(--cinza-900);background:#fff;width:100%;box-sizing:border-box">
+      <select id="imp-tipo-sel" style="font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);color:var(--cinza-900);background:var(--branco);width:100%;box-sizing:border-box">
         <option value="">— Manter da planilha (cada linha usa seu próprio tipo) —</option>
         ${tipoOpts}
       </select>
@@ -3436,9 +3125,9 @@ function _impEtapa2(erros){
         Selecione um tipo para aplicar a <strong>todos</strong> os registros importados, sobrescrevendo o campo da planilha.
       </div>
     </div>
-    <div style="display:flex;align-items:flex-start;gap:8px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">
+    <div style="display:flex;align-items:flex-start;gap:8px;background:var(--aviso-bg);border:1px solid color-mix(in srgb,var(--aviso) 45%,transparent);border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">
       <span style="font-size:15px;flex-shrink:0">⚠️</span>
-      <span style="font-size:11px;color:#92400E;line-height:1.5">Esta importação é um registro administrativo direto — <strong>não gera vínculo com entrega de produto</strong>. Para vincular pontos a uma entrega, use a planilha de geolocalização dentro do modal de <em>Produto Entregue</em>.</span>
+      <span style="font-size:11px;color:var(--aviso);line-height:1.5">Esta importação é um registro administrativo direto — <strong>não gera vínculo com entrega de produto</strong>. Para vincular pontos a uma entrega, use a planilha de geolocalização dentro do modal de <em>Produto Entregue</em>.</span>
     </div>`;
 
   const tabelaRows = [..._impLinhas.pontos, ..._impLinhas.poligonos, ..._impLinhas.trilhas].slice(0,100);
@@ -3465,7 +3154,7 @@ function _impEtapa2(erros){
     </table></div>`;
 
   body.innerHTML = statsHtml
-    + (erros.length?`<div style="font-size:11px;color:#B91C1C;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:var(--raio);padding:8px 10px;margin-bottom:10px">⚠ Linhas ignoradas: ${erros.slice(0,5).join(' · ')}${erros.length>5?` …e mais ${erros.length-5}`:''}</div>`:'')
+    + (erros.length?`<div style="font-size:11px;color:var(--erro);background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio);padding:8px 10px;margin-bottom:10px">⚠ Linhas ignoradas: ${erros.slice(0,5).join(' · ')}${erros.length>5?` …e mais ${erros.length-5}`:''}</div>`:'')
     + seletorHtml
     + tabelaHtml;
 
@@ -4224,9 +3913,9 @@ function _atualizarBadgeCAR(){
   sb.innerHTML = `
     <div class="car-stat-row"><span>Imóveis visíveis</span><span class="car-stat-val">${_carVisiveis.length.toLocaleString('pt-BR')}</span></div>
     <div class="car-stat-row"><span>Área total declarada</span><span class="car-stat-val">${areaTot.toLocaleString('pt-BR',{maximumFractionDigits:0})} ha</span></div>
-    ${porStatus.ativo     ? `<div class="car-stat-row"><span style="color:#16a34a">● Ativo</span><span class="car-stat-val">${porStatus.ativo}</span></div>` : ''}
-    ${porStatus.aguardando? `<div class="car-stat-row"><span style="color:#d97706">● Aguardando</span><span class="car-stat-val">${porStatus.aguardando}</span></div>` : ''}
-    ${porStatus.analise   ? `<div class="car-stat-row"><span style="color:#2563eb">● Em análise</span><span class="car-stat-val">${porStatus.analise}</span></div>` : ''}`;
+    ${porStatus.ativo     ? `<div class="car-stat-row"><span style="color:var(--sucesso)">● Ativo</span><span class="car-stat-val">${porStatus.ativo}</span></div>` : ''}
+    ${porStatus.aguardando? `<div class="car-stat-row"><span style="color:var(--aviso)">● Aguardando</span><span class="car-stat-val">${porStatus.aguardando}</span></div>` : ''}
+    ${porStatus.analise   ? `<div class="car-stat-row"><span style="color:var(--azul-medio)">● Em análise</span><span class="car-stat-val">${porStatus.analise}</span></div>` : ''}`;
 }
 
 // ── Seleção de imóvel ─────────────────────────────────────────────────────
@@ -4291,7 +3980,7 @@ function _htmlCarAtributos(f){
   const secaoLocal = carregando
     ? `<div class="car-det-field" style="background:var(--cinza-50);border-radius:var(--raio)">
          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza-400);padding:4px 0">
-           <div style="width:10px;height:10px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
+           <div style="width:10px;height:10px;border:2px solid var(--borda);border-top-color:var(--verde-medio);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>
            Buscando dados cadastrais…
          </div>
        </div>`
@@ -4364,17 +4053,17 @@ function _htmlCarEstilo(f){
   // Botão "Repetir estilo" — aparece quando há um estilo anterior de outro CAR
   const podeRepetir = _carUltimoEstilo && _carUltimoEstilo.cod_imovel !== cod;
   const btnRepetir  = podeRepetir ? `
-    <div style="margin-bottom:12px;padding:9px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:var(--raio);display:flex;align-items:center;gap:8px">
+    <div style="margin-bottom:12px;padding:9px 12px;background:var(--ia-bg);border:1px solid color-mix(in srgb,var(--ia) 35%,transparent);border-radius:var(--raio);display:flex;align-items:center;gap:8px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:11px;font-weight:600;color:#7c3aed">🎨 Repetir estilo anterior</div>
-        <div style="font-size:10px;color:#9ca3af;margin-top:1px">
+        <div style="font-size:11px;font-weight:600;color:var(--ia)">🎨 Repetir estilo anterior</div>
+        <div style="font-size:10px;color:var(--cinza-400);margin-top:1px">
           Preench. <span style="font-family:monospace">${_carUltimoEstilo.fill_color||'—'}</span>
           · Borda <span style="font-family:monospace">${_carUltimoEstilo.stroke_color||'—'}</span>
           · ${Math.round((_carUltimoEstilo.fill_opacity||0.18)*100)}% · ${_carUltimoEstilo.stroke_width||1.5}px
         </div>
       </div>
       <button onclick="_aplicarUltimoEstilo()" class="btn btn-outline"
-        style="font-size:11px;border-color:#7c3aed;color:#7c3aed;white-space:nowrap;flex-shrink:0">
+        style="font-size:11px;border-color:var(--ia);color:var(--ia);white-space:nowrap;flex-shrink:0">
         Aplicar
       </button>
     </div>` : '';
@@ -4502,7 +4191,7 @@ let _carDiagCache = new Map(); // cod_imovel → dados calculados
 
 function _htmlCarDiagLoading(){
   return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--cinza-500)">
-    <div style="width:24px;height:24px;border:3px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div style="width:24px;height:24px;border:3px solid var(--borda);border-top-color:var(--verde-medio);border-radius:50%;animation:spin .8s linear infinite"></div>
     <div style="font-size:12px">Calculando diagnóstico espacial…</div>
     <div style="font-size:10px;color:var(--cinza-400)">Intersectando ${camadas.filter(c=>c.geojson).length} camadas de delimitação</div>
   </div>`;
@@ -4725,39 +4414,39 @@ function _htmlCarDiagnostico(d, f){
 
   // Barra de progresso inline
   const barra = (val, max, cor) => `
-    <div style="height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:3px">
+    <div style="height:5px;background:var(--borda);border-radius:3px;overflow:hidden;margin-top:3px">
       <div style="height:100%;width:${Math.min(100,val/max*100).toFixed(1)}%;background:${cor};border-radius:3px"></div>
     </div>`;
 
   return `
   <!-- KPIs principais -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio);padding:10px 12px;position:relative">
-      <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Desmatado</div>
+    <div style="background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio);padding:10px 12px;position:relative">
+      <div style="font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.05em">Desmatado</div>
       <div style="font-size:18px;font-weight:700;color:${corDesmat}">${f2(desmatPrincipal)} ha</div>
-      <div style="font-size:10px;color:#6b7280">${f1(pctDesmatPrincipal)}% da área</div>
+      <div style="font-size:10px;color:var(--cinza-500)">${f1(pctDesmatPrincipal)}% da área</div>
       ${barra(pctDesmatPrincipal, 100, corDesmat)}
       <div style="margin-top:4px;font-size:9px;font-weight:700;color:${temProdes?'#dc2626':'#9ca3af'};display:flex;align-items:center;gap:3px">
         ${temProdes?'🛰':'📁'} ${fonteDesmat}
-        ${temProdes&&prodes.historico.totalHa>0?`<span style="color:#c2410c;margin-left:4px">· ${f2(prodes.historico.totalHa)} ha pré-2008</span>`:''}
+        ${temProdes&&prodes.historico.totalHa>0?`<span style="color:var(--treino);margin-left:4px">· ${f2(prodes.historico.totalHa)} ha pré-2008</span>`:''}
       </div>
     </div>
-    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--raio);padding:10px 12px">
-      <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">Floresta</div>
-      <div style="font-size:18px;font-weight:700;color:#16a34a">${f2(d.floresta)} ha</div>
-      <div style="font-size:10px;color:#6b7280">${f1(d.pctFloresta)}% da área</div>
+    <div style="background:var(--sucesso-bg);border:1px solid color-mix(in srgb,var(--sucesso) 40%,transparent);border-radius:var(--raio);padding:10px 12px">
+      <div style="font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.05em">Floresta</div>
+      <div style="font-size:18px;font-weight:700;color:var(--sucesso)">${f2(d.floresta)} ha</div>
+      <div style="font-size:10px;color:var(--cinza-500)">${f1(d.pctFloresta)}% da área</div>
       ${barra(d.pctFloresta, 100, '#16a34a')}
     </div>
-    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:var(--raio);padding:10px 12px">
-      <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">APP Degradada</div>
+    <div style="background:var(--aviso-bg);border:1px solid color-mix(in srgb,var(--aviso) 40%,transparent);border-radius:var(--raio);padding:10px 12px">
+      <div style="font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.05em">APP Degradada</div>
       <div style="font-size:18px;font-weight:700;color:${corApp}">${f2(d.appA)} ha</div>
-      <div style="font-size:10px;color:#6b7280">${f1(d.pctAppDeg)}% da APP</div>
+      <div style="font-size:10px;color:var(--cinza-500)">${f1(d.pctAppDeg)}% da APP</div>
       ${barra(d.pctAppDeg, 100, corApp)}
     </div>
-    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--raio);padding:10px 12px">
-      <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em">APP Preservada</div>
-      <div style="font-size:18px;font-weight:700;color:#16a34a">${f2(d.appV)} ha</div>
-      <div style="font-size:10px;color:#6b7280">${f1(d.appTotal > 0 ? d.appV/d.appTotal*100 : 0)}% da APP</div>
+    <div style="background:var(--sucesso-bg);border:1px solid color-mix(in srgb,var(--sucesso) 40%,transparent);border-radius:var(--raio);padding:10px 12px">
+      <div style="font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.05em">APP Preservada</div>
+      <div style="font-size:18px;font-weight:700;color:var(--sucesso)">${f2(d.appV)} ha</div>
+      <div style="font-size:10px;color:var(--cinza-500)">${f1(d.appTotal > 0 ? d.appV/d.appTotal*100 : 0)}% da APP</div>
       ${barra(d.appTotal > 0 ? d.appV/d.appTotal*100 : 0, 100, '#16a34a')}
     </div>
   </div>
@@ -4765,15 +4454,15 @@ function _htmlCarDiagnostico(d, f){
   <!-- Classificações -->
   <div style="display:flex;gap:6px;margin-bottom:10px">
     <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
-      <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Risco Ambiental</div>
+      <div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Risco Ambiental</div>
       <div style="font-size:13px;font-weight:700;color:${corRisco}">${riscoFinal}</div>
     </div>
     <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
-      <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Prioridade Rest.</div>
+      <div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Prioridade Rest.</div>
       <div style="font-size:13px;font-weight:700;color:${corPrior}">${priorFinal}</div>
     </div>
     <div style="flex:1;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);text-align:center">
-      <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:3px">Déficit Rest.</div>
+      <div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;margin-bottom:3px">Déficit Rest.</div>
       <div style="font-size:13px;font-weight:700;color:${deficitFinal>0?'#dc2626':'#16a34a'}">${deficitFinal>0?'+':''}${f2(deficitFinal)} ha</div>
     </div>
   </div>
@@ -4791,19 +4480,19 @@ function _htmlCarDiagnostico(d, f){
   </div>
 
   <!-- Hidrografia -->
-  <div style="padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--raio);margin-bottom:10px;font-size:11px">
-    <div style="font-weight:700;color:#1d4ed8;margin-bottom:6px">💧 Hidrografia interna</div>
+  <div style="padding:8px 10px;background:var(--azul-bg);border:1px solid color-mix(in srgb,var(--azul-medio) 35%,transparent);border-radius:var(--raio);margin-bottom:10px;font-size:11px">
+    <div style="font-weight:700;color:var(--azul-medio);margin-bottom:6px">💧 Hidrografia interna</div>
     <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Segmentos hídricos</span><strong>${d.hidro.total}</strong></div>
     <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Comprimento total</span><strong>${d.hidro.comprimento.toFixed(2)} km</strong></div>
-    <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Intermitentes</span><strong style="color:#d97706">${d.hidro.intermitentes}</strong></div>
+    <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Intermitentes</span><strong style="color:var(--aviso)">${d.hidro.intermitentes}</strong></div>
     <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Perenes</span><strong style="color:#0891b2">${d.hidro.perenes}</strong></div>
     ${d.hidro.nomes.length ? `<div style="display:flex;justify-content:space-between;padding:2px 0"><span>Cursos nomeados</span><strong>${d.hidro.nomes.join(', ')}</strong></div>` : ''}
     <div style="display:flex;justify-content:space-between;padding:2px 0"><span>Nascentes identificadas</span><strong style="color:#0284c7">${d.nascentes}</strong></div>
   </div>
 
   <!-- Análise narrativa -->
-  <div style="background:var(--cinza-50);border-left:3px solid #1F4E2C;padding:10px 12px;border-radius:0 var(--raio) var(--raio) 0;font-size:11px;color:var(--cinza-700);line-height:1.7;margin-bottom:10px">
-    <div style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 Diagnóstico</div>
+  <div style="background:var(--cinza-50);border-left:3px solid var(--verde);padding:10px 12px;border-radius:0 var(--raio) var(--raio) 0;font-size:11px;color:var(--cinza-700);line-height:1.7;margin-bottom:10px">
+    <div style="font-size:9px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 Diagnóstico</div>
     ${_gerarTextoCarDiag(d, p, local)}
   </div>
 
@@ -4834,7 +4523,7 @@ function _htmlCarDiagnostico(d, f){
 
   <div style="font-size:9px;color:var(--cinza-400);line-height:1.5;text-align:center">
     ${temProdes
-      ? `🛰 Desmatamento: <strong style="color:#dc2626">PRODES/INPE</strong> (fonte oficial) · Demais métricas: Turf.js`
+      ? `🛰 Desmatamento: <strong style="color:var(--erro)">PRODES/INPE</strong> (fonte oficial) · Demais métricas: Turf.js`
       : `📁 Desmatamento: camadas locais · Carregue a aba 🌳 PRODES para dados oficiais`}
     ${d.subbacia ? ' · ' + d.subbacia : ''}
     ${d.camadasAdicionais?.length ? ` · ${d.camadasAdicionais.length} camada(s) adicional(is)` : ''}
@@ -4848,7 +4537,7 @@ let _carProdesCache = new Map(); // cod_imovel → dados
 
 function _htmlProdesLoading(){
   return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;gap:10px;color:var(--cinza-500)">
-    <div style="width:24px;height:24px;border:3px solid #e5e7eb;border-top-color:#dc2626;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div style="width:24px;height:24px;border:3px solid var(--borda);border-top-color:var(--erro);border-radius:50%;animation:spin .8s linear infinite"></div>
     <div style="font-size:12px">Consultando PRODES/INPE…</div>
     <div style="font-size:10px;color:var(--cinza-400)">Aguarde, buscando dados oficiais de desmatamento</div>
   </div>`;
@@ -5018,15 +4707,15 @@ function _htmlProdes(d, f){
 
   if(d?.erro) return `
     <div style="padding:20px;display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio)">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio)">
         <span style="font-size:18px;flex-shrink:0">⚠️</span>
         <div>
-          <div style="font-size:12px;font-weight:600;color:#dc2626;margin-bottom:4px">Não foi possível obter os dados</div>
-          <div style="font-size:11px;color:#6b7280;line-height:1.5">${d.erro}</div>
-          ${d.detalhe ? `<div style="font-size:10px;color:#9ca3af;margin-top:4px;line-height:1.4">${d.detalhe}</div>` : ''}
+          <div style="font-size:12px;font-weight:600;color:var(--erro);margin-bottom:4px">Não foi possível obter os dados</div>
+          <div style="font-size:11px;color:var(--cinza-500);line-height:1.5">${d.erro}</div>
+          ${d.detalhe ? `<div style="font-size:10px;color:var(--cinza-400);margin-top:4px;line-height:1.4">${d.detalhe}</div>` : ''}
         </div>
       </div>
-      ${d.link ? `<a href="${d.link}" target="_blank" style="font-size:11px;color:#2563eb;text-align:center">Acessar TerraBrasilis →</a>` : ''}
+      ${d.link ? `<a href="${d.link}" target="_blank" style="font-size:11px;color:var(--azul-medio);text-align:center">Acessar TerraBrasilis →</a>` : ''}
     </div>`;
 
   const f2 = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
@@ -5047,7 +4736,7 @@ function _htmlProdes(d, f){
     return `
       <div style="display:flex;align-items:center;gap:6px;padding:3px 0">
         <span style="font-size:10px;color:var(--cinza-500);width:32px;flex-shrink:0">${ano}</span>
-        <div style="flex:1;height:14px;background:#f3f4f6;border-radius:3px;overflow:hidden">
+        <div style="flex:1;height:14px;background:var(--cinza-100);border-radius:3px;overflow:hidden">
           <div style="height:100%;width:${w}%;background:${cor};border-radius:3px"></div>
         </div>
         <span style="font-size:10px;font-weight:600;color:var(--cinza-700);width:58px;text-align:right">${f2(ha)} ha</span>
@@ -5059,32 +4748,32 @@ function _htmlProdes(d, f){
 
     <!-- KPI total combinado -->
     <div style="margin:0 0 10px;padding:14px;background:${semDados?'#f0fdf4':'#fef2f2'};border:1px solid ${semDados?'#86efac':'#fca5a5'};border-radius:var(--raio);text-align:center">
-      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total desmatado no imóvel (PRODES)</div>
+      <div style="font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total desmatado no imóvel (PRODES)</div>
       <div style="font-size:28px;font-weight:700;color:${semDados?'#16a34a':corGeral};line-height:1.1">${f2(d.totalGeral)} ha</div>
-      <div style="font-size:12px;color:#6b7280;margin-top:2px">${f1(pctGeral)}% da área declarada (${f2(d.areaCAR)} ha)</div>
-      <div style="height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:8px">
+      <div style="font-size:12px;color:var(--cinza-500);margin-top:2px">${f1(pctGeral)}% da área declarada (${f2(d.areaCAR)} ha)</div>
+      <div style="height:6px;background:var(--borda);border-radius:3px;overflow:hidden;margin-top:8px">
         <div style="height:100%;width:${Math.min(100,pctGeral).toFixed(1)}%;background:${corGeral};border-radius:3px"></div>
       </div>
     </div>
 
     ${semDados ? `
-    <div style="padding:16px;text-align:center;font-size:12px;color:#16a34a;background:#f0fdf4;border:1px solid #86efac;border-radius:var(--raio);margin-bottom:10px">
+    <div style="padding:16px;text-align:center;font-size:12px;color:var(--sucesso);background:var(--sucesso-bg);border:1px solid color-mix(in srgb,var(--sucesso) 40%,transparent);border-radius:var(--raio);margin-bottom:10px">
       ✅ Nenhum polígono de desmatamento PRODES detectado dentro deste imóvel.
     </div>` : `
 
     <!-- Dois blocos lado a lado: pré-2008 e 2008+ -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <div style="padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:var(--raio)">
-        <div style="font-size:9px;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🕰 Acumulado pré-2008</div>
-        <div style="font-size:18px;font-weight:700;color:#c2410c">${f2(d.historico.totalHa)} ha</div>
-        <div style="font-size:10px;color:#9a3412;margin-top:2px">${f1(pctHist)}% da área</div>
+      <div style="padding:10px 12px;background:var(--treino-bg);border:1px solid color-mix(in srgb,var(--treino) 35%,transparent);border-radius:var(--raio)">
+        <div style="font-size:9px;font-weight:700;color:var(--treino);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🕰 Acumulado pré-2008</div>
+        <div style="font-size:18px;font-weight:700;color:var(--treino)">${f2(d.historico.totalHa)} ha</div>
+        <div style="font-size:10px;color:var(--treino);margin-top:2px">${f1(pctHist)}% da área</div>
         <div style="font-size:9px;color:#fdba74;margin-top:4px">Desmatamento histórico antes do monitoramento anual</div>
       </div>
-      <div style="padding:10px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio)">
-        <div style="font-size:9px;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📅 Anual 2008–hoje</div>
-        <div style="font-size:18px;font-weight:700;color:#dc2626">${f2(d.anual.totalHa)} ha</div>
-        <div style="font-size:10px;color:#991b1b;margin-top:2px">${f1(pctAnual)}% da área</div>
-        <div style="font-size:9px;color:#fca5a5;margin-top:4px">${d.anosAnual.length} ano(s) com registro</div>
+      <div style="padding:10px 12px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio)">
+        <div style="font-size:9px;font-weight:700;color:var(--erro);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📅 Anual 2008–hoje</div>
+        <div style="font-size:18px;font-weight:700;color:var(--erro)">${f2(d.anual.totalHa)} ha</div>
+        <div style="font-size:10px;color:var(--erro);margin-top:2px">${f1(pctAnual)}% da área</div>
+        <div style="font-size:9px;color:color-mix(in srgb,var(--erro) 40%,transparent);margin-top:4px">${d.anosAnual.length} ano(s) com registro</div>
       </div>
     </div>
 
@@ -5109,7 +4798,7 @@ function _htmlProdes(d, f){
     </div>
 
     <!-- Aviso de precisão -->
-    <div style="padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:var(--raio);font-size:10px;color:#92400e;line-height:1.5;margin-bottom:8px">
+    <div style="padding:8px 10px;background:var(--aviso-bg);border:1px solid color-mix(in srgb,var(--aviso) 40%,transparent);border-radius:var(--raio);font-size:10px;color:var(--aviso);line-height:1.5;margin-bottom:8px">
       ⚠️ <strong>Precisão:</strong> Dados PRODES têm resolução de 30m (Landsat/Sentinel-2). Margens de erro de 5–15% são esperadas. Para uso oficial, consulte o INPE diretamente.
     </div>
 
@@ -5119,16 +4808,16 @@ function _htmlProdes(d, f){
       <div style="font-size:9px;color:var(--cinza-400);margin-bottom:6px">Exibe apenas dentro do polígono CAR selecionado</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0;border-bottom:1px solid var(--cinza-100)">
         <input type="checkbox" id="prodes-tab-toggle-anual"
-          style="accent-color:#dc2626;width:13px;height:13px;cursor:pointer"
+          style="accent-color:var(--erro);width:13px;height:13px;cursor:pointer"
           onchange="_toggleProdesCarLayer('anual',this.checked)">
-        <div style="width:12px;height:12px;background:#dc2626;border-radius:2px;flex-shrink:0;opacity:.8"></div>
+        <div style="width:12px;height:12px;background:var(--erro);border-radius:2px;flex-shrink:0;opacity:.8"></div>
         <span style="font-size:11px;color:var(--cinza-700);flex:1">Desmatamento anual (2008–hoje)</span>
       </label>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">
         <input type="checkbox" id="prodes-tab-toggle-hist"
           style="accent-color:#c2410c;width:13px;height:13px;cursor:pointer"
           onchange="_toggleProdesCarLayer('hist',this.checked)">
-        <div style="width:12px;height:12px;background:#c2410c;border-radius:2px;flex-shrink:0;opacity:.8"></div>
+        <div style="width:12px;height:12px;background:var(--treino);border-radius:2px;flex-shrink:0;opacity:.8"></div>
         <span style="font-size:11px;color:var(--cinza-700);flex:1">Acumulado pré-2008</span>
       </label>
     </div>
@@ -5136,7 +4825,7 @@ function _htmlProdes(d, f){
     <!-- Link fonte -->
     <div style="text-align:center">
       <a href="https://terrabrasilis.dpi.inpe.br/app/dashboard/deforestation/biomes/amazon/increments" target="_blank"
-         style="font-size:10px;color:#2563eb;text-decoration:none">
+         style="font-size:10px;color:var(--azul-medio);text-decoration:none">
         📊 Ver painel oficial PRODES/INPE →
       </a>
     </div>
@@ -5235,14 +4924,14 @@ function _htmlDiagProdes(cod, areaCAR){
   const prodes = _carProdesCache.get(cod);
 
   if(!prodes){
-    return `<div style="padding:8px 12px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:var(--raio);font-size:11px;color:var(--cinza-400);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+    return `<div style="padding:8px 12px;background:var(--cinza-50);border:1px dashed var(--borda-forte);border-radius:var(--raio);font-size:11px;color:var(--cinza-400);margin-bottom:8px;display:flex;align-items:center;gap:8px">
       <span>🌳</span>
       <span>Dados PRODES/INPE não carregados. Acesse a aba <strong>🌳 PRODES</strong> para carregar os dados oficiais de desmatamento.</span>
     </div>`;
   }
 
   if(prodes.erro){
-    return `<div style="padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:var(--raio);font-size:11px;color:#dc2626;margin-bottom:8px">
+    return `<div style="padding:8px 12px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio);font-size:11px;color:var(--erro);margin-bottom:8px">
       ⚠️ Dados PRODES indisponíveis: ${prodes.erro}
     </div>`;
   }
@@ -5256,32 +4945,32 @@ function _htmlDiagProdes(cod, areaCAR){
   const corTotal = prodes.totalGeral / area > 0.30 ? '#dc2626' : prodes.totalGeral / area > 0.10 ? '#d97706' : '#16a34a';
 
   return `
-  <div style="border:1px solid #e2e8f0;border-radius:var(--raio);overflow:hidden;margin-bottom:8px">
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+  <div style="border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--cinza-50);border-bottom:1px solid var(--borda)">
       <span style="font-size:13px">🌳</span>
-      <span style="font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;flex:1">Monitoramento PRODES/INPE</span>
-      <span style="font-size:9px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:99px;padding:1px 6px;font-weight:600">Oficial</span>
+      <span style="font-size:10px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;flex:1">Monitoramento PRODES/INPE</span>
+      <span style="font-size:9px;background:var(--erro-bg);color:var(--erro);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:99px;padding:1px 6px;font-weight:600">Oficial</span>
     </div>
     <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-        <div style="text-align:center;padding:6px;background:#fff7ed;border:1px solid #fed7aa;border-radius:5px">
-          <div style="font-size:13px;font-weight:700;color:#c2410c">${f2(prodes.historico.totalHa)} ha</div>
-          <div style="font-size:9px;color:#9a3412">Pré-2008 (${pctHist}%)</div>
+        <div style="text-align:center;padding:6px;background:var(--treino-bg);border:1px solid color-mix(in srgb,var(--treino) 35%,transparent);border-radius:5px">
+          <div style="font-size:13px;font-weight:700;color:var(--treino)">${f2(prodes.historico.totalHa)} ha</div>
+          <div style="font-size:9px;color:var(--treino)">Pré-2008 (${pctHist}%)</div>
         </div>
-        <div style="text-align:center;padding:6px;background:#fef2f2;border:1px solid #fca5a5;border-radius:5px">
-          <div style="font-size:13px;font-weight:700;color:#dc2626">${f2(prodes.anual.totalHa)} ha</div>
-          <div style="font-size:9px;color:#991b1b">Pós-2008 (${pctAnual}%)</div>
+        <div style="text-align:center;padding:6px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:5px">
+          <div style="font-size:13px;font-weight:700;color:var(--erro)">${f2(prodes.anual.totalHa)} ha</div>
+          <div style="font-size:9px;color:var(--erro)">Pós-2008 (${pctAnual}%)</div>
         </div>
-        <div style="text-align:center;padding:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:5px">
+        <div style="text-align:center;padding:6px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:5px">
           <div style="font-size:13px;font-weight:700;color:${corTotal}">${f2(prodes.totalGeral)} ha</div>
-          <div style="font-size:9px;color:#6b7280">Total (${pctTotal}%)</div>
+          <div style="font-size:9px;color:var(--cinza-500)">Total (${pctTotal}%)</div>
         </div>
       </div>
       ${prodes.anosAnual.length > 0 ? `
       <div style="font-size:10px;color:var(--cinza-500)">
         Anos com detecção: <strong style="color:var(--cinza-700)">${prodes.anosAnual.join(', ')}</strong>
       </div>` : ''}
-      <div style="font-size:9px;color:#9ca3af;line-height:1.4">
+      <div style="font-size:9px;color:var(--cinza-400);line-height:1.4">
         Fonte: PRODES/INPE via TerraBrasilis · Resolução 30m · Interseção geométrica com polígono CAR
       </div>
     </div>
@@ -5308,19 +4997,19 @@ function _htmlCarMarcados(){
         🖨 Relatório
       </button>
       <button onclick="limparTodosMarcados()" class="btn btn-outline"
-        style="font-size:11px;color:#dc2626;border-color:#fca5a5;padding:3px 10px">🗑 Limpar</button>
+        style="font-size:11px;color:var(--erro);border-color:color-mix(in srgb,var(--erro) 40%,transparent);padding:3px 10px">🗑 Limpar</button>
     </div>
   </div>
   ${lista.map(([cod, r]) => `
     <div class="car-pin-item" onclick="irParaCAR('${escHtml(cod)}')">
-      <div style="width:10px;height:10px;border-radius:50%;background:#7c3aed;border:2px solid #c4b5fd;flex-shrink:0"></div>
+      <div style="width:10px;height:10px;border-radius:50%;background:var(--ia);border:2px solid color-mix(in srgb,var(--ia) 45%,transparent);flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:600;color:var(--cinza-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
           title="${escHtml(cod)}">${escHtml(cod.slice(-12))}…</div>
         <div style="font-size:10px;color:var(--cinza-500)">${escHtml(r.municipio||'—')} · ${f2(r.area)} ha</div>
       </div>
       <button onclick="event.stopPropagation();desmarcarCAR('${escHtml(cod)}')"
-        style="font-size:11px;padding:2px 7px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#dc2626;cursor:pointer;flex-shrink:0">✕</button>
+        style="font-size:11px;padding:2px 7px;border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:4px;background:var(--branco);color:var(--erro);cursor:pointer;flex-shrink:0">✕</button>
     </div>`).join('')}
   <div style="padding:10px 0 4px;font-size:11px;color:var(--cinza-400);text-align:center;border-top:1px solid var(--cinza-100);margin-top:6px">
     Clique em um item para centralizar no mapa
@@ -5582,7 +5271,7 @@ function _criarLegendaMapa(f, prodesCapt){
   const rows = itens.map(i =>
     `<div style="display:flex;align-items:center;gap:5px;padding:1px 0">
       ${simbolo(i)}
-      <span style="font-size:9px;color:#1f2937;line-height:1.2">${i.label}</span>
+      <span style="font-size:9px;color:var(--cinza-800);line-height:1.2">${i.label}</span>
     </div>`
   ).join('');
 
@@ -5603,7 +5292,7 @@ function _criarLegendaMapa(f, prodesCapt){
   ].join(';');
 
   div.innerHTML = `
-    <div style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;border-bottom:1px solid #e5e7eb;padding-bottom:4px">
+    <div style="font-size:9px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;border-bottom:1px solid var(--borda);padding-bottom:4px">
       🗺 Legenda
     </div>
     ${rows}
@@ -5769,7 +5458,7 @@ async function _gerarPdfRelatorioCAR(capturas){
   }[appState?.perfil] || appState?.perfil || '';
 
   // headerTemplate: reproduz exatamente o .doc-header original
-  const headerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;background:#fff;padding:16px 28px 12px;border-bottom:3px solid #1F4E2C;box-sizing:border-box;position:relative;">
+  const headerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;background:var(--branco);padding:16px 28px 12px;border-bottom:3px solid var(--verde);box-sizing:border-box;position:relative;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
       <div style="display:flex;align-items:center;gap:10px;">
         <img src="${A2('1695134345-1-horizontal-verde-solo.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
@@ -5782,16 +5471,16 @@ async function _gerarPdfRelatorioCAR(capturas){
       </div>
     </div>
     <div style="margin-bottom:10px;">
-      <div style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
-      <div style="font-size:11px;color:#4b5563;margin-bottom:1px;">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
-      <div style="font-size:10px;color:#6b7280;">Rio Branco, Acre — SEMA/AC</div>
+      <div style="font-size:9px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
+      <div style="font-size:11px;color:var(--cinza-600);margin-bottom:1px;">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
+      <div style="font-size:10px;color:var(--cinza-500);">Rio Branco, Acre — SEMA/AC</div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:16px;font-weight:700;color:#111827;">🏡 Relatório de Imóveis CAR Marcados</span>
-        <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff;background:#1F4E2C;letter-spacing:.05em;">CAR · Mapa de Entregas</span>
+        <span style="font-size:16px;font-weight:700;color:var(--cinza-900);">🏡 Relatório de Imóveis CAR Marcados</span>
+        <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff;background:var(--verde);letter-spacing:.05em;">CAR · Mapa de Entregas</span>
       </div>
-      <div style="text-align:right;font-size:10px;color:#6b7280;line-height:1.5;">
+      <div style="text-align:right;font-size:10px;color:var(--cinza-500);line-height:1.5;">
         <div>Gerado em: <strong>${nowStr}</strong></div>
         <div>Por: <strong>${userPdf}</strong>${perfilPdf ? ' · '+perfilPdf : ''}</div>
       </div>
@@ -5799,13 +5488,13 @@ async function _gerarPdfRelatorioCAR(capturas){
   </div>`;
 
   // footerTemplate: reproduz exatamente o .doc-footer original
-  const footerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;padding:10px 28px;border-top:1.5px solid #1F4E2C;display:flex;align-items:center;justify-content:space-between;background:#f8faf8;box-sizing:border-box;">
-    <div style="font-size:10px;color:#4b5563;line-height:1.5;">
+  const footerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;padding:10px 28px;border-top:1.5px solid var(--verde);display:flex;align-items:center;justify-content:space-between;background:#f8faf8;box-sizing:border-box;">
+    <div style="font-size:10px;color:var(--cinza-600);line-height:1.5;">
       Impresso por: <strong>${userPdf}</strong>${perfilPdf ? ' · '+perfilPdf : ''}<br>
-      <span style="font-size:9px;color:#9ca3af;">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
+      <span style="font-size:9px;color:var(--cinza-400);">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
     </div>
-    <div style="font-size:9px;color:#9ca3af;text-align:center;">Plataforma DIMA · UNESCO 218BRA2001</div>
-    <div style="font-size:11px;font-weight:600;color:#374151;font-family:monospace;">
+    <div style="font-size:9px;color:var(--cinza-400);text-align:center;">Plataforma DIMA · UNESCO 218BRA2001</div>
+    <div style="font-size:11px;font-weight:600;color:var(--cinza-700);font-family:monospace;">
       Relatório CAR · p.<span class="pageNumber"></span>/<span class="totalPages"></span>
     </div>
   </div>`;
@@ -6196,7 +5885,7 @@ function _htmlFichaCAR(f, imgData){
       </div>
       <div>
         <div class="dados-col-title">📍 Localização e Situação</div>
-        <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val" style="color:#1F4E2C;font-size:12px;font-weight:700">${areaExib} ha</span></div>
+        <div class="attr-row"><span class="attr-lbl">Área declarada</span><span class="attr-val" style="color:var(--verde);font-size:12px;font-weight:700">${areaExib} ha</span></div>
         <div class="attr-row"><span class="attr-lbl">Município</span><span class="attr-val">${escHtml(municExib)} / AC</span></div>
         <div class="attr-row"><span class="attr-lbl">Tipo de imóvel</span><span class="attr-val">${p.tipo_imovel||'—'}</span></div>
         <div class="attr-row"><span class="attr-lbl">Módulos fiscais</span><span class="attr-val">${modExib}</span></div>
@@ -6214,7 +5903,7 @@ function _htmlFichaCAR(f, imgData){
     <div class="mapa-wrap">
       <img src="${imgData}" alt="Mapa do imóvel" class="mapa-img"
         onerror="this.style.background='#f0f7f2';this.style.height='200px';this.alt='Imagem não disponível'">
-      <div style="font-size:8px;color:#9ca3af;margin-top:3px;text-align:center">
+      <div style="font-size:8px;color:var(--cinza-400);margin-top:3px;text-align:center">
         Visão de satélite com PRODES · Captura Sistema DIMA · ${new Date().toLocaleDateString('pt-BR')}
       </div>
     </div>
@@ -6227,7 +5916,7 @@ function _htmlFichaCAR(f, imgData){
       const f2r    = n => Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:2});
       const f1r    = n => Number(n||0).toFixed(1);
       if(!temP) return `
-        <div style="border:1px dashed #d1d5db;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:10px;color:#9ca3af;text-align:center">
+        <div style="border:1px dashed var(--borda-forte);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:10px;color:var(--cinza-400);text-align:center">
           🛰 Dados PRODES/INPE não disponíveis para este imóvel nesta sessão.
         </div>`;
       const total  = prodes.totalGeral;
@@ -6243,9 +5932,9 @@ function _htmlFichaCAR(f, imgData){
       const barras = prodes.anosAnual.map(ano=>{
         const ha=prodes.anual.porAno[ano]; const w=(ha/maxBar*100).toFixed(1);
         return `<tr>
-          <td style="font-size:9px;color:#374151;padding:1px 8px 1px 0;white-space:nowrap">${ano}</td>
-          <td style="width:100%"><div style="height:9px;background:#dc2626;border-radius:2px;width:${w}%;min-width:3px"></div></td>
-          <td style="font-size:9px;font-weight:600;color:#374151;padding:1px 0 1px 8px;white-space:nowrap;text-align:right">${f2r(ha)} ha</td>
+          <td style="font-size:9px;color:var(--cinza-700);padding:1px 8px 1px 0;white-space:nowrap">${ano}</td>
+          <td style="width:100%"><div style="height:9px;background:var(--erro);border-radius:2px;width:${w}%;min-width:3px"></div></td>
+          <td style="font-size:9px;font-weight:600;color:var(--cinza-700);padding:1px 0 1px 8px;white-space:nowrap;text-align:right">${f2r(ha)} ha</td>
         </tr>`;
       }).join('');
       return `
@@ -6255,17 +5944,17 @@ function _htmlFichaCAR(f, imgData){
           <span style="font-size:9px;color:rgba(255,255,255,.8)">TerraBrasilis · Landsat/Sentinel-2 · Resolução 30m</span>
         </div>
         <div class="prodes-kpis">
-          <div class="prodes-kpi" style="background:#fff">
+          <div class="prodes-kpi" style="background:var(--branco)">
             <div class="prodes-kpi-val" style="color:${corT}">${f2r(total)} ha</div>
             <div class="prodes-kpi-lbl">Total desmatado · ${f1r(pctT)}% da área · <strong>${grau}</strong></div>
           </div>
-          <div class="prodes-kpi" style="background:#fff7ed">
-            <div class="prodes-kpi-val" style="color:#c2410c">${f2r(hist)} ha</div>
-            <div class="prodes-kpi-lbl" style="color:#9a3412">🕰 Acumulado pré-2008 · ${f1r(pctH)}% · Passivo histórico</div>
+          <div class="prodes-kpi" style="background:var(--treino-bg)">
+            <div class="prodes-kpi-val" style="color:var(--treino)">${f2r(hist)} ha</div>
+            <div class="prodes-kpi-lbl" style="color:var(--treino)">🕰 Acumulado pré-2008 · ${f1r(pctH)}% · Passivo histórico</div>
           </div>
-          <div class="prodes-kpi" style="background:#fef2f2">
-            <div class="prodes-kpi-val" style="color:#dc2626">${f2r(anual)} ha</div>
-            <div class="prodes-kpi-lbl" style="color:#991b1b">📡 Anual 2008–${anoMax} · ${f1r(pctA)}% · Monitoramento satelital</div>
+          <div class="prodes-kpi" style="background:var(--erro-bg)">
+            <div class="prodes-kpi-val" style="color:var(--erro)">${f2r(anual)} ha</div>
+            <div class="prodes-kpi-lbl" style="color:var(--erro)">📡 Anual 2008–${anoMax} · ${f1r(pctA)}% · Monitoramento satelital</div>
           </div>
         </div>
         ${prodes.anosAnual.length>0?`
@@ -6278,38 +5967,38 @@ function _htmlFichaCAR(f, imgData){
 
     <!-- BLOCO 4: Diagnóstico Ambiental -->
     ${diag && !diag.erro ? `
-    <div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-bottom:12px">
-      <div style="background:#f0f7f2;padding:6px 14px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.06em">🔬 Diagnóstico Espacial (Turf.js · Camadas de Delimitação)</span>
+    <div style="border:1px solid var(--borda);border-radius:6px;overflow:hidden;margin-bottom:12px">
+      <div style="background:var(--verde-bg);padding:6px 14px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:9px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.06em">🔬 Diagnóstico Espacial (Turf.js · Camadas de Delimitação)</span>
       </div>
       <div style="padding:10px 14px">
         <div class="diag-cards">
-          <div class="diag-card" style="border-color:#86efac">
-            <div class="diag-card-val" style="color:#16a34a">${(diag.floresta||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
+          <div class="diag-card" style="border-color:color-mix(in srgb,var(--sucesso) 40%,transparent)">
+            <div class="diag-card-val" style="color:var(--sucesso)">${(diag.floresta||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
             <div class="diag-card-lbl">Floresta<br>${(diag.pctFloresta||0).toFixed(1)}%</div>
           </div>
-          <div class="diag-card" style="border-color:#fca5a5">
-            <div class="diag-card-val" style="color:#d97706">${(diag.appA||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
+          <div class="diag-card" style="border-color:color-mix(in srgb,var(--erro) 40%,transparent)">
+            <div class="diag-card-val" style="color:var(--aviso)">${(diag.appA||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
             <div class="diag-card-lbl">APP Degrad.<br>${(diag.pctAppDeg||0).toFixed(1)}%</div>
           </div>
-          <div class="diag-card" style="border-color:#86efac">
+          <div class="diag-card" style="border-color:color-mix(in srgb,var(--sucesso) 40%,transparent)">
             <div class="diag-card-val" style="color:#0891b2">${(diag.appV||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
             <div class="diag-card-lbl">APP<br>Preservada</div>
           </div>
-          <div class="diag-card" style="border-color:#bfdbfe">
-            <div class="diag-card-val" style="color:#2563eb">${diag.hidro?.total||0}</div>
+          <div class="diag-card" style="border-color:color-mix(in srgb,var(--azul-medio) 35%,transparent)">
+            <div class="diag-card-val" style="color:var(--azul-medio)">${diag.hidro?.total||0}</div>
             <div class="diag-card-lbl">Seg.<br>Hídricos</div>
           </div>
-          <div class="diag-card" style="border-color:#bfdbfe">
-            <div class="diag-card-val" style="color:#2563eb">${(diag.hidro?.comprimento||0).toFixed(1)} km</div>
+          <div class="diag-card" style="border-color:color-mix(in srgb,var(--azul-medio) 35%,transparent)">
+            <div class="diag-card-val" style="color:var(--azul-medio)">${(diag.hidro?.comprimento||0).toFixed(1)} km</div>
             <div class="diag-card-lbl">Hidrografia<br>interna</div>
           </div>
           <div class="diag-card" style="border-color:#bae6fd">
             <div class="diag-card-val" style="color:#0284c7">${diag.nascentes||0}</div>
             <div class="diag-card-lbl">Nascentes<br>identificadas</div>
           </div>
-          <div class="diag-card" style="border-color:#fde68a">
-            <div class="diag-card-val" style="color:#d97706">${(diag.restaur||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
+          <div class="diag-card" style="border-color:color-mix(in srgb,var(--aviso) 40%,transparent)">
+            <div class="diag-card-val" style="color:var(--aviso)">${(diag.restaur||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} ha</div>
             <div class="diag-card-lbl">Restauração<br>proposta</div>
           </div>
           <div class="diag-card" style="border-color:${diag.deficit>0?'#fca5a5':'#86efac'}">
@@ -6318,14 +6007,14 @@ function _htmlFichaCAR(f, imgData){
           </div>
         </div>
         ${diag.camadasAdicionais?.length ? `
-        <div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:8px">
-          <div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">🗂 Camadas Adicionais (${diag.camadasAdicionais.length})</div>
+        <div style="margin-top:8px;border-top:1px solid var(--borda);padding-top:8px">
+          <div style="font-size:9px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">🗂 Camadas Adicionais (${diag.camadasAdicionais.length})</div>
           <table style="width:100%;border-collapse:collapse;font-size:10px">
             <thead><tr>
-              <th style="text-align:left;padding:3px 6px;background:#f0f7f2;border:1px solid #e5e7eb;font-size:9px;color:#374151">Camada</th>
-              <th style="text-align:left;padding:3px 6px;background:#f0f7f2;border:1px solid #e5e7eb;font-size:9px;color:#374151">Tipo</th>
-              <th style="text-align:right;padding:3px 6px;background:#f0f7f2;border:1px solid #e5e7eb;font-size:9px;color:#374151">Valor</th>
-              <th style="text-align:left;padding:3px 6px;background:#f0f7f2;border:1px solid #e5e7eb;font-size:9px;color:#374151">Classes detectadas</th>
+              <th style="text-align:left;padding:3px 6px;background:var(--verde-bg);border:1px solid var(--borda);font-size:9px;color:var(--cinza-700)">Camada</th>
+              <th style="text-align:left;padding:3px 6px;background:var(--verde-bg);border:1px solid var(--borda);font-size:9px;color:var(--cinza-700)">Tipo</th>
+              <th style="text-align:right;padding:3px 6px;background:var(--verde-bg);border:1px solid var(--borda);font-size:9px;color:var(--cinza-700)">Valor</th>
+              <th style="text-align:left;padding:3px 6px;background:var(--verde-bg);border:1px solid var(--borda);font-size:9px;color:var(--cinza-700)">Classes detectadas</th>
             </tr></thead>
             <tbody>
               ${diag.camadasAdicionais.map(c => {
@@ -6336,10 +6025,10 @@ function _htmlFichaCAR(f, imgData){
                   : `${c.contagem} ponto(s)`;
                 const tipoLabel = c.tipo==='poligono'?'Polígono':c.tipo==='linha'?'Linha':'Ponto';
                 return `<tr>
-                  <td style="padding:3px 6px;border:1px solid #e5e7eb;font-weight:600">${c.nome}</td>
-                  <td style="padding:3px 6px;border:1px solid #e5e7eb;color:#6b7280">${tipoLabel}</td>
-                  <td style="padding:3px 6px;border:1px solid #e5e7eb;text-align:right;font-weight:600;color:#1F4E2C">${val}</td>
-                  <td style="padding:3px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:9px">${c.valores.join(', ')||'—'}</td>
+                  <td style="padding:3px 6px;border:1px solid var(--borda);font-weight:600">${c.nome}</td>
+                  <td style="padding:3px 6px;border:1px solid var(--borda);color:var(--cinza-500)">${tipoLabel}</td>
+                  <td style="padding:3px 6px;border:1px solid var(--borda);text-align:right;font-weight:600;color:var(--verde)">${val}</td>
+                  <td style="padding:3px 6px;border:1px solid var(--borda);color:var(--cinza-500);font-size:9px">${c.valores.join(', ')||'—'}</td>
                 </tr>`;
               }).join('')}
             </tbody>
@@ -6510,9 +6199,9 @@ function _htmlRelCAR(d){
                 <td style="text-align:right">${f2(info.area)}</td>
                 <td style="text-align:right;color:var(--cinza-400)">${sbDados ? f2(sbDados.area) : '—'}</td>
                 <td style="text-align:center">${cobert != null ? `<span style="font-weight:700;color:${cobert>80?'#16a34a':cobert>50?'#d97706':'#dc2626'}">${f1(cobert)}%</span>` : '—'}</td>
-                <td style="text-align:center;color:#16a34a">${info.status.ativo||0}</td>
-                <td style="text-align:center;color:#d97706">${info.status.aguardando||0}</td>
-                <td style="text-align:center;color:#2563eb">${info.status.analise||0}</td>
+                <td style="text-align:center;color:var(--sucesso)">${info.status.ativo||0}</td>
+                <td style="text-align:center;color:var(--aviso)">${info.status.aguardando||0}</td>
+                <td style="text-align:center;color:var(--azul-medio)">${info.status.analise||0}</td>
               </tr>`;
             }).join('')}
           ${porSub['—'] ? `<tr style="color:var(--cinza-400)">
@@ -6622,10 +6311,10 @@ function _htmlRelDiagnosticoSessao(d){
       <div style="font-size:12px;font-weight:600;color:var(--cinza-700);margin-bottom:6px">
         🔬 Diagnósticos calculados: <strong>${cached.length}</strong> de <strong>${total}</strong> CARs
       </div>
-      <div style="height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden">
-        <div style="height:100%;width:${total>0?(cached.length/total*100).toFixed(1):0}%;background:linear-gradient(90deg,#1F4E2C,#16a34a);border-radius:4px;transition:width .4s"></div>
+      <div style="height:8px;background:var(--borda);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${total>0?(cached.length/total*100).toFixed(1):0}%;background:linear-gradient(90deg,var(--verde),var(--sucesso));border-radius:4px;transition:width .4s"></div>
       </div>
-      ${semDiag > 0 ? `<div style="font-size:10px;color:var(--cinza-400);margin-top:4px">${semDiag} imóvel(is) sem diagnóstico — clique em cada um no mapa ou use o cálculo em lote</div>` : '<div style="font-size:10px;color:#16a34a;margin-top:4px">✅ Todos os CARs com diagnóstico calculado</div>'}
+      ${semDiag > 0 ? `<div style="font-size:10px;color:var(--cinza-400);margin-top:4px">${semDiag} imóvel(is) sem diagnóstico — clique em cada um no mapa ou use o cálculo em lote</div>` : '<div style="font-size:10px;color:var(--sucesso);margin-top:4px">✅ Todos os CARs com diagnóstico calculado</div>'}
     </div>
     <div style="display:flex;gap:7px;flex-shrink:0">
       <button id="btn-diag-batch" onclick="_calcularDiagBatch()" class="btn btn-primary" style="font-size:12px;display:flex;align-items:center;gap:5px">
@@ -6649,7 +6338,7 @@ function _htmlRelDiagnosticoSessao(d){
     <div class="rel-kpi rel-kpi-warn"><div class="rel-kpi-val">${f2(agg.appA)} ha</div><div class="rel-kpi-lbl">APP Degradada Total</div><div class="rel-kpi-sub">${f1(pctAppDeg)}% da APP</div></div>
     <div class="rel-kpi rel-kpi-green"><div class="rel-kpi-val">${f2(agg.appV)} ha</div><div class="rel-kpi-lbl">APP Preservada Total</div></div>
     <div class="rel-kpi rel-kpi-info"><div class="rel-kpi-val">${f2(agg.restaur)} ha</div><div class="rel-kpi-lbl">Restauração Proposta</div></div>
-    <div class="rel-kpi" style="${deficit>0?'border-color:#fca5a5;background:#fef2f2':'border-color:#86efac;background:#f0fdf4'}">
+    <div class="rel-kpi" style="${deficit>0?'border-color:color-mix(in srgb,var(--erro) 40%,transparent);background:var(--erro-bg)':'border-color:color-mix(in srgb,var(--sucesso) 40%,transparent);background:var(--sucesso-bg)'}">
       <div class="rel-kpi-val" style="color:${deficit>0?'#dc2626':'#16a34a'}">${f2(Math.abs(deficit))} ha</div>
       <div class="rel-kpi-lbl">${deficit>0?'Déficit':'Excedente'} de Restauração</div>
     </div>
@@ -6661,9 +6350,9 @@ function _htmlRelDiagnosticoSessao(d){
       <div class="rel-section-title">📊 Distribuição de Risco Ambiental</div>
       <div style="height:200px"><canvas id="chart-diag-sessao-risco"></canvas></div>
       <div style="display:flex;justify-content:space-around;margin-top:10px;font-size:12px;text-align:center">
-        <div><div style="font-size:22px;font-weight:700;color:#dc2626">${altos}</div><div style="color:#6b7280">Risco Alto</div></div>
-        <div><div style="font-size:22px;font-weight:700;color:#d97706">${medios}</div><div style="color:#6b7280">Risco Médio</div></div>
-        <div><div style="font-size:22px;font-weight:700;color:#16a34a">${baixos}</div><div style="color:#6b7280">Risco Baixo</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:var(--erro)">${altos}</div><div style="color:var(--cinza-500)">Risco Alto</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:var(--aviso)">${medios}</div><div style="color:var(--cinza-500)">Risco Médio</div></div>
+        <div><div style="font-size:22px;font-weight:700;color:var(--sucesso)">${baixos}</div><div style="color:var(--cinza-500)">Risco Baixo</div></div>
       </div>
     </div>
     <div class="rel-section">
@@ -6701,12 +6390,12 @@ function _htmlRelDiagnosticoSessao(d){
               <td style="font-family:monospace;font-size:11px;color:var(--cinza-700)"title="${escHtml(r.cod)}">…${escHtml(r.cod.slice(-12))}</td>
               <td>${escHtml(r.municipio)}</td>
               <td style="text-align:right">${f2(r.area)}</td>
-              <td style="text-align:right;color:#dc2626;font-weight:600">${f2(r.desmat)}</td>
+              <td style="text-align:right;color:var(--erro);font-weight:600">${f2(r.desmat)}</td>
               <td style="text-align:center"><span style="font-weight:700;color:${corD}">${f1(r.pctDesmat)}%</span></td>
               <td style="text-align:center">${f1(r.pctAppDeg)}%</td>
               <td style="text-align:center"><span style="background:${bgR};color:${corR};border:1px solid ${corR}33;border-radius:99px;padding:2px 8px;font-size:10px;font-weight:700">${r.risco}</span></td>
               <td style="text-align:center"><span style="color:${corP};font-weight:700;font-size:11px">${r.prioridade}</span></td>
-              <td style="text-align:center"><button onclick="fecharRelatorioAmbiental();irParaCAR('${escHtml(r.cod)}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--borda);border-radius:4px;background:#fff;cursor:pointer;color:var(--verde-escuro)">Ver</button></td>
+              <td style="text-align:center"><button onclick="fecharRelatorioAmbiental();irParaCAR('${escHtml(r.cod)}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--borda);border-radius:4px;background:var(--branco);cursor:pointer;color:var(--verde-escuro)">Ver</button></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -6719,7 +6408,7 @@ function _htmlRelDiagnosticoSessao(d){
   <div class="rel-section" style="margin-top:12px">
     <div class="rel-section-title">💧 Hidrografia Interna (agregada)</div>
     <div style="display:flex;gap:24px;font-size:12px;color:var(--cinza-700);flex-wrap:wrap;padding:4px 0">
-      <div><strong style="font-size:18px;color:#1d4ed8">${agg.hidro.toLocaleString('pt-BR')}</strong><br>segmentos hídricos</div>
+      <div><strong style="font-size:18px;color:var(--azul-medio)">${agg.hidro.toLocaleString('pt-BR')}</strong><br>segmentos hídricos</div>
       <div><strong style="font-size:18px;color:#0891b2">${agg.nascentes.toLocaleString('pt-BR')}</strong><br>nascentes identificadas</div>
     </div>
   </div>` : ''}
@@ -6853,7 +6542,7 @@ async function abrirRelatorioAmbiental(){
   _relAba = 'visao-geral';
   _atualizarRelTabs();
   const body = document.getElementById('rel-body');
-  if(body) body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--cinza-400);gap:10px"><div style="width:20px;height:20px;border:3px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite"></div> Calculando análise ambiental…</div>';
+  if(body) body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--cinza-400);gap:10px"><div style="width:20px;height:20px;border:3px solid var(--borda);border-top-color:var(--verde-medio);border-radius:50%;animation:spin .7s linear infinite"></div> Calculando análise ambiental…</div>';
   _relDados = await _calcularDadosAmbientais();
   _renderRelAba('visao-geral');
 }
@@ -7007,18 +6696,18 @@ function _htmlRelVisaoGeral(d){
       ${criticas.length
         ? criticas.map(s => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--cinza-100);font-size:12px">
             <span style="font-weight:600;color:var(--cinza-800)">${escHtml(s.nome)}</span>
-            <span style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">${f1(s.pctDesmat)}%</span>
+            <span style="background:var(--erro-bg);color:var(--erro);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">${f1(s.pctDesmat)}%</span>
           </div>`).join('')
-        : `<div style="font-size:12px;color:#16a34a;padding:10px 0">✅ Nenhuma sub-bacia acima de 15%</div>`}
+        : `<div style="font-size:12px;color:var(--sucesso);padding:10px 0">✅ Nenhuma sub-bacia acima de 15%</div>`}
     </div>
     <div class="rel-section">
       <div class="rel-section-title">🌱 Alta Prioridade de Restauração</div>
       ${altaRest.length
         ? altaRest.map(s => `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--cinza-100);font-size:12px">
             <span style="font-weight:600;color:var(--cinza-800)">${escHtml(s.nome)}</span>
-            <span style="background:#fef9c3;color:#854d0e;border:1px solid #fde047;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">Alta</span>
+            <span style="background:#fef9c3;color:var(--aviso);border:1px solid #fde047;border-radius:99px;padding:2px 10px;font-size:11px;font-weight:700">Alta</span>
           </div>`).join('')
-        : `<div style="font-size:12px;color:#16a34a;padding:10px 0">✅ Nenhuma área com prioridade alta</div>`}
+        : `<div style="font-size:12px;color:var(--sucesso);padding:10px 0">✅ Nenhuma área com prioridade alta</div>`}
     </div>
   </div>
   <div class="rel-section">
@@ -7060,11 +6749,11 @@ function _htmlRelSubbacias(d){
             <td style="text-align:center;font-weight:700;color:var(--cinza-400)">${i+1}</td>
             <td style="font-weight:600;color:var(--cinza-800)">${escHtml(s.nome)}</td>
             <td style="text-align:right">${f2(s.area)}</td>
-            <td style="text-align:right;color:#dc2626;font-weight:600">${f2(s.desmat)}</td>
+            <td style="text-align:right;color:var(--erro);font-weight:600">${f2(s.desmat)}</td>
             <td style="text-align:center"><span style="font-weight:700;color:${s.pctDesmat>15?'#dc2626':s.pctDesmat>8?'#d97706':'#16a34a'}">${f1(s.pctDesmat)}%</span></td>
-            <td style="text-align:right;color:#16a34a">${f2(s.floresta)}</td>
-            <td style="text-align:center;color:#16a34a;font-weight:600">${f1(s.pctPreserv)}%</td>
-            <td style="text-align:right;color:#d97706">${f2(s.appAntrop)}</td>
+            <td style="text-align:right;color:var(--sucesso)">${f2(s.floresta)}</td>
+            <td style="text-align:center;color:var(--sucesso);font-weight:600">${f1(s.pctPreserv)}%</td>
+            <td style="text-align:right;color:var(--aviso)">${f2(s.appAntrop)}</td>
             <td style="text-align:center">${f1(s.pctAppDeg)}%</td>
             <td style="text-align:right">${f2(s.restaur)}</td>
             <td style="text-align:center">${bRisco(s.risco)}</td>
@@ -7108,8 +6797,8 @@ function _htmlRelHidrografia(d){
       <div class="rel-section-title">🌊 Situação da Vegetação Ciliar (APP)</div>
       <div style="font-size:12px;color:var(--cinza-700);line-height:1.8">
         <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--cinza-100);padding:5px 0"><span>APP total mapeada</span><strong>${f2(tot.appTotal)} ha</strong></div>
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--cinza-100);padding:5px 0"><span>APP com vegetação</span><strong style="color:#16a34a">${f2(tot.appV)} ha — ${f1(100 - tot.pctAppDeg)}%</strong></div>
-        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--cinza-100);padding:5px 0"><span>APP degradada</span><strong style="color:#dc2626">${f2(tot.appA)} ha — ${f1(tot.pctAppDeg)}%</strong></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--cinza-100);padding:5px 0"><span>APP com vegetação</span><strong style="color:var(--sucesso)">${f2(tot.appV)} ha — ${f1(100 - tot.pctAppDeg)}%</strong></div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--cinza-100);padding:5px 0"><span>APP degradada</span><strong style="color:var(--erro)">${f2(tot.appA)} ha — ${f1(tot.pctAppDeg)}%</strong></div>
       </div>
       <div style="margin-top:12px;padding:10px;background:${tot.pctAppDeg>50?'#fef2f2':tot.pctAppDeg>30?'#fffbeb':'#f0fdf4'};border-radius:var(--raio);font-size:12px;color:${tot.pctAppDeg>50?'#dc2626':tot.pctAppDeg>30?'#d97706':'#16a34a'}">
         ${tot.pctAppDeg > 50 ? '⚠️ Situação crítica: mais da metade da APP está degradada, expondo os cursos d\'água à erosão e assoreamento.' :
@@ -7129,7 +6818,7 @@ function _htmlRelHidrografia(d){
       <tbody>
         ${sorted.map(s => `<tr>
           <td style="font-weight:600">${escHtml(s.nome)}</td>
-          <td style="text-align:right;color:#d97706">${f2(s.appAntrop)}</td>
+          <td style="text-align:right;color:var(--aviso)">${f2(s.appAntrop)}</td>
           <td style="text-align:center">${f1(s.pctAppDeg)}%</td>
           <td style="text-align:center">${f1(s.pctDesmat)}%</td>
           <td style="text-align:center"><span style="font-weight:700;color:${s.pctDesmat>15?'#dc2626':s.pctDesmat>8?'#d97706':'#16a34a'}">${s.pctDesmat>15?'Alta':s.pctDesmat>8?'Média':'Baixa'}</span></td>
@@ -7262,11 +6951,11 @@ function _htmlRelProdes(){
     const ha = porAnoGlobal[ano];
     const w  = (ha / maxAnualHa * 90).toFixed(1);
     return `<tr>
-      <td style="padding:2px 8px 2px 0;font-size:11px;color:#374151;white-space:nowrap">${ano}</td>
+      <td style="padding:2px 8px 2px 0;font-size:11px;color:var(--cinza-700);white-space:nowrap">${ano}</td>
       <td style="padding:2px 0;width:100%">
-        <div style="height:12px;background:#dc2626;border-radius:2px;width:${w}%;min-width:2px"></div>
+        <div style="height:12px;background:var(--erro);border-radius:2px;width:${w}%;min-width:2px"></div>
       </td>
-      <td style="padding:2px 0 2px 8px;font-size:11px;font-weight:600;color:#374151;white-space:nowrap;text-align:right">${f2(ha)} ha</td>
+      <td style="padding:2px 0 2px 8px;font-size:11px;font-weight:600;color:var(--cinza-700);white-space:nowrap;text-align:right">${f2(ha)} ha</td>
     </tr>`;
   }).join('');
 
@@ -7276,20 +6965,20 @@ function _htmlRelProdes(){
   <p><strong>Por que 2008 é o marco de referência?</strong> O PRODES iniciou o mapeamento sistemático anual da Amazônia em 1988, mas foi a partir de 2008 que o monitoramento se tornou suficientemente detalhado e contínuo — com resolução de 30m (Landsat) e cobertura completa do bioma — para permitir comparações rigorosas ano a ano. O desmatamento anterior a 2008 é disponibilizado pelo INPE como uma camada de <em>acumulado histórico</em>, representando o passivo ambiental consolidado até aquele ano.</p>
 
   <div style="display:flex;gap:12px;margin:12px 0;flex-wrap:wrap">
-    <div style="flex:1;min-width:120px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;text-align:center">
-      <div style="font-size:20px;font-weight:700;color:#c2410c">${f2(totalHist)} ha</div>
-      <div style="font-size:11px;color:#9a3412;margin-top:2px">Acumulado pré-2008</div>
+    <div style="flex:1;min-width:120px;padding:12px;background:var(--treino-bg);border:1px solid color-mix(in srgb,var(--treino) 35%,transparent);border-radius:6px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:var(--treino)">${f2(totalHist)} ha</div>
+      <div style="font-size:11px;color:var(--treino);margin-top:2px">Acumulado pré-2008</div>
       <div style="font-size:10px;color:#fdba74;margin-top:4px;line-height:1.3">Passivo histórico anterior ao monitoramento anual sistemático</div>
     </div>
-    <div style="flex:1;min-width:120px;padding:12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;text-align:center">
-      <div style="font-size:20px;font-weight:700;color:#dc2626">${f2(totalAnual)} ha</div>
-      <div style="font-size:11px;color:#991b1b;margin-top:2px">Pós-2008 (anual)</div>
-      <div style="font-size:10px;color:#fca5a5;margin-top:4px;line-height:1.3">Detecção por satélite ano a ano — monitoramento rigoroso</div>
+    <div style="flex:1;min-width:120px;padding:12px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:6px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:var(--erro)">${f2(totalAnual)} ha</div>
+      <div style="font-size:11px;color:var(--erro);margin-top:2px">Pós-2008 (anual)</div>
+      <div style="font-size:10px;color:color-mix(in srgb,var(--erro) 40%,transparent);margin-top:4px;line-height:1.3">Detecção por satélite ano a ano — monitoramento rigoroso</div>
     </div>
-    <div style="flex:1;min-width:120px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;text-align:center">
-      <div style="font-size:20px;font-weight:700;color:#374151">${f2(totalGeral)} ha</div>
-      <div style="font-size:11px;color:#6b7280;margin-top:2px">Total PRODES</div>
-      <div style="font-size:10px;color:#9ca3af;margin-top:4px;line-height:1.3">Soma do passivo histórico e das detecções anuais</div>
+    <div style="flex:1;min-width:120px;padding:12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:6px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:var(--cinza-700)">${f2(totalGeral)} ha</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Total PRODES</div>
+      <div style="font-size:10px;color:var(--cinza-400);margin-top:4px;line-height:1.3">Soma do passivo histórico e das detecções anuais</div>
     </div>
   </div>
 
@@ -7299,7 +6988,7 @@ function _htmlRelProdes(){
     ${barras}
   </table>` : ''}
 
-  <p style="font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px;margin-top:4px">
+  <p style="font-size:11px;color:var(--cinza-500);border-top:1px solid var(--borda);padding-top:8px;margin-top:4px">
     <strong>Fonte:</strong> PRODES/INPE via TerraBrasilis (terrabrasilis.dpi.inpe.br) ·
     <strong>Resolução:</strong> 30m (Landsat / Sentinel-2) ·
     <strong>Método:</strong> Interseção geométrica entre os polígonos PRODES e os limites CAR via Turf.js ·
@@ -7499,11 +7188,11 @@ function _htmlRelVisaoGeralPrint(d){
   <div class="grid-2">
     <div class="rel-section">
       <div class="rel-section-title">🔴 Sub-bacias Críticas (> 15% desmatado)</div>
-      ${criticas.length ? criticas.map(s => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:11px"><span style="font-weight:600">${escHtml(s.nome)}</span><span style="color:#dc2626;font-weight:700">${f1(s.pctDesmat)}%</span></div>`).join('') : '<div style="font-size:11px;color:#16a34a">✅ Nenhuma sub-bacia crítica</div>'}
+      ${criticas.length ? criticas.map(s => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--cinza-100);font-size:11px"><span style="font-weight:600">${escHtml(s.nome)}</span><span style="color:var(--erro);font-weight:700">${f1(s.pctDesmat)}%</span></div>`).join('') : '<div style="font-size:11px;color:var(--sucesso)">✅ Nenhuma sub-bacia crítica</div>'}
     </div>
     <div class="rel-section">
       <div class="rel-section-title">🌱 Alta Prioridade de Restauração</div>
-      ${altaRest.length ? altaRest.map(s => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f3f4f6;font-size:11px"><span style="font-weight:600">${escHtml(s.nome)}</span><span style="color:#d97706;font-weight:700">Alta</span></div>`).join('') : '<div style="font-size:11px;color:#16a34a">✅ Sem alta prioridade</div>'}
+      ${altaRest.length ? altaRest.map(s => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--cinza-100);font-size:11px"><span style="font-weight:600">${escHtml(s.nome)}</span><span style="color:var(--aviso);font-weight:700">Alta</span></div>`).join('') : '<div style="font-size:11px;color:var(--sucesso)">✅ Sem alta prioridade</div>'}
     </div>
   </div>`;
 }
@@ -7521,14 +7210,14 @@ function _htmlRelSubbaciasPrint(d){
       <thead><tr><th>#</th><th>Sub-bacia</th><th>Área (ha)</th><th>Desmatada (ha)</th><th>% Desmat.</th><th>Florestal (ha)</th><th>% Preservado</th><th>APP Degradada (ha)</th><th>% APP Degr.</th><th>Prop.Rest. (ha)</th><th>Risco Assoreamento</th><th>Prioridade</th></tr></thead>
       <tbody>
         ${subbacias.map((s,i) => `<tr>
-          <td style="text-align:center;color:#9ca3af;font-weight:700">${i+1}</td>
+          <td style="text-align:center;color:var(--cinza-400);font-weight:700">${i+1}</td>
           <td style="font-weight:600">${escHtml(s.nome)}</td>
           <td style="text-align:right">${f2(s.area)}</td>
-          <td style="text-align:right;color:#dc2626;font-weight:600">${f2(s.desmat)}</td>
+          <td style="text-align:right;color:var(--erro);font-weight:600">${f2(s.desmat)}</td>
           <td style="text-align:center;font-weight:700;color:${s.pctDesmat>15?'#dc2626':s.pctDesmat>8?'#d97706':'#16a34a'}">${f1(s.pctDesmat)}%</td>
-          <td style="text-align:right;color:#16a34a">${f2(s.floresta)}</td>
-          <td style="text-align:center;color:#16a34a;font-weight:600">${f1(s.pctPreserv)}%</td>
-          <td style="text-align:right;color:#d97706">${f2(s.appAntrop)}</td>
+          <td style="text-align:right;color:var(--sucesso)">${f2(s.floresta)}</td>
+          <td style="text-align:center;color:var(--sucesso);font-weight:600">${f1(s.pctPreserv)}%</td>
+          <td style="text-align:right;color:var(--aviso)">${f2(s.appAntrop)}</td>
           <td style="text-align:center">${f1(s.pctAppDeg)}%</td>
           <td style="text-align:right">${f2(s.restaur)}</td>
           <td style="text-align:center">${bR(s.risco)}</td>
@@ -7575,7 +7264,7 @@ function _htmlRelCARPrint(d){
         ${Object.entries(porSub).filter(([k])=>k!=='—').sort((a,b)=>b[1].n-a[1].n).map(([nome,info])=>{
           const sbD = subbacias?.find(s=>s.nome===nome);
           const cob = sbD?.area>0 ? info.area/sbD.area*100 : null;
-          return `<tr><td style="font-weight:600">${escHtml(nome)}</td><td style="text-align:center;font-weight:700">${info.n}</td><td style="text-align:right">${f2(info.area)}</td><td style="text-align:right;color:#6b7280">${sbD?f2(sbD.area):'—'}</td><td style="text-align:center;font-weight:700;color:${cob>80?'#16a34a':cob>50?'#d97706':'#dc2626'}">${cob!=null?f1(cob)+'%':'—'}</td><td style="text-align:center;color:#16a34a">${info.status.ativo||0}</td><td style="text-align:center;color:#d97706">${info.status.aguardando||0}</td><td style="text-align:center;color:#2563eb">${info.status.analise||0}</td></tr>`;
+          return `<tr><td style="font-weight:600">${escHtml(nome)}</td><td style="text-align:center;font-weight:700">${info.n}</td><td style="text-align:right">${f2(info.area)}</td><td style="text-align:right;color:var(--cinza-500)">${sbD?f2(sbD.area):'—'}</td><td style="text-align:center;font-weight:700;color:${cob>80?'#16a34a':cob>50?'#d97706':'#dc2626'}">${cob!=null?f1(cob)+'%':'—'}</td><td style="text-align:center;color:var(--sucesso)">${info.status.ativo||0}</td><td style="text-align:center;color:var(--aviso)">${info.status.aguardando||0}</td><td style="text-align:center;color:var(--azul-medio)">${info.status.analise||0}</td></tr>`;
         }).join('')}
       </tbody>
     </table>
@@ -7604,7 +7293,7 @@ function _htmlRelHidrografiaPrint(d){
       <tbody>
         ${sorted.map(s => `<tr>
           <td style="font-weight:600">${escHtml(s.nome)}</td>
-          <td style="text-align:right;color:#d97706">${f2(s.appAntrop)}</td>
+          <td style="text-align:right;color:var(--aviso)">${f2(s.appAntrop)}</td>
           <td style="text-align:center">${f1(s.pctAppDeg)}%</td>
           <td style="text-align:center">${f1(s.pctDesmat)}%</td>
           <td style="text-align:center;font-weight:700;color:${s.pctDesmat>15?'#dc2626':s.pctDesmat>8?'#d97706':'#16a34a'}">${s.pctDesmat>15?'Alta':s.pctDesmat>8?'Média':'Baixa'}</td>
@@ -7785,10 +7474,10 @@ function _ucConstruirPainel() {
 
   function esferaBadge(esf) {
     if (esf === 'federal')
-      return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;flex-shrink:0">' + esf + '</span>';
+      return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:var(--azul-bg);color:var(--azul-medio);border:1px solid color-mix(in srgb,var(--azul-medio) 35%,transparent);flex-shrink:0">' + esf + '</span>';
     if (esf === 'estadual')
-      return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#fefce8;color:#854d0e;border:1px solid #fde68a;flex-shrink:0">' + esf + '</span>';
-    return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:#f0fdf4;color:#166534;border:1px solid #86efac;flex-shrink:0">' + esf + '</span>';
+      return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:var(--aviso-bg);color:var(--aviso);border:1px solid color-mix(in srgb,var(--aviso) 40%,transparent);flex-shrink:0">' + esf + '</span>';
+    return '<span style="font-size:8px;padding:1px 4px;border-radius:3px;background:var(--sucesso-bg);color:var(--sucesso);border:1px solid color-mix(in srgb,var(--sucesso) 40%,transparent);flex-shrink:0">' + esf + '</span>';
   }
 
   function buildList(items) {
@@ -7957,7 +7646,7 @@ function _ucStatsAtualizar() {
   document.getElementById('usc-totais').innerHTML =
     '<div class="usc-total-bloco"><div class="usc-total-val">' + totalUCs + '</div><div class="usc-total-lbl">Unidades</div></div>' +
     '<div class="usc-total-bloco"><div class="usc-total-val">' + fmtHa(totalHa) + '</div><div class="usc-total-lbl">Hectares</div></div>' +
-    '<div class="usc-pct-badge">≈ ' + pctEstado + '%<br><span style="font-size:8px;font-weight:500;color:#1d4ed8">do estado</span></div>';
+    '<div class="usc-pct-badge">≈ ' + pctEstado + '%<br><span style="font-size:8px;font-weight:500;color:var(--azul-medio)">do estado</span></div>';
 
   // Por tipo — agrupa por sigla, mostra qtd e área (sem área = "s/ dado")
   var porTipo = {};
@@ -8189,9 +7878,9 @@ function _renderizarTI(){
       }
       layer.bindPopup(`
         <div class="camada-popup">
-          <div class="cp-header" style="background:#92400e">🪶 Terra Indígena</div>
+          <div class="cp-header" style="background:var(--aviso)">🪶 Terra Indígena</div>
           <div class="cp-layer">
-            <div class="cp-layer-nome" style="color:#92400e">${esc(p.terrai_nome||'')}</div>
+            <div class="cp-layer-nome" style="color:var(--aviso)">${esc(p.terrai_nome||'')}</div>
             ${p.fase_ti      ? `<div class="cp-row"><strong>Fase</strong><span>${esc(p.fase_ti)}</span></div>` : ''}
             ${p.etnia_nome   ? `<div class="cp-row"><strong>Etnia(s)</strong><span>${esc(p.etnia_nome)}</span></div>` : ''}
             ${p.modalidade_ti? `<div class="cp-row"><strong>Modalidade</strong><span>${esc(p.modalidade_ti)}</span></div>` : ''}
@@ -8396,7 +8085,7 @@ function _injetarTabMunicipios() {
     +     '<strong>Exibir divisão municipal</strong>'
     +   '</label>'
     +   '<div id="mun-loading" style="display:none;align-items:center;gap:8px;font-size:11px;color:var(--cinza-500)">'
-    +     '<div style="width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>'
+    +     '<div style="width:12px;height:12px;border:2px solid var(--borda);border-top-color:var(--verde-medio);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0"></div>'
     +     'Carregando…'
     +   '</div>'
     +   '<div id="mun-controles" style="display:none;flex-direction:column;gap:8px">'

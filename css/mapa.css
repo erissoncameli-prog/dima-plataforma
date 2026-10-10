@@ -1,0 +1,442 @@
+/* ── Mapa de Entregas · moldura (painel, abas de camadas, janelas) ─────────
+   Usa o design system da mesa (body.dgm + css/diagnostico-mesa.css, tema
+   'diag_tema'): a MOLDURA segue Claro/Escuro pelos nomes do global.css
+   (--branco, --cinza-*, --borda…), que a mesa redefine no escopo.
+   O MAPA (.leaflet-container: pontos, popups, etiquetas, mapa base, minimapa,
+   rosa dos ventos) e o Relatório Ambiental (#modal-relatorio) ficam CLAROS nos
+   dois temas: redeclaram aqui os valores claros (são conteúdo/documento).
+   Cor nova = token, nunca hex solto; branco de TEXTO sobre fundo colorido fica
+   branco. Janelas: .modal-overlay dentro do .main-content (já no escopo). */
+
+/* Mapa e relatório: sempre claros */
+body.dgm :is(#mapa, .leaflet-container, #modal-relatorio > div) {
+  --bg: #F3F5F3; --bg-2: #E9EDEA; --sup: #FFFFFF; --sup-2: #F7F9F7;
+  --lin: rgba(16, 32, 24, .09); --lin-forte: rgba(16, 32, 24, .18);
+  --txt: #0E1A13; --txt-2: #56655C; --txt-3: #8C9A92; --txt-forte-2: #34443B;
+  --verde: #1F4E2C; --verde-medio: #2D6A4F; --verde-claro: #52B788; --verde-bg: #D8F3DC; --verde-escuro: #1F4E2C;
+  --azul: #1A3A5C; --azul-medio: #2563EB; --azul-bg: #EFF6FF;
+  --cinza-900: #111827; --cinza-800: #1F2937; --cinza-700: #374151; --cinza-600: #4B5563; --cinza-500: #6B7280;
+  --cinza-400: #9CA3AF; --cinza-300: #D1D5DB; --cinza-200: #E5E7EB; --cinza-100: #F3F4F6; --cinza-50: #F9FAFB; --branco: #FFFFFF;
+  --erro: #DC2626; --erro-bg: #FEF2F2; --sucesso: #16A34A; --sucesso-bg: #F0FDF4; --aviso: #D97706; --aviso-bg: #FFFBEB;
+  --borda: #E5E7EB; --borda-forte: #D1D5DB;
+  --treino: #C2410C; --treino-bg: #FFF7ED; --ia: #6D28D9; --ia-bg: #F5F3FF;
+  color-scheme: light; color: #111827;
+}
+body.dgm .main-content { --verde-escuro: var(--pri-700); }
+html[data-tema="escuro"] body.dgm .main-content { --verde-escuro: var(--pri-600); }
+body.dgm #mapa { border-color: var(--lin); }
+
+/* Carregamento inicial */
+.mp-carrega { display: flex; align-items: center; justify-content: center; gap: 12px; height: 100vh; color: #6B7280; font-family: 'DM Sans', sans-serif; }
+.mp-spin { width: 28px; height: 28px; border: 3px solid #E5E7EB; border-top-color: #2D6A4F; border-radius: 50%; animation: mp-gira .7s linear infinite; }
+@keyframes mp-gira { to { transform: rotate(360deg); } }
+
+/* Botões sem estilo próprio na plataforma (eram o botão padrão do navegador) */
+body.dgm .btn-outline { background: var(--branco); border: 1px solid var(--borda-forte); color: var(--cinza-700); }
+body.dgm .btn-outline:hover { background: var(--cinza-50); }
+body.dgm .btn-close { width: 30px; height: 30px; border: 1px solid var(--borda-forte); border-radius: 8px; background: var(--branco); color: var(--cinza-500); cursor: pointer; padding: 0; font-size: 14px; }
+body.dgm .btn-close:hover { background: var(--cinza-50); color: var(--cinza-900); }
+body.dgm :is(.btn-close, .btn-outline):focus-visible { outline: 0; box-shadow: var(--anel); }
+
+/* Ícones da moldura (SVG, sem emoji) */
+.mp-ic { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; vertical-align: -2px; }
+body.dgm .topbar .dgm-tema { margin-left: auto; }
+body.dgm :is(.btn-close, .mlb-close, .usc-collapse-btn) { display: inline-grid; place-items: center; }
+@media (max-width: 760px) {
+  body.dgm .topbar { flex-wrap: wrap; height: auto; min-height: 58px; row-gap: 8px; padding-block: 10px; }
+  body.dgm .topbar .dgm-tema button { font-size: 0; gap: 0; padding: 6px 8px; }
+}
+
+/* ── Estilos da página (vindos do <style> de pages/mapa.html, cores trocadas por token) ── */
+/* ── Layout ─────────────────────────────────────────────────── */
+.mapa-wrapper{display:flex;flex-direction:column;gap:10px;height:calc(100vh - 108px);min-height:500px;}
+.mapa-topbar{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.mapa-container{display:flex;gap:12px;flex:1;min-height:0;}
+#mapa{flex:1;border-radius:var(--raio-lg);border:1px solid var(--borda);z-index:0;min-height:0;}
+.mapa-painel{width:268px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;overflow-y:auto;padding-right:2px;scrollbar-width:none;-ms-overflow-style:none;}
+.mapa-painel::-webkit-scrollbar{display:none;}
+.mapa-painel-wrap{display:flex;flex-direction:row;gap:5px;flex-shrink:0;min-height:0;}
+#mapa-scrollbar-outer{width:8px;flex-shrink:0;position:relative;border-radius:6px;background:var(--cinza-100);cursor:pointer;}
+#mapa-scrollbar-thumb{position:absolute;left:1px;right:1px;background:var(--verde-medio);border-radius:5px;cursor:pointer;min-height:24px;transition:top .06s linear;opacity:.75;}
+#mapa-scrollbar-thumb:hover{opacity:1;}
+
+/* ── Blocos de filtro ───────────────────────────────────────── */
+.filtro-bloco{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
+.filtro-bloco-header{display:flex;align-items:center;gap:6px;padding:9px 12px;border-bottom:1px solid var(--borda);cursor:pointer;user-select:none;}
+.filtro-bloco-header h4{margin:0;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;flex:1;}
+.filtro-bloco-body{padding:8px 12px 10px;}
+#bloco-tipos{max-height:260px;overflow-y:auto;}
+#bloco-camadas-lista{max-height:190px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--verde-medio) var(--cinza-100);}
+.filtro-item{display:flex;align-items:flex-start;gap:7px;padding:4px 0;font-size:12px;color:var(--cinza-700);}
+.filtro-item input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;margin-top:2px;}
+.filtro-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+
+/* APA row */
+.apa-row{display:flex;align-items:center;gap:6px;padding:4px 0;}
+.apa-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
+.btn-geojson{font-size:10px;padding:2px 7px;border:1px dashed var(--borda);border-radius:4px;background:transparent;color:var(--cinza-500);cursor:pointer;white-space:nowrap;transition:all .15s;margin-left:auto;}
+.btn-geojson:hover{border-color:var(--verde-escuro);color:var(--verde-escuro);}
+.btn-geojson.carregado{border-color:var(--sucesso);color:var(--sucesso);background:var(--sucesso-bg);}
+
+/* Botão admin ⚙ */
+.btn-admin-filtros{border:none;background:none;cursor:pointer;font-size:13px;padding:2px 4px;border-radius:4px;transition:background .15s;flex-shrink:0;}
+.btn-admin-filtros:hover{background:var(--cinza-100);}
+
+/* ── Lista de pontos ───────────────────────────────────────── */
+.pontos-lista{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;flex:1;min-height:60px;display:flex;flex-direction:column;}
+.pontos-lista-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px 8px;border-bottom:1px solid var(--borda);flex-shrink:0;}
+.pontos-lista-header h4{margin:0;font-size:11px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;}
+.pontos-scroll{overflow-y:auto;flex:1;min-height:0;}
+.ponto-item{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;border-bottom:1px solid var(--cinza-100);cursor:pointer;transition:background .12s;}
+.ponto-item:last-child{border-bottom:none;}
+.ponto-item:hover{background:var(--cinza-50);}
+.ponto-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.ponto-nome{font-size:12px;font-weight:500;color:var(--cinza-800);line-height:1.3;}
+.ponto-sub{font-size:10px;color:var(--cinza-500);margin-top:1px;}
+
+/* ── Modais genéricos ──────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal-box{background:var(--branco);border-radius:14px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-box.lg{max-width:680px;}
+.modal-header{padding:16px 20px 12px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-header h3{margin:0;font-size:15px;font-weight:600;color:var(--cinza-900);}
+.modal-body{padding:16px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--borda);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
+
+/* Formulário */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-group.full{grid-column:1/-1;}
+.form-group label{font-size:11px;font-weight:600;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;}
+.form-group input,.form-group select,.form-group textarea{font-family:inherit;font-size:13px;padding:7px 10px;border:1px solid var(--borda);border-radius:var(--raio);color:var(--cinza-900);background:var(--branco);width:100%;box-sizing:border-box;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--verde-escuro);box-shadow:0 0 0 3px rgba(31,78,44,.1);}
+.form-group textarea{resize:vertical;min-height:60px;}
+.geo-row{display:flex;gap:8px;align-items:flex-end;}
+.geo-row .form-group{flex:1;}
+.btn-geo{padding:7px 10px;border:1px dashed var(--verde-escuro);background:rgba(31,78,44,.06);color:var(--verde-escuro);border-radius:var(--raio);cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.btn-geo:hover{background:rgba(31,78,44,.12);}
+.foto-upload-area{border:2px dashed var(--borda);border-radius:var(--raio);padding:16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;}
+.foto-upload-area:hover,.foto-upload-area.drag{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
+.foto-upload-area .ico{font-size:24px;margin-bottom:4px;}
+.foto-upload-area p{margin:0;font-size:12px;color:var(--cinza-500);}
+.foto-preview{width:100%;max-height:140px;object-fit:cover;border-radius:var(--raio);margin-top:8px;display:none;}
+.geo-foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:4px;}
+.geo-foto-item{position:relative;aspect-ratio:1;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);}
+.geo-foto-item img{width:100%;height:100%;object-fit:cover;cursor:zoom-in;display:block;}
+.geo-foto-item .geo-foto-rm{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
+.geo-foto-add{aspect-ratio:1;border:2px dashed var(--borda);border-radius:var(--raio);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--cinza-400);gap:4px;transition:border-color .15s,color .15s;min-height:80px;}
+.geo-foto-add:hover{border-color:var(--verde-escuro);color:var(--verde-escuro);}
+
+/* Popup */
+.mapa-popup{min-width:200px;max-width:260px;font-family:'DM Sans',sans-serif;}
+.mapa-popup h4{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--verde);}
+.mapa-popup .pp-foto{width:100%;height:120px;object-fit:cover;border-radius:6px;margin-bottom:8px;}
+.mapa-popup .pp-linha{display:flex;gap:6px;font-size:11px;color:#555;margin-bottom:3px;align-items:flex-start;}
+.mapa-popup .pp-linha strong{color:#222;min-width:64px;flex-shrink:0;}
+
+/* Import modal */
+.imp-drop{border:2px dashed var(--borda);border-radius:var(--raio);padding:32px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cinza-50);}
+.imp-drop:hover,.imp-drop.drag{border-color:var(--verde-escuro);background:rgba(31,78,44,.04);}
+.imp-stats{display:flex;gap:10px;margin-bottom:12px;}
+.imp-stat{flex:1;padding:10px 12px;text-align:center;border-radius:var(--raio);border:1px solid;}
+.imp-stat.ok{background:var(--sucesso-bg);border-color:color-mix(in srgb,var(--sucesso) 40%,transparent);}
+.imp-stat.err{background:var(--erro-bg);border-color:color-mix(in srgb,var(--erro) 40%,transparent);}
+.imp-stat-val{font-size:20px;font-weight:700;}
+.imp-stat.ok .imp-stat-val{color:var(--sucesso);}
+.imp-stat.err .imp-stat-val{color:var(--erro);}
+.imp-stat-lbl{font-size:11px;margin-top:2px;}
+.imp-stat.ok .imp-stat-lbl{color:#15803D;}
+.imp-stat.err .imp-stat-lbl{color:var(--erro);}
+
+/* Camada row — expandable style panel */
+.camada-row{display:flex;align-items:center;gap:6px;padding:5px 0;}
+.camada-row-outer{border-bottom:1px solid var(--cinza-100);}
+.camada-row-outer:last-child{border-bottom:none;}
+.camada-expand-body{background:var(--cinza-50);border-top:1px solid var(--cinza-100);padding:10px 12px;display:flex;flex-direction:column;gap:10px;}
+.camada-expand-section{display:flex;flex-direction:column;gap:5px;}
+.camada-expand-section-title{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:4px;padding-bottom:5px;border-bottom:1px solid var(--cinza-200);}
+.camada-link-btn{font-size:9px;color:var(--verde-escuro);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;margin-left:auto;}
+.camada-link-btn+.camada-link-btn{margin-left:4px;}
+.camada-feat-row{display:flex;align-items:center;gap:6px;padding:3px 0;}
+.camada-feat-nome{font-size:11px;color:var(--cinza-700);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.camada-color-mini{width:22px;height:22px;padding:1px;border:1px solid var(--borda);border-radius:3px;cursor:pointer;flex-shrink:0;background:none;}
+.camada-style-row{display:flex;align-items:center;gap:8px;padding:2px 0;}
+.camada-style-lbl{font-size:10px;font-weight:600;color:var(--cinza-500);width:86px;flex-shrink:0;}
+.camada-style-val{font-size:10px;font-weight:700;color:var(--cinza-700);width:34px;text-align:right;flex-shrink:0;}
+.camada-slider{flex:1;height:4px;accent-color:var(--verde-escuro);cursor:pointer;min-width:0;}
+.btn-camada-exp{font-size:12px;padding:2px 6px;border:1px solid var(--borda);border-radius:4px;background:var(--branco);cursor:pointer;flex-shrink:0;transition:background .15s;line-height:1.4;}
+.btn-camada-exp:hover,.btn-camada-exp.ativo{background:var(--sucesso-bg);border-color:color-mix(in srgb,var(--sucesso) 40%,transparent);}
+.camada-row input[type=checkbox]{accent-color:var(--verde-escuro);width:13px;height:13px;cursor:pointer;flex-shrink:0;}
+
+/* ── Barra de camadas superior ──────────────────────────────────────── */
+.mapa-layerbar{position:relative;flex-shrink:0;}
+.mlb-tabs{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.mlb-tab{display:flex;align-items:center;gap:5px;padding:5px 12px;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;background:var(--branco);border:1px solid var(--borda);border-radius:6px;cursor:pointer;color:var(--cinza-600);transition:all .15s;white-space:nowrap;line-height:1;}
+.mlb-tab:hover{background:var(--cinza-50);border-color:var(--cinza-300);}
+.mlb-tab.ativo{background:var(--verde-escuro);color:#fff;border-color:var(--verde-escuro);}
+.mlb-tab .mlb-badge{font-size:9px;background:rgba(255,255,255,.25);border-radius:99px;padding:1px 5px;font-weight:700;}
+.mlb-tab:not(.ativo) .mlb-badge{background:var(--azul-bg);color:var(--azul-medio);}
+.mlb-dropdown{position:absolute;top:calc(100% + 4px);left:0;z-index:500;background:var(--branco);border:1px solid var(--borda);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.18);min-width:340px;max-width:680px;overflow:hidden;animation:mlb-in .15s ease;}
+@keyframes mlb-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.mlb-dropdown-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--cinza-50);border-bottom:1px solid var(--borda);}
+.mlb-dropdown-title{font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;}
+.mlb-close{background:none;border:none;cursor:pointer;font-size:14px;color:var(--cinza-400);padding:0 2px;line-height:1;}
+.mlb-close:hover{color:var(--cinza-700);}
+.mlb-dropdown-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;}
+/* Grid horizontal p/ cobertura vegetal */
+.mlb-veg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.mlb-veg-card{border:1px solid var(--borda);border-radius:var(--raio);overflow:hidden;}
+/* CAR horizontal */
+.mlb-car-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;}
+.mlb-car-col{flex:1;min-width:140px;}
+
+/* Controle de modo do mapa — Basemap Gallery */
+.mapa-modo-ctrl{background:var(--branco);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.26);width:230px;overflow:hidden;font-family:'DM Sans',sans-serif;}
+.bmg-header{display:flex;align-items:center;justify-content:space-between;padding:8px 10px 6px;border-bottom:1px solid var(--borda);cursor:pointer;user-select:none;}
+.bmg-header-title{font-size:11px;font-weight:700;color:var(--cinza-700);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:5px;}
+.bmg-toggle-icon{font-size:11px;color:var(--cinza-400);transition:transform .2s;}
+.bmg-body{padding:6px 8px 8px;}
+.bmg-group-title{font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.08em;padding:5px 2px 4px;margin-top:2px;}
+.bmg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:2px;}
+.bmg-tile{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border-radius:6px;padding:4px 2px;transition:background .15s;border:2px solid transparent;}
+.bmg-tile:hover{background:var(--cinza-100);}
+.bmg-tile.ativo{border-color:var(--verde-escuro);background:var(--sucesso-bg);}
+.bmg-thumb{width:56px;height:40px;border-radius:4px;overflow:hidden;border:1px solid var(--borda);position:relative;flex-shrink:0;}
+.bmg-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.bmg-thumb-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.bmg-label{font-size:9px;font-weight:500;color:var(--cinza-700);text-align:center;line-height:1.2;max-width:60px;}
+.bmg-tile.ativo .bmg-label{color:var(--verde-escuro);font-weight:700;}
+.bmg-check{position:absolute;bottom:2px;right:2px;width:13px;height:13px;background:var(--verde-escuro);border-radius:50%;display:flex;align-items:center;justify-content:center;display:none;}
+.bmg-tile.ativo .bmg-check{display:flex;}
+.bmg-check::after{content:'✓';font-size:8px;color:#fff;line-height:1;}
+.mapa-poi-ctrl{border-top:1px solid var(--borda);margin-top:5px;padding-top:5px;}
+.mapa-poi-ctrl-titulo{font-size:10px;font-weight:600;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;padding:0 0 3px;}
+.mapa-poi-label{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:11px;color:var(--cinza-700);cursor:pointer;white-space:nowrap;}
+.mapa-poi-label input{accent-color:var(--verde-escuro);cursor:pointer;}
+
+/* Abas do modal de geometria */
+.geo-tab{padding:8px 16px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);font-family:'DM Sans',sans-serif;transition:all .15s;}
+.geo-tab.ativo{color:var(--verde-escuro);border-bottom-color:var(--verde-escuro);}
+.geo-tab:hover:not(.ativo){background:var(--cinza-50);}
+
+/* Admin modal — lista de itens */
+.admin-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-bottom:1px solid var(--cinza-100);transition:background .12s;}
+.admin-item:last-child{border-bottom:none;}
+.admin-item:hover{background:var(--cinza-50);}
+.admin-item input[type=checkbox]{accent-color:var(--verde-escuro);width:15px;height:15px;cursor:pointer;flex-shrink:0;margin-top:2px;}
+.admin-item-nome{font-size:12px;font-weight:500;color:var(--cinza-800);line-height:1.3;}
+.admin-item-sub{font-size:10px;color:var(--cinza-500);margin-top:1px;}
+.admin-resultado-label{font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;padding:6px 12px 3px;background:var(--cinza-50);border-bottom:1px solid var(--cinza-100);}
+
+/* Modal editor ícone/cor do tipo */
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:6px;}
+.emoji-btn{font-size:18px;padding:4px 2px;border:2px solid transparent;border-radius:6px;cursor:pointer;text-align:center;background:none;transition:all .12s;line-height:1.3;width:100%;}
+.emoji-btn:hover{background:var(--cinza-100);}
+.emoji-btn.sel{border-color:var(--verde-escuro);background:var(--sucesso-bg);}
+/* Badge de ponto especial no popup */
+.pe-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:2px 7px;border-radius:99px;white-space:nowrap;font-weight:500;}
+/* Vídeo no popup */
+.pp-video{width:100%;aspect-ratio:16/9;border-radius:6px;margin-top:2px;border:none;}
+/* Coluna ponto especial na tabela de vértices */
+.pe-select{font-size:11px;padding:2px 4px;border:1px solid var(--borda);border-radius:4px;width:100%;font-family:inherit;}
+/* Badge de vídeo flutuante na trilha */
+@keyframes trilhaPulse{
+  0%,100%{box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 0 rgba(30,58,95,.5);}
+  60%{box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 8px rgba(30,58,95,0);}
+}
+/* Modal de vídeo (overlay escuro tela cheia) */
+#modal-video{position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;}
+#modal-video.aberto{display:flex;}
+#modal-video-iframe{width:min(880px,96vw);aspect-ratio:16/9;border:none;border-radius:10px;display:block;}
+/* Lightbox de foto */
+#modal-foto{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;}
+#modal-foto.aberto{display:flex;}
+#modal-foto img{max-width:min(1100px,96vw);max-height:92vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.6);object-fit:contain;cursor:default;}
+.pp-foto-click,.pe-foto-click{cursor:zoom-in;transition:opacity .15s;}
+.pp-foto-click:hover,.pe-foto-click:hover{opacity:.88;}
+
+/* ── Rosa dos ventos ───────────────────────────────────────── */
+.rosa-norte{width:52px;height:52px;background:rgba(255,255,255,.92);border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.rosa-norte svg{width:44px;height:44px;}
+
+/* ── Mini-mapa: ajustes visuais ─────────────────────────────── */
+.leaflet-control-minimap{border-radius:8px!important;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.32)!important;border:2px solid rgba(255,255,255,.85)!important;}
+.leaflet-control-minimap a.minimized{border-radius:0 0 6px 6px!important;}
+
+/* ── Labels de sub-bacias ────────────────────────────────────── */
+.subbacia-label{background:rgba(255,255,255,.82)!important;border:1px solid rgba(0,0,0,.12)!important;border-radius:4px!important;box-shadow:0 1px 4px rgba(0,0,0,.18)!important;font-size:11px!important;font-weight:700!important;color:#1a3c2a!important;padding:2px 7px!important;white-space:nowrap!important;pointer-events:none!important;}
+.subbacia-label::before{display:none!important;}
+
+/* ── Popup de clique em camadas de delimitação ───────────────── */
+.leaflet-popup.camada-popup-wrap .leaflet-popup-content-wrapper{padding:0;border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.22);}
+.leaflet-popup.camada-popup-wrap .leaflet-popup-content{margin:0;min-width:200px;max-width:300px;}
+.camada-popup{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--cinza-700);}
+.camada-popup .cp-header{background:var(--verde);color:#fff;padding:8px 13px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+.camada-popup .cp-layer{padding:9px 13px 10px;}
+.camada-popup .cp-layer-nome{font-size:10px;font-weight:700;color:var(--verde-medio);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--borda);}
+.camada-popup .cp-row{display:flex;gap:5px;font-size:11px;color:var(--cinza-700);margin-bottom:3px;line-height:1.4;align-items:flex-start;}
+.camada-popup .cp-row strong{color:var(--cinza-900);min-width:72px;flex-shrink:0;font-weight:600;}
+.camada-popup .cp-row span{word-break:break-word;}
+.camada-popup .cp-divider{height:1px;background:var(--borda);}
+.camada-popup .cp-badge{display:inline-flex;align-items:center;gap:4px;background:var(--sucesso-bg);border:1px solid color-mix(in srgb,var(--sucesso) 40%,transparent);color:var(--sucesso);border-radius:99px;padding:2px 9px;font-size:10px;font-weight:700;margin-top:5px;}
+
+/* ── Mobile: botão de filtros + painel deslizante ──────────── */
+.btn-filtros-mobile{display:none;position:fixed;bottom:76px;right:16px;z-index:302;background:var(--verde-medio);color:#fff;border:none;border-radius:50px;padding:11px 18px;font-size:13px;font-weight:600;cursor:pointer;align-items:center;gap:7px;box-shadow:0 4px 18px rgba(0,0,0,.28);font-family:var(--font-sans);-webkit-tap-highlight-color:transparent;transition:background .15s;}
+.btn-filtros-mobile:hover{background:#245c42;}
+.btn-filtros-mobile svg{flex-shrink:0;}
+@media(max-width:768px){
+  .mapa-wrapper{height:calc(100vh - 94px);}
+  .mapa-painel-wrap{display:none;}
+  .mapa-painel-wrap.mobile-aberto{display:flex;flex-direction:column;position:fixed;bottom:0;left:0;right:0;height:62vh;z-index:300;background:var(--branco);border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.18);overflow:hidden;}
+  .mapa-painel-wrap.mobile-aberto::before{content:'';display:block;width:36px;height:4px;background:var(--borda-forte);border-radius:2px;margin:10px auto 6px;flex-shrink:0;}
+  .mapa-painel-wrap.mobile-aberto .mapa-painel{width:100%;flex:1;padding:0 14px 20px;overflow-y:auto;height:auto;}
+  .mapa-painel-wrap.mobile-aberto #mapa-scrollbar-outer{display:none;}
+  .btn-filtros-mobile{display:flex;}
+  .mapa-backdrop{display:none;position:fixed;inset:0;z-index:299;background:rgba(0,0,0,.38);-webkit-tap-highlight-color:transparent;}
+  .mapa-backdrop.ativo{display:block;}
+}
+
+/* ── CAR — Imóveis Rurais ────────────────────────────────────────────────── */
+.car-det-panel{position:fixed;top:0;right:-420px;width:360px;height:100vh;background:var(--branco);z-index:600;display:flex;flex-direction:column;box-shadow:-4px 0 32px rgba(0,0,0,.22);transition:right .28s cubic-bezier(.4,0,.2,1);overflow:hidden;min-width:280px;max-width:680px;}
+.car-det-panel.aberto{right:0;}
+.car-det-resize-handle{position:absolute;top:0;left:0;width:5px;height:100%;cursor:ew-resize;z-index:10;background:transparent;transition:background .15s;}
+.car-det-resize-handle:hover,.car-det-resize-handle.dragging{background:rgba(45,106,79,.35);}
+.car-det-resize-handle::after{content:'';position:absolute;top:50%;left:1px;transform:translateY(-50%);width:3px;height:36px;border-radius:2px;background:var(--borda-forte);transition:background .15s;}
+.car-det-resize-handle:hover::after,.car-det-resize-handle.dragging::after{background:var(--verde-medio);}
+.car-det-header{padding:14px 16px 12px;border-bottom:1px solid var(--borda);flex-shrink:0;background:linear-gradient(135deg,#1a3c2a,var(--verde-medio));}
+.car-det-header h4{margin:0;font-size:14px;font-weight:700;color:#fff;}
+.car-det-header p{margin:3px 0 0;font-size:11px;color:rgba(255,255,255,.7);}
+.car-det-body{flex:1;overflow-y:auto;padding:14px 16px;}
+.car-det-field{display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--cinza-100);}
+.car-det-field:last-child{border-bottom:none;}
+.car-det-label{font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.06em;}
+.car-det-value{font-size:13px;color:var(--cinza-800);font-weight:500;line-height:1.4;}
+.car-det-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid;}
+.car-status-ativo{background:var(--sucesso-bg);color:var(--sucesso);border-color:color-mix(in srgb,var(--sucesso) 40%,transparent);}
+.car-status-aguardando{background:var(--aviso-bg);color:var(--aviso);border-color:color-mix(in srgb,var(--aviso) 40%,transparent);}
+.car-status-analise{background:var(--azul-bg);color:var(--azul-medio);border-color:color-mix(in srgb,var(--azul-medio) 35%,transparent);}
+.car-status-outro{background:var(--cinza-100);color:var(--cinza-600);border-color:var(--borda);}
+.car-legenda-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--cinza-700);padding:3px 0;}
+.car-legenda-cor{width:22px;height:10px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,.12);}
+.car-stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--cinza-100);font-size:12px;}
+.car-stat-row:last-child{border-bottom:none;}
+.car-stat-val{font-weight:700;color:var(--cinza-900);}
+/* Abas do painel CAR */
+.car-det-tab{padding:9px 14px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;flex:1;text-align:center;}
+.car-det-tab.ativo{color:var(--verde-escuro);border-bottom-color:var(--verde-escuro);background:var(--branco);}
+.car-det-tab:hover:not(.ativo){background:var(--cinza-50);}
+/* Linha de marcado na lista */
+.car-pin-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--cinza-100);cursor:pointer;transition:background .12s;border-radius:var(--raio);}
+.car-pin-item:hover{background:var(--cinza-50);}
+.car-pin-item:last-child{border-bottom:none;}
+/* Botão marcar ativo */
+.btn-car-marcado{background:var(--ia-bg)!important;border-color:var(--ia)!important;color:var(--ia)!important;}
+/* Slider de estilo no painel */
+.car-style-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
+.car-style-lbl{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;width:80px;flex-shrink:0;}
+.car-style-val{font-size:10px;font-weight:700;color:var(--cinza-700);width:36px;text-align:right;flex-shrink:0;}
+.car-style-slider{flex:1;height:4px;accent-color:#7c3aed;cursor:pointer;min-width:0;}
+
+/* ── Unidades de Conservação / Terras Indígenas ─────────────────────────── */
+.uc-secao-titulo{font-size:10px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;padding:6px 0 4px;border-bottom:1px solid var(--cinza-100);margin-bottom:4px;}
+.uc-filtro-grupo{display:flex;flex-direction:column;gap:3px;}
+.uc-filtro-label{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--cinza-700);cursor:pointer;padding:2px 0;}
+.uc-filtro-label input{accent-color:var(--verde-escuro);width:12px;height:12px;cursor:pointer;flex-shrink:0;}
+.uc-tipo-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;border:1px solid rgba(0,0,0,.12);}
+.uc-esfera-badge{font-size:9px;padding:1px 5px;border-radius:99px;border:1px solid;font-weight:600;margin-left:auto;white-space:nowrap;}
+.uc-loading{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--cinza-500);padding:8px 0;}
+.uc-stat{font-size:10px;color:var(--cinza-400);text-align:right;margin-top:4px;}
+.uc-grupo-header{display:flex;align-items:center;gap:6px;padding:5px 0 3px;cursor:pointer;}
+.uc-grupo-header-lbl{font-size:10px;font-weight:700;color:var(--cinza-700);flex:1;}
+.uc-grupo-toggle{font-size:10px;color:var(--cinza-400);}
+.uc-grupo-body{padding-left:4px;}
+.uc-select-all{font-size:9px;color:var(--verde-escuro);background:none;border:none;cursor:pointer;text-decoration:underline;padding:0;margin-left:4px;}
+.uc-esfera-oculta{display:none!important;}
+/* UCs: fundo verde escuro, texto branco, caixa alta + sombra de texto suave */
+.uc-label-tt{background:rgba(26,95,56,.88)!important;border:1px solid rgba(26,95,56,.5)!important;border-radius:3px!important;box-shadow:0 1px 5px rgba(0,0,0,.35)!important;font-size:11px!important;font-weight:700!important;color:#fff!important;padding:3px 8px!important;white-space:nowrap!important;pointer-events:none!important;max-width:190px!important;overflow:hidden!important;text-overflow:ellipsis!important;text-transform:uppercase!important;letter-spacing:.04em!important;text-shadow:0 1px 2px rgba(0,0,0,.6),-1px 0 1px rgba(0,0,0,.3),1px 0 1px rgba(0,0,0,.3)!important;}
+.uc-label-tt::before{display:none!important;}
+
+/* ── Card flutuante de estatísticas das UCs ─────────────────────────────── */
+#uc-stats-card{
+  position:absolute;top:auto;bottom:28px;left:10px;z-index:500;
+  width:272px;background:var(--branco);border-radius:12px;
+  box-shadow:0 4px 24px rgba(0,0,0,.22);overflow:hidden;
+  font-family:'DM Sans',sans-serif;display:none;
+}
+#uc-stats-card.visivel{display:block;}
+#uc-stats-card.dragging{box-shadow:0 8px 40px rgba(0,0,0,.35);transition:none;}
+.usc-header{
+  background:linear-gradient(135deg,#1a3c2a,var(--verde-medio));
+  padding:10px 13px;display:flex;align-items:center;gap:6px;cursor:grab;user-select:none;
+}
+.usc-header:active{cursor:grabbing;}
+.usc-header-txt{flex:1;}
+.usc-header-titulo{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.06em;}
+.usc-header-sub{font-size:10px;color:rgba(255,255,255,.65);margin-top:1px;}
+.usc-collapse-btn{font-size:13px;color:rgba(255,255,255,.7);background:none;border:none;cursor:pointer;padding:0 2px;line-height:1;transition:color .15s;}
+.usc-collapse-btn:hover{color:#fff;}
+.usc-body{padding:10px 13px 12px;display:flex;flex-direction:column;gap:10px;}
+.usc-totais{display:flex;gap:8px;}
+.usc-total-bloco{flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:8px;padding:7px 10px;text-align:center;}
+.usc-total-val{font-size:17px;font-weight:700;color:var(--verde-escuro);line-height:1;}
+.usc-total-lbl{font-size:9px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+.usc-pct-badge{font-size:10px;font-weight:700;color:var(--azul-medio);background:var(--azul-bg);border:1px solid color-mix(in srgb,var(--azul-medio) 35%,transparent);border-radius:99px;padding:1px 7px;text-align:center;align-self:center;}
+.usc-secao-titulo{font-size:9px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.07em;padding-bottom:5px;border-bottom:1px solid var(--cinza-100);}
+.usc-tipo-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--cinza-50);}
+.usc-tipo-row:last-child{border-bottom:none;}
+.usc-tipo-sigla{font-size:10px;font-weight:700;color:var(--cinza-700);width:38px;flex-shrink:0;}
+.usc-tipo-bar-wrap{flex:1;height:5px;background:var(--cinza-100);border-radius:3px;overflow:hidden;}
+.usc-tipo-bar{height:100%;border-radius:3px;transition:width .4s ease;}
+.usc-tipo-info{font-size:10px;color:var(--cinza-500);white-space:nowrap;text-align:right;min-width:62px;}
+.usc-gestao-row{display:flex;align-items:center;gap:7px;padding:3px 0;}
+.usc-gestao-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.usc-gestao-nome{font-size:11px;color:var(--cinza-700);flex:1;}
+.usc-gestao-qtd{font-size:10px;font-weight:700;color:var(--cinza-800);min-width:18px;text-align:right;}
+.usc-gestao-ha{font-size:10px;color:var(--cinza-400);min-width:76px;text-align:right;}
+.usc-gestao-pct{font-size:9px;font-weight:700;color:var(--cinza-500);min-width:28px;text-align:right;}
+/* Municípios: pílula branca, borda cinza-azul, texto escuro + sombra clara de contorno */
+.mun-label-tt{background:rgba(255,255,255,.97)!important;border:1.5px solid #64748b!important;border-radius:99px!important;box-shadow:0 1px 6px rgba(0,0,0,.32)!important;font-size:12px!important;font-weight:700!important;color:#1e293b!important;padding:3px 11px!important;white-space:nowrap!important;pointer-events:none!important;max-width:200px!important;overflow:hidden!important;text-overflow:ellipsis!important;text-shadow:0 1px 3px rgba(255,255,255,.9),0 0 4px rgba(255,255,255,.8)!important;}
+.mun-label-tt::before{display:none!important;}
+/* Terras Indígenas: fundo terracota, texto amarelo claro, itálico + sombra escura */
+.ti-label-tt{background:rgba(120,53,15,.85)!important;border:1px solid rgba(217,119,6,.5)!important;border-radius:3px!important;box-shadow:0 1px 5px rgba(0,0,0,.35)!important;font-size:11px!important;font-weight:700!important;color:var(--aviso-bg)!important;padding:3px 8px!important;white-space:nowrap!important;pointer-events:none!important;max-width:190px!important;overflow:hidden!important;text-overflow:ellipsis!important;font-style:italic!important;letter-spacing:.02em!important;text-shadow:0 1px 2px rgba(0,0,0,.7),-1px 0 1px rgba(0,0,0,.4),1px 0 1px rgba(0,0,0,.4)!important;}
+.ti-label-tt::before{display:none!important;}
+
+/* ── Relatório Analítico Ambiental ──────────────────────────────────────── */
+.rel-tab{padding:10px 18px;font-size:12px;font-weight:500;border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;color:var(--cinza-500);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap;}
+.rel-tab.ativo{color:var(--verde-escuro);border-bottom-color:var(--verde-escuro);background:var(--branco);}
+.rel-tab:hover:not(.ativo){background:var(--cinza-100);}
+.rel-section{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 20px;}
+.rel-section-title{font-size:13px;font-weight:700;color:var(--cinza-800);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--cinza-100);}
+.rel-kpi-grid{display:grid;gap:12px;}
+.rel-kpi{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;}
+.rel-kpi-val{font-size:22px;font-weight:700;color:var(--cinza-900);line-height:1.2;}
+.rel-kpi-lbl{font-size:11px;color:var(--cinza-500);margin-top:3px;font-weight:500;}
+.rel-kpi-sub{font-size:10px;color:var(--cinza-400);margin-top:2px;}
+.rel-kpi-danger{border-color:color-mix(in srgb,var(--erro) 40%,transparent);background:var(--erro-bg);}.rel-kpi-danger .rel-kpi-val{color:var(--erro);}
+.rel-kpi-green{border-color:color-mix(in srgb,var(--sucesso) 40%,transparent);background:var(--sucesso-bg);}.rel-kpi-green .rel-kpi-val{color:var(--sucesso);}
+.rel-kpi-warn{border-color:color-mix(in srgb,var(--aviso) 40%,transparent);background:var(--aviso-bg);}.rel-kpi-warn .rel-kpi-val{color:var(--aviso);}
+.rel-kpi-info{border-color:color-mix(in srgb,var(--azul-medio) 35%,transparent);background:var(--azul-bg);}.rel-kpi-info .rel-kpi-val{color:var(--azul-medio);}
+.rel-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rel-table th{background:var(--cinza-100);padding:7px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--borda);white-space:nowrap;}
+.rel-table td{padding:7px 10px;border-bottom:1px solid var(--cinza-100);color:var(--cinza-700);}
+.rel-table tr:last-child td{border-bottom:none;}
+.rel-table tr:hover td{background:var(--cinza-50);}
+.rel-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid;}
+.rel-badge-danger{background:var(--erro-bg);color:var(--erro);border-color:color-mix(in srgb,var(--erro) 40%,transparent);}
+.rel-badge-warn{background:var(--aviso-bg);color:var(--aviso);border-color:color-mix(in srgb,var(--aviso) 40%,transparent);}
+.rel-badge-ok{background:var(--sucesso-bg);color:var(--sucesso);border-color:color-mix(in srgb,var(--sucesso) 40%,transparent);}
+.rel-text-block{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:16px 20px;margin-bottom:12px;}
+.rel-text-block h4{margin:0 0 10px;font-size:13px;font-weight:700;color:var(--verde);border-bottom:1px solid var(--cinza-100);padding-bottom:8px;}
+.rel-text-block p{margin:0 0 8px;font-size:13px;color:var(--cinza-700);line-height:1.7;}
+.rel-text-block p:last-child{margin-bottom:0;}
+.rel-text-block ol{font-size:13px;line-height:1.9;padding-left:20px;color:var(--cinza-700);margin:0;}
+
+@media print{
+  body>*:not(#modal-relatorio){display:none!important;}
+  #modal-relatorio{position:relative!important;z-index:auto!important;background:var(--branco)!important;padding:0!important;overflow:visible!important;}
+  #modal-relatorio>div{box-shadow:none!important;max-height:none!important;height:auto!important;border-radius:0!important;overflow:visible!important;}
+  #rel-body{overflow:visible!important;max-height:none!important;background:var(--branco)!important;padding:16px!important;}
+  .rel-tab,.btn-close,.rel-header-btns{display:none!important;}
+  .rel-section,.rel-text-block{page-break-inside:avoid;break-inside:avoid;}
+  canvas{max-width:100%!important;}
+}
