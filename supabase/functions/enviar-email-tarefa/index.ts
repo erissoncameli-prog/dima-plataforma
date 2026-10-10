@@ -12,6 +12,7 @@
 // anexos da subtarefa e Reply-To com o token da subtarefa (resposta → comentário).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
+import { logosEmail } from '../_shared/logos-email.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -19,7 +20,6 @@ const CORS = {
 }
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 const SITE_URL  = 'https://fundobrasilonu-plataforma.vercel.app'
-const ASSETS    = `${SITE_URL}/assets`
 
 const PRIORIDADE_LABEL: Record<string, string> = {
   baixa: 'Baixa', media: 'Média', alta: 'Alta', urgente: 'Urgente',
@@ -29,7 +29,7 @@ const fmtData = (d: string | null) =>
 const esc = (s: unknown) => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): string {
+function wrapHtml(corpo: string, linkBtn: { url: string; label: string } | undefined, logos: { cabecalho: string; faixa: string }): string {
   const linhas = corpo.split('\n')
   let html = '', emBloco = false
   for (const linha of linhas) {
@@ -61,7 +61,7 @@ function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): stri
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
   <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
     <table width="100%"><tr>
-      <td style="vertical-align:middle"><img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0"></td>
+      <td style="vertical-align:middle">${logos.cabecalho}</td>
       <td style="vertical-align:middle;text-align:right">
         <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Painel de Tarefas</span><br>
         <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
@@ -69,15 +69,11 @@ function wrapHtml(corpo: string, linkBtn?: { url: string; label: string }): stri
       </td>
     </tr></table>
   </td></tr>
-  <tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
+  ${logos.faixa ? `<tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB">
     <table width="100%"><tr>
-      <td align="center" style="padding:0 6px"><img src="${ASSETS}/1695134345-1-horizontal-verde-solo.png" alt="SEMA/AC" height="32" style="display:block;border:0"></td>
-      <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNESCO_logo_hor_blue_transparent.png.png" alt="UNESCO" height="28" style="display:block;border:0"></td>
-      <td align="center" style="padding:0 6px"><img src="${ASSETS}/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil" height="28" style="display:block;border:0"></td>
-      <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-fundo-brasil-onu.png" alt="Fundo Brasil-ONU" height="32" style="display:block;border:0"></td>
-      <td align="center" style="padding:0 6px"><img src="${ASSETS}/logo-consorcio-amazonia.png" alt="Consórcio Amazônia" height="36" style="display:block;border:0"></td>
+      ${logos.faixa}
     </tr></table>
-  </td></tr>
+  </td></tr>` : ''}
   <tr><td style="background:#ffffff;padding:28px 24px 20px">${html}</td></tr>
   <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
     <p style="margin:0;font-size:11px;color:#6B7280">Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
@@ -335,6 +331,7 @@ Deno.serve(async (req) => {
       (comentAnexos.length ? `ANEXOS: ${comentAnexos.map(esc).join(', ')}\n` : '') +
       (t.fornecedor ? `FORNECEDOR: ${esc(t.fornecedor.nome)}\n` : '')
 
+    const logos = await logosEmail(supabase)
     const envios: any[] = []
     // Reply-To com token da tarefa: a resposta do e-mail vira comentário
     // (recebido por receber-email-tarefa).
@@ -353,7 +350,7 @@ Deno.serve(async (req) => {
       envios.push({
         to: email,
         assunto: assunto[evento] || assunto.atribuicao,
-        html: wrapHtml(`Olá, ${esc((r.nome || '').split(' ')[0])}.\n\n${corpoInterno(r.papel)}`, linkApp),
+        html: wrapHtml(`Olá, ${esc((r.nome || '').split(' ')[0])}.\n\n${corpoInterno(r.papel)}`, linkApp, logos),
         replyTo,
         icalEvent: ics || undefined,
       })
@@ -375,7 +372,7 @@ Deno.serve(async (req) => {
       envios.push({
         to: t.fornecedor.email,
         assunto: `Projeto DIMA — pendência: ${t.titulo}`,
-        html: wrapHtml(corpoExt),
+        html: wrapHtml(corpoExt, undefined, logos),
       })
     }
 
@@ -411,7 +408,7 @@ Deno.serve(async (req) => {
       envios.push({
         to: f.email,
         assunto: `Projeto DIMA — ${sub.descricao.slice(0, 80)}`,
-        html: wrapHtml(corpoExt),
+        html: wrapHtml(corpoExt, undefined, logos),
         replyTo: `fundobrasilonuacre+${sub.id}@gmail.com`,
         attachments,
       })
