@@ -6,9 +6,11 @@
 <title>SEMA/AC — Tarefas</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' das demais guias), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
 <link href="../css/tarefas.css" rel="stylesheet">
 </head>
-<body>
+<body class="tk-pg">
 <!-- Ícones do painel (traço 1,8 px, estilo Lucide). Uso: <svg class="i"><use href="#i-nome"/></svg> -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
@@ -61,6 +63,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script src="../js/tarefas.js"></script>
 </body>
 </html>
