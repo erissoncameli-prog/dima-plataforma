@@ -1,0 +1,54 @@
+/* ── Manual do sistema · componentes (prefixo aj-) ─────────────────────────
+   pages/ajuda.html. Design system da mesa (body.dgm + css/diagnostico-mesa.css, tema 'diag_tema').
+   Conteúdo em js/ajuda.js (AJUDA); destaque da busca por ajudaMarcar() (texto escapado). */
+
+/* adIc() (js/administracao.js) gera .ad-ic; o tamanho fica aqui porque a página não carrega administracao.css */
+:is(.aj-ic, .ad-ic) { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.ad-ic.p { width: 15px; height: 15px; }
+body.dgm .topbar .dgm-tema { margin-left: auto; }
+body.dgm .main-content, body.dgm .page-body { min-width: 0; }
+.aj { max-width: 1100px; display: flex; flex-direction: column; gap: 14px; }
+.aj-topo h2 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: var(--txt); margin: 0 0 4px; }
+.aj-topo p { font-size: 13px; color: var(--txt-2); margin: 0; }
+.aj-busca { display: flex; align-items: center; gap: 8px; background: var(--sup); border: 1px solid var(--lin-forte); border-radius: var(--r-card); padding: 0 14px; height: 46px; color: var(--txt-3); box-shadow: var(--sh-1); }
+.aj-busca:focus-within { border-color: var(--pri-600); box-shadow: var(--anel); }
+body.dgm .aj-busca input { flex: 1; border: 0; outline: 0; background: none; font: inherit; font-size: 14px; color: var(--txt); height: 100%; padding: 0; box-shadow: none; min-width: 0; }
+.aj-cont { font-size: 12px; color: var(--txt-3); white-space: nowrap; }
+.aj-grade { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; align-items: start; }
+.aj-nav { background: var(--sup); border: 1px solid var(--lin); border-radius: var(--r-card); padding: 8px; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 76px; box-shadow: var(--sh-1); }
+.aj-nav .g { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--txt-3); padding: 10px 10px 4px; }
+.aj-nav button { border: 0; background: none; text-align: left; font: 500 13px var(--font-sans, inherit); color: var(--txt-forte-2); padding: 8px 10px; border-radius: 9px; cursor: pointer; }
+.aj-nav button:hover { background: var(--sup-2); }
+.aj-nav button[aria-current="true"] { background: var(--pri-100); color: var(--pri-700); font-weight: 600; }
+html[data-tema="escuro"] .aj-nav button[aria-current="true"] { color: var(--pri-400); }
+.aj-corpo { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.aj-corpo h3 { font-size: 18px; color: var(--txt); margin: 0; }
+.aj-intro { background: var(--sup-2); border: 1px solid var(--lin); border-radius: 14px; padding: 14px 16px; font-size: 13.5px; color: var(--txt-forte-2); line-height: 1.55; }
+.aj-sec { background: var(--sup); border: 1px solid var(--lin); border-radius: 14px; overflow: hidden; }
+.aj-sec > button { width: 100%; border: 0; background: none; text-align: left; padding: 12px 16px; font: 600 14px var(--font-sans, inherit); color: var(--txt); display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.aj-sec > button:hover { background: var(--sup-2); }
+.aj-sec > button .aj-cv { margin-left: auto; color: var(--txt-3); transition: transform var(--dur-2); }
+.aj-sec > button[aria-expanded="true"] .aj-cv { transform: rotate(180deg); }
+.aj-sec ul { margin: 0; padding: 0 16px 14px 34px; font-size: 13px; color: var(--txt-forte-2); display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
+.aj-sec ul[hidden] { display: none; }
+body.dgm .aj mark { background: var(--alerta-bg); color: inherit; border-radius: 3px; padding: 0; }
+.aj-ir { align-self: flex-start; }
+body.dgm .aj .btn { display: inline-flex; align-items: center; gap: 6px; }
+.aj-res { display: flex; flex-direction: column; gap: 10px; }
+.aj-grp { background: var(--sup); border: 1px solid var(--lin); border-radius: 14px; padding: 12px 16px; }
+.aj-grp h4 { font-size: 13px; font-weight: 700; color: var(--txt); margin: 0 0 6px; display: flex; gap: 8px; align-items: center; }
+.aj-grp h4 button { margin-left: auto; border: 0; background: none; color: var(--pri-700); font: 600 12px var(--font-sans, inherit); cursor: pointer; }
+html[data-tema="escuro"] .aj-grp h4 button { color: var(--pri-400); }
+.aj-grp li { font-size: 13px; color: var(--txt-forte-2); margin: 4px 0; }
+.aj-grp li small { color: var(--txt-3); }
+.aj-grp ul { margin: 0; padding-left: 18px; }
+.aj-vazio { background: var(--sup); border: 1px dashed var(--lin-forte); border-radius: 14px; padding: 24px; text-align: center; color: var(--txt-3); font-size: 13px; }
+@media (max-width: 760px) {
+  body.dgm .topbar { flex-wrap: wrap; height: auto; min-height: 58px; row-gap: 8px; padding-block: 10px; }
+  body.dgm .topbar .dgm-tema button { font-size: 0; gap: 0; padding: 6px 8px; }
+  .aj-grade { grid-template-columns: minmax(0, 1fr); }
+  .aj-nav { position: static; flex-direction: row; overflow-x: auto; padding: 6px; }
+  .aj-nav .g { display: none; }
+  .aj-nav button { white-space: nowrap; flex-shrink: 0; }
+}
+:is(.aj-res, .aj-grade)[hidden] { display: none !important; }
