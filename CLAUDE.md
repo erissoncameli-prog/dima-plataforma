@@ -411,6 +411,20 @@ qual vale mora na view, para que biblioteca, relatórios e auditoria não divirj
 carregada (`.neq('origem','nota_tecnica')`, rótulo tirado de `_rotulos`) — consulta só em Produtos;
 e o **valor do produto** não é exibido. As views seguem com esses dados (outros usos).
 
+#### Visual da tela (10/10/2026)
+- Design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor Claro/Escuro no topo) e
+  componentes em `css/acervo.css` (prefixo `acv-`). Sem `<style>` próprio; ícones de interface por `acvIc()`, sem emoji.
+  As **capas** (degradê `PALETAS` ou 1ª página do PDF) são arte e não mudam com o tema; o **visualizador** é sempre escuro.
+  Faixa de situação do pôster = classe `.e-<situacao_acervo>` (CSS), nunca cor no JS.
+- Topo = 4 números (`kpisHtml`): produtos no acervo, arquivos vigentes, no portal público (`valida`) e **aprovados sem
+  arquivo** (lacuna; clicar liga `filtro.lacuna`, que mostra só esses — nunca esconder a lacuna). Não há mais o destaque
+  "Entrada mais recente": a prateleira "Adicionados recentemente" começa por ela.
+- Liberar no portal = janela própria `#modal-pub` (`confirmarPub()`, com o lembrete de CPF/dados bancários), no lugar do
+  `confirm()`. O filtro "Portal público" segue visível para todos (só leitura); marcar continua só super_admin.
+- Janelas (ficha, confirmação, visualizador): classe **`ac-ov`** (no seletor de escopo de `diagnostico-mesa.css`) e pilha
+  `acAbrir`/`acFechar` (Esc fecha a de cima, Tab preso, foco volta ao cartão). Arquivo da ficha abre com Enter.
+- Esteira de capas: `.acv-trilho-wrap` é grid `minmax(0,1fr)` — sem isso a faixa rolável alarga a página no celular.
+
 #### Portal público — marcação por arquivo (migração `20261009_acervo_publicacao.sql`)
 
 O portal público do acervo **ainda não existe**; quando existir, mostra **só** os
