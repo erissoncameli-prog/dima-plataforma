@@ -1,0 +1,261 @@
+/* ── Acervo Digital · biblioteca (prefixo acv-) ──────────────────────────────
+   Usa o design system da mesa (body.dgm + css/diagnostico-mesa.css, tema
+   'diag_tema'): a página segue Claro/Escuro. Cor nova = token abaixo, nunca
+   cor solta no JS. As CAPAS (pôster em degradê ou 1ª página do PDF) são arte
+   e ficam iguais nos dois temas; o VISUALIZADOR é sempre escuro (sala de
+   projeção). Janelas: classe .ac-ov (no seletor de escopo da mesa). */
+
+body.dgm :is(.main-content, .ac-ov) {
+  --acv-ok: #1E8A55; --acv-ver: #F4D35E; --acv-palco: var(--sup);
+}
+html[data-tema="escuro"] body.dgm :is(.main-content, .ac-ov) {
+  --acv-ok: #4CC389;
+}
+
+.acv-ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.acv-ic.p { width: 15px; height: 15px; }
+body.dgm .topbar .dgm-tema { margin-left: auto; }
+
+/* ── Palco (área da biblioteca) ──────────────────────────────────────── */
+.acv-stage { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Números do topo ─────────────────────────────────────────────────── */
+.acv-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.acv-kpi { background: var(--sup); border: 1px solid var(--lin); border-radius: var(--r-card); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+  min-width: 0; text-align: left; font: inherit; color: var(--txt); box-shadow: var(--sh-1); }
+.acv-kpi-l { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--txt-2); font-weight: 500; }
+.acv-kpi-l .acv-ic { color: var(--txt-3); }
+.acv-kpi-v { font: 500 24px/1.1 var(--font-mono); letter-spacing: -.02em; }
+.acv-kpi-s { font-size: 12px; color: var(--txt-3); }
+button.acv-kpi { cursor: pointer; transition: border-color var(--dur-1) var(--ease), background-color var(--dur-1) var(--ease); }
+button.acv-kpi:hover { background: var(--sup-2); }
+button.acv-kpi:focus-visible { outline: 0; box-shadow: var(--anel); }
+.acv-kpi.al { border-color: var(--alerta-borda); }
+.acv-kpi.al .acv-kpi-v, .acv-kpi.al .acv-kpi-l .acv-ic { color: var(--alerta-txt); }
+.acv-kpi.al.on { background: var(--alerta-bg); }
+
+/* ── Barra de comando ────────────────────────────────────────────────── */
+.acv-cmd { display: flex; gap: 8px 10px; align-items: center; flex-wrap: wrap; background: var(--sup); border: 1px solid var(--lin);
+  border-radius: var(--r-card); padding: 10px 12px; box-shadow: var(--sh-1); }
+.acv-busca { position: relative; flex: 1 1 280px; min-width: 200px; max-width: 420px; }
+body.dgm .acv-busca input { width: 100%; height: 38px; background: var(--sup); border: 1px solid var(--lin-forte); border-radius: var(--r-ctl);
+  color: var(--txt); font: inherit; font-size: 13.5px; padding: 0 40px 0 36px; outline: none; }
+.acv-busca input::placeholder { color: var(--txt-3); }
+body.dgm .acv-busca input:focus { border-color: var(--pri-600); box-shadow: var(--anel); }
+.acv-busca-ico { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--txt-3); pointer-events: none; }
+.acv-busca-kbd { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font: 500 10px var(--font-mono); color: var(--txt-3);
+  border: 1px solid var(--lin-forte); border-radius: 5px; padding: 1px 6px; pointer-events: none; }
+.acv-busca input:focus ~ .acv-busca-kbd { opacity: 0; }
+
+body.dgm .acv-sel { height: 38px; background-color: var(--sup); border: 1px solid var(--lin-forte); border-radius: var(--r-ctl); color: var(--txt);
+  font: inherit; font-size: 13px; padding: 0 10px; outline: none; cursor: pointer; max-width: 210px; }
+body.dgm .acv-sel:focus { border-color: var(--pri-600); box-shadow: var(--anel); }
+
+.acv-toggle { display: inline-flex; border: 1px solid var(--lin-forte); border-radius: var(--r-ctl); overflow: hidden; }
+.acv-toggle button { background: var(--sup); border: 0; cursor: pointer; font: inherit; font-size: 12px; font-weight: 500; color: var(--txt-2);
+  padding: 0 11px; height: 36px; display: inline-flex; align-items: center; gap: 6px; }
+.acv-toggle button + button { border-left: 1px solid var(--lin); }
+.acv-toggle button.on { background: var(--pri-100); color: var(--pri-700); font-weight: 600; }
+html[data-tema="escuro"] .acv-toggle button.on { color: var(--pri-400); }
+
+.acv-limpar { background: none; border: 1px solid var(--lin-forte); border-radius: var(--r-ctl); color: var(--txt-2); font: inherit; font-size: 12px;
+  cursor: pointer; padding: 0 12px; height: 36px; display: inline-flex; align-items: center; gap: 6px; }
+.acv-limpar:hover { background: var(--sup-2); color: var(--txt); }
+
+/* ── Chips de categoria + filtro do portal público ───────────────────── */
+.acv-filtros2 { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.acv-chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.acv-chip { background: var(--sup); border: 1px solid var(--lin-forte); border-radius: var(--r-pill); color: var(--txt-2); font: inherit; font-size: 12px;
+  font-weight: 500; cursor: pointer; padding: 4px 11px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.acv-chip:hover { background: var(--sup-2); }
+.acv-chip.on { background: var(--pri-100); border-color: var(--pri-600); color: var(--txt); font-weight: 600; }
+.acv-chip-n { font: 500 10.5px var(--font-mono); color: var(--txt-3); }
+.acv-pubf { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.acv-pubf-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--txt-3); }
+.acv-pubf-grp { display: inline-flex; border: 1px solid var(--lin-forte); border-radius: var(--r-ctl); overflow: hidden; }
+.acv-pubf-btn { background: var(--sup); border: 0; color: var(--txt-2); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; padding: 6px 10px;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.acv-pubf-btn + .acv-pubf-btn { border-left: 1px solid var(--lin); }
+.acv-pubf-btn.on { background: var(--pri-100); color: var(--pri-700); font-weight: 600; }
+html[data-tema="escuro"] .acv-pubf-btn.on { color: var(--pri-400); }
+:is(.acv-chip, .acv-pubf-btn, .acv-toggle button, .acv-limpar):focus-visible { outline: 0; box-shadow: var(--anel); position: relative; }
+
+/* ── Prateleiras ─────────────────────────────────────────────────────── */
+.acv-corpo { background: var(--acv-palco); border: 1px solid var(--lin); border-radius: var(--r-card); padding: 6px 0 22px; box-shadow: var(--sh-1); }
+.acv-prat { margin-top: 18px; }
+.acv-prat-cab { display: flex; align-items: baseline; gap: 10px; padding: 0 18px 10px; }
+.acv-prat-tit { font-size: 15px; font-weight: 700; color: var(--txt); letter-spacing: -.01em; }
+.acv-prat-n { font: 500 11.5px var(--font-mono); color: var(--txt-3); }
+.acv-trilho-wrap { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); }
+.acv-trilho { display: flex; gap: 14px; overflow-x: auto; scroll-behavior: smooth; padding: 4px 18px 10px; scroll-snap-type: x proximity;
+  scrollbar-width: thin; scrollbar-color: var(--lin-forte) transparent; }
+.acv-trilho::-webkit-scrollbar { height: 7px; }
+.acv-trilho::-webkit-scrollbar-thumb { background: var(--lin-forte); border-radius: 99px; }
+.acv-trilho > * { scroll-snap-align: start; }
+.acv-seta { position: absolute; top: 4px; bottom: 14px; width: 48px; border: none; cursor: pointer; z-index: 5; color: var(--txt);
+  display: flex; align-items: center; opacity: 0; transition: opacity .18s; background: none; }
+.acv-trilho-wrap:hover .acv-seta, .acv-seta:focus-visible { opacity: 1; }
+.acv-seta-e { left: 0; background: linear-gradient(90deg, var(--acv-palco), transparent); justify-content: flex-start; padding-left: 6px; }
+.acv-seta-d { right: 0; background: linear-gradient(270deg, var(--acv-palco), transparent); justify-content: flex-end; padding-right: 6px; }
+.acv-seta .acv-ic { width: 24px; height: 24px; }
+
+/* ── Pôster (card) ───────────────────────────────────────────────────── */
+.acv-card { flex: 0 0 160px; width: 160px; cursor: pointer; background: none; border: none; padding: 0; font: inherit; text-align: left; color: var(--txt);
+  transition: transform .18s var(--ease); }
+.acv-card:hover { transform: translateY(-4px); }
+.acv-card:focus-visible { outline: 0; box-shadow: var(--anel); border-radius: 12px; }
+.acv-poster { position: relative; width: 100%; aspect-ratio: 2/3; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 16px rgba(16, 32, 24, .18);
+  display: flex; flex-direction: column; justify-content: space-between; padding: 12px; transition: box-shadow .18s; }
+html[data-tema="escuro"] .acv-poster { box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
+.acv-card:hover .acv-poster { box-shadow: 0 12px 28px rgba(16, 32, 24, .26); }
+.acv-poster::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 38%, rgba(0, 0, 0, .62) 100%); }
+.acv-poster-num { font-family: Georgia, serif; font-size: 52px; font-weight: 600; color: rgba(255, 255, 255, .24); line-height: .9; letter-spacing: -.04em;
+  position: absolute; right: 11px; bottom: 8px; z-index: 1; }
+.acv-poster-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; z-index: 2; position: relative; }
+.acv-poster-tags { display: flex; gap: 4px; flex-wrap: wrap; min-width: 0; }
+.acv-poster-ativ { font: 500 9.5px var(--font-mono); color: #fff; background: rgba(0, 0, 0, .45); border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 5px; padding: 2px 6px; white-space: nowrap; }
+.acv-poster-ver { font: 500 9.5px var(--font-mono); color: #0B2818; background: var(--acv-ver); border: 1px solid rgba(0, 0, 0, .12); border-radius: 5px;
+  padding: 2px 6px; white-space: nowrap; }
+.acv-poster-ico { opacity: .9; flex-shrink: 0; }
+.acv-poster-tit { font-size: 12.5px; font-weight: 600; color: #fff; line-height: 1.34; z-index: 2; position: relative; display: -webkit-box; -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 3px rgba(0, 0, 0, .5); padding-right: 26px; }
+.acv-poster-selo { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 3; }
+.acv-poster-selo.e-aprovado { background: #1E8A55; }
+.acv-poster-selo.e-em_correcao { background: #B42318; }
+.acv-poster-selo.e-em_avaliacao { background: #1F5FBF; }
+.acv-poster-selo.e-sem_entrega { background: #8C9A92; }
+.acv-poster.apagado { opacity: .55; }
+/* Capa extraída da 1ª página do PDF, por cima do degradê de fallback */
+.acv-poster-capa { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top center; opacity: 0; transition: opacity .35s ease; z-index: 0; }
+.acv-poster-capa.on { opacity: 1; }
+/* Com capa real, título/número/ícone sobrepostos saem — a página já traz o título */
+.acv-poster.com-capa .acv-poster-tit, .acv-poster.com-capa .acv-poster-num, .acv-poster.com-capa .acv-poster-ico { display: none; }
+.acv-poster.com-capa::after { background: linear-gradient(180deg, rgba(0, 0, 0, .26) 0%, transparent 22%); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .10); border-radius: 12px; }
+
+.acv-card-pe { padding: 8px 2px 0; }
+.acv-card-tit { font-size: 12.5px; font-weight: 600; color: var(--txt); line-height: 1.32; margin-bottom: 3px; display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden; }
+.acv-card-forn { font-size: 11.5px; color: var(--txt-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acv-card-info { font-size: 11px; color: var(--txt-3); margin-top: 2px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.acv-card-info .acv-ic { width: 12px; height: 12px; }
+.acv-card-pub { color: var(--ok-txt); font-weight: 600; }
+.acv-card-lacuna { color: var(--alerta-txt); font-weight: 600; }
+
+/* ── Grade ───────────────────────────────────────────────────────────── */
+.acv-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px 14px; padding: 4px 18px 0; }
+.acv-grade .acv-card { flex: none; width: 100%; }
+
+/* ── Vazio ───────────────────────────────────────────────────────────── */
+.acv-vazio { text-align: center; padding: 56px 20px; color: var(--txt-2); }
+.acv-vazio-ico { color: var(--txt-3); margin-bottom: 12px; }
+.acv-vazio-ico .acv-ic { width: 40px; height: 40px; }
+.acv-vazio-tit { font-size: 16px; font-weight: 600; color: var(--txt); margin-bottom: 6px; }
+.acv-vazio-sub { font-size: 13px; line-height: 1.55; max-width: 420px; margin: 0 auto; }
+.acv-carregando { padding: 56px 20px; text-align: center; color: var(--txt-2); font-size: 13px; }
+
+/* ── Selos de estado (ficha) ─────────────────────────────────────────── */
+.acv-selo { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: var(--r-pill); white-space: nowrap; line-height: 18px; }
+.acv-selo .acv-ic { width: 12px; height: 12px; }
+.selo-f-aprovado { background: var(--ok-bg); color: var(--ok-txt); }
+.selo-f-em_correcao { background: var(--erro-bg); color: var(--erro-txt); }
+.selo-f-em_avaliacao { background: var(--info-bg); color: var(--info-txt); }
+.selo-f-sem_entrega { background: var(--bg-2); color: var(--txt-2); }
+
+/* ── Avisos na ficha ─────────────────────────────────────────────────── */
+.acv-aviso { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.55; padding: 10px 12px; border-radius: var(--r-ctl); margin: 14px 0 4px; }
+.acv-aviso-alerta { background: var(--alerta-bg); color: var(--alerta-txt); }
+.acv-aviso-info { background: var(--info-bg); color: var(--info-txt); }
+
+/* ── Histórico de versões (recolhível) ───────────────────────────────── */
+.acv-hist { margin-top: 16px; border: 1px dashed var(--lin-forte); border-radius: var(--r-ctl); background: var(--sup-2); }
+.acv-hist > summary { cursor: pointer; padding: 10px 12px; font-size: 13px; font-weight: 600; color: var(--txt-2); display: flex; align-items: center; gap: 8px; list-style: none; }
+.acv-hist > summary::-webkit-details-marker { display: none; }
+.acv-hist > summary .acv-ic { transition: transform .18s; width: 14px; height: 14px; }
+.acv-hist[open] > summary .acv-ic { transform: rotate(90deg); }
+.acv-hist > summary:hover { color: var(--txt); }
+.acv-hist-nota { font-size: 12px; font-weight: 400; color: var(--txt-3); margin-left: auto; }
+.acv-hist .acv-midia { margin: 0 10px 10px; }
+.acv-midia-sup { opacity: .75; }
+.acv-midia-sup .acv-midia-nome { text-decoration: line-through; text-decoration-color: var(--txt-3); }
+.acv-rot-sup { background: var(--erro-bg) !important; color: var(--erro-txt) !important; }
+
+/* ── Ficha da obra (janela) ──────────────────────────────────────────── */
+.acv-ficha { max-width: min(94vw, 860px); }
+.acv-ficha-topo { display: grid; grid-template-columns: 140px 1fr; gap: 18px; margin-bottom: 16px; }
+.acv-ficha-tit { font-size: 19px; line-height: 1.3; color: var(--txt); font-weight: 700; letter-spacing: -.01em; margin-bottom: 10px; }
+.acv-ficha-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.acv-ficha-dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 16px; }
+.acv-dado-lbl { font-size: 11px; color: var(--txt-3); font-weight: 600; margin-bottom: 2px; }
+.acv-dado-val { font-size: 13px; color: var(--txt); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.acv-secao-tit { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--txt-3); font-weight: 600; margin: 18px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--lin); }
+.acv-texto { font-size: 13px; color: var(--txt-forte-2); line-height: 1.6; }
+.acv-midia { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--lin); border-radius: var(--r-ctl); margin-bottom: 8px;
+  cursor: pointer; transition: border-color .15s, background-color .15s; background: var(--sup); }
+.acv-midia:hover { border-color: var(--pri-600); background: var(--sup-2); }
+.acv-midia:focus-visible { outline: 0; box-shadow: var(--anel); }
+.acv-midia-ico { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--info-bg); color: var(--info); }
+.acv-midia-ico.t-planilha { background: var(--ok-bg); color: var(--ok); }
+.acv-midia-ico.t-apresentacao { background: var(--alerta-bg); color: var(--alerta); }
+.acv-midia-ico.t-imagem { background: var(--ia-bg); color: var(--ia); }
+.acv-midia-ico.t-video { background: var(--erro-bg); color: var(--erro); }
+.acv-midia-ico.t-audio { background: var(--treino-bg); color: var(--treino); }
+.acv-midia-ico.t-pacote, .acv-midia-ico.t-outro { background: var(--bg-2); color: var(--txt-2); }
+.acv-midia-corpo { flex: 1; min-width: 0; }
+.acv-midia-nome { font-size: 13px; font-weight: 600; color: var(--txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acv-midia-sub { font-size: 11.5px; color: var(--txt-3); margin-top: 2px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.acv-midia-rot { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: var(--r-pill); background: var(--info-bg); color: var(--info-txt); white-space: nowrap; }
+.acv-midia-rot.res { background: var(--ok-bg); color: var(--ok-txt); }
+.acv-midia-rot.neu { background: var(--bg-2); color: var(--txt-2); }
+.acv-midia-acao { font-size: 12px; font-weight: 600; color: var(--pri-600); flex-shrink: 0; display: inline-flex; gap: 4px; align-items: center; }
+
+/* ── Portal público (marcação por arquivo; só super_admin altera) ────── */
+.acv-pub-btn { font: inherit; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: var(--r-ctl); flex-shrink: 0; cursor: pointer;
+  border: 1px solid var(--lin-forte); background: var(--sup); color: var(--txt-forte-2); display: inline-flex; gap: 5px; align-items: center; }
+.acv-pub-btn:hover { border-color: var(--pri-600); color: var(--pri-600); }
+.acv-pub-btn.on { background: var(--ok-bg); border-color: transparent; color: var(--ok-txt); }
+.acv-pub-btn:disabled { opacity: .6; cursor: wait; }
+.acv-pub-btn .acv-ic { width: 13px; height: 13px; }
+.acv-pub-selo { font-size: 11px; font-weight: 600; flex-shrink: 0; padding: 2px 8px; border-radius: var(--r-pill); background: var(--ok-bg); color: var(--ok-txt); }
+.acv-pub-invalido { background: var(--alerta-bg); color: var(--alerta-txt); }
+.acv-pub-dica { font-size: 12px; color: var(--txt-3); margin: -4px 0 10px; }
+
+/* Janela de confirmação do portal */
+.acv-conf { max-width: 520px; }
+.acv-conf-arq { font-size: 12.5px; color: var(--txt-3); margin-top: 2px; word-break: break-word; }
+
+/* ── Visualizador (sempre escuro) ────────────────────────────────────── */
+.acv-viewer-overlay { position: fixed; inset: 0; background: rgba(6, 12, 9, .94); z-index: 10001; display: none; flex-direction: column; }
+.acv-viewer-overlay.aberto { display: flex; }
+.acv-viewer-barra { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid rgba(255, 255, 255, .12); flex-shrink: 0; }
+.acv-viewer-nome { flex: 1; min-width: 0; color: #fff; font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acv-viewer-sub { font-size: 11.5px; color: rgba(255, 255, 255, .55); margin-top: 2px; }
+.acv-viewer-corpo { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 16px; color: rgba(255, 255, 255, .72); }
+.acv-viewer-corpo iframe { width: 100%; height: 100%; border: none; border-radius: 8px; background: #fff; }
+.acv-viewer-corpo video { max-width: 100%; max-height: 100%; border-radius: 8px; background: #000; }
+.acv-viewer-corpo img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+.acv-vbtn { background: rgba(255, 255, 255, .13); border: 1px solid rgba(255, 255, 255, .2); border-radius: 10px; color: #fff; font: inherit; font-size: 12.5px;
+  font-weight: 600; cursor: pointer; padding: 7px 12px; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.acv-vbtn:hover { background: rgba(255, 255, 255, .24); }
+.acv-vbtn.x { padding: 7px; }
+.acv-vbtn:focus-visible { outline: 2px solid #7CCBA0; outline-offset: 2px; }
+
+/* ── Responsivo ──────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .acv-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .acv-ficha-topo { grid-template-columns: 1fr; }
+  .acv-ficha-topo .acv-poster { max-width: 130px; }
+}
+@media (max-width: 760px) {
+  body.dgm .page-body { padding: 16px; }
+  body.dgm .topbar { flex-wrap: wrap; height: auto; min-height: 58px; row-gap: 8px; padding-block: 10px; }
+  body.dgm .topbar .dgm-tema button { font-size: 0; gap: 0; padding: 6px 8px; }
+  .acv-busca { max-width: none; flex-basis: 100%; }
+  body.dgm .acv-sel { max-width: none; flex: 1 1 140px; }
+  .acv-prat-cab, .acv-trilho { padding-left: 12px; padding-right: 12px; }
+  .acv-grade { padding: 4px 12px 0; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+  .acv-card { flex: 0 0 132px; width: 132px; }
+  .acv-midia { flex-wrap: wrap; }
+  .acv-midia-corpo { flex-basis: calc(100% - 50px); }
+  .acv-viewer-barra { flex-wrap: wrap; }
+}

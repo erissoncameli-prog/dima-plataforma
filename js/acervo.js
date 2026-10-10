@@ -33,26 +33,85 @@ let obraAberta = null;
 let publicos = {};           // midia_id → linha de vw_acervo_publicacoes (publico = true)
 let podePublicar = false;    // só super_admin marca para o portal público
 let viewerUrlAtual = null;
+let totalContratados = 0;   // produtos de contrato que a pessoa enxerga (aprovados ou não)
 
 const CHAVE_RECENTES = 'dima_acervo_recentes';
 
 // Estado de navegação da biblioteca
 const filtro = {
   busca: '', rotulo: '', atividade: '', fornecedor: '',
-  resultado: '', ano: '', formato: '', publico: '', ordem: 'recentes', modo: 'estante',
+  resultado: '', ano: '', formato: '', publico: '', lacuna: false, ordem: 'recentes', modo: 'estante',
 };
 
 const ROTULO_NOTA_TECNICA = 'Nota Técnica';
 
 // ── Estados de acervo ────────────────────────────────────────────────
-// Espelham situacao_acervo da view. `cor` pinta a faixa do pôster.
+// Espelham situacao_acervo da view. A faixa do pôster é a classe .e-<situação> (css/acervo.css).
 const ESTADOS = {
-  aprovado:     { rotulo: 'Aprovado',           cor: '#52B788' },
-  em_correcao:  { rotulo: 'Em correção',        cor: '#EF4444' },
-  em_avaliacao: { rotulo: 'Em avaliação',       cor: '#2563EB' },
-  sem_entrega:  { rotulo: 'Aguardando entrega', cor: '#94A3B8' },
+  aprovado:     { rotulo: 'Aprovado' },
+  em_correcao:  { rotulo: 'Em correção' },
+  em_avaliacao: { rotulo: 'Em avaliação' },
+  sem_entrega:  { rotulo: 'Aguardando entrega' },
 };
 function estado(o) { return ESTADOS[o.situacao_acervo] || ESTADOS.sem_entrega; }
+
+// ── Ícones de interface (SVG, sem emoji) ─────────────────────────────
+const ACV_IC = {
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  busca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  livro: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7"/>',
+  doc: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  globo: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  alerta: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  estante: '<path d="M3 5h18M3 12h18M3 19h18"/>',
+  grade: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  esq: '<path d="m15 18-6-6 6-6"/>',
+  dir: '<path d="m9 18 6-6-6-6"/>',
+  olho: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  cadeado: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  externo: '<path d="M14 3h7v7M21 3l-9 9"/><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>',
+  sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+};
+function acvIc(n, cls) { return '<svg class="acv-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (ACV_IC[n] || '') + '</svg>'; }
+document.querySelectorAll('i[data-ic]').forEach(e => { e.outerHTML = acvIc(e.dataset.ic, 'p'); });
+
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico e das demais guias (componente .dgm-tema)
+function seletorTema() {
+  const tb = document.querySelector('.topbar'); if (!tb || tb.querySelector('.dgm-tema') || typeof DiagTema === 'undefined') return;
+  const d = document.createElement('div');
+  d.className = 'dgm-tema'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Tema');
+  d.innerHTML = [['claro', 'sol', 'Claro'], ['escuro', 'lua', 'Escuro']].map(x =>
+    '<button type="button" data-tema="' + x[0] + '" aria-pressed="' + (DiagTema.atual() === x[0]) + '">' + acvIc(x[1]) + x[2] + '</button>').join('');
+  const bc = tb.querySelector('.topbar-breadcrumb');
+  if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d);
+  d.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tema]'); if (!b) return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+}
+
+// ── Janelas: pilha (Esc fecha a de cima), foco no primeiro controle, Tab preso, foco volta ──
+const ACV_FOCAVEIS = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"]),iframe,video,audio';
+const acvPilha = [];
+function acAbrir(id, alvo) {
+  const el = document.getElementById(id);
+  if (!el.classList.contains('aberto')) { acvPilha.push({ id, volta: document.activeElement }); el.classList.add('aberto'); }
+  requestAnimationFrame(() => {
+    const f = (alvo && document.getElementById(alvo)) || el.querySelector('.modal-close, .acv-vbtn.x');
+    if (f) f.focus({ preventScroll: true });
+  });
+}
+function acFechar(id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.classList.remove('aberto');
+  const k = acvPilha.findIndex(x => x.id === id);
+  if (k >= 0) { const { volta } = acvPilha.splice(k, 1)[0]; if (volta && document.contains(volta)) volta.focus({ preventScroll: true }); }
+}
+const ACV_FECHAR = { 'modal-ficha': () => fecharFicha(), 'viewer': () => fecharViewer(), 'modal-pub': () => fecharConfPub(false) };
 
 // ── Paletas de capa ──────────────────────────────────────────────────
 // Fallback quando não há capa extraída do PDF. Determinístico a partir do
@@ -130,11 +189,12 @@ function registrarRecente(obraId) {
   document.getElementById('app').innerHTML =
     gerarLayout('Acervo de Produtos', 'acervo')
     + '<div class="fade-in"><div class="acv-stage" id="palco">'
-    + '<div style="padding:60px 22px;text-align:center;color:rgba(255,255,255,.6);font-size:13px">Carregando o acervo…</div>'
+    + '<div class="acv-carregando" role="status">Carregando o acervo…</div>'
     + '</div></div>'
     + '</div></div></div>';
 
   carregarLogosSidebar();
+  seletorTema();
   podePublicar = appState.perfil === 'super_admin';
 
   try {
@@ -142,7 +202,7 @@ function registrarRecente(obraId) {
   } catch (e) {
     console.error('Falha ao carregar o acervo:', e);
     document.getElementById('palco').innerHTML =
-      '<div class="acv-vazio"><div class="acv-vazio-ico">&#x26A0;</div>'
+      '<div class="acv-vazio"><div class="acv-vazio-ico">' + acvIc('alerta') + '</div>'
       + '<div class="acv-vazio-tit">Não foi possível carregar o acervo</div>'
       + '<div class="acv-vazio-sub">' + esc((e && e.message) || 'Erro inesperado.') + '</div></div>';
     return;
@@ -186,6 +246,7 @@ async function carregarAcervo() {
 
   // Acervo mostra só entregas aprovadas — pendente/em avaliação/em correção
   // ficam no módulo de Avaliação de Produtos, não na biblioteca pública.
+  totalContratados = (rObras.data || []).length;
   obras = (rObras.data || []).filter(o => o.situacao_acervo === 'aprovado').map(o => {
     const ms = midiasPorObra[o.obra_id] || [];
     o._ano = anoDe(o.publicado_em || o.dt_entrega || o.criado_em);
@@ -246,6 +307,7 @@ function filtrarObras() {
     if (filtro.ano && String(o._ano) !== String(filtro.ano)) return false;
     if (filtro.publico === 'sim' && !o._publicos) return false;
     if (filtro.publico === 'nao' && o._publicos) return false;
+    if (filtro.lacuna && o.total_vigentes > 0) return false;
     return true;
   });
 
@@ -260,13 +322,38 @@ function filtrarObras() {
 
 function filtroAtivo() {
   return !!(filtro.busca.trim() || filtro.rotulo || filtro.formato || filtro.atividade
-    || filtro.fornecedor || filtro.resultado || filtro.ano || filtro.publico);
+    || filtro.fornecedor || filtro.resultado || filtro.ano || filtro.publico || filtro.lacuna);
 }
 
 // ═══ Render — palco completo ═════════════════════════════════════════
 function montarPalco() {
-  document.getElementById('palco').innerHTML = barraComando() + chipsHtml() + '<div id="acervo-corpo"></div>';
+  document.getElementById('palco').innerHTML = palcoHtml();
   renderCorpo();
+}
+function palcoHtml() {
+  return kpisHtml() + barraComando() + '<div class="acv-filtros2">' + chipsHtml() + '</div>'
+    + '<div class="acv-corpo" id="acervo-corpo"></div>';
+}
+
+// Números do topo. "Aprovados sem arquivo" = lacuna de dado (a entrega aprovada
+// não teve arquivo); clicar filtra os produtos — nunca se esconde a lacuna.
+function kpisHtml() {
+  const nArq = obras.reduce((t, o) => t + (o.total_vigentes || 0), 0);
+  const nSup = obras.reduce((t, o) => t + (o.total_superadas || 0), 0);
+  const nPub = Object.values(publicos).filter(p => p.valida).length;
+  const nLac = obras.filter(o => !o.total_vigentes).length;
+  const kpi = (ic, l, v, sub) => '<div class="acv-kpi"><span class="acv-kpi-l">' + acvIc(ic, 'p') + l + '</span>'
+    + '<span class="acv-kpi-v">' + v + '</span><span class="acv-kpi-s">' + sub + '</span></div>';
+  return '<div class="acv-kpis">'
+    + kpi('livro', 'Produtos no acervo', obras.length, 'aprovados' + (totalContratados > obras.length ? ' · ' + (totalContratados - obras.length) + ' ainda sem aprovação' : ''))
+    + kpi('doc', 'Arquivos vigentes', nArq, nSup ? nSup + (nSup === 1 ? ' versão anterior' : ' versões anteriores') + ' no histórico' : 'sem versões anteriores')
+    + kpi('globo', 'No portal público', nPub, nPub === 1 ? 'arquivo marcado e válido' : 'arquivos marcados e válidos')
+    + (nLac
+      ? '<button type="button" class="acv-kpi al' + (filtro.lacuna ? ' on' : '') + '" id="acv-lacuna" aria-pressed="' + filtro.lacuna + '">'
+        + '<span class="acv-kpi-l">' + acvIc('alerta', 'p') + 'Aprovados sem arquivo</span><span class="acv-kpi-v">' + nLac + '</span>'
+        + '<span class="acv-kpi-s">' + (filtro.lacuna ? 'mostrando · clique para voltar' : 'clique para ver') + '</span></button>'
+      : kpi('check', 'Aprovados sem arquivo', 0, 'nenhuma lacuna'))
+    + '</div>';
 }
 
 function barraComando() {
@@ -277,38 +364,38 @@ function barraComando() {
 
   return '<div class="acv-cmd">'
     + '<div class="acv-busca">'
-    + '<svg class="acv-busca-ico" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>'
-    + '<input id="acv-q" type="search" placeholder="Buscar por título, consultor, atividade, arquivo…" value="' + esc(filtro.busca) + '" autocomplete="off">'
+    + acvIc('busca', 'p acv-busca-ico')
+    + '<input id="acv-q" type="search" placeholder="Buscar por título, consultor, atividade, arquivo…" aria-label="Buscar no acervo" value="' + esc(filtro.busca) + '" autocomplete="off">'
     + '<span class="acv-busca-kbd">/</span>'
     + '</div>'
 
-    + '<select class="acv-sel" id="acv-ativ" title="Atividade"><option value="">Todas as atividades</option>'
+    + '<select class="acv-sel" id="acv-ativ" title="Atividade" aria-label="Atividade"><option value="">Todas as atividades</option>'
     + opc(facetas.atividades, filtro.atividade, 'valor', 'texto') + '</select>'
 
-    + '<select class="acv-sel" id="acv-forn" title="Consultor ou fornecedor"><option value="">Todos os consultores</option>'
+    + '<select class="acv-sel" id="acv-forn" title="Consultor ou fornecedor" aria-label="Consultor ou fornecedor"><option value="">Todos os consultores</option>'
     + opc(facetas.fornecedores, filtro.fornecedor, 'valor', 'texto') + '</select>'
 
     + (facetas.resultados.length > 1
-      ? '<select class="acv-sel" id="acv-res" title="Resultado"><option value="">Todos os resultados</option>'
+      ? '<select class="acv-sel" id="acv-res" title="Resultado" aria-label="Resultado"><option value="">Todos os resultados</option>'
         + opc(facetas.resultados, filtro.resultado, 'valor', 'texto') + '</select>'
       : '')
 
-    + '<select class="acv-sel" id="acv-ano" title="Ano"><option value="">Todos os anos</option>'
+    + '<select class="acv-sel" id="acv-ano" title="Ano" aria-label="Ano"><option value="">Todos os anos</option>'
     + opc(facetas.anos, filtro.ano) + '</select>'
 
-    + '<select class="acv-sel" id="acv-ordem" title="Ordenar">'
+    + '<select class="acv-sel" id="acv-ordem" title="Ordenar" aria-label="Ordenar">'
     + opc([{ v: 'recentes', t: 'Mais recentes' }, { v: 'titulo', t: 'Título A–Z' },
            { v: 'numero', t: 'Nº do produto' }, { v: 'arquivos', t: 'Mais arquivos' }],
           filtro.ordem, 'v', 't') + '</select>'
 
-    + '<div class="acv-toggle">'
-    + '<button type="button" id="acv-m-estante" class="' + (filtro.modo === 'estante' ? 'on' : '') + '" title="Prateleiras">'
-    + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg>Estante</button>'
-    + '<button type="button" id="acv-m-grade" class="' + (filtro.modo === 'grade' ? 'on' : '') + '" title="Grade">'
-    + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Grade</button>'
+    + '<div class="acv-toggle" role="group" aria-label="Exibição">'
+    + '<button type="button" id="acv-m-estante" class="' + (filtro.modo === 'estante' ? 'on' : '') + '" aria-pressed="' + (filtro.modo === 'estante') + '" title="Prateleiras">'
+    + acvIc('estante', 'p') + 'Estante</button>'
+    + '<button type="button" id="acv-m-grade" class="' + (filtro.modo === 'grade' ? 'on' : '') + '" aria-pressed="' + (filtro.modo === 'grade') + '" title="Grade">'
+    + acvIc('grade', 'p') + 'Grade</button>'
     + '</div>'
 
-    + (filtroAtivo() ? '<button class="acv-limpar" id="acv-limpar" type="button">Limpar filtros</button>' : '')
+    + (filtroAtivo() ? '<button class="acv-limpar" id="acv-limpar" type="button">' + acvIc('x', 'p') + 'Limpar filtros</button>' : '')
     + '</div>';
 }
 
@@ -322,23 +409,23 @@ function pubFiltroHtml() {
     { v: 'nao', t: 'Não publicados', n: obras.length - nPub },
   ];
   return '<div class="acv-pubf" role="group" aria-label="Portal público">'
-    + '<span class="acv-pubf-lbl">Portal público</span>'
+    + '<span class="acv-pubf-lbl">Portal público</span><span class="acv-pubf-grp">'
     + opcoes.map(op => '<button type="button" class="acv-pubf-btn' + (filtro.publico === op.v ? ' on' : '')
       + '" data-pubf="' + op.v + '" aria-pressed="' + (filtro.publico === op.v) + '">'
       + esc(op.t) + ' <span class="acv-chip-n">' + op.n + '</span></button>').join('')
-    + '</div>';
+    + '</span></div>';
 }
 
 function chipsHtml() {
   if (!facetas.rotulos.length) return pubFiltroHtml();
   const total = obras.filter(o => o.total_vigentes > 0).length;
-  let h = pubFiltroHtml() + '<div class="acv-chips">'
-    + '<button class="acv-chip' + (filtro.rotulo ? '' : ' on') + '" data-rotulo="">Todo o acervo <span class="acv-chip-n">' + total + '</span></button>';
+  let h = '<div class="acv-chips" role="group" aria-label="Categoria">'
+    + '<button type="button" class="acv-chip' + (filtro.rotulo ? '' : ' on') + '" data-rotulo="" aria-pressed="' + !filtro.rotulo + '">Todo o acervo <span class="acv-chip-n">' + total + '</span></button>';
   facetas.rotulos.forEach(r => {
-    h += '<button class="acv-chip' + (filtro.rotulo === r.rotulo ? ' on' : '') + '" data-rotulo="' + esc(r.rotulo) + '">'
+    h += '<button type="button" class="acv-chip' + (filtro.rotulo === r.rotulo ? ' on' : '') + '" data-rotulo="' + esc(r.rotulo) + '" aria-pressed="' + (filtro.rotulo === r.rotulo) + '">'
       + esc(r.rotulo) + ' <span class="acv-chip-n">' + r.n + '</span></button>';
   });
-  return h + '</div>';
+  return h + '</div>' + pubFiltroHtml();
 }
 
 function renderCorpo() {
@@ -349,8 +436,8 @@ function renderCorpo() {
   // não faz sentido quando o usuário já disse o que procura.
   if (filtro.modo === 'grade' || filtroAtivo()) {
     corpo.innerHTML = lista.length
-      ? '<div class="acv-prat-cab" style="padding-top:18px">'
-        + '<span class="acv-prat-tit">' + (filtroAtivo() ? 'Resultados' : 'Todo o acervo') + '</span>'
+      ? '<div class="acv-prat-cab" style="padding-top:16px">'
+        + '<span class="acv-prat-tit">' + (filtro.lacuna ? 'Aprovados sem arquivo na versão vigente' : filtroAtivo() ? 'Resultados' : 'Todo o acervo') + '</span>'
         + '<span class="acv-prat-n">' + lista.length + (lista.length === 1 ? ' obra' : ' obras') + '</span></div>'
         + '<div class="acv-grade">' + lista.map(cardHtml).join('') + '</div>'
       : vazioHtml();
@@ -358,42 +445,14 @@ function renderCorpo() {
     return;
   }
 
-  corpo.innerHTML = heroHtml(lista) + prateleirasHtml(lista);
+  corpo.innerHTML = prateleirasHtml(lista);
   ligarCards();
 }
 
 function vazioHtml() {
-  return '<div class="acv-vazio"><div class="acv-vazio-ico">&#x1F50D;</div>'
+  return '<div class="acv-vazio"><div class="acv-vazio-ico">' + acvIc('busca') + '</div>'
     + '<div class="acv-vazio-tit">Nada encontrado no acervo</div>'
     + '<div class="acv-vazio-sub">Tente outro termo, ou limpe os filtros para ver a coleção completa.</div></div>';
-}
-
-// ── Hero ─────────────────────────────────────────────────────────────
-function heroHtml(lista) {
-  const d = lista.filter(o => o.situacao_acervo === 'aprovado' && o.total_vigentes > 0)[0];
-  if (!d) return '';
-  const pilula = txt => '<span class="acv-selo" style="background:rgba(255,255,255,.13);color:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.2)">' + esc(txt) + '</span>';
-  return '<div class="acv-hero">'
-    + '<div class="acv-hero-poster">' + posterHtml(d) + '</div>'
-    + '<div>'
-    + '<div class="acv-hero-tag">Entrada mais recente</div>'
-    + '<h2>' + esc(d.titulo || 'Produto ' + d.numero_produto) + '</h2>'
-    + '<div class="acv-hero-meta">'
-    + seloHtml(d)
-    + (d.atividade_codigo ? pilula('Atividade ' + d.atividade_codigo) : '')
-    + pilula(d.total_vigentes + (d.total_vigentes === 1 ? ' arquivo' : ' arquivos'))
-    + (d.entrega_ref_numero > 1 ? pilula('Versão ' + d.entrega_ref_numero) : '')
-    + '</div>'
-    + '<div class="acv-hero-sub">'
-    + esc(d.fornecedor_nome || '—') + ' &middot; Contrato ' + esc(d.contrato_numero || '—')
-    + (d.publicado_em ? ' &middot; Atualizado em ' + esc(fmtData(d.publicado_em)) : '')
-    + (d.atividade_nome ? '<br>' + esc(d.atividade_nome) : '')
-    + '</div>'
-    + '<div class="acv-hero-acoes">'
-    + '<button class="acv-btn acv-btn-play" data-obra="' + esc(d.obra_id) + '">'
-    + '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Abrir</button>'
-    + '<button class="acv-btn acv-btn-ghost" data-obra="' + esc(d.obra_id) + '">Ficha completa</button>'
-    + '</div></div></div>';
 }
 
 // ── Prateleiras ──────────────────────────────────────────────────────
@@ -436,9 +495,9 @@ function prateleirasHtml(lista) {
       + '<div class="acv-prat-cab"><span class="acv-prat-tit">' + esc(p.titulo) + '</span>'
       + '<span class="acv-prat-n">' + p.itens.length + '</span></div>'
       + '<div class="acv-trilho-wrap">'
-      + '<button class="acv-seta acv-seta-e" type="button" data-trilho="' + id + '" data-dir="-1" aria-label="Anterior">&#x2039;</button>'
+      + '<button class="acv-seta acv-seta-e" type="button" data-trilho="' + id + '" data-dir="-1" aria-label="Anterior">' + acvIc('esq') + '</button>'
       + '<div class="acv-trilho" id="' + id + '">' + p.itens.map(cardHtml).join('') + '</div>'
-      + '<button class="acv-seta acv-seta-d" type="button" data-trilho="' + id + '" data-dir="1" aria-label="Próximo">&#x203A;</button>'
+      + '<button class="acv-seta acv-seta-d" type="button" data-trilho="' + id + '" data-dir="1" aria-label="Próximo">' + acvIc('dir') + '</button>'
       + '</div></div>';
   }).join('');
 }
@@ -452,10 +511,9 @@ function posterHtml(o) {
 
   // data-capa-obra: âncora para acervo-capas.js trocar o degradê pela 1ª
   // página do PDF quando o pôster entrar na viewport.
-  return '<div class="acv-poster" data-capa-obra="' + esc(o.obra_id) + '"'
-    + ' style="background:linear-gradient(' + ang + 'deg,' + par[0] + ',' + par[1] + ')'
-    + (apagado ? ';opacity:.55' : '') + '">'
-    + '<div class="acv-poster-selo" style="background:' + estado(o).cor + '"></div>'
+  return '<div class="acv-poster' + (apagado ? ' apagado' : '') + '" data-capa-obra="' + esc(o.obra_id) + '"'
+    + ' style="background:linear-gradient(' + ang + 'deg,' + par[0] + ',' + par[1] + ')">'
+    + '<div class="acv-poster-selo e-' + esc(o.situacao_acervo || 'sem_entrega') + '"></div>'
     + '<div class="acv-poster-top">'
     + '<span class="acv-poster-tags">'
     + (o.atividade_codigo ? '<span class="acv-poster-ativ">' + esc(o.atividade_codigo) + '</span>' : '')
@@ -473,11 +531,11 @@ function cardHtml(o) {
   const n = o.total_vigentes || 0;
   let info;
   if (n > 0) {
-    info = svgIcone((o._formatos && o._formatos[0]) || 'documento', 11, 'rgba(255,255,255,.5)')
+    info = acvIc('doc')
       + '<span>' + n + (n === 1 ? ' arquivo' : ' arquivos') + '</span>';
   } else if (o.situacao_acervo === 'aprovado') {
     // Aprovado sem arquivo na versão vigente: lacuna de dado, não se esconde.
-    info = '<span style="color:#FCD34D">Sem arquivo na versão vigente</span>';
+    info = '<span class="acv-card-lacuna">Sem arquivo na versão vigente</span>';
   } else {
     info = '<span>' + esc(estado(o).rotulo) + '</span>';
   }
@@ -490,12 +548,6 @@ function cardHtml(o) {
     + (o._ano ? '<span>&middot; ' + o._ano + '</span>' : '')
     + (o._publicos ? '<span class="acv-card-pub" title="Arquivo marcado para o portal público">&middot; Público</span>' : '')
     + '</div></div></button>';
-}
-
-function seloHtml(o) {
-  const e = estado(o);
-  return '<span class="acv-selo selo-' + esc(o.situacao_acervo || 'sem_entrega') + '">' + esc(e.rotulo)
-    + (o.aprovacao_parcial ? ' · parcial' : '') + '</span>';
 }
 
 // ═══ Eventos ═════════════════════════════════════════════════════════
@@ -539,9 +591,12 @@ function religarComando(focoBusca) {
 
   const limpar = document.getElementById('acv-limpar');
   if (limpar) limpar.onclick = () => {
-    Object.assign(filtro, { busca: '', rotulo: '', atividade: '', fornecedor: '', resultado: '', ano: '', formato: '', publico: '' });
+    Object.assign(filtro, { busca: '', rotulo: '', atividade: '', fornecedor: '', resultado: '', ano: '', formato: '', publico: '', lacuna: false });
     redesenhar(false);
   };
+
+  const lac = document.getElementById('acv-lacuna');
+  if (lac) lac.onclick = () => { filtro.lacuna = !filtro.lacuna; redesenhar(false); };
 
   document.querySelectorAll('[data-pubf]').forEach(b => {
     b.onclick = () => { filtro.publico = b.dataset.pubf || ''; redesenhar(false); };
@@ -553,17 +608,27 @@ function religarComando(focoBusca) {
 
 function redesenhar(focoBusca) {
   const palco = document.getElementById('palco');
-  palco.innerHTML = barraComando() + chipsHtml() + '<div id="acervo-corpo"></div>';
+  palco.innerHTML = palcoHtml();
   renderCorpo();
   religarComando(focoBusca);
 }
 
 function ligarAtalhos() {
   religarComando(false);
+  ['modal-ficha', 'modal-pub'].forEach(id => document.getElementById(id).addEventListener('click', e => { if (e.target.id === id) ACV_FECHAR[id](); }));
   document.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape') {
-      if (document.getElementById('viewer').classList.contains('aberto')) { fecharViewer(); return; }
-      if (document.getElementById('modal-ficha').classList.contains('aberto')) fecharFicha();
+    const topo = acvPilha[acvPilha.length - 1];
+    if (topo) {
+      const el = document.getElementById(topo.id);
+      if (ev.key === 'Escape') { ev.preventDefault(); (ACV_FECHAR[topo.id] || (() => acFechar(topo.id)))(); }
+      else if (ev.key === 'Tab') {
+        const f = [...el.querySelectorAll(ACV_FOCAVEIS)].filter(x => x.offsetParent !== null);
+        if (!f.length) return;
+        const pri = f[0], ult = f[f.length - 1];
+        if (!el.contains(document.activeElement)) { ev.preventDefault(); pri.focus(); }
+        else if (ev.shiftKey && document.activeElement === pri) { ev.preventDefault(); ult.focus(); }
+        else if (!ev.shiftKey && document.activeElement === ult) { ev.preventDefault(); pri.focus(); }
+      }
       return;
     }
     // "/" foca a busca, desde que não se esteja digitando em outro campo
@@ -579,9 +644,10 @@ function ligarAtalhos() {
 
 // ═══ Ficha da obra ═══════════════════════════════════════════════════
 function linhaMidia(m, superada) {
-  const ic = icone(m.midia_tipo);
-  return '<div class="acv-midia' + (superada ? ' acv-midia-sup' : '') + '" data-midia="' + esc(m.midia_id) + '">'
-    + '<div class="acv-midia-ico" style="background:' + ic.bg + '">' + svgIcone(m.midia_tipo, 19) + '</div>'
+  const tipo = ICONES[m.midia_tipo] ? m.midia_tipo : 'outro';
+  return '<div class="acv-midia' + (superada ? ' acv-midia-sup' : '') + '" data-midia="' + esc(m.midia_id) + '" role="button" tabindex="0"'
+    + ' aria-label="Visualizar ' + esc(m.arquivo_nome || 'arquivo') + '">'
+    + '<div class="acv-midia-ico t-' + tipo + '">' + svgIcone(tipo, 19, 'currentColor') + '</div>'
     + '<div class="acv-midia-corpo">'
     + '<div class="acv-midia-nome">' + esc(m.arquivo_nome || 'Arquivo') + '</div>'
     + '<div class="acv-midia-sub">'
@@ -594,7 +660,7 @@ function linhaMidia(m, superada) {
     + (m.despacho_numero ? '<span>Despacho ' + esc(m.despacho_numero) + '</span>' : '')
     + '</div></div>'
     + controlePublico(m)
-    + '<span class="acv-midia-acao">Visualizar &rsaquo;</span>'
+    + '<span class="acv-midia-acao">' + acvIc('olho', 'p') + 'Visualizar</span>'
     + '</div>';
 }
 
@@ -613,7 +679,7 @@ function controlePublico(m) {
   if (podePublicar) {
     return '<button type="button" class="acv-pub-btn' + (pub ? ' on' : '') + '" data-pub="' + esc(m.midia_id) + '"'
       + ' title="' + (pub ? 'Clique para tirar do portal público' : 'Clique para liberar no portal público') + '">'
-      + (pub ? '&#10003; Público' : 'Marcar como público') + '</button>';
+      + (pub ? acvIc('check') + 'Público' : acvIc('globo') + 'Marcar como público') + '</button>';
   }
   return pub ? '<span class="acv-pub-selo" title="Marcado para o portal público">Público</span>' : '';
 }
@@ -621,8 +687,7 @@ function controlePublico(m) {
 async function alternarPublico(midiaId) {
   const m = (midiasPorObra[obraAberta && obraAberta.obra_id] || []).find(x => x.midia_id === midiaId);
   const marcar = !publicos[midiaId];
-  if (marcar && !confirm('Liberar "' + ((m && m.arquivo_nome) || 'este arquivo') + '" para o portal público?\n\n'
-      + 'Confira antes se o documento não traz CPF, dados bancários ou outro dado pessoal além da autoria.')) return;
+  if (marcar && !(await confirmarPub((m && m.arquivo_nome) || 'este arquivo'))) return;
 
   const { error } = await db.rpc('fn_acervo_definir_publico', { p_midia_id: midiaId, p_publico: marcar });
   if (error) {
@@ -649,6 +714,18 @@ async function alternarPublico(midiaId) {
   abrirFicha(obraId);
 }
 
+// Janela própria (no lugar do confirm do navegador): mesmo lembrete de dado pessoal, um clique
+let pubResolver = null;
+function confirmarPub(nome) {
+  document.getElementById('pub-arq').textContent = nome;
+  acAbrir('modal-pub', 'pub-ok');
+  return new Promise(res => { pubResolver = res; });
+}
+function fecharConfPub(ok) {
+  acFechar('modal-pub');
+  if (pubResolver) { const r = pubResolver; pubResolver = null; r(!!ok); }
+}
+
 function abrirFicha(obraId) {
   const o = obras.find(x => x.obra_id === obraId);
   if (!o) { toast('Produto não encontrado no acervo.', 'warning'); return; }
@@ -661,7 +738,7 @@ function abrirFicha(obraId) {
 
   document.getElementById('ficha-cab').innerHTML =
     'Produto ' + esc(o.numero_produto != null ? o.numero_produto : '—')
-    + ' &middot; <span style="font-weight:400;color:var(--cinza-500)">Contrato ' + esc(o.contrato_numero || '—') + '</span>';
+    + ' &middot; <span style="font-weight:400;color:var(--txt-3)">Contrato ' + esc(o.contrato_numero || '—') + '</span>';
 
   // `dica` vira title= para o texto que a grade corta em 3 linhas
   const dado = (lbl, val, dica) => '<div><div class="acv-dado-lbl">' + esc(lbl) + '</div>'
@@ -673,11 +750,11 @@ function abrirFicha(obraId) {
     + '<div class="acv-ficha-tit">' + esc(o.titulo || 'Produto sem descrição') + '</div>'
     + '<div class="acv-ficha-meta">'
     + '<span class="acv-selo selo-f-' + esc(o.situacao_acervo || 'sem_entrega') + '">'
-    + esc(estado(o).rotulo) + (o.aprovacao_parcial ? ' · parcial' : '') + '</span>'
+    + (o.situacao_acervo === 'aprovado' ? acvIc('check') : '') + esc(estado(o).rotulo) + (o.aprovacao_parcial ? ' · parcial' : '') + '</span>'
     + (o.entrega_ref_numero > 1
       ? '<span class="acv-midia-rot">Versão ' + esc(o.entrega_ref_numero) + '</span>' : '')
-    + (o.atividade_codigo ? '<span class="acv-midia-rot">Atividade ' + esc(o.atividade_codigo) + '</span>' : '')
-    + (o.resultado_codigo ? '<span class="acv-midia-rot" style="background:var(--verde-bg);color:#166534">' + esc(o.resultado_codigo) + '</span>' : '')
+    + (o.atividade_codigo ? '<span class="acv-midia-rot neu">Atividade ' + esc(o.atividade_codigo) + '</span>' : '')
+    + (o.resultado_codigo ? '<span class="acv-midia-rot res">' + esc(o.resultado_codigo) + '</span>' : '')
     + '</div>'
     + '<div class="acv-ficha-dados">'
     + dado('Consultor / Fornecedor', esc(o.fornecedor_nome || '—'))
@@ -688,17 +765,17 @@ function abrirFicha(obraId) {
     + '</div></div></div>';
 
   if (o.aprovacao_parcial) {
-    body += '<div class="acv-aviso acv-aviso-info">A entrega de referência foi aprovada '
-      + 'parcialmente. Os arquivos abaixo valem, mas o produto ainda não está completo.</div>';
+    body += '<div class="acv-aviso acv-aviso-info">' + acvIc('info', 'p') + '<span>A entrega de referência foi aprovada '
+      + 'parcialmente. Os arquivos abaixo valem, mas o produto ainda não está completo.</span></div>';
   }
 
   if (o.contrato_objeto) {
     body += '<div class="acv-secao-tit">Objeto do contrato</div>'
-      + '<div style="font-size:13px;color:var(--cinza-600);line-height:1.6">' + esc(o.contrato_objeto) + '</div>';
+      + '<div class="acv-texto">' + esc(o.contrato_objeto) + '</div>';
   }
   if (o.parecer_avaliador) {
     body += '<div class="acv-secao-tit">Parecer do avaliador</div>'
-      + '<div style="font-size:13px;color:var(--cinza-600);line-height:1.6;white-space:pre-wrap">' + esc(o.parecer_avaliador) + '</div>';
+      + '<div class="acv-texto" style="white-space:pre-wrap">' + esc(o.parecer_avaliador) + '</div>';
   }
 
   // ── Versão vigente ──
@@ -713,19 +790,19 @@ function abrirFicha(obraId) {
   if (vigentes.length) {
     body += vigentes.map(m => linhaMidia(m, false)).join('');
   } else if (o.situacao_acervo === 'aprovado') {
-    body += '<div class="acv-aviso acv-aviso-alerta">A entrega aprovada não tem arquivo anexado. '
+    body += '<div class="acv-aviso acv-aviso-alerta">' + acvIc('alerta', 'p') + '<span><strong>A entrega aprovada não tem arquivo anexado.</strong> '
       + (superadas.length
         ? 'O único documento no sistema é o da versão devolvida, no histórico abaixo — ele não substitui o produto aprovado.'
         : 'Não há nenhum documento registrado para este produto.')
-      + ' Confira no módulo de Avaliação de Produtos se falta anexar o documento final.</div>';
+      + ' Confira no módulo de Avaliação de Produtos se falta anexar o documento final.</span></div>';
   } else {
-    body += '<div style="font-size:13px;color:var(--cinza-500);padding:10px 0">'
+    body += '<div class="acv-texto" style="padding:10px 0;color:var(--txt-3)">'
       + esc(estado(o).rotulo) + ' — ainda não há arquivo aprovado para este produto.</div>';
   }
 
   // ── Versões anteriores ──
   if (superadas.length) {
-    body += '<details class="acv-hist"><summary>Versões anteriores &middot; ' + superadas.length
+    body += '<details class="acv-hist"><summary>' + acvIc('dir') + 'Versões anteriores &middot; ' + superadas.length
       + '<span class="acv-hist-nota">substituídas pela versão vigente</span></summary>'
       + superadas.map(m => linhaMidia(m, true)).join('')
       + '</details>';
@@ -747,6 +824,7 @@ function abrirFicha(obraId) {
 
   document.getElementById('ficha-body').querySelectorAll('[data-midia]').forEach(el => {
     el.onclick = () => abrirViewer(el.dataset.midia);
+    el.onkeydown = ev => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === el) { ev.preventDefault(); abrirViewer(el.dataset.midia); } };
   });
   document.getElementById('ficha-body').querySelectorAll('[data-pub]').forEach(el => {
     el.onclick = ev => { ev.stopPropagation(); el.disabled = true; alternarPublico(el.dataset.pub).finally(() => { el.disabled = false; }); };
@@ -760,11 +838,12 @@ function abrirFicha(obraId) {
     ligarCapas(indice);
   }
 
-  document.getElementById('modal-ficha').classList.add('aberto');
+  acAbrir('modal-ficha');
+  document.getElementById('ficha-body').scrollTop = 0;
 }
 
 function fecharFicha() {
-  document.getElementById('modal-ficha').classList.remove('aberto');
+  acFechar('modal-ficha');
   obraAberta = null;
 }
 
@@ -781,7 +860,7 @@ async function abrirViewer(midiaId) {
      m.rotulo, m.extensao && m.extensao.toUpperCase(), fmtTam(m.arquivo_tamanho), fmtData(m.adicionado_em)]
       .filter(Boolean).join(' · ');
   corpo.innerHTML = '<div style="color:rgba(255,255,255,.6);font-size:13px">Preparando o arquivo…</div>';
-  overlay.classList.add('aberto');
+  acAbrir('viewer');
 
   viewerUrlAtual = m.arquivo_url;
   document.getElementById('viewer-abrir').onclick = () => abrirDoc(m.arquivo_url);
@@ -819,8 +898,7 @@ async function abrirViewer(midiaId) {
 }
 
 function fecharViewer() {
-  const overlay = document.getElementById('viewer');
-  overlay.classList.remove('aberto');
+  acFechar('viewer');
   // Zera o src para interromper download/reprodução em andamento
   document.getElementById('viewer-corpo').innerHTML = '';
   viewerUrlAtual = null;
