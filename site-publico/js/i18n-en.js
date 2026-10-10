@@ -273,6 +273,7 @@ registrarIdioma('en', {
   'sobre.k_marca': 'Behind the brand',
   'sobre.marca_p': 'The Program’s visual identity is born from the landscape it protects.',
   'sobre.alt_logo': 'Socio-environmental Resilience logo — Igarapé São Francisco and Lago do Amapá Environmental Protection Areas',
+  'sobre.alt_marca_foto': 'Aerial view of houses with orange roofs surrounded by forest',
   'sobre.el_folhas': '<strong>The green leaves</strong> represent the biodiversity and environmental recovery of the APAs.',
   'sobre.el_azul': '<strong>The blue curves</strong> evoke the igarapés (Amazonian streams) and rivers the Program works to protect.',
   'sobre.el_laranja': '<strong>The orange</strong> symbolizes social transformation and the strengthening of the communities that live in these territories.',

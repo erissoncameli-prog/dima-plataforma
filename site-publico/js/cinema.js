@@ -220,6 +220,7 @@ function montarCinema(secao) {
         end: () => '+=' + Math.round(window.innerHeight * (+secao.dataset.rolagem || 2.2)),
         pin: palco,
         scrub: 0.6,
+        invalidateOnRefresh: true, // recalcula a subida do [data-sobe] ao redimensionar
       },
       defaults: { ease: 'none' },
       onUpdate() { _cineContadores(secao, this.progress()); },
@@ -233,9 +234,27 @@ function montarCinema(secao) {
     }
     textos.forEach(t => {
       const entra = +(t.dataset.entra ?? 0), sai = t.dataset.sai != null ? +t.dataset.sai : null;
+      // Item dentro de um bloco [data-sobe] cai do alto e pousa com um quique
+      const cai = !!t.parentElement.closest('[data-sobe]');
       if (entra <= 0) gsap.set(t, { autoAlpha: 1, y: 0 });
+      else if (cai) tl.fromTo(t, { autoAlpha: 0, y: -70 }, { autoAlpha: 1, y: 0, duration: 0.07, ease: 'back.out(1.4)' }, entra);
       else tl.fromTo(t, { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.06, ease: 'power2.out' }, entra);
       if (sai != null) tl.to(t, { autoAlpha: 0, y: -30, duration: 0.06, ease: 'power2.in' }, sai);
+    });
+    // [data-sobe]: o bloco começa com o título no meio da tela (a lista,
+    // ainda invisível, fica abaixo dela) e sobe um degrau a cada item que
+    // cai, até a lista inteira caber. Usa yPercent porque o y é da entrada
+    // do bloco; o -50 é o translateY(-50%) do .no-meio
+    secao.querySelectorAll('[data-sobe]').forEach(bloco => {
+      const itens = [...bloco.querySelectorAll('[data-entra]')];
+      const lista = itens[0]?.parentElement;
+      if (!lista) return;
+      const desce = () => (bloco.offsetHeight - lista.offsetTop) / 2 / bloco.offsetHeight * 100;
+      tl.fromTo(bloco, { yPercent: () => -50 + desce() }, { yPercent: () => -50 + desce(), duration: 0.001 }, 0);
+      itens.forEach((it, i) => {
+        const resta = (itens.length - 1 - i) / itens.length;
+        tl.to(bloco, { yPercent: () => -50 + desce() * resta, duration: 0.07, ease: 'power2.inOut' }, +it.dataset.entra);
+      });
     });
     // .cine-cai: cai do alto girando (sentido alternado) e pousa com um quique
     caem.forEach((el, i) => {
