@@ -871,6 +871,17 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   (`if not exists (… perfil = 'super_admin' and ativo)`) — a checagem antiga `v_perfil <> 'super_admin'` deixava passar
   quem não estava logado (NULL). EXECUTE só para `authenticated` (revogado de `public`/`anon`). Em função SECURITY DEFINER,
   **nunca** checar perfil com `<>`/`!=` sobre variável que pode ser NULL: use `not exists (...)` ou `is distinct from`.
+- **Acessos valendo no banco** (migração `20261010_seg_usuarios_acessos`):
+  - `fn_perfil_atual()` e `tem_permissao()` só respondem para usuário **ativo** — conta desativada perde o acesso de todas as
+    policies que usam o perfil. Desativar também **bane o login** no Auth (`trg_usuario_ban` → `auth.users.banned_until`);
+    reativar desbane. Policy nova por perfil: usar `fn_perfil_atual()` (ou checar `ativo`), nunca `usuarios.perfil` sem `ativo`.
+  - Acesso extra que **abre dados no banco**: `contratos` (leitura, `contratos_select`), `viagens` (`viagem_prot_select_extra`),
+    `financeiro` (leitura de `execucao_financeira`, `ef_select_extra`), `diagnostico`/`diagnostico_treino` (`fn_diag_*`). Os demais
+    extras só mostram a guia no menu; os dados seguem o perfil (a tela diz isso em cada módulo, `MODULOS_LISTA[].dados`).
+  - "Deve trocar a senha": ao definir senha temporária (criação ou reset por outra pessoa) o hash fica em
+    `usuario_senha_temporaria` (sem policy/grant); a própria pessoa só desmarca a flag se a senha mudou (`SENHA_NAO_TROCADA`).
+  - `usuarios.email` só muda por super_admin (`fn_protege_campos_usuario`, que agora roda em INSERT e UPDATE).
+  - `usuario_permissoes` tem `fn_trg_audit` (trilha no `audit_log`).
 - **Dados do sistema** (`configuracoes.html`, super_admin): editor (Identidade · Fotos e vídeos · Logos) + **prévia da tela de
   entrada**, que é cópia do `index.html` e fica igual nos dois temas (cores fixas do `#preview-frame` em `css/administracao.css`).
   Remover foto/logo pede confirmação; "Alterações não salvas" + aviso ao sair (`marcarSujo`/`beforeunload`). Cor só
@@ -1048,7 +1059,8 @@ listas de responsáveis. Substituir por view de diretório está previsto (Camad
 |--------|--------------|---------|
 | `beneficiarios` | nome, CPF, nascimento, passaporte | identidade lê quem opera Viagens (`super_admin/coordenacao/financeiro/tecnico`); escrita só `super_admin/coordenacao` |
 | `beneficiario_dados_bancarios` | **dados bancários** (banco/agência/conta/PIX/IBAN) | tabela separada 1:1 com `beneficiarios.id`. Leitura e escrita só `super_admin/coordenacao` — ver abaixo |
-| `fornecedores` | CPF/CNPJ, endereço, dados bancários | PF é dado pessoal |
+| `fornecedores` | CPF/CNPJ, endereço, e-mail, telefone | PF é dado pessoal; leitura de qualquer logado (nome/documento usados em Contratos, TDRs, Produtos, e-mails) |
+| `fornecedor_dados_bancarios` | **dados bancários** (banco/agência/conta/tipo/PIX) | 1:1 com `fornecedores.id`; leitura e escrita só `super_admin/coordenacao/financeiro`; auditoria redigida. As colunas antigas de `fornecedores` ficam vazias e o trigger `trg_fornecedor_sem_banco` recusa gravar nelas |
 | `viagem_viajantes` | CPF, e-mail, cartões de embarque | `viaj_sel` (`auth.uid() is not null`) anula a policy restritiva |
 | `car_dados_locais` | nome de proprietário rural (53.594 linhas) | CPF **removido** — ver abaixo |
 | `usuarios` | e-mail, telefone | `perfil`/`ativo` protegidos por trigger |
@@ -1194,6 +1206,8 @@ Supabase/Anthropic/Vercel/Google.
 25. `cotacoes_usd` (AwesomeAPI, colunas `cotacao`/`data_ref`) **≠** `cotacoes_ptax` (PTAX oficial, `ptax_venda`/`data`). Antes de criar tabela, conferir se o nome já existe — `create table if not exists` pula em silêncio e os GRANT/trigger seguintes caem na tabela antiga
 26. Assinatura de remanejamento **só** pela Edge Function `assinar-remanejamento` (senha reconfirmada no servidor). `fn_rem_assinar` é service_role-only — não expor a `authenticated`
 27. Saldo livre de atividade para decidir trava = `fn_cob_livre()` (com sinal). `vw_orcamento_atividade.remanejavel_usd` é Σ de fontes livres e **nunca fica negativo** — não serve para comparar déficit
+28. `fornecedores.banco/agencia/conta/tipo_conta/pix` **estão sempre vazias** — use `fornecedor_dados_bancarios` (FK `fornecedor_id`); `pages/fornecedores.html` mescla na leitura e grava com `upsert(..., {onConflict:'fornecedor_id'})`
+29. Conta desativada não lê nada por perfil (`fn_perfil_atual()` devolve NULL) e não entra (banida no Auth). Não reativar por UPDATE de `auth.users`: mudar `usuarios.ativo` já desbane
 
 ---
 

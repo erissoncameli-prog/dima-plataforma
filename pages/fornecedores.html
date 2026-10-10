@@ -214,7 +214,12 @@ function seletorTema() {
   });
 }
 
+const BANCO_CAMPOS = ['banco', 'agencia', 'conta', 'tipo_conta', 'pix'];
+const PODE_BANCO_PERFIS = ['super_admin', 'coordenacao', 'financeiro'];
+let PODE_BANCO = false; // definido depois de carregarUsuario()
+
 async function carregar() {
+  PODE_BANCO = PODE_BANCO_PERFIS.includes(appState.perfil);
   try {
     const [{ data }, { data: conts }, { data: pagos }] = await Promise.all([
       db.from('fornecedores').select('*').order('nome'),
@@ -222,6 +227,13 @@ async function carregar() {
       db.from('execucao_financeira').select('fornecedor_id,valor_brl').eq('situacao','pago'),
     ]);
     todosFornecedores = data || [];
+    // Dados bancários ficam em tabela própria (migração 20261010_seg_usuarios_acessos): só super_admin,
+    // coordenação e financeiro leem; para os demais a consulta volta vazia. Mesclados aqui para a tela.
+    if (PODE_BANCO) {
+      const { data: bancos } = await db.from('fornecedor_dados_bancarios').select('fornecedor_id,banco,agencia,conta,tipo_conta,pix');
+      const porId = {}; (bancos || []).forEach(b => { porId[b.fornecedor_id] = b; });
+      todosFornecedores.forEach(f => { const b = porId[f.id]; if (b) BANCO_CAMPOS.forEach(k => { f[k] = b[k]; }); });
+    }
     contratosPorForn = {};
     (conts || []).forEach(c => {
       if (!c.fornecedor_id || c.status === 'cancelado') return;
@@ -438,6 +450,7 @@ async function abrirDetalhe(id) {
         </div>
       </div>
       <div class="fo-sec">Dados bancários</div>
+      ${PODE_BANCO ? '' : '<p class="fo-sub" style="margin:0 0 8px">Visíveis só para super_admin, coordenação e financeiro.</p>'}
       <div class="fo-dados">
         <div>${c('Banco', f.banco)}${c('Agência', f.agencia, true)}${c('Conta', f.conta, true)}</div>
         <div>${c('Tipo de conta', f.tipo_conta)}${c('PIX', f.pix, true)}</div>
@@ -682,31 +695,31 @@ function renderForm(f) {
     </div>
 
     <div class="fo-painel" id="tab-bancario" role="tabpanel">
-      <div class="fo-aviso">${foIc('cadeado','p')}<span>Dados bancários são de uso interno. Nunca compartilhe estas informações fora da plataforma.</span></div>
+      <div class="fo-aviso">${foIc('cadeado','p')}<span>${PODE_BANCO ? 'Dados bancários são de uso interno. Nunca compartilhe estas informações fora da plataforma.' : 'Dados bancários só são vistos e alterados por super_admin, coordenação e financeiro.'}</span></div>
       <div class="form-group">
         <label class="form-label" for="f-banco">Banco</label>
-        <input class="form-control" id="f-banco" type="text" value="${v(f?.banco)}" placeholder="Ex.: Banco do Brasil, Caixa, Sicoob…">
+        <input class="form-control" id="f-banco" type="text" ${PODE_BANCO?'':'disabled'} value="${v(f?.banco)}" placeholder="Ex.: Banco do Brasil, Caixa, Sicoob…">
       </div>
       <div class="grid-2">
         <div class="form-group">
           <label class="form-label" for="f-agencia">Agência</label>
-          <input class="form-control mono" id="f-agencia" type="text" value="${v(f?.agencia)}" placeholder="0000-0">
+          <input class="form-control mono" id="f-agencia" type="text" ${PODE_BANCO?'':'disabled'} value="${v(f?.agencia)}" placeholder="0000-0">
         </div>
         <div class="form-group">
           <label class="form-label" for="f-conta">Conta</label>
-          <input class="form-control mono" id="f-conta" type="text" value="${v(f?.conta)}" placeholder="00000-0">
+          <input class="form-control mono" id="f-conta" type="text" ${PODE_BANCO?'':'disabled'} value="${v(f?.conta)}" placeholder="00000-0">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label" for="f-tipo-conta">Tipo de conta</label>
-        <select class="form-control" id="f-tipo-conta" style="max-width:200px">
+        <select class="form-control" id="f-tipo-conta" style="max-width:200px" ${PODE_BANCO?'':'disabled'}>
           <option value="">Selecione…</option>
           ${['Corrente','Poupança','Pagamento'].map(t=>`<option value="${t}" ${f?.tipo_conta===t?'selected':''}>${t}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">
         <label class="form-label" for="f-pix">Chave PIX</label>
-        <input class="form-control mono" id="f-pix" type="text" value="${v(f?.pix)}" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória">
+        <input class="form-control mono" id="f-pix" type="text" ${PODE_BANCO?'':'disabled'} value="${v(f?.pix)}" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória">
       </div>
     </div>
 
@@ -821,6 +834,9 @@ async function salvar() {
     tipo_conta: document.getElementById('f-tipo-conta')?.value||null,
     pix: document.getElementById('f-pix')?.value.trim()||null,
   };
+  // banco vai para fornecedor_dados_bancarios; `fornecedores` recusa esses campos
+  const banco = {}; BANCO_CAMPOS.forEach(k => { banco[k] = dados[k]; delete dados[k]; });
+  const temBanco = BANCO_CAMPOS.some(k => banco[k]);
 
   try {
     let id = fornEditando?.id;
@@ -843,6 +859,10 @@ async function salvar() {
         throw error;
       }
       id = data.id;
+      if (PODE_BANCO && temBanco) {
+        const { error: bErr } = await db.from('fornecedor_dados_bancarios').upsert({ fornecedor_id: id, ...banco }, { onConflict: 'fornecedor_id' });
+        if (bErr) toast('Fornecedor salvo, mas os dados bancários não: ' + bErr.message, 'error'); else Object.assign(data, banco);
+      }
       todosFornecedores.push(data);
       todosFornecedores.sort((a,b) => (a.nome||'').localeCompare(b.nome||''));
       toast(`Fornecedor ${dados.nome} cadastrado!`,'success');
@@ -850,6 +870,11 @@ async function salvar() {
       const {error} = await db.from('fornecedores').update(dados).eq('id',fornEditando.id);
       if (error) throw error;
       Object.assign(fornEditando, dados);
+      const mudouBanco = BANCO_CAMPOS.some(k => (banco[k] || null) !== (fornEditando[k] || null));
+      if (PODE_BANCO && mudouBanco) {
+        const { error: bErr } = await db.from('fornecedor_dados_bancarios').upsert({ fornecedor_id: fornEditando.id, ...banco }, { onConflict: 'fornecedor_id' });
+        if (bErr) toast('Dados salvos, mas os dados bancários não: ' + bErr.message, 'error'); else Object.assign(fornEditando, banco);
+      }
       toast('Fornecedor atualizado!','success');
     }
 

@@ -10,23 +10,25 @@ const PERFIS = {
 const PERFIS_LIST = Object.keys(PERFIS);
 
 // Módulos que podem ser liberados além do perfil. perfis = quem já tem pelo perfil (null = todos).
+// dados: true = o acesso extra também vale no banco (abre a leitura dos dados do módulo);
+// sem `dados`, o extra só mostra a guia no menu e os dados seguem as regras do perfil.
 const MODULOS_LISTA = [
   { id: 'dashboard',    ic: 'painel',  label: 'Visão Geral',          perfis: null },
   { id: 'atividades',   ic: 'lista',   label: 'Atividades',           perfis: null },
   { id: 'tdrs',         ic: 'doc',     label: 'TDRs',                 perfis: null },
   { id: 'matriz',       ic: 'alvo',    label: 'Matriz de Resultados', perfis: null },
   { id: 'fornecedores', ic: 'predio',  label: 'Fornecedores',         perfis: ['super_admin', 'coordenacao', 'financeiro'] },
-  { id: 'contratos',    ic: 'contrato', label: 'Contratos',           perfis: ['super_admin', 'coordenacao', 'financeiro'] },
+  { id: 'contratos',    ic: 'contrato', label: 'Contratos',           perfis: ['super_admin', 'coordenacao', 'financeiro'] , dados: true },
   { id: 'produtos',     ic: 'pacote',  label: 'Produtos Entregues',   perfis: ['super_admin', 'coordenacao', 'tecnico'] },
-  { id: 'financeiro',   ic: 'moeda',   label: 'Financeiro',           perfis: ['super_admin', 'coordenacao', 'financeiro'] },
-  { id: 'viagens',      ic: 'aviao',   label: 'Viagens',              perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico'] },
+  { id: 'financeiro',   ic: 'moeda',   label: 'Financeiro',           perfis: ['super_admin', 'coordenacao', 'financeiro'] , dados: true },
+  { id: 'viagens',      ic: 'aviao',   label: 'Viagens',              perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico'] , dados: true },
   { id: 'repositorio',  ic: 'link',    label: 'Repositório',          perfis: null },
   { id: 'formularios',  ic: 'form',    label: 'Guia Formulários',     perfis: null },
   { id: 'usuarios',     ic: 'users',   label: 'Usuários',             perfis: ['super_admin'] },
   // App de campo do Diagnóstico: técnico e consultor externo só com concessão (com prazo)
-  { id: 'diagnostico',  ic: 'campo',   label: 'Diagnóstico Socioambiental', perfis: ['super_admin', 'coordenacao'] },
+  { id: 'diagnostico',  ic: 'campo',   label: 'Diagnóstico Socioambiental', perfis: ['super_admin', 'coordenacao'] , dados: true },
   // Modo treino (fichas TRE-): técnico precisa também de 'diagnostico'; coordenação com este módulo entra SÓ em treino
-  { id: 'diagnostico_treino', ic: 'frasco', label: 'Diagnóstico — modo treino', perfis: ['super_admin'] },
+  { id: 'diagnostico_treino', ic: 'frasco', label: 'Diagnóstico — modo treino', perfis: ['super_admin'] , dados: true },
   // Central de Relatórios (prefixo relatorios_): super_admin e coordenação nativos; demais por concessão
   { id: 'relatorios_financeiro',   ic: 'moeda',    label: 'Financeiro',        grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_contratos',    ic: 'contrato', label: 'Contratos',         grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
@@ -236,7 +238,8 @@ async function abrirUsuario(id) {
       </div>
     </section>
     <section class="ad-painel" id="pn-acessos" role="tabpanel" aria-labelledby="aba-acessos" hidden>
-      <p class="ad-dica">Os acessos <b>pelo perfil</b> ficam marcados e travados. Os <b>extras</b> podem ter data de fim (vazio = sem fim). Salvar grava só o que mudou.</p>
+      <p class="ad-dica">Os acessos <b>pelo perfil</b> ficam marcados e travados. Os <b>extras</b> podem ter data de fim (vazio = sem fim). Salvar grava só o que mudou.
+        Contratos, Financeiro, Viagens e Diagnóstico <b>abrem os dados no banco</b>; nos demais o extra só mostra a guia no menu.</p>
       ${renderPermissoes(u, permsMap)}
     </section>
     <section class="ad-painel" id="pn-senha" role="tabpanel" aria-labelledby="aba-senha" hidden>
@@ -301,10 +304,11 @@ function renderPermissoes(u, permsMap) {
       const sit = doPerfil ? '<small>pelo perfil</small>'
         : perm ? (venc ? `<small class="v">extra vencido em ${esc(fmtD(perm.valido_ate))}</small>` : `<small>extra${perm.valido_ate ? ' · até ' + esc(fmtD(perm.valido_ate)) : ' · sem fim'}</small>`)
         : '<small>sem acesso</small>';
+      const efeito = doPerfil ? '' : `<small class="ad-efeito">${m.dados ? 'abre os dados no banco' : 'só mostra a guia; os dados seguem o perfil'}</small>`;
       return `<div class="ad-perm${marc ? ' on' : ''}" id="perm-row-${m.id}">
         <input type="checkbox" id="perm-chk-${m.id}" ${marc ? 'checked' : ''} ${doPerfil ? 'disabled' : ''} onchange="togglePermRow('${m.id}')" aria-describedby="perm-sit-${m.id}">
         ${adIc(m.ic, 'p')}<label for="perm-chk-${m.id}">${esc(m.label)}</label>
-        <span id="perm-sit-${m.id}" style="grid-column:3">${sit}</span>
+        <span id="perm-sit-${m.id}" style="grid-column:3">${sit}</span>${efeito}
         ${doPerfil ? '' : `<span class="ad-ate" id="perm-dt-wrap-${m.id}" ${perm ? '' : 'hidden'}><label for="perm-dt-${m.id}">até</label><input type="datetime-local" class="form-control" id="perm-dt-${m.id}" value="${ate}"></span>`}
       </div>`;
     }).join('') + '</div>';
