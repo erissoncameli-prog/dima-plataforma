@@ -504,6 +504,7 @@
     const ov = document.getElementById('tk-overlay')
     const md = document.getElementById('tk-modal')
     md.classList.toggle('estreito', !t)
+    tkGuardarOrigem()
     md.innerHTML = montarModal(t)
     ov.classList.add('on')
     const emForm = !t || S.modoEdicao
@@ -744,7 +745,33 @@
     if (S.modoEdicao && S.editId && !confirm('Descartar as alterações não salvas?')) return
     S.modoEdicao = false
     document.getElementById('tk-overlay').classList.remove('on')
+    tkDevolverFoco()
   }
+  // Janelas: Esc fecha a de cima (conferência antes da tarefa), Tab fica preso nela e o foco volta a quem abriu.
+  // Os seletores (atividade, pessoas) tratam o próprio Esc e param a propagação.
+  let tkOrigem = null
+  const tkJanelaDeCima = () => document.querySelector('#tk-dlg.on') || document.querySelector('#tk-overlay.on')
+  function tkGuardarOrigem () { if (!tkJanelaDeCima()) tkOrigem = document.activeElement }
+  function tkDevolverFoco () {
+    if (tkJanelaDeCima()) return
+    const o = tkOrigem; tkOrigem = null
+    if (o && o.isConnected && typeof o.focus === 'function') o.focus()
+  }
+  document.addEventListener('keydown', e => {
+    const ov = tkJanelaDeCima(); if (!ov) return
+    if (e.key === 'Escape' && !e.defaultPrevented) {
+      e.preventDefault()
+      if (ov.id === 'tk-dlg') { TK.confFechar(); const f = document.querySelector('#tk-overlay.on .btn'); if (f) f.focus() } else fecharModal()
+    } else if (e.key === 'Tab') {
+      const fs = [...ov.querySelectorAll('button,a[href],input:not([type=hidden]),select,textarea,[tabindex]:not([tabindex="-1"])')]
+        .filter(el => !el.disabled && el.offsetParent !== null)
+      if (!fs.length) return
+      const i = fs.indexOf(document.activeElement)
+      if (i === -1) { e.preventDefault(); fs[0].focus() }
+      else if (e.shiftKey && i === 0) { e.preventDefault(); fs[fs.length - 1].focus() }
+      else if (!e.shiftKey && i === fs.length - 1) { e.preventDefault(); fs[0].focus() }
+    }
+  })
   // subtarefas só mudam em modo edição
   const podeMexerSub = () => S.podeEditar && S.modoEdicao
 
@@ -1264,6 +1291,7 @@
         </div>
       </div>
       <div class="tk-modal-f"><span class="sp"></span><button class="btn btn-sec" onclick="fecharModal()">Fechar</button></div>`
+    tkGuardarOrigem()
     document.getElementById('tk-overlay').classList.add('on')
   }
   async function recarregarTipos () {

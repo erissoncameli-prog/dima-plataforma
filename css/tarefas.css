@@ -50,6 +50,8 @@ html[data-tema="escuro"] :is(.tk,.tk-overlay){
   --shadow-2:0 8px 24px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06);
   color-scheme:dark;
 }
+/* O quadro (5 colunas) rola dentro dele: sem min-width:0 o flex do .main-content cresce até a largura das colunas e a página inteira passa da tela */
+body.tk-pg .main-content,body.tk-pg .page-body,.tk,.tk-view{min-width:0}
 /* Fundo e topo da página no escuro (o menu lateral não muda, como nas demais guias) */
 html[data-tema="escuro"] body.tk-pg,html[data-tema="escuro"] body.tk-pg .main-content{background:#0B120E}
 html[data-tema="escuro"] body.tk-pg .topbar{
