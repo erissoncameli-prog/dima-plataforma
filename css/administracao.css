@@ -385,3 +385,4 @@ body.dgm .tab-content.ativo { display: block; }
 .pv-label{font-size:9px;font-weight:600;color:#374151;margin-bottom:3px;}
 .pv-input{height:30px;border:1px solid #E5E7EB;border-radius:6px;margin-bottom:9px;width:100%;}
 .pv-btn{height:34px;border-radius:6px;width:100%;margin-bottom:14px;border:none;}
+.ad-perm small.ad-efeito { font-size: 11px; color: var(--txt-3); font-style: italic; }
