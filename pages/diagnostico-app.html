@@ -59,8 +59,8 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
 <!-- login (precisa de internet no 1º acesso) -->
 <section class="tela-marca" id="t-login" hidden>
   <div class="lg-cabeca">
-    <div class="lg-topo"><img class="gov" src="../pwa/logos/acre.png" alt="Governo do Acre"><span class="sep"></span><img class="sema" src="../pwa/logos/sema.png" alt="SEMA/AC"></div>
-    <img class="lg-resil" src="../pwa/logos/resiliencia.png" alt="Resiliência Socioambiental">
+    <div class="lg-topo" data-dima-logos="topo" data-fundo="escuro" data-altura="40" data-sep='<span class="sep"></span>'></div>
+    <div class="lg-resil" data-dima-logos="projeto" data-fundo="escuro" data-altura="62" data-tamanho="nao"></div>
     <b>Diagnóstico Socioambiental</b><span>SEMA/AC · Projeto 218BRA2001</span>
   </div>
   <div class="lg-meio">
@@ -77,20 +77,15 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
   </div>
   <footer class="lg-rodape">
     <small>Realização e apoio</small>
-    <div class="lg-parc">
-      <img src="../pwa/logos/unesco.png" alt="UNESCO">
-      <img src="../pwa/logos/onu-brasil.png" alt="ONU Brasil">
-      <img class="alto" src="../pwa/logos/fundo-brasil-onu.png" alt="Fundo Brasil-ONU">
-      <img class="alto" src="../pwa/logos/consorcio-amazonia.png" alt="Consórcio Interestadual Amazônia Legal">
-    </div>
+    <div class="lg-parc" data-dima-logos="parceiros" data-fundo="claro" data-altura="24"></div>
   </footer>
 </section>
 
 <!-- PIN (criar e entrar usam a mesma tela) -->
 <section class="tela-marca lock" id="t-pin" hidden>
-  <div class="lock-faixa"><div class="lg-topo"><img class="gov" src="../pwa/logos/acre.png" alt="Governo do Acre"><span class="sep"></span><img class="sema" src="../pwa/logos/sema.png" alt="SEMA/AC"></div></div>
+  <div class="lock-faixa"><div class="lg-topo" data-dima-logos="topo" data-fundo="escuro" data-altura="40" data-sep='<span class="sep"></span>'></div></div>
   <div class="lock-meio">
-    <img class="lock-resil" src="../pwa/logos/resiliencia.png" alt="Resiliência Socioambiental">
+    <div class="lock-resil" data-dima-logos="projeto" data-fundo="escuro" data-altura="54" data-tamanho="nao"></div>
     <p class="lock-nome" id="pin-sub"></p>
     <p class="lock-dica" id="pin-titulo">Digite seu PIN de campo</p>
     <!-- sem js/pin-baralho.js as bolinhas abaixo continuam valendo -->
@@ -106,12 +101,7 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
   </div>
   <footer class="lg-rodape">
     <small>Realização e apoio</small>
-    <div class="lg-parc">
-      <img src="../pwa/logos/unesco.png" alt="UNESCO">
-      <img src="../pwa/logos/onu-brasil.png" alt="ONU Brasil">
-      <img class="alto" src="../pwa/logos/fundo-brasil-onu.png" alt="Fundo Brasil-ONU">
-      <img class="alto" src="../pwa/logos/consorcio-amazonia.png" alt="Consórcio Interestadual Amazônia Legal">
-    </div>
+    <div class="lg-parc" data-dima-logos="parceiros" data-fundo="claro" data-altura="24"></div>
   </footer>
 </section>
 
@@ -119,7 +109,7 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
 <section id="t-inicio" hidden>
   <header class="topo topo-ini">
     <div class="topo-linha">
-      <span class="mini-marca" aria-hidden="true"><img class="p" src="../pwa/logos/resiliencia-simbolo.png" alt=""><img class="s" src="../pwa/logos/sema.png" alt=""></span>
+      <span class="mini-marca" aria-hidden="true" data-dima-logos="projeto" data-fundo="escuro" data-altura="20" data-tamanho="nao"></span>
       <span class="esp"></span>
       <span class="rede" id="ini-rede">…</span>
       <button type="button" class="btn-icone" id="btn-config" aria-label="Configurações"><svg class="ic"><use href="#i-config"/></svg></button>
@@ -149,12 +139,7 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
   </div>
   <footer class="lg-rodape">
     <small>Realização e apoio</small>
-    <div class="lg-parc">
-      <img src="../pwa/logos/unesco.png" alt="UNESCO">
-      <img src="../pwa/logos/onu-brasil.png" alt="ONU Brasil">
-      <img class="alto" src="../pwa/logos/fundo-brasil-onu.png" alt="Fundo Brasil-ONU">
-      <img class="alto" src="../pwa/logos/consorcio-amazonia.png" alt="Consórcio Interestadual Amazônia Legal">
-    </div>
+    <div class="lg-parc" data-dima-logos="parceiros" data-fundo="claro" data-altura="24"></div>
   </footer>
 </section>
 
@@ -225,7 +210,7 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
     <button type="button" class="btn-icone" id="btn-ficha-sair" aria-label="Voltar ao início"><svg class="ic"><use href="#i-voltar"/></svg></button>
     <h1><span id="ficha-codigo"></span><small id="ficha-bloco"></small>
       <div class="progresso" aria-hidden="true"><i id="ficha-prog" style="width:0"></i></div></h1>
-    <span class="mini-marca" aria-hidden="true"><img class="p" src="../pwa/logos/resiliencia-simbolo.png" alt=""><img class="s" src="../pwa/logos/sema.png" alt=""></span>
+    <span class="mini-marca" aria-hidden="true" data-dima-logos="projeto" data-fundo="escuro" data-altura="20" data-tamanho="nao"></span>
   </header>
   <div class="tela">
     <div id="ficha-devolvida"></div>
@@ -384,6 +369,19 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
         onerror="console.warn('[diag-app] Supabase CDN indisponível — modo offline')"></script>
 <script src="../js/config.js"></script>
+<script src="../js/logos.js"></script>
+<script>
+  // Logos de Dados do sistema; sem rede no 1º uso, as cópias de pwa/logos/ (no cache do service worker).
+  DimaLogos.usarReserva({
+    topo: [{ url: '', url_escuro: '/pwa/logos/acre.png', alt: 'Governo do Acre' }, { url: '/pwa/logos/sema.png', alt: 'SEMA/AC' }],
+    projeto: { url: '', url_escuro: '/pwa/logos/resiliencia.png', alt: 'Resiliência Socioambiental' },
+    parceiros: [{ url: '/pwa/logos/unesco.png', alt: 'UNESCO' }, { url: '/pwa/logos/onu-brasil.png', alt: 'ONU Brasil' },
+      { url: '/pwa/logos/fundo-brasil-onu.png', alt: 'Fundo Brasil-ONU', tamanho: 'grande' },
+      { url: '/pwa/logos/consorcio-amazonia.png', alt: 'Consórcio Amazônia Legal', tamanho: 'grande' }],
+  })
+  DimaLogos.pintar(DimaLogos.agora())
+  if (typeof db !== 'undefined' && db) DimaLogos.carregar(db).then(L => DimaLogos.pintar(L))
+</script>
 <script src="../js/pin-baralho.js"></script>
 <script src="../js/qrcode-generator.js"></script>
 <script src="../js/diag-regras.js"></script>

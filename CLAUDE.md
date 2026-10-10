@@ -895,6 +895,26 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **ROPA**: a ficha de cada tratamento (`.ad-trat`) é **papel: branca nos dois temas e na impressão**; na impressão do tema escuro
   o resto volta aos valores claros. Regras de leitura/conferência seguem as de "ROPA vivo" (Diagnóstico).
 
+### Logos institucionais — fonte única, versão por fundo (⚠️ ler antes de pôr logo em tela, relatório ou e-mail)
+- **Fonte única** = `configuracoes_sistema` (Dados do sistema › Logos): `logos_topo` (Zona A), `logo_projeto` (Zona B),
+  `logos_parceiros` (Zona C). Cada logo: `{url, url_escuro, alt, tamanho, ordem}` — **`url` = versão para fundo claro**
+  (papel, faixa branca do e-mail, tema claro), **`url_escuro` = versão para fundo escuro** (menu verde, tela de entrada,
+  cabeçalho do e-mail), opcional. Caminho `/assets/...` vale (cópia do repositório); upload novo vai para `plataforma-assets/logos/`.
+- **Nunca** pôr `<img src="../assets/logo-*.png">` nem caminho de logo fixo: telas usam **`js/logos.js`** (`DimaLogos`:
+  `carregar(db)`, `agora()` síncrono do último lido, `img(l, 'claro'|'escuro', {altura, classe})`, `lista`, `pintar` para
+  `[data-dima-logos]`, `url()`); Edge Functions usam **`supabase/functions/_shared/logos-email.ts`** (`logosEmail(admin)` →
+  `{cabecalho, faixa}`). Regra mudou num ⇒ muda no outro.
+- **Sem a versão do fundo** a logo vai sobre uma **placa** (clara no fundo escuro, verde no claro). **Nunca pintar logo por
+  filtro CSS** (`brightness(0) invert(1)`): apaga as cores das logos coloridas (ONU, Fundo, Consórcio).
+- Onde cada grupo vai: topo das telas/app/Pulso/instalação = topo (escuro); tela de entrada = os três (escuro); portal público =
+  topo no cabeçalho (escuro), topo + parceiros no rodapé (claro); A4 (`relatorios.html` `docHeader`, relatório CAR do Mapa) =
+  topo à esquerda + parceiros à direita (claro), marca-d'água = projeto; e-mails = projeto no cabeçalho + parceiros na faixa.
+- `js/logos.js` não depende do `config.js` (entrada e portal têm cliente próprio) e entra **antes do `layout.js`** em toda
+  página. O app do Diagnóstico usa `DimaLogos.usarReserva()` com as cópias de `pwa/logos/` (1º uso sem rede) e o service
+  worker guarda as imagens de `plataforma-assets/logos/` no cache `dima-diag-logos` (fora da troca de `VERSAO`).
+- Editor: cada logo mostra as duas versões sobre os fundos reais (`#FFFFFF` e `#1F4E2C`) e mede o contraste
+  (`DimaLogos.contraste`, ≥ 2:1 em metade dos pixels) — só avisa. Logo nova nasce pela versão de fundo claro.
+
 ### Manual do sistema (Ajuda) e Trocar senha
 - `pages/ajuda.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor Claro/Escuro)
   e `css/ajuda.css` (prefixo `aj-`); ícones por `adIc()` (`js/administracao.js`). Guias numa coluna agrupada como o menu

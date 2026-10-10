@@ -132,19 +132,16 @@ body {
   background:rgba(255,255,255,.18);
   flex-shrink:0;
 }
-.logo-sema {
-  height:clamp(11px,1.6vw,20px);
-  width:auto;object-fit:contain;
-  filter:brightness(0) invert(1);
-  opacity:.75;
-}
+/* Logos vêm de Dados do sistema (js/logos.js), na versão para fundo escuro ou sobre placa clara.
+   A altura inline do helper é trocada aqui pela responsiva; nunca pintar a logo por filtro. */
+.logos-topo .dima-logo { height:clamp(20px,2.8vw,34px) !important;max-width:140px !important; }
 
 /* Logo Resiliência */
 .logo-central-wrap {
   position:absolute;top:14px;right:14px;z-index:5;
 }
 .logo-central-box { display:flex;align-items:center; }
-.logo-central { height:88px;width:auto;display:block; }
+.logo-central { height:88px !important;width:auto;display:block; }
 
 /* ── Projeto card ── */
 .projeto-info {
@@ -216,12 +213,12 @@ body {
   height:clamp(24px,2.6vw,38px);
   width:auto;max-width:100px;
   object-fit:contain;object-position:center;
-  opacity:.7;
-  filter:brightness(0) invert(1);
+  opacity:.92;
   transition:opacity .25s;
   display:block;flex-shrink:0;
 }
-.logo-form.logo-grande { height:clamp(24px,2.6vw,38px);max-width:100px; }
+.logo-form { height:clamp(22px,2.4vw,34px) !important;max-width:100px !important; }
+.logo-form.logo-grande { height:clamp(26px,2.9vw,40px) !important; }
 .logo-form:hover { opacity:1; }
 
 /* Counter */
@@ -577,7 +574,8 @@ body {
     border-radius:16px;
     display:flex;align-items:center;justify-content:center;
   }
-  .logo-central { height:40px;width:40px;object-fit:contain; }
+  .logo-central { height:40px !important;width:40px;object-fit:contain; }
+  .logo-central-box .dima-placa { padding:3px !important; }
 
   /* Projeto info: sem card, tipografia centralizada */
   .projeto-info {
@@ -597,10 +595,9 @@ body {
   .foto-legenda,.foto-contador { display:none; }
 
   .logos-topo { padding:4px 10px 4px 8px;gap:6px; }
-  .logo-gov { height:13px; }
+  .logos-topo .dima-logo { height:14px !important; }
   .logo-sep-topo { height:10px; }
-  .logo-sema { height:7px; }
-  .logo-form,.logo-form.logo-grande { height:22px;max-width:68px; }
+  .logo-form,.logo-form.logo-grande { height:22px !important;max-width:68px !important; }
 
   /* ── CARD BRANCO — painel direito ── */
   .painel-dir {
@@ -751,17 +748,12 @@ body {
   <div class="painel-conteudo">
     <!-- Logos topo -->
     <div>
-      <div class="logos-topo">
-        <img class="logo-gov" src="assets/brasao-acre.png" alt="Governo do Acre">
-        <div class="logo-sep-topo"></div>
-        <img class="logo-sema" src="assets/1695134345-1-horizontal-verde-solo.png" alt="SEMA">
-      </div>
+      <div class="logos-topo"></div>
     </div>
 
     <!-- Logo Resiliência -->
     <div class="logo-central-wrap">
       <div class="logo-central-box">
-        <img class="logo-central" src="assets/logo-resiliencia.png" alt="Resiliência Socioambiental">
       </div>
     </div>
 
@@ -779,10 +771,6 @@ body {
       <div class="parceiros-form">
         <span class="parceiros-label">Realização e parceiros</span>
         <div class="parceiros-logos">
-          <img class="logo-form" src="assets/UNESCO_logo_hor_blue_transparent.png.png" alt="UNESCO">
-          <img class="logo-form" src="assets/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil">
-          <img class="logo-form" src="assets/logo-fundo-brasil-onu.png" alt="Fundo Brasil-ONU">
-          <img class="logo-form logo-grande" src="assets/logo-consorcio-amazonia.png" alt="Consórcio Amazônia Legal">
         </div>
       </div>
     </div>
@@ -887,6 +875,7 @@ body {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/logos.js"></script>
 <script>
 const SUPABASE_URL='https://wfymnmlinonvdqfucjya.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
@@ -940,6 +929,31 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowRight'){pararTimer();irParaSlide(slideAtual+1);iniciarTimer();}
   if(e.key==='ArrowLeft'){pararTimer();irParaSlide(slideAtual-1);iniciarTimer();}
 });
+
+// Logos da entrada: fundo escuro (foto com véu) ⇒ versão escura ou placa clara (js/logos.js).
+function pintarLogosLogin(L) {
+  const wrapTopo = document.querySelector('.logos-topo');
+  if (wrapTopo) {
+    const it = DimaLogos.lista(L.topo, 'escuro', { altura: 30 });
+    wrapTopo.style.display = it.length ? '' : 'none';
+    wrapTopo.innerHTML = it.join('<div class="logo-sep-topo"></div>');
+  }
+  const wrapProjeto = document.querySelector('.logo-central-wrap');
+  if (wrapProjeto) {
+    const h = DimaLogos.img(L.projeto, 'escuro', { altura: 88, classe: 'logo-central', tamanho: false });
+    wrapProjeto.style.display = h ? '' : 'none';
+    wrapProjeto.querySelector('.logo-central-box').innerHTML = h;
+  }
+  const wrapParc = document.querySelector('.parceiros-form');
+  const listaParc = document.querySelector('.parceiros-logos');
+  if (listaParc) {
+    const it = L.parceiros.map(l => DimaLogos.img(l, 'escuro', { altura: 30, tamanho: false, classe: 'logo-form' + (l.tamanho === 'grande' ? ' logo-grande' : '') })).filter(Boolean);
+    if (wrapParc) wrapParc.style.display = it.length ? '' : 'none';
+    listaParc.innerHTML = it.join('');
+  }
+}
+pintarLogosLogin(DimaLogos.agora());
+DimaLogos.carregar(db).then(pintarLogosLogin);
 
 async function carregarConfigLogin() {
   try {
@@ -995,46 +1009,6 @@ async function carregarConfigLogin() {
     } else {
       esq.style.background = data.cor_primaria || '#1F4E2C';
       document.getElementById('foto-contador').textContent = '';
-    }
-
-    const wrapTopo = document.querySelector('.logos-topo');
-    if (wrapTopo) {
-      const logos = [...(data.logos_topo || [])].sort((a,b) => a.ordem - b.ordem);
-      if (logos.length) {
-        wrapTopo.style.display = '';
-        const alturasTopo = { pequeno:'40px', medio:'63px', grande:'95px' };
-        wrapTopo.innerHTML = logos.map((l, i) =>
-          `${i>0?'<div class="logo-sep-topo"></div>':''}
-           <img src="${l.url}" alt="${l.alt||''}" style="height:${alturasTopo[l.tamanho||'medio']};width:auto;object-fit:contain">`
-        ).join('');
-      } else {
-        wrapTopo.style.display = 'none';
-      }
-    }
-
-    const wrapProjeto = document.querySelector('.logo-central-wrap');
-    if (wrapProjeto) {
-      if (data.logo_projeto?.url) {
-        wrapProjeto.style.display = '';
-        const img = wrapProjeto.querySelector('.logo-central');
-        if (img) { img.src = data.logo_projeto.url; img.alt = data.logo_projeto.alt||''; }
-      } else {
-        wrapProjeto.style.display = 'none';
-      }
-    }
-
-    const wrapParc = document.querySelector('.parceiros-form');
-    const listaParc = document.querySelector('.parceiros-logos');
-    if (listaParc) {
-      const parc = [...(data.logos_parceiros || [])].sort((a,b) => a.ordem - b.ordem);
-      if (parc.length) {
-        if (wrapParc) wrapParc.style.display = '';
-        listaParc.innerHTML = parc.map(l =>
-          `<img src="${l.url}" alt="${l.alt||''}" class="logo-form${l.tamanho==='grande'?' logo-grande':''}">`
-        ).join('');
-      } else {
-        if (wrapParc) wrapParc.style.display = 'none';
-      }
     }
 
     const projNome = document.querySelector('.proj-nome');
