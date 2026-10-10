@@ -794,6 +794,23 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   Qualitativa). M4 = "Indicadores abaixo da meta" (todos com meta não atingida, do mais distante), sem vermelho.
 - `resultados.codigo` já é `'R1'`…`'R4'`: exibir como está e filtrar por `resNum(codigo) === filtro` (o filtro manda o número).
 
+### Auditoria IA — visual, faixa da execução e tratamento dos achados
+- `pages/auditoria.html` + `js/auditoria.js` usam o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema
+  `diag_tema`, seletor Claro/Escuro no topo) e componentes em `css/auditoria.css` (prefixo `au-`; severidade = classe
+  `.s-<severidade>` com token `--au-*`). Sem `<style>` próprio; ícones SVG por `auIc()`, sem emoji (nem nas mensagens que a
+  tela gera no assistente). Texto do assistente: `esc()` antes de aplicar `**negrito**` e quebras.
+- **Faixa da execução** (`renderFaixa`): data da última auditoria e "há N dias"; acima de `DIAS_VELHA` (7) fica âmbar e
+  lembra que **não há rotina automática** (a auditoria só roda pelo botão ou `/auditar`). Execução antiga do histórico mostra
+  "não é a mais recente" + "Ver a mais recente".
+- Lista abre em **Abertos** (aberto + em_análise), crítico → baixo; os **informativos** ficam num grupo recolhido no fim.
+- **Orçamento** é domínio virtual da tela (`domDe`): achado `financeiro` com título "Orçamento: …" (o check de
+  `auditoria_registros.dominio` não tem `orcamento`) — filtro e barra próprios, banco igual.
+- **Resolver e ignorar exigem texto** (mesma janela `#au-modal`): grava `status`, `resolvido_por`, `resolvido_em` e
+  `comentario_resolucao` (no ignorado, é o motivo). Nunca ignorar sem motivo.
+- Janela com classe **`au-ov`** (no seletor de escopo de `diagnostico-mesa.css`): Esc fecha, Tab preso, foco volta. O painel
+  do assistente (`.au-chat`, também `au-ov`) não bloqueia a página; Esc fecha. "Perguntar ao assistente" no achado preenche a
+  pergunta com título e referência.
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
