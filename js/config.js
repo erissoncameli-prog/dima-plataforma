@@ -16,7 +16,7 @@ const i18n = {
     nav: {
       dashboard: 'Visão Geral', tarefas: 'Tarefas', atividades: 'Atividades', tdrs: 'TDRs',
       financeiro: 'Financeiro', contratos: 'Contratos', fornecedores: 'Fornecedores',
-      viagens: 'Viagens', beneficiarios: 'Beneficiários', relatorios: 'Relatórios', mapa: 'Mapa de Entregas', repositorio: 'Repositório', produtos: 'Produtos Entregues', acervo: 'Acervo Digital', diagnostico: 'Diagnóstico Socioambiental', matriz: 'Matriz de Resultados', remanejamentos: 'Remanejamento', auditoria: 'Auditoria IA', pulso: 'Pulso da Equipe', ajuda: 'Ajuda', usuarios: 'Usuários', configuracoes: 'Configurações', dados_sistema: 'Dados do Sistema', banco_dados: 'Armazenamento em Nuvem', ropa: 'Privacidade (ROPA)', sair: 'Sair'
+      viagens: 'Viagens', beneficiarios: 'Beneficiários', relatorios: 'Relatórios', mapa: 'Mapa Interativo', repositorio: 'Repositório', produtos: 'Produtos Entregues', acervo: 'Acervo Digital', diagnostico: 'Diagnóstico Socioambiental', matriz: 'Matriz de Resultados', remanejamentos: 'Remanejamento', auditoria: 'Auditoria IA', pulso: 'Pulso da Equipe', ajuda: 'Ajuda', usuarios: 'Usuários', configuracoes: 'Configurações', dados_sistema: 'Dados do Sistema', banco_dados: 'Armazenamento em Nuvem', ropa: 'Privacidade (ROPA)', sair: 'Sair'
     },
     comum: {
       salvar: 'Salvar', cancelar: 'Cancelar', editar: 'Editar', excluir: 'Excluir',
@@ -53,7 +53,7 @@ const i18n = {
     nav: {
       dashboard: 'Overview', tarefas: 'Tasks', atividades: 'Activities', tdrs: 'TORs',
       financeiro: 'Financial', contratos: 'Contracts', fornecedores: 'Suppliers',
-      viagens: 'Travel', relatorios: 'Reports', mapa: 'Delivery Map', repositorio: 'Repository', produtos: 'Delivered Products', acervo: 'Digital Library', diagnostico: 'Socio-environmental Survey', matriz: 'Results Matrix', remanejamentos: 'Budget Reallocation', auditoria: 'AI Audit', pulso: 'Team Pulse', ajuda: 'Help', usuarios: 'Users', configuracoes: 'Settings', dados_sistema: 'System Data', banco_dados: 'Cloud Storage', ropa: 'Privacy (RoPA)', sair: 'Sign out'
+      viagens: 'Travel', relatorios: 'Reports', mapa: 'Interactive Map', repositorio: 'Repository', produtos: 'Delivered Products', acervo: 'Digital Library', diagnostico: 'Socio-environmental Survey', matriz: 'Results Matrix', remanejamentos: 'Budget Reallocation', auditoria: 'AI Audit', pulso: 'Team Pulse', ajuda: 'Help', usuarios: 'Users', configuracoes: 'Settings', dados_sistema: 'System Data', banco_dados: 'Cloud Storage', ropa: 'Privacy (RoPA)', sair: 'Sign out'
     },
     comum: {
       salvar: 'Save', cancelar: 'Cancel', editar: 'Edit', excluir: 'Delete',
@@ -90,7 +90,7 @@ const i18n = {
     nav: {
       dashboard: 'Resumen', tarefas: 'Tareas', atividades: 'Actividades', tdrs: 'TDRs',
       financeiro: 'Financiero', contratos: 'Contratos', fornecedores: 'Proveedores',
-      viagens: 'Viajes', relatorios: 'Informes', mapa: 'Mapa de Entregas', repositorio: 'Repositorio', produtos: 'Productos Entregados', acervo: 'Acervo Digital', diagnostico: 'Diagnóstico Socioambiental', matriz: 'Matriz de Resultados', remanejamentos: 'Reasignación', auditoria: 'Auditoría IA', pulso: 'Pulso del Equipo', ajuda: 'Ayuda', usuarios: 'Usuarios', configuracoes: 'Configuración', dados_sistema: 'Datos del Sistema', banco_dados: 'Almacenamiento en Nube', ropa: 'Privacidad (RAT)', sair: 'Salir'
+      viagens: 'Viajes', relatorios: 'Informes', mapa: 'Mapa Interactivo', repositorio: 'Repositorio', produtos: 'Productos Entregados', acervo: 'Acervo Digital', diagnostico: 'Diagnóstico Socioambiental', matriz: 'Matriz de Resultados', remanejamentos: 'Reasignación', auditoria: 'Auditoría IA', pulso: 'Pulso del Equipo', ajuda: 'Ayuda', usuarios: 'Usuarios', configuracoes: 'Configuración', dados_sistema: 'Datos del Sistema', banco_dados: 'Almacenamiento en Nube', ropa: 'Privacidad (RAT)', sair: 'Salir'
     },
     comum: {
       salvar: 'Guardar', cancelar: 'Cancelar', editar: 'Editar', excluir: 'Eliminar',
