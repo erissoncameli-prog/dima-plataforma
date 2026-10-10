@@ -149,7 +149,30 @@
     document.getElementById('app').innerHTML =
       gerarLayout('Tarefas', 'tarefas') + html + '</div></div></div>'
     carregarLogosSidebar()
+    seletorTema()
     if (S.aba === 'kanban') ligarDragDrop()
+  }
+
+  // Tema claro/escuro: mesmo 'diag_tema' das demais guias (js/diag-tema.js). Botões no topo; o render()
+  // redesenha a página inteira, então o seletor é recolocado a cada desenho (sem duplicar).
+  const TEMA_IC = {
+    claro: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    escuro: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  }
+  function seletorTema () {
+    const tb = document.querySelector('.topbar')
+    if (!tb || tb.querySelector('.tk-tema') || typeof DiagTema === 'undefined') return
+    const d = document.createElement('div')
+    d.className = 'tk-tema'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Tema')
+    d.innerHTML = [['claro', 'Claro'], ['escuro', 'Escuro']].map(([t, r]) =>
+      `<button type="button" data-tema="${t}" aria-pressed="${DiagTema.atual() === t}"><svg viewBox="0 0 24 24" aria-hidden="true">${TEMA_IC[t]}</svg>${r}</button>`).join('')
+    const bc = tb.querySelector('.topbar-breadcrumb')
+    if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d)
+    d.addEventListener('click', ev => {
+      const b = ev.target.closest('[data-tema]'); if (!b) return
+      DiagTema.definir(b.dataset.tema)
+      d.querySelectorAll('[data-tema]').forEach(x => x.setAttribute('aria-pressed', String(x === b)))
+    })
   }
 
   function toolbar () {
