@@ -104,7 +104,9 @@ body.dgm .re-fil :is(.config-select, .config-input):focus { outline: 0; border-c
 /* Cabeçalho */
 .doc-header { padding: 20px 32px 16px; border-bottom: 3px solid #1F4E2C; position: relative; }
 .doc-header-logos { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.doc-header-logos-esq, .doc-header-logos-dir { display: flex; align-items: center; gap: 10px; }
+.doc-header-logos { gap: 16px; }
+.doc-header-logos-esq, .doc-header-logos-dir { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.doc-header-logos-dir { justify-content: flex-end; }
 .doc-header-logo { height: 32px; width: auto; object-fit: contain; }
 .doc-header-sep { width: 1px; height: 28px; background: #B5860D; flex-shrink: 0; }
 .doc-header-projeto { font-size: 9px; font-weight: 700; color: #1F4E2C; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 2px; }

@@ -29,7 +29,7 @@
   body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:var(--fundo); color:var(--texto); line-height:1.5; min-height:100dvh; }
   .topo { background:radial-gradient(120% 120% at 50% 0%,#24704A 0%,#16382A 55%,#10261A 100%); color:#fff; padding:calc(14px + env(safe-area-inset-top)) 16px 46px; text-align:center; }
   .topo .marca { display:inline-flex; align-items:center; gap:10px; padding:5px 14px 5px 10px; background:rgba(0,0,0,.2); border:1px solid rgba(255,255,255,.12); border-radius:99px; }
-  .topo .marca img { height:22px } .topo .marca .sema { height:11px; filter:brightness(0) invert(1); opacity:.85 }
+  .topo .marca .dima-logo { height:22px !important; max-width:110px !important } /* js/logos.js: versão escura ou placa clara */
   .topo h1 { font-size:1.3rem; font-weight:700; letter-spacing:-.02em; margin-top:12px }
   .topo p { opacity:.82; font-size:.9rem }
   main { max-width:560px; margin:-30px auto 0; padding:0 16px calc(32px + env(safe-area-inset-bottom)); position:relative; }
@@ -100,7 +100,7 @@
 </head>
 <body>
 <header class="topo">
-  <span class="marca"><img src="../pwa/logos/acre.png" alt="Governo do Acre"><img class="sema" src="../pwa/logos/sema.png" alt="SEMA"></span>
+  <span class="marca" id="pr-marca"></span>
   <h1>Pulso da Equipe</h1>
   <p id="pr-sub">Questionário rápido · cerca de 3 minutos</p>
 </header>
@@ -108,6 +108,13 @@
 <div class="sr" aria-live="polite" id="pr-anuncio"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
+<script src="../js/logos.js"></script>
+<script>
+  (function () {
+    const pinta = L => { const m = document.getElementById('pr-marca'); if (m) { const it = DimaLogos.lista(L.topo, 'escuro', { altura: 22, tamanho: false }); m.innerHTML = it.join(''); m.style.display = it.length ? '' : 'none' } }
+    pinta(DimaLogos.agora()); DimaLogos.carregar(db).then(pinta)
+  })()
+</script>
 <script src="../js/pulso-perguntas.js"></script>
 <script src="../js/pulso-responder.js"></script>
 </body>

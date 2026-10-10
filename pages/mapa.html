@@ -19,6 +19,7 @@
 <body class="dgm">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
+<script src="../js/logos.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
@@ -5486,6 +5487,12 @@ function _svgFallbackCAR(f, bounds){
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
 
+// Logos do relatório CAR = Dados do sistema (js/logos.js), versão para fundo claro; o servidor do PDF
+// (Browserless) baixa as imagens pelo endereço absoluto que DimaLogos.url() devolve.
+let _carLogosL = null;
+const _carLogos = () => _carLogosL || DimaLogos.agora();
+DimaLogos.carregar(db).then(L => { _carLogosL = L; });
+
 // ── Janela de impressão — mesmo cabeçalho do sistema de relatórios ─────────
 async function _gerarPdfRelatorioCAR(capturas){
   const htmlContent = _montarHtmlRelatorioCAR(capturas);
@@ -5493,8 +5500,6 @@ async function _gerarPdfRelatorioCAR(capturas){
   const filename = `relatorio-car-${now}`;
 
   // Templates nativos do Puppeteer — reproduzem o cabeçalho/rodapé originais do sistema
-  const base = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
-  const A2 = p => `${base}/assets/${p}`;
   const nowStr = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
                + ' — ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   const userPdf  = appState?.usuario?.nome_completo || appState?.usuario?.email || 'Sistema DIMA';
@@ -5504,16 +5509,9 @@ async function _gerarPdfRelatorioCAR(capturas){
 
   // headerTemplate: reproduz exatamente o .doc-header original
   const headerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;background:var(--branco);padding:16px 28px 12px;border-bottom:3px solid var(--verde);box-sizing:border-box;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <img src="${A2('1695134345-1-horizontal-verde-solo.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
-        <div style="width:1px;height:24px;background:#B5860D;flex-shrink:0;"></div>
-        <img src="${A2('3-vertical-verde-conjunto-1024x805.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <img src="${A2('UNESCO_logo_hor_blue_transparent.png.png')}" style="height:28px;width:auto;" onerror="this.style.display='none'">
-        <img src="${A2('UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png')}" style="height:24px;width:auto;" onerror="this.style.display='none'">
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${_carLogos().topo.map(l => DimaLogos.img(l, 'claro', { altura: 28 })).filter(Boolean).join('<div style="width:1px;height:24px;background:#B5860D;flex-shrink:0;"></div>')}</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">${DimaLogos.lista(_carLogos().parceiros, 'claro', { altura: 24 }).join('')}</div>
     </div>
     <div style="margin-bottom:10px;">
       <div style="font-size:9px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
@@ -5583,9 +5581,6 @@ async function _gerarPdfRelatorioCAR(capturas){
 }
 
 function _montarHtmlRelatorioCAR(capturas){
-  // URL base absoluta para logos (acessível pelo servidor Browserless)
-  const base = window.location.origin + window.location.pathname.replace(/\/pages\/.*$/, '');
-  const A = path => `${base}/assets/${path}`;
 
   const now  = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
              + ' — ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -5729,17 +5724,10 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
 
   <!-- ── CABEÇALHO PADRÃO DO SISTEMA ── -->
   <div class="doc-header">
-    <div class="doc-watermark"><img src="${A('logo-resiliencia.png')}" alt=""></div>
+    ${(() => { const p = _carLogos().projeto, src = p && (p.url || p.url_escuro); return src ? `<div class="doc-watermark"><img src="${esc(DimaLogos.url(src))}" alt=""></div>` : '' })()}
     <div class="doc-header-logos">
-      <div class="doc-header-logos-esq">
-        <img class="doc-header-logo" src="${A('1695134345-1-horizontal-verde-solo.png')}" alt="SEMA">
-        <div class="doc-header-sep"></div>
-        <img class="doc-header-logo" src="${A('3-vertical-verde-conjunto-1024x805.png')}" alt="Governo do Acre">
-      </div>
-      <div class="doc-header-logos-dir">
-        <img class="doc-header-logo" src="${A('UNESCO_logo_hor_blue_transparent.png.png')}" alt="UNESCO">
-        <img class="doc-header-logo" src="${A('UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png')}" alt="ONU Brasil" style="height:28px">
-      </div>
+      <div class="doc-header-logos-esq">${_carLogos().topo.map(l => DimaLogos.img(l, 'claro', { altura: 32, classe: 'doc-header-logo' })).filter(Boolean).join('<div class="doc-header-sep"></div>')}</div>
+      <div class="doc-header-logos-dir">${DimaLogos.lista(_carLogos().parceiros, 'claro', { altura: 26, classe: 'doc-header-logo' }).join('')}</div>
     </div>
     <div>
       <div class="doc-header-projeto">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>

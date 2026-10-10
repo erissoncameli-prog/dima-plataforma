@@ -6,10 +6,10 @@
 // event-driven) para não repetir badge todo dia.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
+import { logosEmail } from '../_shared/logos-email.ts'
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 const SITE_URL  = 'https://fundobrasilonu-plataforma.vercel.app'
-const ASSETS    = `${SITE_URL}/assets`
 const TZ        = 'America/Rio_Branco' // Acre, UTC-5
 
 // data local (YYYY-MM-DD) no fuso do Acre
@@ -36,14 +36,14 @@ function bloco(titulo: string, cor: string, itens: any[]): string {
     <table style="width:100%;border-collapse:collapse;border:1px solid #F0F0F0;border-radius:6px">${linhas}</table>`
 }
 
-function wrapHtml(nome: string, corpoTabelas: string): string {
+function wrapHtml(nome: string, corpoTabelas: string, logos: { cabecalho: string; faixa: string }): string {
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0"><tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
   <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
     <table width="100%"><tr>
-      <td style="vertical-align:middle"><img src="${ASSETS}/logo-resiliencia.png" alt="Projeto DIMA" height="52" style="display:block;border:0"></td>
+      <td style="vertical-align:middle">${logos.cabecalho}</td>
       <td style="vertical-align:middle;text-align:right">
         <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Suas tarefas de hoje</span><br>
         <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
@@ -135,6 +135,7 @@ Deno.serve(async () => {
       auth: { user: 'fundobrasilonuacre@gmail.com', pass: Deno.env.get('GMAIL_APP_PASSWORD')! },
     })
 
+    const logos = await logosEmail(supabase)
     const alvos = Object.values(porUser)
     const results = await Promise.allSettled(alvos.map(u => {
       const corpo =
@@ -144,7 +145,7 @@ Deno.serve(async () => {
       return transporter.sendMail({
         from: REMETENTE, to: u.email,
         subject: `Suas tarefas — ${u.atras.length} atrasada(s), ${u.hoje.length} hoje`,
-        html: wrapHtml(u.nome, corpo),
+        html: wrapHtml(u.nome, corpo, logos),
       })
     }))
     const enviados = results.filter(r => r.status === 'fulfilled').length

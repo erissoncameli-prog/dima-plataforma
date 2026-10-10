@@ -348,6 +348,21 @@ body.dgm .limit-badge { font: 500 11px var(--font-mono); padding: 1px 8px; borde
 body.dgm .limit-badge.warn { background: var(--alerta-bg); color: var(--alerta-txt); }
 body.dgm .btn-add-item { display: flex; align-items: center; gap: 6px; padding: 9px 12px; border: 1.5px dashed var(--lin-forte); border-radius: var(--r-ctl); background: none; color: var(--txt-2); font: 500 12.5px var(--font-sans, inherit); cursor: pointer; width: 100%; justify-content: center; margin-top: 4px; }
 body.dgm .btn-add-item:hover { border-color: var(--pri-600); color: var(--txt); background: var(--sup-2); }
+/* Logos: duas versões por logo (fundo claro / fundo escuro), amostra no fundo real e aviso de contraste */
+body.dgm .ad-lg-item { display: block; padding: 10px; }
+body.dgm .ad-lg-cab { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+body.dgm .ad-lg-nome { font: 600 12.5px var(--font-sans, inherit); color: var(--txt); }
+body.dgm .ad-lg-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+body.dgm .ad-lg-slot { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; align-items: center; border: 1px solid var(--lin); border-radius: var(--r-ctl); padding: 8px; background: var(--bg-2); }
+body.dgm .ad-lg-amostra { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 6px; padding: 8px; }
+/* fundos reais da plataforma: papel branco e o verde do menu — iguais nos dois temas */
+body.dgm .ad-lg-amostra.claro { background: #FFFFFF; border: 1px solid #E3E8E4; }
+body.dgm .ad-lg-amostra.escuro { background: #1F4E2C; }
+body.dgm .ad-lg-slot-p { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 12px; color: var(--txt); }
+body.dgm .ad-lg-nota { font-size: 11px; color: var(--txt-3); line-height: 1.35; }
+body.dgm .ad-lg-nota.ok { color: var(--ok, var(--txt-3)); }
+body.dgm .ad-lg-nota.falta { color: var(--alerta-txt); }
+@media (max-width: 560px) { body.dgm .ad-lg-slots { grid-template-columns: minmax(0, 1fr); } }
 body.dgm .color-row { display: flex; align-items: center; gap: 8px; }
 body.dgm .color-swatch { width: 38px; height: 38px; border-radius: var(--r-ctl); border: 1px solid var(--lin-forte); flex-shrink: 0; }
 body.dgm .ad-cfg-txt { font-size: 12px; color: var(--txt-2); line-height: 1.6; margin: 0; }

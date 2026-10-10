@@ -6,8 +6,9 @@
 //
 // Ao mudar QUALQUER arquivo do shell abaixo, incremente VERSAO — é o que faz
 // o aparelho baixar a versão nova.
-const VERSAO = 19
+const VERSAO = 20
 const CACHE = 'dima-diag-v' + VERSAO
+const CACHE_LOGOS = 'dima-diag-logos'  // fora da troca de versão
 const SHELL = [
   '/pages/diagnostico-app.html',
   '/css/diagnostico-app.css',
@@ -27,6 +28,7 @@ const SHELL = [
   '/pwa/logos/fundo-brasil-onu.png',
   '/pwa/logos/consorcio-amazonia.png',
   '/js/config.js',
+  '/js/logos.js',
   '/js/diag-regras.js',
   '/js/diag-offline.js',
   '/js/diag-sync.js',
@@ -49,12 +51,21 @@ self.addEventListener('install', ev => {
 
 self.addEventListener('activate', ev => {
   ev.waitUntil(caches.keys()
-    .then(ks => Promise.all(ks.filter(k => k.startsWith('dima-diag-') && k !== CACHE).map(k => caches.delete(k))))
+    .then(ks => Promise.all(ks.filter(k => k.startsWith('dima-diag-v') && k !== CACHE).map(k => caches.delete(k))))
     .then(() => self.clients.claim()))
 })
 
 self.addEventListener('fetch', ev => {
   const url = new URL(ev.request.url)
+  // Logos de Dados do sistema (bucket público plataforma-assets/logos): cache próprio, entre versões,
+  // para o app abrir com as mesmas logos sem sinal.
+  if (url.hostname.endsWith('.supabase.co') && url.pathname.includes('/object/public/plataforma-assets/logos/')) {
+    ev.respondWith(caches.open(CACHE_LOGOS).then(c => c.match(ev.request).then(guardado => {
+      const rede = fetch(ev.request).then(r => { if (r.ok || r.type === 'opaque') c.put(ev.request, r.clone()); return r }).catch(() => guardado)
+      return guardado || rede
+    })))
+    return
+  }
   // API do Supabase: sempre rede; sem rede, 503 em JSON (a fila trata como "sem conexão")
   if (url.hostname.endsWith('.supabase.co')) {
     ev.respondWith(fetch(ev.request).catch(() => new Response(JSON.stringify({ message: 'offline' }),

@@ -215,11 +215,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand" style="padding:18px 14px 14px;">
-        <div id="sidebar-logos-topo" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:40px;margin-bottom:10px;">
-          <img src="../assets/brasao-acre.png" alt="Governo do Acre" style="height:48px;width:auto;object-fit:contain;flex-shrink:0;">
-          <div style="width:1px;height:36px;background:rgba(255,255,255,.25);flex-shrink:0;"></div>
-          <img src="../assets/sema-branco.png" alt="SEMA" style="height:28px;width:auto;object-fit:contain;flex-shrink:0;max-width:120px;">
-        </div>
+        <div id="sidebar-logos-topo" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:40px;margin-bottom:10px;flex-wrap:wrap">${_dimaLogosSidebar(window.DimaLogos ? DimaLogos.agora().topo : [])}</div>
         <div class="sidebar-brand-sub" id="sidebar-brand-sub" style="color:rgba(255,255,255,.45);">UNESCO · DIMA · 218BRA2001</div>
       </div>
 
@@ -368,28 +364,27 @@ async function trocarIdioma(lang) {
   location.reload();
 }
 
+// Logos do topo (Dados do sistema) sobre o verde do menu: versão para fundo escuro (js/logos.js).
+function _dimaLogosSidebar(topo) {
+  if (!window.DimaLogos || !topo || !topo.length) return '';
+  const sep = '<div style="width:1px;height:26px;background:rgba(255,255,255,.25);flex-shrink:0"></div>';
+  return DimaLogos.lista(topo, 'escuro', { altura: 30, estilo: 'max-width:120px' }).join(sep);
+}
+
 async function carregarLogosSidebar() {
   _dimaBarCompleta();
   _dimaAtivarNavLinks();
   try {
-    const { data } = await db.from('configuracoes_sistema')
-      .select('*').eq('projeto_id', 'default').single();
-    if (!data) return;
-
     const wrap = document.getElementById('sidebar-logos-topo');
-    if (wrap) {
-      const logos = [...(data.logos_topo || [])].sort((a, b) => a.ordem - b.ordem);
-      if (logos.length) {
-        const alturas = { pequeno: '18px', medio: '24px', grande: '32px' };
-        wrap.innerHTML = logos.map((l, i) =>
-          `${i > 0 ? '<div style="width:1px;height:22px;background:rgba(255,255,255,.25);flex-shrink:0"></div>' : ''}
-           <img src="${l.url}" alt="${l.alt || ''}" style="height:${alturas[l.tamanho || 'medio']};width:auto;object-fit:contain">`
-        ).join('');
-      }
+    if (wrap && window.DimaLogos) {
+      const L = await DimaLogos.carregar(db);
+      wrap.innerHTML = _dimaLogosSidebar(L.topo);
     }
 
+    const { data } = await db.from('configuracoes_sistema')
+      .select('projeto_codigo').eq('projeto_id', 'default').maybeSingle();
     const sub = document.getElementById('sidebar-brand-sub');
-    if (sub && data.projeto_codigo) sub.textContent = data.projeto_codigo;
+    if (sub && data && data.projeto_codigo) sub.textContent = data.projeto_codigo;
   } catch(e) { console.error('[sidebar-logos]', e); }
 }
 

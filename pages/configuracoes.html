@@ -17,6 +17,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
+<script src="../js/logos.js"></script>
 <script src="../js/layout.js"></script>
 <script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
@@ -112,10 +113,11 @@ function renderPagina() {
   </div>`;
 
   initDragDrop('lista-fotos', sincronizarFotosDOM);
-  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
-  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+  initDragDrop('lista-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiro', sincronizarParceirosDOM);
   iniciarTimerFotos();
   ajustarPreview();
+  lgConferirContraste();
 }
 
 // ── Tab: Identidade ───────────────────────────────────────────
@@ -261,197 +263,171 @@ function sincronizarFotosDOM() {
 }
 
 // ── Tab: Logos ────────────────────────────────────────────────
+// Cada logo tem duas versões: fundo claro (`url`, papel, faixa branca do e-mail, tema claro) e fundo
+// escuro (`url_escuro`, menu verde, tela de entrada, cabeçalho do e-mail). Sem a versão do fundo, a
+// plataforma põe a logo sobre uma placa (js/logos.js). A prévia mostra os dois fundos e mede o contraste.
+const LG_ZONAS = {
+  topo:     { lista: () => cfg.logos_topo,      max: 3, kb: 512 },
+  parceiro: { lista: () => cfg.logos_parceiros, max: 8, kb: 1024 },
+  projeto:  { lista: () => (cfg.logo_projeto && (cfg.logo_projeto.url || cfg.logo_projeto.url_escuro) ? [cfg.logo_projeto] : []), max: 1, kb: 512 },
+};
+const lgItem = (tipo, i) => LG_ZONAS[tipo].lista()[i];
+
 function renderTabLogos() {
+  const zona = (tipo, titulo, txt) => {
+    const z = LG_ZONAS[tipo], ls = z.lista();
+    return `<div class="ad-zona">
+      <div class="section-label">${titulo} <span class="line"></span>
+        ${z.max > 1 ? `<span class="limit-badge ${ls.length >= z.max ? 'warn' : ''}">${ls.length}/${z.max}</span>` : ''}</div>
+      <p class="ad-cfg-txt" style="margin-bottom:10px">${txt} · <strong>PNG/SVG</strong> · máx <strong>${z.kb >= 1024 ? '1 MB' : '500 KB'}</strong></p>
+      <div id="lista-${tipo}">${ls.map((l, i) => renderLogoItem(l, i, tipo)).join('')}</div>
+      ${ls.length < z.max ? `<button type="button" class="btn-add-item" onclick="lgEnviar('${tipo}',-1,'claro')">${adIc('mais','p')} ${tipo === 'parceiro' ? 'Adicionar parceiro' : tipo === 'projeto' ? 'Adicionar logo do projeto' : 'Adicionar logo'} <small style="font-weight:400">(versão para fundo claro)</small></button>` : ''}
+    </div>`;
+  };
   return `
   <div id="tab-logos" class="tab-content">
-
-    <div class="ad-zona">
-      <div class="section-label">
-        Zona A — Topo Esquerdo <span class="line"></span>
-        <span class="limit-badge ${cfg.logos_topo.length>=3?'warn':''}">${cfg.logos_topo.length}/3</span>
-      </div>
-      <p class="ad-cfg-txt" style="margin-bottom:10px">
-        Logos na caixa branca superior · <strong>PNG/SVG</strong> · máx <strong>500 KB</strong>
-      </p>
-      <div id="lista-logos-topo">
-        ${cfg.logos_topo.map((l, i) => renderLogoItem(l, i, 'topo')).join('')}
-      </div>
-      ${cfg.logos_topo.length < 3 ? `
-        <button class="btn-add-item" onclick="document.getElementById('inp-logo-topo').click()">
-          ${adIc('mais','p')} Adicionar logo
-        </button>
-        <input type="file" id="inp-logo-topo" accept=".png,.svg" style="display:none"
-          onchange="handleUploadLogo(this.files,'topo')">
-      ` : ''}
-    </div>
-
-    <div class="ad-zona">
-      <div class="section-label">Zona B — Logo do Projeto <span class="line"></span></div>
-      <p class="ad-cfg-txt" style="margin-bottom:10px">
-        Destaque no canto superior direito · <strong>PNG/SVG</strong> · máx <strong>500 KB</strong>
-      </p>
-      <div id="logo-projeto-slot">
-        ${cfg.logo_projeto?.url ? `
-        <div class="sort-item" style="margin-bottom:6px">
-          <img class="sort-thumb-logo" src="${esc(imgUrl(cfg.logo_projeto.url))}" alt="" onerror="this.style.opacity='.2'">
-          <div class="sort-info">
-            <input class="alt-input" value="${esc(cfg.logo_projeto.alt||'')}"
-              placeholder="Texto alternativo" aria-label="Texto alternativo"
-              oninput="cfg.logo_projeto.alt=this.value">
-          </div>
-          <div class="sort-actions">
-            <button type="button" class="btn-icon-sm" onclick="document.getElementById('inp-logo-projeto').click()" title="Trocar" aria-label="Trocar">${adIc('trocar','p')}</button>
-            <button type="button" class="btn-icon-sm danger" onclick="removerLogoProjeto()" title="Remover" aria-label="Remover">${adIc('x','p')}</button>
-          </div>
-        </div>` : `
-        <button class="btn-add-item" onclick="document.getElementById('inp-logo-projeto').click()">
-          ${adIc('mais','p')} Adicionar logo do projeto
-        </button>`}
-        <input type="file" id="inp-logo-projeto" accept=".png,.svg" style="display:none"
-          onchange="handleUploadLogo(this.files,'projeto')">
-      </div>
-    </div>
-
-    <div>
-      <div class="section-label">
-        Zona C — Parceiros <span class="line"></span>
-        <span class="limit-badge ${cfg.logos_parceiros.length>=8?'warn':''}">${cfg.logos_parceiros.length}/8</span>
-      </div>
-      <p class="ad-cfg-txt" style="margin-bottom:10px">
-        Seção "Realização e Parceiros" · <strong>PNG/SVG</strong> · máx <strong>1 MB</strong>
-      </p>
-      <div id="lista-parceiros">
-        ${cfg.logos_parceiros.map((l, i) => renderLogoItem(l, i, 'parceiro')).join('')}
-      </div>
-      ${cfg.logos_parceiros.length < 8 ? `
-        <button class="btn-add-item" onclick="document.getElementById('inp-logo-parceiro').click()">
-          ${adIc('mais','p')} Adicionar parceiro
-        </button>
-        <input type="file" id="inp-logo-parceiro" accept=".png,.svg" style="display:none"
-          onchange="handleUploadLogo(this.files,'parceiro')">
-      ` : ''}
-    </div>
+    <div class="ad-aviso" style="margin-bottom:14px">${adIc('info','p')}<span>Estas logos valem para <b>todas</b> as telas, relatórios A4 e e-mails. Envie cada uma na versão para <b>fundo claro</b> e, se tiver, na versão para <b>fundo escuro</b> (letras brancas). Sem a versão escura, a logo aparece sobre uma placa clara nos fundos verdes.</span></div>
+    ${zona('topo', 'Zona A — Topo', 'Menu lateral, tela de entrada, app do Diagnóstico, Pulso e topo dos relatórios A4')}
+    ${zona('projeto', 'Zona B — Logo do projeto', 'Tela de entrada, app do Diagnóstico, cabeçalho dos e-mails e marca-d\'água dos relatórios')}
+    ${zona('parceiro', 'Zona C — Parceiros', 'Realização e parceiros: tela de entrada, portal público, relatórios A4 e faixa dos e-mails')}
+    <input type="file" id="inp-logo" accept=".png,.svg" style="display:none" onchange="lgArquivo(this)">
   </div>`;
 }
 
 function renderLogoItem(l, i, tipo) {
-  const sizeSel = tipo === 'parceiro' ? `
-    <select class="size-select" onchange="setTamanho(${i},this.value)" onclick="event.stopPropagation()" aria-label="Tamanho">
+  const sizeSel = tipo !== 'projeto' ? `
+    <select class="size-select" onchange="setTamanho('${tipo}',${i},this.value)" aria-label="Tamanho">
       <option value="pequeno" ${l.tamanho==='pequeno'?'selected':''}>Peq.</option>
       <option value="medio"   ${(!l.tamanho||l.tamanho==='medio')?'selected':''}>Méd.</option>
       <option value="grande"  ${l.tamanho==='grande'?'selected':''}>Gde.</option>
     </select>` : '';
+  const slot = (versao) => {
+    const tem = versao === 'claro' ? !!l.url : !!l.url_escuro;
+    const titulo = versao === 'claro' ? 'Fundo claro' : 'Fundo escuro';
+    const nota = tem ? '' : versao === 'claro' ? 'Falta esta versão: no papel ela sai sobre placa verde' : 'Sem versão própria: usa placa clara';
+    return `<div class="ad-lg-slot ${versao}">
+      <div class="ad-lg-amostra ${versao}">${DimaLogos.img(l, versao, { altura: 26, tamanho: false, estilo: 'max-width:150px' })}</div>
+      <div class="ad-lg-slot-p"><b>${titulo}</b>
+        <span class="ad-lg-nota ${tem ? '' : 'falta'}" data-contraste="${tipo}:${i}:${versao}">${esc(nota)}</span></div>
+      <div class="sort-actions">
+        <button type="button" class="btn-icon-sm" onclick="lgEnviar('${tipo}',${i},'${versao}')" title="${tem ? 'Trocar' : 'Enviar'} a versão para ${titulo.toLowerCase()}" aria-label="${tem ? 'Trocar' : 'Enviar'} a versão para ${titulo.toLowerCase()}">${adIc(tem ? 'trocar' : 'mais','p')}</button>
+        ${versao === 'escuro' && tem ? `<button type="button" class="btn-icon-sm danger" onclick="lgTirarEscuro('${tipo}',${i})" title="Tirar a versão para fundo escuro" aria-label="Tirar a versão para fundo escuro">${adIc('x','p')}</button>` : ''}
+      </div>
+    </div>`;
+  };
   return `
-  <div class="sort-item" draggable="true" data-idx="${i}">
-    <span class="drag-handle" title="Arrastar para reordenar" aria-hidden="true">${adIc('alca','p')}</span>
-    <img class="sort-thumb-logo" src="${esc(imgUrl(l.url))}" alt="" onerror="this.style.opacity='.2'">
-    <div class="sort-info">
-      <input class="alt-input" value="${esc(l.alt||'')}" placeholder="Nome / texto alternativo" aria-label="Nome do logo"
-        oninput="setAlt('${tipo}',${i},this.value)" onclick="event.stopPropagation()">
+  <div class="sort-item ad-lg-item" ${tipo !== 'projeto' ? 'draggable="true"' : ''} data-idx="${i}">
+    <div class="ad-lg-cab">
+      ${tipo !== 'projeto' ? `<span class="drag-handle" title="Arrastar para reordenar" aria-hidden="true">${adIc('alca','p')}</span>` : ''}
+      <div class="sort-info">
+        <input class="alt-input ad-lg-nome" value="${esc(l.alt||'')}" placeholder="Nome (texto alternativo)" aria-label="Nome da logo"
+          oninput="setAlt('${tipo}',${i},this.value)">
+      </div>
+      ${sizeSel}
+      <button type="button" class="btn-icon-sm danger" onclick="removerLogo('${tipo}',${i})" title="Remover a logo" aria-label="Remover a logo">${adIc('lixo','p')}</button>
     </div>
-    ${sizeSel}
-    <div class="sort-actions">
-      <button type="button" class="btn-icon-sm" onclick="trocarLogo('${tipo}',${i})" title="Trocar imagem" aria-label="Trocar imagem">${adIc('trocar','p')}</button>
-      <button type="button" class="btn-icon-sm danger" onclick="removerLogo('${tipo}',${i})" title="Remover" aria-label="Remover">${adIc('x','p')}</button>
-    </div>
-  </div>
-  <input type="file" id="inp-troca-${tipo}-${i}" accept=".png,.svg" style="display:none"
-    onchange="handleTrocarLogo(this.files,'${tipo}',${i})">`;
+    <div class="ad-lg-slots">${slot('claro')}${slot('escuro')}</div>
+  </div>`;
+}
+
+// Mede o contraste de cada versão contra o próprio fundo (só aviso; não impede salvar).
+async function lgConferirContraste() {
+  const notas = document.querySelectorAll('#tab-logos [data-contraste]');
+  for (const el of notas) {
+    const [tipo, i, versao] = el.dataset.contraste.split(':');
+    const l = lgItem(tipo, Number(i)); if (!l) continue;
+    const src = versao === 'claro' ? l.url : l.url_escuro;
+    if (!src) continue;
+    const r = await DimaLogos.contraste(src, versao === 'claro' ? '#FFFFFF' : DimaLogos.PLACA.escuro);
+    if (!el.isConnected) continue;
+    if (r === null) { el.textContent = ''; el.className = 'ad-lg-nota'; continue; }
+    const ok = r >= 0.5;
+    el.className = 'ad-lg-nota ' + (ok ? 'ok' : 'falta');
+    el.textContent = ok ? 'Legível neste fundo'
+      : versao === 'claro' ? 'Pouco contraste no fundo claro: confira se não é a versão de letras brancas'
+      : 'Pouco contraste no fundo escuro: envie a versão de letras brancas ou tire esta para usar a placa';
+  }
+}
+
+function lgRedesenhar() {
+  reRenderTab('logos');
+  initDragDrop('lista-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiro', sincronizarParceirosDOM);
+  pvLogos();
+  lgConferirContraste();
 }
 
 function setAlt(tipo, i, val) {
-  if (tipo === 'topo') cfg.logos_topo[i].alt = val;
-  else if (tipo === 'parceiro') cfg.logos_parceiros[i].alt = val;
-  pvLogos();
+  const l = lgItem(tipo, i); if (!l) return;
+  l.alt = val; marcarSujo(); pvLogos();
 }
-function setTamanho(i, val) {
-  cfg.logos_parceiros[i].tamanho = val;
-  pvLogos();
-}
-function trocarLogo(tipo, i) {
-  document.getElementById(`inp-troca-${tipo}-${i}`)?.click();
-}
-async function removerLogoProjeto() {
-  const ok = await adConfirmar({ titulo: 'Remover o logo do projeto?', texto: 'Sai da tela de entrada quando você salvar.', ok: 'Remover', perigo: true });
-  if (!ok) return;
-  cfg.logo_projeto = { url: '', alt: '' }; marcarSujo();
-  reRenderTab('logos');
-  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
-  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
-  pvLogos();
-}
-async function removerLogo(tipo, i) {
-  const ok = await adConfirmar({ titulo: tipo === 'topo' ? 'Remover este logo?' : 'Remover este parceiro?', texto: 'Sai da tela de entrada quando você salvar.', ok: 'Remover', perigo: true });
-  if (!ok) return;
-  marcarSujo();
-  if (tipo === 'topo') cfg.logos_topo.splice(i, 1);
-  else cfg.logos_parceiros.splice(i, 1);
-  reRenderTab('logos');
-  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
-  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
-  pvLogos();
+function setTamanho(tipo, i, val) {
+  const l = lgItem(tipo, i); if (!l) return;
+  l.tamanho = val; marcarSujo(); lgRedesenhar();
 }
 
-async function handleUploadLogo(files, zona) {
-  if (!files.length) return;
-  const file = files[0];
+let lgAlvo = null;
+function lgEnviar(tipo, i, versao) {
+  lgAlvo = { tipo, i, versao };
+  const inp = document.getElementById('inp-logo'); inp.value = ''; inp.click();
+}
+async function lgArquivo(inp) {
+  const file = inp.files && inp.files[0]; const alvo = lgAlvo; lgAlvo = null;
+  if (!file || !alvo) return;
   const ext = file.name.split('.').pop().toLowerCase();
   if (!['png','svg'].includes(ext)) { toast('Apenas PNG ou SVG para logos.', 'error'); return; }
-  const maxBytes = zona === 'parceiro' ? 1024*1024 : 512*1024;
-  const maxLabel = zona === 'parceiro' ? '1 MB' : '500 KB';
-  if (file.size > maxBytes) { toast(`Tamanho máximo: ${maxLabel}.`, 'error'); return; }
+  const kb = LG_ZONAS[alvo.tipo].kb;
+  if (file.size > kb * 1024) { toast(`Tamanho máximo: ${kb >= 1024 ? '1 MB' : '500 KB'}.`, 'error'); return; }
   toast('Enviando logo...', 'info');
   try {
     const url = await uploadArquivo(file, 'logos');
-    const item = { url, alt: file.name.replace(/\.[^.]+$/, ''), ordem: 0 };
-    if (zona === 'topo') cfg.logos_topo.push({ ...item, ordem: cfg.logos_topo.length });
-    else if (zona === 'projeto') cfg.logo_projeto = item;
-    else cfg.logos_parceiros.push({ ...item, tamanho: 'medio', ordem: cfg.logos_parceiros.length });
-    reRenderTab('logos');
-    initDragDrop('lista-logos-topo', sincronizarTopoDOM);
-    initDragDrop('lista-parceiros', sincronizarParceirosDOM);
-    pvLogos(); marcarSujo();
-    toast('Logo adicionado. Salve para publicar.', 'success');
+    const campo = alvo.versao === 'escuro' ? 'url_escuro' : 'url';
+    if (alvo.i < 0) {
+      const novo = { url: '', url_escuro: '', alt: file.name.replace(/\.[^.]+$/, ''), tamanho: 'medio', ordem: 0, [campo]: url };
+      if (alvo.tipo === 'topo') cfg.logos_topo.push({ ...novo, ordem: cfg.logos_topo.length });
+      else if (alvo.tipo === 'parceiro') cfg.logos_parceiros.push({ ...novo, ordem: cfg.logos_parceiros.length });
+      else cfg.logo_projeto = novo;
+    } else {
+      const l = lgItem(alvo.tipo, alvo.i); if (!l) return;
+      l[campo] = url;
+    }
+    marcarSujo(); lgRedesenhar();
+    toast('Logo enviada. Salve para publicar.', 'success');
   } catch(e) { toast('Erro ao enviar: ' + e.message, 'error'); }
 }
-
-async function handleTrocarLogo(files, tipo, i) {
-  if (!files.length) return;
-  const file = files[0];
-  const ext = file.name.split('.').pop().toLowerCase();
-  if (!['png','svg'].includes(ext)) { toast('Apenas PNG ou SVG.', 'error'); return; }
-  const maxBytes = tipo === 'parceiro' ? 1024*1024 : 512*1024;
-  if (file.size > maxBytes) { toast('Arquivo muito grande.', 'error'); return; }
-  toast('Trocando...', 'info');
-  try {
-    const url = await uploadArquivo(file, 'logos');
-    if (tipo === 'topo') cfg.logos_topo[i].url = url;
-    else cfg.logos_parceiros[i].url = url;
-    reRenderTab('logos');
-    initDragDrop('lista-logos-topo', sincronizarTopoDOM);
-    initDragDrop('lista-parceiros', sincronizarParceirosDOM);
-    pvLogos(); marcarSujo();
-    toast('Logo trocado. Salve para publicar.', 'success');
-  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+async function lgTirarEscuro(tipo, i) {
+  const l = lgItem(tipo, i); if (!l) return;
+  if (!l.url) { toast('Envie antes a versão para fundo claro: a logo não pode ficar sem nenhuma versão.', 'warning'); return; }
+  const ok = await adConfirmar({ titulo: 'Tirar a versão para fundo escuro?', texto: 'Nos fundos verdes a logo passa a aparecer sobre uma placa clara.', ok: 'Tirar' });
+  if (!ok) return;
+  l.url_escuro = ''; marcarSujo(); lgRedesenhar();
+}
+async function removerLogo(tipo, i) {
+  const ok = await adConfirmar({ titulo: tipo === 'parceiro' ? 'Remover este parceiro?' : 'Remover esta logo?', texto: 'Sai de todas as telas, relatórios e e-mails quando você salvar.', ok: 'Remover', perigo: true });
+  if (!ok) return;
+  if (tipo === 'topo') cfg.logos_topo.splice(i, 1);
+  else if (tipo === 'parceiro') cfg.logos_parceiros.splice(i, 1);
+  else cfg.logo_projeto = { url: '', url_escuro: '', alt: '' };
+  marcarSujo(); lgRedesenhar();
 }
 
 function sincronizarTopoDOM() {
-  const items = [...document.querySelectorAll('#lista-logos-topo .sort-item')];
+  const items = [...document.querySelectorAll('#lista-topo .sort-item')];
   cfg.logos_topo = items.map(el => cfg.logos_topo[parseInt(el.dataset.idx)]).filter(Boolean)
     .map((l, i) => ({ ...l, ordem: i })); marcarSujo();
   reRenderTab('logos');
-  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
-  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+  initDragDrop('lista-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiro', sincronizarParceirosDOM);
   pvLogos();
 }
 
 function sincronizarParceirosDOM() {
-  const items = [...document.querySelectorAll('#lista-parceiros .sort-item')];
+  const items = [...document.querySelectorAll('#lista-parceiro .sort-item')];
   cfg.logos_parceiros = items.map(el => cfg.logos_parceiros[parseInt(el.dataset.idx)]).filter(Boolean)
     .map((l, i) => ({ ...l, ordem: i })); marcarSujo();
   reRenderTab('logos');
-  initDragDrop('lista-logos-topo', sincronizarTopoDOM);
-  initDragDrop('lista-parceiros', sincronizarParceirosDOM);
+  initDragDrop('lista-topo', sincronizarTopoDOM);
+  initDragDrop('lista-parceiro', sincronizarParceirosDOM);
   pvLogos();
 }
 
@@ -522,31 +498,22 @@ function renderPreviewHTML() {
   </div>`;
 }
 
+// Prévia da entrada: fundo escuro (foto com véu) ⇒ mesma regra da tela real (js/logos.js)
 function pvHtmlLogosTopo() {
-  if (!cfg.logos_topo.length)
-    return '<span style="font-size:10px;color:rgba(255,255,255,.4)">Sem logos</span>';
-  const alturas = { pequeno:'40px', medio:'63px', grande:'95px' };
-  return cfg.logos_topo.map((l, i) =>
-    `${i > 0 ? '<div style="width:1px;height:81px;background:rgba(0,0,0,.15);flex-shrink:0"></div>' : ''}
-     <img src="${esc(imgUrl(l.url))}" alt="${esc(l.alt||'')}" style="height:${alturas[l.tamanho] || alturas.medio};width:auto;object-fit:contain" onerror="this.style.opacity='.2'">`
-  ).join('');
+  const it = DimaLogos.lista(DimaLogos.normalizar({ logos_topo: cfg.logos_topo }).topo, 'escuro', { altura: 63 });
+  if (!it.length) return '<span style="font-size:10px;color:rgba(255,255,255,.4)">Sem logos</span>';
+  return it.join('<div style="width:1px;height:81px;background:rgba(255,255,255,.25);flex-shrink:0"></div>');
 }
 
 function pvHtmlLogoProjeto() {
-  if (!cfg.logo_projeto?.url)
-    return '';
-  return `<img src="${esc(imgUrl(cfg.logo_projeto.url))}" alt=""
-    style="height:96px;width:auto;display:block" onerror="this.style.opacity='.2'">`;
+  const p = DimaLogos.normalizar({ logo_projeto: cfg.logo_projeto }).projeto;
+  return p ? DimaLogos.img(p, 'escuro', { altura: 96, tamanho: false }) : '';
 }
 
 function pvHtmlParceiros() {
-  if (!cfg.logos_parceiros.length)
-    return '<span style="font-size:9px;color:rgba(255,255,255,.4)">Sem parceiros</span>';
-  return cfg.logos_parceiros.map(l =>
-    `<img src="${esc(imgUrl(l.url))}" alt="${esc(l.alt||'')}"
-      style="height:${l.tamanho==='grande'?'100px':'60px'};width:${l.tamanho==='grande'?'100px':'150px'};object-fit:contain;object-position:center;opacity:.95"
-      onerror="this.style.opacity='.2'">`
-  ).join('');
+  const ls = DimaLogos.normalizar({ logos_parceiros: cfg.logos_parceiros }).parceiros;
+  if (!ls.length) return '<span style="font-size:9px;color:rgba(255,255,255,.4)">Sem parceiros</span>';
+  return ls.map(l => DimaLogos.img(l, 'escuro', { altura: l.tamanho === 'grande' ? 80 : 60, tamanho: false, estilo: 'max-width:160px' })).join('');
 }
 
 function pvHtmlDots() {

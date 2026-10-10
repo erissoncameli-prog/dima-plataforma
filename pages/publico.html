@@ -36,8 +36,8 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 
 /* ── Logos institucionais no header ──────────────────────── */
 .pub-hdr-logos{display:flex;align-items:center;gap:clamp(4px,.6vw,10px);flex-shrink:0;}
-.pub-hdr-gov{height:clamp(26px,3.8vw,44px);width:auto;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));}
-.pub-hdr-sema{height:clamp(13px,1.9vw,24px);width:auto;object-fit:contain;flex-shrink:0;filter:brightness(0) invert(1);opacity:.85;}
+/* Logos de Dados do sistema (js/logos.js): cabeçalho verde = versão escura ou placa clara; rodapé = versão clara */
+.pub-hdr-logos .dima-logo{height:clamp(20px,2.9vw,34px)!important;max-width:150px!important;flex-shrink:0;}
 .pub-hdr-sep{width:1px;height:clamp(18px,2.5vw,32px);background:rgba(255,255,255,.2);flex-shrink:0;}
 .pub-hdr-div{width:1px;height:clamp(24px,3vw,42px);background:rgba(255,255,255,.16);flex-shrink:0;margin-left:clamp(4px,.8vw,12px);}
 
@@ -176,7 +176,7 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 .pub-footer{border-top:1px solid var(--borda);background:var(--cinza-50);flex-shrink:0;}
 .pub-footer-inner{max-width:1280px;margin:0 auto;padding:20px 28px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;}
 .pub-footer-logos{display:flex;align-items:center;gap:clamp(8px,1.2vw,18px);flex-wrap:wrap;}
-.pub-footer-logo{height:clamp(22px,3.2vw,38px);width:auto;object-fit:contain;opacity:.7;}
+.pub-footer-logos .dima-logo{height:clamp(22px,3vw,36px)!important;max-width:150px!important;opacity:.9;}
 .pub-footer-text{text-align:right;color:var(--cinza-500);font-size:11px;line-height:1.75;}
 .pub-footer a,.pub-footer-text a{color:var(--verde-medio);font-weight:500;text-decoration:none;}
 .pub-footer-text a:hover{text-decoration:underline;}
@@ -238,9 +238,7 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 
 <header class="pub-header">
   <div class="pub-hdr-logos">
-    <img class="pub-hdr-gov" src="../assets/brasao-acre.png" alt="Governo do Acre">
-    <div class="pub-hdr-sep"></div>
-    <img class="pub-hdr-sema" src="../assets/1695134345-1-horizontal-verde-solo.png" alt="SEMA/AC">
+    <span id="pub-hdr-topo" style="display:flex;align-items:center;gap:inherit"></span>
     <div class="pub-hdr-div"></div>
   </div>
   <div class="pub-brand">
@@ -311,12 +309,6 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 <footer class="pub-footer">
   <div class="pub-footer-inner">
     <div class="pub-footer-logos">
-      <img class="pub-footer-logo" src="../assets/brasao-acre.png" alt="Governo do Acre">
-      <img class="pub-footer-logo" src="../assets/1695134345-1-horizontal-verde-solo.png" alt="SEMA/AC">
-      <img class="pub-footer-logo" src="../assets/UNESCO_logo_hor_blue_transparent.png.png" alt="UNESCO">
-      <img class="pub-footer-logo" src="../assets/UNCT_Logo_RGB_Brazil_Portuguese_horiz_color.png" alt="ONU Brasil">
-      <img class="pub-footer-logo" src="../assets/logo-fundo-brasil-onu.png" alt="Fundo Brasil-ONU">
-      <img class="pub-footer-logo" src="../assets/logo-consorcio-amazonia.png" alt="Consórcio Amazônia Legal">
     </div>
     <div class="pub-footer-text">
       Visualização pública — somente leitura<br>
@@ -327,6 +319,7 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/logos.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
@@ -337,6 +330,15 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
 const SUPABASE_URL = 'https://wfymnmlinonvdqfucjya.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+function pintarLogosPublico(L) {
+  const sep = '<div class="pub-hdr-sep"></div>';
+  const topo = document.getElementById('pub-hdr-topo');
+  if (topo) topo.innerHTML = DimaLogos.lista(L.topo, 'escuro', { altura: 30 }).join(sep);
+  const rod = document.querySelector('.pub-footer-logos');
+  if (rod) rod.innerHTML = DimaLogos.lista(L.topo.concat(L.parceiros), 'claro', { altura: 30 }).join('');
+}
+pintarLogosPublico(DimaLogos.agora());
+DimaLogos.carregar(db).then(pintarLogosPublico);
 
 let mapaL = null, clusterLayer = null;
 let _pontos = [], _pontosLayer = [], _geometryLayers = [];
