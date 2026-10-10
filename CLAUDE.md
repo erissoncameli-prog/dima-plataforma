@@ -766,6 +766,20 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Janelas: classe **`vi-ov`** (no seletor de escopo de `diagnostico-mesa.css`); a classe `.aberto` é observada (`viObs`): pilha,
   Esc fecha a de cima (`VI_FECHAR` para as que têm função própria), Tab preso, foco volta.
 
+### Relatórios — visual, catálogo e folha A4
+- `pages/relatorios.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e componentes em `css/relatorios.css` (prefixo `re-`; cor de cada tema do catálogo = token `--re-*`).
+  Sem `<style>` próprio; ícones SVG por `reIc()` (um por tema em `TEMAS[].ic`), sem emoji. Texto do banco sempre por `esc()`.
+- Duas colunas: catálogo (busca sem acento + chips de tema + lista agrupada) e o relatório escolhido (filtros, Gerar, Exportar).
+  Quem vê cada tema continua em `getAbasPermitidas()` (permissões `relatorios_*`).
+- **A folha (`.doc-wrap`) é papel: branca nos dois temas** — redefine os nomes do `global.css` com os valores claros no próprio
+  escopo, porque é o que vai para PDF/impressão. Cor do selo do tema na folha por `data-tema` (CSS), nunca hex no JS.
+- Janela de exportação: classe **`re-ov`** (no seletor de escopo de `diagnostico-mesa.css`); Esc fecha, Tab preso, foco volta.
+- **Matriz (M1/M2/M4)** usam `matrizBase()`: progresso por `vw_matriz_progresso.id` (= `matriz_itens.id`, não existe
+  `matriz_item_id` na view), código `produto·posição` e a mesma situação da Matriz (Atingida, Em andamento, Sem registro,
+  Qualitativa). M4 = "Indicadores abaixo da meta" (todos com meta não atingida, do mais distante), sem vermelho.
+- `resultados.codigo` já é `'R1'`…`'R4'`: exibir como está e filtrar por `resNum(codigo) === filtro` (o filtro manda o número).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
