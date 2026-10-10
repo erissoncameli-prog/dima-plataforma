@@ -1,345 +1,126 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ajuda · DIMA</title>
-  <link rel="stylesheet" href="../css/global.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    .ajuda-page-wrap { padding: 24px; max-width: 900px; }
-
-    .ajuda-busca-global-wrap {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 20px;
-    }
-    #ajuda-busca-global {
-      flex: 1; padding: 10px 14px; border: 1px solid var(--borda);
-      border-radius: var(--raio-lg); font-size: 13px;
-      outline: none; font-family: var(--font-sans);
-      transition: border .15s; color: var(--cinza-900);
-    }
-    #ajuda-busca-global:focus { border-color: #009edb; }
-    #ajuda-busca-global::placeholder { color: var(--cinza-400); }
-
-    /* Tabs */
-    .ajuda-tabs-wrap {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid var(--borda);
-      padding-bottom: 10px;
-    }
-    .ajuda-tab {
-      padding: 6px 14px; border-radius: var(--raio-lg);
-      border: 1px solid var(--borda); background: var(--branco);
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      color: var(--cinza-600); transition: all .12s;
-      font-family: var(--font-sans);
-    }
-    .ajuda-tab:hover { background: var(--cinza-50); color: var(--cinza-900); }
-    .ajuda-tab.ativo {
-      background: #009edb; color: #fff; border-color: #009edb;
-    }
-
-    /* Conteúdo de tab */
-    .ajuda-tab-content { display: none; }
-    .ajuda-tab-content.ativo { display: block; }
-
-    .ajuda-intro-card {
-      background: #f0f9ff; border: 1px solid #bae6fd;
-      border-radius: var(--raio-lg); padding: 14px 16px;
-      font-size: 13px; color: #0c4a6e; line-height: 1.65;
-      margin-bottom: 16px;
-    }
-
-    /* Acordeão da página completa */
-    .ajuda-full-secao {
-      border: 1px solid var(--borda);
-      border-radius: var(--raio); margin-bottom: 8px;
-      overflow: hidden;
-    }
-    .ajuda-full-titulo {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 16px; cursor: pointer;
-      background: var(--cinza-50); border: none; width: 100%;
-      text-align: left; font-family: var(--font-sans);
-      font-size: 13px; font-weight: 600; color: var(--cinza-800);
-      transition: background .12s;
-    }
-    .ajuda-full-titulo:hover { background: #f1f5f9; }
-    .ajuda-full-chevron { font-size: 10px; color: var(--cinza-400); transition: transform .2s; }
-    .ajuda-full-chevron.aberto { transform: rotate(90deg); }
-    .ajuda-full-corpo { overflow: hidden; transition: max-height .25s ease; }
-    .ajuda-full-corpo ul { margin: 0; padding: 12px 18px 12px 32px; }
-    .ajuda-full-corpo li {
-      font-size: 13px; color: var(--cinza-700);
-      line-height: 1.7; margin-bottom: 4px;
-    }
-    .ajuda-full-corpo li mark {
-      background: #fef08a; color: var(--cinza-900);
-      border-radius: 2px; padding: 0 2px;
-    }
-
-    /* Resultados de busca global */
-    #ajuda-resultados-busca { display: none; }
-    .ajuda-resultado-grupo { margin-bottom: 20px; }
-    .ajuda-resultado-grupo-titulo {
-      font-size: 11px; font-weight: 700; letter-spacing: .7px;
-      text-transform: uppercase; color: #009edb;
-      margin-bottom: 8px; padding-bottom: 4px;
-      border-bottom: 1px solid #bae6fd;
-    }
-    .ajuda-resultado-item {
-      padding: 8px 12px; border-radius: var(--raio);
-      border: 1px solid var(--borda); background: var(--branco);
-      margin-bottom: 6px; cursor: pointer; transition: all .12s;
-      font-size: 12.5px; color: var(--cinza-700);
-    }
-    .ajuda-resultado-item:hover {
-      border-color: #009edb; background: #f0f9ff;
-      color: var(--cinza-900);
-    }
-    .ajuda-resultado-item mark {
-      background: #fef08a; color: var(--cinza-900);
-      border-radius: 2px; padding: 0 2px;
-    }
-    #ajuda-sem-resultado-global {
-      display: none; padding: 32px; text-align: center;
-      color: var(--cinza-400); font-size: 13px;
-    }
-
-    .ajuda-tab-footer {
-      margin-top: 16px; padding-top: 12px;
-      border-top: 1px solid var(--borda);
-      font-size: 12px;
-    }
-    .ajuda-tab-footer a {
-      color: #009edb; text-decoration: none; font-weight: 600;
-    }
-    .ajuda-tab-footer a:hover { text-decoration: underline; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Manual do sistema</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa + componentes do manual (css/ajuda.css, prefixo aj-) -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/ajuda.css" rel="stylesheet">
 </head>
-<body>
+<body class="dgm">
 <div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/administracao.js"></script>
 <script>
+// ── Manual do sistema ───────────────────────────────────────────────────
+// Conteúdo em AJUDA (js/ajuda.js), o mesmo do painel "?" de cada página. Guia aberta: ?guia=<id> ou a última vista.
 ;(async function () {
   const usuario = await carregarUsuario();
   if (!usuario) { window.location.href = '../index.html'; return; }
 
-  const lang = _ajudaIdioma();
-
-  const TABS_ORDER = ['dashboard','atividades','tdrs','contratos','fornecedores','financeiro','produtos','viagens','auditoria','glossario'];
-
-  const MODULO_HREF = {
-    dashboard:    'dashboard.html',
-    atividades:   'atividades.html',
-    tdrs:         'tdrs.html',
-    contratos:    'contratos.html',
-    fornecedores: 'fornecedores.html',
-    financeiro:   'financeiro.html',
-    produtos:     'produtos.html',
-    viagens:      'viagens.html',
-    auditoria:    'auditoria.html',
-    glossario:    null,
+  // Mesmos grupos do menu lateral (layout.js)
+  const GRUPOS = [
+    ['Projeto', ['dashboard', 'tarefas']],
+    ['Planejamento', ['atividades', 'tdrs', 'matriz', 'remanejamentos']],
+    ['Execução', ['fornecedores', 'contratos', 'produtos', 'acervo', 'financeiro', 'diagnostico']],
+    ['Apoio', ['viagens', 'relatorios', 'mapa', 'repositorio', 'auditoria', 'pulso']],
+    ['Referência', ['glossario']],
+  ];
+  const ORDEM = GRUPOS.flatMap(g => g[1]).filter(id => AJUDA[id]);
+  const HREF = { dashboard: 'dashboard.html', tarefas: 'tarefas.html', atividades: 'atividades.html', tdrs: 'tdrs.html', matriz: 'matriz.html',
+    remanejamentos: 'remanejamentos.html', fornecedores: 'fornecedores.html', contratos: 'contratos.html', produtos: 'produtos.html',
+    acervo: 'acervo.html', financeiro: 'financeiro.html', diagnostico: 'diagnostico.html', viagens: 'viagens.html',
+    relatorios: 'relatorios.html', mapa: 'mapa.html', repositorio: 'repositorio.html', auditoria: 'auditoria.html', pulso: 'pulso.html' };
+  const T = {
+    pt: { titulo: 'Manual do sistema', sub: 'Como cada guia funciona, quem pode fazer o quê e o que significam os números.', busca: 'Buscar em todo o manual', ir: 'Ir para', nada: 'Nenhum trecho com', abrir: 'Abrir guia', trechos: (n, g) => `${n} ${n === 1 ? 'trecho' : 'trechos'} em ${g} ${g === 1 ? 'guia' : 'guias'}` },
+    en: { titulo: 'System manual', sub: 'How each section works, who can do what and what the numbers mean.', busca: 'Search the whole manual', ir: 'Go to', nada: 'Nothing found for', abrir: 'Open section', trechos: (n, g) => `${n} ${n === 1 ? 'match' : 'matches'} in ${g} ${g === 1 ? 'section' : 'sections'}` },
+    es: { titulo: 'Manual del sistema', sub: 'Cómo funciona cada sección, quién puede hacer qué y qué significan los números.', busca: 'Buscar en todo el manual', ir: 'Ir a', nada: 'Nada encontrado para', abrir: 'Abrir sección', trechos: (n, g) => `${n} ${n === 1 ? 'resultado' : 'resultados'} en ${g} ${g === 1 ? 'sección' : 'secciones'}` },
   };
+  const lang = () => _ajudaIdioma();
+  const tx = () => T[lang()] || T.pt;
+  const mod = id => AJUDA[id]?.[lang()] || AJUDA[id]?.pt;
+  const e = s => _ajudaEsc(s);
+  let guia = new URLSearchParams(location.search).get('guia');
+  if (!AJUDA[guia]) { try { guia = localStorage.getItem('ajuda_tab_ativo'); } catch (x) { guia = null; } }
+  if (!AJUDA[guia]) guia = 'dashboard';
 
-  const TITULO_PAGINA = {
-    pt: 'Manual do Sistema',
-    en: 'System Manual',
-    es: 'Manual del Sistema',
-  };
+  document.getElementById('app').innerHTML = gerarLayout(tx().titulo, 'ajuda') + `
+    <div class="fade-in aj">
+      <div class="aj-topo"><h2>${e(tx().titulo)}</h2><p>${e(tx().sub)}</p></div>
+      <label class="aj-busca">${adIc('busca')}<input id="aj-q" type="search" autocomplete="off" placeholder="${e(tx().busca)}" aria-label="${e(tx().busca)}"><span class="aj-cont" id="aj-cont" aria-live="polite"></span></label>
+      <div id="aj-res" class="aj-res" hidden></div>
+      <div class="aj-grade" id="aj-grade">
+        <nav class="aj-nav" id="aj-nav" aria-label="Guias do manual"></nav>
+        <div class="aj-corpo" id="aj-corpo"></div>
+      </div>
+    </div>` + '</div></div></div>';
+  adSeletorTema(); carregarLogosSidebar();
 
-  const IR_MODULO = {
-    pt: 'Ir para o módulo',
-    en: 'Go to module',
-    es: 'Ir al módulo',
-  };
-
-  const BUSCA_PH = {
-    pt: '🔍 Buscar em todo o manual...',
-    en: '🔍 Search the entire manual...',
-    es: '🔍 Buscar en todo el manual...',
-  };
-
-  const SEM_RESULT = {
-    pt: 'Nenhum resultado para',
-    en: 'No results for',
-    es: 'Sin resultados para',
-  };
-
-  function getLang() { return _ajudaIdioma(); }
-
-  function renderTabs(activeId) {
-    return TABS_ORDER.map(id => {
-      const mod = AJUDA[id]?.[getLang()] || AJUDA[id]?.pt;
-      return `<button class="ajuda-tab ${id === activeId ? 'ativo' : ''}"
-        onclick="ativarTab('${id}')">${mod?.titulo || id}</button>`;
+  function nav() {
+    document.getElementById('aj-nav').innerHTML = GRUPOS.map(([g, ids]) => {
+      const bs = ids.filter(id => AJUDA[id]).map(id => `<button type="button" data-g="${id}" aria-current="${id === guia}">${e(mod(id).titulo)}</button>`).join('');
+      return bs ? `<span class="g">${e(g)}</span>${bs}` : '';
     }).join('');
   }
-
-  function renderSecoes(modulo, termo) {
-    const normTermo = _norm(termo);
-    return (modulo.secoes || []).map((sec, si) => {
-      const itensFiltrados = normTermo
-        ? sec.itens.filter(item => _norm(item).includes(normTermo))
-        : sec.itens;
-      if (!itensFiltrados.length && normTermo) return '';
-      const aberto = si === 0 || !!normTermo;
-      const itensHtml = itensFiltrados.map(item => {
-        const txt = normTermo
-          ? item.replace(new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark>$1</mark>')
-          : item;
-        return `<li>${txt}</li>`;
-      }).join('');
-      return `
-        <div class="ajuda-full-secao">
-          <button class="ajuda-full-titulo" onclick="fullToggleSecao(this)">
-            ${sec.titulo}
-            <span class="ajuda-full-chevron ${aberto ? 'aberto' : ''}">▶</span>
-          </button>
-          <div class="ajuda-full-corpo" style="max-height:${aberto ? '1200px' : '0px'}">
-            <ul>${itensHtml}</ul>
-          </div>
-        </div>`;
-    }).join('');
+  function corpo() {
+    const m = mod(guia);
+    document.getElementById('aj-corpo').innerHTML = `
+      <h3>${e(m.titulo)}</h3>
+      ${m.intro ? `<div class="aj-intro">${e(m.intro)}</div>` : ''}
+      ${(m.secoes || []).map((s, i) => `<section class="aj-sec">
+        <button type="button" aria-expanded="${i === 0}" aria-controls="aj-s${i}">${adIc('doc', 'p')}${e(s.titulo)}${adIc('cv', 'aj-cv')}</button>
+        <ul id="aj-s${i}" ${i === 0 ? '' : 'hidden'}>${s.itens.map(it => `<li>${e(it)}</li>`).join('')}</ul></section>`).join('')}
+      ${HREF[guia] ? `<a class="btn btn-secondary aj-ir" href="${HREF[guia]}">${e(tx().ir)} ${e(m.titulo)} ${adIc('seta', 'p')}</a>` : ''}`;
   }
-
-  function renderTabContent(id) {
-    const lang = getLang();
-    const modulo = AJUDA[id]?.[lang] || AJUDA[id]?.pt;
-    if (!modulo) return '';
-    const href = MODULO_HREF[id];
-    const footer = href
-      ? `<div class="ajuda-tab-footer"><a href="${href}">→ ${IR_MODULO[lang] || IR_MODULO.pt}: ${modulo.titulo}</a></div>`
-      : '';
-    return `
-      <div class="ajuda-intro-card">${modulo.intro || ''}</div>
-      <div id="secoes-${id}">${renderSecoes(modulo, '')}</div>
-      ${footer}`;
+  function abrir(id, rolar) {
+    guia = id; try { localStorage.setItem('ajuda_tab_ativo', id); } catch (x) {}
+    const u = new URL(location.href); u.searchParams.set('guia', id); history.replaceState(null, '', u);
+    nav(); corpo();
+    if (innerWidth < 760) document.querySelector('#aj-nav [aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    if (rolar) document.getElementById('aj-corpo').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  document.getElementById('aj-nav').addEventListener('click', ev => { const b = ev.target.closest('[data-g]'); if (b) abrir(b.dataset.g, innerWidth < 760); });
+  document.getElementById('aj-corpo').addEventListener('click', ev => {
+    const b = ev.target.closest('.aj-sec > button'); if (!b) return;
+    const ul = document.getElementById(b.getAttribute('aria-controls')); const ab = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', String(ab)); ul.hidden = !ab;
+  });
 
-  function buildPage(activeTab) {
-    const lang = getLang();
-    const tabsHtml  = renderTabs(activeTab);
-    const contentsHtml = TABS_ORDER.map(id =>
-      `<div class="ajuda-tab-content ${id === activeTab ? 'ativo' : ''}" id="tab-${id}">
-        ${renderTabContent(id)}
-      </div>`
-    ).join('');
-
-    document.getElementById('app').innerHTML =
-      gerarLayout(TITULO_PAGINA[lang] || 'Ajuda', 'ajuda') +
-      `<div class="ajuda-page-wrap">
-        <div class="ajuda-busca-global-wrap">
-          <input id="ajuda-busca-global" type="text" autocomplete="off"
-            placeholder="${BUSCA_PH[lang] || BUSCA_PH.pt}"
-            oninput="ajudaBuscaGlobal(this.value)">
-        </div>
-        <div id="ajuda-resultados-busca"></div>
-        <div id="ajuda-sem-resultado-global"></div>
-        <div id="ajuda-conteudo-principal">
-          <div class="ajuda-tabs-wrap">${tabsHtml}</div>
-          <div>${contentsHtml}</div>
-        </div>
-      </div>` +
-      '</div></div></div>';
-
-    carregarLogosSidebar();
-  }
-
-  const savedTab = localStorage.getItem('ajuda_tab_ativo') || 'dashboard';
-  buildPage(savedTab);
-
-  window.ativarTab = function(id) {
-    localStorage.setItem('ajuda_tab_ativo', id);
-    document.querySelectorAll('.ajuda-tab').forEach(b => b.classList.toggle('ativo', b.textContent.trim() === (AJUDA[id]?.[getLang()]?.titulo || id)));
-    // Atualizar todos os tabs mais precisamente
-    document.querySelectorAll('.ajuda-tab').forEach((b, i) => {
-      b.classList.toggle('ativo', TABS_ORDER[i] === id);
+  // Busca em todo o manual (sem acento/maiúscula); destaque só no texto
+  let tm;
+  document.getElementById('aj-q').addEventListener('input', ev => { clearTimeout(tm); tm = setTimeout(() => buscar(ev.target.value), 180); });
+  function buscar(q) {
+    const n = _norm(q).trim(), res = document.getElementById('aj-res'), grade = document.getElementById('aj-grade'), cont = document.getElementById('aj-cont');
+    if (!n) { res.hidden = true; grade.hidden = false; cont.textContent = ''; return; }
+    const grupos = [];
+    ORDEM.forEach(id => {
+      const m = mod(id); const ach = [];
+      if (_norm(m.intro).includes(n)) ach.push({ s: '', it: m.intro });
+      (m.secoes || []).forEach(s => s.itens.forEach(it => { if (_norm(it).includes(n) || _norm(s.titulo).includes(n)) ach.push({ s: s.titulo, it }); }));
+      if (ach.length) grupos.push({ id, m, ach });
     });
-    document.querySelectorAll('.ajuda-tab-content').forEach(c => c.classList.remove('ativo'));
-    const target = document.getElementById('tab-' + id);
-    if (target) target.classList.add('ativo');
-  };
-
-  window.fullToggleSecao = function(btn) {
-    const corpo = btn.nextElementSibling;
-    const chevron = btn.querySelector('.ajuda-full-chevron');
-    const aberto = corpo.style.maxHeight !== '0px';
-    corpo.style.maxHeight = aberto ? '0px' : '1200px';
-    chevron.classList.toggle('aberto', !aberto);
-  };
-
-  let _buscaTimer;
-  window.ajudaBuscaGlobal = function(termo) {
-    clearTimeout(_buscaTimer);
-    _buscaTimer = setTimeout(() => _executarBusca(termo), 220);
-  };
-
-  function _executarBusca(termo) {
-    const lang = getLang();
-    const normTermo = _norm(termo);
-    const principal  = document.getElementById('ajuda-conteudo-principal');
-    const resultados = document.getElementById('ajuda-resultados-busca');
-    const semResult  = document.getElementById('ajuda-sem-resultado-global');
-
-    if (!normTermo) {
-      principal.style.display  = '';
-      resultados.style.display = 'none';
-      semResult.style.display  = 'none';
-      return;
-    }
-
-    principal.style.display = 'none';
-    resultados.style.display = 'block';
-
-    let grupos = [];
-    TABS_ORDER.forEach(id => {
-      const mod = AJUDA[id]?.[lang] || AJUDA[id]?.pt;
-      if (!mod) return;
-      let achados = [];
-      (mod.secoes || []).forEach(sec => {
-        sec.itens.forEach(item => {
-          if (_norm(item).includes(normTermo)) {
-            achados.push({ secao: sec.titulo, item, id });
-          }
-        });
-      });
-      if (achados.length) grupos.push({ titulo: mod.titulo, id, achados });
-    });
-
-    if (!grupos.length) {
-      resultados.innerHTML = '';
-      semResult.style.display = 'block';
-      semResult.textContent = `${SEM_RESULT[lang] || SEM_RESULT.pt} "${termo}"`;
-      return;
-    }
-
-    semResult.style.display = 'none';
-    resultados.innerHTML = grupos.map(g => `
-      <div class="ajuda-resultado-grupo">
-        <div class="ajuda-resultado-grupo-titulo">${g.titulo}</div>
-        ${g.achados.map(a => {
-          const txt = a.item.replace(new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'), '<mark>$1</mark>');
-          return `<div class="ajuda-resultado-item"
-            onclick="irParaResultado('${a.id}')"
-            title="${a.secao}">${txt}</div>`;
-        }).join('')}
-      </div>`).join('');
+    const total = grupos.reduce((a, g) => a + g.ach.length, 0);
+    cont.textContent = total ? tx().trechos(total, grupos.length) : '';
+    grade.hidden = true; res.hidden = false;
+    res.innerHTML = grupos.length ? grupos.map(g => `<div class="aj-grp"><h4>${e(g.m.titulo)}<button type="button" data-abrir="${g.id}">${e(tx().abrir)}</button></h4>
+      <ul>${g.ach.map(a => `<li>${ajudaMarcar(a.it, q)}${a.s ? ` <small>· ${ajudaMarcar(a.s, q)}</small>` : ''}</li>`).join('')}</ul></div>`).join('')
+      : `<div class="aj-vazio">${e(tx().nada)} “${e(q)}”.</div>`;
   }
+  document.getElementById('aj-res').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-abrir]'); if (!b) return;
+    document.getElementById('aj-q').value = ''; buscar(''); abrir(b.dataset.abrir, true);
+  });
 
-  window.irParaResultado = function(id) {
-    document.getElementById('ajuda-busca-global').value = '';
-    document.getElementById('ajuda-resultados-busca').style.display = 'none';
-    document.getElementById('ajuda-sem-resultado-global').style.display = 'none';
-    document.getElementById('ajuda-conteudo-principal').style.display = '';
-    ativarTab(id);
-    document.getElementById('tab-' + id)?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  abrir(guia, false);
 })();
 </script>
 </body>

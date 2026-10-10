@@ -89,7 +89,8 @@ const AJUDA = {
         ]},
         { titulo: 'Orçamento', itens: [
           'Cada atividade tem um orçamento aprovado em USD pela UNESCO.',
-          'O sistema calcula automaticamente o saldo disponível descontando os contratos vinculados.',
+          'O saldo livre é o orçamento vigente menos o valor planejado dos TDRs (e o que um contrato passar do TDR), mais as economias liberadas.',
+          'O orçamento vigente só muda pelo razão (remanejamento, economia, encerramento): o campo fica com cadeado.',
           'Atividades com orçamento comprometido acima de 90% aparecem como alerta no Dashboard.',
         ]},
         { titulo: 'Responsável', itens: [
@@ -112,7 +113,7 @@ const AJUDA = {
         ]},
         { titulo: 'Budget', itens: [
           'Each activity has a UNESCO-approved budget in USD.',
-          'The system automatically calculates the available balance by deducting linked contracts.',
+          'The free balance is the current budget minus the planned value of the TORs (and any contract amount above its TOR), plus released savings.',
           'Activities with budget committed above 90% appear as alerts on the Dashboard.',
         ]},
         { titulo: 'Responsible Person', itens: [
@@ -135,7 +136,7 @@ const AJUDA = {
         ]},
         { titulo: 'Presupuesto', itens: [
           'Cada actividad tiene un presupuesto aprobado en USD por la UNESCO.',
-          'El sistema calcula automáticamente el saldo disponible descontando los contratos vinculados.',
+          'El saldo libre es el presupuesto vigente menos el valor planificado de los TDR (y lo que un contrato supere a su TDR), más los ahorros liberados.',
           'Actividades con presupuesto comprometido por encima del 90% aparecen como alerta en el Dashboard.',
         ]},
         { titulo: 'Responsable', itens: [
@@ -788,6 +789,179 @@ const AJUDA = {
 
 // ── Lógica do Painel Flutuante ────────────────────────────────
 
+// ── Guias novas (10/10/2026) ──────────────────────────────────
+// Só em português por enquanto: em inglês/espanhol a tela mostra este texto (fallback .pt).
+Object.assign(AJUDA, {
+  tarefas: { pt: {
+    titulo: 'Tarefas',
+    intro: 'Painel de tarefas da equipe: quadro por situação, lista, calendário e "Minhas". Cada tarefa tem responsáveis, observadores, prazo, subtarefas, comentários e anexos.',
+    secoes: [
+      { titulo: 'Criar e acompanhar', itens: [
+        'Use "Nova tarefa", escolha o tipo (reunião, administrativo, outras…) e preencha os campos que o tipo pede.',
+        'Responsáveis executam; observadores acompanham e recebem os avisos. Uma pessoa tem um papel só.',
+        'A tarefa pode ser ligada a uma atividade e a um ou mais TDRs dessa atividade.',
+        'Tarefa restrita só é vista por quem criou, pelos participantes e pelo super_admin.',
+      ]},
+      { titulo: 'Editar com registro', itens: [
+        'A janela abre em leitura; use "Editar tarefa" para mudar campos e subtarefas.',
+        'Toda mudança fica no histórico com o valor antes e depois. Mudar o prazo exige um motivo.',
+        'Se outra pessoa salvou a tarefa enquanto você editava, o sistema avisa e não sobrescreve.',
+      ]},
+      { titulo: 'Concluir', itens: [
+        'Quem conclui é quem criou a tarefa. O responsável usa "Enviar para revisão" com uma nota de entrega.',
+        'Quem criou aprova (conclui) ou devolve com o motivo. Reabrir também pede motivo.',
+        'Enviar e concluir só funcionam com todas as subtarefas concluídas.',
+        'Arrastar no quadro para Em revisão ou Concluída abre a mesma conferência.',
+      ]},
+      { titulo: 'Reuniões e e-mails', itens: [
+        'Tarefa do tipo reunião envia convite de agenda aos participantes; mudar data ou cancelar atualiza o convite.',
+        'Subtarefa pode ter um fornecedor como responsável: ele recebe e-mail e a resposta volta como comentário.',
+      ]},
+    ]
+  }},
+  matriz: { pt: {
+    titulo: 'Matriz de Resultados',
+    intro: 'Indicadores do projeto por resultado e produto, com a meta e o quanto já foi confirmado pelas entregas aprovadas.',
+    secoes: [
+      { titulo: 'Situação do indicador', itens: [
+        'Atingida: o confirmado chegou à meta.',
+        'Em andamento: já há algo confirmado ou aguardando confirmação.',
+        'Sem registro: nenhuma contribuição ainda.',
+        'Qualitativa: indicador sem meta numérica.',
+      ]},
+      { titulo: 'Como ler os números', itens: [
+        'Só conta contribuição de entrega aprovada em Produtos Entregues.',
+        'Aguardando confirmação = contribuições pendentes de entregas aprovadas.',
+        'O progresso médio limita cada indicador a 100%, para um indicador acima da meta não compensar outro.',
+        'O código mostrado é produto·posição (ex.: 1.2·3).',
+      ]},
+      { titulo: 'Referências', itens: [
+        'As abas ODS e Kunming-Montreal destacam o que tem indicador no cadastro do projeto.',
+      ]},
+    ]
+  }},
+  remanejamentos: { pt: {
+    titulo: 'Remanejamento',
+    intro: 'Mover orçamento entre atividades, com cadeia de assinaturas. A própria tela tem a aba "Como funciona" e botões "?" com a explicação completa.',
+    secoes: [
+      { titulo: 'O essencial', itens: [
+        'Saldos por resultado mostra de qual fonte vem cada valor (dotação, economia, remanejamento recebido).',
+        'Novo pedido (coordenação): escolha as atividades que cedem, as fontes e a atividade que recebe.',
+        'Assinar pede a sua senha de entrada, conferida no servidor.',
+        'A cadeia é sequencial: coordenação, responsáveis das origens, UNESCO financeiro, diretor e secretário. Só então o remanejamento vale.',
+      ]},
+      { titulo: 'Durante a aprovação', itens: [
+        'O valor do pedido fica reservado nas fontes enquanto a cadeia anda.',
+        'Devolver volta uma etapa. Só quem pediu edita; editar invalida as assinaturas já dadas.',
+        'Contrato acima do valor do TDR sem saldo fica "aguardando cobertura" até um remanejamento cobrir a diferença.',
+      ]},
+      { titulo: 'Desfazer', itens: [
+        'Remanejamento efetivado se desfaz por estorno, um novo pedido que passa pela mesma cadeia.',
+      ]},
+    ]
+  }},
+  acervo: { pt: {
+    titulo: 'Acervo Digital',
+    intro: 'Biblioteca dos produtos entregues: consulta de arquivos com busca, filtros e visualizador. É só leitura; entregas e avaliações continuam em Produtos Entregues.',
+    secoes: [
+      { titulo: 'Procurar', itens: [
+        'A busca ignora acento e maiúscula. Os filtros combinam categoria, atividade, situação e tipo de arquivo.',
+        'Cada cartão é um produto; a capa é a primeira página do PDF quando há.',
+        'O número "aprovados sem arquivo" mostra produtos aprovados cuja entrega não teve arquivo anexado.',
+      ]},
+      { titulo: 'Qual arquivo vale', itens: [
+        'Vigente é a versão da entrega aprovada mais recente; versões devolvidas ficam no histórico da ficha.',
+        'Nota Técnica, comprovante e contrato não aparecem no acervo; consulte em Produtos Entregues.',
+      ]},
+      { titulo: 'Portal público', itens: [
+        'O super_admin marca, arquivo a arquivo, o que poderá ir ao futuro portal público.',
+        'Só entra arquivo vigente de produto aprovado. Reentregou o produto, a marcação antiga perde efeito.',
+      ]},
+    ]
+  }},
+  diagnostico: { pt: {
+    titulo: 'Diagnóstico Socioambiental',
+    intro: 'Mesa do diagnóstico de campo: indicadores, validação das fichas, exportação e cadastro de comunidades. As fichas são aplicadas no app de campo.',
+    secoes: [
+      { titulo: 'Quem faz o quê', itens: [
+        'Técnico com a permissão de diagnóstico aplica fichas no app e vê só as próprias.',
+        'Coordenação e super_admin validam, devolvem e exportam; coordenação não aplica ficha real.',
+        'Consultor externo lê as fichas sem identificação do entrevistado.',
+        'Os indicadores escondem recortes com menos de 5 fichas.',
+      ]},
+      { titulo: 'Validação', itens: [
+        'Abra a ficha, confira respostas, fotos e alertas e valide, devolva ou descarte.',
+        'Resposta gravada em áudio precisa ser transcrita antes de validar. A transcrição pode ser feita com ajuda da IA local, no próprio navegador.',
+      ]},
+      { titulo: 'Privacidade', itens: [
+        'Nome, GPS, fotos e áudios ficam separados das respostas e são apagados 2 anos após a validação.',
+        'A exportação padrão sai sem identificação e fica registrada.',
+        'Modo treino gera fichas TRE- que não entram nos números e podem ser apagadas.',
+      ]},
+    ]
+  }},
+  relatorios: { pt: {
+    titulo: 'Relatórios',
+    intro: 'Central de relatórios: escolha no catálogo, ajuste os filtros, gere e exporte. A folha sai branca para impressão e PDF.',
+    secoes: [
+      { titulo: 'Usar', itens: [
+        'Procure pelo nome ou filtre pelo tema (financeiro, contratos, produtos, matriz…).',
+        'Gerar mostra a folha; Exportar oferece os formatos disponíveis para aquele relatório.',
+        'Cada tema aparece conforme a sua permissão de relatórios.',
+      ]},
+      { titulo: 'Valores', itens: [
+        'Saldo por atividade segue a mesma regra da Visão Geral: orçamento menos o comprometido em TDRs e o excedente de contratos, mais as economias liberadas.',
+        'Os relatórios da Matriz usam as mesmas situações da tela da Matriz.',
+      ]},
+    ]
+  }},
+  mapa: { pt: {
+    titulo: 'Mapa Interativo',
+    intro: 'Mapa com os pontos das entregas, as camadas ambientais e os imóveis do CAR.',
+    secoes: [
+      { titulo: 'Navegar', itens: [
+        'Ligue e desligue camadas pelas abas no topo do mapa; clique num ponto para ver os detalhes.',
+        'O botão "Tela cheia" ocupa a tela toda; Esc fecha a janela aberta e, sem janela, sai da tela cheia.',
+        'O Relatório Ambiental resume o que há na área visível.',
+      ]},
+      { titulo: 'Editar', itens: [
+        'Adicionar e importar pontos é da coordenação e do super_admin.',
+        'Pontos de uma entrega também podem ser gravados por quem avalia o contrato, pela tela de Produtos Entregues.',
+        'Os documentos do CAR aparecem mascarados (só os 2 últimos dígitos).',
+      ]},
+    ]
+  }},
+  repositorio: { pt: {
+    titulo: 'Repositório',
+    intro: 'Matérias e referências sobre o projeto na imprensa e em outros sites.',
+    secoes: [
+      { titulo: 'Usar', itens: [
+        'Uma ficha por matéria: o mesmo título publicado em vários veículos vira uma ficha com um botão por veículo.',
+        'Para adicionar, cole o link: o sistema busca título e imagem e avisa se o link ou a matéria já existem.',
+        'Só links http ou https são aceitos.',
+        'Desativar uma referência é do super_admin; ela sai da lista mas não é apagada.',
+      ]},
+    ]
+  }},
+  pulso: { pt: {
+    titulo: 'Pulso da Equipe',
+    intro: 'Questionário rápido e anônimo de engajamento, respondido por QR Code.',
+    secoes: [
+      { titulo: 'Criar um ciclo', itens: [
+        'Qualquer pessoa cria um ciclo e ajusta as perguntas até a primeira resposta.',
+        'Mostre o QR em tela cheia para a equipe responder pelo celular.',
+        'Encerrar e reabrir é de quem criou o ciclo.',
+      ]},
+      { titulo: 'Anonimato e resultados', itens: [
+        'As respostas não guardam quem respondeu nem a hora.',
+        'O resultado só aparece com 5 respostas ou mais; grupos menores são somados.',
+        'Pergunta de escolha sobre idade, cargo ou tempo de casa pode identificar alguém: o editor avisa.',
+        'A exportação traz só números agregados e fica registrada.',
+      ]},
+    ]
+  }},
+});
+
 const AJUDA_LABELS = {
   pt: { titulo: 'Ajuda', buscar: 'Buscar nesta página...', semResultado: 'Nenhum resultado para', verManual: 'Ver manual completo', fechar: 'Fechar' },
   en: { titulo: 'Help',  buscar: 'Search this page...', semResultado: 'No results for', verManual: 'View full manual', fechar: 'Close' },
@@ -796,6 +970,18 @@ const AJUDA_LABELS = {
 
 function _ajudaIdioma() {
   return localStorage.getItem('ajuda_idioma') || (typeof appState !== 'undefined' ? appState.idioma : 'pt') || 'pt';
+}
+
+// Texto do manual escapado e termo da busca destacado sem acento/maiúscula; só marca texto, nunca HTML.
+function _ajudaEsc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function ajudaMarcar(texto, termo) {
+  const t = String(texto ?? ''), n = _norm(termo).trim();
+  if (!n) return _ajudaEsc(t);
+  const base = _norm(t); let out = '', i = 0, k;
+  // _norm preserva o comprimento quando só tira acentos combinados; se não preservar, não marca
+  if (base.length !== t.length) return _ajudaEsc(t);
+  while ((k = base.indexOf(n, i)) !== -1) { out += _ajudaEsc(t.slice(i, k)) + '<mark>' + _ajudaEsc(t.slice(k, k + n.length)) + '</mark>'; i = k + n.length; }
+  return out + _ajudaEsc(t.slice(i));
 }
 
 function _norm(s) {
@@ -942,7 +1128,7 @@ function ajudaRenderPainel() {
   const linkManual = document.getElementById('ajuda-link-manual');
   if (linkManual) {
     const path = window.location.pathname;
-    linkManual.href = path.includes('/pages/') ? 'ajuda.html' : 'pages/ajuda.html';
+    linkManual.href = (path.includes('/pages/') ? 'ajuda.html' : 'pages/ajuda.html') + (AJUDA[navId] ? '?guia=' + encodeURIComponent(navId) : '');
   }
 
   // Lang buttons
@@ -975,12 +1161,7 @@ function _ajudaRenderSecoes(secoes, termo) {
     totalVisiveis += itensFiltrados.length;
 
     const aberto = si === 0 || normTermo;
-    const itensHtml = itensFiltrados.map(item => {
-      const txt = normTermo
-        ? item.replace(new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>')
-        : item;
-      return `<li>${txt}</li>`;
-    }).join('');
+    const itensHtml = itensFiltrados.map(item => `<li>${ajudaMarcar(item, termo)}</li>`).join('');
 
     return `
       <div class="ajuda-secao">

@@ -881,6 +881,19 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **ROPA**: a ficha de cada tratamento (`.ad-trat`) é **papel: branca nos dois temas e na impressão**; na impressão do tema escuro
   o resto volta aos valores claros. Regras de leitura/conferência seguem as de "ROPA vivo" (Diagnóstico).
 
+### Manual do sistema (Ajuda) e Trocar senha
+- `pages/ajuda.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor Claro/Escuro)
+  e `css/ajuda.css` (prefixo `aj-`); ícones por `adIc()` (`js/administracao.js`). Guias numa coluna agrupada como o menu
+  (Projeto, Planejamento, Execução, Apoio, Referência), seções que abrem/fecham, "Ir para" o módulo, busca em todo o manual.
+  Abre na guia de `?guia=<navId>` (o "Ver manual completo" do painel "?" já manda a guia da página) ou na última vista.
+- **Conteúdo único em `AJUDA` (`js/ajuda.js`)**, o mesmo do painel "?" de cada página (chave = id do nav). As guias de 10/10/2026
+  (tarefas, matriz, remanejamentos, acervo, diagnostico, relatorios, mapa, repositorio, pulso) estão só em português — em EN/ES
+  cai no `.pt`. Itens são **texto puro**: a tela escapa tudo e o destaque da busca usa `ajudaMarcar(texto, termo)` (sem acento,
+  só marca texto). Regra mudou no banco ⇒ atualizar o texto da guia junto (como o "Como funciona" do Remanejamento).
+- `pages/trocar-senha.html` (primeiro acesso; fora do layout): `css/trocar-senha.css` (tokens `--ts-*`), faixa verde da marca
+  nos dois temas, cartão no `diag_tema` ou no tema do aparelho; ícones em sprite SVG. 4 regras (8+, número, maiúscula,
+  minúscula). **Nunca escrever a senha temporária na página nem no código** (a página é pública).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
