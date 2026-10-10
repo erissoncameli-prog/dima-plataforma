@@ -825,6 +825,24 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Ao colar o link: avisa se ele já existe (bloqueia salvar) e se a matéria já está no repositório por outro veículo (só aviso).
 - Janelas: classe **`rp-ov`** (no seletor de escopo de `diagnostico-mesa.css`), pilha `rpAbrir`/`rpFechar` (Esc, Tab, foco).
 
+### Mapa de Entregas — moldura no tema, mapa sempre claro
+- `pages/mapa.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e os estilos da página em `css/mapa.css` (o `<style>` saiu da página; as cores fixas viraram os nomes
+  do `global.css`, que a mesa tematiza). **Só a moldura muda com o tema** (topo, abas de camadas e painéis, painel lateral,
+  janelas). **Ficam claros nos dois temas**: o mapa (`#mapa`/`.leaflet-container`: pontos, popups, etiquetas, mapa base,
+  minimapa, rosa dos ventos) e o Relatório Ambiental (`#modal-relatorio > div`), que redeclaram os valores claros em `css/mapa.css`.
+- Cor nova em estilo inline da moldura = token (`var(--branco)`, `var(--cinza-*)`, `var(--erro)`…), nunca hex; **branco de texto
+  sobre fundo colorido fica `#fff`**. Cor de camada/marcador do Leaflet (atributo SVG) **não** aceita `var()` — fica hex.
+  Os relatórios que abrem em janela própria (Relatório CAR e o de impressão) são documentos à parte, com `<style>` próprio.
+- Ícones da moldura por `mpIc()` (SVG, sem emoji). Os ícones dos **tipos de entrega** (catálogo de emoji do cadastro) e os do
+  Relatório Ambiental ficam como estão.
+- `.btn-outline` e `.btn-close` não existem no `global.css`: o estilo deles está em `css/mapa.css`.
+- Janelas (`.modal-overlay`, abertas por `style.display`): `mpVigiarJanelas()` observa o `style` e mantém a pilha — Esc
+  clica o `.btn-close` da janela de cima, Tab preso, foco volta.
+- Editor do mapa = `super_admin` ou `coordenacao` (`_ehEditor`; antes procurava `'coordenador'`, que não existe, e a
+  coordenação não via "Adicionar ponto"/"Importar"). ⚠️ No banco, `produto_pontos_mapa` aceita gravar/apagar de qualquer
+  logado (`auth.uid() is not null`, `TO public`) — a trava ainda é só da tela.
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
