@@ -1,135 +1,164 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SEMA/AC — Repositório de Referências</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
-.stat-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;position:relative;overflow:hidden;}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
-.sc-g::after{background:var(--verde-claro)}.sc-b::after{background:var(--azul-medio)}
-.sc-a::after{background:var(--aviso)}.sc-p::after{background:#7C3AED}
-.stat-lbl{font-size:10px;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
-.stat-val{font-size:22px;font-weight:600;color:var(--cinza-900);}
-.stat-sub{font-size:10px;color:var(--cinza-500);margin-top:3px;}
-
-/* Categorias — cores */
-.repo-cat{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
-.repo-lang{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:var(--cinza-100);color:var(--cinza-600);text-transform:uppercase;white-space:nowrap;}
-.cat-biodiversidade{background:#DCFCE7;color:#166534}
-.cat-governanca{background:#DBEAFE;color:#1E40AF}
-.cat-genero{background:#FDF4FF;color:#7E22CE}
-.cat-restauracao{background:#FEF3C7;color:#92400E}
-.cat-comunicacao{background:#FFE4E6;color:#9F1239}
-.cat-legislacao{background:#F3F4F6;color:#374151}
-.cat-relatorio{background:#E0F2FE;color:#0C4A6E}
-.cat-outro{background:var(--cinza-100);color:var(--cinza-700)}
-
-/* Lista compacta */
-.repo-lista{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);overflow:hidden;}
-.repo-linha{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--borda);cursor:pointer;transition:background .12s;}
-.repo-linha:last-child{border-bottom:none;}
-.repo-linha:hover{background:var(--cinza-50);}
-.repo-linha.inativo{opacity:.5;}
-.rl-favicon{width:20px;height:20px;border-radius:3px;flex-shrink:0;object-fit:contain;}
-.rl-favicon-ph{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
-.rl-titulo{flex:1;font-size:13px;font-weight:500;color:var(--cinza-900);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
-.rl-fonte{font-size:11px;color:var(--cinza-500);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
-.rl-data{font-size:11px;color:var(--cinza-400);white-space:nowrap;flex-shrink:0;}
-.rl-seta{font-size:14px;color:var(--cinza-300);flex-shrink:0;transition:color .12s;}
-.repo-linha:hover .rl-seta{color:var(--verde-medio);}
-
-/* Modal detalhe referência */
-.modal-ref{max-width:580px;}
-.ref-img-full{width:100%;max-height:180px;object-fit:cover;border-radius:var(--raio);margin-bottom:14px;}
-.ref-meta-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
-.ref-titulo-full{font-size:16px;font-weight:700;color:var(--cinza-900);line-height:1.4;margin-bottom:8px;}
-.ref-desc-full{font-size:13px;color:var(--cinza-600);line-height:1.6;margin-bottom:14px;}
-.ref-fonte-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cinza-500);padding-top:12px;border-top:1px solid var(--borda);}
-.ref-fonte-row img{width:16px;height:16px;border-radius:3px;}
-
-/* Modal inserir */
-.modal-repo{max-width:640px;}
-.url-input-wrap{display:flex;gap:8px;align-items:flex-start;}
-.url-input-wrap input{flex:1;}
-.preview-card{background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-top:10px;display:none;}
-.preview-img{width:80px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0;}
-.fetch-status{font-size:12px;margin-top:6px;display:flex;align-items:center;gap:6px;}
-
-/* Filtros */
-.filtros-wrap{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-
-/* Sem resultado */
-.empty-repo{text-align:center;padding:60px 20px;color:var(--cinza-400);}
-.empty-repo-icon{font-size:48px;margin-bottom:12px;}
-.empty-repo-msg{font-size:14px;}
-
-/* Admin: botão desativar */
-.btn-desativar{font-size:11px;padding:3px 8px;border:1px solid #FCA5A5;background:#FEF2F2;color:#DC2626;border-radius:var(--raio);cursor:pointer;font-family:var(--font-sans);}
-.btn-desativar:hover{background:#FEE2E2;}
-</style>
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes do Repositório -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/repositorio.css" rel="stylesheet">
 </head>
-<body>
-<div id="app">
-  <div style="display:flex;align-items:center;justify-content:center;height:100vh">
-    <div style="text-align:center">
-      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      Carregando repositório...
+<body class="dgm">
+<div id="app"><div class="rp-carrega" role="status">Carregando repositório…</div></div>
+
+<!-- Janelas fora do #app (armadilha 11); .rp-ov = escopo do tema. <i data-ic> vira ícone SVG. -->
+<div class="modal-overlay rp-ov" id="modal-ref" role="dialog" aria-modal="true" aria-labelledby="ref-modal-titulo">
+  <div class="modal rp-modal-mat">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0"><div class="modal-title" id="ref-modal-titulo" style="white-space:normal;line-height:1.4"></div></div>
+      <button type="button" class="modal-close" onclick="rpFechar('modal-ref')" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
+    <div class="modal-body" id="ref-modal-body"></div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="rpFechar('modal-ref')">Fechar</button></div>
   </div>
 </div>
 
-<!-- MODAL DETALHE REFERÊNCIA -->
-<div class="modal-overlay" id="modal-ref">
-  <div class="modal modal-ref">
+<div class="modal-overlay rp-ov" id="modal-repo" role="dialog" aria-modal="true" aria-labelledby="repo-modal-titulo">
+  <div class="modal rp-modal-add">
     <div class="modal-header">
-      <div><div class="modal-title" id="ref-modal-titulo" style="font-size:14px;max-width:440px;white-space:normal;line-height:1.4"></div></div>
-      <button class="modal-close" onclick="fecharModalRef()">&#x2715;</button>
-    </div>
-    <div class="modal-body" id="ref-modal-body" style="padding:20px 24px"></div>
-    <div class="modal-footer" id="ref-modal-footer"></div>
-  </div>
-</div>
-
-<!-- MODAL INSERIR LINK -->
-<div class="modal-overlay" id="modal-repo">
-  <div class="modal modal-repo">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title">Adicionar referência</div>
-        <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Cole o link e buscaremos as informações automaticamente</div>
+      <div style="flex:1;min-width:0">
+        <div class="modal-title" id="repo-modal-titulo">Adicionar referência</div>
+        <div style="font-size:12px;color:var(--txt-3);margin-top:2px">Cole o link e buscamos título, veículo e resumo</div>
       </div>
-      <button class="modal-close" onclick="fecharModal()">&#x2715;</button>
+      <button type="button" class="modal-close" onclick="fecharModal()" aria-label="Fechar"><i data-ic="x"></i></button>
     </div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-footer" id="modal-footer"></div>
   </div>
 </div>
 
+<div class="modal-overlay rp-ov" id="modal-conf" role="dialog" aria-modal="true" aria-labelledby="conf-tit">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div style="flex:1;min-width:0"><div class="modal-title" id="conf-tit">Desativar referência?</div><div style="font-size:12.5px;color:var(--txt-3);margin-top:2px;word-break:break-word" id="conf-sub"></div></div>
+      <button type="button" class="modal-close" onclick="fecharConf(false)" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body"><p style="margin:0;font-size:13px;color:var(--txt-forte-2);line-height:1.55">Ela fica oculta para todos os usuários, mas não é excluída.</p></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="fecharConf(false)">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="conf-ok" onclick="fecharConf(true)">Desativar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
 <script>
-const SB_URL = 'https://wfymnmlinonvdqfucjya.supabase.co';
 const CATEGORIAS = [
   'Biodiversidade','Governança','Gênero','Restauração',
   'Comunicação','Legislação','Relatório UNESCO','Outro'
 ];
-const CAT_CLASSE = {
-  'Biodiversidade':'cat-biodiversidade','Governança':'cat-governanca',
-  'Gênero':'cat-genero','Restauração':'cat-restauracao',
-  'Comunicação':'cat-comunicacao','Legislação':'cat-legislacao',
-  'Relatório UNESCO':'cat-relatorio','Outro':'cat-outro'
-};
 const IDIOMAS = ['pt','en','es','fr','de','ar','zh'];
 
-let todosLinks = [], metadataFetch = {};
+let todosLinks = [], nInativos = 0, metadataFetch = {};
 let filtCat = '', filtLang = '', filtBusca = '';
+let grupos = [];          // matérias (links agrupados por título)
+
+// ── Ícones (SVG, sem emoji) ─────────────────────────────────────
+const RP_IC = {
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  busca: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+  jornal: '<path d="M4 22h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/>',
+  externo: '<path d="M14 3h7v7M21 3l-9 9"/><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/>',
+  mais: '<path d="M12 5v14M5 12h14"/>',
+  cal: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  predio: '<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M8 7h4M8 11h4M8 15h4M2 21h20"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  alerta: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+  sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  lua: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+};
+function rpIc(n, cls) { return '<svg class="rp-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (RP_IC[n] || '') + '</svg>'; }
+document.querySelectorAll('i[data-ic]').forEach(e => { e.outerHTML = rpIc(e.dataset.ic, 'p'); });
+
+// Tema claro/escuro: mesmo 'diag_tema' da mesa do Diagnóstico e das demais guias (componente .dgm-tema)
+function seletorTema() {
+  const tb = document.querySelector('.topbar'); if (!tb || tb.querySelector('.dgm-tema') || typeof DiagTema === 'undefined') return;
+  const d = document.createElement('div');
+  d.className = 'dgm-tema'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Tema');
+  d.innerHTML = [['claro','sol','Claro'],['escuro','lua','Escuro']].map(x =>
+    `<button type="button" data-tema="${x[0]}" aria-pressed="${DiagTema.atual() === x[0]}">${rpIc(x[1])}${x[2]}</button>`).join('');
+  const bc = tb.querySelector('.topbar-breadcrumb');
+  if (bc) bc.parentNode.insertBefore(d, bc); else tb.appendChild(d);
+  d.addEventListener('click', ev => {
+    const b = ev.target.closest('[data-tema]'); if (!b) return;
+    DiagTema.definir(b.dataset.tema);
+    d.querySelectorAll('[data-tema]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  });
+}
+
+// ── Janelas: pilha (Esc fecha a de cima), foco, Tab preso, foco volta ──
+const RP_FOCAVEIS = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const rpPilha = [];
+function rpAbrir(id, alvo) {
+  const el = document.getElementById(id);
+  if (!el.classList.contains('aberto')) { rpPilha.push({ id, volta: document.activeElement }); el.classList.add('aberto'); }
+  requestAnimationFrame(() => {
+    const f = (alvo && document.getElementById(alvo)) || el.querySelector('.modal-close');
+    if (f) f.focus({ preventScroll: true });
+  });
+}
+function rpFechar(id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.classList.remove('aberto');
+  const k = rpPilha.findIndex(x => x.id === id);
+  if (k >= 0) { const { volta } = rpPilha.splice(k, 1)[0]; if (volta && document.contains(volta)) volta.focus({ preventScroll: true }); }
+}
+const RP_FECHAR = { 'modal-repo': () => fecharModal(), 'modal-conf': () => fecharConf(false) };
+document.addEventListener('keydown', e => {
+  const topo = rpPilha[rpPilha.length - 1]; if (!topo) return;
+  const el = document.getElementById(topo.id);
+  if (e.key === 'Escape') { e.preventDefault(); (RP_FECHAR[topo.id] || (() => rpFechar(topo.id)))(); }
+  else if (e.key === 'Tab') {
+    const f = [...el.querySelectorAll(RP_FOCAVEIS)].filter(x => x.offsetParent !== null);
+    if (!f.length) return;
+    const pri = f[0], ult = f[f.length - 1];
+    if (!el.contains(document.activeElement)) { e.preventDefault(); pri.focus(); }
+    else if (e.shiftKey && document.activeElement === pri) { e.preventDefault(); ult.focus(); }
+    else if (!e.shiftKey && document.activeElement === ult) { e.preventDefault(); pri.focus(); }
+  }
+});
+['modal-ref','modal-repo','modal-conf'].forEach(id => document.getElementById(id).addEventListener('click', e => {
+  if (e.target.id === id) (RP_FECHAR[id] || (() => rpFechar(id)))();
+}));
+
+// ── Utilitários ─────────────────────────────────────────────────
+// Só endereço http/https é aceito e aberto (javascript:, data: etc. nunca viram link)
+const urlSegura = u => (typeof u === 'string' && /^https?:\/\/[^\s]+$/i.test(u.trim())) ? u.trim() : null;
+function getDominio(url){ try{ return new URL(url).hostname.replace(/^www\./,''); }catch{ return ''; } }
+const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// Mesma matéria = mesmo começo de título, ignorando acento, maiúscula e pontuação
+const chaveMateria = l => {
+  const t = semAcento(l.titulo).replace(/[^a-z0-9]+/g, ' ').trim();
+  return t ? t.slice(0, 60) : 'url:' + (l.url || l.id);
+};
+const nomeVeiculo = l => l.fonte || getDominio(l.url) || 'Link';
+// Inicial desenhada aqui (sem pedir ícone ao Google); cor por hash do nome
+function avatar(nome, grande) {
+  const ini = String(nome).replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+  let h = 0; for (const c of String(nome)) h = (h * 31 + c.charCodeAt(0)) | 0;
+  return `<span class="rp-av v${Math.abs(h) % 6}${grande ? ' g' : ''}" aria-hidden="true">${esc(ini)}</span>`;
+}
+const rpData = (s, longo) => s ? new Date(s).toLocaleDateString('pt-BR', { day: '2-digit', month: longo ? 'long' : '2-digit', year: 'numeric' }) : '';
 
 // ── INIT ──────────────────────────────────────────────────────
 (async () => {
@@ -139,287 +168,276 @@ let filtCat = '', filtLang = '', filtBusca = '';
   document.getElementById('app').innerHTML =
     gerarLayout('Repositório de Referências', 'repositorio') + `
     <div class="fade-in">
-      <div class="stat-row" id="stats"></div>
-
-      <!-- Barra de filtros + botão -->
-      <div class="filtros-wrap">
-        <input class="form-control" type="text" id="f-busca" style="width:240px"
-          placeholder="🔍 Buscar título, fonte ou descrição..."
-          oninput="filtrar()">
-        <select class="form-control" id="f-cat" onchange="filtrar()" style="width:160px">
-          <option value="">Todas as categorias</option>
-          ${CATEGORIAS.map(c=>`<option value="${c}">${c}</option>`).join('')}
-        </select>
-        <select class="form-control" id="f-lang" onchange="filtrar()" style="width:110px">
+      <div class="rp-topo">
+        <div><h2>Repositório de Referências</h2><p>Matérias, publicações e documentos externos sobre o projeto.</p></div>
+        <button type="button" class="btn btn-primary" onclick="abrirModal()">${rpIc('mais','p')}Adicionar link</button>
+      </div>
+      <div class="rp-kpis" id="stats"></div>
+      <div class="rp-filtros">
+        <label class="rp-busca">${rpIc('busca','p')}<input type="search" id="f-busca" placeholder="Buscar título, veículo ou descrição" aria-label="Buscar" oninput="filtrar()" autocomplete="off"></label>
+        <select class="rp-sel" id="f-lang" onchange="filtrar()" aria-label="Idioma">
           <option value="">Todos os idiomas</option>
           ${IDIOMAS.map(l=>`<option value="${l}">${l.toUpperCase()}</option>`).join('')}
         </select>
-        <span id="cont-links" style="font-size:12px;color:var(--cinza-500);margin-left:auto"></span>
-        <button class="btn btn-primary btn-sm" onclick="abrirModal()">+ Adicionar link</button>
+        <span class="rp-cont" id="cont-links"></span>
       </div>
-
+      <div class="rp-chips" id="f-cats" role="group" aria-label="Categoria"></div>
       <div id="repo-conteudo"></div>
     </div>` + `</div></div></div>`;
+  seletorTema();
+  document.getElementById('f-cats').addEventListener('click', e => {
+    const b = e.target.closest('[data-cat]'); if (!b || b.disabled) return;
+    filtCat = b.dataset.cat; filtrar();
+  });
 
   await carregar();
 })();
 
 async function carregar() {
-  const { data } = await db.from('repositorio_links')
-    .select('*,usuarios!repositorio_links_inserido_por_fkey(id,nome_completo)')
-    .eq('ativo', true)
-    .order('inserido_em', { ascending: false });
+  const [{ data }, { count }] = await Promise.all([
+    db.from('repositorio_links')
+      .select('*,usuarios!repositorio_links_inserido_por_fkey(id,nome_completo)')
+      .eq('ativo', true)
+      .order('inserido_em', { ascending: false }),
+    db.from('repositorio_links').select('id', { count: 'exact', head: true }).eq('ativo', false),
+  ]);
   todosLinks = data || [];
+  nInativos = count || 0;
   renderStats();
   filtrar();
 }
 
-function renderStats() {
-  const total = todosLinks.length;
-  const cats  = new Set(todosLinks.map(l => l.categoria).filter(Boolean)).size;
-  const langs = new Set(todosLinks.map(l => l.idioma).filter(Boolean)).size;
-  const hoje  = todosLinks.filter(l => {
-    const d = new Date(l.inserido_em);
-    const n = new Date();
-    return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth();
-  }).length;
+// Agrupa links em matérias (o banco segue com um registro por link)
+function agrupar(links) {
+  const mapa = new Map();
+  links.forEach(l => {
+    const k = chaveMateria(l);
+    if (!mapa.has(k)) mapa.set(k, { chave: k, links: [] });
+    mapa.get(k).links.push(l);
+  });
+  return [...mapa.values()].map(g => {
+    g.links.sort((a, b) => nomeVeiculo(a).localeCompare(nomeVeiculo(b), 'pt-BR'));
+    // título exibido = o mais longo (o mais completo); data = a primeira publicação registrada
+    g.titulo = g.links.map(l => l.titulo || l.url).sort((a, b) => b.length - a.length)[0];
+    g.inserido_em = g.links.map(l => l.inserido_em).filter(Boolean).sort()[0];
+    g.recente = g.links.map(l => l.inserido_em).filter(Boolean).sort().slice(-1)[0];
+    g.categorias = [...new Set(g.links.map(l => l.categoria).filter(Boolean))];
+    g.idiomas = [...new Set(g.links.map(l => l.idioma).filter(Boolean))];
+    return g;
+  }).sort((a, b) => String(b.recente || '').localeCompare(String(a.recente || '')));
+}
 
-  document.getElementById('stats').innerHTML = `
-    <div class="stat-card sc-b"><div class="stat-lbl">Total de links</div><div class="stat-val">${total}</div><div class="stat-sub">no repositório</div></div>
-    <div class="stat-card sc-g"><div class="stat-lbl">Categorias</div><div class="stat-val">${cats}</div><div class="stat-sub">temáticas distintas</div></div>
-    <div class="stat-card sc-p"><div class="stat-lbl">Idiomas</div><div class="stat-val">${langs}</div><div class="stat-sub">representados</div></div>
-    <div class="stat-card sc-a"><div class="stat-lbl">Adicionados</div><div class="stat-val">${hoje}</div><div class="stat-sub">este mês</div></div>`;
+function renderStats() {
+  const mats = agrupar(todosLinks);
+  const veics = new Set(todosLinks.map(l => semAcento(nomeVeiculo(l)))).size;
+  const n = new Date();
+  const mes = todosLinks.filter(l => { const d = new Date(l.inserido_em); return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth(); }).length;
+  const ultimo = todosLinks.map(l => l.inserido_em).filter(Boolean).sort().slice(-1)[0];
+  const k = (ic, l, v, s) => `<div class="rp-kpi"><span class="rp-kpi-l">${rpIc(ic,'p')}${l}</span><span class="rp-kpi-v">${v}</span><span class="rp-kpi-s">${s}</span></div>`;
+  document.getElementById('stats').innerHTML =
+    k('jornal', 'Matérias', mats.length, 'mesmo assunto agrupado') +
+    k('link', 'Links', todosLinks.length, 'ativos' + (nInativos ? ' · ' + nInativos + (nInativos === 1 ? ' desativado' : ' desativados') : '')) +
+    k('predio', 'Veículos', veics, 'fontes distintas') +
+    k('cal', 'Neste mês', mes, ultimo ? 'último em ' + rpData(ultimo) : 'nenhum ainda');
+}
+
+function renderCats() {
+  const base = todosLinks.filter(l => !filtLang || l.idioma === filtLang);
+  const cont = c => base.filter(l => l.categoria === c).length;
+  document.getElementById('f-cats').innerHTML =
+    `<button type="button" class="rp-chip${filtCat ? '' : ' on'}" data-cat="" aria-pressed="${!filtCat}">Todas <span class="n">${base.length}</span></button>` +
+    CATEGORIAS.map(c => {
+      const n = cont(c);
+      return `<button type="button" class="rp-chip${filtCat === c ? ' on' : ''}" data-cat="${esc(c)}" aria-pressed="${filtCat === c}"${n || filtCat === c ? '' : ' disabled'}>${esc(c)} <span class="n">${n}</span></button>`;
+    }).join('');
 }
 
 function filtrar() {
-  filtBusca = (document.getElementById('f-busca')?.value || '').toLowerCase();
-  filtCat   = document.getElementById('f-cat')?.value  || '';
+  filtBusca = semAcento(document.getElementById('f-busca')?.value || '').trim();
   filtLang  = document.getElementById('f-lang')?.value || '';
+  renderCats();
 
   const fil = todosLinks.filter(l => {
     if (filtCat  && l.categoria !== filtCat) return false;
     if (filtLang && l.idioma    !== filtLang) return false;
     if (filtBusca) {
-      const txt = [(l.titulo||''),(l.descricao||''),(l.fonte||''),(l.url||'')].join(' ').toLowerCase();
+      const txt = semAcento([l.titulo, l.descricao, l.fonte, l.url].join(' '));
       if (!txt.includes(filtBusca)) return false;
     }
     return true;
   });
+  grupos = agrupar(fil);
 
   const contEl = document.getElementById('cont-links');
-  if (contEl) contEl.textContent = `${fil.length} de ${todosLinks.length} referências`;
+  if (contEl) contEl.textContent = `${grupos.length} ${grupos.length === 1 ? 'matéria' : 'matérias'} · ${fil.length} de ${todosLinks.length} links`;
 
   const el = document.getElementById('repo-conteudo');
-  if (!fil.length) {
-    el.innerHTML = `<div class="empty-repo">
-      <div class="empty-repo-icon">🔗</div>
-      <div class="empty-repo-msg">Nenhuma referência encontrada.<br>
-      <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="abrirModal()">+ Adicionar o primeiro link</button></div>
-    </div>`;
+  if (!grupos.length) {
+    el.innerHTML = todosLinks.length
+      ? `<div class="rp-vazio">${rpIc('busca')}<b>Nenhuma referência encontrada</b>Troque a busca, a categoria ou o idioma.</div>`
+      : `<div class="rp-vazio">${rpIc('link')}<b>O repositório está vazio</b><button type="button" class="btn btn-primary btn-sm" style="margin-top:12px" onclick="abrirModal()">${rpIc('mais','p')}Adicionar o primeiro link</button></div>`;
     return;
   }
-
-  el.innerHTML = `<div class="repo-lista">${fil.map(renderLinha).join('')}</div>`;
+  el.innerHTML = `<div class="rp-lista">${grupos.map(renderMateria).join('')}</div>`;
 }
 
+function chipVeiculo(l) {
+  const nome = nomeVeiculo(l), url = urlSegura(l.url);
+  return url
+    ? `<a class="rp-veic" href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="Abrir em ${esc(nome)}">${avatar(nome)}<span class="nm">${esc(nome)}</span>${rpIc('externo')}</a>`
+    : `<span class="rp-veic sem" title="Endereço inválido: não é http/https">${avatar(nome)}<span class="nm">${esc(nome)}</span></span>`;
+}
 
-
-function getDominio(url){ try{ return new URL(url).hostname.replace(/^www\./,''); }catch{ return ''; } }
-
-function renderLinha(l) {
-  const catCls = CAT_CLASSE[l.categoria] || 'cat-outro';
-  const dominio = getDominio(l.url);
-  const favicon = `https://www.google.com/s2/favicons?domain=${dominio}&sz=32`;
-  const dtFmt = l.inserido_em
-    ? new Date(l.inserido_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})
-    : '';
-  const idx = todosLinks.indexOf(l); // índice para abrir o detalhe
-
-  return `<div class="repo-linha${l.ativo?'':' inativo'}" onclick="abrirDetalhe(${idx})">
-    <img class="rl-favicon" src="${favicon}" alt=""
-      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-    <div class="rl-favicon-ph" style="display:none">🔗</div>
-    ${l.categoria?`<span class="repo-cat ${catCls}">${esc(l.categoria)}</span>`:''}
-    <span class="rl-titulo" title="${esc(l.titulo||l.url)}">${esc(l.titulo||l.url)}</span>
-    ${l.idioma?`<span class="repo-lang">${esc(l.idioma).toUpperCase()}</span>`:''}
-    <span class="rl-fonte">${esc(l.fonte||dominio)}</span>
-    <span class="rl-data">${dtFmt}</span>
-    <span class="rl-seta">›</span>
+function renderMateria(g, i) {
+  const n = g.links.length;
+  return `<div class="rp-mat">
+    <span class="rp-th">${rpIc('jornal')}</span>
+    <div style="min-width:0">
+      <h3>${esc(g.titulo)}</h3>
+      <div class="rp-mt">
+        ${g.categorias.map(c => `<span class="rp-pill">${esc(c)}</span>`).join('')}
+        ${g.idiomas.map(l => `<span class="rp-lang">${esc(l)}</span>`).join('')}
+        ${g.inserido_em ? rpIc('cal') + `<span>${rpData(g.inserido_em)}</span>` : ''}
+        <span>· ${n} ${n === 1 ? 'veículo' : 'veículos'}</span>
+      </div>
+      <div class="rp-veics">${g.links.map(chipVeiculo).join('')}</div>
+    </div>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="abrirDetalhe(${i})">Detalhes</button>
   </div>`;
 }
 
-// ── MODAL DETALHE ─────────────────────────────────────────────
-function abrirDetalhe(idx) {
-  const l = todosLinks[idx];
-  if (!l) return;
-  const catCls = CAT_CLASSE[l.categoria] || 'cat-outro';
-  const dominio = getDominio(l.url);
-  const favicon = `https://www.google.com/s2/favicons?domain=${dominio}&sz=32`;
+// ── DETALHE DA MATÉRIA ────────────────────────────────────────
+function abrirDetalhe(i) {
+  const g = grupos[i];
+  if (!g) return;
   const isAdmin = appState.perfil === 'super_admin';
-  const dtFmt = l.inserido_em
-    ? new Date(l.inserido_em).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
-    : '';
-  const inseridoPor = l.usuarios?.nome_completo || '—';
+  const comImg = g.links.find(l => urlSegura(l.imagem_url));
+  const comDesc = g.links.find(l => l.descricao);
 
-  document.getElementById('ref-modal-titulo').textContent = l.titulo || l.url;
-
+  document.getElementById('ref-modal-titulo').textContent = g.titulo;
   document.getElementById('ref-modal-body').innerHTML = `
-    ${l.imagem_url ? `<img class="ref-img-full" src="${esc(l.imagem_url)}" alt="" onerror="this.style.display='none'">` : ''}
-    <div class="ref-meta-row">
-      ${l.categoria ? `<span class="repo-cat ${catCls}">${esc(l.categoria)}</span>` : ''}
-      ${l.idioma    ? `<span class="repo-lang">${esc(l.idioma).toUpperCase()}</span>` : ''}
-      ${!l.ativo    ? `<span style="font-size:10px;background:#F3F4F6;color:#6B7280;padding:2px 8px;border-radius:99px">Inativo</span>` : ''}
+    ${comImg ? `<img class="rp-capa" src="${esc(urlSegura(comImg.imagem_url))}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
+    <div class="rp-mt" style="margin:0 0 10px">
+      ${g.categorias.map(c => `<span class="rp-pill">${esc(c)}</span>`).join('')}
+      ${g.idiomas.map(l => `<span class="rp-lang">${esc(l)}</span>`).join('')}
     </div>
-    ${l.descricao ? `<div class="ref-desc-full">${esc(l.descricao)}</div>` : '<div class="ref-desc-full" style="color:var(--cinza-400);font-style:italic">Sem descrição disponível.</div>'}
-    <div class="ref-fonte-row">
-      <img src="${favicon}" alt="" onerror="this.style.display='none'">
-      <span style="font-weight:600;color:var(--cinza-700)">${esc(l.fonte||dominio)}</span>
-      <span style="color:var(--cinza-300)">·</span>
-      <span>Adicionado por ${esc(inseridoPor)}</span>
-      <span style="color:var(--cinza-300)">·</span>
-      <span>${dtFmt}</span>
-    </div>`;
-
-  document.getElementById('ref-modal-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="fecharModalRef()">Fechar</button>
-    <div style="display:flex;gap:8px">
-      ${isAdmin ? `<button class="btn-desativar" style="padding:6px 12px" onclick="desativar('${l.id}');fecharModalRef()">Desativar</button>` : ''}
-      <a href="${esc(l.url)}" target="_blank" rel="noopener"
-        class="btn btn-primary" style="text-decoration:none">
-        Abrir link →
-      </a>
-    </div>`;
-
-  document.getElementById('modal-ref').classList.add('aberto');
+    ${comDesc ? `<p class="rp-desc">${esc(comDesc.descricao)}</p>` : '<p class="rp-desc vazio">Sem descrição disponível.</p>'}
+    <div class="rp-sec">${g.links.length === 1 ? 'Veículo' : g.links.length + ' veículos'}</div>
+    ${g.links.map(l => {
+      const nome = nomeVeiculo(l), url = urlSegura(l.url);
+      return `<div class="rp-vl">${avatar(nome, true)}
+        <div style="min-width:0"><b>${esc(nome)}</b><small>Adicionado por ${esc(l.usuarios?.nome_completo || '—')} · ${rpData(l.inserido_em, true)}</small></div>
+        <div class="rp-vl-ac">
+          ${isAdmin ? `<button type="button" class="btn btn-secondary btn-sm rp-perigo" onclick="desativar('${esc(l.id)}')">Desativar</button>` : ''}
+          ${url ? `<a class="btn btn-primary btn-sm" href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none">${rpIc('externo','p')}Abrir</a>`
+                : '<span class="rp-pill ina">Endereço inválido</span>'}
+        </div></div>`;
+    }).join('')}`;
+  rpAbrir('modal-ref');
 }
 
-function fecharModalRef() {
-  document.getElementById('modal-ref').classList.remove('aberto');
-}
-
-// ── MODAL INSERIR ─────────────────────────────────────────────
+// ── ADICIONAR ─────────────────────────────────────────────────
 function abrirModal() {
   metadataFetch = {};
   document.getElementById('modal-body').innerHTML = `
     <div class="form-group">
-      <label class="form-label">URL da referência <span class="obrig">*</span></label>
-      <div class="url-input-wrap">
-        <input class="form-control" id="f-url" type="url"
-          placeholder="https://..." oninput="limparPreview();habilitarManual(this.value)">
-        <button class="btn btn-secondary" id="btn-fetch" onclick="buscarMetadata()"
-          style="white-space:nowrap;flex-shrink:0">
-          🔍 Buscar informações
-        </button>
+      <label class="form-label" for="f-url">Endereço (http ou https) <span class="obrig">*</span></label>
+      <div class="rp-url">
+        <input class="form-control" id="f-url" type="url" placeholder="https://…" oninput="aoDigitarUrl(this.value)" autocomplete="off">
+        <button type="button" class="btn btn-secondary" id="btn-fetch" onclick="buscarMetadata()" style="white-space:nowrap">${rpIc('busca','p')}Buscar informações</button>
       </div>
-      <div id="fetch-status" class="fetch-status"></div>
+      <div id="fetch-status" class="rp-msg" role="status"></div>
+      <div id="dup-status" class="rp-msg" role="status"></div>
     </div>
-
-    <!-- Preview automático -->
-    <div id="preview-card" class="preview-card">
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <img id="prev-img" class="preview-img" src="" alt="" style="display:none">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;color:var(--verde-medio);margin-bottom:2px" id="prev-fonte"></div>
-          <div style="font-size:13px;font-weight:600;color:var(--cinza-900);margin-bottom:4px" id="prev-titulo"></div>
-          <div style="font-size:11px;color:var(--cinza-600);line-height:1.4" id="prev-desc"></div>
-        </div>
-      </div>
+    <div id="preview-card" class="rp-prev">
+      <img id="prev-img" alt="" hidden referrerpolicy="no-referrer">
+      <div style="flex:1;min-width:0"><div class="rp-prev-f" id="prev-fonte"></div><div class="rp-prev-t" id="prev-titulo"></div><div class="rp-prev-d" id="prev-desc"></div></div>
     </div>
-
-    <div id="form-fields" style="display:none">
+    <div id="form-fields" style="display:none;margin-top:12px">
       <div class="grid-2">
-        <div class="form-group">
-          <label class="form-label">Título</label>
-          <input class="form-control" id="f-titulo" type="text" placeholder="Título da matéria">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fonte / Veículo</label>
-          <input class="form-control" id="f-fonte" type="text" placeholder="Ex: UNESCO, G1, IUCN">
-        </div>
+        <div class="form-group"><label class="form-label" for="f-titulo">Título</label><input class="form-control" id="f-titulo" type="text" placeholder="Título da matéria" oninput="checarMateria()"></div>
+        <div class="form-group"><label class="form-label" for="f-fonte">Veículo</label><input class="form-control" id="f-fonte" type="text" placeholder="Ex.: UNESCO, G1, IUCN"></div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Descrição</label>
-        <textarea class="form-control" id="f-desc" rows="2"
-          placeholder="Resumo do conteúdo da referência" style="font-size:12px"></textarea>
-      </div>
+      <div class="form-group"><label class="form-label" for="f-desc">Resumo</label><textarea class="form-control" id="f-desc" rows="2" placeholder="Resumo do conteúdo da referência"></textarea></div>
       <div class="grid-2">
-        <div class="form-group">
-          <label class="form-label">Categoria <span class="obrig">*</span></label>
-          <select class="form-control" id="m-cat">
-            <option value="">Selecione...</option>
-            ${CATEGORIAS.map(c=>`<option value="${c}">${c}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Idioma</label>
-          <select class="form-control" id="m-lang">
-            <option value="">Selecione...</option>
-            ${IDIOMAS.map(l=>`<option value="${l}">${l.toUpperCase()}</option>`).join('')}
-          </select>
-        </div>
+        <div class="form-group"><label class="form-label" for="m-cat">Categoria <span class="obrig">*</span></label>
+          <select class="form-control" id="m-cat"><option value="">Selecione…</option>${CATEGORIAS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select></div>
+        <div class="form-group"><label class="form-label" for="m-lang">Idioma</label>
+          <select class="form-control" id="m-lang"><option value="">Selecione…</option>${IDIOMAS.map(l=>`<option value="${l}">${l.toUpperCase()}</option>`).join('')}</select></div>
       </div>
     </div>`;
-
   document.getElementById('modal-footer').innerHTML = `
-    <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-    <button class="btn btn-primary" id="btn-salvar" onclick="salvar()" disabled>Salvar referência</button>`;
-
-  document.getElementById('modal-repo').classList.add('aberto');
+    <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+    <button type="button" class="btn btn-primary" id="btn-salvar" onclick="salvar()" disabled>Salvar referência</button>`;
+  rpAbrir('modal-repo', 'f-url');
 }
 
-function limparPreview() {
+function msg(id, tipo, texto) {
+  const el = document.getElementById(id); if (!el) return;
+  el.className = 'rp-msg' + (texto ? ' ' + tipo : '');
+  el.innerHTML = texto ? rpIc({ ok: 'check', info: 'info', alerta: 'alerta', erro: 'alerta' }[tipo], 'p') + '<span>' + texto + '</span>' : '';
+}
+
+function aoDigitarUrl(v) {
   metadataFetch = {};
-  document.getElementById('preview-card').style.display = 'none';
-  document.getElementById('form-fields').style.display = 'none';
-  document.getElementById('fetch-status').innerHTML = '';
-  const btn = document.getElementById('btn-salvar');
-  if (btn) btn.disabled = true;
+  document.getElementById('preview-card').classList.remove('on');
+  msg('fetch-status', '', '');
+  const url = (v || '').trim();
+  if (url && !urlSegura(url)) { msg('dup-status', 'erro', 'O endereço precisa começar com http:// ou https://.'); travarSalvar(true); return; }
+  if (urlSegura(url) && todosLinks.some(l => l.url === url)) { msg('dup-status', 'erro', 'Este link já está no repositório.'); travarSalvar(true); return; }
+  msg('dup-status', '', '');
+  if (url.length >= 8) mostrarFormManual();
+  checarMateria();
 }
+
+// Avisa (sem bloquear) quando a matéria já está no repositório por outro veículo
+function checarMateria() {
+  const url = (document.getElementById('f-url')?.value || '').trim();
+  if (!urlSegura(url) || todosLinks.some(l => l.url === url)) return;
+  const titulo = document.getElementById('f-titulo')?.value || metadataFetch.titulo || '';
+  if (!titulo) { msg('dup-status', '', ''); return; }
+  const k = chaveMateria({ titulo });
+  const iguais = todosLinks.filter(l => chaveMateria(l) === k);
+  msg('dup-status', iguais.length ? 'info' : '', iguais.length
+    ? `Esta matéria já está no repositório em <strong>${iguais.length} ${iguais.length === 1 ? 'veículo' : 'veículos'}</strong>. O link novo entra na mesma ficha.`
+    : '');
+}
+
+function travarSalvar(sim) { const b = document.getElementById('btn-salvar'); if (b) b.disabled = sim; }
 
 async function buscarMetadata() {
   const url = document.getElementById('f-url')?.value?.trim();
   if (!url) { toast('Cole uma URL primeiro.', 'error'); return; }
+  if (!urlSegura(url)) { msg('dup-status', 'erro', 'O endereço precisa começar com http:// ou https://.'); return; }
 
   const btn = document.getElementById('btn-fetch');
-  const status = document.getElementById('fetch-status');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Buscando...'; }
-  status.innerHTML = '<span style="color:var(--cinza-400)">Buscando informações da página...</span>';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="rp-spin"></span>Buscando…'; }
+  msg('fetch-status', 'info', 'Buscando informações da página…');
 
   try {
-    // Chamar a Edge Function
     const { data: { session } } = await db.auth.getSession();
-    const token = session?.access_token || '';
-
     const res = await fetch(`${SUPABASE_URL}/functions/v1/fetch-link-metadata`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'apikey': SUPABASE_ANON_KEY
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ''}`, 'apikey': SUPABASE_ANON_KEY },
       body: JSON.stringify({ url })
     });
-
     const data = await res.json();
 
     if (!data.ok && data.erro) {
-      status.innerHTML = `<span style="color:var(--erro)">⚠ ${data.erro}. Preencha os campos manualmente.</span>`;
+      msg('fetch-status', 'alerta', esc(data.erro) + '. Preencha os campos manualmente.');
       mostrarFormManual();
       return;
     }
-
     metadataFetch = data;
 
-    // Preencher preview
-    const prev = document.getElementById('preview-card');
     const prevImg = document.getElementById('prev-img');
-    if (data.imagem_url) { prevImg.src = data.imagem_url; prevImg.style.display = 'block'; }
+    const img = urlSegura(data.imagem_url);
+    if (img) { prevImg.src = img; prevImg.hidden = false; prevImg.onerror = () => { prevImg.hidden = true; }; } else prevImg.hidden = true;
     document.getElementById('prev-fonte').textContent = data.fonte || data.dominio || '';
     document.getElementById('prev-titulo').textContent = data.titulo || url;
-    document.getElementById('prev-desc').textContent = (data.descricao||'').substring(0,180);
-    prev.style.display = 'block';
+    document.getElementById('prev-desc').textContent = (data.descricao || '').substring(0, 180);
+    document.getElementById('preview-card').classList.add('on');
 
-    // Preencher campos do formulário
     mostrarFormManual();
     document.getElementById('f-titulo').value = data.titulo || '';
     document.getElementById('f-fonte').value  = data.fonte  || '';
@@ -428,27 +446,20 @@ async function buscarMetadata() {
       const sel = document.getElementById('m-lang');
       if ([...sel.options].some(o => o.value === data.idioma)) sel.value = data.idioma;
     }
-
-    status.innerHTML = '<span style="color:var(--sucesso)">✓ Informações carregadas automaticamente. Revise e escolha a categoria.</span>';
-
+    msg('fetch-status', 'ok', 'Informações carregadas. Revise e escolha a categoria.');
+    checarMateria();
   } catch (e) {
-    status.innerHTML = `<span style="color:var(--aviso)">⚠ Não foi possível buscar automaticamente. Preencha os campos abaixo.</span>`;
+    msg('fetch-status', 'alerta', 'Não foi possível buscar automaticamente. Preencha os campos abaixo.');
     mostrarFormManual();
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🔍 Buscar novamente'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = rpIc('busca','p') + 'Buscar novamente'; }
   }
-}
-
-function habilitarManual(urlVal) {
-  if (!urlVal || urlVal.length < 8) return;
-  // Mostrar form e habilitar salvar sem precisar clicar em "Buscar"
-  mostrarFormManual();
 }
 
 function mostrarFormManual() {
   document.getElementById('form-fields').style.display = 'block';
-  const btn = document.getElementById('btn-salvar');
-  if (btn) btn.disabled = false;
+  const url = (document.getElementById('f-url')?.value || '').trim();
+  travarSalvar(!urlSegura(url) || todosLinks.some(l => l.url === url));
 }
 
 async function salvar() {
@@ -460,33 +471,48 @@ async function salvar() {
   const idioma   = document.getElementById('m-lang')?.value;
 
   if (!url) { toast('URL obrigatória.', 'error'); return; }
+  if (!urlSegura(url)) { toast('O endereço precisa começar com http:// ou https://.', 'error'); return; }
   if (!categoria) { toast('Escolha uma categoria.', 'error'); return; }
+  if (todosLinks.some(l => l.url === url)) { toast('Este link já foi adicionado ao repositório.', 'error'); return; }
 
-  // Verificar duplicata
-  const jaExiste = todosLinks.some(l => l.url === url);
-  if (jaExiste) { toast('Este link já foi adicionado ao repositório.', 'error'); return; }
-
+  travarSalvar(true);
   const { error } = await db.from('repositorio_links').insert({
     url,
     titulo:     titulo  || metadataFetch.titulo  || url,
     fonte:      fonte   || metadataFetch.fonte   || '',
     descricao:  descricao || metadataFetch.descricao || '',
-    imagem_url: metadataFetch.imagem_url || null,
+    imagem_url: urlSegura(metadataFetch.imagem_url) || null,
     categoria,
     idioma:     idioma  || metadataFetch.idioma  || 'pt',
     inserido_por: appState.usuario.id
   });
+  if (error) { travarSalvar(false); toast('Erro ao salvar: ' + error.message, 'error'); return; }
 
-  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
-
-  toast('Referência adicionada ao repositório!', 'success');
+  toast('Referência adicionada ao repositório.', 'success');
   fecharModal();
   await carregar();
 }
 
-// ── ADMIN: DESATIVAR ──────────────────────────────────────────
+function fecharModal() {
+  rpFechar('modal-repo');
+  metadataFetch = {};
+}
+
+// ── ADMIN: DESATIVAR (confirmação em janela própria) ──────────
+let confResolver = null;
+function confirmar(sub) {
+  document.getElementById('conf-sub').textContent = sub;
+  rpAbrir('modal-conf', 'conf-ok');
+  return new Promise(res => { confResolver = res; });
+}
+function fecharConf(ok) {
+  rpFechar('modal-conf');
+  if (confResolver) { const r = confResolver; confResolver = null; r(!!ok); }
+}
+
 async function desativar(id) {
-  if (!confirm('Desativar esta referência? Ela ficará oculta para todos os usuários, mas não será excluída.')) return;
+  const l = todosLinks.find(x => x.id === id);
+  if (!(await confirmar(l ? nomeVeiculo(l) + ' · ' + (l.titulo || l.url) : ''))) return;
   const { error } = await db.from('repositorio_links').update({
     ativo: false,
     desativado_por: appState.usuario.id,
@@ -494,19 +520,9 @@ async function desativar(id) {
   }).eq('id', id);
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Referência desativada.', 'info');
+  rpFechar('modal-ref');
   await carregar();
 }
-
-function fecharModal() {
-  document.getElementById('modal-repo').classList.remove('aberto');
-  metadataFetch = {};
-}
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    if (document.getElementById('modal-ref').classList.contains('aberto')) fecharModalRef();
-    else fecharModal();
-  }
-});
 </script>
 </body>
 </html>
