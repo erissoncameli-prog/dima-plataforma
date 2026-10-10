@@ -811,6 +811,20 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   do assistente (`.au-chat`, também `au-ov`) não bloqueia a página; Esc fecha. "Perguntar ao assistente" no achado preenche a
   pergunta com título e referência.
 
+### Repositório de Referências — matérias, veículos e links seguros
+- `pages/repositorio.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
+  Claro/Escuro no topo) e componentes em `css/repositorio.css` (prefixo `rp-`; cor da inicial do veículo = token `--rp-v0..5`
+  por hash do nome). Sem `<style>` próprio; ícones SVG por `rpIc()`, sem emoji. Texto do usuário sempre por `esc()`.
+- **Uma ficha por matéria** (`agrupar`/`chaveMateria`): links com o mesmo começo de título (60 caracteres, sem acento,
+  maiúscula e pontuação) se juntam; os veículos viram botões que abrem cada link. O banco segue com **um registro por link**
+  (`repositorio_links`) — o agrupamento é só da tela. Detalhe da matéria lista os veículos com "Abrir" e, para super_admin,
+  "Desativar" (confirmação em janela própria; desativar = `ativo=false`, nunca DELETE).
+- **Só http/https** (`urlSegura`): endereço fora disso não salva, não vira link e a imagem de capa não carrega.
+- **Sem ícone do Google**: a inicial do veículo é desenhada na página (`avatar`). Não voltar a usar `google.com/s2/favicons`
+  — cada visita revelava ao Google os sites do repositório. A capa (`imagem_url`, do site) só aparece no detalhe.
+- Ao colar o link: avisa se ele já existe (bloqueia salvar) e se a matéria já está no repositório por outro veículo (só aviso).
+- Janelas: classe **`rp-ov`** (no seletor de escopo de `diagnostico-mesa.css`), pilha `rpAbrir`/`rpFechar` (Esc, Tab, foco).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem
