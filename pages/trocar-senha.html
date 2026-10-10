@@ -97,7 +97,6 @@ body{font-family:'DM Sans',sans-serif;background:#F3F4F6;min-height:100vh;displa
         <div class="regra" id="r-num"><div class="regra-dot"></div>Ao menos 1 número</div>
         <div class="regra" id="r-mai"><div class="regra-dot"></div>Ao menos 1 letra maiúscula</div>
         <div class="regra" id="r-min2"><div class="regra-dot"></div>Ao menos 1 letra minúscula</div>
-        <div class="regra" id="r-dif"><div class="regra-dot"></div>Diferente da senha temporária (Sema@2025)</div>
       </div>
 
       <div class="form-group">
@@ -130,7 +129,7 @@ body{font-family:'DM Sans',sans-serif;background:#F3F4F6;min-height:100vh;displa
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script>
-const SENHA_TEMP = 'Sema@2025';
+// A senha temporária não fica no código: a página é pública e a revelaria. As regras abaixo bastam.
 
 // Verificar se usuário está logado e precisa trocar senha
 (async () => {
@@ -165,7 +164,6 @@ function verificarRegras() {
     'r-num':  /\d/.test(senha),
     'r-mai':  /[A-Z]/.test(senha),
     'r-min2': /[a-z]/.test(senha),
-    'r-dif':  senha !== SENHA_TEMP && senha.length > 0,
   };
 
   let pontos = 0;
@@ -177,13 +175,12 @@ function verificarRegras() {
   });
 
   // Barra de força
-  const pct = (pontos / 5) * 100;
+  const pct = (pontos / 4) * 100;
   const fill = document.getElementById('forca-fill');
   const txt = document.getElementById('forca-txt');
   fill.style.width = pct + '%';
   if (pontos <= 1) { fill.style.background='#EF4444'; txt.textContent='Fraca'; txt.style.color='#EF4444'; }
   else if (pontos <= 3) { fill.style.background='#F59E0B'; txt.textContent='Média'; txt.style.color='#F59E0B'; }
-  else if (pontos === 4) { fill.style.background='#3B82F6'; txt.textContent='Boa'; txt.style.color='#3B82F6'; }
   else { fill.style.background='#059669'; txt.textContent='Forte'; txt.style.color='#059669'; }
 
   const todasOk = Object.values(regras).every(Boolean);
@@ -213,7 +210,7 @@ function verificarConfirmacao() {
 function verificarRegrasSilencioso() {
   const senha = document.getElementById('nova-senha').value;
   return senha.length >= 8 && /\d/.test(senha) &&
-    /[A-Z]/.test(senha) && /[a-z]/.test(senha) && senha !== SENHA_TEMP;
+    /[A-Z]/.test(senha) && /[a-z]/.test(senha);
 }
 
 async function salvarSenha() {
