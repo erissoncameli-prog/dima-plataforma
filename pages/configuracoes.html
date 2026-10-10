@@ -3,105 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SEMA/AC — Configurações</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>SEMA/AC — Dados do sistema</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-.config-wrap{display:flex;height:100%;overflow:hidden;}
-.config-editor{width:420px;flex-shrink:0;border-right:1px solid var(--borda);background:var(--branco);display:flex;flex-direction:column;overflow:hidden;}
-.editor-header{padding:14px 20px;border-bottom:1px solid var(--borda);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;}
-.editor-header h2{font-size:14px;font-weight:600;color:var(--cinza-900);white-space:nowrap;}
-.editor-body{flex:1;overflow-y:auto;}
-.tab-nav{display:flex;border-bottom:1px solid var(--borda);padding:0 20px;flex-shrink:0;}
-.tab-btn{padding:10px 14px;font-size:13px;font-weight:500;color:var(--cinza-500);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-family:var(--font-sans);transition:all .15s;}
-.tab-btn.ativo{color:var(--verde-medio);border-bottom-color:var(--verde-medio);}
-.tab-btn:hover:not(.ativo){color:var(--cinza-700);}
-.tab-content{display:none;padding:20px;}
-.tab-content.ativo{display:block;}
-.upload-zone{border:2px dashed var(--borda);border-radius:var(--raio-lg);padding:16px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cinza-50);}
-.upload-zone:hover{border-color:var(--verde-claro);background:#F0FDF4;}
-.sort-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:6px;cursor:default;transition:border-color .15s;}
-.sort-item.dragging{opacity:.35;}
-.sort-item.drag-over{border-color:var(--verde-claro);background:#F0FDF4;box-shadow:0 0 0 2px rgba(82,183,136,.2);}
-.drag-handle{cursor:grab;color:var(--cinza-300);font-size:16px;flex-shrink:0;padding:2px 3px;border-radius:4px;line-height:1;transition:color .1s;}
-.drag-handle:hover{color:var(--cinza-500);}
-.sort-thumb{width:40px;height:30px;object-fit:cover;border-radius:4px;flex-shrink:0;background:var(--cinza-100);}
-.sort-thumb-logo{width:50px;height:32px;object-fit:contain;border-radius:4px;flex-shrink:0;background:var(--cinza-50);border:1px solid var(--borda);padding:3px;}
-.sort-info{flex:1;min-width:0;}
-.caption-input{font-size:11px;border:none;background:transparent;width:100%;color:var(--cinza-700);font-family:var(--font-sans);font-weight:500;padding:0;outline:none;border-bottom:1px dashed transparent;transition:border-color .15s;}
-.caption-input:focus{border-bottom-color:var(--verde-claro);}
-.alt-input{font-size:10px;border:none;background:transparent;width:100%;color:var(--cinza-400);font-family:var(--font-mono);padding:0;outline:none;border-bottom:1px dashed transparent;transition:border-color .15s;}
-.alt-input:focus{border-bottom-color:var(--verde-claro);}
-.sort-actions{display:flex;gap:4px;flex-shrink:0;}
-.btn-icon-sm{width:26px;height:26px;border-radius:4px;border:1px solid var(--borda);background:var(--branco);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--cinza-500);transition:all .15s;font-family:var(--font-sans);}
-.btn-icon-sm:hover{background:var(--cinza-50);color:var(--cinza-700);}
-.btn-icon-sm.danger:hover{background:#FEF2F2;border-color:#FECACA;color:#DC2626;}
-.size-select{font-size:11px;padding:2px 6px;border:1px solid var(--borda);border-radius:4px;background:var(--branco);color:var(--cinza-700);font-family:var(--font-sans);cursor:pointer;flex-shrink:0;}
-.section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
-.section-label span.line{flex:1;height:1px;background:var(--borda);}
-.limit-badge{font-size:10px;font-weight:700;padding:1px 7px;border-radius:99px;background:var(--cinza-100);color:var(--cinza-500);font-family:var(--font-mono);flex-shrink:0;}
-.limit-badge.warn{background:#FEF3C7;color:#92400E;}
-.btn-add-item{display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px dashed var(--borda);border-radius:var(--raio);background:none;color:var(--cinza-400);font-size:12px;font-family:var(--font-sans);cursor:pointer;width:100%;justify-content:center;transition:all .15s;margin-top:4px;}
-.btn-add-item:hover{border-color:var(--verde-claro);color:var(--verde-medio);background:#F0FDF4;}
-.color-row{display:flex;align-items:center;gap:8px;}
-.color-swatch{width:32px;height:32px;border-radius:6px;border:1px solid var(--borda);flex-shrink:0;}
-
-/* Preview panel */
-.config-preview-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#ECEEF1;}
-.preview-header{padding:10px 20px;background:var(--branco);border-bottom:1px solid var(--borda);display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.preview-header-title{font-size:13px;font-weight:600;color:var(--cinza-700);}
-.live-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;background:#DCFCE7;color:#166534;letter-spacing:.05em;}
-#preview-outer{flex:1;overflow:auto;padding:24px;display:flex;justify-content:center;align-items:flex-start;}
-#preview-frame{width:1280px;height:720px;display:flex;overflow:hidden;border-radius:10px;box-shadow:0 16px 56px rgba(0,0,0,.3);transform-origin:top center;flex-shrink:0;}
-
-/* Preview: esquerdo */
-#pv-esq{flex:1;position:relative;overflow:hidden;}
-#pv-foto{position:absolute;inset:0;background-size:cover;background-position:center;transition:opacity .8s;}
-#pv-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,45,22,.88) 0%,rgba(15,45,22,.52) 30%,rgba(15,45,22,.52) 70%,rgba(8,28,14,.92) 100%);}
-#pv-conteudo{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:22px 28px;}
-#pv-logos-topo{display:flex;align-items:center;gap:12px;width:fit-content;}
-#pv-logo-projeto-wrap{position:absolute;top:12px;right:12px;z-index:5;}
-#pv-logo-projeto-box{display:flex;align-items:center;justify-content:center;}
-#pv-parceiros-wrap{margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,.15);}
-.pv-parceiros-label-left{font-size:8px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;display:block;}
-#pv-parceiros-logos{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;}
-.pv-foto-contador{position:absolute;bottom:12px;left:14px;z-index:3;font-size:10px;color:rgba(255,255,255,.35);font-family:monospace;}
-.pv-foto-legenda{position:absolute;bottom:12px;right:14px;z-index:3;font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.04em;}
-#pv-proj-info{background:rgba(0,0,0,.45);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:12px 16px;}
-#pv-proj-badge{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#F4D35E;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
-.pv-dot{width:5px;height:5px;border-radius:50%;background:#F4D35E;flex-shrink:0;}
-#pv-proj-nome{font-size:11px;font-weight:600;color:#fff;margin-bottom:3px;line-height:1.4;}
-#pv-proj-local{font-size:9px;color:rgba(255,255,255,.55);margin-bottom:8px;}
-#pv-dots{display:flex;gap:4px;align-items:center;}
-
-/* Preview: direito */
-#pv-dir{width:440px;flex-shrink:0;background:#fff;padding:36px 32px;display:flex;align-items:center;justify-content:center;}
-#pv-login-box{width:100%;max-width:360px;}
-.pv-lang-row{display:flex;gap:4px;margin-bottom:14px;}
-.pv-lang-btn{flex:1;padding:4px;border-radius:5px;border:1px solid #E5E7EB;font-size:9px;text-align:center;color:#6B7280;}
-.pv-lang-btn.ativo{background:#2D6A4F;color:#fff;border-color:#2D6A4F;}
-.pv-titulo{font-size:16px;font-weight:600;color:#111827;margin-bottom:4px;}
-.pv-sub{font-size:10px;color:#6B7280;margin-bottom:14px;}
-.pv-label{font-size:9px;font-weight:600;color:#374151;margin-bottom:3px;}
-.pv-input{height:30px;border:1px solid #E5E7EB;border-radius:6px;margin-bottom:9px;width:100%;}
-.pv-btn{height:34px;border-radius:6px;width:100%;margin-bottom:14px;border:none;}
-</style>
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa + componentes de Administração (css/administracao.css, prefixo ad-) -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/administracao.css" rel="stylesheet">
 </head>
-<body>
-<div id="app">
-  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:'DM Sans',sans-serif;color:#6B7280">
-    <div style="text-align:center">
-      <div style="width:32px;height:32px;border:3px solid #E5E7EB;border-top-color:#2D6A4F;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px"></div>
-      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-      Carregando configurações...
-    </div>
-  </div>
-</div>
+<body class="dgm">
+<div id="app"><div class="ad-carrega" role="status"><span class="ad-spin"></span>Carregando configurações…</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/administracao.js"></script>
 <script>
 // ── Estado ───────────────────────────────────────────────────
 let cfg = {
@@ -114,6 +33,17 @@ let tabAtual = 'identidade';
 let salvando = false;
 let fotoPreviewIdx = 0;
 let fotoTimer;
+let sujo = false; // alteração ainda não salva
+const COR_PADRAO = '#1F4E2C';
+const corValida = v => /^#[0-9A-Fa-f]{6}$/.test(v || '') ? v : COR_PADRAO;
+function marcarSujo(v = true) {
+  sujo = v;
+  const el = document.getElementById('cfg-pendente'); if (el) el.hidden = !v;
+}
+window.addEventListener('beforeunload', e => { if (sujo) { e.preventDefault(); e.returnValue = ''; } });
+// qualquer digitação ou troca no editor conta como alteração
+document.addEventListener('input', e => { if (e.target.closest && e.target.closest('.ad-cfg-ed')) marcarSujo(); });
+document.addEventListener('change', e => { if (e.target.closest && e.target.closest('.ad-cfg-ed') && e.target.type !== 'file') marcarSujo(); });
 
 
 // ── Init ─────────────────────────────────────────────────────
@@ -123,11 +53,8 @@ let fotoTimer;
   if (appState.perfil !== 'super_admin') { window.location.href = 'dashboard.html'; return; }
 
   document.getElementById('app').innerHTML =
-    gerarLayout('Configurações', 'configuracoes') + '</div></div></div>';
-
-  const pb = document.getElementById('page-body');
-  pb.style.padding = '0';
-  pb.style.overflow = 'hidden';
+    gerarLayout('Dados do sistema', 'configuracoes') + '</div></div></div>';
+  adSeletorTema();
 
   await carregarConfig();
   renderPagina();
@@ -145,7 +72,7 @@ async function carregarConfig() {
       projeto_nome: data.projeto_nome || '',
       projeto_codigo: data.projeto_codigo || '',
       projeto_localizacao: data.projeto_localizacao || '',
-      cor_primaria: data.cor_primaria || '#1F4E2C',
+      cor_primaria: corValida(data.cor_primaria),
       logos_topo: data.logos_topo || [],
       logo_projeto: data.logo_projeto || { url: '', alt: '' },
       logos_parceiros: data.logos_parceiros || [],
@@ -157,30 +84,30 @@ async function carregarConfig() {
 // ── Render página ─────────────────────────────────────────────
 function renderPagina() {
   document.getElementById('page-body').innerHTML = `
-  <div class="config-wrap fade-in">
-    <div class="config-editor">
-      <div class="editor-header">
-        <h2>⚙ Configurações</h2>
-        <button class="btn btn-primary btn-sm" id="btn-salvar" onclick="salvarConfig()">Salvar alterações</button>
+  <div class="fade-in">
+    <div class="ad-topo"><div><h2>Dados do sistema</h2><p>Nome, cor, fotos e logos da tela de entrada da plataforma. A prévia ao lado mostra o resultado antes de salvar.</p></div></div>
+    <div class="ad-cfg">
+      <div class="ad-card ad-cfg-ed">
+        <div class="ad-seg" role="tablist" aria-label="Seções">
+          <button type="button" role="tab" class="tab-btn" aria-pressed="true" onclick="setTab('identidade',this)">${adIc('paleta','p')} Identidade</button>
+          <button type="button" role="tab" class="tab-btn" aria-pressed="false" onclick="setTab('fotos',this)">${adIc('imagem','p')} Fotos e vídeos</button>
+          <button type="button" role="tab" class="tab-btn" aria-pressed="false" onclick="setTab('logos',this)">${adIc('globo','p')} Logos</button>
+        </div>
+        <div class="ad-cfg-corpo">
+          ${renderTabIdentidade()}
+          ${renderTabFotos()}
+          ${renderTabLogos()}
+        </div>
+        <div class="ad-cfg-pe">
+          <span class="ad-pendente" id="cfg-pendente" hidden>${adIc('alerta','p')}Alterações não salvas</span>
+          <span class="ad-sp"></span>
+          <button type="button" class="btn btn-primary" id="btn-salvar" onclick="salvarConfig()">${adIc('salvar','p')}Salvar alterações</button>
+        </div>
       </div>
-      <div class="tab-nav">
-        <button class="tab-btn ativo" onclick="setTab('identidade',this)">Identidade</button>
-        <button class="tab-btn" onclick="setTab('fotos',this)">Fotos e Vídeos</button>
-        <button class="tab-btn" onclick="setTab('logos',this)">Logos</button>
+      <div class="ad-prev-wrap">
+        <div class="ad-prev-cab"><b>Prévia</b><span>como a tela de entrada vai aparecer · igual nos dois temas</span></div>
+        <div id="preview-outer">${renderPreviewHTML()}</div>
       </div>
-      <div class="editor-body">
-        ${renderTabIdentidade()}
-        ${renderTabFotos()}
-        ${renderTabLogos()}
-      </div>
-    </div>
-    <div class="config-preview-panel">
-      <div class="preview-header">
-        <span class="preview-header-title">Pré-visualização</span>
-        <span class="live-badge">● AO VIVO</span>
-        <span style="font-size:11px;color:var(--cinza-400);margin-left:auto">Mudanças refletem aqui antes de salvar</span>
-      </div>
-      <div id="preview-outer">${renderPreviewHTML()}</div>
     </div>
   </div>`;
 
@@ -196,33 +123,32 @@ function renderTabIdentidade() {
   return `
   <div id="tab-identidade" class="tab-content ativo">
     <div class="form-group">
-      <label class="form-label">Nome do Projeto</label>
+      <label class="form-label">Nome do projeto</label>
       <input class="form-control" value="${esc(cfg.projeto_nome)}"
         oninput="cfg.projeto_nome=this.value;pvTextos()"
         placeholder="Nome completo do projeto">
     </div>
     <div class="form-group">
-      <label class="form-label">Código do Projeto</label>
+      <label class="form-label">Código do projeto</label>
       <input class="form-control" value="${esc(cfg.projeto_codigo)}"
         oninput="cfg.projeto_codigo=this.value;pvTextos()"
         placeholder="Ex: 218BRA2001 · UNESCO/MPTF">
     </div>
     <div class="form-group">
-      <label class="form-label">Localização / Subtítulo</label>
+      <label class="form-label">Localização / subtítulo</label>
       <input class="form-control" value="${esc(cfg.projeto_localizacao)}"
         oninput="cfg.projeto_localizacao=this.value;pvTextos()"
         placeholder="Ex: Rio Branco, Acre — Fundo Multipartes">
     </div>
     <div class="form-group">
-      <label class="form-label">Cor Principal</label>
+      <label class="form-label">Cor principal</label>
       <div class="color-row">
-        <div class="color-swatch" id="cor-swatch" style="background:${cfg.cor_primaria}"></div>
-        <input class="form-control" id="inp-cor-hex" value="${cfg.cor_primaria}"
-          maxlength="7" placeholder="#1F4E2C"
+        <div class="color-swatch" id="cor-swatch" style="background:${corValida(cfg.cor_primaria)}"></div>
+        <input class="form-control" id="inp-cor-hex" value="${esc(corValida(cfg.cor_primaria))}"
+          maxlength="7" placeholder="#1F4E2C" aria-label="Cor principal em hexadecimal"
           oninput="onHexInput(this.value)" style="font-family:var(--font-mono);font-size:13px">
-        <input type="color" value="${cfg.cor_primaria}"
-          onchange="aplicarCor(this.value)"
-          style="width:36px;height:36px;padding:2px;border:1px solid var(--borda);border-radius:6px;cursor:pointer;flex-shrink:0">
+        <span class="ad-cor"><input type="color" value="${corValida(cfg.cor_primaria)}" aria-label="Escolher a cor"
+          onchange="aplicarCor(this.value)"></span>
       </div>
     </div>
   </div>`;
@@ -232,7 +158,7 @@ function onHexInput(v) {
   if (/^#[0-9A-Fa-f]{6}$/.test(v)) aplicarCor(v);
 }
 function aplicarCor(v) {
-  cfg.cor_primaria = v;
+  v = corValida(v); cfg.cor_primaria = v;
   const s = document.getElementById('cor-swatch');
   const h = document.getElementById('inp-cor-hex');
   if (s) s.style.background = v;
@@ -247,7 +173,7 @@ function renderTabFotos() {
   return `
   <div id="tab-fotos" class="tab-content">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:14px">
-      <p style="font-size:12px;color:var(--cinza-500);line-height:1.6">
+      <p class="ad-cfg-txt">
         Slideshow da tela de login. Fotos e vídeos podem ser misturados e reordenados.<br>
         <strong>Foto:</strong> JPG/JPEG · máx <strong>5 MB</strong> · mín 1280×720 px, paisagem<br>
         <strong>Vídeo:</strong> MP4/WEBM · máx <strong>40 MB</strong> · recomendado até 15s
@@ -259,34 +185,35 @@ function renderTabFotos() {
     </div>
     ${n < 15 ? `
     <button class="btn-add-item" onclick="document.getElementById('inp-foto').click()">
-      <span style="font-size:14px">+</span> Adicionar foto ou vídeo
+      ${adIc('mais','p')} Adicionar foto ou vídeo
     </button>
     <input type="file" id="inp-foto" accept=".jpg,.jpeg,.mp4,.webm" style="display:none"
       onchange="handleUploadFoto(this.files)">
-    ` : `<p style="font-size:11px;color:var(--cinza-400);text-align:center;margin-top:8px">Limite de 15 itens atingido</p>`}
+    ` : `<p class="ad-cfg-txt" style="text-align:center;margin-top:8px">Limite de 15 itens atingido</p>`}
   </div>`;
 }
 
 function renderFotoItem(f, i) {
-  const shortUrl = f.url.length > 36 ? '...' + f.url.slice(-33) : f.url;
+  const nomeArq = (f.url || '').split('/').pop().split('?')[0];
+  const shortUrl = nomeArq.length > 36 ? '…' + nomeArq.slice(-33) : nomeArq;
   const isVideo = f.tipo === 'video';
   const thumb = isVideo
-    ? `<div class="sort-thumb" style="position:relative;background:#111;flex-shrink:0">
-         <video src="${imgUrl(f.url)}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block"></video>
-         <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;text-shadow:0 1px 3px rgba(0,0,0,.6)">▶</span>
+    ? `<div class="sort-thumb" style="position:relative;background:#111">
+         <video src="${esc(imgUrl(f.url))}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;display:block"></video>
+         <span style="position:absolute;inset:0;display:grid;place-items:center;color:#fff">${adIc('play','p')}</span>
        </div>`
-    : `<img class="sort-thumb" src="${imgUrl(f.url)}" alt="" onerror="this.style.opacity='.2'">`;
+    : `<img class="sort-thumb" src="${esc(imgUrl(f.url))}" alt="" onerror="this.style.opacity='.2'">`;
   return `
   <div class="sort-item" draggable="true" data-idx="${i}">
-    <span class="drag-handle" title="Arrastar para reordenar">⠿</span>
+    <span class="drag-handle" title="Arrastar para reordenar" aria-hidden="true">${adIc('alca','p')}</span>
     ${thumb}
     <div class="sort-info">
-      <input class="caption-input" value="${esc(f.legenda)}" placeholder="Legenda"
+      <input class="caption-input" value="${esc(f.legenda || '')}" placeholder="Legenda" aria-label="Legenda"
         oninput="cfg.fotos[${i}].legenda=this.value" onclick="event.stopPropagation()">
-      <div class="alt-input" style="cursor:default;user-select:all">${isVideo?'🎬 ':''}${shortUrl}</div>
+      <div class="alt-input" style="cursor:default">${isVideo ? 'vídeo · ' : 'foto · '}${esc(shortUrl)}</div>
     </div>
     <div class="sort-actions">
-      <button class="btn-icon-sm danger" onclick="removerFoto(${i})" title="Remover">✕</button>
+      <button type="button" class="btn-icon-sm danger" onclick="removerFoto(${i})" title="Remover" aria-label="Remover">${adIc('x','p')}</button>
     </div>
   </div>`;
 }
@@ -308,13 +235,16 @@ async function handleUploadFoto(files) {
     cfg.fotos.push({ url, legenda: '', ordem: cfg.fotos.length, tipo: isVideo ? 'video' : 'foto' });
     reRenderTab('fotos');
     initDragDrop('lista-fotos', sincronizarFotosDOM);
-    pvFotos();
-    toast(isVideo ? 'Vídeo adicionado!' : 'Foto adicionada!', 'success');
+    pvFotos(); marcarSujo();
+    toast((isVideo ? 'Vídeo adicionado' : 'Foto adicionada') + '. Salve para publicar.', 'success');
   } catch(e) { toast('Erro ao enviar: ' + e.message, 'error'); }
 }
 
-function removerFoto(i) {
-  cfg.fotos.splice(i, 1);
+async function removerFoto(i) {
+  const f = cfg.fotos[i]; if (!f) return;
+  const ok = await adConfirmar({ titulo: f.tipo === 'video' ? 'Remover o vídeo?' : 'Remover a foto?', texto: 'Sai do slideshow da tela de entrada quando você salvar.', ok: 'Remover', perigo: true });
+  if (!ok) return;
+  cfg.fotos.splice(i, 1); marcarSujo();
   cfg.fotos.forEach((f, idx) => f.ordem = idx);
   reRenderTab('fotos');
   initDragDrop('lista-fotos', sincronizarFotosDOM);
@@ -324,7 +254,7 @@ function removerFoto(i) {
 function sincronizarFotosDOM() {
   const items = [...document.querySelectorAll('#lista-fotos .sort-item')];
   const nova = items.map(el => cfg.fotos[parseInt(el.dataset.idx)]).filter(Boolean);
-  cfg.fotos = nova.map((f, i) => ({ ...f, ordem: i }));
+  cfg.fotos = nova.map((f, i) => ({ ...f, ordem: i })); marcarSujo();
   reRenderTab('fotos');
   initDragDrop('lista-fotos', sincronizarFotosDOM);
   pvFotos();
@@ -335,12 +265,12 @@ function renderTabLogos() {
   return `
   <div id="tab-logos" class="tab-content">
 
-    <div style="margin-bottom:22px">
+    <div class="ad-zona">
       <div class="section-label">
         Zona A — Topo Esquerdo <span class="line"></span>
         <span class="limit-badge ${cfg.logos_topo.length>=3?'warn':''}">${cfg.logos_topo.length}/3</span>
       </div>
-      <p style="font-size:11px;color:var(--cinza-400);margin-bottom:10px">
+      <p class="ad-cfg-txt" style="margin-bottom:10px">
         Logos na caixa branca superior · <strong>PNG/SVG</strong> · máx <strong>500 KB</strong>
       </p>
       <div id="lista-logos-topo">
@@ -348,34 +278,34 @@ function renderTabLogos() {
       </div>
       ${cfg.logos_topo.length < 3 ? `
         <button class="btn-add-item" onclick="document.getElementById('inp-logo-topo').click()">
-          <span style="font-size:14px">+</span> Adicionar logo
+          ${adIc('mais','p')} Adicionar logo
         </button>
         <input type="file" id="inp-logo-topo" accept=".png,.svg" style="display:none"
           onchange="handleUploadLogo(this.files,'topo')">
       ` : ''}
     </div>
 
-    <div style="margin-bottom:22px">
+    <div class="ad-zona">
       <div class="section-label">Zona B — Logo do Projeto <span class="line"></span></div>
-      <p style="font-size:11px;color:var(--cinza-400);margin-bottom:10px">
+      <p class="ad-cfg-txt" style="margin-bottom:10px">
         Destaque no canto superior direito · <strong>PNG/SVG</strong> · máx <strong>500 KB</strong>
       </p>
       <div id="logo-projeto-slot">
         ${cfg.logo_projeto?.url ? `
         <div class="sort-item" style="margin-bottom:6px">
-          <img class="sort-thumb-logo" src="${imgUrl(cfg.logo_projeto.url)}" alt="" onerror="this.style.opacity='.2'">
+          <img class="sort-thumb-logo" src="${esc(imgUrl(cfg.logo_projeto.url))}" alt="" onerror="this.style.opacity='.2'">
           <div class="sort-info">
             <input class="alt-input" value="${esc(cfg.logo_projeto.alt||'')}"
-              placeholder="Texto alternativo"
+              placeholder="Texto alternativo" aria-label="Texto alternativo"
               oninput="cfg.logo_projeto.alt=this.value">
           </div>
           <div class="sort-actions">
-            <button class="btn-icon-sm" onclick="document.getElementById('inp-logo-projeto').click()" title="Trocar">↺</button>
-            <button class="btn-icon-sm danger" onclick="removerLogoProjeto()" title="Remover">✕</button>
+            <button type="button" class="btn-icon-sm" onclick="document.getElementById('inp-logo-projeto').click()" title="Trocar" aria-label="Trocar">${adIc('trocar','p')}</button>
+            <button type="button" class="btn-icon-sm danger" onclick="removerLogoProjeto()" title="Remover" aria-label="Remover">${adIc('x','p')}</button>
           </div>
         </div>` : `
         <button class="btn-add-item" onclick="document.getElementById('inp-logo-projeto').click()">
-          <span style="font-size:14px">+</span> Adicionar logo do projeto
+          ${adIc('mais','p')} Adicionar logo do projeto
         </button>`}
         <input type="file" id="inp-logo-projeto" accept=".png,.svg" style="display:none"
           onchange="handleUploadLogo(this.files,'projeto')">
@@ -387,7 +317,7 @@ function renderTabLogos() {
         Zona C — Parceiros <span class="line"></span>
         <span class="limit-badge ${cfg.logos_parceiros.length>=8?'warn':''}">${cfg.logos_parceiros.length}/8</span>
       </div>
-      <p style="font-size:11px;color:var(--cinza-400);margin-bottom:10px">
+      <p class="ad-cfg-txt" style="margin-bottom:10px">
         Seção "Realização e Parceiros" · <strong>PNG/SVG</strong> · máx <strong>1 MB</strong>
       </p>
       <div id="lista-parceiros">
@@ -395,7 +325,7 @@ function renderTabLogos() {
       </div>
       ${cfg.logos_parceiros.length < 8 ? `
         <button class="btn-add-item" onclick="document.getElementById('inp-logo-parceiro').click()">
-          <span style="font-size:14px">+</span> Adicionar parceiro
+          ${adIc('mais','p')} Adicionar parceiro
         </button>
         <input type="file" id="inp-logo-parceiro" accept=".png,.svg" style="display:none"
           onchange="handleUploadLogo(this.files,'parceiro')">
@@ -406,23 +336,23 @@ function renderTabLogos() {
 
 function renderLogoItem(l, i, tipo) {
   const sizeSel = tipo === 'parceiro' ? `
-    <select class="size-select" onchange="setTamanho(${i},this.value)" onclick="event.stopPropagation()">
+    <select class="size-select" onchange="setTamanho(${i},this.value)" onclick="event.stopPropagation()" aria-label="Tamanho">
       <option value="pequeno" ${l.tamanho==='pequeno'?'selected':''}>Peq.</option>
       <option value="medio"   ${(!l.tamanho||l.tamanho==='medio')?'selected':''}>Méd.</option>
       <option value="grande"  ${l.tamanho==='grande'?'selected':''}>Gde.</option>
     </select>` : '';
   return `
   <div class="sort-item" draggable="true" data-idx="${i}">
-    <span class="drag-handle" title="Arrastar para reordenar">⠿</span>
-    <img class="sort-thumb-logo" src="${imgUrl(l.url)}" alt="" onerror="this.style.opacity='.2'">
+    <span class="drag-handle" title="Arrastar para reordenar" aria-hidden="true">${adIc('alca','p')}</span>
+    <img class="sort-thumb-logo" src="${esc(imgUrl(l.url))}" alt="" onerror="this.style.opacity='.2'">
     <div class="sort-info">
-      <input class="alt-input" value="${esc(l.alt||'')}" placeholder="Nome / alt"
+      <input class="alt-input" value="${esc(l.alt||'')}" placeholder="Nome / texto alternativo" aria-label="Nome do logo"
         oninput="setAlt('${tipo}',${i},this.value)" onclick="event.stopPropagation()">
     </div>
     ${sizeSel}
     <div class="sort-actions">
-      <button class="btn-icon-sm" onclick="trocarLogo('${tipo}',${i})" title="Trocar imagem">↺</button>
-      <button class="btn-icon-sm danger" onclick="removerLogo('${tipo}',${i})" title="Remover">✕</button>
+      <button type="button" class="btn-icon-sm" onclick="trocarLogo('${tipo}',${i})" title="Trocar imagem" aria-label="Trocar imagem">${adIc('trocar','p')}</button>
+      <button type="button" class="btn-icon-sm danger" onclick="removerLogo('${tipo}',${i})" title="Remover" aria-label="Remover">${adIc('x','p')}</button>
     </div>
   </div>
   <input type="file" id="inp-troca-${tipo}-${i}" accept=".png,.svg" style="display:none"
@@ -441,14 +371,19 @@ function setTamanho(i, val) {
 function trocarLogo(tipo, i) {
   document.getElementById(`inp-troca-${tipo}-${i}`)?.click();
 }
-function removerLogoProjeto() {
-  cfg.logo_projeto = { url: '', alt: '' };
+async function removerLogoProjeto() {
+  const ok = await adConfirmar({ titulo: 'Remover o logo do projeto?', texto: 'Sai da tela de entrada quando você salvar.', ok: 'Remover', perigo: true });
+  if (!ok) return;
+  cfg.logo_projeto = { url: '', alt: '' }; marcarSujo();
   reRenderTab('logos');
   initDragDrop('lista-logos-topo', sincronizarTopoDOM);
   initDragDrop('lista-parceiros', sincronizarParceirosDOM);
   pvLogos();
 }
-function removerLogo(tipo, i) {
+async function removerLogo(tipo, i) {
+  const ok = await adConfirmar({ titulo: tipo === 'topo' ? 'Remover este logo?' : 'Remover este parceiro?', texto: 'Sai da tela de entrada quando você salvar.', ok: 'Remover', perigo: true });
+  if (!ok) return;
+  marcarSujo();
   if (tipo === 'topo') cfg.logos_topo.splice(i, 1);
   else cfg.logos_parceiros.splice(i, 1);
   reRenderTab('logos');
@@ -475,8 +410,8 @@ async function handleUploadLogo(files, zona) {
     reRenderTab('logos');
     initDragDrop('lista-logos-topo', sincronizarTopoDOM);
     initDragDrop('lista-parceiros', sincronizarParceirosDOM);
-    pvLogos();
-    toast('Logo adicionada!', 'success');
+    pvLogos(); marcarSujo();
+    toast('Logo adicionado. Salve para publicar.', 'success');
   } catch(e) { toast('Erro ao enviar: ' + e.message, 'error'); }
 }
 
@@ -495,15 +430,15 @@ async function handleTrocarLogo(files, tipo, i) {
     reRenderTab('logos');
     initDragDrop('lista-logos-topo', sincronizarTopoDOM);
     initDragDrop('lista-parceiros', sincronizarParceirosDOM);
-    pvLogos();
-    toast('Logo atualizada!', 'success');
+    pvLogos(); marcarSujo();
+    toast('Logo trocado. Salve para publicar.', 'success');
   } catch(e) { toast('Erro: ' + e.message, 'error'); }
 }
 
 function sincronizarTopoDOM() {
   const items = [...document.querySelectorAll('#lista-logos-topo .sort-item')];
   cfg.logos_topo = items.map(el => cfg.logos_topo[parseInt(el.dataset.idx)]).filter(Boolean)
-    .map((l, i) => ({ ...l, ordem: i }));
+    .map((l, i) => ({ ...l, ordem: i })); marcarSujo();
   reRenderTab('logos');
   initDragDrop('lista-logos-topo', sincronizarTopoDOM);
   initDragDrop('lista-parceiros', sincronizarParceirosDOM);
@@ -513,7 +448,7 @@ function sincronizarTopoDOM() {
 function sincronizarParceirosDOM() {
   const items = [...document.querySelectorAll('#lista-parceiros .sort-item')];
   cfg.logos_parceiros = items.map(el => cfg.logos_parceiros[parseInt(el.dataset.idx)]).filter(Boolean)
-    .map((l, i) => ({ ...l, ordem: i }));
+    .map((l, i) => ({ ...l, ordem: i })); marcarSujo();
   reRenderTab('logos');
   initDragDrop('lista-logos-topo', sincronizarTopoDOM);
   initDragDrop('lista-parceiros', sincronizarParceirosDOM);
@@ -523,9 +458,8 @@ function sincronizarParceirosDOM() {
 // ── Tabs ──────────────────────────────────────────────────────
 function setTab(nome, btn) {
   tabAtual = nome;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('ativo'));
-  if (btn) btn.classList.add('ativo');
   document.getElementById('tab-' + nome)?.classList.add('ativo');
 }
 
@@ -543,8 +477,8 @@ function renderPreviewHTML() {
   const primeiro = cfg.fotos[0];
   const ehVideo = primeiro?.tipo === 'video';
   const pvMidia = ehVideo
-    ? `<video id="pv-foto" src="${imgUrl(primeiro.url)}" autoplay muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`
-    : `<div id="pv-foto" style="background-image:url('${imgUrl(primeiro?.url || '')}')"></div>`;
+    ? `<video id="pv-foto" src="${esc(imgUrl(primeiro.url))}" autoplay muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`
+    : `<div id="pv-foto" style="background-image:url('${esc(imgUrl(primeiro?.url || ''))}')"></div>`;
   return `
   <div id="preview-frame">
     <div id="pv-esq">
@@ -569,20 +503,20 @@ function renderPreviewHTML() {
         </div>
       </div>
       <div class="pv-foto-contador">${cfg.fotos.length ? '1 / ' + cfg.fotos.length : ''}</div>
-      <div class="pv-foto-legenda">${cfg.fotos[0]?.legenda || 'APAs · Rio Branco, Acre'}</div>
+      <div class="pv-foto-legenda">${esc(cfg.fotos[0]?.legenda || 'APAs · Rio Branco, Acre')}</div>
     </div>
     <div id="pv-dir">
       <div id="pv-login-box">
         <div class="pv-lang-row">
-          <div class="pv-lang-btn ativo">🇧🇷 PT</div>
-          <div class="pv-lang-btn">🇺🇸 EN</div>
-          <div class="pv-lang-btn">🇪🇸 ES</div>
+          <div class="pv-lang-btn ativo">PT</div>
+          <div class="pv-lang-btn">EN</div>
+          <div class="pv-lang-btn">ES</div>
         </div>
         <div class="pv-titulo">Entrar na plataforma</div>
         <div class="pv-sub">Acesse com suas credenciais institucionais</div>
         <div class="pv-label">E-mail</div><div class="pv-input"></div>
         <div class="pv-label">Senha</div><div class="pv-input"></div>
-        <div class="pv-btn" style="background:${cfg.cor_primaria}"></div>
+        <div class="pv-btn" style="background:${corValida(cfg.cor_primaria)}"></div>
       </div>
     </div>
   </div>`;
@@ -594,14 +528,14 @@ function pvHtmlLogosTopo() {
   const alturas = { pequeno:'40px', medio:'63px', grande:'95px' };
   return cfg.logos_topo.map((l, i) =>
     `${i > 0 ? '<div style="width:1px;height:81px;background:rgba(0,0,0,.15);flex-shrink:0"></div>' : ''}
-     <img src="${imgUrl(l.url)}" alt="${esc(l.alt||'')}" style="height:${alturas[l.tamanho||'medio']};width:auto;object-fit:contain" onerror="this.style.opacity='.2'>`
+     <img src="${esc(imgUrl(l.url))}" alt="${esc(l.alt||'')}" style="height:${alturas[l.tamanho] || alturas.medio};width:auto;object-fit:contain" onerror="this.style.opacity='.2'">`
   ).join('');
 }
 
 function pvHtmlLogoProjeto() {
   if (!cfg.logo_projeto?.url)
     return '';
-  return `<img src="${imgUrl(cfg.logo_projeto.url)}" alt=""
+  return `<img src="${esc(imgUrl(cfg.logo_projeto.url))}" alt=""
     style="height:96px;width:auto;display:block" onerror="this.style.opacity='.2'">`;
 }
 
@@ -609,7 +543,7 @@ function pvHtmlParceiros() {
   if (!cfg.logos_parceiros.length)
     return '<span style="font-size:9px;color:rgba(255,255,255,.4)">Sem parceiros</span>';
   return cfg.logos_parceiros.map(l =>
-    `<img src="${imgUrl(l.url)}" alt="${esc(l.alt||'')}"
+    `<img src="${esc(imgUrl(l.url))}" alt="${esc(l.alt||'')}"
       style="height:${l.tamanho==='grande'?'100px':'60px'};width:${l.tamanho==='grande'?'100px':'150px'};object-fit:contain;object-position:center;opacity:.95"
       onerror="this.style.opacity='.2'">`
   ).join('');
@@ -642,8 +576,8 @@ function pvFotos() {
   if (pvAntigo && item) {
     const ehVideo = item.tipo === 'video';
     const html = ehVideo
-      ? `<video id="pv-foto" src="${imgUrl(item.url)}" autoplay muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`
-      : `<div id="pv-foto" style="position:absolute;inset:0;background-size:cover;background-position:center;background-image:url('${imgUrl(item.url)}')"></div>`;
+      ? `<video id="pv-foto" src="${esc(imgUrl(item.url))}" autoplay muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`
+      : `<div id="pv-foto" style="position:absolute;inset:0;background-size:cover;background-position:center;background-image:url('${esc(imgUrl(item.url))}')"></div>`;
     pvAntigo.outerHTML = html;
   }
   if (dots) dots.innerHTML = pvHtmlDots();
@@ -679,10 +613,11 @@ function ajustarPreview() {
   const outer = document.getElementById('preview-outer');
   const frame = document.getElementById('preview-frame');
   if (!outer || !frame) return;
-  const availW = outer.clientWidth - 48;
-  const scale  = Math.min(availW / 1280, 1);
+  const availW = outer.clientWidth - 32;
+  const scale  = Math.max(0.1, Math.min(availW / 1280, 1));
   frame.style.transform = `scale(${scale})`;
-  outer.style.minHeight = (720 * scale + 48) + 'px';
+  frame.style.marginBottom = (720 * scale - 720) + 'px';
+  frame.style.marginInline = ((1280 * scale - 1280) / 2) + 'px';
 }
 
 // ── Upload Storage ────────────────────────────────────────────
@@ -702,7 +637,7 @@ async function salvarConfig() {
   if (salvando) return;
   salvando = true;
   const btn = document.getElementById('btn-salvar');
-  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+  if (btn) btn.disabled = true;
   try {
     cfg.fotos           = cfg.fotos.map((f, i) => ({ ...f, ordem: i }));
     cfg.logos_topo      = cfg.logos_topo.map((l, i) => ({ ...l, ordem: i }));
@@ -718,12 +653,13 @@ async function salvarConfig() {
     }, { onConflict: 'projeto_id' });
 
     if (error) throw error;
-    toast('Configurações salvas com sucesso!', 'success');
+    marcarSujo(false);
+    toast('Configurações salvas. A tela de entrada já mostra as mudanças.', 'success');
   } catch(e) {
     toast('Erro ao salvar: ' + e.message, 'error');
   } finally {
     salvando = false;
-    if (btn) { btn.disabled = false; btn.textContent = 'Salvar alterações'; }
+    if (btn) btn.disabled = false;
   }
 }
 

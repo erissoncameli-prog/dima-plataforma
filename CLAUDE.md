@@ -848,8 +848,38 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   wrapper enquanto dura (senão cobre o painel de filtros do celular). Esc fecha primeiro a janela aberta; sem janela, sai da
   tela cheia. Camada nova que abre por cima do mapa precisa de z-index acima de 150.
 - Editor do mapa = `super_admin` ou `coordenacao` (`_ehEditor`; antes procurava `'coordenador'`, que não existe, e a
-  coordenação não via "Adicionar ponto"/"Importar"). ⚠️ No banco, `produto_pontos_mapa` aceita gravar/apagar de qualquer
-  logado (`auth.uid() is not null`, `TO public`) — a trava ainda é só da tela.
+  coordenação não via "Adicionar ponto"/"Importar"). No banco (migração `20261010_seg_senha_e_mapa`), gravar/alterar/apagar
+  em `produto_pontos_mapa` exige `fn_mapa_pode_editar(entrega_id)`: super_admin/coordenação ativos, ou — para ponto ligado a
+  uma entrega — quem pode avaliar o contrato dela (`fn_pode_avaliar_contrato`, caminho da tela de Produtos). Policies `TO authenticated`.
+
+### Usuários, Dados do sistema, Armazenamento e ROPA — visual e regras da administração
+- `pages/usuarios.html` + `js/usuarios.js`, `pages/configuracoes.html`, `pages/banco-dados.html` e `pages/ropa.html` + `js/ropa.js` usam
+  o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor Claro/Escuro no topo) e um CSS comum,
+  `css/administracao.css` (prefixo `ad-`; perfis, avatar, força da senha e medidores = tokens `--ad-*`). Utilitários comuns em
+  `js/administracao.js`: `adIc()` (SVG, sem emoji), `adSeletorTema()`, `adAbrir`/`adFechar` (pilha: Esc fecha a de cima, Tab
+  preso, foco volta; `AD_FECHAR[id]` para fechar com confirmação) e **`adConfirmar({titulo,texto,ok,perigo})`** (Promise) no lugar
+  do `confirm()`. Janelas: classe **`ad-ov`** (no seletor de escopo de `diagnostico-mesa.css`). Sem `<style>` próprio.
+- **Usuários** (super_admin): números do topo (ativos, mistura por perfil, "devem trocar a senha" e "pedidos de nova senha" — os
+  dois últimos filtram a lista), coluna **Acessos extras** (módulos de `usuario_permissoes` além do perfil, com "até"/"vencido"),
+  lista abre em **Ativos**; no celular vira cartões. Janela em abas Dados · Acessos · Senha · Histórico (abre em Senha se há pedido).
+  - **Acessos gravam só o que mudou** (`permIni` × `estadoPerms()`): concessão nova = upsert; mudou a data = update de
+    `valido_ate`; desmarcou = revoga. Nunca regravar todos (perdia `concedido_em` e marcava revogação de módulo nunca dado).
+  - Tudo é validado **antes** de gravar (nome, senha ≥ 8). Ninguém muda o próprio perfil nem desativa o próprio acesso (tela).
+  - Senha temporária: campo oculto com mostrar/copiar/gerar (`crypto.getRandomValues`); **nunca exibir a senha em toast**.
+  - Fechar com alteração pede confirmação (`houveMudanca`). Quem não é super_admin vê **Meu perfil** (dados, idioma, senha, pedido).
+- **`fn_resetar_senha_usuario` / `fn_criar_usuario`** (migração `20261010_seg_senha_e_mapa`): só super_admin **ativo**
+  (`if not exists (… perfil = 'super_admin' and ativo)`) — a checagem antiga `v_perfil <> 'super_admin'` deixava passar
+  quem não estava logado (NULL). EXECUTE só para `authenticated` (revogado de `public`/`anon`). Em função SECURITY DEFINER,
+  **nunca** checar perfil com `<>`/`!=` sobre variável que pode ser NULL: use `not exists (...)` ou `is distinct from`.
+- **Dados do sistema** (`configuracoes.html`, super_admin): editor (Identidade · Fotos e vídeos · Logos) + **prévia da tela de
+  entrada**, que é cópia do `index.html` e fica igual nos dois temas (cores fixas do `#preview-frame` em `css/administracao.css`).
+  Remover foto/logo pede confirmação; "Alterações não salvas" + aviso ao sair (`marcarSujo`/`beforeunload`). Cor só
+  `#RRGGBB` (`corValida`); legenda, nome de arquivo e URLs passam por `esc()`. Arquivos removidos seguem no bucket público
+  `plataforma-assets` (limpeza exigiria apagar — fica para depois).
+- **Armazenamento** (`banco-dados.html`, super_admin): só leitura de `get_monitoramento_banco()`; medidores com faixa (âmbar ≥ 80%,
+  vermelho ≥ 95%), pastas por tamanho, 15 maiores tabelas com "Mostrar todas". Plano em `planoAtual`.
+- **ROPA**: a ficha de cada tratamento (`.ad-trat`) é **papel: branca nos dois temas e na impressão**; na impressão do tema escuro
+  o resto volta aos valores claros. Regras de leitura/conferência seguem as de "ROPA vivo" (Diagnóstico).
 
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor

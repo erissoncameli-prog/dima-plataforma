@@ -6,65 +6,21 @@
 <title>SEMA/AC — Privacidade · ROPA</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="../css/global.css" rel="stylesheet">
-<style>
-/* Privacidade · ROPA (js/ropa.js) — somente leitura */
-.rp{max-width:1100px}
-.rp-vazio{color:var(--cinza-500);font-size:14px}
-.rp-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}
-.rp-cab h2{margin:0;font-size:20px;color:var(--cinza-900)}
-.rp-cab p{margin:4px 0 0;color:var(--cinza-500);font-size:13px;max-width:680px;line-height:1.5}
-.rp-btn{border:1px solid var(--borda-forte);background:var(--branco);border-radius:var(--raio);padding:8px 14px;font:600 13px var(--font-sans);color:var(--cinza-700);cursor:pointer;white-space:nowrap}
-.rp-btn:hover{background:var(--cinza-50)}
-.rp-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-.rp-kpi{background:var(--branco);border:1px solid var(--borda);border-radius:10px;padding:12px 14px}
-.rp-kpi b{font-size:22px;color:var(--cinza-900);display:block;line-height:1.2}
-.rp-kpi span{font-size:12px;color:var(--cinza-500)}
-.rp-kpi.al b{color:#B45309}
-.rp-pend{background:var(--aviso-bg);border:1px solid #FCD34D;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#78350F}
-.rp-pend h3{margin:0 0 6px;font-size:13px}
-.rp-pend ul{margin:0;padding-left:18px}
-.rp-pend li{margin:3px 0}
-.rp-card{background:var(--branco);border:1px solid var(--borda);border-radius:12px;overflow:hidden;margin-bottom:16px;break-inside:avoid-page}
-.rp-card-h{padding:14px 18px;border-bottom:1px solid var(--borda);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.rp-cod{font:600 12px var(--font-mono);background:var(--cinza-100);border-radius:6px;padding:3px 7px;color:var(--cinza-700)}
-.rp-nome{font-weight:700;color:var(--cinza-900);font-size:15px;flex:1;min-width:240px}
-.rp-bdg{font-size:11px;font-weight:700;border-radius:99px;padding:3px 9px;white-space:nowrap}
-.b-mod{background:var(--verde-bg);color:var(--verde)}
-.b-sens{background:var(--erro-bg);color:#B91C1C}
-.b-men{background:var(--azul-bg);color:#1D4ED8}
-.b-pend{background:var(--aviso-bg);color:#B45309;border:1px solid #FCD34D}
-.rp-grid{display:grid;grid-template-columns:200px 1fr;margin:0;font-size:13.5px}
-.rp-grid dt{padding:11px 18px;color:var(--cinza-500);font-weight:600;border-bottom:1px solid var(--cinza-100);background:var(--cinza-50)}
-.rp-grid dd{margin:0;padding:11px 18px;color:var(--cinza-800);border-bottom:1px solid var(--cinza-100);line-height:1.5;min-width:0}
-.rp-chips{display:flex;flex-wrap:wrap;gap:6px}
-.rp-chip{background:var(--cinza-100);border-radius:6px;padding:3px 8px;font-size:12.5px}
-.rp-chip.sens{background:var(--erro-bg);color:#B91C1C}
-.rp-tb{font-family:var(--font-mono);font-size:12px}
-.rp-tb.ok{background:var(--sucesso-bg);color:#065F46}.rp-tb.ok::before{content:"✓ ";font-weight:700}
-.rp-tb.falta{background:var(--erro-bg);color:#B91C1C;text-decoration:line-through}.rp-tb.falta::before{content:"✕ ";font-weight:700;display:inline-block;text-decoration:none}
-.rp-nota{display:block;color:var(--cinza-500);font-size:12px;margin-top:4px}
-.rp-rod{padding:10px 18px;font-size:12px;color:var(--cinza-500);display:flex;justify-content:space-between;gap:12px}
-@media (max-width:760px){
-  .rp-kpis{grid-template-columns:repeat(2,1fr)}
-  .rp-grid{grid-template-columns:1fr}.rp-grid dt{border-bottom:0;padding-bottom:2px}.rp-grid dd{padding-top:2px}
-  .rp-cab{flex-direction:column}
-}
-/* Impressão: só o registro, sem menu nem barra do sistema */
-@media print{
-  .sidebar,.topbar,.sidebar-overlay,#rp-imprimir{display:none!important}
-  .main-content{margin-left:0!important}
-  body{background:#fff}
-  .rp{max-width:none}
-  .rp-card,.rp-kpi,.rp-pend{box-shadow:none}
-  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-}
-</style>
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa + componentes de Administração (css/administracao.css, prefixo ad-).
+     A ficha de cada tratamento (.ad-trat) é papel: branca nos dois temas e na impressão. -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/administracao.css" rel="stylesheet">
 </head>
-<body>
+<body class="dgm">
 <div id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../js/config.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/diag-tema.js"></script>
+<script src="../js/ajuda.js"></script>
+<script src="../js/administracao.js"></script>
 <script src="../js/ropa.js"></script>
 </body>
 </html>
