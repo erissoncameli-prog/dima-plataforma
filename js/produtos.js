@@ -1711,7 +1711,7 @@ function renderModalGeoCsvEtapa2(validas,invalidas){
   body.innerHTML=statsHtml
     +(invalidas.length?'<div style="font-size:11px;color:var(--erro);background:var(--erro-bg);border:1px solid var(--pr-erro-borda);border-radius:var(--raio);padding:8px 10px;margin-bottom:12px">'+prIc('alerta','p')+' Linhas ignoradas: '+invalidas.map(function(x){return (x.sheet?x.sheet+' l.':'l.')+x.linha;}).join(', ')+'</div>':'')
     +tabelaHtml
-    +'<p style="font-size:11px;color:var(--cinza-500);margin:8px 0 0">As geometrias serão salvas no mapa após o envio da entrega. Você poderá visualizá-las em <strong>Mapa de Entregas</strong>.</p>';
+    +'<p style="font-size:11px;color:var(--cinza-500);margin:8px 0 0">As geometrias serão salvas no mapa após o envio da entrega. Você poderá visualizá-las em <strong>Mapa Interativo</strong>.</p>';
 
   var partes=[nPontos?nPontos+' ponto(s)':'',gruposPol?gruposPol+' polígono(s)':'',gruposTrilha?gruposTrilha+' trilha(s)':''].filter(Boolean).join(' + ');
   footer.innerHTML=''

@@ -38,6 +38,16 @@ body.dgm .btn-close { width: 30px; height: 30px; border: 1px solid var(--borda-f
 body.dgm .btn-close:hover { background: var(--cinza-50); color: var(--cinza-900); }
 body.dgm :is(.btn-close, .btn-outline):focus-visible { outline: 0; box-shadow: var(--anel); }
 
+/* Tela cheia: o bloco do mapa cobre a tela (z 150 = acima do menu lateral 100 e do topo 50,
+   abaixo de tudo que abre por cima: painéis de camadas 500, painel do CAR 600, menus do topo 1000,
+   ajuda 1200, janelas e avisos 9999, foto/vídeo 99999). A animação de entrada do .page-body usa
+   transform, que prenderia os elementos fixos — por isso é desligada nesse modo. */
+body.mapa-cheio { overflow: hidden; }
+body.dgm.mapa-cheio .page-body { animation: none; transform: none; }
+body.mapa-cheio .mapa-wrapper { position: fixed; inset: 0; z-index: 150; height: 100vh; height: 100dvh; min-height: 0;
+  margin: 0; padding: 12px 16px; background: var(--bg, #F3F5F3); }
+body.dgm .btn-outline[aria-pressed="true"] { background: var(--pri-100); border-color: var(--pri-600); color: var(--txt); }
+
 /* Ícones da moldura (SVG, sem emoji) */
 .mp-ic { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; vertical-align: -2px; }
 body.dgm .topbar .dgm-tema { margin-left: auto; }

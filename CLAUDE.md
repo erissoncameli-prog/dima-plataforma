@@ -825,7 +825,9 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Ao colar o link: avisa se ele já existe (bloqueia salvar) e se a matéria já está no repositório por outro veículo (só aviso).
 - Janelas: classe **`rp-ov`** (no seletor de escopo de `diagnostico-mesa.css`), pilha `rpAbrir`/`rpFechar` (Esc, Tab, foco).
 
-### Mapa de Entregas — moldura no tema, mapa sempre claro
+### Mapa Interativo — moldura no tema, mapa sempre claro, tela cheia
+- Nome na plataforma = **"Mapa Interativo"** (menu, título, cabeçalho; nav `mapa` segue o mesmo id). A página pública
+  `publico.html` continua dizendo "Mapa de Entregas" (fora do escopo).
 - `pages/mapa.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo) e os estilos da página em `css/mapa.css` (o `<style>` saiu da página; as cores fixas viraram os nomes
   do `global.css`, que a mesa tematiza). **Só a moldura muda com o tema** (topo, abas de camadas e painéis, painel lateral,
@@ -839,6 +841,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - `.btn-outline` e `.btn-close` não existem no `global.css`: o estilo deles está em `css/mapa.css`.
 - Janelas (`.modal-overlay`, abertas por `style.display`): `mpVigiarJanelas()` observa o `style` e mantém a pilha — Esc
   clica o `.btn-close` da janela de cima, Tab preso, foco volta.
+- **Tela cheia** (`alternarTelaCheia()`, botão `#btn-tela-cheia`): Fullscreen API no `documentElement` + `body.mapa-cheio`, que
+  fixa `.mapa-wrapper` (z-index 150) sobre a sidebar (100) e o topo (50); a animação de entrada do `.page-body` é anulada
+  (o `transform` viraria bloco de contenção do `fixed`). Tudo o que abre por cima continua acima: painéis das camadas (dentro do
+  wrapper), painel CAR 600, menus 1000, ajuda 1200, janelas/toast 9999, foto/vídeo 99999. `#mapa-backdrop` vai para dentro do
+  wrapper enquanto dura (senão cobre o painel de filtros do celular). Esc fecha primeiro a janela aberta; sem janela, sai da
+  tela cheia. Camada nova que abre por cima do mapa precisa de z-index acima de 150.
 - Editor do mapa = `super_admin` ou `coordenacao` (`_ehEditor`; antes procurava `'coordenador'`, que não existe, e a
   coordenação não via "Adicionar ponto"/"Importar"). ⚠️ No banco, `produto_pontos_mapa` aceita gravar/apagar de qualquer
   logado (`auth.uid() is not null`, `TO public`) — a trava ainda é só da tela.
