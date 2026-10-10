@@ -391,6 +391,26 @@ function montarItens() {
   });
 }
 
+// ── 6) Foto que aparece com a rolagem ───────────────────────────
+// .rolagem-foto: a foto (1º <img>) sobe e cresce até o tamanho final
+// conforme o bloco sobe na tela; um [data-pousa] dentro dela (ex.: o cartão
+// do logo no bloco da marca) pousa por cima no fim. Scrub, como os
+// .rolagem-itens: volta se a pessoa rolar pra cima
+function montarFotoRolagem() {
+  const mm = gsap.matchMedia();
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    document.querySelectorAll('.rolagem-foto').forEach(fig => {
+      const tl = gsap.timeline({
+        defaults: { ease: 'power1.out' },
+        scrollTrigger: { trigger: fig, start: 'top 95%', end: 'center 55%', scrub: 0.5 },
+      });
+      tl.fromTo(fig.querySelector('img'), { autoAlpha: 0, y: 60, scale: 0.9 }, { autoAlpha: 1, y: 0, scale: 1, duration: 1 });
+      const pousa = fig.querySelector('[data-pousa]');
+      if (pousa) tl.fromTo(pousa, { autoAlpha: 0, y: 30 }, { autoAlpha: 1, y: 0, duration: 0.45, ease: 'back.out(1.6)' }, 0.65);
+    });
+  });
+}
+
 // ── 7) Mapa com zoom guiado pela rolagem ────────────────────────
 // .mapa-zoom: o SVG do território (assets/cinema/mapa/territorio.svg —
 // Brasil, Amazônia Legal, Acre, municípios e APAs no mesmo sistema de
@@ -699,7 +719,7 @@ function montarCapa(secao) {
   });
 }
 
-// ── 6) Trilha sonora ────────────────────────────────────────────
+// ── 11) Trilha sonora ───────────────────────────────────────────
 // Botão fixo no canto (criado aqui) liga/desliga a trilha em loop
 // (assets/cinema/trilha.mp3: "Bright Horizons", instrumental gerada no
 // Suno com 1:38 e alongada para 3:00 emendando compassos parecidos; o
@@ -784,6 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
   montarRevela();
   montarPalavras();
   montarItens();
+  montarFotoRolagem();
   // Fontes e header mudam a altura da página depois de carregar
   document.fonts?.ready.then(() => ScrollTrigger.refresh());
 });
