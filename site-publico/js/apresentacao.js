@@ -41,6 +41,13 @@ function _apNum(alvo, ini, dur, classe) {
 // recortados um a um em assets/identidade/parceiros/ (e branca/ no tema escuro)
 const AP_PARCEIROS = ['canada', 'onu', 'fundo', 'cal', 'unesco', 'resiliencia', 'sema', 'acre'];
 
+// Desafios da cena 4 (chave apres.d_<k>), cada um com a foto em
+// assets/apresentacao/desafios/ — carregadas ao abrir a apresentação
+const AP_DESAFIOS = ['queimadas', 'enchentes', 'secas', 'desmatamento', 'clima'];
+function _apFotoDesafio(k) { return `assets/apresentacao/desafios/desafio-${k}.webp?v=2`; }
+const AP_FOTO_RESILIENCIA = 'assets/cinema/marca/marca-paisagem-g.webp';
+const AP_FOTO_MORADORES = 'assets/apresentacao/moradores.webp';
+
 const AP_CENAS = [
   { nome: 'apres.n1', dur: 6500, html: () => `
       <div class="ap-simbolo" aria-hidden="true">
@@ -77,27 +84,45 @@ const AP_CENAS = [
         </div>
       </div>` },
 
+  // Cena 3: foto dos moradores (EIXO TRANSVERSAL, dança Huni Kuin "Força
+  // feminina": mulheres e crianças de mãos dadas, mata ao fundo) ao lado do
+  // número; mesmo layout da cena 5 e os tempos de antes
   { nome: 'apres.n3', dur: 5000, html: () => `
-      <div class="ap-sub ap-el ap-sobe" style="--d:.1s">${t('apres.c3_pre')}</div>
-      <div class="ap-el ap-pop" style="--d:.4s">${_apNum(11329, .5, 1.8, 'ap-destaque-laranja')}</div>
-      <div class="ap-titulo ap-el ap-sobe" style="--d:.9s">${t('apres.c3_unid')}</div>
-      <div class="ap-sub ap-el ap-sobe" style="--d:1.6s">${t('apres.c3_sub')}</div>` },
-
-  { nome: 'apres.n4', dur: 6000, html: () => `
-      <div class="ap-titulo ap-el ap-sobe" style="--d:.1s">${t('apres.c4_titulo')}</div>
-      <div class="ap-chips">
-        ${['d_queimadas', 'd_enchentes', 'd_secas', 'd_desmatamento', 'd_clima'].map((k, i) =>
-          `<span class="ap-chip ap-el ap-pop" style="--d:${(0.7 + i * 0.45).toFixed(2)}s">${t('apres.' + k)}</span>`).join('')}
+      <div class="ap-dupla">
+        <div class="ap-dupla-foto ap-el ap-revela" style="--d:.1s"><img src="${AP_FOTO_MORADORES}" alt=""></div>
+        <div class="ap-dupla-texto">
+          <div class="ap-sub ap-el ap-sobe" style="--d:.1s">${t('apres.c3_pre')}</div>
+          <div class="ap-el ap-pop" style="--d:.4s">${_apNum(11329, .5, 1.8, 'ap-destaque-laranja')}</div>
+          <div class="ap-titulo ap-el ap-sobe" style="--d:.9s">${t('apres.c3_unid')}</div>
+          <div class="ap-sub ap-el ap-sobe" style="--d:1.6s">${t('apres.c3_sub')}</div>
+        </div>
       </div>` },
 
+  // Cena 4: cada desafio entra com a sua foto (FOTOS ILUSTRATIVAS da
+  // comunicação), no mesmo ritmo das etiquetas de antes — a cena não mudou
+  // de duração. A foto aproxima devagar enquanto a cena dura (.ap-desafio img)
+  { nome: 'apres.n4', dur: 6000, html: () => `
+      <div class="ap-titulo ap-el ap-sobe" style="--d:.1s">${t('apres.c4_titulo')}</div>
+      <div class="ap-desafios">
+        ${AP_DESAFIOS.map((k, i) =>
+          `<figure class="ap-desafio ap-el ap-pop" style="--d:${(0.7 + i * 0.45).toFixed(2)}s"><span class="ap-desafio-foto"><img src="${_apFotoDesafio(k)}" alt=""></span><figcaption class="ap-chip">${t('apres.d_' + k)}</figcaption></figure>`).join('')}
+      </div>` },
+
+  // Cena 5: a foto da pasta RESILIÊNCIA (casas cercadas pela floresta, a
+  // mesma do bloco "Por trás da marca") ao lado da definição; tempos de antes
   { nome: 'apres.n5', dur: 6000, html: () => `
-      <div class="ap-sub ap-el ap-sobe" style="--d:.1s">${t('apres.c5_pre')}</div>
-      <div class="ap-verbos">
-        <span class="ap-verbo ap-destaque-verde ap-el ap-marca" style="--d:.7s">${t('apres.v_enfrentar')}</span>
-        <span class="ap-verbo ap-destaque-azul ap-el ap-marca" style="--d:1.4s">${t('apres.v_adaptar')}</span>
-        <span class="ap-verbo ap-destaque-laranja ap-el ap-marca" style="--d:2.1s">${t('apres.v_recuperar')}</span>
-      </div>
-      <div class="ap-sub ap-el ap-sobe" style="--d:3s">${t('apres.c5_sub')}</div>` },
+      <div class="ap-dupla">
+        <div class="ap-dupla-foto ap-el ap-revela" style="--d:.1s"><img src="${AP_FOTO_RESILIENCIA}" alt=""></div>
+        <div class="ap-dupla-texto">
+          <div class="ap-sub ap-el ap-sobe" style="--d:.1s">${t('apres.c5_pre')}</div>
+          <div class="ap-verbos">
+            <span class="ap-verbo ap-destaque-verde ap-el ap-marca" style="--d:.7s">${t('apres.v_enfrentar')}</span>
+            <span class="ap-verbo ap-destaque-azul ap-el ap-marca" style="--d:1.4s">${t('apres.v_adaptar')}</span>
+            <span class="ap-verbo ap-destaque-laranja ap-el ap-marca" style="--d:2.1s">${t('apres.v_recuperar')}</span>
+          </div>
+          <div class="ap-sub ap-el ap-sobe" style="--d:3s">${t('apres.c5_sub')}</div>
+        </div>
+      </div>` },
 
   { nome: 'apres.n6', dur: 7500, html: () => `
       <div class="ap-titulo ap-el ap-sobe" style="--d:.1s">${t('apres.c6_titulo')}</div>
@@ -378,6 +403,8 @@ function abrirApresentacao() {
   _ap.aberto = true;
   _ap.pausado = false;
   _ap.ultimo = 0;
+  // Fotos das cenas 3, 4 e 5 já no cache quando elas chegarem (senão entram vazias)
+  [AP_FOTO_MORADORES, ...AP_DESAFIOS.map(_apFotoDesafio), AP_FOTO_RESILIENCIA].forEach(src => { new Image().src = src; });
   // Abrir é um clique da pessoa, então o navegador deixa tocar com som
   _apPrepararAudio();
   _apIrPara(0);

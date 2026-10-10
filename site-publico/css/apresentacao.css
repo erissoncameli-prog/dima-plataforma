@@ -111,16 +111,53 @@
 .ap-apa + .ap-apa{border-top-color:var(--azul);}
 .ap-apa-nome{font-weight:700;font-size:clamp(12px,1.5vw,17px);margin-bottom:6px;}
 
-/* Cena 4 — desafios em etiquetas */
-.ap-chips{display:flex;flex-wrap:wrap;gap:clamp(6px,1vw,12px);justify-content:center;max-width:780px;}
+/* Cena 4 — desafios: foto em pé com a etiqueta pousada no pé da foto */
+.ap-desafios{display:flex;gap:clamp(8px,1.4vw,16px);justify-content:center;width:100%;}
+.ap-desafio{position:relative;flex:1 1 0;max-width:200px;margin:0 0 1.2em;}
+/* Moldura que corta a foto quando ela aproxima */
+.ap-desafio-foto{
+  position:relative;display:block;aspect-ratio:3/4;overflow:hidden;border-radius:var(--raio);
+  box-shadow:0 10px 24px -10px rgba(0,0,0,.45);background:var(--linha);
+}
+/* Contorno por cima da foto: foto clara (fumaça, céu) não some no palco branco */
+.ap-desafio-foto::after{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px rgba(23,36,28,.22);pointer-events:none;}
+.ap-desafio-foto img{display:block;width:100%;height:100%;object-fit:cover;}
+/* Aproximação lenta da foto: começa junto com o cartão e dura a cena toda */
+.ap-cena.ativa .ap-desafio-foto img{animation:ap-aproxima 7s linear var(--d,0s) both;}
+@keyframes ap-aproxima{from{transform:scale(1);}to{transform:scale(1.08);}}
 .ap-chip{
-  font-weight:700;font-size:clamp(13px,1.9vw,22px);padding:.35em .9em;border-radius:99px;
+  font-weight:700;font-size:clamp(11px,1.5vw,18px);padding:.35em .9em;border-radius:99px;
   background:var(--laranja-tint);color:var(--laranja-texto);border:2px solid var(--laranja);
 }
+/* Etiqueta mais larga que a foto quebra em duas linhas em vez de invadir a vizinha */
+.ap-desafio .ap-chip{position:absolute;left:50%;bottom:0;transform:translate(-50%,40%);width:max-content;max-width:calc(100% - 8px);line-height:1.2;font-size:clamp(10px,1.3vw,17px);padding:.3em .75em;}
+/* Celular em pé: 3 em cima e 2 embaixo */
+@media (max-aspect-ratio:4/5){
+  .ap-desafios{flex-wrap:wrap;row-gap:.6em;}
+  .ap-desafio{flex:0 0 calc(33.333% - 8px);}
+  .ap-chip{font-size:11px;padding:.3em .7em;}
+}
 
-/* Cena 5 — três verbos */
+/* Cenas 3 e 5 — foto à esquerda, texto à direita (.ap-dupla); na 5, a
+   definição com os três verbos empilhados */
+.ap-dupla{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(16px,3.4vw,48px);align-items:center;width:min(1000px,100%);}
+.ap-dupla-foto{
+  position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:var(--raio-lg);
+  box-shadow:0 14px 34px -14px rgba(0,0,0,.5);
+}
+.ap-dupla-foto img{display:block;width:100%;height:100%;object-fit:cover;}
+.ap-cena.ativa .ap-dupla-foto img{animation:ap-aproxima 7s linear var(--d,0s) both;}
+.ap-dupla-texto{display:flex;flex-direction:column;align-items:flex-start;gap:clamp(8px,1.4vw,16px);text-align:left;}
+.ap-dupla .ap-verbos{flex-direction:column;gap:.15em;}
 .ap-verbos{display:flex;gap:clamp(10px,2.6vw,36px);flex-wrap:wrap;justify-content:center;}
 .ap-verbo{font-family:var(--fonte-titulo);font-weight:700;font-size:clamp(24px,4.6vw,56px);line-height:1.1;}
+/* Celular em pé: foto em cima, texto centralizado embaixo */
+@media (max-aspect-ratio:4/5){
+  .ap-dupla{grid-template-columns:1fr;}
+  .ap-dupla-foto{aspect-ratio:16/10;}
+  .ap-dupla-texto{align-items:center;text-align:center;}
+  .ap-dupla .ap-verbo{font-size:clamp(24px,8vw,40px);}
+}
 
 /* Cena 6 — eixos */
 .ap-eixos{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(8px,2vw,24px);width:min(900px,100%);}
@@ -193,6 +230,7 @@
 @media (prefers-reduced-motion: reduce){
   .ap-el{opacity:1;}
   .ap-cena.ativa .ap-el{animation:none !important;}
+  .ap-cena.ativa .ap-desafio-foto img,.ap-cena.ativa .ap-dupla-foto img{animation:none !important;}
   .ap-cena{transition:none;}
 }
 

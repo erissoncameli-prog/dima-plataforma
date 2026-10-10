@@ -11,8 +11,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/apresentacao.css">
-<link rel="stylesheet" href="css/cinema.css">
+<link rel="stylesheet" href="css/apresentacao.css?v=20261009g">
+<link rel="stylesheet" href="css/cinema.css?v=20261009d">
 <style>
 /* Conteúdo desta página vem da cartilha oficial do Programa, versão final
    de out/2026 (assets/cartilha/cartilha-programa-resiliencia-socioambiental.pdf)
@@ -154,9 +154,13 @@
 .expediente ul{list-style:none;margin:0;padding:0;font-size:15px;line-height:1.6;}
 
 /* Marca */
-.marca-grid{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:var(--espaco-7);align-items:center;margin-top:var(--espaco-5);}
-.marca-logo img{width:100%;height:auto;}
-@media(max-width:760px){.marca-grid{grid-template-columns:1fr;}.marca-logo{max-width:240px;}}
+.marca-grid{display:grid;grid-template-columns:minmax(0,480px) 1fr;gap:var(--espaco-7);align-items:center;margin-top:var(--espaco-5);}
+/* Foto da paisagem com o logo num cartão no canto de baixo */
+.marca-foto{position:relative;margin:0 0 28px;}
+.marca-paisagem{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:var(--raio-lg);box-shadow:0 14px 34px -14px rgba(23,36,28,.45);}
+.marca-logo{position:absolute;left:20px;bottom:-28px;width:44%;max-width:210px;padding:14px 16px;background:var(--papel-elevado);border-radius:var(--raio);box-shadow:0 10px 26px -10px rgba(23,36,28,.4);}
+.marca-logo img{display:block;width:100%;height:auto;}
+@media(max-width:760px){.marca-grid{grid-template-columns:1fr;gap:var(--espaco-6);}.marca-logo{left:14px;width:52%;padding:10px 12px;}}
 .elementos{list-style:none;margin:0;padding:0;display:grid;gap:var(--espaco-4);max-width:640px;}
 .elementos li{display:flex;gap:var(--espaco-4);align-items:center;padding:var(--espaco-4);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);box-shadow:var(--sombra);}
 .elementos .el{width:40px;height:40px;object-fit:contain;flex-shrink:0;}
@@ -314,14 +318,26 @@
   <section class="cine cine-escuro" data-cine="rio" data-quadros="40" data-rolagem="2.4" data-inclinacao="3" aria-labelledby="cine-desafio">
     <div class="cine-palco">
       <div class="cine-cena" aria-hidden="true"><canvas class="cine-canvas"></canvas></div>
-      <div class="cine-texto no-meio" data-entra="0.02">
+      <div class="cine-texto no-meio" data-entra="0.02" data-sobe>
         <div class="cine-eyebrow" data-i18n="sobre.k_desafio">O desafio</div>
         <h2 class="cine-titulo" id="cine-desafio" data-i18n="sobre.desafio_h2">Vulnerabilidade socioambiental: o que o Programa busca enfrentar</h2>
         <div class="cine-desafios">
-          <div class="cine-desafio" data-entra="0.16" data-i18n="sobre.desafio_1">Pressão urbana, desmatamento, queimadas e atividades econômicas predatórias.</div>
-          <div class="cine-desafio" data-entra="0.32" data-i18n="sobre.desafio_2">Inundações e secas extremas do Rio Acre, com impactos sobre o abastecimento e a segurança das comunidades.</div>
-          <div class="cine-desafio" data-entra="0.48" data-i18n="sobre.desafio_3">Mudanças climáticas e intensificação de eventos extremos, aumentando a vulnerabilidade de pessoas e ecossistemas.</div>
-          <div class="cine-desafio" data-entra="0.64" data-i18n="sobre.desafio_4">Consequências sobre segurança hídrica, produção, modos de vida e qualidade de vida.</div>
+          <div class="cine-desafio" data-entra="0.16">
+            <figure class="cine-desafio-foto"><img src="assets/cinema/desafios/desafio-1-p.webp" srcset="assets/cinema/desafios/desafio-1-p.webp 360w, assets/cinema/desafios/desafio-1-g.webp 720w" sizes="(max-width:1000px) 45vw, 270px" alt="" loading="lazy"><figcaption>Tarauacá (AC) · 2024</figcaption></figure>
+            <p data-i18n="sobre.desafio_1">Pressão urbana, desmatamento, queimadas e atividades econômicas predatórias.</p>
+          </div>
+          <div class="cine-desafio" data-entra="0.32">
+            <figure class="cine-desafio-foto"><img src="assets/cinema/desafios/desafio-2-p.webp" srcset="assets/cinema/desafios/desafio-2-p.webp 360w, assets/cinema/desafios/desafio-2-g.webp 720w" sizes="(max-width:1000px) 45vw, 270px" alt="" loading="lazy"><figcaption>Rio Branco (AC) · 2024</figcaption></figure>
+            <p data-i18n="sobre.desafio_2">Inundações e secas extremas do Rio Acre, com impactos sobre o abastecimento e a segurança das comunidades.</p>
+          </div>
+          <div class="cine-desafio" data-entra="0.48">
+            <figure class="cine-desafio-foto"><img src="assets/cinema/desafios/desafio-3-p.webp" srcset="assets/cinema/desafios/desafio-3-p.webp 360w, assets/cinema/desafios/desafio-3-g.webp 720w" sizes="(max-width:1000px) 45vw, 270px" alt="" loading="lazy"><figcaption>Rio Branco (AC) · 2024</figcaption></figure>
+            <p data-i18n="sobre.desafio_3">Mudanças climáticas e intensificação de eventos extremos, aumentando a vulnerabilidade de pessoas e ecossistemas.</p>
+          </div>
+          <div class="cine-desafio" data-entra="0.64">
+            <figure class="cine-desafio-foto"><img src="assets/cinema/desafios/desafio-4-p.webp" srcset="assets/cinema/desafios/desafio-4-p.webp 360w, assets/cinema/desafios/desafio-4-g.webp 720w" sizes="(max-width:1000px) 45vw, 270px" alt="" loading="lazy"><figcaption>Rio Branco (AC) · 2024</figcaption></figure>
+            <p data-i18n="sobre.desafio_4">Consequências sobre segurança hídrica, produção, modos de vida e qualidade de vida.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -623,12 +639,18 @@
       <h2 class="rolagem-palavras" data-i18n="sobre.k_marca">Por trás da marca</h2>
       <p class="rolagem-palavras" data-i18n="sobre.marca_p">A identidade visual do Programa nasce da paisagem que ele protege.</p>
       <div class="marca-grid">
-      <div class="marca-logo">
-        <picture>
-          <source srcset="assets/identidade/logo-vertical-branca.svg" media="(prefers-color-scheme: dark)">
-          <img src="assets/identidade/logo-vertical.svg" alt="Logotipo Resiliência Socioambiental — Áreas de Proteção Ambiental Igarapé São Francisco e Lago do Amapá" data-i18n-attr="alt:sobre.alt_logo" width="178" height="77" loading="lazy">
-        </picture>
-      </div>
+      <!-- A paisagem de onde a marca nasce (FOTOS ILUSTRATIVAS/RESILIÊNCIA, drone,
+           jun/2025), com o logo num cartão por cima. Legenda (lugar · ano) entra
+           quando a comunicação confirmar o local -->
+      <figure class="marca-foto">
+        <img class="marca-paisagem" src="assets/cinema/marca/marca-paisagem-g.webp" srcset="assets/cinema/marca/marca-paisagem-p.webp 560w, assets/cinema/marca/marca-paisagem-g.webp 960w" sizes="(max-width:760px) 100vw, 480px" alt="Vista aérea de casas com telhado alaranjado cercadas pela floresta" data-i18n-attr="alt:sobre.alt_marca_foto" width="960" height="720" loading="lazy">
+        <div class="marca-logo">
+          <picture>
+            <source srcset="assets/identidade/logo-vertical-branca.svg" media="(prefers-color-scheme: dark)">
+            <img src="assets/identidade/logo-vertical.svg" alt="Logotipo Resiliência Socioambiental — Áreas de Proteção Ambiental Igarapé São Francisco e Lago do Amapá" data-i18n-attr="alt:sobre.alt_logo" width="178" height="77" loading="lazy">
+          </picture>
+        </div>
+      </figure>
       <ul class="elementos rolagem-itens">
         <li><img class="el" src="assets/identidade/folhas.svg" alt="" loading="lazy"><span data-i18n="sobre.el_folhas"><strong>As folhas verdes</strong> representam a biodiversidade e a recuperação ambiental das APAs.</span></li>
         <li><img class="el" src="assets/identidade/curva-azul.svg" alt="" loading="lazy"><span data-i18n="sobre.el_azul"><strong>As formas curvas em azul</strong> remetem aos igarapés e rios que o Programa trabalha para proteger.</span></li>
@@ -669,10 +691,10 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>
 <script src="js/i18n.js"></script>
-<script src="js/i18n-en.js"></script>
-<script src="js/i18n-es.js"></script>
+<script src="js/i18n-en.js?v=20261009"></script>
+<script src="js/i18n-es.js?v=20261009"></script>
 <script src="js/layout.js"></script>
-<script src="js/apresentacao.js"></script>
-<script src="js/cinema.js"></script>
+<script src="js/apresentacao.js?v=20261009d"></script>
+<script src="js/cinema.js?v=20261009"></script>
 </body>
 </html>

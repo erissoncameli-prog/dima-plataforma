@@ -273,6 +273,7 @@ registrarIdioma('es', {
   'sobre.k_marca': 'Detrás de la marca',
   'sobre.marca_p': 'La identidad visual del Programa nace del paisaje que protege.',
   'sobre.alt_logo': 'Logotipo Resiliencia Socioambiental — Áreas de Protección Ambiental Igarapé São Francisco y Lago do Amapá',
+  'sobre.alt_marca_foto': 'Vista aérea de casas con techos anaranjados rodeadas por el bosque',
   'sobre.el_folhas': '<strong>Las hojas verdes</strong> representan la biodiversidad y la recuperación ambiental de las APA.',
   'sobre.el_azul': '<strong>Las formas curvas en azul</strong> remiten a los igarapés (arroyos amazónicos) y ríos que el Programa trabaja para proteger.',
   'sobre.el_laranja': '<strong>El naranja</strong> simboliza la transformación social y el fortalecimiento de las comunidades que viven en estos territorios.',
