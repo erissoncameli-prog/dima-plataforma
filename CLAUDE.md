@@ -935,6 +935,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **Corpo**: usar as classes da folha (`rep-tbl`, `rep-stats`/`rep-stat`, `rep-secao`/`rep-secao-titulo`, `rep-barra`, `rep-badge`
   `rb-*`, `mono`). Estilo próprio vai em `css` e é **escopado em `.doc-body`** pela `FolhaA4.escopo` (só regras simples, sem
   `@media`/`@page`; nada de `body`/`*`/`h1` de página). Texto do banco sempre escapado.
+- **Colunas** (11/10/2026): número, data, código e selo **não quebram** e ocupam só o próprio conteúdo — automático para `td.mono`
+  e célula que só tem um `.rep-badge`; `.c-min` marca outras. O texto corrido fica com a largura que sobra. No modo `.doc-fit-max`
+  o número só quebra no espaço ("R$ | 10.059,74"), nunca no meio. **Texto longo** (objetivo de viagem, objeto de TDR) vai numa
+  linha própria abaixo do registro: `<tbody class="rep-grupo"><tr class="rep-mae">…</tr>${linhaDet(N,'Objeto',txt)}</tbody>`
+  (helper `linhaDet` em `relatorios.html`; o grupo não se separa entre páginas). Usado em Vi1, Vi2, Vi4, T1, T2, T3. Nunca cortar
+  o texto com "…" — o relatório é prestação de contas.
 - **Largura**: a folha tem o tamanho do A4 (210/297 mm) e `table-layout: fixed`; `FolhaA4.ajustar` liga `.doc-fit`/`.doc-fit-max` se
   algo passar e a tela avisa. Tabela com 9+ colunas abre em paisagem. Texto quebra entre palavras (`overflow-wrap: break-word`).
 - Conferir relatório novo: gerar em retrato e paisagem e imprimir em PDF — nada pode passar da folha nem cortar linha, e toda
