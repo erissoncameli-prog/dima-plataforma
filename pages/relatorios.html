@@ -826,9 +826,12 @@ function docExcede(w) {
 }
 // Se não couber, compacta (letra menor, colunas fixas, texto quebrando); avisa se nem assim couber.
 function expAjustar(w) {
-  w.classList.remove('doc-fit');
+  w.classList.remove('doc-fit', 'doc-fit-max');
   let compacto = false, ainda = false;
-  if (docExcede(w)) { w.classList.add('doc-fit'); compacto = true; ainda = docExcede(w); }
+  if (docExcede(w)) {
+    w.classList.add('doc-fit'); compacto = true;
+    if (docExcede(w)) { w.classList.add('doc-fit-max'); ainda = docExcede(w); }
+  }
   const av = document.getElementById('exp-ajuste');
   if (!av) return;
   const msg = ainda ? (expOrient === 'portrait' ? 'Algumas colunas não cabem em retrato. Use <strong>Paisagem</strong>.' : 'Algumas colunas não cabem nem em paisagem; o texto foi reduzido ao mínimo.')

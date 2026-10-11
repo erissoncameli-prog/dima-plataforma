@@ -142,7 +142,7 @@ body.dgm .re-fil :is(.config-select, .config-input):focus { outline: 0; border-c
 .doc-body { padding: 0; position: relative; z-index: 1; min-width: 0; }
 /* nada passa da largura: texto longo (objeto, URL, e-mail) quebra dentro da célula */
 .doc-body table { max-width: 100%; }
-.doc-body td { overflow-wrap: anywhere; }
+.doc-body td { overflow-wrap: break-word; }
 
 /* Rodapé */
 .doc-footer { margin-top: 14px; padding-top: 8px; border-top: 1.5px solid #1F4E2C; display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -152,7 +152,7 @@ body.dgm .re-fil :is(.config-select, .config-input):focus { outline: 0; border-c
 /* Tabelas */
 .rep-tbl { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px; }
 .rep-tbl th { padding: 7px 8px; font-size: 8.5px; font-weight: 700; color: var(--cinza-500); text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #1F4E2C; background: #f0f7f2; text-align: left; white-space: normal; overflow-wrap: break-word; vertical-align: bottom; }
-.rep-tbl td { padding: 6px 8px; border-bottom: 1px solid var(--borda); color: var(--cinza-700); vertical-align: middle; word-break: break-word; }
+.rep-tbl td { padding: 6px 8px; border-bottom: 1px solid var(--borda); color: var(--cinza-700); vertical-align: middle; overflow-wrap: break-word; }
 .rep-tbl tbody tr:nth-child(even) td { background: #fafcfa; }
 .rep-tbl tbody tr:hover td { background: #f0f7f2; }
 .rep-tbl tfoot td { padding: 8px 10px; font-weight: 700; color: var(--cinza-900); border-top: 2px solid #1F4E2C; background: #f0f7f2; }
@@ -195,10 +195,12 @@ body.dgm .re-fil :is(.config-select, .config-input):focus { outline: 0; border-c
 .doc-paisagem .rep-tbl tfoot td { padding: 6px 7px; }
 
 /* Modo compacto p/ caber relatório largo em Retrato sem cortar coluna (auto-ajuste) */
-.doc-fit .rep-tbl { table-layout: fixed; width: 100%; font-size: 8px; }
+.doc-fit .rep-tbl { width: 100%; font-size: 8px; }
 .doc-fit .rep-stat-val { font-size: 14px; }
 .doc-fit .doc-body [style*="nowrap"] { white-space: normal !important; }
-.doc-fit .rep-tbl th, .doc-fit .rep-tbl td { white-space: normal !important; word-break: break-word; overflow-wrap: anywhere; padding: 4px 5px; }
+.doc-fit .rep-tbl th, .doc-fit .rep-tbl td { white-space: normal !important; overflow-wrap: break-word; padding: 4px 5px; }
+/* último recurso: palavra/endereço que sozinho não cabe quebra em qualquer ponto */
+.doc-fit.doc-fit-max .doc-body td, .doc-fit.doc-fit-max .doc-body th { overflow-wrap: anywhere; }
 .doc-fit .rep-tbl .mono, .doc-fit .rep-tbl .mono-sm { white-space: normal !important; }
 
 /* ── Janela de exportação (.re-ov) ───────────────────────────────────── */
