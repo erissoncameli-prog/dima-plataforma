@@ -25,17 +25,18 @@
       <div class="exp-sidebar-title" id="exp-titulo"><i data-ic="upload"></i>Exportar relatório</div>
       <div class="exp-sidebar-sub" id="exp-rel-nome">—</div>
       <div class="exp-sidebar-body">
-        <div class="exp-lbl">PDF · A4</div>
-        <button type="button" class="btn btn-secondary exp-btn exp-btn-pdf" data-orient="paisagem-nao" onclick="exportPDF('portrait',this)"><i data-ic="doc"></i>Retrato</button>
-        <button type="button" class="btn btn-secondary exp-btn exp-btn-pdf" data-orient="paisagem" onclick="exportPDF('landscape',this)"><i data-ic="doc"></i>Paisagem</button>
+        <div class="exp-lbl">Folha A4</div>
+        <div class="exp-orient" role="group" aria-label="Orientação da folha">
+          <button type="button" class="btn btn-secondary exp-btn" data-orient="portrait" aria-pressed="true" onclick="expOrientar('portrait')"><i data-ic="doc"></i>Retrato</button>
+          <button type="button" class="btn btn-secondary exp-btn" data-orient="landscape" aria-pressed="false" onclick="expOrientar('landscape')"><i data-ic="doc"></i>Paisagem</button>
+        </div>
+        <div class="exp-aviso-paisagem" id="exp-ajuste" role="status" hidden></div>
+        <button type="button" class="btn btn-primary exp-btn" onclick="exportPrint()"><i data-ic="imprimir"></i>Imprimir ou salvar em PDF</button>
+        <p class="exp-dica">Na janela que abrir, escolha a impressora ou <b>Salvar como PDF</b>. O PDF sai com texto (dá para pesquisar e copiar), cabeçalho e rodapé em todas as páginas e nenhuma linha cortada na troca de página.</p>
 
         <div class="exp-lbl">Dados</div>
         <button type="button" class="btn btn-secondary exp-btn" onclick="exportCSV()"><i data-ic="planilha"></i>CSV</button>
         <button type="button" class="btn btn-secondary exp-btn" onclick="exportExcel()"><i data-ic="planilha"></i>Excel (.xlsx)</button>
-
-        <div class="exp-lbl">Imprimir</div>
-        <button type="button" class="btn btn-secondary exp-btn exp-btn-print" data-orient="paisagem-nao" onclick="exportPrint('portrait')"><i data-ic="imprimir"></i>Retrato</button>
-        <button type="button" class="btn btn-secondary exp-btn exp-btn-print" data-orient="paisagem" onclick="exportPrint('landscape')"><i data-ic="imprimir"></i>Paisagem</button>
 
         <div class="exp-fechar"><button type="button" class="btn btn-secondary exp-btn modal-close" onclick="fecharExport()"><i data-ic="x"></i>Fechar</button></div>
       </div>
@@ -45,7 +46,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/logos.js"></script>
@@ -122,13 +122,13 @@ function seletorTema(){
 
 const RELATORIOS = [
   // ── FINANCEIRO ────────────────────────────────────────────
-  { id:'F1', tema:'financeiro', titulo:'Execução Orçamentária Geral',
+  { id:'F1', paisagem:true, tema:'financeiro', titulo:'Execução Orçamentária Geral',
     desc:'Orçamento total vs. comprometido vs. pago por atividade e resultado (BRL e USD).',
     filtros:['periodo','atividade','resultado'] },
   { id:'F2', tema:'financeiro', titulo:'Fluxo de Caixa — Vencimentos',
     desc:'Produtos a vencer nos próximos 30/60/90 dias com valores comprometidos.',
     filtros:['horizonte','atividade','fornecedor'] },
-  { id:'F3', tema:'financeiro', titulo:'Pagamentos Realizados',
+  { id:'F3', paisagem:true, tema:'financeiro', titulo:'Pagamentos Realizados',
     desc:'Lista de pagamentos com fornecedor, contrato, produto, valor BRL/USD e cotação.',
     filtros:['periodo','fornecedor','situacao'] },
   { id:'F4', tema:'financeiro', titulo:'Evolução da Cotação USD',
@@ -141,13 +141,13 @@ const RELATORIOS = [
     desc:'Produtos com vencimento ultrapassado e situação pendente.',
     filtros:['atividade','fornecedor'] },
   // ── CONTRATOS ─────────────────────────────────────────────
-  { id:'C1', tema:'contratos', titulo:'Carteira de Contratos',
+  { id:'C1', paisagem:true, tema:'contratos', titulo:'Carteira de Contratos',
     desc:'Todos os contratos com valor total, utilizado, saldo, vigência e status.',
     filtros:['status_contrato','tipo_contrato','atividade','periodo'] },
   { id:'C2', tema:'contratos', titulo:'Contratos Próximos do Vencimento',
     desc:'Contratos com encerramento nos próximos 30/60/90 dias.',
     filtros:['horizonte','status_contrato'] },
-  { id:'C3', tema:'contratos', titulo:'Execução por Contrato',
+  { id:'C3', paisagem:true, tema:'contratos', titulo:'Execução por Contrato',
     desc:'Valor total vs. produtos pagos, a pagar e cancelados por contrato.',
     filtros:['fornecedor','atividade'] },
   { id:'C4', tema:'contratos', titulo:'Contratos sem Documentos',
@@ -170,7 +170,7 @@ const RELATORIOS = [
     desc:'Todas as entregas por fornecedor com documentação, responsáveis e datas de aprovação e pagamento.',
     filtros:['fornecedor','atividade','situacao_entrega','periodo'] },
   // ── PRODUTOS ──────────────────────────────────────────────
-  { id:'P1', tema:'produtos', titulo:'Status de Entregas',
+  { id:'P1', paisagem:true, tema:'produtos', titulo:'Status de Entregas',
     desc:'Produtos por situação (pendente → pago) com percentual de execução.',
     filtros:['atividade','fornecedor','periodo','situacao'] },
   { id:'P2', tema:'produtos', titulo:'Atrasos na Entrega',
@@ -189,14 +189,14 @@ const RELATORIOS = [
   { id:'T1', tema:'tdrs', titulo:'Pipeline de TDRs',
     desc:'Quantidade e valor por status — visualização de gargalos no fluxo.',
     filtros:['status_tdr','tipo_tdr','atividade'] },
-  { id:'T2', tema:'tdrs', titulo:'Tempo de Tramitação',
+  { id:'T2', paisagem:true, tema:'tdrs', titulo:'Tempo de Tramitação',
     desc:'Tempo médio entre cada etapa do fluxo de aprovação.',
     filtros:['periodo','tipo_tdr'] },
   { id:'T3', tema:'tdrs', titulo:'TDRs Aprovados sem Contrato',
     desc:'TDRs com status aprovado que ainda não possuem contrato vinculado.',
     filtros:['periodo','atividade'] },
   // ── ATIVIDADES ────────────────────────────────────────────
-  { id:'A1', tema:'atividades', titulo:'Execução por Atividade',
+  { id:'A1', paisagem:true, tema:'atividades', titulo:'Execução por Atividade',
     desc:'Fase, orçamento, comprometido (TDRs), pago, saldo e responsável.',
     filtros:['resultado','fase'] },
   { id:'A2', tema:'atividades', titulo:'Atividades sem TDR',
@@ -212,10 +212,10 @@ const RELATORIOS = [
   { id:'M1', tema:'matriz', titulo:'Progresso dos Indicadores',
     desc:'% de avanço de cada indicador da matriz em relação à meta.',
     filtros:['resultado','ods'] },
-  { id:'M2', tema:'matriz', titulo:'Contribuição de Produtos',
+  { id:'M2', paisagem:true, tema:'matriz', titulo:'Contribuição de Produtos',
     desc:'Entregas que contribuíram para cada indicador com % e confirmação.',
     filtros:['resultado','periodo'] },
-  { id:'M4', tema:'matriz', titulo:'Indicadores abaixo da meta',
+  { id:'M4', paisagem:true, tema:'matriz', titulo:'Indicadores abaixo da meta',
     desc:'Todos os indicadores com meta numérica que ainda não a atingiram, do mais distante ao mais próximo.',
     filtros:['resultado'] },
   // ── VIAGENS ───────────────────────────────────────────────
@@ -242,7 +242,7 @@ const RELATORIOS = [
   { id:'L1', tema:'logs', titulo:'Ações em TDRs',
     desc:'Todas as ações registradas por usuário, data e tipo.',
     filtros:['periodo'] },
-  { id:'L4', tema:'logs', titulo:'Avaliações de Produtos',
+  { id:'L4', paisagem:true, tema:'logs', titulo:'Avaliações de Produtos',
     desc:'Quem avaliou, quando, % aprovado e parecer registrado.',
     filtros:['periodo'] },
   { id:'L5', tema:'logs', titulo:'Log de Alterações — Mapa',
@@ -690,52 +690,47 @@ const filVal = id => { const el=document.getElementById(id); return el?el.value:
 // ══════════════════════════════════════════════════════════════
 // CABEÇALHO E RODAPÉ PADRÃO
 // ══════════════════════════════════════════════════════════════
-// Logos da folha = Dados do sistema (js/logos.js): topo à esquerda, parceiros à direita, versão para fundo claro.
+// Folha A4 (papel). Logos = Dados do sistema (js/logos.js), versão para fundo claro:
+//   cabeçalho — topo (Acre, SEMA) à esquerda, logo do projeto à direita; rodapé — parceiros, centralizados.
+// A folha é uma <table>: thead = cabeçalho e tfoot = rodapé, que a impressão repete em toda página.
 let _relLogos = null;
 const relLogos = () => _relLogos || DimaLogos.agora();
 DimaLogos.carregar(db).then(L => { _relLogos = L; });
+
 function docHeader(tituloRel, temaBadge, temaId, periodoTxt){
-  const u = appState.usuario;
-  const dtGer = now();
+  const L = relLogos();
   return `
   <div class="doc-header">
     <div class="doc-header-logos">
-      <div class="doc-header-logos-esq">${relLogos().topo.map(l => DimaLogos.img(l, 'claro', { altura: 32, classe: 'doc-header-logo', cors: true })).filter(Boolean).join('<div class="doc-header-sep"></div>')}</div>
-      <div class="doc-header-logos-dir">${DimaLogos.lista(relLogos().parceiros, 'claro', { altura: 26, classe: 'doc-header-logo', cors: true }).join('')}</div>
-    </div>
-    <div>
-      <div class="doc-header-projeto">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
-      <div class="doc-header-programa">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
-      <div class="doc-header-local">Rio Branco, Acre — SEMA/AC</div>
+      <div class="doc-header-logos-esq">${L.topo.map(l => DimaLogos.img(l, 'claro', { altura: 34, classe: 'doc-header-logo', cors: true })).filter(Boolean).join('<div class="doc-header-sep"></div>')}</div>
+      <div class="doc-header-logos-dir">${L.projeto ? DimaLogos.img(L.projeto, 'claro', { altura: 34, classe: 'doc-header-logo', cors: true, tamanho: false }) : ''}</div>
     </div>
     <div class="doc-header-titulo-wrap">
-      <div class="doc-header-titulo">
-        ${esc(tituloRel)}
-        <span class="doc-header-badge" data-tema="${esc(temaId)}">${esc(temaBadge)}</span>
-      </div>
-      <div class="doc-header-meta">
-        ${periodoTxt?`<div>${periodoTxt}</div>`:''}
-        <div>Gerado em: <strong>${dtGer} (Horário de Brasília)</strong></div>
-      </div>
+      <div class="doc-header-titulo">${esc(tituloRel)}<span class="doc-header-badge" data-tema="${esc(temaId)}">${esc(temaBadge)}</span></div>
+      <div class="doc-header-meta">${periodoTxt ? `<div>${esc(periodoTxt)}</div>` : ''}<div>Gerado em: <strong>${now()}</strong></div></div>
     </div>
+  </div>`;
+}
+
+// Identificação do projeto: só no início da 1ª página (o cabeçalho que repete é o de cima).
+function docIntro(){
+  return `<div class="doc-intro">
+    <div class="doc-header-projeto">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
+    <div class="doc-header-programa">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
+    <div class="doc-header-local">Rio Branco, Acre — SEMA/AC</div>
   </div>`;
 }
 
 function docFooter(nomeUsuario, perfil){
+  const parc = DimaLogos.lista(relLogos().parceiros, 'claro', { altura: 24, classe: 'doc-footer-logo', cors: true });
   return `
   <div class="doc-footer">
-    <div class="doc-footer-esq">
-      Impresso por: <strong>${esc(nomeUsuario)}</strong> · ${esc(perfil)}<br>
-      <span style="font-size:9px;color:var(--cinza-400)">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
-    </div>
-    <div class="doc-footer-centro">
-      Plataforma DIMA · UNESCO 218BRA2001
-    </div>
-    <div class="doc-footer-dir" id="num-pagina">Página 1</div>
+    ${parc.length ? `<div class="doc-footer-logos">${parc.join('')}</div>` : ''}
+    <div class="doc-footer-txt">Impresso por <strong>${esc(nomeUsuario)}</strong> · ${esc(perfil)} · Plataforma DIMA · SEMA/AC · UNESCO 218BRA2001</div>
   </div>`;
 }
 
-// Marca-d'água = logo do projeto (Dados do sistema), sem placa: a imagem fica bem clara no papel.
+// Marca-d'água = logo do projeto, bem clara no papel (fica no centro de cada página na impressão).
 function docWatermark(){
   const p = relLogos().projeto;
   const src = p && (p.url || p.url_escuro);
@@ -751,15 +746,14 @@ function wrapDoc(conteudo, rel){
     ? 'Período: '+(dtIni?fmtDt(dtIni):'início')+' a '+(dtFim?fmtDt(dtFim):'hoje')
     : '';
   const perfilLabel = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',financeiro:'Financeiro'}[appState.perfil]||appState.perfil;
-  const paisagemAttr = rel.paisagem ? ' data-paisagem="true" class="doc-wrap doc-paisagem"' : ' class="doc-wrap"';
   return `
-  <div${paisagemAttr} id="doc-content">
-    ${docHeader(rel.titulo, ti.label.toUpperCase(), rel.tema, periodoTxt)}
-    <div class="doc-body">
-      ${conteudo}
-    </div>
-    ${docFooter(u?.nome_completo||'Usuário', perfilLabel)}
+  <div class="doc-wrap${rel.paisagem ? ' doc-paisagem' : ''}" data-paisagem="${rel.paisagem ? 'true' : 'false'}" id="doc-content">
     ${docWatermark()}
+    <table class="doc-pg" role="presentation">
+      <thead><tr><td>${docHeader(rel.titulo, ti.label.toUpperCase(), rel.tema, periodoTxt)}</td></tr></thead>
+      <tfoot><tr><td>${docFooter(u?.nome_completo||'Usuário', perfilLabel)}</td></tr></tfoot>
+      <tbody><tr><td>${docIntro()}<div class="doc-body">${conteudo}</div></td></tr></tbody>
+    </table>
   </div>`;
 }
 
@@ -775,19 +769,9 @@ function abrirExport() {
   const preview = document.getElementById('exp-preview-content');
   preview.innerHTML = content.outerHTML;
   preview.querySelector('#doc-content')?.removeAttribute('id');
-  preview.querySelectorAll('.doc-watermark').forEach(el => el.style.position = 'absolute');
 
-  // Destacar botões paisagem quando o relatório recomenda essa orientação
-  const sidebar = document.querySelector('.exp-sidebar-body');
-  sidebar.querySelectorAll('.exp-aviso-paisagem').forEach(el => el.remove());
-  sidebar.querySelectorAll('.exp-btn-recomendado').forEach(el => el.classList.remove('exp-btn-recomendado'));
-  if (rel?.paisagem) {
-    const aviso = document.createElement('div');
-    aviso.className = 'exp-aviso-paisagem';
-    aviso.innerHTML = reIc('info','p') + '<span>Este relatório é recomendado em <strong>Paisagem</strong> para melhor visualização.</span>';
-    sidebar.insertBefore(aviso, sidebar.firstChild);
-    sidebar.querySelectorAll('[data-orient="paisagem"]').forEach(btn => btn.classList.add('exp-btn-recomendado'));
-  }
+  // Abre na orientação recomendada do relatório; a pessoa pode trocar (a prévia acompanha)
+  expOrientar(rel?.paisagem ? 'landscape' : 'portrait');
 
   const m = document.getElementById('export-modal');
   if (!m.classList.contains('aberto')) expVolta = document.activeElement;
@@ -822,32 +806,59 @@ document.addEventListener('keydown', e => {
 });
 document.getElementById('export-modal').addEventListener('click', e => { if (e.target.id === 'export-modal') fecharExport(); });
 
-function exportPDF(orientacao, btn) {
-  const wrapper = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
-  if (!wrapper) return;
-  // Orientação segue o botão clicado (paisagem é só recomendação, não obrigação)
+// ── Folha A4: orientação, ajuste de largura e impressão ──────────────────
+// A prévia da janela tem a largura exata do A4 (css/relatorios.css), então o que cabe nela cabe no papel.
+let expOrient = 'portrait';
+function expOrientar(o) {
+  expOrient = o === 'landscape' ? 'landscape' : 'portrait';
+  document.querySelectorAll('#export-modal [data-orient]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.orient === expOrient)));
+  const w = document.querySelector('#exp-preview-content .doc-wrap');
+  if (!w) return;
+  w.classList.toggle('doc-paisagem', expOrient === 'landscape');
+  expAjustar(w);
+}
+// Algo passa da largura útil da folha? (mede na prévia, já na largura do A4)
+function docExcede(w) {
+  const corpo = w.querySelector('.doc-body'); if (!corpo) return false;
+  const cs = getComputedStyle(corpo);
+  const lim = corpo.getBoundingClientRect().right - parseFloat(cs.paddingRight) + 1;
+  return [...corpo.querySelectorAll('*')].some(e => e.getBoundingClientRect().right > lim);
+}
+// Se não couber, compacta (letra menor, colunas fixas, texto quebrando); avisa se nem assim couber.
+function expAjustar(w) {
+  w.classList.remove('doc-fit');
+  let compacto = false, ainda = false;
+  if (docExcede(w)) { w.classList.add('doc-fit'); compacto = true; ainda = docExcede(w); }
+  const av = document.getElementById('exp-ajuste');
+  if (!av) return;
+  const msg = ainda ? (expOrient === 'portrait' ? 'Algumas colunas não cabem em retrato. Use <strong>Paisagem</strong>.' : 'Algumas colunas não cabem nem em paisagem; o texto foi reduzido ao mínimo.')
+    : compacto ? 'A letra foi reduzida para a tabela caber na folha.' + (expOrient === 'portrait' ? ' Em <strong>Paisagem</strong> fica mais legível.' : '')
+    : '';
+  av.hidden = !msg;
+  av.innerHTML = msg ? reIc('info','p') + '<span>' + msg + '</span>' : '';
+}
+// Monta a área de impressão com a folha da prévia (mesma orientação e ajuste) e o @page do A4.
+function prepararImpressao(orientacao) {
+  if (orientacao) expOrientar(orientacao);
+  const el = document.querySelector('#exp-preview-content .doc-wrap');
+  if (!el) return false;
+  const printArea = document.getElementById('print-area');
+  printArea.innerHTML = el.outerHTML;
+  let s = document.getElementById('_po');
+  if (!s) { s = document.createElement('style'); s.id = '_po'; document.head.appendChild(s); }
+  s.textContent = `@page { size: A4 ${expOrient}; margin: 10mm 10mm 12mm;
+    @bottom-center { content: "Página " counter(page) " de " counter(pages); font: 600 8.5pt Arial, Helvetica, sans-serif; color: #6B7280; } }`;
+  return true;
+}
+// Texto de verdade pelo motor de impressão do navegador (Imprimir ou "Salvar como PDF"); nada sai do navegador.
+function exportPrint(orientacao) {
+  if (!prepararImpressao(orientacao)) return;
   const rel = RELATORIOS.find(r => r.id === relAtivo);
-  const nome = (rel?.titulo || 'relatorio').replace(/[^\w\s]/g,'').trim().replace(/\s+/g,'_').slice(0,40);
-  const filename = `${relAtivo}_${nome}_${new Date().toISOString().slice(0,10)}.pdf`;
-  const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="re-spin" style="width:14px;height:14px;border-width:2px"></span>Gerando…'; btn.disabled = true;
-
-  // Clonar o HTML removendo watermark (evita taint) e passar como string
-  // para o html2pdf criar container próprio sem herdar offset do modal
-  const clone = wrapper.cloneNode(true);
-  clone.querySelectorAll('.doc-watermark').forEach(e => e.remove());
-  const htmlStr = clone.outerHTML;
-
-  html2pdf().set({
-    margin: [6, 8, 6, 8],
-    filename,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: orientacao, compress: true },
-    pagebreak: { mode: ['css','legacy'], avoid: ['tr','.rep-stat'] }
-  }).from(htmlStr).save().finally(() => {
-    btn.innerHTML = orig; btn.disabled = false;
-  });
+  const tituloAntes = document.title;
+  // nome sugerido do arquivo PDF = título da página no momento da impressão
+  document.title = `${relAtivo}_${(rel?.titulo || 'relatorio').replace(/[^\w\sÀ-ú-]/g,'').trim().replace(/\s+/g,'_').slice(0,40)}_${new Date().toISOString().slice(0,10)}`;
+  window.addEventListener('afterprint', () => { document.getElementById('print-area').innerHTML = ''; document.title = tituloAntes; }, { once: true });
+  window.print();
 }
 
 function exportCSV() {
@@ -873,26 +884,6 @@ function exportExcel() {
   const wb = XLSX.utils.book_new();
   tables.forEach((tbl, i) => XLSX.utils.book_append_sheet(wb, XLSX.utils.table_to_sheet(tbl), `Aba${i+1}`));
   XLSX.writeFile(wb, `${relAtivo}_${nome}_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-function exportPrint(orientacao) {
-  const el = document.getElementById('exp-preview-content').querySelector('.doc-wrap');
-  if (!el) return;
-  // Orientação segue o botão clicado (paisagem é só recomendação)
-  const ehLargo = el.dataset.paisagem === 'true';
-  const printArea = document.getElementById('print-area');
-  printArea.innerHTML = el.outerHTML;
-  const wrap = printArea.querySelector('.doc-wrap');
-  // Retrato de relatório largo: compacta a tabela p/ caber na largura sem cortar coluna
-  if (wrap && ehLargo && orientacao === 'portrait') {
-    wrap.classList.remove('doc-paisagem');
-    wrap.classList.add('doc-fit');
-  }
-  let s = document.getElementById('_po');
-  if (!s) { s = document.createElement('style'); s.id = '_po'; document.head.appendChild(s); }
-  s.textContent = `@page { size: A4 ${orientacao}; margin: 0; }`;
-  window.addEventListener('afterprint', () => { printArea.innerHTML = ''; }, { once: true });
-  window.print();
 }
 
 function _download(conteudo, nome, tipo) {
@@ -962,11 +953,6 @@ async function gerarRelatorio(id){
     // Resolve imagens de buckets privados (ex.: cartões de embarque) — os
     // elementos são renderizados com data-arquivo-src e assinados aqui.
     assinarImagens(area);
-    // Conta páginas aproximadas
-    const linhas = area.querySelectorAll('.rep-tbl tbody tr').length;
-    const pags = Math.max(1, Math.ceil(linhas/30));
-    const np = area.querySelector('#num-pagina');
-    if(np) np.textContent = pags>1?`${pags} páginas`:`Página 1`;
   } catch(e){
     area.innerHTML = `<div class="re-erro" role="alert">Erro ao gerar relatório: ${esc(e.message||String(e))}</div>`;
   }
