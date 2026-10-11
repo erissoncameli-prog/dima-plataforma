@@ -104,7 +104,7 @@ body.dgm .re-fil :is(.config-select, .config-input):focus { outline: 0; border-c
 }
 .doc-wrap.doc-paisagem { width: 297mm; }
 /* a folha é uma tabela: thead (cabeçalho) e tfoot (rodapé) se repetem em cada página impressa */
-.doc-pg { width: 100%; border-collapse: collapse; position: relative; z-index: 1; }
+.doc-pg { width: 100%; table-layout: fixed; border-collapse: collapse; position: relative; z-index: 1; } /* fixed: a folha não alarga com o conteúdo */
 .doc-pg > thead > tr > td, .doc-pg > tfoot > tr > td, .doc-pg > tbody > tr > td { padding: 0; vertical-align: top; }
 
 /* Cabeçalho */
@@ -206,7 +206,7 @@ body.dgm .re-fil :is(.config-select, .config-input):focus { outline: 0; border-c
 /* ── Janela de exportação (.re-ov) ───────────────────────────────────── */
 #export-modal { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(8, 14, 11, .62); padding: 24px; }
 #export-modal.aberto { display: flex; }
-.re-exp { display: grid; grid-template-columns: 240px minmax(0, 1fr); width: 100%; max-width: 1240px; margin: 0 auto; border-radius: var(--r-xl); overflow: hidden;
+.re-exp { display: grid; grid-template-columns: 264px minmax(0, 1fr); width: 100%; max-width: 1240px; margin: 0 auto; border-radius: var(--r-xl); overflow: hidden;
   border: 1px solid var(--lin-forte); box-shadow: var(--sh-2); background: var(--sup); }
 .exp-sidebar { background: var(--sup); color: var(--txt); padding: 16px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; border-right: 1px solid var(--lin); }
 .exp-sidebar-title { font-size: 15px; font-weight: 700; color: var(--txt); display: flex; gap: 8px; align-items: center; }
@@ -222,6 +222,8 @@ body.dgm .exp-sidebar .exp-btn-recomendado { border-color: var(--pri-600); backg
 .exp-preview { align-items: flex-start; }
 .exp-preview .doc-wrap { margin: 0 auto; }
 .exp-orient { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+body.dgm .exp-sidebar .exp-orient .btn { justify-content: center; padding-inline: 8px; min-width: 0; }
+.exp-aviso-paisagem[hidden] { display: none; }
 body.dgm .exp-sidebar .exp-orient .btn[aria-pressed="true"] { border-color: var(--pri-600); background: var(--pri-50); color: var(--txt); font-weight: 600; }
 .exp-dica { font-size: 11.5px; color: var(--txt-3); line-height: 1.45; margin: 2px 0 4px; }
 

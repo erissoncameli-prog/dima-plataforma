@@ -820,8 +820,7 @@ function expOrientar(o) {
 // Algo passa da largura útil da folha? (mede na prévia, já na largura do A4)
 function docExcede(w) {
   const corpo = w.querySelector('.doc-body'); if (!corpo) return false;
-  const cs = getComputedStyle(corpo);
-  const lim = corpo.getBoundingClientRect().right - parseFloat(cs.paddingRight) + 1;
+  const lim = w.getBoundingClientRect().right - parseFloat(getComputedStyle(w).paddingRight) + 1;
   return [...corpo.querySelectorAll('*')].some(e => e.getBoundingClientRect().right > lim);
 }
 // Se não couber, compacta (letra menor, colunas fixas, texto quebrando); avisa se nem assim couber.
