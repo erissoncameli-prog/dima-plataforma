@@ -73,6 +73,25 @@
 .rep-tbl tbody tr:nth-child(even) td { background: #fafcfa; }
 .rep-tbl tbody tr:hover td { background: #f0f7f2; }
 .rep-tbl tfoot td { padding: 8px 10px; font-weight: 700; color: var(--cinza-900); border-top: 2px solid #1F4E2C; background: #f0f7f2; }
+/* Colunas curtas (número, data, código, selo) ocupam só o próprio conteúdo e não quebram: o texto corrido
+   fica com o resto da largura. Automático para td.mono e célula que só tem um selo; .c-min marca outras. */
+.rep-tbl td.mono, .rep-tbl .c-min, .rep-tbl td:has(> .rep-badge:only-child) { width: 1%; white-space: nowrap; }
+.rep-tbl td:has(> .rep-badge:only-child) .rep-badge { white-space: nowrap; }
+/* Texto longo (objetivo, objeto) numa linha própria abaixo do registro, na largura toda da tabela.
+   Marcação: <tbody class="rep-grupo"><tr class="rep-mae">…</tr><tr class="rep-det"><td colspan="N">…</td></tr></tbody>
+   O grupo não se separa entre páginas (FolhaA4.paginar respeita break-inside: avoid). */
+.rep-tbl tbody.rep-grupo { break-inside: avoid; page-break-inside: avoid; }
+.rep-tbl tbody.rep-grupo tr td { background: transparent; }
+.rep-tbl tbody.rep-grupo:nth-of-type(even) td { background: #fafcfa; }
+.rep-tbl tbody.rep-grupo:hover td { background: #f0f7f2; }
+.rep-tbl tbody.rep-grupo tr.rep-mae td { border-bottom: 0; padding-bottom: 3px; }
+.rep-tbl tr.rep-det td { padding-top: 0; padding-bottom: 9px; font-size: 9.5px; line-height: 1.5; color: var(--cinza-600); }
+.rep-det-lbl { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--cinza-500); margin-right: 6px; }
+.rep-det-grade { display: grid; grid-template-columns: 3fr 2fr; gap: 3px 22px; margin-top: 5px; padding-top: 5px; border-top: 1px dashed var(--borda); }
+.rep-det-grade > * { min-width: 0; }
+/* segunda informação curta embaixo do valor (SEI do protocolo, nº de dias, "2 trechos") */
+.rep-sub { display: block; font-size: 8px; color: var(--cinza-500); font-family: var(--font-mono); margin-top: 2px; white-space: nowrap; }
+.rep-cod { font-family: var(--font-mono); font-size: 10px; background: #D1FAE5; color: #065F46; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
 
 /* Números */
 .rep-stats { display: grid; gap: 12px; margin-bottom: 20px; }
@@ -117,10 +136,13 @@
 .doc-fit .rep-tbl { width: 100%; font-size: 8px; }
 .doc-fit .rep-stat-val { font-size: 14px; }
 .doc-fit .doc-body [style*="nowrap"] { white-space: normal !important; }
-.doc-fit .rep-tbl th, .doc-fit .rep-tbl td { white-space: normal !important; overflow-wrap: break-word; padding: 4px 5px; }
-/* último recurso: palavra/endereço que sozinho não cabe quebra em qualquer ponto */
+.doc-fit .rep-tbl th, .doc-fit .rep-tbl td { overflow-wrap: break-word; padding: 4px 5px; }
+.doc-fit .rep-tbl th, .doc-fit .rep-tbl td:not(.mono):not(.c-min) { white-space: normal !important; }
+/* último recurso: palavra/endereço que sozinho não cabe quebra em qualquer ponto — só texto corrido.
+   Número e data só quebram no espaço ("R$ | 10.059,74"), nunca no meio (era o "R$ 2.4 | 22,0 | 6"). */
 .doc-fit.doc-fit-max .doc-body td, .doc-fit.doc-fit-max .doc-body th { overflow-wrap: anywhere; }
-.doc-fit .rep-tbl .mono, .doc-fit .rep-tbl .mono-sm { white-space: normal !important; }
+.doc-fit.doc-fit-max .rep-tbl td.mono, .doc-fit.doc-fit-max .rep-tbl .c-min { width: auto; white-space: normal !important; }
+.doc-fit.doc-fit-max .doc-body .mono, .doc-fit.doc-fit-max .doc-body .mono-sm, .doc-fit.doc-fit-max .doc-body .rep-cod, .doc-fit.doc-fit-max .doc-body .rep-badge { overflow-wrap: normal; word-break: keep-all; }
 
 /* ── Impressão (motor do navegador: texto de verdade) ────────────────── */
 /* @page (A4, margem 0) vem de FolhaA4.paginaCss; o que vai ao papel são as páginas de FolhaA4.paginar. */
