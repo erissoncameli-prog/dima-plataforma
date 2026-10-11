@@ -66,26 +66,30 @@
     const v = b.dataset.tema
     document.documentElement.dataset.tema = v; ls.gravar('diag_tema', v)
     const m = document.querySelector('meta[name="theme-color"]'); if (m) m.content = v === 'escuro' ? '#0A1A0F' : '#EEF2EF'
-    marcarTema(); pintarParceirosLado()
+    marcarTema(); pintarParceiros()
   }))
   marcarTema()
 
-  // ── Logos (Dados do sistema; vitrine = fundo escuro; parceiros do celular = fundo do tema) ──
+  // ── Logos (Dados do sistema). Vitrine = fundo escuro. Parceiros no rodapé, no fundo do tema:
+  // claro = versão de fundo claro, direto; escuro = versão escura se TODOS tiverem, senão uma faixa clara única
+  // (en-parc-faixa) com a versão de fundo claro — nunca uma placa por logo.
   let LOGOS = DimaLogos.agora()
-  const parcImg = (l, fundo, altura) => DimaLogos.img(l, fundo, { altura, tamanho: false, classe: l.tamanho === 'grande' ? 'en-grande' : '' })
   function pintarLogos(L) {
     LOGOS = L
-    const topo = DimaLogos.lista(L.topo, 'escuro', { altura: 30 })
+    const topo = DimaLogos.lista(L.topo, 'escuro', { altura: 45 })
     $('en-logos-topo').innerHTML = topo.join('<span class="en-logos-sep"></span>'); $('en-logos-topo').hidden = !topo.length
-    const pj = DimaLogos.img(L.projeto, 'escuro', { altura: 84, tamanho: false })
+    const pj = DimaLogos.img(L.projeto, 'escuro', { altura: 168, tamanho: false })
     $('en-logo-proj').innerHTML = pj; $('en-logo-proj').hidden = !pj
-    const pv = L.parceiros.map(l => parcImg(l, 'escuro', 32)).filter(Boolean)
-    $('en-parc-vit-logos').innerHTML = pv.join(''); $('en-parc-vit').hidden = !pv.length
-    pintarParceirosLado()
+    pintarParceiros()
   }
-  function pintarParceirosLado() {
-    const pl = LOGOS.parceiros.map(l => parcImg(l, temaAtual(), 30)).filter(Boolean)
-    $('en-parc-lado-logos').innerHTML = pl.join(''); $('en-parc-lado').hidden = !pl.length
+  function pintarParceiros() {
+    const ls = LOGOS.parceiros || []
+    const escuro = temaAtual() === 'escuro', todosEscuros = ls.length && ls.every(l => l.url_escuro)
+    const fundo = escuro && todosEscuros ? 'escuro' : 'claro'
+    const it = ls.map(l => DimaLogos.img(l, fundo, { altura: 24, tamanho: false, classe: l.tamanho === 'grande' ? 'en-grande' : '' })).filter(Boolean)
+    $('en-parc-logos').innerHTML = it.join('')
+    $('en-parc').classList.toggle('en-parc-faixa', escuro && !todosEscuros)
+    $('en-parc').hidden = !it.length
   }
   pintarLogos(LOGOS)
   DimaLogos.carregar(db).then(pintarLogos)

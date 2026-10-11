@@ -473,10 +473,6 @@ function renderPreviewHTML() {
             <div id="pv-proj-local">${esc(cfg.projeto_localizacao)}</div>
             <div id="pv-dots" style="display:flex;gap:4px;margin-top:8px">${pvHtmlDots()}</div>
           </div>
-          <div id="pv-parceiros-wrap">
-            <span class="pv-parceiros-label-left">Realização e parceiros</span>
-            <div id="pv-parceiros-logos">${pvHtmlParceiros()}</div>
-          </div>
         </div>
       </div>
       <div class="pv-foto-contador">${cfg.fotos.length ? '1 / ' + cfg.fotos.length : ''}</div>
@@ -492,26 +488,29 @@ function renderPreviewHTML() {
         <div class="pv-label">Senha</div><div class="pv-input"></div>
         <div class="pv-btn"></div>
       </div>
+      <div class="pv-rodape">Acesso restrito a usuários autorizados<br>Projeto ${esc(cfg.projeto_codigo)}
+        <div id="pv-parceiros-logos">${pvHtmlParceiros()}</div></div>
     </div>
   </div>`;
 }
 
 // Prévia da entrada: fundo escuro (foto com véu) ⇒ mesma regra da tela real (js/logos.js)
 function pvHtmlLogosTopo() {
-  const it = DimaLogos.lista(DimaLogos.normalizar({ logos_topo: cfg.logos_topo }).topo, 'escuro', { altura: 63 });
+  const it = DimaLogos.lista(DimaLogos.normalizar({ logos_topo: cfg.logos_topo }).topo, 'escuro', { altura: 50 });
   if (!it.length) return '<span style="font-size:10px;color:rgba(255,255,255,.4)">Sem logos</span>';
-  return it.join('<div style="width:1px;height:81px;background:rgba(255,255,255,.25);flex-shrink:0"></div>');
+  return it.join('<div style="width:1px;height:36px;background:rgba(255,255,255,.25);flex-shrink:0"></div>');
 }
 
 function pvHtmlLogoProjeto() {
   const p = DimaLogos.normalizar({ logo_projeto: cfg.logo_projeto }).projeto;
-  return p ? DimaLogos.img(p, 'escuro', { altura: 96, tamanho: false }) : '';
+  return p ? DimaLogos.img(p, 'escuro', { altura: 158, tamanho: false }) : '';
 }
 
 function pvHtmlParceiros() {
   const ls = DimaLogos.normalizar({ logos_parceiros: cfg.logos_parceiros }).parceiros;
-  if (!ls.length) return '<span style="font-size:9px;color:rgba(255,255,255,.4)">Sem parceiros</span>';
-  return ls.map(l => DimaLogos.img(l, 'escuro', { altura: l.tamanho === 'grande' ? 80 : 60, tamanho: false, estilo: 'max-width:160px' })).join('');
+  if (!ls.length) return '<span style="font-size:9px;color:#5F6E65">Sem parceiros</span>';
+  // como na tela de entrada (tema claro): parceiros no rodapé do formulário, versão para fundo claro
+  return ls.map(l => DimaLogos.img(l, 'claro', { altura: l.tamanho === 'grande' ? 30 : 24, tamanho: false, estilo: 'max-width:92px' })).join('');
 }
 
 function pvHtmlDots() {
