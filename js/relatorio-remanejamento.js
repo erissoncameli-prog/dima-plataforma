@@ -9,43 +9,30 @@
 //                                créditos com procedência − débitos de hoje = saldo
 // Janela aberta ANTES de qualquer await (senão o navegador bloqueia o pop-up).
 
+// Estilo do conteúdo destes relatórios; a folha (cabeçalho, rodapé, logos, impressão) é a padrão
+// (js/folha-a4.js + css/folha-a4.css) e a FolhaA4 escopa estas regras em .doc-body.
 const REL_CSS = `
-*{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#111827;margin:24px;font-size:11px}
-h1{font-size:17px;color:#1F4E2C;margin:0 0 2px}.sub{color:#6B7280;font-size:10px;margin-bottom:14px}
 h2{font-size:12px;color:#1F4E2C;border-bottom:2px solid #1F4E2C;padding-bottom:3px;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.04em}
-table{width:100%;border-collapse:collapse;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:11px}
 th{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#6B7280;text-align:left;background:#f0f7f2;border-bottom:2px solid #1F4E2C;padding:5px 7px}
-td{padding:5px 7px;border-bottom:1px solid #E5E7EB;vertical-align:top}
+td{padding:5px 7px;border-bottom:1px solid #E5E7EB;vertical-align:top;overflow-wrap:break-word}
 .n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.neg{color:#991B1B}.pos{color:#065F46}
-.mono{font-family:Consolas,monospace;font-size:9px;word-break:break-all}.mut{color:#6B7280}
+.mono{font-family:Consolas,monospace;font-size:9px;overflow-wrap:anywhere;white-space:normal}.mut{color:#6B7280}
 tfoot td{font-weight:700;border-top:2px solid #1F4E2C;background:#f0f7f2}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:6px}
-.kpi{border:1px solid #E5E7EB;border-radius:6px;padding:7px 9px}.kpi b{display:block;font-size:13px}.kpi span{color:#6B7280;font-size:9px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:6px}
+.kpi{border:1px solid #E5E7EB;border-radius:6px;padding:7px 9px;break-inside:avoid}.kpi b{display:block;font-size:13px}.kpi span{color:#6B7280;font-size:9px}
 .aviso{background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;border-radius:6px;padding:7px 9px;margin:6px 0}
 .ok{background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;border-radius:6px;padding:7px 9px;margin:6px 0}
-.assin{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.assin>div{border:1px solid #E5E7EB;border-radius:6px;padding:7px 9px;break-inside:avoid}
-@media print{@page{size:A4;margin:12mm}body{margin:0}thead{display:table-header-group}tr{break-inside:avoid}
-*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`
+.assin{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.assin>div{border:1px solid #E5E7EB;border-radius:6px;padding:7px 9px;break-inside:avoid}`
 
 const relUSD = v => 'US$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const relData = d => d ? new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—'
 const relE = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
-function relJanela() {
-  const w = window.open('', '_blank')
-  if (!w) { toast('Permita pop-ups neste site para gerar o relatório.', 'warning'); return null }
-  w.document.write('<!doctype html><meta charset="utf-8"><title>Gerando…</title><body style="font-family:sans-serif;color:#6B7280;padding:40px;text-align:center">Gerando relatório A4…</body>')
-  return w
-}
+function relJanela() { return FolhaA4.janela() }
 function relEscrever(w, titulo, corpo) {
-  const dt = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-  w.document.open()
-  w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${relE(titulo)}</title><style>${REL_CSS}</style></head><body>
-    <h1>${relE(titulo)}</h1><div class="sub">Projeto 218BRA2001 · SEMA/AC · UNESCO — gerado em ${dt} por ${relE(appState?.usuario?.nome_completo || '')}</div>
-    ${corpo}</body></html>`)
-  w.document.close(); w.focus()
-  setTimeout(() => { try { w.print() } catch (e) {} }, 400)
+  FolhaA4.escrever(w, { titulo, selo: 'REMANEJAMENTO', tema: 'financeiro', corpo, css: REL_CSS })
 }
 
 const REL_STATUS = { rascunho: 'Rascunho', em_aprovacao: 'Em aprovação', efetivado: 'Efetivado', recusado: 'Recusado', cancelado: 'Cancelado', estornado: 'Estornado' }

@@ -23,6 +23,7 @@
 <script src="../js/layout.js"></script>
 <script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
+<script src="../js/folha-a4.js"></script>
 <div id="app"><div class="mp-carrega" role="status"><span class="mp-spin"></span>Carregando mapa…</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -5200,6 +5201,8 @@ let _relCarAbortado = false;
 async function gerarRelatorioCarMarcados(){
   const cods = [..._carMarcados.keys()];
   if(!cods.length){ toast('Nenhum imóvel marcado para gerar relatório','warning'); return; }
+  // a aba do relatório abre já no clique (depois dos awaits o navegador bloquearia o pop-up)
+  const win = FolhaA4.janela(); if(!win) return;
 
   _relCarAbortado = false;
   const toast_id = toast(`Capturando ${cods.length} imóvel(is)… 0/${cods.length}`,'info');
@@ -5242,10 +5245,11 @@ async function gerarRelatorioCarMarcados(){
   mapaL.setView(viewAntes, zoomAntes);
   if(selAntes) _carSelecionado = selAntes;
 
-  if(!capturas.length){ toast('Nenhuma captura realizada','error'); return; }
+  if(!capturas.length){ toast('Nenhuma captura realizada','error'); try{ win.close(); }catch(e){} return; }
 
-  toast('Gerando PDF via servidor…','info');
-  await _gerarPdfRelatorioCAR(capturas);
+  // Folha A4 padrão: impressão/PDF pelo navegador (texto de verdade; nada vai para servidor externo)
+  const { css, corpo } = _conteudoRelatorioCAR(capturas);
+  FolhaA4.escrever(win, { titulo: 'Relatório de Imóveis CAR Marcados', selo: 'CAR · Mapa Interativo', tema: 'atividades', corpo, css, nomeArquivo: 'relatorio-car' });
 }
 
 function _criarLegendaMapa(f, prodesCapt){
@@ -5487,100 +5491,9 @@ function _svgFallbackCAR(f, bounds){
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 }
 
-// Logos do relatório CAR = Dados do sistema (js/logos.js), versão para fundo claro; o servidor do PDF
-// (Browserless) baixa as imagens pelo endereço absoluto que DimaLogos.url() devolve.
-let _carLogosL = null;
-const _carLogos = () => _carLogosL || DimaLogos.agora();
-DimaLogos.carregar(db).then(L => { _carLogosL = L; });
-
-// ── Janela de impressão — mesmo cabeçalho do sistema de relatórios ─────────
-async function _gerarPdfRelatorioCAR(capturas){
-  const htmlContent = _montarHtmlRelatorioCAR(capturas);
-  const now = new Date().toISOString().slice(0,10);
-  const filename = `relatorio-car-${now}`;
-
-  // Templates nativos do Puppeteer — reproduzem o cabeçalho/rodapé originais do sistema
-  const nowStr = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
-               + ' — ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const userPdf  = appState?.usuario?.nome_completo || appState?.usuario?.email || 'Sistema DIMA';
-  const perfilPdf = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',
-    financeiro:'Financeiro',consultor_externo:'Consultor Externo',visualizador:'Visualizador'
-  }[appState?.perfil] || appState?.perfil || '';
-
-  // headerTemplate: reproduz exatamente o .doc-header original
-  const headerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;background:var(--branco);padding:16px 28px 12px;border-bottom:3px solid var(--verde);box-sizing:border-box;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">${_carLogos().topo.map(l => DimaLogos.img(l, 'claro', { altura: 28 })).filter(Boolean).join('<div style="width:1px;height:24px;background:#B5860D;flex-shrink:0;"></div>')}</div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">${DimaLogos.lista(_carLogos().parceiros, 'claro', { altura: 24 }).join('')}</div>
-    </div>
-    <div style="margin-bottom:10px;">
-      <div style="font-size:9px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
-      <div style="font-size:11px;color:var(--cinza-600);margin-bottom:1px;">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
-      <div style="font-size:10px;color:var(--cinza-500);">Rio Branco, Acre — SEMA/AC</div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:16px;font-weight:700;color:var(--cinza-900);">🏡 Relatório de Imóveis CAR Marcados</span>
-        <span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff;background:var(--verde);letter-spacing:.05em;">CAR · Mapa Interativo</span>
-      </div>
-      <div style="text-align:right;font-size:10px;color:var(--cinza-500);line-height:1.5;">
-        <div>Gerado em: <strong>${nowStr}</strong></div>
-        <div>Por: <strong>${userPdf}</strong>${perfilPdf ? ' · '+perfilPdf : ''}</div>
-      </div>
-    </div>
-  </div>`;
-
-  // footerTemplate: reproduz exatamente o .doc-footer original
-  const footerTemplate = `<div style="width:100%;font-family:Arial,Helvetica,sans-serif;padding:10px 28px;border-top:1.5px solid var(--verde);display:flex;align-items:center;justify-content:space-between;background:#f8faf8;box-sizing:border-box;">
-    <div style="font-size:10px;color:var(--cinza-600);line-height:1.5;">
-      Impresso por: <strong>${userPdf}</strong>${perfilPdf ? ' · '+perfilPdf : ''}<br>
-      <span style="font-size:9px;color:var(--cinza-400);">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
-    </div>
-    <div style="font-size:9px;color:var(--cinza-400);text-align:center;">Plataforma DIMA · UNESCO 218BRA2001</div>
-    <div style="font-size:11px;font-weight:600;color:var(--cinza-700);font-family:monospace;">
-      Relatório CAR · p.<span class="pageNumber"></span>/<span class="totalPages"></span>
-    </div>
-  </div>`;
-
-  try{
-    const { data:{ session } } = await db.auth.getSession();
-    const res = await fetch(SUPABASE_URL + '/functions/v1/gerar-pdf-relatorio', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + (session?.access_token || ''),
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ html: htmlContent, filename }),
-    });
-
-    if(!res.ok){
-      const err = await res.json().catch(()=>({ error: `HTTP ${res.status}` }));
-      // Fallback: abre em nova janela para impressão manual
-      if(err.error?.includes('BROWSERLESS_TOKEN')){
-        toast('⚠️ Token Browserless não configurado. Abrindo para impressão manual…','warning');
-        _abrirJanelaRelatorioCAR(capturas);
-        return;
-      }
-      throw new Error(err.error || `HTTP ${res.status}`);
-    }
-
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = filename + '.pdf';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
-    toast('✅ PDF gerado e baixado!', 'success');
-
-  } catch(e){
-    toast('Erro ao gerar PDF: ' + e.message + ' — abrindo versão impressão…', 'error');
-    _abrirJanelaRelatorioCAR(capturas);
-  }
-}
-
-function _montarHtmlRelatorioCAR(capturas){
+// Conteúdo do relatório CAR (capa, fichas, resumo). Cabeçalho, rodapé, logos e impressão = folha A4 padrão
+// (js/folha-a4.js); o CSS abaixo é escopado em .doc-body pela FolhaA4.
+function _conteudoRelatorioCAR(capturas){
 
   const now  = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})
              + ' — ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
@@ -5602,45 +5515,7 @@ function _montarHtmlRelatorioCAR(capturas){
   const dentroUC = Object.entries(porUC).filter(([k])=>k!=='— Fora de UC').reduce((s,[,v])=>s+v,0);
   const fichas = capturas.map(({feat,imgData}) => _htmlFichaCAR(feat, imgData)).join('');
 
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Relatório CAR — SEMA/AC · Projeto 218BRA2001</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;background:#f3f4f6;}
-
-/* ── DOC WRAP (igual ao sistema de relatórios) ── */
-.doc-wrap{background:#fff;max-width:960px;margin:20px auto;border-radius:8px;box-shadow:0 2px 16px rgba(0,0,0,.12);overflow:hidden;}
-
-/* ── CABEÇALHO — idêntico ao relatorios.html ── */
-.doc-header{padding:20px 32px 16px;border-bottom:3px solid #1F4E2C;position:relative;background:#fff;}
-.doc-header-logos{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.doc-header-logos-esq{display:flex;align-items:center;gap:10px;}
-.doc-header-logos-dir{display:flex;align-items:center;gap:10px;}
-.doc-header-logo{height:32px;width:auto;object-fit:contain;}
-.doc-header-sep{width:1px;height:28px;background:#B5860D;flex-shrink:0;}
-.doc-header-projeto{font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;}
-.doc-header-programa{font-size:11px;color:#4b5563;margin-bottom:1px;}
-.doc-header-local{font-size:10px;color:#6b7280;}
-.doc-header-titulo-wrap{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
-.doc-header-titulo{font-size:18px;font-weight:700;color:#111827;display:flex;align-items:center;gap:10px;}
-.doc-header-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;text-transform:uppercase;letter-spacing:.06em;color:#fff;background:#1F4E2C;}
-.doc-header-meta{text-align:right;font-size:10px;color:#6b7280;line-height:1.6;}
-.doc-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:0;opacity:.06;}
-.doc-watermark img{width:280px;height:auto;}
-
-/* ── RODAPÉ — idêntico ao relatorios.html ── */
-.doc-footer{padding:12px 32px;border-top:1.5px solid #1F4E2C;display:flex;align-items:center;justify-content:space-between;background:#f8faf8;}
-.doc-footer-esq{font-size:10px;color:#4b5563;line-height:1.6;}
-.doc-footer-centro{font-size:9px;color:#9ca3af;text-align:center;}
-.doc-footer-dir{font-size:11px;font-weight:600;color:#374151;font-family:monospace;}
-
-/* ── CORPO ── */
-.doc-body{padding:20px 32px;position:relative;z-index:1;}
-
-/* ── CAPA ── */
+  const css = `/* ── CAPA ── */
 .capa-body{padding:40px 32px;text-align:center;background:#f0f7f2;border-bottom:1px solid #c8e6d0;}
 .capa-icon{font-size:52px;margin-bottom:16px;}
 .capa-title{font-size:20px;font-weight:700;color:#1F4E2C;margin-bottom:6px;}
@@ -5699,53 +5574,11 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
 .link-sicar{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;}
 .link-sema{background:#f0fdf4;color:#16a34a;border-color:#86efac;}
 
-/* ── TABELAS ── */
-.rep-tbl{width:100%;border-collapse:collapse;font-size:11px;}
-.rep-tbl th{padding:6px 10px;font-size:9px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #1F4E2C;background:#f0f7f2;}
-.rep-tbl td{padding:6px 10px;border-bottom:1px solid #e5e7eb;color:#374151;}
-.rep-tbl tbody tr:nth-child(even) td{background:#fafcfa;}
-
-/* ── STATS RESUMO ── */
-.rep-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
-.rep-stat{background:#f0f7f2;border:1px solid #c8e6d0;border-radius:6px;padding:12px 14px;}
-.rep-stat-lbl{font-size:9px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
-.rep-stat-val{font-size:18px;font-weight:700;color:#111827;font-family:monospace;}
-.rep-secao-titulo{font-size:10px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.08em;padding:6px 0;border-bottom:1.5px solid #c8e6d0;margin:16px 0 10px;display:flex;align-items:center;gap:6px;}
 
 .nota{margin-top:16px;font-size:10px;color:#9ca3af;line-height:1.6;border-top:1px solid #e5e7eb;padding-top:10px;}
-
-/* Sem @media print — este HTML é renderizado pelo Puppeteer como página web normal.
-   Cabeçalho e rodapé são injetados nativamente pelo Puppeteer (headerTemplate/footerTemplate).
-   Apenas page-break-before para quebras de página entre fichas. */
-</style>
-</head>
-<body>
-<div class="doc-wrap">
-
-  <!-- ── CABEÇALHO PADRÃO DO SISTEMA ── -->
-  <div class="doc-header">
-    ${(() => { const p = _carLogos().projeto, src = p && (p.url || p.url_escuro); return src ? `<div class="doc-watermark"><img src="${esc(DimaLogos.url(src))}" alt=""></div>` : '' })()}
-    <div class="doc-header-logos">
-      <div class="doc-header-logos-esq">${_carLogos().topo.map(l => DimaLogos.img(l, 'claro', { altura: 32, classe: 'doc-header-logo' })).filter(Boolean).join('<div class="doc-header-sep"></div>')}</div>
-      <div class="doc-header-logos-dir">${DimaLogos.lista(_carLogos().parceiros, 'claro', { altura: 26, classe: 'doc-header-logo' }).join('')}</div>
-    </div>
-    <div>
-      <div class="doc-header-projeto">Projeto 218BRA2001 · UNESCO / Fundo Multipartes das Nações Unidas</div>
-      <div class="doc-header-programa">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
-      <div class="doc-header-local">Rio Branco, Acre — SEMA/AC</div>
-    </div>
-    <div class="doc-header-titulo-wrap">
-      <div class="doc-header-titulo">
-        🏡 Relatório de Imóveis CAR Marcados
-        <span class="doc-header-badge">CAR · Mapa Interativo</span>
-      </div>
-      <div class="doc-header-meta">
-        <div>Gerado em: <strong>${now}</strong></div>
-        <div>Por: <strong>${user}</strong>${perfil ? ' · '+perfil : ''}</div>
-      </div>
-    </div>
-  </div>
-
+.ficha .doc-body, .resumo-secao .doc-body{padding:12px 0;}
+`;
+  const corpo = `
   <!-- ── CAPA ── -->
   <div class="capa-body">
     <div class="capa-icon">🌿</div>
@@ -5843,29 +5676,10 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2937;backgro
     </div>
   </div><!-- /resumo-secao -->
 
-  <!-- ── RODAPÉ PADRÃO DO SISTEMA ── -->
-  <div class="doc-footer">
-    <div class="doc-footer-esq">
-      Impresso por: <strong>${user}</strong>${perfil?' · '+perfil:''}<br>
-      <span style="font-size:9px;color:#9ca3af">Documento gerado automaticamente pela Plataforma DIMA · SEMA/AC</span>
-    </div>
-    <div class="doc-footer-centro">Plataforma DIMA · UNESCO 218BRA2001</div>
-    <div class="doc-footer-dir">Relatório CAR</div>
-  </div>
-
-</div><!-- /doc-wrap -->
-</body></html>`;
+`;
+  return { css, corpo };
 }
 
-function _abrirJanelaRelatorioCAR(capturas){
-  const win = window.open('', '_blank', 'width=1000,height=800');
-  if(!win){ toast('Popup bloqueado. Permita popups para este site.','error'); return; }
-  const html = _montarHtmlRelatorioCAR(capturas);
-  // Adiciona o script de impressão automática para o modo fallback
-  const htmlComPrint = html.replace('</body></html>', `<script>window.onload=()=>setTimeout(()=>window.print(),800);<\/script></body></html>`);
-  win.document.write(htmlComPrint);
-  win.document.close();
-}
 
 function _htmlFichaCAR(f, imgData){
   const p     = f.properties || {};
@@ -7129,27 +6943,11 @@ function exportarRelCSV(){
   toast('CSV exportado com sucesso!', 'success');
 }
 
+// Relatório Analítico Ambiental — folha A4 padrão (js/folha-a4.js); CSS do conteúdo escopado em .doc-body.
 function exportarRelPDF(){
   if(!_relDados) return;
-
-  const titulo = 'Relatório Analítico Ambiental — APA Igarapé São Francisco';
-  const data   = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-
-  const win = window.open('', '_blank', 'width=900,height=700');
-  if(!win){ toast('Popup bloqueado. Permita popups para este site.', 'error'); return; }
-
-  win.document.write(`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>${titulo}</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',Arial,sans-serif;font-size:13px;color:#111827;background:#fff;padding:24px 32px;}
-h1{font-size:18px;font-weight:700;color:#1F4E2C;margin-bottom:4px;}
-.subtitulo{font-size:11px;color:#6b7280;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #e5e7eb;}
-.rel-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
+  const win = FolhaA4.janela(); if(!win) return;
+  const css = `.rel-kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px;}
 .rel-kpi{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;}
 .rel-kpi-val{font-size:19px;font-weight:700;color:#111827;line-height:1.2;}
 .rel-kpi-lbl{font-size:10px;color:#6b7280;margin-top:3px;font-weight:500;}
@@ -7171,37 +6969,12 @@ h1{font-size:18px;font-weight:700;color:#1F4E2C;margin-bottom:4px;}
 .rel-text-block h4{font-size:12px;font-weight:700;color:#1F4E2C;border-bottom:1px solid #f3f4f6;padding-bottom:7px;margin-bottom:8px;}
 .rel-text-block p{font-size:12px;color:#374151;line-height:1.7;margin-bottom:6px;}
 .rel-text-block ol{font-size:12px;line-height:1.9;padding-left:18px;color:#374151;}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
-@media print{
-  body{padding:12px 18px;}
-  .rel-section,.rel-text-block{break-inside:avoid;}
-}
-</style>
-</head>
-<body>
-<h1>📊 ${titulo}</h1>
-<div class="subtitulo">Gerado automaticamente pelo Sistema DIMA em ${data} · Projeto 218BRA2001 · SEMA/AC · Fundo Brasil-ONU</div>
-${_htmlRelVisaoGeralPrint(_relDados)}
-${_htmlRelSubbaciasPrint(_relDados)}
-${_htmlRelHidrografiaPrint(_relDados)}
-${_htmlRelCARPrint(_relDados)}
-${_htmlRelTextual(_relDados)}
-</body>
-</html>`);
-
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 800);
-  toast('Janela de impressão aberta!', 'success');
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}`;
+  const corpo = _htmlRelVisaoGeralPrint(_relDados) + _htmlRelSubbaciasPrint(_relDados) + _htmlRelHidrografiaPrint(_relDados)
+    + _htmlRelCARPrint(_relDados) + _htmlRelTextual(_relDados);
+  FolhaA4.escrever(win, { titulo: 'Relatório Analítico Ambiental — APA Igarapé São Francisco', selo: 'Mapa Interativo', tema: 'atividades', corpo, css, nomeArquivo: 'relatorio-ambiental-apa-isf' });
 }
 
-function _abrirJanelaRelatorioFallback(html){
-  const win = window.open('', '_blank', 'width=1000,height=800');
-  if(!win){ toast('Popup bloqueado. Permita popups para este site.','error'); return; }
-  const htmlComPrint = html.replace('</body></html>', `<script>window.onload=()=>setTimeout(()=>window.print(),800);<\/script></body></html>`);
-  win.document.write(htmlComPrint);
-  win.document.close();
-}
 
 function _htmlRelVisaoGeralPrint(d){
   const { tot, subbacias } = d;
