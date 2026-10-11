@@ -1124,6 +1124,21 @@ leitura, nenhuma com dado pessoal:
 - Policy `TO public` inclui o `anon`. Ao criar policy para usuário logado,
   escrever sempre `TO authenticated`.
 
+### Funções que o `anon` executa — também allowlist (migração `20261011_seg_funcoes_publicas`)
+
+Função nova nasce com EXECUTE para `PUBLIC` (o `ALTER DEFAULT PRIVILEGES` só fecha tabelas) — e a chave pública chama
+qualquer função por `/rest/v1/rpc`. Por isso:
+- Toda função SECURITY DEFINER nova: `revoke execute on function … from public, anon;` + `grant … to authenticated`.
+- `anon` só executa as `fn_publico_*` e as funções-predicado que respondem sobre quem chama (`fn_perfil_atual`,
+  `tem_permissao`, `fn_pode_ver_tarefa`, `fn_tarefa_pode_*`). Conferir com o painel de segurança
+  (`anon_security_definer_function_executable`) depois de cada migração.
+- **NULL não barra**: `if perfil <> 'x'`, `if not (a = uid or b = uid)` com campo vazio dão NULL e o `if` deixa passar.
+  Use `not exists (…)`, `is distinct from` ou `coalesce(…, false)`. Foi assim que `apagar_tdr` (sem login) e
+  `fn_registrar_acao_tdr` (técnico sem vínculo) ficaram abertos.
+- `fn_registrar_acao_tdr` usa sempre `auth.uid()` (o `p_usuario_id` é ignorado), exige ver o TDR e só muda a fase com a
+  regra de `tdrs_update`; `tdr_acoes` só aceita linha em nome de quem grava. `fn_audit_log` e `fn_verificar_senha` não
+  são executáveis por cliente nenhum.
+
 ### Policies permissivas somam-se por OR
 
 Uma policy `USING (true)` **anula** todas as outras policies restritivas da mesma
@@ -1296,6 +1311,7 @@ Supabase/Anthropic/Vercel/Google.
 28. `fornecedores.banco/agencia/conta/tipo_conta/pix` **estão sempre vazias** — use `fornecedor_dados_bancarios` (FK `fornecedor_id`); `pages/fornecedores.html` mescla na leitura e grava com `upsert(..., {onConflict:'fornecedor_id'})`
 29. Conta desativada não lê nada por perfil (`fn_perfil_atual()` devolve NULL) e não entra (banida no Auth). Não reativar por UPDATE de `auth.users`: mudar `usuarios.ativo` já desbane
 30. Lista de fornecedores para escolher (tela aberta a todos) = `db.rpc('fn_fornecedores_diretorio')`; `from('fornecedores')` só devolve os fornecedores que a pessoa já enxerga por contrato/TDR/lançamento/tarefa
+31. Função SECURITY DEFINER nova sem `revoke … from public, anon` fica aberta à chave pública; teste de permissão com `<>`/`not (… or …)` sobre valor que pode ser NULL deixa passar — ver "Funções que o `anon` executa"
 
 ---
 
