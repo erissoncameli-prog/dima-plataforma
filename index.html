@@ -2,1123 +2,150 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EEF2EF">
 <title>SEMA/AC — Plataforma de Gestão UNESCO</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
-<style>
-/* ── Reset ── */
-*{box-sizing:border-box;margin:0;padding:0}
-
-:root{
-  /* Palette */
-  --floresta:    #0A1A0F;
-  --floresta-m:  #0F2218;
-  --verde:       #1F4E2C;
-  --verde-m:     #2D6A4F;
-  --verde-c:     #52B788;
-  --ouro:        #C9A84C;
-  --ouro-c:      #F0CB6A;
-  --ouro-dim:    rgba(201,168,76,.14);
-  /* Text (dark panel) */
-  --t1:  #F4EFE6;
-  --t2:  rgba(244,239,230,.62);
-  --t3:  rgba(244,239,230,.32);
-  --bdr: rgba(244,239,230,.10);
-  /* Light (legacy compat) */
-  --cinza-9:#111827;--cinza-7:#374151;--cinza-5:#6B7280;
-  --cinza-3:#D1D5DB;--borda:#E5E7EB;--branco:#fff;
-  /* Fonts */
-  --ff-display: 'Fraunces', Georgia, serif;
-  --ff-ui:      'DM Sans', system-ui, sans-serif;
-}
-
-html, body { height:100%; }
-body {
-  font-family: var(--ff-ui);
-  min-height:100vh;
-  display:flex;
-  overflow:hidden;
-  background: var(--floresta);
-}
-
-/* ════════════════════════════════
-   PAINEL ESQUERDO — slideshow
-════════════════════════════════ */
-.painel-esq {
-  flex:1;
-  position:relative;
-  overflow:hidden;
-}
-
-/* Ken Burns */
-.slide {
-  position:absolute;inset:0;
-  background-size:cover;
-  background-position:center;
-  opacity:0;
-  transform:scale(1.06);
-  transition: opacity 2.2s cubic-bezier(.4,0,.2,1),
-              transform 14s ease-out;
-}
-.slide.ativo { opacity:1; transform:scale(1); }
-
-/* Video slides — sem Ken Burns, só crossfade */
-.slide-video {
-  position:absolute;inset:0;
-  width:100%;height:100%;
-  object-fit:cover;
-  opacity:0;
-  transition: opacity 2.2s cubic-bezier(.4,0,.2,1);
-}
-.slide-video.ativo { opacity:1; }
-
-/* Multi-layer overlay */
-.slide-overlay {
-  position:absolute;inset:0;
-  background:
-    linear-gradient(to bottom,
-      rgba(6,16,9,.85)  0%,
-      rgba(6,16,9,.28)  30%,
-      rgba(6,16,9,.20)  60%,
-      rgba(4,12,7,.92) 100%),
-    linear-gradient(120deg, rgba(15,42,22,.55) 0%, transparent 55%);
-  z-index:1;
-}
-
-/* Top vignette */
-.topo-gradiente {
-  position:absolute;top:0;left:0;right:0;
-  height:220px;
-  background:linear-gradient(to bottom, rgba(0,0,0,.6) 0%, transparent 100%);
-  z-index:2;pointer-events:none;
-}
-
-/* Grain overlay */
-.painel-esq::after {
-  content:'';
-  position:absolute;inset:0;z-index:2;
-  pointer-events:none;
-  opacity:.035;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:200px;
-}
-
-.painel-conteudo {
-  position:relative;z-index:3;
-  display:flex;flex-direction:column;
-  justify-content:space-between;
-  height:100%;
-  padding:26px 34px;
-}
-
-/* ── Logos topo ── */
-.logos-topo {
-  display:flex;align-items:center;gap:10px;
-  background:rgba(0,0,0,.28);
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:100px;
-  padding:6px 14px 6px 10px;
-  width:fit-content;
-}
-.logo-gov {
-  height:clamp(22px,3vw,36px);
-  width:auto;object-fit:contain;
-  filter:drop-shadow(0 1px 4px rgba(0,0,0,.5));
-}
-.logo-sep-topo {
-  width:1px;
-  height:clamp(16px,2.2vw,26px);
-  background:rgba(255,255,255,.18);
-  flex-shrink:0;
-}
-/* Logos vêm de Dados do sistema (js/logos.js), na versão para fundo escuro ou sobre placa clara.
-   A altura inline do helper é trocada aqui pela responsiva; nunca pintar a logo por filtro. */
-.logos-topo .dima-logo { height:clamp(20px,2.8vw,34px) !important;max-width:140px !important; }
-
-/* Logo Resiliência */
-.logo-central-wrap {
-  position:absolute;top:14px;right:14px;z-index:5;
-}
-.logo-central-box { display:flex;align-items:center; }
-.logo-central { height:88px !important;width:auto;display:block; }
-
-/* ── Projeto card ── */
-.projeto-info {
-  background:rgba(0,0,0,.42);
-  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  border:1px solid rgba(255,255,255,.10);
-  border-left:2px solid var(--ouro);
-  border-radius:10px;
-  padding:15px 20px;
-}
-.proj-badge {
-  font-family:var(--ff-ui);
-  font-size:9px;font-weight:600;
-  letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ouro-c);
-  margin-bottom:8px;
-  display:flex;align-items:center;gap:7px;
-}
-.proj-badge-dot {
-  width:5px;height:5px;border-radius:50%;
-  background:var(--ouro-c);flex-shrink:0;
-  animation:pulso 2.5s ease-in-out infinite;
-}
-@keyframes pulso{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.75)}}
-
-.proj-nome {
-  font-family:var(--ff-display);
-  font-size:clamp(13px,1.15vw,15.5px);
-  font-weight:500;font-style:italic;
-  color:#fff;line-height:1.45;
-  margin-bottom:5px;
-}
-.proj-sub {
-  font-family:var(--ff-ui);
-  font-size:10px;font-weight:300;
-  letter-spacing:.02em;
-  color:rgba(255,255,255,.48);
-  margin-bottom:12px;
-}
-
-/* Slide dots */
-.slide-dots { display:flex;gap:5px;align-items:center;flex-wrap:wrap; }
-.slide-dot {
-  width:5px;height:5px;border-radius:50%;
-  background:rgba(255,255,255,.22);
-  transition:all .4s cubic-bezier(.4,0,.2,1);
-  cursor:pointer;border:none;padding:0;
-}
-.slide-dot.ativo { background:var(--ouro);width:20px;border-radius:2px; }
-
-/* Parceiros */
-.parceiros-form {
-  margin-top:10px;padding-top:10px;
-  border-top:1px solid rgba(255,255,255,.08);
-}
-.parceiros-label {
-  font-family:var(--ff-ui);
-  font-size:8px;font-weight:500;
-  letter-spacing:.10em;text-transform:uppercase;
-  color:rgba(255,255,255,.35);
-  margin-bottom:7px;display:block;
-  text-align:center;
-}
-.parceiros-logos {
-  display:flex;align-items:center;justify-content:center;
-  gap:6px;flex-wrap:wrap;
-}
-.logo-form {
-  height:clamp(24px,2.6vw,38px);
-  width:auto;max-width:100px;
-  object-fit:contain;object-position:center;
-  opacity:.92;
-  transition:opacity .25s;
-  display:block;flex-shrink:0;
-}
-.logo-form { height:clamp(22px,2.4vw,34px) !important;max-width:100px !important; }
-.logo-form.logo-grande { height:clamp(26px,2.9vw,40px) !important; }
-.logo-form:hover { opacity:1; }
-
-/* Counter */
-.foto-legenda {
-  position:absolute;bottom:11px;right:13px;z-index:4;
-  font-size:9px;color:rgba(255,255,255,.28);
-  letter-spacing:.05em;font-family:var(--ff-ui);
-}
-.foto-contador {
-  position:absolute;bottom:11px;left:13px;z-index:4;
-  font-size:9px;color:rgba(255,255,255,.28);
-  font-family:monospace;letter-spacing:.04em;
-}
-
-/* ════════════════════════════════
-   PAINEL DIREITO — login
-════════════════════════════════ */
-.painel-dir {
-  width:440px;flex-shrink:0;
-  background:linear-gradient(160deg, #122019 0%, #0A1A0F 55%, #081410 100%);
-  display:flex;align-items:center;justify-content:center;
-  padding:28px 20px;
-  position:relative;
-  overflow:hidden;
-  border-left:1px solid rgba(201,168,76,.18);
-}
-
-/* Radial glows — animated blobs */
-@keyframes blobA {
-  0%,100%{ transform:translate(0,0) scale(1); }
-  33%    { transform:translate(-28px,18px) scale(1.08); }
-  66%    { transform:translate(14px,-24px) scale(0.94); }
-}
-@keyframes blobB {
-  0%,100%{ transform:translate(0,0) scale(1); }
-  40%    { transform:translate(22px,-18px) scale(1.06); }
-  75%    { transform:translate(-16px,22px) scale(0.96); }
-}
-.painel-dir::before {
-  content:'';position:absolute;
-  bottom:-80px;right:-80px;
-  width:420px;height:420px;
-  background:radial-gradient(ellipse at 60% 60%,
-    rgba(45,106,79,.26) 0%, transparent 65%);
-  pointer-events:none;z-index:0;
-  animation:blobA 16s ease-in-out infinite;
-}
-.painel-dir::after {
-  content:'';position:absolute;
-  top:-80px;left:-60px;
-  width:340px;height:340px;
-  background:radial-gradient(ellipse at 38% 38%,
-    rgba(201,168,76,.10) 0%, transparent 65%);
-  pointer-events:none;z-index:0;
-  animation:blobB 20s ease-in-out infinite;
-}
-
-/* Globe / atlas watermark */
-.globe-deco {
-  position:absolute;
-  top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  width:360px;height:360px;
-  opacity:.042;
-  pointer-events:none;
-  z-index:0;
-  flex-shrink:0;
-}
-
-/* Noise */
-.painel-dir-noise {
-  position:absolute;inset:0;z-index:0;
-  pointer-events:none;opacity:.022;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:180px;
-}
-
-/* ── Login box ── */
-.login-box {
-  width:100%;max-width:360px;
-  position:relative;z-index:1;
-  background:rgba(244,239,230,.045);
-  border:1px solid rgba(244,239,230,.10);
-  border-radius:22px;
-  padding:34px 30px 30px;
-  backdrop-filter:blur(28px);
-  -webkit-backdrop-filter:blur(28px);
-  box-shadow:
-    0 8px 48px rgba(0,0,0,.32),
-    inset 0 1px 0 rgba(244,239,230,.09),
-    inset 0 -1px 0 rgba(0,0,0,.12);
-}
-
-/* Header row */
-.dima-header {
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:38px;
-}
-.dima-wordmark { display:flex;align-items:center;gap:10px; }
-.dima-icon {
-  width:34px;height:34px;
-  background:linear-gradient(135deg, var(--verde-m) 0%, var(--verde-c) 100%);
-  border-radius:9px;
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
-  box-shadow:0 3px 14px rgba(82,183,136,.28);
-}
-.dima-name {
-  font-family:var(--ff-ui);
-  font-size:11px;font-weight:600;
-  color:var(--t1);
-  letter-spacing:.18em;text-transform:uppercase;
-}
-.dima-name-sub {
-  font-family:var(--ff-ui);
-  font-size:9px;color:var(--t3);
-  letter-spacing:.04em;margin-top:2px;
-}
-
-/* Language selector */
-.lang-row {
-  display:flex;gap:4px;
-}
-.lang-opt {
-  padding:5px 9px;
-  border-radius:6px;
-  border:1px solid var(--bdr);
-  background:transparent;
-  cursor:pointer;
-  font-family:var(--ff-ui);
-  font-size:10px;font-weight:500;
-  color:var(--t3);
-  transition:all .18s;
-}
-.lang-opt:hover { border-color:rgba(201,168,76,.4);color:var(--t2); }
-.lang-opt.ativo {
-  background:var(--ouro-dim);
-  border-color:rgba(201,168,76,.5);
-  color:var(--ouro-c);
-}
-
-/* Title */
-.login-head { margin-bottom:26px; }
-.login-titulo {
-  font-family: Arial, Helvetica, sans-serif !important;
-  font-size:clamp(28px,2.6vw,36px);
-  font-weight:700;
-  line-height:1.12;
-  color:var(--t1);
-  letter-spacing:-.01em;
-  margin-bottom:7px;
-}
-.login-sub {
-  font-family:var(--ff-ui);
-  font-size:12px;font-weight:300;
-  color:var(--t2);
-  letter-spacing:.01em;
-}
-
-/* Error */
-.erro-msg {
-  background:rgba(239,68,68,.09);
-  border:1px solid rgba(239,68,68,.28);
-  color:#FCA5A5;
-  border-radius:7px;
-  padding:10px 13px;
-  font-size:11.5px;
-  margin-bottom:18px;
-  display:none;
-  line-height:1.5;
-  font-family:var(--ff-ui);
-}
-
-/* Form */
-.form-group { margin-bottom:18px; }
-.form-label {
-  display:block;
-  font-family:var(--ff-ui);
-  font-size:9.5px;font-weight:500;
-  letter-spacing:.10em;text-transform:uppercase;
-  color:rgba(244,239,230,.50);
-  margin-bottom:8px;
-}
-.form-input {
-  width:100%;height:48px;
-  background:rgba(255,255,255,.06);
-  border:1.5px solid rgba(244,239,230,.13);
-  border-radius:10px;
-  padding:0 14px;
-  font-family:var(--ff-ui);
-  font-size:14px;font-weight:400;
-  color:var(--t1);
-  outline:none;
-  transition:background .22s, border-color .22s, box-shadow .22s;
-}
-.form-input:hover {
-  background:rgba(255,255,255,.08);
-  border-color:rgba(244,239,230,.22);
-}
-.form-input:focus {
-  background:rgba(255,255,255,.09);
-  border-color:rgba(201,168,76,.55);
-  box-shadow:0 0 0 3.5px rgba(201,168,76,.15), 0 2px 10px rgba(0,0,0,.18);
-}
-.form-input::placeholder { color:rgba(244,239,230,.28);font-size:13px; }
-.form-input:-webkit-autofill {
-  -webkit-box-shadow:0 0 0 40px #14261a inset;
-  -webkit-text-fill-color:var(--t1);
-  caret-color:var(--t1);
-}
-
-/* Buttons */
-@keyframes shimmerBtn {
-  from { left:-80%; }
-  to   { left:140%; }
-}
-.btn-login {
-  width:100%;height:48px;
-  margin-top:10px;
-  background:linear-gradient(135deg, var(--ouro-c) 0%, #B8943E 100%);
-  color:#0A1A0F;
-  border:none;border-radius:10px;
-  font-family:var(--ff-ui);
-  font-size:13.5px;font-weight:600;
-  letter-spacing:.04em;
-  cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  box-shadow:0 4px 22px rgba(201,168,76,.28);
-  transition:all .22s;
-  position:relative;overflow:hidden;
-}
-.btn-login::after {
-  content:'';
-  position:absolute;top:0;left:-80%;
-  width:50%;height:100%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);
-  transform:skewX(-18deg);
-  opacity:0;
-  transition:opacity .1s;
-}
-.btn-login:hover::after {
-  opacity:1;
-  animation:shimmerBtn .52s ease forwards;
-}
-.btn-login:hover {
-  box-shadow:0 6px 32px rgba(201,168,76,.46);
-  transform:translateY(-1px);
-  background:linear-gradient(135deg, #F4D870 0%, var(--ouro) 100%);
-}
-.btn-login:active { transform:translateY(0);box-shadow:none; }
-.btn-login:disabled { opacity:.48;cursor:not-allowed;transform:none; }
-
-.btn-ou {
-  display:flex;align-items:center;gap:10px;
-  margin:18px 0;
-  font-family:var(--ff-ui);
-  font-size:10.5px;color:var(--t3);
-}
-.btn-ou::before,.btn-ou::after {
-  content:'';flex:1;height:1px;background:var(--bdr);
-}
-
-.btn-publico {
-  width:100%;height:46px;
-  background:rgba(255,255,255,.04);
-  color:var(--t2);
-  border:1.5px solid rgba(244,239,230,.12);
-  border-radius:10px;
-  font-family:var(--ff-ui);
-  font-size:13px;font-weight:400;
-  cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  text-decoration:none;
-  transition:all .2s;
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-}
-.btn-publico:hover {
-  border-color:rgba(244,239,230,.30);
-  color:var(--t1);
-  background:rgba(255,255,255,.08);
-  box-shadow:0 2px 14px rgba(0,0,0,.14);
-}
-.btn-publico:active { transform:scale(.99); }
-
-/* Footer note */
-.login-footer {
-  margin-top:22px;
-  text-align:center;
-  font-family:var(--ff-ui);
-  font-size:9px;color:var(--t3);
-  letter-spacing:.04em;
-  line-height:1.6;
-}
-
-/* Spinner */
-@keyframes spin{to{transform:rotate(360deg)}}
-.spinner-sm {
-  width:15px;height:15px;
-  border:2px solid rgba(10,26,15,.3);
-  border-top-color:#0A1A0F;
-  border-radius:50%;
-  animation:spin .6s linear infinite;
-  display:none;
-}
-
-/* ── Entrance animations ── */
-@keyframes fadeUp {
-  from { opacity:0;transform:translateY(13px); }
-  to   { opacity:1;transform:translateY(0); }
-}
-.dima-header  { animation:fadeUp .5s .06s ease both; }
-.login-head   { animation:fadeUp .5s .16s ease both; }
-.form-group:nth-of-type(1) { animation:fadeUp .5s .26s ease both; }
-.form-group:nth-of-type(2) { animation:fadeUp .5s .33s ease both; }
-.btn-login    { animation:fadeUp .5s .40s ease both; }
-.btn-ou       { animation:fadeUp .5s .46s ease both; }
-.btn-publico  { animation:fadeUp .5s .50s ease both; }
-.login-footer { animation:fadeUp .5s .56s ease both; }
-
-/* ════════════════════════════════
-   MOBILE — Design Mata
-   Canopy verde · Card branco flutuante
-════════════════════════════════ */
-@media(max-width:900px){
-  /* ── Layout ── */
-  body { flex-direction:column;overflow:auto;background:#1F4E2C; }
-  html,body { height:auto; }
-
-  /* ── CANOPY — painel esquerdo ── */
-  .painel-esq {
-    height:355px;min-height:355px;max-height:355px;
-    flex:none;
-  }
-  .painel-conteudo {
-    padding:50px 22px 28px;
-    justify-content:space-between;
-  }
-
-  /* Logo Resiliência: volta ao fluxo, fica no centro vertical */
-  .logo-central-wrap {
-    display:flex !important;
-    position:static !important;
-    top:auto !important;right:auto !important;z-index:auto !important;
-    justify-content:center;
-    align-items:center;
-  }
-  .logo-central-box {
-    width:56px;height:56px;
-    background:rgba(255,255,255,.10);
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-    border:1px solid rgba(255,255,255,.18);
-    border-radius:16px;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .logo-central { height:40px !important;width:40px;object-fit:contain; }
-  .logo-central-box .dima-placa { padding:3px !important; }
-
-  /* Projeto info: sem card, tipografia centralizada */
-  .projeto-info {
-    background:transparent !important;
-    backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
-    border:none !important;border-left:none !important;
-    padding:0 !important;
-    text-align:center;
-  }
-  .proj-badge { justify-content:center; }
-  .proj-nome { font-size:14.5px;text-align:center; }
-  .proj-sub { text-align:center; }
-  .slide-dots { justify-content:center; }
-
-  /* Esconder parceiros e contadores no mobile */
-  .parceiros-form { display:none !important; }
-  .foto-legenda,.foto-contador { display:none; }
-
-  .logos-topo { padding:4px 10px 4px 8px;gap:6px; }
-  .logos-topo .dima-logo { height:14px !important; }
-  .logo-sep-topo { height:10px; }
-  .logo-form,.logo-form.logo-grande { height:22px !important;max-width:68px !important; }
-
-  /* ── CARD BRANCO — painel direito ── */
-  .painel-dir {
-    width:100%;
-    min-height:calc(100vh - 328px);
-    background:#ffffff !important;
-    border-radius:28px 28px 0 0;
-    border-left:none !important;
-    border-top:none !important;
-    padding:0;
-    margin-top:-28px;
-    position:relative;
-    z-index:1;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    box-shadow:0 -6px 32px rgba(0,0,0,.12);
-  }
-  .painel-dir::before,.painel-dir::after { display:none; }
-  .globe-deco,.painel-dir-noise { display:none; }
-
-  /* Handle pill no topo do card */
-  .login-box::before {
-    content:'';
-    display:block;
-    width:36px;height:4px;border-radius:2px;
-    background:#E5E7EB;
-    margin:0 auto 22px;
-  }
-
-  /* Caixa de login */
-  .login-box {
-    max-width:none;width:100%;
-    padding:18px 26px 44px;
-  }
-  .dima-header { margin-bottom:20px; }
-  .dima-name { color:#0A1A0F; }
-  .dima-name-sub { color:#9CA3AF; }
-
-  /* Seletor de idioma: light */
-  .lang-opt {
-    border-color:#E5E7EB;
-    color:#9CA3AF;
-    background:transparent;
-  }
-  .lang-opt:hover { border-color:#B7D9C7;color:#2D6A4F; }
-  .lang-opt.ativo {
-    background:#F0F7F3;
-    border-color:#B7D9C7;
-    color:#2D6A4F;
-  }
-
-  /* Títulos: dark */
-  .login-titulo { color:#0A1A0F;font-size:32px;font-family:Arial,Helvetica,sans-serif !important;font-weight:700; }
-  .login-sub { color:#9CA3AF; }
-
-  /* Inputs: light */
-  .form-label { color:#9CA3AF; }
-  .form-input {
-    color:#111827;
-    background:rgba(0,0,0,.035);
-    border:1.5px solid #E5E7EB;
-  }
-  .form-input:hover {
-    background:rgba(0,0,0,.02);
-    border-color:#CBD5E1;
-  }
-  .form-input:focus {
-    background:#fff;
-    border-color:#52B788;
-    box-shadow:0 0 0 3.5px rgba(82,183,136,.14), 0 2px 8px rgba(0,0,0,.06);
-  }
-  .form-input::placeholder { color:#D1D5DB;font-size:13px; }
-  .form-input:-webkit-autofill {
-    -webkit-box-shadow:0 0 0 40px #fff inset;
-    -webkit-text-fill-color:#111827;
-    caret-color:#111827;
-  }
-  /* Remove glassmorphism no mobile (card já é branco) */
-  .login-box {
-    background:transparent;
-    border:none;
-    border-radius:0;
-    box-shadow:none;
-    backdrop-filter:none;
-    -webkit-backdrop-filter:none;
-    padding:18px 26px 44px;
-  }
-
-  /* Botão entrar: verde */
-  .btn-login {
-    background:linear-gradient(135deg,#1F4E2C 0%,#2D6A4F 100%);
-    color:#fff;
-    box-shadow:0 4px 20px rgba(31,78,44,.28);
-  }
-  .btn-login:hover {
-    background:linear-gradient(135deg,#2D6A4F 0%,#3A7A60 100%);
-    box-shadow:0 6px 28px rgba(31,78,44,.36);
-    transform:translateY(-1px);
-  }
-  .btn-login:active { transform:translateY(0);box-shadow:none; }
-  .btn-login:disabled { opacity:.48;cursor:not-allowed;transform:none; }
-  .spinner-sm { border-color:rgba(255,255,255,.25);border-top-color:#fff; }
-
-  /* Divisor "ou" */
-  .btn-ou { color:#D1D5DB; }
-  .btn-ou::before,.btn-ou::after { background:#E5E7EB; }
-
-  /* Botão painel público */
-  .btn-publico {
-    border-color:#E5E7EB;
-    color:#6B7280;
-    background:#fff;
-    backdrop-filter:none;
-    -webkit-backdrop-filter:none;
-  }
-  .btn-publico:hover {
-    border-color:#B7D9C7;
-    color:#2D6A4F;
-    background:#F0F7F3;
-    box-shadow:none;
-  }
-  .btn-publico:active { transform:scale(.99); }
-
-  /* Footer */
-  .login-footer { color:#C5C8D0; }
-}
-</style>
+<script>
+  // Tema antes de pintar: o mesmo diag_tema das outras telas; sem escolha, segue o aparelho.
+  (function () { var t = null; try { t = localStorage.getItem('diag_tema') } catch (e) {}
+    if (t !== 'claro' && t !== 'escuro') t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+    document.documentElement.dataset.tema = t;
+    document.querySelector('meta[name="theme-color"]').content = t === 'escuro' ? '#0A1A0F' : '#EEF2EF'; })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,500&family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/entrada.css">
 </head>
-<body>
+<body class="en">
 
-<!-- ═══════════════════════════ PAINEL ESQUERDO ═══════════════════════════ -->
-<div class="painel-esq">
-  <div class="slide ativo" id="slide-0" style="background-image:url('assets/foto1.jpg')"></div>
-  <div class="slide"       id="slide-1" style="background-image:url('assets/foto2.jpg')"></div>
-  <div class="slide"       id="slide-2" style="background-image:url('assets/foto3.jpg')"></div>
-  <div class="slide"       id="slide-3" style="background-image:url('assets/foto4.jpeg')"></div>
-  <div class="slide"       id="slide-4" style="background-image:url('assets/foto5.jpeg')"></div>
-  <div class="slide"       id="slide-5" style="background-image:url('assets/foto6.jpeg')"></div>
-  <div class="slide"       id="slide-6" style="background-image:url('assets/foto7.jpeg')"></div>
-  <div class="slide"       id="slide-7" style="background-image:url('assets/foto8.jpeg')"></div>
-  <div class="slide"       id="slide-8" style="background-image:url('assets/foto9.jpeg')"></div>
-  <div class="slide"       id="slide-9" style="background-image:url('assets/foto10.jpeg')"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ic-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="ic-lua" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
+  <symbol id="ic-pino" viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="ic-olho" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="ic-olho-x" viewBox="0 0 24 24"><path d="M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></symbol>
+  <symbol id="ic-alerta" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="ic-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="ic-globo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="ic-seta" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="ic-pausa" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol>
+  <symbol id="ic-play" viewBox="0 0 24 24"><path d="m7 4 13 8-13 8z"/></symbol>
+  <symbol id="ic-cadeado" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+</svg>
 
-  <div class="slide-overlay"></div>
-  <div class="topo-gradiente"></div>
+<main class="en-pg">
 
-  <div class="painel-conteudo">
-    <!-- Logos topo -->
-    <div>
-      <div class="logos-topo"></div>
+  <!-- Vitrine: foto + logos + projeto (arte, escura nos dois temas). Conteúdo de Dados do sistema. -->
+  <section class="en-vitrine" aria-labelledby="en-proj-nome">
+    <div class="en-slides" id="en-slides" aria-hidden="true"></div>
+    <div class="en-veu"></div>
+    <div class="en-vit-topo">
+      <div class="en-logos-topo" id="en-logos-topo" hidden></div>
+      <div class="en-logo-proj" id="en-logo-proj" hidden></div>
     </div>
-
-    <!-- Logo Resiliência -->
-    <div class="logo-central-wrap">
-      <div class="logo-central-box">
-      </div>
-    </div>
-
-    <!-- Card projeto -->
-    <div>
-      <div class="projeto-info">
-        <div class="proj-badge">
-          <div class="proj-badge-dot"></div>
-          Projeto 218BRA2001 · UNESCO/MPTF
-        </div>
-        <div class="proj-nome">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</div>
-        <div class="proj-sub">Rio Branco, Acre — Fundo Multipartes das Nações Unidas</div>
-        <div class="slide-dots" id="slide-dots"></div>
-      </div>
-      <div class="parceiros-form">
-        <span class="parceiros-label">Realização e parceiros</span>
-        <div class="parceiros-logos">
+    <div class="en-vit-base">
+      <div class="en-proj">
+        <p class="en-proj-cod" id="en-proj-cod-wrap" hidden><span class="en-ponto"></span><span id="en-proj-cod"></span></p>
+        <p class="en-proj-nome" id="en-proj-nome">Programa de Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá</p>
+        <p class="en-proj-local" id="en-proj-local"></p>
+        <div class="en-slide-ctl" id="en-slide-ctl" hidden>
+          <div class="en-dots" id="en-dots" role="group" aria-label="Fotos"></div>
+          <span class="en-legenda" id="en-legenda"></span>
+          <button type="button" class="en-pausa" id="en-pausa" aria-pressed="false" aria-label="Pausar fotos"><svg class="en-ic"><use href="#ic-pausa"/></svg></button>
         </div>
       </div>
-    </div>
-  </div>
-
-  <div class="foto-legenda" id="foto-legenda">APAs · Rio Branco, Acre</div>
-  <div class="foto-contador" id="foto-contador">1 / 10</div>
-</div>
-
-<!-- ═══════════════════════════ PAINEL DIREITO ═══════════════════════════ -->
-<div class="painel-dir">
-  <div class="painel-dir-noise"></div>
-
-  <!-- Globe / atlas watermark -->
-  <svg class="globe-deco" viewBox="0 0 360 360" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <!-- Concentric circles -->
-    <circle cx="180" cy="180" r="170" stroke="rgba(82,183,136,1)" stroke-width="1"/>
-    <circle cx="180" cy="180" r="130" stroke="rgba(82,183,136,1)" stroke-width="1"/>
-    <circle cx="180" cy="180" r="90"  stroke="rgba(201,168,76,1)"  stroke-width="1"/>
-    <circle cx="180" cy="180" r="50"  stroke="rgba(82,183,136,1)"  stroke-width="1"/>
-    <circle cx="180" cy="180" r="12"  stroke="rgba(201,168,76,1)"  stroke-width="1"/>
-    <!-- Crosshairs -->
-    <line x1="180" y1="10"  x2="180" y2="350" stroke="rgba(82,183,136,.5)" stroke-width="1"/>
-    <line x1="10"  y1="180" x2="350" y2="180" stroke="rgba(82,183,136,.5)" stroke-width="1"/>
-    <!-- Diagonals -->
-    <line x1="60"  y1="60"  x2="300" y2="300" stroke="rgba(82,183,136,.28)" stroke-width=".6"/>
-    <line x1="300" y1="60"  x2="60"  y2="300" stroke="rgba(82,183,136,.28)" stroke-width=".6"/>
-    <!-- Ellipses (meridians) -->
-    <ellipse cx="180" cy="180" rx="80" ry="170" stroke="rgba(82,183,136,.35)" stroke-width=".6"/>
-    <ellipse cx="180" cy="180" rx="140" ry="170" stroke="rgba(82,183,136,.22)" stroke-width=".6"/>
-    <!-- Latitude lines -->
-    <ellipse cx="180" cy="125" rx="130" ry="30" stroke="rgba(82,183,136,.22)" stroke-width=".6"/>
-    <ellipse cx="180" cy="235" rx="130" ry="30" stroke="rgba(82,183,136,.22)" stroke-width=".6"/>
-    <!-- Leaf / anchor mark center -->
-    <path d="M180 150 C165 162 160 175 180 210 C200 175 195 162 180 150Z"
-          stroke="rgba(201,168,76,1)" stroke-width="1" fill="none"/>
-  </svg>
-
-  <div class="login-box">
-    <!-- Header: wordmark + language -->
-    <div class="dima-header">
-      <div class="dima-wordmark">
-        <div class="dima-icon">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-               stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-            <circle cx="12" cy="10" r="3"/>
-          </svg>
-        </div>
-        <div>
-          <div class="dima-name">DIMA</div>
-          <div class="dima-name-sub">Gestão UNESCO · SEMA/AC</div>
-        </div>
+      <div class="en-parc-vit" id="en-parc-vit" hidden>
+        <span class="en-parc-tit" data-t="parceiros">Realização e parceiros</span>
+        <div class="en-parc-logos" id="en-parc-vit-logos"></div>
       </div>
-      <div class="lang-row">
-        <button class="lang-opt ativo" onclick="setLang('pt',this)">🇧🇷 PT</button>
-        <button class="lang-opt" onclick="setLang('en',this)">🇺🇸 EN</button>
-        <button class="lang-opt" onclick="setLang('es',this)">🇪🇸 ES</button>
+    </div>
+  </section>
+
+  <!-- Formulário -->
+  <section class="en-lado">
+    <div class="en-barra">
+      <div class="en-grupo" role="group" aria-label="Tema" data-t-aria="tema">
+        <button type="button" data-tema="claro" data-t-aria="claro" aria-label="Claro"><svg class="en-ic"><use href="#ic-sol"/></svg><span class="en-tema-txt" data-t="claro">Claro</span></button>
+        <button type="button" data-tema="escuro" data-t-aria="escuro" aria-label="Escuro"><svg class="en-ic"><use href="#ic-lua"/></svg><span class="en-tema-txt" data-t="escuro">Escuro</span></button>
+      </div>
+      <div class="en-grupo" role="group" aria-label="Idioma" data-t-aria="idioma">
+        <button type="button" data-lang="pt" lang="pt-BR" aria-label="Português">PT</button>
+        <button type="button" data-lang="en" lang="en" aria-label="English">EN</button>
+        <button type="button" data-lang="es" lang="es" aria-label="Español">ES</button>
       </div>
     </div>
 
-    <!-- Title -->
-    <div class="login-head">
-      <div class="login-titulo" id="lbl-titulo">Entrar na plataforma</div>
-      <div class="login-sub"   id="lbl-sub">Acesse com suas credenciais institucionais</div>
+    <div class="en-centro">
+      <div class="en-cartao">
+        <div class="en-marca">
+          <div class="en-marca-ico"><svg class="en-ic"><use href="#ic-pino"/></svg></div>
+          <div><div class="en-marca-nome">DIMA</div><div class="en-marca-sub">Gestão UNESCO · SEMA/AC</div></div>
+        </div>
+
+        <!-- Entrar -->
+        <div id="en-vista-entrar">
+          <h1 class="en-titulo" data-t="titulo">Entrar na plataforma</h1>
+          <p class="en-sub" data-t="sub">Acesse com suas credenciais institucionais</p>
+          <div class="en-msg erro" id="en-erro" role="alert" hidden><svg class="en-ic"><use href="#ic-alerta"/></svg><span></span></div>
+          <form id="en-form" novalidate>
+            <div class="en-campo">
+              <label class="en-rot" for="en-email" data-t="email">E-mail</label>
+              <input class="en-input" type="email" id="en-email" name="email" autocomplete="username" inputmode="email"
+                     autocapitalize="none" spellcheck="false" placeholder="seu@email.gov.br" required>
+            </div>
+            <div class="en-campo">
+              <div class="en-rot-linha">
+                <label class="en-rot" for="en-senha" data-t="senha">Senha</label>
+                <button type="button" class="en-link" id="en-esqueci" data-t="esqueci">Esqueceu a senha?</button>
+              </div>
+              <div class="en-input-wrap">
+                <input class="en-input en-input-senha" type="password" id="en-senha" name="password" autocomplete="current-password" required>
+                <button type="button" class="en-olho" id="en-olho" aria-pressed="false" aria-controls="en-senha" aria-label="Mostrar senha">
+                  <svg class="en-ic"><use href="#ic-olho"/></svg>
+                </button>
+              </div>
+              <div class="en-caps" id="en-caps" role="status" hidden><svg class="en-ic"><use href="#ic-alerta"/></svg><span data-t="caps">Caps Lock ligado</span></div>
+            </div>
+            <button type="submit" class="en-btn en-btn-pri" id="en-entrar"><span data-t="btn">Entrar</span></button>
+          </form>
+          <div class="en-ou" data-t="ou">ou</div>
+          <a href="site-publico/index.html" class="en-btn en-btn-sec" style="text-decoration:none">
+            <svg class="en-ic"><use href="#ic-globo"/></svg><span data-t="publico">Visualizar painel público</span>
+          </a>
+        </div>
+
+        <!-- Esqueceu a senha -->
+        <div id="en-vista-pedido" hidden>
+          <button type="button" class="en-link en-voltar" id="en-voltar"><svg class="en-ic"><use href="#ic-seta"/></svg><span data-t="voltar">Voltar para entrar</span></button>
+          <h1 class="en-titulo" data-t="ped_titulo" tabindex="-1" id="en-ped-titulo">Pedir nova senha</h1>
+          <p class="en-sub" data-t="ped_sub">Informe o e-mail da sua conta. O administrador da plataforma recebe o pedido e lhe passa uma senha temporária.</p>
+          <div class="en-msg ok" id="en-ped-ok" role="status" hidden><svg class="en-ic"><use href="#ic-ok"/></svg><span data-t="ped_ok"></span></div>
+          <div class="en-msg erro" id="en-ped-erro" role="alert" hidden><svg class="en-ic"><use href="#ic-alerta"/></svg><span></span></div>
+          <form id="en-form-pedido" novalidate>
+            <div class="en-campo">
+              <label class="en-rot" for="en-ped-email" data-t="email">E-mail</label>
+              <input class="en-input" type="email" id="en-ped-email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" required>
+            </div>
+            <button type="submit" class="en-btn en-btn-pri" id="en-ped-btn"><span data-t="ped_btn">Enviar pedido</span></button>
+          </form>
+        </div>
+      </div>
+
+      <div class="en-parc-lado" id="en-parc-lado" hidden>
+        <span class="en-parc-tit" data-t="parceiros">Realização e parceiros</span>
+        <div class="en-parc-logos" id="en-parc-lado-logos"></div>
+      </div>
     </div>
 
-    <div class="erro-msg" id="erro-msg"></div>
-
-    <div class="form-group">
-      <label class="form-label" id="lbl-email">E-mail</label>
-      <input class="form-input" type="email" id="inp-email"
-             autocomplete="email" placeholder="seu@email.gov.br">
-    </div>
-    <div class="form-group">
-      <label class="form-label" id="lbl-senha">Senha</label>
-      <input class="form-input" type="password" id="inp-senha"
-             autocomplete="current-password">
-    </div>
-
-    <button class="btn-login" id="btn-login" onclick="fazerLogin()">
-      <span id="btn-texto">Entrar</span>
-      <div class="spinner-sm" id="spinner"></div>
-    </button>
-
-    <div class="btn-ou">ou</div>
-    <a href="site-publico/index.html" class="btn-publico">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="2" y1="12" x2="22" y2="12"/>
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-      </svg>
-      Visualizar painel público
-    </a>
-
-    <div class="login-footer">
-      Acesso restrito a usuários autorizados<br>
-      Projeto 218BRA2001 · Fundo Brasil-ONU / UNESCO-MPTF
-    </div>
-  </div>
-</div>
+    <footer class="en-rodape">
+      <span data-t="restrito">Acesso restrito a usuários autorizados</span><br>
+      <span id="en-rod-proj">Fundo Brasil-ONU / UNESCO-MPTF</span>
+    </footer>
+  </section>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/logos.js"></script>
-<script>
-const SUPABASE_URL='https://wfymnmlinonvdqfucjya.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
-const{createClient}=supabase;const db=createClient(SUPABASE_URL,SUPABASE_KEY);
-
-let TOTAL=10;
-let slideAtual=0;
-let timer;
-
-const dotsEl=document.getElementById('slide-dots');
-for(let i=0;i<TOTAL;i++){
-  const btn=document.createElement('button');
-  btn.className='slide-dot'+(i===0?' ativo':'');
-  btn.onclick=()=>{pararTimer();irParaSlide(i);iniciarTimer();};
-  dotsEl.appendChild(btn);
-}
-
-function pararTimer(){
-  clearTimeout(timer);
-  clearInterval(timer);
-  const atual=document.getElementById('slide-'+slideAtual);
-  if(atual && atual.tagName==='VIDEO'){ atual.pause(); atual.currentTime=0; }
-}
-
-function irParaSlide(n){
-  const antigo=document.getElementById('slide-'+slideAtual);
-  antigo.classList.remove('ativo');
-  if(antigo.tagName==='VIDEO'){ antigo.pause(); antigo.currentTime=0; }
-  document.querySelectorAll('.slide-dot')[slideAtual].classList.remove('ativo');
-  slideAtual=(n+TOTAL)%TOTAL;
-  const novo=document.getElementById('slide-'+slideAtual);
-  novo.classList.add('ativo');
-  document.querySelectorAll('.slide-dot')[slideAtual].classList.add('ativo');
-  document.getElementById('foto-contador').textContent=(slideAtual+1)+' / '+TOTAL;
-  if(novo.tagName==='VIDEO'){ novo.currentTime=0; novo.play().catch(()=>{}); }
-}
-
-function iniciarTimer(){
-  clearTimeout(timer);
-  clearInterval(timer);
-  const atual=document.getElementById('slide-'+slideAtual);
-  if(atual && atual.tagName==='VIDEO'){
-    atual.addEventListener('ended',()=>{irParaSlide(slideAtual+1);iniciarTimer();},{once:true});
-  } else {
-    timer=setTimeout(()=>{irParaSlide(slideAtual+1);iniciarTimer();},6000);
-  }
-}
-iniciarTimer();
-
-document.addEventListener('keydown',e=>{
-  if(e.key==='ArrowRight'){pararTimer();irParaSlide(slideAtual+1);iniciarTimer();}
-  if(e.key==='ArrowLeft'){pararTimer();irParaSlide(slideAtual-1);iniciarTimer();}
-});
-
-// Logos da entrada: fundo escuro (foto com véu) ⇒ versão escura ou placa clara (js/logos.js).
-function pintarLogosLogin(L) {
-  const wrapTopo = document.querySelector('.logos-topo');
-  if (wrapTopo) {
-    const it = DimaLogos.lista(L.topo, 'escuro', { altura: 30 });
-    wrapTopo.style.display = it.length ? '' : 'none';
-    wrapTopo.innerHTML = it.join('<div class="logo-sep-topo"></div>');
-  }
-  const wrapProjeto = document.querySelector('.logo-central-wrap');
-  if (wrapProjeto) {
-    const h = DimaLogos.img(L.projeto, 'escuro', { altura: 88, classe: 'logo-central', tamanho: false });
-    wrapProjeto.style.display = h ? '' : 'none';
-    wrapProjeto.querySelector('.logo-central-box').innerHTML = h;
-  }
-  const wrapParc = document.querySelector('.parceiros-form');
-  const listaParc = document.querySelector('.parceiros-logos');
-  if (listaParc) {
-    const it = L.parceiros.map(l => DimaLogos.img(l, 'escuro', { altura: 30, tamanho: false, classe: 'logo-form' + (l.tamanho === 'grande' ? ' logo-grande' : '') })).filter(Boolean);
-    if (wrapParc) wrapParc.style.display = it.length ? '' : 'none';
-    listaParc.innerHTML = it.join('');
-  }
-}
-pintarLogosLogin(DimaLogos.agora());
-DimaLogos.carregar(db).then(pintarLogosLogin);
-
-async function carregarConfigLogin() {
-  try {
-    const { data } = await db.from('configuracoes_sistema')
-      .select('*').eq('projeto_id','default').single();
-    if (!data) return;
-
-    if (data.cor_primaria) {
-      document.documentElement.style.setProperty('--verde-m', data.cor_primaria);
-      document.documentElement.style.setProperty('--verde', data.cor_primaria);
-    }
-
-    const fotos = [...(data.fotos || [])].sort((a,b) => a.ordem - b.ordem);
-    pararTimer();
-    document.querySelectorAll('.slide,.slide-video').forEach(s => s.remove());
-    dotsEl.innerHTML = '';
-    const esq = document.querySelector('.painel-esq');
-    const overlay = esq.querySelector('.slide-overlay');
-
-    if (fotos.length) {
-      fotos.forEach((f, i) => {
-        let el;
-        if (f.tipo === 'video') {
-          el = document.createElement('video');
-          el.className = 'slide-video' + (i===0?' ativo':'');
-          el.src = f.url;
-          el.muted = true;
-          el.playsInline = true;
-          el.preload = 'auto';
-        } else {
-          el = document.createElement('div');
-          el.className = 'slide' + (i===0?' ativo':'');
-          el.style.backgroundImage = `url('${f.url}')`;
-        }
-        el.id = 'slide-' + i;
-        esq.insertBefore(el, overlay);
-      });
-      TOTAL = fotos.length;
-      slideAtual = 0;
-      if (fotos[0].tipo === 'video') {
-        const primeiro = document.getElementById('slide-0');
-        primeiro.currentTime = 0;
-        primeiro.play().catch(()=>{});
-      }
-      for (let i=0; i<TOTAL; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'slide-dot' + (i===0?' ativo':'');
-        btn.onclick = () => { pararTimer(); irParaSlide(i); iniciarTimer(); };
-        dotsEl.appendChild(btn);
-      }
-      document.getElementById('foto-contador').textContent = '1 / ' + TOTAL;
-      iniciarTimer();
-    } else {
-      esq.style.background = data.cor_primaria || '#1F4E2C';
-      document.getElementById('foto-contador').textContent = '';
-    }
-
-    const projNome = document.querySelector('.proj-nome');
-    if (projNome && data.projeto_nome !== undefined)
-      projNome.textContent = data.projeto_nome;
-
-    const projBadge = document.querySelector('.proj-badge');
-    if (projBadge && data.projeto_codigo !== undefined)
-      projBadge.innerHTML = data.projeto_codigo
-        ? `<div class="proj-badge-dot"></div>${data.projeto_codigo}`
-        : '';
-
-    const projSub = document.querySelector('.proj-sub');
-    if (projSub && data.projeto_localizacao !== undefined)
-      projSub.textContent = data.projeto_localizacao;
-  } catch(e) { /* mantém valores hardcoded */ }
-}
-
-let lang=localStorage.getItem('dima_idioma')||'pt';
-const textos={
-  pt:{titulo:'Entrar na plataforma',sub:'Acesse com suas credenciais institucionais',email:'E-mail',senha:'Senha',btn:'Entrar',erro_cred:'E-mail ou senha incorretos.',erro_gen:'Erro ao conectar. Tente novamente.'},
-  en:{titulo:'Sign in',sub:'Access with your institutional credentials',email:'Email',senha:'Password',btn:'Sign in',erro_cred:'Incorrect email or password.',erro_gen:'Connection error. Please try again.'},
-  es:{titulo:'Iniciar sesión',sub:'Acceda con sus credenciales institucionales',email:'Correo electrónico',senha:'Contraseña',btn:'Entrar',erro_cred:'Correo o contraseña incorrectos.',erro_gen:'Error de conexión. Inténtelo de nuevo.'}
-};
-function setLang(l,el){lang=l;localStorage.setItem('dima_idioma',l);document.querySelectorAll('.lang-opt').forEach(b=>b.classList.remove('ativo'));el.classList.add('ativo');aplicarTextos();}
-function aplicarTextos(){const t=textos[lang]||textos.pt;document.getElementById('lbl-titulo').textContent=t.titulo;document.getElementById('lbl-sub').textContent=t.sub;document.getElementById('lbl-email').textContent=t.email;document.getElementById('lbl-senha').textContent=t.senha;document.getElementById('btn-texto').textContent=t.btn;document.documentElement.lang=lang==='pt'?'pt-BR':lang;}
-
-async function fazerLogin(){
-  const email=document.getElementById('inp-email').value.trim();
-  const senha=document.getElementById('inp-senha').value;
-  const erroEl=document.getElementById('erro-msg');
-  const btn=document.getElementById('btn-login');
-  const spinner=document.getElementById('spinner');
-  const btnTexto=document.getElementById('btn-texto');
-  const t=textos[lang]||textos.pt;
-  if(!email||!senha)return;
-  erroEl.style.display='none';btn.disabled=true;spinner.style.display='inline-block';btnTexto.style.opacity='0.6';
-  try{
-    const{data,error}=await db.auth.signInWithPassword({email,password:senha});
-    if(error){
-      console.error('[Login] Supabase auth error:', error.message, error);
-      const msg = error.message||'';
-      let textoErro = t.erro_gen;
-      if(msg.includes('Invalid login credentials')||msg.includes('invalid_credentials')){
-        textoErro = t.erro_cred;
-      } else if(msg.includes('Email not confirmed')||msg.includes('email_not_confirmed')){
-        textoErro = 'E-mail não confirmado. Verifique sua caixa de entrada ou peça ao administrador para reenviar a confirmação.';
-      } else if(msg.includes('User not found')){
-        textoErro = t.erro_cred;
-      } else if(msg.includes('Too many requests')){
-        textoErro = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-      } else if(msg.includes('disabled')||msg.includes('banned')){
-        textoErro = 'Conta desativada. Entre em contato com o administrador.';
-      }
-      erroEl.textContent = textoErro;
-      erroEl.style.display = 'block';
-      return;
-    }
-    const{data:usuario}=await db.from('usuarios')
-      .select('idioma_pref,deve_trocar_senha,ativo')
-      .eq('id',data.user.id).single();
-    if(!usuario?.ativo){
-      await db.auth.signOut();
-      erroEl.textContent='Conta desativada. Entre em contato com o administrador.';
-      erroEl.style.display='block';return;
-    }
-    if(usuario?.idioma_pref)localStorage.setItem('dima_idioma',usuario.idioma_pref);
-    const paginaDestino = usuario?.deve_trocar_senha
-      ? 'pages/trocar-senha.html'
-      : (localStorage.getItem('dima_redirect') || 'pages/dashboard.html');
-    localStorage.removeItem('dima_redirect');
-    // Aguarda o evento SIGNED_IN do SDK para garantir que o token
-    // foi persistido no localStorage antes de navegar para outra página.
-    // Sem isso, getSession() na próxima página pode retornar null
-    // intermitentemente e redirecionar de volta ao login.
-    const { data: { session: sessaoAtual } } = await db.auth.getSession();
-    if (sessaoAtual) {
-      window.location.replace(paginaDestino);
-    } else {
-      await new Promise(resolve => {
-        const { data: { subscription } } = db.auth.onAuthStateChange((event, session) => {
-          if (event === 'SIGNED_IN' && session) {
-            subscription.unsubscribe();
-            resolve();
-          }
-        });
-        // Fallback: se o evento demorar mais de 3s, navega mesmo assim
-        setTimeout(resolve, 3000);
-      });
-      window.location.replace(paginaDestino);
-    }
-  }catch(e){erroEl.textContent=t.erro_gen;erroEl.style.display='block';}
-  finally{btn.disabled=false;spinner.style.display='none';btnTexto.style.opacity='1';}
-}
-document.getElementById('inp-senha').addEventListener('keydown',e=>{if(e.key==='Enter')fazerLogin();});
-document.getElementById('inp-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('inp-senha').focus();});
-(async()=>{
-  const{data:{session}}=await db.auth.getSession();
-  if(session){
-    const{data:u}=await db.from('usuarios').select('deve_trocar_senha').eq('id',session.user.id).single();
-    if(u?.deve_trocar_senha){ window.location.href='pages/trocar-senha.html'; }
-    else{
-      const destino=localStorage.getItem('dima_redirect');
-      localStorage.removeItem('dima_redirect');
-      window.location.href=destino||'pages/dashboard.html';
-    }
-  }
-  await carregarConfigLogin();
-  aplicarTextos();
-})();
-</script>
+<script src="js/entrada.js"></script>
 </body>
 </html>

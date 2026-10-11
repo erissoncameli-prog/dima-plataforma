@@ -954,6 +954,27 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Editor: cada logo mostra as duas versões sobre os fundos reais (`#FFFFFF` e `#1F4E2C`) e mede o contraste
   (`DimaLogos.contraste`, ≥ 2:1 em metade dos pixels) — só avisa. Logo nova nasce pela versão de fundo claro.
 
+### Tela de entrada (index.html) — visual, celular e "Esqueceu a senha?"
+- `index.html` + `css/entrada.css` (prefixo `en-`, tokens no topo nos dois temas) + `js/entrada.js`. Sem `<style>` próprio; ícones
+  em sprite SVG (`ic-*` — id de ícone nunca igual a id de elemento), sem emoji (idioma = "PT · EN · ES", sem bandeira).
+- **Tema** = o mesmo `diag_tema` das outras telas (seletor Claro/Escuro no topo); sem escolha, segue o aparelho. Aplicado por
+  script no `<head>`. A **vitrine** (foto + véu + logos + projeto) é arte: escura nos dois temas; só o lado do formulário muda.
+- **Celular**: formulário primeiro (faixa curta da foto em cima, botão Entrar visível sem rolar a partir de 360×640); campo com
+  16 px (o iPhone não amplia), toque ≥ 32–44 px, `dvh` e `env(safe-area-inset-*)`; teclado aberto (`body.en-teclado`) encolhe a
+  foto; deitado = duas colunas; parceiros num rodapé abaixo do cartão (logo no fundo do tema).
+- **Fotos** só de Dados do sistema (`fotos`, `legenda`), guardadas no aparelho (`dima_entrada_v1`) — nada de foto fixa no HTML.
+  Carregadas aos poucos (atual + próxima); 4G/3G no celular ou economia de dados = só a 1ª, sem troca; `prefers-reduced-motion`
+  = parada; botão pausar/continuar. Setas trocam a foto só fora de campo. `cor_primaria` = fundo da vitrine sem foto; o botão
+  Entrar usa sempre o verde da marca (contraste).
+- Formulário de verdade (`<form>`, rótulos ligados, `autocomplete`), mostrar senha, aviso de Caps Lock, erro com `role="alert"`,
+  todos os textos em PT/EN/ES (`TX`). Lógica de entrar igual: conta desativada sai, `deve_trocar_senha` → trocar-senha, `dima_redirect`.
+- **Esqueceu a senha?** → `fn_publico_pedir_nova_senha(p_email)` (SECURITY DEFINER, EXECUTE `anon`/`authenticated`): cria pedido em
+  `solicitacoes_senha` (motivo "Pedido na tela de entrada (sem login)") só para conta **ativa** e sem pedido pendente, no máximo 30
+  pedidos sem login por hora; o trigger avisa os super_admin no sino e o administrador define a senha temporária em Usuários.
+  **Resposta sempre igual** (não revela se o e-mail existe) e nada é trocado nem enviado automaticamente — não mudar isso.
+  Policies de `solicitacoes_senha` são `TO authenticated` (super_admin por `fn_perfil_atual()`).
+- A prévia em Dados do sistema (`#preview-frame`) é cópia simplificada: mudou a entrada ⇒ ajustar a prévia.
+
 ### Manual do sistema (Ajuda) e Trocar senha
 - `pages/ajuda.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor Claro/Escuro)
   e `css/ajuda.css` (prefixo `aj-`); ícones por `adIc()` (`js/administracao.js`). Guias numa coluna agrupada como o menu

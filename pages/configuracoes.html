@@ -152,6 +152,7 @@ function renderTabIdentidade() {
         <span class="ad-cor"><input type="color" value="${corValida(cfg.cor_primaria)}" aria-label="Escolher a cor"
           onchange="aplicarCor(this.value)"></span>
       </div>
+      <p class="ad-cfg-txt" style="margin-top:6px">Fundo da área das fotos na tela de entrada enquanto elas carregam (ou se não houver foto). O botão Entrar usa sempre o verde da marca, para manter a leitura.</p>
     </div>
   </div>`;
 }
@@ -165,8 +166,8 @@ function aplicarCor(v) {
   const h = document.getElementById('inp-cor-hex');
   if (s) s.style.background = v;
   if (h) h.value = v;
-  const btn = document.querySelector('#pv-dir .pv-btn');
-  if (btn) btn.style.background = v;
+  const esq = document.getElementById('pv-esq');
+  if (esq) esq.style.backgroundColor = v;
 }
 
 // ── Tab: Fotos ────────────────────────────────────────────────
@@ -457,7 +458,7 @@ function renderPreviewHTML() {
     : `<div id="pv-foto" style="background-image:url('${esc(imgUrl(primeiro?.url || ''))}')"></div>`;
   return `
   <div id="preview-frame">
-    <div id="pv-esq">
+    <div id="pv-esq" style="background-color:${corValida(cfg.cor_primaria)}">
       ${pvMidia}
       <div id="pv-overlay"></div>
       <div id="pv-conteudo">
@@ -482,17 +483,14 @@ function renderPreviewHTML() {
       <div class="pv-foto-legenda">${esc(cfg.fotos[0]?.legenda || 'APAs · Rio Branco, Acre')}</div>
     </div>
     <div id="pv-dir">
+      <div class="pv-barra"><div class="pv-lang-row"><div class="pv-lang-btn ativo">Claro</div><div class="pv-lang-btn">Escuro</div></div>
+        <div class="pv-lang-row"><div class="pv-lang-btn ativo">PT</div><div class="pv-lang-btn">EN</div><div class="pv-lang-btn">ES</div></div></div>
       <div id="pv-login-box">
-        <div class="pv-lang-row">
-          <div class="pv-lang-btn ativo">PT</div>
-          <div class="pv-lang-btn">EN</div>
-          <div class="pv-lang-btn">ES</div>
-        </div>
         <div class="pv-titulo">Entrar na plataforma</div>
         <div class="pv-sub">Acesse com suas credenciais institucionais</div>
         <div class="pv-label">E-mail</div><div class="pv-input"></div>
         <div class="pv-label">Senha</div><div class="pv-input"></div>
-        <div class="pv-btn" style="background:${corValida(cfg.cor_primaria)}"></div>
+        <div class="pv-btn"></div>
       </div>
     </div>
   </div>`;
