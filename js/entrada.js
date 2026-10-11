@@ -82,11 +82,19 @@
     $('en-logo-proj').innerHTML = pj; $('en-logo-proj').hidden = !pj
     pintarParceiros()
   }
+  // Tamanho de cada parceiro no rodapé (base 24 px), pedido pela coordenação em 11/10/2026: ONU e UNESCO +50%,
+  // Fundo Brasil-ONU +125%, Consórcio (ou qualquer um marcado "grande") 2,5x. Busca pelo nome (alt) do cadastro.
+  const ESCALA_PARC = [[/fundo brasil/i, 2.25], [/unesco/i, 1.5], [/^onu\b|na[cç][oõ]es unidas/i, 1.5]]
+  function escalaParceiro(l) {
+    const r = ESCALA_PARC.find(([re]) => re.test(l.alt || ''))
+    return r ? r[1] : l.tamanho === 'grande' ? 2.5 : 1
+  }
   function pintarParceiros() {
     const ls = LOGOS.parceiros || []
     const escuro = temaAtual() === 'escuro', todosEscuros = ls.length && ls.every(l => l.url_escuro)
     const fundo = escuro && todosEscuros ? 'escuro' : 'claro'
-    const it = ls.map(l => DimaLogos.img(l, fundo, { altura: 24, tamanho: false, classe: l.tamanho === 'grande' ? 'en-grande' : '' })).filter(Boolean)
+    const it = ls.map(l => { const h = Math.round(24 * escalaParceiro(l))
+      return DimaLogos.img(l, fundo, { altura: h, tamanho: false, estilo: `max-width:${Math.round(h * 4)}px` }) }).filter(Boolean)
     $('en-parc-logos').innerHTML = it.join('')
     $('en-parc').classList.toggle('en-parc-faixa', escuro && !todosEscuros)
     $('en-parc').hidden = !it.length
