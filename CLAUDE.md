@@ -790,12 +790,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   escopo, porque é o que vai para PDF/impressão. Cor do selo do tema na folha por `data-tema` (CSS), nunca hex no JS.
 - Janela de exportação: classe **`re-ov`** (no seletor de escopo de `diagnostico-mesa.css`); Esc fecha, Tab preso, foco volta.
 - **Folha A4 = `wrapDoc()` → `FolhaA4.html()`** (padrão único, ver "Relatórios A4 — PADRÃO ÚNICO"; todos os 39): `.doc-wrap` com a largura exata do A4 (210 mm / 297 mm em `.doc-paisagem`, padding
-  10 mm = margem da impressão) e por dentro uma `<table class="doc-pg">`: **thead = cabeçalho** (logos do topo à esquerda, logo do
-  projeto à direita, título + selo + "Gerado em") e **tfoot = rodapé** (parceiros centralizados + "Impresso por"), que a impressão
-  **repete em toda página**; `docIntro()` (projeto/programa/local) só na 1ª. Logos sempre por `DimaLogos` (versão fundo claro).
-- **PDF = motor de impressão do navegador** (`exportPrint` → `prepararImpressao`: copia a folha da prévia para `#print-area` e grava o
-  `@page` com margens 10/10/12 mm e "Página X de Y" no `@bottom-center`). Texto pesquisável, `thead` de tabela repetido, linha/cartão
-  não se partem (`break-inside: avoid`). **Nada de html2pdf/html2canvas** (fotografava a página e cortava linhas na quebra) e nada
+  10 mm = margem da impressão) com cabeçalho (logos do topo à esquerda, logo do projeto à direita, título + selo + "Gerado em"),
+  identificação do projeto (de Dados do sistema), corpo e rodapé (parceiros centralizados + "Impresso por"). Logos por `DimaLogos`.
+- **PDF = motor de impressão do navegador** (`exportPrint` → `prepararImpressao`: `FolhaA4.paginar` divide a folha da prévia em
+  páginas A4 dentro de `#print-area`, cada uma com cabeçalho, rodapé e "Página X de Y"; `@page` com margem 0). Texto pesquisável. **Nada de html2pdf/html2canvas** (fotografava a página e cortava linhas na quebra) e nada
   sai do navegador. Nome sugerido do PDF = `document.title` durante a impressão.
 - **Largura**: a janela de exportação abre na orientação do relatório (`paisagem:true` em `RELATORIOS` para 9+ colunas) e a prévia
   tem o tamanho do A4; `expAjustar()` mede (`docExcede`) e, se algo passar, liga `.doc-fit` (letra menor) e depois `.doc-fit-max`
@@ -912,22 +910,29 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   Visão Geral (`abrirRelatorioA4Saldo`, `imprimirPainelSaldo`), os do Remanejamento (`relAbrirPedidoA4`, `relAbrirExtratoA4`) e os
   do Mapa (relatório CAR `gerarRelatorioCarMarcados`, Relatório Analítico Ambiental `exportarRelPDF`). **Nunca** montar cabeçalho,
   rodapé, logos ou `@page` à mão, nem `<style>` de folha própria.
-- **Cabeçalho** (repete em toda página): logos do **topo** (Acre, SEMA) à esquerda, logo do **projeto** (Resiliência) à direita,
-  título + selo do tema + "Gerado em". **Rodapé** (repete): logos dos **parceiros** centralizadas + "Impresso por". 1ª página traz a
-  identificação do projeto. "Página X de Y" no `@page` (`FolhaA4.paginaCss`). Logos sempre de Dados do sistema (`DimaLogos`).
-- **Saída = motor de impressão do navegador** ("Imprimir ou salvar em PDF"): texto pesquisável, `thead` de tabela repetido, linha,
-  número e cartão sem corte. **Proibido** html2pdf/html2canvas (PDF vira imagem e corta linha na quebra) e **proibido** mandar o
+- **Cabeçalho** (em toda página): logos do **topo** (Acre, SEMA) à esquerda, logo do **projeto** (Resiliência, versão de fundo claro)
+  à direita, título + selo do tema + "Gerado em". **Rodapé** (em toda página): logos dos **parceiros** centralizadas + "Impresso por" +
+  "Página X de Y". 1ª página traz a identificação do projeto (`projeto_codigo`/`projeto_nome`/`projeto_localizacao` de
+  `configuracoes_sistema`, lidos por `FolhaA4.pronto` — nunca escrever número do projeto fixo). Logos sempre de Dados do sistema.
+- **Paginação é nossa** (`FolhaA4.paginar(folha, destino)`): monta páginas `.fa4-pag` de altura fixa (296/209 mm), porque o Safari do
+  iPhone/iPad **não repete thead/tfoot nem desenha `@page` margin boxes** (cabeçalho só na 1ª, rodapé só na última, sem número).
+  Parte tabela por linha repetindo o `thead`, leva título de seção (`.rep-secao-titulo`, h1–h6) para a página seguinte, respeita
+  `break-before: page` (ex.: ficha do CAR) e reduz (`zoom`) bloco que não cabe numa página inteira. Não voltar a depender de
+  `thead`/`tfoot` da folha nem de `@bottom-center`. Paisagem no iPhone: a pessoa escolhe também nas opções de impressão (a barra avisa).
+- **Saída = motor de impressão do navegador** ("Imprimir ou salvar em PDF"): texto pesquisável, linha, número e cartão sem corte. **Proibido** html2pdf/html2canvas (PDF vira imagem e corta linha na quebra) e **proibido** mandar o
   relatório para servidor de PDF (Browserless/`gerar-pdf-relatorio`): o conteúdo tem nome, CPF/CNPJ e dado de propriedade.
 - **Relatório em outra aba**: `const w = FolhaA4.janela()` **antes de qualquer await** (senão o pop-up é bloqueado) e, com os dados,
-  `FolhaA4.escrever(w, { titulo, selo, tema, periodo, corpo, paisagem, css, nomeArquivo })`. A aba tem barra Retrato/Paisagem e
-  imprime sozinha quando as imagens carregam. `janela()` fecha o documento provisório — sem isso a folha fica "carregando".
-- **Relatório na própria página** (como a aba Relatórios): `FolhaA4.html({...})` + `#print-area` + `FolhaA4.paginaCss()`.
+  `FolhaA4.escrever(w, { titulo, selo, tema, periodo, corpo, paisagem, css, nomeArquivo })`. A aba mostra as páginas já paginadas,
+  tem barra Retrato/Paisagem (repagina) e imprime sozinha quando imagens e fontes carregam. `janela()` fecha o documento provisório — sem isso a folha fica "carregando".
+- **Relatório na própria página** (como a aba Relatórios): `await FolhaA4.pronto`, `FolhaA4.html({...})` e, ao imprimir,
+  `FolhaA4.paginar(folha, #print-area)` (visível fora da tela enquanto mede) + `FolhaA4.paginaCss()`.
 - **Corpo**: usar as classes da folha (`rep-tbl`, `rep-stats`/`rep-stat`, `rep-secao`/`rep-secao-titulo`, `rep-barra`, `rep-badge`
   `rb-*`, `mono`). Estilo próprio vai em `css` e é **escopado em `.doc-body`** pela `FolhaA4.escopo` (só regras simples, sem
   `@media`/`@page`; nada de `body`/`*`/`h1` de página). Texto do banco sempre escapado.
 - **Largura**: a folha tem o tamanho do A4 (210/297 mm) e `table-layout: fixed`; `FolhaA4.ajustar` liga `.doc-fit`/`.doc-fit-max` se
   algo passar e a tela avisa. Tabela com 9+ colunas abre em paisagem. Texto quebra entre palavras (`overflow-wrap: break-word`).
-- Conferir relatório novo: gerar em retrato e paisagem e imprimir em PDF — nada pode passar da folha nem cortar linha.
+- Conferir relatório novo: gerar em retrato e paisagem e imprimir em PDF — nada pode passar da folha nem cortar linha, e toda
+  página traz cabeçalho, rodapé e "Página X de Y".
 
 ### Logos institucionais — fonte única, versão por fundo (⚠️ ler antes de pôr logo em tela, relatório ou e-mail)
 - **Fonte única** = `configuracoes_sistema` (Dados do sistema › Logos): `logos_topo` (Zona A), `logo_projeto` (Zona B),

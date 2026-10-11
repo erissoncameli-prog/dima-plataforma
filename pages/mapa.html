@@ -5621,7 +5621,7 @@ function _conteudoRelatorioCAR(capturas){
     <div style="margin-top:24px;max-width:720px;margin-left:auto;margin-right:auto;font-size:11px;color:#6b7280;line-height:1.7;text-align:center">
       Este relatório apresenta o diagnóstico socioambiental individualizado de ${capturas.length} imóvel(is) rural(is)
       do Cadastro Ambiental Rural, com base nos dados SICAR, PRODES/INPE e camadas de delimitação das
-      APAs Igarapé São Francisco e Lago do Amapá — Projeto UNESCO 218BRA2001 · SEMA/AC.
+      APAs Igarapé São Francisco e Lago do Amapá — Projeto ${esc(FolhaA4.projeto().projeto_codigo || '')} · SEMA/AC.
     </div>
   </div>
 
@@ -5924,7 +5924,7 @@ function _gerarDescricaoCAR(f){
     t += `O imóvel está inserido na <strong>Área de Proteção Ambiental Lago do Amapá</strong> `;
     t += `(Decreto Estadual nº 13.531, de 26 de dezembro de 2005), gerida pela SEMA/AC. `;
   } else {
-    t += `O imóvel está localizado na área de influência das APAs monitoradas pelo Projeto 218BRA2001. `;
+    t += `O imóvel está localizado na área de influência das APAs monitoradas pelo Projeto ${esc(FolhaA4.projeto().projeto_codigo || '')}. `;
   }
 
   // Contexto sub-bacia
@@ -6695,7 +6695,7 @@ function _htmlRelTextual(d){
   </div>
   <div class="rel-text-block">
     <h4>1. Apresentação</h4>
-    <p>O presente relatório apresenta a análise ambiental da <strong>Área de Proteção Ambiental (APA) Igarapé São Francisco</strong>, instituída pelo Decreto Estadual nº 12.310, de 14 de julho de 2005, nos municípios de Rio Branco e Bujari, no estado do Acre. A APA é gerida pelo Instituto de Meio Ambiente do Acre (IMAC) e integra o Programa SEMA/AC no âmbito do Fundo Brasil-ONU, Projeto 218BRA2001.</p>
+    <p>O presente relatório apresenta a análise ambiental da <strong>Área de Proteção Ambiental (APA) Igarapé São Francisco</strong>, instituída pelo Decreto Estadual nº 12.310, de 14 de julho de 2005, nos municípios de Rio Branco e Bujari, no estado do Acre. A APA é gerida pelo Instituto de Meio Ambiente do Acre (IMAC) e integra o Programa SEMA/AC no âmbito do Fundo Brasil-ONU, Projeto ${esc(FolhaA4.projeto().projeto_codigo || '')}.</p>
     <p>A análise foi produzida com base em dados geoespaciais do Sistema DIMA, compreendendo <strong>${subbacias.length} sub-bacias hidrográficas</strong>, <strong>${hidro.total.toLocaleString('pt-BR')} segmentos hídricos</strong> e múltiplas camadas temáticas de uso e cobertura do solo.</p>
   </div>
   <div class="rel-text-block">

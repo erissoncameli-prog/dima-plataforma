@@ -771,13 +771,17 @@ function expAjustar(w) {
   av.hidden = !msg;
   av.innerHTML = msg ? reIc('info','p') + '<span>' + esc(msg) + '</span>' : '';
 }
-// Monta a área de impressão com a folha da prévia (mesma orientação e ajuste) e o @page do A4.
+// Monta a área de impressão: a folha da prévia (mesma orientação e ajuste) dividida em páginas A4 pelo
+// FolhaA4.paginar — cabeçalho, rodapé e "Página X de Y" em cada página, em qualquer navegador.
 function prepararImpressao(orientacao) {
   if (orientacao) expOrientar(orientacao);
   const el = document.querySelector('#exp-preview-content .doc-wrap');
   if (!el) return false;
   const printArea = document.getElementById('print-area');
-  printArea.innerHTML = el.outerHTML;
+  // visível fora da tela enquanto mede: a página precisa de layout para saber onde quebrar
+  printArea.style.cssText = 'display:block;position:absolute;left:-10000px;top:0';
+  if (!FolhaA4.paginar(el, printArea)) printArea.innerHTML = el.outerHTML;
+  printArea.style.cssText = 'display:none';
   let s = document.getElementById('_po');
   if (!s) { s = document.createElement('style'); s.id = '_po'; document.head.appendChild(s); }
   s.textContent = FolhaA4.paginaCss(expOrient);
@@ -791,7 +795,12 @@ function exportPrint(orientacao) {
   // nome sugerido do arquivo PDF = título da página no momento da impressão
   document.title = `${relAtivo}_${(rel?.titulo || 'relatorio').replace(/[^\w\sÀ-ú-]/g,'').trim().replace(/\s+/g,'_').slice(0,40)}_${new Date().toISOString().slice(0,10)}`;
   window.addEventListener('afterprint', () => { document.getElementById('print-area').innerHTML = ''; document.title = tituloAntes; }, { once: true });
-  window.print();
+  // logos copiadas para cada página: imprime quando estiverem prontas
+  const imgs = [...document.querySelectorAll('#print-area img')].filter(i => !i.complete);
+  if (!imgs.length) return window.print();
+  let n = imgs.length; const ir = () => { if (--n === 0) window.print(); };
+  imgs.forEach(i => { i.addEventListener('load', ir, { once: true }); i.addEventListener('error', ir, { once: true }); });
+  setTimeout(() => { if (n > 0) { n = -1; window.print(); } }, 3000);
 }
 
 function exportCSV() {
@@ -880,6 +889,7 @@ async function gerarRelatorio(id){
       case 'P5': html = await relP5(); break;
       default: html = `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Relatório <strong>${esc(id)}</strong> em desenvolvimento.</div>`;
     }
+    await FolhaA4.pronto; // identificação do projeto (Dados do sistema)
     area.innerHTML = wrapDoc(html, rel) + `
       <div class="re-pos"><button type="button" class="btn btn-primary btn-sm" onclick="abrirExport()">${reIc('upload','p')}Exportar / imprimir</button></div>`;
     if(btnExp) btnExp.disabled = false;
