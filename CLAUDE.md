@@ -803,6 +803,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `matriz_item_id` na view), código `produto·posição` e a mesma situação da Matriz (Atingida, Em andamento, Sem registro,
   Qualitativa). M4 = "Indicadores abaixo da meta" (todos com meta não atingida, do mais distante), sem vermelho.
 - `resultados.codigo` já é `'R1'`…`'R4'`: exibir como está e filtrar por `resNum(codigo) === filtro` (o filtro manda o número).
+- **Filtros (revisão 11/10/2026)**: filtro de atividade/fornecedor sobre produto compara `contrato.atividade_id`/`contrato.fornecedor_id`
+  — o embed precisa trazer essas colunas (P2/P1/F2 zeravam porque comparavam `atividade.id` sem pedir o id). Opções de cada `<select>`
+  = valores reais do enum/coluna (tipo de TDR é PF/PJ; situação de produto ≠ situação financeira; viagem tem realizado/em_prestacao).
+  Filtro declarado em `RELATORIOS[].filtros` **tem** de ser lido pela função, senão tirar da lista. Data fim sobre timestamptz
+  usa `+'T23:59:59'`. "Remover duplicados" de embed só por `id` — nunca por valor (F1/F5/V2 descartavam contratos de mesmo valor).
+  Lista de fornecedores = `fn_fornecedores_diretorio()` com inativos marcados "(inativo)". T3 = TDR `aprovado`/`em_licitacao` sem contrato.
 
 ### Auditoria IA — visual, faixa da execução e tratamento dos achados
 - `pages/auditoria.html` + `js/auditoria.js` usam o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema

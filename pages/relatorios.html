@@ -126,7 +126,7 @@ const RELATORIOS = [
   // ── FINANCEIRO ────────────────────────────────────────────
   { id:'F1', paisagem:true, tema:'financeiro', titulo:'Execução Orçamentária Geral',
     desc:'Orçamento total vs. comprometido vs. pago por atividade e resultado (BRL e USD).',
-    filtros:['periodo','atividade','resultado'] },
+    filtros:['atividade','resultado'] },
   { id:'F2', tema:'financeiro', titulo:'Fluxo de Caixa — Vencimentos',
     desc:'Produtos a vencer nos próximos 30/60/90 dias com valores comprometidos.',
     filtros:['horizonte','atividade','fornecedor'] },
@@ -174,7 +174,7 @@ const RELATORIOS = [
   // ── PRODUTOS ──────────────────────────────────────────────
   { id:'P1', paisagem:true, tema:'produtos', titulo:'Status de Entregas',
     desc:'Produtos por situação (pendente → pago) com percentual de execução.',
-    filtros:['atividade','fornecedor','periodo','situacao'] },
+    filtros:['atividade','fornecedor','periodo','situacao_produto'] },
   { id:'P2', tema:'produtos', titulo:'Atrasos na Entrega',
     desc:'Produtos com vencimento passado e sem entrega registrada.',
     filtros:['atividade','fornecedor'] },
@@ -195,7 +195,7 @@ const RELATORIOS = [
     desc:'Tempo médio entre cada etapa do fluxo de aprovação.',
     filtros:['periodo','tipo_tdr'] },
   { id:'T3', tema:'tdrs', titulo:'TDRs Aprovados sem Contrato',
-    desc:'TDRs com status aprovado que ainda não possuem contrato vinculado.',
+    desc:'TDRs aprovados ou em licitação que ainda não possuem contrato vinculado.',
     filtros:['periodo','atividade'] },
   // ── ATIVIDADES ────────────────────────────────────────────
   { id:'A1', paisagem:true, tema:'atividades', titulo:'Execução por Atividade',
@@ -216,7 +216,7 @@ const RELATORIOS = [
     filtros:['resultado','ods'] },
   { id:'M2', paisagem:true, tema:'matriz', titulo:'Contribuição de Produtos',
     desc:'Entregas que contribuíram para cada indicador com % e confirmação.',
-    filtros:['resultado','periodo'] },
+    filtros:['resultado'] },
   { id:'M4', paisagem:true, tema:'matriz', titulo:'Indicadores abaixo da meta',
     desc:'Todos os indicadores com meta numérica que ainda não a atingiram, do mais distante ao mais próximo.',
     filtros:['resultado'] },
@@ -260,13 +260,14 @@ let _atividades=[], _fornecedores=[], _usuarios=[], _protocolos=[], _viajantesNo
 async function carregarAuxiliares(){
   const [ra,rf,ru,rp,rv] = await Promise.all([
     db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
-    db.from('fornecedores').select('id,nome').eq('ativo',true).order('nome'),
+    db.rpc('fn_fornecedores_diretorio'),
     db.from('usuarios').select('id,nome_completo,perfil').eq('ativo',true).order('nome_completo'),
     db.from('viagem_protocolos').select('id,numero,destino_principal').order('numero',{ascending:false}),
     db.from('viagem_viajantes').select('nome').order('nome'),
   ]);
   _atividades = ra.data||[];
-  _fornecedores = rf.data||[];
+  // inativos entram (contratos antigos seguem filtráveis), marcados na lista
+  _fornecedores = (rf.data||[]).slice().sort((a,b)=>(b.ativo!==false)-(a.ativo!==false)||String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR'));
   _usuarios = ru.data||[];
   _protocolos = rp.data||[];
   _viajantesNomes = [...new Set((rv.data||[]).map(v=>v.nome).filter(Boolean))].sort();
@@ -459,7 +460,7 @@ function renderFiltros(lista){
           <span class="config-lbl">Fornecedor</span>
           <select class="config-select" id="fil-fornecedor">
             <option value="">Todos</option>
-            ${_fornecedores.map(f=>`<option value="${f.id}">${esc((f.nome||'').substring(0,35))}</option>`).join('')}
+            ${_fornecedores.map(f=>`<option value="${f.id}">${esc((f.nome||'').substring(0,35))}${f.ativo===false?' (inativo)':''}</option>`).join('')}
           </select>
         </div>`;
       case 'situacao': return `
@@ -480,6 +481,8 @@ function renderFiltros(lista){
             <option value="vigente">Vigente</option>
             <option value="encerrado">Encerrado</option>
             <option value="suspenso">Suspenso</option>
+            <option value="aguardando_cobertura">Aguardando cobertura</option>
+            <option value="cancelado">Cancelado</option>
           </select>
         </div>`;
       case 'tipo_contrato': return `
@@ -490,8 +493,6 @@ function renderFiltros(lista){
             <option value="Servico">Serviço</option>
             <option value="Consultoria">Consultoria</option>
             <option value="Consumo">Consumo</option>
-            <option value="Diaria">Diária</option>
-            <option value="Passagens">Passagens</option>
           </select>
         </div>`;
       case 'fase': return `
@@ -513,9 +514,17 @@ function renderFiltros(lista){
           <select class="config-select" id="fil-status-tdr">
             <option value="">Todos</option>
             <option value="rascunho">Rascunho</option>
-            <option value="revisao_interna">Revisão Interna</option>
-            <option value="enviado_unesco">Enviado UNESCO</option>
+            <option value="submetido">Submetido</option>
+            <option value="em_avaliacao">Em avaliação</option>
+            <option value="pendente_correcao">Pendente de correção</option>
+            <option value="revisao_interna">Revisão interna</option>
+            <option value="ajustes">Ajustes</option>
+            <option value="enviado_unesco">Enviado à UNESCO</option>
+            <option value="em_revisao_unesco">Em revisão UNESCO</option>
+            <option value="retorno_unesco">Retorno UNESCO</option>
             <option value="aprovado">Aprovado</option>
+            <option value="em_licitacao">Em licitação</option>
+            <option value="contratado">Contratado</option>
             <option value="cancelado">Cancelado</option>
           </select>
         </div>`;
@@ -524,9 +533,8 @@ function renderFiltros(lista){
           <span class="config-lbl">Tipo TDR</span>
           <select class="config-select" id="fil-tipo-tdr">
             <option value="">Todos</option>
-            <option value="Consultoria">Consultoria</option>
-            <option value="Servico">Serviço</option>
-            <option value="Consumo">Consumo</option>
+            <option value="PF">Pessoa Física (PF)</option>
+            <option value="PJ">Pessoa Jurídica (PJ)</option>
           </select>
         </div>`;
       case 'status_viagem': return `
@@ -537,7 +545,10 @@ function renderFiltros(lista){
             <option value="rascunho">Rascunho</option>
             <option value="solicitado">Solicitado</option>
             <option value="aprovado">Aprovado</option>
-            <option value="pago">Pago</option>
+            <option value="em_prestacao">Em prestação</option>
+            <option value="realizado">Realizado</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="rejeitado">Rejeitado</option>
           </select>
         </div>`;
       case 'protocolo_viagem': return `
@@ -573,6 +584,8 @@ function renderFiltros(lista){
             <option value="coordenacao">Coordenação</option>
             <option value="tecnico">Técnico</option>
             <option value="financeiro">Financeiro</option>
+            <option value="consultor_externo">Consultor externo</option>
+            <option value="visualizador">Visualizador</option>
           </select>
         </div>`;
       case 'tipo_forn': return `
@@ -645,7 +658,9 @@ function renderFiltros(lista){
           <select class="config-select" id="fil-sit-produto">
             <option value="">Todos</option>
             <option value="pendente">Pendente</option>
+            <option value="entrega_parcial">Entrega parcial</option>
             <option value="em_analise">Em Análise</option>
+            <option value="devolvido">Devolvido</option>
             <option value="aprovado">Aprovado</option>
             <option value="pago">Pago</option>
             <option value="cancelado">Cancelado</option>
@@ -911,8 +926,8 @@ async function relF1(){
   let q = db.from('atividades')
     .select(`id,codigo,nome_pt,orcamento_usd,fase,
       resultado:resultados(codigo,nome_pt),
-      tdrs(valor_brl,valor_usd,status),
-      contratos(valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,status)`)
+      tdrs(id,valor_brl,valor_usd,status),
+      contratos(id,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,status)`)
     .order('codigo');
   if(ativFil) q = q.eq('id', ativFil);
 
@@ -945,8 +960,9 @@ async function relF1(){
   rows = rows.map(a => {
     const seenT=new Set(), seenC=new Set();
     return { ...a,
-      tdrs: (a.tdrs||[]).filter(t=>{ if(seenT.has(t.status+t.valor_brl)) return false; seenT.add(t.status+t.valor_brl); return true; }),
-      contratos: (a.contratos||[]).filter(c=>{ if(seenC.has(c.valor_total_brl)) return false; seenC.add(c.valor_total_brl); return true; }),
+      // por id: TDRs/contratos diferentes com o mesmo valor são distintos
+      tdrs: (a.tdrs||[]).filter(t=>{ if(seenT.has(t.id)) return false; seenT.add(t.id); return true; }),
+      contratos: (a.contratos||[]).filter(c=>{ if(seenC.has(c.id)) return false; seenC.add(c.id); return true; }),
     };
   });
 
@@ -1037,7 +1053,7 @@ async function relF2(){
 
   let q = db.from('contratos_produtos')
     .select(`id,numero_produto,descricao,valor_brl,dt_vencimento,situacao,
-      contrato:contratos(numero,objeto_pt,fornecedor:fornecedores(nome),atividade:atividades(codigo,nome_pt))`)
+      contrato:contratos(numero,objeto_pt,atividade_id,fornecedor_id,fornecedor:fornecedores(nome),atividade:atividades(codigo,nome_pt))`)
     .gte('dt_vencimento', hojStr)
     .lte('dt_vencimento', fimStr)
     .not('situacao','in','("pago","cancelado")')
@@ -1047,8 +1063,8 @@ async function relF2(){
   if(error) throw error;
 
   let rows = data||[];
-  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade?.id===ativFil);
-  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor?.id===fornFil);
+  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade_id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
 
   const total = rows.reduce((s,r)=>s+(r.valor_brl||0),0);
 
@@ -1107,8 +1123,10 @@ async function relF3(){
   let q = db.from('execucao_financeira')
     .select(`*,contrato:contratos(numero,atividade:atividades(codigo)),fornecedor:fornecedores(nome)`)
     .order('dt_pagamento',{ascending:false});
-  if(dtIni) q = q.gte('dt_pagamento', dtIni);
-  if(dtFim) q = q.lte('dt_pagamento', dtFim);
+  // período: pago pela data de pagamento; a pagar/cancelado (sem pagamento) pelo vencimento
+  if(dtIni && dtFim) q = q.or(`and(dt_pagamento.gte.${dtIni},dt_pagamento.lte.${dtFim}),and(dt_pagamento.is.null,dt_vencimento.gte.${dtIni},dt_vencimento.lte.${dtFim})`);
+  else if(dtIni) q = q.or(`dt_pagamento.gte.${dtIni},and(dt_pagamento.is.null,dt_vencimento.gte.${dtIni})`);
+  else if(dtFim) q = q.or(`dt_pagamento.lte.${dtFim},and(dt_pagamento.is.null,dt_vencimento.lte.${dtFim})`);
   if(sitFil) q = q.eq('situacao', sitFil);
   if(fornFil) q = q.eq('fornecedor_id', fornFil);
 
@@ -1181,6 +1199,10 @@ async function relC1(){
   if(stFil) q = q.eq('status', stFil);
   if(tpFil) q = q.eq('tipo', tpFil);
   if(ativFil) q = q.eq('atividade_id', ativFil);
+  // período = data de início do contrato
+  const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
+  if(dtIni) q = q.gte('dt_inicio', dtIni);
+  if(dtFim) q = q.lte('dt_inicio', dtFim);
 
   const {data, error} = await q;
   if(error) throw error;
@@ -1297,23 +1319,28 @@ async function relV1(){
 async function relP1(){
   const ativFil = filVal('fil-atividade');
   const fornFil = filVal('fil-fornecedor');
-  const sitFil  = filVal('fil-situacao');
+  const sitFil  = filVal('fil-sit-produto');
+  const dtIni   = filVal('fil-dt-ini');
+  const dtFim   = filVal('fil-dt-fim');
 
   let q = db.from('contratos_produtos')
-    .select(`*,contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
+    .select(`*,contrato:contratos(numero,atividade_id,fornecedor_id,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
     .order('dt_vencimento');
   if(sitFil) q = q.eq('situacao', sitFil);
+  // período = vencimento do produto
+  if(dtIni)  q = q.gte('dt_vencimento', dtIni);
+  if(dtFim)  q = q.lte('dt_vencimento', dtFim);
 
   const {data, error} = await q;
   if(error) throw error;
   let rows = data||[];
-  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade?.id===ativFil);
-  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor?.id===fornFil);
+  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade_id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
 
   const cnt = s => rows.filter(r=>r.situacao===s).length;
   const sitBadge = s => {
-    const m={pendente:'rb-cinza',em_analise:'rb-ouro',aprovado:'rb-azul',pago:'rb-verde',cancelado:'rb-cinza'};
-    const l={pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado'};
+    const m={pendente:'rb-cinza',entrega_parcial:'rb-ouro',em_analise:'rb-ouro',devolvido:'rb-vermelho',aprovado:'rb-azul',pago:'rb-verde',cancelado:'rb-cinza'};
+    const l={pendente:'Pendente',entrega_parcial:'Entrega parcial',em_analise:'Em análise',devolvido:'Devolvido',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado'};
     return `<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||s}</span>`;
   };
 
@@ -1361,15 +1388,15 @@ async function relP2(){
   const fornFil = filVal('fil-fornecedor');
 
   const {data, error} = await db.from('contratos_produtos')
-    .select(`*,contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
+    .select(`*,contrato:contratos(numero,atividade_id,fornecedor_id,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
     .lt('dt_vencimento', hoje)
     .is('dt_entrega', null)
     .not('situacao','in','("pago","cancelado")')
     .order('dt_vencimento');
   if(error) throw error;
   let rows = data||[];
-  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade?.id===ativFil);
-  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor?.id===fornFil);
+  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade_id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
 
   const diasAtraso = dt => Math.ceil((new Date()-new Date(dt+' 12:00'))/(1000*60*60*24));
   const totalVal   = rows.reduce((s,r)=>s+(r.valor_brl||0),0);
@@ -1584,7 +1611,7 @@ async function relF5(){
   const ativFil = filVal('fil-atividade');
   const resFil  = filVal('fil-resultado');
   const faseFil = filVal('fil-fase');
-  let q = db.from('atividades').select(`id,codigo,nome_pt,orcamento_usd,fase,resultado:resultados(codigo),contratos(valor_total_brl,valor_comprometido_brl,valor_utilizado_brl,saldo_brl,status)`).order('codigo');
+  let q = db.from('atividades').select(`id,codigo,nome_pt,orcamento_usd,fase,resultado:resultados(codigo),contratos(id,valor_total_brl,valor_comprometido_brl,valor_utilizado_brl,saldo_brl,status)`).order('codigo');
   if(faseFil) q = q.eq('fase',faseFil);
   if(ativFil) q = q.eq('id',ativFil);
   const {data, error} = await q;
@@ -1593,7 +1620,8 @@ async function relF5(){
   if(resFil) rows = rows.filter(a=>resNum(a.resultado?.codigo)===resFil);
   rows = rows.map(a=>{
     const seen=new Set();
-    return {...a,contratos:(a.contratos||[]).filter(c=>{const k=c.valor_total_brl+'';if(seen.has(k))return false;seen.add(k);return true;})};
+    // por id: contratos diferentes com o mesmo valor são contratos distintos
+    return {...a,contratos:(a.contratos||[]).filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;})};
   });
   const totOrc  = rows.reduce((s,a)=>s+(a.orcamento_usd||0),0);
   const totComp = rows.reduce((s,a)=>(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_comprometido_brl||0),0)+s,0);
@@ -1654,14 +1682,14 @@ async function relF6(){
   const ativFil = filVal('fil-atividade');
   const fornFil = filVal('fil-fornecedor');
   const {data, error} = await db.from('contratos_produtos')
-    .select(`*,contrato:contratos(numero,fornecedor:fornecedores(id,nome),atividade:atividades(id,codigo))`)
+    .select(`*,contrato:contratos(numero,atividade_id,fornecedor_id,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
     .lt('dt_vencimento', hoje)
     .not('situacao','in','("pago","cancelado")')
     .order('dt_vencimento');
   if(error) throw error;
   let rows = data||[];
-  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade?.id===ativFil);
-  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor?.id===fornFil);
+  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade_id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
   const totalVal = rows.reduce((s,r)=>s+(r.valor_brl||0),0);
   const diasAt = dt=>Math.ceil((new Date()-new Date(dt+' 12:00'))/(864e5));
   return `
@@ -1857,13 +1885,17 @@ async function relC4(){
 // ══════════════════════════════════════════════════════════════
 async function relV2(){
   const tpFil = filVal('fil-tipo-forn');
-  let q = db.from('fornecedores').select(`id,nome,tipo,ativo,contratos(valor_total_brl,status)`).order('nome');
+  const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
+  let q = db.from('fornecedores').select(`id,nome,tipo,ativo,contratos(id,valor_total_brl,status,dt_inicio)`).order('nome');
   if(tpFil) q = q.eq('tipo', tpFil);
   const {data, error} = await q;
   if(error) throw error;
   const rows = (data||[]).map(f=>{
     const seen=new Set();
-    const contratos=(f.contratos||[]).filter(c=>{const k=c.valor_total_brl+''+c.status;if(seen.has(k))return false;seen.add(k);return true;});
+    // por id: contratos diferentes com o mesmo valor são contratos distintos
+    const contratos=(f.contratos||[]).filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;})
+      // período = data de início do contrato
+      .filter(c=>(!dtIni||(c.dt_inicio&&c.dt_inicio>=dtIni))&&(!dtFim||(c.dt_inicio&&c.dt_inicio<=dtFim)));
     const total=contratos.reduce((s,c)=>s+(c.valor_total_brl||0),0);
     return {...f,contratos,_total:total};
   }).filter(f=>f._total>0).sort((a,b)=>b._total-a._total);
@@ -1974,13 +2006,13 @@ async function relP3(){
   const ativFil = filVal('fil-atividade');
   const fornFil = filVal('fil-fornecedor');
   const {data, error} = await db.from('contratos_produtos')
-    .select(`*,contrato:contratos(numero,fornecedor:fornecedores(id,nome),atividade:atividades(id,codigo))`)
+    .select(`*,contrato:contratos(numero,atividade_id,fornecedor_id,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
     .not('pct_aprovado','is',null)
     .order('avaliado_em',{ascending:false});
   if(error) throw error;
   let rows = data||[];
-  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade?.id===ativFil);
-  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor?.id===fornFil);
+  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade_id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
   const mediaAprov = rows.length?rows.reduce((s,r)=>s+(r.pct_aprovado||0),0)/rows.length:0;
   const totContrat = rows.reduce((s,r)=>s+(r.valor_brl||0),0);
   const totAprov   = rows.reduce((s,r)=>s+(r.valor_aprovado||0),0);
@@ -2035,7 +2067,7 @@ async function relP4(){
     .not('dt_entrega','is',null).not('avaliado_em','is',null)
     .order('avaliado_em',{ascending:false});
   if(dtIni) q = q.gte('avaliado_em', dtIni);
-  if(dtFim) q = q.lte('avaliado_em', dtFim);
+  if(dtFim) q = q.lte('avaliado_em', dtFim+'T23:59:59');
   const {data, error} = await q;
   if(error) throw error;
   const rows = (data||[]).map(r=>{
@@ -2094,23 +2126,28 @@ async function relT1(){
   const {data, error} = await q;
   if(error) throw error;
   const rows = data||[];
-  const STATUS_ORDER = ['rascunho','revisao_interna','enviado_unesco','ajustes','aprovado','cancelado'];
-  const stLabel = {rascunho:'Rascunho',revisao_interna:'Revisão Interna',enviado_unesco:'Enviado UNESCO',ajustes:'Em Ajustes',aprovado:'Aprovado',cancelado:'Cancelado'};
-  const stClass = {rascunho:'rb-cinza',revisao_interna:'rb-ouro',enviado_unesco:'rb-azul',ajustes:'rb-ouro',aprovado:'rb-verde',cancelado:'rb-vermelho'};
+  // todas as fases do enum status_tdr (o resumo antigo deixava contratado/em licitação de fora)
+  const STATUS_ORDER = ['rascunho','submetido','em_avaliacao','pendente_correcao','revisao_interna','ajustes','enviado_unesco','em_revisao_unesco','retorno_unesco','aprovado','em_licitacao','contratado','cancelado'];
+  const stLabel = {rascunho:'Rascunho',submetido:'Submetido',em_avaliacao:'Em avaliação',pendente_correcao:'Pendente de correção',revisao_interna:'Revisão Interna',ajustes:'Em Ajustes',enviado_unesco:'Enviado UNESCO',em_revisao_unesco:'Em revisão UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado',em_licitacao:'Em licitação',contratado:'Contratado',cancelado:'Cancelado'};
+  const stClass = {rascunho:'rb-cinza',submetido:'rb-azul',em_avaliacao:'rb-ouro',pendente_correcao:'rb-ouro',revisao_interna:'rb-ouro',ajustes:'rb-ouro',enviado_unesco:'rb-azul',em_revisao_unesco:'rb-azul',retorno_unesco:'rb-ouro',aprovado:'rb-verde',em_licitacao:'rb-verde',contratado:'rb-teal',cancelado:'rb-vermelho'};
+  const POS_APROV = ['aprovado','em_licitacao','contratado'];
+  const TRAMITE   = ['submetido','em_avaliacao','pendente_correcao','revisao_interna','ajustes','enviado_unesco','em_revisao_unesco','retorno_unesco'];
   const cnt = s=>rows.filter(r=>r.status===s).length;
   const val = s=>rows.filter(r=>r.status===s).reduce((t,r)=>t+(r.valor_brl||0),0);
+  const cntG = l=>l.reduce((t,s)=>t+cnt(s),0);
+  const valG = l=>l.reduce((t,s)=>t+val(s),0);
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Total TDRs</div><div class="rep-stat-val">${rows.length}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Aprovados</div><div class="rep-stat-val" style="color:var(--sucesso)">${cnt('aprovado')}</div><div class="rep-stat-sub">${fmtBRL(val('aprovado'))}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Em Tramitação</div><div class="rep-stat-val" style="color:var(--aviso)">${cnt('revisao_interna')+cnt('enviado_unesco')+cnt('ajustes')}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Aprovados (inclui licitação e contratados)</div><div class="rep-stat-val" style="color:var(--sucesso)">${cntG(POS_APROV)}</div><div class="rep-stat-sub">${fmtBRL(valG(POS_APROV))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Em Tramitação</div><div class="rep-stat-val" style="color:var(--aviso)">${cntG(TRAMITE)}</div></div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Resumo por Status</div>
     <table class="rep-tbl">
       <thead><tr><th>Status</th><th style="text-align:center">Qtd.</th><th style="text-align:right">Valor BRL</th><th style="min-width:80px">%</th></tr></thead>
       <tbody>
-      ${STATUS_ORDER.map(s=>`<tr>
+      ${STATUS_ORDER.filter(s=>cnt(s)>0).map(s=>`<tr>
         <td><span class="rep-badge ${stClass[s]}">${stLabel[s]}</span></td>
         <td class="mono" style="text-align:center">${cnt(s)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(val(s))}</td>
@@ -2155,7 +2192,7 @@ async function relT2(){
     .not('status','eq','rascunho')
     .order('criado_em',{ascending:false});
   if(dtIni) q = q.gte('criado_em', dtIni);
-  if(dtFim) q = q.lte('criado_em', dtFim);
+  if(dtFim) q = q.lte('criado_em', dtFim+'T23:59:59');
   if(tpFil) q = q.eq('tipo', tpFil);
   const {data, error} = await q;
   if(error) throw error;
@@ -2207,13 +2244,16 @@ async function relT2(){
 // ══════════════════════════════════════════════════════════════
 async function relT3(){
   const dtIni   = filVal('fil-dt-ini');
+  const dtFim   = filVal('fil-dt-fim');
   const ativFil = filVal('fil-atividade');
   let q = db.from('tdrs')
-    .select(`id,numero,tipo,objeto_pt,valor_brl,valor_usd,criado_em,
+    .select(`id,numero,tipo,objeto_pt,valor_brl,valor_usd,status,criado_em,
       atividade:atividades(id,codigo,nome_pt),
       contratos(id)`)
-    .eq('status','aprovado').order('criado_em',{ascending:false});
+    // aprovado e em_licitacao = pós-aprovação ainda sem contrato (contratado já tem)
+    .in('status',['aprovado','em_licitacao']).order('criado_em',{ascending:false});
   if(dtIni)   q = q.gte('criado_em', dtIni);
+  if(dtFim)   q = q.lte('criado_em', dtFim+'T23:59:59');
   if(ativFil) q = q.eq('atividade_id', ativFil);
   const {data, error} = await q;
   if(error) throw error;
@@ -2230,7 +2270,7 @@ async function relT3(){
     ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Todos os TDRs aprovados possuem contrato vinculado.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Número</th><th>Objeto</th><th>Tipo</th><th>Atividade</th>
+        <th>Número</th><th>Objeto</th><th>Tipo</th><th>Fase</th><th>Atividade</th>
         <th>Aprovado/Criado</th>
         <th style="text-align:right">Valor BRL</th>
         <th style="text-align:right">Valor USD</th>
@@ -2240,13 +2280,14 @@ async function relT3(){
         <td class="mono">${esc(r.numero||'—')}</td>
         <td>${esc(r.objeto_pt||'—')}</td>
         <td><span class="rep-badge rb-azul">${esc(r.tipo||'—')}</span></td>
+        <td><span class="rep-badge ${r.status==='em_licitacao'?'rb-ouro':'rb-verde'}">${r.status==='em_licitacao'?'Em licitação':'Aprovado'}</span></td>
         <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
         <td class="mono">${r.criado_em?new Date(r.criado_em).toLocaleDateString('pt-BR'):'—'}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
         <td class="mono" style="text-align:right">${fmtUSD(r.valor_usd)}</td>
       </tr>`).join('')}
       </tbody>
-      <tfoot><tr><td colspan="5"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalVal)}</td><td></td></tr></tfoot>
+      <tfoot><tr><td colspan="6"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalVal)}</td><td></td></tr></tfoot>
     </table>`}
   </div>`;
 }
