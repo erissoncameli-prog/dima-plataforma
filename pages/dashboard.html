@@ -25,6 +25,7 @@
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/folha-a4.js"></script>
 <script src="../js/relatorio-saldo-atividade.js"></script>
 <script>
 (function(){
@@ -1021,40 +1022,14 @@ function exportSaldoExcel(){
   XLSX.writeFile(wb, 'saldo_orcamento_atividade_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
-// CSS mínimo p/ reproduzir .rep-tbl/.rep-stat (definidos em relatorios.html) numa janela em
-// branco que não carrega global.css — valores replicados literalmente das variáveis do design.
-var _CSS_REP = ''
-  +'*{box-sizing:border-box}body{font-family:"DM Sans",Arial,sans-serif;color:#111827;margin:22px;font-size:11px}'
-  +'h1{font-size:18px;margin:0 0 2px}.sub{font-size:11px;color:#6B7280;margin-bottom:16px}'
-  +'.rep-stats{display:grid;gap:12px;margin-bottom:20px;grid-template-columns:repeat(4,1fr)}'
-  +'.rep-stat{background:#f0f7f2;border:1px solid #c8e6d0;border-radius:8px;padding:12px 14px}'
-  +'.rep-stat-lbl{font-size:9px;font-weight:700;color:#2D6A4F;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}'
-  +'.rep-stat-val{font-size:18px;font-weight:700;color:#111827;font-family:"DM Mono",monospace;letter-spacing:-.01em}'
-  +'.rep-stat-sub{font-size:10px;color:#6B7280;margin-top:2px}'
-  +'.rep-secao{margin-bottom:20px}'
-  +'.rep-secao-titulo{font-size:11px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.08em;padding:6px 0;border-bottom:1.5px solid #c8e6d0;margin-bottom:12px}'
-  +'.rep-barra{height:6px;background:#F3F4F6;border-radius:3px;overflow:hidden}'
-  +'.rep-barra-fill{height:100%;border-radius:3px;background:#2D6A4F}'
-  +'.rep-barra-fill.warn{background:#D97706}.rep-barra-fill.crit{background:#DC2626}'
-  +'.rep-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;text-transform:uppercase;white-space:nowrap}'
-  +'.rb-verde{background:#ECFDF5;color:#065F46}.rb-azul{background:#EFF6FF;color:#1E40AF}.rb-cinza{background:#F3F4F6;color:#374151}.rb-teal{background:#F0FDFA;color:#0F766E}'
-  +'.mono{font-family:"DM Mono",monospace;font-size:10px;white-space:nowrap}.mono-sm{font-family:"DM Mono",monospace;font-size:9px}'
-  +'.rep-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px}'
-  +'.rep-tbl th{padding:7px 10px;font-size:9px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #1F4E2C;background:#f0f7f2;text-align:left;white-space:nowrap}'
-  +'.rep-tbl td{padding:7px 10px;border-bottom:1px solid #E5E7EB;color:#374151;vertical-align:middle;word-break:break-word}'
-  +'.rep-tbl tfoot td{padding:8px 10px;font-weight:700;color:#111827;border-top:2px solid #1F4E2C;background:#f0f7f2}'
-  +'@media print{@page{size:A4 landscape;margin:11mm}body{margin:0}'
-  +'.rep-tbl thead{display:table-header-group}.rep-tbl tr,.rep-stat{break-inside:avoid;page-break-inside:avoid}'
-  +'*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
-
 // Abre o relatório "Saldo de Orçamento por Atividade (TDRs)" (A4) — mesmo padrão robusto do
 // Imprimir Painel (janela local, sem depender do carregamento de outra página inteira). Usa a
 // MESMA lógica de cálculo/HTML de js/relatorio-saldo-atividade.js (compartilhada com a Central
 // de Relatórios), garantindo que o conteúdo é sempre idêntico ao relatório oficial.
 async function abrirRelatorioA4Saldo(){
-  var win = window.open('', '_blank');
+  // Folha A4 padrão (js/folha-a4.js): a aba abre antes do await, senão o navegador bloqueia
+  var win = FolhaA4.janela();
   if(!win){ _saldoAviso('Permita pop-ups neste site para gerar o relatório.','warning'); return; }
-  win.document.write('<!doctype html><meta charset="utf-8"><title>Gerando relatório…</title><body style="font-family:sans-serif;color:#6B7280;padding:40px;text-align:center">Gerando relatório A4…</body>');
   try{
     var fornById = {};
     (D.forns||[]).forEach(function(f){ fornById[f.id]=f; });
@@ -1072,14 +1047,7 @@ async function abrirRelatorioA4Saldo(){
     var cotResp = await db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1);
     var taxa = parseFloat((cotResp.data && cotResp.data[0] && cotResp.data[0].cotacao) || 0);
     var corpo = gerarRelatorioSaldoAtividadeHTML(rows, taxa);
-    var dt = new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    var html = '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Saldo de Orçamento por Atividade (TDRs)</title><style>'+_CSS_REP+'</style></head><body>'
-      +'<h1>⚖️ Saldo de Orçamento por Atividade (TDRs)</h1>'
-      +'<div class="sub">Projeto 218BRA2001 · SEMA/AC · UNESCO — gerado em '+dt+'</div>'
-      +corpo
-      +'</body></html>';
-    win.document.open(); win.document.write(html); win.document.close(); win.focus();
-    setTimeout(function(){ try{ win.print(); }catch(e){} }, 400);
+    FolhaA4.escrever(win, { titulo: 'Saldo de Orçamento por Atividade (TDRs)', selo: 'ATIVIDADES', tema: 'atividades', corpo: corpo, paisagem: true });
   } catch(e){
     win.document.open();
     win.document.write('<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;color:#991B1B;padding:40px">Erro ao gerar o relatório: '+esc(e&&e.message||String(e))+'</body>');
@@ -1141,10 +1109,9 @@ function imprimirPainelSaldo(){
       +'<span class="stn">'+statCnt[k]+'</span></div>';
   }).join('');
 
-  var html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Saldo de Orçamento por Atividade</title><style>'
-    +'*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#1F2937;margin:22px;font-size:11px}'
+  // Folha A4 padrão (js/folha-a4.js); o CSS do painel é escopado em .doc-body pela FolhaA4
+  var css=''
     +'.mono{font-family:"DM Mono",Consolas,monospace}'
-    +'h1{font-size:18px;margin:0 0 2px}.sub{font-size:11px;color:#6B7280;margin-bottom:16px}'
     +'.kpis{display:flex;gap:10px;margin-bottom:14px}.kpi{flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:9px 12px}'
     +'.kpi .l{font-size:9px;font-weight:700;text-transform:uppercase;color:#6B7280}.kpi .v{font-size:16px;font-weight:800;margin-top:3px}'
     +'.summary{display:flex;gap:14px;margin-bottom:16px}.card{flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:11px 13px}'
@@ -1157,13 +1124,8 @@ function imprimirPainelSaldo(){
     +'td{padding:5px 7px;border-bottom:1px solid #E5E7EB;vertical-align:middle}td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td.c{text-align:center;white-space:nowrap}'
     +'.mb{display:flex;height:9px;width:150px;border-radius:2px;overflow:hidden;background:#F3F4F6}.mb span{display:block;height:100%}'
     +'tfoot td{font-weight:800;border-top:2px solid #1F4E2C;background:#F0F7F2}'
-    +'.foot{margin-top:12px;font-size:9px;color:#9CA3AF}'
-    +'@media print{@page{size:A4 landscape;margin:11mm}body{margin:0}'
-    +'.kpis,.summary,.card,tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}'
-    +'*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
-    +'</style></head><body>'
-    +'<h1>Saldo de Orçamento por Atividade</h1>'
-    +'<div class="sub">Projeto 218BRA2001 · SEMA/AC · UNESCO — gerado em '+dt+' · valores em USD</div>'
+    +'.foot{margin-top:12px;font-size:9px;color:#9CA3AF}';
+  var corpo=''
     +'<div class="kpis">'
     +'<div class="kpi"><div class="l">Orçamento total</div><div class="v" style="color:#2563EB">'+D_USD(t.tOrc)+'</div></div>'
     +'<div class="kpi"><div class="l">Comprometido (TDRs)</div><div class="v" style="color:#B45309">'+D_USD(t.tComp)+'</div></div>'
@@ -1180,11 +1142,10 @@ function imprimirPainelSaldo(){
     +'</table>'
     +'<div class="foot">Comprometido = soma dos TDRs não cancelados · Firmado = TDRs já com contrato vinculado · Saldo livre = Orçamento − Comprometido. Distribuição: '
     +'<span style="color:#047857">■</span> firmado <span style="color:#F59E0B">■</span> a firmar <span style="color:#94A3B8">■</span> saldo livre <span style="color:#DC2626">■</span> excedente — barras em escala comum de valor.</div>'
-    +'</body></html>';
-  var win=window.open('','_blank');
+    ;
+  var win=FolhaA4.janela();
   if(!win){ _saldoAviso('Permita pop-ups neste site para gerar o relatório.','warning'); return; }
-  win.document.open(); win.document.write(html); win.document.close(); win.focus();
-  setTimeout(function(){ try{ win.print(); }catch(e){} }, 400);
+  FolhaA4.escrever(win, { titulo: 'Saldo de Orçamento por Atividade — painel', selo: 'ATIVIDADES', tema: 'atividades', corpo: corpo, css: css, paisagem: true });
 }
 window.imprimirPainelSaldo = imprimirPainelSaldo;
 window.exportSaldoExcel = exportSaldoExcel;

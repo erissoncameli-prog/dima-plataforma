@@ -789,7 +789,7 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **A folha (`.doc-wrap`) é papel: branca nos dois temas** — redefine os nomes do `global.css` com os valores claros no próprio
   escopo, porque é o que vai para PDF/impressão. Cor do selo do tema na folha por `data-tema` (CSS), nunca hex no JS.
 - Janela de exportação: classe **`re-ov`** (no seletor de escopo de `diagnostico-mesa.css`); Esc fecha, Tab preso, foco volta.
-- **Folha A4 = `wrapDoc()`** (todos os 41): `.doc-wrap` com a largura exata do A4 (210 mm / 297 mm em `.doc-paisagem`, padding
+- **Folha A4 = `wrapDoc()` → `FolhaA4.html()`** (padrão único, ver "Relatórios A4 — PADRÃO ÚNICO"; todos os 39): `.doc-wrap` com a largura exata do A4 (210 mm / 297 mm em `.doc-paisagem`, padding
   10 mm = margem da impressão) e por dentro uma `<table class="doc-pg">`: **thead = cabeçalho** (logos do topo à esquerda, logo do
   projeto à direita, título + selo + "Gerado em") e **tfoot = rodapé** (parceiros centralizados + "Impresso por"), que a impressão
   **repete em toda página**; `docIntro()` (projeto/programa/local) só na 1ª. Logos sempre por `DimaLogos` (versão fundo claro).
@@ -907,6 +907,28 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **ROPA**: a ficha de cada tratamento (`.ad-trat`) é **papel: branca nos dois temas e na impressão**; na impressão do tema escuro
   o resto volta aos valores claros. Regras de leitura/conferência seguem as de "ROPA vivo" (Diagnóstico).
 
+### Relatórios A4 — PADRÃO ÚNICO (⚠️ todo relatório novo, em qualquer tela, segue isto)
+- **Um molde só**: `js/folha-a4.js` (`FolhaA4`) + `css/folha-a4.css`. Usam: os 39 da aba Relatórios (`wrapDoc`), os dois A4 da
+  Visão Geral (`abrirRelatorioA4Saldo`, `imprimirPainelSaldo`), os do Remanejamento (`relAbrirPedidoA4`, `relAbrirExtratoA4`) e os
+  do Mapa (relatório CAR `gerarRelatorioCarMarcados`, Relatório Analítico Ambiental `exportarRelPDF`). **Nunca** montar cabeçalho,
+  rodapé, logos ou `@page` à mão, nem `<style>` de folha própria.
+- **Cabeçalho** (repete em toda página): logos do **topo** (Acre, SEMA) à esquerda, logo do **projeto** (Resiliência) à direita,
+  título + selo do tema + "Gerado em". **Rodapé** (repete): logos dos **parceiros** centralizadas + "Impresso por". 1ª página traz a
+  identificação do projeto. "Página X de Y" no `@page` (`FolhaA4.paginaCss`). Logos sempre de Dados do sistema (`DimaLogos`).
+- **Saída = motor de impressão do navegador** ("Imprimir ou salvar em PDF"): texto pesquisável, `thead` de tabela repetido, linha,
+  número e cartão sem corte. **Proibido** html2pdf/html2canvas (PDF vira imagem e corta linha na quebra) e **proibido** mandar o
+  relatório para servidor de PDF (Browserless/`gerar-pdf-relatorio`): o conteúdo tem nome, CPF/CNPJ e dado de propriedade.
+- **Relatório em outra aba**: `const w = FolhaA4.janela()` **antes de qualquer await** (senão o pop-up é bloqueado) e, com os dados,
+  `FolhaA4.escrever(w, { titulo, selo, tema, periodo, corpo, paisagem, css, nomeArquivo })`. A aba tem barra Retrato/Paisagem e
+  imprime sozinha quando as imagens carregam. `janela()` fecha o documento provisório — sem isso a folha fica "carregando".
+- **Relatório na própria página** (como a aba Relatórios): `FolhaA4.html({...})` + `#print-area` + `FolhaA4.paginaCss()`.
+- **Corpo**: usar as classes da folha (`rep-tbl`, `rep-stats`/`rep-stat`, `rep-secao`/`rep-secao-titulo`, `rep-barra`, `rep-badge`
+  `rb-*`, `mono`). Estilo próprio vai em `css` e é **escopado em `.doc-body`** pela `FolhaA4.escopo` (só regras simples, sem
+  `@media`/`@page`; nada de `body`/`*`/`h1` de página). Texto do banco sempre escapado.
+- **Largura**: a folha tem o tamanho do A4 (210/297 mm) e `table-layout: fixed`; `FolhaA4.ajustar` liga `.doc-fit`/`.doc-fit-max` se
+  algo passar e a tela avisa. Tabela com 9+ colunas abre em paisagem. Texto quebra entre palavras (`overflow-wrap: break-word`).
+- Conferir relatório novo: gerar em retrato e paisagem e imprimir em PDF — nada pode passar da folha nem cortar linha.
+
 ### Logos institucionais — fonte única, versão por fundo (⚠️ ler antes de pôr logo em tela, relatório ou e-mail)
 - **Fonte única** = `configuracoes_sistema` (Dados do sistema › Logos): `logos_topo` (Zona A), `logo_projeto` (Zona B),
   `logos_parceiros` (Zona C). Cada logo: `{url, url_escuro, alt, tamanho, ordem}` — **`url` = versão para fundo claro**
@@ -919,8 +941,8 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **Sem a versão do fundo** a logo vai sobre uma **placa** (clara no fundo escuro, verde no claro). **Nunca pintar logo por
   filtro CSS** (`brightness(0) invert(1)`): apaga as cores das logos coloridas (ONU, Fundo, Consórcio).
 - Onde cada grupo vai: topo das telas/app/Pulso/instalação = topo (escuro); tela de entrada = os três (escuro); portal público =
-  topo no cabeçalho (escuro), topo + parceiros no rodapé (claro); A4 da aba Relatórios = topo à esquerda + projeto à direita no
-  cabeçalho, parceiros centralizados no rodapé (claro), marca-d'água = projeto; relatório CAR do Mapa = topo à esquerda + parceiros à direita; e-mails = projeto no cabeçalho + parceiros na faixa.
+  topo no cabeçalho (escuro), topo + parceiros no rodapé (claro); todo relatório A4 (FolhaA4, ver "Relatórios A4 — PADRÃO ÚNICO") = topo à esquerda + projeto à
+  direita no cabeçalho, parceiros centralizados no rodapé (claro), marca-d'água = projeto; e-mails = projeto no cabeçalho + parceiros na faixa.
 - `js/logos.js` não depende do `config.js` (entrada e portal têm cliente próprio) e entra **antes do `layout.js`** em toda
   página. O app do Diagnóstico usa `DimaLogos.usarReserva()` com as cópias de `pwa/logos/` (1º uso sem rede) e o service
   worker guarda as imagens de `plataforma-assets/logos/` no cache `dima-diag-logos` (fora da troca de `VERSAO`).
