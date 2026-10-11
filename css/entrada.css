@@ -176,7 +176,7 @@ html[data-tema="escuro"] .en-btn-pri { box-shadow: 0 4px 22px rgba(201, 168, 76,
 .en-parc { position: relative; margin-top: 12px; display: flex; justify-content: center; }
 .en-parc-logos { display: flex; align-items: center; justify-content: center; gap: 8px 16px; flex-wrap: wrap; }
 .en-parc .dima-logo { height: 24px !important; max-width: 92px !important; }
-.en-parc .dima-logo.en-grande { height: 30px !important; }
+.en-parc .dima-logo.en-grande { height: 60px !important; max-width: 184px !important; } /* "grande" (Consórcio) = 2x */
 .en-parc-faixa .en-parc-logos { background: rgba(244, 239, 230, .9); border-radius: var(--en-r); padding: 8px 14px; }
 
 /* ════════ TELAS MENORES ════════ */
