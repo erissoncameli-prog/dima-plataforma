@@ -964,7 +964,7 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   foto; deitado = duas colunas. No celular a faixa da foto mostra só as logos (Acre/SEMA e, abaixo, o Resiliência); o nome do
   projeto aparece só se não houver logo do projeto (`:has`).
 - **Logos**: topo (Acre, SEMA) 36–51 px e Resiliência 104–168 px no computador (92 px no celular). **Parceiros** ficam no rodapé,
-  abaixo de "Projeto …", numa linha (24 px; o marcado "grande" — Consórcio — 60 px), no fundo do tema: claro = versão de fundo claro direto; escuro = versão escura se **todos**
+  abaixo de "Projeto …", em uma ou duas linhas (base 24 px; tamanho de cada um em `ESCALA_PARC`, js/entrada.js: ONU e UNESCO 1,5x, Fundo 2,25x, "grande"/Consórcio 2,5x), no fundo do tema: claro = versão de fundo claro direto; escuro = versão escura se **todos**
   tiverem `url_escuro`, senão uma faixa clara única (`.en-parc-faixa`) — nunca uma placa branca por logo.
 - **Fotos** só de Dados do sistema (`fotos`, `legenda`), guardadas no aparelho (`dima_entrada_v1`) — nada de foto fixa no HTML.
   Carregadas aos poucos (atual + próxima); 4G/3G no celular ou economia de dados = só a 1ª, sem troca; `prefers-reduced-motion`
