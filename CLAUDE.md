@@ -789,6 +789,18 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **A folha (`.doc-wrap`) é papel: branca nos dois temas** — redefine os nomes do `global.css` com os valores claros no próprio
   escopo, porque é o que vai para PDF/impressão. Cor do selo do tema na folha por `data-tema` (CSS), nunca hex no JS.
 - Janela de exportação: classe **`re-ov`** (no seletor de escopo de `diagnostico-mesa.css`); Esc fecha, Tab preso, foco volta.
+- **Folha A4 = `wrapDoc()`** (todos os 41): `.doc-wrap` com a largura exata do A4 (210 mm / 297 mm em `.doc-paisagem`, padding
+  10 mm = margem da impressão) e por dentro uma `<table class="doc-pg">`: **thead = cabeçalho** (logos do topo à esquerda, logo do
+  projeto à direita, título + selo + "Gerado em") e **tfoot = rodapé** (parceiros centralizados + "Impresso por"), que a impressão
+  **repete em toda página**; `docIntro()` (projeto/programa/local) só na 1ª. Logos sempre por `DimaLogos` (versão fundo claro).
+- **PDF = motor de impressão do navegador** (`exportPrint` → `prepararImpressao`: copia a folha da prévia para `#print-area` e grava o
+  `@page` com margens 10/10/12 mm e "Página X de Y" no `@bottom-center`). Texto pesquisável, `thead` de tabela repetido, linha/cartão
+  não se partem (`break-inside: avoid`). **Nada de html2pdf/html2canvas** (fotografava a página e cortava linhas na quebra) e nada
+  sai do navegador. Nome sugerido do PDF = `document.title` durante a impressão.
+- **Largura**: a janela de exportação abre na orientação do relatório (`paisagem:true` em `RELATORIOS` para 9+ colunas) e a prévia
+  tem o tamanho do A4; `expAjustar()` mede (`docExcede`) e, se algo passar, liga `.doc-fit` (letra menor) e depois `.doc-fit-max`
+  (quebra em qualquer ponto) e avisa. Texto quebra só entre palavras (`overflow-wrap: break-word`) — **nunca** `anywhere`/
+  `word-break: break-word` no caso geral: encolhe a coluna de texto à largura de uma letra.
 - **Matriz (M1/M2/M4)** usam `matrizBase()`: progresso por `vw_matriz_progresso.id` (= `matriz_itens.id`, não existe
   `matriz_item_id` na view), código `produto·posição` e a mesma situação da Matriz (Atingida, Em andamento, Sem registro,
   Qualitativa). M4 = "Indicadores abaixo da meta" (todos com meta não atingida, do mais distante), sem vermelho.
@@ -907,8 +919,8 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **Sem a versão do fundo** a logo vai sobre uma **placa** (clara no fundo escuro, verde no claro). **Nunca pintar logo por
   filtro CSS** (`brightness(0) invert(1)`): apaga as cores das logos coloridas (ONU, Fundo, Consórcio).
 - Onde cada grupo vai: topo das telas/app/Pulso/instalação = topo (escuro); tela de entrada = os três (escuro); portal público =
-  topo no cabeçalho (escuro), topo + parceiros no rodapé (claro); A4 (`relatorios.html` `docHeader`, relatório CAR do Mapa) =
-  topo à esquerda + parceiros à direita (claro), marca-d'água = projeto; e-mails = projeto no cabeçalho + parceiros na faixa.
+  topo no cabeçalho (escuro), topo + parceiros no rodapé (claro); A4 da aba Relatórios = topo à esquerda + projeto à direita no
+  cabeçalho, parceiros centralizados no rodapé (claro), marca-d'água = projeto; relatório CAR do Mapa = topo à esquerda + parceiros à direita; e-mails = projeto no cabeçalho + parceiros na faixa.
 - `js/logos.js` não depende do `config.js` (entrada e portal têm cliente próprio) e entra **antes do `layout.js`** em toda
   página. O app do Diagnóstico usa `DimaLogos.usarReserva()` com as cópias de `pwa/logos/` (1º uso sem rede) e o service
   worker guarda as imagens de `plataforma-assets/logos/` no cache `dima-diag-logos` (fora da troca de `VERSAO`).
