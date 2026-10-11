@@ -143,6 +143,8 @@ body.dgm .re-fil :is(.config-select, .config-input):focus { outline: 0; border-c
 /* nada passa da largura: texto longo (objeto, URL, e-mail) quebra dentro da célula */
 .doc-body table { max-width: 100%; }
 .doc-body td { overflow-wrap: break-word; }
+/* blocos em grade (resumos lado a lado) encolhem com a folha em vez de alargá-la */
+.doc-body [style*="grid-template-columns"] > *, .rep-stats > * { min-width: 0; overflow-wrap: break-word; }
 
 /* Rodapé */
 .doc-footer { margin-top: 14px; padding-top: 8px; border-top: 1.5px solid #1F4E2C; display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -179,6 +181,8 @@ body.dgm .re-fil :is(.config-select, .config-input):focus { outline: 0; border-c
 
 /* Selos */
 .rep-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; white-space: nowrap; }
+/* dentro de tabela o selo quebra se não couber (ex.: lista de contratos no A4) */
+.doc-body td .rep-badge { white-space: normal; display: inline-block; max-width: 100%; overflow-wrap: break-word; }
 .rb-verde { background: #ECFDF5; color: #065F46; }
 .rb-azul { background: #EFF6FF; color: #1E40AF; }
 .rb-ouro { background: #FFFBEB; color: #92400E; }
