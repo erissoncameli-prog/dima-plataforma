@@ -279,3 +279,14 @@ body.dgm .ct-enc-dh { display: flex; align-items: center; justify-content: space
 body.dgm .ct-enc-docs { display: flex; flex-direction: column; gap: 8px; }
 body.dgm .ct-sha { font-family: var(--font-mono); font-size: 10.5px; }
 body.dgm .ct-ov .form-label .op { font-weight: 400; color: var(--txt-3); font-size: 11.5px; margin-left: 4px; }
+
+/* Pedido de encerramento aguardando o responsável da atividade (20261013_encerramento_aprovacao) */
+body.dgm .ct-encp { border-left-color: var(--ct-serio); background: var(--ct-serio-bg); }
+body.dgm .ct-encp.devolvido { border-left-color: var(--erro); background: var(--sup-2); }
+body.dgm .ct-encp .ct-enc-tot b { color: var(--ct-serio-txt); }
+body.dgm .ct-encp-ac { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
+body.dgm .ct-encp-ac > span { flex: 1 1 260px; font-size: 12.5px; color: var(--txt-2); line-height: 1.45; }
+body.dgm .ct-encp-novo { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-top: 16px; padding: 10px 14px;
+  border: 1px dashed var(--lin-forte); border-radius: 10px; }
+body.dgm .ct-encp-novo > span { flex: 1 1 260px; font-size: 12.5px; color: var(--txt-2); line-height: 1.45; }
+body.dgm .ct-ov .ct-encp-erro { min-height: 1em; font-size: 13px; color: var(--erro-txt); margin-top: 6px; }

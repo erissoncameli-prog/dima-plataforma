@@ -252,6 +252,13 @@ const AJUDA = {
           'Encerrado: contrato finalizado normalmente após cumprimento.',
           'Suspenso: contrato temporariamente paralisado.',
         ]},
+        { titulo: 'Encerramento', itens: [
+          'Contrato todo pago (valor utilizado igual ao valor total e nenhum produto em aberto) é encerrado sozinho pelo sistema.',
+          'Contrato que não será cumprido até o fim: abra o contrato, aba Detalhes e documentos, e use "Pedir encerramento". Marque os produtos que serão cancelados e escreva a justificativa.',
+          'O pedido vai para o responsável da atividade (ou o substituto), que aprova ou devolve com a senha de login. Quem pediu não aprova o próprio pedido; a atividade precisa ter responsável ativo.',
+          'Só na aprovação o contrato é encerrado, os produtos são cancelados e o valor não executado volta para a atividade (R$ convertidos pela PTAX do dia).',
+          'Sem o termo de encerramento assinado, o sistema cria a tarefa de anexá-lo depois.',
+        ]},
         { titulo: 'Produtos do Contrato', itens: [
           'Cada contrato pode ter múltiplos produtos/entregas definidos.',
           'Cada produto tem descrição, valor e prazo de entrega.',

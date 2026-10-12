@@ -2567,9 +2567,12 @@ async function relO3(){
   if(dtFim) q = q.lte('criado_em', dtFim+'T23:59:59');
   if(tipoFil) q = q.eq('tipo', tipoFil);
   if(ativFil) q = q.eq('atividade_id', ativFil);
-  const [{data, error}, {data:docs}] = await Promise.all([q, db.from('contrato_encerramento_documentos').select('encerramento_id')]);
+  const [{data, error}, {data:docs}, {data:peds}] = await Promise.all([q, db.from('contrato_encerramento_documentos').select('encerramento_id'),
+    db.from('contrato_encerramento_pedidos').select('encerramento_id,solicitante:usuarios!contrato_encerramento_pedidos_solicitado_por_fkey(nome_completo)').eq('status','aprovado')]);
   if(error) throw error;
   const comTermo = new Set((docs||[]).map(d=>d.encerramento_id));
+  // encerramento de contrato aprovado pelo responsável da atividade: quem pediu (o "autorizou" é quem aprovou)
+  const pedidoPor = {}; (peds||[]).forEach(p=>{ if(p.encerramento_id) pedidoPor[p.encerramento_id] = p.solicitante?.nome_completo||'—'; });
   const rows = data||[];
   const ativos = rows.filter(r=>r.status==='ativo');
   const semTermo = rows.filter(r=>r.tipo==='encerramento_contrato'&&r.status==='ativo'&&!comTermo.has(r.id)).length;
@@ -2585,7 +2588,7 @@ async function relO3(){
     <div class="rep-secao-titulo">Saldos devolvidos às atividades</div>
     ${rows.length===0?oVazio('Nenhuma liberação de saldo com esses filtros.'):`
     <table class="rep-tbl">
-      <thead><tr><th>Data</th><th>Tipo</th><th>Contrato · fornecedor</th><th>TDR</th><th>Atividade</th><th>Situação</th><th>Termo</th><th>Registrado por</th>
+      <thead><tr><th>Data</th><th>Tipo</th><th>Contrato · fornecedor</th><th>TDR</th><th>Atividade</th><th>Situação</th><th>Termo</th><th>Pedido / aprovado por</th>
         <th style="text-align:right">Valor BRL</th><th style="text-align:right">Valor USD</th></tr></thead>
       ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${oData(r.criado_em)}</td>
@@ -2595,7 +2598,7 @@ async function relO3(){
         <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
         <td>${r.status==='ativo'?'<span class="rep-badge rb-verde">Valendo</span>':`<span class="rep-badge rb-cinza">Estornada ${oData(r.revertido_em)}</span>`}</td>
         <td>${r.tipo!=='encerramento_contrato'?'<span style="color:var(--cinza-400)">—</span>':comTermo.has(r.id)?'<span class="rep-badge rb-verde">Anexado</span>':'<span class="rep-badge rb-ouro">Pendente</span>'}</td>
-        <td>${esc(r.autorizou?.nome_completo||'—')}</td>
+        <td>${pedidoPor[r.id]?`${esc(pedidoPor[r.id])}<br><span style="color:var(--cinza-500)">aprovado:</span> ${esc(r.autorizou?.nome_completo||'—')}`:esc(r.autorizou?.nome_completo||'—')}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_liberado_brl)}</td>
         <td class="mono" style="text-align:right">${fmtUSD(r.valor_liberado_usd)}</td>
       </tr>${linhaDet(10,'Motivo',r.motivo)}</tbody>`).join('')}
@@ -2604,7 +2607,7 @@ async function relO3(){
         <td class="mono" style="text-align:right">${fmtUSD(ativos.reduce((s,r)=>s+Number(r.valor_liberado_usd||0),0))}</td></tr></tfoot>
     </table>`}
   </div>
-  <p style="font-size:10px;color:var(--cinza-500)">US$ = R$ ÷ cotação do dia da liberação. Liberação estornada não volta ao saldo e fica fora do total.</p>`;
+  <p style="font-size:10px;color:var(--cinza-500)">US$ = R$ ÷ cotação do dia da liberação. Liberação estornada não volta ao saldo e fica fora do total. Encerramento de contrato com saldo é pedido por quem administra o contrato e aprovado com senha pelo responsável (ou substituto) da atividade; os registrados antes dessa regra mostram só quem registrou.</p>`;
 }
 
 async function relO4(){

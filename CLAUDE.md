@@ -253,13 +253,27 @@ saldo_livre_usd = orcamento_usd
 | `autorizado_por` / `revertido_por` | uuid FK → `usuarios.id` | |
 | `criado_em` / `revertido_em` | timestamptz | |
 
-- **`encerramento_contrato`**: encerra contrato com produtos pendentes, cancela produtos, libera o não-executado. UI: `pages/contratos.html` → `confirmarEncerramento()` (insert direto via client).
+- **`encerramento_contrato`**: encerra contrato com produtos pendentes, cancela produtos, libera o não-executado. Nasce só pela aprovação do pedido (ver "Aprovação do encerramento").
 - **Termo de encerramento** (migração `20261012_encerramento_documento` + `_sql_editor`): PDF em `contrato_encerramento_documentos`
   (só inclusão; termo corrigido = novo anexo; SHA-256 do navegador), arquivo em `contratos-docs/encerramentos/<contrato_id>/…`,
   gravado só por `fn_encerramento_anexar_documento` (super_admin/coordenação; confere o arquivo em `storage.objects`). Todo
   `encerramento_contrato` novo cria a tarefa "Anexar termo de encerramento" (`trg_encerramento_tarefa`, `tarefas.entidade_tipo =
   'contrato_encerramento'`, responsável = quem encerrou, prazo 15 dias, ligada à atividade e ao TDR); anexar o termo conclui a
   tarefa. Tela: quadro "Encerramento" na aba Detalhes e documentos (`blocoEncerramento`) e campo opcional na janela de encerrar.
+- **Aprovação do encerramento** (migração `20261013_encerramento_aprovacao`): `encerramento_contrato` **não** nasce mais pelo
+  navegador. Quem administra o contrato (super_admin/coordenação/financeiro) faz um **pedido** (`fn_encp_pedir`, tabela
+  `contrato_encerramento_pedidos`: produtos a cancelar, valor, justificativa, termo opcional); exige **responsável ativo** na
+  atividade (`SEM_RESPONSAVEL`) e alguém além de quem pediu para aprovar. Aprova o **responsável ou substituto** ativo da
+  atividade, nunca quem pediu, **com a senha** (Edge Function `assinar-remanejamento`, `acao:'decidir_encerramento'` →
+  `fn_encp_decidir`, só service_role; hash `fn_encp_hash` = pedido + contrato + produtos ao vivo). Aprovar efetiva tudo
+  (contrato `encerrado`, produtos cancelados, liberação com PTAX, termo do pedido anexado, tarefa do termo para quem pediu);
+  devolver exige parecer. Tarefa "Aprovar encerramento" para os aprovadores (`entidade_tipo='contrato_encerramento_pedido'`),
+  fechada pelo sistema. Travas: contrato com produto em aberto só vira `encerrado` pela aprovação
+  (`trg_contrato_guarda_encerramento`, chave `dima.encerramento='efetivar'`) e `trg_encerramento_so_aprovado` recusa insert
+  direto. **Encerramento automático**: contrato `vigente` com utilizado ≥ total, nenhum produto fora de pago/cancelado e nada
+  a pagar vira `encerrado` sozinho (`fn_contrato_auto_encerrar`, triggers em `contratos.valor_utilizado_brl` e produto `pago`).
+  Tela: quadro "Pedido de encerramento" e botão "Pedir encerramento" na aba Detalhes (`blocoPedidoEncerramento`), janela
+  `#modal-encp`; sino leva a `contratos.html?contrato=<id>`.
 - **`economia_contratacao`**: libera a economia planejado−firmado de um TDR contratado. UI: aba Financeiro do modal em `pages/tdrs.html` → `painelEconomiaTDR`. Usa RPCs (restritas a `super_admin`/`coordenacao`):
   - `fn_liberar_economia_tdr(p_tdr_id uuid, p_justificativa text, p_taxa numeric)` — calcula economia = `tdrs.valor_brl − Σ contratos.valor_total_brl`, grava a liberação e loga em `tdr_acoes`.
   - `fn_estornar_economia_tdr(p_encerramento_id uuid, p_motivo text)` — marca `status='revertido'` (só `tipo='economia_contratacao'`).
@@ -1148,7 +1162,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
-| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`) e a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
+| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 
 ---
 
