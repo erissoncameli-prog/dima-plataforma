@@ -1283,7 +1283,7 @@ contas do projeto.
 | Bucket | Visibilidade | Conteúdo |
 |--------|--------------|----------|
 | `tdrs-arquivos` | 🔒 privado | TDRs (dados de consultores PF) |
-| `contratos-docs` | 🔒 privado | contratos |
+| `contratos-docs` | 🔒 privado | contratos (`contratos/<id>/`) e termos de encerramento (`encerramentos/<id>/`). Ler = quem vê o contrato; enviar/trocar = super_admin/coordenação/financeiro (encerramentos: super_admin/coordenação); remover = super_admin; termo nunca troca nem sai (`20261012_contratos_docs_storage` + `_sql_editor`, `fn_contrato_id_do_path`) |
 | `financeiro-docs` | 🔒 privado | NFs, comprovantes bancários |
 | `entregas-docs` | 🔒 privado | documentos de entrega |
 | `viagens-arquivos` | 🔒 privado | cartões de embarque (nome, CPF, itinerário) |
