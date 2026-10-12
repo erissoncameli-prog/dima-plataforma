@@ -240,6 +240,10 @@ function nomeResultado(r) {
 }
 function odsRef(n) { return odsRefs.find(o => String(o.numero) === String(n)); }
 function odsCor(n) { const o = odsRef(n); return (o && o.cor) || ODS_COR[parseInt(n, 10)] || '#1F4E2C'; }
+function odsDescricao(o) {
+  const l = appState.idioma || 'pt';
+  return (l === 'en' && o.descricao_en) || (l === 'es' && o.descricao_es) || o.descricao || '';
+}
 function odsTitulo(o) {
   const l = appState.idioma || 'pt';
   return (l === 'en' && o.titulo_en) || (l === 'es' && o.titulo_es) || o.titulo || '';
@@ -387,16 +391,25 @@ function listaRefInd(inds) {
     }).join('');
 }
 
+// aviso "tem/sem indicador" das janelas de ODS e de meta Kunming-Montreal
+const pillRef = inds => inds.length
+  ? `<span class="mz-pill mz-p-ok">${mzIc('check','p')}Tem indicador neste projeto</span>`
+  : `<span class="mz-pill mz-p-ne">Sem indicador neste projeto</span>`;
+
 function abrirRefODS(numero) {
   const o = odsRef(numero); if (!o) return;
   const n = parseInt(o.numero, 10);
   const inds = matrizItens.filter(i => temOds(i, o.numero));
   document.getElementById('mr-sub').textContent = 'ODS ' + n;
   document.getElementById('mr-titulo').textContent = odsTitulo(o);
+  const desc = odsDescricao(o);
   document.getElementById('mr-body').innerHTML = `
     <div class="mz-ref-topo" style="--c:${odsCor(o.numero)}">
       <span class="img" data-n="${n}"><img src="${odsImgSrc(n)}" alt="ODS ${n}" onerror="odsImgFalhou(this)"></span>
-      <span>${inds.length ? `<span class="mz-pill mz-p-ok">${mzIc('check','p')}Tem indicador neste projeto</span>` : `<span class="mz-pill mz-p-ne">Sem indicador neste projeto</span>`}</span>
+      <div class="mz-ref-obj">
+        ${desc ? `<div class="mz-ref-rot">Objetivo ${n} · Agenda 2030</div><div class="mz-ref-txt">${esc(desc)}</div>` : ''}
+        <div>${pillRef(inds)}</div>
+      </div>
     </div>` + listaRefInd(inds);
   mzAbrir('modal-ref');
 }
@@ -426,10 +439,15 @@ function abrirRefKM(numero) {
   const inds = matrizItens.filter(i => temKm(i, numero));
   document.getElementById('mr-sub').textContent = 'Meta ' + k.numero + ' · Kunming-Montreal';
   document.getElementById('mr-titulo').textContent = k.titulo || '';
-  document.getElementById('mr-body').innerHTML =
-    (k.resumo ? `<div class="mz-txt">${esc(k.resumo)}</div>` : '')
-    + `<div>${inds.length ? `<span class="mz-pill mz-p-ok">${mzIc('check','p')}Tem indicador neste projeto</span>` : `<span class="mz-pill mz-p-ne">Sem indicador neste projeto</span>`}</div>`
-    + listaRefInd(inds);
+  document.getElementById('mr-body').innerHTML = `
+    <div class="mz-ref-topo">
+      <span class="mz-ref-km" aria-hidden="true"><small>Meta</small>${esc(k.numero)}</span>
+      <div class="mz-ref-obj">
+        <div class="mz-ref-rot">Meta ${esc(k.numero)} · Marco Global Kunming-Montreal</div>
+        ${k.resumo ? `<div class="mz-ref-txt">${esc(k.resumo)}</div>` : ''}
+        <div>${pillRef(inds)}</div>
+      </div>
+    </div>` + listaRefInd(inds);
   mzAbrir('modal-ref');
 }
 

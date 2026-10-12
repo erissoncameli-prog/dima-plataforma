@@ -252,3 +252,13 @@ body.dgm .img.sem-img b { font-size: 34px; line-height: 1; font-weight: 700; }
 body.dgm .img.sem-img small { font-size: 11px; line-height: 1.15; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
 body.dgm .mz-ov .mz-ref-topo .img.sem-img b { font-size: 22px; }
 body.dgm .mz-ov .mz-ref-topo .img.sem-img small { font-size: 7px; }
+
+/* Janelas de ODS e de meta Kunming-Montreal: objetivo/meta ao lado do ícone, aviso abaixo do texto */
+body.dgm .mz-ov .mz-ref-topo:has(.mz-ref-obj) { align-items: flex-start; margin-bottom: 4px; }
+body.dgm .mz-ov .mz-ref-obj { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+body.dgm .mz-ov .mz-ref-rot { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--txt-3); }
+body.dgm .mz-ov .mz-ref-txt { font-size: 13.5px; line-height: 1.5; color: var(--txt); overflow-wrap: break-word; }
+body.dgm .mz-ov .mz-ref-km { width: 72px; height: 72px; border-radius: 12px; flex-shrink: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; background: var(--mz-km); color: #fff; font-size: 28px; font-weight: 700; line-height: 1; }
+body.dgm .mz-ov .mz-ref-km small { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 3px; }
+html[data-tema="escuro"] body.dgm .mz-ov .mz-ref-km { color: #1A1033; }
