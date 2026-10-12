@@ -198,6 +198,10 @@ const RELATORIOS = [
   { id:'T3', tema:'tdrs', titulo:'TDRs Aprovados sem Contrato',
     desc:'TDRs aprovados ou em licitação que ainda não possuem contrato vinculado.',
     filtros:['periodo','atividade'] },
+  // temas: o mesmo relatório aparece em vários grupos (o selo da folha usa o tema principal)
+  { id:'T4', paisagem:true, tema:'tdrs', temas:['tdrs','contratos','orcamento','financeiro'], titulo:'TDRs contratados com saldo',
+    desc:'Diferença entre o valor do TDR e o dos contratos firmados (ex.: TDR 100.000, contrato 95.000, saldo 5.000), o que já foi liberado ao orçamento e o que falta liberar; contratos acima do TDR à parte.',
+    filtros:['atividade','sit_saldo_tdr'] },
   // ── ATIVIDADES ────────────────────────────────────────────
   { id:'A1', paisagem:true, tema:'atividades', titulo:'Execução por Atividade',
     desc:'Fase, orçamento, comprometido (TDRs), pago, saldo e responsável.',
@@ -358,10 +362,11 @@ let temaAtivo = 'todos';
 let buscaRel  = '';
 const semAcento = t => String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const temaDe    = id => TEMAS.find(t=>t.id===id) || { id, label:id, cor:'--txt-3', ic:'lista' };
+const temasRel  = r => r.temas || [r.tema];   // grupos em que o relatório aparece
 function relsVisiveis(){
   const isSuperAdmin = appState.perfil === 'super_admin';
   const abasOk = getAbasPermitidas();
-  return RELATORIOS.filter(r => (!r.somente_super_admin || isSuperAdmin) && abasOk.includes(r.tema));
+  return RELATORIOS.filter(r => (!r.somente_super_admin || isSuperAdmin) && temasRel(r).some(t=>abasOk.includes(t)));
 }
 function renderTemas(ativo){
   temaAtivo = ativo;
@@ -369,7 +374,7 @@ function renderTemas(ativo){
   const rels = relsVisiveis();
   const temasVisiveis = TEMAS.filter(t=>t.id==='todos'||abasOk.includes(t.id));
   document.getElementById('temas-grid').innerHTML = temasVisiveis.map(t=>{
-    const n = t.id==='todos' ? rels.length : rels.filter(r=>r.tema===t.id).length;
+    const n = t.id==='todos' ? rels.length : rels.filter(r=>temasRel(r).includes(t.id)).length;
     return `<button type="button" class="re-chip${t.id===ativo?' on':''}" style="--c:var(${t.cor})" data-tema-rel="${t.id}" aria-pressed="${t.id===ativo}">
       ${t.id==='todos'?'':'<span class="re-dot"></span>'}${esc(t.label)} <span class="re-n">${n}</span></button>`;
   }).join('');
@@ -377,10 +382,11 @@ function renderTemas(ativo){
 function renderLista(tema){
   const q = semAcento(buscaRel).trim();
   const rels = relsVisiveis()
-    .filter(r => tema==='todos' || r.tema===tema)
+    .filter(r => tema==='todos' || temasRel(r).includes(tema))
     .filter(r => !q || semAcento(r.id+' '+r.titulo+' '+r.desc).includes(q));
   const html = TEMAS.filter(t=>t.id!=='todos').map(t=>{
-    const it = rels.filter(r=>r.tema===t.id); if(!it.length) return '';
+    // em "Todos", cada relatório fica só no grupo principal (sem repetir); num tema, entra em todos os seus grupos
+    const it = rels.filter(r=>tema==='todos' ? r.tema===t.id : temasRel(r).includes(t.id) && t.id===tema); if(!it.length) return '';
     return `<div class="re-grp" style="--c:var(${t.cor})"><span class="re-dot"></span>${esc(t.label)}</div>` +
       it.map(r=>`<button type="button" class="re-it${relAtivo===r.id?' on':''}" style="--c:var(${t.cor})" data-rel="${r.id}" aria-pressed="${relAtivo===r.id}" title="${esc(r.desc)}">
         <span class="re-icb">${reIc(t.ic,'p')}</span>
@@ -472,6 +478,16 @@ function renderFiltros(lista){
           <select class="config-select" id="fil-status-canc">
             <option value="">Todas</option>
             ${Object.entries(O_SIT).filter(([k])=>k!=='estornado').map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'sit_saldo_tdr': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Situação</span>
+          <select class="config-select" id="fil-sit-saldo">
+            <option value="a_liberar">Com saldo a liberar</option>
+            <option value="liberado">Já liberado</option>
+            <option value="com_saldo">Todos com saldo</option>
+            <option value="acima">Contrato acima do TDR</option>
           </select>
         </div>`;
       case 'tipo_liberacao': return `
@@ -937,6 +953,7 @@ async function gerarRelatorio(id){
       case 'T1': html = await relT1(); break;
       case 'T2': html = await relT2(); break;
       case 'T3': html = await relT3(); break;
+      case 'T4': html = await relT4(); break;
       case 'A2': html = await relA2(); break;
       case 'A3': html = await relA3(); break;
       case 'A4': html = await relA4(); break;
@@ -2293,6 +2310,103 @@ async function relT2(){
 // ══════════════════════════════════════════════════════════════
 // T3 — TDRs APROVADOS SEM CONTRATO
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// T4 — TDRs CONTRATADOS COM SALDO (valor do TDR − contratos firmados)
+// Saldo = tdrs.valor_brl − Σ contratos não cancelados do TDR. Já liberado = economias
+// (contrato_encerramentos tipo economia_contratacao, status ativo) — mesma conta de
+// fn_liberar_economia_tdr. Negativo = contrato acima do TDR (excedente, já descontado no razão).
+// ══════════════════════════════════════════════════════════════
+async function relT4(){
+  const ativFil = filVal('fil-atividade');
+  const sit = filVal('fil-sit-saldo') || 'a_liberar';
+  let q = db.from('tdrs')
+    .select(`id,numero,status,valor_brl,atividade:atividades(codigo,nome_pt),
+      contratos(id,numero,status,valor_total_brl,fornecedores(nome))`)
+    .neq('status','cancelado').order('numero');
+  if(ativFil) q = q.eq('atividade_id', ativFil);
+  let qLib = db.from('contrato_encerramentos').select('tdr_id,valor_liberado_brl')
+    .eq('tipo','economia_contratacao').eq('status','ativo');
+  if(ativFil) qLib = qLib.eq('atividade_id', ativFil);
+  const [{data, error}, {data:libs, error:eLib}] = await Promise.all([q, qLib]);
+  if(error) throw error;
+  if(eLib) throw eLib;
+  const libPorTdr = {};
+  (libs||[]).forEach(l=>{ if(l.tdr_id) libPorTdr[l.tdr_id] = (libPorTdr[l.tdr_id]||0) + Number(l.valor_liberado_brl||0); });
+  const cent = v => Math.round(v*100)/100;
+  const todos = (data||[]).map(t=>{
+    const vistos = new Set();
+    const ctrs = (t.contratos||[]).filter(c=>c.status!=='cancelado' && !vistos.has(c.id) && vistos.add(c.id));
+    const contratado = ctrs.reduce((s,c)=>s+Number(c.valor_total_brl||0),0);
+    const saldo = cent(Number(t.valor_brl||0) - contratado);
+    const liberado = cent(libPorTdr[t.id]||0);
+    return { ...t, ctrs, contratado, saldo, liberado, falta: cent(Math.max(0, saldo - liberado)) };
+  }).filter(t=>t.ctrs.length);
+  const comSaldo = todos.filter(t=>t.saldo>0);
+  const acima = todos.filter(t=>t.saldo<0).sort((a,b)=>a.saldo-b.saldo);
+  const soma = (l,k) => l.reduce((s,t)=>s+t[k],0);
+  let rows = sit==='liberado' ? comSaldo.filter(t=>t.liberado>0)
+           : sit==='com_saldo' ? comSaldo
+           : sit==='acima' ? [] : comSaldo.filter(t=>t.falta>0);
+  rows.sort((a,b)=>b.falta-a.falta || b.saldo-a.saldo || String(a.numero).localeCompare(String(b.numero)));
+  const ctrTxt = t => t.ctrs.map(c=>`<span class="mono">${esc(c.numero||'—')}</span>${c.fornecedores?.nome?' · '+esc(c.fornecedores.nome):''}`
+    + (t.ctrs.length>1?` <span class="mono" style="color:var(--cinza-500)">(${fmtBRL(c.valor_total_brl)})</span>`:'')).join('<br>');
+  const traco = '<span style="color:var(--cinza-400)">—</span>';
+  const SIT_TXT = { a_liberar:'TDRs com saldo a liberar', liberado:'TDRs com saldo já liberado', com_saldo:'TDRs com saldo' };
+  const tabela = sit==='acima' ? '' : `
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">${SIT_TXT[sit]}</div>
+    ${rows.length===0?oVazio('Nenhum TDR contratado nessa situação.'):`
+    <table class="rep-tbl">
+      <thead><tr><th>TDR</th><th>Atividade</th><th>Contrato · fornecedor</th>
+        <th style="text-align:right">Valor do TDR</th><th style="text-align:right">Contratado</th><th style="text-align:right">Saldo</th>
+        <th style="text-align:right">Já liberado</th><th style="text-align:right">Falta liberar</th></tr></thead>
+      <tbody>${rows.map(t=>`<tr>
+        <td class="mono">${esc(t.numero||'—')}</td>
+        <td class="mono">${esc(t.atividade?.codigo||'—')}</td>
+        <td>${ctrTxt(t)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(t.valor_brl)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(t.contratado)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(t.saldo)}</td>
+        <td class="mono" style="text-align:right">${t.liberado?fmtBRL(t.liberado):traco}</td>
+        <td class="mono" style="text-align:right">${t.falta?'<strong>'+fmtBRL(t.falta)+'</strong>':traco}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="3"><strong>TOTAL</strong></td>
+        <td class="mono" style="text-align:right">${fmtBRL(rows.reduce((x,t)=>x+Number(t.valor_brl||0),0))}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(soma(rows,'contratado'))}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(soma(rows,'saldo'))}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(soma(rows,'liberado'))}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(soma(rows,'falta'))}</td></tr></tfoot>
+    </table>`}
+  </div>`;
+  const secAcima = sit==='liberado' || sit==='a_liberar' && !acima.length ? '' : `
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">Contrato acima do valor do TDR</div>
+    ${acima.length===0?oVazio('Nenhum contrato acima do valor do TDR.'):`
+    <table class="rep-tbl">
+      <thead><tr><th>TDR</th><th>Atividade</th><th>Contrato · fornecedor</th>
+        <th style="text-align:right">Valor do TDR</th><th style="text-align:right">Contratado</th><th style="text-align:right">Excedente</th></tr></thead>
+      <tbody>${acima.map(t=>`<tr>
+        <td class="mono">${esc(t.numero||'—')}</td>
+        <td class="mono">${esc(t.atividade?.codigo||'—')}</td>
+        <td>${ctrTxt(t)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(t.valor_brl)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(t.contratado)}</td>
+        <td class="mono" style="text-align:right;color:var(--erro)">${fmtBRL(t.saldo)}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <p style="font-size:10px;color:var(--cinza-500)">O excedente já é descontado do saldo da atividade (linha "Contrato acima do valor do TDR" no razão).</p>`}
+  </div>`;
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo total dos TDRs</div><div class="rep-stat-val">${fmtBRL(soma(comSaldo,'saldo'))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Já liberado ao orçamento</div><div class="rep-stat-val" style="color:var(--sucesso)">${fmtBRL(soma(comSaldo,'liberado'))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Falta liberar</div><div class="rep-stat-val" style="color:${soma(comSaldo,'falta')?'var(--aviso)':'var(--sucesso)'}">${fmtBRL(soma(comSaldo,'falta'))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Contratos acima do TDR</div><div class="rep-stat-val"${acima.length?' style="color:var(--erro)"':''}>${acima.length}${acima.length?' · '+fmtBRL(-soma(acima,'saldo')):''}</div></div>
+  </div>
+  ${tabela}${secAcima}
+  <p style="font-size:10px;color:var(--cinza-500)">Saldo = valor do TDR − soma dos contratos não cancelados do TDR. O que falta liberar continua reservado no TDR; para devolvê-lo ao orçamento da atividade use TDRs › abrir o TDR › aba Financeiro › Liberar economia (coordenação/super_admin). Só entram os contratos que você tem acesso para ver.</p>`;
+}
+
 async function relT3(){
   const dtIni   = filVal('fil-dt-ini');
   const dtFim   = filVal('fil-dt-fim');
