@@ -850,6 +850,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   Filtro declarado em `RELATORIOS[].filtros` **tem** de ser lido pela função, senão tirar da lista. Data fim sobre timestamptz
   usa `+'T23:59:59'`. "Remover duplicados" de embed só por `id` — nunca por valor (F1/F5/V2 descartavam contratos de mesmo valor).
   Lista de fornecedores = `fn_fornecedores_diretorio()` com inativos marcados "(inativo)". T3 = TDR `aprovado`/`em_licitacao` sem contrato.
+- **T4 "TDRs contratados com saldo"**: saldo = `tdrs.valor_brl` − Σ contratos não cancelados do TDR; "já liberado" = Σ `contrato_encerramentos`
+  `economia_contratacao` `ativo` do TDR; "falta liberar" = saldo − liberado (botão Liberar economia do TDR). Negativo = seção "Contrato acima
+  do valor do TDR". Aparece em vários grupos pelo campo opcional **`temas:[...]`** de `RELATORIOS` (`temasRel(r)`; visível se a pessoa tem
+  qualquer um; em "Todos" só no grupo principal `tema`, que também dá o selo da folha).
 
 ### Auditoria IA — visual, faixa da execução e tratamento dos achados
 - `pages/auditoria.html` + `js/auditoria.js` usam o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema
