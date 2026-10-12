@@ -244,3 +244,11 @@ body.dgm .mz-ov .mz-kmsel .mz-chip .mono { min-width: 22px; color: var(--mz-km);
 @media (max-width: 460px) {
   body.dgm .mz-kpis { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ODS sem imagem em assets/sdg (ex.: ODS 18): número e nome no estilo das peças da ONU */
+body.dgm .mz-odsc .img.sem-img, body.dgm .mz-ov .mz-ref-topo .img.sem-img { display: flex; flex-direction: column; align-items: flex-start;
+  justify-content: flex-start; gap: 4px; padding: 10% 9%; color: #fff; text-align: left; }
+body.dgm .img.sem-img b { font-size: 34px; line-height: 1; font-weight: 700; }
+body.dgm .img.sem-img small { font-size: 11px; line-height: 1.15; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; }
+body.dgm .mz-ov .mz-ref-topo .img.sem-img b { font-size: 22px; }
+body.dgm .mz-ov .mz-ref-topo .img.sem-img small { font-size: 7px; }

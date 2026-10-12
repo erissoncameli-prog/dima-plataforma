@@ -780,6 +780,9 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `pendente` de entrega aprovada (`vw_matriz_contribuicoes`), nunca soma de unidades diferentes.
 - Código exibido = `produto_codigo·posição` (pela `ordem` dentro do produto). Nome do grupo de produto = título mais comum do
   produto; indicador com outro `produto_titulo` mostra o dele na linha (o dado **não** é corrigido pela tela).
+- **ODS 18 — Igualdade Étnico-Racial** (objetivo voluntário do Brasil) está em `ods_refs` (migração `20261012_ods_18_igualdade_etnico_racial`),
+  com **cor provisória `#7B4B2A`** (trocar em `ods_refs.cor` + `ODS_COR` da Matriz + `ODS` de `atividades.html` quando houver a oficial). Sem imagem
+  em `assets/sdg/`: `odsImgFalhou` desenha número + nome. Listas fixas de ODS (Atividades, filtro de Relatórios) vão até 18.
 - Nomes dos resultados vêm da tabela `resultados` (`codigo = 'R' || matriz_itens.resultado`, `nome_pt/en/es`), não de texto fixo.
 - Abas ODS e Kunming-Montreal destacam o que **tem indicador** no cadastro (contado de `matriz_itens.ods/metas_km`), não a
   marcação `no_projeto` das tabelas de referência.
