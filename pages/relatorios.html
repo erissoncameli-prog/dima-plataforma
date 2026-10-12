@@ -2354,6 +2354,7 @@ async function relO1(){
   const stFil = filVal('fil-status-rem'), ativFil = filVal('fil-atividade');
   let q = db.from('remanejamentos')
     .select(`id,numero,tipo,status,justificativa,criado_em,submetido_em,efetivado_em,estorno_de,
+      contrato:contratos(numero,fornecedores(nome)),
       solicitante:usuarios!remanejamentos_criado_por_fkey(nome_completo),
       itens:remanejamento_itens(atividade_id,valor_usd,ativo,atividade:atividades(codigo))`)
     .order('criado_em',{ascending:false});
@@ -2383,7 +2384,7 @@ async function relO1(){
       <thead><tr><th>Pedido</th><th>Situação</th><th>Solicitante</th><th>Criado</th><th>Efetivado</th>
         <th>Cede (origem)</th><th>Recebe (destino)</th><th style="text-align:right">Valor movimentado</th></tr></thead>
       ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
-        <td class="mono">${esc(r.numero||'—')}${r.tipo==='cobertura_contrato'?'<br><span class="rep-badge rb-azul">Cobertura</span>':''}${r.estorno_de?`<br><span class="rep-badge rb-azul">Estorno de ${esc(porId[r.estorno_de]||'—')}</span>`:''}</td>
+        <td class="mono">${esc(r.numero||'—')}${r.tipo==='cobertura_contrato'?`<br><span class="rep-badge rb-azul">Cobertura</span>${r.contrato?`<br>contrato ${esc(r.contrato.numero)}${r.contrato.fornecedores?.nome?' · '+esc(r.contrato.fornecedores.nome):''}`:''}`:''}${r.estorno_de?`<br><span class="rep-badge rb-azul">Estorno de ${esc(porId[r.estorno_de]||'—')}</span>`:''}</td>
         <td>${oSit(r.status)}</td>
         <td>${esc(r.solicitante?.nome_completo||'—')}</td>
         <td class="mono">${oData(r.criado_em)}</td>
@@ -2445,7 +2446,7 @@ async function relO3(){
   const tipoFil = filVal('fil-tipo-lib'), ativFil = filVal('fil-atividade');
   let q = db.from('contrato_encerramentos')
     .select(`id,tipo,status,valor_liberado_brl,valor_liberado_usd,motivo,criado_em,revertido_em,
-      atividade:atividades(codigo), contrato:contratos(numero), tdr:tdrs(numero),
+      atividade:atividades(codigo), contrato:contratos(numero,fornecedores(nome)), tdr:tdrs(numero),
       autorizou:usuarios!contrato_encerramentos_autorizado_por_fkey(nome_completo)`)
     .order('criado_em',{ascending:false});
   if(dtIni) q = q.gte('criado_em', dtIni);
@@ -2470,12 +2471,12 @@ async function relO3(){
     <div class="rep-secao-titulo">Saldos devolvidos às atividades</div>
     ${rows.length===0?oVazio('Nenhuma liberação de saldo com esses filtros.'):`
     <table class="rep-tbl">
-      <thead><tr><th>Data</th><th>Tipo</th><th>Contrato</th><th>TDR</th><th>Atividade</th><th>Situação</th><th>Termo</th><th>Registrado por</th>
+      <thead><tr><th>Data</th><th>Tipo</th><th>Contrato · fornecedor</th><th>TDR</th><th>Atividade</th><th>Situação</th><th>Termo</th><th>Registrado por</th>
         <th style="text-align:right">Valor BRL</th><th style="text-align:right">Valor USD</th></tr></thead>
       ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${oData(r.criado_em)}</td>
         <td><span class="rep-badge ${(TIPO[r.tipo]||['','rb-cinza'])[1]}">${esc((TIPO[r.tipo]||[r.tipo])[0])}</span></td>
-        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
+        <td><span class="mono">${esc(r.contrato?.numero||'—')}</span>${r.contrato?.fornecedores?.nome?'<br>'+esc(r.contrato.fornecedores.nome):''}</td>
         <td class="mono">${esc(r.tdr?.numero||'—')}</td>
         <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
         <td>${r.status==='ativo'?'<span class="rep-badge rb-verde">Valendo</span>':`<span class="rep-badge rb-cinza">Estornada ${oData(r.revertido_em)}</span>`}</td>
@@ -2495,8 +2496,15 @@ async function relO3(){
 async function relO4(){
   const ativFil = filVal('fil-atividade');
   if(!ativFil) return oVazio('Escolha a atividade no filtro para gerar o extrato.');
-  const {data:e, error} = await db.rpc('fn_orcamento_extrato', { p_atividade: ativFil });
+  const [{data:e, error}, {data:ctrs}] = await Promise.all([
+    db.rpc('fn_orcamento_extrato', { p_atividade: ativFil }),
+    db.from('contratos').select('numero,status,tdrs(numero),fornecedores(nome)').eq('atividade_id', ativFil).neq('status','cancelado').order('numero')
+  ]);
   if(error) throw error;
+  // TDR contratado → contrato(s) e fornecedor (só os contratos que a pessoa enxerga)
+  const ctrPorTdr = {};
+  (ctrs||[]).forEach(c=>{ const t=c.tdrs?.numero; if(t)(ctrPorTdr[t]=ctrPorTdr[t]||[]).push(c); });
+  const ctrTxt = ref => (ctrPorTdr[ref]||[]).map(c=>`<span class="mono">${esc(c.numero)}</span>${c.fornecedores?.nome?' · '+esc(c.fornecedores.nome):''}`).join('<br>');
   const r = e.resumo;
   const FONTE = { dotacao_original:'Dotação original', revisao_orcamentaria:'Revisão orçamentária', economia_contratacao:'Economia de contratação',
     encerramento_contrato:'Encerramento de contrato', remanejamento_recebido:'Remanejamento recebido', remanejamento_cedido:'Remanejamento cedido' };
@@ -2511,14 +2519,15 @@ async function relO4(){
       ${linhaDet(5,'Descrição',c.descricao)}</tbody>`;
   }).join('');
   const deb = (e.debitos||[]).map(d=>`<tr><td>${esc(DEB[d.tipo]||d.tipo)}</td><td class="mono">${esc(d.referencia||'—')}</td>
-    <td>${esc(d.situacao||'')}</td><td class="mono" style="text-align:right">${fmtUSD(d.valor_usd)}</td></tr>`).join('');
+    <td>${esc(d.situacao||'')}</td><td>${(d.tipo==='tdr'&&ctrTxt(d.referencia))||(d.situacao==='contratado'?'<span style="color:var(--cinza-400)">contrato não visível</span>':'—')}</td>
+    <td class="mono" style="text-align:right">${fmtUSD(d.valor_usd)}</td></tr>`).join('');
   const fontes = (e.fontes||[]).map(f=>`<tr><td class="mono">${f.ordem_consumo}</td><td>${esc(FONTE[f.tipo]||f.tipo)}</td>
     <td class="mono" style="text-align:right">${fmtUSD(f.liquido_usd)}</td><td class="mono" style="text-align:right">${fmtUSD(f.consumido_usd)}</td>
     <td class="mono" style="text-align:right">${fmtUSD(f.reservado_usd)}</td><td class="mono" style="text-align:right"><strong>${fmtUSD(f.livre_usd)}</strong></td></tr>`).join('');
   const rems = (e.remanejamentos||[]).map(x=>`<tr><td class="mono">${esc(x.numero)}</td><td>${oSit(x.status)}</td>
     <td class="mono">${oData(x.efetivado_em)}</td><td class="mono"${neg(x.valor_usd)}>${fmtUSD(x.valor_usd)}</td></tr>`).join('');
   const ev = (e.eventos_tdr||[]).map(x=>`<tr><td class="mono">${oData(x.criado_em)}</td><td class="mono">${esc(x.tdr_numero||'—')}</td>
-    <td>${esc((x.evento||'').replace(/_/g,' '))}</td><td class="mono" style="text-align:right">${fmtUSD(x.efeito_usd)}</td></tr>`).join('');
+    <td>${esc((x.evento||'').replace(/_/g,' '))}${/contrat/.test(x.evento||'')&&ctrTxt(x.tdr_numero)?'<br>'+ctrTxt(x.tdr_numero):''}</td><td class="mono" style="text-align:right">${fmtUSD(x.efeito_usd)}</td></tr>`).join('');
   return `
   <p style="margin:0 0 10px"><strong>${esc(r.codigo)}</strong> — ${esc(r.nome_pt||'')}</p>
   <div class="rep-stats rep-stats-4">
@@ -2533,10 +2542,10 @@ async function relO4(){
       ${cred||'<tbody><tr><td colspan="5">Sem créditos.</td></tr></tbody>'}
       <tfoot><tr><td colspan="4"><strong>Total de créditos</strong></td><td class="mono" style="text-align:right">${fmtUSD(e.total_creditos_usd)}</td></tr></tfoot></table></div>
   <div class="rep-secao"><div class="rep-secao-titulo">Débitos (compromissos de hoje)</div>
-    <table class="rep-tbl"><thead><tr><th>Natureza</th><th>Referência</th><th>Situação</th><th style="text-align:right">Valor</th></tr></thead>
-      <tbody>${deb||'<tr><td colspan="4">Sem débitos.</td></tr>'}</tbody>
-      <tfoot><tr><td colspan="3"><strong>Total de débitos</strong></td><td class="mono" style="text-align:right">${fmtUSD(e.total_debitos_usd)}</td></tr>
-      <tr><td colspan="3"><strong>Saldo = créditos − débitos</strong></td><td class="mono"${neg(e.saldo_calculado_usd)}>${fmtUSD(e.saldo_calculado_usd)}</td></tr></tfoot></table></div>
+    <table class="rep-tbl"><thead><tr><th>Natureza</th><th>Referência</th><th>Situação</th><th>Contrato · fornecedor</th><th style="text-align:right">Valor</th></tr></thead>
+      <tbody>${deb||'<tr><td colspan="5">Sem débitos.</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="4"><strong>Total de débitos</strong></td><td class="mono" style="text-align:right">${fmtUSD(e.total_debitos_usd)}</td></tr>
+      <tr><td colspan="4"><strong>Saldo = créditos − débitos</strong></td><td class="mono"${neg(e.saldo_calculado_usd)}>${fmtUSD(e.saldo_calculado_usd)}</td></tr></tfoot></table></div>
   <div class="rep-secao"><div class="rep-secao-titulo">Procedência do saldo (fontes, ordem de consumo)</div>
     <table class="rep-tbl"><thead><tr><th>#</th><th>Fonte</th><th style="text-align:right">Líquido</th><th style="text-align:right">Consumido</th><th style="text-align:right">Reservado</th><th style="text-align:right">Livre</th></tr></thead>
       <tbody>${fontes}</tbody></table></div>
