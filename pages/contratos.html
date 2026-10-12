@@ -71,6 +71,8 @@
 <script>
 (function(){
 var todosContratos=[],atividades=[],fornecedores=[],tdrs=[];
+// Encerramentos com saldo não executado e os termos anexados (migração 20261012_encerramento_documento)
+var encPorContrato={},docsPorEnc={};
 var contratoEditando=null,filePDF=null;
 var expandidos={};
 var SL={vigente:'Vigente',encerrado:'Encerrado',suspenso:'Suspenso',aguardando_cobertura:'Aguardando cobertura',cancelado:'Cancelado'};
@@ -190,6 +192,7 @@ async function carregar(){
   atividades=rs[1].data||[];
   fornecedores=rs[2].data||[];
   tdrs=rs[3].data||[];
+  await carregarEncerramentos();
 
   // Preencher filtro de atividades — só as que têm ao menos um contrato
   var filAtiv=document.getElementById('fil-ativ');
@@ -402,6 +405,7 @@ function buildDet(c){
     }
     h+='</div>';
     if(c.objeto_pt)h+='<div class="ct-objeto"><strong>Objeto:</strong> '+esc(c.objeto_pt)+'</div>';
+    h+=blocoEncerramento(c);
   } else {
     // ABA PRODUTOS
     h+='<div class="ct-prods-hd"><div>';
@@ -786,6 +790,88 @@ async function executarSalvarContrato(dados){
   }
 }
 
+// ── ENCERRAMENTO: quadro na janela do contrato e termo anexado ──
+async function carregarEncerramentos(){
+  var rs=await Promise.all([
+    db.from('contrato_encerramentos').select('id,contrato_id,atividade_id,valor_liberado_brl,valor_liberado_usd,motivo,produtos_afetados,status,criado_em,autorizou:usuarios!contrato_encerramentos_autorizado_por_fkey(nome_completo),atividades(codigo)').eq('tipo','encerramento_contrato').order('criado_em'),
+    db.from('contrato_encerramento_documentos').select('id,encerramento_id,caminho,nome,sha256,tamanho,criado_em,autor:usuarios(nome_completo)').order('criado_em')
+  ]);
+  if(rs[0].error)console.error('[encerramentos]',rs[0].error);
+  encPorContrato={};docsPorEnc={};
+  (rs[0].data||[]).forEach(function(e){(encPorContrato[e.contrato_id]=encPorContrato[e.contrato_id]||[]).push(e);});
+  (rs[1].data||[]).forEach(function(d){(docsPorEnc[d.encerramento_id]=docsPorEnc[d.encerramento_id]||[]).push(d);});
+}
+var urlDocsContrato=function(caminho){return SUPABASE_URL+'/storage/v1/object/public/contratos-docs/'+caminho;};
+var podeAnexarTermo=function(){return ['super_admin','coordenacao'].indexOf(appState.perfil)>=0;};
+
+function blocoEncerramento(c){
+  var lista=encPorContrato[c.id]||[];
+  return lista.map(function(e){
+    var prods=Array.isArray(e.produtos_afetados)?e.produtos_afetados:[];
+    var docs=docsPorEnc[e.id]||[];
+    var sitAnt={entrega_parcial:'Entrega parcial',pendente:'Pendente',em_analise:'Em análise',devolvido:'Devolvido'};
+    var linhas=prods.map(function(p){
+      var pago=parseFloat(p.valor_aprovado||0);
+      return '<tr><td>Produto '+esc(p.numero_produto||'?')+(p.descricao?' — '+esc(String(p.descricao).substring(0,60)):'')+'</td>'
+        +'<td>'+esc(sitAnt[p.situacao_anterior]||p.situacao_anterior||'—')+(pago>0?'':' → cancelado')+'</td>'
+        +'<td class="n">'+fmtBRL(p.valor_brl||0)+'</td><td class="n">'+(pago>0?fmtBRL(pago):'—')+'</td><td class="n">'+fmtBRL(p.valor_nao_executado||0)+'</td></tr>';
+    }).join('');
+    var docsH=docs.length?docs.map(function(d,i){
+      var atual=i===docs.length-1;
+      return '<div class="pdf-card'+(atual?'':' apagado')+'"><div class="pdf-card-icon en">'+ctIc('doc')+'</div>'
+        +'<div style="min-width:0"><div class="pdf-card-nome" title="'+esc(d.nome)+'">'+esc(d.nome)+(atual?'':' (versão anterior)')+'</div>'
+        +'<div class="pdf-card-meta">Anexado em '+fmtData(d.criado_em)+(d.autor?' por '+esc(d.autor.nome_completo):'')
+        +' · <span class="ct-sha" title="SHA-256 '+esc(d.sha256)+'">SHA-256 '+esc(d.sha256.substring(0,8))+'…'+esc(d.sha256.slice(-4))+'</span></div></div>'
+        +'<div class="pdf-card-btns"><a href="#" class="ct-btn ic" data-arquivo="'+esc(urlDocsContrato(d.caminho))+'" title="Abrir" aria-label="Abrir '+esc(d.nome)+'">'+ctIc('olho','p')+'</a></div></div>';
+    }).join(''):'<div class="pdf-card falta"><div class="pdf-card-icon vazio">'+ctIc('doc')+'</div>'
+      +'<div style="min-width:0"><div class="pdf-card-nome">Termo de encerramento / distrato não anexado</div><div class="pdf-card-meta">PDF assinado pelas partes · fica guardado e não pode ser apagado</div></div>'
+      +(podeAnexarTermo()?'':'<span></span>')+'</div>';
+    var botao=podeAnexarTermo()
+      ?'<label class="ct-btn '+(docs.length?'':'pri ')+'peq" tabindex="0" style="cursor:pointer">'+ctIc('upload','p')+(docs.length?'Anexar nova versão':'Anexar PDF')
+        +'<input type="file" accept="application/pdf,.pdf" style="display:none" onchange="anexarTermo(\''+e.id+'\',\''+c.id+'\',this)"></label>':'';
+    return '<div class="ct-enc'+(e.status==='revertido'?' revertido':'')+'">'
+      +'<div class="ct-enc-h"><span class="ct-pill ct-p-ne">'+ctIc('check','p')+'Encerrado</span><b>Encerramento com saldo não executado</b>'
+      +'<small>'+fmtData(e.criado_em)+(e.autorizou?' · registrado por '+esc(e.autorizou.nome_completo):'')+(e.status==='revertido'?' · liberação estornada':'')+'</small></div>'
+      +'<div class="ct-enc-mot"><strong>Justificativa:</strong> '+esc(e.motivo||'')+'</div>'
+      +(linhas?'<div class="ct-enc-tw"><table class="ct-enc-tb"><thead><tr><th>Produto</th><th>Situação anterior</th><th class="n">Valor</th><th class="n">Pago</th><th class="n">Não executado</th></tr></thead><tbody>'+linhas+'</tbody></table></div>':'')
+      +'<div class="ct-enc-tot"><span>Devolvido à atividade'+(e.atividades?' '+esc(e.atividades.codigo):'')+' <small>(R$ ÷ cotação do dia)</small></span>'
+      +'<b>'+fmtBRL(e.valor_liberado_brl||0)+(e.valor_liberado_usd!=null?' · US$ '+Number(e.valor_liberado_usd).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'')+'</b></div>'
+      +'<div class="ct-enc-dh"><span class="ct-eyebrow" style="margin:0">Termo de encerramento</span>'+botao+'</div>'
+      +'<div class="ct-enc-docs">'+docsH+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+async function sha256Hex(buf){
+  var h=await crypto.subtle.digest('SHA-256',buf);
+  return Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+// envia o PDF para contratos-docs/encerramentos/<contrato>/… e registra pela RPC (que também conclui a tarefa de lembrete)
+async function enviarTermo(encId,contratoId,file){
+  if(!file)return false;
+  if(!/\.pdf$/i.test(file.name)&&file.type!=='application/pdf'){toast('O termo de encerramento deve ser PDF.','error');return false;}
+  if(file.size>20*1024*1024){toast('PDF acima de 20 MB.','error');return false;}
+  var sha=await sha256Hex(await file.arrayBuffer());
+  var caminho='encerramentos/'+contratoId+'/'+Date.now()+'-'+sha.substring(0,12)+'.pdf';
+  var up=await db.storage.from('contratos-docs').upload(caminho,file,{contentType:'application/pdf',upsert:false});
+  if(up.error){toast('Erro ao enviar o PDF: '+up.error.message,'error');return false;}
+  var r=await db.rpc('fn_encerramento_anexar_documento',{p_encerramento_id:encId,p_caminho:caminho,p_nome:file.name,p_sha256:sha,p_tamanho:file.size});
+  if(r.error){toast((r.error.message||'').replace(/^ENCERRAMENTO_DOC:\s*/,''),'error');return false;}
+  return true;
+}
+window.anexarTermo=async function(encId,contratoId,input){
+  var file=input.files&&input.files[0];input.value='';
+  if(!file)return;
+  toast('Enviando o termo de encerramento…','info');
+  if(await enviarTermo(encId,contratoId,file)){
+    toast('Termo anexado. A tarefa de lembrete foi concluída.','success',6000);
+    await carregarEncerramentos();
+    var c=todosContratos.find(function(x){return x.id===contratoId;});
+    var inner=document.getElementById('inner-'+contratoId);
+    if(inner&&c)inner.innerHTML=buildDet(c);
+  }
+};
+
 // ── ENCERRAMENTO COM SALDO NÃO EXECUTADO ─────────────────────
 var dadosEncerramentoPendente=null,produtosEncerramentoPendente=null;
 
@@ -812,7 +898,10 @@ window.abrirModalEncerramento=function(dados,afetados){
     +'<div class="ct-lib"><span>Volta para a atividade'+(atv?' '+esc(atv.codigo):'')+'</span><b id="me-valor-liberado"></b></div>'
     +'<div class="form-group"><label class="form-label" for="me-motivo">Justificativa do encerramento <span class="obrig">*</span></label>'
     +'<textarea class="form-control" id="me-motivo" rows="3" oninput="contarMotivo()" placeholder="Ex.: Fornecedor não entregou os produtos 03, 04 e 05 no prazo contratual (encerrado em DD/MM/AAAA). Saldo remanescente devolvido para nova contratação."></textarea>'
-    +'<div class="ct-contador" id="me-contador"></div></div>';
+    +'<div class="ct-contador" id="me-contador"></div></div>'
+    +'<div class="form-group"><label class="form-label" for="me-termo">Termo de encerramento / distrato (PDF) <span class="op">opcional agora</span></label>'
+    +'<input type="file" class="form-control" id="me-termo" accept="application/pdf,.pdf">'
+    +'<div class="ct-contador">Se ainda não estiver assinado, encerre assim mesmo: o sistema cria uma tarefa para você anexar o termo depois.</div></div>';
 
   recalcLiberado();contarMotivo();
   ctAbrir('modal-encerramento');
@@ -871,15 +960,19 @@ window.confirmarEncerramento=async function(){
     var snapshot=selecionados.map(function(p){
       return {id:p.id,numero_produto:p.numero_produto,descricao:p.descricao,valor_brl:parseFloat(p.valor_brl||0),valor_aprovado:parseFloat(p.valor_aprovado||0),valor_nao_executado:calcNaoExecutado(p),situacao_anterior:p.situacao};
     });
+    var termo=(document.getElementById('me-termo')||{}).files;termo=termo&&termo[0];
     var insEnc=await db.from('contrato_encerramentos').insert({
       contrato_id:contratoId,atividade_id:atividadeId||null,
       valor_liberado_brl:valorLiberadoBrl,
       motivo:motivo,produtos_afetados:snapshot,autorizado_por:appState.usuario.id
-    });
+    }).select('id').single();
     if(insEnc.error)throw insEnc.error;
 
-    toast('Contrato encerrado. '+fmtBRL(valorLiberadoBrl)+' liberado(s) para a atividade.','success',7000);
+    var anexou=termo?await enviarTermo(insEnc.data.id,contratoId,termo):false;
+    toast('Contrato encerrado. '+fmtBRL(valorLiberadoBrl)+' liberado(s) para a atividade.'
+      +(anexou?' Termo anexado.':' Uma tarefa foi criada para anexar o termo de encerramento.'),'success',8000);
     fecharModalEncerramento();
+    await carregarEncerramentos();
     await recarregarDet(contratoId);
   }catch(e){
     toast('Erro ao encerrar contrato: '+(e.message||''),'error');

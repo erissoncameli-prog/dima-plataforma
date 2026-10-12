@@ -254,6 +254,12 @@ saldo_livre_usd = orcamento_usd
 | `criado_em` / `revertido_em` | timestamptz | |
 
 - **`encerramento_contrato`**: encerra contrato com produtos pendentes, cancela produtos, libera o não-executado. UI: `pages/contratos.html` → `confirmarEncerramento()` (insert direto via client).
+- **Termo de encerramento** (migração `20261012_encerramento_documento` + `_sql_editor`): PDF em `contrato_encerramento_documentos`
+  (só inclusão; termo corrigido = novo anexo; SHA-256 do navegador), arquivo em `contratos-docs/encerramentos/<contrato_id>/…`,
+  gravado só por `fn_encerramento_anexar_documento` (super_admin/coordenação; confere o arquivo em `storage.objects`). Todo
+  `encerramento_contrato` novo cria a tarefa "Anexar termo de encerramento" (`trg_encerramento_tarefa`, `tarefas.entidade_tipo =
+  'contrato_encerramento'`, responsável = quem encerrou, prazo 15 dias, ligada à atividade e ao TDR); anexar o termo conclui a
+  tarefa. Tela: quadro "Encerramento" na aba Detalhes e documentos (`blocoEncerramento`) e campo opcional na janela de encerrar.
 - **`economia_contratacao`**: libera a economia planejado−firmado de um TDR contratado. UI: aba Financeiro do modal em `pages/tdrs.html` → `painelEconomiaTDR`. Usa RPCs (restritas a `super_admin`/`coordenacao`):
   - `fn_liberar_economia_tdr(p_tdr_id uuid, p_justificativa text, p_taxa numeric)` — calcula economia = `tdrs.valor_brl − Σ contratos.valor_total_brl`, grava a liberação e loga em `tdr_acoes`.
   - `fn_estornar_economia_tdr(p_encerramento_id uuid, p_motivo text)` — marca `status='revertido'` (só `tipo='economia_contratacao'`).
