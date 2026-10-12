@@ -562,6 +562,10 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 update public.tdrs set valor_brl = 3000 where numero = '1.1.1-001';   -- CT-1 (2.500) cabe no TDR
+-- PTAX "de hoje": as cotações acima são de 02/10/2026; depois de 7 dias fn_cotacao_usd(null) recusa
+-- (COTACAO_DESATUALIZADA) e a suíte quebrava só pela data em que roda. Mesmo valor da última cotação.
+insert into public.cotacoes_ptax (data, ptax_compra, ptax_venda)
+  select current_date, 5.3101, 5.3107 where current_date > date '2026-10-02';
 \ir ../../migrations/20261003_rem_05a_status_contrato.sql
 \ir ../../migrations/20261003_rem_05_cobertura_contrato.sql
 \ir ../../migrations/20261003_rem_05b_cobertura_pedido.sql

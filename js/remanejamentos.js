@@ -13,8 +13,12 @@
 //   · estorno: fn_rem_criar_estorno monta o espelho do pedido efetivado (itens e
 //     fontes não se editam); segue a mesma cadeia e, efetivado, marca o original
 //     'estornado'. Só cabe se o destino não gastou nem repassou o que recebeu.
+//   · cancelamento de TDR (20261012_tdr_cancelamento): pedidos tdr_cancelamentos entram
+//     na MESMA fila ("Pedidos"); o rascunho nasce na tela de TDRs (nota técnica) e aqui
+//     se envia/assina pela mesma Edge Function, ação 'assinar_cancelamento'
+//     (fn_tcan_assinar). Cadeia: coordenação → responsável da atividade → UNESCO.
 // "Aguardando minha análise" é calculado aqui só para a fila; quem pode
-// assinar de fato é decidido por fn_rem_assinar.
+// assinar de fato é decidido por fn_rem_assinar / fn_tcan_assinar.
 // ═══════════════════════════════════════════════════════════════════════
 
 const REM = {
@@ -22,6 +26,7 @@ const REM = {
   ativs: [], fontes: [], resultados: [], pedidos: [], etapas: [], resp: [],
   cargos: [], titulares: [], usuarios: {},
   travados: [], pendencias: [],  // contratos aguardando cobertura (fase 5) e o déficit de cada um
+  cancs: [], cEtapas: [],       // pedidos de cancelamento de TDR e as etapas deles
   abertos: new Set(),           // atividades expandidas no quadro
   editando: null,               // id do rascunho em edição (null = novo)
   form: null,                   // { justificativa, ceder: {fonte_id: valor}, destinos: [{atividade_id, valor}] }
@@ -48,6 +53,17 @@ const REM_EVENTO = {
   aprovado_etapa: 'Aprovou a etapa', devolvido: 'Devolveu', recusado: 'Recusou', cancelado: 'Cancelou',
   editado_apos_devolucao: 'Editou após devolução (nova versão)', efetivado: 'Efetivado no razão',
   estorno_solicitado: 'Pediu o estorno', estornado: 'Estornado (lançamentos espelhados)',
+}
+const CAN_PAPEL = { solicitacao: 'Solicitação (coordenação)', responsavel_atividade: 'Responsável da atividade', unesco: 'UNESCO' }
+const CAN_MOTIVO = {
+  licitacao_deserta: 'Licitação deserta (nenhuma proposta)', licitacao_fracassada: 'Licitação fracassada (propostas recusadas)',
+  sem_necessidade: 'O objeto deixou de ser necessário', substituido: 'Substituído por outro TDR', outro: 'Outro motivo',
+}
+const CAN_DESTINO = { a_definir: 'Ainda não definido', novo_tdr: 'Novo TDR na mesma atividade', remanejamento: 'Remanejamento para outra atividade' }
+const CAN_EVENTO = {
+  criado: 'Pedido criado', rascunho_salvo: 'Rascunho salvo', enviado: 'Enviado para a cadeia',
+  aprovado_etapa: 'Aprovou a etapa', devolvido: 'Devolveu', recusado: 'Recusou', cancelado: 'Cancelou o pedido',
+  editado_apos_devolucao: 'Editou após devolução (nova versão)', efetivado: 'TDR cancelado e valor liberado',
 }
 const REM_ERRO = {
   SENHA_INVALIDA: 'Senha incorreta.',
@@ -150,7 +166,8 @@ const podeMontar = () => ['coordenacao', 'super_admin'].includes(appState.perfil
   REM.inicio = true
   await remCarregar()
   const qs = new URLSearchParams(location.search)
-  if (qs.get('id')) remAbrirPedido(qs.get('id'))
+  if (qs.get('can')) canAbrir(qs.get('can'))
+  else if (qs.get('id')) remAbrirPedido(qs.get('id'))
   else if (qs.get('cobertura')) remCobertura(qs.get('cobertura'))
 })()
 
@@ -180,8 +197,36 @@ async function remCarregar() {
   REM.usuarios = Object.fromEntries((r[8].data || []).map(u => [u.id, u]))
   REM.travados = r[9].data || []
   REM.pendencias = r[10].data || []
-  if (REM.inicio) { REM.inicio = false; if (REM.pedidos.some(remMinhaVez)) { REM.aba = 'pedidos'; REM.filtro = 'minha' } }
+  // pedidos de cancelamento de TDR (se a migração ainda não estiver no banco, a fila segue só com remanejamentos)
+  const [rc, re] = await Promise.all([
+    db.from('tdr_cancelamentos').select('*').order('criado_em', { ascending: false }),
+    db.from('tdr_cancelamento_etapas').select('id, cancelamento_id, versao, ordem, papel, cargo, atividade_id, assinatura_id'),
+  ])
+  REM.cancs = rc.error ? [] : (rc.data || [])
+  REM.cEtapas = re.error ? [] : (re.data || [])
+  if (REM.inicio) { REM.inicio = false; if (REM.pedidos.some(remMinhaVez) || REM.cancs.some(canMinhaVez)) { REM.aba = 'pedidos'; REM.filtro = 'minha' } }
   remRender()
+}
+
+// ── Cancelamento de TDR: quem assina a etapa atual (só para a fila; o banco decide) ──
+const CAN_TITULARES = ['coordenacao_solicitante', 'unesco_financeiro']
+function canSignatarios(etapa) {
+  if (!etapa) return []
+  if (etapa.papel === 'responsavel_atividade') {
+    const tits = new Set(REM.titulares.filter(t => CAN_TITULARES.includes(t.cargo)).map(t => t.usuario_id))
+    return REM.resp.filter(r => r.atividade_id === etapa.atividade_id && REM.usuarios[r.usuario_id]?.ativo && !tits.has(r.usuario_id)).map(r => r.usuario_id)
+  }
+  const t = remTitular(etapa.cargo)
+  return t ? [t] : []
+}
+function canEtapaAtual(c) {
+  return REM.cEtapas.find(e => e.cancelamento_id === c.id && e.versao === c.versao && e.ordem === c.etapa_atual)
+}
+function canMinhaVez(c) {
+  const eu = appState.usuario.id
+  if (c.status === 'rascunho') return c.criado_por === eu || remTitular('coordenacao_solicitante') === eu
+  if (c.status !== 'em_aprovacao') return false
+  return canSignatarios(canEtapaAtual(c)).includes(eu)
 }
 
 // ── Quem assina a etapa atual (só para a fila; o banco decide) ─────────
@@ -208,10 +253,10 @@ function remMinhaVez(p) {
 
 // ── Abas ───────────────────────────────────────────────────────────────
 function remRender() {
-  const minhas = REM.pedidos.filter(remMinhaVez).length
+  const minhas = REM.pedidos.filter(remMinhaVez).length + REM.cancs.filter(canMinhaVez).length
   const abas = [
     ['saldos', 'Saldos por resultado'],
-    ['pedidos', 'Pedidos' + ` <span class="rm-cont${minhas ? ' vez' : ''}" title="${minhas ? 'aguardando sua análise' : 'pedidos'}">${minhas || REM.pedidos.length}</span>`],
+    ['pedidos', 'Pedidos' + ` <span class="rm-cont${minhas ? ' vez' : ''}" title="${minhas ? 'aguardando sua análise' : 'pedidos'}">${minhas || (REM.pedidos.length + REM.cancs.length)}</span>`],
     ...(podeMontar() ? [['novo', REM.editando ? 'Editar rascunho' : 'Novo pedido']] : []),
     ['titulares', 'Signatários'],
     ['guia', 'Como funciona'],
@@ -352,17 +397,23 @@ function remFontesHTML(atvId) {
 function remPedidosHTML() {
   const f = REM.filtro
   const lista = REM.pedidos.filter(p => f === 'todos' ? true : f === 'minha' ? remMinhaVez(p) : p.status === 'em_aprovacao')
+  const listaC = REM.cancs.filter(c => f === 'todos' ? true : f === 'minha' ? canMinhaVez(c) : c.status === 'em_aprovacao')
+  const nMinha = REM.pedidos.filter(remMinhaVez).length + REM.cancs.filter(canMinhaVez).length
   const chip = (k, l) => `<button type="button" class="rm-chip ${f === k ? 'ativo' : ''}" aria-pressed="${f === k}" onclick="REM.filtro='${k}';remRender()">${l}</button>`
-  let h = `<div class="rm-chips">${chip('minha', 'Aguardando minha análise (' + REM.pedidos.filter(remMinhaVez).length + ')')}
-    ${chip('andamento', 'Em aprovação')}${chip('todos', 'Todos')} ${remQ('minha_vez')} ${remQ('cadeia')}</div>`
-  if (!REM.pedidos.length) return h + `<div class="card"><div class="rm-vazio-g"><span class="ic-g">${rmIc('troca')}</span><b>Nenhum pedido de remanejamento ainda</b>
+  let h = `<div class="rm-chips">${chip('minha', 'Aguardando minha análise (' + nMinha + ')')}
+    ${chip('andamento', 'Em aprovação')}${chip('todos', 'Todos')} ${remQ('minha_vez')} ${remQ('cadeia')} ${remQ('cancelamento_tdr')}</div>`
+  if (!REM.pedidos.length && !REM.cancs.length) return h + `<div class="card"><div class="rm-vazio-g"><span class="ic-g">${rmIc('troca')}</span><b>Nenhum pedido de remanejamento ainda</b>
     <span>Um pedido tira saldo livre de uma ou mais atividades e leva para outras. Ele fica reservado enquanto passa pelas cinco assinaturas e só muda o orçamento depois da última.</span>
     ${podeMontar() ? `<button type="button" class="btn btn-primary" onclick="remAba('novo')">${rmIc('mais', 'p')}Novo pedido</button>` : ''}</div></div>`
-  if (!lista.length) return h + `<div class="card"><div class="rm-vazio-g"><b>${f === 'minha' ? 'Nenhum pedido aguardando a sua análise' : 'Nenhum pedido em aprovação'}</b>
+  if (!lista.length && !listaC.length) return h + `<div class="card"><div class="rm-vazio-g"><b>${f === 'minha' ? 'Nenhum pedido aguardando a sua análise' : 'Nenhum pedido em aprovação'}</b>
     <span>Veja a lista completa em "Todos".</span></div></div>`
   h += `<div class="card"><div class="table-wrap"><table class="rm-tab larga"><thead><tr><th>Pedido</th><th>Situação</th>
     <th>Etapa atual</th><th>Origem → destino</th><th class="n">Valor</th><th>Criado</th></tr></thead><tbody>`
-  for (const p of lista) {
+  // remanejamentos e cancelamentos de TDR numa lista só, do mais recente
+  const linhas = [...lista.map(p => ({ k: 'rem', p })), ...listaC.map(p => ({ k: 'can', p }))]
+    .sort((a, b) => String(b.p.criado_em).localeCompare(String(a.p.criado_em)))
+  for (const { k, p } of linhas) {
+    if (k === 'can') { h += canLinhaHTML(p); continue }
     const [st, cls] = REM_STATUS[p.status] || [p.status, 'badge-cinza']
     const et = remEtapaAtual(p)
     const quem = p.status === 'em_aprovacao' && et
@@ -379,6 +430,18 @@ function remPedidosHTML() {
       <td class="n">${usd2(total)}</td><td style="white-space:nowrap">${dataHora(p.criado_em)}</td></tr>`
   }
   return h + '</tbody></table></div></div>'
+}
+function canLinhaHTML(c) {
+  const [st, cls] = REM_STATUS[c.status] || [c.status, 'badge-cinza']
+  const et = canEtapaAtual(c)
+  const quem = c.status === 'em_aprovacao' && et
+    ? `${esc(CAN_PAPEL[et.papel])}<div class="rm-sub">${canSignatarios(et).map(nomeU).map(esc).join(', ') || 'sem signatário'}</div>` : '—'
+  const atv = REM.ativs.find(a => a.atividade_id === c.atividade_id)
+  return `<tr class="rm-atv" tabindex="0" onclick="canAbrir('${c.id}')" onkeydown="if(event.key==='Enter'){event.preventDefault();canAbrir('${c.id}')}">
+    <td><b>${esc(c.numero)}</b> <span class="badge badge-erro">cancelamento de TDR</span>${canMinhaVez(c) ? ' <span class="badge badge-ouro">sua vez</span>' : ''}</td>
+    <td><span class="badge ${cls}">${st}</span></td><td>${quem}</td>
+    <td>TDR ${esc(c.tdr_numero || '?')} (${esc(atv?.codigo || '?')}) → saldo livre</td>
+    <td class="n">${usd2(c.valor_usd)}</td><td style="white-space:nowrap">${dataHora(c.criado_em)}</td></tr>`
 }
 
 // ── 3. Novo pedido / editar rascunho ───────────────────────────────────
@@ -643,7 +706,97 @@ async function remAbrirPedido(id) {
   document.getElementById('rm-mp-corpo').scrollTop = 0
   rmAbrir('rm-modal-pedido')
 }
+// ── Pedido de cancelamento de TDR (mesmo modal e mesma assinatura) ─────
+async function canAbrir(id) {
+  const [p, et, as, hi, hs] = await Promise.all([
+    db.from('tdr_cancelamentos').select('*').eq('id', id).maybeSingle(),
+    db.from('tdr_cancelamento_etapas').select('*').eq('cancelamento_id', id).order('ordem'),
+    db.from('vw_tdr_cancelamento_assinaturas').select('*').eq('cancelamento_id', id).order('criado_em'),
+    db.from('tdr_cancelamento_historico').select('*').eq('cancelamento_id', id).order('criado_em'),
+    db.rpc('fn_tcan_hash', { p_id: id }),
+  ])
+  if (p.error || !p.data) { toast('Pedido de cancelamento não encontrado.', 'error'); return }
+  const P = p.data
+  const { data: tentD } = await db.from('tdr_licitacoes').select('*').eq('tdr_id', P.tdr_id).order('rodada')
+  REM.detalhe = { tipo: 'can', P, etapas: (et.data || []).filter(e => e.versao === P.versao), assin: as.data || [],
+                  hist: hi.data || [], hash: hs.data, tentativas: tentD || [],
+                  atv: REM.ativs.find(a => a.atividade_id === P.atividade_id) }
+  const D = REM.detalhe
+  const [st, cls] = REM_STATUS[P.status] || [P.status, 'badge-cinza']
+  document.getElementById('rm-mp-titulo').innerHTML = `${esc(P.numero)} <span class="badge badge-erro">cancelamento de TDR</span> <span class="badge ${cls}">${st}</span>${canMinhaVez(P) ? ' <span class="badge badge-ouro">sua vez</span>' : ''}`
+  document.getElementById('rm-mp-sub').textContent = `Versão ${P.versao} · criado por ${nomeU(P.criado_por)} em ${dataHora(P.criado_em)}`
+
+  const cadeia = D.etapas.length ? D.etapas.map(e => {
+    const ok = !!e.assinatura_id
+    const atual = P.status === 'em_aprovacao' && P.etapa_atual === e.ordem
+    const a = D.assin.find(x => x.id === e.assinatura_id)
+    const nomeEt = CAN_PAPEL[e.papel] + (e.atividade_id ? ' — ' + esc(D.atv?.codigo || '') : '')
+    const quem = ok ? `Aprovado por ${esc(a?.nome_completo || '')} em ${dataHora(a?.criado_em)}`
+      : `${atual ? 'Aguardando' : 'Pendente'}: ${canSignatarios(e).map(nomeU).map(esc).join(', ') || '<b>sem signatário</b>'}`
+    return `<li class="${ok ? 'ok' : atual ? 'atual' : ''}"><div class="rm-bola">${ok ? rmIc('check', 'p') : e.ordem}</div><div><b>${nomeEt}</b><div class="rm-sub">${quem}</div></div></li>`
+  }).join('') : '<li><div class="rm-bola">–</div><div class="rm-sub">A cadeia (coordenação → responsável da atividade → UNESCO) é montada quando o pedido é enviado.</div></li>'
+  const hist = D.hist.map(h => `<div>${dataHora(h.criado_em)} · <b>${esc(nomeU(h.usuario_id))}</b> — ${esc(CAN_EVENTO[h.evento] || h.evento)}${h.etapa_ordem ? ' (etapa ' + h.etapa_ordem + ')' : ''}${h.motivo ? ': ' + esc(h.motivo) : ''}</div>`).join('')
+  const tent = D.tentativas.map(x => `<div class="rm-sub">${x.rodada}ª rodada — ${esc(x.resultado)}${x.numero_processo ? ' · processo ' + esc(x.numero_processo) : ''} · ${x.desfecho === 'relancada' ? 'relançada' : 'cancelamento'}: ${esc(x.motivo)}</div>`).join('')
+  const urlNota = P.nota_caminho ? SUPABASE_URL + '/storage/v1/object/public/tdrs-arquivos/' + P.nota_caminho : ''
+
+  document.getElementById('rm-mp-corpo').innerHTML = `
+    ${P.motivo_encerramento ? `<div class="rm-aviso"><b>Motivo do encerramento:</b> ${esc(P.motivo_encerramento)}</div>` : ''}
+    ${P.status === 'efetivado' ? `<div class="rm-aviso">O TDR foi cancelado em ${dataHora(P.efetivado_em)} e ${usd2(P.valor_usd)} voltaram ao saldo livre da atividade.</div>` : ''}
+    <div class="rm-grid2">
+      <div>
+        <h4>TDR ${remQ('cancelamento_tdr')}</h4>
+        <div class="rm-mov"><div style="min-width:0"><div><span class="rm-cod">${esc(P.tdr_numero || '?')}</span> ${esc(P.tdr_objeto || '')}</div>
+          <div class="rm-sub">Atividade ${esc(D.atv?.codigo || '?')} ${esc(D.atv?.nome_pt || '')} · fase no pedido: ${esc(P.tdr_status_origem || '—')}</div></div>
+          <span class="v rm-pos">libera ${usd2(P.valor_usd)}</span></div>
+        <p class="rm-just"><b>Motivo:</b> ${esc(CAN_MOTIVO[P.motivo_tipo] || P.motivo_tipo)}</p>
+        <p class="rm-just"><b>Justificativa:</b> ${esc(P.justificativa)}</p>
+        <p class="rm-sub">Destino pretendido do valor: ${esc(CAN_DESTINO[P.destino_valor] || P.destino_valor)}</p>
+        <h4>Nota técnica</h4>
+        ${urlNota ? `<div class="rm-mov"><div style="min-width:0"><div>${esc(P.nota_nome || 'Nota técnica')}</div>
+            <div class="rm-sub" style="overflow-wrap:anywhere">SHA-256 do arquivo: ${esc(P.nota_sha256 || '')}</div></div>
+            <a class="btn btn-secondary btn-sm" href="#" data-arquivo="${esc(urlNota)}">Abrir</a></div>` : '<p class="rm-sub">Sem nota técnica anexada.</p>'}
+        ${tent ? `<h4>Licitações sem êxito</h4>${tent}` : ''}
+      </div>
+      <div><h4>Cadeia de aprovação ${remQ('decisoes')}</h4><ol class="rm-cadeia">${cadeia}</ol></div>
+    </div>
+    <div><h4>Histórico</h4><div class="rm-hist">${hist || '<div class="rm-sub">—</div>'}</div></div>
+    <p class="rm-hash" title="SHA-256 do pedido, da nota técnica e do TDR">${remQ('hash')} Impressão digital do documento (SHA-256): ${esc(D.hash || '')}</p>`
+
+  const eu = appState.usuario.id
+  const ac = []
+  const dono = P.criado_por === eu || appState.perfil === 'super_admin'
+  const editar = `location.href='tdrs.html?abrir=${P.tdr_id}&cancelar=1'`
+  if (P.status === 'rascunho' && dono) ac.push(`<button type="button" class="btn btn-secondary" onclick="${editar}">Editar no TDR</button>`)
+  if (P.status === 'em_aprovacao' && P.etapa_atual === 1 && dono)
+    ac.push(`<button type="button" class="btn btn-secondary" onclick="${editar}">Editar (abre nova versão)</button>`)
+  if (canMinhaVez(P)) {
+    if (P.status === 'rascunho') {
+      ac.push(`<button type="button" class="btn btn-ghost" onclick="remPedirAssinatura('cancelar')">Cancelar pedido</button>`)
+      if (remTitular('coordenacao_solicitante') === eu) ac.push(`<button type="button" class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">Enviar para aprovação</button>`)
+    } else if (P.etapa_atual === 1) {
+      ac.push(`<button class="btn btn-ghost" onclick="remPedirAssinatura('cancelar')">Cancelar pedido</button>`)
+      ac.push(`<button type="button" class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">Reenviar sem alterar</button>`)
+    } else {
+      ac.push(`<button type="button" class="btn btn-danger" onclick="remPedirAssinatura('recusar')">Recusar</button>`)
+      ac.push(`<button type="button" class="btn btn-secondary" onclick="remPedirAssinatura('devolver')">${rmIc('volta', 'p')}Devolver à etapa anterior</button>`)
+      ac.push(`<button type="button" class="btn btn-primary" onclick="remPedirAssinatura('aprovar')">${rmIc('check', 'p')}Aprovar e assinar</button>`)
+    }
+  }
+  ac.push(`<a class="btn btn-secondary" href="tdrs.html?abrir=${P.tdr_id}" style="text-decoration:none">Abrir o TDR</a>`)
+  ac.push(`<button type="button" class="btn btn-secondary" onclick="remRelatorioA4()">${rmIc('livro', 'p')}Relatório A4</button>`)
+  ac.push(`<button type="button" class="btn btn-ghost" onclick="remFecharPedido()">Fechar</button>`)
+  document.getElementById('rm-mp-acoes').innerHTML = ac.join('')
+  document.getElementById('rm-mp-corpo').scrollTop = 0
+  rmAbrir('rm-modal-pedido')
+}
 function remRelatorioA4() {
+  if (REM.detalhe?.tipo === 'can') {
+    relAbrirCancelamentoA4(REM.detalhe, {
+      nome: nomeU, evento: e => CAN_EVENTO[e] || e, motivo: m => CAN_MOTIVO[m] || m,
+      destino: d => CAN_DESTINO[d] || d, papel: x => CAN_PAPEL[x] || x,
+    })
+    return
+  }
   relAbrirPedidoA4(REM.detalhe, {
     atv: id => REM.ativs.find(a => a.atividade_id === id),
     fonte: id => REM.fontes.find(f => f.fonte_id === id),
@@ -656,7 +809,7 @@ function remRelatorioA4() {
 function remFecharPedido() {
   rmFechar('rm-modal-pedido')
   REM.detalhe = null
-  if (location.search.includes('id=')) history.replaceState(null, '', location.pathname)
+  if (location.search.includes('id=') || location.search.includes('can=')) history.replaceState(null, '', location.pathname)
 }
 // Estorno: o banco monta o espelho; aqui só se pede a justificativa
 function remCaixaTexto(titulo, ajuda, rotulo, acao) {
@@ -709,7 +862,16 @@ function remEditar() {
 function remPedirAssinatura(decisao) {
   const D = REM.detalhe
   REM.assinar = { decisao }
-  const textos = {
+  const textos = D.tipo === 'can' ? {
+    aprovar: D.P.status === 'rascunho'
+      ? 'Você envia o pedido de cancelamento para a cadeia. O TDR fica congelado e o valor continua comprometido até a última assinatura.'
+      : D.P.etapa_atual === 3
+        ? 'Esta é a última assinatura: o TDR será CANCELADO (não volta) e o valor dele vai para o saldo livre da atividade.'
+        : 'Você aprova esta etapa. O pedido segue para a próxima, que será avisada por e-mail.',
+    devolver: 'O pedido volta para a etapa anterior, que será avisada por e-mail com o seu motivo. A assinatura dela é reaberta.',
+    recusar: 'O pedido é encerrado e o TDR segue como estava. O solicitante e quem já assinou serão avisados.',
+    cancelar: 'O pedido é cancelado e o TDR segue como estava.',
+  } : {
     aprovar: D.P.status === 'rascunho'
       ? 'Você envia o pedido para a cadeia de aprovação. O valor cedido fica reservado nas fontes de origem até a decisão final.'
       : 'Você aprova esta etapa. O pedido segue para a próxima etapa, que será avisada por e-mail.',
@@ -749,7 +911,9 @@ async function remConfirmarAssinatura() {
     const r = await fetch(SUPABASE_URL + '/functions/v1/assinar-remanejamento', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || ''), apikey: SUPABASE_ANON_KEY },
-      body: JSON.stringify({ acao: 'assinar', remanejamento_id: D.P.id, decisao, motivo: motivo || null, hash: D.hash, senha }),
+      body: JSON.stringify(D.tipo === 'can'
+        ? { acao: 'assinar_cancelamento', cancelamento_id: D.P.id, decisao, motivo: motivo || null, hash: D.hash, senha }
+        : { acao: 'assinar', remanejamento_id: D.P.id, decisao, motivo: motivo || null, hash: D.hash, senha }),
     })
     const j = await r.json().catch(() => ({}))
     if (!r.ok || !j.ok) {
@@ -761,11 +925,11 @@ async function remConfirmarAssinatura() {
     }
     remFecharAssinar()
     const st = j.resultado?.status
-    toast(st === 'efetivado' ? 'Remanejamento efetivado no razão.' : st === 'recusado' ? 'Pedido recusado.' :
+    toast(st === 'efetivado' ? (D.tipo === 'can' ? 'TDR cancelado: o valor voltou ao saldo livre da atividade.' : 'Remanejamento efetivado no razão.') : st === 'recusado' ? 'Pedido recusado.' :
           st === 'cancelado' ? 'Pedido cancelado.' : decisao === 'devolver' ? 'Pedido devolvido à etapa anterior.' : 'Assinatura registrada.', 'success')
     if (j.emails?.falhas) toast(`${j.emails.falhas} e-mail(s) não saíram agora; serão reenviados automaticamente.`, 'warning')
     await remCarregar()
-    remAbrirPedido(D.P.id)
+    if (D.tipo === 'can') canAbrir(D.P.id); else remAbrirPedido(D.P.id)
   } catch (e) {
     erro('Sem conexão com o servidor. Nada foi assinado.')
     b.disabled = false; b.textContent = 'Tentar de novo'

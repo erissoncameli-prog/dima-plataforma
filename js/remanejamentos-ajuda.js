@@ -97,6 +97,14 @@ const REM_AJUDA = {
     <b>responsável</b> cadastrado na atividade que cede (não do substituto). A mesma pessoa não assina duas etapas do mesmo pedido
     (a única exceção é o mesmo responsável liberar duas atividades de origem).` },
 
+  // ── Cancelamento de TDR ──────────────────────────────────────────────
+  cancelamento_tdr: { t: 'Cancelamento de TDR', secao: 'cancelamento', h: `
+    Um TDR só é cancelado por <b>pedido com nota técnica</b> e três assinaturas, cada uma com a própria senha:
+    1 coordenação solicitante → 2 responsável da atividade do TDR → 3 UNESCO. O pedido nasce no TDR ("Pedir cancelamento"
+    ou "Licitação sem êxito") e é assinado aqui, na mesma fila dos remanejamentos. Enquanto está em aprovação o TDR fica
+    congelado e o valor continua comprometido; na última assinatura o TDR é cancelado e o valor volta ao <b>saldo livre</b>
+    da atividade, para um TDR novo ou um remanejamento. TDR cancelado não volta.` },
+
   // ── Estorno ──────────────────────────────────────────────────────────
   estorno: { t: 'Estorno de remanejamento', secao: 'estorno', h: `
     Desfaz um remanejamento efetivado devolvendo <b>exatamente</b> o que foi recebido, para as <b>mesmas fontes</b>
@@ -190,9 +198,10 @@ function remGuiaHTML() {
     <a href="#" onclick="event.preventDefault();remIrGuia('efetivacao')">5. Efetivação</a>
     <a href="#" onclick="event.preventDefault();remIrGuia('cobertura')">6. TDR, contrato e cobertura</a>
     <a href="#" onclick="event.preventDefault();remIrGuia('estorno')">7. Estorno</a>
-    <a href="#" onclick="event.preventDefault();remIrGuia('relatorios')">8. Relatórios e auditoria</a>
-    <a href="#" onclick="event.preventDefault();remIrGuia('papeis')">9. Quem faz o quê</a>
-    <a href="#" onclick="event.preventDefault();remIrGuia('faq')">10. Perguntas frequentes</a>
+    <a href="#" onclick="event.preventDefault();remIrGuia('cancelamento')">8. Cancelamento de TDR</a>
+    <a href="#" onclick="event.preventDefault();remIrGuia('relatorios')">9. Relatórios e auditoria</a>
+    <a href="#" onclick="event.preventDefault();remIrGuia('papeis')">10. Quem faz o quê</a>
+    <a href="#" onclick="event.preventDefault();remIrGuia('faq')">11. Perguntas frequentes</a>
   </nav>
   <div class="rg-corpo">
   ${sec('visao', '1. Em uma frase', `
@@ -281,7 +290,22 @@ function remGuiaHTML() {
     <p class="rm-sub" style="font-size:13px">Não se estorna parte, não se estorna estorno e não se estorna se o destino já
     usou ou repassou o valor. Nesses casos, faça um remanejamento novo.</p>`)}
 
-  ${sec('relatorios', '8. Relatórios e auditoria', `
+  ${sec('cancelamento', '8. Cancelamento de TDR (licitação sem êxito ou objeto desnecessário)', `
+    <p>${REM_AJUDA.cancelamento_tdr.h}</p>
+    <ol class="rg-passos">
+      ${passo(1, 'Licitação sem êxito? Escolha o caminho', 'No TDR em licitação, "Licitação sem êxito" registra a rodada (deserta, fracassada ou outro). Relançar devolve o TDR a Aprovado com o mesmo valor, sem assinaturas; a tentativa fica no histórico do TDR.')}
+      ${passo(2, 'Pedir cancelamento', 'Coordenação ou super admin, em qualquer fase, se o TDR não tem contrato. Informe o motivo, a justificativa e anexe a nota técnica em PDF (fica guardada com o SHA-256 e não pode ser apagada).')}
+      ${passo(3, 'Enviar e assinar', 'O titular da coordenação solicitante envia aqui, com a senha. Depois assinam o responsável da atividade e a UNESCO. Devolver volta uma etapa; recusar encerra e o TDR segue como estava.')}
+      ${passo(4, 'Efetivação', 'Na última assinatura o TDR vai para Cancelado, o extrato da atividade registra o cancelamento e o valor fica livre. Contratos travados por falta de saldo na atividade são reavaliados na hora.')}
+    </ol>
+    <div class="rg-regras">
+      <div><b>Valor só sai no fim</b><span>Durante a aprovação o TDR não muda de fase, valor nem atividade e não recebe contrato.</span></div>
+      <div><b>Com contrato, não</b><span>TDR com contrato ativo não é cancelado: encerre o contrato antes (o encerramento libera o não executado).</span></div>
+      <div><b>Sem volta</b><span>TDR cancelado não volta a nenhuma fase. Para retomar, crie um TDR novo.</span></div>
+      <div><b>Responsável que assina</b><span>Na etapa 2 não vale quem é titular da coordenação ou da UNESCO (assinaria duas vezes). A atividade precisa de outro responsável.</span></div>
+    </div>`)}
+
+  ${sec('relatorios', '9. Relatórios e auditoria', `
     <ul class="rg-lista">
       <li><b>Relatório A4 do pedido</b>: botão no pedido. Movimentação, procedência, cadeia com nome, cargo, data e impressão digital de cada assinatura, e histórico.</li>
       <li><b>Extrato da atividade</b> ${remQ('extrato')}: ao abrir as fontes de uma atividade, botão "Extrato (A4)".</li>
@@ -289,7 +313,7 @@ function remGuiaHTML() {
       <li><b>Auditor IA</b>: confere o razão a cada rodada e aponta contrato travado, pedido parado, cargo sem titular, cotação desatualizada.</li>
     </ul>`)}
 
-  ${sec('papeis', '9. Quem faz o quê', `
+  ${sec('papeis', '10. Quem faz o quê', `
     <table class="rm-tab rg-tab"><thead><tr><th>Quem</th><th>Pode</th></tr></thead><tbody>
       <tr><td>Todos os usuários</td><td>Ver saldos, fontes, pedidos, cadeia, histórico, relatórios e este guia.</td></tr>
       <tr><td>Coordenação / super admin</td><td>Montar e editar rascunhos, pedir cobertura de contrato, pedir estorno.</td></tr>
@@ -299,7 +323,7 @@ function remGuiaHTML() {
       <tr><td>Super admin</td><td>Designar os titulares (aba Signatários), com o ato.</td></tr>
     </tbody></table>`)}
 
-  ${sec('faq', '10. Perguntas frequentes', REM_FAQ.map(([p, r]) =>
+  ${sec('faq', '11. Perguntas frequentes', REM_FAQ.map(([p, r]) =>
     `<details class="rg-faq"><summary>${p}</summary><div>${r}</div></details>`).join(''))}
   </div></div>`
 }

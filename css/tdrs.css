@@ -94,6 +94,10 @@ body.dgm .td-tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-r
 body.dgm .td-selo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: var(--r-pill); color: var(--c, var(--txt-2)); background: var(--c-bg, var(--sup-2)); }
 body.dgm .td-selo::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 body.dgm .td-selo.td-atraso { --c: var(--erro); --c-bg: var(--erro-bg); }
+/* TDR com pedido de cancelamento em andamento (20261012_tdr_cancelamento) */
+body.dgm .td-selo.td-cancelando { --c: var(--alerta-txt); --c-bg: var(--alerta-bg); }
+/* mensagem de erro dentro das janelas de licitação sem êxito e de cancelamento */
+body.dgm .td-erro-msg { margin-top: 10px; padding: 10px 12px; border-radius: var(--r-ctl); background: var(--erro-bg); color: var(--erro-txt); font-size: 13px; }
 body.dgm .td-versao { margin-left: auto; font-size: 12px; color: var(--txt-3); }
 
 body.dgm .td-obj { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--txt);

@@ -18,3 +18,4 @@ PSQL=(psql -h "$TMP" -p "$PORTA" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -
 
 "${PSQL[@]}" -f "$DIR/00_stub_supabase.sql"
 "${PSQL[@]}" -f "$DIR/10_testes.sql"
+"${PSQL[@]}" -f "$DIR/20_cancelamento_tdr.sql"
