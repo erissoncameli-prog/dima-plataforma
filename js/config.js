@@ -327,6 +327,15 @@ function campo(obj, campo) {
   return obj[`${campo}_${lang}`] || obj[`${campo}_pt`] || '';
 }
 
+// ── Ícone do ODS pelo idioma ──────────────────────────────────
+// Português = assets/sdg/pt/ (ícones em português, 1 a 18); inglês e espanhol =
+// assets/sdg/ (ícones da ONU em inglês). O ODS 18 (objetivo voluntário do Brasil)
+// só existe em português: assets/sdg/sdg-18.jpg é a mesma imagem.
+function odsImgSrc(n, base = '../') {
+  const num = parseInt(n, 10);
+  return `${base}assets/sdg/${appState.idioma === 'pt' ? 'pt/' : ''}sdg-${num}.jpg`;
+}
+
 // ── Toast notifications ───────────────────────────────────────
 function toast(msg, tipo = 'info') {
   const cores = { info: '#2563EB', success: '#059669', error: '#DC2626', warning: '#D97706' };

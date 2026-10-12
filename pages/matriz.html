@@ -355,7 +355,7 @@ function renderIndCard(i) {
 // ── ODS ───────────────────────────────────────────────────────
 // Destaque = ODS com indicador no cadastro (não a marcação fixa de ods_refs)
 function odsImgFalhou(img) {
-  // sem imagem (ex.: ODS 18, objetivo voluntário do Brasil, sem arte da ONU em assets/sdg): número + nome
+  // sem imagem do ODS no idioma (assets/sdg[/pt]/sdg-N.jpg, ver odsImgSrc em config.js): número + nome
   const wrap = img.parentNode, o = odsRef(wrap.dataset.n);
   wrap.classList.add('sem-img');
   wrap.innerHTML = `<b>${esc(wrap.dataset.n)}</b>${o ? `<small>${esc(odsTitulo(o))}</small>` : ''}`;
@@ -369,7 +369,7 @@ function renderODS() {
   el.innerHTML = odsRefs.map(o => {
     const n = parseInt(o.numero, 10), cnt = matrizItens.filter(i => temOds(i, o.numero)).length;
     return `<button type="button" class="mz-odsc${cnt ? '' : ' fora'}" style="--c:${odsCor(o.numero)}" onclick="abrirRefODS('${esc(o.numero)}')">
-      <span class="img" data-n="${n}"><img src="../assets/sdg/sdg-${n}.jpg" alt="ODS ${n}" onerror="odsImgFalhou(this)"></span>
+      <span class="img" data-n="${n}"><img src="${odsImgSrc(n)}" alt="ODS ${n}" onerror="odsImgFalhou(this)"></span>
       <span class="b"><span>${esc(odsTitulo(o))}</span><span class="n">${cnt ? cnt + ' indicador' + (cnt === 1 ? '' : 'es') : 'Sem indicador'}</span></span>
     </button>`;
   }).join('');
@@ -395,7 +395,7 @@ function abrirRefODS(numero) {
   document.getElementById('mr-titulo').textContent = odsTitulo(o);
   document.getElementById('mr-body').innerHTML = `
     <div class="mz-ref-topo" style="--c:${odsCor(o.numero)}">
-      <span class="img" data-n="${n}"><img src="../assets/sdg/sdg-${n}.jpg" alt="ODS ${n}" onerror="odsImgFalhou(this)"></span>
+      <span class="img" data-n="${n}"><img src="${odsImgSrc(n)}" alt="ODS ${n}" onerror="odsImgFalhou(this)"></span>
       <span>${inds.length ? `<span class="mz-pill mz-p-ok">${mzIc('check','p')}Tem indicador neste projeto</span>` : `<span class="mz-pill mz-p-ne">Sem indicador neste projeto</span>`}</span>
     </div>` + listaRefInd(inds);
   mzAbrir('modal-ref');

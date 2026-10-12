@@ -784,6 +784,8 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   cor **`#7B3110`** (fundo do ícone oficial; igual em `ods_refs.cor`, `ODS_COR` da Matriz e `ODS` de `atividades.html`) e ícone em
   português `assets/sdg/sdg-18.jpg` (migração `_b_cor`). ODS sem imagem cai em `odsImgFalhou` (número + nome). Listas fixas de ODS
   (Atividades, filtro de Relatórios) vão até 18.
+- **Ícone do ODS pelo idioma**: `odsImgSrc(n)` (`js/config.js`) — português = `assets/sdg/pt/sdg-N.jpg` (1 a 18); inglês e espanhol =
+  `assets/sdg/sdg-N.jpg` (ONU, em inglês; o 18 só existe em português). Usado na Matriz e no Mapa; nunca escrever o caminho fixo.
 - Nomes dos resultados vêm da tabela `resultados` (`codigo = 'R' || matriz_itens.resultado`, `nome_pt/en/es`), não de texto fixo.
 - Abas ODS e Kunming-Montreal destacam o que **tem indicador** no cadastro (contado de `matriz_itens.ods/metas_km`), não a
   marcação `no_projeto` das tabelas de referência.
