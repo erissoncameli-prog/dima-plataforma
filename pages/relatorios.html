@@ -75,6 +75,7 @@ const TEMAS = [
   { id:'produtos',    label:'Produtos/Entregas', cor:'--re-pro', ic:'caixa' },
   { id:'tdrs',        label:'TDRs',              cor:'--re-tdr', ic:'lista' },
   { id:'atividades',  label:'Atividades',        cor:'--re-atv', ic:'camadas' },
+  { id:'orcamento',   label:'Orçamento e remanejamento', cor:'--re-orc', ic:'moeda' },
   { id:'matriz',      label:'Matriz',            cor:'--re-mat', ic:'alvo' },
   { id:'viagens',     label:'Viagens',           cor:'--re-via', ic:'aviao' },
   { id:'usuarios',    label:'Usuários',          cor:'--re-usu', ic:'pessoas' },
@@ -210,6 +211,19 @@ const RELATORIOS = [
   { id:'A4', tema:'atividades', titulo:'Saldo de Orçamento por Atividade (TDRs)',
     desc:'Orçamento previsto de cada atividade, os TDRs que o comprometem (destacando os já firmados em contrato) e o saldo livre — individual e total.',
     filtros:['resultado','atividade'], paisagem:true },
+  // ── ORÇAMENTO E REMANEJAMENTO (razão orçamentário) ────────
+  { id:'Or1', paisagem:true, tema:'orcamento', titulo:'Remanejamentos',
+    desc:'Pedidos de remanejamento com situação, atividades que cedem e recebem, valor movimentado e justificativa.',
+    filtros:['periodo','status_rem','atividade'] },
+  { id:'Or2', tema:'orcamento', titulo:'Cancelamentos de TDR',
+    desc:'Pedidos de cancelamento de TDR (licitação sem êxito e outros motivos), situação, valor liberado e justificativa.',
+    filtros:['periodo','status_canc','atividade'] },
+  { id:'Or3', paisagem:true, tema:'orcamento', titulo:'Liberações de saldo (encerramentos e economias)',
+    desc:'Saldos devolvidos às atividades: contratos encerrados com parte não executada e economias de contratação, com o termo de encerramento.',
+    filtros:['periodo','tipo_liberacao','atividade'] },
+  { id:'Or4', tema:'orcamento', titulo:'Extrato orçamentário da atividade',
+    desc:'Créditos com procedência, débitos de hoje, fontes do saldo, remanejamentos e histórico dos TDRs de uma atividade.',
+    filtros:['atividade_obrig'] },
   // ── MATRIZ ────────────────────────────────────────────────
   { id:'M1', tema:'matriz', titulo:'Progresso dos Indicadores',
     desc:'% de avanço de cada indicador da matriz em relação à meta.',
@@ -286,7 +300,7 @@ function getAbasPermitidas(){
   // fora aqui: sua RLS restringe tdrs/contratos aos que é responsável, o que subestimaria o
   // comprometido e mostraria saldo maior que o real. Para incluí-lo, liberar via permissão
   // dinâmica (relatorios_atividades) e/ou ampliar a RLS de leitura.
-  const PADRAO_POR_PERFIL = { financeiro:['atividades'] };
+  const PADRAO_POR_PERFIL = { financeiro:['atividades','orcamento'] };
   const padrao = PADRAO_POR_PERFIL[perfil] || [];
   return TEMAS
     .filter(t=>t.id!=='todos'&&t.id!=='usuarios'&&t.id!=='logs')
@@ -434,6 +448,39 @@ function renderFiltros(lista){
             <option value="30">Próximos 30 dias</option>
             <option value="60">Próximos 60 dias</option>
             <option value="90">Próximos 90 dias</option>
+          </select>
+        </div>`;
+      case 'atividade_obrig': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Atividade <span style="color:var(--erro)">*</span></span>
+          <select class="config-select" id="fil-atividade">
+            <option value="">Escolha a atividade</option>
+            ${_atividades.map(a=>`<option value="${a.id}">${esc(a.codigo)} — ${esc((a.nome_pt||'').substring(0,30))}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'status_rem': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Situação</span>
+          <select class="config-select" id="fil-status-rem">
+            <option value="">Todas</option>
+            ${Object.entries(O_SIT).map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'status_canc': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Situação</span>
+          <select class="config-select" id="fil-status-canc">
+            <option value="">Todas</option>
+            ${Object.entries(O_SIT).filter(([k])=>k!=='estornado').map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'tipo_liberacao': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Tipo</span>
+          <select class="config-select" id="fil-tipo-lib">
+            <option value="">Todos</option>
+            <option value="encerramento_contrato">Encerramento de contrato</option>
+            <option value="economia_contratacao">Economia de contratação</option>
           </select>
         </div>`;
       case 'atividade': return `
@@ -906,6 +953,10 @@ async function gerarRelatorio(id){
       case 'C5': html = await relC5(); break;
       case 'V4': html = await relV4(); break;
       case 'P5': html = await relP5(); break;
+      case 'Or1': html = await relO1(); break;
+      case 'Or2': html = await relO2(); break;
+      case 'Or3': html = await relO3(); break;
+      case 'Or4': html = await relO4(); break;
       default: html = `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Relatório <strong>${esc(id)}</strong> em desenvolvimento.</div>`;
     }
     await FolhaA4.pronto; // identificação do projeto (Dados do sistema)
@@ -2287,6 +2338,212 @@ async function relT3(){
       <tfoot><tr><td colspan="5"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalVal)}</td><td></td></tr></tfoot>
     </table>`}
   </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// O1–O4 — ORÇAMENTO E REMANEJAMENTO (razão orçamentário; só leitura)
+// ══════════════════════════════════════════════════════════════
+const O_SIT = { rascunho:['Rascunho','rb-cinza'], em_aprovacao:['Em aprovação','rb-ouro'], efetivado:['Efetivado','rb-verde'],
+  recusado:['Recusado','rb-vermelho'], cancelado:['Cancelado','rb-cinza'], estornado:['Estornado','rb-azul'] };
+const oSit = s => `<span class="rep-badge ${(O_SIT[s]||['','rb-cinza'])[1]}">${esc((O_SIT[s]||[s])[0])}</span>`;
+const oData = s => s ? new Date(s).toLocaleDateString('pt-BR') : '—';
+const oVazio = t => `<div style="padding:24px;text-align:center;color:var(--cinza-400)">${esc(t)}</div>`;
+
+async function relO1(){
+  const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
+  const stFil = filVal('fil-status-rem'), ativFil = filVal('fil-atividade');
+  let q = db.from('remanejamentos')
+    .select(`id,numero,tipo,status,justificativa,criado_em,submetido_em,efetivado_em,estorno_de,
+      solicitante:usuarios!remanejamentos_criado_por_fkey(nome_completo),
+      itens:remanejamento_itens(atividade_id,valor_usd,ativo,atividade:atividades(codigo))`)
+    .order('criado_em',{ascending:false});
+  if(dtIni) q = q.gte('criado_em', dtIni);
+  if(dtFim) q = q.lte('criado_em', dtFim+'T23:59:59');
+  if(stFil) q = q.eq('status', stFil);
+  const {data, error} = await q;
+  if(error) throw error;
+  const porId = Object.fromEntries((data||[]).map(r=>[r.id,r.numero]));
+  const rows = (data||[]).map(r=>({ ...r, itens:(r.itens||[]).filter(i=>i.ativo) }))
+    .filter(r=>!ativFil || r.itens.some(i=>i.atividade_id===ativFil));
+  const mov = r => r.itens.filter(i=>Number(i.valor_usd)>0).reduce((s,i)=>s+Number(i.valor_usd),0);
+  const lado = (r,sinal) => r.itens.filter(i=>sinal<0?Number(i.valor_usd)<0:Number(i.valor_usd)>0)
+    .map(i=>`${esc(i.atividade?.codigo||'—')} <span style="color:var(--cinza-500)">${fmtUSD(Math.abs(i.valor_usd))}</span>`).join('<br>') || '—';
+  const efet = rows.filter(r=>r.status==='efetivado');
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Pedidos</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Efetivados</div><div class="rep-stat-val" style="color:var(--sucesso)">${efet.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Valor efetivado</div><div class="rep-stat-val">${fmtUSD(efet.reduce((s,r)=>s+mov(r),0))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Em aprovação</div><div class="rep-stat-val" style="color:var(--aviso)">${rows.filter(r=>r.status==='em_aprovacao').length}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">Pedidos de remanejamento</div>
+    ${rows.length===0?oVazio('Nenhum pedido de remanejamento com esses filtros.'):`
+    <table class="rep-tbl">
+      <thead><tr><th>Pedido</th><th>Situação</th><th>Solicitante</th><th>Criado</th><th>Efetivado</th>
+        <th>Cede (origem)</th><th>Recebe (destino)</th><th style="text-align:right">Valor movimentado</th></tr></thead>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
+        <td class="mono">${esc(r.numero||'—')}${r.tipo==='cobertura_contrato'?'<br><span class="rep-badge rb-azul">Cobertura</span>':''}${r.estorno_de?`<br><span class="rep-badge rb-azul">Estorno de ${esc(porId[r.estorno_de]||'—')}</span>`:''}</td>
+        <td>${oSit(r.status)}</td>
+        <td>${esc(r.solicitante?.nome_completo||'—')}</td>
+        <td class="mono">${oData(r.criado_em)}</td>
+        <td class="mono">${oData(r.efetivado_em)}</td>
+        <td>${lado(r,-1)}</td><td>${lado(r,1)}</td>
+        <td class="mono" style="text-align:right">${fmtUSD(mov(r))}</td>
+      </tr>${linhaDet(8,'Justificativa',r.justificativa)}</tbody>`).join('')}
+      <tfoot><tr><td colspan="7"><strong>TOTAL movimentado (todos os listados)</strong></td><td class="mono" style="text-align:right">${fmtUSD(rows.reduce((s,r)=>s+mov(r),0))}</td></tr></tfoot>
+    </table>`}
+  </div>
+  <p style="font-size:10px;color:var(--cinza-500)">Valor movimentado = soma do que as atividades de destino recebem (igual ao que as de origem cedem). Só o pedido efetivado altera o orçamento.</p>`;
+}
+
+const O_MOTIVO = { licitacao_deserta:'Licitação deserta', licitacao_fracassada:'Licitação fracassada', sem_necessidade:'Sem necessidade', substituido:'Substituído por outro TDR', outro:'Outro motivo' };
+async function relO2(){
+  const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
+  const stFil = filVal('fil-status-canc'), ativFil = filVal('fil-atividade');
+  let q = db.from('tdr_cancelamentos')
+    .select(`id,numero,tdr_numero,tdr_objeto,valor_usd,valor_brl,motivo_tipo,justificativa,status,criado_em,efetivado_em,nota_nome,
+      atividade:atividades(codigo)`)
+    .order('criado_em',{ascending:false});
+  if(dtIni) q = q.gte('criado_em', dtIni);
+  if(dtFim) q = q.lte('criado_em', dtFim+'T23:59:59');
+  if(stFil) q = q.eq('status', stFil);
+  if(ativFil) q = q.eq('atividade_id', ativFil);
+  const {data, error} = await q;
+  if(error) throw error;
+  const rows = data||[];
+  const efet = rows.filter(r=>r.status==='efetivado');
+  return `
+  <div class="rep-stats rep-stats-3">
+    <div class="rep-stat"><div class="rep-stat-lbl">Pedidos</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">TDRs cancelados</div><div class="rep-stat-val" style="color:var(--sucesso)">${efet.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Valor liberado</div><div class="rep-stat-val">${fmtUSD(efet.reduce((s,r)=>s+Number(r.valor_usd||0),0))}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">Pedidos de cancelamento de TDR</div>
+    ${rows.length===0?oVazio('Nenhum pedido de cancelamento de TDR com esses filtros.'):`
+    <table class="rep-tbl">
+      <thead><tr><th>Pedido</th><th>TDR</th><th>Atividade</th><th>Motivo</th><th>Situação</th><th>Efetivado</th>
+        <th style="text-align:right">Valor USD</th><th style="text-align:right">Valor BRL</th></tr></thead>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
+        <td class="mono">${esc(r.numero||'—')}</td>
+        <td class="mono">${esc(r.tdr_numero||'—')}</td>
+        <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
+        <td>${esc(O_MOTIVO[r.motivo_tipo]||r.motivo_tipo||'—')}</td>
+        <td>${oSit(r.status)}</td>
+        <td class="mono">${oData(r.efetivado_em)}</td>
+        <td class="mono" style="text-align:right">${fmtUSD(r.valor_usd)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
+      </tr>${linhaDet(8,'Justificativa',r.justificativa)}${linhaDet(8,'Nota técnica',r.nota_nome)}</tbody>`).join('')}
+    </table>`}
+  </div>
+  <p style="font-size:10px;color:var(--cinza-500)">O valor do TDR só volta ao saldo livre da atividade quando o pedido é efetivado (última assinatura).</p>`;
+}
+
+async function relO3(){
+  const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
+  const tipoFil = filVal('fil-tipo-lib'), ativFil = filVal('fil-atividade');
+  let q = db.from('contrato_encerramentos')
+    .select(`id,tipo,status,valor_liberado_brl,valor_liberado_usd,motivo,criado_em,revertido_em,
+      atividade:atividades(codigo), contrato:contratos(numero), tdr:tdrs(numero),
+      autorizou:usuarios!contrato_encerramentos_autorizado_por_fkey(nome_completo)`)
+    .order('criado_em',{ascending:false});
+  if(dtIni) q = q.gte('criado_em', dtIni);
+  if(dtFim) q = q.lte('criado_em', dtFim+'T23:59:59');
+  if(tipoFil) q = q.eq('tipo', tipoFil);
+  if(ativFil) q = q.eq('atividade_id', ativFil);
+  const [{data, error}, {data:docs}] = await Promise.all([q, db.from('contrato_encerramento_documentos').select('encerramento_id')]);
+  if(error) throw error;
+  const comTermo = new Set((docs||[]).map(d=>d.encerramento_id));
+  const rows = data||[];
+  const ativos = rows.filter(r=>r.status==='ativo');
+  const semTermo = rows.filter(r=>r.tipo==='encerramento_contrato'&&r.status==='ativo'&&!comTermo.has(r.id)).length;
+  const TIPO = { encerramento_contrato:['Encerramento de contrato','rb-azul'], economia_contratacao:['Economia de contratação','rb-verde'] };
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Liberações</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Devolvido (BRL)</div><div class="rep-stat-val">${fmtBRL(ativos.reduce((s,r)=>s+Number(r.valor_liberado_brl||0),0))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Devolvido (USD)</div><div class="rep-stat-val">${fmtUSD(ativos.reduce((s,r)=>s+Number(r.valor_liberado_usd||0),0))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Encerramentos sem termo</div><div class="rep-stat-val" style="color:${semTermo?'var(--aviso)':'var(--sucesso)'}">${semTermo}</div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">Saldos devolvidos às atividades</div>
+    ${rows.length===0?oVazio('Nenhuma liberação de saldo com esses filtros.'):`
+    <table class="rep-tbl">
+      <thead><tr><th>Data</th><th>Tipo</th><th>Contrato</th><th>TDR</th><th>Atividade</th><th>Situação</th><th>Termo</th><th>Registrado por</th>
+        <th style="text-align:right">Valor BRL</th><th style="text-align:right">Valor USD</th></tr></thead>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
+        <td class="mono">${oData(r.criado_em)}</td>
+        <td><span class="rep-badge ${(TIPO[r.tipo]||['','rb-cinza'])[1]}">${esc((TIPO[r.tipo]||[r.tipo])[0])}</span></td>
+        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
+        <td class="mono">${esc(r.tdr?.numero||'—')}</td>
+        <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
+        <td>${r.status==='ativo'?'<span class="rep-badge rb-verde">Valendo</span>':`<span class="rep-badge rb-cinza">Estornada ${oData(r.revertido_em)}</span>`}</td>
+        <td>${r.tipo!=='encerramento_contrato'?'<span style="color:var(--cinza-400)">—</span>':comTermo.has(r.id)?'<span class="rep-badge rb-verde">Anexado</span>':'<span class="rep-badge rb-ouro">Pendente</span>'}</td>
+        <td>${esc(r.autorizou?.nome_completo||'—')}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(r.valor_liberado_brl)}</td>
+        <td class="mono" style="text-align:right">${fmtUSD(r.valor_liberado_usd)}</td>
+      </tr>${linhaDet(10,'Motivo',r.motivo)}</tbody>`).join('')}
+      <tfoot><tr><td colspan="8"><strong>TOTAL valendo</strong></td>
+        <td class="mono" style="text-align:right">${fmtBRL(ativos.reduce((s,r)=>s+Number(r.valor_liberado_brl||0),0))}</td>
+        <td class="mono" style="text-align:right">${fmtUSD(ativos.reduce((s,r)=>s+Number(r.valor_liberado_usd||0),0))}</td></tr></tfoot>
+    </table>`}
+  </div>
+  <p style="font-size:10px;color:var(--cinza-500)">US$ = R$ ÷ cotação do dia da liberação. Liberação estornada não volta ao saldo e fica fora do total.</p>`;
+}
+
+async function relO4(){
+  const ativFil = filVal('fil-atividade');
+  if(!ativFil) return oVazio('Escolha a atividade no filtro para gerar o extrato.');
+  const {data:e, error} = await db.rpc('fn_orcamento_extrato', { p_atividade: ativFil });
+  if(error) throw error;
+  const r = e.resumo;
+  const FONTE = { dotacao_original:'Dotação original', revisao_orcamentaria:'Revisão orçamentária', economia_contratacao:'Economia de contratação',
+    encerramento_contrato:'Encerramento de contrato', remanejamento_recebido:'Remanejamento recebido', remanejamento_cedido:'Remanejamento cedido' };
+  const DEB = { tdr:'TDR', execucao_direta:'Execução direta', excedente_contrato:'Contrato acima do TDR', pagamento_contrato_sem_tdr:'Contrato sem TDR' };
+  const neg = v => Number(v)<0 ? ' style="text-align:right;color:var(--erro)"' : ' style="text-align:right"';
+  const cred = (e.creditos||[]).map(c=>{
+    const proc = [c.remanejamento&&'pedido '+c.remanejamento, c.atividade_procedencia&&'de '+c.atividade_procedencia,
+      c.contrato&&'contrato '+c.contrato, c.tdr&&'TDR '+c.tdr, c.estorno_de&&'estorno'].filter(Boolean).join(' · ');
+    return `<tbody class="rep-grupo"><tr class="rep-mae"><td class="mono">${oData(c.criado_em)}</td>
+      <td>${esc(FONTE[c.tipo]||c.tipo)}${c.orcamentaria?'':' <span style="color:var(--cinza-500)">(liberação)</span>'}</td>
+      <td>${esc(proc||'—')}</td><td>${esc(c.lancado_por||'—')}</td><td class="mono"${neg(c.valor_usd)}>${fmtUSD(c.valor_usd)}</td></tr>
+      ${linhaDet(5,'Descrição',c.descricao)}</tbody>`;
+  }).join('');
+  const deb = (e.debitos||[]).map(d=>`<tr><td>${esc(DEB[d.tipo]||d.tipo)}</td><td class="mono">${esc(d.referencia||'—')}</td>
+    <td>${esc(d.situacao||'')}</td><td class="mono" style="text-align:right">${fmtUSD(d.valor_usd)}</td></tr>`).join('');
+  const fontes = (e.fontes||[]).map(f=>`<tr><td class="mono">${f.ordem_consumo}</td><td>${esc(FONTE[f.tipo]||f.tipo)}</td>
+    <td class="mono" style="text-align:right">${fmtUSD(f.liquido_usd)}</td><td class="mono" style="text-align:right">${fmtUSD(f.consumido_usd)}</td>
+    <td class="mono" style="text-align:right">${fmtUSD(f.reservado_usd)}</td><td class="mono" style="text-align:right"><strong>${fmtUSD(f.livre_usd)}</strong></td></tr>`).join('');
+  const rems = (e.remanejamentos||[]).map(x=>`<tr><td class="mono">${esc(x.numero)}</td><td>${oSit(x.status)}</td>
+    <td class="mono">${oData(x.efetivado_em)}</td><td class="mono"${neg(x.valor_usd)}>${fmtUSD(x.valor_usd)}</td></tr>`).join('');
+  const ev = (e.eventos_tdr||[]).map(x=>`<tr><td class="mono">${oData(x.criado_em)}</td><td class="mono">${esc(x.tdr_numero||'—')}</td>
+    <td>${esc((x.evento||'').replace(/_/g,' '))}</td><td class="mono" style="text-align:right">${fmtUSD(x.efeito_usd)}</td></tr>`).join('');
+  return `
+  <p style="margin:0 0 10px"><strong>${esc(r.codigo)}</strong> — ${esc(r.nome_pt||'')}</p>
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Dotação original</div><div class="rep-stat-val">${fmtUSD(r.orcamento_original_usd)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento vigente</div><div class="rep-stat-val">${fmtUSD(r.orcamento_vigente_usd)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo (créditos − débitos)</div><div class="rep-stat-val"${Number(r.saldo_usd)<0?' style="color:var(--erro)"':''}>${fmtUSD(r.saldo_usd)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Remanejável</div><div class="rep-stat-val">${fmtUSD(r.remanejavel_usd)}</div></div>
+  </div>
+  <p style="font-size:11px;margin:0 0 10px;color:${e.fecha?'var(--sucesso)':'var(--erro)'}">${e.fecha?'Conferido: Σ créditos − Σ débitos = saldo do razão.':'Atenção: o extrato não fecha com o saldo do razão — rode a conferência do orçamento.'}</p>
+  <div class="rep-secao"><div class="rep-secao-titulo">Créditos e ajustes do razão</div>
+    <table class="rep-tbl"><thead><tr><th>Data</th><th>Tipo</th><th>Procedência</th><th>Lançado por</th><th style="text-align:right">Valor</th></tr></thead>
+      ${cred||'<tbody><tr><td colspan="5">Sem créditos.</td></tr></tbody>'}
+      <tfoot><tr><td colspan="4"><strong>Total de créditos</strong></td><td class="mono" style="text-align:right">${fmtUSD(e.total_creditos_usd)}</td></tr></tfoot></table></div>
+  <div class="rep-secao"><div class="rep-secao-titulo">Débitos (compromissos de hoje)</div>
+    <table class="rep-tbl"><thead><tr><th>Natureza</th><th>Referência</th><th>Situação</th><th style="text-align:right">Valor</th></tr></thead>
+      <tbody>${deb||'<tr><td colspan="4">Sem débitos.</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="3"><strong>Total de débitos</strong></td><td class="mono" style="text-align:right">${fmtUSD(e.total_debitos_usd)}</td></tr>
+      <tr><td colspan="3"><strong>Saldo = créditos − débitos</strong></td><td class="mono"${neg(e.saldo_calculado_usd)}>${fmtUSD(e.saldo_calculado_usd)}</td></tr></tfoot></table></div>
+  <div class="rep-secao"><div class="rep-secao-titulo">Procedência do saldo (fontes, ordem de consumo)</div>
+    <table class="rep-tbl"><thead><tr><th>#</th><th>Fonte</th><th style="text-align:right">Líquido</th><th style="text-align:right">Consumido</th><th style="text-align:right">Reservado</th><th style="text-align:right">Livre</th></tr></thead>
+      <tbody>${fontes}</tbody></table></div>
+  ${rems?`<div class="rep-secao"><div class="rep-secao-titulo">Remanejamentos</div>
+    <table class="rep-tbl"><thead><tr><th>Pedido</th><th>Situação</th><th>Efetivado</th><th style="text-align:right">Nesta atividade</th></tr></thead><tbody>${rems}</tbody></table></div>`:''}
+  ${ev?`<div class="rep-secao"><div class="rep-secao-titulo">Histórico de TDRs</div>
+    <table class="rep-tbl"><thead><tr><th>Data</th><th>TDR</th><th>Evento</th><th style="text-align:right">Efeito no débito</th></tr></thead><tbody>${ev}</tbody></table></div>`:''}`;
 }
 
 // ══════════════════════════════════════════════════════════════

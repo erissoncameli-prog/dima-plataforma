@@ -48,6 +48,7 @@
 .doc-header-badge[data-tema="viagens"] { background: #C2410C; }
 .doc-header-badge[data-tema="usuarios"] { background: #56655C; }
 .doc-header-badge[data-tema="logs"] { background: #B42318; }
+.doc-header-badge[data-tema="orcamento"] { background: #8A5A00; }
 
 /* Marca d'água */
 .doc-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 0; opacity: .06; }
