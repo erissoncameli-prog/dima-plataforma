@@ -36,6 +36,7 @@ const MODULOS_LISTA = [
   { id: 'relatorios_produtos',     ic: 'pacote',   label: 'Produtos/Entregas', grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_tdrs',         ic: 'doc',      label: 'TDRs',              grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_atividades',   ic: 'lista',    label: 'Atividades',        grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
+  { id: 'relatorios_orcamento',    ic: 'moeda',    label: 'Orçamento e remanejamento', grupo: 'relatorios', perfis: ['super_admin', 'coordenacao', 'financeiro'] },
   { id: 'relatorios_matriz',       ic: 'alvo',     label: 'Matriz',            grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_viagens',      ic: 'aviao',    label: 'Viagens',           grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   // Aba especial da Visão Geral

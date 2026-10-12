@@ -839,6 +839,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **Matriz (M1/M2/M4)** usam `matrizBase()`: progresso por `vw_matriz_progresso.id` (= `matriz_itens.id`, não existe
   `matriz_item_id` na view), código `produto·posição` e a mesma situação da Matriz (Atingida, Em andamento, Sem registro,
   Qualitativa). M4 = "Indicadores abaixo da meta" (todos com meta não atingida, do mais distante), sem vermelho.
+- **Grupo "Orçamento e remanejamento"** (tema `orcamento`, cor `--re-orc`, permissão `relatorios_orcamento`; financeiro tem por padrão):
+  Or1 Remanejamentos (`remanejamentos` + itens **ativos**), Or2 Cancelamentos de TDR (`tdr_cancelamentos`), Or3 Liberações de saldo
+  (`contrato_encerramentos` + termo anexado), Or4 Extrato da atividade (`fn_orcamento_extrato`, atividade obrigatória). Só leitura;
+  os A4 de cada pedido continuam na tela Remanejamento.
 - `resultados.codigo` já é `'R1'`…`'R4'`: exibir como está e filtrar por `resNum(codigo) === filtro` (o filtro manda o número).
 - **Filtros (revisão 11/10/2026)**: filtro de atividade/fornecedor sobre produto compara `contrato.atividade_id`/`contrato.fornecedor_id`
   — o embed precisa trazer essas colunas (P2/P1/F2 zeravam porque comparavam `atividade.id` sem pedir o id). Opções de cada `<select>`

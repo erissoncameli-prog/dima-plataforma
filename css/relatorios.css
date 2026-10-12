@@ -8,11 +8,11 @@
 
 body.dgm :is(.main-content, .re-ov) {
   --re-fin: #A86200; --re-ctr: #1F5FBF; --re-for: #24704A; --re-pro: #0E7490; --re-tdr: #6D28D9;
-  --re-atv: #1D5A3C; --re-mat: #3F4FC4; --re-via: #C2410C; --re-usu: #56655C; --re-log: #B42318;
+  --re-atv: #1D5A3C; --re-mat: #3F4FC4; --re-via: #C2410C; --re-usu: #56655C; --re-log: #B42318; --re-orc: #8A5A00;
 }
 html[data-tema="escuro"] body.dgm :is(.main-content, .re-ov) {
   --re-fin: #F2B54A; --re-ctr: #7FAEF5; --re-for: #58B584; --re-pro: #5CC6DE; --re-tdr: #B79BF7;
-  --re-atv: #7CCBA0; --re-mat: #A5B0F7; --re-via: #F08A4B; --re-usu: #A3B2A9; --re-log: #F07A6E;
+  --re-atv: #7CCBA0; --re-mat: #A5B0F7; --re-via: #F08A4B; --re-usu: #A3B2A9; --re-log: #F07A6E; --re-orc: #E0B25C;
 }
 
 .re-ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
