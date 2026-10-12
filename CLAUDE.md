@@ -700,6 +700,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   Claro/Escuro no topo) e componentes em `css/atividades.css` (prefixo `at-`; cores de fase, resultado e dinheiro = tokens
   `--at-*`). Sem `<style>` próprio; ícones SVG por `atIc()`, sem emoji. Exceção: cores oficiais dos ODS (identidade ONU) no JS.
 - Coluna **Execução** = pago em destaque + barra (pago + comprometido; acima do orçamento em vermelho) + livre.
+- **ODS e metas Kunming-Montreal** na linha (abaixo do nome) e nos filtros "ODS"/"Meta KM" = **união** da marcação direta
+  (`atividades.ods`/`metas_km`) com os indicadores da Matriz ligados (`atividade_matriz` → `matriz_itens.ods`/`metas_km`);
+  `vinculosOdsKm(a)`, tooltip diz a origem; nomes de `ods_refs`/`metas_km_refs`. Na janela, os que vêm dos indicadores marcados
+  ficam travados (`atualizarHerdados`, cadeado) e o salvar grava **só a marcação manual** (`getManual`) — derivado nunca é copiado.
 - **Fase muda só pela janela de edição** (não há mais select na lista). Orçamento vigente fica com cadeado (só o razão grava).
 - Janelas: classe **`at-ov`** (no seletor de escopo de `diagnostico-mesa.css`) + `role="dialog"`; foco, Esc e Tab presos por
   `atModalAbriu`/`atModalFechou`. No celular a tabela vira cartões (CSS, `max-width: 760px`).

@@ -239,3 +239,16 @@ body.dgm label.at-ind small { display: block; color: var(--txt-3); font-size: 11
 
 /* botão "N tarefas" (js/tarefas-vinculadas.js) abaixo do botão de TDRs */
 body.dgm .at-tkb { margin-top: 6px; }
+
+/* ODS (cores oficiais da ONU, iguais nos dois temas) e metas Kunming-Montreal na linha da atividade */
+body.dgm .at-odskm { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 8px; }
+body.dgm .at-ods { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 4px;
+  border-radius: 5px; background: var(--c); color: #fff; font-size: 11px; font-weight: 700; cursor: default; }
+body.dgm .at-kmp { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: var(--r-pill); cursor: default;
+  border: 1px solid color-mix(in srgb, var(--at-km) 45%, transparent); color: var(--at-km);
+  background: color-mix(in srgb, var(--at-km) 12%, transparent); font-size: 11px; font-weight: 600; white-space: nowrap; }
+body.dgm .at-odskm-sep { width: 1px; height: 16px; background: var(--lin-forte); margin: 0 2px; }
+/* janela de edição: vínculo que vem dos indicadores da Matriz (travado) */
+body.dgm label.at-chip .at-hd { display: none; }
+body.dgm label.at-chip.herdado .at-hd { display: inline-flex; }
+body.dgm label.at-chip.herdado { cursor: help; }
