@@ -1,0 +1,62 @@
+/* ── Tarefas vinculadas (cartão do TDR, linha da atividade) ─────────────
+   Componente de js/tarefas-vinculadas.js. Usa os tokens da mesa
+   (css/diagnostico-mesa.css, body.dgm) e vale na página e nas janelas de
+   TDRs (.td-ov) e Atividades (.at-ov). Cores da situação = as mesmas do
+   Painel de Tarefas (css/tarefas.css). Cor nova = token aqui. */
+
+body.dgm :is(.main-content, .td-ov, .at-ov) {
+  --tv-todo: #6B7480;   --tv-todo-bg: #EEF0F2;
+  --tv-doing: #2F6FEB;  --tv-doing-bg: #E8F0FE;
+  --tv-review: #A86200; --tv-review-bg: #FDF3E1;
+  --tv-block: #C62F2F;  --tv-block-bg: #FDECEC;
+}
+html[data-tema="escuro"] body.dgm :is(.main-content, .td-ov, .at-ov) {
+  --tv-todo: #9AA4B0;   --tv-todo-bg: rgba(154, 164, 176, .14);
+  --tv-doing: #7FAEF5;  --tv-doing-bg: rgba(127, 174, 245, .14);
+  --tv-review: #F2B54A; --tv-review-bg: rgba(242, 181, 74, .13);
+  --tv-block: #F07A6E;  --tv-block-bg: rgba(240, 122, 110, .13);
+}
+
+body.dgm .tv-ic { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* botão "N tarefas" */
+body.dgm .tv-btn { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-pill);
+  border: 1px solid var(--lin-forte); background: var(--sup); color: var(--txt); font: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; position: relative; }
+body.dgm .tv-btn:hover { border-color: var(--pri-600); color: var(--pri-700); }
+body.dgm .tv-btn:focus-visible { outline: 2px solid var(--pri-600); outline-offset: 2px; }
+body.dgm .tv-btn.zero { color: var(--txt-3); border-style: dashed; font-weight: 500; }
+body.dgm .tv-btn.atr { border-color: var(--erro); }
+body.dgm .tv-ponto { width: 7px; height: 7px; border-radius: 50%; background: var(--erro); }
+
+/* lista */
+body.dgm .tv-lista { display: flex; flex-direction: column; gap: 8px; }
+body.dgm .tv-it { display: block; padding: 10px 12px; border: 1px solid var(--lin); border-radius: var(--r-ctl); background: var(--sup);
+  color: var(--txt); text-decoration: none; }
+body.dgm .tv-it:hover { border-color: var(--pri-600); }
+body.dgm .tv-it:focus-visible { outline: 2px solid var(--pri-600); outline-offset: 2px; }
+body.dgm .tv-l1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+body.dgm .tv-tit { font-weight: 600; font-size: 13px; min-width: 0; overflow-wrap: break-word; flex: 1; }
+body.dgm .tv-cod { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--txt-3); white-space: nowrap; }
+body.dgm .tv-mudo { color: var(--txt-3); display: inline-flex; }
+body.dgm .tv-l2 { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12px; color: var(--txt-2); }
+body.dgm .tv-l2 > span { display: inline-flex; align-items: center; gap: 5px; }
+body.dgm .tv-atr { color: var(--erro); font-weight: 600; }
+body.dgm .tv-tdr { font-family: 'DM Mono', monospace; font-size: 11px; padding: 1px 7px; border-radius: var(--r-pill); background: var(--bg-2); color: var(--txt-2); }
+
+body.dgm .tv-st { --c: var(--tv-todo); --cb: var(--tv-todo-bg); display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+  border-radius: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--c);
+  background: var(--cb); white-space: nowrap; }
+body.dgm .tv-doing { --c: var(--tv-doing); --cb: var(--tv-doing-bg); }
+body.dgm .tv-review { --c: var(--tv-review); --cb: var(--tv-review-bg); }
+body.dgm .tv-block { --c: var(--tv-block); --cb: var(--tv-block-bg); }
+
+body.dgm .tv-vazio { padding: 14px; border: 1px dashed var(--lin-forte); border-radius: var(--r-ctl); color: var(--txt-3); font-size: 13px; text-align: center; }
+body.dgm .tv-rod { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 2px; }
+body.dgm .tv-nova { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: var(--r-ctl);
+  background: var(--pri-700); color: #fff; font-size: 12.5px; font-weight: 600; text-decoration: none; }
+body.dgm .tv-nova:hover { background: var(--pri-900); }
+html[data-tema="escuro"] body.dgm .tv-nova:hover { filter: brightness(1.12); background: var(--pri-700); }
+body.dgm .tv-link { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; font-size: 12.5px; color: var(--pri-700); text-decoration: none; }
+html[data-tema="escuro"] body.dgm .tv-link { color: var(--pri-400); }
+body.dgm .tv-link:hover { text-decoration: underline; }

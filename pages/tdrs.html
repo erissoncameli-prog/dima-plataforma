@@ -11,6 +11,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes da lista de TDRs -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/tdrs.css" rel="stylesheet">
+<link href="../css/tarefas-vinculadas.css" rel="stylesheet">
 </head>
 <body class="dgm">
 <div id="app"><div class="td-inicio" role="status">Carregando TDRs…</div></div>
@@ -189,6 +190,17 @@
   </div>
 </div>
 
+<!-- MODAL TAREFAS DO TDR (Painel de Tarefas, só as que falta fazer) -->
+<div class="modal-overlay td-ov" id="modal-tarefas-tdr" role="dialog" aria-modal="true" aria-labelledby="tk-tdr-tit">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-header">
+      <h2 class="modal-title" id="tk-tdr-tit" style="margin:0">Tarefas do TDR</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-tarefas-tdr')"><i data-ic="fechar"></i></button>
+    </div>
+    <div class="modal-body" id="tk-tdr-corpo"></div>
+  </div>
+</div>
+
 <!-- MODAL LICITAÇÃO SEM ÊXITO (relançar ou pedir cancelamento) -->
 <div class="modal-overlay td-ov" id="modal-sem-exito" role="dialog" aria-modal="true" aria-labelledby="sx-tit">
   <div class="modal" style="max-width:560px">
@@ -328,6 +340,7 @@
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/tarefas-vinculadas.js"></script>
 <script>
 let todosTDRs=[], atividades=[], tdrAtual=null;
 // Cancelamento de TDR (20261012_tdr_cancelamento): pedido vivo por TDR (lista) e, no TDR aberto, pedidos e tentativas
@@ -534,7 +547,8 @@ async function carregar(){
     const [{data:tdrs},{data:ativs},{data:vivos}]=await Promise.all([
       tdrQuery,
       db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
-      db.from('tdr_cancelamentos').select('id,tdr_id,numero,status,etapa_atual').in('status',['rascunho','em_aprovacao'])
+      db.from('tdr_cancelamentos').select('id,tdr_id,numero,status,etapa_atual').in('status',['rascunho','em_aprovacao']),
+      TarefasVinc.carregar(db)
     ]);
     atividades=ativs||[];todosTDRs=tdrs||[];
     cancVivos=Object.fromEntries((vivos||[]).map(c=>[c.tdr_id,c]));
@@ -726,6 +740,7 @@ function cardTDR(t){
       ${t.fornecedores?`<span>${tdIc(t.fornecedores.tipo==='PF'?'pessoa':'empresa')}${esc(t.fornecedores.nome)}</span>`:''}
       ${t.prazo_limite?`<span>${tdIc('calendario')}Prazo ${fmtData(t.prazo_limite)}</span>`:''}
       ${doc}
+      ${TarefasVinc.botao(TarefasVinc.doTdr(t.id),`verTarefasTDR('${t.id}')`)}
     </div>
     ${fase}
     ${valores}
@@ -910,6 +925,7 @@ async function abrirTDR(id){
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-financeiro" onclick="aba('financeiro',this)">${tdIc('moeda')}Financeiro</button>
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-versoes" id="tab-btn-versoes" onclick="aba('versoes',this)">${tdIc('relogio')}Versões (${(versoes||[]).length})</button>
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-comentarios" onclick="aba('comentarios',this)">${tdIc('balao')}Revisão${comsAbertos>0?`<span class="notif-badge" aria-label="${comsAbertos} em aberto">${comsAbertos}</span>`:` (${(comentarios||[]).length})`}</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-tarefas" onclick="aba('tarefas',this)">${tdIc('check')}Tarefas (${TarefasVinc.doTdr(t.id).length})</button>
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-ia" id="tab-btn-ia" onclick="aba('ia',this);if(!_iaFeito)analisarComIA()">${tdIc('robo')}Análise do agente</button>
     </div>
 
@@ -982,6 +998,7 @@ async function abrirTDR(id){
     <div class="tab-content" id="tab-versoes" role="tabpanel">${versoesHtml}</div>
 
     <!-- ABA ANÁLISE DO AGENTE -->
+    <div class="tab-content" id="tab-tarefas" role="tabpanel">${TarefasVinc.lista(TarefasVinc.doTdr(t.id),{atividadeId:t.atividade_id,tdrId:t.id})}</div>
     <div class="tab-content" id="tab-ia" role="tabpanel">
       <div style="margin-bottom:14px">
         <h3 class="td-sec-tit">${tdIc('robo')}Histórico de análises do agente</h3>
@@ -2590,6 +2607,16 @@ function blocoCancelamento(t){
         · ${x.desfecho==='relancada'?'relançada':'terminou em cancelamento'} — ${esc(x.motivo)}</div>`).join('')}</div>`;
   }
   return h;
+}
+
+// Tarefas vinculadas ao TDR (tarefa_tdrs) que ainda falta fazer — js/tarefas-vinculadas.js
+function verTarefasTDR(id){
+  const t=todosTDRs.find(x=>x.id===id);if(!t)return;
+  document.getElementById('tk-tdr-tit').textContent='Tarefas do TDR '+(t.numero||'');
+  document.getElementById('tk-tdr-corpo').innerHTML=
+    `<p class="td-peq" style="margin:0 0 12px">Tarefas do Painel de Tarefas vinculadas a este TDR que ainda falta fazer. Clique numa tarefa para abri-la.</p>`+
+    TarefasVinc.lista(TarefasVinc.doTdr(id),{atividadeId:t.atividade_id,tdrId:id});
+  document.getElementById('modal-tarefas-tdr').classList.add('aberto');
 }
 
 function abrirSemExito(){

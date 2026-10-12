@@ -11,6 +11,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Atividades -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/atividades.css" rel="stylesheet">
+<link href="../css/tarefas-vinculadas.css" rel="stylesheet">
 </head>
 <body class="dgm">
 <div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando atividades…</div></div></div>
@@ -52,6 +53,7 @@
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/tarefas-vinculadas.js"></script>
 <script>
 let todasAtividades = [];
 let ativFiltradas = [];
@@ -60,6 +62,7 @@ let resultadosMap = {};
 let tdrsPorAtividade = {};
 let tdrsAbertos = {};
 let painelAberto = {};
+let painelTkAberto = {}; // painel de tarefas vinculadas (js/tarefas-vinculadas.js)
 let todosUsuarios = [];
 let respPorAtividade = {};
 let senhaCallback = null;
@@ -196,7 +199,8 @@ async function carregarDados() {
       db.from('vw_saldo_atividade').select('*'),
       db.from('tdrs').select('id,numero,atividade_id,tipo,objeto_pt,valor_brl,valor_usd,status,arquivo_url,arquivo_nome,prioridade,elaborador_id'),
       db.from('usuarios').select('id,nome_completo,perfil,email').eq('ativo',true).order('nome_completo'),
-      db.from('atividade_responsaveis').select('*').eq('ativo',true)
+      db.from('atividade_responsaveis').select('*').eq('ativo',true),
+      TarefasVinc.carregar(db)
     ]);
 
     todosUsuarios = usuarios || [];
@@ -384,6 +388,8 @@ function renderTabela() {
         <button type="button" class="at-tdrb ${tdrClass}" aria-expanded="${aberto}" aria-controls="${painelId}" onclick="togglePainel('${a.id}')"
           title="${temAlerta?a.tdrs_sem_arquivo+' TDR(s) sem arquivo':'Ver os TDRs da atividade'}">${temAlerta?atIc('alerta','p'):''}${tdrTxt}${atIc('chev','p chev')}</button>
         ${a.tdrs_valor_usd>0?`<div class="at-tdrv">${usdc(a.tdrs_valor_usd)}</div>`:''}
+        <div class="at-tkb">${TarefasVinc.botao(TarefasVinc.daAtividade(a.id),`toggleTarefas('${a.id}')`,
+          `aria-expanded="${!!painelTkAberto[a.id]}" aria-controls="painel-tk-${a.id}"`)}</div>
       </td>
       ${podEditar?`<td><button type="button" class="at-btn ic" aria-label="Editar ${esc(a.codigo)}" title="Editar" onclick="abrirModal('${a.id}')">${atIc('lapis')}</button></td>`
         :podVer?`<td><button type="button" class="at-btn ic" aria-label="Ver ${esc(a.codigo)}" title="Ver" onclick="abrirModal('${a.id}',true)">${atIc('olho')}</button></td>`:''}
@@ -416,7 +422,16 @@ function renderTabela() {
       </td>
     </tr>`;
 
-    return linhaAtiv + painelTdrs;
+    const painelTk = `<tr class="at-painel" id="painel-tk-${a.id}"${painelTkAberto[a.id]?'':' hidden'}>
+      <td colspan="${nCols}">
+        <div class="at-painel-in">
+          <div class="at-painel-hd">Tarefas a fazer da atividade ${esc(a.codigo)}</div>
+          ${TarefasVinc.lista(TarefasVinc.daAtividade(a.id),{atividadeId:a.id,mostrarTdr:true})}
+        </div>
+      </td>
+    </tr>`;
+
+    return linhaAtiv + painelTdrs + painelTk;
   }).join('');
 }
 
@@ -428,6 +443,15 @@ function togglePainel(ativId) {
   painelAberto[ativId] = aberto;
   document.getElementById(`row-${ativId}`)?.classList.toggle('aberta', aberto);
   document.querySelector(`#row-${ativId} .at-tdrb`)?.setAttribute('aria-expanded', String(aberto));
+}
+
+function toggleTarefas(ativId) {
+  const el = document.getElementById(`painel-tk-${ativId}`);
+  if (!el) return;
+  const aberto = el.hidden;
+  el.hidden = !aberto;
+  painelTkAberto[ativId] = aberto;
+  document.querySelector(`#row-${ativId} .tv-btn`)?.setAttribute('aria-expanded', String(aberto));
 }
 
 async function abrirArquivoTDR(tdrId, url) {

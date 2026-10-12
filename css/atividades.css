@@ -236,3 +236,6 @@ body.dgm label.at-ind small { display: block; color: var(--txt-3); font-size: 11
 @media (prefers-reduced-motion: reduce) {
   body.dgm .at-tdrb .chev { transition: none; }
 }
+
+/* botão "N tarefas" (js/tarefas-vinculadas.js) abaixo do botão de TDRs */
+body.dgm .at-tkb { margin-top: 6px; }

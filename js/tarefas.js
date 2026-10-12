@@ -1576,5 +1576,13 @@
     abrirModal(null)
     const ft = document.getElementById('f-titulo'); if (ft) ft.value = qs.get('titulo') || ''
     const fd = document.getElementById('f-desc'); if (fd) { fd.value = qs.get('desc') || ''; fd.style.height = 'auto'; fd.style.height = fd.scrollHeight + 'px' }
+    // Já vinculada (?atividade=<id>&tdr=<id>) — vindo do cartão do TDR ou da linha da atividade
+    const atv = S.atividades.find(a => a.id === qs.get('atividade'))
+    if (atv) {
+      document.getElementById('f-atv').value = atv.id
+      const btn = document.getElementById('pk-atv-btn')
+      if (btn) { btn.innerHTML = rotuloAtv(atv) + ic('chev', 's pk-seta'); btn.title = atv.codigo + ' · ' + (atv.nome_pt || '') }
+      carregarTdrsAtv(atv.id, qs.get('tdr') ? [qs.get('tdr')] : [], 0)
+    }
   }
 })()
