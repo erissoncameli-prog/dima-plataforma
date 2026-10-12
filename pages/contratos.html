@@ -404,6 +404,7 @@ function buildDet(c){
       +'<div class="detail-item"><span class="detail-lbl">Saldo disponível</span><span class="detail-val'+(saldo<0?' erro':'')+'">'+fmtBRL(saldo)+'</span></div>'
       +'<div class="detail-item"><span class="detail-lbl">Elemento de despesa</span><span class="detail-val">'+esc(c.elemento_despesa||'—')+'</span></div>'
       +'</div>';
+    h+=blocoPedidoEncerramento(c);
     h+='<div class="ct-eyebrow">Documentos</div><div class="pdf-row">';
     if(c.contrato_assinado_url){
       h+=cardDoc('en','doc',c.contrato_assinado_nome||'Contrato EN','Original EN'+(c.contrato_assinado_data?' · '+fmtData(c.contrato_assinado_data):''),c.contrato_assinado_url);
@@ -428,7 +429,6 @@ function buildDet(c){
     }
     h+='</div>';
     if(c.objeto_pt)h+='<div class="ct-objeto"><strong>Objeto:</strong> '+esc(c.objeto_pt)+'</div>';
-    h+=blocoPedidoEncerramento(c);
     h+=blocoEncerramento(c);
   } else {
     // ABA PRODUTOS
@@ -915,8 +915,9 @@ function blocoPedidoEncerramento(c){
       +'</div>';
   }
   if(!aberto&&podePedirEncerramento()&&['vigente','suspenso'].indexOf(c.status)>=0){
-    h+='<div class="ct-encp-novo"><span>Contrato que não será cumprido até o fim? Peça o encerramento: os produtos em aberto são cancelados e o que não foi executado volta para a atividade depois da aprovação do responsável.</span>'
-      +'<button type="button" class="ct-btn peq" onclick="pedirEncerramento(\''+c.id+'\')">'+ctIc('alerta','p')+(ult&&ult.status==='devolvido'?'Fazer novo pedido':'Pedir encerramento')+'</button></div>';
+    h+='<div class="ct-encp-novo"><span class="ct-encp-novo-ic">'+ctIc('alerta')+'</span>'
+      +'<div class="ct-encp-novo-tx"><b>Contrato não será cumprido até o fim?</b><span>Peça o encerramento: os produtos em aberto são cancelados e o que não foi executado volta para a atividade depois da aprovação do responsável.</span></div>'
+      +'<button type="button" class="ct-btn perigo" onclick="pedirEncerramento(\''+c.id+'\')">'+ctIc('alerta','p')+(ult&&ult.status==='devolvido'?'Fazer novo pedido de encerramento':'Pedir encerramento')+'</button></div>';
   }
   return h;
 }

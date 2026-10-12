@@ -286,7 +286,12 @@ body.dgm .ct-encp.devolvido { border-left-color: var(--erro); background: var(--
 body.dgm .ct-encp .ct-enc-tot b { color: var(--ct-serio-txt); }
 body.dgm .ct-encp-ac { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
 body.dgm .ct-encp-ac > span { flex: 1 1 260px; font-size: 12.5px; color: var(--txt-2); line-height: 1.45; }
-body.dgm .ct-encp-novo { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-top: 16px; padding: 10px 14px;
-  border: 1px dashed var(--lin-forte); border-radius: 10px; }
-body.dgm .ct-encp-novo > span { flex: 1 1 260px; font-size: 12.5px; color: var(--txt-2); line-height: 1.45; }
+body.dgm .ct-encp-novo { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin: 16px 0 4px; padding: 14px 16px;
+  border: 1px solid var(--ct-serio); border-left-width: 4px; border-radius: 10px; background: var(--ct-serio-bg); }
+body.dgm .ct-encp-novo-ic { display: inline-flex; color: var(--ct-serio); }
+body.dgm .ct-encp-novo-ic .ct-ic { width: 22px; height: 22px; }
+body.dgm .ct-encp-novo-tx { flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px; line-height: 1.45; }
+body.dgm .ct-encp-novo-tx b { font-size: 14px; color: var(--ct-serio-txt); }
+body.dgm .ct-encp-novo-tx span { font-size: 12.5px; color: var(--txt-2); }
+body.dgm .ct-encp-novo .ct-btn { height: 38px; padding: 0 16px; font-size: 13.5px; font-weight: 600; }
 body.dgm .ct-ov .ct-encp-erro { min-height: 1em; font-size: 13px; color: var(--erro-txt); margin-top: 6px; }
