@@ -786,6 +786,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   (Atividades, filtro de Relatórios) vão até 18.
 - **Ícone do ODS pelo idioma**: `odsImgSrc(n)` (`js/config.js`) — português = `assets/sdg/pt/sdg-N.jpg` (1 a 18); inglês e espanhol =
   `assets/sdg/sdg-N.jpg` (ONU, em inglês; o 18 só existe em português). Usado na Matriz e no Mapa; nunca escrever o caminho fixo.
+- **Janela do ODS / da meta KM** (`abrirRefODS`/`abrirRefKM`): ícone (ou quadrado "Meta N" na cor `--mz-km`) com o texto ao lado
+  (`.mz-ref-obj`) e o aviso tem/sem indicador abaixo; lista de indicadores em seguida. Texto do ODS = `ods_refs.descricao/_en/_es`
+  (objetivo da Agenda 2030, migração `20261012_ods_c_objetivo`; 18 em EN/ES = tradução não oficial), por `odsDescricao(o)`.
+  Meta KM usa `metas_km_refs.resumo` (resumo do sistema, não o texto oficial).
 - Nomes dos resultados vêm da tabela `resultados` (`codigo = 'R' || matriz_itens.resultado`, `nome_pt/en/es`), não de texto fixo.
 - Abas ODS e Kunming-Montreal destacam o que **tem indicador** no cadastro (contado de `matriz_itens.ods/metas_km`), não a
   marcação `no_projeto` das tabelas de referência.
