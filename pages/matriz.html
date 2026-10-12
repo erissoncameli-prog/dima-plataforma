@@ -88,7 +88,7 @@ const SIT = {
   qual:  { rot:'Qualitativa',   cor:'--mz-qual',  pill:'mz-p-ia', ic:'info' },
 };
 const COR_RES = { 1:'--mz-r1', 2:'--mz-r2', 3:'--mz-r3' };
-const ODS_COR = {1:'#E5243B',2:'#DDA63A',3:'#4C9F38',4:'#C5192D',5:'#FF3A21',6:'#26BDE2',7:'#FCC30B',8:'#A21942',9:'#FD6925',10:'#DD1367',11:'#FD9D24',12:'#BF8B2E',13:'#3F7E44',14:'#0A97D9',15:'#56C02B',16:'#00689D',17:'#19486A'};
+const ODS_COR = {1:'#E5243B',2:'#DDA63A',3:'#4C9F38',4:'#C5192D',5:'#FF3A21',6:'#26BDE2',7:'#FCC30B',8:'#A21942',9:'#FD6925',10:'#DD1367',11:'#FD9D24',12:'#BF8B2E',13:'#3F7E44',14:'#0A97D9',15:'#56C02B',16:'#00689D',17:'#19486A',18:'#7B4B2A'}; // 18 = ODS voluntário do Brasil (cor provisória, = ods_refs)
 const num = v => parseFloat(v || 0);
 const fmtN = v => num(v).toLocaleString('pt-BR');
 
@@ -355,7 +355,10 @@ function renderIndCard(i) {
 // ── ODS ───────────────────────────────────────────────────────
 // Destaque = ODS com indicador no cadastro (não a marcação fixa de ods_refs)
 function odsImgFalhou(img) {
-  const wrap = img.parentNode; wrap.textContent = wrap.dataset.n;
+  // sem imagem (ex.: ODS 18, objetivo voluntário do Brasil, sem arte da ONU em assets/sdg): número + nome
+  const wrap = img.parentNode, o = odsRef(wrap.dataset.n);
+  wrap.classList.add('sem-img');
+  wrap.innerHTML = `<b>${esc(wrap.dataset.n)}</b>${o ? `<small>${esc(odsTitulo(o))}</small>` : ''}`;
 }
 function renderODS() {
   const el = document.getElementById('ods-grid'); if (!el) return;

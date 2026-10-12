@@ -611,7 +611,7 @@ function renderFiltros(lista){
           <span class="config-lbl">ODS</span>
           <select class="config-select" id="fil-ods">
             <option value="">Todos</option>
-            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17].map(n=>`<option value="${n}">ODS ${n}</option>`).join('')}
+            ${[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18].map(n=>`<option value="${n}">ODS ${n}${n===18?' (Igualdade étnico-racial)':''}</option>`).join('')}
           </select>
         </div>`;
       case 'dias_sem_acesso': return `
