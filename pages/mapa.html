@@ -277,7 +277,7 @@ function _htmlOdsKm(tipo_atividade){
     html += '<div style="font-size:9px;font-weight:700;color:var(--cinza-500);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">ODS Atendidos</div>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px">';
     ods.forEach(n => {
-      html += `<img src="../assets/sdg/sdg-${n}.jpg" title="ODS ${n}" alt="ODS ${n}" `
+      html += `<img src="${odsImgSrc(n)}" title="ODS ${n}" alt="ODS ${n}" `
             + `style="width:38px;height:38px;border-radius:5px;object-fit:cover;border:1px solid var(--borda)" `
             + `onerror="this.outerHTML='<span style=\\'font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0\\'>ODS&nbsp;${n}</span>'">`;
     });
