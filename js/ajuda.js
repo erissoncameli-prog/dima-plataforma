@@ -159,7 +159,15 @@ const AJUDA = {
           'Enviado UNESCO: submetido para análise da UNESCO.',
           'Retorno UNESCO: recebeu comentários e precisa de revisão.',
           'Aprovado: autorizado para contratação. Único status que habilita vínculo com contrato.',
-          'Cancelado: TDR descartado.',
+          'Cancelado: TDR descartado por pedido de cancelamento aprovado. Não volta a nenhuma fase.',
+        ]},
+        { titulo: 'Licitação sem êxito e cancelamento', itens: [
+          'No TDR em licitação, "Licitação sem êxito" registra a rodada: deserta (nenhuma proposta), fracassada (propostas recusadas) ou outro.',
+          'Relançar a licitação: o TDR volta para Aprovado com o mesmo valor, sem assinaturas; a tentativa fica no histórico do TDR. Depois use "Enviar para licitação" para abrir a nova rodada.',
+          'Pedir cancelamento (coordenação ou super admin, em qualquer fase, se não houver contrato): motivo, justificativa e nota técnica em PDF.',
+          'O pedido passa por três assinaturas com senha, na fila de Remanejamentos › Pedidos: coordenação solicitante → responsável da atividade → UNESCO.',
+          'Durante a aprovação o TDR fica congelado (fase, valor e atividade) e o valor continua comprometido. Na última assinatura o TDR é cancelado e o valor volta ao saldo livre da atividade, para um TDR novo ou um remanejamento.',
+          'Não é possível cancelar o TDR mudando o status direto: o banco recusa. TDR com contrato ativo precisa ter o contrato encerrado antes.',
         ]},
         { titulo: 'Tipo: PF ou PJ', itens: [
           'PF (Pessoa Física): para contratação de consultores individuais via CPF.',

@@ -189,6 +189,88 @@
   </div>
 </div>
 
+<!-- MODAL LICITAÇÃO SEM ÊXITO (relançar ou pedir cancelamento) -->
+<div class="modal-overlay td-ov" id="modal-sem-exito" role="dialog" aria-modal="true" aria-labelledby="sx-tit">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h2 class="modal-title" id="sx-tit" style="margin:0">Licitação sem êxito</h2>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-sem-exito')"><i data-ic="fechar"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info"><i data-ic="info"></i><div>
+        Registre o que aconteceu nesta rodada e escolha o caminho:
+        <strong>relançar a licitação</strong> (o TDR volta para Aprovado, com o mesmo valor, e a tentativa fica no histórico) ou
+        <strong>pedir o cancelamento do TDR</strong> (nota técnica e três assinaturas; o valor só é liberado no fim).
+      </div></div>
+      <div class="form-group">
+        <label class="form-label" for="sx-resultado">Resultado <span class="obrig">*</span></label>
+        <select class="form-control" id="sx-resultado">
+          <option value="deserta">Deserta — nenhuma proposta recebida</option>
+          <option value="fracassada">Fracassada — propostas desclassificadas ou recusadas</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="sx-motivo">O que aconteceu <span class="obrig">*</span></label>
+        <textarea class="form-control" id="sx-motivo" rows="3" placeholder="Ex.: as duas propostas ficaram acima do valor estimado e foram desclassificadas."></textarea>
+      </div>
+      <div class="td-erro-msg" id="sx-erro" role="alert" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-sem-exito')">Voltar</button>
+      <button class="btn td-btn-perigo" onclick="semExitoParaCancelamento()"><i data-ic="xcirc"></i>Pedir cancelamento do TDR</button>
+      <button class="btn btn-primary" id="sx-relancar" onclick="relancarLicitacao()"><i data-ic="desfazer"></i>Relançar a licitação</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PEDIDO DE CANCELAMENTO DO TDR (nota técnica + cadeia de assinaturas) -->
+<div class="modal-overlay td-ov" id="modal-cancelar-tdr" role="dialog" aria-modal="true" aria-labelledby="cx-tit">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div>
+        <h2 class="modal-title" id="cx-tit" style="margin:0">Pedir cancelamento do TDR</h2>
+        <div class="td-peq" id="cx-sub"></div>
+      </div>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-cancelar-tdr')"><i data-ic="fechar"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info"><i data-ic="info"></i><div>
+        O pedido passa por <strong>três assinaturas</strong>, cada uma com a própria senha: coordenação (solicita) →
+        responsável da atividade → UNESCO. Enquanto isso o TDR fica congelado e o valor continua comprometido.
+        Na última assinatura o TDR é cancelado e o valor volta ao <strong>saldo livre da atividade</strong> — para um TDR
+        novo ou um remanejamento. <strong>TDR cancelado não volta.</strong>
+      </div></div>
+      <div id="cx-aviso"></div>
+      <div class="form-group">
+        <label class="form-label" for="cx-motivo">Motivo <span class="obrig">*</span></label>
+        <select class="form-control" id="cx-motivo"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="cx-just">Justificativa <span class="obrig">*</span></label>
+        <textarea class="form-control" id="cx-just" rows="4" placeholder="Resuma o que a nota técnica conclui (mínimo 30 caracteres)." oninput="document.getElementById('cx-cont').textContent=this.value.trim().length+' caracteres'"></textarea>
+        <div class="td-peq" id="cx-cont" aria-live="polite">0 caracteres</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="cx-destino">O que fazer com o valor liberado</label>
+        <select class="form-control" id="cx-destino"></select>
+        <div class="td-peq">Só informativo: o valor volta ao saldo livre da atividade; o novo TDR ou o remanejamento são feitos depois, cada um no seu fluxo.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="cx-nota">Nota técnica (PDF) <span class="obrig">*</span></label>
+        <div id="cx-nota-atual"></div>
+        <input class="form-control" type="file" id="cx-nota" accept="application/pdf,.pdf">
+        <div class="td-peq">A nota justifica o cancelamento e é lida por quem assina. Fica guardada com a impressão digital (SHA-256) e não pode ser apagada.</div>
+      </div>
+      <div class="td-erro-msg" id="cx-erro" role="alert" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-cancelar-tdr')">Voltar</button>
+      <button class="btn btn-primary" id="cx-ok" onclick="salvarCancelamento()"><i data-ic="salvar"></i>Salvar e revisar para enviar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL LIBERAR SALDO (economia do TDR → atividade) -->
 <div class="modal-overlay td-ov" id="modal-liberar-saldo" role="dialog" aria-modal="true" aria-labelledby="lib-tit">
   <div class="modal" style="max-width:520px">
@@ -248,6 +330,8 @@
 <script src="../js/diag-tema.js"></script>
 <script>
 let todosTDRs=[], atividades=[], tdrAtual=null;
+// Cancelamento de TDR (20261012_tdr_cancelamento): pedido vivo por TDR (lista) e, no TDR aberto, pedidos e tentativas
+let cancVivos={}, cancTDR={pedidos:[],tentativas:[]}, cancEdit=null;
 let dadosOriginais={}, dadosEditados={}, arquivoSelecionado=null;
 let senhaTDRCallback=null, tdrAcoes={}, camposModificados={};
 
@@ -447,11 +531,13 @@ async function carregar(){
       }
     }
 
-    const [{data:tdrs},{data:ativs}]=await Promise.all([
+    const [{data:tdrs},{data:ativs},{data:vivos}]=await Promise.all([
       tdrQuery,
-      db.from('atividades').select('id,codigo,nome_pt').order('codigo')
+      db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
+      db.from('tdr_cancelamentos').select('id,tdr_id,numero,status,etapa_atual').in('status',['rascunho','em_aprovacao'])
     ]);
     atividades=ativs||[];todosTDRs=tdrs||[];
+    cancVivos=Object.fromEntries((vivos||[]).map(c=>[c.tdr_id,c]));
     renderStats();popularFiltroResp();filtrar();
   }catch(e){toast('Erro ao carregar TDRs.','error');}
 }
@@ -631,6 +717,7 @@ function cardTDR(t){
       ${t.tipo?`<span class="td-tag">${esc(t.tipo)}</span>`:''}
       <span class="td-selo">${esc(rotulo)}</span>
       ${atr?`<span class="td-selo td-atraso">Atrasado ${diasAtraso} dia${diasAtraso>1?'s':''}</span>`:''}
+      ${cancVivos[t.id]?`<span class="td-selo td-cancelando" title="Pedido ${esc(cancVivos[t.id].numero)}">${cancVivos[t.id].status==='rascunho'?'Cancelamento em rascunho':'Em cancelamento'}</span>`:''}
       <span class="td-versao">versão ${t.versao_atual||1}</span>
     </div>
     <h3 class="td-obj${t.objeto_pt?'':' vazio'}">${t.objeto_pt?esc(t.objeto_pt):'Objeto não preenchido'}</h3>
@@ -673,6 +760,11 @@ async function abrirTDR(id){
     db.from('tdr_anexos').select('*,usuarios:enviado_por(nome_completo)').eq('tdr_id',id).order('criado_em',{ascending:true}),
     db.from('contrato_encerramentos').select('*,autorizou:usuarios!contrato_encerramentos_autorizado_por_fkey(nome_completo),reverteu:usuarios!contrato_encerramentos_revertido_por_fkey(nome_completo)').eq('tdr_id',id).eq('tipo','economia_contratacao').order('criado_em',{ascending:true})
   ]);
+  const [{data:cPed},{data:cTent}]=await Promise.all([
+    db.from('tdr_cancelamentos').select('id,numero,status,etapa_atual,versao,motivo_tipo,justificativa,destino_valor,nota_caminho,nota_nome,nota_sha256,nota_tamanho,criado_por,criado_em,efetivado_em,motivo_encerramento').eq('tdr_id',id).order('criado_em',{ascending:false}),
+    db.from('tdr_licitacoes').select('*').eq('tdr_id',id).order('rodada')
+  ]);
+  cancTDR={pedidos:cPed||[],tentativas:cTent||[]};
   // Mapear último ação por status_novo para a timeline
   const acaosPorFase={};
   (acoes||[]).forEach(a=>{
@@ -808,6 +900,7 @@ async function abrirTDR(id){
 
   document.getElementById('m-body').innerHTML=`
     ${linhaTempo}
+    ${blocoCancelamento(t)}
     ${msgPerm()}
     ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status)?`<div class="alert alert-danger">${tdIc('alerta')}<div>Prazo vencido em ${fmtData(t.prazo_limite)}.</div></div>`:''}
     ${matriz}
@@ -944,14 +1037,20 @@ async function abrirTDR(id){
 
   // Permissão de exclusão: restrita a super_admin
   const podeApagarTDR = appState.perfil==='super_admin';
+  // Cancelamento: coordenação/super_admin pedem, em qualquer fase, se não há contrato nem pedido em andamento
+  const vivoC=cancTDR.pedidos.find(c=>['rascunho','em_aprovacao'].includes(c.status));
+  const podePedirCanc=eCoordenadorModal&&!vivoC&&!['cancelado','contratado'].includes(t.status)
+    &&!(t.contratos||[]).some(c=>c.status!=='cancelado');
 
   document.getElementById('m-footer').innerHTML=`
     <button class="btn btn-secondary" onclick="fecharModal('modal-tdr')">Fechar</button>
     ${podeApagarTDR?`
       <button class="btn td-btn-perigo" id="btn-apagar-tdr" data-id="${t.id}" data-numero="${esc(t.numero||'')}">${tdIc('lixeira')}Apagar TDR</button>`:''
     }
+    ${podePedirCanc?`<button class="btn td-btn-perigo" onclick="abrirCancelamento()">${tdIc('xcirc')}Pedir cancelamento</button>`:''}
     <div class="td-lin" style="margin-left:auto">
       ${FASES_POS_APROVACAO.includes(t.status)?`<button class="btn btn-secondary" onclick="gerarPDF()">${tdIc('documento')}PDF</button>`:''}
+      ${t.status==='em_licitacao'&&eCoordenadorModal&&!vivoC?`<button class="btn btn-secondary" onclick="abrirSemExito()">${tdIc('alerta')}Licitação sem êxito</button>`:''}
       ${podeAbrirEditorModal?`<a href="revisar-tdr.html?id=${t.id}" class="btn btn-secondary" style="text-decoration:none">${tdIc('editar')}Editor</a>`:''}
       ${fa.devolver?`<button class="btn td-btn-perigo" onclick="abrirDevolver()">${tdIc('desfazer')}Devolver</button>`:''}
       ${fa.avancar?`<button class="btn btn-primary" id="btn-avancar-fase" data-status="${fa.avancar.s}" data-label="${esc(fa.avancar.l)}">${tdIc(fa.avancar.s==='aprovado'?'check':'seta')}${esc(fa.avancar.l)}</button>`:''}
@@ -2449,6 +2548,156 @@ async function corrigirComIA(){
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+// CANCELAMENTO DE TDR — pedido com nota técnica e cadeia de assinaturas
+// A tela só monta o rascunho (fn_tcan_salvar). Enviar, assinar, devolver e recusar
+// acontecem na fila única de Remanejamentos (Edge Function com a senha). Regras no
+// banco: 20261012_tdr_cancelamento.sql.
+// ══════════════════════════════════════════════════════════════
+const CAN_MOTIVOS={licitacao_deserta:'Licitação deserta (nenhuma proposta)',licitacao_fracassada:'Licitação fracassada (propostas recusadas)',
+  sem_necessidade:'O objeto deixou de ser necessário',substituido:'Substituído por outro TDR',outro:'Outro motivo'};
+const CAN_DESTINO={a_definir:'Ainda não definido',novo_tdr:'Novo TDR na mesma atividade',remanejamento:'Remanejamento para outra atividade'};
+const CAN_ST={rascunho:'em rascunho',em_aprovacao:'em aprovação',efetivado:'efetivado',recusado:'recusado',cancelado:'cancelado'};
+const CAN_ETAPA={1:'coordenação',2:'responsável da atividade',3:'UNESCO'};
+const CAN_RES={deserta:'deserta',fracassada:'fracassada',outro:'sem êxito'};
+
+function blocoCancelamento(t){
+  const P=cancTDR.pedidos, T=cancTDR.tentativas;
+  const link=c=>`<a href="remanejamentos.html?can=${c.id}">${esc(c.numero)}</a>`;
+  let h='';
+  const ef=P.find(c=>c.status==='efetivado');
+  if(t.status==='cancelado'){
+    h+=`<div class="alert alert-warning">${tdIc('xcirc')}<div><strong>TDR cancelado</strong>${ef?` pelo pedido ${link(ef)} em ${fmtData(ef.efetivado_em)} — ${esc(CAN_MOTIVOS[ef.motivo_tipo]||'')}`:''}.
+      O valor voltou ao saldo livre da atividade. TDR cancelado não volta: para retomar, crie um TDR novo.</div></div>`;
+  }
+  const vivo=P.find(c=>['rascunho','em_aprovacao'].includes(c.status));
+  if(vivo){
+    const devolvido=vivo.status==='em_aprovacao'&&vivo.etapa_atual===1;
+    const onde=vivo.status==='rascunho'?'em rascunho — falta enviar para assinatura'
+      :devolvido?'devolvido à coordenação':`aguardando a etapa ${vivo.etapa_atual} (${CAN_ETAPA[vivo.etapa_atual]||''})`;
+    const podeEditar=['super_admin','coordenacao'].includes(appState.perfil)&&(vivo.status==='rascunho'||devolvido);
+    h+=`<div class="alert alert-warning">${tdIc('relogio')}<div><strong>Pedido de cancelamento ${link(vivo)}</strong> ${esc(onde)}.
+      ${vivo.status==='em_aprovacao'?' Enquanto isso o TDR não muda de fase, valor nem atividade e não recebe contrato.':''}
+      <div class="td-lin" style="margin-top:8px">
+        <a class="btn btn-sm btn-secondary" href="remanejamentos.html?can=${vivo.id}" style="text-decoration:none">Abrir na fila de assinaturas</a>
+        ${podeEditar?`<button class="btn btn-sm btn-secondary" onclick="abrirCancelamento()">${tdIc('editar')}Editar pedido</button>`:''}
+      </div></div></div>`;
+  }
+  if(T.length){
+    h+=`<div class="td-box" style="margin-bottom:14px"><span class="td-rot">Licitações sem êxito</span>${T.map(x=>
+      `<div class="td-peq" style="margin-top:6px"><strong>${x.rodada}ª rodada — ${esc(CAN_RES[x.resultado]||x.resultado)}</strong>
+        ${x.modalidade?' · '+esc(x.modalidade):''}${x.numero_processo?' · processo '+esc(x.numero_processo):''}${x.dt_abertura?' · aberta em '+fmtData(x.dt_abertura):''}
+        · ${x.desfecho==='relancada'?'relançada':'terminou em cancelamento'} — ${esc(x.motivo)}</div>`).join('')}</div>`;
+  }
+  return h;
+}
+
+function abrirSemExito(){
+  if(!tdrAtual)return;
+  document.getElementById('sx-resultado').value='deserta';
+  document.getElementById('sx-motivo').value='';
+  document.getElementById('sx-erro').hidden=true;
+  document.getElementById('modal-sem-exito').classList.add('aberto');
+}
+async function relancarLicitacao(){
+  const res=document.getElementById('sx-resultado').value, mot=document.getElementById('sx-motivo').value.trim();
+  const erro=m=>{const e=document.getElementById('sx-erro');e.textContent=m;e.hidden=false;};
+  if(mot.length<10){erro('Descreva o que aconteceu (mínimo 10 caracteres).');return;}
+  const b=document.getElementById('sx-relancar');b.disabled=true;
+  const {error}=await db.rpc('fn_tdr_licitacao_sem_exito',{p_tdr_id:tdrAtual.id,p_resultado:res,p_motivo:mot});
+  b.disabled=false;
+  if(error){erro(msgCanc(error.message));return;}
+  fecharModal('modal-sem-exito');fecharModal('modal-tdr');
+  toast('Tentativa registrada. O TDR voltou para Aprovado: use “Enviar para licitação” para abrir a nova rodada.','success');
+  await carregar();
+}
+function semExitoParaCancelamento(){
+  const res=document.getElementById('sx-resultado').value, mot=document.getElementById('sx-motivo').value.trim();
+  fecharModal('modal-sem-exito');
+  abrirCancelamento({motivo_tipo:res==='deserta'?'licitacao_deserta':res==='fracassada'?'licitacao_fracassada':'outro',justificativa:mot});
+}
+
+async function abrirCancelamento(pre){
+  const t=tdrAtual; if(!t)return;
+  const vivo=cancTDR.pedidos.find(c=>['rascunho','em_aprovacao'].includes(c.status));
+  if(vivo&&!(vivo.status==='rascunho'||vivo.etapa_atual===1)){
+    toast(`O pedido ${vivo.numero} está na etapa ${vivo.etapa_atual}: só pode ser editado quando voltar à coordenação.`,'warning');return;
+  }
+  cancEdit=vivo||null;
+  const sel=(id,mapa,v)=>{document.getElementById(id).innerHTML=Object.entries(mapa).map(([k,l])=>`<option value="${k}"${k===v?' selected':''}>${esc(l)}</option>`).join('');};
+  const motivoIni=cancEdit?.motivo_tipo||pre?.motivo_tipo||(t.status==='em_licitacao'?'licitacao_fracassada':'sem_necessidade');
+  sel('cx-motivo',CAN_MOTIVOS,motivoIni);
+  sel('cx-destino',CAN_DESTINO,cancEdit?.destino_valor||'a_definir');
+  const just=cancEdit&&cancEdit.justificativa!=='(rascunho)'?cancEdit.justificativa:(pre?.justificativa||'');
+  document.getElementById('cx-just').value=just;
+  document.getElementById('cx-cont').textContent=just.trim().length+' caracteres';
+  document.getElementById('cx-nota').value='';
+  document.getElementById('cx-nota-atual').innerHTML=cancEdit?.nota_caminho
+    ?`<div class="td-item" style="margin-bottom:6px">${tdIc('documento')}<span class="td-cresce">${esc(cancEdit.nota_nome||'Nota técnica')}</span>
+        <a class="btn btn-sm btn-secondary" href="#" data-arquivo="${esc(SUPABASE_URL+'/storage/v1/object/public/tdrs-arquivos/'+cancEdit.nota_caminho)}">Abrir</a></div>
+      <div class="td-peq" style="margin-bottom:4px">Escolha outro arquivo só se quiser trocar a nota.</div>`:'';
+  document.getElementById('cx-erro').hidden=true;
+  document.getElementById('cx-sub').textContent=`${t.numero}${t.atividades?.codigo?' · atividade '+t.atividades.codigo:''} · ${fmtBRL(t.valor_brl)} (${fmtUSD(t.valor_usd)})`
+    +(cancEdit?` · pedido ${cancEdit.numero}${cancEdit.status==='em_aprovacao'?' (editar abre nova versão e as assinaturas recomeçam)':''}`:'');
+  document.getElementById('cx-tit').textContent=cancEdit?'Editar pedido de cancelamento':'Pedir cancelamento do TDR';
+  document.getElementById('cx-aviso').innerHTML='';
+  document.getElementById('modal-cancelar-tdr').classList.add('aberto');
+  // aviso antecipado: a etapa 2 precisa de um responsável que não seja titular da coordenação nem da UNESCO
+  try{
+    const [{data:resp},{data:tit}]=await Promise.all([
+      db.from('atividade_responsaveis').select('usuario_id').eq('atividade_id',t.atividade_id).eq('ativo',true).eq('papel','responsavel'),
+      db.from('rem_cargo_titulares').select('cargo,usuario_id').is('vigencia_fim',null)
+    ]);
+    const titulares=new Set((tit||[]).filter(x=>['coordenacao_solicitante','unesco_financeiro'].includes(x.cargo)).map(x=>x.usuario_id));
+    const falta=[];
+    if(!(resp||[]).some(r=>!titulares.has(r.usuario_id))) falta.push('a atividade não tem responsável que possa assinar a etapa 2 (precisa de um responsável que não seja titular da coordenação nem da UNESCO — ajuste em Atividades)');
+    if(!(tit||[]).some(x=>x.cargo==='coordenacao_solicitante')) falta.push('o cargo de coordenação solicitante está sem titular (Remanejamentos › Signatários)');
+    if(!(tit||[]).some(x=>x.cargo==='unesco_financeiro')) falta.push('o cargo UNESCO está sem titular (Remanejamentos › Signatários)');
+    if(falta.length) document.getElementById('cx-aviso').innerHTML=`<div class="alert alert-warning">${tdIc('alerta')}<div>Dá para salvar o rascunho, mas o envio vai ser recusado: ${falta.map(esc).join('; ')}.</div></div>`;
+  }catch(e){}
+}
+
+async function sha256Hex(buf){
+  const h=await crypto.subtle.digest('SHA-256',buf);
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function salvarCancelamento(){
+  const t=tdrAtual; if(!t)return;
+  const erro=m=>{const e=document.getElementById('cx-erro');e.textContent=m;e.hidden=false;};
+  const just=document.getElementById('cx-just').value.trim();
+  const arq=document.getElementById('cx-nota').files[0];
+  if(just.length<30){erro('Escreva a justificativa (mínimo 30 caracteres).');return;}
+  if(!arq&&!cancEdit?.nota_caminho){erro('Anexe a nota técnica em PDF.');return;}
+  if(arq&&!/\.pdf$/i.test(arq.name)&&arq.type!=='application/pdf'){erro('A nota técnica precisa ser um PDF.');return;}
+  if(arq&&arq.size>20*1024*1024){erro('O PDF passa de 20 MB.');return;}
+  const b=document.getElementById('cx-ok');b.disabled=true;b.textContent='Salvando…';
+  try{
+    const dados={motivo_tipo:document.getElementById('cx-motivo').value,justificativa:just,
+      destino_valor:document.getElementById('cx-destino').value};
+    if(!cancEdit){dados.tdr_id=t.id;dados.uuid_cliente=crypto.randomUUID();}
+    if(arq){
+      const buf=await arq.arrayBuffer();
+      const sha=await sha256Hex(buf);
+      const caminho=`cancelamentos/${t.id}/${Date.now()}-${sha.slice(0,12)}.pdf`;
+      const {error:eUp}=await db.storage.from('tdrs-arquivos').upload(caminho,new Blob([buf],{type:'application/pdf'}),{contentType:'application/pdf',upsert:false});
+      if(eUp)throw new Error('Não foi possível enviar a nota técnica: '+eUp.message);
+      Object.assign(dados,{nota_caminho:caminho,nota_nome:arq.name,nota_sha256:sha,nota_tamanho:arq.size});
+    }
+    const {data:id,error}=await db.rpc('fn_tcan_salvar',{p_id:cancEdit?.id||null,p_dados:dados});
+    if(error)throw new Error(msgCanc(error.message));
+    toast('Pedido salvo. Confira e envie para assinatura na fila.','success');
+    location.href='remanejamentos.html?can='+id;
+  }catch(e){
+    erro(e.message||String(e));
+    b.disabled=false;b.innerHTML=tdIc('salvar')+'Salvar e revisar para enviar';
+  }
+}
+function msgCanc(m){
+  if(/Could not find the function|relation .* does not exist|tdr_cancelamentos/.test(m||'')&&/function|relation/.test(m||''))
+    return 'O cancelamento de TDR ainda não foi instalado no banco (migração 20261012_tdr_cancelamento).';
+  return String(m||'Erro desconhecido.').replace(/^[A-Z_]+:\s*/,'');
+}
+
 function abrirRevisor(){
   if(!tdrAtual)return;
   window.location.href=`revisor-tdr.html?tdr_id=${tdrAtual.id}`;
@@ -2467,6 +2716,7 @@ function abrirRevisor(){
       if(todosTDRs.length>0){
         clearInterval(tentarAbrir);
         await abrirTDR(abrirId);
+        if(params.get('cancelar')==='1') abrirCancelamento();
         if(aba==='versoes'){
           await new Promise(r=>setTimeout(r,400));
           document.getElementById('tab-btn-versoes')?.click();

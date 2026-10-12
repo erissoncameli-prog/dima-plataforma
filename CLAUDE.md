@@ -362,6 +362,23 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
 - **Painel × razão** (`rem_08`): `vw_saldo_atividade` desconta o excedente de contrato como o razão. O painel da
   Visão Geral conta o excedente como **firmado**; `js/relatorio-saldo-atividade.js` recebe `excedente_contrato_usd`
   por atividade (dashboard e `relatorios.html` leem da view) e mostra a linha "Contrato acima do valor do TDR".
+- **Cancelamento de TDR** (migração `20261012_tdr_cancelamento` + `_sql_editor`): TDR **só** vira `cancelado` pela
+  efetivação de um pedido `tdr_cancelamentos` (chave `dima.tdr_cancelamento='efetivar'`, trigger `trg_tdr_guarda_cancelamento`);
+  vale para **todas as fases**, inclusive por `fn_registrar_acao_tdr('cancelado')`. Cancelado **não volta**. Pedido = motivo
+  (`licitacao_deserta|licitacao_fracassada|sem_necessidade|substituido|outro`) + justificativa (≥ 30) + **nota técnica PDF** em
+  `tdrs-arquivos/cancelamentos/…` com `nota_sha256` (calculado no navegador; a validação confere que o arquivo existe em
+  `storage.objects`). Rascunho só por `fn_tcan_salvar` (coordenação, 1 pedido vivo por TDR); envio e assinaturas por
+  `fn_tcan_assinar` (**só service_role**, Edge Function `assinar-remanejamento` ação `assinar_cancelamento`, mesma senha e
+  bloqueio). Cadeia curta: 1 `coordenacao_solicitante` → 2 responsável da atividade do TDR (**exceto** titulares da coordenação
+  e da UNESCO — senão a segregação travaria a etapa 3) → 3 `unesco_financeiro` ⇒ efetiva. Em aprovação o TDR fica congelado
+  (fase/valor/atividade) e não recebe contrato (`trg_contrato_tdr_cancelamento`); o valor continua comprometido até a última
+  assinatura. Hash `fn_tcan_hash` = pedido + nota + TDR ao vivo. Efetivar grava `tdr_acoes` 'cancelado' e, se o TDR estava
+  em licitação, a tentativa final em `tdr_licitacoes`. O valor liberado sai pelo mecanismo que já existia (débito do TDR some,
+  evento `tdr_cancelado`, `fn_cob_reavaliar`). **Licitação sem êxito relançada** não tem cadeia: `fn_tdr_licitacao_sem_exito`
+  grava a rodada em `tdr_licitacoes` (imutável) e devolve o TDR a `aprovado` com os dados de licitação limpos. Tela: botões
+  "Pedir cancelamento"/"Licitação sem êxito" no modal do TDR (`pages/tdrs.html`); assinatura na **fila única** de
+  `remanejamentos.html` (`canAbrir`, `?can=<id>`); relatório `relAbrirCancelamentoA4`. Sino `tdr_cancelamento_*` e a policy que
+  impede remover a nota dependem do `_sql_editor.sql`. Testes: `supabase/tests/remanejamento/20_cancelamento_tdr.sql`.
 - `apply_migration` com `DELETE`/`DROP`/`TRUNCATE` no texto (até dentro de corpo de função) fica esperando uma
   confirmação que não chega à sessão e expira. Preferir desenho sem apagar (flag `ativo`, `create or replace`,
   policy condicional); o que exigir DROP vai num `*_sql_editor.sql` para colar no SQL Editor.
@@ -1098,7 +1115,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
-| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`); envia/reenvia os e-mails da cadeia e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
+| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`) e a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 
 ---
 

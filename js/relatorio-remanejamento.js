@@ -5,6 +5,8 @@
 //   · relAbrirPedidoA4(D, ctx)   pedido de remanejamento: itens, procedência de
 //                                cada centavo, cadeia de assinaturas (nome,
 //                                cargo, data, decisão, SHA-256) e histórico
+//   · relAbrirCancelamentoA4(D, ctx) pedido de cancelamento de TDR: TDR, motivo,
+//                                nota técnica (nome e SHA-256), valor a liberar, cadeia e histórico
 //   · relAbrirExtratoA4(id)      extrato da atividade = fn_orcamento_extrato:
 //                                créditos com procedência − débitos de hoje = saldo
 // Janela aberta ANTES de qualquer await (senão o navegador bloqueia o pop-up).
@@ -31,8 +33,8 @@ const relData = d => d ? new Date(d).toLocaleString('pt-BR', { dateStyle: 'short
 const relE = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
 function relJanela() { return FolhaA4.janela() }
-function relEscrever(w, titulo, corpo) {
-  FolhaA4.escrever(w, { titulo, selo: 'REMANEJAMENTO', tema: 'financeiro', corpo, css: REL_CSS })
+function relEscrever(w, titulo, corpo, selo, tema) {
+  FolhaA4.escrever(w, { titulo, selo: selo || 'REMANEJAMENTO', tema: tema || 'financeiro', corpo, css: REL_CSS })
 }
 
 const REL_STATUS = { rascunho: 'Rascunho', em_aprovacao: 'Em aprovação', efetivado: 'Efetivado', recusado: 'Recusado', cancelado: 'Cancelado', estornado: 'Estornado' }
@@ -104,6 +106,64 @@ function relAbrirPedidoA4(D, ctx) {
     <p class="mono">Impressão digital do documento (SHA-256): ${relE(D.hash || '')}</p>
     <p class="mut">Cada assinatura grava o SHA-256 do pedido que a pessoa viu, depois de reconfirmar a senha no servidor.
     Se o pedido mudar, o hash muda e as assinaturas anteriores deixam de valer.</p>`)
+}
+
+// ── Pedido de cancelamento de TDR ──────────────────────────────────────
+// D = REM.detalhe { tipo:'can', P (tdr_cancelamentos), etapas, assin, hist, hash, atv }
+// ctx = { nome(uid), evento(cod), motivo(cod), destino(cod), papel(cod) }
+function relAbrirCancelamentoA4(D, ctx) {
+  const w = relJanela(); if (!w) return
+  const P = D.P
+  const validas = D.assin.filter(a => a.versao === P.versao && !a.invalidada_em)
+  const cadeia = D.etapas.map(e => {
+    const a = validas.find(x => x.etapa_id === e.id && x.decisao === 'aprovar') || validas.find(x => x.etapa_id === e.id)
+    return `<div><b>${e.ordem}. ${relE(ctx.papel(e.papel))}</b><br>${a
+      ? `${relE(REL_DECISAO[a.decisao] || a.decisao)}: <b>${relE(a.nome_completo)}</b>${a.cargo ? ' (' + relE(REL_CARGO[a.cargo] || a.cargo) + ')' : ''}<br>
+         <span class="mut">${relData(a.criado_em)}</span>${a.motivo ? '<br>Motivo: ' + relE(a.motivo) : ''}
+         <div class="mono mut">SHA-256 assinado: ${relE(a.hash_documento || '')}</div>`
+      : '<span class="mut">pendente</span>'}</div>`
+  }).join('')
+  const invalidas = D.assin.filter(a => a.invalidada_em)
+  const hist = D.hist.map(h => `<tr><td>${relData(h.criado_em)}</td><td>${relE(ctx.nome(h.usuario_id))}</td>
+    <td>${relE(ctx.evento(h.evento))}${h.etapa_ordem ? ' (etapa ' + h.etapa_ordem + ')' : ''}</td><td>${relE(h.motivo || '')}</td></tr>`).join('')
+  const brl = v => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const tent = (D.tentativas || []).map(x => `<tr><td>${x.rodada}ª</td><td>${relE(x.resultado)}</td>
+    <td>${relE([x.modalidade, x.numero_processo && 'processo ' + x.numero_processo].filter(Boolean).join(' · '))}</td>
+    <td>${relE(x.desfecho === 'relancada' ? 'relançada' : 'cancelamento')}</td><td>${relE(x.motivo)}</td></tr>`).join('')
+
+  relEscrever(w, `Cancelamento do TDR ${P.tdr_numero} — ${P.numero}`, `
+    <div class="kpis">
+      <div class="kpi"><b>${relE(REL_STATUS[P.status] || P.status)}</b><span>situação do pedido</span></div>
+      <div class="kpi"><b>${relUSD(P.valor_usd)}</b><span>${P.status === 'efetivado' ? 'valor liberado' : 'valor a liberar'} (${brl(P.valor_brl)})</span></div>
+      <div class="kpi"><b>v${P.versao}</b><span>versão do documento</span></div>
+      <div class="kpi"><b>${relData(P.efetivado_em || P.criado_em)}</b><span>${P.efetivado_em ? 'efetivado em' : 'criado em'}</span></div>
+    </div>
+    ${P.motivo_encerramento ? `<div class="aviso"><b>Encerramento:</b> ${relE(P.motivo_encerramento)}</div>` : ''}
+    ${P.status === 'efetivado' ? '<div class="ok">O TDR foi cancelado e o valor voltou ao saldo livre da atividade.</div>' : ''}
+    <h2>TDR</h2>
+    <table><tbody>
+      <tr><td style="width:28%" class="mut">Número</td><td><b>${relE(P.tdr_numero)}</b></td></tr>
+      <tr><td class="mut">Atividade</td><td>${relE(D.atv?.codigo || '')} ${relE(D.atv?.nome_pt || '')}</td></tr>
+      <tr><td class="mut">Objeto</td><td>${relE(P.tdr_objeto || '—')}</td></tr>
+      <tr><td class="mut">Fase quando o pedido foi feito</td><td>${relE(P.tdr_status_origem || '—')}</td></tr>
+    </tbody></table>
+    <h2>Motivo e justificativa</h2>
+    <p><b>${relE(ctx.motivo(P.motivo_tipo))}</b></p>
+    <p style="line-height:1.5">${relE(P.justificativa)}</p>
+    <p class="mut">Destino pretendido do valor: ${relE(ctx.destino(P.destino_valor))}. Solicitado por ${relE(ctx.nome(P.criado_por))} em ${relData(P.criado_em)}.</p>
+    <h2>Nota técnica</h2>
+    <p>${relE(P.nota_nome || '—')}${P.nota_tamanho ? ' <span class="mut">(' + Math.round(P.nota_tamanho / 1024) + ' KB)</span>' : ''}</p>
+    <p class="mono">SHA-256 do arquivo: ${relE(P.nota_sha256 || '—')}</p>
+    ${tent ? `<h2>Licitações sem êxito</h2><table><thead><tr><th>Rodada</th><th>Resultado</th><th>Processo</th><th>Desfecho</th><th>O que aconteceu</th></tr></thead><tbody>${tent}</tbody></table>` : ''}
+    <h2>Cadeia de aprovação</h2><div class="assin">${cadeia || '<div class="mut">A cadeia é montada quando o pedido é enviado.</div>'}</div>
+    ${invalidas.length ? `<p class="mut" style="margin-top:6px">${invalidas.length} assinatura(s) de versões anteriores ou devolvidas foram invalidadas e constam no histórico.</p>` : ''}
+    <h2>Histórico</h2>
+    <table><thead><tr><th>Data</th><th>Quem</th><th>Evento</th><th>Motivo</th></tr></thead><tbody>${hist}</tbody></table>
+    <h2>Integridade</h2>
+    <p class="mono">Impressão digital do documento (SHA-256): ${relE(D.hash || '')}</p>
+    <p class="mut">O documento assinado inclui o pedido, o SHA-256 da nota técnica e o TDR (fase, valor e atividade).
+    Cada assinatura grava esse SHA-256 depois de reconfirmar a senha no servidor; se algo mudar, as assinaturas anteriores deixam de valer.</p>`,
+    'CANCELAMENTO DE TDR', 'tdrs')
 }
 
 // ── Extrato da atividade (fn_orcamento_extrato) ────────────────────────
