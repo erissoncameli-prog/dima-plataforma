@@ -389,7 +389,7 @@ function buildDet(c){
         +'<div style="min-width:0"><div class="pdf-card-nome">PDF original (EN) ausente</div><div class="pdf-card-meta">Contrato assinado pela UNESCO</div></div>'
         +(c.status==='aguardando_cobertura'
           ?'<span class="ct-pill ct-p-er" title="Só depois da cobertura">'+ctIc('cadeado','p')+'Travado</span>'
-          :'<label class="ct-btn peq" tabindex="0" style="cursor:pointer">'+ctIc('upload','p')+'Enviar<input type="file" accept=".pdf" style="display:none" onchange="uploadDireto(\''+c.id+'\',this.files[0],\'en\')"></label>')
+          :podeEnviarDocContrato()?'<label class="ct-btn peq" tabindex="0" style="cursor:pointer">'+ctIc('upload','p')+'Enviar<input type="file" accept=".pdf" style="display:none" onchange="uploadDireto(\''+c.id+'\',this.files[0],\'en\')"></label>':'<span></span>')
         +'</div>';
     }
     if(c.contrato_pt_url){
@@ -397,7 +397,7 @@ function buildDet(c){
     } else if(c.contrato_assinado_url){
       h+='<div class="pdf-card falta"><div class="pdf-card-icon pt">'+ctIc('globo')+'</div>'
         +'<div style="min-width:0"><div class="pdf-card-nome">Tradução PT não gerada</div><div class="pdf-card-meta">A IA traduz o contrato do inglês para o português</div></div>'
-        +'<button type="button" class="ct-btn pri peq" id="btn-tr-'+c.id+'" onclick="traduzir(\''+c.id+'\')">'+ctIc('globo','p')+'Traduzir</button>'
+        +(podeEnviarDocContrato()?'<button type="button" class="ct-btn pri peq" id="btn-tr-'+c.id+'" onclick="traduzir(\''+c.id+'\')">'+ctIc('globo','p')+'Traduzir</button>':'<span></span>')
         +'</div>';
     } else {
       h+='<div class="pdf-card falta apagado"><div class="pdf-card-icon vazio">'+ctIc('globo')+'</div>'
@@ -803,6 +803,8 @@ async function carregarEncerramentos(){
 }
 var urlDocsContrato=function(caminho){return SUPABASE_URL+'/storage/v1/object/public/contratos-docs/'+caminho;};
 var podeAnexarTermo=function(){return ['super_admin','coordenacao'].indexOf(appState.perfil)>=0;};
+// envia/troca PDF do contrato: mesmos perfis que gravam contratos (policy contratos_docs_enviar)
+var podeEnviarDocContrato=function(){return ['super_admin','coordenacao','financeiro'].indexOf(appState.perfil)>=0;};
 
 function blocoEncerramento(c){
   var lista=encPorContrato[c.id]||[];
