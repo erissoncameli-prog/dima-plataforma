@@ -11,6 +11,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Atividades -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/atividades.css" rel="stylesheet">
+<link href="../css/tarefas-vinculadas.css" rel="stylesheet">
 </head>
 <body class="dgm">
 <div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando atividades…</div></div></div>
@@ -52,6 +53,7 @@
 <script src="../js/layout.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/tarefas-vinculadas.js"></script>
 <script>
 let todasAtividades = [];
 let ativFiltradas = [];
@@ -60,11 +62,13 @@ let resultadosMap = {};
 let tdrsPorAtividade = {};
 let tdrsAbertos = {};
 let painelAberto = {};
+let painelTkAberto = {}; // painel de tarefas vinculadas (js/tarefas-vinculadas.js)
 let todosUsuarios = [];
 let respPorAtividade = {};
 let senhaCallback = null;
 let todosMatrizItens = []; // cache dos indicadores da matriz
 let matrizPorAtividade = {}; // cache de vínculos atividade_matriz
+let odsTitulo = {}, kmTitulo = {}; // nomes de ods_refs / metas_km_refs (tooltip)
 let filtroResultado = '';
 
 // ── Ícones (SVG, sem emoji) ───────────────────────────────
@@ -133,6 +137,8 @@ function iniciais(nome){ return (nome||'?').split(' ').filter(Boolean).slice(0,2
           <option value="alerta">TDR sem arquivo</option>
           <option value="semresp">Sem responsável</option>
         </select>
+        <select id="fil-ods" onchange="filtrar()" aria-label="ODS"><option value="">ODS: todos</option></select>
+        <select id="fil-km" onchange="filtrar()" aria-label="Meta Kunming-Montreal"><option value="">Meta KM: todas</option></select>
         <span id="contador" class="at-cont"></span>
         ${PODE.editarAtividade() ? `<button type="button" class="at-btn pri" onclick="novaAtividade()">${atIc('mais','p')}Nova atividade</button>` : ''}
       </div>
@@ -196,16 +202,21 @@ async function carregarDados() {
       db.from('vw_saldo_atividade').select('*'),
       db.from('tdrs').select('id,numero,atividade_id,tipo,objeto_pt,valor_brl,valor_usd,status,arquivo_url,arquivo_nome,prioridade,elaborador_id'),
       db.from('usuarios').select('id,nome_completo,perfil,email').eq('ativo',true).order('nome_completo'),
-      db.from('atividade_responsaveis').select('*').eq('ativo',true)
+      db.from('atividade_responsaveis').select('*').eq('ativo',true),
+      TarefasVinc.carregar(db)
     ]);
 
     todosUsuarios = usuarios || [];
 
     // Carregar indicadores da matriz e vínculos existentes em paralelo
-    const [{ data: matrizItens }, { data: matrizLinks }] = await Promise.all([
-      db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,meta_descricao').eq('ativo',true).order('ordem'),
-      db.from('atividade_matriz').select('atividade_id,matriz_item_id')
+    const [{ data: matrizItens }, { data: matrizLinks }, { data: odsRefs }, { data: kmRefs }] = await Promise.all([
+      db.from('matriz_itens').select('id,resultado,produto_codigo,produto_titulo,indicador,meta_numerica,unidade,meta_descricao,ods,metas_km').eq('ativo',true).order('ordem'),
+      db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
+      db.from('ods_refs').select('numero,titulo'),
+      db.from('metas_km_refs').select('numero,titulo')
     ]);
+    odsTitulo = Object.fromEntries((odsRefs||[]).map(r => [String(r.numero), r.titulo]));
+    kmTitulo = Object.fromEntries((kmRefs||[]).map(r => [String(r.numero), r.titulo]));
     todosMatrizItens = matrizItens || [];
     matrizPorAtividade = {};
     (matrizLinks||[]).forEach(l => {
@@ -244,9 +255,11 @@ async function carregarDados() {
         tdrs_sem_arquivo: semArquivo,
         responsaveis: respPorAtividade[a.id] || [],
         tem_responsavel: (respPorAtividade[a.id]||[]).length > 0,
+        vinc: vinculosOdsKm(a, matrizPorAtividade[a.id] || []),
       };
     });
 
+    popularFiltrosOdsKm();
     renderStats();
     filtrar();
   } catch(e) {
@@ -292,6 +305,8 @@ function mostrarSemResponsavel(){
   document.getElementById('busca').value='';
   document.getElementById('fil-fase').value='';
   document.getElementById('fil-tdr-sit').value='semresp';
+  document.getElementById('fil-ods').value='';
+  document.getElementById('fil-km').value='';
   filtrarResultado('');
 }
 function filtrarResultado(r){
@@ -305,6 +320,8 @@ function filtrar() {
   const res = filtroResultado;
   const fase = document.getElementById('fil-fase').value;
   const tdrSit = document.getElementById('fil-tdr-sit').value;
+  const ods = document.getElementById('fil-ods').value;
+  const km = document.getElementById('fil-km').value;
 
   ativFiltradas = todasAtividades.filter(a => {
     const nome = campo(a,'nome').toLowerCase();
@@ -315,12 +332,58 @@ function filtrar() {
     if (tdrSit === 'sem' && a.tdrs_count > 0) return false;
     if (tdrSit === 'alerta' && a.tdrs_sem_arquivo === 0) return false;
     if (tdrSit === 'semresp' && a.tem_responsavel) return false;
+    if (ods && !a.vinc.ods.has(ods)) return false;
+    if (km && !a.vinc.km.has(km)) return false;
     return true;
   });
 
   document.getElementById('contador').textContent =
     `${ativFiltradas.length} de ${todasAtividades.length} atividades`;
   renderTabela();
+}
+
+// ── ODS e metas Kunming-Montreal da atividade ─────────────
+// União de duas origens: marcação direta (atividades.ods / metas_km) e os indicadores
+// da Matriz ligados à atividade (atividade_matriz → matriz_itens.ods / metas_km).
+// Devolve { ods: Map(num → {manual, ind:[códigos]}), km: idem }.
+const numOrd = (a, b) => Number(a) - Number(b) || String(a).localeCompare(String(b));
+function vinculosOdsKm(a, matrizIds) {
+  const v = { ods: new Map(), km: new Map() };
+  const pega = (m, n) => m.get(n) || m.set(n, { manual: false, ind: [] }).get(n);
+  (a.ods || []).forEach(n => { pega(v.ods, String(n)).manual = true; });
+  (a.metas_km || []).forEach(n => { pega(v.km, String(n)).manual = true; });
+  matrizIds.forEach(id => {
+    const mi = todosMatrizItens.find(x => x.id === id); if (!mi) return;
+    (mi.ods || []).forEach(n => pega(v.ods, String(n)).ind.push(mi.produto_codigo));
+    (mi.metas_km || []).forEach(n => pega(v.km, String(n)).ind.push(mi.produto_codigo));
+  });
+  return v;
+}
+function origemTxt(o) {
+  const ind = [...new Set(o.ind)];
+  return [ind.length ? `pela Matriz (indicador${ind.length > 1 ? 'es' : ''} ${ind.join(', ')})` : '', o.manual ? 'marcado na atividade' : '']
+    .filter(Boolean).join(' e ');
+}
+function celOdsKm(a) {
+  const ods = [...a.vinc.ods.keys()].sort(numOrd), km = [...a.vinc.km.keys()].sort(numOrd);
+  if (!ods.length && !km.length) return '';
+  const cor = n => (ODS.find(o => o[0] === n) || [])[2] || 'var(--txt-3)';
+  return `<div class="at-odskm">
+    ${ods.map(n => `<span class="at-ods" style="--c:${cor(n)}" title="${esc(`ODS ${n} · ${odsTitulo[n] || (ODS.find(o => o[0] === n) || [])[1] || ''} — ${origemTxt(a.vinc.ods.get(n))}`)}">${esc(n)}</span>`).join('')}
+    ${ods.length && km.length ? '<span class="at-odskm-sep" aria-hidden="true"></span>' : ''}
+    ${km.map(n => `<span class="at-kmp" title="${esc(`Meta ${n} Kunming-Montreal · ${kmTitulo[n] || ''} — ${origemTxt(a.vinc.km.get(n))}`)}">KM ${esc(n)}</span>`).join('')}
+  </div>`;
+}
+function popularFiltrosOdsKm() {
+  const ods = new Set(), km = new Set();
+  todasAtividades.forEach(a => { a.vinc.ods.forEach((_, n) => ods.add(n)); a.vinc.km.forEach((_, n) => km.add(n)); });
+  const sel = (id, todos, nums, rot) => {
+    const el = document.getElementById(id); const atual = el.value;
+    el.innerHTML = `<option value="">${todos}</option>` + [...nums].sort(numOrd).map(n => `<option value="${esc(n)}">${rot(n)}</option>`).join('');
+    el.value = nums.has(atual) ? atual : '';
+  };
+  sel('fil-ods', 'ODS: todos', ods, n => esc(`ODS ${n} · ${odsTitulo[n] || (ODS.find(o => o[0] === n) || [])[1] || ''}`));
+  sel('fil-km', 'Meta KM: todas', km, n => esc(`KM ${n}${kmTitulo[n] ? ' · ' + kmTitulo[n] : ''}`));
 }
 
 // Coluna Execução: pago em destaque, barra (pago + comprometido) e saldo livre
@@ -375,6 +438,7 @@ function renderTabela() {
       <td class="c-nome">
         <div class="at-nm">${rCod?`<span class="at-rtag" style="background:var(${resTok(rCod)})">${esc(rCod)}</span>`:''}${esc(campo(a,'nome'))}</div>
         ${a.wbs_unesco?`<div class="at-wbs">${esc(a.wbs_unesco)}</div>`:''}
+        ${celOdsKm(a)}
       </td>
       <td>${pillFase(a.fase)}</td>
       <td class="c-orc"><div class="at-num">${usd(a.orcamento_usd)}</div></td>
@@ -384,6 +448,8 @@ function renderTabela() {
         <button type="button" class="at-tdrb ${tdrClass}" aria-expanded="${aberto}" aria-controls="${painelId}" onclick="togglePainel('${a.id}')"
           title="${temAlerta?a.tdrs_sem_arquivo+' TDR(s) sem arquivo':'Ver os TDRs da atividade'}">${temAlerta?atIc('alerta','p'):''}${tdrTxt}${atIc('chev','p chev')}</button>
         ${a.tdrs_valor_usd>0?`<div class="at-tdrv">${usdc(a.tdrs_valor_usd)}</div>`:''}
+        <div class="at-tkb">${TarefasVinc.botao(TarefasVinc.daAtividade(a.id),`toggleTarefas('${a.id}')`,
+          `aria-expanded="${!!painelTkAberto[a.id]}" aria-controls="painel-tk-${a.id}"`)}</div>
       </td>
       ${podEditar?`<td><button type="button" class="at-btn ic" aria-label="Editar ${esc(a.codigo)}" title="Editar" onclick="abrirModal('${a.id}')">${atIc('lapis')}</button></td>`
         :podVer?`<td><button type="button" class="at-btn ic" aria-label="Ver ${esc(a.codigo)}" title="Ver" onclick="abrirModal('${a.id}',true)">${atIc('olho')}</button></td>`:''}
@@ -416,7 +482,16 @@ function renderTabela() {
       </td>
     </tr>`;
 
-    return linhaAtiv + painelTdrs;
+    const painelTk = `<tr class="at-painel" id="painel-tk-${a.id}"${painelTkAberto[a.id]?'':' hidden'}>
+      <td colspan="${nCols}">
+        <div class="at-painel-in">
+          <div class="at-painel-hd">Tarefas a fazer da atividade ${esc(a.codigo)}</div>
+          ${TarefasVinc.lista(TarefasVinc.daAtividade(a.id),{atividadeId:a.id,mostrarTdr:true})}
+        </div>
+      </td>
+    </tr>`;
+
+    return linhaAtiv + painelTdrs + painelTk;
   }).join('');
 }
 
@@ -428,6 +503,15 @@ function togglePainel(ativId) {
   painelAberto[ativId] = aberto;
   document.getElementById(`row-${ativId}`)?.classList.toggle('aberta', aberto);
   document.querySelector(`#row-${ativId} .at-tdrb`)?.setAttribute('aria-expanded', String(aberto));
+}
+
+function toggleTarefas(ativId) {
+  const el = document.getElementById(`painel-tk-${ativId}`);
+  if (!el) return;
+  const aberto = el.hidden;
+  el.hidden = !aberto;
+  painelTkAberto[ativId] = aberto;
+  document.querySelector(`#row-${ativId} .tv-btn`)?.setAttribute('aria-expanded', String(aberto));
 }
 
 async function abrirArquivoTDR(tdrId, url) {
@@ -453,6 +537,32 @@ const ODS = [
   ['13','Clima','#3F7E44'],['14','Vida na água','#0A97D9'],['15','Vida terrestre','#56C02B'],['16','Paz','#00689D'],['17','Parcerias','#19486A']
 ]; // cores oficiais dos ODS (identidade da ONU, iguais nos dois temas)
 const KM_PROJETO = ['2','4','10','11','21','22','23'];
+
+// Janela de edição: ODS/KM que vêm dos indicadores marcados ficam marcados e travados
+// (coerente com a linha da lista). A marcação manual fica guardada em data-manual
+// e é ela que vai para atividades.ods / metas_km ao salvar.
+function atualizarHerdados() {
+  const ids = [...document.querySelectorAll('#modal-body input[name="ed-matriz"]:checked')].map(el => el.value);
+  const herd = { 'ed-ods': new Map(), 'ed-km': new Map() };
+  ids.forEach(id => {
+    const mi = todosMatrizItens.find(x => x.id === id); if (!mi) return;
+    (mi.ods || []).forEach(n => { const k = String(n); herd['ed-ods'].set(k, [...(herd['ed-ods'].get(k) || []), mi.produto_codigo]); });
+    (mi.metas_km || []).forEach(n => { const k = String(n); herd['ed-km'].set(k, [...(herd['ed-km'].get(k) || []), mi.produto_codigo]); });
+  });
+  Object.entries(herd).forEach(([nome, mapa]) => {
+    document.querySelectorAll(`#modal-body input[name="${nome}"]`).forEach(el => {
+      const lab = el.closest('label');
+      if (mapa.has(el.value)) {
+        if (!el.dataset.herdado) { el.dataset.manual = el.checked ? '1' : ''; el.dataset.herdado = '1'; }
+        el.checked = true; el.disabled = true; lab.classList.add('herdado');
+        lab.title = `Vem dos indicadores da Matriz: ${[...new Set(mapa.get(el.value))].join(', ')}. Para tirar, desmarque o indicador.`;
+      } else if (el.dataset.herdado) {
+        el.checked = el.dataset.manual === '1'; delete el.dataset.herdado; el.disabled = false;
+        lab.classList.remove('herdado'); lab.removeAttribute('title');
+      }
+    });
+  });
+}
 
 function abrirModal(id, somenteLeitura = false) {
   ativEditando = todasAtividades.find(a => a.id === id);
@@ -516,17 +626,17 @@ function abrirModal(id, somenteLeitura = false) {
     </div>
 
     <div class="at-sec">
-      <div class="at-sec-h">ODS vinculados <span class="op">opcional</span></div>
+      <div class="at-sec-h">ODS vinculados <span class="op">opcional · ${atIc('cadeado','p')} = vem dos indicadores da Matriz (abaixo)</span></div>
       <div class="at-chips" id="ods-checks">
-        ${ODS.map(([num,label,cor])=>`<label class="at-chip" style="--c:${cor}"><input type="checkbox" name="ed-ods" value="${num}" ${(a.ods||[]).includes(num)?'checked':''}><i class="dot"></i>ODS ${num} ${esc(label)}</label>`).join('')}
+        ${ODS.map(([num,label,cor])=>`<label class="at-chip" style="--c:${cor}"><input type="checkbox" name="ed-ods" value="${num}" ${(a.ods||[]).includes(num)?'checked':''}><i class="dot"></i>ODS ${num} ${esc(label)}<span class="at-hd">${atIc('cadeado','p')}</span></label>`).join('')}
       </div>
     </div>
 
     <div class="at-sec">
-      <div class="at-sec-h">Metas Kunming-Montreal <span class="op">opcional · ★ = metas do projeto</span></div>
+      <div class="at-sec-h">Metas Kunming-Montreal <span class="op">opcional · ★ = metas do projeto · ${atIc('cadeado','p')} = vem dos indicadores</span></div>
       <div class="at-chips">
         ${Array.from({length:23},(_,i)=>{ const num=String(i+1);
-          return `<label class="at-chip" style="--c:var(--at-km)"><input type="checkbox" name="ed-km" value="${num}" ${(a.metas_km||[]).includes(num)?'checked':''}>KM ${num}${KM_PROJETO.includes(num)?' ★':''}</label>`; }).join('')}
+          return `<label class="at-chip" style="--c:var(--at-km)"><input type="checkbox" name="ed-km" value="${num}" ${(a.metas_km||[]).includes(num)?'checked':''}>KM ${num}${KM_PROJETO.includes(num)?' ★':''}<span class="at-hd">${atIc('cadeado','p')}</span></label>`; }).join('')}
       </div>
     </div>
 
@@ -546,6 +656,8 @@ function abrirModal(id, somenteLeitura = false) {
   const ov = document.getElementById('modal-atividade');
   ov.classList.add('aberto');
   document.getElementById('btn-salvar-atividade').hidden = somenteLeitura;
+  document.querySelectorAll('#modal-body input[name="ed-matriz"]').forEach(el => el.addEventListener('change', atualizarHerdados));
+  atualizarHerdados();
   if (somenteLeitura) {
     document.getElementById('modal-body').querySelectorAll('input,select,textarea,button').forEach(el => { el.disabled = true; });
   }
@@ -615,14 +727,17 @@ async function salvarAtividade() {
 
   // Capturar valores ANTES de pedir senha (evita perda de referência DOM)
   const getChecked = (name) => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el=>el.value);
+  // ODS/KM: grava só a marcação manual — o que vem dos indicadores é derivado (atualizarHerdados)
+  const getManual = (name) => [...document.querySelectorAll(`input[name="${name}"]`)]
+    .filter(el => el.dataset.herdado ? el.dataset.manual === '1' : el.checked).map(el=>el.value);
   const updates = {
     fase: document.getElementById('ed-fase')?.value,
     ano1_usd: parseFloat(document.getElementById('ed-ano1')?.value)||0,
     ano2_usd: parseFloat(document.getElementById('ed-ano2')?.value)||0,
     nome_pt: document.getElementById('ed-nome-pt')?.value.trim(),
     eixo: document.getElementById('ed-eixo')?.value.trim()||null,
-    ods: getChecked('ed-ods'),
-    metas_km: getChecked('ed-km'),
+    ods: getManual('ed-ods'),
+    metas_km: getManual('ed-km'),
   };
   const matrizSelecionados = getChecked('ed-matriz');
   const ativId = ativEditando.id;

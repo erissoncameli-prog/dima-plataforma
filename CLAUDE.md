@@ -700,6 +700,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   Claro/Escuro no topo) e componentes em `css/atividades.css` (prefixo `at-`; cores de fase, resultado e dinheiro = tokens
   `--at-*`). Sem `<style>` próprio; ícones SVG por `atIc()`, sem emoji. Exceção: cores oficiais dos ODS (identidade ONU) no JS.
 - Coluna **Execução** = pago em destaque + barra (pago + comprometido; acima do orçamento em vermelho) + livre.
+- **ODS e metas Kunming-Montreal** na linha (abaixo do nome) e nos filtros "ODS"/"Meta KM" = **união** da marcação direta
+  (`atividades.ods`/`metas_km`) com os indicadores da Matriz ligados (`atividade_matriz` → `matriz_itens.ods`/`metas_km`);
+  `vinculosOdsKm(a)`, tooltip diz a origem; nomes de `ods_refs`/`metas_km_refs`. Na janela, os que vêm dos indicadores marcados
+  ficam travados (`atualizarHerdados`, cadeado) e o salvar grava **só a marcação manual** (`getManual`) — derivado nunca é copiado.
 - **Fase muda só pela janela de edição** (não há mais select na lista). Orçamento vigente fica com cadeado (só o razão grava).
 - Janelas: classe **`at-ov`** (no seletor de escopo de `diagnostico-mesa.css`) + `role="dialog"`; foco, Esc e Tab presos por
   `atModalAbriu`/`atModalFechou`. No celular a tabela vira cartões (CSS, `max-width: 760px`).
@@ -1043,6 +1047,11 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - `tarefa_anexos.comentario_id` / `checklist_id` ligam o arquivo ao comentário (e-mail ou painel) e/ou à subtarefa — **sempre** preencher ao gravar anexo que chega junto com um comentário.
 - Observador é avisado no sino (`tarefa_observador`) e por e-mail ao ser incluído; `enviar-email-tarefa` aceita `destinatarios` (uuid[]) para avisar só os novos.
 - **Tarefa restrita** (`tarefas.restrita`): visível só para criador, participantes e `super_admin` — coordenação e responsáveis da atividade **não** veem. Regra única em `fn_pode_ver_tarefa`/`fn_tarefa_pode_editar` + policy `tarefas_select`; qualquer novo acesso a tarefa deve passar por elas. Só o criador (ou super_admin) muda a marcação (trigger `trg_tarefa_guarda_restrita`, registra `restricao` no histórico); usar `fn_definir_restricao_tarefa`.
+- **Tarefas vinculadas fora do painel** (`js/tarefas-vinculadas.js` `TarefasVinc` + `css/tarefas-vinculadas.css`, prefixo `tv-`):
+  botão "N tarefas" no cartão do TDR (janela `#modal-tarefas-tdr` + aba Tarefas do modal) e na linha da atividade (painel
+  `painel-tk-<id>`). Conta **só as que falta fazer** (a_fazer, em_andamento, em_revisao, bloqueada); 0 também aparece. TDR =
+  `tarefa_tdrs`; atividade = `tarefas.atividade_id`. Visibilidade = RLS de `tarefas` (restrita alheia não conta). Atalho
+  "Nova tarefa" = `tarefas.html?nova=1&atividade=<id>&tdr=<id>` (já vem vinculada).
 - **TDRs da tarefa** (N:N): tabela `tarefa_tdrs(tarefa_id, tdr_id)`. O TDR precisa ser da atividade da tarefa (trigger `trg_tarefa_tdr_coerente`, SECURITY INVOKER — só vincula TDR que o usuário enxerga); trocar a atividade remove os vínculos de outra atividade. Quem vê a tarefa mas não o TDR recebe `tdr: null` no embed → exibir "TDR vinculado (acesso restrito)". `tarefas.entidade_tipo/entidade_id` segue livre para outro uso.
 - **Tipos de tarefa**: catálogo `tarefa_tipos(codigo PK, nome, icone, cor, ordem, ativo, campos jsonb)`, editável por `super_admin`/`coordenacao` (sem DELETE — desativar). `tarefas.tipo` (obrigatório, padrão `outras`) + `tarefas.dados_tipo` (jsonb com os campos próprios). `campos` descreve o formulário (`chave, rotulo, tipo: text|textarea|url|date|datetime|select|boolean, obrigatorio, define_prazo, opcoes, dica`); o trigger `trg_tarefa_valida_tipo` recusa campo obrigatório vazio. Datas/horas de reunião são hora local do Acre (`YYYY-MM-DDTHH:mm`, UTC-5 fixo).
 - **Convite de agenda** (tipo `reuniao`): `enviar-email-tarefa` anexa `.ics` com `UID=<tarefa_id>@dima-plataforma` e `SEQUENCE=tarefas.ics_sequencia` (incrementada pelo trigger quando dados/título mudam ou a reunião é cancelada). Eventos: `atribuicao` (convite), `reuniao_atualizada`, `cancelada` (METHOD:CANCEL).
