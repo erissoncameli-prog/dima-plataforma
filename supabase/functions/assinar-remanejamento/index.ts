@@ -17,6 +17,11 @@
 //   (20261012_tdr_cancelamento): chama fn_tcan_assinar (service_role) e envia a fila
 //   tdr_cancelamento_notificacoes do pedido.
 //
+// { acao: 'decidir_encerramento', pedido_id, decisao: 'aprovar'|'devolver', motivo?, hash, senha }
+//   mesma porta para o PEDIDO DE ENCERRAMENTO DE CONTRATO (20261013_encerramento_aprovacao):
+//   o responsável/substituto da atividade aprova ou devolve com a senha; chama
+//   fn_encp_decidir (service_role), que efetiva o encerramento na aprovação.
+//
 // { acao: 'drenar' }   (cron 'remanejamento-emails') — reenvia a fila pendente,
 //   inclusive os avisos de contrato travado/liberado (cobertura_notificacoes, rem_11)
 //   e os do cancelamento de TDR.
@@ -58,8 +63,9 @@ Deno.serve(async (req) => {
     try { cancelamento = await drenarCancelamentos(admin, null) } catch (e) { console.error('cancelamento:', (e as Error).message) }
     return resp({ ok: true, ...r, cobertura, cancelamento })
   }
-  if (corpo.acao !== 'assinar' && corpo.acao !== 'assinar_cancelamento') return resp({ ok: false, erro: 'acao inválida' }, 400)
+  if (!['assinar', 'assinar_cancelamento', 'decidir_encerramento'].includes(corpo.acao)) return resp({ ok: false, erro: 'acao inválida' }, 400)
   const ehCancelamento = corpo.acao === 'assinar_cancelamento'
+  const ehEncerramento = corpo.acao === 'decidir_encerramento'
 
   // 1. quem é
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
@@ -67,8 +73,8 @@ Deno.serve(async (req) => {
   if (eU || !u?.user?.email) return resp({ ok: false, erro: 'Sessão inválida. Entre de novo.' }, 401)
   const usuarioId = u.user.id
 
-  const { remanejamento_id, cancelamento_id, decisao, motivo, hash, senha } = corpo
-  const pedidoId = ehCancelamento ? cancelamento_id : remanejamento_id
+  const { remanejamento_id, cancelamento_id, pedido_id, decisao, motivo, hash, senha } = corpo
+  const pedidoId = ehEncerramento ? pedido_id : ehCancelamento ? cancelamento_id : remanejamento_id
   if (!pedidoId || !decisao || !hash || typeof senha !== 'string' || !senha) {
     return resp({ ok: false, erro: 'Dados incompletos (pedido, decisão, hash e senha).' }, 400)
   }
@@ -86,6 +92,16 @@ Deno.serve(async (req) => {
 
   // 4. assinatura
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
+  if (ehEncerramento) {
+    const { data: resE, error: eE } = await admin.rpc('fn_encp_decidir', {
+      p_usuario_id: usuarioId, p_pedido: pedido_id, p_decisao: decisao,
+      p_parecer: motivo ?? null, p_hash: hash, p_ip: ip, p_user_agent: req.headers.get('user-agent'),
+    })
+    if (eE) return resp({ ok: false, erro: eE.message }, 409)
+    // a liberação entra no razão e pode destravar contrato (cobertura)
+    try { await drenarCobertura(admin) } catch (e) { console.error('cobertura:', (e as Error).message) }
+    return resp({ ok: true, resultado: resE })
+  }
   if (ehCancelamento) {
     const { data: resC, error: eC } = await admin.rpc('fn_tcan_assinar', {
       p_usuario_id: usuarioId, p_cancelamento_id: cancelamento_id, p_decisao: decisao,
