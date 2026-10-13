@@ -229,6 +229,15 @@ function canMinhaVez(c) {
   return canSignatarios(canEtapaAtual(c)).includes(eu)
 }
 
+// Rascunho visto por quem não é o titular da coordenação solicitante: diz quem envia (e que foi avisado)
+function remAvisoEnvio(P) {
+  if (P.status !== 'rascunho') return ''
+  const tit = remTitular('coordenacao_solicitante'), eu = appState.usuario.id
+  if (tit === eu) return ''
+  if (!tit) return `<div class="rm-aviso"><b>Rascunho parado:</b> o cargo de coordenação solicitante está sem titular ativo, e só ele envia o pedido para aprovação. Designe o titular na aba Signatários.</div>`
+  return `<div class="rm-aviso"><b>Rascunho — aguardando envio por ${esc(nomeU(tit))}</b> (titular da coordenação solicitante). Só o titular envia o pedido para a cadeia, com a senha dele; ele foi avisado no sino quando o rascunho ficou completo. ${P.criado_por === eu ? 'Você ainda pode editar ou cancelar o rascunho.' : ''}</div>`
+}
+
 // ── Quem assina a etapa atual (só para a fila; o banco decide) ─────────
 function remTitular(cargo) {
   const t = REM.titulares.find(x => x.cargo === cargo)
@@ -667,6 +676,7 @@ async function remAbrirPedido(id) {
   const estornos = REM.pedidos.filter(x => x.estorno_de === P.id && x.status !== 'cancelado' && x.status !== 'recusado')
   const vinc = (x, txt) => `<a href="#" onclick="event.preventDefault();remAbrirPedido('${x.id}')">${esc(x.numero)}</a>${txt}`
   document.getElementById('rm-mp-corpo').innerHTML = `
+    ${remAvisoEnvio(P)}
     ${orig ? `<div class="rm-aviso">${remQ('estorno')} <b>Estorno de ${vinc(orig, '')}.</b> Devolve o que foi recebido às fontes de onde saiu; itens e fontes espelham o original e não se editam.</div>` : ''}
     ${estornos.length ? `<div class="rm-aviso">Estorno: ${estornos.map(x => vinc(x, ' (' + esc((REM_STATUS[x.status] || [x.status])[0]) + ')')).join(', ')}</div>` : ''}
     ${P.motivo_encerramento ? `<div class="rm-aviso"><b>Motivo do encerramento:</b> ${esc(P.motivo_encerramento)}</div>` : ''}
@@ -740,6 +750,7 @@ async function canAbrir(id) {
   const urlNota = P.nota_caminho ? SUPABASE_URL + '/storage/v1/object/public/tdrs-arquivos/' + P.nota_caminho : ''
 
   document.getElementById('rm-mp-corpo').innerHTML = `
+    ${remAvisoEnvio(P)}
     ${P.motivo_encerramento ? `<div class="rm-aviso"><b>Motivo do encerramento:</b> ${esc(P.motivo_encerramento)}</div>` : ''}
     ${P.status === 'efetivado' ? `<div class="rm-aviso">O TDR foi cancelado em ${dataHora(P.efetivado_em)} e ${usd2(P.valor_usd)} voltaram ao saldo livre da atividade.</div>` : ''}
     <div class="rm-grid2">

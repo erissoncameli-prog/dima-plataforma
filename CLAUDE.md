@@ -329,6 +329,10 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
   tudo o mais por `fn_rem_assinar`, que **só tem EXECUTE para service_role** e é chamada pela Edge Function
   `assinar-remanejamento` depois de **reconfirmar a senha de login no servidor** (5 erros/30 min ⇒ bloqueio).
   Nunca dar EXECUTE de `fn_rem_assinar` a `authenticated` nem verificar senha no navegador.
+- **Rascunho de outra pessoa** (migração `20261013_rascunho_aviso_titular`): só o titular `coordenacao_solicitante` envia
+  o pedido (remanejamento ou cancelamento de TDR). Rascunho criado por outro (ex.: super_admin) avisa o titular no sino quando fica
+  completo (`trg_rem_rascunho_aviso`/`trg_tcan_rascunho_aviso`, 1 aviso por versão, tipos `*_analisar`); a tela mostra "aguardando
+  envio por <titular>" (`remAvisoEnvio`).
 - **Cadeia sequencial por pessoa, sem substituto**: 1 titular `coordenacao_solicitante` → 2 responsável
   (`atividade_responsaveis.papel='responsavel'`, não substituto) de cada origem → 3 `unesco_financeiro` →
   4 `diretor` → 5 `secretario` ⇒ efetiva. Titulares em `rem_cargo_titulares` (vigência + ato; um por cargo,
