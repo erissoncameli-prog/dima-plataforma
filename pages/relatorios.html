@@ -202,6 +202,9 @@ const RELATORIOS = [
   { id:'T4', paisagem:true, tema:'tdrs', temas:['tdrs','contratos','orcamento','financeiro'], titulo:'TDRs contratados com saldo',
     desc:'Diferença entre o valor do TDR e o dos contratos firmados (ex.: TDR 100.000, contrato 95.000, saldo 5.000), o que já foi liberado ao orçamento e o que falta liberar; contratos acima do TDR à parte.',
     filtros:['atividade','sit_saldo_tdr'] },
+  { id:'T5', paisagem:true, tema:'tdrs', temas:['tdrs','orcamento'], titulo:'Licitações e contratações diretas',
+    desc:'Rodadas de licitação de cada TDR: modalidade, prazo e prorrogações, empresas convidadas e quais apresentaram proposta (sem valores), desertas e a medida tomada.',
+    filtros:['atividade','sit_lic','tipo_lic','periodo'] },
   // ── ATIVIDADES ────────────────────────────────────────────
   { id:'A1', paisagem:true, tema:'atividades', titulo:'Execução por Atividade',
     desc:'Fase, orçamento, comprometido (TDRs), pago, saldo e responsável.',
@@ -478,6 +481,26 @@ function renderFiltros(lista){
           <select class="config-select" id="fil-status-canc">
             <option value="">Todas</option>
             ${Object.entries(O_SIT).filter(([k])=>k!=='estornado').map(([k,v])=>`<option value="${k}">${v[0]}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'sit_lic': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Situação</span>
+          <select class="config-select" id="fil-sit-lic">
+            <option value="">Todas</option>
+            <option value="aberta">Abertas</option>
+            <option value="vencida">Prazo encerrado sem resultado</option>
+            <option value="sem_exito">Sem êxito (deserta, fracassada, sem proposta)</option>
+            <option value="com_propostas">Com propostas</option>
+          </select>
+        </div>`;
+      case 'tipo_lic': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Tipo</span>
+          <select class="config-select" id="fil-tipo-lic">
+            <option value="">Todos</option>
+            <option value="licitacao">Licitação (pregão, concorrência, convite, cotação)</option>
+            <option value="direta">Contratação direta (dispensa, inexigibilidade)</option>
           </select>
         </div>`;
       case 'sit_saldo_tdr': return `
@@ -958,6 +981,7 @@ async function gerarRelatorio(id){
       case 'T2': html = await relT2(); break;
       case 'T3': html = await relT3(); break;
       case 'T4': html = await relT4(); break;
+      case 'T5': html = await relT5(); break;
       case 'A2': html = await relA2(); break;
       case 'A3': html = await relA3(); break;
       case 'A4': html = await relA4(); break;
@@ -2314,6 +2338,83 @@ async function relT2(){
 // ══════════════════════════════════════════════════════════════
 // T3 — TDRs APROVADOS SEM CONTRATO
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// T5 — LICITAÇÕES E CONTRATAÇÕES DIRETAS (tdr_licitacao_rodadas, migração 20261013_licitacao_rodadas)
+// Sem valores de proposta. Empresas convidadas × que propuseram vêm de tdr_licitacao_empresas (ativas).
+// ══════════════════════════════════════════════════════════════
+async function relT5(){
+  const ativFil = filVal('fil-atividade'), sitFil = filVal('fil-sit-lic'), tipoFil = filVal('fil-tipo-lic');
+  const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
+  let q = db.from('tdr_licitacao_rodadas')
+    .select('id,rodada,modalidade,situacao,numero_processo,dt_abertura,prazo_original,prazo_em,n_propostas,resultado_obs,medida,medida_motivo,fundamento,fundamento_tipo,criado_em,tdr:tdrs(numero,atividade_id,atividade:atividades(codigo))')
+    .order('criado_em',{ascending:false});
+  if(dtIni) q = q.gte('criado_em', dtIni);
+  if(dtFim) q = q.lte('criado_em', dtFim+'T23:59:59');
+  const {data, error} = await q;
+  if(error) throw error;
+  let rows = (data||[]).filter(r=>r.tdr);
+  if(ativFil) rows = rows.filter(r=>r.tdr.atividade_id===ativFil);
+  const direta = m => ['Dispensa de Licitação','Inexigibilidade'].includes(m);
+  if(tipoFil==='direta') rows = rows.filter(r=>direta(r.modalidade));
+  if(tipoFil==='licitacao') rows = rows.filter(r=>!direta(r.modalidade));
+  const agora = new Date();
+  const vencida = r => r.situacao==='aberta' && r.prazo_em && new Date(r.prazo_em)<=agora;
+  const SEM = ['deserta','fracassada','sem_proposta'];
+  const ids = rows.map(r=>r.id);
+  const [{data:emps},{data:prs}] = ids.length ? await Promise.all([
+    db.from('tdr_licitacao_empresas').select('rodada_id,empresa,convidada,apresentou_proposta').in('rodada_id',ids).eq('ativo',true),
+    db.from('tdr_licitacao_prorrogacoes').select('rodada_id').in('rodada_id',ids)
+  ]) : [{data:[]},{data:[]}];
+  const empPor = {}, prPor = {};
+  (emps||[]).forEach(e=>{(empPor[e.rodada_id]=empPor[e.rodada_id]||[]).push(e);});
+  (prs||[]).forEach(p=>{prPor[p.rodada_id]=(prPor[p.rodada_id]||0)+1;});
+  const todas = rows;
+  if(sitFil==='aberta') rows = rows.filter(r=>r.situacao==='aberta');
+  if(sitFil==='vencida') rows = rows.filter(vencida);
+  if(sitFil==='sem_exito') rows = rows.filter(r=>SEM.includes(r.situacao));
+  if(sitFil==='com_propostas') rows = rows.filter(r=>r.situacao==='com_propostas');
+  const SIT = { aberta:['Aberta','rb-azul'], com_propostas:['Com propostas','rb-verde'], deserta:['Deserta','rb-vermelho'],
+    fracassada:['Fracassada','rb-vermelho'], sem_proposta:['Sem proposta','rb-vermelho'], cancelada:['TDR cancelado','rb-cinza'] };
+  const sitTxt = r => r.situacao==='deserta' && ['Dispensa de Licitação','Cotação/Shopping (ONU)'].includes(r.modalidade) ? 'Sem cotações' : (SIT[r.situacao]||[r.situacao])[0];
+  const MED = { relancada:'Relançada', cancelamento:'Cancelamento do TDR', contratado:'Contrato registrado' };
+  const dh = ts => ts ? new Date(ts).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',dateStyle:'short',timeStyle:'short'}) : '—';
+  // taxa de resposta: propostas ÷ convidadas, nas rodadas com resultado e lista curta
+  const comRes = todas.filter(r=>r.situacao!=='aberta'&&r.situacao!=='cancelada'&&(empPor[r.id]||[]).some(e=>e.convidada));
+  const conv = comRes.reduce((s,r)=>s+(empPor[r.id]||[]).filter(e=>e.convidada).length,0);
+  const resp = comRes.reduce((s,r)=>s+(empPor[r.id]||[]).filter(e=>e.convidada&&e.apresentou_proposta).length,0);
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Rodadas abertas</div><div class="rep-stat-val">${todas.filter(r=>r.situacao==='aberta').length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Prazo encerrado sem resultado</div><div class="rep-stat-val" style="color:${todas.filter(vencida).length?'var(--aviso)':'var(--sucesso)'}">${todas.filter(vencida).length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Sem êxito</div><div class="rep-stat-val"${todas.filter(r=>SEM.includes(r.situacao)).length?' style="color:var(--erro)"':''}>${todas.filter(r=>SEM.includes(r.situacao)).length}<span style="font-size:11px;color:var(--cinza-500)"> · ${todas.filter(r=>SEM.includes(r.situacao)&&!r.medida).length} sem medida</span></div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Convidadas que propuseram</div><div class="rep-stat-val">${conv?Math.round(resp/conv*100)+'%':'—'}<span style="font-size:11px;color:var(--cinza-500)"> · ${resp} de ${conv}</span></div></div>
+  </div>
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">Rodadas</div>
+    ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhuma rodada com esses filtros.</div>`:`
+    <table class="rep-tbl">
+      <thead><tr><th>TDR</th><th>Atividade</th><th>Rodada · modalidade</th><th>Processo</th><th>Prazo</th><th>Situação</th>
+        <th style="text-align:right">Convidadas</th><th style="text-align:right">Propostas</th><th>Medida</th></tr></thead>
+      ${rows.map(r=>{
+        const es = empPor[r.id]||[], c = es.filter(e=>e.convidada).length, prop = es.filter(e=>e.apresentou_proposta).map(e=>e.empresa);
+        const sit = SIT[r.situacao]||[r.situacao,'rb-cinza'];
+        const det = [prop.length?'Propuseram: '+prop.join(', '):'', r.fundamento_tipo||r.fundamento?'Fundamento: '+[{exclusivo:'fornecedor exclusivo',notoria:'notória especialização',outro:''}[r.fundamento_tipo]||'',r.fundamento||''].filter(Boolean).join(' — '):'', r.resultado_obs||'', r.medida_motivo?'Medida: '+r.medida_motivo:''].filter(Boolean).join(' · ');
+        return `<tbody class="rep-grupo"><tr class="rep-mae">
+        <td class="mono">${esc(r.tdr.numero||'—')}</td>
+        <td class="mono">${esc(r.tdr.atividade?.codigo||'—')}</td>
+        <td>${r.rodada}ª · ${esc(r.modalidade)}</td>
+        <td class="mono">${esc(r.numero_processo||'—')}</td>
+        <td class="mono">${r.prazo_em?dh(r.prazo_em):'—'}${prPor[r.id]?`<br><span style="color:var(--cinza-500)">${prPor[r.id]} prorrog.</span>`:''}</td>
+        <td><span class="rep-badge ${vencida(r)?'rb-ouro':sit[1]}">${vencida(r)?'Prazo encerrado':esc(sitTxt(r))}</span></td>
+        <td class="mono" style="text-align:right">${c}</td>
+        <td class="mono" style="text-align:right">${r.n_propostas==null?'—':r.n_propostas}</td>
+        <td>${r.medida?esc(MED[r.medida]||r.medida):SEM.includes(r.situacao)?'<span class="rep-badge rb-ouro">Definir</span>':'—'}</td>
+      </tr>${linhaDet(9,'Detalhe',det)}</tbody>`;}).join('')}
+    </table>`}
+  </div>
+  <p style="font-size:10px;color:var(--cinza-500)">Sem valores de proposta. Prazo em hora do Acre. "Convidadas que propuseram" considera as rodadas com resultado e lista curta; empresas fora da lista não entram na conta.</p>`;
+}
+
 // ══════════════════════════════════════════════════════════════
 // T4 — TDRs CONTRATADOS COM SALDO (valor do TDR − contratos firmados)
 // Saldo = tdrs.valor_brl − Σ contratos não cancelados do TDR. Já liberado = economias

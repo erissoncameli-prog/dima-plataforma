@@ -715,6 +715,27 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Texto do usuário (objeto, comentário, diff de versão, análise do agente, nome de anexo) sempre por `esc()`.
 - Cartão do TDR = `cardTDR(t)`; diferença negativa TDR × contratos aparece como "Contrato acima do TDR" (mesmo termo do razão).
 
+### Licitação do TDR em rodadas (⚠️ ler antes de mexer em licitação)
+- Migração `20261013_licitacao_rodadas` (+ `_b_acoes`). Cada envio é uma rodada em `tdr_licitacao_rodadas` (modalidade, processo,
+  abertura, `edital_url`, fundamento/justificativa, `prazo_em` + `prazo_original`, `situacao` aberta | com_propostas | deserta |
+  fracassada | sem_proposta | cancelada, `n_propostas`, `medida` relancada | cancelamento | contratado). Prorrogações em
+  `tdr_licitacao_prorrogacoes` (só inclusão); lista curta e quem propôs em `tdr_licitacao_empresas` (contato = dado pessoal, TRAT-003,
+  `fn_trg_audit`; sair da lista = `ativo=false`). **Nunca gravar valor de proposta.** Leitura = quem vê o TDR; escrita só pelas RPCs
+  `fn_lic_enviar/editar/prorrogar/resultado/relancar`, permitidas a super_admin/coordenação ou responsável/substituto da atividade (`fn_lic_pode`).
+- Regras por modalidade em `fn_lic_classe`/`fn_lic_validar` (banco) e `LIC_REGRA` (tela, `js/tdr-licitacao.js`): pregão/concorrência =
+  edital + prazo; convite/cotação = prazo + empresas; dispensa = fundamento (prazo opcional); inexigibilidade = fundamento + justificativa
+  (≥ 30) + exatamente 1 empresa, sem prazo nem edital. Mudou num ⇒ muda no outro.
+- `tdrs.status → em_licitacao` só por `fn_lic_enviar` (`trg_tdr_guarda_licitacao`, chave `dima.licitacao='rpc'`). Os campos
+  `modalidade_licitacao/numero_processo/dt_licitacao` espelham a rodada vigente. TDR contratado/cancelado fecha a rodada e as tarefas
+  (`trg_tdr_licitacao_fase`). Relançar grava também em `tdr_licitacoes` (histórico usado pela cadeia de cancelamento).
+- Tarefas (`entidade_tipo='tdr_licitacao_rodada'`): "Registrar resultado" no vencimento do prazo (cron `licitacao-prazos`, `fn_lic_rotina`,
+  de hora em hora; aviso no sino 2 dias antes) ou no envio quando não há prazo (15 dias); "Definir medida" ao registrar deserta/fracassada/
+  sem proposta. O sistema conclui/cancela as tarefas (`fn_lic_fechar_tarefa`). `tdr_acoes.acao` só aceita a lista fechada do check —
+  eventos da licitação usam `'em_licitacao'` com o comentário (mudar o check exige DROP no SQL Editor).
+- Tela: quadro "Nª rodada" no modal do TDR (`licBloco`), selo no cartão (`licSelo`), janelas `#modal-licitacao` (enviar/editar),
+  `#modal-lic-prorr`, `#modal-lic-res`, `#modal-lic-rel`. Relatório T5 "Licitações e contratações diretas" (grupos TDRs e Orçamento).
+  `tdrs.html?tdr=<id>` abre o TDR (link do sino). `fn_tdr_licitacao_sem_exito` (fluxo antigo) não é mais usada pela tela.
+
 ### Atividades — visual da lista e das janelas
 - `pages/atividades.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo) e componentes em `css/atividades.css` (prefixo `at-`; cores de fase, resultado e dinheiro = tokens
