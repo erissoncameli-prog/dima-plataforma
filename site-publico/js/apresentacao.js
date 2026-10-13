@@ -45,7 +45,7 @@ const AP_PARCEIROS = ['canada', 'onu', 'fundo', 'cal', 'unesco', 'resiliencia', 
 // assets/apresentacao/desafios/ — carregadas ao abrir a apresentação
 const AP_DESAFIOS = ['queimadas', 'enchentes', 'secas', 'desmatamento', 'clima'];
 function _apFotoDesafio(k) { return `assets/apresentacao/desafios/desafio-${k}.webp?v=2`; }
-const AP_FOTO_RESILIENCIA = 'assets/cinema/marca/marca-paisagem-g.webp';
+const AP_FOTO_RESILIENCIA = 'assets/cinema/marca/marca-apa-rio-claro-g.webp';
 const AP_FOTO_MORADORES = 'assets/apresentacao/moradores.webp';
 
 const AP_CENAS = [
@@ -108,7 +108,7 @@ const AP_CENAS = [
           `<figure class="ap-desafio ap-el ap-pop" style="--d:${(0.7 + i * 0.45).toFixed(2)}s"><span class="ap-desafio-foto"><img src="${_apFotoDesafio(k)}" alt=""></span><figcaption class="ap-chip">${t('apres.d_' + k)}</figcaption></figure>`).join('')}
       </div>` },
 
-  // Cena 5: a foto da pasta RESILIÊNCIA (casas cercadas pela floresta, a
+  // Cena 5: o drone do rio entre a floresta na APA Igarapé São Francisco (a
   // mesma do bloco "Por trás da marca") ao lado da definição; tempos de antes
   { nome: 'apres.n5', dur: 6000, html: () => `
       <div class="ap-dupla">
