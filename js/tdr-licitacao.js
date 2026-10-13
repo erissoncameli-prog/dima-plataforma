@@ -34,7 +34,19 @@ let licFornDir = null
 const licDtHr = ts => ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco', dateStyle: 'short', timeStyle: 'short' }) : '—'
 const licDias = ts => Math.ceil((new Date(ts) - Date.now()) / 864e5)
 const licIso = (d, h) => d ? `${d}T${(h || '17:00')}:00-05:00` : null    // hora do Acre
-const licUrlOk = u => /^https?:\/\//i.test(u || '')
+const licUrlOk = u => /^https?:\/\/[^\s/]+\.[^\s]+/i.test(u || '')
+// Endereço colado sem protocolo (www.site.gov.br/…) ganha https://
+const licUrlNorm = u => { u = (u || '').trim(); return u && !/^[a-z]+:/i.test(u) && /^[^\s/]+\.[^\s]+$/.test(u) ? 'https://' + u : u }
+// Mensagem de erro sempre visível: o corpo da janela rola, então leva a mensagem (e o campo) para a vista.
+function licMostrarErro (id, m, campo) {
+  const e = document.getElementById(id); if (!e) return
+  e.textContent = m || ''; e.hidden = !m
+  document.querySelectorAll('.td-campo-erro').forEach(x => { x.classList.remove('td-campo-erro'); x.removeAttribute('aria-invalid') })
+  if (!m) return
+  e.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  const c = campo && document.getElementById(campo)
+  if (c) { c.classList.add('td-campo-erro'); c.setAttribute('aria-invalid', 'true'); c.focus({ preventScroll: false }) }
+}
 const licAtiva = r => r && (r.situacao === 'aberta' || (LIC_SEM_EXITO.includes(r.situacao) && !r.medida))
 
 // ── lista (cartões) ──────────────────────────────────────────────────────
@@ -285,7 +297,7 @@ function licLerCampos () {
   const ft = document.querySelector('input[name="lic-ftipo"]:checked')
   return {
     numero_processo: g('lic-processo')?.value.trim() || '', dt_abertura: g('lic-data')?.value || '',
-    edital_url: g('lic-edital')?.value.trim() || '', fundamento: g('lic-fund')?.value.trim() || '',
+    edital_url: licUrlNorm(g('lic-edital')?.value), fundamento: g('lic-fund')?.value.trim() || '',
     fundamento_tipo: ft ? ft.value : '', justificativa: g('lic-just')?.value.trim() || '',
     _pzD: g('lic-pz-d')?.value ?? '', _pzH: g('lic-pz-h')?.value ?? '17:00',
   }
@@ -293,27 +305,27 @@ function licLerCampos () {
 
 async function salvarLicitacao () {
   if (!tdrAtual) return
-  const erro = m => { const e = document.getElementById('lic-erro'); e.textContent = m; e.hidden = !m }
+  const erro = (m, campo) => licMostrarErro('lic-erro', m, campo)
   erro('')
   const mod = licModalidade()
-  if (!mod) { erro('Escolha a modalidade.'); return }
+  if (!mod) { erro('Escolha a modalidade.', 'lic-modalidade'); return }
   const cl = licClasse(mod), rg = LIC_REGRA[cl], v = licLerCampos()
   const emps = licForm.empresas.map(e => ({ ...e, empresa: (e.empresa || '').trim() })).filter(e => e.empresa || e.contato || e.email || e.telefone)
   if (emps.some(e => e.empresa.length < 2)) { erro('Informe o nome de cada empresa da lista (ou tire a linha vazia).'); return }
   if (emps.some(e => e.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.email.trim()))) { erro('Há e-mail inválido na lista.'); return }
-  if (v.edital_url && !licUrlOk(v.edital_url)) { erro('O link deve começar com http:// ou https://.'); return }
-  if (rg.edital === 'obr' && !v.edital_url && !(licForm.modo === 'editar' && licForm.rodada?.edital_url)) { erro('Informe o link da publicação do edital.'); return }
+  if (v.edital_url && !licUrlOk(v.edital_url)) { erro('O link do edital deve ser o endereço completo, começando com http:// ou https://.', 'lic-edital'); return }
+  if (rg.edital === 'obr' && !v.edital_url && !(licForm.modo === 'editar' && licForm.rodada?.edital_url)) { erro('Informe o link da publicação do edital.', 'lic-edital'); return }
   const prazo = rg.prazo !== 'nao' && v._pzD ? licIso(v._pzD, v._pzH) : null
   const temPrazo = licForm.modo === 'editar' && licForm.rodada?.prazo_em
-  if (rg.prazo === 'obr' && !prazo && !temPrazo && licForm.modo === 'novo') { erro('Informe até quando as propostas são recebidas.'); return }
-  if (prazo && !temPrazo && new Date(prazo) <= new Date()) { erro('O prazo precisa ser uma data futura.'); return }
+  if (rg.prazo === 'obr' && !prazo && !temPrazo && licForm.modo === 'novo') { erro('Informe até quando as propostas são recebidas.', 'lic-pz-d'); return }
+  if (prazo && !temPrazo && new Date(prazo) <= new Date()) { erro('O prazo precisa ser uma data futura.', 'lic-pz-d'); return }
   if (rg.lista === 'obr' && !emps.length) { erro('Informe ao menos uma empresa consultada.'); return }
   if (rg.lista === 'uma' && emps.length !== 1) { erro('Na inexigibilidade informe exatamente uma empresa.'); return }
-  if (cl === 'dispensa' && v.fundamento.length < 5) { erro('Informe o fundamento legal da dispensa.'); return }
+  if (cl === 'dispensa' && v.fundamento.length < 5) { erro('Informe o fundamento legal da dispensa.', 'lic-fund'); return }
   if (cl === 'inexigibilidade') {
     if (!v.fundamento_tipo) { erro('Escolha o fundamento da inexigibilidade.'); return }
-    if (v.fundamento_tipo === 'outro' && v.fundamento.length < 5) { erro('Descreva o fundamento.'); return }
-    if (v.justificativa.length < 30) { erro('Escreva a justificativa (mínimo 30 caracteres).'); return }
+    if (v.fundamento_tipo === 'outro' && v.fundamento.length < 5) { erro('Descreva o fundamento.', 'lic-fund'); return }
+    if (v.justificativa.length < 30) { erro('Escreva a justificativa (mínimo 30 caracteres).', 'lic-just'); return }
   }
   const p = { modalidade: mod, numero_processo: v.numero_processo, dt_abertura: v.dt_abertura || null, edital_url: v.edital_url,
     fundamento: v.fundamento, fundamento_tipo: v.fundamento_tipo || null, justificativa: v.justificativa,
@@ -367,14 +379,14 @@ function licAbrirProrrogar () {
 }
 async function licProrrogar () {
   const r = licAtual(); if (!r) return
-  const erro = m => { const e = document.getElementById('lpr-erro'); e.textContent = m; e.hidden = false }
+  const erro = (m, campo) => licMostrarErro('lpr-erro', m, campo)
   const d = document.getElementById('lpr-d').value, h = document.getElementById('lpr-h').value
   const mot = document.getElementById('lpr-motivo').value.trim(), aviso = document.getElementById('lpr-aviso').value.trim()
   if (!d) { erro('Informe o novo prazo.'); return }
   const novo = licIso(d, h)
   if (new Date(novo) <= new Date(r.prazo_em)) { erro('O novo prazo precisa ser depois do prazo atual.'); return }
   if (mot.length < 10) { erro('Informe o motivo (mínimo 10 caracteres).'); return }
-  if (aviso && !licUrlOk(aviso)) { erro('O link deve começar com http:// ou https://.'); return }
+  if (aviso && !licUrlOk(aviso)) { erro('O link do edital deve ser o endereço completo, começando com http:// ou https://.', 'lic-edital'); return }
   const { error } = await db.rpc('fn_lic_prorrogar', { p_rodada: r.id, p_prazo: novo, p_motivo: mot, p_aviso_url: aviso || null })
   if (error) { erro(msgCanc(error.message)); return }
   fecharModal('modal-lic-prorr'); toast('Prazo prorrogado para ' + licDtHr(novo) + '.', 'success')
@@ -428,7 +440,7 @@ function licResNovas () {
 function licSalvarResultado () {
   const r = licAtual(); if (!r) return
   const cl = licClasse(r.modalidade)
-  const erro = m => { const e = document.getElementById('lrs-erro'); e.textContent = m; e.hidden = false }
+  const erro = (m, campo) => licMostrarErro('lrs-erro', m, campo)
   document.getElementById('lrs-erro').hidden = true
   const sit = licRes.sit, obs = document.getElementById('lrs-obs').value.trim()
   if (!sit) { erro('Escolha o resultado.'); return }
@@ -465,7 +477,7 @@ function licAbrirRelancar () {
 async function licRelancar () {
   const r = licAtual(); if (!r) return
   const mot = document.getElementById('lrl-motivo').value.trim()
-  const erro = m => { const e = document.getElementById('lrl-erro'); e.textContent = m; e.hidden = false }
+  const erro = (m, campo) => licMostrarErro('lrl-erro', m, campo)
   if (mot.length < 10) { erro('Explique o que muda na nova rodada (mínimo 10 caracteres).'); return }
   const { error } = await db.rpc('fn_lic_relancar', { p_rodada: r.id, p_motivo: mot })
   if (error) { erro(msgCanc(error.message)); return }

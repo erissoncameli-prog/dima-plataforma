@@ -98,6 +98,7 @@ body.dgm .td-selo.td-atraso { --c: var(--erro); --c-bg: var(--erro-bg); }
 body.dgm .td-selo.td-cancelando { --c: var(--alerta-txt); --c-bg: var(--alerta-bg); }
 /* mensagem de erro dentro das janelas de licitação sem êxito e de cancelamento */
 body.dgm .td-erro-msg { margin-top: 10px; padding: 10px 12px; border-radius: var(--r-ctl); background: var(--erro-bg); color: var(--erro-txt); font-size: 13px; }
+body.dgm .td-ov .form-control.td-campo-erro { border-color: var(--erro); box-shadow: 0 0 0 3px var(--erro-bg); }
 body.dgm .td-versao { margin-left: auto; font-size: 12px; color: var(--txt-3); }
 
 body.dgm .td-obj { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.4; color: var(--txt);
