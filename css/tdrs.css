@@ -370,3 +370,50 @@ body.dgm #agente-overlay .detetive-sep { color: var(--txt-3); }
 html[data-tema="escuro"] .td-inicio { color: #A3B2A9; }
 html[data-tema="escuro"] .td-inicio::before { border-color: rgba(255, 255, 255, .12); border-top-color: #58B584; }
 body.dgm .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Licitação em rodadas (js/tdr-licitacao.js, migração 20261013_licitacao_rodadas) */
+body.dgm .td-selo.td-lic-aberta { --c: var(--td-licitacao); --c-bg: var(--td-licitacao-bg); }
+body.dgm .td-selo.td-lic-vence { --c: var(--alerta-txt); --c-bg: var(--alerta-bg); }
+body.dgm .td-selo.td-lic-ruim { --c: var(--erro); --c-bg: var(--erro-bg); }
+body.dgm .td-lic { border: 1px solid var(--lin); border-left: 4px solid var(--td-licitacao); border-radius: var(--r-in);
+  background: var(--sup-2); padding: 14px 16px; margin-bottom: 14px; }
+body.dgm .td-lic.ruim { border-left-color: var(--erro); }
+body.dgm .td-lic-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 8px; }
+body.dgm .td-lic-h b { font-size: 14px; color: var(--txt); }
+body.dgm .td-lic-dados { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--txt-2); margin-bottom: 8px; }
+body.dgm .td-lic-dados a { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--pri-700); }
+html[data-tema="escuro"] body.dgm .td-lic-dados a { color: var(--pri-400); }
+body.dgm .td-lic-dados .td-ic { width: 14px; height: 14px; }
+body.dgm .td-lic-falta { color: var(--erro-txt); font-weight: 600; }
+body.dgm .td-lic-fund { font-size: 13px; line-height: 1.5; color: var(--txt); background: var(--sup); border: 1px solid var(--lin);
+  border-radius: var(--r-ctl); padding: 8px 12px; margin-bottom: 8px; overflow-wrap: break-word; }
+body.dgm .td-lic-res { font-size: 13px; line-height: 1.5; color: var(--txt); margin-bottom: 8px; overflow-wrap: break-word; }
+body.dgm .td-lic-aviso { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--alerta-txt); background: var(--alerta-bg);
+  border-radius: var(--r-ctl); padding: 8px 12px; margin-bottom: 8px; }
+body.dgm .td-lic-aviso .td-ic, body.dgm .td-lic-alerta .td-ic { width: 15px; height: 15px; flex-shrink: 0; }
+body.dgm .td-lic-alerta { display: flex; gap: 6px; align-items: center; color: var(--alerta-txt); margin-top: 6px; }
+body.dgm .td-lic-sub { font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--txt-3); margin: 12px 0 6px; }
+body.dgm .td-lic-tw { overflow-x: auto; }
+body.dgm .td-lic-tb { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+body.dgm .td-lic-tb th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--txt-3); font-weight: 600;
+  padding: 4px 8px; border-bottom: 1px solid var(--lin); background: transparent; }
+body.dgm .td-lic-tb td { padding: 6px 8px; border-bottom: 1px solid var(--lin); color: var(--txt); background: transparent; overflow-wrap: anywhere; }
+body.dgm .td-lic-hist { margin: 0; padding-left: 18px; font-size: 12.5px; color: var(--txt); line-height: 1.6; }
+body.dgm .td-lic-ac { margin-top: 12px; }
+body.dgm .td-lic-ant { margin-bottom: 14px; font-size: 13px; }
+body.dgm .td-lic-ant summary { cursor: pointer; font-weight: 600; color: var(--txt-2); margin-bottom: 6px; }
+/* janelas */
+body.dgm .td-lic-pz { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+body.dgm .td-lic-pz input[type="date"] { max-width: 180px; }
+body.dgm .td-lic-pz input[type="time"] { max-width: 120px; }
+body.dgm .td-lic-linha { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(0, .9fr) minmax(0, 1.2fr) auto;
+  gap: 6px; margin-bottom: 6px; align-items: center; }
+body.dgm .td-lic-x { padding: 0 8px; }
+body.dgm .td-lic-forn { max-width: 320px; }
+body.dgm fieldset.td-lic-op, body.dgm .td-lic-op { border: 0; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; }
+body.dgm .td-lic-op label { display: flex; align-items: flex-start; gap: 8px; font-size: 13.5px; color: var(--txt); cursor: pointer; }
+body.dgm .td-lic-op input { margin-top: 3px; accent-color: var(--pri-600); }
+@media (max-width: 760px) {
+  body.dgm .td-lic-linha { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding-bottom: 8px; border-bottom: 1px dashed var(--lin); }
+  body.dgm .td-lic-x { grid-column: 1 / -1; justify-self: end; }
+}

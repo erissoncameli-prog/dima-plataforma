@@ -161,9 +161,17 @@ const AJUDA = {
           'Aprovado: autorizado para contratação. Único status que habilita vínculo com contrato.',
           'Cancelado: TDR descartado por pedido de cancelamento aprovado. Não volta a nenhuma fase.',
         ]},
-        { titulo: 'Licitação sem êxito e cancelamento', itens: [
-          'No TDR em licitação, "Licitação sem êxito" registra a rodada: deserta (nenhuma proposta), fracassada (propostas recusadas) ou outro.',
-          'Relançar a licitação: o TDR volta para Aprovado com o mesmo valor, sem assinaturas; a tentativa fica no histórico do TDR. Depois use "Enviar para licitação" para abrir a nova rodada.',
+        { titulo: 'Licitação em rodadas', itens: [
+          'Quem opera: coordenação, super admin e o responsável ou substituto da atividade. Enviar e registrar o resultado pedem a senha.',
+          '"Enviar para licitação" abre a rodada. Os campos mudam com a modalidade: pregão e concorrência pedem o link do edital e o prazo das propostas; carta-convite e cotação pedem o prazo e as empresas consultadas; dispensa pede o fundamento legal (prazo opcional); inexigibilidade pede o fundamento, a justificativa e exatamente uma empresa, sem prazo.',
+          'Lista curta: empresa, contato de referência, telefone e e-mail; dá para buscar no cadastro de fornecedores. Com menos de 3 empresas a tela avisa, mas não impede.',
+          'O prazo é em hora do Acre. Dois dias antes o sistema avisa no sino; no vencimento cria a tarefa "Registrar resultado" (sem prazo, a tarefa nasce no envio, com 15 dias).',
+          'Prorrogar prazo: novo prazo, motivo e o link do aviso (opcional). Fica no histórico; o prazo não se edita de outro jeito.',
+          'Registrar resultado (depois do prazo): houve propostas (quantas e de quais empresas, sem valores), deserta, fracassada ou, na inexigibilidade, sem proposta.',
+          'Deserta, fracassada ou sem proposta criam a tarefa "Definir medida". No TDR: "Relançar" (o TDR volta para Aprovado e abre a próxima rodada com a lista curta anterior, podendo trocar a modalidade) ou "Pedir cancelamento do TDR".',
+          'Relatório "Licitações e contratações diretas" (Relatórios › TDRs ou Orçamento) mostra rodadas abertas, prazos vencidos, sem êxito e quantas convidadas apresentaram proposta.',
+        ]},
+        { titulo: 'Cancelamento do TDR', itens: [
           'Pedir cancelamento (coordenação ou super admin, em qualquer fase, se não houver contrato): motivo, justificativa e nota técnica em PDF.',
           'O pedido passa por três assinaturas com senha, na fila de Remanejamentos › Pedidos: coordenação solicitante → responsável da atividade → UNESCO.',
           'Durante a aprovação o TDR fica congelado (fase, valor e atividade) e o valor continua comprometido. Na última assinatura o TDR é cancelado e o valor volta ao saldo livre da atividade, para um TDR novo ou um remanejamento.',

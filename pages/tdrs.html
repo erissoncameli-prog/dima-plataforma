@@ -120,48 +120,94 @@
   </div>
 </div>
 
-<!-- MODAL ENVIAR PARA LICITAÇÃO -->
+<!-- MODAL ENVIAR PARA LICITAÇÃO / EDITAR DADOS DA RODADA (js/tdr-licitacao.js) -->
 <div class="modal-overlay td-ov" id="modal-licitacao" role="dialog" aria-modal="true" aria-labelledby="lic-tit">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:760px">
     <div class="modal-header">
       <h2 class="modal-title" id="lic-tit" style="margin:0">Enviar para licitação</h2>
       <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-licitacao')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-info"><i data-ic="info"></i><div>
-        O TDR aprovado avança para a fase <strong>Em Licitação</strong>. Registre os dados do processo licitatório.
-      </div></div>
+      <div class="alert alert-info"><i data-ic="info"></i><div id="lic-intro"></div></div>
       <div class="form-group">
         <label class="form-label" for="lic-modalidade">Modalidade <span class="obrig">*</span></label>
-        <select class="form-control" id="lic-modalidade" onchange="toggleModalidadeOutro()">
-          <option value="">Selecionar modalidade…</option>
-          <option value="Pregão Eletrônico">Pregão Eletrônico</option>
-          <option value="Concorrência">Concorrência</option>
-          <option value="Dispensa de Licitação">Dispensa de Licitação</option>
-          <option value="Inexigibilidade">Inexigibilidade</option>
-          <option value="Carta-Convite">Carta-Convite</option>
-          <option value="Cotação/Shopping (ONU)">Cotação/Shopping (ONU)</option>
-          <option value="__outro">Outro…</option>
-        </select>
+        <select class="form-control" id="lic-modalidade" onchange="toggleModalidadeOutro()"></select>
       </div>
       <div class="form-group" id="lic-outro-wrap" style="display:none">
         <label class="form-label" for="lic-modalidade-outro">Especifique a modalidade <span class="obrig">*</span></label>
-        <input class="form-control" type="text" id="lic-modalidade-outro" placeholder="Digite a modalidade">
+        <input class="form-control" type="text" id="lic-modalidade-outro" placeholder="Digite a modalidade" onchange="toggleModalidadeOutro()">
       </div>
-      <div class="grid-2">
-        <div class="form-group">
-          <label class="form-label" for="lic-processo">Nº do processo licitatório</label>
-          <input class="form-control" type="text" id="lic-processo" placeholder="Ex.: 0001/2026">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="lic-data">Data de abertura</label>
-          <input class="form-control" type="date" id="lic-data">
-        </div>
-      </div>
+      <div id="lic-campos"></div>
+      <div class="td-erro-msg" id="lic-erro" role="alert" hidden></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal('modal-licitacao')">Cancelar</button>
-      <button class="btn td-btn-cor td-c-em_licitacao" onclick="salvarLicitacao()"><i data-ic="seta"></i>Confirmar licitação</button>
+      <button class="btn td-btn-cor td-c-em_licitacao" id="lic-ok" onclick="salvarLicitacao()"><i data-ic="seta"></i>Confirmar licitação</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PRORROGAR PRAZO DA LICITAÇÃO -->
+<div class="modal-overlay td-ov" id="modal-lic-prorr" role="dialog" aria-modal="true" aria-labelledby="lpr-tit">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div><h2 class="modal-title" id="lpr-tit" style="margin:0">Prorrogar prazo</h2><div class="td-peq" id="lpr-sub"></div></div>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-lic-prorr')"><i data-ic="fechar"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label" for="lpr-d">Novo prazo <span class="obrig">*</span></label>
+        <div class="td-lic-pz"><input class="form-control" type="date" id="lpr-d"><input class="form-control" type="time" id="lpr-h"><span class="td-peq">hora do Acre</span></div></div>
+      <div class="form-group"><label class="form-label" for="lpr-motivo">Motivo <span class="obrig">*</span></label>
+        <textarea class="form-control" id="lpr-motivo" rows="2" placeholder="Ex.: pedido de esclarecimento ao edital; republicação com ajuste no termo de referência."></textarea></div>
+      <div class="form-group"><label class="form-label" for="lpr-aviso">Link do aviso de prorrogação <span class="td-peq">(opcional)</span></label>
+        <input class="form-control" type="url" id="lpr-aviso" placeholder="https://…"></div>
+      <div class="td-erro-msg" id="lpr-erro" role="alert" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-lic-prorr')">Cancelar</button>
+      <button class="btn btn-primary" onclick="licProrrogar()"><i data-ic="calendario"></i>Prorrogar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR RESULTADO DA LICITAÇÃO (sem valores) -->
+<div class="modal-overlay td-ov" id="modal-lic-res" role="dialog" aria-modal="true" aria-labelledby="lrs-tit">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div><h2 class="modal-title" id="lrs-tit" style="margin:0">Registrar resultado</h2><div class="td-peq" id="lrs-sub"></div></div>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-lic-res')"><i data-ic="fechar"></i></button>
+    </div>
+    <div class="modal-body">
+      <fieldset class="form-group td-lic-op"><legend class="form-label">Resultado <span class="obrig">*</span></legend><div id="lrs-ops"></div></fieldset>
+      <div id="lrs-det"></div>
+      <div class="form-group"><label class="form-label" for="lrs-obs" id="lrs-obs-rot">Observação</label>
+        <textarea class="form-control" id="lrs-obs" rows="2" placeholder="Ex.: nenhuma empresa apresentou proposta; as duas propostas foram desclassificadas por documentação."></textarea></div>
+      <p class="td-peq">Só se registra quem apresentou proposta e quantas foram — nunca os valores.</p>
+      <div class="td-erro-msg" id="lrs-erro" role="alert" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-lic-res')">Cancelar</button>
+      <button class="btn btn-primary" onclick="licSalvarResultado()"><i data-ic="check"></i>Registrar resultado</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RELANÇAR (nova rodada) -->
+<div class="modal-overlay td-ov" id="modal-lic-rel" role="dialog" aria-modal="true" aria-labelledby="lrl-tit">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div><h2 class="modal-title" id="lrl-tit" style="margin:0">Relançar a licitação</h2><div class="td-peq" id="lrl-sub"></div></div>
+      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-lic-rel')"><i data-ic="fechar"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info"><i data-ic="info"></i><div>A rodada fica no histórico e o TDR volta para <strong>Aprovado</strong>, com o mesmo valor. Em seguida abre a próxima rodada, já com a lista curta desta — dá para trocar a modalidade e acrescentar empresas.</div></div>
+      <div class="form-group"><label class="form-label" for="lrl-motivo">O que muda na nova rodada <span class="obrig">*</span></label>
+        <textarea class="form-control" id="lrl-motivo" rows="3" placeholder="Ex.: ampliar a lista curta e passar para carta-convite."></textarea></div>
+      <div class="td-erro-msg" id="lrl-erro" role="alert" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-lic-rel')">Cancelar</button>
+      <button class="btn btn-primary" onclick="licRelancar()"><i data-ic="desfazer"></i>Relançar</button>
     </div>
   </div>
 </div>
@@ -198,41 +244,6 @@
       <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-tarefas-tdr')"><i data-ic="fechar"></i></button>
     </div>
     <div class="modal-body" id="tk-tdr-corpo"></div>
-  </div>
-</div>
-
-<!-- MODAL LICITAÇÃO SEM ÊXITO (relançar ou pedir cancelamento) -->
-<div class="modal-overlay td-ov" id="modal-sem-exito" role="dialog" aria-modal="true" aria-labelledby="sx-tit">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-header">
-      <h2 class="modal-title" id="sx-tit" style="margin:0">Licitação sem êxito</h2>
-      <button class="modal-close" type="button" aria-label="Fechar" onclick="fecharModal('modal-sem-exito')"><i data-ic="fechar"></i></button>
-    </div>
-    <div class="modal-body">
-      <div class="alert alert-info"><i data-ic="info"></i><div>
-        Registre o que aconteceu nesta rodada e escolha o caminho:
-        <strong>relançar a licitação</strong> (o TDR volta para Aprovado, com o mesmo valor, e a tentativa fica no histórico) ou
-        <strong>pedir o cancelamento do TDR</strong> (nota técnica e três assinaturas; o valor só é liberado no fim).
-      </div></div>
-      <div class="form-group">
-        <label class="form-label" for="sx-resultado">Resultado <span class="obrig">*</span></label>
-        <select class="form-control" id="sx-resultado">
-          <option value="deserta">Deserta — nenhuma proposta recebida</option>
-          <option value="fracassada">Fracassada — propostas desclassificadas ou recusadas</option>
-          <option value="outro">Outro</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="sx-motivo">O que aconteceu <span class="obrig">*</span></label>
-        <textarea class="form-control" id="sx-motivo" rows="3" placeholder="Ex.: as duas propostas ficaram acima do valor estimado e foram desclassificadas."></textarea>
-      </div>
-      <div class="td-erro-msg" id="sx-erro" role="alert" hidden></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="fecharModal('modal-sem-exito')">Voltar</button>
-      <button class="btn td-btn-perigo" onclick="semExitoParaCancelamento()"><i data-ic="xcirc"></i>Pedir cancelamento do TDR</button>
-      <button class="btn btn-primary" id="sx-relancar" onclick="relancarLicitacao()"><i data-ic="desfazer"></i>Relançar a licitação</button>
-    </div>
   </div>
 </div>
 
@@ -341,6 +352,7 @@
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
 <script src="../js/tarefas-vinculadas.js"></script>
+<script src="../js/tdr-licitacao.js"></script>
 <script>
 let todosTDRs=[], atividades=[], tdrAtual=null;
 // Cancelamento de TDR (20261012_tdr_cancelamento): pedido vivo por TDR (lista) e, no TDR aberto, pedidos e tentativas
@@ -548,7 +560,8 @@ async function carregar(){
       tdrQuery,
       db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
       db.from('tdr_cancelamentos').select('id,tdr_id,numero,status,etapa_atual').in('status',['rascunho','em_aprovacao']),
-      TarefasVinc.carregar(db)
+      TarefasVinc.carregar(db),
+      licCarregarLista()
     ]);
     atividades=ativs||[];todosTDRs=tdrs||[];
     cancVivos=Object.fromEntries((vivos||[]).map(c=>[c.tdr_id,c]));
@@ -731,6 +744,7 @@ function cardTDR(t){
       ${t.tipo?`<span class="td-tag">${esc(t.tipo)}</span>`:''}
       <span class="td-selo">${esc(rotulo)}</span>
       ${atr?`<span class="td-selo td-atraso">Atrasado ${diasAtraso} dia${diasAtraso>1?'s':''}</span>`:''}
+      ${licSelo(t)}
       ${cancVivos[t.id]?`<span class="td-selo td-cancelando" title="Pedido ${esc(cancVivos[t.id].numero)}">${cancVivos[t.id].status==='rascunho'?'Cancelamento em rascunho':'Em cancelamento'}</span>`:''}
       <span class="td-versao">versão ${t.versao_atual||1}</span>
     </div>
@@ -780,6 +794,7 @@ async function abrirTDR(id){
     db.from('tdr_licitacoes').select('*').eq('tdr_id',id).order('rodada')
   ]);
   cancTDR={pedidos:cPed||[],tentativas:cTent||[]};
+  await licCarregarTDR(id);
   // Mapear último ação por status_novo para a timeline
   const acaosPorFase={};
   (acoes||[]).forEach(a=>{
@@ -916,6 +931,7 @@ async function abrirTDR(id){
   document.getElementById('m-body').innerHTML=`
     ${linhaTempo}
     ${blocoCancelamento(t)}
+    ${licBloco(t)}
     ${msgPerm()}
     ${t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status)?`<div class="alert alert-danger">${tdIc('alerta')}<div>Prazo vencido em ${fmtData(t.prazo_limite)}.</div></div>`:''}
     ${matriz}
@@ -1040,7 +1056,7 @@ async function abrirTDR(id){
       devolver: eCoordenadorModal,
     },
     aprovado:{
-      licitacao: eCoordenadorModal, // abre modal de licitação → em_licitacao
+      licitacao: eCoordenadorModal||licEst.pode, // abre a janela da rodada (js/tdr-licitacao.js) → em_licitacao
     },
     em_licitacao:{
       contratar: eCoordenadorModal, // abre modal de contratação → contratado
@@ -1067,7 +1083,6 @@ async function abrirTDR(id){
     ${podePedirCanc?`<button class="btn td-btn-perigo" onclick="abrirCancelamento()">${tdIc('xcirc')}Pedir cancelamento</button>`:''}
     <div class="td-lin" style="margin-left:auto">
       ${FASES_POS_APROVACAO.includes(t.status)?`<button class="btn btn-secondary" onclick="gerarPDF()">${tdIc('documento')}PDF</button>`:''}
-      ${t.status==='em_licitacao'&&eCoordenadorModal&&!vivoC?`<button class="btn btn-secondary" onclick="abrirSemExito()">${tdIc('alerta')}Licitação sem êxito</button>`:''}
       ${podeAbrirEditorModal?`<a href="revisar-tdr.html?id=${t.id}" class="btn btn-secondary" style="text-decoration:none">${tdIc('editar')}Editor</a>`:''}
       ${fa.devolver?`<button class="btn td-btn-perigo" onclick="abrirDevolver()">${tdIc('desfazer')}Devolver</button>`:''}
       ${fa.avancar?`<button class="btn btn-primary" id="btn-avancar-fase" data-status="${fa.avancar.s}" data-label="${esc(fa.avancar.l)}">${tdIc(fa.avancar.s==='aprovado'?'check':'seta')}${esc(fa.avancar.l)}</button>`:''}
@@ -1754,58 +1769,7 @@ async function avancarFase(novoStatus){
   }
 }
 
-// ── ENVIAR PARA LICITAÇÃO (aprovado → em_licitacao) ──────────
-function toggleModalidadeOutro(){
-  const v=document.getElementById('lic-modalidade').value;
-  document.getElementById('lic-outro-wrap').style.display = v==='__outro'?'block':'none';
-}
-
-function abrirLicitacao(){
-  if(!tdrAtual)return;
-  document.getElementById('lic-modalidade').value=tdrAtual.modalidade_licitacao&&!['Pregão Eletrônico','Concorrência','Dispensa de Licitação','Inexigibilidade','Carta-Convite','Cotação/Shopping (ONU)'].includes(tdrAtual.modalidade_licitacao)?'__outro':(tdrAtual.modalidade_licitacao||'');
-  document.getElementById('lic-modalidade-outro').value=(document.getElementById('lic-modalidade').value==='__outro')?(tdrAtual.modalidade_licitacao||''):'';
-  document.getElementById('lic-processo').value=tdrAtual.numero_processo||'';
-  document.getElementById('lic-data').value=tdrAtual.dt_licitacao||'';
-  toggleModalidadeOutro();
-  document.getElementById('modal-licitacao').classList.add('aberto');
-}
-
-async function salvarLicitacao(){
-  if(!tdrAtual)return;
-  let modalidade=document.getElementById('lic-modalidade').value;
-  if(modalidade==='__outro') modalidade=document.getElementById('lic-modalidade-outro').value.trim();
-  if(!modalidade){toast('Selecione ou especifique a modalidade.','error');return;}
-  const processo=document.getElementById('lic-processo').value.trim()||null;
-  const data=document.getElementById('lic-data').value||null;
-
-  fecharModal('modal-licitacao');
-  pedirSenhaTDR('Enviar para licitação',`TDR ${tdrAtual.numero} → Em Licitação`,async()=>{
-    try{
-      const {error:updErr}=await db.from('tdrs').update({
-        status:'em_licitacao', modalidade_licitacao:modalidade,
-        numero_processo:processo, dt_licitacao:data
-      }).eq('id',tdrAtual.id);
-      if(updErr)throw new Error(updErr.message);
-
-      let usuarioId=appState?.usuario?.id;
-      if(usuarioId){
-        try{ await db.rpc('fn_registrar_acao_tdr',{p_tdr_id:tdrAtual.id,p_usuario_id:usuarioId,p_acao:'em_licitacao',p_comentario:`Modalidade: ${modalidade}${processo?' · Processo: '+processo:''}`,p_ip:null}); }catch(e){console.warn('[LICITAÇÃO] RPC log falhou:',e.message);}
-      }
-
-      tdrAtual.status='em_licitacao';
-      tdrAtual.modalidade_licitacao=modalidade; tdrAtual.numero_processo=processo; tdrAtual.dt_licitacao=data;
-      const idx=todosTDRs.findIndex(t=>t.id===tdrAtual.id);
-      if(idx>=0)Object.assign(todosTDRs[idx],{status:'em_licitacao',modalidade_licitacao:modalidade,numero_processo:processo,dt_licitacao:data});
-
-      fecharModal('modal-tdr');
-      renderStats();filtrar();
-      toast('TDR enviado para licitação.','success');
-    }catch(e){
-      console.error('[LICITAÇÃO] Erro:',e);
-      toast('Erro ao enviar para licitação: '+(e.message||JSON.stringify(e)),'error');
-    }
-  });
-}
+// ── ENVIAR PARA LICITAÇÃO, prorrogar, resultado e relançar: js/tdr-licitacao.js ──
 
 // ── REGISTRAR CONTRATAÇÃO (em_licitacao → contratado) ────────
 async function abrirContratado(){
@@ -2619,31 +2583,6 @@ function verTarefasTDR(id){
   document.getElementById('modal-tarefas-tdr').classList.add('aberto');
 }
 
-function abrirSemExito(){
-  if(!tdrAtual)return;
-  document.getElementById('sx-resultado').value='deserta';
-  document.getElementById('sx-motivo').value='';
-  document.getElementById('sx-erro').hidden=true;
-  document.getElementById('modal-sem-exito').classList.add('aberto');
-}
-async function relancarLicitacao(){
-  const res=document.getElementById('sx-resultado').value, mot=document.getElementById('sx-motivo').value.trim();
-  const erro=m=>{const e=document.getElementById('sx-erro');e.textContent=m;e.hidden=false;};
-  if(mot.length<10){erro('Descreva o que aconteceu (mínimo 10 caracteres).');return;}
-  const b=document.getElementById('sx-relancar');b.disabled=true;
-  const {error}=await db.rpc('fn_tdr_licitacao_sem_exito',{p_tdr_id:tdrAtual.id,p_resultado:res,p_motivo:mot});
-  b.disabled=false;
-  if(error){erro(msgCanc(error.message));return;}
-  fecharModal('modal-sem-exito');fecharModal('modal-tdr');
-  toast('Tentativa registrada. O TDR voltou para Aprovado: use “Enviar para licitação” para abrir a nova rodada.','success');
-  await carregar();
-}
-function semExitoParaCancelamento(){
-  const res=document.getElementById('sx-resultado').value, mot=document.getElementById('sx-motivo').value.trim();
-  fecharModal('modal-sem-exito');
-  abrirCancelamento({motivo_tipo:res==='deserta'?'licitacao_deserta':res==='fracassada'?'licitacao_fracassada':'outro',justificativa:mot});
-}
-
 async function abrirCancelamento(pre){
   const t=tdrAtual; if(!t)return;
   const vivo=cancTDR.pedidos.find(c=>['rascunho','em_aprovacao'].includes(c.status));
@@ -2733,7 +2672,7 @@ function abrirRevisor(){
 // Ao retornar do revisor: ?abrir=ID&aba=versoes
 (function verificarRetornoRevisor(){
   const params=new URLSearchParams(location.search);
-  const abrirId=params.get('abrir');
+  const abrirId=params.get('abrir')||params.get('tdr');
   const aba=params.get('aba');
   if(abrirId){
     // Limpar params da URL sem recarregar
