@@ -805,6 +805,15 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   recusa (`PRODUTO_SO_RESPONSAVEL`) levar `contratos_produtos.situacao` a `em_analise/aprovado/entrega_parcial/devolvido` por outro
   usuário (vale para o editor de produtos de Contratos). Triggers aninhados (pagamento, avaliação) e service_role passam.
   Na tela: Produtos abre em leitura para quem não pode avaliar; o editor de Contratos só oferece Pendente/Cancelado.
+- **Nota técnica obrigatória e conferida** (migração `20261014_nota_tecnica_conferencia`): aprovar entrega (total ou
+  parcial; devolução fora) exige nota técnica (ou parecer) em PDF do SEI **conferida** pela Edge Function `conferir-nota-tecnica`
+  (unpdf, sem IA, sem custo; o texto não sai do servidor). Regras, todas bloqueiam: PDF, texto legível, título "Nota Técnica"/"Parecer",
+  assinatura eletrônica SEI, código verificador + CRC, nº do contrato, nota não usada em outro produto (SHA-256 ou código verificador),
+  produto citado, fornecedor citado, assinada há ≤ 60 dias, signatário = responsável/substituto da atividade ou quem aprova. Resultado em
+  `nota_tecnica_conferencias` (só leitura para quem vê a entrega; escrita só service_role; `origem='calibracao'` = notas antigas lidas
+  em lote). `trg_entrega_exige_nota` recusa `situacao='aprovada'` sem a última conferência `tela` aprovada (≤ 2 dias) do MESMO arquivo
+  (`NOTA_TECNICA_OBRIGATORIA`/`NOTA_TECNICA_NAO_CONFERIDA`; escape só `dima.nota_tecnica='dispensar'`). Tela: quadro `#pr-nt` no despacho,
+  `selNotaTecnica` envia a `entregas-docs/produtos/<produto_id>/…` e chama a função; `ntConf` guarda o resultado. Regra nova = na função.
 - A **Matriz** é aberta a todos e não lê a entrega direto: `vw_matriz_progresso` testa "entrega aprovada" por `fn_entrega_aprovada()`
   (SECURITY DEFINER) e Matriz/Visão Geral leem a contribuição por `vw_matriz_contribuicoes` (dono postgres, só SELECT; expõe só
   nº, data, situação e tipo da entrega). Nunca embutir `contratos_produtos_entregas(...)` em consulta de tela aberta a todos.
@@ -1187,6 +1196,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
+| `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação; grava em `nota_tecnica_conferencias` | ✅ |
 | `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 
 ---

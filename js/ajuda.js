@@ -500,6 +500,13 @@ const AJUDA = {
           'Após o envio, o produto fica disponível para avaliação interna.',
           'Avaliadores podem adicionar nota técnica e percentual de aprovação.',
         ]},
+        { titulo: 'Nota técnica obrigatória para aprovar', itens: [
+          'Aprovar (total ou parcialmente) exige anexar a nota técnica em PDF gerado pelo SEI, já assinada. Devolver não exige.',
+          'Ao anexar, o sistema lê o PDF e confere: é PDF com texto (não escaneado); tem o título Nota Técnica ou Parecer; tem a assinatura eletrônica do SEI com código verificador e CRC; cita o número do contrato, o produto e o fornecedor.',
+          'Confere também: a nota não foi usada em outro produto; foi assinada nos últimos 60 dias; e foi assinada pelo responsável ou substituto da atividade, ou por quem está aprovando.',
+          'Se alguma conferência falhar, a janela diz o que corrigir na nota. Corrija no SEI, gere o PDF de novo e anexe.',
+          'A leitura é feita no servidor do projeto, sem inteligência artificial e sem custo; o conteúdo da nota não é enviado a nenhum serviço externo.',
+        ]},
       ]
     },
     en: {
