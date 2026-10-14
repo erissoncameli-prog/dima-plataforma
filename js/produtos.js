@@ -1016,7 +1016,7 @@ async function renderLinhaTempo(p){
   return html;
 }
 
-function selecionarDecisao(tipo){
+function selecionarDecisao(tipo,silencioso){
   decisaoSel=tipo;
   document.querySelectorAll('.decisao-opt').forEach(function(el){el.className='decisao-opt';});
   var mapa={aprovacao_total:'opt-total',aprovacao_parcial:'opt-parcial',devolucao:'opt-devol'};
@@ -1038,6 +1038,8 @@ function selecionarDecisao(tipo){
   if(btnParcial)btnParcial.style.display=tipo==='aprovacao_parcial'?'':'none';
   if(btnDevolver)btnDevolver.style.display=tipo==='devolucao'?'':'none';
   if(hint)hint.style.display='none';
+  // aprovar exige nota técnica conferida: ao escolher, mostra o que a nota precisa ter e o modelo
+  if(!silencioso&&tipo!=='devolucao'&&!(ntConf&&ntConf.aprovada))ntGuiaAbrir();
 }
 
 function calcValorParcial(pct,totalProduto){
@@ -1114,8 +1116,7 @@ function ntRender(estado,msg){
   if(pnl){pnl.classList.remove('ok','erro','lendo');if(estado)pnl.classList.add(estado);}
   if(estado==='lendo'){box.innerHTML='<div class="pr-nt-msg"><span class="pr-spin pr-spin-p"></span>'+esc(msg||'Lendo a nota técnica…')+'</div>';return;}
   if(!ntConf){box.innerHTML=msg?'<div class="pr-nt-msg erro">'+prIc('alerta','p')+esc(msg)+'</div>':'';return;}
-  var falhas=(ntConf.regras||[]).filter(function(r){return !r.ok;});
-  var n=ntConf.nota||{};
+  var regras=ntConf.regras||[],falhas=regras.filter(function(r){return !r.ok;}),n=ntConf.nota||{};
   var h='';
   if(ntConf.aprovada){
     h+='<div class="pr-nt-msg ok">'+prIc('check','p')+'<div><b>Nota conferida.</b> '
@@ -1123,14 +1124,18 @@ function ntRender(estado,msg){
       +((n.signatarios||[]).length?'<div class="pr-nt-sig">Assinatura: '+esc(n.signatarios.map(function(x){return x.nome;}).join(', '))+'</div>':'')
       +'</div></div>';
   } else {
-    h+='<div class="pr-nt-msg erro">'+prIc('alerta','p')+'<div><b>Esta nota não pode ser usada para aprovar.</b> Corrija no SEI e anexe o PDF novo:</div></div>'
-      +'<ol class="pr-nt-falhas">'+falhas.map(function(r){
-        return '<li><b>'+esc(r.titulo)+'</b>'+(r.detalhe?' <span class="pr-nt-det">('+esc(r.detalhe)+')</span>':'')+'<div>'+esc(r.corrigir||'')+'</div></li>';
-      }).join('')+'</ol>';
+    var okN=regras.length-falhas.length;
+    h+='<div class="pr-nt-placar"><b>'+okN+' de '+regras.length+' itens ok</b>'
+      +'<span class="pr-nt-barra" aria-hidden="true"><i style="width:'+Math.round(100*okN/Math.max(1,regras.length))+'%"></i></span>'
+      +'<span class="pr-nt-falta">'+falhas.length+' para corrigir</span></div>';
   }
-  h+='<details class="pr-nt-regras"><summary>Ver todas as conferências ('+(ntConf.regras||[]).filter(function(r){return r.ok;}).length+' de '+(ntConf.regras||[]).length+' ok)</summary><ul>'
-    +(ntConf.regras||[]).map(function(r){return '<li class="'+(r.ok?'ok':'erro')+'">'+prIc(r.ok?'check':'x','p')+esc(r.titulo)+(r.detalhe?' <span class="pr-nt-det">· '+esc(r.detalhe)+'</span>':'')+'</li>';}).join('')
-    +'</ul></details>';
+  var lista='<ul class="pr-nt-ck">'+regras.map(function(r){
+      return '<li class="'+(r.ok?'ok':'er')+'"><span class="pr-nt-i">'+prIc(r.ok?'check':'alerta','p')+'</span><div><b>'+esc(r.titulo)+'</b>'
+        +(r.detalhe?' <span class="pr-nt-det">· '+esc(r.detalhe)+'</span>':'')
+        +(!r.ok&&r.corrigir?'<small>'+esc(r.corrigir)+'</small>':'')+'</div></li>';
+    }).join('')+'</ul>';
+  h+=ntConf.aprovada?'<details class="pr-nt-regras"><summary>Ver as '+regras.length+' conferências</summary>'+lista+'</details>':lista;
+  if(!ntConf.aprovada)h+='<p class="pr-nt-dica">Corrija no SEI, gere o PDF de novo e anexe. <a href="#" onclick="event.preventDefault();ntGuiaAbrir()">Ver o modelo da nota</a></p>';
   box.innerHTML=h;
 }
 
@@ -1157,6 +1162,122 @@ async function ntCarregarEstado(){
   ntConf={caminho:cam,url:entregaAtual.nota_tecnica_url,nome:c.arquivo_nome||entregaAtual.nota_tecnica_nome,aprovada:c.aprovada,regras:c.regras,
     nota:{numero:c.nt_numero,sei:c.sei_documento,signatarios:c.signatarios,data:c.data_assinatura}};
   ntRender(c.aprovada?'ok':'erro');
+}
+
+// ── Guia "antes de aprovar" + modelo da nota (função conferir-nota-tecnica, ação 'modelo') ──
+var ntModelo={};   // por entrega: {blocos, texto, docx_base64, nome_arquivo}
+async function ntFuncao(corpo){
+  var sess=(await db.auth.getSession()).data.session;
+  var res=await fetch(SUPABASE_URL+'/functions/v1/conferir-nota-tecnica',{method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(sess&&sess.access_token||''),'apikey':SUPABASE_ANON_KEY},
+    body:JSON.stringify(corpo)});
+  var j=await res.json().catch(function(){return {};});
+  return {ok:res.ok&&j.ok,status:res.status,j:j};
+}
+function ntParte(p){
+  var t=esc(p.t);
+  return p.o?'<mark class="pr-ntg-o">'+t+'</mark>':p.c?'<span class="pr-ntg-c">'+t+'</span>':t;
+}
+function ntBlocosHtml(bs){
+  return bs.filter(function(b){return b.k!=='aviso';}).map(function(b){
+    var t=b.p.map(ntParte).join('');
+    return b.k==='titulo'?'<p class="pr-ntg-tit">'+t+'</p>':b.k==='secao'?'<p class="pr-ntg-sec">'+t+'</p>'
+      :b.k==='assin'?'<p class="pr-ntg-ass">'+t+'</p>':'<p>'+t+'</p>';
+  }).join('');
+}
+async function ntGuiaAbrir(){
+  if(!entregaAtual||!produtoAtual)return;
+  var c=produtoAtual.contratos||{},forn=c.fornecedores&&c.fornecedores.nome||'—';
+  var prod='Produto '+String(produtoAtual.numero_produto||'').padStart(2,'0');
+  document.getElementById('ntg-sub').textContent=prod+' · Contrato '+(c.numero||'—');
+  var req=[
+    ['PDF gerado pelo SEI, com texto (não escaneado)'],
+    ['Título "Nota Técnica nº …" (ou "Parecer nº …")'],
+    ['Nº do contrato: ',c.numero||'—'],
+    ['O produto: ',prod],
+    ['O fornecedor: ',forn],
+    ['Assinatura eletrônica no SEI, com código verificador e CRC'],
+    ['Assinada pelo responsável ou substituto da atividade, ou por quem aprova'],
+    ['Assinada há no máximo 60 dias e usada só neste produto'],
+  ];
+  document.getElementById('ntg-body').innerHTML=
+    '<div class="pr-ntg-aviso">'+prIc('info','p')+'<span>Para aprovar é preciso anexar a nota técnica em PDF gerado pelo SEI. O sistema lê a nota e só aceita se ela tiver tudo abaixo. No modelo, o que está <mark class="pr-ntg-o">em amarelo</mark> não pode faltar; o que está <span class="pr-ntg-c">[entre colchetes]</span> você completa.</span></div>'
+    +'<div class="pr-ntg-rot">O que a nota precisa ter</div>'
+    +'<ol class="pr-ntg-req">'+req.map(function(r){return '<li>'+esc(r[0])+(r[1]?'<b>'+esc(r[1])+'</b>':'')+'</li>';}).join('')+'</ol>'
+    +'<div class="pr-ntg-rot pr-ntg-rot2"><span>Modelo para o SEI <span class="pr-ntg-pad">(padrão das notas já aprovadas)</span></span>'
+    +'<span class="pr-ntg-acoes"><button type="button" class="btn btn-sm btn-secondary" id="ntg-copiar" onclick="ntCopiar()" disabled>'+prIc('doc','p')+' Copiar texto</button>'
+    +'<button type="button" class="btn btn-sm btn-secondary" id="ntg-baixar" onclick="ntBaixar()" disabled>'+prIc('entrada','p')+' Baixar .docx</button></span></div>'
+    +'<div class="pr-ntg-modelo" id="ntg-modelo"><div class="pr-nt-msg"><span class="pr-spin pr-spin-p"></span>Montando o modelo…</div></div>';
+  document.getElementById('ntg-ok').hidden=!!(ntConf&&ntConf.aprovada);
+  prAbrir('modal-nt-guia');
+  var id=entregaAtual.id,m=ntModelo[id];
+  if(!m){
+    var r=await ntFuncao({acao:'modelo',entrega_id:id});
+    if(!r.ok){var el=document.getElementById('ntg-modelo');if(el)el.innerHTML='<div class="pr-nt-msg erro">'+prIc('alerta','p')+esc(r.j.erro||'Não foi possível montar o modelo.')+'</div>';return;}
+    m=ntModelo[id]=r.j;
+  }
+  if(!entregaAtual||entregaAtual.id!==id)return;
+  var box=document.getElementById('ntg-modelo');if(box)box.innerHTML=ntBlocosHtml(m.blocos||[]);
+  var ass=(m.blocos||[]).find(function(b){return b.k==='assin';});
+  var li7=document.querySelector('#ntg-body .pr-ntg-req li:nth-child(7)');
+  if(ass&&li7){var nome=(ass.p[0].t||'').replace(/^Assinatura eletrônica no SEI:\s*/,'');if(nome&&!/responsável ou substituto/.test(nome))li7.innerHTML='Assinada por <b>'+esc(nome)+'</b> (responsável) ou substituto, ou por quem aprova';}
+  ['ntg-copiar','ntg-baixar'].forEach(function(x){var b=document.getElementById(x);if(b)b.disabled=false;});
+}
+function ntGuiaAnexar(){prFechar('modal-nt-guia');var i=document.getElementById('inp-nt');if(i)i.click();}
+async function ntCopiar(){
+  var m=entregaAtual&&ntModelo[entregaAtual.id];if(!m)return;
+  try{await navigator.clipboard.writeText(m.texto);toast('Texto do modelo copiado. Cole no editor do SEI e complete o que está entre colchetes.','success');}
+  catch(e){toast('Não foi possível copiar. Use "Baixar .docx".','warning');}
+}
+function ntBaixar(){
+  var m=entregaAtual&&ntModelo[entregaAtual.id];if(!m)return;
+  var bin=atob(m.docx_base64),u8=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);
+  var url=URL.createObjectURL(new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}));
+  var a=document.createElement('a');a.href=url;a.download=m.nome_arquivo||'Modelo_Nota_Tecnica.docx';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},4000);
+}
+
+// ── Confirmar aprovação com a senha de login (conferida no servidor; o banco exige a confirmação) ──
+var ntSenhaResolve=null;
+function ntPedirSenha(tipo,pct,valor){
+  return new Promise(function(resolve){
+    ntSenhaResolve=resolve;
+    var c=produtoAtual.contratos||{},n=ntConf&&ntConf.nota||{};
+    var linhas=[
+      ['Produto','Produto '+String(produtoAtual.numero_produto||'').padStart(2,'0')+' · Contrato '+(c.numero||'—')],
+      ['Decisão',tipo==='aprovacao_parcial'?'Aprovação parcial ('+pct+'%) — libera o pagamento proporcional':'Aprovação total — libera o pagamento'],
+      ['Valor',fmtBRL(valor)],
+      ['Nota técnica',(n.numero||'Nota')+' conferida'],
+    ];
+    document.getElementById('nts-res').innerHTML=linhas.map(function(l){return '<span>'+esc(l[0])+'</span><b>'+esc(l[1])+'</b>';}).join('');
+    document.getElementById('nts-ok-txt').textContent=tipo==='aprovacao_parcial'?'Confirmar aprovação parcial':'Confirmar e liberar pagamento';
+    document.getElementById('nts-ok').dataset.tipo=tipo;
+    document.getElementById('nts-senha').value='';
+    var er=document.getElementById('nts-erro');er.hidden=true;er.textContent='';
+    prAbrir('modal-nt-senha');
+  });
+}
+function ntSenhaFechar(ok){
+  prFechar('modal-nt-senha');
+  var f=ntSenhaResolve;ntSenhaResolve=null;if(f)f(!!ok);
+}
+async function ntSenhaConfirmar(){
+  var btn=document.getElementById('nts-ok'),inp=document.getElementById('nts-senha'),er=document.getElementById('nts-erro');
+  var senha=inp.value;
+  if(!senha){er.textContent='Digite sua senha.';er.hidden=false;inp.focus();return;}
+  btn.disabled=true;
+  try{
+    var r=await ntFuncao({acao:'confirmar_aprovacao',entrega_id:entregaAtual.id,tipo_decisao:btn.dataset.tipo,senha:senha});
+    inp.value='';
+    if(!r.ok){
+      var e=r.j.erro||'';
+      er.textContent=e==='SENHA_INVALIDA'?'Senha incorreta.'
+        :e==='SENHA_BLOQUEADA'?'Muitas tentativas erradas. Tente de novo depois de '+(r.j.bloqueado_ate?new Date(r.j.bloqueado_ate).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'30 minutos')+'.'
+        :(e||'Não foi possível confirmar (HTTP '+r.status+').');
+      er.hidden=false;inp.focus();return;
+    }
+    ntSenhaFechar(true);
+  }finally{btn.disabled=false;}
 }
 
 async function selNotaTecnica(file){
@@ -1441,7 +1562,7 @@ async function emitirDespacho(tipoBtn){
   if(_emitindoDespacho)return;
   _emitindoDespacho=true;
   try{
-  if(tipoBtn)selecionarDecisao(tipoBtn);
+  if(tipoBtn)selecionarDecisao(tipoBtn,true);
   var tipo=tipoBtn||decisaoSel;
   if(!tipo){_emitindoDespacho=false;toast('Selecione uma decisão.','error');return;}
   var despacho=document.getElementById('f-despacho')&&document.getElementById('f-despacho').value&&document.getElementById('f-despacho').value.trim()||'';
@@ -1466,6 +1587,8 @@ async function emitirDespacho(tipoBtn){
     return;
   }
 
+  if(tipo!=='devolucao'&&!(await ntPedirSenha(tipo,pctAprov,valorAprov)))return;
+
   // Gerar número de despacho
   var anoAtual=new Date().getFullYear();
   var dSeqR=await db.from('despachos_seq').select('*').eq('ano',anoAtual).single();
@@ -1487,7 +1610,7 @@ async function emitirDespacho(tipoBtn){
     nota_tecnica_url:ntUrl,nota_tecnica_nome:ntNome,
     atualizado_em:new Date().toISOString()
   }).eq('id',entregaAtual.id);
-  if(updR.error){var em=updR.error.message||'';toast(/NOTA_TECNICA_/.test(em)?em.replace(/^NOTA_TECNICA_\w+:\s*/,''):'Erro: '+em,'error',8000);return;}
+  if(updR.error){var em=updR.error.message||'';toast(/(NOTA_TECNICA|SENHA)_/.test(em)?em.replace(/^(NOTA_TECNICA|SENHA)_\w+:\s*/,''):'Erro: '+em,'error',8000);return;}
   notaTecnicaFile=null;ntConf=null;
 
   if(tipo==='devolucao'){
@@ -1606,7 +1729,7 @@ function prFechar(id){
   var volta=prPilha.splice(i,1)[0].volta;
   if(volta&&document.contains(volta))volta.focus({preventScroll:true});
 }
-var PR_FECHAR={'lightbox':function(){fecharLightbox();},'modal-geo-csv':function(){fecharModalGeoCsv();},'modal-matriz-edit':function(){fecharModalMatrizEdit();},
+var PR_FECHAR={'modal-nt-senha':function(){ntSenhaFechar(false);},'lightbox':function(){fecharLightbox();},'modal-geo-csv':function(){fecharModalGeoCsv();},'modal-matriz-edit':function(){fecharModalMatrizEdit();},
   'modal-anexo-edit':function(){fecharModalAnexoEdit();},'modal-prod':function(){fecharModal();}};
 document.addEventListener('keydown',function(e){
   var topo=prPilha.length?prPilha[prPilha.length-1].el:null; if(!topo)return;

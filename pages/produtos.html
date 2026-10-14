@@ -86,6 +86,45 @@
   </div>
 </div>
 
+<!-- Antes de aprovar: o que a nota técnica precisa ter + modelo (js/produtos.js ntGuiaAbrir) -->
+<div class="modal-overlay pr-ov pr-sobre" id="modal-nt-guia" role="dialog" aria-modal="true" aria-labelledby="ntg-titulo">
+  <div class="modal" style="max-width:780px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="ntg-titulo"><i data-ic="doc"></i>Antes de aprovar: a nota técnica</div>
+        <div class="modal-sub" id="ntg-sub"></div>
+      </div>
+      <button type="button" class="modal-close" onclick="prFechar('modal-nt-guia')" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body" id="ntg-body"></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="prFechar('modal-nt-guia')">Voltar</button>
+      <button type="button" class="btn btn-primary" id="ntg-ok" onclick="ntGuiaAnexar()"><i data-ic="clipe"></i>Entendi, anexar a nota</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmar aprovação com a senha de login (js/produtos.js ntPedirSenha) -->
+<div class="modal-overlay pr-ov pr-sobre" id="modal-nt-senha" role="dialog" aria-modal="true" aria-labelledby="nts-titulo">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title" id="nts-titulo"><i data-ic="cadeado"></i>Confirmar aprovação</div>
+      <button type="button" class="modal-close" onclick="ntSenhaFechar(false)" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="pr-nts-res" id="nts-res"></div>
+      <label class="form-label" for="nts-senha">Sua senha de login</label>
+      <input class="form-control" type="password" id="nts-senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')ntSenhaConfirmar()">
+      <div class="form-hint">A senha é conferida no servidor e não fica gravada. Depois de 5 tentativas erradas, a aprovação fica bloqueada por 30 minutos.</div>
+      <div class="pr-nt-msg erro" id="nts-erro" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="ntSenhaFechar(false)">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="nts-ok" onclick="ntSenhaConfirmar()"><i data-ic="check"></i><span id="nts-ok-txt">Confirmar e liberar pagamento</span></button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="../js/config.js"></script>

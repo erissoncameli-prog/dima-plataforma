@@ -816,6 +816,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `selNotaTecnica` envia a `entregas-docs/produtos/<produto_id>/…` e chama a função; `ntConf` guarda o resultado. Regra nova = na função.
   **Nota aprovada fica fixa** (`_b_unica`): a função recusa outra nota enquanto a última conferência da entrega for aprovada (≤ 2 dias,
   entrega `em_analise`), salvo super_admin; a trava exige que a nota gravada seja a da ÚLTIMA conferência `tela` da entrega. Tela: `ntTravar()`.
+  **Guia, modelo e senha** (`_c_senha`): marcar aprovar abre `#modal-nt-guia` (`ntGuiaAbrir`: requisitos + modelo da função, ação `modelo`,
+  `modelo.ts` = padrão das 8 seções das notas aprovadas; `o` = obrigatório em amarelo, `c` = a completar; copiar texto ou baixar .docx gerado
+  no servidor com `npm:docx`). Checklist da conferência em `ntRender`. Aprovar (total/parcial) pede a **senha de login** (`#modal-nt-senha`,
+  `ntPedirSenha` → ação `confirmar_aprovacao`, mesmo bloqueio `fn_rem_senha_bloqueada_ate`), que grava em `entrega_aprovacao_senhas`
+  (sem policy/grant) uma confirmação de uso único (10 min, pessoa + entrega + decisão); `trg_entrega_exige_nota` consome ou recusa
+  (`SENHA_NAO_CONFIRMADA`). Nunca conferir a senha no navegador.
 - A **Matriz** é aberta a todos e não lê a entrega direto: `vw_matriz_progresso` testa "entrega aprovada" por `fn_entrega_aprovada()`
   (SECURITY DEFINER) e Matriz/Visão Geral leem a contribuição por `vw_matriz_contribuicoes` (dono postgres, só SELECT; expõe só
   nº, data, situação e tipo da entrega). Nunca embutir `contratos_produtos_entregas(...)` em consulta de tela aberta a todos.
@@ -1198,7 +1204,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `fetch-link-metadata` | Metadados de links externos | ✅ |
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
-| `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação; grava em `nota_tecnica_conferencias` | ✅ |
+| `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação (`nota_tecnica_conferencias`); gera o modelo da nota (.docx); reconfirma a senha de quem aprova (`entrega_aprovacao_senhas`) | ✅ |
 | `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 
 ---
