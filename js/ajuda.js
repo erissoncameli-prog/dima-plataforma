@@ -506,6 +506,9 @@ const AJUDA = {
           'Confere também: a nota não foi usada em outro produto; foi assinada nos últimos 60 dias; e foi assinada pelo responsável ou substituto da atividade, ou por quem está aprovando.',
           'Se alguma conferência falhar, a janela diz o que corrigir na nota. Corrija no SEI, gere o PDF de novo e anexe.',
           'Depois que uma nota passa na conferência, ela fica fixa: não é possível anexar outra para a mesma entrega. Se a nota aprovada estiver errada, só um super_admin pode trocá-la (a troca fica no histórico).',
+          'Ao marcar Aprovar (total ou parcial), abre a janela "Antes de aprovar" com o que a nota precisa ter e um modelo já preenchido com contrato, produto e fornecedor, no padrão das notas já aprovadas. No modelo, o que está em amarelo não pode faltar. Dá para copiar o texto para o SEI ou baixar em .docx.',
+          'Depois de anexar, a conferência aparece como checklist: verde para o que está ok e vermelho com o que corrigir.',
+          'Aprovar exige confirmar com a sua senha de login, conferida no servidor. Depois de 5 senhas erradas, a aprovação fica bloqueada por 30 minutos. Devolver não pede senha.',
           'A leitura é feita no servidor do projeto, sem inteligência artificial e sem custo; o conteúdo da nota não é enviado a nenhum serviço externo.',
         ]},
       ]

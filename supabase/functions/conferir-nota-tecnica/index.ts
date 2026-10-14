@@ -12,10 +12,19 @@
 //   · confere as notas das entregas já aprovadas, sem mudar nada nelas (origem 'calibracao');
 //     serve para ajustar as regras e para a regra de nota repetida enxergar o passado.
 //
+// { acao: 'modelo', entrega_id }   (JWT) — modelo da nota no padrão das notas aprovadas, já preenchido
+//   com contrato/produto/fornecedor: { blocos, texto, docx_base64, nome_arquivo } (modelo.ts).
+//
+// { acao: 'confirmar_aprovacao', entrega_id, tipo_decisao, senha }   (JWT)
+//   reconfirma a SENHA DE LOGIN no servidor (mesmo bloqueio do remanejamento: 5 erros em 30 min)
+//   e grava em entrega_aprovacao_senhas a confirmação de uso único (10 min) que a trava de aprovação
+//   (trg_entrega_exige_nota) consome. A senha nunca é gravada nem logada.
+//
 // O conteúdo da nota nunca sai daqui: só o resultado das regras e os dados de identificação
 // (nº da nota, nº SEI, códigos, signatários, data) são gravados.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { extractText, getDocumentProxy } from 'npm:unpdf@0.12.1'
+import { gerarDocx, montarBlocos, textoPlano } from './modelo.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -286,7 +295,7 @@ Deno.serve(async (req) => {
     return resp({ ok: true, total: saida.length, saida })
   }
 
-  if (corpo.acao !== 'conferir') return resp({ ok: false, erro: 'ação inválida' }, 400)
+  if (!['conferir', 'modelo', 'confirmar_aprovacao'].includes(corpo.acao)) return resp({ ok: false, erro: 'ação inválida' }, 400)
 
   // 1. quem é e se pode avaliar
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
@@ -294,7 +303,7 @@ Deno.serve(async (req) => {
   if (eU || !u?.user) return resp({ ok: false, erro: 'Sessão inválida. Entre de novo.' }, 401)
   const usuarioId = u.user.id
   const { entrega_id, caminho, arquivo_nome, sha256 } = corpo
-  if (!entrega_id || !caminho) return resp({ ok: false, erro: 'Dados incompletos (entrega e arquivo).' }, 400)
+  if (!entrega_id) return resp({ ok: false, erro: 'Dados incompletos (entrega).' }, 400)
 
   const { data: ent } = await admin.from('contratos_produtos_entregas')
     .select('id, produto_id, contrato_id, situacao').eq('id', entrega_id).maybeSingle()
@@ -302,6 +311,48 @@ Deno.serve(async (req) => {
   const doUsuario = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: 'Bearer ' + token } } })
   const { data: pode } = await doUsuario.rpc('fn_pode_avaliar_contrato', { p_contrato_id: ent.contrato_id })
   if (pode !== true) return resp({ ok: false, erro: 'Só o responsável/substituto da atividade (ou super_admin) confere e aprova este produto.' }, 403)
+
+  if (corpo.acao === 'modelo') {
+    const { data: e } = await admin.from('contratos_produtos_entregas')
+      .select('dt_entrega, produto:contratos_produtos(numero_produto, descricao, valor_brl), contrato:contratos(numero, objeto_pt, atividade_id, fornecedor:fornecedores(nome), atividade:atividades(codigo))')
+      .eq('id', entrega_id).maybeSingle()
+    let responsavel = ''
+    if (e?.contrato?.atividade_id) {
+      const { data: rs } = await admin.from('atividade_responsaveis')
+        .select('papel, usuario:usuarios(nome_completo, ativo)').eq('atividade_id', e.contrato.atividade_id).eq('ativo', true)
+      const r = (rs || []).find((x: any) => x.papel === 'responsavel' && x.usuario?.ativo) || (rs || []).find((x: any) => x.usuario?.ativo)
+      responsavel = r?.usuario?.nome_completo || ''
+    }
+    const blocos = montarBlocos({
+      contratoNumero: e?.contrato?.numero || '', contratoObjeto: e?.contrato?.objeto_pt || '',
+      produtoNumero: e?.produto?.numero_produto ?? null, produtoDescricao: e?.produto?.descricao || '',
+      produtoValor: e?.produto?.valor_brl ?? null, fornecedor: e?.contrato?.fornecedor?.nome || '',
+      dtEntrega: e?.dt_entrega || null, responsavel, atividadeCodigo: e?.contrato?.atividade?.codigo || '',
+      ano: Number(hojeAcre().slice(0, 4)),
+    })
+    const nome = `Modelo_Nota_Tecnica_Contrato_${String(e?.contrato?.numero || '').replace(/\W+/g, '')}_Produto_${e?.produto?.numero_produto ?? ''}.docx`
+    return resp({ ok: true, blocos, texto: textoPlano(blocos), docx_base64: await gerarDocx(blocos), nome_arquivo: nome })
+  }
+
+  if (corpo.acao === 'confirmar_aprovacao') {
+    const tipo = String(corpo.tipo_decisao || '')
+    if (!['aprovacao_total', 'aprovacao_parcial'].includes(tipo)) return resp({ ok: false, erro: 'Decisão inválida.' }, 400)
+    if (ent.situacao !== 'em_analise') return resp({ ok: false, erro: 'Esta entrega não está em avaliação.' }, 409)
+    if (typeof corpo.senha !== 'string' || !corpo.senha) return resp({ ok: false, erro: 'Digite sua senha.' }, 400)
+    const { data: bloqueadoAte } = await admin.rpc('fn_rem_senha_bloqueada_ate', { p_usuario_id: usuarioId })
+    if (bloqueadoAte) return resp({ ok: false, erro: 'SENHA_BLOQUEADA', bloqueado_ate: bloqueadoAte }, 429)
+    const ok = await conferirSenha(u.user.email || '', corpo.senha)
+    await admin.rpc('fn_rem_registrar_tentativa', { p_usuario_id: usuarioId, p_sucesso: ok })
+    if (!ok) return resp({ ok: false, erro: 'SENHA_INVALIDA' }, 401)
+    const { error: eS } = await admin.from('entrega_aprovacao_senhas').insert({
+      entrega_id, usuario_id: usuarioId, tipo_decisao: tipo,
+      ip: (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null, user_agent: req.headers.get('user-agent'),
+    })
+    if (eS) return resp({ ok: false, erro: eS.message }, 500)
+    return resp({ ok: true })
+  }
+
+  if (!caminho) return resp({ ok: false, erro: 'Dados incompletos (arquivo).' }, 400)
   const cam = String(caminho)
   if (!cam.startsWith(`produtos/${ent.produto_id}/`) || cam.includes('..')) {
     return resp({ ok: false, erro: 'Arquivo fora da pasta deste produto.' }, 400)
@@ -345,3 +396,19 @@ Deno.serve(async (req) => {
     return resp({ ok: false, erro: 'Falha ao conferir: ' + (err as Error).message }, 500)
   }
 })
+
+async function conferirSenha(email: string, senha: string): Promise<boolean> {
+  const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST', headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password: senha }),
+  })
+  if (!r.ok) return false
+  const j = await r.json().catch(() => null)
+  // encerra a sessão criada só para conferir a senha
+  if (j?.access_token) {
+    await fetch(`${SUPABASE_URL}/auth/v1/logout?scope=local`, {
+      method: 'POST', headers: { apikey: ANON_KEY, Authorization: `Bearer ${j.access_token}` },
+    }).catch(() => {})
+  }
+  return !!j?.access_token
+}
