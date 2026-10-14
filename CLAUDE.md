@@ -814,6 +814,8 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   em lote). `trg_entrega_exige_nota` recusa `situacao='aprovada'` sem a última conferência `tela` aprovada (≤ 2 dias) do MESMO arquivo
   (`NOTA_TECNICA_OBRIGATORIA`/`NOTA_TECNICA_NAO_CONFERIDA`; escape só `dima.nota_tecnica='dispensar'`). Tela: quadro `#pr-nt` no despacho,
   `selNotaTecnica` envia a `entregas-docs/produtos/<produto_id>/…` e chama a função; `ntConf` guarda o resultado. Regra nova = na função.
+  **Nota aprovada fica fixa** (`_b_unica`): a função recusa outra nota enquanto a última conferência da entrega for aprovada (≤ 2 dias,
+  entrega `em_analise`), salvo super_admin; a trava exige que a nota gravada seja a da ÚLTIMA conferência `tela` da entrega. Tela: `ntTravar()`.
 - A **Matriz** é aberta a todos e não lê a entrega direto: `vw_matriz_progresso` testa "entrega aprovada" por `fn_entrega_aprovada()`
   (SECURITY DEFINER) e Matriz/Visão Geral leem a contribuição por `vw_matriz_contribuicoes` (dono postgres, só SELECT; expõe só
   nº, data, situação e tipo da entrega). Nunca embutir `contratos_produtos_entregas(...)` em consulta de tela aberta a todos.
