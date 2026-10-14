@@ -173,6 +173,9 @@ body.dgm .pr-ov .pr-nt-cab { font-size: 11px; font-weight: 700; text-transform: 
 body.dgm .pr-ov .pr-nt-sub { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--txt-3); }
 body.dgm .pr-ov .pr-nt-linha { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 body.dgm .pr-ov .pr-nt-nome { flex: 1; min-width: 0; font-size: 12px; color: var(--txt-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.dgm .pr-ov .pr-nt-trava { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--ok-txt);
+  background: var(--ok-bg); border-radius: 999px; padding: 3px 9px; }
+body.dgm .pr-ov .pr-nt-trava[hidden] { display: none; }
 body.dgm .pr-ov .pr-nt-conf:empty { display: none; }
 body.dgm .pr-ov .pr-nt-conf { margin-top: 8px; font-size: 12px; }
 body.dgm .pr-ov .pr-nt-msg { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 10px; background: var(--sup-2); color: var(--txt-2); }

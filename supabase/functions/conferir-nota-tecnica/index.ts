@@ -307,6 +307,23 @@ Deno.serve(async (req) => {
     return resp({ ok: false, erro: 'Arquivo fora da pasta deste produto.' }, 400)
   }
 
+  // nota já conferida e aprovada para esta entrega (ainda válida): não aceita outra.
+  // Só super_admin troca (nota aprovada mas errada); a troca fica no histórico de conferências.
+  const { data: ultConf } = await admin.from('nota_tecnica_conferencias')
+    .select('caminho, arquivo_nome, nt_numero, aprovada, conferido_em')
+    .eq('entrega_id', entrega_id).eq('origem', 'tela')
+    .order('conferido_em', { ascending: false }).limit(1).maybeSingle()
+  const vigente = ultConf && ultConf.aprovada && ent.situacao === 'em_analise'
+    && Date.now() - Date.parse(ultConf.conferido_em) < 2 * 864e5
+  if (vigente && ultConf.caminho !== cam) {
+    const { data: perfil } = await doUsuario.rpc('fn_perfil_atual')
+    if (perfil !== 'super_admin') {
+      return resp({ ok: false, bloqueada: true,
+        erro: `Esta entrega já tem nota técnica conferida (${ultConf.nt_numero || ultConf.arquivo_nome || 'nota aprovada'}). ` +
+              'Depois de aprovada na conferência, a nota não pode ser trocada. Se ela estiver errada, peça a um super_admin.' }, 409)
+    }
+  }
+
   // 2. baixa e confere
   const { data: blob, error: eB } = await admin.storage.from(BUCKET).download(cam)
   if (eB || !blob) return resp({ ok: false, erro: 'O arquivo da nota não foi encontrado no armazenamento. Anexe de novo.' }, 404)

@@ -905,7 +905,8 @@ async function abrirModal(prodId){
       +'<span id="nt-nome" class="pr-nt-nome">'+(entregaAtual.nota_tecnica_url?esc(entregaAtual.nota_tecnica_nome||'Nota Técnica'):'nenhuma anexada')+'</span>'
       +(entregaAtual.nota_tecnica_url?'<button class="btn btn-sm btn-secondary" type="button" onclick="abrirArquivo(\''+esc(entregaAtual.nota_tecnica_url)+'\')">'+prIc('olho','p')+' Abrir</button>':'')
       +'<input type="file" id="inp-nt" style="display:none" accept=".pdf,application/pdf" onchange="selNotaTecnica(this.files[0]);this.value=\'\'">'
-      +'<button class="btn btn-sm btn-secondary" type="button" onclick="document.getElementById(\'inp-nt\').click()">'+prIc('clipe','p')+(entregaAtual.nota_tecnica_url?' Substituir':' Anexar PDF')+'</button>'
+      +'<button class="btn btn-sm btn-secondary" type="button" id="nt-btn-anexar" onclick="document.getElementById(\'inp-nt\').click()">'+prIc('clipe','p')+(entregaAtual.nota_tecnica_url?' Substituir':' Anexar PDF')+'</button>'
+      +'<span id="nt-trava" class="pr-nt-trava" hidden>'+prIc('cadeado','p')+' Nota conferida — não pode ser trocada</span>'
       +'</div>'
       +'<div id="nt-conf" class="pr-nt-conf" aria-live="polite"></div>'
       +'</div>'   // fim pr-nt
@@ -1108,6 +1109,7 @@ function ntCaminhoDeUrl(url){var m=String(url||'').match(/\/entregas-docs\/(.+)$
 
 function ntRender(estado,msg){
   var box=document.getElementById('nt-conf');if(!box)return;
+  ntTravar();
   var pnl=document.getElementById('pr-nt');
   if(pnl){pnl.classList.remove('ok','erro','lendo');if(estado)pnl.classList.add(estado);}
   if(estado==='lendo'){box.innerHTML='<div class="pr-nt-msg"><span class="pr-spin pr-spin-p"></span>'+esc(msg||'Lendo a nota técnica…')+'</div>';return;}
@@ -1132,6 +1134,15 @@ function ntRender(estado,msg){
   box.innerHTML=h;
 }
 
+// Nota aprovada na conferência fica fixa: o botão de trocar some (só super_admin troca; o servidor
+// recusa para os demais e o banco só aceita a última conferência aprovada da entrega).
+function ntTravar(){
+  var travada=!!(ntConf&&ntConf.aprovada), sa=appState.perfil==='super_admin';
+  var btn=document.getElementById('nt-btn-anexar'),tr=document.getElementById('nt-trava');
+  if(btn){btn.hidden=travada&&!sa;if(travada&&sa)btn.innerHTML=prIc('clipe','p')+' Trocar nota (super_admin)';}
+  if(tr)tr.hidden=!travada;
+}
+
 // Ao abrir a janela: a nota já anexada a esta entrega vale se a última conferência dela foi aprovada
 async function ntCarregarEstado(){
   ntConf=null;
@@ -1150,6 +1161,10 @@ async function ntCarregarEstado(){
 
 async function selNotaTecnica(file){
   if(!file||!entregaAtual||!produtoAtual)return;
+  if(ntConf&&ntConf.aprovada){
+    if(appState.perfil!=='super_admin'){toast('A nota técnica já foi conferida e aprovada; ela não pode ser trocada.','warning');return;}
+    if(!confirm('Trocar a nota técnica já conferida?\n\nA nota atual foi aprovada na conferência. Se continuar, passa a valer a nova nota (se ela também passar). A troca fica registrada no histórico.'))return;
+  }
   notaTecnicaFile=null;ntConf=null;
   var nomeEl=document.getElementById('nt-nome');
   if(nomeEl)nomeEl.textContent=file.name+' ('+Math.round(file.size/1024)+' KB)';
