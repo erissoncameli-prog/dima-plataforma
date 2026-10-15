@@ -261,6 +261,21 @@
 .ap-modo-continuo .ap-legenda{display:block;position:absolute;z-index:3;left:50%;bottom:clamp(26px,3.6vw,46px);transform:translateX(-50%);
   width:max-content;max-width:min(86%,62ch);text-align:center;font:500 clamp(13px,1.7vw,22px)/1.4 var(--fonte-corpo);
   color:#fff;background:rgba(11,18,13,.8);padding:.4em .9em;border-radius:10px;}
+/* TV / projetor: as cenas foram desenhadas para o palco da janela (1100 px)
+   e os tamanhos param no máximo do clamp() — numa tela grande ficava tudo
+   pequeno no meio. --ap-escala (palco ÷ 1100, nunca menor que 1, calculada
+   em _apEscalaTela) amplia cena, selo e controles por igual; a legenda
+   cresce só metade disso e a cena reserva a faixa dela embaixo
+   (--ap-reserva, em px da cena), para o conteúdo não passar por baixo. */
+.ap-modo-continuo{--ap-zoom-legenda:calc(1 + (var(--ap-escala,1) - 1) / 2);
+  --ap-reserva:calc(150px * var(--ap-zoom-legenda) / var(--ap-escala,1));}
+.ap-modo-continuo .ap-cena,.ap-modo-continuo .ap-selo-idioma,
+.ap-modo-continuo .ap-progresso,.ap-modo-continuo .ap-controles,.ap-inicio{zoom:var(--ap-escala,1);}
+.ap-modo-continuo .ap-legenda{zoom:var(--ap-zoom-legenda);}
+.ap-modo-continuo .ap-palco::after{height:calc(18px * var(--ap-escala,1));}
+.ap-modo-continuo .ap-cena{padding-bottom:var(--ap-reserva);}
+.ap-modo-continuo .ap-mapa-texto{bottom:var(--ap-reserva);}
+.ap-modo-continuo .ap-metrica{max-width:34ch;}
 
 /* Tela de início (sem permissão de som automático, espera um clique) */
 .ap-inicio{position:fixed;inset:0;z-index:1100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
