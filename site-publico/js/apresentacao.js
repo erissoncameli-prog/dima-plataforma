@@ -435,11 +435,21 @@ function fecharApresentacao() {
 const AP_CICLO = ['pt', 'en', 'es'];
 let _apOcioso = 0;
 
+// Escala do conteúdo na TV: o palco ocupa a tela (16:9) e as cenas crescem
+// junto, a partir dos 1100 px de largura em que foram desenhadas (zoom no
+// CSS por --ap-escala; só vale no modo contínuo e na tela de início)
+const AP_LARGURA_CENA = 1100;
+function _apEscalaTela() {
+  const palco = Math.min(innerWidth, innerHeight * 16 / 9);
+  document.body.style.setProperty('--ap-escala', Math.max(1, palco / AP_LARGURA_CENA).toFixed(3));
+}
+
 function _apIniciarContinuo() {
   document.getElementById('ap-inicio')?.remove();
   _ap.continuo = true;
   _ap.idiomaOriginal = idiomaAtual;
   document.body.classList.add('ap-modo-continuo');
+  _apEscalaTela();
   document.documentElement.requestFullscreen?.().catch(() => { /* quiosque já é tela cheia */ });
   _ap.idx = 0;
   if (idiomaAtual !== 'pt') mudarIdioma('pt');
@@ -496,8 +506,11 @@ function _apTelaContinuo() {
   });
 }
 document.addEventListener('DOMContentLoaded', () => {
-  if (new URLSearchParams(location.search).get('modo') === 'continuo') _apTelaContinuo();
+  if (new URLSearchParams(location.search).get('modo') !== 'continuo') return;
+  _apEscalaTela();
+  _apTelaContinuo();
 });
+window.addEventListener('resize', _apEscalaTela);
 
 // Troca de idioma com a apresentação aberta: refaz janela e cena atual
 document.addEventListener('idioma', () => {
