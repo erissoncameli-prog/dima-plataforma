@@ -881,6 +881,9 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   mudou ⇒ `DOCUMENTO_ALTERADO`); registro em `viagem_decisoes` (só inclusão). Travas: `trg_viagem_guarda_decisao` (saída de
   `solicitado`, volta de `aprovado`, `aprovado_por/_em`) e `trg_viagem_viaj_guarda` (`sit_passagem/sit_diaria = 'aprovado'` gera o
   lançamento) só passam com `dima.viagem='decidir'`. A tela pergunta `fn_viagem_pode_decidir` só para mostrar os botões.
+  **Auditor**: `fn_auditoria_viagens()` (service_role, chamada pelo agente de viagens do `auditor-ia` v21) lista aprovação por quem
+  está no protocolo — antes da trava (16/10/2026 18:55 UTC) = `info` (histórico, 13 protocolos); depois, ou aprovado sem linha
+  `aprovar` em `viagem_decisoes` = `critico`. Título "Viagem: aprovação…": a IA não muda a severidade.
 
 ### Relatórios — visual, catálogo e folha A4
 - `pages/relatorios.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor

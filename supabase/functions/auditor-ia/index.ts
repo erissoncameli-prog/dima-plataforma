@@ -9,6 +9,7 @@
  * O agente de orçamento (razão, cobertura de contrato, cadeia de remanejamento,
  * PTAX) grava como 'financeiro' — o check de auditoria_registros.dominio não
  * tem 'orcamento' (mudar exige DROP no SQL Editor). Regras em fn_auditoria_orcamento().
+ * Segregação na aprovação de viagem (quem pediu/viaja não aprova) em fn_auditoria_viagens().
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -42,6 +43,8 @@ Sua tarefa é analisar os achados brutos de auditoria do sistema DIMA (projeto 2
 4. Redigir um resumo executivo claro e objetivo
 
 Achados com título iniciado por "Orçamento:" vêm do razão orçamentário (remanejamento entre atividades, cobertura de contrato acima do TDR, cotação PTAX). Falha de conferência do razão é sempre crítica: indica que o orçamento registrado não bate com seus lançamentos.
+
+Achados com título iniciado por "Viagem: aprovação" tratam da segregação de funções na aprovação de viagens (quem pediu ou viaja não pode aprovar). Os marcados "antes da trava" são histórico informativo — a regra passou a ser barrada no banco em 16/10/2026; não os trate como risco atual. "Aprovação fora do fluxo com senha" é sempre crítica.
 
 Responda APENAS com JSON válido neste formato:
 {
@@ -374,6 +377,23 @@ async function auditarViagens(db: any): Promise<Achado[]> {
     })
   }
 
+  // 4d. Segregação: aprovação por quem pediu ou viaja no protocolo (regra no banco,
+  // mesma fn_viagem_participa da aprovação com senha).
+  const { data: segregacao, error: eSeg } = await db.rpc('fn_auditoria_viagens')
+  if (eSeg) console.error('fn_auditoria_viagens:', eSeg.message)
+  for (const r of segregacao || []) {
+    achados.push({
+      dominio: 'viagens',
+      severidade: r.severidade as Severidade,
+      titulo: r.titulo,
+      descricao: r.descricao,
+      recomendacao: r.recomendacao || undefined,
+      referencia_tabela: r.referencia_tabela || undefined,
+      referencia_id: r.referencia_id || undefined,
+      referencia_label: r.referencia_label || undefined,
+    })
+  }
+
   return achados
 }
 
@@ -546,8 +566,9 @@ Analise os achados e retorne o JSON de avaliação conforme o formato especifica
 
     const achadosEnriquecidos = achados.map((a, i) => {
       const enriquecido = analise.achados_enriquecidos?.find((e: any) => e.indice === i)
-      // falha de conferência do razão não é rebaixada pela IA
-      const fixo = a.severidade === 'critico' && a.titulo.startsWith('Orçamento:')
+      // falha de conferência do razão e segregação na aprovação de viagem: a IA não muda a severidade
+      const fixo = (a.severidade === 'critico' && a.titulo.startsWith('Orçamento:'))
+        || a.titulo.startsWith('Viagem: aprovação')
       return {
         ...a,
         recomendacao: enriquecido?.recomendacao_refinada || a.recomendacao,
@@ -620,16 +641,19 @@ Deno.serve(async (req) => {
       auditarOrcamento(supabase).catch(e => { console.error('Agente Orçamento falhou:', e); return [] as Achado[] }),
     ])
 
-    // Orçamento primeiro: o supervisor só recebe os 40 primeiros achados
+    // Orçamento primeiro: o supervisor só recebe os 40 primeiros achados.
+    // Histórico de segregação de viagem (info) vai por último para não ocupar essas vagas.
+    const historicoViagem = (a: Achado) => a.severidade === 'info' && a.titulo.startsWith('Viagem: aprovação')
     const todosAchados = [
       ...achadosOrcamento.filter(a => a.severidade === 'critico'),
       ...achadosTDR,
       ...achadosFinanceiro,
       ...achadosOrcamento.filter(a => a.severidade !== 'critico'),
       ...achadosProdutos,
-      ...achadosViagens,
+      ...achadosViagens.filter(a => !historicoViagem(a)),
       ...achadosMatriz,
       ...achadosQualidade,
+      ...achadosViagens.filter(historicoViagem),
     ]
 
     console.log(`[auditor-ia] ${todosAchados.length} achados brutos coletados`)
