@@ -872,6 +872,15 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   "válido até" / "vence em N dias" (`selePassaporte`). CPF completo e dados bancários só na janela de edição.
 - Janelas: classe **`vi-ov`** (no seletor de escopo de `diagnostico-mesa.css`); a classe `.aberto` é observada (`viObs`): pilha,
   Esc fecha a de cima (`VI_FECHAR` para as que têm função própria), Tab preso, foco volta.
+- **Aprovação do protocolo** (migração `20261016_viagem_aprovacao_segregada`): `solicitado` → aprovar/devolver/rejeitar **só
+  super_admin**; `aprovado` → **devolver** por super_admin ou financeiro (cancela os lançamentos a pagar, itens voltam a
+  `solicitado`, protocolo a `rascunho`; recusa se já houver pago). **Nunca decide quem está no protocolo**: criador, e-mail do
+  solicitante ou viajante (e-mail do viajante/beneficiário ou nome completo) — `fn_viagem_participa`/`fn_viagem_regra`. Coordenação
+  não decide (segue com SPDs, UNESCO e realizado). Decisão **com senha**: Edge Function `assinar-remanejamento`,
+  `acao:'decidir_viagem'` → `fn_viagem_decidir` (só service_role; hash `fn_viagem_hash` = protocolo + viajantes + trechos + diárias,
+  mudou ⇒ `DOCUMENTO_ALTERADO`); registro em `viagem_decisoes` (só inclusão). Travas: `trg_viagem_guarda_decisao` (saída de
+  `solicitado`, volta de `aprovado`, `aprovado_por/_em`) e `trg_viagem_viaj_guarda` (`sit_passagem/sit_diaria = 'aprovado'` gera o
+  lançamento) só passam com `dima.viagem='decidir'`. A tela pergunta `fn_viagem_pode_decidir` só para mostrar os botões.
 
 ### Relatórios — visual, catálogo e folha A4
 - `pages/relatorios.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
@@ -1205,7 +1214,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
 | `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação (`nota_tecnica_conferencias`); gera o modelo da nota (.docx); reconfirma a senha de quem aprova (`entrega_aprovacao_senhas`) | ✅ |
-| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
+| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 
 ---
 

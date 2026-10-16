@@ -210,19 +210,48 @@
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
       <div><div class="modal-title"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Devolver para correção</div>
-      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">O técnico poderá corrigir e reenviar para aprovação</div></div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">O protocolo volta a rascunho; quem pediu corrige e reenvia</div></div>
       <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-devolver').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
     </div>
     <div class="modal-body" style="padding:20px 24px">
       <div class="form-group">
         <label class="form-label">Motivo da devolução <span class="obrig">*</span></label>
         <textarea class="form-control" id="devolver-motivo" rows="4"
-          placeholder="Descreva o que precisa ser corrigido ou complementado..."></textarea>
+          placeholder="Descreva o que precisa ser corrigido ou complementado (mínimo 10 caracteres)..."></textarea>
+      </div>
+      <div id="devolver-aviso" style="display:none;font-size:11px;background:var(--alerta-bg);color:var(--alerta-txt);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:8px 10px"></div>
+      <div class="form-group" style="margin-top:12px">
+        <label class="form-label" for="devolver-senha">Sua senha de login <span class="obrig">*</span></label>
+        <input type="password" id="devolver-senha" class="form-control" autocomplete="current-password" placeholder="Confirme a decisão com a sua senha">
+        <div id="devolver-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:4px"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="document.getElementById('modal-devolver').classList.remove('aberto')">Cancelar</button>
-      <button class="btn" style="margin-left:auto;background:var(--alerta);color:#fff;border:1px solid var(--alerta)" onclick="confirmarDevolver()"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Confirmar devolução</button>
+      <button class="btn" style="margin-left:auto;background:var(--alerta);color:#fff;border:1px solid var(--alerta)" id="devolver-btn" onclick="confirmarDevolver()"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Confirmar devolução</button>
+    </div>
+  </div>
+</div>
+<!-- Modal aprovação (senha) -->
+<div class="modal-overlay vi-ov" id="modal-aprovar" role="dialog" aria-modal="true" aria-labelledby="aprovar-titulo">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="aprovar-titulo"><svg class="vi-ic p"><use href="#vi-check"/></svg> Aprovar protocolo</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Aprova o que está na tela agora; se algo mudar depois de aberto, a aprovação é recusada</div></div>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-aprovar').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div id="aprovar-resumo" style="font-size:12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px"></div>
+      <div style="font-size:11px;color:var(--cinza-600);margin-top:10px">Ao aprovar, as passagens e diárias são aprovadas e os lançamentos <strong>a pagar</strong> são criados no Financeiro.</div>
+      <div class="form-group" style="margin-top:12px">
+        <label class="form-label" for="aprovar-senha">Sua senha de login <span class="obrig">*</span></label>
+        <input type="password" id="aprovar-senha" class="form-control" autocomplete="current-password" placeholder="Confirme a decisão com a sua senha">
+        <div id="aprovar-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-aprovar').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-primary" style="margin-left:auto" id="aprovar-btn" onclick="confirmarAprovar()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Aprovar com senha</button>
     </div>
   </div>
 </div>
@@ -238,12 +267,17 @@
       <div class="form-group">
         <label class="form-label">Motivo da rejeição <span class="obrig">*</span></label>
         <textarea class="form-control" id="rejeitar-motivo" rows="4"
-          placeholder="Descreva o motivo para que o solicitante possa corrigir e reenviar..."></textarea>
+          placeholder="Descreva o motivo da rejeição (mínimo 10 caracteres)..."></textarea>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label class="form-label" for="rejeitar-senha">Sua senha de login <span class="obrig">*</span></label>
+        <input type="password" id="rejeitar-senha" class="form-control" autocomplete="current-password" placeholder="Confirme a decisão com a sua senha">
+        <div id="rejeitar-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:4px"></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="document.getElementById('modal-rejeitar').classList.remove('aberto')">Cancelar</button>
-      <button class="btn" style="margin-left:auto;background:var(--erro);color:#fff;border:1px solid var(--erro)" onclick="confirmarRejeitar()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Confirmar rejeição</button>
+      <button class="btn" style="margin-left:auto;background:var(--erro);color:#fff;border:1px solid var(--erro)" id="rejeitar-btn" onclick="confirmarRejeitar()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Confirmar rejeição</button>
     </div>
   </div>
 </div>
@@ -1835,6 +1869,10 @@ async function abrirDetalhe(id){
     (usrs||[]).forEach(u=>p._nomes[u.id]=u.nome_completo);
   }
 
+  // Quem pode decidir é o banco (fn_viagem_regra): a tela só pergunta para mostrar os botões
+  const{data:regra}=await db.rpc('fn_viagem_pode_decidir',{p_protocolo:p.id});
+  p._regra=regra||{decisoes:[]};
+
   protAtual=p;
   const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
   const canEditValues=['super_admin','financeiro'].includes(appState.perfil);
@@ -2010,13 +2048,22 @@ async function abrirDetalhe(id){
   if(ehDono && p.situacao==='solicitado' && !isAdmin)
     footer+=`<button class="btn btn-secondary" style="margin-left:8px" onclick="abrirFormEdicao('${p.id}')"><svg class="vi-ic p"><use href="#vi-lapis"/></svg> Editar</button>`;
 
-  // Admin: aprovar/rejeitar/SPDs/realizar
+  // Decisão (aprovar/devolver/rejeitar): super_admin decide o solicitado; super_admin ou financeiro
+  // devolvem o aprovado; quem pediu ou viaja no protocolo nunca decide (regra no banco, com senha)
+  const dec=p._regra.decisoes||[];
+  const btnDevolver=`<button class="btn" style="background:var(--alerta-bg);color:var(--alerta-txt);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent)" onclick="abrirModalDevolver()"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Devolver</button>`;
+  if(p.situacao==='solicitado'&&dec.length)
+    footer+=`<div style="display:flex;gap:8px;margin-left:auto">
+      ${dec.includes('devolver')?btnDevolver:''}
+      ${dec.includes('rejeitar')?`<button class="btn" style="background:var(--erro-bg);color:var(--erro-txt);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent)" onclick="abrirModalRejeitar()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Rejeitar</button>`:''}
+      ${dec.includes('aprovar')?`<button class="btn btn-primary" onclick="aprovarProtocolo()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Aprovar</button>`:''}</div>`;
+  else if(p._regra.bloqueio&&['solicitado','aprovado'].includes(p.situacao))
+    footer+=`<span style="margin-left:auto;font-size:11px;color:var(--alerta-txt);background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:6px 10px;display:flex;align-items:center;gap:6px"><svg class="vi-ic p"><use href="#vi-alerta"/></svg> ${p._regra.bloqueio==='viajante'?'Você viaja neste protocolo':'Você pediu este protocolo'}: a decisão cabe a outra pessoa.</span>`;
+  else if(p.situacao==='solicitado')
+    footer+=`<span style="margin-left:auto;font-size:11px;color:var(--cinza-600);display:flex;align-items:center;gap:6px"><svg class="vi-ic p"><use href="#vi-relogio"/></svg> Aguardando aprovação de um super_admin que não esteja no protocolo.</span>`;
+
+  // Admin: SPDs/UNESCO/realizar
   if(isAdmin){
-    if(p.situacao==='solicitado')
-      footer+=`<div style="display:flex;gap:8px;margin-left:auto">
-        <button class="btn" style="background:var(--alerta-bg);color:var(--alerta-txt);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent)" onclick="abrirModalDevolver()"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Devolver</button>
-        <button class="btn" style="background:var(--erro-bg);color:var(--erro-txt);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent)" onclick="abrirModalRejeitar()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Rejeitar</button>
-        <button class="btn btn-primary" onclick="aprovarProtocolo()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Aprovar</button></div>`;
     if(p.situacao==='aprovado')
       footer+=`<div style="display:flex;gap:8px;margin-left:auto">
         ${!p.notificado_unesco_em?`<button class="btn" style="background:var(--info-bg);color:var(--info-txt);border:1px solid color-mix(in srgb,var(--info) 35%,transparent)" onclick="notificarUnescoDireto('${p.id}')"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar UNESCO</button>`:`<span style="font-size:11px;color:var(--ok);display:flex;align-items:center;gap:4px"><svg class="vi-ic p"><use href="#vi-email"/></svg> UNESCO notificada em ${fmtData(p.notificado_unesco_em.split('T')[0])}</span>`}
@@ -2035,6 +2082,9 @@ async function abrirDetalhe(id){
       }
     }
   }
+
+  if(p.situacao==='aprovado'&&dec.includes('devolver'))
+    footer+=`<span style="margin-left:8px">${btnDevolver}</span>`;
 
   // Rascunho: dono pode editar e enviar para aprovação
   if(p.situacao==='rascunho'&&(ehDono||isAdmin)){
@@ -2089,81 +2139,92 @@ function renderPrestacaoViajante(v){
 // ══════════════════════════════════════════════════════════════
 // APROVAÇÃO
 // ══════════════════════════════════════════════════════════════
-async function aprovarProtocolo(){
+// A decisão passa pela Edge Function assinar-remanejamento (acao 'decidir_viagem'): reconfere a senha
+// no servidor e chama fn_viagem_decidir, que faz tudo numa transação (itens, lançamentos, avisos).
+const VI_DEC_ERRO={SENHA_INVALIDA:'Senha incorreta.',SENHA_BLOQUEADA:'Muitas tentativas erradas. Tente de novo em 30 minutos.'};
+function viDecErro(pre,msg){
+  const el=document.getElementById(pre+'-erro');
+  el.textContent=msg;el.style.display=msg?'block':'none';
+}
+function viDecPreparar(pre){
+  document.getElementById(pre+'-senha').value='';viDecErro(pre,'');
+}
+async function viDecidir(pre,decisao,motivo){
+  const p=protAtual;if(!p)return null;
+  const senha=document.getElementById(pre+'-senha').value;
+  if(!senha){viDecErro(pre,'Digite sua senha para confirmar.');return null;}
+  const btn=document.getElementById(pre+'-btn');btn.disabled=true;viDecErro(pre,'');
+  try{
+    const{data:{session}}=await db.auth.getSession();
+    const r=await fetch(SUPABASE_URL+'/functions/v1/assinar-remanejamento',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||''),'apikey':SUPABASE_ANON_KEY},
+      body:JSON.stringify({acao:'decidir_viagem',protocolo_id:p.id,decisao,motivo:motivo||null,hash:p._regra?.hash||'',senha})
+    });
+    const j=await r.json().catch(()=>({}));
+    if(!j.ok){
+      const e=String(j.erro||'Não foi possível registrar a decisão.');
+      viDecErro(pre,VI_DEC_ERRO[e]||e.replace(/^[A-Z_]+:\s*/,''));
+      return null;
+    }
+    document.getElementById(pre+'-senha').value='';
+    return j.resultado||{};
+  }catch(e){viDecErro(pre,'Falha de conexão: '+e.message);return null;}
+  finally{btn.disabled=false;}
+}
+
+function aprovarProtocolo(){
   const p=protAtual;if(!p)return;
-  // Aprovar protocolo
-  await db.from('viagem_protocolos').update({
-    situacao:'aprovado',aprovado_por:appState.usuario.id,aprovado_em:new Date().toISOString()
-  }).eq('id',p.id);
-  // Aprovar cada viajante (cria lançamentos a_pagar via trigger)
-  for(const v of (p.viajantes||[])){
-    const upd={};
-    if(v.tem_passagem){upd.sit_passagem='aprovado';upd.aprovado_pass_por=appState.usuario.id;upd.aprovado_pass_em=new Date().toISOString();}
-    if(v.tem_diaria){upd.sit_diaria='aprovado';upd.aprovado_diar_por=appState.usuario.id;upd.aprovado_diar_em=new Date().toISOString();}
-    if(Object.keys(upd).length)await db.from('viagem_viajantes').update(upd).eq('id',v.id);
-  }
-  // Notificar solicitante
-  await db.from('notificacoes').insert({
-    usuario_id:p.criado_por,tipo:'viagem_aprovada',
-    titulo:`Protocolo ${p.numero} aprovado`,
-    mensagem:`Sua solicitação de viagem para ${p.destino_principal||'—'} (${p.numero}) foi aprovada. Aguarde a emissão dos SPDs pela UNESCO.`,
-    lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
-  });
-  toast(`Protocolo ${p.numero} aprovado! Lançamentos a_pagar gerados.`,'success');
+  const viaj=(p.viajantes||[]).length;
+  document.getElementById('aprovar-resumo').innerHTML=`<strong>${esc(p.numero||'—')}</strong> · ${esc(p.destino_principal||'—')}<br>
+    ${p.dt_saida?fmtData(p.dt_saida):'—'} a ${p.dt_retorno?fmtData(p.dt_retorno):'—'} · ${viaj} viajante(s) · ${fmtBRL(calcTotalProtocolo(p))}`;
+  viDecPreparar('aprovar');
+  document.getElementById('modal-aprovar').classList.add('aberto');
+  setTimeout(()=>document.getElementById('aprovar-senha').focus(),50);
+}
+
+async function confirmarAprovar(){
+  const p=protAtual;
+  const res=await viDecidir('aprovar','aprovar',null);if(!res)return;
+  document.getElementById('modal-aprovar').classList.remove('aberto');
+  toast(`Protocolo ${p.numero} aprovado! Lançamentos a pagar gerados.`,'success');
   await enviarEmailAuto(p.id,'aprovado');
   fecharModal();await carregar();
 }
 
 function abrirModalDevolver(){
+  const p=protAtual;
   document.getElementById('devolver-motivo').value='';
+  const av=document.getElementById('devolver-aviso');
+  if(p?.situacao==='aprovado'){
+    av.innerHTML='O protocolo já foi aprovado: os lançamentos <strong>a pagar</strong> gerados pela aprovação serão cancelados e passagens e diárias voltam a aguardar aprovação. Se já houver pagamento, a devolução é recusada.';
+    av.style.display='block';
+  }else av.style.display='none';
+  viDecPreparar('devolver');
   document.getElementById('modal-devolver').classList.add('aberto');
 }
 
 async function confirmarDevolver(){
   const motivo=document.getElementById('devolver-motivo').value.trim();
-  if(!motivo){toast('Informe o motivo da devolução.','error');return;}
+  if(motivo.length<10){viDecErro('devolver','Escreva o motivo da devolução (mínimo 10 caracteres).');return;}
+  const res=await viDecidir('devolver','devolver',motivo);if(!res)return;
   document.getElementById('modal-devolver').classList.remove('aberto');
-  const p=protAtual;
-  await db.from('viagem_protocolos').update({
-    situacao:'rascunho',
-    rejeitado_por:appState.usuario.id,
-    rejeitado_em:new Date().toISOString(),
-    rejeitado_motivo:motivo
-  }).eq('id',p.id);
-  if(p.criado_por){
-    await db.from('notificacoes').insert({
-      usuario_id:p.criado_por,tipo:'viagem_devolvida',
-      titulo:`Protocolo ${p.numero} devolvido para correção`,
-      mensagem:`Motivo: ${motivo}`,
-      lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
-    });
-  }
-  toast('Protocolo devolvido para correção.','info');fecharModal();await carregar();
+  toast(res.lancamentos_cancelados?`Protocolo devolvido para correção; ${res.lancamentos_cancelados} lançamento(s) a pagar cancelado(s).`:'Protocolo devolvido para correção.','info');
+  fecharModal();await carregar();
 }
 
 function abrirModalRejeitar(){
   document.getElementById('rejeitar-motivo').value='';
+  viDecPreparar('rejeitar');
   document.getElementById('modal-rejeitar').classList.add('aberto');
 }
 
 async function confirmarRejeitar(){
   const motivo=document.getElementById('rejeitar-motivo').value.trim();
-  if(!motivo){toast('Informe o motivo da rejeição.','error');return;}
-  document.getElementById('modal-rejeitar').classList.remove('aberto');
+  if(motivo.length<10){viDecErro('rejeitar','Escreva o motivo da rejeição (mínimo 10 caracteres).');return;}
   const p=protAtual;
-  await db.from('viagem_protocolos').update({
-    situacao:'rejeitado',rejeitado_por:appState.usuario.id,
-    rejeitado_em:new Date().toISOString(),rejeitado_motivo:motivo
-  }).eq('id',p.id);
-  // Notificar solicitante
-  if(p.criado_por){
-    await db.from('notificacoes').insert({
-      usuario_id:p.criado_por,tipo:'viagem_rejeitada',
-      titulo:`Protocolo ${p.numero} rejeitado`,
-      mensagem:`Motivo: ${motivo}`,
-      lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
-    });
-  }
+  const res=await viDecidir('rejeitar','rejeitar',motivo);if(!res)return;
+  document.getElementById('modal-rejeitar').classList.remove('aberto');
   toast('Protocolo rejeitado.','info');
   await enviarEmailAuto(p.id,'rejeitado');
   fecharModal();await carregar();

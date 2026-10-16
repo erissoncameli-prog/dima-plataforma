@@ -568,7 +568,7 @@ const AJUDA = {
   viagens: {
     pt: {
       titulo: 'Viagens',
-      intro: 'O módulo de Viagens gerencia os protocolos de deslocamento de consultores e servidores vinculados ao projeto. Cada viagem requer aprovação da coordenação antes da realização.',
+      intro: 'O módulo de Viagens gerencia os protocolos de deslocamento de consultores e servidores vinculados ao projeto. Cada viagem requer aprovação de um Super Admin que não esteja no protocolo, confirmada com a senha.',
       secoes: [
         { titulo: 'Criação de Protocolo', itens: [
           'Informe o objetivo da viagem (campo obrigatório).',
@@ -578,13 +578,16 @@ const AJUDA = {
         ]},
         { titulo: 'Situações da Viagem', itens: [
           'Solicitado: protocolo criado, aguardando aprovação.',
-          'Aprovado: coordenação autorizou a realização.',
-          'Rejeitado: coordenação não autorizou, com justificativa.',
+          'Aprovado: um Super Admin autorizou a realização.',
+          'Rejeitado: o Super Admin não autorizou, com justificativa.',
           'Concluído: viagem realizada e prestação de contas enviada.',
           'Cancelado: viagem cancelada antes da realização.',
         ]},
         { titulo: 'Aprovação e Notificações', itens: [
-          'Coordenação e Super Admin podem aprovar ou rejeitar.',
+          'Só Super Admin aprova, devolve ou rejeita um protocolo solicitado, sempre com a senha de login.',
+          'Quem pediu a viagem ou viaja no protocolo nunca decide sobre ele — nem sendo Super Admin. A decisão cabe a outra pessoa.',
+          'Depois de aprovado, Super Admin ou Financeiro podem devolver para correção: os lançamentos a pagar são cancelados e o protocolo volta a rascunho (não vale se já houver pagamento).',
+          'A coordenação acompanha e cuida das etapas seguintes (SPDs, aviso à UNESCO, confirmar realizado), mas não aprova.',
           'Ao aprovar, um e-mail automático é enviado ao solicitante.',
           'Após a viagem, o consultor envia a prestação de contas pelo link público.',
         ]},
@@ -592,7 +595,7 @@ const AJUDA = {
     },
     en: {
       titulo: 'Travel',
-      intro: 'The Travel module manages travel protocols for consultants and staff linked to the project. Each trip requires coordination approval before it takes place.',
+      intro: 'The Travel module manages travel protocols for consultants and staff linked to the project. Each trip requires approval by a Super Admin who is not part of the protocol, confirmed with their password.',
       secoes: [
         { titulo: 'Creating a Protocol', itens: [
           'Enter the travel objective (required field).',
@@ -602,13 +605,16 @@ const AJUDA = {
         ]},
         { titulo: 'Travel Status', itens: [
           'Requested: protocol created, awaiting approval.',
-          'Approved: coordination authorized the trip.',
-          'Rejected: coordination did not authorize, with justification.',
+          'Approved: a Super Admin authorized the trip.',
+          'Rejected: the Super Admin did not authorize, with justification.',
           'Completed: trip completed and expense report submitted.',
           'Cancelled: trip cancelled before taking place.',
         ]},
         { titulo: 'Approval and Notifications', itens: [
-          'Coordination and Super Admin can approve or reject.',
+          'Only a Super Admin approves, returns or rejects a requested protocol, always with their login password.',
+          'Whoever requested the trip or travels in the protocol never decides on it — not even as Super Admin.',
+          'After approval, Super Admin or Finance can return it for correction: payables are cancelled and the protocol goes back to draft (not allowed once paid).',
+          'Coordination follows up and handles the next steps (SPDs, UNESCO notice, mark as done), but does not approve.',
           'Upon approval, an automatic email is sent to the requestor.',
           'After the trip, the consultant submits the expense report via the public link.',
         ]},
@@ -616,7 +622,7 @@ const AJUDA = {
     },
     es: {
       titulo: 'Viajes',
-      intro: 'El módulo de Viajes gestiona los protocolos de desplazamiento de consultores y personal vinculado al proyecto. Cada viaje requiere aprobación de coordinación antes de realizarse.',
+      intro: 'El módulo de Viajes gestiona los protocolos de desplazamiento de consultores y personal vinculado al proyecto. Cada viaje requiere la aprobación de un Super Admin que no esté en el protocolo, confirmada con su contraseña.',
       secoes: [
         { titulo: 'Creación de Protocolo', itens: [
           'Indique el objetivo del viaje (campo obligatorio).',
@@ -626,13 +632,16 @@ const AJUDA = {
         ]},
         { titulo: 'Situaciones del Viaje', itens: [
           'Solicitado: protocolo creado, pendiente de aprobación.',
-          'Aprobado: coordinación autorizó la realización.',
-          'Rechazado: coordinación no autorizó, con justificación.',
+          'Aprobado: un Super Admin autorizó la realización.',
+          'Rechazado: el Super Admin no autorizó, con justificación.',
           'Concluido: viaje realizado y rendición de cuentas enviada.',
           'Cancelado: viaje cancelado antes de realizarse.',
         ]},
         { titulo: 'Aprobación y Notificaciones', itens: [
-          'Coordinación y Super Admin pueden aprobar o rechazar.',
+          'Solo un Super Admin aprueba, devuelve o rechaza un protocolo solicitado, siempre con su contraseña.',
+          'Quien pidió el viaje o viaja en el protocolo nunca decide sobre él, ni siendo Super Admin.',
+          'Tras la aprobación, Super Admin o Financiero pueden devolverlo para corrección: se cancelan los pagos pendientes y el protocolo vuelve a borrador (no si ya hay pago).',
+          'La coordinación acompaña y hace las etapas siguientes (SPDs, aviso a la UNESCO, confirmar realizado), pero no aprueba.',
           'Al aprobar, se envía un correo automático al solicitante.',
           'Tras el viaje, el consultor envía la rendición de cuentas por el enlace público.',
         ]},

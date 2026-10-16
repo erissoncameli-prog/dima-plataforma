@@ -22,6 +22,11 @@
 //   o responsável/substituto da atividade aprova ou devolve com a senha; chama
 //   fn_encp_decidir (service_role), que efetiva o encerramento na aprovação.
 //
+// { acao: 'decidir_viagem', protocolo_id, decisao: 'aprovar'|'devolver'|'rejeitar', motivo?, hash, senha }
+//   mesma porta para o PROTOCOLO DE VIAGEM (20261016_viagem_aprovacao_segregada): super_admin
+//   aprova/devolve/rejeita o solicitado; super_admin ou financeiro devolvem o aprovado; quem
+//   pediu ou viaja nunca decide. Chama fn_viagem_decidir (service_role).
+//
 // { acao: 'drenar' }   (cron 'remanejamento-emails') — reenvia a fila pendente,
 //   inclusive os avisos de contrato travado/liberado (cobertura_notificacoes, rem_11)
 //   e os do cancelamento de TDR.
@@ -63,9 +68,10 @@ Deno.serve(async (req) => {
     try { cancelamento = await drenarCancelamentos(admin, null) } catch (e) { console.error('cancelamento:', (e as Error).message) }
     return resp({ ok: true, ...r, cobertura, cancelamento })
   }
-  if (!['assinar', 'assinar_cancelamento', 'decidir_encerramento'].includes(corpo.acao)) return resp({ ok: false, erro: 'acao inválida' }, 400)
+  if (!['assinar', 'assinar_cancelamento', 'decidir_encerramento', 'decidir_viagem'].includes(corpo.acao)) return resp({ ok: false, erro: 'acao inválida' }, 400)
   const ehCancelamento = corpo.acao === 'assinar_cancelamento'
   const ehEncerramento = corpo.acao === 'decidir_encerramento'
+  const ehViagem = corpo.acao === 'decidir_viagem'
 
   // 1. quem é
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
@@ -73,8 +79,8 @@ Deno.serve(async (req) => {
   if (eU || !u?.user?.email) return resp({ ok: false, erro: 'Sessão inválida. Entre de novo.' }, 401)
   const usuarioId = u.user.id
 
-  const { remanejamento_id, cancelamento_id, pedido_id, decisao, motivo, hash, senha } = corpo
-  const pedidoId = ehEncerramento ? pedido_id : ehCancelamento ? cancelamento_id : remanejamento_id
+  const { remanejamento_id, cancelamento_id, pedido_id, protocolo_id, decisao, motivo, hash, senha } = corpo
+  const pedidoId = ehViagem ? protocolo_id : ehEncerramento ? pedido_id : ehCancelamento ? cancelamento_id : remanejamento_id
   if (!pedidoId || !decisao || !hash || typeof senha !== 'string' || !senha) {
     return resp({ ok: false, erro: 'Dados incompletos (pedido, decisão, hash e senha).' }, 400)
   }
@@ -92,6 +98,14 @@ Deno.serve(async (req) => {
 
   // 4. assinatura
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
+  if (ehViagem) {
+    const { data: resV, error: eV } = await admin.rpc('fn_viagem_decidir', {
+      p_usuario_id: usuarioId, p_protocolo: protocolo_id, p_decisao: decisao,
+      p_motivo: motivo ?? null, p_hash: hash,
+    })
+    if (eV) return resp({ ok: false, erro: eV.message }, 409)
+    return resp({ ok: true, resultado: resV })
+  }
   if (ehEncerramento) {
     const { data: resE, error: eE } = await admin.rpc('fn_encp_decidir', {
       p_usuario_id: usuarioId, p_pedido: pedido_id, p_decisao: decisao,
