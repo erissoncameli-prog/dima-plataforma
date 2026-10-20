@@ -717,6 +717,8 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   Modal novo sem `td-ov` fica sem cor no `.btn-primary`. Foco, Esc (fecha só o de cima) e Tab presos no modal vêm de um
   observador da classe `.aberto` (`tdModalAbriu`/`tdModalFechou`) — não precisa código por modal.
 - Texto do usuário (objeto, comentário, diff de versão, análise do agente, nome de anexo) sempre por `esc()`.
+- **Valor obrigatório** (migração `20261020_tdr_valor_obrigatorio`, `trg_tdr_exige_valor`): TDR não nasce sem `valor_brl`/`valor_usd` > 0,
+  não apaga o valor e, sem valor, não muda de fase (só para `cancelado`) — `TDR_SEM_VALOR`. Na tela, "Valor R$" é obrigatório no novo TDR.
 - Cartão do TDR = `cardTDR(t)`; diferença negativa TDR × contratos aparece como "Contrato acima do TDR" (mesmo termo do razão).
 
 ### Licitação do TDR em rodadas (⚠️ ler antes de mexer em licitação)

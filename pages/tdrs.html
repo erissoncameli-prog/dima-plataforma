@@ -2292,8 +2292,8 @@ function abrirNovo(){
     </div>
     <div class="grid-2">
       <div class="form-group">
-        <label class="form-label">Valor R$</label>
-        <input class="form-control" id="n-brl" type="number" step="0.01" placeholder="0,00">
+        <label class="form-label" for="n-brl">Valor R$ <span class="obrig">*</span></label>
+        <input class="form-control" id="n-brl" type="number" step="0.01" min="0.01" placeholder="0,00" required>
       </div>
       <div class="form-group">
         <label class="form-label">Prazo limite</label>
@@ -2312,6 +2312,7 @@ async function criarTDR(){
   const ativId=document.getElementById('n-ativ').value;
   const objeto=document.getElementById('n-objeto').value.trim();
   if(!ativId||!objeto){toast('Preencha atividade e objeto.','error');return;}
+  if(!(parseFloat(document.getElementById('n-brl').value)>0)){toast('Informe o valor do TDR em R$.','error');document.getElementById('n-brl').focus();return;}
   document.getElementById('btn-criar').disabled=true;
   document.getElementById('btn-criar').textContent='Criando...';
   const cotacao=await obterCotacao();
