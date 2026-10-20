@@ -17,6 +17,8 @@ body.dgm :is(.main-content, .td-ov) {
   --td-licitacao: #0E7490; --td-licitacao-bg: #E2F4F8;
   --td-contratado: #6D28D9; --td-contratado-bg: #F3EEFF;
   --td-cancelado: #8C9A92; --td-cancelado-bg: #F1F3F2;
+  /* cartão do TDR cancelado (fundo, borda, faixa e selo sólido) */
+  --td-canc: #B42318; --td-canc-bg: #FDF1EF; --td-canc-lin: #F3B8B0; --td-canc-faixa: rgba(180, 35, 24, .08); --td-canc-sobre: #fff;
   --td-marca: var(--pri-600);
 }
 html[data-tema="escuro"] body.dgm :is(.main-content, .td-ov) {
@@ -29,6 +31,7 @@ html[data-tema="escuro"] body.dgm :is(.main-content, .td-ov) {
   --td-licitacao: #5CC6DE; --td-licitacao-bg: rgba(92, 198, 222, .13);
   --td-contratado: #B79BF7; --td-contratado-bg: rgba(183, 155, 247, .14);
   --td-cancelado: #6E7D74; --td-cancelado-bg: rgba(255, 255, 255, .05);
+  --td-canc: #F07A6E; --td-canc-bg: rgba(240, 122, 110, .14); --td-canc-lin: rgba(240, 122, 110, .45); --td-canc-faixa: rgba(240, 122, 110, .10); --td-canc-sobre: #2A0D0A;
 }
 
 /* cor da fase em --c / --c-bg */
@@ -86,7 +89,15 @@ body.dgm .td-card {
 }
 body.dgm .td-card:hover { border-color: var(--lin-forte); }
 body.dgm .td-card:focus-visible { outline: none; box-shadow: var(--anel); border-color: var(--pri-600); }
-body.dgm .td-card.td-c-cancelado { opacity: .75; }
+/* TDR cancelado: cartão inteiro em vermelho, texto sem apagar; valor riscado (não compromete mais o saldo) */
+body.dgm .td-card.td-c-cancelado { background: var(--td-canc-bg); border-color: var(--td-canc-lin); border-left: 4px solid var(--td-canc); }
+body.dgm .td-card.td-c-cancelado:hover { border-color: var(--td-canc); }
+body.dgm .td-card.td-c-cancelado .td-selo-fase { color: var(--td-canc-sobre); background: var(--td-canc); }
+body.dgm .td-card.td-c-cancelado .td-selo-fase::before { display: none; }
+body.dgm .td-card.td-c-cancelado .td-selo-fase .td-ic { width: 13px; height: 13px; stroke-width: 2.6; }
+body.dgm .td-canc-info { font-size: 13px; color: var(--td-canc); background: var(--td-canc-faixa); border-radius: var(--r-ctl); padding: 8px 12px; }
+body.dgm .td-din.td-riscado > div:nth-child(-n+2) b { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--txt-2); }
+body.dgm .td-canc-nota { margin: -4px 0 0; font-size: 12px; font-weight: 600; color: var(--td-canc); }
 
 body.dgm .td-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 body.dgm .td-num { font: 500 13px var(--font-mono); color: var(--txt); }

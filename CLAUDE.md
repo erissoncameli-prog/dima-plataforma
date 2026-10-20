@@ -720,6 +720,9 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **Valor obrigatório** (migração `20261020_tdr_valor_obrigatorio`, `trg_tdr_exige_valor`): TDR não nasce sem `valor_brl`/`valor_usd` > 0,
   não apaga o valor e, sem valor, não muda de fase (só para `cancelado`) — `TDR_SEM_VALOR`. Na tela, "Valor R$" é obrigatório no novo TDR.
 - Cartão do TDR = `cardTDR(t)`; diferença negativa TDR × contratos aparece como "Contrato acima do TDR" (mesmo termo do razão).
+- **TDR cancelado** no cartão: inteiro em vermelho (tokens `--td-canc*`, borda esquerda, selo `.td-selo-fase` sólido com X), sem opacidade;
+  no lugar da barra de fases, data/motivo/pedido do cancelamento `efetivado` (`cancFeitos`, carregado junto com `cancVivos`); valor R$/US$
+  riscado (`.td-riscado`) + "Valor liberado — não compromete mais o saldo da atividade".
 
 ### Licitação do TDR em rodadas (⚠️ ler antes de mexer em licitação)
 - Migração `20261013_licitacao_rodadas` (+ `_b_acoes`). Cada envio é uma rodada em `tdr_licitacao_rodadas` (modalidade, processo,

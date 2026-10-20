@@ -356,7 +356,7 @@
 <script>
 let todosTDRs=[], atividades=[], tdrAtual=null;
 // Cancelamento de TDR (20261012_tdr_cancelamento): pedido vivo por TDR (lista) e, no TDR aberto, pedidos e tentativas
-let cancVivos={}, cancTDR={pedidos:[],tentativas:[]}, cancEdit=null;
+let cancVivos={}, cancFeitos={}, cancTDR={pedidos:[],tentativas:[]}, cancEdit=null;
 let dadosOriginais={}, dadosEditados={}, arquivoSelecionado=null;
 let senhaTDRCallback=null, tdrAcoes={}, camposModificados={};
 
@@ -387,6 +387,7 @@ function podeEditarFase(status){
 const TD_IC={
   busca:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   mais:'<path d="M12 5v14M5 12h14"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
   atividade:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>',
   pessoa:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
   empresa:'<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3"/>',
@@ -559,12 +560,13 @@ async function carregar(){
     const [{data:tdrs},{data:ativs},{data:vivos}]=await Promise.all([
       tdrQuery,
       db.from('atividades').select('id,codigo,nome_pt').order('codigo'),
-      db.from('tdr_cancelamentos').select('id,tdr_id,numero,status,etapa_atual').in('status',['rascunho','em_aprovacao']),
+      db.from('tdr_cancelamentos').select('id,tdr_id,numero,status,etapa_atual,motivo_tipo,efetivado_em').in('status',['rascunho','em_aprovacao','efetivado']),
       TarefasVinc.carregar(db),
       licCarregarLista()
     ]);
     atividades=ativs||[];todosTDRs=tdrs||[];
-    cancVivos=Object.fromEntries((vivos||[]).map(c=>[c.tdr_id,c]));
+    cancVivos=Object.fromEntries((vivos||[]).filter(c=>c.status!=='efetivado').map(c=>[c.tdr_id,c]));
+    cancFeitos=Object.fromEntries((vivos||[]).filter(c=>c.status==='efetivado').map(c=>[c.tdr_id,c]));
     renderStats();popularFiltroResp();filtrar();
   }catch(e){toast('Erro ao carregar TDRs.','error');}
 }
@@ -685,8 +687,12 @@ function cardTDR(t){
     :ehDrive?`<span class="td-info">${tdIc('link')}Google Drive</span>`
     :`<span class="td-ok">${tdIc('clipe')}Documento no sistema</span>`;
 
-  // Fase: "Fase N de 8 · Rótulo" + barra segmentada
-  const fase=fi<0
+  // Fase: "Fase N de 8 · Rótulo" + barra segmentada (cancelado: data, motivo e pedido no lugar da barra)
+  const canc=st==='cancelado';
+  const ef=canc?cancFeitos[t.id]:null;
+  const fase=canc
+    ?`<div class="td-canc-info">${ef?`<b>Cancelado em ${fmtData(ef.efetivado_em)}</b> · ${esc(CAN_MOTIVOS[ef.motivo_tipo]||ef.motivo_tipo||'')} · pedido ${esc(ef.numero)}`:'<b>Cancelado</b>'}</div>`
+    :fi<0
     ?`<div class="td-fase"><div class="td-fase-tx"><span><b>${esc(rotulo)}</b></span></div></div>`
     :`<div class="td-fase" title="${FASES.map(x=>FASES_LABELS[x]).join(' → ')}">
         <div class="td-fase-tx"><span>Fase <b>${fi+1} de ${FASES.length} · ${esc(rotulo)}</b></span>
@@ -704,12 +710,12 @@ function cardTDR(t){
       ?`<div class="td-acima" title="Contratos somam mais que o valor do TDR — o excedente entra no razão como compromisso da atividade"><small>Contrato acima do TDR</small><b>${fmtBRL(-delta)}</b></div>`
       :`<div class="td-sobra" title="Valor do TDR menos o total dos contratos"><small>Saldo do TDR</small><b>${fmtBRL(delta)}</b></div>`;
   }
-  const valores=`<div class="td-din">
+  const valores=`<div class="td-din${canc?' td-riscado':''}">
       <div><small>Valor do TDR</small><b>${t.valor_brl?fmtBRL(t.valor_brl):'—'}</b></div>
       <div><small>Em dólar</small><b>${t.valor_usd?fmtUSD(t.valor_usd):'—'}</b></div>
       ${t.cotacao_registro?`<div><small>Cotação</small><b>R$ ${parseFloat(t.cotacao_registro).toFixed(2)}</b></div>`:''}
       ${dif}
-    </div>`;
+    </div>${canc?'<p class="td-canc-nota">Valor liberado — não compromete mais o saldo da atividade</p>':''}`;
 
   // Contratos vinculados
   const ctrs=!conts.length?'':`<div class="td-ctrs" onclick="event.stopPropagation()">${conts.map(c=>{
@@ -742,7 +748,7 @@ function cardTDR(t){
     <div class="td-cab">
       <span class="td-num">${esc(t.numero)}</span>
       ${t.tipo?`<span class="td-tag">${esc(t.tipo)}</span>`:''}
-      <span class="td-selo">${esc(rotulo)}</span>
+      <span class="td-selo td-selo-fase">${canc?tdIc('x'):''}${esc(rotulo)}</span>
       ${atr?`<span class="td-selo td-atraso">Atrasado ${diasAtraso} dia${diasAtraso>1?'s':''}</span>`:''}
       ${licSelo(t)}
       ${cancVivos[t.id]?`<span class="td-selo td-cancelando" title="Pedido ${esc(cancVivos[t.id].numero)}">${cancVivos[t.id].status==='rascunho'?'Cancelamento em rascunho':'Em cancelamento'}</span>`:''}
