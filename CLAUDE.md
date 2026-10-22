@@ -355,6 +355,11 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
   TDR `execucao_direta`: a trava conta só o aumento do débito real, max(reserva, realizado) (migração `20261022_tdr_saldo_execucao_direta`).
   **2.1.7** (passagens e diárias, execução direta UNESCO): TDR único **2.1.7-001** (R$ 400 mil / US$ 76.190,48) desde 22/10/2026;
   o 2.1.7-002 (diárias) foi cancelado e somado a ele por decisão do super_admin, fora do fluxo de pedido (registro em `tdr_acoes`).
+- **Lançamento de viagem tem TDR** (migração `20261022_viagem_lancamento_tdr`): 1 lançamento por viajante (passagens + diárias);
+  `trg_viagem_lanc_tdr_*` (em `viagem_viajantes`, quando ganha `lancamento_id`) grava `execucao_financeira.tdr_id` =
+  `fn_viagem_tdr(atividade)` (o TDR de execução direta não cancelado, só se houver exatamente um). Relatório de viagem/execução
+  direta lê **`vw_viagens_execucao`** (1 linha por viajante; passagens × diárias em R$ pelos trechos/diárias; US$ = câmbio UNESCO
+  ou, sem ele, o estimado do lançamento com `usd_estimado = true`, dividido na proporção do R$). Não reimplementar a divisão no JS.
 - **Excedente de contrato** = Σ contratos do TDR (R$, não cancelados) − `tdrs.valor_brl`; sem TDR, o contrato inteiro.
   Vira USD pela PTAX do dia (`fn_cotacao_usd`), congelado em `contrato_coberturas` (razão imutável; Σ `delta_usd`
   entra em `vw_orcamento_debitos.contratos_excedente_usd`). Escrita só pelos triggers de `contratos`/`tdrs`.
