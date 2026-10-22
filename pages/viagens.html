@@ -401,6 +401,7 @@ document.querySelectorAll('.modal-overlay.vi-ov').forEach(el=>el.addEventListene
 
 // ── Estado ────────────────────────────────────────────────────
 let protocolos=[], protAtual=null, editandoProtocoloId=null;
+let tdrDireta=null;     // vw_tdr_execucao_direta da 2.1.7 (planejado × consumido × resta, US$)
 let viajantesForm=[];   // [{id,nome,funcao,cpf,email,temPass,temDiar,trechos:[],diarias:[]}]
 let embarqueFiles={};   // {viajante_idx: [File,...]}
 let relatorioFiles={};  // {viajante_idx: File}
@@ -427,6 +428,7 @@ let benefVindoDeProtocolo=null; // {idx, acao:'novo'|'editar'}
       </div>
       <!-- Aba Protocolos -->
       <div id="aba-protocolos" class="vi-pagina">
+        <div id="tdr-direta"></div>
         <div class="vi-kpis" id="stats"></div>
         <div class="vi-filtros" role="group" aria-label="Filtros">
           <label class="vi-busca">${viIc('busca','p')}<input type="search" id="f-busca" placeholder="Protocolo, viajante, destino ou SEI" aria-label="Buscar protocolo" oninput="filtrar()"></label>
@@ -459,16 +461,41 @@ let benefVindoDeProtocolo=null; // {idx, acao:'novo'|'editar'}
 })();
 
 async function carregar(){
-  const{data}=await db.from('viagem_protocolos')
+  const[{data},{data:tdr}]=await Promise.all([
+    db.from('viagem_protocolos')
     .select(`*,viajantes:viagem_viajantes(
       *,
       beneficiario:beneficiarios(nome,cpf,email,telefone,cargo,instituicao,nacionalidade,passaporte_numero,passaporte_validade,passaporte_pais_emissao),
       trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)
     ),notif_log:viagem_notif_log(*)`)
-    .order('criado_em',{ascending:false});
+    .order('criado_em',{ascending:false}),
+    db.from('vw_tdr_execucao_direta').select('*').eq('atividade_id',ATIV_217).limit(1)
+  ]);
   protocolos=data||[];
+  tdrDireta=tdr?.[0]||null;
   await verificarAutoTransicao(protocolos);
-  renderStats();filtrar();
+  renderTdrDireta();renderStats();filtrar();
+}
+
+// TDR de execução direta (passagens e diárias pagas pela UNESCO). O limite é do banco
+// (trg_ef_limite_tdr_direta): acima do TDR a aprovação é recusada; a tela só mostra.
+const usd2=v=>'US$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+function tdrFaixa(t){const p=Number(t?.pct_consumido||0);return p>=95?'er':p>=80?'al':'ok';}
+function renderTdrDireta(){
+  const el=document.getElementById('tdr-direta');if(!el)return;
+  const t=tdrDireta;
+  if(!t){el.innerHTML='';return;}
+  const pct=Number(t.pct_consumido||0), f=tdrFaixa(t);
+  const aviso=f==='ok'?'Acima do valor do TDR, a aprovação de viagem é recusada.'
+    :f==='al'?'Passou de 80% do TDR. Acima do valor do TDR, a aprovação de viagem é recusada.'
+    :'Passou de 95% do TDR. Peça o aumento do TDR (remanejamento) antes de novas viagens.';
+  el.innerHTML=`<div class="vi-tdr ${f}">
+    <div class="vi-tdr-cab">${viIc(f==='ok'?'moeda':'alerta')}<div><b>TDR ${esc(t.tdr_numero)} · passagens e diárias</b>
+      <small>Execução direta UNESCO · ${esc(t.atividade_codigo||'')}</small></div>
+      <span class="vi-tdr-resta"><small>Restam</small><b>${usd2(t.resta_usd)}</b></span></div>
+    <div class="vi-tdr-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100,pct)}" aria-label="Consumo do TDR"><span style="width:${Math.min(100,pct)}%"></span></div>
+    <div class="vi-tdr-rod"><span>${usd2(t.consumido_usd)} de ${usd2(t.planejado_usd)} (${pct.toLocaleString('pt-BR')}%)${Number(t.a_pagar_usd)>0?` · ${usd2(t.a_pagar_usd)} a pagar`:''}</span><span>${aviso}</span></div>
+  </div>`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1880,16 +1907,17 @@ async function abrirDetalhe(id){
   const total=calcTotalProtocolo(p);
   const numDias=p.dt_retorno&&p.dt_saida?Math.ceil((new Date(p.dt_retorno)-new Date(p.dt_saida))/(1000*60*60*24)):null;
 
-  // Buscar saldo da atividade e cotação atual para admin/coordenação
-  let saldoAtiv=null, cotacaoAtual=1;
+  // Disponível no TDR de execução direta (vw_tdr_execucao_direta) e cotação atual para admin/coordenação
+  let cotacaoAtual=1;
   if(isAdmin){
-    const [{data:sal},{data:cotRows}] = await Promise.all([
-      db.from('vw_saldo_atividade').select('*').eq('id',ATIV_217).single(),
-      db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
-    ]);
-    saldoAtiv=sal;
+    const {data:cotRows}=await db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1);
     cotacaoAtual=parseFloat(cotRows?.[0]?.cotacao||1);
   }
+  p._cotacao=cotacaoAtual;
+  // o que esta viagem ainda vai consumir do TDR (já aprovada/lançada não conta de novo)
+  const jaLancado=['aprovado','em_prestacao','realizado'].includes(p.situacao);
+  const restaBRL=tdrDireta?Number(tdrDireta.resta_usd||0)*cotacaoAtual:0;
+  const excedeTdr=!!tdrDireta&&!jaLancado&&total>restaBRL+0.01;
 
   document.getElementById('mp-titulo').innerHTML=`<span class="proto-num">${esc(p.numero)}</span> <span>${esc(p.destino_principal||'—')}</span> <span class="sit-badge sb-${p.situacao}">${SIT_LABELS[p.situacao]||esc(p.situacao)}</span>`;
   document.getElementById('mp-sub').textContent=`${viajantes.length} viajante${viajantes.length!==1?'s':''}${p.numero_sei?' · SEI '+p.numero_sei:''}`;
@@ -1929,10 +1957,10 @@ async function abrirDetalhe(id){
       <div>
         <div style="font-size:10px;color:var(--cinza-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Total do protocolo</div>
         <div style="font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--verde-medio)">${fmtBRL(total)}</div>
-        ${isAdmin&&saldoAtiv?`<div style="margin-top:6px;padding:6px 8px;background:${total>(saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual?'var(--erro-bg)':'var(--ok-bg)'};border-radius:var(--raio);border:1px solid ${total>(saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual?'color-mix(in srgb,var(--erro) 35%,transparent)':'color-mix(in srgb,var(--ok) 40%,transparent)'}">
-          <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:var(--cinza-500);margin-bottom:2px">Saldo da atividade</div>
-          <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${fmtBRL((saldoAtiv.saldo_disponivel_usd||0)*cotacaoAtual)} disponível</div>
-          <div style="font-size:10px;color:var(--cinza-500)">U$ ${Number(saldoAtiv.saldo_disponivel_usd||0).toFixed(2)}</div>
+        ${isAdmin&&tdrDireta?`<div style="margin-top:6px;padding:6px 8px;background:${excedeTdr?'var(--erro-bg)':'var(--ok-bg)'};border-radius:var(--raio);border:1px solid ${excedeTdr?'color-mix(in srgb,var(--erro) 35%,transparent)':'color-mix(in srgb,var(--ok) 40%,transparent)'}">
+          <div style="font-size:9px;text-transform:uppercase;font-weight:700;color:var(--cinza-500);margin-bottom:2px">Disponível no TDR ${esc(tdrDireta.tdr_numero)}</div>
+          <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${usd2(tdrDireta.resta_usd)} · ≈ ${fmtBRL(restaBRL)}</div>
+          <div style="font-size:10px;color:var(--cinza-500)">${excedeTdr?'Esta viagem passa do TDR: a aprovação será recusada.':`${Number(tdrDireta.pct_consumido||0).toLocaleString('pt-BR')}% do TDR já consumido`}</div>
         </div>`:''}
       </div>
       <!-- Aviso de ação pendente para admins -->
@@ -2177,7 +2205,12 @@ function aprovarProtocolo(){
   const p=protAtual;if(!p)return;
   const viaj=(p.viajantes||[]).length;
   document.getElementById('aprovar-resumo').innerHTML=`<strong>${esc(p.numero||'—')}</strong> · ${esc(p.destino_principal||'—')}<br>
-    ${p.dt_saida?fmtData(p.dt_saida):'—'} a ${p.dt_retorno?fmtData(p.dt_retorno):'—'} · ${viaj} viajante(s) · ${fmtBRL(calcTotalProtocolo(p))}`;
+    ${p.dt_saida?fmtData(p.dt_saida):'—'} a ${p.dt_retorno?fmtData(p.dt_retorno):'—'} · ${viaj} viajante(s) · ${fmtBRL(calcTotalProtocolo(p))}`
+    +(tdrDireta?(()=>{
+      const cot=p._cotacao>1?p._cotacao:0, usdViagem=cot?calcTotalProtocolo(p)/cot:null;
+      const passa=usdViagem!=null&&usdViagem>Number(tdrDireta.resta_usd||0)+0.005;
+      return `<div class="vi-tdr-linha ${passa?'er':''}">${viIc(passa?'alerta':'moeda','p')}<span>${usdViagem!=null?`Esta viagem ≈ ${usd2(usdViagem)} (cotação de hoje) · `:''}disponível no TDR ${esc(tdrDireta.tdr_numero)}: <b>${usd2(tdrDireta.resta_usd)}</b>${passa?' — passa do TDR, a aprovação será recusada.':''}</span></div>`;
+    })():'');
   viDecPreparar('aprovar');
   document.getElementById('modal-aprovar').classList.add('aberto');
   setTimeout(()=>document.getElementById('aprovar-senha').focus(),50);
@@ -2402,7 +2435,12 @@ async function salvarSPDs(){
   // Sincronizar lançamentos financeiros se protocolo já foi lançado
   const situacaoLancada=['aprovado','em_prestacao','realizado'];
   if(situacaoLancada.includes(sit)){
-    await _syncFinanceiroSPDs(p);
+    const erroFin=await _syncFinanceiroSPDs(p);
+    if(erroFin){
+      // o banco recusa lançamento a pagar acima do TDR de execução direta (TDR_EXECUCAO_DIRETA_ESGOTADO)
+      toast('Valores salvos, mas o lançamento no Financeiro foi recusado: '+erroFin.replace(/^[A-Z_]+:\s*/,''),'error');
+      fecharModal();await carregar();return;
+    }
   }
 
   toast('Valores e SPDs salvos!','success');fecharModal();await carregar();
@@ -2413,6 +2451,7 @@ async function _syncFinanceiroSPDs(p){
   const{data:cotData}=await db.from('cotacoes_usd')
     .select('cotacao').order('data_ref',{ascending:false}).limit(1).single();
   const cotacao=parseFloat(cotData?.cotacao||5.87);
+  let erro=null;   // 1ª mensagem de erro do banco (devolvida a quem chamou)
 
   for(const v of (p.viajantes||[])){
     // Recalcular totais usando os valores recém-salvos (lidos dos inputs ou do estado anterior)
@@ -2434,16 +2473,17 @@ async function _syncFinanceiroSPDs(p){
       const{data:lanc}=await db.from('execucao_financeira')
         .select('situacao,valor_brl').eq('id',v.lancamento_id).single();
       if(lanc&&lanc.situacao!=='pago'&&parseFloat(lanc.valor_brl)!==total){
-        await db.from('execucao_financeira').update({
+        const{error:eUpd}=await db.from('execucao_financeira').update({
           valor_brl:total,
           valor_usd:Math.round(total/cotacao*100)/100,
           atualizado_em:new Date().toISOString()
         }).eq('id',v.lancamento_id);
+        if(eUpd)erro=erro||eUpd.message;
       }
     } else if(total>0&&(v.sit_passagem==='aprovado'||v.sit_diaria==='aprovado')){
       // Lançamento nunca foi criado (total era zero na aprovação): criar agora
       const descricao=(p.numero||'')+' — '+v.nome+' ('+(p.destino_principal||'')+')';
-      const{data:newLanc}=await db.from('execucao_financeira').insert({
+      const{data:newLanc,error:eIns}=await db.from('execucao_financeira').insert({
         atividade_id:p.atividade_id,
         descricao,
         valor_brl:total,
@@ -2455,13 +2495,20 @@ async function _syncFinanceiroSPDs(p){
         elemento_despesa:'33903',
         criado_por:p.criado_por
       }).select('id').single();
+      if(eIns)erro=erro||eIns.message;
       if(newLanc){
-        await db.from('viagem_viajantes')
+        // ligar o viajante grava o TDR no lançamento e confere o limite do TDR de execução direta
+        const{error:eVinc}=await db.from('viagem_viajantes')
           .update({lancamento_id:newLanc.id})
           .eq('id',v.id);
+        if(eVinc){
+          erro=erro||eVinc.message;
+          await db.from('execucao_financeira').update({situacao:'cancelado'}).eq('id',newLanc.id);
+        }
       }
     }
   }
+  return erro;
 }
 
 // ── Atualizar Valores (super_admin / financeiro) ───────────────

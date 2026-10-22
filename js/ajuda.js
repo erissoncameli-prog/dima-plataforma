@@ -591,6 +591,13 @@ const AJUDA = {
           'Ao aprovar, um e-mail automático é enviado ao solicitante.',
           'Após a viagem, o consultor envia a prestação de contas pelo link público.',
         ]},
+        { titulo: 'Limite do TDR (passagens e diárias)', itens: [
+          'Passagens e diárias são pagas diretamente pela UNESCO e consomem o TDR de execução direta da atividade (2.1.7-001). O quadro no topo mostra quanto já foi usado e quanto resta, em dólar.',
+          'Cada viajante gera um lançamento no Financeiro já ligado a esse TDR, com passagens e diárias juntas.',
+          'Se a viagem passar do que resta no TDR, a aprovação é recusada. É preciso aumentar o TDR (remanejamento) antes.',
+          'Quando o TDR chega a 80% e a 95%, coordenação, financeiro, super admin e responsáveis da atividade recebem aviso no sino.',
+          'O pagamento de uma viagem já aprovada nunca é recusado, mesmo que o câmbio mude o valor em dólar.',
+        ]},
       ]
     },
     en: {

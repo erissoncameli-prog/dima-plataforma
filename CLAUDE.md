@@ -360,6 +360,13 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
   `fn_viagem_tdr(atividade)` (o TDR de execução direta não cancelado, só se houver exatamente um). Relatório de viagem/execução
   direta lê **`vw_viagens_execucao`** (1 linha por viajante; passagens × diárias em R$ pelos trechos/diárias; US$ = câmbio UNESCO
   ou, sem ele, o estimado do lançamento com `usd_estimado = true`, dividido na proporção do R$). Não reimplementar a divisão no JS.
+- **Limite do TDR de execução direta** (migração `20261022_tdr_execucao_direta_limite` + `_sql_editor`): `vw_tdr_execucao_direta`
+  (planejado × consumido × resta, US$ = Σ `valor_usd` dos lançamentos não cancelados com o `tdr_id`, mesma medida do razão).
+  `trg_ef_limite_tdr_direta` recusa (`TDR_EXECUCAO_DIRETA_ESGOTADO`) lançamento **a pagar** que passe o TDR (novo, ligado ao TDR,
+  reativado ou com R$ maior) — na aprovação do protocolo o erro desfaz tudo; pagar/corrigir pago nunca é recusado.
+  `trg_ef_aviso_tdr_direta` avisa no sino (`tdr_execucao_direta_alerta`, 1 vez por faixa e valor do TDR) ao cruzar 80% e 95%:
+  super_admin, coordenação, financeiro e responsáveis/substitutos da atividade. Tela de Viagens: quadro `#tdr-direta`
+  (`renderTdrDireta`), "Disponível no TDR" no protocolo e na janela de aprovar; `_syncFinanceiroSPDs` devolve o erro do banco.
 - **Excedente de contrato** = Σ contratos do TDR (R$, não cancelados) − `tdrs.valor_brl`; sem TDR, o contrato inteiro.
   Vira USD pela PTAX do dia (`fn_cotacao_usd`), congelado em `contrato_coberturas` (razão imutável; Σ `delta_usd`
   entra em `vw_orcamento_debitos.contratos_excedente_usd`). Escrita só pelos triggers de `contratos`/`tdrs`.
