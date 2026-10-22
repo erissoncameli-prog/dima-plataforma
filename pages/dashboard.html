@@ -1038,15 +1038,21 @@ async function abrirRelatorioA4Saldo(){
     var encByAtv = {};
     (D.encerr||[]).forEach(function(e){ if(!e.atividade_id) return; (encByAtv[e.atividade_id]=encByAtv[e.atividade_id]||[]).push({tdr_id:e.tdr_id,contrato_id:e.contrato_id,tipo:e.tipo,valor_liberado_brl:e.valor_liberado_brl,valor_liberado_usd:e.valor_liberado_usd,status:e.status}); });
     var tdrsByAtv = {};
-    (D.tdrs||[]).forEach(function(t){ (tdrsByAtv[t.atividade_id]=tdrsByAtv[t.atividade_id]||[]).push({id:t.id,numero:t.numero,valor_brl:t.valor_brl,valor_usd:t.valor_usd,status:t.status,contratos:contrByTdr[t.id]||[]}); });
+    (D.tdrs||[]).forEach(function(t){ (tdrsByAtv[t.atividade_id]=tdrsByAtv[t.atividade_id]||[]).push({id:t.id,numero:t.numero,valor_brl:t.valor_brl,valor_usd:t.valor_usd,status:t.status,execucao_direta:t.execucao_direta,contratos:contrByTdr[t.id]||[]}); });
     var rows = (D.atv||[]).map(function(a){
       var res = (D.res||[]).find(function(r){return r.id===a.resultado_id;});
       var sal = (D.sal||[]).find(function(s){return s.id===a.id;});
       return { codigo:a.codigo, nome_pt:a.nome_pt, orcamento_usd:a.orcamento_usd, orcamento_original_usd:a.orcamento_original_usd, excedente_contrato_usd: sal?sal.excedente_contrato_usd:0, resultado: res?{codigo:res.codigo}:null, tdrs: tdrsByAtv[a.id]||[], encerramentos: encByAtv[a.id]||[] };
     });
-    var cotResp = await db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1);
+    var resps = await Promise.all([
+      db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1),
+      db.from('vw_tdr_execucao_direta').select('*')
+    ]);
+    var cotResp = resps[0];
     var taxa = parseFloat((cotResp.data && cotResp.data[0] && cotResp.data[0].cotacao) || 0);
-    var corpo = gerarRelatorioSaldoAtividadeHTML(rows, taxa);
+    var direta = {};
+    (resps[1].data||[]).forEach(function(x){ direta[x.tdr_id]=x; });
+    var corpo = gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta);
     FolhaA4.escrever(win, { titulo: 'Saldo de Orçamento por Atividade (TDRs)', selo: 'ATIVIDADES', tema: 'atividades', corpo: corpo, paisagem: true });
   } catch(e){
     win.document.open();

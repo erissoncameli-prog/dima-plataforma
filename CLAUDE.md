@@ -938,6 +938,13 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   Filtro declarado em `RELATORIOS[].filtros` **tem** de ser lido pela função, senão tirar da lista. Data fim sobre timestamptz
   usa `+'T23:59:59'`. "Remover duplicados" de embed só por `id` — nunca por valor (F1/F5/V2 descartavam contratos de mesmo valor).
   Lista de fornecedores = `fn_fornecedores_diretorio()` com inativos marcados "(inativo)". T3 = TDR `aprovado`/`em_licitacao` sem contrato.
+- **Saldo e execução por atividade** (F1, F5, A1 — 22/10/2026) leem `vw_saldo_atividade` por `saldoPorAtividade()` (US$, mesmo
+  saldo da Visão Geral; inclui a execução direta das viagens). Nunca voltar a somar `contratos.valor_*` para saldo de atividade.
+- **Execução direta (viagens pagas pela UNESCO)** nos relatórios: F2/F6 incluem lançamentos `a_pagar` sem contrato; F3 traz
+  atividade e TDR do próprio lançamento e US$ = `valor_usd_unesco` ou estimado com "≈"; T3 exclui TDR `execucao_direta`;
+  V2/V3 mostram "Pagamentos sem contrato"; A4/Visão Geral mostram o consumo do TDR de execução direta (3º parâmetro `direta` de
+  `gerarRelatorioSaldoAtividadeHTML`, de `vw_tdr_execucao_direta`); **Vi5** "Execução direta: passagens e diárias" (consumo do
+  TDR + passagens × diárias + gasto por protocolo, de `vw_viagens_execucao`).
 - **T4 "TDRs contratados com saldo"**: saldo = `tdrs.valor_brl` − Σ contratos não cancelados do TDR; "já liberado" = Σ `contrato_encerramentos`
   `economia_contratacao` `ativo` do TDR; "falta liberar" = saldo − liberado (botão Liberar economia do TDR). Negativo = seção "Contrato acima
   do valor do TDR". Aparece em vários grupos pelo campo opcional **`temas:[...]`** de `RELATORIOS` (`temasRel(r)`; visível se a pessoa tem

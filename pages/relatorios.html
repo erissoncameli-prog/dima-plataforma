@@ -126,22 +126,22 @@ function seletorTema(){
 const RELATORIOS = [
   // ── FINANCEIRO ────────────────────────────────────────────
   { id:'F1', paisagem:true, tema:'financeiro', titulo:'Execução Orçamentária Geral',
-    desc:'Orçamento total vs. comprometido vs. pago por atividade e resultado (BRL e USD).',
+    desc:'Orçamento, comprometido, pago, a pagar e saldo livre por atividade (US$, saldo oficial da Visão Geral), inclusive viagens pagas pela UNESCO.',
     filtros:['atividade','resultado'] },
   { id:'F2', tema:'financeiro', titulo:'Fluxo de Caixa — Vencimentos',
-    desc:'Produtos a vencer nos próximos 30/60/90 dias com valores comprometidos.',
+    desc:'Produtos de contrato e lançamentos de execução direta (viagens pagas pela UNESCO) a vencer nos próximos 30/60/90 dias.',
     filtros:['horizonte','atividade','fornecedor'] },
   { id:'F3', paisagem:true, tema:'financeiro', titulo:'Pagamentos Realizados',
-    desc:'Lista de pagamentos com fornecedor, contrato, produto, valor BRL/USD e cotação.',
-    filtros:['periodo','fornecedor','situacao'] },
+    desc:'Lista de pagamentos com fornecedor, contrato ou TDR, atividade, valor BRL/USD e cotação — inclui viagens pagas pela UNESCO (execução direta).',
+    filtros:['periodo','atividade','fornecedor','situacao'] },
   { id:'F4', tema:'financeiro', titulo:'Evolução da Cotação USD',
     desc:'Histórico da cotação UNESCO, variação acumulada e impacto no orçamento.',
     filtros:['periodo'] },
   { id:'F5', tema:'financeiro', titulo:'Saldo por Atividade',
-    desc:'Orçamento previsto, comprometido, pago e saldo livre por atividade.',
+    desc:'Orçamento previsto, comprometido, pago, liberado e saldo livre por atividade, com a situação do saldo (US$, saldo oficial).',
     filtros:['atividade','resultado','fase'] },
   { id:'F6', tema:'financeiro', titulo:'Inadimplência / Atrasos',
-    desc:'Produtos com vencimento ultrapassado e situação pendente.',
+    desc:'Produtos e lançamentos de execução direta (viagens) com vencimento ultrapassado e ainda não pagos.',
     filtros:['atividade','fornecedor'] },
   // ── CONTRATOS ─────────────────────────────────────────────
   { id:'C1', paisagem:true, tema:'contratos', titulo:'Carteira de Contratos',
@@ -196,7 +196,7 @@ const RELATORIOS = [
     desc:'Tempo médio entre cada etapa do fluxo de aprovação.',
     filtros:['periodo','tipo_tdr'] },
   { id:'T3', tema:'tdrs', titulo:'TDRs Aprovados sem Contrato',
-    desc:'TDRs aprovados ou em licitação que ainda não possuem contrato vinculado.',
+    desc:'TDRs aprovados ou em licitação que ainda não possuem contrato vinculado (fora os de execução direta, como passagens e diárias, que não têm contrato).',
     filtros:['periodo','atividade'] },
   // temas: o mesmo relatório aparece em vários grupos (o selo da folha usa o tema principal)
   { id:'T4', paisagem:true, tema:'tdrs', temas:['tdrs','contratos','orcamento','financeiro'], titulo:'TDRs contratados com saldo',
@@ -207,7 +207,7 @@ const RELATORIOS = [
     filtros:['atividade','sit_lic','tipo_lic','periodo'] },
   // ── ATIVIDADES ────────────────────────────────────────────
   { id:'A1', paisagem:true, tema:'atividades', titulo:'Execução por Atividade',
-    desc:'Fase, orçamento, comprometido (TDRs), pago, saldo e responsável.',
+    desc:'Fase, orçamento, comprometido (TDRs), pago, saldo livre (saldo oficial, US$) e responsável.',
     filtros:['resultado','fase'] },
   { id:'A2', tema:'atividades', titulo:'Atividades sem TDR',
     desc:'Atividades em fases iniciais sem nenhum TDR criado.',
@@ -254,6 +254,9 @@ const RELATORIOS = [
   { id:'Vi4', tema:'viagens', titulo:'Relatório Detalhado de Protocolo',
     desc:'Histórico completo, trechos, diárias, prestação de contas e cartões de embarque por protocolo.',
     filtros:['protocolo_viagem_multi','status_viagem','periodo'], paisagem:true },
+  { id:'Vi5', paisagem:true, tema:'viagens', temas:['viagens','financeiro','orcamento'], titulo:'Execução direta: passagens e diárias',
+    desc:'Consumo do TDR de execução direta (viagens pagas pela UNESCO): planejado, consumido e restante, passagens × diárias e o gasto de cada protocolo.',
+    filtros:['atividade','periodo'] },
   // ── USUÁRIOS ──────────────────────────────────────────────
   { id:'U1', tema:'usuarios', titulo:'Cadastro de Usuários',
     desc:'Lista com perfil, status, primeiro e último acesso.',
@@ -793,6 +796,20 @@ const now    = ()=> new Date().toLocaleString('pt-BR',{timeZone:'America/Rio_Bra
 // resultados.codigo é 'R1'…'R4'; o filtro manda só o número
 const resNum = c => String(c||'').replace(/^R/i,'');
 const filVal = id => { const el=document.getElementById(id); return el?el.value:null; };
+// US$ com centavos (fmtUSD do config.js arredonda para inteiro)
+const usd2 = v => v==null||v==='' ? '—' : 'US$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+// Saldo oficial por atividade = vw_saldo_atividade (mesmo da Visão Geral e do razão; inclui a execução direta
+// de viagens pelo TDR guarda-chuva). Relatório de saldo/execução por atividade lê daqui — nunca recalcular.
+const SAL_ST_REL = { ok:['OK','rb-verde'], atencao:['Atenção','rb-ouro'], critico:['Crítico','rb-vermelho'],
+  extrapolado:['Estourado','rb-vermelho'], sem_orcamento:['Sem orçamento','rb-cinza'] };
+const seloSaldo = k => { const s=SAL_ST_REL[k]||[k||'—','rb-cinza']; return `<span class="rep-badge ${s[1]}">${esc(s[0])}</span>`; };
+async function saldoPorAtividade(){
+  const {data, error} = await db.from('vw_saldo_atividade')
+    .select('id,orcamento_usd,comprometido_usd,pago_usd,a_pagar_usd,liberado_usd,saldo_livre_usd,status_saldo,excedente_contrato_usd');
+  if(error) throw error;
+  return Object.fromEntries((data||[]).map(s=>[s.id, s]));
+}
+const NOTA_SALDO = `<div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Fonte: saldo oficial (vw_saldo_atividade), o mesmo da Visão Geral. Comprometido = valor planejado dos TDRs + contrato acima do TDR; inclui a execução direta da UNESCO (passagens e diárias) pelo TDR de execução direta. Saldo livre = orçamento − comprometido + liberado.</div>`;
 // Texto longo (objeto, objetivo) numa linha própria abaixo do registro — ver .rep-grupo em css/folha-a4.css.
 // Uso: `<tbody class="rep-grupo"><tr class="rep-mae">…</tr>${linhaDet(N,'Objeto',txt)}</tbody>`
 const linhaDet = (colspan, rotulo, texto) => texto
@@ -991,6 +1008,7 @@ async function gerarRelatorio(id){
       case 'Vi2': html = await relVi2(); break;
       case 'Vi3': html = await relVi3(); break;
       case 'Vi4': html = await relVi4(); break;
+      case 'Vi5': html = await relVi5(); break;
       case 'U4': html = await relU4(); break;
       case 'L1': html = await relL1(); break;
       case 'L4': html = await relL4(); break;
@@ -1024,117 +1042,75 @@ async function relF1(){
   const resFil  = filVal('fil-resultado');
 
   let q = db.from('atividades')
-    .select(`id,codigo,nome_pt,orcamento_usd,fase,
-      resultado:resultados(codigo,nome_pt),
-      tdrs(id,valor_brl,valor_usd,status),
-      contratos(id,valor_total_brl,valor_utilizado_brl,valor_comprometido_brl,saldo_brl,status)`)
+    .select('id,codigo,nome_pt,fase,resultado:resultados(codigo,nome_pt)')
     .order('codigo');
   if(ativFil) q = q.eq('id', ativFil);
-
-  // Buscar lançamentos diretos (sem contrato: viagens, etc.) e cotação atual
-  let qDir = db.from('execucao_financeira')
-    .select('atividade_id,valor_brl,situacao')
-    .is('contrato_id', null)
-    .neq('situacao','cancelado');
-  if(ativFil) qDir = qDir.eq('atividade_id', ativFil);
-
-  const [{data:ativs, error}, {data:diretos}, {data:cotRows}] = await Promise.all([
-    q, qDir,
-    db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
-  ]);
+  const [{data:ativs, error}, sal] = await Promise.all([q, saldoPorAtividade()]);
   if(error) throw error;
-  const taxaRel = parseFloat(cotRows?.[0]?.cotacao || 0);
 
-  // Mapear lançamentos diretos por atividade
-  const dirMap = {};
-  (diretos||[]).forEach(l => {
-    if(!dirMap[l.atividade_id]) dirMap[l.atividade_id] = {comp:0, pago:0};
-    dirMap[l.atividade_id].comp += parseFloat(l.valor_brl||0);
-    if(l.situacao==='pago') dirMap[l.atividade_id].pago += parseFloat(l.valor_brl||0);
-  });
-
-  let rows = (ativs||[]);
+  let rows = (ativs||[]).filter(a => sal[a.id]).map(a => ({ ...a, s: sal[a.id] }));
   if(resFil) rows = rows.filter(a => resNum(a.resultado?.codigo)===resFil);
 
-  // Deduplicar resultados do PostgREST
-  rows = rows.map(a => {
-    const seenT=new Set(), seenC=new Set();
-    return { ...a,
-      // por id: TDRs/contratos diferentes com o mesmo valor são distintos
-      tdrs: (a.tdrs||[]).filter(t=>{ if(seenT.has(t.id)) return false; seenT.add(t.id); return true; }),
-      contratos: (a.contratos||[]).filter(c=>{ if(seenC.has(c.id)) return false; seenC.add(c.id); return true; }),
-    };
-  });
-
-  const totalOrc  = rows.reduce((s,a)=>s+(a.orcamento_usd||0),0);
-  const totalComp = rows.reduce((s,a)=>{
-    const dc = dirMap[a.id]?.comp||0;
-    return s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_comprometido_brl||0),0)+dc;
-  },0);
-  const totalPago = rows.reduce((s,a)=>{
-    const dp = dirMap[a.id]?.pago||0;
-    return s+(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_utilizado_brl||0),0)+dp;
-  },0);
-  const totalSald = taxaRel > 0
-    ? rows.reduce((s,a) => s + ((a.orcamento_usd||0)*taxaRel) - ((a.contratos||[]).reduce((sc,c)=>sc+(c.valor_comprometido_brl||0),0) + (dirMap[a.id]?.comp||0)), 0)
-    : rows.reduce((s,a)=>s+(a.contratos||[]).reduce((sc,c)=>sc+(c.saldo_brl||0),0),0);
+  const soma = k => rows.reduce((t,a)=>t+Number(a.s[k]||0),0);
+  const totalOrc=soma('orcamento_usd'), totalComp=soma('comprometido_usd'), totalPago=soma('pago_usd'),
+        totalAPagar=soma('a_pagar_usd'), totalLivre=soma('saldo_livre_usd');
 
   const badgeStatus = f => {
     const m = {A_INICIAR:'rb-cinza',ELABORACAO:'rb-ouro',LICITACAO:'rb-azul',ELABORADO:'rb-azul',CONTRATADO:'rb-verde',CONCLUIDO:'rb-teal'};
     const l = {A_INICIAR:'A Iniciar',ELABORACAO:'Elaboração',LICITACAO:'Licitação',ELABORADO:'Elaborado',CONTRATADO:'Contratado',CONCLUIDO:'Concluído'};
     return `<span class="rep-badge ${m[f]||'rb-cinza'}">${l[f]||f}</span>`;
   };
-
   const pct = (v,t) => t>0?(v/t*100).toFixed(1)+'%':'—';
 
   return `
   <div class="rep-stats rep-stats-4">
-    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento Total (USD)</div><div class="rep-stat-val">${fmtUSD(totalOrc)}</div><div class="rep-stat-sub">${rows.length} atividades</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Comprometido (BRL)</div><div class="rep-stat-val">${fmtBRL(totalComp)}</div><div class="rep-stat-sub">Em contratos ativos</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago (BRL)</div><div class="rep-stat-val">${fmtBRL(totalPago)}</div><div class="rep-stat-sub">${pct(totalPago,totalComp)} do comprometido</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Saldo Disponível (BRL)</div><div class="rep-stat-val">${fmtBRL(totalSald)}</div><div class="rep-stat-sub">Saldo em contratos</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento (USD)</div><div class="rep-stat-val">${usd2(totalOrc)}</div><div class="rep-stat-sub">${rows.length} atividades</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Comprometido (USD)</div><div class="rep-stat-val">${usd2(totalComp)}</div><div class="rep-stat-sub">${pct(totalComp,totalOrc)} do orçamento</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Pago (USD)</div><div class="rep-stat-val">${usd2(totalPago)}</div><div class="rep-stat-sub">${pct(totalPago,totalOrc)} do orçamento${totalAPagar>0?` · ${usd2(totalAPagar)} a pagar`:''}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo livre (USD)</div><div class="rep-stat-val">${usd2(totalLivre)}</div><div class="rep-stat-sub">orçamento − comprometido + liberado</div></div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Execução por Atividade</div>
     <table class="rep-tbl">
       <thead><tr>
         <th>Código</th><th>Atividade</th><th>Resultado</th><th>Fase</th>
-        <th style="text-align:right">Orç. (USD)</th>
+        <th style="text-align:right">Orçamento</th>
         <th style="text-align:right">Comprometido</th>
         <th style="text-align:right">Pago</th>
-        <th style="text-align:right">Saldo</th>
-        <th style="min-width:80px">Execução</th>
+        <th style="text-align:right">A pagar</th>
+        <th style="text-align:right">Saldo livre</th>
+        <th style="min-width:80px">Pago / orçamento</th>
       </tr></thead>
       <tbody>
       ${rows.map(a=>{
-        const comp = (a.contratos||[]).reduce((s,c)=>s+(c.valor_comprometido_brl||0),0) + (dirMap[a.id]?.comp||0);
-        const pago = (a.contratos||[]).reduce((s,c)=>s+(c.valor_utilizado_brl||0),0) + (dirMap[a.id]?.pago||0);
-        const sald = taxaRel > 0 ? ((a.orcamento_usd||0)*taxaRel) - comp : (a.contratos||[]).reduce((s,c)=>s+(c.saldo_brl||0),0);
-        const pctExec = comp>0?(pago/comp*100):0;
-        const cls = pctExec>80?'crit':pctExec>50?'warn':'';
+        const s=a.s, orc=Number(s.orcamento_usd||0), pago=Number(s.pago_usd||0), livre=Number(s.saldo_livre_usd||0);
+        const pctExec = orc>0?(pago/orc*100):0;
+        const cls = pctExec>100?'crit':pctExec>80?'warn':'';
         return `<tr>
           <td class="mono">${esc(a.codigo)}</td>
           <td>${esc(a.nome_pt)}</td>
           <td><span class="rep-badge rb-verde">${esc(a.resultado?.codigo||'R?')}</span></td>
           <td>${badgeStatus(a.fase)}</td>
-          <td class="mono" style="text-align:right">${fmtUSD(a.orcamento_usd)}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(comp)}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(pago)}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(sald)}</td>
-          <td><div class="rep-barra"><div class="rep-barra-fill ${cls}" style="width:${Math.min(100,pctExec).toFixed(0)}%"></div></div><div class="mono-sm" style="margin-top:2px">${pct(pago,comp)}</div></td>
+          <td class="mono" style="text-align:right">${usd2(orc)}</td>
+          <td class="mono" style="text-align:right">${usd2(s.comprometido_usd)}</td>
+          <td class="mono" style="text-align:right">${usd2(pago)}</td>
+          <td class="mono" style="text-align:right">${usd2(s.a_pagar_usd)}</td>
+          <td class="mono" style="text-align:right;${livre<0?'color:var(--erro);font-weight:700':''}">${usd2(livre)}</td>
+          <td><div class="rep-barra"><div class="rep-barra-fill ${cls}" style="width:${Math.min(100,pctExec).toFixed(0)}%"></div></div><div class="mono-sm" style="margin-top:2px">${pct(pago,orc)}</div></td>
         </tr>`;
       }).join('')}
       </tbody>
       <tfoot><tr>
         <td colspan="4"><strong>TOTAL GERAL</strong></td>
-        <td class="mono" style="text-align:right">${fmtUSD(totalOrc)}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(totalComp)}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(totalPago)}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(totalSald)}</td>
+        <td class="mono" style="text-align:right">${usd2(totalOrc)}</td>
+        <td class="mono" style="text-align:right">${usd2(totalComp)}</td>
+        <td class="mono" style="text-align:right">${usd2(totalPago)}</td>
+        <td class="mono" style="text-align:right">${usd2(totalAPagar)}</td>
+        <td class="mono" style="text-align:right">${usd2(totalLivre)}</td>
         <td></td>
       </tr></tfoot>
     </table>
-    ${taxaRel > 0 ? `<div style="font-size:10px;color:var(--cinza-500);margin-top:8px;text-align:right">* Saldo = Orçamento USD × R$ ${taxaRel.toFixed(4)} (cotação atual) − Comprometido BRL</div>` : ''}
+    ${NOTA_SALDO}
   </div>`;
 }
 
@@ -1159,18 +1135,33 @@ async function relF2(){
     .not('situacao','in','("pago","cancelado")')
     .order('dt_vencimento');
 
-  const {data, error} = await q;
+  // lançamentos a pagar sem contrato (execução direta UNESCO: viagens), vencimento = retorno da viagem
+  let qDir = db.from('execucao_financeira')
+    .select('id,descricao,valor_brl,dt_vencimento,atividade_id,fornecedor_id,atividade:atividades(codigo),fornecedor:fornecedores(nome),tdr:tdrs(numero)')
+    .is('contrato_id', null).eq('situacao','a_pagar')
+    .gte('dt_vencimento', hojStr).lte('dt_vencimento', fimStr);
+  if(ativFil) qDir = qDir.eq('atividade_id', ativFil);
+  if(fornFil) qDir = qDir.eq('fornecedor_id', fornFil);
+
+  const [{data, error}, {data:dir, error:eDir}] = await Promise.all([q, qDir]);
   if(error) throw error;
+  if(eDir) throw eDir;
 
-  let rows = data||[];
-  if(ativFil) rows = rows.filter(r=>r.contrato?.atividade_id===ativFil);
-  if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
+  let rows = (data||[]).map(r=>({ dt_vencimento:r.dt_vencimento, descricao:r.descricao, situacao:r.situacao, valor_brl:r.valor_brl,
+    ref:r.contrato?.numero, fornecedor:r.contrato?.fornecedor?.nome, atividade:r.contrato?.atividade?.codigo,
+    atividade_id:r.contrato?.atividade_id, fornecedor_id:r.contrato?.fornecedor_id }));
+  if(ativFil) rows = rows.filter(r=>r.atividade_id===ativFil);
+  if(fornFil) rows = rows.filter(r=>r.fornecedor_id===fornFil);
+  const nDir = (dir||[]).length;
+  rows = rows.concat((dir||[]).map(l=>({ dt_vencimento:l.dt_vencimento, descricao:l.descricao, situacao:'a_pagar_direto', valor_brl:l.valor_brl,
+    ref:l.tdr?.numero?'TDR '+l.tdr.numero:'Sem contrato', fornecedor:l.fornecedor?.nome, atividade:l.atividade?.codigo })))
+    .sort((a,b)=>String(a.dt_vencimento).localeCompare(String(b.dt_vencimento)));
 
-  const total = rows.reduce((s,r)=>s+(r.valor_brl||0),0);
+  const total = rows.reduce((s,r)=>s+(Number(r.valor_brl)||0),0);
 
   const sitBadge = s => {
-    const m = {pendente:'rb-cinza',em_analise:'rb-ouro',aprovado:'rb-verde'};
-    const l = {pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado'};
+    const m = {pendente:'rb-cinza',em_analise:'rb-ouro',aprovado:'rb-verde',a_pagar_direto:'rb-azul'};
+    const l = {pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',a_pagar_direto:'A pagar (UNESCO)'};
     return `<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||s}</span>`;
   };
 
@@ -1181,7 +1172,7 @@ async function relF2(){
 
   return `
   <div class="rep-stats rep-stats-3">
-    <div class="rep-stat"><div class="rep-stat-lbl">Vencimentos nos Próximos ${dias} dias</div><div class="rep-stat-val">${rows.length}</div><div class="rep-stat-sub">produtos/entregas</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Vencimentos nos Próximos ${dias} dias</div><div class="rep-stat-val">${rows.length}</div><div class="rep-stat-sub">${nDir?`${rows.length-nDir} produtos + ${nDir} execução direta`:'produtos/entregas'}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Valor Total a Pagar</div><div class="rep-stat-val">${fmtBRL(total)}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Período</div><div class="rep-stat-val" style="font-size:13px">${fmtDt(hojStr)} — ${fmtDt(fimStr)}</div></div>
   </div>
@@ -1190,7 +1181,7 @@ async function relF2(){
     ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum vencimento nos próximos ${dias} dias.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Vencimento</th><th>Falta</th><th>Produto</th><th>Contrato</th>
+        <th>Vencimento</th><th>Falta</th><th>Produto / lançamento</th><th>Contrato / TDR</th>
         <th>Fornecedor</th><th>Atividade</th>
         <th style="text-align:right">Valor</th><th>Situação</th>
       </tr></thead>
@@ -1199,9 +1190,9 @@ async function relF2(){
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td>${diasAte(r.dt_vencimento)}</td>
         <td>${esc(r.descricao||'—')}</td>
-        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
-        <td>${esc(r.contrato?.fornecedor?.nome||'—')}</td>
-        <td class="mono">${esc(r.contrato?.atividade?.codigo||'—')}</td>
+        <td class="mono">${esc(r.ref||'—')}</td>
+        <td>${esc(r.fornecedor||'—')}</td>
+        <td class="mono">${esc(r.atividade||'—')}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
         <td>${sitBadge(r.situacao)}</td>
       </tr>`).join('')}
@@ -1219,9 +1210,10 @@ async function relF3(){
   const dtFim = filVal('fil-dt-fim');
   const sitFil = filVal('fil-situacao');
   const fornFil = filVal('fil-fornecedor');
+  const ativFil = filVal('fil-atividade');
 
   let q = db.from('execucao_financeira')
-    .select(`*,contrato:contratos(numero,atividade:atividades(codigo)),fornecedor:fornecedores(nome)`)
+    .select(`*,contrato:contratos(numero),atividade:atividades(codigo),tdr:tdrs(numero),fornecedor:fornecedores(nome)`)
     .order('dt_pagamento',{ascending:false});
   // período: pago pela data de pagamento; a pagar/cancelado (sem pagamento) pelo vencimento
   if(dtIni && dtFim) q = q.or(`and(dt_pagamento.gte.${dtIni},dt_pagamento.lte.${dtFim}),and(dt_pagamento.is.null,dt_vencimento.gte.${dtIni},dt_vencimento.lte.${dtFim})`);
@@ -1229,13 +1221,18 @@ async function relF3(){
   else if(dtFim) q = q.or(`dt_pagamento.lte.${dtFim},and(dt_pagamento.is.null,dt_vencimento.lte.${dtFim})`);
   if(sitFil) q = q.eq('situacao', sitFil);
   if(fornFil) q = q.eq('fornecedor_id', fornFil);
+  if(ativFil) q = q.eq('atividade_id', ativFil);
 
   const {data, error} = await q;
   if(error) throw error;
   const rows = data||[];
 
   const totBRL = rows.filter(r=>r.situacao==='pago').reduce((s,r)=>s+(r.valor_brl||0),0);
-  const totUSD = rows.filter(r=>r.situacao==='pago').reduce((s,r)=>s+(r.valor_usd_unesco||0),0);
+  // US$ = câmbio UNESCO do pagamento; sem ele, o estimado do lançamento (marcado com ≈)
+  const usdDe = r => r.valor_usd_unesco!=null ? Number(r.valor_usd_unesco) : (r.valor_usd!=null ? Number(r.valor_usd) : null);
+  const pagos = rows.filter(r=>r.situacao==='pago');
+  const totUSD = pagos.reduce((s,r)=>s+(usdDe(r)||0),0);
+  const nEst = pagos.filter(r=>r.valor_usd_unesco==null && r.valor_usd!=null).length;
   const aPagar = rows.filter(r=>r.situacao==='a_pagar').reduce((s,r)=>s+(r.valor_brl||0),0);
 
   const sitBadge = s => {
@@ -1247,14 +1244,14 @@ async function relF3(){
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Total Pago (BRL)</div><div class="rep-stat-val">${fmtBRL(totBRL)}</div><div class="rep-stat-sub">${rows.filter(r=>r.situacao==='pago').length} lançamentos</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago (USD)</div><div class="rep-stat-val">${fmtUSD(totUSD)}</div><div class="rep-stat-sub">Cotação UNESCO</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago (USD)</div><div class="rep-stat-val">${usd2(totUSD)}</div><div class="rep-stat-sub">${nEst?`câmbio UNESCO; ${nEst} estimado${nEst>1?'s':''} (≈)`:'Cotação UNESCO'}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">A Pagar (BRL)</div><div class="rep-stat-val">${fmtBRL(aPagar)}</div><div class="rep-stat-sub">${rows.filter(r=>r.situacao==='a_pagar').length} pendentes</div></div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Lançamentos Financeiros</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>Data Pagamento</th><th>Fornecedor</th><th>Contrato</th><th>Atividade</th>
+        <th>Data Pagamento</th><th>Fornecedor</th><th>Contrato / TDR</th><th>Atividade</th>
         <th>Produto/Descrição</th>
         <th style="text-align:right">Valor BRL</th>
         <th style="text-align:right">Cotação</th>
@@ -1265,12 +1262,12 @@ async function relF3(){
       ${rows.map(r=>`<tr>
         <td class="mono">${fmtDt(r.dt_pagamento)}</td>
         <td>${esc(r.fornecedor?.nome||'—')}</td>
-        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
-        <td class="mono">${esc(r.contrato?.atividade?.codigo||'—')}</td>
+        <td class="mono">${esc(r.contrato?.numero||(r.tdr?.numero?'TDR '+r.tdr.numero:'—'))}</td>
+        <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
         <td>${esc(r.descricao||'—')}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
         <td class="mono" style="text-align:right">${r.cotacao_unesco?Number(r.cotacao_unesco).toFixed(4):'—'}</td>
-        <td class="mono" style="text-align:right">${fmtUSD(r.valor_usd_unesco)}</td>
+        <td class="mono" style="text-align:right">${r.valor_usd_unesco!=null?usd2(r.valor_usd_unesco):(r.valor_usd!=null?'≈ '+usd2(r.valor_usd):'—')}</td>
         <td>${sitBadge(r.situacao)}</td>
       </tr>`).join('')}
       </tbody>
@@ -1278,10 +1275,11 @@ async function relF3(){
         <td colspan="5"><strong>TOTAL PAGO</strong></td>
         <td class="mono" style="text-align:right">${fmtBRL(totBRL)}</td>
         <td></td>
-        <td class="mono" style="text-align:right">${fmtUSD(totUSD)}</td>
+        <td class="mono" style="text-align:right">${usd2(totUSD)}</td>
         <td></td>
       </tr></tfoot>
     </table>
+    ${nEst?`<div style="font-size:10px;color:var(--cinza-500);margin-top:8px">≈ valor em US$ estimado pela cotação do lançamento (sem câmbio UNESCO registrado no pagamento).</div>`:''}
   </div>`;
 }
 
@@ -1542,12 +1540,11 @@ async function relA1(){
   let q = db.from('atividades')
     .select(`*,resultado:resultados(codigo,nome_pt),
       responsaveis:atividade_responsaveis(usuario:usuarios!usuario_id(nome_completo)),
-      tdrs(id,status,valor_brl),
-      contratos(valor_total_brl,valor_utilizado_brl,saldo_brl,status)`)
+      tdrs(id,status,valor_brl)`)
     .order('codigo');
   if(faseFil) q = q.eq('fase', faseFil);
 
-  const {data, error} = await q;
+  const [{data, error}, sal] = await Promise.all([q, saldoPorAtividade()]);
   if(error) throw error;
   let rows = data||[];
   if(resFil) rows = rows.filter(a=>resNum(a.resultado?.codigo)===resFil);
@@ -1562,33 +1559,33 @@ async function relA1(){
       <thead><tr>
         <th>Código</th><th>Atividade</th><th>Res.</th><th>Fase</th>
         <th>Responsável</th>
-        <th style="text-align:right">Orç. USD</th>
-        <th style="text-align:right">Pago BRL</th>
-        <th style="text-align:right">Saldo BRL</th>
+        <th style="text-align:right">Orçamento</th>
+        <th style="text-align:right">Comprometido</th>
+        <th style="text-align:right">Pago</th>
+        <th style="text-align:right">Saldo livre</th>
         <th style="text-align:center">TDRs</th>
       </tr></thead>
       <tbody>
       ${rows.map(a=>{
-        const seen=new Set();
-        const contratos=(a.contratos||[]).filter(c=>{const k=c.valor_total_brl+'';if(seen.has(k))return false;seen.add(k);return true;});
-        const pago=contratos.reduce((s,c)=>s+(c.valor_utilizado_brl||0),0);
-        const saldo=contratos.reduce((s,c)=>s+(c.saldo_brl||0),0);
+        const sa=sal[a.id]||{}, saldo=Number(sa.saldo_livre_usd||0);
         const resps=[...new Set((a.responsaveis||[]).map(r=>r.usuario?.nome_completo).filter(Boolean))];
-        const tdrsAprov=(a.tdrs||[]).filter(t=>t.status==='aprovado').length;
+        const tdrsAprov=(a.tdrs||[]).filter(t=>['aprovado','em_licitacao','contratado'].includes(t.status)).length;
         return `<tr>
           <td class="mono">${esc(a.codigo)}</td>
           <td>${esc(a.nome_pt)}</td>
           <td><span class="rep-badge rb-verde">${esc(a.resultado?.codigo||'R?')}</span></td>
           <td><span class="rep-badge ${faseClass[a.fase]||'rb-cinza'}">${faseLabel[a.fase]||a.fase}</span></td>
           <td style="font-size:10px">${esc(resps.join(', ')||'—')}</td>
-          <td class="mono" style="text-align:right">${fmtUSD(a.orcamento_usd)}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(pago)}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(saldo)}</td>
+          <td class="mono" style="text-align:right">${usd2(a.orcamento_usd)}</td>
+          <td class="mono" style="text-align:right">${usd2(sa.comprometido_usd)}</td>
+          <td class="mono" style="text-align:right">${usd2(sa.pago_usd)}</td>
+          <td class="mono" style="text-align:right;${saldo<0?'color:var(--erro);font-weight:700':''}">${usd2(saldo)}</td>
           <td class="mono" style="text-align:center">${tdrsAprov}/${(a.tdrs||[]).length}</td>
         </tr>`;
       }).join('')}
       </tbody>
     </table>
+    ${NOTA_SALDO}
   </div>`;
 }
 
@@ -1713,66 +1710,66 @@ async function relF5(){
   const ativFil = filVal('fil-atividade');
   const resFil  = filVal('fil-resultado');
   const faseFil = filVal('fil-fase');
-  let q = db.from('atividades').select(`id,codigo,nome_pt,orcamento_usd,fase,resultado:resultados(codigo),contratos(id,valor_total_brl,valor_comprometido_brl,valor_utilizado_brl,saldo_brl,status)`).order('codigo');
+  let q = db.from('atividades').select('id,codigo,nome_pt,fase,resultado:resultados(codigo)').order('codigo');
   if(faseFil) q = q.eq('fase',faseFil);
   if(ativFil) q = q.eq('id',ativFil);
-  const {data, error} = await q;
+  const [{data, error}, sal] = await Promise.all([q, saldoPorAtividade()]);
   if(error) throw error;
-  let rows = data||[];
+  let rows = (data||[]).filter(a=>sal[a.id]).map(a=>({...a, s:sal[a.id]}));
   if(resFil) rows = rows.filter(a=>resNum(a.resultado?.codigo)===resFil);
-  rows = rows.map(a=>{
-    const seen=new Set();
-    // por id: contratos diferentes com o mesmo valor são contratos distintos
-    return {...a,contratos:(a.contratos||[]).filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;})};
-  });
-  const totOrc  = rows.reduce((s,a)=>s+(a.orcamento_usd||0),0);
-  const totComp = rows.reduce((s,a)=>(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_comprometido_brl||0),0)+s,0);
-  const totPago = rows.reduce((s,a)=>(a.contratos||[]).reduce((sc,c)=>sc+(c.valor_utilizado_brl||0),0)+s,0);
-  const totSald = rows.reduce((s,a)=>(a.contratos||[]).reduce((sc,c)=>sc+(c.saldo_brl||0),0)+s,0);
+  const soma = k => rows.reduce((t,a)=>t+Number(a.s[k]||0),0);
+  const totOrc=soma('orcamento_usd'), totComp=soma('comprometido_usd'), totPago=soma('pago_usd'),
+        totLib=soma('liberado_usd'), totSald=soma('saldo_livre_usd');
+  const nEst = rows.filter(a=>a.s.status_saldo==='extrapolado').length;
+  const faseL={A_INICIAR:'A Iniciar',ELABORACAO:'Elaboração',LICITACAO:'Licitação',ELABORADO:'Elaborado',CONTRATADO:'Contratado',CONCLUIDO:'Concluído'};
+  const faseC={A_INICIAR:'rb-cinza',ELABORACAO:'rb-ouro',LICITACAO:'rb-azul',ELABORADO:'rb-azul',CONTRATADO:'rb-verde',CONCLUIDO:'rb-teal'};
   return `
   <div class="rep-stats rep-stats-4">
-    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento Total (USD)</div><div class="rep-stat-val">${fmtUSD(totOrc)}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Comprometido (BRL)</div><div class="rep-stat-val">${fmtBRL(totComp)}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Pago (BRL)</div><div class="rep-stat-val">${fmtBRL(totPago)}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Saldo Livre (BRL)</div><div class="rep-stat-val">${fmtBRL(totSald)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento (USD)</div><div class="rep-stat-val">${usd2(totOrc)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Comprometido (USD)</div><div class="rep-stat-val">${usd2(totComp)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Pago (USD)</div><div class="rep-stat-val">${usd2(totPago)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo livre (USD)</div><div class="rep-stat-val">${usd2(totSald)}</div><div class="rep-stat-sub">${nEst?`${nEst} atividade${nEst>1?'s':''} estourada${nEst>1?'s':''}`:'nenhuma estourada'}</div></div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Saldo por Atividade</div>
     <table class="rep-tbl">
       <thead><tr>
         <th>Código</th><th>Atividade</th><th>Res.</th><th>Fase</th>
-        <th style="text-align:right">Orç. USD</th>
+        <th style="text-align:right">Orçamento</th>
         <th style="text-align:right">Comprometido</th>
         <th style="text-align:right">Pago</th>
-        <th style="text-align:right">Saldo</th>
+        <th style="text-align:right">Liberado</th>
+        <th style="text-align:right">Saldo livre</th>
+        <th>Situação</th>
       </tr></thead>
       <tbody>
       ${rows.map(a=>{
-        const comp=(a.contratos||[]).reduce((s,c)=>s+(c.valor_comprometido_brl||0),0);
-        const pago=(a.contratos||[]).reduce((s,c)=>s+(c.valor_utilizado_brl||0),0);
-        const sald=(a.contratos||[]).reduce((s,c)=>s+(c.saldo_brl||0),0);
-        const faseL={A_INICIAR:'A Iniciar',ELABORACAO:'Elaboração',LICITACAO:'Licitação',ELABORADO:'Elaborado',CONTRATADO:'Contratado',CONCLUIDO:'Concluído'};
-        const faseC={A_INICIAR:'rb-cinza',ELABORACAO:'rb-ouro',LICITACAO:'rb-azul',ELABORADO:'rb-azul',CONTRATADO:'rb-verde',CONCLUIDO:'rb-teal'};
+        const sald=Number(a.s.saldo_livre_usd||0);
         return `<tr>
           <td class="mono">${esc(a.codigo)}</td>
           <td>${esc(a.nome_pt)}</td>
           <td><span class="rep-badge rb-verde">${esc(a.resultado?.codigo||'R?')}</span></td>
           <td><span class="rep-badge ${faseC[a.fase]||'rb-cinza'}">${faseL[a.fase]||a.fase}</span></td>
-          <td class="mono" style="text-align:right">${fmtUSD(a.orcamento_usd)}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(comp)}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(pago)}</td>
-          <td class="mono" style="text-align:right;font-weight:${sald<0?'700':'400'};color:${sald<0?'var(--erro)':'inherit'}">${fmtBRL(sald)}</td>
+          <td class="mono" style="text-align:right">${usd2(a.s.orcamento_usd)}</td>
+          <td class="mono" style="text-align:right">${usd2(a.s.comprometido_usd)}</td>
+          <td class="mono" style="text-align:right">${usd2(a.s.pago_usd)}</td>
+          <td class="mono" style="text-align:right">${usd2(a.s.liberado_usd)}</td>
+          <td class="mono" style="text-align:right;font-weight:${sald<0?'700':'400'};color:${sald<0?'var(--erro)':'inherit'}">${usd2(sald)}</td>
+          <td>${seloSaldo(a.s.status_saldo)}</td>
         </tr>`;
       }).join('')}
       </tbody>
       <tfoot><tr>
         <td colspan="4"><strong>TOTAL</strong></td>
-        <td class="mono" style="text-align:right">${fmtUSD(totOrc)}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(totComp)}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(totPago)}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(totSald)}</td>
+        <td class="mono" style="text-align:right">${usd2(totOrc)}</td>
+        <td class="mono" style="text-align:right">${usd2(totComp)}</td>
+        <td class="mono" style="text-align:right">${usd2(totPago)}</td>
+        <td class="mono" style="text-align:right">${usd2(totLib)}</td>
+        <td class="mono" style="text-align:right">${usd2(totSald)}</td>
+        <td></td>
       </tr></tfoot>
     </table>
+    ${NOTA_SALDO}
   </div>`;
 }
 
@@ -1792,7 +1789,19 @@ async function relF6(){
   let rows = data||[];
   if(ativFil) rows = rows.filter(r=>r.contrato?.atividade_id===ativFil);
   if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
-  const totalVal = rows.reduce((s,r)=>s+(r.valor_brl||0),0);
+  rows = rows.map(r=>({ ...r, ref:r.contrato?.numero, forn:r.contrato?.fornecedor?.nome, ativ:r.contrato?.atividade?.codigo }));
+  // lançamentos sem contrato (execução direta UNESCO: viagens) a pagar com vencimento passado
+  let qDir = db.from('execucao_financeira')
+    .select('id,descricao,valor_brl,dt_vencimento,situacao,atividade:atividades(codigo),fornecedor:fornecedores(nome),tdr:tdrs(numero)')
+    .is('contrato_id', null).eq('situacao','a_pagar').lt('dt_vencimento', hoje);
+  if(ativFil) qDir = qDir.eq('atividade_id', ativFil);
+  if(fornFil) qDir = qDir.eq('fornecedor_id', fornFil);
+  const {data:dir, error:eDir} = await qDir;
+  if(eDir) throw eDir;
+  rows = rows.concat((dir||[]).map(l=>({ descricao:l.descricao, valor_brl:l.valor_brl, dt_vencimento:l.dt_vencimento, situacao:'a pagar (UNESCO)',
+    ref:l.tdr?.numero?'TDR '+l.tdr.numero:'Sem contrato', forn:l.fornecedor?.nome, ativ:l.atividade?.codigo })))
+    .sort((a,b)=>String(a.dt_vencimento).localeCompare(String(b.dt_vencimento)));
+  const totalVal = rows.reduce((s,r)=>s+(Number(r.valor_brl)||0),0);
   const diasAt = dt=>Math.ceil((new Date()-new Date(dt+' 12:00'))/(864e5));
   return `
   <div class="rep-stats rep-stats-3">
@@ -1801,24 +1810,24 @@ async function relF6(){
     <div class="rep-stat"><div class="rep-stat-lbl">Atraso Médio</div><div class="rep-stat-val">${rows.length?Math.round(rows.reduce((s,r)=>s+diasAt(r.dt_vencimento),0)/rows.length):0} dias</div></div>
   </div>
   <div class="rep-secao">
-    <div class="rep-secao-titulo">Produtos com Pagamento em Atraso</div>
+    <div class="rep-secao-titulo">Pagamentos em Atraso (produtos e execução direta)</div>
     ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Sem inadimplências no período.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Produto</th><th>Contrato</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Produto / lançamento</th><th>Contrato / TDR</th><th>Fornecedor</th><th>Atividade</th>
         <th>Vencimento</th><th>Dias em Atraso</th>
         <th style="text-align:right">Valor</th><th>Situação</th>
       </tr></thead>
       <tbody>
       ${rows.map(r=>`<tr>
         <td>${esc(r.descricao||'—')}</td>
-        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
-        <td>${esc(r.contrato?.fornecedor?.nome||'—')}</td>
-        <td class="mono">${esc(r.contrato?.atividade?.codigo||'—')}</td>
+        <td class="mono">${esc(r.ref||'—')}</td>
+        <td>${esc(r.forn||'—')}</td>
+        <td class="mono">${esc(r.ativ||'—')}</td>
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td><span class="rep-badge ${diasAt(r.dt_vencimento)>60?'rb-vermelho':diasAt(r.dt_vencimento)>30?'rb-ouro':'rb-cinza'}">${diasAt(r.dt_vencimento)}d</span></td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
-        <td><span class="rep-badge rb-cinza">${r.situacao}</span></td>
+        <td><span class="rep-badge rb-cinza">${esc(r.situacao)}</span></td>
       </tr>`).join('')}
       </tbody>
       <tfoot><tr><td colspan="6"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalVal)}</td><td></td></tr></tfoot>
@@ -1990,8 +1999,20 @@ async function relV2(){
   const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
   let q = db.from('fornecedores').select(`id,nome,tipo,ativo,contratos(id,valor_total_brl,status,dt_inicio)`).order('nome');
   if(tpFil) q = q.eq('tipo', tpFil);
-  const {data, error} = await q;
+  // pagamentos sem contrato (execução direta: viagens pagas pela UNESCO), no período pela data de pagamento/vencimento
+  let qDir = db.from('execucao_financeira').select('fornecedor_id,valor_brl,situacao,dt_pagamento,dt_vencimento,fornecedor:fornecedores(nome,tipo)')
+    .is('contrato_id', null).neq('situacao','cancelado').not('fornecedor_id','is',null);
+  if(dtIni) qDir = qDir.gte('dt_vencimento', dtIni);
+  if(dtFim) qDir = qDir.lte('dt_vencimento', dtFim);
+  const [{data, error}, {data:dir, error:eDir}] = await Promise.all([q, qDir]);
   if(error) throw error;
+  if(eDir) throw eDir;
+  const dirPorForn = {};
+  (dir||[]).filter(l=>!tpFil||l.fornecedor?.tipo===tpFil).forEach(l=>{
+    const k=l.fornecedor_id, d=dirPorForn[k]||(dirPorForn[k]={nome:l.fornecedor?.nome, tipo:l.fornecedor?.tipo, n:0, pago:0, apagar:0});
+    d.n++; if(l.situacao==='pago') d.pago+=Number(l.valor_brl||0); else d.apagar+=Number(l.valor_brl||0);
+  });
+  const dirRows = Object.values(dirPorForn).sort((x,y)=>(y.pago+y.apagar)-(x.pago+x.apagar));
   const rows = (data||[]).map(f=>{
     const seen=new Set();
     // por id: contratos diferentes com o mesmo valor são contratos distintos
@@ -2034,7 +2055,21 @@ async function relV2(){
       </tbody>
       <tfoot><tr><td colspan="4"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalGeral)}</td><td class="mono" style="text-align:right">100%</td><td></td></tr></tfoot>
     </table>
-  </div>`;
+  </div>
+  ${dirRows.length?`<div class="rep-secao">
+    <div class="rep-secao-titulo">Pagamentos sem contrato (execução direta)</div>
+    <table class="rep-tbl">
+      <thead><tr><th>Fornecedor</th><th>Tipo</th><th style="text-align:center">Lançamentos</th><th style="text-align:right">Pago</th><th style="text-align:right">A pagar</th></tr></thead>
+      <tbody>${dirRows.map(d=>`<tr>
+        <td style="font-weight:500">${esc(d.nome||'—')}</td>
+        <td><span class="rep-badge ${d.tipo==='PF'?'rb-azul':'rb-ouro'}">${esc(d.tipo||'—')}</span></td>
+        <td class="mono" style="text-align:center">${d.n}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(d.pago)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(d.apagar)}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Passagens e diárias pagas diretamente pela UNESCO, sem contrato. Ficam fora da concentração de contratos acima.</div>
+  </div>`:''}`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2043,11 +2078,16 @@ async function relV2(){
 async function relV3(){
   const fornFil = filVal('fil-fornecedor');
   if(!fornFil) return `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Selecione um fornecedor para visualizar o histórico.</div>`;
-  const [{data:forn},{data:conts},{data:prods}] = await Promise.all([
+  const [{data:forn},{data:conts},{data:prods},{data:dirs}] = await Promise.all([
     db.from('fornecedores').select('*').eq('id',fornFil).single(),
     db.from('contratos').select('*,atividade:atividades(codigo,nome_pt)').eq('fornecedor_id',fornFil).order('dt_inicio',{ascending:false}),
     db.from('contratos_produtos').select(`*,contrato:contratos!inner(numero)`).eq('contratos.fornecedor_id',fornFil).order('dt_vencimento',{ascending:false}),
+    // pagamentos sem contrato (execução direta: viagens pagas pela UNESCO)
+    db.from('execucao_financeira').select('id,descricao,valor_brl,valor_usd,valor_usd_unesco,situacao,dt_pagamento,dt_vencimento,atividade:atividades(codigo),tdr:tdrs(numero)')
+      .eq('fornecedor_id',fornFil).is('contrato_id',null).neq('situacao','cancelado').order('dt_pagamento',{ascending:false,nullsFirst:true}),
   ]);
+  const ds = dirs||[];
+  const totalDir = ds.filter(l=>l.situacao==='pago').reduce((s,l)=>s+Number(l.valor_brl||0),0);
   const f = forn||{};
   const cs = conts||[];
   const ps = prods||[];
@@ -2066,7 +2106,7 @@ async function relV3(){
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Contratos</div><div class="rep-stat-val">${cs.length}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Total Contratado</div><div class="rep-stat-val">${fmtBRL(totalContr)}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago</div><div class="rep-stat-val">${fmtBRL(totalPago)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago</div><div class="rep-stat-val">${fmtBRL(totalPago+totalDir)}</div>${ds.length?`<div class="rep-stat-sub">${fmtBRL(totalPago)} em contratos + ${fmtBRL(totalDir)} sem contrato</div>`:''}</div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Contratos</div>
@@ -2098,7 +2138,23 @@ async function relV3(){
         <td>${sitBadge(p.situacao)}</td>
       </tr>`).join('')}</tbody>
     </table>
-  </div>`;
+  </div>
+  ${ds.length?`<div class="rep-secao">
+    <div class="rep-secao-titulo">Pagamentos sem contrato (execução direta)</div>
+    <table class="rep-tbl">
+      <thead><tr><th>Pagamento</th><th>Descrição</th><th>Atividade</th><th>TDR</th><th style="text-align:right">Valor</th><th style="text-align:right">US$</th><th>Situação</th></tr></thead>
+      <tbody>${ds.map(l=>`<tr>
+        <td class="mono">${fmtDt(l.dt_pagamento||l.dt_vencimento)}</td>
+        <td>${esc(l.descricao||'—')}</td>
+        <td class="mono">${esc(l.atividade?.codigo||'—')}</td>
+        <td class="mono">${esc(l.tdr?.numero||'—')}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(l.valor_brl)}</td>
+        <td class="mono" style="text-align:right">${l.valor_usd_unesco!=null?usd2(l.valor_usd_unesco):(l.valor_usd!=null?'≈ '+usd2(l.valor_usd):'—')}</td>
+        <td><span class="rep-badge ${l.situacao==='pago'?'rb-verde':'rb-ouro'}">${l.situacao==='pago'?'Pago':'A pagar'}</span></td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="4"><strong>TOTAL PAGO</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalDir)}</td><td colspan="2"></td></tr></tfoot>
+    </table>
+  </div>`:''}`;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2521,7 +2577,10 @@ async function relT3(){
       atividade:atividades(id,codigo,nome_pt),
       contratos(id)`)
     // aprovado e em_licitacao = pós-aprovação ainda sem contrato (contratado já tem)
-    .in('status',['aprovado','em_licitacao']).order('criado_em',{ascending:false});
+    .in('status',['aprovado','em_licitacao'])
+    // execução direta (viagens pagas pela UNESCO) nunca terá contrato: não é pendência
+    .not('execucao_direta','is',true)
+    .order('criado_em',{ascending:false});
   if(dtIni)   q = q.gte('criado_em', dtIni);
   if(dtFim)   q = q.lte('criado_em', dtFim+'T23:59:59');
   if(ativFil) q = q.eq('atividade_id', ativFil);
@@ -2901,15 +2960,16 @@ async function relA4(){
     .select(`id,codigo,nome_pt,orcamento_usd,orcamento_original_usd,
       resultado:resultados(codigo),
       encerramentos:contrato_encerramentos(tdr_id,contrato_id,tipo,valor_liberado_brl,valor_liberado_usd,status),
-      tdrs(id,numero,valor_brl,valor_usd,status,
+      tdrs(id,numero,valor_brl,valor_usd,status,execucao_direta,
         contratos(id,numero,valor_total_brl,status,fornecedor:fornecedores(nome,tipo)))`)
     .order('codigo');
   if(ativFil) q = q.eq('id', ativFil);
 
-  const [{data:ativs, error},{data:cotRows},{data:sal}] = await Promise.all([
+  const [{data:ativs, error},{data:cotRows},{data:sal},{data:dir}] = await Promise.all([
     q,
     db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1),
     db.from('vw_saldo_atividade').select('id,excedente_contrato_usd'),
+    db.from('vw_tdr_execucao_direta').select('*'),
   ]);
   if(error) throw error;
   const taxa = parseFloat(cotRows?.[0]?.cotacao || 0);
@@ -2921,7 +2981,7 @@ async function relA4(){
 
   // Lógica de cálculo e montagem do HTML fica em js/relatorio-saldo-atividade.js,
   // compartilhada com o botão "Relatório A4" do painel Saldo de Orçamento na Visão Geral.
-  return gerarRelatorioSaldoAtividadeHTML(rows, taxa);
+  return gerarRelatorioSaldoAtividadeHTML(rows, taxa, Object.fromEntries((dir||[]).map(x=>[x.tdr_id, x])));
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3447,6 +3507,100 @@ async function relVi3(){
         <td></td>
       </tr></tfoot>
     </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// Vi5 — EXECUÇÃO DIRETA: PASSAGENS E DIÁRIAS (TDR de execução direta)
+// Consumo do TDR = vw_tdr_execucao_direta (mesma medida do razão e da trava); passagens × diárias e
+// gasto por protocolo = vw_viagens_execucao (1 linha por viajante; US$ = câmbio UNESCO ou estimado ≈).
+// ══════════════════════════════════════════════════════════════
+async function relVi5(){
+  const ativFil = filVal('fil-atividade');
+  const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
+  let qT = db.from('vw_tdr_execucao_direta').select('*').order('tdr_numero');
+  let qV = db.from('vw_viagens_execucao').select('*').order('dt_saida',{ascending:false});
+  if(ativFil){ qT = qT.eq('atividade_id', ativFil); qV = qV.eq('atividade_id', ativFil); }
+  if(dtIni) qV = qV.gte('dt_saida', dtIni);
+  if(dtFim) qV = qV.lte('dt_saida', dtFim);
+  const [{data:tdrs, error:e1}, {data:viaj, error:e2}] = await Promise.all([qT, qV]);
+  if(e1) throw e1; if(e2) throw e2;
+
+  // só o que conta: protocolo vivo e lançamento não cancelado (sem lançamento = ainda não aprovado)
+  const vivos = (viaj||[]).filter(v=>!['cancelado','rejeitado'].includes(v.protocolo_situacao) && v.lancamento_situacao!=='cancelado');
+  const lanc  = vivos.filter(v=>v.lancamento_id);
+  const soma = (arr,k) => arr.reduce((t,x)=>t+Number(x[k]||0),0);
+  const nEst = lanc.filter(v=>v.usd_estimado).length;
+  const periodo = dtIni||dtFim;
+
+  // por protocolo
+  const porProt = {};
+  vivos.forEach(v=>{
+    const p = porProt[v.protocolo_id] || (porProt[v.protocolo_id] = { numero:v.protocolo, saida:v.dt_saida, destino:v.destino_principal,
+      ativ:v.atividade_codigo, tdr:v.tdr_numero, n:0, pas:0, dia:0, usd:0, est:false, pago:0, apagar:0, sem:0 });
+    p.n++; p.pas+=Number(v.passagens_brl||0); p.dia+=Number(v.diarias_brl||0);
+    if(v.lancamento_id){ p.usd+=Number(v.usd||0); if(v.usd_estimado) p.est=true; v.lancamento_situacao==='pago'?p.pago++:p.apagar++; }
+    else p.sem++;
+  });
+  const prots = Object.values(porProt).sort((a,b)=>String(b.saida||'').localeCompare(String(a.saida||'')));
+  const sitProt = p => p.sem===p.n ? '<span class="rep-badge rb-cinza">Sem lançamento</span>'
+    : p.apagar ? `<span class="rep-badge rb-ouro">${p.pago?`${p.pago} pago · `:''}${p.apagar} a pagar</span>`
+    : '<span class="rep-badge rb-verde">Pago</span>';
+  const usdCel = (v,est) => v ? (est?'≈ ':'')+usd2(v) : '—';
+
+  const blocoTdr = (tdrs||[]).length ? `
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">TDR de execução direta</div>
+    <table class="rep-tbl">
+      <thead><tr><th>TDR</th><th>Atividade</th><th style="text-align:right">Planejado</th><th style="text-align:right">Consumido</th>
+        <th style="text-align:right">Pago</th><th style="text-align:right">A pagar</th><th style="text-align:right">Resta</th><th style="min-width:90px">Consumo</th></tr></thead>
+      <tbody>${(tdrs||[]).map(t=>{ const pct=Number(t.pct_consumido||0); return `<tr>
+        <td class="mono">${esc(t.tdr_numero)}</td>
+        <td class="mono">${esc(t.atividade_codigo||'—')}</td>
+        <td class="mono" style="text-align:right">${usd2(t.planejado_usd)}<div class="mono-sm" style="color:var(--cinza-400)">${fmtBRL(t.planejado_brl)}</div></td>
+        <td class="mono" style="text-align:right">${usd2(t.consumido_usd)}<div class="mono-sm" style="color:var(--cinza-400)">${fmtBRL(t.consumido_brl)}</div></td>
+        <td class="mono" style="text-align:right">${usd2(t.pago_usd)}</td>
+        <td class="mono" style="text-align:right">${usd2(t.a_pagar_usd)}</td>
+        <td class="mono" style="text-align:right;${Number(t.resta_usd)<0?'color:var(--erro);font-weight:700':''}">${usd2(t.resta_usd)}</td>
+        <td><div class="rep-barra"><div class="rep-barra-fill ${pct>=95?'crit':pct>=80?'warn':''}" style="width:${Math.min(100,pct).toFixed(0)}%"></div></div><div class="mono-sm" style="margin-top:2px">${pct.toLocaleString('pt-BR')}%</div></td>
+      </tr>`; }).join('')}</tbody>
+    </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Consumido = soma em US$ dos lançamentos não cancelados ligados ao TDR (mesma medida do razão orçamentário)${periodo?', desde o início — o filtro de período vale só para as tabelas abaixo':''}. Acima do valor do TDR, a aprovação de nova viagem é recusada.</div>
+  </div>` : `<div class="rep-secao"><div style="padding:16px;text-align:center;color:var(--cinza-400)">Nenhum TDR de execução direta${ativFil?' nesta atividade':''}.</div></div>`;
+
+  return `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Passagens</div><div class="rep-stat-val">${fmtBRL(soma(lanc,'passagens_brl'))}</div><div class="rep-stat-sub">${usdCel(soma(lanc,'passagens_usd'),nEst>0)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Diárias</div><div class="rep-stat-val">${fmtBRL(soma(lanc,'diarias_brl'))}</div><div class="rep-stat-sub">${usdCel(soma(lanc,'diarias_usd'),nEst>0)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total lançado</div><div class="rep-stat-val">${fmtBRL(soma(lanc,'total_brl'))}</div><div class="rep-stat-sub">${lanc.length} viajante${lanc.length!==1?'s':''} · ${usdCel(soma(lanc,'usd'),nEst>0)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Protocolos</div><div class="rep-stat-val">${prots.length}</div><div class="rep-stat-sub">${periodo?'no período (data de saída)':'todos'}</div></div>
+  </div>
+  ${blocoTdr}
+  <div class="rep-secao">
+    <div class="rep-secao-titulo">Gasto por protocolo</div>
+    ${prots.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum protocolo no período.</div>`:`
+    <table class="rep-tbl">
+      <thead><tr><th>Protocolo</th><th>Saída</th><th>Destino</th><th>TDR</th><th style="text-align:center">Viajantes</th>
+        <th style="text-align:right">Passagens</th><th style="text-align:right">Diárias</th><th style="text-align:right">Total</th><th style="text-align:right">US$</th><th>Situação</th></tr></thead>
+      <tbody>${prots.map(p=>`<tr>
+        <td class="mono">${esc(p.numero||'—')}</td>
+        <td class="mono">${fmtDt(p.saida)}</td>
+        <td>${esc(p.destino||'—')}</td>
+        <td class="mono">${esc(p.tdr||'—')}</td>
+        <td class="mono" style="text-align:center">${p.n}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(p.pas)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(p.dia)}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(p.pas+p.dia)}</td>
+        <td class="mono" style="text-align:right">${usdCel(p.usd,p.est)}</td>
+        <td>${sitProt(p)}</td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="5"><strong>TOTAL</strong></td>
+        <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.pas,0))}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.dia,0))}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.pas+p.dia,0))}</td>
+        <td class="mono" style="text-align:right">${usdCel(prots.reduce((t,p)=>t+p.usd,0),nEst>0)}</td><td></td></tr></tfoot>
+    </table>`}
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Passagens e diárias em R$ pelos trechos e diárias do protocolo; cada viajante tem um lançamento no Financeiro com os dois juntos. US$ = câmbio UNESCO do pagamento${nEst?`; ≈ = estimado pela cotação do lançamento (${nEst} viajante${nEst!==1?'s':''} sem câmbio UNESCO), dividido entre passagens e diárias na proporção do R$`:''}. Protocolos sem lançamento ainda não foram aprovados e não consomem o TDR.</div>
   </div>`;
 }
 

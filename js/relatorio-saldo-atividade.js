@@ -5,13 +5,16 @@
 //
 // rows: array de atividades no formato
 //   { codigo, nome_pt, orcamento_usd, resultado:{codigo}, tdrs:[{id,numero,valor_brl,valor_usd,status,
-//     contratos:[{id,numero,valor_total_brl,status,fornecedor:{nome,tipo}}]}] }
+//     execucao_direta, contratos:[{id,numero,valor_total_brl,status,fornecedor:{nome,tipo}}]}] }
 //   excedente_contrato_usd (opcional): contrato acima do TDR já debitado no razão (vw_saldo_atividade,
 //   rem_08) — entra no comprometido, como na Visão Geral.
 //   orcamento_original_usd (opcional): dotação congelada; se ≠ orcamento_usd, a diferença
 //   veio de remanejamento/revisão (razão orcamento_fontes) e aparece sob o orçamento.
 // taxa: cotação USD→BRL atual (0 se indisponível)
-function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
+// direta (opcional): { tdr_id: linha de vw_tdr_execucao_direta } — TDR com execucao_direta (viagens pagas pela
+//   UNESCO) não tem contrato: mostra o consumido × resta no lugar de "sem contrato".
+function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
+  direta = direta || {};
   const toUSD = brl => taxa > 0 ? brl / taxa : 0;
   const toBRL = usd => usd * taxa;
 
@@ -113,6 +116,18 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
   const tRemUSD = dados.reduce((s,d)=>s+(d.a.orcamento_original_usd==null?0:d.orcUSD-parseFloat(d.a.orcamento_original_usd)),0);
   const nRem = dados.filter(d=>d.a.orcamento_original_usd!=null && Math.abs(d.orcUSD-parseFloat(d.a.orcamento_original_usd))>=0.01).length;
 
+  // TDR de execução direta: pago pela UNESCO sem contrato; consumo pelos lançamentos ligados ao TDR
+  const usd2 = v => 'US$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const execDireta = t => {
+    const x = direta[t.id];
+    if(!x) return `<span class="rep-badge rb-azul">Execução direta UNESCO</span>`;
+    const pct = Number(x.pct_consumido||0);
+    return `<span class="rep-badge rb-azul">Execução direta UNESCO</span>
+      <div class="mono-sm" style="margin-top:3px">consumido ${usd2(x.consumido_usd)} (${pct.toLocaleString('pt-BR')}%) · resta ${usd2(x.resta_usd)}</div>
+      <div class="rep-barra" style="margin-top:2px"><div class="rep-barra-fill ${pct>=95?'crit':pct>=80?'warn':''}" style="width:${Math.min(100,pct).toFixed(0)}%"></div></div>`;
+  };
+  const nDireta = dados.reduce((s,d)=>s+d.linhas.filter(l=>l.t.execucao_direta).length,0);
+
   const corpo = dados.map(d=>{
     const estourou = d.saldoUSD < 0;
     const pctComp = d.orcUSD>0 ? Math.min(100, d.compUSD/d.orcUSD*100) : (d.compUSD>0?100:0);
@@ -143,6 +158,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
               }${
                 l.reservadaBRL>0 ? `<span class="rep-badge rb-azul" style="margin-left:4px" title="Economia entre planejado e firmado, ainda reservada a este TDR">⏸ ${fmtBRL(l.reservadaBRL)} reservado</span>` : ''
               }`
+            : l.t.execucao_direta ? execDireta(l.t)
             : `<span style="font-size:10px;color:var(--cinza-400)">— sem contrato —</span>`}</td>
           <td></td>
           <td style="text-align:right">${val(l.cUSD, l.cBRL)}</td>
@@ -208,6 +224,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa) {
       Valores em <strong>USD</strong> (moeda do orçamento); linha menor em <strong>BRL</strong> é referência à cotação atual${taxa>0?` de R$ ${taxa.toFixed(4)}`:''}.
       Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe), mais o que o contrato passar do TDR. Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> (⏸) ao TDR até coordenação/super admin <strong>liberá-la</strong> (↩) para a atividade. Se o contrato é encerrado com produto não entregue/executado, o valor não executado também aparece como <strong>liberado (encerramento)</strong> (↩). TDRs cancelados não entram no cálculo.
       Saldo livre = Orçamento − Comprometido + Liberado (espelha a Visão Geral).
+      ${nDireta?`TDR de <strong>execução direta</strong> (passagens e diárias pagas pela UNESCO) não tem contrato: compromete o valor planejado e mostra quanto já foi consumido pelas viagens e quanto resta.`:''}
       ${nRem?`Orçamento = orçamento <strong>vigente</strong>: ${nRem} atividade${nRem!==1?'s':''} com remanejamento efetivado (saldo líquido ${fmtUSD(tRemUSD)} entre elas; o total do projeto não muda). Cada centavo tem procedência no extrato da atividade, em Remanejamento.`:''}
     </div>
   </div>`;
