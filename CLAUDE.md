@@ -352,6 +352,9 @@ perfis — signatários podem ter qualquer perfil). Plano completo implementado.
 - **TDR compromete, contrato deriva do TDR** (fase 5, `rem_05*`): `trg_tdr_saldo` (`fn_trg_verificar_saldo`)
   só deixa TDR nascer/aumentar até o **saldo livre com sinal** `fn_cob_livre()` = créditos − débitos − reservas
   (inclui rascunho, excedente de contrato, execução direta). TDR com contrato ativo não cancela nem muda de atividade.
+  TDR `execucao_direta`: a trava conta só o aumento do débito real, max(reserva, realizado) (migração `20261022_tdr_saldo_execucao_direta`).
+  **2.1.7** (passagens e diárias, execução direta UNESCO): TDR único **2.1.7-001** (R$ 400 mil / US$ 76.190,48) desde 22/10/2026;
+  o 2.1.7-002 (diárias) foi cancelado e somado a ele por decisão do super_admin, fora do fluxo de pedido (registro em `tdr_acoes`).
 - **Excedente de contrato** = Σ contratos do TDR (R$, não cancelados) − `tdrs.valor_brl`; sem TDR, o contrato inteiro.
   Vira USD pela PTAX do dia (`fn_cotacao_usd`), congelado em `contrato_coberturas` (razão imutável; Σ `delta_usd`
   entra em `vw_orcamento_debitos.contratos_excedente_usd`). Escrita só pelos triggers de `contratos`/`tdrs`.
