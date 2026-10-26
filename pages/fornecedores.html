@@ -402,9 +402,12 @@ async function abrirDetalhe(id) {
   }
 
   // Lançamentos: totais com TODOS; a tabela mostra os 10 mais recentes
-  const {data:lancamentos} = await db.from('execucao_financeira')
-    .select('valor_brl,situacao,dt_pagamento,descricao,numero_nf,criado_em')
-    .eq('fornecedor_id',id).order('criado_em',{ascending:false});
+  const [{data:lancamentos}, acesso] = await Promise.all([
+    db.from('execucao_financeira')
+      .select('valor_brl,situacao,dt_pagamento,descricao,numero_nf,criado_em')
+      .eq('fornecedor_id',id).order('criado_em',{ascending:false}),
+    carregarAcesso(id),
+  ]);
   if (fornEditando !== f) return; // janela fechada/trocada enquanto carregava
   const lancs = lancamentos || [];
   const soma = arr => arr.reduce((s,l)=>s+parseFloat(l.valor_brl||0),0);
@@ -456,6 +459,8 @@ async function abrirDetalhe(id) {
         <div>${c('Banco', f.banco)}${c('Agência', f.agencia, true)}${c('Conta', f.conta, true)}</div>
         <div>${c('Tipo de conta', f.tipo_conta)}${c('PIX', f.pix, true)}</div>
       </div>
+      <div class="fo-sec">Acesso à plataforma</div>
+      <div id="fo-acesso">${renderAcesso(f.id, acesso)}</div>
       ${f.contrato_url?`<div class="fo-sec">Documento do cadastro</div>
         <div class="fo-anexo">${foIc('clipe','p')}<b>${esc(f.contrato_nome||'Documento')}</b>
           <a href="#" class="fo-btn peq" data-arquivo="${esc(f.contrato_url)}">${foIc('olho','p')}Abrir</a></div>`:''}
@@ -495,6 +500,63 @@ async function abrirDetalhe(id) {
     console.error('abrirDetalhe error:',e);
     toast('Erro ao carregar detalhes do fornecedor.','error');
   }
+}
+
+// ── Acesso à plataforma: usuários vinculados ao fornecedor (fornecedor_usuarios) ──
+// O vinculado registra a entrega dos produtos dos contratos deste fornecedor, mas nunca avalia
+// nem altera o próprio produto (regra no banco). Só super_admin vincula/desvincula (RPC).
+let usuariosAtivos = null;
+async function carregarAcesso(fornId) {
+  const [{ data: links, error }, usuarios] = await Promise.all([
+    db.from('fornecedor_usuarios')
+      .select('usuario_id,vinculado_em,usuario:usuarios!fornecedor_usuarios_usuario_id_fkey(nome_completo,email,perfil,ativo)')
+      .eq('fornecedor_id', fornId).eq('ativo', true).order('vinculado_em'),
+    appState.perfil === 'super_admin' && !usuariosAtivos
+      ? db.from('usuarios').select('id,nome_completo,email').eq('ativo', true).order('nome_completo').then(r => r.data || [])
+      : Promise.resolve(usuariosAtivos),
+  ]);
+  if (usuarios) usuariosAtivos = usuarios;
+  if (error) console.error('fornecedor_usuarios:', error);
+  return links || [];
+}
+function renderAcesso(fornId, links) {
+  const ehSA = appState.perfil === 'super_admin';
+  const lista = links.length ? links.map(l => {
+    const u = l.usuario || {};
+    return `<div class="fo-vinc">${foIc('pessoa','p')}
+      <div class="fo-vinc-nome"><b>${esc(u.nome_completo || 'Usuário')}</b><span>${esc(u.email || '')}${u.ativo === false ? ' · conta desativada' : ''}</span></div>
+      ${ehSA ? `<button type="button" class="fo-btn peq" data-desv="${l.usuario_id}" onclick="desvincularUsuario('${fornId}','${l.usuario_id}',this)">Desvincular</button>` : ''}
+    </div>`;
+  }).join('') : `<p class="fo-sub" style="margin:0 0 8px">Nenhum usuário vinculado.</p>`;
+  const ja = new Set(links.map(l => l.usuario_id));
+  const form = ehSA && usuariosAtivos ? `<div class="fo-vinc-novo">
+      <select id="fo-vinc-sel" aria-label="Usuário para vincular"><option value="">Escolha o usuário…</option>
+        ${usuariosAtivos.filter(u => !ja.has(u.id)).map(u => `<option value="${u.id}">${esc(u.nome_completo)} — ${esc(u.email || '')}</option>`).join('')}
+      </select>
+      <button type="button" class="fo-btn peq pri" onclick="vincularUsuario('${fornId}')">${foIc('mais','p')}Vincular</button>
+    </div>` : '';
+  return `<p class="fo-sub" style="margin:0 0 8px">Quem está vinculado registra a entrega dos produtos dos contratos deste fornecedor em Produtos Entregues, mas nunca aprova, devolve nem altera o próprio produto.</p>${lista}${form}`;
+}
+async function vincularUsuario(fornId) {
+  const uid = document.getElementById('fo-vinc-sel')?.value;
+  if (!uid) { toast('Escolha o usuário.','error'); return; }
+  const { error } = await db.rpc('fn_fornecedor_vincular_usuario', { p_fornecedor_id: fornId, p_usuario_id: uid, p_ativo: true });
+  if (error) { toast('Erro: ' + (error.message || ''), 'error'); return; }
+  toast('Usuário vinculado ao fornecedor.','success');
+  await recarregarAcesso(fornId);
+}
+async function desvincularUsuario(fornId, uid, btn) {
+  // 1º clique pede confirmação no próprio botão
+  if (btn && !btn.dataset.conf) { btn.dataset.conf = '1'; btn.classList.add('perigo'); btn.textContent = 'Confirmar desvínculo'; return; }
+  const { error } = await db.rpc('fn_fornecedor_vincular_usuario', { p_fornecedor_id: fornId, p_usuario_id: uid, p_ativo: false });
+  if (error) { toast('Erro: ' + (error.message || ''), 'error'); return; }
+  toast('Usuário desvinculado.','success');
+  await recarregarAcesso(fornId);
+}
+async function recarregarAcesso(fornId) {
+  const links = await carregarAcesso(fornId);
+  const el = document.getElementById('fo-acesso');
+  if (el && fornEditando && fornEditando.id === fornId) el.innerHTML = renderAcesso(fornId, links);
 }
 
 function renderContratos(contratos){

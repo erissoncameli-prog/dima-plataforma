@@ -511,6 +511,14 @@ const AJUDA = {
           'Aprovar exige confirmar com a sua senha de login, conferida no servidor. Depois de 5 senhas erradas, a aprovação fica bloqueada por 30 minutos. Devolver não pede senha.',
           'A leitura é feita no servidor do projeto, sem inteligência artificial e sem custo; o conteúdo da nota não é enviado a nenhum serviço externo.',
         ]},
+        { titulo: 'Quem registra e quem avalia', itens: [
+          'Registrar a entrega: o fornecedor do contrato (quando tem acesso à plataforma), o responsável ou substituto da atividade, ou o super_admin.',
+          'Avaliar (aprovar, aprovar em parte ou devolver): só o responsável ou substituto da atividade, ou o super_admin. Nunca o fornecedor do contrato, nem se ele também for responsável pela atividade ou super_admin.',
+          'O fornecedor com acesso vê os próprios contratos em Produtos Entregues e registra a entrega com os documentos. Depois do envio, a entrega fica em avaliação e ele acompanha em leitura.',
+          'O fornecedor não altera valor, descrição, vencimento nem situação dos produtos do próprio contrato, e a nota técnica assinada por ele não vale para aprovar.',
+          'Quando a entrega chega para avaliação, o responsável e o substituto da atividade recebem aviso no sino, que diz quando foi o fornecedor que registrou.',
+          'O vínculo entre usuário e fornecedor (pessoa física ou empresa) é feito pelo super_admin em Fornecedores › Dados cadastrais › Acesso à plataforma.',
+        ]},
       ]
     },
     en: {

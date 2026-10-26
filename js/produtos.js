@@ -87,7 +87,7 @@ function pillSit(s){var p=PR_SIT[s]||[s||'—','pr-p-ne','--txt-3','info'];retur
 function prSpin(){return '<div class="pr-vazio" role="status"><div class="pr-spin"></div>Carregando…</div>';}
 
 // Só contratos das atividades que a pessoa pode ver (get_minhas_atividades: super_admin/coordenação = todas;
-// demais = atividades em que é responsável ou substituto). Toda consulta de produto passa por esta lista.
+// demais = atividades em que é responsável ou substituto, ou dos contratos do fornecedor vinculado a ela). Toda consulta de produto passa por esta lista.
 function idsVisiveis(){return contratos.map(function(c){return c.id;});}
 function contratoVisivel(id){return contratos.some(function(c){return c.id===id;});}
 var SEL_PROD='*,contratos(id,numero,objeto_pt,atividade_id,fornecedores(id,nome),atividades(id,codigo,nome_pt)),contratos_produtos_entregas(nota_tecnica_url,nota_tecnica_nome,documentos:entrega_documentos(arquivo_url,arquivo_nome,tipo_documento))';
@@ -172,7 +172,7 @@ async function carregar(){
 async function carregarFila(){
   var ids=idsVisiveis();
   var cont=document.getElementById('conteudo');
-  if(!ids.length){renderVazio('Nenhum contrato das suas atividades. Os produtos aparecem para quem é responsável ou substituto da atividade.');return;}
+  if(!ids.length){renderVazio('Nenhum contrato das suas atividades. Os produtos aparecem para quem é responsável ou substituto da atividade e para o fornecedor do contrato.');return;}
   cont.innerHTML=prSpin();
   var r=await db.from('contratos_produtos').select(SEL_PROD)
     .in('contrato_id',ids).in('situacao',['em_analise','devolvido'])
@@ -480,10 +480,14 @@ async function abrirModal(prodId){
   var isPend=p.situacao==='pendente'||p.situacao==='entrega_parcial'||p.situacao==='devolvido';
   var isAnalise=p.situacao==='em_analise';
   var isDevolvido=p.situacao==='devolvido';
-  // registrar/avaliar só o responsável/substituto da atividade ou super_admin (banco: fn_pode_avaliar_contrato);
-  // coordenação e demais que veem o contrato abrem em leitura
-  var pa=(isPend||isAnalise)?await db.rpc('fn_pode_avaliar_contrato',{p_contrato_id:p.contrato_id}):{data:true};
-  var soLeitura=(isPend||isAnalise)&&!(pa&&!pa.error&&pa.data===true);
+  // banco (fn_produto_permissoes): registrar = fornecedor do contrato, responsável/substituto da atividade ou
+  // super_admin; avaliar = os mesmos, nunca o fornecedor do contrato. Os demais que veem o contrato abrem em leitura.
+  var perm={registrar:true,avaliar:true,fornecedor:false};
+  if(isPend||isAnalise){
+    var pa=await db.rpc('fn_produto_permissoes',{p_contrato_id:p.contrato_id});
+    perm=(pa&&!pa.error&&pa.data)||{registrar:false,avaliar:false,fornecedor:false};
+  }
+  var soLeitura=(isPend&&perm.registrar!==true)||(isAnalise&&perm.avaliar!==true);
   if(soLeitura){isPend=false;isAnalise=false;isDevolvido=false;}
 
   // Totais financeiros do contrato + docs devolvida em paralelo quando possível
@@ -561,7 +565,10 @@ async function abrirModal(prodId){
 
   if(soLeitura){
     html+='<div class="pr-aviso" role="note" style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;margin-bottom:12px;border-radius:var(--raio);background:var(--info-bg);color:var(--info);font-size:12.5px">'
-      +prIc('cadeado','p')+'<span>Somente leitura: registrar entrega e avaliar este produto cabe ao responsável ou substituto da atividade (ou super_admin).</span></div>';
+      +prIc('cadeado','p')+'<span>'+(perm.fornecedor
+        ?'Você é o fornecedor deste contrato: a entrega está em avaliação e a decisão (aprovar ou devolver) cabe ao responsável ou substituto da atividade.'
+        :'Somente leitura: registrar a entrega cabe ao fornecedor do contrato ou ao responsável/substituto da atividade; avaliar, ao responsável ou substituto (ou super_admin).')
+      +'</span></div>';
   }
 
   // FORMULÁRIO DE ENTREGA

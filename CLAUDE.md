@@ -825,6 +825,18 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   recusa (`PRODUTO_SO_RESPONSAVEL`) levar `contratos_produtos.situacao` a `em_analise/aprovado/entrega_parcial/devolvido` por outro
   usuário (vale para o editor de produtos de Contratos). Triggers aninhados (pagamento, avaliação) e service_role passam.
   Na tela: Produtos abre em leitura para quem não pode avaliar; o editor de Contratos só oferece Pendente/Cancelado.
+- **Fornecedor registra, nunca avalia** (migração `20261026_produto_entrega_fornecedor` + `_sql_editor`): vínculo usuário ↔ fornecedor
+  (PF e PJ, vários por fornecedor) em `fornecedor_usuarios`, gravado só por super_admin via `fn_fornecedor_vincular_usuario`
+  (desvincular = `ativo=false`; tela em Fornecedores › Dados cadastrais › Acesso à plataforma). `fn_pode_avaliar_contrato` =
+  super_admin ou responsável/substituto **ativo**, e **nunca** o fornecedor do contrato (`fn_eh_fornecedor_do_contrato`, vale até
+  para super_admin). `fn_pode_registrar_entrega` = quem avalia **ou** o fornecedor. O fornecedor abre a própria entrega (`cpe_fornecedor`:
+  `criado_por = ele`, pendente → em_analise), anexa documento só enquanto pendente (`ed_ins`), grava pontos do mapa da própria entrega;
+  aprovar/devolver é barrado também por `trg_entrega_guarda_avaliacao` (`PRODUTO_FORNECEDOR_NAO_AVALIA`); `trg_cp_guarda_fornecedor`
+  recusa (`PRODUTO_DO_PROPRIO_FORNECEDOR`) criar produto ou mudar valor/descrição/vencimento/situação do próprio contrato, mesmo com
+  perfil coordenação. `conferir-nota-tecnica` não aceita nota assinada pelo fornecedor. Ele vê os próprios contratos
+  (`contratos_select` + `fn_eh_fornecedor_vinculado`) e as atividades deles (`get_minhas_atividades`). Tela pergunta
+  `fn_produto_permissoes(contrato)` → `{registrar, avaliar, fornecedor}`. Aviso `produto_para_avaliar` (link `produtos.html?entrega=`)
+  diz "pelo fornecedor" e não avisa o próprio fornecedor.
 - **Nota técnica obrigatória e conferida** (migração `20261014_nota_tecnica_conferencia`): aprovar entrega (total ou
   parcial; devolução fora) exige nota técnica (ou parecer) em PDF do SEI **conferida** pela Edge Function `conferir-nota-tecnica`
   (unpdf, sem IA, sem custo; o texto não sai do servidor). Regras, todas bloqueiam: PDF, texto legível, título "Nota Técnica"/"Parecer",
@@ -1389,7 +1401,7 @@ contas do projeto.
 | `tdrs-arquivos` | 🔒 privado | TDRs (dados de consultores PF) |
 | `contratos-docs` | 🔒 privado | contratos (`contratos/<id>/`) e termos de encerramento (`encerramentos/<id>/`). Ler = quem vê o contrato; enviar/trocar = super_admin/coordenação/financeiro (encerramentos: super_admin/coordenação); remover = super_admin; termo nunca troca nem sai (`20261012_contratos_docs_storage` + `_sql_editor`, `fn_contrato_id_do_path`) |
 | `financeiro-docs` | 🔒 privado | NFs, comprovantes bancários |
-| `entregas-docs` | 🔒 privado | documentos de entrega |
+| `entregas-docs` | 🔒 privado | documentos de entrega (`produtos/<produto_id>/…`). Ler = quem vê o produto; enviar/trocar = quem registra entrega (`fn_entregas_docs_pode_enviar`) ou coordenação/financeiro (`20261026_produto_entrega_fornecedor_sql_editor`) |
 | `viagens-arquivos` | 🔒 privado | cartões de embarque (nome, CPF, itinerário) |
 | `produtos-evidencias` | 🔒 privado | evidências de produtos |
 | `plataforma-assets` | 🌐 público | logos institucionais (usados em e-mails) |
@@ -1470,6 +1482,7 @@ Supabase/Anthropic/Vercel/Google.
 29. Conta desativada não lê nada por perfil (`fn_perfil_atual()` devolve NULL) e não entra (banida no Auth). Não reativar por UPDATE de `auth.users`: mudar `usuarios.ativo` já desbane
 30. Lista de fornecedores para escolher (tela aberta a todos) = `db.rpc('fn_fornecedores_diretorio')`; `from('fornecedores')` só devolve os fornecedores que a pessoa já enxerga por contrato/TDR/lançamento/tarefa
 31. Função SECURITY DEFINER nova sem `revoke … from public, anon` fica aberta à chave pública; teste de permissão com `<>`/`not (… or …)` sobre valor que pode ser NULL deixa passar — ver "Funções que o `anon` executa"
+32. Usuário que é fornecedor de um contrato (`fornecedor_usuarios`) **não** avalia nem edita produto desse contrato, mesmo sendo coordenação ou super_admin — use `fn_pode_avaliar_contrato`/`fn_pode_registrar_entrega`, nunca checar só perfil ou responsável
 
 ---
 

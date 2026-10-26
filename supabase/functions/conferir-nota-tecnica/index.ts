@@ -2,7 +2,7 @@
 // vale para aprovar. Sem IA e sem serviço pago: o texto sai do próprio PDF (unpdf/pdf.js).
 //
 // { acao: 'conferir', entrega_id, caminho, arquivo_nome, sha256 }   (JWT do usuário)
-//   · só quem pode avaliar o contrato (fn_pode_avaliar_contrato) — mesmo critério de aprovar;
+//   · só quem pode avaliar o contrato (fn_pode_avaliar_contrato, nunca o fornecedor dele) — mesmo critério de aprovar;
 //   · `caminho` = arquivo já enviado ao bucket privado entregas-docs, em produtos/<produto_id>/…;
 //   · grava o resultado em nota_tecnica_conferencias (service_role) e devolve as regras,
 //     cada uma com o que corrigir. A aprovação no banco (trg_entrega_exige_nota) só passa
@@ -214,7 +214,7 @@ async function conferir(admin: any, bytes: Uint8Array, ctx: Contexto, sha: strin
 // ── contexto da entrega ─────────────────────────────────────────────────
 async function contexto(admin: any, entregaId: string, aprovadorId: string | null, dataRef: string): Promise<Contexto | null> {
   const { data: e } = await admin.from('contratos_produtos_entregas')
-    .select('id, produto_id, despachado_por, produto:contratos_produtos(id, numero_produto, descricao), contrato:contratos(id, numero, atividade_id, fornecedor:fornecedores(nome))')
+    .select('id, produto_id, despachado_por, produto:contratos_produtos(id, numero_produto, descricao), contrato:contratos(id, numero, atividade_id, fornecedor_id, fornecedor:fornecedores(nome))')
     .eq('id', entregaId).maybeSingle()
   if (!e || !e.contrato) return null
   const ids = new Set<string>()
@@ -223,6 +223,12 @@ async function contexto(admin: any, entregaId: string, aprovadorId: string | nul
     const { data: rs } = await admin.from('atividade_responsaveis')
       .select('usuario_id').eq('atividade_id', e.contrato.atividade_id).eq('ativo', true)
     for (const r of rs || []) ids.add(r.usuario_id)
+  }
+  // quem está vinculado ao fornecedor do contrato nunca assina a nota do próprio produto
+  if (e.contrato.fornecedor_id) {
+    const { data: fus } = await admin.from('fornecedor_usuarios')
+      .select('usuario_id').eq('fornecedor_id', e.contrato.fornecedor_id).eq('ativo', true)
+    for (const f of fus || []) ids.delete(f.usuario_id)
   }
   const { data: us } = ids.size
     ? await admin.from('usuarios').select('id, nome_completo').in('id', [...ids])
@@ -310,7 +316,7 @@ Deno.serve(async (req) => {
   if (!ent) return resp({ ok: false, erro: 'Entrega não encontrada.' }, 404)
   const doUsuario = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: 'Bearer ' + token } } })
   const { data: pode } = await doUsuario.rpc('fn_pode_avaliar_contrato', { p_contrato_id: ent.contrato_id })
-  if (pode !== true) return resp({ ok: false, erro: 'Só o responsável/substituto da atividade (ou super_admin) confere e aprova este produto.' }, 403)
+  if (pode !== true) return resp({ ok: false, erro: 'Só o responsável/substituto da atividade (ou super_admin) confere e aprova este produto — nunca o fornecedor do contrato.' }, 403)
 
   if (corpo.acao === 'modelo') {
     const { data: e } = await admin.from('contratos_produtos_entregas')
