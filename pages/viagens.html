@@ -2778,14 +2778,7 @@ async function enviarPrestacao(){
 
   await db.from('viagem_protocolos').update({situacao:'em_prestacao'}).eq('id',p.id);
 
-  // Notificar super_admins
-  const{data:admins}=await db.from('usuarios').select('id').eq('perfil','super_admin').eq('ativo',true);
-  if(admins?.length)await db.from('notificacoes').insert(admins.map(a=>({
-    usuario_id:a.id,tipo:'viagem_prestacao',
-    titulo:`Prestação de contas — ${p.numero}`,
-    mensagem:`Protocolo ${p.numero} (${p.destino_principal||'—'}) aguarda confirmação.`,
-    lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:p.id
-  })));
+  // Aviso aos super_admins: trigger trg_notif_protocolo_situacao (o cliente só grava notificação para si)
 
   embarqueFiles={};relatorioFiles={};
 
@@ -3066,13 +3059,7 @@ async function realizarProtocolo(){
     realizado_por:appState.usuario.id,
     realizado_em:new Date().toISOString()
   }).eq('id',protAtual.id);
-  // Notificar solicitante
-  await db.from('notificacoes').insert({
-    usuario_id:protAtual.criado_por,tipo:'viagem_aprovada',
-    titulo:`Protocolo ${protAtual.numero} realizado`,
-    mensagem:`O protocolo ${protAtual.numero} foi confirmado como realizado e os valores foram lançados no financeiro.`,
-    lida:false,link:'viagens.html',entidade_tipo:'viagem_protocolos',entidade_id:protAtual.id
-  });
+  // Aviso ao solicitante: trigger trg_notif_protocolo_situacao
   toast('Protocolo realizado e lançado no financeiro!','success');
   await enviarEmailAuto(protAtual.id,'realizado');
   const protId=protAtual.id;

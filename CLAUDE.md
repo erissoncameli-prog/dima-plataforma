@@ -1321,6 +1321,18 @@ select tablename, policyname, cmd, roles::text, qual
 from pg_policies where schemaname='public' and qual = 'true';
 ```
 
+Conferir também `with_check = 'true'` (INSERT/UPDATE). Casos fechados em `20261026_seg_responsaveis_notificacoes`
+(+ `_sql_editor`):
+- **`atividade_responsaveis`**: designar, desativar ou alterar responsável/substituto = só super_admin/coordenação
+  ativos (`fn_perfil_atual()`); excluir a linha = só super_admin. Antes qualquer logado se punha como responsável e
+  passava em `fn_pode_avaliar_contrato`, na etapa 2 do remanejamento e no cancelamento de TDR. Quem é responsável
+  libera poder em várias regras — nunca abrir escrita nessa tabela.
+- **`notificacoes`**: o cliente só grava, lê e marca como lida a **própria** notificação (`usuario_id = auth.uid()`,
+  `TO authenticated`; `notif_insert` era `TO public`, inclusive anon). **Aviso para outra pessoa nasce no banco**, em
+  função/trigger `SECURITY DEFINER` — nunca `db.from('notificacoes').insert` para outro usuário na tela (viagens:
+  `trg_notif_protocolo_situacao` avisa prestação enviada e protocolo realizado). Trigger de aviso `SECURITY INVOKER`
+  passa a falhar com RLS: criar sempre como DEFINER.
+
 `public.usuarios` ainda tem `usuarios_select USING (true)` — mantida
 deliberadamente porque 6 pontos do frontend fazem `select('*')` para montar
 listas de responsáveis. Substituir por view de diretório está previsto (Camada 1).
@@ -1483,6 +1495,7 @@ Supabase/Anthropic/Vercel/Google.
 30. Lista de fornecedores para escolher (tela aberta a todos) = `db.rpc('fn_fornecedores_diretorio')`; `from('fornecedores')` só devolve os fornecedores que a pessoa já enxerga por contrato/TDR/lançamento/tarefa
 31. Função SECURITY DEFINER nova sem `revoke … from public, anon` fica aberta à chave pública; teste de permissão com `<>`/`not (… or …)` sobre valor que pode ser NULL deixa passar — ver "Funções que o `anon` executa"
 32. Usuário que é fornecedor de um contrato (`fornecedor_usuarios`) **não** avalia nem edita produto desse contrato, mesmo sendo coordenação ou super_admin — use `fn_pode_avaliar_contrato`/`fn_pode_registrar_entrega`, nunca checar só perfil ou responsável
+33. `atividade_responsaveis` só é gravada por super_admin/coordenação, e `notificacoes` só aceita linha do próprio usuário pelo cliente — aviso para outra pessoa = trigger/função `SECURITY DEFINER` (ver "Policies permissivas somam-se por OR")
 
 ---
 
