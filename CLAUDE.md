@@ -1309,6 +1309,15 @@ qualquer função por `/rest/v1/rpc`. Por isso:
   regra de `tdrs_update`; `tdr_acoes` só aceita linha em nome de quem grava. `fn_audit_log` e `fn_verificar_senha` não
   são executáveis por cliente nenhum.
 
+### Responsáveis da atividade e avisos do sino (migração `20261026_seg_responsaveis_avisos` + `_sql_editor`)
+- `atividade_responsaveis`: incluir/alterar só super_admin/coordenação ativos (`fn_perfil_atual()`); remoção física só
+  super_admin (a tela remove com `ativo=false`). Antes qualquer logado se fazia responsável e ganhava avaliar produto e
+  assinar a etapa 2 do remanejamento.
+- `notificacoes`: o cliente só grava/altera aviso **para si** (`usuario_id = auth.uid()`, `TO authenticated`). Aviso para
+  outra pessoa nasce no banco: trigger/função SECURITY DEFINER (com `revoke execute … from public, anon, authenticated` se
+  for de trigger) ou RPC que monta o texto e confere a situação, como `fn_viagem_avisar(protocolo, 'prestacao'|'realizado')`.
+  Nunca `db.from('notificacoes').insert` para outro usuário na tela; Edge Function com service_role pode.
+
 ### Policies permissivas somam-se por OR
 
 Uma policy `USING (true)` **anula** todas as outras policies restritivas da mesma
