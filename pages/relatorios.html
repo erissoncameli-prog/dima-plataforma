@@ -218,6 +218,9 @@ const RELATORIOS = [
   { id:'A4', tema:'atividades', titulo:'Saldo de Orçamento por Atividade (TDRs)',
     desc:'Orçamento previsto de cada atividade, os TDRs que o comprometem (destacando os já firmados em contrato) e o saldo livre — individual e total.',
     filtros:['resultado','atividade'], paisagem:true },
+  { id:'A5', paisagem:true, tema:'atividades', titulo:'Ficha completa da atividade',
+    desc:'Cada atividade em detalhe: responsáveis, orçamento, pago e saldo (US$ e R$), seus TDRs e situação, os contratos de cada TDR com valor, pago e saldo, os indicadores da Matriz e as tarefas. Marque as atividades e o que mostrar.',
+    filtros:['a5_atividades','resultado','fase','responsavel_atv','status_tdr','status_contrato','a5_situacao','a5_mostrar'] },
   // ── ORÇAMENTO E REMANEJAMENTO (razão orçamentário) ────────
   { id:'Or1', paisagem:true, tema:'orcamento', titulo:'Remanejamentos',
     desc:'Pedidos de remanejamento com situação, atividades que cedem e recebem, valor movimentado e justificativa.',
@@ -525,6 +528,45 @@ function renderFiltros(lista){
             <option value="economia_contratacao">Economia de contratação</option>
           </select>
         </div>`;
+      case 'a5_atividades': return `
+        <div class="config-grupo re-grupo-largo">
+          <span class="config-lbl">Atividades <span class="config-dica">nenhuma marcada = todas</span></span>
+          <input type="search" class="config-input" id="fil-a5-busca" placeholder="Filtrar a lista…" aria-label="Filtrar a lista de atividades"
+            oninput="a5FiltrarLista(this.value)">
+          <div class="re-chk-lista" id="fil-a5-atividades" role="group" aria-label="Atividades">
+            ${_atividades.map(a=>`<label class="re-chk"><input type="checkbox" value="${a.id}"><span><b class="mono">${esc(a.codigo)}</b> ${esc(a.nome_pt||'')}</span></label>`).join('')}
+          </div>
+          <span class="re-chk-ac">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="a5Marcar(true)">Marcar visíveis</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="a5Marcar(false)">Desmarcar todas</button>
+          </span>
+        </div>`;
+      case 'responsavel_atv': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Responsável / substituto</span>
+          <select class="config-select" id="fil-resp-atv">
+            <option value="">Todos</option>
+            ${_usuarios.map(u=>`<option value="${u.id}">${esc(u.nome_completo||'—')}</option>`).join('')}
+          </select>
+        </div>`;
+      case 'a5_situacao': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Só atividades com</span>
+          <select class="config-select" id="fil-a5-sit">
+            <option value="">Todas</option>
+            <option value="saldo_neg">Saldo livre negativo</option>
+            <option value="tdr_sem_ctr">TDR aprovado ou em licitação sem contrato</option>
+            <option value="ctr_acima">Contrato acima do valor do TDR</option>
+            <option value="tarefa_atrasada">Tarefa atrasada</option>
+          </select>
+        </div>`;
+      case 'a5_mostrar': return `
+        <div class="config-grupo re-grupo-largo">
+          <span class="config-lbl">O que mostrar</span>
+          <div class="re-chk-chips" id="fil-a5-mostrar" role="group" aria-label="O que mostrar">
+            ${A5_BLOCOS.map(b=>`<label class="re-chk re-chk-chip"><input type="checkbox" value="${b[0]}"${b[2]?' checked':''}><span>${esc(b[1])}</span></label>`).join('')}
+          </div>
+        </div>`;
       case 'atividade': return `
         <div class="config-grupo">
           <span class="config-lbl">Atividade</span>
@@ -564,7 +606,7 @@ function renderFiltros(lista){
         </div>`;
       case 'status_contrato': return `
         <div class="config-grupo">
-          <span class="config-lbl">Status</span>
+          <span class="config-lbl">Status do contrato</span>
           <select class="config-select" id="fil-status-contrato">
             <option value="">Todos</option>
             <option value="vigente">Vigente</option>
@@ -930,6 +972,7 @@ function exportPrint(orientacao) {
 }
 
 function exportCSV() {
+  if (relAtivo === 'A5' && _a5) return a5Exportar('csv');
   const table = document.querySelector('#exp-preview-content table');
   if (!table) { alert('Nenhuma tabela encontrada neste relatório.'); return; }
   const rel = RELATORIOS.find(r => r.id === relAtivo);
@@ -945,6 +988,7 @@ function exportCSV() {
 }
 
 function exportExcel() {
+  if (relAtivo === 'A5' && _a5) return a5Exportar('xlsx');
   const tables = [...document.querySelectorAll('#exp-preview-content table')];
   if (!tables.length) { alert('Nenhuma tabela encontrada neste relatório.'); return; }
   const rel = RELATORIOS.find(r => r.id === relAtivo);
@@ -1002,6 +1046,7 @@ async function gerarRelatorio(id){
       case 'A2': html = await relA2(); break;
       case 'A3': html = await relA3(); break;
       case 'A4': html = await relA4(); break;
+      case 'A5': html = await relA5(); break;
       case 'M1': html = await relM1(); break;
       case 'M2': html = await relM2(); break;
       case 'M4': html = await relM4(); break;
@@ -2985,6 +3030,373 @@ async function relA4(){
 }
 
 // ══════════════════════════════════════════════════════════════
+// A5 — FICHA COMPLETA DA ATIVIDADE
+// Uma ficha por atividade: responsáveis, valores (saldo oficial em US$ da vw_saldo_atividade + R$ dos
+// lançamentos), TDRs com situação, contratos de cada TDR (valor, pago, saldo), indicadores da Matriz
+// (ligados à atividade por atividade_matriz — não há vínculo por TDR) e tarefas (da atividade ou de seus TDRs).
+// Só leitura; a RLS decide o que cada pessoa enxerga. Planilha/CSV saem dos dados planos em _a5.
+// ══════════════════════════════════════════════════════════════
+// [chave, rótulo, marcado por padrão]
+const A5_BLOCOS = [
+  ['resp','Responsáveis',true], ['valores','Orçamento, pago e saldo',true], ['tdrs','TDRs',true],
+  ['contratos','Contratos dos TDRs',true], ['matriz','Matriz de resultados',true], ['tarefas','Tarefas',true],
+  ['tarefas_abertas','Só tarefas a fazer',false], ['cancelados','Incluir TDRs, contratos e tarefas cancelados',false],
+  ['resumo','Quadro-resumo no início',true], ['pagina','Uma atividade por página',true],
+];
+const A5_TDR_ST = { rascunho:['Rascunho','rb-cinza'], submetido:['Submetido','rb-azul'], em_avaliacao:['Em avaliação','rb-ouro'],
+  pendente_correcao:['Pendente de correção','rb-ouro'], revisao_interna:['Revisão interna','rb-ouro'], ajustes:['Em ajustes','rb-ouro'],
+  enviado_unesco:['Enviado à UNESCO','rb-azul'], em_revisao_unesco:['Em revisão UNESCO','rb-azul'], retorno_unesco:['Retorno UNESCO','rb-ouro'],
+  aprovado:['Aprovado','rb-verde'], em_licitacao:['Em licitação','rb-verde'], contratado:['Contratado','rb-teal'], cancelado:['Cancelado','rb-vermelho'] };
+const A5_CTR_ST = { vigente:['Vigente','rb-verde'], encerrado:['Encerrado','rb-teal'], suspenso:['Suspenso','rb-ouro'],
+  aguardando_cobertura:['Aguardando cobertura','rb-vermelho'], cancelado:['Cancelado','rb-cinza'] };
+const A5_TK_ST = { a_fazer:['A fazer','rb-cinza'], em_andamento:['Em andamento','rb-azul'], em_revisao:['Em revisão','rb-ouro'],
+  bloqueada:['Bloqueada','rb-vermelho'], concluida:['Concluída','rb-verde'], cancelada:['Cancelada','rb-cinza'] };
+const A5_FASE = { A_INICIAR:['A iniciar','rb-cinza'], ELABORACAO:['Elaboração','rb-ouro'], LICITACAO:['Licitação','rb-azul'],
+  ELABORADO:['Elaborado','rb-azul'], CONTRATADO:['Contratado','rb-verde'], CONCLUIDO:['Concluído','rb-teal'] };
+const A5_LIC = { aberta:'aberta', com_propostas:'com propostas', deserta:'deserta', fracassada:'fracassada', sem_proposta:'sem proposta', cancelada:'cancelada' };
+const A5_TK_ABERTAS = ['a_fazer','em_andamento','em_revisao','bloqueada'];
+const a5Selo = (m, k) => { const s = m[k] || [k||'—','rb-cinza']; return `<span class="rep-badge ${s[1]}">${esc(s[0])}</span>`; };
+const a5Rot  = (m, k) => (m[k] || [k||''])[0];
+let _a5 = null;   // { abas: [[nome, cabeçalho, linhas]] } da última geração
+
+function a5FiltrarLista(q){
+  const t = semAcento(q||'').trim();
+  document.querySelectorAll('#fil-a5-atividades .re-chk').forEach(l => { l.hidden = !!t && !semAcento(l.textContent).includes(t); });
+}
+function a5Marcar(v){
+  document.querySelectorAll('#fil-a5-atividades .re-chk').forEach(l => { if(!v || !l.hidden) l.querySelector('input').checked = v; });
+}
+
+async function relA5(){
+  _a5 = null;
+  const marcadas = [...document.querySelectorAll('#fil-a5-atividades input:checked')].map(i=>i.value);
+  const resFil = filVal('fil-resultado'), faseFil = filVal('fil-fase'), respFil = filVal('fil-resp-atv');
+  const stTdr = filVal('fil-status-tdr'), stCtr = filVal('fil-status-contrato'), sitFil = filVal('fil-a5-sit');
+  const mostrar = new Set([...document.querySelectorAll('#fil-a5-mostrar input:checked')].map(i=>i.value));
+  const ver = k => mostrar.has(k);
+  const comCanc = ver('cancelados');
+
+  let qA = db.from('atividades')
+    .select('id,codigo,nome_pt,fase,orcamento_usd,orcamento_original_usd,resultado:resultados(codigo,nome_pt)').order('codigo');
+  if(marcadas.length) qA = qA.in('id', marcadas);
+  if(faseFil) qA = qA.eq('fase', faseFil);
+  const [rA, rR, rT, rC, rE, rM, rK, sal, mz, rCot] = await Promise.all([
+    qA,
+    db.from('atividade_responsaveis').select('atividade_id,usuario_id,papel,dt_inicio,usuario:usuarios!usuario_id(nome_completo)').eq('ativo',true),
+    db.from('tdrs').select('id,numero,tipo,status,valor_brl,valor_usd,execucao_direta,objeto_pt,atividade_id,rodadas:tdr_licitacao_rodadas(rodada,situacao,modalidade)').order('numero'),
+    db.from('contratos').select('id,numero,tdr_id,atividade_id,status,valor_total_brl,dt_inicio,dt_fim,fornecedor:fornecedores(nome)').order('numero'),
+    db.from('execucao_financeira').select('atividade_id,tdr_id,contrato_id,situacao,valor_brl,valor_usd,valor_usd_unesco'),
+    db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
+    db.from('tarefas').select('id,codigo,titulo,status,dt_prazo,atividade_id,' +
+      'participantes:tarefa_participantes(papel,usuario:usuarios(nome_completo)),vinc:tarefa_tdrs(tdr_id)')
+      .eq('ativo',true).order('dt_prazo',{ascending:true,nullsFirst:false}),
+    saldoPorAtividade(),
+    matrizBase(true),
+    db.rpc('fn_cotacao_usd'),   // PTAX (cotação oficial) só para o "≈ R$" do saldo; sem ela, só US$
+  ]);
+  for(const r of [rA,rR,rT,rC,rE,rM,rK]) if(r.error) throw r.error;
+  const cot = !rCot.error && rCot.data?.[0]?.ptax_venda ? rCot.data[0] : null;
+  const ptax = cot ? Number(cot.ptax_venda) : 0;
+  const hoje = new Date().toLocaleDateString('sv-SE',{timeZone:'America/Rio_Branco'});
+  const cent = v => Math.round(Number(v||0)*100)/100;
+  const grupo = (lista, k) => { const m = {}; (lista||[]).forEach(x=>{ (m[x[k]] = m[x[k]] || []).push(x); }); return m; };
+
+  // Lançamentos: por contrato; sem contrato com TDR (execução direta); sem contrato nem TDR; e por atividade
+  const novo = () => ({ pago:0, pagoUsd:0, est:false, apagar:0 });
+  const efCtr = {}, efTdr = {}, efSolto = {}, efAtv = {};
+  (rE.data||[]).forEach(l=>{
+    if(l.situacao==='cancelado') return;
+    const alvos = [efAtv[l.atividade_id] ||= novo()];
+    if(l.contrato_id) alvos.push(efCtr[l.contrato_id] ||= novo());
+    else if(l.tdr_id) alvos.push(efTdr[l.tdr_id] ||= novo());
+    else alvos.push(efSolto[l.atividade_id] ||= novo());
+    const brl = Number(l.valor_brl||0);
+    alvos.forEach(a=>{
+      if(l.situacao==='pago'){
+        a.pago += brl;
+        const u = l.valor_usd_unesco!=null ? Number(l.valor_usd_unesco) : (l.valor_usd!=null ? Number(l.valor_usd) : 0);
+        if(l.valor_usd_unesco==null && l.valor_usd!=null) a.est = true;
+        a.pagoUsd += u;
+      } else if(l.situacao==='a_pagar') a.apagar += brl;
+    });
+  });
+  const ef = (m, k) => m[k] || novo();
+
+  const respPor = grupo(rR.data, 'atividade_id');
+  const tdrPor  = grupo(rT.data, 'atividade_id');
+  const ctrPorTdr = grupo((rC.data||[]).filter(c=>c.tdr_id), 'tdr_id');
+  const ctrSemTdr = grupo((rC.data||[]).filter(c=>!c.tdr_id), 'atividade_id');
+  const mzPorId = Object.fromEntries((mz||[]).map(i=>[i.id, i]));
+  const mzPor = {};
+  (rM.data||[]).forEach(v=>{ const i = mzPorId[v.matriz_item_id]; if(i) (mzPor[v.atividade_id] ||= []).push(i); });
+  const tdrAtv = Object.fromEntries((rT.data||[]).map(t=>[t.id, t]));
+  const tkPor = {};
+  (rK.data||[]).forEach(t=>{
+    t._atrasada = A5_TK_ABERTAS.includes(t.status) && !!t.dt_prazo && String(t.dt_prazo).slice(0,10) < hoje;
+    t._tdrs = (t.vinc||[]).map(v=>tdrAtv[v.tdr_id]).filter(Boolean);
+    const atvs = new Set([t.atividade_id, ...t._tdrs.map(x=>x.atividade_id)].filter(Boolean));
+    atvs.forEach(a=>{ (tkPor[a] ||= []).push(t); });
+  });
+
+  const ctrVisivel = c => (comCanc || c.status!=='cancelado' || stCtr==='cancelado') && (!stCtr || c.status===stCtr);
+  const tdrVisivel = t => (comCanc || t.status!=='cancelado' || stTdr==='cancelado') && (!stTdr || t.status===stTdr);
+  const tkVisivel  = t => ver('tarefas_abertas') ? A5_TK_ABERTAS.includes(t.status) : (comCanc || t.status!=='cancelada');
+  const nomes = l => [...new Set(l.map(r=>r.usuario?.nome_completo).filter(Boolean))].join(', ');
+
+  // Monta cada atividade com os números de TDR/contrato (R$) já calculados
+  let ativs = (rA.data||[]).map(a=>{
+    const resps = respPor[a.id] || [];
+    const tdrsTodos = (tdrPor[a.id] || []).map(t=>{
+      const ctrsTodos = ctrPorTdr[t.id] || [];
+      const validos = ctrsTodos.filter(c=>c.status!=='cancelado');
+      const contratado = validos.reduce((s,c)=>s+Number(c.valor_total_brl||0),0);
+      const dir = ef(efTdr, t.id);
+      const ctrs = ctrsTodos.filter(ctrVisivel).map(c=>{ const e = ef(efCtr, c.id); return { ...c, _ef:e, _saldo: cent(Number(c.valor_total_brl||0) - e.pago) }; });
+      const pago = ctrsTodos.reduce((s,c)=>s+ef(efCtr,c.id).pago,0) + dir.pago;
+      const pagoUsd = ctrsTodos.reduce((s,c)=>s+ef(efCtr,c.id).pagoUsd,0) + dir.pagoUsd;
+      const est = ctrsTodos.some(c=>ef(efCtr,c.id).est) || dir.est;
+      const rod = (t.rodadas||[]).slice().sort((x,y)=>y.rodada-x.rodada)[0];
+      return { ...t, _ctrs:ctrs, _nCtrValidos:validos.length, _contratado:cent(contratado), _dir:dir, _pago:cent(pago), _pagoUsd:cent(pagoUsd), _est:est,
+        _saldo: t.status==='cancelado' ? 0 : cent(Number(t.valor_brl||0) - contratado - dir.pago - dir.apagar), _rod:rod };
+    });
+    const tdrs = tdrsTodos.filter(tdrVisivel).filter(t=>!stCtr || t._ctrs.length);
+    const semTdr = (ctrSemTdr[a.id] || []).filter(ctrVisivel).map(c=>{ const e = ef(efCtr, c.id); return { ...c, _ef:e, _saldo: cent(Number(c.valor_total_brl||0) - e.pago) }; });
+    const tarefas = (tkPor[a.id] || []).filter(tkVisivel);
+    return { ...a, _sa: sal[a.id] || {}, _resps:resps, _tdrsTodos:tdrsTodos, _tdrs:tdrs, _semTdr:semTdr,
+      _ef: ef(efAtv, a.id), _solto: ef(efSolto, a.id), _mz: mzPor[a.id] || [], _tarefas:tarefas,
+      _tarefasTodas: tkPor[a.id] || [] };
+  });
+
+  if(resFil)  ativs = ativs.filter(a=>resNum(a.resultado?.codigo)===resFil);
+  if(respFil) ativs = ativs.filter(a=>a._resps.some(r=>r.usuario_id===respFil));
+  if(stTdr)   ativs = ativs.filter(a=>a._tdrs.length);
+  if(stCtr)   ativs = ativs.filter(a=>a._tdrs.some(t=>t._ctrs.length) || a._semTdr.length);
+  if(sitFil==='saldo_neg')       ativs = ativs.filter(a=>Number(a._sa.saldo_livre_usd||0) < 0);
+  if(sitFil==='tdr_sem_ctr')     ativs = ativs.filter(a=>a._tdrsTodos.some(t=>['aprovado','em_licitacao'].includes(t.status) && !t.execucao_direta && !t._nCtrValidos));
+  if(sitFil==='ctr_acima')       ativs = ativs.filter(a=>a._tdrsTodos.some(t=>t._nCtrValidos && t._contratado > Number(t.valor_brl||0) + 0.005));
+  if(sitFil==='tarefa_atrasada') ativs = ativs.filter(a=>a._tarefasTodas.some(t=>t._atrasada));
+
+  if(!ativs.length) return oVazio('Nenhuma atividade com esses filtros.');
+
+  const traco = '<span style="color:var(--cinza-400)">—</span>';
+  const R = 'class="mono" style="text-align:right"';
+  const brlOu = v => v ? fmtBRL(v) : traco;
+  const usdEst = (v, est) => v ? (est ? '≈ ' : '') + usd2(v) : traco;
+  const aproxBRL = usd => ptax ? '≈ ' + fmtBRL(usd * ptax) : '';
+  const tkTxt = t => `${t.codigo ? t.codigo + ' ' : ''}${t.titulo || ''} (${a5Rot(A5_TK_ST, t.status)}${t.dt_prazo ? ', prazo ' + fmtDt(String(t.dt_prazo).slice(0,10)) : ''}${t._atrasada ? ', atrasada' : ''})`;
+  const situacaoTdr = t => a5Selo(A5_TDR_ST, t.status)
+    + (t._rod ? `<div style="font-size:9.5px;color:var(--cinza-500);margin-top:2px">${t._rod.rodada}ª rodada${t._rod.modalidade ? ' · ' + esc(t._rod.modalidade) : ''} · ${esc(A5_LIC[t._rod.situacao] || t._rod.situacao || '')}</div>` : '')
+    + (t.execucao_direta ? '<div style="font-size:9.5px;color:var(--cinza-500);margin-top:2px">Execução direta</div>' : '');
+  const linhaCtr = c => `<tr>
+      <td style="padding-left:14px"><span style="color:var(--cinza-400)">↳</span> Contrato <span class="mono">${esc(c.numero||'—')}</span></td>
+      <td>${esc(c.fornecedor?.nome || '—')}${c.dt_inicio||c.dt_fim ? `<div style="font-size:9.5px;color:var(--cinza-500)">${fmtDt(c.dt_inicio)} a ${fmtDt(c.dt_fim)}</div>` : ''}</td>
+      <td>${a5Selo(A5_CTR_ST, c.status)}</td>
+      <td ${R}>${fmtBRL(c.valor_total_brl)}</td><td ${R}>${traco}</td><td ${R}>${traco}</td>
+      <td ${R}>${brlOu(c._ef.pago)}${c._ef.apagar ? `<div style="font-size:9.5px;color:var(--cinza-500)">a pagar ${fmtBRL(c._ef.apagar)}</div>` : ''}</td>
+      <td ${R}>${usdEst(c._ef.pagoUsd, c._ef.est)}</td>
+      <td ${R}>${fmtBRL(c._saldo)}</td>
+    </tr>`;
+  const CAB_TDR = `<thead><tr><th>TDR / contrato</th><th>Tipo · fornecedor</th><th>Situação</th>
+      <th style="text-align:right">Valor R$</th><th style="text-align:right">Valor US$</th><th style="text-align:right">Contratado R$</th>
+      <th style="text-align:right">Pago R$</th><th style="text-align:right">Pago US$</th><th style="text-align:right">Saldo R$</th></tr></thead>`;
+
+  function blocoTdrs(a){
+    if(!a._tdrs.length) return `<div class="rep-secao"><div class="rep-secao-titulo">TDRs</div>${oVazio('Nenhum TDR'+(stTdr||stCtr?' com esses filtros.':' nesta atividade.'))}</div>`;
+    const vivos = a._tdrs.filter(t=>t.status!=='cancelado');
+    const soma = k => vivos.reduce((s,t)=>s+Number(t[k]||0),0);
+    return `<div class="rep-secao"><div class="rep-secao-titulo">TDRs${ver('contratos')?' e contratos':''} (${a._tdrs.length})</div>
+      <table class="rep-tbl">${CAB_TDR}
+      ${a._tdrs.map(t=>{
+        const canc = t.status==='cancelado';
+        const tks = ver('tarefas') ? a._tarefas.filter(k=>k._tdrs.some(x=>x.id===t.id)) : [];
+        const dir = t._dir;
+        return `<tbody class="rep-grupo"><tr class="rep-mae"${canc?' style="color:var(--cinza-500)"':''}>
+          <td class="mono"><strong>${esc(t.numero||'—')}</strong></td>
+          <td>${esc(t.tipo||'—')}</td>
+          <td>${situacaoTdr(t)}</td>
+          <td ${R}>${canc?'<s>'+fmtBRL(t.valor_brl)+'</s>':fmtBRL(t.valor_brl)}</td>
+          <td ${R}>${t.valor_usd ? usd2(t.valor_usd) : traco}</td>
+          <td ${R}>${t._nCtrValidos ? fmtBRL(t._contratado) : (t.execucao_direta ? traco : '<span style="font-size:9.5px;color:var(--cinza-500)">sem contrato</span>')}</td>
+          <td ${R}>${brlOu(t._pago)}</td>
+          <td ${R}>${usdEst(t._pagoUsd, t._est)}</td>
+          <td class="mono" style="text-align:right${t._saldo<0?';color:var(--erro);font-weight:700':''}">${canc ? traco : fmtBRL(t._saldo)}</td>
+        </tr>
+        ${ver('contratos') ? t._ctrs.map(linhaCtr).join('') : ''}
+        ${ver('contratos') && (dir.pago || dir.apagar) ? `<tr>
+          <td style="padding-left:14px"><span style="color:var(--cinza-400)">↳</span> Lançamentos sem contrato</td><td>Execução direta</td><td></td>
+          <td ${R}>${traco}</td><td ${R}>${traco}</td><td ${R}>${traco}</td>
+          <td ${R}>${brlOu(dir.pago)}${dir.apagar ? `<div style="font-size:9.5px;color:var(--cinza-500)">a pagar ${fmtBRL(dir.apagar)}</div>` : ''}</td>
+          <td ${R}>${usdEst(dir.pagoUsd, dir.est)}</td><td ${R}>${traco}</td></tr>` : ''}
+        ${linhaDet(9, 'Objeto', t.objeto_pt)}
+        ${tks.length ? linhaDet(9, 'Tarefas', tks.map(tkTxt).join(' · ')) : ''}
+        </tbody>`;
+      }).join('')}
+      <tfoot><tr><td colspan="3"><strong>Total${a._tdrs.length>vivos.length?' (sem cancelados)':''}</strong></td>
+        <td ${R}>${fmtBRL(soma('valor_brl'))}</td><td ${R}>${usd2(soma('valor_usd'))}</td><td ${R}>${fmtBRL(soma('_contratado'))}</td>
+        <td ${R}>${fmtBRL(soma('_pago'))}</td><td ${R}>${usd2(soma('_pagoUsd'))}</td><td ${R}>${fmtBRL(soma('_saldo'))}</td></tr></tfoot>
+      </table></div>`;
+  }
+
+  function blocoSemTdr(a){
+    if(!ver('contratos') || !a._semTdr.length) return '';
+    return `<div class="rep-secao"><div class="rep-secao-titulo">Contratos sem TDR (${a._semTdr.length})</div>
+      <table class="rep-tbl">${CAB_TDR}<tbody>${a._semTdr.map(linhaCtr).join('')}</tbody></table>
+      <p style="font-size:10px;color:var(--cinza-500)">Contrato sem TDR entra inteiro no comprometido da atividade (como contrato acima do TDR).</p></div>`;
+  }
+
+  function blocoValores(a){
+    const sa = a._sa, saldo = Number(sa.saldo_livre_usd||0);
+    const tdrBrl = a._tdrsTodos.filter(t=>t.status!=='cancelado').reduce((s,t)=>s+Number(t.valor_brl||0),0);
+    const orig = Number(a.orcamento_original_usd||0), vig = Number(a.orcamento_usd||0);
+    return `<div class="rep-stats rep-stats-4">
+      <div class="rep-stat"><div class="rep-stat-lbl">Orçamento vigente</div><div class="rep-stat-val">${usd2(vig)}</div>
+        <div class="rep-stat-sub">${aproxBRL(vig)}${orig && Math.abs(orig-vig)>0.005 ? (ptax?' · ':'')+'original '+usd2(orig) : ''}</div></div>
+      <div class="rep-stat"><div class="rep-stat-lbl">Comprometido</div><div class="rep-stat-val">${usd2(sa.comprometido_usd)}</div>
+        <div class="rep-stat-sub">TDRs ${fmtBRL(tdrBrl)}${Number(sa.excedente_contrato_usd||0)>0 ? ' · contrato acima do TDR '+usd2(sa.excedente_contrato_usd) : ''}</div></div>
+      <div class="rep-stat"><div class="rep-stat-lbl">Pago</div><div class="rep-stat-val" style="color:var(--sucesso)">${usd2(sa.pago_usd)}</div>
+        <div class="rep-stat-sub">${fmtBRL(a._ef.pago)}${a._ef.apagar ? ' · a pagar '+fmtBRL(a._ef.apagar) : ''}</div></div>
+      <div class="rep-stat"><div class="rep-stat-lbl">Saldo livre</div><div class="rep-stat-val"${saldo<0?' style="color:var(--erro)"':''}>${usd2(saldo)}</div>
+        <div class="rep-stat-sub">${aproxBRL(saldo)}${Number(sa.liberado_usd||0)>0 ? (ptax?' · ':'')+'liberado '+usd2(sa.liberado_usd) : ''}</div></div>
+    </div>
+    ${a._solto.pago || a._solto.apagar ? `<p style="font-size:10px;color:var(--cinza-500);margin:-4px 0 8px">Pagamentos sem contrato nem TDR nesta atividade: ${fmtBRL(a._solto.pago)} pagos${a._solto.apagar?' · '+fmtBRL(a._solto.apagar)+' a pagar':''}.</p>` : ''}`;
+  }
+
+  function blocoMatriz(a){
+    return `<div class="rep-secao"><div class="rep-secao-titulo">Matriz de resultados (${a._mz.length})</div>
+      ${!a._mz.length ? oVazio('Nenhum indicador da Matriz ligado a esta atividade.') : `
+      <table class="rep-tbl"><thead><tr><th>Código</th><th>Indicador</th><th style="text-align:right">Meta</th>
+        <th style="text-align:right">Confirmado</th><th style="text-align:right">Aguardando</th><th style="text-align:right">%</th><th>Situação</th></tr></thead>
+      <tbody>${a._mz.map(i=>`<tr>
+        <td class="mono">${esc(i._cod)}</td><td>${esc(i.indicador||'—')}</td>
+        <td ${R}>${i._meta>0?mzNum(i._meta,i.unidade):'—'}</td>
+        <td ${R}>${i._meta>0?mzNum(i._conf,i.unidade):'—'}</td>
+        <td ${R}>${i._pend?mzNum(i._pend,i.unidade):'—'}</td>
+        <td ${R}>${mzPct(i._real)}</td><td>${mzSelo(i._sit)}</td></tr>`).join('')}</tbody></table>
+      <p style="font-size:10px;color:var(--cinza-500)">Os indicadores se ligam à atividade (valem para todos os TDRs dela).</p>`}</div>`;
+  }
+
+  function blocoTarefas(a){
+    const l = a._tarefas;
+    return `<div class="rep-secao"><div class="rep-secao-titulo">Tarefas${ver('tarefas_abertas')?' a fazer':''} (${l.length})</div>
+      ${!l.length ? oVazio('Nenhuma tarefa'+(ver('tarefas_abertas')?' a fazer':'')+' vinculada.') : `
+      <table class="rep-tbl"><thead><tr><th>Código</th><th>Tarefa</th><th>TDR</th><th>Responsável</th><th>Prazo</th><th>Situação</th></tr></thead>
+      <tbody>${l.map(t=>{
+        const resp = (t.participantes||[]).filter(p=>p.papel==='responsavel').map(p=>p.usuario?.nome_completo).filter(Boolean);
+        return `<tr><td class="mono">${esc(t.codigo||'—')}</td><td>${esc(t.titulo||'—')}</td>
+          <td class="mono">${esc(t._tdrs.map(x=>x.numero).join(', ') || '—')}</td>
+          <td>${esc(resp.join(', ')||'—')}</td>
+          <td class="mono"${t._atrasada?' style="color:var(--erro);font-weight:700"':''}>${t.dt_prazo?fmtDt(String(t.dt_prazo).slice(0,10)):'—'}${t._atrasada?' · atrasada':''}</td>
+          <td>${a5Selo(A5_TK_ST, t.status)}</td></tr>`;
+      }).join('')}</tbody></table>`}</div>`;
+  }
+
+  const fichas = ativs.map((a, i)=>{
+    const resp = a._resps.filter(r=>r.papel==='responsavel'), subs = a._resps.filter(r=>r.papel==='substituto');
+    return `<div class="a5-atv"${ver('pagina') && (i>0 || ver('resumo') && ativs.length>1) ? ' style="break-before:page"' : ''}>
+      <div class="rep-secao">
+        <div class="rep-secao-titulo">${esc(a.codigo)} · ${esc(a.nome_pt||'')}</div>
+        <div style="font-size:11px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:2px 0 6px">
+          <span class="rep-badge rb-verde">${esc(a.resultado?.codigo||'R?')}</span>${a.resultado?.nome_pt?`<span>${esc(a.resultado.nome_pt)}</span>`:''}
+          <span>· Fase</span>${a5Selo(A5_FASE, a.fase)}<span>· Saldo</span>${seloSaldo(a._sa.status_saldo)}
+        </div>
+        ${ver('resp') ? `<div style="font-size:11px;margin-bottom:6px"><strong>Responsável:</strong> ${esc(nomes(resp)||'não definido')}
+          &nbsp;·&nbsp; <strong>Substituto:</strong> ${esc(nomes(subs)||'não definido')}</div>` : ''}
+      </div>
+      ${ver('valores') ? blocoValores(a) : ''}
+      ${ver('tdrs') ? blocoTdrs(a) + blocoSemTdr(a) : ''}
+      ${ver('matriz') ? blocoMatriz(a) : ''}
+      ${ver('tarefas') ? blocoTarefas(a) : ''}
+    </div>`;
+  }).join('');
+
+  // ── quadro-resumo ──
+  const tot = k => ativs.reduce((s,a)=>s+Number(a._sa[k]||0),0);
+  const nCtr = a => a._tdrs.reduce((s,t)=>s+t._ctrs.length,0) + a._semTdr.length;
+  const nAbertas = a => a._tarefasTodas.filter(t=>A5_TK_ABERTAS.includes(t.status)).length;
+  const resumo = ver('resumo') && ativs.length>1 ? `
+  <div class="rep-stats rep-stats-4">
+    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento vigente</div><div class="rep-stat-val">${usd2(tot('orcamento_usd'))}</div><div class="rep-stat-sub">${ativs.length} atividades · ${aproxBRL(tot('orcamento_usd'))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Comprometido</div><div class="rep-stat-val">${usd2(tot('comprometido_usd'))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Pago</div><div class="rep-stat-val" style="color:var(--sucesso)">${usd2(tot('pago_usd'))}</div><div class="rep-stat-sub">${fmtBRL(ativs.reduce((s,a)=>s+a._ef.pago,0))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo livre</div><div class="rep-stat-val"${tot('saldo_livre_usd')<0?' style="color:var(--erro)"':''}>${usd2(tot('saldo_livre_usd'))}</div><div class="rep-stat-sub">${aproxBRL(tot('saldo_livre_usd'))}</div></div>
+  </div>
+  <div class="rep-secao"><div class="rep-secao-titulo">Resumo por atividade</div>
+    <table class="rep-tbl"><thead><tr><th>Código</th><th>Atividade</th><th>Fase</th>
+      <th style="text-align:right">Orçamento US$</th><th style="text-align:right">Comprometido US$</th><th style="text-align:right">Pago US$</th>
+      <th style="text-align:right">Saldo livre US$</th><th style="text-align:center">TDRs</th><th style="text-align:center">Contratos</th><th style="text-align:center">Tarefas a fazer</th></tr></thead>
+    <tbody>${ativs.map(a=>{ const s = Number(a._sa.saldo_livre_usd||0); return `<tr>
+      <td class="mono">${esc(a.codigo)}</td><td>${esc(a.nome_pt||'')}</td><td>${a5Selo(A5_FASE, a.fase)}</td>
+      <td ${R}>${usd2(a._sa.orcamento_usd ?? a.orcamento_usd)}</td><td ${R}>${usd2(a._sa.comprometido_usd)}</td><td ${R}>${usd2(a._sa.pago_usd)}</td>
+      <td class="mono" style="text-align:right${s<0?';color:var(--erro);font-weight:700':''}">${usd2(s)}</td>
+      <td class="mono" style="text-align:center">${a._tdrs.length}</td><td class="mono" style="text-align:center">${nCtr(a)}</td>
+      <td class="mono" style="text-align:center">${nAbertas(a)}</td></tr>`; }).join('')}</tbody>
+    <tfoot><tr><td colspan="3"><strong>TOTAL</strong></td><td ${R}>${usd2(tot('orcamento_usd'))}</td><td ${R}>${usd2(tot('comprometido_usd'))}</td>
+      <td ${R}>${usd2(tot('pago_usd'))}</td><td ${R}>${usd2(tot('saldo_livre_usd'))}</td>
+      <td class="mono" style="text-align:center">${ativs.reduce((s,a)=>s+a._tdrs.length,0)}</td><td class="mono" style="text-align:center">${ativs.reduce((s,a)=>s+nCtr(a),0)}</td>
+      <td class="mono" style="text-align:center">${ativs.reduce((s,a)=>s+nAbertas(a),0)}</td></tr></tfoot></table>
+  </div>` : '';
+
+  // ── dados planos para planilha/CSV (números como número) ──
+  const n2 = v => v==null || v==='' ? '' : cent(v);
+  const abas = [['Atividades',
+    ['Código','Atividade','Resultado','Fase','Responsável','Substituto','Orçamento vigente US$','Orçamento original US$','Comprometido US$',
+     'Contrato acima do TDR US$','Pago US$','A pagar US$','Liberado US$','Saldo livre US$','Situação do saldo','Pago R$','A pagar R$',
+     'Saldo livre ≈ R$ (PTAX)','TDRs','Contratos','Indicadores da Matriz','Tarefas a fazer'],
+    ativs.map(a=>{ const sa = a._sa; return [a.codigo, a.nome_pt||'', a.resultado?.codigo||'', a5Rot(A5_FASE,a.fase),
+      nomes(a._resps.filter(r=>r.papel==='responsavel')), nomes(a._resps.filter(r=>r.papel==='substituto')),
+      n2(a.orcamento_usd), n2(a.orcamento_original_usd), n2(sa.comprometido_usd), n2(sa.excedente_contrato_usd), n2(sa.pago_usd), n2(sa.a_pagar_usd),
+      n2(sa.liberado_usd), n2(sa.saldo_livre_usd), (SAL_ST_REL[sa.status_saldo]||[sa.status_saldo||''])[0], n2(a._ef.pago), n2(a._ef.apagar),
+      ptax ? n2(Number(sa.saldo_livre_usd||0)*ptax) : '', a._tdrs.length, nCtr(a), a._mz.length, nAbertas(a)]; })]];
+  if(ver('tdrs')) abas.push(['TDRs',
+    ['Atividade','TDR','Tipo','Situação','Execução direta','Rodada de licitação','Valor R$','Valor US$','Contratado R$','Nº contratos',
+     'Pago R$','Pago US$','Pago US$ estimado','Saldo do TDR R$','Objeto'],
+    ativs.flatMap(a=>a._tdrs.map(t=>[a.codigo, t.numero||'', t.tipo||'', a5Rot(A5_TDR_ST,t.status), t.execucao_direta?'Sim':'Não',
+      t._rod ? `${t._rod.rodada}ª · ${A5_LIC[t._rod.situacao]||t._rod.situacao||''}` : '', n2(t.valor_brl), n2(t.valor_usd), n2(t._contratado),
+      t._nCtrValidos, n2(t._pago), n2(t._pagoUsd), t._est?'Sim':'Não', t.status==='cancelado' ? '' : n2(t._saldo), t.objeto_pt||'']))]);
+  if(ver('tdrs') && ver('contratos')) abas.push(['Contratos',
+    ['Atividade','TDR','Contrato','Fornecedor','Situação','Início','Fim','Valor total R$','Pago R$','Pago US$','Pago US$ estimado','A pagar R$','Saldo R$'],
+    ativs.flatMap(a=>[...a._tdrs.flatMap(t=>t._ctrs.map(c=>[a.codigo, t.numero||'', c])), ...a._semTdr.map(c=>[a.codigo, '(sem TDR)', c])]
+      .map(([cod, tdr, c])=>[cod, tdr, c.numero||'', c.fornecedor?.nome||'', a5Rot(A5_CTR_ST,c.status), c.dt_inicio?fmtDt(c.dt_inicio):'', c.dt_fim?fmtDt(c.dt_fim):'',
+        n2(c.valor_total_brl), n2(c._ef.pago), n2(c._ef.pagoUsd), c._ef.est?'Sim':'Não', n2(c._ef.apagar), n2(c._saldo)]))]);
+  if(ver('matriz')) abas.push(['Matriz',
+    ['Atividade','Código','Indicador','Meta','Unidade','Confirmado','Aguardando confirmação','% confirmado','Situação'],
+    ativs.flatMap(a=>a._mz.map(i=>[a.codigo, i._cod, i.indicador||'', i._meta>0?i._meta:'', i.unidade||'', n2(i._conf), n2(i._pend),
+      i._real==null ? '' : cent(i._real), MZ_SIT[i._sit].rot]))]);
+  if(ver('tarefas')) abas.push(['Tarefas',
+    ['Atividade','Código','Tarefa','TDRs','Responsável','Prazo','Situação','Atrasada'],
+    ativs.flatMap(a=>a._tarefas.map(t=>[a.codigo, t.codigo||'', t.titulo||'', t._tdrs.map(x=>x.numero).join(', '),
+      (t.participantes||[]).filter(p=>p.papel==='responsavel').map(p=>p.usuario?.nome_completo).filter(Boolean).join(', '),
+      t.dt_prazo?fmtDt(String(t.dt_prazo).slice(0,10)):'', a5Rot(A5_TK_ST,t.status), t._atrasada?'Sim':'Não']))]);
+  _a5 = { abas };
+
+  return resumo + fichas + `
+  <p style="font-size:10px;color:var(--cinza-500);margin-top:8px">Orçamento, comprometido, pago e saldo livre em US$ = saldo oficial (vw_saldo_atividade), o mesmo da Visão Geral;
+  comprometido = valor planejado dos TDRs + contrato acima do TDR. Valores em R$ dos TDRs, contratos e pagamentos vêm do cadastro e dos lançamentos do Financeiro;
+  pago em US$ = câmbio UNESCO do pagamento (≈ quando estimado). Saldo do TDR = valor do TDR − contratos não cancelados (na execução direta, − lançamentos);
+  negativo = contrato acima do TDR. Saldo do contrato = valor total − pago.${ptax ? ` "≈ R$" = conversão pela PTAX de ${fmtDt(cot.data_cotacao)} (R$ ${Number(ptax).toLocaleString('pt-BR',{minimumFractionDigits:4})}).` : ''}
+  Só entra o que o seu perfil tem acesso para ver.</p>`;
+}
+
+// Planilha (uma aba por bloco) ou CSV (aba Atividades) do A5
+function a5Exportar(fmt){
+  const nome = `A5_Ficha_completa_da_atividade_${new Date().toISOString().slice(0,10)}`;
+  if(fmt==='csv'){
+    const [, cab, lin] = _a5.abas[0];
+    const cel = v => '"' + String(v ?? '').replace(/"/g,'""') + '"';
+    const num = v => typeof v==='number' ? String(v).replace('.',',') : v;
+    _download('﻿' + [cab, ...lin].map(l=>l.map(v=>cel(num(v))).join(';')).join('\r\n'), nome + '.csv', 'text/csv;charset=utf-8;');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+  _a5.abas.forEach(([aba, cab, lin])=>{
+    const ws = XLSX.utils.aoa_to_sheet([cab, ...lin]);
+    ws['!cols'] = cab.map((c, i)=>({ wch: Math.min(60, Math.max(10, String(c).length + 2, ...lin.slice(0,300).map(l=>String(l[i] ?? '').length + 1))) }));
+    XLSX.utils.book_append_sheet(wb, ws, aba);
+  });
+  XLSX.writeFile(wb, nome + '.xlsx');
+}
+
+// ══════════════════════════════════════════════════════════════
 // MATRIZ — base comum de M1/M2/M4 (mesma régua de pages/matriz.html)
 // Progresso por vw_matriz_progresso.id (= matriz_itens.id). Código = produto·posição
 // (pela ordem dentro do produto). Situação: Atingida · Em andamento · Sem registro ·
@@ -2996,9 +3408,10 @@ const MZ_SIT = {
   sem:  { rot:'Sem registro', cls:'rb-cinza' },
   qual: { rot:'Qualitativa',  cls:'rb-teal'  },
 };
-async function matrizBase(){
-  const resFil = filVal('fil-resultado');
-  const odsFil = filVal('fil-ods');
+// semFiltro: todos os indicadores (A5 usa o resultado para filtrar atividades, não indicadores)
+async function matrizBase(semFiltro){
+  const resFil = semFiltro ? null : filVal('fil-resultado');
+  const odsFil = semFiltro ? null : filVal('fil-ods');
   const [{data:itens, error:e1},{data:prog, error:e2}] = await Promise.all([
     db.from('matriz_itens').select('*').eq('ativo',true).order('ordem'),
     db.from('vw_matriz_progresso').select('*'),
