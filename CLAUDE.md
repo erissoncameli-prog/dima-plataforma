@@ -962,6 +962,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   lista de atividades (`#fil-a5-atividades`, nenhuma = todas) e blocos "O que mostrar" (`A5_BLOCOS`). US$ da atividade = `vw_saldo_atividade`;
   R$ de TDR/contrato/pago = cadastro e `execucao_financeira`; "≈ R$" = PTAX (`fn_cotacao_usd`). Matriz é por **atividade** (`atividade_matriz`),
   não por TDR. Excel/CSV do A5 saem dos dados planos (`_a5`, `a5Exportar`): uma aba por bloco, números como número.
+  **Produtos dos contratos** e **Total por fornecedor** (blocos `produtos`/`fornecedores`, filtro `#fil-a5-prod`): pago / a pagar pela
+  **situação do produto** (`a5ProdEstado`: `pago`; `aprovado`/`entrega_parcial` = a pagar; valor = `valor_aprovado` se houver, senão
+  `valor_brl`); "Pago em" = `dt_pagamento` do lançamento pago do mesmo contrato + `numero_produto` (produto antigo sem esse vínculo =
+  "sem lançamento ligado"). Fornecedor = contratos não cancelados, por atividade e consolidado no quadro-resumo; saldo = contratado − pago.
 - **T4 "TDRs contratados com saldo"**: saldo = `tdrs.valor_brl` − Σ contratos não cancelados do TDR; "já liberado" = Σ `contrato_encerramentos`
   `economia_contratacao` `ativo` do TDR; "falta liberar" = saldo − liberado (botão Liberar economia do TDR). Negativo = seção "Contrato acima
   do valor do TDR". Aparece em vários grupos pelo campo opcional **`temas:[...]`** de `RELATORIOS` (`temasRel(r)`; visível se a pessoa tem

@@ -220,7 +220,7 @@ const RELATORIOS = [
     filtros:['resultado','atividade'], paisagem:true },
   { id:'A5', paisagem:true, tema:'atividades', titulo:'Ficha completa da atividade',
     desc:'Cada atividade em detalhe: responsáveis, orçamento, pago e saldo (US$ e R$), seus TDRs e situação, os contratos de cada TDR com valor, pago e saldo, os indicadores da Matriz e as tarefas. Marque as atividades e o que mostrar.',
-    filtros:['a5_atividades','resultado','fase','responsavel_atv','status_tdr','status_contrato','a5_situacao','a5_mostrar'] },
+    filtros:['a5_atividades','resultado','fase','responsavel_atv','status_tdr','status_contrato','a5_situacao','a5_produtos','a5_mostrar'] },
   // ── ORÇAMENTO E REMANEJAMENTO (razão orçamentário) ────────
   { id:'Or1', paisagem:true, tema:'orcamento', titulo:'Remanejamentos',
     desc:'Pedidos de remanejamento com situação, atividades que cedem e recebem, valor movimentado e justificativa.',
@@ -558,6 +558,16 @@ function renderFiltros(lista){
             <option value="tdr_sem_ctr">TDR aprovado ou em licitação sem contrato</option>
             <option value="ctr_acima">Contrato acima do valor do TDR</option>
             <option value="tarefa_atrasada">Tarefa atrasada</option>
+          </select>
+        </div>`;
+      case 'a5_produtos': return `
+        <div class="config-grupo">
+          <span class="config-lbl">Produtos</span>
+          <select class="config-select" id="fil-a5-prod">
+            <option value="">Todos</option>
+            <option value="pago">Pagos</option>
+            <option value="a_pagar">A pagar (aprovados)</option>
+            <option value="aberto">Ainda sem pagamento</option>
           </select>
         </div>`;
       case 'a5_mostrar': return `
@@ -3039,7 +3049,8 @@ async function relA4(){
 // [chave, rótulo, marcado por padrão]
 const A5_BLOCOS = [
   ['resp','Responsáveis',true], ['valores','Orçamento, pago e saldo',true], ['tdrs','TDRs',true],
-  ['contratos','Contratos dos TDRs',true], ['matriz','Matriz de resultados',true], ['tarefas','Tarefas',true],
+  ['contratos','Contratos dos TDRs',true], ['produtos','Produtos dos contratos',true], ['fornecedores','Total por fornecedor',true],
+  ['matriz','Matriz de resultados',true], ['tarefas','Tarefas',true],
   ['tarefas_abertas','Só tarefas a fazer',false], ['cancelados','Incluir TDRs, contratos e tarefas cancelados',false],
   ['resumo','Quadro-resumo no início',true], ['pagina','Uma atividade por página',true],
 ];
@@ -3055,6 +3066,12 @@ const A5_FASE = { A_INICIAR:['A iniciar','rb-cinza'], ELABORACAO:['Elaboração'
   ELABORADO:['Elaborado','rb-azul'], CONTRATADO:['Contratado','rb-verde'], CONCLUIDO:['Concluído','rb-teal'] };
 const A5_LIC = { aberta:'aberta', com_propostas:'com propostas', deserta:'deserta', fracassada:'fracassada', sem_proposta:'sem proposta', cancelada:'cancelada' };
 const A5_TK_ABERTAS = ['a_fazer','em_andamento','em_revisao','bloqueada'];
+// Produto do contrato: pago / a pagar vêm da SITUAÇÃO do produto (aprovado ou entrega parcial = a pagar)
+const A5_PROD_ST = { pendente:['Pendente','rb-cinza'], em_analise:['Em análise','rb-ouro'], devolvido:['Devolvido','rb-vermelho'],
+  entrega_parcial:['Entrega parcial — a pagar','rb-azul'], aprovado:['Aprovado — a pagar','rb-azul'], pago:['Pago','rb-verde'], cancelado:['Cancelado','rb-cinza'] };
+const a5ProdEstado = p => p.situacao==='pago' ? 'pago' : ['aprovado','entrega_parcial'].includes(p.situacao) ? 'a_pagar' : p.situacao==='cancelado' ? 'cancelado' : 'aberto';
+// valor que conta: o aprovado (entrega parcial) quando houver, senão o valor do produto
+const a5ProdValor = p => Number(p.valor_aprovado||0) > 0 ? Number(p.valor_aprovado) : Number(p.valor_brl||0);
 const a5Selo = (m, k) => { const s = m[k] || [k||'—','rb-cinza']; return `<span class="rep-badge ${s[1]}">${esc(s[0])}</span>`; };
 const a5Rot  = (m, k) => (m[k] || [k||''])[0];
 let _a5 = null;   // { abas: [[nome, cabeçalho, linhas]] } da última geração
@@ -3071,7 +3088,7 @@ async function relA5(){
   _a5 = null;
   const marcadas = [...document.querySelectorAll('#fil-a5-atividades input:checked')].map(i=>i.value);
   const resFil = filVal('fil-resultado'), faseFil = filVal('fil-fase'), respFil = filVal('fil-resp-atv');
-  const stTdr = filVal('fil-status-tdr'), stCtr = filVal('fil-status-contrato'), sitFil = filVal('fil-a5-sit');
+  const stTdr = filVal('fil-status-tdr'), stCtr = filVal('fil-status-contrato'), sitFil = filVal('fil-a5-sit'), prodFil = filVal('fil-a5-prod');
   const mostrar = new Set([...document.querySelectorAll('#fil-a5-mostrar input:checked')].map(i=>i.value));
   const ver = k => mostrar.has(k);
   const comCanc = ver('cancelados');
@@ -3080,12 +3097,12 @@ async function relA5(){
     .select('id,codigo,nome_pt,fase,orcamento_usd,orcamento_original_usd,resultado:resultados(codigo,nome_pt)').order('codigo');
   if(marcadas.length) qA = qA.in('id', marcadas);
   if(faseFil) qA = qA.eq('fase', faseFil);
-  const [rA, rR, rT, rC, rE, rM, rK, sal, mz, rCot] = await Promise.all([
+  const [rA, rR, rT, rC, rE, rM, rK, sal, mz, rCot, rP] = await Promise.all([
     qA,
     db.from('atividade_responsaveis').select('atividade_id,usuario_id,papel,dt_inicio,usuario:usuarios!usuario_id(nome_completo)').eq('ativo',true),
     db.from('tdrs').select('id,numero,tipo,status,valor_brl,valor_usd,execucao_direta,objeto_pt,atividade_id,rodadas:tdr_licitacao_rodadas(rodada,situacao,modalidade)').order('numero'),
     db.from('contratos').select('id,numero,tdr_id,atividade_id,status,valor_total_brl,dt_inicio,dt_fim,fornecedor:fornecedores(nome)').order('numero'),
-    db.from('execucao_financeira').select('atividade_id,tdr_id,contrato_id,situacao,valor_brl,valor_usd,valor_usd_unesco'),
+    db.from('execucao_financeira').select('atividade_id,tdr_id,contrato_id,situacao,valor_brl,valor_usd,valor_usd_unesco,numero_produto,dt_pagamento'),
     db.from('atividade_matriz').select('atividade_id,matriz_item_id'),
     db.from('tarefas').select('id,codigo,titulo,status,dt_prazo,atividade_id,' +
       'participantes:tarefa_participantes(papel,usuario:usuarios(nome_completo)),vinc:tarefa_tdrs(tdr_id)')
@@ -3093,8 +3110,9 @@ async function relA5(){
     saldoPorAtividade(),
     matrizBase(true),
     db.rpc('fn_cotacao_usd'),   // PTAX (cotação oficial) só para o "≈ R$" do saldo; sem ela, só US$
+    db.from('contratos_produtos').select('id,contrato_id,numero_produto,descricao,valor_brl,valor_aprovado,dt_vencimento,situacao').order('numero_produto'),
   ]);
-  for(const r of [rA,rR,rT,rC,rE,rM,rK]) if(r.error) throw r.error;
+  for(const r of [rA,rR,rT,rC,rE,rM,rK,rP]) if(r.error) throw r.error;
   const cot = !rCot.error && rCot.data?.[0]?.ptax_venda ? rCot.data[0] : null;
   const ptax = cot ? Number(cot.ptax_venda) : 0;
   const hoje = new Date().toLocaleDateString('sv-SE',{timeZone:'America/Rio_Branco'});
@@ -3121,6 +3139,12 @@ async function relA5(){
     });
   });
   const ef = (m, k) => m[k] || novo();
+  // data do pagamento do produto: lançamento pago do mesmo contrato e nº do produto (o mais recente)
+  const pagoEm = {};
+  (rE.data||[]).forEach(l=>{ if(l.situacao!=='pago' || !l.contrato_id || l.numero_produto==null || !l.dt_pagamento) return;
+    const k = l.contrato_id+'|'+l.numero_produto; if(!pagoEm[k] || l.dt_pagamento > pagoEm[k]) pagoEm[k] = l.dt_pagamento; });
+  const prodPor = grupo((rP.data||[]).map(p=>Object.assign({}, p, { _est: a5ProdEstado(p), _val: a5ProdValor(p),
+    _pagoEm: pagoEm[p.contrato_id+'|'+p.numero_produto] || null })), 'contrato_id');
 
   const respPor = grupo(rR.data, 'atividade_id');
   const tdrPor  = grupo(rT.data, 'atividade_id');
@@ -3162,9 +3186,14 @@ async function relA5(){
     const tdrs = tdrsTodos.filter(tdrVisivel).filter(t=>!stCtr || t._ctrs.length);
     const semTdr = (ctrSemTdr[a.id] || []).filter(ctrVisivel).map(c=>{ const e = ef(efCtr, c.id); return { ...c, _ef:e, _saldo: cent(Number(c.valor_total_brl||0) - e.pago) }; });
     const tarefas = (tkPor[a.id] || []).filter(tkVisivel);
+    // contratos listados (dos TDRs e sem TDR) com os produtos: _prods = todos (soma), _prodsVis = os do filtro
+    const prodCtrs = [...tdrs.flatMap(t=>t._ctrs.map(c=>Object.assign({}, c, { _tdrNum: t.numero }))), ...semTdr.map(c=>Object.assign({}, c, { _tdrNum: '' }))]
+      .map(c=>{ const todos = prodPor[c.id] || [], vivos = todos.filter(p=>p._est!=='cancelado')
+        return Object.assign(c, { _prods: vivos,
+          _prodsVis: todos.filter(p=>(comCanc || p._est!=='cancelado') && (!prodFil || p._est===prodFil)) }); });
     return { ...a, _sa: sal[a.id] || {}, _resps:resps, _tdrsTodos:tdrsTodos, _tdrs:tdrs, _semTdr:semTdr,
       _ef: ef(efAtv, a.id), _solto: ef(efSolto, a.id), _mz: mzPor[a.id] || [], _tarefas:tarefas,
-      _tarefasTodas: tkPor[a.id] || [] };
+      _tarefasTodas: tkPor[a.id] || [], _prodCtrs: prodCtrs };
   });
 
   if(resFil)  ativs = ativs.filter(a=>resNum(a.resultado?.codigo)===resFil);
@@ -3275,6 +3304,65 @@ async function relA5(){
       <p style="font-size:10px;color:var(--cinza-500)">Os indicadores se ligam à atividade (valem para todos os TDRs dela).</p>`}</div>`;
   }
 
+  // Produtos dos contratos: pago / a pagar pela situação do produto; data do pagamento pelo lançamento pago
+  const somaP = (l, est) => l.filter(p=>!est || p._est===est).reduce((x,p)=>x+p._val,0);
+  function blocoProdutos(a){
+    const ctrs = a._prodCtrs.filter(c=>c._prodsVis.length)
+    const FIL = { pago:'pagos', a_pagar:'a pagar', aberto:'ainda sem pagamento' }
+    const titulo = `Produtos dos contratos${prodFil ? ' — ' + FIL[prodFil] : ''}`
+    if(!ctrs.length) return `<div class="rep-secao"><div class="rep-secao-titulo">${titulo}</div>${oVazio(a._prodCtrs.length ? 'Nenhum produto nessa situação.' : 'Nenhum contrato com produtos.')}</div>`
+    const todos = ctrs.flatMap(c=>c._prodsVis)
+    return `<div class="rep-secao"><div class="rep-secao-titulo">${titulo} (${todos.length})</div>
+      <table class="rep-tbl"><thead><tr><th>Nº</th><th>Produto</th><th>Vencimento</th><th>Situação</th>
+        <th style="text-align:right">Valor R$</th><th style="text-align:right">Pago R$</th><th style="text-align:right">A pagar R$</th><th>Pago em</th></tr></thead>
+      ${ctrs.map(c=>{ const l = c._prodsVis
+        return `<tbody${l.length<=8 ? ' class="rep-grupo"' : ''}>
+        <tr class="rep-mae"><td colspan="8" style="background:var(--cinza-50)"><strong>Contrato <span class="mono">${esc(c.numero||'—')}</span></strong>
+          · ${esc(c.fornecedor?.nome||'—')}${c._tdrNum ? ' · TDR <span class="mono">'+esc(c._tdrNum)+'</span>' : ' · sem TDR'} · ${a5Selo(A5_CTR_ST, c.status)}
+          <span style="color:var(--cinza-500)"> · contratado ${fmtBRL(c.valor_total_brl)}</span></td></tr>
+        ${l.map(p=>`<tr${p._est==='cancelado'?' style="color:var(--cinza-500)"':''}>
+          <td class="mono">${p.numero_produto ?? '—'}</td><td>${esc(p.descricao||'—')}</td>
+          <td class="mono">${p.dt_vencimento ? fmtDt(p.dt_vencimento) : '—'}</td><td>${a5Selo(A5_PROD_ST, p.situacao)}</td>
+          <td ${R}>${fmtBRL(p._val)}</td><td ${R}>${p._est==='pago' ? fmtBRL(p._val) : traco}</td>
+          <td ${R}>${p._est==='a_pagar' ? fmtBRL(p._val) : traco}</td><td class="mono">${p._est==='pago' ? (p._pagoEm ? fmtDt(p._pagoEm) : 'sem lançamento ligado') : traco}</td></tr>`).join('')}
+        <tr><td colspan="4" style="text-align:right;font-size:10px;color:var(--cinza-500)">Subtotal do contrato${prodFil ? ' (produtos listados)' : ''}${!prodFil && somaP(l,'aberto') ? ' · falta pagar/entregar '+fmtBRL(somaP(l,'aberto')) : ''}</td>
+          <td ${R}><strong>${fmtBRL(somaP(l.filter(p=>p._est!=='cancelado')))}</strong></td><td ${R}><strong>${fmtBRL(somaP(l,'pago'))}</strong></td>
+          <td ${R}><strong>${fmtBRL(somaP(l,'a_pagar'))}</strong></td><td></td></tr>
+        </tbody>` }).join('')}
+      <tfoot><tr><td colspan="4"><strong>Total${prodFil ? ' (produtos listados)' : ''}</strong></td>
+        <td ${R}>${fmtBRL(somaP(todos.filter(p=>p._est!=='cancelado')))}</td><td ${R}>${fmtBRL(somaP(todos,'pago'))}</td><td ${R}>${fmtBRL(somaP(todos,'a_pagar'))}</td><td></td></tr></tfoot>
+      </table></div>`
+  }
+
+  // Total por fornecedor (contratos não cancelados; pago/a pagar pela situação dos produtos)
+  function porFornecedor(lista){
+    const m = new Map()
+    lista.filter(c=>c.status!=='cancelado').forEach(c=>{
+      const k = c.fornecedor?.nome || '(fornecedor não visível)'
+      const f = m.get(k) || { nome:k, ctrs:new Set(), contratado:0, pago:0, apagar:0, nPagos:0, nProd:0 }
+      if(!f.ctrs.has(c.id)){ f.ctrs.add(c.id); f.contratado += Number(c.valor_total_brl||0) }
+      f.pago += somaP(c._prods,'pago'); f.apagar += somaP(c._prods,'a_pagar')
+      f.nPagos += c._prods.filter(p=>p._est==='pago').length; f.nProd += c._prods.length
+      m.set(k, f)
+    })
+    return [...m.values()].map(f=>Object.assign(f, { nCtr: f.ctrs.size, saldo: cent(f.contratado - f.pago) }))
+      .sort((x,y)=>y.contratado-x.contratado || x.nome.localeCompare(y.nome,'pt-BR'))
+  }
+  function blocoFornecedores(lista, titulo){
+    const fs = porFornecedor(lista)
+    if(!fs.length) return `<div class="rep-secao"><div class="rep-secao-titulo">${esc(titulo)}</div>${oVazio('Nenhum contrato.')}</div>`
+    const t = k => fs.reduce((x,f)=>x+f[k],0)
+    return `<div class="rep-secao"><div class="rep-secao-titulo">${esc(titulo)} (${fs.length})</div>
+      <table class="rep-tbl"><thead><tr><th>Fornecedor</th><th style="text-align:center">Contratos</th><th style="text-align:right">Contratado R$</th>
+        <th style="text-align:right">Pago R$</th><th style="text-align:right">A pagar R$</th><th style="text-align:right">Saldo R$</th><th style="text-align:center">Produtos pagos</th></tr></thead>
+      <tbody>${fs.map(f=>`<tr><td>${esc(f.nome)}</td><td class="mono" style="text-align:center">${f.nCtr}</td><td ${R}>${fmtBRL(f.contratado)}</td>
+        <td ${R}>${fmtBRL(f.pago)}</td><td ${R}>${f.apagar ? fmtBRL(f.apagar) : traco}</td><td class="mono" style="text-align:right${f.saldo<0?';color:var(--erro)':''}">${fmtBRL(f.saldo)}</td>
+        <td class="mono" style="text-align:center">${f.nPagos} / ${f.nProd}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td><strong>TOTAL</strong></td><td class="mono" style="text-align:center">${t('nCtr')}</td><td ${R}>${fmtBRL(t('contratado'))}</td><td ${R}>${fmtBRL(t('pago'))}</td>
+        <td ${R}>${fmtBRL(t('apagar'))}</td><td ${R}>${fmtBRL(t('saldo'))}</td><td class="mono" style="text-align:center">${t('nPagos')} / ${t('nProd')}</td></tr></tfoot></table>
+      <p style="font-size:10px;color:var(--cinza-500)">Contratos não cancelados. Pago e a pagar pela situação dos produtos (aprovado ou entrega parcial = a pagar); saldo = contratado − pago.</p></div>`
+  }
+
   function blocoTarefas(a){
     const l = a._tarefas;
     return `<div class="rep-secao"><div class="rep-secao-titulo">Tarefas${ver('tarefas_abertas')?' a fazer':''} (${l.length})</div>
@@ -3304,6 +3392,8 @@ async function relA5(){
       </div>
       ${ver('valores') ? blocoValores(a) : ''}
       ${ver('tdrs') ? blocoTdrs(a) + blocoSemTdr(a) : ''}
+      ${ver('produtos') ? blocoProdutos(a) : ''}
+      ${ver('fornecedores') ? blocoFornecedores(a._prodCtrs, 'Total por fornecedor') : ''}
       ${ver('matriz') ? blocoMatriz(a) : ''}
       ${ver('tarefas') ? blocoTarefas(a) : ''}
     </div>`;
@@ -3334,7 +3424,8 @@ async function relA5(){
       <td ${R}>${usd2(tot('pago_usd'))}</td><td ${R}>${usd2(tot('saldo_livre_usd'))}</td>
       <td class="mono" style="text-align:center">${ativs.reduce((s,a)=>s+a._tdrs.length,0)}</td><td class="mono" style="text-align:center">${ativs.reduce((s,a)=>s+nCtr(a),0)}</td>
       <td class="mono" style="text-align:center">${ativs.reduce((s,a)=>s+nAbertas(a),0)}</td></tr></tfoot></table>
-  </div>` : '';
+  </div>
+  ${ver('fornecedores') ? blocoFornecedores(ativs.flatMap(a=>a._prodCtrs), 'Total por fornecedor — todas as atividades do relatório') : ''}` : '';
 
   // ── dados planos para planilha/CSV (números como número) ──
   const n2 = v => v==null || v==='' ? '' : cent(v);
@@ -3358,6 +3449,17 @@ async function relA5(){
     ativs.flatMap(a=>[...a._tdrs.flatMap(t=>t._ctrs.map(c=>[a.codigo, t.numero||'', c])), ...a._semTdr.map(c=>[a.codigo, '(sem TDR)', c])]
       .map(([cod, tdr, c])=>[cod, tdr, c.numero||'', c.fornecedor?.nome||'', a5Rot(A5_CTR_ST,c.status), c.dt_inicio?fmtDt(c.dt_inicio):'', c.dt_fim?fmtDt(c.dt_fim):'',
         n2(c.valor_total_brl), n2(c._ef.pago), n2(c._ef.pagoUsd), c._ef.est?'Sim':'Não', n2(c._ef.apagar), n2(c._saldo)]))]);
+  if(ver('produtos')) abas.push(['Produtos',
+    ['Atividade','TDR','Contrato','Fornecedor','Situação do contrato','Nº','Produto','Vencimento','Situação do produto','Valor R$','Pago R$','A pagar R$','Pago em'],
+    ativs.flatMap(a=>a._prodCtrs.flatMap(c=>c._prodsVis.map(p=>[a.codigo, c._tdrNum||'(sem TDR)', c.numero||'', c.fornecedor?.nome||'', a5Rot(A5_CTR_ST,c.status),
+      p.numero_produto ?? '', p.descricao||'', p.dt_vencimento ? fmtDt(p.dt_vencimento) : '', a5Rot(A5_PROD_ST,p.situacao), n2(p._val),
+      p._est==='pago' ? n2(p._val) : '', p._est==='a_pagar' ? n2(p._val) : '', p._est==='pago' ? (p._pagoEm ? fmtDt(p._pagoEm) : 'sem lançamento ligado') : ''])))]);
+  if(ver('fornecedores')) {
+    const linhaF = f => [f.nome, f.nCtr, n2(f.contratado), n2(f.pago), n2(f.apagar), n2(f.saldo), f.nPagos, f.nProd]
+    const cabF = ['Fornecedor','Contratos','Contratado R$','Pago R$','A pagar R$','Saldo R$','Produtos pagos','Produtos']
+    abas.push(['Fornecedores (total)', cabF, porFornecedor(ativs.flatMap(a=>a._prodCtrs)).map(linhaF)]);
+    abas.push(['Fornecedores por atividade', ['Atividade', ...cabF], ativs.flatMap(a=>porFornecedor(a._prodCtrs).map(f=>[a.codigo, ...linhaF(f)]))]);
+  }
   if(ver('matriz')) abas.push(['Matriz',
     ['Atividade','Código','Indicador','Meta','Unidade','Confirmado','Aguardando confirmação','% confirmado','Situação'],
     ativs.flatMap(a=>a._mz.map(i=>[a.codigo, i._cod, i.indicador||'', i._meta>0?i._meta:'', i.unidade||'', n2(i._conf), n2(i._pend),
