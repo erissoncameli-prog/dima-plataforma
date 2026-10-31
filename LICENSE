@@ -1,0 +1,55 @@
+PLATAFORMA INTELIGENTE DE GESTÃO DE PROJETOS
+Licença proprietária — Todos os direitos reservados
+
+Copyright (c) 2025–2026 Erisson Cameli Santiago
+Concepção e Desenvolvimento: Erisson Cameli Santiago
+Contato: erissoncameli@gmail.com · +55 (68) 99936-1984
+
+1. AUTORIA E TITULARIDADE
+   Este programa de computador — código-fonte, código-objeto, estrutura e esquema
+   de banco de dados, migrações, funções, Edge Functions, interfaces, telas,
+   textos de ajuda, documentação técnica e demais elementos criativos contidos
+   neste repositório — foi concebido e desenvolvido por Erisson Cameli Santiago,
+   que é seu autor e titular, nos termos da Lei nº 9.609/1998 (Lei do Software)
+   e da Lei nº 9.610/1998 (Lei de Direitos Autorais).
+
+2. DIREITOS RESERVADOS
+   Todos os direitos são reservados ao autor. Nenhuma licença ou direito é
+   concedido, de forma expressa ou implícita, além do previsto no item 3.
+   Sem autorização prévia e por escrito do autor, é proibido:
+   a) copiar, reproduzir, modificar, adaptar, traduzir ou criar obras derivadas
+      deste programa, no todo ou em parte;
+   b) distribuir, sublicenciar, vender, ceder, alugar ou disponibilizar o
+      programa ou seu código-fonte a terceiros;
+   c) registrar este programa, ou parte dele, em nome de outra pessoa física ou
+      jurídica, ou reivindicar sua autoria;
+   d) remover, ocultar ou alterar os avisos de autoria e de direitos autorais
+      exibidos no programa, no código-fonte e nos documentos que ele gera.
+
+3. USO AUTORIZADO
+   O autor autoriza, sem custo e em caráter não exclusivo e intransferível, a
+   Secretaria de Estado do Meio Ambiente do Acre (SEMA/AC) a utilizar o programa
+   em operação, por meio de seus usuários cadastrados, para a gestão do Projeto
+   218BRA2001 (UNESCO · Fundo Brasil-ONU). Esta autorização não transfere a
+   titularidade, não autoriza cópia, modificação ou repasse do código-fonte e
+   pode ser formalizada ou detalhada em termo próprio assinado pelas partes.
+
+4. DADOS
+   Os dados registrados na plataforma pelos seus usuários pertencem à SEMA/AC,
+   controladora nos termos da Lei nº 13.709/2018 (LGPD). Esta licença trata
+   apenas do programa de computador, não dos dados.
+
+5. COMPONENTES DE TERCEIROS
+   Bibliotecas e componentes de terceiros usados pelo programa continuam regidos
+   pelas licenças de seus respectivos autores, listadas no arquivo NOTICE. O
+   painel público (diretório site-publico/) é obra de outro autor e não está
+   abrangido por esta licença.
+
+6. AUSÊNCIA DE GARANTIA
+   O programa é fornecido "no estado em que se encontra", sem garantias de
+   qualquer natureza, nos limites permitidos pela lei.
+
+7. DIREITOS MORAIS
+   O direito do autor de reivindicar a paternidade do programa e de se opor a
+   alterações não autorizadas é irrenunciável e inalienável (Lei nº 9.609/1998,
+   art. 2º, § 1º).

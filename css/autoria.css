@@ -1,0 +1,105 @@
+/*!
+ * Plataforma Inteligente de Gestão de Projetos
+ * © 2025–2026 Erisson Cameli Santiago. Todos os direitos reservados.
+ */
+/* Autoria do sistema (js/autoria.js): rodapé do menu, crédito [data-dima-autoria] e janela "Sobre o sistema".
+   Prefixo aut-. Tokens próprios nos dois temas (a janela é anexada ao body, fora do escopo de qualquer tela). */
+:root {
+  --aut-bg: #FFFFFF;
+  --aut-tx: #1F2937;
+  --aut-tx-2: #4B5563;
+  --aut-tx-3: #6B7280;
+  --aut-borda: #E5E7EB;
+  --aut-marca: #1F4E2C;
+  --aut-marca-bg: #E6EFE9;
+  --aut-aviso-bg: #FBF7EC;
+  --aut-aviso-bd: #E9DDB8;
+  --aut-veu: rgba(15, 23, 20, .55);
+}
+html[data-tema="escuro"] {
+  --aut-bg: #14231A;
+  --aut-tx: #E7EEE9;
+  --aut-tx-2: #B9C7BE;
+  --aut-tx-3: #8FA197;
+  --aut-borda: #2A3D31;
+  --aut-marca: #8FD1A3;
+  --aut-marca-bg: #1C3325;
+  --aut-aviso-bg: #2A2618;
+  --aut-aviso-bd: #4A4127;
+  --aut-veu: rgba(0, 0, 0, .65);
+}
+
+/* ── Rodapé do menu lateral ─────────────────────────────────────── */
+.aut-menu {
+  flex: none;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--sb-borda, #E5E7EB);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--sb-tx-3, #6B7280);
+  text-align: center;
+}
+.aut-menu-sis { font-weight: 600; color: var(--sb-tx, #4B5563); }
+.aut-menu-papel { margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; font-size: 9px; }
+.aut-menu-autor { font-weight: 700; color: var(--sb-tx-2, #374151); }
+.aut-menu-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 6px; padding: 4px 10px; min-height: 28px;
+  border: 1px solid var(--sb-borda, #E5E7EB); border-radius: 99px;
+  background: transparent; color: var(--sb-tx, #4B5563);
+  font: inherit; font-size: 10.5px; cursor: pointer;
+}
+.aut-menu-btn:hover { background: var(--sb-hover, #F0F1ED); }
+.aut-menu-btn:focus-visible, .aut-link:focus-visible, .aut-x:focus-visible, .aut-dlg a:focus-visible {
+  outline: 2px solid var(--aut-marca); outline-offset: 2px;
+}
+.aut-menu-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+/* ── Crédito em linha ([data-dima-autoria]) ─────────────────────── */
+.aut-credito { font-size: 11px; line-height: 1.5; opacity: .85; }
+.aut-credito strong { font-weight: 700; }
+.aut-sep { opacity: .5; }
+.aut-link {
+  border: 0; padding: 0; background: none; font: inherit; color: inherit;
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+}
+footer.aut-credito, .aut-credito.aut-bloco { display: block; text-align: center; padding: 16px; }
+
+/* ── Janela "Sobre o sistema" ───────────────────────────────────── */
+.aut-ov {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: var(--aut-veu);
+}
+.aut-dlg {
+  position: relative; width: 100%; max-width: 480px; max-height: calc(100dvh - 32px); overflow-y: auto;
+  padding: 24px; border-radius: 14px; border: 1px solid var(--aut-borda);
+  background: var(--aut-bg); color: var(--aut-tx);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .3);
+  font-size: 13px; line-height: 1.55; text-align: left;
+}
+.aut-dlg p { margin: 0 0 10px; }
+.aut-x {
+  position: absolute; top: 10px; right: 10px; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 8px; background: transparent; color: var(--aut-tx-3); cursor: pointer;
+}
+.aut-x:hover { background: var(--aut-marca-bg); }
+.aut-x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.aut-rot { font-size: 10.5px !important; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--aut-tx-3); margin: 0 0 2px !important; }
+.aut-titulo { margin: 0 32px 16px 0; font-size: 19px; line-height: 1.3; color: var(--aut-marca); }
+.aut-autor { padding: 12px 14px; margin-bottom: 14px; border-radius: 10px; background: var(--aut-marca-bg); }
+.aut-nome { font-size: 16px; font-weight: 700; margin: 0 0 2px !important; }
+.aut-contato { margin: 0 !important; color: var(--aut-tx-2); overflow-wrap: break-word; }
+.aut-contato a { white-space: nowrap; }
+.aut-dlg a { color: var(--aut-marca); }
+.aut-direitos { color: var(--aut-tx); }
+.aut-aviso { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--aut-aviso-bd); background: var(--aut-aviso-bg); color: var(--aut-tx-2); font-size: 12px; }
+.aut-terceiros { margin-top: 6px; color: var(--aut-tx-2); font-size: 12px; }
+.aut-terceiros summary { cursor: pointer; font-weight: 600; color: var(--aut-tx); padding: 4px 0; }
+.aut-terceiros ul { margin: 6px 0 10px; padding: 0; list-style: none; columns: 2; column-gap: 16px; }
+.aut-terceiros li { break-inside: avoid; padding: 1px 0; }
+.aut-terceiros li span { color: var(--aut-tx-3); font-size: 11px; }
+.aut-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 420px) { .aut-terceiros ul { columns: 1; } .aut-dlg { padding: 20px 16px; } }
+@media print { .aut-ov, .aut-menu { display: none !important; } }

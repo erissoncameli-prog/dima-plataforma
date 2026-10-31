@@ -1,0 +1,56 @@
+PLATAFORMA INTELIGENTE DE GESTÃO DE PROJETOS
+Copyright (c) 2025–2026 Erisson Cameli Santiago. Todos os direitos reservados.
+Concepção e Desenvolvimento: Erisson Cameli Santiago (ver LICENSE).
+
+Este arquivo lista o que NÃO é de autoria de Erisson Cameli Santiago e é usado
+pelo programa sob a licença do respectivo autor. Biblioteca nova entra aqui e na
+lista TERCEIROS de js/autoria.js (janela "Sobre o sistema").
+
+-------------------------------------------------------------------------------
+1. Bibliotecas incluídas no repositório (js/vendor/ e js/)
+-------------------------------------------------------------------------------
+ExcelJS 4.4.0 ........................ MIT          js/vendor/exceljs-4.4.0.bare.min.js
+  Copyright (c) 2014-2019 Guyon Roche
+PptxGenJS 3.12.0 ..................... MIT          js/vendor/pptxgenjs-3.12.0.bundle.js
+  Copyright (c) 2015-present Brent Ely
+qrcode-generator ..................... MIT          js/qrcode-generator.js
+  Copyright (c) 2009 Kazuhiko Arase
+
+-------------------------------------------------------------------------------
+2. Bibliotecas carregadas de CDN (não copiadas para o repositório)
+-------------------------------------------------------------------------------
+@supabase/supabase-js 2 .............. MIT          Supabase, Inc.
+Chart.js 4 ........................... MIT          Chart.js Contributors
+Leaflet 1.9.4 ........................ BSD-2-Clause Vladimir Agafonkin, CloudMade
+Leaflet.markercluster 1.5.3 .......... MIT          Dave Leaver
+Leaflet-MiniMap 3.6.1 ................ BSD-2-Clause Norkart AS
+Turf.js 6 ............................ MIT          Morgan Herlocker e colaboradores
+shpjs 4.0.4 .......................... MIT          Calvin Metcalf
+SheetJS (xlsx) 0.18.5 ................ Apache-2.0   SheetJS LLC
+jsPDF ................................ MIT          James Hall, yWorks GmbH
+html2canvas 1.4.1 .................... MIT          Niklas von Hertzen
+JSZip 3.10.1 ......................... MIT          Stuart Knightley e colaboradores
+Mammoth 1.6.0 ........................ BSD-2-Clause Michael Williamson
+Quill 2.0.2 .......................... BSD-3-Clause Slab, Jason Chen
+PDF.js (pdfjs-dist) .................. Apache-2.0   Mozilla Foundation
+Transformers.js 4.3.0 ................ Apache-2.0   Hugging Face, Inc.
+
+Edge Functions (Deno) usam os pacotes npm @anthropic-ai/sdk (MIT),
+@supabase/supabase-js (MIT), nodemailer (MIT-0), jszip (MIT), unpdf (MIT) e docx (MIT).
+
+-------------------------------------------------------------------------------
+3. Fontes tipográficas
+-------------------------------------------------------------------------------
+Fontes servidas pelo Google Fonts (ex.: DM Sans, Fraunces) ... SIL Open Font License 1.1
+
+-------------------------------------------------------------------------------
+4. Outros conteúdos de terceiros
+-------------------------------------------------------------------------------
+- site-publico/ (painel público): obra de outro autor; fora desta autoria.
+- js/guia-app.js, css/guia-app.css, js/pin-baralho.js, css/pin-baralho.css:
+  cópias sem alteração do SIGUC-AC (repositório erissoncameli-prog/siguc-ac).
+- Logos institucionais (Governo do Acre, SEMA/AC, UNESCO, ONU, Fundo Brasil-ONU,
+  parceiros) e ícones oficiais dos ODS (assets/sdg/): marcas e obras de seus
+  titulares, usadas apenas para identificação do projeto.
+- Base de dados do CAR/SICAR e demais dados públicos importados: de seus
+  órgãos de origem.

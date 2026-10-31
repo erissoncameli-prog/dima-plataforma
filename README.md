@@ -1,5 +1,9 @@
-# DIMA — Plataforma de Gestão UNESCO
+# DIMA — Plataforma Inteligente de Gestão de Projetos
 ## Projeto 218BRA2001 · SEMA/AC
+
+**Concepção e Desenvolvimento: Erisson Cameli Santiago**
+© 2025–2026 Erisson Cameli Santiago. Todos os direitos reservados — ver [LICENSE](LICENSE) e [NOTICE](NOTICE).
+Contato: erissoncameli@gmail.com · +55 (68) 99936-1984
 
 ---
 

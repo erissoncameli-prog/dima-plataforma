@@ -5,6 +5,21 @@ Este arquivo é lido automaticamente pelo Claude Code a cada sessão. Contém o 
 
 ---
 
+## Autoria e direitos autorais (⚠️ nunca remover)
+
+**Plataforma Inteligente de Gestão de Projetos** · Concepção e Desenvolvimento: **Erisson Cameli Santiago** ·
+© 2025–2026, todos os direitos reservados (`LICENSE` proprietária; terceiros em `NOTICE`).
+- **Fonte única = `js/autoria.js`** (`DimaAutoria`): nome, papel, contato e anos ficam no **código**, nunca em
+  `configuracoes_sistema` (admin não apaga pela tela). Estilo em `css/autoria.css` (prefixo `aut-`, tokens nos dois temas).
+- Onde aparece: rodapé do menu lateral (`layout.js` → `rodapeMenu()`, botão "Sobre o sistema"), tela de entrada, app de campo
+  (Configurações), página do Pulso, rodapé de **todo** relatório A4 (`FolhaA4` → `DimaAutoria.linha()`), `<meta name="author">`
+  em toda página e assinatura no console. Elemento com `data-dima-autoria` (ou `="sobre"`) recebe o crédito sozinho.
+- Página nova: `<meta name="author" content="Erisson Cameli Santiago">` e `<script src="../js/autoria.js">` **antes** de
+  `logos.js`/`layout.js`. Biblioteca de terceiros nova: entra no `NOTICE` **e** em `TERCEIROS` de `js/autoria.js`.
+- `site-publico/` é obra de outro autor: não pôr o crédito nem o cabeçalho de copyright lá.
+
+---
+
 ## Stack
 
 | Camada | Tecnologia |

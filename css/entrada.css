@@ -172,6 +172,7 @@ html[data-tema="escuro"] .en-btn-pri { box-shadow: 0 4px 22px rgba(201, 168, 76,
 .en-vitrine button:focus-visible { outline-color: var(--en-ouro-c); }
 
 .en-rodape { margin-top: 16px; text-align: center; font-size: 12px; line-height: 1.6; color: var(--en-txt-3); }
+.en-autoria { margin: 12px 0 0; }
 /* Parceiros abaixo de "Projeto …", numa linha; no escuro sem versão escura = uma faixa clara única (sem placa por logo) */
 .en-parc { position: relative; margin-top: 12px; display: flex; justify-content: center; }
 .en-parc-logos { display: flex; align-items: center; justify-content: center; gap: 8px 16px; flex-wrap: wrap; max-width: 100%; min-width: 0; }

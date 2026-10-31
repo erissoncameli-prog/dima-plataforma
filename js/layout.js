@@ -1,4 +1,9 @@
+/*!
+ * Plataforma Inteligente de Gestão de Projetos
+ * © 2025–2026 Erisson Cameli Santiago. Todos os direitos reservados.
+ */
 // ── DIMA · Layout compartilhado ──────────────────────────────
+// Rodapé do menu = crédito de autoria (js/autoria.js, carregado antes deste arquivo).
 
 // Injetar sidebar.css se ainda não foi carregado
 (function(){
@@ -229,6 +234,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
         ${navHtml}
       </nav>
 
+      ${window.DimaAutoria ? DimaAutoria.rodapeMenu() : ''}
     </aside>
 
     <div id="sidebar-overlay" class="sidebar-overlay" onclick="fecharSidebarMobile()"></div>
