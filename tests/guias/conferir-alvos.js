@@ -29,6 +29,11 @@ const CODIGO = {
   tdrs: ler('pages/tdrs.html'),
   financeiro: ler('pages/financeiro.html'),
   relatorios: ler('pages/relatorios.html'),
+  dashboard: ler('pages/dashboard.html'),
+  atividades: ler('pages/atividades.html'),
+  contratos: ler('pages/contratos.html'),
+  remanejamentos: ler('pages/remanejamentos.html') + ler('js/remanejamentos.js'),
+  viagens: ler('pages/viagens.html'),
 }
 
 let falhas = 0, total = 0
@@ -53,7 +58,7 @@ for (const g of GUIAS) {
   })
   for (const p of g.passos) {
     const m = /^abrir:(\w+)/.exec(p.tela || '')
-    if (m && !new RegExp(`function ${m[1]}\\b`).test(codigo)) { falhas++; console.log(`✗ ${g.slug}: função ${m[1]} não existe na tela`) }
+    if (m && !new RegExp(`function ${m[1]}\\b|window\\.${m[1]} *= *(async +)?function`).test(codigo)) { falhas++; console.log(`✗ ${g.slug}: função ${m[1]} não existe na tela`) }
   }
 }
 console.log(falhas ? `\n${falhas} problema(s) em ${total} alvos.` : `OK: ${total} alvos de ${GUIAS.length} guias encontrados no código.`)

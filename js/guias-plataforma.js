@@ -75,10 +75,12 @@
 
   const PAGINAS = {
     dashboard: 'dashboard.html', tarefas: 'tarefas.html', tdrs: 'tdrs.html', produtos: 'produtos.html',
-    financeiro: 'financeiro.html', relatorios: 'relatorios.html',
+    financeiro: 'financeiro.html', relatorios: 'relatorios.html', atividades: 'atividades.html',
+    contratos: 'contratos.html', remanejamentos: 'remanejamentos.html', viagens: 'viagens.html',
   }
   const NOME_TELA = {
     tarefas: 'Tarefas', tdrs: 'TDRs', produtos: 'Produtos Entregues', financeiro: 'Financeiro', relatorios: 'Relatórios',
+    dashboard: 'Visão Geral', atividades: 'Atividades', contratos: 'Contratos', remanejamentos: 'Remanejamento', viagens: 'Viagens',
   }
 
   // ── CONTEÚDO ─────────────────────────────────────────────────────────────────────────
@@ -244,6 +246,133 @@
           nota: 'O PDF sai pela janela de impressão do navegador: em "Destino", escolha **Salvar como PDF**. Tabelas largas ficam melhores em **Paisagem**.' },
       ],
     },
+    {
+      slug: 'visao-geral', pagina: 'dashboard', versao: 1, icone: 'relatorio',
+      titulo: 'Ler a Visão Geral', resumo: 'As guias do painel, os gráficos e como exportar',
+      passos: [
+        { titulo: 'O painel do projeto', icone: 'relatorio',
+          texto: 'A Visão Geral junta os principais números do projeto numa tela só. Os dados se atualizam sozinhos com o que é registrado nas outras telas.' },
+        { titulo: 'As guias', alvo: '.vg-tabs', icone: 'filtro',
+          texto: 'Cada guia mostra um assunto. Toque no nome para trocar. O guia vai mostrar algumas delas para você.' },
+        { titulo: 'Financiadores', alvo: '#pane-financiadores .vg-kpis', icone: 'pagar', tela: 'clique:.vg-tab[data-aba="financiadores"]',
+          texto: 'Os números gerais: quanto foi **comprometido** em TDRs, quanto já foi **pago** e o que ainda está **livre**.' },
+        { titulo: 'Os gráficos', alvo: '#pane-financiadores .vg-card', icone: 'olho',
+          texto: 'Toque numa barra ou num trecho colorido para ver o detalhe. O botão **Ver como tabela** mostra os mesmos números em lista.' },
+        { titulo: 'Alertas', alvo: '#pane-alertas', icone: 'sino', tela: 'clique:.vg-tab[data-aba="alertas"]',
+          texto: 'Aqui aparece o que pede atenção, como prazos e pendências. O número ao lado do nome da guia diz quantos alertas há.' },
+        { titulo: 'Minhas tarefas', alvo: '#pane-tarefas', icone: 'tarefa', tela: 'clique:.vg-tab[data-aba="tarefas"]',
+          texto: 'As suas tarefas abertas, sem precisar ir ao painel de Tarefas.' },
+        { titulo: 'Saldo de orçamento', alvo: '.vg-tab[data-aba="saldo"]', icone: 'pagar', soTour: true,
+          texto: 'Mostra, atividade por atividade, quanto do orçamento ainda está livre. Dali sai também o relatório A4 de saldo.' },
+        { titulo: 'Exportar', alvo: '.vg-exp-btn', icone: 'doc', tela: 'clique:.vg-tab[data-aba="financiadores"]',
+          texto: 'Leva as guias para **PDF**, **Excel**, **PowerPoint** ou um arquivo HTML. Você escolhe quais guias entram.' },
+      ],
+    },
+    {
+      slug: 'atividades', pagina: 'atividades', versao: 1, icone: 'tarefa',
+      titulo: 'Acompanhar as atividades', resumo: 'Orçamento, execução, responsáveis e TDRs de cada atividade',
+      passos: [
+        { titulo: 'O que é uma atividade', icone: 'tarefa',
+          texto: 'O plano do projeto é dividido em **atividades** (2.1.1, 2.1.2…). Cada uma tem orçamento em dólar, responsáveis e os TDRs que a executam.' },
+        { titulo: 'Os números do topo', alvo: '#stats-row', icone: 'olho',
+          texto: 'O resumo de todas as atividades: orçamento, quanto foi pago e quanto está comprometido.' },
+        { titulo: 'Por resultado', alvo: '#fil-resultado', icone: 'filtro',
+          texto: 'O projeto tem quatro resultados (R1 a R4). Toque em um para ver só as atividades dele.' },
+        { titulo: 'Mais filtros', alvo: '.at-filtros', icone: 'busca',
+          texto: 'Busque pelo código ou nome e filtre por fase, por TDR (ex.: **Sem responsável**), por ODS ou meta Kunming-Montreal.' },
+        { titulo: 'A lista', alvo: '#tbody-atividades', icone: 'olho',
+          texto: 'Uma atividade por linha. Na coluna **Execução**, a barra mostra o que foi **pago** e o que está **comprometido**; o que sobra está livre.',
+          nota: 'Barra vermelha: o comprometido passou do orçamento da atividade.' },
+        { titulo: 'Tarefas da atividade', alvo: '.at-tbl .tv-btn', icone: 'tarefa', soTour: true,
+          texto: 'O botão de tarefas mostra quantas ainda faltam fazer nessa atividade. Toque para ver e criar uma nova já ligada a ela.' },
+        { titulo: 'Abrir uma atividade', icone: 'doc',
+          texto: 'Clique na linha para abrir: detalhes, fase, responsáveis, ODS e metas.',
+          nota: 'O orçamento tem **cadeado**: só muda por **remanejamento**, nunca digitando.' },
+      ],
+    },
+    {
+      slug: 'contratos', pagina: 'contratos', versao: 1, icone: 'doc',
+      perfis: ['super_admin', 'coordenacao', 'financeiro'],
+      titulo: 'Cadastrar e acompanhar contratos', resumo: 'Contrato ligado ao TDR, valor, execução e encerramento',
+      passos: [
+        { titulo: 'Contrato nasce do TDR', icone: 'doc',
+          texto: 'Depois da licitação, o contrato é cadastrado **ligado ao TDR**. O valor que ele usa é o que já estava reservado no TDR.' },
+        { titulo: 'Os números do topo', alvo: '#stats', icone: 'filtro', tela: 'fechar:modal-contrato',
+          texto: 'Contratado, pago e contratos **sem PDF assinado**. Toque num número para filtrar a lista.' },
+        { titulo: 'Contrato travado', alvo: '#ct-travados .ct-travado', icone: 'cadeado', soTour: true,
+          texto: 'Esta faixa aparece quando um contrato passou do valor do TDR e a atividade não tem saldo. Ele fica **travado** até alguém **pedir cobertura** em Remanejamento.' },
+        { titulo: 'Procurar', alvo: '.ct-filtros', icone: 'busca',
+          texto: 'Busque pelo número, objeto ou fornecedor e filtre a lista.' },
+        { titulo: 'A lista', alvo: '#tbody', icone: 'olho',
+          texto: 'Na coluna de valor, a barra mostra o que foi **pago** (verde) e o que está **a pagar**. Clique numa linha para abrir o contrato.' },
+        { titulo: 'Novo contrato', alvo: '.ct-filtros .ct-btn.pri', icone: 'mais',
+          texto: 'O botão **Novo contrato** abre o formulário. No próximo passo o guia abre para você ver, **sem salvar nada**.' },
+        { titulo: 'TDR e atividade', alvo: '#f-tdr', icone: 'doc', tela: 'abrir:abrirNovo',
+          texto: 'Escolha o **TDR** do contrato. A **atividade** é preenchida sozinha a partir dele.' },
+        { titulo: 'Fornecedor', alvo: '#f-forn', icone: 'usuario',
+          texto: 'Escolha a empresa ou pessoa contratada. Se ela não estiver na lista, cadastre antes em **Fornecedores**.' },
+        { titulo: 'Valor total', alvo: '#f-total', icone: 'pagar',
+          texto: 'Informe o valor total do contrato em reais.',
+          nota: 'Se passar do valor do TDR e a atividade não tiver saldo, o contrato fica **travado aguardando cobertura**.' },
+        { titulo: 'Valor utilizado', alvo: '#f-usado', icone: 'cadeado',
+          texto: 'Este campo **não se digita**: ele soma os pagamentos lançados no Financeiro.' },
+        { titulo: 'Encerrar um contrato', icone: 'check', tela: 'fechar:modal-contrato',
+          texto: 'Contrato todo pago encerra sozinho. Se sobrou produto que não vai ser entregue, abra o contrato e use **Pedir encerramento**: o responsável pela atividade aprova com a senha e o saldo volta para a atividade.' },
+      ],
+    },
+    {
+      slug: 'remanejamento', pagina: 'remanejamentos', versao: 1, icone: 'pagar',
+      titulo: 'Remanejamento: analisar e assinar', resumo: 'Como um pedido anda e como você assina a sua etapa',
+      passos: [
+        { titulo: 'O que é remanejamento', icone: 'pagar',
+          texto: '**Remanejar** é tirar saldo livre de uma atividade e levar para outra. O pedido passa por **cinco assinaturas** e só muda o orçamento depois da última.' },
+        { titulo: 'Os números do topo', alvo: '#rm-kpis', icone: 'olho',
+          texto: 'Quanto pode ser remanejado, quanto está **reservado** em pedidos andando e se há atividade com **déficit**.' },
+        { titulo: 'As abas', alvo: '#rm-abas', icone: 'filtro',
+          texto: '**Saldos por resultado** mostra de onde vem cada dólar. **Pedidos** é a fila. **Como funciona** explica tudo com calma.' },
+        { titulo: 'O que espera por você', alvo: '.rm-chips', icone: 'sino', tela: 'clique:#rm-abas .rm-aba[onclick*="pedidos"]',
+          texto: 'Em **Aguardando minha análise** ficam só os pedidos que estão na **sua** etapa. Você também recebe aviso no sino e por e-mail.' },
+        { titulo: 'A ordem das assinaturas', icone: 'check', texto: 'Cada etapa é de uma pessoa, nesta ordem:',
+          lista: ['1. Coordenação (quem pede)', '2. Responsável por cada atividade que cede o saldo', '3. Financeiro da UNESCO',
+            '4. Diretor', '5. Secretário — aí o orçamento muda.'] },
+        { titulo: 'Assinar a sua etapa', icone: 'cadeado',
+          texto: 'Abra o pedido, confira as atividades e os valores e clique em **Assinar**. Digite a **sua senha de login**: ela vale como assinatura.',
+          nota: 'Se algo estiver errado, use **Devolver** e escreva o motivo. O pedido volta uma etapa.' },
+        { titulo: 'Fazer um pedido', alvo: '#rm-abas .rm-aba[onclick*="novo"]', icone: 'mais', soTour: true,
+          texto: 'A coordenação monta o pedido em **Novo pedido**: escolhe de onde sai o saldo, para onde vai e escreve a justificativa.' },
+        { titulo: 'Dúvidas', alvo: '#rm-corpo', icone: 'help', tela: 'clique:#rm-abas .rm-aba[onclick*="guia"]',
+          texto: 'A aba **Como funciona** tem o passo a passo completo e as perguntas mais comuns. Os botões **?** ao lado dos títulos explicam cada termo.' },
+      ],
+    },
+    {
+      slug: 'viagens', pagina: 'viagens', versao: 1, icone: 'mapa',
+      perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico'],
+      titulo: 'Pedir uma viagem', resumo: 'Protocolo de passagens e diárias, do rascunho à prestação de contas',
+      passos: [
+        { titulo: 'O protocolo de viagem', icone: 'mapa',
+          texto: 'Para viajar pelo projeto, faça um **protocolo**: quem vai, para onde, quando e por quê. Passagens e diárias são pagas pela **UNESCO**.' },
+        { titulo: 'Quanto resta', alvo: '#tdr-direta', icone: 'pagar', soTour: true, tela: 'fechar:modal-prot',
+          texto: 'Este quadro mostra quanto ainda há no TDR de **passagens e diárias**. Quando ele acaba, novas viagens não são aprovadas.' },
+        { titulo: 'Os números do topo', alvo: '#stats', icone: 'filtro',
+          texto: 'Quantos protocolos há em cada situação. Toque num número para filtrar. A lista abre em **Em andamento**.' },
+        { titulo: 'Procurar', alvo: '.vi-filtros', icone: 'busca',
+          texto: 'Busque por protocolo, viajante, destino ou número do SEI.' },
+        { titulo: 'Novo protocolo', alvo: '.vi-acoes .btn-primary', icone: 'mais',
+          texto: 'O botão **Novo protocolo** abre o formulário. No próximo passo o guia abre para você ver, **sem salvar nada**.' },
+        { titulo: 'Objetivo', alvo: '#f-objetivo', icone: 'doc', tela: 'abrir:abrirFormNovo',
+          texto: 'Escreva o motivo da viagem ou o nome do evento.' },
+        { titulo: 'Destino e datas', alvo: '#f-destino', icone: 'mapa',
+          texto: 'Informe o **destino** e as datas de **ida** e **volta**. Elas passam sozinhas para os viajantes.' },
+        { titulo: 'Viajantes', alvo: '#viajantes-container', icone: 'usuario',
+          texto: 'Para cada pessoa: escolha o **beneficiário**, os **trechos** de passagem e as **diárias**. O total aparece no fim.' },
+        { titulo: 'Salvar e enviar', alvo: '#btn-salvar-rasc', icone: 'check',
+          texto: 'Primeiro **Salvar rascunho**. Depois **Enviar para aprovação**.',
+          nota: 'Neste guia nada foi salvo: o formulário fecha ao terminar.' },
+        { titulo: 'Depois de enviar', icone: 'cadeado', tela: 'fechar:modal-prot',
+          texto: 'O administrador aprova com a senha. Quem está no protocolo não pode aprovar o próprio pedido.',
+          nota: 'Depois da viagem, faça a **prestação de contas em até 5 dias** (cartões de embarque e relatório).' },
+      ],
+    },
   ]
 
   // ── Utilidades ───────────────────────────────────────────────────────────────────────
@@ -279,8 +408,16 @@
       try {
         if (tipo === 'abrir' && typeof window[arg] === 'function') {
           const antes = new Set([...document.querySelectorAll('.modal-overlay.aberto')].map(e => e.id))
-          window[arg]()
-          document.querySelectorAll('.modal-overlay.aberto').forEach(e => { if (!antes.has(e.id)) abertasPeloGuia.add(e.id) })
+          // Registra a janela que ABRIU (para fechar no fim) e pede ao motor que recalcule o destaque
+          // (evento resize): há telas que abrem o formulário de forma assíncrona (ex.: Novo protocolo).
+          const registrar = () => {
+            document.querySelectorAll('.modal-overlay.aberto').forEach(e => { if (!antes.has(e.id)) abertasPeloGuia.add(e.id) })
+            window.dispatchEvent(new Event('resize'))
+          }
+          const r = window[arg]()
+          registrar()
+          if (r && typeof r.then === 'function') r.then(registrar, () => {})
+          setTimeout(registrar, 400)
         } else if (tipo === 'fechar') {
           if (abertasPeloGuia.has(arg)) { fecharJanela(arg); abertasPeloGuia.delete(arg) }
         } else if (tipo === 'menu') {

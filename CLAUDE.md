@@ -1193,6 +1193,9 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   sem ele vira texto; `soTour` pula). `tela` = `abrir:<função>` / `fechar:<id>` / `clique:<seletor>` / `menu:abrir|fechar`
   — **nunca salvar nada**; o que o guia abriu fecha quando ele fecha. Progresso só no aparelho (`siguc_guia_plataforma`), sem banco.
 - Fase 1 (31/10/2026): passeio, Minhas tarefas, Avaliar entrega, Cadastrar TDR, Efetivar pagamento, Relatório em PDF.
+  Fase 2 (31/10/2026): Ler a Visão Geral, Acompanhar as atividades, Contratos, Remanejamento (analisar e assinar), Pedir uma viagem.
+  `abrir:` aceita função assíncrona (o guia espera a janela abrir, registra para fechar no fim e recalcula o destaque).
+  Id montado no JS (ex.: `'aba-'+nome`) o teste não enxerga: preferir classe/atributo literal (`.vg-tab[data-aba="x"]`).
 - Texto mudou ⇒ `versao + 1`. Tela mudou ⇒ `node tests/guias/conferir-alvos.js` (confere cada id/classe dos alvos no código).
 
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
