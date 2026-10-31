@@ -77,10 +77,14 @@
     dashboard: 'dashboard.html', tarefas: 'tarefas.html', tdrs: 'tdrs.html', produtos: 'produtos.html',
     financeiro: 'financeiro.html', relatorios: 'relatorios.html', atividades: 'atividades.html',
     contratos: 'contratos.html', remanejamentos: 'remanejamentos.html', viagens: 'viagens.html',
+    fornecedores: 'fornecedores.html', matriz: 'matriz.html', acervo: 'acervo.html', mapa: 'mapa.html',
+    diagnostico: 'diagnostico.html', pulso: 'pulso.html', usuarios: 'usuarios.html',
   }
   const NOME_TELA = {
     tarefas: 'Tarefas', tdrs: 'TDRs', produtos: 'Produtos Entregues', financeiro: 'Financeiro', relatorios: 'Relatórios',
     dashboard: 'Visão Geral', atividades: 'Atividades', contratos: 'Contratos', remanejamentos: 'Remanejamento', viagens: 'Viagens',
+    fornecedores: 'Fornecedores', matriz: 'Matriz de Resultados', acervo: 'Acervo Digital', mapa: 'Mapa Interativo',
+    diagnostico: 'Diagnóstico', pulso: 'Pulso da Equipe', usuarios: 'Usuários',
   }
 
   // ── CONTEÚDO ─────────────────────────────────────────────────────────────────────────
@@ -373,6 +377,160 @@
           nota: 'Depois da viagem, faça a **prestação de contas em até 5 dias** (cartões de embarque e relatório).' },
       ],
     },
+    {
+      slug: 'fornecedores', pagina: 'fornecedores', versao: 1, icone: 'usuario',
+      perfis: ['super_admin', 'coordenacao', 'financeiro'],
+      titulo: 'Cadastrar um fornecedor', resumo: 'Empresa ou pessoa contratada: dados, banco e documento',
+      passos: [
+        { titulo: 'Quem é fornecedor', icone: 'usuario',
+          texto: 'Toda empresa (PJ) ou pessoa (PF) contratada pelo projeto precisa estar cadastrada aqui **antes** do contrato.' },
+        { titulo: 'Os números do topo', alvo: '#stats', icone: 'olho', tela: 'fechar:modal-forn',
+          texto: 'Quantos fornecedores há, quantos têm contrato valendo e quanto já foi pago. Toque num número para filtrar.' },
+        { titulo: 'Procurar', alvo: '.fo-filtros', icone: 'busca',
+          texto: 'Busque pelo nome ou CPF/CNPJ e filtre por **PF** ou **PJ** e por ativos.' },
+        { titulo: 'A lista', alvo: '#lista', icone: 'olho',
+          texto: 'Cada linha mostra os **contratos** (vigentes de total) e quanto já foi **pago**. Clique para abrir os detalhes.' },
+        { titulo: 'Novo fornecedor', alvo: '.fo-filtros .fo-btn.pri', icone: 'mais', soTour: true,
+          texto: 'O botão **Novo fornecedor** abre o cadastro. No próximo passo o guia abre para você ver, **sem salvar nada**.' },
+        { titulo: 'As partes do cadastro', alvo: '#m-body .fo-tabs', icone: 'doc', tela: 'abrir:abrirNovo',
+          texto: 'O cadastro tem partes: **identificação** (CPF ou CNPJ e nome), **endereço e contato**, **dados bancários** e **documento**.' },
+        { titulo: 'Identificação', alvo: '#tab-identificacao', icone: 'usuario',
+          texto: 'Escolha PF ou PJ e digite o CPF ou CNPJ. Confira o nome com o documento.' },
+        { titulo: 'Dados bancários', icone: 'cadeado',
+          texto: 'Banco, agência, conta e PIX ficam guardados à parte e **só** super_admin, coordenação e financeiro conseguem ver.' },
+        { titulo: 'Salvar', alvo: '#btn-salvar-forn', icone: 'check',
+          texto: 'Revise e clique em **Criar fornecedor**.', nota: 'Neste guia nada foi salvo: o formulário fecha ao terminar.' },
+        { titulo: 'Fornecedor com acesso', icone: 'entrega', tela: 'fechar:modal-forn',
+          texto: 'O super_admin pode dar ao fornecedor acesso à plataforma. Ele passa a **registrar as próprias entregas**, mas **nunca avalia** o próprio produto.' },
+      ],
+    },
+    {
+      slug: 'matriz', pagina: 'matriz', versao: 1, icone: 'relatorio',
+      titulo: 'Ler a Matriz de Resultados', resumo: 'Indicadores, metas, situação, ODS e Kunming-Montreal',
+      passos: [
+        { titulo: 'A Matriz de Resultados', icone: 'relatorio',
+          texto: 'A Matriz reúne os **indicadores** que o projeto prometeu alcançar, com a meta de cada um. As entregas aprovadas somam para eles.' },
+        { titulo: 'Os números do topo', alvo: '#stats-row', icone: 'olho', tela: 'clique:.mz-tab[data-aba="matriz"]',
+          texto: 'O resumo: quantos indicadores, quantos já atingiram a meta, o **progresso médio** e o que aguarda confirmação.' },
+        { titulo: 'Filtrar', alvo: '#tc-matriz .mz-filtros', icone: 'filtro',
+          texto: 'Busque um indicador e filtre pela situação:',
+          lista: ['**Atingida**: chegou à meta.', '**Em andamento**: já tem algo registrado.', '**Sem registro**: nada ainda.',
+            '**Qualitativa**: não tem meta em número.'] },
+        { titulo: 'Os indicadores', alvo: '#conteudo-matriz', icone: 'relatorio',
+          texto: 'Agrupados por produto do projeto. A barra mostra quanto da meta já foi **confirmado**. Clique num indicador para ver de onde veio cada número.' },
+        { titulo: 'ODS', alvo: '#tc-ods', icone: 'mapa', tela: 'clique:.mz-tab[data-aba="ods"]',
+          texto: 'Os **Objetivos de Desenvolvimento Sustentável** da ONU ligados ao projeto. Toque num ícone para ver os indicadores dele.' },
+        { titulo: 'Kunming-Montreal', alvo: '#tc-km', icone: 'mapa', tela: 'clique:.mz-tab[data-aba="km"]',
+          texto: 'As metas globais de **biodiversidade** (Kunming-Montreal) que o projeto ajuda a cumprir.' },
+        { titulo: 'De onde vêm os números', icone: 'check', tela: 'clique:.mz-tab[data-aba="matriz"]',
+          texto: 'Ao aprovar uma entrega em **Produtos Entregues**, o responsável informa para quais indicadores ela contribui. Depois de confirmado, o número entra aqui sozinho.' },
+      ],
+    },
+    {
+      slug: 'acervo', pagina: 'acervo', versao: 1, icone: 'doc',
+      perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico'],
+      titulo: 'Consultar o Acervo Digital', resumo: 'A biblioteca dos produtos entregues: buscar, filtrar e abrir',
+      passos: [
+        { titulo: 'A biblioteca do projeto', icone: 'doc',
+          texto: 'O Acervo mostra **todos os produtos entregues** (relatórios, fotos, vídeos, planilhas) como numa biblioteca. Aqui é só para **consultar**: nada se altera.' },
+        { titulo: 'Os números do topo', alvo: '.acv-kpis', icone: 'olho',
+          texto: 'Quantos produtos há no acervo, quantos arquivos e quantos já estão liberados para o portal público.' },
+        { titulo: 'Aprovado sem arquivo', alvo: '#acv-lacuna', icone: 'sino', soTour: true,
+          texto: 'Produtos aprovados que **ficaram sem arquivo**. Toque para ver quais e providenciar o envio em Produtos Entregues.' },
+        { titulo: 'Buscar', alvo: '#acv-q', icone: 'busca',
+          texto: 'Digite título, consultor, atividade ou nome do arquivo. Não precisa de acento.' },
+        { titulo: 'Filtrar e ordenar', alvo: '.acv-cmd', icone: 'filtro',
+          texto: 'Filtre por **atividade**, **fornecedor** e **ano**, mude a ordem e troque entre **prateleiras** e **grade**.' },
+        { titulo: 'Abrir um produto', alvo: '#acervo-corpo', icone: 'olho',
+          texto: 'Toque na **capa** para abrir a ficha. Na ficha, toque no arquivo para ver sem baixar.',
+          nota: 'Produto devolvido e reenviado aparece só com a versão que vale; as anteriores ficam no histórico da ficha.' },
+      ],
+    },
+    {
+      slug: 'mapa', pagina: 'mapa', versao: 1, icone: 'mapa',
+      titulo: 'Usar o Mapa Interativo', resumo: 'Mover o mapa, ligar camadas, ver os pontos e gerar o relatório',
+      passos: [
+        { titulo: 'O Mapa Interativo', icone: 'mapa',
+          texto: 'O mapa mostra onde o projeto atua: os **pontos das entregas** e camadas como unidades de conservação, terras indígenas e imóveis do CAR.' },
+        { titulo: 'Mover e aproximar', alvo: '#mapa', icone: 'mapa',
+          texto: 'Arraste para mover. Use a rodinha do mouse (ou dois dedos no celular) para aproximar. Clique num ponto para ver o que foi entregue ali.' },
+        { titulo: 'Camadas', alvo: '#mapa-layerbar', icone: 'filtro',
+          texto: 'Ligue e desligue as camadas: **UC** (unidades de conservação), **TI** (terras indígenas), **CAR** (imóveis rurais) e **vegetação**.' },
+        { titulo: 'Filtros', alvo: '#btn-filtros-mobile', icone: 'filtro', soTour: true,
+          texto: 'No celular, os filtros dos pontos (tipo de entrega, atividade) abrem por este botão.' },
+        { titulo: 'Relatório Ambiental', alvo: '.mapa-topbar .btn-outline[onclick*="abrirRelatorioAmbiental"]', icone: 'relatorio', soTour: true,
+          texto: 'Gera um relatório da área visível, pronto para salvar em PDF.' },
+        { titulo: 'Tela cheia', alvo: '#btn-tela-cheia', icone: 'olho',
+          texto: 'Deixa o mapa ocupar a tela toda. **Esc** ou o mesmo botão voltam ao normal.' },
+        { titulo: 'Adicionar pontos', alvo: '.mapa-topbar .btn-primary[onclick*="abrirModalNovo"]', icone: 'mais', soTour: true,
+          texto: 'A coordenação adiciona pontos um a um ou importa uma planilha (.xlsx) com as coordenações.' },
+      ],
+    },
+    {
+      slug: 'diagnostico', pagina: 'diagnostico', versao: 1, icone: 'doc',
+      perfis: ['super_admin', 'coordenacao'],
+      titulo: 'Validar as fichas do Diagnóstico', resumo: 'Do app de campo à ficha validada e à planilha',
+      passos: [
+        { titulo: 'Como funciona', icone: 'doc',
+          texto: 'Os técnicos aplicam o questionário no **app de campo**, mesmo sem internet. As fichas chegam aqui para a coordenação **conferir e validar**.' },
+        { titulo: 'As abas', alvo: '.dg-abas', icone: 'filtro', tela: 'clique:.dg-aba[data-aba="geral"]',
+          texto: '**Visão geral**, **Validação**, **Indicadores** e **Admin** (comunidades).' },
+        { titulo: 'O app de campo', alvo: '#dg-geral .btn-primary', icone: 'mapa',
+          texto: 'Abre o app. No celular, use "Adicionar à tela inicial" para instalar.' },
+        { titulo: 'Fichas para conferir', alvo: '.dgv-chips', icone: 'sino', tela: 'clique:.dg-aba[data-aba="validacao"]',
+          texto: 'As fichas por situação. Comece pelas **recebidas**. Os avisos mostram respostas que merecem atenção.' },
+        { titulo: 'Validar ou devolver', icone: 'check',
+          texto: 'Abra a ficha, confira as respostas e as fotos. **Validar** fecha a ficha; **Devolver** manda de volta ao técnico com o motivo.',
+          nota: 'Resposta gravada em áudio precisa ser **transcrita** antes de validar. Há ajuda de transcrição que roda no próprio computador.' },
+        { titulo: 'Exportar', alvo: '#dgv-btn-exportar', icone: 'doc',
+          texto: 'Gera a planilha das fichas. Por padrão sai **sem nome, GPS nem dados que identifiquem** as famílias. Toda exportação fica registrada.' },
+        { titulo: 'Indicadores', alvo: '#dg-indicadores', icone: 'relatorio', tela: 'clique:.dg-aba[data-aba="indicadores"]',
+          texto: 'Os números calculados das fichas validadas. Grupos com menos de 5 fichas não aparecem, para proteger as famílias.' },
+      ],
+    },
+    {
+      slug: 'pulso', pagina: 'pulso', versao: 1, icone: 'usuario',
+      titulo: 'Fazer um Pulso da Equipe', resumo: 'Questionário anônimo por QR: criar, aplicar e ver o resultado',
+      passos: [
+        { titulo: 'O Pulso da Equipe', icone: 'usuario',
+          texto: 'Um questionário rápido e **anônimo** sobre como a equipe está. As pessoas respondem pelo celular, lendo um **QR**.' },
+        { titulo: 'Criar um ciclo', alvo: '.btn-primary[onclick="PU.novo()"]', icone: 'mais',
+          texto: '**Novo ciclo** cria uma rodada de perguntas. Você pode usar as perguntas padrão ou copiar as de um ciclo anterior.' },
+        { titulo: 'Painel e ciclo', alvo: '.pu-abas', icone: 'filtro', tela: 'clique:#pu-tab-painel',
+          texto: '**Painel** mostra todos os seus ciclos. **Ciclo** abre um deles: perguntas, QR e resultado.' },
+        { titulo: 'Avisos', alvo: '.pu-avisos', icone: 'sino', soTour: true,
+          texto: 'O que pede atenção: ciclo sem resposta, faltando pessoas para o resultado, fechando em breve.' },
+        { titulo: 'Seus ciclos', alvo: '.pu-filtros', icone: 'busca',
+          texto: 'Filtre e procure. Em cada linha: mostrar o **QR**, exportar, encerrar ou reabrir.' },
+        { titulo: 'Anonimato', icone: 'cadeado',
+          texto: 'As respostas são guardadas **sem nome e sem horário**. O resultado só aparece com **5 respostas ou mais**.',
+          nota: 'As perguntas podem ser mudadas só até chegar a primeira resposta.' },
+      ],
+    },
+    {
+      slug: 'usuarios', pagina: 'usuarios', versao: 1, icone: 'usuario',
+      perfis: ['super_admin'],
+      titulo: 'Cuidar dos usuários', resumo: 'Criar conta, perfil, acessos extras e senha temporária',
+      passos: [
+        { titulo: 'Quem entra na plataforma', icone: 'usuario',
+          texto: 'Aqui o administrador cria as contas, escolhe o **perfil** de cada pessoa e dá **acessos extras** quando preciso.' },
+        { titulo: 'Novo usuário', alvo: '.ad-topo .btn-primary', icone: 'mais', tela: 'fechar:modal-usr',
+          texto: 'Abre o cadastro. No próximo passo o guia abre para você ver, **sem salvar nada**.' },
+        { titulo: 'Nome e e-mail', alvo: '#nu-nome', icone: 'usuario', tela: 'abrir:abrirFormNovo',
+          texto: 'Nome completo e o **e-mail** que a pessoa vai usar para entrar.' },
+        { titulo: 'Perfil', alvo: '#nu-perfil', icone: 'cadeado', texto: 'O perfil decide o que a pessoa vê e faz:',
+          lista: ['**Coordenação**: gestão do projeto.', '**Técnico**: atividades e campo.', '**Financeiro**: pagamentos.',
+            '**Visualizador**: só consulta.'] },
+        { titulo: 'Criar', alvo: '#nu-criar', icone: 'check',
+          texto: 'Ao criar, você define uma **senha temporária**. No primeiro acesso a pessoa é obrigada a trocá-la.',
+          nota: 'Nunca mande a senha temporária por grupo de mensagens. Neste guia nada foi salvo.' },
+        { titulo: 'Os números do topo', alvo: '#stats', icone: 'sino', tela: 'fechar:modal-usr',
+          texto: 'Toque em **devem trocar a senha** ou **pedidos de nova senha** para ver quem precisa de você.' },
+        { titulo: 'Abrir uma pessoa', alvo: '#tbody-usuarios', icone: 'olho',
+          texto: 'Clique na linha. A janela tem **Dados**, **Acessos** (extras, com data de validade), **Senha** e **Histórico**.',
+          nota: '**Desativar** não apaga: a pessoa só deixa de entrar e pode ser reativada.' },
+      ],
+    },
   ]
 
   // ── Utilidades ───────────────────────────────────────────────────────────────────────
@@ -430,7 +588,11 @@
           }
           if (arg === 'fechar' && menuPeloGuia && typeof window.fecharSidebarMobile === 'function') { window.fecharSidebarMobile(); menuPeloGuia = false }
         } else if (tipo === 'clique') {
-          if (alvoVisivel(arg)) document.querySelector(arg).click()
+          if (alvoVisivel(arg)) {
+            document.querySelector(arg).click()
+            // a aba pode desenhar o conteúdo depois (dados carregados): o motor recalcula no resize
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 450)
+          }
         }
       } catch (e) { console.warn('[guias] ação', a, e) }
     })

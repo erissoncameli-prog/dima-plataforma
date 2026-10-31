@@ -1194,6 +1194,9 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   — **nunca salvar nada**; o que o guia abriu fecha quando ele fecha. Progresso só no aparelho (`siguc_guia_plataforma`), sem banco.
 - Fase 1 (31/10/2026): passeio, Minhas tarefas, Avaliar entrega, Cadastrar TDR, Efetivar pagamento, Relatório em PDF.
   Fase 2 (31/10/2026): Ler a Visão Geral, Acompanhar as atividades, Contratos, Remanejamento (analisar e assinar), Pedir uma viagem.
+  Fase 3 (31/10/2026): Fornecedores, Matriz, Acervo, Mapa, Diagnóstico (validar fichas), Pulso, Usuários — 18 guias ao todo.
+  `clique:` também recalcula o destaque depois (aba que desenha o conteúdo ao carregar). Seletor de atributo (`[onclick*="x"]`)
+  é ignorado pelo teste, que confere só id e classe.
   `abrir:` aceita função assíncrona (o guia espera a janela abrir, registra para fechar no fim e recalcula o destaque).
   Id montado no JS (ex.: `'aba-'+nome`) o teste não enxerga: preferir classe/atributo literal (`.vg-tab[data-aba="x"]`).
 - Texto mudou ⇒ `versao + 1`. Tela mudou ⇒ `node tests/guias/conferir-alvos.js` (confere cada id/classe dos alvos no código).
