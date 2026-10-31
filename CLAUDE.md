@@ -1199,8 +1199,7 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   é ignorado pelo teste, que confere só id e classe.
   `abrir:` aceita função assíncrona (o guia espera a janela abrir, registra para fechar no fim e recalcula o destaque).
   Id montado no JS (ex.: `'aba-'+nome`) o teste não enxerga: preferir classe/atributo literal (`.vg-tab[data-aba="x"]`).
-- **Como escrever** (revisão 31/10/2026, versão 2 de passeio, tarefas, avaliar entrega, TDR, pagamento, relatório, remanejamento e
-  viagem): frase curta, **uma ação por passo**, começando pelo verbo ("Clique em…", "Escolha…"); nome do botão **igual ao da tela**
+- **Como escrever** (revisão 31/10/2026: os 18 guias estão na versão 2): frase curta, **uma ação por passo**, começando pelo verbo ("Clique em…", "Escolha…"); nome do botão **igual ao da tela**
   e em negrito; sempre "clique" (o celular é citado à parte); sigla só explicada ("TDR é o pedido de uma contratação"); dizer o que
   acontece depois; em passo que abre formulário, tranquilizar ("aqui nada é salvo"). Evitar termo técnico do razão (comprometido,
   PEPS, fonte, cadeia) — dizer "dinheiro separado", "quem assina".
