@@ -234,6 +234,10 @@ function gerarLayout(tituloPagina, paginaAtiva) {
         ${navHtml}
       </nav>
 
+      <button type="button" class="dg-menu-aprender" onclick="fecharSidebarMobile();window.DimaGuias&&DimaGuias.abrirCentral()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/><path d="M22 9v6"/></svg>
+        Aprender a usar
+      </button>
       ${window.DimaAutoria ? DimaAutoria.rodapeMenu() : ''}
     </aside>
 
@@ -250,6 +254,11 @@ function gerarLayout(tituloPagina, paginaAtiva) {
             <span>›</span>
             <span>${tituloPagina}</span>
           </div>
+          <!-- GUIAS PASSO A PASSO (js/guias-plataforma.js liga e mostra) -->
+          <button type="button" id="topbar-aprender" class="topbar-aprender" hidden title="Aprender a usar: guias passo a passo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/><path d="M22 9v6"/></svg>
+            <span>Aprender</span>
+          </button>
           <!-- SINO DE NOTIFICAÇÕES -->
           <div style="position:relative" id="sino-wrap">
             <button id="sino-btn" onclick="toggleSino()"
@@ -327,6 +336,17 @@ function gerarLayout(tituloPagina, paginaAtiva) {
                   </svg>
                   Meu perfil
                 </a>
+                <button type="button" onclick="fecharUserMenu();window.DimaGuias&&DimaGuias.abrirCentral()"
+                  style="display:flex;align-items:center;gap:12px;padding:10px 14px;width:100%;border:none;background:none;
+                    border-radius:8px;cursor:pointer;color:#3c4043;font-size:13px;font-family:inherit;text-align:left;
+                    transition:background .12s"
+                  onmouseover="this.style.background='#f1f3f4'"
+                  onmouseout="this.style.background=''">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#5f6368" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2.5 9 2.5 12 0v-5"/><path d="M22 9v6"/>
+                  </svg>
+                  Aprender a usar
+                </button>
               </div>
               <div style="border-top:1px solid #efefef"></div>
               <div style="padding:6px 8px">

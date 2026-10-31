@@ -20,6 +20,8 @@
 <script src="../js/autoria.js"></script>
 <script src="../js/logos.js"></script>
 <script src="../js/layout.js"></script>
+<script src="../js/guia-app.js"></script>
+<script src="../js/guias-plataforma.js"></script>
 <script src="../js/diag-tema.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/administracao.js"></script>
@@ -58,7 +60,8 @@
 
   document.getElementById('app').innerHTML = gerarLayout(tx().titulo, 'ajuda') + `
     <div class="fade-in aj">
-      <div class="aj-topo"><h2>${e(tx().titulo)}</h2><p>${e(tx().sub)}</p></div>
+      <div class="aj-topo"><h2>${e(tx().titulo)}</h2><p>${e(tx().sub)}</p>
+        <button type="button" class="btn btn-primary btn-sm aj-aprender" onclick="window.DimaGuias&&DimaGuias.abrirCentral()">${adIc('play')}Aprender a usar: guias passo a passo</button></div>
       <label class="aj-busca">${adIc('busca')}<input id="aj-q" type="search" autocomplete="off" placeholder="${e(tx().busca)}" aria-label="${e(tx().busca)}"><span class="aj-cont" id="aj-cont" aria-live="polite"></span></label>
       <div id="aj-res" class="aj-res" hidden></div>
       <div class="aj-grade" id="aj-grade">

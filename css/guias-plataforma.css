@@ -1,0 +1,87 @@
+/*!
+ * Plataforma Inteligente de Gestão de Projetos
+ * © 2025–2026 Erisson Cameli Santiago. Todos os direitos reservados.
+ */
+/* Guias "Aprender a usar" nas telas da plataforma (js/guias-plataforma.js).
+   O painel é o do motor do SIGUC (css/guia-app.css, NÃO editar lá); aqui só:
+   cor da marca, letra maior, painel acima das janelas, tema escuro, botão "Aprender" e títulos da central.
+   Prefixo próprio: dg- (e #topbar-aprender). Cor nova = token abaixo, nos dois temas. */
+:root {
+  --guia-cor: #1F7A45;
+  --dg-bg: #FFFFFF;
+  --dg-bg-2: #F3F5F3;
+  --dg-tx: #14231A;
+  --dg-tx-2: #3F4B44;
+  --dg-tx-3: #66736B;
+  --dg-borda: #DDE3DF;
+  --dg-ok-bg: #DCFCE7;
+  --dg-ok-tx: #166534;
+  --dg-nota-bg: #FEF9E7;
+  --dg-nota-tx: #4B3F14;
+}
+html[data-tema="escuro"] {
+  --guia-cor: #3FA36B;
+  --dg-bg: #14231A;
+  --dg-bg-2: #1C3325;
+  --dg-tx: #E7EEE9;
+  --dg-tx-2: #C3D0C7;
+  --dg-tx-3: #93A59A;
+  --dg-borda: #2A3D31;
+  --dg-ok-bg: #173A26;
+  --dg-ok-tx: #9BE3B5;
+  --dg-nota-bg: #2A2618;
+  --dg-nota-tx: #EBDDAF;
+}
+
+/* Acima das janelas das telas (9999) e do visualizador (99999): o guia pode apontar para dentro delas. */
+.guia-raiz { z-index: 100050; }
+
+/* Letra um pouco maior e cores do tema */
+.guia-painel { background: var(--dg-bg); color: var(--dg-tx); }
+.guia-titulo, .guia-convite-txt strong, .guia-item-txt strong { color: var(--dg-tx); }
+.guia-corpo { font-size: 15.5px; color: var(--dg-tx-2); }
+.guia-lista-itens li { font-size: 15px; color: var(--dg-tx-2); }
+.guia-migalha, .guia-progresso, .guia-item-txt span, .guia-rodape, .guia-pular, .guia-convite-txt span { color: var(--dg-tx-3); }
+.guia-item { background: var(--dg-bg); border-color: var(--dg-borda); }
+.guia-item:hover { background: var(--dg-bg-2); }
+.guia-fechar, .guia-btn-sec, .guia-chip-n { background: var(--dg-bg-2); color: var(--dg-tx-2); }
+.guia-chip-ok { background: var(--dg-ok-bg); color: var(--dg-ok-tx); }
+.guia-nota { background: var(--dg-nota-bg); color: var(--dg-nota-tx); font-size: 14px; }
+.guia-btn { min-height: 46px; font-size: 15px; }
+.guia-convite { background: var(--dg-bg-2); border-color: var(--dg-borda); margin-bottom: 14px; }
+.guia-rodape a { color: var(--guia-cor); }
+html[data-tema="escuro"] .guia-ponto { background: var(--dg-borda); }
+html[data-tema="escuro"] .guia-ponto.ativo { background: var(--guia-cor); }
+
+/* Títulos de seção da central */
+.dg-sec { margin: 14px 0 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--dg-tx-3); }
+.dg-sec span { text-transform: none; letter-spacing: 0; font-weight: 500; }
+
+/* Botão "Aprender" na barra superior (js/layout.js) */
+.topbar-aprender {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 36px; padding: 0 12px; border-radius: 99px;
+  border: 1px solid var(--borda, #E5E7EB); background: var(--branco, #fff);
+  color: var(--verde, #1F4E2C); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.topbar-aprender[hidden] { display: none !important; }
+.topbar-aprender:hover { background: var(--cinza-50, #F9FAFB); }
+.topbar-aprender:focus-visible { outline: 2px solid var(--guia-cor); outline-offset: 2px; }
+.topbar-aprender svg { width: 17px; height: 17px; flex: none; }
+html[data-tema="escuro"] body.dgm .topbar-aprender, html[data-tema="escuro"] body.tk-pg .topbar-aprender { color: var(--dg-tx); }
+@media (max-width: 640px) { .topbar-aprender span { display: none; } .topbar-aprender { width: 36px; padding: 0; justify-content: center; } }
+/* Celular: a barra de cima não cabe mais um botão; o atalho fica no menu lateral e no menu do usuário. */
+@media (max-width: 480px) { .topbar-aprender { display: none !important; } }
+
+/* Atalho no menu lateral (js/layout.js), acima do crédito de autoria */
+.dg-menu-aprender {
+  flex: none; display: flex; align-items: center; gap: 8px; margin: 6px 10px 0; padding: 9px 12px;
+  border: 1px solid var(--sb-borda, #E5E7EB); border-radius: 10px; background: transparent;
+  color: var(--sb-tx-2, #374151); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-align: left;
+}
+.dg-menu-aprender:hover { background: var(--sb-hover, #F0F1ED); }
+.dg-menu-aprender:focus-visible { outline: 2px solid var(--guia-cor); outline-offset: 2px; }
+.dg-menu-aprender svg { width: 17px; height: 17px; flex: none; color: var(--guia-cor); }
+@media print { .dg-menu-aprender { display: none !important; } }
+@media print { .topbar-aprender, .guia-convite, .guia-raiz { display: none !important; } }
+html[data-tema="escuro"] :is(.guia-passo-ic, .guia-item-ic) { background: var(--dg-bg-2); }

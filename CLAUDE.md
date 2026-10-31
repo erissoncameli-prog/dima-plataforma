@@ -1182,6 +1182,19 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   nos dois temas, cartão no `diag_tema` ou no tema do aparelho; ícones em sprite SVG. 4 regras (8+, número, maiúscula,
   minúscula). **Nunca escrever a senha temporária na página nem no código** (a página é pública).
 
+### Aprender a usar — guias passo a passo (⚠️ tela mudou ⇒ conferir o guia dela)
+- Motor = SIGUC (`js/guia-app.js` + `css/guia-app.css`, **sem alteração**, igual ao app de campo); conteúdo e ligação em
+  **`js/guias-plataforma.js`** (`DimaGuias`), ajustes visuais em `css/guias-plataforma.css` (prefixo `dg-`, tokens nos dois temas,
+  painel com z-index acima das janelas). Os dois scripts entram logo **depois do `layout.js`** em toda página com layout.
+- Entradas: botão **Aprender** na barra de cima (`#topbar-aprender`, some em ≤ 480 px), **Aprender a usar** no menu lateral
+  (`.dg-menu-aprender`) e no menu do usuário, botão no Manual. Todas abrem a central `DimaGuias.abrirCentral()`: guias desta tela
+  primeiro; guia de outra tela abre lá por `?guia=<slug>`. Convite de 1º acesso = `guiaConvite` do motor (passeio).
+- Guia = **tarefa**, com `pagina` (id do nav ou `'*'`), `perfis` opcionais, `versao`, `passos` (`alvo` destaca o elemento real;
+  sem ele vira texto; `soTour` pula). `tela` = `abrir:<função>` / `fechar:<id>` / `clique:<seletor>` / `menu:abrir|fechar`
+  — **nunca salvar nada**; o que o guia abriu fecha quando ele fecha. Progresso só no aparelho (`siguc_guia_plataforma`), sem banco.
+- Fase 1 (31/10/2026): passeio, Minhas tarefas, Avaliar entrega, Cadastrar TDR, Efetivar pagamento, Relatório em PDF.
+- Texto mudou ⇒ `versao + 1`. Tela mudou ⇒ `node tests/guias/conferir-alvos.js` (confere cada id/classe dos alvos no código).
+
 ### Visão Geral (dashboard) — visual das abas e dos gráficos
 - `pages/dashboard.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/visao-geral.css` (prefixo `vg-`). A página não tem

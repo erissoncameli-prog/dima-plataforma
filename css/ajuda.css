@@ -10,6 +10,8 @@ body.dgm .main-content, body.dgm .page-body { min-width: 0; }
 .aj { max-width: 1100px; display: flex; flex-direction: column; gap: 14px; }
 .aj-topo h2 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: var(--txt); margin: 0 0 4px; }
 .aj-topo p { font-size: 13px; color: var(--txt-2); margin: 0; }
+.aj-aprender { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; }
+.aj-aprender svg { width: 14px; height: 14px; }
 .aj-busca { display: flex; align-items: center; gap: 8px; background: var(--sup); border: 1px solid var(--lin-forte); border-radius: var(--r-card); padding: 0 14px; height: 46px; color: var(--txt-3); box-shadow: var(--sh-1); }
 .aj-busca:focus-within { border-color: var(--pri-600); box-shadow: var(--anel); }
 body.dgm .aj-busca input { flex: 1; border: 0; outline: 0; background: none; font: inherit; font-size: 14px; color: var(--txt); height: 100%; padding: 0; box-shadow: none; min-width: 0; }
