@@ -1244,6 +1244,19 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   (atividade, pessoas) tratam o próprio Esc com `stopPropagation`.
 - Bucket `tarefas-anexos`: caminho **sempre** `<tarefa_id>/<arquivo>` — as policies de storage leem a 1ª pasta (`fn_tarefa_id_do_path`) e aplicam o acesso da tarefa (ver/anexar: `fn_pode_ver_tarefa`; apagar: `fn_tarefa_pode_editar`). Arquivo fora desse padrão fica inacessível ao cliente.
 
+### API de dados para outras plataformas (⚠️ ler antes de expor dado para fora)
+- Migração `20261031_api_dados` + Edge Function `api-dados` (`verify_jwt` **false**; autentica pela chave própria). Documentação
+  para quem consome: `docs/api/README.md`. **Somente leitura e só números agregados** (conteúdo numérico da ficha A5): sem nome de
+  pessoa, fornecedor, CPF/CNPJ, dado bancário nem texto livre; tarefas restritas fora das contagens.
+- Rotas `GET /functions/v1/api-dados/v1/{resumo|atividades|matriz}`, `?formato=json|csv` (`&sep=;`). A função **não calcula nada**:
+  devolve `fn_api_resumo/fn_api_atividades/fn_api_matriz` (saldo de `vw_saldo_atividade`, progresso de `vw_matriz_progresso`).
+  Campo novo entra na função SQL; mudar/remover campo existente = `/v2`.
+- Chave `dima_…` guardada só como SHA-256 em `api_clientes` (escopos, `origens` do CORS, `limite_minuto`, `expira_em`; revogar =
+  `ativo=false`). Trilha em `api_acessos`. As duas tabelas sem policy nem grant. `fn_api_cliente`/`fn_api_registrar` e as de dados:
+  EXECUTE só service_role. Administrar (`fn_api_criar_cliente`, `fn_api_revogar_cliente`, `fn_api_clientes`) = `fn_api_pode_administrar()`
+  (super_admin ativo ou SQL Editor). Nunca dar a `service_role` nem a `anon` a outra plataforma — sempre uma chave da API.
+- Pendente: tela "Integrações (API)" em Configurações (super_admin) usando `fn_api_clientes`/`fn_api_criar_cliente`/`fn_api_revogar_cliente`.
+
 ### Tabela: `produto_matriz_contribuicao`
 | Coluna | Tipo | Obs |
 |--------|------|-----|
@@ -1305,6 +1318,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
 | `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação (`nota_tecnica_conferencias`); gera o modelo da nota (.docx); reconfirma a senha de quem aprova (`entrega_aprovacao_senhas`) | ✅ |
 | `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
+| `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---
 
