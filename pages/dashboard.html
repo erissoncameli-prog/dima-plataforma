@@ -27,6 +27,7 @@
 <script src="../js/diag-tema.js"></script>
 <script src="../js/folha-a4.js"></script>
 <script src="../js/relatorio-saldo-atividade.js"></script>
+<script src="../js/visao-geral-exportar.js"></script>
 <script>
 (function(){
 
@@ -102,7 +103,8 @@ var VG_IC = {
   seta:'<path d="M5 12h14M13 6l6 6-6 6"/>',
   mais:'<path d="M12 5v14M5 12h14"/>',
   chev:'<path d="m6 9 6 6 6-6"/>',
-  x:'<path d="M18 6 6 18M6 6l12 12"/>'
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  upload:'<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>'
 };
 function vgIc(n,cls){ return '<svg class="vg-ic'+(cls?' '+cls:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+(VG_IC[n]||'')+'</svg>'; }
 
@@ -281,6 +283,11 @@ var ABAS=[
     while(_topbar.firstChild) _topRow.appendChild(_topbar.firstChild);
     _topbar.appendChild(_topRow);
     seletorTema(_topRow);
+    // Exportar todas as guias (PDF, Excel, PowerPoint, HTML) — js/visao-geral-exportar.js
+    var _bExp=document.createElement('button');
+    _bExp.type='button'; _bExp.className='vg-btn vg-exp-btn'; _bExp.innerHTML=vgIc('upload')+'Exportar';
+    _bExp.addEventListener('click',function(){ VGExportar.abrir(); });
+    var _tema=_topRow.querySelector('.dgm-tema'); if(_tema) _tema.parentNode.insertBefore(_bExp,_tema); else _topRow.appendChild(_bExp);
     var abas = ABAS.slice();
     if(_podeSaldo) abas.push(['saldo','Saldo de orçamento','balanca']);
     if(_podeCobertura) abas.push(['cobertura','Cobertura de indicadores','grade']);
@@ -2134,6 +2141,19 @@ window.desvincularInd=async function(atvId, matrizItemId){
   D.atvMatriz=r.data||[];
   renderCobertura();
   toast('Vínculo removido','success');
+};
+
+// ── Ponte para a exportação (js/visao-geral-exportar.js): gráficos, cores do tema e guias visíveis ──
+window.VGExp={
+  charts:function(){ return CHARTS; },
+  pinta:vgPinta, cor:vgCor, temaChart:vgTemaChart, ic:vgIc,
+  // guias exportáveis (Minhas tarefas e Cobertura ficam de fora)
+  abas:function(){ return ABAS.filter(function(a){return a[0]!=='tarefas';}).concat(_podeSaldo?[['saldo','Saldo de orçamento','balanca']]:[]); },
+  pronto:function(){ return !!D.atv && Object.keys(CHARTS).length>0; },
+  // dados do gráfico "Distância entre comprometido e pago" (SVG próprio, sem Chart.js)
+  halteres:function(){ var rm=resMap(); return Object.keys(rm).map(function(k){ var r=rm[k];
+    return [k, r.nome||'', r.orc>0?r.pago/r.orc*100:0, r.orc>0?r.comp/r.orc*100:0]; }); },
+  acumModo:function(){ return _acumModoAtual; }
 };
 
 })();

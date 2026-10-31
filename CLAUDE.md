@@ -1174,6 +1174,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - Popup de detalhe (`#chart-popup`, classe `.vg-ov` no seletor de escopo da mesa): clique no gráfico (`addPopupToChart`)
   ou num trecho de barra de composição (`vgCompBar(..., 'nome')` + `VG_SEG.nome = idx => {title,html,color}`).
 - Guias com contador (`vgContador`): Minhas tarefas, Alertas, Cobertura. Os números gerais ficam só em Financiadores.
+- **Exportar** (botão no topo, `js/visao-geral-exportar.js`, `VGExportar.abrir()`): PDF (FolhaA4, paisagem), Excel (ExcelJS: Resumo + uma
+  aba por guia, imagem do gráfico + dados em número), PowerPoint (PptxGenJS, gráficos **nativos**; bolhas e o SVG de distância vão como
+  imagem) ou HTML (arquivo único, sem internet). A pessoa desmarca guias; Minhas tarefas e Cobertura nunca entram (`VGExp.abas()`).
+  Lê o que a tela desenhou (`#pane-<guia>`: `.vg-kpi`, `.vg-card` com canvas/`.vg-comp`/`.vg-tbl`/`.vg-item`…) e os gráficos pela ponte
+  `window.VGExp` (fim do script de `dashboard.html`); cada gráfico é redesenhado fora da tela no **tema claro** (`comTemaClaro`) e a cor do
+  PowerPoint vem do token (`_bg`/`_bd`), não da cor pintada na tela. Componente novo numa guia ⇒ ensinar `lerGuia()` a ler, senão fica fora.
 
 ### Painel de Tarefas — subtarefas, comentários e anexos
 - `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.
