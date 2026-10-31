@@ -44,11 +44,16 @@ Edge Functions (Deno) usam os pacotes npm @anthropic-ai/sdk (MIT),
 Fontes servidas pelo Google Fonts (ex.: DM Sans, Fraunces) ... SIL Open Font License 1.1
 
 -------------------------------------------------------------------------------
-4. Outros conteúdos de terceiros
+4. Componentes do mesmo autor (NÃO são de terceiros)
+-------------------------------------------------------------------------------
+- js/guia-app.js, css/guia-app.css, js/pin-baralho.js, css/pin-baralho.css:
+  vindos do SIGUC-AC (repositório erissoncameli-prog/siguc-ac), sistema também
+  concebido e desenvolvido por Erisson Cameli Santiago e abrangido pela LICENSE.
+
+-------------------------------------------------------------------------------
+5. Outros conteúdos de terceiros
 -------------------------------------------------------------------------------
 - site-publico/ (painel público): obra de outro autor; fora desta autoria.
-- js/guia-app.js, css/guia-app.css, js/pin-baralho.js, css/pin-baralho.css:
-  cópias sem alteração do SIGUC-AC (repositório erissoncameli-prog/siguc-ac).
 - Logos institucionais (Governo do Acre, SEMA/AC, UNESCO, ONU, Fundo Brasil-ONU,
   parceiros) e ícones oficiais dos ODS (assets/sdg/): marcas e obras de seus
   titulares, usadas apenas para identificação do projeto.

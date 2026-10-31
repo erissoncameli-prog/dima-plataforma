@@ -16,7 +16,9 @@ Este arquivo é lido automaticamente pelo Claude Code a cada sessão. Contém o 
   em toda página e assinatura no console. Elemento com `data-dima-autoria` (ou `="sobre"`) recebe o crédito sozinho.
 - Página nova: `<meta name="author" content="Erisson Cameli Santiago">` e `<script src="../js/autoria.js">` **antes** de
   `logos.js`/`layout.js`. Biblioteca de terceiros nova: entra no `NOTICE` **e** em `TERCEIROS` de `js/autoria.js`.
-- `site-publico/` é obra de outro autor: não pôr o crédito nem o cabeçalho de copyright lá.
+- **Telefone só na janela "Sobre" e no `LICENSE`** — nunca nos relatórios A4 nem nos rodapés (`linha()` não leva contato).
+- `site-publico/` é obra de outro autor: não pôr o crédito nem o cabeçalho de copyright lá. SIGUC-AC é do **mesmo autor**
+  (guia e PIN vindos de lá estão na seção 4 do `NOTICE`, não entre os terceiros).
 
 ---
 

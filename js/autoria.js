@@ -93,6 +93,7 @@
   meta('author', dados.autor)
   meta('copyright', `${copyright()}. ${TX.pt.direitos}`)
 
+  // Linha usada nos rodapés e nos relatórios A4: sem telefone nem e-mail (contato só na janela "Sobre")
   const linha = () => `${dados.sistema} · ${t('papel')}: ${dados.autor} · © ${dados.anos}`
 
   const ICONE = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>'
