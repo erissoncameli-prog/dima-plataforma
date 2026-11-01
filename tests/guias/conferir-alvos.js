@@ -34,10 +34,18 @@ const CODIGO = {
   contratos: ler('pages/contratos.html'),
   remanejamentos: ler('pages/remanejamentos.html') + ler('js/remanejamentos.js'),
   viagens: ler('pages/viagens.html'),
+  fornecedores: ler('pages/fornecedores.html'),
+  matriz: ler('pages/matriz.html'),
+  acervo: ler('pages/acervo.html') + ler('js/acervo.js'),
+  mapa: ler('pages/mapa.html'),
+  diagnostico: ler('pages/diagnostico.html') + ler('js/diagnostico.js') + ler('js/diagnostico-validacao.js'),
+  pulso: ler('pages/pulso.html') + ler('js/pulso.js'),
+  usuarios: ler('pages/usuarios.html') + ler('js/usuarios.js'),
 }
 
 let falhas = 0, total = 0
 const nomes = sel => {
+  sel = sel.replace(/\[[^\]]*\]/g, '')   // atributos ([onclick*="x.y"]) não são id nem classe
   const ids = [...sel.matchAll(/#([\w-]+)/g)].map(m => ['id', m[1]])
   const cls = [...sel.matchAll(/\.([\w-]+)/g)].map(m => ['classe', m[1]])
   return ids.concat(cls)
