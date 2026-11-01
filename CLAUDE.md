@@ -1277,11 +1277,11 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   decisão, no recebimento e pelo cron `remanejamento-emails` (`drenar`). `fn_api_rotina` (cron `api-rotina`, diário) marca link
   vencido como `expirado` e avisa 15 dias antes de a chave vencer. Dado pessoal do solicitante = TRAT-004.
 - Página pública com token na URL: `<meta name="referrer" content="no-referrer">` e o token sai da barra (`history.replaceState`).
-- **Divulgação pública**: aba **Dados abertos (API)** no portal `pages/publico.html` (`#pane-api`, abre direto por `publico.html#api`;
-  link na faixa do topo e no rodapé): o que a API entrega, passo a passo, botão `mailto:` com o modelo (`PUB_API_MODELO`) e
-  "Copiar modelo". Texto do modelo igual ao `IN_MODELO` de `js/integracoes.js` e ao de `docs/api/README.md` — mudou num, muda nos três.
-  O botão "Filtros" do mapa some fora da aba do mapa. No `site-publico/index.html` há a seção `#dados-abertos` (a pedido do
-  super_admin, 01/11/2026; textos em `inicio.api_*` nos três idiomas) que leva a `../pages/publico.html#api` — sem crédito de autoria lá.
+- **Divulgação pública**: só no site público — seção `#dados-abertos` de `site-publico/index.html` (a pedido do super_admin,
+  01/11/2026; textos `inicio.api_*` em PT/EN/ES; sem crédito de autoria lá): o que a API entrega, 4 passos, botão `mailto:`
+  com o modelo e "Ver o modelo" + copiar. O painel `pages/publico.html` **não** tem mais a aba de API (retirada a pedido); ficou
+  só a regra que esconde o botão "Filtros" do mapa fora da aba do mapa. Modelo do e-mail igual em `site-publico/index.html`,
+  `IN_MODELO` de `js/integracoes.js` e `docs/api/README.md` — mudou num, muda nos três.
 
 ### Tabela: `produto_matriz_contribuicao`
 | Coluna | Tipo | Obs |

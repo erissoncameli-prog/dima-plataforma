@@ -88,7 +88,7 @@
 
 .nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-6);}
 
-/* ── Dados abertos (API) — pedido de chave pela plataforma (pages/publico.html#api) ── */
+/* ── Dados abertos (API) — como pedir a chave (fundobrasilonuacre+api@gmail.com) ── */
 .card-api{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);padding:var(--espaco-6);box-shadow:var(--sombra);display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:var(--espaco-6);align-items:center;}
 .card-api .kicker{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 11px;border-radius:99px;display:inline-block;margin-bottom:var(--espaco-3);background:var(--azul-tint);color:var(--azul-texto);}
 .card-api h3{font-size:19px;margin-bottom:var(--espaco-2);}
@@ -96,6 +96,9 @@
 .card-api ol{margin:0;padding-left:1.2em;font-size:13.5px;color:var(--tinta-suave);display:flex;flex-direction:column;gap:6px;}
 .card-api .cta-row{display:flex;gap:var(--espaco-3);flex-wrap:wrap;margin-top:var(--espaco-4);}
 .card-api .email{font-size:12.5px;color:var(--tinta-suave);margin-top:var(--espaco-3);overflow-wrap:anywhere;}
+.card-api details.modelo{margin-top:var(--espaco-4);}
+.card-api details.modelo summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--verde-texto);}
+.card-api details.modelo textarea{display:block;width:100%;margin:var(--espaco-3) 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.55;padding:12px;border:1px solid var(--linha);border-radius:var(--raio);background:var(--papel);color:var(--tinta);resize:vertical;}
 @media(max-width:820px){.card-api{grid-template-columns:minmax(0,1fr);gap:var(--espaco-4);}}
 </style>
 </head>
@@ -214,10 +217,23 @@
           <h3 data-i18n="inicio.api_titulo">Ligue o seu painel ou BI aos números do Programa</h3>
           <p data-i18n="inicio.api_texto">Instituições parceiras podem pedir uma chave de acesso à API do Programa: somente leitura e só números agregados (resumo, atividades e Matriz de Resultados), em JSON ou CSV, sem nenhum dado pessoal.</p>
           <div class="cta-row">
-            <a href="../pages/publico.html#api" class="btn btn-primario" data-i18n="inicio.api_como">Como pedir a chave →</a>
-            <a href="mailto:fundobrasilonuacre+api@gmail.com?subject=Pedido%20de%20acesso%20%C3%A0%20API%20do%20DIMA&amp;body=%C3%93rg%C3%A3o%3A%20%28nome%20da%20institui%C3%A7%C3%A3o%29%0ARespons%C3%A1vel%20t%C3%A9cnico%3A%20%28nome%20e%20cargo%29%0AFinalidade%3A%20%28para%20que%20os%20dados%20ser%C3%A3o%20usados%29%0ASite%20do%20painel%3A%20%28ex.%3A%20https%3A//painel.instituicao.gov.br%20%E2%80%94%20deixe%20em%20branco%20se%20for%20s%C3%B3%20BI%29%0ARotas%3A%20resumo%2C%20atividades%2C%20matriz%0APrazo%3A%20%28at%C3%A9%20quando%20precisa%20do%20acesso%3B%20o%20padr%C3%A3o%20%C3%A9%201%20ano%29%0A" class="btn btn-secundario" data-i18n="inicio.api_email">Escrever o pedido</a>
+            
+            <a href="mailto:fundobrasilonuacre+api@gmail.com?subject=Pedido%20de%20acesso%20%C3%A0%20API%20do%20DIMA&amp;body=%C3%93rg%C3%A3o%3A%20%28nome%20da%20institui%C3%A7%C3%A3o%29%0ARespons%C3%A1vel%20t%C3%A9cnico%3A%20%28nome%20e%20cargo%29%0AFinalidade%3A%20%28para%20que%20os%20dados%20ser%C3%A3o%20usados%29%0ASite%20do%20painel%3A%20%28ex.%3A%20https%3A//painel.instituicao.gov.br%20%E2%80%94%20deixe%20em%20branco%20se%20for%20s%C3%B3%20BI%29%0ARotas%3A%20resumo%2C%20atividades%2C%20matriz%0APrazo%3A%20%28at%C3%A9%20quando%20precisa%20do%20acesso%3B%20o%20padr%C3%A3o%20%C3%A9%201%20ano%29%0A" class="btn btn-primario" data-i18n="inicio.api_email">Escrever o pedido</a>
           </div>
           <p class="email"><span data-i18n="inicio.api_endereco">Endereço do pedido:</span> <b>fundobrasilonuacre+api@gmail.com</b></p>
+          <details class="modelo">
+            <summary data-i18n="inicio.api_modelo">Ver o modelo do e-mail</summary>
+            <textarea id="api-modelo" readonly rows="10" aria-label="Modelo do e-mail">Assunto: Pedido de acesso à API do DIMA
+
+Órgão: (nome da instituição)
+Responsável técnico: (nome e cargo)
+Finalidade: (para que os dados serão usados)
+Site do painel: (ex.: https://painel.instituicao.gov.br — deixe em branco se for só BI)
+Rotas: resumo, atividades, matriz
+Prazo: (até quando precisa do acesso; o padrão é 1 ano)</textarea>
+            <button type="button" class="btn btn-secundario" data-i18n="inicio.api_copiar"
+              onclick="var t=document.getElementById('api-modelo');(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).catch(function(){t.select();document.execCommand('copy')});this.blur()">Copiar modelo</button>
+          </details>
         </div>
         <ol>
           <li data-i18n="inicio.api_p1">Envie o e-mail com o modelo preenchido (órgão, responsável, finalidade).</li>

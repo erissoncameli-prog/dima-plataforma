@@ -234,37 +234,8 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
   .kpi-val{font-size:26px;}
 }
 
-/* ── Aba "Dados abertos (API)" — como pedir a chave (20261101_api_pedidos_email) ── */
-.pub-api{max-width:980px;margin:0 auto;padding:28px 24px 40px;display:flex;flex-direction:column;gap:18px;}
-.pub-api h2{font-size:20px;font-weight:700;color:var(--cinza-900);letter-spacing:-.01em;margin:0 0 6px;}
-.pub-api h3{font-size:14px;font-weight:700;color:var(--cinza-900);margin:0 0 10px;}
-.pub-api p{font-size:13.5px;color:var(--cinza-600,#4B5563);line-height:1.6;margin:0;}
-.pub-api-card{background:#fff;border:1px solid var(--borda);border-radius:14px;padding:20px 22px;}
-.pub-api-rotas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
-.pub-api-rota{border:1px solid var(--borda);border-radius:12px;padding:14px;background:var(--cinza-50);}
-.pub-api-rota b{display:block;font-size:13px;color:var(--cinza-900);margin-bottom:4px;}
-.pub-api-rota span{font-size:12px;color:var(--cinza-500);line-height:1.5;display:block;}
-.pub-api-rota code{font-family:var(--font-mono,monospace);font-size:11px;color:var(--verde-medio);}
-.pub-api-passos{list-style:none;counter-reset:p;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;}
-.pub-api-passos li{counter-increment:p;display:grid;grid-template-columns:28px 1fr;gap:12px;font-size:13.5px;color:var(--cinza-700,#374151);line-height:1.55;}
-.pub-api-passos li::before{content:counter(p);width:28px;height:28px;border-radius:50%;background:#e8f5ee;color:var(--verde-medio);font-weight:700;font-size:13px;display:grid;place-items:center;}
-.pub-api-end{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 6px;}
-.pub-api-end code{font-family:var(--font-mono,monospace);font-size:14px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:8px;padding:8px 12px;color:var(--cinza-900);overflow-wrap:anywhere;}
-.pub-api-btn{display:inline-flex;align-items:center;gap:7px;border-radius:10px;padding:10px 16px;font:600 13px var(--font-sans);cursor:pointer;text-decoration:none;border:1px solid var(--verde-medio);background:var(--verde-medio);color:#fff;}
-.pub-api-btn:hover{filter:brightness(1.08);}
-.pub-api-btn.sec{background:#fff;color:var(--verde-medio);}
-.pub-api-btn:focus-visible{outline:3px solid rgba(45,106,79,.3);outline-offset:2px;}
-.pub-api-modelo{width:100%;min-height:170px;font-family:var(--font-mono,monospace);font-size:12.5px;line-height:1.55;border:1px solid var(--borda);border-radius:10px;padding:12px;background:var(--cinza-50);color:var(--cinza-900);resize:vertical;}
-.pub-api-seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin:0;padding:0;list-style:none;}
-.pub-api-seg li{font-size:12.5px;color:var(--cinza-600,#4B5563);line-height:1.5;padding-left:18px;position:relative;}
-.pub-api-seg li::before{content:"";position:absolute;left:0;top:6px;width:8px;height:8px;border-radius:50%;background:var(--verde-medio);}
-.pub-api-ok{font-size:12px;color:var(--verde-medio);font-weight:600;}
 /* botão "Filtros" do mapa só na aba do mapa */
 .pub-content:not(.mapa-ativo) ~ .btn-filtros-pub-mobile{display:none !important;}
-@media (max-width:760px){
-  .pub-api{padding:20px 16px 32px;}
-  .pub-api-rotas,.pub-api-seg{grid-template-columns:minmax(0,1fr);}
-}
 </style>
 </head>
 <body>
@@ -298,10 +269,7 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
     <span class="sep">·</span>
     <span>Dados atualizados em tempo real</span>
   </div>
-  <span style="display:flex;gap:8px;flex-shrink:0">
-    <a href="#api" class="btn-login-strip" onclick="event.preventDefault();pubAbrirApi()">Dados abertos (API)</a>
-    <a href="../index.html" class="btn-login-strip">Fazer Login →</a>
-  </span>
+  <a href="../index.html" class="btn-login-strip">Fazer Login →</a>
 </div>
 
 <div class="pub-tabs">
@@ -317,73 +285,12 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
     Matriz de Resultados
   </button>
-  <button class="pub-tab" id="pub-tab-api" onclick="mudarAba('api',this)">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></svg>
-    Dados abertos (API)
-  </button>
 </div>
 
 <div class="pub-content mapa-ativo" id="pub-content">
   <div id="pane-mapa"        class="pub-pane ativo"><div class="spinner"></div></div>
   <div id="pane-operacional" class="pub-pane"><div class="spinner"></div></div>
   <div id="pane-matriz"      class="pub-pane"><div class="spinner"></div></div>
-  <div id="pane-api"         class="pub-pane">
-    <div class="pub-api">
-      <div>
-        <h2>Dados abertos do projeto (API)</h2>
-        <p>Instituições parceiras podem ligar painéis e ferramentas de BI (Power BI, Excel, Looker Studio…) aos números do
-          projeto, atualizados direto da plataforma. A API é <b>somente leitura</b> e entrega <b>só números agregados</b>:
-          nenhum nome, CPF/CNPJ, dado bancário ou texto pessoal sai por ela.</p>
-      </div>
-
-      <div class="pub-api-card">
-        <h3>O que está disponível</h3>
-        <div class="pub-api-rotas">
-          <div class="pub-api-rota"><b>Resumo do projeto</b><span>Orçamento, comprometido, pago e saldo; totais por resultado; contratos, produtos e Matriz.</span><code>/v1/resumo</code></div>
-          <div class="pub-api-rota"><b>Atividades</b><span>Uma linha por atividade: orçamento, TDRs, contratos, produtos, indicadores e tarefas (só contagens).</span><code>/v1/atividades</code></div>
-          <div class="pub-api-rota"><b>Matriz de Resultados</b><span>Cada indicador com meta, realizado, % e situação, ODS e metas Kunming-Montreal.</span><code>/v1/matriz</code></div>
-        </div>
-        <p style="margin-top:12px;font-size:12.5px">Formatos JSON (painéis) ou CSV (BI e planilhas).</p>
-      </div>
-
-      <div class="pub-api-card">
-        <h3>Como pedir uma chave de acesso</h3>
-        <ol class="pub-api-passos">
-          <li><span>Envie um e-mail institucional para o endereço abaixo, com o modelo preenchido (órgão, responsável técnico, finalidade e, se houver, o site do painel).</span></li>
-          <li><span>Você recebe a confirmação com o número do pedido (ex.: API-2026-001). A administração do projeto analisa.</span></li>
-          <li><span>Aprovado, chega um <b>link de retirada</b> que vale 72 horas e funciona uma vez. Ao abrir e clicar em <b>Mostrar minha chave</b>, a chave aparece uma única vez, com exemplos de uso.</span></li>
-          <li><span>A chave vale 1 ano. Quinze dias antes de vencer você recebe um lembrete; para renovar, basta um novo pedido.</span></li>
-        </ol>
-        <div class="pub-api-end">
-          <code id="pub-api-email">fundobrasilonuacre+api@gmail.com</code>
-          <a class="pub-api-btn" id="pub-api-mailto" href="#">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
-            Escrever o pedido
-          </a>
-          <button type="button" class="pub-api-btn sec" onclick="pubApiCopiar('pub-api-email', this)">Copiar endereço</button>
-        </div>
-        <p style="font-size:12px">O botão abre o seu programa de e-mail com o modelo já preenchido. Se não abrir, copie o endereço e o modelo abaixo.</p>
-      </div>
-
-      <div class="pub-api-card">
-        <h3>Modelo do e-mail</h3>
-        <textarea class="pub-api-modelo" id="pub-api-modelo" readonly aria-label="Modelo do e-mail de pedido"></textarea>
-        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button type="button" class="pub-api-btn sec" onclick="pubApiCopiar('pub-api-modelo', this)">Copiar modelo</button>
-        </div>
-      </div>
-
-      <div class="pub-api-card">
-        <h3>Segurança e privacidade</h3>
-        <ul class="pub-api-seg">
-          <li>A chave nunca é enviada no corpo de um e-mail; só pelo link de retirada.</li>
-          <li>O sistema guarda apenas uma impressão (hash) da chave, nunca a chave em si.</li>
-          <li>Cada chave tem rotas, sites e limite de chamadas definidos na aprovação, e pode ser revogada.</li>
-          <li>Os dados do pedido (nome, e-mail, órgão) são usados só para analisar e responder o pedido.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- Modal: Foto em tela cheia -->
@@ -410,8 +317,7 @@ body{font-family:var(--font-sans);background:var(--cinza-50);color:var(--cinza-9
     <div class="pub-footer-text">
       Visualização pública — somente leitura<br>
       Projeto 218BRA2001 · UNESCO/MPTF · Rio Branco, Acre<br>
-      <a href="../index.html">Fazer login</a> para acesso completo ao sistema.<br>
-      Instituições: <a href="#api" onclick="event.preventDefault();pubAbrirApi()">peça acesso aos dados abertos (API)</a>.
+      <a href="../index.html">Fazer login</a> para acesso completo ao sistema.
     </div>
   </div>
 </footer>
@@ -501,39 +407,6 @@ function tipoIcon(tipo) {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-// ── Aba "Dados abertos (API)": modelo do pedido, e-mail pronto, #api ──
-const PUB_API_EMAIL = 'fundobrasilonuacre+api@gmail.com'
-const PUB_API_ASSUNTO = 'Pedido de acesso à API do DIMA'
-const PUB_API_MODELO = [
-  'Órgão: (nome da instituição)',
-  'Responsável técnico: (nome e cargo)',
-  'Finalidade: (para que os dados serão usados)',
-  'Site do painel: (ex.: https://painel.instituicao.gov.br — deixe em branco se for só BI)',
-  'Rotas: resumo, atividades, matriz',
-  'Prazo: (até quando precisa do acesso; o padrão é 1 ano)',
-].join('\n')
-function pubAbrirApi() {
-  const b = document.getElementById('pub-tab-api'); if (!b) return
-  mudarAba('api', b)
-  try { history.replaceState(null, '', '#api') } catch (e) {}
-  b.scrollIntoView({ block: 'nearest' })
-}
-async function pubApiCopiar(id, btn) {
-  const el = document.getElementById(id)
-  const txt = el.value !== undefined ? el.value : el.textContent
-  try { await navigator.clipboard.writeText(txt) } catch (e) {
-    if (el.select) el.select(); else { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r) }
-    try { document.execCommand('copy') } catch (e2) {}
-  }
-  const antes = btn.textContent; btn.textContent = 'Copiado'; setTimeout(() => { btn.textContent = antes }, 1800)
-}
-;(function pubApiPreparar() {
-  const m = document.getElementById('pub-api-modelo'); if (m) m.value = 'Assunto: ' + PUB_API_ASSUNTO + '\n\n' + PUB_API_MODELO
-  const a = document.getElementById('pub-api-mailto')
-  if (a) a.href = 'mailto:' + PUB_API_EMAIL + '?subject=' + encodeURIComponent(PUB_API_ASSUNTO) + '&body=' + encodeURIComponent(PUB_API_MODELO + '\n')
-  if (location.hash === '#api') setTimeout(pubAbrirApi, 0)
-})()
 
 // ── Troca de aba ─────────────────────────────────────────────
 function mudarAba(id, btn) {

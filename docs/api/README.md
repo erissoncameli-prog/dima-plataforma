@@ -13,8 +13,8 @@ https://wfymnmlinonvdqfucjya.supabase.co/functions/v1/api-dados/v1
 
 ## Como pedir acesso
 
-Página pública com este passo a passo e o botão que abre o e-mail pronto:
-**https://fundobrasilonu-plataforma.vercel.app/pages/publico.html#api** (aba "Dados abertos (API)" do painel público).
+Página pública com este passo a passo, o modelo e o botão que abre o e-mail pronto:
+**https://fundobrasilonu-plataforma.vercel.app/site-publico/index.html#dados-abertos** (seção "Dados abertos (API)" do site público).
 
 Escreva para **fundobrasilonuacre+api@gmail.com** com este modelo:
 
