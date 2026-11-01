@@ -1277,6 +1277,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   decisão, no recebimento e pelo cron `remanejamento-emails` (`drenar`). `fn_api_rotina` (cron `api-rotina`, diário) marca link
   vencido como `expirado` e avisa 15 dias antes de a chave vencer. Dado pessoal do solicitante = TRAT-004.
 - Página pública com token na URL: `<meta name="referrer" content="no-referrer">` e o token sai da barra (`history.replaceState`).
+- **Divulgação pública**: aba **Dados abertos (API)** no portal `pages/publico.html` (`#pane-api`, abre direto por `publico.html#api`;
+  link na faixa do topo e no rodapé): o que a API entrega, passo a passo, botão `mailto:` com o modelo (`PUB_API_MODELO`) e
+  "Copiar modelo". Texto do modelo igual ao `IN_MODELO` de `js/integracoes.js` e ao de `docs/api/README.md` — mudou num, muda nos três.
+  Não usar `site-publico/` (obra de outro autor). O botão "Filtros" do mapa some fora da aba do mapa.
 
 ### Tabela: `produto_matriz_contribuicao`
 | Coluna | Tipo | Obs |
