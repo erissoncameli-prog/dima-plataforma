@@ -62,7 +62,7 @@ function csv(linhas: Record<string, unknown>[], sep: string) {
     const s = String(v)
     return /["\n\r]/.test(s) || s.includes(sep) ? `"${s.replace(/"/g, '""')}"` : s
   }
-  return '﻿' + [cols.join(sep), ...linhas.map((l) => cols.map((c) => cel(l[c])).join(sep))].join('\r\n') + '\r\n'
+  return '\uFEFF' + [cols.join(sep), ...linhas.map((l) => cols.map((c) => cel(l[c])).join(sep))].join('\r\n') + '\r\n'
 }
 
 Deno.serve(async (req) => {
