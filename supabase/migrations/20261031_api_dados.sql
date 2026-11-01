@@ -21,8 +21,10 @@ create table if not exists public.api_clientes (
   id            uuid primary key default gen_random_uuid(),
   nome          text not null,
   descricao     text,
-  chave_prefixo text not null,                 -- só para reconhecer a chave na tela (ex.: dima_3f9a…)
-  chave_hash    text not null unique,          -- SHA-256 hex da chave inteira
+  chave_prefixo text,                          -- só para reconhecer a chave na tela (ex.: dima_3f9a…)
+  chave_hash    text unique,                   -- SHA-256 hex da chave inteira; NULL = aprovado por e-mail,
+                                               -- aguardando a retirada (20261101_api_pedidos_email)
+  contato_email text,                          -- quem recebe o link de retirada e o aviso de vencimento
   escopos       text[] not null default array['resumo','atividades','matriz'],
   origens       text[] not null default '{}',  -- domínios do navegador liberados no CORS (painel HTML)
   limite_minuto integer not null default 60 check (limite_minuto between 1 and 1000),
@@ -32,6 +34,8 @@ create table if not exists public.api_clientes (
   criado_em     timestamptz not null default now(),
   revogado_por  uuid references public.usuarios(id),
   revogado_em   timestamptz,
+  retirada_em   timestamptz,                   -- quando a chave foi gerada (criação direta ou link de retirada)
+  aviso_vencimento_em timestamptz,             -- lembrete de vencimento já enviado
   constraint api_clientes_escopos_ck check (escopos <@ array['resumo','atividades','matriz'])
 );
 
@@ -66,18 +70,26 @@ create or replace function public.fn_api_criar_cliente(
   p_nome text, p_descricao text default null, p_escopos text[] default null,
   p_origens text[] default null, p_expira_em timestamptz default null)
 returns jsonb language plpgsql security definer set search_path = public as $$
-declare v_chave text; v_id uuid;
+declare v_chave text; v_id uuid; v_ori text[]; o text; v_exp timestamptz := coalesce(p_expira_em, now() + interval '1 year');
 begin
   if not fn_api_pode_administrar() then
     raise exception 'API_SO_SUPER_ADMIN';
   end if;
   if coalesce(length(trim(p_nome)), 0) < 3 then raise exception 'API_NOME_OBRIGATORIO'; end if;
+  if p_escopos is not null and (cardinality(p_escopos) = 0 or not p_escopos <@ array['resumo','atividades','matriz']) then
+    raise exception 'API_ESCOPO_INVALIDO';
+  end if;
+  v_ori := array(select rtrim(lower(trim(x)), '/') from unnest(coalesce(p_origens, '{}')) x where trim(x) <> '');
+  foreach o in array v_ori loop
+    if o !~ '^https?://[a-z0-9.-]+(:[0-9]{1,5})?$' then raise exception 'API_ORIGEM_INVALIDA: %', o; end if;
+  end loop;
+  if v_exp <= now() + interval '1 day' or v_exp > now() + interval '2 years' then raise exception 'API_VALIDADE_INVALIDA'; end if;
   v_chave := 'dima_' || replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '');
-  insert into api_clientes (nome, descricao, chave_prefixo, chave_hash, escopos, origens, expira_em, criado_por)
+  insert into api_clientes (nome, descricao, chave_prefixo, chave_hash, escopos, origens, expira_em, criado_por, retirada_em)
   values (trim(p_nome), p_descricao, left(v_chave, 12),
           encode(sha256(convert_to(v_chave, 'UTF8')), 'hex'),
           coalesce(p_escopos, array['resumo','atividades','matriz']),
-          coalesce(p_origens, '{}'), p_expira_em, auth.uid())
+          v_ori, v_exp, auth.uid(), now())
   returning id into v_id;
   return jsonb_build_object('id', v_id, 'chave', v_chave,
     'aviso', 'Guarde a chave agora: ela não será exibida de novo.');
@@ -97,7 +109,8 @@ end $$;
 create or replace function public.fn_api_clientes()
 returns table (id uuid, nome text, descricao text, chave_prefixo text, escopos text[], origens text[],
                limite_minuto integer, ativo boolean, expira_em timestamptz, criado_em timestamptz,
-               revogado_em timestamptz, ultimo_acesso timestamptz, acessos_30d bigint)
+               revogado_em timestamptz, ultimo_acesso timestamptz, acessos_30d bigint,
+               contato_email text, retirada_em timestamptz)
 language plpgsql security definer set search_path = public as $$
 begin
   if not fn_api_pode_administrar() then
@@ -107,7 +120,8 @@ begin
   select c.id, c.nome, c.descricao, c.chave_prefixo, c.escopos, c.origens, c.limite_minuto, c.ativo,
          c.expira_em, c.criado_em, c.revogado_em,
          (select max(a.criado_em) from api_acessos a where a.cliente_id = c.id),
-         (select count(*) from api_acessos a where a.cliente_id = c.id and a.criado_em > now() - interval '30 days')
+         (select count(*) from api_acessos a where a.cliente_id = c.id and a.criado_em > now() - interval '30 days'),
+         c.contato_email, c.retirada_em
     from api_clientes c order by c.criado_em desc;
 end $$;
 
@@ -120,7 +134,8 @@ language sql stable security definer set search_path = public as $$
   select c.id, c.nome, c.escopos, c.origens, c.limite_minuto,
          (select count(*) from api_acessos a where a.cliente_id = c.id and a.criado_em > now() - interval '1 minute')
     from api_clientes c
-   where c.chave_hash = encode(sha256(convert_to(coalesce(p_chave, ''), 'UTF8')), 'hex')
+   where c.chave_hash is not null
+     and c.chave_hash = encode(sha256(convert_to(coalesce(p_chave, ''), 'UTF8')), 'hex')
      and c.ativo
      and (c.expira_em is null or c.expira_em > now());
 $$;

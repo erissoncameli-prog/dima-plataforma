@@ -81,6 +81,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     dados_sistema:{ svg: '<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/>', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
     ropa:         { svg: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M9 12h6M9 15h4M9 9h6"/>', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
     banco_dados:  { svg: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/>',                                                                                                                                                                                cor: '#38bdf8', bg: 'rgba(56,189,248,0.22)'  },
+    integracoes:  { svg: '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>', cor: '#94a3b8', bg: 'rgba(148,163,184,0.18)' },
     pulso:        { svg: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>', cor: '#f472b6', bg: 'rgba(244,114,182,0.22)' },
     ajuda:        { svg: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',                                                                                                                                                                                           cor: '#a3e635', bg: 'rgba(163,230,53,0.22)'  },
   };
@@ -125,6 +126,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     { id: 'dados_sistema', href: 'configuracoes.html',             perfis: ['super_admin'], parent: 'configuracoes' },
     { id: 'banco_dados',   href: 'banco-dados.html',               perfis: ['super_admin'], parent: 'configuracoes' },
     { id: 'ropa',          href: 'ropa.html',                      perfis: ['super_admin','coordenacao'], parent: 'configuracoes' },
+    { id: 'integracoes',   href: 'integracoes.html',               perfis: ['super_admin'], parent: 'configuracoes' },
   ];
 
   const u = appState.usuario;

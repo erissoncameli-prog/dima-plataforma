@@ -27,6 +27,11 @@
 //   aprova/devolve/rejeita o solicitado; super_admin ou financeiro devolvem o aprovado; quem
 //   pediu ou viaja nunca decide. Chama fn_viagem_decidir (service_role).
 //
+// { acao: 'decidir_api', pedido_id, decisao: 'aprovar'|'recusar'|'reenviar', motivo?, config?, hash, senha }
+//   mesma porta para o PEDIDO DE ACESSO À API por e-mail (20261101_api_pedidos_email): só
+//   super_admin decide; aprovar cria o cliente sem chave e manda o LINK DE RETIRADA (a chave
+//   nasce quando o solicitante abre o link); reenviar = novo link. Chama fn_api_pedido_decidir.
+//
 // { acao: 'drenar' }   (cron 'remanejamento-emails') — reenvia a fila pendente,
 //   inclusive os avisos de contrato travado/liberado (cobertura_notificacoes, rem_11)
 //   e os do cancelamento de TDR.
@@ -36,6 +41,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { logosEmail } from '../_shared/logos-email.ts'
+import { drenarApiPedidos } from '../_shared/api-pedidos-email.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -66,12 +72,15 @@ Deno.serve(async (req) => {
     let cobertura = { enviados: 0, falhas: 0 }, cancelamento = { enviados: 0, falhas: 0 }
     try { cobertura = await drenarCobertura(admin) } catch (e) { console.error('cobertura:', (e as Error).message) }
     try { cancelamento = await drenarCancelamentos(admin, null) } catch (e) { console.error('cancelamento:', (e as Error).message) }
-    return resp({ ok: true, ...r, cobertura, cancelamento })
+    let api = { enviados: 0, falhas: 0 }
+    try { api = await drenarApiPedidos(admin, null) } catch (e) { console.error('api:', (e as Error).message) }
+    return resp({ ok: true, ...r, cobertura, cancelamento, api })
   }
-  if (!['assinar', 'assinar_cancelamento', 'decidir_encerramento', 'decidir_viagem'].includes(corpo.acao)) return resp({ ok: false, erro: 'acao inválida' }, 400)
+  if (!['assinar', 'assinar_cancelamento', 'decidir_encerramento', 'decidir_viagem', 'decidir_api'].includes(corpo.acao)) return resp({ ok: false, erro: 'acao inválida' }, 400)
   const ehCancelamento = corpo.acao === 'assinar_cancelamento'
   const ehEncerramento = corpo.acao === 'decidir_encerramento'
   const ehViagem = corpo.acao === 'decidir_viagem'
+  const ehApi = corpo.acao === 'decidir_api'
 
   // 1. quem é
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
@@ -80,7 +89,7 @@ Deno.serve(async (req) => {
   const usuarioId = u.user.id
 
   const { remanejamento_id, cancelamento_id, pedido_id, protocolo_id, decisao, motivo, hash, senha } = corpo
-  const pedidoId = ehViagem ? protocolo_id : ehEncerramento ? pedido_id : ehCancelamento ? cancelamento_id : remanejamento_id
+  const pedidoId = ehViagem ? protocolo_id : (ehEncerramento || ehApi) ? pedido_id : ehCancelamento ? cancelamento_id : remanejamento_id
   if (!pedidoId || !decisao || !hash || typeof senha !== 'string' || !senha) {
     return resp({ ok: false, erro: 'Dados incompletos (pedido, decisão, hash e senha).' }, 400)
   }
@@ -98,6 +107,16 @@ Deno.serve(async (req) => {
 
   // 4. assinatura
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
+  if (ehApi) {
+    const { data: resA, error: eAp } = await admin.rpc('fn_api_pedido_decidir', {
+      p_usuario_id: usuarioId, p_pedido: pedido_id, p_decisao: decisao,
+      p_parecer: motivo ?? null, p_config: corpo.config ?? null, p_hash: hash,
+    })
+    if (eAp) return resp({ ok: false, erro: eAp.message }, 409)
+    let emailsA = { enviados: 0, falhas: 0 }
+    try { emailsA = await drenarApiPedidos(admin, pedido_id) } catch (e) { console.error('emails api:', (e as Error).message) }
+    return resp({ ok: true, resultado: resA, emails: emailsA })
+  }
   if (ehViagem) {
     const { data: resV, error: eV } = await admin.rpc('fn_viagem_decidir', {
       p_usuario_id: usuarioId, p_protocolo: protocolo_id, p_decisao: decisao,

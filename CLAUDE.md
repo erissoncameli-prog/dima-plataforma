@@ -102,7 +102,7 @@ const res = await fetch(SUPABASE_URL + '/functions/v1/nome-da-funcao', {
 ### Navegação (`layout.js` — `navGroups`)
 Grupos: `'Projeto'`, `'Execução'`, `'Apoio'`
 Cada item: `{ id, icone, href, perfis: [...] }`
-IDs usados: `dashboard`, `atividades`, `tdrs`, `remanejamentos`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`, `pulso`
+IDs usados: `dashboard`, `atividades`, `tdrs`, `remanejamentos`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`, `pulso`, `integracoes`
 Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 
 ---
@@ -1262,7 +1262,21 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `ativo=false`). Trilha em `api_acessos`. As duas tabelas sem policy nem grant. `fn_api_cliente`/`fn_api_registrar` e as de dados:
   EXECUTE só service_role. Administrar (`fn_api_criar_cliente`, `fn_api_revogar_cliente`, `fn_api_clientes`) = `fn_api_pode_administrar()`
   (super_admin ativo ou SQL Editor). Nunca dar a `service_role` nem a `anon` a outra plataforma — sempre uma chave da API.
-- Pendente: tela "Integrações (API)" em Configurações (super_admin) usando `fn_api_clientes`/`fn_api_criar_cliente`/`fn_api_revogar_cliente`.
+- **Pedido por e-mail** (migração `20261101_api_pedidos_email` + `_sql_editor` do sino; testes `supabase/tests/api/rodar.sh`):
+  quem quer chave escreve para `fundobrasilonuacre+api@gmail.com`; `receber-email-tarefa` desvia o `+api` antes da lógica de tarefas
+  e grava em `api_pedidos` por `fn_api_pedido_registrar` (service_role; idempotente pelo id do Gmail; 3 por remetente/24 h, 20/hora;
+  resposta automática/lista/devolução ignoradas). Remetente **autenticado** = DMARC pass ou DKIM pass do domínio do From; só ele
+  recebe o "recebido" (não responder a endereço forjado). **Só super_admin decide, com senha**: tela Configurações › Integrações (API)
+  (`pages/integracoes.html` + `js/integracoes.js`, nav `integracoes`) → `assinar-remanejamento` `acao:'decidir_api'` (aprovar | recusar
+  com parecer ≥ 10 | reenviar) → `fn_api_pedido_decidir` (hash `fn_api_pedido_hash`). Aprovar cria o cliente **sem chave**
+  (`chave_hash` NULL = aguardando retirada); validade padrão 1 ano, máx. 2.
+- **A chave nunca vai por e-mail**: o e-mail de aprovação leva um link de retirada (`pages/api-retirar.html?t=`, pública, 72 h, uso
+  único). O token é gerado na hora do envio (`fn_api_emitir_retirada`, só o hash fica) e a chave só nasce no clique "Mostrar minha
+  chave" (`fn_publico_api_retirar`, executável pelo `anon`) — abrir a página não consome o link (leitores de e-mail abrem links).
+  E-mails em `_shared/api-pedidos-email.ts` (fila `api_pedido_notificacoes`: recebido, aprovado, recusado, vencendo), drenada na
+  decisão, no recebimento e pelo cron `remanejamento-emails` (`drenar`). `fn_api_rotina` (cron `api-rotina`, diário) marca link
+  vencido como `expirado` e avisa 15 dias antes de a chave vencer. Dado pessoal do solicitante = TRAT-004.
+- Página pública com token na URL: `<meta name="referrer" content="no-referrer">` e o token sai da barra (`history.replaceState`).
 
 ### Tabela: `produto_matriz_contribuicao`
 | Coluna | Tipo | Obs |
@@ -1324,7 +1338,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
 | `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação (`nota_tecnica_conferencias`); gera o modelo da nota (.docx); reconfirma a senha de quem aprova (`entrega_aprovacao_senhas`) | ✅ |
-| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
+| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`) e a do pedido de acesso à API (`acao:'decidir_api'` → `fn_api_pedido_decidir`, só super_admin); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---

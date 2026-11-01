@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="Erisson Cameli Santiago">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Integrações (API)</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<!-- tema claro/escuro (mesmo 'diag_tema' da mesa do Diagnóstico), antes de pintar -->
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<!-- design system da mesa + componentes de Administração (css/administracao.css, prefixo ad-) -->
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/administracao.css" rel="stylesheet">
+</head>
+<body class="dgm">
+<div id="app"></div>
+
+<!-- Pedido de acesso (detalhe + decisão) -->
+<div class="modal-overlay ad-ov" id="in-modal-ped" role="dialog" aria-modal="true" aria-labelledby="in-ped-tit" data-fundo-fecha="nao">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="min-width:0"><div class="modal-title" id="in-ped-tit">Pedido</div><div class="ad-sub" id="in-ped-sub"></div></div>
+      <button type="button" class="modal-close" onclick="adFechar('in-modal-ped')" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body" id="in-ped-body"></div>
+    <div class="modal-footer" id="in-ped-pe"></div>
+  </div>
+</div>
+
+<!-- Senha (a decisão é conferida no servidor, Edge Function assinar-remanejamento) -->
+<div class="modal-overlay ad-ov" id="in-modal-senha" role="dialog" aria-modal="true" aria-labelledby="in-senha-tit" data-fundo-fecha="nao">
+  <div class="modal estreito">
+    <div class="modal-header">
+      <div style="min-width:0"><div class="modal-title" id="in-senha-tit">Confirmar com a senha</div><div class="ad-sub" id="in-senha-sub"></div></div>
+      <button type="button" class="modal-close" onclick="adFechar('in-modal-senha')" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="ad-dica" id="in-senha-txt"></p>
+      <div class="form-group"><label class="form-label" for="in-senha">Sua senha de login</label>
+        <input type="password" class="form-control" id="in-senha" autocomplete="current-password"></div>
+      <div class="ad-aviso er" id="in-senha-erro" role="alert" hidden></div>
+    </div>
+    <div class="modal-footer"><span class="ad-sp"></span>
+      <button type="button" class="btn btn-secondary" onclick="adFechar('in-modal-senha')">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="in-senha-ok"><i data-ic="cadeado"></i>Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nova chave criada aqui (sem pedido por e-mail) -->
+<div class="modal-overlay ad-ov" id="in-modal-nova" role="dialog" aria-modal="true" aria-labelledby="in-nova-tit" data-fundo-fecha="nao">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="min-width:0"><div class="modal-title" id="in-nova-tit">Nova chave</div><div class="ad-sub">Para quem não vai pedir por e-mail. A chave aparece uma vez, aqui.</div></div>
+      <button type="button" class="modal-close" onclick="adFecharTopo('in-modal-nova')" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body" id="in-nova-body"></div>
+    <div class="modal-footer" id="in-nova-pe"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/autoria.js"></script>
+<script src="../js/logos.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/guia-app.js"></script>
+<script src="../js/guias-plataforma.js"></script>
+<script src="../js/diag-tema.js"></script>
+<script src="../js/ajuda.js"></script>
+<script src="../js/administracao.js"></script>
+<script src="../js/integracoes.js"></script>
+</body>
+</html>

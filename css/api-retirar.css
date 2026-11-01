@@ -1,0 +1,73 @@
+/* ── Retirar chave da API (pages/api-retirar.html, prefixo ar-) ───────────
+   Página pública, fora do layout. Tema = diag_tema (ou o do aparelho), aplicado no <head>.
+   Cor nova = token aqui no topo (claro e escuro). A faixa do topo é o verde da marca nos dois temas. */
+:root {
+  --ar-verde: #1F4E2C; --ar-pri: #24704A; --ar-pri-bg: #E3F1E8; --ar-anel: rgba(36,112,74,.2);
+  --ar-fundo: #F3F5F3; --ar-cartao: #FFFFFF; --ar-cartao-2: #F7F9F7; --ar-txt: #0E1A13; --ar-suave: #56655C;
+  --ar-lin: rgba(16,32,24,.12); --ar-lin-forte: rgba(16,32,24,.22);
+  --ar-erro: #B42318; --ar-erro-bg: #FDECEA; --ar-alerta: #8A4B00; --ar-alerta-bg: #FFF4DE; --ar-ok: #1E8A55;
+  --ar-codigo: #F0F4F1;
+  --ar-r-ctl: 12px; --ar-r-card: 20px; --ar-sh: 0 1px 2px rgba(16,32,24,.05), 0 8px 24px rgba(16,32,24,.06);
+  --ar-mono: ui-monospace, "DM Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+html[data-tema="escuro"] {
+  --ar-pri: #58B584; --ar-pri-bg: rgba(88,181,132,.16); --ar-anel: rgba(88,181,132,.3);
+  --ar-fundo: #0B120E; --ar-cartao: #131C17; --ar-cartao-2: #1A251F; --ar-txt: #ECF3EF; --ar-suave: #A3B2A9;
+  --ar-lin: rgba(255,255,255,.09); --ar-lin-forte: rgba(255,255,255,.2);
+  --ar-erro: #F07A6E; --ar-erro-bg: rgba(240,122,110,.13); --ar-alerta: #F2B54A; --ar-alerta-bg: rgba(242,181,74,.12); --ar-ok: #4CC389;
+  --ar-codigo: #0F1713; --ar-sh: none; color-scheme: dark;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: var(--ar-fundo); color: var(--ar-txt); line-height: 1.5; min-height: 100dvh; }
+.ar-ic { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+.ar-topo { background: radial-gradient(120% 120% at 50% 0%, #24704A 0%, #16382A 55%, #10261A 100%); color: #fff; padding: calc(16px + env(safe-area-inset-top)) 16px 54px; text-align: center; }
+.ar-marca { display: inline-flex; align-items: center; gap: 10px; padding: 5px 14px; background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.12); border-radius: 99px; }
+.ar-marca[hidden] { display: none; }
+.ar-marca .dima-logo { height: 22px !important; max-width: 110px !important; }
+.ar-topo h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em; margin-top: 12px; }
+.ar-topo p { opacity: .82; font-size: .92rem; }
+
+.ar-main { max-width: 680px; margin: -34px auto 0; padding: 0 16px calc(32px + env(safe-area-inset-bottom)); position: relative; }
+.ar-cartao { background: var(--ar-cartao); border: 1px solid var(--ar-lin); border-radius: var(--ar-r-card); padding: 24px 20px; box-shadow: var(--ar-sh); }
+.ar-cartao[hidden], .ar-erro[hidden], .ar-btn[hidden] { display: none; }
+.ar-cartao h2 { font-size: 1.15rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 6px; }
+.ar-cartao h3 { font-size: 1rem; font-weight: 700; margin: 22px 0 6px; }
+.ar-suave { color: var(--ar-suave); font-size: .93rem; }
+.ar-suave code, .ar-cartao p code { font-family: var(--ar-mono); font-size: .85em; background: var(--ar-codigo); border: 1px solid var(--ar-lin); border-radius: 6px; padding: 1px 5px; color: var(--ar-txt); }
+.ar-icone { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--ar-pri-bg); color: var(--ar-pri); margin-bottom: 12px; }
+.ar-icone.ok { color: var(--ar-ok); }
+.ar-icone .ar-ic { width: 22px; height: 22px; }
+
+.ar-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; min-height: 46px; padding: 0 20px; border-radius: var(--ar-r-ctl); border: 1px solid var(--ar-verde); background: var(--ar-verde); color: #fff; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; }
+.ar-btn:hover { filter: brightness(1.08); }
+.ar-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--ar-anel); }
+.ar-btn:disabled { opacity: .55; cursor: default; filter: none; }
+.ar-btn-2 { margin: 0; width: auto; min-height: 40px; padding: 0 14px; font-size: 14px; background: var(--ar-cartao); color: var(--ar-txt); border-color: var(--ar-lin-forte); }
+.ar-btn-2.ok { color: var(--ar-ok); border-color: var(--ar-ok); }
+.ar-erro { margin-top: 14px; padding: 10px 12px; border-radius: var(--ar-r-ctl); background: var(--ar-erro-bg); color: var(--ar-erro); font-size: .92rem; }
+html[data-tema="escuro"] .ar-erro { color: var(--ar-txt); }
+
+.ar-aviso { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 14px; padding: 10px 12px; border-radius: var(--ar-r-ctl); background: var(--ar-alerta-bg); color: var(--ar-alerta); font-size: .9rem; }
+html[data-tema="escuro"] .ar-aviso { color: var(--ar-txt); }
+.ar-aviso .ar-ic { margin-top: 2px; color: var(--ar-alerta); }
+.ar-chave { display: flex; gap: 8px; align-items: center; background: var(--ar-codigo); border: 1px solid var(--ar-lin-forte); border-radius: var(--ar-r-ctl); padding: 10px 10px 10px 14px; }
+.ar-chave code { flex: 1; min-width: 0; font-family: var(--ar-mono); font-size: 14px; overflow-wrap: anywhere; user-select: all; }
+
+.ar-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin-top: 16px; font-size: .9rem; }
+.ar-dl dt { color: var(--ar-suave); font-weight: 600; }
+.ar-dl dd { overflow-wrap: anywhere; }
+
+.ar-ex { margin-top: 10px; }
+.ar-ex b { display: block; font-size: .82rem; color: var(--ar-suave); margin-bottom: 4px; }
+.ar-ex pre { font-family: var(--ar-mono); font-size: 12.5px; background: var(--ar-codigo); border: 1px solid var(--ar-lin); border-radius: 10px; padding: 10px 12px; overflow-x: auto; white-space: pre; }
+.ar-nota { display: flex; gap: 8px; align-items: flex-start; margin-top: 16px; font-size: .85rem; }
+.ar-nota .ar-ic { margin-top: 2px; }
+.ar-rodape { margin-top: 18px; text-align: center; font-size: 12px; color: var(--ar-suave); }
+
+@media (max-width: 480px) {
+  .ar-dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .ar-dl dd { margin-bottom: 6px; }
+  .ar-chave { flex-direction: column; align-items: stretch; }
+  .ar-btn-2 { width: 100%; }
+}

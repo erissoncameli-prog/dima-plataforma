@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="Erisson Cameli Santiago">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- o endereço traz o token do link: não vaza para fontes/CDN nem para buscadores -->
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1F4E2C">
+<title>DIMA · Retirar chave da API</title>
+<!--
+  Página PÚBLICA do link de retirada da chave da API (20261101_api_pedidos_email), exceção
+  ao padrão #app + gerarLayout, como pulso-responder.html. Não consome o link ao abrir
+  (leitores de e-mail abrem links sozinhos): a chave só é gerada no clique em
+  "Mostrar minha chave" (fn_publico_api_retirar) e aparece uma única vez.
+-->
+<script>try{var t=localStorage.getItem('diag_tema');document.documentElement.dataset.tema=t==='escuro'||t==='claro'?t:(matchMedia('(prefers-color-scheme: dark)').matches?'escuro':'claro')}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<link href="../css/api-retirar.css" rel="stylesheet">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ari-chave" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+  <symbol id="ari-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="ari-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="ari-alerta" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="ari-escudo" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/></symbol>
+  <symbol id="ari-olho" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+</svg>
+
+<header class="ar-topo">
+  <div class="ar-marca" data-dima-logos="topo" data-fundo="escuro"></div>
+  <h1>Chave da API do DIMA</h1>
+  <p>Dados agregados do Projeto para painéis e BI</p>
+</header>
+
+<main class="ar-main">
+  <section class="ar-cartao" id="ar-inicio">
+    <div class="ar-icone"><svg class="ar-ic"><use href="#ari-chave"/></svg></div>
+    <h2>Seu acesso foi aprovado</h2>
+    <p class="ar-suave">Ao clicar no botão, a sua chave é gerada e aparece <strong>uma única vez</strong>. Tenha à mão um
+      lugar seguro para guardá-la (cofre de senhas ou a configuração do seu painel/BI).</p>
+    <button type="button" class="ar-btn" id="ar-mostrar"><svg class="ar-ic"><use href="#ari-olho"/></svg>Mostrar minha chave</button>
+    <p class="ar-erro" id="ar-erro" role="alert" hidden></p>
+  </section>
+
+  <section class="ar-cartao" id="ar-pronto" hidden>
+    <div class="ar-icone ok"><svg class="ar-ic"><use href="#ari-check"/></svg></div>
+    <h2>Esta é a sua chave</h2>
+    <div class="ar-aviso"><svg class="ar-ic"><use href="#ari-alerta"/></svg>
+      <span>Copie e guarde agora. Ela <strong>não será mostrada de novo</strong> e o DIMA não guarda a chave, só uma impressão dela.
+      Se perder, peça um novo acesso.</span></div>
+    <div class="ar-chave">
+      <code id="ar-chave"></code>
+      <button type="button" class="ar-btn ar-btn-2" id="ar-copiar"><svg class="ar-ic"><use href="#ari-copiar"/></svg><span>Copiar</span></button>
+    </div>
+    <dl class="ar-dl" id="ar-detalhes"></dl>
+
+    <h3>Como usar</h3>
+    <p class="ar-suave">Envie a chave no cabeçalho <code>Authorization: Bearer …</code> em toda chamada. Respostas em JSON
+      (padrão) ou CSV (<code>?formato=csv</code>, com <code>&amp;sep=;</code> para o Excel em português).</p>
+    <div class="ar-ex"><b>Endereço</b><pre id="ar-ex-base"></pre></div>
+    <div class="ar-ex"><b>Teste rápido (terminal)</b><pre id="ar-ex-curl"></pre></div>
+    <div class="ar-ex"><b>Painel HTML (JavaScript)</b><pre id="ar-ex-js"></pre></div>
+    <div class="ar-ex"><b>Power BI (Power Query)</b><pre id="ar-ex-pbi"></pre></div>
+    <p class="ar-suave ar-nota"><svg class="ar-ic"><use href="#ari-escudo"/></svg>
+      A API entrega só números agregados, sem dados pessoais. No navegador a chave fica visível para quem abrir o
+      painel: se ela vazar, avise a administração do DIMA para revogar e emitir outra.</p>
+  </section>
+
+  <footer class="ar-rodape" data-dima-autoria></footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/autoria.js"></script>
+<script src="../js/logos.js"></script>
+<script src="../js/api-retirar.js"></script>
+</body>
+</html>

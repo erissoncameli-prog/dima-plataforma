@@ -11,6 +11,30 @@ nem texto livre.
 https://wfymnmlinonvdqfucjya.supabase.co/functions/v1/api-dados/v1
 ```
 
+## Como pedir acesso
+
+Escreva para **fundobrasilonuacre+api@gmail.com** com este modelo:
+
+```
+Assunto: Pedido de acesso à API do DIMA
+
+Órgão: (nome da instituição)
+Responsável técnico: (nome e cargo)
+Finalidade: (para que os dados serão usados)
+Site do painel: (ex.: https://painel.instituicao.gov.br — em branco se for só BI)
+Rotas: resumo, atividades, matriz
+Prazo: (até quando precisa do acesso; o padrão é 1 ano)
+```
+
+1. Se o seu domínio for confirmado pelo Gmail (DMARC/DKIM), você recebe na hora a resposta
+   "recebido" com o número do pedido (`API-2026-001`).
+2. A administração do DIMA analisa. Se aprovar, você recebe um **link de retirada** que vale
+   **72 horas** e funciona **uma vez**.
+3. Abra o link e clique em **Mostrar minha chave**. A chave é gerada nesse momento e aparece
+   **uma única vez**: copie e guarde. Ela nunca vai no corpo de um e-mail.
+4. Link vencido? Responda ao e-mail de aprovação pedindo um novo. Quinze dias antes de a chave
+   vencer você recebe um lembrete; para renovar, mande um novo pedido.
+
 ## Autenticação
 
 Toda chamada leva a chave no cabeçalho:
@@ -19,7 +43,7 @@ Toda chamada leva a chave no cabeçalho:
 Authorization: Bearer dima_xxxxxxxx…
 ```
 
-(ou `X-API-Key: dima_…`). A chave é criada por um super_admin e exibida **uma vez**.
+(ou `X-API-Key: dima_…`). A chave é exibida **uma vez** (na retirada ou na criação pela tela).
 Chave errada, revogada ou vencida ⇒ `401`.
 
 ## Rotas
@@ -85,14 +109,17 @@ in Tabela
 
 Mudar ou remover campo existente = nova versão (`/v2`); campo novo pode entrar na `v1`.
 
-## Administração (super_admin, pelo SQL Editor até existir a tela de Integrações)
+## Administração (super_admin)
+
+Tela: **Configurações › Integrações (API)** (`pages/integracoes.html`) — pedidos, chaves, chamadas.
+Pelo SQL Editor:
 
 ```sql
 -- criar (a chave aparece só nesta resposta)
 select fn_api_criar_cliente('Painel BI SEMA', 'Power BI da coordenação',
        array['resumo','atividades','matriz'],          -- escopos
        array['https://painel.exemplo.gov.br'],         -- origens do navegador (vazio = só servidor/BI)
-       now() + interval '1 year');                     -- expira em (null = não expira)
+       null);                                          -- expira em (null = 1 ano)
 select * from fn_api_clientes();                       -- lista, último acesso, chamadas em 30 dias
 select fn_api_revogar_cliente('<id>');                 -- revoga (não apaga)
 ```

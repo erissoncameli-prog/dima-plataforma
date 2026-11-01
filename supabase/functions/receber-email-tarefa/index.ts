@@ -8,9 +8,14 @@
 //      fn_comentar_tarefa_fornecedor)
 //   4) salva anexos no bucket tarefas-anexos LIGADOS ao comentário (comentario_id)
 //   5) marca a mensagem como lida
+// Endereço fundobrasilonuacre+api@gmail.com = PEDIDO DE ACESSO À API (20261101_api_pedidos_email):
+//   vira linha em api_pedidos (fn_api_pedido_registrar), sem passar pela lógica de tarefas;
+//   remetente autenticado (DMARC/DKIM do Gmail) recebe o aviso "recebido"; resposta
+//   automática, lista e devolução são ignoradas. A decisão é do super_admin (tela Integrações).
 // Autenticação do endpoint: ?key=RECEBER_EMAIL_KEY (segredo compartilhado com a
 // subscription). verify_jwt = false (o Pub/Sub não manda JWT do Supabase).
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { drenarApiPedidos } from '../_shared/api-pedidos-email.ts'
 
 const GMAIL = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const EMAIL_CONTA = 'fundobrasilonuacre@gmail.com'
@@ -26,6 +31,7 @@ function b64urlToBytes (s: string): Uint8Array {
   return Uint8Array.from(atob(s), c => c.charCodeAt(0))
 }
 const emailDe = (h: string) => (h.match(/<([^>]+)>/)?.[1] || h).trim().toLowerCase()
+const RE_API = /fundobrasilonuacre\+api@gmail\.com/i
 
 // Remove citação/assinatura da resposta, mantendo só o texto novo.
 function limparCorpo (txt: string): string {
@@ -111,13 +117,21 @@ Deno.serve(async (req) => {
     const ids = new Set<string>()
     for (const h of hj.history || []) for (const m of h.messagesAdded || []) if (m.message?.id) ids.add(m.message.id)
 
-    let comentados = 0
+    let comentados = 0, pedidosApi = 0
     for (const id of ids) {
       try {
         const mr = await fetch(`${GMAIL}/messages/${id}?format=full`, { headers: H })
         const msg = await mr.json()
         const payload = msg.payload
         const to = `${header(payload, 'To')} ${header(payload, 'Delivered-To')} ${header(payload, 'Cc')}`
+        if (RE_API.test(to)) {
+          pedidosApi += await registrarPedidoApi(sb, id, payload)
+          await fetch(`${GMAIL}/messages/${id}/modify`, {
+            method: 'POST', headers: { ...H, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ removeLabelIds: ['UNREAD'] }),
+          })
+          continue
+        }
         const tok = to.match(RE_TOKEN)
         if (!tok) continue
         const alvoId = tok[1]
@@ -198,7 +212,7 @@ Deno.serve(async (req) => {
     await sb.from('gmail_sync_state').update({ history_id: novoHist, atualizado_em: new Date().toISOString() }).eq('id', 'gmail')
 
     // sempre 200 para o Pub/Sub confirmar (evita reentrega em loop)
-    return new Response(JSON.stringify({ ok: true, novos: ids.size, comentados }),
+    return new Response(JSON.stringify({ ok: true, novos: ids.size, comentados, pedidosApi }),
       { headers: { 'Content-Type': 'application/json' } })
   } catch (e) {
     console.error('receber-email-tarefa:', (e as Error).message)
@@ -206,3 +220,62 @@ Deno.serve(async (req) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }) // 200 p/ não reentregar em loop
   }
 })
+
+// ── Pedido de acesso à API ────────────────────────────────────────────────
+// Remetente autenticado = o Gmail confirmou o domínio (DMARC pass, ou DKIM pass do
+// mesmo domínio do From). Sem isso o pedido entra marcado e não recebe resposta.
+function autenticacao (payload: any, fromEmail: string) {
+  const ars = (payload?.headers || [])
+    .filter((h: any) => h.name.toLowerCase() === 'authentication-results' && /^\s*mx\.google\.com/i.test(h.value))
+    .map((h: any) => h.value as string)
+  const ar = ars[0] || ''
+  const dominio = fromEmail.split('@')[1] || ''
+  const dmarc = /\bdmarc=pass\b/i.test(ar)
+  const dkim = [...ar.matchAll(/dkim=pass[^;]*?header\.(?:i=@?|d=)([a-z0-9.-]+)/gi)]
+    .some(m => dominio === m[1].toLowerCase() || dominio.endsWith('.' + m[1].toLowerCase()))
+  const resumo = ['spf', 'dkim', 'dmarc'].map(k => (ar.match(new RegExp(`\\b${k}=(\\w+)`, 'i')) || [])[0]).filter(Boolean).join(' ')
+  return { autenticado: dmarc || dkim, resumo: resumo || 'sem Authentication-Results' }
+}
+
+// Resposta automática, lista de e-mail ou devolução: não vira pedido nem recebe resposta.
+function ehAutomatico (payload: any, fromEmail: string) {
+  const auto = header(payload, 'Auto-Submitted').toLowerCase()
+  if (auto && auto !== 'no') return true
+  if (/^(bulk|junk|list|auto_reply)$/i.test(header(payload, 'Precedence').trim())) return true
+  if (header(payload, 'List-Id') || header(payload, 'X-Autoreply') || header(payload, 'X-Autorespond')) return true
+  return /^(mailer-daemon|postmaster|no-?reply|bounces?)([+.@-]|$)/i.test(fromEmail)
+}
+
+// "Órgão: X" etc. — campos do modelo do guia; o resto fica só no corpo.
+const CAMPOS_API: [string, RegExp][] = [
+  ['orgao', /^(?:órg[aã]o|orgao|institui[cç][aã]o)\s*:\s*(.+)$/im],
+  ['responsavel', /^respons[aá]vel(?:\s+t[eé]cnico)?\s*:\s*(.+)$/im],
+  ['finalidade', /^(?:finalidade|objetivo|uso)\s*:\s*(.+)$/im],
+  ['site', /^(?:site|dom[ií]nio|endere[cç]o do painel)[^:]*:\s*(.+)$/im],
+  ['rotas', /^(?:rotas|dados)[^:]*:\s*(.+)$/im],
+  ['prazo', /^(?:prazo|validade)[^:]*:\s*(.+)$/im],
+]
+
+async function registrarPedidoApi (sb: any, gmailId: string, payload: any): Promise<number> {
+  const fromH = header(payload, 'From')
+  const fromEmail = emailDe(fromH)
+  if (!fromEmail || fromEmail === EMAIL_CONTA || ehAutomatico(payload, fromEmail)) return 0
+  let corpo = acharParte(payload, 'text/plain')
+  if (!corpo) corpo = acharParte(payload, 'text/html').replace(/<[^>]+>/g, ' ')
+  corpo = limparCorpo(corpo)
+  const campos: Record<string, string> = {}
+  for (const [k, re] of CAMPOS_API) { const m = corpo.match(re); if (m) campos[k] = m[1].trim() }
+  const { autenticado, resumo } = autenticacao(payload, fromEmail)
+  const nome = fromH.includes('<') ? fromH.split('<')[0].replace(/"/g, '').trim() : ''
+  const { data: r, error } = await sb.rpc('fn_api_pedido_registrar', { p: {
+    gmail_message_id: gmailId, email_message_id: header(payload, 'Message-ID') || null,
+    remetente_email: fromEmail, remetente_nome: nome || null, assunto: header(payload, 'Subject') || null,
+    corpo, campos, autenticado, autenticacao: resumo,
+  } })
+  if (error) { console.error('pedido api:', error.message); return 0 }
+  if (r?.ignorado) { console.log('pedido api ignorado:', r.ignorado); return 0 }
+  if (r?.novo && r?.responder) {
+    try { await drenarApiPedidos(sb, r.id) } catch (e) { console.error('aviso api:', (e as Error).message) }
+  }
+  return r?.novo ? 1 : 0
+}
