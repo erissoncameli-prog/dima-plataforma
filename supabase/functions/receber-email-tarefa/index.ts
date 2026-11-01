@@ -10,6 +10,7 @@
 //   5) marca a mensagem como lida
 // Endereço fundobrasilonuacre+api@gmail.com = PEDIDO DE ACESSO À API (20261101_api_pedidos_email):
 //   vira linha em api_pedidos (fn_api_pedido_registrar), sem passar pela lógica de tarefas;
+//   além do histórico, cada execução varre os +api dos últimos 3 dias (o que já é pedido é pulado);
 //   remetente autenticado (DMARC/DKIM do Gmail) recebe o aviso "recebido"; resposta
 //   automática, lista e devolução são ignoradas. A decisão é do super_admin (tela Integrações).
 // Autenticação do endpoint: ?key=RECEBER_EMAIL_KEY (segredo compartilhado com a
@@ -206,6 +207,27 @@ Deno.serve(async (req) => {
         })
       } catch (e) { console.error('msg', id, (e as Error).message) }
     }
+
+    // Varredura do +api: pedido que não veio no histórico (push perdido, corrida com o Gmail)
+    // é pego aqui. Idempotente: e-mail que já virou pedido não é buscado de novo.
+    let varredura = 0
+    try {
+      const q = encodeURIComponent('to:fundobrasilonuacre+api@gmail.com newer_than:3d')
+      const lj = await (await fetch(`${GMAIL}/messages?q=${q}&maxResults=20`, { headers: H })).json()
+      const candidatos = (lj.messages || []).map((m: any) => m.id).filter((x: string) => !ids.has(x))
+      if (candidatos.length) {
+        const { data: ja } = await sb.from('api_pedidos').select('gmail_message_id').in('gmail_message_id', candidatos)
+        const feitos = new Set((ja || []).map((r: any) => r.gmail_message_id))
+        for (const mid of candidatos) {
+          if (feitos.has(mid)) continue
+          const m = await (await fetch(`${GMAIL}/messages/${mid}?format=full`, { headers: H })).json()
+          if ((m.labelIds || []).includes('SENT')) continue   // cópia enviada pela própria conta
+          const n = await registrarPedidoApi(sb, mid, m.payload)
+          varredura += n; pedidosApi += n
+        }
+      }
+    } catch (e) { console.error('varredura api:', (e as Error).message) }
+    console.log('receber-email-tarefa:', JSON.stringify({ novos: ids.size, comentados, pedidosApi, varredura }))
 
     // avança a baseline para o historyId mais recente
     const novoHist = hj.historyId ? String(hj.historyId) : startHistoryId
