@@ -2107,10 +2107,10 @@ async function abrirDetalhe(id){
       if(p.notificado_unesco_conclusao_em){
         footer+=`<div style="display:flex;align-items:center;gap:8px;margin-left:auto">
           <span style="font-size:11px;color:var(--ok);display:flex;align-items:center;gap:4px"><svg class="vi-ic p"><use href="#vi-email"/></svg> UNESCO notificada (conclusão) em ${fmtData(p.notificado_unesco_conclusao_em.split('T')[0])}</span>
-          <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})"><svg class="vi-ic p"><use href="#vi-refazer"/></svg> Reenviar</button>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px" data-unesco-conc onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})"><svg class="vi-ic p"><use href="#vi-refazer"/></svg> Reenviar</button>
         </div>`;
       }else{
-        footer+=`<button class="btn" style="margin-left:auto;background:var(--info-bg);color:var(--info-txt);border:1px solid color-mix(in srgb,var(--info) 35%,transparent)" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar UNESCO — conclusão</button>`;
+        footer+=`<button class="btn" data-unesco-conc style="margin-left:auto;background:var(--info-bg);color:var(--info-txt);border:1px solid color-mix(in srgb,var(--info) 35%,transparent)" onclick="notificarUnescoConcluso('${p.id}').then(ok=>{if(ok){fecharModal();carregar();}})"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar UNESCO — conclusão</button>`;
       }
     }
   }
@@ -3077,7 +3077,20 @@ async function realizarProtocolo(){
 // ══════════════════════════════════════════════════════════════
 // NOTIFICAÇÃO UNESCO — CONCLUSÃO (com anexos)
 // ══════════════════════════════════════════════════════════════
+// Trava contra clique duplo: enquanto o envio de um protocolo está em andamento,
+// os botões "Notificar UNESCO — conclusão"/"Reenviar" ficam desativados e
+// uma nova chamada para o mesmo protocolo é ignorada (antes saíam 2 e-mails).
+const _enviandoConclusao=new Set();
+function _botoesConclusao(desativar){
+  document.querySelectorAll('[data-unesco-conc]').forEach(b=>{
+    if(desativar){b.dataset.htmlOrig=b.innerHTML;b.disabled=true;b.setAttribute('aria-busy','true');b.innerHTML='<svg class="vi-ic p"><use href="#vi-relogio"/></svg> Enviando…';}
+    else{b.disabled=false;b.removeAttribute('aria-busy');if(b.dataset.htmlOrig)b.innerHTML=b.dataset.htmlOrig;}
+  });
+}
 async function notificarUnescoConcluso(protId){
+  if(_enviandoConclusao.has(protId)){toast('O e-mail para a UNESCO já está sendo enviado. Aguarde.','info');return false;}
+  _enviandoConclusao.add(protId);
+  _botoesConclusao(true);
   try{
     const{data:{session}}=await db.auth.getSession();
     const token=session?.access_token||SUPABASE_ANON_KEY;
@@ -3100,6 +3113,9 @@ async function notificarUnescoConcluso(protId){
   }catch(e){
     toast('Erro ao notificar UNESCO: '+(e?.message||'falha de rede'),'error');
     return false;
+  }finally{
+    _enviandoConclusao.delete(protId);
+    _botoesConclusao(false);
   }
 }
 
