@@ -23,6 +23,18 @@ const FILE_TIMEOUT_MS = 20_000
 // Validade do link de arquivo que não coube no e-mail: 7 dias
 const LINK_VALIDADE_S = 7 * 24 * 60 * 60
 const LINK_VALIDADE_TXT = '7 dias'
+// Trava contra envio em dobro (entre abas e pessoas): reserva enquanto envia e
+// intervalo mínimo entre dois envios do mesmo protocolo.
+// Banco: fn_viagem_conclusao_reservar/_liberar (migração 20261104_viagem_conclusao_trava_envio).
+const TRAVA_ENVIO_S = 300
+const INTERVALO_REENVIO_S = 120
+// Quem pode mandar o e-mail à UNESCO (mesmo critério da tela de Viagens)
+const PERFIS_ENVIO = ['super_admin', 'coordenacao']
+
+class Recusa extends Error {
+  status: number
+  constructor (msg: string, status: number) { super(msg); this.status = status }
+}
 
 const escH = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
 // Texto escapado; endereços https viram link clicável
@@ -186,13 +198,24 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   try {
-    const { protocolo_id, enviado_por } = await req.json()
+    const { protocolo_id } = await req.json()
     if (!protocolo_id) throw new Error('protocolo_id é obrigatório')
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // Quem chama: usuário logado, ativo, super_admin ou coordenação.
+    // enviado_por vem do token, nunca do corpo da requisição.
+    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+    const { data: { user } } = await supabase.auth.getUser(jwt)
+    if (!user) throw new Recusa('Sessão inválida. Entre de novo na plataforma.', 401)
+    const { data: quem } = await supabase.from('usuarios').select('perfil, ativo').eq('id', user.id).maybeSingle()
+    if (!quem?.ativo || !PERFIS_ENVIO.includes(quem.perfil)) {
+      throw new Recusa('Só super_admin ou coordenação enviam o e-mail de conclusão à UNESCO.', 403)
+    }
+    const enviado_por = user.id
 
     const { data: proto, error } = await supabase
       .from('viagem_protocolos')
@@ -207,65 +230,77 @@ Deno.serve(async (req) => {
     const saida = fmtData(proto.dt_saida)
     const ret   = fmtData(proto.dt_retorno)
 
-    // Montar lista de todos os arquivos a baixar em paralelo
-    type FileJob = { url: string; filename: string; rotulo: string; viajante: string }
-    const jobs: FileJob[] = []
-    let benefLines = ''
+    // Reserva atômica: outro envio do mesmo protocolo em andamento (ou feito há
+    // menos de 2 minutos) é recusado — evita e-mail em dobro para a UNESCO.
+    const { data: reserva, error: errReserva } = await supabase.rpc('fn_viagem_conclusao_reservar', {
+      p_protocolo_id: protocolo_id, p_segundos: TRAVA_ENVIO_S,
+    })
+    if (errReserva) throw new Error('Não foi possível reservar o envio: ' + errReserva.message)
+    if (!reserva?.ok) {
+      throw new Recusa(`O e-mail de conclusão deste protocolo está sendo enviado ou acabou de ser enviado. Aguarde ${Math.round(INTERVALO_REENVIO_S / 60)} minutos antes de reenviar.`, 409)
+    }
+    let enviado = false
+    try {
 
-    for (const v of (proto.viajantes || [])) {
-      const slug = slugNome(v.nome)
-      benefLines += `  • ${v.nome || '—'} (${v.funcao || '—'})\n`
+      // Montar lista de todos os arquivos a baixar em paralelo
+      type FileJob = { url: string; filename: string; rotulo: string; viajante: string }
+      const jobs: FileJob[] = []
+      let benefLines = ''
 
-      if (v.relatorio_url) {
-        jobs.push({ url: v.relatorio_url, filename: `relatorio_${slug}.${extFromUrl(v.relatorio_url)}`, rotulo: 'Relatório', viajante: v.nome || '—' })
+      for (const v of (proto.viajantes || [])) {
+        const slug = slugNome(v.nome)
+        benefLines += `  • ${v.nome || '—'} (${v.funcao || '—'})\n`
+
+        if (v.relatorio_url) {
+          jobs.push({ url: v.relatorio_url, filename: `relatorio_${slug}.${extFromUrl(v.relatorio_url)}`, rotulo: 'Relatório', viajante: v.nome || '—' })
+        }
+        const cartoes: string[] = v.cartoes_embarque_urls || []
+        for (let i = 0; i < cartoes.length; i++) {
+          jobs.push({ url: cartoes[i], filename: `embarque_${slug}_${i + 1}.${extFromUrl(cartoes[i])}`, rotulo: `Cartão de embarque ${i + 1}`, viajante: v.nome || '—' })
+        }
       }
-      const cartoes: string[] = v.cartoes_embarque_urls || []
-      for (let i = 0; i < cartoes.length; i++) {
-        jobs.push({ url: cartoes[i], filename: `embarque_${slug}_${i + 1}.${extFromUrl(cartoes[i])}`, rotulo: `Cartão de embarque ${i + 1}`, viajante: v.nome || '—' })
+
+      // Baixar todos os arquivos em paralelo (service_role — o bucket é privado)
+      const buffers = await Promise.all(jobs.map(j => baixar(supabase, j.url)))
+
+      // Montar anexos respeitando o limite de tamanho total
+      const attachments: { filename: string; content: Buffer; contentType: string }[] = []
+      const skipped: FileJob[] = []
+      let totalBytes = 0
+
+      for (let i = 0; i < jobs.length; i++) {
+        const buf = buffers[i]
+        if (!buf || buf.byteLength === 0 || totalBytes + buf.byteLength > MAX_TOTAL_BYTES) {
+          skipped.push(jobs[i])
+          continue
+        }
+        const ext = jobs[i].filename.split('.').pop() || ''
+        attachments.push({ filename: jobs[i].filename, content: Buffer.from(buf), contentType: MIME[ext] || 'application/octet-stream' })
+        totalBytes += buf.byteLength
       }
-    }
 
-    // Baixar todos os arquivos em paralelo (service_role — o bucket é privado)
-    const buffers = await Promise.all(jobs.map(j => baixar(supabase, j.url)))
-
-    // Montar anexos respeitando o limite de tamanho total
-    const attachments: { filename: string; content: Buffer; contentType: string }[] = []
-    const skipped: FileJob[] = []
-    let totalBytes = 0
-
-    for (let i = 0; i < jobs.length; i++) {
-      const buf = buffers[i]
-      if (!buf || buf.byteLength === 0 || totalBytes + buf.byteLength > MAX_TOTAL_BYTES) {
-        skipped.push(jobs[i])
-        continue
+      // Só o que não foi anexado ganha link — assinado e com validade limitada
+      // (cartão de embarque e relatório trazem dado pessoal; e-mail é reencaminhado).
+      const linhasLink: string[] = []
+      const semLink: string[] = []
+      for (const j of skipped) {
+        const u = await linkAssinado(supabase, j.url)
+        if (u) linhasLink.push(`  ${j.viajante} — ${j.rotulo}: ${u}`)
+        else semLink.push(`${j.viajante} — ${j.rotulo}`)
       }
-      const ext = jobs[i].filename.split('.').pop() || ''
-      attachments.push({ filename: jobs[i].filename, content: Buffer.from(buf), contentType: MIME[ext] || 'application/octet-stream' })
-      totalBytes += buf.byteLength
-    }
 
-    // Só o que não foi anexado ganha link — assinado e com validade limitada
-    // (cartão de embarque e relatório trazem dado pessoal; e-mail é reencaminhado).
-    const linhasLink: string[] = []
-    const semLink: string[] = []
-    for (const j of skipped) {
-      const u = await linkAssinado(supabase, j.url)
-      if (u) linhasLink.push(`  ${j.viajante} — ${j.rotulo}: ${u}`)
-      else semLink.push(`${j.viajante} — ${j.rotulo}`)
-    }
+      if (jobs.length && !attachments.length && !linhasLink.length) {
+        throw new Error('Nenhum documento de prestação de contas pôde ser anexado nem ter link gerado. O e-mail não foi enviado.')
+      }
 
-    if (jobs.length && !attachments.length && !linhasLink.length) {
-      throw new Error('Nenhum documento de prestação de contas pôde ser anexado nem ter link gerado. O e-mail não foi enviado.')
-    }
+      const linksSection = linhasLink.length
+        ? `\n${linhasLink.length} documento(s) não couberam no e-mail (limite de tamanho) ou não puderam ser anexados. Acesse pelos links abaixo, válidos por ${LINK_VALIDADE_TXT}:\n${linhasLink.join('\n')}`
+        : ''
+      const skipNote = semLink.length
+        ? `\n\nObservação: não foi possível anexar nem gerar link para: ${semLink.join('; ')}. Responda este e-mail para recebê-los.`
+        : ''
 
-    const linksSection = linhasLink.length
-      ? `\n${linhasLink.length} documento(s) não couberam no e-mail (limite de tamanho) ou não puderam ser anexados. Acesse pelos links abaixo, válidos por ${LINK_VALIDADE_TXT}:\n${linhasLink.join('\n')}`
-      : ''
-    const skipNote = semLink.length
-      ? `\n\nObservação: não foi possível anexar nem gerar link para: ${semLink.join('; ')}. Responda este e-mail para recebê-los.`
-      : ''
-
-    const corpo = `Prezados,
+      const corpo = `Prezados,
 
 Informamos que o Protocolo de Viagem ${num} foi concluído e encerrado com sucesso na Plataforma FundoBrasilONU.
 
@@ -287,48 +322,55 @@ Equipe de Gestão – Projeto DIMA
 UNESCO / SEMA-AC
 fundobrasilonuacre@gmail.com`
 
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: 'fundobrasilonuacre@gmail.com',
-        pass: Deno.env.get('GMAIL_APP_PASSWORD')!,
-      },
-    })
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: 'fundobrasilonuacre@gmail.com',
+          pass: Deno.env.get('GMAIL_APP_PASSWORD')!,
+        },
+      })
 
-    await transporter.sendMail({
-      from: REMETENTE,
-      to: UNESCO_EMAIL,
-      subject: `[DIMA] Protocolo ${num} — Conclusão e Prestação de Contas`,
-      text: corpo,
-      html: wrapHtml(corpo, { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Ver na Plataforma' }, await logosEmail(supabase)),
-      attachments,
-    })
+      await transporter.sendMail({
+        from: REMETENTE,
+        to: UNESCO_EMAIL,
+        subject: `[DIMA] Protocolo ${num} — Conclusão e Prestação de Contas`,
+        text: corpo,
+        html: wrapHtml(corpo, { url: `${SITE_URL}/pages/viagens.html`, label: '🔗 Ver na Plataforma' }, await logosEmail(supabase)),
+        attachments,
+      })
+      enviado = true
 
-    // Registrar data de envio no protocolo
-    await supabase
-      .from('viagem_protocolos')
-      .update({ notificado_unesco_conclusao_em: new Date().toISOString() })
-      .eq('id', protocolo_id)
+      // Registrar data de envio no protocolo
+      await supabase
+        .from('viagem_protocolos')
+        .update({ notificado_unesco_conclusao_em: new Date().toISOString() })
+        .eq('id', protocolo_id)
 
-    // Log para aparecer na timeline
-    const logInsert: Record<string, unknown> = {
-      protocolo_id,
-      evento: 'conclusao_unesco',
-      total_enviados: 1,
+      // Log para aparecer na timeline
+      const logInsert: Record<string, unknown> = {
+        protocolo_id,
+        evento: 'conclusao_unesco',
+        total_enviados: 1,
+      }
+      if (enviado_por) logInsert.enviado_por = enviado_por
+      await supabase.from('viagem_notif_log').insert(logInsert)
+
+      return new Response(
+        JSON.stringify({ ok: true, anexos: attachments.length, links: linhasLink.length, ignorados: semLink.length }),
+        { headers: { ...cors, 'Content-Type': 'application/json' } }
+      )
+    } finally {
+      // Sucesso: mantém o intervalo mínimo antes de outro envio. Falha: solta a trava.
+      await supabase.rpc('fn_viagem_conclusao_liberar', {
+        p_protocolo_id: protocolo_id, p_segundos: enviado ? INTERVALO_REENVIO_S : 0,
+      })
     }
-    if (enviado_por) logInsert.enviado_por = enviado_por
-    await supabase.from('viagem_notif_log').insert(logInsert)
-
-    return new Response(
-      JSON.stringify({ ok: true, anexos: attachments.length, links: linhasLink.length, ignorados: semLink.length }),
-      { headers: { ...cors, 'Content-Type': 'application/json' } }
-    )
   } catch (e: any) {
     return new Response(
       JSON.stringify({ ok: false, error: e.message }),
-      { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
+      { status: e instanceof Recusa ? e.status : 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
     )
   }
 })

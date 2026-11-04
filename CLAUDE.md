@@ -921,6 +921,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   "válido até" / "vence em N dias" (`selePassaporte`). CPF completo e dados bancários só na janela de edição.
 - Janelas: classe **`vi-ov`** (no seletor de escopo de `diagnostico-mesa.css`); a classe `.aberto` é observada (`viObs`): pilha,
   Esc fecha a de cima (`VI_FECHAR` para as que têm função própria), Tab preso, foco volta.
+- **E-mail de conclusão à UNESCO** (`notificar-unesco-conclusao`, botões "Notificar UNESCO — conclusão"/"Reenviar"): anexos baixados por
+  `storage.download()` (service_role; `viagens-arquivos` é privado — o `fetch` na URL pública deixou o VGM-2026-024 sem anexos); só o que
+  não couber ganha link assinado de 7 dias. Só super_admin/coordenação ativos enviam (`enviado_por` vem do token). Sem envio em dobro:
+  a tela desativa o botão (`_enviandoConclusao`) e o banco reserva o protocolo (`fn_viagem_conclusao_reservar`/`_liberar`, coluna
+  `viagem_protocolos.conclusao_envio_trava_ate`, só service_role; migração `20261104_viagem_conclusao_trava_envio`): outro envio em
+  andamento ou há menos de 2 min é recusado (409).
 - **Aprovação do protocolo** (migração `20261016_viagem_aprovacao_segregada`): `solicitado` → aprovar/devolver/rejeitar **só
   super_admin**; `aprovado` → **devolver** por super_admin ou financeiro (cancela os lançamentos a pagar, itens voltam a
   `solicitado`, protocolo a `rascunho`; recusa se já houver pago). **Nunca decide quem está no protocolo**: criador, e-mail do
