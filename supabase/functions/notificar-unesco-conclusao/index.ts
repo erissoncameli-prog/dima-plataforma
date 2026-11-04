@@ -1,4 +1,4 @@
-﻿import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { Buffer } from 'node:buffer'
 import { logosEmail } from '../_shared/logos-email.ts'
@@ -20,6 +20,13 @@ const SITE_URL = 'https://fundobrasilonu-plataforma.vercel.app'
 const MAX_TOTAL_BYTES = 20 * 1024 * 1024
 // Timeout por arquivo: 20 segundos
 const FILE_TIMEOUT_MS = 20_000
+// Validade do link de arquivo que não coube no e-mail: 7 dias
+const LINK_VALIDADE_S = 7 * 24 * 60 * 60
+const LINK_VALIDADE_TXT = '7 dias'
+
+const escH = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+// Texto escapado; endereços https viram link clicável
+const linkar = (t: string) => escH(t).replace(/https:\/\/[^\s<]+/g, (u) => `<a href="${u}" style="color:#059669;word-break:break-all">${u}</a>`)
 
 // ── Wrapper HTML com barra de logos (mesmo padrão dos demais e-mails do sistema) ──
 function wrapHtml(corpo: string, linkBtn: { url: string; label: string } | undefined, logos: { cabecalho: string; faixa: string }): string {
@@ -36,15 +43,15 @@ function wrapHtml(corpo: string, linkBtn: { url: string; label: string } | undef
       const chave = linha.slice(0, sep).trim()
       const valor = linha.slice(sep + 1).trim()
       html += `<tr>
-        <td style="padding:4px 10px 4px 0;font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap;vertical-align:top;width:110px">${chave}</td>
-        <td style="padding:4px 0;font-size:13px;color:#111827;vertical-align:top">${valor || '—'}</td>
+        <td style="padding:4px 10px 4px 0;font-size:12px;font-weight:700;color:#6B7280;white-space:nowrap;vertical-align:top;width:110px">${escH(chave)}</td>
+        <td style="padding:4px 0;font-size:13px;color:#111827;vertical-align:top">${valor ? linkar(valor) : '—'}</td>
       </tr>`
     } else {
       if (emBloco) { html += '</table>'; emBloco = false }
       if (linha.trim() === '') {
         html += '<br>'
       } else {
-        html += `<p style="margin:4px 0;font-size:13px;color:#1F2937;line-height:1.6">${linha}</p>`
+        html += `<p style="margin:4px 0;font-size:13px;color:#1F2937;line-height:1.6">${linkar(linha)}</p>`
       }
     }
   }
@@ -120,7 +127,7 @@ function fmtData(s: string | null): string {
 
 function slugNome(nome: string): string {
   return (nome || 'beneficiario')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
     .substring(0, 30)
 }
@@ -131,19 +138,47 @@ function extFromUrl(url: string): string {
   return ['pdf', 'jpg', 'jpeg', 'png', 'webp'].includes(ext) ? ext : 'jpg'
 }
 
-// Baixa um arquivo com timeout. Retorna null se falhar ou exceder o tempo.
-async function downloadWithTimeout(url: string): Promise<Uint8Array | null> {
+const MIME: Record<string, string> = {
+  pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+}
+
+// Bucket e caminho a partir da URL "portadora" gravada na tabela
+// (/storage/v1/object/public/<bucket>/<path>). O bucket viagens-arquivos é
+// PRIVADO desde 20260727_lgpd_c1_01: essa URL não abre (400) — serve só
+// para guardar o caminho.
+function refStorage(url: string): { bucket: string; path: string } | null {
+  const m = (url || '').split('?')[0].match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)$/)
+  return m ? { bucket: m[1], path: decodeURIComponent(m[2]) } : null
+}
+
+function comTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))])
+}
+
+// Baixa o arquivo pelo client service_role (fetch na URL pública falha com 400).
+// Retorna null se falhar ou exceder o tempo.
+// deno-lint-ignore no-explicit-any
+async function baixar(supabase: any, url: string): Promise<Uint8Array | null> {
   try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), FILE_TIMEOUT_MS)
-    const resp = await fetch(url, { signal: controller.signal })
-    clearTimeout(timer)
-    if (!resp.ok) return null
-    const ab = await resp.arrayBuffer()
-    return new Uint8Array(ab)
+    const ref = refStorage(url)
+    if (!ref) return null
+    const res = await comTimeout(supabase.storage.from(ref.bucket).download(ref.path), FILE_TIMEOUT_MS)
+    // deno-lint-ignore no-explicit-any
+    const { data, error } = (res || {}) as any
+    if (error || !data) return null
+    return new Uint8Array(await data.arrayBuffer())
   } catch {
     return null
   }
+}
+
+// Link assinado (validade limitada) só para o arquivo que não pôde ir como anexo.
+// deno-lint-ignore no-explicit-any
+async function linkAssinado(supabase: any, url: string): Promise<string | null> {
+  const ref = refStorage(url)
+  if (!ref) return null
+  const { data, error } = await supabase.storage.from(ref.bucket).createSignedUrl(ref.path, LINK_VALIDADE_S)
+  return error || !data?.signedUrl ? null : data.signedUrl
 }
 
 Deno.serve(async (req) => {
@@ -173,65 +208,61 @@ Deno.serve(async (req) => {
     const ret   = fmtData(proto.dt_retorno)
 
     // Montar lista de todos os arquivos a baixar em paralelo
-    type FileJob = {
-      url: string
-      filename: string
-    }
+    type FileJob = { url: string; filename: string; rotulo: string; viajante: string }
     const jobs: FileJob[] = []
     let benefLines = ''
-    const linksPorViajante: string[] = []
 
     for (const v of (proto.viajantes || [])) {
       const slug = slugNome(v.nome)
       benefLines += `  • ${v.nome || '—'} (${v.funcao || '—'})\n`
 
-      const linksV: string[] = []
-
       if (v.relatorio_url) {
-        jobs.push({ url: v.relatorio_url, filename: `relatorio_${slug}.pdf` })
-        linksV.push(`    Relatório: ${v.relatorio_url}`)
+        jobs.push({ url: v.relatorio_url, filename: `relatorio_${slug}.${extFromUrl(v.relatorio_url)}`, rotulo: 'Relatório', viajante: v.nome || '—' })
       }
-
-      for (let i = 0; i < (v.cartoes_embarque_urls || []).length; i++) {
-        const url = v.cartoes_embarque_urls[i]
-        const ext = extFromUrl(url)
-        jobs.push({ url, filename: `embarque_${slug}_${i + 1}.${ext}` })
-        linksV.push(`    Cartão ${i + 1}: ${url}`)
-      }
-
-      if (linksV.length) {
-        linksPorViajante.push(`  ${v.nome || '—'}:\n${linksV.join('\n')}`)
+      const cartoes: string[] = v.cartoes_embarque_urls || []
+      for (let i = 0; i < cartoes.length; i++) {
+        jobs.push({ url: cartoes[i], filename: `embarque_${slug}_${i + 1}.${extFromUrl(cartoes[i])}`, rotulo: `Cartão de embarque ${i + 1}`, viajante: v.nome || '—' })
       }
     }
 
-    // Baixar todos os arquivos em paralelo
-    const buffers = await Promise.all(jobs.map(j => downloadWithTimeout(j.url)))
+    // Baixar todos os arquivos em paralelo (service_role — o bucket é privado)
+    const buffers = await Promise.all(jobs.map(j => baixar(supabase, j.url)))
 
     // Montar anexos respeitando o limite de tamanho total
-    const attachments: { filename: string; content: Buffer }[] = []
-    const skipped: string[] = []
+    const attachments: { filename: string; content: Buffer; contentType: string }[] = []
+    const skipped: FileJob[] = []
     let totalBytes = 0
 
     for (let i = 0; i < jobs.length; i++) {
       const buf = buffers[i]
-      if (!buf) {
-        skipped.push(jobs[i].filename)
+      if (!buf || buf.byteLength === 0 || totalBytes + buf.byteLength > MAX_TOTAL_BYTES) {
+        skipped.push(jobs[i])
         continue
       }
-      if (totalBytes + buf.byteLength > MAX_TOTAL_BYTES) {
-        skipped.push(jobs[i].filename)
-        continue
-      }
-      attachments.push({ filename: jobs[i].filename, content: Buffer.from(buf) })
+      const ext = jobs[i].filename.split('.').pop() || ''
+      attachments.push({ filename: jobs[i].filename, content: Buffer.from(buf), contentType: MIME[ext] || 'application/octet-stream' })
       totalBytes += buf.byteLength
     }
 
-    const linksSection = linksPorViajante.length
-      ? `\nLINKS DIRETOS DOS DOCUMENTOS (caso os anexos não abram):\n${linksPorViajante.join('\n\n')}`
-      : ''
+    // Só o que não foi anexado ganha link — assinado e com validade limitada
+    // (cartão de embarque e relatório trazem dado pessoal; e-mail é reencaminhado).
+    const linhasLink: string[] = []
+    const semLink: string[] = []
+    for (const j of skipped) {
+      const u = await linkAssinado(supabase, j.url)
+      if (u) linhasLink.push(`  ${j.viajante} — ${j.rotulo}: ${u}`)
+      else semLink.push(`${j.viajante} — ${j.rotulo}`)
+    }
 
-    const skipNote = skipped.length
-      ? `\n\nObservação: ${skipped.length} arquivo(s) não puderam ser anexados por excederem o limite de tamanho ou por falha no download. Os links acima permitem acesso direto aos originais.`
+    if (jobs.length && !attachments.length && !linhasLink.length) {
+      throw new Error('Nenhum documento de prestação de contas pôde ser anexado nem ter link gerado. O e-mail não foi enviado.')
+    }
+
+    const linksSection = linhasLink.length
+      ? `\n${linhasLink.length} documento(s) não couberam no e-mail (limite de tamanho) ou não puderam ser anexados. Acesse pelos links abaixo, válidos por ${LINK_VALIDADE_TXT}:\n${linhasLink.join('\n')}`
+      : ''
+    const skipNote = semLink.length
+      ? `\n\nObservação: não foi possível anexar nem gerar link para: ${semLink.join('; ')}. Responda este e-mail para recebê-los.`
       : ''
 
     const corpo = `Prezados,
@@ -242,13 +273,13 @@ PROTOCOLO : ${num}
 DESTINO   : ${dest}
 PERÍODO   : ${saida} a ${ret}
 
-BENEFICIÁRIOS:
+Beneficiários:
 ${benefLines || '  —\n'}
-Seguem em anexo os documentos de prestação de contas de todos os beneficiários${
+${
   attachments.length > 0
-    ? ` (${attachments.length} arquivo(s) — relatórios de viagem e/ou cartões de embarque)`
-    : '. Os links abaixo permitem acesso direto aos documentos no sistema'
-}.
+    ? `Seguem em anexo os documentos de prestação de contas (${attachments.length} arquivo(s) — relatórios de viagem e/ou cartões de embarque).`
+    : jobs.length ? 'Os documentos de prestação de contas estão disponíveis pelos links abaixo.' : 'Não há documentos de prestação de contas cadastrados para este protocolo.'
+}
 ${linksSection}${skipNote}
 
 Atenciosamente,
@@ -291,7 +322,7 @@ fundobrasilonuacre@gmail.com`
     await supabase.from('viagem_notif_log').insert(logInsert)
 
     return new Response(
-      JSON.stringify({ ok: true, anexos: attachments.length, ignorados: skipped.length }),
+      JSON.stringify({ ok: true, anexos: attachments.length, links: linhasLink.length, ignorados: semLink.length }),
       { headers: { ...cors, 'Content-Type': 'application/json' } }
     )
   } catch (e: any) {
