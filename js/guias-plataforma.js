@@ -141,7 +141,7 @@
       ],
     },
     {
-      slug: 'avaliar-entrega', pagina: 'produtos', versao: 2, icone: 'entrega',
+      slug: 'avaliar-entrega', pagina: 'produtos', versao: 3, icone: 'entrega',
       perfis: ['super_admin', 'coordenacao', 'tecnico'],
       titulo: 'Avaliar uma entrega', resumo: 'Conferir o que o fornecedor entregou e dizer se está bom',
       passos: [
@@ -162,7 +162,7 @@
           lista: ['**Aprovar**: está tudo certo.', '**Parcial**: só uma parte está certa.', '**Devolução**: precisa corrigir. Explique o que falta.'] },
         { titulo: 'Passo 4: a Nota Técnica', icone: 'doc',
           texto: 'Para aprovar, anexe a **Nota Técnica** do SEI em PDF. O sistema confere sozinho.',
-          nota: 'Não sabe fazer a nota? Clique em **Ver o modelo da nota** e baixe o modelo pronto.' },
+          nota: 'Não sabe fazer a nota? Clique em **Ver o modelo da nota** e baixe o modelo pronto. Anexou a nota errada? Antes de aprovar, clique em **Retirar nota**, escreva o motivo e anexe a certa.' },
         { titulo: 'Passo 5: confirme com a senha', icone: 'cadeado',
           texto: 'Escreva o despacho (o texto da sua decisão). Depois clique em **Aprovar e liberar pagamento** e digite **a sua senha** do sistema.' },
         { titulo: 'Pronto!', icone: 'pagar',

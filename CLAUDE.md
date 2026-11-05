@@ -865,6 +865,11 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `selNotaTecnica` envia a `entregas-docs/produtos/<produto_id>/…` e chama a função; `ntConf` guarda o resultado. Regra nova = na função.
   **Nota aprovada fica fixa** (`_b_unica`): a função recusa outra nota enquanto a última conferência da entrega for aprovada (≤ 2 dias,
   entrega `em_analise`), salvo super_admin; a trava exige que a nota gravada seja a da ÚLTIMA conferência `tela` da entrega. Tela: `ntTravar()`.
+  **Retirar antes de aprovar** (`20261105_nota_tecnica_retirar`): quem anexou a nota (`conferido_por`) ou super_admin retira a nota
+  conferida enquanto a entrega está `em_analise` — ação `retirar` da função (motivo ≥ 10). Nada é apagado: a conferência ganha
+  `retirada_em/por/motivo` (só service_role grava), deixa de travar a troca, não conta como nota repetida e o trigger recusa aprovar
+  com ela (`NOTA_TECNICA_RETIRADA`). Tela: botão "Retirar nota" (`ntRetirarAbrir`, janela `#modal-nt-retirar`), histórico em `#nt-hist`;
+  ao reabrir a entrega em análise, `ntCarregarEstado` mostra a última conferência aprovada da tela (a que trava), não só a gravada na entrega.
   **Guia, modelo e senha** (`_c_senha`): marcar aprovar abre `#modal-nt-guia` (`ntGuiaAbrir`: requisitos + modelo da função, ação `modelo`,
   `modelo.ts` = padrão das 8 seções das notas aprovadas; `o` = obrigatório em amarelo, `c` = a completar; copiar texto ou baixar .docx gerado
   no servidor com `npm:docx`). Checklist da conferência em `ntRender`. Aprovar (total/parcial) pede a **senha de login** (`#modal-nt-senha`,

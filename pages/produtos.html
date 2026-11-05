@@ -126,6 +126,26 @@
   </div>
 </div>
 
+<div class="modal-overlay pr-ov pr-sobre" id="modal-nt-retirar" role="dialog" aria-modal="true" aria-labelledby="ntr-titulo">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title" id="ntr-titulo"><i data-ic="x"></i>Retirar a nota técnica</div>
+      <button type="button" class="modal-close" onclick="prFechar('modal-nt-retirar')" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="pr-nts-res" id="ntr-res"></div>
+      <p class="form-hint" style="margin:0 0 10px">A nota sai desta entrega e você pode anexar outra, que passa pela conferência de novo. Nada é apagado: a retirada fica registrada com o seu nome e o motivo.</p>
+      <label class="form-label" for="ntr-motivo">Motivo da retirada <span class="obrig">*</span></label>
+      <textarea class="form-control" id="ntr-motivo" rows="3" maxlength="500" placeholder="Ex.: valor do produto errado no texto da nota"></textarea>
+      <div class="pr-nt-msg erro" id="ntr-erro" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="prFechar('modal-nt-retirar')">Cancelar</button>
+      <button type="button" class="btn btn-primary" id="ntr-ok" onclick="ntRetirarConfirmar()"><i data-ic="check"></i>Retirar nota</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="../js/config.js"></script>

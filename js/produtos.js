@@ -910,12 +910,13 @@ async function abrirModal(prodId){
       +'<span class="pr-nt-sub">obrigatória para aprovar · PDF do SEI, assinado</span></div>'
       +'<div class="pr-nt-linha">'
       +'<span id="nt-nome" class="pr-nt-nome">'+(entregaAtual.nota_tecnica_url?esc(entregaAtual.nota_tecnica_nome||'Nota Técnica'):'nenhuma anexada')+'</span>'
-      +(entregaAtual.nota_tecnica_url?'<button class="btn btn-sm btn-secondary" type="button" onclick="abrirArquivo(\''+esc(entregaAtual.nota_tecnica_url)+'\')">'+prIc('olho','p')+' Abrir</button>':'')
+      +'<span id="nt-acoes" class="pr-nt-acoes"></span>'
       +'<input type="file" id="inp-nt" style="display:none" accept=".pdf,application/pdf" onchange="selNotaTecnica(this.files[0]);this.value=\'\'">'
       +'<button class="btn btn-sm btn-secondary" type="button" id="nt-btn-anexar" onclick="document.getElementById(\'inp-nt\').click()">'+prIc('clipe','p')+(entregaAtual.nota_tecnica_url?' Substituir':' Anexar PDF')+'</button>'
-      +'<span id="nt-trava" class="pr-nt-trava" hidden>'+prIc('cadeado','p')+' Nota conferida — não pode ser trocada</span>'
+      +'<span id="nt-trava" class="pr-nt-trava" hidden>'+prIc('cadeado','p')+' <span id="nt-trava-txt">Nota conferida</span></span>'
       +'</div>'
       +'<div id="nt-conf" class="pr-nt-conf" aria-live="polite"></div>'
+      +'<div id="nt-hist" class="pr-nt-hist"></div>'
       +'</div>'   // fim pr-nt
       +'</div>';  // fim despacho-box
 
@@ -1107,7 +1108,8 @@ function removerDoc(i){docsEntrega.splice(i,1);renderListaDocs();}
 // ── Nota técnica: conferida no servidor (Edge Function conferir-nota-tecnica) ──
 // A tela envia o PDF ao bucket privado, pede a conferência e mostra o que corrigir. A aprovação só
 // passa no banco (trg_entrega_exige_nota) com a conferência aprovada do MESMO arquivo.
-var ntConf=null;   // {caminho, url, nome, aprovada, regras, nota}
+var ntConf=null;   // {id, por, caminho, url, nome, aprovada, regras, nota}
+var ntRetiradas=[]; // conferências desta entrega retiradas antes da aprovação (histórico)
 var NT_MAX=15*1024*1024;
 
 async function ntSha256(file){
@@ -1148,27 +1150,101 @@ function ntRender(estado,msg){
 
 // Nota aprovada na conferência fica fixa: o botão de trocar some (só super_admin troca; o servidor
 // recusa para os demais e o banco só aceita a última conferência aprovada da entrega).
+// Para trocar antes de aprovar: "Retirar nota" (quem anexou ou super_admin; nota reprovada qualquer um,
+// só na tela). A retirada vai ao servidor (acao 'retirar') e fica registrada com o motivo.
+function ntPodeRetirar(){
+  if(!ntConf||!entregaAtual||entregaAtual.situacao!=='em_analise')return false;
+  if(!ntConf.aprovada)return true;
+  return appState.perfil==='super_admin'||(!!ntConf.por&&ntConf.por===(appState.usuario&&appState.usuario.id));
+}
 function ntTravar(){
-  var travada=!!(ntConf&&ntConf.aprovada), sa=appState.perfil==='super_admin';
-  var btn=document.getElementById('nt-btn-anexar'),tr=document.getElementById('nt-trava');
-  if(btn){btn.hidden=travada&&!sa;if(travada&&sa)btn.innerHTML=prIc('clipe','p')+' Trocar nota (super_admin)';}
+  var travada=!!(ntConf&&ntConf.aprovada), sa=appState.perfil==='super_admin', pode=ntPodeRetirar();
+  var btn=document.getElementById('nt-btn-anexar'),tr=document.getElementById('nt-trava'),trt=document.getElementById('nt-trava-txt');
+  if(btn){
+    btn.hidden=travada&&!sa;
+    btn.innerHTML=prIc('clipe','p')+(travada&&sa?' Trocar nota (super_admin)':(ntConf||entregaAtual&&entregaAtual.nota_tecnica_url?' Substituir':' Anexar PDF'));
+  }
   if(tr)tr.hidden=!travada;
+  if(trt)trt.textContent=!travada?'':pode?'Nota conferida — para trocar, retire-a':'Nota conferida — só quem anexou pode retirá-la';
+  var ac=document.getElementById('nt-acoes');
+  if(ac){
+    var url=ntConf?ntConf.url:(entregaAtual&&entregaAtual.situacao!=='em_analise'?entregaAtual.nota_tecnica_url:null);
+    ac.innerHTML=(url?'<button class="btn btn-sm btn-secondary" type="button" onclick="abrirArquivo(\''+esc(url)+'\')">'+prIc('olho','p')+' Abrir</button>':'')
+      +(pode?'<button class="btn btn-sm btn-secondary pr-nt-retirar" type="button" id="nt-btn-retirar" onclick="ntRetirarAbrir()">'+prIc('x','p')+' Retirar nota</button>':'');
+  }
+}
+function ntNome(t){var el=document.getElementById('nt-nome');if(el)el.textContent=t;}
+function ntHist(){
+  var box=document.getElementById('nt-hist');if(!box)return;
+  if(!ntRetiradas.length){box.innerHTML='';return;}
+  box.innerHTML='<details><summary>'+ntRetiradas.length+(ntRetiradas.length>1?' notas retiradas':' nota retirada')+' antes da aprovação</summary><ul>'
+    +ntRetiradas.map(function(c){
+      return '<li><b>'+esc(c.nt_numero||c.arquivo_nome||'Nota técnica')+'</b> · retirada por '+esc(c.retirou&&c.retirou.nome_completo||'—')
+        +' em '+esc(new Date(c.retirada_em).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}))
+        +'<small>Motivo: '+esc(c.retirada_motivo||'')+'</small></li>';
+    }).join('')+'</ul></details>';
 }
 
-// Ao abrir a janela: a nota já anexada a esta entrega vale se a última conferência dela foi aprovada
+// Ao abrir a janela: vale a nota gravada na entrega (se a última conferência dela foi aprovada) ou, com a
+// entrega ainda em análise, a última conferência aprovada da tela (≤ 2 dias, não retirada) — a mesma que trava.
 async function ntCarregarEstado(){
-  ntConf=null;
+  ntConf=null;ntRetiradas=[];
   var cam=ntCaminhoDeUrl(entregaAtual&&entregaAtual.nota_tecnica_url);
-  if(!cam){ntRender(null);return;}
-  var r=await db.from('nota_tecnica_conferencias').select('caminho,arquivo_nome,aprovada,regras,nt_numero,sei_documento,signatarios,data_assinatura,origem,conferido_em')
-    .eq('entrega_id',entregaAtual.id).eq('caminho',cam).order('conferido_em',{ascending:false}).limit(1);
-  var c=r.data&&r.data[0];
-  if(!c||c.origem!=='tela'||(Date.now()-new Date(c.conferido_em).getTime())>2*864e5){
-    ntRender(null,'A nota anexada ainda não foi conferida. Anexe o PDF de novo para conferir.');return;
-  }
-  ntConf={caminho:cam,url:entregaAtual.nota_tecnica_url,nome:c.arquivo_nome||entregaAtual.nota_tecnica_nome,aprovada:c.aprovada,regras:c.regras,
+  var COLS='id,caminho,arquivo_nome,aprovada,regras,nt_numero,sei_documento,signatarios,data_assinatura,origem,conferido_em,conferido_por,retirada_em,retirada_motivo';
+  var ler=function(cols){return db.from('nota_tecnica_conferencias').select(cols).eq('entrega_id',entregaAtual.id).order('conferido_em',{ascending:false}).limit(30);};
+  var r=await ler(COLS+',retirou:usuarios!nt_conf_retirada_por_fkey(nome_completo)');
+  if(r.error)r=await ler(COLS);   // sem o nome de quem retirou, mas a trava continua certa
+  var lista=r.data||[];
+  ntRetiradas=lista.filter(function(x){return x.retirada_em;});
+  ntHist();
+  var recente=function(x){return (Date.now()-new Date(x.conferido_em).getTime())<=2*864e5;};
+  var c=null;
+  if(cam){
+    c=lista.find(function(x){return x.caminho===cam;});
+    if(!c||c.origem!=='tela'||!recente(c)||c.retirada_em){
+      ntRender(null,c&&c.retirada_em?'Esta nota foi retirada. Anexe a nova nota.':'A nota anexada ainda não foi conferida. Anexe o PDF de novo para conferir.');return;
+    }
+  } else if(entregaAtual.situacao==='em_analise'){
+    c=lista.find(function(x){return x.origem==='tela';});
+    if(!c||c.retirada_em||!c.aprovada||!recente(c)){ntNome('nenhuma anexada');ntRender(null);return;}
+  } else {ntRender(null);return;}
+  ntConf={id:c.id,por:c.conferido_por,caminho:c.caminho,
+    url:cam?entregaAtual.nota_tecnica_url:db.storage.from('entregas-docs').getPublicUrl(c.caminho).data.publicUrl,
+    nome:c.arquivo_nome||entregaAtual.nota_tecnica_nome||'Nota técnica',aprovada:c.aprovada,regras:c.regras,
     nota:{numero:c.nt_numero,sei:c.sei_documento,signatarios:c.signatarios,data:c.data_assinatura}};
+  ntNome(ntConf.nome);
   ntRender(c.aprovada?'ok':'erro');
+}
+
+// Retirar a nota antes de aprovar. Reprovada na conferência: só limpa a tela (não trava nada).
+// Aprovada: pede o motivo e registra no servidor (só quem anexou ou super_admin).
+function ntRetirarAbrir(){
+  if(!ntPodeRetirar())return;
+  if(!ntConf.aprovada){
+    ntConf=null;ntNome('nenhuma anexada');ntRender(null);
+    toast('Nota retirada. Anexe a nova nota técnica.','info');return;
+  }
+  var n=ntConf.nota||{};
+  document.getElementById('ntr-res').innerHTML=[
+    ['Nota',n.numero||'Nota técnica'],['Arquivo',ntConf.nome||'—'],['SEI',n.sei||'—']
+  ].map(function(l){return '<span>'+esc(l[0])+'</span><b>'+esc(l[1])+'</b>';}).join('');
+  document.getElementById('ntr-motivo').value='';
+  var er=document.getElementById('ntr-erro');er.hidden=true;er.textContent='';
+  prAbrir('modal-nt-retirar');
+}
+async function ntRetirarConfirmar(){
+  var btn=document.getElementById('ntr-ok'),inp=document.getElementById('ntr-motivo'),er=document.getElementById('ntr-erro');
+  var motivo=inp.value.trim();
+  if(motivo.length<10){er.textContent='Escreva o motivo (pelo menos 10 caracteres).';er.hidden=false;inp.focus();return;}
+  if(!ntConf||!ntConf.id){prFechar('modal-nt-retirar');return;}
+  btn.disabled=true;
+  try{
+    var r=await ntFuncao({acao:'retirar',entrega_id:entregaAtual.id,conferencia_id:ntConf.id,motivo:motivo});
+    if(!r.ok){er.textContent=r.j.erro||('Não foi possível retirar a nota (HTTP '+r.status+').');er.hidden=false;return;}
+    prFechar('modal-nt-retirar');
+    await ntCarregarEstado();
+    toast('Nota retirada. Anexe a nova nota técnica.','success');
+  }finally{btn.disabled=false;}
 }
 
 // ── Guia "antes de aprovar" + modelo da nota (função conferir-nota-tecnica, ação 'modelo') ──
@@ -1290,7 +1366,7 @@ async function ntSenhaConfirmar(){
 async function selNotaTecnica(file){
   if(!file||!entregaAtual||!produtoAtual)return;
   if(ntConf&&ntConf.aprovada){
-    if(appState.perfil!=='super_admin'){toast('A nota técnica já foi conferida e aprovada; ela não pode ser trocada.','warning');return;}
+    if(appState.perfil!=='super_admin'){toast('A nota técnica já foi conferida. Para trocar, use "Retirar nota" (quem anexou) e anexe a nova.','warning',7000);return;}
     if(!confirm('Trocar a nota técnica já conferida?\n\nA nota atual foi aprovada na conferência. Se continuar, passa a valer a nova nota (se ela também passar). A troca fica registrada no histórico.'))return;
   }
   notaTecnicaFile=null;ntConf=null;
@@ -1311,7 +1387,7 @@ async function selNotaTecnica(file){
       body:JSON.stringify({acao:'conferir',entrega_id:entregaAtual.id,caminho:path,arquivo_nome:file.name,sha256:sha})});
     var j=await res.json().catch(function(){return {};});
     if(!res.ok||!j.ok){ntRender('erro',j.erro||('Falha ao conferir a nota (HTTP '+res.status+').'));return;}
-    ntConf={caminho:path,url:db.storage.from('entregas-docs').getPublicUrl(path).data.publicUrl,nome:file.name,
+    ntConf={id:j.conferencia_id,por:appState.usuario&&appState.usuario.id,caminho:path,url:db.storage.from('entregas-docs').getPublicUrl(path).data.publicUrl,nome:file.name,
       aprovada:j.aprovada,regras:j.regras,nota:j.nota};
     ntRender(j.aprovada?'ok':'erro');
   }catch(e){ntRender('erro','Falha ao conferir a nota: '+(e&&e.message||e));}

@@ -20,6 +20,11 @@
 //   e grava em entrega_aprovacao_senhas a confirmação de uso único (10 min) que a trava de aprovação
 //   (trg_entrega_exige_nota) consome. A senha nunca é gravada nem logada.
 //
+// { acao: 'retirar', entrega_id, conferencia_id, motivo }   (JWT)
+//   retira a nota conferida ANTES de aprovar (entrega em análise): só quem anexou a nota ou super_admin,
+//   motivo ≥ 10 caracteres. Nada é apagado — a conferência ganha retirada_em/por/motivo, deixa de travar
+//   a troca e deixa de valer para aprovar (trg_entrega_exige_nota).
+//
 // O conteúdo da nota nunca sai daqui: só o resultado das regras e os dados de identificação
 // (nº da nota, nº SEI, códigos, signatários, data) são gravados.
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -138,6 +143,7 @@ async function conferir(admin: any, bytes: Uint8Array, ctx: Contexto, sha: strin
     const { data } = await admin.from('nota_tecnica_conferencias')
       .select('entrega_id, origem, aprovada, sha256, codigo_verificador')
       .neq('entrega_id', ctx.entregaId)
+      .is('retirada_em', null)
       .or(`sha256.eq.${sha}` + (info.codigo_verificador ? `,codigo_verificador.eq.${info.codigo_verificador}` : ''))
       .limit(20)
     dup = (data || []).find((c: any) => c.aprovada || c.origem === 'calibracao') || null
@@ -301,7 +307,7 @@ Deno.serve(async (req) => {
     return resp({ ok: true, total: saida.length, saida })
   }
 
-  if (!['conferir', 'modelo', 'confirmar_aprovacao'].includes(corpo.acao)) return resp({ ok: false, erro: 'ação inválida' }, 400)
+  if (!['conferir', 'modelo', 'confirmar_aprovacao', 'retirar'].includes(corpo.acao)) return resp({ ok: false, erro: 'ação inválida' }, 400)
 
   // 1. quem é e se pode avaliar
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
@@ -358,6 +364,33 @@ Deno.serve(async (req) => {
     return resp({ ok: true })
   }
 
+  if (corpo.acao === 'retirar') {
+    if (ent.situacao !== 'em_analise') return resp({ ok: false, erro: 'Só dá para retirar a nota enquanto a entrega está em avaliação.' }, 409)
+    const motivo = String(corpo.motivo || '').trim()
+    if (motivo.length < 10) return resp({ ok: false, erro: 'Escreva o motivo da retirada (pelo menos 10 caracteres).' }, 400)
+    if (!corpo.conferencia_id) return resp({ ok: false, erro: 'Dados incompletos (nota).' }, 400)
+    const { data: ult } = await admin.from('nota_tecnica_conferencias')
+      .select('id, conferido_por, retirada_em')
+      .eq('entrega_id', entrega_id).eq('origem', 'tela')
+      .order('conferido_em', { ascending: false }).limit(1).maybeSingle()
+    if (!ult || ult.id !== corpo.conferencia_id) {
+      return resp({ ok: false, erro: 'Esta não é mais a nota atual da entrega. Feche e abra a entrega de novo.' }, 409)
+    }
+    if (ult.retirada_em) return resp({ ok: false, erro: 'Esta nota já foi retirada.' }, 409)
+    if (ult.conferido_por !== usuarioId) {
+      const { data: perfil } = await doUsuario.rpc('fn_perfil_atual')
+      if (perfil !== 'super_admin') {
+        return resp({ ok: false, erro: 'Só quem anexou a nota (ou um super_admin) pode retirá-la.' }, 403)
+      }
+    }
+    const { data: feito, error: eR } = await admin.from('nota_tecnica_conferencias')
+      .update({ retirada_em: new Date().toISOString(), retirada_por: usuarioId, retirada_motivo: motivo })
+      .eq('id', ult.id).is('retirada_em', null).select('id')
+    if (eR) return resp({ ok: false, erro: eR.message }, 500)
+    if (!feito || !feito.length) return resp({ ok: false, erro: 'Esta nota já foi retirada.' }, 409)
+    return resp({ ok: true })
+  }
+
   if (!caminho) return resp({ ok: false, erro: 'Dados incompletos (arquivo).' }, 400)
   const cam = String(caminho)
   if (!cam.startsWith(`produtos/${ent.produto_id}/`) || cam.includes('..')) {
@@ -365,19 +398,19 @@ Deno.serve(async (req) => {
   }
 
   // nota já conferida e aprovada para esta entrega (ainda válida): não aceita outra.
-  // Só super_admin troca (nota aprovada mas errada); a troca fica no histórico de conferências.
+  // Só super_admin troca direto; quem anexou pode antes RETIRAR a nota (acao 'retirar'), o que solta a trava.
   const { data: ultConf } = await admin.from('nota_tecnica_conferencias')
-    .select('caminho, arquivo_nome, nt_numero, aprovada, conferido_em')
+    .select('caminho, arquivo_nome, nt_numero, aprovada, conferido_em, retirada_em')
     .eq('entrega_id', entrega_id).eq('origem', 'tela')
     .order('conferido_em', { ascending: false }).limit(1).maybeSingle()
-  const vigente = ultConf && ultConf.aprovada && ent.situacao === 'em_analise'
+  const vigente = ultConf && ultConf.aprovada && !ultConf.retirada_em && ent.situacao === 'em_analise'
     && Date.now() - Date.parse(ultConf.conferido_em) < 2 * 864e5
   if (vigente && ultConf.caminho !== cam) {
     const { data: perfil } = await doUsuario.rpc('fn_perfil_atual')
     if (perfil !== 'super_admin') {
       return resp({ ok: false, bloqueada: true,
         erro: `Esta entrega já tem nota técnica conferida (${ultConf.nt_numero || ultConf.arquivo_nome || 'nota aprovada'}). ` +
-              'Depois de aprovada na conferência, a nota não pode ser trocada. Se ela estiver errada, peça a um super_admin.' }, 409)
+              'Para trocar, use "Retirar nota" (quem anexou) ou peça a um super_admin.' }, 409)
     }
   }
 
