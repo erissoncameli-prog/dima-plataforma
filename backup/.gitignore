@@ -1,0 +1,9 @@
+# Os dumps de DADOS não entram no Git.
+# Contêm dado pessoal (CPF, passaporte, dados bancários, e-mails, hash de
+# senha temporária) — ver CLAUDE.md, seção "Privacidade e LGPD". O histórico
+# do Git é irreversível na prática, e este repositório publica na Vercel.
+# Só 01_schema.sql (estrutura, sem dado) é versionado.
+02_dados.sql
+03_geodados.sql
+*.sql.gz
+*.dump

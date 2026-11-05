@@ -1,0 +1,25 @@
+# DIMA · Postgres local para restaurar o backup
+#   docker compose up -d
+#   ./restaurar.sh
+services:
+  db:
+    image: postgres:17
+    container_name: dima-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dima_local
+      LANG: C.UTF-8
+    ports:
+      - "5433:5432"          # 5433 no host para não brigar com um Postgres já instalado
+    volumes:
+      - dima_pgdata:/var/lib/postgresql/data
+      - ./:/backup:ro        # os .sql ficam visíveis dentro do container em /backup
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dima_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  dima_pgdata:
