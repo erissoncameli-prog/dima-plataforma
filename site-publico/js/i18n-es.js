@@ -37,11 +37,11 @@ registrarIdioma('es', {
   'inicio.explore': 'Explore los datos del Programa',
   'inicio.card_resultados': 'Indicadores de la matriz de contribución monitoreados, por resultado esperado del Programa.',
   'inicio.card_mapa': 'Dónde se realizan las acciones del Programa en las APA Lago do Amapá e Igarapé São Francisco.',
-  'inicio.card_tempo': 'Los principales hitos del Programa, en el orden en que fueron ocurriendo.',
+  'inicio.card_tempo': 'Los productos aprobados del Programa, en el orden en que se concluyeron.',
   'inicio.fin_titulo': 'Cómo se están invirtiendo los recursos',
-  'inicio.fin_texto': 'Ejecución financiera agregada por resultado y actividad — nunca por contrato o proveedor individual.',
+  'inicio.fin_texto': 'Presupuesto y ejecución en dólares y reales, en total y por resultado — nunca por contrato o proveedor.',
   'inicio.fin_seta': 'Ver la ejecución financiera →',
-  'inicio.prod_titulo': '43 productos técnicos entregados',
+  'inicio.prod_titulo': 'Productos técnicos del Programa',
   'inicio.prod_texto': 'Informes, planes y materiales producidos por el Programa, autorizados para divulgación pública.',
   'inicio.prod_seta': 'Ver la galería de productos →',
   'inicio.api_kicker': 'Datos abiertos (API)',
@@ -55,7 +55,7 @@ registrarIdioma('es', {
   'inicio.api_p2': 'Reciba la confirmación con el número de la solicitud.',
   'inicio.api_p3': 'Una vez aprobada, llega un enlace de retiro (72 horas, un solo uso) para ver la clave.',
   'inicio.api_p4': 'La clave vale 1 año; nunca se envía por correo.',
-  'inicio.nota': 'Cifras de un corte actual de la base de datos del Programa — en el sitio publicado vendrán en tiempo real de las mismas funciones públicas que ya alimentan el panel interno.',
+  'inicio.nota': 'Cifras actualizadas automáticamente desde la plataforma de gestión del Programa.',
   'inicio.foto_n_de': 'Mostrar foto {n} de {total}',
 
   // ── Mapa Interativo (de Entregas) ──
