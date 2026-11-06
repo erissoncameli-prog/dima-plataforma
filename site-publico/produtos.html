@@ -169,8 +169,9 @@ async function carregarCapas() {
         if (!r.ok) continue;
         _capas[m] = URL.createObjectURL(await r.blob());
       }
-      img.src = _capas[m]; img.hidden = false;
-      img.nextElementSibling.hidden = true;
+      // Troca a capa genérica só quando a imagem já carregou; se falhar, fica a genérica
+      img.onload = () => { img.hidden = false; img.nextElementSibling.hidden = true; };
+      img.src = _capas[m];
     } catch (e) { /* sem capa: mantém a genérica */ }
   }
 }
