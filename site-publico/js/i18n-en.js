@@ -210,11 +210,18 @@ registrarIdioma('en', {
 
   // ── Linha do Tempo ──
   'tempo.titulo_pagina': 'Timeline — Socio-environmental Resilience',
-  'tempo.intro': 'The Program’s main milestones, in the order they happened — ToRs approved, contracts signed and products delivered.',
+  'tempo.intro': 'The Program’s approved products, in the order they were completed, since the agreement was signed. Each milestone is described by the team responsible for the activity.',
   'tempo.tdr': 'ToR approved',
   'tempo.contrato': 'Contract signed',
-  'tempo.produto': 'Product delivered',
-  'tempo.nota': 'Real events and dates, from a current snapshot of the Program database — on the published site they will come from the public function fn_publico_linha_tempo(), still to be created in Deliverable 3. Event descriptions are shown as registered, in Portuguese.',
+  'tempo.produto': 'Product approved',
+  'tempo.acordo': 'Start',
+  'tempo.acordo_tit': 'Signing of the Program agreement',
+  'tempo.vazio': 'The first milestones will be published soon.',
+  'tempo.todos': 'All',
+  'tempo.carregando': 'Loading…',
+  'tempo.erro': 'Could not load the timeline.',
+  'tempo.filtrar': 'Filter by result',
+  'tempo.nota': 'Dates are those of each product’s approval by the Program team.',
 
   // ── Produtos ──
   'prod.titulo_pagina': 'Products — Socio-environmental Resilience',

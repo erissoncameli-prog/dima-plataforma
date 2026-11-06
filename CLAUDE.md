@@ -519,6 +519,14 @@ aprovação; nunca valor, contrato, nota técnica nem nome do arquivo) e a capa 
 - Autoria (nome do consultor/fornecedor) **será exibida** no portal; valor e Nota Técnica não.
   Ao criar o portal, registrar o tratamento em `lgpd_tratamentos` (ROPA).
 
+#### Linha do Tempo do site público (migração `20261106_publico_linha_tempo.sql`)
+- Só **produto aprovado** com texto **publicado** pelo responsável/substituto da atividade (ou super_admin) — regra
+  `fn_pode_avaliar_contrato`, nunca o fornecedor. Texto em `linha_tempo_eventos` (1 por produto; sem policy de escrita),
+  gravado só por `fn_linha_tempo_salvar(obra, titulo, texto, publicar)`, que recusa nome do fornecedor e CPF/CNPJ.
+  Tela: seção "Linha do Tempo do site público" na ficha do Acervo (`carregarLinhaTempo`). Data do evento = aprovação
+  (`entrega_ref_data`); marco inicial = `configuracoes_sistema.projeto_data_acordo` (Dados do sistema).
+  Site lê `fn_publico_linha_tempo()`; produto que deixa de estar aprovado sai sozinho.
+
 Existe caso real de produto **aprovado com `total_vigentes = 0`** (a entrega
 aprovada não teve arquivo anexado). A ficha sinaliza a lacuna em vez de escondê-la
 — não "consertar" promovendo a versão devolvida a vigente.

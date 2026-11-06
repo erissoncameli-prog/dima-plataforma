@@ -16,6 +16,7 @@
 
 .miolo{padding-block:var(--espaco-7) var(--espaco-9);max-width:760px;}
 
+.evento[hidden]{display:none;}
 .legenda-tipos{display:flex;gap:var(--espaco-5);flex-wrap:wrap;margin-bottom:var(--espaco-7);font-size:12.5px;color:var(--tinta-suave);}
 .legenda-tipos .lg{display:flex;align-items:center;gap:6px;}
 .legenda-tipos .ic{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
@@ -32,8 +33,16 @@
 .evento-titulo{font-size:13.5px;font-weight:600;color:var(--tinta);line-height:1.4;margin-bottom:3px;}
 .evento-atividade{font-size:12px;color:var(--tinta-suave);}
 
-.tipo-tdr{background:var(--azul-tint);color:var(--azul-texto);}
-.tipo-contrato{background:var(--verde-tint);color:var(--verde-texto);}
+.tipo-acordo{background:var(--verde-tint);color:var(--verde-texto);}
+.evento-texto{font-size:13px;color:var(--tinta);line-height:1.55;margin-top:4px;}
+.evento-res{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:4px;color:#fff;margin-right:6px;}
+.vazio{font-size:14px;color:var(--tinta-suave);}
+.filtros-tempo{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:var(--espaco-6);}
+.filtros-tempo[hidden]{display:none;}
+.filtro-pill{font-family:var(--fonte-corpo);font-size:12.5px;font-weight:600;color:var(--tinta-suave);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:99px;padding:6px 14px;cursor:pointer;}
+.filtro-pill:hover{border-color:var(--verde-texto);}
+.filtro-pill.ativo{color:var(--verde-texto);background:var(--verde-tint);border-color:var(--verde-texto);}
+.filtro-pill:focus-visible{outline:2px solid var(--azul);outline-offset:2px;}
 .tipo-produto{background:var(--laranja-tint);color:var(--laranja-texto);}
 
 .nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-6);}
@@ -48,131 +57,13 @@
 <main>
   <div class="pagina-topo container">
     <h1 data-i18n="nav.tempo">Linha do Tempo</h1>
-    <p data-i18n="tempo.intro">Os principais marcos do Programa, na ordem em que foram acontecendo — TDRs aprovados, contratos assinados e produtos entregues.</p>
+    <p data-i18n="tempo.intro">Os produtos aprovados do Programa, na ordem em que foram concluídos, desde a assinatura do acordo. Cada marco é descrito pela equipe responsável pela atividade.</p>
   </div>
 
   <div class="miolo container">
-    <div class="legenda-tipos">
-      <span class="lg"><span class="ic" style="background:var(--azul-tint);color:var(--azul-texto)">📋</span><span data-i18n="tempo.tdr">TDR aprovado</span></span>
-      <span class="lg"><span class="ic" style="background:var(--verde-tint);color:var(--verde-texto)">✍️</span><span data-i18n="tempo.contrato">Contrato assinado</span></span>
-      <span class="lg"><span class="ic" style="background:var(--laranja-tint);color:var(--laranja-texto)">📦</span><span data-i18n="tempo.produto">Produto entregue</span></span>
-    </div>
-
-    <div class="tempo-linha">
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
-        <div class="evento-data" data-data="2025-09-01">01 set 2025</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
-          <div class="evento-titulo">Serviço de ATER para fortalecimento de práticas sustentáveis</div>
-          <div class="evento-atividade">Eixo Bioeconomia · Práticas Inovadoras</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
-        <div class="evento-data" data-data="2025-09-01">01 set 2025</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
-          <div class="evento-titulo">Participação em eventos nacionais e internacionais — passagens e diárias</div>
-          <div class="evento-atividade">Eixo Segurança Hídrica e Equidade de Gênero</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
-        <div class="evento-data" data-data="2026-05-05">05 mai 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
-          <div class="evento-titulo">Elaboração, planejamento e execução do Plano de Comunicação</div>
-          <div class="evento-atividade">Eixo Segurança Hídrica e Equidade de Gênero</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
-        <div class="evento-data" data-data="2026-05-05">05 mai 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
-          <div class="evento-titulo">Auditoria independente de meio termo e final</div>
-          <div class="evento-atividade">Eixo Bioeconomia · Práticas Inovadoras</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
-        <div class="evento-data" data-data="2026-06-27">27 jun 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
-          <div class="evento-titulo">Produto 04 — Consultoria especialista em gênero</div>
-          <div class="evento-atividade">Coordenação do plano de ação de gênero</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
-        <div class="evento-data" data-data="2026-07-10">10 jul 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
-          <div class="evento-titulo">Documento técnico — Auditoria independente</div>
-          <div class="evento-atividade">Eixo Bioeconomia · Práticas Inovadoras</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
-        <div class="evento-data" data-data="2026-07-22">22 jul 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
-          <div class="evento-titulo">Produto 5 — Serviço de ATER</div>
-          <div class="evento-atividade">Fortalecimento de práticas sustentáveis</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
-        <div class="evento-data" data-data="2026-08-20">20 ago 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
-          <div class="evento-titulo">Conteúdos jornalísticos, institucionais e educativos do Programa</div>
-          <div class="evento-atividade">Plano de Comunicação</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--laranja-tint)">📦</div>
-        <div class="evento-data" data-data="2026-08-21">21 ago 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-produto" data-i18n="tempo.produto">Produto entregue</span>
-          <div class="evento-titulo">Produto 04 — Análise do CAR e elaboração de PRADAs</div>
-          <div class="evento-atividade">Eixo Restauração Florestal</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--azul-tint)">📋</div>
-        <div class="evento-data" data-data="2026-08-28">28 ago 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-tdr" data-i18n="tempo.tdr">TDR aprovado</span>
-          <div class="evento-titulo">Consultoria especialista em gênero — coordenação do plano de ação</div>
-          <div class="evento-atividade">Eixo Segurança Hídrica e Equidade de Gênero</div>
-        </div>
-      </div>
-
-      <div class="evento">
-        <div class="evento-marcador" style="background:var(--verde-tint)">✍️</div>
-        <div class="evento-data" data-data="2026-08-31">31 ago 2026</div>
-        <div class="evento-card">
-          <span class="evento-tipo tipo-contrato" data-i18n="tempo.contrato">Contrato assinado</span>
-          <div class="evento-titulo">Apoio técnico na análise do CAR e elaboração de PRADAs</div>
-          <div class="evento-atividade">Eixo Restauração Florestal</div>
-        </div>
-      </div>
-
-    </div>
-
-    <p class="nota-dados" data-i18n="tempo.nota">Eventos e datas reais, de um recorte atual do banco de dados do Programa — no site publicado, virão da função pública fn_publico_linha_tempo(), ainda a ser criada no Produto 3.</p>
+    <div class="filtros-tempo" id="filtros-tempo" role="group" aria-label="Filtrar por resultado" data-i18n-attr="aria-label:tempo.filtrar"></div>
+    <div class="tempo-linha" id="tempo-linha"><p class="vazio" id="tempo-carregando"></p></div>
+    <p class="nota-dados" data-i18n="tempo.nota">As datas são as da aprovação de cada produto pela equipe do Programa.</p>
   </div>
 </main>
 
@@ -180,9 +71,63 @@
   <div id="site-footer-slot"></div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/i18n-en.js"></script>
 <script src="js/i18n-es.js"></script>
 <script src="js/layout.js"></script>
+<script>
+// Eventos de fn_publico_linha_tempo(): só produtos aprovados com texto publicado pelo
+// responsável da atividade; o marco inicial é a assinatura do acordo (Dados do sistema)
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const COR_RES = { R1: '#188462', R2: '#2563EB', R3: '#7169C4', R4: '#6B7280' };
+let LT = null, _filtro = 'todos';
+
+function dataLonga(iso) { return new Date(iso + 'T12:00').toLocaleDateString(localeAtual(), { day: '2-digit', month: 'short', year: 'numeric' }).replace('.', ''); }
+function nomeRes(e) { return (idiomaAtual !== 'pt' && e['resultado_nome_' + idiomaAtual]) || e.resultado_nome_pt; }
+
+function desenhar() {
+  const linha = document.getElementById('tempo-linha');
+  const ev = LT.eventos || [];
+  let h = '';
+  if (LT.inicio) h += `<div class="evento" data-res="todos">
+      <div class="evento-marcador" style="background:var(--verde-tint)" aria-hidden="true">✍️</div>
+      <div class="evento-data">${esc(dataLonga(LT.inicio))}</div>
+      <div class="evento-card"><span class="evento-tipo tipo-acordo">${t('tempo.acordo')}</span>
+        <div class="evento-titulo">${t('tempo.acordo_tit')}</div></div></div>`;
+  h += ev.map(e => `<div class="evento" data-res="${esc(e.resultado_codigo)}">
+      <div class="evento-marcador" style="background:var(--laranja-tint)" aria-hidden="true">📦</div>
+      <div class="evento-data">${esc(dataLonga(e.data))}</div>
+      <div class="evento-card"><span class="evento-tipo tipo-produto">${t('tempo.produto')}</span>
+        <div class="evento-titulo">${esc(e.titulo)}</div>
+        <div class="evento-texto">${esc(e.texto)}</div>
+        <div class="evento-atividade" style="margin-top:8px"><span class="evento-res" style="background:${COR_RES[e.resultado_codigo] || COR_RES.R4}">${esc(e.resultado_codigo)}</span>${esc(nomeRes(e))}</div>
+      </div></div>`).join('');
+  if (!ev.length) h += `<p class="vazio" style="margin-top:${LT.inicio ? 'var(--espaco-5)' : '0'}">${t('tempo.vazio')}</p>`;
+  linha.innerHTML = h;
+
+  const resultados = [...new Set(ev.map(e => e.resultado_codigo))].sort();
+  const filtros = document.getElementById('filtros-tempo');
+  filtros.hidden = resultados.length < 2;
+  filtros.innerHTML = ['todos', ...resultados].map(r => `<button type="button" class="filtro-pill${r === _filtro ? ' ativo' : ''}" data-filtro="${esc(r)}" aria-pressed="${r === _filtro}">${r === 'todos' ? t('tempo.todos') : esc(r)}</button>`).join('');
+  aplicarFiltro();
+}
+function aplicarFiltro() {
+  document.querySelectorAll('#tempo-linha .evento').forEach(el => { el.hidden = !(_filtro === 'todos' || el.dataset.res === 'todos' || el.dataset.res === _filtro); });
+  document.querySelectorAll('#filtros-tempo .filtro-pill').forEach(b => { const on = b.dataset.filtro === _filtro; b.classList.toggle('ativo', on); b.setAttribute('aria-pressed', on); });
+}
+document.getElementById('filtros-tempo').addEventListener('click', e => { const b = e.target.closest('.filtro-pill'); if (b) { _filtro = b.dataset.filtro; aplicarFiltro(); } });
+
+async function carregar() {
+  const aviso = document.getElementById('tempo-carregando');
+  aviso.textContent = t('tempo.carregando');
+  const { data, error } = db ? await db.rpc('fn_publico_linha_tempo') : { error: true };
+  if (error || !data) { aviso.textContent = t('tempo.erro'); return; }
+  LT = data; desenhar();
+}
+carregar();
+document.addEventListener('idioma', () => { if (LT) desenhar(); });
+</script>
 </body>
 </html>

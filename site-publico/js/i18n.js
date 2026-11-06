@@ -77,6 +77,15 @@ const TEXTOS_PT = {
   'res.ods': 'ODS',
   'res.vazio': 'Nenhum indicador cadastrado na Matriz de Resultados.',
 
+  // Linha do Tempo
+  'tempo.acordo': 'Início',
+  'tempo.acordo_tit': 'Assinatura do acordo do Programa',
+  'tempo.produto': 'Produto aprovado',
+  'tempo.vazio': 'Os primeiros marcos serão publicados em breve.',
+  'tempo.todos': 'Todos',
+  'tempo.carregando': 'Carregando…',
+  'tempo.erro': 'Não foi possível carregar a linha do tempo.',
+
   // Transparência Financeira
   'fin.pago': 'Pago',
   'fin.a_pagar': 'A pagar',

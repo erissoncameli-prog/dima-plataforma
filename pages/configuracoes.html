@@ -30,7 +30,7 @@
 // ── Estado ───────────────────────────────────────────────────
 let cfg = {
   projeto_id: 'default', projeto_nome: '', projeto_codigo: '',
-  projeto_localizacao: '', cor_primaria: '#1F4E2C',
+  projeto_localizacao: '', projeto_data_acordo: '', cor_primaria: '#1F4E2C',
   logos_topo: [], logo_projeto: { url: '', alt: '' },
   logos_parceiros: [], fotos: []
 };
@@ -77,6 +77,7 @@ async function carregarConfig() {
       projeto_nome: data.projeto_nome || '',
       projeto_codigo: data.projeto_codigo || '',
       projeto_localizacao: data.projeto_localizacao || '',
+      projeto_data_acordo: data.projeto_data_acordo || '',
       cor_primaria: corValida(data.cor_primaria),
       logos_topo: data.logos_topo || [],
       logo_projeto: data.logo_projeto || { url: '', alt: '' },
@@ -145,6 +146,12 @@ function renderTabIdentidade() {
       <input class="form-control" value="${esc(cfg.projeto_localizacao)}"
         oninput="cfg.projeto_localizacao=this.value;pvTextos()"
         placeholder="Ex: Rio Branco, Acre — Fundo Multipartes">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="cfg-data-acordo">Data de assinatura do acordo</label>
+      <input class="form-control" type="date" id="cfg-data-acordo" value="${esc(cfg.projeto_data_acordo)}"
+        oninput="cfg.projeto_data_acordo=this.value">
+      <div class="ad-dica" style="font-size:12px;color:var(--cinza-500);margin-top:4px">Marco inicial da Linha do Tempo do site público. Sem data, a linha começa no primeiro produto publicado.</div>
     </div>
     <div class="form-group">
       <label class="form-label">Cor principal</label>
@@ -614,6 +621,7 @@ async function salvarConfig() {
     const { error } = await db.from('configuracoes_sistema').upsert({
       projeto_id: cfg.projeto_id, projeto_nome: cfg.projeto_nome,
       projeto_codigo: cfg.projeto_codigo, projeto_localizacao: cfg.projeto_localizacao,
+      projeto_data_acordo: cfg.projeto_data_acordo || null,
       cor_primaria: cfg.cor_primaria, logos_topo: cfg.logos_topo,
       logo_projeto: cfg.logo_projeto, logos_parceiros: cfg.logos_parceiros,
       fotos: cfg.fotos, atualizado_em: new Date().toISOString(),

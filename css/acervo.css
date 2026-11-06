@@ -259,3 +259,12 @@ html[data-tema="escuro"] .acv-poster { box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
   .acv-midia-corpo { flex-basis: calc(100% - 50px); }
   .acv-viewer-barra { flex-wrap: wrap; }
 }
+
+/* Linha do Tempo do site público (ficha da obra) */
+.acv-lt { display: grid; gap: 6px; }
+.acv-lt-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 2px; }
+.acv-lt-data { font-size: 12px; color: var(--txt-3); }
+.acv-lt-tit { font-size: 14px; font-weight: 600; color: var(--txt); }
+.acv-lt-lbl { font-size: 12px; font-weight: 600; color: var(--txt-2); margin-top: 4px; display: flex; justify-content: space-between; }
+.acv-lt-cont { font-weight: 400; color: var(--txt-3); font-variant-numeric: tabular-nums; }
+.acv-lt-acoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 6px; }
