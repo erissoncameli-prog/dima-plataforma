@@ -10,45 +10,104 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
 <style>
+/* Estágios do orçamento: rampa de um verde só (pago = mais forte), conferida
+   para daltonismo e contraste nos dois temas; "livre" é o trilho neutro. */
+:root{ --fx-pago:#005c26; --fx-apagar:#2f9a55; --fx-comp:#7fbf90; --fx-livre:var(--linha); --fx-metas:#1d6e92; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --fx-pago:#8fe0a9; --fx-apagar:#3f9e5f; --fx-comp:#2a5a3b; --fx-metas:#2daae1; } }
+:root[data-theme="dark"]{ --fx-pago:#8fe0a9; --fx-apagar:#3f9e5f; --fx-comp:#2a5a3b; --fx-metas:#2daae1; }
+
 .pagina-topo{padding-block:var(--espaco-6) var(--espaco-5);border-bottom:1px solid var(--linha);}
 .pagina-topo h1{font-size:clamp(22px,3vw,30px);margin-bottom:6px;}
 .pagina-topo p{font-size:14.5px;color:var(--tinta-suave);max-width:70ch;}
 .aviso-agregado{display:flex;gap:10px;align-items:flex-start;background:var(--azul-tint);border:1px solid var(--azul);border-radius:var(--raio);padding:12px 16px;margin-top:var(--espaco-4);font-size:13px;color:var(--tinta);max-width:70ch;}
+.corte{font-size:12.5px;color:var(--tinta-suave);margin-top:var(--espaco-3);}
+.corte b{color:var(--tinta);font-weight:600;}
 
 .miolo{padding-block:var(--espaco-6) var(--espaco-9);}
+.secao-tit{font-size:19px;margin:var(--espaco-7) 0 4px;}
+.secao-tit:first-child{margin-top:0;}
+.secao-sub{font-size:13px;color:var(--tinta-suave);margin-bottom:var(--espaco-4);max-width:75ch;}
 
-.kpi-row3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--espaco-4);margin-bottom:var(--espaco-7);}
-.kpi-tile{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);padding:var(--espaco-4);box-shadow:var(--sombra);}
-.kpi-tile .rotulo{font-size:12px;color:var(--tinta-suave);margin-bottom:6px;}
-.kpi-tile .valor{font-family:var(--fonte-titulo);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;}
-@media(max-width:720px){.kpi-row3{grid-template-columns:1fr;}}
+.cartao{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);box-shadow:var(--sombra);padding:18px 20px;min-width:0;}
+.cartao h3{font-size:15px;}
+.cartao .sub{font-size:12.5px;color:var(--tinta-suave);margin-top:2px;}
+.grade-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:var(--espaco-4);margin-bottom:var(--espaco-4);}
+.grade-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--espaco-4);margin-bottom:var(--espaco-4);}
+.grade-totais{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--espaco-4);margin-bottom:var(--espaco-4);}
+.total .v{font-family:var(--fonte-titulo);font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin:4px 0 2px;}
+.total .brl{font-size:13px;color:var(--tinta-suave);font-variant-numeric:tabular-nums;}
+.total .chave{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--c);margin-right:6px;vertical-align:-1px;}
+.grade-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--espaco-4);margin-bottom:var(--espaco-4);}
+@media(max-width:1000px){.grade-totais{grid-template-columns:repeat(3,minmax(0,1fr));}}
+@media(max-width:860px){.grade-hero,.grade-2{grid-template-columns:minmax(0,1fr);}.grade-totais,.grade-kpi{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:420px){.grade-totais,.grade-kpi{grid-template-columns:minmax(0,1fr);}}
 
-.bloco{background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio-lg);box-shadow:var(--sombra);margin-bottom:var(--espaco-5);overflow:hidden;}
-.bloco-hdr{padding:16px 20px;border-bottom:1px solid var(--linha);}
-.bloco-hdr h2{font-size:16px;}
-.bloco-hdr p{font-size:12.5px;color:var(--tinta-suave);margin-top:2px;}
+.eyebrow{font-size:12px;color:var(--tinta-suave);}
+.grande{font-family:var(--fonte-titulo);font-size:40px;font-weight:700;line-height:1.1;margin:6px 0;font-variant-numeric:tabular-nums;color:var(--verde-texto);}
+.grande small{font-size:22px;}
+.mono{font-variant-numeric:tabular-nums;font-weight:600;color:var(--tinta);}
+.kpi .v{font-family:var(--fonte-titulo);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;margin:4px 0 2px;}
+.kpi .s{font-size:12px;color:var(--tinta-suave);}
+.medidor{height:6px;background:var(--fx-livre);border-radius:99px;overflow:hidden;margin-top:10px;}
+.medidor i{display:block;height:100%;border-radius:99px;}
 
-/* ── Barras por resultado ─────────────────────────────────────── */
-.barra-res{padding:16px 20px;border-bottom:1px solid var(--linha);}
-.barra-res:last-child{border-bottom:none;}
-.barra-res-topo{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;gap:12px;}
-.barra-res-nome{font-size:13.5px;font-weight:600;color:var(--tinta);}
-.barra-res-nome .cod{font-family:'Montserrat',monospace;font-size:11px;font-weight:700;color:var(--tinta-suave);margin-right:6px;}
-.barra-res-valor{font-family:'Montserrat',monospace;font-size:13px;font-weight:700;white-space:nowrap;}
-.barra-trilho{height:10px;background:var(--linha);border-radius:99px;overflow:hidden;display:flex;}
-.barra-trilho .seg{height:100%;}
-.barra-legenda{display:flex;gap:16px;margin-top:6px;font-size:11px;color:var(--tinta-suave);}
-.barra-legenda .lg{display:flex;align-items:center;gap:5px;}
-.barra-legenda .dot{width:8px;height:8px;border-radius:2px;}
+/* Barra de composição: segmentos separados por 2px da cor do fundo */
+.comp{display:flex;gap:2px;height:14px;margin-top:14px;}
+.comp .seg{height:100%;min-width:0;background:var(--c);cursor:default;}
+.comp .seg:first-child{border-radius:4px 0 0 4px;}
+.comp .seg:last-child{border-radius:0 4px 4px 0;}
+.comp .seg:only-child{border-radius:4px;}
+.comp .seg:focus-visible,.trilho:focus-visible{outline:2px solid var(--azul);outline-offset:2px;}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:12px;font-size:12px;color:var(--tinta-suave);}
+.legenda span{display:inline-flex;align-items:center;gap:6px;}
+.legenda i{width:10px;height:10px;border-radius:2px;background:var(--c);flex:none;}
+.legenda b{color:var(--tinta);font-weight:600;font-variant-numeric:tabular-nums;}
 
-/* ── Tabela de atividades ─────────────────────────────────────── */
-.ativ-linha{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--linha);}
-.ativ-linha:last-child{border-bottom:none;}
-.ativ-res{font-family:'Montserrat',monospace;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:4px;color:#fff;flex-shrink:0;}
-.ativ-nome{flex:1;font-size:12.5px;color:var(--tinta);line-height:1.4;}
-.ativ-valor{font-family:'Montserrat',monospace;font-size:12.5px;font-weight:700;color:var(--verde-texto);white-space:nowrap;flex-shrink:0;}
+/* Linhas por resultado */
+.linha-res{padding:14px 0;border-top:1px solid var(--linha);}
+.linha-res:first-of-type{border-top:none;}
+.linha-topo{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;}
+.linha-nome{font-size:13.5px;font-weight:600;min-width:0;}
+.cod{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:4px;background:var(--verde-tint);color:var(--verde-texto);margin-right:8px;}
+.linha-val{font-size:12.5px;color:var(--tinta-suave);white-space:nowrap;}
+.linha-res .comp{height:12px;margin-top:8px;}
+.sem-exec{font-size:12.5px;color:var(--tinta-suave);}
 
-.nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-5);}
+/* Barras horizontais simples (contagens e percentuais) */
+.hbar{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr) auto;gap:10px;align-items:center;padding:5px 0;font-size:12.5px;}
+.hbar .r{color:var(--tinta);overflow-wrap:break-word;}
+.hbar .trilho{height:12px;background:transparent;}
+.hbar .trilho i{display:block;height:100%;background:var(--c,var(--fx-apagar));border-radius:0 4px 4px 0;}
+.hbar .trilho i.tem{min-width:2px;}
+.hbar .n{font-variant-numeric:tabular-nums;font-weight:600;min-width:3ch;text-align:right;}
+
+/* Resultados × Financeiro: três medidas por resultado */
+.rxf{padding:14px 0;border-top:1px solid var(--linha);}
+.rxf:first-of-type{border-top:none;}
+.rxf .hbar{grid-template-columns:minmax(0,13em) minmax(0,1fr) 5ch;}
+.rxf .trilho{background:var(--fx-livre);border-radius:4px;}
+.rxf .trilho i{border-radius:4px;}
+
+.ativ-linha{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--linha);font-size:12.5px;}
+.ativ-linha:first-of-type{border-top:none;}
+.ativ-nome{flex:1;min-width:0;line-height:1.4;}
+.ativ-valor{font-weight:700;color:var(--verde-texto);white-space:nowrap;font-variant-numeric:tabular-nums;}
+
+details.tabela{margin-top:12px;font-size:12.5px;}
+details.tabela summary{cursor:pointer;color:var(--azul-texto);font-weight:600;}
+.tab-wrap{overflow-x:auto;margin-top:8px;}
+.tab-wrap table{border-collapse:collapse;width:100%;min-width:560px;}
+.tab-wrap th,.tab-wrap td{padding:6px 8px;border-bottom:1px solid var(--linha);text-align:right;font-variant-numeric:tabular-nums;}
+.tab-wrap th:first-child,.tab-wrap td:first-child{text-align:left;}
+.tab-wrap td small{display:block;color:var(--tinta-suave);font-size:11px;}
+.tab-wrap th{font-weight:600;color:var(--tinta-suave);}
+
+.vazio{font-size:13px;color:var(--tinta-suave);padding:8px 0;}
+.nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-6);}
+
+#dica{position:fixed;z-index:50;pointer-events:none;background:var(--tinta);color:var(--papel);font-size:12px;line-height:1.4;padding:6px 9px;border-radius:6px;max-width:260px;opacity:0;transition:opacity .1s;}
+#dica.vis{opacity:1;}
+@media (prefers-reduced-motion:reduce){#dica{transition:none;}}
 </style>
 </head>
 <body>
@@ -60,73 +119,79 @@
 <main>
   <div class="pagina-topo container">
     <h1 data-i18n="nav.financeiro">Transparência Financeira</h1>
-    <p data-i18n="fin.intro">Execução financeira do Programa, agregada por resultado e atividade.</p>
+    <p data-i18n="fin.intro">Como o orçamento do Programa está sendo usado, no total e por resultado esperado, e como isso se compara ao avanço das metas.</p>
     <div class="aviso-agregado">
       <span>ℹ️</span>
-      <span data-i18n="fin.aviso">Os valores aqui são sempre agregados por resultado e atividade — nunca por contrato ou fornecedor individual, para preservar a privacidade de quem presta serviço ao Programa.</span>
+      <span data-i18n="fin.aviso">Os valores em dinheiro aparecem só no total do Programa e por resultado. As atividades aparecem só em percentual. Nada é mostrado por contrato ou fornecedor, para preservar a privacidade de quem presta serviço ao Programa.</span>
     </div>
+    <p class="corte"><span data-i18n="fin.atualizado">Dados atualizados em</span> <b id="fin-data">—</b></p>
   </div>
 
   <div class="miolo container">
-    <div class="kpi-row3">
-      <div class="kpi-tile"><div class="rotulo" data-i18n="fin.total_pago">Total pago</div><div class="valor" style="color:var(--verde-texto)"><span data-num="994781" data-moeda="BRL">R$ 994.781</span></div></div>
-      <div class="kpi-tile"><div class="rotulo" data-i18n="fin.a_pagar">A pagar (comprometido)</div><div class="valor" style="color:var(--laranja-texto)"><span data-num="0" data-moeda="BRL">R$ 0</span></div></div>
-      <div class="kpi-tile"><div class="rotulo" data-i18n="fin.orcamento">Orçamento total</div><div class="valor"><span data-num="2382297" data-moeda="USD">US$ 2.382.297</span></div></div>
-    </div>
 
-    <div class="bloco">
-      <div class="bloco-hdr">
-        <h2 data-i18n="fin.por_resultado">Execução por resultado</h2>
-        <p data-i18n="fin.por_resultado_p">Valor pago sobre o orçamento planejado de cada resultado esperado do Programa.</p>
+    <!-- ── Visão para financiadores ─────────────────────────────── -->
+    <h2 class="secao-tit" data-i18n="fin.sec_fin">Visão geral do orçamento</h2>
+    <p class="secao-sub" data-i18n="fin.sec_fin_p">Em dólar, a moeda do orçamento do Programa, e em reais. Cada estágio mostra em que ponto está o dinheiro: já pago, lançado para pagar, reservado em termos de referência (TDR) já aprovados ou em análise, e ainda livre.</p>
+    <p class="secao-sub" id="fin-cotacao"></p>
+
+    <div class="grade-totais" id="fin-totais"></div>
+
+    <div class="grade-hero">
+      <div class="cartao">
+        <div class="eyebrow" data-i18n="fin.taxa">Taxa de execução</div>
+        <div class="grande" id="fin-taxa">—</div>
+        <div class="sub" id="fin-taxa-sub"></div>
       </div>
-
-      <div class="barra-res">
-        <div class="barra-res-topo">
-          <span class="barra-res-nome"><span class="cod">R1</span>Práticas Inovadoras para uma Bioeconomia Sustentável</span>
-          <span class="barra-res-valor"><span data-num="473400" data-moeda="BRL">R$ 473.400</span> <span style="color:var(--tinta-suave);font-weight:500">/ <span data-num="1862446" data-moeda="USD">US$ 1.862.446</span></span></span>
-        </div>
-        <div class="barra-trilho"><div class="seg" style="width:25%;background:#188462"></div></div>
-      </div>
-
-      <div class="barra-res">
-        <div class="barra-res-topo">
-          <span class="barra-res-nome"><span class="cod">R2</span>Resiliência, Segurança Hídrica e Equidade de Gênero</span>
-          <span class="barra-res-valor"><span data-num="521381" data-moeda="BRL">R$ 521.381</span> <span style="color:var(--tinta-suave);font-weight:500">/ <span data-num="519850" data-moeda="USD">US$ 519.850</span></span></span>
-        </div>
-        <div class="barra-trilho"><div class="seg" style="width:100%;background:#2563EB"></div></div>
-      </div>
-
-      <div class="barra-res">
-        <div class="barra-res-topo">
-          <span class="barra-res-nome"><span class="cod">R3</span>Fortalecimento da Governança e Capacitação com Equidade de Gênero</span>
-          <span class="barra-res-valor" style="color:var(--tinta-suave)" data-i18n="fin.sem_execucao">Sem execução registrada</span>
-        </div>
-        <div class="barra-trilho"><div class="seg" style="width:0%;background:#7169C4"></div></div>
-      </div>
-
-      <div class="barra-res">
-        <div class="barra-res-topo">
-          <span class="barra-res-nome"><span class="cod">R4</span>Gestão do Projeto / Programa</span>
-          <span class="barra-res-valor" style="color:var(--tinta-suave)" data-i18n="fin.sem_execucao">Sem execução registrada</span>
-        </div>
-        <div class="barra-trilho"><div class="seg" style="width:0%;background:#9CA3AF"></div></div>
+      <div class="cartao">
+        <h3 data-i18n="fin.para_onde">Para onde foi o orçamento</h3>
+        <div class="sub" id="fin-orc-sub"></div>
+        <div id="fin-comp"></div>
+        <div class="legenda" id="fin-leg"></div>
       </div>
     </div>
 
-    <div class="bloco">
-      <div class="bloco-hdr">
-        <h2 data-i18n="fin.por_atividade">Maiores execuções por atividade</h2>
-        <p data-i18n="fin.por_atividade_p">Sempre agregado — o nome do fornecedor ou consultor não é exibido.</p>
-      </div>
-      <div class="ativ-linha"><span class="ativ-res" style="background:#188462">R1</span><span class="ativ-nome">Apoio técnico na análise do CAR e elaboração de PRADAs (eixo restauração)</span><span class="ativ-valor"><span data-num="334600" data-moeda="BRL">R$ 334.600</span></span></div>
-      <div class="ativ-linha"><span class="ativ-res" style="background:#2563EB">R2</span><span class="ativ-nome">Participação em eventos nacionais e internacionais — passagens e diárias</span><span class="ativ-valor"><span data-num="255381" data-moeda="BRL">R$ 255.381</span></span></div>
-      <div class="ativ-linha"><span class="ativ-res" style="background:#2563EB">R2</span><span class="ativ-nome">Elaboração, planejamento e execução do Plano de Comunicação</span><span class="ativ-valor"><span data-num="171000" data-moeda="BRL">R$ 171.000</span></span></div>
-      <div class="ativ-linha"><span class="ativ-res" style="background:#188462">R1</span><span class="ativ-nome">Serviço de ATER para fortalecimento de práticas sustentáveis</span><span class="ativ-valor"><span data-num="100000" data-moeda="BRL">R$ 100.000</span></span></div>
-      <div class="ativ-linha"><span class="ativ-res" style="background:#2563EB">R2</span><span class="ativ-nome">Consultoria especialista em gênero — coordenação do plano de ação</span><span class="ativ-valor"><span data-num="95000" data-moeda="BRL">R$ 95.000</span></span></div>
-      <div class="ativ-linha"><span class="ativ-res" style="background:#188462">R1</span><span class="ativ-nome">Auditoria independente de meio termo e final</span><span class="ativ-valor"><span data-num="38800" data-moeda="BRL">R$ 38.800</span></span></div>
+    <div class="grade-kpi" id="fin-kpis"></div>
+
+    <div class="cartao" style="margin-bottom:var(--espaco-4)">
+      <h3 data-i18n="fin.por_resultado">Execução por resultado</h3>
+      <div class="sub" data-i18n="fin.por_resultado_p">Pago, a pagar, reservado em TDR e livre, sobre o orçamento de cada resultado esperado.</div>
+      <div id="fin-resultados"><div class="vazio" id="fin-carregando"></div></div>
+      <div class="legenda" id="fin-leg-res"></div>
+      <details class="tabela"><summary data-i18n="fin.ver_tabela">Ver como tabela</summary><div class="tab-wrap" id="fin-tabela"></div></details>
     </div>
 
-    <p class="nota-dados" data-i18n="fin.nota">Valores de um recorte atual do banco de dados do Programa (soma de execucao_financeira por resultado/atividade) — no site publicado, virão da função pública fn_publico_financeiro_agregado(), ainda a ser criada no Produto 3.</p>
+    <div class="grade-2">
+      <div class="cartao">
+        <h3 data-i18n="fin.tdr_fase">Termos de referência (TDR) por fase</h3>
+        <div class="sub" data-i18n="fin.tdr_fase_p">Quantos pedidos de contratação estão em cada etapa, do rascunho ao contrato assinado.</div>
+        <div id="fin-tdrs" style="margin-top:10px"></div>
+      </div>
+      <div class="cartao">
+        <h3 data-i18n="fin.atv_fase">Atividades por fase</h3>
+        <div class="sub" data-i18n="fin.atv_fase_p">Em que etapa está cada atividade do Programa.</div>
+        <div id="fin-atv" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- ── Resultados × Financeiro ──────────────────────────────── -->
+    <h2 class="secao-tit" data-i18n="fin.sec_rxf">Resultados × financeiro</h2>
+    <p class="secao-sub" data-i18n="fin.sec_rxf_p">Para cada resultado esperado, o avanço das metas da Matriz de Resultados ao lado do uso do orçamento. Ajuda a ver se o dinheiro e as entregas andam juntos.</p>
+
+    <div class="grade-kpi" id="rxf-kpis"></div>
+
+    <div class="cartao" style="margin-bottom:var(--espaco-4)">
+      <h3 data-i18n="fin.rxf_tit">Metas, orçamento reservado e orçamento pago</h3>
+      <div class="sub" data-i18n="fin.rxf_p">Progresso médio das metas com valor numérico (contribuições confirmadas) e percentual do orçamento de cada resultado.</div>
+      <div id="rxf-lista"></div>
+    </div>
+
+    <div class="cartao">
+      <h3 data-i18n="fin.por_atividade">Atividades em destaque</h3>
+      <div class="sub" data-i18n="fin.por_atividade_p">As atividades que mais avançaram em cada resultado, em percentual do próprio orçamento.</div>
+      <div id="fin-destaques" style="margin-top:6px"></div>
+    </div>
+
+    <p class="nota-dados" data-i18n="fin.nota">Fonte: plataforma de gestão do Programa (pagamentos, termos de referência e Matriz de Resultados). Os nomes de resultados e atividades aparecem como foram cadastrados.</p>
   </div>
 </main>
 
@@ -134,9 +199,181 @@
   <div id="site-footer-slot"></div>
 </footer>
 
+<div id="dica" role="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/i18n-en.js"></script>
 <script src="js/i18n-es.js"></script>
 <script src="js/layout.js"></script>
+<script>
+// Dados: fn_publico_financeiro_agregado (US$ só no total e por resultado; atividade só em %),
+// fn_publico_operacional (contagens de TDR e atividades) e fn_publico_resultados (Matriz).
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const ESTAGIOS = [['pago_usd','--fx-pago','fin.pago'], ['a_pagar_usd','--fx-apagar','fin.a_pagar'], ['comprometido_tdr_usd','--fx-comp','fin.comp_tdr'], ['livre_usd','--fx-livre','fin.livre']];
+// Mesmas fases da Visão Geral (nomes antigos de status agrupados)
+const TDR_NORM = { enviado_unesco: 'em_revisao_unesco', retorno_unesco: 'em_revisao_unesco', revisao_interna: 'submetido', ajustes: 'pendente_correcao' };
+const TDR_FASES = ['rascunho','submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','aprovado','em_licitacao','contratado'];
+const TDR_POS_APROVACAO = ['aprovado','em_licitacao','contratado'];
+const ATV_FASES = ['A_INICIAR','ELABORACAO','LICITACAO','ELABORADO','CONTRATADO','CONCLUIDO'];
+let F = null, OP = null, MZ = null;
+
+function nomeIdioma(o) { return (idiomaAtual !== 'pt' && o['nome_' + idiomaAtual]) || o.nome_pt; }
+function fmtPct(n) { return Number(n || 0).toLocaleString(localeAtual(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%'; }
+function fmtUSD(n) { return Number(n || 0).toLocaleString(localeAtual(), { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }); }
+// Reais = US$ × última PTAX de venda gravada (a data vai escrita na página)
+function fmtBRL(usd) { const c = F && F.cotacao; return c ? '≈ ' + (Number(usd || 0) * c.ptax_venda).toLocaleString(localeAtual(), { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : ''; }
+function fmtDuo(usd) { const b = fmtBRL(usd); return b ? `${fmtUSD(usd)} (${b})` : fmtUSD(usd); }
+// Pago e a pagar: o R$ lançado (pago = cotação UNESCO do dia do pagamento), sem conversão
+const BRL_LANCADO = { pago_usd: 'pago_brl', a_pagar_usd: 'a_pagar_brl' };
+function brl(o, k) { const kb = BRL_LANCADO[k]; return kb && o[kb] != null ? Number(o[kb]).toLocaleString(localeAtual(), { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : fmtBRL(o[k]); }
+function duo(o, k) { const b = brl(o, k); return b ? `${fmtUSD(o[k])} (${b})` : fmtUSD(o[k]); }
+function fmtInt(n) { return Number(n || 0).toLocaleString(localeAtual()); }
+const pct = (a, b) => b > 0 ? a / b * 100 : 0;
+
+// Barra de composição com os 4 estágios; cada trecho tem dica (hover/foco)
+function barraComp(o, rotulo) {
+  const total = o.orcamento_usd || 0;
+  if (!total) return '';
+  const segs = ESTAGIOS.filter(([k]) => o[k] > 0).map(([k, cor, ch]) => {
+    const dica = `${t(ch)}: ${duo(o, k)} · ${fmtPct(pct(o[k], total))}`;
+    return `<span class="seg" tabindex="0" style="flex:${o[k]} 1 0;--c:var(${cor})" data-dica="${esc(dica)}" aria-label="${esc(dica)}"></span>`;
+  }).join('');
+  return `<div class="comp" role="group" aria-label="${esc(rotulo)}">${segs}</div>`;
+}
+function legenda(o) {
+  return ESTAGIOS.map(([k, cor, ch]) => `<span><i style="--c:var(${cor})"></i>${t(ch)}${o ? ` <b>${fmtUSD(o[k])}</b>` : ''}</span>`).join('');
+}
+function kpi(rot, v, s, medidas) {
+  const med = medidas ? `<div class="medidor"><i style="width:${Math.min(medidas[0], 100)}%;background:var(${medidas[1]})"></i></div>` : '';
+  return `<div class="cartao kpi"><div class="eyebrow">${rot}</div><div class="v">${v}</div><div class="s">${s}</div>${med}</div>`;
+}
+function hbar(rot, n, max, cor, dica, txt) {
+  const w = max > 0 ? Math.min(n / max * 100, 100) : 0;
+  return `<div class="hbar"><span class="r">${rot}</span><span class="trilho" tabindex="0" data-dica="${esc(dica)}" aria-label="${esc(dica)}"><i class="${n > 0 ? 'tem' : ''}" style="width:${w}%;--c:var(${cor})"></i></span><span class="n">${txt ?? fmtInt(n)}</span></div>`;
+}
+
+// Matriz: progresso médio das metas numéricas (teto de 100% por indicador), como na Visão Geral
+function matrizPorResultado() {
+  const por = {};
+  (MZ || []).forEach(i => {
+    const k = 'R' + i.resultado; (por[k] = por[k] || []).push(i);
+  });
+  const media = itens => {
+    const c = itens.filter(i => parseFloat(i.meta_numerica || 0) > 0);
+    return c.length ? c.reduce((s, i) => s + Math.min(parseFloat(i.pct_confirmado || 0), 100), 0) / c.length : null;
+  };
+  return { por, media };
+}
+
+function desenhar() {
+  const T = F.total;
+  document.getElementById('fin-data').textContent = F.atualizado_em
+    ? new Date(F.atualizado_em).toLocaleDateString(localeAtual(), { timeZone: 'America/Rio_Branco' }) : '—';
+
+  // ── Visão geral ──
+  document.getElementById('fin-taxa').innerHTML = fmtPct(T.pct_executado).replace('%', '<small>%</small>');
+  document.getElementById('fin-taxa-sub').innerHTML = t('fin.taxa_sub', { pago: `<span class="mono">${fmtUSD(T.pago_usd)}</span>`, orc: `<span class="mono">${fmtUSD(T.orcamento_usd)}</span>` });
+  if (F.cotacao) document.getElementById('fin-taxa-sub').innerHTML += `<br>${t('fin.taxa_sub', { pago: brl(T, 'pago_usd'), orc: fmtBRL(T.orcamento_usd) })}`;
+  document.getElementById('fin-cotacao').textContent = F.cotacao
+    ? t('fin.cotacao', { taxa: Number(F.cotacao.ptax_venda).toLocaleString(localeAtual(), { minimumFractionDigits: 4 }), data: new Date(F.cotacao.data + 'T12:00').toLocaleDateString(localeAtual()) }) : '';
+  // Totais do Programa, em US$ e R$
+  document.getElementById('fin-totais').innerHTML = [['orcamento_usd', null, 'fin.orcamento']].concat(ESTAGIOS).map(([k, cor, ch]) =>
+    `<div class="cartao total"><div class="eyebrow">${cor ? `<span class="chave" style="--c:var(${cor})"></span>` : ''}${t(ch)}</div><div class="v">${fmtUSD(T[k])}</div><div class="brl">${brl(T, k)}</div></div>`).join('');
+  document.getElementById('fin-orc-sub').textContent = t('fin.para_onde_p', { orc: fmtDuo(T.orcamento_usd) });
+  document.getElementById('fin-comp').innerHTML = barraComp(T, t('fin.para_onde'));
+  document.getElementById('fin-leg').innerHTML = legenda(T);
+
+  const tdrs = OP ? OP.tdrs_por_status || {} : {};
+  const tdrCnt = {}; Object.entries(tdrs).forEach(([s, n]) => { const k = TDR_NORM[s] || s; tdrCnt[k] = (tdrCnt[k] || 0) + n; });
+  const tdrTotal = Object.values(tdrCnt).reduce((s, n) => s + n, 0);
+  const tdrAprov = TDR_POS_APROVACAO.reduce((s, k) => s + (tdrCnt[k] || 0), 0);
+  const { por, media } = matrizPorResultado();
+  const indComMeta = (MZ || []).filter(i => parseFloat(i.meta_numerica || 0) > 0);
+  const indAvanco = (MZ || []).filter(i => parseFloat(i.pct_confirmado || 0) > 0).length;
+
+  document.getElementById('fin-kpis').innerHTML =
+      kpi(t('fin.comp_tdr'), fmtPct(T.pct_comprometido), t('fin.kpi_comp_s', { v: fmtDuo(T.comprometido_tdr_usd + T.a_pagar_usd + T.pago_usd) }), [T.pct_comprometido, '--fx-comp'])
+    + kpi(t('fin.a_pagar'), fmtPct(T.pct_a_pagar), t('fin.kpi_apagar_s', { v: duo(T, 'a_pagar_usd') }), [T.pct_a_pagar, '--fx-apagar'])
+    + (OP ? kpi(t('fin.kpi_tdr'), `${fmtInt(tdrAprov)} / ${fmtInt(tdrTotal)}`, t('fin.kpi_tdr_s', { p: fmtPct(pct(tdrAprov, tdrTotal)) }), [pct(tdrAprov, tdrTotal), '--fx-apagar']) : '')
+    + (MZ ? kpi(t('fin.kpi_metas'), `${fmtInt(indAvanco)} / ${fmtInt(MZ.length)}`, t('fin.kpi_metas_s'), [pct(indAvanco, MZ.length), '--fx-metas']) : '');
+
+  // ── Execução por resultado ──
+  document.getElementById('fin-resultados').innerHTML = F.resultados.map(r => `
+    <div class="linha-res">
+      <div class="linha-topo"><span class="linha-nome"><span class="cod">${esc(r.codigo)}</span>${esc(nomeIdioma(r))}</span>
+        ${r.orcamento_usd > 0 ? `<span class="linha-val">${t('fin.pago_de', { pago: duo(r, 'pago_usd'), orc: fmtDuo(r.orcamento_usd) })}</span>` : ''}</div>
+      ${r.orcamento_usd > 0 ? barraComp(r, r.codigo) : `<div class="sem-exec">${t('fin.sem_orcamento')}</div>`}
+    </div>`).join('');
+  document.getElementById('fin-leg-res').innerHTML = legenda(null);
+  document.getElementById('fin-tabela').innerHTML = `<table><thead><tr><th>${t('fin.resultado')}</th><th>${t('fin.orcamento')}</th>${ESTAGIOS.map(([, , ch]) => `<th>${t(ch)}</th>`).join('')}<th>${t('fin.taxa')}</th></tr></thead><tbody>`
+    + F.resultados.concat([{ ...T, codigo: t('fin.total'), nome_pt: '' }]).map(r => `<tr><td>${esc(r.codigo)}${r.nome_pt ? ' — ' + esc(nomeIdioma(r)) : ''}</td><td>${fmtUSD(r.orcamento_usd)}<small>${fmtBRL(r.orcamento_usd)}</small></td>${ESTAGIOS.map(([k]) => `<td>${fmtUSD(r[k])}<small>${brl(r, k)}</small></td>`).join('')}<td>${fmtPct(r.pct_executado)}</td></tr>`).join('')
+    + '</tbody></table>';
+
+  // ── Fases ──
+  const maxT = Math.max(0, ...TDR_FASES.map(k => tdrCnt[k] || 0));
+  document.getElementById('fin-tdrs').innerHTML = OP
+    ? TDR_FASES.filter(k => tdrCnt[k]).map(k => hbar(t('fin.tdr_f.' + k), tdrCnt[k], maxT, '--fx-apagar', `${t('fin.tdr_f.' + k)}: ${fmtInt(tdrCnt[k])}`)).join('') || `<div class="vazio">${t('fin.sem_dados')}</div>`
+    : `<div class="vazio">${t('fin.erro')}</div>`;
+  const atv = OP ? OP.atividades_por_fase || {} : {};
+  const maxA = Math.max(0, ...ATV_FASES.map(k => atv[k] || 0));
+  document.getElementById('fin-atv').innerHTML = OP
+    ? ATV_FASES.map(k => hbar(t('fin.atv_f.' + k), atv[k] || 0, maxA, '--fx-apagar', `${t('fin.atv_f.' + k)}: ${fmtInt(atv[k] || 0)}`)).join('')
+    : `<div class="vazio">${t('fin.erro')}</div>`;
+
+  // ── Resultados × financeiro ──
+  const mediaGeral = MZ ? media(MZ) : null;
+  const emRisco = indComMeta.filter(i => parseFloat(i.pct_confirmado || 0) < 40).length;
+  const resAtivos = F.resultados.filter(r => r.orcamento_usd > 0).length;
+  document.getElementById('rxf-kpis').innerHTML =
+      (MZ ? kpi(t('fin.rxf_media'), mediaGeral == null ? '—' : fmtPct(mediaGeral), t('fin.rxf_media_s'), [mediaGeral || 0, '--fx-metas']) : '')
+    + kpi(t('fin.rxf_fin'), fmtPct(T.pct_executado), t('fin.rxf_fin_s'), [T.pct_executado, '--fx-pago'])
+    + (MZ ? kpi(t('fin.rxf_risco'), fmtInt(emRisco), t('fin.rxf_risco_s', { n: fmtInt(indComMeta.length) })) : '')
+    + kpi(t('fin.rxf_ativos'), fmtInt(resAtivos), t('fin.rxf_ativos_s'));
+
+  document.getElementById('rxf-lista').innerHTML = F.resultados.map(r => {
+    const m = MZ ? media(por[r.codigo] || []) : null;
+    const semOrc = r.orcamento_usd > 0 ? null : t('fin.rxf_sem_orc');
+    const linhas = [
+      [t('fin.rxf_l_metas'), m, '--fx-metas', m == null ? t('fin.rxf_sem_meta') : null],
+      [t('fin.rxf_l_comp'), r.pct_comprometido, '--fx-comp', semOrc],
+      [t('fin.rxf_l_pago'), r.pct_executado, '--fx-pago', semOrc],
+    ];
+    return `<div class="rxf"><div class="linha-nome" style="margin-bottom:6px"><span class="cod">${esc(r.codigo)}</span>${esc(nomeIdioma(r))}</div>`
+      + linhas.map(([rot, v, cor, sem]) => hbar(rot, v || 0, 100, cor, `${r.codigo} · ${rot}: ${sem || fmtPct(v)}`, sem ? '—' : fmtPct(v))).join('')
+      + '</div>';
+  }).join('');
+
+  // ── Atividades em destaque (só %) ──
+  const destaques = F.resultados.flatMap(r => r.destaques.map(a => ({ ...a, res: r.codigo })));
+  document.getElementById('fin-destaques').innerHTML = destaques.length
+    ? destaques.map(a => `<div class="ativ-linha"><span class="cod">${esc(a.res)}</span><span class="ativ-nome">${esc(nomeIdioma(a))}</span><span class="ativ-valor">${fmtPct(a.pct_executado)}</span></div>`).join('')
+    : `<div class="vazio">${t('fin.sem_destaque')}</div>`;
+}
+
+async function carregar() {
+  const aviso = document.getElementById('fin-carregando');
+  aviso.textContent = t('fin.carregando');
+  if (!db) { aviso.textContent = t('fin.erro'); return; }
+  const [f, o, m] = await Promise.all([db.rpc('fn_publico_financeiro_agregado'), db.rpc('fn_publico_operacional'), db.rpc('fn_publico_resultados')]);
+  if (f.error || !f.data) { aviso.textContent = t('fin.erro'); return; }
+  F = f.data; OP = o.error ? null : o.data; MZ = m.error ? null : m.data;
+  desenhar();
+}
+
+// Dica única para trechos de barra (mouse e teclado)
+(function () {
+  const d = document.getElementById('dica');
+  const mostrar = (el, x, y) => { d.textContent = el.dataset.dica; d.classList.add('vis');
+    const r = d.getBoundingClientRect(); d.style.left = Math.max(8, Math.min(x + 12, innerWidth - r.width - 8)) + 'px'; d.style.top = Math.max(8, y - r.height - 10) + 'px'; };
+  document.addEventListener('mousemove', e => { const el = e.target.closest('[data-dica]'); if (el) mostrar(el, e.clientX, e.clientY); else d.classList.remove('vis'); });
+  document.addEventListener('focusin', e => { const el = e.target.closest('[data-dica]'); if (!el) return; const r = el.getBoundingClientRect(); mostrar(el, r.left + r.width / 2, r.top); });
+  document.addEventListener('focusout', () => d.classList.remove('vis'));
+})();
+
+carregar();
+document.addEventListener('idioma', () => { if (F) desenhar(); });
+</script>
 </body>
 </html>
