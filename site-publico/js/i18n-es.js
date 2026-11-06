@@ -210,11 +210,18 @@ registrarIdioma('es', {
 
   // ── Linha do Tempo ──
   'tempo.titulo_pagina': 'Línea de Tiempo — Resiliencia Socioambiental',
-  'tempo.intro': 'Los principales hitos del Programa, en el orden en que fueron ocurriendo — TdR aprobados, contratos firmados y productos entregados.',
+  'tempo.intro': 'Los productos aprobados del Programa, en el orden en que se concluyeron, desde la firma del acuerdo. Cada hito lo describe el equipo responsable de la actividad.',
   'tempo.tdr': 'TdR aprobado',
   'tempo.contrato': 'Contrato firmado',
-  'tempo.produto': 'Producto entregado',
-  'tempo.nota': 'Eventos y fechas reales, de un corte actual de la base de datos del Programa — en el sitio publicado vendrán de la función pública fn_publico_linha_tempo(), aún por crear en el Producto 3. Las descripciones de los eventos se muestran como fueron registradas, en portugués.',
+  'tempo.produto': 'Producto aprobado',
+  'tempo.acordo': 'Inicio',
+  'tempo.acordo_tit': 'Firma del acuerdo del Programa',
+  'tempo.vazio': 'Los primeros hitos se publicarán pronto.',
+  'tempo.todos': 'Todos',
+  'tempo.carregando': 'Cargando…',
+  'tempo.erro': 'No fue posible cargar la línea de tiempo.',
+  'tempo.filtrar': 'Filtrar por resultado',
+  'tempo.nota': 'Las fechas son las de la aprobación de cada producto por el equipo del Programa.',
 
   // ── Produtos ──
   'prod.titulo_pagina': 'Productos — Resiliencia Socioambiental',

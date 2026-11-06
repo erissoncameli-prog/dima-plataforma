@@ -726,6 +726,67 @@ function fecharConfPub(ok) {
   if (pubResolver) { const r = pubResolver; pubResolver = null; r(!!ok); }
 }
 
+// Linha do Tempo do site público: o responsável/substituto da atividade (ou super_admin)
+// escreve e publica o texto do produto aprovado; só o publicado vai ao site
+// (fn_linha_tempo_salvar; regra no banco — esta parte só desenha).
+const LT_ERROS = {
+  'linha_tempo:sem_permissao': 'Só o responsável ou o substituto da atividade (ou super_admin) publica na Linha do Tempo.',
+  'linha_tempo:produto_nao_aprovado': 'Só produto aprovado entra na Linha do Tempo.',
+  'linha_tempo:titulo_tamanho': 'O título precisa ter de 5 a 120 caracteres.',
+  'linha_tempo:texto_tamanho': 'O texto precisa ter de 20 a 600 caracteres.',
+  'linha_tempo:nome_fornecedor': 'Tire o nome do consultor ou da empresa do título e do texto — a Linha do Tempo não identifica fornecedor.',
+  'linha_tempo:documento': 'Tire o CPF ou CNPJ do título e do texto.',
+};
+async function carregarLinhaTempo(o) {
+  const el = document.getElementById('acv-lt');
+  if (!el) return;
+  const [ev, pode] = await Promise.all([
+    db.from('linha_tempo_eventos').select('titulo,texto,publicado,publicado_em,atualizado_em').eq('obra_id', o.obra_id).maybeSingle(),
+    db.rpc('fn_linha_tempo_pode_editar', { p_obra_id: o.obra_id }),
+  ]);
+  if (obraAberta !== o || !document.getElementById('acv-lt')) return;
+  const e = ev.data || null;
+  const situacao = e && e.publicado
+    ? '<span class="acv-pub-selo">No site desde ' + esc(fmtData(e.publicado_em)) + '</span>'
+    : (e ? '<span class="acv-midia-rot neu">Rascunho, ainda não publicado</span>' : '');
+  if (!pode.data) {
+    el.innerHTML = e && e.publicado
+      ? '<div class="acv-lt-meta">' + situacao + '</div><div class="acv-lt-tit">' + esc(e.titulo) + '</div><div class="acv-texto">' + esc(e.texto) + '</div>'
+      : '<div class="acv-texto" style="color:var(--txt-3)">Este produto ainda não está na Linha do Tempo. Quem publica é o responsável ou o substituto da atividade.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="acv-lt-meta">' + situacao + '<span class="acv-lt-data">Data no site: ' + esc(fmtData(o.entrega_ref_data)) + ' (aprovação)</span></div>'
+    + '<div class="acv-pub-dica">Escreva para o público: o que o produto entrega e para quê. Não cite o nome do consultor ou da empresa, CPF ou valores. '
+    + 'Só aparece no site depois de publicado.</div>'
+    + '<label class="acv-lt-lbl" for="acv-lt-tit">Título</label>'
+    + '<input id="acv-lt-tit" class="form-control" maxlength="120" value="' + esc(e ? e.titulo : '') + '" placeholder="Ex.: Mapeamento do uso do solo da APA Lago do Amapá">'
+    + '<label class="acv-lt-lbl" for="acv-lt-txt">Texto <span id="acv-lt-cont" class="acv-lt-cont"></span></label>'
+    + '<textarea id="acv-lt-txt" class="form-control" rows="4" maxlength="600" placeholder="Em duas ou três frases, o que este produto traz para o Programa.">' + esc(e ? e.texto : '') + '</textarea>'
+    + '<div class="acv-lt-acoes">'
+    + (e && e.publicado ? '<button type="button" class="btn btn-secondary" data-lt="tirar">Tirar do site</button>' : '<button type="button" class="btn btn-secondary" data-lt="rascunho">Salvar rascunho</button>')
+    + '<button type="button" class="btn btn-primary" data-lt="publicar">' + (e && e.publicado ? 'Atualizar no site' : 'Publicar na Linha do Tempo') + '</button></div>';
+  const txt = document.getElementById('acv-lt-txt'), cont = document.getElementById('acv-lt-cont');
+  const contar = () => { cont.textContent = txt.value.trim().length + ' / 600'; };
+  txt.addEventListener('input', contar); contar();
+  el.querySelectorAll('[data-lt]').forEach(b => {
+    b.onclick = async () => {
+      const publicar = b.dataset.lt === 'publicar';
+      el.querySelectorAll('[data-lt]').forEach(x => { x.disabled = true; });
+      const { error } = await db.rpc('fn_linha_tempo_salvar', {
+        p_obra_id: o.obra_id, p_titulo: document.getElementById('acv-lt-tit').value, p_texto: txt.value, p_publicar: publicar,
+      });
+      if (error) {
+        const chave = Object.keys(LT_ERROS).find(k => (error.message || '').includes(k));
+        toast(chave ? LT_ERROS[chave] : 'Não foi possível salvar: ' + (error.message || 'erro'), 'error');
+        el.querySelectorAll('[data-lt]').forEach(x => { x.disabled = false; });
+        return;
+      }
+      toast(publicar ? 'Publicado na Linha do Tempo do site.' : (b.dataset.lt === 'tirar' ? 'Tirado do site — o texto ficou como rascunho.' : 'Rascunho salvo.'), 'success');
+      carregarLinhaTempo(o);
+    };
+  });
+}
+
 function abrirFicha(obraId) {
   const o = obras.find(x => x.obra_id === obraId);
   if (!o) { toast('Produto não encontrado no acervo.', 'warning'); return; }
@@ -800,6 +861,12 @@ function abrirFicha(obraId) {
       + esc(estado(o).rotulo) + ' — ainda não há arquivo aprovado para este produto.</div>';
   }
 
+  // ── Linha do Tempo do site público (só produto aprovado) ──
+  if (o.situacao_acervo === 'aprovado') {
+    body += '<div class="acv-secao-tit">Linha do Tempo do site público</div><div id="acv-lt" class="acv-lt">'
+      + '<div class="acv-texto" style="color:var(--txt-3)">Carregando…</div></div>';
+  }
+
   // ── Versões anteriores ──
   if (superadas.length) {
     body += '<details class="acv-hist"><summary>' + acvIc('dir') + 'Versões anteriores &middot; ' + superadas.length
@@ -815,6 +882,7 @@ function abrirFicha(obraId) {
   }
 
   document.getElementById('ficha-body').innerHTML = body;
+  if (o.situacao_acervo === 'aprovado') carregarLinhaTempo(o);
 
   // Rodapé: atalho para o módulo de avaliação da entrega de referência
   const entregaAlvo = o.entrega_ref_id || (midiasPorObra[obraId] || []).map(m => m.entrega_id).filter(Boolean)[0];
