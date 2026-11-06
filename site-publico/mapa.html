@@ -7,10 +7,10 @@
 <title data-i18n="mapa.titulo_pagina">Mapa Interativo de Entregas — Resiliência Socioambiental</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css"/>
+<link rel="stylesheet" href="vendor/leaflet-1.9.4/leaflet.css"/>
+<link rel="stylesheet" href="vendor/leaflet.markercluster-1.5.3/MarkerCluster.css"/>
+<link rel="stylesheet" href="vendor/leaflet.markercluster-1.5.3/MarkerCluster.Default.css"/>
+<link rel="stylesheet" href="vendor/leaflet-minimap-3.6.1/Control.MiniMap.min.css"/>
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
 <style>
@@ -151,11 +151,11 @@ main{flex:1;display:flex;flex-direction:column;min-height:0;}
   <a id="modal-video-link" href="#" target="_blank" rel="noopener" style="color:rgba(255,255,255,.7);font-size:12px;margin-top:12px;text-decoration:underline;display:none" data-i18n="mapa.nova_aba">Abrir em nova aba →</a>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<script src="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.js"></script>
-<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src="vendor/supabase-js-2.119.0/supabase.js"></script>
+<script src="vendor/leaflet-1.9.4/leaflet.js"></script>
+<script src="vendor/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
+<script src="vendor/leaflet-minimap-3.6.1/Control.MiniMap.min.js"></script>
+<script src="vendor/turf-6.5.0/turf.min.js"></script>
 <script src="js/supabase.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/i18n-en.js"></script>
