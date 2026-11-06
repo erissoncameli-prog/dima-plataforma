@@ -339,12 +339,14 @@ async function carregarHeroMedia() {
 
 carregarHeroMedia();
 
-// ── Indicadores: contagens do banco (fn_publico_operacional). Os números
-// escritos no HTML ficam como reserva se o banco não responder ─────────
+// ── Indicadores: fn_publico_resumo_home (junta as funções públicas numa chamada;
+// sem ela, fn_publico_operacional). Os números escritos no HTML ficam como
+// reserva se o banco não responder ─────────────────────────────────────
 async function carregarKpis() {
   if (!db) return;
   try {
-    const { data: d, error } = await db.rpc('fn_publico_operacional');
+    let { data: d, error } = await db.rpc('fn_publico_resumo_home');
+    if (error || !d) ({ data: d, error } = await db.rpc('fn_publico_operacional'));
     if (error || !d) return;
     const por = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.textContent = v; };
     por('kpi-atividades', d.atividades_ativas);
