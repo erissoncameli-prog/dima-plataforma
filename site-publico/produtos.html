@@ -14,7 +14,7 @@
 .pagina-topo h1{font-size:clamp(22px,3vw,30px);margin-bottom:6px;}
 .pagina-topo p{font-size:14.5px;color:var(--tinta-suave);max-width:70ch;}
 
-.aviso-exemplo{display:flex;gap:10px;align-items:flex-start;background:var(--laranja-tint);border:1px solid var(--laranja);border-radius:var(--raio);padding:13px 16px;margin:var(--espaco-5) 0;font-size:13px;color:var(--tinta);}
+.aviso-exemplo{display:flex;gap:10px;align-items:flex-start;background:var(--azul-tint);border:1px solid var(--azul);border-radius:var(--raio);padding:13px 16px;margin:var(--espaco-5) 0;font-size:13px;color:var(--tinta);}
 .aviso-exemplo strong{display:block;margin-bottom:2px;}
 
 .miolo{padding-block:var(--espaco-6) var(--espaco-9);}
@@ -33,13 +33,17 @@
 .card-produto[hidden]{display:none;}
 /* Só a capa do produto (decisão da coordenação: sem download do arquivo original).
    Enquanto não há capas reais, desenha uma capa genérica com a marca do Programa. */
-.card-produto-capa{height:200px;display:flex;align-items:center;justify-content:center;position:relative;background:var(--verde-tint);}
+.card-produto-capa{height:220px;padding:12px 0;display:flex;align-items:center;justify-content:center;position:relative;background:var(--verde-tint);}
 .capa-doc{width:118px;aspect-ratio:3/4;background:#fff;border-radius:3px;box-shadow:0 2px 6px rgba(23,36,28,.12),0 12px 24px -10px rgba(23,36,28,.3);display:flex;flex-direction:column;padding:10px 9px;gap:6px;overflow:hidden;}
 .capa-doc .capa-logo{width:100%;height:auto;}
 .capa-doc .capa-faixa{height:4px;border-radius:2px;}
 .capa-doc .capa-titulo{font-family:var(--fonte-titulo);font-size:8.5px;font-weight:700;line-height:1.25;color:#17241c;}
 .capa-doc .capa-linhas{margin-top:auto;display:grid;gap:3px;}
 .capa-doc .capa-linhas i{display:block;height:3px;border-radius:2px;background:#e2ded0;}
+.capa-doc[hidden]{display:none;}
+.card-produto-capa img.capa-real{height:100%;width:auto;max-width:calc(100% - 24px);object-fit:contain;box-shadow:0 2px 6px rgba(23,36,28,.12),0 12px 24px -10px rgba(23,36,28,.3);border-radius:3px;}
+.card-produto-num{font-size:11.5px;font-weight:600;color:var(--tinta-suave);margin-bottom:-4px;}
+.card-produto-objeto{font-size:12px;color:var(--tinta-suave);line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 .card-produto-selo{position:absolute;top:8px;right:8px;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(0,0,0,.55);color:#fff;padding:3px 8px;border-radius:99px;}
 .card-produto-corpo{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1;}
 .card-produto-eixo{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-suave);}
@@ -64,8 +68,8 @@
     <h1 data-i18n="nav.produtos">Produtos</h1>
     <p data-i18n="prod.intro">Relatórios, planos e materiais técnicos produzidos pelo Programa, autorizados para divulgação pública.</p>
     <div class="aviso-exemplo">
-      <span>⚠️</span>
-      <div data-i18n="prod.aviso"><strong>Conteúdo de exemplo — não são produtos reais.</strong>Cada produto só aparece aqui depois de autorizado pela coordenação, caso a caso — inclusive os já entregues, que vão passar por revisão. Produtos marcados como contendo dados pessoais (LGPD) no recebimento nunca vêm para o site. O controle dessa autorização é criado no banco de dados no Produto 3; os cartões abaixo mostram como a página vai se comportar.</div>
+      <span>ℹ️</span>
+      <div data-i18n="prod.aviso"><strong>Como um produto entra nesta galeria</strong>Só aparecem produtos aprovados e liberados um a um para divulgação pública. Mostramos a capa e a autoria; o documento completo não fica disponível para download.</div>
     </div>
   </div>
 
@@ -80,7 +84,7 @@
 
     <div class="grid-produtos" id="grid-produtos"></div>
 
-    <p class="nota-dados" data-i18n="prod.nota">Cartões de exemplo — no site publicado, virão da função pública fn_publico_galeria_produtos(), que depende da autorização de divulgação por produto (Produto 3). O site mostra só a capa e a ficha do produto; o arquivo original não fica disponível para download.</p>
+    <p class="nota-dados" data-i18n="prod.nota">Títulos, objetos e nomes de autoria aparecem como foram cadastrados na plataforma do Programa.</p>
   </div>
 </main>
 
@@ -88,6 +92,8 @@
   <div id="site-footer-slot"></div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/i18n-en.js"></script>
 <script src="js/i18n-es.js"></script>
@@ -102,46 +108,72 @@ const RESULTADOS = {
   R4: { cor: '#6B7280', icone: null },
 };
 
-// Exemplos — no Produto 3 vêm de fn_publico_galeria_produtos(). Título e
-// autor são conteúdo do banco: ficam em português em todos os idiomas.
-const PRODUTOS_EXEMPLO = [
-  { titulo: 'Diagnóstico das cadeias produtivas sustentáveis', autor: 'Nome da consultora (exemplo)', resultado: 'R1', data: '2026-08' },
-  { titulo: 'Plano de proteção de nascentes',                  autor: 'Nome do consultor (exemplo)',  resultado: 'R2', data: '2026-07' },
-  { titulo: 'Relatório das oficinas dos Conselhos Gestores',   autor: 'Nome da empresa (exemplo)',    resultado: 'R3', data: '2026-06' },
-  { titulo: 'Estudo de equidade de gênero nas APAs',           autor: 'Nome da consultora (exemplo)', resultado: 'R2', data: '2026-08' },
-  { titulo: 'Mapeamento do turismo de base comunitária',       autor: 'Nome do consultor (exemplo)',  resultado: 'R1', data: '2026-05' },
-  { titulo: 'Relatório de auditoria independente',             autor: 'Nome da empresa (exemplo)',    resultado: 'R4', data: '2026-07' },
-];
+// Produtos de fn_publico_galeria_produtos(): só os liberados no Acervo, com a capa
+// entregue pela Edge Function publico-capa (bucket privado; nada de download)
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let PRODUTOS = null;
+const _capas = {};   // midia_id → URL local da imagem já baixada
 
-// "ago 2026" / "Aug 2026" / "ago 2026"
-function mesAno(aaaaMm) {
-  const d = new Date(aaaaMm + '-15T12:00');
+function mesAno(iso) {
+  const d = new Date(iso + 'T12:00');
   return new Intl.DateTimeFormat(localeAtual(), { month: 'short' }).format(d).replace('.', '') + ' ' + d.getFullYear();
+}
+function nomeIdioma(o, campo) { return (idiomaAtual !== 'pt' && o[campo + '_' + idiomaAtual]) || o[campo + '_pt']; }
+// "Produto 03 – Título" vira { numero: "Produto 3", titulo: "Título" }; sem título de verdade
+// (só "Produto 03" ou "Produto 2 - Relatório Técnico"), fica só o número
+function tituloProduto(p) {
+  const m = String(p.titulo || '').match(/^\s*produto\s*0*(\d+)\s*[-–—:.]?\s*(.*)$/i);
+  const resto = m ? m[2].trim() : String(p.titulo || '').trim();
+  const generico = !resto || /^(relat[oó]rio|documento)(\s+t[eé]cnico)?$/i.test(resto);
+  return { numero: t('prod.produto_n', { n: m ? +m[1] : p.numero_produto }), titulo: generico ? '' : resto };
 }
 
 function cardProduto(p) {
-  const r = RESULTADOS[p.resultado];
+  const r = RESULTADOS[p.resultado_codigo] || RESULTADOS.R4;
   const icone = r.icone ? `<img src="${r.icone}" alt="">` : '';
+  const tp = tituloProduto(p), titulo = tp.titulo || tp.numero;
+  const capa = p.capa
+    ? `<img class="capa-real" data-capa="${esc(p.capa)}" alt="${esc(t('prod.capa_de', { t: titulo }))}" hidden>`
+    : '';
   return `
-    <article class="card-produto" data-resultado="${p.resultado}">
+    <article class="card-produto" data-resultado="${esc(p.resultado_codigo)}">
       <div class="card-produto-capa">
+        ${capa}
         <div class="capa-doc" aria-hidden="true">
           <img class="capa-logo" src="assets/identidade/logo-horizontal.svg" alt="">
           <span class="capa-faixa" style="background:${r.cor}"></span>
-          <span class="capa-titulo">${p.titulo}</span>
+          <span class="capa-titulo">${esc(titulo)}</span>
           <span class="capa-linhas"><i></i><i></i><i style="width:60%"></i></span>
         </div>
-        <span class="card-produto-selo">${t('prod.exemplo')}</span>
       </div>
       <div class="card-produto-corpo">
-        <span class="card-produto-eixo">${icone}${t('prod.eixo_' + p.resultado.toLowerCase())}</span>
-        <span class="card-produto-titulo">${p.titulo}</span>
-        <span class="card-produto-autor">${p.autor}</span>
-        <div class="card-produto-rodape"><span class="card-produto-resultado" style="background:${r.cor}">${p.resultado}</span><span>${mesAno(p.data)}</span></div>
+        <span class="card-produto-eixo">${icone}${t('prod.eixo_' + String(p.resultado_codigo).toLowerCase())}${(p.rotulos || [])[0] ? ` · ${esc(p.rotulos[0])}` : ''}</span>
+        ${tp.titulo ? `<span class="card-produto-num">${esc(tp.numero)}</span>` : ''}
+        <span class="card-produto-titulo">${esc(titulo)}</span>
+        ${p.objeto ? `<span class="card-produto-objeto">${esc(p.objeto)}</span>` : ''}
+        <span class="card-produto-autor">${t('prod.autoria')}: ${esc(p.autoria || '—')}</span>
+        <div class="card-produto-rodape"><span class="card-produto-resultado" style="background:${r.cor}">${esc(p.resultado_codigo)} · ${esc(p.atividade_codigo)}</span>${p.aprovado_em ? `<span>${t('prod.aprovado_em', { d: mesAno(p.aprovado_em) })}</span>` : ''}</div>
       </div>
     </article>`;
 }
 
+// Capa: a função pede a chave pública no cabeçalho, então baixa por fetch e mostra a
+// imagem só quando chega (sem ela, fica a capa genérica)
+async function carregarCapas() {
+  for (const img of document.querySelectorAll('img[data-capa]')) {
+    const m = img.dataset.capa;
+    try {
+      if (!_capas[m]) {
+        const r = await fetch(`${SUPABASE_URL}/functions/v1/publico-capa?m=${encodeURIComponent(m)}`,
+          { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } });
+        if (!r.ok) continue;
+        _capas[m] = URL.createObjectURL(await r.blob());
+      }
+      img.src = _capas[m]; img.hidden = false;
+      img.nextElementSibling.hidden = true;
+    } catch (e) { /* sem capa: mantém a genérica */ }
+  }
+}
 let _filtroProdutos = 'todos';
 
 function filtrarProdutos(filtro) {
@@ -158,10 +190,22 @@ function filtrarProdutos(filtro) {
 }
 
 function desenharProdutos() {
-  document.getElementById('grid-produtos').innerHTML = PRODUTOS_EXEMPLO.map(cardProduto).join('');
+  const grid = document.getElementById('grid-produtos');
+  if (!PRODUTOS) return;
+  grid.innerHTML = PRODUTOS.length ? PRODUTOS.map(cardProduto).join('') : '';
+  if (!PRODUTOS.length) { grid.innerHTML = `<p class="sem-resultado">${t('prod.vazio')}</p>`; return; }
   filtrarProdutos(_filtroProdutos);
+  carregarCapas();
 }
-desenharProdutos();
+async function carregarProdutos() {
+  const grid = document.getElementById('grid-produtos');
+  grid.innerHTML = `<p class="sem-resultado">${t('prod.carregando')}</p>`;
+  const { data, error } = db ? await db.rpc('fn_publico_galeria_produtos') : { error: true };
+  if (error || !Array.isArray(data)) { grid.innerHTML = `<p class="sem-resultado">${t('prod.erro')}</p>`; return; }
+  PRODUTOS = data;
+  desenharProdutos();
+}
+carregarProdutos();
 document.addEventListener('idioma', desenharProdutos);
 document.getElementById('filtros-produtos').addEventListener('click', e => {
   const b = e.target.closest('.filtro-pill');

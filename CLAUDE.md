@@ -500,8 +500,11 @@ e o **valor do produto** não é exibido. As views seguem com esses dados (outro
 
 #### Portal público — marcação por arquivo (migração `20261009_acervo_publicacao.sql`)
 
-O portal público do acervo **ainda não existe**; quando existir, mostra **só** os
-arquivos marcados. A marcação já está na ficha da obra.
+O portal público do acervo é a **Galeria de Produtos** do site público (`site-publico/produtos.html`,
+migração `20261106_publico_galeria_produtos`): mostra **só** produtos com arquivo marcado e `valida`
+(`fn_publico_galeria_produtos`: título, objeto do contrato, resultado, atividade, autoria, data da
+aprovação; nunca valor, contrato, nota técnica nem nome do arquivo) e a capa pela Edge Function
+`publico-capa`. Tratamento no ROPA: TRAT-005. A marcação está na ficha da obra.
 - **Só super_admin ativo** marca/desmarca, arquivo a arquivo, pela RPC
   `fn_acervo_definir_publico(p_midia_id text, p_publico boolean)` (SECURITY DEFINER).
   Tabela `acervo_publicacoes` (1 linha por `midia_id`, `publico`, quem/quando marcou e
@@ -527,6 +530,10 @@ aprovada não teve arquivo anexado). A ficha sinaliza a lacuna em vez de escond�
 o pôster até a tela gera; os demais só baixam. Não há renderização no servidor
 (Deno não tem canvas) nem job de backfill — o acervo se completa navegando.
 
+- **Quem grava capa** (migração `20261106_acervo_capas_gravacao` + `_sql_editor` do bucket): só quem enxerga o produto
+  (`vw_acervo_obras`, RLS de contratos), só a capa da edição vigente (`capa_midia_id`) e só no caminho de `caminhoCapa()`
+  (`fn_acervo_capa_pode_gravar`/`fn_acervo_capa_objeto_pode_gravar`); capa de arquivo liberado no portal só o super_admin troca.
+  Mudou o caminho no JS ⇒ mudar nas duas funções e em `fn_publico_capa_caminho`.
 - Bucket **`acervo-capas` é privado**. A página 1 de produto de consultor PF
   traz nome e às vezes CPF; miniatura em bucket aberto desfaria a migração
   `20260727_lgpd_c1_01`. Exibição sempre via `urlAssinada()`.
@@ -1355,6 +1362,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
 | `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação (`nota_tecnica_conferencias`); gera o modelo da nota (.docx); reconfirma a senha de quem aprova (`entrega_aprovacao_senhas`) | ✅ |
 | `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`) e a do pedido de acesso à API (`acao:'decidir_api'` → `fn_api_pedido_decidir`, só super_admin); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
+| `publico-capa` | Capa (JPEG do bucket privado `acervo-capas`) de produto marcado como público no Acervo, para a Galeria do site público; só entrega o que `fn_publico_capa_caminho` libera (service_role), 404 no resto. O site chama com a chave anon no cabeçalho (`fetch` → blob) | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---
