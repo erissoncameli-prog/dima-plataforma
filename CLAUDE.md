@@ -38,6 +38,8 @@ Este arquivo é lido automaticamente pelo Claude Code a cada sessão. Contém o 
 ## Fluxo de Deploy
 
 - **Sempre** commitar e fazer `push` direto na `main` — sem branches, sem PRs
+- O aviso do GitHub "Bypassed rule violations… Changes must be made through a pull request" é esperado: o push direto
+  na `main` está autorizado pelo dono do repositório (09/11/2026). Antes do push, `git fetch` + rebase se a `main` andou.
 - Edge Functions: deploy via MCP `deploy_edge_function` com `project_id: wfymnmlinonvdqfucjya`
 - Migrações SQL: aplicar via MCP `apply_migration`
 
