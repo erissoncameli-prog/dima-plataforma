@@ -891,6 +891,14 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `ntPedirSenha` → ação `confirmar_aprovacao`, mesmo bloqueio `fn_rem_senha_bloqueada_ate`), que grava em `entrega_aprovacao_senhas`
   (sem policy/grant) uma confirmação de uso único (10 min, pessoa + entrega + decisão); `trg_entrega_exige_nota` consome ou recusa
   (`SENHA_NAO_CONFIRMADA`). Nunca conferir a senha no navegador.
+- **E-mails do produto** (migração `20261109_produto_notif_log_detalhes`): a Edge Function `enviar-email-produto` manda **um
+  e-mail por vez** (uma conexão SMTP, até 3 tentativas em erro temporário — antes saíam todos juntos e uma recusa do Gmail
+  deixou a UNESCO sem o Produto 2 do contrato 4500571659) e **ela grava** `produto_notif_log` (service_role) com `detalhes` =
+  `[{tipo: responsavel|fornecedor|unesco, para, ok, erro, tentativas}]` (e-mail do fornecedor **não** vai em `para`; o log é
+  legível por todo logado). A tela só insere o log se a função não devolveu `log_id`. Falha parcial avisa quem ficou sem o
+  e-mail. Histórico de e-mails mostra cada destinatário e o botão **"Reenviar à UNESCO"** (`reenviarUnesco`, janela
+  `#modal-reenvio-unesco`; corpo `reenviar_unesco:true`, evento do log `reenvio_unesco`) para quem avalia o contrato ou a
+  coordenação — a função confere no banco (`fn_pode_avaliar_contrato`/`fn_perfil_atual`).
 - A **Matriz** é aberta a todos e não lê a entrega direto: `vw_matriz_progresso` testa "entrega aprovada" por `fn_entrega_aprovada()`
   (SECURITY DEFINER) e Matriz/Visão Geral leem a contribuição por `vw_matriz_contribuicoes` (dono postgres, só SELECT; expõe só
   nº, data, situação e tipo da entrega). Nunca embutir `contratos_produtos_entregas(...)` em consulta de tela aberta a todos.
@@ -1360,7 +1368,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `sugerir-correcoes-tdr` | Sugestões de melhoria de TDR | ❌ |
 | `traduzir-contrato` | Tradução de contrato PT→EN | ❌ |
 | `enviar-email-viagem` | Notificação de viagem aprovada | ✅ |
-| `enviar-email-produto` | Notificação de produto aprovado/recusado | ✅ |
+| `enviar-email-produto` | Notificação de produto (entregue, aprovado, devolvido, pago) e envio à UNESCO com anexos; um envio por vez com nova tentativa; grava `produto_notif_log` com `detalhes` por destinatário; `reenviar_unesco:true` reenvia só à UNESCO | ✅ |
 | `notificar-unesco-conclusao` | Notificação UNESCO de conclusão | ✅ |
 | `prestacao-publica` | Prestação de contas pública (sem auth) | ❌ |
 | `dynamic-endpoint` | Endpoint genérico com roteamento | ✅ |

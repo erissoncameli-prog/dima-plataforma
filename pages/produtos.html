@@ -146,6 +146,24 @@
   </div>
 </div>
 
+<!-- Reenviar à UNESCO (histórico de e-mails do produto aprovado) -->
+<div class="modal-overlay pr-ov pr-sobre" id="modal-reenvio-unesco" role="dialog" aria-modal="true" aria-labelledby="reu-titulo">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="reu-titulo"><i data-ic="email"></i>Reenviar à UNESCO</div>
+      <button type="button" class="modal-close" onclick="reuResponder(false)" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 8px">O e-mail de produto aprovado será enviado de novo às caixas da UNESCO, com o produto e a nota técnica em anexo.</p>
+      <p class="form-hint" style="margin:0">Responsáveis e fornecedor não recebem de novo. O reenvio fica registrado no histórico de e-mails.</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="reuResponder(false)">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="reuResponder(true)"><i data-ic="email"></i>Reenviar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="../js/config.js"></script>

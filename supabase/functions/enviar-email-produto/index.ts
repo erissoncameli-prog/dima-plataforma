@@ -230,20 +230,82 @@ async function baixarAnexo(supabase: any, url: string, nome: string): Promise<an
   }
 }
 
+// ── Envio um a um, com nova tentativa ────────────────────────────────────────
+// Antes os e-mails saíam todos ao mesmo tempo (várias conexões SMTP simultâneas) e uma recusa
+// temporária do Gmail virava falha definitiva, sem dizer de quem (Contrato 4500571659, Produto 2,
+// 29/10/2026: a UNESCO ficou sem o produto aprovado). Agora: uma conexão só, um envio por vez,
+// até 3 tentativas para erro temporário, e o resultado de cada destinatário vai para o log.
+const ESPERAS_MS = [2000, 6000]
+
+function erroTemporario(e: any): boolean {
+  const code = Number(e?.responseCode || 0)
+  if (code >= 400 && code < 500) return true
+  if (code >= 500) return false
+  // sem código SMTP = falha de conexão/tempo (ECONNECTION, ETIMEDOUT, ESOCKET...)
+  return true
+}
+
+const dormir = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+type Envio = { tipo: 'responsavel' | 'fornecedor' | 'unesco'; to: string; assunto: string; corpo: string; attachments?: any[] }
+type Resultado = { tipo: string; para: string | null; ok: boolean; erro: string | null; tentativas: number }
+
+async function enviarComTentativas(transporter: any, e: Envio, logos: { cabecalho: string; faixa: string }): Promise<Resultado> {
+  let ultimoErro: any = null
+  let tentativas = 0
+  for (let i = 0; i <= ESPERAS_MS.length; i++) {
+    tentativas++
+    try {
+      await transporter.sendMail({
+        from: REMETENTE,
+        to: e.to,
+        subject: e.assunto,
+        text: e.corpo,
+        html: wrapHtml(e.corpo, logos),
+        attachments: e.attachments,
+      })
+      return { tipo: e.tipo, para: e.tipo === 'fornecedor' ? null : e.to, ok: true, erro: null, tentativas }
+    } catch (err: any) {
+      ultimoErro = err
+      console.error(`enviar-email-produto: falha (${e.tipo}, tentativa ${tentativas}):`, err?.responseCode || '', err?.message || err)
+      if (!erroTemporario(err) || i === ESPERAS_MS.length) break
+      await dormir(ESPERAS_MS[i])
+    }
+  }
+  const msg = [ultimoErro?.responseCode, ultimoErro?.message || 'erro desconhecido'].filter(Boolean).join(' ')
+  // e-mail do fornecedor é dado pessoal: o log (legível por quem está logado) guarda só o tipo
+  return { tipo: e.tipo, para: e.tipo === 'fornecedor' ? null : e.to, ok: false, erro: msg.slice(0, 500), tentativas }
+}
+
+function resposta(corpo: any, status = 200) {
+  return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { produto_id, evento, entrega_id } = await req.json()
+    const { produto_id, evento, entrega_id, reenviar_unesco } = await req.json()
     if (!produto_id || !evento) throw new Error('produto_id e evento são obrigatórios')
 
     const EVENTOS_VALIDOS = ['entregue', 'aprovado', 'aprovado_parcial', 'devolvido', 'pago']
     if (!EVENTOS_VALIDOS.includes(evento)) throw new Error(`evento inválido: ${evento}`)
+    const reenvio = reenviar_unesco === true
+    if (reenvio && !['aprovado', 'aprovado_parcial'].includes(evento)) {
+      throw new Error('Reenvio à UNESCO só para produto aprovado.')
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // Quem chamou (o log grava em nome dele)
+    const authHeader = req.headers.get('Authorization') || ''
+    const jwt = authHeader.replace(/^Bearer\s+/i, '')
+    const { data: authData } = await supabase.auth.getUser(jwt)
+    const usuarioId = authData?.user?.id || null
+    if (!usuarioId) return resposta({ ok: false, error: 'Sessão inválida.' }, 401)
 
     const { data: p, error: errP } = await supabase
       .from('contratos_produtos')
@@ -260,12 +322,30 @@ Deno.serve(async (req) => {
 
     if (errP || !p) throw new Error('Produto não encontrado')
 
+    // Reenvio manual: só quem avalia o contrato (responsável/substituto, super_admin) ou a coordenação.
+    // Perguntado ao banco com o token de quem chamou — mesma regra da tela de Produtos.
+    if (reenvio) {
+      const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        global: { headers: { Authorization: `Bearer ${jwt}` } },
+      })
+      const [pa, pf] = await Promise.all([
+        userClient.rpc('fn_pode_avaliar_contrato', { p_contrato_id: p.contratos?.id }),
+        userClient.rpc('fn_perfil_atual'),
+      ])
+      const pode = pa.data === true || ['super_admin', 'coordenacao'].includes(String(pf.data || ''))
+      if (!pode) return resposta({ ok: false, error: 'Sem permissão para reenviar este produto à UNESCO.' }, 403)
+      if (!['aprovado', 'entrega_parcial', 'pago'].includes(p.situacao)) {
+        return resposta({ ok: false, error: 'O produto não está aprovado.' }, 400)
+      }
+    }
+
     let entrega: any = null
     if (entrega_id) {
       const { data: e } = await supabase
         .from('contratos_produtos_entregas')
         .select('*, documentos:entrega_documentos(arquivo_url, arquivo_nome, tipo_documento)')
         .eq('id', entrega_id)
+        .eq('produto_id', produto_id)
         .single()
       entrega = e
     } else if (['aprovado', 'aprovado_parcial', 'pago'].includes(evento)) {
@@ -279,6 +359,9 @@ Deno.serve(async (req) => {
         .single()
       entrega = e
     }
+    if (reenvio && entrega?.situacao !== 'aprovada') {
+      return resposta({ ok: false, error: 'Entrega aprovada não encontrada.' }, 400)
+    }
 
     // O corpo do e-mail deve refletir sempre o percentual REAL aprovado na entrega,
     // não apenas o `evento` recebido — evita divergência caso o percentual gravado
@@ -290,7 +373,7 @@ Deno.serve(async (req) => {
     }
 
     let responsaveis: any[] = []
-    if (['entregue', 'aprovado', 'aprovado_parcial', 'pago'].includes(evento) && p.contratos?.atividades?.id) {
+    if (!reenvio && ['entregue', 'aprovado', 'aprovado_parcial', 'pago'].includes(evento) && p.contratos?.atividades?.id) {
       const { data: resps } = await supabase
         .from('atividade_responsaveis')
         .select('usuario_id, papel, ativo')
@@ -311,7 +394,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const envios: Array<{ to: string; assunto: string; corpo: string; attachments?: any[] }> = []
+    const envios: Envio[] = []
 
     const montarAnexos = async () => {
       const attachments: any[] = []
@@ -327,54 +410,61 @@ Deno.serve(async (req) => {
       return attachments
     }
 
-    if (evento === 'entregue') {
-      for (const r of responsaveis) {
-        const email = r.usuario?.email
-        if (!email) continue
-        envios.push({ to: email, ...tplResponsavel(p, entrega) })
+    if (!reenvio) {
+      if (evento === 'entregue') {
+        for (const r of responsaveis) {
+          const email = r.usuario?.email
+          if (!email) continue
+          envios.push({ tipo: 'responsavel', to: email, ...tplResponsavel(p, entrega) })
+        }
+      }
+
+      if (['aprovado', 'aprovado_parcial'].includes(evento)) {
+        for (const r of responsaveis) {
+          const email = r.usuario?.email
+          if (!email) continue
+          envios.push({ tipo: 'responsavel', to: email, ...tplResponsavelAprovado(eventoEfetivo, p, entrega) })
+        }
+      }
+
+      if (evento === 'pago') {
+        for (const r of responsaveis) {
+          const email = r.usuario?.email
+          if (!email) continue
+          envios.push({ tipo: 'responsavel', to: email, ...tplResponsavelPago(p, entrega) })
+        }
+      }
+
+      if (['aprovado', 'aprovado_parcial', 'devolvido', 'pago'].includes(evento)) {
+        const emailForn = p.contratos?.fornecedores?.email
+        if (emailForn) {
+          const tpl = tplFornecedor(eventoEfetivo, p, entrega)
+          if (tpl) envios.push({ tipo: 'fornecedor', to: emailForn, ...tpl })
+        }
       }
     }
 
-    if (['aprovado', 'aprovado_parcial'].includes(evento)) {
-      for (const r of responsaveis) {
-        const email = r.usuario?.email
-        if (!email) continue
-        envios.push({ to: email, ...tplResponsavelAprovado(eventoEfetivo, p, entrega) })
-      }
-    }
-
-    if (evento === 'pago') {
-      for (const r of responsaveis) {
-        const email = r.usuario?.email
-        if (!email) continue
-        envios.push({ to: email, ...tplResponsavelPago(p, entrega) })
-      }
-    }
-
-    if (['aprovado', 'aprovado_parcial', 'devolvido', 'pago'].includes(evento)) {
-      const emailForn = p.contratos?.fornecedores?.email
-      if (emailForn) {
-        const tpl = tplFornecedor(eventoEfetivo, p, entrega)
-        if (tpl) envios.push({ to: emailForn, ...tpl })
-      }
-    }
-
+    let anexosEsperados = 0
+    let anexosObtidos = 0
     if (['aprovado', 'aprovado_parcial'].includes(evento)) {
       const tpl = tplUnesco(eventoEfetivo, p, entrega)
       const attachments = await montarAnexos()
+      anexosEsperados = (entrega?.nota_tecnica_url ? 1 : 0) + (entrega?.documentos || []).filter((d: any) => d.arquivo_url).length
+      anexosObtidos = attachments.length
       for (const emailUnesco of UNESCO_EMAILS) {
-        envios.push({ to: emailUnesco, ...tpl, attachments })
+        envios.push({ tipo: 'unesco', to: emailUnesco, ...tpl, attachments })
       }
     }
 
     if (envios.length === 0) {
-      return new Response(
-        JSON.stringify({ ok: false, error: 'Nenhum destinatário com e-mail cadastrado.' }),
-        { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
-      )
+      return resposta({ ok: false, error: 'Nenhum destinatário com e-mail cadastrado.' }, 400)
     }
 
+    // Uma conexão só, reaproveitada entre os envios
     const transporter = nodemailer.createTransport({
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 50,
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
@@ -385,33 +475,42 @@ Deno.serve(async (req) => {
     })
 
     const logos = await logosEmail(supabase)
-    const results = await Promise.allSettled(
-      envios.map(e =>
-        transporter.sendMail({
-          from: REMETENTE,
-          to: e.to,
-          subject: e.assunto,
-          text: e.corpo,
-          html: wrapHtml(e.corpo, logos),
-          attachments: e.attachments,
-        })
-      )
-    )
+    const detalhes: Resultado[] = []
+    try {
+      for (const e of envios) detalhes.push(await enviarComTentativas(transporter, e, logos))
+    } finally {
+      try { transporter.close() } catch (_) { /* nada */ }
+    }
 
-    const enviados = results.filter(r => r.status === 'fulfilled').length
-    const falhas   = results.filter(r => r.status === 'rejected').length
-    const erros    = results
-      .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-      .map(r => r.reason?.message || 'erro desconhecido')
+    const enviados = detalhes.filter(d => d.ok).length
+    const falhas   = detalhes.filter(d => !d.ok).length
+    const erros    = detalhes.filter(d => !d.ok).map(d => `${d.tipo}${d.para ? ' <' + d.para + '>' : ''}: ${d.erro}`)
+    if (anexosObtidos < anexosEsperados) {
+      erros.push(`Anexos à UNESCO: ${anexosObtidos} de ${anexosEsperados} arquivo(s) baixados.`)
+    }
+    const erroLog = erros.length ? erros.join(' | ').slice(0, 2000) : null
 
-    return new Response(
-      JSON.stringify({ ok: true, enviados, falhas, total: envios.length, erros }),
-      { headers: { ...CORS, 'Content-Type': 'application/json' } }
-    )
+    // Log gravado aqui (service_role), com o resultado de cada destinatário
+    let logId: string | null = null
+    const { data: log, error: errLog } = await supabase
+      .from('produto_notif_log')
+      .insert({
+        produto_id,
+        entrega_id: entrega?.id || entrega_id || null,
+        evento: reenvio ? 'reenvio_unesco' : evento,
+        total_enviados: enviados,
+        falhas,
+        erro: erroLog,
+        detalhes,
+        enviado_por: usuarioId,
+      })
+      .select('id')
+      .single()
+    if (errLog) console.error('enviar-email-produto: erro ao gravar log:', errLog.message)
+    else logId = log?.id || null
+
+    return resposta({ ok: enviados > 0, enviados, falhas, total: envios.length, erros, detalhes, log_id: logId })
   } catch (e: any) {
-    return new Response(
-      JSON.stringify({ ok: false, error: e.message }),
-      { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
-    )
+    return resposta({ ok: false, error: e.message }, 400)
   }
 })

@@ -1,17 +1,29 @@
 // produtos.js — Avaliação de Produtos DIMA
 // Sem template literals — concatenação pura para evitar corte pelo parser HTML
 
-async function enviarEmailProduto(produto_id,entrega_id,evento){
-  var enviados=0,falhas=0,erro=null;
+// Rótulo de quem recebe o e-mail (histórico e avisos)
+var NOTIF_TIPO={responsavel:'Responsável',fornecedor:'Fornecedor',unesco:'UNESCO'};
+function notifDestino(d){
+  return (NOTIF_TIPO[d.tipo]||d.tipo||'—')+(d.para?' ('+d.para+')':'');
+}
+
+// Envia o e-mail do produto. A Edge Function manda um de cada vez, tenta de novo em falha temporária e
+// grava o log com o resultado de cada destinatário (log_id). `opts.reenviarUnesco` reenvia só às caixas da UNESCO.
+// Devolve o resultado da função (ou {ok:false,error}).
+async function enviarEmailProduto(produto_id,entrega_id,evento,opts){
+  opts=opts||{};
+  var enviados=0,falhas=0,erro=null,result=null;
   try{
     var sess=await db.auth.getSession();
     var token=sess.data&&sess.data.session&&sess.data.session.access_token;
+    var corpo={produto_id:produto_id,entrega_id:entrega_id||null,evento:evento};
+    if(opts.reenviarUnesco)corpo.reenviar_unesco=true;
     var resp=await fetch(SUPABASE_URL+'/functions/v1/enviar-email-produto',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-      body:JSON.stringify({produto_id:produto_id,entrega_id:entrega_id||null,evento:evento})
+      body:JSON.stringify(corpo)
     });
-    var result=await resp.json();
+    result=await resp.json();
     enviados=result.enviados||0;
     falhas=result.falhas||0;
     if(!result.ok||enviados===0){erro=result.error||('Falha no envio ('+falhas+' erro(s)).');}
@@ -19,13 +31,60 @@ async function enviarEmailProduto(produto_id,entrega_id,evento){
     erro=(e&&e.message)||'Erro de rede ao enviar e-mail.';
     console.error('Erro ao enviar e-mail de produto:',e);
   }
-  // Sempre registra o resultado (sucesso ou falha) para permitir auditoria e reenvio manual
-  try{
-    await db.from('produto_notif_log').insert({produto_id:produto_id,entrega_id:entrega_id||null,evento:evento,total_enviados:enviados,falhas:falhas,erro:erro,enviado_por:appState.usuario.id});
-  }catch(e2){console.error('Erro ao gravar log de notificação:',e2);}
-  if(erro&&typeof toast==='function'){
-    toast('Falha ao enviar e-mail de notificação ('+evento+'): '+erro,'error',9000);
+  // A função grava o log; se ela nem chegou a gravar (erro antes do envio, rede), registra aqui
+  if(!(result&&result.log_id)){
+    try{
+      await db.from('produto_notif_log').insert({produto_id:produto_id,entrega_id:entrega_id||null,evento:opts.reenviarUnesco?'reenvio_unesco':evento,total_enviados:enviados,falhas:falhas,erro:erro,enviado_por:appState.usuario.id});
+    }catch(e2){console.error('Erro ao gravar log de notificação:',e2);}
   }
+  if(typeof toast==='function'){
+    if(erro){
+      toast('Falha ao enviar e-mail de notificação ('+evento+'): '+erro,'error',9000);
+    } else if(falhas>0){
+      // Falha parcial: dizer quem ficou sem o e-mail (antes passava em silêncio)
+      var quem=((result&&result.detalhes)||[]).filter(function(d){return !d.ok;}).map(notifDestino).join(', ');
+      var temUnesco=((result&&result.detalhes)||[]).some(function(d){return !d.ok&&d.tipo==='unesco';});
+      toast('E-mail: '+enviados+' enviado(s), '+falhas+' falha(s)'+(quem?' — não receberam: '+quem:'')+'.'
+        +(temUnesco?' Use "Reenviar à UNESCO" no histórico de e-mails do produto.':''),'warning',12000);
+    } else if(opts.reenviarUnesco){
+      toast('Produto reenviado à UNESCO ('+enviados+' e-mail(s)).','success',6000);
+    }
+  }
+  return result||{ok:false,error:erro};
+}
+
+// Botão "Reenviar à UNESCO" do histórico de e-mails (produto aprovado)
+var _reenviandoUnesco=false;
+async function reenviarUnesco(produto_id,entrega_id,evento,btn){
+  if(_reenviandoUnesco)return;
+  var ok=await prConfirmarReenvio();
+  if(!ok)return;
+  _reenviandoUnesco=true;
+  if(btn){btn.disabled=true;btn.textContent='Enviando…';}
+  try{
+    await enviarEmailProduto(produto_id,entrega_id,evento,{reenviarUnesco:true});
+  }finally{
+    _reenviandoUnesco=false;
+    var box=document.getElementById('pr-hist-emails');
+    if(box&&produtoAtual){
+      var novo=await renderHistoricoEmails(produtoAtual.id,produtoAtual.contrato_id,produtoAtual.situacao);
+      var tmp=document.createElement('div');tmp.innerHTML=novo;
+      if(tmp.firstElementChild)box.replaceWith(tmp.firstElementChild);
+    }
+  }
+}
+// Confirmação em janela própria (#modal-reenvio-unesco em pages/produtos.html), no lugar do confirm()
+var _reuResolver=null;
+function prConfirmarReenvio(){
+  return new Promise(function(res){
+    _reuResolver=res;
+    prAbrir('modal-reenvio-unesco');
+  });
+}
+function reuResponder(v){
+  prFechar('modal-reenvio-unesco');
+  var r=_reuResolver;_reuResolver=null;
+  if(r)r(v);
 }
 
 let atividades=[],contratos=[],todosProdutos=[];
@@ -936,7 +995,7 @@ async function abrirModal(prodId){
     document.getElementById('mp-footer').innerHTML='<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>';
   }
 
-  html+=await renderHistoricoEmails(prodId);
+  html+=await renderHistoricoEmails(prodId,p.contrato_id,p.situacao);
   document.getElementById('mp-body').innerHTML=html;
   if(entregaAtual&&document.getElementById('nt-conf'))ntCarregarEstado();
   assinarImagens(document.getElementById('mp-body'));
@@ -1733,7 +1792,7 @@ async function emitirDespacho(tipoBtn){
   }finally{_emitindoDespacho=false;}
 }
 
-async function renderHistoricoEmails(prodId){
+async function renderHistoricoEmails(prodId,contratoId,situacao){
   var r=await db.from('produto_notif_log')
     .select('*,enviado_por_u:usuarios!produto_notif_log_enviado_por_fkey(nome_completo)')
     .eq('produto_id',prodId)
@@ -1741,24 +1800,57 @@ async function renderHistoricoEmails(prodId){
   var logs=r.data||[];
   if(!logs.length)return '';
 
-  var EVT={entregue:''+prIc('entrada','p')+' Entregue',aprovado:''+prIc('check','p')+' Aprovado',aprovado_parcial:''+prIc('parcial','p')+' Aprox. parcial',devolvido:''+prIc('volta','p')+' Devolvido',pago:''+prIc('cartao','p')+' Pago'};
+  // "Reenviar à UNESCO": produto aprovado, com e-mail de aprovação no histórico, para quem avalia o contrato
+  // (responsável/substituto, super_admin) ou a coordenação. A Edge Function confere de novo no banco.
+  var ultAprov=logs.find(function(l){return (l.evento==='aprovado'||l.evento==='aprovado_parcial')&&l.entrega_id;});
+  var podeReenviar=false;
+  if(ultAprov&&['aprovado','entrega_parcial','pago'].indexOf(situacao)>=0&&contratoId){
+    if(appState.perfil==='super_admin'||appState.perfil==='coordenacao')podeReenviar=true;
+    else{
+      var pa=await db.rpc('fn_pode_avaliar_contrato',{p_contrato_id:contratoId});
+      podeReenviar=!!(pa&&!pa.error&&pa.data===true);
+    }
+  }
+
+  var EVT={entregue:''+prIc('entrada','p')+' Entregue',aprovado:''+prIc('check','p')+' Aprovado',aprovado_parcial:''+prIc('parcial','p')+' Aprov. parcial',devolvido:''+prIc('volta','p')+' Devolvido',pago:''+prIc('cartao','p')+' Pago',reenvio_unesco:''+prIc('email','p')+' Reenvio à UNESCO'};
 
   var rows=logs.map(function(l){
-    var lbl=EVT[l.evento]||l.evento;
+    var lbl=EVT[l.evento]||esc(l.evento);
     var dt=fmtDT(l.criado_em);
     var por=esc((l.enviado_por_u&&l.enviado_por_u.nome_completo)||'—');
     var okTxt=l.total_enviados+' enviado'+(l.total_enviados!==1?'s':'');
     var falhaTxt=l.falhas>0?' <span style="color:var(--erro)">· '+l.falhas+' falha(s)</span>':'';
+    // Resultado por destinatário (registros a partir de 09/11/2026); antes só havia as contagens
+    var det=Array.isArray(l.detalhes)?l.detalhes:null;
+    var detHtml='';
+    if(det&&det.length){
+      detHtml='<div style="margin-top:3px;display:flex;flex-direction:column;gap:2px">'+det.map(function(d){
+        var cor=d.ok?'var(--ok)':'var(--erro)';
+        var tent=(d.tentativas||1)>1?' · '+d.tentativas+' tentativas':'';
+        return '<span style="color:'+cor+'">'+prIc(d.ok?'check':'x','p')+' '+esc(notifDestino(d))+tent
+          +(d.ok?'':' — '+esc(d.erro||'erro desconhecido'))+'</span>';
+      }).join('')+'</div>';
+    } else if(l.falhas>0){
+      detHtml='<div style="margin-top:3px;color:var(--cinza-500)">'+(l.erro?esc(l.erro):'Destinatário da falha não registrado (envio anterior a 09/11/2026).')+'</div>';
+    } else if(l.erro){
+      detHtml='<div style="margin-top:3px;color:var(--erro)">'+esc(l.erro)+'</div>';
+    }
     return '<tr style="border-bottom:1px solid var(--borda)">'
-      +'<td style="padding:5px 8px;font-size:11px;font-weight:600;white-space:nowrap">'+lbl+'</td>'
-      +'<td style="padding:5px 8px;font-size:11px;color:var(--cinza-500);white-space:nowrap">'+dt+'</td>'
-      +'<td style="padding:5px 8px;font-size:11px;color:var(--ok)">'+okTxt+falhaTxt+'</td>'
-      +'<td style="padding:5px 8px;font-size:11px;color:var(--cinza-600)">'+por+'</td>'
+      +'<td style="padding:5px 8px;font-size:11px;font-weight:600;white-space:nowrap;vertical-align:top">'+lbl+'</td>'
+      +'<td style="padding:5px 8px;font-size:11px;color:var(--cinza-500);white-space:nowrap;vertical-align:top">'+dt+'</td>'
+      +'<td style="padding:5px 8px;font-size:11px;color:var(--ok);vertical-align:top">'+okTxt+falhaTxt+detHtml+'</td>'
+      +'<td style="padding:5px 8px;font-size:11px;color:var(--cinza-600);vertical-align:top">'+por+'</td>'
       +'</tr>';
   }).join('');
 
-  return '<div style="border-top:1px solid var(--borda);padding-top:14px;margin-top:14px">'
-    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500);margin-bottom:10px">'+prIc('email','p')+' Hist&#xF3;rico de notifica&#xE7;&#xF5;es por e-mail</div>'
+  var btn=podeReenviar
+    ?'<button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="reenviarUnesco(\''+esc(prodId)+'\',\''+esc(ultAprov.entrega_id)+'\',\''+esc(ultAprov.evento)+'\',this)">'+prIc('email','p')+' Reenviar à UNESCO</button>'
+    :'';
+
+  return '<div id="pr-hist-emails" style="border-top:1px solid var(--borda);padding-top:14px;margin-top:14px">'
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza-500)">'+prIc('email','p')+' Hist&#xF3;rico de notifica&#xE7;&#xF5;es por e-mail</div>'
+    +btn+'</div>'
     +'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">'
     +'<thead><tr style="background:var(--cinza-50);border-bottom:2px solid var(--borda)">'
     +'<th style="padding:5px 8px;font-size:10px;font-weight:700;color:var(--cinza-600);text-align:left;text-transform:uppercase;letter-spacing:.04em">Evento</th>'
@@ -1813,7 +1905,8 @@ function prFechar(id){
   if(volta&&document.contains(volta))volta.focus({preventScroll:true});
 }
 var PR_FECHAR={'modal-nt-senha':function(){ntSenhaFechar(false);},'lightbox':function(){fecharLightbox();},'modal-geo-csv':function(){fecharModalGeoCsv();},'modal-matriz-edit':function(){fecharModalMatrizEdit();},
-  'modal-anexo-edit':function(){fecharModalAnexoEdit();},'modal-prod':function(){fecharModal();}};
+  'modal-anexo-edit':function(){fecharModalAnexoEdit();},'modal-prod':function(){fecharModal();},
+  'modal-reenvio-unesco':function(){reuResponder(false);}};
 document.addEventListener('keydown',function(e){
   var topo=prPilha.length?prPilha[prPilha.length-1].el:null; if(!topo)return;
   if(e.key==='Escape'){e.preventDefault();(PR_FECHAR[topo.id]||function(){prFechar(topo.id);})();}
