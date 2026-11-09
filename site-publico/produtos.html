@@ -54,6 +54,25 @@
 .card-produto-resultado{font-family:var(--fonte-corpo);font-weight:700;padding:1px 7px;border-radius:4px;color:#fff;}
 .sem-resultado{grid-column:1/-1;text-align:center;color:var(--tinta-suave);font-size:14px;padding:var(--espaco-7) 0;}
 
+.card-produto-ver{align-self:flex-start;display:inline-flex;align-items:center;gap:7px;margin-top:4px;font-family:var(--fonte-corpo);font-size:13px;font-weight:600;color:var(--verde-texto);background:var(--verde-tint);border:1px solid var(--verde-texto);border-radius:99px;padding:7px 14px;cursor:pointer;}
+.card-produto-ver:hover{background:var(--verde-texto);color:#fff;}
+.card-produto-ver:focus-visible{outline:3px solid var(--verde-texto);outline-offset:2px;}
+.card-produto-ver svg{width:16px;height:16px;flex:none;}
+
+/* Visualizador do produto: páginas desenhadas pelo pdf.js, sem botão de download */
+.visualizador{position:fixed;inset:0;z-index:1000;background:rgba(10,16,12,.86);display:flex;flex-direction:column;}
+.visualizador[hidden]{display:none;}
+.visualizador-topo{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#101a13;color:#eef1ec;}
+.visualizador-titulo{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.visualizador-info{font-size:12px;color:#aab6ac;white-space:nowrap;}
+.visualizador-fechar{font-family:var(--fonte-corpo);font-size:13px;font-weight:600;color:#eef1ec;background:transparent;border:1px solid #aab6ac;border-radius:99px;padding:6px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.visualizador-fechar:hover,.visualizador-fechar:focus-visible{background:#eef1ec;color:#101a13;outline:none;}
+.visualizador-paginas{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;align-items:center;gap:14px;overscroll-behavior:contain;}
+.visualizador-paginas canvas{display:block;max-width:100%;height:auto;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.4);}
+.visualizador-msg{color:#eef1ec;font-size:14px;padding:40px 16px;text-align:center;}
+body.visualizando{overflow:hidden;}
+@media(max-width:600px){.visualizador-topo{padding:8px 12px;gap:8px;}.visualizador-paginas{padding:8px;gap:8px;}.visualizador-info{display:none;}}
+
 .nota-dados{font-size:11.5px;color:var(--tinta-suave);text-align:center;margin-top:var(--espaco-6);}
 </style>
 </head>
@@ -69,7 +88,7 @@
     <p data-i18n="prod.intro">Relatórios, planos e materiais técnicos produzidos pelo Programa, autorizados para divulgação pública.</p>
     <div class="aviso-exemplo">
       <span>ℹ️</span>
-      <div data-i18n="prod.aviso"><strong>Como um produto entra nesta galeria</strong>Só aparecem produtos aprovados e liberados um a um para divulgação pública. Mostramos a capa e a autoria; o documento completo não fica disponível para download.</div>
+      <div data-i18n="prod.aviso"><strong>Como um produto entra nesta galeria</strong>Só aparecem produtos aprovados e liberados um a um para divulgação pública. Mostramos a capa e a autoria, e o documento pode ser lido aqui mesmo, em “Visualizar produto”.</div>
     </div>
   </div>
 
@@ -87,6 +106,15 @@
     <p class="nota-dados" data-i18n="prod.nota">Títulos, objetos e nomes de autoria aparecem como foram cadastrados na plataforma do Programa.</p>
   </div>
 </main>
+
+<div class="visualizador" id="visualizador" role="dialog" aria-modal="true" aria-labelledby="visualizador-titulo" hidden>
+  <div class="visualizador-topo">
+    <span class="visualizador-titulo" id="visualizador-titulo"></span>
+    <span class="visualizador-info" id="visualizador-info" aria-live="polite"></span>
+    <button type="button" class="visualizador-fechar" id="visualizador-fechar"><span aria-hidden="true">✕</span><span data-i18n="prod.fechar">Fechar</span></button>
+  </div>
+  <div class="visualizador-paginas" id="visualizador-paginas" tabindex="-1"></div>
+</div>
 
 <footer class="site-footer">
   <div id="site-footer-slot"></div>
@@ -152,10 +180,96 @@ function cardProduto(p) {
         <span class="card-produto-titulo">${esc(titulo)}</span>
         ${p.objeto ? `<span class="card-produto-objeto">${esc(p.objeto)}</span>` : ''}
         <span class="card-produto-autor">${t('prod.autoria')}: ${esc(p.autoria || '—')}</span>
+        ${botoesVer(p, titulo)}
         <div class="card-produto-rodape"><span class="card-produto-resultado" style="background:${r.cor}">${esc(p.resultado_codigo)} · ${esc(p.atividade_codigo)}</span>${p.aprovado_em ? `<span>${t('prod.aprovado_em', { d: mesAno(p.aprovado_em) })}</span>` : ''}</div>
       </div>
     </article>`;
 }
+
+// "Visualizar produto": um botão por PDF liberado (normalmente um só)
+const IC_VER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+function botoesVer(p, titulo) {
+  const arqs = p.arquivos || [];
+  return arqs.map(a => {
+    const rot = arqs.length > 1 ? t('prod.visualizar_doc', { r: a.rotulo || '' }) : t('prod.visualizar');
+    return `<button type="button" class="card-produto-ver" data-ver="${esc(a.m)}" data-titulo="${esc(titulo)}">${IC_VER}${esc(rot)}</button>`;
+  }).join('');
+}
+
+// Visualizador: baixa o PDF pela Edge Function publico-produto (bucket privado; o site
+// não recebe URL nem nome do arquivo) e desenha as páginas com o pdf.js local
+// (vendor/, TdR 3.4: sem CDN). Funciona igual no celular, onde o PDF em iframe não abre.
+const PDFJS = 'vendor/pdfjs-dist-4.7.76/';
+let _pdfjs = null, _verSeq = 0, _verOrigem = null, _verDoc = null;
+async function pdfjs() {
+  if (!_pdfjs) {
+    _pdfjs = await import('./' + PDFJS + 'pdf.min.js');
+    _pdfjs.GlobalWorkerOptions.workerSrc = new URL(PDFJS + 'pdf.worker.min.js', location.href).href;
+  }
+  return _pdfjs;
+}
+async function abrirVisualizador(midia, titulo, origem) {
+  const seq = ++_verSeq;
+  _verOrigem = origem || null;
+  const ov = document.getElementById('visualizador');
+  const pags = document.getElementById('visualizador-paginas');
+  const info = document.getElementById('visualizador-info');
+  document.getElementById('visualizador-titulo').textContent = titulo || '';
+  info.textContent = '';
+  pags.innerHTML = `<p class="visualizador-msg">${t('prod.doc_carregando')}</p>`;
+  ov.hidden = false;
+  document.body.classList.add('visualizando');
+  document.getElementById('visualizador-fechar').focus();
+  try {
+    const [lib, r] = await Promise.all([pdfjs(), fetch(`${SUPABASE_URL}/functions/v1/publico-produto?m=${encodeURIComponent(midia)}`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } })]);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const dados = new Uint8Array(await r.arrayBuffer());
+    if (seq !== _verSeq) return;
+    const doc = await lib.getDocument({ data: dados, isEvalSupported: false }).promise;
+    if (seq !== _verSeq) { doc.destroy(); return; }
+    _verDoc = doc;
+    info.textContent = t('prod.paginas', { n: doc.numPages });
+    pags.innerHTML = '';
+    const largura = Math.min(pags.clientWidth - 16, 900);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    for (let i = 1; i <= doc.numPages; i++) {
+      if (seq !== _verSeq) return;
+      const pg = await doc.getPage(i);
+      const base = pg.getViewport({ scale: 1 });
+      const vp = pg.getViewport({ scale: (largura / base.width) * dpr });
+      const cv = document.createElement('canvas');
+      cv.width = Math.floor(vp.width); cv.height = Math.floor(vp.height);
+      cv.style.width = Math.floor(vp.width / dpr) + 'px';
+      cv.setAttribute('role', 'img');
+      cv.setAttribute('aria-label', t('prod.pagina_de', { p: i, n: doc.numPages }));
+      pags.appendChild(cv);
+      await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      pg.cleanup();
+    }
+  } catch (e) {
+    if (seq === _verSeq) pags.innerHTML = `<p class="visualizador-msg">${t('prod.doc_erro')}</p>`;
+  }
+}
+function fecharVisualizador() {
+  _verSeq++;
+  if (_verDoc) { _verDoc.destroy(); _verDoc = null; }
+  document.getElementById('visualizador').hidden = true;
+  document.getElementById('visualizador-paginas').innerHTML = '';
+  document.body.classList.remove('visualizando');
+  if (_verOrigem && document.contains(_verOrigem)) _verOrigem.focus();
+}
+document.getElementById('grid-produtos').addEventListener('click', e => {
+  const b = e.target.closest('[data-ver]');
+  if (b) abrirVisualizador(b.dataset.ver, b.dataset.titulo, b);
+});
+document.getElementById('visualizador-fechar').addEventListener('click', fecharVisualizador);
+document.addEventListener('keydown', e => {
+  const ov = document.getElementById('visualizador');
+  if (ov.hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); fecharVisualizador(); }
+  else if (e.key === 'Tab') { e.preventDefault(); document.getElementById('visualizador-fechar').focus(); }
+});
 
 // Capa: a função pede a chave pública no cabeçalho, então baixa por fetch e mostra a
 // imagem só quando chega (sem ela, fica a capa genérica)
