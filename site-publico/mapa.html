@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
 <title data-i18n="mapa.titulo_pagina">Mapa Interativo de Entregas — Resiliência Socioambiental</title>
+<meta name="description" content="Mapa interativo das entregas do Programa Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá, com filtros por tipo de atividade e área.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Resiliência Socioambiental">
+<meta property="og:title" content="Mapa Interativo de Entregas — Resiliência Socioambiental">
+<meta property="og:description" content="Mapa interativo das entregas do Programa Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá, com filtros por tipo de atividade e área.">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="vendor/leaflet-1.9.4/leaflet.css"/>
@@ -26,7 +35,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0;}
 .mapa-filtros::-webkit-scrollbar{display:none;}
 .filtro-bloco{background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);overflow:hidden;}
 .filtro-bloco-hdr{padding:8px 12px;border-bottom:1px solid var(--linha);}
-.filtro-bloco-hdr h4{font-size:10.5px;font-weight:700;color:var(--tinta-suave);text-transform:uppercase;letter-spacing:.06em;margin:0;font-family:var(--fonte-corpo);}
+.filtro-bloco-hdr h3{font-size:10.5px;font-weight:700;color:var(--tinta-suave);text-transform:uppercase;letter-spacing:.06em;margin:0;font-family:var(--fonte-corpo);}
 .filtro-bloco-body{padding:8px 12px 10px;max-height:220px;overflow-y:auto;}
 .filtro-item{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:12.5px;color:var(--tinta);cursor:pointer;}
 .filtro-item input{accent-color:var(--verde-escuro);cursor:pointer;flex-shrink:0;}
@@ -102,15 +111,15 @@ main{flex:1;display:flex;flex-direction:column;min-height:0;}
   <div class="mapa-corpo">
     <aside class="mapa-filtros">
       <div class="filtro-bloco">
-        <div class="filtro-bloco-hdr"><h4 data-i18n="mapa.delimitacoes">Delimitações</h4></div>
+        <div class="filtro-bloco-hdr"><h3 data-i18n="mapa.delimitacoes">Delimitações</h3></div>
         <div class="filtro-bloco-body" id="filtro-camadas"><div class="spinner" style="width:16px;height:16px;border-width:2px;margin:6px auto"></div></div>
       </div>
       <div class="filtro-bloco">
-        <div class="filtro-bloco-hdr"><h4 data-i18n="mapa.tipo_atividade">Tipo de atividade</h4></div>
+        <div class="filtro-bloco-hdr"><h3 data-i18n="mapa.tipo_atividade">Tipo de atividade</h3></div>
         <div class="filtro-bloco-body" id="filtro-tipos"><div class="spinner" style="width:16px;height:16px;border-width:2px;margin:6px auto"></div></div>
       </div>
       <div class="filtro-bloco">
-        <div class="filtro-bloco-hdr"><h4 data-i18n="mapa.area_apa">Área / APA</h4></div>
+        <div class="filtro-bloco-hdr"><h3 data-i18n="mapa.area_apa">Área / APA</h3></div>
         <div class="filtro-bloco-body" id="filtro-apa"><div class="spinner" style="width:16px;height:16px;border-width:2px;margin:6px auto"></div></div>
       </div>
     </aside>

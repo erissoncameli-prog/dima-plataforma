@@ -341,7 +341,7 @@ function montarRevela() {
 }
 
 // ── 4) Texto que acende palavra por palavra com a rolagem ──────
-// .rolagem-palavras: cada palavra começa apagada e acende conforme o
+// .rolagem-palavras: cada palavra começa esmaecida e acende conforme o
 // elemento sobe na tela (scrub — volta a apagar se a pessoa rolar pra
 // cima). O texto é quebrado em <span> por palavra; como a tradução troca
 // o conteúdo do elemento, a quebra é refeita a cada troca de idioma.
@@ -349,7 +349,9 @@ const _palavras = [];
 function _quebrarPalavras(el) {
   const texto = el.textContent;
   el.innerHTML = texto.split(/(\s+)/).map(p => /^\s+$/.test(p) || !p ? p : `<span class="rp">${p.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>`).join('');
-  return gsap.fromTo(el.querySelectorAll('.rp'), { opacity: 0.12 }, {
+  // Opacidade inicial 0,65 = contraste 4,9:1 no tema claro (WCAG 2.1 AA, texto normal);
+  // abaixo disso a palavra "apagada" fica ilegível e reprova na auditoria de acessibilidade
+  return gsap.fromTo(el.querySelectorAll('.rp'), { opacity: 0.65 }, {
     opacity: 1, stagger: 0.05, ease: 'none',
     scrollTrigger: { trigger: el, start: 'top 88%', end: 'bottom 58%', scrub: true },
   });

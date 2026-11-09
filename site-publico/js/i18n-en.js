@@ -57,6 +57,10 @@ registrarIdioma('en', {
   'inicio.api_p4': 'The key is valid for 1 year; it is never sent by e-mail.',
   'inicio.nota': 'Figures updated automatically from the Program management platform.',
   'inicio.foto_n_de': 'Show photo {n} of {total}',
+  'inicio.foto_anterior': 'Previous photo',
+  'inicio.foto_proxima': 'Next photo',
+  'inicio.pausar_fotos': 'Pause the photo slideshow',
+  'inicio.continuar_fotos': 'Resume the photo slideshow',
 
   // ── Mapa Interativo (de Entregas) ──
   'mapa.titulo_pagina': 'Interactive Delivery Map — Socio-environmental Resilience',
