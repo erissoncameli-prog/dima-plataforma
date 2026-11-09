@@ -12,6 +12,7 @@ de CDN (jsdelivr/unpkg). Atende o item 3.4 do Termo de Referência do Produto 3 
 | Leaflet.markercluster | 1.5.3 | MIT (`leaflet.markercluster-1.5.3/LICENSE`) | npm `leaflet.markercluster`, `dist/` | mapa.html |
 | Leaflet-MiniMap | 3.6.1 | BSD-2-Clause (`leaflet-minimap-3.6.1/LICENSE`) | npm `leaflet-minimap`, `dist/` (com `images/`) | mapa.html |
 | Turf | 6.5.0 | MIT (`turf-6.5.0/LICENSE`) | npm `@turf/turf`, `turf.min.js` | mapa.html |
+| pdf.js (pdfjs-dist) | 4.7.76 | Apache-2.0 (`pdfjs-dist-4.7.76/LICENSE`) | npm `pdfjs-dist`, `build/pdf.min.mjs` e `build/pdf.worker.min.mjs` (baixada em 09/11/2026; integridade sha512 conferida com o registro npm; salvos como `.js`, conteúdo igual, porque nem todo servidor entrega `.mjs` como JavaScript) | produtos.html (visualizar o produto) |
 
 Antes, `supabase-js@2` e `turf@6` eram versões flutuantes (mudavam sozinhas a cada versão nova);
 agora estão fixas. Para atualizar: baixar a versão nova numa pasta `<biblioteca>-<versão>/`, trocar
@@ -46,4 +47,7 @@ de mosaico), que são conteúdo carregado pelo mapa, não biblioteca.
 | `supabase-js-2.119.0/LICENSE` | `334dd6820e2eaeab…` |
 | `supabase-js-2.119.0/supabase.js` | `a867edbcfb029370…` |
 | `turf-6.5.0/LICENSE` | `f9b32b82fd5a1d3a…` |
+| `pdfjs-dist-4.7.76/LICENSE` | `0d542e0c8804e39a…` |
+| `pdfjs-dist-4.7.76/pdf.min.js` | `49e26487d87a86cb…` |
+| `pdfjs-dist-4.7.76/pdf.worker.min.js` | `d2e6ef4cbc6f0e2c…` |
 | `turf-6.5.0/turf.min.js` | `d00f3e8ff8a8f9c1…` |

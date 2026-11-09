@@ -505,6 +505,11 @@ migração `20261106_publico_galeria_produtos`): mostra **só** produtos com arq
 (`fn_publico_galeria_produtos`: título, objeto do contrato, resultado, atividade, autoria, data da
 aprovação; nunca valor, contrato, nota técnica nem nome do arquivo) e a capa pela Edge Function
 `publico-capa`. Tratamento no ROPA: TRAT-005. A marcação está na ficha da obra.
+**Visualizar produto** (migração `20261109_publico_galeria_visualizar`, pedido da homologação do P3): o cartão traz
+"Visualizar produto" para cada PDF `valida` (`arquivos: [{m, rotulo}]` na galeria); o PDF sai do bucket privado pela Edge
+Function `publico-produto` (caminho por `fn_publico_arquivo_caminho`, só service_role; nome do arquivo nunca sai) e é desenhado
+página a página pelo pdf.js **local** (`site-publico/vendor/pdfjs-dist-4.7.76/`, salvo como `.js` — o nginx entrega `.mjs` como
+octet-stream), sem botão de download. Liberar um PDF no Acervo = o documento inteiro fica legível no site.
 - **Só super_admin ativo** marca/desmarca, arquivo a arquivo, pela RPC
   `fn_acervo_definir_publico(p_midia_id text, p_publico boolean)` (SECURITY DEFINER).
   Tabela `acervo_publicacoes` (1 linha por `midia_id`, `publico`, quem/quando marcou e
@@ -1379,6 +1384,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação (`nota_tecnica_conferencias`); gera o modelo da nota (.docx); reconfirma a senha de quem aprova (`entrega_aprovacao_senhas`) | ✅ |
 | `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`) e a do pedido de acesso à API (`acao:'decidir_api'` → `fn_api_pedido_decidir`, só super_admin); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 | `publico-capa` | Capa (JPEG do bucket privado `acervo-capas`) de produto marcado como público no Acervo, para a Galeria do site público; só entrega o que `fn_publico_capa_caminho` libera (service_role), 404 no resto. O site chama com a chave anon no cabeçalho (`fetch` → blob) | ✅ |
+| `publico-produto` | Documento (PDF do bucket privado de entregas) de produto marcado como público no Acervo, para o visualizador da Galeria do site público; só entrega o que `fn_publico_arquivo_caminho` libera (service_role), 404 no resto; `Content-Disposition` com nome genérico. Chamada com a chave anon no cabeçalho | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---
