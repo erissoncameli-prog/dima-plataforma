@@ -104,10 +104,12 @@ async function dgCarregar() {
     : '')
 
   if (dgPodeGerir) {
-    document.getElementById('dg-versoes').innerHTML = '<table class="dg-tab"><thead><tr><th>Versão</th><th>Situação</th><th>Publicado em</th><th>Hash</th></tr></thead><tbody>' +
+    document.getElementById('dg-versoes').innerHTML = '<table class="dg-tab"><thead><tr><th>Versão</th><th>Situação</th><th>Publicado em</th><th>Hash</th><th>Documento</th></tr></thead><tbody>' +
       (versoes.data || []).map(v => `<tr><td>${esc(v.codigo)} v${v.versao}</td><td>${esc(v.status)}</td>
         <td>${v.publicado_em ? new Date(v.publicado_em).toLocaleDateString('pt-BR') : '—'}</td>
-        <td class="mono">${esc((v.hash_sha256 || '').slice(0, 12))}…</td></tr>`).join('') + '</tbody></table>'
+        <td class="mono">${esc((v.hash_sha256 || '').slice(0, 12))}…</td>
+        <td><button type="button" class="btn btn-sm btn-secondary" title="Questionário em PDF (papel timbrado)"
+          onclick='dgQuestionarioPdf(${JSON.stringify(String(v.codigo)).replace(/'/g, '&#39;')}, ${Number(v.versao)})'>PDF</button></td></tr>`).join('') + '</tbody></table>'
   }
 }
 

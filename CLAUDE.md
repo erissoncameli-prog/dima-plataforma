@@ -694,6 +694,12 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   ficha aberta, validar/devolver/descartar/reabrir **só pela RPC `diag_mudar_status`**,
   apagar foto; consultor externo vê a aba "Fichas" só leitura, sem identificação) e
   aba Admin (comunidades e sublocalidades).
+- **Questionário em PDF** (documentação do instrumento): botão "PDF" na tabela "Versões do questionário" da Visão geral da
+  mesa (só quem gere) → `dgQuestionarioPdf(codigo, versao)` em `js/diagnostico-questionario-pdf.js`, na Folha A4 padrão
+  (`FolhaA4.janela/escrever`). Desenha `diag_questionarios.estrutura` da versão (nada fixo no JS): seção 0 + blocos,
+  ○ única / ☐ múltipla, "até N", saltos em texto (`mostrar_se`), orientações, lembretes, leituras, grade da P7 com os
+  códigos, hash SHA-256 na 1ª página; APAs de `diag_comunidades` (repetidas por maiúscula/acento saem uma vez). Folha em
+  branco, sem ficha. Tipo de pergunta ou operador de salto novo ⇒ ensinar o PDF também.
 - **Visual do app de campo** (2.1.0): design system em tokens no topo de
   `css/diagnostico-app.css` (cores, escala 4/8, raios, tipografia, movimento) —
   valor novo entra como token, nunca solto. Tema **claro/escuro** escolhido pela
