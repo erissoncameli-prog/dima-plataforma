@@ -24,6 +24,11 @@ async function enviarEmailProduto(produto_id,entrega_id,evento,opts){
       body:JSON.stringify(corpo)
     });
     result=await resp.json();
+    if(result&&result.ja_recebido){
+      // Nada a reenviar: a UNESCO já recebeu esta entrega (a função recusou antes de enviar). Não vira linha no histórico.
+      if(typeof toast==='function')toast(result.error||'A UNESCO já recebeu o e-mail desta entrega.','info',7000);
+      return result;
+    }
     enviados=result.enviados||0;
     falhas=result.falhas||0;
     if(!result.ok||enviados===0){erro=result.error||('Falha no envio ('+falhas+' erro(s)).');}
@@ -51,6 +56,22 @@ async function enviarEmailProduto(produto_id,entrega_id,evento,opts){
     }
   }
   return result||{ok:false,error:erro};
+}
+
+// Caixas da UNESCO (as mesmas de UNESCO_EMAILS em supabase/functions/enviar-email-produto)
+var NOTIF_UNESCO=['projetounesco.acre@gmail.com','m.lang@unesco.org'];
+// Quais caixas da UNESCO já receberam a entrega, pelos logs dela. Mesma regra de unescoRecebeu() na Edge Function:
+// log com detalhes = cada unesco com ok; log antigo sem detalhes = aprovação sem falha conta como todas recebidas.
+function unescoRecebeu(logs){
+  var ok={};
+  logs.forEach(function(l){
+    if(Array.isArray(l.detalhes)){
+      l.detalhes.forEach(function(d){if(d&&d.tipo==='unesco'&&d.ok&&d.para)ok[String(d.para).toLowerCase()]=true;});
+    } else if((l.evento==='aprovado'||l.evento==='aprovado_parcial')&&Number(l.falhas)===0&&Number(l.total_enviados)>0){
+      NOTIF_UNESCO.forEach(function(e){ok[e]=true;});
+    }
+  });
+  return ok;
 }
 
 // Botão "Reenviar à UNESCO" do histórico de e-mails (produto aprovado)
@@ -1843,9 +1864,23 @@ async function renderHistoricoEmails(prodId,contratoId,situacao){
       +'</tr>';
   }).join('');
 
-  var btn=podeReenviar
-    ?'<button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="reenviarUnesco(\''+esc(prodId)+'\',\''+esc(ultAprov.entrega_id)+'\',\''+esc(ultAprov.evento)+'\',this)">'+prIc('email','p')+' Reenviar à UNESCO</button>'
-    :'';
+  // Só reenvia para quem ainda não recebeu: se as caixas da UNESCO já receberam esta entrega, o botão fica desativado
+  var btn='';
+  if(podeReenviar){
+    var logsEnt=logs.filter(function(l){return l.entrega_id===ultAprov.entrega_id&&['aprovado','aprovado_parcial','reenvio_unesco'].indexOf(l.evento)>=0;});
+    var rec=unescoRecebeu(logsEnt);
+    var faltam=NOTIF_UNESCO.filter(function(e){return !rec[e];});
+    if(!faltam.length){
+      btn='<button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" disabled aria-disabled="true"'
+        +' title="As caixas da UNESCO já receberam o e-mail desta entrega. Não há o que reenviar.">'
+        +prIc('check','p')+' UNESCO já recebeu</button>';
+    } else {
+      var dica=faltam.length<NOTIF_UNESCO.length?'Reenvia só para: '+faltam.join(', '):'Reenvia às caixas da UNESCO';
+      btn='<button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto" title="'+esc(dica)+'"'
+        +' onclick="reenviarUnesco(\''+esc(prodId)+'\',\''+esc(ultAprov.entrega_id)+'\',\''+esc(ultAprov.evento)+'\',this)">'
+        +prIc('email','p')+' Reenviar à UNESCO</button>';
+    }
+  }
 
   return '<div id="pr-hist-emails" style="border-top:1px solid var(--borda);padding-top:14px;margin-top:14px">'
     +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">'

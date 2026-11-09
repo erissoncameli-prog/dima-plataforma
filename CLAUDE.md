@@ -903,7 +903,10 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   legível por todo logado). A tela só insere o log se a função não devolveu `log_id`. Falha parcial avisa quem ficou sem o
   e-mail. Histórico de e-mails mostra cada destinatário e o botão **"Reenviar à UNESCO"** (`reenviarUnesco`, janela
   `#modal-reenvio-unesco`; corpo `reenviar_unesco:true`, evento do log `reenvio_unesco`) para quem avalia o contrato ou a
-  coordenação — a função confere no banco (`fn_pode_avaliar_contrato`/`fn_perfil_atual`).
+  coordenação — a função confere no banco (`fn_pode_avaliar_contrato`/`fn_perfil_atual`). **Só reenvia para quem não
+  recebeu**: `unescoRecebeu()` (igual na função e em `js/produtos.js`) lê os logs da entrega — log com `detalhes` conta cada
+  caixa UNESCO `ok`; log antigo sem `detalhes` conta todas só se a aprovação não teve falha. Todas receberam ⇒ botão
+  desativado ("UNESCO já recebeu") e a função recusa (409, `ja_recebido`, sem linha no histórico); uma recebeu ⇒ vai só à outra.
 - A **Matriz** é aberta a todos e não lê a entrega direto: `vw_matriz_progresso` testa "entrega aprovada" por `fn_entrega_aprovada()`
   (SECURITY DEFINER) e Matriz/Visão Geral leem a contribuição por `vw_matriz_contribuicoes` (dono postgres, só SELECT; expõe só
   nº, data, situação e tipo da entrega). Nunca embutir `contratos_produtos_entregas(...)` em consulta de tela aberta a todos.

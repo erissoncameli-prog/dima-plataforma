@@ -277,6 +277,22 @@ async function enviarComTentativas(transporter: any, e: Envio, logos: { cabecalh
   return { tipo: e.tipo, para: e.tipo === 'fornecedor' ? null : e.to, ok: false, erro: msg.slice(0, 500), tentativas }
 }
 
+// Caixas da UNESCO que já receberam a entrega, pelos logs dela (aprovação e reenvios):
+// - log com `detalhes`: conta cada destinatário unesco com ok = true;
+// - log antigo sem `detalhes` (antes de 09/11/2026): aprovação sem nenhuma falha = todas receberam;
+//   com falha, não dá para saber quem — nenhuma conta como recebida.
+function unescoRecebeu(logs: any[]): Set<string> {
+  const ok = new Set<string>()
+  for (const l of logs) {
+    if (Array.isArray(l.detalhes)) {
+      for (const d of l.detalhes) if (d?.tipo === 'unesco' && d.ok && d.para) ok.add(String(d.para).toLowerCase())
+    } else if ((l.evento === 'aprovado' || l.evento === 'aprovado_parcial') && Number(l.falhas) === 0 && Number(l.total_enviados) > 0) {
+      for (const e of UNESCO_EMAILS) ok.add(e)
+    }
+  }
+  return ok
+}
+
 function resposta(corpo: any, status = 200) {
   return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
 }
@@ -361,6 +377,22 @@ Deno.serve(async (req) => {
     }
     if (reenvio && entrega?.situacao !== 'aprovada') {
       return resposta({ ok: false, error: 'Entrega aprovada não encontrada.' }, 400)
+    }
+
+    // Reenvio só para a caixa da UNESCO que ainda NÃO recebeu esta entrega (evita reenvio desnecessário).
+    // Mesma regra de unescoRecebeu() em js/produtos.js — mudou lá, muda aqui.
+    let unescoDestinos = UNESCO_EMAILS
+    if (reenvio) {
+      const { data: logsEnt } = await supabase
+        .from('produto_notif_log')
+        .select('evento, total_enviados, falhas, detalhes')
+        .eq('entrega_id', entrega.id)
+        .in('evento', ['aprovado', 'aprovado_parcial', 'reenvio_unesco'])
+      const recebeu = unescoRecebeu(logsEnt || [])
+      unescoDestinos = UNESCO_EMAILS.filter(e => !recebeu.has(e))
+      if (!unescoDestinos.length) {
+        return resposta({ ok: false, ja_recebido: true, error: 'A UNESCO já recebeu o e-mail desta entrega; não há o que reenviar.' }, 409)
+      }
     }
 
     // O corpo do e-mail deve refletir sempre o percentual REAL aprovado na entrega,
@@ -451,7 +483,7 @@ Deno.serve(async (req) => {
       const attachments = await montarAnexos()
       anexosEsperados = (entrega?.nota_tecnica_url ? 1 : 0) + (entrega?.documentos || []).filter((d: any) => d.arquivo_url).length
       anexosObtidos = attachments.length
-      for (const emailUnesco of UNESCO_EMAILS) {
+      for (const emailUnesco of unescoDestinos) {
         envios.push({ tipo: 'unesco', to: emailUnesco, ...tpl, attachments })
       }
     }
