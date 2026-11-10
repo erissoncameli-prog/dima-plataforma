@@ -1,3 +1,8 @@
+/* Reserva com as medidas da Montserrat (ascendente 968, descendente 251, ~13% mais
+   larga que a Arial): enquanto a fonte web não chega, o texto ocupa quase o mesmo
+   espaço, e a troca de fonte não faz a página "pular" (mudança de layout). */
+@font-face{font-family:'Montserrat Reserva';src:local('Arial'),local('ArialMT'),local('Liberation Sans'),local('Helvetica');
+  size-adjust:113.39%;ascent-override:85.37%;descent-override:22.14%;line-gap-override:0%;}
 /* ════════════════════════════════════════════════════════════════
    DESIGN TOKENS — Site Público da DIMA
    Produto 2, Artigo ii, Contrato UNESCO 4500573698
@@ -54,8 +59,8 @@
      a Clother, fonte principal do manual, tem licença paga e fica só
      nos materiais gráficos impressos; o site usa a Montserrat e suas
      variações de peso. */
-  --fonte-titulo:'Montserrat', system-ui, sans-serif;
-  --fonte-corpo:'Montserrat', system-ui, sans-serif;
+  --fonte-titulo:'Montserrat', 'Montserrat Reserva', system-ui, sans-serif;
+  --fonte-corpo:'Montserrat', 'Montserrat Reserva', system-ui, sans-serif;
 
   /* ── Espaçamento e grid ───────────────────────────────────────── */
   --espaco-1:4px; --espaco-2:8px; --espaco-3:12px; --espaco-4:16px;

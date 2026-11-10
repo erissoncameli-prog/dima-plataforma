@@ -15,6 +15,7 @@
 <meta property="og:locale:alternate" content="es_ES">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="vendor/leaflet-1.9.4/leaflet.css"/>
 <link rel="stylesheet" href="vendor/leaflet.markercluster-1.5.3/MarkerCluster.css"/>
@@ -164,7 +165,6 @@ main{flex:1;display:flex;flex-direction:column;min-height:0;}
 <script src="vendor/leaflet-1.9.4/leaflet.js"></script>
 <script src="vendor/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
 <script src="vendor/leaflet-minimap-3.6.1/Control.MiniMap.min.js"></script>
-<script src="vendor/turf-6.5.0/turf.min.js"></script>
 <script src="js/supabase.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/i18n-en.js"></script>
@@ -227,15 +227,37 @@ const PONTOS_ESPECIAIS = {
 function _rotuloPE(chave){ return t('mapa.pe_' + chave); }
 const SUBBACIA_PALETTE = ['#16a34a','#2563eb','#d97706','#7c3aed','#0891b2','#dc2626','#65a30d','#db2777','#ea580c'];
 
-// ── Cálculos geoespaciais (Turf.js) ──────────────────────────
+// ── Cálculos geoespaciais ────────────────────────────────────
+// Área e comprimento dos pontos agrupados: mesmas fórmulas do Turf.js
+// (área esférica de Chamberlain & Duquette com raio 6.378.137 m; haversine
+// com o raio médio 6.371.008,8 m), conferidas contra o Turf 6.5.0,
+// sem depender da biblioteca. O Turf (154 KB) só é usado no clique numa
+// camada (_areaFeature) e é baixado depois que a página abre (desempenho).
+const _RAIO_TERRA = 6378137, _RAIO_MEDIO = 6371008.8, _rad = g => g * Math.PI / 180;
 function _calcularArea(latlngs){
   if(latlngs.length < 3) return 0;
-  try{ const coords = latlngs.map(([lat,lng]) => [lng,lat]); coords.push(coords[0]); return turf.area(turf.polygon([coords])); }catch(e){ return 0; }
+  let soma = 0;
+  for(let i = 0; i < latlngs.length; i++){
+    const [la1, lo1] = latlngs[i], [la2, lo2] = latlngs[(i + 1) % latlngs.length];
+    soma += _rad(lo2 - lo1) * (2 + Math.sin(_rad(la1)) + Math.sin(_rad(la2)));
+  }
+  return Math.abs(soma * _RAIO_TERRA * _RAIO_TERRA / 2);
 }
 function _calcularDistancia(latlngs){
   if(latlngs.length < 2) return 0;
-  try{ const coords = latlngs.map(([lat,lng]) => [lng,lat]); return turf.length(turf.lineString(coords), {units:'kilometers'}) * 1000; }catch(e){ return 0; }
+  let total = 0;
+  for(let i = 1; i < latlngs.length; i++){
+    const [la1, lo1] = latlngs[i - 1], [la2, lo2] = latlngs[i];
+    const a = Math.sin(_rad(la2 - la1) / 2) ** 2 + Math.cos(_rad(la1)) * Math.cos(_rad(la2)) * Math.sin(_rad(lo2 - lo1) / 2) ** 2;
+    total += 2 * _RAIO_MEDIO * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+  return total;
 }
+window.addEventListener('load', () => {
+  const s = document.createElement('script');
+  s.src = 'vendor/turf-6.5.0/turf.min.js';
+  document.body.appendChild(s);
+});
 const _dec2 = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 function _formatarArea(m2){ if(m2 <= 0) return '—'; return m2 >= 10000 ? `${fmtNum(m2/10000, _dec2)} ha` : `${fmtNum(Math.round(m2))} m²`; }
 function _formatarDistancia(m){ if(m <= 0) return '—'; return m >= 1000 ? `${fmtNum(m/1000, _dec2)} km` : `${fmtNum(Math.round(m))} m`; }

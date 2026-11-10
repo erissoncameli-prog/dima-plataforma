@@ -15,6 +15,7 @@
 <meta property="og:locale:alternate" content="es_ES">
 <meta name="twitter:card" content="summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
@@ -332,11 +333,13 @@ async function carregarHeroMedia() {
     if (f.tipo === 'video') {
       el = document.createElement('video');
       el.className = 'heroslide-video' + (i === 0 ? ' ativo' : '');
-      el.src = urlMidia(f.url); el.muted = true; el.playsInline = true; el.preload = 'auto';
+      // Só a mídia atual e a próxima são baixadas (carregarMidia); antes os vídeos
+      // (até ~20 MB cada) e todas as fotos vinham ao abrir a página
+      el.dataset.src = urlMidia(f.url); el.muted = true; el.playsInline = true; el.preload = 'none';
     } else {
       el = document.createElement('div');
       el.className = 'heroslide' + (i === 0 ? ' ativo' : '');
-      el.style.backgroundImage = `url('${urlMidia(f.url)}')`;
+      el.dataset.src = urlMidia(f.url);
     }
     el.id = 'heroslide-' + i;
     wrap.insertBefore(el, overlay);
@@ -347,6 +350,16 @@ async function carregarHeroMedia() {
     dotsEl.appendChild(dot);
   });
 
+  // Baixa a mídia do slide n (foto: imagem de fundo; vídeo: src + preload)
+  function carregarMidia(n) {
+    const el = document.getElementById('heroslide-' + ((n + fotos.length) % fotos.length));
+    if (!el || el.dataset.carregado) return;
+    el.dataset.carregado = '1';
+    if (el.tagName === 'VIDEO') { el.preload = 'auto'; el.src = el.dataset.src; }
+    else el.style.backgroundImage = `url('${el.dataset.src}')`;
+  }
+  carregarMidia(0);
+  if (fotos.length > 1) setTimeout(() => carregarMidia(1), 2500);
   legendaEl.textContent = fotos[0].legenda || 'APAs · Rio Branco, Acre';
   document.addEventListener('idioma', () => {
     dotsEl.querySelectorAll('.hero-media-dot').forEach((d, i) =>
@@ -369,6 +382,7 @@ async function carregarHeroMedia() {
     antigo?.classList.remove('ativo');
     document.querySelectorAll('.hero-media-dot')[atual]?.classList.remove('ativo');
     atual = (n + fotos.length) % fotos.length;
+    carregarMidia(atual); carregarMidia(atual + 1);
     const novo = document.getElementById('heroslide-' + atual);
     novo?.classList.add('ativo');
     document.querySelectorAll('.hero-media-dot')[atual]?.classList.add('ativo');

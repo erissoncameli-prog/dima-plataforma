@@ -342,19 +342,22 @@ function montarRevela() {
 
 // ── 4) Texto que acende palavra por palavra com a rolagem ──────
 // .rolagem-palavras: cada palavra começa esmaecida e acende conforme o
-// elemento sobe na tela (scrub — volta a apagar se a pessoa rolar pra
-// cima). O texto é quebrado em <span> por palavra; como a tradução troca
-// o conteúdo do elemento, a quebra é refeita a cada troca de idioma.
+// elemento sobe na tela (volta a esmaecer se a pessoa rolar pra cima). O
+// texto é quebrado em <span> por palavra; como a tradução troca o conteúdo
+// do elemento, a quebra é refeita a cada troca de idioma.
+// Desempenho: uma animação GSAP por palavra (~1.000 na página) obrigava o
+// navegador a recalcular o layout a cada uma ao abrir (TBT de 2,3 s no
+// celular). Agora cada palavra só recebe o próprio índice (--i) e a rolagem
+// escreve um único número (--p, de 0 a 1) no parágrafo; a opacidade é
+// calculada pelo CSS (.rolagem-palavras .rp, em sobre.html). Nada é medido.
 const _palavras = [];
 function _quebrarPalavras(el) {
   const texto = el.textContent;
-  el.innerHTML = texto.split(/(\s+)/).map(p => /^\s+$/.test(p) || !p ? p : `<span class="rp">${p.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>`).join('');
-  // Opacidade inicial 0,65 = contraste 4,9:1 no tema claro (WCAG 2.1 AA, texto normal);
-  // abaixo disso a palavra "apagada" fica ilegível e reprova na auditoria de acessibilidade
-  return gsap.fromTo(el.querySelectorAll('.rp'), { opacity: 0.65 }, {
-    opacity: 1, stagger: 0.05, ease: 'none',
-    scrollTrigger: { trigger: el, start: 'top 88%', end: 'bottom 58%', scrub: true },
-  });
+  let n = 0;
+  el.innerHTML = texto.split(/(\s+)/).map(p => /^\s+$/.test(p) || !p ? p : `<span class="rp" style="--i:${n++}">${p.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>`).join('');
+  el.style.setProperty('--n', n);
+  const marcar = st => el.style.setProperty('--p', st.progress.toFixed(3));
+  return ScrollTrigger.create({ trigger: el, start: 'top 88%', end: 'bottom 58%', onUpdate: marcar, onRefresh: marcar });
 }
 function montarPalavras() {
   const mm = gsap.matchMedia();
@@ -362,7 +365,7 @@ function montarPalavras() {
     document.querySelectorAll('.rolagem-palavras').forEach(el => _palavras.push({ el, tw: _quebrarPalavras(el) }));
     return () => {
       // Sem movimento: devolve o texto inteiro, sem os <span>
-      _palavras.splice(0).forEach(({ el, tw }) => { tw.scrollTrigger?.kill(); tw.kill(); el.textContent = el.textContent; });
+      _palavras.splice(0).forEach(({ el, tw }) => { tw.kill(); el.textContent = el.textContent; el.style.removeProperty('--p'); el.style.removeProperty('--n'); });
     };
   });
 }
@@ -370,7 +373,7 @@ function montarPalavras() {
 document.addEventListener('idioma', () => {
   _palavras.forEach(item => {
     if (item.el.querySelector('.rp')) return;
-    item.tw.scrollTrigger?.kill(); item.tw.kill();
+    item.tw.kill();
     item.tw = _quebrarPalavras(item.el);
   });
 });
@@ -792,10 +795,16 @@ function montarTrilha() {
   rotular();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Devolve a vez ao navegador entre uma etapa e outra da montagem
+const _cineFolga = () => (window.scheduler?.yield ? scheduler.yield() : new Promise(r => setTimeout(r, 0)));
+document.addEventListener('DOMContentLoaded', async () => {
   montarTrilha();
-  // Criadas de cima pra baixo, na ordem da página (recomendação do ScrollTrigger)
-  document.querySelectorAll('.cine[data-cine], .flutua, .mapa-zoom, .eixo-cena, .faixa-cine, .capa-cine').forEach(s => {
+  // Criadas de cima pra baixo, na ordem da página (recomendação do ScrollTrigger).
+  // Desempenho: montar tudo de uma vez era uma única tarefa de ~0,5 s que travava
+  // a página ao abrir (Total Blocking Time); agora cada seção é montada numa
+  // tarefa própria, na mesma ordem. A 1ª seção (no topo) é montada primeiro;
+  // as de baixo ficam prontas antes de a pessoa chegar nelas.
+  const etapas = [...document.querySelectorAll('.cine[data-cine], .flutua, .mapa-zoom, .eixo-cena, .faixa-cine, .capa-cine')].map(s => () => {
     if (s.classList.contains('flutua')) montarFlutuantes(s);
     else if (s.classList.contains('mapa-zoom')) montarMapa(s);
     else if (s.classList.contains('eixo-cena')) montarEixos(s);
@@ -803,10 +812,12 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (s.classList.contains('capa-cine')) montarCapa(s);
     else montarCinema(s);
   });
-  montarRevela();
-  montarPalavras();
-  montarItens();
-  montarFotoRolagem();
+  etapas.push(montarRevela, montarPalavras, montarItens, montarFotoRolagem);
+  for (const etapa of etapas) {
+    etapa();
+    await _cineFolga();
+  }
+  ScrollTrigger.refresh();
   // Fontes e header mudam a altura da página depois de carregar
   document.fonts?.ready.then(() => ScrollTrigger.refresh());
 });
