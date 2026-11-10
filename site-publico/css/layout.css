@@ -97,3 +97,8 @@
    primeira tela enquanto os dados do banco não chegam e não é empurrado depois
    (mudança de layout, CLS de até 0,84 em Resultados) */
 main{min-height:100vh;}
+
+/* "Pular para o conteúdo": escondido até receber o foco do teclado (1º Tab da página) */
+.pular-conteudo{position:absolute;left:8px;top:-60px;z-index:400;background:var(--verde-texto);color:#fff;font-weight:700;font-size:14px;padding:10px 16px;border-radius:8px;text-decoration:none;}
+.pular-conteudo:focus{top:8px;outline:3px solid var(--tinta);outline-offset:2px;}
+main:focus{outline:none;}

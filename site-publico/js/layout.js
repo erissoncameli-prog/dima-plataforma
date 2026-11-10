@@ -22,6 +22,7 @@ function gerarHeaderSite(paginaAtiva) {
   // dentro do menu (celular, onde não cabe ao lado da marca) — o CSS
   // mostra só um de cada vez
   return `
+    <a class="pular-conteudo" href="#conteudo">${t('nav.pular')}</a>
     <div class="container">
       <a href="index.html" class="site-brand">
         <picture>
@@ -65,7 +66,14 @@ function montarPaginaEmConstrucao(nomePagina) {
     </div>`;
 }
 
+// Destino do "Pular para o conteúdo" (WCAG 2.4.1): o <main> de cada página
+function _marcarConteudo() {
+  const m = document.querySelector('main');
+  if (m && !m.id) m.id = 'conteudo';
+  if (m && !m.hasAttribute('tabindex')) m.setAttribute('tabindex', '-1');
+}
 function _montarHeaderRodape() {
+  _marcarConteudo();
   const headerSlot = document.getElementById('site-header-slot');
   const footerSlot = document.getElementById('site-footer-slot');
   if (headerSlot) headerSlot.innerHTML = gerarHeaderSite(headerSlot.dataset.pagina || '');

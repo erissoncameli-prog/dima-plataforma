@@ -37,6 +37,7 @@ function registrarIdioma(idioma, textos) { Object.assign(I18N_DIC[idioma], texto
 // Português dos textos montados por JavaScript (o resto está no HTML)
 const TEXTOS_PT = {
   'idioma.grupo': 'Idioma do site',
+  'nav.pular': 'Pular para o conteúdo',
   'nav.inicio': 'Início',
   'nav.mapa': 'Mapa Interativo',
   'nav.resultados': 'Resultados',

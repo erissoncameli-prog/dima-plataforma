@@ -683,6 +683,7 @@ function _adicionarRosaDosVentos(){
   new Ctrl().addTo(mapaL);
 }
 function _desenharRosa(div){
+  if(!div) return;
   const [n, s, l, o] = t('mapa.rosa').split(',');
   div.title = t('mapa.norte');
   div.innerHTML = `<svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="none" stroke="#e5e7eb" stroke-width="1"/><polygon points="22,3 26,22 22,19 18,22" fill="#dc2626"/><polygon points="22,41 18,22 22,25 26,22" fill="#9ca3af"/><circle cx="22" cy="22" r="3" fill="#1f2937"/><text x="22" y="14" text-anchor="middle" font-size="6" font-weight="700" font-family="Montserrat,sans-serif" fill="#dc2626">${n}</text><text x="22" y="43" text-anchor="middle" font-size="5.5" font-weight="600" font-family="Montserrat,sans-serif" fill="#6b7280">${s}</text><text x="41" y="23.5" text-anchor="middle" font-size="5.5" font-weight="600" font-family="Montserrat,sans-serif" fill="#6b7280">${l}</text><text x="3" y="23.5" text-anchor="middle" font-size="5.5" font-weight="600" font-family="Montserrat,sans-serif" fill="#6b7280">${o}</text></svg>`;
@@ -702,7 +703,9 @@ function toggleFiltrosMobile(){
 
 // ── Carregar tudo ────────────────────────────────────────────
 async function carregarMapa() {
-  mapaL = L.map('mapa-leaflet', { zoomControl: true, attributionControl: false });
+  // maxZoom declarado aqui: a imagem de satélite (que traria o zoom máximo) só entra depois do
+  // enquadramento, e o agrupador de pontos não funciona em mapa sem zoom máximo
+  mapaL = L.map('mapa-leaflet', { zoomControl: true, attributionControl: false, maxZoom: 22 });
   // Imagem de satélite: um servidor só (uma conexão para todos os blocos, com
   // preconnect no <head>) e só depois do enquadramento final — antes os blocos do
   // zoom inicial eram baixados e trocados logo em seguida pelos do zoom certo

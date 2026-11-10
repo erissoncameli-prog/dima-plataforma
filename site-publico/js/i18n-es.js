@@ -7,6 +7,7 @@
 registrarIdioma('es', {
   // ── Comum: idioma, menu, rodapé ──
   'idioma.grupo': 'Idioma del sitio',
+  'nav.pular': 'Saltar al contenido',
   'nav.inicio': 'Inicio',
   'nav.mapa': 'Mapa Interactivo',
   'nav.resultados': 'Resultados',
