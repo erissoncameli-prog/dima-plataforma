@@ -92,6 +92,7 @@ registrarIdioma('en', {
   'mapa.erro': 'Could not load the points.',
   'mapa.marcar_todos': 'Select all',
   'mapa.desmarcar_todos': 'Clear all',
+  'mapa.carregando_camadas': 'Loading layers…',
   'mapa.nenhuma_camada': 'No layers registered',
   'mapa.nenhum_tipo': 'No types registered',
   'mapa.sem_apa': 'No APA filter',

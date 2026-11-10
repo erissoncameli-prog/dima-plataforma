@@ -92,6 +92,7 @@ registrarIdioma('es', {
   'mapa.erro': 'Error al cargar los puntos.',
   'mapa.marcar_todos': 'Marcar todos',
   'mapa.desmarcar_todos': 'Desmarcar todos',
+  'mapa.carregando_camadas': 'Cargando capas…',
   'mapa.nenhuma_camada': 'Ninguna capa registrada',
   'mapa.nenhum_tipo': 'Ningún tipo registrado',
   'mapa.sem_apa': 'Sin filtro de APA',

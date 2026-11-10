@@ -185,6 +185,7 @@ const TEXTOS_PT = {
   'mapa.erro': 'Erro ao carregar pontos.',
   'mapa.marcar_todos': 'Marcar todos',
   'mapa.desmarcar_todos': 'Desmarcar todos',
+  'mapa.carregando_camadas': 'Carregando camadas…',
   'mapa.nenhuma_camada': 'Nenhuma camada cadastrada',
   'mapa.nenhum_tipo': 'Nenhum tipo cadastrado',
   'mapa.sem_apa': 'Sem filtro de APA',
