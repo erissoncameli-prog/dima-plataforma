@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { exigirSuperAdmin, SemAcesso } from '../_shared/autorizacao.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +24,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+    // Apaga entregas e arquivos: só o administrador do sistema, logado. Antes
+    // qualquer pessoa com a chave pública do site apagava as entregas de um
+    // produto — e o id dos produtos publicados aparece na Galeria do site.
+    await exigirSuperAdmin(req, supabase)
 
     const { data: produto, error: errProduto } = await supabase
       .from('contratos_produtos')
@@ -96,7 +101,7 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     return new Response(
       JSON.stringify({ ok: false, error: e.message }),
-      { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
+      { status: e instanceof SemAcesso ? e.status : 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
     )
   }
 })

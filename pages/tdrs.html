@@ -1693,7 +1693,7 @@ async function submeterParaAgente(){
       headers:{
         'Content-Type':'application/json',
         'apikey':SUPABASE_ANON_KEY,
-        'Authorization':'Bearer '+(session?.access_token||SUPABASE_ANON_KEY),
+        'Authorization':'Bearer '+(session?.access_token||''),
       },
       body:JSON.stringify({tdr_id:tdrId}),
     });
@@ -2508,9 +2508,11 @@ async function corrigirComIA(){
     const SUPABASE_ANON_KEY=db.supabaseKey||window._env?.SUPABASE_ANON_KEY;
     const fnUrl=`${SUPABASE_URL}/functions/v1/corrigir-tdr`;
 
+    // A função confere quem chama: vai o token da sessão, não a chave pública
+    const {data:{session}}=await db.auth.getSession();
     const res=await fetch(fnUrl,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${SUPABASE_ANON_KEY}`},
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${session?.access_token||''}`},
       body:JSON.stringify({tdr_id:tdrAtual.id})
     });
     const data=await res.json();

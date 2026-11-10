@@ -1,4 +1,5 @@
 ﻿import { createClient } from 'npm:@supabase/supabase-js@2'
+import { exigirAcessoTdr, exigirSuperAdmin, SemAcesso } from '../_shared/autorizacao.ts'
 import Anthropic from 'npm:@anthropic-ai/sdk'
 
 const CORS = {
@@ -50,6 +51,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // Só quem está logado e enxerga o TDR (a chave pública do site não basta)
+    await exigirAcessoTdr(req, supabase, tdr_id)
 
     // 1. Buscar TDR com atividade e indicadores
     const { data: tdr, error: tdrErr } = await supabase
@@ -207,6 +211,7 @@ Gere o JSON com os campos corrigidos.`
       { headers: CORS }
     )
   } catch (e) {
+    if (e instanceof SemAcesso) return Response.json({ error: e.message }, { status: e.status, headers: CORS })
     console.error('[corrigir-tdr] Erro:', e)
     return Response.json({ error: (e as Error).message }, { status: 500, headers: CORS })
   }
