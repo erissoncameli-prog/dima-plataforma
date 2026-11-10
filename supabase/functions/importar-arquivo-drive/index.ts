@@ -1,4 +1,5 @@
 ﻿// ── DIMA UNESCO · Importar Arquivo do Google Drive ───────────────────────────
+import { exigirAcessoTdr, exigirSuperAdmin, SemAcesso } from '../_shared/autorizacao.ts'
 // Baixa um arquivo do Google Drive no servidor e salva no Supabase Storage.
 // Evita CORS e a necessidade de download manual pelo usuário.
 
@@ -48,6 +49,9 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // Só quem está logado e enxerga o TDR (a chave pública do site não basta)
+    await exigirAcessoTdr(req, supabase, tdr_id)
 
     const parsed = extrairIdDrive(drive_url)
     if (!parsed) {
@@ -133,6 +137,9 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (err) {
+    if (err instanceof SemAcesso) return new Response(JSON.stringify({ error: err.message }), {
+      status: err.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
     console.error('[importar-arquivo-drive]', err)
     return new Response(JSON.stringify({ error: (err as Error).message ?? 'Erro interno' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
