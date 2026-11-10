@@ -5,8 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
 <title data-i18n="prod.titulo_pagina">Produtos — Resiliência Socioambiental</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="description" content="Galeria de produtos técnicos do Programa Resiliência Socioambiental: relatórios, planos e materiais aprovados e liberados para leitura pública.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Resiliência Socioambiental">
+<meta property="og:title" content="Produtos — Resiliência Socioambiental">
+<meta property="og:description" content="Galeria de produtos técnicos do Programa Resiliência Socioambiental: relatórios, planos e materiais aprovados e liberados para leitura pública.">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta name="twitter:card" content="summary">
+<link rel="preload" href="vendor/montserrat-v31/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
 <style>
@@ -25,7 +33,9 @@
 .filtro-pill.ativo{color:var(--verde-texto);background:var(--verde-tint);border-color:var(--verde-texto);}
 .filtro-pill img{width:16px;height:16px;object-fit:contain;}
 
-.grid-produtos{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--espaco-4);}
+/* Altura mínima de um cartão: a lista nasce vazia ("Carregando…") e cresce quando os
+   produtos chegam; sem a reserva, o que está abaixo "pula" (mudança de layout) */
+.grid-produtos{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--espaco-4);min-height:480px;align-content:start;}
 @media(max-width:900px){.grid-produtos{grid-template-columns:1fr 1fr;}}
 @media(max-width:600px){.grid-produtos{grid-template-columns:1fr;}}
 
@@ -34,10 +44,10 @@
 /* Só a capa do produto (decisão da coordenação: sem download do arquivo original).
    Enquanto não há capas reais, desenha uma capa genérica com a marca do Programa. */
 .card-produto-capa{height:220px;padding:12px 0;display:flex;align-items:center;justify-content:center;position:relative;background:var(--verde-tint);}
-.capa-doc{width:118px;aspect-ratio:3/4;background:#fff;border-radius:3px;box-shadow:0 2px 6px rgba(23,36,28,.12),0 12px 24px -10px rgba(23,36,28,.3);display:flex;flex-direction:column;padding:10px 9px;gap:6px;overflow:hidden;}
+.capa-doc{width:118px;height:157px;flex:none;background:#fff;border-radius:3px;box-shadow:0 2px 6px rgba(23,36,28,.12),0 12px 24px -10px rgba(23,36,28,.3);display:flex;flex-direction:column;padding:10px 9px;gap:6px;overflow:hidden;}
 .capa-doc .capa-logo{width:100%;height:auto;}
 .capa-doc .capa-faixa{height:4px;border-radius:2px;}
-.capa-doc .capa-titulo{font-family:var(--fonte-titulo);font-size:8.5px;font-weight:700;line-height:1.25;color:#17241c;}
+.capa-doc .capa-titulo{font-family:var(--fonte-titulo);font-size:8.5px;font-weight:700;line-height:1.25;color:#17241c;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;}
 .capa-doc .capa-linhas{margin-top:auto;display:grid;gap:3px;}
 .capa-doc .capa-linhas i{display:block;height:3px;border-radius:2px;background:#e2ded0;}
 .capa-doc[hidden]{display:none;}
@@ -274,20 +284,21 @@ document.addEventListener('keydown', e => {
 // Capa: a função pede a chave pública no cabeçalho, então baixa por fetch e mostra a
 // imagem só quando chega (sem ela, fica a capa genérica)
 async function carregarCapas() {
-  for (const img of document.querySelectorAll('img[data-capa]')) {
+  // Todas em paralelo (antes uma de cada vez: a última capa esperava todas as outras)
+  await Promise.all([...document.querySelectorAll('img[data-capa]')].map(async img => {
     const m = img.dataset.capa;
     try {
       if (!_capas[m]) {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/publico-capa?m=${encodeURIComponent(m)}`,
           { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } });
-        if (!r.ok) continue;
+        if (!r.ok) return;
         _capas[m] = URL.createObjectURL(await r.blob());
       }
       // Troca a capa genérica só quando a imagem já carregou; se falhar, fica a genérica
       img.onload = () => { img.hidden = false; img.nextElementSibling.hidden = true; };
       img.src = _capas[m];
     } catch (e) { /* sem capa: mantém a genérica */ }
-  }
+  }));
 }
 let _filtroProdutos = 'todos';
 

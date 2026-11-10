@@ -5,8 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
 <title data-i18n="fin.titulo_pagina">Transparência Financeira — Resiliência Socioambiental</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="description" content="Transparência financeira do Programa Resiliência Socioambiental: orçamento, valores pagos e a pagar e execução por resultado, em dólar e real.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Resiliência Socioambiental">
+<meta property="og:title" content="Transparência Financeira — Resiliência Socioambiental">
+<meta property="og:description" content="Transparência financeira do Programa Resiliência Socioambiental: orçamento, valores pagos e a pagar e execução por resultado, em dólar e real.">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta name="twitter:card" content="summary">
+<link rel="preload" href="vendor/montserrat-v31/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
 <style>
@@ -132,9 +140,11 @@ details.tabela summary{cursor:pointer;color:var(--azul-texto);font-weight:600;}
     <!-- ── Visão para financiadores ─────────────────────────────── -->
     <h2 class="secao-tit" data-i18n="fin.sec_fin">Visão geral do orçamento</h2>
     <p class="secao-sub" data-i18n="fin.sec_fin_p">Em dólar, a moeda do orçamento do Programa, e em reais. Cada estágio mostra em que ponto está o dinheiro: já pago, lançado para pagar, reservado em termos de referência (TDR) já aprovados ou em análise, e ainda livre.</p>
-    <p class="secao-sub" id="fin-cotacao"></p>
+    <!-- Esqueleto já no HTML: o navegador pinta a página enquanto baixa os scripts do fim,
+         antes de os dados chegarem; sem ele o conteúdo "pula" (mudança de layout) -->
+    <p class="secao-sub" id="fin-cotacao">Pago e a pagar em reais são os valores lançados: o pagamento usa a cotação da UNESCO do dia em que foi feito. Orçamento, reservado em TDR e livre existem só em dólar e aparecem em reais (≈) pela cotação PTAX de venda do Banco Central de …: R$ … por dólar.</p>
 
-    <div class="grade-totais" id="fin-totais"></div>
+    <div class="grade-totais" id="fin-totais"><div class="cartao total"><div class="eyebrow" data-i18n="fin.orcamento">Orçamento</div><div class="v">—</div><div class="brl">&nbsp;</div></div><div class="cartao total"><div class="eyebrow" data-i18n="fin.pago">Pago</div><div class="v">—</div><div class="brl">&nbsp;</div></div><div class="cartao total"><div class="eyebrow" data-i18n="fin.a_pagar">A pagar</div><div class="v">—</div><div class="brl">&nbsp;</div></div><div class="cartao total"><div class="eyebrow" data-i18n="fin.comp_tdr">Reservado em TDR</div><div class="v">—</div><div class="brl">&nbsp;</div></div><div class="cartao total"><div class="eyebrow" data-i18n="fin.livre">Livre</div><div class="v">—</div><div class="brl">&nbsp;</div></div></div>
 
     <div class="grade-hero">
       <div class="cartao">
@@ -199,7 +209,7 @@ details.tabela summary{cursor:pointer;color:var(--azul-texto);font-weight:600;}
   <div id="site-footer-slot"></div>
 </footer>
 
-<div id="dica" role="tooltip"></div>
+<div id="dica" aria-hidden="true"></div><!-- só visual: cada barra já tem o mesmo texto no aria-label -->
 
 <script src="vendor/supabase-js-2.119.0/supabase.js"></script>
 <script src="js/supabase.js"></script>
@@ -372,8 +382,16 @@ async function carregar() {
   document.addEventListener('focusout', () => d.classList.remove('vis'));
 })();
 
+// Reserva o espaço do que chega do banco (cartões de totais e frase da cotação):
+// sem isso a página "pula" quando os dados chegam (CLS 0,23 no computador)
+function esqueleto() {
+  document.getElementById('fin-cotacao').textContent = t('fin.cotacao', { taxa: '…', data: '…' });
+  document.getElementById('fin-totais').innerHTML = [['fin.orcamento']].concat(ESTAGIOS.map(([, , ch]) => [ch])).map(([ch]) =>
+    `<div class="cartao total"><div class="eyebrow">${t(ch)}</div><div class="v">—</div><div class="brl">&nbsp;</div></div>`).join('');
+}
+esqueleto();
 carregar();
-document.addEventListener('idioma', () => { if (F) desenhar(); });
+document.addEventListener('idioma', () => { if (F) desenhar(); else esqueleto(); });
 </script>
 </body>
 </html>

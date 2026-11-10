@@ -7,8 +7,16 @@
      A versão anterior ficou como backup em sobre-antigo.html. -->
 <link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
 <title data-i18n="sobre.titulo_pagina">Sobre o Projeto — Resiliência Socioambiental</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="description" content="Sobre o Programa Resiliência Socioambiental: objetivos, parceiros, territórios atendidos e contribuição para os ODS e o Marco Global de Biodiversidade.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Resiliência Socioambiental">
+<meta property="og:title" content="Sobre o Projeto — Resiliência Socioambiental">
+<meta property="og:description" content="Sobre o Programa Resiliência Socioambiental: objetivos, parceiros, territórios atendidos e contribuição para os ODS e o Marco Global de Biodiversidade.">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta name="twitter:card" content="summary">
+<link rel="preload" href="vendor/montserrat-v31/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/apresentacao.css?v=20261015a">
@@ -68,6 +76,11 @@
 .parceiros{list-style:none;margin:0;padding:0;display:grid;gap:var(--espaco-3);}
 .parceiros li{display:flex;gap:var(--espaco-3);align-items:baseline;padding:var(--espaco-3) var(--espaco-4);background:var(--papel-elevado);border:1px solid var(--linha);border-radius:var(--raio);font-size:14.5px;}
 .parceiros .papel{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-suave);min-width:96px;flex-shrink:0;}
+
+/* Texto que acende com a rolagem (js/cinema.js): --p = progresso do parágrafo (0–1),
+   --n = nº de palavras, --i = posição da palavra. Cada palavra vai de 0,65 (contraste
+   4,9:1, WCAG AA) a 1 numa janela de 4 palavras, na ordem do texto. */
+.rolagem-palavras .rp{opacity:clamp(.65, calc(.65 + .35 * (var(--p, 0) * (var(--n, 1) + 4) - var(--i, 0)) / 4), 1);}
 
 /* Faixa de foto */
 .faixa-foto{height:clamp(200px,32vw,400px);background-size:cover;background-position:center;position:relative;}
@@ -694,6 +707,6 @@
 <script src="js/i18n-es.js?v=20261013c"></script>
 <script src="js/layout.js"></script>
 <script src="js/apresentacao.js?v=20261015a"></script>
-<script src="js/cinema.js?v=20261009b"></script>
+<script src="js/cinema.js?v=20261110"></script>
 </body>
 </html>

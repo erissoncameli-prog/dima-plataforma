@@ -57,6 +57,10 @@ registrarIdioma('es', {
   'inicio.api_p4': 'La clave vale 1 año; nunca se envía por correo.',
   'inicio.nota': 'Cifras actualizadas automáticamente desde la plataforma de gestión del Programa.',
   'inicio.foto_n_de': 'Mostrar foto {n} de {total}',
+  'inicio.foto_anterior': 'Foto anterior',
+  'inicio.foto_proxima': 'Foto siguiente',
+  'inicio.pausar_fotos': 'Pausar el cambio de fotos',
+  'inicio.continuar_fotos': 'Continuar el cambio de fotos',
 
   // ── Mapa Interativo (de Entregas) ──
   'mapa.titulo_pagina': 'Mapa Interactivo de Entregas — Resiliencia Socioambiental',
@@ -88,6 +92,7 @@ registrarIdioma('es', {
   'mapa.erro': 'Error al cargar los puntos.',
   'mapa.marcar_todos': 'Marcar todos',
   'mapa.desmarcar_todos': 'Desmarcar todos',
+  'mapa.carregando_camadas': 'Cargando capas…',
   'mapa.nenhuma_camada': 'Ninguna capa registrada',
   'mapa.nenhum_tipo': 'Ningún tipo registrado',
   'mapa.sem_apa': 'Sin filtro de APA',

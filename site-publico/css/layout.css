@@ -92,3 +92,8 @@
 .em-construcao h1{font-size:clamp(24px,4vw,32px);margin-bottom:var(--espaco-3);}
 .em-construcao p{color:var(--tinta-suave);max-width:56ch;margin:0 auto;font-size:15px;}
 .footer-texto .footer-link{color:var(--verde-texto);font-weight:600;white-space:nowrap;}
+
+/* O conteúdo principal ocupa ao menos a altura da tela: o rodapé não aparece na
+   primeira tela enquanto os dados do banco não chegam e não é empurrado depois
+   (mudança de layout, CLS de até 0,84 em Resultados) */
+main{min-height:100vh;}

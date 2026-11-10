@@ -55,6 +55,10 @@ const TEXTOS_PT = {
 
   // Início
   'inicio.foto_n_de': 'Mostrar foto {n} de {total}',
+  'inicio.foto_anterior': 'Foto anterior',
+  'inicio.foto_proxima': 'Próxima foto',
+  'inicio.pausar_fotos': 'Pausar a troca de fotos',
+  'inicio.continuar_fotos': 'Continuar a troca de fotos',
 
   // Resultados
   'res.erro': 'Erro ao carregar a matriz de resultados.',
@@ -181,6 +185,7 @@ const TEXTOS_PT = {
   'mapa.erro': 'Erro ao carregar pontos.',
   'mapa.marcar_todos': 'Marcar todos',
   'mapa.desmarcar_todos': 'Desmarcar todos',
+  'mapa.carregando_camadas': 'Carregando camadas…',
   'mapa.nenhuma_camada': 'Nenhuma camada cadastrada',
   'mapa.nenhum_tipo': 'Nenhum tipo cadastrado',
   'mapa.sem_apa': 'Sem filtro de APA',

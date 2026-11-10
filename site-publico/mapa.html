@@ -5,8 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="assets/identidade/folhas.svg" type="image/svg+xml">
 <title data-i18n="mapa.titulo_pagina">Mapa Interativo de Entregas — Resiliência Socioambiental</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="description" content="Mapa interativo das entregas do Programa Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá, com filtros por tipo de atividade e área.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Resiliência Socioambiental">
+<meta property="og:title" content="Mapa Interativo de Entregas — Resiliência Socioambiental">
+<meta property="og:description" content="Mapa interativo das entregas do Programa Resiliência Socioambiental nas APAs Igarapé São Francisco e Lago do Amapá, com filtros por tipo de atividade e área.">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta name="twitter:card" content="summary">
+<link rel="preload" href="vendor/montserrat-v31/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://mt1.google.com">
 <link rel="stylesheet" href="vendor/leaflet-1.9.4/leaflet.css"/>
 <link rel="stylesheet" href="vendor/leaflet.markercluster-1.5.3/MarkerCluster.css"/>
 <link rel="stylesheet" href="vendor/leaflet.markercluster-1.5.3/MarkerCluster.Default.css"/>
@@ -26,7 +35,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0;}
 .mapa-filtros::-webkit-scrollbar{display:none;}
 .filtro-bloco{background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);overflow:hidden;}
 .filtro-bloco-hdr{padding:8px 12px;border-bottom:1px solid var(--linha);}
-.filtro-bloco-hdr h4{font-size:10.5px;font-weight:700;color:var(--tinta-suave);text-transform:uppercase;letter-spacing:.06em;margin:0;font-family:var(--fonte-corpo);}
+.filtro-bloco-hdr h3{font-size:10.5px;font-weight:700;color:var(--tinta-suave);text-transform:uppercase;letter-spacing:.06em;margin:0;font-family:var(--fonte-corpo);}
 .filtro-bloco-body{padding:8px 12px 10px;max-height:220px;overflow-y:auto;}
 .filtro-item{display:flex;align-items:center;gap:7px;padding:3px 0;font-size:12.5px;color:var(--tinta);cursor:pointer;}
 .filtro-item input{accent-color:var(--verde-escuro);cursor:pointer;flex-shrink:0;}
@@ -34,6 +43,13 @@ main{flex:1;display:flex;flex-direction:column;min-height:0;}
 #mapa-leaflet{flex:1;z-index:0;min-height:0;}
 
 .mapa-lista{width:270px;flex-shrink:0;display:flex;flex-direction:column;background:var(--papel-elevado);border-left:1px solid var(--linha);overflow:hidden;}
+/* No computador, filtros e lista rolam por dentro e não definem a altura da área do
+   mapa: sem isso, quando os filtros chegam do banco a coluna cresce, empurra o mapa
+   (com o minimapa e a rosa dos ventos) e o rodapé (mudança de layout de 0,2) */
+@media(min-width:901px){.mapa-filtros,.mapa-lista{contain:size;}}
+/* O rodapé é montado por script depois da 1ª pintura: a altura dele (72 px nesta
+   página) fica reservada para o mapa não encolher quando ele entra */
+.site-footer{min-height:72px;}
 .mapa-lista-hdr{padding:10px 14px;border-bottom:1px solid var(--linha);font-size:11px;font-weight:700;color:var(--tinta-suave);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0;}
 .mapa-lista-scroll{overflow-y:auto;flex:1;min-height:0;}
 .ponto-item{display:flex;align-items:flex-start;gap:8px;padding:8px 14px;border-bottom:1px solid var(--linha);cursor:pointer;transition:background .1s;}
@@ -102,15 +118,15 @@ main{flex:1;display:flex;flex-direction:column;min-height:0;}
   <div class="mapa-corpo">
     <aside class="mapa-filtros">
       <div class="filtro-bloco">
-        <div class="filtro-bloco-hdr"><h4 data-i18n="mapa.delimitacoes">Delimitações</h4></div>
+        <div class="filtro-bloco-hdr"><h3 data-i18n="mapa.delimitacoes">Delimitações</h3></div>
         <div class="filtro-bloco-body" id="filtro-camadas"><div class="spinner" style="width:16px;height:16px;border-width:2px;margin:6px auto"></div></div>
       </div>
       <div class="filtro-bloco">
-        <div class="filtro-bloco-hdr"><h4 data-i18n="mapa.tipo_atividade">Tipo de atividade</h4></div>
+        <div class="filtro-bloco-hdr"><h3 data-i18n="mapa.tipo_atividade">Tipo de atividade</h3></div>
         <div class="filtro-bloco-body" id="filtro-tipos"><div class="spinner" style="width:16px;height:16px;border-width:2px;margin:6px auto"></div></div>
       </div>
       <div class="filtro-bloco">
-        <div class="filtro-bloco-hdr"><h4 data-i18n="mapa.area_apa">Área / APA</h4></div>
+        <div class="filtro-bloco-hdr"><h3 data-i18n="mapa.area_apa">Área / APA</h3></div>
         <div class="filtro-bloco-body" id="filtro-apa"><div class="spinner" style="width:16px;height:16px;border-width:2px;margin:6px auto"></div></div>
       </div>
     </aside>
@@ -155,7 +171,6 @@ main{flex:1;display:flex;flex-direction:column;min-height:0;}
 <script src="vendor/leaflet-1.9.4/leaflet.js"></script>
 <script src="vendor/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
 <script src="vendor/leaflet-minimap-3.6.1/Control.MiniMap.min.js"></script>
-<script src="vendor/turf-6.5.0/turf.min.js"></script>
 <script src="js/supabase.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/i18n-en.js"></script>
@@ -169,7 +184,7 @@ let _trilhaMetadata = {}, _geometriaFotos = {};
 let _filtrosAPA = new Set(), _filtrosTipo = new Set();
 let _tipoCores = {}, _tipoIcones = {};
 let _geoCarAtual = { fotos: [], idx: 0 }, _geoCarTimer = null;
-let _camadas = [];
+let _camadas = [], _camadasCarregando = true;
 
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -218,15 +233,37 @@ const PONTOS_ESPECIAIS = {
 function _rotuloPE(chave){ return t('mapa.pe_' + chave); }
 const SUBBACIA_PALETTE = ['#16a34a','#2563eb','#d97706','#7c3aed','#0891b2','#dc2626','#65a30d','#db2777','#ea580c'];
 
-// ── Cálculos geoespaciais (Turf.js) ──────────────────────────
+// ── Cálculos geoespaciais ────────────────────────────────────
+// Área e comprimento dos pontos agrupados: mesmas fórmulas do Turf.js
+// (área esférica de Chamberlain & Duquette com raio 6.378.137 m; haversine
+// com o raio médio 6.371.008,8 m), conferidas contra o Turf 6.5.0,
+// sem depender da biblioteca. O Turf (154 KB) só é usado no clique numa
+// camada (_areaFeature) e é baixado depois que a página abre (desempenho).
+const _RAIO_TERRA = 6378137, _RAIO_MEDIO = 6371008.8, _rad = g => g * Math.PI / 180;
 function _calcularArea(latlngs){
   if(latlngs.length < 3) return 0;
-  try{ const coords = latlngs.map(([lat,lng]) => [lng,lat]); coords.push(coords[0]); return turf.area(turf.polygon([coords])); }catch(e){ return 0; }
+  let soma = 0;
+  for(let i = 0; i < latlngs.length; i++){
+    const [la1, lo1] = latlngs[i], [la2, lo2] = latlngs[(i + 1) % latlngs.length];
+    soma += _rad(lo2 - lo1) * (2 + Math.sin(_rad(la1)) + Math.sin(_rad(la2)));
+  }
+  return Math.abs(soma * _RAIO_TERRA * _RAIO_TERRA / 2);
 }
 function _calcularDistancia(latlngs){
   if(latlngs.length < 2) return 0;
-  try{ const coords = latlngs.map(([lat,lng]) => [lng,lat]); return turf.length(turf.lineString(coords), {units:'kilometers'}) * 1000; }catch(e){ return 0; }
+  let total = 0;
+  for(let i = 1; i < latlngs.length; i++){
+    const [la1, lo1] = latlngs[i - 1], [la2, lo2] = latlngs[i];
+    const a = Math.sin(_rad(la2 - la1) / 2) ** 2 + Math.cos(_rad(la1)) * Math.cos(_rad(la2)) * Math.sin(_rad(lo2 - lo1) / 2) ** 2;
+    total += 2 * _RAIO_MEDIO * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+  return total;
 }
+window.addEventListener('load', () => {
+  const s = document.createElement('script');
+  s.src = 'vendor/turf-6.5.0/turf.min.js';
+  document.body.appendChild(s);
+});
 const _dec2 = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 function _formatarArea(m2){ if(m2 <= 0) return '—'; return m2 >= 10000 ? `${fmtNum(m2/10000, _dec2)} ha` : `${fmtNum(Math.round(m2))} m²`; }
 function _formatarDistancia(m){ if(m <= 0) return '—'; return m >= 1000 ? `${fmtNum(m/1000, _dec2)} km` : `${fmtNum(Math.round(m))} m`; }
@@ -651,7 +688,7 @@ function _desenharRosa(div){
   div.innerHTML = `<svg viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg"><circle cx="22" cy="22" r="20" fill="none" stroke="#e5e7eb" stroke-width="1"/><polygon points="22,3 26,22 22,19 18,22" fill="#dc2626"/><polygon points="22,41 18,22 22,25 26,22" fill="#9ca3af"/><circle cx="22" cy="22" r="3" fill="#1f2937"/><text x="22" y="14" text-anchor="middle" font-size="6" font-weight="700" font-family="Montserrat,sans-serif" fill="#dc2626">${n}</text><text x="22" y="43" text-anchor="middle" font-size="5.5" font-weight="600" font-family="Montserrat,sans-serif" fill="#6b7280">${s}</text><text x="41" y="23.5" text-anchor="middle" font-size="5.5" font-weight="600" font-family="Montserrat,sans-serif" fill="#6b7280">${l}</text><text x="3" y="23.5" text-anchor="middle" font-size="5.5" font-weight="600" font-family="Montserrat,sans-serif" fill="#6b7280">${o}</text></svg>`;
 }
 function _adicionarMiniMapa(){
-  const miniTile = L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains: ['mt0','mt1','mt2','mt3'] });
+  const miniTile = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 22 });
   new L.Control.MiniMap(miniTile, { position: 'bottomright', width: 130, height: 100, zoomLevelOffset: -6, toggleDisplay: true, minimized: false, aimingRectOptions: { color:'#dc2626', weight:2, opacity:.9, fillOpacity:.1 }, shadowRectOptions: { color:'#dc2626', weight:1, opacity:.4, fillOpacity:0 } }).addTo(mapaL);
 }
 
@@ -666,7 +703,12 @@ function toggleFiltrosMobile(){
 // ── Carregar tudo ────────────────────────────────────────────
 async function carregarMapa() {
   mapaL = L.map('mapa-leaflet', { zoomControl: true, attributionControl: false });
-  L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 22, subdomains: ['mt0','mt1','mt2','mt3'] }).addTo(mapaL);
+  // Imagem de satélite: um servidor só (uma conexão para todos os blocos, com
+  // preconnect no <head>) e só depois do enquadramento final — antes os blocos do
+  // zoom inicial eram baixados e trocados logo em seguida pelos do zoom certo
+  const satelite = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 22 });
+  let sateliteNoMapa = false;
+  const ligarSatelite = () => { if (!sateliteNoMapa) { sateliteNoMapa = true; satelite.addTo(mapaL); } };
   mapaL.setView([-9.975, -67.81], 8);
 
   clusterLayer = L.markerClusterGroup({ maxClusterRadius: 50 });
@@ -674,15 +716,18 @@ async function carregarMapa() {
   _adicionarRosaDosVentos();
   _adicionarMiniMapa();
 
-  const [mapaRes, metaRes, fotosRes, camadasRes, tiposRes] = await Promise.all([
+  // As camadas (geometrias, o maior volume) não seguram o resto: pontos, lista e
+  // filtros aparecem assim que chegam, e as camadas são desenhadas quando vierem
+  const camadasP = db.rpc('fn_publico_camadas').then(r => r, () => ({ data: null }));
+  const [mapaRes, metaRes, fotosRes, tiposRes] = await Promise.all([
     db.rpc('fn_publico_mapa'),
     db.from('trilha_metadata').select('geometry_group,video_url').then(r => r, () => ({ data: null })),
     db.from('geometria_fotos').select('geometry_group,geometry_type,foto_url,ordem').order('ordem').then(r => r, () => ({ data: null })),
-    db.rpc('fn_publico_camadas').then(r => r, () => ({ data: null })),
     db.rpc('fn_publico_tipos_mapa').then(r => r, () => ({ data: null })),
   ]);
 
   if(mapaRes.error || !mapaRes.data){
+    ligarSatelite();
     document.getElementById('pontos-lista').innerHTML = `<div style="padding:16px;text-align:center;color:var(--tinta-suave);font-size:12px">${t('mapa.erro')}</div>`;
     return;
   }
@@ -698,9 +743,13 @@ async function carregarMapa() {
   // pra ligar no filtro, exatamente como vêm da API.
   const _normNome = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
   const CAMADAS_PADRAO = new Set(['igarape sao francisco', 'lago do amapa']);
-  _camadas = (camadasRes.data||[]).map(c => ({ ...c, visivel: CAMADAS_PADRAO.has(_normNome(c.nome)), layer: null }));
-  _camadas.filter(c => c.visivel).forEach(_adicionarCamada);
   _iniciarClickCamadas(() => _camadas);
+  camadasP.then(camadasRes => {
+    _camadasCarregando = false;
+    _camadas = (camadasRes.data||[]).map(c => ({ ...c, visivel: CAMADAS_PADRAO.has(_normNome(c.nome)), layer: null }));
+    _camadas.filter(c => c.visivel).forEach(_adicionarCamada);
+    _desenharFiltros();
+  });
   mapaL.on('zoomend', () => { _camadas.filter(c => c.visivel && c.geojson && (c.geojson.features||[]).some(f => f.geometry && (f.geometry.type==='Point'||f.geometry.type==='MultiPoint'))).forEach(_adicionarCamada); });
 
   const tiposUnicos = [...new Set(_pontos.map(p => p.tipo_atividade).filter(Boolean))];
@@ -730,7 +779,8 @@ async function carregarMapa() {
     mapaL.invalidateSize();
     const allBounds = L.latLngBounds([]);
     _pontos.filter(p => !isNaN(p.lat) && !isNaN(p.lng)).forEach(p => allBounds.extend([p.lat, p.lng]));
-    if(allBounds.isValid()) try { mapaL.fitBounds(allBounds, {padding:[40,40], maxZoom:13}); } catch(e) {}
+    if(allBounds.isValid()) try { mapaL.fitBounds(allBounds, {padding:[40,40], maxZoom:13, animate:false}); } catch(e) {}
+    ligarSatelite();
   }, 300);
 }
 
@@ -742,7 +792,7 @@ function _desenharFiltros(){
   const fcEl = document.getElementById('filtro-camadas');
   if(fcEl) fcEl.innerHTML = _camadas.length
     ? _camadas.map(c => `<label class="filtro-item"><input type="checkbox" data-camada-id="${esc(c.id)}" ${c.visivel?'checked':''} onchange="_toggleCamada('${esc(c.id)}',this.checked)"><span style="width:14px;height:14px;border-radius:2px;background:${esc(c.cor||'#16a34a')};display:inline-block;flex-shrink:0;opacity:.85"></span><span>${esc(c.nome)}</span></label>`).join('')
-    : `<div style="font-size:11px;color:var(--tinta-suave);padding:4px 0">${t('mapa.nenhuma_camada')}</div>`;
+    : `<div style="font-size:11px;color:var(--tinta-suave);padding:4px 0">${t(_camadasCarregando ? 'mapa.carregando_camadas' : 'mapa.nenhuma_camada')}</div>`;
 
   document.getElementById('filtro-tipos').innerHTML = tiposUnicos.length
     ? `<div style="display:flex;justify-content:flex-end;margin-bottom:4px"><button onclick="_toggleTodosTipos()" style="font-size:10px;color:var(--tinta-suave);background:none;border:none;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px">${t(tiposUnicos.every(tipo => _filtrosTipo.has(tipo)) ? 'mapa.desmarcar_todos' : 'mapa.marcar_todos')}</button></div>` +

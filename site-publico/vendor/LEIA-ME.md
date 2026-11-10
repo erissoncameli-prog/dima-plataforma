@@ -13,13 +13,15 @@ de CDN (jsdelivr/unpkg). Atende o item 3.4 do Termo de Referência do Produto 3 
 | Leaflet-MiniMap | 3.6.1 | BSD-2-Clause (`leaflet-minimap-3.6.1/LICENSE`) | npm `leaflet-minimap`, `dist/` (com `images/`) | mapa.html |
 | Turf | 6.5.0 | MIT (`turf-6.5.0/LICENSE`) | npm `@turf/turf`, `turf.min.js` | mapa.html |
 | pdf.js (pdfjs-dist) | 4.7.76 | Apache-2.0 (`pdfjs-dist-4.7.76/LICENSE`) | npm `pdfjs-dist`, `build/pdf.min.mjs` e `build/pdf.worker.min.mjs` (baixada em 09/11/2026; integridade sha512 conferida com o registro npm; salvos como `.js`, conteúdo igual, porque nem todo servidor entrega `.mjs` como JavaScript) | produtos.html (visualizar o produto) |
+| Montserrat (fonte) | v31 (Google Fonts, variável 400–700) | SIL Open Font License 1.1 (`montserrat-v31/OFL.txt`) | fonts.gstatic.com, faixas latin e latin-ext (baixada em 10/11/2026) | todas as páginas, por `css/tokens.css` |
 
 Antes, `supabase-js@2` e `turf@6` eram versões flutuantes (mudavam sozinhas a cada versão nova);
 agora estão fixas. Para atualizar: baixar a versão nova numa pasta `<biblioteca>-<versão>/`, trocar
 o caminho nas páginas e testar mapa, Sobre e as páginas com dado; depois apagar a pasta antiga.
 
-Fora daqui, de propósito: a fonte Montserrat (Google Fonts) e as camadas de mapa base (servidores
-de mosaico), que são conteúdo carregado pelo mapa, não biblioteca.
+Fora daqui, de propósito: as camadas de mapa base (servidores de mosaico), que são conteúdo
+carregado pelo mapa, não biblioteca. A fonte Montserrat passou a ser servida daqui em 10/11/2026
+(Produto 4): o CSS do Google Fonts bloqueava a primeira pintura das páginas.
 
 ## Conferência dos arquivos (SHA-256, primeiros 16 caracteres)
 
@@ -47,6 +49,9 @@ de mosaico), que são conteúdo carregado pelo mapa, não biblioteca.
 | `supabase-js-2.119.0/LICENSE` | `334dd6820e2eaeab…` |
 | `supabase-js-2.119.0/supabase.js` | `a867edbcfb029370…` |
 | `turf-6.5.0/LICENSE` | `f9b32b82fd5a1d3a…` |
+| `montserrat-v31/OFL.txt` | `8b7141c03fa4f8d4…` |
+| `montserrat-v31/montserrat-latin-ext.woff2` | `54d9a78b7ff60b68…` |
+| `montserrat-v31/montserrat-latin.woff2` | `06b16db7a969135d…` |
 | `pdfjs-dist-4.7.76/LICENSE` | `0d542e0c8804e39a…` |
 | `pdfjs-dist-4.7.76/pdf.min.js` | `49e26487d87a86cb…` |
 | `pdfjs-dist-4.7.76/pdf.worker.min.js` | `d2e6ef4cbc6f0e2c…` |
