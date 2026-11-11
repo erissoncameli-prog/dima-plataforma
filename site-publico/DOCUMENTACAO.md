@@ -228,6 +228,28 @@ Funções novas ou alteradas entram como arquivo novo em `supabase/migrations/`
 3. Se mexeu em dado: conferir que a página mostra os números e que nada além do previsto
    aparece.
 
+### 4.5 Domínio e buscadores
+
+- **`robots.txt`** e **`sitemap.xml`** ficam na **raiz do repositório** (não em `site-publico/`),
+  porque os buscadores só os procuram na raiz do domínio. O `robots.txt` libera só
+  `/site-publico/` (e a raiz, que redireciona para lá); a plataforma de gestão fica de fora.
+  `sobre-antigo.html` (cópia de segurança) também fica de fora e tem `noindex`.
+- Cada página traz no `<head>` o endereço completo dela em `og:url` e `<link rel="canonical">`,
+  e a imagem de compartilhamento em `og:image` (`assets/og-imagem.jpg`, 1200 × 630, usada
+  por WhatsApp e redes sociais).
+- **Página nova:** acrescentar no `sitemap.xml` e copiar o bloco de `<meta>` de outra página,
+  trocando título, descrição, `og:url` e `canonical`.
+- **Troca de domínio** (ex.: saída do Vercel para o endereço definitivo): o endereço aparece
+  em `robots.txt`, `sitemap.xml` e no `<head>` das 7 páginas. Trocar de uma vez:
+
+  ```bash
+  cd dima-app
+  grep -rl 'https://fundobrasilonu-plataforma.vercel.app' robots.txt sitemap.xml site-publico/*.html \
+    | xargs sed -i 's#https://fundobrasilonu-plataforma.vercel.app#https://NOVO-ENDERECO#g'
+  ```
+
+  Depois, cadastrar o domínio no Google Search Console e enviar o `sitemap.xml`.
+
 ---
 
 ## 5. Onde mais procurar
