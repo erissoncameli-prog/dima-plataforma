@@ -1,0 +1,11 @@
+# Site público do Programa Resiliência Socioambiental.
+# Só o site público entra nos buscadores; a plataforma de gestão (login) fica de fora.
+# Ao trocar de domínio, atualize o endereço abaixo e o do sitemap.xml
+# (ver site-publico/DOCUMENTACAO.md, "Domínio").
+User-agent: *
+Allow: /$
+Allow: /site-publico/
+Disallow: /site-publico/sobre-antigo.html
+Disallow: /
+
+Sitemap: https://fundobrasilonu-plataforma.vercel.app/sitemap.xml
