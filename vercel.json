@@ -1,5 +1,6 @@
 {
   "redirects": [
+    { "source": "/", "destination": "/site-publico/", "permanent": false },
     { "source": "/pages/publico.html", "destination": "/site-publico/", "statusCode": 301 }
   ]
 }
