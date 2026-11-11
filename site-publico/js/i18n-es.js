@@ -144,7 +144,6 @@ registrarIdioma('es', {
   // ── Transparência Financeira ──
   'fin.titulo_pagina': 'Transparencia Financiera — Resiliencia Socioambiental',
   'fin.intro': 'Cómo se está usando el presupuesto del Programa, en total y por resultado esperado, y cómo se compara con el avance de las metas.',
-  'fin.aviso': 'Los montos de dinero aparecen solo en el total del Programa y por resultado. Las actividades aparecen solo en porcentaje. No se muestra nada por contrato o proveedor, para preservar la privacidad de quienes prestan servicios al Programa.',
   'fin.atualizado': 'Datos actualizados el',
   'fin.sec_fin': 'Visión general del presupuesto',
   'fin.sec_fin_p': 'En dólares, la moneda del presupuesto del Programa, y en reales. Cada etapa muestra dónde está el dinero: ya pagado, registrado por pagar, reservado en términos de referencia (TdR) ya aprobados o en análisis, y aún disponible.',
@@ -232,7 +231,6 @@ registrarIdioma('es', {
   // ── Produtos ──
   'prod.titulo_pagina': 'Productos — Resiliencia Socioambiental',
   'prod.intro': 'Informes, planes y materiales técnicos producidos por el Programa, autorizados para divulgación pública.',
-  'prod.aviso': '<strong>Cómo un producto entra en esta galería</strong>Solo aparecen productos aprobados y liberados uno a uno para divulgación pública. Mostramos la portada y la autoría, y el documento puede leerse aquí mismo, en “Ver producto”.',
   'prod.filtrar': 'Filtrar por resultado',
   'prod.todos': 'Todos',
   'prod.eixo_r1': 'Bioeconomía',

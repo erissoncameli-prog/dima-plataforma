@@ -144,7 +144,6 @@ registrarIdioma('en', {
   // ── Transparência Financeira ──
   'fin.titulo_pagina': 'Financial Transparency — Socio-environmental Resilience',
   'fin.intro': 'How the Program budget is being used, in total and by expected result, and how it compares with progress on targets.',
-  'fin.aviso': 'Amounts of money appear only for the Program total and by result. Activities appear only as percentages. Nothing is shown by contract or supplier, to protect the privacy of those who provide services to the Program.',
   'fin.atualizado': 'Data updated on',
   'fin.sec_fin': 'Budget overview',
   'fin.sec_fin_p': 'In US dollars, the currency of the Program budget, and in Brazilian reais. Each stage shows where the money stands: already paid, recorded as payable, reserved in terms of reference (ToR) already approved or under review, and still available.',
@@ -232,7 +231,6 @@ registrarIdioma('en', {
   // ── Produtos ──
   'prod.titulo_pagina': 'Products — Socio-environmental Resilience',
   'prod.intro': 'Technical reports, plans and materials produced by the Program, cleared for public release.',
-  'prod.aviso': '<strong>How a product gets into this gallery</strong>Only approved products, cleared one by one for public release, appear here. We show the cover and the authorship, and the document can be read right here, under “View product”.',
   'prod.filtrar': 'Filter by result',
   'prod.todos': 'All',
   'prod.eixo_r1': 'Bioeconomy',
