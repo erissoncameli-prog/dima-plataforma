@@ -185,7 +185,8 @@ async function sair() {
   await db.auth.signOut();
   localStorage.removeItem('dima_idioma');
   localStorage.removeItem('dima_ultima_atividade');
-  window.location.href = '../index.html';
+  // Ao sair, volta para o site público (o login segue acessível pelo botão "Fazer Login" de lá)
+  window.location.href = '../site-publico/';
 }
 
 // ── Idle Session Timer (30 min) ───────────────────────────────
