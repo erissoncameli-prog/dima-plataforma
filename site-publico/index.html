@@ -143,7 +143,7 @@
       </div>
 
       <div class="hero-media" id="hero-media">
-        <div class="hero-media-overlay"></div>
+        <div class="hero-media-overlay" aria-hidden="true"></div>
         <div class="hero-media-legenda" id="hero-media-legenda"></div>
         <div class="hero-media-ctrl">
           <div class="hero-media-dots" id="hero-media-dots"></div>
@@ -190,7 +190,7 @@
       </div>
       <div class="grid-destaques">
         <a href="resultados.html" class="card-destaque">
-          <div class="icone" style="background:var(--verde-tint);color:var(--verde-escuro)">
+          <div class="icone" aria-hidden="true" style="background:var(--verde-tint);color:var(--verde-escuro)">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
           </div>
           <div class="num">29</div>
@@ -198,7 +198,7 @@
           <p data-i18n="inicio.card_resultados">Indicadores da matriz de contribuição monitorados, por resultado esperado do Programa.</p>
         </a>
         <a href="mapa.html" class="card-destaque">
-          <div class="icone" style="background:var(--azul-tint);color:var(--azul-texto)">
+          <div class="icone" aria-hidden="true" style="background:var(--azul-tint);color:var(--azul-texto)">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
           <div class="num">72</div>
@@ -206,7 +206,7 @@
           <p data-i18n="inicio.card_mapa">Onde as ações do Programa acontecem nas APAs do Lago do Amapá e Igarapé São Francisco.</p>
         </a>
         <a href="linha-do-tempo.html" class="card-destaque">
-          <div class="icone" style="background:var(--laranja-tint);color:var(--laranja-texto)">
+          <div class="icone" aria-hidden="true" style="background:var(--laranja-tint);color:var(--laranja-texto)">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
           </div>
           <h3 data-i18n="nav.tempo">Linha do Tempo</h3>
@@ -346,6 +346,8 @@ async function carregarHeroMedia() {
       el.dataset.src = urlMidia(f.url);
     }
     el.id = 'heroslide-' + i;
+    // Fundo decorativo: o leitor de tela ignora (os botões e a legenda dizem qual foto está à vista)
+    el.setAttribute('aria-hidden', 'true');
     wrap.insertBefore(el, overlay);
     const dot = document.createElement('button');
     dot.className = 'hero-media-dot' + (i === 0 ? ' ativo' : '');
