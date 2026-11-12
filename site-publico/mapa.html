@@ -587,10 +587,30 @@ function _adicionarCamada(c){
   });
   c.layer.addTo(mapaL);
 }
+// Pedido ao banco com até 2 novas tentativas (o banco pode interromper consultas por
+// tempo-limite quando há muitas visitas ao mesmo tempo); não insiste se a função não existe
+async function _rpcComNovaTentativa(fn, args){
+  for (const espera of [0, 2000, 5000]) {
+    if (espera) await new Promise(r => setTimeout(r, espera));
+    const r = await db.rpc(fn, args).then(r => r, e => ({ data: null, error: e }));
+    if (!r.error && r.data != null) return r;
+    if (r.status === 404 || (r.error && r.error.code === 'PGRST202')) break;
+  }
+  return { data: null };
+}
+// Geometria de uma área, baixada só quando ela é ligada (uma vez; os pedidos repetidos esperam o mesmo)
+let _camadasSobDemanda = true;
+function _carregarGeoCamada(c){
+  if (c.geojson || !_camadasSobDemanda) return Promise.resolve(c);
+  if (!c._geoP) c._geoP = _rpcComNovaTentativa('fn_publico_camada_geojson', { p_id: c.id })
+    .then(r => { c.geojson = r.data || null; if (!c.geojson) c._geoP = null; return c; });
+  return c._geoP;
+}
 function _toggleCamada(id, visivel){
   const c = _camadas.find(x => x.id === id); if(!c) return;
   c.visivel = visivel;
-  if(visivel){ _adicionarCamada(c); } else if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
+  if(visivel){ _carregarGeoCamada(c).then(() => { if (c.visivel) _adicionarCamada(c); }); }
+  else if(c.layer){ mapaL.removeLayer(c.layer); c.layer = null; }
 }
 
 // ── Click popup: camadas de delimitação ───────────────────────
@@ -752,17 +772,15 @@ async function carregarMapa() {
 
   // As camadas (geometrias, o maior volume) não seguram o resto: pontos, lista e
   // filtros aparecem assim que chegam, e as camadas são desenhadas quando vierem
-  // Com várias visitas ao mesmo tempo o banco pode interromper esta consulta (a maior do site,
-  // tempo-limite do servidor); tenta de novo até 2 vezes antes de abrir o mapa sem as áreas
-  const _camadasComNovaTentativa = async () => {
-    for (const espera of [0, 2000, 5000]) {
-      if (espera) await new Promise(r => setTimeout(r, espera));
-      const r = await db.rpc('fn_publico_camadas').then(r => r, e => ({ data: null, error: e }));
-      if (!r.error && r.data) return r;
-    }
-    return { data: null };
-  };
-  const camadasP = _camadasComNovaTentativa();
+  // Áreas do mapa: a lista vem sem geometria e cada área é baixada só quando está ligada
+  // (todas juntas eram 7 MB por visita, e o banco interrompia a consulta com 3 visitas
+  // simultâneas). Se o banco ainda não tem as funções novas, usa a função antiga (tudo junto).
+  const camadasP = (async () => {
+    const r = await _rpcComNovaTentativa('fn_publico_camadas_lista');
+    if (r.data) return r;
+    _camadasSobDemanda = false;
+    return _rpcComNovaTentativa('fn_publico_camadas');
+  })();
   const [mapaRes, metaRes, fotosRes, tiposRes] = await Promise.all([
     db.rpc('fn_publico_mapa'),
     db.from('trilha_metadata').select('geometry_group,video_url').then(r => r, () => ({ data: null })),
@@ -791,7 +809,7 @@ async function carregarMapa() {
   camadasP.then(camadasRes => {
     _camadasCarregando = false;
     _camadas = (camadasRes.data||[]).map(c => ({ ...c, visivel: CAMADAS_PADRAO.has(_normNome(c.nome)), layer: null }));
-    _camadas.filter(c => c.visivel).forEach(_adicionarCamada);
+    _camadas.filter(c => c.visivel).forEach(c => _carregarGeoCamada(c).then(() => { if (c.visivel) _adicionarCamada(c); }));
     _desenharFiltros();
   });
   mapaL.on('zoomend', () => { _camadas.filter(c => c.visivel && c.geojson && (c.geojson.features||[]).some(f => f.geometry && (f.geometry.type==='Point'||f.geometry.type==='MultiPoint'))).forEach(_adicionarCamada); });

@@ -94,7 +94,9 @@ de mídia do mapa.
 | `fn_publico_resumo_home` | Início | Números gerais (atividades, TDRs, produtos, pontos, indicadores, execução) | Só contagens e percentuais |
 | `fn_publico_operacional` | Início, Transparência | Atividades e TDRs por fase, indicadores e produtos (contagens) | Só contagens |
 | `fn_publico_mapa` | Mapa | Pontos e geometrias das entregas (local, tipo, data, fotos, vídeo) | Sem responsável, valor ou fornecedor |
-| `fn_publico_camadas` | Mapa | Camadas das APAs e temáticas (geometrias com 6 casas decimais) | Só dados geográficos |
+| `fn_publico_camadas_lista` | Mapa | Lista das áreas (APAs e temáticas), sem geometria | Só dados geográficos |
+| `fn_publico_camada_geojson(p_id)` | Mapa | Geometria de uma área (6 casas decimais), pedida só quando a área está ligada | Só dados geográficos |
+| `fn_publico_camadas` | (reserva) | Todas as áreas com geometria (7 MB); o Mapa só usa se as duas acima não existirem no banco | Só dados geográficos |
 | `fn_publico_tipos_mapa` | Mapa | Cor e ícone de cada tipo de entrega | — |
 | `fn_publico_resultados` | Resultados, Transparência | Indicadores, metas e realizado da matriz | Só números da matriz |
 | `fn_publico_financeiro_agregado` | Transparência | Orçamento, pago, a pagar, reservado e livre, em US$ e R$, no total e por resultado; cotação PTAX | Nunca por contrato ou fornecedor; atividade só em percentual |
