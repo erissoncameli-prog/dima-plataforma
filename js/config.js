@@ -295,7 +295,14 @@ function linkSEI(num) {
 // ── Utilitários ───────────────────────────────────────────────
 function esc(s) {
   if (s == null) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+// Valor dentro de string JS num atributo de evento: onclick="f('${escJs(x)}')".
+// esc() sozinho não basta ali: o navegador desfaz &#39; antes de rodar o JS e a aspa
+// simples fecharia a string (auditoria de segurança 13/11/2026).
+function escJs(s) {
+  if (s == null) return '';
+  return esc(String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,'\\n'));
 }
 
 // ── Formatação ────────────────────────────────────────────────

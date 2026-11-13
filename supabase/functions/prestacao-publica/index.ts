@@ -1,11 +1,16 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { logosEmail } from '../_shared/logos-email.ts'
+import { usuarioLogado, statusDoErro } from '../_shared/autorizacao.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+// Extensões aceitas no upload público (mesmas do bucket viagens-arquivos e do accept da página)
+const EXT_RELATORIO = ['pdf']
+const EXT_EMBARQUE = ['pdf', 'jpg', 'jpeg', 'png', 'webp']
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 const SITE_URL  = 'https://fundobrasilonu-plataforma.vercel.app'
@@ -153,14 +158,18 @@ Deno.serve(async (req) => {
     const { token, tipo, ext, index = 0 } = body
     if (!token || !tipo || !ext) return erro('token, tipo e ext são obrigatórios')
     if (!['relatorio', 'embarque'].includes(tipo)) return erro('tipo deve ser relatorio ou embarque')
+    // Auditoria de segurança 13/11/2026: extensão só da lista (antes ia crua para o caminho)
+    const extOk = String(ext).toLowerCase()
+    if (!(tipo === 'relatorio' ? EXT_RELATORIO : EXT_EMBARQUE).includes(extOk)) return erro('Tipo de arquivo não permitido')
+    const idx = Number.isInteger(index) && index >= 0 && index < 20 ? index : 0
 
     const tk = await validarToken(supabase, token)
     if (!tk) return erro('Token inválido ou expirado', 404)
 
     const ts = Date.now()
     const path = tipo === 'relatorio'
-      ? `viagens/${tk.protocolo_id}/viajante-${tk.viajante_id}/relatorio-${ts}.${ext}`
-      : `viagens/${tk.protocolo_id}/viajante-${tk.viajante_id}/embarque-${ts}-${index}.${ext}`
+      ? `viagens/${tk.protocolo_id}/viajante-${tk.viajante_id}/relatorio-${ts}.${extOk}`
+      : `viagens/${tk.protocolo_id}/viajante-${tk.viajante_id}/embarque-${ts}-${idx}.${extOk}`
 
     const { data: signed, error: errSign } = await supabase.storage
       .from('viagens-arquivos')
@@ -186,6 +195,20 @@ Deno.serve(async (req) => {
     const tk = await validarToken(supabase, token)
     if (!tk) return erro('Token inválido ou expirado', 404)
 
+    // Auditoria de segurança 13/11/2026: antes qualquer texto era gravado como URL do
+    // relatório/cartão e a tela de Viagens da equipe o usa em link e onclick — dava
+    // para plantar script (XSS) ou link externo. Agora só o endereço que o próprio
+    // signed-url gerou, na pasta deste viajante, com extensão permitida.
+    const base = `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/viagens-arquivos/viagens/${tk.protocolo_id}/viajante-${tk.viajante_id}/`
+    const urlDoViajante = (u: unknown, re: RegExp) =>
+      typeof u === 'string' && u.startsWith(base) && re.test(u.slice(base.length))
+    if (relatorio_url && !urlDoViajante(relatorio_url, /^relatorio-\d{10,16}\.pdf$/)) return erro('Endereço do relatório inválido')
+    if (cartoes_urls != null && (!Array.isArray(cartoes_urls) || cartoes_urls.length > 12
+        || !cartoes_urls.every((u: unknown) => urlDoViajante(u, /^embarque-\d{10,16}-\d{1,2}\.(pdf|jpg|jpeg|png|webp)$/)))) {
+      return erro('Endereço de cartão de embarque inválido')
+    }
+    const nomeRelatorio = String(relatorio_nome || 'relatorio.pdf').replace(/[\u0000-\u001f<>"'`\\]/g, '_').slice(0, 150)
+
     // Buscar cartões já existentes para não sobrescrever
     const { data: vAtual } = await supabase
       .from('viagem_viajantes')
@@ -196,7 +219,7 @@ Deno.serve(async (req) => {
     const updates: Record<string, unknown> = { relatorio_data: new Date().toISOString() }
     if (relatorio_url) {
       updates.relatorio_url = relatorio_url
-      updates.relatorio_nome = relatorio_nome || 'relatorio.pdf'
+      updates.relatorio_nome = nomeRelatorio
     }
     if (cartoes_urls?.length) {
       updates.cartoes_embarque_urls = [
@@ -295,8 +318,12 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null)
     if (!body) return erro('Corpo da requisição inválido')
 
+    // Só a equipe logada (tela de Viagens). Antes qualquer pessoa invalidava os
+    // links de prestação de contas de qualquer viajante (auditoria 13/11/2026).
+    try { await usuarioLogado(req, supabase) } catch (e) { return erro((e as Error).message, statusDoErro(e)) }
+
     const { viajante_ids } = body
-    if (!Array.isArray(viajante_ids) || !viajante_ids.length) return erro('viajante_ids é obrigatório')
+    if (!Array.isArray(viajante_ids) || !viajante_ids.length || viajante_ids.length > 50) return erro('viajante_ids é obrigatório')
 
     const agora = new Date().toISOString()
     await supabase

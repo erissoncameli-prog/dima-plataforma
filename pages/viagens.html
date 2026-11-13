@@ -2151,7 +2151,7 @@ function renderPrestacaoViajante(v){
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
       ${v.cartoes_embarque_urls.map((url,i)=>`
         <div style="position:relative;aspect-ratio:4/3;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);cursor:pointer"
-          onclick="abrirLightbox('${esc(url)}')">
+          onclick="abrirLightbox('${escJs(url)}')">
           <img src="${esc(url)}" alt="Cartão ${i+1}" loading="lazy"
             style="width:100%;height:100%;object-fit:cover"
             onerror="this.parentNode.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;font-size:20px;color:var(--cinza-400)\'></div>'">
@@ -2671,7 +2671,7 @@ async function abrirPrestacao(id){
           </div>
           ${v.relatorio_url?`<div style="background:var(--verde-bg);border:1px solid var(--lin);border-radius:var(--raio);padding:8px;margin-bottom:8px;font-size:11px;display:flex;align-items:center;gap:8px">
             <svg class="vi-ic p"><use href="#vi-doc"/></svg> <strong>${esc(v.relatorio_nome||'Relatório')}</strong> — já enviado
-            <button class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:10px" onclick="abrirDoc('${esc(v.relatorio_url)}')">Abrir</button>
+            <button class="btn btn-sm btn-secondary" style="margin-left:auto;font-size:10px" onclick="abrirDoc('${escJs(v.relatorio_url)}')">Abrir</button>
           </div>`:''}
           <div class="upload-mini" id="upload-rel-${i}" onclick="document.getElementById('inp-rel-${i}').click()">
             <input type="file" id="inp-rel-${i}" style="display:none" accept=".pdf"
@@ -2790,11 +2790,11 @@ async function enviarPrestacao(){
   // Expirar tokens de magic link dos viajantes que acabaram de enviar
   const idsEnviados=(p.viajantes||[]).map(v=>v.id).filter(Boolean);
   if(idsEnviados.length){
-    fetch(`${SUPABASE_URL}/functions/v1/prestacao-publica?action=expirar`,{
+    db.auth.getSession().then(({data:{session}})=>fetch(`${SUPABASE_URL}/functions/v1/prestacao-publica?action=expirar`,{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||''),'apikey':SUPABASE_ANON_KEY},
       body:JSON.stringify({viajante_ids:idsEnviados})
-    }).catch(()=>{});
+    })).catch(()=>{});
   }
 
   toast('Prestação enviada!','success');fecharModal();await carregar();

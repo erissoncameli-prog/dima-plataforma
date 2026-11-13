@@ -1,0 +1,23 @@
+# Arquivos do repositório que NÃO vão para o site publicado (auditoria de
+# segurança 13/11/2026). Antes, a Vercel publicava tudo: SQL de instalação,
+# migrações, Edge Functions, documentação interna, CLAUDE.md e as permissões
+# locais do Claude Code (.claude/settings.local.json, com caminhos do computador).
+# O site só precisa de: index.html, pages/, js/, css/, assets/, pwa/, data/*.geojson,
+# site-publico/, diagnostico-sw.js, robots.txt, sitemap.xml, LICENSE e NOTICE.
+.claude
+.git
+.gitignore
+.vercelignore
+CLAUDE.md
+README.md
+*.sql
+supabase
+docs
+tests
+mockup-revisor.html
+demo-mobile-login.html
+site-publico/DOCUMENTACAO.md
+site-publico/vendor/LEIA-ME.md
+data/*.py
+data/*.zip
+data/shp_cnuc_tmp

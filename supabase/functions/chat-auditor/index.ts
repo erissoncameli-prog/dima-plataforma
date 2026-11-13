@@ -1,10 +1,11 @@
-﻿// ── DIMA UNESCO · Chat Auditor Edge Function ──────────────────────
+// ── DIMA UNESCO · Chat Auditor Edge Function ──────────────────────
 // Stateful conversational assistant that answers questions about
 // audit findings using Claude + full conversation history.
 // v4: enriched context — detects contract numbers and fetches live data.
 
 import Anthropic from 'npm:@anthropic-ai/sdk'
 import { createClient } from 'npm:@supabase/supabase-js'
+import { exigirPerfil, statusDoErro } from '../_shared/autorizacao.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,8 +31,17 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
+    // Só quem vê a tela Auditoria (super_admin/coordenação, logado e ativo). Antes
+    // a chave pública do site bastava: o chat lia achados, contratos, CPF/CNPJ de
+    // fornecedor e pagamentos com service_role e respondia a qualquer pessoa.
+    await exigirPerfil(req, supabase, ['super_admin', 'coordenacao'])
+
     const body = await req.json()
-    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = body.messages || []
+    // Só papéis válidos, últimas 30 mensagens, até 8 mil caracteres cada (custo da IA)
+    const messages: Array<{ role: 'user' | 'assistant'; content: string }> = (Array.isArray(body.messages) ? body.messages : [])
+      .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .slice(-30)
+      .map((m: any) => ({ role: m.role, content: m.content.slice(0, 8000) }))
     const execucaoId: string | null = body.execucao_id || null
 
     if (!messages.length) {
@@ -240,7 +250,7 @@ ${contexto}`
     console.error('[chat-auditor]', err)
     return new Response(
       JSON.stringify({ error: (err as Error).message ?? 'Erro interno' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: statusDoErro(err, 500), headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
 })

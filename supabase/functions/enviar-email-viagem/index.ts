@@ -1,6 +1,7 @@
 ﻿import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { logosEmail } from '../_shared/logos-email.ts'
+import { usuarioLogado, clienteDoUsuario, SemAcesso, statusDoErro } from '../_shared/autorizacao.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -549,6 +550,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
+    // Quem dispara precisa estar logado, ativo e enxergar o protocolo (RLS de
+    // viagem_protocolos, pelo cliente do próprio usuário). Antes a chave pública
+    // bastava para mandar à UNESCO o e-mail com CPF e passaporte dos viajantes
+    // ou gerar links de prestação de contas de qualquer protocolo.
+    await usuarioLogado(req, supabase)
+    const { data: visivel } = await clienteDoUsuario(req)
+      .from('viagem_protocolos').select('id').eq('id', protocolo_id).maybeSingle()
+    if (!visivel) throw new SemAcesso('Sem acesso a este protocolo.', 403)
+
     // Buscar protocolo + viajantes com trechos e dados do beneficiário
     const { data: proto, error: errProto } = await supabase
       .from('viagem_protocolos')
@@ -671,7 +681,7 @@ Deno.serve(async (req) => {
   } catch (e: any) {
     return new Response(
       JSON.stringify({ ok: false, error: e.message }),
-      { status: 400, headers: { ...CORS, 'Content-Type': 'application/json' } }
+      { status: statusDoErro(e), headers: { ...CORS, 'Content-Type': 'application/json' } }
     )
   }
 })

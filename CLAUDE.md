@@ -1382,14 +1382,14 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `analisar-tdr` | Análise IA de TDR submetido | ❌ |
 | `corrigir-tdr` | Correção automática de TDR | ❌ |
 | `sugerir-correcoes-tdr` | Sugestões de melhoria de TDR | ❌ |
-| `traduzir-contrato` | Tradução de contrato PT→EN | ❌ |
+| `traduzir-contrato` | Tradução de contrato EN→PT (super_admin/coordenação/financeiro que vê o contrato; PDF lido do `contratos-docs` no servidor, corpo `{contrato_id}`) | ✅ |
 | `enviar-email-viagem` | Notificação de viagem aprovada | ✅ |
 | `enviar-email-produto` | Notificação de produto (entregue, aprovado, devolvido, pago) e envio à UNESCO com anexos; um envio por vez com nova tentativa; grava `produto_notif_log` com `detalhes` por destinatário; `reenviar_unesco:true` reenvia só à UNESCO | ✅ |
 | `notificar-unesco-conclusao` | Notificação UNESCO de conclusão | ✅ |
 | `prestacao-publica` | Prestação de contas pública (sem auth) | ❌ |
-| `dynamic-endpoint` | Endpoint genérico com roteamento | ✅ |
+| `dynamic-endpoint` | **Desativada** (410) — cópia antiga do e-mail de viagem | ✅ |
 | `cron-prestacao` | Cron de prestação de contas | ✅ |
-| `fetch-link-metadata` | Metadados de links externos | ✅ |
+| `fetch-link-metadata` | Metadados de links externos (usuário logado; só http/https com domínio público, sem IP/localhost, 3 redirecionamentos, 512 KB) | ✅ |
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
 | `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação (`nota_tecnica_conferencias`); gera o modelo da nota (.docx); reconfirma a senha de quem aprova (`entrega_aprovacao_senhas`) | ✅ |
@@ -1399,6 +1399,23 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---
+
+### Segurança das Edge Functions e do site (auditoria 13/11/2026, ⚠️ ler antes de criar função ou página)
+- `verify_jwt` aceita a chave anon pública (é um JWT válido). Toda função com service_role confere quem chama por
+  `_shared/autorizacao.ts`: `usuarioLogado`, `exigirPerfil(req, admin, [...])`, `exigirSuperAdmin`, `exigirAcessoTdr`,
+  `clienteDoUsuario` (RLS da pessoa), `ehServiceRole` (chamada interna) e `statusDoErro`. Já protegidas: chat-auditor e
+  auditor-ia (super_admin/coordenação), enviar-email-viagem (quem vê o protocolo), prodes-proxy (logado + bbox validado),
+  fetch-link-metadata, traduzir-contrato; `gerar-pdf-relatorio` e `dynamic-endpoint` desativadas (410).
+- Ao publicar pelo MCP, mandar `index.ts` + `../_shared/<arquivo>.ts` (mesmo texto do repositório). Função nova entra no repo.
+- `prestacao-publica` (sem login, token do e-mail): extensão só pdf/jpg/jpeg/png/webp; `finalizar` só grava URL da pasta
+  `viagens/<protocolo>/viajante-<id>/` gerada pelo `signed-url`; `expirar` exige usuário logado.
+- Front: valor dentro de string JS em atributo de evento usa **`escJs()`** (`onclick="f('${escJs(x)}')"`), não `esc()`.
+  `esc()` também escapa `'` (`&#39;`).
+- Vercel: `.vercelignore` tira do site SQL, `supabase/`, `docs/`, `tests/`, `.claude/`, `CLAUDE.md`, rascunhos — arquivo
+  interno novo entra lá. `vercel.json` manda CSP, HSTS, nosniff, Referrer-Policy, Permissions-Policy e (fora do
+  `site-publico/`) X-Frame-Options/`frame-ancestors 'self'`. Script/estilo/fonte de CDN novo ⇒ acrescentar o host na CSP
+  (hoje: jsdelivr, cdnjs, unpkg, Google Fonts).
+- Relatório da auditoria: `docs/seguranca/auditoria-2026-11-13.md`.
 
 ## RLS — Perfis e Permissões
 

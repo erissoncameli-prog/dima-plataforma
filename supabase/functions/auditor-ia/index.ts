@@ -14,6 +14,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk'
+import { exigirPerfil, ehServiceRole, statusDoErro } from '../_shared/autorizacao.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -605,13 +606,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const body = await req.json().catch(() => ({}))
-    const { usuario_id } = body
-
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+    // Roda a IA e grava achados: só super_admin/coordenação logados (tela Auditoria)
+    // ou chamada interna com service_role. Antes a chave pública bastava.
+    // Quem disparou vem do token, não do corpo (usuario_id do corpo é ignorado).
+    const usuario_id = ehServiceRole(req) ? null
+      : (await exigirPerfil(req, supabase, ['super_admin', 'coordenacao'])).id
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! })
 
     const { data: execucao } = await supabase
@@ -707,6 +710,6 @@ Deno.serve(async (req) => {
 
   } catch (e) {
     console.error('[auditor-ia] Erro fatal:', e)
-    return Response.json({ error: (e as Error).message }, { status: 500, headers: CORS })
+    return Response.json({ error: (e as Error).message }, { status: statusDoErro(e, 500), headers: CORS })
   }
 })

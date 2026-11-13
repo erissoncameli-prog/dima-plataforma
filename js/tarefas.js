@@ -631,7 +631,7 @@
             <input type="date" class="inp" id="ck-ed-prazo" value="${c.dt_prazo || ''}">
           </div>
           ${axs.length ? `<div class="pills">${axs.map(a => `<span class="pill-x">${chipsAnexos([a])}
-            <button class="x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover anexo">${ic('x', 's')}</button></span>`).join('')}</div>` : ''}
+            <button class="x" onclick="TK.delAnexo('${a.id}','${escJs(a.arquivo_url)}')" title="Remover anexo">${ic('x', 's')}</button></span>`).join('')}</div>` : ''}
           <div class="sub-linha">
             ${botaoArquivo('ck-ed-file', 'ck-ed-file-lbl')}
             <span class="sp"></span>
@@ -715,7 +715,7 @@
           <span class="ax-ic">${ic('doc')}</span>
           <div class="ax-c"><a href="#" data-arquivo="${esc(a.arquivo_url)}">${esc(a.arquivo_nome)}</a>
             ${origem ? `<div class="ax-orig">${origem}</div>` : ''}</div>
-          ${S.podeEditar ? `<button class="x" onclick="TK.delAnexo('${a.id}','${esc(a.arquivo_url)}')" title="Remover">${ic('x', 's')}</button>` : ''}
+          ${S.podeEditar ? `<button class="x" onclick="TK.delAnexo('${a.id}','${escJs(a.arquivo_url)}')" title="Remover">${ic('x', 's')}</button>` : ''}
         </div>`
       }).join('')
       corpo = `<div class="axs">${lista || `<div class="vazio pq">${ic('attach')}<p>Nenhum anexo.</p></div>`}</div>

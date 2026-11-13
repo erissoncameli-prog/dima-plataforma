@@ -572,12 +572,12 @@ window.traduzir=async function(id){
   if(btn){btn.textContent='Traduzindo...';btn.disabled=true;}
   toast('Traduzindo com IA -- aguarde ate 30 segundos...','info',30000);
   try{
-    var SB_URL='https://wfymnmlinonvdqfucjya.supabase.co';
-    var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmeW1ubWxpbm9udmRxZnVjanlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MzM1NzksImV4cCI6MjA5MDMwOTU3OX0.eC6T9VQ6OzF9mISEGy_pgbIbrOAnG4xp2z6WN-sCMt8';
-    var efResp=await fetch(SB_URL+'/functions/v1/traduzir-contrato',{
+    // Token da sessão (a função confere perfil e acesso ao contrato e lê o PDF no servidor)
+    var sess=(await db.auth.getSession()).data.session;
+    var efResp=await fetch(SUPABASE_URL+'/functions/v1/traduzir-contrato',{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY},
-      body:JSON.stringify({pdf_url:c.contrato_assinado_url})
+      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+(sess&&sess.access_token||'')},
+      body:JSON.stringify({contrato_id:id})
     });
     var efData=await efResp.json();
     if(!efData.ok)throw new Error(efData.erro||'Erro na traducao');
