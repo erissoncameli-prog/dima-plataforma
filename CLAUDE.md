@@ -817,6 +817,24 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   `gerarLayout`; não chama `carregarUsuario()`), service worker na raiz
   `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.
 
+### Diagnóstico — setores de campo, designação e dispersão (⚠️ ler antes de mexer em área/GPS do app)
+Plano e decisões em `docs/diagnostico/plano-regioes-campo.md` (migrações `20261122_diag_21`/`_22`/`_23` + `20261122_diag_sino_area_sql_editor.sql` (sino)).
+- **Setor** = polígono de uma APA (`diag_setores`, filho de `diag_comunidades`), carregado SÓ por `scripts/diag_setores.py`
+  (shapefile → SQL com `fn_diag_setor_carregar`; trava de datum, validade, sobreposição e área × `AREA_HA`). Nunca editar o desenho à mão.
+  APA São Francisco: SF1–SF5, meta 20 cada (100 entrevistas).
+- **Designação** (`diag_designacoes`): entrevistador × setor × meta (números 1 … meta). `tipo='autorizacao'` = exceção fora da área,
+  com prazo e justificativa, criada só pela aprovação do pedido (`diag_area_pedir` no app → `diag_area_decidir` na mesa).
+- **O servidor classifica, não recusa**: `fn_diag_campo_registrar` (chamada dentro de `diag_enviar_ficha`, que devolve `campo`) grava
+  `diag_fichas_campo` (situação dentro|borda|impreciso|sem_gps|fora|sem_designacao, número, quadrícula, concentração) e a posição de início
+  e fim em `diag_fichas_campo_gps` (identificação; retenção zera). A trava fica no app (não começa fora da área) e na validação
+  (`diag:justificar_campo`). Recusa não gasta número nem quadrícula. `diag_fichas_campo` é tabela À PARTE: o consultor lê `diag_fichas`.
+- **Regra geométrica em dois lugares** (sem PostGIS): `fn_diag_geo_*`/`fn_diag_area_*` e `js/diag-area.js`; mudou num ⇒ muda no outro
+  e passa em `supabase/tests/diagnostico/area_cruzada.js` (5 setores reais). Testes do fluxo: `30_campo.sql`; navegador: `app_fluxo.js`
+  (seção área designada) e `mesa_validacao.js` (Equipe de campo).
+- **Trajeto não sai do aparelho**: `js/diag-campo.js` usa `watchPosition` só com o app aberto e à vista (alerta e vibração ao sair);
+  ao servidor vão início/fim da ficha e o ponto do pedido (4 casas). Mesa (aba **Equipe de campo**, `js/diagnostico-campo.js`) mostra
+  quadrículas, nunca o ponto da casa. Pacote offline do app = `diag_campo_pacote` (cache `campo_pacote`).
+
 ### Pulso da Equipe — questionário de engajamento por QR (⚠️ ler antes de mexer em `pulso_*`)
 
 Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas personalizáveis); testes locais

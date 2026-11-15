@@ -127,6 +127,8 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
     <!-- Meu painel: SÓ as fichas de quem está logado (diag_meu_painel + fila do aparelho) -->
     <div id="ini-painel" hidden></div>
     <div id="ini-entrevistas">
+    <!-- área designada (setores da APA): meta, andamento e se está dentro agora -->
+    <div id="ini-areas"></div>
     <div class="contadores">
       <div class="contador"><b id="c-rascunho">0</b><span>em andamento</span></div>
       <div class="contador"><b id="c-fila">0</b><span>na fila</span></div>
@@ -171,6 +173,8 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
         <input class="campo" id="nova-loc-outra" maxlength="150">
       </div>
     </div>
+    <!-- área designada: só aparece em APA com setores (js/diag-campo.js) -->
+    <div id="nova-area" class="nova-area" aria-live="polite" hidden></div>
     <p class="erro-msg" id="nova-erro" role="alert" hidden></p>
     <button type="button" class="btn btn-prim btn-bloco" style="margin-top:20px" id="btn-nova-continuar">Continuar</button>
   </div>
@@ -214,6 +218,8 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
     <span class="mini-marca" aria-hidden="true" data-dima-logos="projeto" data-fundo="escuro" data-altura="20" data-tamanho="nao"></span>
   </header>
   <div class="tela">
+    <!-- dentro/fora da área designada, ao vivo (GPS só no aparelho) -->
+    <div id="ficha-area" class="faixa-area" role="status" aria-live="polite" hidden></div>
     <div id="ficha-devolvida"></div>
     <!-- modo pendências (vindo da revisão): só as perguntas que faltam, uma por vez -->
     <div id="pend-barra" class="pend-barra" hidden></div>
@@ -358,6 +364,21 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
     <button type="button" class="btn btn-sec btn-bloco" data-fechar>Fechar</button>
   </div>
 </div>
+<!-- pedido de autorização para entrevistar fora da área (js/diag-campo.js) -->
+<div class="ov" id="ov-pedido" hidden role="dialog" aria-modal="true" aria-labelledby="ov-pedido-tit">
+  <div class="ov-cartao ov-rolar" style="text-align:left">
+    <h3 id="ov-pedido-tit">Pedir autorização</h3>
+    <p id="ped-setor" class="dica"></p>
+    <label class="rot" for="ped-motivo">Por que precisa entrevistar aqui?</label>
+    <textarea class="campo" id="ped-motivo" maxlength="500" placeholder="Ex.: colega da área adoeceu; ramal da minha área fechado"></textarea>
+    <label class="rot" for="ped-qtd">Quantas entrevistas?</label>
+    <input class="campo" id="ped-qtd" type="number" min="1" max="50" value="1" inputmode="numeric">
+    <p class="dica">A coordenação aprova no painel e define o prazo. Sem internet, o pedido fica guardado e vai na próxima sincronização. Sua posição vai junto, só neste pedido.</p>
+    <p class="erro-msg" id="ped-erro" role="alert" hidden></p>
+    <button type="button" class="btn btn-prim btn-bloco" id="btn-ped-enviar">Enviar pedido</button>
+    <button type="button" class="btn btn-sec btn-bloco" style="margin-top:8px" data-fechar>Cancelar</button>
+  </div>
+</div>
 <div class="banner-update" id="banner-update" hidden role="status">
   <span>Nova versão do app instalada</span>
   <button type="button" class="btn btn-prim" id="btn-update-agora">Recarregar</button>
@@ -392,6 +413,8 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
 <script src="../js/diag-foto.js"></script>
 <script src="../js/diag-audio.js"></script>
 <script src="../js/diag-form.js"></script>
+<script src="../js/diag-area.js"></script>
+<script src="../js/diag-campo.js"></script>
 <script src="../js/guia-app.js"></script>
 <script src="../js/diag-guia.js"></script>
 <script src="../js/diag-tema.js"></script>

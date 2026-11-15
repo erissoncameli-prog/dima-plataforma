@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '2.3.0'
+const DIAG_APP_VERSAO = '2.4.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -42,6 +42,7 @@ function mostrar(id) {
   if (App.gravacao && id !== 't-ficha') App.gravacao.ctrl.parar()   // sair da ficha encerra a gravação (e guarda)
   App.tela = id
   aplicarFaixaTreino()
+  campoGps(id)
   // Guia: o botão "?" só na tela inicial e em Configurações — nas telas da
   // ficha ele cobriria a navegação do fim do bloco. Trocar de tela fecha o guia.
   if (typeof guiaBotaoFlutuanteVisivel === 'function') {
@@ -293,6 +294,8 @@ async function desenharInicio() {
     avisos += '<div class="faixa faixa-aviso">Seu acesso ao Diagnóstico venceu em ' + new Date(u.acesso_ate).toLocaleDateString('pt-BR') +
       '. Fichas concluídas até essa data ainda são aceitas por 15 dias. Peça a renovação ao super_admin.</div>'
   document.getElementById('ini-avisos').innerHTML = avisos
+  document.getElementById('ini-areas').innerHTML = await DiagCampo.htmlInicio(u.id)
+  campoGps(App.tela)                 // a 1ª área pode ter chegado agora, na sincronização
   document.getElementById('btn-nova').disabled = !q
   trocarAbaInicio(App.abaIni, true)
 
@@ -317,7 +320,8 @@ async function desenharInicio() {
       return '<button type="button" class="item-ficha" data-uuid="' + esc(f.uuid_cliente) + '">' +
         '<span class="est est-' + esc(selo) + '">' + ic(icEst) + '</span>' +
         '<span class="meio"><span class="cod">' + esc(f.codigo) + (f.treino ? ' <span class="selo selo-treino">treino</span>' : '') + '</span>' +
-        '<span class="sub">' + esc([loc ? com + ' / ' + loc : com, mun, f.aceitou_participar ? '' : 'recusa'].filter(Boolean).join(' · ')) + '</span>' +
+        '<span class="sub">' + esc([loc ? com + ' / ' + loc : com, mun, f.aceitou_participar ? '' : 'recusa',
+          f.setor_rotulo ? f.setor_rotulo + (f.numero_designado && f.aceitou_participar !== false ? ' · nº ' + f.numero_designado + (f._meta ? '/' + f._meta : '') : '') : ''].filter(Boolean).join(' · ')) + '</span>' +
         (f.erro_msg ? '<span class="sub" style="color:var(--erro)">' + esc(f.erro_msg) + '</span>' : '') +
         (f.estado === 'enviada' && (f.fotos_nao_enviadas || f.fotos_perdidas)
           ? '<span class="sub" style="color:var(--aviso)">' + [f.fotos_nao_enviadas ? f.fotos_nao_enviadas + ' foto(s) ainda não enviada(s) — toque em Sincronizar' : '',
@@ -389,6 +393,8 @@ async function mudouComunidade() {
     locs.map(l => '<option value="' + esc(l.id) + '"' + (l.id === ultima ? ' selected' : '') + '>' + esc(l.nome) + '</option>').join('') +
     '<option value="_nova">Outra (não está na lista)</option>'
   mudouLocalidade()
+  App.areaChave = null
+  await atualizarAreaNova()
 }
 function mudouLocalidade() {
   document.getElementById('nova-loc-outra-wrap').hidden = document.getElementById('nova-localidade').value !== '_nova'
@@ -411,6 +417,18 @@ async function continuarNova() {
   const treino = !!App.treinoAtivo
   const q = await questionarioAtual()
   if (!q) { erro.textContent = 'Questionário não disponível neste aparelho. Sincronize.'; erro.hidden = false; return }
+  // área designada (setores da APA): no treino só mostra, não trava nem numera
+  let campo = {}
+  if (!treino && com !== '_nova') {
+    const r = await DiagCampo.avaliar(App.usuario.id, com)
+    const c = DiagCampo.conferirNova(r, document.getElementById('nova-area'))
+    if (c.erro) { erro.textContent = c.erro; erro.hidden = false; await atualizarAreaNova(true); return }
+    campo = c.campos
+    if (c.precisaNumero) {
+      campo.numero_designado = await DiagCampo.numeroPara(App.usuario.id, campo.designacao_id)
+      if (!campo.numero_designado) { erro.textContent = 'Meta desta área cumprida. Peça mais à coordenação.'; erro.hidden = false; return }
+    }
+  }
   const mun = ((await dCacheGet('municipios')) || []).find(m => m.ibge === ibge)
   const disp = await dDispositivoId()
   App.ficha = {
@@ -423,6 +441,7 @@ async function continuarNova() {
     aviso_lido: false, aceitou_participar: null, respostas: {}, moradores: [],
     entrevistado_nome: '', obs_localizacao: '', lat: null, lon: null, dispositivo_id: disp, bloco_atual: 0,
   }
+  Object.assign(App.ficha, campo)
   await dConfigSet('ultimo_municipio', ibge)
   if (com !== '_nova') await dConfigSet('ultima_comunidade', com)
   if (temLoc) await dConfigSet('ultima_localidade', loc && loc !== '_nova' ? loc : null)
@@ -453,6 +472,7 @@ async function decidirAviso(aceitou) {
   f.fotos_autorizadas = aceitou ? fotosSel.value === 'sim' : null
   f.audio_autorizado = aceitou ? audioSel.value === 'sim' : null
   if (!aceitou) {
+    await marcarFimCampo(f)
     f.estado = 'pronta'; f.finalizada_em = new Date().toISOString()
     await dFichaSalvar(f)
     aviso('Recusa registrada. Obrigado.', 'info')
@@ -487,6 +507,8 @@ async function abrirFicha(uuidFicha, irParaChave, irParaRevisao) {
   })
   DiagForm.sincronizarEntrevistado()
   document.getElementById('ficha-codigo').textContent = f.codigo
+  App.areaSitAnterior = null
+  atualizarFaixaFicha()
   document.getElementById('ficha-devolvida').innerHTML = f.status_servidor === 'devolvida' && f.motivo_devolucao
     ? '<div class="faixa faixa-aviso"><b>Devolvida pela coordenação:</b> ' + esc(f.motivo_devolucao) + '</div>' : ''
   if (irParaChave) App.bloco = blocoDaChave(irParaChave)
@@ -914,6 +936,7 @@ async function desenharPainel() {
 async function concluirFicha() {
   const f = App.ficha
   f.respostas = DiagRegras.normalizar(App.estrutura, f.respostas || {}, f.moradores || [])
+  await marcarFimCampo(f)
   f.finalizada_em = new Date().toISOString()
   f.estado = 'pronta'
   f.erro_msg = null
@@ -921,6 +944,100 @@ async function concluirFicha() {
   App.ficha = null
   aviso('Ficha salva e na fila de envio.', 'ok')
   irInicio()
+}
+
+// ── Área designada (setores da APA) ────────────────────────────────────
+// Regra e textos em js/diag-campo.js; aqui só a ligação com as telas.
+let _desligarCampo = null
+function campoGps(tela) {
+  const vale = tela === 't-inicio' || tela === 't-nova' || tela === 't-ficha'
+  if (!vale) { if (_desligarCampo) { _desligarCampo(); _desligarCampo = null }; DiagCampo.desligar(); return }
+  DiagCampo.pacote().then(pk => {
+    // só pede a localização a quem tem área designada (ou está numa APA com setores)
+    if (!pk.designacoes.length && !(tela === 't-nova' && pk.setores.length)) return
+    if (!_desligarCampo) _desligarCampo = DiagCampo.aoMudar(() => {
+      if (App.tela === 't-nova') atualizarAreaNova()
+      else if (App.tela === 't-ficha') atualizarFaixaFicha()
+      else if (App.tela === 't-inicio' && App.usuario) DiagCampo.htmlInicio(App.usuario.id).then(h => { document.getElementById('ini-areas').innerHTML = h })
+    })
+    DiagCampo.ligar()
+  })
+}
+
+async function atualizarAreaNova(forcar) {
+  const el = document.getElementById('nova-area')
+  const com = document.getElementById('nova-comunidade').value
+  const limpar = () => { el.hidden = true; el.innerHTML = ''; App.areaChave = null; App.areaNova = null
+                         document.getElementById('btn-nova-continuar').disabled = false }
+  if (!com || com === '_nova') { limpar(); return }
+  const r = await DiagCampo.avaliar(App.usuario.id, com)
+  if (!r.aplica) { limpar(); return }
+  if (App.treinoAtivo) r.treino = true
+  const chave = DiagCampo.chaveNova(r)
+  if (forcar || chave !== App.areaChave) {
+    el.innerHTML = (App.treinoAtivo ? '<p class="dica"><b>Modo treino:</b> a área é só mostrada — não trava nem conta na meta.</p>' : '') + DiagCampo.htmlNova(r)
+    App.areaChave = chave
+  } else {
+    const g = el.querySelector('[data-area-gps]'); if (g) g.textContent = DiagCampo.txtPos(r.pos)
+  }
+  App.areaNova = r
+  el.hidden = false
+  document.getElementById('btn-nova-continuar').disabled = !App.treinoAtivo && ['sem_designacao', 'fora', 'meta_cumprida'].includes(r.estado)
+}
+
+async function atualizarFaixaFicha() {
+  const el = document.getElementById('ficha-area')
+  const f = App.ficha
+  const s = f && !f.treino ? await DiagCampo.situacaoFicha(f) : null
+  if (!s) { el.hidden = true; return }
+  const n = f.numero_designado ? ' · entrevista ' + f.numero_designado + (f._meta ? ' de ' + f._meta : '') : ''
+  el.className = 'faixa-area area-sit-' + s.cls
+  el.innerHTML = ic(s.cls === 'fora' ? 'alerta' : s.cls === 'dentro' ? 'ok' : 'info') +
+    '<span><b>' + esc(DiagArea.ROTULO[s.cls]) + '</b> · ' + esc(DiagCampo.nomeSetor(s.setor)) + esc(n) + '</span>'
+  el.hidden = false
+  // saiu da área: avisa uma vez por saída (vibra no celular)
+  if (s.cls === 'fora' && App.areaSitAnterior && App.areaSitAnterior !== 'fora') {
+    if (navigator.vibrate) navigator.vibrate([250, 120, 250])
+    aviso('Você saiu da sua área designada (' + DiagCampo.nomeSetor(s.setor) + ').', 'aviso')
+  }
+  App.areaSitAnterior = s.cls
+}
+
+// posição no fim da entrevista (não trava: sem sinal em 10 s, segue sem)
+async function marcarFimCampo(f) {
+  if (!f || f.treino || !f.designacao_id) return
+  const p = await DiagCampo.lerAgora(10000)
+  if (p) Object.assign(f, { gps_fim_lat: p.lat, gps_fim_lon: p.lon, gps_fim_precisao_m: p.precisao, gps_fim_em: p.em })
+}
+
+function abrirPedidoArea() {
+  const r = App.areaNova
+  document.getElementById('ped-setor').textContent = r && r.setorPonto
+    ? 'Você está no ' + DiagCampo.nomeSetor(r.setorPonto) + '.' : 'O GPS não indica um setor da APA neste ponto.'
+  document.getElementById('ped-motivo').value = ''
+  document.getElementById('ped-qtd').value = '1'
+  document.getElementById('ped-erro').hidden = true
+  abrirOv('ov-pedido')
+}
+async function enviarPedidoArea() {
+  const r = App.areaNova || {}
+  const motivo = document.getElementById('ped-motivo').value.trim()
+  const qtd = Math.max(1, Math.min(50, +document.getElementById('ped-qtd').value || 1))
+  const e = document.getElementById('ped-erro')
+  if (motivo.length < 10) { e.textContent = 'Explique o motivo (pelo menos 10 letras).'; e.hidden = false; return }
+  const p = r.pos || DiagCampo.posicao(300000)
+  await DiagCampo.guardarPedido(App.usuario.id, {
+    comunidade_id: document.getElementById('nova-comunidade').value || null,
+    setor_id: r.setorPonto ? r.setorPonto.id : null,
+    lat: p ? p.lat : null, lon: p ? p.lon : null, precisao_m: p ? p.precisao : null, motivo, quantidade: qtd,
+  })
+  document.getElementById('ov-pedido').hidden = true
+  let enviado = false
+  if (diagDb && await dSyncTemConexao() && (await dSyncGarantirSessao()) === 'ok') {
+    try { enviado = (await DiagCampo.enviarPedidos(App.usuario.id, diagDb)) > 0 } catch (x) { console.warn('[diag-app] pedido de área:', x) }
+  }
+  aviso(enviado ? 'Pedido enviado. A coordenação decide no painel; sincronize para ver a resposta.'
+                : 'Pedido guardado. Vai para a coordenação na próxima sincronização.', 'ok')
 }
 
 // ── Configurações ──────────────────────────────────────────────────────
@@ -1110,6 +1227,8 @@ function ligarEventos() {
   document.getElementById('nova-comunidade').addEventListener('change', mudouComunidade)
   document.getElementById('nova-localidade').addEventListener('change', mudouLocalidade)
   document.getElementById('btn-nova-continuar').addEventListener('click', continuarNova)
+  document.getElementById('nova-area').addEventListener('click', ev => { if (ev.target.closest('[data-area-pedir]')) abrirPedidoArea() })
+  document.getElementById('btn-ped-enviar').addEventListener('click', enviarPedidoArea)
   document.getElementById('btn-aceitou').addEventListener('click', () => decidirAviso(true))
   document.getElementById('btn-recusou').addEventListener('click', () => decidirAviso(false))
   document.getElementById('btn-anterior').addEventListener('click', () => navegar(-1))

@@ -631,6 +631,93 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   await page.evaluate(() => document.getElementById('t-config').scrollIntoView())
   await foto('config')
   await clicar('#t-config [data-voltar]'); await page.locator('#t-inicio').waitFor({ state: 'visible' })
+
+  // ── área designada (setores da APA, diag_21/23) ──────────────────────
+  // setor TA1 (~1,1 km) em volta do ponto do GPS do teste; meta 2, limite 1 por quadrícula
+  const DENTRO = { latitude: -9.973102, longitude: -67.810245, accuracy: 8 }
+  const FORA = { latitude: -9.990, longitude: -67.810245, accuracy: 8 }
+  psql(`select public.fn_diag_setor_carregar('33333333-3333-3333-3333-333333333333', 'TA1', 1, 'Beira-rio', 'rural', 2, 120, 600,
+          '{"type":"Polygon","coordinates":[[[-67.8155,-9.9781],[-67.8050,-9.9781],[-67.8050,-9.9681],[-67.8155,-9.9681],[-67.8155,-9.9781]]]}',
+          '{}', array[-67.8155,-9.9781,-67.8050,-9.9681]);
+        update public.diag_setores set limite_celula = 1 where codigo = 'TA1';
+        insert into public.diag_designacoes (setor_id, entrevistador_id, meta)
+          select id, '${UID_TEC}', 2 from public.diag_setores where codigo = 'TA1';`)
+  await clicar('#btn-sync')
+  await page.locator('#ini-areas .area-lista').waitFor({ timeout: 15000 })
+  if (!/Setor 1 · Beira-rio/.test(await page.textContent('#ini-areas')) || !/0 de 2/.test(await page.textContent('#ini-areas')))
+    falhar('quadro "Minhas áreas": ' + await page.textContent('#ini-areas'))
+  await page.locator('#ini-areas .area-sit-dentro').waitFor({ timeout: 10000 })
+  await foto('area_inicio')
+  ok('início: "Minhas áreas" com a meta (0 de 2) e "dentro da área agora"')
+
+  const abrirNovaNaApa = async () => {
+    await clicar('#btn-nova')
+    await page.selectOption('#nova-municipio', '1200708'); await page.waitForTimeout(300)
+    await page.selectOption('#nova-comunidade', '33333333-3333-3333-3333-333333333333')
+    await page.locator('#nova-area').waitFor({ state: 'visible' })
+  }
+  await abrirNovaNaApa()
+  await page.locator('#nova-area .area-ok', { hasText: 'Entrevista 1 de 2' }).waitFor({ timeout: 10000 })
+  await foto('area_nova_dentro')
+  // saiu da área: não começa e oferece o pedido de autorização
+  await context.setGeolocation(FORA)
+  await page.locator('#nova-area .area-erro', { hasText: 'fora da sua área' }).waitFor({ timeout: 10000 })
+  if (!(await page.isDisabled('#btn-nova-continuar'))) falhar('deixou começar fora da área designada')
+  await foto('area_nova_fora')
+  await clicar('#nova-area [data-area-pedir]'); await page.locator('#ov-pedido').waitFor({ state: 'visible' })
+  await clicar('#btn-ped-enviar')
+  if (await page.isHidden('#ped-erro')) falhar('pedido de autorização sem motivo foi aceito')
+  await page.fill('#ped-motivo', 'Colega da área vizinha adoeceu'); await page.fill('#ped-qtd', '3')
+  await clicar('#btn-ped-enviar'); await page.locator('#ov-pedido').waitFor({ state: 'hidden' })
+  await page.waitForFunction(() => /Pedido (enviado|guardado)/.test(document.body.textContent), null, { timeout: 10000 })
+  const ped = consulta(`select status, quantidade, lat, motivo from public.diag_area_pedidos where entrevistador_id = '${UID_TEC}'`)
+  if (ped.length !== 1 || ped[0].status !== 'pendente' || ped[0].quantidade !== 3 || Number(ped[0].lat) !== -9.99) falhar('pedido no banco: ' + JSON.stringify(ped))
+  ok('fora da área: não deixa começar; pedido de autorização chega à coordenação (posição com 4 casas)')
+
+  // de volta à área: começa com o número 1; a faixa da ficha avisa ao sair
+  await context.setGeolocation(DENTRO)
+  await page.locator('#nova-area .area-ok', { hasText: 'Entrevista 1 de 2' }).waitFor({ timeout: 10000 })
+  await clicar('#btn-nova-continuar'); await page.locator('#t-aviso').waitFor({ state: 'visible' })
+  await page.check('#aviso-lido'); await page.check('input[name="aviso-fotos"][value="nao"]'); await page.check('input[name="aviso-audio"][value="nao"]')
+  await clicar('#btn-aceitou'); await page.locator('#t-ficha').waitFor({ state: 'visible' })
+  await page.locator('#ficha-area.area-sit-dentro', { hasText: 'entrevista 1 de 2' }).waitFor({ timeout: 10000 })
+  await context.setGeolocation(FORA)
+  await page.locator('#ficha-area.area-sit-fora').waitFor({ timeout: 10000 })
+  await foto('area_ficha_fora')
+  await context.setGeolocation(DENTRO)
+  await page.locator('#ficha-area.area-sit-dentro').waitFor({ timeout: 10000 })
+  ok('ficha: faixa "dentro da área · entrevista 1 de 2", vira alerta ao sair e volta ao entrar')
+  await page.evaluate(() => concluirFicha())
+  await page.locator('#t-inicio').waitFor({ state: 'visible' })
+  await clicar('#btn-sync')
+  await page.waitForFunction(() => document.getElementById('c-fila').textContent === '0', null, { timeout: 15000 })
+  const fc1 = consulta(`select c.situacao, c.numero_designado, c.celula, g.ini_lat, g.fim_lat
+    from public.diag_fichas_campo c join public.diag_fichas f on f.id = c.ficha_id
+    left join public.diag_fichas_campo_gps g on g.ficha_id = c.ficha_id
+    where f.comunidade_id = '33333333-3333-3333-3333-333333333333'`)
+  if (fc1.length !== 1 || fc1[0].situacao !== 'dentro' || fc1[0].numero_designado !== 1 || !fc1[0].celula || fc1[0].ini_lat == null || fc1[0].fim_lat == null)
+    falhar('apuração da ficha no banco: ' + JSON.stringify(fc1))
+  ok('servidor: ficha dentro, número 1, quadrícula e posição de início e fim gravadas')
+
+  // dispersão: o mesmo trecho já tem 1 (limite 1) ⇒ pede justificativa
+  await abrirNovaNaApa()
+  await page.locator('#nova-area .area-aviso', { hasText: 'neste trecho' }).waitFor({ timeout: 10000 })
+  if (!/Entrevista <b>2 de 2/.test(await page.innerHTML('#nova-area'))) falhar('2ª entrevista não recebeu o número 2')
+  await clicar('#btn-nova-continuar')
+  await page.waitForFunction(() => /mesmo trecho/.test(document.getElementById('nova-erro').textContent), null, { timeout: 5000 })
+    .catch(async () => falhar('começou no trecho cheio sem justificativa: ' + await page.textContent('#nova-erro')))
+  if ((await page.evaluate(() => App.tela)) !== 't-nova') falhar('saiu da tela sem a justificativa')
+  await page.fill('#area-just-conc', 'As casas ficam todas na beira do ramal')
+  await clicar('#btn-nova-continuar'); await page.locator('#t-aviso').waitFor({ state: 'visible' })
+  await page.check('#aviso-lido'); await clicar('#btn-recusou')   // recusa: não gasta número
+  await page.locator('#t-inicio').waitFor({ state: 'visible' })
+  await abrirNovaNaApa()
+  await page.locator('#nova-area', { hasText: 'Entrevista 2 de 2' }).waitFor({ timeout: 10000 })
+  await clicar('#nova-area [data-voltar], #t-nova [data-voltar]')
+  await page.locator('#t-inicio').waitFor({ state: 'visible' })
+  ok('dispersão: trecho cheio exige justificativa; recusa não gasta o número da meta')
+  if (errosJs.length) falhar('erros de JavaScript na página (área designada): ' + errosJs.join(' | '))
+
   // página pública de instalação (aberta pelo QR)
   const pgInst = await browser.newPage({ viewport: { width: 390, height: 844 }, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1' })
   const errosInst = []; pgInst.on('pageerror', e => errosInst.push(e.message))

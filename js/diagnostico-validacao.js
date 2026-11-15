@@ -135,7 +135,7 @@ async function dgValAbrir(id) {
   }
   ov.hidden = false
   ov.innerHTML = '<div class="dgv-gaveta"><div class="dgv-g-corpo"><p style="color:var(--cinza-500)">Abrindo ficha…</p></div></div>'
-  const [q, fic, mor, ident, fotos, hist, auds] = await Promise.all([
+  const [q, fic, mor, ident, fotos, hist, auds, campo] = await Promise.all([
     dgValQuestionario(f.questionario_id),
     db.from('diag_fichas').select('respostas').eq('id', id).single(),
     db.from('diag_moradores').select('id,ordem,idade,sexo_genero,sexo_genero_outro,parentesco,escolaridade,atividade_principal,e_entrevistado').eq('ficha_id', id).order('ordem'),
@@ -145,7 +145,10 @@ async function dgValAbrir(id) {
     // áudio = identificação: o RLS já esconde do consultor; a mesa só desenha para quem gere
     dgPodeGerir ? db.from('diag_audios').select('id,pergunta_chave,arquivo_url,mime,duracao_s,transcrito_por,transcrito_em,transcricao_origem').eq('ficha_id', id)
                 : Promise.resolve({ data: [] }),
+    // área de campo (diag_21): o que o servidor apurou, sem posição — só para quem gere
+    dgPodeGerir ? db.rpc('diag_ficha_campo', { p_ficha_id: id }) : Promise.resolve({ data: null }),
   ])
+  f._campo = (campo && campo.data) || null
   if (dgVal.aberta !== f) return
   const moradores = mor.data || []
   let nomes = {}
@@ -234,6 +237,7 @@ function dgValDesenharFicha(f, q, resp, moradores, nomes, ident, fotos, hist, au
       ${!f.aceitou_participar ? '<div class="dgv-avisos"><b>Recusa</b> — a família não aceitou participar. Só comunidade, data e entrevistador foram registrados.</div>' : ''}
       ${dgPodeGerir && audiosPend.length ? `<div class="dgv-audio-barra">${audiosPend.length} resposta(s) gravada(s) para transcrever (${esc(rotPend)})
         <button type="button" class="btn btn-secondary btn-sm" onclick="dgValIrAudio()">Ir para os áudios</button></div>` : ''}
+      ${dgValCampo(f)}
       ${dgValAvisos(alertas, est)}
       ${dgPodeGerir ? `<div class="dgv-ident"><small>IDENTIFICAÇÃO · só coordenação e super_admin</small><br>${ident
         ? 'Entrevistado(a): <b>' + esc(ident.entrevistado_nome || 'não informado') + '</b>' +
@@ -410,8 +414,9 @@ function dgValMoradores(est, moradores, nomes, p) {
 
 // ── Ações (sempre pela RPC diag_mudar_status) ─────────────────────────
 function dgValMotivo(status, reabrir) {
-  const titulo = reabrir ? 'Reabrir e devolver ao técnico' : status === 'devolvida' ? 'Devolver ao técnico' : 'Descartar a ficha'
-  const dica = status === 'devolvida' ? 'O técnico vê este motivo no app ao sincronizar. Diga o que corrigir.' : 'A ficha sai dos indicadores. Diga o porquê (fica no histórico).'
+  const titulo = status === 'validada' ? 'Validar com justificativa de campo' : reabrir ? 'Reabrir e devolver ao técnico' : status === 'devolvida' ? 'Devolver ao técnico' : 'Descartar a ficha'
+  const dica = status === 'validada' ? 'A ficha tem problema de área, GPS ou concentração. Diga por que vale assim (ex.: conferido por telefone).'
+    : status === 'devolvida' ? 'O técnico vê este motivo no app ao sincronizar. Diga o que corrigir.' : 'A ficha sai dos indicadores. Diga o porquê (fica no histórico).'
   document.getElementById('dgv-acoes').innerHTML = `<div class="dgv-motivo">
     <label><b>${titulo}</b><br><span class="dgv-nota">${dica}</span>
     <textarea id="dgv-motivo" rows="3" maxlength="1000" placeholder="Motivo (obrigatório)"></textarea></label>
@@ -420,11 +425,45 @@ function dgValMotivo(status, reabrir) {
   document.getElementById('dgv-motivo').focus()
 }
 
+// problema de campo (fora da área, sem GPS, sem designação, acima da meta, concentração):
+// o banco só valida com justificativa (diag:justificar_campo)
+function dgValCampoProblema(f) {
+  const c = f && f._campo
+  if (!c) return false
+  return ['fora', 'sem_gps', 'impreciso', 'sem_designacao'].includes(c.situacao) || c.concentracao ||
+    (f.aceitou_participar && c.meta && c.numero == null)
+}
+function dgValCampo(f) {
+  const c = f._campo
+  if (!c) return ''
+  const sit = { dentro: 'Dentro da área', borda: 'Na divisa da área (tolerância do GPS)', impreciso: 'Sinal de GPS fraco (posição de rede)',
+                sem_gps: 'Sem GPS', fora: 'Fora da área designada', sem_designacao: 'Sem área designada para esta pessoa' }[c.situacao] || c.situacao
+  const prob = dgValCampoProblema(f)
+  const linhas = [
+    c.setor_codigo ? 'Setor <b>' + esc(c.setor_codigo + ' · ' + (c.setor_nome || '')) + '</b>' +
+      (c.tipo_designacao === 'autorizacao' ? ' (autorização)' : '') +
+      (f.aceitou_participar ? ' · entrevista <b>' + (c.numero == null ? 'sem número (acima da meta)' : c.numero + ' de ' + c.meta) + '</b>' : ' · recusa (não gasta número)') : '',
+    'Situação no GPS: <b>' + esc(sit) + '</b>' + (c.situacao_ini && c.situacao_fim && c.situacao_ini !== c.situacao_fim
+      ? ' (início: ' + esc(c.situacao_ini) + ', fim: ' + esc(c.situacao_fim) + ')' : ''),
+    c.concentracao ? 'Trecho com <b>' + c.n_celula + '</b> entrevista(s) — o limite do setor é ' + c.limite_celula + ' por trecho' : '',
+    c.justificativa_campo ? 'Entrevistador(a) sobre o GPS: “' + esc(c.justificativa_campo) + '”' : '',
+    c.justificativa_concentracao ? 'Entrevistador(a) sobre o trecho: “' + esc(c.justificativa_concentracao) + '”' : '',
+    c.validacao_obs ? 'Justificativa da validação: “' + esc(c.validacao_obs) + '”' : '',
+  ].filter(Boolean)
+  return '<div class="dgv-campo' + (prob ? ' prob' : '') + '"><small>ÁREA DE CAMPO</small><br>' + linhas.join('<br>') +
+    (prob && f.status === 'enviada' ? '<br><span class="dgv-nota">Para validar, escreva a justificativa (fica no histórico).</span>' : '') + '</div>'
+}
+
 async function dgValAcao(status) {
   const f = dgVal.aberta
   if (!f) return
   let motivo = null
-  if (status !== 'validada') {
+  if (status === 'validada' && dgValCampoProblema(f)) {
+    const el = document.getElementById('dgv-motivo')
+    if (!el) { dgValMotivo('validada'); return }
+    motivo = el.value.trim()
+    if (motivo.length < 10) { toast('Escreva a justificativa do problema de campo (pelo menos 10 letras).', 'warning'); return }
+  } else if (status !== 'validada') {
     motivo = (document.getElementById('dgv-motivo') || {}).value || ''
     if (motivo.trim().length < 3) { toast('Informe o motivo.', 'warning'); return }
   } else if ((f.alertas || []).length && !confirm('Esta ficha tem ' + f.alertas.length + ' aviso(s). Validar assim mesmo?')) return

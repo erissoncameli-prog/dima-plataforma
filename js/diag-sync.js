@@ -132,6 +132,13 @@ function _dPayloadFicha(f) {
     fotos_registradas: f.aceitou_participar ? (f._fotos_registradas || 0) : 0,
     fotos_autorizadas: f.aceitou_participar && typeof f.fotos_autorizadas === 'boolean' ? f.fotos_autorizadas : null,
     audio_autorizado: f.aceitou_participar && typeof f.audio_autorizado === 'boolean' ? f.audio_autorizado : null,
+    // área designada (diag_21): o servidor confere designação, número, GPS e quadrícula
+    designacao_id: f.designacao_id || null, numero_designado: f.numero_designado ?? null,
+    gps_ini_lat: f.gps_ini_lat ?? null, gps_ini_lon: f.gps_ini_lon ?? null,
+    gps_ini_precisao_m: f.gps_ini_precisao_m ?? null, gps_ini_em: f.gps_ini_em || null,
+    gps_fim_lat: f.gps_fim_lat ?? null, gps_fim_lon: f.gps_fim_lon ?? null,
+    gps_fim_precisao_m: f.gps_fim_precisao_m ?? null, gps_fim_em: f.gps_fim_em || null,
+    justificativa_campo: f.justificativa_campo || null, justificativa_concentracao: f.justificativa_concentracao || null,
   }
 }
 
@@ -162,6 +169,12 @@ async function dSyncEnviarFicha(f) {
       f.status_servidor = 'enviada'
       f.servidor_id = resp.data && resp.data.id
       f.alertas = (resp.data && resp.data.alertas) || []
+      const campo = resp.data && resp.data.campo
+      if (campo && campo.situacao) {
+        f.campo_situacao = campo.situacao
+        // o servidor tem a última palavra no número (dois aparelhos, número repetido)
+        if (f.aceitou_participar && 'numero' in campo) f.numero_designado = campo.numero
+      }
       f.enviada_em = new Date().toISOString()
       f.fotos_pendentes = fotos.falhas > 0
       f.fotos_nao_enviadas = fotos.falhas
@@ -252,6 +265,11 @@ async function dSyncBaixarReferencias(usuarioId) {
   if (com.data) await dCacheSet('comunidades', com.data)
   if (loc.data) await dCacheSet('localidades', loc.data)
   if (painel && painel.data) await dConfigSet('painel_' + usuarioId, painel.data)
+  // área designada: setores, minhas designações, ocupação das quadrículas (sem casas)
+  try {
+    const pk = await diagDb.rpc('diag_campo_pacote')
+    if (!pk.error && pk.data) await dCacheSet('campo_pacote', pk.data)
+  } catch (e) { console.warn('[diag-sync] pacote de campo:', e) }
   if (sug.data) {
     const porChave = {}
     sug.data.forEach(s => { (porChave[s.chave] = porChave[s.chave] || []).push(s.texto) })
@@ -329,6 +347,10 @@ async function dSyncRodar(usuarioId, aoProgredir) {
     if (!diagDb || !(await dSyncTemConexao())) { res.situacao = 'sem_conexao'; return res }
     if ((await dSyncGarantirSessao()) !== 'ok') { res.situacao = 'sem_sessao'; return res }
 
+    // pedidos de autorização feitos sem internet
+    if (typeof DiagCampo !== 'undefined') {
+      try { await DiagCampo.enviarPedidos(usuarioId, diagDb) } catch (e) { console.warn('[diag-sync] pedidos de área:', e) }
+    }
     const fila = (await dFichasDoUsuario(usuarioId)).filter(f =>
       f.estado === 'pronta' || f.estado === 'enviando' || f.estado === 'aguardando_permissao' ||
       (f.estado === 'enviada' && (f.fotos_pendentes || f.audios_pendentes) && f.status_servidor !== 'validada' && f.status_servidor !== 'descartada'))

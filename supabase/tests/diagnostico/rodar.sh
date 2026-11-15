@@ -31,6 +31,8 @@ done
 
 echo "· rodando testes"
 "${PSQL[@]}" -f "$RAIZ/supabase/tests/diagnostico/10_testes.sql"
+echo "· testes dos setores de campo"
+"${PSQL[@]}" -f "$RAIZ/supabase/tests/diagnostico/30_campo.sql"
 echo "· teste cruzado das regras (js/diag-regras.js × SQL)"
 DIR="$(cd "$(dirname "$0")" && pwd)"
 "${PSQL[@]}" -At -c "select estrutura from public.diag_questionarios where codigo = 'DSA' and versao = 7" > "$TMP/est_v7.json"
@@ -61,5 +63,10 @@ select jsonb_build_object('id', l->'id', 'r', pg_temp.t_resultado(l))::text from
 SQL
 } | "${PSQL[@]}" -At > "$TMP/saida_sql.jsonl"
 node "$DIR/regras_cruzadas.js" comparar "$TMP/casos.jsonl" "$TMP/saida_sql.jsonl"
+
+echo "· teste cruzado da área de campo (js/diag-area.js × SQL)"
+node "$DIR/area_cruzada.js" gerar "$TMP/area.sql" "$TMP/area_casos.json"
+"${PSQL[@]}" -At -f "$TMP/area.sql" > "$TMP/area_saida.jsonl"
+node "$DIR/area_cruzada.js" comparar "$TMP/area_casos.json" "$TMP/area_saida.jsonl"
 
 echo "OK — todos os testes passaram"

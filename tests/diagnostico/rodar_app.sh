@@ -48,6 +48,9 @@ insert into public.diag_comunidades (id, municipio_ibge, nome)
  values ('11111111-1111-1111-1111-111111111111', 1200708, 'Seringal Cachoeira');
 insert into public.diag_localidades (id, comunidade_id, nome)
  values ('22222222-2222-2222-2222-222222222221', '11111111-1111-1111-1111-111111111111', 'Colocação Rio Branco');
+-- APA com setor de campo (o setor e a designação entram no meio do teste, em app_fluxo.js)
+insert into public.diag_comunidades (id, municipio_ibge, nome)
+ values ('33333333-3333-3333-3333-333333333333', 1200708, 'APA Teste');
 SQL
 
 (cd "$RAIZ" && python3 -m http.server "$PORTA_HTTP" --bind 127.0.0.1 >/dev/null 2>&1) & HTTP_PID=$!

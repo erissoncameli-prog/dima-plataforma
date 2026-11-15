@@ -33,6 +33,7 @@ const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: []
     <div class="dg-abas">
       <button type="button" class="dg-aba ativa" data-aba="geral" onclick="dgTrocarAba('geral')">Visão geral</button>
       ${dgPodeGerir || dgPodeConsultar ? `<button type="button" class="dg-aba" data-aba="validacao" onclick="dgTrocarAba('validacao')">${dgPodeGerir ? 'Validação' : 'Fichas'}</button>` : ''}
+      ${dgPodeGerir ? `<button type="button" class="dg-aba" data-aba="campo" onclick="dgTrocarAba('campo')">Equipe de campo</button>` : ''}
       <button type="button" class="dg-aba" data-aba="indicadores" onclick="dgTrocarAba('indicadores')">Indicadores</button>
       ${dgPodeGerir ? `<button type="button" class="dg-aba" data-aba="admin" onclick="dgTrocarAba('admin')">Admin · comunidades e sublocalidades</button>` : ''}
     </div>
@@ -60,6 +61,7 @@ const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: []
     ${dgPodeGerir ? `<div class="card"><h3 style="margin:0 0 8px">Versões do questionário</h3><div id="dg-versoes"></div></div>` : ''}
     </div>
     ${dgPodeGerir || dgPodeConsultar ? `<div id="dg-validacao" hidden></div>` : ''}
+    ${dgPodeGerir ? `<div id="dg-campo" hidden></div>` : ''}
     <div id="dg-indicadores" hidden></div>
     ${dgPodeGerir ? `<div id="dg-admin" hidden></div>` : ''}
   </div>`
@@ -125,7 +127,8 @@ async function dgApagarTreino(n) {
 function dgTrocarAba(aba) {
   dgAba = aba
   document.querySelectorAll('.dg-aba').forEach(b => b.classList.toggle('ativa', b.dataset.aba === aba))
-  ;['geral', 'validacao', 'indicadores', 'admin'].forEach(a => { const el = document.getElementById('dg-' + a); if (el) el.hidden = aba !== a })
+  ;['geral', 'validacao', 'campo', 'indicadores', 'admin'].forEach(a => { const el = document.getElementById('dg-' + a); if (el) el.hidden = aba !== a })
+  if (aba === 'campo') dgcCarregar()
   if (aba === 'admin') dgAdminCarregar()
   if (aba === 'indicadores') dgIndCarregar()
   if (aba === 'validacao') dgValCarregar()

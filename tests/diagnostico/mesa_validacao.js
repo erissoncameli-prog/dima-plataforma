@@ -70,7 +70,7 @@ function pgQuery(q) {
 }
 function pgRpc(nome, args) {
   const params = Object.entries(args || {}).map(([k, v]) => k + ' := ' + lit(v)).join(', ')
-  const sql = ['fn_diag_agregados', 'fn_lgpd_conferir_tabelas'].includes(nome)   // setof
+  const sql = ['fn_diag_agregados', 'fn_lgpd_conferir_tabelas', 'diag_campo_entrevistadores'].includes(nome)   // setof
     ? "select coalesce(jsonb_agg(t), '[]') from public." + nome + '(' + params + ') t'
     : 'select to_json(public.' + nome + '(' + params + '))'
   try { return { data: JSON.parse(psql(sql, usuarioLogado)), error: null } }
@@ -393,6 +393,69 @@ function semear() {
   if (await page.locator('#dgv-audios').count()) falhar('consultor viu os áudios')
   usuarioLogado = COORD
   ok('áudio: Validar bloqueado até transcrever, atalho e controles (0,75×), sugestão da IA local como rascunho conferido, consultor não vê')
+
+  // ── Equipe de campo (diag_21/23): designar, fichas com problema, validar com justificativa, pedido ──
+  usuarioLogado = COORD
+  psql(`insert into public.diag_comunidades (id, municipio_ibge, nome) values ('44444444-4444-4444-4444-444444444444', 1200708, 'APA Mesa') on conflict do nothing;
+        select public.fn_diag_setor_carregar('44444444-4444-4444-4444-444444444444', 'TM1', 1, 'Ramal do Mel', 'rural', 3, 120, 600,
+          '{"type":"Polygon","coordinates":[[[-67.8155,-9.9781],[-67.8050,-9.9781],[-67.8050,-9.9681],[-67.8155,-9.9681],[-67.8155,-9.9781]]]}',
+          '{"apoio":"Escola"}', array[-67.8155,-9.9781,-67.8050,-9.9681]);`)
+  await page.goto(BASE + '/pages/diagnostico.html?aba=campo')
+  await page.locator('#dgc-com').waitFor({ timeout: 15000 })
+  await page.selectOption('#dgc-com', '44444444-4444-4444-4444-444444444444')
+  await page.locator('#dg-campo .dgc-setor').first().waitFor()
+  await page.click('text=Designar entrevistador')
+  await page.locator('#dgc-pessoa').waitFor()
+  if (await page.inputValue('#dgc-meta') !== '3') falhar('campo: meta sugerida do setor não veio na designação')
+  await page.selectOption('#dgc-pessoa', TEC)
+  await page.click('#dgc-ov .btn-primary')
+  await page.locator('#dg-campo .dg-tab', { hasText: 'Ramal do Mel' }).first().waitFor()
+  const desig = consulta("select id, meta, tipo from public.diag_designacoes d where d.setor_id = (select id from public.diag_setores where codigo = 'TM1')")
+  if (desig.length !== 1 || desig[0].meta !== 3) falhar('campo: designação no banco ' + JSON.stringify(desig))
+  await foto('mesa_campo')
+  ok('equipe de campo: setor da APA no mapa, designação com a meta sugerida (pela RPC)')
+
+  const qId = psql("select id from public.diag_questionarios where status = 'publicado' order by versao desc limit 1")
+  const enviarCampo = (u, cod, lat, extra) => psql('select public.diag_enviar_ficha($a$' + JSON.stringify(Object.assign({
+    uuid_cliente: u, codigo: cod, questionario_id: qId, municipio_ibge: 1200708, comunidade_id: '44444444-4444-4444-4444-444444444444',
+    dt_entrevista: '2026-11-15', finalizada_em: new Date().toISOString(), aviso_lido: true, aceitou_participar: true, respostas: {},
+    designacao_id: desig[0].id, gps_ini_lat: lat, gps_ini_lon: -67.8102, gps_ini_precisao_m: 8, gps_fim_lat: lat, gps_fim_lon: -67.8102, gps_fim_precisao_m: 8 }, extra || {})) +
+    '$a$::jsonb, $b$[]$b$::jsonb, $c$[]$c$::jsonb)', TEC)
+  enviarCampo('bbbb2222-0000-0000-0000-000000000001', 'DSA-XAP-261115-CAMP-01', -9.9731)
+  enviarCampo('bbbb2222-0000-0000-0000-000000000002', 'DSA-XAP-261115-CAMP-02', -9.9900, { justificativa_campo: 'ramal fechado pela cheia' })
+  psql(`select public.diag_area_pedir('{"uuid_cliente":"bbbb2222-0000-0000-0000-0000000000a1","lat":-9.9731,"lon":-67.8102,"motivo":"Cobrir a área do colega","quantidade":2}')`, TEC)
+  await page.click('#dg-campo >> text=Atualizar')
+  await page.locator('#dg-campo .dg-tab', { hasText: 'CAMP-02' }).waitFor({ timeout: 10000 })
+  if (!(await page.locator('#dg-campo .dgc-cel').count())) falhar('campo: mapa sem a quadrícula da ficha')
+  if (/CAMP-01/.test(await page.textContent('#dg-campo'))) falhar('campo: ficha dentro da área entrou na lista de problemas')
+  if (/-9[.,]973/.test(await page.innerHTML('#dg-campo .dgc-mapa'))) falhar('campo: mapa com a posição da casa')
+  ok('fichas com problema de campo: fora da área listada (com a explicação), quadrícula no mapa sem o ponto da casa')
+
+  // abrir na validação: quadro "Área de campo" e Validar pede justificativa
+  await page.locator('#dg-campo tr', { hasText: 'CAMP-02' }).locator('text=Abrir').click()
+  await page.locator('.dgv-campo.prob', { hasText: 'Fora da área designada' }).waitFor({ timeout: 10000 })
+  await page.click('#dgv-btn-validar')
+  await page.locator('#dgv-motivo').waitFor()
+  await page.fill('#dgv-motivo', 'Conferido por telefone: a família mudou para a beira do ramal')
+  await page.click('#dgv-acoes .btn-primary')
+  await page.locator('.dgv-st-validada').first().waitFor({ timeout: 10000 })
+  const val = consulta("select f.status, c.validacao_obs from public.diag_fichas f join public.diag_fichas_campo c on c.ficha_id = f.id where f.codigo = 'DSA-XAP-261115-CAMP-02'")
+  if (val[0].status !== 'validada' || !/telefone/.test(val[0].validacao_obs || '')) falhar('campo: validação com justificativa ' + JSON.stringify(val))
+  ok('validação: ficha fora da área só valida com justificativa (gravada junto da apuração)')
+  await page.evaluate(() => dgValFechar())
+
+  // pedido de autorização: aprovar cria a autorização com prazo
+  await page.click('.dg-aba[data-aba="campo"]')
+  await page.locator('#dg-campo', { hasText: 'Pedidos de autorização' }).waitFor()
+  if (await page.locator('#dgc-com').inputValue() !== '44444444-4444-4444-4444-444444444444') await page.selectOption('#dgc-com', '44444444-4444-4444-4444-444444444444')
+  await page.locator('#dg-campo tr', { hasText: 'Cobrir a área do colega' }).locator('text=Decidir').click()
+  await page.locator('#dgc-ov', { hasText: 'Pedido de autorização' }).waitFor()
+  await page.click('#dgc-ov >> text=Aprovar')
+  await page.locator('#dgc-ov').waitFor({ state: 'hidden' })
+  const aut = consulta("select d.tipo, d.meta, d.dt_fim from public.diag_designacoes d join public.diag_area_pedidos a on a.designacao_id = d.id where a.uuid_cliente = 'bbbb2222-0000-0000-0000-0000000000a1'")
+  if (aut.length !== 1 || aut[0].tipo !== 'autorizacao' || aut[0].meta !== 2 || !aut[0].dt_fim) falhar('campo: autorização ' + JSON.stringify(aut))
+  ok('pedido de autorização: aprovado na mesa vira autorização com prazo')
+  if (errosJs.length) falhar('erros de JavaScript (equipe de campo): ' + errosJs.join(' | '))
 
   // ── Privacidade · ROPA (pages/ropa.html): leitura + conferência no banco ──
   usuarioLogado = COORD

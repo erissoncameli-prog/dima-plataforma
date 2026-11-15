@@ -1,0 +1,51 @@
+/* ── Mesa do Diagnóstico · aba "Equipe de campo" (js/diagnostico-campo.js) ──
+   Prefixo dgc-. Usa os tokens de css/diagnostico-mesa.css (escopo body.dgm);
+   a janela usa .dgv-ov, que já está no seletor de escopo dos tokens. */
+body.dgm .dgc-topo { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: 8px; }
+body.dgm .dgc-apa { display: flex; flex-direction: column; font-size: 11px; color: var(--txt-2); margin-right: auto; }
+body.dgm .dgc-apa select { font: inherit; font-size: 14px; padding: 7px 10px; border: 1px solid var(--lin-forte); border-radius: var(--r-ctl); min-width: 220px; margin-top: 3px; }
+body.dgm .dgc-card { padding: 16px 20px; margin-bottom: 16px; }
+body.dgm .dgc-card h3 { margin: 0 0 10px; font-size: 15px; }
+body.dgm .dgc-card h3 small { font-weight: 400; color: var(--txt-2); font-size: 12px; margin-left: 6px; }
+body.dgm .dgc-duas { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1100px) { body.dgm .dgc-duas { grid-template-columns: minmax(0, 1fr); } }
+body.dgm .dg-num b small { font-size: 13px; font-weight: 500; color: var(--txt-2); }
+body.dgm .dg-num.dgc-alerta { border-color: var(--alerta-borda); background: var(--alerta-bg); }
+body.dgm .dgc-vazio { font-size: 13px; color: var(--txt-2); margin: 0; }
+body.dgm .dgc-falta { color: var(--alerta-txt); font-weight: 600; }
+body.dgm .dgc-tag { font-size: 10px; font-weight: 700; background: var(--info-bg); color: var(--info); padding: 1px 7px; border-radius: 99px; }
+body.dgm .dgc-encerrada td { opacity: .55; }
+body.dgm .dgc-linha-sel td { background: var(--pri-50); }
+body.dgm .dgc-barra { height: 6px; background: var(--bg-2); border-radius: 3px; overflow: hidden; margin: 2px 0 3px; min-width: 120px; }
+body.dgm .dgc-barra i { display: block; height: 100%; background: var(--pri-600); }
+body.dgm .dgc-mapa { width: 100%; height: auto; max-height: 520px; display: block; background: var(--sup-2); border-radius: var(--r-ctl); }
+body.dgm .dgc-setor { stroke: var(--txt-2); stroke-width: 1; fill-opacity: .16; cursor: pointer; }
+body.dgm .dgc-setor:hover, body.dgm .dgc-setor.sel { fill-opacity: .32; stroke-width: 2; stroke: var(--txt); }
+body.dgm .dgc-s0 { fill: #0072B2; } body.dgm .dgc-s1 { fill: #E69F00; } body.dgm .dgc-s2 { fill: #009E73; }
+body.dgm .dgc-s3 { fill: #CC79A7; } body.dgm .dgc-s4 { fill: #56B4E9; } body.dgm .dgc-s5 { fill: #D55E00; }
+body.dgm .dgc-cel { stroke: var(--sup); stroke-width: .6; }
+body.dgm .dgc-cel-ok, body.dgm .dgc-q.ok { fill: var(--ok); background: var(--ok); }
+body.dgm .dgc-cel-limite, body.dgm .dgc-q.limite { fill: var(--alerta); background: var(--alerta); }
+body.dgm .dgc-cel-cheia, body.dgm .dgc-q.cheia { fill: var(--erro); background: var(--erro); }
+body.dgm .dgc-rot { font-size: 14px; font-weight: 700; fill: var(--txt); text-anchor: middle; dominant-baseline: middle; pointer-events: none;
+  paint-order: stroke; stroke: var(--sup); stroke-width: 3px; }
+body.dgm .dgc-leg { font-size: 12px; color: var(--txt-2); margin: 8px 0 0; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+body.dgm .dgc-q { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 8px; }
+/* janela */
+body.dgm .dgc-ov { justify-content: center; align-items: flex-start; padding: 48px 16px; overflow: auto; }
+body.dgm .dgc-modal { width: min(560px, 100%); background: var(--sup); color: var(--txt); border-radius: var(--r-card); box-shadow: var(--sh-2); overflow: hidden; }
+body.dgm .dgc-modal header { padding: 16px 20px; border-bottom: 1px solid var(--lin); }
+body.dgm .dgc-modal header h2 { margin: 0; font-size: 16px; }
+body.dgm .dgc-corpo { padding: 16px 20px; font-size: 14px; }
+body.dgm .dgc-corpo p { margin: 0 0 10px; }
+body.dgm .dgc-modal footer { padding: 12px 20px; border-top: 1px solid var(--lin); display: flex; gap: 8px; justify-content: flex-end; background: var(--sup-2); }
+body.dgm .dgc-l { display: block; font-size: 12px; font-weight: 600; color: var(--txt-2); margin-bottom: 10px; flex: 1; }
+body.dgm .dgc-l :is(input, select, textarea) { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; font: inherit; font-size: 14px; padding: 7px 9px; border: 1px solid var(--lin-forte); border-radius: var(--r-ctl); }
+body.dgm .dgc-linha2 { display: flex; gap: 10px; flex-wrap: wrap; }
+body.dgm .dgc-check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+body.dgm .dgc-nota { font-size: 12px; color: var(--txt-2); }
+body.dgm .dgc-erro { color: var(--erro); font-size: 13px; margin: 6px 0 0; }
+/* Validação: quadro "Área de campo" na gaveta da ficha */
+body.dgm .dgv-campo { background: var(--sup-2); border: 1px solid var(--lin); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
+body.dgm .dgv-campo.prob { background: var(--alerta-bg); border-color: var(--alerta-borda); color: var(--alerta-txt); }
+body.dgm .dgv-campo small { font-weight: 700; letter-spacing: .04em; color: var(--txt-2); }
