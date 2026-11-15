@@ -606,7 +606,7 @@ testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js
   15/11/2026: Italo do O Ferreira).
 - **Número do projeto**: o projeto tem dois números (**218BRA2001** e **218BRA2002**), conforme a linha de financiamento — NF com
   218BRA2002 não é erro. Não escrever número de projeto fixo em etiqueta nem em regra.
-- **Etiquetas/placas**: QR de `patrimonio.html?bem=PAT-…` (sem valor, nome de pessoa nem nº de projeto; modelos na Fase 6 abaixo); bem com `origem='compra_projeto'` traz "Adquirido com recurso do projeto" (cessão/doação não). É a
+- **Etiquetas/placas**: QR de `patrimonio.html?bem=PAT-…` (sem valor, nome de pessoa nem nº de projeto; modelos na Fase 6 abaixo); bem com `origem='compra_projeto'` traz "Adquirido com recurso do projeto" + `projeto_nome` (`FolhaA4.projeto()`; etiqueta pequena só a frase; cessão/doação nada). É a
   **única impressão fora do molde FolhaA4** (folha adesiva não leva cabeçalho/rodapé). Relatórios do patrimônio (Fase 5) usam FolhaA4.
 - **Guarda (Fase 2, migração `20261116_pat_02_guarda`, testes `30_guarda.sql`)**: `pat_termos` (TR-AAAA-NNNN; `responsabilidade` |
   `emprestimo` com `devolver_ate` ≤ 1 ano) + `pat_termo_itens` (só inclusão). Gestor cria (`fn_pat_termo_criar`) ⇒ tarefa "Aceitar termo"

@@ -1718,12 +1718,15 @@
     const base = new URL('patrimonio.html', location.href).href
     const L = typeof DimaLogos !== 'undefined' ? DimaLogos.agora() : null
     const logos = (L?.topo || []).map(l => { const e = DimaLogos.escolher(l, 'claro'); return e.src ? '<img class="lg" alt="' + esc(l.alt) + '" src="' + esc(DimaLogos.url(e.src)) + '">' : '' }).join('')
+    // Nome do projeto de Dados do sistema (configuracoes_sistema.projeto_nome), lido pela FolhaA4 ao abrir a página.
+    // Sai nas placas 6 × 8 e 8 × 6; a etiqueta pequena não tem espaço e leva só a frase (nome cortado não serve).
+    const projNome = typeof FolhaA4 !== 'undefined' ? String(FolhaA4.projeto()?.projeto_nome || '').trim() : ''
     const placa = (b, des) => {
       const q = qrcode(0, 'M'); q.addData(base + '?bem=' + encodeURIComponent(b.numero)); q.make()
       const qr = '<img class="qr" alt="" src="' + q.createDataURL(6, 0) + '">'
       const desc = '<div class="d">' + esc(b.descricao) + '</div>' + (b.numero_serie ? '<div class="s">S/N ' + esc(b.numero_serie) + '</div>' : '')
       // Só bem comprado pelo projeto: cessão e doação recebida não foram pagas com o recurso.
-      const aq = b.origem === 'compra_projeto' ? '<div class="aq">Adquirido com recurso do projeto</div>' : ''
+      const aq = b.origem === 'compra_projeto' ? '<div class="aq">Adquirido com recurso do projeto' + (projNome ? '<span class="pn">' + esc(projNome) + '</span>' : '') + '</div>' : ''
       const rod = aq + '<div class="p">SEMA/AC · Fundo Brasil-ONU</div>'
       if (des === 'pequena') return '<div class="pl pq">' + qr + '<div class="tx"><div class="k">PATRIMÔNIO</div><div class="n">' + esc(b.numero) + '</div>' + desc + rod + '</div></div>'
       if (des === 'deitada') return '<div class="pl dt"><div class="cab">' + (logos ? '<span class="lgs">' + logos + '</span>' : '') + '<span class="k">PATRIMÔNIO</span></div>' +
@@ -1778,9 +1781,9 @@
       '.d{line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
       '.s{font-family:"DM Mono",monospace;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.p{color:#444}.nr{color:#666}' +
       '.qr{image-rendering:pixelated;flex-shrink:0}.lgs{display:flex;gap:1.5mm;align-items:center}.lg{height:5.5mm;width:auto;max-width:22mm;object-fit:contain}' +
-      '.pe{display:flex;flex-direction:column;align-items:center;text-align:center;padding:3.5mm 3.5mm 3mm;gap:1.2mm}' +
-      '.pe .cab{display:flex;justify-content:space-between;align-items:center;width:100%;gap:2mm}.pe .qr{width:38mm;height:38mm;margin-top:.5mm}' +
-      '.pe .n{font-size:15pt}.pe .d{font-size:7.5pt}.pe .s{font-size:6.5pt;max-width:100%}.pe .rp{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:.3mm}.pe .p{font-size:6pt}.pe .nr{font-size:5.5pt}.pe .aq{font-size:6.5pt;font-weight:700;color:#1D5A3C}' +
+      '.pe{display:flex;flex-direction:column;align-items:center;text-align:center;padding:3.5mm 3.5mm 3mm;gap:1mm}' +
+      '.pe .cab{display:flex;justify-content:space-between;align-items:center;width:100%;gap:2mm}.pe .qr{width:34mm;height:34mm;margin-top:.5mm}' +
+      '.pe .n{font-size:15pt}.pe .d{font-size:7.5pt}.pe .s{font-size:6.5pt;max-width:100%}.pe .rp{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:.3mm}.pe .p{font-size:6pt}.pe .nr{font-size:5.5pt}.pe .aq{font-size:6.5pt;font-weight:700;color:#1D5A3C}.pn{display:block;font-weight:400;color:#333;line-height:1.15}.pe .pn{font-size:5.5pt;margin-top:.3mm}.dt .pn{font-size:5.5pt}.pq .pn{display:none}' +
       '.dt{display:flex;flex-direction:column;padding:3mm 3.5mm 2.5mm;gap:1.5mm}.dt .cab{display:flex;justify-content:space-between;align-items:center;gap:2mm}' +
       '.dt .corpo{display:flex;gap:3mm;align-items:center;flex:1;min-height:0}.dt .qr{width:34mm;height:34mm}.dt .tx{min-width:0;display:flex;flex-direction:column;gap:1.2mm}' +
       '.dt .n{font-size:14pt}.dt .d{font-size:7.5pt}.dt .s{font-size:6.5pt}.dt .rp{display:flex;justify-content:space-between;align-items:baseline;gap:2mm}.dt .p{font-size:6pt}.dt .nr{font-size:5.5pt}.dt .rp{flex-wrap:wrap}.dt .aq{font-size:6.5pt;font-weight:700;color:#1D5A3C;width:100%}' +
