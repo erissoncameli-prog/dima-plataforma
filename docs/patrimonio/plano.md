@@ -401,4 +401,8 @@ Mapeamento sugerido dos 13 itens da NF (13 fichas; R$ 20.301,00 em bens + R$ 413
 | Plugues XLR macho (2) e fêmea (2) + cabo SC30 35 m | — | 413,50 | consumo → justificar a diferença |
 
 Falta, para lançar: os números de série dos equipamentos de áudio (lidos na etiqueta de cada aparelho), o local e a
-data de início de uso. Observação: a NF traz "Projeto 218BRA2002" nas informações complementares (o projeto é 218BRA2001).
+data de início de uso. A NF traz "Projeto 218BRA2002": o projeto tem dois números (218BRA2001 e 218BRA2002), conforme a
+linha de financiamento usada — não é erro. Por isso a etiqueta não leva número de projeto.
+
+**Gestor patrimonial** (15/11/2026): Italo do O Ferreira (coordenação), com o acesso `patrimonio_gestor`; a tarefa do
+contrato 4500574049 foi passada a ele (Elielton ficou como observador).

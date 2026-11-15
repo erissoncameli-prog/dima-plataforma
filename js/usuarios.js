@@ -24,7 +24,8 @@ const MODULOS_LISTA = [
   { id: 'viagens',      ic: 'aviao',   label: 'Viagens',              perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico'] , dados: true },
   // Patrimônio: 'patrimonio' abre valores e NF (leitura); 'patrimonio_gestor' incorpora e mantém as fichas (fn_pat_pode_*)
   { id: 'patrimonio',   ic: 'pacote',  label: 'Patrimônio — ver valores', perfis: ['super_admin', 'coordenacao', 'financeiro'], dados: true },
-  { id: 'patrimonio_gestor', ic: 'pacote', label: 'Patrimônio — gestor patrimonial', perfis: ['super_admin', 'coordenacao'], dados: true },
+  // gestor também é a DESIGNAÇÃO de quem recebe as tarefas de incorporação (fn_pat_gestor_padrao): concedível à coordenação
+  { id: 'patrimonio_gestor', ic: 'pacote', label: 'Patrimônio — gestor patrimonial', perfis: ['super_admin'], dados: true },
   { id: 'repositorio',  ic: 'link',    label: 'Repositório',          perfis: null },
   { id: 'formularios',  ic: 'form',    label: 'Guia Formulários',     perfis: null },
   { id: 'usuarios',     ic: 'users',   label: 'Usuários',             perfis: ['super_admin'] },

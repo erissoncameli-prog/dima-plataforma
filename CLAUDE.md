@@ -602,7 +602,11 @@ testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js
 - **Acesso**: ver catálogo = `fn_pat_pode_ver` (todo perfil ativo menos consultor externo, ou acesso extra); ver valores/NF =
   `fn_pat_pode_ver_valor` (gerir, financeiro, acesso `patrimonio`); gerir = super_admin/coordenação ou acesso `patrimonio_gestor`;
   corrigir valor, estornar e categorias = só super_admin/coordenação (`fn_pat_pode_coordenar`). Tabelas sem policy de escrita.
-- **Etiquetas**: A4 3 × 7 (63,5 × 38,1 mm) com QR de `patrimonio.html?bem=PAT-…` (sem valor nem nome de pessoa). É a
+  O acesso `patrimonio_gestor` é também a **designação** de quem recebe as tarefas (concedível até à coordenação; gestor em
+  15/11/2026: Italo do O Ferreira).
+- **Número do projeto**: o projeto tem dois números (**218BRA2001** e **218BRA2002**), conforme a linha de financiamento — NF com
+  218BRA2002 não é erro. Não escrever número de projeto fixo em etiqueta nem em regra.
+- **Etiquetas**: A4 3 × 7 (63,5 × 38,1 mm) com QR de `patrimonio.html?bem=PAT-…` (sem valor, nome de pessoa nem nº de projeto). É a
   **única impressão fora do molde FolhaA4** (folha adesiva não leva cabeçalho/rodapé). Relatórios do patrimônio (Fase 5) usam FolhaA4.
 - ROPA: TRAT-006. Próximas fases: termo de responsabilidade com senha, empréstimo, manutenção, ocorrências/sinistros, baixa
   com aprovação, inventário por QR, relatórios e auditor (`fn_auditoria_patrimonio`, título "Patrimônio: …").

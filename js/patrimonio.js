@@ -1060,14 +1060,13 @@
   function abrirEtiquetas(lista, inicio) {
     const w = window.open('', '_blank')
     if (!w) { toast('O navegador bloqueou a nova aba. Permita janelas deste site.', 'warning'); return }
-    const proj = (typeof FolhaA4 !== 'undefined' && FolhaA4.projeto && FolhaA4.projeto().projeto_codigo) || ''
     const base = new URL('patrimonio.html', location.href).href
     const cel = lista.map(b => {
       const q = qrcode(0, 'M'); q.addData(base + '?bem=' + encodeURIComponent(b.numero)); q.make()
       return '<div class="et"><img class="qr" alt="" src="' + q.createDataURL(4, 0) + '"><div class="tx"><div class="k">PATRIMÔNIO</div>' +
         '<div class="n">' + esc(b.numero) + '</div><div class="d">' + esc(b.descricao) + (b.quantidade > 1 ? ' (lote de ' + b.quantidade + ')' : '') + '</div>' +
         (b.numero_serie ? '<div class="s">S/N ' + esc(b.numero_serie) + '</div>' : '') +
-        '<div class="p">' + esc(proj ? 'Projeto ' + proj + ' · ' : '') + 'SEMA/AC</div></div></div>'
+        '<div class="p">SEMA/AC · Fundo Brasil-ONU</div></div></div>'
     })
     const todas = Array(inicio - 1).fill('<div class="et vazia"></div>').concat(cel)
     const folhas = []; for (let i = 0; i < todas.length; i += 21) folhas.push('<div class="folha">' + todas.slice(i, i + 21).join('') + '</div>')
