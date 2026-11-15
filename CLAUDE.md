@@ -619,7 +619,19 @@ testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js
   custo só registro). Movimento não se estorna: corrige-se com outro movimento. Quem guarda vê o próprio bem (policy
   `pat_bens_responsavel`, aba "Meus bens", inclusive consultor externo); termo legível pelo indicado (`fn_pat_termo_detalhe`).
   Termo impresso pela FolhaA4 (`imprimirTermo`, selo `data-tema="patrimonio"`).
-- ROPA: TRAT-006. Próximas fases: ocorrências/sinistros, baixa com aprovação, inventário por QR, relatórios e auditor
+- **Ocorrências e baixa (Fase 3, migração `20261117_pat_03_ocorrencias` + `_ropa`, testes `40_ocorrencias.sql`)**: `pat_ocorrencias`
+  (OC-AAAA-NNNN; avaria/defeito/mau_uso/extravio/furto/roubo/sinistro; furto/roubo exige `bo_numero`) registrada pelo gestor ou por
+  quem guarda (`fn_pat_ocorrencia_registrar`); extravio/furto/roubo ⇒ bem `extraviado`; tarefa "Tratar ocorrência" (`pat_ocorrencia`) para
+  o gestor; `fn_pat_ocorrencia_apurar`/`_concluir` (desfechos localizado | reparado | ressarcido | indenizado | arquivada; "baixa" só pela
+  baixa aprovada; extraviado só sai como localizado ou baixa). `pat_baixas` (BX-AAAA-NNNN; 1 aguardando por bem; só bem em estoque ou
+  extraviado; furto_roubo/extravio_nao_localizado/sinistro_perda_total exigem a ocorrência; doação/alienação exigem destino) pedida por
+  `fn_pat_baixa_pedir` ⇒ tarefa para `fn_pat_baixa_aprovador` (titular coordenação → super_admin → coordenação, nunca quem pediu);
+  decidida **com senha** pela Edge Function `patrimonio-termo` `acao:'decidir_baixa'` → `fn_pat_baixa_decidir` (só service_role; super_admin/
+  coordenação ≠ quem pediu, `PAT_SEGREGACAO`; hash `fn_pat_baixa_hash` = pedido + bem + documentos). Aprovada ⇒ `baixado`, `dt_baixa`
+  (depreciação para), ocorrência ligada concluída. Arquivos de ocorrência/baixa: `pat_documentos.ocorrencia_id/baixa_id` por
+  `fn_pat_anexar_vinculo`; quem guarda o bem também envia para `bens/<bem_id>/` (`fn_pat_doc_pode_enviar`, policy de storage).
+  Tela: aba "Ocorrências e baixas", "Comunicar ocorrência" em Meus bens, janela da ocorrência/baixa (reusa `#pt-termo`).
+- ROPA: TRAT-006 (tabelas das fases 1–3). Próximas fases: inventário por QR, relatórios A4 e auditor
   (`fn_auditoria_patrimonio`, título "Patrimônio: …").
 
 ### Diagnóstico Socioambiental — app de campo (⚠️ ler antes de mexer em `diag_*`)
@@ -1440,7 +1452,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`) e a do pedido de acesso à API (`acao:'decidir_api'` → `fn_api_pedido_decidir`, só super_admin); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 | `publico-capa` | Capa (JPEG do bucket privado `acervo-capas`) de produto marcado como público no Acervo, para a Galeria do site público; só entrega o que `fn_publico_capa_caminho` libera (service_role), 404 no resto. O site chama com a chave anon no cabeçalho (`fetch` → blob) | ✅ |
 | `publico-produto` | Documento (PDF do bucket privado de entregas) de produto marcado como público no Acervo, para o visualizador da Galeria do site público; só entrega o que `fn_publico_arquivo_caminho` libera (service_role), 404 no resto; `Content-Disposition` com nome genérico. Chamada com a chave anon no cabeçalho | ✅ |
-| `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`, só service_role); mesmo bloqueio por tentativas do remanejamento | ✅ |
+| `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`) e aprova/devolve o pedido de baixa (`acao:'decidir_baixa'` → `fn_pat_baixa_decidir`), ambos só service_role; mesmo bloqueio por tentativas do remanejamento | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---

@@ -9,6 +9,10 @@
 //      na hora e a senha nunca é gravada;
 //   4. fn_pat_termo_decidir (só service_role) confere que a pessoa é a indicada no termo e que
 //      o hash que ela viu é o do termo + bens ao vivo (mudou ⇒ DOCUMENTO_ALTERADO).
+//
+// { acao: 'decidir_baixa', baixa_id, decisao: 'aprovar'|'devolver', motivo?, hash, senha }
+//   mesma porta para o PEDIDO DE BAIXA (migração 20261117_pat_03_ocorrencias): super_admin/coordenação
+//   que não pediu aprova ou devolve; chama fn_pat_baixa_decidir (só service_role; hash do pedido + bem).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const CORS = {
@@ -34,9 +38,12 @@ Deno.serve(async (req) => {
   if (eU || !u?.user?.email) return resp({ ok: false, erro: 'Sessão inválida. Entre de novo.' }, 401)
   const usuarioId = u.user.id
 
-  const { termo_id, decisao, motivo, hash, senha } = corpo as Record<string, string>
-  if (!termo_id || !['aceitar', 'recusar'].includes(decisao) || !hash || typeof senha !== 'string' || !senha) {
-    return resp({ ok: false, erro: 'Dados incompletos (termo, decisão, hash e senha).' }, 400)
+  const { acao, termo_id, baixa_id, decisao, motivo, hash, senha } = corpo as Record<string, string>
+  const ehBaixa = acao === 'decidir_baixa'
+  const alvo = ehBaixa ? baixa_id : termo_id
+  const decisoes = ehBaixa ? ['aprovar', 'devolver'] : ['aceitar', 'recusar']
+  if (!alvo || !decisoes.includes(decisao) || !hash || typeof senha !== 'string' || !senha) {
+    return resp({ ok: false, erro: 'Dados incompletos (documento, decisão, hash e senha).' }, 400)
   }
 
   const { data: bloqueadoAte } = await admin.rpc('fn_rem_senha_bloqueada_ate', { p_usuario_id: usuarioId })
@@ -47,10 +54,15 @@ Deno.serve(async (req) => {
   if (!ok) return resp({ ok: false, erro: 'SENHA_INVALIDA' }, 401)
 
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
-  const { data, error } = await admin.rpc('fn_pat_termo_decidir', {
-    p_usuario_id: usuarioId, p_termo: termo_id, p_decisao: decisao, p_motivo: motivo ?? null,
-    p_hash: hash, p_ip: ip, p_user_agent: req.headers.get('user-agent'),
-  })
+  const { data, error } = ehBaixa
+    ? await admin.rpc('fn_pat_baixa_decidir', {
+        p_usuario_id: usuarioId, p_baixa: baixa_id, p_decisao: decisao, p_parecer: motivo ?? null,
+        p_hash: hash, p_ip: ip, p_user_agent: req.headers.get('user-agent'),
+      })
+    : await admin.rpc('fn_pat_termo_decidir', {
+        p_usuario_id: usuarioId, p_termo: termo_id, p_decisao: decisao, p_motivo: motivo ?? null,
+        p_hash: hash, p_ip: ip, p_user_agent: req.headers.get('user-agent'),
+      })
   if (error) return resp({ ok: false, erro: error.message }, 409)
   return resp({ ok: true, resultado: data })
 })

@@ -69,6 +69,12 @@
     ocorrencia: 'Ocorrência', inventario: 'Inventário', baixa: 'Baixa', transferencia_definitiva: 'Transferência definitiva' }
   const CAMPO = { valor_aquisicao_brl: 'Valor de aquisição', dt_aquisicao: 'Data de aquisição', dt_inicio_uso: 'Início de uso',
     categoria_codigo: 'Categoria', vida_util_meses: 'Vida útil (meses)', residual_pct: 'Valor residual (%)', quantidade: 'Quantidade' }
+  const OC_TIPO = { avaria: 'Avaria', defeito: 'Defeito', mau_uso: 'Mau uso', extravio: 'Extravio', furto: 'Furto', roubo: 'Roubo', sinistro: 'Sinistro (incêndio, alagamento, acidente)' }
+  const OC_SIT = { aberta: 'Aberta', em_apuracao: 'Em apuração', concluida: 'Concluída' }
+  const OC_DESF = { localizado: 'Localizado', reparado: 'Reparado', ressarcido: 'Ressarcido', indenizado: 'Indenizado pelo seguro', baixa: 'Baixa', arquivada: 'Arquivada (sem dano)' }
+  const BX_MOT = { inservivel: 'Inservível', sinistro_perda_total: 'Perda total por sinistro', furto_roubo: 'Furto ou roubo', extravio_nao_localizado: 'Extravio não localizado',
+    obsolescencia: 'Obsolescência', doacao: 'Doação', alienacao: 'Alienação (venda)' }
+  const BX_SIT = { aguardando: 'Aguardando aprovação', aprovada: 'Aprovada', devolvida: 'Devolvida', cancelada: 'Cancelada' }
   const TERMO_SIT = { aguardando_aceite: 'Aguardando aceite', aceito: 'Aceito', recusado: 'Recusado', cancelado: 'Cancelado' }
   const TERMO_TIPO = { responsabilidade: 'Termo de responsabilidade', emprestimo: 'Termo de empréstimo' }
   const DOC_TIPO = { foto: 'Foto', laudo: 'Laudo', garantia: 'Termo de garantia', manual: 'Manual', termo: 'Termo', bo: 'Boletim de ocorrência', outro: 'Outro' }
@@ -78,7 +84,7 @@
     bens: [], cats: [], locais: [], fila: [], pode: { gerir: false, coord: false, valor: false },
     aba: 'painel', filtro: { q: '', cat: '', local: '', sit: 'ativos', cond: '', aviso: '' }, sel: new Set(),
     ficha: null, fichaAba: 'dados', eventos: [], docs: [],
-    termos: [], usuarios: [], soMeus: false, eu: null, termo: null,
+    termos: [], usuarios: [], soMeus: false, eu: null, termo: null, ocorrencias: [], baixas: [], doc: null,
   }
   const $ = id => document.getElementById(id)
 
@@ -241,9 +247,11 @@
       if (!v) { S.soMeus = true; S.aba = 'meus' }
     } catch (e) { $('pt-pg').innerHTML = '<div class="pt-card"><div class="pt-vazio">' + ptIc('alerta') + esc(erroMsg(e)) + '</div></div>'; return }
     const q = new URLSearchParams(location.search)
-    if (['painel', 'bens', 'meus', 'termos', 'cadastros', 'guia'].includes(q.get('aba')) && !S.soMeus) S.aba = q.get('aba')
+    if (['painel', 'bens', 'meus', 'termos', 'ocorrencias', 'cadastros', 'guia'].includes(q.get('aba')) && !S.soMeus) S.aba = q.get('aba')
     await carregar()
     if (q.get('termo')) abrirTermo(q.get('termo'))
+    if (q.get('ocorrencia')) abrirOcorrencia(q.get('ocorrencia'))
+    if (q.get('baixa')) abrirBaixa(q.get('baixa'))
     const alvo = q.get('bem')
     if (alvo) {
       const b = S.bens.find(x => x.numero === alvo.toUpperCase() || x.id === alvo)
@@ -254,7 +262,7 @@
 
   async function carregar() {
     try {
-      const [b, c, l, f, t, u] = await Promise.all([
+      const [b, c, l, f, t, u, o, x] = await Promise.all([
         db.from('vw_pat_bens').select('*').order('numero'),
         db.from('pat_categorias').select('*').order('ordem').order('nome'),
         db.from('pat_locais').select('*').order('nome'),
@@ -263,8 +271,13 @@
           + 'responsavel:usuarios!pat_termos_responsavel_id_fkey(nome_completo),criador:usuarios!pat_termos_criado_por_fkey(nome_completo),'
           + 'local:pat_locais!pat_termos_local_id_fkey(nome),pat_termo_itens(count)').order('criado_em', { ascending: false }),
         S.pode.gerir ? db.from('usuarios').select('id,nome_completo,perfil').eq('ativo', true).order('nome_completo') : Promise.resolve({ data: [] }),
+        db.from('pat_ocorrencias').select('*,bem:pat_bens!pat_ocorrencias_bem_id_fkey(numero,descricao),registrador:usuarios!pat_ocorrencias_registrado_por_fkey(nome_completo)')
+          .order('registrado_em', { ascending: false }),
+        S.soMeus ? Promise.resolve({ data: [] }) : db.from('pat_baixas').select('id,numero,bem_id,ocorrencia_id,motivo,situacao,pedido_por,pedido_em,decidido_em,'
+          + 'bem:pat_bens!pat_baixas_bem_id_fkey(numero,descricao),pedidor:usuarios!pat_baixas_pedido_por_fkey(nome_completo)').order('pedido_em', { ascending: false }),
       ])
-      for (const r of [b, c, l, f, t, u]) if (r.error) throw r.error
+      for (const r of [b, c, l, f, t, u, o, x]) if (r.error) throw r.error
+      S.ocorrencias = o.data || []; S.baixas = x.data || []
       S.bens = b.data || []; S.cats = c.data || []; S.locais = l.data || []; S.fila = f.data || []
       S.termos = t.data || []; S.usuarios = u.data || []
       const ids = new Set(S.bens.map(x => x.id)); S.sel.forEach(id => { if (!ids.has(id)) S.sel.delete(id) })
@@ -285,6 +298,8 @@
       vencido: at.filter(b => b.devolver_ate && b.devolver_ate < h),
       manutencao: at.filter(b => b.situacao === 'em_manutencao'),
       termo: at.filter(b => b.termo_pendente),
+      ocorrencia: at.filter(b => b.ocorrencia_aberta),
+      baixa: at.filter(b => b.baixa_pendente),
     }
   }
   const AVISO_TXT = {
@@ -296,6 +311,8 @@
     vencido: ['relogio', 'al', 'com empréstimo vencido', 'Cobre a devolução de quem está com o bem.'],
     termo: ['assina', 'in', 'em termo aguardando aceite', 'Só o aceite com senha muda o responsável.'],
     manutencao: ['ferramenta', 'in', 'em manutenção', 'Registre a volta quando o serviço terminar.'],
+    ocorrencia: ['alerta', 'al', 'com ocorrência em aberto', 'Apure e registre o desfecho em Ocorrências e baixas.'],
+    baixa: ['assina', 'in', 'com pedido de baixa aguardando', 'Quem aprova é a coordenação (ou o super_admin) que não pediu, com a senha.'],
   }
 
   function render() {
@@ -304,6 +321,8 @@
     const abas = S.soMeus ? [['meus', 'pessoa', 'Meus bens', meusPend]]
       : [['painel', 'painel', 'Painel', nAv], ['bens', 'lista', 'Bens', 0], ['meus', 'pessoa', 'Meus bens', meusPend]]
     if (S.pode.gerir) abas.push(['termos', 'assina', 'Termos', S.termos.filter(t => t.situacao === 'aguardando_aceite').length])
+    if (!S.soMeus) abas.push(['ocorrencias', 'alerta', 'Ocorrências e baixas',
+      S.ocorrencias.filter(o => o.situacao !== 'concluida').length + (S.pode.coord ? S.baixas.filter(x => x.situacao === 'aguardando' && x.pedido_por !== S.eu).length : 0)])
     if (S.pode.gerir) abas.push(['cadastros', 'engrenagem', 'Categorias e locais', 0])
     abas.push(['guia', 'livro', 'Como funciona', 0])
     $('pt-pg').innerHTML =
@@ -315,6 +334,7 @@
     if (S.aba === 'bens') renderBens()
     else if (S.aba === 'meus') renderMeus()
     else if (S.aba === 'termos' && S.pode.gerir) renderTermos()
+    else if (S.aba === 'ocorrencias' && !S.soMeus) renderOcorrencias()
     else if (S.aba === 'cadastros' && S.pode.gerir) renderCadastros()
     else if (S.aba === 'guia') renderGuia()
     else renderPainel()
@@ -450,7 +470,8 @@
         '<td class="c-local">' + esc(b.local_nome || '—') + (b.responsavel_nome ? '<div class="pt-sub">com ' + esc(b.responsavel_nome) + '</div>' : '') + '</td>' +
         '<td class="c-sit"><div class="pt-selos" style="margin:0">' + selo('s-' + b.situacao, SIT[b.situacao] || b.situacao) + selo('c-' + b.condicao, COND[b.condicao] || b.condicao) +
           (b.nf_pendente ? selo('al', 'sem NF') : '') + (b.termo_pendente ? selo('al', 'termo ' + b.termo_pendente) : '') +
-          (b.devolver_ate ? selo(b.devolver_ate < hoje() ? 'er' : 'ne', 'devolver até ' + dt(b.devolver_ate)) : '') + '</div></td>' +
+          (b.devolver_ate ? selo(b.devolver_ate < hoje() ? 'er' : 'ne', 'devolver até ' + dt(b.devolver_ate)) : '') +
+          (b.ocorrencia_aberta ? selo('al', 'ocorrência ' + b.ocorrencia_aberta) : '') + (b.baixa_pendente ? selo('ne', 'baixa ' + b.baixa_pendente) : '') + '</div></td>' +
         (S.pode.valor ? '<td class="c-val dir"><span class="pt-val">' + brl(b.valor_contabil_brl) + '<small>aquisição ' + brl(b.valor_aquisicao_brl) + '</small></span></td>' : '') +
         '</tr>').join('') + '</tbody></table></div>'
     assinarImagens(el)
@@ -641,6 +662,8 @@
           ? esc(b.responsavel_nome) + (b.termo_vigente ? ' · <button type="button" class="pt-link" data-acao="termo-num" data-num="' + esc(b.termo_vigente) + '">' + esc(b.termo_vigente) + '</button>' : '')
           : '<span class="pt-nada">ninguém (em estoque)</span>') +
         (b.devolver_ate ? campo('Devolver até', '<span class="' + (b.devolver_ate < hoje() ? 'pt-pill er' : '') + '">' + dt(b.devolver_ate) + '</span>') : '') +
+        (b.ocorrencia_aberta ? campo('Ocorrência aberta', '<button type="button" class="pt-link" data-acao="oc-num" data-num="' + esc(b.ocorrencia_aberta) + '">' + esc(b.ocorrencia_aberta) + '</button>') : '') +
+        (b.baixa_pendente ? campo('Pedido de baixa', '<button type="button" class="pt-link" data-acao="bx-num" data-num="' + esc(b.baixa_pendente) + '">' + esc(b.baixa_pendente) + '</button> aguardando aprovação') : '') +
         (b.termo_pendente ? campo('Termo pendente', '<button type="button" class="pt-link" data-acao="termo-num" data-num="' + esc(b.termo_pendente) + '">' + esc(b.termo_pendente) + '</button> aguardando aceite') : '') +
         campo('Situação', esc(SIT[b.situacao])) + campo('Condição', esc(COND[b.condicao])) +
         campo('Último inventário', b.ultimo_inventario_em ? dt(b.ultimo_inventario_em) : '') + campo('Titularidade', esc(TIT[b.titularidade] || b.titularidade)) +
@@ -733,6 +756,18 @@
       if (e.responsavel_de_nome) partes.push('devolvido por ' + e.responsavel_de_nome)
       if (e.local_para_nome) partes.push('guardado em ' + e.local_para_nome)
       if (e.condicao_de !== e.condicao_para) partes.push((COND[e.condicao_de] || e.condicao_de) + ' → ' + (COND[e.condicao_para] || e.condicao_para))
+    } else if (e.tipo === 'ocorrencia') {
+      if (d.ocorrencia) partes.push(d.ocorrencia)
+      if (d.tipo) partes.push(OC_TIPO[d.tipo] || d.tipo)
+      if (d.desfecho) partes.push('desfecho: ' + (OC_DESF[d.desfecho] || d.desfecho))
+      if (d.bo) partes.push('BO ' + d.bo)
+      if (d.valor_brl != null) partes.push(brl(d.valor_brl))
+      if (d.situacao_antes && d.situacao_depois && d.situacao_antes !== d.situacao_depois) partes.push((SIT[d.situacao_antes] || d.situacao_antes) + ' → ' + (SIT[d.situacao_depois] || d.situacao_depois))
+      if (e.condicao_de !== e.condicao_para) partes.push((COND[e.condicao_de] || e.condicao_de) + ' → ' + (COND[e.condicao_para] || e.condicao_para))
+    } else if (e.tipo === 'baixa') {
+      if (d.baixa) partes.push(d.baixa)
+      if (d.motivo) partes.push(BX_MOT[d.motivo] || d.motivo)
+      if (d.destino) partes.push('para ' + d.destino)
     } else if (e.tipo === 'manutencao_saida') {
       if (d.prestador) partes.push(d.prestador)
       if (d.previsao) partes.push('previsão ' + dt(d.previsao))
@@ -1148,6 +1183,11 @@
   // ── Fase 2: guarda e movimentação ─────────────────────────────────────────
   function barraMov(b) {
     if (!ativo(b)) return ''
+    if (b.situacao === 'extraviado') {
+      const bt = (a, ic, t) => '<button type="button" class="pt-btn peq" data-acao="' + a + '">' + ptIc(ic, 'p') + t + '</button>'
+      return '<div class="pt-mov"><span>Bem extraviado</span>' + (b.ocorrencia_aberta ? bt('oc-num-ficha', 'alerta', 'Abrir a ocorrência') : '') +
+        (!b.baixa_pendente ? bt('baixa-um', 'lixo', 'Pedir baixa') : '') + '</div>'
+    }
     const livre = ['em_estoque', 'em_uso'].includes(b.situacao) && !b.termo_pendente
     const bt = (a, ic, t) => '<button type="button" class="pt-btn peq" data-acao="' + a + '">' + ptIc(ic, 'p') + t + '</button>'
     return '<div class="pt-mov"><span>Movimentar</span>' +
@@ -1156,6 +1196,8 @@
       (['em_estoque', 'em_uso', 'emprestado'].includes(b.situacao) && !b.termo_pendente ? bt('local-um', 'local', 'Mudar de local') : '') +
       (livre ? bt('manut-saida', 'ferramenta', 'Mandar para manutenção') : '') +
       (b.situacao === 'em_manutencao' ? bt('manut-volta', 'check', 'Registrar volta da manutenção') : '') +
+      bt('ocorrencia-um', 'alerta', 'Registrar ocorrência') +
+      (['em_estoque', 'extraviado'].includes(b.situacao) && !b.baixa_pendente ? bt('baixa-um', 'lixo', 'Pedir baixa') : '') +
       (b.termo_pendente ? '<span class="pt-sub" style="font-weight:400">Bem no termo ' + esc(b.termo_pendente) + ': aguarde o aceite ou cancele o termo.</span>' : '') +
       '</div>'
   }
@@ -1277,11 +1319,12 @@
         '<span class="pt-sub">enviado por ' + esc(t.criador?.nome_completo || '—') + ' em ' + dtHora(t.criado_em) + '</span></div>' +
         '<button type="button" class="pt-btn pri" data-acao="termo" data-id="' + esc(t.id) + '">' + ptIc('assina', 'p') + 'Conferir e aceitar</button></div>').join('') + '</div>' : '') +
       '<div class="pt-card"' + (pend.length ? ' style="margin-top:16px"' : '') + '><div class="pt-card-h">' + ptIc('pessoa', 'p') + 'Bens sob a sua guarda<span class="pt-sub">' + meus.length + '</span></div>' +
-      (meus.length ? '<table class="pt-mini"><thead><tr><th>Nº</th><th>Bem</th><th>Local</th><th>Termo</th></tr></thead><tbody>' + meus.map(b =>
+      (meus.length ? '<table class="pt-mini"><thead><tr><th>Nº</th><th>Bem</th><th>Local</th><th>Termo</th><th></th></tr></thead><tbody>' + meus.map(b =>
         '<tr' + (S.soMeus ? '' : ' data-acao="ficha" data-id="' + esc(b.id) + '" style="cursor:pointer"') + '><td class="mono">' + esc(b.numero) + '</td><td>' + esc(b.descricao) +
         (b.numero_serie ? '<div class="pt-sub">S/N ' + esc(b.numero_serie) + '</div>' : '') + '</td><td>' + esc(b.local_nome || '—') + '</td><td>' +
         (b.termo_vigente ? '<button type="button" class="pt-link" data-acao="termo-num" data-num="' + esc(b.termo_vigente) + '">' + esc(b.termo_vigente) + '</button>' : '—') +
-        (b.devolver_ate ? '<div>' + selo(b.devolver_ate < h ? 'er' : 'ne', 'devolver até ' + dt(b.devolver_ate)) + '</div>' : '') + '</td></tr>').join('') + '</tbody></table>'
+        (b.devolver_ate ? '<div>' + selo(b.devolver_ate < h ? 'er' : 'ne', 'devolver até ' + dt(b.devolver_ate)) + '</div>' : '') + '</td>' +
+        '<td class="dir"><button type="button" class="pt-btn peq" data-acao="ocorrencia-bem" data-id="' + esc(b.id) + '">' + ptIc('alerta', 'p') + 'Comunicar ocorrência</button></td></tr>').join('') + '</tbody></table>'
         : '<div class="pt-vazio">' + ptIc('caixa') + 'Nenhum bem do projeto está sob a sua guarda.</div>') +
       '<div class="pt-aviso in">' + ptIc('info', 'p') + '<span class="t">Quem guarda um bem responde por ele: comunique ao gestor patrimonial qualquer avaria, extravio, furto ou acidente, e devolva quando for pedido ou no prazo do empréstimo.</span></div></div>'
   }
@@ -1394,6 +1437,227 @@
     FolhaA4.escrever(w, { titulo: TERMO_TIPO[t.tipo] + ' ' + t.numero, selo: 'Patrimônio', tema: 'patrimonio', corpo, nomeArquivo: 'termo-' + t.numero })
   }
 
+  // ── Fase 3: ocorrências, sinistros e baixa ────────────────────────────────
+  function renderOcorrencias() {
+    const oc = S.ocorrencias, bx = S.baixas
+    const linhaOc = o => '<tr><td class="mono">' + esc(o.numero) + '</td><td><b>' + esc(o.bem?.numero || '') + '</b> ' + esc(o.bem?.descricao || '') + '</td>' +
+      '<td>' + esc(OC_TIPO[o.tipo] || o.tipo) + (o.bo_numero ? '<div class="pt-sub">BO ' + esc(o.bo_numero) + '</div>' : '') + '</td>' +
+      '<td class="mono">' + dt(o.dt_ocorrencia) + '</td><td>' + selo(o.situacao === 'concluida' ? 't-aceito' : o.situacao === 'em_apuracao' ? 'ne' : 'al', OC_SIT[o.situacao]) +
+      (o.desfecho ? '<div class="pt-sub">' + esc(OC_DESF[o.desfecho]) + '</div>' : '') + '</td>' +
+      '<td class="dir"><button type="button" class="pt-btn peq" data-acao="oc" data-id="' + esc(o.id) + '">Abrir</button></td></tr>'
+    const linhaBx = x => '<tr><td class="mono">' + esc(x.numero) + '</td><td><b>' + esc(x.bem?.numero || '') + '</b> ' + esc(x.bem?.descricao || '') + '</td>' +
+      '<td>' + esc(BX_MOT[x.motivo] || x.motivo) + '</td><td>' + esc(x.pedidor?.nome_completo || '—') + '<div class="pt-sub">' + dtHora(x.pedido_em) + '</div></td>' +
+      '<td>' + selo(x.situacao === 'aprovada' ? 't-aceito' : x.situacao === 'aguardando' ? 'al' : 'ne', BX_SIT[x.situacao]) + '</td>' +
+      '<td class="dir"><button type="button" class="pt-btn peq' + (x.situacao === 'aguardando' && S.pode.coord && x.pedido_por !== S.eu ? ' pri' : '') + '" data-acao="bx" data-id="' + esc(x.id) + '">' +
+        (x.situacao === 'aguardando' && S.pode.coord && x.pedido_por !== S.eu ? 'Decidir' : 'Abrir') + '</button></td></tr>'
+    $('pt-conteudo').innerHTML =
+      '<div class="pt-card"><div class="pt-card-h">' + ptIc('alerta', 'p') + 'Ocorrências<span class="pt-sub">avaria, defeito, extravio, furto, roubo, sinistro — registre pela ficha do bem (Movimentar) ou em Meus bens</span></div>' +
+        (oc.length ? '<div class="pt-tbl-w"><table class="pt-mini"><thead><tr><th>Nº</th><th>Bem</th><th>Tipo</th><th>Data</th><th>Situação</th><th></th></tr></thead><tbody>' + oc.map(linhaOc).join('') + '</tbody></table></div>'
+          : '<div class="pt-vazio">' + ptIc('check') + 'Nenhuma ocorrência registrada.</div>') + '</div>' +
+      '<div class="pt-card" style="margin-top:16px"><div class="pt-card-h">' + ptIc('lixo', 'p') + 'Pedidos de baixa<span class="pt-sub">aprovados com senha pela coordenação ou super_admin que não pediu</span></div>' +
+        (bx.length ? '<div class="pt-tbl-w"><table class="pt-mini"><thead><tr><th>Nº</th><th>Bem</th><th>Motivo</th><th>Pedido por</th><th>Situação</th><th></th></tr></thead><tbody>' + bx.map(linhaBx).join('') + '</tbody></table></div>'
+          : '<div class="pt-vazio">' + ptIc('caixa') + 'Nenhum pedido de baixa.</div>') + '</div>'
+  }
+
+  function formOcorrencia(bemId) {
+    const b = S.bens.find(x => x.id === bemId); if (!b) return
+    abrirForm({
+      titulo: 'Registrar ocorrência', sub: b.numero + ' · ' + b.descricao, botao: 'Registrar',
+      corpo: '<div class="pt-g2"><div class="form-group"><label class="form-label" for="fo2-tipo">O que aconteceu *</label><select class="form-control" id="fo2-tipo">' +
+          Object.keys(OC_TIPO).map(k => '<option value="' + k + '">' + OC_TIPO[k] + '</option>').join('') + '</select></div>' +
+        '<div class="form-group"><label class="form-label" for="fo2-data">Quando *</label><input class="form-control" type="date" id="fo2-data" max="' + hoje() + '" value="' + hoje() + '"></div></div>' +
+        '<div class="form-group" id="fo2-bo-w" hidden><label class="form-label" for="fo2-bo">Nº do boletim de ocorrência *</label><input class="form-control mono" id="fo2-bo">' +
+          '<div class="pt-dica">' + ptIc('info', 'p') + 'Furto ou roubo exige o boletim. O PDF pode ser anexado depois, na ocorrência.</div></div>' +
+        '<div class="form-group"><label class="form-label" for="fo2-onde">Onde</label><input class="form-control" id="fo2-onde" placeholder="ex.: evento na APA, transporte, escritório"></div>' +
+        '<div class="form-group"><label class="form-label" for="fo2-desc">Descreva *</label><textarea class="form-control" id="fo2-desc" placeholder="o que aconteceu, como, quem estava"></textarea></div>' +
+        '<div class="form-group" id="fo2-cond-w"><label class="form-label" for="fo2-cond">Condição do bem agora</label><select class="form-control" id="fo2-cond"><option value="">sem mudança</option>' +
+          ['bom', 'regular', 'ruim', 'inservivel'].map(k => '<option value="' + k + '">' + COND[k] + '</option>').join('') + '</select></div>' +
+        '<div class="pt-aviso-f in">' + ptIc('info', 'p') + '<span>O gestor patrimonial recebe uma tarefa para apurar. Extravio, furto e roubo tiram o bem de circulação até o desfecho.</span></div>',
+      aoSalvar: async r => {
+        const res = await rpc('fn_pat_ocorrencia_registrar', { p: { bem_id: b.id, tipo: val(r, '#fo2-tipo'), dt_ocorrencia: val(r, '#fo2-data'),
+          bo_numero: val(r, '#fo2-bo'), onde: val(r, '#fo2-onde'), descricao: val(r, '#fo2-desc'), condicao: val(r, '#fo2-cond') } })
+        toast('Ocorrência ' + res.numero + ' registrada. O gestor patrimonial foi avisado.', 'success')
+        await recarregarFicha(); abrirOcorrencia(res.ocorrencia_id)
+      },
+    })
+    const t = $('fo2-tipo'); t.onchange = () => { const perda = ['extravio', 'furto', 'roubo'].includes(t.value); $('fo2-bo-w').hidden = !['furto', 'roubo'].includes(t.value); $('fo2-cond-w').hidden = perda }
+  }
+
+  async function abrirOcorrencia(id) {
+    $('pt-termo-tit').textContent = 'Ocorrência'; $('pt-termo-sub').textContent = ''
+    $('pt-termo-corpo').innerHTML = '<div class="pt-carregando">Carregando…</div>'; $('pt-termo-rodape').innerHTML = ''
+    ptAbrir('pt-termo')
+    const o = S.ocorrencias.find(x => x.id === id)
+    if (!o) { $('pt-termo-corpo').innerHTML = '<div class="pt-aviso-f er">' + ptIc('alerta', 'p') + '<span>Ocorrência não encontrada ou sem acesso.</span></div>'; return }
+    const { data: docs } = await db.from('pat_documentos').select('*').eq('ocorrencia_id', id).eq('ativo', true).order('enviado_em')
+    S.doc = { tipo: 'oc', o, docs: docs || [] }
+    renderOcorrencia()
+  }
+  function renderOcorrencia() {
+    const { o, docs } = S.doc, b = S.bens.find(x => x.id === o.bem_id), aberta = o.situacao !== 'concluida'
+    const podeAnexar = aberta && (S.pode.gerir || o.registrado_por === S.eu || b?.responsavel_id === S.eu)
+    $('pt-termo-tit').textContent = o.numero + ' · ' + (OC_TIPO[o.tipo] || o.tipo)
+    $('pt-termo-sub').innerHTML = selo(o.situacao === 'concluida' ? 't-aceito' : 'al', OC_SIT[o.situacao]) + ' <span class="pt-sub">registrada por ' + esc(o.registrador?.nome_completo || '—') + ' em ' + dtHora(o.registrado_em) + '</span>'
+    $('pt-termo-corpo').innerHTML = '<div class="pt-dados">' +
+      campo('Bem', '<b>' + esc(o.bem?.numero || '') + '</b> ' + esc(o.bem?.descricao || '')) + campo('Data', dt(o.dt_ocorrencia)) +
+      campo('Onde', esc(o.onde)) + campo('Boletim', esc(o.bo_numero)) +
+      campo('Bem antes', esc((SIT[o.situacao_bem_antes] || o.situacao_bem_antes) + ' · ' + (COND[o.condicao_antes] || o.condicao_antes))) +
+      (o.desfecho ? campo('Desfecho', esc(OC_DESF[o.desfecho])) : '') + (o.valor_brl ? campo('Valor recebido', brl(o.valor_brl)) : '') +
+      (o.seguradora ? campo('Seguradora', esc(o.seguradora) + (o.sinistro_numero ? ' · sinistro ' + esc(o.sinistro_numero) : '')) : '') + '</div>' +
+      '<div class="pt-sec" style="margin-top:14px">O que aconteceu</div><div class="pt-obs">' + esc(o.descricao) + '</div>' +
+      (o.parecer ? '<div class="pt-sec">Parecer da apuração</div><div class="pt-obs">' + esc(o.parecer) + '</div>' : '') +
+      '<div class="pt-sec">' + ptIc('doc', 'p') + 'Documentos e fotos</div>' +
+      (docs.length ? docs.map(d => '<div class="pt-doc">' + ptIc(d.tipo === 'foto' ? 'camera' : 'doc', 'p') + '<span class="t"><a href="#" data-arquivo="' + esc(d.url) + '">' + esc(d.nome) + '</a><div class="pt-sub">' +
+        esc(DOC_TIPO[d.tipo] || d.tipo) + ' · ' + dtHora(d.enviado_em) + '</div></span></div>').join('') : '<p class="pt-sub">Nenhum arquivo.</p>') +
+      (podeAnexar ? '<div class="pt-envio"><select class="form-control" id="pt-oc-dtipo" aria-label="Tipo do arquivo"><option value="bo">Boletim de ocorrência</option><option value="foto">Foto</option><option value="laudo">Laudo</option><option value="outro">Outro</option></select>' +
+        '<button type="button" class="pt-btn" data-acao="oc-anexar">' + ptIc('upload', 'p') + 'Anexar arquivo</button><input type="file" id="pt-oc-arq" accept="image/*,application/pdf" multiple hidden></div>' : '')
+    const G = S.pode.gerir && aberta, perda = ['extravio', 'furto', 'roubo'].includes(o.tipo)
+    $('pt-termo-rodape').innerHTML = '<span class="esq">' + (G && b && ['em_estoque', 'extraviado'].includes(b.situacao) && !b.baixa_pendente
+        ? '<button type="button" class="pt-btn" data-acao="oc-baixa">' + ptIc('lixo', 'p') + 'Pedir baixa</button>' : '') + '</span>' +
+      (G && o.situacao === 'aberta' ? '<button type="button" class="pt-btn" data-acao="oc-apurar">' + ptIc('busca', 'p') + 'Iniciar apuração</button>' : '') +
+      (G ? '<button type="button" class="pt-btn pri" data-acao="oc-concluir">' + ptIc('check', 'p') + (perda ? 'Registrar que foi localizado' : 'Concluir com desfecho') + '</button>' : '')
+  }
+  async function anexarOcorrencia(files) {
+    const { o } = S.doc, tipo = $('pt-oc-dtipo').value
+    let ok = 0
+    for (const f0 of files) {
+      try {
+        const f = tipo === 'foto' ? await reduzirImagem(f0) : f0
+        const url = await enviarArquivo('bens/' + o.bem_id + '/oc-' + Date.now() + '-' + nomeSeguro(f.name), f)
+        await rpc('fn_pat_anexar_vinculo', { p_tipo: tipo, p_url: url, p_nome: f0.name, p_tamanho: f.size, p_ocorrencia: o.id, p_baixa: null })
+        ok++
+      } catch (e) { toast(f0.name + ': ' + erroMsg(e), 'error') }
+    }
+    if (ok) { toast(ok + ' arquivo(s) anexado(s).', 'success'); await abrirOcorrencia(o.id) }
+  }
+  function formApurar() {
+    const { o } = S.doc
+    abrirForm({ titulo: 'Iniciar apuração', sub: o.numero, botao: 'Iniciar apuração',
+      corpo: '<div class="form-group"><label class="form-label" for="fa-p">Primeiras anotações (opcional)</label><textarea class="form-control" id="fa-p" placeholder="o que vai ser verificado, com quem"></textarea></div>',
+      aoSalvar: async r => { await rpc('fn_pat_ocorrencia_apurar', { p_oc: o.id, p_parecer: val(r, '#fa-p') }); toast('Apuração iniciada.', 'success'); await carregar(); await abrirOcorrencia(o.id) } })
+  }
+  function formConcluirOc() {
+    const { o } = S.doc, perda = ['extravio', 'furto', 'roubo'].includes(o.tipo)
+    const desf = perda ? ['localizado'] : ['reparado', 'ressarcido', 'indenizado', 'arquivada']
+    abrirForm({ titulo: perda ? 'Bem localizado' : 'Concluir ocorrência', sub: o.numero + (perda ? ' · se o bem não aparecer, use "Pedir baixa"' : ''), botao: 'Concluir',
+      corpo: '<div class="pt-g2"><div class="form-group"><label class="form-label" for="fx2-d">Desfecho *</label><select class="form-control" id="fx2-d">' +
+          desf.map(k => '<option value="' + k + '">' + OC_DESF[k] + '</option>').join('') + '</select></div>' +
+        '<div class="form-group"><label class="form-label" for="fx2-c">Condição do bem</label><select class="form-control" id="fx2-c"><option value="">sem mudança</option>' +
+          ['bom', 'regular', 'ruim', 'inservivel'].map(k => '<option value="' + k + '">' + COND[k] + '</option>').join('') + '</select></div></div>' +
+        '<div class="pt-g3" id="fx2-val-w" hidden><div class="form-group"><label class="form-label" for="fx2-v">Valor recebido (R$)</label><input class="form-control mono" id="fx2-v" inputmode="decimal"></div>' +
+          '<div class="form-group"><label class="form-label" for="fx2-s">Seguradora</label><input class="form-control" id="fx2-s"></div>' +
+          '<div class="form-group"><label class="form-label" for="fx2-n">Nº do sinistro</label><input class="form-control mono" id="fx2-n"></div></div>' +
+        '<div class="form-group"><label class="form-label" for="fx2-p">Parecer da apuração *</label><textarea class="form-control" id="fx2-p" placeholder="o que foi apurado, responsabilidade, providências"></textarea></div>' +
+        (!perda ? '<div class="pt-dica">' + ptIc('info', 'p') + 'Ressarcimento ou indenização só registra o valor; o recebimento entra no Financeiro. Se o bem não tem mais uso, conclua e peça a baixa.</div>' : ''),
+      aoSalvar: async r => {
+        const v = val(r, '#fx2-v'), valor = v ? parseValor(v) : null
+        await rpc('fn_pat_ocorrencia_concluir', { p_oc: o.id, p: { desfecho: val(r, '#fx2-d'), parecer: val(r, '#fx2-p'), condicao: val(r, '#fx2-c'),
+          valor_brl: valor, seguradora: val(r, '#fx2-s'), sinistro_numero: val(r, '#fx2-n') } })
+        toast('Ocorrência concluída.', 'success'); await carregar(); await abrirOcorrencia(o.id)
+      } })
+    const d = $('fx2-d'); d.onchange = () => { $('fx2-val-w').hidden = !['ressarcido', 'indenizado'].includes(d.value) }
+  }
+
+  function formBaixa(bemId, ocId) {
+    const b = S.bens.find(x => x.id === bemId); if (!b) return
+    const oc = ocId ? S.ocorrencias.find(x => x.id === ocId) : S.ocorrencias.find(x => x.bem_id === bemId && x.situacao !== 'concluida')
+    const extr = b.situacao === 'extraviado'
+    const motivos = extr ? ['furto_roubo', 'extravio_nao_localizado'] : ['inservivel', 'sinistro_perda_total', 'obsolescencia', 'doacao', 'alienacao']
+    abrirForm({
+      titulo: 'Pedir baixa', sub: b.numero + ' · ' + b.descricao, botao: 'Enviar para aprovação',
+      corpo: '<div class="pt-aviso-f al">' + ptIc('alerta', 'p') + '<span>Baixa tira o bem do patrimônio de vez (a depreciação para). Quem aprova, com a senha, é a coordenação ou o super_admin — nunca quem pediu.</span></div>' +
+        '<div class="pt-g2"><div class="form-group"><label class="form-label" for="fb-m">Motivo *</label><select class="form-control" id="fb-m">' +
+          motivos.map(k => '<option value="' + k + '">' + BX_MOT[k] + '</option>').join('') + '</select></div>' +
+        '<div class="form-group"><label class="form-label">Ocorrência ligada</label><input class="form-control mono" value="' + esc(oc ? oc.numero + ' · ' + (OC_TIPO[oc.tipo] || '') : 'nenhuma') + '" disabled></div></div>' +
+        '<div class="form-group" id="fb-dest-w" hidden><label class="form-label" for="fb-d">Para quem vai *</label><input class="form-control" id="fb-d" placeholder="instituição e documento (termo de doação, nota de venda)"></div>' +
+        '<div class="form-group"><label class="form-label" for="fb-j">Justificativa *</label><textarea class="form-control" id="fb-j" placeholder="por que o bem sai do patrimônio; laudo, apuração, decisão"></textarea><div class="pt-dica">Ao menos 30 caracteres. Laudo e outros documentos podem ser anexados no pedido, antes da aprovação.</div></div>',
+      aoSalvar: async r => {
+        const res = await rpc('fn_pat_baixa_pedir', { p: { bem_id: b.id, motivo: val(r, '#fb-m'), justificativa: val(r, '#fb-j'), destino: val(r, '#fb-d'), ocorrencia_id: oc ? oc.id : null } })
+        toast('Pedido ' + res.numero + ' enviado para aprovação.', 'success'); await recarregarFicha(); abrirBaixa(res.baixa_id)
+      },
+    })
+    const m = $('fb-m'); m.onchange = () => { $('fb-dest-w').hidden = !['doacao', 'alienacao'].includes(m.value) }
+  }
+
+  async function abrirBaixa(id) {
+    $('pt-termo-tit').textContent = 'Pedido de baixa'; $('pt-termo-sub').textContent = ''
+    $('pt-termo-corpo').innerHTML = '<div class="pt-carregando">Carregando…</div>'; $('pt-termo-rodape').innerHTML = ''
+    ptAbrir('pt-termo')
+    let x = null; try { x = await rpc('fn_pat_baixa_detalhe', { p_baixa: id }) } catch (e) { x = null }
+    if (!x) { $('pt-termo-corpo').innerHTML = '<div class="pt-aviso-f er">' + ptIc('alerta', 'p') + '<span>Pedido não encontrado ou sem acesso.</span></div>'; return }
+    S.doc = { tipo: 'bx', x }
+    renderBaixa()
+  }
+  function renderBaixa() {
+    const { x } = S.doc, agu = x.situacao === 'aguardando'
+    $('pt-termo-tit').textContent = x.numero + ' · Baixa de ' + x.bem.numero
+    $('pt-termo-sub').innerHTML = selo(x.situacao === 'aprovada' ? 't-aceito' : agu ? 'al' : 'ne', BX_SIT[x.situacao]) + ' <span class="pt-sub">pedido por ' + esc(x.pedido_por_nome) + ' em ' + dtHora(x.pedido_em) + '</span>'
+    $('pt-termo-corpo').innerHTML = '<div id="pt-termo-erro"></div><div class="pt-dados">' +
+      campo('Bem', '<b>' + esc(x.bem.numero) + '</b> ' + esc(x.bem.descricao)) + campo('Série', esc(x.bem.serie)) +
+      campo('Situação do bem', esc(SIT[x.bem.situacao] || x.bem.situacao)) + campo('Condição', esc(COND[x.bem.condicao] || x.bem.condicao)) +
+      campo('Motivo', esc(BX_MOT[x.motivo] || x.motivo)) + campo('Ocorrência', x.ocorrencia ? '<button type="button" class="pt-link" data-acao="oc-num" data-num="' + esc(x.ocorrencia) + '">' + esc(x.ocorrencia) + '</button>' : '') +
+      (x.destino ? campo('Para quem vai', esc(x.destino)) : '') + (x.decidido_em ? campo('Decidido por', esc(x.decidido_por_nome) + ' em ' + dtHora(x.decidido_em)) : '') + '</div>' +
+      '<div class="pt-sec" style="margin-top:14px">Justificativa</div><div class="pt-obs">' + esc(x.justificativa) + '</div>' +
+      (x.parecer ? '<div class="pt-sec">Parecer</div><div class="pt-obs">' + esc(x.parecer) + '</div>' : '') +
+      '<div class="pt-sec">' + ptIc('doc', 'p') + 'Documentos do pedido</div>' +
+      ((x.docs || []).length ? x.docs.map(d => '<div class="pt-doc">' + ptIc('doc', 'p') + '<span class="t"><a href="#" data-arquivo="' + esc(d.url) + '">' + esc(d.nome) + '</a><div class="pt-sub">' + esc(DOC_TIPO[d.tipo] || d.tipo) + '</div></span></div>').join('')
+        : '<p class="pt-sub">Nenhum documento anexado ao pedido.</p>') +
+      (agu && S.pode.gerir ? '<div class="pt-envio"><select class="form-control" id="pt-bx-dtipo" aria-label="Tipo do arquivo"><option value="laudo">Laudo</option><option value="termo">Termo (doação, venda)</option><option value="foto">Foto</option><option value="outro">Outro</option></select>' +
+        '<button type="button" class="pt-btn" data-acao="bx-anexar">' + ptIc('upload', 'p') + 'Anexar ao pedido</button><input type="file" id="pt-bx-arq" accept="image/*,application/pdf" multiple hidden>' +
+        '<span class="pt-sub">Anexar depois de aberto muda o documento: quem for aprovar precisa abrir de novo.</span></div>' : '') +
+      (x.pode_decidir ? '<div class="pt-sec" style="margin-top:16px">' + ptIc('chave', 'p') + 'Decidir com a sua senha</div>' +
+        '<div class="form-group"><label class="form-label" for="pt-bx-par">Parecer (obrigatório para devolver)</label><textarea class="form-control" id="pt-bx-par"></textarea></div>' +
+        '<div class="pt-assina"><div><label class="form-label" for="pt-senha">Senha de entrada na plataforma</label><input class="form-control" type="password" id="pt-senha" autocomplete="current-password"></div>' +
+        '<button type="button" class="pt-btn" data-acao="bx-devolver">Devolver</button><button type="button" class="pt-btn pri" data-acao="bx-aprovar">' + ptIc('assina', 'p') + 'Aprovar a baixa</button></div>' +
+        '<div class="pt-hash" style="margin-top:8px">Documento conferido: SHA-256 ' + esc(x.hash) + '</div>'
+        : agu ? '<div class="pt-aviso-f in" style="margin-top:12px">' + ptIc('relogio', 'p') + '<span>Aguardando a decisão da coordenação ou do super_admin (quem pediu não aprova).</span></div>'
+        : (x.hash_decidido ? '<div class="pt-hash" style="margin-top:12px">Decidido com senha · SHA-256 ' + esc(x.hash_decidido) + '</div>' : ''))
+    $('pt-termo-rodape').innerHTML = '<span class="esq">' + (agu && (x.pedido_por === S.eu || S.pode.coord) ? '<button type="button" class="pt-btn perigo" data-acao="bx-cancelar">Cancelar pedido</button>' : '') + '</span>'
+  }
+  async function anexarBaixa(files) {
+    const { x } = S.doc, tipo = $('pt-bx-dtipo').value
+    let ok = 0
+    for (const f0 of files) {
+      try {
+        const f = tipo === 'foto' ? await reduzirImagem(f0) : f0
+        const url = await enviarArquivo('bens/' + x.bem.id + '/bx-' + Date.now() + '-' + nomeSeguro(f.name), f)
+        await rpc('fn_pat_anexar_vinculo', { p_tipo: tipo, p_url: url, p_nome: f0.name, p_tamanho: f.size, p_ocorrencia: null, p_baixa: x.id })
+        ok++
+      } catch (e) { toast(f0.name + ': ' + erroMsg(e), 'error') }
+    }
+    if (ok) { toast(ok + ' arquivo(s) anexado(s).', 'success'); await abrirBaixa(x.id) }
+  }
+  async function decidirBaixa(decisao) {
+    const { x } = S.doc, senha = $('pt-senha')?.value || '', parecer = ($('pt-bx-par')?.value || '').trim()
+    const erro = m => { $('pt-termo-erro').innerHTML = '<div class="pt-aviso-f er">' + ptIc('alerta', 'p') + '<span>' + esc(m) + '</span></div>'; $('pt-termo-corpo').scrollTop = 0 }
+    if (!senha) { erro('Digite a sua senha.'); return }
+    if (decisao === 'devolver' && parecer.length < 10) { erro('Para devolver, escreva o parecer (ao menos 10 caracteres).'); return }
+    const bts = $('pt-termo').querySelectorAll('button'); bts.forEach(b => b.disabled = true)
+    try {
+      const { data: { session } } = await db.auth.getSession()
+      const r = await fetch(SUPABASE_URL + '/functions/v1/patrimonio-termo', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || ''), apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ acao: 'decidir_baixa', baixa_id: x.id, decisao, motivo: parecer || null, hash: x.hash, senha }) })
+      const j = await r.json().catch(() => ({}))
+      if (!j.ok) {
+        const e = String(j.erro || '')
+        if (e === 'SENHA_INVALIDA') erro('Senha incorreta.')
+        else if (e === 'SENHA_BLOQUEADA') erro('Muitas tentativas com senha errada. Tente de novo depois de ' + dtHora(j.bloqueado_ate) + '.')
+        else if (e.includes('DOCUMENTO_ALTERADO')) { toast('O pedido mudou desde que você abriu. Confira de novo.', 'warning'); await abrirBaixa(x.id); return }
+        else erro(erroMsg(e))
+        return
+      }
+      toast(decisao === 'aprovar' ? 'Baixa aprovada. O bem saiu do patrimônio.' : 'Pedido devolvido a quem pediu.', 'success')
+      await carregar(); await abrirBaixa(x.id)
+    } catch (e) { erro(erroMsg(e)) } finally { bts.forEach(b => b.disabled = false); const s = $('pt-senha'); if (s) s.value = '' }
+  }
+  function formCancelarBaixa() {
+    const { x } = S.doc
+    abrirForm({ titulo: 'Cancelar pedido de baixa', sub: x.numero, botao: 'Cancelar pedido', perigo: true,
+      corpo: '<div class="form-group"><label class="form-label" for="fcb-m">Motivo</label><input class="form-control" id="fcb-m"></div>',
+      aoSalvar: async r => { await rpc('fn_pat_baixa_cancelar', { p_baixa: x.id, p_motivo: val(r, '#fcb-m') }); toast('Pedido cancelado.', 'success'); await carregar(); await abrirBaixa(x.id) } })
+  }
+
   // ── Delegação de cliques ──────────────────────────────────────────────────
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-acao]'); if (!el) return
@@ -1443,6 +1707,22 @@
       case 'termo-recusar-ok': decidirTermo('recusar'); break
       case 'termo-cancelar': formCancelarTermo(); break
       case 'termo-imprimir': imprimirTermo(); break
+      case 'ocorrencia-um': formOcorrencia(S.ficha.id); break
+      case 'ocorrencia-bem': formOcorrencia(el.dataset.id); break
+      case 'baixa-um': formBaixa(S.ficha.id); break
+      case 'oc': abrirOcorrencia(el.dataset.id); break
+      case 'oc-num': { const o = S.ocorrencias.find(x => x.numero === el.dataset.num); if (o) abrirOcorrencia(o.id); break }
+      case 'oc-num-ficha': { const o = S.ocorrencias.find(x => x.numero === S.ficha.ocorrencia_aberta); if (o) abrirOcorrencia(o.id); break }
+      case 'oc-anexar': { const inp = $('pt-oc-arq'); inp.value = ''; inp.onchange = () => { if (inp.files.length) anexarOcorrencia([...inp.files]) }; inp.click(); break }
+      case 'oc-apurar': formApurar(); break
+      case 'oc-concluir': formConcluirOc(); break
+      case 'oc-baixa': formBaixa(S.doc.o.bem_id, S.doc.o.id); break
+      case 'bx': abrirBaixa(el.dataset.id); break
+      case 'bx-num': { const x = S.baixas.find(y => y.numero === el.dataset.num); if (x) abrirBaixa(x.id); break }
+      case 'bx-anexar': { const inp = $('pt-bx-arq'); inp.value = ''; inp.onchange = () => { if (inp.files.length) anexarBaixa([...inp.files]) }; inp.click(); break }
+      case 'bx-aprovar': decidirBaixa('aprovar'); break
+      case 'bx-devolver': decidirBaixa('devolver'); break
+      case 'bx-cancelar': formCancelarBaixa(); break
     }
   })
 })()

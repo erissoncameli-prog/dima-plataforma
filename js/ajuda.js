@@ -1068,8 +1068,20 @@ Object.assign(AJUDA, {
         '"Mandar para manutenção" registra a oficina, o defeito e a previsão; "Registrar volta" registra o serviço, a condição e o custo (o pagamento, se houver, é lançado no Financeiro).',
         'Movimento registrado por engano se corrige com outro movimento (por exemplo, transferir de volta), nunca apagando.',
       ]},
+      { titulo: 'Ocorrências e sinistros', itens: [
+        'Avaria, defeito, mau uso, extravio, furto, roubo ou sinistro (incêndio, alagamento, acidente): o gestor registra pela ficha do bem (Movimentar) e quem guarda o bem comunica em Meus bens.',
+        'Furto ou roubo exige o número do boletim de ocorrência. Extravio, furto e roubo deixam o bem "extraviado" até o desfecho.',
+        'O gestor patrimonial recebe a tarefa "Tratar ocorrência", anexa o boletim, o laudo e as fotos, inicia a apuração e conclui com o desfecho: reparado, ressarcido, indenizado pelo seguro ou arquivada (sem dano). Bem extraviado só sai como "localizado" ou por baixa.',
+        'Ressarcimento e indenização só registram o valor recebido; o recebimento é lançado no Financeiro.',
+      ]},
+      { titulo: 'Baixa (o bem sai do patrimônio)', itens: [
+        'Pedir baixa é do gestor patrimonial ou da coordenação, com justificativa de ao menos 30 caracteres. Só vai para baixa bem em estoque (devolvido) ou extraviado.',
+        'Motivos: inservível, perda total por sinistro, furto ou roubo, extravio não localizado (estes três exigem a ocorrência), obsolescência, doação ou alienação (dizendo para quem vai).',
+        'Quem aprova é a coordenação ou o super_admin, com a senha — nunca quem pediu. A tarefa vai para o titular da coordenação. Aprovar ou devolver fica registrado com a impressão digital do pedido; laudo anexado depois muda o pedido e quem aprova precisa abrir de novo.',
+        'Aprovada a baixa, a depreciação para no mês, o bem sai das listas do patrimônio ativo (continua consultável) e a ocorrência ligada é concluída.',
+      ]},
       { titulo: 'O que vem depois', itens: [
-        'Próximas fases: ocorrências, sinistros e baixa com aprovação; inventário pelo celular lendo o QR; relatórios A4.',
+        'Próximas fases: inventário pelo celular lendo o QR; relatórios A4 e regras do auditor.',
       ]},
     ]
   }},

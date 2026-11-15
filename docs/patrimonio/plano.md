@@ -421,3 +421,16 @@ contrato 4500574049 foi passada a ele (Elielton ficou como observador).
   pelo gestor, que confere; movimentos não se estornam (corrige-se com outro movimento); avisos por tarefa (sem tipo novo no sino).
 - Testes: `supabase/tests/patrimonio/30_guarda.sql` (aceite com hash, recusa, cancelamento, transferência, empréstimo e devolução,
   local, manutenção, leitura por perfil).
+
+---
+
+## 15. Fase 3 — o que foi entregue (17/11/2026)
+
+- Migração `20261117_pat_03_ocorrencias` (aplicada) + `20261117_pat_03_ropa` (TRAT-006 com as tabelas das fases 2 e 3, aplicada à parte).
+- Ocorrências (`pat_ocorrencias`): registro pelo gestor ou por quem guarda o bem; BO obrigatório em furto/roubo; extravio/furto/roubo
+  deixam o bem "extraviado"; tarefa "Tratar ocorrência" para o gestor; apuração e desfecho com parecer; ressarcimento/indenização só
+  registram o valor (seguradora e nº do sinistro, sem cadastro de apólice — D6).
+- Baixa (`pat_baixas`): pedido com justificativa e documentos; aprovação ou devolução com senha pela coordenação/super_admin que não pediu
+  (Edge Function `patrimonio-termo`, ação `decidir_baixa`); aprovada ⇒ bem baixado, depreciação para, ocorrência ligada concluída.
+- Tela: aba "Ocorrências e baixas", "Registrar ocorrência"/"Pedir baixa" na ficha, "Comunicar ocorrência" em Meus bens, janelas com
+  anexos e decisão com senha. Testes: `supabase/tests/patrimonio/40_ocorrencias.sql`.
