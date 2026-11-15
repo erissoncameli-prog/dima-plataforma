@@ -20,3 +20,5 @@ PSQL=(psql -h "$TMP" -p "$PORTA" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -
 "${PSQL[@]}" -f "$DIR/00_stub.sql"
 "${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261115_pat_01_cadastro.sql"
 "${PSQL[@]}" -f "$DIR/10_testes.sql"
+"${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261116_pat_02_guarda.sql"
+"${PSQL[@]}" -f "$DIR/30_guarda.sql"

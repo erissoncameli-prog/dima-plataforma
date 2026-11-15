@@ -608,8 +608,19 @@ testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js
   218BRA2002 não é erro. Não escrever número de projeto fixo em etiqueta nem em regra.
 - **Etiquetas**: A4 3 × 7 (63,5 × 38,1 mm) com QR de `patrimonio.html?bem=PAT-…` (sem valor, nome de pessoa nem nº de projeto). É a
   **única impressão fora do molde FolhaA4** (folha adesiva não leva cabeçalho/rodapé). Relatórios do patrimônio (Fase 5) usam FolhaA4.
-- ROPA: TRAT-006. Próximas fases: termo de responsabilidade com senha, empréstimo, manutenção, ocorrências/sinistros, baixa
-  com aprovação, inventário por QR, relatórios e auditor (`fn_auditoria_patrimonio`, título "Patrimônio: …").
+- **Guarda (Fase 2, migração `20261116_pat_02_guarda`, testes `30_guarda.sql`)**: `pat_termos` (TR-AAAA-NNNN; `responsabilidade` |
+  `emprestimo` com `devolver_ate` ≤ 1 ano) + `pat_termo_itens` (só inclusão). Gestor cria (`fn_pat_termo_criar`) ⇒ tarefa "Aceitar termo"
+  (`entidade_tipo='pat_termo'`) para a pessoa indicada; **só ela aceita/recusa, com a senha**, pela Edge Function **`patrimonio-termo`**
+  (mesmo bloqueio `fn_rem_senha_bloqueada_ate`) → `fn_pat_termo_decidir` (só service_role; hash `fn_pat_termo_hash` = termo + bens ao
+  vivo, mudou ⇒ `DOCUMENTO_ALTERADO`). Só o aceite muda responsável/local (eventos `distribuicao`/`transferencia_interna`/`emprestimo`;
+  sem início de uso ⇒ começa no aceite). Recusa ⇒ tarefa para o gestor. Empréstimo aceito ⇒ tarefa "Devolver" com o prazo
+  (`pat_termo_devolucao`); `fn_pat_devolver` (gestor confere condição e local) conclui. Bem em termo pendente não se movimenta
+  (`fn_pat_bem_em_termo`). Sem termo: `fn_pat_mudar_local` (só local) e `fn_pat_manutencao_saida/_retorno` (volta à situação anterior;
+  custo só registro). Movimento não se estorna: corrige-se com outro movimento. Quem guarda vê o próprio bem (policy
+  `pat_bens_responsavel`, aba "Meus bens", inclusive consultor externo); termo legível pelo indicado (`fn_pat_termo_detalhe`).
+  Termo impresso pela FolhaA4 (`imprimirTermo`, selo `data-tema="patrimonio"`).
+- ROPA: TRAT-006. Próximas fases: ocorrências/sinistros, baixa com aprovação, inventário por QR, relatórios e auditor
+  (`fn_auditoria_patrimonio`, título "Patrimônio: …").
 
 ### Diagnóstico Socioambiental — app de campo (⚠️ ler antes de mexer em `diag_*`)
 
@@ -1429,6 +1440,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`) e a do pedido de acesso à API (`acao:'decidir_api'` → `fn_api_pedido_decidir`, só super_admin); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 | `publico-capa` | Capa (JPEG do bucket privado `acervo-capas`) de produto marcado como público no Acervo, para a Galeria do site público; só entrega o que `fn_publico_capa_caminho` libera (service_role), 404 no resto. O site chama com a chave anon no cabeçalho (`fetch` → blob) | ✅ |
 | `publico-produto` | Documento (PDF do bucket privado de entregas) de produto marcado como público no Acervo, para o visualizador da Galeria do site público; só entrega o que `fn_publico_arquivo_caminho` libera (service_role), 404 no resto; `Content-Disposition` com nome genérico. Chamada com a chave anon no cabeçalho | ✅ |
+| `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`, só service_role); mesmo bloqueio por tentativas do remanejamento | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---

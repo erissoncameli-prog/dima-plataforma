@@ -1053,8 +1053,23 @@ Object.assign(AJUDA, {
         'Imprima em tamanho real (100%). Para aproveitar uma folha já usada, escolha a posição inicial.',
         'O QR leva à ficha do bem (é preciso entrar na plataforma). A etiqueta não tem valor nem nome de pessoa.',
       ]},
+      { titulo: 'Quem guarda o bem (termo)', itens: [
+        'Para entregar um bem a alguém, o gestor faz um termo: marque os bens na lista (ou abra a ficha) e use "Entregar com termo". Escolha quem recebe e onde o bem vai ficar.',
+        'A pessoa indicada recebe uma tarefa, confere os bens em Patrimônio › Meus bens e aceita com a própria senha. Só depois do aceite o bem muda de mãos.',
+        'Se algo não confere, ela recusa explicando o motivo: os bens ficam onde estavam e o gestor recebe uma tarefa para rever.',
+        'Termo aguardando aceite pode ser cancelado pelo gestor. Enquanto isso, os bens dele não se movimentam.',
+        'Trocar de responsável é um termo novo (transferência). O termo aceito pode ser impresso em A4, com o registro do aceite eletrônico.',
+        'O bem que ainda não tinha início de uso começa a depreciar no dia do aceite.',
+      ]},
+      { titulo: 'Empréstimo, devolução, local e manutenção', itens: [
+        'Empréstimo é um termo com data para devolver (até um ano). Quem recebe ganha a tarefa "Devolver bens emprestados" com esse prazo; empréstimo vencido aparece nos avisos do Painel.',
+        'A devolução é registrada pelo gestor, que confere a condição de cada bem e diz onde ele fica guardado. O bem volta ao estoque e a tarefa de devolução se conclui.',
+        '"Mudar de local" muda só o lugar, sem trocar o responsável (não precisa de termo).',
+        '"Mandar para manutenção" registra a oficina, o defeito e a previsão; "Registrar volta" registra o serviço, a condição e o custo (o pagamento, se houver, é lançado no Financeiro).',
+        'Movimento registrado por engano se corrige com outro movimento (por exemplo, transferir de volta), nunca apagando.',
+      ]},
       { titulo: 'O que vem depois', itens: [
-        'Próximas fases: termo de responsabilidade com aceite por senha, empréstimos e manutenção; ocorrências, sinistros e baixa com aprovação; inventário pelo celular lendo o QR; relatórios A4.',
+        'Próximas fases: ocorrências, sinistros e baixa com aprovação; inventário pelo celular lendo o QR; relatórios A4.',
       ]},
     ]
   }},

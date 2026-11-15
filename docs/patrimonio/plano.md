@@ -406,3 +406,18 @@ linha de financiamento usada — não é erro. Por isso a etiqueta não leva nú
 
 **Gestor patrimonial** (15/11/2026): Italo do O Ferreira (coordenação), com o acesso `patrimonio_gestor`; a tarefa do
 contrato 4500574049 foi passada a ele (Elielton ficou como observador).
+
+---
+
+## 14. Fase 2 — o que foi entregue (16/11/2026)
+
+- Migração `20261116_pat_02_guarda` (aplicada): `pat_termos` + `pat_termo_itens`, `fn_pat_termo_criar/_detalhe/_cancelar`,
+  `fn_pat_termo_decidir` (só service_role), `fn_pat_devolver`, `fn_pat_mudar_local`, `fn_pat_manutencao_saida/_retorno`;
+  `vw_pat_bens` ganhou `termo_pendente`, `devolver_ate` e `termo_vigente`; quem guarda vê o próprio bem.
+- Edge Function nova `patrimonio-termo` (aceite/recusa com senha; não mexe na `assinar-remanejamento`).
+- Tela: abas **Meus bens** (termos para aceitar + bens sob a guarda; único acesso de quem não vê o catálogo) e **Termos**
+  (gestor); janela do termo (conferir, aceitar/recusar com senha, cancelar, imprimir A4); "Movimentar" na ficha; ações em lote na lista.
+- Decisões de desenho: empréstimo só para quem tem acesso à plataforma (aceita com a própria senha); a devolução é registrada
+  pelo gestor, que confere; movimentos não se estornam (corrige-se com outro movimento); avisos por tarefa (sem tipo novo no sino).
+- Testes: `supabase/tests/patrimonio/30_guarda.sql` (aceite com hash, recusa, cancelamento, transferência, empréstimo e devolução,
+  local, manutenção, leitura por perfil).

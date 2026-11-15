@@ -39,6 +39,7 @@
 
 /* Cor do selo do tema na folha (valores claros: a folha é sempre clara) */
 .doc-header-badge[data-tema="financeiro"] { background: #A86200; }
+.doc-header-badge[data-tema="patrimonio"] { background: #7E22CE; }
 .doc-header-badge[data-tema="contratos"] { background: #1F5FBF; }
 .doc-header-badge[data-tema="fornecedores"] { background: #24704A; }
 .doc-header-badge[data-tema="produtos"] { background: #0E7490; }
