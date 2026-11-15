@@ -453,3 +453,17 @@ contrato 4500574049 foi passada a ele (Elielton ficou como observador).
 - Fica para a Fase 6: inventário de encerramento + Termo de Transferência/Doação (Pt9); planilha Excel do Pt1/Pt3; guia "Fazer inventário"
   no Aprender a usar.
 
+---
+
+## 17. Fotos e placas — o que foi entregue (20/11/2026)
+
+Decisões do usuário (20/11/2026): foto **obrigatória no cadastro**; 3 posições com nome; mesma página no celular (sem aplicativo
+offline — não há inventário nas APAs); placa **adesiva de 6 × 8 cm** em folha A4.
+- Migração `20261120_pat_06_fotos` (aplicada): posições `frente` (obrigatória, capa), `placa`, `detalhe` em `pat_documentos.slot`;
+  entrada exige a de frente; troca guarda a antiga; quem guarda o bem e a comissão do inventário também fotografam; ocorrência com até
+  3 fotos no registro. Testes `supabase/tests/patrimonio/70_fotos.sql`.
+- Tela: quadro de 3 fotos na entrada (por item), na ficha e no inventário (oferecido após conferir); fotos no formulário da ocorrência;
+  foto sempre refeita no aparelho (sem GPS/EXIF).
+- Placas: 6 × 8 em pé (9 por A4 inteira, marcas de corte) como padrão; 8 × 6 deitada; pré-cortada 99,1 × 67,7 (8/folha); pequena
+  63,5 × 38,1 (21/folha); medidas livres; folha de teste. Recomendação de material: vinil adesivo para bens de campo.
+

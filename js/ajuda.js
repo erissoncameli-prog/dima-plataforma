@@ -1073,12 +1073,26 @@ Object.assign(AJUDA, {
         'Furto ou roubo exige o número do boletim de ocorrência. Extravio, furto e roubo deixam o bem "extraviado" até o desfecho.',
         'O gestor patrimonial recebe a tarefa "Tratar ocorrência", anexa o boletim, o laudo e as fotos, inicia a apuração e conclui com o desfecho: reparado, ressarcido, indenizado pelo seguro ou arquivada (sem dano). Bem extraviado só sai como "localizado" ou por baixa.',
         'Ressarcimento e indenização só registram o valor recebido; o recebimento é lançado no Financeiro.',
+        'No registro da ocorrência dá para pôr até 3 fotos (o dano, o local). Boletim, laudo e outros documentos são anexados depois, sem limite.',
       ]},
       { titulo: 'Baixa (o bem sai do patrimônio)', itens: [
         'Pedir baixa é do gestor patrimonial ou da coordenação, com justificativa de ao menos 30 caracteres. Só vai para baixa bem em estoque (devolvido) ou extraviado.',
         'Motivos: inservível, perda total por sinistro, furto ou roubo, extravio não localizado (estes três exigem a ocorrência), obsolescência, doação ou alienação (dizendo para quem vai).',
         'Quem aprova é a coordenação ou o super_admin, com a senha — nunca quem pediu. A tarefa vai para o titular da coordenação. Aprovar ou devolver fica registrado com a impressão digital do pedido; laudo anexado depois muda o pedido e quem aprova precisa abrir de novo.',
         'Aprovada a baixa, a depreciação para no mês, o bem sai das listas do patrimônio ativo (continua consultável) e a ocorrência ligada é concluída.',
+      ]},
+      { titulo: 'Fotos do bem', itens: [
+        'Cada bem tem 3 fotos: frente (obrigatória, vira a capa), placa ou nº de série e detalhe ou conjunto. Sem a foto de frente o sistema não deixa cadastrar o bem.',
+        'Na entrada, cada item do formulário tem o quadro das 3 fotos. No celular, clicar numa posição abre a câmera ou a galeria. Um item com várias unidades usa as mesmas fotos em todas as fichas; depois dá para trocar na ficha de cada uma.',
+        'Depois, na ficha (aba Fotos e arquivos), clique numa posição para tirar ou trocar a foto. Quem pode: o gestor patrimonial, quem guarda o bem e a comissão de um inventário aberto. A foto trocada sai do quadro mas fica guardada no histórico; a de frente nunca fica vazia.',
+        'No inventário, ao conferir um bem que não tem as 3 fotos, o celular oferece fotografar na hora. Dá para pular.',
+        'Toda foto é reduzida no próprio aparelho antes de enviar, o que também apaga os dados escondidos do arquivo (localização, modelo do celular).',
+      ]},
+      { titulo: 'Placas com QR', itens: [
+        'O botão "Etiqueta" (na ficha ou com os bens marcados na lista) abre as placas para imprimir. Cada placa traz o QR, o número PAT, a descrição, a série e "SEMA/AC · Fundo Brasil-ONU"; nunca valor nem nome de pessoa.',
+        'Placa padrão: 6 × 8 cm em pé, 9 por folha A4 adesiva inteira, cortada nas marcas. Também há a placa deitada 8 × 6 cm (8 por folha), a etiqueta pré-cortada 99,1 × 67,7 mm (8 por folha, Avery L7165 e equivalentes) e a etiqueta pequena 63,5 × 38,1 mm (21 por folha) para bens pequenos. Outra folha: escolha "Outra folha" e digite as medidas da embalagem.',
+        'Imprima sempre em tamanho real (100%). Antes de gastar a folha adesiva, use "Folha de teste" em papel comum e confira o alinhamento contra a luz. Para bem que vai a campo, prefira vinil adesivo.',
+        'Folha já começada: use "Começar na posição" para pular as que já foram usadas.',
       ]},
       { titulo: 'Inventário', itens: [
         'O gestor abre o inventário em Patrimônio › Inventários: dá um título, escolhe os locais (nenhum = todos) e a comissão, com ao menos 2 pessoas (a primeira preside). Nesse momento o sistema guarda a lista dos bens esperados em cada local.',

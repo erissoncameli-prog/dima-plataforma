@@ -77,6 +77,8 @@
   const BX_SIT = { aguardando: 'Aguardando aprovação', aprovada: 'Aprovada', devolvida: 'Devolvida', cancelada: 'Cancelada' }
   const TERMO_SIT = { aguardando_aceite: 'Aguardando aceite', aceito: 'Aceito', recusado: 'Recusado', cancelado: 'Cancelado' }
   const TERMO_TIPO = { responsabilidade: 'Termo de responsabilidade', emprestimo: 'Termo de empréstimo' }
+  const FOTO_SLOT = { frente: 'Frente', placa: 'Placa ou nº de série', detalhe: 'Detalhe ou conjunto' }
+  const FOTO_DICA = { frente: 'obrigatória · vira a capa', placa: 'etiqueta do fabricante, série', detalhe: 'acessórios, estado, conjunto' }
   const DOC_TIPO = { foto: 'Foto', laudo: 'Laudo', garantia: 'Termo de garantia', manual: 'Manual', termo: 'Termo', bo: 'Boletim de ocorrência', outro: 'Outro' }
 
   // ── Estado ────────────────────────────────────────────────────────────────
@@ -741,7 +743,7 @@
     const q = $('pt-inv-q'); if (q) q.oninput = () => { U.q = q.value; const p = q.selectionStart; renderInventario(); const n = $('pt-inv-q'); n.focus(); n.setSelectionRange(p, p) }
     const sl = $('pt-inv-local'); if (sl) sl.onchange = () => { U.local = sl.value; if (U.alvo) renderAlvo() }
     const nu = $('pt-inv-numero'); if (nu) nu.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); procurarInv(nu.value) } }
-    if (U.alvo) renderAlvo()
+    if (U.alvo) renderAlvo(); else if (U.fotoBem) renderFotoInv()
     $('pt-inv-rodape').innerHTML = '<span class="esq">' +
       (S.pode.gerir && ['em_andamento', 'em_assinatura'].includes(v.situacao) ? '<button type="button" class="pt-btn perigo" data-acao="inv-cancelar">Cancelar inventário</button>' : '') + '</span>' +
       '<button type="button" class="pt-btn" data-acao="inv-imprimir">' + ptIc('imprimir', 'p') + 'Relatório (A4)</button>' +
@@ -814,9 +816,32 @@
       U.alvo = null; U.cond = null; U.obs = ''
       invErro('')
       await recarregarInventario()
+      // bem sem as 3 fotos: aproveita que está com ele na mão (a câmera de leitura pausa enquanto isso)
+      const { data: fts } = await db.from('pat_documentos').select('slot').eq('bem_id', r.bem_id).eq('ativo', true).not('slot', 'is', null)
+      const falta = fts ? ['frente', 'placa', 'detalhe'].filter(k => !fts.some(x => x.slot === k)) : []
+      if (falta.length) { U.fotoBem = { id: r.bem_id, numero: r.numero, falta }; renderFotoInv(); return }
       if (U.cam) iniciarCamera()   // segue lendo o próximo
       else $('pt-inv-numero')?.focus()
     } catch (e) { invErro(erroMsg(e)); if (b) b.disabled = false }
+  }
+
+  function renderFotoInv() {
+    const U = S.invUi, F = U.fotoBem, box = $('pt-inv-alvo'); if (!box || !F) return
+    box.innerHTML = '<div class="pt-inv-alvo"><div class="t"><b>' + esc(F.numero) + ' conferido.</b><span>Faltam ' + F.falta.length + ' de 3 fotos deste bem. Aproveite para fotografar agora:</span></div>' +
+      '<div class="pt-fslots">' + F.falta.map(k => fotoSlot(k, '', 'data-invfoto="' + k + '"', { editar: true })).join('') + '</div>' +
+      '<div class="pt-inv-alvo-b"><button type="button" class="pt-btn" data-acao="inv-foto-pular">Pular as fotos</button></div></div>'
+    box.querySelectorAll('input[data-invfoto]').forEach(inp => inp.onchange = async () => {
+      const f0 = inp.files[0]; if (!f0) return
+      const slot = inp.dataset.invfoto, c = inp.closest('.pt-fslot'); c.classList.add('enviando')
+      try { await definirFoto(F.id, slot, f0); F.falta = F.falta.filter(k => k !== slot); toast('Foto salva.', 'success') }
+      catch (er) { invErro(erroMsg(er)); c.classList.remove('enviando'); return }
+      if (F.falta.length) renderFotoInv(); else fimFotoInv()
+    })
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }
+  function fimFotoInv() {
+    const U = S.invUi; U.fotoBem = null; const box = $('pt-inv-alvo'); if (box) box.innerHTML = ''
+    if (U.cam) iniciarCamera(); else $('pt-inv-numero')?.focus()
   }
 
   // ── Câmera: BarcodeDetector quando existe; senão jsQR (js/vendor, carregado no 1º uso) ──
@@ -843,7 +868,7 @@
       const passo = async t => {
         if (!camStream || !U.cam) return
         camLoop = requestAnimationFrame(passo)
-        if (t - ult < 220 || vid.readyState < 2 || U.alvo) return
+        if (t - ult < 220 || vid.readyState < 2 || U.alvo || U.fotoBem) return
         ult = t
         let txt = null
         try {
@@ -1050,21 +1075,30 @@
   }
 
   function fichaArquivos(b, G) {
-    const fotos = S.docs.filter(d => d.tipo === 'foto'), outros = S.docs.filter(d => d.tipo !== 'foto')
-    return '<div class="pt-sec">' + ptIc('camera', 'p') + 'Fotos</div>' +
-      (fotos.length ? '<div class="pt-fotos">' + fotos.map(f => '<div class="pt-foto"><img alt="Foto do bem ' + esc(b.numero) + '" data-arquivo-src="' + esc(f.url) + '" data-acao="foto" data-url="' + esc(f.url) + '">' +
-        (G ? '<button type="button" class="rm" data-acao="rm-doc" data-id="' + esc(f.id) + '" aria-label="Tirar foto">' + ptIc('x', 'p') + '</button>' : '') + '</div>').join('') + '</div>'
-        : '<p class="pt-sub">Nenhuma foto.</p>') +
+    const doSlot = k => S.docs.find(d => d.tipo === 'foto' && d.slot === k)
+    const soltas = S.docs.filter(d => d.tipo === 'foto' && !d.slot && !d.ocorrencia_id && !d.baixa_id)
+    const deOc = S.docs.filter(d => d.tipo === 'foto' && (d.ocorrencia_id || d.baixa_id))
+    const outros = S.docs.filter(d => d.tipo !== 'foto')
+    const pode = ativo(b) && (G || b.responsavel_id === S.eu)
+    return '<div class="pt-sec">' + ptIc('camera', 'p') + 'Fotos do bem<span class="pt-sub">' + (['frente', 'placa', 'detalhe'].filter(doSlot).length) + ' de 3</span></div>' +
+      '<div class="pt-fslots">' + ['frente', 'placa', 'detalhe'].map(k => { const d = doSlot(k)
+        return fotoSlot(k, d?.url, 'data-ffoto="' + k + '"', { editar: pode, exigir: true,
+          extra: d ? '<span class="pt-fslot-a"><button type="button" class="pt-link" data-acao="foto" data-url="' + esc(d.url) + '">Ampliar</button>' +
+            (G && k !== 'frente' ? ' · <button type="button" class="pt-link" data-acao="rm-doc" data-id="' + esc(d.id) + '">Tirar</button>' : '') + '</span>' : '' }) }).join('') + '</div>' +
+      (pode ? '<p class="pt-sub" style="margin-top:6px">Clique numa posição para tirar ou trocar a foto. A foto antiga sai do quadro, mas fica guardada no histórico. A de frente não pode ficar vazia.</p>' : '') +
+      (soltas.length ? '<div class="pt-sub" style="margin-top:10px">Fotos anteriores ao quadro</div><div class="pt-fotos">' + soltas.map(f => '<div class="pt-foto"><img alt="Foto do bem ' + esc(b.numero) + '" data-arquivo-src="' + esc(f.url) + '" data-acao="foto" data-url="' + esc(f.url) + '">' +
+        (G ? '<button type="button" class="rm" data-acao="rm-doc" data-id="' + esc(f.id) + '" aria-label="Tirar foto">' + ptIc('x', 'p') + '</button>' : '') + '</div>').join('') + '</div>' : '') +
+      (deOc.length ? '<div class="pt-sub" style="margin-top:10px">Fotos de ocorrências e baixas</div><div class="pt-fotos">' + deOc.map(f => '<div class="pt-foto"><img alt="Foto de ocorrência" data-arquivo-src="' + esc(f.url) + '" data-acao="foto" data-url="' + esc(f.url) + '"></div>').join('') + '</div>' : '') +
       '<div class="pt-sec">' + ptIc('doc', 'p') + 'Documentos</div>' +
       (outros.length ? outros.map(d => '<div class="pt-doc">' + ptIc('doc', 'p') + '<span class="t"><a href="#" data-arquivo="' + esc(d.url) + '">' + esc(d.nome) + '</a>' +
         '<div class="pt-sub">' + esc(DOC_TIPO[d.tipo] || d.tipo) + ' · ' + dtHora(d.enviado_em) + '</div></span>' +
         (G ? '<button type="button" class="pt-btn peq" data-acao="rm-doc" data-id="' + esc(d.id) + '">Tirar</button>' : '') + '</div>').join('')
         : '<p class="pt-sub">Nenhum documento além da nota fiscal (que fica na aba Dados).</p>') +
       (G ? '<div class="pt-envio"><select class="form-control" id="pt-doc-tipo" aria-label="Tipo do arquivo">' +
-        Object.keys(DOC_TIPO).map(k => '<option value="' + k + '">' + DOC_TIPO[k] + '</option>').join('') + '</select>' +
+        Object.keys(DOC_TIPO).filter(k => k !== 'foto').map(k => '<option value="' + k + '">' + DOC_TIPO[k] + '</option>').join('') + '</select>' +
         '<button type="button" class="pt-btn pri" data-acao="enviar-doc">' + ptIc('upload', 'p') + 'Enviar arquivo</button>' +
         '<input type="file" id="pt-doc-arq" accept="image/*,application/pdf" multiple hidden>' +
-        '<span class="pt-sub">Fotos (JPG, PNG) ou PDF, até 20 MB. Arquivo enviado não se apaga: “Tirar” só esconde e registra o motivo.</span></div>' : '')
+        '<span class="pt-sub">Laudo, garantia, manual (PDF ou imagem), até 20 MB. As fotos do bem ficam no quadro acima. Arquivo enviado não se apaga: “Tirar” só esconde e registra o motivo.</span></div>' : '')
   }
 
   function descrEvento(e) {
@@ -1268,16 +1302,30 @@
 
   // ── Arquivos (bucket privado patrimonio-docs) ─────────────────────────────
   const LIMITE = 20 * 1024 * 1024
+  // Toda foto é refeita no navegador (≤ 1600 px, JPEG): fica leve e perde os dados escondidos do
+  // arquivo (GPS, aparelho, data). Formato que o navegador não lê (ex.: HEIC fora do iPhone) é recusado.
   async function reduzirImagem(f) {
-    if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 900 * 1024) return f
+    if (!/^image\//.test(f.type || '')) return f
     try {
       const bmp = await createImageBitmap(f)
       const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height))
       const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k)
       c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height)
       const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.85))
-      return blob && blob.size < f.size ? new File([blob], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : f
-    } catch (e) { return f }
+      if (!blob) throw new Error('sem imagem')
+      return new File([blob], (f.name || 'foto').replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
+    } catch (e) { throw new Error('PAT_ARQUIVO: não foi possível ler esta foto. Use JPG ou PNG (ou tire a foto pela câmera).') }
+  }
+  // quadro de fotos: cada posição é um <label> com o seletor de arquivo (no celular abre câmera ou galeria)
+  function fotoSlot(slot, src, attrs, opt) {
+    opt = opt || {}
+    const img = src ? (opt.local ? '<img alt="" src="' + esc(src) + '">' : '<img alt="" data-arquivo-src="' + esc(src) + '">') : ''
+    return '<div class="pt-fslot' + (src ? ' tem' : '') + (slot === 'frente' && !src && opt.exigir ? ' falta' : '') + '">' +
+      (opt.editar ? '<label class="pt-fslot-c">' : '<div class="pt-fslot-c">') +
+        (img || '<span class="vz">' + ptIc('camera') + '<span>' + (opt.editar ? 'Tirar ou escolher' : 'Sem foto') + '</span></span>') +
+        (opt.editar ? '<input type="file" accept="image/*" class="pt-fin" aria-label="' + esc((FOTO_SLOT[slot] || 'Foto') + ': tirar ou escolher foto') + '" ' + attrs + '></label>' : '</div>') +
+      '<div class="pt-fslot-t"><b>' + esc(FOTO_SLOT[slot] || slot) + (slot === 'frente' && opt.exigir ? ' *' : '') + '</b><span>' + esc(FOTO_DICA[slot] || '') + '</span>' +
+      (opt.extra || '') + '</div></div>'
   }
   async function enviarArquivo(caminho, f) {
     if (f.size > LIMITE) throw new Error('PAT_ARQUIVO: arquivo maior que 20 MB')
@@ -1299,6 +1347,20 @@
     }
     if (ok) { toast(ok + ' arquivo(s) enviado(s).', 'success'); S.fichaAba = 'arquivos'; await recarregarFicha() }
   }
+  // foto numa posição do quadro (ficha ou inventário)
+  async function definirFoto(bemId, slot, f0) {
+    const f = await reduzirImagem(f0)
+    const url = await enviarArquivo('bens/' + bemId + '/' + slot + '-' + Date.now() + '.jpg', f)
+    await rpc('fn_pat_foto_definir', { p_bem: bemId, p_slot: slot, p_url: url, p_nome: f0.name || (slot + '.jpg'), p_tamanho: f.size })
+  }
+  document.addEventListener('change', async e => {
+    const t = e.target
+    if (t.matches && t.matches('input[data-ffoto]') && t.files[0] && S.ficha) {
+      const slot = t.dataset.ffoto, box = t.closest('.pt-fslot'); if (box) box.classList.add('enviando')
+      try { await definirFoto(S.ficha.id, slot, t.files[0]); toast('Foto (' + FOTO_SLOT[slot].toLowerCase() + ') salva.', 'success'); S.fichaAba = 'arquivos'; await recarregarFicha(); await carregar() }
+      catch (er) { toast(erroMsg(er), 'error'); if (box) box.classList.remove('enviando') }
+    }
+  })
   function formRemoverDoc(id) {
     const d = S.docs.find(x => x.id === id); if (!d) return
     abrirForm({
@@ -1311,7 +1373,7 @@
 
   // ── Incorporação ──────────────────────────────────────────────────────────
   let INC = null
-  const novoItem = () => ({ categoria: '', descricao: '', marca: '', modelo: '', quantidade: '1', valor: '', series: '', garantia: '', especificacao: '' })
+  const novoItem = () => ({ categoria: '', descricao: '', marca: '', modelo: '', quantidade: '1', valor: '', series: '', garantia: '', especificacao: '', fotos: {} })
   function abrirIncorporar(produtoId) {
     if (!S.pode.gerir) return
     INC = { id: crypto.randomUUID(), origem: 'compra_projeto', produto: produtoId || (S.fila.length === 1 ? S.fila[0].contrato_produto_id : ''),
@@ -1324,8 +1386,9 @@
   FECHAR['pt-inc'] = async () => {
     if (INC && INC.enviando) return
     if (INC && INC.sujo && !(await ptConfirmar({ titulo: 'Descartar o que foi preenchido?', texto: 'Nada foi gravado. Ao fechar, o preenchimento desta incorporação se perde.', ok: 'Descartar', perigo: true }))) return
-    INC = null; ptFechar('pt-inc')
+    soltarPrevias(INC); INC = null; ptFechar('pt-inc')
   }
+  function soltarPrevias(I) { (I?.itens || []).forEach(it => Object.values(it.fotos || {}).forEach(f => { try { URL.revokeObjectURL(f.prev) } catch (e) {} })) }
   const prodSel = () => S.fila.find(f => f.contrato_produto_id === INC.produto)
   function somaItens() { return INC.itens.reduce((s, i) => { const v = parseValor(i.valor); return s + (v >= 0 ? v : 0) }, 0) }
 
@@ -1382,6 +1445,11 @@
               : '<textarea class="form-control mono" id="it-ser-' + i + '" data-k="series" rows="2">' + esc(it.series) + '</textarea>') +
             '<div class="pt-dica" data-serie-n="' + i + '"></div></div>' +
           '<div><label class="form-label" for="it-esp-' + i + '">Especificação (opcional)</label><input class="form-control" id="it-esp-' + i + '" data-k="especificacao" value="' + esc(it.especificacao) + '" placeholder="potência, capacidade, cor…"></div>' +
+          '<div class="form-label" style="margin-top:10px">Fotos do bem <span class="pt-sub">— a de frente é obrigatória' +
+            ((Number(it.quantidade) || 1) > 1 && !lote ? '; valem para todas as unidades deste item (depois dá para trocar na ficha de cada uma)' : '') + '</span></div>' +
+          '<div class="pt-fslots">' + ['frente', 'placa', 'detalhe'].map(k => fotoSlot(k, it.fotos[k]?.prev, 'data-ifoto="' + k + '" data-i="' + i + '"',
+            { editar: true, exigir: true, local: true,
+              extra: it.fotos[k] ? '<span class="pt-fslot-a"><button type="button" class="pt-link" data-acao="inc-foto-rm" data-i="' + i + '" data-slot="' + k + '">Tirar</button></span>' : '' })).join('') + '</div>' +
         '</div>'
       }).join('') +
       '<button type="button" class="pt-btn" data-acao="inc-add">' + ptIc('mais', 'p') + 'Adicionar item</button>' +
@@ -1436,6 +1504,14 @@
     if (t.id === 'inc-local') { INC.local = t.value; return }
     if (t.id === 'inc-tit') { INC.titularidade = t.value; return }
     if (item && t.dataset.k === 'categoria') { INC.itens[Number(item.dataset.i)].categoria = t.value; INC.sujo = true; renderIncorporar() }
+    if (t.dataset.ifoto && t.files[0]) {
+      const it = INC.itens[Number(t.dataset.i)], slot = t.dataset.ifoto, f0 = t.files[0]
+      reduzirImagem(f0).then(f => {
+        if (!INC || !INC.itens.includes(it)) return
+        if (it.fotos[slot]) { try { URL.revokeObjectURL(it.fotos[slot].prev) } catch (e) {} }
+        it.fotos[slot] = { file: f, nome: f0.name, prev: URL.createObjectURL(f), url: '' }; INC.sujo = true; renderIncorporar()
+      }).catch(er => toast(erroMsg(er), 'error'))
+    }
   })
 
   async function enviarIncorporacao() {
@@ -1453,23 +1529,35 @@
       if (it.descricao.trim().length < 3) return erro('Item ' + (i + 1) + ': descreva o bem.')
       if (!(v >= 0)) return erro('Item ' + (i + 1) + ': informe o valor total do item.')
       const series = c.controle === 'lote' ? (it.series.trim() ? [it.series.trim()] : []) : it.series.split(/\n+/).map(s => s.trim()).filter(Boolean)
-      itens.push({ categoria: c.codigo, descricao: it.descricao.trim(), marca: it.marca, modelo: it.modelo, quantidade: Number(it.quantidade) || 1,
+      if (!it.fotos.frente) return erro('Item ' + (i + 1) + ' (' + it.descricao.trim() + '): falta a foto de frente.')
+      itens.push({ _it: it, categoria: c.codigo, descricao: it.descricao.trim(), marca: it.marca, modelo: it.modelo, quantidade: Number(it.quantidade) || 1,
         valor_total: v, numeros_serie: series, garantia_ate: it.garantia, especificacao: it.especificacao })
     }
     const btn = $('inc-ok'); I.enviando = true; btn.disabled = true; btn.textContent = 'Incorporando…'
     try {
       if (I.nf.arquivo && !I.nf.url) I.nf.url = await enviarArquivo('incorporacoes/' + I.id + '/nf-' + Date.now() + '.pdf', I.nf.arquivo)
+      btn.textContent = 'Enviando fotos…'
+      for (const [i, x] of itens.entries()) {
+        x.fotos = []
+        for (const k of ['frente', 'placa', 'detalhe']) {
+          const ft = x._it.fotos[k]; if (!ft) continue
+          if (!ft.url) ft.url = await enviarArquivo('incorporacoes/' + I.id + '/fotos/' + (i + 1) + '-' + k + '-' + Date.now() + '.jpg', ft.file)
+          x.fotos.push({ slot: k, url: ft.url, nome: ft.nome, tamanho: ft.file.size })
+        }
+        delete x._it
+      }
+      btn.textContent = 'Incorporando…'
       const r = await rpc('fn_pat_incorporar', { p: {
         id: I.id, origem: I.origem, contrato_produto_id: compra ? I.produto : null, origem_detalhe: compra ? null : I.origem_detalhe,
         nf_numero: I.nf.numero, nf_data: I.nf.data, nf_url: I.nf.url || null, nf_nome: I.nf.arquivo?.name || null,
         dt_aquisicao: I.dt_aquisicao, dt_inicio_uso: I.dt_inicio_uso, local_id: I.local, titularidade: I.titularidade,
         justificativa_diferenca: compra && I.justificar ? I.justificativa : null, itens } })
       const novos = (r.bens || []).map(x => x.id)
-      INC = null; ptFechar('pt-inc')
+      soltarPrevias(INC); INC = null; ptFechar('pt-inc')
       toast((r.bens || []).length + ' bem(ns) incorporado(s): ' + (r.bens || []).map(x => x.numero).join(', ') +
         (r.concluida ? '. A tarefa do contrato foi concluída.' : r.restante > 0 ? '. Ainda falta ' + fmtBRL(r.restante) + ' do produto.' : ''), 'success')
       await carregar()
-      if (novos.length && await ptConfirmar({ titulo: 'Imprimir as etiquetas?', texto: 'Cada bem novo recebe uma etiqueta com o número e um QR que abre a ficha.', ok: 'Escolher folha' })) formEtiquetas(novos)
+      if (novos.length && await ptConfirmar({ titulo: 'Imprimir as placas?', texto: 'Cada bem novo recebe uma placa adesiva com o número e um QR que abre a ficha.', ok: 'Escolher folha' })) formEtiquetas(novos)
     } catch (e) {
       erro(erroMsg(e))
     } finally {
@@ -1477,44 +1565,139 @@
     }
   }
 
-  // ── Etiquetas com QR (folha A4 de 3 × 7, 63,5 × 38,1 mm) ──────────────────
+  // ── Placas e etiquetas com QR (folha A4 adesiva) ──────────────────────────
   // Exceção ao molde FolhaA4: folha adesiva não leva cabeçalho/rodapé (CLAUDE.md, Patrimônio).
+  // Medidas em mm a partir do canto da folha (impressão em tamanho real, margem 0). Modelos pré-cortados
+  // seguem as medidas publicadas (Avery L7165/L7160 e equivalentes); "personalizada" aceita qualquer folha.
+  const ETQ = {
+    placa_6x8: { nome: 'Placa 6 × 8 cm em pé — folha adesiva A4 inteira, 9 por folha (corte nas marcas)', w: 60, h: 80, cols: 3, rows: 3, mt: 28.5, ml: 15, gx: 0, gy: 0, corte: true },
+    placa_8x6: { nome: 'Placa 8 × 6 cm deitada — folha adesiva A4 inteira, 8 por folha (corte nas marcas)', w: 80, h: 60, cols: 2, rows: 4, mt: 28.5, ml: 25, gx: 0, gy: 0, corte: true },
+    pre_99x67: { nome: 'Etiqueta pré-cortada 99,1 × 67,7 mm, 8 por folha (Avery L7165 e equivalentes) — placa 8 × 6 cm no centro', w: 99.1, h: 67.7, cols: 2, rows: 4, mt: 13.1, ml: 4.65, gx: 2.5, gy: 0, placa: { w: 80, h: 60 } },
+    pequena: { nome: 'Etiqueta pequena 63,5 × 38,1 mm, 21 por folha (Avery L7160 e equivalentes) — para bens pequenos', w: 63.5, h: 38.1, cols: 3, rows: 7, mt: 15.15, ml: 7.25, gx: 2.5, gy: 0 },
+    personalizada: { nome: 'Outra folha (informar as medidas da embalagem)' },
+  }
+  const ETQ_PADRAO = { modelo: 'placa_6x8', w: 60, h: 80, cols: 3, rows: 3, mt: 28.5, ml: 15, gx: 0, gy: 0 }
+  function etqPref() { try { return Object.assign({}, ETQ_PADRAO, JSON.parse(localStorage.getItem('pat_etiqueta') || '{}')) } catch (e) { return Object.assign({}, ETQ_PADRAO) } }
+  function etqModelo(pref) {
+    if (pref.modelo !== 'personalizada' && ETQ[pref.modelo]) return Object.assign({ id: pref.modelo }, ETQ[pref.modelo])
+    const m = { id: 'personalizada', nome: 'Folha personalizada' }
+    ;['w', 'h', 'cols', 'rows', 'mt', 'ml', 'gx', 'gy'].forEach(k => { m[k] = Number(pref[k]) || 0 })
+    return m
+  }
+  // desenho: em pé (alta), deitada (larga) ou pequena, pela área útil da placa
+  const etqDesenho = m => { const a = m.placa || m; return a.h >= a.w * 1.15 && a.w >= 45 ? 'pe' : (a.w >= 70 && a.h >= 50 ? 'deitada' : 'pequena') }
+  function etqConferir(m) {
+    if (!(m.w > 10 && m.h > 10 && m.cols >= 1 && m.rows >= 1)) return 'Informe largura, altura, colunas e linhas.'
+    const larg = m.ml + m.cols * m.w + (m.cols - 1) * m.gx, alt = m.mt + m.rows * m.h + (m.rows - 1) * m.gy
+    if (larg > 210.5 || alt > 297.5) return 'As medidas passam do A4 (' + fmtNum(larg) + ' × ' + fmtNum(alt) + ' mm de 210 × 297).'
+    return ''
+  }
+
   function formEtiquetas(ids) {
     const lista = ids.map(id => S.bens.find(b => b.id === id)).filter(Boolean)
     if (!lista.length) { toast('Marque os bens na lista (caixa à esquerda) para imprimir as etiquetas.', 'warning'); return }
+    const pref = etqPref()
+    const num = (id, rot, v, dica) => '<div class="form-group"><label class="form-label" for="' + id + '">' + rot + '</label><input class="form-control mono" inputmode="decimal" id="' + id + '" value="' + esc(String(v).replace('.', ',')) + '">' + (dica ? '<div class="pt-dica">' + dica + '</div>' : '') + '</div>'
     abrirForm({
-      titulo: 'Etiquetas de patrimônio', sub: lista.length + ' etiqueta' + (lista.length > 1 ? 's' : '') + ' · folha A4 com 21 (3 × 7, 63,5 × 38,1 mm)', botao: 'Abrir para imprimir',
-      corpo: '<div class="form-group"><label class="form-label" for="fq-ini">Começar na posição</label><input class="form-control mono" type="number" min="1" max="21" id="fq-ini" value="1"><div class="pt-dica">Para reaproveitar uma folha já usada: as posições contam da esquerda para a direita, de cima para baixo.</div></div>' +
-        '<div class="pt-aviso-f in">' + ptIc('info', 'p') + '<span>O QR leva só ao endereço da ficha (com login). Não há valor nem nome de pessoa na etiqueta. Na impressão, escolha <b>tamanho real (100%)</b>, sem ajustar à página.</span></div>',
-      aoSalvar: async r => { abrirEtiquetas(lista, Math.min(21, Math.max(1, Number(val(r, '#fq-ini')) || 1))) },
+      titulo: 'Placas de patrimônio', sub: lista.length + ' placa' + (lista.length > 1 ? 's' : '') + ' com QR', botao: 'Abrir para imprimir',
+      corpo: '<div class="form-group"><label class="form-label" for="fq-mod">Folha</label><select class="form-control" id="fq-mod">' +
+          Object.keys(ETQ).map(k => '<option value="' + k + '"' + (pref.modelo === k ? ' selected' : '') + '>' + esc(ETQ[k].nome) + '</option>').join('') + '</select></div>' +
+        '<div id="fq-pers"' + (pref.modelo === 'personalizada' ? '' : ' hidden') + '><div class="pt-dica" style="margin-bottom:8px">' + ptIc('info', 'p') + 'Medidas em milímetros, como estão na embalagem da folha. Margens contadas a partir da borda do papel.</div>' +
+          '<div class="pt-g3">' + num('fq-w', 'Largura da etiqueta', pref.w) + num('fq-h', 'Altura da etiqueta', pref.h) + num('fq-cols', 'Colunas', pref.cols) +
+          num('fq-rows', 'Linhas', pref.rows) + num('fq-mt', 'Margem de cima', pref.mt) + num('fq-ml', 'Margem da esquerda', pref.ml) +
+          num('fq-gx', 'Espaço entre colunas', pref.gx) + num('fq-gy', 'Espaço entre linhas', pref.gy) + '</div></div>' +
+        '<div class="pt-g2"><div class="form-group"><label class="form-label" for="fq-ini">Começar na posição</label><input class="form-control mono" type="number" min="1" id="fq-ini" value="1">' +
+          '<div class="pt-dica" id="fq-ini-d"></div></div>' +
+        '<div class="form-group"><span class="form-label">Opções</span>' +
+          '<label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="fq-teste"> Folha de teste: só os contornos, em papel comum</label>' +
+          '<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px"><input type="checkbox" id="fq-cont"> Contorno fino em volta de cada placa</label></div></div>' +
+        '<div class="pt-aviso-f in">' + ptIc('info', 'p') + '<span>Imprima em <b>tamanho real (100%)</b>, sem "ajustar à página". Antes de usar a folha adesiva, imprima a folha de teste em papel comum, ' +
+          'sobreponha à folha de etiquetas contra a luz e confira o alinhamento. Para bem que vai a campo, prefira <b>vinil adesivo</b> (resiste a água e sol). ' +
+          'O QR leva só ao endereço da ficha (com login); não há valor nem nome de pessoa na placa.</span></div>',
+      aoSalvar: async r => {
+        const p = { modelo: val(r, '#fq-mod') }
+        if (p.modelo === 'personalizada') ['w', 'h', 'cols', 'rows', 'mt', 'ml', 'gx', 'gy'].forEach(k => { p[k] = parseValor(val(r, '#fq-' + k)) || 0 })
+        const m = etqModelo(Object.assign({}, etqPref(), p)), erroM = etqConferir(m)
+        if (erroM) throw new Error('PAT_DADOS: ' + erroM)
+        try { localStorage.setItem('pat_etiqueta', JSON.stringify(Object.assign(etqPref(), p))) } catch (e) {}
+        const porFolha = m.cols * m.rows
+        abrirEtiquetas(lista, Math.min(porFolha, Math.max(1, Number(val(r, '#fq-ini')) || 1)), m, { teste: $('fq-teste').checked, contorno: $('fq-cont').checked })
+      },
     })
+    const sel = $('fq-mod'), dica = () => { const pp = Object.assign(etqPref(), { modelo: sel.value }); const m = etqModelo(pp)
+      $('fq-pers').hidden = sel.value !== 'personalizada'
+      $('fq-ini-d').textContent = m.cols && m.rows ? 'Esta folha tem ' + (m.cols * m.rows) + ' posições, da esquerda para a direita, de cima para baixo. Use para aproveitar uma folha já começada.' : '' }
+    sel.onchange = dica; dica()
   }
-  function abrirEtiquetas(lista, inicio) {
+
+  function abrirEtiquetas(lista, inicio, m, op) {
+    m = m || etqModelo(etqPref()); op = op || {}
     const w = window.open('', '_blank')
     if (!w) { toast('O navegador bloqueou a nova aba. Permita janelas deste site.', 'warning'); return }
     const base = new URL('patrimonio.html', location.href).href
-    const cel = lista.map(b => {
+    const des = etqDesenho(m), area = m.placa || { w: m.w, h: m.h }
+    const L = typeof DimaLogos !== 'undefined' ? DimaLogos.agora() : null
+    const logos = (L?.topo || []).map(l => { const e = DimaLogos.escolher(l, 'claro'); return e.src ? '<img class="lg" alt="' + esc(l.alt) + '" src="' + esc(DimaLogos.url(e.src)) + '">' : '' }).join('')
+    const placa = b => {
       const q = qrcode(0, 'M'); q.addData(base + '?bem=' + encodeURIComponent(b.numero)); q.make()
-      return '<div class="et"><img class="qr" alt="" src="' + q.createDataURL(4, 0) + '"><div class="tx"><div class="k">PATRIMÔNIO</div>' +
-        '<div class="n">' + esc(b.numero) + '</div><div class="d">' + esc(b.descricao) + (b.quantidade > 1 ? ' (lote de ' + b.quantidade + ')' : '') + '</div>' +
-        (b.numero_serie ? '<div class="s">S/N ' + esc(b.numero_serie) + '</div>' : '') +
-        '<div class="p">SEMA/AC · Fundo Brasil-ONU</div></div></div>'
-    })
-    const todas = Array(inicio - 1).fill('<div class="et vazia"></div>').concat(cel)
-    const folhas = []; for (let i = 0; i < todas.length; i += 21) folhas.push('<div class="folha">' + todas.slice(i, i + 21).join('') + '</div>')
+      const qr = '<img class="qr" alt="" src="' + q.createDataURL(6, 0) + '">'
+      const desc = '<div class="d">' + esc(b.descricao) + (b.quantidade > 1 ? ' (lote de ' + b.quantidade + ')' : '') + '</div>' + (b.numero_serie ? '<div class="s">S/N ' + esc(b.numero_serie) + '</div>' : '')
+      const rod = '<div class="p">SEMA/AC · Fundo Brasil-ONU</div>'
+      if (des === 'pequena') return '<div class="pl pq">' + qr + '<div class="tx"><div class="k">PATRIMÔNIO</div><div class="n">' + esc(b.numero) + '</div>' + desc + rod + '</div></div>'
+      if (des === 'deitada') return '<div class="pl dt"><div class="cab">' + (logos ? '<span class="lgs">' + logos + '</span>' : '') + '<span class="k">PATRIMÔNIO</span></div>' +
+        '<div class="corpo">' + qr + '<div class="tx"><div class="n">' + esc(b.numero) + '</div>' + desc + '</div></div><div class="rp">' + rod + '<div class="nr">Bem público · não remover esta placa</div></div></div>'
+      return '<div class="pl pe"><div class="cab">' + (logos ? '<span class="lgs">' + logos + '</span>' : '') + '<span class="k">PATRIMÔNIO</span></div>' + qr +
+        '<div class="n">' + esc(b.numero) + '</div>' + desc + '<div class="rp">' + rod + '<div class="nr">Bem público · não remover esta placa</div></div></div>'
+    }
+    const por = m.cols * m.rows
+    const itens = op.teste ? Array(por).fill('') : Array(inicio - 1).fill(null).concat(lista.map(placa))
+    const px = n => (Math.round(n * 100) / 100) + 'mm'
+    const folhas = []
+    for (let f = 0; f < itens.length; f += por) {
+      let h = ''
+      itens.slice(f, f + por).forEach((cel, k) => {
+        const c = k % m.cols, l = Math.floor(k / m.cols)
+        const x = m.ml + c * (m.w + m.gx), y = m.mt + l * (m.h + m.gy)
+        h += '<div class="cel' + (op.teste || op.contorno ? ' cont' : '') + '" style="left:' + px(x) + ';top:' + px(y) + ';width:' + px(m.w) + ';height:' + px(m.h) + '">' +
+          (cel ? '<div class="area" style="width:' + px(area.w) + ';height:' + px(area.h) + '">' + cel + '</div>' : (op.teste ? '<span class="tst">' + (k + 1) + '<br>' + fmtNum(m.w) + ' × ' + fmtNum(m.h) + ' mm</span>' : '')) + '</div>'
+      })
+      if (m.corte || op.teste) {   // marcas de corte nas margens, alinhadas às bordas das placas
+        const xs = new Set(), ys = new Set()
+        for (let c = 0; c < m.cols; c++) { xs.add(m.ml + c * (m.w + m.gx)); xs.add(m.ml + c * (m.w + m.gx) + m.w) }
+        for (let l = 0; l < m.rows; l++) { ys.add(m.mt + l * (m.h + m.gy)); ys.add(m.mt + l * (m.h + m.gy) + m.h) }
+        const topo = m.mt, base2 = m.mt + m.rows * m.h + (m.rows - 1) * m.gy, esq = m.ml, dir = m.ml + m.cols * m.w + (m.cols - 1) * m.gx
+        xs.forEach(x => { if (topo > 4) h += '<i class="mc v" style="left:' + px(x) + ';top:' + px(Math.max(0, topo - 7)) + ';height:' + px(Math.min(6, topo - 1)) + '"></i>'
+          if (297 - base2 > 4) h += '<i class="mc v" style="left:' + px(x) + ';top:' + px(base2 + 1) + ';height:' + px(Math.min(6, 297 - base2 - 1)) + '"></i>' })
+        ys.forEach(y => { if (esq > 4) h += '<i class="mc h" style="top:' + px(y) + ';left:' + px(Math.max(0, esq - 7)) + ';width:' + px(Math.min(6, esq - 1)) + '"></i>'
+          if (210 - dir > 4) h += '<i class="mc h" style="top:' + px(y) + ';left:' + px(dir + 1) + ';width:' + px(Math.min(6, 210 - dir - 1)) + '"></i>' })
+      }
+      folhas.push('<div class="folha">' + h + '</div>')
+    }
+    const nTxt = op.teste ? 'Folha de teste (só contornos) · ' : lista.length + ' placa(s) · '
     w.document.open()
-    w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="author" content="Erisson Cameli Santiago"><title>Etiquetas de patrimônio</title><style>' +
-      '@page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;background:#e9edea;font-family:"DM Sans",Arial,sans-serif;color:#111}' +
-      '.barra{position:sticky;top:0;background:#1D5A3C;color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center;font-size:13px;flex-wrap:wrap}' +
+    w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="author" content="Erisson Cameli Santiago"><title>Placas de patrimônio</title><style>' +
+      '@page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;background:#e9edea;font-family:"DM Sans",Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      '.barra{position:sticky;top:0;z-index:2;background:#1D5A3C;color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center;font-size:13px;flex-wrap:wrap}' +
       '.barra button{background:#fff;color:#1D5A3C;border:0;border-radius:8px;padding:7px 14px;font-weight:700;cursor:pointer}' +
-      '.folha{width:210mm;height:297mm;margin:12px auto;background:#fff;padding:15.15mm 7.25mm;display:grid;grid-template-columns:repeat(3,63.5mm);grid-auto-rows:38.1mm;column-gap:2.5mm;page-break-after:always;break-after:page}' +
-      '.et{display:flex;gap:2.5mm;align-items:center;padding:2.5mm 3mm;overflow:hidden;outline:1px dashed #d0d5d2}.et.vazia{outline-color:#eee}' +
-      '.qr{width:26mm;height:26mm;image-rendering:pixelated;flex-shrink:0}.tx{min-width:0;display:flex;flex-direction:column;gap:.6mm}' +
-      '.k{font-size:6.5pt;letter-spacing:.12em;font-weight:700;color:#1D5A3C}.n{font-family:"DM Mono",monospace;font-size:12pt;font-weight:700;letter-spacing:-.02em}' +
-      '.d{font-size:7pt;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
-      '.s{font-family:"DM Mono",monospace;font-size:6.5pt;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.p{font-size:6pt;color:#555}' +
-      '@media print{body{background:#fff}.barra{display:none}.folha{margin:0}.et{outline:0}}' +
-      '</style></head><body><div class="barra"><button type="button" onclick="print()">Imprimir</button><span>' + lista.length + ' etiqueta(s) · A4 3 × 7 (63,5 × 38,1 mm) · imprima em tamanho real (100%).</span></div>' +
+      '.folha{position:relative;width:210mm;height:297mm;margin:12px auto;background:#fff;overflow:hidden;page-break-after:always;break-after:page}' +
+      '.cel{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden}.cel.cont{outline:.2mm solid #9aa59f;outline-offset:-.1mm}' +
+      '.tst{font-size:9pt;color:#777;text-align:center;font-family:"DM Mono",monospace}' +
+      '.mc{position:absolute;background:#000}.mc.v{width:.2mm}.mc.h{height:.2mm}' +
+      '.area{display:flex}.pl{width:100%;height:100%;overflow:hidden}' +
+      '.k{font-size:6.5pt;letter-spacing:.14em;font-weight:700;color:#1D5A3C}.n{font-family:"DM Mono",monospace;font-weight:700;letter-spacing:-.02em}' +
+      '.d{line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
+      '.s{font-family:"DM Mono",monospace;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.p{color:#444}.nr{color:#666}' +
+      '.qr{image-rendering:pixelated;flex-shrink:0}.lgs{display:flex;gap:1.5mm;align-items:center}.lg{height:5.5mm;width:auto;max-width:22mm;object-fit:contain}' +
+      '.pe{display:flex;flex-direction:column;align-items:center;text-align:center;padding:3.5mm 3.5mm 3mm;gap:1.2mm}' +
+      '.pe .cab{display:flex;justify-content:space-between;align-items:center;width:100%;gap:2mm}.pe .qr{width:38mm;height:38mm;margin-top:.5mm}' +
+      '.pe .n{font-size:15pt}.pe .d{font-size:7.5pt}.pe .s{font-size:6.5pt;max-width:100%}.pe .rp{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:.3mm}.pe .p{font-size:6pt}.pe .nr{font-size:5.5pt}' +
+      '.dt{display:flex;flex-direction:column;padding:3mm 3.5mm 2.5mm;gap:1.5mm}.dt .cab{display:flex;justify-content:space-between;align-items:center;gap:2mm}' +
+      '.dt .corpo{display:flex;gap:3mm;align-items:center;flex:1;min-height:0}.dt .qr{width:34mm;height:34mm}.dt .tx{min-width:0;display:flex;flex-direction:column;gap:1.2mm}' +
+      '.dt .n{font-size:14pt}.dt .d{font-size:7.5pt}.dt .s{font-size:6.5pt}.dt .rp{display:flex;justify-content:space-between;align-items:baseline;gap:2mm}.dt .p{font-size:6pt}.dt .nr{font-size:5.5pt}' +
+      '.pq{display:flex;gap:2.5mm;align-items:center;padding:2.5mm 3mm}.pq .qr{width:26mm;height:26mm}.pq .tx{min-width:0;display:flex;flex-direction:column;gap:.6mm}' +
+      '.pq .n{font-size:12pt}.pq .d{font-size:7pt}.pq .s{font-size:6.5pt}.pq .p{font-size:6pt}' +
+      '@media print{body{background:#fff}.barra{display:none}.folha{margin:0}}' +
+      '</style></head><body><div class="barra"><button type="button" onclick="print()">Imprimir</button><span>' + nTxt + esc(m.nome) + ' · imprima em tamanho real (100%), sem ajustar à página.</span></div>' +
       folhas.join('') + '</body></html>')
     w.document.close()
   }
@@ -1811,15 +1994,35 @@
         '<div class="form-group"><label class="form-label" for="fo2-desc">Descreva *</label><textarea class="form-control" id="fo2-desc" placeholder="o que aconteceu, como, quem estava"></textarea></div>' +
         '<div class="form-group" id="fo2-cond-w"><label class="form-label" for="fo2-cond">Condição do bem agora</label><select class="form-control" id="fo2-cond"><option value="">sem mudança</option>' +
           ['bom', 'regular', 'ruim', 'inservivel'].map(k => '<option value="' + k + '">' + COND[k] + '</option>').join('') + '</select></div>' +
+        '<div class="form-group"><span class="form-label">Fotos <span class="pt-sub">(até 3: o dano, o local, o que ajudar a entender)</span></span><div class="pt-fslots pt-ocf" id="fo2-fotos"></div></div>' +
         '<div class="pt-aviso-f in">' + ptIc('info', 'p') + '<span>O gestor patrimonial recebe uma tarefa para apurar. Extravio, furto e roubo tiram o bem de circulação até o desfecho.</span></div>',
       aoSalvar: async r => {
+        const fotos = []
+        for (const [n, ft] of OCF.entries()) {
+          if (!ft.url) ft.url = await enviarArquivo('bens/' + b.id + '/ocorrencia-' + Date.now() + '-' + (n + 1) + '.jpg', ft.file)
+          fotos.push({ url: ft.url, nome: ft.nome, tamanho: ft.file.size })
+        }
         const res = await rpc('fn_pat_ocorrencia_registrar', { p: { bem_id: b.id, tipo: val(r, '#fo2-tipo'), dt_ocorrencia: val(r, '#fo2-data'),
-          bo_numero: val(r, '#fo2-bo'), onde: val(r, '#fo2-onde'), descricao: val(r, '#fo2-desc'), condicao: val(r, '#fo2-cond') } })
+          bo_numero: val(r, '#fo2-bo'), onde: val(r, '#fo2-onde'), descricao: val(r, '#fo2-desc'), condicao: val(r, '#fo2-cond'), fotos } })
+        OCF.forEach(ft => { try { URL.revokeObjectURL(ft.prev) } catch (e) {} }); OCF = []
         toast('Ocorrência ' + res.numero + ' registrada. O gestor patrimonial foi avisado.', 'success')
         await recarregarFicha(); abrirOcorrencia(res.ocorrencia_id)
       },
     })
     const t = $('fo2-tipo'); t.onchange = () => { const perda = ['extravio', 'furto', 'roubo'].includes(t.value); $('fo2-bo-w').hidden = !['furto', 'roubo'].includes(t.value); $('fo2-cond-w').hidden = perda }
+    OCF = []; renderOcFotos()
+  }
+  let OCF = []   // fotos do registro da ocorrência (até 3), enviadas só ao clicar em Registrar
+  function renderOcFotos() {
+    const box = $('fo2-fotos'); if (!box) return
+    box.innerHTML = OCF.map((ft, n) => '<div class="pt-fslot tem"><div class="pt-fslot-c"><img alt="" src="' + esc(ft.prev) + '"></div>' +
+        '<div class="pt-fslot-t"><b>Foto ' + (n + 1) + '</b><span class="pt-fslot-a"><button type="button" class="pt-link" data-ocf-rm="' + n + '">Tirar</button></span></div></div>').join('') +
+      (OCF.length < 3 ? '<div class="pt-fslot"><label class="pt-fslot-c"><span class="vz">' + ptIc('camera') + '<span>Tirar ou escolher</span></span>' +
+        '<input type="file" accept="image/*" class="pt-fin" aria-label="Tirar ou escolher foto da ocorrência" id="fo2-foto-in"></label><div class="pt-fslot-t"><b>Foto ' + (OCF.length + 1) + '</b><span>opcional</span></div></div>' : '')
+    const inp = $('fo2-foto-in')
+    if (inp) inp.onchange = () => { const f0 = inp.files[0]; if (!f0) return
+      reduzirImagem(f0).then(f => { OCF.push({ file: f, nome: f0.name, prev: URL.createObjectURL(f), url: '' }); renderOcFotos() }).catch(er => toast(erroMsg(er), 'error')) }
+    box.querySelectorAll('[data-ocf-rm]').forEach(bt => bt.onclick = () => { const n = Number(bt.dataset.ocfRm); try { URL.revokeObjectURL(OCF[n].prev) } catch (e) {} OCF.splice(n, 1); renderOcFotos() })
   }
 
   async function abrirOcorrencia(id) {
@@ -2016,6 +2219,8 @@
       case 'incorporar': abrirIncorporar(el.dataset.produto); break
       case 'inc-add': INC.itens.push(novoItem()); INC.sujo = true; renderIncorporar(); break
       case 'inc-rm': INC.itens.splice(Number(el.dataset.i), 1); INC.sujo = true; renderIncorporar(); break
+      case 'inc-foto-rm': { e.preventDefault(); const it = INC.itens[Number(el.dataset.i)]; const ft = it.fotos[el.dataset.slot]
+        if (ft) { try { URL.revokeObjectURL(ft.prev) } catch (er) {} delete it.fotos[el.dataset.slot] } renderIncorporar(); break }
       case 'categoria': formCategoria(el.dataset.cod); break
       case 'local': formLocal(el.dataset.id); break
       case 'editar': formEditar(); break
@@ -2072,6 +2277,7 @@
       case 'inv-alvo-sair': S.invUi.alvo = null; S.invUi.cond = null; S.invUi.obs = ''; $('pt-inv-alvo').innerHTML = ''; break
       case 'inv-cond': S.invUi.cond = el.dataset.c; renderAlvo(); break
       case 'inv-confirmar': confirmarInv(); break
+      case 'inv-foto-pular': fimFotoInv(); break
       case 'inv-desfazer': rpc('fn_pat_inv_desfazer', { p_inv: S.inv.inventario.id, p_bem: el.dataset.id }).then(() => recarregarInventario()).catch(er => invErro(erroMsg(er))); break
       case 'inv-enviar': enviarInv(); break
       case 'inv-assinar': assinarInv(); break

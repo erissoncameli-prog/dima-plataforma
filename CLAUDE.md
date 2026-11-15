@@ -606,7 +606,7 @@ testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js
   15/11/2026: Italo do O Ferreira).
 - **Número do projeto**: o projeto tem dois números (**218BRA2001** e **218BRA2002**), conforme a linha de financiamento — NF com
   218BRA2002 não é erro. Não escrever número de projeto fixo em etiqueta nem em regra.
-- **Etiquetas**: A4 3 × 7 (63,5 × 38,1 mm) com QR de `patrimonio.html?bem=PAT-…` (sem valor, nome de pessoa nem nº de projeto). É a
+- **Etiquetas/placas**: QR de `patrimonio.html?bem=PAT-…` (sem valor, nome de pessoa nem nº de projeto; modelos na Fase 6 abaixo). É a
   **única impressão fora do molde FolhaA4** (folha adesiva não leva cabeçalho/rodapé). Relatórios do patrimônio (Fase 5) usam FolhaA4.
 - **Guarda (Fase 2, migração `20261116_pat_02_guarda`, testes `30_guarda.sql`)**: `pat_termos` (TR-AAAA-NNNN; `responsabilidade` |
   `emprestimo` com `devolver_ate` ≤ 1 ano) + `pat_termo_itens` (só inclusão). Gestor cria (`fn_pat_termo_criar`) ⇒ tarefa "Aceitar termo"
@@ -651,6 +651,18 @@ testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js
   `fn_pat_depreciacao`, valores só para quem vê valor). Auditor: `fn_auditoria_patrimonio()` (service_role) chamada pelo agente de patrimônio do
   `auditor-ia` (v23), grava como `qualidade_dados` com título "Patrimônio: …"; a tela da Auditoria mostra o domínio virtual "Patrimônio" (`domDe`).
   Regra nova de auditoria do patrimônio entra na função SQL.
+- **Fotos (Fase 6, migração `20261120_pat_06_fotos`, testes `70_fotos.sql`)**: 3 posições por bem em `pat_documentos.slot`
+  (`frente` = capa, **obrigatória na entrada**; `placa`; `detalhe`), uma viva por posição (`pat_docs_foto_slot_uk`). Entrada: `fn_pat_incorporar`
+  exige `item.fotos` com a de frente (`PAT_FOTO_OBRIGATORIA`), arquivos antes em `incorporacoes/<id>/fotos/`. Depois: `fn_pat_foto_definir`
+  (troca = antiga `ativo=false` "Substituída", fica no histórico), permitido por `fn_pat_pode_fotografar` = gestor, quem guarda ou comissão de
+  inventário aberto com o bem (também na policy de storage via `fn_pat_doc_pode_enviar`); `fn_pat_anexar` com tipo `foto` cai na 1ª posição livre;
+  `fn_pat_remover_anexo` recusa tirar a de frente. Ocorrência: até 3 fotos no registro (`p.fotos` de `fn_pat_ocorrencia_registrar`, `ocorrencia_id`).
+  `vw_pat_bens.foto_url` = frente; `n_fotos` = fotos do quadro. A tela refaz toda foto (`reduzirImagem`: ≤ 1600 px JPEG, tira EXIF/GPS);
+  quadro = `fotoSlot()`; no inventário, conferido sem as 3 fotos ⇒ oferece fotografar (`renderFotoInv`, a leitura do QR pausa).
+- **Placas** (`formEtiquetas`/`abrirEtiquetas`, modelos em `ETQ`, preferência no aparelho `pat_etiqueta`): padrão **placa 6 × 8 cm em pé**,
+  9 por A4 adesiva inteira com marcas de corte; placa 8 × 6 deitada (8/folha); pré-cortada 99,1 × 67,7 (8/folha, L7165) com a placa 8 × 6 no
+  centro; pequena 63,5 × 38,1 (21/folha, L7160); "Outra folha" por medidas. Folha de teste (só contornos) e contorno opcional. Posições em mm
+  absolutos na folha; imprimir a 100%. Logos do topo vêm de `DimaLogos` (versão clara).
 - ROPA: TRAT-006 (tabelas das fases 1–4). Próxima fase: encerramento do projeto (inventário de encerramento + Termo de Transferência/Doação, Pt9).
 
 ### Diagnóstico Socioambiental — app de campo (⚠️ ler antes de mexer em `diag_*`)
