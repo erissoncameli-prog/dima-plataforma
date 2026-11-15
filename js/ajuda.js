@@ -1025,7 +1025,9 @@ Object.assign(AJUDA, {
       { titulo: 'Como o bem entra', itens: [
         'Quando um produto de contrato do tipo Equipamentos é aprovado, o gestor patrimonial recebe a tarefa "Incorporar bens ao patrimônio" e o produto aparece no Painel, em "A incorporar".',
         'Em "Incorporar bens", escolha o produto, anexe a nota fiscal (pode ficar para depois), diga onde os bens estão e lance cada item da NF com categoria, quantidade e valor.',
-        'Cada unidade vira uma ficha com número próprio. Categorias em lote (ex.: barracas) viram uma ficha só, com a quantidade.',
+        'Cada unidade vira uma ficha com número próprio e placa própria, em sequência: 2 caixas = 2 fichas (ex.: PAT-000001 e PAT-000002); 40 barracas = 40 fichas. Não existe mais "lote".',
+        'Ler a nota fiscal: anexe a NF (PDF ou XML) e clique em "Ler a nota fiscal". O sistema monta a lista com descrição, quantidade, valores e uma categoria sugerida; itens de consumo (cabo, plugue, pilha, ou valor unitário abaixo de R$ 100) vêm desmarcados. Confira, ajuste e clique em "Usar estes itens". A leitura é feita no próprio navegador, sem inteligência artificial; nada é gravado até Incorporar.',
+        'A leitura confere a soma das linhas com o total da nota, se o emitente é o fornecedor do contrato e se a nota já foi usada antes (a mesma nota não entra duas vezes). Nota digitalizada como imagem não tem texto para ler: preencha à mão ou use o XML.',
         'A soma dos bens não pode passar o valor do produto. Se sobrar diferença que não é bem (instalação, frete, cabos e plugues de consumo), marque a opção e justifique: a tarefa é concluída.',
         'Bem que não veio de contrato (cessão de outro órgão, doação) só a coordenação incorpora, descrevendo a origem e o documento.',
       ]},
@@ -1091,6 +1093,7 @@ Object.assign(AJUDA, {
       { titulo: 'Placas com QR', itens: [
         'O botão "Etiqueta" (na ficha ou com os bens marcados na lista) abre as placas para imprimir. Cada placa traz o QR, o número PAT, a descrição, a série e "SEMA/AC · Fundo Brasil-ONU"; nunca valor nem nome de pessoa.',
         'Placa padrão: 6 × 8 cm em pé, 9 por folha A4 adesiva inteira, cortada nas marcas. Também há a placa deitada 8 × 6 cm (8 por folha), a etiqueta pré-cortada 99,1 × 67,7 mm (8 por folha, Avery L7165 e equivalentes) e a etiqueta pequena 63,5 × 38,1 mm (21 por folha) para bens pequenos. Outra folha: escolha "Outra folha" e digite as medidas da embalagem.',
+        'Bem pequeno demais para a placa grande (microfone, controle, adaptador) vem marcado para a etiqueta pequena, que sai numa folha à parte. A marcação pode ser trocada bem a bem.',
         'Imprima sempre em tamanho real (100%). Antes de gastar a folha adesiva, use "Folha de teste" em papel comum e confira o alinhamento contra a luz. Para bem que vai a campo, prefira vinil adesivo.',
         'Folha já começada: use "Começar na posição" para pular as que já foram usadas.',
       ]},

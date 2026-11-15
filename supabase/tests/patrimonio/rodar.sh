@@ -32,3 +32,5 @@ PSQL=(psql -h "$TMP" -p "$PORTA" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -
 "${PSQL[@]}" -f "$DIR/60_relatorios_auditor.sql"
 "${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261120_pat_06_fotos.sql"
 "${PSQL[@]}" -f "$DIR/70_fotos.sql"
+"${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261121_pat_07_nf_unidades.sql"
+"${PSQL[@]}" -f "$DIR/80_nf_unidades.sql"

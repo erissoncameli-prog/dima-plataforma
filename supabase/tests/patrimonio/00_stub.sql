@@ -34,7 +34,7 @@ create function public.tem_permissao(p_modulo text) returns boolean language sql
     where p.usuario_id = auth.uid() and p.modulo = p_modulo and p.ativo and p.valido_de <= now()
       and (p.valido_ate is null or p.valido_ate > now())) $$;
 
-create table public.fornecedores (id uuid primary key default gen_random_uuid(), nome text not null);
+create table public.fornecedores (id uuid primary key default gen_random_uuid(), nome text not null, cpf_cnpj text);
 create table public.atividades (id uuid primary key default gen_random_uuid(), codigo varchar not null);
 create table public.tdrs (id uuid primary key default gen_random_uuid(), numero varchar not null, atividade_id uuid);
 create table public.contratos (id uuid primary key default gen_random_uuid(), numero varchar not null, tipo varchar,

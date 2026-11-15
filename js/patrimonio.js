@@ -519,7 +519,7 @@
   function renderCadastros() {
     const c = S.cats.map(x => '<tr><td>' + ptIc(x.icone, 'p') + ' <b>' + esc(x.nome) + '</b>' + (x.ativo ? '' : ' ' + selo('ne', 'inativa')) +
       '<div class="pt-sub">' + esc(x.referencia || '') + '</div></td><td class="dir mono">' + esc(meses(x.vida_util_meses)) + '</td>' +
-      '<td class="dir mono">' + fmtNum(x.residual_pct).replace(',00', '') + '%</td><td>' + (x.controle === 'lote' ? 'Lote (quantidade)' : 'Unidade') +
+      '<td class="dir mono">' + fmtNum(x.residual_pct).replace(',00', '') + '%</td><td>Uma ficha por unidade' +
       (x.exige_serie ? '<div class="pt-sub">série obrigatória</div>' : '') + '</td>' +
       '<td class="dir">' + (S.pode.coord ? '<button type="button" class="pt-btn peq" data-acao="categoria" data-cod="' + esc(x.codigo) + '">' + ptIc('lapis', 'p') + 'Editar</button>' : '') + '</td></tr>').join('')
     const l = S.locais.map(x => {
@@ -549,9 +549,7 @@
         '<div class="form-group"><label class="form-label" for="fc-nome">Nome</label><input class="form-control" id="fc-nome" value="' + esc(c?.nome || '') + '"></div>' +
         '<div class="form-group"><label class="form-label" for="fc-vida">Vida útil (meses)</label><input class="form-control mono" id="fc-vida" type="number" min="1" max="1200" value="' + esc(c?.vida_util_meses || 60) + '"></div>' +
         '<div class="form-group"><label class="form-label" for="fc-res">Valor residual (%)</label><input class="form-control mono" id="fc-res" type="number" min="0" max="99" step="0.5" value="' + esc(c?.residual_pct ?? 10) + '"></div>' +
-        '<div class="form-group"><label class="form-label" for="fc-ctl">Controle</label><select class="form-control" id="fc-ctl"' + (temBens ? ' disabled' : '') + '>' +
-          '<option value="individual"' + (c?.controle !== 'lote' ? ' selected' : '') + '>Uma ficha por unidade</option><option value="lote"' + (c?.controle === 'lote' ? ' selected' : '') + '>Lote (uma ficha com a quantidade)</option></select>' +
-          (temBens ? '<div class="pt-dica">Já há bens nesta categoria: o controle não muda.</div>' : '') + '</div>' +
+
         '<div class="form-group"><label class="form-label" for="fc-ic">Ícone</label><select class="form-control" id="fc-ic">' + ics.map(i => '<option' + ((c?.icone || 'caixa') === i ? ' selected' : '') + '>' + i + '</option>').join('') + '</select></div>' +
         '</div>' +
         '<div class="form-group"><label class="form-label" for="fc-ref">Referência</label><input class="form-control" id="fc-ref" value="' + esc(c?.referencia || '') + '" placeholder="norma ou decisão que define a vida útil"></div>' +
@@ -560,7 +558,7 @@
       aoSalvar: async r => {
         await rpc('fn_pat_salvar_categoria', { p: {
           codigo: c ? c.codigo : val(r, '#fc-cod'), nome: val(r, '#fc-nome'), vida_util_meses: Number(val(r, '#fc-vida')),
-          residual_pct: Number(val(r, '#fc-res')), controle: val(r, '#fc-ctl'), exige_serie: r.querySelector('#fc-serie').checked,
+          residual_pct: Number(val(r, '#fc-res')), controle: 'individual', exige_serie: r.querySelector('#fc-serie').checked,
           icone: val(r, '#fc-ic'), referencia: val(r, '#fc-ref'), ordem: c?.ordem ?? (S.cats.length + 1) * 10,
           ativo: c ? r.querySelector('#fc-ativo').checked : true } })
         toast('Categoria salva.', 'success'); await carregar()
@@ -1415,8 +1413,11 @@
         '<div class="form-group"><label class="form-label" for="inc-aq">Data de aquisição *</label><input class="form-control" type="date" id="inc-aq" max="' + hoje() + '" value="' + esc(I.dt_aquisicao) + '"><div class="pt-dica">Recebimento ou data da NF.</div></div></div>' +
       '<button type="button" class="upload-zone' + (I.nf.arquivo ? ' tem-arquivo' : '') + '" id="inc-nfz">' + (I.nf.arquivo
         ? ptIc('check') + '<b>' + esc(I.nf.arquivo.name) + '</b><span class="pt-sub">clique para trocar</span>'
-        : ptIc('upload') + '<b>Anexar o PDF da nota fiscal</b><span class="pt-sub">' + (compra ? 'pode ficar para depois: o bem aparece como "sem NF"' : 'ou o termo de cessão/doação') + '</span>') + '</button>' +
-      '<input type="file" id="inc-nfa" accept="application/pdf" hidden>' +
+        : ptIc('upload') + '<b>Anexar a nota fiscal (PDF ou XML)</b><span class="pt-sub">' + (compra ? 'pode ficar para depois: o bem aparece como "sem NF"' : 'ou o termo de cessão/doação') + '</span>') + '</button>' +
+      '<input type="file" id="inc-nfa" accept="application/pdf,.xml,text/xml,application/xml" hidden>' +
+      (I.nf.arquivo ? '<div class="pt-nf-ler"><button type="button" class="pt-btn pri" data-acao="inc-nf-ler"' + (I.lendo ? ' disabled' : '') + '>' + ptIc('doc', 'p') +
+        (I.lendo ? 'Lendo a nota…' : I.nfLida ? 'Ler de novo' : 'Ler a nota fiscal') + '</button><span class="pt-sub">A leitura é feita aqui no navegador, sem inteligência artificial; o arquivo não vai para nenhum serviço. Você confere tudo antes de gravar.</span></div>' : '') +
+      '<div id="inc-nfl">' + (I.nfLida ? htmlLeitura(I) : '') + '</div>' +
 
       '<div class="pt-sec">3. Onde fica e desde quando é usado</div>' +
       '<div class="pt-g3"><div class="form-group"><label class="form-label" for="inc-local">Local *</label><select class="form-control" id="inc-local">' + opt('', 'Escolha…', I.local) +
@@ -1427,8 +1428,9 @@
 
       '<div class="pt-sec">4. Bens recebidos</div>' +
       I.itens.map((it, i) => {
-        const c = catDe(it.categoria), lote = c?.controle === 'lote'
-        return '<div class="pt-item" data-i="' + i + '"><div class="pt-item-h">Item ' + (i + 1) + (c ? ' · ' + esc(lote ? 'lote: uma ficha com a quantidade' : 'uma ficha por unidade') : '') +
+        const c = catDe(it.categoria), q = Math.max(1, Number(it.quantidade) || 1)
+        return '<div class="pt-item" data-i="' + i + '"><div class="pt-item-h">Item ' + (i + 1) + ' · ' + (q > 1 ? q + ' unidades = ' + q + ' fichas e ' + q + ' placas, em sequência' : 'uma ficha e uma placa') +
+          (it._nf ? ' · ' + selo('ne', 'lido da nota, linha ' + it._nf) : '') +
           (I.itens.length > 1 ? '<span class="dir"><button type="button" class="pt-btn peq" data-acao="inc-rm" data-i="' + i + '">' + ptIc('x', 'p') + 'Tirar</button></span>' : '') + '</div>' +
           '<div class="pt-item-l">' +
             '<div><label class="form-label" for="it-cat-' + i + '">Categoria *</label><select class="form-control" id="it-cat-' + i + '" data-k="categoria">' + opt('', 'Escolha…', it.categoria) + cats.map(x => opt(x.codigo, x.nome, it.categoria)).join('') + '</select></div>' +
@@ -1440,13 +1442,12 @@
             '<div><label class="form-label" for="it-mod-' + i + '">Modelo</label><input class="form-control" id="it-mod-' + i + '" data-k="modelo" value="' + esc(it.modelo) + '"></div>' +
             '<div><label class="form-label" for="it-gar-' + i + '">Garantia até</label><input class="form-control" type="date" id="it-gar-' + i + '" data-k="garantia" value="' + esc(it.garantia) + '"></div>' +
           '</div>' +
-          '<div><label class="form-label" for="it-ser-' + i + '">' + (lote ? 'Série ou lote (opcional)' : 'Números de série' + (c?.exige_serie ? ' * — um por linha, um para cada unidade' : ' (opcional) — um por linha')) + '</label>' +
-            (lote ? '<input class="form-control mono" id="it-ser-' + i + '" data-k="series" value="' + esc(it.series) + '">'
-              : '<textarea class="form-control mono" id="it-ser-' + i + '" data-k="series" rows="2">' + esc(it.series) + '</textarea>') +
+          '<div><label class="form-label" for="it-ser-' + i + '">Números de série' + (c?.exige_serie ? ' * — um por linha, um para cada unidade' : ' (opcional) — um por linha') + '</label>' +
+            '<textarea class="form-control mono" id="it-ser-' + i + '" data-k="series" rows="2">' + esc(it.series) + '</textarea>' +
             '<div class="pt-dica" data-serie-n="' + i + '"></div></div>' +
           '<div><label class="form-label" for="it-esp-' + i + '">Especificação (opcional)</label><input class="form-control" id="it-esp-' + i + '" data-k="especificacao" value="' + esc(it.especificacao) + '" placeholder="potência, capacidade, cor…"></div>' +
           '<div class="form-label" style="margin-top:10px">Fotos do bem <span class="pt-sub">— a de frente é obrigatória' +
-            ((Number(it.quantidade) || 1) > 1 && !lote ? '; valem para todas as unidades deste item (depois dá para trocar na ficha de cada uma)' : '') + '</span></div>' +
+            (q > 1 ? '; valem para todas as unidades deste item (depois dá para trocar na ficha de cada uma)' : '') + '</span></div>' +
           '<div class="pt-fslots">' + ['frente', 'placa', 'detalhe'].map(k => fotoSlot(k, it.fotos[k]?.prev, 'data-ifoto="' + k + '" data-i="' + i + '"',
             { editar: true, exigir: true, local: true,
               extra: it.fotos[k] ? '<span class="pt-fslot-a"><button type="button" class="pt-link" data-acao="inc-foto-rm" data-i="' + i + '" data-slot="' + k + '">Tirar</button></span>' : '' })).join('') + '</div>' +
@@ -1454,21 +1455,89 @@
       }).join('') +
       '<button type="button" class="pt-btn" data-acao="inc-add">' + ptIc('mais', 'p') + 'Adicionar item</button>' +
       '<div id="inc-soma" style="margin-top:14px"></div>'
-    $('pt-inc-rodape').innerHTML = '<span class="esq pt-sub">Cada unidade vira uma ficha com número próprio (PAT-…), menos as categorias em lote.</span>' +
+    $('pt-inc-rodape').innerHTML = '<span class="esq pt-sub">Cada unidade vira uma ficha com número próprio (PAT-…) e placa própria, em sequência.</span>' +
       '<button type="button" class="pt-btn" data-fechar="pt-inc">Cancelar</button>' +
       '<button type="button" class="pt-btn pri" id="inc-ok">' + ptIc('check', 'p') + 'Incorporar</button>'
     $('inc-ok').onclick = enviarIncorporacao
     const z = $('inc-nfz'), a = $('inc-nfa')
     z.onclick = () => a.click()
-    a.onchange = () => { const f = a.files[0]; if (f) { I.nf.arquivo = f; I.nf.url = ''; I.sujo = true; renderIncorporar() } }
+    a.onchange = () => { const f = a.files[0]; if (f) { I.nf.arquivo = f; I.nf.url = ''; I.nfLida = null; I.sujo = true; renderIncorporar() } }
     atualizarSoma()
+  }
+
+  // ── Leitura da nota fiscal (js/patrimonio-nf.js) ──
+  async function lerNotaFiscal() {
+    const I = INC; if (!I || !I.nf.arquivo || I.lendo) return
+    I.lendo = true; renderIncorporar()
+    try {
+      const nf = await PatNF.lerArquivo(I.nf.arquivo)
+      if (I.origem === 'compra_projeto' && I.produto) {
+        try { nf.conferencia = await rpc('fn_pat_nf_conferir', { p_produto: I.produto, p_cnpj: nf.cnpj_emitente, p_chave: nf.chave }) } catch (e) { nf.conferencia = null }
+      } else if (nf.chave) {
+        try { nf.conferencia = await rpc('fn_pat_nf_conferir', { p_produto: null, p_cnpj: '', p_chave: nf.chave }) } catch (e) { nf.conferencia = null }
+      }
+      I.nfLida = nf
+    } catch (e) { toast(e.message || 'Não foi possível ler a nota.', 'error'); I.nfLida = null }
+    finally { I.lendo = false; if (INC === I) renderIncorporar() }
+  }
+  function htmlLeitura(I) {
+    const nf = I.nfLida, cf = nf.conferencia || {}, cats = S.cats.filter(c => c.ativo)
+    const av = nf.avisos.slice()
+    if (cf.cnpj_confere === false) av.unshift('O CNPJ de quem emitiu a nota não é o do fornecedor do contrato escolhido.')
+    const usada = cf.chave_usada && cf.chave_usada.incorporacao_id
+    const marcados = nf.itens.filter(it => it.bem)
+    return '<div class="pt-nfl">' +
+      '<div class="pt-nfl-h"><b>Nota ' + esc(nf.numero || '—') + (nf.serie ? ' · série ' + esc(nf.serie) : '') + '</b><span class="pt-sub">' +
+        (nf.origem === 'xml' ? 'lida do XML' : 'lida do PDF') + ' · emissão ' + dt(nf.emissao) + ' · ' + nf.itens.length + ' linha(s) · soma ' + brl(nf.soma) +
+        (cf.cnpj_confere === true ? ' · emitente confere com o fornecedor do contrato' : '') + '</span></div>' +
+      (usada ? '<div class="pt-aviso-f er">' + ptIc('alerta', 'p') + '<span>Esta nota já foi usada na incorporação de ' + esc(cf.chave_usada.bens || 'outros bens') + '. A mesma nota não pode entrar duas vezes.</span></div>' : '') +
+      av.map(a => '<div class="pt-aviso-f al">' + ptIc('alerta', 'p') + '<span>' + esc(a) + '</span></div>').join('') +
+      '<div class="pt-tbl-w"><table class="pt-mini pt-nfl-t"><thead><tr><th>É bem?</th><th>Descrição na nota</th><th class="dir">Qtd.</th><th class="dir">Unitário</th><th class="dir">Total</th><th>Categoria</th></tr></thead><tbody>' +
+      nf.itens.map((it, k) => '<tr class="' + (it.bem ? '' : 'cons') + '"><td><input type="checkbox" data-nfl-bem="' + k + '"' + (it.bem ? ' checked' : '') + ' aria-label="Linha ' + it.n + ' é bem permanente"></td>' +
+        '<td>' + esc(it.descricao) + '<div class="pt-sub">' + esc([it.codigo && 'cód. ' + it.codigo, it.ncm && 'NCM ' + it.ncm, it.unidade].filter(Boolean).join(' · ')) +
+          (it.series.length ? ' · série ' + esc(it.series.join(', ')) : '') + (it.motivo_consumo ? '<br>' + selo('al', 'consumo: ' + it.motivo_consumo) : '') + '</div></td>' +
+        '<td class="dir mono">' + esc(String(it.quantidade).replace('.', ',')) + '</td><td class="dir mono">' + brl(it.valor_unitario) + '</td><td class="dir mono">' + brl(it.valor_total) + '</td>' +
+        '<td><select class="form-control" data-nfl-cat="' + k + '" aria-label="Categoria da linha ' + it.n + '">' +
+          cats.map(c => '<option value="' + esc(c.codigo) + '"' + (c.codigo === it.categoria ? ' selected' : '') + '>' + esc(c.nome) + '</option>').join('') + '</select></td></tr>').join('') +
+      '</tbody></table></div>' +
+      '<div class="pt-nfl-b"><span class="pt-sub">Marcadas como bem: ' + marcados.length + ' linha(s), ' + brl(marcados.reduce((s, it) => s + it.valor_total, 0)) +
+        '. As desmarcadas (material de consumo) não entram no patrimônio.</span>' +
+        '<button type="button" class="pt-btn pri" data-acao="inc-nf-usar"' + (usada || !marcados.length ? ' disabled' : '') + '>' + ptIc('check', 'p') + 'Usar estes itens</button></div></div>'
+  }
+  function usarLeitura() {
+    const I = INC, nf = I?.nfLida; if (!nf) return
+    const marcados = nf.itens.filter(it => it.bem)
+    const quebrados = marcados.filter(it => !Number.isInteger(it.quantidade))
+    if (quebrados.length) { toast('Linha ' + quebrados.map(it => it.n).join(', ') + ': quantidade com fração (ex.: metros). Ajuste a quantidade de unidades no item.', 'warning') }
+    const temItens = I.itens.some(it => it.descricao.trim() || it.valor)
+    const aplicar = () => {
+      soltarPrevias({ itens: I.itens })
+      I.itens = marcados.map(it => Object.assign(novoItem(), { categoria: it.categoria, descricao: it.descricao,
+        quantidade: String(Number.isInteger(it.quantidade) ? it.quantidade : Math.max(1, Math.round(it.quantidade))),
+        valor: fmtNum(it.valor_total), series: it.series.join('\n'), _nf: it.n, _orig: { q: it.quantidade, v: it.valor_total, d: it.descricao } }))
+      if (!I.nf.numero) I.nf.numero = nf.numero
+      if (!I.nf.data && nf.emissao) I.nf.data = nf.emissao
+      if (!I.dt_aquisicao && nf.emissao) I.dt_aquisicao = nf.emissao
+      I.usada = { origem: nf.origem, chave: nf.chave || null, linhas: nf.itens.map(it => ({ n: it.n, codigo: it.codigo, descricao: it.descricao, ncm: it.ncm,
+        unidade: it.unidade, quantidade: it.quantidade, valor_unitario: it.valor_unitario, valor_total: it.valor_total, bem: it.bem, categoria: it.categoria })) }
+      I.sujo = true; renderIncorporar()
+      toast(marcados.length + ' item(ns) preenchido(s). Confira, complete os números de série e tire a foto de frente de cada um.', 'success')
+    }
+    if (temItens) ptConfirmar({ titulo: 'Trocar os itens já digitados?', texto: 'Os itens do passo 4 serão trocados pelos lidos da nota.', ok: 'Trocar' }).then(ok => { if (ok) aplicar() })
+    else aplicar()
+  }
+  // alguém mudou o que veio da nota? (descrição, quantidade, valor, linhas tiradas ou acrescentadas)
+  function leituraAlterada(I) {
+    const marcadas = I.usada.linhas.filter(l => l.bem).length
+    if (I.itens.length !== marcadas || I.itens.some(it => !it._orig)) return true
+    return I.itens.some(it => it.descricao.trim() !== it._orig.d || Number(it.quantidade) !== it._orig.q || Math.abs(parseValor(it.valor) - it._orig.v) > 0.004)
   }
 
   function atualizarSoma() {
     const I = INC; if (!I) return
     I.itens.forEach((it, i) => {
       const el = document.querySelector('[data-serie-n="' + i + '"]'); if (!el) return
-      const c = catDe(it.categoria); if (!c || c.controle === 'lote') { el.textContent = ''; return }
+      const c = catDe(it.categoria); if (!c) { el.textContent = ''; return }
       const n = it.series.split(/\n+/).map(s => s.trim()).filter(Boolean).length, q = Number(it.quantidade) || 0
       el.textContent = n + ' de ' + q + ' informado' + (n === 1 ? '' : 's') + (c.exige_serie && n !== q ? ' — falta' + (q - n > 1 ? 'm ' : ' ') + Math.max(q - n, 0) : '')
     })
@@ -1500,6 +1569,8 @@
     if (!INC || !e.target.closest('#pt-inc')) return
     const t = e.target, item = t.closest('.pt-item')
     if (t.name === 'inc-origem') { INC.origem = t.value; INC.sujo = true; renderIncorporar(); return }
+    if (t.dataset.nflBem != null && INC.nfLida) { INC.nfLida.itens[Number(t.dataset.nflBem)].bem = t.checked; $('inc-nfl').innerHTML = htmlLeitura(INC); return }
+    if (t.dataset.nflCat != null && INC.nfLida) { INC.nfLida.itens[Number(t.dataset.nflCat)].categoria = t.value; return }
     if (t.id === 'inc-prod') { INC.produto = t.value; renderIncorporar(); return }
     if (t.id === 'inc-local') { INC.local = t.value; return }
     if (t.id === 'inc-tit') { INC.titularidade = t.value; return }
@@ -1528,14 +1599,16 @@
       if (!c) return erro('Item ' + (i + 1) + ': escolha a categoria.')
       if (it.descricao.trim().length < 3) return erro('Item ' + (i + 1) + ': descreva o bem.')
       if (!(v >= 0)) return erro('Item ' + (i + 1) + ': informe o valor total do item.')
-      const series = c.controle === 'lote' ? (it.series.trim() ? [it.series.trim()] : []) : it.series.split(/\n+/).map(s => s.trim()).filter(Boolean)
+      const series = it.series.split(/\n+/).map(s => s.trim()).filter(Boolean)
+      const qtd = Number(it.quantidade)
+      if (!Number.isInteger(qtd) || qtd < 1) return erro('Item ' + (i + 1) + ': a quantidade de bens é um número inteiro (cada unidade vira uma ficha).')
       if (!it.fotos.frente) return erro('Item ' + (i + 1) + ' (' + it.descricao.trim() + '): falta a foto de frente.')
       itens.push({ _it: it, categoria: c.codigo, descricao: it.descricao.trim(), marca: it.marca, modelo: it.modelo, quantidade: Number(it.quantidade) || 1,
         valor_total: v, numeros_serie: series, garantia_ate: it.garantia, especificacao: it.especificacao })
     }
     const btn = $('inc-ok'); I.enviando = true; btn.disabled = true; btn.textContent = 'Incorporando…'
     try {
-      if (I.nf.arquivo && !I.nf.url) I.nf.url = await enviarArquivo('incorporacoes/' + I.id + '/nf-' + Date.now() + '.pdf', I.nf.arquivo)
+      if (I.nf.arquivo && !I.nf.url) I.nf.url = await enviarArquivo('incorporacoes/' + I.id + '/nf-' + Date.now() + (/\.xml$/i.test(I.nf.arquivo.name) ? '.xml' : '.pdf'), I.nf.arquivo)
       btn.textContent = 'Enviando fotos…'
       for (const [i, x] of itens.entries()) {
         x.fotos = []
@@ -1551,7 +1624,9 @@
         id: I.id, origem: I.origem, contrato_produto_id: compra ? I.produto : null, origem_detalhe: compra ? null : I.origem_detalhe,
         nf_numero: I.nf.numero, nf_data: I.nf.data, nf_url: I.nf.url || null, nf_nome: I.nf.arquivo?.name || null,
         dt_aquisicao: I.dt_aquisicao, dt_inicio_uso: I.dt_inicio_uso, local_id: I.local, titularidade: I.titularidade,
-        justificativa_diferenca: compra && I.justificar ? I.justificativa : null, itens } })
+        justificativa_diferenca: compra && I.justificar ? I.justificativa : null, itens,
+        nf_chave: I.usada?.chave || null, leitura_origem: I.usada ? I.usada.origem : 'manual',
+        leitura_itens: I.usada ? I.usada.linhas : null, leitura_alterada: I.usada ? leituraAlterada(I) : false } })
       const novos = (r.bens || []).map(x => x.id)
       soltarPrevias(INC); INC = null; ptFechar('pt-inc')
       toast((r.bens || []).length + ' bem(ns) incorporado(s): ' + (r.bens || []).map(x => x.numero).join(', ') +
@@ -1593,6 +1668,8 @@
     return ''
   }
 
+  // bem pequeno demais para a placa de 6 × 8 cm: sugestão pela descrição (a pessoa pode trocar)
+  const bemPequeno = b => /\b(MIC|MICROFONE|CONTROLE REMOTO|ADAPTADOR|PEN ?DRIVE|MOUSE|FONE|CARREGADOR|BATERIA|LAPELA|CART[AÃ]O DE MEM)/.test(semAcento(b.descricao).toUpperCase())
   function formEtiquetas(ids) {
     const lista = ids.map(id => S.bens.find(b => b.id === id)).filter(Boolean)
     if (!lista.length) { toast('Marque os bens na lista (caixa à esquerda) para imprimir as etiquetas.', 'warning'); return }
@@ -1606,6 +1683,8 @@
           '<div class="pt-g3">' + num('fq-w', 'Largura da etiqueta', pref.w) + num('fq-h', 'Altura da etiqueta', pref.h) + num('fq-cols', 'Colunas', pref.cols) +
           num('fq-rows', 'Linhas', pref.rows) + num('fq-mt', 'Margem de cima', pref.mt) + num('fq-ml', 'Margem da esquerda', pref.ml) +
           num('fq-gx', 'Espaço entre colunas', pref.gx) + num('fq-gy', 'Espaço entre linhas', pref.gy) + '</div></div>' +
+        '<div class="form-group" id="fq-peq-w"><span class="form-label">Tamanho de cada bem <span class="pt-sub">— os marcados saem na etiqueta pequena (63,5 × 38,1 mm), numa folha à parte</span></span>' +
+          '<div class="pt-checks pt-checks-alto">' + lista.map(b => '<label><input type="checkbox" class="fq-peq" value="' + esc(b.id) + '"' + (bemPequeno(b) ? ' checked' : '') + '> <span class="mono">' + esc(b.numero) + '</span> ' + esc(b.descricao) + '</label>').join('') + '</div></div>' +
         '<div class="pt-g2"><div class="form-group"><label class="form-label" for="fq-ini">Começar na posição</label><input class="form-control mono" type="number" min="1" id="fq-ini" value="1">' +
           '<div class="pt-dica" id="fq-ini-d"></div></div>' +
         '<div class="form-group"><span class="form-label">Opções</span>' +
@@ -1621,11 +1700,13 @@
         if (erroM) throw new Error('PAT_DADOS: ' + erroM)
         try { localStorage.setItem('pat_etiqueta', JSON.stringify(Object.assign(etqPref(), p))) } catch (e) {}
         const porFolha = m.cols * m.rows
-        abrirEtiquetas(lista, Math.min(porFolha, Math.max(1, Number(val(r, '#fq-ini')) || 1)), m, { teste: $('fq-teste').checked, contorno: $('fq-cont').checked })
+        const peq = new Set(m.id === 'pequena' ? [] : [...r.querySelectorAll('.fq-peq:checked')].map(x => x.value))
+        abrirEtiquetas(lista, Math.min(porFolha, Math.max(1, Number(val(r, '#fq-ini')) || 1)), m, { teste: $('fq-teste').checked, contorno: $('fq-cont').checked, pequenas: peq })
       },
     })
     const sel = $('fq-mod'), dica = () => { const pp = Object.assign(etqPref(), { modelo: sel.value }); const m = etqModelo(pp)
       $('fq-pers').hidden = sel.value !== 'personalizada'
+      $('fq-peq-w').hidden = sel.value === 'pequena'
       $('fq-ini-d').textContent = m.cols && m.rows ? 'Esta folha tem ' + (m.cols * m.rows) + ' posições, da esquerda para a direita, de cima para baixo. Use para aproveitar uma folha já começada.' : '' }
     sel.onchange = dica; dica()
   }
@@ -1635,13 +1716,12 @@
     const w = window.open('', '_blank')
     if (!w) { toast('O navegador bloqueou a nova aba. Permita janelas deste site.', 'warning'); return }
     const base = new URL('patrimonio.html', location.href).href
-    const des = etqDesenho(m), area = m.placa || { w: m.w, h: m.h }
     const L = typeof DimaLogos !== 'undefined' ? DimaLogos.agora() : null
     const logos = (L?.topo || []).map(l => { const e = DimaLogos.escolher(l, 'claro'); return e.src ? '<img class="lg" alt="' + esc(l.alt) + '" src="' + esc(DimaLogos.url(e.src)) + '">' : '' }).join('')
-    const placa = b => {
+    const placa = (b, des) => {
       const q = qrcode(0, 'M'); q.addData(base + '?bem=' + encodeURIComponent(b.numero)); q.make()
       const qr = '<img class="qr" alt="" src="' + q.createDataURL(6, 0) + '">'
-      const desc = '<div class="d">' + esc(b.descricao) + (b.quantidade > 1 ? ' (lote de ' + b.quantidade + ')' : '') + '</div>' + (b.numero_serie ? '<div class="s">S/N ' + esc(b.numero_serie) + '</div>' : '')
+      const desc = '<div class="d">' + esc(b.descricao) + '</div>' + (b.numero_serie ? '<div class="s">S/N ' + esc(b.numero_serie) + '</div>' : '')
       const rod = '<div class="p">SEMA/AC · Fundo Brasil-ONU</div>'
       if (des === 'pequena') return '<div class="pl pq">' + qr + '<div class="tx"><div class="k">PATRIMÔNIO</div><div class="n">' + esc(b.numero) + '</div>' + desc + rod + '</div></div>'
       if (des === 'deitada') return '<div class="pl dt"><div class="cab">' + (logos ? '<span class="lgs">' + logos + '</span>' : '') + '<span class="k">PATRIMÔNIO</span></div>' +
@@ -1649,10 +1729,17 @@
       return '<div class="pl pe"><div class="cab">' + (logos ? '<span class="lgs">' + logos + '</span>' : '') + '<span class="k">PATRIMÔNIO</span></div>' + qr +
         '<div class="n">' + esc(b.numero) + '</div>' + desc + '<div class="rp">' + rod + '<div class="nr">Bem público · não remover esta placa</div></div></div>'
     }
-    const por = m.cols * m.rows
-    const itens = op.teste ? Array(por).fill('') : Array(inicio - 1).fill(null).concat(lista.map(placa))
     const px = n => (Math.round(n * 100) / 100) + 'mm'
     const folhas = []
+    const peq = op.pequenas || new Set()
+    const grandes = lista.filter(b => !peq.has(b.id)), pequenas = lista.filter(b => peq.has(b.id))
+    if (op.teste || grandes.length) montar(grandes, inicio, m)
+    if (!op.teste && pequenas.length) { const mp = etqModelo({ modelo: 'pequena' }); montar(pequenas, 1, mp, true) }
+    function montar(bens, ini, m, pequenaFolha) {
+    const des = pequenaFolha ? 'pequena' : etqDesenho(m), area = m.placa || { w: m.w, h: m.h }
+    const placaDe = b => placa(b, des)
+    const por = m.cols * m.rows
+    const itens = op.teste ? Array(por).fill('') : Array(ini - 1).fill(null).concat(bens.map(placaDe))
     for (let f = 0; f < itens.length; f += por) {
       let h = ''
       itens.slice(f, f + por).forEach((cel, k) => {
@@ -1673,7 +1760,8 @@
       }
       folhas.push('<div class="folha">' + h + '</div>')
     }
-    const nTxt = op.teste ? 'Folha de teste (só contornos) · ' : lista.length + ' placa(s) · '
+    }
+    const nTxt = op.teste ? 'Folha de teste (só contornos) · ' : grandes.length + ' placa(s)' + (pequenas.length ? ' + ' + pequenas.length + ' etiqueta(s) pequena(s) em folha à parte' : '') + ' · '
     w.document.open()
     w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="author" content="Erisson Cameli Santiago"><title>Placas de patrimônio</title><style>' +
       '@page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;background:#e9edea;font-family:"DM Sans",Arial,sans-serif;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
@@ -2218,6 +2306,8 @@
       case 'ficha-aba': S.fichaAba = el.dataset.aba; renderFicha(); break
       case 'incorporar': abrirIncorporar(el.dataset.produto); break
       case 'inc-add': INC.itens.push(novoItem()); INC.sujo = true; renderIncorporar(); break
+      case 'inc-nf-ler': lerNotaFiscal(); break
+      case 'inc-nf-usar': usarLeitura(); break
       case 'inc-rm': INC.itens.splice(Number(el.dataset.i), 1); INC.sujo = true; renderIncorporar(); break
       case 'inc-foto-rm': { e.preventDefault(); const it = INC.itens[Number(el.dataset.i)]; const ft = it.fotos[el.dataset.slot]
         if (ft) { try { URL.revokeObjectURL(ft.prev) } catch (er) {} delete it.fotos[el.dataset.slot] } renderIncorporar(); break }

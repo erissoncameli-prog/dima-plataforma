@@ -467,3 +467,18 @@ offline — não há inventário nas APAs); placa **adesiva de 6 × 8 cm** em fo
 - Placas: 6 × 8 em pé (9 por A4 inteira, marcas de corte) como padrão; 8 × 6 deitada; pré-cortada 99,1 × 67,7 (8/folha); pequena
   63,5 × 38,1 (21/folha); medidas livres; folha de teste. Recomendação de material: vinil adesivo para bens de campo.
 
+---
+
+## 18. Uma ficha por unidade e leitura da nota fiscal (21/11/2026)
+
+Decisões do usuário: **sem lote** (cada item ganha placa própria, sequencial); leitura da NF **sem IA** (código, porque o DANFE é
+padronizado); aceitar XML sem exigir dos fornecedores; consumo pelos **dois** critérios (palavra e valor abaixo de R$ 100).
+- Migração `20261121_pat_07_nf_unidades` (aplicada): categorias só por unidade; números do bloco em sequência; chave de acesso única;
+  origem da leitura e se houve alteração; `fn_pat_nf_conferir`. Testes `supabase/tests/patrimonio/80_nf_unidades.sql`.
+- `js/patrimonio-nf.js`: XML e PDF lidos no navegador. Conferido com a NF 23.126 real: 13 linhas, R$ 20.714,50 (igual ao total da nota),
+  10 bens = R$ 20.301,00 e 3 de consumo = R$ 413,50 — os mesmos valores do §13, sem ajuste manual. Teste automático com nota fictícia
+  em `tests/patrimonio-nf/conferir.js` (o documento real não fica no repositório).
+- Achado: o NCM do fornecedor não é confiável para a categoria (rack e suporte vieram como "partes de instrumentos musicais"); a categoria
+  sai da descrição e o NCM só apoia.
+- Placas: escolha de tamanho bem a bem (etiqueta pequena para microfone, controle, adaptador), em folha à parte.
+

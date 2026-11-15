@@ -663,6 +663,17 @@ testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js
   9 por A4 adesiva inteira com marcas de corte; placa 8 × 6 deitada (8/folha); pré-cortada 99,1 × 67,7 (8/folha, L7165) com a placa 8 × 6 no
   centro; pequena 63,5 × 38,1 (21/folha, L7160); "Outra folha" por medidas. Folha de teste (só contornos) e contorno opcional. Posições em mm
   absolutos na folha; imprimir a 100%. Logos do topo vêm de `DimaLogos` (versão clara).
+- **Uma ficha por unidade e leitura da NF (Fase 7, migração `20261121_pat_07_nf_unidades`, testes `80_nf_unidades.sql` e
+  `node tests/patrimonio-nf/conferir.js`)**: **não existe lote** — toda unidade vira ficha com número e placa próprios; categorias todas
+  `individual` e `fn_pat_salvar_categoria` recusa `lote` (o check da coluna ficou). `fn_pat_incorporar` reserva o bloco de números com
+  `pg_advisory_xact_lock` (PAT-… em sequência dentro da mesma entrada) e grava `pat_incorporacoes.nf_chave` (44 dígitos, **única** —
+  `PAT_NF_REPETIDA`), `leitura_origem` (`xml|pdf|manual`), `leitura_itens` e `leitura_alterada`. `fn_pat_nf_conferir(produto, cnpj, chave)`
+  (gerir) diz se o emitente é o fornecedor do contrato e se a chave já foi usada, **sem devolver o CNPJ**. Leitura **sem IA, no navegador**:
+  `js/patrimonio-nf.js` (`PatNF.lerArquivo`): XML por tags; PDF (DANFE) pelo pdf.js 4.7.76 (mesmo CDN do acervo), linhas remontadas pela
+  altura e tabela lida pela ordem fixa das colunas (desconto opcional, descrição em 2 linhas, várias folhas); PDF sem texto ⇒ aviso para
+  preencher à mão. Sugestões: consumo = palavra (cabo, plugue, pilha…) **ou** unitário < R$ 100; categoria pela descrição, NCM só de apoio.
+  Tela: "Ler a nota fiscal" na incorporação (`lerNotaFiscal`/`htmlLeitura`/`usarLeitura`). Placas: cada bem pode sair na etiqueta
+  pequena (`bemPequeno` sugere), numa folha à parte.
 - ROPA: TRAT-006 (tabelas das fases 1–4). Próxima fase: encerramento do projeto (inventário de encerramento + Termo de Transferência/Doação, Pt9).
 
 ### Diagnóstico Socioambiental — app de campo (⚠️ ler antes de mexer em `diag_*`)

@@ -350,6 +350,17 @@ body.dgm .pt-guia p { margin: 0 0 10px; font-size: 13px; color: var(--txt-forte-
   body.dgm .pt-kpis { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* leitura da nota fiscal (Fase 7) */
+body.dgm .pt-ov .pt-nf-ler { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+body.dgm .pt-ov .pt-nf-ler .pt-sub { flex: 1; min-width: 220px; }
+body.dgm .pt-ov .pt-nfl { margin-top: 12px; border: 1px solid var(--lin-forte); border-radius: 14px; padding: 12px; background: var(--sup); display: flex; flex-direction: column; gap: 10px; }
+body.dgm .pt-ov .pt-nfl-h { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--txt); }
+body.dgm .pt-ov .pt-nfl .pt-aviso-f { margin-bottom: 0; }
+body.dgm .pt-ov .pt-nfl-t td { vertical-align: top; }
+body.dgm .pt-ov .pt-nfl-t tr.cons td { color: var(--txt-3); }
+body.dgm .pt-ov .pt-nfl-t select { min-width: 150px; font-size: 12px; padding: 4px 6px; }
+body.dgm .pt-ov .pt-nfl-b { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
 /* fotos do bem em 3 posições (Fase 6) — incorporação, ficha, ocorrência e inventário */
 body.dgm .pt-ov .pt-fslots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 body.dgm .pt-ov .pt-fslot { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
