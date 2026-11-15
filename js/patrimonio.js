@@ -1722,7 +1722,9 @@
       const q = qrcode(0, 'M'); q.addData(base + '?bem=' + encodeURIComponent(b.numero)); q.make()
       const qr = '<img class="qr" alt="" src="' + q.createDataURL(6, 0) + '">'
       const desc = '<div class="d">' + esc(b.descricao) + '</div>' + (b.numero_serie ? '<div class="s">S/N ' + esc(b.numero_serie) + '</div>' : '')
-      const rod = '<div class="p">SEMA/AC · Fundo Brasil-ONU</div>'
+      // Só bem comprado pelo projeto: cessão e doação recebida não foram pagas com o recurso.
+      const aq = b.origem === 'compra_projeto' ? '<div class="aq">Adquirido com recurso do projeto</div>' : ''
+      const rod = aq + '<div class="p">SEMA/AC · Fundo Brasil-ONU</div>'
       if (des === 'pequena') return '<div class="pl pq">' + qr + '<div class="tx"><div class="k">PATRIMÔNIO</div><div class="n">' + esc(b.numero) + '</div>' + desc + rod + '</div></div>'
       if (des === 'deitada') return '<div class="pl dt"><div class="cab">' + (logos ? '<span class="lgs">' + logos + '</span>' : '') + '<span class="k">PATRIMÔNIO</span></div>' +
         '<div class="corpo">' + qr + '<div class="tx"><div class="n">' + esc(b.numero) + '</div>' + desc + '</div></div><div class="rp">' + rod + '<div class="nr">Bem público · não remover esta placa</div></div></div>'
@@ -1778,12 +1780,12 @@
       '.qr{image-rendering:pixelated;flex-shrink:0}.lgs{display:flex;gap:1.5mm;align-items:center}.lg{height:5.5mm;width:auto;max-width:22mm;object-fit:contain}' +
       '.pe{display:flex;flex-direction:column;align-items:center;text-align:center;padding:3.5mm 3.5mm 3mm;gap:1.2mm}' +
       '.pe .cab{display:flex;justify-content:space-between;align-items:center;width:100%;gap:2mm}.pe .qr{width:38mm;height:38mm;margin-top:.5mm}' +
-      '.pe .n{font-size:15pt}.pe .d{font-size:7.5pt}.pe .s{font-size:6.5pt;max-width:100%}.pe .rp{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:.3mm}.pe .p{font-size:6pt}.pe .nr{font-size:5.5pt}' +
+      '.pe .n{font-size:15pt}.pe .d{font-size:7.5pt}.pe .s{font-size:6.5pt;max-width:100%}.pe .rp{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:.3mm}.pe .p{font-size:6pt}.pe .nr{font-size:5.5pt}.pe .aq{font-size:6.5pt;font-weight:700;color:#1D5A3C}' +
       '.dt{display:flex;flex-direction:column;padding:3mm 3.5mm 2.5mm;gap:1.5mm}.dt .cab{display:flex;justify-content:space-between;align-items:center;gap:2mm}' +
       '.dt .corpo{display:flex;gap:3mm;align-items:center;flex:1;min-height:0}.dt .qr{width:34mm;height:34mm}.dt .tx{min-width:0;display:flex;flex-direction:column;gap:1.2mm}' +
-      '.dt .n{font-size:14pt}.dt .d{font-size:7.5pt}.dt .s{font-size:6.5pt}.dt .rp{display:flex;justify-content:space-between;align-items:baseline;gap:2mm}.dt .p{font-size:6pt}.dt .nr{font-size:5.5pt}' +
+      '.dt .n{font-size:14pt}.dt .d{font-size:7.5pt}.dt .s{font-size:6.5pt}.dt .rp{display:flex;justify-content:space-between;align-items:baseline;gap:2mm}.dt .p{font-size:6pt}.dt .nr{font-size:5.5pt}.dt .rp{flex-wrap:wrap}.dt .aq{font-size:6.5pt;font-weight:700;color:#1D5A3C;width:100%}' +
       '.pq{display:flex;gap:2.5mm;align-items:center;padding:2.5mm 3mm}.pq .qr{width:26mm;height:26mm}.pq .tx{min-width:0;display:flex;flex-direction:column;gap:.6mm}' +
-      '.pq .n{font-size:12pt}.pq .d{font-size:7pt}.pq .s{font-size:6.5pt}.pq .p{font-size:6pt}' +
+      '.pq .n{font-size:12pt}.pq .d{font-size:7pt}.pq .s{font-size:6.5pt}.pq .p{font-size:6pt}.pq .aq{font-size:5.5pt;font-weight:700;color:#1D5A3C;line-height:1.1}' +
       '@media print{body{background:#fff}.barra{display:none}.folha{margin:0}}' +
       '</style></head><body><div class="barra"><button type="button" onclick="print()">Imprimir</button><span>' + nTxt + esc(m.nome) + ' · imprima em tamanho real (100%), sem ajustar à página.</span></div>' +
       folhas.join('') + '</body></html>')
