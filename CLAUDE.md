@@ -104,7 +104,7 @@ const res = await fetch(SUPABASE_URL + '/functions/v1/nome-da-funcao', {
 ### Navegação (`layout.js` — `navGroups`)
 Grupos: `'Projeto'`, `'Execução'`, `'Apoio'`
 Cada item: `{ id, icone, href, perfis: [...] }`
-IDs usados: `dashboard`, `atividades`, `tdrs`, `remanejamentos`, `contratos`, `fornecedores`, `financeiro`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`, `pulso`, `integracoes`
+IDs usados: `dashboard`, `atividades`, `tdrs`, `remanejamentos`, `contratos`, `fornecedores`, `financeiro`, `patrimonio`, `produtos`, `acervo`, `diagnostico`, `viagens`, `mapa`, `beneficiarios`, `auditoria`, `pulso`, `integracoes`
 Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 
 ---
@@ -577,6 +577,35 @@ senão o arquivo não entra no acervo.
   ~5k obras, mover para o servidor.
 - Buckets privados: o visualizador assina com `urlAssinada()` antes de popular
   `iframe`/`video`/`img`. Nunca atribuir `arquivo_url` direto.
+
+### Patrimônio — bens, valor e depreciação (⚠️ ler antes de mexer em `pat_*`)
+
+Plano e fases em `docs/patrimonio/plano.md` (Fase 1 em produção 15/11/2026: migração `20261115_pat_01_cadastro`;
+testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js/patrimonio.js` + `css/patrimonio.css`
+(nav `patrimonio`, grupo Execução; mesa `body.dgm`, prefixo `pt-`, janelas `pt-ov`, ícones `ptIc()`, ações por `data-acao`).
+- **Ficha + razão**: `pat_bens` (ficha) e `pat_eventos` (imutável; correção = evento `estorno`, só do último evento vivo do
+  bem). Situação, condição, local, responsável, `ultimo_inventario_em`, `dt_baixa` **e os campos de valor** (valor, datas,
+  categoria, vida útil, residual, quantidade, titularidade) são cache: só as `fn_pat_*` gravam (chave `dima.pat_evento`,
+  `trg_pat_guarda_bem`); bem nasce só por `fn_pat_incorporar`. Número `PAT-000123` por sequência, nunca reaproveitado.
+  Nada se apaga: anular cadastro = estorno da incorporação (`situacao='anulado'`); arquivo sai com `ativo=false`.
+- **Patrimônio não mexe no saldo** (`vw_saldo_atividade`/`orcamento_fontes`). Custo de manutenção pago = lançamento normal.
+- **Depreciação calculada, nunca gravada**: `fn_pat_depreciacao(valor, residual_pct, vida_meses, inicio_uso, data, fim)` —
+  linear, começa no mês seguinte ao início de uso, só mês completo, para no residual e no mês da baixa; a última cota
+  fecha o centavo. `vw_pat_bens` traz `valor_contabil_brl` etc. Nunca recalcular no JS (a curva da ficha só liga os pontos).
+  Vida útil/residual são copiados da categoria na entrada (`pat_categorias`, referência STN 02.03.30, a conferir com a contabilidade).
+- **US$** = câmbio da UNESCO no pagamento do produto (`fn_pat_cotacao_bem`, como o razão) ou, sem pagamento, a PTAX da aquisição.
+- **Entrada pelo contrato**: produto de contrato `tipo='Equipamentos'` em `aprovado|entrega_parcial|pago` ⇒ tarefa
+  "Incorporar bens ao patrimônio" (`entidade_tipo='pat_incorporacao'`, `trg_pat_produto_tarefa`, para `fn_pat_gestor_padrao()`:
+  acesso `patrimonio_gestor` → titular `coordenacao_solicitante` → coordenação). Σ bens ≤ valor do produto (`PAT_VALOR_EXCEDE`);
+  igual (ou diferença justificada) conclui a tarefa. Uma NF por incorporação (`pat_incorporacoes`, id gerado no navegador =
+  idempotência e pasta da NF). Fornecedor do contrato não incorpora. Cessão/doação: só coordenação, com origem descrita.
+- **Acesso**: ver catálogo = `fn_pat_pode_ver` (todo perfil ativo menos consultor externo, ou acesso extra); ver valores/NF =
+  `fn_pat_pode_ver_valor` (gerir, financeiro, acesso `patrimonio`); gerir = super_admin/coordenação ou acesso `patrimonio_gestor`;
+  corrigir valor, estornar e categorias = só super_admin/coordenação (`fn_pat_pode_coordenar`). Tabelas sem policy de escrita.
+- **Etiquetas**: A4 3 × 7 (63,5 × 38,1 mm) com QR de `patrimonio.html?bem=PAT-…` (sem valor nem nome de pessoa). É a
+  **única impressão fora do molde FolhaA4** (folha adesiva não leva cabeçalho/rodapé). Relatórios do patrimônio (Fase 5) usam FolhaA4.
+- ROPA: TRAT-006. Próximas fases: termo de responsabilidade com senha, empréstimo, manutenção, ocorrências/sinistros, baixa
+  com aprovação, inventário por QR, relatórios e auditor (`fn_auditoria_patrimonio`, título "Patrimônio: …").
 
 ### Diagnóstico Socioambiental — app de campo (⚠️ ler antes de mexer em `diag_*`)
 
@@ -1559,6 +1588,7 @@ contas do projeto.
 | `diagnostico-fotos` | 🔒 privado | fotos de moradia/entorno do Diagnóstico (identificação — consultor não vê) |
 | `diagnostico-audios` | 🔒 privado | gravações de voz das respostas abertas do Diagnóstico (identificação — consultor não ouve) |
 | `tarefas-anexos` | 🔒 privado | anexos do Painel de Tarefas (caminho `<tarefa_id>/<arquivo>`) |
+| `patrimonio-docs` | 🔒 privado | NF da incorporação (`incorporacoes/<id>/`) e fotos/laudos do bem (`bens/<bem_id>/`). Ler = `fn_pat_pode_ver`; enviar = `fn_pat_pode_gerir`; sem troca nem remoção pelo cliente |
 
 **As tabelas continuam guardando a URL no formato `/object/public/<bucket>/<path>`.**
 Isso é intencional: a string é apenas **portadora do caminho**, não um link

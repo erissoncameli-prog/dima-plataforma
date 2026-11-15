@@ -1018,6 +1018,46 @@ Object.assign(AJUDA, {
       ]},
     ]
   }},
+  patrimonio: { pt: {
+    titulo: 'Patrimônio',
+    intro: 'Controle dos bens comprados pelo projeto (e dos recebidos por cessão ou doação): cada bem tem uma ficha com número próprio (PAT-…), origem, local, condição, valor e depreciação, fotos, documentos e um histórico que não se apaga. Patrimônio não mexe no saldo das atividades.',
+    secoes: [
+      { titulo: 'Como o bem entra', itens: [
+        'Quando um produto de contrato do tipo Equipamentos é aprovado, o gestor patrimonial recebe a tarefa "Incorporar bens ao patrimônio" e o produto aparece no Painel, em "A incorporar".',
+        'Em "Incorporar bens", escolha o produto, anexe a nota fiscal (pode ficar para depois), diga onde os bens estão e lance cada item da NF com categoria, quantidade e valor.',
+        'Cada unidade vira uma ficha com número próprio. Categorias em lote (ex.: barracas) viram uma ficha só, com a quantidade.',
+        'A soma dos bens não pode passar o valor do produto. Se sobrar diferença que não é bem (instalação, frete, cabos e plugues de consumo), marque a opção e justifique: a tarefa é concluída.',
+        'Bem que não veio de contrato (cessão de outro órgão, doação) só a coordenação incorpora, descrevendo a origem e o documento.',
+      ]},
+      { titulo: 'Valor e depreciação', itens: [
+        'O valor de aquisição é o da nota fiscal; o valor em dólar usa o câmbio da UNESCO no pagamento (o mesmo do orçamento) ou, sem pagamento, a PTAX da data de aquisição.',
+        'A depreciação é linear: (valor − residual) dividido pela vida útil da categoria. Começa no mês seguinte ao início de uso e só conta mês completo.',
+        'Bem sem início de uso fica "Em estoque" e não deprecia. Informe a data na ficha quando ele começar a ser usado.',
+        'Vida útil e residual vêm da categoria no dia da entrada; mudar a categoria depois não altera os bens já cadastrados.',
+        'O cálculo é feito pelo banco. Só quem gere o patrimônio, o financeiro e quem tem o acesso "Patrimônio — ver valores" veem valores e nota fiscal.',
+      ]},
+      { titulo: 'Quem faz o quê', itens: [
+        'Todos os perfis (menos consultor externo) consultam a lista e as fichas, sem valores.',
+        'O gestor patrimonial (acesso extra dado em Usuários), a coordenação e o super_admin incorporam, editam a ficha, registram a condição, informam o início de uso e anexam fotos e documentos.',
+        'Corrigir valor, datas ou categoria, anular um cadastro e estornar um evento são da coordenação ou do super_admin, sempre com motivo.',
+        'O fornecedor do contrato nunca incorpora os próprios bens.',
+      ]},
+      { titulo: 'Histórico e correções', itens: [
+        'Tudo o que muda no bem vira um evento no histórico, com quem fez, quando e o antes e depois.',
+        'Nada se apaga. Erro se corrige com estorno, sempre do evento mais recente; o evento estornado continua visível, riscado.',
+        'Anular cadastro (estorno da entrada) tira o bem das listas; o número PAT não volta a ser usado e, se o bem veio de contrato, o valor volta para "A incorporar".',
+        'Arquivo enviado não se apaga: "Tirar" só esconde da ficha e registra o motivo.',
+      ]},
+      { titulo: 'Etiquetas', itens: [
+        'Marque os bens na lista e clique em Etiquetas (ou use o botão na ficha). A folha é A4 com 21 etiquetas de 63,5 × 38,1 mm.',
+        'Imprima em tamanho real (100%). Para aproveitar uma folha já usada, escolha a posição inicial.',
+        'O QR leva à ficha do bem (é preciso entrar na plataforma). A etiqueta não tem valor nem nome de pessoa.',
+      ]},
+      { titulo: 'O que vem depois', itens: [
+        'Próximas fases: termo de responsabilidade com aceite por senha, empréstimos e manutenção; ocorrências, sinistros e baixa com aprovação; inventário pelo celular lendo o QR; relatórios A4.',
+      ]},
+    ]
+  }},
 });
 
 const AJUDA_LABELS = {

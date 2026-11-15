@@ -1,7 +1,7 @@
 # Patrimônio — gestão dos bens adquiridos pelo projeto · especificação
 
-Status: **proposta — aguardando decisões do dono do projeto** (15/11/2026). Nada implementado;
-quando aprovado, este documento é o contrato das migrações `2026xxxx_pat_*`.
+Status: **aprovado (15/11/2026), Fase 1 em produção** (migração `20261115_pat_01_cadastro`, tela `pages/patrimonio.html`).
+Decisões D1–D7 tomadas pelas recomendações (§12). Este documento é o contrato das migrações `2026xxxx_pat_*`.
 
 ---
 
@@ -351,9 +351,9 @@ segregação da baixa, inventário). Toda migração com DROP vai em `*_sql_edit
 
 ---
 
-## 12. Decisões em aberto
+## 12. Decisões (15/11/2026: aceitas as recomendações)
 
-| # | Pergunta | Recomendação |
+| # | Pergunta | Decisão |
 |---|---|---|
 | D1 | Quem é o **gestor patrimonial**? (perfil existente + acesso extra `patrimonio_gestor`, ou só coordenação) | acesso extra, para poder designar alguém do apoio sem dar perfil de coordenação |
 | D2 | Inventário **offline** (APAs sem sinal) já na Fase 4, ou só online no início? | começar online (sede); offline como Fase 4b reaproveitando o padrão do app de campo (IndexedDB + fila) |
@@ -362,3 +362,43 @@ segregação da baixa, inventário). Toda migração com DROP vai em `*_sql_edit
 | D5 | Titularidade: os bens são da UNESCO até o fim e depois doados à SEMA? | confirmar no PRODOC antes da Fase 6 (não bloqueia as fases 1–5) |
 | D6 | Existe ou existirá **seguro** dos bens? | se não, a Fase 3 registra só indenização avulsa, sem cadastro de apólice |
 | D7 | Mostrar bens por local no **Mapa Interativo**? | depois da Fase 5, se os locais tiverem coordenadas |
+
+---
+
+## 13. Fase 1 — o que foi entregue (15/11/2026)
+
+- Banco: `pat_categorias`, `pat_locais`, `pat_incorporacoes`, `pat_bens`, `pat_eventos`, `pat_documentos`; views
+  `vw_pat_bens` (valor contábil, depreciação e US$ calculados; valores e NF mascarados para quem não vê valor) e
+  `vw_pat_eventos`; RPCs `fn_pat_incorporar`, `fn_pat_anexar_nf`, `fn_pat_editar_ficha`, `fn_pat_corrigir`,
+  `fn_pat_registrar_condicao`, `fn_pat_estornar`, `fn_pat_anexar`, `fn_pat_remover_anexo`, `fn_pat_salvar_categoria`,
+  `fn_pat_salvar_local`, `fn_pat_a_incorporar`; bucket privado `patrimonio-docs`; ROPA TRAT-006.
+- Tarefa "Incorporar bens ao patrimônio" criada para o produto de equipamentos aprovado (já criada para o
+  contrato 4500574049); concluída sozinha quando o valor do produto é todo incorporado (ou a diferença é justificada).
+- Tela: Painel (números, "A incorporar", avisos, por categoria e local), Bens (filtros, busca sem acento, planilha
+  CSV, seleção para etiquetas), ficha (Dados, Valor e depreciação com curva, Fotos e arquivos, Histórico com estorno),
+  incorporação, Categorias e locais, Como funciona; etiquetas A4 3 × 7 com QR.
+- Testes: `supabase/tests/patrimonio/rodar.sh` (depreciação, rateio, travas, perfis, estorno, lote, catálogos).
+- Diferenças em relação ao texto acima: anular cadastro = estorno da incorporação (situação `anulado`, número não
+  reaproveitado); a NF fica na incorporação (`pat_incorporacoes`), não em cada bem; vida útil e residual são copiados
+  da categoria para o bem na entrada (mudar a categoria não altera bens já cadastrados).
+
+### Carga do contrato 4500574049 (NF 23.126, L. A. Som, 21/10/2026, R$ 20.714,50)
+
+Mapeamento sugerido dos 13 itens da NF (13 fichas; R$ 20.301,00 em bens + R$ 413,50 justificados como consumo):
+
+| Item da NF | Qtd | Valor | Categoria |
+|---|---|---|---|
+| Caixa Staner Black Series ativa BK 715A | 2 | 9.560,00 | áudio/vídeo (série) |
+| Caixa Staner monitor SR-65M compacto | 2 | 4.580,00 | áudio/vídeo (série) |
+| Mic. Dylan s/fio UHF 2 bastões QS-5 | 1 | 2.150,00 | áudio/vídeo (série) |
+| Mesa de som LL DMX6 MN | 1 | 1.580,00 | áudio/vídeo (série) |
+| Mic. Dylan s/fio duplo portátil DC3000 | 1 | 980,00 | áudio/vídeo (série) |
+| Filtro de linha LL 9T6K digital | 1 | 460,00 | máquinas e equipamentos diversos |
+| Rack ASK médio M19L | 1 | 398,00 | máquinas e equipamentos diversos |
+| Tripé Staner p/ caixa de som | 2 | 350,00 | máquinas e equipamentos diversos |
+| Suporte musical ASK partitura | 1 | 128,00 | máquinas e equipamentos diversos |
+| Bandeja ASK periférico U17 | 1 | 115,00 | máquinas e equipamentos diversos |
+| Plugues XLR macho (2) e fêmea (2) + cabo SC30 35 m | — | 413,50 | consumo → justificar a diferença |
+
+Falta, para lançar: os números de série dos equipamentos de áudio (lidos na etiqueta de cada aparelho), o local e a
+data de início de uso. Observação: a NF traz "Projeto 218BRA2002" nas informações complementares (o projeto é 218BRA2001).
