@@ -42,7 +42,8 @@ create table public.contratos (id uuid primary key default gen_random_uuid(), nu
 create table public.execucao_financeira (id uuid primary key default gen_random_uuid(), contrato_id uuid, numero_produto int,
   situacao text, valor_brl numeric, valor_usd_unesco numeric, dt_pagamento date, criado_em timestamptz default now());
 create table public.contratos_produtos (id uuid primary key default gen_random_uuid(), contrato_id uuid not null,
-  numero_produto int, descricao text not null, valor_brl numeric, valor_aprovado numeric, situacao text, lancamento_id uuid);
+  numero_produto int, descricao text not null, valor_brl numeric, valor_aprovado numeric, situacao text, lancamento_id uuid,
+  criado_em timestamptz default now(), atualizado_em timestamptz default now());
 
 create table public.tarefas (id uuid primary key default gen_random_uuid(), titulo text not null, descricao text,
   status public.status_tarefa not null default 'a_fazer', prioridade public.prioridade_tarefa not null default 'media',

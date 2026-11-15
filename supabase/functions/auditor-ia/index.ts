@@ -14,6 +14,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk'
+import { exigirPerfil, ehServiceRole, statusDoErro } from '../_shared/autorizacao.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -43,6 +44,8 @@ Sua tarefa é analisar os achados brutos de auditoria do sistema DIMA (projeto 2
 4. Redigir um resumo executivo claro e objetivo
 
 Achados com título iniciado por "Orçamento:" vêm do razão orçamentário (remanejamento entre atividades, cobertura de contrato acima do TDR, cotação PTAX). Falha de conferência do razão é sempre crítica: indica que o orçamento registrado não bate com seus lançamentos.
+
+Achados com título iniciado por "Patrimônio:" vêm do módulo de bens (equipamento pago sem incorporação, termo não aceito, empréstimo vencido, ocorrência parada, bem sem inventário há 12 meses). Não mexem no saldo do orçamento; tratam de guarda e prestação de contas dos bens.
 
 Achados com título iniciado por "Viagem: aprovação" tratam da segregação de funções na aprovação de viagens (quem pediu ou viaja não pode aprovar). Os marcados "antes da trava" são histórico informativo — a regra passou a ser barrada no banco em 16/10/2026; não os trate como risco atual. "Aprovação fora do fluxo com senha" é sempre crítica.
 
@@ -522,6 +525,24 @@ async function auditarOrcamento(db: any): Promise<Achado[]> {
   }))
 }
 
+// ── AGENTE 8: Patrimônio (bens, termos, ocorrências, inventário) ──
+// Regras em fn_auditoria_patrimonio (só service_role). O check de auditoria_registros.dominio
+// não tem 'patrimonio': grava como qualidade_dados, com título "Patrimônio: …".
+async function auditarPatrimonio(db: any): Promise<Achado[]> {
+  const { data, error } = await db.rpc('fn_auditoria_patrimonio')
+  if (error) throw error
+  return (data || []).map((r: any) => ({
+    dominio: 'qualidade_dados' as Dominio,
+    severidade: r.severidade as Severidade,
+    titulo: r.titulo,
+    descricao: r.descricao,
+    recomendacao: r.recomendacao || undefined,
+    referencia_tabela: r.referencia_tabela || undefined,
+    referencia_id: r.referencia_id || undefined,
+    referencia_label: r.referencia_label || undefined,
+  }))
+}
+
 async function executarSupervisor(
   anthropic: Anthropic,
   achados: Achado[],
@@ -605,13 +626,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const body = await req.json().catch(() => ({}))
-    const { usuario_id } = body
-
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+    // Roda a IA e grava achados: só super_admin/coordenação logados (tela Auditoria)
+    // ou chamada interna com service_role. Antes a chave pública bastava.
+    // Quem disparou vem do token, não do corpo (usuario_id do corpo é ignorado).
+    const usuario_id = ehServiceRole(req) ? null
+      : (await exigirPerfil(req, supabase, ['super_admin', 'coordenacao'])).id
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! })
 
     const { data: execucao } = await supabase
@@ -631,6 +654,7 @@ Deno.serve(async (req) => {
       achadosMatriz,
       achadosQualidade,
       achadosOrcamento,
+      achadosPatrimonio,
     ] = await Promise.all([
       auditarTDRContratos(supabase).catch(e => { console.error('Agente TDR falhou:', e); return [] as Achado[] }),
       auditarFinanceiro(supabase).catch(e => { console.error('Agente Financeiro falhou:', e); return [] as Achado[] }),
@@ -639,6 +663,7 @@ Deno.serve(async (req) => {
       auditarMatriz(supabase).catch(e => { console.error('Agente Matriz falhou:', e); return [] as Achado[] }),
       auditarQualidadeDados(supabase).catch(e => { console.error('Agente Qualidade falhou:', e); return [] as Achado[] }),
       auditarOrcamento(supabase).catch(e => { console.error('Agente Orçamento falhou:', e); return [] as Achado[] }),
+      auditarPatrimonio(supabase).catch(e => { console.error('Agente Patrimônio falhou:', e); return [] as Achado[] }),
     ])
 
     // Orçamento primeiro: o supervisor só recebe os 40 primeiros achados.
@@ -653,6 +678,7 @@ Deno.serve(async (req) => {
       ...achadosViagens.filter(a => !historicoViagem(a)),
       ...achadosMatriz,
       ...achadosQualidade,
+      ...achadosPatrimonio,
       ...achadosViagens.filter(historicoViagem),
     ]
 
@@ -702,11 +728,12 @@ Deno.serve(async (req) => {
         matriz: achadosMatriz.length,
         qualidade_dados: achadosQualidade.length,
         orcamento: achadosOrcamento.length,
+        patrimonio: achadosPatrimonio.length,
       },
     }, { headers: CORS })
 
   } catch (e) {
     console.error('[auditor-ia] Erro fatal:', e)
-    return Response.json({ error: (e as Error).message }, { status: 500, headers: CORS })
+    return Response.json({ error: (e as Error).message }, { status: statusDoErro(e, 500), headers: CORS })
   }
 })

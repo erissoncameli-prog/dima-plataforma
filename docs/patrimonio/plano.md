@@ -434,3 +434,22 @@ contrato 4500574049 foi passada a ele (Elielton ficou como observador).
   (Edge Function `patrimonio-termo`, ação `decidir_baixa`); aprovada ⇒ bem baixado, depreciação para, ocorrência ligada concluída.
 - Tela: aba "Ocorrências e baixas", "Registrar ocorrência"/"Pedir baixa" na ficha, "Comunicar ocorrência" em Meus bens, janelas com
   anexos e decisão com senha. Testes: `supabase/tests/patrimonio/40_ocorrencias.sql`.
+
+---
+
+## 16. Fases 4 e 5 — o que foi entregue (18–19/11/2026)
+
+- **Fase 4 — inventário** (migração `20261118_pat_04_inventario` + `_ropa`, aplicadas): campanha com locais e comissão (2+), lista esperada
+  congelada na abertura, conferência só pela comissão (QR da etiqueta pela câmera, busca por número/série/nome ou escolha na lista), envio
+  para assinatura com hash, assinatura de cada membro com senha (Edge Function `patrimonio-termo`, ação `assinar_inventario`), reabrir
+  invalida as assinaturas. A última assinatura grava o evento `inventario` (local e condição encontrados), cria ocorrência de extravio para
+  o esperado não localizado e uma tarefa de regularização das divergências para o gestor. Leitor de QR: `BarcodeDetector` do navegador ou
+  jsQR 1.4.0 (Apache-2.0, `js/vendor/`). D2 mantida: conferência **online** (offline fica para uma fase 4b, se precisar nas APAs).
+- **Fase 5 — relatórios e auditor** (migração `20261119_pat_05_relatorios_auditor`, aplicada): Pt1–Pt8 na aba Relatórios
+  (`js/patrimonio-relatorios.js`), `fn_pat_posicao(data)` para a posição contábil numa data, `fn_auditoria_patrimonio()` com 10 regras no
+  agente de patrimônio do `auditor-ia` (v23). Na primeira execução em produção o auditor apontou o produto do contrato 4500574049 (NF 23.126)
+  ainda sem bens incorporados — é a carga do §13.
+- Testes: `supabase/tests/patrimonio/50_inventario.sql` e `60_relatorios_auditor.sql`.
+- Fica para a Fase 6: inventário de encerramento + Termo de Transferência/Doação (Pt9); planilha Excel do Pt1/Pt3; guia "Fazer inventário"
+  no Aprender a usar.
+

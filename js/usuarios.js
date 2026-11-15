@@ -43,6 +43,7 @@ const MODULOS_LISTA = [
   { id: 'relatorios_orcamento',    ic: 'moeda',    label: 'Orçamento e remanejamento', grupo: 'relatorios', perfis: ['super_admin', 'coordenacao', 'financeiro'] },
   { id: 'relatorios_matriz',       ic: 'alvo',     label: 'Matriz',            grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_viagens',      ic: 'aviao',    label: 'Viagens',           grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
+  { id: 'relatorios_patrimonio',   ic: 'pacote',   label: 'Patrimônio',        grupo: 'relatorios', perfis: ['super_admin', 'coordenacao', 'financeiro'] },
   // Aba especial da Visão Geral
   { id: 'dashboard_cobertura', ic: 'graf', label: 'Cobertura de Indicadores', grupo: 'dashboard_extra', perfis: ['super_admin', 'coordenacao'] },
 ];

@@ -59,6 +59,7 @@
 <script src="../js/ajuda.js"></script>
 <script src="../js/folha-a4.js"></script>
 <script src="../js/relatorio-saldo-atividade.js"></script>
+<script src="../js/patrimonio-relatorios.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════
 // ESTADO
@@ -81,6 +82,7 @@ const TEMAS = [
   { id:'atividades',  label:'Atividades',        cor:'--re-atv', ic:'camadas' },
   { id:'orcamento',   label:'Orçamento e remanejamento', cor:'--re-orc', ic:'moeda' },
   { id:'matriz',      label:'Matriz',            cor:'--re-mat', ic:'alvo' },
+  { id:'patrimonio',  label:'Patrimônio',        cor:'--re-pat', ic:'caixa' },
   { id:'viagens',     label:'Viagens',           cor:'--re-via', ic:'aviao' },
   { id:'usuarios',    label:'Usuários',          cor:'--re-usu', ic:'pessoas' },
   { id:'logs',        label:'Logs',              cor:'--re-log', ic:'relogio' },
@@ -235,6 +237,31 @@ const RELATORIOS = [
   { id:'Or3', paisagem:true, tema:'orcamento', titulo:'Liberações de saldo (encerramentos e economias)',
     desc:'Saldos devolvidos às atividades: contratos encerrados com parte não executada e economias de contratação, com o termo de encerramento.',
     filtros:['periodo','tipo_liberacao','atividade'] },
+  // ── PATRIMÔNIO (bens do projeto; corpo montado por js/patrimonio-relatorios.js) ──
+  { id:'Pt1', paisagem:true, tema:'patrimonio', titulo:'Inventário geral de bens',
+    desc:'Todos os bens por local, com responsável, situação, condição, valor de aquisição e valor contábil hoje.',
+    filtros:['pat_situacao','pat_local','pat_categoria'] },
+  { id:'Pt2', tema:'patrimonio', titulo:'Bens sob responsabilidade (por pessoa)',
+    desc:'Bens que cada pessoa guarda, com o termo aceito e o prazo dos empréstimos, com espaço para assinatura.',
+    filtros:['pat_pessoa'] },
+  { id:'Pt3', paisagem:true, tema:'patrimonio', titulo:'Mapa de depreciação',
+    desc:'Posição contábil numa data: cota mensal, depreciação do ano, acumulada e valor contábil, por categoria e por atividade.',
+    filtros:['pat_data'] },
+  { id:'Pt4', paisagem:true, tema:'patrimonio', titulo:'Movimentações no período',
+    desc:'Entradas, entregas, transferências, empréstimos, devoluções, manutenção, inventário e baixas, com quem registrou.',
+    filtros:['periodo','pat_tipo_evento'] },
+  { id:'Pt5', paisagem:true, tema:'patrimonio', titulo:'Ocorrências e sinistros',
+    desc:'Avarias, defeitos, extravios, furtos, roubos e sinistros, com boletim, desfecho e valor ressarcido ou indenizado.',
+    filtros:['periodo','pat_sit_oc'] },
+  { id:'Pt6', paisagem:true, tema:'patrimonio', titulo:'Relatório de inventário',
+    desc:'Resultado de um inventário: comissão e assinaturas, não localizados, divergências e a lista completa conferida.',
+    filtros:['pat_inventario'] },
+  { id:'Pt7', tema:'patrimonio', titulo:'Ficha completa do bem',
+    desc:'Dados, origem, valor e depreciação, fotos, linha do tempo e arquivos de um bem.',
+    filtros:['pat_bem'] },
+  { id:'Pt8', paisagem:true, tema:'patrimonio', titulo:'Baixas no período',
+    desc:'Pedidos de baixa com motivo, quem pediu, quem decidiu com senha e o valor contábil baixado.',
+    filtros:['periodo','pat_sit_bx'] },
   { id:'Or4', tema:'orcamento', titulo:'Extrato orçamentário da atividade',
     desc:'Créditos com procedência, débitos de hoje, fontes do saldo, remanejamentos e histórico dos TDRs de uma atividade.',
     filtros:['atividade_obrig'] },
@@ -287,6 +314,18 @@ const RELATORIOS = [
 // DADOS AUXILIARES
 // ══════════════════════════════════════════════════════════════
 let _atividades=[], _fornecedores=[], _usuarios=[], _protocolos=[], _viajantesNomes=[];
+let _pat = null;   // auxiliares do Patrimônio (carregados no 1º relatório do grupo)
+async function carregarPat(){
+  if(_pat) return _pat;
+  const [l,c,b,i] = await Promise.all([
+    db.from('pat_locais').select('id,nome').order('nome'),
+    db.from('pat_categorias').select('codigo,nome').order('nome'),
+    db.from('vw_pat_bens').select('id,numero,descricao,responsavel_id,responsavel_nome,situacao').order('numero'),
+    db.rpc('fn_pat_inv_lista'),
+  ]);
+  _pat = { locais:l.data||[], cats:c.data||[], bens:(b.data||[]).filter(x=>x.situacao!=='anulado'), invs:i.data||[] };
+  return _pat;
+}
 
 async function carregarAuxiliares(){
   const [ra,rf,ru,rp,rv] = await Promise.all([
@@ -317,8 +356,10 @@ function getAbasPermitidas(){
   // fora aqui: sua RLS restringe tdrs/contratos aos que é responsável, o que subestimaria o
   // comprometido e mostraria saldo maior que o real. Para incluí-lo, liberar via permissão
   // dinâmica (relatorios_atividades) e/ou ampliar a RLS de leitura.
-  const PADRAO_POR_PERFIL = { financeiro:['atividades','orcamento'] };
-  const padrao = PADRAO_POR_PERFIL[perfil] || [];
+  const PADRAO_POR_PERFIL = { financeiro:['atividades','orcamento','patrimonio'] };
+  const padrao = [...(PADRAO_POR_PERFIL[perfil] || [])];
+  // gestor patrimonial e acesso extra "Patrimônio" veem o grupo do patrimônio
+  if((appState.permissoes||[]).some(p=>p==='patrimonio'||p==='patrimonio_gestor')) padrao.push('patrimonio');
   return TEMAS
     .filter(t=>t.id!=='todos'&&t.id!=='usuarios'&&t.id!=='logs')
     .filter(t=>padrao.includes(t.id)||appState.permissoes.includes('relatorios_'+t.id))
@@ -418,6 +459,8 @@ function previewVazio(){
 function selecionarRel(id){
   const rel = RELATORIOS.find(r=>r.id===id);
   if(!rel || !relsVisiveis().includes(rel)) return;
+  // listas dos filtros do Patrimônio (locais, bens, inventários) vêm no 1º uso
+  if(rel.tema==='patrimonio' && !_pat){ carregarPat().then(()=>selecionarRel(id)).catch(e=>toast('Erro ao carregar o patrimônio: '+(e.message||e),'error')); return; }
   relAtivo = id;
   filtros = {};
   dadosRel = null;
@@ -449,8 +492,25 @@ function selecionarRel(id){
 // FILTROS DINÂMICOS
 // ══════════════════════════════════════════════════════════════
 function renderFiltros(lista){
+  const P = _pat || { locais:[], cats:[], bens:[], invs:[] };
+  const pessoas = [...new Map(P.bens.filter(b=>b.responsavel_id).map(b=>[b.responsavel_id,b.responsavel_nome])).entries()].sort((a,b)=>String(a[1]).localeCompare(String(b[1]),'pt-BR'));
+  const sel = (rot,id,opc,todos='Todos') => `<div class="config-grupo"><span class="config-lbl">${rot}</span><select class="config-select" id="${id}">${todos?`<option value="">${todos}</option>`:''}${opc}</select></div>`;
   return lista.map(f=>{
     switch(f){
+      case 'pat_situacao': return sel('Situação','fil-pat-sit',`<option value="ativos" selected>No patrimônio (ativos)</option>
+          <option value="em_uso">Em uso</option><option value="em_estoque">Em estoque</option><option value="emprestado">Emprestados</option>
+          <option value="em_manutencao">Em manutenção</option><option value="extraviado">Extraviados</option><option value="baixado">Baixados</option>`, '');
+      case 'pat_local': return sel('Local','fil-pat-local', P.locais.map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join(''));
+      case 'pat_categoria': return sel('Categoria','fil-pat-cat', P.cats.map(x=>`<option value="${esc(x.codigo)}">${esc(x.nome)}</option>`).join(''), 'Todas');
+      case 'pat_pessoa': return sel('Pessoa','fil-pat-pessoa', pessoas.map(([id,n])=>`<option value="${id}">${esc(n||'—')}</option>`).join(''), 'Todas');
+      case 'pat_data': return `<div class="config-grupo"><span class="config-lbl">Posição em</span><input type="date" class="config-input" id="fil-pat-data" value="${new Date().toISOString().slice(0,10)}"></div>`;
+      case 'pat_tipo_evento': return sel('Movimento','fil-pat-evt', [['incorporacao','Entrada'],['distribuicao','Entrega ao responsável'],['transferencia_interna','Transferência'],
+          ['emprestimo','Empréstimo'],['devolucao','Devolução'],['manutencao_saida','Saída para manutenção'],['manutencao_retorno','Volta da manutenção'],
+          ['ocorrencia','Ocorrência'],['inventario','Inventário'],['baixa','Baixa'],['correcao','Correção'],['estorno','Estorno']].map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
+      case 'pat_sit_oc': return sel('Situação','fil-pat-sitoc','<option value="abertas">Em aberto</option><option value="concluidas">Concluídas</option>', 'Todas');
+      case 'pat_sit_bx': return sel('Situação','fil-pat-sitbx','<option value="aguardando">Aguardando</option><option value="aprovada">Aprovadas</option><option value="devolvida">Devolvidas</option><option value="cancelada">Canceladas</option>', 'Todas');
+      case 'pat_inventario': return sel('Inventário <span style="color:var(--erro)">*</span>','fil-pat-inv', P.invs.map(v=>`<option value="${v.id}">${esc(v.numero)} — ${esc(v.titulo)}</option>`).join(''), 'Escolha o inventário');
+      case 'pat_bem': return sel('Bem <span style="color:var(--erro)">*</span>','fil-pat-bem', P.bens.map(b=>`<option value="${b.id}">${esc(b.numero)} — ${esc((b.descricao||'').substring(0,40))}</option>`).join(''), 'Escolha o bem');
       case 'periodo': return `
         <div class="config-grupo">
           <span class="config-lbl">Data início</span>
@@ -1079,6 +1139,14 @@ async function gerarRelatorio(id){
       case 'Or2': html = await relO2(); break;
       case 'Or3': html = await relO3(); break;
       case 'Or4': html = await relO4(); break;
+      case 'Pt1': html = await PatRel.pt1({ situacao:filVal('fil-pat-sit'), local:filVal('fil-pat-local'), categoria:filVal('fil-pat-cat') }); break;
+      case 'Pt2': html = await PatRel.pt2({ pessoa:filVal('fil-pat-pessoa') }); break;
+      case 'Pt3': html = await PatRel.pt3({ data:filVal('fil-pat-data') }); break;
+      case 'Pt4': html = await PatRel.pt4({ ini:filVal('fil-dt-ini'), fim:filVal('fil-dt-fim'), tipo:filVal('fil-pat-evt') }); break;
+      case 'Pt5': html = await PatRel.pt5({ ini:filVal('fil-dt-ini'), fim:filVal('fil-dt-fim'), situacao_oc:filVal('fil-pat-sitoc') }); break;
+      case 'Pt6': html = await PatRel.pt6({ inventario:filVal('fil-pat-inv') }); break;
+      case 'Pt7': html = await PatRel.pt7({ bem:filVal('fil-pat-bem') }); break;
+      case 'Pt8': html = await PatRel.pt8({ ini:filVal('fil-dt-ini'), fim:filVal('fil-dt-fim'), situacao_bx:filVal('fil-pat-sitbx') }); break;
       default: html = `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Relatório <strong>${esc(id)}</strong> em desenvolvimento.</div>`;
     }
     await FolhaA4.pronto; // identificação do projeto (Dados do sistema)

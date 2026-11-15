@@ -13,6 +13,10 @@
 // { acao: 'decidir_baixa', baixa_id, decisao: 'aprovar'|'devolver', motivo?, hash, senha }
 //   mesma porta para o PEDIDO DE BAIXA (migração 20261117_pat_03_ocorrencias): super_admin/coordenação
 //   que não pediu aprova ou devolve; chama fn_pat_baixa_decidir (só service_role; hash do pedido + bem).
+//
+// { acao: 'assinar_inventario', inventario_id, hash, senha }
+//   ASSINATURA DO INVENTÁRIO (migração 20261118_pat_04_inventario): membro da comissão assina o resultado;
+//   fn_pat_inv_assinar (só service_role) confere o hash; a última assinatura efetiva o inventário.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const CORS = {
@@ -38,11 +42,13 @@ Deno.serve(async (req) => {
   if (eU || !u?.user?.email) return resp({ ok: false, erro: 'Sessão inválida. Entre de novo.' }, 401)
   const usuarioId = u.user.id
 
-  const { acao, termo_id, baixa_id, decisao, motivo, hash, senha } = corpo as Record<string, string>
+  const { acao, termo_id, baixa_id, inventario_id, decisao, motivo, hash, senha } = corpo as Record<string, string>
   const ehBaixa = acao === 'decidir_baixa'
-  const alvo = ehBaixa ? baixa_id : termo_id
+  const ehInv = acao === 'assinar_inventario'
+  const alvo = ehInv ? inventario_id : ehBaixa ? baixa_id : termo_id
   const decisoes = ehBaixa ? ['aprovar', 'devolver'] : ['aceitar', 'recusar']
-  if (!alvo || !decisoes.includes(decisao) || !hash || typeof senha !== 'string' || !senha) {
+  const decisaoOk = ehInv || decisoes.includes(decisao)
+  if (!alvo || !decisaoOk || !hash || typeof senha !== 'string' || !senha) {
     return resp({ ok: false, erro: 'Dados incompletos (documento, decisão, hash e senha).' }, 400)
   }
 
@@ -54,14 +60,19 @@ Deno.serve(async (req) => {
   if (!ok) return resp({ ok: false, erro: 'SENHA_INVALIDA' }, 401)
 
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null
-  const { data, error } = ehBaixa
+  const ua = req.headers.get('user-agent')
+  const { data, error } = ehInv
+    ? await admin.rpc('fn_pat_inv_assinar', {
+        p_usuario_id: usuarioId, p_inv: inventario_id, p_hash: hash, p_ip: ip, p_user_agent: ua,
+      })
+    : ehBaixa
     ? await admin.rpc('fn_pat_baixa_decidir', {
         p_usuario_id: usuarioId, p_baixa: baixa_id, p_decisao: decisao, p_parecer: motivo ?? null,
-        p_hash: hash, p_ip: ip, p_user_agent: req.headers.get('user-agent'),
+        p_hash: hash, p_ip: ip, p_user_agent: ua,
       })
     : await admin.rpc('fn_pat_termo_decidir', {
         p_usuario_id: usuarioId, p_termo: termo_id, p_decisao: decisao, p_motivo: motivo ?? null,
-        p_hash: hash, p_ip: ip, p_user_agent: req.headers.get('user-agent'),
+        p_hash: hash, p_ip: ip, p_user_agent: ua,
       })
   if (error) return resp({ ok: false, erro: error.message }, 409)
   return resp({ ok: true, resultado: data })

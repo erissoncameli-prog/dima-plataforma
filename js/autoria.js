@@ -63,7 +63,7 @@
     ['Supabase JS', 'MIT'], ['Chart.js', 'MIT'], ['Leaflet', 'BSD-2-Clause'], ['Leaflet.markercluster', 'MIT'],
     ['Leaflet-MiniMap', 'BSD-2-Clause'], ['Turf.js', 'MIT'], ['shpjs', 'MIT'], ['ExcelJS', 'MIT'], ['SheetJS (xlsx)', 'Apache-2.0'],
     ['PptxGenJS', 'MIT'], ['jsPDF', 'MIT'], ['html2canvas', 'MIT'], ['JSZip', 'MIT'], ['Mammoth', 'BSD-2-Clause'],
-    ['Quill', 'BSD-3-Clause'], ['PDF.js', 'Apache-2.0'], ['Transformers.js', 'Apache-2.0'], ['qrcode-generator', 'MIT'],
+    ['Quill', 'BSD-3-Clause'], ['PDF.js', 'Apache-2.0'], ['Transformers.js', 'Apache-2.0'], ['qrcode-generator', 'MIT'], ['jsQR', 'Apache-2.0'],
   ]
 
   const idioma = () => {

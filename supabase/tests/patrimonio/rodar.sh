@@ -25,3 +25,8 @@ PSQL=(psql -h "$TMP" -p "$PORTA" -U postgres -d postgres -v ON_ERROR_STOP=1 -q -
 "${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261117_pat_03_ocorrencias.sql"
 "${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261117_pat_03_ropa.sql"
 "${PSQL[@]}" -f "$DIR/40_ocorrencias.sql"
+"${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261118_pat_04_inventario.sql"
+"${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261118_pat_04_ropa.sql"
+"${PSQL[@]}" -f "$DIR/50_inventario.sql"
+"${PSQL[@]}" -f "$RAIZ/supabase/migrations/20261119_pat_05_relatorios_auditor.sql"
+"${PSQL[@]}" -f "$DIR/60_relatorios_auditor.sql"

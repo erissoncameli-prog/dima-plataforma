@@ -631,8 +631,27 @@ testes `supabase/tests/patrimonio/rodar.sh`). Tela `pages/patrimonio.html` + `js
   (depreciação para), ocorrência ligada concluída. Arquivos de ocorrência/baixa: `pat_documentos.ocorrencia_id/baixa_id` por
   `fn_pat_anexar_vinculo`; quem guarda o bem também envia para `bens/<bem_id>/` (`fn_pat_doc_pode_enviar`, policy de storage).
   Tela: aba "Ocorrências e baixas", "Comunicar ocorrência" em Meus bens, janela da ocorrência/baixa (reusa `#pt-termo`).
-- ROPA: TRAT-006 (tabelas das fases 1–3). Próximas fases: inventário por QR, relatórios A4 e auditor
-  (`fn_auditoria_patrimonio`, título "Patrimônio: …").
+- **Inventário (Fase 4, migração `20261118_pat_04_inventario` + `_ropa`, testes `50_inventario.sql`)**: `pat_inventarios` (INV-AAAA-NNNN;
+  locais `uuid[]`, vazio = todos) aberto pelo gestor (`fn_pat_inv_abrir`) com **comissão de 2+** (`pat_inventario_comissao`, 1ª = presidente,
+  tarefa `entidade_tipo='pat_inventario'` para cada um); a lista **esperada** é congelada na abertura (`pat_inventario_itens`, snapshot de local,
+  responsável, situação e condição; um bem não fica em dois inventários abertos). **Só a comissão confere** (`fn_pat_inv_conferir`: `bem_id` ou
+  `numero`/endereço do QR, local, condição, método qr|busca|lista; achado fora da lista = `nao_esperado`; `fn_pat_inv_desfazer`). Presidente ou
+  gestor envia (`fn_pat_inv_enviar` grava o hash `fn_pat_inv_hash` = campanha + comissão + resultados); cada membro assina **com senha** pela
+  Edge Function `patrimonio-termo` `acao:'assinar_inventario'` → `fn_pat_inv_assinar` (só service_role; `pat_inventario_assinaturas` só inclusão;
+  reabrir = `fn_pat_inv_reabrir`, hash novo, assinaturas antigas perdem efeito). A última assinatura efetiva: evento `inventario` (local e
+  condição achados, `ultimo_inventario_em`), **ocorrência de extravio** para esperado não localizado (emprestado/manutenção/extraviado =
+  ausente por registro) e uma tarefa "Regularizar divergências" para o gestor. Tela: aba **Inventários** (`renderInventarios`) e janela
+  `#pt-inv` (QR por `BarcodeDetector` ou **jsQR 1.4.0** vendorizado em `js/vendor/jsqr-1.4.0.js`, carregado no 1º uso; câmera fecha com a janela);
+  `patrimonio.html?inventario=<id>` abre direto. Leitura por `fn_pat_inv_lista`/`fn_pat_inv_detalhe` (catálogo ou membro da comissão).
+- **Relatórios e auditor (Fase 5, migração `20261119_pat_05_relatorios_auditor`, testes `60_relatorios_auditor.sql`)**: grupo **Patrimônio**
+  na aba Relatórios (tema `patrimonio`, token `--re-pat`, permissão `relatorios_patrimonio`; financeiro, gestor patrimonial e acesso
+  `patrimonio` veem por padrão): Pt1 inventário geral, Pt2 bens por pessoa, Pt3 mapa de depreciação numa data, Pt4 movimentações, Pt5
+  ocorrências, Pt6 relatório de inventário, Pt7 ficha do bem, Pt8 baixas. O corpo vem de **`js/patrimonio-relatorios.js`** (`PatRel.pt1…pt8`,
+  `PatRel.inventario`, usado também pelo botão "Relatório (A4)" do inventário). Posição numa data = `fn_pat_posicao(data)` (mesma conta de
+  `fn_pat_depreciacao`, valores só para quem vê valor). Auditor: `fn_auditoria_patrimonio()` (service_role) chamada pelo agente de patrimônio do
+  `auditor-ia` (v23), grava como `qualidade_dados` com título "Patrimônio: …"; a tela da Auditoria mostra o domínio virtual "Patrimônio" (`domDe`).
+  Regra nova de auditoria do patrimônio entra na função SQL.
+- ROPA: TRAT-006 (tabelas das fases 1–4). Próxima fase: encerramento do projeto (inventário de encerramento + Termo de Transferência/Doação, Pt9).
 
 ### Diagnóstico Socioambiental — app de campo (⚠️ ler antes de mexer em `diag_*`)
 
@@ -1433,7 +1452,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 
 | Slug | Propósito | `verify_jwt` |
 |------|-----------|-------------|
-| `auditor-ia` | Auditoria automática em 6 domínios + agente de orçamento (`fn_auditoria_orcamento`) + supervisor Claude | ✅ |
+| `auditor-ia` | Auditoria automática em 6 domínios + agentes de orçamento (`fn_auditoria_orcamento`) e patrimônio (`fn_auditoria_patrimonio`) + supervisor Claude | ✅ |
 | `chat-auditor` | Chat interativo sobre achados de auditoria (stateful) | ✅ |
 | `analisar-tdr` | Análise IA de TDR submetido | ❌ |
 | `corrigir-tdr` | Correção automática de TDR | ❌ |
@@ -1452,7 +1471,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`) e a do pedido de acesso à API (`acao:'decidir_api'` → `fn_api_pedido_decidir`, só super_admin); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 | `publico-capa` | Capa (JPEG do bucket privado `acervo-capas`) de produto marcado como público no Acervo, para a Galeria do site público; só entrega o que `fn_publico_capa_caminho` libera (service_role), 404 no resto. O site chama com a chave anon no cabeçalho (`fetch` → blob) | ✅ |
 | `publico-produto` | Documento (PDF do bucket privado de entregas) de produto marcado como público no Acervo, para o visualizador da Galeria do site público; só entrega o que `fn_publico_arquivo_caminho` libera (service_role), 404 no resto; `Content-Disposition` com nome genérico. Chamada com a chave anon no cabeçalho | ✅ |
-| `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`) e aprova/devolve o pedido de baixa (`acao:'decidir_baixa'` → `fn_pat_baixa_decidir`), ambos só service_role; mesmo bloqueio por tentativas do remanejamento | ✅ |
+| `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`) e aprova/devolve o pedido de baixa (`acao:'decidir_baixa'` → `fn_pat_baixa_decidir`) e assina o inventário pela comissão (`acao:'assinar_inventario'` → `fn_pat_inv_assinar`), todos só service_role; mesmo bloqueio por tentativas do remanejamento | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---

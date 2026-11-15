@@ -1080,8 +1080,19 @@ Object.assign(AJUDA, {
         'Quem aprova é a coordenação ou o super_admin, com a senha — nunca quem pediu. A tarefa vai para o titular da coordenação. Aprovar ou devolver fica registrado com a impressão digital do pedido; laudo anexado depois muda o pedido e quem aprova precisa abrir de novo.',
         'Aprovada a baixa, a depreciação para no mês, o bem sai das listas do patrimônio ativo (continua consultável) e a ocorrência ligada é concluída.',
       ]},
-      { titulo: 'O que vem depois', itens: [
-        'Próximas fases: inventário pelo celular lendo o QR; relatórios A4 e regras do auditor.',
+      { titulo: 'Inventário', itens: [
+        'O gestor abre o inventário em Patrimônio › Inventários: dá um título, escolhe os locais (nenhum = todos) e a comissão, com ao menos 2 pessoas (a primeira preside). Nesse momento o sistema guarda a lista dos bens esperados em cada local.',
+        'Cada membro da comissão recebe uma tarefa. No celular, abra o inventário, diga em que local está e clique em "Ler QR da etiqueta": a câmera lê o código e mostra o bem. Confirme a condição e clique em "Confirmar conferência".',
+        'Bem sem etiqueta: digite o número, a série ou o nome e clique em "Procurar". Também dá para clicar em "Conferir" na lista. Errou? O botão de desfazer volta o bem para pendente.',
+        'Bem achado em outro local ou com outra condição aparece como divergência. Bem que não estava na lista entra como "fora da lista".',
+        'Terminada a conferência, quem preside (ou o gestor) clica em "Enviar para assinatura". Cada membro assina com a senha. Se algo mudar ("Reabrir conferência"), todos assinam de novo.',
+        'Na última assinatura: os bens conferidos ganham o registro de inventário com o local e a condição encontrados; o bem esperado e não localizado vira ocorrência de extravio; as divergências viram uma tarefa para o gestor. Bem emprestado, em manutenção ou já extraviado conta como "ausente por registro".',
+        'O botão "Relatório (A4)" imprime o resultado com a comissão, as divergências e as assinaturas.',
+      ]},
+      { titulo: 'Relatórios e auditoria', itens: [
+        'Na tela Relatórios, grupo Patrimônio: inventário geral de bens, bens por pessoa (com espaço para assinatura), mapa de depreciação numa data, movimentações, ocorrências e sinistros, relatório de inventário, ficha completa do bem e baixas.',
+        'Veem o grupo: super_admin, coordenação, financeiro, o gestor patrimonial e quem tem o acesso "Patrimônio". Os valores só aparecem para quem pode ver valor.',
+        'A Auditoria IA tem um agente do patrimônio (achados começando por "Patrimônio:"): equipamento pago sem bens incorporados, termo sem aceite há mais de 7 dias, empréstimo vencido, ocorrência parada há 30 dias, baixa parada, bem sem inventário há 12 meses, inventário aberto há 30 dias, bem sem nota fiscal, bem sem início de uso há 90 dias e garantia vencendo.',
       ]},
     ]
   }},

@@ -54,6 +54,17 @@
   </div>
 </div>
 
+<!-- inventário: conferência pelo QR (celular), assinatura da comissão com senha, relatório -->
+<div class="modal-overlay pt-ov" id="pt-inv" role="dialog" aria-modal="true" aria-labelledby="pt-inv-tit" data-fundo-fecha="nao">
+  <div class="modal pt-largo">
+    <div class="modal-header">
+      <div><div class="modal-title" id="pt-inv-tit">Inventário</div><div class="modal-sub" id="pt-inv-sub"></div></div>
+      <button type="button" class="modal-close" data-fechar="pt-inv" aria-label="Fechar"><i data-ic="x"></i></button>
+    </div>
+    <div class="modal-body" id="pt-inv-corpo"></div>
+    <div class="modal-footer" id="pt-inv-rodape"></div>
+  </div>
+</div>
 <!-- janela de formulário curto (condição, correção, estorno, NF, categoria, local) -->
 <div class="modal-overlay pt-ov" id="pt-form" role="dialog" aria-modal="true" aria-labelledby="pt-form-tit">
   <div class="modal pt-medio">
@@ -77,6 +88,7 @@
 <script src="../js/diag-tema.js"></script>
 <script src="../js/folha-a4.js"></script>
 <script src="../js/qrcode-generator.js"></script>
+<script src="../js/patrimonio-relatorios.js"></script>
 <script src="../js/patrimonio.js"></script>
 </body>
 </html>

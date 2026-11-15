@@ -85,6 +85,7 @@
     aba: 'painel', filtro: { q: '', cat: '', local: '', sit: 'ativos', cond: '', aviso: '' }, sel: new Set(),
     ficha: null, fichaAba: 'dados', eventos: [], docs: [],
     termos: [], usuarios: [], soMeus: false, eu: null, termo: null, ocorrencias: [], baixas: [], doc: null,
+    invs: [], inv: null, invUi: null,
   }
   const $ = id => document.getElementById(id)
 
@@ -141,6 +142,7 @@
     if (k >= 0) { const { volta } = pilha.splice(k, 1)[0]; if (volta && document.contains(volta)) volta.focus({ preventScroll: true }) }
   }
   const fecharTopo = id => (FECHAR[id] || (() => ptFechar(id)))()
+  FECHAR['pt-inv'] = () => { pararCamera(); ptFechar('pt-inv') }
   document.addEventListener('keydown', e => {
     const topo = pilha[pilha.length - 1]; if (!topo) return
     const el = $(topo.id)
@@ -247,11 +249,12 @@
       if (!v) { S.soMeus = true; S.aba = 'meus' }
     } catch (e) { $('pt-pg').innerHTML = '<div class="pt-card"><div class="pt-vazio">' + ptIc('alerta') + esc(erroMsg(e)) + '</div></div>'; return }
     const q = new URLSearchParams(location.search)
-    if (['painel', 'bens', 'meus', 'termos', 'ocorrencias', 'cadastros', 'guia'].includes(q.get('aba')) && !S.soMeus) S.aba = q.get('aba')
+    if (['painel', 'bens', 'meus', 'termos', 'ocorrencias', 'inventarios', 'cadastros', 'guia'].includes(q.get('aba')) && (!S.soMeus || q.get('aba') === 'inventarios')) S.aba = q.get('aba')
     await carregar()
     if (q.get('termo')) abrirTermo(q.get('termo'))
     if (q.get('ocorrencia')) abrirOcorrencia(q.get('ocorrencia'))
     if (q.get('baixa')) abrirBaixa(q.get('baixa'))
+    if (q.get('inventario')) { S.aba = 'inventarios'; render(); abrirInventario(q.get('inventario')) }
     const alvo = q.get('bem')
     if (alvo) {
       const b = S.bens.find(x => x.numero === alvo.toUpperCase() || x.id === alvo)
@@ -262,7 +265,7 @@
 
   async function carregar() {
     try {
-      const [b, c, l, f, t, u, o, x] = await Promise.all([
+      const [b, c, l, f, t, u, o, x, iv] = await Promise.all([
         db.from('vw_pat_bens').select('*').order('numero'),
         db.from('pat_categorias').select('*').order('ordem').order('nome'),
         db.from('pat_locais').select('*').order('nome'),
@@ -275,8 +278,10 @@
           .order('registrado_em', { ascending: false }),
         S.soMeus ? Promise.resolve({ data: [] }) : db.from('pat_baixas').select('id,numero,bem_id,ocorrencia_id,motivo,situacao,pedido_por,pedido_em,decidido_em,'
           + 'bem:pat_bens!pat_baixas_bem_id_fkey(numero,descricao),pedidor:usuarios!pat_baixas_pedido_por_fkey(nome_completo)').order('pedido_em', { ascending: false }),
+        db.rpc('fn_pat_inv_lista'),
       ])
-      for (const r of [b, c, l, f, t, u, o, x]) if (r.error) throw r.error
+      for (const r of [b, c, l, f, t, u, o, x, iv]) if (r.error) throw r.error
+      S.invs = iv.data || []
       S.ocorrencias = o.data || []; S.baixas = x.data || []
       S.bens = b.data || []; S.cats = c.data || []; S.locais = l.data || []; S.fila = f.data || []
       S.termos = t.data || []; S.usuarios = u.data || []
@@ -323,6 +328,8 @@
     if (S.pode.gerir) abas.push(['termos', 'assina', 'Termos', S.termos.filter(t => t.situacao === 'aguardando_aceite').length])
     if (!S.soMeus) abas.push(['ocorrencias', 'alerta', 'Ocorrências e baixas',
       S.ocorrencias.filter(o => o.situacao !== 'concluida').length + (S.pode.coord ? S.baixas.filter(x => x.situacao === 'aguardando' && x.pedido_por !== S.eu).length : 0)])
+    if (!S.soMeus || S.invs.some(v => v.eu_membro))
+      abas.push(['inventarios', 'qr', 'Inventários', S.invs.filter(v => v.falta_minha_assinatura || (v.eu_membro && v.situacao === 'em_andamento')).length])
     if (S.pode.gerir) abas.push(['cadastros', 'engrenagem', 'Categorias e locais', 0])
     abas.push(['guia', 'livro', 'Como funciona', 0])
     $('pt-pg').innerHTML =
@@ -330,11 +337,12 @@
         '<button type="button" class="pt-aba" role="tab" data-acao="aba" data-aba="' + a[0] + '" aria-selected="' + (S.aba === a[0]) + '">' +
         ptIc(a[1], 'p') + a[2] + (a[3] ? '<span class="n">' + a[3] + '</span>' : '') + '</button>').join('') + '</div>' +
       '<div id="pt-conteudo"></div>'
-    if (S.soMeus && S.aba !== 'guia') S.aba = 'meus'
+    if (S.soMeus && !['guia', 'inventarios'].includes(S.aba)) S.aba = 'meus'
     if (S.aba === 'bens') renderBens()
     else if (S.aba === 'meus') renderMeus()
     else if (S.aba === 'termos' && S.pode.gerir) renderTermos()
     else if (S.aba === 'ocorrencias' && !S.soMeus) renderOcorrencias()
+    else if (S.aba === 'inventarios') renderInventarios()
     else if (S.aba === 'cadastros' && S.pode.gerir) renderCadastros()
     else if (S.aba === 'guia') renderGuia()
     else renderPainel()
@@ -589,6 +597,337 @@
       '<div class="pt-guia" style="margin-top:16px">' + a.secoes.map(s => '<div class="pt-card"><div class="pt-card-h">' + esc(s.titulo) + '</div>' +
         '<div class="pt-card-b"><ul>' + s.itens.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div></div>').join('') + '</div>'
       : '<div class="pt-card"><div class="pt-vazio">O guia não carregou.</div></div>'
+  }
+
+  // ── Fase 4: inventário por campanha ───────────────────────────────────────
+  // A tela só desenha e chama as RPCs fn_pat_inv_*; quem confere, a lista esperada, o hash e o efeito
+  // do fechamento (eventos, extravio, regularização) são do banco. Assinar = Edge Function com a senha.
+  const INV_TIPO = { anual: 'Anual', parcial: 'Parcial', extraordinario: 'Extraordinário', encerramento: 'Encerramento do projeto' }
+  const INV_SIT = { em_andamento: 'Em conferência', em_assinatura: 'Em assinatura', concluido: 'Concluído', cancelado: 'Cancelado' }
+  const INV_RES = { pendente: 'Pendente', conferido: 'Conferido', local_divergente: 'Outro local', condicao_divergente: 'Condição mudou',
+    nao_esperado: 'Fora da lista', nao_localizado: 'Não localizado', ausente: 'Ausente por registro' }
+  const INV_RES_CLS = { pendente: 'ne', conferido: 't-aceito', local_divergente: 'al', condicao_divergente: 'al', nao_esperado: 'al', nao_localizado: 'er', ausente: 'ne' }
+  // resultado para exibição: pendente em inventário fechado vira não localizado / ausente (como o banco efetiva)
+  function invRes(i, v) {
+    if (i.resultado !== 'pendente' || v.situacao === 'em_andamento') return i.resultado
+    return ['emprestado', 'em_manutencao', 'extraviado'].includes(i.situacao_esperada) ? 'ausente' : 'nao_localizado'
+  }
+  function invContagem(I) {
+    const v = I.inventario, it = (I.itens || []).filter(i => i.esperado || i.resultado !== 'pendente'), c = { total: 0, conf: 0, pend: 0, div: 0, fora: 0 }
+    it.forEach(i => {
+      if (i.esperado) c.total++
+      if (i.conferido_em) c.conf++
+      const r = invRes(i, v)
+      if (['local_divergente', 'condicao_divergente'].includes(r)) c.div++
+      if (r === 'nao_esperado') c.fora++
+      if (i.esperado && !i.conferido_em) c.pend++
+    })
+    return c
+  }
+
+  function renderInventarios() {
+    const l = S.invs
+    $('pt-conteudo').innerHTML = '<div class="pt-card"><div class="pt-card-h">' + ptIc('qr', 'p') + 'Inventários' +
+      '<span class="pt-sub">a comissão confere cada bem pelo QR da etiqueta e assina o resultado com a senha</span>' +
+      (S.pode.gerir ? '<button type="button" class="pt-btn pri" style="margin-left:auto" data-acao="inv-novo">' + ptIc('mais', 'p') + 'Abrir inventário</button>' : '') + '</div>' +
+      (l.length ? l.map(v => {
+        const pct = v.esperados ? Math.round(100 * Math.min(v.conferidos, v.esperados) / v.esperados) : 0
+        return '<div class="pt-termo-card"><div class="t"><b>' + esc(v.numero) + ' · ' + esc(v.titulo) + '</b>' +
+          '<span>' + esc(INV_TIPO[v.tipo] || v.tipo) + ' · ' + (v.locais_nomes.length ? esc(v.locais_nomes.join(', ')) : 'todos os locais') + ' · aberto em ' + dtHora(v.aberto_em) + '</span>' +
+          '<div class="pt-inv-barra" role="img" aria-label="' + v.conferidos + ' de ' + v.esperados + ' conferidos"><i style="width:' + pct + '%"></i></div>' +
+          '<span class="pt-sub">' + v.conferidos + ' de ' + v.esperados + ' conferidos' + (v.divergentes ? ' · ' + v.divergentes + ' com divergência' : '') +
+          (v.situacao === 'em_assinatura' ? ' · ' + v.assinaturas + ' de ' + v.membros + ' assinaturas' : '') + '</span></div>' +
+          selo(v.situacao === 'concluido' ? 't-aceito' : v.situacao === 'cancelado' ? 't-cancelado' : 'al', INV_SIT[v.situacao]) +
+          '<button type="button" class="pt-btn' + (v.falta_minha_assinatura || (v.eu_membro && v.situacao === 'em_andamento') ? ' pri' : '') + '" data-acao="inv" data-id="' + esc(v.id) + '">' +
+          (v.falta_minha_assinatura ? ptIc('assina', 'p') + 'Assinar' : v.eu_membro && v.situacao === 'em_andamento' ? ptIc('qr', 'p') + 'Conferir' : 'Abrir') + '</button></div>'
+      }).join('') : '<div class="pt-vazio">' + ptIc('qr') + 'Nenhum inventário ainda.' + (S.pode.gerir ? ' Abra o primeiro e escolha a comissão.' : '') + '</div>') + '</div>'
+  }
+
+  function formInventario() {
+    const us = S.usuarios
+    const opc = us.map(u => '<option value="' + esc(u.id) + '">' + esc(u.nome_completo) + '</option>').join('')
+    abrirForm({ titulo: 'Abrir inventário', sub: 'O sistema congela agora a lista dos bens esperados nos locais escolhidos.', botao: 'Abrir inventário',
+      corpo: '<div class="form-group"><label class="form-label" for="fi-t">Título</label><input class="form-control" id="fi-t" value="Inventário anual ' + new Date().getFullYear() + '"></div>' +
+        '<div class="form-group"><label class="form-label" for="fi-tipo">Tipo</label><select class="form-control" id="fi-tipo">' +
+          Object.entries(INV_TIPO).map(([k, t]) => '<option value="' + k + '">' + esc(t) + '</option>').join('') + '</select></div>' +
+        '<div class="form-group"><span class="form-label">Locais <span class="pt-sub">(nenhum marcado = todos)</span></span><div class="pt-checks">' +
+          S.locais.filter(x => x.ativo !== false).map(x => '<label><input type="checkbox" class="fi-loc" value="' + esc(x.id) + '"> ' + esc(x.nome) + '</label>').join('') + '</div></div>' +
+        '<div class="form-group"><label class="form-label" for="fi-pres">Presidente da comissão</label><select class="form-control" id="fi-pres"><option value="">Escolha…</option>' + opc + '</select></div>' +
+        '<div class="form-group"><span class="form-label">Demais membros <span class="pt-sub">(ao menos 1; todos assinam com a senha)</span></span><div class="pt-checks pt-checks-alto">' +
+          us.map(u => '<label><input type="checkbox" class="fi-mem" value="' + esc(u.id) + '"> ' + esc(u.nome_completo) + '</label>').join('') + '</div></div>' +
+        '<div class="form-group"><label class="form-label" for="fi-obs">Observação <span class="pt-sub">(opcional)</span></label><textarea class="form-control" id="fi-obs" rows="2"></textarea></div>',
+      aoSalvar: async r => {
+        const pres = val(r, '#fi-pres')
+        if (!pres) throw new Error('PAT_DADOS: escolha quem preside a comissão')
+        const mem = [...r.querySelectorAll('.fi-mem:checked')].map(x => x.value).filter(x => x !== pres)
+        const res = await rpc('fn_pat_inv_abrir', { p: { titulo: val(r, '#fi-t'), tipo: val(r, '#fi-tipo'), observacao: val(r, '#fi-obs'),
+          locais: [...r.querySelectorAll('.fi-loc:checked')].map(x => x.value), comissao: [pres, ...mem] } })
+        toast('Inventário ' + res.numero + ' aberto com ' + res.bens + ' bens esperados. A comissão recebeu uma tarefa.', 'success')
+        await carregar(); await abrirInventario(res.inventario_id)
+      } })
+  }
+
+  async function abrirInventario(id) {
+    $('pt-inv-tit').textContent = 'Inventário'; $('pt-inv-sub').textContent = ''
+    $('pt-inv-corpo').innerHTML = '<div class="pt-carregando">Carregando…</div>'; $('pt-inv-rodape').innerHTML = ''
+    ptAbrir('pt-inv')
+    await recarregarInventario(id)
+  }
+  async function recarregarInventario(id) {
+    try { S.inv = await rpc('fn_pat_inv_detalhe', { p_inv: id || S.inv.inventario.id }) } catch (e) { S.inv = null }
+    if (!S.inv) { $('pt-inv-corpo').innerHTML = '<div class="pt-aviso-f er">' + ptIc('alerta', 'p') + '<span>Inventário não encontrado ou sem acesso.</span></div>'; return }
+    const v = S.inv.inventario
+    if (!S.invUi || S.invUi.id !== v.id) {
+      const locs = v.locais && v.locais.length ? v.locais : []
+      S.invUi = { id: v.id, local: locs.length === 1 ? locs[0] : (S.invUi?.local || ''), filtro: 'pendentes', q: '', alvo: null }
+    }
+    renderInventario()
+  }
+
+  function renderInventario() {
+    const I = S.inv, v = I.inventario, U = S.invUi, c = invContagem(I)
+    const conferindo = v.situacao === 'em_andamento' && I.eu_membro
+    $('pt-inv-tit').textContent = v.numero + ' · ' + v.titulo
+    $('pt-inv-sub').innerHTML = selo(v.situacao === 'concluido' ? 't-aceito' : v.situacao === 'cancelado' ? 't-cancelado' : 'al', INV_SIT[v.situacao]) +
+      ' <span class="pt-sub">' + esc(INV_TIPO[v.tipo] || v.tipo) + ' · ' + (v.locais_nomes.length ? esc(v.locais_nomes.join(', ')) : 'todos os locais') +
+      ' · aberto por ' + esc(v.aberto_por_nome || '—') + ' em ' + dtHora(v.aberto_em) + '</span>'
+    const pct = c.total ? Math.round(100 * (c.total - c.pend) / c.total) : 0
+    const itens = (I.itens || []).filter(i => {
+      const r = invRes(i, v)
+      if (U.filtro === 'pendentes' && !(i.esperado && !i.conferido_em)) return false
+      if (U.filtro === 'conferidos' && !i.conferido_em) return false
+      if (U.filtro === 'divergencias' && !['local_divergente', 'condicao_divergente', 'nao_esperado', 'nao_localizado'].includes(r)) return false
+      if (U.q) { const q = semAcento(U.q); if (!semAcento([i.numero, i.descricao, i.numero_serie, i.marca, i.modelo].join(' ')).includes(q)) return false }
+      return true
+    })
+    const locOpc = '<option value="">Escolha o local…</option>' + S.locais.filter(x => x.ativo !== false || x.id === U.local).map(x =>
+      '<option value="' + esc(x.id) + '"' + (x.id === U.local ? ' selected' : '') + '>' + esc(x.nome) + '</option>').join('')
+    $('pt-inv-corpo').innerHTML = '<div id="pt-inv-erro"></div>' +
+      '<div class="pt-inv-kpis"><div><b class="mono">' + c.total + '</b><span>esperados</span></div><div><b class="mono">' + (c.total - c.pend) + '</b><span>conferidos</span></div>' +
+        '<div><b class="mono">' + c.pend + '</b><span>' + (v.situacao === 'em_andamento' ? 'faltam' : 'não conferidos') + '</span></div>' +
+        '<div><b class="mono">' + (c.div + c.fora) + '</b><span>divergências</span></div></div>' +
+      '<div class="pt-inv-barra g" role="img" aria-label="' + pct + '% conferido"><i style="width:' + pct + '%"></i></div>' +
+      (conferindo ? '<div class="pt-inv-ler">' +
+        '<div class="pt-inv-onde"><label class="form-label" for="pt-inv-local">' + ptIc('local', 'p') + 'Estou conferindo em</label><select class="form-control" id="pt-inv-local">' + locOpc + '</select></div>' +
+        '<div class="pt-inv-acoes"><button type="button" class="pt-btn pri" data-acao="inv-camera">' + ptIc('camera', 'p') + 'Ler QR da etiqueta</button>' +
+          '<div class="pt-inv-num"><input class="form-control" id="pt-inv-numero" placeholder="Nº do bem, série ou nome" autocomplete="off" inputmode="search">' +
+          '<button type="button" class="pt-btn" data-acao="inv-procurar">' + ptIc('busca', 'p') + 'Procurar</button></div></div>' +
+        '<div id="pt-inv-cam" hidden><video id="pt-inv-video" playsinline muted></video><div class="pt-inv-mira" aria-hidden="true"></div>' +
+          '<button type="button" class="pt-btn" data-acao="inv-camera-parar">' + ptIc('x', 'p') + 'Fechar câmera</button></div>' +
+        '<div id="pt-inv-alvo"></div></div>' : '') +
+      (v.situacao === 'em_assinatura' ? blocoAssinaturaInv() : '') +
+      (v.situacao === 'concluido' ? '<div class="pt-aviso-f ok" style="margin-top:12px">' + ptIc('check', 'p') + '<span>Concluído em ' + dtHora(v.concluido_em) +
+        '. Os bens conferidos ganharam o registro de inventário; os não localizados viraram ocorrência de extravio; as divergências foram para o gestor.</span></div>' +
+        '<div class="pt-hash" style="margin-top:6px">Assinado pela comissão · SHA-256 ' + esc(v.hash || '') + '</div>' : '') +
+      (v.situacao === 'cancelado' ? '<div class="pt-aviso-f ne" style="margin-top:12px">' + ptIc('info', 'p') + '<span>Cancelado em ' + dtHora(v.cancelado_em) + ': ' + esc(v.motivo_cancelamento || '') + '</span></div>' : '') +
+      '<div class="pt-sec" style="margin-top:16px">' + ptIc('pessoa', 'p') + 'Comissão</div><div class="pt-inv-com">' + I.comissao.map(m =>
+        '<span class="pt-pill ' + (m.assinado_em ? 't-aceito' : 'ne') + '">' + ptIc(m.assinado_em ? 'check' : 'pessoa', 'p') + esc(m.nome) + (m.papel === 'presidente' ? ' (presidente)' : '') +
+        (m.assinado_em ? ' · assinou ' + dtHora(m.assinado_em) : '') + '</span>').join('') + '</div>' +
+      '<div class="pt-sec" style="margin-top:16px">' + ptIc('lista', 'p') + 'Bens</div>' +
+      '<div class="pt-inv-filtros"><div class="pt-seg" role="group" aria-label="Filtrar bens">' + [['pendentes', v.situacao === 'em_andamento' ? 'Faltam' : 'Não conferidos'], ['conferidos', 'Conferidos'], ['divergencias', 'Divergências'], ['todos', 'Todos']].map(f =>
+        '<button type="button" data-acao="inv-filtro" data-f="' + f[0] + '" aria-pressed="' + (U.filtro === f[0]) + '">' + f[1] + '</button>').join('') + '</div>' +
+        '<input class="form-control" id="pt-inv-q" placeholder="Filtrar a lista" value="' + esc(U.q) + '"></div>' +
+      (itens.length ? '<div class="pt-tbl-w"><table class="pt-mini pt-inv-tbl"><thead><tr><th>Nº</th><th>Bem</th><th>Esperado em</th><th>Achado</th><th>Situação</th><th></th></tr></thead><tbody>' +
+        itens.map(i => { const r = invRes(i, v)
+          return '<tr><td class="mono">' + esc(i.numero) + '</td><td>' + esc(i.descricao) + '<div class="pt-sub">' + esc([i.marca, i.modelo, i.numero_serie && 'S/N ' + i.numero_serie].filter(Boolean).join(' · ')) + '</div></td>' +
+            '<td>' + (i.esperado ? esc(i.local_esperado_nome || '—') + '<div class="pt-sub">' + esc(COND[i.condicao_esperada] || i.condicao_esperada) + (i.responsavel_esperado_nome ? ' · ' + esc(i.responsavel_esperado_nome) : '') + '</div>' : '<span class="pt-sub">fora da lista</span>') + '</td>' +
+            '<td>' + (i.conferido_em ? esc(i.local_encontrado_nome || '—') + '<div class="pt-sub">' + esc(COND[i.condicao_encontrada] || '') + ' · ' + esc(i.conferido_por_nome || '') + ' ' + dtHora(i.conferido_em) +
+              (i.observacao ? '<br>' + esc(i.observacao) : '') + '</div>' : '—') + '</td>' +
+            '<td>' + selo(INV_RES_CLS[r] || 'ne', INV_RES[r] || r) + '</td>' +
+            '<td class="dir">' + (conferindo ? (i.conferido_em ? '<button type="button" class="pt-btn peq" data-acao="inv-desfazer" data-id="' + esc(i.bem_id) + '" title="Desfazer a conferência">' + ptIc('desfazer', 'p') + '</button>'
+              : '<button type="button" class="pt-btn peq" data-acao="inv-alvo" data-id="' + esc(i.bem_id) + '">Conferir</button>') : '') + '</td></tr>' }).join('') + '</tbody></table></div>'
+        : '<div class="pt-vazio">' + ptIc('check') + (U.filtro === 'pendentes' && v.situacao === 'em_andamento' ? 'Todos os bens esperados foram conferidos.' : 'Nada nesta lista.') + '</div>') +
+      (v.observacao ? '<div class="pt-aviso-f ne" style="margin-top:12px;white-space:pre-line">' + ptIc('info', 'p') + '<span>' + esc(v.observacao) + '</span></div>' : '')
+    const q = $('pt-inv-q'); if (q) q.oninput = () => { U.q = q.value; const p = q.selectionStart; renderInventario(); const n = $('pt-inv-q'); n.focus(); n.setSelectionRange(p, p) }
+    const sl = $('pt-inv-local'); if (sl) sl.onchange = () => { U.local = sl.value; if (U.alvo) renderAlvo() }
+    const nu = $('pt-inv-numero'); if (nu) nu.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); procurarInv(nu.value) } }
+    if (U.alvo) renderAlvo()
+    $('pt-inv-rodape').innerHTML = '<span class="esq">' +
+      (S.pode.gerir && ['em_andamento', 'em_assinatura'].includes(v.situacao) ? '<button type="button" class="pt-btn perigo" data-acao="inv-cancelar">Cancelar inventário</button>' : '') + '</span>' +
+      '<button type="button" class="pt-btn" data-acao="inv-imprimir">' + ptIc('imprimir', 'p') + 'Relatório (A4)</button>' +
+      (v.situacao === 'em_assinatura' && (I.eu_membro || I.eu_conduzo) ? '<button type="button" class="pt-btn" data-acao="inv-reabrir">' + ptIc('desfazer', 'p') + 'Reabrir conferência</button>' : '') +
+      (v.situacao === 'em_andamento' && I.eu_conduzo ? '<button type="button" class="pt-btn pri" data-acao="inv-enviar">' + ptIc('assina', 'p') + 'Enviar para assinatura</button>' : '')
+  }
+
+  function blocoAssinaturaInv() {
+    const I = S.inv, c = invContagem(I)
+    const resumo = c.pend ? c.pend + ' bem(ns) esperado(s) não conferido(s): os que deviam estar no local viram ocorrência de extravio na última assinatura.' : 'Todos os bens esperados foram conferidos.'
+    return '<div class="pt-declara">' + esc('A comissão declara que conferiu os bens deste inventário nos locais indicados, que o resultado acima reflete o que foi encontrado e que ' +
+        'as divergências serão regularizadas pelo gestor patrimonial. ' + resumo) + '</div>' +
+      (I.eu_membro && !I.eu_assinei ? '<div class="pt-sec">' + ptIc('chave', 'p') + 'Assinar com a sua senha</div>' +
+        '<div class="pt-assina"><div><label class="form-label" for="pt-inv-senha">Senha de entrada na plataforma</label><input class="form-control" type="password" id="pt-inv-senha" autocomplete="current-password"></div>' +
+        '<span></span><button type="button" class="pt-btn pri" data-acao="inv-assinar">' + ptIc('assina', 'p') + 'Assinar o resultado</button></div>'
+        : I.eu_assinei ? '<div class="pt-aviso-f ok">' + ptIc('check', 'p') + '<span>Você já assinou. Falta o restante da comissão; quem falta recebeu uma tarefa.</span></div>'
+        : '<div class="pt-aviso-f in">' + ptIc('relogio', 'p') + '<span>Aguardando as assinaturas da comissão.</span></div>') +
+      '<div class="pt-hash" style="margin-top:8px">Resultado conferido: SHA-256 ' + esc(I.inventario.hash || '') +
+        (I.assinaturas_anteriores ? ' · ' + I.assinaturas_anteriores + ' assinatura(s) de versão anterior (sem efeito)' : '') + '</div>'
+  }
+
+  // ── Conferir: bem escolhido (QR, busca ou lista) ──
+  function procurarInv(txt) {
+    const I = S.inv, t = String(txt || '').trim(); if (!t) return
+    const num = (t.toUpperCase().match(/PAT-\d+/) || [])[0]
+    let achado = num ? (I.itens.find(i => i.numero === num) || S.bens.find(b => b.numero === num)) : null
+    if (!achado) {
+      const q = semAcento(t)
+      const cand = [...I.itens, ...S.bens.filter(b => ativo(b) && !I.itens.some(i => i.bem_id === b.id))]
+        .filter(b => semAcento([b.numero, b.numero_serie, b.descricao, b.marca, b.modelo].join(' ')).includes(q))
+      if (cand.length === 1) achado = cand[0]
+      else if (cand.length > 1) { S.invUi.q = t; S.invUi.filtro = 'todos'; renderInventario(); toast(cand.length + ' bens combinam. Escolha na lista abaixo.', 'info'); return }
+    }
+    if (!achado && num) { S.invUi.alvo = { numero: num }; renderAlvo(); return }   // o banco procura (bem que a pessoa não vê no catálogo)
+    if (!achado) { invErro('Nenhum bem encontrado com "' + t + '".'); return }
+    S.invUi.alvo = { bem_id: achado.bem_id || achado.id }; renderAlvo()
+  }
+  function invErro(m) { const e = $('pt-inv-erro'); if (e) { e.innerHTML = m ? '<div class="pt-aviso-f er">' + ptIc('alerta', 'p') + '<span>' + esc(m) + '</span></div>' : ''; if (m) $('pt-inv-corpo').scrollTop = 0 } }
+  function renderAlvo() {
+    const box = $('pt-inv-alvo'), U = S.invUi; if (!box || !U.alvo) return
+    const I = S.inv, a = U.alvo
+    const it = a.bem_id ? I.itens.find(i => i.bem_id === a.bem_id) : null
+    const b = it || (a.bem_id ? S.bens.find(x => x.id === a.bem_id) : null)
+    const cond = U.cond || it?.condicao_encontrada || it?.condicao_esperada || b?.condicao || 'bom'
+    const outroLocal = it && it.esperado && U.local && it.local_esperado && U.local !== it.local_esperado
+    box.innerHTML = '<div class="pt-inv-alvo">' +
+      '<div class="t"><b>' + esc(b ? b.numero + ' · ' + b.descricao : a.numero) + '</b>' +
+        (b ? '<span class="pt-sub">' + esc([b.marca, b.modelo, b.numero_serie && 'S/N ' + b.numero_serie].filter(Boolean).join(' · ')) + '</span>' : '<span class="pt-sub">o banco confere o número ao gravar</span>') +
+        (it ? (it.esperado ? '<span>esperado em <b>' + esc(it.local_esperado_nome || '—') + '</b>, condição ' + esc(COND[it.condicao_esperada] || it.condicao_esperada) + '</span>' : '')
+          : '<span>' + selo('al', 'fora da lista deste inventário') + '</span>') +
+        (it?.conferido_em ? '<span>' + selo('t-aceito', 'já conferido') + ' — gravar de novo substitui</span>' : '') +
+        (outroLocal ? '<span>' + selo('al', 'achado em outro local') + '</span>' : '') + '</div>' +
+      '<div class="pt-seg" role="group" aria-label="Condição em que o bem está">' + Object.entries(COND).map(([k, t]) =>
+        '<button type="button" data-acao="inv-cond" data-c="' + k + '" aria-pressed="' + (cond === k) + '">' + esc(t) + '</button>').join('') + '</div>' +
+      '<input class="form-control" id="pt-inv-obs" placeholder="Observação (opcional): ex.: na caixa do palco" value="' + esc(U.obs || '') + '">' +
+      '<div class="pt-inv-alvo-b"><button type="button" class="pt-btn" data-acao="inv-alvo-sair">Agora não</button>' +
+        '<button type="button" class="pt-btn pri" data-acao="inv-confirmar">' + ptIc('check', 'p') + 'Confirmar conferência</button></div></div>'
+    U.cond = cond
+    const o = $('pt-inv-obs'); if (o) o.oninput = () => { U.obs = o.value }
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }
+  async function confirmarInv() {
+    const U = S.invUi, a = U.alvo; if (!a) return
+    if (!U.local) { invErro('Escolha o local em que você está conferindo.'); $('pt-inv-local')?.focus(); return }
+    const b = $('pt-inv-corpo').querySelector('[data-acao="inv-confirmar"]'); if (b) b.disabled = true
+    try {
+      const r = await rpc('fn_pat_inv_conferir', { p: { inventario_id: S.inv.inventario.id, bem_id: a.bem_id || null, numero: a.numero || null,
+        local_id: U.local, condicao: U.cond, metodo: a.metodo || (a.numero ? 'qr' : 'lista'), observacao: U.obs || null } })
+      toast(r.numero + ': ' + (INV_RES[r.resultado] || r.resultado).toLowerCase() + '.', r.resultado === 'conferido' ? 'success' : 'warning')
+      U.alvo = null; U.cond = null; U.obs = ''
+      invErro('')
+      await recarregarInventario()
+      if (U.cam) iniciarCamera()   // segue lendo o próximo
+      else $('pt-inv-numero')?.focus()
+    } catch (e) { invErro(erroMsg(e)); if (b) b.disabled = false }
+  }
+
+  // ── Câmera: BarcodeDetector quando existe; senão jsQR (js/vendor, carregado no 1º uso) ──
+  let camStream = null, camLoop = 0, detector = null
+  function carregarJsQR() {
+    if (window.jsQR) return Promise.resolve()
+    return new Promise((ok, falha) => { const s = document.createElement('script'); s.src = '../js/vendor/jsqr-1.4.0.js'; s.onload = ok; s.onerror = () => falha(new Error('O leitor de QR não carregou.')); document.head.appendChild(s) })
+  }
+  async function iniciarCamera() {
+    const U = S.invUi
+    if (!U.local) { invErro('Escolha primeiro o local em que você está conferindo.'); $('pt-inv-local')?.focus(); return }
+    if (!navigator.mediaDevices?.getUserMedia) { invErro('Este navegador não dá acesso à câmera. Digite o número da etiqueta.'); return }
+    try {
+      if ('BarcodeDetector' in window) {
+        try { const f = await window.BarcodeDetector.getSupportedFormats(); if (f.includes('qr_code')) detector = new window.BarcodeDetector({ formats: ['qr_code'] }) } catch (e) { detector = null }
+      }
+      if (!detector) await carregarJsQR()
+      if (!camStream) camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+      const box = $('pt-inv-cam'), vid = $('pt-inv-video'); if (!box || !vid) return pararCamera()
+      box.hidden = false; vid.srcObject = camStream; await vid.play().catch(() => {})
+      U.cam = true
+      const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true })
+      let ult = 0
+      const passo = async t => {
+        if (!camStream || !U.cam) return
+        camLoop = requestAnimationFrame(passo)
+        if (t - ult < 220 || vid.readyState < 2 || U.alvo) return
+        ult = t
+        let txt = null
+        try {
+          if (detector) { const r = await detector.detect(vid); txt = r[0]?.rawValue || null }
+          else {
+            const w = Math.min(640, vid.videoWidth), h = Math.round(vid.videoHeight * w / vid.videoWidth)
+            cv.width = w; cv.height = h; cx.drawImage(vid, 0, 0, w, h)
+            const r = window.jsQR(cx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' }); txt = r?.data || null
+          }
+        } catch (e) { txt = null }
+        if (!txt) return
+        const num = (String(txt).toUpperCase().match(/PAT-\d+/) || [])[0]
+        if (!num) { invErro('Este QR não é de uma etiqueta do patrimônio.'); return }
+        if (navigator.vibrate) navigator.vibrate(60)
+        invErro('')
+        const it = S.inv.itens.find(i => i.numero === num) || S.bens.find(b => b.numero === num)
+        U.alvo = it ? { bem_id: it.bem_id || it.id, metodo: 'qr' } : { numero: num, metodo: 'qr' }
+        U.cond = null; renderAlvo()
+      }
+      camLoop = requestAnimationFrame(passo)
+    } catch (e) {
+      pararCamera()
+      invErro(/NotAllowed|Permission/i.test(e?.name || e?.message || '') ? 'A câmera foi bloqueada. Libere o acesso à câmera para esta página nas configurações do navegador, ou digite o número.' : erroMsg(e))
+    }
+  }
+  function pararCamera() {
+    cancelAnimationFrame(camLoop); camLoop = 0
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null }
+    if (S.invUi) S.invUi.cam = false
+    const box = $('pt-inv-cam'); if (box) box.hidden = true
+  }
+
+  async function assinarInv() {
+    const I = S.inv, senha = $('pt-inv-senha')?.value || ''
+    if (!senha) { invErro('Digite a sua senha.'); $('pt-inv-senha')?.focus(); return }
+    const bts = $('pt-inv').querySelectorAll('button'); bts.forEach(b => b.disabled = true)
+    try {
+      const { data: { session } } = await db.auth.getSession()
+      const r = await fetch(SUPABASE_URL + '/functions/v1/patrimonio-termo', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || ''), apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ acao: 'assinar_inventario', inventario_id: I.inventario.id, hash: I.inventario.hash, senha }) })
+      const j = await r.json().catch(() => ({}))
+      if (!j.ok) {
+        const e = String(j.erro || '')
+        if (e === 'SENHA_INVALIDA') invErro('Senha incorreta.')
+        else if (e === 'SENHA_BLOQUEADA') invErro('Muitas tentativas com senha errada. Tente de novo depois de ' + dtHora(j.bloqueado_ate) + '.')
+        else if (e.includes('DOCUMENTO_ALTERADO')) { toast('O resultado mudou desde que você abriu. Confira de novo.', 'warning'); await recarregarInventario() }
+        else invErro(erroMsg(e))
+        return
+      }
+      const x = j.resultado || {}
+      toast(x.situacao === 'concluido' ? 'Inventário concluído: ' + x.conferidos + ' conferidos, ' + x.divergencias + ' divergências, ' + x.extravios + ' extravios registrados.'
+        : 'Assinatura registrada. Faltam ' + x.faltam + '.', 'success')
+      await carregar(); await recarregarInventario()
+    } catch (e) { invErro(erroMsg(e)) } finally { bts.forEach(b => b.disabled = false); const s = $('pt-inv-senha'); if (s) s.value = '' }
+  }
+  async function enviarInv() {
+    const c = invContagem(S.inv)
+    const ok = await ptConfirmar({ titulo: 'Enviar para assinatura', ok: 'Enviar',
+      texto: (c.pend ? c.pend + ' bem(ns) ainda não foram conferidos. Os que deviam estar no local viram ocorrência de extravio quando a comissão assinar. ' : '') +
+        'Depois de enviar, a conferência fica travada; para mudar, é preciso reabrir (e todos assinam de novo).' })
+    if (!ok) return
+    try { await rpc('fn_pat_inv_enviar', { p_inv: S.inv.inventario.id }); pararCamera(); toast('Enviado. Cada membro da comissão assina com a senha.', 'success'); await carregar(); await recarregarInventario() }
+    catch (e) { invErro(erroMsg(e)) }
+  }
+  function formReabrirInv() {
+    abrirForm({ titulo: 'Reabrir a conferência', sub: S.inv.inventario.numero, botao: 'Reabrir',
+      corpo: '<p class="pt-sub" style="font-size:13px">As assinaturas já feitas perdem efeito se o resultado mudar; todos assinam de novo.</p>' +
+        '<div class="form-group"><label class="form-label" for="fri-m">Por que reabrir?</label><input class="form-control" id="fri-m" placeholder="ex.: faltou conferir o depósito"></div>',
+      aoSalvar: async r => { await rpc('fn_pat_inv_reabrir', { p_inv: S.inv.inventario.id, p_motivo: val(r, '#fri-m') }); toast('Conferência reaberta.', 'success'); await carregar(); await recarregarInventario() } })
+  }
+  function formCancelarInv() {
+    abrirForm({ titulo: 'Cancelar inventário', sub: S.inv.inventario.numero, botao: 'Cancelar inventário', perigo: true,
+      corpo: '<p class="pt-sub" style="font-size:13px">Nada muda nos bens; o inventário fica registrado como cancelado e as tarefas da comissão são canceladas.</p>' +
+        '<div class="form-group"><label class="form-label" for="fci-m">Motivo</label><input class="form-control" id="fci-m"></div>',
+      aoSalvar: async r => { await rpc('fn_pat_inv_cancelar', { p_inv: S.inv.inventario.id, p_motivo: val(r, '#fci-m') }); pararCamera(); toast('Inventário cancelado.', 'success'); await carregar(); await recarregarInventario() } })
+  }
+
+  // Relatório de inventário (Pt6) — FolhaA4; também usado pela aba Relatórios
+  function imprimirInventario() {
+    const I = S.inv; if (!I || typeof FolhaA4 === 'undefined') return
+    const w = FolhaA4.janela()
+    FolhaA4.escrever(w, { titulo: 'Relatório de inventário ' + I.inventario.numero, selo: 'Patrimônio', tema: 'patrimonio', paisagem: true,
+      corpo: PatRel.inventario(I), nomeArquivo: 'inventario-' + I.inventario.numero })
   }
 
   // ── Ficha do bem ──────────────────────────────────────────────────────────
@@ -1723,6 +2062,22 @@
       case 'bx-aprovar': decidirBaixa('aprovar'); break
       case 'bx-devolver': decidirBaixa('devolver'); break
       case 'bx-cancelar': formCancelarBaixa(); break
+      case 'inv-novo': formInventario(); break
+      case 'inv': abrirInventario(el.dataset.id); break
+      case 'inv-filtro': S.invUi.filtro = el.dataset.f; renderInventario(); break
+      case 'inv-camera': iniciarCamera(); break
+      case 'inv-camera-parar': pararCamera(); break
+      case 'inv-procurar': procurarInv($('pt-inv-numero')?.value); break
+      case 'inv-alvo': S.invUi.alvo = { bem_id: el.dataset.id, metodo: 'lista' }; S.invUi.cond = null; S.invUi.obs = ''; renderAlvo(); break
+      case 'inv-alvo-sair': S.invUi.alvo = null; S.invUi.cond = null; S.invUi.obs = ''; $('pt-inv-alvo').innerHTML = ''; break
+      case 'inv-cond': S.invUi.cond = el.dataset.c; renderAlvo(); break
+      case 'inv-confirmar': confirmarInv(); break
+      case 'inv-desfazer': rpc('fn_pat_inv_desfazer', { p_inv: S.inv.inventario.id, p_bem: el.dataset.id }).then(() => recarregarInventario()).catch(er => invErro(erroMsg(er))); break
+      case 'inv-enviar': enviarInv(); break
+      case 'inv-assinar': assinarInv(); break
+      case 'inv-reabrir': formReabrirInv(); break
+      case 'inv-cancelar': formCancelarInv(); break
+      case 'inv-imprimir': imprimirInventario(); break
     }
   })
 })()

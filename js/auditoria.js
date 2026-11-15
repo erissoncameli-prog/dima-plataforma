@@ -10,6 +10,7 @@ const DOMINIOS = {
   viagens:         'Viagens',
   matriz:          'Matriz',
   qualidade_dados: 'Qualidade de dados',
+  patrimonio:      'Patrimônio',         // virtual: domínio qualidade_dados com título "Patrimônio: …"
 }
 
 const SEV_ORDEM = { critico: 0, alto: 1, medio: 2, baixo: 3, info: 4 }
@@ -79,6 +80,7 @@ const ehAberto = function (a) { return a.status === 'aberto' || a.status === 'em
 // auditoria_registros.dominio não tem 'orcamento'), com título "Orçamento: …".
 function domDe(a) {
   if (a.dominio === 'financeiro' && /^or[çc]amento\s*:/i.test(a.titulo || '')) return 'orcamento'
+  if (/^patrim[ôo]nio\s*:/i.test(a.titulo || '')) return 'patrimonio'
   return a.dominio
 }
 
@@ -674,7 +676,7 @@ async function _cmdAuditar() {
   setRodando(true)
 
   adicionarBolha('assistant',
-    'Iniciando a varredura completa do sistema: TDR / Contratos, Financeiro, Orçamento, Produtos, Viagens, Matriz e Qualidade de dados.\n\n' +
+    'Iniciando a varredura completa do sistema: TDR / Contratos, Financeiro, Orçamento, Produtos, Viagens, Matriz, Qualidade de dados e Patrimônio.\n\n' +
     'Aguarde — pode levar até 1 minuto…')
 
   try {
