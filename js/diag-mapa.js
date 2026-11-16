@@ -97,6 +97,7 @@
           dd += 'Z'
         }
         const path = el_('path', { d: dd, class: 'dmapa-pol ' + (pg.classe || ''), 'fill-rule': 'evenodd' })
+        if (pg.cor) path.style.setProperty('--dmapa-pol-cor', pg.cor)
         if (pg.rotulo) { const t = el_('title', {}); t.textContent = pg.rotulo; path.appendChild(t) }
         svg.appendChild(path)
       }
@@ -277,5 +278,9 @@
     return b
   }
 
-  raiz.DiagMapa = { criar, distancia, centro, bboxDe, mpp }
+  // cor de cada setor (Paul Tol "muted", legível em daltonismo; diferente da paleta dos pontos)
+  const CORES_SETOR = ['#332288', '#CC6677', '#117733', '#DDCC77', '#88CCEE', '#AA4499', '#44AA99', '#999933', '#882255']
+  function corSetor(i) { return CORES_SETOR[((i % CORES_SETOR.length) + CORES_SETOR.length) % CORES_SETOR.length] }
+
+  raiz.DiagMapa = { criar, distancia, centro, bboxDe, mpp, corSetor }
 })(window)

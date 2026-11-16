@@ -48,6 +48,7 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
 <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
 <symbol id="i-ler" viewBox="0 0 24 24"><path d="M2 5h6a4 4 0 0 1 4 4v11a3 3 0 0 0-3-3H2zM22 5h-6a4 4 0 0 0-4 4v11a3 3 0 0 1 3-3h7z"/></symbol>
 <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-mapa" viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
 <symbol id="i-lua" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></symbol>
 </defs></svg>
 
@@ -136,6 +137,7 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
       <div class="contador"><b id="c-enviada">0</b><span>enviadas</span></div>
     </div>
     <button type="button" class="btn btn-prim btn-bloco" id="btn-nova"><svg class="ic"><use href="#i-mais"/></svg>Nova entrevista</button>
+    <button type="button" class="btn btn-sec btn-bloco" id="btn-ini-mapa" hidden><svg class="ic"><use href="#i-mapa"/></svg>Mapa: você e as casas entrevistadas</button>
     <button type="button" class="btn btn-sec btn-bloco" id="btn-sync"><svg class="ic"><use href="#i-sync"/></svg>Sincronizar</button>
     <p class="dica" id="ini-ultima-sync" style="text-align:center"></p>
     <div id="ini-lista"></div>
@@ -203,6 +205,7 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
       <span><i class="lg lg-rec"></i>Recusa</span>
       <span><i class="lg lg-pend"></i>Ainda não enviada</span>
     </div>
+    <div id="mapa-setores" class="mapa-legenda" aria-label="Setores"></div>
     <p id="mapa-resumo" class="dica"></p>
     <p class="dica">O ponto é onde a entrevista começou. Das entrevistas dos colegas aparece só o lugar e a data. Sem internet o satélite some e fica o desenho da área. O seu trajeto não é enviado a ninguém.</p>
   </div>

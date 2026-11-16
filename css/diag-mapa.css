@@ -13,10 +13,14 @@
 .dmapa-tiles img { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
 .dmapa-svg { position: absolute; inset: 0; overflow: visible; }
 
-.dmapa-pol { fill: rgba(29, 90, 60, .08); stroke: var(--dm-pol); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.dmapa-pol.meu { fill: rgba(245, 197, 24, .10); stroke: var(--dm-pol-meu); stroke-width: 3; }
-.dmapa-pol.outro { fill: none; stroke: var(--dm-pol-outro); stroke-width: 1.5; stroke-dasharray: 6 5; opacity: .85; }
-.dmapa-pol.sel { fill: rgba(245, 197, 24, .16); }
+/* cada setor tem a sua cor (--dmapa-pol-cor, DiagMapa.corSetor): linha cheia + preenchimento claro */
+.dmapa-pol { fill: var(--dmapa-pol-cor, var(--dm-pol)); fill-opacity: .22; stroke: var(--dmapa-pol-cor, var(--dm-pol));
+  stroke-width: 2.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.dmapa-pol.meu { fill-opacity: .30; stroke-width: 4; }
+.dmapa-pol.outro { fill-opacity: .18; stroke-width: 2.5; stroke-dasharray: 8 5; }
+.dmapa-pol.sel { fill-opacity: .40; stroke-width: 4; }
+.lg-setor { display: inline-block; width: 14px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 6px;
+  background: color-mix(in srgb, var(--c) 30%, transparent); border: 2px solid var(--c); }
 .dmapa-rot { font: 600 12px/1 system-ui, sans-serif; fill: #FFFFFF; stroke: rgba(0, 0, 0, .65); stroke-width: 3; paint-order: stroke; pointer-events: none; }
 
 .dmapa-pt { fill: var(--dmapa-cor, var(--dm-col)); stroke: var(--dm-borda-pt); stroke-width: 2; }

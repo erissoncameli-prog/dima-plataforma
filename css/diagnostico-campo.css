@@ -64,3 +64,5 @@ body.dgm .dgc-info { font-size: 13px; color: var(--txt); margin: 8px 0 0; min-he
 body.dgm .dgc-ent { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; }
 body.dgm .dgc-ent i { width: 11px; height: 11px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
 body.dgm .dgc-ent i.vazado { background: #fff; border-color: var(--txt-2); }
+body.dgm .dgc-ent i.lg-setor { width: 14px; height: 10px; border-radius: 3px; border: 2px solid var(--c); box-shadow: none;
+  background: color-mix(in srgb, var(--c) 30%, transparent); }

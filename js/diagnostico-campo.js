@@ -111,7 +111,8 @@ function dgcCasasHtml(casas) {
     </div>
     <div id="dgc-mapa-casas" class="dgc-mapa-casas"></div>
     <p class="dgc-info" id="dgc-casa-info" aria-live="polite">${n.length ? 'Clique num ponto para ver a entrevista.' : 'Nenhuma entrevista com posição nesta APA ainda.'}</p>
-    <p class="dgc-leg">${ents.map(e => `<span class="dgc-ent"><i style="background:${dgcCorEnt(e.id)}"></i>${esc(e.nome)}</span>`).join('')}
+    <p class="dgc-leg"><b>Setores:</b> ${dgcSetores().map((s, i) => `<span class="dgc-ent"><i class="lg-setor" style="--c:${DiagMapa.corSetor(i)}"></i>${esc('Setor ' + (s.numero || s.codigo) + ' · ' + s.nome)}</span>`).join('')}</p>
+    <p class="dgc-leg"><b>Entrevistas:</b> ${ents.map(e => `<span class="dgc-ent"><i style="background:${dgcCorEnt(e.id)}"></i>${esc(e.nome)}</span>`).join('')}
       <span class="dgc-ent"><i class="vazado"></i>recusa</span></p>
     <p class="dgc-leg">O ponto é onde a entrevista começou (GPS do celular, precisão de alguns metros). Só a coordenação vê estes pontos; o consultor não vê.</p>`
 }
@@ -126,7 +127,7 @@ function dgcMontarCasas(setores, casas) {
   const lista = casas.filter(c => !dgc.filtroEnt || c.entrevistador_id === dgc.filtroEnt)
   dgc.mapa = DiagMapa.criar(el, { rotulo: 'Pontos das entrevistas nos setores da APA', satelite: dgcSatelite(), aoTocar: dgcTocarCasa })
   dgc.mapa.dados({
-    poligonos: setores.map(s => ({ geojson: s.geojson, classe: dgc.setorSel === s.id ? 'meu' : '',
+    poligonos: setores.map((s, i) => ({ geojson: s.geojson, classe: dgc.setorSel === s.id ? 'sel' : '', cor: DiagMapa.corSetor(i),
       rotulo: 'Setor ' + (s.numero || s.codigo) + ' · ' + s.nome, rotuloCurto: 'Setor ' + (s.numero || s.codigo), centro: DiagMapa.centro(s.geojson) })),
     pontos: lista.map(c => Object.assign({}, c, { classe: 'col' + (c.recusa ? ' rec' : ''), cor: dgcCorEnt(c.entrevistador_id),
       rotulo: (c.recusa ? 'Recusa' : 'Entrevista' + (c.numero ? ' nº ' + c.numero : '')) + ' · ' + c.entrevistador + ' · ' + dgcData(c.data) })),
@@ -161,7 +162,7 @@ function dgcMapa(setores) {
   let svg = `<svg class="dgc-mapa" viewBox="0 0 ${W} ${H}" role="img" aria-label="Setores da APA e quadrículas com entrevistas">`
   setores.forEach((s, i) => {
     const sel = dgc.setorSel === s.id
-    svg += `<path class="dgc-setor dgc-s${i % 6}${sel ? ' sel' : ''}" d="${caminho(s.geojson)}" onclick="dgc.setorSel='${s.id}';dgcDesenhar()"><title>${esc('Setor ' + (s.numero || s.codigo) + ' · ' + s.nome)}</title></path>`
+    svg += `<path class="dgc-setor dgc-s${i % 6}${sel ? ' sel' : ''}" style="fill:${DiagMapa.corSetor(i)};stroke:${DiagMapa.corSetor(i)}" d="${caminho(s.geojson)}" onclick="dgc.setorSel='${s.id}';dgcDesenhar()"><title>${esc('Setor ' + (s.numero || s.codigo) + ' · ' + s.nome)}</title></path>`
   })
   cels.filter(c => setores.some(s => s.id === c.setor_id)).forEach(c => {
     const s = setores.find(x => x.id === c.setor_id)

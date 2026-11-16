@@ -649,6 +649,7 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   await page.locator('#ini-areas .area-sit-dentro').waitFor({ timeout: 10000 })
   await foto('area_inicio')
   ok('início: "Minhas áreas" com a meta (0 de 2) e "dentro da área agora"')
+  if (!(await page.isVisible('#btn-ini-mapa'))) falhar('botão fixo do mapa não aparece no início')
 
   const abrirNovaNaApa = async () => {
     await clicar('#btn-nova')
@@ -720,6 +721,9 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   await page.waitForFunction(() => document.querySelectorAll('#mapa-area .dmapa-pt').length >= 2 &&
     document.querySelector('#mapa-area .dmapa-eu') && document.querySelector('#mapa-area .dmapa-pol.meu'), null, { timeout: 10000 })
     .catch(async () => falhar('mapa sem pontos/posição/setor: ' + await page.innerHTML('#mapa-area')))
+  const cores = await page.evaluate(() => [...document.querySelectorAll('#mapa-area .dmapa-pol')].map(p => getComputedStyle(p).stroke))
+  if (!cores.length || cores.some(c => !c || c === 'none') || !/\(sua área\)/.test(await page.textContent('#mapa-setores')))
+    falhar('setores sem cor própria ou sem legenda: ' + JSON.stringify(cores))
   if (!/1 entrevista\(s\) sua\(s\).*1 recusa/.test(await page.textContent('#mapa-resumo'))) falhar('resumo do mapa: ' + await page.textContent('#mapa-resumo'))
   await page.locator('#mapa-perto', { hasText: 'Possível casa já visitada' }).waitFor({ timeout: 10000 })
   const alvo = await page.evaluate(() => { const r = document.querySelector('#mapa-area .dmapa-pt.prop:not(.rec)').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2] })

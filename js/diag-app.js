@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '2.5.1'
+const DIAG_APP_VERSAO = '2.5.2'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -293,6 +293,8 @@ async function desenharInicio() {
       '. Fichas concluídas até essa data ainda são aceitas por 15 dias. Peça a renovação ao super_admin.</div>'
   document.getElementById('ini-avisos').innerHTML = avisos
   document.getElementById('ini-areas').innerHTML = await DiagCampo.htmlInicio(u.id)
+  // botão fixo do mapa: aparece sempre que o aparelho tem setores de alguma APA
+  document.getElementById('btn-ini-mapa').hidden = !((await DiagCampo.pacote()).setores || []).length
   campoGps(App.tela)                 // a 1ª área pode ter chegado agora, na sincronização
   document.getElementById('btn-nova').disabled = !q
   trocarAbaInicio(App.abaIni, true)
@@ -989,8 +991,11 @@ async function desenharMapaArea(enquadrar) {
   const coms = new Set([...meus].map(id => porId[id].comunidade_id))
   // os setores da(s) APA(s) em que a pessoa trabalha; os dela em destaque
   const setores = pk.setores.filter(s => meus.size ? coms.has(s.comunidade_id) : true)
-  const poligonos = setores.map(s => ({ geojson: s.geojson, classe: meus.has(s.id) ? 'meu' : 'outro',
-    rotulo: DiagCampo.nomeSetor(s), rotuloCurto: 'Setor ' + (s.numero || s.codigo), centro: DiagMapa.centro(s.geojson) }))
+  const poligonos = setores.map((s, i) => ({ geojson: s.geojson, classe: meus.has(s.id) ? 'meu' : (meus.size ? 'outro' : ''),
+    cor: DiagMapa.corSetor(i), rotulo: DiagCampo.nomeSetor(s), rotuloCurto: 'Setor ' + (s.numero || s.codigo), centro: DiagMapa.centro(s.geojson) }))
+  // legenda dos setores: cor de cada um; os da pessoa marcados como "seu"
+  document.getElementById('mapa-setores').innerHTML = setores.map((s, i) =>
+    '<span><i class="lg-setor" style="--c:' + DiagMapa.corSetor(i) + '"></i>' + esc(DiagCampo.nomeSetor(s)) + (meus.has(s.id) ? ' <b>(sua área)</b>' : '') + '</span>').join('')
   const casas = (await DiagCampo.casas(uid)).filter(c => !meus.size || meus.has(c.setor_id))
   App.mapaCasas = casas
   const pontos = casas.map(c => Object.assign({}, c, {
@@ -1299,6 +1304,7 @@ function ligarEventos() {
     else if (ev.target.closest('[data-area-mapa]')) abrirMapaArea('t-nova')
   })
   document.getElementById('ini-areas').addEventListener('click', ev => { if (ev.target.closest('[data-area-mapa]')) abrirMapaArea('t-inicio') })
+  document.getElementById('btn-ini-mapa').addEventListener('click', () => abrirMapaArea('t-inicio'))
   document.getElementById('btn-mapa-eu').addEventListener('click', () => {
     const p = DiagCampo.posicao(120000)
     if (!p) { aviso('Ainda sem sinal de GPS.', 'aviso'); return }
