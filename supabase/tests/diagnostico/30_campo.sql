@@ -259,5 +259,51 @@ begin
   if not exists (select 1 from public.lgpd_tratamentos where codigo = 'TRAT-001' and tabelas @> array['diag_fichas_campo_gps','diag_designacoes'])
     then raise exception 'FALHOU C10 ROPA'; end if;
 end $$;
+-- ── C12 meta do setor no painel (diag_24); recarga do shape não desfaz ──
+reset role;
+select public.fn_diag_setor_carregar('11111111-1111-1111-1111-111111111111', 'TS2', 2, 'Vizinho', 'rural', 4, 484.0, 500,
+  '{"type":"Polygon","coordinates":[[[-68.49,-10.66],[-68.47,-10.66],[-68.47,-10.64],[-68.49,-10.64],[-68.49,-10.66]]]}',
+  '{}', array[-68.49,-10.66,-68.47,-10.64]);
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e1');
+select public.t_erro($q$select public.diag_setor_meta((select id from public.diag_setores where codigo='TS2'), 9, 'mais casas')$q$, 'diag:nao_autorizado');
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+select public.t_erro($q$select public.diag_setor_meta((select id from public.diag_setores where codigo='TS2'), 9, '')$q$, 'diag:motivo_obrigatorio');
+select public.t_erro($q$select public.diag_setor_meta((select id from public.diag_setores where codigo='TS2'), 0, 'zero')$q$, 'diag:meta_invalida');
+select public.diag_setor_meta((select id from public.diag_setores where codigo='TS2'), 9, 'Contagem de casas maior que a estimada');
+reset role;
+select public.fn_diag_setor_carregar('11111111-1111-1111-1111-111111111111', 'TS2', 2, 'Vizinho', 'rural', 4, 484.0, 500,
+  '{"type":"Polygon","coordinates":[[[-68.49,-10.66],[-68.47,-10.66],[-68.47,-10.64],[-68.49,-10.64],[-68.49,-10.66]]]}',
+  '{}', array[-68.49,-10.66,-68.47,-10.64]);
+do $$
+begin
+  if (select meta_sugerida from public.diag_setores where codigo = 'TS2') <> 9 then raise exception 'FALHOU C12 recarga desfez a meta ajustada'; end if;
+  if (select meta_motivo from public.diag_setores where codigo = 'TS2') is null then raise exception 'FALHOU C12 motivo'; end if;
+  if not exists (select 1 from public.audit_log where tabela = 'diag_setores' and campos_alterados ? 'meta_sugerida') then raise exception 'FALHOU C12 auditoria'; end if;
+end $$;
+
+-- ── C13 mesma pessoa em dois setores: cada ficha vai para a designação do setor certo ──
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$
+begin
+  insert into public.t_ctx values ('d3', public.diag_designar((select id from public.diag_setores where codigo='TS2'), '00000000-0000-0000-0000-0000000000e1', 5)::text);
+  if (select count(*) from public.diag_designacoes where entrevistador_id = '00000000-0000-0000-0000-0000000000e1' and ativo and tipo = 'designacao') <> 2
+    then raise exception 'FALHOU C13 duas designações ativas'; end if;
+end $$;
+select public.t_como('00000000-0000-0000-0000-0000000000e1');
+do $$
+declare r jsonb;
+begin
+  r := public.diag_enviar_ficha(public.t_ficha('cafe0021-0000-0000-0000-000000000013','DSA-XAP-C13', null, now(),
+         public.t_campo((select v from public.t_ctx where k='d3'), -10.65, -68.48)), public.t_mor(), '[]');
+  if r->'campo'->>'situacao' <> 'dentro' or (r->'campo'->>'numero')::int <> 1 or r->'campo'->>'setor' <> 'TS2' then raise exception 'FALHOU C13 %', r->'campo'; end if;
+  -- a designação do TS1 no ponto do TS2 = fora (a pessoa tem as duas, mas a ficha diz qual usou)
+  r := public.diag_enviar_ficha(public.t_ficha('cafe0021-0000-0000-0000-000000000014','DSA-XAP-C14', null, now(),
+         public.t_campo((select v from public.t_ctx where k='d1'), -10.65, -68.48)), public.t_mor(), '[]');
+  if r->'campo'->>'situacao' <> 'fora' then raise exception 'FALHOU C13 designação errada para o ponto %', r->'campo'; end if;
+  if jsonb_array_length((public.diag_campo_pacote())->'designacoes') < 2 then raise exception 'FALHOU C13 pacote sem as duas áreas'; end if;
+end $$;
+reset role;
 \o
 select 'campo ok' as resultado;

@@ -116,7 +116,7 @@ function dgcTabelaSetores(setores, ativas) {
       const at = s.atributos || {}
       return `<tr class="${dgc.setorSel === s.id ? 'dgc-linha-sel' : ''}">
         <td><b>${esc(String(s.numero || s.codigo))} · ${esc(s.nome)}</b><br><small>${esc([s.tipo, s.area_ha ? Number(s.area_ha).toLocaleString('pt-BR') + ' ha' : '', at.apoio ? 'apoio: ' + at.apoio : '', at.acesso].filter(Boolean).join(' · '))}</small></td>
-        <td>${s.meta_sugerida || '—'}</td>
+        <td${s.meta_ajustada_em ? ' title="' + esc('Ajustada no painel' + (s.meta_motivo ? ': ' + s.meta_motivo : '')) + '"' : ''}>${s.meta_sugerida || '—'}${s.meta_ajustada_em ? ' <small>(ajustada)</small>' : ''}</td>
         <td class="${s.meta_sugerida && desig < s.meta_sugerida ? 'dgc-falta' : ''}">${desig}</td>
         <td>${feitas}</td>
         <td title="quadrículas de ${s.celula_m} m com entrevista · limite ${s.limite_celula} por trecho · tolerância ${s.tolerancia_m} m">${ncel}<br><small>${s.celula_m} m · até ${s.limite_celula}</small></td>
@@ -195,38 +195,49 @@ async function dgcDesignarAbrir() {
     dgc.entrevistadores = data || []
   }
   const setores = dgcSetores()
-  const s0 = setores.find(s => s.id === dgc.setorSel) || setores[0]
+  const marcado = dgc.setorSel || (setores[0] && setores[0].id)
   dgcJanela('Designar entrevistador', `
-    <label class="dgc-l">Setor<select id="dgc-setor" onchange="dgcMetaSugerida()">${setores.map(s =>
-      `<option value="${esc(s.id)}"${s0 && s.id === s0.id ? ' selected' : ''}>${esc((s.numero || s.codigo) + ' · ' + s.nome)}</option>`).join('')}</select></label>
-    <label class="dgc-l">Entrevistador(a)<select id="dgc-pessoa"><option value="">Escolha…</option>${dgc.entrevistadores.map(u =>
+    <label class="dgc-l">Entrevistador(a)<select id="dgc-pessoa" onchange="dgcDesignarPessoa()"><option value="">Escolha…</option>${dgc.entrevistadores.map(u =>
       `<option value="${esc(u.id)}">${esc(u.nome_completo)}${u.acesso_ate ? ' — acesso até ' + dgcData(u.acesso_ate) : ''}</option>`).join('')}</select></label>
     ${dgc.entrevistadores.length ? '' : '<p class="dgc-falta">Nenhum técnico com acesso ao Diagnóstico. Dê o acesso em Usuários.</p>'}
-    <div class="dgc-linha2"><label class="dgc-l">Nº de entrevistas<input id="dgc-meta" type="number" min="1" max="500"></label>
-      <label class="dgc-l">Início<input id="dgc-ini" type="date" value="${dgcHoje()}"></label>
+    <p class="dgc-l" style="margin-bottom:4px">Setores e nº de entrevistas <span class="dgc-nota">(marque um ou mais)</span></p>
+    <table class="dg-tab dgc-multi"><tbody>${setores.map(s => {
+      const ja = dgc.dados.designacoes.filter(x => x.ativo && x.tipo === 'designacao' && x.setor_id === s.id).reduce((t, x) => t + x.meta, 0)
+      const resta = Math.max(0, (s.meta_sugerida || 0) - ja)
+      return `<tr data-setor="${esc(s.id)}"><td><label class="dgc-check"><input type="checkbox" class="dgc-sel"${s.id === marcado ? ' checked' : ''}>
+          <span><b>${esc(String(s.numero || s.codigo))} · ${esc(s.nome)}</b><br><small>meta ${s.meta_sugerida || '—'} · já designadas ${ja} · faltam ${resta}</small>
+          <small class="dgc-ja" hidden><br>esta pessoa já tem designação aqui — use “Alterar”</small></span></label></td>
+        <td style="width:110px"><input type="number" class="dgc-qtd" min="1" max="500" value="${resta || ''}" aria-label="Entrevistas no setor ${esc(s.codigo)}"></td></tr>`
+    }).join('')}</tbody></table>
+    <div class="dgc-linha2"><label class="dgc-l">Início<input id="dgc-ini" type="date" value="${dgcHoje()}"></label>
       <label class="dgc-l">Fim (opcional)<input id="dgc-fim" type="date"></label></div>
-    <p class="dgc-nota" id="dgc-meta-dica"></p>
-    <p class="dgc-nota">O entrevistador recebe a área na próxima sincronização do app. Fora dela o app não deixa começar a entrevista; a numeração (1, 2, 3…) segue a meta.</p>`,
+    <p class="dgc-nota">Uma pessoa pode ter vários setores (e setores de outras APAs — troque a APA no topo). No app, cada entrevista
+      vai para o setor onde ela está; a numeração (1, 2, 3…) é separada por setor. Recebe as áreas na próxima sincronização.</p>`,
     '<button type="button" class="btn btn-primary" onclick="dgc.acao()">Designar</button>', dgcDesignar)
-  dgcMetaSugerida()
 }
-function dgcMetaSugerida() {
-  const s = dgcSetores().find(x => x.id === dgcV('dgc-setor'))
-  if (!s) return
-  const ja = dgc.dados.designacoes.filter(x => x.ativo && x.tipo === 'designacao' && x.setor_id === s.id).reduce((t, x) => t + x.meta, 0)
-  const resta = Math.max(0, (s.meta_sugerida || 0) - ja)
-  document.getElementById('dgc-meta').value = resta || ''
-  document.getElementById('dgc-meta-dica').textContent = s.meta_sugerida
-    ? 'Meta do setor no plano: ' + s.meta_sugerida + ' · já designadas: ' + ja + ' · faltam ' + resta + '.' : ''
+// marca os setores em que a pessoa já está (a regra é uma designação ativa por setor)
+function dgcDesignarPessoa() {
+  const uid = dgcV('dgc-pessoa')
+  document.querySelectorAll('.dgc-multi tr').forEach(tr => {
+    const tem = !!uid && dgc.dados.designacoes.some(x => x.ativo && x.tipo === 'designacao' && x.setor_id === tr.dataset.setor && x.entrevistador_id === uid)
+    tr.querySelector('.dgc-ja').hidden = !tem
+    const cb = tr.querySelector('.dgc-sel'); cb.disabled = tem; if (tem) cb.checked = false
+  })
 }
 async function dgcDesignar() {
-  const meta = +dgcV('dgc-meta')
-  if (!dgcV('dgc-pessoa')) return dgcMostrarErro('Escolha o entrevistador.')
-  if (!(meta >= 1)) return dgcMostrarErro('Informe o número de entrevistas.')
-  const { error } = await db.rpc('diag_designar', { p_setor_id: dgcV('dgc-setor'), p_entrevistador_id: dgcV('dgc-pessoa'), p_meta: meta,
-    p_dt_inicio: dgcV('dgc-ini') || null, p_dt_fim: dgcV('dgc-fim') || null, p_tipo: 'designacao', p_justificativa: null })
-  if (error) return dgcMostrarErro(dgcErro(error))
-  dgcFechar(); toast('Designação feita.', 'success'); dgcCarregar()
+  const pessoa = dgcV('dgc-pessoa')
+  if (!pessoa) return dgcMostrarErro('Escolha o entrevistador.')
+  const linhas = [...document.querySelectorAll('.dgc-multi tr')].filter(tr => tr.querySelector('.dgc-sel').checked)
+  if (!linhas.length) return dgcMostrarErro('Marque pelo menos um setor.')
+  if (linhas.some(tr => !(+tr.querySelector('.dgc-qtd').value >= 1))) return dgcMostrarErro('Informe o nº de entrevistas de cada setor marcado.')
+  let feitas = 0
+  for (const tr of linhas) {
+    const { error } = await db.rpc('diag_designar', { p_setor_id: tr.dataset.setor, p_entrevistador_id: pessoa, p_meta: +tr.querySelector('.dgc-qtd').value,
+      p_dt_inicio: dgcV('dgc-ini') || null, p_dt_fim: dgcV('dgc-fim') || null, p_tipo: 'designacao', p_justificativa: null })
+    if (error) { dgcMostrarErro((feitas ? feitas + ' setor(es) designado(s); ' : '') + dgcErro(error)); dgcCarregar(); return }
+    feitas++
+  }
+  dgcFechar(); toast(feitas > 1 ? feitas + ' setores designados.' : 'Designação feita.', 'success'); dgcCarregar()
 }
 
 function dgcAlterarAbrir(id) {
@@ -269,6 +280,9 @@ async function dgcDecidir(id, aprovar) {
 function dgcAjustarAbrir(id) {
   const s = dgcSetores().find(x => x.id === id)
   dgcJanela('Ajustar setor ' + (s.numero || s.codigo) + ' · ' + s.nome, `
+    <div class="dgc-linha2"><label class="dgc-l">Meta do setor (entrevistas)<input id="dgc-msetor" type="number" min="1" max="1000" value="${s.meta_sugerida || ''}"></label>
+      <label class="dgc-l" style="flex:2">Motivo da mudança da meta<input id="dgc-mmot" maxlength="300" placeholder="Obrigatório se mudar a meta"></label></div>
+    ${s.meta_ajustada_em ? '<p class="dgc-nota">Meta ajustada em ' + dgcData(s.meta_ajustada_em) + (s.meta_motivo ? ': “' + esc(s.meta_motivo) + '”' : '') + '.</p>' : '<p class="dgc-nota">Meta vinda do shapefile.</p>'}
     <div class="dgc-linha2"><label class="dgc-l">Quadrícula (m)<input id="dgc-cel" type="number" min="50" max="20000" step="10" value="${s.celula_m}"></label>
       <label class="dgc-l">Máximo por quadrícula<input id="dgc-lim" type="number" min="1" max="50" value="${s.limite_celula}"></label>
       <label class="dgc-l">Tolerância na divisa (m)<input id="dgc-tol" type="number" min="0" max="500" step="10" value="${s.tolerancia_m}"></label></div>
@@ -276,6 +290,13 @@ function dgcAjustarAbrir(id) {
       O padrão é √(área ÷ meta). A tolerância evita marcar como “fora” quem está na divisa (o GPS erra alguns metros).
       Mudança vale para as próximas fichas, na próxima sincronização dos aparelhos.</p>`,
     '<button type="button" class="btn btn-primary" onclick="dgc.acao()">Salvar</button>', async () => {
+      const meta = +dgcV('dgc-msetor')
+      if (meta !== (s.meta_sugerida || 0)) {
+        if (!(meta >= 1)) return dgcMostrarErro('Informe a meta do setor.')
+        if (dgcV('dgc-mmot').trim().length < 5) return dgcMostrarErro('Diga por que a meta do setor mudou.')
+        const m = await db.rpc('diag_setor_meta', { p_setor_id: id, p_meta: meta, p_motivo: dgcV('dgc-mmot').trim() })
+        if (m.error) return dgcMostrarErro(dgcErro(m.error))
+      }
       const { error } = await db.rpc('diag_setor_ajustar', { p_setor_id: id, p_celula_m: +dgcV('dgc-cel'), p_limite_celula: +dgcV('dgc-lim'),
         p_tolerancia_m: +dgcV('dgc-tol'), p_ativo: null })
       if (error) return dgcMostrarErro(dgcErro(error))

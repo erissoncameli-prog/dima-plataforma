@@ -70,8 +70,10 @@ function pgQuery(q) {
 }
 function pgRpc(nome, args) {
   const params = Object.entries(args || {}).map(([k, v]) => k + ' := ' + lit(v)).join(', ')
+  const vazio = ['diag_setor_meta', 'diag_setor_ajustar', 'diag_designacao_alterar', 'diag_designacao_encerrar']   // returns void
   const sql = ['fn_diag_agregados', 'fn_lgpd_conferir_tabelas', 'diag_campo_entrevistadores'].includes(nome)   // setof
     ? "select coalesce(jsonb_agg(t), '[]') from public." + nome + '(' + params + ') t'
+    : vazio.includes(nome) ? "select 'null' from (select public." + nome + '(' + params + ')) t'
     : 'select to_json(public.' + nome + '(' + params + '))'
   try { return { data: JSON.parse(psql(sql, usuarioLogado)), error: null } }
   catch (e) { return { data: null, error: erroPg(e) } }
@@ -406,7 +408,7 @@ function semear() {
   await page.locator('#dg-campo .dgc-setor').first().waitFor()
   await page.click('text=Designar entrevistador')
   await page.locator('#dgc-pessoa').waitFor()
-  if (await page.inputValue('#dgc-meta') !== '3') falhar('campo: meta sugerida do setor não veio na designação')
+  if (await page.inputValue('.dgc-multi .dgc-qtd') !== '3') falhar('campo: meta sugerida do setor não veio na designação')
   await page.selectOption('#dgc-pessoa', TEC)
   await page.click('#dgc-ov .btn-primary')
   await page.locator('#dg-campo .dg-tab', { hasText: 'Ramal do Mel' }).first().waitFor()
@@ -414,6 +416,22 @@ function semear() {
   if (desig.length !== 1 || desig[0].meta !== 3) falhar('campo: designação no banco ' + JSON.stringify(desig))
   await foto('mesa_campo')
   ok('equipe de campo: setor da APA no mapa, designação com a meta sugerida (pela RPC)')
+  // meta do setor ajustada no painel (com motivo)
+  await page.click('#dg-campo >> text=Ajustar')
+  await page.locator('#dgc-msetor').waitFor()
+  await page.fill('#dgc-msetor', '5')
+  await page.click('#dgc-ov .btn-primary')
+  await page.waitForFunction(() => /meta do setor mudou/.test(document.getElementById('dgc-erro').textContent))
+  await page.fill('#dgc-mmot', 'Contagem de casas maior')
+  await page.click('#dgc-ov .btn-primary')
+  await page.locator('#dg-campo td', { hasText: '(ajustada)' }).waitFor({ timeout: 10000 })
+  if (consulta("select meta_sugerida from public.diag_setores where codigo = 'TM1'")[0].meta_sugerida !== 5) falhar('campo: meta do setor não gravou')
+  // a mesma pessoa não ganha 2ª designação no mesmo setor: a caixa fica travada
+  await page.click('text=Designar entrevistador'); await page.locator('#dgc-pessoa').waitFor()
+  await page.selectOption('#dgc-pessoa', TEC)
+  if (!(await page.isDisabled('.dgc-multi .dgc-sel'))) falhar('campo: deixou designar de novo no mesmo setor')
+  await page.evaluate(() => dgcFechar())
+  ok('meta do setor ajustada no painel com motivo; setor já designado à pessoa fica travado')
 
   const qId = psql("select id from public.diag_questionarios where status = 'publicado' order by versao desc limit 1")
   const enviarCampo = (u, cod, lat, extra) => psql('select public.diag_enviar_ficha($a$' + JSON.stringify(Object.assign({

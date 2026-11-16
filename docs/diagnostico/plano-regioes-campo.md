@@ -76,6 +76,28 @@ conta. Teste cruzado com os 5 setores reais: `supabase/tests/diagnostico/area_cr
 Shapefile conferido: SIRGAS 2000, 5 polígonos válidos, sem sobreposição, área calculada × `AREA_HA`
 do arquivo com diferença < 0,1%. APOIO, ACESSO e REFERENC do arquivo aparecem na mesa.
 
+## APA Lago do Amapá — setores carregados (diag_25)
+
+| Setor | Tipo | Meta | Área | Quadrícula |
+|---|---|---|---|---|
+| LA1 · Oeste | rural | 20 | 1.376,4 ha | 830 m |
+| LA2 · Norte (BR-364) | rural | 40 | 1.813,3 ha | 670 m |
+| LA3 · Lago e Centro-Sul | rural | 25 | 1.191,6 ha | 690 m |
+| LA4 · Sul | rural | 15 | 789,8 ha | 730 m |
+
+Os vizinhos se tocam em sobras de digitalização de 119 a 570 m² (listadas na migração). O conversor
+tolera sobra abaixo de 0,5 ha e de 0,1% do menor setor, e recusa o que passar disso.
+
+## Meta e designação no painel (diag_24, 16/11/2026)
+
+- A META do shapefile é só o ponto de partida. A coordenação muda a meta do setor em **Equipe de campo → Ajustar**
+  (`diag_setor_meta`, motivo obrigatório, quem/quando/por quê gravados e no `audit_log`). Recarregar o shape não
+  desfaz a meta ajustada.
+- Uma pessoa pode ter **vários setores**, inclusive de APAs diferentes: a janela "Designar entrevistador" marca um
+  ou mais setores com o nº de entrevistas de cada um. A regra é uma designação ativa por setor × pessoa; setor que
+  a pessoa já tem fica travado (muda-se a meta em "Alterar"). No app, cada entrevista vai para o setor onde a
+  pessoa está, com numeração separada por setor.
+
 ## Outra APA
 
 ```bash

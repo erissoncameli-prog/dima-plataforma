@@ -48,11 +48,22 @@ def validar(setores):
         ref = a.get('AREA_HA')
         if ref and abs(s['area_ha'] - float(ref)) / float(ref) > 0.01:
             sys.exit('ERRO: área de %r = %.1f ha, arquivo diz %.1f' % (a['SETOR'], s['area_ha'], ref))
+    # sobra de digitalização na divisa (faixas de poucos m²) é tolerada e registrada;
+    # sobreposição de verdade (≥ 0,5 ha ou ≥ 0,1% do menor setor) para tudo
+    from pyproj import Geod
+    geod = Geod(ellps='GRS80')
+    lascas = []
     for i in range(len(setores)):
         for j in range(i + 1, len(setores)):
             x = setores[i]['geom'].intersection(setores[j]['geom'])
-            if not x.is_empty and x.area > 1e-10:
-                sys.exit('ERRO: setores %r e %r se sobrepõem' % (setores[i]['attr']['SETOR'], setores[j]['attr']['SETOR']))
+            if x.is_empty or x.area <= 1e-12: continue
+            ha = abs(geod.geometry_area_perimeter(x)[0]) / 1e4
+            menor = min(setores[i]['area_ha'], setores[j]['area_ha'])
+            par = (setores[i]['attr']['SETOR'], setores[j]['attr']['SETOR'])
+            if ha >= 0.5 or ha >= menor * 0.001:
+                sys.exit('ERRO: setores %r e %r se sobrepõem em %.2f ha' % (par[0], par[1], ha))
+            lascas.append('%s × %s: %.0f m²' % (par[0], par[1], ha * 1e4))
+    return lascas
 
 def arred(c):
     if isinstance(c, (list, tuple)):
@@ -67,9 +78,10 @@ def num_nome(rotulo):
 def q(s):
     return "'" + str(s).replace("'", "''") + "'" if s is not None and str(s).strip() != '' else 'null'
 
-def gerar_sql(setores, sigla, comunidade, ibge, origem):
+def gerar_sql(setores, sigla, comunidade, ibge, origem, lascas=()):
     from shapely.geometry import mapping
-    linhas = ['-- gerado por scripts/diag_setores.py a partir de ' + origem, 'do $$', 'declare v_com uuid;', 'begin',
+    linhas = ['-- gerado por scripts/diag_setores.py a partir de ' + origem] + \
+             ['-- sobra de digitalização na divisa (tolerada, ponto ali conta para o 1º setor): ' + l for l in lascas] + ['do $$', 'declare v_com uuid;', 'begin',
               "  select id into v_com from public.diag_comunidades where municipio_ibge = %d and lower(btrim(nome)) = lower(btrim(%s));" % (ibge, q(comunidade)),
               "  if v_com is null then raise notice 'diag_setores: comunidade %% não cadastrada — nada carregado', %s; return; end if;" % q(comunidade)]
     for s in sorted(setores, key=lambda s: num_nome(s['attr']['SETOR'])[0] or 0):
@@ -105,6 +117,7 @@ if __name__ == '__main__':
     x = ap.parse_args()
     if x.autoteste: autoteste(); sys.exit(0)
     if not (x.shp and x.sigla and x.comunidade and x.ibge): ap.error('informe shp, --sigla, --comunidade e --ibge')
-    st = ler(x.shp); validar(st)
-    sys.stdout.write(gerar_sql(st, x.sigla.upper(), x.comunidade, x.ibge, os.path.basename(x.shp)))
+    st = ler(x.shp); lascas = validar(st)
+    for l in lascas: sys.stderr.write('aviso: sobra na divisa ' + l + '\n')
+    sys.stdout.write(gerar_sql(st, x.sigla.upper(), x.comunidade, x.ibge, os.path.basename(x.shp), lascas))
     sys.stderr.write('%d setores, %d entrevistas no total\n' % (len(st), sum(int(s['attr']['META']) for s in st)))
