@@ -22,11 +22,11 @@ insert into public.usuarios (id, nome_completo, email, perfil, ativo) values
  ('00000000-0000-0000-0000-0000000000f1','Financeiro','fi@x','financeiro',true);
 
 insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate) values
- ('00000000-0000-0000-0000-0000000000e1','diagnostico', now()-interval '30 days', now()+interval '30 days'),
- ('00000000-0000-0000-0000-0000000000e2','diagnostico', now()-interval '30 days', null),
- ('00000000-0000-0000-0000-0000000000e4','diagnostico', now()-interval '60 days', now()-interval '5 days'),
- ('00000000-0000-0000-0000-0000000000e5','diagnostico', now()-interval '60 days', now()-interval '20 days'),
- ('00000000-0000-0000-0000-0000000000e6','diagnostico', now()-interval '30 days', null),
+ ('00000000-0000-0000-0000-0000000000e1','diagnostico_entrevistador', now()-interval '30 days', now()+interval '30 days'),
+ ('00000000-0000-0000-0000-0000000000e2','diagnostico_entrevistador', now()-interval '30 days', null),
+ ('00000000-0000-0000-0000-0000000000e4','diagnostico_entrevistador', now()-interval '60 days', now()-interval '5 days'),
+ ('00000000-0000-0000-0000-0000000000e5','diagnostico_entrevistador', now()-interval '60 days', now()-interval '20 days'),
+ ('00000000-0000-0000-0000-0000000000e6','diagnostico_entrevistador', now()-interval '30 days', null),
  ('00000000-0000-0000-0000-0000000000ce','diagnostico', now()-interval '30 days', null);
 
 update public.diag_questionarios set status = 'publicado' where codigo = 'DSA' and versao = 1;
@@ -197,7 +197,8 @@ select public.t_erro($q$update public.diag_fichas set respostas = '{}'$q$, 'perm
 
 -- ── T12–T14 quem NÃO aplica ─────────────────────────────────────────────
 select public.t_como('00000000-0000-0000-0000-0000000000e3');
-select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha(gen_random_uuid(),'X-12-TESTE'), public.t_mor())$q$, 'diag:sem_permissao');
+-- diag_27: sem o acesso de entrevistador nem entra (antes: sem_permissao)
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha(gen_random_uuid(),'X-12-TESTE'), public.t_mor())$q$, 'diag:nao_autorizado');
 select public.t_como('00000000-0000-0000-0000-0000000000e6');
 select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha(gen_random_uuid(),'X-12B-TESTE'), public.t_mor())$q$, 'diag:nao_autorizado');
 select public.t_como('00000000-0000-0000-0000-0000000000c0');

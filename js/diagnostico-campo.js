@@ -269,8 +269,8 @@ async function dgcDesignarAbrir() {
   const marcado = dgc.setorSel || (setores[0] && setores[0].id)
   dgcJanela('Designar entrevistador', `
     <label class="dgc-l">Entrevistador(a)<select id="dgc-pessoa" onchange="dgcDesignarPessoa()"><option value="">Escolha…</option>${dgc.entrevistadores.map(u =>
-      `<option value="${esc(u.id)}">${esc(u.nome_completo)}${u.acesso_ate ? ' — acesso até ' + dgcData(u.acesso_ate) : ''}</option>`).join('')}</select></label>
-    ${dgc.entrevistadores.length ? '' : '<p class="dgc-falta">Nenhum técnico com acesso ao Diagnóstico. Dê o acesso em Usuários.</p>'}
+      `<option value="${esc(u.id)}">${esc(u.nome_completo)}${u.perfil && u.perfil !== 'tecnico' ? ' (' + esc(u.perfil.replace('_', ' ')) + ')' : ''}${u.acesso_ate ? ' — acesso até ' + dgcData(u.acesso_ate) : ''}</option>`).join('')}</select></label>
+    ${dgc.entrevistadores.length ? '' : '<p class="dgc-falta">Ninguém tem o acesso de entrevistador. O super_admin concede em Usuários → Acessos → <b>Diagnóstico — entrevistador (app de campo)</b>, com prazo.</p>'}
     <p class="dgc-l" style="margin-bottom:4px">Setores e nº de entrevistas <span class="dgc-nota">(marque um ou mais)</span></p>
     <table class="dg-tab dgc-multi"><tbody>${setores.map(s => {
       const ja = dgc.dados.designacoes.filter(x => x.ativo && x.tipo === 'designacao' && x.setor_id === s.id).reduce((t, x) => t + x.meta, 0)

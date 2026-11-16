@@ -347,5 +347,43 @@ do $$ begin
   if not exists (select 1 from public.lgpd_tratamentos where codigo = 'TRAT-001' and medidas_seguranca like '%Mapa das casas (diag_26)%')
     then raise exception 'FALHOU C14 ROPA'; end if;
 end $$;
+
+-- ── C15 acesso de entrevistador (diag_27): separado de "ver dados"; só super_admin concede; segregação ──
+insert into public.usuarios (id, nome_completo, email, perfil, ativo) values
+ ('00000000-0000-0000-0000-0000000000e8','Tec só dados','t8@x','tecnico',true),
+ ('00000000-0000-0000-0000-0000000000c3','Coord entrevistadora','c3@x','coordenacao',true);
+insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate) values
+ ('00000000-0000-0000-0000-0000000000e8','diagnostico', now()-interval '1 day', null);
+-- coordenação não concede o acesso de entrevistador (mesmo passando da RLS)
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+select public.t_erro($q$insert into public.usuario_permissoes (usuario_id, modulo, valido_de) values ('00000000-0000-0000-0000-0000000000c3','diagnostico_entrevistador', now()-interval '1 day')$q$, 'diag:so_super_admin');
+select public.t_como('00000000-0000-0000-0000-00000000005a');
+insert into public.usuario_permissoes (usuario_id, modulo, valido_de) values ('00000000-0000-0000-0000-0000000000c3','diagnostico_entrevistador', now()-interval '1 day');
+set role authenticated;
+select public.t_como('00000000-0000-0000-0000-0000000000e8');
+do $$ begin
+  if public.fn_diag_pode_aplicar() then raise exception 'FALHOU C15 técnico só com "ver dados" virou entrevistador'; end if;
+  if not public.fn_diag_pode_ver_numeros() then raise exception 'FALHOU C15 técnico com "ver dados" perdeu os números'; end if;
+end $$;
+select public.t_erro($q$select public.diag_enviar_ficha(public.t_ficha('cafe0027-0000-0000-0000-000000000001','DSA-XAP-C15A'), public.t_mor(), '[]')$q$, 'diag:nao_autorizado');
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$ begin
+  if not exists (select 1 from public.diag_campo_entrevistadores() x where x.id = '00000000-0000-0000-0000-0000000000c3' and x.perfil = 'coordenacao')
+    then raise exception 'FALHOU C15 coordenação entrevistadora fora da lista'; end if;
+  if exists (select 1 from public.diag_campo_entrevistadores() x where x.id = '00000000-0000-0000-0000-0000000000e8')
+    then raise exception 'FALHOU C15 técnico sem o acesso na lista'; end if;
+end $$;
+select public.t_como('00000000-0000-0000-0000-0000000000c3');
+do $$
+declare r jsonb;
+begin
+  if not public.fn_diag_pode_aplicar() then raise exception 'FALHOU C15 coordenação com o acesso não aplica'; end if;
+  r := public.diag_enviar_ficha(public.t_ficha('cafe0027-0000-0000-0000-000000000002','DSA-XAP-C15B'), public.t_mor(), '[]');
+  insert into public.t_ctx values ('c15', r->>'id');
+end $$;
+select public.t_erro($q$select public.diag_mudar_status((select v::uuid from public.t_ctx where k='c15'), 'validada', 'conferida')$q$, 'diag:segregacao');
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+select public.diag_mudar_status((select v::uuid from public.t_ctx where k='c15'), 'validada', 'Sem designação: entrevista de teste da coordenação');
+reset role;
 \o
 select 'campo ok' as resultado;

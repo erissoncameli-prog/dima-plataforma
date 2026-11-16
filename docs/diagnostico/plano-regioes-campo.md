@@ -123,6 +123,19 @@ tolera sobra abaixo de 0,5 ha e de 0,1% do menor setor, e recusa o que passar di
   a pessoa já tem fica travado (muda-se a meta em "Alterar"). No app, cada entrevista vai para o setor onde a
   pessoa está, com numeração separada por setor.
 
+## Quem é entrevistador (diag_27, 16/11/2026)
+
+A caixa "Diagnóstico Socioambiental" em Usuários misturava ver os dados com entrevistar. Agora:
+
+| Acesso (Usuários → Acessos) | Para quê | Quem concede |
+|---|---|---|
+| **Diagnóstico Socioambiental** | ver os dados (coordenação já tem pelo perfil; técnico vê números; consultor lê fichas sem identificação) | super_admin |
+| **Diagnóstico — entrevistador (app de campo)** | entrevistar no app, contar na meta e aparecer em "Designar entrevistador"; não dá a mesa | **só o super_admin** (trava no banco) |
+| **Diagnóstico — modo treino** | fichas TRE- de treino | super_admin |
+
+Qualquer perfil pode ser entrevistador, inclusive coordenação; quem fez a entrevista não valida, devolve
+nem descarta a própria ficha.
+
 ## Outra APA
 
 ```bash

@@ -761,7 +761,7 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   await clicar('#btn-sair'); await page.locator('#t-login').waitFor({ state: 'visible' })
   await page.fill('#login-email', 'coord2@x'); await page.fill('#login-senha', 'senha'); await clicar('#btn-login')
   await page.locator('#login-erro').waitFor({ state: 'visible' })
-  if (!/coordenação não aplica.*modo treino/.test(await page.textContent('#login-erro'))) falhar('mensagem para coordenação sem treino: ' + await page.textContent('#login-erro'))
+  if (!/não é entrevistador.*Diagnóstico — entrevistador.*modo treino/.test(await page.textContent('#login-erro'))) falhar('mensagem para coordenação sem treino: ' + await page.textContent('#login-erro'))
   await page.fill('#login-email', 'coord@x'); await page.fill('#login-senha', 'senha'); await page.evaluate(() => window.__marcarSessao()); await clicar('#btn-login')
   await page.locator('#t-pin').waitFor({ state: 'visible' })
   await pin('2468')

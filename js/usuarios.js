@@ -29,9 +29,13 @@ const MODULOS_LISTA = [
   { id: 'repositorio',  ic: 'link',    label: 'Repositório',          perfis: null },
   { id: 'formularios',  ic: 'form',    label: 'Guia Formulários',     perfis: null },
   { id: 'usuarios',     ic: 'users',   label: 'Usuários',             perfis: ['super_admin'] },
-  // App de campo do Diagnóstico: técnico e consultor externo só com concessão (com prazo)
-  { id: 'diagnostico',  ic: 'campo',   label: 'Diagnóstico Socioambiental', perfis: ['super_admin', 'coordenacao'] , dados: true },
-  // Modo treino (fichas TRE-): técnico precisa também de 'diagnostico'; coordenação com este módulo entra SÓ em treino
+  // Diagnóstico: VER os dados (coordenação pelo perfil; técnico vê números; consultor lê fichas sem identificação)
+  { id: 'diagnostico',  ic: 'campo',   label: 'Diagnóstico Socioambiental', perfis: ['super_admin', 'coordenacao'] , dados: true,
+    efeito: 'ver os dados; não faz de ninguém entrevistador' },
+  // Entrevistador (diag_27): faz entrevista no app e entra na designação; qualquer perfil; só o super_admin concede (trigger no banco)
+  { id: 'diagnostico_entrevistador', ic: 'campo', label: 'Diagnóstico — entrevistador (app de campo)', perfis: [], dados: true,
+    efeito: 'faz entrevistas no app e pode ser designado a um setor; não dá a mesa' },
+  // Modo treino (fichas TRE-): quem não é coordenação precisa também de 'diagnostico_entrevistador'; coordenação com este módulo treina
   { id: 'diagnostico_treino', ic: 'frasco', label: 'Diagnóstico — modo treino', perfis: ['super_admin'] , dados: true },
   // Central de Relatórios (prefixo relatorios_): super_admin e coordenação nativos; demais por concessão
   { id: 'relatorios_financeiro',   ic: 'moeda',    label: 'Financeiro',        grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
@@ -310,7 +314,7 @@ function renderPermissoes(u, permsMap) {
       const sit = doPerfil ? '<small>pelo perfil</small>'
         : perm ? (venc ? `<small class="v">extra vencido em ${esc(fmtD(perm.valido_ate))}</small>` : `<small>extra${perm.valido_ate ? ' · até ' + esc(fmtD(perm.valido_ate)) : ' · sem fim'}</small>`)
         : '<small>sem acesso</small>';
-      const efeito = doPerfil ? '' : `<small class="ad-efeito">${m.dados ? 'abre os dados no banco' : 'só mostra a guia; os dados seguem o perfil'}</small>`;
+      const efeito = doPerfil ? '' : `<small class="ad-efeito">${esc(m.efeito || (m.dados ? 'abre os dados no banco' : 'só mostra a guia; os dados seguem o perfil'))}</small>`;
       return `<div class="ad-perm${marc ? ' on' : ''}" id="perm-row-${m.id}">
         <input type="checkbox" id="perm-chk-${m.id}" ${marc ? 'checked' : ''} ${doPerfil ? 'disabled' : ''} onchange="togglePermRow('${m.id}')" aria-describedby="perm-sit-${m.id}">
         ${adIc(m.ic, 'p')}<label for="perm-chk-${m.id}">${esc(m.label)}</label>

@@ -704,11 +704,12 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   (ArrayBuffer), nunca Blob** — Blob no IndexedDB volta vazio no iPhone (fotos
   chegaram com 0 byte). `diag_fotos.lat/lon/gps_precisao_m/gps_origem` e
   `diag_fichas.fotos_registradas` (mesa: "registrou N; chegaram X").
-- **Acesso** (regra única em `fn_diag_pode_aplicar/gerir/consultar/ver_numeros`):
-  técnico + `tem_permissao('diagnostico')` aplica e vê só as próprias;
-  coordenação/super_admin gerem (coordenação NÃO aplica); consultor externo +
-  permissão lê fichas sem identificação; visualizador e técnico veem números via
-  `fn_diag_agregados` (supressão abaixo de 5 fichas); financeiro sem acesso.
+- **Acesso** (regra única em `fn_diag_pode_aplicar/gerir/consultar/ver_numeros`; migração `20261123_diag_27_entrevistador`):
+  **entrevistador = acesso `diagnostico_entrevistador`** (QUALQUER perfil, com prazo; **só o super_admin concede** —
+  `trg_uperm_entrevistador`) aplica e vê só as próprias; é a lista de designação (`diag_campo_entrevistadores`) e não dá a mesa.
+  `diagnostico` = **ver os dados**, nunca entrevistar: coordenação/super_admin gerem pelo perfil; técnico com ele vê números;
+  consultor externo com ele lê fichas sem identificação; visualizador vê números (`fn_diag_agregados`, supressão < 5); financeiro sem acesso.
+  Coordenação pode ser entrevistadora, mas **quem fez a entrevista não valida, devolve nem descarta a própria ficha** (`diag:segregacao`).
 - **Indicadores** saem de `vw_diag_indicadores` (contagens aditivas) → nunca
   recalcular no cliente. Denominador exclui `_nr` e perguntas puladas.
 - **Retenção**: identificação e fotos apagadas 2 anos após a validação por
@@ -723,8 +724,8 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
 - **Modo treino** (`diag_fichas.treino`, código `TRE-`): aceita questionário
   em rascunho, fica fora de `vw_diag_respostas`/sugestões, apagado por
   `diag_apagar_treino()` (gerir). Permissão `fn_diag_pode_treinar()` =
-  super_admin, técnico com `diagnostico` + `diagnostico_treino`, ou **coordenação
-  com `diagnostico_treino` (só treino — coordenação nunca aplica ficha real)**. Nova view ou
+  super_admin, quem tem `diagnostico_entrevistador` + `diagnostico_treino`, ou **coordenação
+  com `diagnostico_treino`** (só treino, se não for também entrevistadora). Nova view ou
   agregado sobre `diag_fichas` **deve** filtrar `not treino`.
 - **Sublocalidades** (`diag_localidades`, filha de `diag_comunidades`; sem
   DELETE, desativar): `diag_fichas.localidade_id`/`localidade_nova` opcionais,

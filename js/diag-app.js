@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '2.5.0'
+const DIAG_APP_VERSAO = '2.5.1'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -140,20 +140,18 @@ async function entrar(ev) {
     const { data: u } = await diagDb.from('usuarios').select('id,nome_completo,perfil,ativo').eq('id', uid).single()
     if (!u || !u.ativo) throw new Error('Usuário inativo. Procure a coordenação.')
     const { data: pode } = await diagDb.rpc('fn_diag_pode_aplicar')
-    // coordenação não aplica ficha real; com o módulo "modo treino" entra só para treinar
+    // entrevista real = acesso "Diagnóstico — entrevistador" (diag_27, qualquer perfil, concedido pelo super_admin);
+    // sem ele, a coordenação com "modo treino" entra só para treinar
     const { data: treina } = pode ? { data: false } : await diagDb.rpc('fn_diag_pode_treinar')
     const pendentes = (await dFichasNaoEnviadas(uid)).length
     if (!pode && !treina && !pendentes) {
       await diagDb.auth.signOut()
-      throw new Error(u.perfil === 'coordenacao'
-        ? 'A coordenação não aplica questionários pelo app. Para testar e treinar, peça ao super_admin a permissão "Diagnóstico — modo treino". A gestão das fichas fica na página Diagnóstico da plataforma.'
-        : u.perfil === 'tecnico'
-          ? 'Seu usuário não tem acesso ao Diagnóstico. Peça a liberação ao super_admin.'
-          : 'Seu perfil não aplica questionários pelo app. A consulta fica na página Diagnóstico da plataforma.')
+      throw new Error('Seu usuário não é entrevistador do Diagnóstico. Para entrevistar, peça ao super_admin o acesso "Diagnóstico — entrevistador (app de campo)".' +
+        (u.perfil === 'coordenacao' ? ' Para só testar e treinar, o acesso é "Diagnóstico — modo treino". A gestão das fichas fica na página Diagnóstico da plataforma.' : ''))
     }
     if (!pode && treina) await dConfigSet('pode_treinar_' + uid, true)
     const { data: perm } = await diagDb.from('usuario_permissoes').select('valido_ate,ativo')
-      .eq('usuario_id', uid).eq('modulo', 'diagnostico').maybeSingle()
+      .eq('usuario_id', uid).eq('modulo', 'diagnostico_entrevistador').maybeSingle()
     App.usuario = { id: u.id, nome_completo: u.nome_completo, perfil: u.perfil,
                     acesso_ate: perm && perm.ativo ? perm.valido_ate : null, so_treino: !pode && !!treina }
     await dConfigSet('usuario_atual', App.usuario)

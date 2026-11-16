@@ -32,7 +32,7 @@ done
 insert into public.usuarios (id, nome_completo, email, perfil, ativo) values
  ('00000000-0000-0000-0000-0000000000e1','Técnica de Campo','tec@x','tecnico',true);
 insert into public.usuario_permissoes (usuario_id, modulo, valido_de, valido_ate)
- values ('00000000-0000-0000-0000-0000000000e1','diagnostico', now()-interval '1 day', now()+interval '60 days');
+ values ('00000000-0000-0000-0000-0000000000e1','diagnostico_entrevistador', now()-interval '1 day', now()+interval '60 days');
 -- coordenação: uma com "modo treino", outra sem (só entra a primeira, e só em treino)
 insert into public.usuarios (id, nome_completo, email, perfil, ativo) values
  ('00000000-0000-0000-0000-0000000000c1','Coordenadora Treino','coord@x','coordenacao',true),

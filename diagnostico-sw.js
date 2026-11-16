@@ -6,7 +6,7 @@
 //
 // Ao mudar QUALQUER arquivo do shell abaixo, incremente VERSAO — é o que faz
 // o aparelho baixar a versão nova.
-const VERSAO = 23
+const VERSAO = 24
 const CACHE = 'dima-diag-v' + VERSAO
 const CACHE_LOGOS = 'dima-diag-logos'  // fora da troca de versão
 const SHELL = [

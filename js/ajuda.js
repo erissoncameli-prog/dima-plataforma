@@ -942,8 +942,9 @@ Object.assign(AJUDA, {
     intro: 'Mesa do diagnóstico de campo: indicadores, validação das fichas, exportação e cadastro de comunidades. As fichas são aplicadas no app de campo.',
     secoes: [
       { titulo: 'Quem faz o quê', itens: [
-        'Técnico com a permissão de diagnóstico aplica fichas no app e vê só as próprias.',
-        'Coordenação e super_admin validam, devolvem e exportam; coordenação não aplica ficha real.',
+        'Entrevistador é quem tem o acesso "Diagnóstico — entrevistador (app de campo)". Qualquer perfil pode ter, mas só o super_admin concede, em Usuários → Acessos. Ele aplica fichas no app e vê só as próprias.',
+        'O acesso "Diagnóstico Socioambiental" é só para ver os dados: não faz de ninguém entrevistador.',
+        'Coordenação e super_admin validam, devolvem e exportam. Quem fez a entrevista nunca valida, devolve nem descarta a própria ficha.',
         'Consultor externo lê as fichas sem identificação do entrevistado.',
         'Os indicadores escondem recortes com menos de 5 fichas.',
       ]},

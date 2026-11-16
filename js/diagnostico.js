@@ -55,7 +55,7 @@ const dgAdm = { municipios: [], comunidades: [], localidades: [], nomesCampo: []
       <h3 style="margin:0">Modo treino</h3>
       <p style="font-size:13px;margin:6px 0 0">Fichas <b>TRE-…</b> servem para testar o app e treinar a equipe em produção.
         Não entram em indicadores nem em sugestões. Aceitam o questionário em rascunho.
-        Liberação por técnico: Usuários → permissão <b>Diagnóstico — modo treino</b> (com prazo).</p>
+        Liberação: Usuários → acesso <b>Diagnóstico — modo treino</b> (com prazo); quem não é da coordenação precisa também de <b>Diagnóstico — entrevistador</b>.</p>
       <div id="dg-treino"></div>
     </div>
     ${dgPodeGerir ? `<div class="card"><h3 style="margin:0 0 8px">Versões do questionário</h3><div id="dg-versoes"></div></div>` : ''}
