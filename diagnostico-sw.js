@@ -6,12 +6,13 @@
 //
 // Ao mudar QUALQUER arquivo do shell abaixo, incremente VERSAO — é o que faz
 // o aparelho baixar a versão nova.
-const VERSAO = 22
+const VERSAO = 23
 const CACHE = 'dima-diag-v' + VERSAO
 const CACHE_LOGOS = 'dima-diag-logos'  // fora da troca de versão
 const SHELL = [
   '/pages/diagnostico-app.html',
   '/css/diagnostico-app.css',
+  '/css/diag-mapa.css',
   '/css/pin-baralho.css',
   '/css/guia-app.css',
   '/js/pin-baralho.js',
@@ -38,6 +39,7 @@ const SHELL = [
   '/js/diag-audio.js',
   '/js/diag-form.js',
   '/js/diag-area.js',
+  '/js/diag-mapa.js',
   '/js/diag-campo.js',
   '/js/guia-app.js',
   '/js/diag-guia.js',
@@ -76,6 +78,8 @@ self.addEventListener('fetch', ev => {
       { status: 503, headers: { 'Content-Type': 'application/json' } })))
     return
   }
+  // satélite do mapa da área: sempre rede, sem guardar (sem sinal, o mapa fica só com o desenho)
+  if (url.hostname === 'server.arcgisonline.com') return
   if (ev.request.method !== 'GET') return
   // shell: cache primeiro (abre sem sinal), atualiza em segundo plano.
   // Busca só no cache DESTE app — nunca em caches de outras páginas.

@@ -818,7 +818,7 @@ Plano completo em `docs/diagnostico/plano.md`; inventário do questionário em
   `diagnostico-sw.js` — **incrementar `VERSAO`** ao mudar qualquer arquivo do shell.
 
 ### Diagnóstico — setores de campo, designação e dispersão (⚠️ ler antes de mexer em área/GPS do app)
-Plano e decisões em `docs/diagnostico/plano-regioes-campo.md` (migrações `20261122_diag_21`…`_25` + `20261122_diag_sino_area_sql_editor.sql` (sino)).
+Plano e decisões em `docs/diagnostico/plano-regioes-campo.md` (migrações `20261122_diag_21`…`_25`, `20261123_diag_26` + `20261122_diag_sino_area_sql_editor.sql` (sino)).
 - **Setor** = polígono de uma APA (`diag_setores`, filho de `diag_comunidades`), carregado SÓ por `scripts/diag_setores.py`
   (shapefile → SQL com `fn_diag_setor_carregar`; trava de datum, validade, sobreposição e área × `AREA_HA`). Nunca editar o desenho à mão.
   APA São Francisco: SF1–SF5, meta 20 cada; APA Lago do Amapá: LA1–LA4 (20/40/25/15) — 100 entrevistas cada.
@@ -836,8 +836,13 @@ Plano e decisões em `docs/diagnostico/plano-regioes-campo.md` (migrações `202
   e passa em `supabase/tests/diagnostico/area_cruzada.js` (5 setores reais). Testes do fluxo: `30_campo.sql`; navegador: `app_fluxo.js`
   (seção área designada) e `mesa_validacao.js` (Equipe de campo).
 - **Trajeto não sai do aparelho**: `js/diag-campo.js` usa `watchPosition` só com o app aberto e à vista (alerta e vibração ao sair);
-  ao servidor vão início/fim da ficha e o ponto do pedido (4 casas). Mesa (aba **Equipe de campo**, `js/diagnostico-campo.js`) mostra
-  quadrículas, nunca o ponto da casa. Pacote offline do app = `diag_campo_pacote` (cache `campo_pacote`).
+  ao servidor vão início/fim da ficha e o ponto do pedido (4 casas). Pacote offline do app = `diag_campo_pacote` (cache `campo_pacote`).
+- **Mapa das casas** (migração `20261123_diag_26_mapa_casas`; muda a regra antiga "mesa só vê quadrícula"): ponto = posição do INÍCIO
+  da entrevista (já gravada). App: tela "Mapa da minha área" (`js/diag-mapa.js` — mapa leve próprio, SVG sem internet + satélite Esri
+  com sinal) com você, os setores e as casas dos setores em que a pessoa está designada (`fn_diag_campo_casas` no pacote): das dos
+  colegas só ponto, data e recusa, nunca número/código/nome. Aviso "possível casa já visitada" a < 30 m (só aviso). Mesa: modo
+  **Casas** (padrão, cor por entrevistador, abre a ficha; `fn_diag_campo_casas_mesa` em `diag_campo_painel`, só gerir) e **Quadrículas**.
+  Consultor externo nunca vê ponto; treino fora; o ponto some com a retenção. As duas funções sem EXECUTE para cliente.
 
 ### Pulso da Equipe — questionário de engajamento por QR (⚠️ ler antes de mexer em `pulso_*`)
 

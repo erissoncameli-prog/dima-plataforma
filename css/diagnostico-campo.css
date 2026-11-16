@@ -49,3 +49,18 @@ body.dgm .dgc-erro { color: var(--erro); font-size: 13px; margin: 6px 0 0; }
 body.dgm .dgv-campo { background: var(--sup-2); border: 1px solid var(--lin); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
 body.dgm .dgv-campo.prob { background: var(--alerta-bg); border-color: var(--alerta-borda); color: var(--alerta-txt); }
 body.dgm .dgv-campo small { font-weight: 700; letter-spacing: .04em; color: var(--txt-2); }
+
+/* ── Mapa das casas (diag_26) ─────────────────────────────────────── */
+body.dgm .dgc-mapa-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+body.dgm .dgc-mapa-topo h3 { margin: 0; }
+body.dgm .dgc-modo { display: inline-flex; border: 1px solid var(--borda-forte); border-radius: var(--r-pill, 999px); overflow: hidden; }
+body.dgm .dgc-modo button { border: 0; background: transparent; color: var(--txt-2); padding: 6px 14px; min-height: 32px; font: inherit; font-size: 13px; cursor: pointer; }
+body.dgm .dgc-modo button[aria-pressed="true"] { background: var(--pri-600); color: #fff; }
+body.dgm .dgc-modo button:focus-visible { outline: 2px solid var(--pri-600); outline-offset: -2px; }
+body.dgm .dgc-casas-filtro { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; font-size: 13px; color: var(--txt-2); }
+body.dgm .dgc-casas-filtro select { margin-left: 6px; }
+body.dgm .dgc-mapa-casas { height: 440px; }
+body.dgm .dgc-info { font-size: 13px; color: var(--txt); margin: 8px 0 0; min-height: 1.6em; }
+body.dgm .dgc-ent { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; }
+body.dgm .dgc-ent i { width: 11px; height: 11px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+body.dgm .dgc-ent i.vazado { background: #fff; border-color: var(--txt-2); }

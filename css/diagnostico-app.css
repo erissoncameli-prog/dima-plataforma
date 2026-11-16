@@ -589,3 +589,13 @@ html[data-tema="escuro"] .guia-nota { background: var(--alerta-bg); color: var(-
 .area-sit-dentro { color: var(--ok); }
 .area-sit-borda, .area-sit-impreciso, .area-sit-sem_gps { color: var(--alerta); }
 .area-sit-fora { color: var(--erro); }
+
+/* ── Mapa da área (t-mapa) ─────────────────────────────────────────── */
+.mapa-tela { padding: var(--s3) var(--s4) calc(var(--s8) + env(safe-area-inset-bottom, 0px)); }
+.mapa-area { height: min(62vh, 560px); margin: var(--s2) 0; box-shadow: var(--sh-1); }
+.mapa-acoes { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.mapa-acoes .btn { flex: 1 1 auto; min-height: 44px; }
+.mapa-acoes .btn[aria-pressed="true"] { background: var(--pri-100); color: var(--pri-700); border-color: var(--pri-600); }
+.mapa-info { min-height: 2.6em; margin: var(--s2) 0; color: var(--txt); }
+.mapa-legenda { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); font-size: var(--t-leg); color: var(--txt-2); margin-bottom: var(--s2); }
+#mapa-perto { margin-top: 0; }

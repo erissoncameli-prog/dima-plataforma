@@ -1,7 +1,8 @@
 # Diagnóstico Socioambiental — setores de campo, designação e dispersão da amostra
 
 Entregue em 15/11/2026 (migrações `20261122_diag_21_setores_campo`, `_22_setores_sao_francisco`,
-`_23_campo_recusa` e o `20261122_diag_sino_area_sql_editor.sql` (sino)).
+`_23_campo_recusa` e o `20261122_diag_sino_area_sql_editor.sql` (sino)); meta no painel e Lago do
+Amapá (`_24`, `_25`) em 16/11; mapa das casas (`20261123_diag_26_mapa_casas`) em 16/11.
 
 ## O pedido
 
@@ -60,8 +61,32 @@ conta. Teste cruzado com os 5 setores reais: `supabase/tests/diagnostico/area_cr
   agora), caixa da área na "Nova entrevista" (setor, número, fora, sem GPS, trecho cheio, pedido),
   faixa na ficha (vira alerta e vibra ao sair). GPS contínuo só com o app aberto e à vista.
 - **Mesa**, aba **Equipe de campo** (`js/diagnostico-campo.js`, coordenação/super_admin): números,
-  pedidos, mapa SVG dos setores com as quadrículas ocupadas (nunca o ponto da casa), setores,
+  pedidos, mapa dos setores (modo **Casas** ou **Quadrículas**, ver abaixo), setores,
   designações e fichas com problema de campo. Validação: quadro "Área de campo" na ficha.
+
+## Mapa das casas (diag_26, 16/11/2026)
+
+Muda a decisão de 15/11 de que a mesa só via quadrículas. Pedido do coordenador: o entrevistador
+precisa ver onde já houve entrevista (para não bater duas vezes na mesma porta) e onde ele está; a
+mesa precisa ver onde cada entrevista foi feita.
+
+- **O ponto** é a posição do INÍCIO da entrevista (na falta, a do fim), que já era gravada em
+  `diag_fichas_campo_gps`. Nada novo é coletado; o trajeto continua no aparelho.
+- **App** — tela "Mapa da minha área" (`js/diag-mapa.js`, aberta por "Ver no mapa" em Minhas áreas e na
+  Nova entrevista): setores da APA (os da pessoa em destaque), "você aqui" com o círculo da precisão,
+  as casas do setor (`fn_diag_campo_casas` no pacote) e as fichas deste aparelho ainda não enviadas.
+  Das casas dos **colegas** só vêm ponto, data e se foi recusa — sem número, código, nome nem resposta.
+  Recusa = ponto vazado. A menos de 30 m de uma casa já entrevistada aparece "Possível casa já visitada
+  aqui" (no mapa e na Nova entrevista) — só aviso, não trava.
+- **Mapa leve próprio** (`js/diag-mapa.js`, sem biblioteca): desenho em SVG que funciona sem internet;
+  com sinal, o satélite Esri por baixo (não é guardado — levar o satélite para usar sem sinal é a
+  próxima etapa).
+- **Mesa** — modo **Casas** (padrão): um ponto por entrevista, cor por entrevistador, recusa vazada,
+  filtro por entrevistador, clique mostra número, data, setor, situação e precisão e abre a ficha
+  (`fn_diag_campo_casas_mesa`, dentro de `diag_campo_painel`, só gerir). O enquadramento inclui os
+  pontos fora dos setores. Modo **Quadrículas**: o de antes.
+- Consultor externo continua sem ponto nenhum; treino fica fora; depois da retenção o ponto some.
+  ROPA TRAT-001 atualizado.
 
 ## APA São Francisco — setores carregados
 
@@ -111,5 +136,6 @@ A comunidade precisa estar cadastrada antes (aba Admin).
 ## Pendente
 
 - Colar `supabase/migrations/20261122_diag_sino_area_sql_editor.sql` no SQL Editor para o aviso no sino.
-- Guia de treinamento do app ("Aprender") e Manual: ainda sem passo da área designada.
+- Guia de treinamento do app ("Aprender") e Manual: ainda sem passo da área designada nem do mapa.
+- Satélite sem internet: baixar as imagens da área antes de sair a campo.
 - Exportação (`diag_exportar`) ainda não traz setor/número/situação de campo.

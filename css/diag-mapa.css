@@ -1,0 +1,48 @@
+/* ── DIMA · Diagnóstico — mapa leve (js/diag-mapa.js), app de campo e mesa ──
+   O mapa é fixo nos dois temas (como o Mapa Interativo): fundo claro sem
+   satélite, contornos claros sobre a imagem. Cores Okabe-Ito; a identidade de
+   cada ponto também vem do preenchimento (cheio × vazado) e do traço, nunca só
+   da cor. */
+.dmapa {
+  --dm-fundo: #E8EDE9; --dm-pol: #1D5A3C; --dm-pol-meu: #F5C518; --dm-pol-outro: #FFFFFF;
+  --dm-eu: #1F6FEB; --dm-prop: #009E73; --dm-col: #E69F00; --dm-borda-pt: #FFFFFF; --dm-txt: #0E1A13;
+  position: relative; overflow: hidden; background: var(--dm-fundo); touch-action: none;
+  user-select: none; -webkit-user-select: none; border-radius: 14px; min-height: 260px;
+}
+.dmapa-tiles { position: absolute; inset: 0; }
+.dmapa-tiles img { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
+.dmapa-svg { position: absolute; inset: 0; overflow: visible; }
+
+.dmapa-pol { fill: rgba(29, 90, 60, .08); stroke: var(--dm-pol); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.dmapa-pol.meu { fill: rgba(245, 197, 24, .10); stroke: var(--dm-pol-meu); stroke-width: 3; }
+.dmapa-pol.outro { fill: none; stroke: var(--dm-pol-outro); stroke-width: 1.5; stroke-dasharray: 6 5; opacity: .85; }
+.dmapa-pol.sel { fill: rgba(245, 197, 24, .16); }
+.dmapa-rot { font: 600 12px/1 system-ui, sans-serif; fill: #FFFFFF; stroke: rgba(0, 0, 0, .65); stroke-width: 3; paint-order: stroke; pointer-events: none; }
+
+.dmapa-pt { fill: var(--dmapa-cor, var(--dm-col)); stroke: var(--dm-borda-pt); stroke-width: 2; }
+.dmapa-pt.prop { fill: var(--dm-prop); stroke: #0E1A13; stroke-width: 2.5; }
+.dmapa-pt.col { fill: var(--dmapa-cor, var(--dm-col)); }
+.dmapa-pt.rec { fill: #FFFFFF; stroke: var(--dmapa-cor, var(--dm-col)); stroke-width: 3; }
+.dmapa-pt.prop.rec { stroke: var(--dm-prop); }
+.dmapa-pt.pend { stroke-dasharray: 3 2; }
+.dmapa-pt.sel { stroke: #0E1A13; stroke-width: 4; }
+
+.dmapa-eu-prec { fill: rgba(31, 111, 235, .14); stroke: rgba(31, 111, 235, .5); stroke-width: 1; }
+.dmapa-eu { fill: var(--dm-eu); stroke: #FFFFFF; stroke-width: 3; }
+
+.dmapa-ctl { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
+.dmapa-ctl button {
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(0, 0, 0, .15);
+  background: #FFFFFF; color: var(--dm-txt); font: 600 22px/1 system-ui, sans-serif; cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+}
+.dmapa-ctl button:focus-visible { outline: 3px solid var(--dm-eu); outline-offset: 2px; }
+.dmapa-cred { position: absolute; right: 6px; bottom: 4px; font: 10px/1.2 system-ui, sans-serif; color: #FFFFFF; text-shadow: 0 0 3px #000; pointer-events: none; }
+
+/* legenda (fora do mapa, usa os mesmos símbolos) */
+.lg { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; margin-right: 6px; border: 2px solid #FFFFFF; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); }
+.lg-eu { background: #1F6FEB; }
+.lg-prop { background: #009E73; border-color: #0E1A13; }
+.lg-col { background: #E69F00; }
+.lg-rec { background: #FFFFFF; border-color: #E69F00; }
+.lg-pend { background: #009E73; border: 2px dashed #0E1A13; }

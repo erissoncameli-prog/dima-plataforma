@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '2.4.0'
+const DIAG_APP_VERSAO = '2.5.0'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -950,7 +950,7 @@ async function concluirFicha() {
 // Regra e textos em js/diag-campo.js; aqui só a ligação com as telas.
 let _desligarCampo = null
 function campoGps(tela) {
-  const vale = tela === 't-inicio' || tela === 't-nova' || tela === 't-ficha'
+  const vale = tela === 't-inicio' || tela === 't-nova' || tela === 't-ficha' || tela === 't-mapa'
   if (!vale) { if (_desligarCampo) { _desligarCampo(); _desligarCampo = null }; DiagCampo.desligar(); return }
   DiagCampo.pacote().then(pk => {
     // só pede a localização a quem tem área designada (ou está numa APA com setores)
@@ -958,10 +958,79 @@ function campoGps(tela) {
     if (!_desligarCampo) _desligarCampo = DiagCampo.aoMudar(() => {
       if (App.tela === 't-nova') atualizarAreaNova()
       else if (App.tela === 't-ficha') atualizarFaixaFicha()
+      else if (App.tela === 't-mapa') atualizarMapaEu()
       else if (App.tela === 't-inicio' && App.usuario) DiagCampo.htmlInicio(App.usuario.id).then(h => { document.getElementById('ini-areas').innerHTML = h })
     })
     DiagCampo.ligar()
   })
+}
+
+// ── Mapa da área: você e as casas já entrevistadas (diag_26) ─────────────
+let _mapa = null
+async function abrirMapaArea(voltar) {
+  document.getElementById('btn-mapa-voltar').dataset.voltar = voltar || 't-inicio'
+  mostrar('t-mapa')
+  if (!_mapa) {
+    _mapa = DiagMapa.criar(document.getElementById('mapa-area'), {
+      rotulo: 'Mapa da sua área com as casas já entrevistadas',
+      satelite: localStorage.getItem('diag_mapa_sat') !== '0',
+      aoTocar: tocarCasa,
+      aoArrastar: () => { if (App.mapaSeguir) { App.mapaSeguir = false; marcarMapaSeguir() } },
+    })
+  }
+  marcarMapaSeguir()
+  document.getElementById('btn-mapa-sat').setAttribute('aria-pressed', String(localStorage.getItem('diag_mapa_sat') !== '0'))
+  document.getElementById('mapa-info').textContent = 'Toque num ponto para ver o que foi feito ali.'
+  await desenharMapaArea(true)
+}
+async function desenharMapaArea(enquadrar) {
+  const uid = App.usuario.id
+  const pk = await DiagCampo.pacote()
+  const porId = {}; pk.setores.forEach(s => { porId[s.id] = s })
+  const meus = new Set(pk.designacoes.filter(d => porId[d.setor_id]).map(d => d.setor_id))
+  const coms = new Set([...meus].map(id => porId[id].comunidade_id))
+  // os setores da(s) APA(s) em que a pessoa trabalha; os dela em destaque
+  const setores = pk.setores.filter(s => meus.size ? coms.has(s.comunidade_id) : true)
+  const poligonos = setores.map(s => ({ geojson: s.geojson, classe: meus.has(s.id) ? 'meu' : 'outro',
+    rotulo: DiagCampo.nomeSetor(s), rotuloCurto: 'Setor ' + (s.numero || s.codigo), centro: DiagMapa.centro(s.geojson) }))
+  const casas = (await DiagCampo.casas(uid)).filter(c => !meus.size || meus.has(c.setor_id))
+  App.mapaCasas = casas
+  const pontos = casas.map(c => Object.assign({}, c, {
+    classe: (c.propria ? 'prop' : 'col') + (c.recusa ? ' rec' : '') + (c.propria && c.estado && c.estado !== 'enviada' ? ' pend' : ''),
+    rotulo: DiagCampo.txtCasa(c) }))
+  _mapa.dados({ poligonos, pontos, eu: DiagCampo.posicao(120000) })
+  const n = k => casas.filter(k).length
+  document.getElementById('mapa-resumo').textContent = casas.length
+    ? casas.length + ' ponto(s) no mapa: ' + n(c => c.propria && !c.recusa) + ' entrevista(s) sua(s), ' +
+      n(c => !c.propria && !c.recusa) + ' de colegas, ' + n(c => c.recusa) + ' recusa(s).'
+    : 'Ainda não há entrevista com posição nesta área.'
+  if (enquadrar) {
+    const caixa = DiagMapa.bboxDe(setores.filter(s => !meus.size || meus.has(s.id)).map(s => s.bbox))
+    if (caixa) _mapa.ajustar(caixa)
+  }
+  await atualizarMapaEu()
+}
+async function atualizarMapaEu() {
+  if (!_mapa || App.tela !== 't-mapa') return
+  const p = DiagCampo.posicao(120000)
+  _mapa.eu(p)
+  if (p && App.mapaSeguir && !_mapa.aVista(p.lat, p.lon)) _mapa.centrar(p.lat, p.lon, 16)
+  const el = document.getElementById('mapa-perto')
+  const pr = await DiagCampo.perto(App.usuario.id, p)
+  if (pr) {
+    el.innerHTML = '<b>Possível casa já visitada aqui</b><p>A ' + pr.dist + ' m de você: ' + esc(DiagCampo.txtCasa(pr.casa)) + '.</p>'
+    el.hidden = false
+  } else el.hidden = true
+  if (!p) document.getElementById('mapa-info').textContent = DiagCampo.txtPos(null)
+}
+function tocarCasa(pt) {
+  const el = document.getElementById('mapa-info')
+  if (!pt) { el.textContent = 'Toque num ponto para ver o que foi feito ali.'; return }
+  const p = DiagCampo.posicao(120000)
+  el.textContent = DiagCampo.txtCasa(pt) + (p ? ' · a ' + Math.round(DiagMapa.distancia(p.lat, p.lon, pt.lat, pt.lon)) + ' m de você' : '')
+}
+function marcarMapaSeguir() {
+  document.getElementById('btn-mapa-eu').setAttribute('aria-pressed', String(!!App.mapaSeguir))
 }
 
 async function atualizarAreaNova(forcar) {
@@ -1227,7 +1296,22 @@ function ligarEventos() {
   document.getElementById('nova-comunidade').addEventListener('change', mudouComunidade)
   document.getElementById('nova-localidade').addEventListener('change', mudouLocalidade)
   document.getElementById('btn-nova-continuar').addEventListener('click', continuarNova)
-  document.getElementById('nova-area').addEventListener('click', ev => { if (ev.target.closest('[data-area-pedir]')) abrirPedidoArea() })
+  document.getElementById('nova-area').addEventListener('click', ev => {
+    if (ev.target.closest('[data-area-pedir]')) abrirPedidoArea()
+    else if (ev.target.closest('[data-area-mapa]')) abrirMapaArea('t-nova')
+  })
+  document.getElementById('ini-areas').addEventListener('click', ev => { if (ev.target.closest('[data-area-mapa]')) abrirMapaArea('t-inicio') })
+  document.getElementById('btn-mapa-eu').addEventListener('click', () => {
+    const p = DiagCampo.posicao(120000)
+    if (!p) { aviso('Ainda sem sinal de GPS.', 'aviso'); return }
+    App.mapaSeguir = true; marcarMapaSeguir(); _mapa.centrar(p.lat, p.lon, 17)
+  })
+  document.getElementById('btn-mapa-tudo').addEventListener('click', () => { App.mapaSeguir = false; marcarMapaSeguir(); desenharMapaArea(true) })
+  document.getElementById('btn-mapa-sat').addEventListener('click', ev => {
+    const on = localStorage.getItem('diag_mapa_sat') === '0'
+    try { localStorage.setItem('diag_mapa_sat', on ? '1' : '0') } catch (e) { /* só preferência */ }
+    ev.currentTarget.setAttribute('aria-pressed', String(on)); _mapa.satelite(on)
+  })
   document.getElementById('btn-ped-enviar').addEventListener('click', enviarPedidoArea)
   document.getElementById('btn-aceitou').addEventListener('click', () => decidirAviso(true))
   document.getElementById('btn-recusou').addEventListener('click', () => decidirAviso(false))
@@ -1261,7 +1345,8 @@ function ligarEventos() {
     if (ev.target === ov || ev.target.closest('[data-fechar]')) fecharOv(ev.target)
   }))
   document.querySelectorAll('[data-voltar]').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.voltar === 't-inicio') irInicio(); else mostrar(b.dataset.voltar)
+    if (b.dataset.voltar === 't-inicio') irInicio()
+    else { mostrar(b.dataset.voltar); if (b.dataset.voltar === 't-nova') atualizarAreaNova() }
   }))
   const corpo = document.getElementById('ficha-corpo')
   corpo.addEventListener('click', ev => DiagForm.tratarClique(ev))

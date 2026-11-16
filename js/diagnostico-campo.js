@@ -6,13 +6,17 @@
 // e toda escrita passa por RPC: diag_designar, diag_designacao_alterar,
 // diag_designacao_encerrar, diag_area_decidir, diag_setor_ajustar.
 //   · setores da APA com meta sugerida, quanto já foi designado e feito;
-//   · mapa do setor com as QUADRÍCULAS de dispersão (nunca o ponto da casa);
+//   · mapa dos setores em dois modos: CASAS (diag_26: ponto de início de cada
+//     entrevista e recusa, cor por entrevistador, sobre o satélite —
+//     js/diag-mapa.js) e QUADRÍCULAS de dispersão;
 //   · designação por entrevistador (meta, prazo), pedidos de autorização e
 //     fichas com problema de campo (abrem na Validação).
 // Regra de área (dentro/fora, quadrícula) em js/diag-area.js — igual ao banco.
 // ═══════════════════════════════════════════════════════════════════════
 
-const dgc = { dados: null, com: '', entrevistadores: null, setorSel: '' }
+const dgc = { dados: null, com: '', entrevistadores: null, setorSel: '', modoMapa: 'casas', filtroEnt: '', mapa: null }
+// cor por entrevistador (Okabe-Ito); recusa = ponto vazado na mesma cor
+const DGC_CORES = ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#D55E00', '#56B4E9', '#000000', '#F0E442']
 
 function dgcErro(e) { return String((e && (e.message || e)) || 'erro').replace(/^diag:[a-z_]+:\s*/, '') }
 function dgcData(d) { return d ? new Date(String(d).length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('pt-BR') : '—' }
@@ -52,6 +56,11 @@ function dgcDesenhar() {
   const feitas = ativas.reduce((t, x) => t + x.feitas, 0)
   const designadas = ativas.filter(x => x.tipo === 'designacao').reduce((t, x) => t + x.meta, 0)
 
+  if (dgc.mapa) { dgc.mapa.destruir(); dgc.mapa = null }
+  const casasApa = (d.casas || []).filter(c => {
+    const s = d.setores.find(x => x.id === c.setor_id)
+    return s ? s.comunidade_id === dgc.com : dgcComDaFicha(c)
+  })
   el.innerHTML = `
     <div class="dgc-topo">
       <label class="dgc-apa">APA <select id="dgc-com" onchange="dgc.com=this.value;dgc.setorSel='';dgcDesenhar()">
@@ -67,12 +76,74 @@ function dgcDesenhar() {
     </div>
     ${pend.length ? `<div class="card dgc-card"><h3>Pedidos de autorização</h3>${dgcPedidos(pend)}</div>` : ''}
     <div class="dgc-duas">
-      <div class="card dgc-card"><h3>Mapa dos setores <small>quadrículas de dispersão — sem o ponto das casas</small></h3>${dgcMapa(setores)}</div>
+      <div class="card dgc-card">
+        <div class="dgc-mapa-topo"><h3>Mapa dos setores</h3>
+          <div class="dgc-modo" role="group" aria-label="O que mostrar no mapa">
+            <button type="button" aria-pressed="${dgc.modoMapa === 'casas'}" onclick="dgc.modoMapa='casas';dgcDesenhar()">Casas</button>
+            <button type="button" aria-pressed="${dgc.modoMapa !== 'casas'}" onclick="dgc.modoMapa='quadriculas';dgcDesenhar()">Quadrículas</button>
+          </div></div>
+        ${dgc.modoMapa === 'casas' ? dgcCasasHtml(casasApa) : dgcMapa(setores)}</div>
       <div class="card dgc-card"><h3>Setores</h3>${dgcTabelaSetores(setores, ativas)}</div>
     </div>
     <div class="card dgc-card"><h3>Designações</h3>${dgcTabelaDesig(desig, setores)}</div>
     <div class="card dgc-card"><h3>Fichas com problema de campo <small>fora da área, sem GPS, sem designação, acima da meta ou trecho cheio</small></h3>${dgcAtencao(atencao)}</div>
     ${pedidos.length > pend.length ? `<div class="card dgc-card"><h3>Pedidos decididos (30 dias)</h3>${dgcPedidos(pedidos.filter(p => p.status !== 'pendente'))}</div>` : ''}`
+  if (dgc.modoMapa === 'casas') dgcMontarCasas(setores, casasApa)
+}
+
+// ── Mapa das casas (diag_26): onde cada entrevista começou ─────────────
+// Ficha fora de qualquer setor (situação "fora") não tem setor_id: entra pela APA da ficha.
+function dgcComDaFicha(c) { return !c.setor_id && c.comunidade_id === dgc.com }
+function dgcCorEnt(id) {
+  const ids = [...new Set((dgc.dados.casas || []).map(c => c.entrevistador_id))].sort()
+  return DGC_CORES[Math.max(0, ids.indexOf(id)) % DGC_CORES.length]
+}
+function dgcCasasHtml(casas) {
+  const ents = []; casas.forEach(c => { if (!ents.some(e => e.id === c.entrevistador_id)) ents.push({ id: c.entrevistador_id, nome: c.entrevistador }) })
+  ents.sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'))
+  const n = casas.filter(c => !dgc.filtroEnt || c.entrevistador_id === dgc.filtroEnt)
+  return `<div class="dgc-casas-filtro">
+      <label>Entrevistador <select onchange="dgc.filtroEnt=this.value;dgcDesenhar()">
+        <option value="">Todos (${casas.length})</option>
+        ${ents.map(e => `<option value="${esc(e.id)}"${e.id === dgc.filtroEnt ? ' selected' : ''}>${esc(e.nome)} (${casas.filter(c => c.entrevistador_id === e.id).length})</option>`).join('')}
+      </select></label>
+      <label class="dgc-sat"><input type="checkbox" ${dgcSatelite() ? 'checked' : ''} onchange="dgcSateliteDefinir(this.checked)"> Satélite</label>
+    </div>
+    <div id="dgc-mapa-casas" class="dgc-mapa-casas"></div>
+    <p class="dgc-info" id="dgc-casa-info" aria-live="polite">${n.length ? 'Clique num ponto para ver a entrevista.' : 'Nenhuma entrevista com posição nesta APA ainda.'}</p>
+    <p class="dgc-leg">${ents.map(e => `<span class="dgc-ent"><i style="background:${dgcCorEnt(e.id)}"></i>${esc(e.nome)}</span>`).join('')}
+      <span class="dgc-ent"><i class="vazado"></i>recusa</span></p>
+    <p class="dgc-leg">O ponto é onde a entrevista começou (GPS do celular, precisão de alguns metros). Só a coordenação vê estes pontos; o consultor não vê.</p>`
+}
+function dgcSatelite() { try { return localStorage.getItem('diag_mapa_sat') !== '0' } catch (e) { return true } }
+function dgcSateliteDefinir(on) {
+  try { localStorage.setItem('diag_mapa_sat', on ? '1' : '0') } catch (e) { /* só preferência */ }
+  if (dgc.mapa) dgc.mapa.satelite(on)
+}
+function dgcMontarCasas(setores, casas) {
+  const el = document.getElementById('dgc-mapa-casas')
+  if (!el || typeof DiagMapa === 'undefined') return
+  const lista = casas.filter(c => !dgc.filtroEnt || c.entrevistador_id === dgc.filtroEnt)
+  dgc.mapa = DiagMapa.criar(el, { rotulo: 'Pontos das entrevistas nos setores da APA', satelite: dgcSatelite(), aoTocar: dgcTocarCasa })
+  dgc.mapa.dados({
+    poligonos: setores.map(s => ({ geojson: s.geojson, classe: dgc.setorSel === s.id ? 'meu' : '',
+      rotulo: 'Setor ' + (s.numero || s.codigo) + ' · ' + s.nome, rotuloCurto: 'Setor ' + (s.numero || s.codigo), centro: DiagMapa.centro(s.geojson) })),
+    pontos: lista.map(c => Object.assign({}, c, { classe: 'col' + (c.recusa ? ' rec' : ''), cor: dgcCorEnt(c.entrevistador_id),
+      rotulo: (c.recusa ? 'Recusa' : 'Entrevista' + (c.numero ? ' nº ' + c.numero : '')) + ' · ' + c.entrevistador + ' · ' + dgcData(c.data) })),
+  })
+  // enquadra setores E pontos: entrevista fora da área não pode ficar fora do mapa
+  const caixa = DiagMapa.bboxDe(setores.map(s => s.bbox).concat(lista.map(c => [c.lon, c.lat, c.lon, c.lat])))
+  if (caixa) dgc.mapa.ajustar(caixa)
+}
+function dgcTocarCasa(c) {
+  const el = document.getElementById('dgc-casa-info')
+  if (!el) return
+  if (!c) { el.textContent = 'Clique num ponto para ver a entrevista.'; return }
+  const sit = { dentro: 'dentro da área', borda: 'na divisa', impreciso: 'GPS impreciso', sem_gps: 'sem GPS', fora: 'fora da área', sem_designacao: 'sem designação' }[c.situacao] || c.situacao || ''
+  el.innerHTML = `<b>${esc(c.recusa ? 'Recusa' : 'Entrevista' + (c.numero ? ' nº ' + c.numero : ''))}</b> · ${esc(c.entrevistador)} · ${esc(dgcData(c.data))}` +
+    (c.setor_codigo ? ' · setor ' + esc(c.setor_codigo) : '') + (sit ? ' · ' + esc(sit) : '') +
+    (c.precisao_m != null ? ' · precisão de ' + Math.round(c.precisao_m) + ' m' : '') +
+    ` · <button type="button" class="btn btn-secondary btn-sm" onclick="dgcAbrirFicha('${esc(c.ficha_id)}')">Abrir ficha ${esc(c.codigo || '')}</button>`
 }
 
 // ── Mapa em SVG (sem biblioteca: abre igual em qualquer rede) ──────────

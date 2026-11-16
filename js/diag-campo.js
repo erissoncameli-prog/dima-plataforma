@@ -8,11 +8,14 @@
 //   · antes de começar: designação certa pelo ponto, número da entrevista,
 //     meta cumprida, quadrícula cheia (dispersão) e pedido de autorização;
 //   · funciona sem internet: setores, designações e ocupação vêm do pacote
-//     (diag_campo_pacote) guardado no aparelho na última sincronização.
+//     (diag_campo_pacote) guardado no aparelho na última sincronização;
+//   · mapa da área (diag_26): casas já entrevistadas do setor — as próprias
+//     com número, as dos colegas só ponto/data/recusa — mais as fichas deste
+//     aparelho ainda não contadas; aviso de casa já visitada a < 30 m.
 // Fora da área NÃO começa; sem GPS começa com justificativa (a ficha vai
 // marcada para a mesa). O servidor reclassifica tudo no envio.
 //
-// Depende de: DiagArea, dCacheGet/dConfigGet/dConfigSet, dFichasDoUsuario,
+// Depende de: DiagArea, DiagMapa, dCacheGet/dConfigGet/dConfigSet, dFichasDoUsuario,
 // esc (config.js), aviso/ic/uuid/App (diag-app.js).
 ;(function (raiz) {
   const PREC_RUIM = 150
@@ -22,7 +25,45 @@
   function hojeIso() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
 
   async function pacote() {
-    return (await dCacheGet('campo_pacote')) || { setores: [], designacoes: [], pedidos: [], ocupacao: [] }
+    return (await dCacheGet('campo_pacote')) || { setores: [], designacoes: [], pedidos: [], ocupacao: [], casas: [] }
+  }
+
+  // ── Casas já entrevistadas (mapa da área) ──────────────────────────────
+  const PERTO_M = 30
+  async function casas(uid) {
+    const pk = await pacote()
+    const lista = (pk.casas || []).filter(c => c.lat != null && c.lon != null).map(c => Object.assign({}, c))
+    const doSrv = new Set(lista.filter(c => c.uuid_cliente).map(c => c.uuid_cliente))
+    ;(await dFichasDoUsuario(uid)).forEach(f => {
+      if (f.treino || !f.setor_id || f.gps_ini_lat == null || f.status_servidor === 'descartada') return
+      if (doSrv.has(f.uuid_cliente)) {          // o aparelho sabe se ainda não foi enviada
+        const c = lista.find(x => x.uuid_cliente === f.uuid_cliente); if (c) c.estado = f.estado
+        return
+      }
+      lista.push({ setor_id: f.setor_id, lat: Number(f.gps_ini_lat), lon: Number(f.gps_ini_lon), data: f.dt_entrevista,
+        recusa: f.aceitou_participar === false, propria: true, local: true, estado: f.estado, uuid_cliente: f.uuid_cliente,
+        numero: f.aceitou_participar !== false ? f.numero_designado : null })
+    })
+    return lista
+  }
+  // casa já entrevistada mais perto (até 30 m) — só aviso, nunca trava
+  async function perto(uid, p, ignorarUuid) {
+    if (!p || p.precisao > PREC_RUIM) return null
+    let melhor = null
+    for (const c of await casas(uid)) {
+      if (ignorarUuid && c.uuid_cliente === ignorarUuid) continue
+      const d = DiagMapa.distancia(p.lat, p.lon, c.lat, c.lon)
+      if (d <= PERTO_M && (!melhor || d < melhor.dist)) melhor = { dist: Math.round(d), casa: c }
+    }
+    return melhor
+  }
+  function txtCasa(c) {
+    const dia = c.data ? new Date(c.data + 'T12:00').toLocaleDateString('pt-BR') : ''
+    let t = c.propria ? (c.recusa ? 'Sua recusa' : 'Sua entrevista' + (c.numero ? ' nº ' + c.numero : ''))
+                      : (c.recusa ? 'Recusa registrada por colega' : 'Casa já entrevistada por colega')
+    if (dia) t += ' · ' + dia
+    if (c.propria && c.estado && c.estado !== 'enviada') t += c.estado === 'rascunho' ? ' · em andamento' : ' · ainda não enviada'
+    return t
   }
 
   // ── GPS contínuo (só no aparelho) ──────────────────────────────────────
@@ -109,6 +150,7 @@
     const p = posicao(120000)
     const r = { aplica: true, pos: p, erroGps, setores: c.setores, vigentes: c.vigentes, pk: c.pk }
     r.setorPonto = p ? DiagArea.setorDoPonto(c.setores, p.lat, p.lon) : null
+    r.perto = await perto(uid, p)
     if (!c.vigentes.length) { r.estado = 'sem_designacao'; return r }
     // classifica o ponto frente a cada setor designado; prefere dentro > borda
     const aval = c.vigentes.map(d => {
@@ -144,13 +186,14 @@
     if (!p) return erroGps === 'negado' ? 'Localização bloqueada neste aparelho — libere nas configurações do celular.' : 'Procurando sinal de GPS…'
     return 'GPS: precisão de ' + Math.round(p.precisao) + ' m'
   }
+  const BTN_MAPA = '<button type="button" class="btn btn-sec btn-bloco" data-area-mapa>Ver no mapa: você e as casas já entrevistadas</button>'
   function nomeSetor(s) { return s ? 'Setor ' + (s.numero || s.codigo) + ' · ' + s.nome : '' }
 
   // Caixa da tela "Nova entrevista". Desenha o estado e os campos que ele pede.
   function htmlNova(r) {
     if (!r || !r.aplica) return ''
     const caixa = (cls, titulo, corpo) => '<div class="area-caixa area-' + cls + '" role="status"><b>' + titulo + '</b>' + corpo + '</div>'
-    const pedir = '<button type="button" class="btn btn-sec btn-bloco" data-area-pedir>Pedir autorização à coordenação</button>'
+    const pedir = '<button type="button" class="btn btn-sec btn-bloco" data-area-pedir>Pedir autorização à coordenação</button>' + BTN_MAPA
     const gps = '<p class="dica" data-area-gps>' + esc(txtPos(r.pos)) + '</p>'
     if (r.estado === 'sem_designacao')
       return caixa('erro', 'Você não tem área designada nesta APA',
@@ -178,13 +221,17 @@
       h += caixa(r.cls === 'borda' ? 'aviso' : 'ok', (r.cls === 'borda' ? 'Na divisa do ' : 'Dentro do ') + esc(nomeSetor(r.setor)),
         '<p>Entrevista <b>' + r.numero + ' de ' + r.desig.meta + '</b>' + (r.desig.tipo === 'autorizacao' ? ' · autorização até ' + esc(new Date(r.desig.dt_fim + 'T12:00').toLocaleDateString('pt-BR')) : '') + '.</p>' + gps)
     }
+    if (r.perto) {
+      h += caixa('aviso', 'Possível casa já visitada aqui',
+        '<p>A ' + r.perto.dist + ' m de você: ' + esc(txtCasa(r.perto.casa)) + '. Confira com o morador se a casa já foi entrevistada antes de começar.</p>')
+    }
     if (r.cheia) {
       h += caixa('aviso', 'Já há ' + r.nCelula + ' entrevista(s) neste trecho',
         '<p>Para a amostra valer, as entrevistas precisam ficar espalhadas pelo setor. Procure casas em outro trecho; se só há casas aqui, explique.</p>') +
         '<label class="rot" for="area-just-conc">Por que entrevistar neste mesmo trecho? (obrigatório)</label>' +
         '<input class="campo" id="area-just-conc" maxlength="300" placeholder="Ex.: as casas do setor ficam só na beira do ramal">'
     }
-    return h
+    return h + BTN_MAPA
   }
 
   // Confere a tela "Nova entrevista" e devolve os campos da ficha ou { erro }.
@@ -263,6 +310,7 @@
            ({ pendente: 'aguardando a coordenação', aprovado: 'aprovado', recusado: 'recusado' + (x.parecer ? ' (' + x.parecer + ')' : ''), cancelado: 'cancelado' }[x.status] || x.status))]
           .filter(Boolean).map(esc).join(' · ') + '</p>'
     }
+    if (ds.length) h += BTN_MAPA
     h += '<p class="dica">' + esc(txtPos(p)) + '. A posição fica só neste celular; vai ao servidor apenas no início e no fim de cada entrevista.</p></div>'
     return h
   }
@@ -292,10 +340,12 @@
   // chave do que está na tela: só redesenha a caixa quando ela muda (não apaga o que a pessoa digita)
   function chaveNova(r) {
     if (!r || !r.aplica) return ''
-    return [r.estado, r.desig && r.desig.id, r.cls, r.numero, r.cheia, r.setorPonto && r.setorPonto.id].join('|')
+    return [r.estado, r.desig && r.desig.id, r.cls, r.numero, r.cheia, r.setorPonto && r.setorPonto.id,
+            r.perto && r.perto.casa.lat + ',' + r.perto.casa.lon].join('|')
   }
 
   const api = { ligar, desligar, posicao, lerAgora, aoMudar, pacote, avaliar, htmlNova, conferirNova, numeroPara,
-                situacaoFicha, htmlInicio, guardarPedido, enviarPedidos, nomeSetor, txtPos, chaveNova }
+                situacaoFicha, htmlInicio, guardarPedido, enviarPedidos, nomeSetor, txtPos, chaveNova,
+                casas, perto, txtCasa, PERTO_M }
   raiz.DiagCampo = api
 })(window)

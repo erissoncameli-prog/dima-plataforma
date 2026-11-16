@@ -179,7 +179,9 @@ begin
   if jsonb_array_length(pk->'designacoes') <> 1 or pk->'designacoes'->0->>'tipo' <> 'autorizacao'
      or pk->'designacoes'->0->'ocupados' <> '[1]'::jsonb then raise exception 'FALHOU C08 pacote designações %', pk->'designacoes'; end if;
   if not exists (select 1 from jsonb_array_elements(pk->'ocupacao') o where (o->>'n')::int >= 3) then raise exception 'FALHOU C08 ocupação'; end if;
-  if pk::text ~ 'ini_lat|fim_lat|-10\.650' then raise exception 'FALHOU C08 pacote vaza posição'; end if;
+  -- diag_26: o ponto das casas do setor entra no pacote (mapa), mas nunca a
+  -- precisão, a hora nem as colunas cruas da tabela de identificação
+  if pk::text ~ 'ini_lat|fim_lat|precisao_m|ini_em' then raise exception 'FALHOU C08 pacote vaza posição'; end if;
 end $$;
 
 -- ── C09 quem lê o quê ───────────────────────────────────────────────────
@@ -305,5 +307,45 @@ begin
   if jsonb_array_length((public.diag_campo_pacote())->'designacoes') < 2 then raise exception 'FALHOU C13 pacote sem as duas áreas'; end if;
 end $$;
 reset role;
+
+-- ── C14 mapa das casas (diag_26): o próprio vê número; o colega só ponto; mesa vê tudo ──
+select public.t_como('00000000-0000-0000-0000-0000000000e1');
+do $$
+declare c jsonb;
+begin
+  select x into c from jsonb_array_elements((public.diag_campo_pacote())->'casas') x
+   where x->>'uuid_cliente' = 'cafe0021-0000-0000-0000-000000000013';
+  if c is null or (c->>'propria')::boolean is not true or (c->>'numero')::int <> 1 or c->>'lat' is null
+    then raise exception 'FALHOU C14 casa própria %', c; end if;
+  if not exists (select 1 from jsonb_array_elements((public.diag_campo_pacote())->'casas') x
+                  where x->>'uuid_cliente' = 'cafe0021-0000-0000-0000-000000000011' and (x->>'recusa')::boolean and x->'numero' = 'null'::jsonb)
+    then raise exception 'FALHOU C14 recusa no mapa'; end if;
+end $$;
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+select public.diag_designar((select id from public.diag_setores where codigo='TS2'), '00000000-0000-0000-0000-0000000000e2', 3);
+select public.t_como('00000000-0000-0000-0000-0000000000e2');
+do $$
+declare c jsonb; n int;
+begin
+  select count(*) into n from jsonb_array_elements((public.diag_campo_pacote())->'casas') x
+   where x->>'setor_id' = (select id::text from public.diag_setores where codigo='TS2') and not (x->>'propria')::boolean;
+  if n < 1 then raise exception 'FALHOU C14 colega não vê a casa do setor'; end if;
+  for c in select x from jsonb_array_elements((public.diag_campo_pacote())->'casas') x where not (x->>'propria')::boolean loop
+    if c->'numero' <> 'null'::jsonb or c->'uuid_cliente' <> 'null'::jsonb or c ? 'codigo' or c ? 'ficha_id'
+      then raise exception 'FALHOU C14 casa de colega com dado demais %', c; end if;
+  end loop;
+end $$;
+select public.t_como('00000000-0000-0000-0000-0000000000c0');
+do $$
+declare c jsonb;
+begin
+  select x into c from jsonb_array_elements((public.diag_campo_painel())->'casas') x where x->>'codigo' = 'DSA-XAP-C13';
+  if c is null or c->>'entrevistador' is null or c->>'lat' is null or c->>'ficha_id' is null then raise exception 'FALHOU C14 mesa %', c; end if;
+end $$;
+reset role;
+do $$ begin
+  if not exists (select 1 from public.lgpd_tratamentos where codigo = 'TRAT-001' and medidas_seguranca like '%Mapa das casas (diag_26)%')
+    then raise exception 'FALHOU C14 ROPA'; end if;
+end $$;
 \o
 select 'campo ok' as resultado;
