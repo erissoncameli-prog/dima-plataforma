@@ -9,7 +9,7 @@
 // Sessão própria (storageKey 'dima-diag-session'), separada da mesa, e sem
 // carregarUsuario() — ver comentário em pages/diagnostico-app.html.
 
-const DIAG_APP_VERSAO = '2.5.2'
+const DIAG_APP_VERSAO = '2.5.3'
 const DIAG_PIN_TAMANHO = 4
 const DIAG_PIN_TENTATIVAS = 5
 
@@ -857,6 +857,10 @@ const _fmtN = n => Number(n || 0).toLocaleString('pt-BR')
 function _diaIso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
 
 async function desenharPainel() {
+  await desenharPainelNumeros()
+  await desenharMapaPainel()
+}
+async function desenharPainelNumeros() {
   const u = App.usuario
   const el = document.getElementById('ini-painel')
   const srv = (await dConfigGet('painel_' + u.id)) || null
@@ -959,7 +963,10 @@ function campoGps(tela) {
       if (App.tela === 't-nova') atualizarAreaNova()
       else if (App.tela === 't-ficha') atualizarFaixaFicha()
       else if (App.tela === 't-mapa') atualizarMapaEu()
-      else if (App.tela === 't-inicio' && App.usuario) DiagCampo.htmlInicio(App.usuario.id).then(h => { document.getElementById('ini-areas').innerHTML = h })
+      else if (App.tela === 't-inicio' && App.usuario) {
+        DiagCampo.htmlInicio(App.usuario.id).then(h => { document.getElementById('ini-areas').innerHTML = h })
+        if (_mapaPainel) _mapaPainel.eu(DiagCampo.posicao(120000))
+      }
     })
     DiagCampo.ligar()
   })
@@ -983,35 +990,61 @@ async function abrirMapaArea(voltar) {
   document.getElementById('mapa-info').textContent = 'Toque num ponto para ver o que foi feito ali.'
   await desenharMapaArea(true)
 }
-async function desenharMapaArea(enquadrar) {
+// o que o mapa desenha: os setores da(s) APA(s) em que a pessoa trabalha (os dela em destaque),
+// as casas e o texto-resumo. Usado pela tela do mapa e pelo quadro do "Meu painel".
+async function dadosMapaArea() {
   const uid = App.usuario.id
   const pk = await DiagCampo.pacote()
   const porId = {}; pk.setores.forEach(s => { porId[s.id] = s })
   const meus = new Set(pk.designacoes.filter(d => porId[d.setor_id]).map(d => d.setor_id))
   const coms = new Set([...meus].map(id => porId[id].comunidade_id))
-  // os setores da(s) APA(s) em que a pessoa trabalha; os dela em destaque
   const setores = pk.setores.filter(s => meus.size ? coms.has(s.comunidade_id) : true)
   const poligonos = setores.map((s, i) => ({ geojson: s.geojson, classe: meus.has(s.id) ? 'meu' : (meus.size ? 'outro' : ''),
     cor: DiagMapa.corSetor(i), rotulo: DiagCampo.nomeSetor(s), rotuloCurto: 'Setor ' + (s.numero || s.codigo), centro: DiagMapa.centro(s.geojson) }))
-  // legenda dos setores: cor de cada um; os da pessoa marcados como "seu"
-  document.getElementById('mapa-setores').innerHTML = setores.map((s, i) =>
+  const legenda = setores.map((s, i) =>
     '<span><i class="lg-setor" style="--c:' + DiagMapa.corSetor(i) + '"></i>' + esc(DiagCampo.nomeSetor(s)) + (meus.has(s.id) ? ' <b>(sua área)</b>' : '') + '</span>').join('')
   const casas = (await DiagCampo.casas(uid)).filter(c => !meus.size || meus.has(c.setor_id))
-  App.mapaCasas = casas
   const pontos = casas.map(c => Object.assign({}, c, {
     classe: (c.propria ? 'prop' : 'col') + (c.recusa ? ' rec' : '') + (c.propria && c.estado && c.estado !== 'enviada' ? ' pend' : ''),
     rotulo: DiagCampo.txtCasa(c) }))
-  _mapa.dados({ poligonos, pontos, eu: DiagCampo.posicao(120000) })
   const n = k => casas.filter(k).length
-  document.getElementById('mapa-resumo').textContent = casas.length
+  const resumo = casas.length
     ? casas.length + ' ponto(s) no mapa: ' + n(c => c.propria && !c.recusa) + ' entrevista(s) sua(s), ' +
       n(c => !c.propria && !c.recusa) + ' de colegas, ' + n(c => c.recusa) + ' recusa(s).'
     : 'Ainda não há entrevista com posição nesta área.'
-  if (enquadrar) {
-    const caixa = DiagMapa.bboxDe(setores.filter(s => !meus.size || meus.has(s.id)).map(s => s.bbox))
-    if (caixa) _mapa.ajustar(caixa)
-  }
+  const caixa = DiagMapa.bboxDe(setores.filter(s => !meus.size || meus.has(s.id)).map(s => s.bbox))
+  return { setores, poligonos, pontos, casas, legenda, resumo, caixa }
+}
+async function desenharMapaArea(enquadrar) {
+  const d = await dadosMapaArea()
+  App.mapaCasas = d.casas
+  document.getElementById('mapa-setores').innerHTML = d.legenda
+  _mapa.dados({ poligonos: d.poligonos, pontos: d.pontos, eu: DiagCampo.posicao(120000) })
+  document.getElementById('mapa-resumo').textContent = d.resumo
+  if (enquadrar && d.caixa) _mapa.ajustar(d.caixa)
   await atualizarMapaEu()
+}
+
+// ── Quadro do mapa no "Meu painel": prévia (toque abre o mapa completo) ──
+let _mapaPainel = null
+async function desenharMapaPainel() {
+  const el = document.getElementById('ini-painel')
+  if (_mapaPainel) { _mapaPainel.destruir(); _mapaPainel = null }
+  const pk = await DiagCampo.pacote()
+  if (!(pk.setores || []).length || App.abaIni !== 'painel') return
+  const d = await dadosMapaArea()
+  el.querySelectorAll('.pn-mapa').forEach(x => x.remove())      // dois desenhos seguidos não duplicam o quadro
+  el.insertAdjacentHTML('afterbegin',
+    '<div class="cartao pn-mapa"><h3>Mapa da minha área</h3>' +
+    '<div id="pn-mapa" class="pn-mapa-caixa"></div>' +
+    '<div class="mapa-legenda">' + d.legenda + '</div>' +
+    '<p class="dica">' + esc(d.resumo) + ' ' + esc(DiagCampo.txtPos(DiagCampo.posicao(120000))) + '.</p>' +
+    '<button type="button" class="btn btn-sec btn-bloco" data-area-mapa>' + ic('mapa') + 'Abrir o mapa: você e as casas entrevistadas</button></div>')
+  let sat = true; try { sat = localStorage.getItem('diag_mapa_sat') !== '0' } catch (e) { /* só preferência */ }
+  _mapaPainel = DiagMapa.criar(document.getElementById('pn-mapa'), { rotulo: 'Prévia do mapa da sua área', satelite: sat, estatico: true,
+    aoTocar: () => abrirMapaArea('t-inicio') })
+  _mapaPainel.dados({ poligonos: d.poligonos, pontos: d.pontos, eu: DiagCampo.posicao(120000) })
+  if (d.caixa) _mapaPainel.ajustar(d.caixa)
 }
 async function atualizarMapaEu() {
   if (!_mapa || App.tela !== 't-mapa') return
@@ -1305,6 +1338,7 @@ function ligarEventos() {
   })
   document.getElementById('ini-areas').addEventListener('click', ev => { if (ev.target.closest('[data-area-mapa]')) abrirMapaArea('t-inicio') })
   document.getElementById('btn-ini-mapa').addEventListener('click', () => abrirMapaArea('t-inicio'))
+  document.getElementById('ini-painel').addEventListener('click', ev => { if (ev.target.closest('[data-area-mapa]')) abrirMapaArea('t-inicio') })
   document.getElementById('btn-mapa-eu').addEventListener('click', () => {
     const p = DiagCampo.posicao(120000)
     if (!p) { aviso('Ainda sem sinal de GPS.', 'aviso'); return }

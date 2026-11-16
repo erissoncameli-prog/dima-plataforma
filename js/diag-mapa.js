@@ -15,6 +15,7 @@
 //             eu: { lat, lon, precisao } | null })
 //   m.ajustar(bbox [oeste, sul, leste, norte])  ·  m.centrar(lat, lon, zMin)
 //   m.satelite(bool)  ·  m.destruir()
+//   opcoes.estatico = prévia sem gestos (a página rola por cima; toque → aoTocar(null))
 ;(function (raiz) {
   const T = 256, ZMIN = 3, ZMAX = 19, ZTILE = 18
   const URL_SAT = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/'
@@ -168,11 +169,15 @@
       return p[0] > st.w * f && p[0] < st.w * (1 - f) && p[1] > st.h * f && p[1] < st.h * (1 - f)
     }
 
-    // ── gestos ──
+    // ── gestos ── (estático = prévia: não arrasta nem dá zoom, a página rola por cima; toque chama aoTocar(null))
+    if (opcoes.estatico) {
+      el.classList.add('dmapa-estatico')
+      el.addEventListener('click', () => { if (opcoes.aoTocar) opcoes.aoTocar(null) })
+    }
     const ptrs = new Map()
     let arr = null, pinca = null, ultToque = 0, moveu = false
     el.addEventListener('pointerdown', ev => {
-      if (ev.target.closest('.dmapa-ctl')) return
+      if (opcoes.estatico || ev.target.closest('.dmapa-ctl')) return
       el.setPointerCapture && el.setPointerCapture(ev.pointerId)
       ptrs.set(ev.pointerId, [ev.clientX, ev.clientY])
       moveu = false
@@ -217,6 +222,7 @@
     el.addEventListener('pointerup', soltar)
     el.addEventListener('pointercancel', soltar)
     el.addEventListener('wheel', ev => {
+      if (opcoes.estatico) return
       ev.preventDefault()
       const r = el.getBoundingClientRect()
       zoomEm(st.z + (ev.deltaY < 0 ? 1 : -1), ev.clientX - r.left, ev.clientY - r.top)

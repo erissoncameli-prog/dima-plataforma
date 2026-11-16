@@ -599,3 +599,5 @@ html[data-tema="escuro"] .guia-nota { background: var(--alerta-bg); color: var(-
 .mapa-info { min-height: 2.6em; margin: var(--s2) 0; color: var(--txt); }
 .mapa-legenda { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s4); font-size: var(--t-leg); color: var(--txt-2); margin-bottom: var(--s2); }
 #mapa-perto { margin-top: 0; }
+.pn-mapa h3 { margin: 0 0 var(--s2); font-size: var(--t-perg); }
+.pn-mapa-caixa { height: 220px; margin-bottom: var(--s2); }

@@ -650,6 +650,16 @@ print(json.dumps({'fmt': im.format, 'w': im.width, 'h': im.height, 'artist': ex.
   await foto('area_inicio')
   ok('início: "Minhas áreas" com a meta (0 de 2) e "dentro da área agora"')
   if (!(await page.isVisible('#btn-ini-mapa'))) falhar('botão fixo do mapa não aparece no início')
+  // "Meu painel" também traz o mapa (prévia + botão que abre o mapa completo)
+  await clicar('#aba-painel')
+  await page.locator('#ini-painel .pn-mapa .dmapa-pol').first().waitFor({ timeout: 10000 })
+    .catch(async () => falhar('Meu painel sem o mapa: ' + await page.innerHTML('#ini-painel')))
+  await clicar('#ini-painel [data-area-mapa]')
+  await page.locator('#t-mapa').waitFor({ state: 'visible' })
+  await clicar('#btn-mapa-voltar')
+  await page.locator('#t-inicio').waitFor({ state: 'visible' })
+  await clicar('#aba-entrevistas')
+  ok('Meu painel: quadro com o mapa da área e botão para o mapa completo')
 
   const abrirNovaNaApa = async () => {
     await clicar('#btn-nova')
