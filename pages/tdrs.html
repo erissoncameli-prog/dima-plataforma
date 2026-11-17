@@ -663,10 +663,10 @@ function filtrar(){
   const GRUPO_ANDAMENTO=['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','em_licitacao'];
   const f=todosTDRs.filter(t=>{
     if(b&&!t.numero.toLowerCase().includes(b)&&!(t.objeto_pt||'').toLowerCase().includes(b))return false;
-    if(s&&t.status!==s)return false;
+    if(s&&(TD_STATUS_NORM[t.status]||t.status)!==s)return false;
     if(tp&&t.tipo!==tp)return false;
     if(resp&&getResponsavelTDR(t)?.id!==resp)return false;
-    if(filtroCard==='andamento'&&!GRUPO_ANDAMENTO.includes(t.status))return false;
+    if(filtroCard==='andamento'&&!GRUPO_ANDAMENTO.includes(TD_STATUS_NORM[t.status]||t.status))return false;
     if(filtroCard==='atrasados'&&!(t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status)))return false;
     if(filtroCard==='aprovados'&&!FASES_POS_APROVACAO.includes(t.status))return false;
     return true;
@@ -780,9 +780,10 @@ async function abrirTDR(id){
   if(!tdrAtual)return;
   _iaFeito=false; // reset análise a cada TDR aberto
   const t=tdrAtual;
-  const fi=FASES.indexOf(t.status);
-  const podeEd=podeEditarFase(t.status);
-  const bloqueado=['submetido','em_revisao_unesco','aprovado','em_licitacao','contratado','cancelado'].includes(t.status);
+  const stFase=TD_STATUS_NORM[t.status]||t.status;
+  const fi=FASES.indexOf(stFase);
+  const podeEd=podeEditarFase(stFase);
+  const bloqueado=['submetido','em_revisao_unesco','aprovado','em_licitacao','contratado','cancelado'].includes(stFase);
   const cotacao=await obterCotacao();
   const taxaAtual=cotacao?.cotacao||5.87;
   const eCoordenador=['super_admin','coordenacao'].includes(appState.perfil);
@@ -1072,10 +1073,11 @@ async function abrirTDR(id){
       contratar: eCoordenadorModal, // abre modal de contratação → contratado
     },
   };
-  const fa=acoesFase[t.status]||{};
+  const stAcao=TD_STATUS_NORM[t.status]||t.status; // enviado_unesco/retorno_unesco antigos = em_revisao_unesco
+  const fa=acoesFase[stAcao]||{};
   const podeAbrirEditorModal=
-    (eTecnicoModal&&['rascunho','pendente_correcao'].includes(t.status))||
-    (eCoordenadorModal&&['em_avaliacao','em_revisao_unesco'].includes(t.status))||
+    (eTecnicoModal&&['rascunho','pendente_correcao'].includes(stAcao))||
+    (eCoordenadorModal&&['em_avaliacao','em_revisao_unesco'].includes(stAcao))||
     appState.perfil==='super_admin';
 
   // Permissão de exclusão: restrita a super_admin
