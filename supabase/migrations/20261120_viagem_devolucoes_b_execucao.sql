@@ -1,0 +1,4 @@
+-- Aplicada via apply_migration (20/11/2026): vw_viagens_execucao ganha, no fim, as devoluções do viajante —
+-- desfecho, devolvido_diarias_brl, devolvido_passagens_brl, devolvido_brl, devolvido_usd, custo_cancelamento_brl,
+-- credito_companhia_brl, devolucoes_pendentes, liquido_brl, liquido_usd (só devoluções 'confirmado' entram nos valores).
+-- Definição completa: pg_get_viewdef('public.vw_viagens_execucao'). Lido pelo Vi5 (pages/relatorios.html).

@@ -756,6 +756,7 @@ function renderFiltros(lista){
             <option value="solicitado">Solicitado</option>
             <option value="aprovado">Aprovado</option>
             <option value="em_prestacao">Em prestação</option>
+            <option value="nao_realizado">Não realizado</option>
             <option value="realizado">Realizado</option>
             <option value="cancelado">Cancelado</option>
             <option value="rejeitado">Rejeitado</option>
@@ -1753,8 +1754,8 @@ async function relVi1(){
 
   const totalGeral = rows.reduce((s,r)=>s+r._total,0);
   const stBadge = s=>{
-    const m={rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
-    const l={rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+    const m={rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',nao_realizado:'rb-ouro',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
+    const l={rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',nao_realizado:'Não realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
     return`<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||esc(s||'—')}</span>`;
   };
 
@@ -3802,8 +3803,8 @@ async function relVi2(){
       });
   });
 
-  const SIT_BADGE_V2  = {rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
-  const SIT_LABELS_V2 = {rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em Prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+  const SIT_BADGE_V2  = {rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',nao_realizado:'rb-ouro',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
+  const SIT_LABELS_V2 = {rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em Prestação',realizado:'Realizado',nao_realizado:'Não realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
 
   const lista = Object.values(mapa).sort((a,b)=>(b.totalPass+b.totalDiar)-(a.totalPass+a.totalDiar));
   const totPass = lista.reduce((s,r)=>s+r.totalPass,0);
@@ -4125,13 +4126,17 @@ async function relVi5(){
   const porProt = {};
   vivos.forEach(v=>{
     const p = porProt[v.protocolo_id] || (porProt[v.protocolo_id] = { numero:v.protocolo, saida:v.dt_saida, destino:v.destino_principal,
-      ativ:v.atividade_codigo, tdr:v.tdr_numero, n:0, pas:0, dia:0, usd:0, est:false, pago:0, apagar:0, sem:0 });
+      ativ:v.atividade_codigo, tdr:v.tdr_numero, sit:v.protocolo_situacao, n:0, pas:0, dia:0, usd:0, est:false, pago:0, apagar:0, sem:0, dev:0, devUsd:0, custo:0, cred:0, pend:0 });
     p.n++; p.pas+=Number(v.passagens_brl||0); p.dia+=Number(v.diarias_brl||0);
+    p.dev+=Number(v.devolvido_brl||0); p.devUsd+=Number(v.devolvido_usd||0); p.custo+=Number(v.custo_cancelamento_brl||0);
+    p.cred+=Number(v.credito_companhia_brl||0); p.pend+=Number(v.devolucoes_pendentes||0);
     if(v.lancamento_id){ p.usd+=Number(v.usd||0); if(v.usd_estimado) p.est=true; v.lancamento_situacao==='pago'?p.pago++:p.apagar++; }
     else p.sem++;
   });
   const prots = Object.values(porProt).sort((a,b)=>String(b.saida||'').localeCompare(String(a.saida||'')));
-  const sitProt = p => p.sem===p.n ? '<span class="rep-badge rb-cinza">Sem lançamento</span>'
+  const sitProt = p => (p.pend?`<span class="rep-badge rb-ouro">${p.pend} devolução(ões) pendente(s)</span> `:'')
+    + (p.sit==='nao_realizado' ? '<span class="rep-badge rb-ouro">Não realizado</span>' : sitProtPag(p));
+  const sitProtPag = p => p.sem===p.n ? '<span class="rep-badge rb-cinza">Sem lançamento</span>'
     : p.apagar ? `<span class="rep-badge rb-ouro">${p.pago?`${p.pago} pago · `:''}${p.apagar} a pagar</span>`
     : '<span class="rep-badge rb-verde">Pago</span>';
   const usdCel = (v,est) => v ? (est?'≈ ':'')+usd2(v) : '—';
@@ -4160,8 +4165,8 @@ async function relVi5(){
   <div class="rep-stats rep-stats-4">
     <div class="rep-stat"><div class="rep-stat-lbl">Passagens</div><div class="rep-stat-val">${fmtBRL(soma(lanc,'passagens_brl'))}</div><div class="rep-stat-sub">${usdCel(soma(lanc,'passagens_usd'),nEst>0)}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Diárias</div><div class="rep-stat-val">${fmtBRL(soma(lanc,'diarias_brl'))}</div><div class="rep-stat-sub">${usdCel(soma(lanc,'diarias_usd'),nEst>0)}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total lançado</div><div class="rep-stat-val">${fmtBRL(soma(lanc,'total_brl'))}</div><div class="rep-stat-sub">${lanc.length} viajante${lanc.length!==1?'s':''} · ${usdCel(soma(lanc,'usd'),nEst>0)}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Protocolos</div><div class="rep-stat-val">${prots.length}</div><div class="rep-stat-sub">${periodo?'no período (data de saída)':'todos'}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Devolvido</div><div class="rep-stat-val">${fmtBRL(soma(lanc,'devolvido_brl'))}</div><div class="rep-stat-sub">${usd2(soma(lanc,'devolvido_usd'))} · custo de cancelamento ${fmtBRL(soma(lanc,'custo_cancelamento_brl'))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total líquido</div><div class="rep-stat-val">${fmtBRL(soma(lanc,'liquido_brl'))}</div><div class="rep-stat-sub">${lanc.length} viajante${lanc.length!==1?'s':''} · ${prots.length} protocolo${prots.length!==1?'s':''} · ${usdCel(soma(lanc,'liquido_usd'),nEst>0)}</div></div>
   </div>
   ${blocoTdr}
   <div class="rep-secao">
@@ -4169,7 +4174,7 @@ async function relVi5(){
     ${prots.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum protocolo no período.</div>`:`
     <table class="rep-tbl">
       <thead><tr><th>Protocolo</th><th>Saída</th><th>Destino</th><th>TDR</th><th style="text-align:center">Viajantes</th>
-        <th style="text-align:right">Passagens</th><th style="text-align:right">Diárias</th><th style="text-align:right">Total</th><th style="text-align:right">US$</th><th>Situação</th></tr></thead>
+        <th style="text-align:right">Passagens</th><th style="text-align:right">Diárias</th><th style="text-align:right">Devolvido</th><th style="text-align:right">Líquido</th><th style="text-align:right">US$ líquido</th><th>Situação</th></tr></thead>
       <tbody>${prots.map(p=>`<tr>
         <td class="mono">${esc(p.numero||'—')}</td>
         <td class="mono">${fmtDt(p.saida)}</td>
@@ -4178,17 +4183,19 @@ async function relVi5(){
         <td class="mono" style="text-align:center">${p.n}</td>
         <td class="mono" style="text-align:right">${fmtBRL(p.pas)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(p.dia)}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(p.pas+p.dia)}</td>
-        <td class="mono" style="text-align:right">${usdCel(p.usd,p.est)}</td>
+        <td class="mono" style="text-align:right">${p.dev?'− '+fmtBRL(p.dev):'—'}${p.custo?`<div class="mono-sm" style="color:var(--cinza-500)">custo canc. ${fmtBRL(p.custo)}</div>`:''}${p.cred?`<div class="mono-sm" style="color:var(--cinza-500)">crédito cia. ${fmtBRL(p.cred)}</div>`:''}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(p.pas+p.dia-p.dev)}</td>
+        <td class="mono" style="text-align:right">${usdCel(p.usd-p.devUsd,p.est)}</td>
         <td>${sitProt(p)}</td>
       </tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="5"><strong>TOTAL</strong></td>
         <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.pas,0))}</td>
         <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.dia,0))}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.pas+p.dia,0))}</td>
-        <td class="mono" style="text-align:right">${usdCel(prots.reduce((t,p)=>t+p.usd,0),nEst>0)}</td><td></td></tr></tfoot>
+        <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.dev,0))}</td>
+        <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.pas+p.dia-p.dev,0))}</td>
+        <td class="mono" style="text-align:right">${usdCel(prots.reduce((t,p)=>t+p.usd-p.devUsd,0),nEst>0)}</td><td></td></tr></tfoot>
     </table>`}
-    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Passagens e diárias em R$ pelos trechos e diárias do protocolo; cada viajante tem um lançamento no Financeiro com os dois juntos. US$ = câmbio UNESCO do pagamento${nEst?`; ≈ = estimado pela cotação do lançamento (${nEst} viajante${nEst!==1?'s':''} sem câmbio UNESCO), dividido entre passagens e diárias na proporção do R$`:''}. Protocolos sem lançamento ainda não foram aprovados e não consomem o TDR.</div>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Passagens e diárias em R$ pelos trechos e diárias do protocolo; cada viajante tem um lançamento no Financeiro com os dois juntos. US$ = câmbio UNESCO do pagamento${nEst?`; ≈ = estimado pela cotação do lançamento (${nEst} viajante${nEst!==1?'s':''} sem câmbio UNESCO), dividido entre passagens e diárias na proporção do R$`:''}. Protocolos sem lançamento ainda não foram aprovados e não consomem o TDR. Devolvido = diárias devolvidas e reembolso de passagem já confirmados pelo financeiro (voltaram ao TDR); custo de cancelamento e crédito com a companhia aérea não voltam; líquido = lançado − devolvido.</div>
   </div>`;
 }
 
@@ -4215,8 +4222,8 @@ async function relVi4(){
   const rows = data||[];
   if(!rows.length) return `<div style="padding:32px;text-align:center;color:var(--cinza-400)">Nenhum protocolo encontrado para os filtros selecionados.</div>`;
 
-  const SIT_LABELS2 = {rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em Prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
-  const SIT_BADGE2  = {rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
+  const SIT_LABELS2 = {rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em Prestação',realizado:'Realizado',nao_realizado:'Não realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+  const SIT_BADGE2  = {rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',nao_realizado:'rb-ouro',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
 
   const nomeUsuario = id => {
     if(!id) return '—';
