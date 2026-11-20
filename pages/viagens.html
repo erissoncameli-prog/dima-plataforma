@@ -256,6 +256,48 @@
     </div>
   </div>
 </div>
+<!-- Comprovantes da emissão: bilhete e pagamento das diárias (20261120_viagem_comprovantes) -->
+<div class="modal-overlay vi-ov" id="modal-comp" role="dialog" aria-modal="true" aria-labelledby="comp-titulo">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="comp-titulo">Anexar bilhete</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="comp-sub"></div></div>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-comp').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div class="form-group">
+        <label class="form-label" for="comp-arq">Arquivo <span class="obrig">*</span></label>
+        <input type="file" class="form-control" id="comp-arq" accept=".pdf,.jpg,.jpeg,.png" onchange="compLerArquivo()">
+        <div id="comp-leitura" style="font-size:11px;margin-top:6px"></div>
+      </div>
+      <div id="comp-campos-bilhete">
+        <div class="vi-g2">
+          <div class="form-group"><label class="form-label" for="comp-loc">Localizador</label><input class="form-control mono" id="comp-loc" maxlength="12"></div>
+          <div class="form-group"><label class="form-label" for="comp-bil">Nº do bilhete</label><input class="form-control mono" id="comp-bil" maxlength="20"></div>
+          <div class="form-group"><label class="form-label" for="comp-ag">Agência</label><input class="form-control" id="comp-ag" maxlength="60"></div>
+          <div class="form-group"><label class="form-label" for="comp-os">O.S.</label><input class="form-control mono" id="comp-os" maxlength="20"></div>
+          <div class="form-group"><label class="form-label" for="comp-emi">Data de emissão</label><input type="date" class="form-control" id="comp-emi"></div>
+          <div class="form-group"><label class="form-label" for="comp-tar">Tarifa (R$)</label><input type="number" step="0.01" min="0" class="form-control" id="comp-tar" oninput="compSomar()"></div>
+          <div class="form-group"><label class="form-label" for="comp-tax">Taxas (R$)</label><input type="number" step="0.01" min="0" class="form-control" id="comp-tax" oninput="compSomar()"></div>
+        </div>
+      </div>
+      <div class="vi-g2">
+        <div class="form-group"><label class="form-label" for="comp-val" id="comp-val-rot">Total do bilhete (R$) <span class="obrig">*</span></label>
+          <input type="number" step="0.01" min="0" class="form-control" id="comp-val"></div>
+        <div class="form-group" id="comp-pag-wrap"><label class="form-label" for="comp-pag">Data do pagamento <span class="obrig">*</span></label>
+          <input type="date" class="form-control" id="comp-pag"></div>
+      </div>
+      <div class="form-group"><label class="form-label" for="comp-obs">Observação</label>
+        <textarea class="form-control" id="comp-obs" rows="2"></textarea></div>
+      <div class="vi-banner in" id="comp-info" style="margin:0"></div>
+      <div id="comp-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-comp').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-primary" style="margin-left:auto" id="comp-btn" onclick="confirmarComp()"><svg class="vi-ic p"><use href="#vi-upload"/></svg> Anexar</button>
+    </div>
+  </div>
+</div>
 <!-- Viagem não realizada / devoluções (20261120_viagem_devolucoes) -->
 <div class="modal-overlay vi-ov" id="modal-desfecho" role="dialog" aria-modal="true" aria-labelledby="desfecho-titulo">
   <div class="modal" style="max-width:520px">
@@ -481,6 +523,7 @@
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/viagem-bilhete.js"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────
 const SIT_LABELS={rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',nao_realizado:'Não realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
@@ -2006,7 +2049,7 @@ function renderTimeline(p){
 // ══════════════════════════════════════════════════════════════
 async function abrirDetalhe(id){
   const{data:p}=await db.from('viagem_protocolos')
-    .select(`*,viajantes:viagem_viajantes(*,beneficiario:beneficiarios(email),trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)),notif_log:viagem_notif_log(*),devolucoes:viagem_devolucoes(*)`)
+    .select(`*,viajantes:viagem_viajantes(*,beneficiario:beneficiarios(email),trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)),notif_log:viagem_notif_log(*),devolucoes:viagem_devolucoes(*),comprovantes:viagem_comprovantes(*)`)
     .eq('id',id).single();
   if(!p)return;
 
@@ -2035,6 +2078,10 @@ async function abrirDetalhe(id){
 
   // Devoluções que a pessoa logada pode confirmar (regra no banco; a tela só pergunta)
   await devCarregarPodeConfirmar(p);
+  // Quem anexa bilhete/comprovante de diárias (regra no banco: financeiro/coordenação/super_admin fora do protocolo)
+  if(['financeiro','super_admin','coordenacao'].includes(appState.perfil)){
+    const{data:cp}=await db.rpc('fn_viagem_comp_pode',{p_protocolo:p.id,p_usuario:appState.usuario.id});p._compPode=!!cp;
+  }else p._compPode=false;
 
   protAtual=p;
   const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
@@ -2178,6 +2225,7 @@ async function abrirDetalhe(id){
               </tr>
             </tbody>
           </table>`:''}
+        ${renderComprovantesViajante(p,v)}
         ${renderDevolucoesViajante(p,v)}
         ${v.desfecho==='nao_realizada'?'':renderPrestacaoViajante(v)}
       </div>
@@ -2277,6 +2325,114 @@ async function abrirDetalhe(id){
 
   document.getElementById('mp-footer').innerHTML=footer;
   document.getElementById('modal-prot').classList.add('aberto');
+}
+
+// ══════════════════════════════════════════════════════════════
+// COMPROVANTES DA EMISSÃO — bilhete e pagamento das diárias (20261120_viagem_comprovantes)
+// Grava só fn_viagem_comprovante_salvar (financeiro/coordenação/super_admin fora do protocolo).
+// Bilhete: o total vira o valor real das passagens e o lançamento a pagar acompanha (no banco).
+// O roteiro em PDF é lido no navegador por ViagemBilhete (js/viagem-bilhete.js); quem anexa confere.
+// ══════════════════════════════════════════════════════════════
+let compCtx=null;
+function renderComprovantesViajante(p,v){
+  if(!['aprovado','em_prestacao','realizado','nao_realizado'].includes(p.situacao))return'';
+  if(!v.tem_passagem&&!v.tem_diaria)return'';
+  const comps=(p.comprovantes||[]).filter(c=>c.viajante_id===v.id&&c.ativo);
+  const pode=p._compPode&&p.situacao!=='nao_realizado';
+  const bil=comps.filter(c=>c.tipo==='bilhete'), dia=comps.filter(c=>c.tipo==='diaria');
+  const linha=c=>`<div class="vi-dev-item">
+    <span class="vi-dev-comp">${viIc(c.tipo==='bilhete'?'bilhete':'moeda','p')}${c.tipo==='bilhete'?'Bilhete':'Diárias pagas'}</span>
+    <span class="mono">${fmtBRL(c.valor_brl)}</span>
+    <div class="vi-dev-det">${c.tipo==='bilhete'
+      ?[c.agencia,c.ordem_servico?'O.S. '+c.ordem_servico:'',c.localizador?'localizador <b>'+esc(c.localizador)+'</b>':'',c.bilhete?'bilhete '+esc(c.bilhete):'',c.dt_emissao?'emitido em '+fmtData(c.dt_emissao):''].filter(Boolean).map(x=>x.startsWith('localizador')?x:esc(x)).join(' · ')
+      :(c.dt_pagamento?'pago em '+fmtData(c.dt_pagamento):'')}
+      · <a href="#" data-arquivo="${esc(c.arquivo_url)}">${viIc('clipe','p')}${esc(c.arquivo_nome||'arquivo')}</a>${c.observacao?` · ${esc(c.observacao)}`:''}</div>
+    ${pode?`<div class="vi-dev-acoes"><button type="button" class="btn btn-secondary btn-sm" onclick="abrirComp('${v.id}','${c.tipo}','${c.id}')">${viIc('refazer','p')}Trocar</button></div>`:''}
+  </div>`;
+  const falta=[];
+  if(v.tem_passagem&&!bil.length)falta.push(pode?`<button type="button" class="btn btn-secondary btn-sm" onclick="abrirComp('${v.id}','bilhete')">${viIc('bilhete','p')}Anexar bilhete</button>`:'<span class="vi-chip al">Bilhete ainda não anexado</span>');
+  else if(v.tem_passagem&&pode)falta.push(`<button type="button" class="btn btn-secondary btn-sm" onclick="abrirComp('${v.id}','bilhete')">${viIc('mais','p')}Outro bilhete</button>`);
+  if(v.tem_diaria&&!dia.length)falta.push(pode?`<button type="button" class="btn btn-secondary btn-sm" onclick="abrirComp('${v.id}','diaria')">${viIc('moeda','p')}Anexar comprovante de diárias</button>`:'<span class="vi-chip al">Diárias: comprovante ainda não anexado</span>');
+  return `<div class="vi-comp"><div class="vi-dev-cab">${viIc('doc','p')}<b>Comprovantes da emissão</b></div>
+    ${comps.map(linha).join('')}${falta.length?`<div class="vi-dev-acoes">${falta.join('')}</div>`:''}</div>`;
+}
+function compErro(m){const el=document.getElementById('comp-erro');el.textContent=m||'';el.style.display=m?'block':'none';}
+function abrirComp(viajId,tipo,substitui){
+  const p=protAtual;const v=(p?.viajantes||[]).find(x=>x.id===viajId);if(!v)return;
+  compCtx={v,tipo,substitui:substitui||null,lido:false};
+  const bil=tipo==='bilhete';
+  document.getElementById('comp-titulo').innerHTML=`${viIc(bil?'bilhete':'moeda','p')} ${substitui?'Trocar':'Anexar'} ${bil?'bilhete':'comprovante de pagamento das diárias'}`;
+  document.getElementById('comp-sub').textContent=`${p.numero} · ${v.nome}`;
+  document.getElementById('comp-campos-bilhete').style.display=bil?'':'none';
+  document.getElementById('comp-pag-wrap').style.display=bil?'none':'';
+  document.getElementById('comp-val-rot').innerHTML=(bil?'Total do bilhete (R$)':'Valor pago (R$)')+' <span class="obrig">*</span>';
+  ['comp-arq','comp-loc','comp-bil','comp-ag','comp-os','comp-emi','comp-tar','comp-tax','comp-val','comp-pag','comp-obs'].forEach(i=>document.getElementById(i).value='');
+  if(!bil){
+    const diar=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+    document.getElementById('comp-val').value=diar?diar.toFixed(2):'';
+  }
+  document.getElementById('comp-leitura').innerHTML=bil?'<span style="color:var(--cinza-500)">Escolha o roteiro em PDF: os campos são preenchidos pela leitura do arquivo. Confira antes de anexar.</span>':'';
+  document.getElementById('comp-info').innerHTML=`${viIc('relogio','p')}<span>${bil
+    ?'O total do bilhete passa a ser o valor real das passagens deste viajante e atualiza o lançamento enquanto ele estiver a pagar.'
+    :'Só registra o comprovante. O pagamento do lançamento continua em Financeiro › Efetivar pagamento, com senha.'}${substitui?' O comprovante anterior fica no histórico.':''}</span>`;
+  compErro('');
+  document.getElementById('modal-comp').classList.add('aberto');
+}
+function compSomar(){
+  const t=parseFloat(document.getElementById('comp-tar').value)||0, x=parseFloat(document.getElementById('comp-tax').value)||0;
+  if(t||x)document.getElementById('comp-val').value=(t+x).toFixed(2);
+}
+async function compLerArquivo(){
+  const f=document.getElementById('comp-arq').files[0];const el=document.getElementById('comp-leitura');
+  if(!f||compCtx?.tipo!=='bilhete'||!window.ViagemBilhete)return;
+  el.innerHTML='<span style="color:var(--cinza-500)">Lendo o arquivo…</span>';
+  try{
+    const r=await ViagemBilhete.ler(f);
+    if(!r.achou){el.innerHTML=`<span style="color:var(--alerta-txt)">${r.motivo==='nao_pdf'?'Imagem: preencha os campos à mão.':'Não foi possível ler o texto deste arquivo: preencha os campos à mão.'}</span>`;return;}
+    const set=(id,v)=>{if(v!=null&&v!=='')document.getElementById(id).value=v;};
+    set('comp-loc',r.localizador);set('comp-bil',r.bilhete);set('comp-ag',r.agencia);set('comp-os',r.ordem_servico);set('comp-emi',r.dt_emissao);
+    set('comp-tar',r.tarifa_brl!=null?r.tarifa_brl.toFixed(2):null);set('comp-tax',r.taxas_brl!=null?r.taxas_brl.toFixed(2):null);
+    set('comp-val',r.valor_brl!=null?r.valor_brl.toFixed(2):null);
+    compCtx.lido=true;
+    const nomeOk=!r.passageiro||ViagemBilhete.mesmoNome(r.passageiro,compCtx.v.nome);
+    el.innerHTML=`<span style="color:var(--ok-txt)">${viIc('check','p')} Lido do arquivo${r.passageiro?`: passageiro ${esc(r.passageiro)}`:''}. Confira os campos.</span>`
+      +(nomeOk?'':`<div style="color:var(--erro-txt);margin-top:4px">${viIc('alerta','p')} O passageiro do bilhete não parece ser <b>${esc(compCtx.v.nome)}</b>. Confira se é o arquivo certo.</div>`);
+  }catch(e){el.innerHTML='<span style="color:var(--alerta-txt)">Não foi possível ler o arquivo agora: preencha os campos à mão.</span>';}
+}
+async function compEnviar(file,protId){
+  if(file.size>15*1024*1024)throw new Error('Arquivo acima de 15 MB.');
+  const ext=(file.name.split('.').pop()||'pdf').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const path=`comprovantes/${protId}/${crypto.randomUUID()}.${ext}`;
+  const sha=await devSha256(file);
+  const{error}=await db.storage.from('viagens-arquivos').upload(path,file,{upsert:false,contentType:file.type||undefined});
+  if(error)throw new Error('Falha ao enviar o arquivo: '+error.message);
+  return {url:db.storage.from('viagens-arquivos').getPublicUrl(path).data.publicUrl,nome:file.name,sha};
+}
+async function confirmarComp(){
+  const c=compCtx;if(!c)return;
+  const f=document.getElementById('comp-arq').files[0];
+  const val=document.getElementById('comp-val').value;
+  if(!f){compErro('Escolha o arquivo.');return;}
+  if(val===''||!(parseFloat(val)>=0)){compErro('Informe o valor.');return;}
+  if(c.tipo==='diaria'&&!document.getElementById('comp-pag').value){compErro('Informe a data do pagamento.');return;}
+  const btn=document.getElementById('comp-btn');btn.disabled=true;compErro('');
+  try{
+    const arq=await compEnviar(f,protAtual.id);
+    const g=id=>document.getElementById(id).value.trim()||null;
+    const dados={valor_brl:val,observacao:g('comp-obs'),lido_do_pdf:c.lido};
+    if(c.tipo==='bilhete')Object.assign(dados,{localizador:g('comp-loc'),bilhete:g('comp-bil'),agencia:g('comp-ag'),ordem_servico:g('comp-os'),
+      dt_emissao:g('comp-emi'),tarifa_brl:g('comp-tar'),taxas_brl:g('comp-tax')});
+    else dados.dt_pagamento=g('comp-pag');
+    const{data,error}=await db.rpc('fn_viagem_comprovante_salvar',{p_viajante:c.v.id,p_tipo:c.tipo,p_dados:dados,
+      p_url:arq.url,p_nome:arq.nome,p_sha256:arq.sha,p_substitui:c.substitui});
+    if(error)throw error;
+    document.getElementById('modal-comp').classList.remove('aberto');
+    toast(c.tipo==='bilhete'
+      ?(data?.lancamento==='atualizado'?`Bilhete anexado. Passagens agora em ${fmtBRL(data.passagens_brl)} e o lançamento foi atualizado.`:'Bilhete anexado.')
+      :'Comprovante de diárias anexado.','success');
+    await abrirDetalhe(protAtual.id);carregar();
+  }catch(e){compErro(devMsg(e));}
+  finally{btn.disabled=false;}
 }
 
 // ══════════════════════════════════════════════════════════════

@@ -1144,6 +1144,19 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   (terminal; só pela função, `dima.viagem='devolucao'`); com devolução pendente o protocolo não vira `realizado`. Tela: quadro por
   viajante no detalhe (`renderDevolucoesViajante`), janelas `#modal-desfecho`, `#modal-dev-informar`, `#modal-dev-confirmar`,
   `#modal-dev-cancelar`; com devolução registrada não há Cancelar/Excluir do protocolo (cancelar marcaria pagos como cancelados).
+- **Comprovantes da emissão** (migração `20261120_viagem_comprovantes`): protocolo **aprovado** (a aprovação já manda à UNESCO
+  "Providenciar passagens e diárias") ⇒ `trg_viagem_comp_unesco` cria "Anexar bilhetes" (5 dias) e "Anexar comprovante de pagamento
+  das diárias" (até a saída) para **todos os financeiro** ativos fora do protocolo (`fn_viagem_dev_confirmadores`; ids em
+  `viagem_protocolos.tarefa_bilhetes_id/tarefa_diarias_id`, `entidade_tipo='viagem_comprovante'`). `viagem_comprovantes` (só inclusão;
+  trocar = linha nova, a antiga `ativo=false`/`substituido_por`): `bilhete` (agência, O.S., localizador, nº, emissão, tarifa, taxas,
+  total) ou `diaria` (data e valor pago); arquivo em `viagens-arquivos/comprovantes/<protocolo>/…` com SHA-256. Grava só
+  `fn_viagem_comprovante_salvar` (financeiro/coordenação/super_admin fora do protocolo, `fn_viagem_comp_pode`). **Bilhete ⇒ Σ dos
+  bilhetes ativos = valor real das passagens** (trechos na proporção) e o lançamento **a pagar** acompanha; pago não muda.
+  Comprovante de diárias só registra (pagar continua em Financeiro com senha). Tarefa fecha sozinha quando todos os viajantes com o
+  item têm comprovante; o viajante é avisado no sino. Tela: quadro "Comprovantes da emissão" por viajante (`renderComprovantesViajante`),
+  janela `#modal-comp`; o roteiro em PDF é lido no navegador por **`js/viagem-bilhete.js`** (`ViagemBilhete.ler`, pdf.js 4.7.76, formato
+  Flytour; confere o nome do passageiro). O e-mail de conclusão à UNESCO (`notificar-unesco-conclusao` v20) anexa bilhetes e
+  comprovantes. `viagem_protocolos.notificado_unesco_em` só passou a existir aqui (a tela gravava numa coluna que não havia).
 
 ### Relatórios — visual, catálogo e folha A4
 - `pages/relatorios.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor

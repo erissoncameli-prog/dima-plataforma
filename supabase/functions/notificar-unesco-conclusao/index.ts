@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
 
     const { data: proto, error } = await supabase
       .from('viagem_protocolos')
-      .select('*, viajantes:viagem_viajantes(id, nome, funcao, relatorio_url, relatorio_nome, cartoes_embarque_urls)')
+      .select('*, viajantes:viagem_viajantes(id, nome, funcao, relatorio_url, relatorio_nome, cartoes_embarque_urls, comprovantes:viagem_comprovantes(tipo, arquivo_url, ativo, criado_em))')
       .eq('id', protocolo_id)
       .single()
 
@@ -257,6 +257,16 @@ Deno.serve(async (req) => {
         const cartoes: string[] = v.cartoes_embarque_urls || []
         for (let i = 0; i < cartoes.length; i++) {
           jobs.push({ url: cartoes[i], filename: `embarque_${slug}_${i + 1}.${extFromUrl(cartoes[i])}`, rotulo: `Cartão de embarque ${i + 1}`, viajante: v.nome || '—' })
+        }
+        // comprovantes da emissão (20261120_viagem_comprovantes): bilhetes e pagamento das diárias, só os ativos
+        const comps = ((v.comprovantes || []) as any[]).filter(c => c.ativo)
+          .sort((x, y) => String(x.criado_em).localeCompare(String(y.criado_em)))
+        const nTipo: Record<string, number> = {}
+        for (const c of comps) {
+          const n = (nTipo[c.tipo] = (nTipo[c.tipo] || 0) + 1)
+          const base = c.tipo === 'bilhete' ? 'bilhete' : 'comprovante_diarias'
+          jobs.push({ url: c.arquivo_url, filename: `${base}_${slug}${n > 1 ? '_' + n : ''}.${extFromUrl(c.arquivo_url)}`,
+            rotulo: c.tipo === 'bilhete' ? `Bilhete${n > 1 ? ' ' + n : ''}` : 'Comprovante de pagamento das diárias', viajante: v.nome || '—' })
         }
       }
 
@@ -312,7 +322,7 @@ Beneficiários:
 ${benefLines || '  —\n'}
 ${
   attachments.length > 0
-    ? `Seguem em anexo os documentos de prestação de contas (${attachments.length} arquivo(s) — relatórios de viagem e/ou cartões de embarque).`
+    ? `Seguem em anexo os documentos de prestação de contas (${attachments.length} arquivo(s) — relatórios de viagem, cartões de embarque, bilhetes e comprovantes de pagamento das diárias).`
     : jobs.length ? 'Os documentos de prestação de contas estão disponíveis pelos links abaixo.' : 'Não há documentos de prestação de contas cadastrados para este protocolo.'
 }
 ${linksSection}${skipNote}

@@ -244,3 +244,6 @@ body.dgm .vi-ov .vi-dev-acoes { flex-basis: 100%; display: flex; gap: 6px; flex-
 body.dgm .vi-ov .vi-dev > .btn { align-self: flex-start; }
 body.dgm .vi-ov .vi-dev-op label { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 4px 0; cursor: pointer; color: var(--txt); }
 body.dgm .vi-ov .vi-dev-op legend { margin-bottom: 4px; }
+body.dgm .vi-ov .vi-comp { border: 1px solid var(--lin); background: var(--bg-2); border-radius: 12px; padding: 10px 12px; margin-top: 8px;
+  display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--txt); }
+body.dgm .vi-ov .vi-comp .vi-dev-cab { color: var(--txt); }
