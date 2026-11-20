@@ -27,6 +27,12 @@
 //   aprova/devolve/rejeita o solicitado; super_admin ou financeiro devolvem o aprovado; quem
 //   pediu ou viaja nunca decide. Chama fn_viagem_decidir (service_role).
 //
+// { acao: 'confirmar_devolucao_viagem', devolucao_id, forma, valor_creditado_brl?, credito_companhia_brl?,
+//   cotacao?, documento_url?, documento_nome?, documento_sha256?, observacao?, hash, senha }
+//   mesma porta para a DEVOLUÇÃO DE VIAGEM NÃO REALIZADA (20261120_viagem_devolucoes): financeiro (ou
+//   super_admin) fora do protocolo confirma o que voltou; chama fn_viagem_devolucao_confirmar, que
+//   lança a devolução no Financeiro (valor negativo, mesmo TDR).
+//
 // { acao: 'decidir_api', pedido_id, decisao: 'aprovar'|'recusar'|'reenviar', motivo?, config?, hash, senha }
 //   mesma porta para o PEDIDO DE ACESSO À API por e-mail (20261101_api_pedidos_email): só
 //   super_admin decide; aprovar cria o cliente sem chave e manda o LINK DE RETIRADA (a chave
@@ -76,11 +82,13 @@ Deno.serve(async (req) => {
     try { api = await drenarApiPedidos(admin, null) } catch (e) { console.error('api:', (e as Error).message) }
     return resp({ ok: true, ...r, cobertura, cancelamento, api })
   }
-  if (!['assinar', 'assinar_cancelamento', 'decidir_encerramento', 'decidir_viagem', 'decidir_api'].includes(corpo.acao)) return resp({ ok: false, erro: 'acao inválida' }, 400)
+  if (!['assinar', 'assinar_cancelamento', 'decidir_encerramento', 'decidir_viagem', 'decidir_api', 'confirmar_devolucao_viagem'].includes(corpo.acao)) return resp({ ok: false, erro: 'acao inválida' }, 400)
   const ehCancelamento = corpo.acao === 'assinar_cancelamento'
   const ehEncerramento = corpo.acao === 'decidir_encerramento'
   const ehViagem = corpo.acao === 'decidir_viagem'
   const ehApi = corpo.acao === 'decidir_api'
+  const ehDevolucao = corpo.acao === 'confirmar_devolucao_viagem'
+  if (ehDevolucao) corpo.decisao = 'confirmar'
 
   // 1. quem é
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
@@ -89,7 +97,7 @@ Deno.serve(async (req) => {
   const usuarioId = u.user.id
 
   const { remanejamento_id, cancelamento_id, pedido_id, protocolo_id, decisao, motivo, hash, senha } = corpo
-  const pedidoId = ehViagem ? protocolo_id : (ehEncerramento || ehApi) ? pedido_id : ehCancelamento ? cancelamento_id : remanejamento_id
+  const pedidoId = ehDevolucao ? corpo.devolucao_id : ehViagem ? protocolo_id : (ehEncerramento || ehApi) ? pedido_id : ehCancelamento ? cancelamento_id : remanejamento_id
   if (!pedidoId || !decisao || !hash || typeof senha !== 'string' || !senha) {
     return resp({ ok: false, erro: 'Dados incompletos (pedido, decisão, hash e senha).' }, 400)
   }
@@ -116,6 +124,17 @@ Deno.serve(async (req) => {
     let emailsA = { enviados: 0, falhas: 0 }
     try { emailsA = await drenarApiPedidos(admin, pedido_id) } catch (e) { console.error('emails api:', (e as Error).message) }
     return resp({ ok: true, resultado: resA, emails: emailsA })
+  }
+  if (ehDevolucao) {
+    const num = (v: unknown) => (v === null || v === undefined || v === '') ? null : Number(v)
+    const { data: resD, error: eD } = await admin.rpc('fn_viagem_devolucao_confirmar', {
+      p_usuario_id: usuarioId, p_devolucao: corpo.devolucao_id, p_forma: corpo.forma ?? null,
+      p_valor_creditado_brl: num(corpo.valor_creditado_brl), p_credito_companhia_brl: num(corpo.credito_companhia_brl),
+      p_cotacao: num(corpo.cotacao), p_documento_url: corpo.documento_url ?? null, p_documento_nome: corpo.documento_nome ?? null,
+      p_documento_sha256: corpo.documento_sha256 ?? null, p_observacao: corpo.observacao ?? null, p_hash: hash,
+    })
+    if (eD) return resp({ ok: false, erro: eD.message }, 409)
+    return resp({ ok: true, resultado: resD })
   }
   if (ehViagem) {
     const { data: resV, error: eV } = await admin.rpc('fn_viagem_decidir', {

@@ -7,10 +7,10 @@
    no número do topo, na borda do cartão e nas etapas). Cor nova entra aqui, nunca solta no JS. */
 
 body.dgm :is(.main-content, .vi-ov) {
-  --vi-ras: #8C9A92; --vi-sol: #1F5FBF; --vi-apr: #A86200; --vi-pre: #6D28D9; --vi-rea: #1E8A55; --vi-can: #8C9A92; --vi-rej: #B42318;
+  --vi-ras: #8C9A92; --vi-sol: #1F5FBF; --vi-apr: #A86200; --vi-pre: #6D28D9; --vi-rea: #1E8A55; --vi-can: #8C9A92; --vi-rej: #B42318; --vi-nr: #9A4B12;
 }
 html[data-tema="escuro"] body.dgm :is(.main-content, .vi-ov) {
-  --vi-ras: #6E7D74; --vi-sol: #7FAEF5; --vi-apr: #F2B54A; --vi-pre: #B79BF7; --vi-rea: #4CC389; --vi-can: #6E7D74; --vi-rej: #F07A6E;
+  --vi-ras: #6E7D74; --vi-sol: #7FAEF5; --vi-apr: #F2B54A; --vi-pre: #B79BF7; --vi-rea: #4CC389; --vi-can: #6E7D74; --vi-rej: #F07A6E; --vi-nr: #F0A367;
 }
 
 /* base */
@@ -100,6 +100,7 @@ body.dgm :is(.main-content, .vi-ov) :is(.sb-em_prestacao, .pc-em_prestacao) { --
 body.dgm :is(.main-content, .vi-ov) :is(.sb-realizado, .pc-realizado) { --c: var(--vi-rea); }
 body.dgm :is(.main-content, .vi-ov) :is(.sb-cancelado, .pc-cancelado) { --c: var(--vi-can); }
 body.dgm :is(.main-content, .vi-ov) :is(.sb-rejeitado, .pc-rejeitado) { --c: var(--vi-rej); }
+body.dgm :is(.main-content, .vi-ov) :is(.sb-nao_realizado, .pc-nao_realizado) { --c: var(--vi-nr); }
 body.dgm :is(.main-content, .vi-ov) .item-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: var(--r-pill); white-space: nowrap; }
 body.dgm :is(.main-content, .vi-ov) .ib-solicitado { background: var(--info-bg); color: var(--info-txt); }
 body.dgm :is(.main-content, .vi-ov) .ib-aprovado { background: var(--ok-bg); color: var(--ok-txt); }
@@ -227,3 +228,19 @@ body.dgm .vi-ov .vi-g2 { display: grid; grid-template-columns: minmax(0, 1fr) mi
   body.dgm .vi-tdr-cab { flex-wrap: wrap; }
   body.dgm .vi-tdr-resta { margin-left: 28px; text-align: left; }
 }
+
+/* viagem não realizada / devoluções (20261120_viagem_devolucoes) */
+body.dgm .vi-ov .vi-dev { border: 1px solid color-mix(in srgb, var(--vi-nr) 40%, var(--lin)); background: color-mix(in srgb, var(--vi-nr) 6%, var(--sup));
+  border-radius: 12px; padding: 10px 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--txt); }
+body.dgm .vi-ov .vi-dev-cab { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; color: var(--vi-nr); }
+body.dgm .vi-ov .vi-dev-just { color: var(--txt-2); font-size: 11.5px; }
+body.dgm .vi-ov .vi-dev-item { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 8px 10px; background: var(--sup); border: 1px solid var(--lin); border-radius: 10px; }
+body.dgm .vi-ov .vi-dev-item.canc { opacity: .6; }
+body.dgm .vi-ov .vi-dev-num { font-size: 11px; color: var(--txt-2); }
+body.dgm .vi-ov .vi-dev-comp { display: inline-flex; gap: 4px; align-items: center; font-weight: 600; }
+body.dgm .vi-ov .vi-dev-det { flex-basis: 100%; color: var(--txt-2); font-size: 11.5px; }
+body.dgm .vi-ov .vi-dev-det a { display: inline-flex; gap: 3px; align-items: center; }
+body.dgm .vi-ov .vi-dev-acoes { flex-basis: 100%; display: flex; gap: 6px; flex-wrap: wrap; }
+body.dgm .vi-ov .vi-dev > .btn { align-self: flex-start; }
+body.dgm .vi-ov .vi-dev-op label { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; padding: 4px 0; cursor: pointer; color: var(--txt); }
+body.dgm .vi-ov .vi-dev-op legend { margin-bottom: 4px; }

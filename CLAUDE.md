@@ -1126,6 +1126,24 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   **Auditor**: `fn_auditoria_viagens()` (service_role, chamada pelo agente de viagens do `auditor-ia` v21) lista aprovação por quem
   está no protocolo — antes da trava (16/10/2026 18:55 UTC) = `info` (histórico, 13 protocolos); depois, ou aprovado sem linha
   `aprovar` em `viagem_decisoes` = `critico`. Título "Viagem: aprovação…": a IA não muda a severidade.
+- **Viagem não realizada e devoluções** (migração `20261120_viagem_devolucoes`; caso VGM-2026-021): na prestação, cada viajante
+  com item **pago** pode ter desfecho `nao_realizada` (devolve diárias + pede o reembolso da passagem) ou `parcial` (devolve só as
+  diárias não usadas) — `viagem_viajantes.desfecho` (NULL = realizada), só por `fn_viagem_registrar_desfecho` (viajante, quem pediu
+  ou super_admin/coordenação; justificativa ≥ 20). Cada componente vira uma linha em `viagem_devolucoes` (DEV-AAAA-NNNN; nada se
+  apaga, erro = `fn_viagem_devolucao_cancelar`, coordenação): diária `aguardando_devolucao` → `devolvido` (viajante anexa o
+  comprovante do depósito na conta da UNESCO em `viagens-arquivos/devolucoes/<protocolo>/…` com SHA-256, `fn_viagem_devolucao_informar`,
+  prazo 5 dias) → `confirmado`; passagem `aguardando_unesco` → `confirmado` (reembolso em dinheiro | crédito com a companhia | sem
+  reembolso; **custo de cancelamento = bilhete − reembolso/crédito**, documento da UNESCO/agência obrigatório). **Confirma o
+  financeiro (ou super_admin) fora do protocolo, com senha**: Edge Function `assinar-remanejamento` `acao:'confirmar_devolucao_viagem'`
+  → `fn_viagem_devolucao_confirmar` (só service_role; hash `fn_viagem_devolucao_hash`). O que volta em dinheiro vira **lançamento de
+  devolução** em `execucao_financeira` (valor **negativo**, pago, mesmo TDR/atividade, `estorno_de` = lançamento original; só nasce e
+  nunca se altera fora da função — `trg_ef_guarda_estorno`); assim o TDR de execução direta, o razão e os relatórios devolvem o valor
+  sozinhos. US$ = câmbio informado pela UNESCO, senão o do pagamento original. Crédito com a companhia **não** volta ao TDR. Tarefas
+  (`entidade_tipo='viagem_devolucao'`): "Devolver diárias" (viajante), "Confirmar devolução de diárias"/"Confirmar reembolso da
+  passagem" (financeiro), fechadas pelo sistema. Todos os viajantes não foram e nada pendente ⇒ protocolo **`nao_realizado`**
+  (terminal; só pela função, `dima.viagem='devolucao'`); com devolução pendente o protocolo não vira `realizado`. Tela: quadro por
+  viajante no detalhe (`renderDevolucoesViajante`), janelas `#modal-desfecho`, `#modal-dev-informar`, `#modal-dev-confirmar`,
+  `#modal-dev-cancelar`; com devolução registrada não há Cancelar/Excluir do protocolo (cancelar marcaria pagos como cancelados).
 
 ### Relatórios — visual, catálogo e folha A4
 - `pages/relatorios.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
@@ -1536,7 +1554,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `diag-expurgo` | Diagnóstico: remove do Storage as fotos e áudios da fila `diag_expurgo_arquivos` (cron diário) | ✅ |
 | `cotacao-ptax` | Grava a PTAX de fechamento do BCB em `cotacoes_ptax` (cron em dias úteis; corpo `{inicio,fim}` para histórico) | ✅ |
 | `conferir-nota-tecnica` | Lê o PDF da nota técnica da entrega (unpdf, sem IA) e confere as regras de aprovação (`nota_tecnica_conferencias`); gera o modelo da nota (.docx); reconfirma a senha de quem aprova (`entrega_aprovacao_senhas`) | ✅ |
-| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`) e a do pedido de acesso à API (`acao:'decidir_api'` → `fn_api_pedido_decidir`, só super_admin); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
+| `assinar-remanejamento` | Reconfirma a senha e assina a cadeia de remanejamento (`fn_rem_assinar`), a do cancelamento de TDR (`acao:'assinar_cancelamento'` → `fn_tcan_assinar`) e a decisão do pedido de encerramento de contrato (`acao:'decidir_encerramento'` → `fn_encp_decidir`) e a decisão do protocolo de viagem (`acao:'decidir_viagem'` → `fn_viagem_decidir`) e a do pedido de acesso à API (`acao:'decidir_api'` → `fn_api_pedido_decidir`, só super_admin) e a confirmação da devolução de viagem não realizada (`acao:'confirmar_devolucao_viagem'` → `fn_viagem_devolucao_confirmar`, financeiro); envia/reenvia os e-mails das cadeias e os avisos de contrato travado/liberado (`{acao:'drenar'}` pelo cron) | ✅ |
 | `publico-capa` | Capa (JPEG do bucket privado `acervo-capas`) de produto marcado como público no Acervo, para a Galeria do site público; só entrega o que `fn_publico_capa_caminho` libera (service_role), 404 no resto. O site chama com a chave anon no cabeçalho (`fetch` → blob) | ✅ |
 | `publico-produto` | Documento (PDF do bucket privado de entregas) de produto marcado como público no Acervo, para o visualizador da Galeria do site público; só entrega o que `fn_publico_arquivo_caminho` libera (service_role), 404 no resto; `Content-Disposition` com nome genérico. Chamada com a chave anon no cabeçalho | ✅ |
 | `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`) e aprova/devolve o pedido de baixa (`acao:'decidir_baixa'` → `fn_pat_baixa_decidir`) e assina o inventário pela comissão (`acao:'assinar_inventario'` → `fn_pat_inv_assinar`), todos só service_role; mesmo bloqueio por tentativas do remanejamento | ✅ |

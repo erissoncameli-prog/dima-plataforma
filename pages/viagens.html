@@ -256,6 +256,134 @@
     </div>
   </div>
 </div>
+<!-- Viagem não realizada / devoluções (20261120_viagem_devolucoes) -->
+<div class="modal-overlay vi-ov" id="modal-desfecho" role="dialog" aria-modal="true" aria-labelledby="desfecho-titulo">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="desfecho-titulo"><svg class="vi-ic p"><use href="#vi-volta"/></svg> Viagem não realizada</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="desfecho-sub"></div></div>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-desfecho').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <fieldset class="form-group vi-dev-op" style="border:0;padding:0;margin:0 0 12px">
+        <legend class="form-label">O que aconteceu? <span class="obrig">*</span></legend>
+        <label><input type="radio" name="desfecho-tipo" value="nao_realizada" checked onchange="desfechoTipo()"> A viagem não aconteceu (devolve diárias e pede o reembolso da passagem)</label>
+        <label><input type="radio" name="desfecho-tipo" value="parcial" onchange="desfechoTipo()"> Viajou, mas voltou antes ou ficou menos dias (devolve só as diárias não usadas)</label>
+      </fieldset>
+      <div class="form-group">
+        <label class="form-label" for="desfecho-motivo">Motivo <span class="obrig">*</span></label>
+        <select class="form-control" id="desfecho-motivo">
+          <option value="viagem_nao_realizada">Força maior / viagem cancelada</option>
+          <option value="retorno_antecipado">Retorno antecipado / dias a menos</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="desfecho-just">Justificativa <span class="obrig">*</span></label>
+        <textarea class="form-control" id="desfecho-just" rows="3" placeholder="O que impediu a viagem (mínimo 20 caracteres)"></textarea>
+      </div>
+      <div class="form-group" id="desfecho-diaria-wrap">
+        <label class="form-label" for="desfecho-diaria">Diárias a devolver (R$) <span class="obrig">*</span></label>
+        <input type="number" step="0.01" min="0.01" class="form-control" id="desfecho-diaria">
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:4px" id="desfecho-diaria-dica"></div>
+      </div>
+      <div class="vi-banner in" id="desfecho-info" style="margin:0"></div>
+      <div id="desfecho-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-desfecho').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-primary" style="margin-left:auto" id="desfecho-btn" onclick="confirmarDesfecho()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Registrar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay vi-ov" id="modal-dev-informar" role="dialog" aria-modal="true" aria-labelledby="devinf-titulo">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="devinf-titulo"><svg class="vi-ic p"><use href="#vi-moeda"/></svg> Informar devolução de diárias</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px" id="devinf-sub"></div></div>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-dev-informar').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div class="vi-g2">
+        <div class="form-group"><label class="form-label" for="devinf-valor">Valor devolvido (R$) <span class="obrig">*</span></label>
+          <input type="number" step="0.01" min="0.01" class="form-control" id="devinf-valor"></div>
+        <div class="form-group"><label class="form-label" for="devinf-data">Data da devolução <span class="obrig">*</span></label>
+          <input type="date" class="form-control" id="devinf-data"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="devinf-arq">Comprovante do depósito na conta da UNESCO <span class="obrig">*</span></label>
+        <input type="file" class="form-control" id="devinf-arq" accept=".pdf,.jpg,.jpeg,.png">
+        <div style="font-size:11px;color:var(--cinza-500);margin-top:4px">PDF ou imagem. O financeiro confere com a UNESCO e confirma.</div>
+      </div>
+      <div id="devinf-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-dev-informar').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-primary" style="margin-left:auto" id="devinf-btn" onclick="confirmarDevInformar()"><svg class="vi-ic p"><use href="#vi-upload"/></svg> Enviar comprovante</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay vi-ov" id="modal-dev-confirmar" role="dialog" aria-modal="true" aria-labelledby="devconf-titulo">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="devconf-titulo"><svg class="vi-ic p"><use href="#vi-check"/></svg> Confirmar devolução</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">O valor que voltou é lançado no Financeiro e devolvido ao TDR da atividade</div></div>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-dev-confirmar').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div id="devconf-resumo" style="font-size:12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:12px"></div>
+      <fieldset class="form-group vi-dev-op" id="devconf-forma-wrap" style="border:0;padding:0;margin:0 0 12px">
+        <legend class="form-label">Resultado informado pela UNESCO/agência <span class="obrig">*</span></legend>
+        <label><input type="radio" name="devconf-forma" value="reembolso_dinheiro" checked onchange="devConfForma()"> Reembolso em dinheiro (volta ao TDR)</label>
+        <label><input type="radio" name="devconf-forma" value="credito_companhia" onchange="devConfForma()"> Crédito com a companhia aérea (não volta ao TDR)</label>
+        <label><input type="radio" name="devconf-forma" value="sem_reembolso" onchange="devConfForma()"> Sem reembolso (o bilhete inteiro é custo)</label>
+      </fieldset>
+      <div class="vi-g2">
+        <div class="form-group" id="devconf-valor-wrap"><label class="form-label" for="devconf-valor" id="devconf-valor-rot">Valor creditado (R$) <span class="obrig">*</span></label>
+          <input type="number" step="0.01" min="0.01" class="form-control" id="devconf-valor" oninput="devConfCusto()"></div>
+        <div class="form-group"><label class="form-label" for="devconf-cot">Câmbio usado pela UNESCO</label>
+          <input type="number" step="0.0001" min="0" class="form-control" id="devconf-cot" placeholder="vazio = câmbio do pagamento">
+        </div>
+      </div>
+      <div id="devconf-custo" style="font-size:12px;margin:-4px 0 10px;color:var(--cinza-700)"></div>
+      <div class="form-group" id="devconf-doc-wrap">
+        <label class="form-label" for="devconf-doc">Documento da UNESCO/agência <span class="obrig" id="devconf-doc-obrig">*</span></label>
+        <input type="file" class="form-control" id="devconf-doc" accept=".pdf,.jpg,.jpeg,.png,.eml,.msg">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="devconf-obs">Observação</label>
+        <textarea class="form-control" id="devconf-obs" rows="2" placeholder="Obrigatória se o valor diferir do informado ou se não houver reembolso"></textarea>
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label class="form-label" for="devconf-senha">Sua senha de login <span class="obrig">*</span></label>
+        <input type="password" id="devconf-senha" class="form-control" autocomplete="current-password" placeholder="Confirme com a sua senha">
+        <div id="devconf-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-dev-confirmar').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-primary" style="margin-left:auto" id="devconf-btn" onclick="confirmarDevConfirmar()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Confirmar com senha</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay vi-ov" id="modal-dev-cancelar" role="dialog" aria-modal="true" aria-labelledby="devcan-titulo">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="devcan-titulo"><svg class="vi-ic p"><use href="#vi-x"/></svg> Cancelar devolução</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Use quando foi registrada por engano. Fica no histórico.</div></div>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-dev-cancelar').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div class="form-group"><label class="form-label" for="devcan-motivo">Motivo <span class="obrig">*</span></label>
+        <textarea class="form-control" id="devcan-motivo" rows="3" placeholder="Mínimo 10 caracteres"></textarea></div>
+      <div id="devcan-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-dev-cancelar').classList.remove('aberto')">Voltar</button>
+      <button class="btn" style="margin-left:auto;background:var(--erro-bg);color:var(--erro-txt);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent)" id="devcan-btn" onclick="confirmarDevCancelar()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Cancelar devolução</button>
+    </div>
+  </div>
+</div>
 <!-- Modal rejeição -->
 <div class="modal-overlay vi-ov" id="modal-rejeitar" role="dialog" aria-modal="true">
   <div class="modal" style="max-width:480px">
@@ -355,13 +483,13 @@
 <script src="../js/diag-tema.js"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────
-const SIT_LABELS={rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
+const SIT_LABELS={rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',nao_realizado:'Não realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
 const ITEM_LABELS={solicitado:'Aguarda aprovação',aprovado:'Aprovado',rejeitado:'Rejeitado'};
 const TIPOS_TRECHO=['Aérea','Rodoviária','Fluvial','Ferroviária','Outro'];
 const FUNCOES=['Servidor SEMA','Consultor','Pesquisador','Coordenador','Convidado','Outro'];
 const ATIV_217='44b7a6fc-dab6-49ba-bc1f-9764a99bb9d0';
 // grupos do filtro de situação (a lista abre em "Em andamento")
-const SIT_GRUPOS={_and:['rascunho','solicitado','aprovado','em_prestacao'],realizado:['realizado'],_enc:['cancelado','rejeitado'],'':null};
+const SIT_GRUPOS={_and:['rascunho','solicitado','aprovado','em_prestacao'],realizado:['realizado'],_enc:['cancelado','rejeitado','nao_realizado'],'':null};
 let filtroSit='_and', filtroBenefAtivo='true';
 
 // ── Ícones (sprite SVG no HTML, sem emoji) ─────────────────────
@@ -471,7 +599,7 @@ async function carregar(){
       *,
       beneficiario:beneficiarios(nome,cpf,email,telefone,cargo,instituicao,nacionalidade,passaporte_numero,passaporte_validade,passaporte_pais_emissao),
       trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)
-    ),notif_log:viagem_notif_log(*)`)
+    ),notif_log:viagem_notif_log(*),devolucoes:viagem_devolucoes(id,viajante_id,componente,status)`)
     .order('criado_em',{ascending:false}),
     db.from('vw_tdr_execucao_direta').select('*').eq('atividade_id',ATIV_217).limit(1)
   ]);
@@ -953,7 +1081,7 @@ function renderStats(){
     + kpi('realizado','check','Realizados',n('realizado'),'lançados no financeiro','--vi-rea');
   const np=document.getElementById('n-prot');if(np)np.textContent=t.length;
   const cnt=g=>SIT_GRUPOS[g]?t.filter(p=>SIT_GRUPOS[g].includes(p.situacao)).length:t.length;
-  document.getElementById('seg-sit').innerHTML=[['_and','Em andamento'],['realizado','Realizados'],['_enc','Cancelados e rejeitados'],['','Todos']]
+  document.getElementById('seg-sit').innerHTML=[['_and','Em andamento'],['realizado','Realizados'],['_enc','Cancelados e não realizados'],['','Todos']]
     .map(([f,r])=>`<button type="button" data-f="${f}" aria-pressed="${filtroSit===f}">${r} <span class="mono">${cnt(f)}</span></button>`).join('');
 }
 
@@ -1013,6 +1141,7 @@ function renderCard(p){
       ${v0?`<span>${viIc('pessoa','p')}${esc(v0.nome)}${extras>0?` <span style="color:var(--txt-3)">+${extras}</span>`:''}</span>`:''}
       ${pass>0?`<span class="vi-chip">${viIc('aviao','p')}passagens ${fmtBRL(pass)}</span>`:''}
       ${diar>0?`<span class="vi-chip">${viIc('cama','p')}diárias ${fmtBRL(diar)}</span>`:''}
+      ${devPendentes(p)?`<span class="vi-chip al">${viIc('volta','p')}${devPendentes(p)} devolução(ões) pendente(s)</span>`:''}
       ${pz?`<span class="vi-chip ${pz.dias<0?'er':'al'}">${viIc('relogio','p')}${pz.dias<0?'prestação vencida em '+pz.prazo.toLocaleDateString('pt-BR'):'prestação até '+pz.prazo.toLocaleDateString('pt-BR')}</span>`:''}
       ${p.numero_sei?`<span class="sei mono" style="font-size:11px">SEI ${esc(p.numero_sei)}</span>`:(['aprovado','em_prestacao','realizado'].includes(p.situacao)?'<span class="sei vi-chip al">sem SEI</span>':'')}
     </div>
@@ -1877,7 +2006,7 @@ function renderTimeline(p){
 // ══════════════════════════════════════════════════════════════
 async function abrirDetalhe(id){
   const{data:p}=await db.from('viagem_protocolos')
-    .select(`*,viajantes:viagem_viajantes(*,trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)),notif_log:viagem_notif_log(*)`)
+    .select(`*,viajantes:viagem_viajantes(*,beneficiario:beneficiarios(email),trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)),notif_log:viagem_notif_log(*),devolucoes:viagem_devolucoes(*)`)
     .eq('id',id).single();
   if(!p)return;
 
@@ -1903,6 +2032,9 @@ async function abrirDetalhe(id){
   // Quem pode decidir é o banco (fn_viagem_regra): a tela só pergunta para mostrar os botões
   const{data:regra}=await db.rpc('fn_viagem_pode_decidir',{p_protocolo:p.id});
   p._regra=regra||{decisoes:[]};
+
+  // Devoluções que a pessoa logada pode confirmar (regra no banco; a tela só pergunta)
+  await devCarregarPodeConfirmar(p);
 
   protAtual=p;
   const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
@@ -1968,7 +2100,7 @@ async function abrirDetalhe(id){
         </div>`:''}
       </div>
       <!-- Aviso de ação pendente para admins -->
-      ${isAdmin&&p.situacao==='em_prestacao'?`
+      ${isAdmin&&p.situacao==='em_prestacao'&&!devPendentes(p)&&!devTodosNaoRealizaram(p)?`
       <div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:8px 12px;display:flex;align-items:center;gap:8px">
         <span style="font-size:16px"><svg class="vi-ic p"><use href="#vi-relogio"/></svg></span>
         <div>
@@ -2046,7 +2178,8 @@ async function abrirDetalhe(id){
               </tr>
             </tbody>
           </table>`:''}
-        ${renderPrestacaoViajante(v)}
+        ${renderDevolucoesViajante(p,v)}
+        ${v.desfecho==='nao_realizada'?'':renderPrestacaoViajante(v)}
       </div>
     </div>`;
   });
@@ -2057,7 +2190,7 @@ async function abrirDetalhe(id){
 
   // Footer — botões por perfil e fase
   // "realizado" = pago — cancelar/excluir nunca permitidos nessa fase
-  const pago=p.situacao==='realizado';
+  const pago=['realizado','nao_realizado'].includes(p.situacao);
   let footer=`<button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>`;
 
   // Notificar por e-mail: admin ou dono, em qualquer fase notificável
@@ -2065,7 +2198,9 @@ async function abrirDetalhe(id){
     footer+=`<button class="btn" style="margin-left:8px;background:var(--info-bg);color:var(--info-txt);border:1px solid color-mix(in srgb,var(--info) 35%,transparent)" onclick="abrirModalNotif('${p.id}','${p.situacao}')"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar</button>`;
 
   // Cancelar: dono só em rascunho/solicitado; super_admin em qualquer fase não-paga
-  const podeCancelar=!pago&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(
+  // com devolução registrada o protocolo já tem pagamento: cancelar/excluir apagaria o histórico
+  const temDev=(p.devolucoes||[]).length>0;
+  const podeCancelar=!pago&&!temDev&&p.situacao!=='cancelado'&&p.situacao!=='rejeitado'&&(
     (ehDono&&['rascunho','solicitado'].includes(p.situacao))||
     appState.perfil==='super_admin'
   );
@@ -2073,7 +2208,7 @@ async function abrirDetalhe(id){
     footer+=`<button class="btn" style="margin-left:8px;background:var(--erro-bg);color:var(--erro-txt);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent)" onclick="cancelarProtocolo()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Cancelar</button>`;
 
   // Excluir: apenas admin, qualquer fase não-paga
-  if(!pago && isAdmin)
+  if(!pago && !temDev && isAdmin)
     footer+=`<button class="btn" style="margin-left:8px;background:var(--erro-txt);color:#fff;border:1px solid var(--erro-txt)" onclick="excluirProtocolo()"><svg class="vi-ic p"><use href="#vi-lixo"/></svg> Excluir</button>`;
 
   // Técnico: editar se solicitado e for dono
@@ -2101,7 +2236,11 @@ async function abrirDetalhe(id){
         ${!p.notificado_unesco_em?`<button class="btn" style="background:var(--info-bg);color:var(--info-txt);border:1px solid color-mix(in srgb,var(--info) 35%,transparent)" onclick="notificarUnescoDireto('${p.id}')"><svg class="vi-ic p"><use href="#vi-email"/></svg> Notificar UNESCO</button>`:`<span style="font-size:11px;color:var(--ok);display:flex;align-items:center;gap:4px"><svg class="vi-ic p"><use href="#vi-email"/></svg> UNESCO notificada em ${fmtData(p.notificado_unesco_em.split('T')[0])}</span>`}
         <button class="btn btn-primary" onclick="abrirFormSPDs()"><svg class="vi-ic p"><use href="#vi-lapis"/></svg> SPDs / Atualizar</button>
       </div>`;
-    if(p.situacao==='em_prestacao')
+    if(p.situacao==='em_prestacao'&&devPendentes(p))
+      footer+=`<span style="margin-left:auto;font-size:11px;color:var(--alerta-txt);display:flex;align-items:center;gap:6px">${viIc('relogio','p')} ${devPendentes(p)} devolução(ões) pendente(s): conclua antes de confirmar o protocolo.</span>`;
+    else if(p.situacao==='em_prestacao'&&devTodosNaoRealizaram(p))
+      footer+=`<span style="margin-left:auto;font-size:11px;color:var(--cinza-600);display:flex;align-items:center;gap:6px">${viIc('volta','p')} Nenhum viajante foi: o protocolo fecha como "não realizado" quando as devoluções forem confirmadas.</span>`;
+    else if(p.situacao==='em_prestacao')
       footer+=`<button class="btn btn-primary" style="margin-left:auto;background:var(--ok)" onclick="realizarProtocolo()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Confirmar realizado → lançar financeiro</button>`;
     if(p.situacao==='realizado'){
       if(p.notificado_unesco_conclusao_em){
@@ -2138,6 +2277,282 @@ async function abrirDetalhe(id){
 
   document.getElementById('mp-footer').innerHTML=footer;
   document.getElementById('modal-prot').classList.add('aberto');
+}
+
+// ══════════════════════════════════════════════════════════════
+// VIAGEM NÃO REALIZADA / DEVOLUÇÕES (20261120_viagem_devolucoes)
+// Regras todas no banco: fn_viagem_registrar_desfecho, fn_viagem_devolucao_informar,
+// fn_viagem_devolucao_confirmar (só pela Edge Function, com senha) e fn_viagem_devolucao_cancelar.
+// A tela só mostra os botões e monta os pedidos.
+// ══════════════════════════════════════════════════════════════
+const DEV_ST={aguardando_devolucao:['Aguardando devolução do viajante','al'],devolvido:['Devolvido — aguarda confirmação do financeiro','in'],
+  aguardando_unesco:['Aguardando resposta da UNESCO/agência','al'],confirmado:['Confirmado','ok'],cancelado:['Cancelado','']};
+const DEV_FORMA={deposito:'Depósito na conta da UNESCO',reembolso_dinheiro:'Reembolso em dinheiro',credito_companhia:'Crédito com a companhia',sem_reembolso:'Sem reembolso'};
+const DEV_PEND=['aguardando_devolucao','devolvido','aguardando_unesco'];
+let devAtual=null;
+function devPendentes(p){return (p.devolucoes||[]).filter(d=>DEV_PEND.includes(d.status)).length;}
+function devTodosNaoRealizaram(p){
+  const vs=(p.viajantes||[]).filter(v=>v.tem_passagem||v.tem_diaria);
+  return vs.length>0&&vs.every(v=>v.desfecho==='nao_realizada');
+}
+const devNorm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+function devSouViajante(v){
+  const u=appState.usuario||{};
+  return (!!u.email&&(devNorm(u.email)===devNorm(v.email)||devNorm(u.email)===devNorm(v.beneficiario?.email)))
+      ||(!!u.nome_completo&&devNorm(u.nome_completo)===devNorm(v.nome));
+}
+function devPodeOperar(p,v){
+  return ['super_admin','coordenacao'].includes(appState.perfil)||p.criado_por===appState.usuario?.id||devSouViajante(v);
+}
+async function devCarregarPodeConfirmar(p){
+  if(!['financeiro','super_admin'].includes(appState.perfil))return;
+  const pend=(p.devolucoes||[]).filter(d=>['devolvido','aguardando_unesco'].includes(d.status));
+  await Promise.all(pend.map(async d=>{
+    const{data}=await db.rpc('fn_viagem_devolucao_pode_confirmar',{p_devolucao:d.id});d._conf=data||{};
+  }));
+}
+function devErro(pre,msg){const el=document.getElementById(pre+'-erro');el.textContent=msg||'';el.style.display=msg?'block':'none';}
+const devMsg=e=>String(e?.message||e||'Erro').replace(/^[A-Z_]+:\s*/,'');
+
+function renderDevolucoesViajante(p,v){
+  const devs=(p.devolucoes||[]).filter(d=>d.viajante_id===v.id).sort((a,b)=>String(a.criado_em).localeCompare(String(b.criado_em)));
+  const podeReg=['aprovado','em_prestacao'].includes(p.situacao)&&!v.desfecho&&v.lancamento_id&&(v.tem_passagem||v.tem_diaria)&&devPodeOperar(p,v);
+  if(!devs.length&&!v.desfecho&&!podeReg)return'';
+  const isAdmin=['super_admin','coordenacao'].includes(appState.perfil);
+  let h=`<div class="vi-dev">`;
+  if(v.desfecho){
+    h+=`<div class="vi-dev-cab">${viIc('volta','p')}<b>${v.desfecho==='nao_realizada'?'Viagem não realizada':'Viagem realizada em parte'}</b>
+      <span class="vi-dev-just">${esc(v.desfecho_justificativa||'')}</span></div>`;
+  }
+  devs.forEach(d=>{
+    const[rot,cls]=DEV_ST[d.status]||[d.status,''];
+    const comp=d.componente==='diaria'?'Diárias':'Passagem';
+    let det='';
+    if(d.componente==='diaria'){
+      det=`a devolver <b>${fmtBRL(d.valor_previsto_brl)}</b>${d.prazo&&d.status==='aguardando_devolucao'?` até ${fmtData(d.prazo)}`:''}`;
+      if(d.valor_informado_brl!=null)det+=` · informado ${fmtBRL(d.valor_informado_brl)} em ${fmtData(d.dt_devolucao)}`;
+    }else{
+      det=`bilhete <b>${fmtBRL(d.valor_previsto_brl)}</b>`;
+    }
+    if(d.status==='confirmado'){
+      det+=` · ${esc(DEV_FORMA[d.forma]||d.forma||'')}: <b>${fmtBRL(d.valor_creditado_brl)}</b> de volta ao TDR`
+        +(d.valor_creditado_usd?` (US$ ${Number(d.valor_creditado_usd).toLocaleString('pt-BR',{minimumFractionDigits:2})})`:'');
+      if(d.componente==='passagem')det+=` · custo de cancelamento <b>${fmtBRL(d.custo_cancelamento_brl)}</b>`;
+      if(d.credito_companhia_brl)det+=` · crédito com a companhia ${fmtBRL(d.credito_companhia_brl)}`;
+    }
+    if(d.status==='cancelado')det+=` · ${esc(d.cancelado_motivo||'')}`;
+    const docs=[d.comprovante_url?`<a href="#" data-arquivo="${esc(d.comprovante_url)}">${viIc('clipe','p')}comprovante</a>`:'',
+                d.documento_url?`<a href="#" data-arquivo="${esc(d.documento_url)}">${viIc('clipe','p')}documento UNESCO/agência</a>`:''].filter(Boolean).join(' ');
+    const acoes=[];
+    if(d.componente==='diaria'&&['aguardando_devolucao','devolvido'].includes(d.status)&&devPodeOperar(p,v))
+      acoes.push(`<button type="button" class="btn btn-secondary btn-sm" onclick="abrirDevInformar('${d.id}')">${viIc('upload','p')}${d.status==='devolvido'?'Trocar comprovante':'Informar devolução'}</button>`);
+    if(d._conf?.pode)
+      acoes.push(`<button type="button" class="btn btn-primary btn-sm" onclick="abrirDevConfirmar('${d.id}')">${viIc('check','p')}Confirmar</button>`);
+    else if(d._conf?.bloqueio)
+      acoes.push(`<span class="vi-chip al">${viIc('alerta','p')}Você ${d._conf.bloqueio==='viajante'?'viaja':'pediu'} neste protocolo: outra pessoa confirma</span>`);
+    if(isAdmin&&DEV_PEND.includes(d.status))
+      acoes.push(`<button type="button" class="btn btn-secondary btn-sm" onclick="abrirDevCancelar('${d.id}')">${viIc('x','p')}Cancelar</button>`);
+    h+=`<div class="vi-dev-item ${d.status==='cancelado'?'canc':''}">
+      <span class="mono vi-dev-num">${esc(d.numero||'')}</span>
+      <span class="vi-dev-comp">${viIc(d.componente==='diaria'?'cama':'aviao','p')}${comp}</span>
+      <span class="vi-chip ${cls}">${esc(rot)}</span>
+      <div class="vi-dev-det">${det}${docs?` · ${docs}`:''}</div>
+      ${acoes.length?`<div class="vi-dev-acoes">${acoes.join('')}</div>`:''}
+    </div>`;
+  });
+  if(podeReg)
+    h+=`<button type="button" class="btn btn-secondary btn-sm" onclick="abrirDesfecho('${v.id}')">${viIc('volta','p')}Viagem não realizada ou retorno antecipado</button>`;
+  return h+`</div>`;
+}
+
+// ── registrar o desfecho ───────────────────────────────────────
+let desfechoViaj=null;
+function abrirDesfecho(viajId){
+  const p=protAtual;const v=(p?.viajantes||[]).find(x=>x.id===viajId);if(!v)return;
+  desfechoViaj=v;
+  const diar=(v.diarias||[]).reduce((s,d)=>s+parseFloat(d.quantidade||0)*parseFloat(d.valor_unitario||0),0);
+  const pass=(v.trechos||[]).reduce((s,t)=>s+parseFloat(t.valor||0),0);
+  v._diar=diar;v._pass=pass;
+  document.getElementById('desfecho-sub').textContent=`${p.numero} · ${v.nome}`;
+  document.querySelector('input[name="desfecho-tipo"][value="nao_realizada"]').checked=true;
+  document.getElementById('desfecho-motivo').value='viagem_nao_realizada';
+  document.getElementById('desfecho-just').value='';
+  devErro('desfecho','');
+  desfechoTipo();
+  document.getElementById('modal-desfecho').classList.add('aberto');
+}
+function desfechoTipo(){
+  const v=desfechoViaj;if(!v)return;
+  const tipo=document.querySelector('input[name="desfecho-tipo"]:checked').value;
+  const wrap=document.getElementById('desfecho-diaria-wrap'),inp=document.getElementById('desfecho-diaria');
+  wrap.style.display=v.tem_diaria&&v._diar>0?'':'none';
+  inp.value=tipo==='nao_realizada'?v._diar.toFixed(2):'';
+  document.getElementById('desfecho-diaria-dica').textContent=`Diárias pagas: ${fmtBRL(v._diar)}.`+(tipo==='parcial'?' Informe só o valor dos dias não usados.':'');
+  if(tipo==='parcial')document.getElementById('desfecho-motivo').value='retorno_antecipado';
+  const info=[];
+  if(v.tem_diaria&&v._diar>0)info.push(`O viajante recebe uma tarefa para devolver as diárias à conta da UNESCO em até 5 dias, com o comprovante.`);
+  if(tipo==='nao_realizada'&&v.tem_passagem&&v._pass>0)info.push(`A passagem (${fmtBRL(v._pass)}) fica aguardando a UNESCO/agência; o financeiro registra o reembolso, o crédito ou o custo de cancelamento.`);
+  info.push('Nada é lançado agora: o valor só volta ao TDR quando o financeiro confirmar.');
+  document.getElementById('desfecho-info').innerHTML=`${viIc('relogio','p')}<span>${info.join(' ')}</span>`;
+}
+async function confirmarDesfecho(){
+  const v=desfechoViaj;if(!v)return;
+  const tipo=document.querySelector('input[name="desfecho-tipo"]:checked').value;
+  const just=document.getElementById('desfecho-just').value.trim();
+  if(just.length<20){devErro('desfecho','Escreva a justificativa (mínimo 20 caracteres).');return;}
+  const val=parseFloat(document.getElementById('desfecho-diaria').value);
+  if(v.tem_diaria&&v._diar>0&&!(val>0)&&tipo==='parcial'){devErro('desfecho','Informe o valor das diárias não usadas.');return;}
+  const btn=document.getElementById('desfecho-btn');btn.disabled=true;devErro('desfecho','');
+  const{error}=await db.rpc('fn_viagem_registrar_desfecho',{p_viajante:v.id,p_desfecho:tipo,
+    p_motivo:document.getElementById('desfecho-motivo').value,p_justificativa:just,
+    p_diaria_devolver_brl:(v.tem_diaria&&v._diar>0&&val>0)?val:null});
+  btn.disabled=false;
+  if(error){devErro('desfecho',devMsg(error));return;}
+  document.getElementById('modal-desfecho').classList.remove('aberto');
+  toast('Registrado. As tarefas de devolução foram criadas.','success');
+  await abrirDetalhe(protAtual.id);carregar();
+}
+
+// ── informar devolução (comprovante) ───────────────────────────
+async function devSha256(file){
+  const buf=await file.arrayBuffer();
+  const h=await crypto.subtle.digest('SHA-256',buf);
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function devEnviarArquivo(file,protId){
+  if(file.size>15*1024*1024)throw new Error('Arquivo acima de 15 MB.');
+  const ext=(file.name.split('.').pop()||'pdf').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const path=`devolucoes/${protId}/${crypto.randomUUID()}.${ext}`;
+  const sha=await devSha256(file);
+  const{error}=await db.storage.from('viagens-arquivos').upload(path,file,{upsert:false,contentType:file.type||undefined});
+  if(error)throw new Error('Falha ao enviar o arquivo: '+error.message);
+  const{data}=db.storage.from('viagens-arquivos').getPublicUrl(path);
+  return {url:data.publicUrl,nome:file.name,sha};
+}
+function abrirDevInformar(id){
+  const d=(protAtual?.devolucoes||[]).find(x=>x.id===id);if(!d)return;
+  devAtual=d;
+  const v=(protAtual.viajantes||[]).find(x=>x.id===d.viajante_id);
+  document.getElementById('devinf-sub').textContent=`${d.numero} · ${v?.nome||''} · a devolver ${fmtBRL(d.valor_previsto_brl)}`;
+  document.getElementById('devinf-valor').value=Number(d.valor_informado_brl??d.valor_previsto_brl).toFixed(2);
+  document.getElementById('devinf-data').value=d.dt_devolucao||new Date().toLocaleDateString('en-CA',{timeZone:'America/Rio_Branco'});
+  document.getElementById('devinf-arq').value='';
+  devErro('devinf','');
+  document.getElementById('modal-dev-informar').classList.add('aberto');
+}
+async function confirmarDevInformar(){
+  const d=devAtual;if(!d)return;
+  const val=parseFloat(document.getElementById('devinf-valor').value);
+  const dt=document.getElementById('devinf-data').value;
+  const f=document.getElementById('devinf-arq').files[0];
+  if(!(val>0)){devErro('devinf','Informe o valor devolvido.');return;}
+  if(!dt){devErro('devinf','Informe a data da devolução.');return;}
+  if(!f){devErro('devinf','Anexe o comprovante.');return;}
+  const btn=document.getElementById('devinf-btn');btn.disabled=true;devErro('devinf','');
+  try{
+    const arq=await devEnviarArquivo(f,d.protocolo_id);
+    const{error}=await db.rpc('fn_viagem_devolucao_informar',{p_devolucao:d.id,p_valor_brl:val,p_dt:dt,
+      p_url:arq.url,p_nome:arq.nome,p_sha256:arq.sha});
+    if(error)throw error;
+    document.getElementById('modal-dev-informar').classList.remove('aberto');
+    toast('Devolução informada. O financeiro vai confirmar.','success');
+    await abrirDetalhe(protAtual.id);carregar();
+  }catch(e){devErro('devinf',devMsg(e));}
+  finally{btn.disabled=false;}
+}
+
+// ── confirmar (financeiro, com senha) ──────────────────────────
+function abrirDevConfirmar(id){
+  const d=(protAtual?.devolucoes||[]).find(x=>x.id===id);if(!d?._conf?.pode)return;
+  devAtual=d;
+  const v=(protAtual.viajantes||[]).find(x=>x.id===d.viajante_id);
+  const ehDiaria=d.componente==='diaria';
+  document.getElementById('devconf-titulo').innerHTML=`${viIc('check','p')} Confirmar ${ehDiaria?'devolução de diárias':'resultado da passagem'}`;
+  document.getElementById('devconf-resumo').innerHTML=`<strong>${esc(d.numero)}</strong> · ${esc(protAtual.numero)} · ${esc(v?.nome||'')}<br>`
+    +(ehDiaria?`Diárias pagas ${fmtBRL(d.valor_pago_brl)} · a devolver ${fmtBRL(d.valor_previsto_brl)} · <b>informado ${fmtBRL(d.valor_informado_brl)}</b> em ${fmtData(d.dt_devolucao)}`
+      +(d.comprovante_url?` · <a href="#" data-arquivo="${esc(d.comprovante_url)}">ver comprovante</a>`:'')
+      :`Bilhete ${fmtBRL(d.valor_previsto_brl)}`)
+    +`<br><span style="color:var(--cinza-600)">Justificativa: ${esc(d.justificativa)}</span>`;
+  document.getElementById('devconf-forma-wrap').style.display=ehDiaria?'none':'';
+  document.getElementById('devconf-doc-obrig').style.display=ehDiaria?'none':'';
+  document.querySelector('input[name="devconf-forma"][value="reembolso_dinheiro"]').checked=true;
+  document.getElementById('devconf-valor').value=ehDiaria?Number(d.valor_informado_brl).toFixed(2):'';
+  document.getElementById('devconf-cot').value='';
+  document.getElementById('devconf-doc').value='';
+  document.getElementById('devconf-obs').value='';
+  viDecPreparar('devconf');
+  devConfForma();
+  document.getElementById('modal-dev-confirmar').classList.add('aberto');
+}
+function devConfForma(){
+  const d=devAtual;if(!d)return;
+  const ehDiaria=d.componente==='diaria';
+  const forma=ehDiaria?'deposito':document.querySelector('input[name="devconf-forma"]:checked').value;
+  document.getElementById('devconf-valor-wrap').style.display=forma==='sem_reembolso'?'none':'';
+  document.getElementById('devconf-valor-rot').innerHTML=(forma==='credito_companhia'?'Valor do crédito com a companhia (R$)':forma==='reembolso_dinheiro'?'Valor reembolsado (R$)':'Valor creditado à UNESCO (R$)')+' <span class="obrig">*</span>';
+  devConfCusto();
+}
+function devConfCusto(){
+  const d=devAtual;const el=document.getElementById('devconf-custo');
+  if(!d||d.componente==='diaria'){el.textContent='';return;}
+  const forma=document.querySelector('input[name="devconf-forma"]:checked').value;
+  const val=forma==='sem_reembolso'?0:(parseFloat(document.getElementById('devconf-valor').value)||0);
+  const custo=Math.max(0,Number(d.valor_previsto_brl)-val);
+  el.innerHTML=`Custo de cancelamento registrado: <b>${fmtBRL(custo)}</b>`+(forma==='credito_companhia'?' · o crédito fica anotado, mas não volta ao TDR':'');
+}
+async function confirmarDevConfirmar(){
+  const d=devAtual;if(!d)return;
+  const ehDiaria=d.componente==='diaria';
+  const forma=ehDiaria?'deposito':document.querySelector('input[name="devconf-forma"]:checked').value;
+  const val=parseFloat(document.getElementById('devconf-valor').value);
+  const cot=parseFloat(document.getElementById('devconf-cot').value);
+  const f=document.getElementById('devconf-doc').files[0];
+  const obs=document.getElementById('devconf-obs').value.trim();
+  const senha=document.getElementById('devconf-senha').value;
+  if(forma!=='sem_reembolso'&&!(val>0)){viDecErro('devconf','Informe o valor.');return;}
+  if(!ehDiaria&&!f){viDecErro('devconf','Anexe o documento da UNESCO/agência.');return;}
+  if(!senha){viDecErro('devconf','Digite sua senha para confirmar.');return;}
+  const btn=document.getElementById('devconf-btn');btn.disabled=true;viDecErro('devconf','');
+  try{
+    const arq=f?await devEnviarArquivo(f,d.protocolo_id):null;
+    const{data:{session}}=await db.auth.getSession();
+    const r=await fetch(SUPABASE_URL+'/functions/v1/assinar-remanejamento',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||''),'apikey':SUPABASE_ANON_KEY},
+      body:JSON.stringify({acao:'confirmar_devolucao_viagem',devolucao_id:d.id,forma,
+        valor_creditado_brl:(forma==='deposito'||forma==='reembolso_dinheiro')?val:null,
+        credito_companhia_brl:forma==='credito_companhia'?val:null,
+        cotacao:cot>0?cot:null,documento_url:arq?.url||null,documento_nome:arq?.nome||null,documento_sha256:arq?.sha||null,
+        observacao:obs||null,hash:d._conf.hash,senha})
+    });
+    const j=await r.json().catch(()=>({}));
+    if(!j.ok){const e=String(j.erro||'Não foi possível confirmar.');viDecErro('devconf',VI_DEC_ERRO[e]||e.replace(/^[A-Z_]+:\s*/,''));return;}
+    document.getElementById('devconf-senha').value='';
+    document.getElementById('modal-dev-confirmar').classList.remove('aberto');
+    const res=j.resultado||{};
+    toast(`Confirmado: ${fmtBRL(res.creditado_brl||0)} de volta ao TDR.`+(res.protocolo_encerrado?' Protocolo encerrado como não realizado.':''),'success');
+    await abrirDetalhe(protAtual.id);carregar();
+  }catch(e){viDecErro('devconf','Falha: '+devMsg(e));}
+  finally{btn.disabled=false;}
+}
+
+// ── cancelar devolução registrada por engano ───────────────────
+function abrirDevCancelar(id){
+  devAtual=(protAtual?.devolucoes||[]).find(x=>x.id===id)||null;if(!devAtual)return;
+  document.getElementById('devcan-motivo').value='';devErro('devcan','');
+  document.getElementById('modal-dev-cancelar').classList.add('aberto');
+}
+async function confirmarDevCancelar(){
+  const d=devAtual;if(!d)return;
+  const mot=document.getElementById('devcan-motivo').value.trim();
+  if(mot.length<10){devErro('devcan','Escreva o motivo (mínimo 10 caracteres).');return;}
+  const btn=document.getElementById('devcan-btn');btn.disabled=true;
+  const{error}=await db.rpc('fn_viagem_devolucao_cancelar',{p_devolucao:d.id,p_motivo:mot});
+  btn.disabled=false;
+  if(error){devErro('devcan',devMsg(error));return;}
+  document.getElementById('modal-dev-cancelar').classList.remove('aberto');
+  toast('Devolução cancelada.','info');
+  await abrirDetalhe(protAtual.id);carregar();
 }
 
 function renderPrestacaoViajante(v){
