@@ -295,3 +295,29 @@ body.dgm .ct-encp-novo-tx b { font-size: 14px; color: var(--ct-serio-txt); }
 body.dgm .ct-encp-novo-tx span { font-size: 12.5px; color: var(--txt-2); }
 body.dgm .ct-encp-novo .ct-btn { height: 38px; padding: 0 16px; font-size: 13.5px; font-weight: 600; }
 body.dgm .ct-ov .ct-encp-erro { min-height: 1em; font-size: 13px; color: var(--erro-txt); margin-top: 6px; }
+
+/* Rescisão por distrato com indenização (20261124_contrato_rescisao) */
+body.dgm .ct-ov .ct-formas { border: 0; padding: 0; margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
+body.dgm .ct-ov .ct-formas legend { margin-bottom: 6px; }
+body.dgm .ct-ov label.ct-forma { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 12px;
+  border: 1px solid var(--lin); border-radius: 10px; background: var(--sup); cursor: pointer; }
+body.dgm .ct-ov label.ct-forma:has(input:checked) { border-color: var(--pri-600); background: var(--sup-2); }
+body.dgm .ct-ov label.ct-forma.off { opacity: .55; cursor: not-allowed; }
+body.dgm .ct-ov label.ct-forma input { accent-color: var(--pri-600); width: 15px; height: 15px; margin: 2px 0 0; }
+body.dgm .ct-ov label.ct-forma b { display: block; font-size: 13px; color: var(--txt); }
+body.dgm .ct-ov label.ct-forma small { display: block; font-size: 12px; color: var(--txt-2); line-height: 1.45; margin-top: 2px; }
+body.dgm .ct-ov .ct-lib b.neg { color: var(--erro-txt); }
+body.dgm :is(.main-content, .ct-ov) .ct-enc-ind { display: flex; justify-content: space-between; align-items: center; gap: 6px 10px; flex-wrap: wrap;
+  padding: 8px 12px; margin-bottom: 8px; border: 1px dashed var(--ct-serio); border-radius: 8px; background: var(--ct-serio-bg);
+  font-size: 13px; color: var(--txt); }
+body.dgm :is(.main-content, .ct-ov) .ct-enc-ind small { color: var(--txt-3); font-size: 12px; }
+body.dgm :is(.main-content, .ct-ov) .ct-enc-ind b { font-family: var(--font-mono); font-size: 14px; color: var(--ct-serio-txt); white-space: nowrap; }
+body.dgm .ct-enc-ind-sit { flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+body.dgm .ct-enc-ind-sit small { color: var(--txt-3); font-size: 12px; }
+body.dgm .ct-enc-conta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 8px 12px; margin-bottom: 12px;
+  border: 1px solid var(--lin); border-radius: 8px; background: var(--sup); font-size: 12.5px; color: var(--txt-2); }
+body.dgm .ct-enc-conta b { font-family: var(--font-mono); color: var(--txt); font-weight: 500; white-space: nowrap; }
+body.dgm .ct-enc-conta.erro { border-color: var(--erro); }
+body.dgm .ct-enc-conta-ok, body.dgm .ct-enc-conta-dif { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-weight: 600; }
+body.dgm .ct-enc-conta-ok { color: var(--ok-txt); }
+body.dgm .ct-enc-conta-dif { color: var(--erro-txt); }

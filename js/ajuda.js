@@ -259,6 +259,7 @@ const AJUDA = {
           'Vigente: contrato ativo e em execução.',
           'Encerrado: contrato finalizado normalmente após cumprimento.',
           'Suspenso: contrato temporariamente paralisado.',
+          'Rescindido: contrato terminado antes do prazo por distrato (Termo de Distrato), aprovado pelo responsável da atividade. Não muda mais de situação.',
         ]},
         { titulo: 'Encerramento', itens: [
           'Contrato todo pago (valor utilizado igual ao valor total e nenhum produto em aberto) é encerrado sozinho pelo sistema.',
@@ -266,6 +267,13 @@ const AJUDA = {
           'O pedido vai para o responsável da atividade (ou o substituto), que aprova ou devolve com a senha de login. Quem pediu não aprova o próprio pedido; a atividade precisa ter responsável ativo.',
           'Só na aprovação o contrato é encerrado, os produtos são cancelados e o valor não executado volta para a atividade (R$ convertidos pela PTAX do dia).',
           'Sem o termo de encerramento assinado, o sistema cria a tarefa de anexá-lo depois.',
+        ]},
+        { titulo: 'Rescisão por distrato e indenização', itens: [
+          'No pedido de encerramento, escolha como o contrato termina: Encerramento, Distrato com indenização ou Distrato sem indenização.',
+          'Distrato exige anexar o Termo de Distrato assinado (PDF); por isso só a coordenação e o super_admin pedem.',
+          'Com indenização, digite o valor "Total Termination Indemnity Payable" da calculadora da UNESCO. Ele é descontado do não executado: volta para a atividade só o que sobra.',
+          'Na aprovação, o contrato fica Rescindido e a indenização vira um lançamento a pagar no Financeiro, ligado ao contrato. O financeiro é avisado no sino e efetiva o pagamento com o câmbio da UNESCO.',
+          'O quadro do encerramento mostra a conta do contrato: valor = pago + indenização + devolvido. Se não fechar, aparece o aviso e a Auditoria aponta.',
         ]},
         { titulo: 'Produtos do Contrato', itens: [
           'Cada contrato pode ter múltiplos produtos/entregas definidos.',

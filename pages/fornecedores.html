@@ -367,7 +367,7 @@ function aba(id) {
 }
 
 // ── DETALHE ───────────────────────────────────────────────────
-const ST_CONTRATO = { vigente:['fo-p-ok','check','Vigente'], encerrado:['fo-p-ne','check','Encerrado'], suspenso:['fo-p-al','pausa','Suspenso'],
+const ST_CONTRATO = { vigente:['fo-p-ok','check','Vigente'], encerrado:['fo-p-ne','check','Encerrado'], rescindido:['fo-p-al','x','Rescindido'], suspenso:['fo-p-al','pausa','Suspenso'],
   aguardando_cobertura:['fo-p-er','cadeado','Aguardando cobertura'], cancelado:['fo-p-riscado','x','Cancelado'] };
 function pillContrato(s) { const p = ST_CONTRATO[s] || ['fo-p-ne','info', s || '—']; return `<span class="fo-pill ${p[0]}">${foIc(p[1],'p')}${esc(p[2])}</span>`; }
 const SIT_LANC = { pago:['fo-p-ok','check'], a_pagar:['fo-p-al','relogio'], cancelado:['fo-p-ne','x'] };

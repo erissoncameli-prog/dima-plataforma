@@ -685,6 +685,7 @@ function renderFiltros(lista){
             <option value="">Todos</option>
             <option value="vigente">Vigente</option>
             <option value="encerrado">Encerrado</option>
+            <option value="rescindido">Rescindido</option>
             <option value="suspenso">Suspenso</option>
             <option value="aguardando_cobertura">Aguardando cobertura</option>
             <option value="cancelado">Cancelado</option>
@@ -1438,7 +1439,7 @@ async function relC1(){
   const totalSaldo      = rows.reduce((s,r)=>s+(r.saldo_brl||0),0);
 
   const stBadge = s => {
-    const m={vigente:'rb-verde',encerrado:'rb-cinza',suspenso:'rb-vermelho'};
+    const m={vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho'};
     return `<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;
   };
 
@@ -1980,7 +1981,7 @@ async function relC2(){
   if(error) throw error;
   const rows = data||[];
   const diasAte = dt=>Math.ceil((new Date(dt+' 12:00')-hoje)/864e5);
-  const stBadge = s=>{const m={vigente:'rb-verde',encerrado:'rb-cinza',suspenso:'rb-vermelho'};return`<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;};
+  const stBadge = s=>{const m={vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho'};return`<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;};
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Contratos a Vencer (${dias}d)</div><div class="rep-stat-val">${rows.length}</div></div>
@@ -2086,7 +2087,7 @@ async function relC4(){
   const {data, error} = await q;
   if(error) throw error;
   const rows = (data||[]).filter(c=>!c.contrato_assinado_url);
-  const stBadge=s=>{const m={vigente:'rb-verde',encerrado:'rb-cinza',suspenso:'rb-vermelho'};return`<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;};
+  const stBadge=s=>{const m={vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho'};return`<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;};
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Contratos sem PDF Assinado</div><div class="rep-stat-val" style="color:var(--erro)">${rows.length}</div></div>
@@ -2247,7 +2248,7 @@ async function relV3(){
         <td class="mono">${fmtDt(c.dt_fim)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(c.valor_total_brl)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(c.valor_utilizado_brl)}</td>
-        <td><span class="rep-badge ${c.status==='vigente'?'rb-verde':c.status==='encerrado'?'rb-cinza':'rb-vermelho'}">${c.status}</span></td>
+        <td><span class="rep-badge ${c.status==='vigente'?'rb-verde':c.status==='encerrado'?'rb-cinza':c.status==='rescindido'?'rb-ouro':'rb-vermelho'}">${c.status}</span></td>
       </tr>`).join('')}</tbody>
     </table>
   </div>
@@ -2850,7 +2851,7 @@ async function relO3(){
   const dtIni = filVal('fil-dt-ini'), dtFim = filVal('fil-dt-fim');
   const tipoFil = filVal('fil-tipo-lib'), ativFil = filVal('fil-atividade');
   let q = db.from('contrato_encerramentos')
-    .select(`id,tipo,status,valor_liberado_brl,valor_liberado_usd,motivo,criado_em,revertido_em,
+    .select(`id,tipo,status,valor_liberado_brl,valor_liberado_usd,motivo,criado_em,revertido_em,forma,indenizacao_brl,
       atividade:atividades(codigo), contrato:contratos(numero,fornecedores(nome)), tdr:tdrs(numero),
       autorizou:usuarios!contrato_encerramentos_autorizado_por_fkey(nome_completo)`)
     .order('criado_em',{ascending:false});
@@ -2883,7 +2884,7 @@ async function relO3(){
         <th style="text-align:right">Valor BRL</th><th style="text-align:right">Valor USD</th></tr></thead>
       ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${oData(r.criado_em)}</td>
-        <td><span class="rep-badge ${(TIPO[r.tipo]||['','rb-cinza'])[1]}">${esc((TIPO[r.tipo]||[r.tipo])[0])}</span></td>
+        <td>${r.forma&&r.forma!=='concluido'?'<span class="rep-badge rb-ouro">Rescisão (distrato)</span>':`<span class="rep-badge ${(TIPO[r.tipo]||['','rb-cinza'])[1]}">${esc((TIPO[r.tipo]||[r.tipo])[0])}</span>`}</td>
         <td><span class="mono">${esc(r.contrato?.numero||'—')}</span>${r.contrato?.fornecedores?.nome?'<br>'+esc(r.contrato.fornecedores.nome):''}</td>
         <td class="mono">${esc(r.tdr?.numero||'—')}</td>
         <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
@@ -2892,13 +2893,13 @@ async function relO3(){
         <td>${pedidoPor[r.id]?`${esc(pedidoPor[r.id])}<br><span style="color:var(--cinza-500)">aprovado:</span> ${esc(r.autorizou?.nome_completo||'—')}`:esc(r.autorizou?.nome_completo||'—')}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_liberado_brl)}</td>
         <td class="mono" style="text-align:right">${fmtUSD(r.valor_liberado_usd)}</td>
-      </tr>${linhaDet(10,'Motivo',r.motivo)}</tbody>`).join('')}
+      </tr>${Number(r.indenizacao_brl)>0?linhaDet(10,'Indenização',`${fmtBRL(r.indenizacao_brl)} ao contratado (Termo de Distrato) — descontada do não executado, paga pelo Financeiro; não volta à atividade.`):''}${linhaDet(10,'Motivo',r.motivo)}</tbody>`).join('')}
       <tfoot><tr><td colspan="8"><strong>TOTAL valendo</strong></td>
         <td class="mono" style="text-align:right">${fmtBRL(ativos.reduce((s,r)=>s+Number(r.valor_liberado_brl||0),0))}</td>
         <td class="mono" style="text-align:right">${fmtUSD(ativos.reduce((s,r)=>s+Number(r.valor_liberado_usd||0),0))}</td></tr></tfoot>
     </table>`}
   </div>
-  <p style="font-size:10px;color:var(--cinza-500)">US$ = R$ ÷ cotação do dia da liberação. Liberação estornada não volta ao saldo e fica fora do total. Encerramento de contrato com saldo é pedido por quem administra o contrato e aprovado com senha pelo responsável (ou substituto) da atividade; os registrados antes dessa regra mostram só quem registrou.</p>`;
+  <p style="font-size:10px;color:var(--cinza-500)">US$ = R$ ÷ cotação do dia da liberação. Liberação estornada não volta ao saldo e fica fora do total. Encerramento de contrato com saldo é pedido por quem administra o contrato e aprovado com senha pelo responsável (ou substituto) da atividade; os registrados antes dessa regra mostram só quem registrou. Na rescisão por distrato, o devolvido já é líquido da indenização ao contratado.</p>`;
 }
 
 async function relO4(){
@@ -3130,7 +3131,7 @@ const A5_TDR_ST = { rascunho:['Rascunho','rb-cinza'], submetido:['Submetido','rb
   pendente_correcao:['Pendente de correção','rb-ouro'], revisao_interna:['Revisão interna','rb-ouro'], ajustes:['Em ajustes','rb-ouro'],
   enviado_unesco:['Enviado à UNESCO','rb-azul'], em_revisao_unesco:['Em revisão UNESCO','rb-azul'], retorno_unesco:['Retorno UNESCO','rb-ouro'],
   aprovado:['Aprovado','rb-verde'], em_licitacao:['Em licitação','rb-verde'], contratado:['Contratado','rb-teal'], cancelado:['Cancelado','rb-vermelho'] };
-const A5_CTR_ST = { vigente:['Vigente','rb-verde'], encerrado:['Encerrado','rb-teal'], suspenso:['Suspenso','rb-ouro'],
+const A5_CTR_ST = { vigente:['Vigente','rb-verde'], encerrado:['Encerrado','rb-teal'], rescindido:['Rescindido','rb-ouro'], suspenso:['Suspenso','rb-ouro'],
   aguardando_cobertura:['Aguardando cobertura','rb-vermelho'], cancelado:['Cancelado','rb-cinza'] };
 const A5_TK_ST = { a_fazer:['A fazer','rb-cinza'], em_andamento:['Em andamento','rb-azul'], em_revisao:['Em revisão','rb-ouro'],
   bloqueada:['Bloqueada','rb-vermelho'], concluida:['Concluída','rb-verde'], cancelada:['Cancelada','rb-cinza'] };
@@ -4811,8 +4812,8 @@ async function relU1(){
 // ══════════════════════════════════════════════════════════════
 // HELPERS COMPARTILHADOS — entregas
 // ══════════════════════════════════════════════════════════════
-const SIT_CONT = {vigente:'Vigente',encerrado:'Encerrado',suspenso:'Suspenso'};
-const COR_CONT = {vigente:'rb-verde',encerrado:'rb-cinza',suspenso:'rb-vermelho'};
+const SIT_CONT = {vigente:'Vigente',encerrado:'Encerrado',rescindido:'Rescindido',suspenso:'Suspenso'};
+const COR_CONT = {vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho'};
 const SIT_PROD = {pendente:'Pendente',em_analise:'Em Análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado',entrega_parcial:'Parcial',devolvido:'Devolvido'};
 const COR_PROD = {pendente:'rb-ouro',em_analise:'rb-azul',aprovado:'rb-verde',pago:'rb-teal',cancelado:'rb-cinza',entrega_parcial:'rb-ouro',devolvido:'rb-vermelho'};
 const SIT_ENT  = {pendente:'Pendente',em_analise:'Em Análise',aprovada:'Aprovada',devolvida:'Devolvida'};

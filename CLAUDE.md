@@ -117,7 +117,7 @@ Tradução do nav em `config.js` → objeto `nav` dentro de cada idioma.
 
 | Enum | Valores |
 |------|---------|
-| `status_contrato` | `vigente`, `encerrado`, `suspenso`, `aguardando_cobertura` (só o sistema põe/tira), `cancelado` (terminal) |
+| `status_contrato` | `vigente`, `encerrado`, `rescindido` (distrato; terminal, só pela aprovação), `suspenso`, `aguardando_cobertura` (só o sistema põe/tira), `cancelado` (terminal) |
 | `status_tdr` | `rascunho`, `revisao_interna`, `ajustes`, `enviado_unesco`, `retorno_unesco`, `aprovado`, `cancelado`, `submetido`, `pendente_correcao`, `em_avaliacao`, `em_revisao_unesco`, `em_licitacao`, `contratado` |
 | `status_produto` | `submetido`, `em_revisao`, `aprovado_tecnico`, `aprovado_coordenacao`, `aprovado_diretoria`, `recusado` |
 | `situacao_financeiro` | `pago`, `a_pagar`, `cancelado` |
@@ -293,6 +293,23 @@ saldo_livre_usd = orcamento_usd
   a pagar vira `encerrado` sozinho (`fn_contrato_auto_encerrar`, triggers em `contratos.valor_utilizado_brl` e produto `pago`).
   Tela: quadro "Pedido de encerramento" e botão "Pedir encerramento" na aba Detalhes (`blocoPedidoEncerramento`), janela
   `#modal-encp`; sino leva a `contratos.html?contrato=<id>`.
+- **Rescisão por distrato com indenização** (migrações `20261124_contrato_rescisao*`): o pedido de encerramento ganha a
+  **forma** (`contrato_encerramento_pedidos.forma` = `concluido | distrato | distrato_sem_indenizacao`). Distrato exige o
+  Termo de Distrato em PDF (só super_admin/coordenação anexam ⇒ só eles pedem distrato) e, com indenização, o valor
+  (`indenizacao_brl`, 0 < ind ≤ não executado; vem do "Total Termination Indemnity Payable" da calculadora da UNESCO).
+  **Liberado = não executado − indenização** (`valor_nao_executado_brl` guarda o bruto); só o líquido vai ao razão.
+  Aprovar distrato põe o contrato em **`rescindido`** (enum novo; terminal — `trg_contrato_guarda_encerramento` recusa entrar
+  ou sair dele fora de `dima.encerramento='efetivar'`) e cria, por `fn_rescisao_lancar_indenizacao` (sem EXECUTE para cliente),
+  o lançamento **a pagar** da indenização em `execucao_financeira` ligado ao contrato (sem `numero_produto`), avisando o
+  financeiro no sino. O US$ dela é o **câmbio da UNESCO** gravado no pagamento (fluxo normal do Financeiro).
+  `contrato_encerramentos.forma/indenizacao_brl/indenizacao_lancamento_id` (imutáveis). Conferência: `vw_contrato_rescisoes`
+  (valor = pago dos produtos + indenização + liberado; `diferenca_brl`) e dois itens em `fn_auditoria_orcamento` (distrato sem
+  lançamento/lançamento cancelado; conta que não fecha). `fn_encp_pedir` tem duas assinaturas: a nova (6 parâmetros, sem padrão)
+  e a antiga de 4, que é atalho para `concluido`. Tela: escolha da forma na janela `#modal-encerramento`
+  (`mudarFormaEnc`/`recalcLiberado`), linhas de indenização no pedido (`linhasValorPedido`) e no quadro do encerramento
+  (`blocoIndenizacao`, com a conta do contrato). `rescindido` é rótulo em Contratos, Fornecedores e Relatórios (Or3 mostra a
+  indenização). **Regularizado assim**: contrato 4500563116 (liberação de R$ 57.000 estornada; nova de R$ 54.043,57 com a
+  cotação original; indenização R$ 2.956,43 a pagar; tarefa "Anexar termo" para o super_admin).
 - **`economia_contratacao`**: libera a economia planejado−firmado de um TDR contratado. UI: aba Financeiro do modal em `pages/tdrs.html` → `painelEconomiaTDR`. Usa RPCs (restritas a `super_admin`/`coordenacao`):
   - `fn_liberar_economia_tdr(p_tdr_id uuid, p_justificativa text, p_taxa numeric)` — calcula economia = `tdrs.valor_brl − Σ contratos.valor_total_brl`, grava a liberação e loga em `tdr_acoes`.
   - `fn_estornar_economia_tdr(p_encerramento_id uuid, p_motivo text)` — marca `status='revertido'` (só `tipo='economia_contratacao'`).
