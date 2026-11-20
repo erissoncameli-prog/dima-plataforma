@@ -1144,6 +1144,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   (terminal; só pela função, `dima.viagem='devolucao'`); com devolução pendente o protocolo não vira `realizado`. Tela: quadro por
   viajante no detalhe (`renderDevolucoesViajante`), janelas `#modal-desfecho`, `#modal-dev-informar`, `#modal-dev-confirmar`,
   `#modal-dev-cancelar`; com devolução registrada não há Cancelar/Excluir do protocolo (cancelar marcaria pagos como cancelados).
+- **Fonte da viagem por linha** (migração `20261120_viagem_fonte`): cada atividade reserva o valor de viagens num TDR
+  `execucao_direta` (só super_admin/coordenação marcam — `trg_tdr_guarda_direta`; checkbox "Reserva para passagens e diárias"
+  no novo TDR), que passa pela trava de saldo livre de sempre (linha comprometida não consegue reservar). O protocolo escolhe a
+  fonte (`viagem_protocolos.tdr_id`, select `#f-fonte`; só reserva aprovada); `trg_viagem_fonte` confere, põe a atividade do TDR
+  e trava a troca fora de rascunho/solicitado. O lançamento do viajante vai para o TDR do protocolo; a fonte entra no
+  `fn_viagem_hash`. Protocolo já aprovado sem nada pago: `fn_viagem_trocar_fonte` (super_admin, motivo ≥ 20, move os a pagar).
 - **Comprovantes da emissão** (migração `20261120_viagem_comprovantes`): protocolo **aprovado** (a aprovação já manda à UNESCO
   "Providenciar passagens e diárias") ⇒ `trg_viagem_comp_unesco` cria "Anexar bilhetes" (5 dias) e "Anexar comprovante de pagamento
   das diárias" (até a saída) para **todos os financeiro** ativos fora do protocolo (`fn_viagem_dev_confirmadores`; ids em

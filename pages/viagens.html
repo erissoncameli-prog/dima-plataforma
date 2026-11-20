@@ -576,7 +576,9 @@ document.querySelectorAll('.modal-overlay.vi-ov').forEach(el=>el.addEventListene
 
 // ── Estado ────────────────────────────────────────────────────
 let protocolos=[], protAtual=null, editandoProtocoloId=null;
-let tdrDireta=null;     // vw_tdr_execucao_direta da 2.1.7 (planejado × consumido × resta, US$)
+let tdrsDireta=[];      // reservas de passagens e diárias (vw_tdr_execucao_direta), uma por linha
+let tdrDireta=null;     // a 2.1.7 (padrão)
+const tdrDe=p=>tdrsDireta.find(t=>t.tdr_id===p?.tdr_id)||(p?.tdr_id?null:tdrDireta);
 let viajantesForm=[];   // [{id,nome,funcao,cpf,email,temPass,temDiar,trechos:[],diarias:[]}]
 let embarqueFiles={};   // {viajante_idx: [File,...]}
 let relatorioFiles={};  // {viajante_idx: File}
@@ -636,7 +638,7 @@ let benefVindoDeProtocolo=null; // {idx, acao:'novo'|'editar'}
 })();
 
 async function carregar(){
-  const[{data},{data:tdr}]=await Promise.all([
+  const[{data},{data:tdr},{data:_tdrSt}]=await Promise.all([
     db.from('viagem_protocolos')
     .select(`*,viajantes:viagem_viajantes(
       *,
@@ -644,10 +646,15 @@ async function carregar(){
       trechos:viagem_trechos(*),diarias:viagem_diarias_v2(*)
     ),notif_log:viagem_notif_log(*),devolucoes:viagem_devolucoes(id,viajante_id,componente,status)`)
     .order('criado_em',{ascending:false}),
-    db.from('vw_tdr_execucao_direta').select('*').eq('atividade_id',ATIV_217).limit(1)
+    db.from('vw_tdr_execucao_direta').select('*'),
+    db.from('tdrs').select('id,status').eq('execucao_direta',true)
   ]);
+  const _st=new Map((_tdrSt||[]).map(x=>[x.id,x.status]));
+  // só reserva aprovada aceita viagem (o banco confere de novo: trg_viagem_fonte)
+  tdrsDireta=(tdr||[]).map(t=>({...t,status:_st.get(t.tdr_id)||null,usavel:['aprovado','em_licitacao','contratado'].includes(_st.get(t.tdr_id))}))
+    .sort((a,b)=>String(a.atividade_codigo).localeCompare(String(b.atividade_codigo),'pt-BR',{numeric:true}));
   protocolos=data||[];
-  tdrDireta=tdr?.[0]||null;
+  tdrDireta=tdrsDireta.find(t=>t.atividade_id===ATIV_217&&t.usavel)||tdrsDireta.find(t=>t.atividade_id===ATIV_217)||null;
   await verificarAutoTransicao(protocolos);
   renderTdrDireta();renderStats();filtrar();
 }
@@ -658,19 +665,29 @@ const usd2=v=>'US$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:
 function tdrFaixa(t){const p=Number(t?.pct_consumido||0);return p>=95?'er':p>=80?'al':'ok';}
 function renderTdrDireta(){
   const el=document.getElementById('tdr-direta');if(!el)return;
-  const t=tdrDireta;
-  if(!t){el.innerHTML='';return;}
+  const lista=tdrsDireta.filter(t=>t.usavel);
+  if(!lista.length){el.innerHTML='';return;}
+  el.innerHTML=lista.map(tdrPainel).join('');
+}
+function tdrPainel(t){
   const pct=Number(t.pct_consumido||0), f=tdrFaixa(t);
   const aviso=f==='ok'?'Acima do valor do TDR, a aprovação de viagem é recusada.'
     :f==='al'?'Passou de 80% do TDR. Acima do valor do TDR, a aprovação de viagem é recusada.'
     :'Passou de 95% do TDR. Peça o aumento do TDR (remanejamento) antes de novas viagens.';
-  el.innerHTML=`<div class="vi-tdr ${f}">
+  return `<div class="vi-tdr ${f}">
     <div class="vi-tdr-cab">${viIc(f==='ok'?'moeda':'alerta')}<div><b>TDR ${esc(t.tdr_numero)} · passagens e diárias</b>
       <small>Execução direta UNESCO · ${esc(t.atividade_codigo||'')}</small></div>
       <span class="vi-tdr-resta"><small>Restam</small><b>${usd2(t.resta_usd)}</b></span></div>
     <div class="vi-tdr-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100,pct)}" aria-label="Consumo do TDR"><span style="width:${Math.min(100,pct)}%"></span></div>
     <div class="vi-tdr-rod"><span>${usd2(t.consumido_usd)} de ${usd2(t.planejado_usd)} (${pct.toLocaleString('pt-BR')}%)${Number(t.a_pagar_usd)>0?` · ${usd2(t.a_pagar_usd)} a pagar`:''}</span><span>${aviso}</span></div>
   </div>`;
+}
+// opções da fonte no formulário do protocolo: só reservas aprovadas, com o que resta
+function opcoesFonte(sel){
+  const l=tdrsDireta.filter(t=>t.usavel||t.tdr_id===sel);
+  if(!l.length) return '<option value="">Nenhuma reserva aprovada</option>';
+  const pad=sel||tdrDireta?.tdr_id||l[0].tdr_id;
+  return l.map(t=>`<option value="${esc(t.tdr_id)}" ${t.tdr_id===pad?'selected':''}>${esc(t.atividade_codigo||'')} · TDR ${esc(t.tdr_numero)} — restam ${usd2(t.resta_usd)}</option>`).join('');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1242,6 +1259,7 @@ async function abrirFormEdicao(id){
   document.getElementById('f-retorno').value=p.dt_retorno||'';
   document.getElementById('f-email-sol').value=p.email_solicitante||'';
   document.getElementById('f-obs').value=p.observacoes||'';
+  document.getElementById('f-fonte').innerHTML=opcoesFonte(p.tdr_id||null);
 
   // Adicionar viajantes pré-preenchidos (deduplica por ID — produto cartesiano do PostgREST)
   const _vSeen=new Set();
@@ -1419,6 +1437,11 @@ function buildFormProtocolo(){
           <label class="form-label">Data de retorno</label>
           <input class="form-control" id="f-retorno" type="date" onchange="propagarDatasViajantes()">
         </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="f-fonte">Fonte (reserva para passagens e diárias) <span class="obrig">*</span></label>
+        <select class="form-control" id="f-fonte">${opcoesFonte(null)}</select>
+        <small style="color:var(--cinza-500);font-size:11px">Cada linha reserva quanto pode gastar com viagens num TDR de passagens e diárias, aprovado pela coordenação. Linha sem reserva não aparece.</small>
       </div>
       <div class="form-group">
         <label class="form-label">E-mail do solicitante</label>
@@ -1814,6 +1837,7 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
       numero_sei:document.getElementById('f-sei')?.value.trim()||null,
       email_solicitante:document.getElementById('f-email-sol')?.value.trim()||null,
       observacoes:document.getElementById('f-obs')?.value.trim()||null,
+      tdr_id:document.getElementById('f-fonte')?.value||null,
       situacao:situacaoAlvo,
     };
     const{error:pErr}=await db.from('viagem_protocolos').update(camposUpdate).eq('id',editandoProtocoloId);
@@ -1842,6 +1866,7 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
       email_solicitante:document.getElementById('f-email-sol')?.value.trim()||null,
       observacoes:document.getElementById('f-obs')?.value.trim()||null,
       atividade_id:ATIV_217,
+      tdr_id:document.getElementById('f-fonte')?.value||null,
       criado_por:appState.usuario.id,
       situacao:situacaoAlvo,
     }).select().single();
@@ -2099,6 +2124,7 @@ async function abrirDetalhe(id){
   p._cotacao=cotacaoAtual;
   // o que esta viagem ainda vai consumir do TDR (já aprovada/lançada não conta de novo)
   const jaLancado=['aprovado','em_prestacao','realizado'].includes(p.situacao);
+  const tdrDireta=tdrDe(p);
   const restaBRL=tdrDireta?Number(tdrDireta.resta_usd||0)*cotacaoAtual:0;
   const excedeTdr=!!tdrDireta&&!jaLancado&&total>restaBRL+0.01;
 
@@ -2778,7 +2804,7 @@ async function viDecidir(pre,decisao,motivo){
 
 function aprovarProtocolo(){
   const p=protAtual;if(!p)return;
-  const viaj=(p.viajantes||[]).length;
+  const viaj=(p.viajantes||[]).length, tdrDireta=tdrDe(p);
   document.getElementById('aprovar-resumo').innerHTML=`<strong>${esc(p.numero||'—')}</strong> · ${esc(p.destino_principal||'—')}<br>
     ${p.dt_saida?fmtData(p.dt_saida):'—'} a ${p.dt_retorno?fmtData(p.dt_retorno):'—'} · ${viaj} viajante(s) · ${fmtBRL(calcTotalProtocolo(p))}`
     +(tdrDireta?(()=>{
