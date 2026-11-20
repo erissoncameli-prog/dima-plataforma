@@ -408,6 +408,27 @@
     </div>
   </div>
 </div>
+<div class="modal-overlay vi-ov" id="modal-fonte" role="dialog" aria-modal="true" aria-labelledby="fonte-titulo">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div><div class="modal-title" id="fonte-titulo"><svg class="vi-ic p"><use href="#vi-moeda"/></svg> Trocar a fonte do protocolo</div>
+      <div style="font-size:11px;color:var(--cinza-500);margin-top:2px">Os lançamentos a pagar mudam junto. Com algo pago, a troca é recusada.</div></div>
+      <button type="button" class="modal-close" aria-label="Fechar" onclick="document.getElementById('modal-fonte').classList.remove('aberto')"><svg class="vi-ic p"><use href="#vi-x"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px">
+      <div class="form-group"><label class="form-label" for="fonte-sel">Nova fonte <span class="obrig">*</span></label>
+        <select class="form-control" id="fonte-sel"></select>
+        <small style="color:var(--cinza-500);font-size:11px">Só aparecem reservas aprovadas. Se a linha ainda não tem, crie o TDR de reserva em TDRs e volte aqui depois da aprovação.</small></div>
+      <div class="form-group"><label class="form-label" for="fonte-motivo">Motivo <span class="obrig">*</span></label>
+        <textarea class="form-control" id="fonte-motivo" rows="3" placeholder="Ex.: UNESCO emitiu por outra linha (mínimo 20 caracteres)"></textarea></div>
+      <div id="fonte-erro" role="alert" style="display:none;color:var(--erro);font-size:11px;margin-top:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-fonte').classList.remove('aberto')">Voltar</button>
+      <button class="btn btn-primary" style="margin-left:auto" id="fonte-btn" onclick="confirmarTrocaFonte()">Trocar fonte</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay vi-ov" id="modal-dev-cancelar" role="dialog" aria-modal="true" aria-labelledby="devcan-titulo">
   <div class="modal" style="max-width:460px">
     <div class="modal-header">
@@ -681,6 +702,28 @@ function tdrPainel(t){
     <div class="vi-tdr-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100,pct)}" aria-label="Consumo do TDR"><span style="width:${Math.min(100,pct)}%"></span></div>
     <div class="vi-tdr-rod"><span>${usd2(t.consumido_usd)} de ${usd2(t.planejado_usd)} (${pct.toLocaleString('pt-BR')}%)${Number(t.a_pagar_usd)>0?` · ${usd2(t.a_pagar_usd)} a pagar`:''}</span><span>${aviso}</span></div>
   </div>`;
+}
+function abrirTrocaFonte(){
+  const p=protAtual;if(!p)return;
+  document.getElementById('fonte-sel').innerHTML=opcoesFonte(p.tdr_id||null);
+  document.getElementById('fonte-motivo').value='';
+  document.getElementById('fonte-erro').style.display='none';
+  document.getElementById('modal-fonte').classList.add('aberto');
+}
+async function confirmarTrocaFonte(){
+  const p=protAtual, tdr=document.getElementById('fonte-sel').value, mot=document.getElementById('fonte-motivo').value.trim();
+  const er=document.getElementById('fonte-erro'), btn=document.getElementById('fonte-btn');
+  const falha=m=>{er.textContent=m;er.style.display='block';};
+  if(!tdr) return falha('Escolha a nova fonte.');
+  if(tdr===p.tdr_id) return falha('Esta já é a fonte do protocolo.');
+  if(mot.length<20) return falha('Escreva o motivo (mínimo 20 caracteres).');
+  btn.disabled=true;
+  const{data,error}=await db.rpc('fn_viagem_trocar_fonte',{p_protocolo:p.id,p_tdr:tdr,p_motivo:mot});
+  btn.disabled=false;
+  if(error) return falha(error.message.replace(/^[A-Z_]+:\s*/,''));
+  document.getElementById('modal-fonte').classList.remove('aberto');
+  toast(`Fonte trocada${data?.lancamentos?` · ${data.lancamentos} lançamento(s) a pagar movido(s)`:''}.`,'success');
+  await carregar(); abrirDetalhe(p.id);
 }
 // opções da fonte no formulário do protocolo: só reservas aprovadas, com o que resta
 function opcoesFonte(sel){
@@ -2171,6 +2214,7 @@ async function abrirDetalhe(id){
           <div style="font-size:11px;font-weight:600;color:var(--cinza-900)">${usd2(tdrDireta.resta_usd)} · ≈ ${fmtBRL(restaBRL)}</div>
           <div style="font-size:10px;color:var(--cinza-500)">${excedeTdr?'Esta viagem passa do TDR: a aprovação será recusada.':`${Number(tdrDireta.pct_consumido||0).toLocaleString('pt-BR')}% do TDR já consumido`}</div>
         </div>`:''}
+        ${appState.perfil==='super_admin'&&!['cancelado','rejeitado','nao_realizado'].includes(p.situacao)?`<button type="button" class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="abrirTrocaFonte()">${viIc('moeda','p')} Trocar fonte</button>`:''}
       </div>
       <!-- Aviso de ação pendente para admins -->
       ${isAdmin&&p.situacao==='em_prestacao'&&!devPendentes(p)&&!devTodosNaoRealizaram(p)?`
