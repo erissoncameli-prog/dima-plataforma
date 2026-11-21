@@ -1,0 +1,5 @@
+-- Quem pode pedir viagem por uma linha (aplicada em 21/11/2026 como _responsavel e _responsavel_b):
+-- super_admin em qualquer linha; qualquer usuário na 2.1.7 (reserva geral); nas demais, só o responsável
+-- ou substituto ativo da atividade da reserva. Vale para quem preenche (auth.uid()), na criação e na troca de fonte.
+-- fn_viagem_pode_usar_fonte(tdr, uid) · fn_viagem_fontes_permitidas() (lista da tela) · trg_viagem_fonte (erro VIAGEM_FONTE_SEM_PERMISSAO).
+-- Corpo idêntico ao aplicado: ver o banco (pg_get_functiondef) — mantido aqui como registro.

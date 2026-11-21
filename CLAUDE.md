@@ -1149,7 +1149,9 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   registro em `tdr_acoes` por `trg_tdr_direta_registro`, migração `20261121_tdr_reserva_viagem_direta`; checkbox "Reserva para
   passagens e diárias" no novo TDR), que passa pela trava de saldo livre de sempre (linha comprometida não consegue reservar). O protocolo escolhe a
   fonte em duas etapas — linha (`#f-linha`) e TDR de reserva dela (`#f-fonte`), só `execucao_direta` aprovado; `#f-fonte-saldo` mostra o que resta × a viagem e o envio é recusado na tela se passar (`excessoFonte`); na aprovação o banco recusa de novo (`trg_ef_limite_tdr_direta`) — gravada em `viagem_protocolos.tdr_id`; `trg_viagem_fonte` confere, põe a atividade do TDR
-  e trava a troca fora de rascunho/solicitado. O lançamento do viajante vai para o TDR do protocolo; a fonte entra no
+  e trava a troca fora de rascunho/solicitado. **Quem pede em cada linha** (migração `20261121_viagem_fonte_responsavel`): super_admin em qualquer uma; a 2.1.7 é aberta a todos;
+  nas demais só o responsável ou substituto ativo da atividade (`fn_viagem_pode_usar_fonte`, conferido no trigger com `auth.uid()` = quem preenche;
+  coordenação não tem passe livre). A tela lista só `fn_viagem_fontes_permitidas()` e a janela de aprovar mostra se quem pediu podia usar a linha. O lançamento do viajante vai para o TDR do protocolo; a fonte entra no
   `fn_viagem_hash`. Protocolo já aprovado sem nada pago: `fn_viagem_trocar_fonte` (super_admin, motivo ≥ 20, move os a pagar).
 - **Comprovantes da emissão** (migração `20261120_viagem_comprovantes`): protocolo **aprovado** (a aprovação já manda à UNESCO
   "Providenciar passagens e diárias") ⇒ `trg_viagem_comp_unesco` cria "Anexar bilhetes" (5 dias) e "Anexar comprovante de pagamento

@@ -659,7 +659,7 @@ let benefVindoDeProtocolo=null; // {idx, acao:'novo'|'editar'}
 })();
 
 async function carregar(){
-  const[{data},{data:tdr},{data:_tdrSt}]=await Promise.all([
+  const[{data},{data:tdr},{data:_tdrSt},{data:_perm}]=await Promise.all([
     db.from('viagem_protocolos')
     .select(`*,viajantes:viagem_viajantes(
       *,
@@ -668,11 +668,14 @@ async function carregar(){
     ),notif_log:viagem_notif_log(*),devolucoes:viagem_devolucoes(id,viajante_id,componente,status)`)
     .order('criado_em',{ascending:false}),
     db.from('vw_tdr_execucao_direta').select('*'),
-    db.from('tdrs').select('id,status').eq('execucao_direta',true)
+    db.from('tdrs').select('id,status').eq('execucao_direta',true),
+    db.rpc('fn_viagem_fontes_permitidas')
   ]);
+  // linhas em que esta pessoa pode pedir: super_admin todas; 2.1.7 todos; demais só responsável/substituto (o banco confere de novo)
+  const _pode=new Set((_perm||[]).map(x=>typeof x==='string'?x:(x.fn_viagem_fontes_permitidas||x.id)));
   const _st=new Map((_tdrSt||[]).map(x=>[x.id,x.status]));
   // só reserva aprovada aceita viagem (o banco confere de novo: trg_viagem_fonte)
-  tdrsDireta=(tdr||[]).map(t=>({...t,status:_st.get(t.tdr_id)||null,usavel:['aprovado','em_licitacao','contratado'].includes(_st.get(t.tdr_id))}))
+  tdrsDireta=(tdr||[]).map(t=>({...t,status:_st.get(t.tdr_id)||null,usavel:['aprovado','em_licitacao','contratado'].includes(_st.get(t.tdr_id)),pode:_pode.has(t.tdr_id)}))
     .sort((a,b)=>String(a.atividade_codigo).localeCompare(String(b.atividade_codigo),'pt-BR',{numeric:true}));
   protocolos=data||[];
   tdrDireta=tdrsDireta.find(t=>t.atividade_id===ATIV_217&&t.usavel)||tdrsDireta.find(t=>t.atividade_id===ATIV_217)||null;
@@ -726,12 +729,12 @@ async function confirmarTrocaFonte(){
   await carregar(); abrirDetalhe(p.id);
 }
 // fonte do protocolo: 1º a linha (atividade), depois o TDR de reserva dela; só TDR execucao_direta aprovado
-const fontesUsaveis=sel=>tdrsDireta.filter(t=>t.usavel||t.tdr_id===sel);
+const fontesUsaveis=sel=>tdrsDireta.filter(t=>(t.usavel&&t.pode)||t.tdr_id===sel);
 function linhaPadrao(sel){const l=fontesUsaveis(sel);return (l.find(t=>t.tdr_id===sel)||l.find(t=>t.tdr_id===tdrDireta?.tdr_id)||l[0])?.atividade_id||'';}
 function opcoesLinha(sel){
   const l=fontesUsaveis(sel), vistas=new Map();
   l.forEach(t=>{if(!vistas.has(t.atividade_id))vistas.set(t.atividade_id,t.atividade_codigo);});
-  if(!vistas.size) return '<option value="">Nenhuma linha com reserva</option>';
+  if(!vistas.size) return '<option value="">Você não é responsável por nenhuma linha com reserva de viagens</option>';
   const pad=linhaPadrao(sel);
   return [...vistas].map(([id,cod])=>`<option value="${esc(id)}" ${id===pad?'selected':''}>Linha ${esc(cod||'')}</option>`).join('');
 }
@@ -1534,7 +1537,7 @@ function buildFormProtocolo(){
           <select class="form-control" id="f-fonte" aria-label="TDR de passagens e diárias" onchange="atualizarSaldoFonte()">${opcoesFonte(null)}</select>
         </div>
         <div id="f-fonte-saldo" style="font-size:11px;margin-top:4px;color:var(--cinza-500)"></div>
-        <small style="color:var(--cinza-500);font-size:11px">Só aparecem linhas com TDR de reserva para passagens e diárias, e só esses TDRs.</small>
+        <small style="color:var(--cinza-500);font-size:11px">Aparecem a linha 2.1.7 e as linhas pelas quais você é responsável ou substituto, com TDR de reserva para passagens e diárias.</small>
       </div>
       <div class="form-group">
         <label class="form-label">E-mail do solicitante</label>
@@ -2913,6 +2916,11 @@ function aprovarProtocolo(){
     })():'');
   viDecPreparar('aprovar');
   document.getElementById('modal-aprovar').classList.add('aberto');
+  // conferência: quem pediu pode usar esta linha? (o banco já recusa na criação; aqui é só para quem aprova ver)
+  if(p.tdr_id&&p.criado_por) db.rpc('fn_viagem_pode_usar_fonte',{p_tdr:p.tdr_id,p_uid:p.criado_por}).then(({data})=>{
+    const t=tdrDe(p),el=document.getElementById('aprovar-resumo'); if(!el||!t)return;
+    el.insertAdjacentHTML('beforeend',`<div class="vi-tdr-linha ${data?'':'er'}">${viIc(data?'check':'alerta','p')}<span>Linha ${esc(t.atividade_codigo||'')}: ${data?'quem pediu pode usar esta linha.':'quem pediu <b>não</b> é responsável nem substituto desta linha.'}</span></div>`);
+  });
   setTimeout(()=>document.getElementById('aprovar-senha').focus(),50);
 }
 
