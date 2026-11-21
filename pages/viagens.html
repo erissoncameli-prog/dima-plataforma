@@ -725,13 +725,57 @@ async function confirmarTrocaFonte(){
   toast(`Fonte trocada${data?.lancamentos?` · ${data.lancamentos} lançamento(s) a pagar movido(s)`:''}.`,'success');
   await carregar(); abrirDetalhe(p.id);
 }
-// opções da fonte no formulário do protocolo: só reservas aprovadas, com o que resta
-function opcoesFonte(sel){
-  const l=tdrsDireta.filter(t=>t.usavel||t.tdr_id===sel);
-  if(!l.length) return '<option value="">Nenhuma reserva aprovada</option>';
-  const pad=sel||tdrDireta?.tdr_id||l[0].tdr_id;
-  return l.map(t=>`<option value="${esc(t.tdr_id)}" ${t.tdr_id===pad?'selected':''}>${esc(t.atividade_codigo||'')} · TDR ${esc(t.tdr_numero)} — restam ${usd2(t.resta_usd)}</option>`).join('');
+// fonte do protocolo: 1º a linha (atividade), depois o TDR de reserva dela; só TDR execucao_direta aprovado
+const fontesUsaveis=sel=>tdrsDireta.filter(t=>t.usavel||t.tdr_id===sel);
+function linhaPadrao(sel){const l=fontesUsaveis(sel);return (l.find(t=>t.tdr_id===sel)||l.find(t=>t.tdr_id===tdrDireta?.tdr_id)||l[0])?.atividade_id||'';}
+function opcoesLinha(sel){
+  const l=fontesUsaveis(sel), vistas=new Map();
+  l.forEach(t=>{if(!vistas.has(t.atividade_id))vistas.set(t.atividade_id,t.atividade_codigo);});
+  if(!vistas.size) return '<option value="">Nenhuma linha com reserva</option>';
+  const pad=linhaPadrao(sel);
+  return [...vistas].map(([id,cod])=>`<option value="${esc(id)}" ${id===pad?'selected':''}>Linha ${esc(cod||'')}</option>`).join('');
 }
+function opcoesFonte(sel,linha){
+  linha=linha||linhaPadrao(sel);
+  const l=fontesUsaveis(sel).filter(t=>t.atividade_id===linha);
+  if(!l.length) return '<option value="">Nenhum TDR de reserva</option>';
+  const pad=l.find(t=>t.tdr_id===sel)?sel:l[0].tdr_id;
+  return l.map(t=>`<option value="${esc(t.tdr_id)}" ${t.tdr_id===pad?'selected':''}>TDR ${esc(t.tdr_numero)} — restam ${usd2(t.resta_usd)}</option>`).join('');
+}
+function mudarLinhaFonte(){
+  document.getElementById('f-fonte').innerHTML=opcoesFonte(null,document.getElementById('f-linha').value);
+  atualizarSaldoFonte();
+}
+let _cotForm=null;
+async function cotacaoForm(){
+  if(_cotForm) return _cotForm;
+  const{data}=await db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1);
+  _cotForm=parseFloat(data?.[0]?.cotacao||0)||null; return _cotForm;
+}
+// total digitado no formulário (trechos + diárias), em R$
+function totalFormBRL(){
+  let t=0;
+  document.querySelectorAll('[name^="tr-val-"]').forEach(e=>t+=parseFloat(e.value||0)||0);
+  document.querySelectorAll('[name^="di-qtd-"]').forEach(e=>{const i=e.name.split('-').pop();t+=(parseFloat(e.value||0)||0)*(parseFloat(document.querySelector(`[name="di-unit-${i}"]`)?.value||0)||0);});
+  return t;
+}
+// o que esta viagem passa do TDR escolhido (já lançada não conta de novo); null = cabe ou sem dado
+async function excessoFonte(){
+  const t=tdrsDireta.find(x=>x.tdr_id===document.getElementById('f-fonte')?.value);
+  if(!t) return null;
+  const cot=await cotacaoForm(); if(!cot) return null;
+  const jaLanc=editandoProtocoloId&&['aprovado','em_prestacao','realizado'].includes(protAtual?.situacao);
+  const usd=jaLanc?0:totalFormBRL()/cot;
+  return {t,usd,passa:usd>Number(t.resta_usd||0)+0.005};
+}
+async function atualizarSaldoFonte(){
+  const el=document.getElementById('f-fonte-saldo');if(!el)return;
+  const x=await excessoFonte();
+  if(!x){el.textContent='';return;}
+  el.style.color=x.passa?'var(--erro)':'var(--cinza-500)';
+  el.textContent=`Disponível no TDR ${x.t.tdr_numero}: ${usd2(x.t.resta_usd)} · esta viagem ≈ ${usd2(x.usd)} (cotação de hoje)`+(x.passa?' — passa do saldo do TDR: escolha outra fonte ou reduza a viagem.':'');
+}
+document.addEventListener('input',e=>{if(e.target?.name&&/^(tr-val|di-qtd|di-unit)-/.test(e.target.name))atualizarSaldoFonte();});
 
 // ══════════════════════════════════════════════════════════════
 // ABAS
@@ -1302,7 +1346,9 @@ async function abrirFormEdicao(id){
   document.getElementById('f-retorno').value=p.dt_retorno||'';
   document.getElementById('f-email-sol').value=p.email_solicitante||'';
   document.getElementById('f-obs').value=p.observacoes||'';
+  document.getElementById('f-linha').innerHTML=opcoesLinha(p.tdr_id||null);
   document.getElementById('f-fonte').innerHTML=opcoesFonte(p.tdr_id||null);
+  atualizarSaldoFonte();
 
   // Adicionar viajantes pré-preenchidos (deduplica por ID — produto cartesiano do PostgREST)
   const _vSeen=new Set();
@@ -1482,9 +1528,13 @@ function buildFormProtocolo(){
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label" for="f-fonte">Fonte (reserva para passagens e diárias) <span class="obrig">*</span></label>
-        <select class="form-control" id="f-fonte">${opcoesFonte(null)}</select>
-        <small style="color:var(--cinza-500);font-size:11px">Cada linha reserva quanto pode gastar com viagens num TDR de passagens e diárias, aprovado pela coordenação. Linha sem reserva não aparece.</small>
+        <label class="form-label">Fonte do recurso <span class="obrig">*</span></label>
+        <div class="grid-2">
+          <select class="form-control" id="f-linha" aria-label="Linha (atividade)" onchange="mudarLinhaFonte()">${opcoesLinha(null)}</select>
+          <select class="form-control" id="f-fonte" aria-label="TDR de passagens e diárias" onchange="atualizarSaldoFonte()">${opcoesFonte(null)}</select>
+        </div>
+        <div id="f-fonte-saldo" style="font-size:11px;margin-top:4px;color:var(--cinza-500)"></div>
+        <small style="color:var(--cinza-500);font-size:11px">Só aparecem linhas com TDR de reserva para passagens e diárias, e só esses TDRs.</small>
       </div>
       <div class="form-group">
         <label class="form-label">E-mail do solicitante</label>
@@ -1867,6 +1917,11 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
 
   if(erros.length){toast(erros.join('\n'),'error');return;}
   if(!viajantesData.length){toast('Adicione pelo menos um viajante.','error');return;}
+  if(!document.getElementById('f-fonte')?.value){toast('Escolha a linha e o TDR de passagens e diárias.','error');return;}
+  if(situacaoAlvo==='solicitado'){
+    const x=await excessoFonte();
+    if(x?.passa){toast(`Esta viagem (≈ ${usd2(x.usd)}) passa do saldo do TDR ${x.t.tdr_numero} (${usd2(x.t.resta_usd)}). Escolha outra fonte ou reduza a viagem.`,'error');return;}
+  }
 
   let protId, protNumero;
 

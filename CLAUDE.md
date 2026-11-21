@@ -1148,7 +1148,7 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `execucao_direta` (só super_admin cria/marca e ele **já nasce `aprovado`**, sem o fluxo de revisão — `trg_tdr_guarda_direta` +
   registro em `tdr_acoes` por `trg_tdr_direta_registro`, migração `20261121_tdr_reserva_viagem_direta`; checkbox "Reserva para
   passagens e diárias" no novo TDR), que passa pela trava de saldo livre de sempre (linha comprometida não consegue reservar). O protocolo escolhe a
-  fonte (`viagem_protocolos.tdr_id`, select `#f-fonte`; só reserva aprovada); `trg_viagem_fonte` confere, põe a atividade do TDR
+  fonte em duas etapas — linha (`#f-linha`) e TDR de reserva dela (`#f-fonte`), só `execucao_direta` aprovado; `#f-fonte-saldo` mostra o que resta × a viagem e o envio é recusado na tela se passar (`excessoFonte`); na aprovação o banco recusa de novo (`trg_ef_limite_tdr_direta`) — gravada em `viagem_protocolos.tdr_id`; `trg_viagem_fonte` confere, põe a atividade do TDR
   e trava a troca fora de rascunho/solicitado. O lançamento do viajante vai para o TDR do protocolo; a fonte entra no
   `fn_viagem_hash`. Protocolo já aprovado sem nada pago: `fn_viagem_trocar_fonte` (super_admin, motivo ≥ 20, move os a pagar).
 - **Comprovantes da emissão** (migração `20261120_viagem_comprovantes`): protocolo **aprovado** (a aprovação já manda à UNESCO
