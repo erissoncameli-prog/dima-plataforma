@@ -76,3 +76,16 @@ aberta a todos); a lista de fornecedores ainda aparece a quem enxerga TDR/contra
 - Relatório "Quem acessa o quê" (Usuários): A4 pela FolhaA4 + planilha ExcelJS.
 - Auditor: `fn_auditoria_acessos()` (achados "Acessos: …"); agente `auditarAcessos` em `auditor-ia` (v24, publicada).
 - ROPA: TRAT-007.
+
+## Voltar a entrar e nova senha (21/11/2026, migração `20261127_acessos_e_retorno_senha`)
+
+| Situação | "Esqueceu a senha?" | "Pedir para voltar a entrar" |
+|---|---|---|
+| Ativa | link de 24 h, uso único, para a própria pessoa criar a senha | — |
+| Suspensa por inatividade | vira o pedido de voltar a entrar | e-mail para confirmar ⇒ pedido ao super_admin ⇒ libera (3 dias) + link de senha |
+| Desativada | nada sai (registro para o Auditor) | e-mail para confirmar ⇒ pedido ao super_admin ⇒ reativa com os módulos **em revisão** (15 dias) + link de senha |
+
+- Edge Function `conta-acesso`; página `pages/nova-senha.html`; tabelas `acesso_links` e `usuario_senhas_historico` (sem policy nem grant).
+- Não repetir senha: histórico por gatilho em `auth.users` (toda gravação de senha); confere as 12 últimas e a atual.
+- Trocar a senha logado (Meu perfil, 1º acesso) passa pela mesma função. A senha temporária pelo super_admin continua para quem não tem e-mail.
+- Testes: `node tests/acessos/telas.js` (entrada e página do link) + ensaio no banco (pedido, link, repetida, reativação com revisão).

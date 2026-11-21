@@ -131,6 +131,7 @@ html[data-tema="escuro"] .en-grupo button[aria-pressed="true"] { background: #2A
   background: var(--en-campo); color: var(--en-txt); font: 400 16px var(--en-ff); /* 16 px: o iPhone não amplia ao tocar */
   outline: none; transition: border-color var(--en-mov), box-shadow var(--en-mov), background var(--en-mov); }
 .en-input::placeholder { color: var(--en-txt-3); opacity: .8; }
+.en-textarea { height: auto; min-height: 84px; padding: 10px 14px; line-height: 1.45; resize: vertical; }
 .en-input:hover { border-color: var(--en-txt-3); }
 .en-input:focus { border-color: var(--en-foco); background: var(--en-campo-foco); box-shadow: 0 0 0 4px var(--en-anel); }
 .en-input[aria-invalid="true"] { border-color: var(--en-erro); }

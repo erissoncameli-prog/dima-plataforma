@@ -3,7 +3,7 @@
 // O supabase-js do CDN vira um banco em memória (tabelas + RPCs falsas); nada toca o Supabase.
 // Cobre: trava de página → "Sem acesso" e pedido de acesso; vínculo de responsável abre Produtos;
 // menu só com o liberado; Usuários (caixas editáveis, revisão confirmada, retirada de módulo,
-// liberar entrada); tela de entrada com a conta suspensa ("Pedir liberação").
+// liberar entrada); tela de entrada ("Pedir para voltar a entrar" e "Esqueceu a senha?") e página do link (nova-senha.html).
 //   uso: node tests/acessos/telas.js   (precisa do pacote playwright e de python3)
 // ════════════════════════════════════════════════════════════════════════
 'use strict'
@@ -189,19 +189,85 @@ async function pagina(navegador, banco, logado) {
     {
       const banco = bancoBase(); banco.__login = { data: null, error: { message: 'User is banned' } }
       const { ctx, pg } = await pagina(nav, banco, null)
+      const corpos = []
+      await pg.route(/functions\/v1\/conta-acesso/, r => { corpos.push(JSON.parse(r.request().postData() || '{}')); r.fulfill({ contentType: 'application/json', body: '{"ok":true}' }) })
       await pg.goto(BASE + '/index.html')
       await pg.fill('#en-email', 'saulo@x.br'); await pg.fill('#en-senha', 'qualquer1')
       await pg.click('#en-entrar')
       await pg.waitForSelector('#en-liberar:not([hidden])', { timeout: 8000 })
       conf(/15 dias sem uso/.test(await pg.locator('#en-erro').innerText()), 'mensagem explica a suspensão')
       await pg.click('#en-liberar')
-      conf(/liberação/i.test(await pg.locator('#en-ped-titulo').innerText()), 'abre o pedido de liberação')
+      conf(/voltar a entrar/i.test(await pg.locator('#en-ped-titulo').innerText()), 'abre "Pedir para voltar a entrar"')
+      conf(await pg.isVisible('#en-ped-just'), 'pede o motivo')
       await pg.click('#en-ped-btn')
-      await pg.waitForFunction(() => window.__RPCS.some(r => r.nome === 'fn_publico_pedir_liberacao'))
-      ok('pedido chama fn_publico_pedir_liberacao')
+      await pg.waitForTimeout(300)
+      conf(corpos.length === 0 && /motivo/i.test(await pg.locator('#en-ped-erro').innerText()), 'sem motivo não envia')
+      await pg.fill('#en-ped-just', 'Continuo na equipe do projeto')
+      await pg.click('#en-ped-btn')
       await pg.waitForSelector('#en-ped-ok:not([hidden])')
-      conf(/3 dias/.test(await pg.locator('#en-ped-ok').innerText()), 'resposta igual para todos, com o prazo de 3 dias')
+      conf(corpos[0]?.acao === 'pedir_retorno' && corpos[0]?.email === 'saulo@x.br' && /equipe/.test(corpos[0]?.justificativa), 'pedido vai à conta-acesso com e-mail e motivo')
+      conf(/confirmar o pedido/i.test(await pg.locator('#en-ped-ok').innerText()), 'resposta igual para todos: confirme pelo e-mail')
+      // Esqueceu a senha: link por e-mail, sem o campo de motivo
+      await pg.click('#en-voltar'); await pg.click('#en-esqueci')
+      conf(!(await pg.isVisible('#en-ped-just')), 'nova senha não pede motivo')
+      await pg.fill('#en-ped-email', 'tito@x.br'); await pg.click('#en-ped-btn')
+      await pg.waitForSelector('#en-ped-ok:not([hidden])')
+      conf(corpos[1]?.acao === 'pedir_senha' && corpos[1]?.email === 'tito@x.br', '"Esqueceu a senha?" pede o link à conta-acesso')
+      conf(/24 horas/.test(await pg.locator('#en-ped-ok').innerText()), 'resposta fala do link de 24 horas')
       await ctx.close()
+    }
+    console.log('Página do link (nova senha e voltar a entrar)')
+    {
+      const banco = bancoBase()
+      const caso = async (info, fluxo) => {
+        const { ctx, pg } = await pagina(nav, banco, null)
+        const corpos = []
+        await pg.route(/functions\/v1\/conta-acesso/, r => {
+          const c = JSON.parse(r.request().postData() || '{}'); corpos.push(c)
+          const resp = c.acao === 'info' ? info : fluxo(c, corpos)
+          r.fulfill({ contentType: 'application/json', body: JSON.stringify(resp) })
+        })
+        await pg.goto(BASE + '/pages/nova-senha.html?t=abcdefghijklmnopqrstuvwxyz0123456789ABCD')
+        return { ctx, pg, corpos }
+      }
+      // nova senha
+      {
+        const { ctx, pg, corpos } = await caso({ ok: true, estado: 'valido', finalidade: 'senha', nome: 'Tito' },
+          (c, cs) => cs.filter(x => x.acao === 'definir_senha').length === 1 ? { ok: false, codigo: 'SENHA_REPETIDA', erro: 'Você já usou esta senha; escolha outra' } : { ok: true })
+        await pg.waitForSelector('#ns-form:not([hidden])', { timeout: 8000 })
+        conf(!/abcdefghij/.test(pg.url()), 'o código sai da barra de endereço')
+        conf(await pg.$eval('meta[name=referrer]', m => m.content) === 'no-referrer', 'página não repassa o endereço (no-referrer)')
+        conf(!(await pg.isVisible('#ns-retorno')) && !(await pg.isVisible('#ns-fim')), 'mostra só o formulário da senha')
+        await pg.fill('#nova-senha', 'fraca'); await pg.fill('#conf-senha', 'fraca')
+        conf(await pg.$eval('#btn-salvar', b => b.disabled), 'senha fora das regras não habilita salvar')
+        await pg.fill('#nova-senha', 'Nova4567X'); await pg.fill('#conf-senha', 'Nova4567X')
+        await pg.click('#btn-salvar')
+        await pg.waitForSelector('#erro-nova:not([hidden])')
+        conf(/já usou/.test(await pg.locator('#erro-nova').innerText()), 'senha já usada: o erro do servidor aparece no campo')
+        await pg.fill('#nova-senha', 'Outra9876Z'); await pg.fill('#conf-senha', 'Outra9876Z'); await pg.click('#btn-salvar')
+        await pg.waitForSelector('#ns-fim:not([hidden])')
+        conf(/Senha criada/.test(await pg.locator('#ns-fim').innerText()), 'senha criada')
+        conf(corpos.filter(c => c.acao === 'definir_senha').every(c => c.token && c.senha), 'envia o código do link e a senha ao servidor')
+        await ctx.close()
+      }
+      // voltar a entrar (conta desativada)
+      {
+        const { ctx, pg, corpos } = await caso({ ok: true, estado: 'valido', finalidade: 'retorno', situacao: 'desativada', nome: 'Saulo' }, () => ({ ok: true }))
+        await pg.waitForSelector('#ns-retorno:not([hidden])', { timeout: 8000 })
+        conf(/reativação/.test(await pg.locator('#ns-retorno').innerText()) && /revisão/.test(await pg.locator('#ns-retorno').innerText()), 'conta desativada: pede confirmar a reativação e avisa da revisão')
+        conf(!corpos.some(c => c.acao === 'confirmar_retorno'), 'abrir a página não confirma sozinho')
+        await pg.click('#btn-confirmar')
+        await pg.waitForSelector('#ns-fim:not([hidden])')
+        conf(corpos.some(c => c.acao === 'confirmar_retorno') && /confirmado/i.test(await pg.locator('#ns-fim').innerText()), 'confirmar envia ao servidor')
+        await ctx.close()
+      }
+      // link vencido
+      {
+        const { ctx, pg } = await caso({ ok: true, estado: 'expirado' }, () => ({ ok: true }))
+        await pg.waitForSelector('#ns-fim:not([hidden])', { timeout: 8000 })
+        conf(/venceu/.test(await pg.locator('#ns-fim').innerText()) && !(await pg.isVisible('#ns-form')), 'link vencido: explica e não mostra o formulário')
+        await ctx.close()
+      }
     }
   } catch (e) { ruim('erro no teste: ' + e.message) }
   finally { await nav.close(); srv.kill() }

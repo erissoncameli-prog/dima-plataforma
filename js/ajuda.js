@@ -1149,9 +1149,20 @@ Object.assign(AJUDA, {
       ]},
       { titulo: 'Entrada suspensa por falta de uso', itens: [
         'Quem fica 15 dias sem entrar (na mesa ou no app de campo com internet) tem a entrada suspensa. No 12º dia a pessoa recebe um e-mail de aviso.',
-        'A suspensão não apaga nada: dados e acessos ficam guardados. Na tela de entrada, a pessoa clica em "Pedir liberação ao administrador".',
-        'O super_admin libera em Usuários (filtro "Suspensos por inatividade", botão "Liberar entrada"). Liberada, a pessoa tem 3 dias para entrar.',
+        'A suspensão não apaga nada: dados e acessos ficam guardados. Na tela de entrada, a pessoa clica em "Pedir para voltar a entrar", escreve o motivo e confirma o pedido pelo link que chega no e-mail dela.',
+        'O super_admin libera em Usuários (Pedidos de acesso, ou filtro "Suspensos por inatividade", botão "Liberar entrada"). Liberada, a pessoa tem 3 dias para entrar e recebe um e-mail com um link para criar senha nova, se precisar.',
+        'Responsável de atividade e titular de cargo da assinatura não são suspensos: recebem o aviso, e a Auditoria aponta quem está há 15 dias sem entrar.',
         'Quem trabalha só no app de campo do Diagnóstico precisa sincronizar com internet ao menos a cada 15 dias; as fichas guardadas no aparelho não se perdem.',
+      ]},
+      { titulo: 'Conta desativada', itens: [
+        'Conta desativada só volta com a aprovação do super_admin. A pessoa usa o mesmo "Pedir para voltar a entrar" da tela de entrada; o pedido aparece em Usuários › Pedidos de acesso como "Reativar a conta".',
+        'Reativada (pelo pedido ou pelo botão em Usuários), a conta volta com os módulos que tinha em revisão por 15 dias: confirme o que ainda é preciso, senão eles saem.',
+      ]},
+      { titulo: 'Esqueceu a senha', itens: [
+        'Na tela de entrada, "Esqueceu a senha?" envia ao e-mail da conta um link para a própria pessoa criar a senha nova. O link vale por 24 horas e só uma vez; um pedido novo anula o anterior.',
+        'A senha nova precisa ter 8 ou mais caracteres, um número, uma maiúscula e uma minúscula, e não pode ser uma senha que a pessoa já usou. Depois da troca, as outras sessões abertas são encerradas e chega um e-mail avisando.',
+        'A senha nunca vai por e-mail. Para conta suspensa, o pedido vira "voltar a entrar"; para conta desativada, nenhum e-mail sai.',
+        'Quem não tem acesso ao próprio e-mail continua podendo receber uma senha temporária do super_admin (aba Senha da pessoa em Usuários).',
       ]},
       { titulo: 'Relatório', itens: [
         '"Quem acessa o quê" (topo de Usuários) gera o A4 de cada pessoa com perfil, situação, último acesso e módulos, e baixa a planilha com uma linha por pessoa e módulo.',

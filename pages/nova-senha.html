@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="Erisson Cameli Santiago">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- o link traz um código de uso único: não vazar para outro site nem ficar na barra -->
+<meta name="referrer" content="no-referrer">
+<title>SEMA/AC — Nova senha</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem('diag_tema');document.documentElement.dataset.tema=t==='escuro'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches)?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<link href="../css/trocar-senha.css" rel="stylesheet">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ts-cad" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="ts-olho" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="ts-olhox" viewBox="0 0 24 24"><path d="M9.9 4.2A10 10 0 0 1 12 4c6.5 0 10 8 10 8a17 17 0 0 1-2.2 3.2M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M2 2l20 20"/></symbol>
+  <symbol id="ts-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="ts-ponto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></symbol>
+  <symbol id="ts-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="ts-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="ts-alerta" viewBox="0 0 24 24"><path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5M12 18h.01"/></symbol>
+</svg>
+<main class="ts-card">
+  <div class="ts-top"><b>SEMA<span>/AC</span></b><small>UNESCO · DIMA · 218BRA2001</small></div>
+  <div class="ts-body">
+
+    <p class="ts-sub" id="ns-carregando" role="status">Conferindo o link…</p>
+
+    <!-- link de nova senha -->
+    <form id="ns-form" class="ns-col" hidden novalidate>
+      <h1>Crie sua nova senha</h1>
+      <p class="ts-sub" id="ns-sub">Escolha uma senha que você ainda não usou nesta plataforma.</p>
+      <div class="ts-campo">
+        <label for="nova-senha">Nova senha <span class="ob" aria-hidden="true">*</span></label>
+        <div class="ts-in">
+          <input id="nova-senha" type="password" autocomplete="new-password" required aria-describedby="ts-regras erro-nova">
+          <button type="button" class="ts-olho" data-olho="nova-senha" aria-label="Mostrar a senha"><svg class="ts-ic"><use href="#ts-olho"/></svg></button>
+        </div>
+        <div class="ts-erro" id="erro-nova" role="alert" hidden></div>
+      </div>
+      <div class="ts-forca">
+        <div class="ts-forca-l"><span>Força da senha</span><b id="forca-txt">—</b></div>
+        <div class="ts-barra" aria-hidden="true"><i id="forca-fill"></i></div>
+      </div>
+      <ul class="ts-regras" id="ts-regras" aria-label="A senha precisa ter">
+        <li id="r-min"><svg class="ts-ic"><use href="#ts-ponto"/></svg>8 ou mais caracteres</li>
+        <li id="r-num"><svg class="ts-ic"><use href="#ts-ponto"/></svg>um número</li>
+        <li id="r-mai"><svg class="ts-ic"><use href="#ts-ponto"/></svg>uma letra maiúscula</li>
+        <li id="r-min2"><svg class="ts-ic"><use href="#ts-ponto"/></svg>uma letra minúscula</li>
+        <li id="r-nova"><svg class="ts-ic"><use href="#ts-info"/></svg>que você nunca tenha usado aqui</li>
+      </ul>
+      <div class="ts-campo">
+        <label for="conf-senha">Confirmar a nova senha <span class="ob" aria-hidden="true">*</span></label>
+        <div class="ts-in">
+          <input id="conf-senha" type="password" autocomplete="new-password" required aria-describedby="erro-conf">
+          <button type="button" class="ts-olho" data-olho="conf-senha" aria-label="Mostrar a senha"><svg class="ts-ic"><use href="#ts-olho"/></svg></button>
+        </div>
+        <div class="ts-erro" id="erro-conf" role="alert" hidden></div>
+      </div>
+      <button type="submit" class="ts-btn" id="btn-salvar" disabled><svg class="ts-ic"><use href="#ts-cad"/></svg><span>Salvar a nova senha</span></button>
+    </form>
+
+    <!-- link de confirmar o pedido de voltar a entrar -->
+    <div id="ns-retorno" class="ns-col" hidden>
+      <h1 id="ns-ret-titulo">Confirme o seu pedido</h1>
+      <p class="ts-sub" id="ns-ret-sub"></p>
+      <div class="ts-erro" id="erro-ret" role="alert" hidden></div>
+      <button type="button" class="ts-btn" id="btn-confirmar"><svg class="ts-ic"><use href="#ts-check"/></svg><span>Confirmar o meu pedido</span></button>
+    </div>
+
+    <!-- resultado / link inválido -->
+    <div class="ts-ok" id="ns-fim" hidden role="status">
+      <span class="ts-selo" id="ns-fim-selo"><svg class="ts-ic"><use href="#ts-check"/></svg></span>
+      <h2 id="ns-fim-titulo"></h2>
+      <p id="ns-fim-texto"></p>
+      <a class="ts-btn" href="../index.html" style="text-decoration:none"><span id="ns-fim-btn">Ir para a tela de entrada</span><svg class="ts-ic"><use href="#ts-seta"/></svg></a>
+    </div>
+  </div>
+</main>
+
+<script src="../js/autoria.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/nova-senha.js"></script>
+</body>
+</html>

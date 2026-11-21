@@ -1345,6 +1345,8 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
 - **Fase 2** (`20261127_acessos_d`): ação/gravação por perfil exige o módulo no trecho do perfil (RPC chamada pela Edge
   Function usa `fn_usuario_modulo(uid, m)`); Viagens filhas seguem `fn_viagem_pode`. Vínculo também abre Contratos,
   Viagens, Patrimônio e Pulso (`ACESSO_VINCULO`). Função nova que confere perfil num módulo liberável: mesmo padrão.
+- **Voltar a entrar e nova senha** (`20261127_acessos_e`): ver "Tela de entrada › Esqueceu a senha?". Conta desativada só volta pela
+  aprovação do super_admin e com os módulos em revisão; nova senha só pelo link de 24 h para a própria pessoa, sem repetir senha usada.
 
 ### Relatórios A4 — PADRÃO ÚNICO (⚠️ todo relatório novo, em qualquer tela, segue isto)
 - **Um molde só**: `js/folha-a4.js` (`FolhaA4`) + `css/folha-a4.css`. Usam: os 39 da aba Relatórios (`wrapDoc`), os dois A4 da
@@ -1419,11 +1421,23 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
   Entrar usa sempre o verde da marca (contraste).
 - Formulário de verdade (`<form>`, rótulos ligados, `autocomplete`), mostrar senha, aviso de Caps Lock, erro com `role="alert"`,
   todos os textos em PT/EN/ES (`TX`). Lógica de entrar igual: conta desativada sai, `deve_trocar_senha` → trocar-senha, `dima_redirect`.
-- **Esqueceu a senha?** → `fn_publico_pedir_nova_senha(p_email)` (SECURITY DEFINER, EXECUTE `anon`/`authenticated`): cria pedido em
-  `solicitacoes_senha` (motivo "Pedido na tela de entrada (sem login)") só para conta **ativa** e sem pedido pendente, no máximo 30
-  pedidos sem login por hora; o trigger avisa os super_admin no sino e o administrador define a senha temporária em Usuários.
-  **Resposta sempre igual** (não revela se o e-mail existe) e nada é trocado nem enviado automaticamente — não mudar isso.
-  Policies de `solicitacoes_senha` são `TO authenticated` (super_admin por `fn_perfil_atual()`).
+- **Esqueceu a senha?** e **Pedir para voltar a entrar** → Edge Function **`conta-acesso`** (migração `20261127_acessos_e_retorno_senha`;
+  pedido 21/11/2026). Resposta **sempre igual** e na hora (e-mail em segundo plano): não revela se o e-mail existe nem a situação da conta.
+  - Conta ativa ⇒ e-mail com **link de uso único, 24 h** (`acesso_links`, só o SHA-256; pedido novo anula o anterior; 3/h por pessoa,
+    100/h no total) para **a própria pessoa criar a senha** em `pages/nova-senha.html` (`js/nova-senha.js`; `no-referrer`, o código sai da
+    barra; abrir não usa o link, só o botão). **A senha nunca vai por e-mail.** Regras: 8+, número, maiúscula, minúscula e **não repetir
+    senha já usada** (`usuario_senhas_historico`, preenchida por gatilho em `auth.users`; `fn_senha_ja_usada` compara as 12 últimas + a
+    atual — pgcrypto só confere bcrypt `$2a$`). Gravou ⇒ outras sessões encerradas, `deve_trocar_senha` = false, pedidos de senha
+    fechados e e-mail "senha alterada".
+  - Conta suspensa ⇒ o pedido vira "voltar a entrar"; conta desativada ⇒ nada sai (`acesso_links.finalidade='negado'`, Auditor).
+  - "Pedir para voltar a entrar" (motivo ≥ 10) ⇒ e-mail para **confirmar o pedido**; só depois (`fn_retorno_confirmar`) vira
+    `usuario_pedidos_acesso` tipo `liberacao` e avisa o super_admin. **Só o super_admin aprova** (`fn_acesso_decidir`): suspensa = libera;
+    desativada = **reativa** (os módulos voltam **em revisão** 15 dias, `trg_usuario_reativado`, também pelo botão Reativar de Usuários).
+    O e-mail "liberado/reativado" leva um link para criar senha nova (`fn_senha_link_emitir`, gerado no envio pela `acesso-emails`).
+  - Trocar a própria senha (Meu perfil e `trocar-senha.html`) também passa pela `conta-acesso` (`trocar_senha`: senha atual conferida no
+    servidor, exceto no 1º acesso com senha temporária; mesmo bloqueio por tentativas `fn_rem_senha_bloqueada_ate`). Nunca voltar a usar
+    `db.auth.updateUser({password})` na tela. A senha temporária do super_admin (aba Senha em Usuários) continua para quem não tem e-mail.
+  - `fn_publico_pedir_nova_senha`/`fn_publico_pedir_liberacao` (fluxo antigo) ficaram no banco para página velha em cache; a tela não usa.
 - A prévia em Dados do sistema (`#preview-frame`) é cópia simplificada: mudou a entrada ⇒ ajustar a prévia.
 
 ### Manual do sistema (Ajuda) e Trocar senha
@@ -1617,6 +1631,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `publico-produto` | Documento (PDF do bucket privado de entregas) de produto marcado como público no Acervo, para o visualizador da Galeria do site público; só entrega o que `fn_publico_arquivo_caminho` libera (service_role), 404 no resto; `Content-Disposition` com nome genérico. Chamada com a chave anon no cabeçalho | ✅ |
 | `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`) e aprova/devolve o pedido de baixa (`acao:'decidir_baixa'` → `fn_pat_baixa_decidir`) e assina o inventário pela comissão (`acao:'assinar_inventario'` → `fn_pat_inv_assinar`), todos só service_role; mesmo bloqueio por tentativas do remanejamento | ✅ |
 | `acesso-emails` | Envia a fila `acesso_notificacoes` (aviso de inatividade, entrada suspensa, entrada liberada, resumo dos suspensos para o super_admin); cron `acesso-emails` (15 min) | ✅ |
+| `conta-acesso` | Sem login: pedido de nova senha (link de 24 h por e-mail) e de voltar a entrar (confirmação por e-mail); página do link (`info`, `definir_senha` sem repetir senha usada, `confirmar_retorno`); logado: `trocar_senha`. Resposta igual para todos nos pedidos sem login | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---

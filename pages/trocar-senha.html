@@ -125,17 +125,23 @@ async function salvarSenha() {
   const btn = document.getElementById('btn-salvar'), rot = btn.querySelector('span');
   btn.disabled = true; rot.textContent = 'Salvando…';
   try {
-    const { error } = await db.auth.updateUser({ password: nova });
-    if (error) throw error;
+    // Grava pelo servidor (Edge Function conta-acesso): confere as regras e não deixa repetir senha já usada
     const { data: { session } } = await db.auth.getSession();
-    await db.from('usuarios').update({ deve_trocar_senha: false, senha_temporaria_usada: true, primeiro_acesso_em: new Date().toISOString() }).eq('id', session.user.id);
+    const r = await fetch(SUPABASE_URL + '/functions/v1/conta-acesso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || ''), apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ acao: 'trocar_senha', nova }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!j.ok) throw new Error(j.erro || 'tente novamente.');
+    await db.from('usuarios').update({ primeiro_acesso_em: new Date().toISOString() }).eq('id', session.user.id);
     document.getElementById('form-wrap').hidden = true;
     document.getElementById('sucesso-wrap').hidden = false;
     setTimeout(irDashboard, 3000);
   } catch (e) {
     btn.disabled = false; rot.textContent = 'Definir minha senha e entrar';
     const erro = document.getElementById('erro-nova');
-    erro.textContent = 'Não foi possível salvar: ' + (e.message || 'tente novamente.'); erro.hidden = false;
+    erro.textContent = e.message || 'Não foi possível salvar. Tente novamente.'; erro.hidden = false;
   }
 }
 

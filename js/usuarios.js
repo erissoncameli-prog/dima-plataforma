@@ -615,17 +615,22 @@ async function trocarSenhaPropria() {
   const nova = document.getElementById('p-senha-nova')?.value;
   const conf = document.getElementById('p-senha-conf')?.value;
   if (!atual || !nova || !conf) { toast('Preencha os três campos de senha.', 'error'); return; }
-  if (nova.length < 8) { toast('A nova senha precisa ter pelo menos 8 caracteres.', 'error'); return; }
+  if (nova.length < 8 || !/\d/.test(nova) || !/[A-Z]/.test(nova) || !/[a-z]/.test(nova)) {
+    toast('A nova senha precisa ter 8 ou mais caracteres, um número, uma letra maiúscula e uma minúscula.', 'error'); return;
+  }
   if (nova !== conf) { toast('A nova senha e a confirmação não são iguais.', 'error'); return; }
-  // Confere a senha atual entrando de novo e restaura a sessão original
-  const email = appState.usuario.email;
-  const { data: sessaoOriginal } = await db.auth.getSession();
-  const { error: loginErr } = await db.auth.signInWithPassword({ email, password: atual });
-  if (sessaoOriginal?.session) await db.auth.setSession(sessaoOriginal.session);
-  if (loginErr) { toast('Senha atual incorreta.', 'error'); return; }
-  const { error } = await db.auth.updateUser({ password: nova });
-  if (error) { toast('Erro ao alterar a senha: ' + error.message, 'error'); return; }
-  await db.from('usuarios').update({ deve_trocar_senha: false, senha_temporaria_usada: true, atualizado_em: new Date().toISOString() }).eq('id', appState.usuario.id);
+  // O servidor (Edge Function conta-acesso) confere a senha atual, as regras e não deixa repetir senha já usada
+  const { data: { session } } = await db.auth.getSession();
+  let j = {};
+  try {
+    const r = await fetch(SUPABASE_URL + '/functions/v1/conta-acesso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || ''), apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ acao: 'trocar_senha', senha_atual: atual, nova }),
+    });
+    j = await r.json().catch(() => ({}));
+  } catch (e) { toast('Sem conexão. Tente de novo.', 'error'); return; }
+  if (!j.ok) { toast(j.erro || 'Não foi possível alterar a senha.', 'error'); return; }
   ['p-senha-atual', 'p-senha-nova', 'p-senha-conf'].forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
   avaliarSenha('', 'p-senha-bar');
   toast('Senha alterada.', 'success');
@@ -744,16 +749,19 @@ async function removerFotoModal() {
 function abrirPedidos() {
   usuarioAtual = null; editando = false; abas(null);
   document.getElementById('mu-titulo').textContent = 'Pedidos de acesso';
-  document.getElementById('mu-sub').textContent = 'Módulos pedidos pelas pessoas e pedidos de liberação da entrada (suspensos por inatividade).';
+  document.getElementById('mu-sub').textContent = 'Módulos pedidos pelas pessoas e pedidos para voltar a entrar (conta suspensa por inatividade ou desativada). Pedido feito na tela de entrada só chega aqui depois que a pessoa confirma pelo e-mail.';
   const nome = id => todosUsuarios.find(u => u.id === id)?.nome_completo || 'Usuário';
+  // pedido de voltar a entrar de conta desativada = reativar a conta (os módulos voltam em revisão)
+  const desat = p => p.tipo === 'liberacao' && todosUsuarios.find(u => u.id === p.usuario_id)?.ativo === false;
   document.getElementById('mu-body').innerHTML = pedidosAcesso.length ? pedidosAcesso.map(p => `
     <div class="ad-card" style="padding:12px;margin-bottom:10px">
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <b style="flex:1;min-width:160px">${esc(nome(p.usuario_id))}</b>
-        <span class="ad-pill ${p.tipo === 'liberacao' ? 'ad-al' : 'ad-in'}">${p.tipo === 'liberacao' ? 'Liberar a entrada' : esc(modLabel(p.modulo))}</span>
+        <span class="ad-pill ${p.tipo === 'liberacao' ? 'ad-al' : 'ad-in'}">${desat(p) ? 'Reativar a conta' : p.tipo === 'liberacao' ? 'Liberar a entrada' : esc(modLabel(p.modulo))}</span>
         <small class="ad-mono">${esc(fmtDT(p.criado_em))}${p.origem === 'entrada' ? ' · pela tela de entrada' : ''}</small>
       </div>
       ${p.justificativa ? `<p class="ad-dica" style="margin:6px 0 0">${esc(p.justificativa)}</p>` : ''}
+      ${desat(p) ? '<p class="ad-dica" style="margin:6px 0 0">A conta está desativada. Reativar devolve a entrada e deixa os módulos que ela tinha <b>em revisão</b> por 15 dias; confirme depois o que ainda é preciso.</p>' : ''}
       <div class="ad-g2" style="margin-top:8px">
         ${p.tipo === 'modulo' ? `<div class="form-group"><label class="form-label" for="pa-ate-${p.id}">Liberar até (opcional)</label>
           <input type="datetime-local" class="form-control" id="pa-ate-${p.id}"></div>` : '<div></div>'}
@@ -762,7 +770,7 @@ function abrirPedidos() {
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button type="button" class="btn btn-secondary" onclick="decidirPedido('${esc(p.id)}', false)">Recusar</button>
-        <button type="button" class="btn btn-primary" onclick="decidirPedido('${esc(p.id)}', true)">${adIc('check', 'p')}${p.tipo === 'liberacao' ? 'Liberar entrada' : 'Liberar módulo'}</button>
+        <button type="button" class="btn btn-primary" onclick="decidirPedido('${esc(p.id)}', true)">${adIc('check', 'p')}${desat(p) ? 'Reativar conta' : p.tipo === 'liberacao' ? 'Liberar entrada' : 'Liberar módulo'}</button>
       </div>
     </div>`).join('') : '<p class="ad-vazio">Nenhum pedido aguardando.</p>';
   document.getElementById('mu-footer').innerHTML = `<span class="ad-sp"></span><button type="button" class="btn btn-secondary" onclick="fecharModal(true)">Fechar</button>`;

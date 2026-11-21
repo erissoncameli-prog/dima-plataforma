@@ -65,3 +65,9 @@ html[data-tema="escuro"] .ts-regras li.ok { color: var(--ts-ok); }
 [hidden] { display: none !important; }
 @media (max-width: 420px) { .ts-regras { grid-template-columns: 1fr; } .ts-body { padding: 18px; } .ts-top { padding: 18px; } }
 @media (prefers-reduced-motion: reduce) { .ts-barra i { transition: none; } }
+
+/* Página do link de nova senha / voltar a entrar (pages/nova-senha.html) */
+.ns-col { display: flex; flex-direction: column; gap: 14px; }
+.ns-col[hidden], .ts-ok[hidden] { display: none; }
+.ts-ok .ts-selo.ts-selo-alerta { background: var(--ts-er-bg); color: var(--ts-er); }
+.ts-regras li#r-nova { color: var(--ts-txt-2); }
