@@ -146,6 +146,12 @@ const ACESSO_VINCULO = {
   tdrs:           v => v.responsavel,
   produtos:       v => v.responsavel || v.fornecedor,
   remanejamentos: v => v.responsavel || v.titular,
+  // a página mostra só o que o banco libera pelo vínculo (contratos da própria atividade ou do fornecedor,
+  // o próprio protocolo de viagem, "Meus bens", os ciclos que a pessoa criou) — migração 20261127_acessos_d
+  contratos:      v => v.responsavel || v.fornecedor,
+  viagens:        v => v.viagem,
+  patrimonio:     v => v.patrimonio,
+  pulso:          v => v.pulso,
 };
 function acessoLiberado(navId) {
   if (appState.perfil === 'super_admin') return true;

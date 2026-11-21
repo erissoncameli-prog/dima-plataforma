@@ -1337,7 +1337,12 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
   aviso no 12º dia). App de campo registra acesso por `fn_registrar_acesso('app')` na sincronização. Liberar = `fn_acesso_liberar_inatividade`
   (3 dias para entrar); pedido sem login = `fn_publico_pedir_liberacao` (resposta sempre igual). Colunas só pelas funções (`dima.acesso='rpc'`).
 - Avisos: sino `acesso_*` (só com o `_sql_editor`), e-mail pela fila `acesso_notificacoes` → Edge Function `acesso-emails`. Auditor:
-  `fn_auditoria_acessos()` ("Acessos: …", domínio virtual na tela). ROPA TRAT-007. Pendente: funções de ação por perfil (fase 2).
+  `fn_auditoria_acessos()` ("Acessos: …", domínio virtual na tela). ROPA TRAT-007.
+- **Responsável de atividade e titular de cargo** ganham na hora, sem prazo, os módulos do perfil (gatilhos em
+  `atividade_responsaveis`/`rem_cargo_titulares`) e **nunca são suspensos por inatividade** (o Auditor aponta).
+- **Fase 2** (`20261127_acessos_d`): ação/gravação por perfil exige o módulo no trecho do perfil (RPC chamada pela Edge
+  Function usa `fn_usuario_modulo(uid, m)`); Viagens filhas seguem `fn_viagem_pode`. Vínculo também abre Contratos,
+  Viagens, Patrimônio e Pulso (`ACESSO_VINCULO`). Função nova que confere perfil num módulo liberável: mesmo padrão.
 
 ### Relatórios A4 — PADRÃO ÚNICO (⚠️ todo relatório novo, em qualquer tela, segue isto)
 - **Um molde só**: `js/folha-a4.js` (`FolhaA4`) + `css/folha-a4.css`. Usam: os 39 da aba Relatórios (`wrapDoc`), os dois A4 da

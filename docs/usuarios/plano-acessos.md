@@ -26,10 +26,26 @@ Decidido com o super_admin em 21/11/2026; em produção desde 26/11/2026 (migra�
 Exceções mantidas de propósito: o visualizador continua lendo `execucao_financeira` pelo perfil (a Visão Geral é
 aberta a todos); a lista de fornecedores ainda aparece a quem enxerga TDR/contrato/lançamento/tarefa ligados a ele.
 
-**Pendente (fase 2):** as funções de ação que checam só o perfil dentro de um módulo (ex.: `fn_encp_pedir`, `fn_lic_*`,
-`fn_rem_salvar`, `fn_tcan_salvar`) ainda não exigem o módulo — quem perde o módulo perde a página e os dados, mas a
-RPC chamada direto ainda responderia. As tabelas filhas de Viagens (`viagem_trechos`, `viagem_diarias*`,
-`viaj_sel`) seguem abertas a qualquer logado — lacuna anterior, a corrigir à parte.
+**Fase 2 (migração `20261127_acessos_d_vinculos_fase2`, 27/11/2026):**
+- Ações que conferiam só o perfil exigem o módulo no trecho do perfil (o de vínculo não muda): pedir encerramento e
+  anexar termo (`contratos`), liberar/estornar economia, licitação, cancelamento de TDR e `fn_registrar_acao_tdr`
+  (`tdrs`; sem o módulo a pessoa age só pelo vínculo, como técnico), remanejamento e estorno (`remanejamentos`),
+  editar mapa (`mapa`), gestor do Pulso (`pulso`), comprovantes/devolução de viagem (`viagens`, por
+  `fn_usuario_modulo(uid, m)` nas funções chamadas pela Edge Function). Regras de gravação de atividades,
+  responsáveis, matriz, indicadores, riscos, TDRs (inserir/editar/anexos/versões), produtos e encerramentos idem.
+- Viagens: viajantes, trechos, diárias, tabelas antigas e registro de e-mails seguem `fn_viagem_pode(protocolo,
+  'ver'|'editar')` = super_admin, coordenação/financeiro com o módulo, extra de Viagens (só ver, exceto técnico) ou quem
+  participa (`fn_viagem_participa`). Quem participa passa a ver o próprio protocolo (`viagem_prot_participa`).
+  Criar protocolo exige o módulo.
+- Leitura de TDRs por perfil (coordenação, financeiro, visualizador) ficou como estava: a Visão Geral, aberta a todos, usa.
+- Vínculos que abrem página: Contratos (responsável/fornecedor), Viagens (`viagem`), Patrimônio (`patrimonio`: bem sob
+  guarda, termo a aceitar, comissão de inventário aberta), Pulso (`pulso`: criou ciclo).
+
+## Responsáveis e titulares de cargo (decisão de 21/11/2026)
+- Ganham na hora, sem prazo, os módulos do perfil (`fn_acesso_conceder_padrao`, gatilhos `trg_atividade_resp_acesso` e
+  `trg_rem_titular_acesso`); os atuais foram aplicados na migração D sem desfazer módulo retirado de propósito.
+- **Não são suspensos por inatividade** (`fn_acesso_vinculo_permanente` na `fn_acesso_rotina`): recebem o aviso e o
+  Auditor aponta "Acessos: responsável ou signatário sem entrar há 15 dias".
 
 ## Revisão inicial (26/11/2026)
 

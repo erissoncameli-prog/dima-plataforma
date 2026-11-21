@@ -139,6 +139,21 @@ async function pagina(navegador, banco, logado) {
       await pg.goto(BASE + '/pages/financeiro.html')
       await pg.waitForURL(/sem-acesso/, { timeout: 8000 }).catch(() => {})
       conf(/sem-acesso\.html\?m=financeiro/.test(pg.url()), 'mas Financeiro (sem vínculo) continua fechado')
+      await pg.goto(BASE + '/pages/contratos.html')
+      await pg.waitForTimeout(2500)
+      conf(/contratos\.html/.test(pg.url()), 'responsável abre Contratos pelo vínculo (aprovar encerramento)')
+      await ctx.close()
+    }
+    console.log('Vínculo de viajante')
+    {
+      const banco = bancoBase(); banco.__rpc.fn_meus_vinculos = { viagem: true }
+      const { ctx, pg } = await pagina(nav, banco, RESP)
+      await pg.goto(BASE + '/pages/viagens.html')
+      await pg.waitForTimeout(2500)
+      conf(/viagens\.html/.test(pg.url()), 'quem participa de uma viagem abre Viagens sem o módulo')
+      await pg.goto(BASE + '/pages/patrimonio.html')
+      await pg.waitForURL(/sem-acesso/, { timeout: 8000 }).catch(() => {})
+      conf(/sem-acesso\.html\?m=patrimonio/.test(pg.url()), 'mas Patrimônio (sem bem sob guarda) continua fechado')
       await ctx.close()
     }
     console.log('Usuários (super_admin)')
