@@ -74,5 +74,5 @@ aberta a todos); a lista de fornecedores ainda aparece a quem enxerga TDR/contra
 - Pedidos: `usuario_pedidos_acesso` (`fn_acesso_pedir`, `fn_acesso_cancelar_pedido`, `fn_acesso_decidir`); tela
   `pages/sem-acesso.html` e Usuários › Pedidos de acesso.
 - Relatório "Quem acessa o quê" (Usuários): A4 pela FolhaA4 + planilha ExcelJS.
-- Auditor: `fn_auditoria_acessos()` (achados "Acessos: …"); agente `auditarAcessos` em `auditor-ia` (publicar a v24).
+- Auditor: `fn_auditoria_acessos()` (achados "Acessos: …"); agente `auditarAcessos` em `auditor-ia` (v24, publicada).
 - ROPA: TRAT-007.
