@@ -1480,6 +1480,18 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   tipos) e `#tk-dlg` (conferência): um `keydown` no documento faz Esc fechar a de cima (conferência antes da tarefa; `fecharModal()`
   pede confirmação se houver edição), prende o Tab e devolve o foco (`tkGuardarOrigem`/`tkDevolverFoco`). Seletores internos
   (atividade, pessoas) tratam o próprio Esc com `stopPropagation`.
+- **E-mail sem duplicar, fornecedor e avisos** (migrações `20261125_tarefas_email_subtarefa_avisos` + `_b_prazo` + `_c_varredura`):
+  o Pub/Sub dispara várias execuções da `receber-email-tarefa` ao mesmo tempo (TR-051: cada "Ciente" virou até 4 comentários);
+  cada mensagem é **reservada** em `tarefa_email_recebidos` (PK = id do Gmail) antes de comentar — nunca comentar sem reservar.
+  O fornecedor da **tarefa** (`tarefas.fornecedor_id`) responde pelo Reply-To com o código da tarefa (antes o e-mail saía sem ele e a
+  resposta se perdia); e-mail antigo sem código casa pelo assunto "pendência: <título>". Varredura das respostas antigas = linha em
+  `tarefa_email_varreduras` (`simular`), executada na próxima chamada da função (resultado na própria linha).
+  **Quem é avisado de comentário = `fn_tarefa_alvo_comentario`** (sino e e-mail): criador + responsáveis com a tarefa aberta (não em
+  revisão/concluída) + responsável de subtarefa pendente. **Observador só recebe início, envio para revisão e conclusão** (nada de
+  comentário nem prazo); e-mail e painel dizem "Você é observador(a): só acompanha, não precisa fazer nada".
+- **Responsável (usuário) de subtarefa** entra como observador, mas age na própria subtarefa sem editar a tarefa: `fn_subtarefa_concluir`,
+  `fn_comentar_subtarefa` (comentário com `checklist_id`) e policy `anexo_insert_subtarefa`; no painel, "Responder ou anexar"/"Concluir"
+  na subtarefa (`subMinha`, `faixaPapel`) e selo "Sua subtarefa". O e-mail da subtarefa responde para o código **da subtarefa**.
 - Bucket `tarefas-anexos`: caminho **sempre** `<tarefa_id>/<arquivo>` — as policies de storage leem a 1ª pasta (`fn_tarefa_id_do_path`) e aplicam o acesso da tarefa (ver/anexar: `fn_pode_ver_tarefa`; apagar: `fn_tarefa_pode_editar`). Arquivo fora desse padrão fica inacessível ao cliente.
 
 ### API de dados para outras plataformas (⚠️ ler antes de expor dado para fora)

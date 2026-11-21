@@ -8,6 +8,13 @@
 //      fn_comentar_tarefa_fornecedor)
 //   4) salva anexos no bucket tarefas-anexos LIGADOS ao comentário (comentario_id)
 //   5) marca a mensagem como lida
+// Idempotência (20261125): cada mensagem é RESERVADA em tarefa_email_recebidos antes de
+//   comentar — o Pub/Sub dispara várias execuções em paralelo a partir da mesma baseline
+//   (TR-051: cada "Ciente" virou até 4 comentários). Quem perde a reserva pula.
+// Fornecedor da TAREFA (tarefas.fornecedor_id) também é aceito como autor. E-mail antigo,
+//   sem o código no endereço, é casado pelo assunto "Projeto DIMA — pendência: <título>"
+//   (só para o fornecedor da tarefa). ?varrer_fornecedores=1 (&simular=1) procura essas
+//   respostas na caixa dos últimos 120 dias.
 // Endereço fundobrasilonuacre+api@gmail.com = PEDIDO DE ACESSO À API (20261101_api_pedidos_email):
 //   vira linha em api_pedidos (fn_api_pedido_registrar), sem passar pela lógica de tarefas;
 //   além do histórico, cada execução varre os +api dos últimos 3 dias (o que já é pedido é pulado);
@@ -38,9 +45,12 @@ const RE_API = /fundobrasilonuacre\+api@gmail\.com/i
 function limparCorpo (txt: string): string {
   const linhas = txt.replace(/\r/g, '').split('\n')
   const out: string[] = []
-  for (const l of linhas) {
+  for (let i = 0; i < linhas.length; i++) {
+    const l = linhas[i]
     if (/^\s*>/.test(l)) break
     if (/^\s*(Em|On)\s.+(escreveu|wrote):\s*$/.test(l)) break
+    // Gmail quebra a atribuição em duas linhas: "Em ter., 10 de nov. … Projeto DIMA – UNESCO/SE" + "MA-AC <…> escreveu:"
+    if (/^\s*(Em|On)\s.+\d/.test(l) && /(escreveu|wrote):\s*$/.test(linhas[i + 1] || '')) break
     if (/^-{2,}\s*(Mensagem original|Original Message|Forwarded message)/i.test(l)) break
     if (/^________+/.test(l)) break
     if (/^De:\s|^From:\s/.test(l) && out.length) break
@@ -112,6 +122,26 @@ Deno.serve(async (req) => {
     const token = await accessToken()
     const H = { Authorization: 'Bearer ' + token }
 
+    // Respostas antigas de fornecedor (sem o código no endereço) — só sob pedido; não mexe na baseline.
+    if (url.searchParams.get('varrer_fornecedores') === '1') {
+      const fornecedores = await varrerFornecedores(sb, H, url.searchParams.get('simular') === '1')
+      return new Response(JSON.stringify({ ok: true, fornecedores }), { headers: { 'Content-Type': 'application/json' } })
+    }
+
+    // Varredura pedida pela fila tarefa_email_varreduras (uma por vez; quem chegar primeiro reserva).
+    try {
+      const { data: pend } = await sb.from('tarefa_email_varreduras').select('id,simular')
+        .is('feito_em', null).order('id').limit(1).maybeSingle()
+      if (pend) {
+        const { data: reservada } = await sb.from('tarefa_email_varreduras')
+          .update({ feito_em: new Date().toISOString() }).eq('id', pend.id).is('feito_em', null).select('id').maybeSingle()
+        if (reservada) {
+          const resultado = await varrerFornecedores(sb, H, pend.simular)
+          await sb.from('tarefa_email_varreduras').update({ resultado, feito_em: new Date().toISOString() }).eq('id', pend.id)
+        }
+      }
+    } catch (e) { console.error('varredura fornecedores:', (e as Error).message) }
+
     // novos ids desde o último historyId processado
     const hr = await fetch(`${GMAIL}/history?startHistoryId=${startHistoryId}&historyTypes=messageAdded&labelId=INBOX`, { headers: H })
     const hj = await hr.json()
@@ -133,78 +163,8 @@ Deno.serve(async (req) => {
           })
           continue
         }
-        const tok = to.match(RE_TOKEN)
-        if (!tok) continue
-        const alvoId = tok[1]
-        const fromEmail = emailDe(header(payload, 'From'))
-        if (!fromEmail || fromEmail === EMAIL_CONTA) continue
-
-        // o token é de uma tarefa ou de uma subtarefa?
-        let tarefaId = alvoId, checklistId: string | null = null, subFornecedor: string | null = null
-        const { data: ck } = await sb.from('tarefa_checklist')
-          .select('id,tarefa_id,responsavel_fornecedor_id').eq('id', alvoId).maybeSingle()
-        if (ck) { tarefaId = ck.tarefa_id; checklistId = ck.id; subFornecedor = ck.responsavel_fornecedor_id }
-
-        // tarefa precisa existir e estar ativa
-        const { data: t } = await sb.from('tarefas').select('id,ativo').eq('id', tarefaId).maybeSingle()
-        if (!t || t.ativo === false) continue
-
-        // remetente: usuário interno ativo, ou o fornecedor responsável pela subtarefa
-        const { data: u } = await sb.from('usuarios').select('id,ativo').eq('email', fromEmail).maybeSingle()
-        let autorUsuario: string | null = null, autorFornecedor: string | null = null
-        if (u && u.ativo !== false) autorUsuario = u.id
-        else if (subFornecedor) {
-          const { data: f } = await sb.from('fornecedores').select('id,email').eq('id', subFornecedor).maybeSingle()
-          if (f && emailsDe(f.email).includes(fromEmail)) autorFornecedor = f.id
-        }
-        if (!autorUsuario && !autorFornecedor) continue
-
-        let corpo = acharParte(payload, 'text/plain')
-        if (!corpo) corpo = acharParte(payload, 'text/html').replace(/<[^>]+>/g, ' ')
-        corpo = limparCorpo(corpo)
-        const anexos = coletarAnexos(payload)
-        // resposta só com anexo não pode ser descartada
-        if (!corpo && anexos.length) corpo = '📎 Anexo enviado por e-mail'
-        if (!corpo) continue
-
-        const { data: comentarioId, error: eRpc } = autorUsuario
-          ? await sb.rpc('fn_comentar_tarefa_sistema', {
-              p_tarefa_id: tarefaId, p_autor_id: autorUsuario, p_corpo: corpo, p_origem: 'email',
-              p_checklist_id: checklistId,
-            })
-          : await sb.rpc('fn_comentar_tarefa_fornecedor', {
-              p_tarefa_id: tarefaId, p_fornecedor_id: autorFornecedor, p_corpo: corpo,
-              p_checklist_id: checklistId,
-            })
-        if (eRpc) { console.error('rpc comentar:', eRpc.message); continue }
-        comentados++
-
-        // anexos → bucket tarefas-anexos, ligados ao comentário (e à subtarefa)
-        for (const a of anexos) {
-          try {
-            const ar = await fetch(`${GMAIL}/messages/${id}/attachments/${a.attachmentId}`, { headers: H })
-            const aj = await ar.json()
-            if (!aj.data) continue
-            const bytes = b64urlToBytes(aj.data)
-            const safe = (a.nome || 'anexo').replace(/[^\w.\-]+/g, '_')
-            const path = `${tarefaId}/${Date.now()}_${safe}`
-            const up = await sb.storage.from('tarefas-anexos').upload(path, bytes, { contentType: a.mime || 'application/octet-stream', upsert: false })
-            if (up.error) { console.error('upload anexo:', up.error.message); continue }
-            const publicUrl = sb.storage.from('tarefas-anexos').getPublicUrl(path).data.publicUrl
-            const { error: eAx } = await sb.from('tarefa_anexos').insert({
-              tarefa_id: tarefaId, arquivo_url: publicUrl, arquivo_nome: a.nome, mime: a.mime || null,
-              tamanho: bytes.length, enviado_por: autorUsuario, enviado_por_fornecedor_id: autorFornecedor,
-              comentario_id: comentarioId, checklist_id: checklistId,
-            })
-            if (eAx) console.error('insert anexo:', eAx.message)
-          } catch (e) { console.error('anexo:', (e as Error).message) }
-        }
-
-        // marca como lida
-        await fetch(`${GMAIL}/messages/${id}/modify`, {
-          method: 'POST', headers: { ...H, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ removeLabelIds: ['UNREAD'] }),
-        })
+        const r = await processarMensagem(sb, H, id, payload, false)
+        if (r === 'comentado') comentados++
       } catch (e) { console.error('msg', id, (e as Error).message) }
     }
 
@@ -242,6 +202,151 @@ Deno.serve(async (req) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } }) // 200 p/ não reentregar em loop
   }
 })
+
+// ── Mensagem → comentário de tarefa ───────────────────────────────────────
+// Devolve 'comentado' | 'repetida' | 'ignorada' | 'simulada:<tarefa>'.
+async function processarMensagem (sb: any, H: Record<string, string>, id: string, payload: any, simular: boolean): Promise<string> {
+  const to = `${header(payload, 'To')} ${header(payload, 'Delivered-To')} ${header(payload, 'Cc')}`
+  const fromEmail = emailDe(header(payload, 'From'))
+  if (!fromEmail || fromEmail === EMAIL_CONTA) return 'ignorada'
+
+  let tarefaId: string | null = null, checklistId: string | null = null, subFornecedor: string | null = null
+  const tok = to.match(RE_TOKEN)
+  if (tok) {
+    tarefaId = tok[1]
+    // o token é de uma tarefa ou de uma subtarefa?
+    const { data: ck } = await sb.from('tarefa_checklist')
+      .select('id,tarefa_id,responsavel_fornecedor_id').eq('id', tok[1]).maybeSingle()
+    if (ck) { tarefaId = ck.tarefa_id; checklistId = ck.id; subFornecedor = ck.responsavel_fornecedor_id }
+  } else {
+    // e-mail ao fornecedor da tarefa enviado antes do Reply-To com código: casa pelo assunto
+    tarefaId = await tarefaPorAssunto(sb, fromEmail, header(payload, 'Subject'))
+    if (!tarefaId) return 'ignorada'
+  }
+
+  // tarefa precisa existir e estar ativa
+  const { data: t } = await sb.from('tarefas').select('id,ativo,fornecedor_id').eq('id', tarefaId).maybeSingle()
+  if (!t || t.ativo === false) return 'ignorada'
+
+  // remetente: usuário interno ativo, ou o fornecedor da subtarefa / da tarefa
+  let autorUsuario: string | null = null, autorFornecedor: string | null = null
+  if (tok) {
+    const { data: u } = await sb.from('usuarios').select('id,ativo').eq('email', fromEmail).maybeSingle()
+    if (u && u.ativo !== false) autorUsuario = u.id
+  }
+  if (!autorUsuario) {
+    for (const fid of [subFornecedor, t.fornecedor_id]) {
+      if (!fid || autorFornecedor) continue
+      const { data: f } = await sb.from('fornecedores').select('id,email').eq('id', fid).maybeSingle()
+      if (f && emailsDe(f.email).includes(fromEmail)) autorFornecedor = f.id
+    }
+  }
+  if (!autorUsuario && !autorFornecedor) return 'ignorada'
+
+  let corpo = acharParte(payload, 'text/plain')
+  if (!corpo) corpo = acharParte(payload, 'text/html').replace(/<[^>]+>/g, ' ')
+  corpo = limparCorpo(corpo)
+  const anexos = coletarAnexos(payload)
+  // resposta só com anexo não pode ser descartada
+  if (!corpo && anexos.length) corpo = '📎 Anexo enviado por e-mail'
+  if (!corpo) return 'ignorada'
+
+  if (simular) {
+    const { data: ja } = await sb.from('tarefa_email_recebidos').select('gmail_message_id').eq('gmail_message_id', id).maybeSingle()
+    return ja ? 'repetida' : `simulada:${tarefaId}`
+  }
+
+  // reserva a mensagem: quem perder a corrida (execução paralela) não comenta de novo
+  const { error: eRes } = await sb.from('tarefa_email_recebidos')
+    .insert({ gmail_message_id: id, tarefa_id: tarefaId, checklist_id: checklistId })
+  if (eRes) {
+    if (eRes.code === '23505') { await marcarLida(H, id); return 'repetida' }
+    console.error('reserva:', eRes.message); return 'ignorada'
+  }
+
+  const { data: comentarioId, error: eRpc } = autorUsuario
+    ? await sb.rpc('fn_comentar_tarefa_sistema', {
+        p_tarefa_id: tarefaId, p_autor_id: autorUsuario, p_corpo: corpo, p_origem: 'email',
+        p_checklist_id: checklistId,
+      })
+    : await sb.rpc('fn_comentar_tarefa_fornecedor', {
+        p_tarefa_id: tarefaId, p_fornecedor_id: autorFornecedor, p_corpo: corpo,
+        p_checklist_id: checklistId,
+      })
+  if (eRpc) {
+    console.error('rpc comentar:', eRpc.message)
+    await sb.from('tarefa_email_recebidos').delete().eq('gmail_message_id', id) // libera para nova tentativa
+    return 'ignorada'
+  }
+  await sb.from('tarefa_email_recebidos').update({ comentario_id: comentarioId }).eq('gmail_message_id', id)
+
+  // anexos → bucket tarefas-anexos, ligados ao comentário (e à subtarefa)
+  for (const a of anexos) {
+    try {
+      const ar = await fetch(`${GMAIL}/messages/${id}/attachments/${a.attachmentId}`, { headers: H })
+      const aj = await ar.json()
+      if (!aj.data) continue
+      const bytes = b64urlToBytes(aj.data)
+      const safe = (a.nome || 'anexo').replace(/[^\w.\-]+/g, '_')
+      const path = `${tarefaId}/${Date.now()}_${safe}`
+      const up = await sb.storage.from('tarefas-anexos').upload(path, bytes, { contentType: a.mime || 'application/octet-stream', upsert: false })
+      if (up.error) { console.error('upload anexo:', up.error.message); continue }
+      const publicUrl = sb.storage.from('tarefas-anexos').getPublicUrl(path).data.publicUrl
+      const { error: eAx } = await sb.from('tarefa_anexos').insert({
+        tarefa_id: tarefaId, arquivo_url: publicUrl, arquivo_nome: a.nome, mime: a.mime || null,
+        tamanho: bytes.length, enviado_por: autorUsuario, enviado_por_fornecedor_id: autorFornecedor,
+        comentario_id: comentarioId, checklist_id: checklistId,
+      })
+      if (eAx) console.error('insert anexo:', eAx.message)
+    } catch (e) { console.error('anexo:', (e as Error).message) }
+  }
+
+  await marcarLida(H, id)
+  return 'comentado'
+}
+
+async function marcarLida (H: Record<string, string>, id: string) {
+  await fetch(`${GMAIL}/messages/${id}/modify`, {
+    method: 'POST', headers: { ...H, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ removeLabelIds: ['UNREAD'] }),
+  })
+}
+
+// "Re: Projeto DIMA — pendência: <título>" vindo do e-mail do fornecedor da tarefa
+const normTit = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
+async function tarefaPorAssunto (sb: any, fromEmail: string, assunto: string): Promise<string | null> {
+  const m = (assunto || '').match(/pend[eê]ncia:\s*(.+)$/i)
+  if (!m) return null
+  const titulo = normTit(m[1])
+  const { data: ts } = await sb.from('tarefas')
+    .select('id,titulo,criado_em,fornecedor:fornecedores(email)')
+    .eq('ativo', true).eq('notificar_fornecedor', true).not('fornecedor_id', 'is', null)
+    .order('criado_em', { ascending: false }).limit(500)
+  const achou = (ts || []).find((t: any) => normTit(t.titulo) === titulo && emailsDe(t.fornecedor?.email).includes(fromEmail))
+  return achou ? achou.id : null
+}
+
+// Varredura única das respostas antigas de fornecedores (sem código no endereço).
+async function varrerFornecedores (sb: any, H: Record<string, string>, simular: boolean) {
+  const q = encodeURIComponent('subject:("pendência" OR "pendencia") -from:fundobrasilonuacre@gmail.com newer_than:120d')
+  const out: any[] = []
+  let pageToken = ''
+  for (let pag = 0; pag < 5; pag++) {
+    const lj = await (await fetch(`${GMAIL}/messages?q=${q}&maxResults=100${pageToken ? '&pageToken=' + pageToken : ''}`, { headers: H })).json()
+    for (const m of lj.messages || []) {
+      const msg = await (await fetch(`${GMAIL}/messages/${m.id}?format=full`, { headers: H })).json()
+      if ((msg.labelIds || []).includes('SENT')) continue
+      const to = `${header(msg.payload, 'To')} ${header(msg.payload, 'Delivered-To')} ${header(msg.payload, 'Cc')}`
+      if (RE_TOKEN.test(to) || RE_API.test(to)) continue  // essas já passam pelo fluxo normal
+      const r = await processarMensagem(sb, H, m.id, msg.payload, simular)
+      if (r !== 'ignorada') out.push({ id: m.id, de: emailDe(header(msg.payload, 'From')), assunto: header(msg.payload, 'Subject'),
+        data: header(msg.payload, 'Date'), resultado: r })
+    }
+    if (!lj.nextPageToken) break
+    pageToken = lj.nextPageToken
+  }
+  return out
+}
 
 // ── Pedido de acesso à API ────────────────────────────────────────────────
 // Remetente autenticado = o Gmail confirmou o domínio (DMARC pass, ou DKIM pass do

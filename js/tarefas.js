@@ -61,6 +61,13 @@
   const respsDe = t => (t.participantes || []).filter(p => p.papel === 'responsavel')
   const obsDe   = t => (t.participantes || []).filter(p => p.papel === 'observador')
   const souResponsavel = t => respsDe(t).some(p => p.usuario_id === usuario.id)
+  // Observador só acompanha (não tem nada a fazer); quem tem subtarefa pendente também entra como observador
+  const temSubMinha = t => !!(S.minhasSubs && S.minhasSubs.has(t.id))
+  const soObservador = t => !souResponsavel(t) && t.criado_por !== usuario.id && !temSubMinha(t) &&
+    obsDe(t).some(p => p.usuario_id === usuario.id)
+  const tagPapel = t => temSubMinha(t) && !souResponsavel(t)
+    ? `<span class="tag papel-sub" title="Você tem uma subtarefa pendente nesta tarefa">${ic('checks')}Sua subtarefa</span>`
+    : soObservador(t) ? `<span class="tag papel-obs" title="Você só acompanha esta tarefa: não precisa fazer nada">${ic('eye')}Observador</span>` : ''
   // Quem aprova, conclui e reabre é o criador; super_admin só se o criador saiu
   // (espelha fn_tarefa_aprovador — o banco decide, a tela só orienta).
   const souAprovador = t => t.criado_por === usuario.id ||
@@ -89,7 +96,7 @@
 
   // ── Carregar dados ────────────────────────────────────────────────────
   async function carregarTudo () {
-    const [tj, uj, aj, fj, pj, ttj] = await Promise.all([
+    const [tj, uj, aj, fj, pj, ttj, mj] = await Promise.all([
       db.from('tarefas').select(
         'id,codigo,titulo,descricao,status,prioridade,dt_inicio,dt_prazo,dt_conclusao,' +
         'entidade_tipo,entidade_id,atividade_id,fornecedor_id,notificar_fornecedor,restrita,tipo,dados_tipo,ordem,criado_por,criado_em,atualizado_em,' +
@@ -103,7 +110,10 @@
       db.rpc('fn_fornecedores_diretorio'),
       db.from('vw_tarefa_progresso').select('tarefa_id,total,feitas,pct'),
       db.from('tarefa_tipos').select('codigo,nome,icone,cor,ordem,ativo,campos').order('ordem'),
+      // subtarefas pendentes sob minha responsabilidade (entro na tarefa como observador)
+      db.from('tarefa_checklist').select('tarefa_id').eq('responsavel_usuario_id', usuario.id).eq('concluida', false),
     ])
+    S.minhasSubs = new Set((mj.data || []).map(r => r.tarefa_id))
     S.tipos = ttj.data || []
     S.tarefas = tj.data || []
     S.usuarios = uj.data || []
@@ -245,7 +255,7 @@
     return `<article class="card${t.status === 'concluida' ? ' feito' : ''}" draggable="true" data-id="${t.id}" onclick="TK.abrir('${t.id}')">
       <div class="c-top">${iconeTipo(t)}<span class="num">${esc(t.codigo || '')}</span>${hr ? `<span class="hora">${hr}</span>` : ''}${cadeado(t)}</div>
       <h3 class="c-tit">${esc(t.titulo)}</h3>
-      <div class="c-meta">${t.status === 'em_revisao' && souAprovador(t) ? `<span class="tag aguarda-voce">${ic('clock')}Aguardando você</span>` : ''}${prioTag(t.prioridade)}${badgePrazo(t)}${atv}${chipTdrs(t)}${frn}</div>
+      <div class="c-meta">${t.status === 'em_revisao' && souAprovador(t) ? `<span class="tag aguarda-voce">${ic('clock')}Aguardando você</span>` : ''}${tagPapel(t)}${prioTag(t.prioridade)}${badgePrazo(t)}${atv}${chipTdrs(t)}${frn}</div>
       <div class="c-foot">${pilhaAvatares(t)}${pr ? `<span class="cnt">${ic('checks', 's')}${pr.feitas}/${pr.total}</span>${barra(pr.pct)}` : ''}</div>
       ${linhaCriador(t)}
     </article>`
@@ -266,7 +276,7 @@
       ? `<span class="mono" title="${esc(t.atividade.nome_pt || '')}">${esc(t.atividade.codigo)}</span> ${chipTdrs(t)}`
       : (t.fornecedor ? `<span class="tag">${ic('build')}${esc(nomeCurto(t.fornecedor.nome))}</span>` : '<span class="fraco">—</span>')
     return `<tr onclick="TK.abrir('${t.id}')">
-      <td><div class="t-tit">${iconeTipo(t)}<span class="num">${esc(t.codigo || '')}</span><span class="t-txt">${esc(t.titulo)}</span>${cadeado(t)}</div></td>
+      <td><div class="t-tit">${iconeTipo(t)}<span class="num">${esc(t.codigo || '')}</span><span class="t-txt">${esc(t.titulo)}</span>${cadeado(t)}${tagPapel(t)}</div></td>
       <td>${pilhaAvatares(t) || '<span class="fraco">—</span>'}</td>
       <td>${prioTag(t.prioridade)}</td>
       <td>${badgePrazo(t) || '<span class="fraco">—</span>'}</td>
@@ -290,7 +300,7 @@
   }
 
   function viewMinhas () {
-    const minhas = S.tarefas.filter(t => souResponsavel(t) && t.status !== 'cancelada').sort(porPrazo)
+    const minhas = S.tarefas.filter(t => (souResponsavel(t) || temSubMinha(t)) && t.status !== 'cancelada').sort(porPrazo)
     const ativas = minhas.filter(t => t.status !== 'concluida')
     const g = (rotulo, fn) => ({ rotulo: `<span class="g-nm">${rotulo}</span>`, itens: ativas.filter(fn) })
     return tabelaAgrupada([
@@ -493,7 +503,7 @@
   function abrirModal (t, manterAba = false) {
     S.editId = t ? t.id : null
     if (!t) S.modoEdicao = true
-    S.det = null; S.editChk = null
+    S.det = null; S.editChk = null; S.respSub = null
     if (!manterAba) S.detAba = 'checklist'
     S.podeEditar = !t || podeDelegarGlobal || t.criado_por === usuario.id || souResponsavel(t)
     S.form = {
@@ -642,15 +652,42 @@
       </div>`
     }
     const meta = [chipResp(c), badgePrazoChk(c), chipsAnexos(axs)].filter(Boolean).join('')
-    return `<div class="sub">
-      <input type="checkbox" class="ck" ${c.concluida ? 'checked' : ''} ${podeMexerSub() ? '' : 'disabled'} onchange="TK.toggleChk('${c.id}',this.checked)" aria-label="Concluir subtarefa">
+    const minha = subMinha(c)
+    return `<div class="sub${minha ? ' minha' : ''}">
+      <input type="checkbox" class="ck" ${c.concluida ? 'checked' : ''} ${podeMexerSub() || minha ? '' : 'disabled'} onchange="TK.toggleChk('${c.id}',this.checked)" aria-label="Concluir subtarefa">
       <div class="sub-main">
         <span class="sub-t ${c.concluida ? 'feito' : ''}">${esc(c.descricao)}</span>
         ${meta ? `<div class="sub-meta">${meta}</div>` : ''}
+        ${minha && !S.modoEdicao ? (S.respSub === c.id ? `<div class="sub-resp">
+          <textarea class="inp" id="sr-in" rows="2" placeholder="Escreva sua resposta (o que foi feito, dúvidas…)"></textarea>
+          <div class="sub-linha">${botaoArquivo('sr-file', 'sr-file-lbl')}<span class="sp"></span>
+            <button class="btn btn-sec btn-sm" onclick="TK.respSub(null)">Cancelar</button>
+            <button class="btn btn-pri btn-sm" id="sr-enviar" onclick="TK.enviarRespSub('${c.id}')">Enviar</button></div>
+        </div>` : `<div class="sub-linha sub-minha-acoes"><span class="tag mini papel-sub">${ic('checks')}Sua subtarefa</span>
+          <button class="btn btn-sec btn-sm" onclick="TK.respSub('${c.id}')">${ic('msg', 's')}Responder ou anexar</button>
+          ${c.concluida ? '' : `<button class="btn btn-ok btn-sm" onclick="TK.toggleChk('${c.id}',true)">${ic('check', 's')}Concluir</button>`}</div>`) : ''}
       </div>
       ${podeMexerSub() ? `<span class="sub-acoes"><button class="x" onclick="TK.editChk('${c.id}')" title="Editar">${ic('pencil', 's')}</button>
       <button class="x" onclick="TK.delChk('${c.id}')" title="Remover">${ic('x', 's')}</button></span>` : ''}
     </div>`
+  }
+
+  // responsável (usuário) da subtarefa: conclui, responde e anexa sem precisar editar a tarefa
+  const subMinha = c => c.responsavel_usuario_id === usuario.id && !!S.det &&
+    !['concluida', 'cancelada'].includes((S.tarefas.find(x => x.id === S.det.id) || {}).status)
+  function faixaPapel (d) {
+    const t = S.tarefas.find(x => x.id === d.id); if (!t) return ''
+    const subs = d.checklist.filter(c => c.responsavel_usuario_id === usuario.id)
+    if (subs.length && !souResponsavel(t)) {
+      const pend = subs.filter(c => !c.concluida).length
+      return `<div class="faixa-papel sub">${ic('checks')}<div><b>Você é responsável por ${subs.length === 1 ? 'uma subtarefa' : subs.length + ' subtarefas'} desta tarefa.</b>
+        ${pend ? 'Na aba Subtarefas, use <b>Responder ou anexar</b> e <b>Concluir</b> quando terminar.' : 'Sua parte está concluída — você não receberá mais avisos de comentários.'}</div></div>`
+    }
+    if (soObservador(t)) {
+      return `<div class="faixa-papel obs">${ic('eye')}<div><b>Você é observador(a): só acompanha esta tarefa.</b>
+        Não precisa fazer nada nem responder. Você será avisado(a) quando ela for enviada para revisão e quando for concluída.</div></div>`
+    }
+    return ''
   }
 
   function renderDetalhe () {
@@ -737,7 +774,7 @@
           <div class="quando">${fmtDT(h.criado_em)}</div></div></div>`
       }).join('') || `<div class="vazio pq">${ic('hist')}<p>Sem histórico.</p></div>`}</div>`
     }
-    el.innerHTML = `<div class="tabs">${tabs.map(([k, icone, nm, cont]) =>
+    el.innerHTML = faixaPapel(d) + `<div class="tabs">${tabs.map(([k, icone, nm, cont]) =>
       `<button class="${S.detAba === k ? 'on' : ''}" onclick="TK.detAba('${k}')">${ic(icone, 's')}${nm}${cont}</button>`).join('')}</div>
       <div class="det-corpo">${corpo}</div>`
   }
@@ -1528,8 +1565,29 @@
       await carregarDetalhe(S.det.id); refreshView()
     },
     toggleChk: async (id, val) => {
-      await db.from('tarefa_checklist').update({ concluida: val, concluida_por: val ? usuario.id : null, concluida_em: val ? new Date().toISOString() : null }).eq('id', id)
+      // pelo banco: vale para quem edita a tarefa e para o responsável da própria subtarefa
+      const { error } = await db.rpc('fn_subtarefa_concluir', { p_checklist_id: id, p_concluida: !!val })
+      if (error) toast(error.message, 'error')
+      else if (S.minhasSubs) {
+        const { data } = await db.from('tarefa_checklist').select('tarefa_id').eq('responsavel_usuario_id', usuario.id).eq('concluida', false)
+        S.minhasSubs = new Set((data || []).map(r => r.tarefa_id))
+      }
       await carregarDetalhe(S.det.id); refreshView()
+    },
+    respSub: id => { S.respSub = id; renderDetalhe(); if (id) { const el = document.getElementById('sr-in'); if (el) el.focus() } },
+    enviarRespSub: async id => {
+      const inp = document.getElementById('sr-in'); let v = ((inp && inp.value) || '').trim()
+      const files = document.getElementById('sr-file').files
+      if (!v && !(files && files.length)) { toast('Escreva a resposta ou escolha um arquivo.', 'warning'); return }
+      if (!v) v = 'Anexo'
+      const btn = document.getElementById('sr-enviar'); if (btn) { btn.disabled = true; btn.textContent = 'Enviando…' }
+      const { data: comentarioId, error } = await db.rpc('fn_comentar_subtarefa', { p_checklist_id: id, p_corpo: v })
+      if (error) { toast(error.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Enviar' } return }
+      if (files && files.length) await enviarArquivos(files, { comentario_id: comentarioId, checklist_id: id })
+      chamarEmail(S.det.id, 'comentario', { comentario_id: comentarioId })
+      S.respSub = null
+      toast('Resposta registrada na subtarefa.', 'success')
+      await carregarDetalhe(S.det.id)
     },
     delChk: async id => {
       const temAx = S.det.anexos.some(a => a.checklist_id === id)

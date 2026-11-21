@@ -234,21 +234,31 @@ Deno.serve(async (req) => {
       responsaveis.forEach(addP)
       observadores.forEach(addP)
     } else if (evento === 'revisao') {
+      // criador aprova; observadores só acompanham (avisados do envio para revisão)
       add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
+      observadores.forEach(addP)
     } else if (evento === 'devolvida' || evento === 'reaberta') {
       responsaveis.forEach(addP)
     } else if (evento === 'comentario') {
+      // mesma regra do sino (fn_tarefa_alvo_comentario): criador + responsáveis com a tarefa
+      // nas mãos + responsável de subtarefa pendente. Observador não recebe comentário.
+      const { data: alvo } = await supabase.rpc('fn_tarefa_alvo_comentario', { p_tarefa_id: tarefa_id, p_checklist_id: null })
+      const ids = new Set<string>(alvo || [])
+      if (ids.has(t.criado_por)) add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
+      for (const p of (parts || []) as any[]) {
+        if (!ids.has(p.usuario_id)) continue
+        add(p.usuario_id, p.usuario?.email, p.usuario?.nome_completo, p.papel === 'responsavel' ? 'responsavel' : 'subtarefa')
+      }
+    } else if (evento === 'prazo_alterado') {
+      responsaveis.forEach(addP)  // observador só é avisado do início, da revisão e da conclusão
+    } else if (evento === 'reuniao_atualizada' || evento === 'cancelada') {
       add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
-      responsaveis.forEach(addP)
-      observadores.forEach(addP)
-    } else if (evento === 'prazo_alterado' || evento === 'reuniao_atualizada' || evento === 'cancelada') {
-      if (evento !== 'prazo_alterado') add(t.criado_por, t.criador?.email, t.criador?.nome_completo)
       responsaveis.forEach(addP)
       observadores.forEach(addP)
     } else if (evento === 'subtarefa') {
       if (sub.responsavel_usuario_id) {
         const p = (parts || []).find((x: any) => x.usuario_id === sub.responsavel_usuario_id)
-        add(sub.responsavel_usuario_id, sub.usuario?.email, sub.usuario?.nome_completo, p?.papel || 'observador')
+        add(sub.responsavel_usuario_id, sub.usuario?.email, sub.usuario?.nome_completo, p?.papel === 'responsavel' ? 'responsavel' : 'subtarefa')
       }
     } else {
       // atribuicao: responsáveis e observadores (texto próprio para cada papel)
@@ -301,10 +311,15 @@ Deno.serve(async (req) => {
         return 'A reunião abaixo foi <b>cancelada</b>. O evento será removido da sua agenda.'
       if (evento === 'atribuicao' && papel === 'observador')
         return 'Você foi incluído(a) como <b>observador(a)</b> de uma tarefa no painel do Projeto DIMA. ' +
-               'Você receberá os avisos de comentários, mudança de prazo e conclusão para acompanhar o andamento.'
+               'Você será avisado(a) só quando a tarefa for enviada para revisão e quando for concluída.'
+      if (evento === 'revisao' && papel === 'observador')
+        return 'Uma tarefa que você acompanha foi <b>entregue para revisão</b> e aguarda a aprovação de quem a criou.'
       if (evento === 'subtarefa')
-        return 'Uma subtarefa foi atribuída a você no painel do Projeto DIMA.' +
-               (papel === 'observador' ? ' Você também passa a acompanhar a tarefa principal como observador(a).' : '')
+        return 'Uma subtarefa foi atribuída a você no painel do Projeto DIMA. ' +
+               '<b>Para responder, basta responder a este e-mail</b> (com anexos, se quiser) — a resposta fica registrada na subtarefa. ' +
+               'No painel, você também pode concluir a subtarefa e anexar arquivos.'
+      if (evento === 'comentario' && papel === 'subtarefa')
+        return 'Há um novo comentário na tarefa em que você tem uma subtarefa pendente.'
       return ({
         atribuicao:     'Uma tarefa foi atribuída a você no painel do Projeto DIMA.',
         prazo_alterado: 'O prazo de uma tarefa que você acompanha mudou.',
@@ -316,7 +331,10 @@ Deno.serve(async (req) => {
       } as Record<string, string>)[evento] || 'Atualização em uma tarefa do painel do Projeto DIMA.'
     }
 
+    const AVISO_OBS = '<b>Você é observador(a): só acompanha. Não precisa fazer nada nem responder a este e-mail.</b>'
+    const PAPEL_TXT: Record<string, string> = { observador: 'Observador(a) — nada a fazer', responsavel: 'Responsável', subtarefa: 'Responsável pela subtarefa' }
     const corpoInterno = (papel: string) =>
+      (papel === 'observador' ? `${AVISO_OBS}\n\n` : '') +
       `${abertura(papel)}\n\n` +
       `TAREFA: ${esc(t.codigo)} — ${esc(t.titulo)}\n` +
       (t.tipo_info && t.tipo !== 'outras' ? `TIPO: ${esc(t.tipo_info.icone)} ${esc(t.tipo_info.nome)}\n` : '') +
@@ -326,7 +344,7 @@ Deno.serve(async (req) => {
       (!sub && t.descricao ? `DESCRIÇÃO: ${esc(t.descricao)}\n` : '') +
       `PRIORIDADE: ${esc(prioTxt)}\n` +
       (sub ? `PRAZO DA TAREFA: ${prazoTxt}\n` : reuniao ? '' : `PRAZO: ${prazoTxt}\n`) +
-      (papel ? `SEU PAPEL: ${papel === 'observador' ? 'Observador(a)' : 'Responsável'}\n` : '') +
+      (papel ? `SEU PAPEL: ${PAPEL_TXT[papel] || 'Responsável'}\n` : '') +
       (comentTxt ? `${evento === 'comentario' ? 'COMENTÁRIO' : evento === 'revisao' ? 'ENTREGA' : evento === 'concluida' ? 'NOTA' : 'MOTIVO'}: ${esc(comentTxt.replace(/^(Entrega para revisão|Entrega aprovada|Conclusão|Devolvida|Reaberta):\s*/, ''))}\n` : '') +
       (comentAnexos.length ? `ANEXOS: ${comentAnexos.map(esc).join(', ')}\n` : '') +
       (t.fornecedor ? `FORNECEDOR: ${esc(t.fornecedor.nome)}\n` : '')
@@ -351,7 +369,8 @@ Deno.serve(async (req) => {
         to: email,
         assunto: assunto[evento] || assunto.atribuicao,
         html: wrapHtml(`Olá, ${esc((r.nome || '').split(' ')[0])}.\n\n${corpoInterno(r.papel)}`, linkApp, logos),
-        replyTo,
+        // resposta de quem tem a subtarefa fica ligada à subtarefa (com os anexos)
+        replyTo: evento === 'subtarefa' && sub ? `fundobrasilonuacre+${sub.id}@gmail.com` : replyTo,
         icalEvent: ics || undefined,
       })
     }
@@ -368,11 +387,13 @@ Deno.serve(async (req) => {
         `ITEM: ${esc(t.titulo)}\n` +
         (t.descricao ? `DETALHE: ${esc(t.descricao)}\n` : '') +
         `PRAZO: ${prazoTxt}\n\n` +
-        `Em caso de dúvida, responda a este e-mail ou fale com a equipe de gestão.`
+        `<b>Para responder, basta responder a este e-mail.</b> Sua mensagem e os arquivos que anexar ` +
+        `serão registrados automaticamente junto a esta pendência.`
       envios.push({
         to: t.fornecedor.email,
         assunto: `Projeto DIMA — pendência: ${t.titulo}`,
         html: wrapHtml(corpoExt, undefined, logos),
+        replyTo,  // token da tarefa: a resposta do fornecedor vira comentário (receber-email-tarefa)
       })
     }
 

@@ -480,3 +480,16 @@ html[data-tema="escuro"] body.tk-pg .tk-tema button[aria-pressed="true"]{backgro
   :is(.tk,.tk-overlay) .cal-chip .cal-txt,:is(.tk,.tk-overlay) .cal-chip .tipo-ic{display:none}
   :is(.tk,.tk-overlay) .tk-head h1{font-size:24px}
 }
+
+/* Papel de quem abre a tarefa (20261125): observador só acompanha; responsável de subtarefa age só nela */
+:is(.tk,.tk-overlay) .tag.papel-obs{color:var(--text-2);background:var(--surface-2);border-style:dashed}
+:is(.tk,.tk-overlay) .tag.papel-sub{color:var(--st-review);background:var(--st-review-bg);border-color:transparent;font-weight:600}
+:is(.tk,.tk-overlay) .faixa-papel{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;padding:10px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;color:var(--text)}
+:is(.tk,.tk-overlay) .faixa-papel svg.i{flex-shrink:0;width:18px;height:18px;margin-top:1px}
+:is(.tk,.tk-overlay) .faixa-papel.obs{background:var(--surface-2);border:1px dashed var(--line)}
+:is(.tk,.tk-overlay) .faixa-papel.obs svg.i{color:var(--text-2)}
+:is(.tk,.tk-overlay) .faixa-papel.sub{background:var(--st-review-bg);border:1px solid transparent}
+:is(.tk,.tk-overlay) .faixa-papel.sub svg.i{color:var(--st-review)}
+:is(.tk,.tk-overlay) .sub.minha{background:var(--st-review-bg);border-radius:8px;padding-left:8px;padding-right:8px}
+:is(.tk,.tk-overlay) .sub-minha-acoes{margin-top:8px;flex-wrap:wrap;gap:6px}
+:is(.tk,.tk-overlay) .sub-resp{margin-top:8px;display:flex;flex-direction:column;gap:6px}
