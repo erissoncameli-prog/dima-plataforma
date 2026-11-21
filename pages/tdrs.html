@@ -2301,9 +2301,9 @@ function abrirNovo(){
     <div class="form-group">
       <label class="form-label">Qualificação exigida</label>
       <textarea class="form-control" id="n-qual" rows="2" placeholder="Formação mínima e experiência..."></textarea>
-      ${['super_admin','coordenacao'].includes(appState.perfil)?`<label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:13px;cursor:pointer">
+      ${appState.perfil==='super_admin'?`<label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:13px;cursor:pointer">
         <input type="checkbox" id="n-direta" style="margin-top:3px">
-        <span><b>Reserva para passagens e diárias</b> (execução direta UNESCO). O valor fica separado nesta linha para viagens e aparece como fonte no protocolo de Viagens depois de aprovado.</span></label>`:''}
+        <span><b>Reserva para passagens e diárias</b> (execução direta UNESCO). O valor fica separado nesta linha para viagens. A reserva já nasce aprovada (sem revisão) e aparece na hora como fonte no protocolo de Viagens.</span></label>`:''}
     </div>
     <div class="grid-2">
       <div class="form-group">
