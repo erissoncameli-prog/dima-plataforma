@@ -18,7 +18,10 @@
       vazio: 'Informe o e-mail e a senha.', email_inv: 'Informe um e-mail válido.',
       erro_cred: 'E-mail ou senha incorretos.', erro_gen: 'Não foi possível conectar. Verifique a internet e tente novamente.',
       erro_conf: 'E-mail não confirmado. Peça ao administrador para reenviar a confirmação.', erro_muitas: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
-      erro_desat: 'Conta desativada. Entre em contato com o administrador.',
+      erro_desat: 'Sua entrada está suspensa: a conta foi desativada ou ficou 15 dias sem uso.',
+      lib_btn: 'Pedir liberação ao administrador', lib_titulo: 'Pedir liberação da entrada',
+      lib_sub: 'Quem fica 15 dias sem entrar tem a entrada suspensa. Informe o e-mail da sua conta: o administrador recebe o pedido e libera o acesso.',
+      lib_ok: 'Pedido registrado. Se a conta estiver suspensa por falta de uso, o administrador recebe o aviso. Depois de liberado, você tem 3 dias para entrar.',
       voltar: 'Voltar para entrar', ped_titulo: 'Pedir nova senha', ped_btn: 'Enviar pedido', enviando: 'Enviando…',
       ped_sub: 'Informe o e-mail da sua conta. O administrador da plataforma recebe o pedido e lhe passa uma senha temporária.',
       ped_ok: 'Pedido registrado. Se o e-mail for de uma conta ativa, o administrador recebe o aviso e vai lhe passar uma senha temporária. Se não tiver retorno, procure a coordenação do projeto.' },
@@ -29,7 +32,10 @@
       vazio: 'Enter your email and password.', email_inv: 'Enter a valid email.',
       erro_cred: 'Incorrect email or password.', erro_gen: 'Could not connect. Check your internet and try again.',
       erro_conf: 'Email not confirmed. Ask the administrator to resend the confirmation.', erro_muitas: 'Too many attempts. Wait a few minutes and try again.',
-      erro_desat: 'Account disabled. Contact the administrator.',
+      erro_desat: 'Your access is suspended: the account was disabled or went unused for 15 days.',
+      lib_btn: 'Ask the administrator to release it', lib_titulo: 'Request access release',
+      lib_sub: 'Accounts unused for 15 days are suspended. Enter your account email: the administrator receives the request and releases your access.',
+      lib_ok: 'Request registered. If the account is suspended for lack of use, the administrator is notified. Once released, you have 3 days to sign in.',
       voltar: 'Back to sign in', ped_titulo: 'Request a new password', ped_btn: 'Send request', enviando: 'Sending…',
       ped_sub: 'Enter your account email. The platform administrator receives the request and gives you a temporary password.',
       ped_ok: 'Request registered. If the email belongs to an active account, the administrator is notified and will give you a temporary password. If you hear nothing back, contact the project coordination.' },
@@ -40,7 +46,10 @@
       vazio: 'Ingrese el correo y la contraseña.', email_inv: 'Ingrese un correo válido.',
       erro_cred: 'Correo o contraseña incorrectos.', erro_gen: 'No fue posible conectar. Verifique internet e inténtelo de nuevo.',
       erro_conf: 'Correo no confirmado. Pida al administrador que reenvíe la confirmación.', erro_muitas: 'Demasiados intentos. Espere unos minutos e inténtelo de nuevo.',
-      erro_desat: 'Cuenta desactivada. Contacte al administrador.',
+      erro_desat: 'Su acceso está suspendido: la cuenta fue desactivada o pasó 15 días sin uso.',
+      lib_btn: 'Pedir la liberación al administrador', lib_titulo: 'Solicitar liberación del acceso',
+      lib_sub: 'Las cuentas sin uso por 15 días quedan suspendidas. Ingrese el correo de su cuenta: el administrador recibe la solicitud y libera el acceso.',
+      lib_ok: 'Solicitud registrada. Si la cuenta está suspendida por falta de uso, el administrador recibe el aviso. Una vez liberada, tiene 3 días para entrar.',
       voltar: 'Volver a iniciar sesión', ped_titulo: 'Solicitar nueva contraseña', ped_btn: 'Enviar solicitud', enviando: 'Enviando…',
       ped_sub: 'Ingrese el correo de su cuenta. El administrador de la plataforma recibe la solicitud y le entrega una contraseña temporal.',
       ped_ok: 'Solicitud registrada. Si el correo es de una cuenta activa, el administrador recibe el aviso y le entregará una contraseña temporal. Si no recibe respuesta, contacte a la coordinación del proyecto.' },
@@ -245,7 +254,7 @@
       mostrarErro(erro, t('vazio')); (email ? senha : inE).focus(); return
     }
     if (!emailOk(email)) { inE.setAttribute('aria-invalid', 'true'); mostrarErro(erro, t('email_inv')); inE.focus(); return }
-    mostrarErro(erro, ''); ocupado(btn, true, 'entrando')
+    mostrarErro(erro, ''); $('en-liberar').hidden = true; ocupado(btn, true, 'entrando')
     let saindo = false
     try {
       const { data, error } = await db.auth.signInWithPassword({ email, password: pw })
@@ -255,10 +264,10 @@
           : /Email not confirmed|email_not_confirmed/.test(m) ? 'erro_conf'
           : /Too many requests|rate limit/i.test(m) ? 'erro_muitas'
           : /disabled|banned/i.test(m) ? 'erro_desat' : 'erro_gen'
-        mostrarErro(erro, t(msg)); if (msg === 'erro_cred') senha.select(); return
+        mostrarErro(erro, t(msg)); $('en-liberar').hidden = msg !== 'erro_desat'; if (msg === 'erro_cred') senha.select(); return
       }
-      const { data: usuario } = await db.from('usuarios').select('idioma_pref,deve_trocar_senha,ativo').eq('id', data.user.id).single()
-      if (!usuario?.ativo) { await db.auth.signOut(); mostrarErro(erro, t('erro_desat')); return }
+      const { data: usuario } = await db.from('usuarios').select('idioma_pref,deve_trocar_senha,ativo,bloqueado_inatividade_em').eq('id', data.user.id).single()
+      if (!usuario?.ativo || usuario.bloqueado_inatividade_em) { await db.auth.signOut(); mostrarErro(erro, t('erro_desat')); $('en-liberar').hidden = false; return }
       if (usuario.idioma_pref) ls.gravar('dima_idioma', usuario.idioma_pref)
       // espera o SDK gravar a sessão antes de navegar (senão a próxima página pode não achar a sessão)
       const { data: { session } } = await db.auth.getSession()
@@ -279,7 +288,25 @@
   function vista(qual) {
     $('en-vista-entrar').hidden = qual !== 'entrar'; $('en-vista-pedido').hidden = qual !== 'pedido'
   }
+  // Mesma vista para os dois pedidos: nova senha (fn_publico_pedir_nova_senha) ou liberação da entrada
+  // suspensa por inatividade (fn_publico_pedir_liberacao). Os dois respondem sempre igual.
+  let modoPedido = 'senha'
+  function abrirPedido(modo) {
+    modoPedido = modo
+    const lib = modo === 'liberacao'
+    $('en-ped-titulo').dataset.t = lib ? 'lib_titulo' : 'ped_titulo'
+    $('en-vista-pedido').querySelector('.en-sub').dataset.t = lib ? 'lib_sub' : 'ped_sub'
+    $('en-ped-ok').querySelector('span').dataset.t = lib ? 'lib_ok' : 'ped_ok'
+    aplicarTextos()
+  }
+  $('en-liberar').addEventListener('click', () => {
+    abrirPedido('liberacao')
+    $('en-ped-email').value = $('en-email').value.trim()
+    $('en-ped-ok').hidden = true; mostrarErro($('en-ped-erro'), ''); $('en-ped-btn').disabled = false
+    vista('pedido'); $('en-ped-titulo').focus()
+  })
   $('en-esqueci').addEventListener('click', () => {
+    abrirPedido('senha')
     $('en-ped-email').value = $('en-email').value.trim()
     $('en-ped-ok').hidden = true; mostrarErro($('en-ped-erro'), ''); $('en-ped-btn').disabled = false
     vista('pedido'); $('en-ped-titulo').focus()
@@ -292,7 +319,7 @@
     if (!emailOk(email)) { inp.setAttribute('aria-invalid', 'true'); mostrarErro(er, t('email_inv')); inp.focus(); return }
     mostrarErro(er, ''); ocupado(btn, true, 'enviando')
     try {
-      const { error } = await db.rpc('fn_publico_pedir_nova_senha', { p_email: email })
+      const { error } = await db.rpc(modoPedido === 'liberacao' ? 'fn_publico_pedir_liberacao' : 'fn_publico_pedir_nova_senha', { p_email: email })
       if (error) throw error
       ocupado(btn, false); btn.disabled = true
       $('en-ped-ok').hidden = false

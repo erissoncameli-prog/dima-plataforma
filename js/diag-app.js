@@ -135,7 +135,9 @@ async function entrar(ev) {
     const email = document.getElementById('login-email').value.trim()
     const senha = document.getElementById('login-senha').value
     const { data, error } = await diagDb.auth.signInWithPassword({ email, password: senha })
-    if (error) throw new Error(/invalid/i.test(error.message) ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar. Verifique a internet.')
+    if (error) throw new Error(/invalid/i.test(error.message) ? 'E-mail ou senha incorretos.'
+      : /banned|disabled/i.test(error.message) ? 'Sua entrada está suspensa: a conta foi desativada ou ficou 15 dias sem uso. Peça a liberação ao administrador (super_admin). As fichas guardadas neste aparelho continuam salvas.'
+      : 'Não foi possível entrar. Verifique a internet.')
     const uid = data.user.id
     const { data: u } = await diagDb.from('usuarios').select('id,nome_completo,perfil,ativo').eq('id', uid).single()
     if (!u || !u.ativo) throw new Error('Usuário inativo. Procure a coordenação.')
@@ -345,6 +347,8 @@ async function sincronizar(silencioso) {
   btn.disabled = true; btn.innerHTML = ic('sync') + 'Sincronizando…'
   try {
     const r = await dSyncRodar(App.usuario.id, p => { btn.innerHTML = ic('sync') + 'Enviando ' + p.atual + ' de ' + p.total + '…' })
+    // conta como atividade (a entrada é suspensa após 15 dias sem uso da mesa ou do app) — sem rede, só não registra
+    if (r.situacao === 'ok' && diagDb) diagDb.rpc('fn_registrar_acesso', { p_origem: 'app' }).then(() => {}, () => {})
     if (r.situacao === 'sem_conexao') { if (!silencioso) aviso('Sem sinal. As fichas ficam guardadas e vão depois.', 'aviso') }
     else if (r.situacao === 'sem_sessao') { if (!silencioso) aviso('Sessão expirada. Entre com e-mail e senha para enviar.', 'aviso'); if (!silencioso) mostrar('t-login') }
     else if (r.situacao === 'ok') {

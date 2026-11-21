@@ -1,7 +1,7 @@
 /**
  * auditor-ia — Agente auditor multi-domínio do projeto DIMA UNESCO
  *
- * Arquitetura: 7 "agentes especialistas" (cada um responsável por um domínio)
+ * Arquitetura: 9 "agentes especialistas" (cada um responsável por um domínio)
  * executam queries SQL para detectar anomalias. O "supervisor" (Claude) recebe
  * todos os achados brutos, interpreta, prioriza e escreve o resumo executivo.
  *
@@ -46,6 +46,8 @@ Sua tarefa é analisar os achados brutos de auditoria do sistema DIMA (projeto 2
 Achados com título iniciado por "Orçamento:" vêm do razão orçamentário (remanejamento entre atividades, cobertura de contrato acima do TDR, cotação PTAX). Falha de conferência do razão é sempre crítica: indica que o orçamento registrado não bate com seus lançamentos.
 
 Achados com título iniciado por "Patrimônio:" vêm do módulo de bens (equipamento pago sem incorporação, termo não aceito, empréstimo vencido, ocorrência parada, bem sem inventário há 12 meses). Não mexem no saldo do orçamento; tratam de guarda e prestação de contas dos bens.
+
+Achados com título iniciado por "Acessos:" vêm do controle de acesso da plataforma (módulos liberados por pessoa, revisão dos acessos, entrada suspensa por 15 dias sem uso, pedidos de acesso). Tratam de segurança e governança das contas, não de dinheiro.
 
 Achados com título iniciado por "Viagem: aprovação" tratam da segregação de funções na aprovação de viagens (quem pediu ou viaja não pode aprovar). Os marcados "antes da trava" são histórico informativo — a regra passou a ser barrada no banco em 16/10/2026; não os trate como risco atual. "Aprovação fora do fluxo com senha" é sempre crítica.
 
@@ -543,6 +545,24 @@ async function auditarPatrimonio(db: any): Promise<Achado[]> {
   }))
 }
 
+// ── AGENTE 9: Acessos (módulos liberados, revisão, inatividade, pedidos) ──
+// Regras em fn_auditoria_acessos (só service_role; migração 20261126_acessos_c). Grava como
+// qualidade_dados com título "Acessos: …" (o check de auditoria_registros.dominio não tem 'acessos').
+async function auditarAcessos(db: any): Promise<Achado[]> {
+  const { data, error } = await db.rpc('fn_auditoria_acessos')
+  if (error) throw error
+  return (data || []).map((r: any) => ({
+    dominio: 'qualidade_dados' as Dominio,
+    severidade: r.severidade as Severidade,
+    titulo: r.titulo,
+    descricao: r.descricao,
+    recomendacao: r.recomendacao || undefined,
+    referencia_tabela: r.referencia_tabela || undefined,
+    referencia_id: r.referencia_id || undefined,
+    referencia_label: r.referencia_label || undefined,
+  }))
+}
+
 async function executarSupervisor(
   anthropic: Anthropic,
   achados: Achado[],
@@ -655,6 +675,7 @@ Deno.serve(async (req) => {
       achadosQualidade,
       achadosOrcamento,
       achadosPatrimonio,
+      achadosAcessos,
     ] = await Promise.all([
       auditarTDRContratos(supabase).catch(e => { console.error('Agente TDR falhou:', e); return [] as Achado[] }),
       auditarFinanceiro(supabase).catch(e => { console.error('Agente Financeiro falhou:', e); return [] as Achado[] }),
@@ -664,6 +685,7 @@ Deno.serve(async (req) => {
       auditarQualidadeDados(supabase).catch(e => { console.error('Agente Qualidade falhou:', e); return [] as Achado[] }),
       auditarOrcamento(supabase).catch(e => { console.error('Agente Orçamento falhou:', e); return [] as Achado[] }),
       auditarPatrimonio(supabase).catch(e => { console.error('Agente Patrimônio falhou:', e); return [] as Achado[] }),
+      auditarAcessos(supabase).catch(e => { console.error('Agente Acessos falhou:', e); return [] as Achado[] }),
     ])
 
     // Orçamento primeiro: o supervisor só recebe os 40 primeiros achados.
@@ -679,6 +701,7 @@ Deno.serve(async (req) => {
       ...achadosMatriz,
       ...achadosQualidade,
       ...achadosPatrimonio,
+      ...achadosAcessos,
       ...achadosViagens.filter(historicoViagem),
     ]
 
@@ -729,6 +752,7 @@ Deno.serve(async (req) => {
         qualidade_dados: achadosQualidade.length,
         orcamento: achadosOrcamento.length,
         patrimonio: achadosPatrimonio.length,
+        acessos: achadosAcessos.length,
       },
     }, { headers: CORS })
 

@@ -125,8 +125,41 @@ let appState = {
   usuario: null, perfil: null,
   idioma: localStorage.getItem('dima_idioma') || 'pt',
   sessao: null,
-  permissoes: []   // módulos extras liberados dinamicamente pelo super_admin
+  permissoes: [],  // módulos liberados pelo super_admin (usuario_permissoes ativas e no prazo)
+  vinculos: {}     // { responsavel, titular, fornecedor } — fn_meus_vinculos()
 };
+
+// ── Acesso por módulo liberado (migrações 20261126_acessos_*) ─────────────
+// O perfil é o teto; a liberação é a chave. Regra igual à do banco (fn_modulo_liberado):
+// super_admin tudo; núcleo sempre aberto; o resto exige o módulo liberado ou um vínculo.
+const ACESSO_NUCLEO = ['dashboard', 'tarefas', 'ajuda', 'usuarios', 'sem_acesso']; // 'usuarios' = Meu perfil
+// Página → módulos que a abrem (qualquer um). Sem entrada = o próprio id.
+const ACESSO_NAV = {
+  relatorios: m => m.indexOf('relatorios_') === 0,
+  patrimonio: ['patrimonio_catalogo', 'patrimonio', 'patrimonio_gestor'],
+  diagnostico: ['diagnostico', 'diagnostico_treino'],
+  configuracoes: [], dados_sistema: [], banco_dados: [], integracoes: [],   // só super_admin
+};
+// Vínculo que abre a página sem o módulo (o que a pessoa precisa para cumprir o papel).
+const ACESSO_VINCULO = {
+  atividades:     v => v.responsavel,
+  tdrs:           v => v.responsavel,
+  produtos:       v => v.responsavel || v.fornecedor,
+  remanejamentos: v => v.responsavel || v.titular,
+};
+function acessoLiberado(navId) {
+  if (appState.perfil === 'super_admin') return true;
+  if (!navId || ACESSO_NUCLEO.includes(navId)) return true;
+  const perms = appState.permissoes || [];
+  const reg = ACESSO_NAV[navId];
+  const ok = typeof reg === 'function' ? perms.some(reg) : (reg || [navId]).some(m => perms.includes(m));
+  if (ok) return true;
+  const vin = ACESSO_VINCULO[navId];
+  return !!(vin && vin(appState.vinculos || {}));
+}
+function moduloLiberado(modulo) {
+  return appState.perfil === 'super_admin' || (appState.permissoes || []).includes(modulo);
+}
 
 function t(secao, chave) {
   return i18n[appState.idioma]?.[secao]?.[chave] || i18n.pt[secao]?.[chave] || chave;
@@ -148,14 +181,22 @@ async function carregarUsuario() {
 
   appState.sessao = session;
 
-  const [{ data: usuario }, { data: permsRaw }] = await Promise.all([
+  const [{ data: usuario }, { data: permsRaw }, vinc] = await Promise.all([
     db.from('usuarios').select('*').eq('id', session.user.id).single(),
     db.from('usuario_permissoes')
       .select('modulo,valido_ate')
       .eq('usuario_id', session.user.id)
       .eq('ativo', true)
-      .lte('valido_de', new Date().toISOString())
+      .lte('valido_de', new Date().toISOString()),
+    db.rpc('fn_meus_vinculos').then(r => r, () => ({ data: null }))
   ]);
+  appState.vinculos = (vinc && vinc.data) || {};
+
+  // Conta desativada ou suspensa por inatividade: a sessão aberta não vale mais
+  if (usuario && (!usuario.ativo || usuario.bloqueado_inatividade_em)) {
+    await db.auth.signOut();
+    return null;
+  }
 
   if (usuario) {
     appState.usuario = usuario;

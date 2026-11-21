@@ -347,22 +347,18 @@ async function carregarAuxiliares(){
 // INIT
 // ── Abas visíveis para o usuário atual ───────────────────────
 function getAbasPermitidas(){
-  const perfil=appState.perfil;
-  if(['super_admin','coordenacao'].includes(perfil))
-    return TEMAS.filter(t=>t.id!=='todos').map(t=>t.id);
-  // Temas liberados por padrão a certos perfis (além das permissões dinâmicas do super_admin).
-  // Financeiro acompanha o saldo de orçamento por atividade (tema Atividades) — tem RLS de
-  // leitura total em tdrs/contratos, então o comprometido/saldo sai completo. Técnico fica de
-  // fora aqui: sua RLS restringe tdrs/contratos aos que é responsável, o que subestimaria o
-  // comprometido e mostraria saldo maior que o real. Para incluí-lo, liberar via permissão
-  // dinâmica (relatorios_atividades) e/ou ampliar a RLS de leitura.
-  const PADRAO_POR_PERFIL = { financeiro:['atividades','orcamento','patrimonio'] };
-  const padrao = [...(PADRAO_POR_PERFIL[perfil] || [])];
-  // gestor patrimonial e acesso extra "Patrimônio" veem o grupo do patrimônio
-  if((appState.permissoes||[]).some(p=>p==='patrimonio'||p==='patrimonio_gestor')) padrao.push('patrimonio');
+  // Cada tema abre pelo módulo liberado relatorios_<tema> (migrações 20261126_acessos_*): o perfil só define
+  // o que "Aplicar o padrão do perfil" marca em Usuários. super_admin vê tudo.
+  if(appState.perfil==='super_admin') return TEMAS.filter(t=>t.id!=='todos').map(t=>t.id);
+  const perms=appState.permissoes||[];
+  const padrao=[];
+  // gestor patrimonial e acesso "Patrimônio — ver valores" veem o grupo do patrimônio
+  if(perms.some(p=>p==='patrimonio'||p==='patrimonio_gestor')) padrao.push('patrimonio');
+  // Usuários e Registros: coordenação, desde que tenha ao menos um relatório liberado
+  if(appState.perfil==='coordenacao'&&perms.some(p=>p.indexOf('relatorios_')===0)) padrao.push('usuarios','logs');
   return TEMAS
-    .filter(t=>t.id!=='todos'&&t.id!=='usuarios'&&t.id!=='logs')
-    .filter(t=>padrao.includes(t.id)||appState.permissoes.includes('relatorios_'+t.id))
+    .filter(t=>t.id!=='todos')
+    .filter(t=>padrao.includes(t.id)||perms.includes('relatorios_'+t.id))
     .map(t=>t.id);
 }
 

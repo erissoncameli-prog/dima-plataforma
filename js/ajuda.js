@@ -779,12 +779,13 @@ const AJUDA = {
           'A Pagar (Financeiro): compromisso registrado, aguardando liquidação.',
         ]},
         { titulo: 'Perfis de Usuário', itens: [
+          'O perfil é o limite do que a pessoa pode fazer; cada módulo precisa ser liberado pelo super_admin (veja Usuários e acessos).',
           'Super Admin: acesso total — configurações, usuários e todos os módulos.',
-          'Coordenação: acesso a todos os módulos operacionais exceto configurações de sistema.',
-          'Técnico/Focal: acesso a atividades, TDRs, produtos e viagens.',
-          'Financeiro: acesso a contratos, fornecedores e módulo financeiro.',
+          'Coordenação: pode receber todos os módulos operacionais, exceto configurações de sistema.',
+          'Técnico/Focal: pode receber atividades, TDRs, produtos e viagens.',
+          'Financeiro: pode receber contratos, fornecedores e o módulo financeiro.',
           'Consultor Externo: acesso limitado à visualização de dados.',
-          'Visualizador: somente leitura em módulos autorizados.',
+          'Visualizador: somente leitura nos módulos liberados.',
         ]},
       ]
     },
@@ -1119,6 +1120,42 @@ Object.assign(AJUDA, {
         'Na tela Relatórios, grupo Patrimônio: inventário geral de bens, bens por pessoa (com espaço para assinatura), mapa de depreciação numa data, movimentações, ocorrências e sinistros, relatório de inventário, ficha completa do bem e baixas.',
         'Veem o grupo: super_admin, coordenação, financeiro, o gestor patrimonial e quem tem o acesso "Patrimônio". Os valores só aparecem para quem pode ver valor.',
         'A Auditoria IA tem um agente do patrimônio (achados começando por "Patrimônio:"): equipamento pago sem bens incorporados, termo sem aceite há mais de 7 dias, empréstimo vencido, ocorrência parada há 30 dias, baixa parada, bem sem inventário há 12 meses, inventário aberto há 30 dias, bem sem nota fiscal, bem sem início de uso há 90 dias e garantia vencendo.',
+      ]},
+    ]
+  }},
+  usuarios: { pt: {
+    titulo: 'Usuários e acessos',
+    intro: 'Quem entra na plataforma e o que cada pessoa abre. O perfil é o limite do que a pessoa pode fazer; o módulo liberado é a chave. Conta nova nasce sem nenhum módulo.',
+    secoes: [
+      { titulo: 'Sempre abertos', itens: [
+        'Visão Geral, Minhas tarefas, o Manual e Meu perfil ficam abertos para todos.',
+        'Responsável ou substituto de atividade abre Atividades, TDRs, Produtos e Remanejamento pelo vínculo, mesmo sem o módulo. Titular de cargo abre Remanejamento para assinar; fornecedor vinculado abre Produtos para enviar entregas.',
+        'Super Admin tem todos os módulos e nunca é suspenso. A plataforma exige pelo menos dois super_admins ativos.',
+      ]},
+      { titulo: 'Liberar e retirar módulos (super_admin)', itens: [
+        'Em Usuários, abra a pessoa e vá à aba Acessos. Marque o que ela precisa e salve; desmarque para retirar. A data de fim é opcional.',
+        '"Aplicar o padrão do perfil" marca de uma vez o que o perfil permite. "do perfil" = está no padrão; "extra" = além dele.',
+        'Contratos, Financeiro, Fornecedores, Viagens, Beneficiários, Patrimônio e Diagnóstico abrem e fecham também os dados no banco. Nos outros módulos, retirar fecha a página e o menu.',
+        'Quem perde ou ganha um módulo é avisado no sino; quem tem prazo é avisado 7 dias antes de vencer.',
+      ]},
+      { titulo: 'Revisão dos acessos', itens: [
+        'Os acessos que existiam em 26/11/2026 foram revisados: os de responsáveis de atividade e os do Diagnóstico dos entrevistadores ficaram confirmados; os demais ficaram "em revisão" por 15 dias.',
+        'Para revisar: abra a pessoa, desmarque o que não serve, marque "Revisei: confirmar os acessos marcados" e salve. O que não for confirmado no prazo sai sozinho.',
+        'O número "Acessos em revisão" no topo mostra só quem falta revisar.',
+      ]},
+      { titulo: 'Pedidos de acesso', itens: [
+        'Quem abre um módulo que não tem cai na página "Acesso aos módulos" e pode pedir o acesso, com uma justificativa opcional.',
+        'O super_admin vê os pedidos em Usuários › Pedidos de acesso, libera (com prazo, se quiser) ou recusa (com parecer, se quiser).',
+      ]},
+      { titulo: 'Entrada suspensa por falta de uso', itens: [
+        'Quem fica 15 dias sem entrar (na mesa ou no app de campo com internet) tem a entrada suspensa. No 12º dia a pessoa recebe um e-mail de aviso.',
+        'A suspensão não apaga nada: dados e acessos ficam guardados. Na tela de entrada, a pessoa clica em "Pedir liberação ao administrador".',
+        'O super_admin libera em Usuários (filtro "Suspensos por inatividade", botão "Liberar entrada"). Liberada, a pessoa tem 3 dias para entrar.',
+        'Quem trabalha só no app de campo do Diagnóstico precisa sincronizar com internet ao menos a cada 15 dias; as fichas guardadas no aparelho não se perdem.',
+      ]},
+      { titulo: 'Relatório', itens: [
+        '"Quem acessa o quê" (topo de Usuários) gera o A4 de cada pessoa com perfil, situação, último acesso e módulos, e baixa a planilha com uma linha por pessoa e módulo.',
+        'A Auditoria IA aponta revisão pendente, acesso que caiu sem revisão, liberação vencida, conta suspensa há mais de 60 dias, pedido parado e e-mail de acesso que não saiu.',
       ]},
     ]
   }},

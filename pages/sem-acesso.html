@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="Erisson Cameli Santiago">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEMA/AC — Acesso aos módulos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="../css/global.css" rel="stylesheet">
+<script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
+<link href="../css/diagnostico-mesa.css" rel="stylesheet">
+<link href="../css/administracao.css" rel="stylesheet">
+</head>
+<body class="dgm">
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/autoria.js"></script>
+<script src="../js/logos.js"></script>
+<script src="../js/layout.js"></script>
+<script src="../js/guia-app.js"></script>
+<script src="../js/guias-plataforma.js"></script>
+<script src="../js/diag-tema.js"></script>
+<script src="../js/administracao.js"></script>
+<script>
+// ── Acesso aos módulos ──────────────────────────────────────────────────
+// Para onde vai quem abre uma página de módulo que não está liberado (gerarLayout → acessoLiberado).
+// Mostra o que está liberado, o que falta e deixa pedir acesso ao super_admin (fn_acesso_pedir).
+// Quem decide é o banco: a tela só pede e lista.
+;(async function () {
+  const usuario = await carregarUsuario();
+  if (!usuario) { window.location.href = '../index.html'; return; }
+
+  const navPedido = new URLSearchParams(location.search).get('m') || '';
+  const NAV_MODULO = { patrimonio: 'patrimonio_catalogo', diagnostico: 'diagnostico', configuracoes: 'ropa' };
+  const moduloPedido = navPedido.indexOf('relatorios') === 0 ? '' : (NAV_MODULO[navPedido] || navPedido);
+
+  document.getElementById('app').innerHTML = gerarLayout('Acesso aos módulos', 'sem_acesso') + `
+    <div class="fade-in">
+      <div class="ad-topo"><div><h2>Acesso aos módulos</h2>
+        <p>Cada módulo da plataforma é liberado pelo administrador. Aqui você vê o que tem e pede o que precisa.</p></div></div>
+      <div id="sa-aviso"></div>
+      <div class="ad-card" style="padding:18px;margin-bottom:16px">
+        <h3 style="margin:0 0 6px;font-size:16px">${adIc('enviar', 'p')} Pedir acesso</h3>
+        <p class="ad-dica">O pedido vai para o administrador (super_admin), que libera ou recusa. Você é avisado no sino.</p>
+        <div class="ad-g2">
+          <div class="form-group"><label class="form-label" for="sa-modulo">Módulo</label>
+            <select class="form-control" id="sa-modulo"></select></div>
+          <div class="form-group"><label class="form-label" for="sa-just">Para que você precisa (opcional)</label>
+            <input class="form-control" id="sa-just" type="text" maxlength="1000" placeholder="Ex.: vou acompanhar os contratos da minha atividade"></div>
+        </div>
+        <button type="button" class="btn btn-primary" id="sa-pedir">${adIc('enviar', 'p')}Enviar pedido</button>
+      </div>
+      <div class="ad-g2">
+        <div class="ad-card" style="padding:18px"><h3 style="margin:0 0 10px;font-size:16px">${adIc('hist', 'p')} Meus pedidos</h3><div id="sa-pedidos"></div></div>
+        <div class="ad-card" style="padding:18px"><h3 style="margin:0 0 10px;font-size:16px">${adIc('escudo', 'p')} Liberados para você</h3><div id="sa-liberados"></div></div>
+      </div>
+    </div>` + '</div></div></div>';
+  adSeletorTema(); carregarLogosSidebar();
+
+  const fmt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '';
+  const [{ data: mods }, { data: perms }] = await Promise.all([
+    db.from('acesso_modulos').select('modulo,rotulo,nucleo,ordem').order('ordem'),
+    db.from('usuario_permissoes').select('modulo,valido_ate,em_revisao').eq('usuario_id', usuario.id).eq('ativo', true),
+  ]);
+  const rot = {}; (mods || []).forEach(m => { rot[m.modulo] = m.rotulo; });
+  const agora = new Date();
+  const vivos = (perms || []).filter(p => !p.valido_ate || new Date(p.valido_ate) > agora);
+
+  if (navPedido && !acessoLiberado(navPedido)) {
+    document.getElementById('sa-aviso').innerHTML = `<div class="ad-aviso">${adIc('cadeado', 'p')}<span>
+      O módulo <b>${esc(rot[moduloPedido] || navPedido)}</b> ainda não está liberado para você. Peça o acesso abaixo.</span></div>`;
+  }
+
+  document.getElementById('sa-liberados').innerHTML = appState.perfil === 'super_admin'
+    ? '<p class="ad-dica">Como super_admin, você tem todos os módulos.</p>'
+    : (vivos.length ? '<div class="ad-extras">' + vivos.map(p => `<span class="ad-pill ${p.em_revisao ? 'ad-al' : 'ad-in'}">${esc(rot[p.modulo] || p.modulo)}${
+        p.em_revisao ? ' · em revisão' : (p.valido_ate ? ' · até ' + esc(fmt(p.valido_ate)) : '')}</span>`).join('') + '</div>'
+      + (vivos.some(p => p.em_revisao) ? '<p class="ad-dica" style="margin-top:8px">"Em revisão": o administrador está conferindo se você ainda precisa deste módulo.</p>' : '')
+      : '<p class="ad-dica">Nenhum módulo liberado ainda. Visão Geral, Minhas tarefas, o Manual e Meu perfil ficam sempre abertos.</p>');
+
+  const sel = document.getElementById('sa-modulo');
+  const pedir = (mods || []).filter(m => !m.nucleo && !vivos.some(p => p.modulo === m.modulo));
+  sel.innerHTML = pedir.length ? pedir.map(m => `<option value="${esc(m.modulo)}" ${m.modulo === moduloPedido ? 'selected' : ''}>${esc(m.rotulo)}</option>`).join('')
+    : '<option value="">Você já tem todos os módulos</option>';
+  document.getElementById('sa-pedir').disabled = !pedir.length || appState.perfil === 'super_admin';
+
+  async function carregarPedidos() {
+    const { data } = await db.from('usuario_pedidos_acesso').select('id,tipo,modulo,status,parecer,criado_em,decidido_em')
+      .eq('usuario_id', usuario.id).order('criado_em', { ascending: false }).limit(20);
+    const SIT = { pendente: ['ad-al', 'Aguardando'], aprovado: ['ad-ok', 'Liberado'], recusado: ['ad-ne', 'Recusado'], cancelado: ['ad-ne', 'Cancelado'] };
+    document.getElementById('sa-pedidos').innerHTML = (data || []).length ? (data || []).map(p => `
+      <div class="ad-item" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--borda)">
+        <b style="flex:1;min-width:140px">${esc(p.tipo === 'liberacao' ? 'Liberação da entrada' : (rot[p.modulo] || p.modulo))}</b>
+        <span class="ad-pill ${SIT[p.status][0]}">${SIT[p.status][1]}</span>
+        <small class="ad-mono">${esc(fmt(p.criado_em))}</small>
+        ${p.status === 'pendente' ? `<button type="button" class="btn btn-secondary btn-sm" data-cancelar="${esc(p.id)}">Cancelar</button>` : ''}
+        ${p.parecer ? `<small style="flex-basis:100%">${esc(p.parecer)}</small>` : ''}
+      </div>`).join('') : '<p class="ad-dica">Nenhum pedido feito.</p>';
+  }
+  await carregarPedidos();
+
+  document.getElementById('sa-pedidos').addEventListener('click', async e => {
+    const b = e.target.closest('[data-cancelar]'); if (!b) return;
+    const { error } = await db.rpc('fn_acesso_cancelar_pedido', { p_pedido: b.dataset.cancelar });
+    if (error) { toast('Não foi possível cancelar: ' + error.message.replace(/^[A-Z_]+: /, ''), 'error'); return; }
+    toast('Pedido cancelado.', 'success'); carregarPedidos();
+  });
+  document.getElementById('sa-pedir').addEventListener('click', async () => {
+    const mod = sel.value; if (!mod) return;
+    const btn = document.getElementById('sa-pedir'); btn.disabled = true;
+    const { error } = await db.rpc('fn_acesso_pedir', { p_modulo: mod, p_justificativa: document.getElementById('sa-just').value.trim() || null });
+    btn.disabled = false;
+    if (error) { toast('Não foi possível enviar: ' + error.message.replace(/^[A-Z_]+: /, ''), 'error'); return; }
+    document.getElementById('sa-just').value = '';
+    toast('Pedido enviado ao administrador.', 'success'); carregarPedidos();
+  });
+})();
+</script>
+</body>
+</html>

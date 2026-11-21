@@ -1284,8 +1284,8 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `js/administracao.js`: `adIc()` (SVG, sem emoji), `adSeletorTema()`, `adAbrir`/`adFechar` (pilha: Esc fecha a de cima, Tab
   preso, foco volta; `AD_FECHAR[id]` para fechar com confirmação) e **`adConfirmar({titulo,texto,ok,perigo})`** (Promise) no lugar
   do `confirm()`. Janelas: classe **`ad-ov`** (no seletor de escopo de `diagnostico-mesa.css`). Sem `<style>` próprio.
-- **Usuários** (super_admin): números do topo (ativos, mistura por perfil, "devem trocar a senha" e "pedidos de nova senha" — os
-  dois últimos filtram a lista), coluna **Acessos extras** (módulos de `usuario_permissoes` além do perfil, com "até"/"vencido"),
+- **Usuários** (super_admin): números do topo (ativos, mistura por perfil, "devem trocar a senha", "pedidos de nova senha", "acessos em
+  revisão", "suspensos por inatividade" e "pedidos de acesso" — ver "Acessos por módulo liberado"), coluna **Acessos** (nº de módulos, em revisão, extras),
   lista abre em **Ativos**; no celular vira cartões. Janela em abas Dados · Acessos · Senha · Histórico (abre em Senha se há pedido).
   - **Acessos gravam só o que mudou** (`permIni` × `estadoPerms()`): concessão nova = upsert; mudou a data = update de
     `valido_ate`; desmarcou = revoga. Nunca regravar todos (perdia `concedido_em` e marcava revogação de módulo nunca dado).
@@ -1319,6 +1319,25 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   calls cannot be nested" (a lista vinha vazia porque o EXCEPTION engolia o erro).
 - **ROPA**: a ficha de cada tratamento (`.ad-trat`) é **papel: branca nos dois temas e na impressão**; na impressão do tema escuro
   o resto volta aos valores claros. Regras de leitura/conferência seguem as de "ROPA vivo" (Diagnóstico).
+
+### Acessos por módulo liberado e entrada suspensa por inatividade (⚠️ ler antes de mexer em acesso, menu ou RLS por perfil)
+Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c` + `_sino_sql_editor`; testes `node tests/acessos/telas.js`).
+- **Perfil = teto, liberação = chave.** Todo módulo precisa de linha ativa em `usuario_permissoes`; conta nova nasce **sem módulos**
+  ("Aplicar o padrão do perfil" marca o teto). Núcleo sempre aberto: Visão Geral, Tarefas, Manual, Meu perfil. super_admin tem tudo,
+  nunca é suspenso, e o banco exige **2 super_admins ativos** (`MINIMO_SUPER_ADMIN`). Catálogo `acesso_modulos` = `MODULOS_LISTA`.
+- **Tela**: `acessoLiberado(navId)` (`js/config.js`, com `ACESSO_NUCLEO`/`ACESSO_NAV`/`ACESSO_VINCULO`) decide o menu e a trava de
+  página (`gerarLayout` → `pages/sem-acesso.html?m=`, onde a pessoa pede o módulo). Página nova = id do nav = módulo; se for outro,
+  entra em `ACESSO_NAV`. **Nunca** voltar a decidir menu/página só por `item.perfis`.
+- **Banco**: trecho de PERFIL das policies de contratos, execucao_financeira, fornecedores(+bancários), viagens, beneficiários(+bancários)
+  e `fn_pat_pode_*`/`fn_diag_pode_gerir` exige `fn_modulo_liberado()`/`tem_permissao()`; trecho de VÍNCULO não muda. Dentro do teto a
+  liberação dá o que o perfil dava (técnico com Viagens vê só os próprios); fora dele, o extra segue como era. Policy nova por perfil
+  num módulo liberável: `perfil in (...) and fn_modulo_liberado('<modulo>')`.
+- **Revisão (26/11)**: responsáveis = permanente; entrevistadores do Diagnóstico = confirmados; resto `em_revisao` (cai em 15 dias).
+- **Inatividade**: 15 dias sem mesa/app/login ⇒ `bloqueado_inatividade_em` + ban no Auth (`fn_acesso_rotina`, cron `acesso-rotina`;
+  aviso no 12º dia). App de campo registra acesso por `fn_registrar_acesso('app')` na sincronização. Liberar = `fn_acesso_liberar_inatividade`
+  (3 dias para entrar); pedido sem login = `fn_publico_pedir_liberacao` (resposta sempre igual). Colunas só pelas funções (`dima.acesso='rpc'`).
+- Avisos: sino `acesso_*` (só com o `_sql_editor`), e-mail pela fila `acesso_notificacoes` → Edge Function `acesso-emails`. Auditor:
+  `fn_auditoria_acessos()` ("Acessos: …", domínio virtual na tela). ROPA TRAT-007. Pendente: funções de ação por perfil (fase 2).
 
 ### Relatórios A4 — PADRÃO ÚNICO (⚠️ todo relatório novo, em qualquer tela, segue isto)
 - **Um molde só**: `js/folha-a4.js` (`FolhaA4`) + `css/folha-a4.css`. Usam: os 39 da aba Relatórios (`wrapDoc`), os dois A4 da
@@ -1590,6 +1609,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `publico-capa` | Capa (JPEG do bucket privado `acervo-capas`) de produto marcado como público no Acervo, para a Galeria do site público; só entrega o que `fn_publico_capa_caminho` libera (service_role), 404 no resto. O site chama com a chave anon no cabeçalho (`fetch` → blob) | ✅ |
 | `publico-produto` | Documento (PDF do bucket privado de entregas) de produto marcado como público no Acervo, para o visualizador da Galeria do site público; só entrega o que `fn_publico_arquivo_caminho` libera (service_role), 404 no resto; `Content-Disposition` com nome genérico. Chamada com a chave anon no cabeçalho | ✅ |
 | `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`) e aprova/devolve o pedido de baixa (`acao:'decidir_baixa'` → `fn_pat_baixa_decidir`) e assina o inventário pela comissão (`acao:'assinar_inventario'` → `fn_pat_inv_assinar`), todos só service_role; mesmo bloqueio por tentativas do remanejamento | ✅ |
+| `acesso-emails` | Envia a fila `acesso_notificacoes` (aviso de inatividade, entrada suspensa, entrada liberada, resumo dos suspensos para o super_admin); cron `acesso-emails` (15 min) | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---

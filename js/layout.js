@@ -55,6 +55,10 @@ function _dimaAtivarNavLinks() {
 
 function gerarLayout(tituloPagina, paginaAtiva) {
   window.AJUDA_NAV_ID = paginaAtiva;
+  // Página de módulo não liberado: vai para "Sem acesso" (os dados já são barrados no banco)
+  if (appState.usuario && typeof acessoLiberado === 'function' && !acessoLiberado(paginaAtiva)) {
+    window.location.replace('sem-acesso.html?m=' + encodeURIComponent(paginaAtiva || ''));
+  }
 
   // SVG paths inline — sem dependência de CDN, renderiza instantaneamente
   const iconePills = {
@@ -153,19 +157,17 @@ function gerarLayout(tituloPagina, paginaAtiva) {
     const itens = navItems.filter(item => group.ids.includes(item.id));
     const linhas = itens.map(item => {
       if (item.parent) return ''; // sub-items renderizados pelo pai
-      // Acesso por perfil (regra base) OU por permissão extra dinâmica
+      // Módulo liberado (ou núcleo, ou vínculo) — regra única em acessoLiberado() (js/config.js).
+      // O perfil (item.perfis) só diz o que é "do perfil" e o que é extra.
       const temPerfil = !item.perfis || item.perfis.includes(appState.perfil);
-      const perms = appState.permissoes || [];
-      const temPermissao = item.id === 'relatorios'
-        ? perms.some(p => p.startsWith('relatorios_'))
-        : item.id === 'patrimonio'
-          ? perms.includes('patrimonio') || perms.includes('patrimonio_gestor')
-          : perms.includes(item.id);
-      if (!temPerfil && !temPermissao) return '';
+      const temPermissao = item.collapsible || acessoLiberado(item.id);
+      if (!temPermissao) return '';
+      // a página 'usuarios' é também o "Meu perfil" de todos; o item do menu é só do super_admin
+      if (item.id === 'usuarios' && appState.perfil !== 'super_admin') return '';
 
       // ── Item recolhível (ex: Configurações) ──────────────────
       if (item.collapsible) {
-        const filhos = navItems.filter(si => si.parent === item.id && (!si.perfis || si.perfis.includes(appState.perfil)));
+        const filhos = navItems.filter(si => si.parent === item.id && acessoLiberado(si.id));
         if (!filhos.length) return '';
         // Expandir apenas se a página atual é um sub-item — recolhe ao sair
         const aberto = filhos.some(si => paginaAtiva === si.id || (si.id === 'dados_sistema' && paginaAtiva === 'configuracoes'));

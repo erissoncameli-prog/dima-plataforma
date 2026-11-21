@@ -9,41 +9,50 @@ const PERFIS = {
 };
 const PERFIS_LIST = Object.keys(PERFIS);
 
-// Módulos que podem ser liberados além do perfil. perfis = quem já tem pelo perfil (null = todos).
-// dados: true = o acesso extra também vale no banco (abre a leitura dos dados do módulo);
-// sem `dados`, o extra só mostra a guia no menu e os dados seguem as regras do perfil.
+// Módulos liberáveis (migrações 20261126_acessos_*). O PERFIL é o teto — perfis = o que "Aplicar o padrão
+// do perfil" marca (null = todos os perfis; [] = nenhum, só por concessão); a LIBERAÇÃO é a chave: usuário novo
+// nasce sem nada. Espelha a tabela acesso_modulos (rótulo e teto) — mudou num, muda no outro.
+// dados: true = o módulo também abre os dados no banco (fn_modulo_liberado / tem_permissao nas policies);
+// sem `dados`, o módulo abre a página e os dados seguem as regras do perfil.
+const MODULOS_NUCLEO = 'Visão Geral, Minhas tarefas, Manual do sistema e Meu perfil';
 const MODULOS_LISTA = [
-  { id: 'dashboard',    ic: 'painel',  label: 'Visão Geral',          perfis: null },
   { id: 'atividades',   ic: 'lista',   label: 'Atividades',           perfis: null },
   { id: 'tdrs',         ic: 'doc',     label: 'TDRs',                 perfis: null },
   { id: 'matriz',       ic: 'alvo',    label: 'Matriz de Resultados', perfis: null },
-  { id: 'fornecedores', ic: 'predio',  label: 'Fornecedores',         perfis: ['super_admin', 'coordenacao', 'financeiro'] },
-  { id: 'contratos',    ic: 'contrato', label: 'Contratos',           perfis: ['super_admin', 'coordenacao', 'financeiro'] , dados: true },
+  { id: 'remanejamentos', ic: 'trocar', label: 'Remanejamento',       perfis: null },
+  { id: 'fornecedores', ic: 'predio',  label: 'Fornecedores',         perfis: ['super_admin', 'coordenacao', 'financeiro'], dados: true },
+  { id: 'contratos',    ic: 'contrato', label: 'Contratos',           perfis: ['super_admin', 'coordenacao', 'financeiro'], dados: true },
   { id: 'produtos',     ic: 'pacote',  label: 'Produtos Entregues',   perfis: ['super_admin', 'coordenacao', 'tecnico'] },
-  { id: 'financeiro',   ic: 'moeda',   label: 'Financeiro',           perfis: ['super_admin', 'coordenacao', 'financeiro'] , dados: true },
-  { id: 'viagens',      ic: 'aviao',   label: 'Viagens',              perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico'] , dados: true },
-  // Patrimônio: 'patrimonio' abre valores e NF (leitura); 'patrimonio_gestor' incorpora e mantém as fichas (fn_pat_pode_*)
+  { id: 'acervo',       ic: 'pasta',   label: 'Acervo Digital',       perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico'] },
+  { id: 'financeiro',   ic: 'moeda',   label: 'Financeiro',           perfis: ['super_admin', 'coordenacao', 'financeiro'], dados: true },
+  // Patrimônio: catálogo (ver os bens; coordenação também gere), valores/NF e gestor patrimonial (designação das tarefas)
+  { id: 'patrimonio_catalogo', ic: 'pacote', label: 'Patrimônio — catálogo', perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico', 'visualizador'], dados: true },
   { id: 'patrimonio',   ic: 'pacote',  label: 'Patrimônio — ver valores', perfis: ['super_admin', 'coordenacao', 'financeiro'], dados: true },
-  // gestor também é a DESIGNAÇÃO de quem recebe as tarefas de incorporação (fn_pat_gestor_padrao): concedível à coordenação
   { id: 'patrimonio_gestor', ic: 'pacote', label: 'Patrimônio — gestor patrimonial', perfis: ['super_admin'], dados: true },
-  { id: 'repositorio',  ic: 'link',    label: 'Repositório',          perfis: null },
-  { id: 'formularios',  ic: 'form',    label: 'Guia Formulários',     perfis: null },
-  { id: 'usuarios',     ic: 'users',   label: 'Usuários',             perfis: ['super_admin'] },
-  // Diagnóstico: VER os dados (coordenação pelo perfil; técnico vê números; consultor lê fichas sem identificação)
-  { id: 'diagnostico',  ic: 'campo',   label: 'Diagnóstico Socioambiental', perfis: ['super_admin', 'coordenacao'] , dados: true,
+  // Diagnóstico: VER os dados (coordenação gere; técnico vê números; consultor lê fichas sem identificação)
+  { id: 'diagnostico',  ic: 'campo',   label: 'Diagnóstico Socioambiental', perfis: ['super_admin', 'coordenacao'], dados: true,
     efeito: 'ver os dados; não faz de ninguém entrevistador' },
   // Entrevistador (diag_27): faz entrevista no app e entra na designação; qualquer perfil; só o super_admin concede (trigger no banco)
   { id: 'diagnostico_entrevistador', ic: 'campo', label: 'Diagnóstico — entrevistador (app de campo)', perfis: [], dados: true,
     efeito: 'faz entrevistas no app e pode ser designado a um setor; não dá a mesa' },
-  // Modo treino (fichas TRE-): quem não é coordenação precisa também de 'diagnostico_entrevistador'; coordenação com este módulo treina
-  { id: 'diagnostico_treino', ic: 'frasco', label: 'Diagnóstico — modo treino', perfis: ['super_admin'] , dados: true },
-  // Central de Relatórios (prefixo relatorios_): super_admin e coordenação nativos; demais por concessão
+  { id: 'diagnostico_treino', ic: 'frasco', label: 'Diagnóstico — modo treino', perfis: ['super_admin'], dados: true },
+  { id: 'viagens',      ic: 'aviao',   label: 'Viagens',              perfis: ['super_admin', 'coordenacao', 'financeiro', 'tecnico'], dados: true,
+    efeito: 'técnico vê só os próprios protocolos; fora do perfil, vê todos' },
+  { id: 'beneficiarios', ic: 'users',  label: 'Beneficiários (com dados bancários)', perfis: ['super_admin', 'coordenacao'], dados: true },
+  { id: 'mapa',         ic: 'globo',   label: 'Mapa Interativo',      perfis: null },
+  { id: 'repositorio',  ic: 'link',    label: 'Repositório',          perfis: null },
+  { id: 'formularios',  ic: 'form',    label: 'Guia Formulários',     perfis: null },
+  { id: 'pulso',        ic: 'graf',    label: 'Pulso da Equipe',      perfis: null },
+  { id: 'auditoria',    ic: 'escudo',  label: 'Auditoria IA',         perfis: ['super_admin', 'coordenacao'] },
+  { id: 'ropa',         ic: 'escudo',  label: 'Privacidade (ROPA)',   perfis: ['super_admin', 'coordenacao'] },
+  { id: 'usuarios',     ic: 'users',   label: 'Usuários',             perfis: ['super_admin'] },
+  // Central de Relatórios (prefixo relatorios_)
   { id: 'relatorios_financeiro',   ic: 'moeda',    label: 'Financeiro',        grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_contratos',    ic: 'contrato', label: 'Contratos',         grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_fornecedores', ic: 'predio',   label: 'Fornecedores',      grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_produtos',     ic: 'pacote',   label: 'Produtos/Entregas', grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_tdrs',         ic: 'doc',      label: 'TDRs',              grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
-  { id: 'relatorios_atividades',   ic: 'lista',    label: 'Atividades',        grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
+  { id: 'relatorios_atividades',   ic: 'lista',    label: 'Atividades',        grupo: 'relatorios', perfis: ['super_admin', 'coordenacao', 'financeiro'] },
   { id: 'relatorios_orcamento',    ic: 'moeda',    label: 'Orçamento e remanejamento', grupo: 'relatorios', perfis: ['super_admin', 'coordenacao', 'financeiro'] },
   { id: 'relatorios_matriz',       ic: 'alvo',     label: 'Matriz',            grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
   { id: 'relatorios_viagens',      ic: 'aviao',    label: 'Viagens',           grupo: 'relatorios', perfis: ['super_admin', 'coordenacao'] },
@@ -55,7 +64,7 @@ const GRUPOS = { '': 'Módulos', relatorios: 'Central de Relatórios', dashboard
 const modLabel = id => { const m = MODULOS_LISTA.find(x => x.id === id); return m ? (m.grupo === 'relatorios' ? 'Relatório ' + m.label : m.label) : id; };
 const modDoPerfil = (m, perfil) => !m.perfis || m.perfis.includes(perfil);
 
-let todosUsuarios = [], solicitacoes = [], permsTodas = [];
+let todosUsuarios = [], solicitacoes = [], permsTodas = [], pedidosAcesso = [], responsaveis = new Set();
 let usuarioAtual = null, permIni = {}, abaAtual = 'dados', editando = false;
 const filtro = { busca: '', perfil: '', situacao: 'ativo', rapido: '' };
 
@@ -71,6 +80,11 @@ function fmtAcesso(d) {
   return dt.toLocaleDateString('pt-BR');
 }
 const semAcento = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// Último acesso: o mais recente entre a mesa e o app de campo
+function ultimoDe(u) {
+  const a = u.ultimo_acesso_em, b = u.ultimo_acesso_app_em;
+  return !a ? b : !b ? a : (new Date(a) > new Date(b) ? a : b);
+}
 function mkIniciais(nome) { return (nome || 'U').trim().split(/\s+/).filter(Boolean).map(p => p[0]).join('').substring(0, 2).toUpperCase() || 'U'; }
 // Avatar: iniciais por baixo e a foto por cima (se a foto falhar, some e ficam as iniciais)
 function mkAvatar(u, extra) {
@@ -88,7 +102,9 @@ const pillPerfil = p => `<span class="ad-pill ad-pf" style="--c:var(--ad-p-${PER
     document.getElementById('app').innerHTML = gerarLayout('Usuários', 'usuarios') + `
       <div class="fade-in">
         <div class="ad-topo"><div><h2>Usuários</h2><p>Quem entra na plataforma, com que perfil e quais acessos tem além do perfil.</p></div>
-          <button type="button" class="btn btn-primary" onclick="abrirFormNovo()">${adIc('mais', 'p')}Novo usuário</button></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn btn-secondary" onclick="relatorioAcessos()">${adIc('imprimir', 'p')}Quem acessa o quê</button>
+            <button type="button" class="btn btn-primary" onclick="abrirFormNovo()">${adIc('mais', 'p')}Novo usuário</button></div></div>
         <div class="ad-kpis" id="stats"></div>
         <div class="ad-filtros">
           <label class="ad-busca">${adIc('busca', 'p')}<input id="f-busca" type="search" placeholder="Buscar nome ou e-mail" aria-label="Buscar nome ou e-mail"></label>
@@ -100,7 +116,7 @@ const pillPerfil = p => `<span class="ad-pill ad-pf" style="--c:var(--ad-p-${PER
         </div>
         <div class="ad-card ad-tab-wrap">
           <table class="ad-tab">
-            <thead><tr><th>Pessoa</th><th>Perfil</th><th>Acessos extras</th><th>Último acesso</th><th>Situação</th></tr></thead>
+            <thead><tr><th>Pessoa</th><th>Perfil</th><th>Acessos</th><th>Último acesso</th><th>Situação</th></tr></thead>
             <tbody id="tbody-usuarios"></tbody>
           </table>
         </div>
@@ -109,7 +125,10 @@ const pillPerfil = p => `<span class="ad-pill ad-pf" style="--c:var(--ad-p-${PER
     document.getElementById('f-busca').addEventListener('input', e => { filtro.busca = e.target.value; filtrar(); });
     document.getElementById('f-situacao').addEventListener('change', e => { filtro.situacao = e.target.value; filtrar(); });
     await carregarDados();
-    if (new URLSearchParams(location.search).get('self') === '1') abrirUsuario(appState.usuario.id);
+    const qs = new URLSearchParams(location.search);
+    if (qs.get('self') === '1') abrirUsuario(appState.usuario.id);
+    else if (qs.get('pedidos') === '1') abrirPedidos();
+    else if (['revisao', 'bloqueado'].includes(qs.get('filtro'))) filtroRapido(qs.get('filtro'));
   } else {
     document.getElementById('app').innerHTML = gerarLayout('Meu Perfil', 'usuarios') +
       '<div class="fade-in"><div class="ad-perfil" id="perfil-content"></div></div>' + '</div></div></div>';
@@ -122,12 +141,15 @@ const pillPerfil = p => `<span class="ad-pill ad-pf" style="--c:var(--ad-p-${PER
 // PAINEL ADMIN
 // ══════════════════════════════════════════════════════════════════════
 async function carregarDados() {
-  const [{ data: u }, { data: s }, { data: p }] = await Promise.all([
+  const [{ data: u }, { data: s }, { data: p }, { data: pa }, { data: ar }] = await Promise.all([
     db.from('usuarios').select('*').order('nome_completo'),
     db.from('solicitacoes_senha').select('*').eq('status', 'pendente'),
-    db.from('usuario_permissoes').select('usuario_id,modulo,valido_ate').eq('ativo', true),
+    db.from('usuario_permissoes').select('usuario_id,modulo,valido_ate,em_revisao,concedido_em').eq('ativo', true),
+    db.from('usuario_pedidos_acesso').select('id,tipo,usuario_id,modulo,justificativa,origem,criado_em').eq('status', 'pendente').order('criado_em'),
+    db.from('atividade_responsaveis').select('usuario_id').eq('ativo', true),
   ]);
-  todosUsuarios = u || []; solicitacoes = s || []; permsTodas = p || [];
+  todosUsuarios = u || []; solicitacoes = s || []; permsTodas = p || []; pedidosAcesso = pa || [];
+  responsaveis = new Set((ar || []).map(x => x.usuario_id));
   renderStats(); renderSegPerfil(); filtrar();
 }
 
@@ -135,6 +157,9 @@ function renderStats() {
   const t = todosUsuarios, ativos = t.filter(u => u.ativo);
   const trocar = t.filter(u => u.ativo && u.deve_trocar_senha).length;
   const pedidos = new Set(solicitacoes.map(s => s.usuario_id)).size;
+  const emRevisao = t.filter(u => u.ativo && emRevisaoDe(u).length).length;
+  const bloq = t.filter(u => u.ativo && u.bloqueado_inatividade_em).length;
+  const pedAc = pedidosAcesso.length;
   const cont = {}; ativos.forEach(u => { cont[u.perfil] = (cont[u.perfil] || 0) + 1; });
   const mix = PERFIS_LIST.filter(p => cont[p]).map(p => `<i style="flex:${cont[p]};background:var(--ad-p-${p})" title="${esc(PERFIS[p])}: ${cont[p]}"></i>`).join('');
   const leg = PERFIS_LIST.filter(p => cont[p]).map(p => `${cont[p]} ${esc(PERFIS[p].split(' ')[0].toLowerCase())}`).join(' · ');
@@ -144,7 +169,11 @@ function renderStats() {
     <div class="ad-kpi"><span class="ad-kpi-l">${adIc('users', 'p')}Ativos</span><span class="ad-kpi-v">${ativos.length}</span><span class="ad-kpi-s">de ${t.length} cadastrados</span></div>
     <div class="ad-kpi"><span class="ad-kpi-l">${adIc('escudo', 'p')}Por perfil</span><div class="ad-mix" role="img" aria-label="${esc(leg)}">${mix}</div><span class="ad-kpi-s">${leg || '—'}</span></div>
     ${rap('trocar', '', 'chave', 'Devem trocar a senha', trocar, trocar ? 'senha temporária em uso · ver só esses' : 'nenhum pendente')}
-    ${rap('pedido', pedidos ? ' al' : '', 'sino', 'Pedidos de nova senha', pedidos, pedidos ? 'aguardando você · ver só esses' : 'nenhum pedido')}`;
+    ${rap('pedido', pedidos ? ' al' : '', 'sino', 'Pedidos de nova senha', pedidos, pedidos ? 'aguardando você · ver só esses' : 'nenhum pedido')}
+    ${rap('revisao', emRevisao ? ' al' : '', 'relogio', 'Acessos em revisão', emRevisao, emRevisao ? 'pessoas a revisar · ver só essas' : 'nada a revisar')}
+    ${rap('bloqueado', bloq ? ' al' : '', 'cadeado', 'Suspensos por inatividade', bloq, bloq ? '15 dias sem entrar · ver só esses' : 'ninguém suspenso')}
+    <button type="button" class="ad-kpi${pedAc ? ' al' : ''}" onclick="abrirPedidos()">
+      <span class="ad-kpi-l">${adIc('enviar', 'p')}Pedidos de acesso</span><span class="ad-kpi-v">${pedAc}</span><span class="ad-kpi-s">${pedAc ? 'aguardando você · abrir' : 'nenhum pedido'}</span></button>`;
 }
 function filtroRapido(k) { filtro.rapido = filtro.rapido === k ? '' : k; if (filtro.rapido) { filtro.situacao = ''; document.getElementById('f-situacao').value = ''; } renderStats(); filtrar(); }
 
@@ -156,23 +185,26 @@ function renderSegPerfil() {
   el.onclick = e => { const x = e.target.closest('[data-p]'); if (!x) return; filtro.perfil = x.dataset.p; renderSegPerfil(); filtrar(); };
 }
 
-function extrasDe(u) {
-  return permsTodas.filter(p => p.usuario_id === u.id).filter(p => {
-    const m = MODULOS_LISTA.find(x => x.id === p.modulo); return !m || !modDoPerfil(m, u.perfil);
-  });
-}
-function pillsExtras(u) {
-  const ex = extrasDe(u); if (!ex.length) return '<span class="ad-mono ad-nada">—</span>';
+// Liberações vivas (ativas e no prazo) de uma pessoa
+function vivosDe(u) {
   const agora = new Date();
-  const pills = ex.slice(0, 3).map(p => {
-    const venc = p.valido_ate && new Date(p.valido_ate) < agora;
-    const quando = p.valido_ate ? (venc ? ' · vencido' : ' · até ' + fmtD(p.valido_ate)) : '';
-    return `<span class="ad-pill ${venc ? 'ad-ne' : 'ad-in'}">${esc(modLabel(p.modulo))}${quando}</span>`;
-  }).join('');
-  return `<div class="ad-extras">${pills}${ex.length > 3 ? `<span class="ad-pill ad-ne">+${ex.length - 3}</span>` : ''}</div>`;
+  return permsTodas.filter(p => p.usuario_id === u.id && (!p.valido_ate || new Date(p.valido_ate) > agora));
+}
+function emRevisaoDe(u) { return vivosDe(u).filter(p => p.em_revisao); }
+function pillsExtras(u) {
+  if (u.perfil === 'super_admin') return '<span class="ad-pill ad-in">todos os módulos</span>';
+  const vivos = vivosDe(u);
+  if (!vivos.length) return '<span class="ad-mono ad-nada">nenhum módulo</span>';
+  const extras = vivos.filter(p => { const m = MODULOS_LISTA.find(x => x.id === p.modulo); return m && !modDoPerfil(m, u.perfil); });
+  const rev = vivos.filter(p => p.em_revisao).length;
+  return `<div class="ad-extras"><span class="ad-pill ad-in">${vivos.length} ${vivos.length === 1 ? 'módulo' : 'módulos'}</span>`
+    + (rev ? `<span class="ad-pill ad-al">${rev} em revisão</span>` : '')
+    + extras.slice(0, 2).map(p => `<span class="ad-pill ad-ne" title="Fora do padrão do perfil">${esc(modLabel(p.modulo))}</span>`).join('')
+    + (extras.length > 2 ? `<span class="ad-pill ad-ne">+${extras.length - 2} extras</span>` : '') + '</div>';
 }
 function situacaoDe(u) {
   if (!u.ativo) return '<span class="ad-pill ad-ne">Inativo</span>';
+  if (u.bloqueado_inatividade_em) return `<span class="ad-pill ad-al">${adIc('cadeado')}Suspenso por inatividade</span>`;
   if (solicitacoes.some(s => s.usuario_id === u.id)) return `<span class="ad-pill ad-al">${adIc('sino')}Pediu nova senha</span>`;
   if (u.deve_trocar_senha) return `<span class="ad-pill ad-ne">${adIc('chave')}Senha temporária</span>`;
   return '<span class="ad-pill ad-ok">Ativo</span>';
@@ -186,6 +218,8 @@ function filtrar() {
     if (filtro.situacao === 'inativo' && u.ativo) return false;
     if (filtro.rapido === 'trocar' && !(u.ativo && u.deve_trocar_senha)) return false;
     if (filtro.rapido === 'pedido' && !solicitacoes.some(s => s.usuario_id === u.id)) return false;
+    if (filtro.rapido === 'revisao' && !(u.ativo && emRevisaoDe(u).length)) return false;
+    if (filtro.rapido === 'bloqueado' && !(u.ativo && u.bloqueado_inatividade_em)) return false;
     if (b && !semAcento((u.nome_completo || '') + ' ' + (u.email || '')).includes(b)) return false;
     return true;
   });
@@ -195,7 +229,7 @@ function filtrar() {
       <td class="c-pess"><div class="ad-pess">${mkAvatar(u)}<div><b>${esc(u.nome_completo || '—')}${u.id === appState.usuario.id ? ' <span class="ad-pill ad-ne">você</span>' : ''}</b><small>${esc(u.email || '—')}</small></div></div></td>
       <td>${pillPerfil(u.perfil)}</td>
       <td class="c-extras">${pillsExtras(u)}</td>
-      <td class="c-acesso ad-mono">${esc(fmtAcesso(u.ultimo_acesso_em))}</td>
+      <td class="c-acesso ad-mono">${esc(fmtAcesso(ultimoDe(u)))}${u.ultimo_acesso_app_em && u.ultimo_acesso_app_em === ultimoDe(u) ? ' <small>(app)</small>' : ''}</td>
       <td>${situacaoDe(u)}</td>
     </tr>`).join('') : '<tr><td colspan="5" class="ad-vazio">Nenhum usuário com esses filtros.</td></tr>';
 }
@@ -216,7 +250,7 @@ function mostrarAba(k) {
   document.querySelectorAll('#mu-body .ad-painel').forEach(p => { p.hidden = p.id !== 'pn-' + k; });
 }
 
-async function abrirUsuario(id) {
+async function abrirUsuario(id, abaInicial) {
   const u = todosUsuarios.find(x => x.id === id); if (!u) return;
   usuarioAtual = u; editando = true;
   const proprio = u.id === appState.usuario.id;
@@ -226,7 +260,7 @@ async function abrirUsuario(id) {
 
   document.getElementById('mu-titulo').textContent = u.nome_completo || 'Usuário';
   document.getElementById('mu-sub').textContent = `${PERFIS[u.perfil] || u.perfil} · ${u.email || ''}`;
-  abaAtual = solUser.length ? 'senha' : 'dados';
+  abaAtual = abaInicial || (solUser.length ? 'senha' : (u.bloqueado_inatividade_em || emRevisaoDe(u).length ? 'acessos' : 'dados'));
   abas([['dados', 'Dados', 'user'], ['acessos', 'Acessos', 'escudo'], ['senha', 'Senha', 'chave', solUser.length || ''], ['historico', 'Histórico', 'hist']]);
 
   document.getElementById('mu-body').innerHTML = `
@@ -248,8 +282,9 @@ async function abrirUsuario(id) {
       </div>
     </section>
     <section class="ad-painel" id="pn-acessos" role="tabpanel" aria-labelledby="aba-acessos" hidden>
-      <p class="ad-dica">Os acessos <b>pelo perfil</b> ficam marcados e travados. Os <b>extras</b> podem ter data de fim (vazio = sem fim). Salvar grava só o que mudou.
-        Contratos, Financeiro, Viagens e Diagnóstico <b>abrem os dados no banco</b>; nos demais o extra só mostra a guia no menu.</p>
+      <p class="ad-dica">Marque só o que a pessoa precisa. <b>${MODULOS_NUCLEO}</b> ficam sempre abertos. O perfil diz o que pode ser
+        liberado ("do perfil"); fora dele é <b>extra</b>. Data de fim é opcional (vazio = sem fim). Salvar grava só o que mudou.</p>
+      ${responsaveis.has(u.id) ? `<div class="ad-aviso">${adIc('info', 'p')}<span>Responsável ou substituto de atividade: Atividades, TDRs, Produtos e Remanejamento abrem pelo vínculo, mesmo sem o módulo.</span></div>` : ''}
       ${renderPermissoes(u, permsMap)}
     </section>
     <section class="ad-painel" id="pn-senha" role="tabpanel" aria-labelledby="aba-senha" hidden>
@@ -261,7 +296,10 @@ async function abrirUsuario(id) {
       <dl class="ad-dl">
         <dt>Criado em</dt><dd class="ad-mono">${esc(fmtDT(u.criado_em))}</dd>
         <dt>Primeiro acesso</dt><dd class="ad-mono">${esc(fmtDT(u.primeiro_acesso_em))}</dd>
-        <dt>Último acesso</dt><dd class="ad-mono">${esc(fmtDT(u.ultimo_acesso_em))}</dd>
+        <dt>Último acesso (mesa)</dt><dd class="ad-mono">${esc(fmtDT(u.ultimo_acesso_em))}</dd>
+        <dt>Último acesso (app de campo)</dt><dd class="ad-mono">${esc(fmtDT(u.ultimo_acesso_app_em))}</dd>
+        <dt>Entrada</dt><dd>${u.bloqueado_inatividade_em ? 'Suspensa por inatividade em ' + esc(fmtDT(u.bloqueado_inatividade_em))
+          : u.liberado_inatividade_em ? 'Liberada em ' + esc(fmtDT(u.liberado_inatividade_em)) : (u.perfil === 'super_admin' ? 'Super Admin nunca é suspenso' : 'Normal')}</dd>
         <dt>Senha temporária</dt><dd>${u.deve_trocar_senha ? 'Sim — ainda não trocou' : 'Não'}</dd>
       </dl>
     </section>`;
@@ -270,6 +308,7 @@ async function abrirUsuario(id) {
 
   document.getElementById('mu-footer').innerHTML = `
     ${proprio ? '' : `<button type="button" class="btn ${u.ativo ? 'ad-btn-perigo' : 'btn-secondary'}" onclick="toggleAtivo('${esc(u.id)}',${!!u.ativo})">${u.ativo ? 'Desativar acesso' : 'Reativar acesso'}</button>`}
+    ${u.ativo && u.bloqueado_inatividade_em ? `<button type="button" class="btn btn-secondary" onclick="liberarEntrada('${esc(u.id)}')">${adIc('cadeado', 'p')}Liberar entrada</button>` : ''}
     <span class="ad-sp"></span>
     <button type="button" class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
     <button type="button" class="btn btn-primary" id="mu-salvar" onclick="salvarUsuario('${esc(u.id)}')">${adIc('salvar', 'p')}Salvar</button>`;
@@ -299,70 +338,117 @@ async function copiarSenha(id) {
 }
 
 // ── Acessos ─────────────────────────────────────────────────────────────
+// Toda caixa é editável (menos para super_admin, que tem tudo). Em revisão = liberação da migração
+// de 26/11/2026 que sai sozinha no prazo se não for confirmada ("Revisei: confirmar…").
+const isoLocal = d => d ? new Date(new Date(d).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
 function renderPermissoes(u, permsMap) {
+  if (u.perfil === 'super_admin') return `<div class="ad-aviso">${adIc('escudo', 'p')}<span>Super Admin tem todos os módulos, sempre. Não há o que liberar ou retirar.</span></div>`;
   const agora = new Date();
-  return Object.keys(GRUPOS).map(g => {
+  const vivo = p => p && (!p.valido_ate || new Date(p.valido_ate) > agora);
+  const rev = Object.values(permsMap).filter(p => vivo(p) && p.em_revisao);
+  const prazoRev = rev.length ? rev.map(p => p.valido_ate).sort()[0] : null;
+  const topo = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px">
+      <button type="button" class="btn btn-secondary" onclick="aplicarPadraoPerfil()">${adIc('check', 'p')}Aplicar o padrão do perfil</button>
+      <button type="button" class="btn btn-secondary" onclick="desmarcarTodos()">${adIc('x', 'p')}Desmarcar todos</button></div>
+    ${rev.length ? `<div class="ad-aviso">${adIc('relogio', 'p')}<span><b>${rev.length} ${rev.length === 1 ? 'acesso em revisão' : 'acessos em revisão'}</b>:
+      saem em ${esc(fmtD(prazoRev))} se não forem confirmados. Desmarque o que a pessoa não precisa e confirme o resto.
+      <label class="ad-chk" style="margin-top:6px"><input type="checkbox" id="perm-confirmar" onchange="toggleConfirmarRevisao()">
+      Revisei: confirmar os acessos marcados ao salvar</label></span></div>` : ''}`;
+  return topo + Object.keys(GRUPOS).map(g => {
     const mods = MODULOS_LISTA.filter(m => (m.grupo || '') === g); if (!mods.length) return '';
-    const algumLivre = mods.some(m => !modDoPerfil(m, u.perfil));
-    const cab = `<div class="ad-grp">${esc(GRUPOS[g])}${g && algumLivre ? `<button type="button" onclick="toggleGrupo('${g}',true)">marcar todos</button><button type="button" onclick="toggleGrupo('${g}',false)">nenhum</button>` : ''}</div>`;
+    const cab = `<div class="ad-grp">${esc(GRUPOS[g])}${g ? `<button type="button" onclick="toggleGrupo('${g}',true)">marcar todos</button><button type="button" onclick="toggleGrupo('${g}',false)">nenhum</button>` : ''}</div>`;
     return cab + '<div class="ad-perms">' + mods.map(m => {
       const doPerfil = modDoPerfil(m, u.perfil);
       const perm = permsMap[m.id];
-      const venc = perm && perm.valido_ate && new Date(perm.valido_ate) < agora;
-      const ate = perm && perm.valido_ate ? new Date(new Date(perm.valido_ate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
-      const marc = doPerfil || !!perm;
-      const sit = doPerfil ? '<small>pelo perfil</small>'
-        : perm ? (venc ? `<small class="v">extra vencido em ${esc(fmtD(perm.valido_ate))}</small>` : `<small>extra${perm.valido_ate ? ' · até ' + esc(fmtD(perm.valido_ate)) : ' · sem fim'}</small>`)
-        : '<small>sem acesso</small>';
-      const efeito = doPerfil ? '' : `<small class="ad-efeito">${esc(m.efeito || (m.dados ? 'abre os dados no banco' : 'só mostra a guia; os dados seguem o perfil'))}</small>`;
-      return `<div class="ad-perm${marc ? ' on' : ''}" id="perm-row-${m.id}">
-        <input type="checkbox" id="perm-chk-${m.id}" ${marc ? 'checked' : ''} ${doPerfil ? 'disabled' : ''} onchange="togglePermRow('${m.id}')" aria-describedby="perm-sit-${m.id}">
+      const vv = vivo(perm), venc = perm && !vv, emRev = vv && perm.em_revisao;
+      const ate = emRev ? isoLocal(perm.revisao_valido_ate_original) : (vv ? isoLocal(perm.valido_ate) : '');
+      const tipo = doPerfil ? 'do perfil' : 'extra';
+      const sit = emRev ? `<small class="v">${tipo} · em revisão · sai em ${esc(fmtD(perm.valido_ate))}</small>`
+        : vv ? `<small>${tipo} · liberado${perm.valido_ate ? ' até ' + esc(fmtD(perm.valido_ate)) : ' sem fim'}</small>`
+        : venc ? `<small class="v">${tipo} · venceu em ${esc(fmtD(perm.valido_ate))}</small>`
+        : `<small>${doPerfil ? 'do perfil · não liberado' : 'sem acesso'}</small>`;
+      const efeito = `<small class="ad-efeito">${esc(m.efeito || (m.dados ? 'abre os dados no banco' : 'abre a página; os dados seguem o perfil'))}</small>`;
+      return `<div class="ad-perm${vv ? ' on' : ''}" id="perm-row-${m.id}">
+        <input type="checkbox" id="perm-chk-${m.id}" ${vv ? 'checked' : ''} data-rev="${emRev ? 1 : 0}" onchange="togglePermRow('${m.id}')" aria-describedby="perm-sit-${m.id}">
         ${adIc(m.ic, 'p')}<label for="perm-chk-${m.id}">${esc(m.label)}</label>
         <span id="perm-sit-${m.id}" style="grid-column:3">${sit}</span>${efeito}
-        ${doPerfil ? '' : `<span class="ad-ate" id="perm-dt-wrap-${m.id}" ${perm ? '' : 'hidden'}><label for="perm-dt-${m.id}">até</label><input type="datetime-local" class="form-control" id="perm-dt-${m.id}" value="${ate}"></span>`}
+        <span class="ad-ate" id="perm-dt-wrap-${m.id}" ${vv ? '' : 'hidden'}><label for="perm-dt-${m.id}">até</label><input type="datetime-local" class="form-control" id="perm-dt-${m.id}" value="${ate}" ${emRev ? 'disabled title="Marque “Revisei” para mudar o prazo"' : ''}></span>
       </div>`;
     }).join('') + '</div>';
   }).join('');
 }
 function toggleGrupo(g, marcar) {
-  MODULOS_LISTA.filter(m => m.grupo === g).forEach(m => { const c = document.getElementById('perm-chk-' + m.id); if (c && !c.disabled) { c.checked = marcar; togglePermRow(m.id); } });
+  MODULOS_LISTA.filter(m => m.grupo === g).forEach(m => { const c = document.getElementById('perm-chk-' + m.id); if (c) { c.checked = marcar; togglePermRow(m.id); } });
+}
+function aplicarPadraoPerfil() {
+  const perfil = usuarioAtual?.perfil;
+  MODULOS_LISTA.forEach(m => { const c = document.getElementById('perm-chk-' + m.id); if (c && modDoPerfil(m, perfil) && !c.checked) { c.checked = true; togglePermRow(m.id); } });
+  toast('Marcados os módulos do perfil. Desmarque o que não for preciso e salve.', 'info');
+}
+function desmarcarTodos() {
+  MODULOS_LISTA.forEach(m => { const c = document.getElementById('perm-chk-' + m.id); if (c && c.checked) { c.checked = false; togglePermRow(m.id); } });
+}
+function toggleConfirmarRevisao() {
+  const ok = !!document.getElementById('perm-confirmar')?.checked;
+  document.querySelectorAll('[id^="perm-chk-"][data-rev="1"]').forEach(c => {
+    const d = document.getElementById('perm-dt-' + c.id.slice(9)); if (d) d.disabled = !ok;
+  });
 }
 function togglePermRow(id) {
   const c = document.getElementById('perm-chk-' + id), w = document.getElementById('perm-dt-wrap-' + id);
   if (w) w.hidden = !c.checked;
   document.getElementById('perm-row-' + id)?.classList.toggle('on', c.checked);
 }
-// Estado atual dos módulos editáveis: { modulo: { marcado, ate } }
+// Estado atual dos módulos: { modulo: { marcado, ate, rev } } + _confirmar (revisão confirmada)
 function estadoPerms() {
   const st = {};
   MODULOS_LISTA.forEach(m => {
-    const c = document.getElementById('perm-chk-' + m.id); if (!c || c.disabled) return;
-    st[m.id] = { marcado: c.checked, ate: document.getElementById('perm-dt-' + m.id)?.value || '' };
+    const c = document.getElementById('perm-chk-' + m.id); if (!c) return;
+    st[m.id] = { marcado: c.checked, ate: document.getElementById('perm-dt-' + m.id)?.value || '', rev: c.dataset.rev === '1' };
   });
+  st._confirmar = !!document.getElementById('perm-confirmar')?.checked;
   return st;
 }
-// Grava só o que mudou: concessão nova, mudança de data ou revogação. Devolve erro ou null.
+// Grava só o que mudou: liberação nova, revisão confirmada, mudança de data ou retirada. Devolve erro ou null.
 async function _persistirPermissoes(userId) {
   const eu = appState.usuario.id, agora = new Date().toISOString();
   const atual = estadoPerms(), ops = [];
+  const confirmar = atual._confirmar;
   for (const [mod, a] of Object.entries(atual)) {
-    const i = permIni[mod] || { marcado: false, ate: '' };
+    if (mod[0] === '_') continue;
+    const i = permIni[mod] || { marcado: false, ate: '', rev: false };
     const ate = a.ate ? new Date(a.ate).toISOString() : null;
     if (a.marcado && !i.marcado) {
       ops.push(db.from('usuario_permissoes').upsert({
         usuario_id: userId, modulo: mod, ativo: true, valido_de: agora, valido_ate: ate,
         concedido_por: eu, concedido_em: agora, revogado_por: null, revogado_em: null, motivo: null,
+        em_revisao: false, revisao_valido_ate_original: null, aviso_vencimento_em: null,
       }, { onConflict: 'usuario_id,modulo' }));
+    } else if (a.marcado && i.marcado && i.rev) {
+      if (confirmar) ops.push(db.from('usuario_permissoes').update({
+        em_revisao: false, valido_ate: ate, revisao_valido_ate_original: null, revisado_por: eu, revisado_em: agora, aviso_vencimento_em: null,
+      }).eq('usuario_id', userId).eq('modulo', mod).eq('ativo', true));
     } else if (a.marcado && i.marcado && a.ate !== i.ate) {
-      ops.push(db.from('usuario_permissoes').update({ valido_ate: ate }).eq('usuario_id', userId).eq('modulo', mod).eq('ativo', true));
+      ops.push(db.from('usuario_permissoes').update({ valido_ate: ate, aviso_vencimento_em: null }).eq('usuario_id', userId).eq('modulo', mod).eq('ativo', true));
     } else if (!a.marcado && i.marcado) {
-      ops.push(db.from('usuario_permissoes').update({ ativo: false, revogado_por: eu, revogado_em: agora }).eq('usuario_id', userId).eq('modulo', mod).eq('ativo', true));
+      ops.push(db.from('usuario_permissoes').update({ ativo: false, em_revisao: false, revogado_por: eu, revogado_em: agora }).eq('usuario_id', userId).eq('modulo', mod).eq('ativo', true));
     }
   }
   if (!ops.length) return null;
   const r = await Promise.all(ops);
   const e = r.find(x => x.error);
   return e ? e.error.message : null;
+}
+
+// Liberar a entrada de quem foi suspenso por inatividade (3 dias para entrar)
+async function liberarEntrada(id) {
+  const u = todosUsuarios.find(x => x.id === id);
+  const ok = await adConfirmar({ titulo: 'Liberar a entrada?', texto: `${u?.nome_completo || 'Esta pessoa'} volta a entrar com os módulos que já tinha. Ela tem 3 dias para entrar; se não entrar, a entrada é suspensa de novo. Ela recebe um e-mail avisando.`, ok: 'Liberar entrada' });
+  if (!ok) return;
+  const { error } = await db.rpc('fn_acesso_liberar_inatividade', { p_usuario: id });
+  if (error) { toast('Não foi possível liberar: ' + error.message.replace(/^[A-Z_]+: /, ''), 'error'); return; }
+  toast('Entrada liberada.', 'success');
+  editando = false; fecharModal(true); await carregarDados();
 }
 
 async function salvarUsuario(id) {
@@ -409,7 +495,7 @@ async function toggleAtivo(id, estaAtivo) {
 function abrirFormNovo() {
   usuarioAtual = null; editando = true; abas(null);
   document.getElementById('mu-titulo').textContent = 'Novo usuário';
-  document.getElementById('mu-sub').textContent = 'A pessoa entra com a senha temporária e troca no primeiro acesso.';
+  document.getElementById('mu-sub').textContent = 'A pessoa entra com a senha temporária e troca no primeiro acesso. Ela nasce sem módulos: você libera na etapa seguinte.';
   document.getElementById('mu-body').innerHTML = `
     <div class="form-group"><label class="form-label" for="nu-nome">Nome completo <span class="obrig">*</span></label><input class="form-control" id="nu-nome" type="text" autocomplete="off"></div>
     <div class="form-group"><label class="form-label" for="nu-email">E-mail <span class="obrig">*</span></label><input class="form-control" id="nu-email" type="email" placeholder="nome@sema.ac.gov.br" autocomplete="off"></div>
@@ -434,11 +520,12 @@ async function criarUsuario() {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('E-mail inválido.', 'error'); return; }
   if (senha.length < 8) { toast('A senha temporária precisa ter pelo menos 8 caracteres.', 'error'); return; }
   const btn = document.getElementById('nu-criar'); if (btn) btn.disabled = true;
-  const { error } = await db.rpc('fn_criar_usuario', { p_email: email, p_senha: senha, p_nome: nome, p_perfil: perfil, p_telefone: tel || null });
+  const { data: novo, error } = await db.rpc('fn_criar_usuario', { p_email: email, p_senha: senha, p_nome: nome, p_perfil: perfil, p_telefone: tel || null });
   if (btn) btn.disabled = false;
   if (error) { toast('Erro ao criar usuário: ' + error.message, 'error'); return; }
-  toast('Usuário criado. Passe a senha temporária à pessoa por um canal seguro.', 'success');
+  toast('Usuário criado, sem módulos. Agora marque o que a pessoa precisa (ou "Aplicar o padrão do perfil") e salve.', 'success');
   editando = false; fecharModal(true); await carregarDados();
+  if (novo && novo.id) abrirUsuario(novo.id, 'acessos');
 }
 
 // Fechar a janela: se houve edição, confirma antes de descartar
@@ -649,4 +736,110 @@ async function removerFotoModal() {
   if (u.id === appState.usuario.id) { appState.usuario.avatar_url = null; atualizarSidebarAvatar(appState.usuario); }
   if (_fotoContexto === 'admin') filtrar();
   toast('Foto removida.', 'success');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PEDIDOS DE ACESSO (fn_acesso_pedir / fn_publico_pedir_liberacao → fn_acesso_decidir)
+// ══════════════════════════════════════════════════════════════════════
+function abrirPedidos() {
+  usuarioAtual = null; editando = false; abas(null);
+  document.getElementById('mu-titulo').textContent = 'Pedidos de acesso';
+  document.getElementById('mu-sub').textContent = 'Módulos pedidos pelas pessoas e pedidos de liberação da entrada (suspensos por inatividade).';
+  const nome = id => todosUsuarios.find(u => u.id === id)?.nome_completo || 'Usuário';
+  document.getElementById('mu-body').innerHTML = pedidosAcesso.length ? pedidosAcesso.map(p => `
+    <div class="ad-card" style="padding:12px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <b style="flex:1;min-width:160px">${esc(nome(p.usuario_id))}</b>
+        <span class="ad-pill ${p.tipo === 'liberacao' ? 'ad-al' : 'ad-in'}">${p.tipo === 'liberacao' ? 'Liberar a entrada' : esc(modLabel(p.modulo))}</span>
+        <small class="ad-mono">${esc(fmtDT(p.criado_em))}${p.origem === 'entrada' ? ' · pela tela de entrada' : ''}</small>
+      </div>
+      ${p.justificativa ? `<p class="ad-dica" style="margin:6px 0 0">${esc(p.justificativa)}</p>` : ''}
+      <div class="ad-g2" style="margin-top:8px">
+        ${p.tipo === 'modulo' ? `<div class="form-group"><label class="form-label" for="pa-ate-${p.id}">Liberar até (opcional)</label>
+          <input type="datetime-local" class="form-control" id="pa-ate-${p.id}"></div>` : '<div></div>'}
+        <div class="form-group"><label class="form-label" for="pa-par-${p.id}">Parecer (opcional)</label>
+          <input type="text" class="form-control" id="pa-par-${p.id}" maxlength="1000"></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="decidirPedido('${esc(p.id)}', false)">Recusar</button>
+        <button type="button" class="btn btn-primary" onclick="decidirPedido('${esc(p.id)}', true)">${adIc('check', 'p')}${p.tipo === 'liberacao' ? 'Liberar entrada' : 'Liberar módulo'}</button>
+      </div>
+    </div>`).join('') : '<p class="ad-vazio">Nenhum pedido aguardando.</p>';
+  document.getElementById('mu-footer').innerHTML = `<span class="ad-sp"></span><button type="button" class="btn btn-secondary" onclick="fecharModal(true)">Fechar</button>`;
+  adAbrir('modal-usr');
+}
+async function decidirPedido(id, aprovar) {
+  const ate = document.getElementById('pa-ate-' + id)?.value;
+  const parecer = document.getElementById('pa-par-' + id)?.value.trim() || null;
+  const { error } = await db.rpc('fn_acesso_decidir', { p_pedido: id, p_aprovar: aprovar,
+    p_valido_ate: ate ? new Date(ate).toISOString() : null, p_parecer: parecer });
+  if (error) { toast('Não foi possível decidir: ' + error.message.replace(/^[A-Z_]+: /, ''), 'error'); return; }
+  toast(aprovar ? 'Acesso liberado.' : 'Pedido recusado.', 'success');
+  await carregarDados(); abrirPedidos();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// RELATÓRIO "QUEM ACESSA O QUÊ" (A4 pela FolhaA4 + planilha ExcelJS)
+// ══════════════════════════════════════════════════════════════════════
+function _acessosLinhas() {
+  const agora = new Date();
+  return todosUsuarios.filter(u => u.ativo).map(u => {
+    const vivos = u.perfil === 'super_admin' ? [] : permsTodas.filter(p => p.usuario_id === u.id && (!p.valido_ate || new Date(p.valido_ate) > agora));
+    return { u, vivos: vivos.sort((a, b) => MODULOS_LISTA.findIndex(m => m.id === a.modulo) - MODULOS_LISTA.findIndex(m => m.id === b.modulo)) };
+  });
+}
+function _origemTxt(u, p) {
+  const m = MODULOS_LISTA.find(x => x.id === p.modulo);
+  return m && modDoPerfil(m, u.perfil) ? 'do perfil' : 'extra';
+}
+function relatorioAcessos() {
+  const w = FolhaA4.janela(); if (!w) return;   // antes de qualquer await (pop-up)
+  const linhas = _acessosLinhas();
+  const sit = u => u.bloqueado_inatividade_em ? 'Suspenso por inatividade' : 'Ativo';
+  const corpo = `
+    <div class="rep-stats">
+      <div class="rep-stat"><div class="rep-stat-lbl">Pessoas ativas</div><div class="rep-stat-val">${linhas.length}</div></div>
+      <div class="rep-stat"><div class="rep-stat-lbl">Com acesso em revisão</div><div class="rep-stat-val">${linhas.filter(l => l.vivos.some(p => p.em_revisao)).length}</div></div>
+      <div class="rep-stat"><div class="rep-stat-lbl">Suspensas por inatividade</div><div class="rep-stat-val">${linhas.filter(l => l.u.bloqueado_inatividade_em).length}</div></div>
+    </div>
+    <p style="font-size:9px;color:#555">Sempre abertos para todos: ${esc(MODULOS_NUCLEO)}. Responsáveis e substitutos de atividade abrem Atividades, TDRs,
+      Produtos e Remanejamento pelo vínculo. "do perfil" = está no padrão do perfil; "extra" = além dele.</p>
+    <table class="rep-tbl"><thead><tr><th>Pessoa</th><th>Perfil</th><th>Situação</th><th>Último acesso</th><th>Módulos liberados</th></tr></thead><tbody>
+    ${linhas.map(({ u, vivos }) => `<tr><td><b>${esc(u.nome_completo || '—')}</b><br><small>${esc(u.email || '')}</small>${responsaveis.has(u.id) ? '<br><small>responsável de atividade</small>' : ''}</td>
+      <td>${esc(PERFIS[u.perfil] || u.perfil)}</td><td>${esc(sit(u))}</td><td class="mono">${esc(fmtDT(ultimoDe(u)))}</td>
+      <td>${u.perfil === 'super_admin' ? 'Todos os módulos' : vivos.length ? vivos.map(p => esc(modLabel(p.modulo))
+        + ` <small>(${_origemTxt(u, p)}${p.em_revisao ? ', em revisão até ' + esc(fmtD(p.valido_ate)) : p.valido_ate ? ', até ' + esc(fmtD(p.valido_ate)) : ''})</small>`).join('; ') : 'Nenhum (só o núcleo)'}</td></tr>`).join('')}
+    </tbody></table>`;
+  FolhaA4.escrever(w, { titulo: 'Quem acessa o quê', selo: 'Usuários', tema: 'usuarios', paisagem: true,
+    periodo: 'Situação em ' + new Date().toLocaleDateString('pt-BR'), corpo, nomeArquivo: 'Acessos_por_usuario' });
+  _planilhaAcessos(linhas).catch(e => console.warn('[usuarios] planilha:', e));
+}
+async function _planilhaAcessos(linhas) {
+  if (!window.ExcelJS) await new Promise((ok, erro) => {
+    const sc = document.createElement('script'); sc.src = '../js/vendor/exceljs-4.4.0.bare.min.js'; sc.onload = ok; sc.onerror = erro; document.head.appendChild(sc);
+  });
+  const wb = new ExcelJS.Workbook();
+  const sh = wb.addWorksheet('Acessos');
+  sh.columns = [
+    { header: 'Pessoa', key: 'nome', width: 32 }, { header: 'E-mail', key: 'email', width: 32 }, { header: 'Perfil', key: 'perfil', width: 16 },
+    { header: 'Situação', key: 'sit', width: 22 }, { header: 'Módulo', key: 'mod', width: 34 }, { header: 'Origem', key: 'orig', width: 12 },
+    { header: 'Em revisão', key: 'rev', width: 11 }, { header: 'Vale até', key: 'ate', width: 14 }, { header: 'Liberado em', key: 'em', width: 14 },
+    { header: 'Último acesso', key: 'ult', width: 18 },
+  ];
+  sh.getRow(1).font = { bold: true }; sh.views = [{ state: 'frozen', ySplit: 1 }];
+  const dt = d => d ? new Date(d) : null;
+  linhas.forEach(({ u, vivos }) => {
+    const base = { nome: u.nome_completo, email: u.email, perfil: PERFIS[u.perfil] || u.perfil,
+      sit: u.bloqueado_inatividade_em ? 'Suspenso por inatividade' : 'Ativo', ult: dt(ultimoDe(u)) };
+    if (u.perfil === 'super_admin') sh.addRow({ ...base, mod: 'Todos os módulos', orig: 'perfil' });
+    else if (!vivos.length) sh.addRow({ ...base, mod: 'Nenhum (só o núcleo)' });
+    else vivos.forEach(p => sh.addRow({ ...base, mod: modLabel(p.modulo), orig: _origemTxt(u, p), rev: p.em_revisao ? 'sim' : 'não',
+      ate: dt(p.valido_ate), em: dt(p.concedido_em) }));
+  });
+  ['ate', 'em', 'ult'].forEach(k => { sh.getColumn(k).numFmt = 'dd/mm/yyyy'; });
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = 'Acessos_por_usuario_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+  document.body.appendChild(a); a.click(); a.remove();
 }
