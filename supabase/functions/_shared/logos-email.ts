@@ -66,9 +66,9 @@ export async function logosEmail(admin: any): Promise<LogosEmail> {
     cabecalho: projeto ? img(projeto, 'escuro', 52) : '',
     // linha de <td> da faixa branca de parceiros
     faixa: parceiros.map((l) => `<td align="center" style="padding:0 6px">${img(l, 'claro', 28)}</td>`).join(''),
-    // molde novo: no e-mail vale o tamanho de Dados do sistema (as versões claras têm recortes diferentes)
-    topo: topo.map((l) => inline(img(l, 'claro', 26))).filter(Boolean).join(sep),
-    projeto: projeto ? inline(img({ ...projeto, tamanho: 'medio' }, 'claro', 32)) : '',
+    // molde novo: tamanho de Dados do sistema (Acre grande, SEMA pequeno) iguala o tamanho visto; Resiliência na altura do Acre
+    topo: topo.map((l) => inline(img(l, 'claro', 30))).filter(Boolean).join(sep),
+    projeto: projeto ? inline(img({ ...projeto, tamanho: 'medio' }, 'claro', 40)) : '',
     parceiros: parceiros.map((l) => `<span style="display:inline-block;margin:6px 9px;vertical-align:middle">${inline(img(l, 'claro', 22))}</span>`).join(''),
   }
   cache = { em: Date.now(), v }
