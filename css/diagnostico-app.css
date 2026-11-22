@@ -671,3 +671,7 @@ html[data-tema="escuro"] #t-inicio .ini-acoes .btn { background: rgba(88,181,132
 html:has(#t-inicio:not([hidden])) { background: #1F4E2C; }
 html:has(#t-inicio:not([hidden])) body { background: transparent; }
 #t-inicio { background: var(--bg); }
+/* Safari do iOS 26 desfoca o que fica sob a barra de status ("liquid glass") quando não há um elemento
+   fixo encostado no topo. Uma tira fixa da cor da faixa sob a barra faz o Safari usar a cor dela, sem desfoque. */
+#t-inicio:not([hidden])::before { content: ""; position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+  height: env(safe-area-inset-top, 0px); background: #1F4E2C; pointer-events: none; }
