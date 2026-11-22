@@ -656,3 +656,12 @@ body:has(#t-inicio:not([hidden])){--guia-fab-bottom:calc(84px + env(safe-area-in
 #t-inicio .item-ficha .cod{white-space:nowrap;overflow-wrap:normal}
 #t-inicio .item-ficha .selo{justify-self:start;margin-top:0}
 #t-inicio .item-ficha .selo-rascunho{padding:0}
+/* Botões do início no padrão iOS: preenchido liso (sem sombra/brilho), "tinted" no secundário,
+   toque = esmaecer. Vale igual no Android. */
+#t-inicio #btn-nova { min-height: 50px; border-radius: 12px; font-size: 17px; font-weight: 600; letter-spacing: -.02em; box-shadow: none; gap: 6px; }
+#t-inicio #btn-nova .ic { width: 20px; height: 20px; }
+#t-inicio .ini-acoes .btn { min-height: 44px; border-radius: 12px; font-size: 15px; font-weight: 600; box-shadow: none; background: #DDEFE3; color: var(--pri-700); }
+html[data-tema="escuro"] #t-inicio .ini-acoes .btn { background: rgba(88,181,132,.16); color: var(--pri-400); }
+#t-inicio .btn:active:not([disabled]) { transform: none; filter: none; opacity: .55; transition: opacity .08s; }
+/* a faixa de logos já é o fundo da barra de status: sem o véu claro do .topo atrás dela */
+#t-inicio > .topo { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); }

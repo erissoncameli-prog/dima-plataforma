@@ -25,9 +25,10 @@ const DiagTema = (function () {
     const de = document.documentElement
     de.dataset.tema = t
     const meta = document.querySelector('meta[name="theme-color"]')
-    if (meta) meta.content = COR[t]
+    // data-fixo: a página pinta a barra de status sempre igual (app de campo: verde da faixa de logos)
+    if (meta && !meta.hasAttribute('data-fixo')) meta.content = COR[t]
     const ios = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
-    if (ios) ios.content = t === 'escuro' ? 'black-translucent' : 'default'
+    if (ios && !ios.hasAttribute('data-fixo')) ios.content = t === 'escuro' ? 'black-translucent' : 'default'
   }
 
   // grava e aplica; devolve true se mudou (quem chama decide se recarrega)

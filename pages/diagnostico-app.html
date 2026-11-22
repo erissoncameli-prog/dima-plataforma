@@ -4,19 +4,18 @@
 <meta charset="UTF-8">
 <meta name="author" content="Erisson Cameli Santiago">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F3F5F3">
+<meta name="theme-color" content="#1F4E2C" data-fixo>
 <title>Diagnóstico Socioambiental · DIMA</title>
 <link rel="manifest" href="../pwa/diagnostico.webmanifest">
 <link rel="icon" href="../pwa/diagnostico-icone.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../pwa/diagnostico-apple-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" data-fixo>
 <meta name="apple-mobile-web-app-title" content="Diagnóstico">
 <!-- tema escolhido pela pessoa, aplicado antes de pintar (js/diag-tema.js tem a mesma regra) -->
 <script>(function(){var t='claro';try{t=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){}
-document.documentElement.dataset.tema=t;var m=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(m)m.content=t==='escuro'?'black-translucent':'default';
-m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'?'#0B120E':'#F3F5F3'})()</script>
+document.documentElement.dataset.tema=t;})()</script>
 <link rel="stylesheet" href="../css/pin-baralho.css">
 <link rel="stylesheet" href="../css/guia-app.css">
 <link rel="stylesheet" href="../css/diagnostico-app.css">
