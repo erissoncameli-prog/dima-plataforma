@@ -41,7 +41,7 @@ export function textoParaHtml(corpo: string): string {
   for (const bruta of String(corpo || '').split('\n')) {
     const linha = bruta.replace(/\s+$/, '')
     const t = linha.trim()
-    if (/^[─═=\-_]{4,}$/.test(t)) { fecha(); continue }
+    if (/^[─━═=\-_]{4,}$/.test(t)) { fecha(); continue }
     const item = t.match(/^([A-ZÇÁÉÍÓÚÃÕÂÊÔÀ][A-ZÇÁÉÍÓÚÃÕÂÊÔÀ0-9 .º/()]{1,30}?)\s*:\s*(.+)$/)
     if (item) {
       if (!ficha) { html += '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:8px 0;font-size:15px">'; ficha = true }
