@@ -111,13 +111,16 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
 <!-- início -->
 <section id="t-inicio" hidden>
   <header class="topo topo-ini">
+    <div class="ini-marcas">
+      <span data-dima-logos="topo" data-fundo="escuro" data-altura="24" data-tamanho="nao" data-sep='<span class="ini-sep"></span>'></span>
+      <span class="ini-sep"></span>
+      <span data-dima-logos="projeto" data-fundo="escuro" data-altura="30" data-tamanho="nao"></span>
+    </div>
     <div class="topo-linha">
-      <span class="mini-marca" aria-hidden="true" data-dima-logos="projeto" data-fundo="escuro" data-altura="20" data-tamanho="nao"></span>
-      <span class="esp"></span>
+      <div class="topo-tit"><small id="ini-usuario"></small><h1 id="ini-titulo">Entrevistas</h1></div>
       <span class="rede" id="ini-rede">…</span>
       <button type="button" class="btn-icone" id="btn-config" aria-label="Configurações"><svg class="ic"><use href="#i-config"/></svg></button>
     </div>
-    <div class="topo-tit"><small id="ini-usuario"></small><h1 id="ini-titulo">Entrevistas</h1></div>
     <div class="abas-ini seg" role="tablist" aria-label="Seções do início">
       <button type="button" role="tab" id="aba-entrevistas" aria-selected="true">Entrevistas</button>
       <button type="button" role="tab" id="aba-painel" aria-selected="false">Meu painel</button>
@@ -137,8 +140,10 @@ m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='escuro'
       <div class="contador"><b id="c-enviada">0</b><span>enviadas</span></div>
     </div>
     <button type="button" class="btn btn-prim btn-bloco" id="btn-nova"><svg class="ic"><use href="#i-mais"/></svg>Nova entrevista</button>
-    <button type="button" class="btn btn-sec btn-bloco" id="btn-ini-mapa" hidden><svg class="ic"><use href="#i-mapa"/></svg>Mapa: você e as casas entrevistadas</button>
-    <button type="button" class="btn btn-sec btn-bloco" id="btn-sync"><svg class="ic"><use href="#i-sync"/></svg>Sincronizar</button>
+    <div class="ini-acoes">
+      <button type="button" class="btn btn-sec" id="btn-ini-mapa" hidden aria-label="Mapa: você e as casas entrevistadas"><svg class="ic"><use href="#i-mapa"/></svg>Mapa</button>
+      <button type="button" class="btn btn-sec" id="btn-sync"><svg class="ic"><use href="#i-sync"/></svg>Sincronizar</button>
+    </div>
     <p class="dica" id="ini-ultima-sync" style="text-align:center"></p>
     <div id="ini-lista"></div>
     </div>

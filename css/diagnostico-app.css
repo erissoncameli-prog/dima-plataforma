@@ -604,3 +604,55 @@ html[data-tema="escuro"] .guia-nota { background: var(--alerta-bg); color: var(-
 #mapa-perto { margin-top: 0; }
 .pn-mapa h3 { margin: 0 0 var(--s2); font-size: var(--t-perg); }
 .pn-mapa-caixa { height: 220px; margin-bottom: var(--s2); }
+
+/* ── Tela inicial (22/11/2026): topo e rodapé fixos, só o meio rola ──────
+   Faixa de logos respeita a ilha/entalhe da câmera (env safe-area, com
+   viewport-fit=cover) no iOS e no Android; rodapé respeita a barra de gestos. */
+#t-inicio{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+#t-inicio>.topo{flex:none;position:relative;padding:0 var(--s4) var(--s3);background:var(--vidro);box-shadow:0 4px 14px rgba(16,32,24,.06)}
+.ini-marcas{display:flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(160deg,#1F4E2C,#123A26);
+ margin:0 calc(-1*var(--s4));padding:calc(10px + env(safe-area-inset-top, 0px)) calc(var(--s4) + env(safe-area-inset-right, 0px)) 10px calc(var(--s4) + env(safe-area-inset-left, 0px))}
+.ini-marcas [data-dima-logos]{display:flex;align-items:center;gap:12px}
+.ini-marcas .dima-logo{flex:none;max-width:28vw!important}
+.ini-sep{width:1px;height:22px;background:rgba(255,255,255,.28);flex:none}
+#t-inicio .topo-linha{margin-top:var(--s3);align-items:flex-end}
+#t-inicio .topo-tit{margin:0;flex:1;min-width:0}
+#t-inicio .topo-tit small{font-size:13px}
+#t-inicio .topo-ini h1{font-size:24px}
+#t-inicio .rede{padding:4px 9px;font-size:11.5px}
+#t-inicio .btn-icone{width:38px;height:38px}
+#t-inicio .abas-ini{margin-top:var(--s3)}
+#t-inicio .seg button{min-height:36px;font-size:14px}
+#t-inicio>.tela{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;width:100%;padding:var(--s4) var(--s4) 88px}
+#t-inicio .contadores{margin:0 0 var(--s3);border-radius:16px}
+#t-inicio .contador{padding:10px 14px}
+#t-inicio .contador b{font-size:22px}
+#t-inicio .contador span{font-size:11.5px}
+#t-inicio #btn-nova{min-height:46px;font-size:15px;border-radius:12px}
+.ini-acoes .btn[hidden]{display:none}
+.ini-acoes{display:flex;gap:var(--s2);margin-top:var(--s2)}
+.ini-acoes .btn{flex:1;min-height:40px;font-size:14px;border-radius:12px;padding:8px 10px}
+#t-inicio #ini-ultima-sync{font-size:12px;color:var(--txt-3);margin:6px 0 var(--s2)}
+#t-inicio .secao-titulo{font-size:11.5px;letter-spacing:.08em;color:var(--txt-3);margin:var(--s4) 0 var(--s1)}
+#t-inicio .item-ficha{padding:10px 12px;min-height:58px;margin:6px 0;border-radius:14px}
+#t-inicio .item-ficha .est{width:36px;height:36px;border-radius:10px}
+#t-inicio .item-ficha .cod{font-size:14.5px}
+#t-inicio .item-ficha .sub{font-size:13px}
+#t-inicio .item-ficha .selo{font-size:11.5px;padding:3px 9px}
+#t-inicio>.lg-rodape{flex:none;padding:6px 12px calc(6px + env(safe-area-inset-bottom, 0px));box-shadow:0 -4px 14px rgba(16,32,24,.05)}
+#t-inicio>.lg-rodape small{font-size:10px}
+#t-inicio>.lg-rodape .dima-logo{max-width:70px!important}
+body:has(#t-inicio:not([hidden])){--guia-fab-bottom:calc(84px + env(safe-area-inset-bottom))}
+.ini-acoes .btn{margin:0!important}
+#t-inicio .item-ficha .cod{letter-spacing:0}
+#t-inicio .item-ficha .selo{font-size:11px;padding:2px 8px;align-self:flex-start;margin-top:2px}
+#t-inicio .item-ficha{align-items:center;gap:10px}
+#t-inicio .item-ficha{display:grid;grid-template-columns:36px 1fr auto;grid-template-areas:"est meio selo";column-gap:12px}
+#t-inicio .item-ficha .est{grid-area:est}#t-inicio .item-ficha .meio{grid-area:meio}
+#t-inicio .item-ficha .selo{grid-area:selo;align-self:start;margin-top:1px}
+#t-inicio .item-ficha .cod{white-space:normal;overflow-wrap:anywhere;font-size:14px}
+#t-inicio .item-ficha .selo-rascunho{background:transparent;color:var(--txt-3);padding:2px 0}
+#t-inicio .item-ficha{grid-template-columns:36px 1fr;grid-template-areas:"est meio" "est selo";row-gap:4px}
+#t-inicio .item-ficha .cod{white-space:nowrap;overflow-wrap:normal}
+#t-inicio .item-ficha .selo{justify-self:start;margin-top:0}
+#t-inicio .item-ficha .selo-rascunho{padding:0}
