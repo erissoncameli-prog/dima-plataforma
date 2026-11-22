@@ -13,6 +13,7 @@
 // Falhou o envio ⇒ tentativas + 1; até 5 tentativas.
 import nodemailer from 'npm:nodemailer@6'
 import { logosEmail } from './logos-email.ts'
+import { moldeEmail } from './email-modelo.ts'
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 const SITE_URL = 'https://fundobrasilonu-plataforma.vercel.app'
@@ -84,10 +85,10 @@ export async function drenarAcessos (admin: any) {
   return { enviados, falhas }
 }
 
-function montar (evento: string, d: any, logos: { cabecalho: string; faixa: string }) {
+function montar (evento: string, d: any, logos: any) {
   const ola = d.nome ? `<p>Olá, ${esc(primeiroNome(d.nome))}.</p>` : ''
-  const botao = (rot: string, url: string) => `<p style="text-align:center;margin:22px 0"><a href="${esc(url)}" style="background:#1B4332;color:#fff;
-    text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">${esc(rot)}</a></p>`
+  const botao = (rot: string, url: string) => `<p style="margin:22px 0"><a href="${esc(url)}" style="background:#1F4E2C;color:#fff;
+    text-decoration:none;padding:13px 24px;border-radius:999px;font-size:16px;font-weight:600;display:inline-block">${esc(rot)}</a></p>`
   let assunto = '', titulo = '', corpo = ''
   if (evento === 'aviso_inatividade') {
     assunto = `Seu acesso à Plataforma DIMA será suspenso em ${dataBR(d.bloqueio_em)}`
@@ -151,27 +152,8 @@ function montar (evento: string, d: any, logos: { cabecalho: string; faixa: stri
       <p>Quem ainda precisa do acesso pode ser liberado em Usuários (filtro "Suspensos por inatividade").</p>
       ${botao('Abrir Usuários', SITE_URL + '/pages/usuarios.html?filtro=bloqueado')}`
   }
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
-  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
-    <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="vertical-align:middle">${logos.cabecalho}</td>
-      <td style="vertical-align:middle;text-align:right">
-        <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Acesso à plataforma</span><br>
-        <span style="color:#fff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
-        <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
-      </td></tr></table>
-  </td></tr>
-  ${logos.faixa ? `<tr><td style="background:#ffffff;padding:12px 24px;border-bottom:1px solid #E5E7EB"><table width="100%" cellpadding="0" cellspacing="0"><tr>${logos.faixa}</tr></table></td></tr>` : ''}
-  <tr><td style="background:#fff;padding:26px 24px 22px;font-size:14px;line-height:1.55;color:#1F2937">
-    <p style="margin:0 0 14px;font-size:16px;font-weight:700;color:#1B4332">${esc(titulo)}</p>
-    ${corpo}
-  </td></tr>
-  <tr><td style="background:#F9FAFB;border-radius:0 0 8px 8px;padding:14px 24px;font-size:11px;color:#6B7280;text-align:center">
-    Mensagem automática da Plataforma DIMA. Não responda a este e-mail.
-  </td></tr>
-</table></td></tr></table></body></html>`
+  const html = moldeEmail({ logos, sobre: 'Acesso à plataforma', titulo,
+    html: `<div style="font-size:15px;line-height:1.6;color:#424245">${corpo}</div>`,
+    motivo: 'Mensagem automática da Plataforma DIMA. Não responda a este e-mail.' })
   return { assunto, html }
 }

@@ -9,6 +9,10 @@ const SITE_URL = 'https://fundobrasilonu-plataforma.vercel.app'
 const ALTURA: Record<string, number> = { pequeno: 0.75, medio: 1, grande: 1.35 }
 
 const RESERVA = {
+  topo: [
+    { url: '/assets/governo-acre-hd.png', alt: 'Governo do Acre' },
+    { url: '/assets/logo-sema-hd.png', alt: 'SEMA/AC' },
+  ] as Logo[],
   projeto: { url_escuro: '/assets/logo-resiliencia.png', alt: 'Projeto DIMA' } as Logo,
   parceiros: [
     { url: '/assets/UNESCO_logo_hor_blue_transparent.png.png', alt: 'UNESCO' },
@@ -32,17 +36,25 @@ function img(l: Logo, fundo: 'claro' | 'escuro', altura: number): string {
   return `<table cellpadding="0" cellspacing="0" style="border-collapse:separate"><tr><td bgcolor="${cor}" style="background:${cor};border-radius:6px;padding:5px 9px">${tag}</td></tr></table>`
 }
 
-let cache: { em: number; v: { cabecalho: string; faixa: string } } | null = null
+// topo/projeto/parceiros = molde novo (email-modelo.ts), tudo sobre fundo branco.
+export type LogosEmail = { cabecalho: string; faixa: string; topo: string; projeto: string; parceiros: string }
+let cache: { em: number; v: LogosEmail } | null = null
+
+const sep = '<span style="display:inline-block;width:1px;height:20px;background:#D2D2D7;margin:0 10px;vertical-align:middle"></span>'
+const inline = (h: string) => h.replace('display:block;', 'display:inline-block;vertical-align:middle;')
 
 // deno-lint-ignore no-explicit-any
-export async function logosEmail(admin: any): Promise<{ cabecalho: string; faixa: string }> {
+export async function logosEmail(admin: any): Promise<LogosEmail> {
   if (cache && Date.now() - cache.em < 5 * 60_000) return cache.v
   let projeto: Logo | null = RESERVA.projeto
   let parceiros: Logo[] = RESERVA.parceiros
+  let topo: Logo[] = RESERVA.topo
   try {
     const { data } = await admin.from('configuracoes_sistema')
-      .select('logo_projeto,logos_parceiros').eq('projeto_id', 'default').maybeSingle()
+      .select('logos_topo,logo_projeto,logos_parceiros').eq('projeto_id', 'default').maybeSingle()
     if (data) {
+      topo = ((data.logos_topo || []) as Logo[]).filter((l) => l && (l.url || l.url_escuro))
+        .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
       const p = data.logo_projeto as Logo | null
       projeto = p && (p.url || p.url_escuro) ? p : null
       parceiros = ((data.logos_parceiros || []) as Logo[]).filter((l) => l && (l.url || l.url_escuro))
@@ -54,6 +66,10 @@ export async function logosEmail(admin: any): Promise<{ cabecalho: string; faixa
     cabecalho: projeto ? img(projeto, 'escuro', 52) : '',
     // linha de <td> da faixa branca de parceiros
     faixa: parceiros.map((l) => `<td align="center" style="padding:0 6px">${img(l, 'claro', 28)}</td>`).join(''),
+    // molde novo: no e-mail vale o tamanho de Dados do sistema (as versões claras têm recortes diferentes)
+    topo: topo.map((l) => inline(img(l, 'claro', 26))).filter(Boolean).join(sep),
+    projeto: projeto ? inline(img({ ...projeto, tamanho: 'medio' }, 'claro', 32)) : '',
+    parceiros: parceiros.map((l) => `<span style="display:inline-block;margin:6px 9px;vertical-align:middle">${inline(img(l, 'claro', 22))}</span>`).join(''),
   }
   cache = { em: Date.now(), v }
   return v

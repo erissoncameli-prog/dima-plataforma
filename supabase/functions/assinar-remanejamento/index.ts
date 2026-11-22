@@ -48,6 +48,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { logosEmail } from '../_shared/logos-email.ts'
 import { drenarApiPedidos } from '../_shared/api-pedidos-email.ts'
+import { moldeEmail } from '../_shared/email-modelo.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -301,7 +302,7 @@ async function drenarCobertura(admin: any) {
   return { enviados, falhas }
 }
 
-function montarEmailCobertura(n: any, c: any, u: any, a: any, logos: { cabecalho: string }) {
+function montarEmailCobertura(n: any, c: any, u: any, a: any, logos: any) {
   const travado = n.evento === 'travado'
   const link = travado ? `${SITE_URL}/pages/remanejamentos.html?cobertura=${c.id}` : `${SITE_URL}/pages/contratos.html`
   const brl = (v: number) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -314,41 +315,24 @@ function montarEmailCobertura(n: any, c: any, u: any, a: any, logos: { cabecalho
        Ele libera sozinho quando houver saldo (remanejamento de cobertura, economia, encerramento ou redução do contrato).`
     : `O saldo da atividade passou a cobrir o valor do contrato. Ele voltou ao status <strong>${esc(c.status)}</strong> e já pode receber produtos e pagamentos.`
   const corpo = `
-    <p style="margin:0 0 10px;font-size:13px;color:#1F2937">Olá, ${esc(u.nome_completo)}.</p>
-    <p style="margin:0 0 14px;font-size:13px;color:#1F2937;line-height:1.6">${intro}</p>
+    <p style="margin:0 0 10px;font-size:15px;color:#424245">Olá, ${esc(u.nome_completo)}.</p>
+    <p style="margin:0 0 14px;font-size:15px;color:#424245;line-height:1.6">${intro}</p>
     <table style="width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:13px;color:#111827">
       <tr><td style="padding:4px 10px 4px 0;color:#6B7280">Contrato</td><td style="padding:4px 0"><strong>${esc(c.numero)}</strong>${c.fornecedores?.nome ? ' — ' + esc(c.fornecedores.nome) : ''}</td></tr>
       <tr><td style="padding:4px 10px 4px 0;color:#6B7280">TDR</td><td style="padding:4px 0">${esc(c.tdrs?.numero || 'sem TDR')}</td></tr>
       <tr><td style="padding:4px 10px 4px 0;color:#6B7280">Atividade</td><td style="padding:4px 0">${esc(a?.codigo || '')} ${a?.nome_pt ? '— ' + esc(a.nome_pt) : ''}</td></tr>
       <tr><td style="padding:4px 10px 4px 0;color:#6B7280">Valor do contrato</td><td style="padding:4px 0">${brl(c.valor_total_brl)}</td></tr>
     </table>
-    <div style="margin:24px 0 8px;text-align:center">
-      <a href="${link}" style="display:inline-block;background:#166534;color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none">${travado ? 'Ver e pedir cobertura' : 'Abrir contratos'}</a>
+    <div style="margin:24px 0 8px">
+      <a href="${link}" style="display:inline-block;background:#1F4E2C;color:#fff;font-size:16px;font-weight:600;padding:13px 24px;border-radius:999px;text-decoration:none">${travado ? 'Ver e pedir cobertura' : 'Abrir contratos'}</a>
     </div>`
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
-  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
-    <table width="100%"><tr>
-      <td style="vertical-align:middle">${logos.cabecalho}</td>
-      <td style="vertical-align:middle;text-align:right">
-        <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Cobertura de contrato</span><br>
-        <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
-        <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
-      </td>
-    </tr></table>
-  </td></tr>
-  <tr><td style="background:#ffffff;padding:28px 24px 20px">${corpo}</td></tr>
-  <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
-    <p style="margin:0;font-size:11px;color:#6B7280">Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
-      Mensagem automática do razão orçamentário.</p>
-  </td></tr>
-</table></td></tr></table></body></html>`
+  const html = moldeEmail({ logos, sobre: 'Cobertura de contrato', titulo: assunto,
+    html: `<div style="font-size:15px;line-height:1.6;color:#424245">${corpo}</div>`,
+    motivo: 'Mensagem automática do razão orçamentário.' })
   return { assunto, html }
 }
 
-function montarEmail(n: any, r: any, u: any, itens: any[], etapa: any, logos: { cabecalho: string }) {
+function montarEmail(n: any, r: any, u: any, itens: any[], etapa: any, logos: any) {
   const link = `${SITE_URL}/pages/remanejamentos.html?id=${r.id}`
   const linhasItens = itens
     .sort((a, b) => a.valor_usd - b.valor_usd)
@@ -374,34 +358,17 @@ function montarEmail(n: any, r: any, u: any, itens: any[], etapa: any, logos: { 
     ? `<div style="margin:14px 0;padding:10px 12px;background:#FEF3C7;border-left:4px solid #D97706;font-size:13px;color:#78350F"><strong>Motivo:</strong> ${esc(n.motivo)}</div>`
     : ''
   const corpo = `
-    <p style="margin:0 0 10px;font-size:13px;color:#1F2937">Olá, ${esc(u.nome_completo)}.</p>
-    <p style="margin:0 0 14px;font-size:13px;color:#1F2937;line-height:1.6">${intro[n.evento]}</p>
+    <p style="margin:0 0 10px;font-size:15px;color:#424245">Olá, ${esc(u.nome_completo)}.</p>
+    <p style="margin:0 0 14px;font-size:15px;color:#424245;line-height:1.6">${intro[n.evento]}</p>
     ${motivo}
     <table style="width:100%;border-collapse:collapse;margin:8px 0 12px">${linhasItens}</table>
     <p style="margin:6px 0;font-size:12px;color:#6B7280"><strong>Justificativa:</strong> ${esc(r.justificativa)}</p>
-    <div style="margin:24px 0 8px;text-align:center">
-      <a href="${link}" style="display:inline-block;background:#166534;color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none">Abrir o pedido ${esc(r.numero)}</a>
+    <div style="margin:24px 0 8px">
+      <a href="${link}" style="display:inline-block;background:#1F4E2C;color:#fff;font-size:16px;font-weight:600;padding:13px 24px;border-radius:999px;text-decoration:none">Abrir o pedido ${esc(r.numero)}</a>
     </div>`
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
-  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
-    <table width="100%"><tr>
-      <td style="vertical-align:middle">${logos.cabecalho}</td>
-      <td style="vertical-align:middle;text-align:right">
-        <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Remanejamento de recursos</span><br>
-        <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
-        <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
-      </td>
-    </tr></table>
-  </td></tr>
-  <tr><td style="background:#ffffff;padding:28px 24px 20px">${corpo}</td></tr>
-  <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
-    <p style="margin:0;font-size:11px;color:#6B7280">Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
-      Mensagem automática da cadeia de aprovação. A assinatura é feita só dentro da plataforma, com a sua senha.</p>
-  </td></tr>
-</table></td></tr></table></body></html>`
+  const html = moldeEmail({ logos, sobre: 'Remanejamento de recursos', titulo: titulo[n.evento],
+    html: `<div style="font-size:15px;line-height:1.6;color:#424245">${corpo}</div>`,
+    motivo: 'Mensagem automática da cadeia de aprovação. A assinatura é feita só dentro da plataforma, com a sua senha.' })
   return { assunto: titulo[n.evento], html }
 }
 
@@ -462,7 +429,7 @@ async function drenarCancelamentos(admin: any, cancelamentoId: string | null) {
   return { enviados, falhas }
 }
 
-function montarEmailCancelamento(n: any, p: any, u: any, etapa: any, logos: { cabecalho: string }) {
+function montarEmailCancelamento(n: any, p: any, u: any, etapa: any, logos: any) {
   const link = `${SITE_URL}/pages/remanejamentos.html?can=${p.id}`
   const brl = (v: number) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const titulo: Record<string, string> = {
@@ -483,8 +450,8 @@ function montarEmailCancelamento(n: any, p: any, u: any, etapa: any, logos: { ca
     ? `<div style="margin:14px 0;padding:10px 12px;background:#FEF3C7;border-left:4px solid #D97706;font-size:13px;color:#78350F"><strong>Motivo:</strong> ${esc(n.motivo)}</div>`
     : ''
   const corpo = `
-    <p style="margin:0 0 10px;font-size:13px;color:#1F2937">Olá, ${esc(u.nome_completo)}.</p>
-    <p style="margin:0 0 14px;font-size:13px;color:#1F2937;line-height:1.6">${intro[n.evento]}</p>
+    <p style="margin:0 0 10px;font-size:15px;color:#424245">Olá, ${esc(u.nome_completo)}.</p>
+    <p style="margin:0 0 14px;font-size:15px;color:#424245;line-height:1.6">${intro[n.evento]}</p>
     ${motivo}
     <table style="width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:13px;color:#111827">
       <tr><td style="padding:4px 10px 4px 0;color:#6B7280">TDR</td><td style="padding:4px 0"><strong>${esc(p.tdr_numero)}</strong>${p.tdr_objeto ? ' — ' + esc(String(p.tdr_objeto).slice(0, 220)) : ''}</td></tr>
@@ -493,28 +460,11 @@ function montarEmailCancelamento(n: any, p: any, u: any, etapa: any, logos: { ca
       <tr><td style="padding:4px 10px 4px 0;color:#6B7280">Motivo</td><td style="padding:4px 0">${esc(MOTIVO_CANC[p.motivo_tipo] || p.motivo_tipo)}</td></tr>
     </table>
     <p style="margin:6px 0;font-size:12px;color:#6B7280"><strong>Justificativa:</strong> ${esc(p.justificativa)}</p>
-    <div style="margin:24px 0 8px;text-align:center">
-      <a href="${link}" style="display:inline-block;background:#166534;color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none">Abrir o pedido ${esc(p.numero)}</a>
+    <div style="margin:24px 0 8px">
+      <a href="${link}" style="display:inline-block;background:#1F4E2C;color:#fff;font-size:16px;font-weight:600;padding:13px 24px;border-radius:999px;text-decoration:none">Abrir o pedido ${esc(p.numero)}</a>
     </div>`
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
-  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
-    <table width="100%"><tr>
-      <td style="vertical-align:middle">${logos.cabecalho}</td>
-      <td style="vertical-align:middle;text-align:right">
-        <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Cancelamento de TDR</span><br>
-        <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
-        <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
-      </td>
-    </tr></table>
-  </td></tr>
-  <tr><td style="background:#ffffff;padding:28px 24px 20px">${corpo}</td></tr>
-  <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
-    <p style="margin:0;font-size:11px;color:#6B7280">Equipe de Gestão – <strong>Projeto DIMA</strong> · UNESCO / SEMA-AC<br>
-      Mensagem automática da cadeia de aprovação. A assinatura é feita só dentro da plataforma, com a sua senha.</p>
-  </td></tr>
-</table></td></tr></table></body></html>`
+  const html = moldeEmail({ logos, sobre: 'Cancelamento de TDR', titulo: titulo[n.evento],
+    html: `<div style="font-size:15px;line-height:1.6;color:#424245">${corpo}</div>`,
+    motivo: 'Mensagem automática da cadeia de aprovação. A assinatura é feita só dentro da plataforma, com a sua senha.' })
   return { assunto: titulo[n.evento], html }
 }

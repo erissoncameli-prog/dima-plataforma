@@ -7,6 +7,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { logosEmail } from '../_shared/logos-email.ts'
+import { moldeEmail } from '../_shared/email-modelo.ts'
 
 const REMETENTE = '"Projeto DIMA – UNESCO/SEMA-AC" <fundobrasilonuacre@gmail.com>'
 const SITE_URL  = 'https://fundobrasilonu-plataforma.vercel.app'
@@ -36,33 +37,11 @@ function bloco(titulo: string, cor: string, itens: any[]): string {
     <table style="width:100%;border-collapse:collapse;border:1px solid #F0F0F0;border-radius:6px">${linhas}</table>`
 }
 
-function wrapHtml(nome: string, corpoTabelas: string, logos: { cabecalho: string; faixa: string }): string {
-  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F3F4F6;padding:24px 0"><tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
-  <tr><td style="background:#1B4332;border-radius:8px 8px 0 0;padding:18px 24px">
-    <table width="100%"><tr>
-      <td style="vertical-align:middle">${logos.cabecalho}</td>
-      <td style="vertical-align:middle;text-align:right">
-        <span style="color:#D1FAE5;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase">Suas tarefas de hoje</span><br>
-        <span style="color:#ffffff;font-size:15px;font-weight:700">Projeto DIMA</span><br>
-        <span style="color:#A7F3D0;font-size:11px">UNESCO / SEMA-AC</span>
-      </td>
-    </tr></table>
-  </td></tr>
-  <tr><td style="background:#ffffff;padding:24px">
-    <p style="margin:0 0 4px;font-size:13px;color:#1F2937">Bom dia, ${esc(nome)}.</p>
-    <p style="margin:0 0 8px;font-size:13px;color:#6B7280">Resumo das suas tarefas e subtarefas com prazo próximo:</p>
-    ${corpoTabelas}
-    <div style="margin:24px 0 4px;text-align:center">
-      <a href="${SITE_URL}/pages/tarefas.html" style="display:inline-block;background:#166534;color:#fff;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none">Abrir minhas tarefas</a>
-    </div>
-  </td></tr>
-  <tr><td style="background:#F9FAFB;border-top:1px solid #E5E7EB;border-radius:0 0 8px 8px;padding:14px 24px;text-align:center">
-    <p style="margin:0;font-size:11px;color:#6B7280">Projeto DIMA · UNESCO / SEMA-AC · digest automático diário</p>
-  </td></tr>
-</table></td></tr></table></body></html>`
+function wrapHtml(nome: string, corpoTabelas: string, logos: any): string {
+  return moldeEmail({ logos, sobre: 'Painel de Tarefas · Resumo do dia', titulo: `Bom dia, ${nome}.`,
+    html: `<p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:#424245">Resumo das suas tarefas e subtarefas com prazo próximo:</p>${corpoTabelas}`,
+    botao: { url: `${SITE_URL}/pages/tarefas.html`, label: 'Abrir minhas tarefas' },
+    motivo: 'Resumo automático diário das suas tarefas.' })
 }
 
 Deno.serve(async () => {
