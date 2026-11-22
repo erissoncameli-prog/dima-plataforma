@@ -6,7 +6,7 @@
 //
 // Ao mudar QUALQUER arquivo do shell abaixo, incremente VERSAO — é o que faz
 // o aparelho baixar a versão nova.
-const VERSAO = 28
+const VERSAO = 29
 const CACHE = 'dima-diag-v' + VERSAO
 const CACHE_LOGOS = 'dima-diag-logos'  // fora da troca de versão
 const SHELL = [
@@ -68,6 +68,14 @@ self.addEventListener('fetch', ev => {
   if (url.hostname.endsWith('.supabase.co') && url.pathname.includes('/object/public/plataforma-assets/logos/')) {
     ev.respondWith(caches.open(CACHE_LOGOS).then(c => c.match(ev.request).then(guardado => {
       const rede = fetch(ev.request).then(r => { if (r.ok || r.type === 'opaque') c.put(ev.request, r.clone()); return r }).catch(() => guardado)
+      return guardado || rede
+    })))
+    return
+  }
+  // Logos do repositório apontadas por Dados do sistema (/assets/…): mesmo cache das logos
+  if (url.origin === location.origin && url.pathname.startsWith('/assets/') && /\.(png|jpe?g|svg|webp)$/i.test(url.pathname)) {
+    ev.respondWith(caches.open(CACHE_LOGOS).then(c => c.match(ev.request).then(guardado => {
+      const rede = fetch(ev.request).then(r => { if (r.ok) c.put(ev.request, r.clone()); return r }).catch(() => guardado)
       return guardado || rede
     })))
     return
