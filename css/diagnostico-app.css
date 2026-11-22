@@ -665,3 +665,9 @@ html[data-tema="escuro"] #t-inicio .ini-acoes .btn { background: rgba(88,181,132
 #t-inicio .btn:active:not([disabled]) { transform: none; filter: none; opacity: .55; transition: opacity .08s; }
 /* a faixa de logos já é o fundo da barra de status: sem o véu claro do .topo atrás dela */
 #t-inicio > .topo { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--bg); }
+/* Safari do iOS (26+) e navegadores Android pintam a borda de cima com a cor de fundo da página
+   (véu claro sobre a faixa de logos). No início, o fundo da página é o verde da faixa; o conteúdo
+   tem fundo próprio. */
+html:has(#t-inicio:not([hidden])) { background: #1F4E2C; }
+html:has(#t-inicio:not([hidden])) body { background: transparent; }
+#t-inicio { background: var(--bg); }
