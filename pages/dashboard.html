@@ -1932,7 +1932,7 @@ async function renderTarefas() {
 
 // ── Editais publicados (rodadas de licitação dos TDRs) ──────
 // Fonte: fn_editais_licitacao() — aberta a todo usuário ativo, sem contatos das empresas.
-var VG_ED = { lista: [], filtro: 'abertos' };
+var VG_ED = { lista: [], filtro: 'abertos', exp: {} };
 var VG_ED_SIT = { aberta:['Aberto','vg-p-in'], com_propostas:['Com propostas','vg-p-ok'], deserta:['Deserta','vg-p-al'],
   fracassada:['Fracassada','vg-p-al'], sem_proposta:['Sem proposta','vg-p-al'], cancelada:['Cancelada','vg-p-ne'] };
 function vgEdHr(d){ return d ? new Date(d).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : ''; }
@@ -1948,6 +1948,11 @@ async function renderEditais() {
 }
 function vgEdFiltrar(f, btn){ VG_ED.filtro = f; vgEdDesenhar(); var b=document.querySelector('.vg-ed-f[data-f="'+f+'"]'); if(b) b.focus(); }
 window.vgEdFiltrar = vgEdFiltrar;
+function vgEdExpandir(id){
+  VG_ED.exp[id] = !VG_ED.exp[id]; vgEdDesenhar();
+  var b = document.querySelector('.vg-ed-mais[aria-controls="vg-ed-d-'+id+'"]'); if(b) b.focus();
+}
+window.vgEdExpandir = vgEdExpandir;
 function vgEdDesenhar() {
   var el = document.getElementById('vg-editais'); if(!el) return;
   var todos = VG_ED.lista, agora = Date.now(), lim = agora - 30*864e5;
@@ -1983,19 +1988,30 @@ function vgEdDesenhar() {
         + (e.tarefa_status==='concluida'?' <span class="vg-pill vg-p-ok">feito</span>':e.tarefa_status==='cancelada'?' <span class="vg-pill vg-p-ne">encerrada</span>':'');
       lista += '</div>';
     }
-    h += '<article class="vg-ed-c'+(e.situacao==='aberta'?' aberto':'')+'">'
-      + '<div class="vg-ed-pri"><div class="vg-ed-top"><span class="vg-cod">TDR '+esc(e.tdr_numero||'')+'</span>'+selo
-      + '<span class="vg-nota">publicado em '+vgEdHr(e.criado_em)+'</span></div>'
-      + '<p class="vg-ed-obj">'+esc(e.objeto || 'Objeto não informado no TDR')+'</p>'
+    var aberto = !!VG_ED.exp[e.rodada_id], did = 'vg-ed-d-'+esc(e.rodada_id);
+    var objeto = e.objeto || 'Objeto não informado no TDR';
+    var encCurto = e.prazo_em ? new Date(e.prazo_em).toLocaleDateString('pt-BR',{timeZone:'America/Rio_Branco'}) : 'sem prazo';
+    h += '<article class="vg-ed-c'+(e.situacao==='aberta'?' aberto':'')+(aberto?' exp':'')+'">'
+      + '<div class="vg-ed-lin">'
+      + '<div class="vg-ed-pri"><div class="vg-ed-top"><span class="vg-cod">TDR '+esc(e.tdr_numero||'')+'</span>'+selo+'</div>'
+      + '<p class="vg-ed-obj" title="'+esc(objeto)+'">'+esc(objeto)+'</p></div>'
+      + '<div class="vg-ed-enc"><span>Encerra</span><b>'+esc(encCurto)+'</b></div>'
+      + (url ? '<a class="vg-btn pri vg-ed-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+vgIc('link','p')+'Abrir edital</a>'
+             : '<span class="vg-ed-semlink">Sem link do edital</span>')
+      + '<button type="button" class="vg-btn peq vg-ed-mais" aria-expanded="'+aberto+'" aria-controls="'+did+'" onclick="vgEdExpandir(\''+esc(e.rodada_id)+'\')">'
+      + (aberto?'Mostrar menos':'Mostrar mais')+vgIc('chev','p')+'</button>'
+      + '</div>'
+      + '<div class="vg-ed-det" id="'+did+'"'+(aberto?'':' hidden')+'>'
+      + '<p class="vg-ed-objc">'+esc(objeto)+'</p>'
       + '<div class="vg-it-s">'+(e.atividade_codigo?'Atividade '+esc(e.atividade_codigo)+' · ':'')+proc+'</div>'
-      + lista + '</div>'
       + '<dl class="vg-ed-dt"><div><dt>Abertura</dt><dd>'+(e.dt_abertura?D_DATE(e.dt_abertura):'<span class="vg-nota">não informada</span>')+'</dd></div>'
-      + '<div><dt>Encerramento</dt><dd>'+enc+'</dd></div></dl>'
-      + '<div class="vg-ed-ac">'
-      + (url ? '<a class="vg-btn" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+vgIc('link','p')+'Abrir edital</a>' : '<span class="vg-nota">Link do edital não informado</span>')
-      + '<a class="vg-btn" href="tdrs.html?tdr='+encodeURIComponent(e.tdr_id)+'">'+vgIc('doc','p')+'Ver TDR</a>'
-      + (e.pode_operar && e.situacao==='aberta' ? '<button type="button" class="vg-btn" onclick="vgEdNotificar(\''+esc(e.rodada_id)+'\',this)">'+vgIc('sino','p')+'Notificar</button>' : '')
-      + '</div></article>';
+      + '<div><dt>Encerramento</dt><dd>'+enc+'</dd></div>'
+      + '<div><dt>Publicado em</dt><dd>'+vgEdHr(e.criado_em)+'</dd></div></dl>'
+      + lista
+      + (url ? '<div class="vg-ed-url">'+vgIc('link','p')+'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(url)+'</a></div>' : '')
+      + '<div class="vg-ed-ac"><a class="vg-btn peq" href="tdrs.html?tdr='+encodeURIComponent(e.tdr_id)+'">'+vgIc('doc','p')+'Ver TDR</a>'
+      + (e.pode_operar && e.situacao==='aberta' ? '<button type="button" class="vg-btn peq" onclick="vgEdNotificar(\''+esc(e.rodada_id)+'\',this)">'+vgIc('sino','p')+'Notificar</button>' : '')
+      + '</div></div></article>';
   });
   h += '</div></div>';
   el.innerHTML = h;
