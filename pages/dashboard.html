@@ -299,7 +299,7 @@ var ABAS=[
     _tabs.className = 'vg-tabs'; _tabs.setAttribute('role','tablist'); _tabs.setAttribute('aria-label','Guias da Visão Geral');
     _tabs.innerHTML = abas.map(function(a){
       return '<button type="button" class="vg-tab" role="tab" id="aba-'+a[0]+'" data-aba="'+a[0]+'" aria-controls="pane-'+a[0]+'" aria-selected="false" tabindex="-1">'
-        +vgIc(a[2])+a[1]+'<span class="vg-cnt" hidden></span></button>';
+        +vgIc(a[2])+a[1]+'<span class="vg-cnt" hidden></span>'+(a[0]==='tarefas'?'<span class="vg-cnt-ed" hidden></span>':'')+'</button>';
     }).join('');
     _tabs.addEventListener('click',function(ev){ var b=ev.target.closest('.vg-tab'); if(!b)return; mudarAba(b.dataset.aba); if(b.dataset.aba==='tarefas') renderTarefas(); });
     _tabs.addEventListener('keydown',function(ev){
@@ -311,8 +311,9 @@ var ABAS=[
     });
     _topbar.appendChild(_tabs);
   }
-  // Aba inicial: técnicos abrem em Tarefas, demais em Financiadores
-  mudarAba(appState.perfil === 'tecnico' ? 'tarefas' : 'financiadores');
+  // Aba inicial: Minhas tarefas para todos (com os editais abertos). Não depende de loadData: desenha já.
+  mudarAba('tarefas');
+  renderTarefas();
 
   await loadData();
 })();
@@ -371,7 +372,6 @@ async function loadData(){
 
   renderFinanciadores();
   renderOperacional();
-  renderTarefas();
   renderResultados();
   renderExecucao();
   renderAlertas();
@@ -1808,7 +1808,8 @@ async function renderTarefas() {
   }
   h += '<div class="vg-saud"><div><h2>'+saudacao+', '+esc(nome)+'</h2><p>'+esc(resumoTxt)+'</p></div>'
     + '<div class="vg-saud-n"><div><b>'+totalAval+'</b><span>avaliações</span></div><div><b>'+totalDev+'</b><span>devolvidos</span></div>'
-    + '<div><b>'+vencendo.length+'</b><span>vencem em 30 dias</span></div><div><b>'+notifOutras.length+'</b><span>notificações</span></div></div></div>';
+    + '<div><b>'+vencendo.length+'</b><span>vencem em 30 dias</span></div><div><b>'+notifOutras.length+'</b><span>notificações</span></div>'
+    + '<button type="button" id="vg-saud-ed" class="vg-saud-ed" hidden onclick="vgEdIrPara()"></button></div></div>';
 
   // Editais publicados (todos veem; preenchido por renderEditais)
   h += '<div id="vg-editais"></div>';
@@ -1943,9 +1944,33 @@ async function renderEditais() {
   if(r.error){ console.error('editais:', r.error); el.innerHTML = ''; return; }
   // mais novo primeiro (data de publicação da rodada)
   VG_ED.lista = (r.data || []).slice().sort(function(a,b){ return new Date(b.criado_em) - new Date(a.criado_em); });
+  vgEdIndicar();
   if(!VG_ED.lista.length){ el.innerHTML = ''; return; }
   vgEdDesenhar();
 }
+// Indicativo dos editais abertos: número na faixa de saudação (leva ao painel) e selo azul na guia Minhas tarefas
+function vgEdIndicar(){
+  var ab = VG_ED.lista.filter(function(e){ return e.situacao === 'aberta'; }), agora = Date.now();
+  var breve = ab.filter(function(e){ var t = e.prazo_em ? new Date(e.prazo_em).getTime() : null; return t && t >= agora && t - agora <= 2*864e5; }).length;
+  var n = ab.length;
+  var b = document.getElementById('vg-saud-ed');
+  if(b){
+    b.hidden = !n;
+    b.innerHTML = vgIc('doc') + '<span class="vg-saud-ed-t"><b>'+n+'</b><span>edita'+(n===1?'l aberto':'is abertos')+'</span></span>'
+      + (breve ? '<em>'+breve+' encerra'+(breve===1?'':'m')+' em até 2 dias</em>' : '') + vgIc('seta','p');
+    b.setAttribute('aria-label', n+' edita'+(n===1?'l aberto':'is abertos')+(breve?', '+breve+' encerrando em até 2 dias':'')+'. Ver os editais');
+  }
+  var t = document.querySelector('.vg-tab[data-aba="tarefas"] .vg-cnt-ed');
+  if(t){ t.hidden = !n; t.textContent = n; t.title = n+' edita'+(n===1?'l aberto':'is abertos'); t.className = 'vg-cnt-ed'+(breve?' urg':''); }
+}
+function vgEdIrPara(){
+  VG_ED.filtro = 'abertos'; vgEdDesenhar();
+  var el = document.getElementById('vg-editais'); if(!el) return;
+  el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  var c = el.querySelector('.vg-ed'); if(c){ c.classList.remove('vg-ed-pisca'); void c.offsetWidth; c.classList.add('vg-ed-pisca'); }
+  var f = el.querySelector('.vg-ed-f[data-f="abertos"]'); if(f) f.focus({ preventScroll: true });
+}
+window.vgEdIrPara = vgEdIrPara;
 function vgEdFiltrar(f, btn){ VG_ED.filtro = f; vgEdDesenhar(); var b=document.querySelector('.vg-ed-f[data-f="'+f+'"]'); if(b) b.focus(); }
 window.vgEdFiltrar = vgEdFiltrar;
 function vgEdExpandir(id){

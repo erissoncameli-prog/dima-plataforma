@@ -204,6 +204,24 @@ body.dgm .vg-saud-n { display: flex; gap: 22px; flex-wrap: wrap; }
 body.dgm .vg-saud-n div { display: flex; flex-direction: column; }
 body.dgm .vg-saud-n b { font-family: var(--font-mono); font-size: 22px; font-weight: 500; }
 body.dgm .vg-saud-n span { font-size: 12px; opacity: .8; }
+/* Editais abertos na faixa de saudação: botão que leva ao painel "Editais publicados" */
+body.dgm .vg-saud-n .vg-saud-ed { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.35);
+  border-radius: 10px; background: rgba(255,255,255,.12); color: #fff; font: inherit; cursor: pointer; text-align: left; }
+body.dgm .vg-saud-n .vg-saud-ed[hidden] { display: none; }
+body.dgm .vg-saud-n .vg-saud-ed:hover { background: rgba(255,255,255,.2); }
+body.dgm .vg-saud-n .vg-saud-ed:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+body.dgm .vg-saud-ed-t { display: flex; flex-direction: column; white-space: nowrap; }
+@media (max-width: 560px) { body.dgm .vg-saud-n .vg-saud-ed { width: 100%; } body.dgm .vg-saud-ed > .vg-ic.p { display: none; } }
+body.dgm .vg-saud-ed em { white-space: nowrap; font-style: normal; font-size: 11px; font-weight: 600; background: #FFE8A3; color: #5C3D00; border-radius: 999px; padding: 2px 8px; }
+body.dgm .vg-saud-ed .vg-ic { width: 18px; height: 18px; stroke: currentColor; }
+body.dgm .vg-tab .vg-cnt-ed { font-family: var(--font-mono); font-size: 11px; font-weight: 500; background: var(--info-bg); color: var(--info-txt);
+  border-radius: 999px; padding: 1px 7px; }
+body.dgm .vg-tab .vg-cnt-ed.urg { background: var(--alerta-bg); color: var(--alerta-txt); }
+body.dgm .vg-tab .vg-cnt-ed[hidden] { display: none; }
+body.dgm .vg-ed { scroll-margin-top: 120px; }
+@keyframes vg-ed-pisca { 0% { box-shadow: 0 0 0 0 var(--info); } 100% { box-shadow: 0 0 0 8px transparent; } }
+body.dgm .vg-ed.vg-ed-pisca { animation: vg-ed-pisca .9s ease-out 2; }
+@media (prefers-reduced-motion: reduce) { body.dgm .vg-ed.vg-ed-pisca { animation: none; } }
 
 /* vencimentos */
 body.dgm .vg-venc { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--lin); }

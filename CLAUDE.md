@@ -1500,6 +1500,8 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
 - Popup de detalhe (`#chart-popup`, classe `.vg-ov` no seletor de escopo da mesa): clique no gráfico (`addPopupToChart`)
   ou num trecho de barra de composição (`vgCompBar(..., 'nome')` + `VG_SEG.nome = idx => {title,html,color}`).
 - Guias com contador (`vgContador`): Minhas tarefas, Alertas, Cobertura. Os números gerais ficam só em Financiadores.
+- **Abre em Minhas tarefas** para todos (desenhada já no início, sem esperar `loadData`). Editais abertos: botão `#vg-saud-ed` na faixa
+  de saudação (leva ao painel, filtro Abertos) e selo `.vg-cnt-ed` na guia (amarelo se algum encerra em ≤ 2 dias), por `vgEdIndicar()`.
 - **Exportar** (botão no topo, `js/visao-geral-exportar.js`, `VGExportar.abrir()`): PDF (FolhaA4, paisagem), Excel (ExcelJS: Resumo + uma
   aba por guia, imagem do gráfico + dados em número), PowerPoint (PptxGenJS, gráficos **nativos**; bolhas e o SVG de distância vão como
   imagem) ou HTML (arquivo único, sem internet). A pessoa desmarca guias; Minhas tarefas e Cobertura nunca entram (`VGExp.abas()`).
