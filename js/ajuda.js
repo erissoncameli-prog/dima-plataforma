@@ -24,6 +24,13 @@ const AJUDA = {
           'TDRs pendentes de aprovação ou com retorno da UNESCO.',
           'Viagens solicitadas aguardando aprovação da coordenação.',
         ]},
+        { titulo: 'Editais publicados (Minhas tarefas)', itens: [
+          'Mostra os TDRs enviados para licitação ou contratação direta: objeto do TDR, rodada, modalidade, data de abertura e de encerramento (horário do Acre).',
+          'Todos os usuários veem. Os botões mostram só os abertos, os dos últimos 30 dias ou todos.',
+          'Abrir edital abre o link informado na licitação; sem link, o cartão avisa "Link do edital não informado".',
+          'Quando um edital é publicado ou o link muda, o responsável e o substituto da atividade, a coordenação e o super_admin são avisados no sino e por e-mail. Quem opera a licitação pode avisar de novo pelo botão Notificar.',
+          'Se houver lista curta de empresas, os responsáveis da atividade recebem a tarefa de contatá-las, com uma subtarefa por empresa. A tarefa fecha sozinha quando a rodada termina.',
+        ]},
       ]
     },
     en: {

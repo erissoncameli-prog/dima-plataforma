@@ -10,6 +10,10 @@
 // com UID fixo por tarefa e SEQUENCE = tarefas.ics_sequencia.
 // "subtarefa" avisa o responsável da subtarefa; se for fornecedor, envia os
 // anexos da subtarefa e Reply-To com o token da subtarefa (resposta → comentário).
+// "edital" (com rodada_id, sem tarefa_id): aviso do edital publicado de uma rodada de licitação a
+// responsável/substituto da atividade, coordenação e super_admin (fn_lic_destinatarios) e, a quem é
+// responsável, a tarefa "Contatar as empresas da lista curta" com as subtarefas. Só envia o que o banco
+// acabou de registrar (notificado_em < 15 min, ainda sem e-mail; tarefa de contato ainda sem e-mail).
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import nodemailer from 'npm:nodemailer@6'
 import { logosEmail } from '../_shared/logos-email.ts'
@@ -109,6 +113,119 @@ function montarIcs (metodo: 'REQUEST' | 'CANCEL', t: any, participantes: { email
   return linhas.map(dobrar).join('\r\n') + '\r\n'
 }
 
+// ── evento 'edital': aviso do edital publicado + tarefa de contato da lista curta ──────────
+const fmtDataHoraTz = (v: string | null) => v
+  ? new Date(v).toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  : ''
+// deno-lint-ignore no-explicit-any
+async function enviarEdital (req: Request, rodadaId: string): Promise<any> {
+  if (!rodadaId) throw new Error('rodada_id obrigatório')
+  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+  const userClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: { headers: { Authorization: req.headers.get('Authorization') || '' } },
+  })
+  const { data: r } = await supabase.from('tdr_licitacao_rodadas')
+    .select('id,tdr_id,rodada,modalidade,numero_processo,dt_abertura,prazo_em,prazo_original,edital_url,situacao,' +
+            'notificado_em,email_edital_em,tarefa_contato_id,email_contato_em')
+    .eq('id', rodadaId).maybeSingle()
+  if (!r) throw new Error('rodada não encontrada')
+  // só quem opera a licitação dispara o e-mail
+  const { data: pode } = await userClient.rpc('fn_lic_pode', { p_tdr: r.tdr_id })
+  if (pode !== true) throw new Error('sem acesso a esta licitação')
+  const { data: { user } } = await userClient.auth.getUser()
+  const autor = user?.id || null
+
+  const recente = !!r.notificado_em && Date.now() - new Date(r.notificado_em).getTime() < 15 * 60_000
+  const mandaEdital = recente && (!r.email_edital_em || new Date(r.email_edital_em) < new Date(r.notificado_em))
+  const mandaTarefa = !!r.tarefa_contato_id && !r.email_contato_em
+  if (!mandaEdital && !mandaTarefa) return { ok: true, enviados: 0, aviso: 'nada novo para enviar' }
+
+  const { data: t } = await supabase.from('tdrs')
+    .select('id,numero,objeto_pt,atividade:atividades(codigo,nome_pt)').eq('id', r.tdr_id).single()
+  // destinatários: e-mail → { nome, edital, tarefa }
+  const rec = new Map<string, { nome: string; edital: boolean; tarefa: boolean }>()
+  const add = (u: any, campo: 'edital' | 'tarefa') => {
+    if (!u?.email || u.id === autor) return
+    const x = rec.get(u.email) || { nome: u.nome_completo || '', edital: false, tarefa: false }
+    x[campo] = true; rec.set(u.email, x)
+  }
+  if (mandaEdital) {
+    const { data: ids } = await supabase.rpc('fn_lic_destinatarios', { p_rodada: r.id })
+    if (Array.isArray(ids) && ids.length) {
+      const { data: us } = await supabase.from('usuarios').select('id,nome_completo,email').in('id', ids).eq('ativo', true)
+      ;(us || []).forEach((u: any) => add(u, 'edital'))
+    }
+  }
+  let tar: any = null, subs: any[] = []
+  if (mandaTarefa) {
+    const { data } = await supabase.from('tarefas').select('id,codigo,titulo,dt_prazo').eq('id', r.tarefa_contato_id).maybeSingle()
+    tar = data
+    const { data: sb } = await supabase.from('tarefa_checklist').select('descricao').eq('tarefa_id', r.tarefa_contato_id).order('ordem')
+    subs = sb || []
+    const { data: parts } = await supabase.from('tarefa_participantes')
+      .select('papel, usuario:usuarios(id,nome_completo,email)').eq('tarefa_id', r.tarefa_contato_id).eq('papel', 'responsavel')
+    ;(parts || []).forEach((p: any) => add(p.usuario, 'tarefa'))
+  }
+
+  const prorrogado = r.prazo_original && r.prazo_em && r.prazo_original !== r.prazo_em
+  const fichaEdital =
+    `TDR: ${esc(t?.numero)}\n` +
+    `OBJETO: ${esc(t?.objeto_pt || '—')}\n` +
+    (t?.atividade ? `ATIVIDADE: ${esc(t.atividade.codigo)} — ${esc(t.atividade.nome_pt || '')}\n` : '') +
+    `MODALIDADE: ${esc(r.modalidade)}${r.numero_processo ? ' · processo ' + esc(r.numero_processo) : ''} · ${r.rodada}ª rodada\n` +
+    `ABERTURA: ${r.dt_abertura ? fmtData(r.dt_abertura) : 'não informada'}\n` +
+    `ENCERRAMENTO: ${r.prazo_em ? fmtDataHoraTz(r.prazo_em) + (prorrogado ? ' (prorrogado; era ' + fmtDataHoraTz(r.prazo_original) + ')' : '') : 'não informado'}\n` +
+    `EDITAL: ${r.edital_url && /^https?:\/\//i.test(r.edital_url) ? `<a href="${esc(r.edital_url)}" style="color:#1F6F45">${esc(r.edital_url)}</a>` : 'link não informado'}\n`
+  const blocoTarefa = tar
+    ? `\nFoi criada para você a tarefa <b>${esc(tar.codigo)} — ${esc(tar.titulo)}</b>, com prazo em ${fmtData(tar.dt_prazo)}. ` +
+      `Há uma subtarefa por empresa da lista curta; ao falar com cada uma, marque a subtarefa e registre o contato como comentário.\n` +
+      subs.map((x: any) => `• ${esc(x.descricao)}`).join('\n') + '\n'
+    : ''
+  const logos = await logosEmail(supabase)
+  const linkTdr = `${SITE_URL}/pages/tdrs.html?tdr=${r.tdr_id}`
+  const envios: any[] = []
+  for (const [email, x] of rec) {
+    const comTarefa = x.tarefa && !!tar
+    const assunto = x.edital ? `Edital publicado — TDR ${t?.numero}` : `Nova tarefa ${tar?.codigo}: ${tar?.titulo}`
+    const abertura = x.edital
+      ? 'Uma licitação do Projeto DIMA está com o edital em andamento. Acompanhe os dados abaixo.'
+      : 'Uma tarefa de licitação foi atribuída a você no painel do Projeto DIMA.'
+    const corpo = `Olá, ${esc((x.nome || '').split(' ')[0])}.\n\n${abertura}\n\n${fichaEdital}${comTarefa ? blocoTarefa : ''}`
+    envios.push({
+      to: email, assunto,
+      html: emailDeTexto(corpo, {
+        logos, assunto, sobre: `Licitação · TDR ${t?.numero || ''}`,
+        botao: comTarefa ? { url: `${SITE_URL}/pages/tarefas.html?tarefa=${tar.id}`, label: 'Abrir a tarefa' } : { url: linkTdr, label: 'Abrir o TDR' },
+        destaques: [
+          { rotulo: 'Encerramento', valor: r.prazo_em ? fmtDataHoraTz(r.prazo_em) : 'não informado' },
+          { rotulo: 'Modalidade', valor: r.modalidade },
+        ],
+        motivo: x.edital
+          ? 'Você recebe este e-mail por ser responsável/substituto da atividade, da coordenação ou super_admin.'
+          : 'Você recebe este e-mail porque é responsável por uma tarefa no Painel do Projeto DIMA.',
+      }),
+      replyTo: comTarefa ? `fundobrasilonuacre+${tar.id}@gmail.com` : undefined,
+    })
+  }
+  // marca o que já saiu (mesmo sem destinatário com e-mail, para não repetir)
+  const marca: Record<string, string> = {}
+  if (mandaEdital) marca.email_edital_em = new Date().toISOString()
+  if (mandaTarefa) marca.email_contato_em = new Date().toISOString()
+  await supabase.from('tdr_licitacao_rodadas').update(marca).eq('id', r.id)
+  if (!envios.length) return { ok: true, enviados: 0, aviso: 'nenhum destinatário com e-mail' }
+
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com', port: 587, secure: false,
+    auth: { user: 'fundobrasilonuacre@gmail.com', pass: Deno.env.get('GMAIL_APP_PASSWORD')! },
+  })
+  const results = await Promise.allSettled(envios.map(e => transporter.sendMail({
+    from: REMETENTE, to: e.to, subject: e.assunto, html: e.html, replyTo: e.replyTo,
+  })))
+  const enviados = results.filter(x => x.status === 'fulfilled').length
+  results.forEach(x => { if (x.status === 'rejected') console.error('sendMail edital:', (x.reason as Error)?.message) })
+  return { ok: enviados > 0, enviados, falhas: results.length - enviados }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
@@ -117,7 +234,11 @@ Deno.serve(async (req) => {
       destinatarios = null,   // uuid[] opcional: restringe os destinatários internos
       checklist_id = null,    // evento 'subtarefa'
       comentario_id = null,   // evento 'comentario'
+      rodada_id = null,       // evento 'edital'
     } = await req.json()
+    if (evento === 'edital') {
+      return new Response(JSON.stringify(await enviarEdital(req, rodada_id)), { headers: { ...CORS, 'Content-Type': 'application/json' } })
+    }
     if (!tarefa_id) throw new Error('tarefa_id obrigatório')
 
     const supabase = createClient(

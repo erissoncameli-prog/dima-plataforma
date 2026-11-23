@@ -1810,6 +1810,9 @@ async function renderTarefas() {
     + '<div class="vg-saud-n"><div><b>'+totalAval+'</b><span>avaliações</span></div><div><b>'+totalDev+'</b><span>devolvidos</span></div>'
     + '<div><b>'+vencendo.length+'</b><span>vencem em 30 dias</span></div><div><b>'+notifOutras.length+'</b><span>notificações</span></div></div></div>';
 
+  // Editais publicados (todos veem; preenchido por renderEditais)
+  h += '<div id="vg-editais"></div>';
+
   h += '<div class="vg-g2">';
 
   // ── COLUNA ESQUERDA: Avaliações + Devolvidos ─────────────
@@ -1924,7 +1927,92 @@ async function renderTarefas() {
   h += '</div>'; // .vg-g2
 
   el.innerHTML = h;
+  renderEditais();
 }
+
+// ── Editais publicados (rodadas de licitação dos TDRs) ──────
+// Fonte: fn_editais_licitacao() — aberta a todo usuário ativo, sem contatos das empresas.
+var VG_ED = { lista: [], filtro: 'abertos' };
+var VG_ED_SIT = { aberta:['Aberto','vg-p-in'], com_propostas:['Com propostas','vg-p-ok'], deserta:['Deserta','vg-p-al'],
+  fracassada:['Fracassada','vg-p-al'], sem_proposta:['Sem proposta','vg-p-al'], cancelada:['Cancelada','vg-p-ne'] };
+function vgEdHr(d){ return d ? new Date(d).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : ''; }
+function vgEdUrl(u){ try { var x = new URL(String(u||'')); return /^https?:$/.test(x.protocol) ? x.href : ''; } catch(e){ return ''; } }
+async function renderEditais() {
+  var el = document.getElementById('vg-editais'); if(!el) return;
+  var r = await db.rpc('fn_editais_licitacao');
+  if(r.error){ console.error('editais:', r.error); el.innerHTML = ''; return; }
+  VG_ED.lista = r.data || [];
+  if(!VG_ED.lista.length){ el.innerHTML = ''; return; }
+  vgEdDesenhar();
+}
+function vgEdFiltrar(f, btn){ VG_ED.filtro = f; vgEdDesenhar(); var b=document.querySelector('.vg-ed-f[data-f="'+f+'"]'); if(b) b.focus(); }
+window.vgEdFiltrar = vgEdFiltrar;
+function vgEdDesenhar() {
+  var el = document.getElementById('vg-editais'); if(!el) return;
+  var todos = VG_ED.lista, agora = Date.now(), lim = agora - 30*864e5;
+  var abertos = todos.filter(function(e){ return e.situacao === 'aberta'; });
+  var recentes = todos.filter(function(e){ return e.situacao === 'aberta' || new Date(e.criado_em).getTime() >= lim || (e.resultado_em && new Date(e.resultado_em).getTime() >= lim); });
+  var vis = VG_ED.filtro === 'abertos' ? abertos : VG_ED.filtro === 'recentes' ? recentes : todos;
+  function bt(f, rot, n){ return '<button type="button" class="vg-ed-f" data-f="'+f+'" aria-pressed="'+(VG_ED.filtro===f)+'" onclick="vgEdFiltrar(\''+f+'\')">'+rot+' ('+n+')</button>'; }
+  var h = '<div class="vg-card vg-ed"><div class="vg-card-h"><div><h3 class="vg-tit">Editais publicados</h3>'
+    + '<div class="vg-sub">TDRs enviados para licitação ou contratação direta · prazos no horário do Acre</div></div>'
+    + '<div class="vg-seg" role="group" aria-label="Mostrar editais">'+bt('abertos','Abertos',abertos.length)+bt('recentes','Últimos 30 dias',recentes.length)+bt('todos','Todos',todos.length)+'</div></div>';
+  if(!vis.length){
+    h += '<p class="vg-nota" style="margin:8px 0 0">'+(VG_ED.filtro==='abertos'?'Nenhum edital aberto agora.':'Nenhum edital neste período.')+'</p></div>';
+    el.innerHTML = h; return;
+  }
+  h += '<div class="vg-ed-grade">';
+  vis.forEach(function(e){
+    var sit = VG_ED_SIT[e.situacao] || [e.situacao||'—','vg-p-ne'];
+    var prazo = e.prazo_em ? new Date(e.prazo_em).getTime() : null;
+    var selo = '<span class="vg-pill '+sit[1]+'">'+esc(sit[0])+'</span>';
+    if(e.situacao === 'aberta' && prazo){
+      var d = Math.ceil((prazo - agora)/864e5);
+      selo += prazo < agora ? ' <span class="vg-pill vg-p-er">Prazo vencido</span>'
+        : d <= 2 ? ' <span class="vg-pill vg-p-al">Encerra em '+(d<=1?'até 1 dia':d+' dias')+'</span>'
+        : ' <span class="vg-pill vg-p-ne">Encerra em '+d+' dias</span>';
+    }
+    var url = vgEdUrl(e.edital_url);
+    var proc = [e.modalidade, e.numero_processo ? 'Processo '+e.numero_processo : '', e.rodada ? e.rodada+'ª rodada' : ''].filter(Boolean).map(esc).join(' · ');
+    var enc = e.prazo_em ? vgEdHr(e.prazo_em) + (e.prazo_original && e.prazo_original !== e.prazo_em ? ' <span class="vg-nota">(prorrogado; era '+vgEdHr(e.prazo_original)+')</span>' : '') : '<span class="vg-nota">sem prazo</span>';
+    var lista = '';
+    if(e.n_empresas){
+      lista = '<div class="vg-ed-lc">'+vgIc('tarefas','p')+' Lista curta: '+e.n_empresas+' empresa'+(e.n_empresas>1?'s':'');
+      if(e.tarefa_contato_id) lista += ' · contato '+(e.subtarefas_feitas||0)+'/'+(e.subtarefas||0)
+        + (e.tarefa_status==='concluida'?' <span class="vg-pill vg-p-ok">feito</span>':e.tarefa_status==='cancelada'?' <span class="vg-pill vg-p-ne">encerrada</span>':'');
+      lista += '</div>';
+    }
+    h += '<article class="vg-ed-c'+(e.situacao==='aberta'?' aberto':'')+'">'
+      + '<div class="vg-ed-top"><span class="vg-cod">TDR '+esc(e.tdr_numero||'')+'</span>'+selo+'</div>'
+      + '<p class="vg-ed-obj">'+esc(e.objeto || 'Objeto não informado no TDR')+'</p>'
+      + '<div class="vg-it-s">'+(e.atividade_codigo?'Atividade '+esc(e.atividade_codigo)+' · ':'')+proc+'</div>'
+      + '<dl class="vg-ed-dt"><div><dt>Abertura</dt><dd>'+(e.dt_abertura?D_DATE(e.dt_abertura):'<span class="vg-nota">não informada</span>')+'</dd></div>'
+      + '<div><dt>Encerramento</dt><dd>'+enc+'</dd></div></dl>'
+      + lista
+      + '<div class="vg-ed-ac">'
+      + (url ? '<a class="vg-btn" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+vgIc('link','p')+'Abrir edital</a>' : '<span class="vg-nota">Link do edital não informado</span>')
+      + '<a class="vg-btn" href="tdrs.html?tdr='+encodeURIComponent(e.tdr_id)+'">'+vgIc('doc','p')+'Ver TDR</a>'
+      + (e.pode_operar && e.situacao==='aberta' ? '<button type="button" class="vg-btn" onclick="vgEdNotificar(\''+esc(e.rodada_id)+'\',this)">'+vgIc('sino','p')+'Notificar</button>' : '')
+      + '</div></article>';
+  });
+  h += '</div></div>';
+  el.innerHTML = h;
+}
+async function vgEdNotificar(rodadaId, btn) {
+  if(!confirm('Avisar de novo (sino e e-mail) o responsável e o substituto da atividade, a coordenação e o super_admin sobre este edital?')) return;
+  btn.disabled = true;
+  var r = await db.rpc('fn_lic_notificar_edital', { p_rodada: rodadaId });
+  if(r.error){ btn.disabled = false; toast('Não foi possível notificar: '+r.error.message, 'error'); return; }
+  try {
+    var s = (await db.auth.getSession()).data.session;
+    await fetch(SUPABASE_URL + '/functions/v1/enviar-email-tarefa', { method:'POST',
+      headers:{ 'Content-Type':'application/json', Authorization:'Bearer '+(s?.access_token||''), apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ evento:'edital', rodada_id: rodadaId }) });
+  } catch(e){ console.error('e-mail do edital:', e); }
+  toast('Aviso enviado.', 'success');
+  btn.disabled = false;
+}
+window.vgEdNotificar = vgEdNotificar;
 
 function filtrarAval(cod, btn) {
   document.querySelectorAll('.pill-aval').forEach(function(b) { b.setAttribute('aria-pressed', String(b === btn)); });

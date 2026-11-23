@@ -335,6 +335,7 @@ async function salvarLicitacao () {
   if (licForm.modo === 'editar') {
     const { error } = await db.rpc('fn_lic_editar', { p_rodada: licForm.rodada.id, p })
     if (error) { erro(msgCanc(error.message)); return }
+    licEmailEdital(licForm.rodada.id)
     fecharModal('modal-licitacao'); toast('Dados da licitação salvos.', 'success')
     await licRecarregar(); return
   }
@@ -344,6 +345,7 @@ async function salvarLicitacao () {
     const { data, error } = await db.rpc('fn_lic_enviar', { p_tdr: id, p })
     if (error) { toast('Não foi enviado: ' + msgCanc(error.message), 'error', 9000); document.getElementById('modal-licitacao').classList.add('aberto'); return }
     if (data?.tarefa_id) licEmailTarefa(data.tarefa_id)
+    if (data?.rodada_id) licEmailEdital(data.rodada_id)
     toast(cl === 'inexigibilidade' || (cl === 'dispensa' && !prazo)
       ? 'TDR em contratação direta. Foi criada a tarefa de registrar o resultado (15 dias).'
       : 'TDR enviado para licitação. O sistema avisa 2 dias antes do prazo e cria a tarefa do resultado no vencimento.', 'success', 8000)
@@ -364,6 +366,19 @@ async function licEmailTarefa (tarefaId) {
       body: JSON.stringify({ tarefa_id: tarefaId, evento: 'atribuicao', autor_id: appState.usuario.id }),
     })
   } catch (e) { console.error('e-mail da tarefa:', e) }
+}
+
+// Edital publicado: o banco já avisou no sino (e criou a tarefa de contatar a lista curta);
+// a função manda o e-mail só do que o banco acabou de avisar — chamar sempre é seguro.
+async function licEmailEdital (rodadaId) {
+  try {
+    const { data: { session } } = await db.auth.getSession()
+    await fetch(SUPABASE_URL + '/functions/v1/enviar-email-tarefa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session?.access_token || ''), apikey: SUPABASE_ANON_KEY },
+      body: JSON.stringify({ evento: 'edital', rodada_id: rodadaId }),
+    })
+  } catch (e) { console.error('e-mail do edital:', e) }
 }
 
 // ── prorrogar ────────────────────────────────────────────────────────────
