@@ -1979,7 +1979,10 @@ function vgEdDesenhar() {
         : ' <span class="vg-pill vg-p-ne">Encerra em '+d+' dias</span>';
     }
     var url = vgEdUrl(e.edital_url);
-    var proc = [e.modalidade, e.numero_processo ? 'Processo '+e.numero_processo : '', e.rodada ? e.rodada+'ª rodada' : ''].filter(Boolean).map(esc).join(' · ');
+    // nº do edital = numero_processo da rodada (a tela de licitação grava ali "Edital 019-2026…" ou o nº do processo UNESCO)
+    var numEd = String(e.numero_processo||'').trim().replace(/^edital\s*(n[º°o.]*\s*)?/i,'').trim();
+    if(!/[0-9A-Za-z]/.test(numEd)) numEd = '';
+    var proc = [e.modalidade, e.rodada ? e.rodada+'ª rodada' : ''].filter(Boolean).map(esc).join(' · ');
     var enc = e.prazo_em ? vgEdHr(e.prazo_em) + (e.prazo_original && e.prazo_original !== e.prazo_em ? ' <span class="vg-nota">(prorrogado; era '+vgEdHr(e.prazo_original)+')</span>' : '') : '<span class="vg-nota">sem prazo</span>';
     var lista = '';
     if(e.n_empresas){
@@ -1993,7 +1996,7 @@ function vgEdDesenhar() {
     var encCurto = e.prazo_em ? new Date(e.prazo_em).toLocaleDateString('pt-BR',{timeZone:'America/Rio_Branco'}) : 'sem prazo';
     h += '<article class="vg-ed-c'+(e.situacao==='aberta'?' aberto':'')+(aberto?' exp':'')+'">'
       + '<div class="vg-ed-lin">'
-      + '<div class="vg-ed-pri"><div class="vg-ed-top"><span class="vg-cod">TDR '+esc(e.tdr_numero||'')+'</span>'+selo+'</div>'
+      + '<div class="vg-ed-pri"><div class="vg-ed-top">'+(numEd?'<span class="vg-ed-num">Edital nº '+esc(numEd)+'</span>':'<span class="vg-ed-num sem">Edital sem número</span>')+'<span class="vg-cod">TDR '+esc(e.tdr_numero||'')+'</span>'+selo+'</div>'
       + '<p class="vg-ed-obj" title="'+esc(objeto)+'">'+esc(objeto)+'</p></div>'
       + '<div class="vg-ed-enc"><span>Encerra</span><b>'+esc(encCurto)+'</b></div>'
       + (url ? '<a class="vg-btn pri vg-ed-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+vgIc('link','p')+'Abrir edital</a>'

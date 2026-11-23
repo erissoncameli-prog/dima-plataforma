@@ -955,7 +955,7 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   (`fn_lic_notificar_edital`, quem `fn_lic_pode`). Empresa da lista curta (ativa, convidada, rodada aberta) ⇒ `trg_lic_empresa_contato` cria
   uma vez a tarefa "Contatar as empresas da lista curta — TDR X" (`tdr_licitacao_rodadas.tarefa_contato_id`, responsáveis = responsável e
   substituto, prazo = prazo − 2 dias) e **uma subtarefa por empresa** com nome e contato; rodada que sai de `aberta` fecha a tarefa (concluída
-  se todas as subtarefas feitas, senão cancelada). Painel **"Editais publicados"** em Minhas tarefas da Visão Geral (`renderEditais`, um abaixo do outro, mais novo primeiro por `criado_em`; linha compacta com "Abrir edital" em destaque e "Mostrar mais" para o detalhe,
+  se todas as subtarefas feitas, senão cancelada). Painel **"Editais publicados"** em Minhas tarefas da Visão Geral (`renderEditais`, um abaixo do outro, mais novo primeiro por `criado_em`; linha compacta com o nº do edital (`numero_processo`) e "Abrir edital" em destaque e "Mostrar mais" para o detalhe,
   `#vg-editais`, filtros Abertos/30 dias/Todos) lê `fn_editais_licitacao()` — aberta a todo usuário ativo, sem contato das empresas
   (só a contagem); objeto do TDR em destaque, abertura, encerramento (prorrogação), "Abrir edital" só http/https.
 

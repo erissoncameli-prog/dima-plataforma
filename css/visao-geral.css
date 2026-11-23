@@ -329,6 +329,10 @@ body.dgm .vg-ed-c.exp { background: var(--sup-2); }
 body.dgm .vg-ed-lin { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 8px 16px; align-items: center; }
 body.dgm .vg-ed-pri { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 body.dgm .vg-ed-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+body.dgm .vg-ed-num { font-size: 13px; font-weight: 700; color: var(--pri-700); background: var(--pri-100); border: 1px solid var(--pri-400);
+  border-radius: 6px; padding: 2px 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+html[data-tema="escuro"] body.dgm .vg-ed-num { color: var(--pri-400); background: rgba(82, 183, 136, .12); }
+body.dgm .vg-ed-num.sem, html[data-tema="escuro"] body.dgm .vg-ed-num.sem { font-weight: 500; color: var(--txt-3); background: transparent; border-style: dashed; border-color: var(--lin-forte); }
 body.dgm .vg-ed-obj { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body.dgm .vg-ed-enc { display: flex; flex-direction: column; line-height: 1.25; text-align: right; }
 body.dgm .vg-ed-enc span { font-size: 11px; color: var(--txt-3); }
