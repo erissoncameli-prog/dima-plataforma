@@ -321,16 +321,20 @@ body.dgm .vg-exp .vg-ic { width: 16px; height: 16px; fill: none; stroke: current
 /* ── Editais publicados (Minhas tarefas) ─────────────────── */
 body.dgm .vg-ed { margin-bottom: 16px; }
 body.dgm .vg-ed .vg-card-h { flex-wrap: wrap; gap: 10px; }
-body.dgm .vg-ed-grade { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 12px; width: 100%; min-width: 0;
-  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 2px 2px 10px; }
-body.dgm .vg-ed-c { flex: 0 0 min(320px, 86%); scroll-snap-align: start; display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; border: 1px solid var(--lin);
-  border-left: 3px solid var(--lin-forte); border-radius: 10px; background: var(--sup); }
+body.dgm .vg-ed-grade { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; min-width: 0; }
+body.dgm .vg-ed-c { display: grid; grid-template-columns: minmax(0, 1fr) 260px auto; gap: 10px 20px; align-items: center;
+  min-width: 0; padding: 12px 14px; border: 1px solid var(--lin); border-left: 3px solid var(--lin-forte); border-radius: 10px; background: var(--sup); }
 body.dgm .vg-ed-c.aberto { border-left-color: var(--info); }
+body.dgm .vg-ed-pri { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 body.dgm .vg-ed-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 body.dgm .vg-ed-obj { margin: 2px 0 0; font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--txt); overflow-wrap: break-word; }
-body.dgm .vg-ed-dt { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 0; }
+body.dgm .vg-ed-dt { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
 body.dgm .vg-ed-dt dt { font-size: 11px; color: var(--txt-3); }
 body.dgm .vg-ed-dt dd { margin: 0; font-size: 13px; color: var(--txt-forte-2); }
 body.dgm .vg-ed-lc { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--txt-2); }
-body.dgm .vg-ed-ac { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 6px; }
+body.dgm .vg-ed-ac { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+@media (max-width: 900px) {
+  body.dgm .vg-ed-c { grid-template-columns: minmax(0, 1fr); }
+  body.dgm .vg-ed-ac { justify-content: flex-start; }
+}
 body.dgm .vg-ed-ac .vg-btn { text-decoration: none; }

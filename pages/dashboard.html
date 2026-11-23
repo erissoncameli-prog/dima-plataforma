@@ -1941,7 +1941,8 @@ async function renderEditais() {
   var el = document.getElementById('vg-editais'); if(!el) return;
   var r = await db.rpc('fn_editais_licitacao');
   if(r.error){ console.error('editais:', r.error); el.innerHTML = ''; return; }
-  VG_ED.lista = r.data || [];
+  // mais novo primeiro (data de publicação da rodada)
+  VG_ED.lista = (r.data || []).slice().sort(function(a,b){ return new Date(b.criado_em) - new Date(a.criado_em); });
   if(!VG_ED.lista.length){ el.innerHTML = ''; return; }
   vgEdDesenhar();
 }
@@ -1983,12 +1984,13 @@ function vgEdDesenhar() {
       lista += '</div>';
     }
     h += '<article class="vg-ed-c'+(e.situacao==='aberta'?' aberto':'')+'">'
-      + '<div class="vg-ed-top"><span class="vg-cod">TDR '+esc(e.tdr_numero||'')+'</span>'+selo+'</div>'
+      + '<div class="vg-ed-pri"><div class="vg-ed-top"><span class="vg-cod">TDR '+esc(e.tdr_numero||'')+'</span>'+selo
+      + '<span class="vg-nota">publicado em '+vgEdHr(e.criado_em)+'</span></div>'
       + '<p class="vg-ed-obj">'+esc(e.objeto || 'Objeto não informado no TDR')+'</p>'
       + '<div class="vg-it-s">'+(e.atividade_codigo?'Atividade '+esc(e.atividade_codigo)+' · ':'')+proc+'</div>'
+      + lista + '</div>'
       + '<dl class="vg-ed-dt"><div><dt>Abertura</dt><dd>'+(e.dt_abertura?D_DATE(e.dt_abertura):'<span class="vg-nota">não informada</span>')+'</dd></div>'
       + '<div><dt>Encerramento</dt><dd>'+enc+'</dd></div></dl>'
-      + lista
       + '<div class="vg-ed-ac">'
       + (url ? '<a class="vg-btn" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+vgIc('link','p')+'Abrir edital</a>' : '<span class="vg-nota">Link do edital não informado</span>')
       + '<a class="vg-btn" href="tdrs.html?tdr='+encodeURIComponent(e.tdr_id)+'">'+vgIc('doc','p')+'Ver TDR</a>'
