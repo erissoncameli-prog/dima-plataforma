@@ -4271,7 +4271,17 @@ async function relVi4(){
           etapas.push({icone:'✓',cor:'#059669',label:'Prestação confirmada',data:p.realizado_em,desc:'Documentos validados',ok:true});
           etapas.push({icone:'✓',cor:'#059669',label:'Concluído',data:p.realizado_em,desc:'Lançado no financeiro',ok:true});
         } else if(p.situacao==='em_prestacao'){
-          etapas.push({icone:'✓',cor:'#7C3AED',label:'Prestação de contas enviada',data:null,desc:'Aguardando validação pelo coordenador',ok:true});
+          // em_prestacao entra sozinho quando passa a data de retorno: "enviada" só quando os viajantes
+          // anexaram o relatório de viagem (quem não viajou fica fora da conta)
+          const devem = vList.filter(v=>v.desfecho!=='nao_realizada');
+          const enviaram = devem.filter(v=>v.relatorio_url);
+          if(devem.length && enviaram.length===devem.length){
+            const ultima = enviaram.map(v=>v.relatorio_data).filter(Boolean).sort().pop()||null;
+            etapas.push({icone:'✓',cor:'#7C3AED',label:'Prestação de contas enviada',data:ultima,desc:'Aguardando validação pelo coordenador',ok:true});
+          } else {
+            etapas.push({icone:'·',cor:'#D97706',label:'Prestação de contas',data:null,
+              desc:enviaram.length?`Aguardando envio de documentos (${enviaram.length} de ${devem.length} viajantes)`:'Aguardando envio de documentos pelo viajante',ok:false});
+          }
           etapas.push({icone:'·',cor:'#9CA3AF',label:'Conclusão',data:null,desc:'Aguardando dados',ok:false});
         } else {
           etapas.push({icone:'·',cor:'#9CA3AF',label:'Prestação de contas',data:null,desc:'Aguardando dados',ok:false});

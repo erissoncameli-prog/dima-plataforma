@@ -2101,12 +2101,23 @@ function renderTimeline(p){
     desc:(p.cancelado_motivo?`Motivo: ${p.cancelado_motivo.substring(0,60)}`:'')+por(p.cancelado_por)
   });
   // Prestação
-  if(p.situacao==='em_prestacao') etapas.push({
-    icone:'<svg class="vi-ic p"><use href="#vi-prancheta"/></svg>', cor:'var(--ia)',
-    label:'Prestação enviada',
-    data:null,
-    desc:'Documentos aguardando confirmação pelo coordenador/admin'
-  });
+  // em_prestacao entra sozinho após a data de retorno: "enviada" só com o relatório de cada viajante anexado
+  if(p.situacao==='em_prestacao'){
+    const devem=(p.viajantes||[]).filter(v=>v.desfecho!=='nao_realizada');
+    const enviaram=devem.filter(v=>v.relatorio_url);
+    const completa=devem.length&&enviaram.length===devem.length;
+    etapas.push(completa?{
+      icone:'<svg class="vi-ic p"><use href="#vi-prancheta"/></svg>', cor:'var(--ia)',
+      label:'Prestação enviada',
+      data:enviaram.map(v=>v.relatorio_data).filter(Boolean).sort().pop()||null,
+      desc:'Documentos aguardando confirmação pelo coordenador/admin'
+    }:{
+      icone:'<svg class="vi-ic p"><use href="#vi-relogio"/></svg>', cor:'var(--alerta)',
+      label:'Aguardando envio de documentos',
+      data:null,
+      desc:enviaram.length?`${enviaram.length} de ${devem.length} viajantes enviaram o relatório`:'O viajante ainda não enviou a prestação de contas'
+    });
+  }
   if(p.situacao==='realizado') etapas.push({
     icone:'<svg class="vi-ic p"><use href="#vi-prancheta"/></svg>', cor:'var(--ok)',
     label:'Prestação confirmada',
