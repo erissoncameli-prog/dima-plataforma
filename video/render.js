@@ -1,6 +1,7 @@
 // Renderiza o vídeo quadro a quadro (Chromium + GSAP pausado) e monta o MP4 com ffmpeg.
 //   node video/render.js previa 3.2 14 40     → PNGs desses instantes em build/previa/
-//   node video/render.js video                → build/quadros/*.jpg (4 processos) + saida/video.mp4
+//   node video/render.js video                → build/quadros/*.jpg (4 processos) + saida/plataforma-gestao-projetos.mp4
+//   acrescente "vertical" (ex.: node video/render.js video vertical) para a versão 1080×1920 das redes sociais
 'use strict'
 const { chromium } = require('playwright')
 const { spawn, execFileSync } = require('node:child_process')
@@ -8,10 +9,12 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const AQUI = __dirname, RAIZ = path.resolve(AQUI, '..'), B = path.join(AQUI, 'build')
-const FPS = 30, PORTA = 5711, URL = `http://127.0.0.1:${PORTA}/video/cenas/index.html`
+const VERT = process.argv.includes('vertical')
+const FPS = 30, PORTA = 5711, URL = `http://127.0.0.1:${PORTA}/video/cenas/index.html${VERT ? '?formato=vertical' : ''}`
+const VW = VERT ? 1080 : 1920, VH = VERT ? 1920 : 1080, SUF = VERT ? '-vertical' : ''
 
 async function abrir(nav) {
-  const pg = await nav.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 })
+  const pg = await nav.newPage({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1 })
   pg.on('pageerror', e => console.log('[erro]', e.message))
   await pg.goto(URL)
   await pg.waitForFunction(() => window.__pronto === true, null, { timeout: 60000 })
@@ -19,13 +22,13 @@ async function abrir(nav) {
 }
 
 ;(async () => {
-  const [modo, ...args] = process.argv.slice(2)
+  const [modo, ...args] = process.argv.slice(2).filter(a => a !== 'vertical')
   const srv = spawn('python3', ['-m', 'http.server', String(PORTA), '--bind', '127.0.0.1'], { cwd: RAIZ, stdio: 'ignore' })
   await new Promise(r => setTimeout(r, 700))
   const nav = await chromium.launch({ args: ['--disable-gpu-vsync', '--force-color-profile=srgb'] })
   try {
     if (modo === 'previa') {
-      const dir = path.join(B, 'previa'); fs.mkdirSync(dir, { recursive: true })
+      const dir = path.join(B, 'previa' + SUF); fs.mkdirSync(dir, { recursive: true })
       const pg = await abrir(nav)
       for (const t of args.map(Number)) {
         await pg.evaluate(t => window.__render(t), t)
@@ -34,7 +37,7 @@ async function abrir(nav) {
       }
     } else {
       const total = JSON.parse(fs.readFileSync(path.join(B, 'linha.json'))).total
-      const N = Math.ceil(total * FPS), W = 4, dir = path.join(B, 'quadros')
+      const N = Math.ceil(total * FPS), W = 4, dir = path.join(B, 'quadros' + SUF)
       fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true })
       const t0 = Date.now()
       await Promise.all(Array.from({ length: W }, async (_, w) => {
@@ -50,8 +53,8 @@ async function abrir(nav) {
         '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-movflags', '+faststart',
         '-c:a', 'aac', '-b:a', '192k', '-shortest',
         '-metadata', 'title=Plataforma Inteligente de Gestão de Projetos', '-metadata', 'artist=Erisson Cameli Santiago',
-        path.join(saida, 'plataforma-gestao-projetos.mp4')], { stdio: 'inherit' })
-      console.log('✓ saida/plataforma-gestao-projetos.mp4', ((Date.now() - t0) / 1000).toFixed(0), 's')
+        path.join(saida, `plataforma-gestao-projetos${SUF}.mp4`)], { stdio: 'inherit' })
+      console.log(`✓ saida/plataforma-gestao-projetos${SUF}.mp4`, ((Date.now() - t0) / 1000).toFixed(0), 's')
     }
   } finally { await nav.close(); srv.kill() }
 })()

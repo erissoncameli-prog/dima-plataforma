@@ -1,6 +1,7 @@
 # Vídeo publicitário — Plataforma Inteligente de Gestão de Projetos
 
-Vídeo de ~1:41 (1920×1080, 30 fps, áudio −14 LUFS) com as principais funções da plataforma: telas **reais** do sistema
+Vídeo de ~1:41 em dois formatos — **horizontal** 1920×1080 (YouTube, site, apresentações) e **vertical** 1080×1920
+(Reels, TikTok, Shorts, Status), 30 fps, áudio −14 LUFS — com as principais funções da plataforma: telas **reais** do sistema
 (com **dados fictícios** de demonstração), locução neural em pt-BR, legenda sincronizada palavra a palavra, trilha e
 efeitos originais e motion design em 3D. Tudo é gerado por código, sem material de terceiros com direitos.
 
@@ -25,6 +26,7 @@ HF_HUB_DISABLE_XET=1 .venv/bin/python audio/locucao.py /caminho/modelos   # 2. l
 .venv/bin/python audio/trilha.py          # 3. linha do tempo, trilha, efeitos e mixagem → build/mix.wav
 node render.js previa 14 40 99            # (opcional) quadros soltos para conferir
 node render.js video                      # 4. quadros + MP4 → saida/plataforma-gestao-projetos.mp4
+node render.js video vertical             #    versão 1080×1920 → saida/plataforma-gestao-projetos-vertical.mp4
 .venv/bin/python audio/legendas.py        # 5. saida/legendas.srt
 ```
 
@@ -40,7 +42,7 @@ nova locução (`build/linha.json`). Cada cena começa num tempo do compasso (12
 | `captura/capturar.js`, `captura/telas.js` | Abre cada página no Chromium (Playwright), serve as bibliotecas dos CDNs a partir do npm, fixa o relógio e captura em 2x. |
 | `audio/locucao.py` | Kokoro-82M (voz Dora e Alex) + Whisper para conferir a pronúncia e medir cada palavra. |
 | `audio/trilha.py` | Linha do tempo, trilha (vi–IV–I–V, 120 BPM) e efeitos sintetizados em NumPy; voz tratada no ffmpeg; ducking; loudnorm −14 LUFS. |
-| `cenas/` | Página 1920×1080 com a linha do tempo GSAP pausada; `window.__render(t)` desenha qualquer instante. |
+| `cenas/` | Página com a linha do tempo GSAP pausada; `window.__render(t)` desenha qualquer instante. `?formato=vertical` troca o palco para 1080×1920 (mesma linha do tempo, mesmo áudio; posições em `G(horizontal, vertical)` e estilos em `html.v` no fim de `cenas.css`). |
 | `render.js` | Renderiza quadro a quadro em 4 processos e codifica H.264/AAC. |
 
 ## Ferramentas (código aberto) e licenças
@@ -49,6 +51,12 @@ Playwright (Apache-2.0) · GSAP 3.12.5 (licença "Standard No Charge" da GreenSo
 kokoro-onnx (MIT) · faster-whisper (MIT) e modelo Whisper small (MIT) · FFmpeg (LGPL/GPL) · NumPy/SciPy (BSD) ·
 Chart.js e Leaflet (MIT, já usados pela plataforma). Essas ferramentas são só de produção do vídeo; **não** entram na
 plataforma (por isso não estão no `NOTICE`).
+
+## Formato vertical
+
+Mesma locução, legenda, trilha e as 15 cenas; muda só a composição: título e itens no alto, a tela da plataforma no meio
+(janela 960×740, a captura cobre a janela e a câmera aproxima o trecho citado) e a legenda abaixo. Tudo o que importa
+fica na área segura dos aplicativos (y 230–1600, x 60–960): o topo e o rodapé são cobertos pelos botões e pelo texto do post.
 
 ## Cuidados
 
