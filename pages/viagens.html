@@ -2839,6 +2839,41 @@ async function confirmarDevCancelar(){
   await abrirDetalhe(protAtual.id);carregar();
 }
 
+// Cartão de embarque: bucket privado ⇒ sempre por link assinado. Imagem vira miniatura; PDF ganha a 1ª página
+// (pdf.js) ou, se não der, um cartão com ícone. Clique: imagem amplia, PDF abre em nova aba.
+function cartaoEhPdf(url){return /\.pdf($|\?)/i.test(String(url||''));}
+function cartaoEmbarqueHtml(url,i){
+  const pdf=cartaoEhPdf(url);
+  return `<div class="vi-cartao" data-cartao="${esc(url)}" data-pdf="${pdf?1:0}" role="button" tabindex="0"
+    aria-label="Abrir cartão ${i+1}${pdf?' (PDF)':''}" onclick="abrirCartao(this)" onkeydown="if(event.key==='Enter')abrirCartao(this)"
+    style="position:relative;aspect-ratio:4/3;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);cursor:pointer;background:var(--cinza-100);display:flex;align-items:center;justify-content:center">
+    <span class="vi-cartao-ph" style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--cinza-600);text-align:center;padding:4px">
+      <svg class="vi-ic p"><use href="#vi-doc"/></svg>Cartão ${i+1}${pdf?' · PDF':''}</span>
+  </div>`;
+}
+async function carregarCartoes(root){
+  const els=(root||document).querySelectorAll('.vi-cartao[data-cartao]:not([data-ok])');
+  await Promise.all(Array.from(els).map(async el=>{
+    el.dataset.ok='1';
+    const assinada=await urlAssinada(el.dataset.cartao);
+    let src=assinada;
+    if(el.dataset.pdf==='1'){
+      src=window.ViagemBilhete?.miniatura?await ViagemBilhete.miniatura(assinada):null;
+      if(!src)return; // fica o cartão com ícone "PDF"
+    }
+    const img=new Image();img.alt='';img.loading='lazy';
+    img.style.cssText='width:100%;height:100%;object-fit:cover;position:absolute;inset:0';
+    img.onload=()=>{const ph=el.querySelector('.vi-cartao-ph');if(ph)ph.remove();};
+    img.onerror=()=>{img.remove();const ph=el.querySelector('.vi-cartao-ph');if(ph)ph.innerHTML='<svg class="vi-ic p"><use href="#vi-alerta"/></svg>Não carregou · toque para abrir';};
+    img.src=src;el.appendChild(img);
+  }));
+}
+async function abrirCartao(el){
+  const url=el.dataset.cartao;
+  if(el.dataset.pdf==='1'){abrirDoc(url);return;}
+  abrirLightbox(url);
+}
+
 function renderPrestacaoViajante(v){
   const temCartoes=v.cartoes_embarque_urls?.length>0;
   const temRelatorio=!!v.relatorio_url;
@@ -2848,13 +2883,7 @@ function renderPrestacaoViajante(v){
   if(temCartoes){
     h+=`<div style="font-size:11px;color:var(--cinza-600);margin-bottom:6px">Cartões de embarque (${v.cartoes_embarque_urls.length})</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px">
-      ${v.cartoes_embarque_urls.map((url,i)=>`
-        <div style="position:relative;aspect-ratio:4/3;border-radius:var(--raio);overflow:hidden;border:1px solid var(--borda);cursor:pointer"
-          onclick="abrirLightbox('${esc(url)}')">
-          <img src="${esc(url)}" alt="Cartão ${i+1}" loading="lazy"
-            style="width:100%;height:100%;object-fit:cover"
-            onerror="this.parentNode.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;font-size:20px;color:var(--cinza-400)\'></div>'">
-        </div>`).join('')}
+      ${v.cartoes_embarque_urls.map((url,i)=>cartaoEmbarqueHtml(url,i)).join('')}
     </div>`;
   }
   if(temRelatorio){
@@ -3826,10 +3855,14 @@ async function notificarUnescoConcluso(protId){
 // ══════════════════════════════════════════════════════════════
 // UTILITÁRIOS
 // ══════════════════════════════════════════════════════════════
-function abrirLightbox(url){
+async function abrirLightbox(url){
+  if(cartaoEhPdf(url)){abrirDoc(url);return;}
   const lb=document.getElementById('lightbox');
   const img=document.getElementById('lb-img');
-  if(lb)lb.classList.add('aberto');if(img)img.src=url;
+  if(img)img.src='';
+  if(lb)lb.classList.add('aberto');
+  const assinada=await urlAssinada(url);
+  if(img&&lb?.classList.contains('aberto'))img.src=assinada;
 }
 function fecharLightbox(){
   const lb=document.getElementById('lightbox');

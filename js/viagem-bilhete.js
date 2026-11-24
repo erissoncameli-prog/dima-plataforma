@@ -66,5 +66,20 @@
     const pa = norm(a).split(' ').filter(p => p.length > 2), pb = new Set(norm(b).split(' '))
     return pa.length > 0 && pa.filter(p => pb.has(p)).length >= Math.min(2, pa.length)
   }
-  window.ViagemBilhete = { ler, interpretar, mesmoNome }
+  // Miniatura da 1ª página de um PDF (URL já assinada) → dataURL JPEG; null se não der.
+  async function miniatura(url, largura = 320) {
+    try {
+      const lib = await carregar()
+      const doc = await lib.getDocument({ url }).promise
+      const pg = await doc.getPage(1)
+      const v0 = pg.getViewport({ scale: 1 })
+      const vp = pg.getViewport({ scale: largura / v0.width })
+      const cv = document.createElement('canvas')
+      cv.width = Math.round(vp.width); cv.height = Math.round(vp.height)
+      await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise
+      doc.destroy()
+      return cv.toDataURL('image/jpeg', 0.8)
+    } catch (e) { return null }
+  }
+  window.ViagemBilhete = { ler, interpretar, mesmoNome, miniatura }
 })()
