@@ -110,4 +110,67 @@ B.apa_demarcacoes = [{ id: id('c8'), nome: 'Município de Rio Branco', apa_key: 
   geojson: { type: 'FeatureCollection', features: rb }, feature_colors: {}, style_config: { fillOpacity: 0.04, strokeWidth: 3 } }]
 B.trilha_metadata = []; B.geometria_fotos = []
 
+// ── Repositório de Referências (matérias e veículos inventados) ─────────────
+const VEIC = ['Jornal da Floresta', 'Agência Amazônia Hoje', 'Rádio Rio Acre', 'Portal Verde Notícias']
+const MAT = [['Projeto leva assistência técnica a extrativistas de castanha', 'Bioeconomia'], ['APAs de Rio Branco ganham plano de manejo participativo', 'Governança'],
+  ['Armadilhas fotográficas registram onça-pintada em área protegida', 'Biodiversidade'], ['Agentes ambientais concluem formação nas comunidades', 'Capacitação'],
+  ['Mapa interativo reúne as entregas do projeto no território', 'Transparência'], ['Diagnóstico socioambiental ouve 200 famílias das APAs', 'Social']]
+B.repositorio_links = []
+MAT.forEach(([titulo, cat], i) => (i < 4 ? [0, 1] : [i % 4]).forEach(v => B.repositorio_links.push({ id: id('d1'), titulo, url: `https://exemplo.org/noticias/${i}-${v}`,
+  fonte: VEIC[(i + v) % 4], categoria: cat, idioma: 'pt', descricao: titulo + ' (matéria fictícia de demonstração).', imagem_url: null, ativo: true, inserido_em: ts(-60 + i * 9 + v), inserido_por: U.julia })))
+
+// ── Acervo Digital ─────────────────────────────────────────────────────────
+B.vw_acervo_obras = B.contratos_produtos.filter(p => ['pago', 'aprovado', 'em_analise'].includes(p.situacao)).slice(0, 14).map((p, i) => {
+  const c = B.contratos.find(x => x.id === p.contrato_id), a = A.find(x => x.id === c.atividade_id), f = B.fornecedores.find(x => x.id === c.fornecedor_id)
+  const r = B.resultados.find(x => x.id === a.resultado_id)
+  return { obra_id: p.id, produto_id: p.id, numero_produto: p.numero_produto, titulo: p.descricao.replace(/^Produto \d+ — /, ''), atividade_codigo: a.codigo, atividade_nome: a.nome_pt,
+    resultado_codigo: r.codigo, resultado_nome: r.nome_pt, fornecedor_nome: f.nome, contrato_numero: c.numero, contrato_objeto: c.objeto_pt,
+    situacao_acervo: p.situacao === 'em_analise' ? 'em_avaliacao' : 'aprovado', total_vigentes: 2, total_superadas: i % 4 === 0 ? 1 : 0, total_midias: 2,
+    entrega_ref_numero: 1, entrega_ref_data: dia(-120 + i * 6), dt_entrega: dia(-120 + i * 6), rotulos_vigentes: ['Relatório', 'Mapa'], rotulos_midia: ['Relatório', 'Mapa'],
+    tipos_midia: ['documento', 'imagem'], criado_em: ts(-120 + i * 6), capa_midia_id: null, capa_url: null }
+})
+B.vw_acervo_midias = B.vw_acervo_obras.flatMap((o, i) => [
+  { midia_id: 'm' + i + 'a', obra_id: o.obra_id, arquivo_nome: `relatorio-produto-${o.numero_produto}.pdf`, arquivo_url: '/x', rotulo: 'Relatório', midia_tipo: 'documento', extensao: 'pdf',
+    versao_status: 'vigente', arquivo_tamanho: 2400000, adicionado_em: o.criado_em, numero_entrega: 1, origem: 'entrega_documentos' },
+  { midia_id: 'm' + i + 'b', obra_id: o.obra_id, arquivo_nome: `mapa-tematico-${i}.png`, arquivo_url: '/x', rotulo: 'Mapa', midia_tipo: 'imagem', extensao: 'png',
+    versao_status: 'vigente', arquivo_tamanho: 900000, adicionado_em: o.criado_em, numero_entrega: 1, origem: 'entrega_documentos' }])
+B.vw_acervo_publicacoes = B.vw_acervo_obras.slice(0, 5).map((o, i) => ({ midia_id: 'm' + i + 'a', obra_id: o.obra_id, publico: true, valida: true }))
+B.acervo_capas = []
+
+// ── Pulso da Equipe ────────────────────────────────────────────────────────
+B.__rpc.fn_pulso_ciclos = [['Pulso de novembro', 18, 82, 74, 41, true], ['Pulso de outubro', 22, 78, 70, 33, false], ['Pulso de setembro', 16, 73, 68, 25, false]]
+  .map(([titulo, n, comp, sint, enps, aberto], i) => ({ id: id('d2'), titulo, n_respostas: n, aberto, meu: true, autor: 'Ana Ribeiro', criado_em: ts(-i * 30 - 3), fecha_em: ts(-i * 30 + 4),
+    n_perguntas: 7, n_exportacoes: i, n_cadastrados: n - 4, n_convidados: 4, aceita_convidados: true, limite_convidados: 20, indices: { comprometimento: comp, sintonia: sint, enps }, token: 'demo', ultima_resposta: dia(-i * 30) }))
+
+// ── Viagens (protocolos de demonstração) ───────────────────────────────────
+const VG = [['VGM-2026-034', 'solicitado', 'Cruzeiro do Sul/AC', 'Oficina com cooperativas de açaí', 6], ['VGM-2026-031', 'em_prestacao', 'Brasília/DF', 'Reunião técnica com a UNESCO', -10],
+  ['VGM-2026-028', 'aprovado', 'Xapuri/AC', 'Visita às áreas de manejo da castanha', 12], ['VGM-2026-022', 'realizado', 'Manaus/AM', 'Seminário regional de áreas protegidas', -40]]
+B.viagem_protocolos = VG.map(([numero, situacao, destino_principal, objetivo, d], i) => ({ id: id('d3'), numero, situacao, destino_principal, objetivo, dt_saida: dia(d), dt_retorno: dia(d + 3),
+  tdr_id: B.tdrs[17].id, atividade_id: A[11].id, criado_por: U.julia, criado_em: ts(d - 15), numero_sei: '0047.0123' + i, email_solicitante: 'julia@exemplo.org' }))
+B.viagem_viajantes = B.viagem_protocolos.flatMap((p, i) => [['Júlia Prado', 'Analista ambiental'], ['Igor Albuquerque', 'Técnico de campo']].slice(0, i % 2 + 1).map(([nome, cargo]) =>
+  ({ id: id('d4'), protocolo_id: p.id, nome, cargo, sit_passagem: p.situacao === 'solicitado' ? 'solicitado' : 'aprovado', sit_diaria: p.situacao === 'solicitado' ? 'solicitado' : 'aprovado', qtd_diarias: 3, valor_diaria: 380 })))
+B.viagem_trechos = []; B.viagem_diarias_v2 = []; B.viagem_notif_log = []; B.viagem_devolucoes = []
+B.__rpc.fn_viagem_fontes_permitidas = [{ tdr_id: B.tdrs[17].id, atividade_id: A[11].id }]
+B.__rpc.fn_viagem_pode_decidir = true
+
+// ── Usuários: módulos liberados (perfil = teto, liberação = chave) ─────────
+const MODS = { [U.carlos]: ['atividades', 'tdrs', 'contratos', 'remanejamentos', 'matriz', 'relatorios', 'auditoria'], [U.julia]: ['atividades', 'tdrs', 'viagens', 'mapa', 'diagnostico'],
+  [U.rafael]: ['financeiro', 'contratos', 'fornecedores', 'relatorios'], [U.bia]: ['atividades', 'produtos', 'mapa'], [U.igor]: ['patrimonio', 'viagens', 'diagnostico'] }
+B.usuario_permissoes = Object.entries(MODS).flatMap(([u, ms]) => ms.map(m => ({ usuario_id: u, modulo: m, ativo: true, valido_de: dia(-200), valido_ate: null, em_revisao: m === 'diagnostico' })))
+B.solicitacoes_senha = []; B.usuario_pedidos_acesso = [{ id: id('d5'), tipo: 'modulo', usuario_id: U.bia, modulo: 'acervo', justificativa: 'Consultar os produtos aprovados da atividade', origem: 'tela', criado_em: ts(-1) }]
+
+// ── Site público: números e galeria ────────────────────────────────────────
+B.__rpc.fn_publico_resumo_home = { atividades_ativas: 12, tdrs_aprovados: 13, tdrs_total: 19, produtos_entregues: 18, pontos_mapa: 46 }
+B.__rpc.fn_publico_galeria_produtos = B.vw_acervo_obras.slice(0, 6).map(o => ({ obra_id: o.obra_id, titulo: o.titulo, objeto: o.contrato_objeto, resultado_codigo: o.resultado_codigo,
+  atividade_codigo: o.atividade_codigo, numero_produto: o.numero_produto, autoria: o.fornecedor_nome, aprovado_em: o.entrega_ref_data, capa: null, rotulos: ['Relatório'], arquivos: [] }))
+
+// ── Entregas de produto (avaliação) ────────────────────────────────────────
+B.contratos_produtos_entregas = B.contratos_produtos.filter(p => ['em_analise', 'aprovado', 'pago'].includes(p.situacao)).map((p, i) => ({
+  id: id('d6'), produto_id: p.id, contrato_produto_id: p.id, numero_entrega: 1, situacao: p.situacao === 'em_analise' ? 'em_analise' : 'aprovada',
+  dt_entrega: dia(-[2, 30, 60][i % 3]), descricao: 'Entrega do ' + p.descricao.toLowerCase(), observacoes: 'Relatório e anexos conforme o plano de trabalho.',
+  criado_por: U.bia, criado_em: ts(-[2, 30, 60][i % 3]), pct_aprovado: p.situacao === 'em_analise' ? null : 100, arquivo_url: null, fotos_urls: [] }))
+B.entrega_documentos = B.contratos_produtos_entregas.map(e => ({ id: id('d7'), entrega_id: e.id, nome: 'relatorio-produto.pdf', rotulo: 'Relatório', url: '/x', criado_em: e.criado_em }))
+B.nota_tecnica_conferencias = []; B.produto_notif_log = []; B.produto_matriz_contribuicao = []
+Object.assign(B.__rpc, { fn_produto_permissoes: { registrar: true, avaliar: true, fornecedor: false }, fn_pode_avaliar_contrato: true })
+
 module.exports = D

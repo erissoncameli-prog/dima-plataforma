@@ -32,4 +32,19 @@ module.exports = [
   { nome: 'tarefas', url: '/pages/tarefas.html', css: CSS },
   { nome: 'diagnostico', url: '/pages/diagnostico.html', css: CSS },
   { nome: 'diag-app', url: '/pages/diagnostico-app.html', viewport: { width: 390, height: 844 }, escala: 3, celular: true, espera: 3500 },
+  // ── telas extras para a apresentação ──
+  { nome: 'repositorio', url: '/pages/repositorio.html', css: CSS },
+  { nome: 'usuarios', url: '/pages/usuarios.html', css: CSS },
+  { nome: 'ajuda', url: '/pages/ajuda.html', css: CSS },
+  { nome: 'acervo', url: '/pages/acervo.html', css: CSS, espera: 4000 },
+  { nome: 'viagens', url: '/pages/viagens.html', css: CSS },
+  { nome: 'fornecedores', url: '/pages/fornecedores.html', css: CSS },
+  { nome: 'pulso', url: '/pages/pulso.html', css: CSS },
+  { nome: 'site-home', url: '/site-publico/index.html', uid: null, espera: 4000, tema: 'claro' },
+  { nome: 'site-galeria', url: '/site-publico/produtos.html', uid: null, espera: 4000, tema: 'claro' },
+  { nome: 'contrato-detalhe', url: '/pages/contratos.html', css: CSS, espera: 3000,
+    prep: async (pg, D) => { await pg.evaluate(id => toggleDet(id), D.base.contratos[0].id); await pg.waitForTimeout(1200)
+      await pg.evaluate(id => document.getElementById('det-' + id).scrollIntoView({ block: 'center' }), D.base.contratos[0].id) } },
+  { nome: 'produto-avaliacao', url: '/pages/produtos.html', css: CSS, espera: 3000,
+    prep: async (pg, D) => { const p = D.base.contratos_produtos.find(x => x.situacao === 'em_analise'); await pg.evaluate(id => abrirModal(id), p.id); await pg.waitForTimeout(1500) } },
 ]

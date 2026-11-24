@@ -36,6 +36,9 @@ async function abrir(nav, tela) {
   const ctx = await nav.newContext({ viewport: tela.viewport || { width: 1600, height: 1000 }, deviceScaleFactor: tela.escala || 2,
     isMobile: !!tela.celular, hasTouch: !!tela.celular, locale: 'pt-BR', timezoneId: 'America/Rio_Branco' })
   const pg = await ctx.newPage()
+  // o site público traz o supabase-js na própria pasta (vendor): também vira o banco em memória
+  await pg.route(/site-publico\/vendor\/supabase-js[^/]*\/supabase\.js/, r => r.fulfill({ contentType: 'application/javascript',
+    body: `window.__DADOS=${JSON.stringify(banco)};window.__UID=null;\n` + STUB }))
   await pg.route(/^https:\/\/(cdn\.jsdelivr\.net|unpkg\.com|cdnjs\.cloudflare\.com)\//, r => {
     const u = r.request().url(), d = deCdn(u)
     if (d.stub) return r.fulfill({ contentType: 'application/javascript', body: `window.__DADOS=${JSON.stringify(banco)};window.__UID=${JSON.stringify(tela.uid === undefined ? D.U.ana : tela.uid)};\n` + STUB })

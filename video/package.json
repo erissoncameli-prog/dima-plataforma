@@ -15,7 +15,12 @@
     "gsap": "3.12.5",
     "leaflet": "1.9.4",
     "leaflet-minimap": "3.6.1",
-    "leaflet.markercluster": "1.5.3"
+    "leaflet.markercluster": "1.5.3",
+    "pptxgenjs": "^3.12.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.7.0",
+    "sharp": "^0.33.5"
   },
   "private": true
 }

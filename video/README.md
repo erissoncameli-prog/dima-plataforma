@@ -62,6 +62,23 @@ crie outro `roteiro-*.json` com ids de cenas existentes e mantenha no texto as p
 Mudou o texto? Edite `roteiro.json` e rode do passo 2 em diante: a animação, a legenda e os efeitos seguem os tempos da
 nova locução (`build/linha.json`). Cada cena começa num tempo do compasso (120 BPM), então os cortes caem na batida.
 
+## Apresentação em PowerPoint
+
+34 slides no visual do vídeo (fundo escuro, verde da marca), com todos os módulos, aprofundando aprovação de produtos,
+gestão de contratos, site público, Repositório, níveis de acesso e ajuda. Telas reais com dados fictícios; notas do
+apresentador com a narração do vídeo. Transição Morph (PowerPoint 2019/365; esmaecer nas versões antigas), "empurrar" nas
+divisórias de seção e animações de entrada automáticas em cada objeto.
+
+```bash
+node captura/capturar.js                        # telas (inclui as extras da apresentação)
+.venv/bin/python apresentacao/imagens.py         # molduras, celular, placa com QR, fundos → build/ppt/img/
+node apresentacao/capa.js                        # capa: a "parede de telas" do vídeo, sem textos
+NODE_PATH=node_modules node apresentacao/montar.js            # → build/ppt/plataforma-gestao-projetos-base.pptx
+python3 apresentacao/animar.py build/ppt/plataforma-gestao-projetos-base.pptx saida/plataforma-gestao-projetos-apresentacao.pptx
+```
+
+Nome de objeto `A<ordem><efeito><atraso>_…` (efeito F, S, Z ou L) define como e quando cada objeto entra (ver `animar.py`).
+
 ## Peças
 
 | Arquivo | O que faz |
