@@ -1,0 +1,151 @@
+:root {
+  --bg: #050d09; --verde: #1F4E2C; --menta: #5CE0A0; --lima: #C6F36B; --ouro: #F2C94C; --azul: #6FB7FF;
+  --tx: #EAF5EE; --tx2: #9FB8A8; --vidro: rgba(16, 34, 24, .62); --borda: rgba(198, 243, 107, .22);
+}
+* { box-sizing: border-box; margin: 0; padding: 0 }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg) }
+body { font-family: Inter, sans-serif; color: var(--tx); -webkit-font-smoothing: antialiased }
+#palco { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg) }
+
+/* fundo vivo */
+#fundo { position: absolute; inset: 0 }
+.blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55 }
+.b1 { width: 900px; height: 900px; background: radial-gradient(circle, #1d6b40 0%, transparent 65%) }
+.b2 { width: 800px; height: 800px; background: radial-gradient(circle, #0f4d5c 0%, transparent 65%) }
+.b3 { width: 700px; height: 700px; background: radial-gradient(circle, #5a6b14 0%, transparent 65%); opacity: .35 }
+#grade { position: absolute; inset: -200px; opacity: .10;
+  background-image: linear-gradient(rgba(198,243,107,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(198,243,107,.5) 1px, transparent 1px);
+  background-size: 80px 80px; transform: perspective(900px) rotateX(58deg) translateY(260px); transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, #000 10%, transparent 70%); mask-image: linear-gradient(to top, #000 10%, transparent 70%) }
+#part { position: absolute; inset: 0 }
+#vinheta { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.62) 100%) }
+#grao { position: absolute; inset: -50px; pointer-events: none; opacity: .06; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>") }
+#flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; mix-blend-mode: screen }
+#varredura { position: absolute; top: -20%; height: 140%; width: 260px; left: -400px; opacity: 0; pointer-events: none; transform: skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(198,243,107,.18), rgba(255,255,255,.55), rgba(92,224,160,.2), transparent); filter: blur(6px) }
+
+/* cenas */
+.cena { position: absolute; inset: 0; opacity: 0; perspective: 2200px }
+.cena .esq { position: absolute; left: 96px; top: 0; bottom: 0; width: 560px; display: flex; flex-direction: column; justify-content: center; gap: 26px; z-index: 5 }
+.kicker { font: 600 18px/1 'Space Grotesk'; letter-spacing: .28em; text-transform: uppercase; color: var(--lima); display: flex; align-items: center; gap: 14px }
+.kicker b { font-weight: 700; color: var(--tx); opacity: .55 }
+.kicker i { display: block; height: 2px; width: 56px; background: linear-gradient(90deg, var(--lima), transparent) }
+.titulo { font: 700 66px/1.02 'Space Grotesk'; letter-spacing: -.02em }
+.titulo em { font-style: normal; background: linear-gradient(90deg, var(--lima), var(--menta)); -webkit-background-clip: text; background-clip: text; color: transparent }
+.chips { display: flex; flex-direction: column; gap: 14px; align-items: flex-start }
+.chip { display: inline-flex; align-items: center; gap: 14px; padding: 14px 22px 14px 16px; border-radius: 999px; background: var(--vidro);
+  border: 1px solid var(--borda); backdrop-filter: blur(12px); font: 600 22px/1 Inter; box-shadow: 0 10px 30px rgba(0,0,0,.35) }
+.chip .ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(198,243,107,.16); color: var(--lima) }
+.chip .ic svg { width: 19px; height: 19px }
+
+/* tela da plataforma em perspectiva */
+.dev { position: absolute; border-radius: 18px; overflow: hidden; background: #0b1510; transform-style: preserve-3d;
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 60px 140px rgba(0,0,0,.65), 0 0 0 1px rgba(198,243,107,.06), 0 0 80px rgba(92,224,160,.16) }
+.dev-bar { height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: linear-gradient(#17241c, #111c16); border-bottom: 1px solid rgba(255,255,255,.07) }
+.dev-bar i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57 } .dev-bar i:nth-child(2) { background: #febc2e } .dev-bar i:nth-child(3) { background: #28c840 }
+.dev-bar span { margin-left: 18px; flex: 1; max-width: 520px; height: 20px; border-radius: 6px; background: rgba(255,255,255,.06); font: 500 12px/20px Inter; color: var(--tx2); padding: 0 12px; white-space: nowrap; overflow: hidden }
+.dev-tela { position: relative; overflow: hidden }
+.zoom { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0 }
+.zoom img { display: block; width: 100%; height: 100% }
+.dev .brilho { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(115deg, rgba(255,255,255,.10), transparent 38%) }
+.hl { position: absolute; border-radius: 14px; border: 3px solid var(--lima); box-shadow: 0 0 0 9999px rgba(3,10,6,.38), 0 0 30px rgba(198,243,107,.55), inset 0 0 24px rgba(198,243,107,.25); opacity: 0 }
+.pulso { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; border: 3px solid var(--lima); opacity: 0 }
+
+/* gancho */
+.gancho { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px }
+.gancho .frase { font: 700 118px/1.05 'Space Grotesk'; letter-spacing: -.03em; opacity: 0; white-space: nowrap }
+.gancho .frase em { font-style: normal; background: linear-gradient(90deg, var(--lima), var(--menta) 60%, #7fe7ff); -webkit-background-clip: text; background-clip: text; color: transparent }
+
+/* marca */
+.parede { position: absolute; left: 50%; top: 50%; width: 3400px; height: 2300px; margin: -1150px 0 0 -1700px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 46px;
+  transform: rotateX(52deg) rotateZ(-24deg); opacity: 0 }
+.parede img { width: 100%; border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.1) }
+.parede-veu { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(5,13,9,.55) 0%, rgba(5,13,9,.92) 70%) }
+.marca-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 30px }
+.marca-centro img { height: 190px; filter: drop-shadow(0 10px 40px rgba(0,0,0,.6)) }
+.marca-nome { font: 700 84px/1.02 'Space Grotesk'; letter-spacing: -.025em; max-width: 1500px }
+.marca-nome span { display: inline-block; opacity: 0 }
+.marca-sub { font: 500 24px/1.4 Inter; color: var(--tx2); letter-spacing: .08em; text-transform: uppercase; opacity: 0 }
+.marca-sub b { color: var(--lima); font-weight: 600 }
+
+/* fases do TDR */
+.fases { display: flex; align-items: center; gap: 10px }
+.fase { padding: 10px 16px; border-radius: 10px; background: var(--vidro); border: 1px solid var(--borda); font: 600 18px/1 Inter; opacity: .35 }
+.fase.ok { opacity: 1 }
+.seta { color: var(--lima); font: 700 20px Inter; opacity: .6 }
+
+/* ODS */
+.ods { display: flex; gap: 12px; flex-wrap: wrap; max-width: 560px }
+.ods div { width: 76px; height: 76px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; padding: 8px 9px; font: 700 30px/1 'Space Grotesk'; color: #fff; opacity: 0; box-shadow: 0 10px 24px rgba(0,0,0,.35) }
+.ods div small { font: 700 9px/1.1 Inter; text-transform: uppercase; letter-spacing: .02em; opacity: .92 }
+
+/* hash */
+.hash { font: 500 17px/1.4 'JetBrains Mono'; color: var(--lima); padding: 14px 18px; border-radius: 12px; background: rgba(0,0,0,.45); border: 1px solid var(--borda); white-space: nowrap; overflow: hidden; width: 540px }
+
+/* celular */
+.celular { position: absolute; width: 360px; height: 760px; border-radius: 56px; padding: 12px; background: linear-gradient(145deg, #2b3a31, #0e1612);
+  box-shadow: 0 60px 140px rgba(0,0,0,.7), inset 0 0 0 2px rgba(255,255,255,.12), 0 0 90px rgba(92,224,160,.18) }
+.celular .tela-cel { width: 100%; height: 100%; border-radius: 45px; overflow: hidden; position: relative; background: #1b4429; padding-top: 44px }
+.celular .tela-cel img { width: 100%; height: 100%; object-fit: cover; object-position: top }
+.celular .ilha { position: absolute; top: 20px; left: 50%; width: 96px; height: 26px; margin-left: -48px; border-radius: 20px; background: #000; z-index: 3 }
+.feats { position: absolute; display: flex; flex-direction: column; gap: 22px }
+.feat { display: flex; align-items: center; gap: 22px; opacity: 0 }
+.feat .ic { width: 74px; height: 74px; border-radius: 22px; display: grid; place-items: center; background: linear-gradient(145deg, rgba(198,243,107,.22), rgba(92,224,160,.08)); border: 1px solid var(--borda); color: var(--lima) }
+.feat .ic svg { width: 36px; height: 36px }
+.feat b { font: 700 36px/1.1 'Space Grotesk'; display: block }
+.feat span { font: 500 20px/1.3 Inter; color: var(--tx2) }
+
+/* placa de patrimônio */
+.placa { position: absolute; width: 330px; height: 440px; border-radius: 16px; background: #fff; color: #10251a; padding: 22px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+  box-shadow: 0 50px 110px rgba(0,0,0,.6); opacity: 0 }
+.placa .top { font: 700 13px/1.2 Inter; letter-spacing: .12em; text-transform: uppercase; color: #1F4E2C }
+.placa .qr { width: 230px; height: 230px } .placa .qr img, .placa .qr svg { width: 100%; height: 100% }
+.placa .num { font: 700 36px/1 'Space Grotesk'; letter-spacing: .02em }
+.placa .rod { font: 600 13px/1.3 Inter; color: #3a5a47; text-align: center }
+
+/* auditoria */
+.scan { position: absolute; left: 0; right: 0; height: 160px; top: -160px; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(198,243,107,.10) 70%, rgba(198,243,107,.75) 98%, transparent) }
+.sev { display: flex; gap: 12px }
+.sev div { padding: 12px 18px; border-radius: 12px; font: 700 20px/1 Inter; opacity: 0; display: flex; gap: 10px; align-items: baseline }
+.sev div b { font: 700 34px/1 'Space Grotesk' }
+.s-c { background: rgba(255, 92, 92, .16); border: 1px solid rgba(255,92,92,.5); color: #ff8a8a }
+.s-a { background: rgba(255, 160, 70, .14); border: 1px solid rgba(255,160,70,.5); color: #ffb36b }
+.s-m { background: rgba(242, 201, 76, .12); border: 1px solid rgba(242,201,76,.45); color: var(--ouro) }
+
+/* relatórios */
+.folha { position: absolute; width: 420px; height: 594px; border-radius: 6px; background: #fff; box-shadow: 0 40px 90px rgba(0,0,0,.55); overflow: hidden; opacity: 0 }
+.folha div { position: absolute; inset: 0; background-repeat: no-repeat }
+.fmt { display: flex; gap: 14px }
+.fmt div { width: 108px; height: 124px; border-radius: 16px; display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; font: 700 26px/1 'Space Grotesk'; color: #fff; opacity: 0; box-shadow: 0 18px 40px rgba(0,0,0,.4) }
+.fmt div small { font: 600 13px/1.2 Inter; opacity: .85; margin-top: 6px }
+.f-pdf { background: linear-gradient(150deg, #e2504a, #a3201c) } .f-xls { background: linear-gradient(150deg, #2fa866, #146b3a) } .f-ppt { background: linear-gradient(150deg, #f08a3c, #b5501a) }
+
+/* segurança */
+.escudo { position: absolute; left: 50%; top: 46%; width: 300px; height: 340px; margin: -170px 0 0 -150px; opacity: 0 }
+.anel { position: absolute; left: 50%; top: 46%; border-radius: 50%; border: 2px solid rgba(198,243,107,.35); opacity: 0 }
+.seg-itens { position: absolute; inset: 0 }
+.seg-item { position: absolute; display: flex; align-items: center; gap: 14px; padding: 16px 24px; border-radius: 16px; background: var(--vidro); border: 1px solid var(--borda); font: 600 26px/1 Inter; opacity: 0; white-space: nowrap }
+.seg-item .ic { color: var(--lima); display: grid } .seg-item .ic svg { width: 28px; height: 28px }
+
+/* fecho */
+.fecho-tag { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center }
+.fecho-tag .l { font: 700 104px/1.06 'Space Grotesk'; letter-spacing: -.03em; opacity: 0 }
+.fecho-tag .l em { font-style: normal; background: linear-gradient(90deg, var(--lima), var(--menta) 60%, #7fe7ff); -webkit-background-clip: text; background-clip: text; color: transparent }
+.fecho-fim { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; opacity: 0 }
+.fecho-fim .topo { display: flex; align-items: center; gap: 56px }
+.fecho-fim .topo img { height: 110px } .fecho-fim .topo img.res { height: 170px }
+.fecho-fim .nome { font: 700 64px/1.1 'Space Grotesk'; letter-spacing: -.02em; text-align: center }
+.faixa-parc { display: flex; align-items: center; gap: 54px; padding: 22px 48px; border-radius: 20px; background: #fff; box-shadow: 0 30px 80px rgba(0,0,0,.45) }
+.faixa-parc img { height: 68px } .faixa-parc img.g { height: 88px }
+.credito { font: 500 25px/1.5 Inter; color: var(--tx2); text-align: center }
+.credito b { color: var(--tx); font-weight: 600 }
+.credito .p { font-size: 17px; letter-spacing: .08em; text-transform: uppercase; color: var(--lima) }
+.demo { position: absolute; right: 28px; bottom: 18px; font: 500 13px/1 Inter; color: rgba(234,245,238,.38); letter-spacing: .04em }
+
+/* legenda karaokê */
+#legenda { position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%); max-width: 1500px; text-align: center; font: 600 34px/1.35 Inter; letter-spacing: -.005em;
+  text-shadow: 0 2px 18px rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.8); padding: 10px 26px; border-radius: 14px; z-index: 20 }
+#legenda .w { opacity: .38; transition: none } #legenda .w.dito { opacity: 1 } #legenda .w.agora { color: var(--lima); opacity: 1 }

@@ -1,0 +1,21 @@
+{
+  "titulo": "Plataforma Inteligente de Gestão de Projetos — vídeo publicitário",
+  "vozes": { "alex": "pm_alex", "dora": "pf_dora" },
+  "cenas": [
+    { "id": "gancho",     "voz": "alex", "texto": "Cada real investido. Cada entrega. Cada resultado." },
+    { "id": "marca",      "voz": "dora", "texto": "Conheça a Plataforma Inteligente de Gestão de Projetos. Tudo o que o projeto faz, em um só lugar." },
+    { "id": "visao",      "voz": "dora", "texto": "Na Visão Geral, o orçamento ganha vida: o que foi pago, o que está comprometido e o que ainda está livre." },
+    { "id": "tarefas",    "voz": "dora", "texto": "Cada pessoa começa o dia sabendo o que fazer: avaliações pendentes, prazos e editais publicados." },
+    { "id": "tdrs",       "voz": "dora", "texto": "Do termo de referência à contratação, cada fase é acompanhada, com licitação em rodadas e prazos sob controle." },
+    { "id": "contratos",  "voz": "dora", "texto": "Contratos, produtos e pagamentos conversam entre si. Nenhum valor muda de lugar sem deixar rastro." },
+    { "id": "remanej",    "voz": "dora", "texto": "Para remanejar recursos, uma cadeia de assinaturas confirmadas com senha, e cada documento com sua impressão digital." },
+    { "id": "matriz",     "voz": "dora", "texto": "A Matriz de Resultados liga cada entrega aos Objetivos de Desenvolvimento Sustentável." },
+    { "id": "mapa",       "voz": "dora", "texto": "E o Mapa Interativo mostra, no território, onde o projeto acontece." },
+    { "id": "campo",      "voz": "dora", "texto": "No campo, o aplicativo do Diagnóstico Socioambiental funciona sem internet, com fotos georreferenciadas e privacidade desde a coleta." },
+    { "id": "patrimonio", "voz": "dora", "texto": "Cada bem tem ficha, placa com código QR, termo de responsabilidade e inventário digital." },
+    { "id": "auditoria",  "voz": "dora", "texto": "A Auditoria com inteligência artificial vigia o projeto inteiro e aponta riscos antes que virem problema." },
+    { "id": "relatorios", "voz": "dora", "texto": "E os relatórios oficiais saem prontos, em PDF, planilha ou apresentação." },
+    { "id": "seguranca",  "voz": "alex", "texto": "Tudo com segurança de ponta a ponta e respeito à Lei Geral de Proteção de Dados." },
+    { "id": "fecho",      "voz": "alex", "texto": "Transparência que se vê. Resultados que ficam." }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "video-publicitario",
+  "version": "1.0.0",
+  "description": "Vídeo publicitário da Plataforma Inteligente de Gestão de Projetos (ferramentas de produção)",
+  "scripts": {
+    "captura": "node captura/capturar.js",
+    "previa": "node render.js previa",
+    "video": "node render.js video"
+  },
+  "author": "Erisson Cameli Santiago",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@turf/turf": "6.5.0",
+    "chart.js": "4.4.1",
+    "gsap": "3.12.5",
+    "leaflet": "1.9.4",
+    "leaflet-minimap": "3.6.1",
+    "leaflet.markercluster": "1.5.3"
+  },
+  "private": true
+}
