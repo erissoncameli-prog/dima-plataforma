@@ -596,7 +596,7 @@ const AJUDA = {
         { titulo: 'Criação de Protocolo', itens: [
           'Informe o objetivo da viagem (campo obrigatório).',
           'Destino principal: cidade ou local de destino.',
-          'Data de saída e data de retorno.',
+          'Data de saída e data de retorno. A saída tem de ser pelo menos 5 dias depois da data do protocolo; o sistema não aceita data anterior.',
           'Vincule a uma atividade do projeto para rastreabilidade.',
         ]},
         { titulo: 'Situações da Viagem', itens: [

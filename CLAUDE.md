@@ -1155,6 +1155,9 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   (terminal; só pela função, `dima.viagem='devolucao'`); com devolução pendente o protocolo não vira `realizado`. Tela: quadro por
   viajante no detalhe (`renderDevolucoesViajante`), janelas `#modal-desfecho`, `#modal-dev-informar`, `#modal-dev-confirmar`,
   `#modal-dev-cancelar`; com devolução registrada não há Cancelar/Excluir do protocolo (cancelar marcaria pagos como cancelados).
+- **Antecedência** (migração `20261124_viagem_antecedencia`, `trg_viagem_antecedencia`): em rascunho/solicitado, `dt_saida` ≥ data do
+  protocolo (`criado_em`, hora do Acre) + 5 dias (`VIAGEM_ANTECEDENCIA`), retorno ≥ saída e enviar exige a saída; conferido ao criar, ao
+  mudar as datas e ao enviar (protocolos antigos não são revistos). Tela: `viSaidaMinima`/`viErroDatas` (mesma conta) e `min` no calendário.
 - **Fonte da viagem por linha** (migração `20261120_viagem_fonte`): cada atividade reserva o valor de viagens num TDR
   `execucao_direta` (só super_admin cria/marca e ele **já nasce `aprovado`**, sem o fluxo de revisão — `trg_tdr_guarda_direta` +
   registro em `tdr_acoes` por `trg_tdr_direta_registro`, migração `20261121_tdr_reserva_viagem_direta`; checkbox "Reserva para

@@ -1522,12 +1522,13 @@ function buildFormProtocolo(){
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label class="form-label">Data de saída</label>
-          <input class="form-control" id="f-saida" type="date" onchange="propagarDatasViajantes()">
+          <label class="form-label">Data de saída <span class="obrig">*</span></label>
+          <input class="form-control" id="f-saida" type="date" min="${viSaidaMinima()}" onchange="propagarDatasViajantes()">
+          <div style="font-size:11px;color:var(--cinza-500);margin-top:3px">Pelo menos 5 dias depois da data do protocolo: a partir de ${fmtData(viSaidaMinima())}.</div>
         </div>
         <div class="form-group">
           <label class="form-label">Data de retorno</label>
-          <input class="form-control" id="f-retorno" type="date" onchange="propagarDatasViajantes()">
+          <input class="form-control" id="f-retorno" type="date" min="${viSaidaMinima()}" onchange="propagarDatasViajantes()">
         </div>
       </div>
       <div class="form-group">
@@ -1857,10 +1858,28 @@ function calcTotalForm(){
 // ══════════════════════════════════════════════════════════════
 // SALVAR PROTOCOLO
 // ══════════════════════════════════════════════════════════════
+// Antecedência: a saída é pelo menos 5 dias depois da data do protocolo (criado_em, hora do Acre).
+// A mesma regra está no banco (trg_viagem_antecedencia); aqui só avisa antes.
+function viSaidaMinima(){
+  const base=(editandoProtocoloId&&protAtual?.criado_em)?new Date(protAtual.criado_em):new Date();
+  const acre=new Date(base.getTime()-5*3600*1000); // UTC-5 fixo
+  acre.setUTCDate(acre.getUTCDate()+5);
+  return acre.toISOString().slice(0,10);
+}
+function viErroDatas(saida,retorno,enviar){
+  if(enviar&&!saida)return 'Informe a data de saída antes de enviar para aprovação.';
+  const min=viSaidaMinima();
+  if(saida&&saida<min)return `A data de saída tem de ser pelo menos 5 dias depois da data do protocolo. A primeira data possível é ${fmtData(min)}.`;
+  if(saida&&retorno&&retorno<saida)return 'A data de retorno não pode ser anterior à data de saída.';
+  return null;
+}
+
 async function salvarProtocolo(situacaoAlvo='solicitado'){
   const objetivo=document.getElementById('f-objetivo')?.value.trim();
   const destino=document.getElementById('f-destino')?.value.trim();
   if(!objetivo||!destino){toast('Preencha objetivo e destino.','error');return;}
+  const erroDatas=viErroDatas(document.getElementById('f-saida')?.value||'',document.getElementById('f-retorno')?.value||'',situacaoAlvo==='solicitado');
+  if(erroDatas){toast(erroDatas,'error');document.getElementById('f-saida')?.focus();return;}
 
   // Coletar viajantes do DOM
   const viajBlocos=document.querySelectorAll('[id^="viajante-block-"]');
@@ -1942,7 +1961,7 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
       situacao:situacaoAlvo,
     };
     const{error:pErr}=await db.from('viagem_protocolos').update(camposUpdate).eq('id',editandoProtocoloId);
-    if(pErr){toast('Erro ao atualizar protocolo: '+pErr.message,'error');return;}
+    if(pErr){toast(viMsgDatas(pErr.message)||('Erro ao atualizar protocolo: '+pErr.message),'error');return;}
     protId=editandoProtocoloId;
     protNumero=protAtual?.numero||'';
     // Apagar sub-registros para re-inserir limpo
@@ -1971,7 +1990,7 @@ async function salvarProtocolo(situacaoAlvo='solicitado'){
       criado_por:appState.usuario.id,
       situacao:situacaoAlvo,
     }).select().single();
-    if(pErr){toast('Erro ao criar protocolo: '+pErr.message,'error');return;}
+    if(pErr){toast(viMsgDatas(pErr.message)||('Erro ao criar protocolo: '+pErr.message),'error');return;}
     protId=prot.id;
     protNumero=prot.numero;
   }
@@ -3544,9 +3563,14 @@ async function enviarPrestacao(){
   toast('Prestação enviada!','success');fecharModal();await carregar();
 }
 
+// Mensagem das travas de data do banco (VIAGEM_ANTECEDENCIA / _SEM_DATA / _RETORNO_ANTES), sem o código
+function viMsgDatas(m){
+  const r=/VIAGEM_(ANTECEDENCIA|SEM_DATA|RETORNO_ANTES):\s*(.*)/.exec(m||'');
+  return r?r[2]:null;
+}
 async function enviarParaAprovacao(id){
   const{error}=await db.from('viagem_protocolos').update({situacao:'solicitado'}).eq('id',id);
-  if(error){toast('Erro: '+error.message,'error');return;}
+  if(error){toast(viMsgDatas(error.message)||('Erro: '+error.message),'error');return;}
   toast('Protocolo enviado para aprovação!','success');
   await enviarEmailAuto(id,'solicitado');
   fecharModal();await carregar();
