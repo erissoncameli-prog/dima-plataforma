@@ -164,9 +164,10 @@
 }
 
 /* ── Páginas montadas por FolhaA4.paginar (cabeçalho, rodapé e "Página X de Y" em cada uma) ──
-   Altura 1 mm menor que o papel: arredondamento do navegador não cria página em branco. */
-.doc-wrap.fa4-pag { height: 296mm; display: flex; flex-direction: column; overflow: hidden; margin: 0 auto 8mm; }
-.doc-wrap.fa4-pag.doc-paisagem { height: 209mm; }
+   Altura 7 mm menor que o papel: o Chrome/Safari do iPhone arredonda para cima e 1 mm de folga
+   não bastava (cada página transbordava e saía uma página em branco depois dela). */
+.doc-wrap.fa4-pag { height: 290mm; display: flex; flex-direction: column; overflow: hidden; margin: 0 auto 8mm; }
+.doc-wrap.fa4-pag.doc-paisagem { height: 203mm; }
 .fa4-pag > .doc-header, .fa4-pag > .doc-intro, .fa4-pag > .doc-footer { flex: none; position: relative; z-index: 1; }
 .fa4-pag > .fa4-corpo { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flow-root; }
 .fa4-pag > .doc-footer { margin-top: 8px; }
@@ -174,6 +175,7 @@
 .fa4-fonte { position: absolute; left: -10000px; top: 0; visibility: hidden; }
 .fa4-sem-paginas .fa4-fonte { position: static; visibility: visible; }
 @media print {
+  html, body, #print-area { margin: 0 !important; padding: 0 !important; }
   .doc-wrap.fa4-pag { width: 210mm !important; padding: 10mm !important; margin: 0 !important; box-shadow: none; border-radius: 0;
     break-after: page; page-break-after: always; }
   .doc-wrap.fa4-pag.doc-paisagem { width: 297mm !important; }
