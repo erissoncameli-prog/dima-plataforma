@@ -4250,17 +4250,20 @@ async function relVi4(){
     const solicitante = p.email_solicitante||nomeUsuario(p.criado_por);
     etapas.push({icone:'✓',cor:'#2563EB',label:'Solicitado',data:p.criado_em,desc:`Por: ${solicitante}`,ok:true});
 
+    // devolvido e depois aprovado: mostra as duas etapas e segue o fluxo (antes parava em "Rejeitado")
+    const reaprovado = p.rejeitado_em && p.aprovado_em && new Date(p.aprovado_em) > new Date(p.rejeitado_em)
     if(p.rejeitado_em){
-      etapas.push({icone:'✕',cor:'#DC2626',label:'Rejeitado / Devolvido',data:p.rejeitado_em,
-        desc:p.rejeitado_motivo?`Motivo: ${p.rejeitado_motivo.substring(0,80)}`:'',ok:true});
-    } else if(p.aprovado_em){
+      etapas.push({icone:'✕',cor:'#DC2626',label:reaprovado?'Devolvido para correção':'Rejeitado / Devolvido',data:p.rejeitado_em,
+        desc:p.rejeitado_motivo?`Motivo: ${p.rejeitado_motivo}`:'',ok:true});
+    }
+    if(p.aprovado_em && (!p.rejeitado_em || reaprovado)){
       etapas.push({icone:'✓',cor:'#059669',label:'Aprovado',data:p.aprovado_em,
         desc:`Por: ${nomeUsuario(p.aprovado_por)}`,ok:true});
-    } else {
+    } else if(!p.rejeitado_em){
       etapas.push({icone:'·',cor:'#9CA3AF',label:'Aguardando aprovação',data:null,desc:'',ok:false});
     }
 
-    if(!p.rejeitado_em && p.aprovado_em){
+    if(p.aprovado_em && (!p.rejeitado_em || reaprovado)){
       const viagemOcorreu = p.dt_retorno && new Date(p.dt_retorno) < new Date();
       if(viagemOcorreu || p.situacao==='em_prestacao' || p.situacao==='realizado'){
         etapas.push({icone:'✓',cor:'#7C3AED',label:'Viagem realizada',data:p.dt_retorno,desc:'',ok:true});
@@ -4356,21 +4359,21 @@ async function relVi4(){
     }
 
     return `
-    <div style="border:2px solid var(--borda);border-radius:8px;margin-bottom:28px;overflow:hidden;page-break-inside:avoid">
-      <!-- Cabeçalho -->
-      <div style="background:var(--verde-bg);border-bottom:2px solid var(--borda-verde);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="vi4-prot" style="margin-bottom:18px">
+      <!-- Cabeçalho (h3: a paginação leva o título junto com o bloco seguinte) -->
+      <h3 style="margin:0;background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:6px 6px 0 0;padding:8px 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-weight:400">
         <span style="font-family:var(--font-mono);font-size:13px;font-weight:700;background:var(--verde-escuro);color:#fff;padding:3px 10px;border-radius:4px">${esc(p.numero||'—')}</span>
         <span style="font-size:13px;font-weight:600;color:var(--cinza-900);flex:1;min-width:0">${esc(p.destino_principal||'—')}</span>
         <span class="rep-badge ${SIT_BADGE2[p.situacao]||'rb-cinza'}">${SIT_LABELS2[p.situacao]||p.situacao}</span>
-      </div>
+      </h3>
 
       <!-- Grid principal: dados+timeline | financeiro+prestação -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--borda)">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--borda);border-top:0;break-inside:avoid;page-break-inside:avoid">
 
         <!-- Esquerda: dados + timeline -->
-        <div style="padding:16px;border-right:1px solid var(--borda)">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Dados do Protocolo</div>
-          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:16px">
+        <div style="padding:10px 12px;border-right:1px solid var(--borda)">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:6px">Dados do Protocolo</div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
             ${[
               ['Número SEI', p.numero_sei||'—'],
               ['Destino',    p.destino_principal||'—'],
@@ -4389,20 +4392,20 @@ async function relVi4(){
         </div>
 
         <!-- Direita: financeiro + prestação -->
-        <div style="padding:16px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Resumo Financeiro</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">
-            <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;text-align:center">
-              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:4px">Passagens</div>
-              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cinza-900)">${fmtBRL(totalPass)}</div>
+        <div style="padding:10px 12px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:6px">Resumo Financeiro</div>
+          <div style="display:grid;grid-template-columns:1fr;gap:4px;margin-bottom:12px">
+            <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:5px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Passagens</div>
+              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;white-space:nowrap;color:var(--cinza-900)">${fmtBRL(totalPass)}</div>
             </div>
-            <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px;text-align:center">
-              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:4px">Diárias</div>
-              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--cinza-900)">${fmtBRL(totalDiar)}</div>
+            <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:5px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Diárias</div>
+              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;white-space:nowrap;color:var(--cinza-900)">${fmtBRL(totalDiar)}</div>
             </div>
-            <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:10px;text-align:center">
-              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase;margin-bottom:4px">Total</div>
-              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--verde-medio)">${fmtBRL(totalGeral)}</div>
+            <div style="background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:5px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <div style="font-size:9px;color:var(--cinza-500);text-transform:uppercase">Total</div>
+              <div style="font-family:var(--font-mono);font-size:12px;font-weight:700;white-space:nowrap;color:var(--verde-medio)">${fmtBRL(totalGeral)}</div>
             </div>
           </div>
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Prestação de Contas</div>
@@ -4410,8 +4413,8 @@ async function relVi4(){
         </div>
       </div>
 
-      <!-- Viajantes / Trechos / Diárias -->
-      <div style="padding:16px">
+      <!-- Viajantes / Trechos / Diárias (tabela divide por viajante entre páginas) -->
+      <div style="padding:10px 0 0">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--cinza-500);margin-bottom:8px">Viajantes · Trechos · Diárias</div>
         <table class="rep-tbl">
           <thead><tr>
