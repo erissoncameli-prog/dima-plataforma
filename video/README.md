@@ -42,6 +42,19 @@ node render.js video vertical corte30                         # → saida/plataf
 .venv/bin/python audio/legendas.py build/corte30 -30s          # → saida/legendas-30s.srt
 ```
 
+### Corte de 30 segundos no estilo "trailer ao pôr do sol" (trend das redes)
+
+Montagem por batida (100 BPM): pôr do sol amazônico com buritis e açaís + frase de abertura → painéis em quadrinho das
+telas → quatro cartões de apresentação (Visão Geral, Remanejamento, Mapa, Auditoria IA) → fecho com a marca, a frase, as
+logos e o crédito. Trilha synthwave original (`audio/trilha_trend.py`), cenas em `cenas/trend.html`/`trend.js`/`trend.css`,
+fontes livres (Anton, Yellowtail). Usa as falas do Alex já geradas para o corte de 30 s. Inspirado na estética da trend,
+sem nada do jogo que a originou (nome, logotipo, fonte, música, personagens ou cenários).
+
+```bash
+.venv/bin/python audio/trilha_trend.py        # → build/trend/linha.json e mix.wav (precisa de build/corte30/)
+node render.js video trend                     # → saida/plataforma-gestao-projetos-30s-trailer-vertical.mp4
+```
+
 Uma cena só aparece se estiver no roteiro; a numeração dos módulos (01, 02…) segue a ordem da montagem. Para outro corte,
 crie outro `roteiro-*.json` com ids de cenas existentes e mantenha no texto as palavras que a animação usa para sincronizar
 (ex.: "pago", "comprometido", "livre" na Visão Geral; "cadeia", "senha", "impressão" no Remanejamento).

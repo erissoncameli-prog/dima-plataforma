@@ -1,0 +1,84 @@
+/* Estilo "trailer ao pôr do sol": paleta quente (magenta, laranja, roxo), tipografia condensada + caligrafia retrô.
+   Fontes livres (Anton e Yellowtail, Google Fonts). Nada copiado de jogo ou trailer. */
+:root { --ceu1: #1a0836; --ceu2: #571a6b; --ceu3: #d4427a; --ceu4: #ff8f4f; --ceu5: #ffd36e; --sil: #170a1d;
+  --ouro: #ffd27a; --rosa: #ff6fae; --texto: #fff8ee }
+* { box-sizing: border-box; margin: 0; padding: 0 }
+html, body { width: 1080px; height: 1920px; overflow: hidden; background: #000 }
+body { font-family: Inter, sans-serif; color: var(--texto); -webkit-font-smoothing: antialiased }
+#palco { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #000 }
+.parte { position: absolute; inset: 0; opacity: 0; overflow: hidden }
+
+/* pôr do sol sobre o rio, com buritis e açaís */
+.ceu { position: absolute; inset: -200px 0 0; background: linear-gradient(180deg, var(--ceu1) 0%, var(--ceu2) 26%, var(--ceu3) 48%, var(--ceu4) 60%, var(--ceu5) 67%, #ffe7a8 69%) }
+.sol { position: absolute; left: 50%; width: 600px; height: 600px; margin-left: -300px; border-radius: 50%;
+  background: linear-gradient(180deg, #fff6b8 0%, #ffd06a 35%, #ff8a5a 70%, #ff4f8b 100%); box-shadow: 0 0 160px 40px rgba(255, 150, 90, .55);
+  -webkit-mask-image: linear-gradient(180deg, #000 0 54%, transparent 54% 57%, #000 57% 65%, transparent 65% 69%, #000 69% 76%, transparent 76% 81%, #000 81% 87%, transparent 87% 93%, #000 93%);
+  mask-image: linear-gradient(180deg, #000 0 54%, transparent 54% 57%, #000 57% 65%, transparent 65% 69%, #000 69% 76%, transparent 76% 81%, #000 81% 87%, transparent 87% 93%, #000 93%) }
+.rio { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #ff9d6a 0%, #b23a73 18%, #3c1450 55%, #12061c 100%) }
+.reflexo { position: absolute; left: 50%; width: 460px; margin-left: -230px; height: 100%; top: 0;
+  background: repeating-linear-gradient(180deg, rgba(255, 230, 150, .75) 0 6px, transparent 6px 22px); -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%); mask-image: linear-gradient(180deg, #000, transparent 85%) }
+.mata { position: absolute; left: -40px; right: -40px; height: 90px; background: var(--sil); border-radius: 40% 60% 0 0 / 100% 100% 0 0 }
+.palmas { position: absolute; inset: 0; pointer-events: none }
+.aves { position: absolute; inset: 0 }
+
+/* tipografia */
+.anton { font-family: Anton, sans-serif; text-transform: uppercase; letter-spacing: .01em; line-height: .92 }
+.grad { background: linear-gradient(180deg, #fff6c4 0%, #ffcf6e 38%, #ff8a55 66%, #ff4f8b 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 8px 0 rgba(58, 10, 50, .85)) drop-shadow(0 18px 40px rgba(0, 0, 0, .55)) }
+.script { font-family: Yellowtail, cursive; color: var(--rosa); text-shadow: 0 0 22px rgba(255, 90, 160, .75), 0 4px 0 rgba(58, 10, 50, .8); line-height: 1 }
+.tag { font: 700 24px/1 Inter; letter-spacing: .42em; text-transform: uppercase; color: var(--ouro); text-shadow: 0 2px 10px rgba(0, 0, 0, .6) }
+
+/* abertura */
+.local { position: absolute; top: 300px; left: 0; right: 0; text-align: center }
+.gancho { position: absolute; left: 70px; right: 70px; top: 560px; text-align: center }
+.gancho .l { font-size: 116px; line-height: 1.02; opacity: 0; display: block; margin-bottom: 18px }
+.gancho em { font-style: normal }
+.gancho .l.br { color: var(--texto); filter: drop-shadow(0 8px 0 rgba(58, 10, 50, .85)) drop-shadow(0 18px 40px rgba(0, 0, 0, .5)) }
+
+/* painéis em quadrinho */
+.paineis { background: #0b0510 }
+.painel { position: absolute; inset: 0 }
+.painel .img { position: absolute; background-repeat: no-repeat; filter: url(#poster) saturate(1.45) contrast(1.12) }
+.painel::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle, rgba(0, 0, 0, .55) 1.6px, transparent 2.2px) 0 0/11px 11px, linear-gradient(180deg, rgba(120, 30, 140, .35), rgba(255, 120, 60, .28));
+  mix-blend-mode: multiply; opacity: .55 }
+.painel .luz { position: absolute; inset: 0; background: linear-gradient(160deg, rgba(255, 200, 120, .35), transparent 45%, rgba(255, 70, 140, .25)); mix-blend-mode: screen }
+.faixa { position: absolute; left: -60px; right: -60px; top: 830px; padding: 34px 120px 40px; background: rgba(14, 4, 20, .9); transform: rotate(-6deg); text-align: center;
+  border-top: 4px solid var(--ouro); border-bottom: 4px solid var(--rosa); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); opacity: 0 }
+.faixa .anton { font-size: 92px } .faixa .script { font-size: 78px; margin-top: -6px }
+
+/* cartões de apresentação dos módulos */
+.cartao .fundo { position: absolute; background-repeat: no-repeat; filter: saturate(1.35) contrast(1.1) }
+.cartao .grade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(60, 10, 90, .55) 0%, rgba(255, 110, 80, .18) 45%, rgba(20, 4, 30, .92) 78%); mix-blend-mode: normal }
+.cartao .cor { position: absolute; inset: 0; background: linear-gradient(200deg, rgba(255, 120, 60, .45), rgba(160, 40, 160, .45)); mix-blend-mode: soft-light }
+.faixa-cine { position: absolute; left: 0; right: 0; height: 200px; background: #000; z-index: 4 }
+.faixa-cine.cima { top: 0 } .faixa-cine.baixo { bottom: 0 }
+.faixa-cine span { position: absolute; left: 0; right: 0; text-align: center; font: 600 17px/1 Inter; letter-spacing: .34em; text-transform: uppercase; color: rgba(255, 248, 238, .55) }
+.faixa-cine.cima span { bottom: 26px } .faixa-cine.baixo span { top: 26px }
+.nome { position: absolute; left: 66px; right: 60px; top: 1060px; z-index: 3 }
+.nome .num { font: 700 24px/1 Inter; letter-spacing: .38em; color: var(--ouro); text-transform: uppercase; margin-bottom: 18px; opacity: 0 }
+.nome .anton { font-size: 176px; opacity: 0 }
+.nome .script { font-size: 92px; margin: -18px 0 0 8px; transform: rotate(-5deg); transform-origin: 0 50%; display: inline-block }
+.nome .desc { font: 600 28px/1.35 Inter; color: rgba(255, 248, 238, .9); margin-top: 16px; opacity: 0; max-width: 900px }
+
+/* fecho */
+.marca { position: absolute; left: 50px; right: 50px; top: 470px; text-align: center }
+.marca .anton { font-size: 190px; opacity: 0 }
+.marca .script { font-size: 82px; margin-top: 4px; opacity: 0 }
+.frases { position: absolute; left: 50px; right: 50px; top: 1010px; text-align: center }
+.frases .anton { font-size: 76px; color: var(--texto); opacity: 0; filter: drop-shadow(0 5px 0 rgba(58, 10, 50, .85)) }
+.logos-topo { position: absolute; top: 270px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 34px; opacity: 0 }
+.logos-topo img { height: 74px } .logos-topo img.res { height: 104px }
+.parceiros { position: absolute; top: 1330px; left: 70px; right: 70px; display: flex; justify-content: center; align-items: center; gap: 34px; padding: 22px 30px;
+  background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, .45); opacity: 0 }
+.parceiros img { height: 44px } .parceiros img.g { height: 60px }
+.credito { position: absolute; top: 1470px; left: 0; right: 0; text-align: center; font: 600 24px/1.5 Inter; color: rgba(255, 248, 238, .92); text-shadow: 0 2px 12px rgba(0, 0, 0, .6); opacity: 0 }
+.credito span { display: block; font-size: 16px; letter-spacing: .3em; text-transform: uppercase; color: var(--ouro) }
+
+/* camadas por cima de tudo */
+#luz { position: absolute; width: 1400px; height: 1400px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 170, 90, .42), transparent 62%); mix-blend-mode: screen; pointer-events: none; z-index: 8 }
+#flash { position: absolute; inset: 0; background: #fff6e0; opacity: 0; z-index: 9; pointer-events: none }
+#vinheta { position: absolute; inset: 0; z-index: 9; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .55) 100%) }
+#grao { position: absolute; inset: -60px; z-index: 10; pointer-events: none; opacity: .09; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>") }
+#preto { position: absolute; inset: 0; background: #000; opacity: 0; z-index: 11 }

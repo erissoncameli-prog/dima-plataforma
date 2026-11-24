@@ -3,6 +3,7 @@
 //   node video/render.js video                → build/quadros/*.jpg (4 processos) + saida/plataforma-gestao-projetos.mp4
 //   acrescente "vertical" (ex.: node video/render.js video vertical) para a versão 1080×1920 das redes sociais
 //   e "corte30" para a montagem de 30 s (build/corte30/, gerada por roteiro-30s.json)
+//   "trend" = corte de 30 s no estilo trailer ao pôr do sol (cenas/trend.html + build/trend/, sempre vertical)
 'use strict'
 const { chromium } = require('playwright')
 const { spawn, execFileSync } = require('node:child_process')
@@ -12,9 +13,12 @@ const path = require('node:path')
 const AQUI = __dirname, RAIZ = path.resolve(AQUI, '..'), B = path.join(AQUI, 'build')
 const VERT = process.argv.includes('vertical')
 const CORTE = (process.argv.find(a => a.startsWith('corte')) || '')            // ex.: corte30 → build/corte30/
-const BL = CORTE ? path.join(B, CORTE) : B
-const FPS = 30, PORTA = 5711, URL = `http://127.0.0.1:${PORTA}/video/cenas/index.html?${VERT ? 'formato=vertical&' : ''}${CORTE ? 'linha=' + CORTE : ''}`
-const VW = VERT ? 1080 : 1920, VH = VERT ? 1920 : 1080, SUF = (CORTE ? '-' + CORTE.replace('corte', '') + 's' : '') + (VERT ? '-vertical' : '')
+const TREND = process.argv.includes('trend')                                     // corte de 30 s no estilo trailer (cenas/trend.html)
+const BL = TREND ? path.join(B, 'trend') : CORTE ? path.join(B, CORTE) : B
+const FPS = 30, PORTA = 5711, URL = TREND ? `http://127.0.0.1:${PORTA}/video/cenas/trend.html`
+  : `http://127.0.0.1:${PORTA}/video/cenas/index.html?${VERT ? 'formato=vertical&' : ''}${CORTE ? 'linha=' + CORTE : ''}`
+const VW = VERT || TREND ? 1080 : 1920, VH = VERT || TREND ? 1920 : 1080
+const SUF = TREND ? '-30s-trailer-vertical' : (CORTE ? '-' + CORTE.replace('corte', '') + 's' : '') + (VERT ? '-vertical' : '')
 
 async function abrir(nav) {
   const pg = await nav.newPage({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1 })
@@ -25,7 +29,7 @@ async function abrir(nav) {
 }
 
 ;(async () => {
-  const [modo, ...args] = process.argv.slice(2).filter(a => a !== 'vertical' && !a.startsWith('corte'))
+  const [modo, ...args] = process.argv.slice(2).filter(a => !['vertical', 'trend'].includes(a) && !a.startsWith('corte'))
   const srv = spawn('python3', ['-m', 'http.server', String(PORTA), '--bind', '127.0.0.1'], { cwd: RAIZ, stdio: 'ignore' })
   await new Promise(r => setTimeout(r, 700))
   const nav = await chromium.launch({ args: ['--disable-gpu-vsync', '--force-color-profile=srgb'] })

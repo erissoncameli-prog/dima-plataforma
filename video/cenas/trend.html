@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Erisson Cameli Santiago">
+<title>Vídeo — corte de 30 s, estilo trailer ao pôr do sol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Yellowtail&family=Inter:wght@500;600;700&display=block" rel="stylesheet">
+<link rel="stylesheet" href="trend.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <!-- "arte de quadrinho": cores em degraus + contorno escurecido -->
+  <filter id="poster" color-interpolation-filters="sRGB">
+    <feComponentTransfer><feFuncR type="discrete" tableValues="0 .2 .42 .62 .82 1"/><feFuncG type="discrete" tableValues="0 .2 .42 .62 .82 1"/><feFuncB type="discrete" tableValues="0 .2 .42 .62 .82 1"/></feComponentTransfer>
+  </filter>
+</svg>
+<div id="palco"></div>
+<script src="../node_modules/gsap/dist/gsap.min.js"></script>
+<script src="trend.js"></script>
+</body>
+</html>
