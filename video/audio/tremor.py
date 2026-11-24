@@ -5,7 +5,8 @@ uso: python audio/tremor.py video.mp4 inicio fim [x0 y0 x1 y1]
 import sys, subprocess, numpy as np
 arq, ini, fim = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
 x0, y0, x1, y1 = map(int, sys.argv[4:8]) if len(sys.argv) > 7 else (60, 60, 700, 420)
-W, H = 1920, 1080
+W, H = map(int, subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', arq],
+                               capture_output=True, text=True).stdout.strip().split(','))
 p = subprocess.run(['ffmpeg', '-v', 'error', '-ss', str(ini), '-to', str(fim), '-i', arq, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'], capture_output=True)
 q = np.frombuffer(p.stdout, np.uint8).reshape(-1, H, W)[:, y0:y1, x0:x1].astype(np.float32)
 jan = np.outer(np.hanning(q.shape[1]), np.hanning(q.shape[2]))
