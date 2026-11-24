@@ -230,6 +230,7 @@ async function carregarUsuario() {
 
 async function sair() {
   await db.auth.signOut();
+  try { sessionStorage.removeItem('dima_menu_previa'); } catch (e) {}
   localStorage.removeItem('dima_idioma');
   localStorage.removeItem('dima_ultima_atividade');
   // Ao sair, volta para o site público (o login segue acessível pelo botão "Fazer Login" de lá)

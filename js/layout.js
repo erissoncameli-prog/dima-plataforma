@@ -26,6 +26,109 @@
   window._dimaBar = bar;
 })();
 
+// ── Menu de vidro: estado aplicado ANTES do 1º desenho (css/sidebar.css) ───────
+// sb-trilho = menu recolhido (escolha guardada no aparelho); sb-vidro = desfoque só onde o
+// aparelho aguenta; sb-sem-anim = nada anima até o menu aparecer (sem "pulo" ao abrir).
+;(function () {
+  const h = document.documentElement
+  let trilho = false
+  try { trilho = localStorage.getItem('dima_menu_trilho') === '1' } catch (e) {}
+  h.classList.toggle('sb-trilho', trilho)
+  h.classList.add('sb-sem-anim')
+  const temBlur = window.CSS && (CSS.supports('backdrop-filter', 'blur(1px)') || CSS.supports('-webkit-backdrop-filter', 'blur(1px)'))
+  const fraco = (navigator.deviceMemory && navigator.deviceMemory <= 4) ||
+                (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+                (window.matchMedia && matchMedia('(prefers-reduced-transparency: reduce)').matches) ||
+                (navigator.connection && navigator.connection.saveData)
+  h.classList.toggle('sb-vidro', !!temBlur && !fraco)
+
+  // Prévia do menu: o menu da tela anterior (mesma aba do navegador, mesmo usuário) é desenhado
+  // já no 1º quadro, para a troca de tela não piscar e a aba poder deslizar. O menu de verdade
+  // (gerarLayout) substitui a prévia assim que entra no DOM.
+  let previa = null
+  try {
+    const c = JSON.parse(sessionStorage.getItem('dima_menu_previa') || 'null')
+    if (c && c.html && c.uid && c.uid === _dimaUidSessao() && window.innerWidth > 768) {
+      const tmp = document.createElement('div')
+      tmp.innerHTML = c.html
+      previa = tmp.firstElementChild
+      if (previa) {
+        previa.id = 'sidebar-previa'
+        previa.setAttribute('aria-hidden', 'true')
+        previa.inert = true
+        _dimaMarcarAtivo(previa)
+        document.body.prepend(previa)
+      }
+    }
+  } catch (e) { previa = null }
+
+  const liberar = () => requestAnimationFrame(() => requestAnimationFrame(() => h.classList.remove('sb-sem-anim')))
+  const mo = new MutationObserver(() => {
+    if (!document.getElementById('sidebar')) return
+    mo.disconnect()
+    if (previa) previa.remove()
+    liberar()
+  })
+  mo.observe(document.body, { childList: true, subtree: true })
+  // página sem menu (erro, redireciona): não deixa a prévia parada na tela
+  setTimeout(() => { if (!document.getElementById('sidebar')) { mo.disconnect(); if (previa) previa.remove(); liberar() } }, 8000)
+})()
+
+// id do usuário da sessão guardada pelo Supabase (só para não mostrar o menu de outra pessoa)
+function _dimaUidSessao() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (/^sb-.*-auth-token$/.test(k)) return (JSON.parse(localStorage.getItem(k)) || {}).user?.id || null
+    }
+  } catch (e) {}
+  return null
+}
+
+// marca como ativo o item do menu que aponta para esta página
+function _dimaMarcarAtivo(raiz) {
+  const arq = location.pathname.split('/').pop() || ''
+  const itens = [...raiz.querySelectorAll('a.nav-item[href]')]
+  const alvo = itens.find(a => a.getAttribute('href') === arq + location.search) ||
+               itens.find(a => a.getAttribute('href') === arq)
+  if (!alvo) return
+  itens.forEach(a => a.classList.remove('ativo'))
+  alvo.classList.add('ativo')
+}
+
+function _dimaGuardarMenu() {
+  try {
+    const sb = document.getElementById('sidebar'); const uid = _dimaUidSessao()
+    if (!sb || !uid) return
+    sessionStorage.setItem('dima_menu_previa', JSON.stringify({ uid, html: sb.outerHTML }))
+  } catch (e) {}
+}
+window.addEventListener('pagehide', _dimaGuardarMenu)
+
+function alternarMenuTrilho() {
+  const h = document.documentElement
+  const trilho = !h.classList.contains('sb-trilho')
+  h.classList.toggle('sb-trilho', trilho)
+  try { localStorage.setItem('dima_menu_trilho', trilho ? '1' : '0') } catch (e) {}
+  const b = document.getElementById('sb-recolher')
+  if (b) { b.setAttribute('aria-expanded', String(!trilho)); b.title = trilho ? 'Expandir menu' : 'Recolher menu' }
+}
+
+// Navegador sem View Transitions: a aba desliza até o item clicado antes de trocar de tela
+function _dimaDeslizarAba(destino) {
+  const nav = destino.closest('.sidebar-nav'); const atual = nav && nav.querySelector('.nav-item.ativo')
+  if (!nav || !atual || atual === destino) return
+  nav.classList.add('sb-movendo')
+  const aba = document.createElement('div')
+  aba.className = 'sb-aba-movel'
+  aba.style.top = atual.offsetTop + 'px'; aba.style.height = atual.offsetHeight + 'px'
+  nav.appendChild(aba)
+  atual.classList.remove('ativo')
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    aba.style.top = destino.offsetTop + 'px'; aba.style.height = destino.offsetHeight + 'px'
+  }))
+}
+
 function _dimaBarCompleta() {
   const bar = window._dimaBar || document.getElementById('dima-progress-bar');
   if (!bar || bar._concluida) return;
@@ -47,6 +150,12 @@ function _dimaAtivarNavLinks() {
       if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
       e.preventDefault();
       fecharSidebarMobile();
+      _dimaGuardarMenu();
+      // Com View Transitions (global.css) o navegador anima a troca: sai na hora.
+      if (window.CSS && CSS.supports('view-transition-name', 'a') && 'onpagereveal' in window) {
+        window.location.href = href; return;
+      }
+      _dimaDeslizarAba(this);
       document.body.classList.add('dima-saindo');
       setTimeout(() => { window.location.href = href; }, 160);
     });
@@ -181,7 +290,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
           </a>`;
         }).join('');
         return `
-          <button class="nav-item" onclick="toggleNavGroup('${item.id}')"
+          <button class="nav-item" title="${esc(t('nav', item.id))}" onclick="toggleNavGroup('${item.id}')"
             style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;cursor:pointer;font-family:inherit;color:var(--sb-tx);">
             ${renderPill(item.id)}
             <span style="flex:1">${t('nav', item.id)}</span>
@@ -199,7 +308,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
       const extraTag = (!temPerfil && temPermissao)
         ? `<span style="font-size:8px;background:var(--sb-hover);color:var(--sb-tx-2);padding:1px 5px;border-radius:99px;margin-left:auto;flex-shrink:0" title="Acesso extra concedido pelo administrador">extra</span>`
         : '';
-      return `<a class="nav-item ${ativo}" href="${item.href}" style="display:flex;align-items:center;gap:8px">
+      return `<a class="nav-item ${ativo}" href="${item.href}" title="${esc(t('nav', item.id))}" style="display:flex;align-items:center;gap:8px">
         ${renderPill(item.id)}
         <span style="flex:1">${t('nav', item.id)}</span>
         ${extraTag}
@@ -229,6 +338,11 @@ function gerarLayout(tituloPagina, paginaAtiva) {
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand" style="padding:18px 14px 14px;">
+        <button type="button" class="sb-recolher" id="sb-recolher" onclick="alternarMenuTrilho()"
+          aria-expanded="${document.documentElement.classList.contains('sb-trilho') ? 'false' : 'true'}" aria-controls="sidebar"
+          title="${document.documentElement.classList.contains('sb-trilho') ? 'Expandir menu' : 'Recolher menu'}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
         <div id="sidebar-logos-topo" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:40px;margin-bottom:10px;flex-wrap:wrap">${_dimaLogosSidebar(window.DimaLogos ? DimaLogos.agora().topo : [])}</div>
         <div class="sidebar-brand-sub" id="sidebar-brand-sub" style="color:rgba(255,255,255,.45);">UNESCO · DIMA · 218BRA2001</div>
       </div>
@@ -393,6 +507,8 @@ function fecharLayout() {
 async function trocarIdioma(lang) {
   appState.idioma = lang;
   localStorage.setItem('dima_idioma', lang);
+  try { sessionStorage.removeItem('dima_menu_previa'); } catch (e) {}
+  window.removeEventListener('pagehide', _dimaGuardarMenu);
   if (appState.usuario) {
     await db.from('usuarios').update({ idioma_pref: lang }).eq('id', appState.usuario.id);
   }
@@ -407,6 +523,7 @@ function _dimaLogosSidebar(topo) {
 }
 
 async function carregarLogosSidebar() {
+  document.getElementById('sidebar-previa')?.remove();
   _dimaBarCompleta();
   _dimaAtivarNavLinks();
   try {

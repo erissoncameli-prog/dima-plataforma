@@ -1509,6 +1509,16 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
   `window.VGExp` (fim do script de `dashboard.html`); cada gráfico é redesenhado fora da tela no **tema claro** (`comTemaClaro`) e a cor do
   PowerPoint vem do token (`_bg`/`_bd`), não da cor pintada na tela. Componente novo numa guia ⇒ ensinar `lerGuia()` a ler, senão fica fora.
 
+### Menu lateral de vidro (24/11/2026) — `css/sidebar.css` + `js/layout.js`
+- Verde da marca com desfoque só em `html.sb-vidro` (aparelho com ≤ 4 núcleos/4 GB, economia de dados ou menos transparência = verde sólido).
+- Item ativo = aba na cor do fundo da página (`--sb-aba`; `body.dgm` usa `--bg`, escuro `#0B120E`), colada na borda direita.
+- **Trilho** (`html.sb-trilho`, 72 px, botão `#sb-recolher`, `alternarMenuTrilho()`): escolha em `localStorage dima_menu_trilho`, aplicada
+  no carregamento do `layout.js` antes do menu existir; `html.sb-sem-anim` desliga animação até o menu entrar. Item do menu leva `title`.
+- **Troca de tela**: `@view-transition` em `global.css` (menu `dima-menu` parado, aba `dima-aba` desliza). Para isso o menu da tela anterior
+  é guardado em `sessionStorage dima_menu_previa` (com o id do usuário da sessão) e desenhado como `#sidebar-previa` no 1º quadro;
+  `carregarLogosSidebar()` o remove. Sem View Transitions, a aba desliza na própria página (`_dimaDeslizarAba`) nos 160 ms de saída.
+  `sair()`/`trocarIdioma()` limpam a prévia.
+
 ### Painel de Tarefas — subtarefas, comentários e anexos
 - `tarefa_checklist` (subtarefa): `responsavel_usuario_id` **ou** `responsavel_fornecedor_id` (check impede os dois), `dt_prazo`.
   Trigger `trg_checklist_responsavel` inclui o usuário responsável como **observador** da tarefa + sino (`tarefa_subtarefa`). Ao atribuir pelo painel, chamar `enviar-email-tarefa` com `evento:'subtarefa'` e `checklist_id`.

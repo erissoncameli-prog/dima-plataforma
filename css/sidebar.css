@@ -14,7 +14,7 @@
   transition: width 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body.dima-saindo {
+body.dima-saindo .main-content {
   opacity: 0.5;
   transition: opacity 0.17s ease;
   pointer-events: none;
@@ -26,4 +26,124 @@ body.dima-saindo {
 }
 .page-body {
   animation: dima-entrada 0.28s ease forwards;
+}
+
+/* ══ Menu lateral de vidro (proposta "Glassy Sidebar", 24/11/2026) ═══════════════════
+   - Fundo verde da marca translúcido; o desfoque (vidro) só liga em html.sb-vidro, que
+     layout.js põe quando o aparelho aguenta. Sem ele, o verde fica sólido (mesma cara).
+   - Item ativo = aba na cor do fundo da página, colada na borda direita (curvas por
+     pseudo-elementos), parecendo sair do conteúdo.
+   - html.sb-trilho = menu recolhido (trilho de ícones, 72 px). Escolha guardada no aparelho
+     (localStorage dima_menu_trilho) e aplicada por layout.js ANTES do 1º desenho;
+     html.sb-sem-anim desliga as animações nesse 1º desenho (sem "pulo" ao abrir a página).
+   - Troca de tela: View Transitions (global.css); a aba e o menu ficam no lugar e só a
+     aba desliza. Sem suporte, a aba desliza na própria página antes de sair.          */
+.sidebar {
+  --sb-bg:     #1F4E2C;
+  --sb-borda:  rgba(255,255,255,.14);
+  --sb-hover:  rgba(255,255,255,.10);
+  --sb-tx:     rgba(240,247,242,.86);
+  --sb-tx-2:   #F3F8F4;
+  --sb-tx-3:   rgba(240,247,242,.55);
+  --sb-forte:  #FFFFFF;
+  --sb-aba:    var(--cinza-50, #F9FAFB);
+  --sb-aba-tx: var(--verde, #1F4E2C);
+  --sb-ouro:   #F2C14E;
+  background:
+    radial-gradient(120% 40% at 100% 0%, rgba(120,190,140,.22), transparent 60%),
+    radial-gradient(90% 35% at 0% 100%, rgba(242,193,78,.12), transparent 60%),
+    linear-gradient(175deg, #2A6139 0%, #1F4E2C 45%, #163A21 100%);
+  border-right: 0;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,.06);
+  view-transition-name: dima-menu;
+  transition: width .3s cubic-bezier(.2,.8,.2,1);
+}
+html.sb-vidro .sidebar {
+  background:
+    radial-gradient(120% 40% at 100% 0%, rgba(120,190,140,.22), transparent 60%),
+    radial-gradient(90% 35% at 0% 100%, rgba(242,193,78,.12), transparent 60%),
+    linear-gradient(175deg, rgba(42,97,57,.86) 0%, rgba(31,78,44,.88) 45%, rgba(22,58,33,.92) 100%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+/* cor da aba = fundo da página de cada tela */
+body.dgm .sidebar { --sb-aba: var(--bg, #F3F5F3); }
+html[data-tema="escuro"] body:is(.dgm, .tk-pg) .sidebar { --sb-aba: #0B120E; --sb-aba-tx: #8FD1A3; }
+
+.sidebar-brand { background: transparent; position: relative; }
+.sidebar .lang-btn { background: rgba(255,255,255,.06); border-color: var(--sb-borda); color: var(--sb-tx); }
+.sidebar .lang-btn.ativo { background: var(--sb-ouro); border-color: var(--sb-ouro); color: #3A2A00; }
+.sidebar .sidebar-lang { border-color: var(--sb-borda); }
+
+.sidebar-nav { padding: 8px 0; }
+.sidebar .nav-item { border-radius: 12px; }
+.sidebar .nav-item:focus-visible, .sb-recolher:focus-visible { outline: 2px solid var(--sb-ouro); outline-offset: 2px; }
+.sidebar .nav-item.ativo {
+  background: var(--sb-aba);
+  color: var(--sb-aba-tx);
+  margin-right: 0;
+  width: calc(100% - 8px);
+  border-radius: 12px 0 0 12px;
+  view-transition-name: dima-aba;
+}
+.sidebar .nav-item.ativo::before,
+.sidebar .nav-item.ativo::after,
+.sb-aba-movel::before, .sb-aba-movel::after {
+  content: ""; position: absolute; right: 0; width: 14px; height: 14px; pointer-events: none;
+}
+.sidebar .nav-item.ativo::before, .sb-aba-movel::before { top: -14px; border-bottom-right-radius: 12px; box-shadow: 5px 5px 0 5px var(--sb-aba); }
+.sidebar .nav-item.ativo::after,  .sb-aba-movel::after  { bottom: -14px; border-top-right-radius: 12px; box-shadow: 5px -5px 0 5px var(--sb-aba); }
+.sidebar .nav-item.ativo > span:first-child { box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+
+/* aba que desliza na própria página (navegador sem View Transitions) */
+.sb-aba-movel {
+  position: absolute; left: 8px; right: 0; border-radius: 12px 0 0 12px;
+  background: var(--sb-aba); z-index: 0; pointer-events: none;
+  transition: top .16s cubic-bezier(.2,.8,.2,1), height .16s;
+}
+.sidebar-nav.sb-movendo { position: relative; }
+.sidebar-nav.sb-movendo .nav-item { z-index: 1; }
+
+/* botão recolher/expandir (só computador) */
+.sb-recolher {
+  position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--sb-borda); background: rgba(255,255,255,.08); color: var(--sb-tx-2);
+}
+.sb-recolher:hover { background: rgba(255,255,255,.18); }
+.sb-recolher svg { width: 14px; height: 14px; transition: transform .3s; }
+html.sb-trilho .sb-recolher svg { transform: rotate(180deg); }
+
+.sidebar .dg-menu-aprender { color: var(--sb-tx-2); border-color: var(--sb-borda); }
+.sidebar .aut-menu { border-top-color: var(--sb-borda); }
+
+/* ── Trilho (menu recolhido) ─────────────────────────────── */
+@media (min-width: 769px) {
+  html.sb-trilho { --sidebar-w: 72px; }
+  html.sb-trilho .sidebar .sidebar-brand { padding: 44px 8px 8px !important; }
+  html.sb-trilho .sidebar #sidebar-logos-topo,
+  html.sb-trilho .sidebar .sidebar-brand-sub,
+  html.sb-trilho .sidebar .sidebar-lang { display: none !important; }
+  html.sb-trilho .sb-recolher { right: 50%; transform: translateX(50%); }
+  html.sb-trilho .sidebar .nav-item { justify-content: center; padding: 6px 0 !important; margin: 2px 8px; width: calc(100% - 16px); }
+  html.sb-trilho .sidebar .nav-item.ativo { margin-right: 0; width: calc(100% - 8px); padding-right: 8px !important; }
+  html.sb-trilho .sidebar .nav-item > :not(:first-child) { display: none; }
+  html.sb-trilho .sidebar .sidebar-nav > button { padding: 0 !important; height: 1px; margin: 8px 14px !important; border-top: 0 !important; background: var(--sb-borda); overflow: hidden; }
+  html.sb-trilho .sidebar .sidebar-nav > button > * { display: none; }
+  html.sb-trilho .sidebar [id^="nav-group-"] { max-height: none !important; }
+  html.sb-trilho .sidebar [id^="nav-children-"] { display: none; }
+  html.sb-trilho .sidebar .dg-menu-aprender { font-size: 0; justify-content: center; gap: 0; margin-left: 12px; margin-right: 12px; padding: 8px 0; }
+  html.sb-trilho .sidebar .dg-menu-aprender svg { width: 18px; height: 18px; }
+  html.sb-trilho .sidebar .aut-menu { padding: 8px 4px 10px; }
+  html.sb-trilho .sidebar .aut-menu > div { display: none; }
+  html.sb-trilho .sidebar .aut-menu-btn { padding: 4px 8px; margin-top: 0; }
+  html.sb-trilho .sidebar .aut-menu-btn span { display: none; }
+  .main-content { transition: margin-left .3s cubic-bezier(.2,.8,.2,1); }
+}
+@media (max-width: 768px) { .sb-recolher { display: none; } }
+
+/* 1º desenho e quem pede menos movimento: sem animação */
+html.sb-sem-anim .sidebar, html.sb-sem-anim .main-content, html.sb-sem-anim .sb-recolher svg { transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .main-content, .sb-aba-movel, .sb-recolher svg { transition: none !important; }
 }

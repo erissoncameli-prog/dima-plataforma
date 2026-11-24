@@ -64,6 +64,14 @@ body {
   line-height: 1.6;
 }
 
+/* ── TROCA DE TELA (View Transitions entre páginas) ──────────
+   O menu (dima-menu) fica parado e a aba do item ativo (dima-aba) desliza para o item novo;
+   o resto cruza suave. Navegador sem suporte ignora. Nomes definidos em css/sidebar.css. */
+@view-transition { navigation: auto; }
+::view-transition-group(dima-aba) { animation-duration: .22s; animation-timing-function: cubic-bezier(.2,.8,.2,1); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .18s; }
+@media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
+
 /* ── LAYOUT ───────────────────────────────────────────────── */
 .app-layout {
   display: flex;
