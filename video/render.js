@@ -47,12 +47,17 @@ async function abrir(nav) {
       const N = Math.ceil(total * FPS), W = 4, dir = path.join(B, 'quadros' + SUF)
       fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true })
       const t0 = Date.now()
+      // Cada processo faz um bloco contínuo e, antes, percorre a animação desde o início, quadro a quadro, sem fotografar.
+      // Assim os 4 processos dão exatamente o mesmo resultado que um só renderizando em ordem (intercalar os quadros
+      // fazia tweens guardarem pontos de partida diferentes em cada processo e a imagem tremia).
+      const bloco = Math.ceil(N / W)
       await Promise.all(Array.from({ length: W }, async (_, w) => {
         const pg = await abrir(nav)
-        for (let f = w; f < N; f += W) {
+        for (let f = 0; f < w * bloco; f++) await pg.evaluate(t => window.__render(t), f / FPS)
+        for (let f = w * bloco; f < Math.min(N, (w + 1) * bloco); f++) {
           await pg.evaluate(t => window.__render(t), f / FPS)
           await pg.screenshot({ path: path.join(dir, `q${String(f).padStart(5, '0')}.jpg`), type: 'jpeg', quality: 94 })
-          if (w === 0 && f % 300 === 0) console.log(`quadro ${f}/${N} · ${((Date.now() - t0) / 1000).toFixed(0)} s`)
+          if (w === 0 && f % 150 === 0) console.log(`quadro ${f}/${N} · ${((Date.now() - t0) / 1000).toFixed(0)} s`)
         }
       }))
       const saida = path.join(AQUI, 'saida'); fs.mkdirSync(saida, { recursive: true })

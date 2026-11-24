@@ -76,9 +76,11 @@
   function camera(t, chaves) {
     const pos = ({ s, x, y }) => ({ scale: s, x: gsap.utils.clamp(t.w - t.iw * s, 0, t.w / 2 - x * t.iw * s), y: gsap.utils.clamp(t.h - t.ih * s, 0, t.h / 2 - y * t.ih * s) })
     gsap.set(t.zoom, pos(chaves[0]))
+    let fimAnt = -1
     for (let i = 1; i < chaves.length; i++) {
-      const k = chaves[i]
-      tl.to(t.zoom, { ...pos(k), duration: k.d || 1.1, ease: k.ease || 'power3.inOut' }, k.t)
+      const k = chaves[i], d = k.d || 1.1, ini = Math.max(k.t, fimAnt)
+      tl.fromTo(t.zoom, pos(chaves[i - 1]), { ...pos(k), duration: d, ease: k.ease || 'power3.inOut', immediateRender: false }, ini)
+      fimAnt = ini + d
     }
   }
   function realce(t, i, de, ate) {
@@ -139,7 +141,8 @@
     const c = C.marca, e = cena('marca')
     const imgs = ['dashboard-financiadores', 'tdrs', 'mapa', 'matriz', 'contratos', 'remanejamentos-pedido', 'patrimonio', 'auditoria', 'relatorios-m1', 'atividades', 'dashboard-tarefas', 'financeiro']
     if (V) imgs.push(...imgs.slice(0, 6))
-    const parede = el(`<div class="parede">${imgs.map(i => `<img src="${T(i)}">`).join('')}</div>`, e)
+    const mov = el('<div style="position:absolute;inset:0"></div>', e)                     // deriva lenta (camada própria)
+    const parede = el(`<div class="parede">${imgs.map(i => `<img src="../build/telas-mini/${i}.jpg">`).join('')}</div>`, mov)
     el('<div class="parede-veu"></div>', e)
     const mc = el(`<div class="marca-centro"><img src="../../assets/logo-resiliencia.png" alt="">
       <div class="marca-nome">${'Plataforma Inteligente de Gestão de Projetos'.split(' ').map(w => `<span>${w}</span>`).join(' ')}</div>
@@ -147,7 +150,7 @@
     tl.set(e, { opacity: 1 }, c.ini - .05)
     clarao(c.ini, 1)
     ft(parede, { opacity: 0, y: 300, scale: 1.15 }, { opacity: .95, y: 0, scale: 1, duration: 2, ease: 'expo.out' }, c.ini)
-    tl.to(parede, { y: -260, x: 120, duration: c.fim - c.ini, ease: 'none' }, c.ini + .5)
+    ft(mov, { x: 0, y: 0 }, { x: 120, y: -260, duration: c.fim - c.ini, ease: 'none' }, c.ini)
     ft(mc.querySelector('img'), { opacity: 0, scale: .6, filter: 'blur(14px)' }, { opacity: 1, scale: 1, filter: 'blur(0px)', duration: .9, ease: 'back.out(1.6)' }, c.ini + .15)
     const ws = [...mc.querySelectorAll('.marca-nome span')]
     ws.forEach((w, i) => ft(w, { opacity: 0, y: 40, rotationX: -70 }, { opacity: 1, y: 0, rotationX: 0, duration: .55, ease: 'expo.out' }, Math.max(c.ini + .5, wt('marca', 'plataforma') - .15) + i * .09))
