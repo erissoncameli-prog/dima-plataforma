@@ -30,6 +30,22 @@ node render.js video vertical             #    versão 1080×1920 → saida/plat
 .venv/bin/python audio/legendas.py        # 5. saida/legendas.srt
 ```
 
+### Corte de 30 segundos (Status do WhatsApp e anúncios)
+
+Narração própria, mais curta (`roteiro-30s.json`): gancho → Visão Geral → Remanejamento → Mapa → Auditoria IA → fecho com a
+frase e as logos juntos. Usa as mesmas telas e o mesmo código das cenas; só a montagem muda.
+
+```bash
+HF_HUB_DISABLE_XET=1 .venv/bin/python audio/locucao.py /caminho/modelos roteiro-30s.json build/corte30
+.venv/bin/python audio/trilha.py build/corte30 2.3 compacto     # 2,3 s de fecho após a voz; abertura e pausas menores
+node render.js video vertical corte30                         # → saida/plataforma-gestao-projetos-30s-vertical.mp4
+.venv/bin/python audio/legendas.py build/corte30 -30s          # → saida/legendas-30s.srt
+```
+
+Uma cena só aparece se estiver no roteiro; a numeração dos módulos (01, 02…) segue a ordem da montagem. Para outro corte,
+crie outro `roteiro-*.json` com ids de cenas existentes e mantenha no texto as palavras que a animação usa para sincronizar
+(ex.: "pago", "comprometido", "livre" na Visão Geral; "cadeia", "senha", "impressão" no Remanejamento).
+
 Mudou o texto? Edite `roteiro.json` e rode do passo 2 em diante: a animação, a legenda e os efeitos seguem os tempos da
 nova locução (`build/linha.json`). Cada cena começa num tempo do compasso (120 BPM), então os cortes caem na batida.
 

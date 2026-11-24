@@ -2,6 +2,7 @@
 //   node video/render.js previa 3.2 14 40     → PNGs desses instantes em build/previa/
 //   node video/render.js video                → build/quadros/*.jpg (4 processos) + saida/plataforma-gestao-projetos.mp4
 //   acrescente "vertical" (ex.: node video/render.js video vertical) para a versão 1080×1920 das redes sociais
+//   e "corte30" para a montagem de 30 s (build/corte30/, gerada por roteiro-30s.json)
 'use strict'
 const { chromium } = require('playwright')
 const { spawn, execFileSync } = require('node:child_process')
@@ -10,8 +11,10 @@ const path = require('node:path')
 
 const AQUI = __dirname, RAIZ = path.resolve(AQUI, '..'), B = path.join(AQUI, 'build')
 const VERT = process.argv.includes('vertical')
-const FPS = 30, PORTA = 5711, URL = `http://127.0.0.1:${PORTA}/video/cenas/index.html${VERT ? '?formato=vertical' : ''}`
-const VW = VERT ? 1080 : 1920, VH = VERT ? 1920 : 1080, SUF = VERT ? '-vertical' : ''
+const CORTE = (process.argv.find(a => a.startsWith('corte')) || '')            // ex.: corte30 → build/corte30/
+const BL = CORTE ? path.join(B, CORTE) : B
+const FPS = 30, PORTA = 5711, URL = `http://127.0.0.1:${PORTA}/video/cenas/index.html?${VERT ? 'formato=vertical&' : ''}${CORTE ? 'linha=' + CORTE : ''}`
+const VW = VERT ? 1080 : 1920, VH = VERT ? 1920 : 1080, SUF = (CORTE ? '-' + CORTE.replace('corte', '') + 's' : '') + (VERT ? '-vertical' : '')
 
 async function abrir(nav) {
   const pg = await nav.newPage({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1 })
@@ -22,7 +25,7 @@ async function abrir(nav) {
 }
 
 ;(async () => {
-  const [modo, ...args] = process.argv.slice(2).filter(a => a !== 'vertical')
+  const [modo, ...args] = process.argv.slice(2).filter(a => a !== 'vertical' && !a.startsWith('corte'))
   const srv = spawn('python3', ['-m', 'http.server', String(PORTA), '--bind', '127.0.0.1'], { cwd: RAIZ, stdio: 'ignore' })
   await new Promise(r => setTimeout(r, 700))
   const nav = await chromium.launch({ args: ['--disable-gpu-vsync', '--force-color-profile=srgb'] })
@@ -36,7 +39,7 @@ async function abrir(nav) {
         console.log('✓', t)
       }
     } else {
-      const total = JSON.parse(fs.readFileSync(path.join(B, 'linha.json'))).total
+      const total = JSON.parse(fs.readFileSync(path.join(BL, 'linha.json'))).total
       const N = Math.ceil(total * FPS), W = 4, dir = path.join(B, 'quadros' + SUF)
       fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true })
       const t0 = Date.now()
@@ -49,7 +52,7 @@ async function abrir(nav) {
         }
       }))
       const saida = path.join(AQUI, 'saida'); fs.mkdirSync(saida, { recursive: true })
-      execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(dir, 'q%05d.jpg'), '-i', path.join(B, 'mix.wav'),
+      execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', path.join(dir, 'q%05d.jpg'), '-i', path.join(BL, 'mix.wav'),
         '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-movflags', '+faststart',
         '-c:a', 'aac', '-b:a', '192k', '-shortest',
         '-metadata', 'title=Plataforma Inteligente de Gestão de Projetos', '-metadata', 'artist=Erisson Cameli Santiago',

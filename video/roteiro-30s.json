@@ -1,0 +1,13 @@
+{
+  "titulo": "Plataforma Inteligente de Gestão de Projetos — corte de 30 segundos (Status e anúncios)",
+  "vozes": { "alex": "pm_alex", "dora": "pf_dora" },
+  "fecho_segura": 3.6,
+  "cenas": [
+    { "id": "gancho",    "voz": "alex", "texto": "Cada real investido. Cada entrega. Cada resultado." },
+    { "id": "visao",     "voz": "dora", "texto": "O orçamento em tempo real: pago, comprometido e livre." },
+    { "id": "remanej",   "voz": "dora", "texto": "Remanejamento em cadeia, com senha e impressão digital em cada documento." },
+    { "id": "mapa",      "voz": "dora", "texto": "O Mapa Interativo mostra o território onde o projeto acontece." },
+    { "id": "auditoria", "voz": "dora", "texto": "E a Auditoria com inteligência artificial vigia tudo e aponta riscos antes do problema." },
+    { "id": "fecho",     "voz": "alex", "texto": "Transparência que se vê. Resultados que ficam." }
+  ]
+}

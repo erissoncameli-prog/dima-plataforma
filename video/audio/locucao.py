@@ -1,7 +1,8 @@
 """Gera a locução de cada cena (Kokoro-82M, voz neural pt-BR, offline) e mede as palavras com o Whisper.
 
-uso: python audio/locucao.py <pasta-dos-modelos>
-saída: build/voz/<cena>.wav e build/locucao.json (duração e tempo de cada palavra, para as legendas)
+uso: python audio/locucao.py <pasta-dos-modelos> [roteiro.json] [build]
+      corte de 30 s: python audio/locucao.py <modelos> roteiro-30s.json build/corte30
+saída: <build>/voz/<cena>.wav e <build>/locucao.json (duração e tempo de cada palavra, para as legendas)
 """
 import json, sys, os, re, unicodedata
 from math import gcd
@@ -11,8 +12,10 @@ from scipy.signal import resample_poly
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 M = sys.argv[1]
-OUT = os.path.join(RAIZ, 'build', 'voz'); os.makedirs(OUT, exist_ok=True)
-R = json.load(open(os.path.join(RAIZ, 'roteiro.json'), encoding='utf-8'))
+ROT = sys.argv[2] if len(sys.argv) > 2 else 'roteiro.json'
+BD = os.path.join(RAIZ, sys.argv[3] if len(sys.argv) > 3 else 'build')
+OUT = os.path.join(BD, 'voz'); os.makedirs(OUT, exist_ok=True)
+R = json.load(open(os.path.join(RAIZ, ROT), encoding='utf-8'))
 VEL = {'alex': 1.0, 'dora': 1.06}
 
 # vozes do Kokoro (onnx-community) → npz que o kokoro-onnx lê
@@ -48,5 +51,5 @@ for c in R['cenas']:
     saida.append({'id': c['id'], 'voz': c['voz'], 'texto': c['texto'], 'arquivo': f"voz/{c['id']}.wav", 'dur': round(len(a) / sr, 3), 'palavras': pal, 'conferido': ok})
     print(f"{'✓' if ok else '≠'} {c['id']:11s} {len(a)/sr:5.2f}s  {ouvido}")
 
-json.dump(saida, open(os.path.join(RAIZ, 'build', 'locucao.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+json.dump(saida, open(os.path.join(BD, 'locucao.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print('total', round(sum(s['dur'] for s in saida), 1), 's')

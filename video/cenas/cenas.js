@@ -2,7 +2,10 @@
 // Cada quadro é desenhado por window.__render(t): tl.seek(t) + efeitos procedurais (partículas, legenda).
 // Os tempos vêm de build/linha.json (gerado da locução), então voz, legenda e imagem andam juntas.
 ;(async function () {
-  const L = await (await fetch('../build/linha.json')).json()
+  // ?linha=corte30 lê outra montagem (build/corte30/linha.json), com as mesmas telas
+  const LINHA = new URLSearchParams(location.search).get('linha')
+  const L = await (await fetch(LINHA ? `../build/${LINHA}/linha.json` : '../build/linha.json')).json()
+  const CURTO = L.total < 45                       // corte curto: fecho com frase e logos juntos
   // formato: horizontal 1920×1080 (padrão) ou vertical 1080×1920 (?formato=vertical, Reels/TikTok/Shorts)
   const V = new URLSearchParams(location.search).get('formato') === 'vertical'
   const W = V ? 1080 : 1920, H = V ? 1920 : 1080
@@ -11,6 +14,9 @@
   // tela padrão de cada cena: à direita no horizontal; no vertical, no meio, entre o título e a legenda
   const STD = G({ x: 1250, y: 470, w: 1060 }, { x: 540, y: 1022, w: 960, h: 740 })
   const C = Object.fromEntries(L.cenas.map(c => [c.id, c]))
+  // numeração dos módulos (01, 02…) segue a ordem da montagem
+  const MODS = L.cenas.map(c => c.id).filter(i => !['gancho', 'marca', 'seguranca', 'fecho'].includes(i))
+  const num = id => MODS.indexOf(id) + 1
   const tl = gsap.timeline({ paused: true })
   const palco = document.getElementById('palco'), cenasEl = document.getElementById('cenas')
   const T = n => '../build/telas/' + n + '.png'
@@ -124,11 +130,12 @@
     fr.forEach((f, i) => ft(f, { opacity: 0, scale: 1.35, filter: 'blur(18px)', y: 30 }, { opacity: 1, scale: 1, filter: 'blur(0px)', y: 0, duration: .55, ease: 'expo.out' }, ts[i] - .08))
     tl.to(fr[0], { opacity: .4, duration: .4 }, ts[1]); tl.to(fr[1], { opacity: .4, duration: .4 }, ts[2])
     tl.to(fr, { opacity: 1, duration: .3 }, c.fim_voz + .1)
-    tl.to(g, { scale: 1.25, opacity: 0, filter: 'blur(20px)', duration: .45, ease: 'power2.in' }, C.marca.ini - .3)
+    tl.to(g, { scale: 1.25, opacity: 0, filter: 'blur(20px)', duration: .45, ease: 'power2.in' }, L.cenas[1].ini - .3)
+    if (!C.marca) clarao(L.cenas[1].ini, .55)          // sem a cena da marca, o impacto da trilha cai na 1ª tela
   }
 
   // ── 2. MARCA ────────────────────────────────────────────────────────────────
-  {
+  if (C.marca) {
     const c = C.marca, e = cena('marca')
     const imgs = ['dashboard-financiadores', 'tdrs', 'mapa', 'matriz', 'contratos', 'remanejamentos-pedido', 'patrimonio', 'auditoria', 'relatorios-m1', 'atividades', 'dashboard-tarefas', 'financeiro']
     if (V) imgs.push(...imgs.slice(0, 6))
@@ -149,9 +156,9 @@
   }
 
   // ── 3. VISÃO GERAL ──────────────────────────────────────────────────────────
-  {
+  if (C.visao) {
     const id = 'visao', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 1, kicker: 'Visão Geral', titulo: 'O orçamento<br><em>em tempo real</em>', chips: [{ tx: 'Pago', ic: 'moeda' }, { tx: 'Comprometido', ic: 'lista' }, { tx: 'Livre para usar', ic: 'check' }] })
+    const E = esquerda(e, { n: num(id), kicker: 'Visão Geral', titulo: 'O orçamento<br><em>em tempo real</em>', chips: [{ tx: 'Pago', ic: 'moeda' }, { tx: 'Comprometido', ic: 'lista' }, { tx: 'Livre para usar', ic: 'check' }] })
     const t = tela(e, { img: 'dashboard-financiadores', ...STD, url: 'Visão Geral · Financiadores',
       hl: [{ x: .168, y: .125, w: .27, h: .148 }, { x: .446, y: .125, w: .535, h: .148 }, { x: .168, y: .424, w: .27, h: .405 }] })
     entradaTela(t, c.ini, c.fim); entradaEsq(E, c.ini, [wt(id, 'pago'), wt(id, 'comprometido'), wt(id, 'livre')])
@@ -160,9 +167,9 @@
   }
 
   // ── 4. MINHAS TAREFAS ───────────────────────────────────────────────────────
-  {
+  if (C.tarefas) {
     const id = 'tarefas', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 2, kicker: 'Minhas tarefas', titulo: 'O dia começa<br><em>organizado</em>', chips: [{ tx: 'Avaliações pendentes', ic: 'doc' }, { tx: 'Prazos', ic: 'relogio' }, { tx: 'Editais publicados', ic: 'lista' }] })
+    const E = esquerda(e, { n: num(id), kicker: 'Minhas tarefas', titulo: 'O dia começa<br><em>organizado</em>', chips: [{ tx: 'Avaliações pendentes', ic: 'doc' }, { tx: 'Prazos', ic: 'relogio' }, { tx: 'Editais publicados', ic: 'lista' }] })
     const t = tela(e, { img: 'dashboard-tarefas', ...STD, url: 'Visão Geral · Minhas tarefas', ry: -10,
       hl: [{ x: .17, y: .605, w: .4, h: .36 }, { x: .58, y: .605, w: .4, h: .16 }, { x: .17, y: .257, w: .81, h: .317 }] })
     entradaTela(t, c.ini, c.fim, -10, -5); entradaEsq(E, c.ini, [wt(id, 'avaliacoes'), wt(id, 'prazos'), wt(id, 'editais')])
@@ -171,9 +178,9 @@
   }
 
   // ── 5. TDRs ─────────────────────────────────────────────────────────────────
-  {
+  if (C.tdrs) {
     const id = 'tdrs', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 3, kicker: 'TDRs e licitação', titulo: 'Do termo de referência<br><em>à contratação</em>' })
+    const E = esquerda(e, { n: num(id), kicker: 'TDRs e licitação', titulo: 'Do termo de referência<br><em>à contratação</em>' })
     const FS = ['Elaboração', 'Revisão', 'UNESCO', 'Licitação', 'Contratado']
     E.box.innerHTML = `<div class="fases">${FS.map((f, i) => `<div class="fase">${f}</div>${i < FS.length - 1 ? '<span class="seta">›</span>' : ''}</div>`).join('')}`
     E.box.style.flexDirection = 'row'
@@ -188,9 +195,9 @@
   }
 
   // ── 6. CONTRATOS + FINANCEIRO ──────────────────────────────────────────────
-  {
+  if (C.contratos) {
     const id = 'contratos', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 4, kicker: 'Contratos e Financeiro', titulo: 'Tudo conectado,<br><em>com rastro</em>', chips: [{ tx: 'Contratos', ic: 'doc' }, { tx: 'Produtos entregues', ic: 'caixa' }, { tx: 'Pagamentos com senha', ic: 'cadeado' }] })
+    const E = esquerda(e, { n: num(id), kicker: 'Contratos e Financeiro', titulo: 'Tudo conectado,<br><em>com rastro</em>', chips: [{ tx: 'Contratos', ic: 'doc' }, { tx: 'Produtos entregues', ic: 'caixa' }, { tx: 'Pagamentos com senha', ic: 'cadeado' }] })
     const t = tela(e, { img: 'contratos', ...G({ x: 1190, y: 420, w: 980 }, { x: 520, y: 880, w: 900, h: 520 }), url: 'Contratos', ry: -12 })
     const t2 = tela(e, { img: 'financeiro', ...G({ x: 1480, y: 650, w: 680 }, { x: 610, y: 1170, w: 700, h: 400 }), url: 'Execução Financeira', ry: -16 })
     entradaTela(t, c.ini, c.fim, -12, -6); entradaEsq(E, c.ini, [wt(id, 'contratos'), wt(id, 'produtos'), wt(id, 'pagamentos')])
@@ -200,9 +207,9 @@
   }
 
   // ── 7. REMANEJAMENTO ───────────────────────────────────────────────────────
-  {
+  if (C.remanej) {
     const id = 'remanej', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 5, kicker: 'Remanejamento', titulo: 'Assinaturas<br><em>em cadeia</em>', chips: [{ tx: 'Senha confirmada no servidor', ic: 'chave' }, { tx: 'Histórico que não se apaga', ic: 'hist' }] })
+    const E = esquerda(e, { n: num(id), kicker: 'Remanejamento', titulo: 'Assinaturas<br><em>em cadeia</em>', chips: [{ tx: 'Senha confirmada no servidor', ic: 'chave' }, { tx: 'Histórico que não se apaga', ic: 'hist' }] })
     const hash = el(`<div class="hash"><span>SHA-256 · </span><span class="hx"></span></div>`, E.e)
     const t = tela(e, { img: 'remanejamentos-pedido', ...STD, url: 'Remanejamento · REM-2026-007',
       hl: [{ x: .497, y: .295, w: .235, h: .265 }, { x: .205, y: .757, w: .59, h: .04 }] })
@@ -216,9 +223,9 @@
   }
 
   // ── 8. MATRIZ ───────────────────────────────────────────────────────────────
-  {
+  if (C.matriz) {
     const id = 'matriz', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 6, kicker: 'Matriz de Resultados', titulo: 'Cada entrega<br><em>conta para a meta</em>' })
+    const E = esquerda(e, { n: num(id), kicker: 'Matriz de Resultados', titulo: 'Cada entrega<br><em>conta para a meta</em>' })
     const ODS = [[1, '#E5243B', 'Erradicação da pobreza'], [4, '#C5192D', 'Educação de qualidade'], [5, '#FF3A21', 'Igualdade de gênero'], [8, '#A21942', 'Trabalho decente'],
       [13, '#3F7E44', 'Ação climática'], [15, '#56C02B', 'Vida terrestre'], [17, '#19486A', 'Parcerias'], [18, '#7B3110', 'Igualdade étnico-racial']]
     E.box.innerHTML = `<div class="ods">${ODS.map(o => `<div style="background:${o[1]}">${o[0]}<small>${o[2]}</small></div>`).join('')}</div>`
@@ -230,9 +237,9 @@
   }
 
   // ── 9. MAPA ─────────────────────────────────────────────────────────────────
-  {
+  if (C.mapa) {
     const id = 'mapa', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 7, kicker: 'Mapa Interativo', titulo: 'O projeto<br><em>no território</em>', chips: [{ tx: 'Entregas georreferenciadas', ic: 'alvo' }, { tx: 'Camadas ambientais', ic: 'olho' }] })
+    const E = esquerda(e, { n: num(id), kicker: 'Mapa Interativo', titulo: 'O projeto<br><em>no território</em>', chips: [{ tx: 'Entregas georreferenciadas', ic: 'alvo' }, { tx: 'Camadas ambientais', ic: 'olho' }] })
     const P = [[.456, .358], [.51, .34], [.507, .41], [.516, .48], [.449, .527], [.429, .646], [.547, .629], [.494, .714], [.526, .79], [.458, .727], [.387, .418], [.583, .635]]
     const t = tela(e, { img: 'mapa', ...STD, url: 'Mapa Interativo · APAs', pulsos: P })
     entradaTela(t, c.ini, c.fim, -12, -6); entradaEsq(E, c.ini, [wt(id, 'territorio') - .2, wt(id, 'onde')])
@@ -245,11 +252,11 @@
   }
 
   // ── 10. APP DE CAMPO ───────────────────────────────────────────────────────
-  {
+  if (C.campo) {
     const id = 'campo', c = C[id], e = cena(id); janela(e, id)
     el(`<div style="position:absolute;inset:0;background:url(${T('mapa')}) 60% 50%/150% no-repeat;opacity:.16;filter:blur(6px) saturate(1.2)"></div>`, e)
     const cel = el(`<div class="celular" style="${G('left:330px;top:90px', 'left:60px;top:560px')}"><div class="ilha"></div><div class="tela-cel"><img src="${T('diag-app')}"></div></div>`, e)
-    const k = el(`<div class="kicker" style="position:absolute;${G('left:880px;top:200px', 'left:72px;top:250px')}"><b>08</b><i></i>Diagnóstico Socioambiental</div>`, e)
+    const k = el(`<div class="kicker" style="position:absolute;${G('left:880px;top:200px', 'left:72px;top:250px')}"><b>${String(num(id)).padStart(2, '0')}</b><i></i>Diagnóstico Socioambiental</div>`, e)
     const tit = el(`<div class="titulo" style="position:absolute;${G('left:880px;top:250px;width:900px', 'left:72px;top:300px;width:940px')}">No campo,<br><em>mesmo sem internet</em></div>`, e)
     const fs = el(`<div class="feats" style="${G('left:880px;top:500px', 'left:466px;top:640px;width:560px')}">
       <div class="feat"><div class="ic">${ic('semRede')}</div><div><b>Funciona offline</b><span>a ficha é enviada quando o sinal volta</span></div></div>
@@ -263,9 +270,9 @@
   }
 
   // ── 11. PATRIMÔNIO ─────────────────────────────────────────────────────────
-  {
+  if (C.patrimonio) {
     const id = 'patrimonio', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 9, kicker: 'Patrimônio', titulo: 'Cada bem<br><em>sob controle</em>', chips: [{ tx: 'Ficha com valor e depreciação', ic: 'doc' }, { tx: 'Termo de responsabilidade', ic: 'pessoas' }, { tx: 'Inventário digital', ic: 'qr' }] })
+    const E = esquerda(e, { n: num(id), kicker: 'Patrimônio', titulo: 'Cada bem<br><em>sob controle</em>', chips: [{ tx: 'Ficha com valor e depreciação', ic: 'doc' }, { tx: 'Termo de responsabilidade', ic: 'pessoas' }, { tx: 'Inventário digital', ic: 'qr' }] })
     const t = tela(e, { img: 'patrimonio', ...G({ x: 1160, y: 460, w: 980 }, STD), url: 'Patrimônio', ry: -10 })
     const q = qrcode(0, 'M'); q.addData(location.origin + '/pages/patrimonio.html?bem=PAT-000143'); q.make()
     const placa = el(`<div class="placa" style="${G('left:1480px;top:440px', 'left:700px;top:1030px')}"><div class="top">Patrimônio do projeto</div><div class="qr">${q.createSvgTag({ cellSize: 6, margin: 0, scalable: true })}</div>
@@ -277,9 +284,9 @@
   }
 
   // ── 12. AUDITORIA IA ───────────────────────────────────────────────────────
-  {
+  if (C.auditoria) {
     const id = 'auditoria', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 10, kicker: 'Auditoria IA', titulo: 'Riscos apontados<br><em>antes do problema</em>' })
+    const E = esquerda(e, { n: num(id), kicker: 'Auditoria IA', titulo: 'Riscos apontados<br><em>antes do problema</em>' })
     E.box.innerHTML = '<div class="sev"><div class="s-c"><b>1</b>crítico</div><div class="s-a"><b>2</b>altos</div><div class="s-m"><b>3</b>médios</div></div>'
     const t = tela(e, { img: 'auditoria', ...STD, url: 'Auditoria IA' })
     const scan = el('<div class="scan"></div>', t.d.querySelector('.dev-tela'))
@@ -291,9 +298,9 @@
   }
 
   // ── 13. RELATÓRIOS ─────────────────────────────────────────────────────────
-  {
+  if (C.relatorios) {
     const id = 'relatorios', c = C[id], e = cena(id); janela(e, id)
-    const E = esquerda(e, { n: 11, kicker: 'Relatórios', titulo: 'Prestação de contas<br><em>em um clique</em>' })
+    const E = esquerda(e, { n: num(id), kicker: 'Relatórios', titulo: 'Prestação de contas<br><em>em um clique</em>' })
     E.box.innerHTML = '<div class="fmt"><div class="f-pdf">PDF<small>folha A4</small></div><div class="f-xls">XLSX<small>planilha</small></div><div class="f-ppt">PPTX<small>apresentação</small></div></div>'
     const t = tela(e, { img: 'relatorios-m1', ...STD, url: 'Relatórios · Central', ry: -10 })
     entradaTela(t, c.ini, c.fim, -10, -5); entradaEsq(E, c.ini, [])
@@ -302,7 +309,7 @@
   }
 
   // ── 14. SEGURANÇA ──────────────────────────────────────────────────────────
-  {
+  if (C.seguranca) {
     const id = 'seguranca', c = C[id], e = cena(id); janela(e, id)
     const tit = el(`<div class="titulo" style="position:absolute;left:0;right:0;top:${G(110, 300)}px;text-align:center">Segurança ${G('', '<br>')}<em>de ponta a ponta</em></div>`, e)
     const aneis = G([380, 560, 760], [360, 540, 740]).map(r => el(`<div class="anel" style="width:${r}px;height:${r}px;margin:-${r / 2}px 0 0 -${r / 2}px"></div>`, e))
@@ -326,8 +333,9 @@
     const tag = el(`<div class="fecho-tag"><div class="l">Transparência <em>que se vê.</em></div><div class="l">Resultados <em>que ficam.</em></div></div>`, e)
     const ls = [...tag.children]
     ls.forEach((l, i) => ft(l, { opacity: 0, y: 50, filter: 'blur(16px)', scale: 1.1 }, { opacity: 1, y: 0, filter: 'blur(0px)', scale: 1, duration: .8, ease: 'expo.out' }, [wt(id, 'transparencia'), wt(id, 'resultados')][i] - .12))
-    const t2 = c.fim_voz + .5
-    tl.to(tag, { opacity: 0, scale: .92, filter: 'blur(12px)', duration: .5, ease: 'power2.in' }, t2)
+    const t2 = CURTO ? c.ini + .9 : c.fim_voz + .5
+    if (CURTO) { e.classList.add('curto'); gsap.set(tag, { y: G(-300, -470), scale: .62 }) }
+    else tl.to(tag, { opacity: 0, scale: .92, filter: 'blur(12px)', duration: .5, ease: 'power2.in' }, t2)
     const fim = el(`<div class="fecho-fim">
       <div class="topo"><img src="../../assets/brasao-acre.png" alt=""><img src="../../assets/sema-branco.png" alt=""><img class="res" src="../../assets/logo-resiliencia.png" alt=""></div>
       <div class="nome">Plataforma Inteligente de Gestão de Projetos</div>
@@ -336,13 +344,13 @@
       <div class="credito"><span class="p">Concepção e Desenvolvimento</span><br><b>Erisson Cameli Santiago</b> · © 2025–2026</div></div>`, e)
     ft(fim, { opacity: 0, scale: 1.06 }, { opacity: 1, scale: 1, duration: 1, ease: 'power3.out' }, t2 + .3)
     ;[...fim.children].forEach((ch, i) => ft(ch, { y: 30 }, { y: 0, duration: .9, ease: 'expo.out' }, t2 + .3 + i * .12))
-    tl.to(palco, { opacity: 0, duration: 1.2, ease: 'power1.in' }, L.total - 1.2)
+    tl.to(palco, { opacity: 0, duration: CURTO ? .6 : 1.2, ease: 'power1.in' }, L.total - (CURTO ? .6 : 1.2))
   }
 
   // aviso discreto: telas com dados de demonstração
   const demo = el('<div class="demo">Telas reais da plataforma com dados fictícios de demonstração</div>', palco)
   gsap.set(demo, { opacity: 0 })
-  ft(demo, { opacity: 0 }, { opacity: 1, duration: .6 }, C.visao.ini); tl.to(demo, { opacity: 0, duration: .4 }, C.seguranca.ini - .3)
+  ft(demo, { opacity: 0 }, { opacity: 1, duration: .6 }, C[MODS[0]].ini); tl.to(demo, { opacity: 0, duration: .4 }, (C.seguranca || C.fecho).ini - .3)
 
   // ── procedurais: fundo, partículas, grão e legenda ───────────────────────────
   const blobs = [...document.querySelectorAll('.blob')], grade = document.getElementById('grade'), grao = document.getElementById('grao')

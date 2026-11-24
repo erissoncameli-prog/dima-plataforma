@@ -1,15 +1,18 @@
 """Linha do tempo + trilha original + efeitos + mixagem (tudo sintetizado aqui, sem material de terceiros).
 
-uso: python audio/trilha.py
-lê:  build/locucao.json, build/voz/*.wav
-gera: build/linha.json (tempo de cada cena, lido pela animação), build/mix.wav (48 kHz estéreo)
+uso: python audio/trilha.py [build] [segundos-do-fecho]      (corte de 30 s: python audio/trilha.py build/corte30 3.6)
+lê:  <build>/locucao.json, <build>/voz/*.wav
+gera: <build>/linha.json (tempo de cada cena, lido pela animação), <build>/mix.wav (48 kHz estéreo)
 """
-import json, os, subprocess, math
+import json, os, subprocess, math, sys
 import numpy as np, soundfile as sf
 from scipy.signal import butter, sosfilt
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-B = os.path.join(RAIZ, 'build')
+B = os.path.join(RAIZ, sys.argv[1] if len(sys.argv) > 1 else 'build')
+SEGURA = float(sys.argv[2]) if len(sys.argv) > 2 else 5.5
+COMPACTO = 'compacto' in sys.argv          # corte curto: abertura menor, cenas mais juntas, música um pouco mais baixa
+ABERTURA, FOLGA, MUS = (0.5, 0.12, 0.24) if COMPACTO else (1.0, 0.3, 0.42)
 SR = 48000
 BPM = 120; BEAT = 60 / BPM; BAR = 4 * BEAT
 rng = np.random.default_rng(42)
@@ -17,15 +20,16 @@ rng = np.random.default_rng(42)
 # ── 1. Linha do tempo: cada cena começa num tempo do compasso ─────────────────
 loc = json.load(open(os.path.join(B, 'locucao.json'), encoding='utf-8'))
 PRE = {'gancho': 0.25, 'marca': 1.1, 'fecho': 0.9}          # respiro antes da voz (marca: revelação do logo)
-cenas, t = [], 1.0                                           # 1 s de abertura antes do gancho
+if len(loc) > 1 and loc[1]['id'] != 'marca': PRE[loc[1]['id']] = 0.55   # corte sem a marca: o impacto cai na 1ª tela
+cenas, t = [], ABERTURA                                      # abertura antes do gancho
 for c in loc:
     ini = t
     voz = ini + PRE.get(c['id'], 0.3)
     fim_voz = voz + c['dur']
-    t = math.ceil((fim_voz + 0.3) / BEAT) * BEAT
+    t = math.ceil((fim_voz + FOLGA) / BEAT) * BEAT
     cenas.append({'id': c['id'], 'ini': round(ini, 3), 'voz': round(voz, 3), 'fim_voz': round(fim_voz, 3), 'fim': round(t, 3),
                   'texto': c['texto'], 'palavras': [{**p, 'ini': round(voz + p['ini'], 3), 'fim': round(voz + p['fim'], 3)} for p in c['palavras']]})
-cenas[-1]['fim'] = round(cenas[-1]['fim_voz'] + 5.5, 3)      # fecho segura logos e crédito
+cenas[-1]['fim'] = round(cenas[-1]['fim_voz'] + SEGURA, 3)   # fecho segura logos e crédito
 TOTAL = cenas[-1]['fim']
 json.dump({'total': TOTAL, 'bpm': BPM, 'cenas': cenas}, open(os.path.join(B, 'linha.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print('duração', TOTAL, 's')
@@ -58,8 +62,9 @@ def faixa(a, b, fade=0.05):
     k = int(fade * SR)
     if k: e = np.convolve(e, np.ones(k) / k, 'same')
     return e
-t_drop = C['marca']['ini']; t_break = C['seguranca']['ini']; t_fim = C['fecho']['ini']
-cheio = faixa(t_drop, t_break) + faixa(t_fim, t_fim + 2 * BAR) * 0.9
+t_drop = cenas[1]['ini']; t_fim = C['fecho']['ini']
+t_break = C['seguranca']['ini'] if 'seguranca' in C else t_fim - BAR      # sem a cena de segurança: um compasso de pausa antes do fecho
+cheio = faixa(t_drop, t_break) + faixa(t_fim, min(TOTAL, t_fim + 2 * BAR)) * 0.9
 intro = faixa(0, t_drop, 0.3) + faixa(t_break, t_fim, 0.3)
 
 # ── 2. instrumentos ──────────────────────────────────────────────────────────
@@ -161,7 +166,7 @@ duck = 1 - 0.7 * ev
 
 fade = np.ones(N); fo = int(2.5 * SR); fe = int(TOTAL * SR); fade[fe - fo:fe] = np.linspace(1, 0, fo); fade[fe:] = 0
 fi = int(0.6 * SR); fade[:fi] *= np.linspace(0, 1, fi)
-musica = (mus * duck * 0.42 + sfx * 0.6) * fade
+musica = (mus * duck * MUS + sfx * 0.6) * fade
 _v = ev > 0.5
 print('voz acima da música (dB, trechos com voz):', round(20 * math.log10(np.sqrt(np.mean(voz[_v] ** 2)) / np.sqrt(np.mean(musica[_v] ** 2))), 1))
 # leve largura estéreo: arpejo e pad com atraso curto num canal
