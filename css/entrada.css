@@ -117,13 +117,13 @@ html[data-tema="escuro"] .en-grupo button[aria-pressed="true"] { background: #2A
 .en-msg.erro { color: var(--en-erro); background: var(--en-erro-bg); border-color: var(--en-erro-lin); }
 .en-msg.ok { color: var(--en-ok); background: var(--en-ok-bg); border-color: var(--en-ok-lin); }
 
-.en-campo { margin-bottom: 14px; }
-.en-rot-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.en-campo { margin-bottom: 12px; }
+.en-rot-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
 .en-rot { display: block; font-size: 13px; font-weight: 600; color: var(--en-txt-2); }
 .en-rot-linha .en-rot { margin: 0; }
-.en-campo > .en-rot { margin-bottom: 7px; }
+.en-campo > .en-rot { margin-bottom: 5px; }
 .en-input-wrap { position: relative; }
-.en-input { width: 100%; height: 50px; padding: 0 14px; border-radius: var(--en-r); border: 1.5px solid var(--en-lin-forte);
+.en-input { width: 100%; height: 44px; padding: 0 14px; border-radius: var(--en-r); border: 1.5px solid var(--en-lin-forte);
   background: var(--en-campo); color: var(--en-txt); font: 400 16px var(--en-ff); /* 16 px: o iPhone não amplia ao tocar */
   outline: none; transition: border-color var(--en-mov), box-shadow var(--en-mov), background var(--en-mov); }
 .en-input::placeholder { color: var(--en-txt-3); opacity: .8; }
@@ -144,7 +144,7 @@ html[data-tema="escuro"] .en-grupo button[aria-pressed="true"] { background: #2A
 .en-link:hover { text-decoration-color: currentColor; }
 html:not([data-tema="escuro"]) .en-link { color: #1F5C3F; }
 
-.en-btn { width: 100%; min-height: 46px; padding: 0 18px; border-radius: var(--en-r); border: 0; cursor: pointer;
+.en-btn { width: 100%; min-height: 44px; padding: 0 18px; border-radius: var(--en-r); border: 0; cursor: pointer;
   font: 700 15px var(--en-ff); letter-spacing: .01em; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
   transition: transform var(--en-mov), box-shadow var(--en-mov), filter var(--en-mov); }
 .en-btn-pri { margin-top: 6px; color: var(--en-pri-txt); background: linear-gradient(135deg, var(--en-pri) 0%, var(--en-pri-2) 100%);
@@ -154,6 +154,10 @@ html[data-tema="escuro"] .en-btn-pri { box-shadow: 0 4px 22px rgba(201, 168, 76,
 .en-btn-pri:active { transform: none; box-shadow: none; }
 .en-btn[disabled] { opacity: .55; cursor: progress; transform: none; }
 .en-btn-sec { color: var(--en-txt-2); background: var(--en-sup); border: 1.5px solid var(--en-lin-forte); font-weight: 600; font-size: 14px; }
+.en-pub { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; min-height: 32px;
+  font-size: 13.5px; font-weight: 600; color: var(--en-foco); text-decoration: none; }
+.en-pub:hover { text-decoration: underline; text-underline-offset: 3px; }
+.en-pub .en-ic { width: 16px; height: 16px; }
 .en-btn-sec:hover { color: var(--en-txt); border-color: var(--en-txt-3); }
 .en-giro { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent;
   animation: en-giro .7s linear infinite; }
@@ -212,12 +216,14 @@ html[data-tema="escuro"] .en-btn-pri { box-shadow: 0 4px 22px rgba(201, 168, 76,
     margin-top: -20px; border-radius: 22px 22px 0 0; background: var(--en-bg);
     padding: 12px max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
   .en-centro { justify-content: flex-start; padding: 10px 0 0; }
-  .en-cartao { padding: 18px 18px 16px; max-width: 520px; width: 100%; margin: 0 auto; }
+  .en-cartao { padding: 14px 16px 10px; max-width: 520px; width: 100%; margin: 0 auto; }
   .en-barra { max-width: 520px; width: 100%; margin: 0 auto; }
-  .en-marca { margin-bottom: 12px; }
-  .en-titulo { font-size: 24px; }
-  .en-sub { margin-bottom: 14px; }
-  .en-campo { margin-bottom: 12px; }
+  .en-marca { margin-bottom: 8px; }
+  .en-marca-nome { font-size: 14px; }
+  .en-titulo { font-size: 21px; margin-bottom: 10px; }
+  .en-pub { margin-top: 6px; min-height: 30px; }
+  #en-vista-entrar > .en-sub { display: none; }
+  .en-campo { margin-bottom: 9px; }
 }
 @media (max-width: 380px) {
   .en-grupo button { padding: 4px 8px; }

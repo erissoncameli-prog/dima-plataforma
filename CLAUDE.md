@@ -1432,7 +1432,7 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
 - **Fotos** só de Dados do sistema (`fotos`, `legenda`), guardadas no aparelho (`dima_entrada_v1`) — nada de foto fixa no HTML.
   Carregadas aos poucos (atual + próxima); 4G/3G no celular ou economia de dados = só a 1ª, sem troca; `prefers-reduced-motion`
   = parada; botão pausar/continuar. Setas trocam a foto só fora de campo. `cor_primaria` = fundo da vitrine sem foto; o botão
-  Entrar é dourado (`--en-pri`, texto escuro) nos dois temas; o cartão traz o nome "Plataforma Inteligente de Gestão de Projetos", sem ícone.
+  Entrar é dourado (`--en-pri`, texto escuro) nos dois temas; o cartão traz o nome "Plataforma Inteligente de Gestão de Projetos", sem ícone. Cartão compacto: painel público é link de texto (`.en-pub`, sem "ou"); no celular o subtítulo some.
 - Formulário de verdade (`<form>`, rótulos ligados, `autocomplete`), mostrar senha, aviso de Caps Lock, erro com `role="alert"`,
   todos os textos em PT/EN/ES (`TX`). Lógica de entrar igual: conta desativada sai, `deve_trocar_senha` → trocar-senha, `dima_redirect`.
 - **Esqueceu a senha?** e **Pedir para voltar a entrar** → Edge Function **`conta-acesso`** (migração `20261127_acessos_e_retorno_senha`;
