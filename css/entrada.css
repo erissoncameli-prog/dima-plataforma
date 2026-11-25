@@ -103,13 +103,13 @@ html[data-tema="escuro"] .en-grupo button[aria-pressed="true"] { background: #2A
 
 .en-centro { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; padding: 22px 0; }
 .en-cartao { background: var(--en-sup); border: 1px solid var(--en-lin); border-radius: var(--en-r-lg); box-shadow: var(--en-sombra);
-  padding: 28px 28px 24px; }
-.en-marca { display: flex; align-items: center; gap: 11px; margin-bottom: 24px; }
+  padding: 24px 24px 20px; }
+.en-marca { display: flex; align-items: center; gap: 11px; margin-bottom: 18px; }
 .en-marca-nome { font-size: 15px; font-weight: 700; letter-spacing: 0; color: var(--en-txt); line-height: 1.3; text-wrap: balance; }
 .en-marca-sub { font-size: 12px; color: var(--en-txt-3); white-space: nowrap; }
 
 .en-titulo { margin: 0 0 6px; font-size: 28px; font-weight: 700; letter-spacing: -.015em; line-height: 1.15; color: var(--en-txt); }
-.en-sub { margin: 0 0 22px; font-size: 14px; line-height: 1.5; color: var(--en-txt-2); }
+.en-sub { margin: 0 0 18px; font-size: 14px; line-height: 1.5; color: var(--en-txt-2); }
 
 .en-msg { display: flex; gap: 9px; align-items: flex-start; margin: 0 0 16px; padding: 11px 13px; border-radius: var(--en-r);
   font-size: 13.5px; line-height: 1.45; border: 1px solid; }
@@ -117,7 +117,7 @@ html[data-tema="escuro"] .en-grupo button[aria-pressed="true"] { background: #2A
 .en-msg.erro { color: var(--en-erro); background: var(--en-erro-bg); border-color: var(--en-erro-lin); }
 .en-msg.ok { color: var(--en-ok); background: var(--en-ok-bg); border-color: var(--en-ok-lin); }
 
-.en-campo { margin-bottom: 16px; }
+.en-campo { margin-bottom: 14px; }
 .en-rot-linha { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
 .en-rot { display: block; font-size: 13px; font-weight: 600; color: var(--en-txt-2); }
 .en-rot-linha .en-rot { margin: 0; }
@@ -144,7 +144,7 @@ html[data-tema="escuro"] .en-grupo button[aria-pressed="true"] { background: #2A
 .en-link:hover { text-decoration-color: currentColor; }
 html:not([data-tema="escuro"]) .en-link { color: #1F5C3F; }
 
-.en-btn { width: 100%; min-height: 50px; padding: 0 18px; border-radius: var(--en-r); border: 0; cursor: pointer;
+.en-btn { width: 100%; min-height: 46px; padding: 0 18px; border-radius: var(--en-r); border: 0; cursor: pointer;
   font: 700 15px var(--en-ff); letter-spacing: .01em; display: inline-flex; align-items: center; justify-content: center; gap: 9px;
   transition: transform var(--en-mov), box-shadow var(--en-mov), filter var(--en-mov); }
 .en-btn-pri { margin-top: 6px; color: var(--en-pri-txt); background: linear-gradient(135deg, var(--en-pri) 0%, var(--en-pri-2) 100%);
@@ -159,7 +159,7 @@ html[data-tema="escuro"] .en-btn-pri { box-shadow: 0 4px 22px rgba(201, 168, 76,
   animation: en-giro .7s linear infinite; }
 @keyframes en-giro { to { transform: rotate(360deg); } }
 
-.en-ou { display: flex; align-items: center; gap: 12px; margin: 18px 0; font-size: 12px; color: var(--en-txt-3); }
+.en-ou { display: flex; align-items: center; gap: 12px; margin: 12px 0; font-size: 12px; color: var(--en-txt-3); }
 .en-ou::before, .en-ou::after { content: ''; flex: 1; height: 1px; background: var(--en-lin); }
 .en-voltar { display: inline-flex; align-items: center; gap: 6px; margin: -6px 0 14px; }
 .en-voltar svg.en-ic { width: 16px; height: 16px; }
@@ -212,16 +212,17 @@ html[data-tema="escuro"] .en-btn-pri { box-shadow: 0 4px 22px rgba(201, 168, 76,
     margin-top: -20px; border-radius: 22px 22px 0 0; background: var(--en-bg);
     padding: 12px max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
   .en-centro { justify-content: flex-start; padding: 10px 0 0; }
-  .en-cartao { padding: 22px 20px 20px; max-width: 520px; width: 100%; margin: 0 auto; }
+  .en-cartao { padding: 18px 18px 16px; max-width: 520px; width: 100%; margin: 0 auto; }
   .en-barra { max-width: 520px; width: 100%; margin: 0 auto; }
-  .en-marca { margin-bottom: 18px; }
-  .en-titulo { font-size: 25px; }
-  .en-sub { margin-bottom: 18px; }
+  .en-marca { margin-bottom: 12px; }
+  .en-titulo { font-size: 24px; }
+  .en-sub { margin-bottom: 14px; }
+  .en-campo { margin-bottom: 12px; }
 }
 @media (max-width: 380px) {
   .en-grupo button { padding: 4px 8px; }
   .en-grupo button .en-tema-txt { display: none; }
-  .en-cartao { padding: 20px 16px 18px; }
+  .en-cartao { padding: 16px 14px 14px; }
   .en-titulo { font-size: 23px; }
 }
 /* Celular baixo (até ~700 px): aperta os respiros para o botão Entrar caber sem rolar */
