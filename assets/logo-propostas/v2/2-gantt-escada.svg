@@ -1,0 +1,3 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><title>Gantt em escada</title>
+<rect x="14" y="24" width="44" height="16" rx="8" fill="#1E3A8A"/><rect x="38" y="48" width="44" height="16" rx="8" fill="#0EA5A4"/><rect x="62" y="72" width="44" height="16" rx="8" fill="#F59E0B"/>
+<circle cx="98" cy="32" r="8" fill="none" stroke="#1E3A8A" stroke-width="4"/></svg>
