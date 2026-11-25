@@ -1424,7 +1424,7 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
   script no `<head>`. A **vitrine** (foto + véu + logos + projeto) é arte: escura nos dois temas; só o lado do formulário muda.
 - **Celular**: formulário primeiro (faixa curta da foto em cima, botão Entrar visível sem rolar a partir de 360×640); campo com
   16 px (o iPhone não amplia), toque ≥ 32–44 px, `dvh` e `env(safe-area-inset-*)`; teclado aberto (`body.en-teclado`) encolhe a
-  foto; deitado = duas colunas. No celular a faixa da foto mostra só as logos (Acre/SEMA e, abaixo, o Resiliência); o nome do
+  foto; deitado = duas colunas. No celular a faixa da foto mostra só as logos (Acre/SEMA à esquerda e o Resiliência à direita, na mesma linha); o nome do
   projeto aparece só se não houver logo do projeto (`:has`).
 - **Logos**: topo (Acre, SEMA) 36–51 px e Resiliência 104–168 px no computador (92 px no celular). **Parceiros** ficam no rodapé,
   abaixo de "Projeto …", em uma ou duas linhas (base 24 px; tamanho de cada um em `ESCALA_PARC`, js/entrada.js: ONU e UNESCO 1,5x, Fundo 2,25x, "grande"/Consórcio 2,5x), no fundo do tema: claro = versão de fundo claro direto; escuro = versão escura se **todos**
