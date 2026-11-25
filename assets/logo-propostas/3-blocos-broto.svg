@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><title>Blocos que brotam</title>
+<rect x="18" y="74" width="24" height="28" rx="5" fill="#4E8B5F"/><rect x="48" y="58" width="24" height="44" rx="5" fill="#1F4E2C"/><rect x="78" y="74" width="24" height="28" rx="5" fill="#4E8B5F"/>
+<path d="M60 56V30" stroke="#1F4E2C" stroke-width="5" stroke-linecap="round"/>
+<path d="M60 36C60 20 74 14 88 16C88 30 76 38 60 36Z" fill="#C9A227"/><path d="M60 42C60 30 48 24 36 26C36 38 46 44 60 42Z" fill="#4E8B5F"/></svg>

@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><title>Folha em rede</title>
+<path d="M60 10C95 25 105 70 60 110C15 70 25 25 60 10Z" fill="#1F4E2C"/>
+<g stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"><path d="M60 22V98M60 50L40 38M60 50L80 38M60 72L36 62M60 72L84 62"/></g>
+<g fill="#C9A227"><circle cx="40" cy="38" r="5"/><circle cx="80" cy="38" r="5"/><circle cx="36" cy="62" r="5"/><circle cx="84" cy="62" r="5"/><circle cx="60" cy="22" r="5"/></g></svg>
