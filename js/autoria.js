@@ -16,6 +16,9 @@
 //                                  (valor "sobre" acrescenta o link para a janela)
 // Não depende de config.js nem de layout.js (a tela de entrada e as páginas públicas também usam).
 ;(function (g) {
+  // Ícone da marca (assets/marca/icone.svg), resolvido a partir deste script: vale na raiz, em pages/ e em janela nova
+  const MARCA_URL = (() => { try { return new URL('../assets/marca/icone.svg', document.currentScript.src).href } catch (e) { return '/assets/marca/icone.svg' } })()
+  const marca = (px) => `<img class="aut-marca" src="${MARCA_URL}" alt="" width="${px || 16}" height="${px || 16}">`
   if (g.DimaAutoria) return
 
   const dados = Object.freeze({
@@ -100,7 +103,7 @@
 
   function rodapeMenu() {
     return `<div class="aut-menu">
-      <div class="aut-menu-sis">${esc(dados.sistema)}</div>
+      <div class="aut-menu-sis">${marca(18)}<span>${esc(dados.sistema)}</span></div>
       <div class="aut-menu-papel">${esc(t('papel'))}</div>
       <div class="aut-menu-autor">${esc(dados.autor)}</div>
       <button type="button" class="aut-menu-btn" onclick="DimaAutoria.abrirSobre(this)">${ICONE}<span>${esc(t('sobre'))}</span></button>
@@ -111,7 +114,7 @@
     (raiz || document).querySelectorAll('[data-dima-autoria]').forEach(el => {
       const comSobre = el.getAttribute('data-dima-autoria') === 'sobre'
       el.classList.add('aut-credito')
-      el.innerHTML = `<span>${esc(dados.sistema)}</span> <span class="aut-sep">·</span> <span>${esc(t('papel'))}: <strong>${esc(dados.autor)}</strong></span> <span class="aut-sep">·</span> <span>© ${esc(dados.anos)}</span>`
+      el.innerHTML = `${marca(16)}<span>${esc(dados.sistema)}</span> <span class="aut-sep">·</span> <span>${esc(t('papel'))}: <strong>${esc(dados.autor)}</strong></span> <span class="aut-sep">·</span> <span>© ${esc(dados.anos)}</span>`
         + (comSobre ? ` <span class="aut-sep">·</span> <button type="button" class="aut-link" onclick="DimaAutoria.abrirSobre(this)">${esc(t('sobre'))}</button>` : '')
     })
   }
@@ -144,7 +147,7 @@
     ov.innerHTML = `<div class="aut-dlg" role="dialog" aria-modal="true" aria-labelledby="aut-titulo">
       <button type="button" class="aut-x" aria-label="${esc(t('fechar'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       <p class="aut-rot">${esc(t('sobre'))}</p>
-      <h2 class="aut-titulo" id="aut-titulo">${esc(dados.sistema)}</h2>
+      <h2 class="aut-titulo" id="aut-titulo">${marca(32)}<span>${esc(dados.sistema)}</span></h2>
       <div class="aut-autor">
         <p class="aut-rot">${esc(t('papel'))}</p>
         <p class="aut-nome">${esc(dados.autor)}</p>
@@ -171,7 +174,7 @@
     ov.querySelector('.aut-x').focus()
   }
 
-  g.DimaAutoria = Object.freeze({ dados, linha, copyright, rodapeMenu, abrirSobre, preencher })
+  g.DimaAutoria = Object.freeze({ dados, marca, marcaUrl: MARCA_URL, linha, copyright, rodapeMenu, abrirSobre, preencher })
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => preencher())
   else preencher()

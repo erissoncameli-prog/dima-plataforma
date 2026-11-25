@@ -103,3 +103,8 @@ footer.aut-credito, .aut-credito.aut-bloco { display: block; text-align: center;
 .aut-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 420px) { .aut-terceiros ul { columns: 1; } .aut-dlg { padding: 20px 16px; } }
 @media print { .aut-ov, .aut-menu { display: none !important; } }
+
+/* Ícone da marca ao lado do nome do sistema */
+.aut-marca { display: inline-block; vertical-align: middle; flex: none; margin-right: 6px; border-radius: 22%; }
+.aut-menu-sis, .aut-titulo { display: flex; align-items: center; }
+.aut-credito .aut-marca { margin-top: -2px; }
