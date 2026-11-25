@@ -436,7 +436,13 @@
   }
 
   // ── HTML: arquivo único ───────────────────────────────────────────────────
-  function gerarHtml (M) {
+  async function gerarHtml (M) {
+    // Ícone da marca embutido (o arquivo HTML abre sem internet)
+    let marca = ''
+    try {
+      const svg = await (await fetch(window.DimaAutoria ? DimaAutoria.marcaUrl : '../assets/marca/icone.svg')).text()
+      marca = `<img src="data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}" alt="" width="14" height="14" style="vertical-align:-2px;margin-right:4px;border-radius:3px">`
+    } catch (e) {}
     const P = M.projeto || {}
     const ancora = id => 'guia-' + id
     const doc = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -469,7 +475,7 @@ ${VGX_CSS}
 .vgx-guia-t{font-size:18px}
 </style></head><body>
 <header><h1>Visão Geral</h1><p>${[P.projeto_codigo ? 'Projeto ' + escT(P.projeto_codigo) : '', escT(P.projeto_nome || ''), escT(P.projeto_localizacao || '')].filter(Boolean).join(' · ')}</p>
-<p>Gerado em ${escT(M.geradoEm)}${M.por ? ' por ' + escT(M.por) : ''} · Plataforma DIMA · SEMA/AC</p></header>
+<p>Gerado em ${escT(M.geradoEm)}${M.por ? ' por ' + escT(M.por) : ''} · ${marca}Plataforma Inteligente de Gestão de Projetos · SEMA/AC</p></header>
 <nav aria-label="Guias">${M.guias.map(g => `<a href="#${ancora(g.id)}">${escT(g.nome)}</a>`).join('')}</nav>
 <main>${M.guias.map(g => `<section id="${ancora(g.id)}"><h2 class="vgx-guia-t">${escT(g.nome)}</h2>${g.blocos.map(b => blocoHtmlFinal(b, 'html')).join('').replace(/<table class="vgx-tbl"/g, '<div class="vgx-wrap"><table class="vgx-tbl"').replace(/<\/table>/g, '</table></div>')}</section>`).join('')}</main>
 <footer>Valores da tela no momento da exportação. Gráficos no tema claro; os dados de cada um ficam em "Ver os dados do gráfico".</footer>
@@ -704,7 +710,7 @@ ${VGX_CSS}
       if (fmt === 'pdf') gerarPdf(w, M)
       else if (fmt === 'xlsx') await gerarXlsx(M)
       else if (fmt === 'pptx') await gerarPptx(M)
-      else gerarHtml(M)
+      else await gerarHtml(M)
       status('Pronto.' + (fmt === 'pdf' ? ' A folha abriu em outra aba.' : ' O arquivo foi baixado.'))
       if (typeof toast === 'function') toast('Visão Geral exportada.', 'success')
     } catch (e) {

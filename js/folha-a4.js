@@ -61,7 +61,7 @@
     const parc = DimaLogos.lista(logos().parceiros, 'claro', { altura: 24, classe: 'doc-footer-logo', cors: true })
     return `<div class="doc-footer">
       ${parc.length ? `<div class="doc-footer-logos">${parc.join('')}</div>` : ''}
-      <div class="doc-footer-txt">Impresso por <strong>${escH(o.usuario || 'Usuário')}</strong>${o.perfil ? ' · ' + escH(o.perfil) : ''} · Plataforma DIMA · SEMA/AC${P.projeto_codigo ? ' · ' + escH(P.projeto_codigo) : ''}</div>
+      <div class="doc-footer-txt">Impresso por <strong>${escH(o.usuario || 'Usuário')}</strong>${o.perfil ? ' · ' + escH(o.perfil) : ''} · ${g.DimaAutoria ? `<img class="doc-footer-marca" src="${escH(DimaAutoria.marcaUrl)}" alt="" width="12" height="12">` : ''}Plataforma Inteligente de Gestão de Projetos · SEMA/AC${P.projeto_codigo ? ' · ' + escH(P.projeto_codigo) : ''}</div>
       ${g.DimaAutoria ? `<div class="doc-footer-txt doc-footer-autoria"><img class="doc-footer-marca" src="${escH(DimaAutoria.marcaUrl)}" alt="" width="12" height="12">${escH(DimaAutoria.linha())}</div>` : ''}
     </div>`
   }
