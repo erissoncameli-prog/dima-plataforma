@@ -344,6 +344,7 @@ function gerarLayout(tituloPagina, paginaAtiva) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
         </button>
         <div id="sidebar-logos-topo" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:40px;margin-bottom:10px;flex-wrap:wrap">${_dimaLogosSidebar(window.DimaLogos ? DimaLogos.agora().topo : [])}</div>
+        <div class="sb-marca" title="Plataforma Inteligente de Gestão de Projetos"><img src="../assets/marca/icone.svg" alt="" width="30" height="30"><span>Plataforma Inteligente<small>de Gestão de Projetos</small></span></div>
         <div class="sidebar-brand-sub" id="sidebar-brand-sub" style="color:rgba(255,255,255,.45);">UNESCO · DIMA · 218BRA2001</div>
       </div>
 

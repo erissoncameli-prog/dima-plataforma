@@ -147,3 +147,11 @@ html.sb-sem-anim .sidebar, html.sb-sem-anim .main-content, html.sb-sem-anim .sb-
 @media (prefers-reduced-motion: reduce) {
   .sidebar, .main-content, .sb-aba-movel, .sb-recolher svg { transition: none !important; }
 }
+
+/* Marca da plataforma (ícone gestão + inteligência) */
+.sb-marca { display: flex; align-items: center; gap: 9px; margin: 2px 0 8px; color: #fff; }
+.sb-marca img { width: 30px; height: 30px; flex: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+.sb-marca span { font-size: 12.5px; font-weight: 600; line-height: 1.2; }
+.sb-marca small { display: block; font-size: 11px; font-weight: 400; color: rgba(255,255,255,.6); }
+html.sb-trilho .sb-marca { justify-content: center; }
+html.sb-trilho .sb-marca span { display: none; }
