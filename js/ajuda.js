@@ -897,7 +897,7 @@ Object.assign(AJUDA, {
         'Para quem não recebeu o e-mail ou não tem conta na plataforma, use "Projetar QR da presença" na ficha da reunião e mostre o QR na tela.',
         'Em reunião online, use "Copiar link" e cole no chat da reunião.',
         'A lista pede nome, e-mail, telefone (opcional), sexo/gênero, cor ou raça e faixa de idade (sempre com "Prefiro não responder") e se a pessoa autoriza o uso da imagem, depois de ler o termo.',
-        'Quem participou sem ter recebido o convite assina normalmente e aparece na lista como "Não convidado(a)".',
+        'Quem participou sem estar no convite inicial da reunião assina normalmente e aparece na lista como "Convidado externo". Quem não tem conta na plataforma aparece como "Sem cadastro".',
         'Cada pessoa assina uma vez: um usuário por lista e um e-mail por lista.',
         'Quem administra a reunião (quem criou, responsáveis, coordenação e super_admin) pode encerrar a lista, reabrir por 2 horas e exportar.',
         'Se alguém pedir para retirar a autorização de imagem, use "Retirar" na lista e escreva o motivo. A escolha anterior fica no histórico.',
