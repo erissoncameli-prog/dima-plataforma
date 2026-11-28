@@ -902,7 +902,7 @@ Object.assign(AJUDA, {
         'Quem administra a reunião (quem criou, responsáveis, coordenação e super_admin) pode encerrar a lista, reabrir por 2 horas e exportar.',
         'Se alguém pedir para retirar a autorização de imagem, use "Retirar" na lista e escreva o motivo. A escolha anterior fica no histórico.',
         'A aba "Presenças" reúne todas as listas: número de reuniões, presenças, pessoas, comparecimento dos convidados, totais por sexo e por raça e quem não autorizou o uso de imagem.',
-        'Exportar: PDF A4 (para a prestação de contas, sem sexo e raça), Excel e CSV. Sexo e raça por pessoa só saem para a coordenação.',
+        'Exportar: PDF A4 (sempre em paisagem, uma página por reunião, com todos os campos e o resumo por sexo e idade), Excel e CSV. Sexo, raça e idade por pessoa só saem para a coordenação; para os demais o relatório traz só os totais.',
       ]},
     ]
   }},
