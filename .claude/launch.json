@@ -6,12 +6,6 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "3000"],
       "port": 3000
-    },
-    {
-      "name": "teste-presenca",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Users/eriss/AppData/Local/Temp/claude/e404dfde534d1286/92e3845d-ce46-4ce2-9446-1e68bfdb0831/scratchpad/servidor.js", "C:/Users/eriss/projetos/dima-plataforma", "C:/Users/eriss/AppData/Local/Temp/claude/e404dfde534d1286/92e3845d-ce46-4ce2-9446-1e68bfdb0831/scratchpad/teste"],
-      "port": 5178
     }
   ]
 }
