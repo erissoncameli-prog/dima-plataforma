@@ -1628,6 +1628,8 @@
 
   // ── Boot ──────────────────────────────────────────────────────────────
   await carregarTudo()
+  // Gerenciador de listas de presença direto pela URL (?aba=presencas)
+  if (new URLSearchParams(location.search).get('aba') === 'presencas' && typeof Presenca !== 'undefined') S.aba = 'presencas'
   render()
 
   // Abrir tarefa direto pela URL (?tarefa=<id>) — vindo do sino/e-mail
