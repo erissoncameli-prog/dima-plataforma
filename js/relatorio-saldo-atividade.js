@@ -103,6 +103,9 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
   const firmados  = dados.reduce((s,d)=>s+d.linhas.filter(l=>l.firmado).length,0);
   const estouros  = dados.filter(d=>d.saldoUSD<0).length;
 
+  // US$ sempre com duas casas ("US$ 431.275,00"), igual em toda a folha
+  const usd2 = v => 'US$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtUSD = usd2;
   // Célula de valor: USD principal + BRL de referência (BRL à cotação atual)
   const val = (usd,brl,destaque) => `<span class="mono"${destaque&&usd<0?' style="color:var(--erro);font-weight:700"':''}>${fmtUSD(usd)}</span><div class="mono-sm" style="color:var(--cinza-400)">${fmtBRL(brl)}</div>`;
   const pctOrc = tOrcUSD>0 ? (tSaldoUSD/tOrcUSD*100) : 0;
@@ -117,7 +120,6 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
   const nRem = dados.filter(d=>d.a.orcamento_original_usd!=null && Math.abs(d.orcUSD-parseFloat(d.a.orcamento_original_usd))>=0.01).length;
 
   // TDR de execução direta: pago pela UNESCO sem contrato; consumo pelos lançamentos ligados ao TDR
-  const usd2 = v => 'US$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const execDireta = t => {
     const x = direta[t.id];
     if(!x) return `<span class="rep-badge rb-azul">Execução direta UNESCO</span>`;
@@ -132,11 +134,12 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
     const estourou = d.saldoUSD < 0;
     const pctComp = d.orcUSD>0 ? Math.min(100, d.compUSD/d.orcUSD*100) : (d.compUSD>0?100:0);
     const barCls = estourou?'crit':pctComp>90?'warn':'';
-    // Cabeçalho da atividade
+    // Cabeçalho da atividade (o bloco inteiro fica num <tbody class="rep-grupo">: o nome não fica sozinho no pé da página)
+    const resCod = d.a.resultado?.codigo ? String(d.a.resultado.codigo).replace(/^R/i,'') : '';
     let bloco = `<tr style="background:#eef5f0">
       <td colspan="3" style="border-top:2px solid #c8e6d0">
         <strong style="color:#1F4E2C">${esc(d.a.codigo||'')}</strong> · ${esc(d.a.nome_pt||'')}
-        ${d.a.resultado?.codigo?`<span class="rep-badge rb-verde" style="margin-left:6px">R${d.a.resultado.codigo}</span>`:''}
+        ${resCod?`<span class="rep-badge rb-verde" style="margin-left:6px">R${esc(resCod)}</span>`:''}
         <span style="font-size:10px;color:var(--cinza-500)"> · ${d.linhas.length} TDR${d.linhas.length!==1?'s':''}</span>
       </td>
       <td style="text-align:right;border-top:2px solid #c8e6d0">${val(d.orcUSD, toBRL(d.orcUSD))}${remNota(d.a, d.orcUSD)}</td>
@@ -146,20 +149,22 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
     // Linhas de TDR
     if(d.linhas.length){
       bloco += d.linhas.map(l=>{
-        const numsContrato = l.conts.map(c=>esc(c.numero||'—')+(c.fornecedor?.nome?' — '+esc(c.fornecedor.nome):'')).join(', ');
+        // um contrato por linha, como texto (selo não quebra e empurrava a tabela para fora da folha)
+        const contratos = l.conts.map(c=>`<div class="mono-sm">${esc(c.numero||'—')}${c.fornecedor?.nome?' — '+esc(c.fornecedor.nome):''}</div>`).join('');
+        const nota = (txt, cor, titulo) => `<div class="mono-sm" style="color:${cor};margin-top:2px" title="${titulo}">${txt}</div>`;
         return `<tr>
           <td style="padding-left:22px;color:var(--cinza-600)">↳ <span class="mono">${esc(l.t.numero||'—')}</span></td>
           <td>${tdrBadge(l.t.status)}</td>
           <td>${l.firmado
-            ? `<span class="rep-badge rb-teal">🔒 ${numsContrato}</span>${
-                l.libEncBRL>0 ? `<span class="rep-badge rb-verde" style="margin-left:4px" title="Valor não executado devolvido ao saldo da atividade no encerramento do contrato">↩ ${fmtBRL(l.libEncBRL)} liberado (encerramento)</span>` : ''
+            ? `${contratos}${
+                l.libEncBRL>0 ? nota(`Liberado no encerramento: ${fmtBRL(l.libEncBRL)}`, '#065F46', 'Valor não executado devolvido ao saldo da atividade no encerramento do contrato') : ''
               }${
-                l.libTdrBRL>0 ? `<span class="rep-badge rb-verde" style="margin-left:4px" title="Economia entre planejado e firmado liberada ao saldo da atividade">↩ ${fmtBRL(l.libTdrBRL)} liberado</span>` : ''
+                l.libTdrBRL>0 ? nota(`Economia liberada: ${fmtBRL(l.libTdrBRL)}`, '#065F46', 'Economia entre planejado e firmado liberada ao saldo da atividade') : ''
               }${
-                l.reservadaBRL>0 ? `<span class="rep-badge rb-azul" style="margin-left:4px" title="Economia entre planejado e firmado, ainda reservada a este TDR">⏸ ${fmtBRL(l.reservadaBRL)} reservado</span>` : ''
+                l.reservadaBRL>0 ? nota(`Economia reservada: ${fmtBRL(l.reservadaBRL)}`, '#1E40AF', 'Economia entre planejado e firmado, ainda reservada a este TDR') : ''
               }`
             : l.t.execucao_direta ? execDireta(l.t)
-            : `<span style="font-size:10px;color:var(--cinza-400)">— sem contrato —</span>`}</td>
+            : `<span style="font-size:10px;color:var(--cinza-400)">sem contrato</span>`}</td>
           <td></td>
           <td style="text-align:right">${val(l.cUSD, l.cBRL)}</td>
           <td></td>
@@ -177,13 +182,13 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
     // Saldo individual da atividade
     bloco += `<tr style="background:${estourou?'#FEF2F2':'#f8faf8'}">
       <td colspan="4" style="text-align:right;font-weight:600;color:${estourou?'#991B1B':'#1F4E2C'}">
-        ${estourou?'⚠ Orçamento estourado · ':''}Saldo livre da atividade (orçamento − comprometido + liberado)
-        ${d.libUSD>0?`<div style="font-weight:400;font-size:10px;color:var(--cinza-500);margin-top:2px">↳ ${fmtBRL(d.libBRL)} já liberado ao saldo desta atividade</div>`:''}
+        ${estourou?'Orçamento estourado · ':''}Saldo livre da atividade (orçamento − comprometido + liberado)
+        ${d.libUSD>0?`<div style="font-weight:400;font-size:10px;color:var(--cinza-500);margin-top:2px">${fmtBRL(d.libBRL)} já liberado ao saldo desta atividade</div>`:''}
       </td>
       <td></td>
       <td style="text-align:right">${val(d.saldoUSD, d.saldoBRL, true)}</td>
     </tr>`;
-    return bloco;
+    return `<tbody class="rep-grupo">${bloco}</tbody>`;
   }).join('');
 
   return `
@@ -194,7 +199,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
     <div class="rep-stat"><div class="rep-stat-lbl">Saldo Livre (USD)</div><div class="rep-stat-val"${tSaldoUSD<0?' style="color:var(--erro)"':''}>${fmtUSD(tSaldoUSD)}</div><div class="rep-stat-sub">${fmtPct1(pctOrc)} do orçamento${estouros?` · ${estouros} estourada${estouros!==1?'s':''}`:''}</div></div>
   </div>
   <div class="rep-secao">
-    <div class="rep-secao-titulo">⚖️ Saldo de Orçamento por Atividade · TDRs comprometidos e firmados</div>
+    <div class="rep-secao-titulo">Saldo de Orçamento por Atividade · TDRs comprometidos e firmados</div>
     <table class="rep-tbl">
       <thead><tr>
         <th>Atividade / TDR</th>
@@ -204,9 +209,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
         <th style="text-align:right">Comprometido</th>
         <th style="text-align:right;min-width:110px">Saldo livre</th>
       </tr></thead>
-      <tbody>
-        ${corpo}
-      </tbody>
+      ${corpo}
       <tfoot><tr>
         <td colspan="3"><strong>TOTAL GERAL</strong></td>
         <td style="text-align:right">${val(tOrcUSD, toBRL(tOrcUSD))}</td>
@@ -214,7 +217,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
         <td style="text-align:right">${val(tSaldoUSD, tSaldoBRL, true)}</td>
       </tr>${tLibUSD>0?`<tr>
         <td colspan="6" style="font-weight:400;font-size:10px;color:var(--cinza-500);border-top:none;padding-top:2px">
-          ↳ Do saldo livre acima, <strong>${fmtUSD(tLibUSD)}</strong> (${fmtBRL(tLibBRL)}) já foi <strong>liberado</strong> para as atividades
+          Do saldo livre acima, <strong>${fmtUSD(tLibUSD)}</strong> (${fmtBRL(tLibBRL)}) já foi <strong>liberado</strong> para as atividades
           — ${fmtUSD(tLibEncUSD)} (${fmtBRL(tLibEncBRL)}) de <strong>encerramento de contrato</strong> com produto não entregue/executado
           e ${fmtUSD(tLibEcoUSD)} (${fmtBRL(tLibEcoBRL)}) de <strong>economia</strong> entre valor planejado e firmado do TDR.
         </td>
@@ -222,7 +225,7 @@ function gerarRelatorioSaldoAtividadeHTML(rows, taxa, direta) {
     </table>
     <div style="font-size:10px;color:var(--cinza-500);margin-top:8px;line-height:1.6">
       Valores em <strong>USD</strong> (moeda do orçamento); linha menor em <strong>BRL</strong> é referência à cotação atual${taxa>0?` de R$ ${taxa.toFixed(4)}`:''}.
-      Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe), mais o que o contrato passar do TDR. Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> (⏸) ao TDR até coordenação/super admin <strong>liberá-la</strong> (↩) para a atividade. Se o contrato é encerrado com produto não entregue/executado, o valor não executado também aparece como <strong>liberado (encerramento)</strong> (↩). TDRs cancelados não entram no cálculo.
+      Comprometido = valor <strong>planejado</strong> de cada TDR (reservado assim que o TDR existe), mais o que o contrato passar do TDR. Quando o contrato fecha abaixo do planejado, a diferença fica <strong>reservada</strong> ao TDR até coordenação/super admin <strong>liberá-la</strong> para a atividade. Se o contrato é encerrado com produto não entregue/executado, o valor não executado também aparece como <strong>liberado no encerramento</strong>. TDRs cancelados não entram no cálculo.
       Saldo livre = Orçamento − Comprometido + Liberado (espelha a Visão Geral).
       ${nDireta?`TDR de <strong>execução direta</strong> (passagens e diárias pagas pela UNESCO) não tem contrato: compromete o valor planejado e mostra quanto já foi consumido pelas viagens e quanto resta.`:''}
       ${nRem?`Orçamento = orçamento <strong>vigente</strong>: ${nRem} atividade${nRem!==1?'s':''} com remanejamento efetivado (saldo líquido ${fmtUSD(tRemUSD)} entre elas; o total do projeto não muda). Cada centavo tem procedência no extrato da atividade, em Remanejamento.`:''}

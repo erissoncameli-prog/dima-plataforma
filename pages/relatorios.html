@@ -505,6 +505,7 @@ function renderFiltros(lista){
       case 'pat_data': return `<div class="config-grupo"><span class="config-lbl">Posição em</span><input type="date" class="config-input" id="fil-pat-data" value="${new Date().toISOString().slice(0,10)}"></div>`;
       case 'pat_tipo_evento': return sel('Movimento','fil-pat-evt', [['incorporacao','Entrada'],['distribuicao','Entrega ao responsável'],['transferencia_interna','Transferência'],
           ['emprestimo','Empréstimo'],['devolucao','Devolução'],['manutencao_saida','Saída para manutenção'],['manutencao_retorno','Volta da manutenção'],
+          ['condicao','Condição registrada'],['reavaliacao','Reavaliação'],['transferencia_definitiva','Transferência definitiva'],
           ['ocorrencia','Ocorrência'],['inventario','Inventário'],['baixa','Baixa'],['correcao','Correção'],['estorno','Estorno']].map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
       case 'pat_sit_oc': return sel('Situação','fil-pat-sitoc','<option value="abertas">Em aberto</option><option value="concluidas">Concluídas</option>', 'Todas');
       case 'pat_sit_bx': return sel('Situação','fil-pat-sitbx','<option value="aguardando">Aguardando</option><option value="aprovada">Aprovadas</option><option value="devolvida">Devolvidas</option><option value="cancelada">Canceladas</option>', 'Todas');
@@ -1667,7 +1668,7 @@ async function relA1(){
 
   let q = db.from('atividades')
     .select(`*,resultado:resultados(codigo,nome_pt),
-      responsaveis:atividade_responsaveis(usuario:usuarios!usuario_id(nome_completo)),
+      responsaveis:atividade_responsaveis(papel,ativo,usuario:usuarios!usuario_id(nome_completo)),
       tdrs(id,status,valor_brl)`)
     .order('codigo');
   if(faseFil) q = q.eq('fase', faseFil);
@@ -1696,14 +1697,15 @@ async function relA1(){
       <tbody>
       ${rows.map(a=>{
         const sa=sal[a.id]||{}, saldo=Number(sa.saldo_livre_usd||0);
-        const resps=[...new Set((a.responsaveis||[]).map(r=>r.usuario?.nome_completo).filter(Boolean))];
+        const nomesPapel=p=>[...new Set((a.responsaveis||[]).filter(r=>r.ativo&&r.papel===p).map(r=>r.usuario?.nome_completo).filter(Boolean))];
+        const resps=nomesPapel('responsavel'), subs=nomesPapel('substituto');
         const tdrsAprov=(a.tdrs||[]).filter(t=>['aprovado','em_licitacao','contratado'].includes(t.status)).length;
         return `<tr>
           <td class="mono">${esc(a.codigo)}</td>
           <td>${esc(a.nome_pt)}</td>
           <td><span class="rep-badge rb-verde">${esc(a.resultado?.codigo||'R?')}</span></td>
           <td><span class="rep-badge ${faseClass[a.fase]||'rb-cinza'}">${faseLabel[a.fase]||a.fase}</span></td>
-          <td style="font-size:10px">${esc(resps.join(', ')||'—')}</td>
+          <td style="font-size:10px">${esc(resps.join(', ')||'—')}${subs.length?`<br><span class="rep-sm">Substituto: ${esc(subs.join(', '))}</span>`:''}</td>
           <td class="mono" style="text-align:right">${usd2(a.orcamento_usd)}</td>
           <td class="mono" style="text-align:right">${usd2(sa.comprometido_usd)}</td>
           <td class="mono" style="text-align:right">${usd2(sa.pago_usd)}</td>
@@ -2403,8 +2405,7 @@ async function relT1(){
   const ativFil = filVal('fil-atividade');
   let q = db.from('tdrs')
     .select(`id,numero,tipo,objeto_pt,valor_brl,valor_usd,status,criado_em,
-      atividade:atividades(id,codigo,nome_pt),
-      elaborador:usuarios!tdrs_elaborador_id_fkey(nome_completo)`)
+      atividade:atividades(id,codigo,nome_pt)`)
     .order('criado_em',{ascending:false});
   if(stFil)   q = q.eq('status', stFil);
   if(tpFil)   q = q.eq('tipo', tpFil);
@@ -2480,9 +2481,10 @@ async function relT2(){
   const {data, error} = await q;
   if(error) throw error;
   const rows = (data||[]).map(t=>{
-    const acoes=t.acoes||[];
+    // em ordem de data: envio = o 1º 'enviado_unesco'; aprovação = o último 'aprovado' (a que valeu)
+    const acoes=[...(t.acoes||[])].sort((a,b)=>String(a.criado_em||'').localeCompare(String(b.criado_em||'')));
     const dtEnv = acoes.find(a=>a.status_novo==='enviado_unesco')?.criado_em;
-    const dtAprov = acoes.find(a=>a.status_novo==='aprovado')?.criado_em;
+    const dtAprov = acoes.filter(a=>a.status_novo==='aprovado').pop()?.criado_em;
     const diasTotal = t.criado_em&&dtAprov?Math.ceil((new Date(dtAprov)-new Date(t.criado_em))/864e5):null;
     const diasAteEnvio = t.criado_em&&dtEnv?Math.ceil((new Date(dtEnv)-new Date(t.criado_em))/864e5):null;
     return {...t,dtEnv,dtAprov,diasTotal,diasAteEnvio};
@@ -2774,7 +2776,7 @@ async function relO1(){
     .filter(r=>!ativFil || r.itens.some(i=>i.atividade_id===ativFil));
   const mov = r => r.itens.filter(i=>Number(i.valor_usd)>0).reduce((s,i)=>s+Number(i.valor_usd),0);
   const lado = (r,sinal) => r.itens.filter(i=>sinal<0?Number(i.valor_usd)<0:Number(i.valor_usd)>0)
-    .map(i=>`${esc(i.atividade?.codigo||'—')} <span style="color:var(--cinza-500)">${fmtUSD(Math.abs(i.valor_usd))}</span>`).join('<br>') || '—';
+    .map(i=>`${esc(i.atividade?.codigo||'—')} <span class="mono" style="color:var(--cinza-500)">${fmtUSD(Math.abs(i.valor_usd))}</span>`).join('<br>') || '—';
   const efet = rows.filter(r=>r.status==='efetivado');
   return `
   <div class="rep-stats rep-stats-4">
@@ -2790,14 +2792,14 @@ async function relO1(){
       <thead><tr><th>Pedido</th><th>Situação</th><th>Solicitante</th><th>Criado</th><th>Efetivado</th>
         <th>Cede (origem)</th><th>Recebe (destino)</th><th style="text-align:right">Valor movimentado</th></tr></thead>
       ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
-        <td class="mono">${esc(r.numero||'—')}${r.tipo==='cobertura_contrato'?`<br><span class="rep-badge rb-azul">Cobertura</span>${r.contrato?`<br>contrato ${esc(r.contrato.numero)}${r.contrato.fornecedores?.nome?' · '+esc(r.contrato.fornecedores.nome):''}`:''}`:''}${r.estorno_de?`<br><span class="rep-badge rb-azul">Estorno de ${esc(porId[r.estorno_de]||'—')}</span>`:''}</td>
+        <td><span class="mono">${esc(r.numero||'—')}</span>${r.tipo==='cobertura_contrato'?`<br><span class="rep-badge rb-azul">Cobertura</span>`:''}${r.estorno_de?`<br><span class="rep-badge rb-azul">Estorno de ${esc(porId[r.estorno_de]||'—')}</span>`:''}</td>
         <td>${oSit(r.status)}</td>
         <td>${esc(r.solicitante?.nome_completo||'—')}</td>
         <td class="mono">${oData(r.criado_em)}</td>
         <td class="mono">${oData(r.efetivado_em)}</td>
         <td>${lado(r,-1)}</td><td>${lado(r,1)}</td>
         <td class="mono" style="text-align:right">${fmtUSD(mov(r))}</td>
-      </tr>${linhaDet(8,'Justificativa',r.justificativa)}</tbody>`).join('')}
+      </tr>${r.tipo==='cobertura_contrato'&&r.contrato?linhaDet(8,'Contrato',(r.contrato.numero||'—')+(r.contrato.fornecedores?.nome?' · '+r.contrato.fornecedores.nome:'')):''}${linhaDet(8,'Justificativa',r.justificativa)}</tbody>`).join('')}
       <tfoot><tr><td colspan="7"><strong>TOTAL movimentado (todos os listados)</strong></td><td class="mono" style="text-align:right">${fmtUSD(rows.reduce((s,r)=>s+mov(r),0))}</td></tr></tfoot>
     </table>`}
   </div>
@@ -3016,13 +3018,14 @@ async function relA2(){
 async function relA3(){
   const {data, error} = await db.from('atividades')
     .select(`id,codigo,nome_pt,orcamento_usd,fase,
-      responsaveis:atividade_responsaveis(usuario:usuarios!usuario_id(id,nome_completo))`)
+      responsaveis:atividade_responsaveis(papel,ativo,usuario:usuarios!usuario_id(id,nome_completo))`)
     .order('codigo');
   if(error) throw error;
   const rows = data||[];
   const mapa = {};
   rows.forEach(a=>{
-    const resps=[...new Set((a.responsaveis||[]).map(r=>r.usuario?.nome_completo).filter(Boolean))];
+    // só o responsável ativo (substituto e vínculo encerrado não contam como responsável)
+    const resps=[...new Set((a.responsaveis||[]).filter(r=>r.ativo&&r.papel==='responsavel').map(r=>r.usuario?.nome_completo).filter(Boolean))];
     if(!resps.length){
       const k='— Sem Responsável';
       if(!mapa[k]) mapa[k]={nome:k,qtd:0,orc:0,atividades:[]};
@@ -3282,25 +3285,27 @@ async function relA5(){
 
   const traco = '<span style="color:var(--cinza-400)">—</span>';
   const R = 'class="mono" style="text-align:right"';
-  const brlOu = v => v ? fmtBRL(v) : traco;
   const usdEst = (v, est) => v ? (est ? '≈ ' : '') + usd2(v) : traco;
   const aproxBRL = usd => ptax ? '≈ ' + fmtBRL(usd * ptax) : '';
   const tkTxt = t => `${t.codigo ? t.codigo + ' ' : ''}${t.titulo || ''} (${a5Rot(A5_TK_ST, t.status)}${t.dt_prazo ? ', prazo ' + fmtDt(String(t.dt_prazo).slice(0,10)) : ''}${t._atrasada ? ', atrasada' : ''})`;
   const situacaoTdr = t => a5Selo(A5_TDR_ST, t.status)
     + (t._rod ? `<div style="font-size:9.5px;color:var(--cinza-500);margin-top:2px">${t._rod.rodada}ª rodada${t._rod.modalidade ? ' · ' + esc(t._rod.modalidade) : ''} · ${esc(A5_LIC[t._rod.situacao] || t._rod.situacao || '')}</div>` : '')
     + (t.execucao_direta ? '<div style="font-size:9.5px;color:var(--cinza-500);margin-top:2px">Execução direta</div>' : '');
-  const linhaCtr = c => `<tr>
+  // Pago numa coluna só: R$ em cima, US$ embaixo (e o a pagar, se houver) — em retrato não cabem duas
+  const pagoCel = (brl, usd, est, apagar) => `<td style="text-align:right">${brl ? `<span class="mono">${fmtBRL(brl)}</span>` : traco}${
+      usd ? `<div class="mono-sm" style="color:var(--cinza-500)">${usdEst(usd, est)}</div>` : ''}${
+      apagar ? `<div class="mono-sm" style="color:var(--cinza-500)">a pagar ${fmtBRL(apagar)}</div>` : ''}</td>`;
+  // Contrato: fornecedor e período na linha de baixo (a coluna estreita espremia o nome em retrato)
+  const linhaCtr = c => `<tr class="rep-mae">
       <td style="padding-left:14px"><span style="color:var(--cinza-400)">↳</span> Contrato <span class="mono">${esc(c.numero||'—')}</span></td>
-      <td>${esc(c.fornecedor?.nome || '—')}${c.dt_inicio||c.dt_fim ? `<div style="font-size:9.5px;color:var(--cinza-500)">${fmtDt(c.dt_inicio)} a ${fmtDt(c.dt_fim)}</div>` : ''}</td>
       <td>${a5Selo(A5_CTR_ST, c.status)}</td>
-      <td ${R}>${fmtBRL(c.valor_total_brl)}</td><td ${R}>${traco}</td><td ${R}>${traco}</td>
-      <td ${R}>${brlOu(c._ef.pago)}${c._ef.apagar ? `<div style="font-size:9.5px;color:var(--cinza-500)">a pagar ${fmtBRL(c._ef.apagar)}</div>` : ''}</td>
-      <td ${R}>${usdEst(c._ef.pagoUsd, c._ef.est)}</td>
+      <td ${R}>${fmtBRL(c.valor_total_brl)}</td><td ${R}>${traco}</td>
+      ${pagoCel(c._ef.pago, c._ef.pagoUsd, c._ef.est, c._ef.apagar)}
       <td ${R}>${fmtBRL(c._saldo)}</td>
-    </tr>`;
-  const CAB_TDR = `<thead><tr><th>TDR / contrato</th><th>Tipo · fornecedor</th><th>Situação</th>
-      <th style="text-align:right">Valor R$</th><th style="text-align:right">Valor US$</th><th style="text-align:right">Contratado R$</th>
-      <th style="text-align:right">Pago R$</th><th style="text-align:right">Pago US$</th><th style="text-align:right">Saldo R$</th></tr></thead>`;
+    </tr>${linhaDet(6, 'Fornecedor', (c.fornecedor?.nome || '—') + (c.dt_inicio||c.dt_fim ? ' · ' + fmtDt(c.dt_inicio) + ' a ' + fmtDt(c.dt_fim) : ''))}`;
+  const CAB_TDR = `<thead><tr><th>TDR / contrato</th><th>Situação</th>
+      <th style="text-align:right">Valor</th><th style="text-align:right">Contratado R$</th>
+      <th style="text-align:right">Pago</th><th style="text-align:right">Saldo R$</th></tr></thead>`;
 
   function blocoTdrs(a){
     if(!a._tdrs.length) return `<div class="rep-secao"><div class="rep-secao-titulo">TDRs</div>${oVazio('Nenhum TDR'+(stTdr||stCtr?' com esses filtros.':' nesta atividade.'))}</div>`;
@@ -3313,36 +3318,33 @@ async function relA5(){
         const tks = ver('tarefas') ? a._tarefas.filter(k=>k._tdrs.some(x=>x.id===t.id)) : [];
         const dir = t._dir;
         return `<tbody class="rep-grupo"><tr class="rep-mae"${canc?' style="color:var(--cinza-500)"':''}>
-          <td class="mono"><strong>${esc(t.numero||'—')}</strong></td>
-          <td>${esc(t.tipo||'—')}</td>
+          <td><span class="mono"><strong>${esc(t.numero||'—')}</strong></span>${t.tipo ? `<div class="rep-sm">${esc(t.tipo)}</div>` : ''}</td>
           <td>${situacaoTdr(t)}</td>
-          <td ${R}>${canc?'<s>'+fmtBRL(t.valor_brl)+'</s>':fmtBRL(t.valor_brl)}</td>
-          <td ${R}>${t.valor_usd ? usd2(t.valor_usd) : traco}</td>
+          <td style="text-align:right"><span class="mono">${canc?'<s>'+fmtBRL(t.valor_brl)+'</s>':fmtBRL(t.valor_brl)}</span>${t.valor_usd ? `<div class="mono-sm" style="color:var(--cinza-500)">${usd2(t.valor_usd)}</div>` : ''}</td>
           <td ${R}>${t._nCtrValidos ? fmtBRL(t._contratado) : (t.execucao_direta ? traco : '<span style="font-size:9.5px;color:var(--cinza-500)">sem contrato</span>')}</td>
-          <td ${R}>${brlOu(t._pago)}</td>
-          <td ${R}>${usdEst(t._pagoUsd, t._est)}</td>
+          ${pagoCel(t._pago, t._pagoUsd, t._est)}
           <td class="mono" style="text-align:right${t._saldo<0?';color:var(--erro);font-weight:700':''}">${canc ? traco : fmtBRL(t._saldo)}</td>
         </tr>
         ${ver('contratos') ? t._ctrs.map(linhaCtr).join('') : ''}
         ${ver('contratos') && (dir.pago || dir.apagar) ? `<tr>
-          <td style="padding-left:14px"><span style="color:var(--cinza-400)">↳</span> Lançamentos sem contrato</td><td>Execução direta</td><td></td>
-          <td ${R}>${traco}</td><td ${R}>${traco}</td><td ${R}>${traco}</td>
-          <td ${R}>${brlOu(dir.pago)}${dir.apagar ? `<div style="font-size:9.5px;color:var(--cinza-500)">a pagar ${fmtBRL(dir.apagar)}</div>` : ''}</td>
-          <td ${R}>${usdEst(dir.pagoUsd, dir.est)}</td><td ${R}>${traco}</td></tr>` : ''}
-        ${linhaDet(9, 'Objeto', t.objeto_pt)}
-        ${tks.length ? linhaDet(9, 'Tarefas', tks.map(tkTxt).join(' · ')) : ''}
+          <td style="padding-left:14px"><span style="color:var(--cinza-400)">↳</span> Lançamentos sem contrato<div class="rep-sm">Execução direta</div></td><td></td>
+          <td ${R}>${traco}</td><td ${R}>${traco}</td>
+          ${pagoCel(dir.pago, dir.pagoUsd, dir.est, dir.apagar)}
+          <td ${R}>${traco}</td></tr>` : ''}
+        ${linhaDet(6, 'Objeto', t.objeto_pt)}
+        ${tks.length ? linhaDet(6, 'Tarefas', tks.map(tkTxt).join(' · ')) : ''}
         </tbody>`;
       }).join('')}
-      <tfoot><tr><td colspan="3"><strong>Total${a._tdrs.length>vivos.length?' (sem cancelados)':''}</strong></td>
-        <td ${R}>${fmtBRL(soma('valor_brl'))}</td><td ${R}>${usd2(soma('valor_usd'))}</td><td ${R}>${fmtBRL(soma('_contratado'))}</td>
-        <td ${R}>${fmtBRL(soma('_pago'))}</td><td ${R}>${usd2(soma('_pagoUsd'))}</td><td ${R}>${fmtBRL(soma('_saldo'))}</td></tr></tfoot>
+      <tfoot><tr><td colspan="2"><strong>Total${a._tdrs.length>vivos.length?' (sem cancelados)':''}</strong></td>
+        <td style="text-align:right"><span class="mono">${fmtBRL(soma('valor_brl'))}</span><div class="mono-sm" style="color:var(--cinza-500)">${usd2(soma('valor_usd'))}</div></td><td ${R}>${fmtBRL(soma('_contratado'))}</td>
+        <td style="text-align:right"><span class="mono">${fmtBRL(soma('_pago'))}</span><div class="mono-sm" style="color:var(--cinza-500)">${usd2(soma('_pagoUsd'))}</div></td><td ${R}>${fmtBRL(soma('_saldo'))}</td></tr></tfoot>
       </table></div>`;
   }
 
   function blocoSemTdr(a){
     if(!ver('contratos') || !a._semTdr.length) return '';
     return `<div class="rep-secao"><div class="rep-secao-titulo">Contratos sem TDR (${a._semTdr.length})</div>
-      <table class="rep-tbl">${CAB_TDR}<tbody>${a._semTdr.map(linhaCtr).join('')}</tbody></table>
+      <table class="rep-tbl">${CAB_TDR}${a._semTdr.map(c=>`<tbody class="rep-grupo">${linhaCtr(c)}</tbody>`).join('')}</table>
       <p style="font-size:10px;color:var(--cinza-500)">Contrato sem TDR entra inteiro no comprometido da atividade (como contrato acima do TDR).</p></div>`;
   }
 

@@ -29,7 +29,7 @@
   const OC_DESF = { localizado: 'Localizado', reparado: 'Reparado', ressarcido: 'Ressarcido', indenizado: 'Indenizado pelo seguro', baixa: 'Baixa', arquivada: 'Arquivada' }
   const BX_MOT = { inservivel: 'Inservível', sinistro_perda_total: 'Perda total por sinistro', furto_roubo: 'Furto ou roubo', extravio_nao_localizado: 'Extravio não localizado',
     obsolescencia: 'Obsolescência', doacao: 'Doação', alienacao: 'Alienação (venda)' }
-  const BX_SIT = { aguardando: 'Aguardando aprovação', aprovada: 'Aprovada', devolvida: 'Devolvida', cancelada: 'Cancelada' }
+  const BX_SIT = { aguardando: 'Aguardando', aprovada: 'Aprovada', devolvida: 'Devolvida', cancelada: 'Cancelada' }
   const INV_TIPO = { anual: 'Anual', parcial: 'Parcial', extraordinario: 'Extraordinário', encerramento: 'Encerramento do projeto' }
   const INV_SIT = { em_andamento: 'Em conferência', em_assinatura: 'Em assinatura', concluido: 'Concluído', cancelado: 'Cancelado' }
   const INV_RES = { pendente: 'Pendente', conferido: 'Conferido', local_divergente: 'Outro local', condicao_divergente: 'Condição mudou',
@@ -85,8 +85,8 @@
     return '<div class="rep-stats rep-stats-3">' + stat('Pessoas com bens', pessoas.length) + stat('Bens sob guarda', l.length) +
         stat('Empréstimos vencidos', l.filter(b => b.devolver_ate && b.devolver_ate < h).length) + '</div>' +
       (pessoas.length ? pessoas.map(p => secao(p.nome + ' — ' + p.bens.length + ' bem(ns)',
-        '<table class="rep-tbl"><thead><tr><th>Nº</th><th>Bem</th><th>Série</th><th>Local</th><th>Condição</th><th>Termo</th><th>Devolver até</th>' + (val ? '<th style="text-align:right">Valor contábil</th>' : '') + '</tr></thead><tbody>' +
-        p.bens.map(b => '<tr><td class="mono">' + E(b.numero) + '</td><td>' + E(b.descricao) + '</td><td class="mono">' + E(b.numero_serie || '—') + '</td><td>' + E(b.local_nome || '—') + '</td>' +
+        '<table class="rep-tbl"><thead><tr><th>Nº</th><th>Bem</th><th>Local</th><th>Condição</th><th>Termo</th><th>Devolver até</th>' + (val ? '<th style="text-align:right">Valor contábil</th>' : '') + '</tr></thead><tbody>' +
+        p.bens.map(b => '<tr><td class="mono">' + E(b.numero) + '</td><td>' + E(b.descricao) + (b.numero_serie ? '<br><small>S/N ' + E(b.numero_serie) + '</small>' : '') + '</td><td>' + E(b.local_nome || '—') + '</td>' +
           '<td>' + E(COND[b.condicao] || b.condicao) + '</td><td class="mono">' + E(b.termo_vigente || 'sem termo') + '</td>' +
           '<td class="mono">' + (b.devolver_ate ? (b.devolver_ate < h ? badge('rb-vermelho', dt(b.devolver_ate)) : dt(b.devolver_ate)) : '—') + '</td>' +
           (val ? '<td class="mono" style="text-align:right">' + brl(b.valor_contabil_brl) + '</td>' : '') + '</tr>').join('') + '</tbody></table>' +
@@ -165,7 +165,7 @@
       secao('Ocorrências', l.length ? '<table class="rep-tbl"><thead><tr><th>Nº</th><th>Data</th><th>Bem</th><th>Tipo</th><th>BO / sinistro</th><th>Situação</th><th>Desfecho</th><th style="text-align:right">Valor</th></tr></thead>' +
         l.map(o => '<tbody class="rep-grupo"><tr class="rep-mae"><td class="mono">' + E(o.numero) + '</td><td class="mono">' + dt(o.dt_ocorrencia) + '</td>' +
           '<td><span class="mono">' + E(o.bem?.numero || '') + '</span> ' + E(o.bem?.descricao || '') + '</td><td>' + E(OC_TIPO[o.tipo] || o.tipo) + '</td>' +
-          '<td class="mono">' + E([o.bo_numero && 'BO ' + o.bo_numero, o.sinistro_numero && 'Sin. ' + o.sinistro_numero].filter(Boolean).join(' · ') || '—') + '</td>' +
+          '<td>' + ([o.bo_numero && 'BO <span class="mono">' + E(o.bo_numero) + '</span>', o.sinistro_numero && 'Sin. <span class="mono">' + E(o.sinistro_numero) + '</span>'].filter(Boolean).join('<br>') || '—') + '</td>' +
           '<td>' + badge(o.situacao === 'concluida' ? 'rb-verde' : 'rb-ouro', OC_SIT[o.situacao]) + '</td><td>' + E(OC_DESF[o.desfecho] || '—') + (o.seguradora ? '<br><small>' + E(o.seguradora) + '</small>' : '') + '</td>' +
           '<td class="mono" style="text-align:right">' + brl(o.valor_brl) + '</td></tr>' +
           '<tr class="rep-det"><td colspan="8"><span class="rep-det-lbl">O que aconteceu</span>' + E(o.descricao) + (o.parecer ? ' — <b>Parecer:</b> ' + E(o.parecer) : '') + '</td></tr></tbody>').join('') + '</table>'
@@ -185,11 +185,11 @@
       lst.map(i => '<tr><td class="mono">' + E(i.numero) + '</td><td>' + E(i.descricao) + (i.numero_serie ? '<br><small>S/N ' + E(i.numero_serie) + '</small>' : '') + '</td>' +
         '<td>' + (i.esperado ? E(i.local_esperado_nome || '—') + (i.responsavel_esperado_nome ? '<br><small>' + E(i.responsavel_esperado_nome) + '</small>' : '') : '<small>fora da lista</small>') + '</td>' +
         '<td>' + (i.conferido_em ? E(i.local_encontrado_nome || '—') + '<br><small>' + E(i.conferido_por_nome || '') + ' · ' + dtH(i.conferido_em) + '</small>' : '—') + '</td>' +
-        '<td>' + E(COND[i.condicao_esperada] || i.condicao_esperada) + (i.condicao_encontrada && i.condicao_encontrada !== i.condicao_esperada ? ' → ' + E(COND[i.condicao_encontrada]) : '') + '</td>' +
+        '<td>' + E(COND[i.condicao_esperada] || i.condicao_esperada) + (i.condicao_encontrada && i.condicao_encontrada !== i.condicao_esperada ? ' → ' + E(COND[i.condicao_encontrada] || i.condicao_encontrada) : '') + '</td>' +
         '<td>' + badge(INV_B[r(i)] || 'rb-cinza', INV_RES[r(i)] || r(i)) + (i.observacao ? '<br><small>' + E(i.observacao) + '</small>' : '') + '</td>' +
         (val ? '<td class="mono" style="text-align:right">' + brl(i.valor_contabil_brl) + '</td>' : '') + '</tr>').join('') + '</tbody></table>'
     return '<div class="rep-secao"><table class="rep-tbl"><tbody>' +
-        '<tr><td class="c-min"><b>Inventário</b></td><td class="mono">' + E(v.numero) + ' — ' + E(v.titulo) + '</td></tr>' +
+        '<tr><td class="c-min"><b>Inventário</b></td><td><span class="mono">' + E(v.numero) + '</span> — ' + E(v.titulo) + '</td></tr>' +
         '<tr><td class="c-min"><b>Tipo</b></td><td>' + E(INV_TIPO[v.tipo] || v.tipo) + '</td></tr>' +
         '<tr><td class="c-min"><b>Locais</b></td><td>' + E((v.locais_nomes || []).join(', ') || 'Todos os locais') + '</td></tr>' +
         '<tr><td class="c-min"><b>Aberto</b></td><td>' + E(v.aberto_por_nome || '—') + ' em ' + dtH(v.aberto_em) + '</td></tr>' +
