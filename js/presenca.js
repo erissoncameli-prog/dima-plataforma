@@ -369,35 +369,68 @@
     }))
   }
 
+  // Relatório A4: SEMPRE em paisagem; uma seção por reunião (identificação, números, participantes com todos os campos
+  // e resumo por sexo/gênero e faixa de idade). Sexo, raça e idade por pessoa só vêm do banco para coordenação/super_admin
+  // (data.com_sensiveis); o resumo (contagens) vem para todos que administram a lista.
+  function tabelaResumo (titulo, obj, rotulos) {
+    const tot = Object.values(obj || {}).reduce((a, b) => a + b, 0)
+    const linhas = Object.keys(rotulos).filter(k => (obj || {})[k])
+    return `<table class="rep-tbl pp-res"><thead><tr><th>${esc(titulo)}</th><th class="c-min">Pessoas</th><th class="c-min">%</th></tr></thead><tbody>${
+      linhas.length ? linhas.map(k => `<tr><td>${esc(rotulos[k])}</td><td class="mono">${obj[k]}</td><td class="mono">${pct(obj[k], tot)}%</td></tr>`).join('')
+        : '<tr><td colspan="3">Sem assinaturas</td></tr>'}
+      <tr class="pp-res-tot"><td>Total</td><td class="mono">${tot}</td><td class="mono">${tot ? '100%' : '—'}</td></tr></tbody></table>`
+  }
+  const somar = (lista, campo) => lista.reduce((m, r) => { for (const [k, v] of Object.entries(r[campo] || {})) m[k] = (m[k] || 0) + v; return m }, {})
+
   async function pdfA4 (w, data, um) {
     await FolhaA4.pronto
-    const t = um && um.tarefa, td = (t && t.dados) || {}
-    const rows = data.linhas
-    const reunioes = [...new Set(rows.map(r => r.reuniao))]
-    const ident = t ? `<table class="rep-tbl"><tbody>
-        <tr><th style="width:28%">Reunião</th><td>${esc(t.titulo)} <span class="mono">${esc(t.codigo || '')}</span></td></tr>
-        <tr><th>Data e hora</th><td class="mono">${esc(td.inicio ? dataHora(td.inicio.slice(0, 16) + ':00-05:00') : '—')}${td.fim ? ' – ' + esc(td.fim.slice(11, 16)) : ''}</td></tr>
-        <tr><th>Formato e local</th><td>${esc(td.formato || '—')}${td.local ? ' · ' + esc(td.local) : ''}</td></tr>
-        <tr><th>Organizador</th><td>${esc(t.organizador || '—')}</td></tr>
-        ${t.atividade ? `<tr><th>Atividade</th><td><span class="mono">${esc(t.atividade.codigo)}</span> ${esc(t.atividade.nome || '')}</td></tr>` : ''}
-      </tbody></table>` : `<p>${reunioes.length} reunião(ões) no período exportado.</p>`
-    const semImg = rows.filter(r => r.imagem !== 'sim').length
-    const corpo = `<div class="rep-secao"><div class="rep-secao-titulo">Identificação</div>${ident}</div>
-      <div class="rep-stats">
-        <div class="rep-stat"><div class="rep-stat-v">${rows.length}</div><div class="rep-stat-l">presenças</div></div>
-        <div class="rep-stat"><div class="rep-stat-v">${rows.filter(r => !r.convidado).length}</div><div class="rep-stat-l">participaram sem convite</div></div>
-        <div class="rep-stat"><div class="rep-stat-v">${rows.filter(r => !r.interno).length}</div><div class="rep-stat-l">externos (sem conta)</div></div>
-        <div class="rep-stat"><div class="rep-stat-v">${semImg}</div><div class="rep-stat-l">sem autorização de imagem</div></div>
-      </div>
-      <div class="rep-secao"><div class="rep-secao-titulo">Participantes</div>
-      <table class="rep-tbl"><thead><tr><th class="c-min">#</th>${t ? '' : '<th>Reunião</th>'}<th>Nome</th><th>E-mail</th><th>Telefone</th><th>Convite</th><th>Uso de imagem</th><th>Assinou em</th></tr></thead>
-      <tbody>${rows.map((r, i) => `<tr><td class="mono">${i + 1}</td>${t ? '' : `<td>${esc(r.reuniao)}</td>`}<td>${esc(r.nome)}${r.interno ? '' : ' <span class="rep-badge rb-cinza">externo</span>'}</td>
-        <td>${esc(r.email)}</td><td class="mono">${esc(r.telefone || '—')}</td><td>${r.convidado ? 'Convidado(a)' : '<span class="rep-badge rb-ouro">Não convidado(a)</span>'}</td><td>${esc(IMG[r.imagem])}</td><td class="mono">${esc(dataHora(r.assinado_em))} · ${esc(ORIGEM[r.origem])}</td></tr>`).join('')}</tbody></table></div>
-      <p class="pp-a4-nota">Assinatura eletrônica registrada pela plataforma (data, hora e meio: link pessoal enviado por e-mail ou QR Code da reunião).
-        A autorização de uso de imagem guarda a versão do termo lido por cada pessoa. Exportado por ${esc(data.exportado_por || '')} em ${esc(dataHora(data.exportado_em))}.</p>`
+    const sens = data.com_sensiveis
+    const resumos = data.resumos || []
+    const varias = resumos.length > 1
+    const secao = (r, i) => {
+      const rows = data.linhas.filter(x => x.lista_id === r.lista_id)
+      const semCad = rows.filter(x => !x.interno).length, semImg = rows.filter(x => x.imagem !== 'sim').length
+      return `<div class="rep-secao"${i > 0 ? ' style="break-before:page"' : ''}>
+        <div class="rep-secao-titulo">${esc(r.reuniao)}</div>
+        <p class="pp-a4-id"><b>Data:</b> ${esc(dataHora(r.data))} · <b>Formato:</b> ${esc(r.formato || '—')}${r.local ? ' · <b>Local:</b> ' + esc(r.local) : ''} · <b>Organizador:</b> ${esc(r.organizador || '—')}</p>
+        <div class="rep-stats">
+          <div class="rep-stat"><div class="rep-stat-v">${r.total}</div><div class="rep-stat-l">presenças</div></div>
+          <div class="rep-stat"><div class="rep-stat-v">${r.convidados_externos}</div><div class="rep-stat-l">convidados externos</div></div>
+          <div class="rep-stat"><div class="rep-stat-v">${semCad}</div><div class="rep-stat-l">sem cadastro na plataforma</div></div>
+          <div class="rep-stat"><div class="rep-stat-v">${semImg}</div><div class="rep-stat-l">sem autorização de imagem</div></div>
+        </div>
+        <table class="rep-tbl"><thead><tr><th class="c-min">#</th><th>Nome</th><th>E-mail</th><th>Telefone</th>${
+          sens ? '<th>Sexo/gênero</th><th>Cor ou raça</th><th>Idade</th>' : ''}<th>Convite</th><th>Uso de imagem</th><th>Assinou em</th></tr></thead>
+        <tbody>${rows.length ? rows.map((x, j) => `<tr><td class="mono">${j + 1}</td>
+          <td>${esc(x.nome)}${x.interno ? '' : ' <span class="rep-badge rb-cinza">sem cadastro</span>'}</td>
+          <td>${esc(x.email)}</td><td class="mono">${esc(x.telefone || '—')}</td>${sens ? `
+          <td>${esc(SEXO[x.sexo_genero] || '—')}${x.sexo_genero_outro ? ' (' + esc(x.sexo_genero_outro) + ')' : ''}</td>
+          <td>${esc(RACA[x.cor_raca] || '—')}</td><td>${esc(IDADE[x.faixa_etaria || 'sem_registro'])}</td>` : ''}
+          <td>${x.convidado ? 'Convidado(a)' : '<span class="rep-badge rb-ouro">Convidado externo</span>'}</td>
+          <td>${esc(IMG[x.imagem])}</td><td class="mono">${esc(dataHora(x.assinado_em))} · ${esc(ORIGEM[x.origem])}</td></tr>`).join('')
+          : `<tr><td colspan="${sens ? 10 : 7}">Ninguém assinou esta lista.</td></tr>`}</tbody></table>
+        <div class="pp-a4-sub">Resumo por sexo e idade</div>
+        <div class="pp-res-grid">${tabelaResumo('Sexo/gênero', r.sexo, SEXO)}${tabelaResumo('Faixa de idade', r.faixa, IDADE)}</div>
+      </div>`
+    }
+    const geral = varias ? `<div class="rep-secao"><div class="rep-secao-titulo">Resumo geral do período (${resumos.length} reuniões)</div>
+        <div class="rep-stats">
+          <div class="rep-stat"><div class="rep-stat-v">${resumos.reduce((a, r) => a + r.total, 0)}</div><div class="rep-stat-l">presenças</div></div>
+          <div class="rep-stat"><div class="rep-stat-v">${resumos.reduce((a, r) => a + r.convidados_externos, 0)}</div><div class="rep-stat-l">convidados externos</div></div>
+        </div>
+        <div class="pp-res-grid">${tabelaResumo('Sexo/gênero', somar(resumos, 'sexo'), SEXO)}${tabelaResumo('Faixa de idade', somar(resumos, 'faixa'), IDADE)}</div>
+      </div>` : ''
+    const corpo = geral + resumos.map((r, i) => secao(r, varias ? i + 1 : i)).join('') +
+      `<p class="pp-a4-nota">Assinatura eletrônica registrada pela plataforma (data, hora e meio: link pessoal enviado por e-mail ou QR Code da reunião).
+        "Convidado externo" = participou sem estar no convite inicial da reunião. A autorização de uso de imagem guarda a versão do termo lido por cada pessoa.
+        ${sens ? 'Contém dados pessoais sensíveis (cor ou raça): circulação restrita à coordenação do projeto (LGPD, art. 11).'
+          : 'Sexo, cor ou raça e idade por pessoa só aparecem para a coordenação do projeto; aqui estão apenas os totais.'}
+        Exportado por ${esc(data.exportado_por || '')} em ${esc(dataHora(data.exportado_em))}.</p>`
     FolhaA4.escrever(w, { titulo: 'Lista de presença', selo: 'Reunião', tema: 'tarefas',
-      periodo: t ? t.titulo : 'Período exportado', corpo, paisagem: !t,
-      css: '.pp-a4-nota{margin-top:10px;font-size:9pt;color:#555}',
+      periodo: varias ? resumos.length + ' reuniões' : (resumos[0] ? resumos[0].reuniao : ''), corpo, paisagem: true,
+      css: '.pp-a4-nota{margin-top:10px;font-size:9pt;color:#555} .pp-a4-id{margin:0 0 8px;font-size:9.5pt} ' +
+        '.pp-a4-sub{margin:12px 0 6px;font-size:10pt;font-weight:700} .pp-res-grid{display:flex;gap:14px;align-items:flex-start} ' +
+        '.pp-res{flex:1} .pp-res-tot td{font-weight:700}',
       nomeArquivo: nomeArq('pdf', um).replace(/\.pdf$/, '') })
   }
 
