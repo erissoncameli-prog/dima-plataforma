@@ -93,16 +93,29 @@
       const lim = w.getBoundingClientRect().right - parseFloat(getComputedStyle(w).paddingRight) + 1
       return [...corpo.querySelectorAll('*')].some(e => e.getBoundingClientRect().right > lim)
     }
+    w.querySelectorAll('[data-fa4-zoom]').forEach(e => { e.style.zoom = ''; e.removeAttribute('data-fa4-zoom') })
     w.classList.remove('doc-fit', 'doc-fit-max')
-    let compacto = false, ainda = false
+    let compacto = false, ainda = false, reduzida = false
     if (passa()) {
       w.classList.add('doc-fit'); compacto = true
       if (passa()) { w.classList.add('doc-fit-max'); ainda = passa() }
     }
-    return { compacto, ainda }
+    // Último recurso: a tabela que nem com a letra mínima cabe é reduzida por inteiro (zoom) até a largura útil,
+    // para nada sair cortado na margem do papel. A tela avisa que em Paisagem fica mais legível.
+    if (ainda) {
+      const lim = w.getBoundingClientRect().right - parseFloat(getComputedStyle(w).paddingRight)
+      w.querySelectorAll('.doc-body table').forEach(t => {
+        if (t.parentElement.closest('.doc-body table')) return
+        const r = t.getBoundingClientRect()
+        if (r.right > lim + 1 && r.width > 0) { t.style.zoom = String(Math.max(0.5, (lim - r.left) / r.width * 0.995)); t.setAttribute('data-fa4-zoom', '1'); reduzida = true }
+      })
+      ainda = passa()
+    }
+    return { compacto, ainda, reduzida }
   }
   function aviso(r, orient) {
     if (r.ainda) return orient === 'portrait' ? 'Algumas colunas não cabem em retrato: use Paisagem.' : 'Algumas colunas não cabem nem em paisagem; o texto foi reduzido ao mínimo.'
+    if (r.reduzida) return 'Algumas tabelas foram reduzidas para caber na folha.' + (orient === 'portrait' ? ' Em Paisagem ficam mais legíveis.' : '')
     if (r.compacto) return 'A letra foi reduzida para a tabela caber na folha.' + (orient === 'portrait' ? ' Em Paisagem fica mais legível.' : '')
     return ''
   }

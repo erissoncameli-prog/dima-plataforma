@@ -72,7 +72,7 @@
 .rep-tbl { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px; }
 /* Visual sóbrio de prestação de contas (opção A, 28/11/2026): cabeçalho sem fundo e sem caixa alta, uma linha escura embaixo;
    zebrado cinza neutro que aparece no papel; sem efeito de mouse (é documento para imprimir). O verde fica na identidade da folha. */
-.rep-tbl th { padding: 7px 8px; font-size: 9px; font-weight: 600; color: #374151; text-align: left; white-space: normal; overflow-wrap: break-word; vertical-align: bottom; border-bottom: 1.5px solid #1F2937; background: transparent; }
+.rep-tbl th { padding: 7px 8px; font-size: 9px; font-weight: 600; color: #374151; text-transform: none; letter-spacing: 0; text-align: left; white-space: normal; overflow-wrap: break-word; vertical-align: bottom; border-bottom: 1.5px solid #1F2937; background: transparent; }
 .rep-tbl td { padding: 6px 8px; border-bottom: 1px solid var(--borda); color: var(--cinza-700); vertical-align: middle; overflow-wrap: break-word; }
 .rep-tbl tbody tr:nth-child(even) td { background: #F5F6F7; }
 .rep-tbl tfoot td { padding: 8px 10px; font-weight: 700; color: var(--cinza-900); border-top: 1.5px solid #1F2937; background: transparent; }

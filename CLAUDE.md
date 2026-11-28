@@ -1395,7 +1395,24 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
 - **Largura**: a folha tem o tamanho do A4 (210/297 mm) e `table-layout: fixed`; `FolhaA4.ajustar` liga `.doc-fit`/`.doc-fit-max` se
   algo passar e a tela avisa. Tabela com 9+ colunas abre em paisagem. Texto quebra entre palavras (`overflow-wrap: break-word`).
 - Conferir relatório novo: gerar em retrato e paisagem e imprimir em PDF — nada pode passar da folha nem cortar linha, e toda
-  página traz cabeçalho, rodapé e "Página X de Y".
+  página traz cabeçalho, rodapé e "Página X de Y". **Automático**: `node tests/relatorios/rodar.js --semente sementes/<grupo>.js
+  --ids F1,F2` (banco falso em memória, `tests/relatorios/banco-falso.js`; sementes por grupo com dados que forçam a folha) mede, em
+  retrato e paisagem, o que passa da largura útil, letra reduzida, células espremidas, cada página (cabeçalho, rodapé, numeração,
+  corte, página vazia, orientação) e o PDF real (tamanho e orientação). Relatório novo ⇒ acrescentar dados na semente do grupo e rodar.
+  Rodada de 28/11/2026: os 55 sem nada fora da folha nas duas orientações. O banco falso ignora `.or/.not` (não confere filtro).
+- **Visual da folha (opção A, 28/11/2026, `css/folha-a4.css`)**: números do topo (`.rep-stat`) sem cartão — sem fundo, borda nem
+  canto, só um filete escuro em cima; valor em DM Sans com algarismos tabulares (nunca fonte mono no número do topo) e que só quebra
+  no espaço. Cabeçalho de tabela sem fundo e sem caixa alta, uma linha escura embaixo; zebrado cinza neutro `#F5F6F7`; sem `:hover`
+  na folha. O verde fica na identidade (cabeçalho, rodapé, títulos de seção). Não voltar ao verde-menta.
+- **Nunca `overflow-wrap: anywhere` em td/th** (nem no doc-fit-max): zera a largura mínima da coluna de texto, que encolhe até uma
+  letra (C1 em retrato chegou a 63 páginas; títulos "FORNECEDO R"). Só link e `.rep-quebra` (URL, valor sem espaço) quebram em
+  qualquer ponto. Se nem a letra mínima cabe, `FolhaA4.ajustar` reduz a tabela inteira por `zoom` até a largura útil
+  (`data-fa4-zoom`) e a tela avisa — nada sai cortado na margem.
+- **Nunca texto livre em `td.mono` nem numa célula com um selo sozinho** (as duas não quebram): número em `<span class="mono">`, o
+  resto como texto ou em `linhaDet`. Lista ou nome longo dentro de `.rep-badge` estourou o A4 em 977 px. E-mail/observação pequena
+  = `class="rep-sm"` (acompanha a redução da folha), nunca `style="font-size:…"`.
+- **Rótulos únicos** em `pages/relatorios.html`: situação de contrato `seloCont(s)` (`SIT_CONT/COR_CONT`, os 6 valores do enum),
+  de produto `seloProd(s)`, tipo de contrato `tipoCont(t)`, `rotuloCodigo(v)` para código sem rótulo. Nunca o código cru no selo.
 
 ### Logos institucionais — fonte única, versão por fundo (⚠️ ler antes de pôr logo em tela, relatório ou e-mail)
 - **Fonte única** = `configuracoes_sistema` (Dados do sistema › Logos): `logos_topo` (Zona A), `logo_projeto` (Zona B),
