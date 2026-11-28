@@ -5,6 +5,10 @@
 
 ## Estado atual — 28/11/2026
 
+- **Lista de presença — relatório (28/11, fim da tarde), no ar:** PDF A4 **sempre em paisagem**, uma página por reunião, todos os
+  campos (sexo, raça e idade para coordenação/super_admin) e **resumo por sexo e faixa de idade** de cada reunião (+ resumo geral
+  quando exporta várias). Rótulo **"Convidado externo"** no lugar de "Não convidado(a)"; quem não tem conta = **"Sem cadastro"**.
+  Migração `_e_relatorio` (`fn_presenca_exportar` devolve `resumos`). Conferido no navegador com dados simulados.
 - **Lista de presença — ajustes de 28/11 (tarde), no ar:** marca **"Não convidado(a)"** (gravada na assinatura, `convidado_inicial`)
   e **faixa de idade** obrigatória (até 17 · 18–24 · 25–29 · 30–39 · 40–49 · 50–59 · 60+ · prefere não responder). Migrações
   `_c_convite_idade` e `_d_marcar_convidados` (as 3 assinaturas reais da TR-090: 2 convidadas, 1 não). Testado no banco
