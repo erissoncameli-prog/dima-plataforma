@@ -1720,6 +1720,8 @@ async function relA1(){
 // ══════════════════════════════════════════════════════════════
 // Vi1 — PROTOCOLOS DE VIAGEM
 // ══════════════════════════════════════════════════════════════
+// Protocolo cancelado ou rejeitado não entra em total de gasto (Vi1, Vi2, Vi3; Vi5 usa o mesmo critério)
+const VI_FORA_TOTAL = ['cancelado','rejeitado'];
 async function relVi1(){
   const dtIni  = filVal('fil-dt-ini');
   const dtFim  = filVal('fil-dt-fim');
@@ -1748,10 +1750,12 @@ async function relVi1(){
         .reduce((sd,d)=>sd+parseFloat(d.valor_unitario||0)*parseFloat(d.quantidade||d.qtd_dias||0),0);
       return s+pass+diar;
     },0);
-    return {...p, viajantes, _total:total};
+    return {...p, viajantes, _total:total, _fora:VI_FORA_TOTAL.includes(p.situacao)};
   });
 
-  const totalGeral = rows.reduce((s,r)=>s+r._total,0);
+  // protocolo cancelado ou rejeitado aparece na lista, mas fica fora dos totais (mesmo critério do Vi5)
+  const vivos = rows.filter(r=>!r._fora), nFora = rows.length - vivos.length;
+  const totalGeral = vivos.reduce((s,r)=>s+r._total,0);
   const stBadge = s=>{
     const m={rascunho:'rb-cinza',solicitado:'rb-ouro',aprovado:'rb-verde',em_prestacao:'rb-teal',realizado:'rb-azul',nao_realizado:'rb-ouro',cancelado:'rb-vermelho',rejeitado:'rb-vermelho'};
     const l={rascunho:'Rascunho',solicitado:'Solicitado',aprovado:'Aprovado',em_prestacao:'Em prestação',realizado:'Realizado',nao_realizado:'Não realizado',cancelado:'Cancelado',rejeitado:'Rejeitado'};
@@ -1760,8 +1764,8 @@ async function relVi1(){
 
   return `
   <div class="rep-stats rep-stats-3">
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Protocolos</div><div class="rep-stat-val">${rows.length}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Viajantes</div><div class="rep-stat-val">${rows.reduce((s,r)=>s+r.viajantes.length,0)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Protocolos</div><div class="rep-stat-val">${rows.length}</div>${nFora?`<div class="rep-stat-sub">${nFora} cancelado(s) ou rejeitado(s) fora dos totais</div>`:''}</div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Viajantes</div><div class="rep-stat-val">${vivos.reduce((s,r)=>s+r.viajantes.length,0)}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Total Estimado</div><div class="rep-stat-val">${fmtBRL(totalGeral)}</div></div>
   </div>
   <div class="rep-secao">
@@ -1780,10 +1784,10 @@ async function relVi1(){
         <td class="mono">${fmtDt(r.dt_saida)}</td>
         <td class="mono">${fmtDt(r.dt_retorno)}</td>
         <td class="mono" style="text-align:center">${r.viajantes.length}</td>
-        <td class="mono" style="text-align:right">${fmtBRL(r._total)}</td>
+        <td class="mono" style="text-align:right${r._fora?';color:var(--cinza-400);text-decoration:line-through':''}">${fmtBRL(r._total)}</td>
         <td>${stBadge(r.situacao)}</td>
       </tr>${linhaDet(7,'Objetivo',r.objetivo)}</tbody>`).join('')}
-      <tfoot><tr><td colspan="5"><strong>TOTAL GERAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalGeral)}</td><td></td></tr></tfoot>
+      <tfoot><tr><td colspan="5"><strong>TOTAL GERAL</strong>${nFora?'<span class="rep-sub">sem cancelados e rejeitados</span>':''}</td><td class="mono" style="text-align:right">${fmtBRL(totalGeral)}</td><td></td></tr></tfoot>
     </table>
   </div>`;
 }
@@ -3633,7 +3637,7 @@ async function relM1(){
     <div class="rep-secao-titulo">Progresso por indicador</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>Código</th><th>Indicador</th><th>Res.</th>
+        <th>Código</th><th>Indicador</th><th>Res.</th><th>Unidade</th>
         <th style="text-align:right">Meta</th>
         <th style="text-align:right">Confirmado</th>
         <th style="text-align:right">%</th>
@@ -3645,8 +3649,9 @@ async function relM1(){
           <td class="mono">${esc(i._cod)}</td>
           <td>${esc(i.indicador||'—')}</td>
           <td><span class="rep-badge rb-verde">R${esc(i.resultado||'?')}</span></td>
-          <td class="mono" style="text-align:right">${i._meta>0?mzNum(i._meta,i.unidade):'—'}</td>
-          <td class="mono" style="text-align:right">${i._meta>0?mzNum(i._conf,i.unidade):'—'}</td>
+          <td style="font-size:10px">${esc(i.unidade||'—')}</td>
+          <td class="mono" style="text-align:right">${i._meta>0?mzNum(i._meta):'—'}</td>
+          <td class="mono" style="text-align:right">${i._meta>0?mzNum(i._conf):'—'}</td>
           <td class="mono" style="text-align:right">${mzPct(i._real)}</td>
           <td>${mzBarra(i)}</td>
           <td>${mzSelo(i._sit)}</td>
@@ -3660,12 +3665,28 @@ async function relM1(){
 // M2 — CONTRIBUIÇÃO DE PRODUTOS
 // ══════════════════════════════════════════════════════════════
 async function relM2(){
-  const rows = await matrizBase();
+  const [rows, {data:ctb, error:eC}] = await Promise.all([
+    matrizBase(),
+    // contribuições pela view aberta (só nº, data, situação e tipo da entrega — nunca o contrato)
+    db.from('vw_matriz_contribuicoes').select('matriz_item_id,valor,unidade,status,observacao,entrega_numero,entrega_dt,entrega_situacao,entrega_tipo_documento,criado_em').order('criado_em',{ascending:true}),
+  ]);
+  if(eC) throw eC;
+  const CTB_ST = { confirmado:'confirmada', pendente:'pendente', rejeitado:'rejeitada' };
+  const porItem = {};
+  (ctb||[]).forEach(c=>{ (porItem[c.matriz_item_id] ||= []).push(c); });
+  const txtCtb = (c, uInd) => {
+    const ent = 'Entrega ' + (c.entrega_numero ?? '—') + (c.entrega_dt ? ' de ' + fmtDt(c.entrega_dt) : '')
+      + (c.entrega_tipo_documento ? ' (' + c.entrega_tipo_documento + ')' : '');
+    const u = c.unidade || uInd || '';
+    const pend = c.status === 'pendente' && c.entrega_situacao !== 'aprovada' ? ', entrega ainda não aprovada' : '';
+    return `${ent}: ${Number(c.valor||0).toLocaleString('pt-BR')}${u?' '+u:''} — ${CTB_ST[c.status]||rotuloCodigo(c.status)}${pend}`;
+  };
+  const listaCtb = i => (porItem[i.id]||[]).map(c=>txtCtb(c, i.unidade)).join(' · ');
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Indicadores</div><div class="rep-stat-val">${rows.length}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Com contribuição confirmada</div><div class="rep-stat-val">${rows.filter(i=>i._conf>0).length}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Com contribuição pendente</div><div class="rep-stat-val">${rows.filter(i=>i._pend>0).length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Com contribuição pendente</div><div class="rep-stat-val">${rows.filter(i=>i._pend>0).length}</div><div class="rep-stat-sub">${(ctb||[]).length} contribuição(ões) registrada(s)</div></div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Contribuição de produtos por indicador</div>
@@ -3678,8 +3699,7 @@ async function relM2(){
         <th style="text-align:right">% conf.</th>
         <th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(i=>`<tr>
+      ${rows.map(i=>`<tbody class="rep-grupo"><tr class="rep-mae">
           <td class="mono">${esc(i._cod)}</td>
           <td>${esc(i.indicador||'—')}</td>
           <td><span class="rep-badge rb-verde">R${esc(i.resultado||'?')}</span></td>
@@ -3689,9 +3709,9 @@ async function relM2(){
           <td class="mono" style="text-align:right;color:var(--aviso)">${i._pend>0?mzNum(i._pend):'—'}</td>
           <td class="mono" style="text-align:right">${mzPct(i._real)}</td>
           <td>${mzSelo(i._sit)}</td>
-        </tr>`).join('')}
-      </tbody>
+        </tr>${linhaDet(9,'Entregas que contribuíram',listaCtb(i)||'Nenhuma contribuição registrada.')}</tbody>`).join('')}
     </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Cada entrega de produto que informou um valor para o indicador. Confirmado e pendente = soma das contribuições confirmadas e pendentes. A entrega aparece só pelo número, data, situação e tipo de documento.</div>
   </div>`;
 }
 
@@ -3715,7 +3735,7 @@ async function relM4(){
     ${abaixo.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Todos os indicadores com meta já a atingiram.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Código</th><th>Indicador</th><th>Res.</th>
+        <th>Código</th><th>Indicador</th><th>Res.</th><th>Unidade</th>
         <th style="text-align:right">Meta</th>
         <th style="text-align:right">Confirmado</th>
         <th style="text-align:right">Falta</th>
@@ -3728,9 +3748,10 @@ async function relM4(){
           <td class="mono">${esc(i._cod)}</td>
           <td>${esc(i.indicador||'—')}</td>
           <td><span class="rep-badge rb-verde">R${esc(i.resultado||'?')}</span></td>
-          <td class="mono" style="text-align:right">${mzNum(i._meta,i.unidade)}</td>
-          <td class="mono" style="text-align:right">${mzNum(i._conf,i.unidade)}</td>
-          <td class="mono" style="text-align:right">${mzNum(Math.max(0,i._meta-i._conf),i.unidade)}</td>
+          <td style="font-size:10px">${esc(i.unidade||'—')}</td>
+          <td class="mono" style="text-align:right">${mzNum(i._meta)}</td>
+          <td class="mono" style="text-align:right">${mzNum(i._conf)}</td>
+          <td class="mono" style="text-align:right">${mzNum(Math.max(0,i._meta-i._conf))}</td>
           <td class="mono" style="text-align:right">${mzPct(i._real)}</td>
           <td>${mzBarra(i)}</td>
           <td>${mzSelo(i._sit)}</td>
@@ -3756,29 +3777,9 @@ async function relVi2(){
   const [{data, error}, qCot] = await Promise.all([q, db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)]);
   if(error) throw error;
 
-  const cotacao = parseFloat(qCot.data?.[0]?.cotacao||1);
-
-  // Queries separadas para contratos + lançamentos diretos (mesmo padrão do financeiro)
-  const ativIds = [...new Set((data||[]).map(p=>p.atividade_id).filter(Boolean))];
-  const [{ data:ativData }, { data:dirDataV2 }] = ativIds.length
-    ? await Promise.all([
-        db.from('atividades').select('id,orcamento_usd,contratos(valor_comprometido_brl,valor_utilizado_brl)').in('id',ativIds),
-        db.from('execucao_financeira').select('atividade_id,valor_brl,situacao').in('atividade_id',ativIds).is('contrato_id',null).neq('situacao','cancelado')
-      ])
-    : [{data:[]},{data:[]}];
-
-  // Índice atividade_id → { saldoBRL, orcBRL }
-  const ativSaldo = {};
-  (ativData||[]).forEach(a=>{
-    const orcBRL       = parseFloat(a.orcamento_usd||0)*cotacao;
-    const comprometido = (a.contratos||[]).reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0);
-    ativSaldo[a.id]    = { orcBRL, comprometido };
-  });
-  (dirDataV2||[]).forEach(l=>{
-    if(!ativSaldo[l.atividade_id]) ativSaldo[l.atividade_id]={orcBRL:0,comprometido:0};
-    ativSaldo[l.atividade_id].comprometido += parseFloat(l.valor_brl||0);
-  });
-  Object.values(ativSaldo).forEach(a=>{ a.saldoBRL = Math.max(0, a.orcBRL - a.comprometido); });
+  const cotacao = parseFloat(qCot.data?.[0]?.cotacao||0);
+  // saldo oficial da atividade (vw_saldo_atividade, US$) — o mesmo de F1/A1 e da Visão Geral
+  const salAtv = await saldoPorAtividade();
 
   // mapa[nome] = { nome, totalPass, totalDiar, itens:[{prot, viajante}] }
   const mapa = {};
@@ -3796,9 +3797,9 @@ async function relVi2(){
         const diarias = (v.diarias||[]).filter(d=>{ if(seenD.has(d.id)) return false; seenD.add(d.id); return true; });
         const vPass = trechos.reduce((s,t)=>s+parseFloat(t.valor||0),0);
         const vDiar = diarias.reduce((s,d)=>s+parseFloat(d.quantidade||d.qtd_dias||0)*parseFloat(d.valor_unitario||0),0);
-        mapa[nome].totalPass += vPass;
-        mapa[nome].totalDiar += vDiar;
-        mapa[nome].itens.push({prot:p, viajante:v, trechos, diarias, vPass, vDiar});
+        const fora = VI_FORA_TOTAL.includes(p.situacao);
+        if(!fora){ mapa[nome].totalPass += vPass; mapa[nome].totalDiar += vDiar; }
+        mapa[nome].itens.push({prot:p, viajante:v, trechos, diarias, vPass, vDiar, fora});
       });
   });
 
@@ -3810,7 +3811,7 @@ async function relVi2(){
   const totDiar = lista.reduce((s,r)=>s+r.totalDiar,0);
 
   const detalhesPorViajante = lista.map(r=>{
-    const protRows = r.itens.map(({prot:p, trechos, diarias, vPass, vDiar})=>{
+    const protRows = r.itens.map(({prot:p, trechos, diarias, vPass, vDiar, fora})=>{
       // trechos e diárias vão para a linha de detalhe, cada um numa frase (antes eram colunas estreitas)
       const tStr = trechos.length
         ? trechos.map(t=>`${esc(t.origem||'?')} → ${esc(t.destino||'?')} <span style="color:var(--cinza-400)">(${esc(String(t.tipo||'—').toLowerCase())}, ${fmtDt(t.dt_saida)})</span> <span class="mono">${fmtBRL(t.valor||0)}</span>`).join(' · ')
@@ -3821,14 +3822,15 @@ async function relVi2(){
       const nDias = (p.dt_saida&&p.dt_retorno) ? Math.round((new Date(p.dt_retorno+'T12:00')-new Date(p.dt_saida+'T12:00'))/864e5)+1 : null;
       const resDiar = diarias.map(d=>(d.quantidade||d.qtd_dias||0)+'d').join(' + ');
 
-      const saldoAtv  = p.atividade_id ? ativSaldo[p.atividade_id] : null;
-      const saldoBRL  = saldoAtv?.saldoBRL ?? 0;
-      const gastoViaj = vPass + vDiar;
-      const pctAtiv   = saldoBRL > 0 ? gastoViaj / saldoBRL * 100 : null;
+      // % do gasto (R$ → US$ pela cotação de referência) sobre o saldo livre oficial da atividade
+      const livreUsd  = p.atividade_id && salAtv[p.atividade_id] ? Number(salAtv[p.atividade_id].saldo_livre_usd||0) : null;
+      const gastoUsd  = cotacao > 0 ? (vPass + vDiar) / cotacao : null;
+      const pctAtiv   = fora || livreUsd == null || livreUsd <= 0 || gastoUsd == null ? null : gastoUsd / livreUsd * 100;
       const pctCor    = pctAtiv === null ? '' : pctAtiv >= 30 ? '#DC2626' : pctAtiv >= 15 ? '#D97706' : '#059669';
-      const pctHtml   = pctAtiv === null
-        ? '<span style="color:var(--cinza-400)">—</span>'
-        : `<span class="mono" style="font-weight:700;color:${pctCor}">${fmtPct1(pctAtiv)}</span><span class="rep-sub">de ${fmtBRL(saldoBRL)}</span>
+      const pctHtml   = fora ? '<span class="rep-sub">fora dos totais</span>'
+        : pctAtiv === null
+        ? `<span style="color:var(--cinza-400)">—</span>${livreUsd!=null?`<span class="rep-sub">saldo livre ${usd2(livreUsd)}</span>`:''}`
+        : `<span class="mono" style="font-weight:700;color:${pctCor}">${fmtPct1(pctAtiv)}</span><span class="rep-sub">de ${usd2(livreUsd)} livre</span>
            <div class="rep-barra" style="margin-top:3px"><div class="rep-barra-fill" style="width:${Math.min(100,pctAtiv).toFixed(0)}%;background:${pctCor}"></div></div>`;
       const ativHtml  = p.atividade ? `<span class="mono">${esc(p.atividade.codigo)}</span> · ` : '';
 
@@ -3839,8 +3841,8 @@ async function relVi2(){
         <td class="c-min"><span class="rep-badge ${SIT_BADGE_V2[p.situacao]||'rb-cinza'}">${SIT_LABELS_V2[p.situacao]||esc(p.situacao)}</span></td>
         <td class="c-min mono" style="text-align:right">${fmtBRL(vPass)}<span class="rep-sub">${trechos.length} trecho${trechos.length!==1?'s':''}</span></td>
         <td class="c-min mono" style="text-align:right">${fmtBRL(vDiar)}${resDiar?`<span class="rep-sub">${resDiar}</span>`:''}</td>
-        <td class="c-min mono" style="text-align:right;font-weight:700">${fmtBRL(vPass+vDiar)}</td>
-        <td style="width:17%">${ativHtml}${pctHtml}</td>
+        <td class="c-min mono" style="text-align:right;font-weight:700${fora?';color:var(--cinza-400);text-decoration:line-through':''}">${fmtBRL(vPass+vDiar)}</td>
+        <td>${ativHtml}${pctHtml}</td>
       </tr>
       <tr class="rep-det"><td colspan="7"><span class="rep-det-lbl">Objetivo</span>${esc(p.objetivo||p.destino_principal||'—')}
         <div class="rep-det-grade"><div><span class="rep-det-lbl">Trechos</span>${tStr}</div><div><span class="rep-det-lbl">Diárias</span>${dStr}</div></div>
@@ -3849,21 +3851,21 @@ async function relVi2(){
 
     const tot = r.totalPass+r.totalDiar;
     return `
-    <div style="border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:20px;overflow:hidden;page-break-inside:avoid">
-      <div style="background:var(--cinza-50);border-bottom:1px solid var(--borda);padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:20px">
+      <h4 style="margin:0;font-weight:400;background:var(--cinza-50);border-bottom:1px solid var(--borda);padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="font-size:13px;font-weight:700;color:var(--cinza-900);flex:1">${esc(r.nome)}</span>
         <span style="font-size:11px;color:var(--cinza-500)">${r.itens.length} protocolo${r.itens.length!==1?'s':''}</span>
         <span class="mono" style="font-size:11px;color:var(--cinza-600)">Pass: ${fmtBRL(r.totalPass)}</span>
         <span class="mono" style="font-size:11px;color:var(--cinza-600)">Diárias: ${fmtBRL(r.totalDiar)}</span>
         <span class="mono" style="font-size:12px;font-weight:700;color:var(--verde-medio)">Total: ${fmtBRL(tot)}</span>
-      </div>
+      </h4>
       <table class="rep-tbl" style="margin-bottom:0">
         <thead><tr>
           <th class="c-min">Protocolo</th><th>Período</th><th class="c-min">Situação</th>
           <th class="c-min" style="text-align:right">Passagens</th>
           <th class="c-min" style="text-align:right">Diárias</th>
           <th class="c-min" style="text-align:right">Total</th>
-          <th>Atividade · % do saldo</th>
+          <th>Atividade · % do saldo livre</th>
         </tr></thead>
         ${protRows}
         <tfoot><tr>
@@ -3921,6 +3923,7 @@ async function relVi2(){
   <div class="rep-secao">
     <div class="rep-secao-titulo">Detalhamento por Viajante</div>
     ${detalhesPorViajante}
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">% do saldo livre = gasto do viajante no protocolo, convertido em US$ pela cotação de referência${cotacao?` (R$ ${cotacao.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:4})})`:''}, sobre o saldo livre oficial da atividade (vw_saldo_atividade, o mesmo da Visão Geral). Protocolos cancelados e rejeitados aparecem riscados e ficam fora dos totais.</div>
   </div>`;
 }
 
@@ -3942,53 +3945,19 @@ async function relVi3(){
   if(dtFim)   q = q.lte('dt_saida', dtFim);
   if(ativFil) q = q.eq('atividade_id', ativFil);
 
-  const [{data,error}, qCot] = await Promise.all([
-    q,
-    db.from('cotacoes_usd').select('cotacao').order('data_ref',{ascending:false}).limit(1)
-  ]);
+  // saldo oficial da atividade (vw_saldo_atividade, US$) — o mesmo de F1/A1 e da Visão Geral
+  const [{data,error}, salAtv] = await Promise.all([q, saldoPorAtividade()]);
   if(error) throw error;
 
-  const cotacao = parseFloat(qCot.data?.[0]?.cotacao||1);
-
-  // Coletar IDs únicos das atividades presentes nos protocolos
-  const ativIds = [...new Set((data||[]).map(p=>p.atividade_id).filter(Boolean))];
-
-  // Queries paralelas: contratos + lançamentos diretos (execucao_financeira sem contrato)
-  const [{ data:ativData }, { data:dirData }] = ativIds.length
-    ? await Promise.all([
-        db.from('atividades').select('id,contratos(valor_comprometido_brl,valor_utilizado_brl)').in('id',ativIds),
-        db.from('execucao_financeira').select('atividade_id,valor_brl,situacao').in('atividade_id',ativIds).is('contrato_id',null).neq('situacao','cancelado')
-      ])
-    : [{data:[]},{data:[]}];
-
-  // Índice atividade_id → {pago, comprometido} (contratos + diretos)
-  const ativContratos = {};
-  (ativData||[]).forEach(a=>{
-    const contratos = a.contratos||[];
-    ativContratos[a.id] = {
-      pago:        contratos.reduce((s,c)=>s+parseFloat(c.valor_utilizado_brl||0),0),
-      comprometido:contratos.reduce((s,c)=>s+parseFloat(c.valor_comprometido_brl||0),0)
-    };
-  });
-  (dirData||[]).forEach(l=>{
-    if(!ativContratos[l.atividade_id]) ativContratos[l.atividade_id]={pago:0,comprometido:0};
-    ativContratos[l.atividade_id].comprometido += parseFloat(l.valor_brl||0);
-    if(l.situacao==='pago') ativContratos[l.atividade_id].pago += parseFloat(l.valor_brl||0);
-  });
-
-  // Mapa por atividade — agrega viagens e dados orçamentários
+  // Mapa por atividade — gasto com viagens (R$, protocolos não cancelados/rejeitados) + saldo oficial (US$)
   const mapa = {};
+  let nFora = 0;
   (data||[]).forEach(p=>{
+    if(VI_FORA_TOTAL.includes(p.situacao)){ nFora++; return; }
     const key = p.atividade?.id||'sem-atv';
     if(!mapa[key]){
-      const atv  = p.atividade;
-      const orcBRL = atv ? parseFloat(atv.orcamento_usd||0)*cotacao : 0;
-      const {pago=0, comprometido=0} = ativContratos[atv?.id]||{};
-      mapa[key]={
-        id:key, codigo:atv?.codigo||'—', nome:atv?.nome_pt||'Sem Atividade',
-        orcBRL, pago, comprometido, aPagar:Math.max(0,comprometido-pago),
-        viagens:0, protocolos:0
-      };
+      const atv = p.atividade, sal = atv ? salAtv[atv.id] : null;
+      mapa[key]={ id:key, codigo:atv?.codigo||'—', nome:atv?.nome_pt||'Sem atividade', sal, viagens:0, protocolos:0 };
     }
     mapa[key].protocolos++;
     const seenV=new Set();
@@ -3999,41 +3968,42 @@ async function relVi3(){
     });
   });
 
-  const lista      = Object.values(mapa).sort((a,b)=>b.protocolos-a.protocolos);
-  const totalOrc   = lista.reduce((s,r)=>s+r.orcBRL,0);
-  const totalPago  = lista.reduce((s,r)=>s+r.pago,0);
-  const totalComp  = lista.reduce((s,r)=>s+r.comprometido,0);
-  const totalSaldo = lista.reduce((s,r)=>s+Math.max(0,r.orcBRL-r.comprometido),0);
+  const n = v => Number(v||0);
+  const lista       = Object.values(mapa).sort((a,b)=>b.protocolos-a.protocolos);
+  const comSal      = lista.filter(r=>r.sal);
+  const totalViag   = lista.reduce((s,r)=>s+r.viagens,0);
+  const totalOrc    = comSal.reduce((s,r)=>s+n(r.sal.orcamento_usd),0);
+  const totalComp   = comSal.reduce((s,r)=>s+n(r.sal.comprometido_usd),0);
+  const totalLivre  = comSal.reduce((s,r)=>s+n(r.sal.saldo_livre_usd),0);
 
-  // ── gráfico empilhado por atividade ───────────────────────────
-  const grafico = lista.filter(r=>r.orcBRL>0).map(r=>{
-    const saldo  = r.orcBRL - r.comprometido;
-    const over   = saldo < 0;
-    const pPago  = Math.min(100, r.pago/r.orcBRL*100);
-    const pAPag  = Math.min(100-pPago, r.aPagar/r.orcBRL*100);
-    const pSaldo = Math.max(0, 100-pPago-pAPag);
+  // ── gráfico empilhado por atividade (US$, mesma conta do saldo oficial) ──
+  const grafico = comSal.filter(r=>n(r.sal.orcamento_usd)>0).map(r=>{
+    const sl = r.sal, pago=n(sl.pago_usd), apagar=n(sl.a_pagar_usd), comp=n(sl.comprometido_usd), livre=n(sl.saldo_livre_usd);
+    const reserv = Math.max(0, comp-pago-apagar), over = livre < 0;
+    const base = pago + apagar + reserv + Math.max(0,livre) || 1;
+    const pc = v => (v/base*100).toFixed(1);
     return `
     <div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-        <div style="font-size:10px;font-weight:600;color:var(--cinza-800)">
-          <span style="font-family:var(--font-mono);background:var(--cinza-100);padding:1px 5px;border-radius:3px;margin-right:6px">${esc(r.codigo)}</span>${esc(r.nome)}
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px">
+        <div style="font-size:10px;font-weight:600;color:var(--cinza-800);min-width:0">
+          <span class="rep-cod" style="margin-right:6px">${esc(r.codigo)}</span>${esc(r.nome)}
         </div>
-        <div style="font-size:10px;font-family:var(--font-mono)">
-          Saldo: <strong style="color:${over?'#DC2626':'#059669'}">${fmtBRL(saldo)}</strong>
-          ${over?'<span style="color:#DC2626;margin-left:4px">Acima do orçamento</span>':''}
+        <div style="font-size:10px;font-family:var(--font-mono);white-space:nowrap">
+          Saldo livre: <strong style="color:${over?'#DC2626':'#059669'}">${usd2(livre)}</strong>
         </div>
       </div>
       <div style="height:18px;border-radius:4px;overflow:hidden;display:flex;background:var(--cinza-100)">
-        ${pPago>0 ?`<div style="width:${pPago.toFixed(1)}%;background:#059669;height:100%" title="Pago: ${fmtBRL(r.pago)}"></div>`:''}
-        ${pAPag>0 ?`<div style="width:${pAPag.toFixed(1)}%;background:#D97706;height:100%" title="A pagar: ${fmtBRL(r.aPagar)}"></div>`:''}
-        ${pSaldo>0?`<div style="width:${pSaldo.toFixed(1)}%;background:#E5E7EB;height:100%" title="Saldo: ${fmtBRL(saldo)}"></div>`:''}
+        ${pago>0  ?`<div style="width:${pc(pago)}%;background:#059669;height:100%"></div>`:''}
+        ${apagar>0?`<div style="width:${pc(apagar)}%;background:#D97706;height:100%"></div>`:''}
+        ${reserv>0?`<div style="width:${pc(reserv)}%;background:#FCD34D;height:100%"></div>`:''}
+        ${livre>0 ?`<div style="width:${pc(livre)}%;background:#E5E7EB;height:100%"></div>`:''}
         ${over    ?`<div style="width:4px;background:#DC2626;height:100%"></div>`:''}
       </div>
-      <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:9px;color:var(--cinza-500);font-family:var(--font-mono)">
-        <span>Orç: ${fmtBRL(r.orcBRL)}</span>
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:3px;font-size:9px;color:var(--cinza-500);font-family:var(--font-mono)">
+        <span>Orç: ${usd2(sl.orcamento_usd)} · Viagens: ${fmtBRL(r.viagens)}</span>
         <span style="display:flex;gap:10px">
-          <span style="color:#059669">■ Pago ${fmtBRL(r.pago)}</span>
-          <span style="color:#D97706">■ A pagar ${fmtBRL(r.aPagar)}</span>
+          <span style="color:#059669">Pago ${usd2(pago)}</span>
+          <span style="color:#D97706">A pagar ${usd2(apagar)}</span>
         </span>
       </div>
     </div>`;
@@ -4041,17 +4011,18 @@ async function relVi3(){
 
   return `
   <div class="rep-stats rep-stats-4">
-    <div class="rep-stat"><div class="rep-stat-lbl">Atividades com Viagem</div><div class="rep-stat-val">${lista.length}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento Total</div><div class="rep-stat-val">${fmtBRL(totalOrc)}</div><div class="rep-stat-sub">base na cotação atual</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Comprometido</div><div class="rep-stat-val">${fmtBRL(totalComp)}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Saldo Disponível</div><div class="rep-stat-val" style="color:${totalSaldo>=0?'var(--sucesso)':'var(--erro)'}">${fmtBRL(totalSaldo)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Atividades com Viagem</div><div class="rep-stat-val">${lista.length}</div>${nFora?`<div class="rep-stat-sub">${nFora} protocolo(s) cancelado(s) ou rejeitado(s) fora</div>`:''}</div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Gasto com Viagens</div><div class="rep-stat-val">${fmtBRL(totalViag)}</div><div class="rep-stat-sub">passagens + diárias</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Orçamento das Atividades</div><div class="rep-stat-val">${usd2(totalOrc)}</div><div class="rep-stat-sub">comprometido ${usd2(totalComp)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Saldo Livre</div><div class="rep-stat-val" style="color:${totalLivre>=0?'var(--sucesso)':'var(--erro)'}">${usd2(totalLivre)}</div></div>
   </div>
 
   <div class="rep-secao">
     <div class="rep-secao-titulo">Orçamento × Execução por Atividade</div>
     <div style="padding:4px 0 8px;display:flex;gap:16px;flex-wrap:wrap;font-size:10px;margin-bottom:12px">
       <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#059669;border-radius:2px;display:inline-block"></span>Pago</span>
-      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#D97706;border-radius:2px;display:inline-block"></span>A pagar (comprometido)</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#D97706;border-radius:2px;display:inline-block"></span>A pagar</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#FCD34D;border-radius:2px;display:inline-block"></span>Reservado (TDR ainda sem lançamento)</span>
       <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;background:#E5E7EB;border:1px solid #D1D5DB;border-radius:2px;display:inline-block"></span>Saldo livre</span>
     </div>
     ${grafico||'<div style="color:var(--cinza-400);font-size:11px">Nenhuma atividade com orçamento cadastrado.</div>'}
@@ -4061,40 +4032,38 @@ async function relVi3(){
     <div class="rep-secao-titulo">Execução por Atividade</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>Código</th><th>Atividade</th>
+        <th class="c-min">Código</th>
         <th style="text-align:center">Protocolos</th>
+        <th style="text-align:right">Viagens (R$)</th>
         <th style="text-align:right">Orçamento</th>
-        <th style="text-align:right">Pago</th>
-        <th style="text-align:right">A pagar</th>
-        <th style="text-align:right">Saldo</th>
+        <th style="text-align:right">Comprometido</th>
+        <th style="text-align:right">Saldo livre</th>
         <th style="min-width:80px">Execução</th>
       </tr></thead>
-      <tbody>
       ${lista.map(r=>{
-        const saldo = r.orcBRL - r.comprometido;
-        const over  = saldo < 0;
-        const pctExec = r.orcBRL>0 ? r.comprometido/r.orcBRL*100 : 0;
-        return `<tr>
+        const sl = r.sal, orc = sl?n(sl.orcamento_usd):0, livre = sl?n(sl.saldo_livre_usd):null;
+        const pctExec = orc>0 ? n(sl.comprometido_usd)/orc*100 : 0;
+        return `<tbody class="rep-grupo"><tr class="rep-mae">
           <td class="mono">${esc(r.codigo)}</td>
-          <td>${esc(r.nome)}</td>
           <td class="mono" style="text-align:center">${esc(r.protocolos)}</td>
-          <td class="mono" style="text-align:right">${r.orcBRL>0?fmtBRL(r.orcBRL):'—'}</td>
-          <td class="mono" style="text-align:right;color:#059669">${fmtBRL(r.pago)}</td>
-          <td class="mono" style="text-align:right;color:#D97706">${fmtBRL(r.aPagar)}</td>
-          <td class="mono" style="text-align:right;font-weight:600;color:${over?'#DC2626':'#059669'}">${r.orcBRL>0?fmtBRL(saldo):'—'}</td>
-          <td><div class="rep-barra"><div class="rep-barra-fill" style="width:${Math.min(100,pctExec).toFixed(0)}%"></div></div><div class="mono-sm">${r.orcBRL>0?fmtPct1(pctExec):'—'}</div></td>
-        </tr>`;
+          <td class="mono" style="text-align:right">${fmtBRL(r.viagens)}</td>
+          <td class="mono" style="text-align:right">${orc>0?usd2(orc):'—'}</td>
+          <td class="mono" style="text-align:right">${sl?usd2(sl.comprometido_usd):'—'}</td>
+          <td class="mono" style="text-align:right;font-weight:600;color:${livre!=null&&livre<0?'#DC2626':'#059669'}">${livre!=null?usd2(livre):'—'}</td>
+          <td><div class="rep-barra"><div class="rep-barra-fill" style="width:${Math.min(100,pctExec).toFixed(0)}%"></div></div><div class="mono-sm">${orc>0?fmtPct1(pctExec):'—'}</div></td>
+        </tr>${linhaDet(7,'Atividade',r.nome)}</tbody>`;
       }).join('')}
-      </tbody>
       <tfoot><tr>
-        <td colspan="3"><strong>TOTAL</strong></td>
-        <td class="mono" style="text-align:right">${fmtBRL(totalOrc)}</td>
-        <td class="mono" style="text-align:right;color:#059669">${fmtBRL(totalPago)}</td>
-        <td class="mono" style="text-align:right;color:#D97706">${fmtBRL(totalComp-totalPago)}</td>
-        <td class="mono" style="text-align:right;font-weight:700;color:${totalSaldo>=0?'#059669':'#DC2626'}">${fmtBRL(totalSaldo)}</td>
+        <td colspan="2"><strong>TOTAL</strong></td>
+        <td class="mono" style="text-align:right">${fmtBRL(totalViag)}</td>
+        <td class="mono" style="text-align:right">${usd2(totalOrc)}</td>
+        <td class="mono" style="text-align:right">${usd2(totalComp)}</td>
+        <td class="mono" style="text-align:right;font-weight:700;color:${totalLivre>=0?'#059669':'#DC2626'}">${usd2(totalLivre)}</td>
         <td></td>
       </tr></tfoot>
     </table>
+    ${NOTA_SALDO}
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:4px">Viagens (R$) = passagens e diárias dos protocolos do período (sem cancelados e rejeitados); esse gasto já está dentro do comprometido, pelo TDR de execução direta. Orçamento, comprometido e saldo livre são da atividade inteira, em US$.</div>
   </div>`;
 }
 
@@ -4133,7 +4102,7 @@ async function relVi5(){
     else p.sem++;
   });
   const prots = Object.values(porProt).sort((a,b)=>String(b.saida||'').localeCompare(String(a.saida||'')));
-  const sitProt = p => (p.pend?`<span class="rep-badge rb-ouro">${p.pend} devolução(ões) pendente(s)</span> `:'')
+  const sitProt = p => (p.pend?`<span class="rep-badge rb-ouro">${p.pend} dev. pendente${p.pend>1?'s':''}</span> `:'')
     + (p.sit==='nao_realizado' ? '<span class="rep-badge rb-ouro">Não realizado</span>' : sitProtPag(p));
   const sitProtPag = p => p.sem===p.n ? '<span class="rep-badge rb-cinza">Sem lançamento</span>'
     : p.apagar ? `<span class="rep-badge rb-ouro">${p.pago?`${p.pago} pago · `:''}${p.apagar} a pagar</span>`
@@ -4172,22 +4141,22 @@ async function relVi5(){
     <div class="rep-secao-titulo">Gasto por protocolo</div>
     ${prots.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum protocolo no período.</div>`:`
     <table class="rep-tbl">
-      <thead><tr><th>Protocolo</th><th>Saída</th><th>Destino</th><th>TDR</th><th style="text-align:center">Viajantes</th>
+      <thead><tr><th>Protocolo · TDR</th><th>Saída</th><th style="text-align:center">Viaj.</th>
         <th style="text-align:right">Passagens</th><th style="text-align:right">Diárias</th><th style="text-align:right">Devolvido</th><th style="text-align:right">Líquido</th><th style="text-align:right">US$ líquido</th><th>Situação</th></tr></thead>
-      <tbody>${prots.map(p=>`<tr>
-        <td class="mono">${esc(p.numero||'—')}</td>
+      ${prots.map(p=>{
+        const canc = [p.custo?'custo de cancelamento '+fmtBRL(p.custo):'', p.cred?'crédito com a companhia aérea '+fmtBRL(p.cred):''].filter(Boolean).join(' · ');
+        return `<tbody class="rep-grupo"><tr class="rep-mae">
+        <td class="mono">${esc(p.numero||'—')}${p.tdr?`<span class="rep-sub">TDR ${esc(p.tdr)}</span>`:''}</td>
         <td class="mono">${fmtDt(p.saida)}</td>
-        <td>${esc(p.destino||'—')}</td>
-        <td class="mono">${esc(p.tdr||'—')}</td>
         <td class="mono" style="text-align:center">${p.n}</td>
         <td class="mono" style="text-align:right">${fmtBRL(p.pas)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(p.dia)}</td>
-        <td class="mono" style="text-align:right">${p.dev?'− '+fmtBRL(p.dev):'—'}${p.custo?`<div class="mono-sm" style="color:var(--cinza-500)">custo canc. ${fmtBRL(p.custo)}</div>`:''}${p.cred?`<div class="mono-sm" style="color:var(--cinza-500)">crédito cia. ${fmtBRL(p.cred)}</div>`:''}</td>
+        <td class="mono" style="text-align:right">${p.dev?'− '+fmtBRL(p.dev):'—'}</td>
         <td class="mono" style="text-align:right">${fmtBRL(p.pas+p.dia-p.dev)}</td>
         <td class="mono" style="text-align:right">${usdCel(p.usd-p.devUsd,p.est)}</td>
         <td>${sitProt(p)}</td>
-      </tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="5"><strong>TOTAL</strong></td>
+      </tr>${linhaDet(9,'Destino',p.destino)}${linhaDet(9,'Cancelamento',canc)}</tbody>`; }).join('')}
+      <tfoot><tr><td colspan="3"><strong>TOTAL</strong></td>
         <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.pas,0))}</td>
         <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.dia,0))}</td>
         <td class="mono" style="text-align:right">${fmtBRL(prots.reduce((t,p)=>t+p.dev,0))}</td>
@@ -4346,10 +4315,7 @@ async function relVi4(){
               alt="Cartão ${i+1}">
           </a>`).join('');
         const relHtml = v.relatorio_url
-          ? `<a href="#" data-arquivo="${esc(v.relatorio_url)}"
-               style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--verde-medio);text-decoration:none;background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:var(--raio);padding:4px 10px">
-               ${esc(v.relatorio_nome||'Relatório de viagem')}
-             </a>`
+          ? `<a href="#" data-arquivo="${esc(v.relatorio_url)}" style="font-size:10px;color:var(--cinza-900);text-decoration:none">${esc(v.relatorio_nome||'Relatório de viagem')}</a>`
           : `<span style="font-size:11px;color:var(--cinza-400);font-style:italic">Aguardando dados</span>`;
         return `
           <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:4px;font-size:10px">
@@ -4375,7 +4341,7 @@ async function relVi4(){
     return `
     <div class="vi4-prot" style="margin-bottom:14px;break-inside:avoid;page-break-inside:avoid">
       <h3 style="margin:0;background:var(--verde-bg);border:1px solid var(--borda-verde);border-radius:6px 6px 0 0;padding:6px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:400">
-        <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;background:var(--verde-escuro);color:#fff;padding:2px 8px;border-radius:4px">${esc(p.numero||'—')}</span>
+        <span style="font-family:var(--font-mono);font-size:12px;font-weight:700;background:var(--verde);color:#fff;padding:2px 8px;border-radius:4px">${esc(p.numero||'—')}</span>
         <span style="font-size:12px;font-weight:600;color:var(--cinza-900);flex:1;min-width:0">${esc(p.destino_principal||'—')}</span>
         <span class="rep-badge ${SIT_BADGE2[p.situacao]||'rb-cinza'}">${SIT_LABELS2[p.situacao]||p.situacao}</span>
       </h3>
@@ -4484,8 +4450,17 @@ async function relL1(){
   const rows = data||[];
   const acoesMap={};
   rows.forEach(a=>{const t=a.usuario?.nome_completo||'—';if(!acoesMap[t])acoesMap[t]=0;acoesMap[t]++;});
-  const stLabel={rascunho:'Rascunho',revisao_interna:'Revisão Interna',enviado_unesco:'Enviado UNESCO',ajustes:'Em Ajustes',aprovado:'Aprovado',cancelado:'Cancelado'};
-  const stClass={rascunho:'rb-cinza',revisao_interna:'rb-ouro',enviado_unesco:'rb-azul',ajustes:'rb-ouro',aprovado:'rb-verde',cancelado:'rb-vermelho'};
+  // mesma lista completa de fases de T2 (status_tdr)
+  const stLabel={rascunho:'Rascunho',submetido:'Submetido',em_avaliacao:'Em avaliação',pendente_correcao:'Pendente de correção',revisao_interna:'Revisão Interna',ajustes:'Em Ajustes',enviado_unesco:'Enviado UNESCO',em_revisao_unesco:'Em revisão UNESCO',retorno_unesco:'Retorno UNESCO',aprovado:'Aprovado',em_licitacao:'Em licitação',contratado:'Contratado',cancelado:'Cancelado'};
+  const stClass={rascunho:'rb-cinza',submetido:'rb-azul',em_avaliacao:'rb-ouro',pendente_correcao:'rb-ouro',revisao_interna:'rb-ouro',ajustes:'rb-ouro',enviado_unesco:'rb-azul',em_revisao_unesco:'rb-azul',retorno_unesco:'rb-ouro',aprovado:'rb-verde',em_licitacao:'rb-verde',contratado:'rb-teal',cancelado:'rb-vermelho'};
+  // tdr_acoes.acao (check da tabela) — vira selo quando a ação não mudou a fase
+  const acaoLabel={cadastrado:'Cadastrado',editado:'Editado',enviado_revisao:'Enviado para revisão',aprovado_revisao:'Aprovado na revisão',devolvido_ajuste:'Devolvido para ajuste',enviado_unesco:'Enviado à UNESCO',retorno_unesco:'Retorno da UNESCO',aprovado_final:'Aprovação final',cancelado:'Cancelado',substituto_designado:'Substituto designado',confirmacao_senha:'Confirmação de senha',em_licitacao:'Licitação',contratado:'Contratado'};
+  const seloFase = f => `<span class="rep-badge ${stClass[f]||'rb-cinza'}">${esc(stLabel[f]||rotuloCodigo(f))}</span>`;
+  const celFase = r => {
+    const mudou = r.status_novo && r.status_novo !== r.status_anterior;
+    if(!mudou) return `<td colspan="2"><span class="rep-badge rb-cinza">${esc(acaoLabel[r.acao]||rotuloCodigo(r.acao))}</span><span class="rep-sub">sem mudança de fase${r.status_novo?' · '+esc(stLabel[r.status_novo]||rotuloCodigo(r.status_novo)):''}</span></td>`;
+    return `<td>${r.status_anterior?seloFase(r.status_anterior):'—'}</td><td>${seloFase(r.status_novo)}</td>`;
+  };
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Total de Ações</div><div class="rep-stat-val">${rows.length}</div></div>
@@ -4496,20 +4471,16 @@ async function relL1(){
     <div class="rep-secao-titulo">Ações Registradas em TDRs</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>Data/Hora</th><th>Usuário</th><th>TDR</th><th>Atividade</th>
-        <th>Fase Anterior</th><th>Nova Fase</th><th>Observação</th>
+        <th class="c-min">Data/Hora</th><th>Usuário</th><th class="c-min">TDR</th><th class="c-min">Atividade</th>
+        <th>Fase anterior</th><th>Nova fase</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
-        <td class="mono" style="font-size:10px">${r.criado_em?new Date(r.criado_em).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
+        <td class="mono">${r.criado_em?new Date(r.criado_em).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td>
         <td>${esc(r.usuario?.nome_completo||'—')}</td>
         <td class="mono">${esc(r.tdr?.numero||'—')}</td>
         <td class="mono">${esc(r.tdr?.atividade?.codigo||'—')}</td>
-        <td>${r.status_anterior?`<span class="rep-badge ${stClass[r.status_anterior]||'rb-cinza'}">${stLabel[r.status_anterior]||r.status_anterior}</span>`:'—'}</td>
-        <td>${r.status_novo?`<span class="rep-badge ${stClass[r.status_novo]||'rb-cinza'}">${stLabel[r.status_novo]||r.status_novo}</span>`:'—'}</td>
-        <td style="font-size:10px">${esc(r.observacao||'—')}</td>
-      </tr>`).join('')}
-      </tbody>
+        ${celFase(r)}
+      </tr>${linhaDet(6,'Comentário',r.comentario)}</tbody>`).join('')}
     </table>
   </div>`;
 }
@@ -4609,82 +4580,43 @@ async function relL5(){
     foto_url:'Foto URL', foto_nome:'Nome da Foto', status:'Status'
   };
 
+  // diff campo a campo sempre visível (vai para o papel). Larguras fixas 22/39/39; só valor sem espaço (URL)
+  // quebra em qualquer ponto — texto com espaço quebra entre palavras.
+  const L5_TD = 'padding:4px 8px;font-size:11px;vertical-align:top';
+  const l5Val = (txt, estilo) => {
+    const t = String(txt), semEsp = t.length > 20 && !/\s/.test(t);
+    return `<td${semEsp?' class="rep-quebra"':''} style="${L5_TD};${estilo}${semEsp?';overflow-wrap:anywhere;word-break:break-all':''}">${esc(t)}</td>`;
+  };
+  const l5Linha = (label, va, vd) => `<tr>
+          <td style="${L5_TD};font-weight:600;color:var(--cinza-600)">${esc(label)}</td>
+          ${va==null ? `<td style="${L5_TD};color:var(--cinza-400)">—</td>` : l5Val(va,'color:#dc2626;text-decoration:line-through')}
+          ${vd==null ? `<td style="${L5_TD};color:var(--cinza-400)">—</td>` : l5Val(vd,'color:#16a34a')}
+        </tr>`;
+
   function _diffHtml(antes, depois){
     if(!antes && !depois) return '<em style="color:var(--cinza-400)">Sem dados.</em>';
-
-    // Para geometrias (antes ou depois tem vertices), mostra apenas campos + contagem de vértices
     const a = antes || {};
     const d = depois || {};
-    const camposParaComparar = Object.keys(CAMPOS);
     const linhas = [];
-
-    camposParaComparar.forEach(k => {
+    Object.keys(CAMPOS).forEach(k => {
       const va = a[k] !== undefined ? a[k] : null;
       const vd = d[k] !== undefined ? d[k] : null;
       const mudou = JSON.stringify(va) !== JSON.stringify(vd);
-      if(!mudou && !antes) return; // na criação, mostra todos
-      if(!mudou && !depois) return; // na exclusão, mostra todos
-      if(!mudou) return; // na edição, só mostra alterados
-
-      const label = CAMPOS[k];
-      const valAntes = va !== null && va !== undefined && va !== '' ? String(va) : '—';
-      const valDepois = vd !== null && vd !== undefined && vd !== '' ? String(vd) : '—';
-
-      if(!depois){
-        // Exclusão: mostra valor que existia
-        linhas.push(`<tr>
-          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600);white-space:nowrap">${esc(label)}</td>
-          <td style="padding:4px 8px;font-size:11px;color:#dc2626;text-decoration:line-through">${esc(valAntes)}</td>
-          <td style="padding:4px 8px;font-size:11px;color:var(--cinza-400)">—</td>
-        </tr>`);
-      } else if(!antes){
-        // Criação: mostra valor novo
-        linhas.push(`<tr>
-          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600);white-space:nowrap">${esc(label)}</td>
-          <td style="padding:4px 8px;font-size:11px;color:var(--cinza-400)">—</td>
-          <td style="padding:4px 8px;font-size:11px;color:#16a34a">${esc(valDepois)}</td>
-        </tr>`);
-      } else {
-        // Edição: antes → depois
-        linhas.push(`<tr>
-          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600);white-space:nowrap">${esc(label)}</td>
-          <td style="padding:4px 8px;font-size:11px;color:#dc2626;text-decoration:line-through">${esc(valAntes)}</td>
-          <td style="padding:4px 8px;font-size:11px;color:#16a34a">${esc(valDepois)}</td>
-        </tr>`);
-      }
+      if(!mudou) return; // edição: só os alterados; criação/exclusão: todos com valor
+      const valAntes  = va !== null && va !== '' ? String(va) : '—';
+      const valDepois = vd !== null && vd !== '' ? String(vd) : '—';
+      linhas.push(l5Linha(CAMPOS[k], antes?valAntes:null, depois?valDepois:null));
     });
-
     // Vértices — para polígonos/trilhas
     if(a.vertices || d.vertices){
-      const nAntes  = a.vertices ? a.vertices.length : '—';
-      const nDepois = d.vertices ? d.vertices.length : '—';
-      const mudouVtx = nAntes !== nDepois;
-      if(!depois){
-        linhas.push(`<tr>
-          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600)">Vértices</td>
-          <td style="padding:4px 8px;font-size:11px;color:#dc2626;text-decoration:line-through">${nAntes} ponto(s)</td>
-          <td style="padding:4px 8px;font-size:11px;color:var(--cinza-400)">—</td>
-        </tr>`);
-      } else if(!antes){
-        linhas.push(`<tr>
-          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600)">Vértices</td>
-          <td style="padding:4px 8px;font-size:11px;color:var(--cinza-400)">—</td>
-          <td style="padding:4px 8px;font-size:11px;color:#16a34a">${nDepois} ponto(s)</td>
-        </tr>`);
-      } else if(mudouVtx){
-        linhas.push(`<tr>
-          <td style="padding:4px 8px;font-size:11px;font-weight:600;color:var(--cinza-600)">Vértices</td>
-          <td style="padding:4px 8px;font-size:11px;color:#dc2626;text-decoration:line-through">${nAntes} ponto(s)</td>
-          <td style="padding:4px 8px;font-size:11px;color:#16a34a">${nDepois} ponto(s)</td>
-        </tr>`);
-      }
+      const nAntes  = a.vertices ? a.vertices.length : null;
+      const nDepois = d.vertices ? d.vertices.length : null;
+      if(!depois || !antes || nAntes !== nDepois)
+        linhas.push(l5Linha('Vértices', antes&&nAntes!=null?nAntes+' ponto(s)':null, depois&&nDepois!=null?nDepois+' ponto(s)':null));
     }
-
-    if(!linhas.length){
-      return '<em style="color:var(--cinza-400);font-size:11px">Nenhuma alteração de campo registrada.</em>';
-    }
-
-    return `<table style="width:100%;border-collapse:collapse;border:1px solid var(--borda);border-radius:6px;overflow:hidden">
+    if(!linhas.length) return '<em style="color:var(--cinza-400);font-size:11px">Nenhuma alteração de campo registrada.</em>';
+    return `<table style="width:100%;table-layout:fixed;border-collapse:collapse;border:1px solid var(--borda)">
+      <colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
       <thead><tr style="background:var(--cinza-50)">
         <th style="padding:4px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--borda);color:var(--cinza-500)">Campo</th>
         <th style="padding:4px 8px;font-size:10px;text-align:left;border-bottom:1px solid var(--borda);color:#dc2626">Antes</th>
@@ -4718,8 +4650,7 @@ async function relL5(){
           const geo = geoLabel[r.geometry_type]||r.geometry_type||'Ponto';
           return `
           <div style="border:1px solid var(--borda);border-radius:8px;margin-bottom:10px;overflow:hidden">
-            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${cor}11;border-bottom:1px solid ${cor}33;cursor:pointer"
-                 onclick="this.parentElement.querySelector('.l5-diff').style.display=this.parentElement.querySelector('.l5-diff').style.display==='none'?'block':'none'">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:${cor}11;border-bottom:1px solid ${cor}33">
               <span style="font-size:16px">${acaoIcon[r.acao]||'•'}</span>
               <div style="flex:1;min-width:0">
                 <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">
@@ -4732,9 +4663,8 @@ async function relL5(){
                   ${r.apa ? ` · APA: ${esc(r.apa)}` : ''}
                 </div>
               </div>
-              <span style="font-size:11px;color:var(--cinza-400)">▼ detalhes</span>
             </div>
-            <div class="l5-diff" style="display:none;padding:12px 14px">
+            <div class="l5-diff" style="padding:12px 14px">
               ${_diffHtml(r.dados_antes, r.dados_depois)}
             </div>
           </div>`;
