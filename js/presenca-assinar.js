@@ -144,7 +144,7 @@
     const f = $('pa-form'), val = n => (f.querySelector(`input[name="${n}"]:checked`) || {}).value
     const dados = {
       nome: $('pa-nome').value.trim(), email: $('pa-email').value.trim(), telefone: $('pa-tel').value.trim(),
-      sexo_genero: val('sexo'), sexo_genero_outro: $('pa-sexo-outro').value.trim(), cor_raca: val('raca'),
+      sexo_genero: val('sexo'), sexo_genero_outro: $('pa-sexo-outro').value.trim(), cor_raca: val('raca'), faixa_etaria: val('idade'),
       imagem_autoriza: val('imagem'), termo_id: D.termo.id,
     }
     const tel = dados.telefone.replace(/\D/g, '')
