@@ -378,7 +378,7 @@
       </div>
       <div class="rep-secao"><div class="rep-secao-titulo">Participantes</div>
       <table class="rep-tbl"><thead><tr><th class="c-min">#</th>${t ? '' : '<th>Reunião</th>'}<th>Nome</th><th>E-mail</th><th>Telefone</th><th>Uso de imagem</th><th>Assinou em</th></tr></thead>
-      <tbody>${rows.map((r, i) => `<tr><td class="mono">${i + 1}</td>${t ? '' : `<td>${esc(r.reuniao)}</td>`}<td>${esc(r.nome)}${r.interno ? '' : ' <span class="rep-badge rb-neutro">convidado</span>'}</td>
+      <tbody>${rows.map((r, i) => `<tr><td class="mono">${i + 1}</td>${t ? '' : `<td>${esc(r.reuniao)}</td>`}<td>${esc(r.nome)}${r.interno ? '' : ' <span class="rep-badge rb-cinza">convidado</span>'}</td>
         <td>${esc(r.email)}</td><td class="mono">${esc(r.telefone || '—')}</td><td>${esc(IMG[r.imagem])}</td><td class="mono">${esc(dataHora(r.assinado_em))} · ${esc(ORIGEM[r.origem])}</td></tr>`).join('')}</tbody></table></div>
       <p class="pp-a4-nota">Assinatura eletrônica registrada pela plataforma (data, hora e meio: link pessoal enviado por e-mail ou QR Code da reunião).
         A autorização de uso de imagem guarda a versão do termo lido por cada pessoa. Exportado por ${esc(data.exportado_por || '')} em ${esc(dataHora(data.exportado_em))}.</p>`
