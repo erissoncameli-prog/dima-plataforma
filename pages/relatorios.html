@@ -149,7 +149,7 @@ const RELATORIOS = [
   { id:'F5', paisagem:true, tema:'financeiro', titulo:'Saldo por Atividade',
     desc:'Orçamento previsto, comprometido, pago, liberado e saldo livre por atividade, com a situação do saldo (US$, saldo oficial).',
     filtros:['atividade','resultado','fase'] },
-  { id:'F6', tema:'financeiro', titulo:'Inadimplência / Atrasos',
+  { id:'F6', paisagem:true, tema:'financeiro', titulo:'Inadimplência / Atrasos',
     desc:'Produtos e lançamentos de execução direta (viagens) com vencimento ultrapassado e ainda não pagos.',
     filtros:['atividade','fornecedor'] },
   // ── CONTRATOS ─────────────────────────────────────────────
@@ -162,7 +162,7 @@ const RELATORIOS = [
   { id:'C3', paisagem:true, tema:'contratos', titulo:'Execução por Contrato',
     desc:'Valor total vs. produtos pagos, a pagar e cancelados por contrato.',
     filtros:['fornecedor','atividade'] },
-  { id:'C4', tema:'contratos', titulo:'Contratos sem Documentos',
+  { id:'C4', paisagem:true, tema:'contratos', titulo:'Contratos sem Documentos',
     desc:'Contratos sem o PDF assinado anexado.',
     filtros:['atividade'] },
   { id:'C5', tema:'contratos', titulo:'Entregas por Contrato',
