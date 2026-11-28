@@ -9,6 +9,9 @@
   const ic = (n, cls = '') => `<svg class="i ${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`
   const SEXO = { mulher: 'Mulher', homem: 'Homem', outro: 'Outro', prefere_nao_responder: 'Prefere não responder' }
   const RACA = { branca: 'Branca', preta: 'Preta', parda: 'Parda', amarela: 'Amarela', indigena: 'Indígena', prefere_nao_responder: 'Prefere não responder' }
+  const IDADE = { ate_17: 'Até 17 anos', '18_24': '18 a 24', '25_29': '25 a 29', '30_39': '30 a 39', '40_49': '40 a 49', '50_59': '50 a 59',
+    '60_mais': '60 ou mais', prefere_nao_responder: 'Prefere não responder', sem_registro: 'Sem registro (antes do campo)' }
+  const CONVITE = c => c ? 'Convidado(a)' : 'Não convidado(a)'
   const IMG = { sim: 'Autorizou', nao: 'Não autorizou', retirada: 'Retirou a autorização' }
   const ORIGEM = { convite: 'Link do e-mail', qr: 'QR Code' }
   const TZ = { timeZone: 'America/Rio_Branco' }
@@ -166,9 +169,10 @@
     const colTel = d.pode_gerir, colSens = d.ve_sensivel
     const linhas = assin.map((a, i) => `<tr>
       <td class="pp-n">${i + 1}</td>
-      <td><b>${esc(a.nome)}</b>${a.interno ? '' : ' <span class="pp-tag">Convidado</span>'}<div class="pp-suave">${esc(a.email)}</div></td>
+      <td><b>${esc(a.nome)}</b>${a.convidado ? '' : ' <span class="pp-tag pp-tag-sem" title="Participou sem ter recebido o convite da reunião">Não convidado(a)</span>'}${
+        a.interno ? '' : ' <span class="pp-tag" title="Não tem conta na plataforma">Externo</span>'}<div class="pp-suave">${esc(a.email)}</div></td>
       ${colTel ? `<td class="pp-mono">${esc(a.telefone || '—')}</td>` : ''}
-      ${colSens ? `<td>${esc(SEXO[a.sexo_genero] || '—')}${a.sexo_genero_outro ? ' (' + esc(a.sexo_genero_outro) + ')' : ''}</td><td>${esc(RACA[a.cor_raca] || '—')}</td>` : ''}
+      ${colSens ? `<td>${esc(SEXO[a.sexo_genero] || '—')}${a.sexo_genero_outro ? ' (' + esc(a.sexo_genero_outro) + ')' : ''}</td><td>${esc(RACA[a.cor_raca] || '—')}</td><td>${esc(IDADE[a.faixa_etaria] || '—')}</td>` : ''}
       <td><span class="pp-img pp-img-${a.imagem}">${esc(IMG[a.imagem])}</span>${d.pode_gerir && a.imagem === 'sim'
         ? `<button type="button" class="pp-lnk" data-pp-retirar="${a.id}" data-pp-nome="${esc(a.nome)}">Retirar</button>` : ''}</td>
       <td class="pp-suave">${esc(ORIGEM[a.origem])}<br>${esc(diaHora(a.assinado_em))}</td></tr>`).join('')
@@ -188,13 +192,14 @@
       <div class="pp-kpis">
         <div><b>${assin.length}</b><span>presenças</span></div>
         <div><b>${conv.filter(c => c.assinou).length}<small> de ${conv.length}</small></b><span>convidados assinaram</span></div>
-        <div><b>${assin.filter(a => !a.interno).length}</b><span>convidados externos</span></div>
+        <div><b>${assin.filter(a => !a.convidado).length}</b><span>participaram sem convite</span></div>
+        <div><b>${assin.filter(a => !a.interno).length}</b><span>externos (sem conta)</span></div>
         <div class="${semImg ? 'pp-kpi-alerta' : ''}"><b>${semImg}</b><span>sem autorização de imagem</span></div>
       </div>
       ${conv.length ? `<details class="pp-conv"><summary>Convidados da reunião (${conv.length})</summary>
         <ul>${conv.map(c => `<li class="${c.assinou ? 'ok' : ''}">${ic(c.assinou ? 'check' : 'clock', 's')}${esc(c.nome)}<span>${c.assinou ? 'assinou' : 'não assinou'}</span></li>`).join('')}</ul></details>` : ''}
       ${assin.length ? `<div class="pp-tabela"><table>
-        <thead><tr><th>#</th><th>Nome e e-mail</th>${colTel ? '<th>Telefone</th>' : ''}${colSens ? '<th>Sexo/gênero</th><th>Cor ou raça</th>' : ''}<th>Uso de imagem</th><th>Assinou por</th></tr></thead>
+        <thead><tr><th>#</th><th>Nome e e-mail</th>${colTel ? '<th>Telefone</th>' : ''}${colSens ? '<th>Sexo/gênero</th><th>Cor ou raça</th><th>Idade</th>' : ''}<th>Uso de imagem</th><th>Assinou por</th></tr></thead>
         <tbody>${linhas}</tbody></table></div>`
         : `<div class="pp-vazio">${ic('checks')}<b>Ninguém assinou ainda</b>A lista abre 15 minutos antes do início. Projete o QR na reunião ou copie o link para o chat.</div>`}
       ${!colSens && assin.length ? `<p class="pp-nota">${ic('lock', 's')}Sexo/gênero e cor ou raça por pessoa só aparecem para a coordenação do projeto. Os totais estão no gerenciador (aba Presenças).</p>` : ''}
