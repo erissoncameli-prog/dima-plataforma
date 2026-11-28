@@ -23,6 +23,13 @@ for (let i = 1; i <= 80; i++) {
   const r = rnd()
   vw_matriz_progresso.push({ id: it.id, realizado_confirmado: meta ? (r < .3 ? 0 : Math.round(meta * r * 1.3)) : 0, realizado_pendente: r > .6 ? Math.round(rnd() * 40) : 0 })
 }
+// contribuições das entregas (vw_matriz_contribuicoes): 0 a 4 por indicador
+const vw_matriz_contribuicoes = []
+matriz_itens.forEach((it, i) => {
+  for (let k = 0; k < (i % 5); k++) vw_matriz_contribuicoes.push({ id: uid('p', i * 10 + k), produto_id: uid('l', 1 + ((i + k) % 70)), matriz_item_id: it.id,
+    valor: Math.round(rnd() * 60) + 1, unidade: k % 3 ? null : it.unidade, observacao: k === 2 ? texto(80) : null, status: pick(['confirmado', 'pendente', 'rejeitado']),
+    criado_em: ts(i + k), entrega_numero: 1 + k, entrega_dt: dia(i + k * 7), entrega_situacao: pick(['aprovada', 'em_analise']), entrega_tipo_documento: pick(['Relatório técnico', 'Nota Fiscal', null]) })
+})
 
 // ── Atividades / viagens ──
 const atividades = [1, 2, 3, 4, 5, 6].map(i => ({ id: uid('c', i), codigo: `2.1.${i}`, nome_pt: texto(110), orcamento_usd: 50000 + i * 31000, ativo: true, resultado_id: null,
@@ -68,8 +75,9 @@ const execucao_financeira = atividades.map((a, i) => ({ id: uid('i', i), ativida
 // ── Logs ──
 const FASES = ['rascunho', 'revisao_interna', 'ajustes', 'enviado_unesco', 'retorno_unesco', 'aprovado', 'em_licitacao', 'contratado', 'cancelado', null]
 const tdr_acoes = []
-for (let i = 1; i <= 90; i++) tdr_acoes.push({ id: uid('j', i), tdr_id: uid('k', i % 25), usuario_id: USU[i % 4].id, acao: 'comentario', criado_em: ts(i * 2),
-  status_anterior: FASES[i % FASES.length], status_novo: FASES[(i + 1) % FASES.length], observacao: i % 6 ? texto(150 + Math.floor(rnd() * 300)) : null,
+const ACOES = ['enviado_unesco', 'contratado', 'em_licitacao', 'aprovado_final', 'devolvido_ajuste', 'editado', 'cancelado', 'enviado_revisao', 'substituto_designado']
+for (let i = 1; i <= 90; i++) tdr_acoes.push({ id: uid('j', i), tdr_id: uid('k', i % 25), usuario_id: USU[i % 4].id, acao: ACOES[i % ACOES.length], criado_em: ts(i * 2),
+  status_anterior: FASES[i % FASES.length], status_novo: i % 4 === 0 ? FASES[i % FASES.length] : FASES[(i + 1) % FASES.length], comentario: i % 6 ? texto(150 + Math.floor(rnd() * 300)) : null,
   usuario: i % 13 ? { nome_completo: USU[i % 4].nome_completo } : null, tdr: { numero: `TDR-2026-${String(i % 25).padStart(3, '0')}`, objeto_pt: texto(120), atividade: { codigo: atividades[i % 6].codigo } } })
 const contratos_produtos = []
 for (let i = 1; i <= 70; i++) {
@@ -92,7 +100,9 @@ for (let i = 1; i <= 50; i++) {
 
 module.exports = {
   banco: {
-    usuarios: USU, atividades, matriz_itens, vw_matriz_progresso, viagem_protocolos, viagem_viajantes, vw_viagens_execucao, vw_tdr_execucao_direta,
+    usuarios: USU, atividades, matriz_itens, vw_matriz_progresso, vw_matriz_contribuicoes,
+    vw_saldo_atividade: atividades.map((a, i) => ({ id: a.id, orcamento_usd: a.orcamento_usd, comprometido_usd: a.orcamento_usd * (0.4 + i * 0.15), pago_usd: a.orcamento_usd * 0.2,
+      a_pagar_usd: a.orcamento_usd * 0.1, liberado_usd: i === 2 ? 5000 : 0, saldo_livre_usd: a.orcamento_usd * (0.6 - i * 0.15) + (i === 2 ? 5000 : 0), status_saldo: i > 3 ? 'extrapolado' : 'ok', excedente_contrato_usd: 0 })), viagem_protocolos, viagem_viajantes, vw_viagens_execucao, vw_tdr_execucao_direta,
     execucao_financeira, cotacoes_usd: [{ cotacao: 5.25, data_ref: '2026-11-27' }], tdr_acoes, contratos_produtos, mapa_pontos_log,
     resultados: [1, 2, 3, 4].map(i => ({ id: uid('o', i), codigo: 'R' + i, nome_pt: texto(60) })), ods_refs: [], fornecedores: [], tdrs: [], contratos: [],
   },
