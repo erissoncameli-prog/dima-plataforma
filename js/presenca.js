@@ -202,7 +202,7 @@
         <thead><tr><th>#</th><th>Nome e e-mail</th>${colTel ? '<th>Telefone</th>' : ''}${colSens ? '<th>Sexo/gênero</th><th>Cor ou raça</th><th>Idade</th>' : ''}<th>Uso de imagem</th><th>Assinou por</th></tr></thead>
         <tbody>${linhas}</tbody></table></div>`
         : `<div class="pp-vazio">${ic('checks')}<b>Ninguém assinou ainda</b>A lista abre 15 minutos antes do início. Projete o QR na reunião ou copie o link para o chat.</div>`}
-      ${!colSens && assin.length ? `<p class="pp-nota">${ic('lock', 's')}Sexo/gênero e cor ou raça por pessoa só aparecem para a coordenação do projeto. Os totais estão no gerenciador (aba Presenças).</p>` : ''}
+      ${!colSens && assin.length ? `<p class="pp-nota">${ic('lock', 's')}Sexo/gênero, cor ou raça e idade por pessoa só aparecem para a coordenação do projeto. Os totais estão no gerenciador (aba Presenças).</p>` : ''}
       ${d.pode_gerir && assin.length ? `<div class="pp-rodape"><span class="pp-suave">Exportar esta lista</span>
         <button type="button" class="btn btn-sec btn-sm" onclick="Presenca.exportar(['${l.id}'],'a4')">${ic('doc', 's')}PDF (A4)</button>
         <button type="button" class="btn btn-sec btn-sm" onclick="Presenca.exportar(['${l.id}'],'xlsx')">${ic('board', 's')}Excel</button>
@@ -305,7 +305,8 @@
         <div><b>${k.pessoas}</b><span>pessoas diferentes</span></div>
         <div><b>${k.reunioes_realizadas ? (k.presencas / k.reunioes_realizadas).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) : '0'}</b><span>média por reunião</span></div>
         <div><b>${taxa}%</b><span>dos convidados compareceram</span></div>
-        <div><b>${k.internos}<small> / ${k.externos}</small></b><span>da equipe / convidados externos</span></div>
+        <div><b>${k.internos}<small> / ${k.externos}</small></b><span>da equipe / externos (sem conta)</span></div>
+        <div><b>${k.sem_convite || 0}</b><span>participaram sem convite</span></div>
         <div class="${k.sem_imagem ? 'pp-kpi-alerta' : ''}"><b>${k.sem_imagem}</b><span>não autorizaram o uso de imagem</span></div>
       </div>
       <div class="pp-dist">
