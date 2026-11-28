@@ -10,7 +10,7 @@
   const SEXO = { mulher: 'Mulher', homem: 'Homem', outro: 'Outro', prefere_nao_responder: 'Prefere não responder' }
   const RACA = { branca: 'Branca', preta: 'Preta', parda: 'Parda', amarela: 'Amarela', indigena: 'Indígena', prefere_nao_responder: 'Prefere não responder' }
   const IDADE = { ate_17: 'Até 17 anos', '18_24': '18 a 24', '25_29': '25 a 29', '30_39': '30 a 39', '40_49': '40 a 49', '50_59': '50 a 59',
-    '60_mais': '60 ou mais', prefere_nao_responder: 'Prefere não responder', sem_registro: 'Sem registro (antes do campo)' }
+    '60_mais': '60 ou mais', prefere_nao_responder: 'Prefere não responder', sem_registro: 'Sem registro' }
   const CONVITE = c => c ? 'Convidado(a)' : 'Não convidado(a)'
   const IMG = { sim: 'Autorizou', nao: 'Não autorizou', retirada: 'Retirou a autorização' }
   const ORIGEM = { convite: 'Link do e-mail', qr: 'QR Code' }
