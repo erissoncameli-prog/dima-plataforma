@@ -312,15 +312,16 @@
       <div class="pp-dist">
         <section><h4>Sexo/gênero</h4>${barras(k.sexo, SEXO)}</section>
         <section><h4>Cor ou raça</h4>${barras(k.raca, RACA)}</section>
+        <section><h4>Faixa de idade</h4>${barras(k.faixa, IDADE)}</section>
       </div>
       ${rs.length ? `<div class="pp-tabela"><table>
-        <thead><tr><th>Data</th><th>Reunião</th><th>Formato</th><th class="r">Presenças</th><th class="r">Convidados</th><th class="r">Sem imagem</th><th>Situação</th></tr></thead>
+        <thead><tr><th>Data</th><th>Reunião</th><th>Formato</th><th class="r">Presenças</th><th class="r">Convidados</th><th class="r">Sem convite</th><th class="r">Sem imagem</th><th>Situação</th></tr></thead>
         <tbody>${rs.map(r => { const s = sitLinha(r)
           return `<tr class="pp-clic" data-pp-ver="${r.id}" tabindex="0">
             <td class="pp-mono">${esc(diaHora(r.inicio))}</td>
             <td><b>${esc(r.titulo)}</b><div class="pp-suave">${esc(r.codigo || '')}${r.atividade ? ' · ' + esc(r.atividade) : ''}</div></td>
             <td>${esc(r.formato || '—')}</td><td class="r"><b>${r.assinaturas}</b></td>
-            <td class="r">${r.convidados_assinaram}/${r.convidados}</td><td class="r">${r.sem_imagem || ''}</td>
+            <td class="r">${r.convidados_assinaram}/${r.convidados}</td><td class="r">${r.sem_convite || ''}</td><td class="r">${r.sem_imagem || ''}</td>
             <td><span class="pp-sit pp-sit-${s.cls}">${esc(s.txt)}</span></td></tr>` }).join('')}</tbody></table></div>`
         : `<div class="pp-vazio">${ic('cal')}<b>Nenhuma reunião no filtro</b>Toda tarefa do tipo Reunião ganha uma lista de presença automaticamente.</div>`}`
   }
@@ -360,9 +361,10 @@
   function linhasPlanas (data) {
     return data.linhas.map((r, i) => ({
       n: i + 1, reuniao: r.reuniao, data: dataHora(r.data), formato: r.formato || '', nome: r.nome, email: r.email, telefone: r.telefone || '',
-      vinculo: r.interno ? 'Equipe (usuário)' : 'Convidado externo', origem: ORIGEM[r.origem] || r.origem,
+      vinculo: r.interno ? 'Equipe (usuário)' : 'Externo (sem conta)', convite: CONVITE(r.convidado), origem: ORIGEM[r.origem] || r.origem,
       sexo: data.com_sensiveis ? (SEXO[r.sexo_genero] || '') + (r.sexo_genero_outro ? ' (' + r.sexo_genero_outro + ')' : '') : undefined,
       raca: data.com_sensiveis ? RACA[r.cor_raca] || '' : undefined,
+      idade: data.com_sensiveis ? IDADE[r.faixa_etaria || 'sem_registro'] : undefined,
       imagem: IMG[r.imagem], termo: 'v' + r.termo_versao, assinado: dataHora(r.assinado_em),
     }))
   }
@@ -405,8 +407,8 @@
     const L = linhasPlanas(data)
     const ws = wb.addWorksheet('Presenças')
     const cols = [['#', 'n', 6], ['Reunião', 'reuniao', 40], ['Data', 'data', 18], ['Formato', 'formato', 12], ['Nome', 'nome', 32], ['E-mail', 'email', 32],
-      ['Telefone', 'telefone', 16], ['Vínculo', 'vinculo', 18], ['Assinou por', 'origem', 16]]
-    if (data.com_sensiveis) cols.push(['Sexo/gênero', 'sexo', 22], ['Cor ou raça', 'raca', 18])
+      ['Telefone', 'telefone', 16], ['Vínculo', 'vinculo', 18], ['Convite', 'convite', 18], ['Assinou por', 'origem', 16]]
+    if (data.com_sensiveis) cols.push(['Sexo/gênero', 'sexo', 22], ['Cor ou raça', 'raca', 18], ['Faixa de idade', 'idade', 18])
     cols.push(['Uso de imagem', 'imagem', 22], ['Termo', 'termo', 8], ['Assinado em', 'assinado', 18])
     ws.columns = cols.map(([h, k, w]) => ({ header: h, key: k, width: w }))
     L.forEach(r => ws.addRow(r)); cab(ws); ws.autoFilter = { from: 'A1', to: { row: 1, column: cols.length } }
@@ -416,11 +418,13 @@
     const reunioes = new Set(L.map(r => r.reuniao + r.data))
     const linhas = [['Reuniões', reunioes.size], ['Presenças', L.length],
       ['Pessoas diferentes', new Set(data.linhas.map(r => r.email)).size],
-      ['Convidados externos', L.filter(r => r.vinculo.startsWith('Convidado')).length],
+      ['Externos (sem conta)', L.filter(r => r.vinculo.startsWith('Externo')).length],
+      ['Participaram sem convite', L.filter(r => r.convite === CONVITE(false)).length],
       ['Não autorizaram / retiraram o uso de imagem', L.filter(r => r.imagem !== IMG.sim).length]]
     if (data.com_sensiveis) {
       Object.entries(conta(r => r.sexo.split(' (')[0] || '—')).forEach(([k, v]) => linhas.push(['Sexo/gênero: ' + k, v]))
       Object.entries(conta(r => r.raca || '—')).forEach(([k, v]) => linhas.push(['Cor ou raça: ' + k, v]))
+      Object.entries(conta(r => r.idade || '—')).forEach(([k, v]) => linhas.push(['Faixa de idade: ' + k, v]))
     }
     linhas.push(['Exportado por', (data.exportado_por || '') + ' em ' + dataHora(data.exportado_em)])
     linhas.forEach(([k, v]) => res.addRow({ k, v })); cab(res)
