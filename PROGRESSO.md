@@ -5,21 +5,17 @@
 
 ## Estado atual — 28/11/2026
 
-- **Em andamento: Lista de presença das reuniões** (Painel de Tarefas). Código **pronto e já na `main`** (publicado na Vercel),
-  mas **o banco ainda não foi atualizado**: até lá a tela mostra "Lista de presença em instalação" e o quadro some da ficha.
-- **Falta (precisa do conector do Supabase — computador da SEMA ou conectar aqui):**
-  1. Testar a migração sem gravar: `execute_sql` com `begin; <conteúdo de supabase/migrations/20261128_presenca_reunioes.sql>; rollback;`
-     no projeto `wfymnmlinonvdqfucjya`. Corrigir o que falhar (o arquivo nunca rodou em Postgres).
-  2. Aplicar: `apply_migration` (nome `20261128_presenca_reunioes`). Não tem palavra de apagar no texto.
-  3. Publicar a Edge Function `presenca-emails` (`deploy_edge_function`, verify_jwt = true).
-  4. Conferir o cron: `select jobname, schedule, command from cron.job where jobname like 'presenca%'` (deve existir
-     `presenca-emails`, a cada minuto, terminando em `where public.fn_presenca_rotina() > 0`).
-  5. Conferir o painel de segurança (`anon_security_definer_function_executable`): o `anon` só deve executar
-     `fn_publico_presenca_lista` e `fn_publico_presenca_assinar`.
-  6. Teste real: criar uma reunião começando em ~5 min com 2 convidados → ver o quadro na ficha, projetar o QR, assinar pelo
-     celular (convidado sem conta), esperar o e-mail dos 10 min, assinar pelo link, exportar PDF/Excel/CSV na aba Presenças.
-  7. Revisar com a coordenação o texto do termo de uso de imagem (versão 1, semeada na migração). Texto novo = nova versão
-     por `fn_presenca_termo_publicar` (super_admin). Ainda não há tela para editar o termo (fica para depois).
+- **Lista de presença das reuniões: NO AR (28/11/2026).** Migrações `20261128_presenca_reunioes` + `_b_validacao` aplicadas,
+  Edge Function `presenca-emails` v1 publicada, cron `presenca-emails` ativo (a cada minuto, só chama a função com pendência).
+  Testado no banco em transação desfeita: lista nasce com a reunião, rotina dos 10 min, QR, link pessoal, e-mail repetido
+  barrado, campos vazios barrados, gestão, painel, exportação (PDF sem raça), retirada de imagem, encerrar/reabrir, técnico
+  sem permissão, reunião desativada fecha a lista. Painel de segurança: `anon` só executa as 2 funções públicas (esperado).
+- **Falta:**
+  1. Teste real com o usuário: reunião começando em ~5 min com 2 convidados → quadro na ficha, QR no celular (convidado sem
+     conta), e-mail dos 10 min chega (conferir `presenca_notificacoes.enviado_em/erro`), assinar pelo link, exportar.
+  2. Revisar com a coordenação o texto do termo de uso de imagem (versão 1). Texto novo = nova versão por
+     `fn_presenca_termo_publicar` (super_admin). Ainda não há tela para editar o termo.
+- **Conector do Supabase**: `.mcp.json` do projeto + conector oficial aprovado pela organização no Claude (28/11/2026).
 - **Relatórios A4 (aba Relatórios) — concluído e na `main`.** Conferência dos 55 relatórios + visual novo (opção A) +
   correções de largura, orientação e dado. Falta só conferir em produção, com dados reais: P4 e L4 (antes sempre vazios),
   L1 (comentário de cada ação) e a taxa de aprovação do P3 (agora só produtos avaliados). Nada no banco foi alterado.
@@ -39,7 +35,7 @@
 - Lista de presença das reuniões: migração `20261128_presenca_reunioes` (listas, assinaturas, termo de imagem versionado,
   convites pessoais, fila de e-mail, painel, exportação, ROPA TRAT-008), Edge Function `presenca-emails`, página pública
   `pages/presenca.html`, quadro na ficha + QR em tela cheia + aba Presenças (`js/presenca.js`). Testado no navegador com dados
-  simulados (página pública em todos os estados, gerenciador, janela da lista, QR, CSV/Excel, celular). SQL ainda não testado.
+  simulados (página pública em todos os estados, gerenciador, janela da lista, QR, CSV/Excel, celular). SQL testado e aplicado no mesmo dia (ver Estado atual).
 - Atenção: há um gancho global do Claude (`~/.claude/settings.json`, PostToolUse) que faz commit + push na `main` a cada
   arquivo salvo — tudo que é editado vai para a produção na hora.
 

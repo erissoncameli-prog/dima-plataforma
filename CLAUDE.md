@@ -1604,7 +1604,7 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
 - Bucket `tarefas-anexos`: caminho **sempre** `<tarefa_id>/<arquivo>` — as policies de storage leem a 1ª pasta (`fn_tarefa_id_do_path`) e aplicam o acesso da tarefa (ver/anexar: `fn_pode_ver_tarefa`; apagar: `fn_tarefa_pode_editar`). Arquivo fora desse padrão fica inacessível ao cliente.
 
 ### Lista de presença das reuniões (⚠️ ler antes de mexer em `presenca_*`)
-- Migração `20261128_presenca_reunioes`; Edge Function `presenca-emails`; tela `js/presenca.js` + `css/presenca.css` (prefixo `pp-`,
+- Migrações `20261128_presenca_reunioes` (+ `_b_validacao`: campo vazio cai na mensagem certa — `coalesce` no `not in`); Edge Function `presenca-emails`; tela `js/presenca.js` + `css/presenca.css` (prefixo `pp-`,
   tokens do painel de tarefas) dentro de `pages/tarefas.html`; página pública `pages/presenca.html` + `js/presenca-assinar.js` +
   `css/presenca-assinar.css`. ROPA **TRAT-008**.
 - **Uma lista por tarefa `reuniao`** (`presenca_listas`, criada/acertada pelo gatilho `trg_presenca_tarefa` → `fn_presenca_sincronizar`):
