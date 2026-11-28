@@ -15,7 +15,7 @@
   const dataHora = ts => ts ? new Date(ts).toLocaleString('pt-BR', { ...TZ, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
   const hora = ts => ts ? new Date(ts).toLocaleTimeString('pt-BR', { ...TZ, hour: '2-digit', minute: '2-digit' }) : ''
   const diaHora = ts => ts ? new Date(ts).toLocaleString('pt-BR', { ...TZ, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
-  const raiz = () => location.href.replace(/pages\/.*$/, '').replace(/[?#].*$/, '')
+  const raiz = () => { const p = location.pathname, i = p.indexOf('/pages/'); return location.origin + (i >= 0 ? p.slice(0, i + 1) : '/') }
   const urlLista = token => raiz() + 'pages/presenca.html?l=' + encodeURIComponent(token)
   const ERROS = {
     sem_permissao: 'Só quem administra a reunião pode fazer isso.', sem_acesso: 'Você não tem acesso a esta reunião.',
