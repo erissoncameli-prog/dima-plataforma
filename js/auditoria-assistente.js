@@ -469,6 +469,7 @@ function autoResizeTextarea(el) {
   if (!el) return
   el.style.height = 'auto'
   el.style.height = Math.min(el.scrollHeight, 160) + 'px'
+  el.style.overflowY = el.scrollHeight > 160 ? 'auto' : 'hidden'
 }
 
 // ── Comandos do chat ───────────────────────────────────────────────────
