@@ -1627,11 +1627,15 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
   O token só sai para quem gere. Página pública lê `fn_publico_presenca_lista` e grava por `fn_publico_presenca_assinar` (anon).
 - **Uma assinatura por pessoa**: índices únicos `(lista_id, lower(email))` e `(lista_id, usuario_id)`. Usuário (link pessoal ou logado)
   assina com o e-mail do cadastro; e-mail digitado de usuário ativo conta como dele. Convidado = e-mail autodeclarado (sem código).
-- **Não convidado(a)**: `presenca_assinaturas.convidado_inicial` é gravado **na assinatura** (estava em `fn_presenca_convidados`
-  naquela hora?) — não recalcular depois. Externo nunca é convidado. A pessoa assina normalmente; tela, PDF A4 (coluna Convite),
-  Excel/CSV e painel (`sem_convite`) mostram. **Faixa etária** (`faixa_etaria`): ate_17 · 18_24 · 25_29 · 30_39 · 40_49 · 50_59 ·
-  60_mais · prefere_nao_responder — obrigatória (`presenca:idade_obrigatoria`), mesma regra de sexo/raça (por pessoa só
-  `fn_presenca_ve_sensivel`, fora do PDF A4); assinaturas antigas sem faixa aparecem como `sem_registro` nos totais.
+- **"Convidado externo"** (rótulo pedido pelo usuário; antes "Não convidado(a)") = participou sem estar no convite inicial:
+  `presenca_assinaturas.convidado_inicial = false`, gravado **na assinatura** (estava em `fn_presenca_convidados` naquela hora?) —
+  não recalcular depois. Assina normalmente; tela, PDF A4 (coluna Convite), Excel/CSV e painel (`sem_convite`) mostram. Quem não tem
+  conta na plataforma é **"Sem cadastro"** (não usar "externo" para isso). **Faixa etária** (`faixa_etaria`): ate_17 · 18_24 · 25_29 ·
+  30_39 · 40_49 · 50_59 · 60_mais · prefere_nao_responder — obrigatória (`presenca:idade_obrigatoria`), mesma regra de sexo/raça;
+  assinaturas antigas sem faixa aparecem como `sem_registro` nos totais.
+- **Relatório A4** (`pdfA4` em `js/presenca.js`, migração `_e_relatorio`): **sempre paisagem**; uma seção por reunião (nova página a
+  cada uma) com identificação, números, participantes com **todos os campos** e **resumo por sexo/gênero e faixa de idade**
+  (`fn_presenca_exportar` → `resumos`); exportação de várias reuniões abre com o resumo geral do período.
 - **Campos**: nome, e-mail, telefone (opcional, 10–13 dígitos), `sexo_genero` e `cor_raca` (mesmas opções do Diagnóstico, com
   "prefere_nao_responder"; raça = dado **sensível**). **Uso de imagem**: escolha explícita (nenhuma marcada), grava `termo_id` +
   `termo_sha256` do termo lido (`presenca_termos_imagem`, versões imutáveis, uma `vigente`; novo texto só por
