@@ -195,7 +195,7 @@
     const aba = (k, icone, nm) => `<button class="${S.aba === k ? 'on' : ''}" onclick="TK.aba('${k}')">${ic(icone, 's')}${nm}</button>`
     const filtrar = S.aba === 'kanban' || S.aba === 'lista' || S.aba === 'calendario'
     return `<div class="toolbar">
-      <div class="seg" role="tablist">${aba('kanban', 'board', 'Quadro')}${aba('lista', 'list', 'Lista')}${aba('calendario', 'cal', 'Calendário')}${aba('minhas', 'user', 'Minhas')}</div>
+      <div class="seg" role="tablist">${aba('kanban', 'board', 'Quadro')}${aba('lista', 'list', 'Lista')}${aba('calendario', 'cal', 'Calendário')}${aba('minhas', 'user', 'Minhas')}${typeof Presenca !== 'undefined' ? aba('presencas', 'checks', 'Presenças') : ''}</div>
       ${filtrar ? `
       <label class="search" for="tk-busca">${ic('search', 's')}<input id="tk-busca" placeholder="Buscar por número ou título" value="${esc(S.fBusca)}" oninput="TK.busca(this.value)"></label>
       <select class="filtro ${S.fResp ? 'on' : ''}" onchange="TK.filtroResp(this.value)" aria-label="Responsável">${optUsers}</select>
@@ -488,13 +488,16 @@
     if (S.aba === 'lista') return viewLista()
     if (S.aba === 'calendario') return viewCalendario()
     if (S.aba === 'minhas') return viewMinhas()
+    if (S.aba === 'presencas') return '<div id="pp-painel"></div>' // preenchido por js/presenca.js
     return viewKanban()
   }
+  const ligarPresencas = () => { const el = document.getElementById('pp-painel'); if (el && typeof Presenca !== 'undefined') Presenca.painel(el) }
 
   function refreshView () {
     document.getElementById('tk-view').innerHTML = viewAtual()
     const sub = document.getElementById('tk-sub'); if (sub) sub.textContent = resumoTopo()
     if (S.aba === 'kanban') ligarDragDrop()
+    if (S.aba === 'presencas') ligarPresencas()
   }
 
   // ══ MODAL ═════════════════════════════════════════════════════════════
@@ -1060,6 +1063,7 @@
         (t.dt_inicio ? R('f-inicio', 'Início', `<span class="mono">${fmtDataHoraBR(t.dt_inicio)}</span>`) : '') +
         R('f-restrita', 'Restrita', `<small>${t.restrita ? 'Só envolvidos e super admin' : 'Visível pelas regras normais'}</small><span class="switch${t.restrita ? '' : ' off'}"></span>`))}
       ${tipoLinhas ? grupo(esc(t.tipo === 'reuniao' ? 'Reunião' : tp.nome), tipoLinhas) : ''}
+      ${t.tipo === 'reuniao' && typeof Presenca !== 'undefined' ? `<div class="grupo" data-pp-tarefa="${t.id}"></div>` : ''}
       ${grupo('Vínculos',
         R('atividade', 'Atividade', t.atividade ? `<span class="mono cod">${esc(t.atividade.codigo)}</span> ${esc(t.atividade.nome_pt || '')}` : '', true) +
         (t.atividade || tdrs ? R('tdr', 'TDRs', tdrs ? `<span class="pills">${tdrs}</span>` : '') : '') +
