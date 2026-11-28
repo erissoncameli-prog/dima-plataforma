@@ -153,6 +153,7 @@
     if (tel && (tel.length < 10 || tel.length > 13)) { erro(ERROS.telefone_invalido); $('pa-tel').focus(); return }
     if (!dados.sexo_genero) { erro(ERROS.sexo_obrigatorio); return }
     if (!dados.cor_raca) { erro(ERROS.raca_obrigatoria); return }
+    if (!dados.faixa_etaria) { erro(ERROS.idade_obrigatoria); return }
     if (!dados.imagem_autoriza) { erro(ERROS.imagem_obrigatoria); $('pa-ler').scrollIntoView({ block: 'center' }); return }
     erro('')
     const bt = $('pa-enviar'); bt.disabled = true; bt.textContent = 'Registrando…'
