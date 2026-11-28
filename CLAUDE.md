@@ -5,6 +5,26 @@ Este arquivo é lido automaticamente pelo Claude Code a cada sessão. Contém o 
 
 ---
 
+## Continuidade entre contas e dispositivos (ler primeiro)
+
+Este projeto é trabalhado com **duas contas do Claude** e em **quatro dispositivos** (Windows de casa, computador da
+SEMA, Mac e iPhone/sessões na nuvem). Cada computador tem a **sua cópia**; o GitHub tem a oficial. A conversa não passa
+de uma sessão para outra: o que vale é o que está no repositório.
+
+**Regras de sincronização — o Claude segue sem o usuário precisar pedir:**
+1. **Ao começar a sessão**: o aviso automático `.claude/hooks/sincronia.sh` diz se há novidades no GitHub ou trabalho
+   local não enviado. Antes de qualquer outra tarefa: `git pull --rebase` (se houver alterações locais, `git stash` antes
+   e `git stash pop` depois) e ler o `PROGRESSO.md`. Se houver commit ou alteração local sem enviar, contar ao usuário.
+2. **Ao terminar cada tarefa**: lembrar o usuário de salvar e oferecer commit + push. Trabalho não enviado fica preso
+   neste computador e os outros não o veem.
+3. **Quando o usuário pedir "salva o progresso"** (ou avisar que os tokens estão acabando): atualizar o `PROGRESSO.md`
+   (feito, pela metade, próximo passo, decisões, o que já foi aplicado no banco ou publicado), depois commit e push na `main`.
+4. **Nunca encerrar uma sessão com trabalho sem push sem avisar o usuário.**
+
+Regras e decisões permanentes vão para este `CLAUDE.md`. O `PROGRESSO.md` é o diário curto da passagem de bastão.
+
+---
+
 ## Autoria e direitos autorais (⚠️ nunca remover)
 
 **Plataforma Inteligente de Gestão de Projetos** · Concepção e Desenvolvimento: **Erisson Cameli Santiago** ·
@@ -1248,6 +1268,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `auditoria_registros.dominio` não tem `orcamento`) — filtro e barra próprios, banco igual.
 - **Resolver e ignorar exigem texto** (mesma janela `#au-modal`): grava `status`, `resolvido_por`, `resolvido_em` e
   `comentario_resolucao` (no ignorado, é o motivo). Nunca ignorar sem motivo.
+- **Assistente** (`chat-auditor` v5, 27/11/2026): `exigirPerfil(['super_admin','coordenacao'])` e **toda ferramenta usa
+  `clienteDoUsuario(req)`** (RLS) — nunca service_role nas ferramentas. Ferramentas (`betaTool` do tool runner, SDK `@1.14.0`
+  fixado) só leem; saldo só de `vw_saldo_atividade`/`fn_orcamento_extrato`. Nenhuma lê CPF/CNPJ, banco, e-mail ou nome de
+  viajante, e toda saída passa por `_shared/redigir.ts`. Ferramenta nova = mesma regra + rótulo em `ROTULO_FERRAMENTA`
+  (a tela mostra "Consultou: …"). Modelo `claude-sonnet-5-5`, effort `medium`, fallback de recusa `default`, até 8 rodadas,
+  histórico de 30 mensagens. Conversa ainda **não** é gravada (Fase 2: tabelas + limite por pessoa).
 - Janela com classe **`au-ov`** (no seletor de escopo de `diagnostico-mesa.css`): Esc fecha, Tab preso, foco volta. O painel
   do assistente (`.au-chat`, também `au-ov`) não bloqueia a página; Esc fecha. "Perguntar ao assistente" no achado preenche a
   pergunta com título e referência.
@@ -1577,6 +1603,33 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
   na subtarefa (`subMinha`, `faixaPapel`) e selo "Sua subtarefa". O e-mail da subtarefa responde para o código **da subtarefa**.
 - Bucket `tarefas-anexos`: caminho **sempre** `<tarefa_id>/<arquivo>` — as policies de storage leem a 1ª pasta (`fn_tarefa_id_do_path`) e aplicam o acesso da tarefa (ver/anexar: `fn_pode_ver_tarefa`; apagar: `fn_tarefa_pode_editar`). Arquivo fora desse padrão fica inacessível ao cliente.
 
+### Lista de presença das reuniões (⚠️ ler antes de mexer em `presenca_*`)
+- Migração `20261128_presenca_reunioes`; Edge Function `presenca-emails`; tela `js/presenca.js` + `css/presenca.css` (prefixo `pp-`,
+  tokens do painel de tarefas) dentro de `pages/tarefas.html`; página pública `pages/presenca.html` + `js/presenca-assinar.js` +
+  `css/presenca-assinar.css`. ROPA **TRAT-008**.
+- **Uma lista por tarefa `reuniao`** (`presenca_listas`, criada/acertada pelo gatilho `trg_presenca_tarefa` → `fn_presenca_sincronizar`):
+  abre 15 min antes do início, fecha 2 h depois do término (sem término = início + 2 h); hora de `dados_tipo` = Acre, UTC-5 fixo
+  (`fn_presenca_hora`). Reunião cancelada ⇒ lista encerrada; remarcada para o futuro ⇒ o e-mail volta a valer. Gerir reabre por 2 h
+  (`fn_presenca_reabrir`) ou encerra (`fn_presenca_encerrar`). Aberta = `fn_presenca_aberta`.
+- **E-mail dos 10 minutos**: cron `presenca-emails` (a cada minuto; o comando é o do `remanejamento-emails` com
+  `where public.fn_presenca_rotina() > 0`) → `fn_presenca_rotina` põe em `presenca_notificacoes` um e-mail por convidado
+  (`fn_presenca_convidados` = criador + participantes ativos com e-mail), só reuniões iniciadas há 10 min–6 h. A Edge Function gera o
+  **link pessoal** (`?c=`; só o SHA-256 em `presenca_convites`, por `fn_presenca_convite_emitir`, service_role) e não manda a quem já assinou.
+- **QR** (`?l=<presenca_listas.token>`): tela cheia com contador (`fn_presenca_contagem`), botão "Projetar QR da presença" na ficha.
+  O token só sai para quem gere. Página pública lê `fn_publico_presenca_lista` e grava por `fn_publico_presenca_assinar` (anon).
+- **Uma assinatura por pessoa**: índices únicos `(lista_id, lower(email))` e `(lista_id, usuario_id)`. Usuário (link pessoal ou logado)
+  assina com o e-mail do cadastro; e-mail digitado de usuário ativo conta como dele. Convidado = e-mail autodeclarado (sem código).
+- **Campos**: nome, e-mail, telefone (opcional, 10–13 dígitos), `sexo_genero` e `cor_raca` (mesmas opções do Diagnóstico, com
+  "prefere_nao_responder"; raça = dado **sensível**). **Uso de imagem**: escolha explícita (nenhuma marcada), grava `termo_id` +
+  `termo_sha256` do termo lido (`presenca_termos_imagem`, versões imutáveis, uma `vigente`; novo texto só por
+  `fn_presenca_termo_publicar`, super_admin). Termo mudou no meio ⇒ `presenca:termo_mudou`. Retirada = `fn_presenca_revogar_imagem`
+  (motivo ≥ 10; `imagem_revogada_*`, trilha no `audit_log`). Efetivo: `sim | nao | retirada`.
+- **Quem vê o quê**: nome/presença = `fn_pode_ver_tarefa`; gerir (QR, reabrir, encerrar, exportar, retirar imagem) =
+  `fn_presenca_pode_gerir` (criador, responsáveis da reunião, coordenação, super_admin); telefone = quem gere; sexo/raça por pessoa =
+  `fn_presenca_ve_sensivel` (coordenação/super_admin), os demais só totais. **PDF A4 nunca leva sexo/raça** (forçado em
+  `fn_presenca_exportar`, que registra em `presenca_exportacoes`). Tabelas sem policy nem grant: tudo por RPC.
+- Gerenciador = aba **Presenças** do painel (`?aba=presencas`): `fn_presenca_painel` (reuniões + indicadores) e `fn_presenca_detalhe`.
+
 ### API de dados para outras plataformas (⚠️ ler antes de expor dado para fora)
 - Migração `20261031_api_dados` + Edge Function `api-dados` (`verify_jwt` **false**; autentica pela chave própria). Documentação
   para quem consome: `docs/api/README.md`. **Somente leitura e só números agregados** (conteúdo numérico da ficha A5): sem nome de
@@ -1654,7 +1707,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | Slug | Propósito | `verify_jwt` |
 |------|-----------|-------------|
 | `auditor-ia` | Auditoria automática em 6 domínios + agentes de orçamento (`fn_auditoria_orcamento`) e patrimônio (`fn_auditoria_patrimonio`) + supervisor Claude | ✅ |
-| `chat-auditor` | Chat interativo sobre achados de auditoria (stateful) | ✅ |
+| `chat-auditor` | Assistente da Auditoria (v5): só super_admin/coordenação; Claude com ferramentas **somente leitura** pelo cliente do usuário (RLS) — achados, saldo, extrato, contrato, TDR, execução direta, remanejamentos, produtos, viagens | ✅ |
 | `analisar-tdr` | Análise IA de TDR submetido | ❌ |
 | `corrigir-tdr` | Correção automática de TDR | ❌ |
 | `sugerir-correcoes-tdr` | Sugestões de melhoria de TDR | ❌ |
@@ -1675,6 +1728,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | `patrimonio-termo` | Reconfirma a senha e aceita/recusa o termo de responsabilidade ou empréstimo do Patrimônio (`fn_pat_termo_decidir`) e aprova/devolve o pedido de baixa (`acao:'decidir_baixa'` → `fn_pat_baixa_decidir`) e assina o inventário pela comissão (`acao:'assinar_inventario'` → `fn_pat_inv_assinar`), todos só service_role; mesmo bloqueio por tentativas do remanejamento | ✅ |
 | `acesso-emails` | Envia a fila `acesso_notificacoes` (aviso de inatividade, entrada suspensa, entrada liberada, resumo dos suspensos para o super_admin); cron `acesso-emails` (15 min) | ✅ |
 | `conta-acesso` | Sem login: pedido de nova senha (link de 24 h por e-mail) e de voltar a entrar (confirmação por e-mail); página do link (`info`, `definir_senha` sem repetir senha usada, `confirmar_retorno`); logado: `trocar_senha`. Resposta igual para todos nos pedidos sem login | ✅ |
+| `presenca-emails` | Lista de presença: roda `fn_presenca_rotina` e envia a fila `presenca_notificacoes` (link pessoal de cada convidado, 10 min depois do início da reunião); cron `presenca-emails` (a cada minuto, só com pendência) | ✅ |
 | `api-dados` | API somente leitura de números agregados para painel HTML/BI (`/v1/resumo`, `/v1/atividades`, `/v1/matriz`, JSON ou CSV); autentica pela chave `dima_…` de `api_clientes` | ❌ |
 
 ---

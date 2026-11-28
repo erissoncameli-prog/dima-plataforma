@@ -1,0 +1,109 @@
+/* Lista de presença no Painel de Tarefas (js/presenca.js). Usa os tokens de css/tarefas.css (escopo .tk/.tk-overlay,
+   claro e escuro). Prefixo pp-. Cor nova = token nos DOIS blocos abaixo. O QR em tela cheia é sempre escuro. */
+:is(.tk,.tk-overlay){ --pp-ok:#16894A; --pp-ok-bg:#E5F5EC; --pp-ag:#2F6FEB; --pp-ag-bg:#E8F0FE; --pp-alerta:#B45309; --pp-alerta-bg:#FDF3E1; --pp-barra:#2D6A4F; }
+html[data-tema="escuro"] :is(.tk,.tk-overlay){ --pp-ok:#4CC389; --pp-ok-bg:rgba(76,195,137,.14); --pp-ag:#7FAEF5; --pp-ag-bg:rgba(127,174,245,.14); --pp-alerta:#F2B54A; --pp-alerta-bg:rgba(242,181,74,.13); --pp-barra:#58B584; }
+
+/* quadro na ficha da reunião */
+:is(.tk,.tk-overlay) .pp-bloco{padding:12px 14px;display:grid;gap:8px}
+:is(.tk,.tk-overlay) .pp-carregando{color:var(--muted);padding:14px}
+:is(.tk,.tk-overlay) .pp-linha{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+:is(.tk,.tk-overlay) .pp-num{color:var(--text-2)}
+:is(.tk,.tk-overlay) .pp-num b{color:var(--text);font-size:15px}
+:is(.tk,.tk-overlay) .pp-suave{color:var(--muted);font-size:12px;display:flex;align-items:center;gap:6px}
+:is(.tk,.tk-overlay) td .pp-suave{display:block}
+:is(.tk,.tk-overlay) .pp-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+:is(.tk,.tk-overlay) .pp-sit{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap;background:var(--st-todo-bg);color:var(--st-todo)}
+:is(.tk,.tk-overlay) .pp-sit-aberta{background:var(--pp-ok-bg);color:var(--pp-ok)}
+:is(.tk,.tk-overlay) .pp-sit-agendada{background:var(--pp-ag-bg);color:var(--pp-ag)}
+:is(.tk,.tk-overlay) .pp-sit-canc{background:var(--st-block-bg);color:var(--st-block)}
+
+/* janela da lista */
+.pp-ov{z-index:1100}
+:is(.tk,.tk-overlay) .pp-modal{max-width:980px;padding:0;overflow-y:auto}
+:is(.tk,.tk-overlay) .pp-cab{display:flex;justify-content:space-between;gap:12px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+:is(.tk,.tk-overlay) .pp-cab h2{margin:2px 0;font-size:18px;font-weight:700;letter-spacing:-.01em}
+:is(.tk,.tk-overlay) .pp-sobre{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+:is(.tk,.tk-overlay) .pp-barra{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 20px}
+:is(.tk,.tk-overlay) .pp-barra .sp,.pp-filtros .sp{flex:1}
+:is(.tk,.tk-overlay) .pp-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:0 20px 14px}
+:is(.tk,.tk-overlay) .pp-kpis>div{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-m);padding:12px 14px}
+:is(.tk,.tk-overlay) .pp-kpis b{display:block;font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+:is(.tk,.tk-overlay) .pp-kpis b small{font-size:13px;font-weight:500;color:var(--muted)}
+:is(.tk,.tk-overlay) .pp-kpis span{color:var(--muted);font-size:12px}
+:is(.tk,.tk-overlay) .pp-kpi-alerta{background:var(--pp-alerta-bg)!important;border-color:transparent!important}
+:is(.tk,.tk-overlay) .pp-kpi-alerta b{color:var(--pp-alerta)}
+:is(.tk,.tk-overlay) .pp-conv{margin:0 20px 12px;border:1px solid var(--line);border-radius:var(--r-m);padding:10px 14px}
+:is(.tk,.tk-overlay) .pp-conv summary{cursor:pointer;font-weight:600}
+:is(.tk,.tk-overlay) .pp-conv ul{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px 16px}
+:is(.tk,.tk-overlay) .pp-conv li{display:flex;align-items:center;gap:6px;color:var(--text-2)}
+:is(.tk,.tk-overlay) .pp-conv li span{margin-left:auto;font-size:11.5px;color:var(--muted)}
+:is(.tk,.tk-overlay) .pp-conv li.ok svg{color:var(--pp-ok)}
+:is(.tk,.tk-overlay) .pp-tabela{overflow-x:auto;margin:0 20px 14px;border:1px solid var(--line);border-radius:var(--r-m)}
+.tk .pp-painel .pp-tabela{margin:0}
+:is(.tk,.tk-overlay) .pp-tabela table{width:100%;border-collapse:collapse;font-size:13px}
+:is(.tk,.tk-overlay) .pp-tabela th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:9px 12px;background:var(--surface-2);border-bottom:1px solid var(--line);white-space:nowrap}
+:is(.tk,.tk-overlay) .pp-tabela td{padding:9px 12px;border-bottom:1px solid var(--line-2);vertical-align:top;background:transparent}
+:is(.tk,.tk-overlay) .pp-tabela tr:last-child td{border-bottom:0}
+:is(.tk,.tk-overlay) .pp-tabela .r{text-align:right;font-variant-numeric:tabular-nums}
+:is(.tk,.tk-overlay) .pp-n,.pp-mono{font-family:var(--mono);font-size:12px;color:var(--text-2);white-space:nowrap}
+:is(.tk,.tk-overlay) .pp-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--chip-bg);color:var(--text-2);vertical-align:1px}
+:is(.tk,.tk-overlay) .pp-img{font-size:12px;font-weight:600;color:var(--pp-ok)}
+:is(.tk,.tk-overlay) .pp-img-nao,:is(.tk,.tk-overlay) .pp-img-retirada{color:var(--pp-alerta)}
+:is(.tk,.tk-overlay) .pp-lnk{border:0;background:none;color:var(--brand-2);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer;margin-left:6px;padding:2px}
+:is(.tk,.tk-overlay) .pp-vazio{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;color:var(--muted);padding:28px 20px;margin:0 20px 16px;border:1px dashed var(--dashed);border-radius:var(--r-m)}
+.tk .pp-painel .pp-vazio{margin:0}
+:is(.tk,.tk-overlay) .pp-vazio b{color:var(--text);font-size:14px}
+:is(.tk,.tk-overlay) .pp-vazio svg{width:24px;height:24px;color:var(--faint)}
+:is(.tk,.tk-overlay) .pp-nota{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;margin:0 20px 12px}
+:is(.tk,.tk-overlay) .pp-rodape{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 20px 18px;border-top:1px solid var(--line)}
+:is(.tk,.tk-overlay) .pp-rodape .pp-suave{margin-right:auto}
+
+/* aba Presenças */
+/* minmax(0,1fr): sem isso a tabela larga alarga a página inteira no celular */
+.tk .pp-painel{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.tk .pp-painel>*,.tk #pp-corpo>*{min-width:0}
+.tk #pp-corpo{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.tk .pp-dist{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+.tk .pp-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.tk .pp-filtros label:not(.search){display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+.tk .pp-filtros .inp{height:34px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font:inherit}
+.tk .pp-painel .pp-kpis{padding:0}
+.tk .pp-kpis-grandes b{font-size:26px}
+.tk .pp-dist{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.tk .pp-dist section{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);padding:14px 16px;box-shadow:var(--shadow-1)}
+.tk .pp-dist h4{margin:0 0 10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tk .pp-barra-l{display:grid;grid-template-columns:150px 1fr 34px 38px;align-items:center;gap:8px;font-size:12.5px;margin:6px 0}
+.tk .pp-barra-l span{color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk .pp-barra-l i{display:block;height:8px;border-radius:99px;background:var(--line-2);overflow:hidden}
+.tk .pp-barra-l em{display:block;height:100%;border-radius:99px;background:var(--pp-barra)}
+.tk .pp-barra-l b{text-align:right;font-variant-numeric:tabular-nums}
+.tk .pp-barra-l small{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.tk .pp-painel .pp-tabela{background:var(--surface);box-shadow:var(--shadow-1)}
+.tk .pp-clic{cursor:pointer}
+.tk .pp-clic:hover td{background:var(--surface-2)}
+.tk .pp-clic:focus-visible{outline:2px solid var(--brand-2);outline-offset:-2px}
+@media (max-width:760px){
+  .tk .pp-barra-l{grid-template-columns:110px 1fr 28px 34px}
+  :is(.tk,.tk-overlay) .pp-cab,:is(.tk,.tk-overlay) .pp-barra{padding-left:14px;padding-right:14px}
+  :is(.tk,.tk-overlay) .pp-kpis,:is(.tk,.tk-overlay) .pp-rodape{padding-left:14px;padding-right:14px}
+  :is(.tk,.tk-overlay) .pp-tabela,:is(.tk,.tk-overlay) .pp-conv,:is(.tk,.tk-overlay) .pp-vazio,:is(.tk,.tk-overlay) .pp-nota{margin-left:14px;margin-right:14px}
+}
+
+/* QR em tela cheia (sempre escuro: é para projetar) */
+.pp-qr{position:fixed;inset:0;z-index:3000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:24px;text-align:center;
+  background:radial-gradient(120% 120% at 50% 0%,#24704A 0%,#16382A 55%,#0B1A12 100%);color:#fff;font-family:'DM Sans',system-ui,sans-serif}
+.pp-qr.aberto{display:flex}
+.pp-qr-sobre{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.pp-qr h2{font-size:clamp(22px,3.4vw,40px);font-weight:700;letter-spacing:-.025em;margin:4px 0 0;max-width:90vw}
+.pp-qr p{opacity:.82;margin:4px 0 18px;font-size:clamp(14px,1.7vw,18px)}
+.pp-qr-cartao{background:#fff;padding:16px;border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.45)}
+.pp-qr img{display:block;width:min(56vh,78vw);height:auto;image-rendering:pixelated}
+.pp-qr-cont{margin-top:20px;display:flex;align-items:baseline;gap:10px;font-size:clamp(16px,2.2vw,22px);opacity:.9}
+.pp-qr-cont b{font-size:clamp(36px,5.4vw,60px);font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.pp-qr-cont b.pulo{animation:pp-pulo .32s cubic-bezier(.22,1,.36,1)}
+@keyframes pp-pulo{50%{transform:scale(1.18)}}
+.pp-qr-url{font-family:'DM Mono',ui-monospace,monospace;font-size:12px;opacity:.5;margin-top:10px;word-break:break-all;max-width:90vw}
+.pp-qr-x{position:absolute;top:18px;right:18px;width:46px;height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.25);color:#fff;display:grid;place-items:center;cursor:pointer}
+.pp-qr-x svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}
+.pp-qr-x:focus-visible{outline:3px solid #fff;outline-offset:2px}
+@media (prefers-reduced-motion: reduce){.pp-qr-cont b.pulo{animation:none}}

@@ -13,6 +13,7 @@
 <!-- tema claro/escuro (mesmo 'diag_tema' das demais guias), antes de pintar -->
 <script>try{document.documentElement.dataset.tema=localStorage.getItem('diag_tema')==='escuro'?'escuro':'claro'}catch(e){document.documentElement.dataset.tema='claro'}</script>
 <link href="../css/tarefas.css" rel="stylesheet">
+<link href="../css/presenca.css" rel="stylesheet">
 </head>
 <body class="tk-pg">
 <!-- Ícones do painel (traço 1,8 px, estilo Lucide). Uso: <svg class="i"><use href="#i-nome"/></svg> -->
@@ -49,6 +50,7 @@
   <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M17 20h4v-3M14 20v.01"/></symbol>
 </svg>
 <div id="app">
   <div style="display:flex;align-items:center;justify-content:center;height:100vh">
@@ -73,6 +75,9 @@
 <script src="../js/guia-app.js"></script>
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/folha-a4.js"></script>
+<script src="../js/qrcode-generator.js"></script>
+<script src="../js/presenca.js"></script>
 <script src="../js/tarefas.js"></script>
 </body>
 </html>

@@ -615,12 +615,12 @@ async function enviarMensagemChat() {
 
     _chatMessages.push({ role: 'assistant', content: json.resposta })
     document.getElementById('chat-typing')?.remove()
-    adicionarBolha('assistant', json.resposta)
+    adicionarBolha('assistant', json.resposta, json.fontes)
   } catch (e) {
     document.getElementById('chat-typing')?.remove()
-    const msg = 'Não consegui processar sua pergunta. ' + e.message
-    _chatMessages.push({ role: 'assistant', content: msg })
-    adicionarBolha('assistant', msg)
+    // Erro fica só na tela: não entra no histórico enviado ao modelo
+    _chatMessages.pop()
+    adicionarBolha('assistant', 'Não consegui processar sua pergunta. ' + e.message)
   } finally {
     _chatEnviando = false
     if (sendBtn) sendBtn.disabled = false
@@ -629,8 +629,9 @@ async function enviarMensagemChat() {
   }
 }
 
-// Texto do assistente vem do modelo: escapa tudo e só então aplica **negrito** e quebras
-function adicionarBolha(role, texto) {
+// Texto do assistente vem do modelo: escapa tudo e só então aplica **negrito** e quebras.
+// fontes = consultas que o assistente fez no banco para responder (rótulos da Edge Function).
+function adicionarBolha(role, texto, fontes) {
   const msgsEl = document.getElementById('chat-msgs')
   if (!msgsEl) return
   const div = document.createElement('div')
@@ -638,7 +639,10 @@ function adicionarBolha(role, texto) {
   const safe = esc(String(texto || ''))
     .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br>')
-  div.innerHTML = '<div class="chat-bubble">' + safe + '</div>'
+  const fts = Array.isArray(fontes) && fontes.length
+    ? '<div class="chat-fontes">Consultou: ' + fontes.map(function (f) { return esc(String(f)) }).join(' · ') + '</div>'
+    : ''
+  div.innerHTML = '<div class="chat-bubble">' + safe + '</div>' + fts
   msgsEl.appendChild(div)
   msgsEl.scrollTop = msgsEl.scrollHeight
 }

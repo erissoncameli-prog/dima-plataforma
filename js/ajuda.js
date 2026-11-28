@@ -891,6 +891,18 @@ Object.assign(AJUDA, {
         'Tarefa do tipo reunião envia convite de agenda aos participantes; mudar data ou cancelar atualiza o convite.',
         'Subtarefa pode ter um fornecedor como responsável: ele recebe e-mail e a resposta volta como comentário.',
       ]},
+      { titulo: 'Lista de presença das reuniões', itens: [
+        'Toda tarefa do tipo reunião ganha uma lista de presença. Ela abre 15 minutos antes do início e fecha 2 horas depois do término.',
+        '10 minutos depois do início, cada convidado (quem criou, responsáveis e observadores) recebe por e-mail um link pessoal para assinar.',
+        'Para quem não recebeu o e-mail ou não tem conta na plataforma, use "Projetar QR da presença" na ficha da reunião e mostre o QR na tela.',
+        'Em reunião online, use "Copiar link" e cole no chat da reunião.',
+        'A lista pede nome, e-mail, telefone (opcional), sexo/gênero e cor ou raça (sempre com "Prefiro não responder") e se a pessoa autoriza o uso da imagem, depois de ler o termo.',
+        'Cada pessoa assina uma vez: um usuário por lista e um e-mail por lista.',
+        'Quem administra a reunião (quem criou, responsáveis, coordenação e super_admin) pode encerrar a lista, reabrir por 2 horas e exportar.',
+        'Se alguém pedir para retirar a autorização de imagem, use "Retirar" na lista e escreva o motivo. A escolha anterior fica no histórico.',
+        'A aba "Presenças" reúne todas as listas: número de reuniões, presenças, pessoas, comparecimento dos convidados, totais por sexo e por raça e quem não autorizou o uso de imagem.',
+        'Exportar: PDF A4 (para a prestação de contas, sem sexo e raça), Excel e CSV. Sexo e raça por pessoa só saem para a coordenação.',
+      ]},
     ]
   }},
   matriz: { pt: {
