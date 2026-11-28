@@ -1465,6 +1465,17 @@ async function relC1(){
   </div>`;
 }
 
+// Locais de V1–V4, P1–P5, U1, U4, L4:
+// nº do contrato em fonte de máquina que pode quebrar no hífen/barra (td sem .mono), com o nº do produto embaixo
+const _vpContrato = (num, np) => `<span style="display:block;font-family:var(--font-mono);font-size:10px">${esc(num||'—')}</span>${np!=null&&np!==''?`<span class="rep-sub">Produto #${esc(np)}</span>`:''}`;
+// e-mail menor e com ponto de quebra depois de @ e . (sem espaço, alargava a coluna)
+const _vpEmail = s => s ? `<span class="rep-sm">${esc(s).replace(/([@.])/g,'$1<wbr>')}</span>` : '—';
+// nº SEI do despacho só até o ano ("SEI-0820.012…/2026"); o resto (unidade) fica fora da célula
+const _vpSeiCurto = s => { const m = String(s||'').match(/^(.*?\/\d{4})/); return m ? m[1] : String(s||''); };
+// data de timestamptz no fuso do Acre
+const _vpDia = s => !s ? '—' : new Date(s).toLocaleDateString('pt-BR',{timeZone:'America/Rio_Branco'});
+const _vpHora = s => !s ? '' : new Date(s).toLocaleTimeString('pt-BR',{timeZone:'America/Rio_Branco',hour:'2-digit',minute:'2-digit'});
+
 // ══════════════════════════════════════════════════════════════
 // V1 — CADASTRO DE FORNECEDORES
 // ══════════════════════════════════════════════════════════════
@@ -1482,7 +1493,8 @@ async function relV1(){
   if(error) throw error;
   const rows = (data||[]).map(f=>{
     const seenC=new Set();
-    return {...f, contratos:(f.contratos||[]).filter(c=>{ if(seenC.has(c.id)) return false; seenC.add(c.id); return true; })};
+    // contrato cancelado não conta (nem na contagem nem no total contratado)
+    return {...f, contratos:(f.contratos||[]).filter(c=>{ if(c.status==='cancelado'||seenC.has(c.id)) return false; seenC.add(c.id); return true; })};
   });
 
   return `
@@ -1507,7 +1519,7 @@ async function relV1(){
           <td style="font-weight:500">${esc(r.nome)}</td>
           <td><span class="rep-badge ${r.tipo==='PF'?'rb-azul':'rb-ouro'}">${esc(r.tipo)}</span></td>
           <td class="mono">${esc(r.cpf_cnpj||'—')}</td>
-          <td style="font-size:10px">${esc(r.email||'—')}</td>
+          <td>${_vpEmail(r.email)}</td>
           <td class="mono" style="text-align:center">${(r.contratos||[]).length}</td>
           <td class="mono" style="text-align:right">${fmtBRL(totalContr)}</td>
           <td><span class="rep-badge ${r.ativo?'rb-verde':'rb-cinza'}">${r.ativo?'Ativo':'Inativo'}</span></td>
@@ -1515,6 +1527,7 @@ async function relV1(){
       }).join('')}
       </tbody>
     </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Contratos e total contratado sem os contratos cancelados.</div>
   </div>`;
 }
 
@@ -1543,11 +1556,6 @@ async function relP1(){
   if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
 
   const cnt = s => rows.filter(r=>r.situacao===s).length;
-  const sitBadge = s => {
-    const m={pendente:'rb-cinza',entrega_parcial:'rb-ouro',em_analise:'rb-ouro',devolvido:'rb-vermelho',aprovado:'rb-azul',pago:'rb-verde',cancelado:'rb-cinza'};
-    const l={pendente:'Pendente',entrega_parcial:'Entrega parcial',em_analise:'Em análise',devolvido:'Devolvido',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado'};
-    return `<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||s}</span>`;
-  };
 
   return `
   <div class="rep-stats rep-stats-4">
@@ -1560,26 +1568,22 @@ async function relP1(){
     <div class="rep-secao-titulo">Produtos / Entregas</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>#</th><th>Descrição</th><th>Contrato</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Contrato · produto</th><th>Fornecedor</th><th>Atividade</th>
         <th>Vencimento</th><th>Entrega</th>
         <th style="text-align:right">Valor</th>
         <th style="text-align:right">% Aprov.</th>
         <th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
-        <td class="mono">${esc(r.numero_produto||'—')}</td>
-        <td>${esc(r.descricao||'—')}</td>
-        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
+        <td>${_vpContrato(r.contrato?.numero, r.numero_produto)}</td>
         <td>${esc(r.contrato?.fornecedor?.nome||'—')}</td>
         <td class="mono">${esc(r.contrato?.atividade?.codigo||'—')}</td>
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td class="mono">${fmtDt(r.dt_entrega)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
         <td class="mono" style="text-align:right">${r.pct_aprovado!=null?fmtPct1(r.pct_aprovado):'—'}</td>
-        <td>${sitBadge(r.situacao)}</td>
-      </tr>`).join('')}
-      </tbody>
+        <td>${seloProd(r.situacao)}</td>
+      </tr>${linhaDet(8,'Produto',r.descricao)}</tbody>`).join('')}
     </table>
   </div>`;
 }
@@ -1617,22 +1621,19 @@ async function relP2(){
     ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum produto em atraso.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Produto</th><th>Contrato</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Contrato · produto</th><th>Fornecedor</th><th>Atividade</th>
         <th>Vencimento</th><th>Dias em Atraso</th>
         <th style="text-align:right">Valor</th><th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
-        <td>${esc(r.descricao||'—')}</td>
-        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
+        <td>${_vpContrato(r.contrato?.numero, r.numero_produto)}</td>
         <td>${esc(r.contrato?.fornecedor?.nome||'—')}</td>
         <td class="mono">${esc(r.contrato?.atividade?.codigo||'—')}</td>
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td><span class="rep-badge ${diasAtraso(r.dt_vencimento)>30?'rb-vermelho':'rb-ouro'}">${diasAtraso(r.dt_vencimento)} dias</span></td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
-        <td><span class="rep-badge rb-cinza">${r.situacao}</span></td>
-      </tr>`).join('')}
-      </tbody>
+        <td>${seloProd(r.situacao)}</td>
+      </tr>${linhaDet(7,'Produto',r.descricao)}</tbody>`).join('')}
     </table>`}
   </div>`;
 }
@@ -2115,7 +2116,8 @@ async function relV2(){
   const rows = (data||[]).map(f=>{
     const seen=new Set();
     // por id: contratos diferentes com o mesmo valor são contratos distintos
-    const contratos=(f.contratos||[]).filter(c=>{if(seen.has(c.id))return false;seen.add(c.id);return true;})
+    // contrato cancelado fica fora da concentração
+    const contratos=(f.contratos||[]).filter(c=>{if(c.status==='cancelado'||seen.has(c.id))return false;seen.add(c.id);return true;})
       // período = data de início do contrato
       .filter(c=>(!dtIni||(c.dt_inicio&&c.dt_inicio>=dtIni))&&(!dtFim||(c.dt_inicio&&c.dt_inicio<=dtFim)));
     const total=contratos.reduce((s,c)=>s+(c.valor_total_brl||0),0);
@@ -2192,7 +2194,6 @@ async function relV3(){
   const ps = prods||[];
   const totalContr = cs.reduce((s,c)=>s+(c.valor_total_brl||0),0);
   const totalPago  = cs.reduce((s,c)=>s+(c.valor_utilizado_brl||0),0);
-  const sitBadge = s=>{const m={pendente:'rb-cinza',em_analise:'rb-ouro',aprovado:'rb-azul',pago:'rb-verde',cancelado:'rb-cinza'};const l={pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado'};return`<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||s}</span>`;};
   return `
   <div class="rep-secao">
     <div class="rep-secao-titulo">Dados do Fornecedor</div>
@@ -2210,16 +2211,15 @@ async function relV3(){
   <div class="rep-secao">
     <div class="rep-secao-titulo">Contratos</div>
     <table class="rep-tbl">
-      <thead><tr><th>Número</th><th>Atividade</th><th>Tipo</th><th>Início</th><th>Fim</th><th style="text-align:right">Total</th><th style="text-align:right">Pago</th><th>Status</th></tr></thead>
+      <thead><tr><th>Número</th><th>Atividade</th><th>Tipo</th><th>Vigência</th><th style="text-align:right">Total</th><th style="text-align:right">Pago</th><th>Status</th></tr></thead>
       <tbody>${cs.map(c=>`<tr>
-        <td class="mono">${esc(c.numero||'—')}</td>
+        <td>${_vpContrato(c.numero)}</td>
         <td class="mono">${esc(c.atividade?.codigo||'—')}</td>
-        <td><span class="rep-badge rb-azul">${esc(c.tipo||'—')}</span></td>
-        <td class="mono">${fmtDt(c.dt_inicio)}</td>
-        <td class="mono">${fmtDt(c.dt_fim)}</td>
+        <td>${tipoCont(c.tipo)}</td>
+        <td class="c-min"><span class="mono" style="display:block">${fmtDt(c.dt_inicio)}</span><span class="rep-sub">até ${fmtDt(c.dt_fim)}</span></td>
         <td class="mono" style="text-align:right">${fmtBRL(c.valor_total_brl)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(c.valor_utilizado_brl)}</td>
-        <td><span class="rep-badge ${c.status==='vigente'?'rb-verde':c.status==='encerrado'?'rb-cinza':c.status==='rescindido'?'rb-ouro':'rb-vermelho'}">${c.status}</span></td>
+        <td>${seloCont(c.status)}</td>
       </tr>`).join('')}</tbody>
     </table>
   </div>
@@ -2230,11 +2230,11 @@ async function relV3(){
       <tbody>${ps.map(p=>`<tr>
         <td class="mono">${esc(p.numero_produto||'—')}</td>
         <td>${esc(p.descricao||'—')}</td>
-        <td class="mono">${esc(p.contrato?.numero||'—')}</td>
+        <td>${_vpContrato(p.contrato?.numero)}</td>
         <td class="mono">${fmtDt(p.dt_vencimento)}</td>
         <td class="mono">${fmtDt(p.dt_entrega)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(p.valor_brl)}</td>
-        <td>${sitBadge(p.situacao)}</td>
+        <td>${seloProd(p.situacao)}</td>
       </tr>`).join('')}</tbody>
     </table>
   </div>
@@ -2262,12 +2262,19 @@ async function relV3(){
 async function relP3(){
   const ativFil = filVal('fil-atividade');
   const fornFil = filVal('fil-fornecedor');
-  const {data, error} = await db.from('contratos_produtos')
-    .select(`*,contrato:contratos(numero,atividade_id,fornecedor_id,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
-    .not('pct_aprovado','is',null)
-    .order('avaliado_em',{ascending:false});
+  const [{data, error}, {data:entAval, error:eEnt}] = await Promise.all([
+    db.from('contratos_produtos')
+      .select(`*,contrato:contratos(numero,atividade_id,fornecedor_id,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
+      .not('pct_aprovado','is',null)
+      .order('numero_produto'),
+    db.from('contratos_produtos_entregas').select('produto_id').in('situacao',['aprovada','devolvida']),
+  ]);
   if(error) throw error;
-  let rows = data||[];
+  if(eEnt) throw eEnt;
+  // só produto já avaliado: pendente e cancelado têm pct_aprovado = 0 e puxavam a média para baixo
+  const comAval = new Set((entAval||[]).map(e=>e.produto_id));
+  const SIT_AVAL = ['aprovado','pago','entrega_parcial','devolvido'];
+  let rows = (data||[]).filter(r=>r.situacao!=='cancelado'&&(SIT_AVAL.includes(r.situacao)||comAval.has(r.id)));
   if(ativFil) rows = rows.filter(r=>r.contrato?.atividade_id===ativFil);
   if(fornFil) rows = rows.filter(r=>r.contrato?.fornecedor_id===fornFil);
   const mediaAprov = rows.length?rows.reduce((s,r)=>s+(r.pct_aprovado||0),0)/rows.length:0;
@@ -2283,34 +2290,54 @@ async function relP3(){
     <div class="rep-secao-titulo">Taxa de Aprovação por Produto</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>#</th><th>Descrição</th><th>Contrato</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Contrato · produto</th><th>Fornecedor</th><th>Atividade</th>
         <th style="text-align:right">Valor Contrat.</th>
         <th style="text-align:right">Valor Aprov.</th>
         <th style="text-align:right">% Aprov.</th>
       </tr></thead>
-      <tbody>
       ${rows.map(r=>{
         const pct=r.pct_aprovado||0;
-        return `<tr>
-          <td class="mono">${esc(r.numero_produto||'—')}</td>
-          <td>${esc(r.descricao||'—')}</td>
-          <td class="mono">${esc(r.contrato?.numero||'—')}</td>
+        return `<tbody class="rep-grupo"><tr class="rep-mae">
+          <td>${_vpContrato(r.contrato?.numero, r.numero_produto)}</td>
           <td>${esc(r.contrato?.fornecedor?.nome||'—')}</td>
           <td class="mono">${esc(r.contrato?.atividade?.codigo||'—')}</td>
           <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
           <td class="mono" style="text-align:right">${fmtBRL(r.valor_aprovado)}</td>
           <td><span class="rep-badge ${pct>=80?'rb-verde':pct>=50?'rb-ouro':'rb-vermelho'}">${fmtPct1(pct)}</span></td>
-        </tr>`;
+        </tr>${linhaDet(6,'Produto',r.descricao)}</tbody>`;
       }).join('')}
-      </tbody>
       <tfoot><tr>
-        <td colspan="5"><strong>TOTAL</strong></td>
+        <td colspan="3"><strong>TOTAL</strong></td>
         <td class="mono" style="text-align:right">${fmtBRL(totContrat)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(totAprov)}</td>
         <td><span class="rep-badge ${mediaAprov>=80?'rb-verde':mediaAprov>=50?'rb-ouro':'rb-vermelho'}">${fmtPct1(mediaAprov)}</span></td>
       </tr></tfoot>
     </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Só produtos já avaliados (aprovado, pago, parcial, devolvido ou com entrega aprovada/devolvida). Pendentes e cancelados ficam fora da média.</div>
   </div>`;
+}
+
+// Entregas já decididas (aprovada/devolvida), com produto, contrato e quem despachou — base de P4 e L4.
+// A avaliação mora na ENTREGA (contratos_produtos_entregas.despachado_em); contratos_produtos.avaliado_em está vazio.
+async function _vpEntregasAvaliadas(dtIni, dtFim){
+  let q = db.from('contratos_produtos_entregas')
+    .select(`id,produto_id,numero_entrega,situacao,dt_entrega,despacho_numero,despacho_data,despacho_texto,despachado_em,pct_entregue,valor_entregue,
+      despachado_por_u:usuarios!contratos_produtos_entregas_despachado_por_fkey(nome_completo),
+      produto:contratos_produtos!contratos_produtos_entregas_produto_id_fkey(numero_produto,descricao,valor_brl,
+        contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo)))`)
+    .in('situacao',['aprovada','devolvida'])
+    .order('despachado_em',{ascending:false});
+  if(dtIni) q = q.gte('despachado_em', dtIni);
+  if(dtFim) q = q.lte('despachado_em', dtFim+'T23:59:59');
+  const {data, error} = await q;
+  if(error) throw error;
+  // dia da decisão no fuso do Acre (despachado_em; sem ele, a data do despacho)
+  const diaDec = e => e.despachado_em ? new Date(e.despachado_em).toLocaleDateString('sv-SE',{timeZone:'America/Rio_Branco'}) : (e.despacho_data||null);
+  return (data||[]).map(e=>{
+    const d = diaDec(e);
+    const dias = e.dt_entrega&&d ? Math.max(0,Math.round((new Date(d+'T12:00:00')-new Date(e.dt_entrega+'T12:00:00'))/864e5)) : null;
+    return {...e, _dia:d, _dias:dias};
+  });
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2319,49 +2346,40 @@ async function relP3(){
 async function relP4(){
   const dtIni = filVal('fil-dt-ini');
   const dtFim = filVal('fil-dt-fim');
-  let q = db.from('contratos_produtos')
-    .select(`*,contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
-    .not('dt_entrega','is',null).not('avaliado_em','is',null)
-    .order('avaliado_em',{ascending:false});
-  if(dtIni) q = q.gte('avaliado_em', dtIni);
-  if(dtFim) q = q.lte('avaliado_em', dtFim+'T23:59:59');
-  const {data, error} = await q;
-  if(error) throw error;
-  const rows = (data||[]).map(r=>{
-    const dias = r.dt_entrega&&r.avaliado_em
-      ? Math.max(0,Math.ceil((new Date(r.avaliado_em)-new Date(r.dt_entrega+' 12:00'))/864e5))
-      : null;
-    return {...r,_dias:dias};
-  });
+  // período = data da decisão (despacho da entrega)
+  const rows = await _vpEntregasAvaliadas(dtIni, dtFim);
   const comDias = rows.filter(r=>r._dias!=null);
   const media = comDias.length?Math.round(comDias.reduce((s,r)=>s+r._dias,0)/comDias.length):0;
   const maximo = comDias.length?Math.max(...comDias.map(r=>r._dias)):0;
+  const nAprov = rows.filter(r=>r.situacao==='aprovada').length;
   return `
   <div class="rep-stats rep-stats-3">
-    <div class="rep-stat"><div class="rep-stat-lbl">Produtos Avaliados</div><div class="rep-stat-val">${rows.length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Entregas Avaliadas</div><div class="rep-stat-val">${rows.length}</div><div class="rep-stat-sub">${nAprov} aprovada(s) · ${rows.length-nAprov} devolvida(s)</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Tempo Médio de Avaliação</div><div class="rep-stat-val">${media} dias</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Maior Prazo</div><div class="rep-stat-val">${maximo} dias</div></div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Tempo entre Entrega e Avaliação</div>
+    ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhuma entrega avaliada no período.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>#</th><th>Descrição</th><th>Contrato</th><th>Fornecedor</th><th>Atividade</th>
-        <th>Data Entrega</th><th>Data Avaliação</th><th style="text-align:right">Dias</th>
+        <th>Contrato · produto</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Entrega</th><th>Avaliação</th><th>Decisão</th><th style="text-align:right">Dias</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
-        <td class="mono">${esc(r.numero_produto||'—')}</td>
-        <td>${esc(r.descricao||'—')}</td>
-        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
-        <td>${esc(r.contrato?.fornecedor?.nome||'—')}</td>
-        <td class="mono">${esc(r.contrato?.atividade?.codigo||'—')}</td>
+      ${rows.map(r=>{
+        const p=r.produto||{}, c=p.contrato||{};
+        return `<tbody class="rep-grupo"><tr class="rep-mae">
+        <td>${_vpContrato(c.numero, p.numero_produto)}</td>
+        <td>${esc(c.fornecedor?.nome||'—')}</td>
+        <td class="mono">${esc(c.atividade?.codigo||'—')}</td>
         <td class="mono">${fmtDt(r.dt_entrega)}</td>
-        <td class="mono">${r.avaliado_em?new Date(r.avaliado_em).toLocaleDateString('pt-BR'):'—'}</td>
+        <td class="mono">${fmtDt(r._dia)}</td>
+        <td>${`<span class="rep-badge ${COR_ENT[r.situacao]||'rb-cinza'}">${esc(SIT_ENT[r.situacao]||rotuloCodigo(r.situacao))}</span>`}</td>
         <td style="text-align:right"><span class="rep-badge ${r._dias>15?'rb-vermelho':r._dias>7?'rb-ouro':'rb-verde'}">${r._dias!=null?r._dias+'d':'—'}</span></td>
-      </tr>`).join('')}
-      </tbody>
+      </tr>${linhaDet(7,'Produto',p.descricao)}</tbody>`;
+      }).join('')}
     </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Uma linha por entrega aprovada ou devolvida. Dias = da data da entrega até o despacho da avaliação (hora do Acre). Produto reentregue aparece uma vez por entrega.</div>`}
   </div>`;
 }
 
@@ -4361,20 +4379,18 @@ async function relVi4(){
 async function relU4(){
   const dias = parseInt(filVal('fil-dias')||'30');
   const corte = new Date(); corte.setDate(corte.getDate()-dias);
-  const corteStr = corte.toISOString();
   const {data, error} = await db.from('usuarios').select('*').eq('ativo',true).order('nome_completo');
   if(error) throw error;
-  const rows = (data||[]).filter(u=>{
-    if(!u.ultimo_acesso_em) return true;
-    return new Date(u.ultimo_acesso_em)<corte;
-  });
+  // último acesso = o mais recente entre a plataforma (ultimo_acesso_em) e o app de campo (ultimo_acesso_app_em)
+  const ultimo = u => { const a=u.ultimo_acesso_em, b=u.ultimo_acesso_app_em; if(!a) return b||null; if(!b) return a; return new Date(b)>new Date(a)?b:a; };
+  const rows = (data||[]).map(u=>{ const ult=ultimo(u); return {...u,_ult:ult,_pelaApp:!!ult&&ult===u.ultimo_acesso_app_em&&ult!==u.ultimo_acesso_em}; })
+    .filter(u=>!u._ult||new Date(u._ult)<corte);
   const perfilLabel={super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',financeiro:'Financeiro',consultor_externo:'Consultor Externo',visualizador:'Visualizador'};
-  const fmtDtHr=s=>!s?'—':new Date(s).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const diasSem=s=>!s?null:Math.floor((new Date()-new Date(s))/864e5);
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Usuários Inativos</div><div class="rep-stat-val" style="color:var(--aviso)">${rows.length}</div><div class="rep-stat-sub">sem acesso há +${dias} dias</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Sem Nenhum Acesso</div><div class="rep-stat-val">${rows.filter(r=>!r.ultimo_acesso_em).length}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Sem Nenhum Acesso</div><div class="rep-stat-val">${rows.filter(r=>!r._ult).length}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Corte</div><div class="rep-stat-val" style="font-size:13px">${corte.toLocaleDateString('pt-BR')}</div></div>
   </div>
   <div class="rep-secao">
@@ -4383,21 +4399,22 @@ async function relU4(){
     <table class="rep-tbl">
       <thead><tr>
         <th>Nome</th><th>E-mail</th><th>Perfil</th>
-        <th>Último Acesso</th><th>Dias sem Acesso</th>
+        <th>Último Acesso</th><th>Sem acesso</th>
       </tr></thead>
       <tbody>
       ${rows.map(r=>{
-        const d=diasSem(r.ultimo_acesso_em);
+        const d=diasSem(r._ult);
         return `<tr>
           <td style="font-weight:500">${esc(r.nome_completo||'—')}</td>
-          <td style="font-size:10px">${esc(r.email||'—')}</td>
-          <td><span class="rep-badge rb-azul">${perfilLabel[r.perfil]||r.perfil}</span></td>
-          <td class="mono" style="font-size:10px">${fmtDtHr(r.ultimo_acesso_em)}</td>
+          <td>${_vpEmail(r.email)}</td>
+          <td><span class="rep-badge rb-azul">${esc(perfilLabel[r.perfil]||rotuloCodigo(r.perfil))}</span></td>
+          <td class="c-min"><span class="mono" style="display:block">${_vpDia(r._ult)}</span>${r._ult?`<span class="rep-sub">${_vpHora(r._ult)}${r._pelaApp?' · app de campo':''}</span>`:''}</td>
           <td><span class="rep-badge ${d==null?'rb-vermelho':d>90?'rb-vermelho':d>60?'rb-ouro':'rb-cinza'}">${d!=null?d+'d':'nunca'}</span></td>
         </tr>`;
       }).join('')}
       </tbody>
-    </table>`}
+    </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Último acesso = o mais recente entre a plataforma e o app de campo.</div>`}
   </div>`;
 }
 
@@ -4458,54 +4475,46 @@ async function relL1(){
 async function relL4(){
   const dtIni = filVal('fil-dt-ini');
   const dtFim = filVal('fil-dt-fim');
-  let q = db.from('contratos_produtos')
-    .select(`*,avaliador:usuarios!contratos_produtos_avaliado_por_fkey(nome_completo),
-      contrato:contratos(numero,fornecedor:fornecedores(nome),atividade:atividades(codigo))`)
-    .not('avaliado_em','is',null)
-    .order('avaliado_em',{ascending:false});
-  if(dtIni) q = q.gte('avaliado_em', dtIni);
-  if(dtFim) q = q.lte('avaliado_em', dtFim+'T23:59:59');
-  const {data, error} = await q;
-  if(error) throw error;
-  const rows = data||[];
-  const mediaAprov = rows.length?rows.reduce((s,r)=>s+(r.pct_aprovado||0),0)/rows.length:0;
-  const totAprov = rows.reduce((s,r)=>s+(r.valor_aprovado||0),0);
+  // a avaliação é da ENTREGA (despacho): contratos_produtos.avaliado_em não é preenchido
+  const rows = await _vpEntregasAvaliadas(dtIni, dtFim);
+  const aprov = rows.filter(r=>r.situacao==='aprovada');
+  const nDev = rows.length - aprov.length;
+  const totAprov = aprov.reduce((s,r)=>s+Number(r.valor_entregue||0),0);
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Avaliações no Período</div><div class="rep-stat-val">${rows.length}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Taxa Média de Aprovação</div><div class="rep-stat-val" style="color:${mediaAprov>=80?'var(--sucesso)':'var(--aviso)'}">${fmtPct1(mediaAprov)}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Aprovadas / Devolvidas</div><div class="rep-stat-val">${aprov.length} / ${nDev}</div><div class="rep-stat-sub">${rows.length?fmtPct1(aprov.length/rows.length*100):'—'} aprovadas</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Valor Total Aprovado</div><div class="rep-stat-val">${fmtBRL(totAprov)}</div></div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Avaliações de Produtos</div>
+    ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhuma avaliação no período.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Data Avaliação</th><th>Avaliador</th><th>Produto</th><th>Contrato</th>
-        <th>Fornecedor</th><th>Atividade</th>
-        <th style="text-align:right">% Aprov.</th>
-        <th style="text-align:right">Valor Aprov.</th>
-        <th style="max-width:120px">Parecer</th>
+        <th>Data</th><th>Avaliador</th><th>Contrato · produto</th><th>Fornecedor</th>
+        <th>Decisão</th>
+        <th style="text-align:right">% Entregue</th>
+        <th style="text-align:right">Valor</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
-        <td class="mono" style="font-size:10px">${r.avaliado_em?new Date(r.avaliado_em).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td>
-        <td>${esc(r.avaliador?.nome_completo||'—')}</td>
-        <td>${esc(r.descricao||'—')}</td>
-        <td class="mono">${esc(r.contrato?.numero||'—')}</td>
-        <td>${esc(r.contrato?.fornecedor?.nome||'—')}</td>
-        <td class="mono">${esc(r.contrato?.atividade?.codigo||'—')}</td>
-        <td><span class="rep-badge ${(r.pct_aprovado||0)>=80?'rb-verde':(r.pct_aprovado||0)>=50?'rb-ouro':'rb-vermelho'}">${r.pct_aprovado!=null?fmtPct1(r.pct_aprovado):'—'}</span></td>
-        <td class="mono" style="text-align:right">${fmtBRL(r.valor_aprovado)}</td>
-        <td style="font-size:10px;font-style:italic">${esc(r.parecer_avaliador||'—')}</td>
-      </tr>`).join('')}
-      </tbody>
+      ${rows.map(r=>{
+        const p=r.produto||{}, c=p.contrato||{};
+        const hora=_vpHora(r.despachado_em);
+        return `<tbody class="rep-grupo"><tr class="rep-mae">
+        <td class="c-min"><span class="mono" style="display:block">${fmtDt(r._dia)}</span>${hora?`<span class="rep-sub">${hora}</span>`:''}</td>
+        <td>${esc(r.despachado_por_u?.nome_completo||'—')}</td>
+        <td>${_vpContrato(c.numero, p.numero_produto)}</td>
+        <td>${esc(c.fornecedor?.nome||'—')}${c.atividade?.codigo?`<span class="rep-sub">${esc(c.atividade.codigo)}</span>`:''}</td>
+        <td>${`<span class="rep-badge ${COR_ENT[r.situacao]||'rb-cinza'}">${esc(SIT_ENT[r.situacao]||rotuloCodigo(r.situacao))}</span>`}</td>
+        <td class="mono" style="text-align:right">${r.pct_entregue!=null?fmtPct1(r.pct_entregue):'—'}</td>
+        <td class="mono" style="text-align:right">${r.situacao==='aprovada'?fmtBRL(r.valor_entregue):'—'}</td>
+      </tr>${linhaDet(7,'Produto',p.descricao)}${linhaDet(7,'Parecer'+(r.despacho_numero?' ('+_vpSeiCurto(r.despacho_numero)+')':''),r.despacho_texto)}</tbody>`;
+      }).join('')}
       <tfoot><tr>
         <td colspan="6"><strong>TOTAL APROVADO</strong></td>
-        <td><span class="rep-badge ${mediaAprov>=80?'rb-verde':'rb-ouro'}">${fmtPct1(mediaAprov)}</span></td>
         <td class="mono" style="text-align:right">${fmtBRL(totAprov)}</td>
-        <td></td>
       </tr></tfoot>
     </table>
+    <div style="font-size:10px;color:var(--cinza-500);margin-top:8px">Uma linha por entrega aprovada ou devolvida; data e avaliador = despacho da entrega. Valor = valor da entrega aprovada.</div>`}
   </div>`;
 }
 
@@ -4656,7 +4665,6 @@ async function relU1(){
   const rows = data||[];
 
   const perfilLabel = {super_admin:'Super Admin',coordenacao:'Coordenação',tecnico:'Técnico',financeiro:'Financeiro',consultor_externo:'Consultor Externo',visualizador:'Visualizador'};
-  const fmtDtHr = s => !s?'—':new Date(s).toLocaleString('pt-BR',{timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
   return `
   <div class="rep-stats rep-stats-3">
@@ -4674,10 +4682,10 @@ async function relU1(){
       <tbody>
       ${rows.map(r=>`<tr>
         <td style="font-weight:500">${esc(r.nome_completo||'—')}</td>
-        <td style="font-size:10px">${esc(r.email||'—')}</td>
-        <td><span class="rep-badge rb-azul">${perfilLabel[r.perfil]||r.perfil}</span></td>
-        <td class="mono" style="font-size:10px">${fmtDtHr(r.primeiro_acesso_em)}</td>
-        <td class="mono" style="font-size:10px">${fmtDtHr(r.ultimo_acesso_em)}</td>
+        <td>${_vpEmail(r.email)}</td>
+        <td><span class="rep-badge rb-azul">${esc(perfilLabel[r.perfil]||rotuloCodigo(r.perfil))}</span></td>
+        <td class="c-min"><span class="mono" style="display:block">${_vpDia(r.primeiro_acesso_em)}</span>${r.primeiro_acesso_em?`<span class="rep-sub">${_vpHora(r.primeiro_acesso_em)}</span>`:''}</td>
+        <td class="c-min"><span class="mono" style="display:block">${_vpDia(r.ultimo_acesso_em)}</span>${r.ultimo_acesso_em?`<span class="rep-sub">${_vpHora(r.ultimo_acesso_em)}</span>`:''}</td>
         <td><span class="rep-badge ${r.ativo?'rb-verde':'rb-cinza'}">${r.ativo?'Ativo':'Inativo'}</span></td>
       </tr>`).join('')}
       </tbody>
@@ -4886,54 +4894,58 @@ async function relV4(){
   Object.values(fornMap).forEach(({info:f, contratos:cs})=>{
     const fEnts = cs.flatMap(c=>(prodsByContrato[c.id]||[]).flatMap(p=>entsByProd[p.id]||[]));
     const fIdDoc = f?.cpf_cnpj ? `${f.tipo==='PF'?'CPF':'CNPJ'} ${esc(f.cpf_cnpj)}` : '';
+    // documento e contagens numa linha própria abaixo do nome (dentro do título, para não ficar órfão no fim da página)
     html += `<div class="rep-secao">
-      <div class="rep-secao-titulo">
-        ${esc(f?.nome||'—')}
-        <span class="rep-badge ${f?.tipo==='PF'?'rb-azul':'rb-teal'}" style="margin-left:6px">${f?.tipo==='PF'?'PF':'PJ'}</span>
-        ${fIdDoc?`<span style="font-family:var(--font-mono);font-size:9px;color:var(--cinza-500);font-weight:400;text-transform:none;letter-spacing:0">${fIdDoc}</span>`:''}
-        <span style="margin-left:auto;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--cinza-500)">${cs.length} contrato(s) &nbsp;·&nbsp; ${fEnts.length} entrega(s)</span>
+      <div class="rep-secao-titulo" style="flex-wrap:wrap;row-gap:2px">
+        <span style="min-width:0">${esc(f?.nome||'—')}</span>
+        <span class="rep-badge ${f?.tipo==='PF'?'rb-azul':'rb-teal'}">${f?.tipo==='PF'?'PF':'PJ'}</span>
+        <span style="flex-basis:100%;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--cinza-500)">${fIdDoc?`<span style="font-family:var(--font-mono)">${fIdDoc}</span> &nbsp;·&nbsp; `:''}${cs.length} contrato(s) &nbsp;·&nbsp; ${fEnts.length} entrega(s)</span>
       </div>`;
 
     cs.forEach(c=>{
       const ps   = prodsByContrato[c.id]||[];
       const cEnts= ps.flatMap(p=>entsByProd[p.id]||[]);
-      html += `<div style="margin-bottom:12px;padding:10px 12px;border:1px solid var(--borda);border-radius:var(--raio)">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #eaf3ec">
-          <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--cinza-800)">${esc(c.numero)}</span>
-          <span class="rep-badge ${COR_CONT[c.status]||'rb-cinza'}">${SIT_CONT[c.status]||c.status}</span>
-          ${c.atividades?.codigo?`<span style="font-size:10px;color:var(--cinza-500)">${esc(c.atividades.codigo)}</span>`:''}
-          <span style="font-family:var(--font-mono);font-size:11px;color:#2D6A4F;margin-left:auto">${fmtBRL(parseFloat(c.valor_total_brl||0))}</span>
-          <span style="font-size:10px;color:var(--cinza-400)">${cEnts.length} entrega(s)</span>
-        </div>`;
+      // cartão do contrato = tabela: o cabeçalho (nº do contrato) se repete se o cartão continuar na página seguinte
+      // (FolhaA4.paginar copia o thead), e cada produto é um tbody que não se parte
+      html += `<table style="width:100%;border-collapse:separate;border-spacing:0;margin-bottom:12px;border:1px solid var(--borda);border-radius:var(--raio)">
+        <thead><tr><th style="text-align:left;font-weight:400;padding:8px 12px 6px">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding-bottom:6px;border-bottom:1px solid #eaf3ec">
+            <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--cinza-800);min-width:0">${esc(c.numero)}</span>
+            ${seloCont(c.status)}
+            ${c.atividades?.codigo?`<span style="font-size:10px;color:var(--cinza-500)">${esc(c.atividades.codigo)}</span>`:''}
+            <span style="font-family:var(--font-mono);font-size:11px;color:#2D6A4F;margin-left:auto;white-space:nowrap">${fmtBRL(parseFloat(c.valor_total_brl||0))}</span>
+            <span style="font-size:10px;color:var(--cinza-400);white-space:nowrap">${cEnts.length} entrega(s)</span>
+          </div>
+        </th></tr></thead>`;
 
+      if(!ps.length) html += `<tbody style="break-inside:avoid"><tr><td style="padding:2px 12px 10px;font-size:10px;color:var(--cinza-400);font-style:italic">Nenhum produto cadastrado.</td></tr></tbody>`;
       ps.forEach(p=>{
         const pe = entsByProd[p.id]||[];
-        html += `<div style="margin-bottom:8px;padding-left:10px;border-left:2px solid #c8e6d0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-size:10px;font-weight:700;color:var(--cinza-400)">#${esc(p.numero_produto)}</span>
-            <span style="font-size:11px;font-weight:600;color:var(--cinza-900);flex:1">${esc(p.descricao)}</span>
-            <span style="font-family:var(--font-mono);font-size:10px;color:#2D6A4F">${fmtBRL(parseFloat(p.valor_brl||0))}</span>
-            <span class="rep-badge ${COR_PROD[p.situacao]||'rb-cinza'}">${SIT_PROD[p.situacao]||p.situacao}</span>
+        // um tbody por produto e uma linha por entrega: o produto pode continuar na página seguinte (com o nº do
+        // contrato repetido no cabeçalho), mas o título do produto nunca fica sozinho — vai junto da 1ª entrega
+        const cel = (conteudo, fim) => `<tr><td style="padding:0 12px ${fim?'8px':'0'}"><div style="padding:0 0 ${fim?'0':'3px'} 10px;border-left:2px solid #c8e6d0">${conteudo}</div></td></tr>`;
+        const cab = `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;padding-top:2px">
+            <span style="font-size:10px;font-weight:700;color:var(--cinza-400);white-space:nowrap">#${esc(p.numero_produto)}</span>
+            <span style="font-size:11px;font-weight:600;color:var(--cinza-900);flex:1;min-width:0">${esc(p.descricao)}</span>
+            <span style="font-family:var(--font-mono);font-size:10px;color:#2D6A4F;white-space:nowrap">${fmtBRL(parseFloat(p.valor_brl||0))}</span>
+            ${seloProd(p.situacao)}
           </div>`;
-        if(!pe.length){
-          html += `<div style="font-size:10px;color:var(--cinza-400);font-style:italic;padding:2px 0">Sem entregas.</div>`;
-        } else {
-          pe.forEach((e,ei)=>{
-            html += `<div style="padding:6px 8px;margin-bottom:3px;background:#f8fafb;border-radius:4px;border:1px solid #e8f0ea">
+        const ent = (e,ei) => `<div style="padding:6px 8px;background:#f8fafb;border-radius:4px;border:1px solid #e8f0ea">
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:9px;font-family:var(--font-mono);color:var(--cinza-400)">Ent.${ei+1}</span>
                 ${e.dt_entrega?`<span style="font-size:10px;color:var(--cinza-700)">${fmtDt(e.dt_entrega)}</span>`:''}
-                <span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${SIT_ENT[e.situacao]||e.situacao}</span>
+                <span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${esc(SIT_ENT[e.situacao]||rotuloCodigo(e.situacao))}</span>
                 ${e.pct_entregue&&e.pct_entregue<100?`<span style="font-size:9px;color:var(--cinza-500)">${e.pct_entregue}%</span>`:''}
               </div>
               ${_quemEntrega(e)}
               ${_linksEntrega(e)}
             </div>`;
-          });
-        }
-        html += `</div>`;
+        html += `<tbody>`;
+        if(!pe.length) html += cel(cab+`<div style="font-size:10px;color:var(--cinza-400);font-style:italic;padding:2px 0">Sem entregas.</div>`, true);
+        else pe.forEach((e,ei)=>{ html += cel((ei===0?cab:'')+ent(e,ei), ei===pe.length-1); });
+        html += `</tbody>`;
       });
-      html += `</div>`;
+      html += `</table>`;
     });
     html += `</div>`;
   });
@@ -4996,35 +5008,34 @@ async function relP5(){
     <div class="rep-secao-titulo">Registro de Entregas com Rastreabilidade</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>Contrato</th><th>Fornecedor</th><th>Produto</th>
-        <th>Data Entrega</th><th>Situação</th>
+        <th>Contrato · produto</th><th>Fornecedor</th>
+        <th>Entrega</th><th>Situação</th>
         <th>Carregou</th><th>Aprovou</th><th>Pago em</th>
         <th>Documentos</th>
       </tr></thead>
-      <tbody>
       ${entregas.map(e=>{
         const prod = prodMap[e.produto_id];
         const cont = prod ? contratoMap[prod.contrato_id] : null;
         const docs  = e.documentos||[];
         const links = [];
-        if(e.despacho_numero) links.push(`<span style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid #BFDBFE;background:#EFF6FF;color:#1E40AF;white-space:nowrap">${esc(e.despacho_numero)}</span>`);
+        // despacho: nº SEI curto (até o ano) e a data embaixo; o selo quebra se precisar
+        if(e.despacho_numero) links.push(`<span title="${esc(e.despacho_numero)}" style="display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid #BFDBFE;background:#EFF6FF;color:#1E40AF">${esc(_vpSeiCurto(e.despacho_numero))}${e.despacho_data?`<span class="rep-sub" style="color:#1E40AF">${fmtDt(e.despacho_data)}</span>`:''}</span>`);
         if(e.nota_tecnica_url) links.push(`<a href="#" data-arquivo="${esc(e.nota_tecnica_url)}" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid #BBF7D0;background:#F0FDF4;color:#166534;text-decoration:none;white-space:nowrap">NT</a>`);
-        docs.forEach(d=>{ if(d.arquivo_url) links.push(`<a href="#" data-arquivo="${esc(d.arquivo_url)}" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--borda);background:#fff;color:var(--cinza-700);text-decoration:none;white-space:nowrap">${esc(d.tipo_documento||'Doc')}</a>`); });
-        return `<tr>
-          <td class="mono-sm" style="font-weight:600;white-space:nowrap">${esc(cont?.numero||'—')}</td>
-          <td style="font-size:10px;max-width:110px">${esc(cont?.fornecedores?.nome||'—')}</td>
-          <td style="font-size:10px;max-width:140px">${prod?`<span style="color:var(--cinza-400)">#${esc(prod.numero_produto)}</span> ${esc(prod.descricao)}`:'—'}</td>
-          <td class="mono-sm" style="white-space:nowrap">${fmtDt(e.dt_entrega)}</td>
-          <td><span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${SIT_ENT[e.situacao]||e.situacao}</span></td>
-          <td style="font-size:10px">${esc(e.criado_por_u?.nome_completo||'—')}</td>
-          <td style="font-size:10px">${e.despachado_por_u?.nome_completo?esc(e.despachado_por_u.nome_completo)+(e.despacho_data?`<div class="mono-sm">${fmtDt(e.despacho_data)}</div>`:''): '—'}</td>
-          <td class="mono-sm" style="white-space:nowrap">${fmtDt(e.lancamento?.dt_pagamento)}</td>
+        docs.forEach(d=>{ if(d.arquivo_url) links.push(`<a href="#" data-arquivo="${esc(d.arquivo_url)}" style="font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid var(--borda);background:#fff;color:var(--cinza-700);text-decoration:none">${esc(d.tipo_documento||'Doc')}</a>`); });
+        const desc = prod ? `#${prod.numero_produto??'—'} ${prod.descricao||''}`.trim() : '';
+        return `<tbody class="rep-grupo"><tr class="rep-mae">
+          <td>${_vpContrato(cont?.numero, prod?.numero_produto)}</td>
+          <td>${esc(cont?.fornecedores?.nome||'—')}</td>
+          <td class="mono">${fmtDt(e.dt_entrega)}</td>
+          <td>${`<span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${esc(SIT_ENT[e.situacao]||rotuloCodigo(e.situacao))}</span>`}</td>
+          <td><span class="rep-sm">${esc(e.criado_por_u?.nome_completo||'—')}</span></td>
+          <td>${e.despachado_por_u?.nome_completo?`<span class="rep-sm">${esc(e.despachado_por_u.nome_completo)}</span>`:'—'}</td>
+          <td class="mono">${fmtDt(e.lancamento?.dt_pagamento)}</td>
           <td><div style="display:flex;flex-wrap:wrap;gap:2px">${links.join('')||'<span style="font-size:9px;color:var(--cinza-300)">—</span>'}</div></td>
-        </tr>`;
+        </tr>${linhaDet(8,'Produto',desc)}</tbody>`;
       }).join('')}
-      </tbody>
       <tfoot><tr>
-        <td colspan="9">${totEnts} entrega(s) &nbsp;·&nbsp; ${totAprov} aprovada(s) &nbsp;·&nbsp; ${totDev} devolvida(s) &nbsp;·&nbsp; ${totSemDoc} sem documentos</td>
+        <td colspan="8">${totEnts} entrega(s) &nbsp;·&nbsp; ${totAprov} aprovada(s) &nbsp;·&nbsp; ${totDev} devolvida(s) &nbsp;·&nbsp; ${totSemDoc} sem documentos</td>
       </tr></tfoot>
     </table>
   </div>`;

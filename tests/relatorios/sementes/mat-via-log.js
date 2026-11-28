@@ -86,6 +86,14 @@ for (let i = 1; i <= 70; i++) {
     pct_aprovado: pct, valor_aprovado: pct == null ? null : (18000 + i * 333) * pct / 100, avaliado_em: ts(i * 3), parecer_avaliador: i % 7 ? texto(300 + Math.floor(rnd() * 300)) : null,
     avaliador: i % 9 ? { nome_completo: USU[i % 4].nome_completo } : null, contrato: { numero: `45005${71600 + i % 12}`, fornecedor: { nome: pick(['Instituto de Pesquisa Ambiental da Amazônia e Desenvolvimento Sustentável — IPAAD', 'Maria Aparecida dos Santos Oliveira Cavalcante', 'Coop. Agroextrativista']) }, atividade: { codigo: atividades[i % 6].codigo } } })
 }
+// L4 lê a avaliação na entrega (despacho), não em contratos_produtos.avaliado_em
+const contratos_produtos_entregas = contratos_produtos.map((p, i) => ({
+  id: uid('q', i + 1), produto_id: p.id, numero_entrega: 1 + (i % 2), situacao: i % 6 === 5 ? 'devolvida' : 'aprovada',
+  dt_entrega: dia(i * 3 - 4), despachado_em: ts(i * 3), despacho_data: dia(i * 3),
+  despacho_numero: i % 5 ? `SEI-0820.012${String(i).padStart(4, '0')}/2026-DESPACHO-SEMA/DIMA/DEUC` : null,
+  despacho_texto: p.parecer_avaliador, pct_entregue: [100, 50, 100, 75][i % 4], valor_entregue: p.valor_aprovado,
+  despachado_por_u: p.avaliador, produto: { numero_produto: p.numero_produto, descricao: p.descricao, valor_brl: p.valor_brl, contrato: p.contrato },
+}))
 const CAMPOS = ['nome_local', 'apa', 'tipo_atividade', 'responsavel', 'data_implantacao', 'observacao', 'lat', 'lng', 'foto_url', 'foto_nome', 'status']
 const snap = i => Object.fromEntries(CAMPOS.map(c => [c, c === 'lat' ? -9.97 - i / 1000 : c === 'lng' ? -67.8 - i / 1000 : c === 'foto_url' ? 'https://wfymnmlinonvdqfucjya.supabase.co/storage/v1/object/public/pontos-mapa/' + 'abcdef0123456789'.repeat(5) + `/foto_${i}.jpg` : c === 'observacao' ? texto(400) : texto(40)]))
 const mapa_pontos_log = []
@@ -103,7 +111,7 @@ module.exports = {
     usuarios: USU, atividades, matriz_itens, vw_matriz_progresso, vw_matriz_contribuicoes,
     vw_saldo_atividade: atividades.map((a, i) => ({ id: a.id, orcamento_usd: a.orcamento_usd, comprometido_usd: a.orcamento_usd * (0.4 + i * 0.15), pago_usd: a.orcamento_usd * 0.2,
       a_pagar_usd: a.orcamento_usd * 0.1, liberado_usd: i === 2 ? 5000 : 0, saldo_livre_usd: a.orcamento_usd * (0.6 - i * 0.15) + (i === 2 ? 5000 : 0), status_saldo: i > 3 ? 'extrapolado' : 'ok', excedente_contrato_usd: 0 })), viagem_protocolos, viagem_viajantes, vw_viagens_execucao, vw_tdr_execucao_direta,
-    execucao_financeira, cotacoes_usd: [{ cotacao: 5.25, data_ref: '2026-11-27' }], tdr_acoes, contratos_produtos, mapa_pontos_log,
+    execucao_financeira, cotacoes_usd: [{ cotacao: 5.25, data_ref: '2026-11-27' }], tdr_acoes, contratos_produtos, contratos_produtos_entregas, mapa_pontos_log,
     resultados: [1, 2, 3, 4].map(i => ({ id: uid('o', i), codigo: 'R' + i, nome_pt: texto(60) })), ods_refs: [], fornecedores: [], tdrs: [], contratos: [],
   },
   filtros: {},

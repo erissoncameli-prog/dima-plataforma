@@ -20,6 +20,8 @@ const usuariosExtra = Array.from({ length: 80 }, (_, i) => {
     criado_em: '2025-02-01T10:00:00Z',
     primeiro_acesso_em: nunca ? null : `2025-0${(i % 9) + 1}-1${i % 9}T13:${String(i % 60).padStart(2, '0')}:00Z`,
     ultimo_acesso_em: nunca ? null : new Date(Date.now() - (i * 3 + 1) * 864e5).toISOString(),
+    // app de campo: às vezes mais recente que a plataforma (U4 usa o maior dos dois)
+    ultimo_acesso_app_em: i % 5 === 2 ? new Date(Date.now() - (i % 20 + 1) * 864e5).toISOString() : null,
   }
 })
 const fornecedores = Array.from({ length: 60 }, (_, i) => {
@@ -85,6 +87,10 @@ produtos.forEach((p, i) => {
       criado_por_u: j % 5 === 4 ? null : { nome_completo: nomesU[j % nomesU.length] },
       despachado_por_u: j % 3 === 0 ? null : { nome_completo: nomesU[(j + 7) % nomesU.length] },
       lancamento: j % 4 === 2 ? { dt_pagamento: dt(2026, (j % 11) + 1, 15) } : null,
+      despachado_em: ['aprovada', 'devolvida'].includes(STE[j % 4]) ? `2026-${String((j % 11) + 1).padStart(2, '0')}-28T14:${String(j % 60).padStart(2, '0')}:00Z` : null,
+      despacho_texto: ['aprovada', 'devolvida'].includes(STE[j % 4]) ? `Parecer ${j}: ${txt(j, 260)}` : null,
+      valor_entregue: STE[j % 4] === 'aprovada' ? p.valor_brl * ([100, 50, 75, 100][j % 4]) / 100 : null,
+      produto: { numero_produto: p.numero_produto, descricao: p.descricao, valor_brl: p.valor_brl, contrato: { numero: p.contrato.numero, fornecedor: p.contrato.fornecedor, atividade: p.contrato.atividade } },
       documentos: Array.from({ length: j % 4 }, (_, d) => ({ arquivo_url: `https://x/object/public/entregas-docs/produtos/${p.id}/doc${d}.pdf`, arquivo_nome: `Documento_${d}_${txt(d + j, 40)}.pdf`, tipo_documento: ['Relatório Técnico', 'Nota Fiscal', 'Lista de Presença', 'Declaração/Atestado'][d] })),
     })
   }
