@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="/assets/marca/icone.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/marca/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/marca/apple-touch-icon-180.png">
+<meta name="author" content="Erisson Cameli Santiago">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1F4E2C">
+<!-- o endereço traz a chave da lista ou o link pessoal: não vazar para outros sites -->
+<meta name="referrer" content="no-referrer">
+<title>Lista de presença</title>
+<!--
+  Página PÚBLICA da lista de presença das reuniões (exceção ao padrão #app + gerarLayout, como a do Pulso).
+  ?l=<chave> = QR projetado na reunião (convidados e quem não tem conta); ?c=<código> = link pessoal do e-mail.
+  Tudo é decidido no banco (fn_publico_presenca_lista / fn_publico_presenca_assinar), nunca aqui.
+-->
+<link href="../css/presenca-assinar.css" rel="stylesheet">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="pa-cal" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/></symbol>
+  <symbol id="pa-local" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="pa-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="pa-alerta" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></symbol>
+  <symbol id="pa-escudo" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.4-7.5 9.5-4.3-1.1-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="pa-foto" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2.5h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="pa-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></symbol>
+  <symbol id="pa-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="pa-relogio" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+</svg>
+<header class="topo">
+  <span class="marca" id="pa-marca"></span>
+  <h1>Lista de presença</h1>
+  <p id="pa-sub">Registre a sua participação na reunião</p>
+</header>
+<main id="pa"><div class="cartao carregando" aria-busy="true" aria-label="Carregando"><i></i><i></i><i></i></div></main>
+<footer data-dima-autoria></footer>
+<div class="sr" aria-live="polite" id="pa-anuncio"></div>
+
+<!-- termo de autorização de uso de imagem -->
+<div class="termo-ov" id="pa-termo" role="dialog" aria-modal="true" aria-labelledby="pa-termo-tit" hidden>
+  <div class="termo-caixa">
+    <div class="termo-cab">
+      <h2 id="pa-termo-tit">Autorização de uso de imagem</h2>
+      <button type="button" class="termo-x" id="pa-termo-x" aria-label="Fechar"><svg class="ic"><use href="#pa-x"/></svg></button>
+    </div>
+    <div class="termo-texto" id="pa-termo-texto" tabindex="0"></div>
+    <div class="termo-rod"><small id="pa-termo-versao"></small><button type="button" class="btn" id="pa-termo-ok">Fechar e voltar</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/config.js"></script>
+<script src="../js/autoria.js"></script>
+<script src="../js/logos.js"></script>
+<script src="../js/presenca-assinar.js"></script>
+</body>
+</html>
