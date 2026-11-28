@@ -393,11 +393,11 @@
       return `<div class="rep-secao"${i > 0 ? ' style="break-before:page"' : ''}>
         <div class="rep-secao-titulo">${esc(r.reuniao)}</div>
         <p class="pp-a4-id"><b>Data:</b> ${esc(dataHora(r.data))} · <b>Formato:</b> ${esc(r.formato || '—')}${r.local ? ' · <b>Local:</b> ' + esc(r.local) : ''} · <b>Organizador:</b> ${esc(r.organizador || '—')}</p>
-        <div class="rep-stats">
-          <div class="rep-stat"><div class="rep-stat-v">${r.total}</div><div class="rep-stat-l">presenças</div></div>
-          <div class="rep-stat"><div class="rep-stat-v">${r.convidados_externos}</div><div class="rep-stat-l">convidados externos</div></div>
-          <div class="rep-stat"><div class="rep-stat-v">${semCad}</div><div class="rep-stat-l">sem cadastro na plataforma</div></div>
-          <div class="rep-stat"><div class="rep-stat-v">${semImg}</div><div class="rep-stat-l">sem autorização de imagem</div></div>
+        <div class="rep-stats rep-stats-4">
+          <div class="rep-stat"><div class="rep-stat-lbl">presenças</div><div class="rep-stat-val">${r.total}</div></div>
+          <div class="rep-stat"><div class="rep-stat-lbl">convidados externos</div><div class="rep-stat-val">${r.convidados_externos}</div></div>
+          <div class="rep-stat"><div class="rep-stat-lbl">sem cadastro na plataforma</div><div class="rep-stat-val">${semCad}</div></div>
+          <div class="rep-stat"><div class="rep-stat-lbl">sem autorização de imagem</div><div class="rep-stat-val">${semImg}</div></div>
         </div>
         <table class="rep-tbl"><thead><tr><th class="c-min">#</th><th>Nome</th><th>E-mail</th><th>Telefone</th>${
           sens ? '<th>Sexo/gênero</th><th>Cor ou raça</th><th>Idade</th>' : ''}<th>Convite</th><th>Uso de imagem</th><th>Assinou em</th></tr></thead>
@@ -414,9 +414,9 @@
       </div>`
     }
     const geral = varias ? `<div class="rep-secao"><div class="rep-secao-titulo">Resumo geral do período (${resumos.length} reuniões)</div>
-        <div class="rep-stats">
-          <div class="rep-stat"><div class="rep-stat-v">${resumos.reduce((a, r) => a + r.total, 0)}</div><div class="rep-stat-l">presenças</div></div>
-          <div class="rep-stat"><div class="rep-stat-v">${resumos.reduce((a, r) => a + r.convidados_externos, 0)}</div><div class="rep-stat-l">convidados externos</div></div>
+        <div class="rep-stats rep-stats-4">
+          <div class="rep-stat"><div class="rep-stat-lbl">presenças</div><div class="rep-stat-val">${resumos.reduce((a, r) => a + r.total, 0)}</div></div>
+          <div class="rep-stat"><div class="rep-stat-lbl">convidados externos</div><div class="rep-stat-val">${resumos.reduce((a, r) => a + r.convidados_externos, 0)}</div></div>
         </div>
         <div class="pp-res-grid">${tabelaResumo('Sexo/gênero', somar(resumos, 'sexo'), SEXO)}${tabelaResumo('Faixa de idade', somar(resumos, 'faixa'), IDADE)}</div>
       </div>` : ''
