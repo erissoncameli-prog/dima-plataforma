@@ -35,7 +35,7 @@ for (let i = 0; i < NA; i++) {
   const a = { id, codigo, nome_pt: nome, nome_en: null, fase: FASES[i % 6], orcamento_usd: orc, orcamento_original_usd: i % 5 === 0 ? orc - 125000.5 : orc,
     resultado_id: null, responsavel_id: null, ativo: true, criado_em: '2026-01-02T10:00:00Z',
     resultado: { codigo: 'R' + r, nome_pt: 'Resultado ' + r + ' — ' + frase(60) },
-    responsaveis: resps.map(u => ({ usuario: { id: u.id, nome_completo: u.nome_completo } })), tdrs: [], encerramentos: [] }
+    responsaveis: resps.map((u, k) => ({ papel: k ? 'substituto' : 'responsavel', ativo: true, usuario: { id: u.id, nome_completo: u.nome_completo } })), tdrs: [], encerramentos: [] }
   atividades.push(a)
   const nt = i % 6 === 5 ? 0 : 2 + Math.floor(rnd() * 4)
   let comp = 0
