@@ -5,6 +5,11 @@
 
 ## Estado atual — 28/11/2026
 
+- **Lista de presença — ajustes de 28/11 (tarde), no ar:** marca **"Não convidado(a)"** (gravada na assinatura, `convidado_inicial`)
+  e **faixa de idade** obrigatória (até 17 · 18–24 · 25–29 · 30–39 · 40–49 · 50–59 · 60+ · prefere não responder). Migrações
+  `_c_convite_idade` e `_d_marcar_convidados` (as 3 assinaturas reais da TR-090: 2 convidadas, 1 não). Testado no banco
+  (transação desfeita) e no navegador com dados simulados (página, gerenciador, CSV/Excel). As 3 assinaturas da TR-090
+  ficam "Sem registro" na faixa de idade (foram feitas antes do campo).
 - **Lista de presença das reuniões: NO AR (28/11/2026).** Migrações `20261128_presenca_reunioes` + `_b_validacao` aplicadas,
   Edge Function `presenca-emails` v1 publicada, cron `presenca-emails` ativo (a cada minuto, só chama a função com pendência).
   Testado no banco em transação desfeita: lista nasce com a reunião, rotina dos 10 min, QR, link pessoal, e-mail repetido
