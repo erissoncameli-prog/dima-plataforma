@@ -20,6 +20,8 @@
 
   const SEXO = [['mulher', 'Mulher'], ['homem', 'Homem'], ['outro', 'Outro'], ['prefere_nao_responder', 'Prefiro não responder']]
   const RACA = [['branca', 'Branca'], ['preta', 'Preta'], ['parda', 'Parda'], ['amarela', 'Amarela'], ['indigena', 'Indígena'], ['prefere_nao_responder', 'Prefiro não responder']]
+  const IDADE = [['ate_17', 'Até 17 anos'], ['18_24', '18 a 24'], ['25_29', '25 a 29'], ['30_39', '30 a 39'], ['40_49', '40 a 49'],
+    ['50_59', '50 a 59'], ['60_mais', '60 ou mais'], ['prefere_nao_responder', 'Prefiro não responder']]
   const ERROS = {
     lista_fechada: 'A lista de presença desta reunião já está fechada.',
     lista_inexistente: 'Lista de presença não encontrada. Confira o QR Code ou o link.',
@@ -31,6 +33,7 @@
     telefone_invalido: 'Confira o telefone: use DDD + número (10 ou 11 dígitos).',
     sexo_obrigatorio: 'Escolha uma opção em Sexo/gênero (pode ser "Prefiro não responder").',
     raca_obrigatoria: 'Escolha uma opção em Cor ou raça (pode ser "Prefiro não responder").',
+    idade_obrigatoria: 'Escolha a sua faixa de idade (pode ser "Prefiro não responder").',
     imagem_obrigatoria: 'Escolha se autoriza ou não o uso da sua imagem.',
     lista_cheia: 'Esta lista atingiu o limite de assinaturas. Fale com o organizador.',
   }
@@ -83,6 +86,7 @@
       <fieldset><legend>Sexo/gênero</legend>${opcoes('sexo', SEXO, p.sexo_genero)}
         <input type="text" class="outro" id="pa-sexo-outro" maxlength="60" placeholder="Como você se identifica (opcional)" value="${esc(p.sexo_genero_outro || '')}" ${p.sexo_genero === 'outro' ? '' : 'hidden'} aria-label="Como você se identifica"></fieldset>
       <fieldset><legend>Cor ou raça <small>(autodeclarada)</small></legend>${opcoes('raca', RACA, p.cor_raca)}</fieldset>
+      <fieldset><legend>Faixa de idade</legend>${opcoes('idade', IDADE, p.faixa_etaria)}</fieldset>
 
       <div class="bloco-img">
         <h3>${ic('foto')}Uso da sua imagem</h3>
