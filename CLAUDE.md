@@ -1643,8 +1643,9 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
   (motivo ≥ 10; `imagem_revogada_*`, trilha no `audit_log`). Efetivo: `sim | nao | retirada`.
 - **Quem vê o quê**: nome/presença = `fn_pode_ver_tarefa`; gerir (QR, reabrir, encerrar, exportar, retirar imagem) =
   `fn_presenca_pode_gerir` (criador, responsáveis da reunião, coordenação, super_admin); telefone = quem gere; sexo/raça por pessoa =
-  `fn_presenca_ve_sensivel` (coordenação/super_admin), os demais só totais. **PDF A4 nunca leva sexo/raça** (forçado em
-  `fn_presenca_exportar`, que registra em `presenca_exportacoes`). Tabelas sem policy nem grant: tudo por RPC.
+  `fn_presenca_ve_sensivel` (coordenação/super_admin), os demais só totais — em **todos** os formatos (PDF A4 inclusive, desde a parte E:
+  o A4 de quem não vê sai sem as 3 colunas, mas com o resumo). `fn_presenca_exportar` registra em `presenca_exportacoes`. Tabelas sem
+  policy nem grant: tudo por RPC.
 - Gerenciador = aba **Presenças** do painel (`?aba=presencas`): `fn_presenca_painel` (reuniões + indicadores) e `fn_presenca_detalhe`.
 
 ### API de dados para outras plataformas (⚠️ ler antes de expor dado para fora)
