@@ -1188,7 +1188,7 @@ async function relF1(){
     const l = {A_INICIAR:'A Iniciar',ELABORACAO:'Elaboração',LICITACAO:'Licitação',ELABORADO:'Elaborado',CONTRATADO:'Contratado',CONCLUIDO:'Concluído'};
     return `<span class="rep-badge ${m[f]||'rb-cinza'}">${l[f]||f}</span>`;
   };
-  const pct = (v,t) => t>0?(v/t*100).toFixed(1)+'%':'—';
+  const pct = (v,t) => t>0?fmtPct1(v/t*100):'—';
 
   return `
   <div class="rep-stats rep-stats-4">
@@ -1287,11 +1287,8 @@ async function relF2(){
 
   const total = rows.reduce((s,r)=>s+(Number(r.valor_brl)||0),0);
 
-  const sitBadge = s => {
-    const m = {pendente:'rb-cinza',em_analise:'rb-ouro',aprovado:'rb-verde',a_pagar_direto:'rb-azul'};
-    const l = {pendente:'Pendente',em_analise:'Em análise',aprovado:'Aprovado',a_pagar_direto:'A pagar (UNESCO)'};
-    return `<span class="rep-badge ${m[s]||'rb-cinza'}">${l[s]||s}</span>`;
-  };
+  // produto: rótulo único de situação (seloProd); lançamento sem contrato = execução direta da UNESCO
+  const sitBadge = s => s==='a_pagar_direto' ? `<span class="rep-badge rb-azul">A pagar (UNESCO)</span>` : seloProd(s);
 
   const diasAte = dt => {
     const d = Math.ceil((new Date(dt+' 12:00')-hoje)/(1000*60*60*24));
@@ -1309,23 +1306,20 @@ async function relF2(){
     ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum vencimento nos próximos ${dias} dias.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Vencimento</th><th>Falta</th><th>Produto / lançamento</th><th>Contrato / TDR</th>
+        <th>Vencimento</th><th>Falta</th><th>Contrato / TDR</th>
         <th>Fornecedor</th><th>Atividade</th>
         <th style="text-align:right">Valor</th><th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
-        <td>${diasAte(r.dt_vencimento)}</td>
-        <td>${esc(r.descricao||'—')}</td>
+        <td class="c-min">${diasAte(r.dt_vencimento)}</td>
         <td class="mono">${esc(r.ref||'—')}</td>
         <td>${esc(r.fornecedor||'—')}</td>
         <td class="mono">${esc(r.atividade||'—')}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
         <td>${sitBadge(r.situacao)}</td>
-      </tr>`).join('')}
-      </tbody>
-      <tfoot><tr><td colspan="6"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(total)}</td><td></td></tr></tfoot>
+      </tr>${linhaDet(7, r.situacao==='a_pagar_direto'?'Lançamento':'Produto', r.descricao)}</tbody>`).join('')}
+      <tfoot><tr><td colspan="5"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(total)}</td><td></td></tr></tfoot>
     </table>`}
   </div>`;
 }
@@ -1380,27 +1374,23 @@ async function relF3(){
     <table class="rep-tbl">
       <thead><tr>
         <th>Data Pagamento</th><th>Fornecedor</th><th>Contrato / TDR</th><th>Atividade</th>
-        <th>Produto/Descrição</th>
         <th style="text-align:right">Valor BRL</th>
         <th style="text-align:right">Cotação</th>
         <th style="text-align:right">Valor USD</th>
         <th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${fmtDt(r.dt_pagamento)}</td>
         <td>${esc(r.fornecedor?.nome||'—')}</td>
         <td class="mono">${esc(r.contrato?.numero||(r.tdr?.numero?'TDR '+r.tdr.numero:'—'))}</td>
         <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
-        <td>${esc(r.descricao||'—')}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
         <td class="mono" style="text-align:right">${r.cotacao_unesco?Number(r.cotacao_unesco).toFixed(4):'—'}</td>
         <td class="mono" style="text-align:right">${r.valor_usd_unesco!=null?usd2(r.valor_usd_unesco):(r.valor_usd!=null?'≈ '+usd2(r.valor_usd):'—')}</td>
         <td>${sitBadge(r.situacao)}</td>
-      </tr>`).join('')}
-      </tbody>
+      </tr>${linhaDet(8, 'Descrição', r.descricao)}</tbody>`).join('')}
       <tfoot><tr>
-        <td colspan="5"><strong>TOTAL PAGO</strong></td>
+        <td colspan="4"><strong>TOTAL PAGO</strong></td>
         <td class="mono" style="text-align:right">${fmtBRL(totBRL)}</td>
         <td></td>
         <td class="mono" style="text-align:right">${usd2(totUSD)}</td>
@@ -1438,11 +1428,6 @@ async function relC1(){
   const totalUtilizado  = rows.reduce((s,r)=>s+(r.valor_utilizado_brl||0),0);
   const totalSaldo      = rows.reduce((s,r)=>s+(r.saldo_brl||0),0);
 
-  const stBadge = s => {
-    const m={vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho'};
-    return `<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;
-  };
-
   return `
   <div class="rep-stats rep-stats-4">
     <div class="rep-stat"><div class="rep-stat-lbl">Total Contratos</div><div class="rep-stat-val">${rows.length}</div></div>
@@ -1454,29 +1439,22 @@ async function relC1(){
     <div class="rep-secao-titulo">Contratos</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>Número</th><th>Fornecedor</th><th>Atividade</th><th>Tipo</th>
-        <th>Início</th><th>Fim</th>
+        <th>Número</th><th>Atividade</th>
         <th style="text-align:right">Total</th>
         <th style="text-align:right">Utilizado</th>
         <th style="text-align:right">Saldo</th>
-        <th>Status</th>
+        <th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${esc(r.numero||'—')}</td>
-        <td>${esc(r.fornecedor?.nome||'—')}</td>
         <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
-        <td><span class="rep-badge rb-azul">${esc(r.tipo||'—')}</span></td>
-        <td class="mono">${fmtDt(r.dt_inicio)}</td>
-        <td class="mono">${fmtDt(r.dt_fim)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_total_brl)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_utilizado_brl)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.saldo_brl)}</td>
-        <td>${stBadge(r.status)}</td>
-      </tr>`).join('')}
-      </tbody>
+        <td>${seloCont(r.status)}</td>
+      </tr><tr class="rep-det"><td colspan="6"><span class="rep-det-lbl">Fornecedor</span>${esc(r.fornecedor?.nome||'—')}<span class="rep-det-lbl" style="margin-left:14px">Tipo</span>${tipoCont(r.tipo)}<span class="rep-det-lbl" style="margin-left:14px">Vigência</span><span style="white-space:nowrap">${fmtDt(r.dt_inicio)} a ${fmtDt(r.dt_fim)}</span></td></tr></tbody>`).join('')}
       <tfoot><tr>
-        <td colspan="6"><strong>TOTAL</strong></td>
+        <td colspan="2"><strong>TOTAL</strong></td>
         <td class="mono" style="text-align:right">${fmtBRL(totalContratado)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(totalUtilizado)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(totalSaldo)}</td>
@@ -1926,11 +1904,13 @@ async function relF6(){
   if(fornFil) qDir = qDir.eq('fornecedor_id', fornFil);
   const {data:dir, error:eDir} = await qDir;
   if(eDir) throw eDir;
-  rows = rows.concat((dir||[]).map(l=>({ descricao:l.descricao, valor_brl:l.valor_brl, dt_vencimento:l.dt_vencimento, situacao:'a pagar (UNESCO)',
+  rows = rows.concat((dir||[]).map(l=>({ descricao:l.descricao, valor_brl:l.valor_brl, dt_vencimento:l.dt_vencimento, situacao:'a_pagar_direto',
     ref:l.tdr?.numero?'TDR '+l.tdr.numero:'Sem contrato', forn:l.fornecedor?.nome, ativ:l.atividade?.codigo })))
     .sort((a,b)=>String(a.dt_vencimento).localeCompare(String(b.dt_vencimento)));
   const totalVal = rows.reduce((s,r)=>s+(Number(r.valor_brl)||0),0);
   const diasAt = dt=>Math.ceil((new Date()-new Date(dt+' 12:00'))/(864e5));
+  // produto: rótulo único de situação (seloProd); lançamento sem contrato = execução direta da UNESCO
+  const sitBadge = s => s==='a_pagar_direto' ? `<span class="rep-badge rb-azul">A pagar (UNESCO)</span>` : seloProd(s);
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Itens em Atraso/Inadimplentes</div><div class="rep-stat-val" style="color:var(--erro)">${rows.length}</div></div>
@@ -1942,23 +1922,20 @@ async function relF6(){
     ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Sem inadimplências no período.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Produto / lançamento</th><th>Contrato / TDR</th><th>Fornecedor</th><th>Atividade</th>
-        <th>Vencimento</th><th>Dias em Atraso</th>
+        <th>Contrato / TDR</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Vencimento</th><th>Atraso</th>
         <th style="text-align:right">Valor</th><th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
-        <td>${esc(r.descricao||'—')}</td>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${esc(r.ref||'—')}</td>
         <td>${esc(r.forn||'—')}</td>
         <td class="mono">${esc(r.ativ||'—')}</td>
         <td class="mono">${fmtDt(r.dt_vencimento)}</td>
         <td><span class="rep-badge ${diasAt(r.dt_vencimento)>60?'rb-vermelho':diasAt(r.dt_vencimento)>30?'rb-ouro':'rb-cinza'}">${diasAt(r.dt_vencimento)}d</span></td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_brl)}</td>
-        <td><span class="rep-badge rb-cinza">${esc(r.situacao)}</span></td>
-      </tr>`).join('')}
-      </tbody>
-      <tfoot><tr><td colspan="6"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalVal)}</td><td></td></tr></tfoot>
+        <td>${sitBadge(r.situacao)}</td>
+      </tr>${linhaDet(7, r.situacao==='a_pagar_direto'?'Lançamento':'Produto', r.descricao)}</tbody>`).join('')}
+      <tfoot><tr><td colspan="5"><strong>TOTAL</strong></td><td class="mono" style="text-align:right">${fmtBRL(totalVal)}</td><td></td></tr></tfoot>
     </table>`}
   </div>`;
 }
@@ -1981,7 +1958,6 @@ async function relC2(){
   if(error) throw error;
   const rows = data||[];
   const diasAte = dt=>Math.ceil((new Date(dt+' 12:00')-hoje)/864e5);
-  const stBadge = s=>{const m={vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho'};return`<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;};
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Contratos a Vencer (${dias}d)</div><div class="rep-stat-val">${rows.length}</div></div>
@@ -1993,22 +1969,19 @@ async function relC2(){
     ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Nenhum contrato a vencer nos próximos ${dias} dias.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Número</th><th>Fornecedor</th><th>Atividade</th><th>Tipo</th>
+        <th>Número</th><th>Atividade</th><th>Tipo</th>
         <th>Vencimento</th><th>Falta</th>
-        <th style="text-align:right">Saldo BRL</th><th>Status</th>
+        <th style="text-align:right">Saldo BRL</th><th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>{const d=diasAte(r.dt_fim);return`<tr>
+      ${rows.map(r=>{const d=diasAte(r.dt_fim);return`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${esc(r.numero||'—')}</td>
-        <td>${esc(r.fornecedor?.nome||'—')}</td>
         <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
-        <td><span class="rep-badge rb-azul">${esc(r.tipo||'—')}</span></td>
+        <td class="c-min">${tipoCont(r.tipo)}</td>
         <td class="mono">${fmtDt(r.dt_fim)}</td>
         <td><span class="rep-badge ${d<=7?'rb-vermelho':d<=15?'rb-ouro':'rb-cinza'}">${d}d</span></td>
         <td class="mono" style="text-align:right">${fmtBRL(r.saldo_brl)}</td>
-        <td>${stBadge(r.status)}</td>
-      </tr>`;}).join('')}
-      </tbody>
+        <td>${seloCont(r.status)}</td>
+      </tr>${linhaDet(7, 'Fornecedor', r.fornecedor?.nome||'—')}</tbody>`;}).join('')}
     </table>`}
   </div>`;
 }
@@ -2031,46 +2004,42 @@ async function relC3(){
     const seen=new Set();
     return {...c,produtos:(c.produtos||[]).filter(p=>{if(seen.has(p.id))return false;seen.add(p.id);return true;})};
   });
-  const pBadge = s=>{const m={pendente:'rb-cinza',em_analise:'rb-ouro',aprovado:'rb-azul',pago:'rb-verde',cancelado:'rb-cinza'};return m[s]||'rb-cinza';};
+  // "Pago" = Σ dos produtos pagos do contrato — a mesma conta no cartão e na coluna
+  const pagoDe = c => (c.produtos||[]).filter(p=>p.situacao==='pago').reduce((s,p)=>s+(Number(p.valor_brl)||0),0);
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Contratos</div><div class="rep-stat-val">${rows.length}</div></div>
     <div class="rep-stat"><div class="rep-stat-lbl">Total Contratado</div><div class="rep-stat-val">${fmtBRL(rows.reduce((s,r)=>s+(r.valor_total_brl||0),0))}</div></div>
-    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago</div><div class="rep-stat-val">${fmtBRL(rows.reduce((s,r)=>s+(r.valor_utilizado_brl||0),0))}</div></div>
+    <div class="rep-stat"><div class="rep-stat-lbl">Total Pago</div><div class="rep-stat-val">${fmtBRL(rows.reduce((s,c)=>s+pagoDe(c),0))}</div><div class="rep-stat-sub">produtos pagos</div></div>
   </div>
   <div class="rep-secao">
     <div class="rep-secao-titulo">Execução por Contrato</div>
     <table class="rep-tbl">
       <thead><tr>
-        <th>Número</th><th>Fornecedor</th><th>Atividade</th>
+        <th>Número</th><th>Atividade</th>
         <th style="text-align:right">Total</th>
         <th style="text-align:right">Pago</th>
         <th style="text-align:right">A Pagar</th>
-        <th style="text-align:right">Cancelado</th>
         <th style="text-align:right">Saldo</th>
-        <th style="min-width:70px">Exec.</th>
+        <th style="min-width:52px">Exec.</th>
       </tr></thead>
-      <tbody>
       ${rows.map(c=>{
         const prods=c.produtos||[];
-        const pago   =prods.filter(p=>p.situacao==='pago').reduce((s,p)=>s+(p.valor_brl||0),0);
+        const pago   =pagoDe(c);
         const aPagar =prods.filter(p=>!['pago','cancelado'].includes(p.situacao)).reduce((s,p)=>s+(p.valor_brl||0),0);
         const cancel =prods.filter(p=>p.situacao==='cancelado').reduce((s,p)=>s+(p.valor_brl||0),0);
         const total  =c.valor_total_brl||0;
         const pct    =total>0?pago/total*100:0;
-        return `<tr>
+        return `<tbody class="rep-grupo"><tr class="rep-mae">
           <td class="mono">${esc(c.numero||'—')}</td>
-          <td>${esc(c.fornecedor?.nome||'—')}</td>
           <td class="mono">${esc(c.atividade?.codigo||'—')}</td>
           <td class="mono" style="text-align:right">${fmtBRL(total)}</td>
           <td class="mono" style="text-align:right">${fmtBRL(pago)}</td>
           <td class="mono" style="text-align:right">${fmtBRL(aPagar)}</td>
-          <td class="mono" style="text-align:right">${fmtBRL(cancel)}</td>
           <td class="mono" style="text-align:right">${fmtBRL(c.saldo_brl)}</td>
-          <td><div class="rep-barra"><div class="rep-barra-fill ${pct>80?'crit':pct>50?'warn':''}" style="width:${Math.min(100,pct).toFixed(0)}%"></div></div><div class="mono-sm">${pct.toFixed(1)}%</div></td>
-        </tr>`;
+          <td><div class="rep-barra"><div class="rep-barra-fill ${pct>80?'crit':pct>50?'warn':''}" style="width:${Math.min(100,pct).toFixed(0)}%"></div></div><div class="mono-sm">${fmtPct1(pct)}</div></td>
+        </tr><tr class="rep-det"><td colspan="7"><span class="rep-det-lbl">Fornecedor</span>${esc(c.fornecedor?.nome||'—')}${cancel>0?`<span class="rep-det-lbl" style="margin-left:14px">Cancelado</span><span style="white-space:nowrap">${fmtBRL(cancel)}</span>`:''}</td></tr></tbody>`;
       }).join('')}
-      </tbody>
     </table>
   </div>`;
 }
@@ -2087,7 +2056,6 @@ async function relC4(){
   const {data, error} = await q;
   if(error) throw error;
   const rows = (data||[]).filter(c=>!c.contrato_assinado_url);
-  const stBadge=s=>{const m={vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho'};return`<span class="rep-badge ${m[s]||'rb-cinza'}">${s}</span>`;};
   return `
   <div class="rep-stats rep-stats-3">
     <div class="rep-stat"><div class="rep-stat-lbl">Contratos sem PDF Assinado</div><div class="rep-stat-val" style="color:var(--erro)">${rows.length}</div></div>
@@ -2099,22 +2067,19 @@ async function relC4(){
     ${rows.length===0?`<div style="padding:24px;text-align:center;color:var(--cinza-400)">Todos os contratos possuem documentação.</div>`:`
     <table class="rep-tbl">
       <thead><tr>
-        <th>Número</th><th>Fornecedor</th><th>Atividade</th><th>Tipo</th>
+        <th>Número</th><th>Atividade</th><th>Tipo</th>
         <th>Início</th><th>Fim</th>
-        <th style="text-align:right">Valor Total</th><th>Status</th>
+        <th style="text-align:right">Valor Total</th><th>Situação</th>
       </tr></thead>
-      <tbody>
-      ${rows.map(r=>`<tr>
+      ${rows.map(r=>`<tbody class="rep-grupo"><tr class="rep-mae">
         <td class="mono">${esc(r.numero||'—')}</td>
-        <td>${esc(r.fornecedor?.nome||'—')}</td>
         <td class="mono">${esc(r.atividade?.codigo||'—')}</td>
-        <td><span class="rep-badge rb-azul">${esc(r.tipo||'—')}</span></td>
+        <td class="c-min">${tipoCont(r.tipo)}</td>
         <td class="mono">${fmtDt(r.dt_inicio)}</td>
         <td class="mono">${fmtDt(r.dt_fim)}</td>
         <td class="mono" style="text-align:right">${fmtBRL(r.valor_total_brl)}</td>
-        <td>${stBadge(r.status)}</td>
-      </tr>`).join('')}
-      </tbody>
+        <td>${seloCont(r.status)}</td>
+      </tr>${linhaDet(7, 'Fornecedor', r.fornecedor?.nome||'—')}</tbody>`).join('')}
     </table>`}
   </div>`;
 }
@@ -4892,7 +4857,7 @@ async function relC5(){
     html += `<div class="rep-secao">
       <div class="rep-secao-titulo">
         ${esc(c.numero)} — ${esc(c.fornecedores?.nome||'—')}
-        <span class="rep-badge ${COR_CONT[c.status]||'rb-cinza'}" style="margin-left:6px">${SIT_CONT[c.status]||c.status}</span>
+        <span style="margin-left:6px">${seloCont(c.status)}</span>
         <span style="margin-left:auto;font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--cinza-500)">${esc(c.atividades?.codigo||'')} &nbsp;·&nbsp; ${fmtBRL(c.valor_total_brl)} &nbsp;·&nbsp; ${cEnts.length} entrega(s)</span>
       </div>`;
 
@@ -4901,30 +4866,30 @@ async function relC5(){
     } else {
       ps.forEach(p=>{
         const pe = entsByProd[p.id]||[];
-        html += `<div style="margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#f4f8f5;border-radius:4px;border:1px solid #ddeee4;margin-bottom:4px">
-            <span style="font-size:10px;font-weight:700;color:var(--cinza-400);font-family:var(--font-mono)">#${esc(p.numero_produto)}</span>
-            <span style="font-size:12px;font-weight:600;color:var(--cinza-900);flex:1">${esc(p.descricao)}</span>
-            <span style="font-family:var(--font-mono);font-size:11px;color:#2D6A4F">${fmtBRL(parseFloat(p.valor_brl||0))}</span>
-            <span class="rep-badge ${COR_PROD[p.situacao]||'rb-cinza'}">${SIT_PROD[p.situacao]||p.situacao}</span>
-          </div>`;
-        if(!pe.length){
-          html += `<div style="padding:5px 10px;font-size:11px;color:var(--cinza-400);font-style:italic">Nenhuma entrega registrada.</div>`;
-        } else {
-          pe.forEach((e,ei)=>{
-            html += `<div style="padding:8px 10px;margin-bottom:4px;border:1px solid #e2ede8;border-radius:4px;background:#fff">
+        const entregaHtml = (e,ei) => `<div style="padding:8px 10px;margin-bottom:4px;border:1px solid #e2ede8;border-radius:4px;background:#fff">
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:9px;font-weight:700;font-family:var(--font-mono);color:var(--cinza-400)">Entrega ${ei+1}</span>
                 ${e.dt_entrega?`<span style="font-size:11px;color:var(--cinza-700)">${fmtDt(e.dt_entrega)}</span>`:''}
-                <span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${SIT_ENT[e.situacao]||e.situacao}</span>
+                <span class="rep-badge ${COR_ENT[e.situacao]||'rb-cinza'}">${esc(SIT_ENT[e.situacao]||rotuloCodigo(e.situacao))}</span>
                 ${e.pct_entregue&&e.pct_entregue<100?`<span style="font-size:10px;color:var(--cinza-500)">${e.pct_entregue}%</span>`:''}
               </div>
               ${_quemEntrega(e)}
               ${_linksEntrega(e)}
             </div>`;
-          });
-        }
-        html += `</div>`;
+        // cabeçalho do produto + 1ª entrega num bloco que não se separa (FolhaA4.paginar respeita break-inside: avoid):
+        // o título do produto nunca fica sozinho no pé da página
+        html += `<div style="margin-bottom:10px">
+          <div style="break-inside:avoid;page-break-inside:avoid">
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:#f4f8f5;border-radius:4px;border:1px solid #ddeee4;margin-bottom:4px">
+            <span style="font-size:10px;font-weight:700;color:var(--cinza-400);font-family:var(--font-mono)">#${esc(p.numero_produto)}</span>
+            <span style="font-size:12px;font-weight:600;color:var(--cinza-900);flex:1">${esc(p.descricao)}</span>
+            <span style="font-family:var(--font-mono);font-size:11px;color:#2D6A4F;white-space:nowrap">${fmtBRL(parseFloat(p.valor_brl||0))}</span>
+            ${seloProd(p.situacao)}
+          </div>
+          ${pe.length ? entregaHtml(pe[0],0) : `<div style="padding:5px 10px;font-size:11px;color:var(--cinza-400);font-style:italic">Nenhuma entrega registrada.</div>`}
+          </div>
+          ${pe.slice(1).map((e,i)=>entregaHtml(e,i+1)).join('')}
+        </div>`;
       });
     }
     html += `</div>`;
