@@ -59,7 +59,11 @@ html[data-tema="escuro"] :is(.tk,.tk-overlay){ --pp-ok:#4CC389; --pp-ok-bg:rgba(
 :is(.tk,.tk-overlay) .pp-rodape .pp-suave{margin-right:auto}
 
 /* aba Presenças */
-.tk .pp-painel{display:grid;gap:14px}
+/* minmax(0,1fr): sem isso a tabela larga alarga a página inteira no celular */
+.tk .pp-painel{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.tk .pp-painel>*,.tk #pp-corpo>*{min-width:0}
+.tk #pp-corpo{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.tk .pp-dist{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
 .tk .pp-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .tk .pp-filtros label:not(.search){display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
 .tk .pp-filtros .inp{height:34px;padding:0 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--text);font:inherit}
