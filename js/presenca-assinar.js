@@ -89,8 +89,8 @@
         <p>Podem ser feitas fotos e vídeos desta reunião. Leia o termo e escolha se autoriza. Não autorizar não impede o registro da presença.</p>
         <button type="button" class="btn-termo" id="pa-ler">${ic('doc')}Ler o termo de autorização</button>
         <fieldset class="escolha-img"><legend class="sr">Autorização de uso de imagem</legend>
-          <label><input type="radio" name="imagem" value="true"><span><b>Autorizo</b><small>o uso da minha imagem nos termos que li</small></span></label>
-          <label><input type="radio" name="imagem" value="false"><span><b>Não autorizo</b><small>o uso da minha imagem</small></span></label>
+          <label><input type="radio" name="imagem" value="true" aria-label="Autorizo o uso da minha imagem nos termos que li"><span><b>Autorizo</b><small>o uso da minha imagem nos termos que li</small></span></label>
+          <label><input type="radio" name="imagem" value="false" aria-label="Não autorizo o uso da minha imagem"><span><b>Não autorizo</b><small>o uso da minha imagem</small></span></label>
         </fieldset>
       </div>
 
