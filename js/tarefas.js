@@ -161,6 +161,7 @@
     carregarLogosSidebar()
     seletorTema()
     if (S.aba === 'kanban') ligarDragDrop()
+    if (S.aba === 'presencas') ligarPresencas()
   }
 
   // Tema claro/escuro: mesmo 'diag_tema' das demais guias (js/diag-tema.js). Botões no topo; o render()
