@@ -30,6 +30,15 @@ let _chatMessages   = []
 let _chatAberto     = false
 let _chatExecucaoId = null
 let _chatEnviando   = false
+// Conversa gravada no banco (ia_conversas): o histórico enviado à IA vem de lá, não da tela
+let _chatConversaId = null
+let _chatConversasLidas = false
+// Mesmos rótulos de ROTULO_FERRAMENTA na Edge Function chat-auditor
+const CHAT_FERRAMENTAS = {
+  achados_auditoria: 'achados da auditoria', saldo_atividades: 'saldo das atividades',
+  extrato_orcamento_atividade: 'extrato do orçamento', consultar_contrato: 'contratos', consultar_tdr: 'TDRs',
+  execucao_direta_tdr: 'execução direta', remanejamentos: 'remanejamentos', produtos_contratos: 'produtos', viagens: 'viagens',
+}
 
 // ── Ícones (SVG, sem emoji) ────────────────────────────────────
 const AU_IC = {
@@ -48,6 +57,7 @@ const AU_IC = {
   volta: '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
   sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   lua: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  mais: '<path d="M12 5v14M5 12h14"/>',
 }
 function auIc(n, cls) { return '<svg class="au-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (AU_IC[n] || '') + '</svg>' }
 document.querySelectorAll('i[data-ic]').forEach(function (e) { e.outerHTML = auIc(e.dataset.ic, 'p') })
@@ -550,10 +560,65 @@ function toggleChat(forcar) {
   if (btnChat) { btnChat.classList.toggle('au-on', abrir); btnChat.setAttribute('aria-expanded', String(abrir)) }
   if (abrir) {
     _chatVolta = document.activeElement
+    if (!_chatConversasLidas) { _chatConversasLidas = true; carregarConversasChat(true) }
     requestAnimationFrame(function () { document.getElementById('chat-input').focus() })
   } else if (_chatVolta && document.contains(_chatVolta)) {
     _chatVolta.focus({ preventScroll: true }); _chatVolta = null
   }
+}
+
+// Conversas da própria pessoa (RLS ia_conversas_select_proprio). retomar = abre a última se for de menos de 12 h
+async function carregarConversasChat(retomar) {
+  const { data, error } = await db.from('ia_conversas')
+    .select('id, titulo, atualizado_em').eq('origem', 'auditoria').is('expurgado_em', null)
+    .order('atualizado_em', { ascending: false }).limit(15)
+  if (error) { console.warn('[chat] conversas', error.message); return }
+  const sel = document.getElementById('chat-conversas')
+  if (sel) {
+    sel.innerHTML = '<option value="">Conversa nova</option>' + (data || []).map(function (c) {
+      return '<option value="' + esc(c.id) + '">' + esc(fmtDtHr(c.atualizado_em) + ' · ' + (c.titulo || 'Conversa')) + '</option>'
+    }).join('')
+    sel.value = _chatConversaId || ''
+  }
+  const ult = (data || [])[0]
+  if (retomar && ult && !_chatConversaId && !_chatMessages.length &&
+      Date.now() - new Date(ult.atualizado_em).getTime() < 12 * 3600e3) {
+    await abrirConversaChat(ult.id)
+  }
+}
+
+function limparBolhasChat(mostrarBoasVindas) {
+  const msgsEl = document.getElementById('chat-msgs')
+  if (!msgsEl) return
+  Array.from(msgsEl.children).forEach(function (el) { if (el.id !== 'chat-welcome') el.remove() })
+  const welcome = document.getElementById('chat-welcome')
+  if (welcome) welcome.style.display = mostrarBoasVindas ? '' : 'none'
+}
+
+async function abrirConversaChat(id) {
+  if (_chatEnviando) return
+  if (!id) { novaConversaChat(); return }
+  const { data, error } = await db.from('ia_mensagens')
+    .select('papel, conteudo, ferramentas').eq('conversa_id', id).order('criado_em')
+  if (error) { toast('Não consegui abrir a conversa: ' + error.message, 'error'); return }
+  _chatConversaId = id
+  _chatMessages = (data || []).map(function (m) { return { role: m.papel, content: m.conteudo } })
+  limparBolhasChat(!_chatMessages.length)
+  ;(data || []).forEach(function (m) {
+    adicionarBolha(m.papel, m.conteudo, (m.ferramentas || []).map(function (f) { return CHAT_FERRAMENTAS[f] || f }))
+  })
+  const sel = document.getElementById('chat-conversas')
+  if (sel) sel.value = id
+}
+
+function novaConversaChat() {
+  if (_chatEnviando) return
+  _chatConversaId = null
+  _chatMessages = []
+  limparBolhasChat(true)
+  const sel = document.getElementById('chat-conversas')
+  if (sel) sel.value = ''
+  document.getElementById('chat-input')?.focus()
 }
 
 function perguntarSobre(id) {
@@ -608,7 +673,7 @@ async function enviarMensagemChat() {
         'Authorization': 'Bearer ' + (session?.access_token || ''),
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ messages: _chatMessages, execucao_id: _chatExecucaoId }),
+      body: JSON.stringify({ pergunta: texto, conversa_id: _chatConversaId, execucao_id: _chatExecucaoId }),
     })
     const json = await res.json()
     if (!res.ok) throw new Error(json.error || 'Erro HTTP ' + res.status)
@@ -616,6 +681,9 @@ async function enviarMensagemChat() {
     _chatMessages.push({ role: 'assistant', content: json.resposta })
     document.getElementById('chat-typing')?.remove()
     adicionarBolha('assistant', json.resposta, json.fontes)
+    const nova = !_chatConversaId
+    if (json.conversa_id) _chatConversaId = json.conversa_id
+    if (nova) carregarConversasChat(false)
   } catch (e) {
     document.getElementById('chat-typing')?.remove()
     // Erro fica só na tela: não entra no histórico enviado ao modelo

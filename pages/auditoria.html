@@ -44,6 +44,12 @@
     <div class="au-chat-t"><b>Assistente de auditoria</b><span id="chat-header-sub">Sem auditoria carregada</span></div>
     <button type="button" class="au-x" onclick="toggleChat(false)" aria-label="Fechar o assistente"><i data-ic="x"></i></button>
   </div>
+  <div class="au-chat-conv">
+    <select id="chat-conversas" aria-label="Conversas anteriores" onchange="abrirConversaChat(this.value)">
+      <option value="">Conversa nova</option>
+    </select>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="novaConversaChat()"><i data-ic="mais"></i>Nova conversa</button>
+  </div>
   <div class="chat-msgs" id="chat-msgs" aria-live="polite">
     <div class="chat-welcome" id="chat-welcome">
       <span class="au-chat-av"><i data-ic="ia"></i></span>

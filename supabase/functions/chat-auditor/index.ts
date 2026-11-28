@@ -1,5 +1,7 @@
 ﻿// ── DIMA UNESCO · Assistente de auditoria (chat-auditor) ──────────
 // v5 (27/11/2026): assistente com ferramentas de consulta.
+// v6 (28/11/2026): conversa gravada em ia_conversas/ia_mensagens (o histórico vem
+// do banco, não da tela) e limite de perguntas por pessoa (LIMITE_HORA/DIA).
 //
 // Segurança (Fase 0):
 //  - Só super_admin e coordenação ATIVOS (exigirPerfil) — a chave anon é um JWT
@@ -25,6 +27,9 @@ const MAX_MENSAGENS = 30          // histórico enviado ao modelo (as mais recen
 const MAX_CARACTERES_MSG = 4000   // por mensagem do usuário
 const MAX_SAIDA_FERRAMENTA = 12000
 const MAX_RODADAS = 8             // chamadas ao modelo por pergunta (loop de ferramentas)
+// Limite por pessoa (Fase 2): perguntas gravadas em ia_mensagens
+const LIMITE_HORA = 30
+const LIMITE_DIA = 150
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -380,15 +385,11 @@ const ROTULO_FERRAMENTA: Record<string, string> = {
 
 type Msg = { role: 'user' | 'assistant'; content: string }
 
-function limparHistorico(bruto: unknown): Msg[] {
-  if (!Array.isArray(bruto)) return []
-  const ok = bruto
-    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
-    .map((m) => ({ role: m.role, content: String(m.content).slice(0, MAX_CARACTERES_MSG) }) as Msg)
-    .slice(-MAX_MENSAGENS)
-  // A conversa precisa começar pelo usuário e terminar com a pergunta dele
+// Histórico em formato aceito pela API: começa pelo usuário e não repete papel
+// (pergunta que ficou sem resposta por erro se junta à seguinte)
+function normalizarHistorico(lista: Msg[]): Msg[] {
+  const ok = lista.filter((m) => m.content && m.content.trim()).slice(-MAX_MENSAGENS)
   while (ok.length && ok[0].role !== 'user') ok.shift()
-  // Junta mensagens seguidas do mesmo papel (ex.: erro local gravado como "assistant")
   const unidas: Msg[] = []
   for (const m of ok) {
     const ult = unidas[unidas.length - 1]
@@ -396,6 +397,60 @@ function limparHistorico(bruto: unknown): Msg[] {
     else unidas.push({ ...m })
   }
   return unidas
+}
+
+// Pergunta nova: campo "pergunta" ou (tela antiga em cache) a última mensagem do usuário em "messages"
+function lerPergunta(body: Record<string, unknown>): string {
+  if (typeof body.pergunta === 'string') return body.pergunta.trim().slice(0, MAX_CARACTERES_MSG)
+  if (Array.isArray(body.messages)) {
+    const ult = [...body.messages].reverse().find((m) => m && m.role === 'user' && typeof m.content === 'string')
+    if (ult) return String(ult.content).trim().slice(0, MAX_CARACTERES_MSG)
+  }
+  return ''
+}
+
+class LimiteUso extends Error {}
+
+async function conferirLimite(admin: SupabaseClient, usuarioId: string) {
+  const conta = async (desde: Date) => {
+    const { count, error } = await admin.from('ia_mensagens').select('id', { count: 'exact', head: true })
+      .eq('usuario_id', usuarioId).eq('papel', 'user').gte('criado_em', desde.toISOString())
+    if (error) throw error
+    return count ?? 0
+  }
+  const agora = Date.now()
+  if (await conta(new Date(agora - 3600e3)) >= LIMITE_HORA) {
+    throw new LimiteUso(`Você chegou ao limite de ${LIMITE_HORA} perguntas por hora. Tente de novo mais tarde.`)
+  }
+  if (await conta(new Date(agora - 86400e3)) >= LIMITE_DIA) {
+    throw new LimiteUso(`Você chegou ao limite de ${LIMITE_DIA} perguntas por dia. Tente de novo amanhã.`)
+  }
+}
+
+// Conversa da própria pessoa (ou uma nova) e o histórico gravado dela
+async function abrirConversa(
+  admin: SupabaseClient, usuarioId: string, conversaId: unknown, execucaoId: string | null, pergunta: string,
+) {
+  if (typeof conversaId === 'string' && conversaId) {
+    const { data: c, error } = await admin.from('ia_conversas')
+      .select('id, n_perguntas, tokens_entrada, tokens_saida, tokens_cache, expurgado_em')
+      .eq('id', conversaId).eq('usuario_id', usuarioId).maybeSingle()
+    if (error) throw error
+    if (c && !c.expurgado_em) {
+      const { data: msgs, error: e2 } = await admin.from('ia_mensagens')
+        .select('papel, conteudo').eq('conversa_id', c.id).is('expurgado_em', null)
+        .order('criado_em', { ascending: false }).limit(MAX_MENSAGENS)
+      if (e2) throw e2
+      const historico = (msgs || []).reverse().map((m) => ({ role: m.papel, content: m.conteudo }) as Msg)
+      return { conversa: c, historico }
+    }
+  }
+  const { data: nova, error } = await admin.from('ia_conversas').insert({
+    usuario_id: usuarioId, origem: 'auditoria', execucao_id: execucaoId,
+    titulo: pergunta.replace(/\s+/g, ' ').slice(0, 80) || 'Conversa',
+  }).select('id, n_perguntas, tokens_entrada, tokens_saida, tokens_cache, expurgado_em').single()
+  if (error) throw error
+  return { conversa: nova, historico: [] as Msg[] }
 }
 
 Deno.serve(async (req) => {
@@ -409,10 +464,11 @@ Deno.serve(async (req) => {
     const db = clienteDoUsuario(req)
 
     const body = await req.json().catch(() => ({}))
-    const mensagens = limparHistorico(body.messages)
-    if (!mensagens.length || mensagens[mensagens.length - 1].role !== 'user') {
-      return json({ error: 'Envie a pergunta.' }, 400)
-    }
+    // CPF/CNPJ/e-mail digitados também são mascarados antes de gravar e de ir à IA
+    const pergunta = redigirDadosPessoais(lerPergunta(body))
+    if (!pergunta) return json({ error: 'Envie a pergunta.' }, 400)
+
+    await conferirLimite(admin, usuario.id)
 
     // Execução em contexto: a que a tela mostra (se a pessoa a enxerga) ou a última concluída
     let execucao: Record<string, unknown> | null = null
@@ -436,6 +492,15 @@ Deno.serve(async (req) => {
         : 'Nenhuma auditoria concluída ainda.',
     ].join('\n')
 
+    // Histórico vem do banco (a tela não consegue inventar falas do assistente)
+    const execucaoId = (execucao?.id as string) ?? null
+    const { conversa, historico } = await abrirConversa(admin, usuario.id, body.conversa_id, execucaoId, pergunta)
+    const { error: eIns } = await admin.from('ia_mensagens').insert({
+      conversa_id: conversa.id, usuario_id: usuario.id, papel: 'user', conteudo: pergunta,
+    })
+    if (eIns) throw eIns
+    const mensagens = normalizarHistorico([...historico, { role: 'user', content: pergunta }])
+
     const usadas: string[] = []
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' })
 
@@ -447,7 +512,7 @@ Deno.serve(async (req) => {
       // Recusa por política: a API refaz no modelo de reserva na mesma chamada
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
-      tools: criarFerramentas(db, (execucao?.id as string) ?? null, usadas),
+      tools: criarFerramentas(db, execucaoId, usadas),
       system: [
         { type: 'text', text: SISTEMA, cache_control: { type: 'ephemeral' } },
         { type: 'text', text: contexto },
@@ -475,16 +540,36 @@ Deno.serve(async (req) => {
     }
 
     console.log('[chat-auditor]', JSON.stringify({
-      usuario: usuario.id, ferramentas: usadas, tokens: { entrada, saida: saidaTok, cache }, parada: final?.stop_reason,
+      usuario: usuario.id, conversa: conversa.id, ferramentas: usadas,
+      tokens: { entrada, saida: saidaTok, cache }, parada: final?.stop_reason,
     }))
 
+    // Grava a resposta; falha aqui não tira a resposta da pessoa
+    const [r1, r2] = await Promise.all([
+      admin.from('ia_mensagens').insert({
+        conversa_id: conversa.id, usuario_id: usuario.id, papel: 'assistant', conteudo: resposta,
+        ferramentas: usadas, modelo: final?.model ?? MODELO, parada: final?.stop_reason ?? null,
+        tokens_entrada: entrada, tokens_saida: saidaTok, tokens_cache: cache,
+      }),
+      admin.from('ia_conversas').update({
+        n_perguntas: Number(conversa.n_perguntas || 0) + 1,
+        tokens_entrada: Number(conversa.tokens_entrada || 0) + entrada,
+        tokens_saida: Number(conversa.tokens_saida || 0) + saidaTok,
+        tokens_cache: Number(conversa.tokens_cache || 0) + cache,
+        atualizado_em: new Date().toISOString(),
+      }).eq('id', conversa.id),
+    ])
+    if (r1.error || r2.error) console.error('[chat-auditor] gravar', r1.error?.message, r2.error?.message)
+
     return json({
+      conversa_id: conversa.id,
       resposta,
       fontes: usadas.map((n) => ROTULO_FERRAMENTA[n] || n),
       tokens: { input: entrada, output: saidaTok, cache_read: cache },
     })
   } catch (e) {
     if (e instanceof SemAcesso) return json({ error: e.message }, statusDoErro(e))
+    if (e instanceof LimiteUso) return json({ error: e.message }, 429)
     if (e instanceof Anthropic.RateLimitError) return json({ error: 'O assistente está muito requisitado agora. Tente de novo em um minuto.' }, 429)
     if (e instanceof Anthropic.APIError) {
       console.error('[chat-auditor] API', e.status, e.message)
