@@ -40,10 +40,12 @@ function medirFolha() {
   const espremidas = []
   for (const td of w.querySelectorAll('.doc-body td, .doc-body th')) {
     const t = (td.textContent || '').trim(); if (t.length < 4) continue
-    const lh = parseFloat(getComputedStyle(td).lineHeight) || 12
-    const linhas = Math.round((td.clientHeight - parseFloat(getComputedStyle(td).paddingTop) - parseFloat(getComputedStyle(td).paddingBottom)) / lh)
-    const palavras = t.split(/\s+/).length
-    if (td.clientWidth < 34 || (linhas > palavras + 2 && linhas > 3)) espremidas.push({ largura_px: td.clientWidth, linhas, txt: t.slice(0, 50) })
+    // linhas reais do TEXTO da célula (não a altura da linha da tabela, que vem da célula vizinha)
+    const rg = document.createRange(); rg.selectNodeContents(td)
+    const linhas = new Set([...rg.getClientRects()].filter(r => r.width > 0).map(r => Math.round(r.top))).size
+    const maiorPal = Math.max(...t.split(/\s+/).map(x => x.length))
+    const cpl = t.length / Math.max(1, linhas)
+    if (td.clientWidth < 34 || (linhas >= 3 && cpl < 8) || (maiorPal >= 6 && linhas > t.split(/\s+/).length + 1)) espremidas.push({ largura_px: td.clientWidth, linhas, cpl: Math.round(cpl), txt: t.slice(0, 50) })
   }
   let menorFonte = 99
   for (const e of w.querySelectorAll('.doc-body td, .doc-body th')) { const fz = parseFloat(getComputedStyle(e).fontSize); if (fz < menorFonte) menorFonte = fz }
