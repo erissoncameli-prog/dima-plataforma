@@ -11,7 +11,7 @@
   const RACA = { branca: 'Branca', preta: 'Preta', parda: 'Parda', amarela: 'Amarela', indigena: 'Indígena', prefere_nao_responder: 'Prefere não responder' }
   const IDADE = { ate_17: 'Até 17 anos', '18_24': '18 a 24', '25_29': '25 a 29', '30_39': '30 a 39', '40_49': '40 a 49', '50_59': '50 a 59',
     '60_mais': '60 ou mais', prefere_nao_responder: 'Prefere não responder', sem_registro: 'Sem registro' }
-  const CONVITE = c => c ? 'Convidado(a)' : 'Não convidado(a)'
+  const CONVITE = c => c ? 'Convidado(a)' : 'Convidado externo'
   const IMG = { sim: 'Autorizou', nao: 'Não autorizou', retirada: 'Retirou a autorização' }
   const ORIGEM = { convite: 'Link do e-mail', qr: 'QR Code' }
   const TZ = { timeZone: 'America/Rio_Branco' }
@@ -169,8 +169,8 @@
     const colTel = d.pode_gerir, colSens = d.ve_sensivel
     const linhas = assin.map((a, i) => `<tr>
       <td class="pp-n">${i + 1}</td>
-      <td><b>${esc(a.nome)}</b>${a.convidado ? '' : ' <span class="pp-tag pp-tag-sem" title="Participou sem ter recebido o convite da reunião">Não convidado(a)</span>'}${
-        a.interno ? '' : ' <span class="pp-tag" title="Não tem conta na plataforma">Externo</span>'}<div class="pp-suave">${esc(a.email)}</div></td>
+      <td><b>${esc(a.nome)}</b>${a.convidado ? '' : ' <span class="pp-tag pp-tag-sem" title="Participou sem estar no convite inicial da reunião">Convidado externo</span>'}${
+        a.interno ? '' : ' <span class="pp-tag" title="Não tem conta na plataforma">Sem cadastro</span>'}<div class="pp-suave">${esc(a.email)}</div></td>
       ${colTel ? `<td class="pp-mono">${esc(a.telefone || '—')}</td>` : ''}
       ${colSens ? `<td>${esc(SEXO[a.sexo_genero] || '—')}${a.sexo_genero_outro ? ' (' + esc(a.sexo_genero_outro) + ')' : ''}</td><td>${esc(RACA[a.cor_raca] || '—')}</td><td>${esc(IDADE[a.faixa_etaria] || '—')}</td>` : ''}
       <td><span class="pp-img pp-img-${a.imagem}">${esc(IMG[a.imagem])}</span>${d.pode_gerir && a.imagem === 'sim'
@@ -192,8 +192,8 @@
       <div class="pp-kpis">
         <div><b>${assin.length}</b><span>presenças</span></div>
         <div><b>${conv.filter(c => c.assinou).length}<small> de ${conv.length}</small></b><span>convidados assinaram</span></div>
-        <div><b>${assin.filter(a => !a.convidado).length}</b><span>participaram sem convite</span></div>
-        <div><b>${assin.filter(a => !a.interno).length}</b><span>externos (sem conta)</span></div>
+        <div><b>${assin.filter(a => !a.convidado).length}</b><span>convidados externos</span></div>
+        <div><b>${assin.filter(a => !a.interno).length}</b><span>sem cadastro na plataforma</span></div>
         <div class="${semImg ? 'pp-kpi-alerta' : ''}"><b>${semImg}</b><span>sem autorização de imagem</span></div>
       </div>
       ${conv.length ? `<details class="pp-conv"><summary>Convidados da reunião (${conv.length})</summary>
@@ -305,8 +305,8 @@
         <div><b>${k.pessoas}</b><span>pessoas diferentes</span></div>
         <div><b>${k.reunioes_realizadas ? (k.presencas / k.reunioes_realizadas).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) : '0'}</b><span>média por reunião</span></div>
         <div><b>${taxa}%</b><span>dos convidados compareceram</span></div>
-        <div><b>${k.internos}<small> / ${k.externos}</small></b><span>da equipe / externos (sem conta)</span></div>
-        <div><b>${k.sem_convite || 0}</b><span>participaram sem convite</span></div>
+        <div><b>${k.internos}<small> / ${k.externos}</small></b><span>com cadastro / sem cadastro</span></div>
+        <div><b>${k.sem_convite || 0}</b><span>convidados externos</span></div>
         <div class="${k.sem_imagem ? 'pp-kpi-alerta' : ''}"><b>${k.sem_imagem}</b><span>não autorizaram o uso de imagem</span></div>
       </div>
       <div class="pp-dist">
@@ -315,7 +315,7 @@
         <section><h4>Faixa de idade</h4>${barras(k.faixa, IDADE)}</section>
       </div>
       ${rs.length ? `<div class="pp-tabela"><table>
-        <thead><tr><th>Data</th><th>Reunião</th><th>Formato</th><th class="r">Presenças</th><th class="r">Convidados</th><th class="r">Sem convite</th><th class="r">Sem imagem</th><th>Situação</th></tr></thead>
+        <thead><tr><th>Data</th><th>Reunião</th><th>Formato</th><th class="r">Presenças</th><th class="r">Convidados</th><th class="r">Conv. externos</th><th class="r">Sem imagem</th><th>Situação</th></tr></thead>
         <tbody>${rs.map(r => { const s = sitLinha(r)
           return `<tr class="pp-clic" data-pp-ver="${r.id}" tabindex="0">
             <td class="pp-mono">${esc(diaHora(r.inicio))}</td>
@@ -361,7 +361,7 @@
   function linhasPlanas (data) {
     return data.linhas.map((r, i) => ({
       n: i + 1, reuniao: r.reuniao, data: dataHora(r.data), formato: r.formato || '', nome: r.nome, email: r.email, telefone: r.telefone || '',
-      vinculo: r.interno ? 'Equipe (usuário)' : 'Externo (sem conta)', convite: CONVITE(r.convidado), origem: ORIGEM[r.origem] || r.origem,
+      vinculo: r.interno ? 'Com cadastro' : 'Sem cadastro', convite: CONVITE(r.convidado), origem: ORIGEM[r.origem] || r.origem,
       sexo: data.com_sensiveis ? (SEXO[r.sexo_genero] || '') + (r.sexo_genero_outro ? ' (' + r.sexo_genero_outro + ')' : '') : undefined,
       raca: data.com_sensiveis ? RACA[r.cor_raca] || '' : undefined,
       idade: data.com_sensiveis ? IDADE[r.faixa_etaria || 'sem_registro'] : undefined,
@@ -419,8 +419,8 @@
     const reunioes = new Set(L.map(r => r.reuniao + r.data))
     const linhas = [['Reuniões', reunioes.size], ['Presenças', L.length],
       ['Pessoas diferentes', new Set(data.linhas.map(r => r.email)).size],
-      ['Externos (sem conta)', L.filter(r => r.vinculo.startsWith('Externo')).length],
-      ['Participaram sem convite', L.filter(r => r.convite === CONVITE(false)).length],
+      ['Sem cadastro na plataforma', L.filter(r => r.vinculo === 'Sem cadastro').length],
+      ['Convidados externos', L.filter(r => r.convite === CONVITE(false)).length],
       ['Não autorizaram / retiraram o uso de imagem', L.filter(r => r.imagem !== IMG.sim).length]]
     if (data.com_sensiveis) {
       Object.entries(conta(r => r.sexo.split(' (')[0] || '—')).forEach(([k, v]) => linhas.push(['Sexo/gênero: ' + k, v]))
