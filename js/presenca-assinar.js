@@ -168,6 +168,7 @@
   async function carregar () {
     if (!P.l && !P.c) { telaMensagem('Link incompleto', 'Abra a lista pelo QR Code projetado na reunião ou pelo link recebido por e-mail.', 'alerta'); return }
     const { data, error } = await db.rpc('fn_publico_presenca_lista', { p_lista_token: P.l || null, p_convite: P.c || null })
+    if (error && /Could not find the function|PGRST202/.test((error.message || '') + (error.code || ''))) { telaMensagem('Lista de presença em instalação', 'Esta função ainda está sendo instalada na plataforma. Tente de novo mais tarde.', 'hora'); return }
     if (error) { telaMensagem('Sem conexão', 'Não foi possível abrir a lista agora. Verifique a internet e recarregue a página.', 'alerta'); return }
     if (!data || !data.encontrado) { D = null; telaMensagem('Lista não encontrada', 'Confira o QR Code ou o link recebido por e-mail.', 'alerta'); return }
     D = data

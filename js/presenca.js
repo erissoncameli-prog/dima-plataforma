@@ -23,6 +23,8 @@
     nada_a_retirar: 'Esta pessoa não tinha autorização de imagem ativa.', pedido_invalido: 'Nada para exportar.',
   }
   const msgErro = e => { const m = String(e && e.message || e).match(/presenca:([a-z_]+)/); return (m && ERROS[m[1]]) || 'Não foi possível concluir. Tente de novo.' }
+  // banco ainda sem a migração 20261128_presenca_reunioes (função inexistente): a tela se esconde em vez de mostrar erro
+  const semBanco = e => !!e && (e.code === 'PGRST202' || e.code === '42883' || /Could not find the function|does not exist/i.test(e.message || ''))
   const pct = (a, b) => b ? Math.round(a * 100 / b) : 0
   const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   // situação de uma reunião na tabela do gerenciador
@@ -45,6 +47,7 @@
     el.innerHTML = `<h4>Lista de presença</h4><div class="lista"><div class="pp-bloco pp-carregando">Carregando…</div></div>`
     const { data: p, error } = await db.rpc('fn_presenca_da_tarefa', { p_tarefa: tid })
     const caixa = el.querySelector('.pp-bloco')
+    if (semBanco(error)) { el.remove(); return }
     if (error) { caixa.textContent = msgErro(error); return }
     if (!p) { caixa.innerHTML = `<span class="pp-suave">A lista nasce quando a reunião tiver data e hora de início.</span>`; return }
     const s = situacao(p)
@@ -270,6 +273,7 @@
   }
   async function carregarPainel () {
     const { data, error } = await db.rpc('fn_presenca_painel', { p_inicio: P.ini || null, p_fim: P.fim || null, p_atividade: P.atividade || null, p_formato: P.formato || null })
+    if (semBanco(error)) { document.getElementById('pp-corpo').innerHTML = `<div class="pp-vazio">${ic('clock')}<b>Lista de presença em instalação</b>Esta função fica disponível assim que a atualização do banco de dados for aplicada.</div>`; return }
     if (error) { document.getElementById('pp-corpo').innerHTML = `<div class="pp-vazio">${esc(msgErro(error))}</div>`; return }
     P.dados = data; desenhar()
   }
