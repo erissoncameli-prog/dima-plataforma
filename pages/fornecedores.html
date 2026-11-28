@@ -16,6 +16,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Fornecedores -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/fornecedores.css" rel="stylesheet">
+<link href="../css/kpi-graficos.css" rel="stylesheet">
 </head>
 <body class="dgm">
 <div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando fornecedores…</div></div></div>
@@ -44,6 +45,7 @@
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/kpi-graficos.js"></script>
 <script>
 let todosFornecedores = [];
 let fornEditando = null;
@@ -302,6 +304,37 @@ function renderStats() {
       <span class="fo-kpi-v ok">${comVig.length}</span>
       <span class="fo-kpi-s">${brlc(valorVig)} contratados</span>
     </button>`;
+  if (window.KpiG) KpiG.aplicar(document.getElementById('stats'), foGraficos(ativos, comVig, valorVig),
+    c => ((c.getAttribute('onclick') || '').match(/'([^']+)'/) || [])[1]);
+}
+
+// Mini gráfico de cada número do topo (js/kpi-graficos.js) + frase de leitura
+function foGraficos(ativos, comVig, valorVig) {
+  const G = KpiG, out = {};
+  // Ativos: quantos estão sendo usados
+  const jaTeve = ativos.filter(f => contratosPorForn[f.id]?.total && !contratosPorForn[f.id]?.vigentes).length;
+  const nunca = ativos.length - comVig.length - jaTeve;
+  out.total = G.bloco(G.faixa([
+    { v: comVig.length, cor: 'var(--fo-pago, var(--ok))', dica: `Com contrato vigente: ${comVig.length}` },
+    { v: jaTeve, cor: 'color-mix(in srgb, var(--ok) 45%, transparent)', dica: `Já tiveram contrato, nenhum vigente: ${jaTeve}` },
+    { v: nunca, cor: 'var(--bg-2)', dica: `Nunca contratados: ${nunca}` },
+  ], ['vigente', 'nunca']), nunca > 0 ? `<b>${nunca}</b> nunca contratado${nunca > 1 ? 's' : ''}` : 'todos já contratados');
+  // PF e PJ: quantos têm contrato vigente e quanto do pago foi para cada tipo
+  const pagoTot = ativos.reduce((s, f) => s + (pagoPorForn[f.id] || 0), 0);
+  ['PF', 'PJ'].forEach(tp => {
+    const l = ativos.filter(f => f.tipo === tp), cv = l.filter(f => contratosPorForn[f.id]?.vigentes).length;
+    const pg = l.reduce((s, f) => s + (pagoPorForn[f.id] || 0), 0);
+    out[tp] = G.bloco(G.anel(cv, l.length, 'var(--ok)', `${cv} de ${l.length} com contrato vigente`),
+      l.length ? `com contrato vigente<br><b>${G.pct(pg, pagoTot)}%</b> do valor pago` : 'nenhum cadastrado');
+  });
+  // Com contrato vigente: concentração do valor nos 3 maiores
+  const lista = comVig.map(f => ({ nome: f.nome, v: contratosPorForn[f.id].valorVigente })).sort((a, b) => b.v - a.v);
+  const top = lista.slice(0, 3), sTop = top.reduce((s, f) => s + f.v, 0);
+  const itens = top.map((f, i) => ({ v: f.v, cor: `color-mix(in srgb, var(--ok) ${[100, 75, 50][i]}%, transparent)`, dica: `${i + 1}º ${f.nome}: ${fmtBRL(f.v)} (${G.pct(f.v, valorVig)}%)` }));
+  itens.push({ v: valorVig - sTop, cor: 'var(--bg-2)', dica: `Demais ${Math.max(0, lista.length - 3)}: ${fmtBRL(valorVig - sTop)}` });
+  out.com_contrato = G.bloco(G.faixa(itens, ['3 maiores', 'demais']),
+    lista.length ? `<b>${G.pct(sTop, valorVig)}%</b> do valor em ${Math.min(3, lista.length)}` : 'nenhum com contrato vigente');
+  return out;
 }
 
 function filtrar() {

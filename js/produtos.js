@@ -290,21 +290,71 @@ async function abrirModalPorEntrega(entregaId){
 
 async function renderStats(){
   var contIds=idsVisiveis();
-  var r=contIds.length?await db.from('contratos_produtos').select('situacao').in('contrato_id',contIds):{data:[]};
+  var r=contIds.length?await db.from('contratos_produtos').select('situacao,valor_brl,valor_aprovado,dt_vencimento,contratos_produtos_entregas(situacao,numero_entrega,dt_entrega,despachado_em)').in('contrato_id',contIds):{data:[]};
   var t=r.data||[];
   function n(s){return t.filter(function(p){return p.situacao===s;}).length;}
   statsCounts={total:t.length,pend:n('pendente')+n('entrega_parcial'),anal:n('em_analise'),aprov:n('aprovado'),pago:n('pago'),dev:n('devolvido')};
+  statsGraf=window.KpiG?prGraficos(t):{};
   renderStatsHTML();
+}
+
+// Mini gráfico de cada número do topo (js/kpi-graficos.js) + frase de leitura
+var statsGraf={};
+function prGraficos(t){
+  var G=KpiG,out={};
+  function de(s){return t.filter(function(p){return s.indexOf(p.situacao)>=0;});}
+  function ult(p,sit){return (p.contratos_produtos_entregas||[]).filter(function(e){return !sit||e.situacao===sit;})
+    .sort(function(a,b){return (b.numero_entrega||0)-(a.numero_entrega||0);})[0]||null;}
+  function val(p){return parseFloat(p.valor_aprovado||p.valor_brl||0);}
+  // Pendentes: quando vence a entrega
+  var pend=de(['pendente','entrega_parcial']).map(function(p){return p.dt_vencimento?-G.diasDesde(p.dt_vencimento):null;});
+  var pv=pend.filter(function(x){return x!==null&&x<0;}).length, p30=pend.filter(function(x){return x!==null&&x>=0&&x<=30;}).length,
+      pM=pend.filter(function(x){return x!==null&&x>30;}).length, pS=pend.filter(function(x){return x===null;}).length;
+  out.pendente=G.bloco(G.barras([
+    {r:'atras.',v:pv,cor:'var(--erro)',dica:'Entrega atrasada (vencimento passou): '+pv},
+    {r:'30d',v:p30,cor:'var(--alerta)',dica:'Vencem em até 30 dias: '+p30},
+    {r:'30+',v:pM,cor:'var(--txt-3)',dica:'Vencem em mais de 30 dias: '+pM},
+    {r:'s/d',v:pS,cor:'var(--txt-3)',fraco:true,dica:'Sem data de vencimento: '+pS}
+  ]), pv?'<b>'+pv+'</b> com entrega atrasada':p30?'<b>'+p30+'</b> vencem em 30 dias':pend.length?'nada vence em 30 dias':'nada pendente', pv?'erro':p30?'alerta':'');
+  // Em avaliação: há quantos dias a entrega espera parecer
+  var an=de(['em_analise']).map(function(p){var e=ult(p,'em_analise')||ult(p);return e&&e.dt_entrega?Math.max(0,G.diasDesde(e.dt_entrega)):null;}).filter(function(x){return x!==null;});
+  var fa=[[0,7,'≤7d'],[8,15,'≤15d'],[16,30,'≤30d'],[31,1e9,'30+']];
+  out.em_analise=G.bloco(G.barras(fa.map(function(f,i){var v=an.filter(function(x){return x>=f[0]&&x<=f[1];}).length;
+      return {r:f[2],v:v,cor:i>=2?'var(--alerta)':'var(--info)',fraco:i===0,dica:(f[1]<1e9?'Entregue há '+f[0]+' a '+f[1]+' dias':'Entregue há mais de 30 dias')+': '+v};})),
+    an.length?'espera mais longa: <b>'+Math.max.apply(null,an)+' dias</b>':'nada em avaliação', an.some(function(x){return x>15;})?'alerta':'');
+  // Devolvidos: quanto das avaliações volta para correção
+  var aval=0,dev=0;
+  t.forEach(function(p){(p.contratos_produtos_entregas||[]).forEach(function(e){if(e.situacao==='devolvida'){dev++;aval++;}else if(e.situacao==='aprovada')aval++;});});
+  out.devolvido=G.bloco(G.anel(dev,aval,'var(--erro)',dev+' de '+aval+' avaliações devolvidas'),
+    aval?'das avaliações<br>foram devolvidas':'nenhuma avaliação ainda');
+  // Aprovados: valor a pagar e há quanto tempo foram aprovados
+  var ap=de(['aprovado']), apD=ap.map(function(p){var e=ult(p,'aprovada');return e&&e.despachado_em?G.diasDesde(e.despachado_em):null;}).filter(function(x){return x!==null;});
+  var fp=[[0,15,'≤15d'],[16,30,'≤30d'],[31,60,'≤60d'],[61,1e9,'60+']];
+  out.aprovado=G.bloco(G.barras(fp.map(function(f,i){var v=apD.filter(function(x){return x>=f[0]&&x<=f[1];}).length;
+      return {r:f[2],v:v,cor:i>=2?'var(--alerta)':'var(--ok)',fraco:i===0,dica:(f[1]<1e9?'Aprovado há '+f[0]+' a '+f[1]+' dias':'Aprovado há mais de 60 dias')+': '+v};})),
+    ap.length?'<b>'+G.brl(ap.reduce(function(s,p){return s+val(p);},0))+'</b> a pagar':'nada a pagar', apD.some(function(x){return x>30;})?'alerta':'');
+  // Pagos: onde está o valor de todos os produtos
+  function soma(s){return de(s).reduce(function(a,p){return a+val(p);},0);}
+  var vPago=soma(['pago']), vTot=t.filter(function(p){return p.situacao!=='cancelado';}).reduce(function(a,p){return a+val(p);},0);
+  out.pago=G.bloco(G.faixa([
+    {v:vPago,cor:'var(--ok)',dica:'Pago: '+fmtBRL(vPago)},
+    {v:soma(['aprovado']),cor:'color-mix(in srgb, var(--ok) 45%, transparent)',dica:'Aprovado, a pagar: '+fmtBRL(soma(['aprovado']))},
+    {v:soma(['em_analise']),cor:'var(--info)',dica:'Em avaliação: '+fmtBRL(soma(['em_analise']))},
+    {v:soma(['devolvido']),cor:'var(--erro)',dica:'Devolvido: '+fmtBRL(soma(['devolvido']))},
+    {v:soma(['pendente','entrega_parcial']),cor:'var(--bg-2)',dica:'Pendente de entrega: '+fmtBRL(soma(['pendente','entrega_parcial']))}
+  ],['pago','pendente']), '<b>'+G.pct(vPago,vTot)+'%</b> do valor pago');
+  return out;
 }
 
 function renderStatsHTML(){
   if(!statsCounts)return;
   var c=statsCounts;
   function card(status,lbl,val,ic,cls,sub,alerta){
-    return '<button type="button" class="pr-kpi'+(alerta&&val?' alerta':'')+'" aria-pressed="'+(filtroStatus===status)+'" onclick="setFiltroStatus(\''+status+'\')">'
+    var g=statsGraf[status];
+    return '<button type="button" class="pr-kpi'+(alerta&&val?' alerta':'')+(g?' kg-tem':'')+'" aria-pressed="'+(filtroStatus===status)+'" onclick="setFiltroStatus(\''+status+'\')"><span class="kg-in"><span class="kg-esq">'
       +'<span class="pr-kpi-l">'+prIc(ic,'p')+lbl+'</span>'
       +'<span class="pr-kpi-v'+(cls&&val?' '+cls:'')+'">'+val+'</span>'
-      +'<span class="pr-kpi-s">'+sub+'</span></button>';
+      +'<span class="pr-kpi-s">'+sub+'</span></span>'+(g||'')+'</span></button>';
   }
   document.getElementById('stats').innerHTML=
      card('pendente','Pendentes',c.pend,'relogio','','aguardando entrega')

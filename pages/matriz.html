@@ -16,6 +16,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes da Matriz -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/matriz.css" rel="stylesheet">
+<link href="../css/kpi-graficos.css" rel="stylesheet">
 </head>
 <body class="dgm">
 <div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando Matriz de Resultados…</div></div></div>
@@ -57,6 +58,7 @@
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/kpi-graficos.js"></script>
 <script>
 // ── Dados globais ─────────────────────────────────────────────
 let matrizItens = [], progresso = [], odsRefs = [], kmRefs = [], resultadosRef = [], pendPorItem = {};
@@ -283,6 +285,36 @@ function renderStats() {
         `<div class="mz-meter"><i style="width:${media}%;background:var(--mz-and)"></i></div>`)
     + kpi('relogio', 'Aguardando confirmação', pend, pend === 1 ? 'contribuição pendente' : 'contribuições pendentes');
   document.getElementById('n-mz').textContent = total;
+  if (window.KpiG) { const g = mzGraficos(comMeta, media); const K = ['ind', 'ating', 'media', 'pend'];
+    KpiG.aplicar(document.getElementById('stats-row'), g, c => K[[...c.parentNode.children].indexOf(c)]); }
+}
+
+// Mini gráfico de cada número do topo (js/kpi-graficos.js) + frase de leitura
+function mzGraficos(comMeta, media) {
+  const G = KpiG, out = {};
+  // Indicadores: situação de cada um (mesma regra de sitItem)
+  const cnt = {}; matrizItens.forEach(i => { const s = sitItem(i); cnt[s] = (cnt[s] || 0) + 1; });
+  out.ind = G.bloco(G.faixa(Object.keys(SIT).map(s => ({ v: cnt[s] || 0, cor: `var(${SIT[s].cor})`, dica: `${SIT[s].rot}: ${cnt[s] || 0}` })),
+    ['atingida', 'qualitativa']), cnt.sem ? `<b>${cnt.sem}</b> sem registro` : 'todos com registro', cnt.sem ? 'alerta' : '');
+  // Metas atingidas: % atingido em cada resultado
+  const res = [...new Set(comMeta.map(i => i.resultado).filter(v => v != null))].sort((a, b) => a - b);
+  const por = res.map(r => { const l = comMeta.filter(i => i.resultado === r), a = l.filter(i => sitItem(i) === 'ating').length;
+    return { r: 'R' + r, v: G.pct(a, l.length), vTxt: G.pct(a, l.length) + '%', cor: `var(--mz-r${r}, var(--mz-ating))`, dica: `R${r}: ${a} de ${l.length} metas atingidas` }; });
+  const pior = por.reduce((a, b) => (!a || b.v < a.v) ? b : a, null);
+  out.ating = G.bloco(G.barras(por.length ? por : [{ r: '—', v: 0 }], { max: 100 }), pior ? `mais atrás: <b>${pior.r}</b>` : 'sem metas numéricas');
+  // Progresso médio: como os indicadores se distribuem por faixa de avanço
+  const cs = comMeta.map(i => calcPct(i).conf);
+  const fx = [['0%', x => x <= 0], ['<50%', x => x > 0 && x < 50], ['<100%', x => x >= 50 && x < 100], ['100%', x => x >= 100]];
+  const nBaixo = cs.filter(x => x < 50).length;
+  out.media = G.bloco(G.barras(fx.map(([r, f], i) => { const v = cs.filter(f).length;
+      return { r, v, cor: i === 3 ? 'var(--mz-ating)' : i === 0 ? 'var(--mz-sem)' : 'var(--mz-and)', fraco: i === 1, dica: `Avanço confirmado ${r}: ${v} indicador${v !== 1 ? 'es' : ''}` }; })),
+    comMeta.length ? `<b>${nBaixo}</b> abaixo de 50%` : 'sem metas numéricas', nBaixo ? 'alerta' : '');
+  // Aguardando confirmação: quanto o progresso médio sobe se as pendentes forem confirmadas
+  // só os indicadores que têm contribuição pendente de entrega aprovada (o mesmo que o número conta)
+  const comPend = comMeta.length ? Math.round(comMeta.reduce((s, i) => { const c = calcPct(i); return s + (pendPorItem[i.id] ? Math.min(100, c.conf + (c.pend || 0)) : c.conf); }, 0) / comMeta.length) : 0;
+  out.pend = G.bloco(G.bala(media, comPend, { cor: 'var(--mz-and)', legenda: ['hoje ' + media + '%', 'confirmando ' + comPend + '%'], dica: `Progresso médio hoje ${media}%; com as pendentes confirmadas, ${comPend}%` }),
+    comPend > media ? `confirmar sobe <b>+${comPend - media} pontos</b>` : 'nada a ganhar confirmando');
+  return out;
 }
 
 function renderSeg() {

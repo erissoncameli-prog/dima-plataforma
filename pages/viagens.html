@@ -16,6 +16,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Viagens -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/viagens.css" rel="stylesheet">
+<link href="../css/kpi-graficos.css" rel="stylesheet">
 </head>
 <body class="dgm">
 <!-- ícones (SVG, sem emoji): viIc(nome) ou <svg class="vi-ic"><use href="#vi-nome"/></svg> -->
@@ -547,6 +548,7 @@
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/kpi-graficos.js"></script>
 <script src="../js/viagem-bilhete.js"></script>
 <script>
 // ── Constantes ────────────────────────────────────────────────
@@ -1225,8 +1227,9 @@ function prazoPrestacao(p){
 function renderStats(){
   const t=protocolos, n=st=>t.filter(p=>p.situacao===st).length;
   const atrasados=t.filter(p=>p.situacao==='em_prestacao'&&(prazoPrestacao(p)?.dias??0)<0).length;
-  const kpi=(f,ic,l,v,sub,cor,subCls)=>`<button type="button" class="vi-kpi" style="--c:var(${cor})" aria-pressed="${filtroSit===f}" onclick="filtroCard('${f}')">
-    <span class="vi-kpi-l">${viIc(ic)}${l}</span><span class="vi-kpi-v">${v}</span><span class="vi-kpi-s ${subCls||''}">${sub}</span></button>`;
+  const g=window.KpiG?viGraficos(t):{};
+  const kpi=(f,ic,l,v,sub,cor,subCls)=>`<button type="button" class="vi-kpi${g[f]?' kg-tem':''}" style="--c:var(${cor})" aria-pressed="${filtroSit===f}" onclick="filtroCard('${f}')"><span class="kg-in"><span class="kg-esq">
+    <span class="vi-kpi-l">${viIc(ic)}${l}</span><span class="vi-kpi-v">${v}</span><span class="vi-kpi-s ${subCls||''}">${sub}</span></span>${g[f]||''}</span></button>`;
   document.getElementById('stats').innerHTML=
       kpi('solicitado','relogio','Aguardando aprovação',n('solicitado'),'solicitados','--vi-sol')
     + kpi('aprovado','check','Aprovados',n('aprovado'),'aguardando a viagem e as SPDs','--vi-apr')
@@ -1236,6 +1239,39 @@ function renderStats(){
   const cnt=g=>SIT_GRUPOS[g]?t.filter(p=>SIT_GRUPOS[g].includes(p.situacao)).length:t.length;
   document.getElementById('seg-sit').innerHTML=[['_and','Em andamento'],['realizado','Realizados'],['_enc','Cancelados e não realizados'],['','Todos']]
     .map(([f,r])=>`<button type="button" data-f="${f}" aria-pressed="${filtroSit===f}">${r} <span class="mono">${cnt(f)}</span></button>`).join('');
+}
+
+// Mini gráfico de cada número do topo (js/kpi-graficos.js) + frase de leitura
+function viGraficos(t){
+  const G=KpiG,out={},de=s=>t.filter(p=>p.situacao===s);
+  const ateSaida=p=>p.dt_saida?-G.diasDesde(p.dt_saida):null;
+  // Aguardando aprovação e Aprovados: quanto falta para a viagem
+  const porSaida=(lista,cor,nome)=>{
+    const d=lista.map(ateSaida);
+    const fx=[['passou',x=>x!==null&&x<0,'var(--erro)'],['≤5d',x=>x!==null&&x>=0&&x<=5,'var(--alerta)'],['≤15d',x=>x!==null&&x>5&&x<=15,cor],['15+',x=>x!==null&&x>15,cor]];
+    return {d,barras:G.barras(fx.map(([r,f,c],i)=>{const v=d.filter(f).length;
+      return {r,v,cor:c,fraco:i===3,dica:`${nome}: ${i===0?'a data de saída já passou':i===3?'saída em mais de 15 dias':'saída em '+r.replace('≤','até ').replace('d',' dias')}: ${v}`};}))};
+  };
+  const sol=porSaida(de('solicitado'),'var(--vi-sol)','Aguardando aprovação');
+  const sPas=sol.d.filter(x=>x!==null&&x<0).length, s5=sol.d.filter(x=>x!==null&&x>=0&&x<=5).length;
+  out.solicitado=G.bloco(sol.barras, sPas?`<b>${sPas}</b> com a saída já passada`:s5?`<b>${s5}</b> saem em até 5 dias`:sol.d.length?'nenhuma sai em 5 dias':'nada aguardando', sPas?'erro':s5?'alerta':'');
+  const apr=porSaida(de('aprovado'),'var(--vi-apr)','Aprovados');
+  const a5=apr.d.filter(x=>x!==null&&x>=0&&x<=5).length, aPas=apr.d.filter(x=>x!==null&&x<0).length;
+  out.aprovado=G.bloco(apr.barras, a5?`<b>${a5}</b> viajam em até 5 dias`:aPas?`<b>${aPas}</b> já saíram`:apr.d.length?'nenhuma sai em 5 dias':'nada aprovado', a5?'alerta':'');
+  // Em prestação: prazo de prestar contas (retorno + 5 dias)
+  const pr=de('em_prestacao').map(p=>prazoPrestacao(p)?.dias).filter(x=>x!=null);
+  const fp=[['vencido',x=>x<0,'var(--erro)'],['≤2d',x=>x>=0&&x<=2,'var(--alerta)'],['no prazo',x=>x>2,'var(--vi-pre)']];
+  out.em_prestacao=G.bloco(G.barras(fp.map(([r,f,c])=>{const v=pr.filter(f).length;return {r,v,cor:c,dica:`Prestação ${r==='vencido'?'com prazo vencido':r==='no prazo'?'dentro do prazo':'vence em até 2 dias'}: ${v}`};})),
+    pr.length?`mais atrasada: <b>${Math.max(0,-Math.min(...pr))} dias</b>`:'nada em prestação', pr.some(x=>x<0)?'erro':'');
+  // Realizados: viagens concluídas por mês (12 meses) e quanto custaram
+  const MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'], h=new Date(), ms=[];
+  for(let i=11;i>=0;i--){const m=new Date(h.getFullYear(),h.getMonth()-i,1);ms.push({k:m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0'),r:MES[m.getMonth()],ano:m.getFullYear(),v:0,rs:0});}
+  const ix=Object.fromEntries(ms.map((m,i)=>[m.k,i]));
+  de('realizado').forEach(p=>{const k=String(p.realizado_em||p.dt_retorno||'').slice(0,7);if(k in ix){ms[ix[k]].v++;ms[ix[k]].rs+=calcTotalProtocolo(p);}});
+  ms.forEach(m=>m.dica=`${m.r}/${m.ano}: ${m.v} viagem${m.v!==1?'ns':''} · ${fmtBRL(m.rs)}`);
+  const n12=ms.reduce((s,m)=>s+m.v,0), r12=ms.reduce((s,m)=>s+m.rs,0);
+  out.realizado=G.bloco(G.colunas(ms,'var(--vi-rea)'), `<b>${n12}</b> em 12 meses<br>${G.brl(r12)}`);
+  return out;
 }
 
 function filtroCard(status){

@@ -15,6 +15,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Atividades -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/atividades.css" rel="stylesheet">
+<link href="../css/kpi-graficos.css" rel="stylesheet">
 <link href="../css/tarefas-vinculadas.css" rel="stylesheet">
 </head>
 <body class="dgm">
@@ -60,6 +61,7 @@
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/kpi-graficos.js"></script>
 <script src="../js/tarefas-vinculadas.js"></script>
 <script>
 let todasAtividades = [];
@@ -290,15 +292,17 @@ function renderStats() {
   const pComp = orcTotal>0 ? Math.min(compTotal/orcTotal*100,100) : 0;
   const nRes = new Set(todasAtividades.map(a=>a.resultado_codigo).filter(Boolean)).size;
 
+  const g = window.KpiG ? atGraficos() : {};
+  const kg = k => g[k] ? ' kg-tem' : '', ab = '<div class="kg-in"><div class="kg-esq">', fe = k => `</div>${g[k] || ''}</div>`;
   document.getElementById('stats-row').innerHTML = `
-    <div class="at-kpi"><div class="at-kpi-l">${atIc('lista')}Atividades</div><div class="at-kpi-v">${total}</div><div class="at-kpi-s">${contratadas} contratadas · ${concluidas} concluídas</div></div>
-    <div class="at-kpi"><div class="at-kpi-l">${atIc('moeda')}Orçamento</div><div class="at-kpi-v">${usdc(orcTotal)}</div>
+    <div class="at-kpi${kg('ativ')}">${ab}<div class="at-kpi-l">${atIc('lista')}Atividades</div><div class="at-kpi-v">${total}</div><div class="at-kpi-s">${contratadas} contratadas · ${concluidas} concluídas</div>${fe('ativ')}</div>
+    <div class="at-kpi${kg('orc')}">${ab}<div class="at-kpi-l">${atIc('moeda')}Orçamento</div><div class="at-kpi-v">${usdc(orcTotal)}</div>
       <div class="at-meter"><i style="width:${Math.min(pPago,100).toFixed(1)}%;background:var(--at-pago)"></i><i style="width:${Math.max(0,pComp-pPago).toFixed(1)}%;background:var(--at-comp)"></i></div>
-      <div class="at-kpi-s">${Math.round(pPago)}% pago · ${Math.round(orcTotal>0?compTotal/orcTotal*100:0)}% comprometido · ${nRes} resultados</div></div>
-    <div class="at-kpi"><div class="at-kpi-l">${atIc('doc')}Com TDR</div><div class="at-kpi-v">${comTdr} / ${total}</div>
-      <div class="at-meter"><i style="width:${total?(comTdr/total*100).toFixed(1):0}%;background:var(--pri-600)"></i></div>
-      <div class="at-kpi-s">${semArq ? semArq+' com TDR sem arquivo' : 'todos os TDRs com arquivo'}</div></div>
-    <div class="at-kpi"><div class="at-kpi-l">${atIc('play')}Em execução</div><div class="at-kpi-v">${emExecucao}</div><div class="at-kpi-s">elaborado + contratado</div></div>`;
+      <div class="at-kpi-s">${Math.round(pPago)}% pago · ${Math.round(orcTotal>0?compTotal/orcTotal*100:0)}% comprometido · ${nRes} resultados</div>${fe('orc')}</div>
+    <div class="at-kpi${kg('tdr')}">${ab}<div class="at-kpi-l">${atIc('doc')}Com TDR</div><div class="at-kpi-v">${comTdr} / ${total}</div>
+      ${g.tdr ? '' : `<div class="at-meter"><i style="width:${total?(comTdr/total*100).toFixed(1):0}%;background:var(--pri-600)"></i></div>`}
+      <div class="at-kpi-s">${semArq ? semArq+' com TDR sem arquivo' : 'todos os TDRs com arquivo'}</div>${fe('tdr')}</div>
+    <div class="at-kpi${kg('exec')}">${ab}<div class="at-kpi-l">${atIc('play')}Em execução</div><div class="at-kpi-v">${emExecucao}</div><div class="at-kpi-s">elaborado + contratado</div>${fe('exec')}</div>`;
 
   document.getElementById('aviso-resp').innerHTML = semResp>0 ? `
     <div class="at-aviso" role="status">
@@ -306,6 +310,38 @@ function renderStats() {
       <div class="tx"><b>${semResp} atividade${semResp>1?'s':''} sem responsável</b>Sem responsável a atividade não pode ter TDR cadastrado.</div>
       <button type="button" class="at-btn perigo peq" onclick="mostrarSemResponsavel()">Mostrar só essas</button>
     </div>` : '';
+}
+
+// Mini gráfico de cada número do topo (js/kpi-graficos.js) + frase de leitura.
+// Saldo, comprometido e pago vêm da vw_saldo_atividade (a.saldo), nunca recalculados aqui.
+function atGraficos() {
+  const G = KpiG, out = {}, A = todasAtividades, num = v => parseFloat(v || 0);
+  // Atividades: em que fase estão
+  const FS = [['A_INICIAR','a_iniciar','A iniciar'],['ELABORACAO','elaboracao','Em elaboração'],['LICITACAO','licitacao','Em licitação'],
+    ['ELABORADO','elaborado','Elaborado'],['CONTRATADO','contratado','Contratado'],['CONCLUIDO','concluido','Concluído']];
+  const nIni = A.filter(a => a.fase === 'A_INICIAR').length;
+  out.ativ = G.bloco(G.faixa(FS.map(([f, t, r]) => { const v = A.filter(a => a.fase === f).length; return { v, cor: `var(--at-f-${t})`, dica: `${r}: ${v}` }; }),
+    ['a iniciar', 'concluído']), nIni ? `<b>${nIni}</b> ainda a iniciar` : 'todas iniciadas');
+  // Orçamento: quantas atividades têm o dinheiro parado (nada comprometido) e quantas passaram do orçamento
+  const pc = A.filter(a => num(a.orcamento_usd) > 0).map(a => num(a.saldo?.comprometido_usd) / num(a.orcamento_usd) * 100);
+  const fx = [['0%', x => x < 0.5, 'var(--alerta)'], ['≤50', x => x >= 0.5 && x <= 50, 'var(--at-comp)'], ['≤99', x => x > 50 && x < 99.5, 'var(--at-pago)'], ['100%', x => x >= 99.5 && x <= 100.5, 'var(--at-pago)'], ['acima', x => x > 100.5, 'var(--erro)']];
+  const nZero = pc.filter(fx[0][1]).length, nAcima = pc.filter(fx[4][1]).length;
+  out.orc = G.bloco(G.barras(fx.map(([r, f, cor]) => { const v = pc.filter(f).length;
+      return { r, v, cor, dica: `Orçamento comprometido ${r === '0%' ? 'zero' : r === 'acima' ? 'acima de 100%' : r === '100%' ? 'por inteiro' : 'até ' + r + '%'}: ${v} atividade${v !== 1 ? 's' : ''}` }; })),
+    nAcima ? `<b>${nAcima}</b> acima do orçamento` : nZero ? `<b>${nZero}</b> sem nada comprometido` : 'todas com uso', nAcima ? 'erro' : nZero ? 'alerta' : '');
+  // Com TDR: atividades sem TDR que ainda têm dinheiro livre
+  const comT = A.filter(a => a.tdrs_count > 0).length;
+  const semTLivre = A.filter(a => !(a.tdrs_count > 0) && num(a.saldo ? a.saldo.saldo_livre_usd : a.orcamento_usd) > 0 && a.fase !== 'CONCLUIDO');
+  out.tdr = G.bloco(G.anel(comT, A.length, 'var(--pri-600)', `${comT} de ${A.length} atividades com TDR`),
+    semTLivre.length ? `<b>${semTLivre.length}</b> sem TDR com<br>${G.usd(semTLivre.reduce((s, a) => s + num(a.saldo ? a.saldo.saldo_livre_usd : a.orcamento_usd), 0))} livres` : 'todas com TDR ou sem saldo', semTLivre.length ? 'alerta' : '');
+  // Em execução: quanto já foi pago do comprometido
+  const ex = A.filter(a => ['ELABORADO', 'CONTRATADO'].includes(a.fase)).map(a => { const c = num(a.saldo?.comprometido_usd); return c > 0 ? num(a.saldo?.pago_usd) / c * 100 : 0; });
+  const fe = [[0, 25, '<25%'], [25, 50, '<50%'], [50, 75, '<75%'], [75, 1e9, '75%+']];
+  const nBaixo = ex.filter(x => x < 25).length;
+  out.exec = G.bloco(G.barras(fe.map(([a, b, r], i) => { const v = ex.filter(x => x >= a && x < b).length;
+      return { r, v, cor: 'var(--at-pago)', fraco: i < 2, dica: `Pago ${b < 1e9 ? 'de ' + a + '% a ' + b + '%' : '75% ou mais'} do comprometido: ${v}` }; })),
+    ex.length ? (nBaixo ? `<b>${nBaixo}</b> com menos de 25% pago` : "todas com 25% ou mais pago") : "nenhuma em execução");
+  return out;
 }
 
 function mostrarSemResponsavel(){

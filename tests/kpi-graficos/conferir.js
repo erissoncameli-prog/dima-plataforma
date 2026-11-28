@@ -55,14 +55,53 @@ const L = (situacao, o = {}) => lanc.push(Object.assign({ id: id('l'), situacao,
 for (let m = 0; m < 12; m++) for (let k = 0; k <= (m * 7) % 4; k++) L('pago', { dt_pagamento: dia(-m * 30 - k), dt_vencimento: dia(-m * 30 - k), valor_brl: 15000 + k * 9000 + m * 1000 })
 ;[-5, -45, -75, -130, 3, 6, 20, 60, null].forEach((n, i) => L('a_pagar', { dt_vencimento: n === null ? null : dia(n), valor_brl: 10000 + i * 5000, valor_usd_unesco: null }))
 L('cancelado')
+lanc.forEach((l, i) => { l.fornecedor_id = 'f' + (i % 4) })
 
-const banco = montar({
-  tdrs, contratos, execucao_financeira: lanc, atividades: [ATV], fornecedores: FORN.map((n, i) => ({ id: 'f' + i, nome: n, tipo: 'PJ' })), resultados: [],
-  tdr_cancelamentos: [], cotacoes_usd: [{ id: 'q', data_ref: dia(0), cotacao: 5.4, criado_em: ts(0) }],
-  __rpc: { fn_cob_livre: 0 },
+// ── Produtos: todas as situações, entregas com datas e uma devolução
+const produtos = []
+const P = (situacao, o = {}, ent = []) => produtos.push(Object.assign({ id: id('p'), contrato_id: contratos[0].id, numero_produto: seq, descricao: 'Produto ' + seq,
+  situacao, valor_brl: 30000 + seq * 100, valor_aprovado: null, dt_vencimento: dia(20), contratos_produtos_entregas: ent }, o))
+P('pendente', { dt_vencimento: dia(-10) }); P('pendente', { dt_vencimento: dia(12) }); P('entrega_parcial', { dt_vencimento: dia(90) }); P('pendente', { dt_vencimento: null })
+P('em_analise', {}, [{ situacao: 'em_analise', numero_entrega: 1, dt_entrega: dia(-3) }]); P('em_analise', {}, [{ situacao: 'devolvida', numero_entrega: 1, dt_entrega: dia(-60) }, { situacao: 'em_analise', numero_entrega: 2, dt_entrega: dia(-22) }])
+P('devolvido', {}, [{ situacao: 'devolvida', numero_entrega: 1, dt_entrega: dia(-9) }])
+P('aprovado', {}, [{ situacao: 'aprovada', numero_entrega: 1, dt_entrega: dia(-40), despachado_em: ts(-35) }]); P('aprovado', {}, [{ situacao: 'aprovada', numero_entrega: 1, dt_entrega: dia(-8), despachado_em: ts(-5) }])
+for (let i = 0; i < 5; i++) P('pago', { valor_aprovado: 28000 }, [{ situacao: 'aprovada', numero_entrega: 1, dt_entrega: dia(-100), despachado_em: ts(-95) }])
+
+// ── Viagens: saídas próximas, prestação vencida, realizadas por mês
+const viag = []
+const V = (situacao, o = {}) => viag.push(Object.assign({ id: id('v'), numero: 'VGM-2026-' + seq, situacao, objetivo: 'Campo', destino_principal: 'Xapuri', atividade_id: ATV.id,
+  dt_saida: dia(20), dt_retorno: dia(24), criado_em: ts(-10), realizado_em: null, viajantes: [{ id: id('vj'), trechos: [{ valor: 1800 }], diarias: [{ quantidade: 3, valor_unitario: 400 }] }], notif_log: [], devolucoes: [] }, o))
+V('solicitado', { dt_saida: dia(3) }); V('solicitado', { dt_saida: dia(-1) }); V('solicitado', { dt_saida: dia(40) })
+V('aprovado', { dt_saida: dia(2) }); V('aprovado', { dt_saida: dia(10) })
+V('em_prestacao', { dt_saida: dia(-20), dt_retorno: dia(-15) }); V('em_prestacao', { dt_saida: dia(-6), dt_retorno: dia(-4) })
+for (let m = 0; m < 12; m += 2) V('realizado', { dt_saida: dia(-m * 30 - 6), dt_retorno: dia(-m * 30 - 3), realizado_em: ts(-m * 30) })
+
+// ── Atividades: fases, orçamento e saldo da vw_saldo_atividade
+const FASES = ['A_INICIAR', 'ELABORACAO', 'LICITACAO', 'ELABORADO', 'CONTRATADO', 'CONTRATADO', 'CONCLUIDO', 'A_INICIAR']
+const ativs = FASES.map((f, i) => ({ id: i ? 'atv-' + (i + 1) : ATV.id, codigo: '1.' + (i + 1) + '.1-01', nome_pt: 'Atividade ' + (i + 1), fase: f, orcamento_usd: 50000 + i * 10000,
+  resultado_id: null, ativo: true, responsavel_id: SA }))
+const saldos = ativs.map((a, i) => { const comp = [0, 20000, 60000, 80000, 90000, 130000, 110000, 0][i]; return { id: a.id, orcamento_usd: a.orcamento_usd, comprometido_usd: comp,
+  pago_usd: comp * [0, 0, .1, .3, .6, .9, 1, 0][i], saldo_livre_usd: a.orcamento_usd - comp } })
+tdrs.forEach((t, i) => { t.atividade_id = ativs[1 + (i % 6)].id })
+
+// ── Matriz: indicadores com meta, qualitativos e pendentes
+const mz = [], prog = []
+;[[1, 10, 10, 0], [1, 10, 4, 3], [1, 5, 0, 0], [2, 20, 25, 0], [2, 8, 2, 0], [3, 100, 30, 40], [3, null, 0, 0], [3, 6, 0, 2]].forEach(([r, meta, conf, pend], i) => {
+  const iid = id('mz'); mz.push({ id: iid, resultado: r, produto_codigo: 'P' + r, produto_titulo: 'Produto ' + r, indicador: 'Indicador ' + i, meta_numerica: meta, unidade: 'un', ativo: true, ordem: i, ods: [], metas_km: [] })
+  prog.push({ id: iid, realizado_confirmado: conf, realizado_pendente: pend })
 })
 
-const PAGINAS = [['tdrs', '#stats'], ['contratos', '#stats'], ['financeiro', '#stats']]
+const banco = montar({
+  tdrs, contratos, execucao_financeira: lanc, atividades: ativs, fornecedores: FORN.map((n, i) => ({ id: 'f' + i, nome: n, tipo: i % 3 ? 'PJ' : 'PF', ativo: i !== 5 })).concat([{ id: 'f9', nome: 'Nunca contratado', tipo: 'PF', ativo: true }]),
+  resultados: [], tdr_cancelamentos: [], cotacoes_usd: [{ id: 'q', data_ref: dia(0), cotacao: 5.4, criado_em: ts(0) }],
+  contratos_produtos: produtos, viagem_protocolos: viag, vw_tdr_execucao_direta: [], vw_saldo_atividade: saldos, atividade_responsaveis: [],
+  matriz_itens: mz, vw_matriz_progresso: prog, vw_matriz_contribuicoes: [{ matriz_item_id: mz[1].id }, { matriz_item_id: mz[5].id }], ods_refs: [], metas_km_refs: [],
+  __rpc: { fn_cob_livre: 0, get_minhas_atividades: ativs, fn_viagem_fontes_permitidas: [] },
+})
+
+const PAGINAS = [['tdrs', '#stats'], ['contratos', '#stats'], ['financeiro', '#stats'],
+  ['produtos', '#stats'], ['viagens', '#stats'], ['atividades', '#stats-row'], ['fornecedores', '#stats'], ['matriz', '#stats-row']]
+const SO = (process.env.SO || '').split(',').filter(Boolean)
 const VISTAS = [['computador', { width: 1600, height: 900 }], ['notebook', { width: 1280, height: 800 }], ['celular', { width: 390, height: 844 }]]
 
 ;(async () => {
@@ -80,7 +119,7 @@ const VISTAS = [['computador', { width: 1600, height: 900 }], ['notebook', { wid
   try {
     for (const tema of ['claro', 'escuro']) for (const [vista, vp] of VISTAS) {
       const ctx = await nav.newContext({ viewport: vp, deviceScaleFactor: 2 })
-      for (const [pag, sel] of PAGINAS) {
+      for (const [pag, sel] of PAGINAS.filter(p => !SO.length || SO.includes(p[0]))) {
         const pg = await ctx.newPage()
         const erros = []
         pg.on('pageerror', e => erros.push(e.message))

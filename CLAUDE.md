@@ -931,18 +931,22 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   A página do QR segue `prefers-color-scheme`. ⚠️ Em comentário CSS não escrever `--x-*/` — o `*/` fecha o comentário
   e engole a regra seguinte (os tokens do tema claro sumiram por isso).
 
-### Mini gráficos nos números do topo (28/11/2026 — piloto em TDRs, Contratos e Financeiro)
+### Mini gráficos nos números do topo (28/11/2026 — TDRs, Contratos, Financeiro, Produtos, Viagens, Atividades, Fornecedores, Matriz)
 - Cada quadro de número ganha, ao lado, um gráfico pequeno + uma **frase de leitura** (o que decidir). Peça única
   `js/kpi-graficos.js` (`KpiG.barras/colunas/faixa/anel/bala/dispersao/bloco`, `KpiG.brl`, `KpiG.diasDesde`) + `css/kpi-graficos.css`
   (prefixo `kg-`, carregar **depois** do CSS da página). SVG próprio, sem biblioteca; cor só `var(--token)`; o SVG é `aria-hidden` e a
   frase é texto do botão. Quadro: classe `kg-tem` + `<span class="kg-in"><span class="kg-esq">…</span>${KpiG.bloco(...)}</span>`;
-  quadro estreito (≤ 205 px, container query) põe o gráfico embaixo. Funções por tela: `tdGraficos`, `ctGraficos`, `fiGraficos`.
+  quadro estreito (≤ 205 px, container query) põe o gráfico embaixo. Quadro já desenhado: `KpiG.aplicar(container, graficos, chave)`
+  embrulha o conteúdo e encaixa o gráfico. Funções por tela: `tdGraficos`, `ctGraficos`, `fiGraficos`, `prGraficos` (a consulta dos números
+  de Produtos traz valor, vencimento e entregas), `viGraficos`, `atGraficos` (saldo só da `vw_saldo_atividade`), `foGraficos`, `mzGraficos`
+  ("confirmar sobe" conta só indicador com contribuição pendente, igual ao número).
 - O gráfico mostra **o que está dentro do número ou como ele se relaciona com outro** (fase, idade, prazo, concentração, planejado ×
   contratado, % pago × % do prazo), nunca repete o número. Só dado já carregado; saldo oficial continua na `vw_saldo_atividade`.
 - Acertos junto: TDR "Em andamento" = submetido/correção/avaliação/revisão UNESCO (licitação conta em Aprovados; quadro e filtro usam
   `TD_GRUPO_ANDAMENTO`); "Atrasados" não conta cancelado (`tdAtrasado`); em Contratos os cliques "Contratado" e "Pago" filtram só vigentes.
 - Conferir: `PW_CANAL=msedge node tests/kpi-graficos/conferir.js` (banco falso; computador/notebook/celular × claro/escuro; imagens em
-  `tests/kpi-graficos/saida/`). Próximas telas: Produtos, Viagens, Atividades, Fornecedores, Matriz; depois as demais.
+  `tests/kpi-graficos/saida/`; `SO=produtos,matriz` roda só essas). Próxima fase: Remanejamento, Acervo, Patrimônio, Auditoria, Pulso,
+  Usuários, Integrações, ROPA, Presença, Diagnóstico, Repositório.
 
 ### Sem faixa lateral nem caixa colorida (⚠️ vale para toda tela e relatório)
 - **Nunca** faixa colorida na borda esquerda (`border-left: 2–4px solid <cor>`, `box-shadow: inset 3px 0 0`) em cartão, aviso, nota

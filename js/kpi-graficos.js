@@ -45,9 +45,9 @@
 
   /* Colunas com rótulo embaixo e valor em cima.
      itens: [{r:'<30d', v:4, cor:'var(--x)', dica:'…', fraco:true}] */
-  KpiG.barras = function (itens) {
+  KpiG.barras = function (itens, o) {
     const H = 46, base = 34, topo = 9, k = itens.length || 1;
-    const max = Math.max(1, ...itens.map(i => n(i.v)));
+    const max = Math.max(1, (o && o.max) || 0, ...itens.map(i => n(i.v)));   // o.max: escala fixa (ex.: 100 para %)
     const passo = W / k, larg = Math.min(22, passo - 6);
     return svg(H, `<line class="kg-base" x1="0" x2="${W}" y1="${base + .5}" y2="${base + .5}"/>` + itens.map((it, i) => {
       const v = n(it.v), h = v > 0 ? Math.max(2, (base - topo) * v / max) : 0;
@@ -131,6 +131,21 @@
   KpiG.bloco = function (grafico, leitura, tom) {
     return `<span class="kg-dir"><span class="kg-graf" aria-hidden="true">${grafico}</span>`
       + (leitura ? `<span class="kg-ler${tom ? ' kg-' + tom : ''}">${leitura}</span>` : '') + '</span>';
+  };
+
+  /* Encaixa os gráficos em quadros já desenhados: para cada filho de `el`, chave(filho) diz
+     qual gráfico de `graf` vai nele; o conteúdo atual vira a coluna da esquerda (kg-esq). */
+  KpiG.aplicar = function (el, graf, chave) {
+    if (!el || !graf) return;
+    [...el.children].forEach(c => {
+      const k = chave(c), g = k && graf[k];
+      if (!g || c.classList.contains('kg-tem')) return;
+      const inn = document.createElement('span'); inn.className = 'kg-in';
+      const esq = document.createElement('span'); esq.className = 'kg-esq';
+      while (c.firstChild) esq.appendChild(c.firstChild);
+      inn.appendChild(esq); inn.insertAdjacentHTML('beforeend', g);
+      c.appendChild(inn); c.classList.add('kg-tem');
+    });
   };
 
   window.KpiG = KpiG;
