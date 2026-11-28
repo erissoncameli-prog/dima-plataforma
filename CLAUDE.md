@@ -5,6 +5,18 @@ Este arquivo é lido automaticamente pelo Claude Code a cada sessão. Contém o 
 
 ---
 
+## Continuidade entre contas e dispositivos (ler primeiro)
+
+Este projeto é trabalhado com **duas contas do Claude** e em **três dispositivos** (Windows, Mac e
+iPhone/sessões na nuvem). A conversa não passa de uma sessão para outra: o que vale é o que está no repositório.
+
+- **Ao começar**: `git pull` e ler o `PROGRESSO.md` (estado atual e próximo passo).
+- **Ao parar**, ou quando o usuário pedir "salva o progresso": atualizar o `PROGRESSO.md` (o que foi feito,
+  o que ficou pela metade, próximo passo, decisões tomadas), depois commit e push na `main`.
+- Regras e decisões permanentes vão para este `CLAUDE.md`. O `PROGRESSO.md` é o diário curto da passagem de bastão.
+
+---
+
 ## Autoria e direitos autorais (⚠️ nunca remover)
 
 **Plataforma Inteligente de Gestão de Projetos** · Concepção e Desenvolvimento: **Erisson Cameli Santiago** ·
