@@ -98,7 +98,7 @@
         </fieldset>
       </div>
 
-      <div class="sigilo">${ic('escudo')}<span>Estes dados servem para a prestação de contas do projeto aos financiadores e para indicadores de gênero e raça. Sexo e raça só aparecem por pessoa para a coordenação do projeto; o restante vê apenas os totais. Tratamento conforme a LGPD.</span></div>
+      <div class="sigilo">${ic('escudo')}<span>Estes dados servem para a prestação de contas do projeto aos financiadores e para indicadores de gênero, raça e idade. Sexo, raça e idade só aparecem por pessoa para a coordenação do projeto; o restante vê apenas os totais. Tratamento conforme a LGPD.</span></div>
       <div id="pa-erro" role="alert"></div>
       <button type="submit" class="btn" id="pa-enviar">${ic('ok')}Confirmar presença</button>
     </form>`
