@@ -99,7 +99,7 @@ body.dgm .re-fil .re-grupo-largo .config-input { max-width: 340px; }
 .re-gerando { display: flex; align-items: center; justify-content: center; padding: 40px; gap: 12px; color: var(--txt-2); font-size: 13px; }
 .re-spin { width: 22px; height: 22px; border: 3px solid var(--lin-forte); border-top-color: var(--pri-600); border-radius: 50%; animation: re-gira .7s linear infinite; }
 @keyframes re-gira { to { transform: rotate(360deg); } }
-.re-erro { padding: 16px; border-radius: var(--r-ctl); background: var(--erro-bg); color: var(--erro-txt); font-size: 13px; }
+.re-erro { padding: 16px; border-radius: var(--r-ctl); background: var(--sup-2); border: 1px solid var(--lin); color: var(--erro-txt); font-size: 13px; }
 .re-pos { display: flex; justify-content: flex-end; margin-top: 12px; }
 .re-pos .btn { display: inline-flex; align-items: center; gap: 6px; }
 
@@ -120,7 +120,7 @@ body.dgm .re-fil .re-grupo-largo .config-input { max-width: 340px; }
 body.dgm .exp-sidebar .btn { justify-content: flex-start; display: flex; align-items: center; gap: 8px; width: 100%; }
 .exp-btn:disabled { opacity: .6; cursor: wait; }
 body.dgm .exp-sidebar .exp-btn-recomendado { border-color: var(--pri-600); background: var(--pri-50); color: var(--txt); }
-.exp-aviso-paisagem { background: var(--info-bg); border: 1px solid var(--info-borda); color: var(--info-txt); border-radius: var(--r-ctl); padding: 8px 10px; font-size: 12px; line-height: 1.4; display: flex; gap: 6px; align-items: flex-start; }
+.exp-aviso-paisagem { background: var(--sup-2); border: 1px solid var(--lin); color: var(--info-txt); border-radius: var(--r-ctl); padding: 8px 10px; font-size: 12px; line-height: 1.4; display: flex; gap: 6px; align-items: flex-start; }
 .exp-fechar { margin-top: auto; padding-top: 14px; }
 .exp-preview { overflow: auto; background: var(--bg-2); padding: 24px; display: flex; flex-direction: column; align-items: center; }
 .exp-preview { align-items: flex-start; }

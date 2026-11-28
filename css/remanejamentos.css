@@ -78,10 +78,9 @@ body.dgm .rm-cont.vez { background: var(--alerta-bg); color: var(--alerta-txt); 
 body.dgm #rm-corpo { display: flex; flex-direction: column; gap: 12px; }
 
 /* avisos */
-body.dgm :is(.main-content, .rm-ov) .rm-aviso { background: var(--alerta-bg); border: 1px solid color-mix(in srgb, var(--alerta) 35%, transparent);
+body.dgm :is(.main-content, .rm-ov) .rm-aviso { background: var(--sup-2); border: 1px solid var(--lin);
   border-radius: 12px; padding: 10px 14px; font-size: 13px; color: var(--alerta-txt); line-height: 1.5; }
-body.dgm :is(.main-content, .rm-ov) .rm-aviso.trava { background: var(--rm-trava-bg); border-color: color-mix(in srgb, var(--rm-trava) 35%, transparent); color: var(--txt-forte-2); }
-body.dgm .rm-travados { border-left: 4px solid var(--rm-trava); }
+body.dgm :is(.main-content, .rm-ov) .rm-aviso.trava { color: var(--txt-forte-2); }
 body.dgm .rm-travados .cab { padding: 12px 14px 4px; display: flex; flex-direction: column; gap: 4px; }
 
 /* tabelas */
@@ -103,7 +102,7 @@ body.dgm .rm-atv .nm { font-weight: 500; line-height: 1.4; color: var(--txt); }
 body.dgm .rm-atv .chev { color: var(--txt-3); transition: transform var(--dur-1) var(--ease); }
 body.dgm .rm-atv.aberta .chev { transform: rotate(180deg); }
 body.dgm .rm-fontes > td { background: var(--sup-2); padding: 0 12px 14px; }
-body.dgm .rm-fontes-in { border-left: 3px solid var(--pri-600); padding: 12px 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
+body.dgm .rm-fontes-in { padding: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
 body.dgm .rm-fontes .rm-tab th { background: transparent; font-size: 10.5px; padding: 6px 8px; }
 body.dgm .rm-fontes .rm-tab td { padding: 7px 8px; font-size: 12.5px; }
 /* barra comprometido × vigente (a mesma de Atividades) */

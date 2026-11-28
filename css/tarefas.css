@@ -230,8 +230,9 @@ html[data-tema="escuro"] body.tk-pg .tk-tema button[aria-pressed="true"]{backgro
 :is(.tk,.tk-overlay) .cal-cell.fora .cal-dia{color:var(--faint)}
 :is(.tk,.tk-overlay) .cal-dia{font-size:12px;font-weight:600;color:var(--text-2);align-self:flex-end;font-variant-numeric:tabular-nums;width:24px;height:24px;display:grid;place-items:center;border-radius:50%}
 :is(.tk,.tk-overlay) .cal-cell.hoje .cal-dia{background:var(--brand);color:#fff}
-:is(.tk,.tk-overlay) .cal-chip{display:flex;align-items:center;gap:4px;font-size:11px;line-height:1.25;color:var(--text);background:var(--cb);border-left:3px solid var(--c);border-radius:4px;padding:3px 5px;cursor:pointer;min-width:0}
-:is(.tk,.tk-overlay) .cal-chip:hover{filter:brightness(.97)}
+:is(.tk,.tk-overlay) .cal-chip{display:flex;align-items:center;gap:4px;font-size:11px;line-height:1.25;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:3px 5px;cursor:pointer;min-width:0}
+:is(.tk,.tk-overlay) .cal-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c);flex-shrink:0}
+:is(.tk,.tk-overlay) .cal-chip:hover{border-color:var(--c)}
 :is(.tk,.tk-overlay) .cal-chip b.mono{font-weight:500;font-size:10px;color:var(--text-2);flex-shrink:0}
 :is(.tk,.tk-overlay) .cal-chip span.mono{font-size:10px;color:var(--t-reuniao);flex-shrink:0}
 :is(.tk,.tk-overlay) .cal-txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
@@ -346,7 +347,7 @@ html[data-tema="escuro"] body.tk-pg .tk-tema button[aria-pressed="true"]{backgro
 :is(.tk,.tk-overlay) .hist-mais:hover{text-decoration:underline}
 :is(.tk,.tk-overlay) .hist-dp{color:var(--text)}
 :is(.tk,.tk-overlay) .hist-motivo{font-size:11.5px;color:var(--motivo-txt);background:var(--st-review-bg);border-radius:6px;padding:2px 8px;margin:4px 0;display:inline-block}
-:is(.tk,.tk-overlay) .hist-det{margin:6px 0 4px;padding:6px 10px;border-left:2px solid var(--line);background:var(--surface-2);border-radius:0 8px 8px 0}
+:is(.tk,.tk-overlay) .hist-det{margin:6px 0 4px;padding:6px 10px;background:var(--surface-2);border-radius:8px}
 :is(.tk,.tk-overlay) .hd-i{font-size:12px;color:var(--text-2);padding:2px 0}
 :is(.tk,.tk-overlay) .hd-i s{color:var(--faint)}
 :is(.tk,.tk-overlay) .hd-long{white-space:pre-wrap;font-size:11.5px;margin:3px 0;padding:5px 8px;background:var(--surface);border:1px solid var(--line-2);border-radius:6px;max-height:140px;overflow:auto}
@@ -388,7 +389,7 @@ html[data-tema="escuro"] body.tk-pg .tk-tema button[aria-pressed="true"]{backgro
 :is(.tk,.tk-overlay) input.sw:checked{background:var(--brand-2)}
 :is(.tk,.tk-overlay) input.sw:checked::after{left:16px}
 :is(.tk,.tk-overlay) input.sw:disabled{opacity:.5;cursor:default}
-:is(.tk,.tk-overlay) .tk-edit-faixa{display:flex;flex-direction:column;gap:8px;background:var(--st-review-bg);border:1px solid color-mix(in srgb,var(--st-review) 30%,transparent);border-radius:var(--r-m);padding:10px 12px;font-size:12.5px;color:#7A4E00;margin-bottom:14px}
+:is(.tk,.tk-overlay) .tk-edit-faixa{display:flex;flex-direction:column;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-m);padding:10px 12px;font-size:12.5px;color:#7A4E00;margin-bottom:14px}
 :is(.tk,.tk-overlay) .tk-edit-faixa>div{display:flex;align-items:center;gap:6px}
 :is(.tk,.tk-overlay) .tk-edit-faixa input{height:34px;font-size:13px}
 /* seletor de atividade */
@@ -404,7 +405,7 @@ html[data-tema="escuro"] body.tk-pg .tk-tema button[aria-pressed="true"]{backgro
 :is(.tk,.tk-overlay) .pk-lista{max-height:340px;overflow-y:auto}
 :is(.tk,.tk-overlay) .pk-it{display:flex;gap:10px;align-items:flex-start;padding:8px 9px;border-radius:8px;cursor:pointer;font-size:12.5px;line-height:1.4;color:var(--text)}
 :is(.tk,.tk-overlay) .pk-it.hl{background:var(--brand-soft)}
-:is(.tk,.tk-overlay) .pk-it.sel{box-shadow:inset 3px 0 0 var(--brand-2)}
+:is(.tk,.tk-overlay) .pk-it.sel{background:var(--surface-2);font-weight:600}
 :is(.tk,.tk-overlay) .pk-vazio{font-size:12.5px;color:var(--muted);padding:10px}
 /* pessoas e TDRs como campo de adição */
 :is(.tk,.tk-overlay) .pp{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:6px}

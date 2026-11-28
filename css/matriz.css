@@ -202,7 +202,7 @@ body.dgm .mz-ov .mz-ctb .o { font-size: 11.5px; color: var(--txt-3); }
 body.dgm .mz-ov .mz-ctb .v { font-family: var(--font-mono); font-size: 14px; font-weight: 500; color: var(--txt); white-space: nowrap; }
 body.dgm .mz-ov .mz-ctb .v small { font-family: var(--font-sans); font-size: 11px; color: var(--txt-3); }
 body.dgm .mz-ov .mz-ctb .ac { display: flex; gap: 6px; grid-column: 1 / -1; justify-content: flex-end; }
-body.dgm .mz-ov .mz-aviso { display: flex; gap: 8px; align-items: flex-start; background: var(--alerta-bg); color: var(--alerta-txt); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; }
+body.dgm .mz-ov .mz-aviso { display: flex; gap: 8px; align-items: flex-start; background: var(--sup-2); border: 1px solid var(--lin); color: var(--alerta-txt); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; }
 body.dgm .mz-ov .mz-ref-ind { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--lin); border-radius: 12px; padding: 10px 12px;
   cursor: pointer; background: var(--sup); text-align: left; font: inherit; color: inherit; width: 100%; }
 body.dgm .mz-ov .mz-ref-ind:hover { border-color: var(--lin-forte); }

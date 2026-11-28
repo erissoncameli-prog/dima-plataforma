@@ -67,9 +67,9 @@ input[readonly] { background:var(--cartao-2); color:var(--suave) }
 .btn:active:not(:disabled) { transform:scale(.98) }
 .btn:disabled { opacity:.55; cursor:default }
 .btn:focus-visible { outline:none; box-shadow:0 0 0 4px var(--pri-anel) }
-.erro { display:flex; gap:8px; align-items:flex-start; background:var(--erro-bg); color:var(--erro); border-radius:var(--r-ctl); padding:10px 12px; font-size:.9rem; margin-top:12px }
+.erro { display:flex; gap:8px; align-items:flex-start; background:var(--cartao-2); border:1px solid var(--borda); color:var(--erro); border-radius:var(--r-ctl); padding:10px 12px; font-size:.9rem; margin-top:12px }
 .erro .ic { width:18px; height:18px; margin-top:1px }
-.aviso { display:flex; gap:10px; align-items:flex-start; background:var(--aviso-bg); color:var(--aviso); border-radius:var(--r-ctl); padding:12px; font-size:.92rem; margin-top:14px }
+.aviso { display:flex; gap:10px; align-items:flex-start; background:var(--cartao-2); border:1px solid var(--borda); color:var(--aviso); border-radius:var(--r-ctl); padding:12px; font-size:.92rem; margin-top:14px }
 .aviso .ic { margin-top:1px }
 .ok { text-align:center; padding:30px 20px }
 .ok .marcador { width:68px; height:68px; margin:0 auto 14px; border-radius:50%; background:var(--pri-bg); color:var(--pri); display:grid; place-items:center }

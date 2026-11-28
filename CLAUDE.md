@@ -931,6 +931,14 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   A página do QR segue `prefers-color-scheme`. ⚠️ Em comentário CSS não escrever `--x-*/` — o `*/` fecha o comentário
   e engole a regra seguinte (os tokens do tema claro sumiram por isso).
 
+### Sem faixa lateral nem caixa colorida (⚠️ vale para toda tela e relatório)
+- **Nunca** faixa colorida na borda esquerda (`border-left: 2–4px solid <cor>`, `box-shadow: inset 3px 0 0`) em cartão, aviso, nota
+  ou linha, nem **caixa de fundo tingido** na mesma cor do texto (`background: var(--erro-bg)` + texto vermelho etc.) — pedido do dono
+  (28/11/2026: "cara de IA"). Estado/alerta = **texto colorido** (com ícone ou selo) dentro de cartão neutro (`--sup-2` + borda `--lin`;
+  fora da mesa `--cinza-50` + `--borda`); nota/citação = texto secundário. Selos pequenos (`badge`, `pill`, `selo`) continuam tingidos.
+  Ficam: separador de 1 px entre botões/painéis e a linha vertical das linhas do tempo. `css/guia-app.css` (SIGUC) não se edita:
+  a nota do guia é neutralizada em `css/guias-plataforma.css` e `css/diagnostico-app.css`. `site-publico/` (outro autor) não foi mexido.
+
 ### TDRs — visual da lista e dos modais
 - `pages/tdrs.html` usa o design system da mesa (`body.dgm` + `css/diagnostico-mesa.css`, tema `diag_tema`, seletor
   Claro/Escuro no topo via `seletorTema()`) e componentes em `css/tdrs.css` (prefixo `td-`; cor de cada fase = token
@@ -943,7 +951,7 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
 - **Valor obrigatório** (migração `20261020_tdr_valor_obrigatorio`, `trg_tdr_exige_valor`): TDR não nasce sem `valor_brl`/`valor_usd` > 0,
   não apaga o valor e, sem valor, não muda de fase (só para `cancelado`) — `TDR_SEM_VALOR`. Na tela, "Valor R$" é obrigatório no novo TDR.
 - Cartão do TDR = `cardTDR(t)`; diferença negativa TDR × contratos aparece como "Contrato acima do TDR" (mesmo termo do razão).
-- **TDR cancelado** no cartão: inteiro em vermelho (tokens `--td-canc*`, borda esquerda, selo `.td-selo-fase` sólido com X), sem opacidade;
+- **TDR cancelado** no cartão: cartão neutro, selo `.td-selo-fase` vermelho sólido com X e texto em vermelho (`--td-canc`), sem opacidade;
   no lugar da barra de fases, data/motivo/pedido do cancelamento `efetivado` (`cancFeitos`, carregado junto com `cancVivos`); valor R$/US$
   riscado (`.td-riscado`) + "Valor liberado — não compromete mais o saldo da atividade".
 

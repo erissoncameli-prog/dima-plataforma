@@ -517,7 +517,8 @@ html[data-tema="escuro"] :is(.guia-corpo, .guia-lista-itens li, .guia-convite-tx
 html[data-tema="escuro"] .guia-item { background: var(--sup); border-color: var(--borda); color: var(--txt); }
 html[data-tema="escuro"] :is(.guia-btn-sec, .guia-chip-n) { background: var(--bg-2); color: var(--txt-forte-2); }
 html[data-tema="escuro"] .guia-convite { background: var(--pri-50); border-color: var(--pri-100); }
-html[data-tema="escuro"] .guia-nota { background: var(--alerta-bg); color: var(--alerta-txt); }
+.guia-nota { background: var(--sup-2, #F3F5F3); border: 1px solid var(--borda); }
+html[data-tema="escuro"] .guia-nota { background: var(--sup-2); color: var(--alerta-txt); }
 
 /* ── Aviso ao entrevistado: parágrafos + autorização separada das fotos ── */
 .aviso-texto { font-size: 18px; white-space: pre-line; line-height: 1.55; }

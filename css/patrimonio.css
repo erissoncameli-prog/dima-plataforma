@@ -256,7 +256,7 @@ body.dgm .pt-ov .pt-mov { display: flex; gap: 6px; flex-wrap: wrap; align-items:
   background: var(--sup-2); border: 1px solid var(--lin); border-radius: 12px; }
 body.dgm .pt-ov .pt-mov > span { font-size: 12px; font-weight: 600; color: var(--txt-2); margin-right: 4px; }
 body.dgm .pt-ov .pt-declara { font-size: 13px; line-height: 1.6; color: var(--txt-forte-2); background: var(--sup-2); border: 1px solid var(--lin);
-  border-left: 3px solid var(--pri-600); border-radius: 12px; padding: 12px 14px; margin: 14px 0; }
+  border-radius: 12px; padding: 12px 14px; margin: 14px 0; }
 body.dgm .pt-ov .pt-assina { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: end; margin-top: 8px; }
 body.dgm .pt-ov .pt-hash { font-family: var(--font-mono); font-size: 11px; color: var(--txt-3); overflow-wrap: anywhere; }
 body.dgm .pt-ov .pt-lista-bens { max-height: 220px; overflow: auto; border: 1px solid var(--lin); border-radius: 12px; }

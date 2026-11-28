@@ -94,7 +94,7 @@ footer.aut-credito, .aut-credito.aut-bloco { display: block; text-align: center;
 .aut-contato a { white-space: nowrap; }
 .aut-dlg a { color: var(--aut-marca); }
 .aut-direitos { color: var(--aut-tx); }
-.aut-aviso { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--aut-aviso-bd); background: var(--aut-aviso-bg); color: var(--aut-tx-2); font-size: 12px; }
+.aut-aviso { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--aut-borda); background: transparent; color: var(--aut-tx-2); font-size: 12px; }
 .aut-terceiros { margin-top: 6px; color: var(--aut-tx-2); font-size: 12px; }
 .aut-terceiros summary { cursor: pointer; font-weight: 600; color: var(--aut-tx); padding: 4px 0; }
 .aut-terceiros ul { margin: 6px 0 10px; padding: 0; list-style: none; columns: 2; column-gap: 16px; }

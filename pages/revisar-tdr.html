@@ -42,7 +42,6 @@ body{overflow:hidden}
 .side-body{flex:1;overflow-y:auto;padding:8px;}
 .com-card{background:var(--branco);border:1px solid var(--borda);border-radius:var(--raio-lg);margin-bottom:7px;overflow:hidden;cursor:pointer;}
 .com-card:hover{border-color:var(--verde-claro);}
-.com-card.ia{border-left:3px solid #7C3AED;}
 .com-card.resolvido{opacity:.5;}
 .com-header{padding:7px 9px;display:flex;align-items:center;gap:6px;}
 .com-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0;}
@@ -57,7 +56,7 @@ body{overflow:hidden}
 
 /* Novo comentário */
 .novo-com{background:var(--branco);border-top:1px solid var(--borda);padding:10px 12px;flex-shrink:0;}
-.trecho-prev{font-size:10px;color:var(--cinza-500);background:var(--cinza-50);padding:3px 8px;border-radius:var(--raio);border-left:3px solid var(--aviso);font-style:italic;margin-bottom:6px;display:none;}
+.trecho-prev{font-size:10px;color:var(--cinza-500);background:var(--cinza-50);padding:3px 8px;border-radius:var(--raio);font-style:italic;margin-bottom:6px;display:none;}
 .trecho-prev.vis{display:block;}
 
 /* IA panel */
@@ -79,7 +78,7 @@ body{overflow:hidden}
 .ver-num{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--verde-medio);}
 
 /* Upload zona */
-.upload-pedido{background:#FFF7ED;border:2px dashed #FED7AA;border-radius:var(--raio-lg);padding:20px;text-align:center;margin:16px;}
+.upload-pedido{background:var(--cinza-50);border:2px dashed var(--borda);border-radius:var(--raio-lg);padding:20px;text-align:center;margin:16px;}
 .upload-pedido.drag{border-color:var(--verde-claro);background:var(--sucesso-bg);}
 
 /* Modal senha */
@@ -887,7 +886,7 @@ JSON esperado:
     sEl.style.color=score>=70?'var(--sucesso)':score>=40?'var(--aviso)':'var(--erro)';
     document.getElementById('ia-result').innerHTML=`
       <div style="margin-bottom:6px">${a.resumo||''}</div>
-      ${a.sugestoes?.length?a.sugestoes.map(s=>`<div style="padding:3px 0;border-left:2px solid #C4B5FD;padding-left:6px;margin-bottom:3px">${s}</div>`).join(''):''}`;
+      ${a.sugestoes?.length?a.sugestoes.map(s=>`<div style="padding:3px 0;padding-left:8px;margin-bottom:3px">${s}</div>`).join(''):''}`;
     // Adicionar comentários da IA
     if(a.pontos?.length){
       const full=quill.getText();

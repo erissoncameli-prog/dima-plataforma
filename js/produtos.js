@@ -637,14 +637,14 @@ async function abrirModal(prodId){
         +(e.arquivo_nome?'<span style="font-size:10px;color:var(--azul-medio);display:inline-flex;align-items:center;gap:4px">· '+prIc('clipe','p')+' '+esc(e.arquivo_nome.length>28?e.arquivo_nome.substring(0,26)+'…':e.arquivo_nome)+(e.arquivo_url?'<button class="btn-xs" onclick="event.stopPropagation();abrirArquivo(\''+e.arquivo_url+'\')" style="height:18px;padding:0 5px;font-size:9px">Abrir</button>':'')+'</span>':'')
         +((e.fotos_total||0)>0?'<span style="font-size:10px;color:var(--cinza-400)">· '+prIc('camera','p')+' '+e.fotos_total+'</span>':'')
         +'</div>'
-        +(e.despacho_texto?'<div style="font-size:11px;color:var(--cinza-600);line-height:1.45;margin-top:3px;padding:4px 8px;background:var(--cinza-50);border-left:2px solid '+(cSit[e.situacao]||'var(--borda)')+';border-radius:2px">'+esc(e.despacho_texto.substring(0,160))+(e.despacho_texto.length>160?'…':'')+'</div>':'')
+        +(e.despacho_texto?'<div style="font-size:11px;color:var(--cinza-600);line-height:1.45;margin-top:3px;padding:4px 8px;background:var(--cinza-50);border-radius:6px">'+esc(e.despacho_texto.substring(0,160))+(e.despacho_texto.length>160?'…':'')+'</div>':'')
         +'</div></div>';
     });
     html+='</div></details>';
   }
 
   if(soLeitura){
-    html+='<div class="pr-aviso" role="note" style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;margin-bottom:12px;border-radius:var(--raio);background:var(--info-bg);color:var(--info);font-size:12.5px">'
+    html+='<div class="pr-aviso" role="note" style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;margin-bottom:12px;border-radius:var(--raio);background:var(--cinza-50);color:var(--info);font-size:12.5px">'
       +prIc('cadeado','p')+'<span>'+(perm.fornecedor
         ?'Você é o fornecedor deste contrato: a entrega está em avaliação e a decisão (aprovar ou devolver) cabe ao responsável ou substituto da atividade.'
         :'Somente leitura: registrar a entrega cabe ao fornecedor do contrato ou ao responsável/substituto da atividade; avaliar, ao responsável ou substituto (ou super_admin).')
@@ -656,7 +656,7 @@ async function abrirModal(prodId){
 
     // Painel de contexto para produtos devolvidos
     if(isDevolvido&&entregaDevolvida){
-      html+='<div style="background:var(--erro-bg);border:1px solid var(--pr-erro-borda);border-radius:var(--raio);padding:14px 16px;margin-bottom:14px">'
+      html+='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:14px 16px;margin-bottom:14px">'
         +'<div style="font-size:12px;font-weight:700;color:var(--erro-txt);margin-bottom:10px;display:flex;align-items:center;gap:6px">'+prIc('volta','p')+' Este produto foi devolvido para correção</div>'
         // Motivo da devolução
         +(entregaDevolvida.despacho_texto?'<div style="font-size:12px;color:var(--erro-txt);background:var(--sup);border:1px solid var(--pr-erro-borda);border-radius:var(--raio);padding:8px 10px;margin-bottom:10px;line-height:1.55">'
@@ -725,7 +725,7 @@ async function abrirModal(prodId){
       +'<div id="fotos-count" style="font-size:11px;color:var(--cinza-500);margin-top:6px"></div>'
       +'</div>'
       // Aviso contribuição obrigatória quando há geo
-      +'<div id="aviso-geo" style="display:none;align-items:flex-start;gap:10px;background:var(--alerta-bg);border:1px solid var(--alerta-borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">'
+      +'<div id="aviso-geo" style="display:none;align-items:flex-start;gap:10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">'
       +'<span style="font-size:16px;flex-shrink:0">'+prIc('alerta','p')+'</span>'
       +'<div style="font-size:12px;color:var(--alerta-txt)"><strong>Contribuição obrigatória.</strong> Esta entrega contém uma planilha de geolocalização — vincule-a a pelo menos um indicador da Matriz de Resultados abaixo antes de enviar.</div>'
       +'</div>'
@@ -932,14 +932,14 @@ async function abrirModal(prodId){
     html+='<div class="aval-col-direita">';
 
     // O que foi contratado
-    html+='<div style="background:var(--info-bg);border:1px solid var(--info-borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:12px">'
+    html+='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:12px">'
       +'<div style="font-size:11px;font-weight:700;color:var(--info-txt);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'+prIc('despacho','p')+' O que foi contratado</div>'
       +'<div style="font-size:13px;font-weight:600;color:var(--cinza-900);line-height:1.4;margin-bottom:'+(p.observacoes?'8':'0')+'px">'+esc(p.descricao||'')+'</div>'
       +(p.observacoes?'<div style="font-size:11px;color:var(--cinza-600);line-height:1.55;border-top:1px solid var(--info-borda);padding-top:8px"><strong style="font-size:10px;color:var(--info-txt);text-transform:uppercase;letter-spacing:.04em">Observações: </strong>'+esc(p.observacoes)+'</div>':'')
       +'</div>';
 
     // Confirmação
-    html+='<div style="background:var(--alerta-bg);border:1px solid var(--alerta-borda);border-radius:var(--raio);padding:10px 14px;margin-bottom:12px">'
+    html+='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 14px;margin-bottom:12px">'
       +'<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">'
       +'<input type="checkbox" id="chk-confirmacao" onchange="toggleAvalCheckbox()" style="margin-top:2px;width:16px;height:16px;accent-color:var(--ok);flex-shrink:0">'
       +'<span style="font-size:12px;font-weight:600;color:var(--alerta-txt);line-height:1.45">Confirmo que o produto corresponde ao contratado. Conteúdo e qualidade estão em conformidade.</span>'
@@ -1085,7 +1085,7 @@ async function renderLinhaTempo(p){
       var bgAvl=e.situacao==='devolvida'?'var(--erro-bg)':e.situacao==='aprovada'?'var(--ok-bg)':'var(--sup-2)';
       var avlC='<div style="font-size:12px;font-weight:700;color:'+corSit+'">'+(DEC_LABEL[e.tipo_decisao]||sitLbl(e.situacao))+'</div>'
         +'<div style="font-size:11px;color:var(--cinza-500);margin-top:2px">'+(e.despacho_data?fmtData(e.despacho_data):fmtDT(e.despachado_em||''))+(e.despachado_por_u&&e.despachado_por_u.nome_completo?' · '+esc(e.despachado_por_u.nome_completo):'')+(e.despacho_numero?' · '+esc(e.despacho_numero):'')+'</div>'
-        +(e.despacho_texto?'<div style="font-size:11px;color:var(--cinza-700);margin-top:6px;padding:6px 8px;background:var(--cinza-50);border-left:3px solid '+corSit+';border-radius:0 4px 4px 0;line-height:1.5;max-height:80px;overflow-y:auto">'+esc(e.despacho_texto.substring(0,300))+(e.despacho_texto.length>300?'…':'')+'</div>':'')
+        +(e.despacho_texto?'<div style="font-size:11px;color:var(--cinza-700);margin-top:6px;padding:6px 8px;background:var(--cinza-50);border-radius:6px;line-height:1.5;max-height:80px;overflow-y:auto">'+esc(e.despacho_texto.substring(0,300))+(e.despacho_texto.length>300?'…':'')+'</div>':'')
         +(e.nota_tecnica_url?'<div style="margin-top:6px;display:flex;align-items:center;gap:6px"><span style="font-size:11px">'+prIc('doc','p')+'</span><span style="font-size:11px;color:var(--cinza-700)">'+esc(e.nota_tecnica_nome||'Nota Técnica')+'</span><button onclick="abrirArquivo(\''+e.nota_tecnica_url.replace(/'/g,"\\'")+'\');" style="font-size:10px;padding:1px 6px;border:1px solid var(--pr-ok-borda);border-radius:3px;background:var(--ok-bg);cursor:pointer;color:var(--ok-txt)">'+prIc('olho','p')+' Abrir NT</button></div>':'');
       html+=tlItem(iconSit,bgAvl,avlC,!isUltima||!!lanc);
     }
@@ -1153,7 +1153,7 @@ function renderListaDocs(){
   if(!docsEntrega.length){el.innerHTML='<div style="font-size:11px;color:var(--cinza-400);padding:6px 0">Nenhum documento adicionado ainda.</div>';renderAvisoGeo();return;}
   el.innerHTML=docsEntrega.map(function(d,i){
     if(d.isGeo){
-      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--ok-bg);border:1px solid var(--pr-ok-borda);border-radius:var(--raio);margin-bottom:4px">'
+      return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);margin-bottom:4px">'
         +'<span style="font-size:16px">'+prIc('pin','p')+'</span>'
         +'<div style="flex:1;min-width:0">'
         +'<div style="font-size:12px;font-weight:600;color:var(--ok-txt)">'+esc(d.nome)+'</div>'
@@ -1985,7 +1985,7 @@ function renderModalGeoCsvEtapa1(){
   if(!body||!footer)return;
 
   body.innerHTML=''
-    +'<div style="background:var(--info-bg);border:1px solid var(--info-borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:14px">'
+    +'<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px 14px;margin-bottom:14px">'
     +'<div style="font-size:12px;font-weight:600;color:var(--info-txt);margin-bottom:4px">'+prIc('despacho','p')+' Como usar</div>'
     +'<ol style="margin:0;padding-left:18px;font-size:12px;color:var(--info-txt);line-height:1.7">'
     +'<li>Baixe o template e preencha <strong>apenas as abas que se aplicam</strong> ao produto (<strong>Pontos</strong>, <strong>Polígono</strong> ou <strong>Trilha</strong>).</li>'
@@ -1994,7 +1994,7 @@ function renderModalGeoCsvEtapa1(){
     +'<li><strong>Importe o próprio arquivo .xlsx</strong> — não é necessário converter para CSV.</li>'
     +'</ol>'
     +'</div>'
-    +'<div style="display:flex;align-items:flex-start;gap:8px;background:var(--alerta-bg);border:1px solid var(--alerta-borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">'
+    +'<div style="display:flex;align-items:flex-start;gap:8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">'
     +'<span style="font-size:15px;flex-shrink:0">'+prIc('alerta','p')+'</span>'
     +'<span style="font-size:11px;color:var(--alerta-txt);line-height:1.5">Cada produto deve ter sua própria planilha. Se o produto entregue for apenas pontos, use só a aba <strong>Pontos</strong> e apague os exemplos das demais. O sistema ignora automaticamente linhas cujo nome começa com <strong>"Ex:"</strong>.</span>'
     +'</div>'
@@ -2092,16 +2092,16 @@ function renderModalGeoCsvEtapa2(validas,invalidas){
   var gruposTrilha=[...new Set(validas.filter(function(r){return r.geometry_type==='trilha';}).map(function(r){return r.geometry_group;}))].length;
 
   var statsHtml='<div style="display:flex;gap:10px;margin-bottom:12px">'
-    +'<div style="flex:1;background:var(--ok-bg);border:1px solid var(--pr-ok-borda);border-radius:var(--raio);padding:10px 12px;text-align:center">'
+    +'<div style="flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;text-align:center">'
     +'<div style="font-size:20px;font-weight:700;color:var(--ok-txt)">'+nPontos+'</div>'
     +'<div style="font-size:11px;color:var(--ok-txt)">pontos</div></div>'
-    +'<div style="flex:1;background:var(--info-bg);border:1px solid var(--info-borda);border-radius:var(--raio);padding:10px 12px;text-align:center">'
+    +'<div style="flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;text-align:center">'
     +'<div style="font-size:20px;font-weight:700;color:var(--info)">'+gruposPol+'</div>'
     +'<div style="font-size:11px;color:var(--info-txt)">polígonos</div></div>'
-    +'<div style="flex:1;background:var(--alerta-bg);border:1px solid var(--alerta-borda);border-radius:var(--raio);padding:10px 12px;text-align:center">'
+    +'<div style="flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;text-align:center">'
     +'<div style="font-size:20px;font-weight:700;color:var(--alerta-txt)">'+gruposTrilha+'</div>'
     +'<div style="font-size:11px;color:var(--alerta-txt)">trilhas</div></div>'
-    +(invalidas.length?'<div style="flex:1;background:var(--erro-bg);border:1px solid var(--pr-erro-borda);border-radius:var(--raio);padding:10px 12px;text-align:center">'
+    +(invalidas.length?'<div style="flex:1;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;text-align:center">'
     +'<div style="font-size:20px;font-weight:700;color:var(--erro)">'+invalidas.length+'</div>'
     +'<div style="font-size:11px;color:var(--erro)">erros</div></div>':'')
     +'</div>';
@@ -2131,7 +2131,7 @@ function renderModalGeoCsvEtapa2(validas,invalidas){
     +'</tbody></table></div>';
 
   body.innerHTML=statsHtml
-    +(invalidas.length?'<div style="font-size:11px;color:var(--erro);background:var(--erro-bg);border:1px solid var(--pr-erro-borda);border-radius:var(--raio);padding:8px 10px;margin-bottom:12px">'+prIc('alerta','p')+' Linhas ignoradas: '+invalidas.map(function(x){return (x.sheet?x.sheet+' l.':'l.')+x.linha;}).join(', ')+'</div>':'')
+    +(invalidas.length?'<div style="font-size:11px;color:var(--erro);background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;margin-bottom:12px">'+prIc('alerta','p')+' Linhas ignoradas: '+invalidas.map(function(x){return (x.sheet?x.sheet+' l.':'l.')+x.linha;}).join(', ')+'</div>':'')
     +tabelaHtml
     +'<p style="font-size:11px;color:var(--cinza-500);margin:8px 0 0">As geometrias serão salvas no mapa após o envio da entrega. Você poderá visualizá-las em <strong>Mapa Interativo</strong>.</p>';
 
@@ -2260,7 +2260,7 @@ async function renderModalMatrizEdit(){
   var contribs=contribsR.data||[];
   document.getElementById('me-sub').textContent='Produto '+(p.numero_produto||'')+' — '+(sitLbl(p.situacao)||'');
 
-  var html='<div style="background:var(--alerta-bg);border:1px solid var(--alerta-borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--alerta-txt);line-height:1.5">'
+  var html='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--alerta-txt);line-height:1.5">'
     +''+prIc('alerta','p')+' Este produto já foi avaliado/pago. Alterações aqui corrigem vínculos com a Matriz de Resultados esquecidos na entrega original — não afetam o valor pago nem a situação do produto.'
     +'</div>';
 
@@ -2381,7 +2381,7 @@ async function renderModalAnexoEdit(){
   var docsR=await db.from('entrega_documentos').select('*').eq('entrega_id',_aeEntregaId).order('inserido_em');
   var docs=docsR.data||[];
 
-  var html='<div style="background:var(--alerta-bg);border:1px solid var(--alerta-borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--alerta-txt);line-height:1.5">'
+  var html='<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:14px;font-size:11px;color:var(--alerta-txt);line-height:1.5">'
     +''+prIc('alerta','p')+' Este produto já foi avaliado/pago. O documento é anexado à entrega '+_aeNumeroEntrega+' (a mesma exibida no painel do Financeiro) — não altera o valor pago nem a situação do produto.'
     +'</div>';
 

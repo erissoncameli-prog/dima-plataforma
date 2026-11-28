@@ -518,7 +518,7 @@ function renderPagina(){
 
             <!-- PRODES Anual -->
             <div class="mlb-veg-card">
-              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--erro-bg);border-bottom:1px solid color-mix(in srgb,var(--erro) 35%,transparent)">
+              <div style="display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--cinza-50);border-bottom:1px solid color-mix(in srgb,var(--erro) 35%,transparent)">
                 <input type="checkbox" id="veg-prodes-toggle" style="accent-color:var(--erro);width:13px;height:13px;cursor:pointer" onchange="toggleCamadaVeg('prodes',this.checked)">
                 <span style="font-size:11px;font-weight:600;color:var(--cinza-800);flex:1">PRODES Anual</span>
                 <span style="font-size:9px;background:var(--erro-bg);color:var(--erro);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:99px;padding:1px 5px;font-weight:600">INPE</span>
@@ -1106,7 +1106,7 @@ function renderPagina(){
           <label>Sua senha *</label>
           <input id="modal-senha-input" type="password" placeholder="Digite sua senha para confirmar" onkeydown="if(event.key==='Enter')_submitSenha()">
         </div>
-        <div id="modal-senha-erro" style="display:none;font-size:12px;color:var(--erro);background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio);padding:8px 10px">
+        <div id="modal-senha-erro" style="display:none;font-size:12px;color:var(--erro);background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px">
           Senha incorreta. Tente novamente.
         </div>
       </div>
@@ -3179,7 +3179,7 @@ function _impEtapa2(erros){
         Selecione um tipo para aplicar a <strong>todos</strong> os registros importados, sobrescrevendo o campo da planilha.
       </div>
     </div>
-    <div style="display:flex;align-items:flex-start;gap:8px;background:var(--aviso-bg);border:1px solid color-mix(in srgb,var(--aviso) 45%,transparent);border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">
+    <div style="display:flex;align-items:flex-start;gap:8px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;margin-bottom:10px">
       <span style="font-size:15px;flex-shrink:0">⚠️</span>
       <span style="font-size:11px;color:var(--aviso);line-height:1.5">Esta importação é um registro administrativo direto — <strong>não gera vínculo com entrega de produto</strong>. Para vincular pontos a uma entrega, use a planilha de geolocalização dentro do modal de <em>Produto Entregue</em>.</span>
     </div>`;
@@ -3208,7 +3208,7 @@ function _impEtapa2(erros){
     </table></div>`;
 
   body.innerHTML = statsHtml
-    + (erros.length?`<div style="font-size:11px;color:var(--erro);background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio);padding:8px 10px;margin-bottom:10px">⚠ Linhas ignoradas: ${erros.slice(0,5).join(' · ')}${erros.length>5?` …e mais ${erros.length-5}`:''}</div>`:'')
+    + (erros.length?`<div style="font-size:11px;color:var(--erro);background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px;margin-bottom:10px">⚠ Linhas ignoradas: ${erros.slice(0,5).join(' · ')}${erros.length>5?` …e mais ${erros.length-5}`:''}</div>`:'')
     + seletorHtml
     + tabelaHtml;
 
@@ -4475,7 +4475,7 @@ function _htmlCarDiagnostico(d, f){
   return `
   <!-- KPIs principais -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-    <div style="background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio);padding:10px 12px;position:relative">
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;position:relative">
       <div style="font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.05em">Desmatado</div>
       <div style="font-size:18px;font-weight:700;color:${corDesmat}">${f2(desmatPrincipal)} ha</div>
       <div style="font-size:10px;color:var(--cinza-500)">${f1(pctDesmatPrincipal)}% da área</div>
@@ -4491,7 +4491,7 @@ function _htmlCarDiagnostico(d, f){
       <div style="font-size:10px;color:var(--cinza-500)">${f1(d.pctFloresta)}% da área</div>
       ${barra(d.pctFloresta, 100, '#16a34a')}
     </div>
-    <div style="background:var(--aviso-bg);border:1px solid color-mix(in srgb,var(--aviso) 40%,transparent);border-radius:var(--raio);padding:10px 12px">
+    <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px">
       <div style="font-size:10px;font-weight:700;color:var(--cinza-400);text-transform:uppercase;letter-spacing:.05em">APP Degradada</div>
       <div style="font-size:18px;font-weight:700;color:${corApp}">${f2(d.appA)} ha</div>
       <div style="font-size:10px;color:var(--cinza-500)">${f1(d.pctAppDeg)}% da APP</div>
@@ -4545,7 +4545,7 @@ function _htmlCarDiagnostico(d, f){
   </div>
 
   <!-- Análise narrativa -->
-  <div style="background:var(--cinza-50);border-left:3px solid var(--verde);padding:10px 12px;border-radius:0 var(--raio) var(--raio) 0;font-size:11px;color:var(--cinza-700);line-height:1.7;margin-bottom:10px">
+  <div style="background:var(--cinza-50);padding:10px 12px;border-radius:var(--raio);font-size:11px;color:var(--cinza-700);line-height:1.7;margin-bottom:10px">
     <div style="font-size:9px;font-weight:700;color:var(--verde);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 Diagnóstico</div>
     ${_gerarTextoCarDiag(d, p, local)}
   </div>
@@ -4761,7 +4761,7 @@ function _htmlProdes(d, f){
 
   if(d?.erro) return `
     <div style="padding:20px;display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio)">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio)">
         <span style="font-size:18px;flex-shrink:0">⚠️</span>
         <div>
           <div style="font-size:12px;font-weight:600;color:var(--erro);margin-bottom:4px">Não foi possível obter os dados</div>
@@ -4823,7 +4823,7 @@ function _htmlProdes(d, f){
         <div style="font-size:10px;color:var(--treino);margin-top:2px">${f1(pctHist)}% da área</div>
         <div style="font-size:9px;color:#fdba74;margin-top:4px">Desmatamento histórico antes do monitoramento anual</div>
       </div>
-      <div style="padding:10px 12px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio)">
+      <div style="padding:10px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio)">
         <div style="font-size:9px;font-weight:700;color:var(--erro);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📅 Anual 2008–hoje</div>
         <div style="font-size:18px;font-weight:700;color:var(--erro)">${f2(d.anual.totalHa)} ha</div>
         <div style="font-size:10px;color:var(--erro);margin-top:2px">${f1(pctAnual)}% da área</div>
@@ -4852,7 +4852,7 @@ function _htmlProdes(d, f){
     </div>
 
     <!-- Aviso de precisão -->
-    <div style="padding:8px 10px;background:var(--aviso-bg);border:1px solid color-mix(in srgb,var(--aviso) 40%,transparent);border-radius:var(--raio);font-size:10px;color:var(--aviso);line-height:1.5;margin-bottom:8px">
+    <div style="padding:8px 10px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);font-size:10px;color:var(--aviso);line-height:1.5;margin-bottom:8px">
       ⚠️ <strong>Precisão:</strong> Dados PRODES têm resolução de 30m (Landsat/Sentinel-2). Margens de erro de 5–15% são esperadas. Para uso oficial, consulte o INPE diretamente.
     </div>
 
@@ -4985,7 +4985,7 @@ function _htmlDiagProdes(cod, areaCAR){
   }
 
   if(prodes.erro){
-    return `<div style="padding:8px 12px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:var(--raio);font-size:11px;color:var(--erro);margin-bottom:8px">
+    return `<div style="padding:8px 12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);font-size:11px;color:var(--erro);margin-bottom:8px">
       ⚠️ Dados PRODES indisponíveis: ${prodes.erro}
     </div>`;
   }
@@ -5011,7 +5011,7 @@ function _htmlDiagProdes(cod, areaCAR){
           <div style="font-size:13px;font-weight:700;color:var(--treino)">${f2(prodes.historico.totalHa)} ha</div>
           <div style="font-size:9px;color:var(--treino)">Pré-2008 (${pctHist}%)</div>
         </div>
-        <div style="text-align:center;padding:6px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:5px">
+        <div style="text-align:center;padding:6px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:5px">
           <div style="font-size:13px;font-weight:700;color:var(--erro)">${f2(prodes.anual.totalHa)} ha</div>
           <div style="font-size:9px;color:var(--erro)">Pós-2008 (${pctAnual}%)</div>
         </div>
@@ -5574,7 +5574,7 @@ function _conteudoRelatorioCAR(capturas){
 .diag-card-lbl{font-size:8.5px;color:#6b7280;margin-top:2px;line-height:1.2;}
 
 /* ── ANÁLISE ── */
-.analise{background:#f8faf8;border-left:3px solid #1F4E2C;padding:12px 16px;border-radius:0 6px 6px 0;font-size:11.5px;color:#374151;line-height:1.8;margin-bottom:10px;}
+.analise{border:1px solid #E5E7EB;padding:12px 16px;border-radius:6px;font-size:11.5px;color:#374151;line-height:1.8;margin-bottom:10px;}
 .analise-title{font-size:9px;font-weight:700;color:#1F4E2C;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;}
 .links-row{display:flex;gap:8px;}
 .link-btn{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:4px 12px;border-radius:4px;border:1px solid;text-decoration:none;font-weight:600;}
@@ -6824,7 +6824,7 @@ function _htmlRelProdes(){
       <div style="font-size:11px;color:var(--treino);margin-top:2px">Acumulado pré-2008</div>
       <div style="font-size:10px;color:#fdba74;margin-top:4px;line-height:1.3">Passivo histórico anterior ao monitoramento anual sistemático</div>
     </div>
-    <div style="flex:1;min-width:120px;padding:12px;background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 40%,transparent);border-radius:6px;text-align:center">
+    <div style="flex:1;min-width:120px;padding:12px;background:var(--cinza-50);border:1px solid var(--borda);border-radius:6px;text-align:center">
       <div style="font-size:20px;font-weight:700;color:var(--erro)">${f2(totalAnual)} ha</div>
       <div style="font-size:11px;color:var(--erro);margin-top:2px">Pós-2008 (anual)</div>
       <div style="font-size:10px;color:color-mix(in srgb,var(--erro) 40%,transparent);margin-top:4px;line-height:1.3">Detecção por satélite ano a ano — monitoramento rigoroso</div>
@@ -6959,10 +6959,10 @@ function exportarRelPDF(){
 .rel-kpi-val{font-size:19px;font-weight:700;color:#111827;line-height:1.2;}
 .rel-kpi-lbl{font-size:10px;color:#6b7280;margin-top:3px;font-weight:500;}
 .rel-kpi-sub{font-size:9px;color:#9ca3af;margin-top:2px;}
-.rel-kpi-danger{border-color:#fca5a5;background:#fef2f2;}.rel-kpi-danger .rel-kpi-val{color:#dc2626;}
-.rel-kpi-green{border-color:#86efac;background:#f0fdf4;}.rel-kpi-green .rel-kpi-val{color:#16a34a;}
-.rel-kpi-warn{border-color:#fde68a;background:#fffbeb;}.rel-kpi-warn .rel-kpi-val{color:#d97706;}
-.rel-kpi-info{border-color:#bfdbfe;background:#eff6ff;}.rel-kpi-info .rel-kpi-val{color:#1d4ed8;}
+.rel-kpi-danger{}.rel-kpi-danger .rel-kpi-val{color:#dc2626;}
+.rel-kpi-green{}.rel-kpi-green .rel-kpi-val{color:#16a34a;}
+.rel-kpi-warn{}.rel-kpi-warn .rel-kpi-val{color:#d97706;}
+.rel-kpi-info{}.rel-kpi-info .rel-kpi-val{color:#1d4ed8;}
 .rel-section{border:1px solid #e5e7eb;border-radius:8px;padding:14px 18px;margin-bottom:16px;break-inside:avoid;}
 .rel-section-title{font-size:12px;font-weight:700;color:#1f2937;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f3f4f6;}
 .rel-table{width:100%;border-collapse:collapse;font-size:11px;}

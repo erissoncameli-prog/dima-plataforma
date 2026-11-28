@@ -190,8 +190,8 @@ body.dgm .vg-it-t { font-size: 13px; font-weight: 600; color: var(--txt); overfl
 body.dgm .vg-it-s { font-size: 12px; color: var(--txt-2); margin-top: 2px; overflow-wrap: anywhere; }
 body.dgm .vg-it-m { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; font-size: 11px; color: var(--txt-3); }
 body.dgm .vg-it-a { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-body.dgm .vg-citacao { font-size: 12px; color: var(--erro-txt); background: var(--erro-bg); border-left: 2px solid var(--erro);
-  padding: 4px 8px; border-radius: 0 6px 6px 0; margin-top: 6px; line-height: 1.4; }
+body.dgm .vg-citacao { font-size: 12px; color: var(--erro-txt);
+  padding: 0; margin-top: 6px; line-height: 1.4; }
 body.dgm .vg-vazio { padding: 20px 0; text-align: center; color: var(--txt-3); font-size: 13px; display: flex; gap: 8px; justify-content: center; align-items: center; }
 
 /* faixa de saudação (Minhas tarefas) */
@@ -340,9 +340,8 @@ body.dgm .vg-exp .vg-ic { width: 16px; height: 16px; fill: none; stroke: current
 body.dgm .vg-ed { margin-bottom: 16px; }
 body.dgm .vg-ed .vg-card-h { flex-wrap: wrap; gap: 10px; }
 body.dgm .vg-ed-grade { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; min-width: 0; }
-body.dgm .vg-ed-c { min-width: 0; padding: 8px 12px; border: 1px solid var(--lin); border-left: 3px solid var(--lin-forte);
+body.dgm .vg-ed-c { min-width: 0; padding: 8px 12px; border: 1px solid var(--lin);
   border-radius: 8px; background: var(--sup); }
-body.dgm .vg-ed-c.aberto { border-left-color: var(--info); }
 body.dgm .vg-ed-c.exp { background: var(--sup-2); }
 body.dgm .vg-ed-lin { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 8px 16px; align-items: center; }
 body.dgm .vg-ed-pri { display: flex; flex-direction: column; gap: 3px; min-width: 0; }

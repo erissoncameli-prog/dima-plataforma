@@ -4259,7 +4259,7 @@ async function relVi4(){
         <div style="font-size:9.5px;font-weight:600;color:var(--cinza-900);margin-top:3px;line-height:1.2">${e.label}</div>
         ${e.data?`<div style="font-size:8.5px;color:var(--cinza-500)">${new Date(e.data).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>`:''}
         ${e.desc&&!e.desc.startsWith('Motivo')?`<div style="font-size:8.5px;color:var(--cinza-600);line-height:1.2">${esc(e.desc)}</div>`:''}
-      </div>`).join('')}</div>${p.rejeitado_motivo&&p.rejeitado_em?`<div style="font-size:9.5px;color:var(--cinza-700);margin-top:6px;padding:4px 8px;background:var(--cinza-50);border-left:3px solid #DC2626">Motivo da devolução: ${esc(p.rejeitado_motivo)}</div>`:''}`;
+      </div>`).join('')}</div>${p.rejeitado_motivo&&p.rejeitado_em?`<div style="font-size:9.5px;color:var(--cinza-700);margin-top:6px;padding:2px 0;color:#B91C1C">Motivo da devolução: ${esc(p.rejeitado_motivo)}</div>`:''}`;
 
     // ── Viajantes / trechos / diárias ─────────────────────────
     const vRows = vList.map(v=>{
@@ -4923,7 +4923,7 @@ async function relV4(){
         const pe = entsByProd[p.id]||[];
         // um tbody por produto e uma linha por entrega: o produto pode continuar na página seguinte (com o nº do
         // contrato repetido no cabeçalho), mas o título do produto nunca fica sozinho — vai junto da 1ª entrega
-        const cel = (conteudo, fim) => `<tr><td style="padding:0 12px ${fim?'8px':'0'}"><div style="padding:0 0 ${fim?'0':'3px'} 10px;border-left:2px solid #c8e6d0">${conteudo}</div></td></tr>`;
+        const cel = (conteudo, fim) => `<tr><td style="padding:0 12px ${fim?'8px':'0'}"><div style="padding:0 0 ${fim?'0':'3px'} 10px">${conteudo}</div></td></tr>`;
         const cab = `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;padding-top:2px">
             <span style="font-size:10px;font-weight:700;color:var(--cinza-400);white-space:nowrap">#${esc(p.numero_produto)}</span>
             <span style="font-size:11px;font-weight:600;color:var(--cinza-900);flex:1;min-width:0">${esc(p.descricao)}</span>

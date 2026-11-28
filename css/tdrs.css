@@ -90,12 +90,10 @@ body.dgm .td-card {
 body.dgm .td-card:hover { border-color: var(--lin-forte); }
 body.dgm .td-card:focus-visible { outline: none; box-shadow: var(--anel); border-color: var(--pri-600); }
 /* TDR cancelado: cartão inteiro em vermelho, texto sem apagar; valor riscado (não compromete mais o saldo) */
-body.dgm .td-card.td-c-cancelado { background: var(--td-canc-bg); border-color: var(--td-canc-lin); border-left: 4px solid var(--td-canc); }
-body.dgm .td-card.td-c-cancelado:hover { border-color: var(--td-canc); }
-body.dgm .td-card.td-c-cancelado .td-selo-fase { color: var(--td-canc-sobre); background: var(--td-canc); }
+body.dgm body.dgm .td-card.td-c-cancelado .td-selo-fase { color: var(--td-canc-sobre); background: var(--td-canc); }
 body.dgm .td-card.td-c-cancelado .td-selo-fase::before { display: none; }
 body.dgm .td-card.td-c-cancelado .td-selo-fase .td-ic { width: 13px; height: 13px; stroke-width: 2.6; }
-body.dgm .td-canc-info { font-size: 13px; color: var(--td-canc); background: var(--td-canc-faixa); border-radius: var(--r-ctl); padding: 8px 12px; }
+body.dgm .td-canc-info { font-size: 13px; color: var(--td-canc); }
 body.dgm .td-din.td-riscado > div:nth-child(-n+2) b { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--txt-2); }
 body.dgm .td-canc-nota { margin: -4px 0 0; font-size: 12px; font-weight: 600; color: var(--td-canc); }
 
@@ -108,7 +106,7 @@ body.dgm .td-selo.td-atraso { --c: var(--erro); --c-bg: var(--erro-bg); }
 /* TDR com pedido de cancelamento em andamento (20261012_tdr_cancelamento) */
 body.dgm .td-selo.td-cancelando { --c: var(--alerta-txt); --c-bg: var(--alerta-bg); }
 /* mensagem de erro dentro das janelas de licitação sem êxito e de cancelamento */
-body.dgm .td-erro-msg { margin-top: 10px; padding: 10px 12px; border-radius: var(--r-ctl); background: var(--erro-bg); color: var(--erro-txt); font-size: 13px; }
+body.dgm .td-erro-msg { margin-top: 10px; padding: 10px 12px; border-radius: var(--r-ctl); background: var(--sup-2); border: 1px solid var(--lin); color: var(--erro-txt); font-size: 13px; }
 body.dgm .td-ov .form-control.td-campo-erro { border-color: var(--erro); box-shadow: 0 0 0 3px var(--erro-bg); }
 body.dgm .td-versao { margin-left: auto; font-size: 12px; color: var(--txt-3); }
 
@@ -259,7 +257,7 @@ body.dgm .td-mono { font-family: var(--font-mono); font-variant-numeric: tabular
 body.dgm .td-btn-ic { padding: 6px 8px; }
 
 /* matriz de resultados */
-body.dgm .td-matriz { background: var(--ok-bg); border: 1px solid transparent; border-radius: var(--r-in); padding: 12px 14px; margin-bottom: 14px; }
+body.dgm .td-matriz { background: var(--sup-2); border: 1px solid var(--lin); border-radius: var(--r-in); padding: 12px 14px; margin-bottom: 14px; }
 body.dgm .td-matriz h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--ok-txt); }
 html[data-tema="escuro"] body.dgm .td-matriz h4 { color: var(--ok); }
 body.dgm .td-matriz-item { background: var(--sup); border: 1px solid var(--lin); border-radius: var(--r-ctl); padding: 8px 10px; margin-top: 6px; }
@@ -284,7 +282,7 @@ body.dgm .td-tres .pos { background: var(--ok-bg); border-color: transparent; } 
 body.dgm .td-tres .neg b { color: var(--erro); }
 html[data-tema="escuro"] body.dgm .td-tres .pos :is(small, b) { color: var(--ok); }
 @media (max-width: 560px) { body.dgm .td-tres { grid-template-columns: 1fr; } }
-body.dgm .td-lib { border: 1px solid var(--lin); border-left: 3px solid var(--c); border-radius: var(--r-ctl); padding: 10px 12px; background: var(--sup); }
+body.dgm .td-lib { border: 1px solid var(--lin); border-radius: var(--r-ctl); padding: 10px 12px; background: var(--sup); }
 body.dgm .td-lib + .td-lib { margin-top: 8px; }
 body.dgm .td-lib-tit { font-size: 13px; font-weight: 600; color: var(--c); }
 body.dgm .td-lib-est { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--lin-forte); font-size: 12px; color: var(--alerta-txt); }
@@ -299,7 +297,7 @@ html[data-tema="escuro"] body.dgm .td-ver-n { color: #0B120E; }
 body.dgm .td-ver-autor { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--txt-2); }
 body.dgm .td-av { width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: var(--info-bg); color: var(--info); }
 body.dgm .td-ver-corpo { padding: 12px 14px; display: grid; gap: 12px; }
-body.dgm .td-nota { font-size: 13px; color: var(--txt); padding: 8px 12px; background: var(--info-bg); border-left: 3px solid var(--info); border-radius: var(--r-ctl); white-space: pre-wrap; }
+body.dgm .td-nota { font-size: 13px; color: var(--txt); padding: 8px 12px; background: var(--sup-2); border: 1px solid var(--lin); border-radius: var(--r-ctl); white-space: pre-wrap; }
 body.dgm .td-diff-nome { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--txt-2); margin-bottom: 6px; }
 body.dgm .td-diff { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 body.dgm .td-diff > div { border-radius: var(--r-ctl); padding: 8px 10px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -387,9 +385,8 @@ body.dgm .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; mar
 body.dgm .td-selo.td-lic-aberta { --c: var(--td-licitacao); --c-bg: var(--td-licitacao-bg); }
 body.dgm .td-selo.td-lic-vence { --c: var(--alerta-txt); --c-bg: var(--alerta-bg); }
 body.dgm .td-selo.td-lic-ruim { --c: var(--erro); --c-bg: var(--erro-bg); }
-body.dgm .td-lic { border: 1px solid var(--lin); border-left: 4px solid var(--td-licitacao); border-radius: var(--r-in);
+body.dgm .td-lic { border: 1px solid var(--lin); border-radius: var(--r-in);
   background: var(--sup-2); padding: 14px 16px; margin-bottom: 14px; }
-body.dgm .td-lic.ruim { border-left-color: var(--erro); }
 body.dgm .td-lic-h { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 8px; }
 body.dgm .td-lic-h b { font-size: 14px; color: var(--txt); }
 body.dgm .td-lic-dados { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--txt-2); margin-bottom: 8px; }

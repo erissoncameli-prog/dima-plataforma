@@ -42,7 +42,7 @@ body.dgm :is(.main-content, .ct-ov) .ct-meter { height: 6px; border-radius: 3px;
 body.dgm :is(.main-content, .ct-ov) .ct-meter > i { display: block; height: 100%; border-radius: 3px; }
 
 /* faixa de contratos travados (aguardando cobertura) */
-body.dgm .ct-travado { display: flex; gap: 12px; align-items: center; background: var(--ct-serio-bg); border: 1px solid var(--ct-serio);
+body.dgm .ct-travado { display: flex; gap: 12px; align-items: center; background: var(--sup-2); border: 1px solid var(--lin);
   border-radius: 14px; padding: 12px 16px; color: var(--ct-serio-txt); flex-wrap: wrap; }
 body.dgm .ct-travado .tx { flex: 1; min-width: 220px; font-size: 13px; }
 body.dgm .ct-travado b { display: block; font-size: 14px; }
@@ -114,7 +114,7 @@ body.dgm .ct-vig small.perto { color: var(--alerta-txt); font-weight: 600; }
 body.dgm .ct-docs { display: flex; gap: 4px; flex-wrap: wrap; }
 
 /* detalhe da linha */
-body.dgm .detail-inner { border-left: 3px solid var(--pri-600); padding: 4px 0 0 14px; }
+body.dgm .detail-inner { padding: 4px 0 0; }
 body.dgm .det-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--lin); margin-bottom: 12px; flex-wrap: wrap; }
 body.dgm .det-tab { padding: 8px 12px; font: inherit; font-size: 13px; font-weight: 500; color: var(--txt-2); cursor: pointer; border: 0; background: none;
   border-bottom: 2px solid transparent; margin-bottom: -1px; display: inline-flex; gap: 6px; align-items: center; }
@@ -191,7 +191,7 @@ body.dgm .ct-ov .sec-label:first-child { margin-top: 0; }
 body.dgm .ct-ov .form-label { color: var(--txt-forte-2); font-weight: 600; font-size: 12px; }
 body.dgm .ct-ov .form-hint, body.dgm .ct-ov .ct-dica { font-size: 11.5px; color: var(--txt-3); display: flex; gap: 5px; align-items: center; margin-top: 4px; }
 body.dgm .ct-ov input[readonly] { background: var(--sup-2); color: var(--txt-2); }
-body.dgm .ct-ov .ct-aviso-trava { background: var(--ct-serio-bg); border: 1px solid var(--ct-serio); color: var(--ct-serio-txt); border-radius: 12px;
+body.dgm .ct-ov .ct-aviso-trava { background: var(--sup-2); border: 1px solid var(--lin); color: var(--ct-serio-txt); border-radius: 12px;
   padding: 10px 12px; font-size: 12.5px; margin-bottom: 12px; line-height: 1.5; }
 body.dgm .ct-ov .ct-aviso-trava a { color: inherit; font-weight: 600; }
 body.dgm .ct-ov .ct-link { font-size: 12px; color: var(--info-txt); white-space: nowrap; font-weight: 600; }
@@ -200,8 +200,8 @@ body.dgm .ct-ov .upload-zone { border: 1.5px dashed var(--lin-forte); border-rad
 body.dgm .ct-ov .upload-zone:hover, body.dgm .ct-ov .upload-zone.drag { border-color: var(--pri-600); background: var(--pri-50); }
 body.dgm .ct-ov .upload-zone input { display: none; }
 body.dgm .ct-ov .upload-zone b { color: var(--txt); font-weight: 600; }
-body.dgm .ct-ov .ct-arq { display: flex; align-items: center; gap: 8px; font-size: 12.5px; background: var(--ok-bg); color: var(--ok-txt); border-radius: 10px; padding: 8px 10px; margin-top: 8px; }
-body.dgm .ct-ov .traduz-info { background: var(--info-bg); border: 0; color: var(--info-txt); border-radius: 12px; padding: 10px 12px; font-size: 12px;
+body.dgm .ct-ov .ct-arq { display: flex; align-items: center; gap: 8px; font-size: 12.5px; background: var(--sup-2); border: 1px solid var(--lin); color: var(--ok-txt); border-radius: 10px; padding: 8px 10px; margin-top: 8px; }
+body.dgm .ct-ov .traduz-info { background: var(--sup-2); border: 1px solid var(--lin); color: var(--info-txt); border-radius: 12px; padding: 10px 12px; font-size: 12px;
   display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; line-height: 1.5; }
 body.dgm .ct-ov .prog-bar { height: 4px; background: var(--ct-livre); border-radius: 2px; overflow: hidden; margin-top: 10px; display: none; }
 body.dgm .ct-ov .prog-fill { height: 100%; background: var(--pri-600); border-radius: 2px; transition: width .3s; }
@@ -259,7 +259,7 @@ body.dgm .ct-ov .ct-rem { width: 34px; height: 36px; border: 1px solid var(--err
 body.dgm .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* Encerramento com saldo não executado: quadro na aba "Detalhes e documentos" + termo anexado */
-body.dgm .ct-enc { border: 1px solid var(--lin); border-left: 4px solid var(--txt-3); border-radius: 10px; padding: 14px 16px;
+body.dgm .ct-enc { border: 1px solid var(--lin); border-radius: 10px; padding: 14px 16px;
   margin-top: 16px; background: var(--sup-2); }
 body.dgm .ct-enc.revertido { opacity: .65; }
 body.dgm .ct-enc-h { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -281,13 +281,11 @@ body.dgm .ct-sha { font-family: var(--font-mono); font-size: 10.5px; }
 body.dgm .ct-ov .form-label .op { font-weight: 400; color: var(--txt-3); font-size: 11.5px; margin-left: 4px; }
 
 /* Pedido de encerramento aguardando o responsável da atividade (20261013_encerramento_aprovacao) */
-body.dgm .ct-encp { border-left-color: var(--ct-serio); background: var(--ct-serio-bg); }
-body.dgm .ct-encp.devolvido { border-left-color: var(--erro); background: var(--sup-2); }
 body.dgm .ct-encp .ct-enc-tot b { color: var(--ct-serio-txt); }
 body.dgm .ct-encp-ac { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
 body.dgm .ct-encp-ac > span { flex: 1 1 260px; font-size: 12.5px; color: var(--txt-2); line-height: 1.45; }
 body.dgm .ct-encp-novo { display: flex; align-items: center; gap: 10px 14px; flex-wrap: wrap; margin: 16px 0 4px; padding: 14px 16px;
-  border: 1px solid var(--ct-serio); border-left-width: 4px; border-radius: 10px; background: var(--ct-serio-bg); }
+  border: 1px solid var(--lin); border-radius: 10px; background: var(--sup-2); }
 body.dgm .ct-encp-novo-ic { display: inline-flex; color: var(--ct-serio); }
 body.dgm .ct-encp-novo-ic .ct-ic { width: 22px; height: 22px; }
 body.dgm .ct-encp-novo-tx { flex: 1 1 260px; display: flex; flex-direction: column; gap: 2px; line-height: 1.45; }
@@ -308,7 +306,7 @@ body.dgm .ct-ov label.ct-forma b { display: block; font-size: 13px; color: var(-
 body.dgm .ct-ov label.ct-forma small { display: block; font-size: 12px; color: var(--txt-2); line-height: 1.45; margin-top: 2px; }
 body.dgm .ct-ov .ct-lib b.neg { color: var(--erro-txt); }
 body.dgm :is(.main-content, .ct-ov) .ct-enc-ind { display: flex; justify-content: space-between; align-items: center; gap: 6px 10px; flex-wrap: wrap;
-  padding: 8px 12px; margin-bottom: 8px; border: 1px dashed var(--ct-serio); border-radius: 8px; background: var(--ct-serio-bg);
+  padding: 8px 12px; margin-bottom: 8px; border: 1px solid var(--lin); border-radius: 8px; background: var(--sup-2);
   font-size: 13px; color: var(--txt); }
 body.dgm :is(.main-content, .ct-ov) .ct-enc-ind small { color: var(--txt-3); font-size: 12px; }
 body.dgm :is(.main-content, .ct-ov) .ct-enc-ind b { font-family: var(--font-mono); font-size: 14px; color: var(--ct-serio-txt); white-space: nowrap; }

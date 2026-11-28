@@ -23,8 +23,8 @@ td{padding:5px 7px;border-bottom:1px solid #E5E7EB;vertical-align:top;overflow-w
 tfoot td{font-weight:700;border-top:2px solid #1F4E2C;background:#f0f7f2}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:6px}
 .kpi{border:1px solid #E5E7EB;border-radius:6px;padding:7px 9px;break-inside:avoid}.kpi b{display:block;font-size:13px}.kpi span{color:#6B7280;font-size:9px}
-.aviso{background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;border-radius:6px;padding:7px 9px;margin:6px 0}
-.ok{background:#ECFDF5;border:1px solid #A7F3D0;color:#065F46;border-radius:6px;padding:7px 9px;margin:6px 0}
+.aviso{border:1px solid #E5E7EB;color:#9A3412;border-radius:6px;padding:7px 9px;margin:6px 0}
+.ok{border:1px solid #E5E7EB;color:#065F46;border-radius:6px;padding:7px 9px;margin:6px 0}
 .assin{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .assin>div{border:1px solid #E5E7EB;border-radius:6px;padding:7px 9px;break-inside:avoid}`
 

@@ -45,10 +45,10 @@ body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-se
 .ar-btn:disabled { opacity: .55; cursor: default; filter: none; }
 .ar-btn-2 { margin: 0; width: auto; min-height: 40px; padding: 0 14px; font-size: 14px; background: var(--ar-cartao); color: var(--ar-txt); border-color: var(--ar-lin-forte); }
 .ar-btn-2.ok { color: var(--ar-ok); border-color: var(--ar-ok); }
-.ar-erro { margin-top: 14px; padding: 10px 12px; border-radius: var(--ar-r-ctl); background: var(--ar-erro-bg); color: var(--ar-erro); font-size: .92rem; }
+.ar-erro { margin-top: 14px; padding: 10px 12px; border-radius: var(--ar-r-ctl); background: var(--ar-cartao-2); border: 1px solid var(--ar-lin); color: var(--ar-erro); font-size: .92rem; }
 html[data-tema="escuro"] .ar-erro { color: var(--ar-txt); }
 
-.ar-aviso { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 14px; padding: 10px 12px; border-radius: var(--ar-r-ctl); background: var(--ar-alerta-bg); color: var(--ar-alerta); font-size: .9rem; }
+.ar-aviso { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 14px; padding: 10px 12px; border-radius: var(--ar-r-ctl); background: var(--ar-cartao-2); border: 1px solid var(--ar-lin); color: var(--ar-alerta); font-size: .9rem; }
 html[data-tema="escuro"] .ar-aviso { color: var(--ar-txt); }
 .ar-aviso .ar-ic { margin-top: 2px; color: var(--ar-alerta); }
 .ar-chave { display: flex; gap: 8px; align-items: center; background: var(--ar-codigo); border: 1px solid var(--ar-lin-forte); border-radius: var(--ar-r-ctl); padding: 10px 10px 10px 14px; }

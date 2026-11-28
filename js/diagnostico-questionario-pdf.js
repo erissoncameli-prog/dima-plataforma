@@ -192,8 +192,8 @@ async function dgQuestionarioPdf(codigo, versao) {
   .mk-q { border-radius: 2px; }
   .bloco-t { margin-top: 6px; break-after: avoid; }
   .bl-n { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 4px; background: #1F4E2C; color: #fff; font-size: 10px; margin-right: 4px; }
-  .lembrete { font-size: 10px; background: #FFFBEB; border: 1px solid #F3D9A4; border-left: 3px solid #D97706; border-radius: 4px; padding: 6px 9px; margin-bottom: 8px; color: #6B4A00; }
-  .leitura { font-size: 10px; background: #F0F7F2; border: 1px solid #C8E6D0; border-left: 3px solid #2D6A4F; border-radius: 4px; padding: 7px 10px; margin-bottom: 8px; color: var(--cinza-700); break-inside: avoid; }
+  .lembrete { font-size: 10px; border: 1px solid #E5E7EB; border-radius: 4px; padding: 6px 9px; margin-bottom: 8px; color: #6B4A00; }
+  .leitura { font-size: 10px; border: 1px solid #E5E7EB; border-radius: 4px; padding: 7px 10px; margin-bottom: 8px; color: var(--cinza-700); break-inside: avoid; }
   .leitura p { margin: 3px 0; }
   .leitura-t { font-weight: 700; color: #1F4E2C; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
   .q { break-inside: avoid; padding: 7px 0 8px; border-bottom: 1px solid #E5E7EB; }

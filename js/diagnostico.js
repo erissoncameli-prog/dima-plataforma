@@ -193,7 +193,7 @@ function dgAdminDesenhar() {
       <p style="font-size:12px;color:var(--cinza-500);margin:8px 0 0">O app baixa só o que está ativo, na próxima sincronização do técnico.
         Não há exclusão: desative (fichas antigas continuam apontando para o cadastro).</p>
     </div>
-    ${pendentes.length ? `<div class="card" style="margin-bottom:16px;border-left:4px solid #B45309">
+    ${pendentes.length ? `<div class="card" style="margin-bottom:16px">
       <h3 style="margin:0 0 6px">Escritos em campo, sem cadastro</h3>
       ${pendentes.map((p, i) => `<div class="dg-linha">
         <span style="flex:1">${p.tipo === 'comunidade' ? 'Comunidade' : 'Sublocalidade de ' + esc((dgAdm.comunidades.find(c => c.id === p.comunidade_id) || {}).nome || '?')}:

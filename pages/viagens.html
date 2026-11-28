@@ -223,7 +223,7 @@
         <textarea class="form-control" id="devolver-motivo" rows="4"
           placeholder="Descreva o que precisa ser corrigido ou complementado (mínimo 10 caracteres)..."></textarea>
       </div>
-      <div id="devolver-aviso" style="display:none;font-size:11px;background:var(--alerta-bg);color:var(--alerta-txt);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:8px 10px"></div>
+      <div id="devolver-aviso" style="display:none;font-size:11px;background:var(--cinza-50);color:var(--alerta-txt);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 10px"></div>
       <div class="form-group" style="margin-top:12px">
         <label class="form-label" for="devolver-senha">Sua senha de login <span class="obrig">*</span></label>
         <input type="password" id="devolver-senha" class="form-control" autocomplete="current-password" placeholder="Confirme a decisão com a sua senha">
@@ -1057,7 +1057,7 @@ async function selecionarBenefViajante(idx, benefId){
       if(buscaEl) buscaEl.value='';
       const hidEl=document.getElementById(`vn-benef-id-${idx}`);
       if(hidEl) hidEl.value='';
-      if(statusEl) statusEl.innerHTML=`<div style="background:var(--erro-bg);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent);border-radius:var(--raio);padding:10px 12px;font-size:11px;color:var(--erro-txt)">
+      if(statusEl) statusEl.innerHTML=`<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:10px 12px;font-size:11px;color:var(--erro-txt)">
         <div style="font-weight:700;margin-bottom:4px"><svg class="vi-ic p"><use href="#vi-bloq"/></svg> Beneficiário bloqueado</div>
         <div>${esc(benef.nome)} não pode ser adicionado(a) pois está com prestação de contas pendente do Protocolo <strong>${esc(bloqueio.numero)}</strong> (retorno em ${bloqueio.dtRetornoFmt}, vencido há ${bloqueio.dias} dias).</div>
         <div style="margin-top:6px;color:var(--erro-txt)">Para desbloquear: peça ao beneficiário que submeta os documentos no protocolo pendente.</div>
@@ -1122,11 +1122,11 @@ function mostrarStatusBenef(idx, benef, isIntl){
   if(!statusEl) return;
   const faltando=verificarCompletudeViajante(benef,isIntl);
   if(!faltando.length){
-    statusEl.innerHTML=`<div style="background:var(--ok-bg);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent);border-radius:var(--raio);padding:6px 12px;font-size:11px;color:var(--ok-txt);display:flex;align-items:center;gap:6px">
+    statusEl.innerHTML=`<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:6px 12px;font-size:11px;color:var(--ok-txt);display:flex;align-items:center;gap:6px">
       <svg class="vi-ic p"><use href="#vi-check"/></svg> Beneficiário encontrado com dados completos
     </div>`;
   } else {
-    statusEl.innerHTML=`<div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:8px 12px;font-size:11px;color:var(--alerta-txt)">
+    statusEl.innerHTML=`<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 12px;font-size:11px;color:var(--alerta-txt)">
       <div style="font-weight:600;margin-bottom:6px"><svg class="vi-ic p"><use href="#vi-alerta"/></svg> Dados incompletos — ausentes: ${faltando.join(', ')}</div>
       <button class="btn btn-sm" style="font-size:11px;background:var(--alerta);color:#fff;border-color:var(--alerta)"
         onclick="abrirEdicaoBenefFromProt('${benef.id}',${idx})"><svg class="vi-ic p"><use href="#vi-lapis"/></svg> Completar dados do beneficiário</button>
@@ -1195,7 +1195,7 @@ async function carregarNotificacoes(){
     const el=document.getElementById('notif-banner');
     if(!el)return;
     el.innerHTML=data.map(n=>`
-      <div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
+      <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio-lg);padding:10px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px">
         <span style="font-size:18px;flex-shrink:0">${n.tipo==='viagem_aprovada'?'<svg class="vi-ic p"><use href="#vi-check"/></svg>':n.tipo==='viagem_rejeitada'?'<svg class="vi-ic p"><use href="#vi-x"/></svg>':n.tipo==='viagem_prestacao'?'<svg class="vi-ic p"><use href="#vi-prancheta"/></svg>':'<svg class="vi-ic p"><use href="#vi-sino"/></svg>'}</span>
         <div style="flex:1">
           <div style="font-size:12px;font-weight:600;color:var(--cinza-900)">${n.titulo}</div>
@@ -1401,7 +1401,7 @@ function addViajantePreenchido(v){
       mostrarStatusBenef(idx,benef,false);
     } else {
       const statusEl=document.getElementById(`vn-benef-status-${idx}`);
-      if(statusEl) statusEl.innerHTML=`<div style="background:var(--info-bg);border:1px solid color-mix(in srgb,var(--info) 35%,transparent);border-radius:var(--raio);padding:6px 12px;font-size:11px;color:var(--info-txt)">ℹ️ Viajante salvo anteriormente (não vinculado ao cadastro de beneficiários)</div>`;
+      if(statusEl) statusEl.innerHTML=`<div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:6px 12px;font-size:11px;color:var(--info-txt)">ℹ️ Viajante salvo anteriormente (não vinculado ao cadastro de beneficiários)</div>`;
     }
   }
 
@@ -2309,7 +2309,7 @@ async function abrirDetalhe(id){
       </div>
       <!-- Aviso de ação pendente para admins -->
       ${isAdmin&&p.situacao==='em_prestacao'&&!devPendentes(p)&&!devTodosNaoRealizaram(p)?`
-      <div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:8px 12px;display:flex;align-items:center;gap:8px">
+      <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:8px 12px;display:flex;align-items:center;gap:8px">
         <span style="font-size:16px"><svg class="vi-ic p"><use href="#vi-relogio"/></svg></span>
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--alerta-txt)">Aguarda sua confirmação</div>
@@ -2434,7 +2434,7 @@ async function abrirDetalhe(id){
       ${dec.includes('rejeitar')?`<button class="btn" style="background:var(--erro-bg);color:var(--erro-txt);border:1px solid color-mix(in srgb,var(--erro) 35%,transparent)" onclick="abrirModalRejeitar()"><svg class="vi-ic p"><use href="#vi-x"/></svg> Rejeitar</button>`:''}
       ${dec.includes('aprovar')?`<button class="btn btn-primary" onclick="aprovarProtocolo()"><svg class="vi-ic p"><use href="#vi-check"/></svg> Aprovar</button>`:''}</div>`;
   else if(p._regra.bloqueio&&['solicitado','aprovado'].includes(p.situacao))
-    footer+=`<span style="margin-left:auto;font-size:11px;color:var(--alerta-txt);background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:6px 10px;display:flex;align-items:center;gap:6px"><svg class="vi-ic p"><use href="#vi-alerta"/></svg> ${p._regra.bloqueio==='viajante'?'Você viaja neste protocolo':'Você pediu este protocolo'}: a decisão cabe a outra pessoa.</span>`;
+    footer+=`<span style="margin-left:auto;font-size:11px;color:var(--alerta-txt);background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:6px 10px;display:flex;align-items:center;gap:6px"><svg class="vi-ic p"><use href="#vi-alerta"/></svg> ${p._regra.bloqueio==='viajante'?'Você viaja neste protocolo':'Você pediu este protocolo'}: a decisão cabe a outra pessoa.</span>`;
   else if(p.situacao==='solicitado')
     footer+=`<span style="margin-left:auto;font-size:11px;color:var(--cinza-600);display:flex;align-items:center;gap:6px"><svg class="vi-ic p"><use href="#vi-relogio"/></svg> Aguardando aprovação de um super_admin que não esteja no protocolo.</span>`;
 
@@ -3370,7 +3370,7 @@ async function abrirPrestacao(id){
     const trechos=(v.trechos||[]).sort((a,b)=>(a.ordem||0)-(b.ordem||0));
     const diarias=(v.diarias||[]);
     const secaoValores=canEditValues?`
-      <div style="background:var(--alerta-bg);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent);border-radius:var(--raio);padding:12px;margin-bottom:14px">
+      <div style="background:var(--cinza-50);border:1px solid var(--borda);border-radius:var(--raio);padding:12px;margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--alerta-txt);margin-bottom:10px;display:flex;align-items:center;gap:6px"><svg class="vi-ic p"><use href="#vi-moeda"/></svg> Valores reais <span style="font-weight:400;color:var(--alerta-txt)">(super_admin / financeiro)</span></div>
         ${v.tem_passagem&&trechos.length?`
         <div style="margin-bottom:10px">
@@ -3774,7 +3774,7 @@ async function abrirModalNotif(protId,evento){
   });
 
   if(semEmail.length>0)
-    html+=`<div style="margin-top:4px;font-size:11px;color:var(--alerta-txt);background:var(--alerta-bg);padding:7px 10px;border-radius:var(--raio);border:1px solid color-mix(in srgb,var(--alerta) 40%,transparent)">
+    html+=`<div style="margin-top:4px;font-size:11px;color:var(--alerta-txt);background:var(--cinza-50);padding:7px 10px;border-radius:var(--raio);border:1px solid var(--borda)">
       <svg class="vi-ic p"><use href="#vi-alerta"/></svg> ${semEmail.length} viajante(s) sem e-mail cadastrado não receberão notificação:
       ${semEmail.map(v=>esc(v.nome||'—')).join(', ')}
     </div>`;

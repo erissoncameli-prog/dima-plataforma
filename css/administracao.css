@@ -126,7 +126,7 @@ html[data-tema="escuro"] .ad-abas button[aria-selected="true"] { color: var(--pr
 .ad-foto-btn .ad-cam { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%; background: var(--sup); border: 1px solid var(--lin-forte); display: grid; place-items: center; color: var(--txt-2); }
 .ad-foto-btn .ad-cam .ad-ic { width: 12px; height: 12px; }
 .ad-dica { font-size: 12.5px; color: var(--txt-2); margin: 0 0 12px; line-height: 1.5; }
-.ad-aviso { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; border-radius: var(--r-ctl); padding: 9px 12px; margin-bottom: 12px; background: var(--alerta-bg); color: var(--alerta-txt); }
+.ad-aviso { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; border-radius: var(--r-ctl); padding: 9px 12px; margin-bottom: 12px; background: var(--sup-2); border: 1px solid var(--lin); color: var(--alerta-txt); }
 .ad-aviso.in { background: var(--info-bg); color: var(--info-txt); }
 .ad-aviso.er { background: var(--erro-bg); color: var(--erro-txt); }
 html[data-tema="escuro"] .ad-aviso { color: var(--txt); }
@@ -243,7 +243,7 @@ body.dgm .ad-ib { width: 30px; height: 30px; padding: 0; justify-content: center
 .ad-sec-h small { font-size: 12px; font-weight: 400; color: var(--txt-3); }
 
 /* ── ROPA (ropa.html + js/ropa.js) ───────────────────────────────────── */
-.ad-pend { border: 1px solid var(--alerta-borda, var(--alerta)); background: var(--alerta-bg); color: var(--alerta-txt); border-radius: var(--r-card); padding: 12px 16px; margin-bottom: 14px; font-size: 13px; }
+.ad-pend { background: var(--sup-2); border: 1px solid var(--lin); color: var(--alerta-txt); border-radius: var(--r-card); padding: 12px 16px; margin-bottom: 14px; font-size: 13px; }
 html[data-tema="escuro"] .ad-pend { color: var(--txt); }
 .ad-pend > b { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
 .ad-pend ul { margin: 4px 0 0; padding-left: 20px; }

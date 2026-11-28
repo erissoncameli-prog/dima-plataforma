@@ -70,7 +70,7 @@ video.en-slide { width: 100%; height: 100%; object-fit: cover; transform: none; 
 .en-logos-sep { width: 1px; height: 36px; background: rgba(255, 255, 255, .22); flex-shrink: 0; }
 .en-logo-proj .dima-logo { height: clamp(104px, 12.4vw, 168px) !important; max-width: 440px !important; }
 
-.en-proj { background: rgba(0, 0, 0, .42); border: 1px solid rgba(255, 255, 255, .1); border-left: 2px solid var(--en-ouro);
+.en-proj { background: rgba(0, 0, 0, .42); border: 1px solid rgba(255, 255, 255, .1);
   border-radius: var(--en-r); padding: 15px 20px; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
 .en-proj-cod { display: flex; align-items: center; gap: 7px; margin: 0 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
   text-transform: uppercase; color: var(--en-ouro-c); }

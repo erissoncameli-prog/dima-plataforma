@@ -46,7 +46,7 @@ html[data-tema="escuro"] {
 .guia-item:hover { background: var(--dg-bg-2); }
 .guia-fechar, .guia-btn-sec, .guia-chip-n { background: var(--dg-bg-2); color: var(--dg-tx-2); }
 .guia-chip-ok { background: var(--dg-ok-bg); color: var(--dg-ok-tx); }
-.guia-nota { background: var(--dg-nota-bg); color: var(--dg-nota-tx); font-size: 14px; }
+.guia-nota { background: var(--dg-bg-2); border: 1px solid var(--dg-borda); border-left: 1px solid var(--dg-borda); color: var(--dg-nota-tx); font-size: 14px; }
 .guia-btn { min-height: 46px; font-size: 15px; }
 .guia-convite { background: var(--dg-bg-2); border-color: var(--dg-borda); margin-bottom: 14px; }
 .guia-rodape a { color: var(--guia-cor); }

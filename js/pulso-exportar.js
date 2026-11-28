@@ -124,7 +124,7 @@ h1{font-size:18px;color:#1F4E2C;margin:0}.sub{color:#6B7280;font-size:10px;margi
 h2{font-size:12px;color:#1F4E2C;border-bottom:2px solid #1F4E2C;padding-bottom:3px;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.04em}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{border:1px solid #E5E7EB;border-radius:6px;padding:8px 10px}
 .kpi b{display:block;font-size:20px;line-height:1.1}.kpi span{color:#6B7280;font-size:9px}
-.lei{border-left:4px solid #24704A;background:#F3F7F4;border-radius:6px;padding:8px 12px}.lei b{font-size:13px}
+.lei{border:1px solid #E5E7EB;border-radius:6px;padding:8px 12px}.lei b{font-size:13px}
 .q{padding:8px 0;border-bottom:1px solid #E5E7EB;break-inside:avoid}.q em{font-style:normal;font-size:9px;font-weight:700;color:#24704A;text-transform:uppercase;letter-spacing:.05em}
 .q .l{display:flex;justify-content:space-between;gap:12px}.q .m{white-space:nowrap;color:#374151}
 .pilha{display:flex;gap:1px;height:14px;margin-top:5px;border-radius:4px;overflow:hidden}.pilha i{display:block;height:100%;font-style:normal;font-size:8px;font-weight:700;text-align:center;line-height:14px;color:#111}

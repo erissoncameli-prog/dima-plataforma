@@ -57,10 +57,10 @@ body.dgm .vi-kpi-s { font-size: 12px; color: var(--txt-3); }
 body.dgm .vi-kpi-s.er { color: var(--erro); font-weight: 600; }
 
 /* TDR de execução direta (passagens e diárias): consumo × planejado; faixa ok / al (≥ 80%) / er (≥ 95%) */
-body.dgm .vi-tdr { --c: var(--ok); background: var(--sup); border: 1px solid var(--lin); border-left: 4px solid var(--c); border-radius: var(--r-card);
+body.dgm .vi-tdr { --c: var(--ok); background: var(--sup); border: 1px solid var(--lin); border-radius: var(--r-card);
   padding: 12px 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
-body.dgm .vi-tdr.al { --c: var(--alerta); background: var(--alerta-bg); }
-body.dgm .vi-tdr.er { --c: var(--erro); background: var(--erro-bg); }
+body.dgm .vi-tdr.al { --c: var(--alerta); }
+body.dgm .vi-tdr.er { --c: var(--erro); }
 body.dgm .vi-tdr-cab { display: flex; gap: 10px; align-items: center; min-width: 0; }
 body.dgm .vi-tdr-cab > .vi-ic { color: var(--c); width: 18px; height: 18px; flex: none; }
 body.dgm .vi-tdr-cab b { font-size: 13px; }
@@ -117,8 +117,8 @@ body.dgm :is(.main-content, .vi-ov) .proto-num { font-family: var(--font-mono); 
 /* cartão do protocolo */
 body.dgm .vi-lista { display: flex; flex-direction: column; gap: 8px; }
 body.dgm .vi-pc { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 6px 14px; align-items: center; background: var(--sup); border: 1px solid var(--lin);
-  border-left: 3px solid var(--c); border-radius: 14px; padding: 12px 14px; cursor: pointer; }
-body.dgm .vi-pc:hover { border-color: var(--lin-forte); border-left-color: var(--c); }
+  border-radius: 14px; padding: 12px 14px; cursor: pointer; }
+body.dgm .vi-pc:hover { border-color: var(--lin-forte); }
 body.dgm .vi-pc.pc-cancelado, body.dgm .vi-pc.pc-rejeitado { opacity: .65; }
 body.dgm .vi-pc .dest { font-weight: 600; font-size: 14px; display: flex; gap: 8px; align-items: center; min-width: 0; color: var(--txt); }
 body.dgm .vi-pc .dest .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -183,7 +183,7 @@ body.dgm .vi-ov .upload-mini { border: 2px dashed var(--lin-forte); border-radiu
   display: flex; gap: 6px; align-items: center; justify-content: center; }
 body.dgm .vi-ov .upload-mini:hover, body.dgm .vi-ov .upload-mini.drag { border-color: var(--pri-600); color: var(--pri-700); }
 body.dgm .vi-ov .upload-mini.tem { border-color: var(--ok); background: var(--ok-bg); color: var(--ok-txt); }
-body.dgm .vi-ov .aviso-pdf { background: var(--alerta-bg); border: 1px solid color-mix(in srgb, var(--alerta) 40%, transparent); border-radius: var(--r-ctl); padding: 10px 14px;
+body.dgm .vi-ov .aviso-pdf { background: var(--sup-2); border: 1px solid var(--lin); border-radius: var(--r-ctl); padding: 10px 14px;
   font-size: 11.5px; color: var(--alerta-txt); line-height: 1.5; }
 body.dgm .vi-ov .tl-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--lin); }
 body.dgm .vi-ov .tl-item:last-child { border-bottom: none; }

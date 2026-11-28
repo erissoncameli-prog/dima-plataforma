@@ -35,7 +35,7 @@ body.dgm .btn.au-on { background: var(--ia-bg); border-color: var(--ia-borda); c
 .au-run-tx b { display: block; font-size: 14px; color: var(--txt); }
 .au-run-tx small { display: block; color: var(--txt-2); font-size: 12.5px; line-height: 1.5; margin-top: 2px; }
 .au-resumo { flex-basis: 100%; font-size: 13px; color: var(--txt-forte-2); line-height: 1.6; padding: 10px 12px; background: var(--sup-2);
-  border-radius: var(--r-ctl); border-left: 3px solid var(--pri-400); white-space: pre-line; }
+  border-radius: var(--r-ctl); white-space: pre-line; }
 .au-spin { width: 18px; height: 18px; border: 2px solid var(--lin-forte); border-top-color: var(--pri-600); border-radius: 50%; animation: au-gira .7s linear infinite; }
 .btn .au-spin { width: 14px; height: 14px; border-color: rgba(255, 255, 255, .4); border-top-color: #fff; }
 @keyframes au-gira { to { transform: rotate(360deg); } }
@@ -79,7 +79,7 @@ body.dgm .au-sel { height: 36px; border: 1px solid var(--lin-forte); border-radi
 .au-ach.aberto .au-chev { transform: rotate(180deg); }
 .au-ach-b { border-top: 1px solid var(--lin); padding: 12px 14px 14px 30px; display: none; flex-direction: column; gap: 10px; font-size: 13px; color: var(--txt-forte-2); line-height: 1.6; }
 .au-ach.aberto .au-ach-b { display: flex; }
-.au-rec { background: var(--ok-bg); color: var(--ok-txt); border-radius: var(--r-ctl); padding: 10px 12px; }
+.au-rec { background: var(--sup-2); border: 1px solid var(--lin); color: var(--ok-txt); border-radius: var(--r-ctl); padding: 10px 12px; }
 .au-rec small, .au-res small { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
 .au-res { background: var(--bg-2); color: var(--txt-forte-2); border-radius: var(--r-ctl); padding: 10px 12px; }
 .au-ac { display: flex; gap: 8px; flex-wrap: wrap; }

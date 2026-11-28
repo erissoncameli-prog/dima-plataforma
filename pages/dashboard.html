@@ -1097,7 +1097,7 @@ function imprimirPainelSaldo(){
 
   var linhas=_saldoRows.map(function(r){
     var estour=r.comp>r.orc;
-    return '<tr'+(estour?' style="background:#FEF2F2"':'')+'>'
+    return '<tr>'
       +'<td class="c mono">'+esc(r.codigo)+'</td><td>'+esc(r.nome||'')+'</td>'
       +'<td class="n">'+D_USD(r.orc)+'</td><td class="n">'+D_USD(r.comp)+'</td>'
       +'<td class="n">'+D_USD(r.firmado)+'</td><td class="n">'+D_USD(r.aFirmar)+'</td>'
