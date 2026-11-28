@@ -385,13 +385,14 @@
     const corpo = `<div class="rep-secao"><div class="rep-secao-titulo">Identificação</div>${ident}</div>
       <div class="rep-stats">
         <div class="rep-stat"><div class="rep-stat-v">${rows.length}</div><div class="rep-stat-l">presenças</div></div>
-        <div class="rep-stat"><div class="rep-stat-v">${rows.filter(r => !r.interno).length}</div><div class="rep-stat-l">convidados externos</div></div>
+        <div class="rep-stat"><div class="rep-stat-v">${rows.filter(r => !r.convidado).length}</div><div class="rep-stat-l">participaram sem convite</div></div>
+        <div class="rep-stat"><div class="rep-stat-v">${rows.filter(r => !r.interno).length}</div><div class="rep-stat-l">externos (sem conta)</div></div>
         <div class="rep-stat"><div class="rep-stat-v">${semImg}</div><div class="rep-stat-l">sem autorização de imagem</div></div>
       </div>
       <div class="rep-secao"><div class="rep-secao-titulo">Participantes</div>
-      <table class="rep-tbl"><thead><tr><th class="c-min">#</th>${t ? '' : '<th>Reunião</th>'}<th>Nome</th><th>E-mail</th><th>Telefone</th><th>Uso de imagem</th><th>Assinou em</th></tr></thead>
-      <tbody>${rows.map((r, i) => `<tr><td class="mono">${i + 1}</td>${t ? '' : `<td>${esc(r.reuniao)}</td>`}<td>${esc(r.nome)}${r.interno ? '' : ' <span class="rep-badge rb-cinza">convidado</span>'}</td>
-        <td>${esc(r.email)}</td><td class="mono">${esc(r.telefone || '—')}</td><td>${esc(IMG[r.imagem])}</td><td class="mono">${esc(dataHora(r.assinado_em))} · ${esc(ORIGEM[r.origem])}</td></tr>`).join('')}</tbody></table></div>
+      <table class="rep-tbl"><thead><tr><th class="c-min">#</th>${t ? '' : '<th>Reunião</th>'}<th>Nome</th><th>E-mail</th><th>Telefone</th><th>Convite</th><th>Uso de imagem</th><th>Assinou em</th></tr></thead>
+      <tbody>${rows.map((r, i) => `<tr><td class="mono">${i + 1}</td>${t ? '' : `<td>${esc(r.reuniao)}</td>`}<td>${esc(r.nome)}${r.interno ? '' : ' <span class="rep-badge rb-cinza">externo</span>'}</td>
+        <td>${esc(r.email)}</td><td class="mono">${esc(r.telefone || '—')}</td><td>${r.convidado ? 'Convidado(a)' : '<span class="rep-badge rb-ouro">Não convidado(a)</span>'}</td><td>${esc(IMG[r.imagem])}</td><td class="mono">${esc(dataHora(r.assinado_em))} · ${esc(ORIGEM[r.origem])}</td></tr>`).join('')}</tbody></table></div>
       <p class="pp-a4-nota">Assinatura eletrônica registrada pela plataforma (data, hora e meio: link pessoal enviado por e-mail ou QR Code da reunião).
         A autorização de uso de imagem guarda a versão do termo lido por cada pessoa. Exportado por ${esc(data.exportado_por || '')} em ${esc(dataHora(data.exportado_em))}.</p>`
     FolhaA4.escrever(w, { titulo: 'Lista de presença', selo: 'Reunião', tema: 'tarefas',
