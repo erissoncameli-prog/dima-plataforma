@@ -153,6 +153,7 @@ body.dgm .au-txt { width: 100%; min-height: 90px; border: 1px solid var(--lin-fo
 .chat-bubble { padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.6; word-break: break-word; }
 .chat-msg.user .chat-bubble { background: var(--pri-700); color: #fff; border-bottom-right-radius: 3px; }
 .chat-msg.assistant .chat-bubble { background: var(--bg-2); color: var(--txt); border-bottom-left-radius: 3px; }
+.chat-fontes { margin-top: 4px; padding-left: 4px; font-size: 11px; color: var(--txt-2); }
 .chat-thinking { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
 .chat-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--txt-3); animation: au-pula .9s ease-in-out infinite; }
 .chat-dot:nth-child(2) { animation-delay: .15s; }

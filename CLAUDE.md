@@ -1268,6 +1268,12 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `auditoria_registros.dominio` não tem `orcamento`) — filtro e barra próprios, banco igual.
 - **Resolver e ignorar exigem texto** (mesma janela `#au-modal`): grava `status`, `resolvido_por`, `resolvido_em` e
   `comentario_resolucao` (no ignorado, é o motivo). Nunca ignorar sem motivo.
+- **Assistente** (`chat-auditor` v5, 27/11/2026): `exigirPerfil(['super_admin','coordenacao'])` e **toda ferramenta usa
+  `clienteDoUsuario(req)`** (RLS) — nunca service_role nas ferramentas. Ferramentas (`betaTool` do tool runner, SDK `@1.14.0`
+  fixado) só leem; saldo só de `vw_saldo_atividade`/`fn_orcamento_extrato`. Nenhuma lê CPF/CNPJ, banco, e-mail ou nome de
+  viajante, e toda saída passa por `_shared/redigir.ts`. Ferramenta nova = mesma regra + rótulo em `ROTULO_FERRAMENTA`
+  (a tela mostra "Consultou: …"). Modelo `claude-sonnet-5-5`, effort `medium`, fallback de recusa `default`, até 8 rodadas,
+  histórico de 30 mensagens. Conversa ainda **não** é gravada (Fase 2: tabelas + limite por pessoa).
 - Janela com classe **`au-ov`** (no seletor de escopo de `diagnostico-mesa.css`): Esc fecha, Tab preso, foco volta. O painel
   do assistente (`.au-chat`, também `au-ov`) não bloqueia a página; Esc fecha. "Perguntar ao assistente" no achado preenche a
   pergunta com título e referência.
@@ -1684,7 +1690,7 @@ auditoria_registros   — achados individuais (vinculados a execucao_id)
 | Slug | Propósito | `verify_jwt` |
 |------|-----------|-------------|
 | `auditor-ia` | Auditoria automática em 6 domínios + agentes de orçamento (`fn_auditoria_orcamento`) e patrimônio (`fn_auditoria_patrimonio`) + supervisor Claude | ✅ |
-| `chat-auditor` | Chat interativo sobre achados de auditoria (stateful) | ✅ |
+| `chat-auditor` | Assistente da Auditoria (v5): só super_admin/coordenação; Claude com ferramentas **somente leitura** pelo cliente do usuário (RLS) — achados, saldo, extrato, contrato, TDR, execução direta, remanejamentos, produtos, viagens | ✅ |
 | `analisar-tdr` | Análise IA de TDR submetido | ❌ |
 | `corrigir-tdr` | Correção automática de TDR | ❌ |
 | `sugerir-correcoes-tdr` | Sugestões de melhoria de TDR | ❌ |
