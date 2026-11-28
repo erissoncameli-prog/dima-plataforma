@@ -1604,7 +1604,8 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
 - Bucket `tarefas-anexos`: caminho **sempre** `<tarefa_id>/<arquivo>` — as policies de storage leem a 1ª pasta (`fn_tarefa_id_do_path`) e aplicam o acesso da tarefa (ver/anexar: `fn_pode_ver_tarefa`; apagar: `fn_tarefa_pode_editar`). Arquivo fora desse padrão fica inacessível ao cliente.
 
 ### Lista de presença das reuniões (⚠️ ler antes de mexer em `presenca_*`)
-- Migrações `20261128_presenca_reunioes` (+ `_b_validacao`: campo vazio cai na mensagem certa — `coalesce` no `not in`); Edge Function `presenca-emails`; tela `js/presenca.js` + `css/presenca.css` (prefixo `pp-`,
+- Migrações `20261128_presenca_reunioes` (+ `_b_validacao`: campo vazio cai na mensagem certa — `coalesce` no `not in`;
+  `_c_convite_idade`: `convidado_inicial` e `faixa_etaria`; `_d_marcar_convidados`: acerto das 3 assinaturas da TR-090); Edge Function `presenca-emails`; tela `js/presenca.js` + `css/presenca.css` (prefixo `pp-`,
   tokens do painel de tarefas) dentro de `pages/tarefas.html`; página pública `pages/presenca.html` + `js/presenca-assinar.js` +
   `css/presenca-assinar.css`. ROPA **TRAT-008**.
 - **Uma lista por tarefa `reuniao`** (`presenca_listas`, criada/acertada pelo gatilho `trg_presenca_tarefa` → `fn_presenca_sincronizar`):
@@ -1619,6 +1620,11 @@ Plano em `docs/usuarios/plano-acessos.md` (migrações `20261126_acessos_a/_b/_c
   O token só sai para quem gere. Página pública lê `fn_publico_presenca_lista` e grava por `fn_publico_presenca_assinar` (anon).
 - **Uma assinatura por pessoa**: índices únicos `(lista_id, lower(email))` e `(lista_id, usuario_id)`. Usuário (link pessoal ou logado)
   assina com o e-mail do cadastro; e-mail digitado de usuário ativo conta como dele. Convidado = e-mail autodeclarado (sem código).
+- **Não convidado(a)**: `presenca_assinaturas.convidado_inicial` é gravado **na assinatura** (estava em `fn_presenca_convidados`
+  naquela hora?) — não recalcular depois. Externo nunca é convidado. A pessoa assina normalmente; tela, PDF A4 (coluna Convite),
+  Excel/CSV e painel (`sem_convite`) mostram. **Faixa etária** (`faixa_etaria`): ate_17 · 18_24 · 25_29 · 30_39 · 40_49 · 50_59 ·
+  60_mais · prefere_nao_responder — obrigatória (`presenca:idade_obrigatoria`), mesma regra de sexo/raça (por pessoa só
+  `fn_presenca_ve_sensivel`, fora do PDF A4); assinaturas antigas sem faixa aparecem como `sem_registro` nos totais.
 - **Campos**: nome, e-mail, telefone (opcional, 10–13 dígitos), `sexo_genero` e `cor_raca` (mesmas opções do Diagnóstico, com
   "prefere_nao_responder"; raça = dado **sensível**). **Uso de imagem**: escolha explícita (nenhuma marcada), grava `termo_id` +
   `termo_sha256` do termo lido (`presenca_termos_imagem`, versões imutáveis, uma `vigente`; novo texto só por
