@@ -438,7 +438,7 @@
     if (!L.length) return toast(ERROS.pedido_invalido, 'warning')
     const cols = Object.keys(L[0]).filter(k => L[0][k] !== undefined)
     const nomes = { n: '#', reuniao: 'Reunião', data: 'Data', formato: 'Formato', nome: 'Nome', email: 'E-mail', telefone: 'Telefone', vinculo: 'Vínculo',
-      origem: 'Assinou por', sexo: 'Sexo/gênero', raca: 'Cor ou raça', imagem: 'Uso de imagem', termo: 'Termo', assinado: 'Assinado em' }
+      convite: 'Convite', origem: 'Assinou por', sexo: 'Sexo/gênero', raca: 'Cor ou raça', idade: 'Faixa de idade', imagem: 'Uso de imagem', termo: 'Termo', assinado: 'Assinado em' }
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'
     const txt = [cols.map(c => q(nomes[c])).join(';')].concat(L.map(r => cols.map(c => q(r[c])).join(';'))).join('\r\n')
     baixar(new Blob(['﻿' + txt], { type: 'text/csv;charset=utf-8' }), nomeArq('csv', um))
