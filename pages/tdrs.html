@@ -15,6 +15,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes da lista de TDRs -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/tdrs.css" rel="stylesheet">
+<link href="../css/kpi-graficos.css" rel="stylesheet">
 <link href="../css/tarefas-vinculadas.css" rel="stylesheet">
 </head>
 <body class="dgm">
@@ -358,6 +359,7 @@
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/kpi-graficos.js"></script>
 <script src="../js/tarefas-vinculadas.js"></script>
 <script src="../js/tdr-licitacao.js"></script>
 <script>
@@ -584,29 +586,89 @@ function renderStats(){
   const tAtivos=t.filter(x=>x.status!=='cancelado');
   const tRascunho=t.filter(x=>x.status==='rascunho');
   const tAprovados=t.filter(x=>FASES_POS_APROVACAO.includes(x.status));
-  const tAndamento=t.filter(x=>['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','em_licitacao'].includes(x.status));
-  const tAtrasados=t.filter(x=>x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(x.status));
+  const fase=x=>TD_STATUS_NORM[x.status]||x.status;
+  const tAndamento=t.filter(x=>TD_GRUPO_ANDAMENTO.includes(fase(x)));
+  const tAtrasados=t.filter(tdAtrasado);
   const tContratado=t.filter(x=>x.status==='contratado');
+  const tCancel=t.filter(x=>x.status==='cancelado');
   const den=t.length||1;
-  // [chave do filtro, classe de cor, rótulo, lista, valor em R$, mostra barra de proporção]
+  const G=window.KpiG;
+  const graf=G?tdGraficos({t,tAtivos,tRascunho,tAndamento,tAtrasados,tAprovados,tContratado,tCancel,fase,soma}):{};
+  // [chave do filtro, classe de cor, rótulo, lista, valor em R$]
   const cards=[
-    ['total','td-c-total','Total',t,soma(tAtivos),false],
-    ['rascunho','td-c-rascunho','Rascunho',tRascunho,soma(tRascunho),true],
-    ['andamento','td-c-andamento','Em andamento',tAndamento,soma(tAndamento),true],
-    ['atrasados','td-c-atrasados','Atrasados',tAtrasados,soma(tAtrasados),true],
-    ['aprovados','td-c-aprovado','Aprovados',tAprovados,soma(tAprovados),true],
-    ['contratado','td-c-contratado','Contratados',tContratado,soma(tContratado),true],
+    ['total','td-c-total','Total',t,soma(tAtivos)],
+    ['rascunho','td-c-rascunho','Rascunho',tRascunho,soma(tRascunho)],
+    ['andamento','td-c-andamento','Em andamento',tAndamento,soma(tAndamento)],
+    ['atrasados','td-c-atrasados','Atrasados',tAtrasados,soma(tAtrasados)],
+    ['aprovados','td-c-aprovado','Aprovados',tAprovados,soma(tAprovados)],
+    ['contratado','td-c-contratado','Contratados',tContratado,soma(tContratado)],
   ];
-  document.getElementById('stats').innerHTML=cards.map(([k,cls,lbl,lista,val,barra])=>{
-    const pct=Math.round(lista.length/den*100);
-    const titulo=k==='total'?`${t.length} TDRs, ${tAprovados.length} aprovados · valor sem cancelados`:`${pct}% do total`;
-    return `<button type="button" class="td-kpi ${cls}" aria-pressed="${filtroCard===k}" title="${titulo}" onclick="clicarCardStat('${k}')">
-      <span class="td-kpi-lbl">${lbl}</span>
-      <span class="td-kpi-num">${lista.length}</span>
-      <span class="td-kpi-val">${fmtBRL(val)}</span>
-      ${barra?`<span class="td-kpi-barra" aria-hidden="true"><span style="width:${pct}%"></span></span>`:''}
+  const DICA={total:`${t.length} TDRs (${tCancel.length} cancelados) · valor sem os cancelados`,
+    andamento:'Entre o envio e a aprovação: submetido, correção, avaliação e revisão da UNESCO',
+    atrasados:'Prazo vencido e ainda não aprovados',
+    aprovados:'Aprovado, em licitação ou contratado'};
+  document.getElementById('stats').innerHTML=cards.map(([k,cls,lbl,lista,val])=>{
+    const titulo=(DICA[k]||`${Math.round(lista.length/den*100)}% do total`)+' · '+fmtBRL(val);
+    return `<button type="button" class="td-kpi ${cls}${graf[k]?' kg-tem':''}" aria-pressed="${filtroCard===k}" title="${esc(titulo)}" onclick="clicarCardStat('${k}')"><span class="kg-in">
+      <span class="kg-esq">
+        <span class="td-kpi-lbl">${lbl}</span>
+        <span class="td-kpi-num">${lista.length}</span>
+        <span class="td-kpi-val">${G?G.brl(val):fmtBRL(val)}</span>
+      </span>${graf[k]||''}</span>
     </button>`;
   }).join('');
+}
+
+// Fases entre o envio e a aprovação (licitação já é pós-aprovação: conta em Aprovados)
+const TD_GRUPO_ANDAMENTO=['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco'];
+function tdAtrasado(x){return !!(x.prazo_limite&&new Date(x.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(x.status)&&x.status!=='cancelado');}
+
+// Mini gráfico de cada número do topo (js/kpi-graficos.js) + frase de leitura
+function tdGraficos(d){
+  const G=KpiG, out={}, cor=v=>`var(--td-${v})`;
+  // Total: onde está o grosso dos TDRs
+  const nAprSem=d.tAprovados.length-d.tContratado.length;
+  const nOutros=d.t.length-d.tRascunho.length-d.tAndamento.length-d.tAprovados.length-d.tCancel.length;
+  out.total=G.bloco(G.faixa([
+    {v:d.tRascunho.length+Math.max(0,nOutros),cor:cor('neutro'),dica:`Rascunho: ${d.tRascunho.length+Math.max(0,nOutros)}`},
+    {v:d.tAndamento.length,cor:cor('submetido'),dica:`Em andamento: ${d.tAndamento.length}`},
+    {v:nAprSem,cor:cor('aprovado'),dica:`Aprovados sem contrato: ${nAprSem}`},
+    {v:d.tContratado.length,cor:cor('contratado'),dica:`Contratados: ${d.tContratado.length}`},
+    {v:d.tCancel.length,cor:cor('cancelado'),dica:`Cancelados: ${d.tCancel.length}`},
+  ],['rascunho','contratado']),
+    `<b>${G.pct(d.tContratado.length,d.tAtivos.length)}%</b> contratados`+(d.tCancel.length?` · ${d.tCancel.length} cancel.`:''));
+  // Rascunho: há quanto tempo foi criado
+  const idade=d.tRascunho.map(x=>G.diasDesde(x.criado_em)||0);
+  const r30=idade.filter(v=>v<30).length, r90=idade.filter(v=>v>=30&&v<=90).length, rV=idade.filter(v=>v>90).length;
+  out.rascunho=G.bloco(G.barras([
+    {r:'<30d',v:r30,cor:cor('neutro'),fraco:true,dica:`Criados há menos de 30 dias: ${r30}`},
+    {r:'30–90',v:r90,cor:cor('neutro'),dica:`Criados há 30 a 90 dias: ${r90}`},
+    {r:'>90d',v:rV,cor:'var(--alerta)',dica:`Criados há mais de 90 dias: ${rV}`},
+  ]), !d.tRascunho.length?'nenhum rascunho':rV?`<b>${rV}</b> parado${rV>1?'s':''} há +90 dias`:'todos recentes', rV?'alerta':'');
+  // Em andamento: em que etapa estão (gargalo)
+  const ET=[['submetido','Sub','Submetido'],['pendente_correcao','Corr','Em correção'],['em_avaliacao','Aval','Em avaliação'],['em_revisao_unesco','UN','Revisão da UNESCO']];
+  const porEt=ET.map(([f,r,nome])=>({r,nome,v:d.tAndamento.filter(x=>d.fase(x)===f).length,cor:{submetido:cor('submetido'),pendente_correcao:cor('pendente'),em_avaliacao:cor('avaliacao'),em_revisao_unesco:cor('unesco')}[f]}));
+  const maior=porEt.reduce((a,b)=>b.v>a.v?b:a,porEt[0]);
+  out.andamento=G.bloco(G.barras(porEt.map(e=>({...e,dica:`${e.nome}: ${e.v}`}))),
+    d.tAndamento.length?`mais em <b>${maior.nome.toLowerCase()}</b>`:'nenhum em análise');
+  // Atrasados: quantos dias de atraso
+  const atr=d.tAtrasados.map(x=>Math.max(1,G.diasDesde(String(x.prazo_limite).slice(0,10))||1));
+  const fx=[[1,15,'≤15'],[16,30,'≤30'],[31,60,'≤60'],[61,1e9,'60+']];
+  out.atrasados=G.bloco(G.barras(fx.map(([a,b,r],i)=>{const v=atr.filter(x=>x>=a&&x<=b).length;
+      return {r,v,cor:'var(--erro)',fraco:i<2,dica:`${b<1e9?`${a} a ${b}`:'Mais de 60'} dias de atraso: ${v}`};})),
+    atr.length?`mais antigo: <b>${Math.max(...atr)} dias</b>`:'nenhum atrasado', atr.length?'erro':'ok');
+  // Aprovados: quantos já viraram contrato
+  const nLic=d.tAprovados.filter(x=>x.status==='em_licitacao').length;
+  out.aprovados=G.bloco(G.anel(d.tContratado.length,d.tAprovados.length,cor('contratado'),`${d.tContratado.length} de ${d.tAprovados.length} aprovados já contratados`),
+    d.tAprovados.length?`viraram contrato<br>${nLic} em licitação · ${d.tAprovados.length-d.tContratado.length-nLic} aguardando`:'nenhum aprovado');
+  // Contratados: valor planejado no TDR × valor dos contratos
+  const plan=d.soma(d.tContratado);
+  const firm=d.tContratado.reduce((s,x)=>s+(x.contratos||[]).filter(c=>c.status!=='cancelado').reduce((a,c)=>a+parseFloat(c.valor_total_brl||0),0),0);
+  const dif=plan-firm;
+  out.contratado=G.bloco(G.bala(firm,plan,{cor:cor('contratado'),corExc:'var(--erro)',legenda:['contratado','planejado'],
+      dica:`Contratado ${fmtBRL(firm)} de ${fmtBRL(plan)} planejado nos TDRs`}),
+    !d.tContratado.length?'nenhum contratado':Math.abs(dif)<1?'contratado = planejado':dif>0?`economia <b>${G.brl(dif)}</b>`:`acima do TDR <b>${G.brl(-dif)}</b>`, dif<=-1?'erro':'');
+  return out;
 }
 
 // ── Filtro por clique nos cards de estatística ───────────────
@@ -663,14 +725,13 @@ function filtrar(){
   const s=document.getElementById('fil-st').value;
   const tp=document.getElementById('fil-tp').value;
   const resp=document.getElementById('fil-resp')?.value||'';
-  const GRUPO_ANDAMENTO=['submetido','pendente_correcao','em_avaliacao','em_revisao_unesco','em_licitacao'];
   const f=todosTDRs.filter(t=>{
     if(b&&!t.numero.toLowerCase().includes(b)&&!(t.objeto_pt||'').toLowerCase().includes(b))return false;
     if(s&&(TD_STATUS_NORM[t.status]||t.status)!==s)return false;
     if(tp&&t.tipo!==tp)return false;
     if(resp&&getResponsavelTDR(t)?.id!==resp)return false;
-    if(filtroCard==='andamento'&&!GRUPO_ANDAMENTO.includes(TD_STATUS_NORM[t.status]||t.status))return false;
-    if(filtroCard==='atrasados'&&!(t.prazo_limite&&new Date(t.prazo_limite)<new Date()&&!FASES_POS_APROVACAO.includes(t.status)))return false;
+    if(filtroCard==='andamento'&&!TD_GRUPO_ANDAMENTO.includes(TD_STATUS_NORM[t.status]||t.status))return false;
+    if(filtroCard==='atrasados'&&!tdAtrasado(t))return false;
     if(filtroCard==='aprovados'&&!FASES_POS_APROVACAO.includes(t.status))return false;
     return true;
   });

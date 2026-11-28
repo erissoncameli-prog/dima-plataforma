@@ -16,6 +16,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Financeiro -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/financeiro.css" rel="stylesheet">
+<link href="../css/kpi-graficos.css" rel="stylesheet">
 </head>
 <body class="dgm">
 <div id="app"><div class="empty-state" role="status"><div class="spinner"></div><div class="empty-state-msg">Carregando financeiro…</div></div></div>
@@ -79,6 +80,7 @@
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/kpi-graficos.js"></script>
 <script>
 let todosLanc = [];
 let atividades = [], contratos = [], fornecedores = [], resultados = [];
@@ -430,30 +432,70 @@ function renderStats() {
   const pp = totalGeral > 0 ? totalPago/totalGeral*100 : 0;
   const pa = totalGeral > 0 ? totalAPagar/totalGeral*100 : 0;
   const ativo = c => String(filtroCardFin===c);
+  const g = window.KpiG ? fiGraficos({ pagos, aPagar, vencidosArr, usdPago, usdAPagar, soma }) : {};
+  const kg = k => g[k] ? ' kg-tem' : '';
+  const ab = '<span class="kg-in"><span class="kg-esq">', fe = k => `</span>${g[k]||''}</span>`;
 
   document.getElementById('stats').innerHTML = `
-    <button type="button" class="fi-kpi" aria-pressed="${ativo('pago')}" onclick="clicarCardFin('pago')">
+    <button type="button" class="fi-kpi${kg('pago')}" aria-pressed="${ativo('pago')}" onclick="clicarCardFin('pago')">${ab}
       <span class="fi-kpi-l">${fiIc('check','p')}Pago</span>
       <span class="fi-kpi-v ok">${brlc(totalPago)}</span>
-      <span class="fi-meter" aria-hidden="true"><i class="pago" style="width:${pp}%"></i><i class="comp" style="width:${pa}%"></i></span>
-      <span class="fi-kpi-s">${Math.round(pp)}% do lançado · ${pagos.length} pagamento${pagos.length!==1?'s':''}</span>
+      ${g.pago?'':`<span class="fi-meter" aria-hidden="true"><i class="pago" style="width:${pp}%"></i><i class="comp" style="width:${pa}%"></i></span>`}
+      <span class="fi-kpi-s">${Math.round(pp)}% do lançado · ${pagos.length} pagamento${pagos.length!==1?'s':''}</span>${fe('pago')}
     </button>
-    <button type="button" class="fi-kpi" aria-pressed="${ativo('a_pagar')}" onclick="clicarCardFin('a_pagar')">
+    <button type="button" class="fi-kpi${kg('a_pagar')}" aria-pressed="${ativo('a_pagar')}" onclick="clicarCardFin('a_pagar')">${ab}
       <span class="fi-kpi-l">${fiIc('relogio','p')}A pagar</span>
       <span class="fi-kpi-v">${brlc(totalAPagar)}</span>
-      <span class="fi-kpi-s">${aPagar.length} lançamento${aPagar.length!==1?'s':''}</span>
+      <span class="fi-kpi-s">${aPagar.length} lançamento${aPagar.length!==1?'s':''}</span>${fe('a_pagar')}
     </button>
-    <button type="button" class="fi-kpi${vencidos?' alerta':''}" aria-pressed="${ativo('vencidos')}" onclick="clicarCardFin('vencidos')">
+    <button type="button" class="fi-kpi${vencidos?' alerta':''}${kg('vencidos')}" aria-pressed="${ativo('vencidos')}" onclick="clicarCardFin('vencidos')">${ab}
       <span class="fi-kpi-l">${fiIc('alerta','p')}Vencidos</span>
       <span class="fi-kpi-v${vencidos?' erro':' ok'}">${vencidos}</span>
-      <span class="fi-kpi-s">${vencidos ? brlc(soma(vencidosArr)) + ' · clique para ver' : 'nenhum a pagar vencido'}</span>
+      <span class="fi-kpi-s">${vencidos ? brlc(soma(vencidosArr)) + ' · clique para ver' : 'nenhum a pagar vencido'}</span>${fe('vencidos')}
     </button>
-    <div class="fi-kpi">
+    <div class="fi-kpi${kg('usd')}">${ab}
       <span class="fi-kpi-l">${fiIc('globo','p')}Em US$</span>
       <span class="fi-kpi-v">${usdc(usdPago + usdAPagar)}</span>
-      <span class="fi-kpi-s"><b class="ok">${usdc(usdPago)}</b> pago (câmbio UNESCO) · ${usdc(usdAPagar)} a pagar (estimado a ${fmtTaxa(taxaAtual)})</span>
+      <span class="fi-kpi-s"><b class="ok">${usdc(usdPago)}</b> pago (câmbio UNESCO) · ${usdc(usdAPagar)} a pagar (estimado a ${fmtTaxa(taxaAtual)})</span>${fe('usd')}
     </div>`;
   const n = document.getElementById('n-lanc'); if (n) n.textContent = todosLanc.length;
+}
+
+// Mini gráfico de cada número do topo (js/kpi-graficos.js) + frase de leitura
+function fiGraficos(d) {
+  const G = KpiG, out = {};
+  const MES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  // Pago: pagamentos dos últimos 12 meses (pela data de pagamento)
+  const hoje = new Date(), meses = [];
+  for (let i = 11; i >= 0; i--) { const m = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1); meses.push({ k: m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0'), r: MES[m.getMonth()], ano: m.getFullYear(), v: 0 }); }
+  const idx = Object.fromEntries(meses.map((m, i) => [m.k, i]));
+  d.pagos.forEach(l => { const k = String(l.dt_pagamento || '').slice(0, 7); if (k in idx) meses[idx[k]].v += parseFloat(l.valor_brl || 0); });
+  meses.forEach(m => m.dica = `${m.r}/${m.ano}: ${fmtBRL(m.v)}`);
+  const ult = meses[11].v, media = meses.slice(0, 11).reduce((s, m) => s + m.v, 0) / 11;
+  out.pago = G.bloco(G.colunas(meses, 'var(--fi-pago)'),
+    `este mês <b>${G.brl(ult)}</b><br>média ${G.brl(media)}/mês`);
+  // A pagar: quando vence
+  const dv = d.aPagar.map(l => ({ d: l.dt_vencimento ? -G.diasDesde(l.dt_vencimento) : null, v: parseFloat(l.valor_brl || 0) }));
+  const fx = [['venc.', x => x !== null && x < 0, 'var(--erro)'], ['7d', x => x !== null && x >= 0 && x <= 7, 'var(--alerta)'],
+    ['30d', x => x !== null && x > 7 && x <= 30, 'var(--fi-pago)'], ['30+', x => x !== null && x > 30, 'var(--fi-pago)'], ['s/d', x => x === null, 'var(--txt-3)']];
+  const grp = fx.map(([r, f, cor], i) => { const a = dv.filter(x => f(x.d)); const v = a.reduce((s, x) => s + x.v, 0);
+    const nome = ['Vencidos', 'Vencem em até 7 dias', 'Vencem em 8 a 30 dias', 'Vencem em mais de 30 dias', 'Sem data de vencimento'][i];
+    return { r, v: a.length, valor: v, cor, fraco: i >= 2, dica: `${nome}: ${a.length} · ${fmtBRL(v)}` }; });
+  out.a_pagar = G.bloco(G.barras(grp),
+    d.aPagar.length ? `vence em 7 dias: <b>${G.brl(grp[1].valor)}</b>` : 'nada a pagar', grp[1].valor > 0 ? 'alerta' : '');
+  // Vencidos: há quantos dias
+  const atr = d.vencidosArr.map(l => ({ d: Math.max(1, G.diasDesde(l.dt_vencimento) || 1), v: parseFloat(l.valor_brl || 0) }));
+  const fv = [[1, 30, '≤30'], [31, 60, '≤60'], [61, 90, '≤90'], [91, 1e9, '90+']];
+  out.vencidos = G.bloco(G.barras(fv.map(([a, b, r], i) => { const s = atr.filter(x => x.d >= a && x.d <= b);
+      return { r, v: s.length, cor: 'var(--erro)', fraco: i < 1, dica: `${b < 1e9 ? a + ' a ' + b : 'Mais de 90'} dias vencido: ${s.length} · ${fmtBRL(s.reduce((t, x) => t + x.v, 0))}` }; })),
+    atr.length ? `mais antigo: <b>${Math.max(...atr.map(x => x.d))} dias</b>` : 'tudo em dia', atr.length ? 'erro' : 'ok');
+  // Em US$: quanto já está com câmbio travado e quanto ainda varia com o dólar
+  const totU = d.usdPago + d.usdAPagar;
+  out.usd = G.bloco(G.faixa([
+    { v: d.usdPago, cor: 'var(--fi-pago)', dica: `Pago, câmbio da UNESCO travado: ${usdc(d.usdPago)}` },
+    { v: d.usdAPagar, cor: 'var(--fi-comp)', dica: `A pagar, estimado pela cotação de hoje: ${usdc(d.usdAPagar)}` },
+  ], ['travado', 'varia']), `<b>${G.pct(d.usdAPagar, totU)}%</b> ainda varia com o dólar`);
+  return out;
 }
 
 // ── Filtro por clique nos números do topo ─────────────────────

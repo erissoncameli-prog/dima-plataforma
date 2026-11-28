@@ -16,6 +16,7 @@
 <!-- design system da mesa (tokens + tema, escopo body.dgm) + componentes de Contratos -->
 <link href="../css/diagnostico-mesa.css" rel="stylesheet">
 <link href="../css/contratos.css" rel="stylesheet">
+<link href="../css/kpi-graficos.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body class="dgm">
@@ -89,6 +90,7 @@
 <script src="../js/guias-plataforma.js"></script>
 <script src="../js/ajuda.js"></script>
 <script src="../js/diag-tema.js"></script>
+<script src="../js/kpi-graficos.js"></script>
 <script>
 (function(){
 var todosContratos=[],atividades=[],fornecedores=[],tdrs=[];
@@ -283,15 +285,19 @@ function renderStats(){
   var semPDF=todosContratos.filter(function(c){return !c.contrato_assinado_url;}).length;
   var trav=todosContratos.filter(function(c){return c.status==='aguardando_cobertura';});
   var pPago=totC>0?Math.min(totU/totC*100,100):0, pApagar=totC>0?Math.max(0,Math.min(totComp/totC*100,100)-pPago):0;
-  function kpi(chave,ic,lbl,val,sub,extra,cls,vcls){
-    return '<button type="button" class="ct-kpi'+(cls?' '+cls:'')+'" aria-pressed="'+(filtroCardCont===chave)+'" onclick="clicarCardCont(\''+chave+'\')" title="Clique para filtrar a lista">'
-      +'<span class="ct-kpi-l">'+ctIc(ic)+lbl+'</span><span class="ct-kpi-v'+(vcls?' '+vcls:'')+'">'+val+'</span>'+(extra||'')+'<span class="ct-kpi-s">'+sub+'</span></button>';
+  var graf=window.KpiG?ctGraficos(vig,totC):{};
+  function kpi(chave,ic,lbl,val,sub,extra,cls,vcls,titulo){
+    var g=graf[chave];
+    return '<button type="button" class="ct-kpi'+(cls?' '+cls:'')+(g?' kg-tem':'')+'" aria-pressed="'+(filtroCardCont===chave)+'" onclick="clicarCardCont(\''+chave+'\')" title="'+esc(titulo||'Clique para filtrar a lista')+'">'
+      +'<span class="kg-in"><span class="kg-esq"><span class="ct-kpi-l">'+ctIc(ic)+lbl+'</span><span class="ct-kpi-v'+(vcls?' '+vcls:'')+'">'+val+'</span>'+(g?'':(extra||''))+'<span class="ct-kpi-s">'+sub+'</span></span>'+(g||'')+'</span></button>';
   }
   document.getElementById('stats').innerHTML=
     kpi('vigente','contrato','Vigentes',vig.length,'de '+todosContratos.length+' contratos')+
-    kpi('total','moeda','Contratado (vigentes)',brlc(totC),'soma dos valores totais')+
+    kpi('total','moeda','Contratado (vigentes)',brlc(totC),'soma dos valores totais',null,'','',
+      'Clique para ver os vigentes')+
     kpi('utilizado','check','Pago',brlc(totU),Math.round(pPago)+'% pago · '+Math.round(pApagar)+'% a pagar',
-      '<span class="ct-meter"><i style="width:'+pPago.toFixed(1)+'%;background:var(--ct-pago)"></i><i style="width:'+pApagar.toFixed(1)+'%;background:var(--ct-comp)"></i></span>','','ok')+
+      '<span class="ct-meter"><i style="width:'+pPago.toFixed(1)+'%;background:var(--ct-pago)"></i><i style="width:'+pApagar.toFixed(1)+'%;background:var(--ct-comp)"></i></span>','','ok',
+      'Pago dos contratos vigentes · clique para ver os vigentes com pagamento')+
     kpi('sem_pdf','alerta','Sem PDF assinado',semPDF,semPDF?'clique para ver quais':'todos com PDF',null,semPDF?'alerta':'',semPDF?'erro':'');
 
   // Faixa dos contratos travados aguardando cobertura do orçamento
@@ -302,6 +308,54 @@ function renderStats(){
     +(trav.length>1?' passaram':' passou')+' do TDR e o saldo livre da atividade não cobre. Sem produtos, pagamentos ou PDF até liberar.</div>'
     +'<div class="acoes"><button type="button" class="ct-btn peq" onclick="clicarCardCont(\'travado\')" aria-pressed="'+(filtroCardCont==='travado')+'">'+(filtroCardCont==='travado'?'Mostrar todos':'Mostrar')+'</button>'
     +'<a class="ct-btn pri peq" href="remanejamentos.html'+(trav.length===1?'?cobertura='+encodeURIComponent(trav[0].id):'')+'">Pedir cobertura'+ctIc('seta','p')+'</a></div></div>':'';
+}
+
+// Mini gráfico de cada número do topo (js/kpi-graficos.js) + frase de leitura
+function ctGraficos(vig,totC){
+  var G=KpiG, out={};
+  // Vigentes: quando terminam (aditivo ou encerramento)
+  var d=vig.map(function(c){return c.dt_fim?-G.diasDesde(c.dt_fim):null;});
+  var venc=d.filter(function(x){return x!==null&&x<0;}).length,
+      a30=d.filter(function(x){return x!==null&&x>=0&&x<=30;}).length,
+      a90=d.filter(function(x){return x!==null&&x>30&&x<=90;}).length,
+      mais=d.filter(function(x){return x!==null&&x>90;}).length;
+  out.vigente=G.bloco(G.barras([
+    {r:'vencido',v:venc,cor:'var(--erro)',dica:'Vigentes com o prazo final já vencido: '+venc},
+    {r:'≤30d',v:a30,cor:'var(--alerta)',dica:'Terminam em até 30 dias: '+a30},
+    {r:'≤90d',v:a90,cor:'var(--ct-pago)',fraco:true,dica:'Terminam em 31 a 90 dias: '+a90},
+    {r:'90+',v:mais,cor:'var(--ct-pago)',fraco:true,dica:'Terminam em mais de 90 dias: '+mais}
+  ]), venc?'<b>'+venc+'</b> com prazo vencido':a30?'<b>'+a30+'</b> terminam em 30 dias':'nenhum termina em 30 dias', venc?'erro':a30?'alerta':'');
+  // Contratado: concentração nos maiores fornecedores
+  var porF={};
+  vig.forEach(function(c){var k=c.fornecedor_id||'?';porF[k]=porF[k]||{nome:(c.fornecedores&&c.fornecedores.nome)||'Sem fornecedor',v:0};porF[k].v+=parseFloat(c.valor_total_brl||0);});
+  var lista=Object.keys(porF).map(function(k){return porF[k];}).sort(function(a,b){return b.v-a.v;});
+  var top=lista.slice(0,3), resto=lista.slice(3).reduce(function(s,f){return s+f.v;},0), sTop=top.reduce(function(s,f){return s+f.v;},0);
+  var tons=['1','.75','.5'];
+  var itens=top.map(function(f,i){return {v:f.v,cor:'color-mix(in srgb, var(--ct-pago) '+(tons[i]*100)+'%, transparent)',dica:(i+1)+'º '+f.nome+': '+fmtBRL(f.v)+' ('+G.pct(f.v,totC)+'%)'};});
+  itens.push({v:resto,cor:'var(--ct-comp)',dica:'Demais '+(lista.length-top.length)+' fornecedores: '+fmtBRL(resto)});
+  out.total=G.bloco(G.faixa(itens,['3 maiores','demais']),
+    lista.length?'<b>'+G.pct(sTop,totC)+'%</b> em '+Math.min(3,lista.length)+' de '+lista.length+' fornecedores':'nenhum vigente');
+  // Pago: % pago × % do prazo decorrido (abaixo da diagonal = execução atrás do tempo)
+  var pts=[], atras=0;
+  vig.forEach(function(c){
+    var tot=parseFloat(c.valor_total_brl||0); if(!(tot>0)||!c.dt_inicio||!c.dt_fim)return;
+    var dur=-G.diasDesde(c.dt_fim)+G.diasDesde(c.dt_inicio); if(!(dur>0))return;
+    var x=Math.max(0,Math.min(100,G.diasDesde(c.dt_inicio)/dur*100)), y=Math.min(100,parseFloat(c.valor_utilizado_brl||0)/tot*100);
+    var al=x>=20&&x-y>=25; if(al)atras++;
+    pts.push({x:x,y:y,alerta:al,dica:c.numero+': '+Math.round(y)+'% pago com '+Math.round(x)+'% do prazo'});
+  });
+  out.utilizado=G.bloco(G.dispersao(pts,{cor:'var(--ct-pago)',corAlerta:'var(--alerta)',eixo:['início','prazo →']}),
+    !pts.length?'sem datas para comparar':atras?'<b>'+atras+'</b> pago'+(atras>1?'s':'')+' abaixo do tempo':'pagamento acompanha o prazo', atras?'alerta':'');
+  // Sem PDF: em que situação estão
+  var sem=todosContratos.filter(function(c){return !c.contrato_assinado_url;});
+  var sV=sem.filter(function(c){return c.status==='vigente'||c.status==='aguardando_cobertura';}).length,
+      sE=sem.filter(function(c){return c.status==='encerrado'||c.status==='rescindido';}).length, sO=sem.length-sV-sE;
+  out.sem_pdf=G.bloco(G.barras([
+    {r:'vigente',v:sV,cor:'var(--erro)',dica:'Vigentes sem PDF assinado: '+sV},
+    {r:'encerr.',v:sE,cor:'var(--txt-3)',dica:'Encerrados ou rescindidos sem PDF: '+sE},
+    {r:'outros',v:sO,cor:'var(--txt-3)',fraco:true,dica:'Suspensos ou cancelados sem PDF: '+sO}
+  ]), sV?'<b>'+sV+'</b> vigente'+(sV>1?'s':'')+' sem PDF':sem.length?'nenhum vigente sem PDF':'todos com PDF', sV?'erro':'');
+  return out;
 }
 
 function filtrar(){
@@ -318,7 +372,8 @@ function filtrar(){
     if(ff&&c.fornecedor_id!==ff)return false;
     if(b&&!((c.numero+' '+(c.objeto_pt||'')+' '+(c.fornecedores?c.fornecedores.nome:'')).toLowerCase()).includes(b))return false;
     if(filtroCardCont==='vigente'&&c.status!=='vigente')return false;
-    if(filtroCardCont==='utilizado'&&!(parseFloat(c.valor_utilizado_brl||0)>0))return false;
+    if(filtroCardCont==='total'&&c.status!=='vigente')return false;
+    if(filtroCardCont==='utilizado'&&!(c.status==='vigente'&&parseFloat(c.valor_utilizado_brl||0)>0))return false;
     if(filtroCardCont==='sem_pdf'&&c.contrato_assinado_url)return false;
     if(filtroCardCont==='travado'&&c.status!=='aguardando_cobertura')return false;
     return true;

@@ -1,0 +1,43 @@
+/* ── Mini gráficos dos números do topo (js/kpi-graficos.js, prefixo kg-) ──
+   Vale nas telas da mesa (body.dgm): usa os tokens de diagnostico-mesa.css
+   (--txt-2, --txt-3, --lin, --bg-2, --erro, --alerta, --ok). Cor de cada
+   série vem do JS como var(--token) da página — nada de hex aqui.
+   Carregar DEPOIS do CSS da página (o quadro vira grade de 2 colunas). */
+
+body.dgm .kg-tem.kg-tem { display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; container-type: inline-size; }
+body.dgm .kg-in { display: grid; grid-template-columns: minmax(0, max-content) minmax(92px, 1fr); column-gap: 14px; align-items: center; width: 100%; }
+body.dgm .kg-esq { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+body.dgm .kg-dir { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+body.dgm .kg-graf { display: block; line-height: 0; }
+body.dgm .kg-svg { display: block; width: 100%; max-width: 170px; height: auto; margin-left: auto; overflow: visible; }
+body.dgm .kg-anel { width: 46px; max-width: 46px; margin: 0; flex: none; }
+body.dgm .kg-dir:has(.kg-anel) { flex-direction: row; align-items: center; justify-content: flex-end; gap: 10px; }
+body.dgm .kg-dir:has(.kg-anel) .kg-graf { flex: none; }
+
+/* frase de leitura */
+body.dgm .kg-ler { display: block; font-size: 11.5px; line-height: 1.35; color: var(--txt-2); text-align: right; font-weight: 400; }
+body.dgm .kg-ler b { font-weight: 600; color: var(--txt); font-variant-numeric: tabular-nums; }
+body.dgm .kg-ler.kg-erro, body.dgm .kg-ler.kg-erro b { color: var(--erro); }
+body.dgm .kg-ler.kg-alerta, body.dgm .kg-ler.kg-alerta b { color: var(--alerta); }
+body.dgm .kg-ler.kg-ok, body.dgm .kg-ler.kg-ok b { color: var(--ok); }
+
+/* peças do SVG */
+body.dgm .kg-svg text { font-family: var(--font-sans, inherit); font-variant-numeric: tabular-nums; }
+body.dgm .kg-rot { font-size: 8.5px; fill: var(--txt-3); }
+body.dgm .kg-val { font-size: 8.5px; font-weight: 600; fill: var(--txt-2); }
+body.dgm .kg-base { stroke: var(--lin-forte); stroke-width: 1; }
+body.dgm .kg-trilho { fill: var(--bg-2); }
+body.dgm .kg-trilho-anel { fill: none; stroke: var(--bg-2); stroke-width: 6; }
+body.dgm .kg-anel-txt { font-size: 10px; font-weight: 600; fill: var(--txt); }
+body.dgm .kg-meta { stroke: var(--txt); stroke-width: 1.5; }
+body.dgm .kg-diag { stroke: var(--txt-3); stroke-width: 1; stroke-dasharray: 2 2; }
+
+/* quadro estreito: gráfico abaixo do número */
+@container (max-width: 205px) {
+  body.dgm .kg-in { grid-template-columns: minmax(0, 1fr); row-gap: 8px; }
+  body.dgm .kg-svg { margin-left: 0; max-width: 100%; }
+  body.dgm .kg-dir:has(.kg-anel) { justify-content: flex-start; }
+  body.dgm .kg-ler { text-align: left; }
+}
+
+@media print { body.dgm .kg-dir { display: none; } }
