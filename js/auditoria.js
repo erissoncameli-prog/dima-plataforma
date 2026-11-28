@@ -25,21 +25,7 @@ let _execAtual    = null       // execução exibida
 let _ultimaId     = null       // execução concluída mais recente
 let _rodando      = false
 
-// ── Chat state ─────────────────────────────────────────────────
-let _chatMessages   = []
-let _chatAberto     = false
-let _chatExecucaoId = null
-let _chatEnviando   = false
-// Conversa gravada no banco (ia_conversas): o histórico enviado à IA vem de lá, não da tela
-let _chatConversaId = null
-let _chatConversasLidas = false
-// Mesmos rótulos de ROTULO_FERRAMENTA na Edge Function chat-auditor
-const CHAT_FERRAMENTAS = {
-  achados_auditoria: 'achados da auditoria', saldo_atividades: 'saldo das atividades',
-  extrato_orcamento_atividade: 'extrato do orçamento', consultar_contrato: 'contratos', consultar_tdr: 'TDRs',
-  execucao_direta_tdr: 'execução direta', remanejamentos: 'remanejamentos', produtos_contratos: 'produtos', viagens: 'viagens',
-  pessoas: 'pessoas', tarefas: 'tarefas',
-}
+// Chat do assistente: js/auditoria-assistente.js (carregado depois deste arquivo)
 
 // ── Ícones (SVG, sem emoji) ────────────────────────────────────
 const AU_IC = {
@@ -59,6 +45,16 @@ const AU_IC = {
   sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   lua: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
   mais: '<path d="M12 5v14M5 12h14"/>',
+  lista: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+  expandir: '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
+  recolher: '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>',
+  'seta-cima': '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  copiar: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+  refazer: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/>',
+  polegar: '<path d="M7 11v9H4v-9zM7 11l4-8a2 2 0 0 1 3 2l-1 5h6a2 2 0 0 1 2 2.3l-1.4 7A2 2 0 0 1 17.6 21H7"/>',
+  tarefa: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/>',
+  moeda: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/>',
+  troca: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
 }
 function auIc(n, cls) { return '<svg class="au-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (AU_IC[n] || '') + '</svg>' }
 document.querySelectorAll('i[data-ic]').forEach(function (e) { e.outerHTML = auIc(e.dataset.ic, 'p') })
@@ -152,10 +148,6 @@ function domDe(a) {
 })()
 
 function ligarEventos() {
-  document.querySelectorAll('[data-sug]').forEach(function (b) { b.addEventListener('click', function () { enviarSugestao(b.dataset.sug) }) })
-  const inp = document.getElementById('chat-input')
-  inp.addEventListener('keydown', chatKeydown)
-  inp.addEventListener('input', function () { autoResizeTextarea(inp) })
   document.getElementById('au-modal').addEventListener('click', function (e) { if (e.target.id === 'au-modal') fecharModal() })
   document.addEventListener('keydown', function (e) {
     const modal = document.getElementById('au-modal')
@@ -600,254 +592,3 @@ async function confirmarModal() {
   }
 }
 
-// ── Chat ────────────────────────────────────────────────────────
-function setChatExecucao(id, dt) {
-  _chatExecucaoId = id
-  const sub = document.getElementById('chat-header-sub')
-  if (sub) sub.textContent = 'Contexto: auditoria de ' + (dt ? fmtDtHr(dt) : '?')
-}
-
-let _chatVolta = null
-function toggleChat(forcar) {
-  const abrir = typeof forcar === 'boolean' ? forcar : !_chatAberto
-  if (abrir === _chatAberto) return
-  _chatAberto = abrir
-  const panel = document.getElementById('chat-panel')
-  const btnChat = document.getElementById('btn-chat')
-  panel.classList.toggle('aberto', abrir)
-  panel.setAttribute('aria-hidden', String(!abrir))
-  if (btnChat) { btnChat.classList.toggle('au-on', abrir); btnChat.setAttribute('aria-expanded', String(abrir)) }
-  if (abrir) {
-    _chatVolta = document.activeElement
-    if (!_chatConversasLidas) { _chatConversasLidas = true; carregarConversasChat(true) }
-    requestAnimationFrame(function () { document.getElementById('chat-input').focus() })
-  } else if (_chatVolta && document.contains(_chatVolta)) {
-    _chatVolta.focus({ preventScroll: true }); _chatVolta = null
-  }
-}
-
-// Conversas da própria pessoa (RLS ia_conversas_select_proprio). retomar = abre a última se for de menos de 12 h
-async function carregarConversasChat(retomar) {
-  const { data, error } = await db.from('ia_conversas')
-    .select('id, titulo, atualizado_em').eq('origem', 'auditoria').is('expurgado_em', null)
-    .order('atualizado_em', { ascending: false }).limit(15)
-  if (error) { console.warn('[chat] conversas', error.message); return }
-  const sel = document.getElementById('chat-conversas')
-  if (sel) {
-    sel.innerHTML = '<option value="">Conversa nova</option>' + (data || []).map(function (c) {
-      return '<option value="' + esc(c.id) + '">' + esc(fmtDtHr(c.atualizado_em) + ' · ' + (c.titulo || 'Conversa')) + '</option>'
-    }).join('')
-    sel.value = _chatConversaId || ''
-  }
-  const ult = (data || [])[0]
-  if (retomar && ult && !_chatConversaId && !_chatMessages.length &&
-      Date.now() - new Date(ult.atualizado_em).getTime() < 12 * 3600e3) {
-    await abrirConversaChat(ult.id)
-  }
-}
-
-function limparBolhasChat(mostrarBoasVindas) {
-  const msgsEl = document.getElementById('chat-msgs')
-  if (!msgsEl) return
-  Array.from(msgsEl.children).forEach(function (el) { if (el.id !== 'chat-welcome') el.remove() })
-  const welcome = document.getElementById('chat-welcome')
-  if (welcome) welcome.style.display = mostrarBoasVindas ? '' : 'none'
-}
-
-async function abrirConversaChat(id) {
-  if (_chatEnviando) return
-  if (!id) { novaConversaChat(); return }
-  const { data, error } = await db.from('ia_mensagens')
-    .select('papel, conteudo, ferramentas').eq('conversa_id', id).order('criado_em')
-  if (error) { toast('Não consegui abrir a conversa: ' + error.message, 'error'); return }
-  _chatConversaId = id
-  _chatMessages = (data || []).map(function (m) { return { role: m.papel, content: m.conteudo } })
-  limparBolhasChat(!_chatMessages.length)
-  ;(data || []).forEach(function (m) {
-    adicionarBolha(m.papel, m.conteudo, (m.ferramentas || []).map(function (f) { return CHAT_FERRAMENTAS[f] || f }))
-  })
-  const sel = document.getElementById('chat-conversas')
-  if (sel) sel.value = id
-}
-
-function novaConversaChat() {
-  if (_chatEnviando) return
-  _chatConversaId = null
-  _chatMessages = []
-  limparBolhasChat(true)
-  const sel = document.getElementById('chat-conversas')
-  if (sel) sel.value = ''
-  document.getElementById('chat-input')?.focus()
-}
-
-function perguntarSobre(id) {
-  const a = _achados.find(function (x) { return x.id === id })
-  if (!a) return
-  toggleChat(true)
-  const input = document.getElementById('chat-input')
-  input.value = 'Sobre o achado "' + (a.titulo || '') + '"' + (a.referencia_label ? ' (' + a.referencia_label + ')' : '') + ': o que pode ter causado e como resolver?'
-  autoResizeTextarea(input)
-  input.focus()
-}
-
-function enviarSugestao(texto) {
-  const input = document.getElementById('chat-input')
-  if (input) { input.value = texto; autoResizeTextarea(input) }
-  enviarMensagemChat()
-}
-
-async function enviarMensagemChat() {
-  if (_chatEnviando) return
-  const input = document.getElementById('chat-input')
-  const texto = (input?.value || '').trim()
-  if (!texto) return
-
-  input.value = ''
-  autoResizeTextarea(input)
-  const welcome = document.getElementById('chat-welcome')
-  if (welcome) welcome.style.display = 'none'
-
-  if (texto.startsWith('/')) { await executarComandoChat(texto); return }
-
-  _chatMessages.push({ role: 'user', content: texto })
-  adicionarBolha('user', texto)
-
-  const msgsEl = document.getElementById('chat-msgs')
-  const typing = document.createElement('div')
-  typing.id = 'chat-typing'
-  typing.className = 'chat-msg assistant'
-  typing.innerHTML = '<div class="chat-bubble"><div class="chat-thinking" aria-label="Pensando"><div class="chat-dot"></div><div class="chat-dot"></div><div class="chat-dot"></div></div></div>'
-  if (msgsEl) { msgsEl.appendChild(typing); msgsEl.scrollTop = msgsEl.scrollHeight }
-
-  _chatEnviando = true
-  const sendBtn = document.getElementById('chat-send')
-  if (sendBtn) sendBtn.disabled = true
-
-  try {
-    const { data: { session } } = await db.auth.getSession()
-    const res = await fetch(SUPABASE_URL + '/functions/v1/chat-auditor', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + (session?.access_token || ''),
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ pergunta: texto, conversa_id: _chatConversaId, execucao_id: _chatExecucaoId }),
-    })
-    const json = await res.json()
-    if (!res.ok) throw new Error(json.error || 'Erro HTTP ' + res.status)
-
-    _chatMessages.push({ role: 'assistant', content: json.resposta })
-    document.getElementById('chat-typing')?.remove()
-    adicionarBolha('assistant', json.resposta, json.fontes)
-    const nova = !_chatConversaId
-    if (json.conversa_id) _chatConversaId = json.conversa_id
-    if (nova) carregarConversasChat(false)
-    carregarConsumo()
-  } catch (e) {
-    document.getElementById('chat-typing')?.remove()
-    // Erro fica só na tela: não entra no histórico enviado ao modelo
-    _chatMessages.pop()
-    adicionarBolha('assistant', 'Não consegui processar sua pergunta. ' + e.message)
-  } finally {
-    _chatEnviando = false
-    if (sendBtn) sendBtn.disabled = false
-    const m = document.getElementById('chat-msgs')
-    if (m) m.scrollTop = m.scrollHeight
-  }
-}
-
-// Texto do assistente vem do modelo: escapa tudo e só então aplica **negrito** e quebras.
-// fontes = consultas que o assistente fez no banco para responder (rótulos da Edge Function).
-function adicionarBolha(role, texto, fontes) {
-  const msgsEl = document.getElementById('chat-msgs')
-  if (!msgsEl) return
-  const div = document.createElement('div')
-  div.className = 'chat-msg ' + role
-  const safe = esc(String(texto || ''))
-    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>')
-  const fts = Array.isArray(fontes) && fontes.length
-    ? '<div class="chat-fontes">Consultou: ' + fontes.map(function (f) { return esc(String(f)) }).join(' · ') + '</div>'
-    : ''
-  div.innerHTML = '<div class="chat-bubble">' + safe + '</div>' + fts
-  msgsEl.appendChild(div)
-  msgsEl.scrollTop = msgsEl.scrollHeight
-}
-
-function chatKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensagemChat() }
-}
-
-function autoResizeTextarea(el) {
-  if (!el) return
-  el.style.height = 'auto'
-  el.style.height = Math.min(el.scrollHeight, 96) + 'px'
-}
-
-// ── Comandos do chat ───────────────────────────────────────────
-async function executarComandoChat(cmd) {
-  const cmdBase = cmd.trim().toLowerCase().split(/\s+/)[0]
-  adicionarBolha('user', cmd)
-
-  if (cmdBase === '/auditar') { await _cmdAuditar(); return }
-  if (cmdBase === '/ajuda' || cmdBase === '/help') {
-    adicionarBolha('assistant',
-      'Comandos disponíveis:\n\n' +
-      '• /auditar — roda a auditoria completa (agentes especialistas, agente de orçamento e supervisor)\n' +
-      '• /ajuda — mostra esta mensagem\n\n' +
-      'Ou escreva uma pergunta sobre os achados.')
-    return
-  }
-  adicionarBolha('assistant', 'Comando não reconhecido: ' + cmdBase + '\n\nUse /ajuda para ver os comandos disponíveis.')
-}
-
-async function _cmdAuditar() {
-  if (_rodando) { adicionarBolha('assistant', 'Já há uma auditoria em andamento. Aguarde o resultado.'); return }
-  const sendBtn = document.getElementById('chat-send')
-  _chatEnviando = true
-  if (sendBtn) sendBtn.disabled = true
-  setRodando(true)
-
-  adicionarBolha('assistant',
-    'Iniciando a varredura completa do sistema: TDR / Contratos, Financeiro, Orçamento, Produtos, Viagens, Matriz, Qualidade de dados, Patrimônio e Acessos.\n\n' +
-    'Aguarde — pode levar até 1 minuto…')
-
-  try {
-    const resultado = await chamarAuditor()
-    const total = resultado.total_achados || 0
-    const criticos = resultado.achados_criticos || 0
-    const altos = resultado.achados_altos || 0
-    const porDom = resultado.por_dominio || {}
-
-    if (resultado.execucao_id) setChatExecucao(resultado.execucao_id, new Date().toISOString())
-
-    let msg = '**Auditoria concluída.**\n\n'
-    if (total === 0) {
-      msg += 'Nenhuma inconsistência detectada.'
-    } else {
-      msg += '**' + plural(total, 'achado encontrado', 'achados encontrados') + '**'
-      if (criticos > 0) msg += '\n• ' + plural(criticos, 'crítico', 'críticos') + ' — ação urgente'
-      if (altos > 0) msg += '\n• ' + plural(altos, 'alto', 'altos')
-      const linhasDom = Object.entries(porDom)
-        .filter(function (kv) { return (kv[1] || 0) > 0 })
-        .map(function (kv) { return '  ' + (DOMINIOS[kv[0]] || kv[0]) + ': ' + kv[1] })
-      if (linhasDom.length) msg += '\n\nPor domínio:\n' + linhasDom.join('\n')
-    }
-    if (resultado.resumo) msg += '\n\n' + resultado.resumo
-    if (total > 0) msg += '\n\nPosso detalhar os achados. Pergunte, por exemplo:\n• "O que resolver primeiro?"\n• "Resumo por domínio"'
-    adicionarBolha('assistant', msg)
-
-    setRodando(false)
-    await Promise.all([carregarUltimaExecucao(), carregarHistorico()])
-    toast('Auditoria concluída: ' + total + ' achados', criticos > 0 ? 'error' : total > 0 ? 'warning' : 'success')
-  } catch (e) {
-    console.error('[chat /auditar]', e)
-    adicionarBolha('assistant', 'Erro ao executar a auditoria: ' + e.message + '\n\nTente de novo ou use o botão "Rodar auditoria" no topo da página.')
-    setRodando(false)
-    renderFaixa('erro', e.message)
-  } finally {
-    _chatEnviando = false
-    if (sendBtn) sendBtn.disabled = false
-  }
-}

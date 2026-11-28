@@ -1313,6 +1313,16 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `fn_ia_consumo(inicio, fim)` (super_admin vê todas as pessoas; os demais, só o próprio; nunca o texto). Custo **estimado**
   por `fn_ia_preco(modelo)` com tokens de entrada, saída, leitura e escrita de cache — preço mudou ⇒ mudar `fn_ia_preco`.
   A cobrança real é a do Console da Anthropic (conta dona da `ANTHROPIC_API_KEY`).
+- **Painel do assistente** (v8, 28/11/2026): código em **`js/auditoria-assistente.js`** (carregado depois de `auditoria.js`;
+  estilos `ach-*` em `css/auditoria.css`). Gaveta à direita que **expande** (`expandirChat`, preferência no aparelho
+  `au_chat_expandido`) com a lista de conversas por dia à esquerda e o uso do mês; boas-vindas com saudação e 4 cartões;
+  pergunta em pílula, resposta sem balão. Resposta em **streaming**: corpo `stream: true` ⇒ SSE `conversa`, `ferramenta`
+  (a tela mostra "Consultando …" e descarta o texto anterior, que era preâmbulo), `texto`, `fim` (resposta oficial gravada,
+  `mensagem_id`, `custo_usd`) ou `erro`; sem `stream` a função ainda responde JSON. Texto do modelo só por **`mdSeguro`**
+  (escapa tudo; negrito, código, listas, tabelas) e link só dos 4 formatos de `CHAT_LINK_OK`
+  (`tarefas|contratos|tdrs|remanejamentos.html?…=<uuid>`), que as ferramentas devolvem no campo `link`. Custo por resposta
+  gravado pelo banco (`trg_ia_mensagem_custo` → `ia_mensagens.custo_usd`); avaliação útil/não útil por `fn_ia_avaliar`
+  (só a dona da conversa; migração `20261128_ia_avaliacao`).
 - Janela com classe **`au-ov`** (no seletor de escopo de `diagnostico-mesa.css`): Esc fecha, Tab preso, foco volta. O painel
   do assistente (`.au-chat`, também `au-ov`) não bloqueia a página; Esc fecha. "Perguntar ao assistente" no achado preenche a
   pergunta com título e referência.

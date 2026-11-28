@@ -4,6 +4,9 @@
 // do banco, não da tela) e limite de perguntas por pessoa (LIMITE_HORA/DIA).
 // v7 (28/11/2026): ferramentas de tarefas e pessoas (nome com erro de digitação) e
 // tokens de escrita no cache gravados (custo estimado em fn_ia_consumo).
+// v8 (28/11/2026): resposta em streaming (stream: true → eventos SSE conversa/ferramenta/
+// texto/fim/erro), links das ferramentas para abrir tarefa/contrato/TDR/remanejamento e
+// tabelas em markdown. Custo por resposta gravado pelo banco (trg_ia_mensagem_custo).
 //
 // Segurança (Fase 0):
 //  - Só super_admin e coordenação ATIVOS (exigirPerfil) — a chave anon é um JWT
@@ -235,7 +238,9 @@ function criarFerramentas(db: SupabaseClient, execucaoId: string | null, usadas:
       const { data, error } = await q.order('numero').limit(15)
       falhou(error)
       const lista = data || []
-      if (lista.length !== 1) return saida({ total: lista.length, contratos: lista.map(({ id: _id, ...c }) => c) })
+      if (lista.length !== 1) {
+        return saida({ total: lista.length, contratos: lista.map(({ id, ...c }) => ({ ...c, link: 'contratos.html?contrato=' + id })) })
+      }
 
       const c = lista[0]
       const [prod, lanc] = await Promise.all([
@@ -253,7 +258,7 @@ function criarFerramentas(db: SupabaseClient, execucaoId: string | null, usadas:
       const soma = (s: string) => l.filter((x) => x.situacao === s).reduce((t, x) => t + Number(x.valor_brl || 0), 0)
       const { id: _id, ...dados } = c
       return saida({
-        contrato: dados, produtos,
+        contrato: { ...dados, link: 'contratos.html?contrato=' + c.id }, produtos,
         financeiro: { pago_brl: soma('pago'), a_pagar_brl: soma('a_pagar'), lancamentos: l },
       })
     },
@@ -293,7 +298,7 @@ function criarFerramentas(db: SupabaseClient, execucaoId: string | null, usadas:
         falhou(e2)
         for (const c of cs || []) (contratos[c.tdr_id] ||= []).push({ numero: c.numero, status: c.status, valor_total_brl: c.valor_total_brl })
       }
-      return saida({ total: lista.length, tdrs: lista.map(({ id, ...t }) => ({ ...t, contratos: contratos[id] || [] })) })
+      return saida({ total: lista.length, tdrs: lista.map(({ id, ...t }) => ({ ...t, link: 'tdrs.html?tdr=' + id, contratos: contratos[id] || [] })) })
     },
   })
 
@@ -324,15 +329,16 @@ function criarFerramentas(db: SupabaseClient, execucaoId: string | null, usadas:
     run: async (p) => {
       marcar('remanejamentos')
       let q = db.from('remanejamentos').select(`
-        numero, tipo, status, etapa_atual, justificativa, criado_em, submetido_em, efetivado_em, motivo_encerramento,
+        id, numero, tipo, status, etapa_atual, justificativa, criado_em, submetido_em, efetivado_em, motivo_encerramento,
         itens:remanejamento_itens(valor_usd, ativo, atividade:atividades(codigo))`)
       if (p.numero) q = q.ilike('numero', '%' + semCuringa(p.numero) + '%')
       if (p.status) q = q.eq('status', p.status)
       const { data, error } = await q.order('criado_em', { ascending: false }).limit(20)
       falhou(error)
       // Itens fora do rascunho atual ficam com ativo = false: nunca somar
-      const lista = (data || []).map((r: Record<string, unknown>) => ({
+      const lista = (data || []).map(({ id, ...r }: Record<string, unknown>) => ({
         ...r,
+        link: 'remanejamentos.html?id=' + id,
         itens: ((r.itens as Array<Record<string, unknown>>) || []).filter((i) => i.ativo)
           .map((i) => ({ atividade: (i.atividade as { codigo?: string } | null)?.codigo, valor_usd: i.valor_usd })),
       }))
@@ -495,7 +501,8 @@ function criarFerramentas(db: SupabaseClient, execucaoId: string | null, usadas:
           ? Math.round((Date.parse(hoje) - Date.parse(prazo)) / 86400e3) : 0
         const parts = (t.participantes as Array<{ papel: string; usuario_id: string }>) || []
         return {
-          codigo: t.codigo, titulo: t.titulo, status: t.status, prioridade: t.prioridade, tipo: t.tipo,
+          codigo: t.codigo, link: 'tarefas.html?tarefa=' + t.id,
+          titulo: t.titulo, status: t.status, prioridade: t.prioridade, tipo: t.tipo,
           prazo, dias_atraso: atraso, inicio: t.dt_inicio, concluida_em: t.dt_conclusao,
           atividade: (t.atividade as { codigo?: string } | null)?.codigo ?? null,
           criada_por: nomes.get(t.criado_por as string) ?? null,
@@ -508,7 +515,7 @@ function criarFerramentas(db: SupabaseClient, execucaoId: string | null, usadas:
       let subtarefas: unknown[] = []
       if (pessoasIds && papel !== 'criador') {
         const { data: subs, error: e2 } = await db.from('tarefa_checklist')
-          .select('descricao, dt_prazo, responsavel_usuario_id, tarefa:tarefas!inner(codigo, titulo, status, ativo)')
+          .select('descricao, dt_prazo, responsavel_usuario_id, tarefa:tarefas!inner(id, codigo, titulo, status, ativo)')
           .in('responsavel_usuario_id', pessoasIds).eq('concluida', false).limit(60)
         falhou(e2)
         subtarefas = (subs || [])
@@ -522,6 +529,7 @@ function criarFerramentas(db: SupabaseClient, execucaoId: string | null, usadas:
             dias_atraso: s.dt_prazo && (s.dt_prazo as string) < hoje
               ? Math.round((Date.parse(hoje) - Date.parse(s.dt_prazo as string)) / 86400e3) : 0,
             tarefa: (s.tarefa as { codigo?: string })?.codigo, tarefa_titulo: (s.tarefa as { titulo?: string })?.titulo,
+            link: 'tarefas.html?tarefa=' + (s.tarefa as { id?: string })?.id,
           }))
       }
 
@@ -554,11 +562,13 @@ Como trabalhar:
 
 Formato:
 - Português do Brasil, objetivo e em linguagem de gestão (explique siglas técnicas na primeira vez).
-- Comece pela resposta; depois os detalhes. Use listas curtas.
+- Comece pela resposta em uma ou duas frases; depois os detalhes. Use listas curtas.
+- Três ou mais itens com vários atributos (tarefas, contratos, TDRs, atividades): use tabela em markdown (| Coluna | Coluna |), com poucas colunas e texto curto em cada célula.
+- Quando a ferramenta devolver "link", escreva o código ou número como link markdown usando exatamente esse link, por exemplo [TR-012](tarefas.html?tarefa=...). Nunca invente nem altere um link.
 - Cite títulos de achados e números de contrato/TDR exatamente como vieram.
 - Valores: R$ 1.234,56 e US$ 1,234.56 conforme a moeda do dado; diga a moeda.
 - Prioridade: Crítico, Alto, Médio, Baixo (sem emoji).
-- Use **negrito** só para destacar o essencial; não use tabelas nem títulos com #.`
+- Use **negrito** só para destacar o essencial; não use títulos com #.`
 
 const ROTULO_FERRAMENTA: Record<string, string> = {
   achados_auditoria: 'achados da auditoria',
@@ -644,23 +654,51 @@ async function abrirConversa(
   return { conversa: nova, historico: [] as Msg[] }
 }
 
+type Evento = (nome: string, dado: unknown) => void
+
+class FalhaResposta extends Error {
+  status: number
+  constructor(msg: string, status: number) { super(msg); this.status = status }
+}
+
+// Erro em texto para a pessoa (nunca a exceção crua)
+function erroParaPessoa(e: unknown): { msg: string; status: number } {
+  if (e instanceof SemAcesso) return { msg: e.message, status: statusDoErro(e) }
+  if (e instanceof LimiteUso) return { msg: e.message, status: 429 }
+  if (e instanceof FalhaResposta) return { msg: e.message, status: e.status }
+  if (e instanceof Anthropic.RateLimitError) return { msg: 'O assistente está muito requisitado agora. Tente de novo em um minuto.', status: 429 }
+  if (e instanceof Anthropic.APIError) {
+    console.error('[chat-auditor] API', e.status, e.message)
+    return { msg: 'O serviço de IA não respondeu. Tente de novo em instantes.', status: 502 }
+  }
+  console.error('[chat-auditor]', e)
+  return { msg: 'Erro interno do assistente.', status: 500 }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Use POST.' }, 405)
 
+  // ── Antes de responder: quem é, o que perguntou, limite (erros saem como JSON com status) ──
+  let admin: SupabaseClient, usuario: Awaited<ReturnType<typeof exigirPerfil>>, db: SupabaseClient
+  let body: Record<string, unknown>, pergunta: string
   try {
-    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+    admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     // Mesma regra da tela de Auditoria
-    const usuario = await exigirPerfil(req, admin, ['super_admin', 'coordenacao'])
-    const db = clienteDoUsuario(req)
-
-    const body = await req.json().catch(() => ({}))
+    usuario = await exigirPerfil(req, admin, ['super_admin', 'coordenacao'])
+    db = clienteDoUsuario(req)
+    body = await req.json().catch(() => ({}))
     // CPF/CNPJ/e-mail digitados também são mascarados antes de gravar e de ir à IA
-    const pergunta = redigirDadosPessoais(lerPergunta(body))
+    pergunta = redigirDadosPessoais(lerPergunta(body))
     if (!pergunta) return json({ error: 'Envie a pergunta.' }, 400)
-
     await conferirLimite(admin, usuario.id)
+  } catch (e) {
+    const r = erroParaPessoa(e)
+    return json({ error: r.msg }, r.status)
+  }
 
+  // ── A conversa em si; "avisar" recebe o andamento quando a tela pede streaming ──
+  async function responder(avisar?: Evento) {
     // Execução em contexto: a que a tela mostra (se a pessoa a enxerga) ou a última concluída
     let execucao: Record<string, unknown> | null = null
     const colunas = 'id, concluido_em, total_achados, achados_criticos, achados_altos, resumo_geral'
@@ -686,6 +724,7 @@ Deno.serve(async (req) => {
     // Histórico vem do banco (a tela não consegue inventar falas do assistente)
     const execucaoId = (execucao?.id as string) ?? null
     const { conversa, historico } = await abrirConversa(admin, usuario.id, body.conversa_id, execucaoId, pergunta)
+    avisar?.('conversa', { conversa_id: conversa.id })
     const { error: eIns } = await admin.from('ia_mensagens').insert({
       conversa_id: conversa.id, usuario_id: usuario.id, papel: 'user', conteudo: pergunta,
     })
@@ -699,6 +738,7 @@ Deno.serve(async (req) => {
       model: MODELO,
       max_tokens: 16000,
       max_iterations: MAX_RODADAS,
+      stream: true,
       output_config: { effort: 'medium' },
       // Recusa por política: a API refaz no modelo de reserva na mesma chamada
       betas: ['server-side-fallback-2026-07-01'],
@@ -713,7 +753,16 @@ Deno.serve(async (req) => {
 
     let entrada = 0, saidaTok = 0, cache = 0, cacheEscrita = 0
     let final: Anthropic.Beta.BetaMessage | null = null
-    for await (const msg of runner) {
+    for await (const rodada of runner) {
+      // Texto antes de uma consulta é só preâmbulo: a tela descarta ao receber "ferramenta"
+      rodada.on('streamEvent', (ev) => {
+        if (ev.type === 'content_block_start' && ev.content_block.type === 'tool_use') {
+          const nome = ev.content_block.name
+          avisar?.('ferramenta', { nome, rotulo: ROTULO_FERRAMENTA[nome] || nome })
+        }
+      })
+      rodada.on('text', (delta) => avisar?.('texto', { delta }))
+      const msg = await rodada.finalMessage()
       final = msg
       entrada += msg.usage.input_tokens
       saidaTok += msg.usage.output_tokens
@@ -736,13 +785,13 @@ Deno.serve(async (req) => {
       tokens: { entrada, saida: saidaTok, cache, cacheEscrita }, parada: final?.stop_reason,
     }))
 
-    // Grava a resposta; falha aqui não tira a resposta da pessoa
+    // Grava a resposta (o custo é calculado pelo banco, trg_ia_mensagem_custo); falha aqui não tira a resposta da pessoa
     const [r1, r2] = await Promise.all([
       admin.from('ia_mensagens').insert({
         conversa_id: conversa.id, usuario_id: usuario.id, papel: 'assistant', conteudo: resposta,
         ferramentas: usadas, modelo: final?.model ?? MODELO, parada: final?.stop_reason ?? null,
         tokens_entrada: entrada, tokens_saida: saidaTok, tokens_cache: cache, tokens_cache_escrita: cacheEscrita,
-      }),
+      }).select('id, custo_usd').single(),
       admin.from('ia_conversas').update({
         n_perguntas: Number(conversa.n_perguntas || 0) + 1,
         tokens_entrada: Number(conversa.tokens_entrada || 0) + entrada,
@@ -754,21 +803,43 @@ Deno.serve(async (req) => {
     ])
     if (r1.error || r2.error) console.error('[chat-auditor] gravar', r1.error?.message, r2.error?.message)
 
-    return json({
+    return {
       conversa_id: conversa.id,
+      mensagem_id: r1.data?.id ?? null,
+      custo_usd: r1.data?.custo_usd ?? null,
       resposta,
+      ferramentas: usadas,
       fontes: usadas.map((n) => ROTULO_FERRAMENTA[n] || n),
-      tokens: { input: entrada, output: saidaTok, cache_read: cache },
-    })
-  } catch (e) {
-    if (e instanceof SemAcesso) return json({ error: e.message }, statusDoErro(e))
-    if (e instanceof LimiteUso) return json({ error: e.message }, 429)
-    if (e instanceof Anthropic.RateLimitError) return json({ error: 'O assistente está muito requisitado agora. Tente de novo em um minuto.' }, 429)
-    if (e instanceof Anthropic.APIError) {
-      console.error('[chat-auditor] API', e.status, e.message)
-      return json({ error: 'O serviço de IA não respondeu. Tente de novo em instantes.' }, 502)
+      tokens: { input: entrada, output: saidaTok, cache_read: cache, cache_write: cacheEscrita },
     }
-    console.error('[chat-auditor]', e)
-    return json({ error: 'Erro interno do assistente.' }, 500)
+  }
+
+  // ── Com streaming (tela nova): eventos "conversa", "ferramenta", "texto", "fim" ou "erro" ──
+  if (body.stream === true) {
+    const enc = new TextEncoder()
+    const corpo = new ReadableStream({
+      async start(ctrl) {
+        const avisar: Evento = (nome, dado) => {
+          try { ctrl.enqueue(enc.encode(`event: ${nome}\ndata: ${JSON.stringify(dado)}\n\n`)) } catch { /* tela fechou */ }
+        }
+        try {
+          avisar('fim', await responder(avisar))
+        } catch (e) {
+          avisar('erro', { error: erroParaPessoa(e).msg })
+        }
+        try { ctrl.close() } catch { /* já fechado */ }
+      },
+    })
+    return new Response(corpo, {
+      headers: { ...cors, 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache' },
+    })
+  }
+
+  // ── Sem streaming (tela antiga em cache): uma resposta JSON ──
+  try {
+    return json(await responder())
+  } catch (e) {
+    const r = erroParaPessoa(e)
+    return json({ error: r.msg }, r.status)
   }
 })
