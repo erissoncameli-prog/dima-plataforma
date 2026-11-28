@@ -5,11 +5,11 @@
 
 ## Estado atual — 28/11/2026
 
-- **Mini gráficos nos números do topo — piloto (28/11, noite):** TDRs, Contratos e Financeiro ganharam um gráfico pequeno e uma
-  frase de leitura em cada quadro (`js/kpi-graficos.js` + `css/kpi-graficos.css`; regras no CLAUDE.md). Conferido com banco falso
-  (`tests/kpi-graficos/conferir.js`, Edge): 3 telas × 3 larguras × 2 temas, nada fora do quadro, sem erro. **Falta:** o usuário
-  olhar com dados reais e aprovar; depois Produtos, Viagens, Atividades, Fornecedores e Matriz (fase 2) e as demais (fase 3).
-  Mudança de contagem: TDR em licitação saiu de "Em andamento" (já contava em Aprovados); "Atrasados" não conta mais cancelado.
+- **Mini gráficos nos números do topo (28/11, noite), na main:** fase 1 (TDRs, Contratos, Financeiro) e fase 2 (Produtos, Viagens,
+  Atividades, Fornecedores, Matriz). Cada quadro tem gráfico + frase de leitura (`js/kpi-graficos.js`; regras no CLAUDE.md). Conferido
+  com banco falso (`tests/kpi-graficos/conferir.js`, Edge): 8 telas × 3 larguras × 2 temas, nada fora do quadro, sem erro. **Falta:**
+  conferir com dados reais; fase 3 (Remanejamento, Acervo, Patrimônio, Auditoria, Pulso, Usuários, Integrações, ROPA, Presença,
+  Diagnóstico, Repositório). Mudança de contagem: TDR em licitação saiu de "Em andamento"; "Atrasados" não conta cancelado.
 
 - **Lista de presença — relatório (28/11, fim da tarde), no ar:** PDF A4 **sempre em paisagem**, uma página por reunião, todos os
   campos (sexo, raça e idade para coordenação/super_admin) e **resumo por sexo e faixa de idade** de cada reunião (+ resumo geral
