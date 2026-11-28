@@ -38,6 +38,7 @@ const CHAT_FERRAMENTAS = {
   achados_auditoria: 'achados da auditoria', saldo_atividades: 'saldo das atividades',
   extrato_orcamento_atividade: 'extrato do orçamento', consultar_contrato: 'contratos', consultar_tdr: 'TDRs',
   execucao_direta_tdr: 'execução direta', remanejamentos: 'remanejamentos', produtos_contratos: 'produtos', viagens: 'viagens',
+  pessoas: 'pessoas', tarefas: 'tarefas',
 }
 
 // ── Ícones (SVG, sem emoji) ────────────────────────────────────
@@ -130,6 +131,13 @@ function domDe(a) {
       '<div class="au-side">' +
         '<div class="au-card" id="painel-dominios" hidden><h4>Abertos por domínio</h4><div id="dom-chart"></div></div>' +
         '<div class="au-card"><h4 id="hist-tit">Execuções</h4><div id="historico-execucoes"><div class="au-mini">Nenhuma execução ainda</div></div></div>' +
+        '<div class="au-card" id="painel-consumo">' +
+          '<div class="au-cons-h"><h4>' + (appState.perfil === 'super_admin' ? 'Consumo do assistente' : 'Seu uso do assistente') + '</h4>' +
+            '<select id="consumo-periodo" aria-label="Período do consumo" onchange="carregarConsumo()">' +
+              '<option value="mes">Este mês</option><option value="mes_ant">Mês passado</option><option value="30d">Últimos 30 dias</option>' +
+            '</select></div>' +
+          '<div id="consumo-corpo"><div class="au-mini">Carregando…</div></div>' +
+        '</div>' +
       '</div>' +
     '</div>' +
     '</div>'
@@ -140,7 +148,7 @@ function domDe(a) {
   ligarEventos()
 
   renderFaixa()
-  await Promise.all([carregarUltimaExecucao(), carregarHistorico()])
+  await Promise.all([carregarUltimaExecucao(), carregarHistorico(), carregarConsumo()])
 })()
 
 function ligarEventos() {
@@ -437,6 +445,57 @@ async function carregarHistorico() {
   }).join('')
 }
 
+// ── Consumo do assistente (fn_ia_consumo: super_admin vê todos; os demais, só o próprio) ──
+// Custo = ESTIMATIVA pelos tokens gravados e o preço de tabela (fn_ia_preco); a cobrança
+// real é a do Console da Anthropic, na conta dona da ANTHROPIC_API_KEY.
+function consumoPeriodo(p) {
+  const ymd = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') }
+  const hoje = new Date()
+  if (p === 'mes_ant') {
+    return [ymd(new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1)), ymd(new Date(hoje.getFullYear(), hoje.getMonth(), 0))]
+  }
+  if (p === '30d') return [ymd(new Date(hoje.getTime() - 29 * 86400e3)), ymd(hoje)]
+  return [ymd(new Date(hoje.getFullYear(), hoje.getMonth(), 1)), ymd(hoje)]
+}
+
+function fmtUsd(v) {
+  const n = Number(v || 0)
+  if (n > 0 && n < 0.01) return '< US$ 0,01'
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' })
+}
+
+async function carregarConsumo() {
+  const corpo = document.getElementById('consumo-corpo')
+  if (!corpo) return
+  const per = consumoPeriodo(document.getElementById('consumo-periodo')?.value || 'mes')
+  const { data, error } = await db.rpc('fn_ia_consumo', { p_inicio: per[0], p_fim: per[1] })
+  if (error) { corpo.innerHTML = '<div class="au-mini">Não foi possível ler o consumo.</div>'; return }
+  const linhas = data || []
+  const tot = linhas.reduce(function (t, l) {
+    t.perguntas += Number(l.perguntas || 0); t.custo += Number(l.custo_usd || 0); return t
+  }, { perguntas: 0, custo: 0 })
+  if (!tot.perguntas) {
+    corpo.innerHTML = '<div class="au-mini">Nenhuma pergunta ao assistente no período.</div>'
+    return
+  }
+  const todos = appState.perfil === 'super_admin'
+  corpo.innerHTML =
+    '<div class="au-cons-tot">' +
+      '<div><b>' + tot.perguntas.toLocaleString('pt-BR') + '</b><span>' + (tot.perguntas === 1 ? 'pergunta' : 'perguntas') + '</span></div>' +
+      '<div><b>' + fmtUsd(tot.custo) + '</b><span>custo estimado</span></div>' +
+      (todos ? '<div><b>' + linhas.length + '</b><span>' + (linhas.length === 1 ? 'pessoa' : 'pessoas') + '</span></div>' : '') +
+    '</div>' +
+    (todos
+      ? '<div class="au-cons-lista">' + linhas.map(function (l) {
+          return '<div class="au-cons-lin" title="Última pergunta: ' + esc(fmtDtHr(l.ultima)) + '">' +
+            '<span class="n">' + esc(l.nome || '—') + '</span>' +
+            '<span class="q">' + plural(Number(l.perguntas || 0), 'pergunta', 'perguntas') + '</span>' +
+            '<span class="v">' + fmtUsd(l.custo_usd) + '</span></div>'
+        }).join('') + '</div>'
+      : '') +
+    '<p class="au-cons-nota">Estimativa pelo preço de tabela da IA. A cobrança real está no Console da Anthropic.</p>'
+}
+
 // ── Disparar auditoria ─────────────────────────────────────────
 function setRodando(sim) {
   _rodando = sim
@@ -684,6 +743,7 @@ async function enviarMensagemChat() {
     const nova = !_chatConversaId
     if (json.conversa_id) _chatConversaId = json.conversa_id
     if (nova) carregarConversasChat(false)
+    carregarConsumo()
   } catch (e) {
     document.getElementById('chat-typing')?.remove()
     // Erro fica só na tela: não entra no histórico enviado ao modelo

@@ -1289,6 +1289,13 @@ Migrações `20261006_pulso_equipe*.sql` (a `_c_perguntas` torna as perguntas pe
   `fn_ia_aplicar_retencao` (cron `ia-retencao`) troca o texto por "[apagado pela retenção]" depois do prazo do TRAT-009
   (1 ano) — UPDATE, nunca apagar linha. Tela: seletor de conversas + "Nova conversa"; retoma a última se tiver < 12 h.
   Ferramenta nova ⇒ rótulo também em `CHAT_FERRAMENTAS` (`js/auditoria.js`).
+- **Tarefas e pessoas** (v7): ferramentas `tarefas` (por pessoa/papel, abertas/atrasadas, dias de atraso, subtarefas
+  pendentes; RLS de `tarefas` esconde as restritas) e `pessoas` (perfil e atividades; sem e-mail/telefone). Nome é achado
+  por busca aproximada (`casaNome`: palavra igual, começo ou até 2 letras trocadas) — "Elienton" acha "Elielton".
+- **Quadro de consumo** (migração `20261128_ia_consumo`): cartão "Consumo do assistente" na lateral da Auditoria, de
+  `fn_ia_consumo(inicio, fim)` (super_admin vê todas as pessoas; os demais, só o próprio; nunca o texto). Custo **estimado**
+  por `fn_ia_preco(modelo)` com tokens de entrada, saída, leitura e escrita de cache — preço mudou ⇒ mudar `fn_ia_preco`.
+  A cobrança real é a do Console da Anthropic (conta dona da `ANTHROPIC_API_KEY`).
 - Janela com classe **`au-ov`** (no seletor de escopo de `diagnostico-mesa.css`): Esc fecha, Tab preso, foco volta. O painel
   do assistente (`.au-chat`, também `au-ov`) não bloqueia a página; Esc fecha. "Perguntar ao assistente" no achado preenche a
   pergunta com título e referência.

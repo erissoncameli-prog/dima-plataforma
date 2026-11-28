@@ -125,6 +125,18 @@ body.dgm .au-sel { height: 36px; border: 1px solid var(--lin-forte); border-radi
 .au-hr.on { background: var(--pri-100); }
 .au-hr:focus-visible { outline: 0; box-shadow: var(--anel); }
 .au-hr .d { font-family: var(--font-mono); color: var(--txt-2); }
+.au-cons-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.au-cons-h select { font-size: 12px; padding: 4px 6px; max-width: 150px; }
+.au-cons-tot { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; }
+.au-cons-tot div { background: var(--sup-2); border-radius: 9px; padding: 8px 10px; }
+.au-cons-tot b { display: block; font-size: 15px; color: var(--txt); font-variant-numeric: tabular-nums; }
+.au-cons-tot span { font-size: 11px; color: var(--txt-2); }
+.au-cons-lista { display: flex; flex-direction: column; }
+.au-cons-lin { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--lin); font-size: 12.5px; }
+.au-cons-lin .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--txt); }
+.au-cons-lin .q { color: var(--txt-2); font-size: 11.5px; }
+.au-cons-lin .v { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--txt); }
+.au-cons-nota { margin: 0; font-size: 11px; color: var(--txt-2); }
 .au-mini { font-size: 12px; color: var(--txt-3); text-align: center; padding: 10px 0; }
 
 /* ── Janela (resolver / ignorar) ─────────────────────────────────────── */
