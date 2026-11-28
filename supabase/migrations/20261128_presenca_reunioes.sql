@@ -477,7 +477,7 @@ begin
         'id', ls.id, 'tarefa_id', ls.tarefa_id, 'codigo', ls.codigo, 'titulo', ls.titulo, 'inicio', ls.inicio_reuniao,
         'formato', ls.dados_tipo->>'formato', 'cancelada', ls.t_status = 'cancelada',
         'atividade', (select codigo from public.atividades where id = ls.atividade_id),
-        'aberta', public.fn_presenca_aberta(ls::public.presenca_listas), 'convidados', ls.n_conv,
+        'aberta', public.fn_presenca_aberta((select pl from public.presenca_listas pl where pl.id = ls.id)), 'convidados', ls.n_conv,
         'assinaturas', (select count(*) from ass where ass.lista_id = ls.id),
         'convidados_assinaram', (select count(*) from ass where ass.lista_id = ls.id and ass.usuario_id in (select uid from public.fn_presenca_convidados(ls.tarefa_id))),
         'sem_imagem', (select count(*) from ass where ass.lista_id = ls.id and (not ass.imagem_autoriza or ass.imagem_revogada_em is not null))
