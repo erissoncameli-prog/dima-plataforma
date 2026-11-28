@@ -70,11 +70,12 @@
 
 /* Tabelas */
 .rep-tbl { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px; }
-.rep-tbl th { padding: 7px 8px; font-size: 8.5px; font-weight: 700; color: var(--cinza-500); text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #1F4E2C; background: #f0f7f2; text-align: left; white-space: normal; overflow-wrap: break-word; vertical-align: bottom; }
+/* Visual sóbrio de prestação de contas (opção A, 28/11/2026): cabeçalho sem fundo e sem caixa alta, uma linha escura embaixo;
+   zebrado cinza neutro que aparece no papel; sem efeito de mouse (é documento para imprimir). O verde fica na identidade da folha. */
+.rep-tbl th { padding: 7px 8px; font-size: 9px; font-weight: 600; color: #374151; text-align: left; white-space: normal; overflow-wrap: break-word; vertical-align: bottom; border-bottom: 1.5px solid #1F2937; background: transparent; }
 .rep-tbl td { padding: 6px 8px; border-bottom: 1px solid var(--borda); color: var(--cinza-700); vertical-align: middle; overflow-wrap: break-word; }
-.rep-tbl tbody tr:nth-child(even) td { background: #fafcfa; }
-.rep-tbl tbody tr:hover td { background: #f0f7f2; }
-.rep-tbl tfoot td { padding: 8px 10px; font-weight: 700; color: var(--cinza-900); border-top: 2px solid #1F4E2C; background: #f0f7f2; }
+.rep-tbl tbody tr:nth-child(even) td { background: #F5F6F7; }
+.rep-tbl tfoot td { padding: 8px 10px; font-weight: 700; color: var(--cinza-900); border-top: 1.5px solid #1F2937; background: transparent; }
 /* Colunas curtas (número, data, código, selo) ocupam só o próprio conteúdo e não quebram: o texto corrido
    fica com o resto da largura. Automático para td.mono e célula que só tem um selo; .c-min marca outras. */
 .rep-tbl td.mono, .rep-tbl .c-min, .rep-tbl td:has(> .rep-badge:only-child) { width: 1%; white-space: nowrap; }
@@ -84,8 +85,7 @@
    O grupo não se separa entre páginas (FolhaA4.paginar respeita break-inside: avoid). */
 .rep-tbl tbody.rep-grupo { break-inside: avoid; page-break-inside: avoid; }
 .rep-tbl tbody.rep-grupo tr td { background: transparent; }
-.rep-tbl tbody.rep-grupo:nth-of-type(even) td { background: #fafcfa; }
-.rep-tbl tbody.rep-grupo:hover td { background: #f0f7f2; }
+.rep-tbl tbody.rep-grupo:nth-of-type(even) td { background: #F5F6F7; }
 .rep-tbl tbody.rep-grupo tr.rep-mae td { border-bottom: 0; padding-bottom: 3px; }
 .rep-tbl tr.rep-det td { padding-top: 0; padding-bottom: 9px; font-size: 9.5px; line-height: 1.5; color: var(--cinza-600); }
 .rep-det-lbl { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--cinza-500); margin-right: 6px; }
@@ -96,13 +96,18 @@
 .rep-cod { font-family: var(--font-mono); font-size: 10px; background: #D1FAE5; color: #065F46; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
 
 /* Números */
-.rep-stats { display: grid; gap: 12px; margin-bottom: 20px; }
+.rep-stats { display: grid; gap: 14px 28px; margin-bottom: 20px; }
 .rep-stats-4 { grid-template-columns: repeat(4, 1fr); }
 .rep-stats-3 { grid-template-columns: repeat(3, 1fr); }
-.rep-stat { background: #f0f7f2; border: 1px solid #c8e6d0; border-radius: var(--raio); padding: 12px 14px; }
-.rep-stat-lbl { font-size: 9px; font-weight: 700; color: #2D6A4F; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
-.rep-stat-val { font-size: 18px; font-weight: 700; color: var(--cinza-900); font-family: var(--font-mono); letter-spacing: -.01em; }
-.rep-stat-sub { font-size: 10px; color: var(--cinza-500); margin-top: 2px; }
+/* Número em destaque: sem cartão (fundo, borda, canto), só um filete escuro em cima; valor na fonte do texto com algarismos
+   alinhados (nunca fonte de máquina no número do topo). O valor só quebra no espaço ("R$ | 1.234,56"), nunca no meio. */
+.rep-stat { background: transparent; border: 0; border-top: 2px solid #1F2937; border-radius: 0; padding: 8px 0 2px; }
+.rep-stat-lbl { font-size: 10px; font-weight: 600; color: var(--cinza-600); margin-bottom: 2px; }
+.rep-stat-val { font-size: 20px; font-weight: 600; color: var(--cinza-900); font-family: var(--font-sans); font-variant-numeric: tabular-nums lining-nums; letter-spacing: -.01em; line-height: 1.25; overflow-wrap: normal; word-break: keep-all; }
+.rep-stat-sub { font-size: 9.5px; color: var(--cinza-500); margin-top: 2px; }
+/* texto secundário numa célula (e-mail, observação): menor que o texto da linha e acompanha a redução da folha */
+.rep-sm { font-size: 10px; color: var(--cinza-500); }
+.doc-fit .rep-sm { font-size: 7.5px; }
 
 /* Seção */
 .rep-secao { margin-bottom: 20px; }
@@ -136,13 +141,17 @@
 
 /* Modo compacto p/ caber relatório largo em Retrato sem cortar coluna (auto-ajuste) */
 .doc-fit .rep-tbl { width: 100%; font-size: 8px; }
-.doc-fit .rep-stat-val { font-size: 14px; }
+.doc-fit .rep-stat-val { font-size: 16px; }
 .doc-fit .doc-body [style*="nowrap"] { white-space: normal !important; }
 .doc-fit .rep-tbl th, .doc-fit .rep-tbl td { overflow-wrap: break-word; padding: 4px 5px; }
 .doc-fit .rep-tbl th, .doc-fit .rep-tbl td:not(.mono):not(.c-min) { white-space: normal !important; }
-/* último recurso: palavra/endereço que sozinho não cabe quebra em qualquer ponto — só texto corrido.
-   Número e data só quebram no espaço ("R$ | 10.059,74"), nunca no meio (era o "R$ 2.4 | 22,0 | 6"). */
-.doc-fit.doc-fit-max .doc-body td, .doc-fit.doc-fit-max .doc-body th { overflow-wrap: anywhere; }
+/* último recurso: colunas de número/data deixam de reservar a linha inteira e o texto secundário quebra.
+   NUNCA overflow-wrap:anywhere em td/th: zera a largura mínima da coluna de texto, que encolhe até uma letra
+   (C1 em retrato virou 63 páginas; títulos saíam "FORNECEDO R"). Só endereço sem espaço (link, .rep-quebra) quebra em qualquer ponto.
+   Número e data só quebram no espaço ("R$ | 10.059,74"), nunca no meio. */
+.doc-fit.doc-fit-max .doc-body td, .doc-fit.doc-fit-max .doc-body th { overflow-wrap: break-word; }
+.doc-fit.doc-fit-max .doc-body td a, .doc-fit.doc-fit-max .doc-body .rep-quebra { overflow-wrap: anywhere; }
+.doc-fit.doc-fit-max .rep-sub { white-space: normal; }
 .doc-fit.doc-fit-max .rep-tbl td.mono, .doc-fit.doc-fit-max .rep-tbl .c-min { width: auto; white-space: normal !important; }
 .doc-fit.doc-fit-max .doc-body .mono, .doc-fit.doc-fit-max .doc-body .mono-sm, .doc-fit.doc-fit-max .doc-body .rep-cod, .doc-fit.doc-fit-max .doc-body .rep-badge { overflow-wrap: normal; word-break: keep-all; }
 
@@ -160,7 +169,6 @@
   /* paginação segura: linha, número, cartão e bloco não se partem; título de seção não fica sozinho */
   .doc-body tr, .rep-stat, .rep-barra, img { break-inside: avoid; page-break-inside: avoid; }
   .rep-secao-titulo, .doc-body h3, .doc-body h4 { break-after: avoid; page-break-after: avoid; }
-  .rep-tbl tbody tr:hover td { background: inherit; }
 }
 
 /* ── Páginas montadas por FolhaA4.paginar (cabeçalho, rodapé e "Página X de Y" em cada uma) ──

@@ -4791,8 +4791,15 @@ async function relU1(){
 // ══════════════════════════════════════════════════════════════
 // HELPERS COMPARTILHADOS — entregas
 // ══════════════════════════════════════════════════════════════
-const SIT_CONT = {vigente:'Vigente',encerrado:'Encerrado',rescindido:'Rescindido',suspenso:'Suspenso'};
-const COR_CONT = {vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho'};
+// Rótulo e cor únicos para situação de contrato e de produto e tipo de contrato: todo relatório usa estes
+// (nunca o código cru do banco no selo — "AGUARDANDO_COBERTURA", "SERVICO").
+const SIT_CONT = {vigente:'Vigente',encerrado:'Encerrado',rescindido:'Rescindido',suspenso:'Suspenso',aguardando_cobertura:'Aguardando cobertura',cancelado:'Cancelado'};
+const COR_CONT = {vigente:'rb-verde',encerrado:'rb-cinza',rescindido:'rb-ouro',suspenso:'rb-vermelho',aguardando_cobertura:'rb-vermelho',cancelado:'rb-cinza'};
+const TIPO_CONT = {Servico:'Serviço',servico:'Serviço',Consultoria:'Consultoria',Consumo:'Consumo',Equipamentos:'Equipamentos',Obra:'Obra'};
+const rotuloCodigo = v => { const t = String(v||'').replace(/_/g,' ').trim(); return t ? t.charAt(0).toUpperCase()+t.slice(1) : '—'; };
+const seloCont = s => `<span class="rep-badge ${COR_CONT[s]||'rb-cinza'}">${esc(SIT_CONT[s]||rotuloCodigo(s))}</span>`;
+const seloProd = s => `<span class="rep-badge ${COR_PROD[s]||'rb-cinza'}">${esc(SIT_PROD[s]||rotuloCodigo(s))}</span>`;
+const tipoCont = t => t ? esc(TIPO_CONT[t]||t) : '—';
 const SIT_PROD = {pendente:'Pendente',em_analise:'Em Análise',aprovado:'Aprovado',pago:'Pago',cancelado:'Cancelado',entrega_parcial:'Parcial',devolvido:'Devolvido'};
 const COR_PROD = {pendente:'rb-ouro',em_analise:'rb-azul',aprovado:'rb-verde',pago:'rb-teal',cancelado:'rb-cinza',entrega_parcial:'rb-ouro',devolvido:'rb-vermelho'};
 const SIT_ENT  = {pendente:'Pendente',em_analise:'Em Análise',aprovada:'Aprovada',devolvida:'Devolvida'};

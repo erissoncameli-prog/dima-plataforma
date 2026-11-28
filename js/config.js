@@ -356,7 +356,7 @@ function fmtUSD(v) {
   return 'U$ ' + new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
 }
 function fmtPct1(v) {
-  return v == null ? '—' : Number(v).toFixed(1) + '%';
+  return v == null ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
 }
 function fmtData(d) {
   if (!d) return '—';
