@@ -24,6 +24,10 @@
   }
   const msgErro = e => { const m = String(e && e.message || e).match(/presenca:([a-z_]+)/); return (m && ERROS[m[1]]) || 'Não foi possível concluir. Tente de novo.' }
   const pct = (a, b) => b ? Math.round(a * 100 / b) : 0
+  const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  // situação de uma reunião na tabela do gerenciador
+  const sitLinha = r => r.cancelada ? { cls: 'canc', txt: 'Cancelada' } : r.aberta ? { cls: 'aberta', txt: 'Aberta' }
+    : new Date(r.inicio) - 9e5 > Date.now() ? { cls: 'agendada', txt: 'Agendada' } : { cls: 'fechada', txt: 'Encerrada' }
 
   // situação da lista em palavras
   function situacao (l, cancelada) {
@@ -301,13 +305,13 @@
       </div>
       ${rs.length ? `<div class="pp-tabela"><table>
         <thead><tr><th>Data</th><th>Reunião</th><th>Formato</th><th class="r">Presenças</th><th class="r">Convidados</th><th class="r">Sem imagem</th><th>Situação</th></tr></thead>
-        <tbody>${rs.map(r => { const s = situacao({ aberta: r.aberta, abre_em: new Date(new Date(r.inicio) - 9e5).toISOString(), fecha_em: null, encerrada_em: !r.aberta && new Date(r.inicio) < new Date() }, r.cancelada)
+        <tbody>${rs.map(r => { const s = sitLinha(r)
           return `<tr class="pp-clic" data-pp-ver="${r.id}" tabindex="0">
             <td class="pp-mono">${esc(diaHora(r.inicio))}</td>
             <td><b>${esc(r.titulo)}</b><div class="pp-suave">${esc(r.codigo || '')}${r.atividade ? ' · ' + esc(r.atividade) : ''}</div></td>
             <td>${esc(r.formato || '—')}</td><td class="r"><b>${r.assinaturas}</b></td>
             <td class="r">${r.convidados_assinaram}/${r.convidados}</td><td class="r">${r.sem_imagem || ''}</td>
-            <td><span class="pp-sit pp-sit-${s.cls}">${esc(r.aberta ? 'Aberta' : s.txt)}</span></td></tr>` }).join('')}</tbody></table></div>`
+            <td><span class="pp-sit pp-sit-${s.cls}">${esc(s.txt)}</span></td></tr>` }).join('')}</tbody></table></div>`
         : `<div class="pp-vazio">${ic('cal')}<b>Nenhuma reunião no filtro</b>Toda tarefa do tipo Reunião ganha uma lista de presença automaticamente.</div>`}`
   }
   document.addEventListener('keydown', ev => { if (ev.key === 'Enter' && ev.target.matches && ev.target.matches('tr[data-pp-ver]')) abrirDetalhe(ev.target.dataset.ppVer) })
