@@ -480,7 +480,8 @@ begin
         'aberta', public.fn_presenca_aberta((select pl from public.presenca_listas pl where pl.id = ls.id)), 'convidados', ls.n_conv,
         'assinaturas', (select count(*) from ass where ass.lista_id = ls.id),
         'convidados_assinaram', (select count(*) from ass where ass.lista_id = ls.id and ass.usuario_id in (select uid from public.fn_presenca_convidados(ls.tarefa_id))),
-        'sem_imagem', (select count(*) from ass where ass.lista_id = ls.id and (not ass.imagem_autoriza or ass.imagem_revogada_em is not null))
+        'sem_imagem', (select count(*) from ass where ass.lista_id = ls.id and (not ass.imagem_autoriza or ass.imagem_revogada_em is not null)),
+        'pode_gerir', public.fn_presenca_pode_gerir(ls.id)
       ) order by ls.inicio_reuniao desc) from ls), '[]'::jsonb),
     'indicadores', jsonb_build_object(
       'reunioes_realizadas', (select count(*) from ls where ls.t_status <> 'cancelada' and ls.inicio_reuniao <= now()),
